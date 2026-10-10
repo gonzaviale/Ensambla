@@ -1,5 +1,10 @@
 package com.ensambla.backend.domain.model.proyecto;
 
+import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.BloquePlantilla;
+import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.CampoPlantilla;
+import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -7,6 +12,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -30,4 +37,55 @@ public class Proyecto {
     private OffsetDateTime creadoEn;
 
     private OffsetDateTime actualizadoEn;
+
+    @Builder.Default
+    private List<Bloque> bloques = List.of();
+
+    public static Proyecto enBlanco(UUID negocioId, String nombre, String descripcion, OffsetDateTime ahora) {
+        return Proyecto.builder()
+                .negocioId(negocioId)
+                .nombre(nombre.strip())
+                .descripcion(descripcion)
+                .creadoEn(ahora)
+                .actualizadoEn(ahora)
+                .build();
+    }
+
+    public static Proyecto desdePlantilla(UUID negocioId, PlantillaProyecto plantilla, OffsetDateTime ahora) {
+        Proyecto proyecto = enBlanco(negocioId, plantilla.nombre(), plantilla.descripcion(), ahora);
+        proyecto.setPlantillaId(plantilla.id());
+        List<Bloque> bloques = new ArrayList<>();
+        for (BloquePlantilla definicion : plantilla.estructura().bloques()) {
+            Bloque bloque = Bloque.builder()
+                    .negocioId(negocioId)
+                    .nombre(definicion.nombre())
+                    .posicion((short) bloques.size())
+                    .creadoEn(ahora)
+                    .actualizadoEn(ahora)
+                    .build();
+            List<Campo> campos = new ArrayList<>();
+            for (CampoPlantilla campo : definicion.campos()) {
+                campos.add(Campo.builder()
+                        .negocioId(negocioId)
+                        .nombre(campo.nombre())
+                        .tipo(campo.tipo())
+                        .obligatorio(campo.obligatorio())
+                        .valorInicial(campo.valorInicial())
+                        .opciones(campo.opciones())
+                        .posicion((short) campos.size())
+                        .creadoEn(ahora)
+                        .actualizadoEn(ahora)
+                        .build());
+            }
+            bloque.setCampos(campos);
+            bloques.add(bloque);
+        }
+        proyecto.setBloques(bloques);
+        return proyecto;
+    }
+
+    public void renombrar(String nombre, OffsetDateTime ahora) {
+        this.nombre = nombre.strip();
+        this.actualizadoEn = ahora;
+    }
 }

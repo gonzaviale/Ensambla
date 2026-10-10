@@ -7,6 +7,9 @@ import com.ensambla.backend.infrastructure.repository.mapper.NegocioRepositoryMa
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+import java.util.UUID;
+
 @Component
 @RequiredArgsConstructor
 public class NegocioRepositoryImpl implements NegocioRepository {
@@ -18,6 +21,12 @@ public class NegocioRepositoryImpl implements NegocioRepository {
     public Negocio save(Negocio negocio) {
         return negocioRepositoryMapper.toDomain(
                 negocioJpaRepository.saveAndFlush(negocioRepositoryMapper.toEntity(negocio)));
+    }
+
+    @Override
+    public Optional<UUID> findIdByDuenioId(UUID usuarioId) {
+        return negocioJpaRepository.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(usuarioId)
+                .map(negocio -> negocio.getId());
     }
 }
 

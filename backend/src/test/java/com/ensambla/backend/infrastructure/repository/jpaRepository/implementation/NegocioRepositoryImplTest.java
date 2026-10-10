@@ -7,6 +7,9 @@ import com.ensambla.backend.infrastructure.repository.mapper.NegocioRepositoryMa
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.Optional;
+
+import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.UsuarioTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,6 +36,19 @@ class NegocioRepositoryImplTest {
         assertThat(result.getId()).isEqualTo(USUARIO_ID);
         assertThat(result.getNombre()).isEqualTo("Mi negocio");
         assertThat(result.getDuenioId()).isEqualTo(USUARIO_ID);
+    }
+    
+    @Test
+    @DisplayName("Resuelve el id del negocio del dueño autenticado")
+    void findIdByDuenioIdShouldMapId() {
+        var jpa = mock(INegocioJpaRepository.class);
+        var mapper = new NegocioRepositoryMapper();
+        when(jpa.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(USUARIO_ID))
+                .thenReturn(Optional.of(NegocioEntity.builder().id(NEGOCIO_ID).build()));
+
+        var result = new NegocioRepositoryImpl(jpa, mapper).findIdByDuenioId(USUARIO_ID);
+
+        assertThat(result).contains(NEGOCIO_ID);
     }
 }
 

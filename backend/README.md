@@ -84,6 +84,16 @@ con `@ConditionalOnProperty(prefix = "ensambla.ia", name = "proveedor", havingVa
 | `POST /api/auth/logout` | público + CSRF | Invalida sesión y cookie; 204 |
 | `GET /api/auth/me` | sesión | Identidad actual sin contraseña ni hash; 200 o 401 |
 | `GET /api/plantillas` | público | Plantillas activas con su estructura, ordenadas por nombre |
+| `GET /api/proyectos` | sesión | Proyectos del negocio del usuario autenticado |
+| `GET /api/proyectos/{proyectoId}` | sesión | Proyecto con sus bloques y campos ordenados |
+| `POST /api/proyectos` | sesión + CSRF | Crear en blanco: `nombre` y `descripcion` opcional |
+| `POST /api/proyectos/desde-plantilla/{plantillaId}` | sesión + CSRF | Copiar una plantilla activa con ids nuevos |
+| `PATCH /api/proyectos/{proyectoId}` | sesión + CSRF | Renombrar: `nombre` |
+| `DELETE /api/proyectos/{proyectoId}` | sesión + CSRF | Eliminar proyecto y sus bloques, campos y registros |
+
+V3 carga Inventario, Pedidos y Clientes. La copia de una plantilla se guarda en una única transacción.
+El negocio se resuelve desde el dueño autenticado (primero por creación e id, hasta el selector de T-061);
+no se acepta un `negocioId` del cliente. Consultar, renombrar o eliminar un proyecto ajeno devuelve 404.
 
 Los endpoints de acceso están implementados. El contrato del cliente está en `frontend/src/api/auth.ts`.
 Ver [acceso-sesion.md](../docs/acceso-sesion.md) para validaciones, sesión y pruebas.
