@@ -23,13 +23,8 @@ describe('API simulada según VITE_API_MOCKS', () => {
     );
   });
 
-  it('en modo parcial deja bloques al backend (T-017) y simula sólo campos (T-018)', () => {
-    expect(rutas('parcial')).toEqual([
-      'GET /bloques/:bloqueId/campos',
-      'POST /bloques/:bloqueId/campos',
-      'PATCH /campos/:campoId',
-      'DELETE /campos/:campoId',
-    ]);
+  it('en modo parcial deja bloques (T-017) y campos (T-018) al backend real', () => {
+    expect(rutas('parcial')).toEqual([]);
   });
 
   it('en modo ninguno no simula nada', () => {

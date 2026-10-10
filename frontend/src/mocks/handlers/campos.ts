@@ -13,13 +13,8 @@ import {
 import { errorResponse } from '../errores';
 import { api, exigirCsrf, exigirSesion, LATENCIA_BACKEND_MS } from './comun';
 
-// Contrato de T-018 (campos de un bloque), que el backend todavía no implementa.
-//
-// - completo: los campos viven en la estructura del proyecto simulado (`proyecto.bloques[].campos`),
-//   con sesión y CSRF como el resto de la API simulada.
-// - parcial: proyectos, bloques y sesión son del backend real, así que estos handlers no pueden
-//   validar la sesión ni el token CSRF (los emite el servidor) ni saber si el bloque existe: guardan
-//   los campos en memoria por bloqueId. Se pierden al recargar y GET /proyectos/{id} no los incluye.
+// Contrato de T-018 (campos de un bloque) para el modo completo: los campos viven en la estructura del
+// proyecto simulado (`proyecto.bloques[].campos`), con sesión y CSRF como el resto de la API simulada.
 
 const MAX_NOMBRE = 120;
 
@@ -64,27 +59,6 @@ const almacenCompleto: Almacen = {
         const contenedor = campo && this.bloque(bloque.id);
         if (campo && contenedor) return { contenedor, campo };
       }
-    }
-    return undefined;
-  },
-};
-
-const FECHA_BASE_PARCIAL = new Date().toISOString();
-
-const almacenParcial: Almacen = {
-  privado: () => null,
-  bloque(bloqueId) {
-    return {
-      bloqueId,
-      campos: () => estado.camposDeBloquesReales.get(bloqueId) ?? [],
-      reemplazar: (campos) => estado.camposDeBloquesReales.set(bloqueId, campos),
-      fechaBase: FECHA_BASE_PARCIAL,
-    };
-  },
-  campo(campoId) {
-    for (const [bloqueId, campos] of estado.camposDeBloquesReales) {
-      const campo = campos.find((item) => item.id === campoId);
-      if (campo) return { contenedor: this.bloque(bloqueId) as Contenedor, campo };
     }
     return undefined;
   },
@@ -253,6 +227,3 @@ function crearHandlers(almacen: Almacen) {
 }
 
 export const handlersCampos = crearHandlers(almacenCompleto);
-
-/** Modo parcial: bloques y sesión los atiende el backend real (ver comentario de arriba). */
-export const handlersCamposSobreBackendReal = crearHandlers(almacenParcial);
