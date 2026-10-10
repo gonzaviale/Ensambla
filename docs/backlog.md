@@ -46,7 +46,7 @@ Columna **Base** = qué deja resuelto esta estructura inicial y qué falta.
 
 | ID | Área | Talle | Tarea | Depende de | Base |
 |---|---|---|---|---|---|
-| T-017 | BE | S | CRUD de bloques | T-012 | 🟡 `GET`/`POST /api/proyectos/{id}/bloques`, `PATCH`/`DELETE /api/bloques/{id}`; falta `verify` con Docker |
+| T-017 | BE | S | CRUD de bloques | T-012 | 🟡 `GET`/`POST /api/proyectos/{id}/bloques`, `PATCH`/`DELETE /api/bloques/{id}`; nombre único por proyecto (409) y borrado en cascada probado contra PostgreSQL |
 | T-018 | BE | M | CRUD de campos tipados | T-017 | 🟡 `GET`/`POST /api/bloques/{id}/campos`, `PATCH`/`DELETE /api/campos/{id}`; `ConfiguracionCampo` valida tipo, opciones y valor inicial (400 con `errors` por dato) y `Bloque` el nombre único (409) |
 | T-019 | FE | M | Layout del constructor | T-015 | 🟡 ruta `/proyectos/$proyectoId/construir` placeholder |
 | T-020 | FE | S | Agregar, renombrar y eliminar bloques | T-019, T-017 | ⏳ falta |
