@@ -49,6 +49,29 @@ Los datos simulados viven en memoria y se reinician al recargar la página.
 La carga efectiva de fotos y el editor de bloques corresponden a otras historias. El constructor muestra
 los campos copiados de la plantilla o una orientación para el primer bloque si el proyecto está vacío.
 
+### Cargar registros (ENS-6 · ENS-52/T-024 y ENS-53/T-025)
+
+En modo `completo`, creá un proyecto desde una plantilla, abrilo y elegí **Cargar datos**.
+El modo usar permite elegir un bloque y genera sus controles de texto, número, fecha, opción y sí/no,
+respetando el orden y los valores iniciales. Los borradores se conservan al cambiar de bloque dentro
+de la pantalla; se pierden al salir o recargar. Después de confirmar el guardado se vuelven a aplicar
+los valores iniciales para cargar el próximo registro.
+
+- Probá guardar Inventario sin Nombre: aparece el error junto al campo y recibe el foco.
+- Completá Nombre y guardá: Stock `0` es válido; aparece el aviso de éxito.
+- En Pedidos, Entrega usa un control de fecha y Entregado permite Sí/No, inicialmente No.
+- Durante el guardado quedan deshabilitados el formulario y el selector de bloque. Los errores
+  del servidor aparecen por campo y en un aviso; conservan lo escrito. No hay reintento automático
+  ante fallas de red.
+- Un proyecto sin bloques o un bloque sin campos muestra una orientación y no permite enviar.
+
+El cliente usa `POST /api/bloques/{bloqueId}/registros` con `{ valores: { [idCampo]: valor } }`,
+sesión y CSRF. Envía números y booleanos JSON, fechas `YYYY-MM-DD` y omite opcionales vacíos.
+El contrato sigue la rama de Facundo `feat/ens-7-registros-backend`. El backend de ENS-50/T-022 y
+ENS-51/T-023 y la autenticación real deben integrarse en `dev` antes de probar con `ninguno`.
+La simulación y los tests no verifican persistencia real en PostgreSQL. El listado/edición de registros
+corresponde a ENS-7 y no se incluye aquí. Ver [plan y contrato](../docs/plan-ENS-6.md).
+
 ### Probar la tabla de registros (H-06)
 
 En el modo `completo`, abrí un proyecto y entrá a `/proyectos/<id>/usar`. La tabla lista los registros de cada
