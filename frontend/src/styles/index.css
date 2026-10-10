@@ -1,0 +1,98 @@
+@import 'tailwindcss';
+
+/* Tokens del manual de marca de Ensambla (docs/marca.md). Tema claro, tipografía Plus Jakarta Sans. */
+@theme {
+  --font-sans: 'Plus Jakarta Sans', 'Lato', system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+
+  --color-*: initial;
+  --color-white: #fff;
+  --color-transparent: transparent;
+
+  /* Marca: naranja = acción, pizarra = estructura y texto, marfil = fondo */
+  --color-canvas: #fff8f1; /* Marfil */
+  --color-surface: #ffffff;
+  --color-fg: #263443; /* Pizarra */
+  --color-accent: #f97316; /* Naranja */
+  --color-coral: #fb5852; /* Coral */
+  --color-sand: #e6c9a8; /* Arena */
+  --color-amber: #f59e0b; /* Ámbar */
+
+  /* Escala del naranja de acción (500 = marca). Para texto sobre claro usar 700-800. */
+  --color-accent-100: #fff3e8;
+  --color-accent-200: #ffe0c2;
+  --color-accent-300: #ffc48a;
+  --color-accent-400: #ff9f4f;
+  --color-accent-500: #f97316;
+  --color-accent-600: #e2620b;
+  --color-accent-700: #c2540a;
+  --color-accent-800: #9a4108;
+  --color-accent-900: #6e2e06;
+
+  --color-line: #e9e4de;
+  --color-muted: #5a6570; /* texto terciario, 5.7:1 sobre marfil */
+  --color-soft: #3e4b59; /* texto secundario */
+  --color-ok: #2f7a55;
+  --color-warn: #9a5b06;
+  --color-bad: #c42b2b;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --shadow-sm: 0 1px 2px rgba(38, 52, 67, 0.08);
+  --shadow-md: 0 4px 14px rgba(38, 52, 67, 0.1);
+  --shadow-lg: 0 14px 36px rgba(38, 52, 67, 0.14);
+
+  --animate-fade-in: fade-in 0.25s ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  body {
+    margin: 0;
+    background: var(--color-canvas);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+  }
+  a {
+    color: var(--color-accent-800);
+  }
+  a:hover {
+    color: var(--color-accent-900);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent-700);
+    outline-offset: 2px;
+  }
+  /* Controles táctiles de al menos 44px (manual y T-035) */
+  button,
+  input,
+  textarea,
+  select {
+    min-height: 2.75rem;
+  }
+}
