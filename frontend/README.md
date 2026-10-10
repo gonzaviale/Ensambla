@@ -23,7 +23,7 @@ npm run dev        # http://localhost:5173 (proxy /api → http://localhost:8080
 
 | Valor | Comportamiento |
 |---|---|
-| `parcial` | Reservado para endpoints pendientes; hoy todos los handlers pasan al backend real |
+| `parcial` | Backend real salvo lo pendiente: hoy sólo los campos de un bloque (T-018) |
 | `completo` | Todo simulado con MSW; no hace falta backend |
 | `ninguno` (default) | Todo contra el backend real, incluidos registro, login y logout |
 
@@ -46,8 +46,23 @@ Ingresá en `/login` con `demo@ensambla.local` / `EnsamblaDemo2026!`. Esta cuent
 Podés crear en blanco o desde Inventario, Pedidos y Clientes; abrir, renombrar y eliminar proyectos.
 Los datos simulados viven en memoria y se reinician al recargar la página.
 
-La carga efectiva de fotos y el editor de bloques corresponden a otras historias. El constructor muestra
-los campos copiados de la plantilla o una orientación para el primer bloque si el proyecto está vacío.
+La carga efectiva de fotos corresponde a otra historia.
+
+### Probar el constructor (ENS-5 · H-04)
+
+En `/proyectos/<id>/construir` (botón «Abrir proyecto»): lista de bloques a la izquierda y el bloque elegido
+a la derecha; en el celular, primero la lista y al tocar un bloque su detalle («Ver todos los bloques» o el
+botón atrás vuelven). El bloque abierto queda en la URL (`?bloque=<id>`). Se agregan, renombran y eliminan
+bloques (con confirmación) y sus datos (campos) de los cinco tipos, con obligatorio, valor inicial y opciones.
+En la interfaz los campos se llaman «datos» (cada uno es una columna de la tabla).
+
+- Contrato: `src/api/bloques.ts` (T-017, ya en el backend) y `src/api/campos.ts` (T-018).
+- `completo`: bloques y campos simulados sobre el proyecto en memoria, con las validaciones del backend
+  (409 por nombre repetido, 400 con `errors`).
+- `parcial`: bloques van al backend real y sólo `/bloques/{id}/campos` y `/campos/{id}` se simulan
+  (`handlersCamposSobreBackendReal`). Como la sesión y el token CSRF son del servidor real, ese mock no los
+  valida, guarda los campos en memoria por bloque (se pierden al recargar) y `GET /proyectos/{id}` no los
+  incluye. Cuando llegue T-018, se saca esa línea de `src/mocks/handlers/index.ts`.
 
 ### Probar la tabla de registros (H-06)
 
