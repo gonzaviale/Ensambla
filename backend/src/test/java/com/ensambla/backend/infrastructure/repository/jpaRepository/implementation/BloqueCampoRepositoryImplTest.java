@@ -19,6 +19,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,6 +45,28 @@ class BloqueCampoRepositoryImplTest {
         Optional<Bloque> result = repository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID);
 
         assertThat(result).map(Bloque::getNombre).contains("Productos");
+    }
+
+    @Test
+    @DisplayName("Guardar un bloque persiste la entidad y devuelve lo que guardó la base")
+    void bloqueSaveShouldPersistAndMapSavedEntity() {
+        BloqueRepositoryImpl repository = new BloqueRepositoryImpl(bloqueJpa, new BloqueRepositoryMapper());
+        when(bloqueJpa.save(any())).thenReturn(BloqueEntity.builder().id(BLOQUE_ID).nombre("Clientes").build());
+
+        Bloque result = repository.save(Bloque.builder().negocioId(NEGOCIO_ID).nombre("Clientes").build());
+
+        assertThat(result.getId()).isEqualTo(BLOQUE_ID);
+        assertThat(result.getNombre()).isEqualTo("Clientes");
+    }
+
+    @Test
+    @DisplayName("Eliminar un bloque delega el borrado con el filtro de negocio")
+    void bloqueDeleteByIdAndNegocioIdShouldDelegate() {
+        BloqueRepositoryImpl repository = new BloqueRepositoryImpl(bloqueJpa, new BloqueRepositoryMapper());
+
+        repository.deleteByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID);
+
+        verify(bloqueJpa).deleteByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID);
     }
 
     @Test

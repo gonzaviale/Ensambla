@@ -47,6 +47,30 @@ class BloqueCampoRepositoryMapperTest {
     }
 
     @Test
+    @DisplayName("Pasa todos los campos del modelo del bloque a la entidad")
+    void bloqueToEntityShouldMapEveryField() {
+        Bloque bloque = Bloque.builder()
+                .id(ID)
+                .negocioId(NEGOCIO_ID)
+                .proyectoId(PADRE_ID)
+                .nombre("Clientes")
+                .posicion((short) 3)
+                .creadoEn(CREADO)
+                .actualizadoEn(ACTUALIZADO)
+                .build();
+
+        BloqueEntity result = new BloqueRepositoryMapper().toEntity(bloque);
+
+        assertThat(result.getId()).isEqualTo(ID);
+        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(result.getProyectoId()).isEqualTo(PADRE_ID);
+        assertThat(result.getNombre()).isEqualTo("Clientes");
+        assertThat(result.getPosicion()).isEqualTo((short) 3);
+        assertThat(result.getCreadoEn()).isEqualTo(CREADO);
+        assertThat(result.getActualizadoEn()).isEqualTo(ACTUALIZADO);
+    }
+
+    @Test
     @DisplayName("Pasa todos los campos del campo al modelo")
     void campoToDomainShouldMapEveryField() {
         CampoEntity entity = CampoEntity.builder()

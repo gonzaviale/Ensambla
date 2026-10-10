@@ -34,4 +34,20 @@ public class Bloque {
 
     @Builder.Default
     private List<Campo> campos = List.of();
+
+    public static Bloque nuevo(UUID negocioId, UUID proyectoId, String nombre, short posicion, OffsetDateTime ahora) {
+        return Bloque.builder()
+                .negocioId(negocioId)
+                .proyectoId(proyectoId)
+                .nombre(nombre.strip())
+                .posicion(posicion)
+                .creadoEn(ahora)
+                .actualizadoEn(ahora)
+                .build();
+    }
+
+    public void renombrar(String nombre, OffsetDateTime ahora) {
+        this.nombre = nombre.strip();
+        this.actualizadoEn = ahora;
+    }
 }

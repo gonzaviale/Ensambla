@@ -46,7 +46,7 @@ Columna **Base** = qué deja resuelto esta estructura inicial y qué falta.
 
 | ID | Área | Talle | Tarea | Depende de | Base |
 |---|---|---|---|---|---|
-| T-017 | BE | S | CRUD de bloques | T-012 | ⏳ falta (entidad y repo JPA ya existen) |
+| T-017 | BE | S | CRUD de bloques | T-012 | 🟡 `GET`/`POST /api/proyectos/{id}/bloques`, `PATCH`/`DELETE /api/bloques/{id}`; falta `verify` con Docker |
 | T-018 | BE | M | CRUD de campos tipados | T-017 | ⏳ falta (`ck_campo_opciones` ya en la base) |
 | T-019 | FE | M | Layout del constructor | T-015 | 🟡 ruta `/proyectos/$proyectoId/construir` placeholder |
 | T-020 | FE | S | Agregar, renombrar y eliminar bloques | T-019, T-017 | ⏳ falta |

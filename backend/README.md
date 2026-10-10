@@ -90,6 +90,10 @@ con `@ConditionalOnProperty(prefix = "ensambla.ia", name = "proveedor", havingVa
 | `POST /api/proyectos/desde-plantilla/{plantillaId}` | sesión + CSRF | Copiar una plantilla activa con ids nuevos |
 | `PATCH /api/proyectos/{proyectoId}` | sesión + CSRF | Renombrar: `nombre` |
 | `DELETE /api/proyectos/{proyectoId}` | sesión + CSRF | Eliminar proyecto y sus bloques, campos y registros |
+| `GET /api/proyectos/{proyectoId}/bloques` | sesión | Bloques del proyecto ordenados por `posicion` (sin campos; para la estructura completa, `GET /api/proyectos/{id}`) |
+| `POST /api/proyectos/{proyectoId}/bloques` | sesión + CSRF | Agrega un bloque al final: `nombre`. `201`, o `409` si el nombre ya existe en el proyecto (sin distinguir mayúsculas) |
+| `PATCH /api/bloques/{bloqueId}` | sesión + CSRF | Renombrar: `nombre`. `409` si lo usa otro bloque del proyecto |
+| `DELETE /api/bloques/{bloqueId}` | sesión + CSRF | Elimina el bloque y, en cascada, sus campos y registros. `204` |
 | `POST /api/bloques/{bloqueId}/registros` | sesión + CSRF | Carga un registro; `valores` va indexado por id de campo. `201`, o `400` con `errors` por campo |
 | `GET /api/bloques/{bloqueId}/registros` | sesión | Registros del bloque. Parámetros: `q` (texto entre los valores), `orden` (id de campo o `creadoEn`), `direccion` (`asc`/`desc`, por defecto `desc`), `pagina` (desde 0), `tamanio` (1 a 100, por defecto 20) |
 | `GET /api/registros/{id}` | sesión | Un registro |
