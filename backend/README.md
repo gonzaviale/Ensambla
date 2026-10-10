@@ -71,7 +71,7 @@ con `@ConditionalOnProperty(prefix = "ensambla.ia", name = "proveedor", havingVa
 - Sesión por cookie `SESSION` (Spring Session JDBC), `HttpOnly`, `SameSite=Lax`, `Secure` fuera de `dev`.
 - CSRF: las escrituras (`POST/PUT/PATCH/DELETE`) exigen el header `X-CSRF-TOKEN`; el token se pide a `GET /api/auth/csrf`.
 - CORS: sólo el origen de `frontend.url`, con credenciales.
-- Rutas públicas (ver `SecurityConfig`): `GET /api/plantillas`, `GET /api/auth/csrf`, `POST /api/auth/{registro,login,logout}`
+- Rutas públicas (ver `SecurityConfig`): `GET /api/plantillas`, `GET /api/auth/csrf`, `POST /api/auth/{register,login,logout}`
   y Swagger. Todo lo demás exige sesión (401 con el cuerpo `ErrorResponse` estándar).
 
 ## Endpoints
@@ -79,19 +79,30 @@ con `@ConditionalOnProperty(prefix = "ensambla.ia", name = "proveedor", havingVa
 | Método y ruta | Acceso | Descripción |
 |---|---|---|
 | `GET /api/auth/csrf` | público | Token CSRF y nombre del header |
+| `POST /api/auth/register` | público + CSRF | Crea usuario y negocio; 201, 400 o 409 |
+| `POST /api/auth/login` | público + CSRF | Abre sesión; 200, 400 o 401 |
+| `POST /api/auth/logout` | público + CSRF | Invalida sesión y cookie; 204 |
+| `GET /api/auth/me` | sesión | Identidad actual sin contraseña ni hash; 200 o 401 |
 | `GET /api/plantillas` | público | Plantillas activas con su estructura, ordenadas por nombre |
-| `POST /api/bloques/{bloqueId}/registros` | sesión | Carga un registro; `valores` va indexado por id de campo. `201`, o `400` con `errors` por campo |
+| `GET /api/proyectos` | sesión | Proyectos del negocio del usuario autenticado |
+| `GET /api/proyectos/{proyectoId}` | sesión | Proyecto con sus bloques y campos ordenados |
+| `POST /api/proyectos` | sesión + CSRF | Crear en blanco: `nombre` y `descripcion` opcional |
+| `POST /api/proyectos/desde-plantilla/{plantillaId}` | sesión + CSRF | Copiar una plantilla activa con ids nuevos |
+| `PATCH /api/proyectos/{proyectoId}` | sesión + CSRF | Renombrar: `nombre` |
+| `DELETE /api/proyectos/{proyectoId}` | sesión + CSRF | Eliminar proyecto y sus bloques, campos y registros |
+| `POST /api/bloques/{bloqueId}/registros` | sesión + CSRF | Carga un registro; `valores` va indexado por id de campo. `201`, o `400` con `errors` por campo |
 | `GET /api/bloques/{bloqueId}/registros` | sesión | Registros del bloque. Parámetros: `q` (texto entre los valores), `orden` (id de campo o `creadoEn`), `direccion` (`asc`/`desc`, por defecto `desc`), `pagina` (desde 0), `tamanio` (1 a 100, por defecto 20) |
 | `GET /api/registros/{id}` | sesión | Un registro |
-| `PATCH /api/registros/{id}` | sesión | Edita sólo los campos enviados; un valor `null` o vacío borra el dato. Revalida el registro completo |
-| `DELETE /api/registros/{id}` | sesión | Elimina el registro. `204` |
+| `PATCH /api/registros/{id}` | sesión + CSRF | Edita sólo los campos enviados; un valor `null` o vacío borra el dato. Revalida el registro completo |
+| `DELETE /api/registros/{id}` | sesión + CSRF | Elimina el registro. `204` |
 
-El negocio sale siempre de la sesión: un bloque o registro de otro negocio responde `404`. Los endpoints de registros
-resuelven el negocio como el del que el usuario es dueño (un negocio por usuario en el MVP 2) hasta que T-010
-generalice el filtro.
+V3 carga Inventario, Pedidos y Clientes. La copia de una plantilla se guarda en una única transacción.
+El negocio se resuelve desde el dueño autenticado (primero por creación e id, hasta el selector de T-061);
+no se acepta un `negocioId` del cliente. Consultar, renombrar o eliminar un proyecto ajeno devuelve 404.
+Los registros se resuelven igual: un bloque o un registro de otro negocio responde 404.
 
-Los de acceso (`/api/auth/register`, `/login`, `/logout`, `/me`) los implementan T-005 y T-006; el contrato que espera el
-frontend está en `frontend/src/api/auth.ts`.
+Los endpoints de acceso están implementados. El contrato del cliente está en `frontend/src/api/auth.ts`.
+Ver [acceso-sesion.md](../docs/acceso-sesion.md) para validaciones, sesión y pruebas.
 
 ### Formato de error
 

@@ -1,4 +1,5 @@
 import userEvent from '@testing-library/user-event';
+import { crearProyecto } from '@/api/proyectos';
 import { describe, it } from 'vitest';
 import { renderApp } from '@/test/renderApp';
 import {
@@ -44,7 +45,8 @@ describe('navegación y guards', () => {
 
   it('abre el constructor de un proyecto con sesión', async () => {
     setupUsuarioConSesion();
-    renderApp('/proyectos/abc/construir');
+    const proyecto = await crearProyecto({ nombre: 'Mi proyecto' });
+    renderApp(`/proyectos/${proyecto.id}/construir`);
 
     await verifyHeadingPresentAsync('Constructor de bloques y campos');
   });

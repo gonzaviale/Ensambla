@@ -19,8 +19,6 @@ import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 
 import java.time.Clock;
 import java.util.List;
@@ -41,7 +39,7 @@ class RegistroUseCaseConfigTest {
     private static final UUID REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
 
     private final RegistroUseCaseConfig config = new RegistroUseCaseConfig();
-    private final ObjectProvider<Clock> clock = new DefaultListableBeanFactory().getBeanProvider(Clock.class);
+    private final Clock clock = Clock.systemUTC();
 
     private NegocioService negocioService;
     private BloqueService bloqueService;

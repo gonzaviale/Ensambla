@@ -105,7 +105,7 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     void shouldPersistPlantillaEstructura() {
         Map<String, Object> estructura = Map.of("bloques", List.of(Map.of("nombre", "Clientes")));
         PlantillaEntity plantilla = plantillas.saveAndFlush(PlantillaEntity.builder()
-                .nombre("Clientes").descripcion("Tu agenda").estructura(estructura).activa(true)
+                .nombre("Clientes de prueba").descripcion("Tu agenda").estructura(estructura).activa(true)
                 .creadoEn(AHORA).actualizadoEn(AHORA).build());
         entityManager.clear();
 
@@ -117,6 +117,7 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Lista sólo las plantillas activas, ordenadas por nombre")
     void findByActivaTrueShouldReturnOnlyActivasOrderedByNombre() {
+        plantillas.deleteAllInBatch();
         givenPlantilla("Pedidos", true);
         givenPlantilla("Clientes", true);
         givenPlantilla("Vieja", false);

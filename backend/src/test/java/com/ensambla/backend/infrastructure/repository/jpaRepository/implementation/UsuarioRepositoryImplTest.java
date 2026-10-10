@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
 import com.ensambla.backend.domain.model.usuario.Usuario;
+import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.infrastructure.repository.entity.UsuarioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IUsuarioJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.UsuarioRepositoryMapper;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.Optional;
 
@@ -18,6 +20,7 @@ import static com.ensambla.backend.support.UsuarioTestData.USUARIO_ID;
 import static com.ensambla.backend.support.UsuarioTestData.entity;
 import static com.ensambla.backend.support.UsuarioTestData.usuario;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -43,6 +46,26 @@ class UsuarioRepositoryImplTest {
 
         assertThat(result.getId()).isEqualTo(USUARIO_ID);
         assertThat(result.getEmail()).isEqualTo(EMAIL);
+    }
+
+    @Test
+    @DisplayName("Traduce un email repetido concurrente al mensaje de dominio")
+    void saveShouldTranslateConcurrentDuplicateEmail() {
+        when(jpa.saveAndFlush(any(UsuarioEntity.class))).thenThrow(
+                new DataIntegrityViolationException("duplicate key violates usuario_email_key"));
+
+        assertThatThrownBy(() -> repository.save(usuario()))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessage("Ya existe una cuenta con ese email");
+    }
+
+    @Test
+    @DisplayName("Conserva otras violaciones de integridad")
+    void saveShouldPropagateOtherConstraintFailures() {
+        DataIntegrityViolationException exception = new DataIntegrityViolationException("otra restricción");
+        when(jpa.saveAndFlush(any(UsuarioEntity.class))).thenThrow(exception);
+
+        assertThatThrownBy(() -> repository.save(usuario())).isSameAs(exception);
     }
 
     @Test

@@ -23,11 +23,31 @@ npm run dev        # http://localhost:5173 (proxy /api → http://localhost:8080
 
 | Valor | Comportamiento |
 |---|---|
-| `parcial` (default) | MSW simula sólo lo que el backend todavía no tiene: registro, login y sesión (T-005, T-006) |
+| `parcial` | Reservado para endpoints pendientes; hoy todos los handlers pasan al backend real |
 | `completo` | Todo simulado con MSW; no hace falta backend |
-| `ninguno` | Todo contra el backend real. Usar cuando T-005 y T-006 estén hechos |
+| `ninguno` (default) | Todo contra el backend real, incluidos registro, login y logout |
 
-Cuando el backend implemente un endpoint, se saca su handler de `src/mocks/handlers/index.ts` del modo `parcial`.
+La sesión se guarda en una cookie HttpOnly del servidor. TanStack Query mantiene la identidad del usuario
+en memoria; los guards revalidan la sesión al navegar a rutas privadas. Logout vuelve a `/login`.
+El formulario de registro incluye nombre del negocio y muestra errores del cliente y del servidor.
+Los tests usan MSW completo y un entorno jsdom que conserva los AbortSignal nativos de Node para fetch.
+
+### Probar proyectos (ENS-4)
+
+El CRUD de proyectos y las plantillas ya tienen backend. Mientras falten T-005/T-006, usá el modo `completo`
+para recorrer la interfaz: la sesión simulada del modo `parcial` no autentica contra el servidor real.
+
+```powershell
+$env:VITE_API_MOCKS = 'completo'
+npm.cmd run dev -- --host 127.0.0.1
+```
+
+Ingresá en `/login` con `demo@ensambla.local` / `EnsamblaDemo2026!`. Esta cuenta sólo existe en la simulación.
+Podés crear en blanco o desde Inventario, Pedidos y Clientes; abrir, renombrar y eliminar proyectos.
+Los datos simulados viven en memoria y se reinician al recargar la página.
+
+La carga efectiva de fotos y el editor de bloques corresponden a otras historias. El constructor muestra
+los campos copiados de la plantilla o una orientación para el primer bloque si el proyecto está vacío.
 
 ## Estructura
 

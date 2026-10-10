@@ -12,10 +12,12 @@ function useSesionExpirada() {
   useEffect(() => {
     const alExpirar = () => {
       queryClient.setQueryData(sesionKeys.actual, null);
-      void router.navigate({
-        to: '/login',
-        search: { redirect: router.state.location.href },
-      });
+      void router
+        .navigate({
+          to: '/login',
+          search: { redirect: router.state.location.href },
+        })
+        .then(() => queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' }));
     };
     window.addEventListener(EVENTO_SESION_EXPIRADA, alExpirar);
     return () => window.removeEventListener(EVENTO_SESION_EXPIRADA, alExpirar);

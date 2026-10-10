@@ -3,7 +3,7 @@ import { usuarioSchema, type Login, type Registro, type Usuario } from '@/types/
 import { ApiError } from './apiError';
 import { http, invalidarCsrf } from './client';
 
-// Contrato de T-005/T-006. Hasta que el backend lo implemente, MSW lo simula (VITE_API_MOCKS=parcial).
+// Sesión real por cookie HttpOnly: la identidad vive en el servidor, nunca en localStorage.
 
 // 401 significa "no hay sesión": para el front es un estado, no un error.
 export async function obtenerUsuarioActual(signal?: AbortSignal): Promise<Usuario | null> {

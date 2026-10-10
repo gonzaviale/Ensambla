@@ -13,7 +13,6 @@ import com.ensambla.backend.domain.useCase.registro.EditarRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.EliminarRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.ListarRegistrosUseCase;
 import com.ensambla.backend.domain.useCase.registro.ObtenerRegistroUseCase;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -48,9 +47,9 @@ public class RegistroUseCaseConfig {
                                                      CampoService campoService,
                                                      RegistroDatosService registroDatosService,
                                                      CrearRegistroMapper crearRegistroMapper,
-                                                     ObjectProvider<Clock> clock) {
+                                                     Clock clock) {
         return new CrearRegistroUseCase(negocioService, bloqueService, campoService, registroDatosService,
-                crearRegistroMapper, clock.getIfAvailable(Clock::systemUTC));
+                crearRegistroMapper, clock);
     }
 
     @Bean
@@ -75,9 +74,9 @@ public class RegistroUseCaseConfig {
                                                        CampoService campoService,
                                                        RegistroDatosService registroDatosService,
                                                        EditarRegistroMapper editarRegistroMapper,
-                                                       ObjectProvider<Clock> clock) {
+                                                       Clock clock) {
         return new EditarRegistroUseCase(negocioService, campoService, registroDatosService, editarRegistroMapper,
-                clock.getIfAvailable(Clock::systemUTC));
+                clock);
     }
 
     @Bean
