@@ -49,6 +49,19 @@ Los datos simulados viven en memoria y se reinician al recargar la página.
 La carga efectiva de fotos y el editor de bloques corresponden a otras historias. El constructor muestra
 los campos copiados de la plantilla o una orientación para el primer bloque si el proyecto está vacío.
 
+### Probar la tabla de registros (H-06)
+
+En el modo `completo`, abrí un proyecto y entrá a `/proyectos/<id>/usar`. La tabla lista los registros de cada
+bloque con búsqueda, orden por columna (un segundo click invierte el sentido), paginación y una ficha lateral
+con todos los datos y la eliminación con confirmación.
+
+- En `npm run dev`, los proyectos creados desde una plantilla traen 30 registros de ejemplo por bloque
+  (`src/mocks/db/registros.ts`); en los tests arrancan vacíos.
+- El contrato es el de `GET /api/bloques/{id}/registros` y `DELETE /api/registros/{id}` del backend
+  (`src/api/registros.ts`). Los handlers simulan el mismo orden, búsqueda y paginación.
+- Falta la edición desde la ficha: reutiliza el `FormRenderer` de T-024. La carga de registros llega con T-025
+  y T-031.
+
 ## Estructura
 
 ```
