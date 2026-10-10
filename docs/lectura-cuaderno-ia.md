@@ -35,7 +35,7 @@ No se agrega otra ruta de subida en esta historia.
 - Los archivos llegan comprimidos y rotados, como define `PaginaCuaderno`.
 - El adaptador local admite claves `<uuid-negocio>/<archivo>`, relativas a una raíz privada.
   Rechaza rutas que terminen fuera del directorio de ese negocio y archivos vacíos o mayores a 20 MiB.
-- Raíz de desarrollo: `datos/ia/fotos-privadas/`, excluida de Git, fuera de cualquier ruta pública.
+- Raíz de desarrollo: `datos/ia/cuadernos/fotos/`, excluida de Git (salvo `.gitkeep`), fuera de cualquier ruta pública.
   Se puede configurar una ruta absoluta.
 - Un bucket futuro implementa `ArchivoCuadernoPort`; la cola y el dominio no necesitan conocer su SDK.
 - Coordinar estas consultas con ENS-124 si esa tarea agrega rutas equivalentes.
@@ -63,7 +63,7 @@ Si `consumoCompleto=false`, el total de tokens/costo puede ser parcial; no repre
 | `ensambla.ia.procesamiento.max-intentos` | `3` | Entre 1 y 100 |
 | `ensambla.ia.max-paginas-por-lectura` | `10` | Máximo por lote |
 | `ensambla.ia.procesamiento.limite-diario` | `100` | Páginas por negocio; variable `ENSAMBLA_IA_LIMITE_DIARIO` |
-| `ensambla.ia.procesamiento.archivos-raiz` | `../datos/ia/fotos-privadas` | Ruta relativa al directorio backend |
+| `ensambla.ia.procesamiento.archivos-raiz` | `../datos/ia/cuadernos/fotos` | Ruta relativa al directorio backend |
 | `ensambla.ia.procesamiento.precio-entrada-millon` | desconocido | USD por millón de tokens de entrada |
 | `ensambla.ia.procesamiento.precio-salida-millon` | desconocido | USD por millón de tokens de salida |
 
