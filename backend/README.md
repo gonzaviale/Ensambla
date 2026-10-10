@@ -80,6 +80,15 @@ con `@ConditionalOnProperty(prefix = "ensambla.ia", name = "proveedor", havingVa
 |---|---|---|
 | `GET /api/auth/csrf` | público | Token CSRF y nombre del header |
 | `GET /api/plantillas` | público | Plantillas activas con su estructura, ordenadas por nombre |
+| `POST /api/bloques/{bloqueId}/registros` | sesión | Carga un registro; `valores` va indexado por id de campo. `201`, o `400` con `errors` por campo |
+| `GET /api/bloques/{bloqueId}/registros` | sesión | Registros del bloque. Parámetros: `q` (texto entre los valores), `orden` (id de campo o `creadoEn`), `direccion` (`asc`/`desc`, por defecto `desc`), `pagina` (desde 0), `tamanio` (1 a 100, por defecto 20) |
+| `GET /api/registros/{id}` | sesión | Un registro |
+| `PATCH /api/registros/{id}` | sesión | Edita sólo los campos enviados; un valor `null` o vacío borra el dato. Revalida el registro completo |
+| `DELETE /api/registros/{id}` | sesión | Elimina el registro. `204` |
+
+El negocio sale siempre de la sesión: un bloque o registro de otro negocio responde `404`. Los endpoints de registros
+resuelven el negocio como el del que el usuario es dueño (un negocio por usuario en el MVP 2) hasta que T-010
+generalice el filtro.
 
 Los de acceso (`/api/auth/register`, `/login`, `/logout`, `/me`) los implementan T-005 y T-006; el contrato que espera el
 frontend está en `frontend/src/api/auth.ts`.
