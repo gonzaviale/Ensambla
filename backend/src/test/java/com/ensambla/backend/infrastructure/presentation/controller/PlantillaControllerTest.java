@@ -1,0 +1,66 @@
+package com.ensambla.backend.infrastructure.presentation.controller;
+
+import com.ensambla.backend.domain.dto.plantilla.ListarPlantillasResponse;
+import com.ensambla.backend.domain.dto.plantilla.PlantillaItem;
+import com.ensambla.backend.domain.useCase.plantilla.ListarPlantillasUseCase;
+import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
+import com.ensambla.backend.infrastructure.presentation.mapper.plantilla.PlantillaPresentationMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+class PlantillaControllerTest {
+
+    private static final UUID PLANTILLA_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
+
+    private ListarPlantillasUseCase listarPlantillasUseCase;
+
+    private MockMvc mockMvc;
+
+    @BeforeEach
+    void setUp() {
+        listarPlantillasUseCase = mock(ListarPlantillasUseCase.class);
+        mockMvc = MockMvcBuilders.standaloneSetup(
+                        new PlantillaController(listarPlantillasUseCase, new PlantillaPresentationMapper()))
+                .setControllerAdvice(new GlobalExceptionHandler()).build();
+    }
+
+    @Test
+    @DisplayName("Lista las plantillas activas con su estructura")
+    void listarShouldReturnPlantillas() throws Exception {
+        when(listarPlantillasUseCase.execute()).thenReturn(new ListarPlantillasResponse(List.of(
+                new PlantillaItem(PLANTILLA_ID, "Inventario", "Controlá tu stock", "box",
+                        Map.of("bloques", List.of())))));
+
+        ResultActions result = mockMvc.perform(get("/api/plantillas"));
+
+        result.andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(PLANTILLA_ID.toString()))
+                .andExpect(jsonPath("$[0].nombre").value("Inventario"))
+                .andExpect(jsonPath("$[0].icono").value("box"))
+                .andExpect(jsonPath("$[0].estructura.bloques").isArray());
+    }
+
+    @Test
+    @DisplayName("Devuelve una lista vacía cuando no hay plantillas")
+    void listarShouldReturnEmptyArrayWhenThereAreNoPlantillas() throws Exception {
+        when(listarPlantillasUseCase.execute()).thenReturn(new ListarPlantillasResponse(List.of()));
+
+        ResultActions result = mockMvc.perform(get("/api/plantillas"));
+
+        result.andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+    }
+}
