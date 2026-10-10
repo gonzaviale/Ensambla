@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: ensambla-backend
+    runtime: docker
+    branch: main
+    dockerContext: backend
+    dockerfilePath: backend/Dockerfile
+    # Render despliega solo al pushear a main. Para desplegar desde el
+    # pipeline (deploy hook) cambiar a "off" y descomentar el job en deploy-main.yml
+    autoDeployTrigger: commit
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: FRONTEND_URL
+        sync: false
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
