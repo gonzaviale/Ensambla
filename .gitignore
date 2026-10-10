@@ -5,3 +5,17 @@ Thumbs.db
 *.log
 .env
 .env.local
+
+# Fotos reales, respuestas esperadas y reportes del set privado de IA.
+/datos/ia/cuadernos/fotos/*
+!/datos/ia/cuadernos/fotos/.gitkeep
+/datos/ia/cuadernos/esperados/*
+!/datos/ia/cuadernos/esperados/.gitkeep
+/datos/ia/cuadernos/reportes/*
+!/datos/ia/cuadernos/reportes/.gitkeep
+/datos/ia/cuadernos/manifest.json
+
+/datos/ia/fotos-privadas/
+
+__pycache__/
+*.pyc

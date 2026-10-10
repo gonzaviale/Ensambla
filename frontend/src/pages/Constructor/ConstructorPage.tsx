@@ -58,19 +58,15 @@ export function ConstructorPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Link to="/proyectos" className={buttonClasses({ variant: 'ghost' })}>
-          ← Volver a mis proyectos
-        </Link>
-        <Link
-          to="/proyectos/$proyectoId/usar"
-          params={{ proyectoId }}
-          className={buttonClasses({ variant: 'secondary' })}
-        >
-          <TableIcon aria-hidden size={18} />
-          Ver mis registros
-        </Link>
-      </div>
+      {/* Volver a Mis proyectos lo resuelven los breadcrumbs del layout (ENS-61). */}
+      <Link
+        to="/proyectos/$proyectoId/usar"
+        params={{ proyectoId }}
+        className={buttonClasses({ variant: 'secondary', className: 'self-end' })}
+      >
+        <TableIcon aria-hidden size={18} />
+        Ver mis registros
+      </Link>
 
       <PageHeading
         kicker="Modo construir"

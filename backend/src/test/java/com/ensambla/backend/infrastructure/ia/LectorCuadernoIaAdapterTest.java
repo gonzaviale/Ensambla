@@ -41,7 +41,8 @@ class LectorCuadernoIaAdapterTest {
 
     @BeforeEach
     void setUp() {
-        PromptLecturaCuaderno prompt = new PromptLecturaCuaderno(texto("instrucciones"), texto("{\"type\":\"object\"}"));
+        PromptLecturaCuaderno prompt = new PromptLecturaCuaderno(
+                texto("instrucciones"), texto("{\"type\":\"object\"}"));
         adapter = new LectorCuadernoIaAdapter(cliente, prompt, JsonMapper.builder().build(), MAX_PAGINAS);
     }
 
@@ -130,6 +131,39 @@ class LectorCuadernoIaAdapterTest {
                 .isInstanceOf(LecturaCuadernoException.class)
                 .hasMessage(LectorCuadernoIaAdapter.ERROR_JSON)
                 .hasCauseInstanceOf(tools.jackson.core.JacksonException.class);
+    }
+
+    @Test
+    @DisplayName("Rechaza propiedades repetidas en vez de conservar sólo la última")
+    void leerShouldRejectDuplicateJsonProperties() {
+        givenModelAnswers(lecturaDeEjemplo().replace("\"tipoRegistro\": \"VENTAS\"",
+                "\"tipoRegistro\": \"GASTOS\", \"tipoRegistro\": \"VENTAS\""));
+
+        thenRejectsJson();
+    }
+
+    @Test
+    @DisplayName("Rechaza atributos extra que no pertenecen al contrato")
+    void leerShouldRejectUnknownProperties() {
+        givenModelAnswers(lecturaDeEjemplo().replace("\"tipoRegistro\":", "\"extra\": 1, \"tipoRegistro\":"));
+
+        thenRejectsJson();
+    }
+
+    @Test
+    @DisplayName("Rechaza campos requeridos ausentes")
+    void leerShouldRejectMissingRequiredProperties() {
+        givenModelAnswers(lecturaDeEjemplo().replace("\"bloqueExistenteId\": null,", ""));
+
+        thenRejectsJson();
+    }
+
+    @Test
+    @DisplayName("Rechaza contenido JSON adicional después de la respuesta")
+    void leerShouldRejectTrailingJson() {
+        givenModelAnswers(lecturaDeEjemplo() + "{}");
+
+        thenRejectsJson();
     }
 
     // --- arrange ---
