@@ -17,5 +17,24 @@ services:
       timeout: 5s
       retries: 10
 
+  # Almacenamiento de archivos compatible con S3. El bucket lo crea el backend al arrancar y es privado:
+  # sólo se lee o se escribe con URLs firmadas. Consola web en http://localhost:9001.
+  # MinIO dejó de publicar imágenes oficiales (Docker Hub y quay.io); se usa la que compila Chainguard desde el
+  # código de MinIO y mantiene al día. Sólo publica el tag latest.
+  minio:
+    image: cgr.dev/chainguard/minio:latest
+    container_name: ensambla-minio
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${ENSAMBLA_MINIO_ROOT_USER:-ensambla_minio}
+      MINIO_ROOT_PASSWORD: ${ENSAMBLA_MINIO_ROOT_PASSWORD:-ensambla_minio_pass}
+    ports:
+      - "${ENSAMBLA_MINIO_PORT:-9000}:9000"
+      - "${ENSAMBLA_MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - ensambla-miniodata:/data
+
 volumes:
   ensambla-pgdata:
+  ensambla-miniodata:
