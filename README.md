@@ -43,8 +43,10 @@ npm install
 npm run dev
 ```
 
-Registro, login y sesión todavía no existen en el backend (T-005 y T-006): con `VITE_API_MOCKS=parcial` (el valor de
-`.env.example`) el frontend los simula con MSW y usa el backend real para todo lo demás (por ahora, las plantillas).
+Registro, login, logout y sesión funcionan contra el backend real. `.env.example` usa
+`VITE_API_MOCKS=ninguno`; `completo` queda disponible para tests y demos simuladas.
+El registro crea la cuenta y el negocio, y el formulario inicia sesión automáticamente.
+Detalle y criterios verificados: [docs/acceso-sesion.md](docs/acceso-sesion.md).
 
 ## Calidad
 
