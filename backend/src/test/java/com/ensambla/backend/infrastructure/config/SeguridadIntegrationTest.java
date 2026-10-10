@@ -32,6 +32,13 @@ class SeguridadIntegrationTest {
     }
 
     @Test
+    @DisplayName("Los registros de un bloque exigen sesión")
+    void registrosShouldRequireSession() throws Exception {
+        mockMvc.perform(get("/api/bloques/b0000000-0000-4000-8000-000000000001/registros"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @DisplayName("Las plantillas son públicas")
     void plantillasShouldBePublic() throws Exception {
         mockMvc.perform(get("/api/plantillas"))

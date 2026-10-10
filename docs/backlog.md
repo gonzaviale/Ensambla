@@ -56,8 +56,8 @@ Columna **Base** = qué deja resuelto esta estructura inicial y qué falta.
 
 | ID | Área | Talle | Tarea | Depende de | Base |
 |---|---|---|---|---|---|
-| T-022 | BE | M | Validador dinámico de registros | T-018 | ⏳ falta |
-| T-023 | BE | S | Crear registro (`POST /blocks/:id/records`) | T-022, T-010 | ⏳ falta |
+| T-022 | BE | M | Validador dinámico de registros | T-018 | 🟡 `Registro.validar` y `Campo.errorDe`; falta el CRUD de campos (T-018) para armarlos desde la API |
+| T-023 | BE | S | Crear registro (`POST /blocks/:id/records`) | T-022, T-010 | 🟡 `POST /api/bloques/{id}/registros`; el negocio sale del dueño de la sesión hasta que T-010 lo generalice |
 | T-024 | FE | M | `FormRenderer` dinámico | T-021 | ⏳ falta; `InputField`/`TextareaField` ya existen |
 | T-025 | FE | S | Validación y feedback del formulario | T-024, T-023 | ⏳ falta; patrón en `LoginForm` |
 
@@ -65,8 +65,8 @@ Columna **Base** = qué deja resuelto esta estructura inicial y qué falta.
 
 | ID | Área | Talle | Tarea | Depende de | Base |
 |---|---|---|---|---|---|
-| T-026 | BE | M | Listado de registros (paginación, búsqueda, orden) | T-023 | ⏳ falta; índice GIN ya creado |
-| T-027 | BE | S | Ver, editar y eliminar registro | T-023 | ⏳ falta |
+| T-026 | BE | M | Listado de registros (paginación, búsqueda, orden) | T-023 | 🟡 `GET /api/bloques/{id}/registros?q&orden&direccion&pagina&tamanio` |
+| T-027 | BE | S | Ver, editar y eliminar registro | T-023 | 🟡 `GET`, `PATCH` y `DELETE /api/registros/{id}` |
 | T-028 | FE | M | Tabla dinámica de registros | T-026, T-024 | ⏳ falta |
 | T-029 | FE | S | Búsqueda y orden en la tabla | T-028 | ⏳ falta |
 | T-030 | FE | M | Ficha de registro con editar y eliminar | T-028, T-027 | ⏳ falta |

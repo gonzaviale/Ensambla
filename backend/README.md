@@ -90,10 +90,16 @@ con `@ConditionalOnProperty(prefix = "ensambla.ia", name = "proveedor", havingVa
 | `POST /api/proyectos/desde-plantilla/{plantillaId}` | sesión + CSRF | Copiar una plantilla activa con ids nuevos |
 | `PATCH /api/proyectos/{proyectoId}` | sesión + CSRF | Renombrar: `nombre` |
 | `DELETE /api/proyectos/{proyectoId}` | sesión + CSRF | Eliminar proyecto y sus bloques, campos y registros |
+| `POST /api/bloques/{bloqueId}/registros` | sesión + CSRF | Carga un registro; `valores` va indexado por id de campo. `201`, o `400` con `errors` por campo |
+| `GET /api/bloques/{bloqueId}/registros` | sesión | Registros del bloque. Parámetros: `q` (texto entre los valores), `orden` (id de campo o `creadoEn`), `direccion` (`asc`/`desc`, por defecto `desc`), `pagina` (desde 0), `tamanio` (1 a 100, por defecto 20) |
+| `GET /api/registros/{id}` | sesión | Un registro |
+| `PATCH /api/registros/{id}` | sesión + CSRF | Edita sólo los campos enviados; un valor `null` o vacío borra el dato. Revalida el registro completo |
+| `DELETE /api/registros/{id}` | sesión + CSRF | Elimina el registro. `204` |
 
 V3 carga Inventario, Pedidos y Clientes. La copia de una plantilla se guarda en una única transacción.
 El negocio se resuelve desde el dueño autenticado (primero por creación e id, hasta el selector de T-061);
 no se acepta un `negocioId` del cliente. Consultar, renombrar o eliminar un proyecto ajeno devuelve 404.
+Los registros se resuelven igual: un bloque o un registro de otro negocio responde 404.
 
 Los endpoints de acceso están implementados. El contrato del cliente está en `frontend/src/api/auth.ts`.
 Ver [acceso-sesion.md](../docs/acceso-sesion.md) para validaciones, sesión y pruebas.
