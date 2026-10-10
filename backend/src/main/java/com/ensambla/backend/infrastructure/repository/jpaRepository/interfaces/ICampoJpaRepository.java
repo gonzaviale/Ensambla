@@ -8,5 +8,7 @@ import java.util.UUID;
 
 public interface ICampoJpaRepository extends JpaRepository<CampoEntity, UUID> {
 
+    List<CampoEntity> findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(UUID bloqueId, UUID negocioId);
+
     List<CampoEntity> findAllByBloqueIdInAndNegocioIdOrderByPosicionAscIdAsc(List<UUID> bloqueIds, UUID negocioId);
 }

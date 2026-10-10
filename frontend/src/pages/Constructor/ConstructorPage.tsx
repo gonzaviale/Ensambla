@@ -1,5 +1,5 @@
-import { Link, useParams } from '@tanstack/react-router';
-import { PageHeading, Panel, buttonClasses } from '@/components/ui';
+import { useParams } from '@tanstack/react-router';
+import { PageHeading, Panel } from '@/components/ui';
 import { useProyecto } from '@/hooks/proyectos/queries';
 
 export function ConstructorPage() {
@@ -7,12 +7,6 @@ export function ConstructorPage() {
   const proyecto = useProyecto(proyectoId);
   return (
     <div className="flex flex-col gap-6">
-      <Link
-        to="/proyectos"
-        className={buttonClasses({ variant: 'ghost', className: 'self-start' })}
-      >
-        ← Volver a mis proyectos
-      </Link>
       <PageHeading
         kicker="Modo construir"
         title={proyecto.nombre}

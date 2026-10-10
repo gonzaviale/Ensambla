@@ -23,11 +23,14 @@ npm run dev        # http://localhost:5173 (proxy /api → http://localhost:8080
 
 | Valor | Comportamiento |
 |---|---|
-| `parcial` (default) | MSW simula sólo lo que el backend todavía no tiene: registro, login y sesión (T-005, T-006) |
+| `parcial` | Reservado para endpoints pendientes; hoy todos los handlers pasan al backend real |
 | `completo` | Todo simulado con MSW; no hace falta backend |
-| `ninguno` | Todo contra el backend real. Usar cuando T-005 y T-006 estén hechos |
+| `ninguno` (default) | Todo contra el backend real, incluidos registro, login y logout |
 
-Cuando el backend implemente un endpoint, se saca su handler de `src/mocks/handlers/index.ts` del modo `parcial`.
+La sesión se guarda en una cookie HttpOnly del servidor. TanStack Query mantiene la identidad del usuario
+en memoria; los guards revalidan la sesión al navegar a rutas privadas. Logout vuelve a `/login`.
+El formulario de registro incluye nombre del negocio y muestra errores del cliente y del servidor.
+Los tests usan MSW completo y un entorno jsdom que conserva los AbortSignal nativos de Node para fetch.
 
 ### Probar proyectos (ENS-4)
 
@@ -45,6 +48,19 @@ Los datos simulados viven en memoria y se reinician al recargar la página.
 
 La carga efectiva de fotos y el editor de bloques corresponden a otras historias. El constructor muestra
 los campos copiados de la plantilla o una orientación para el primer bloque si el proyecto está vacío.
+
+### Probar la tabla de registros (H-06)
+
+En el modo `completo`, abrí un proyecto y entrá a `/proyectos/<id>/usar`. La tabla lista los registros de cada
+bloque con búsqueda, orden por columna (un segundo click invierte el sentido), paginación y una ficha lateral
+con todos los datos y la eliminación con confirmación.
+
+- En `npm run dev`, los proyectos creados desde una plantilla traen 30 registros de ejemplo por bloque
+  (`src/mocks/db/registros.ts`); en los tests arrancan vacíos.
+- El contrato es el de `GET /api/bloques/{id}/registros` y `DELETE /api/registros/{id}` del backend
+  (`src/api/registros.ts`). Los handlers simulan el mismo orden, búsqueda y paginación.
+- Falta la edición desde la ficha: reutiliza el `FormRenderer` de T-024. La carga de registros llega con T-025
+  y T-031.
 
 ## Estructura
 

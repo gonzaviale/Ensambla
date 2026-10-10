@@ -33,7 +33,8 @@ class LecturaIaJsonMapper {
 
     LecturaCuaderno toDomain(LecturaIaJson json, List<BloqueConocido> bloquesExistentes, int paginas,
                              ConsumoIa consumo) {
-        TipoRegistroCuaderno tipoRegistro = enumeracion(TipoRegistroCuaderno.class, json.tipoRegistro(), "tipoRegistro");
+        TipoRegistroCuaderno tipoRegistro = enumeracion(
+                TipoRegistroCuaderno.class, json.tipoRegistro(), "tipoRegistro");
         BloquePropuesto bloque = bloque(json.bloque(), bloquesExistentes);
         Set<String> claves = claves(bloque.campos());
         List<FilaLeida> filas = listaOVacia(json.filas()).stream()
@@ -70,7 +71,8 @@ class LecturaIaJsonMapper {
         if (tipo == TipoCampo.OPCION && opciones.isEmpty()) {
             throw invalida("el campo " + clave + " es OPCION y no tiene opciones");
         }
-        return new CampoPropuesto(clave, textoObligatorio(json.nombre(), "el nombre del campo " + clave), tipo, opciones);
+        return new CampoPropuesto(
+                clave, textoObligatorio(json.nombre(), "el nombre del campo " + clave), tipo, opciones);
     }
 
     private Set<String> claves(List<CampoPropuesto> campos) {
@@ -138,6 +140,6 @@ class LecturaIaJsonMapper {
     }
 
     private static LecturaCuadernoException invalida(String detalle) {
-        return new LecturaCuadernoException(PREFIJO_ERROR + detalle);
+        return new LecturaCuadernoException(PREFIJO_ERROR + detalle, null, false);
     }
 }

@@ -20,16 +20,19 @@ function mensajeDeError(error: unknown) {
 export function LoginForm({ onExito }: { onExito: () => void }) {
   const login = useLogin();
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
+  const [erroresServidor, setErroresServidor] = useState<Record<string, string>>({});
 
   const form = useForm({
     defaultValues: { email: '', contrasenia: '' },
     validators: { onSubmit: loginSchema },
     onSubmit: async ({ value }) => {
       setErrorGeneral(null);
+      setErroresServidor({});
       try {
         await login.mutateAsync({ ...value, email: value.email.trim() });
         onExito();
       } catch (error) {
+        if (error instanceof ApiError) setErroresServidor(error.fieldErrors);
         setErrorGeneral(mensajeDeError(error));
       }
     },
@@ -53,7 +56,7 @@ export function LoginForm({ onExito }: { onExito: () => void }) {
             value={field.state.value}
             onBlur={field.handleBlur}
             onChange={(event) => field.handleChange(event.target.value)}
-            error={primerError(field.state.meta.errors)}
+            error={primerError(field.state.meta.errors) ?? erroresServidor.email}
           />
         )}
       </form.Field>
@@ -65,7 +68,7 @@ export function LoginForm({ onExito }: { onExito: () => void }) {
             value={field.state.value}
             onBlur={field.handleBlur}
             onChange={(event) => field.handleChange(event.target.value)}
-            error={primerError(field.state.meta.errors)}
+            error={primerError(field.state.meta.errors) ?? erroresServidor.contrasenia}
           />
         )}
       </form.Field>
