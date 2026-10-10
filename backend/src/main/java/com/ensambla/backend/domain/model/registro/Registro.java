@@ -26,6 +26,9 @@ public class Registro {
     /** Valores cargados, indexados por el id del campo (así renombrar un campo no rompe los datos). */
     private Map<String, Object> valores;
 
+    /** Foto del cuaderno de la que salió el registro; {@code null} si se cargó a mano. */
+    private UUID fotoOrigenId;
+
     private OffsetDateTime creadoEn;
 
     private OffsetDateTime actualizadoEn;

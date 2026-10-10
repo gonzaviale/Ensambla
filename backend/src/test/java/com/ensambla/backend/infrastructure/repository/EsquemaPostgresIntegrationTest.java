@@ -1,9 +1,13 @@
 package com.ensambla.backend.infrastructure.repository;
 
+import com.ensambla.backend.domain.model.enums.EstadoLote;
 import com.ensambla.backend.domain.model.enums.EstadoUsuario;
 import com.ensambla.backend.domain.model.enums.TipoCampo;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
+import com.ensambla.backend.infrastructure.repository.entity.FotoCuadernoEntity;
+import com.ensambla.backend.infrastructure.repository.entity.LecturaIaEntity;
+import com.ensambla.backend.infrastructure.repository.entity.LoteSubidaEntity;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
 import com.ensambla.backend.infrastructure.repository.entity.PlantillaEntity;
 import com.ensambla.backend.infrastructure.repository.entity.ProyectoEntity;
@@ -11,6 +15,9 @@ import com.ensambla.backend.infrastructure.repository.entity.RegistroEntity;
 import com.ensambla.backend.infrastructure.repository.entity.UsuarioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IBloqueJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.ICampoJpaRepository;
+import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IFotoCuadernoJpaRepository;
+import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.ILecturaIaJpaRepository;
+import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.ILoteSubidaJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.INegocioJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IPlantillaJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IProyectoJpaRepository;
@@ -24,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Verifica que V1 y las entidades coinciden (el perfil usa ddl-auto=validate) y que las reglas de
+ * Verifica que las migraciones (V1, V2) y las entidades coinciden (el perfil usa ddl-auto=validate) y que las reglas de
  * aislamiento por negocio las hace cumplir la base. Cada test hace rollback.
  */
 @Transactional
@@ -61,6 +69,15 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Autowired
     private IRegistroJpaRepository registros;
+
+    @Autowired
+    private ILoteSubidaJpaRepository lotes;
+
+    @Autowired
+    private IFotoCuadernoJpaRepository fotos;
+
+    @Autowired
+    private ILecturaIaJpaRepository lecturas;
 
     @Autowired
     private EntityManager entityManager;
@@ -168,7 +185,102 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(registros.findById(registroId)).isEmpty();
     }
 
+    @Test
+    @DisplayName("Persiste un lote con su foto, su lectura y un registro vinculado a la foto de origen")
+    void shouldPersistLoteFotoLecturaAndRegistroConFotoOrigen() {
+        UUID negocioId = givenNegocio("a@example.com");
+        UUID bloqueId = givenBloque(negocioId, givenProyecto(negocioId, "Proyecto"), "Ventas");
+        UUID loteId = givenLote(negocioId, bloqueId);
+        UUID fotoId = givenFoto(negocioId, loteId, "negocios/a/lote/1.jpg");
+        UUID lecturaId = givenLectura(negocioId, loteId, Map.of("tipoRegistro", "VENTAS"), null);
+        UUID registroId = givenRegistro(negocioId, bloqueId, Map.of(), fotoId);
+        entityManager.clear();
+
+        assertThat(lotes.findById(loteId).orElseThrow().getEstado()).isEqualTo(EstadoLote.PENDIENTE);
+        assertThat(lecturas.findById(lecturaId).orElseThrow().getResultado()).containsEntry("tipoRegistro", "VENTAS");
+        assertThat(registros.findById(registroId).orElseThrow().getFotoOrigenId()).isEqualTo(fotoId);
+    }
+
+    @Test
+    @DisplayName("La base rechaza una foto cuyo negocio no es el del lote")
+    void shouldRejectFotoFromAnotherNegocio() {
+        UUID negocioA = givenNegocio("a@example.com");
+        UUID negocioB = givenNegocio("b@example.com");
+        UUID loteDeA = givenLote(negocioA, null);
+
+        assertThatThrownBy(() -> givenFoto(negocioB, loteDeA, "negocios/b/intrusa.jpg"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("La base rechaza un registro que apunta a la foto de otro negocio")
+    void shouldRejectRegistroWithFotoOrigenFromAnotherNegocio() {
+        UUID negocioA = givenNegocio("a@example.com");
+        UUID negocioB = givenNegocio("b@example.com");
+        UUID fotoDeA = givenFoto(negocioA, givenLote(negocioA, null), "negocios/a/1.jpg");
+        UUID bloqueDeB = givenBloque(negocioB, givenProyecto(negocioB, "Proyecto de B"), "Ventas");
+
+        assertThatThrownBy(() -> givenRegistro(negocioB, bloqueDeB, Map.of(), fotoDeA))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("La base exige que una lectura tenga resultado o motivo de error, no ambos")
+    void shouldRejectLecturaWithResultadoAndError() {
+        UUID negocioId = givenNegocio("a@example.com");
+        UUID loteId = givenLote(negocioId, null);
+
+        assertThatThrownBy(() -> givenLectura(negocioId, loteId, Map.of("tipoRegistro", "VENTAS"), "falló"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("Borrar el lote borra sus fotos y deja los registros sin foto de origen")
+    void shouldKeepRegistroWithoutFotoOrigenWhenLoteIsDeleted() {
+        UUID negocioId = givenNegocio("a@example.com");
+        UUID bloqueId = givenBloque(negocioId, givenProyecto(negocioId, "Proyecto"), "Ventas");
+        UUID loteId = givenLote(negocioId, bloqueId);
+        UUID fotoId = givenFoto(negocioId, loteId, "negocios/a/1.jpg");
+        UUID registroId = givenRegistro(negocioId, bloqueId, Map.of(), fotoId);
+
+        lotes.deleteById(loteId);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(fotos.findById(fotoId)).isEmpty();
+        RegistroEntity registro = registros.findById(registroId).orElseThrow();
+        assertThat(registro.getFotoOrigenId()).isNull();
+        assertThat(registro.getNegocioId()).isEqualTo(negocioId);
+    }
+
     // --- arrange ---
+    private UUID givenLote(UUID negocioId, UUID bloqueDestinoId) {
+        return lotes.saveAndFlush(LoteSubidaEntity.builder()
+                .negocioId(negocioId).bloqueDestinoId(bloqueDestinoId).estado(EstadoLote.PENDIENTE)
+                .intentos((short) 0).creadoEn(AHORA).actualizadoEn(AHORA).build()).getId();
+    }
+
+    private UUID givenFoto(UUID negocioId, UUID loteId, String clave) {
+        return fotos.saveAndFlush(FotoCuadernoEntity.builder()
+                .negocioId(negocioId).loteId(loteId).claveAlmacenamiento(clave).tipoContenido("image/jpeg")
+                .tamanioBytes(1024L).rotacion((short) 0).posicion((short) 0)
+                .creadoEn(AHORA).actualizadoEn(AHORA).build()).getId();
+    }
+
+    private UUID givenLectura(UUID negocioId, UUID loteId, Map<String, Object> resultado, String motivoError) {
+        return lecturas.saveAndFlush(LecturaIaEntity.builder()
+                .negocioId(negocioId).loteId(loteId).proveedor("simulado").modelo("lectura-de-ejemplo")
+                .versionPrompt("v1").resultado(resultado).motivoError(motivoError).paginas((short) 1)
+                .tokensEntrada(0).tokensSalida(0).costoEstimadoUsd(BigDecimal.ZERO).duracionMs(10)
+                .creadoEn(AHORA).actualizadoEn(AHORA).build()).getId();
+    }
+
+    private UUID givenRegistro(UUID negocioId, UUID bloqueId, Map<String, Object> valores, UUID fotoOrigenId) {
+        return registros.saveAndFlush(RegistroEntity.builder()
+                .negocioId(negocioId).bloqueId(bloqueId).valores(valores).fotoOrigenId(fotoOrigenId)
+                .creadoEn(AHORA).actualizadoEn(AHORA).build()).getId();
+    }
+
     private UUID givenUsuario(String email) {
         return usuarios.saveAndFlush(UsuarioEntity.builder()
                 .nombre("Persona").email(email).hashContrasenia("{bcrypt}x").estado(EstadoUsuario.ACTIVO)
@@ -206,8 +318,6 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     private UUID givenRegistro(UUID negocioId, UUID bloqueId, Map<String, Object> valores) {
-        return registros.saveAndFlush(RegistroEntity.builder()
-                .negocioId(negocioId).bloqueId(bloqueId).valores(valores)
-                .creadoEn(AHORA).actualizadoEn(AHORA).build()).getId();
+        return givenRegistro(negocioId, bloqueId, valores, null);
     }
 }
