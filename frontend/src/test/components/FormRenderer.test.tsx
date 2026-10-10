@@ -30,7 +30,7 @@ describe('ENS-52: formulario dinámico', () => {
   });
 
   it('envía valores por id de campo con números y booleanos reales', async () => {
-    const guardar = vi.fn();
+    const guardar = vi.fn(async () => ({ exito: true as const }));
     const user = userEvent.setup();
     render(<FormRenderer campos={camposFormulario} onSubmit={guardar} />);
 
@@ -49,7 +49,7 @@ describe('ENS-52: formulario dinámico', () => {
   });
 
   it('deja vacíos los campos sin valor inicial y omite los opcionales vacíos', async () => {
-    const guardar = vi.fn();
+    const guardar = vi.fn(async () => ({ exito: true as const }));
     const campo = { ...campoPorTipo('TEXTO'), obligatorio: false, valorInicial: null };
     render(<FormRenderer campos={[campo]} onSubmit={guardar} />);
 
@@ -67,7 +67,7 @@ describe('ENS-52: formulario dinámico', () => {
   });
 
   it('muestra el error junto al campo, lo enfoca y conserva el resto de los valores', async () => {
-    const guardar = vi.fn();
+    const guardar = vi.fn(async () => ({ exito: true as const }));
     const user = userEvent.setup();
     render(<FormRenderer campos={camposFormulario} onSubmit={guardar} />);
     const nombre = screen.getByLabelText('Nombre (obligatorio)');
@@ -88,7 +88,7 @@ describe('ENS-52: formulario dinámico', () => {
 
   it('exige responder sí o no sin confundir No con un campo vacío', async () => {
     const campo = { ...campoPorTipo('SI_NO'), valorInicial: null };
-    const guardar = vi.fn();
+    const guardar = vi.fn(async () => ({ exito: true as const }));
     const user = userEvent.setup();
     render(<FormRenderer campos={[campo]} onSubmit={guardar} />);
     await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
