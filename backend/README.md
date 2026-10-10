@@ -31,10 +31,11 @@ com.ensambla.backend
 │   ├── useCase/<area>/      un caso de uso por clase, execute()
 │   ├── dto/<area>/          request/response de los use cases (records)
 │   ├── mapper/<area>/       un mapper por use case
-│   ├── port/                puertos de salida (contraseñas, etc.)
+│   ├── port/                puertos de salida (LectorCuadernoPort, contraseñas…)
 │   └── exception/           ResourceNotFound, DuplicateResource, BusinessRule, CredencialesInvalidas
 └── infrastructure
     ├── config/              SecurityConfig, CorsFilter, SwaggerConfig, useCase/<Area>UseCaseConfig
+    ├── ia/                  adapter de lectura con IA (LectorCuadernoIaAdapter, IaConfig)
     ├── security/            SesionAdapter, UsuarioActivoFilter, SecurityErrorHandler
     ├── presentation/        controller, dto web, mapper, exception (GlobalExceptionHandler)
     └── repository/          entity, jpaRepository/{interfaces,implementation}, mapper
@@ -45,9 +46,25 @@ Para sumar un endpoint seguí el skill `crear-use-case` (`../.claude/skills`); e
 
 ## Modelo de datos
 
-`usuario`, `negocio`, `plantilla`, `proyecto`, `bloque`, `campo`, `registro` (+ tablas de sesión). Ver
+`usuario`, `negocio`, `plantilla`, `proyecto`, `bloque`, `campo`, `registro` (V1) y `lote_subida`, `foto_cuaderno`,
+`lectura_ia` para la digitalización del cuaderno (V2), más las tablas de sesión. Ver
 [../docs/modelo-datos.md](../docs/modelo-datos.md). Migraciones en `src/main/resources/db/migration`; una migración
 aplicada **nunca se edita**.
+
+## Lectura del cuaderno con IA
+
+El dominio pide una lectura a través de `domain.port.LectorCuadernoPort`; la implementación vive en `infrastructure/ia`:
+
+- `PromptLecturaCuaderno` arma la petición con `resources/ia/prompt-lectura-cuaderno.md` y el JSON Schema
+  `resources/ia/esquema-lectura-cuaderno.json` (salida estructurada). Si cambian, subir `PromptLecturaCuaderno.VERSION`.
+- `ClienteModeloVision` es el único punto que habla con el proveedor. Hoy existe `ClienteModeloVisionSimulado`, que
+  devuelve `resources/ia/lectura-simulada.json` sin costo (desarrollo, E2E y demo).
+- `LectorCuadernoIaAdapter` valida la respuesta (tipos, claves, rangos de confianza, páginas y que el bloque sugerido sea
+  del negocio), la convierte al dominio y registra tokens y duración. Cualquier falla sale como `LecturaCuadernoException`.
+
+Para conectar el proveedor real (después del spike T-094): implementar `ClienteModeloVision`, registrarlo en `IaConfig`
+con `@ConditionalOnProperty(prefix = "ensambla.ia", name = "proveedor", havingValue = "<nombre>")` y definir
+`ENSAMBLA_IA_PROVEEDOR`, `ENSAMBLA_IA_MODELO` y `ENSAMBLA_IA_API_KEY`. Sin esas variables se usa `simulado`.
 
 ## Seguridad
 
