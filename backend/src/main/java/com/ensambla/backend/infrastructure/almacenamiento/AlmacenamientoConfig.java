@@ -41,9 +41,8 @@ public class AlmacenamientoConfig {
     }
 
     @Bean
-    AlmacenamientoArchivosPort almacenamientoArchivos(S3Client s3Client, S3Presigner presigner,
-                                                      AlmacenamientoProperties properties) {
-        return new AlmacenamientoS3Adapter(s3Client, presigner, properties.bucket(), properties.expiracionUrl());
+    AlmacenamientoArchivosPort almacenamientoArchivos(S3Presigner presigner, AlmacenamientoProperties properties) {
+        return new AlmacenamientoS3Adapter(presigner, properties.bucket(), properties.expiracionUrl());
     }
 
     @Bean

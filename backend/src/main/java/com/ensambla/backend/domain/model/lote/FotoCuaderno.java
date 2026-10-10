@@ -1,7 +1,6 @@
 package com.ensambla.backend.domain.model.lote;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
-import com.ensambla.backend.domain.model.archivo.UrlFirmada;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -44,12 +43,9 @@ public class FotoCuaderno {
     /** Bytes del archivo mientras se sube; no se persiste. */
     private byte[] contenido;
 
-    /** URL temporal para ver la foto; sólo se completa al consultar el lote. */
-    private UrlFirmada urlLectura;
-
     /**
-     * Valida el archivo y arma la foto. La clave empieza con el negocio para que cada negocio tenga su carpeta en el
-     * bucket.
+     * Valida el archivo y arma la foto. La clave empieza con el id del negocio, que es la carpeta privada que lee el
+     * procesamiento de IA ({@code ArchivoCuadernoPort}).
      *
      * @throws BusinessRuleException si el archivo está vacío, supera {@link #MAX_BYTES} o no es un formato aceptado
      */
@@ -69,7 +65,7 @@ public class FotoCuaderno {
     }
 
     private static String clave(UUID negocioId, TipoFoto tipo) {
-        return "negocios/" + negocioId + "/fotos/" + UUID.randomUUID() + "." + tipo.getExtension();
+        return negocioId + "/fotos/" + UUID.randomUUID() + "." + tipo.getExtension();
     }
 
     private static TipoFoto validar(byte[] contenido, short posicion) {

@@ -35,7 +35,7 @@ public class LoteController {
     private final LotePresentationMapper lotePresentationMapper;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Subir fotos del cuaderno: crea un lote pendiente de lectura")
+    @Operation(summary = "Subir fotos del cuaderno: guarda las fotos y crea un lote pendiente de lectura")
     public ResponseEntity<LoteResponse> subir(
             Authentication authentication, @RequestPart("fotos") List<MultipartFile> fotos) {
         LoteResponse response = lotePresentationMapper.toResponse(subirLoteUseCase.execute(
@@ -44,7 +44,7 @@ public class LoteController {
     }
 
     @GetMapping("/{loteId}")
-    @Operation(summary = "Consultar un lote con URLs temporales para ver sus fotos")
+    @Operation(summary = "Consultar un lote y sus fotos")
     public ResponseEntity<LoteResponse> obtener(Authentication authentication, @PathVariable UUID loteId) {
         return ResponseEntity.ok(lotePresentationMapper.toResponse(obtenerLoteUseCase.execute(
                 lotePresentationMapper.toObtenerRequest(UUID.fromString(authentication.getName()), loteId))));

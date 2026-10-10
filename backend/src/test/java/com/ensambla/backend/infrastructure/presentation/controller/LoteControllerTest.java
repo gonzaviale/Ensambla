@@ -27,8 +27,6 @@ import static com.ensambla.backend.support.LoteTestData.FOTO_ID;
 import static com.ensambla.backend.support.LoteTestData.JPEG;
 import static com.ensambla.backend.support.LoteTestData.LOTE_ID;
 import static com.ensambla.backend.support.LoteTestData.PNG;
-import static com.ensambla.backend.support.LoteTestData.URL_EXPIRA_EN;
-import static com.ensambla.backend.support.LoteTestData.URL_LECTURA;
 import static com.ensambla.backend.support.LoteTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -77,8 +75,7 @@ class LoteControllerTest {
                 .andExpect(jsonPath("$.fotos[0].id").value(FOTO_ID.toString()))
                 .andExpect(jsonPath("$.fotos[0].posicion").value(0))
                 .andExpect(jsonPath("$.fotos[0].tipoContenido").value("image/jpeg"))
-                .andExpect(jsonPath("$.fotos[0].tamanioBytes").value(JPEG.length))
-                .andExpect(jsonPath("$.fotos[0].url").doesNotExist());
+                .andExpect(jsonPath("$.fotos[0].tamanioBytes").value(JPEG.length));
     }
 
     @Test
@@ -115,15 +112,14 @@ class LoteControllerTest {
     }
 
     @Test
-    @DisplayName("GET devuelve el lote con la URL firmada de cada foto")
-    void obtenerShouldReturnLoteWithUrls() throws Exception {
-        givenLoteConUrls();
+    @DisplayName("GET devuelve el lote con sus fotos")
+    void obtenerShouldReturnLote() throws Exception {
+        givenLote();
 
         ResultActions result = mockMvc.perform(get("/api/lotes/{id}", LOTE_ID).principal(principal));
 
         result.andExpect(status().isOk())
-                .andExpect(jsonPath("$.fotos[0].url").value(URL_LECTURA))
-                .andExpect(jsonPath("$.fotos[0].urlExpiraEn").exists());
+                .andExpect(jsonPath("$.fotos[0].id").value(FOTO_ID.toString()));
         verify(obtenerLoteUseCase).execute(new ObtenerLoteRequest(USUARIO_ID, LOTE_ID));
     }
 
@@ -148,7 +144,7 @@ class LoteControllerTest {
 
     // --- arrange ---
     private void givenLoteSubido() {
-        when(subirLoteUseCase.execute(any())).thenReturn(lote(null));
+        when(subirLoteUseCase.execute(any())).thenReturn(lote());
     }
 
     private void givenFotoInvalida() {
@@ -156,8 +152,8 @@ class LoteControllerTest {
                 new BusinessRuleException("La foto 1 no es una imagen JPEG, PNG, WEBP o HEIC ni un PDF"));
     }
 
-    private void givenLoteConUrls() {
-        when(obtenerLoteUseCase.execute(any())).thenReturn(lote(URL_LECTURA));
+    private void givenLote() {
+        when(obtenerLoteUseCase.execute(any())).thenReturn(lote());
     }
 
     private void givenLoteAjeno() {
@@ -185,8 +181,8 @@ class LoteControllerTest {
         return new MockMultipartFile("fotos", "pagina.jpg", "image/jpeg", contenido);
     }
 
-    private LoteItem lote(String url) {
+    private LoteItem lote() {
         return new LoteItem(LOTE_ID, "PENDIENTE", AHORA, List.of(new FotoItem(
-                FOTO_ID, (short) 0, "image/jpeg", (long) JPEG.length, url, url == null ? null : URL_EXPIRA_EN)));
+                FOTO_ID, (short) 0, "image/jpeg", (long) JPEG.length)));
     }
 }

@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.model.enums.EstadoLote;
 import com.ensambla.backend.domain.model.enums.EstadoUsuario;
+import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
 import com.ensambla.backend.infrastructure.repository.entity.FotoCuadernoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.LoteSubidaEntity;
@@ -16,6 +17,7 @@ import jakarta.servlet.Filter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -37,18 +39,14 @@ import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
 import static com.ensambla.backend.support.LoteTestData.AHORA;
 import static com.ensambla.backend.support.LoteTestData.JPEG;
-import static com.ensambla.backend.support.MinioTestContainer.MINIO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -56,15 +54,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Criterio de hecho de T-090 de punta a punta: PostgreSQL con Flyway, MinIO y la cadena de seguridad reales.
- * Cada test hace rollback de la base; los archivos quedan en el MinIO del test, que se descarta al terminar.
+ * Criterio de hecho de T-090 de punta a punta: PostgreSQL con Flyway, la carpeta privada de fotos que lee la IA y la
+ * cadena de seguridad reales. Cada test hace rollback de la base; las fotos se escriben en una carpeta temporal.
  */
 @Transactional
 class LoteIntegrationTest extends PostgresRepositoryTestSupport {
 
-    private static final String BUCKET = "ensambla-test";
+    @TempDir
+    static Path archivosRaiz;
 
-    private final HttpClient http = HttpClient.newHttpClient();
     private final JsonMapper json = JsonMapper.builder().build();
 
     @Autowired
@@ -86,18 +84,17 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
     @Autowired
     private IFotoCuadernoJpaRepository fotos;
 
+    @Autowired
+    private ArchivoCuadernoPort archivoCuadernoPort;
+
     private MockMvc mockMvc;
     private UUID negocioId;
     private MockHttpSession sesion;
     private String csrfToken;
 
     @DynamicPropertySource
-    static void almacenamiento(DynamicPropertyRegistry registry) {
-        registry.add("ensambla.almacenamiento.endpoint", MINIO::getS3URL);
-        registry.add("ensambla.almacenamiento.access-key", MINIO::getUserName);
-        registry.add("ensambla.almacenamiento.secret-key", MINIO::getPassword);
-        registry.add("ensambla.almacenamiento.bucket", () -> BUCKET);
-        registry.add("ensambla.almacenamiento.inicializar-bucket", () -> "true");
+    static void archivosDelCuaderno(DynamicPropertyRegistry registry) {
+        registry.add("ensambla.ia.procesamiento.archivos-raiz", () -> archivosRaiz.toString());
     }
 
     @BeforeEach
@@ -121,15 +118,14 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     @Test
-    @DisplayName("La foto queda en la carpeta del negocio dentro del bucket y el dueño la ve con la URL firmada")
-    void subirShouldStoreFotoReadableByOwner() throws Exception {
+    @DisplayName("La foto queda en la carpeta del negocio y la lectura de IA la encuentra con los mismos bytes")
+    void subirShouldStoreFotoReadableByProcesamiento() throws Exception {
         UUID loteId = loteId(subir(sesion, foto(JPEG)));
 
-        String url = urlDeLectura(loteId);
-
-        assertThat(fotoDe(loteId).getClaveAlmacenamiento()).startsWith("negocios/" + negocioId + "/fotos/");
-        assertThat(leer(url).statusCode()).isEqualTo(200);
-        assertThat(leer(url).body()).isEqualTo(JPEG);
+        FotoCuadernoEntity foto = fotoDe(loteId);
+        assertThat(foto.getClaveAlmacenamiento()).startsWith(negocioId + "/fotos/");
+        assertThat(archivosRaiz.resolve(foto.getClaveAlmacenamiento())).exists();
+        assertThat(archivoCuadernoPort.leer(negocioId, foto.getClaveAlmacenamiento())).isEqualTo(JPEG);
     }
 
     @Test
@@ -145,26 +141,25 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     @Test
-    @DisplayName("Otro negocio no puede consultar el lote: responde 404 y no recibe URLs")
+    @DisplayName("Otro negocio no puede consultar el lote: responde 404")
     void obtenerShouldHideLoteFromOtherNegocio() throws Exception {
         UUID loteId = loteId(subir(sesion, foto(JPEG)));
         MockHttpSession otraSesion = givenSesion(givenUsuarioConNegocio());
 
         ResultActions result = mockMvc.perform(get("/api/lotes/{id}", loteId).session(otraSesion));
 
-        result.andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.fotos").doesNotExist());
+        result.andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("Sin firma, la foto no se puede leer directo del bucket ni conociendo su clave")
-    void fotoShouldNotBeReadableWithoutSignature() throws Exception {
+    @DisplayName("El dueño consulta su lote y ve sus fotos")
+    void obtenerShouldReturnOwnLote() throws Exception {
         UUID loteId = loteId(subir(sesion, foto(JPEG)));
-        String urlSinFirma = MINIO.getS3URL() + "/" + BUCKET + "/" + fotoDe(loteId).getClaveAlmacenamiento();
 
-        HttpResponse<byte[]> respuesta = leer(urlSinFirma);
+        ResultActions result = mockMvc.perform(get("/api/lotes/{id}", loteId).session(sesion));
 
-        assertThat(respuesta.statusCode()).isEqualTo(403);
+        result.andExpect(status().isOk())
+                .andExpect(jsonPath("$.fotos[0].tipoContenido").value("image/jpeg"));
     }
 
     @Test
@@ -223,18 +218,6 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
                 .file(archivo)
                 .session(session)
                 .header("X-CSRF-TOKEN", csrfToken));
-    }
-
-    private String urlDeLectura(UUID loteId) throws Exception {
-        String body = mockMvc.perform(get("/api/lotes/{id}", loteId).session(sesion))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-        return json.readTree(body).path("fotos").path(0).path("url").asString();
-    }
-
-    private HttpResponse<byte[]> leer(String url) throws IOException, InterruptedException {
-        return http.send(HttpRequest.newBuilder(URI.create(url)).GET().build(),
-                HttpResponse.BodyHandlers.ofByteArray());
     }
 
     // --- helpers ---

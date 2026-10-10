@@ -17,11 +17,11 @@ class FotoCuadernoTest {
     private static final short POSICION = 2;
 
     @Test
-    @DisplayName("Arma la foto con el tipo detectado, el tamaño y una clave dentro de la carpeta del negocio")
+    @DisplayName("Arma la foto con el tipo detectado, el tamaño y una clave dentro de la carpeta privada del negocio")
     void nuevaShouldBuildFotoInsideNegocioFolder() {
         FotoCuaderno foto = FotoCuaderno.nueva(NEGOCIO_ID, JPEG, POSICION, AHORA);
 
-        assertThat(foto.getClaveAlmacenamiento()).startsWith("negocios/" + NEGOCIO_ID + "/fotos/").endsWith(".jpg");
+        assertThat(foto.getClaveAlmacenamiento()).startsWith(NEGOCIO_ID + "/fotos/").endsWith(".jpg");
         assertThat(foto.getNegocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(foto.getTipoContenido()).isEqualTo("image/jpeg");
         assertThat(foto.getTamanioBytes()).isEqualTo(JPEG.length);

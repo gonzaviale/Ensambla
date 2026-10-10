@@ -21,8 +21,6 @@ import static com.ensambla.backend.support.LoteTestData.FOTO_ID;
 import static com.ensambla.backend.support.LoteTestData.JPEG;
 import static com.ensambla.backend.support.LoteTestData.LOTE_ID;
 import static com.ensambla.backend.support.LoteTestData.PNG;
-import static com.ensambla.backend.support.LoteTestData.URL_EXPIRA_EN;
-import static com.ensambla.backend.support.LoteTestData.URL_LECTURA;
 import static com.ensambla.backend.support.LoteTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -91,8 +89,6 @@ class LotePresentationMapperTest {
         assertThat(foto.posicion()).isEqualTo((short) 1);
         assertThat(foto.tipoContenido()).isEqualTo("image/jpeg");
         assertThat(foto.tamanioBytes()).isEqualTo(7L);
-        assertThat(foto.url()).isEqualTo(URL_LECTURA);
-        assertThat(foto.urlExpiraEn()).isEqualTo(URL_EXPIRA_EN);
     }
 
     // --- helpers ---
@@ -102,6 +98,6 @@ class LotePresentationMapperTest {
 
     private LoteItem lote() {
         return new LoteItem(LOTE_ID, "PENDIENTE", AHORA, List.of(
-                new FotoItem(FOTO_ID, (short) 1, "image/jpeg", 7L, URL_LECTURA, URL_EXPIRA_EN)));
+                new FotoItem(FOTO_ID, (short) 1, "image/jpeg", 7L)));
     }
 }

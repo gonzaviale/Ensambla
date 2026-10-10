@@ -49,7 +49,7 @@ class LoteUseCaseConfigTest {
     @DisplayName("El wiring de la consulta conecta negocio, servicio y mapper")
     void obtenerLoteUseCaseShouldWireDependencies() {
         givenNegocio();
-        when(loteSubidaService.obtenerConUrlsDeLectura(NEGOCIO_ID, LOTE_ID)).thenReturn(LoteTestData.lote(List.of()));
+        when(loteSubidaService.obtener(NEGOCIO_ID, LOTE_ID)).thenReturn(LoteTestData.lote(List.of()));
 
         LoteItem result = config.obtenerLoteUseCase(negocioService, loteSubidaService,
                 config.obtenerLoteMapper(loteItemMapper))

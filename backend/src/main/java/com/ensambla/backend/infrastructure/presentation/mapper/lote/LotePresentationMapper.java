@@ -34,13 +34,7 @@ public class LotePresentationMapper {
     }
 
     private FotoResponse toResponse(FotoItem foto) {
-        return new FotoResponse(
-                foto.id(),
-                foto.posicion(),
-                foto.tipoContenido(),
-                foto.tamanioBytes(),
-                foto.url(),
-                foto.urlExpiraEn());
+        return new FotoResponse(foto.id(), foto.posicion(), foto.tipoContenido(), foto.tamanioBytes());
     }
 
     private byte[] contenido(MultipartFile foto) {

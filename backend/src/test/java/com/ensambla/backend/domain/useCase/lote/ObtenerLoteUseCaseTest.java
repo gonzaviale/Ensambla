@@ -16,7 +16,6 @@ import java.util.List;
 
 import static com.ensambla.backend.support.LoteTestData.LOTE_ID;
 import static com.ensambla.backend.support.LoteTestData.NEGOCIO_ID;
-import static com.ensambla.backend.support.LoteTestData.URL_LECTURA;
 import static com.ensambla.backend.support.LoteTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -41,7 +40,7 @@ class ObtenerLoteUseCaseTest {
     }
 
     @Test
-    @DisplayName("Busca el lote en el negocio de la sesión y devuelve las fotos con URL firmada")
+    @DisplayName("Busca el lote en el negocio de la sesión y devuelve sus fotos")
     void executeShouldReturnLoteOfSessionNegocio() {
         givenNegocio();
         givenLote();
@@ -49,7 +48,7 @@ class ObtenerLoteUseCaseTest {
         LoteItem result = obtenerLoteUseCase.execute(REQUEST);
 
         assertThat(result.id()).isEqualTo(LOTE_ID);
-        assertThat(result.fotos().getFirst().url()).isEqualTo(URL_LECTURA);
+        assertThat(result.fotos()).hasSize(1);
     }
 
     @Test
@@ -67,12 +66,12 @@ class ObtenerLoteUseCaseTest {
     }
 
     private void givenLote() {
-        when(loteSubidaService.obtenerConUrlsDeLectura(NEGOCIO_ID, LOTE_ID))
-                .thenReturn(LoteTestData.lote(List.of(LoteTestData.fotoConUrl())));
+        when(loteSubidaService.obtener(NEGOCIO_ID, LOTE_ID))
+                .thenReturn(LoteTestData.lote(List.of(LoteTestData.foto())));
     }
 
     private void givenLoteAjeno() {
-        when(loteSubidaService.obtenerConUrlsDeLectura(NEGOCIO_ID, LOTE_ID))
+        when(loteSubidaService.obtener(NEGOCIO_ID, LOTE_ID))
                 .thenThrow(new ResourceNotFoundException("Lote no encontrado"));
     }
 }

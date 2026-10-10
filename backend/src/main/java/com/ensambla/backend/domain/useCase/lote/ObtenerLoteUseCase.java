@@ -21,7 +21,7 @@ public class ObtenerLoteUseCase {
 
     public LoteItem execute(ObtenerLoteRequest request) {
         UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-        LoteSubida lote = loteSubidaService.obtenerConUrlsDeLectura(negocioId, request.loteId());
+        LoteSubida lote = loteSubidaService.obtener(negocioId, request.loteId());
         return obtenerLoteMapper.toResponse(lote);
     }
 }

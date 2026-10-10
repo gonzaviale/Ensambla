@@ -13,8 +13,6 @@ import static com.ensambla.backend.support.LoteTestData.AHORA;
 import static com.ensambla.backend.support.LoteTestData.FOTO_ID;
 import static com.ensambla.backend.support.LoteTestData.JPEG;
 import static com.ensambla.backend.support.LoteTestData.LOTE_ID;
-import static com.ensambla.backend.support.LoteTestData.URL_EXPIRA_EN;
-import static com.ensambla.backend.support.LoteTestData.URL_LECTURA;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class LoteItemMapperTest {
@@ -27,24 +25,12 @@ class LoteItemMapperTest {
     }
 
     @Test
-    @DisplayName("Mapea el lote y cada foto con su URL firmada de lectura")
-    void toResponseShouldMapLoteAndFotoWithUrl() {
-        LoteItem result = loteItemMapper.toResponse(LoteTestData.lote(List.of(LoteTestData.fotoConUrl())));
+    @DisplayName("Mapea el lote y cada foto con todos sus datos")
+    void toResponseShouldMapLoteAndFoto() {
+        LoteItem result = loteItemMapper.toResponse(LoteTestData.lote(List.of(LoteTestData.foto())));
 
         thenLoteIsMapped(result);
         thenFotoIsMapped(result.fotos().getFirst());
-        assertThat(result.fotos().getFirst().url()).isEqualTo(URL_LECTURA);
-        assertThat(result.fotos().getFirst().urlExpiraEn()).isEqualTo(URL_EXPIRA_EN);
-    }
-
-    @Test
-    @DisplayName("Deja la URL vacía cuando la foto no se firmó, como al subir el lote")
-    void toResponseShouldLeaveUrlNullWhenNotSigned() {
-        LoteItem result = loteItemMapper.toResponse(LoteTestData.lote(List.of(LoteTestData.foto())));
-
-        thenFotoIsMapped(result.fotos().getFirst());
-        assertThat(result.fotos().getFirst().url()).isNull();
-        assertThat(result.fotos().getFirst().urlExpiraEn()).isNull();
     }
 
     @Test

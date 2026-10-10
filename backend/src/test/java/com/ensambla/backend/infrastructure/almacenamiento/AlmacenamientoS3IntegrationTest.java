@@ -6,6 +6,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.MinIOContainer;
+import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
@@ -18,7 +20,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
-import static com.ensambla.backend.support.MinioTestContainer.MINIO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
@@ -28,10 +29,18 @@ import static org.assertj.core.api.Assertions.assertThatCode;
  */
 class AlmacenamientoS3IntegrationTest {
 
+    // Misma imagen que el docker-compose.yml. Contenedor compartido por los tests de la clase; Ryuk lo elimina al final.
+    private static final MinIOContainer MINIO = new MinIOContainer(
+            DockerImageName.parse("cgr.dev/chainguard/minio:latest").asCompatibleSubstituteFor("minio/minio"));
+
     private static final String CLAVE = "negocios/1/fotos/pagina-1.jpg";
     private static final String TIPO_CONTENIDO = "image/jpeg";
     private static final byte[] FOTO = {1, 2, 3, 4};
     private static final Duration EXPIRACION = Duration.ofMinutes(15);
+
+    static {
+        MINIO.start();
+    }
 
     private final HttpClient http = HttpClient.newHttpClient();
     private final AlmacenamientoConfig config = new AlmacenamientoConfig();
@@ -47,7 +56,7 @@ class AlmacenamientoS3IntegrationTest {
         s3 = config.s3Client(properties);
         presigner = config.s3Presigner(properties);
         config.inicializadorBucket(s3, properties).run(null);
-        almacenamiento = config.almacenamientoArchivos(s3, presigner, properties);
+        almacenamiento = config.almacenamientoArchivos(presigner, properties);
     }
 
     @AfterEach
@@ -68,28 +77,6 @@ class AlmacenamientoS3IntegrationTest {
     }
 
     @Test
-    @DisplayName("Un archivo guardado por el backend se lee con la URL firmada y conserva su tipo")
-    void guardarShouldStoreFileReadableWithSignedUrl() throws Exception {
-        almacenamiento.guardar(CLAVE, FOTO, TIPO_CONTENIDO);
-
-        HttpResponse<byte[]> respuesta = get(almacenamiento.generarUrlLectura(CLAVE).url());
-
-        assertThat(respuesta.statusCode()).isEqualTo(200);
-        assertThat(respuesta.body()).isEqualTo(FOTO);
-        assertThat(respuesta.headers().firstValue("Content-Type")).contains(TIPO_CONTENIDO);
-    }
-
-    @Test
-    @DisplayName("Un archivo eliminado ya no se puede leer ni con URL firmada")
-    void eliminarShouldRemoveFile() throws Exception {
-        almacenamiento.guardar(CLAVE, FOTO, TIPO_CONTENIDO);
-
-        almacenamiento.eliminar(CLAVE);
-
-        assertThat(get(almacenamiento.generarUrlLectura(CLAVE).url()).statusCode()).isEqualTo(404);
-    }
-
-    @Test
     @DisplayName("Sin firma el archivo no se puede leer")
     void leerShouldBeForbiddenWhenUrlIsNotSigned() throws Exception {
         givenFotoSubida();
@@ -105,9 +92,7 @@ class AlmacenamientoS3IntegrationTest {
         givenFotoSubida();
         String url = almacenamiento.generarUrlLectura(CLAVE).url();
 
-        String alterada = url.replaceFirst("X-Amz-Signature=[0-9a-f]+", "X-Amz-Signature=" + "0".repeat(64));
-
-        HttpResponse<byte[]> respuesta = get(alterada);
+        HttpResponse<byte[]> respuesta = get(url.replaceFirst("X-Amz-Signature=[0-9a-f]+", "X-Amz-Signature=" + "0".repeat(64)));
 
         assertThat(respuesta.statusCode()).isEqualTo(403);
     }
@@ -129,7 +114,7 @@ class AlmacenamientoS3IntegrationTest {
     void leerShouldBeForbiddenWhenUrlExpired() throws Exception {
         givenFotoSubida();
         AlmacenamientoArchivosPort conExpiracionCorta =
-                config.almacenamientoArchivos(s3, presigner, givenProperties(Duration.ofSeconds(1)));
+                config.almacenamientoArchivos(presigner, givenProperties(Duration.ofSeconds(1)));
         String url = conExpiracionCorta.generarUrlLectura(CLAVE).url();
         Thread.sleep(2_000);
 
@@ -178,7 +163,6 @@ class AlmacenamientoS3IntegrationTest {
 
     // --- act ---
     private HttpResponse<byte[]> get(String url) throws IOException, InterruptedException {
-        return http.send(HttpRequest.newBuilder(URI.create(url)).GET().build(),
-                HttpResponse.BodyHandlers.ofByteArray());
+        return http.send(HttpRequest.newBuilder(URI.create(url)).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
     }
 }
