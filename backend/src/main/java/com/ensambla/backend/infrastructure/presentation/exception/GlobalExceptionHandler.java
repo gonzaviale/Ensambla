@@ -3,6 +3,7 @@ package com.ensambla.backend.infrastructure.presentation.exception;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.CredencialesInvalidasException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
+import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -54,6 +55,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessRuleException.class)
     public ResponseEntity<ErrorResponse> handleBusinessRule(BusinessRuleException e, HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST, e.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(RegistroInvalidoException.class)
+    public ResponseEntity<ErrorResponse> handleRegistroInvalido(RegistroInvalidoException e,
+                                                               HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, e.getMessage(), request, e.getErrores());
     }
 
     /** FK inexistente (p. ej. organizacionId que no existe) o restricción única violada en la base. */
