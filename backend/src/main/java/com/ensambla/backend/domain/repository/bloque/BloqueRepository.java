@@ -8,4 +8,9 @@ import java.util.UUID;
 public interface BloqueRepository {
 
     Optional<Bloque> findByIdAndNegocioId(UUID id, UUID negocioId);
+
+    Bloque save(Bloque bloque);
+
+    /** Borra el bloque; la base elimina en cascada sus campos y registros. */
+    void deleteByIdAndNegocioId(UUID id, UUID negocioId);
 }

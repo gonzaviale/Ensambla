@@ -23,7 +23,7 @@ npm run dev        # http://localhost:5173 (proxy /api → http://localhost:8080
 
 | Valor | Comportamiento |
 |---|---|
-| `parcial` | Reservado para endpoints pendientes; hoy todos los handlers pasan al backend real |
+| `parcial` | Backend real salvo lo pendiente: hoy no queda nada simulado |
 | `completo` | Todo simulado con MSW; no hace falta backend |
 | `ninguno` (default) | Todo contra el backend real, incluidos registro, login y logout |
 
@@ -46,8 +46,20 @@ Ingresá en `/login` con `demo@ensambla.local` / `EnsamblaDemo2026!`. Esta cuent
 Podés crear en blanco o desde Inventario, Pedidos y Clientes; abrir, renombrar y eliminar proyectos.
 Los datos simulados viven en memoria y se reinician al recargar la página.
 
-La carga efectiva de fotos y el editor de bloques corresponden a otras historias. El constructor muestra
-los campos copiados de la plantilla o una orientación para el primer bloque si el proyecto está vacío.
+La carga efectiva de fotos corresponde a otra historia.
+
+### Probar el constructor (ENS-5 · H-04)
+
+En `/proyectos/<id>/construir` (botón «Abrir proyecto»): lista de bloques a la izquierda y el bloque elegido
+a la derecha; en el celular, primero la lista y al tocar un bloque su detalle («Ver todos los bloques» o el
+botón atrás vuelven). El bloque abierto queda en la URL (`?bloque=<id>`). Se agregan, renombran y eliminan
+bloques (con confirmación) y sus datos (campos) de los cinco tipos, con obligatorio, valor inicial y opciones.
+En la interfaz los campos se llaman «datos» (cada uno es una columna de la tabla).
+
+- Contrato: `src/api/bloques.ts` (T-017) y `src/api/campos.ts` (T-018), los dos ya en el backend.
+- `completo`: bloques y campos simulados sobre el proyecto en memoria, con las validaciones del backend
+  (409 por nombre repetido, 400 con `errors`).
+- `ninguno` o `parcial`: todo contra el backend real.
 
 ### Cargar registros (ENS-6 · ENS-52/T-024 y ENS-53/T-025)
 

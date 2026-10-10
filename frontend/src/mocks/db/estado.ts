@@ -9,8 +9,12 @@ export type UsuarioMock = {
   contrasenia: string;
 };
 
+export type Fechas = { creadoEn: string; actualizadoEn: string };
+
 type Estado = {
   proyectos: Map<string, { usuarioId: string; proyecto: Proyecto }>;
+  /** Alta y última modificación de bloques y campos (la estructura del proyecto no las guarda). */
+  fechas: Map<string, Fechas>;
   registros: Map<string, Registro>;
   usuarios: Map<string, UsuarioMock>;
   sesionUsuarioId: string | null;
@@ -18,6 +22,7 @@ type Estado = {
 
 export const estado: Estado = {
   proyectos: new Map(),
+  fechas: new Map(),
   registros: new Map(),
   usuarios: new Map(),
   sesionUsuarioId: null,
@@ -25,6 +30,7 @@ export const estado: Estado = {
 
 export function reiniciarEstado() {
   estado.proyectos = new Map();
+  estado.fechas = new Map();
   estado.registros = new Map();
   estado.usuarios = new Map();
   estado.sesionUsuarioId = null;

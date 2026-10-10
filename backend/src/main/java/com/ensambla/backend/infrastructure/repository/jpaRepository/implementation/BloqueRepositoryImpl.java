@@ -21,4 +21,14 @@ public class BloqueRepositoryImpl implements BloqueRepository {
     public Optional<Bloque> findByIdAndNegocioId(UUID id, UUID negocioId) {
         return jpa.findByIdAndNegocioId(id, negocioId).map(mapper::toDomain);
     }
+
+    @Override
+    public Bloque save(Bloque bloque) {
+        return mapper.toDomain(jpa.save(mapper.toEntity(bloque)));
+    }
+
+    @Override
+    public void deleteByIdAndNegocioId(UUID id, UUID negocioId) {
+        jpa.deleteByIdAndNegocioId(id, negocioId);
+    }
 }

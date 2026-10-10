@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.presentation.exception;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.exception.CredencialesInvalidasException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
@@ -81,6 +82,18 @@ class GlobalExceptionHandlerTest {
 
         thenResponseIsBadRequestWithError(response, "campo-1", "Este dato es obligatorio");
         assertThat(response.getBody().getMessage()).isEqualTo("Revisá los datos marcados");
+    }
+
+    @Test
+    @DisplayName("Responde 400 con el mensaje de cada dato cuando la configuración de un campo no es válida")
+    void handleCampoInvalidoShouldReturnBadRequestWithErrorPerDato() {
+        CampoInvalidoException exception = new CampoInvalidoException(
+                Map.of("opciones", "Agregá al menos una opción"));
+
+        ResponseEntity<ErrorResponse> response = handler.handleCampoInvalido(exception, request);
+
+        thenResponseIsBadRequestWithError(response, "opciones", "Agregá al menos una opción");
+        assertThat(response.getBody().getMessage()).isEqualTo("Revisá la configuración del campo");
     }
 
     @Test

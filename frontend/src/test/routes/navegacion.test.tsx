@@ -49,14 +49,14 @@ describe('navegación y guards', () => {
     const proyecto = await crearProyecto({ nombre: 'Mi proyecto' });
     renderApp(`/proyectos/${proyecto.id}/construir`);
 
-    await verifyHeadingPresentAsync('Constructor de bloques y campos');
+    await verifyHeadingPresentAsync('Tus bloques');
   });
 
   it('muestra los breadcrumbs y la barra inferior dentro de un proyecto', async () => {
     setupUsuarioConSesion();
     const proyecto = await crearProyecto({ nombre: 'Mi proyecto' });
     renderApp(`/proyectos/${proyecto.id}/construir`);
-    await verifyHeadingPresentAsync('Constructor de bloques y campos');
+    await verifyHeadingPresentAsync('Tus bloques');
 
     const migas = screen.getByRole('navigation', { name: 'Ruta de navegación' });
     expect(migas).toHaveTextContent('Mis proyectos');

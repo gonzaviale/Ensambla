@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.model.proyecto;
 
+import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.BloquePlantilla;
@@ -87,5 +88,32 @@ public class Proyecto {
     public void renombrar(String nombre, OffsetDateTime ahora) {
         this.nombre = nombre.strip();
         this.actualizadoEn = ahora;
+    }
+
+    /** Bloque nuevo al final de la lista del constructor; todavía sin guardar. */
+    public Bloque agregarBloque(String nombre, OffsetDateTime ahora) {
+        validarNombreDeBloqueLibre(nombre, null);
+        return Bloque.nuevo(negocioId, id, nombre, siguientePosicionDeBloque(), ahora);
+    }
+
+    /**
+     * El nombre de un bloque es único dentro del proyecto sin distinguir mayúsculas ni espacios de los extremos.
+     * {@code bloqueId} es el bloque que se está renombrando (puede conservar su propio nombre); null al crear.
+     */
+    public void validarNombreDeBloqueLibre(String nombre, UUID bloqueId) {
+        String buscado = nombre.strip();
+        boolean ocupado = bloques.stream()
+                .filter(bloque -> !bloque.getId().equals(bloqueId))
+                .anyMatch(bloque -> bloque.getNombre().equalsIgnoreCase(buscado));
+        if (ocupado) {
+            throw new DuplicateResourceException("Ya hay un bloque llamado \"" + buscado + "\" en este proyecto");
+        }
+    }
+
+    private short siguientePosicionDeBloque() {
+        return (short) bloques.stream()
+                .mapToInt(bloque -> bloque.getPosicion() + 1)
+                .max()
+                .orElse(0);
     }
 }

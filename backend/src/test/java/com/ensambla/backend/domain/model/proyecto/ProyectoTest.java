@@ -1,14 +1,21 @@
 package com.ensambla.backend.domain.model.proyecto;
 
+import com.ensambla.backend.domain.exception.DuplicateResourceException;
+import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.support.ProyectoTestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.UUID;
+
 import static com.ensambla.backend.support.ProyectoTestData.AHORA;
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ProyectoTestData.PLANTILLA_ID;
+import static com.ensambla.backend.support.ProyectoTestData.PROYECTO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ProyectoTest {
 
@@ -64,6 +71,63 @@ class ProyectoTest {
         assertThat(proyecto.getNombre()).isEqualTo("Nuevo");
         assertThat(proyecto.getCreadoEn()).isEqualTo(AHORA);
         assertThat(proyecto.getActualizadoEn()).isEqualTo(AHORA.plusDays(1));
+    }
+
+    @Test
+    @DisplayName("Agrega el bloque al final, en el negocio y el proyecto, sin guardarlo todavía")
+    void agregarBloqueShouldPlaceBloqueAfterTheLastOne() {
+        Proyecto proyecto = ProyectoTestData.proyecto();
+        proyecto.getBloques().getFirst().setPosicion((short) 4);
+
+        Bloque result = proyecto.agregarBloque(" Clientes ", AHORA.plusDays(1));
+
+        assertThat(result.getId()).isNull();
+        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(result.getProyectoId()).isEqualTo(PROYECTO_ID);
+        assertThat(result.getNombre()).isEqualTo("Clientes");
+        assertThat(result.getPosicion()).isEqualTo((short) 5);
+        assertThat(result.getCreadoEn()).isEqualTo(AHORA.plusDays(1));
+        assertThat(proyecto.getBloques()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("El primer bloque de un proyecto en blanco queda en la posición cero")
+    void agregarBloqueShouldStartAtZeroWhenProyectoIsEmpty() {
+        Proyecto proyecto = Proyecto.enBlanco(NEGOCIO_ID, "Vacío", null, AHORA);
+
+        Bloque result = proyecto.agregarBloque("Productos", AHORA);
+
+        assertThat(result.getPosicion()).isZero();
+    }
+
+    @Test
+    @DisplayName("Rechaza un bloque con el nombre de otro aunque cambien mayúsculas y espacios")
+    void agregarBloqueShouldRejectRepeatedNameIgnoringCase() {
+        Proyecto proyecto = ProyectoTestData.proyecto();
+
+        assertThatThrownBy(() -> proyecto.agregarBloque("  PRODUCTOS ", AHORA))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessage("Ya hay un bloque llamado \"PRODUCTOS\" en este proyecto");
+    }
+
+    @Test
+    @DisplayName("Un bloque puede quedarse con su propio nombre al renombrarse")
+    void validarNombreDeBloqueLibreShouldAllowTheSameBloque() {
+        Proyecto proyecto = ProyectoTestData.proyecto();
+        UUID productosId = proyecto.getBloques().getFirst().getId();
+
+        assertThatCode(() -> proyecto.validarNombreDeBloqueLibre("productos", productosId))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("Renombrar con el nombre de otro bloque del proyecto se rechaza")
+    void validarNombreDeBloqueLibreShouldRejectNameOfAnotherBloque() {
+        Proyecto proyecto = ProyectoTestData.proyecto();
+        UUID vacioId = proyecto.getBloques().get(1).getId();
+
+        assertThatThrownBy(() -> proyecto.validarNombreDeBloqueLibre("Productos", vacioId))
+                .isInstanceOf(DuplicateResourceException.class);
     }
 }
 

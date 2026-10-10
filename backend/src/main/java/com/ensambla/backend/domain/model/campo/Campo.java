@@ -21,7 +21,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Campo {
 
-    private static final int MAX_CARACTERES_TEXTO = 1000;
+    static final int MAX_CARACTERES_TEXTO = 1000;
 
     private UUID id;
 
@@ -46,6 +46,33 @@ public class Campo {
     private OffsetDateTime creadoEn;
 
     private OffsetDateTime actualizadoEn;
+
+    /** Campo nuevo del bloque, todavía sin guardar; {@code configuracion} ya viene validada. */
+    public static Campo nuevo(
+            UUID negocioId,
+            UUID bloqueId,
+            short posicion,
+            ConfiguracionCampo.Validada configuracion,
+            OffsetDateTime ahora) {
+        Campo campo = Campo.builder()
+                .negocioId(negocioId)
+                .bloqueId(bloqueId)
+                .posicion(posicion)
+                .creadoEn(ahora)
+                .build();
+        campo.configurar(configuracion, ahora);
+        return campo;
+    }
+
+    /** Reemplaza toda la configuración; conserva id, bloque, posición y fecha de creación. */
+    public void configurar(ConfiguracionCampo.Validada configuracion, OffsetDateTime ahora) {
+        this.nombre = configuracion.nombre();
+        this.tipo = configuracion.tipo();
+        this.obligatorio = configuracion.obligatorio();
+        this.valorInicial = configuracion.valorInicial();
+        this.opciones = configuracion.opciones();
+        this.actualizadoEn = ahora;
+    }
 
     public boolean esObligatorio() {
         return Boolean.TRUE.equals(obligatorio);
