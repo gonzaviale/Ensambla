@@ -1,0 +1,52 @@
+package com.ensambla.backend.infrastructure.presentation.controller;
+
+import com.ensambla.backend.domain.useCase.procesamiento.ConsultarConsumoUseCase;
+import com.ensambla.backend.domain.useCase.procesamiento.ObtenerLecturaUseCase;
+import com.ensambla.backend.domain.useCase.procesamiento.ReintentarLecturaUseCase;
+import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.ConsumoResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.LecturaResponse;
+import com.ensambla.backend.infrastructure.presentation.mapper.procesamiento.LecturaPresentationMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
+
+@RestController
+@RequiredArgsConstructor
+@Tag(name = "Lecturas de cuadernos")
+public class LecturaController {
+
+    private final ObtenerLecturaUseCase obtenerLecturaUseCase;
+    private final ReintentarLecturaUseCase reintentarLecturaUseCase;
+    private final ConsultarConsumoUseCase consultarConsumoUseCase;
+    private final LecturaPresentationMapper lecturaPresentationMapper;
+
+    @GetMapping("/api/lotes/{loteId}/lectura")
+    @Operation(summary = "Consultar el procesamiento y la propuesta del lote del negocio actual")
+    public ResponseEntity<LecturaResponse> obtener(Authentication authentication, @PathVariable UUID loteId) {
+        return ResponseEntity.ok(lecturaPresentationMapper.toResponse(obtenerLecturaUseCase.execute(
+                lecturaPresentationMapper.toRequest(UUID.fromString(authentication.getName()), loteId))));
+    }
+
+    @PostMapping("/api/lotes/{loteId}/reintentar")
+    @Operation(summary = "Reencolar una lectura fallida del negocio actual")
+    public ResponseEntity<Void> reintentar(Authentication authentication, @PathVariable UUID loteId) {
+        reintentarLecturaUseCase.execute(
+                lecturaPresentationMapper.toRequest(UUID.fromString(authentication.getName()), loteId));
+        return ResponseEntity.accepted().build();
+    }
+
+    @GetMapping("/api/ia/consumo")
+    @Operation(summary = "Consultar el consumo de IA y las páginas disponibles del día UTC")
+    public ResponseEntity<ConsumoResponse> consumo(Authentication authentication) {
+        return ResponseEntity.ok(lecturaPresentationMapper.toResponse(
+                consultarConsumoUseCase.execute(UUID.fromString(authentication.getName()))));
+    }
+}

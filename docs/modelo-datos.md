@@ -1,7 +1,9 @@
 # Modelo de datos (MVP 2 · T-004, T-109)
 
 Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (`V1__esquema_inicial.sql`,
-`V2__digitalizacion_cuaderno.sql`, `V3__plantillas_base.sql`). V3 carga Inventario, Pedidos y Clientes
+`V2__digitalizacion_cuaderno.sql`, `V3__plantillas_base.sql`, `V4__procesamiento_lecturas_ia.sql`).
+V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
+V3 carga Inventario, Pedidos y Clientes
 como plantillas globales; sus UUID coinciden con los del modo simulado del frontend. Este documento explica el
 porqué; si cambian, se actualizan juntos.
 
@@ -14,6 +16,22 @@ porqué; si cambian, se actualizan juntos.
   `Clock`), no hay `@PrePersist`; el `DEFAULT now()` existe para seeds y scripts.
 - Índices al final del script: `ux_` únicos, `ix_` comunes. Constraints con nombre: `ck_`, `fk_`, `ux_`.
 - Las migraciones aplicadas **no se editan**: cada cambio es una `V{n}` nueva.
+
+### Procesamiento persistente de IA (V4)
+
+- `lote_subida`: reclamo_id/reclamo_hasta identifican el intento activo; proximo_intento_en
+  conserva la demora del reintento; paginas_reservadas/dia_reserva identifican su reserva.
+  El token se comprueba al finalizar para descartar respuestas tardías.
+- `consumo_ia_diario`: clave primaria (negocio_id, fecha UTC), paginas procesadas y reservadas
+  no negativas. Las reservas se actualizan atómicamente con control del límite.
+- `lectura_ia`: reclamo_id único para cada intento del worker, propuesta tipada/mapeo JSON,
+  dia_consumo (día de la reserva, aun si termina después de medianoche) y consumo_completo.
+  Un fallo después de reservar registra páginas con tokens/costo desconocidos y consumo_completo=false.
+  V4 conserva e incorpora al contador las lecturas anteriores; no cambia V1–V3.
+- Cada escritura final de lectura/estado/consumo comparte una transacción. Las llamadas al proveedor
+  y el acceso a archivos ocurren fuera de esas transacciones.
+
+Detalles y contrato con subida: [lectura-cuaderno-ia.md](lectura-cuaderno-ia.md).
 
 ## Aislamiento entre negocios (T-010, T-011)
 
