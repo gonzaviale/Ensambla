@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const campoSchema = z.object({
+export const campoSchema = z.object({
   id: z.string().uuid(),
   nombre: z.string(),
   tipo: z.enum(['TEXTO', 'NUMERO', 'FECHA', 'OPCION', 'SI_NO']),
@@ -9,7 +9,7 @@ const campoSchema = z.object({
   opciones: z.array(z.string()),
   posicion: z.number(),
 });
-const bloqueSchema = z.object({
+export const bloqueSchema = z.object({
   id: z.string().uuid(),
   nombre: z.string(),
   posicion: z.number(),
@@ -30,4 +30,6 @@ export const crearProyectoSchema = z.object({
 });
 export const renombrarProyectoSchema = crearProyectoSchema.pick({ nombre: true });
 export type Proyecto = z.infer<typeof proyectoSchema>;
+export type Campo = z.infer<typeof campoSchema>;
+export type Bloque = z.infer<typeof bloqueSchema>;
 export type CrearProyecto = z.infer<typeof crearProyectoSchema>;
