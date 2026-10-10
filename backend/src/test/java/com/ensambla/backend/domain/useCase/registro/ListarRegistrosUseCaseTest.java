@@ -13,7 +13,7 @@ import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.registro.RegistroService;
+import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,28 +51,28 @@ class ListarRegistrosUseCaseTest {
     private CampoService campoService;
 
     @Mock
-    private RegistroService registroService;
+    private RegistroDatosService registroDatosService;
 
     private ListarRegistrosUseCase listarRegistrosUseCase;
 
     @BeforeEach
     void setUp() {
         listarRegistrosUseCase = new ListarRegistrosUseCase(
-                negocioService, bloqueService, campoService, registroService, new ListarRegistrosMapper());
+                negocioService, bloqueService, campoService, registroDatosService, new ListarRegistrosMapper());
     }
 
     @Test
     @DisplayName("Arma la consulta con el negocio de la sesión y devuelve la página mapeada")
     void executeShouldQueryWithSessionNegocioAndReturnMappedPage() {
         givenBloqueOfNegocioWithCampo();
-        when(registroService.listar(any(ConsultaRegistros.class)))
+        when(registroDatosService.listar(any(ConsultaRegistros.class)))
                 .thenReturn(new Pagina<>(List.of(Registro.builder().id(REGISTRO_ID).build()), 1, 5, 6));
 
         ListarRegistrosResponse response = listarRegistrosUseCase.execute(new ListarRegistrosRequest(
                 USUARIO_ID, BLOQUE_ID, " harina ", CAMPO_ID.toString(), "asc", 1, 5));
 
         ArgumentCaptor<ConsultaRegistros> consulta = ArgumentCaptor.forClass(ConsultaRegistros.class);
-        verify(registroService).listar(consulta.capture());
+        verify(registroDatosService).listar(consulta.capture());
         assertThat(consulta.getValue().negocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(consulta.getValue().bloqueId()).isEqualTo(BLOQUE_ID);
         assertThat(consulta.getValue().texto()).isEqualTo("harina");
@@ -88,19 +88,21 @@ class ListarRegistrosUseCaseTest {
     @Test
     @DisplayName("No consulta registros cuando el bloque no es del negocio")
     void executeShouldPropagateNotFoundWhenBloqueIsNotOfTheNegocio() {
-        when(negocioService.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenThrow(new ResourceNotFoundException("El bloque no existe"));
-        ListarRegistrosRequest request = new ListarRegistrosRequest(USUARIO_ID, BLOQUE_ID, null, null, null, null, null);
+        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID))
+                .thenThrow(new ResourceNotFoundException("El bloque no existe"));
+        ListarRegistrosRequest request = new ListarRegistrosRequest(
+                USUARIO_ID, BLOQUE_ID, null, null, null, null, null);
 
         assertThatThrownBy(() -> listarRegistrosUseCase.execute(request))
                 .isInstanceOf(ResourceNotFoundException.class);
 
-        verifyNoInteractions(campoService, registroService);
+        verifyNoInteractions(campoService, registroDatosService);
     }
 
     // --- arrange ---
     private void givenBloqueOfNegocioWithCampo() {
-        when(negocioService.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
         when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID))
                 .thenReturn(List.of(Campo.builder().id(CAMPO_ID).build()));

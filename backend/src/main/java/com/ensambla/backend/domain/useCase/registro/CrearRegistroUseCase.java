@@ -9,7 +9,7 @@ import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.registro.RegistroService;
+import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
@@ -23,15 +23,15 @@ public class CrearRegistroUseCase {
     private final NegocioService negocioService;
     private final BloqueService bloqueService;
     private final CampoService campoService;
-    private final RegistroService registroService;
+    private final RegistroDatosService registroDatosService;
     private final CrearRegistroMapper mapper;
     private final Clock clock;
 
     public CrearRegistroResponse execute(CrearRegistroRequest request) {
-        UUID negocioId = negocioService.obtenerIdDelUsuario(request.usuarioId());
+        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         Bloque bloque = bloqueService.obtener(request.bloqueId(), negocioId);
         List<Campo> campos = campoService.listarDeBloque(bloque.getId(), negocioId);
-        Registro creado = registroService.crear(
+        Registro creado = registroDatosService.crear(
                 negocioId, bloque.getId(), campos, request.valores(), OffsetDateTime.now(clock));
         return mapper.toResponse(creado);
     }

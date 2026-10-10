@@ -8,5 +8,6 @@ import java.util.UUID;
 
 public interface INegocioJpaRepository extends JpaRepository<NegocioEntity, UUID> {
 
-    Optional<NegocioEntity> findByDuenioId(UUID duenioId);
+    /** MVP2: negocio del dueño autenticado; el selector de negocio se implementa en T-061. */
+    Optional<NegocioEntity> findFirstByDuenioIdOrderByCreadoEnAscIdAsc(UUID duenioId);
 }

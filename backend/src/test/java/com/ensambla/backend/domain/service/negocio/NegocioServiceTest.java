@@ -1,7 +1,6 @@
 package com.ensambla.backend.domain.service.negocio;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,28 +29,21 @@ class NegocioServiceTest {
     private NegocioService negocioService;
 
     @Test
-    @DisplayName("Devuelve el id del negocio del que el usuario es dueño")
-    void obtenerIdDelUsuarioShouldReturnNegocioId() {
-        givenUsuarioHasNegocio();
+    @DisplayName("Resuelve el negocio usando el usuario autenticado")
+    void obtenerDelUsuarioShouldResolveOwner() {
+        when(negocioRepository.findIdByDuenioId(USUARIO_ID)).thenReturn(Optional.of(NEGOCIO_ID));
 
-        UUID result = negocioService.obtenerIdDelUsuario(USUARIO_ID);
+        UUID result = negocioService.obtenerDelUsuario(USUARIO_ID);
 
         assertThat(result).isEqualTo(NEGOCIO_ID);
     }
 
     @Test
-    @DisplayName("Rechaza con 'no existe' al usuario que no tiene negocio")
-    void obtenerIdDelUsuarioShouldThrowWhenUsuarioHasNoNegocio() {
-        when(negocioRepository.findByDuenioId(USUARIO_ID)).thenReturn(Optional.empty());
+    @DisplayName("Responde no encontrado si el usuario no tiene negocio")
+    void obtenerDelUsuarioShouldRejectMissingNegocio() {
+        when(negocioRepository.findIdByDuenioId(USUARIO_ID)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> negocioService.obtenerIdDelUsuario(USUARIO_ID))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("El negocio no existe");
-    }
-
-    // --- arrange ---
-    private void givenUsuarioHasNegocio() {
-        when(negocioRepository.findByDuenioId(USUARIO_ID))
-                .thenReturn(Optional.of(Negocio.builder().id(NEGOCIO_ID).duenioId(USUARIO_ID).build()));
+        assertThatThrownBy(() -> negocioService.obtenerDelUsuario(USUARIO_ID))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 }

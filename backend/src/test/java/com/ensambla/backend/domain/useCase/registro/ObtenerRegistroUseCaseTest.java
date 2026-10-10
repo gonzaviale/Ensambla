@@ -6,7 +6,7 @@ import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.mapper.registro.ObtenerRegistroMapper;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.registro.RegistroService;
+import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,21 +32,21 @@ class ObtenerRegistroUseCaseTest {
     private NegocioService negocioService;
 
     @Mock
-    private RegistroService registroService;
+    private RegistroDatosService registroDatosService;
 
     private ObtenerRegistroUseCase obtenerRegistroUseCase;
 
     @BeforeEach
     void setUp() {
         obtenerRegistroUseCase = new ObtenerRegistroUseCase(
-                negocioService, registroService, new ObtenerRegistroMapper());
+                negocioService, registroDatosService, new ObtenerRegistroMapper());
     }
 
     @Test
     @DisplayName("Devuelve el registro del negocio de la sesión mapeado")
     void executeShouldReturnMappedRegistroOfTheSessionNegocio() {
-        when(negocioService.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(registroService.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(
+        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(
                 Registro.builder().id(REGISTRO_ID).valores(Map.of("campo", "dato")).build());
 
         ObtenerRegistroResponse response = obtenerRegistroUseCase.execute(
@@ -59,8 +59,8 @@ class ObtenerRegistroUseCaseTest {
     @Test
     @DisplayName("Propaga 'no existe' cuando el registro es de otro negocio")
     void executeShouldPropagateNotFound() {
-        when(negocioService.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(registroService.obtener(REGISTRO_ID, NEGOCIO_ID))
+        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID))
                 .thenThrow(new ResourceNotFoundException("El registro no existe"));
 
         assertThatThrownBy(() -> obtenerRegistroUseCase.execute(new ObtenerRegistroRequest(USUARIO_ID, REGISTRO_ID)))

@@ -3,7 +3,7 @@ package com.ensambla.backend.domain.useCase.registro;
 import com.ensambla.backend.domain.dto.registro.EliminarRegistroRequest;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.registro.RegistroService;
+import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
@@ -12,11 +12,11 @@ import java.util.UUID;
 public class EliminarRegistroUseCase {
 
     private final NegocioService negocioService;
-    private final RegistroService registroService;
+    private final RegistroDatosService registroDatosService;
 
     public void execute(EliminarRegistroRequest request) {
-        UUID negocioId = negocioService.obtenerIdDelUsuario(request.usuarioId());
-        Registro registro = registroService.obtener(request.registroId(), negocioId);
-        registroService.eliminar(registro);
+        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        Registro registro = registroDatosService.obtener(request.registroId(), negocioId);
+        registroDatosService.eliminar(registro);
     }
 }

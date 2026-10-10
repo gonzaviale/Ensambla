@@ -18,7 +18,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class RegistroService {
+public class RegistroDatosService {
 
     private final RegistroRepository registroRepository;
 

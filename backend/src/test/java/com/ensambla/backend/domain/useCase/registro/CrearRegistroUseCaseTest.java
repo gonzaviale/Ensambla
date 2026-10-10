@@ -10,7 +10,7 @@ import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.registro.RegistroService;
+import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,14 +53,14 @@ class CrearRegistroUseCaseTest {
     private CampoService campoService;
 
     @Mock
-    private RegistroService registroService;
+    private RegistroDatosService registroDatosService;
 
     private CrearRegistroUseCase crearRegistroUseCase;
 
     @BeforeEach
     void setUp() {
         crearRegistroUseCase = new CrearRegistroUseCase(negocioService, bloqueService, campoService,
-                registroService, new CrearRegistroMapper(), Clock.fixed(INSTANTE, ZoneOffset.UTC));
+                registroDatosService, new CrearRegistroMapper(), Clock.fixed(INSTANTE, ZoneOffset.UTC));
     }
 
     @Test
@@ -68,10 +68,10 @@ class CrearRegistroUseCaseTest {
     void executeShouldCreateRegistroInBloqueOfTheSessionNegocio() {
         List<Campo> campos = List.of(Campo.builder().nombre("Producto").build());
         Registro creado = Registro.builder().id(REGISTRO_ID).bloqueId(BLOQUE_ID).valores(VALORES).build();
-        when(negocioService.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
         when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(campos);
-        when(registroService.crear(NEGOCIO_ID, BLOQUE_ID, campos, VALORES, AHORA)).thenReturn(creado);
+        when(registroDatosService.crear(NEGOCIO_ID, BLOQUE_ID, campos, VALORES, AHORA)).thenReturn(creado);
 
         CrearRegistroResponse response = crearRegistroUseCase.execute(
                 new CrearRegistroRequest(USUARIO_ID, BLOQUE_ID, VALORES));
@@ -83,13 +83,14 @@ class CrearRegistroUseCaseTest {
     @Test
     @DisplayName("No valida ni guarda cuando el bloque no es del negocio")
     void executeShouldPropagateNotFoundWhenBloqueIsNotOfTheNegocio() {
-        when(negocioService.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenThrow(new ResourceNotFoundException("El bloque no existe"));
+        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID))
+                .thenThrow(new ResourceNotFoundException("El bloque no existe"));
 
         assertThatThrownBy(() -> crearRegistroUseCase.execute(new CrearRegistroRequest(USUARIO_ID, BLOQUE_ID, VALORES)))
                 .isInstanceOf(ResourceNotFoundException.class);
 
-        verifyNoInteractions(campoService, registroService);
+        verifyNoInteractions(campoService, registroDatosService);
         verify(bloqueService).obtener(BLOQUE_ID, NEGOCIO_ID);
     }
 }

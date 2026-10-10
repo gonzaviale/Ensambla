@@ -18,20 +18,36 @@ class IConsultasPorNegocioJpaRepositoryTest extends PostgresDatosTestSupport {
 
     @Test
     @DisplayName("Encuentra el negocio por el id de su dueño")
-    void findByDuenioIdShouldReturnNegocioOfTheOwner() {
+    void findFirstByDuenioIdShouldReturnNegocioOfTheOwner() {
         NegocioEntity negocio = givenNegocio("dueña@example.com");
 
-        Optional<NegocioEntity> result = negocios.findByDuenioId(negocio.getDuenioId());
+        Optional<NegocioEntity> result = negocios.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(negocio.getDuenioId());
 
         assertThat(result).map(NegocioEntity::getId).contains(negocio.getId());
     }
 
     @Test
     @DisplayName("No devuelve negocio para un usuario que no es dueño de ninguno")
-    void findByDuenioIdShouldReturnEmptyWhenUsuarioOwnsNothing() {
+    void findFirstByDuenioIdShouldReturnEmptyWhenUsuarioOwnsNothing() {
         UUID usuarioSinNegocio = givenUsuario("sin-negocio@example.com");
 
-        assertThat(negocios.findByDuenioId(usuarioSinNegocio)).isEmpty();
+        assertThat(negocios.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(usuarioSinNegocio)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Con más de un negocio devuelve el más antiguo")
+    void findFirstByDuenioIdShouldReturnOldestWhenOwnerHasSeveral() {
+        NegocioEntity primero = givenNegocio("dueña@example.com");
+        negocios.saveAndFlush(NegocioEntity.builder()
+                .nombre("Segundo negocio")
+                .duenioId(primero.getDuenioId())
+                .creadoEn(AHORA.plusDays(1))
+                .actualizadoEn(AHORA.plusDays(1))
+                .build());
+
+        Optional<NegocioEntity> result = negocios.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(primero.getDuenioId());
+
+        assertThat(result).map(NegocioEntity::getId).contains(primero.getId());
     }
 
     @Test

@@ -31,7 +31,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class RegistroServiceTest {
+class RegistroDatosServiceTest {
 
     private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
     private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
@@ -45,7 +45,7 @@ class RegistroServiceTest {
     private RegistroRepository registroRepository;
 
     @InjectMocks
-    private RegistroService registroService;
+    private RegistroDatosService registroDatosService;
 
     @Test
     @DisplayName("Crea el registro con los valores validados y lo guarda")
@@ -53,7 +53,7 @@ class RegistroServiceTest {
         when(registroRepository.save(any(Registro.class))).thenAnswer(invocation -> invocation.getArgument(0));
         Map<String, Object> valores = Map.of(NOMBRE_ID.toString(), "  Harina ", "ajeno", 1);
 
-        Registro result = registroService.crear(NEGOCIO_ID, BLOQUE_ID, campos(), valores, AHORA);
+        Registro result = registroDatosService.crear(NEGOCIO_ID, BLOQUE_ID, campos(), valores, AHORA);
 
         ArgumentCaptor<Registro> guardado = ArgumentCaptor.forClass(Registro.class);
         verify(registroRepository).save(guardado.capture());
@@ -69,7 +69,7 @@ class RegistroServiceTest {
     void crearShouldNotSaveWhenValuesAreInvalid() {
         Map<String, Object> valores = Map.of(CANTIDAD_ID.toString(), 3);
 
-        assertThatThrownBy(() -> registroService.crear(NEGOCIO_ID, BLOQUE_ID, campos(), valores, AHORA))
+        assertThatThrownBy(() -> registroDatosService.crear(NEGOCIO_ID, BLOQUE_ID, campos(), valores, AHORA))
                 .isInstanceOf(RegistroInvalidoException.class);
 
         verifyNoMoreInteractions(registroRepository);
@@ -81,7 +81,7 @@ class RegistroServiceTest {
         Registro registro = registro();
         when(registroRepository.findByIdAndNegocioId(REGISTRO_ID, NEGOCIO_ID)).thenReturn(Optional.of(registro));
 
-        Registro result = registroService.obtener(REGISTRO_ID, NEGOCIO_ID);
+        Registro result = registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID);
 
         assertThat(result).isSameAs(registro);
     }
@@ -91,7 +91,7 @@ class RegistroServiceTest {
     void obtenerShouldThrowWhenRegistroIsNotFound() {
         when(registroRepository.findByIdAndNegocioId(REGISTRO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> registroService.obtener(REGISTRO_ID, NEGOCIO_ID))
+        assertThatThrownBy(() -> registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("El registro no existe");
     }
@@ -104,7 +104,7 @@ class RegistroServiceTest {
         Pagina<Registro> pagina = new Pagina<>(List.of(registro()), 0, 20, 1);
         when(registroRepository.buscar(consulta)).thenReturn(pagina);
 
-        Pagina<Registro> result = registroService.listar(consulta);
+        Pagina<Registro> result = registroDatosService.listar(consulta);
 
         assertThat(result).isSameAs(pagina);
     }
@@ -116,7 +116,7 @@ class RegistroServiceTest {
         Registro registro = registro();
         Map<String, Object> cambios = Map.of(CANTIDAD_ID.toString(), 9);
 
-        Registro result = registroService.editar(registro, campos(), cambios, AHORA);
+        Registro result = registroDatosService.editar(registro, campos(), cambios, AHORA);
 
         assertThat(result.getValores())
                 .containsEntry(NOMBRE_ID.toString(), "Harina")
@@ -131,7 +131,7 @@ class RegistroServiceTest {
         Registro registro = registro();
         Map<String, Object> cambios = Map.of(CANTIDAD_ID.toString(), "muchos");
 
-        assertThatThrownBy(() -> registroService.editar(registro, campos(), cambios, AHORA))
+        assertThatThrownBy(() -> registroDatosService.editar(registro, campos(), cambios, AHORA))
                 .isInstanceOf(RegistroInvalidoException.class);
 
         verifyNoMoreInteractions(registroRepository);
@@ -141,7 +141,7 @@ class RegistroServiceTest {
     @Test
     @DisplayName("Elimina el registro por su id")
     void eliminarShouldDeleteById() {
-        registroService.eliminar(registro());
+        registroDatosService.eliminar(registro());
 
         verify(registroRepository).deleteById(REGISTRO_ID);
     }

@@ -7,12 +7,13 @@ import com.ensambla.backend.domain.mapper.registro.ObtenerRegistroMapper;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.registro.RegistroService;
+import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.registro.CrearRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.EditarRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.EliminarRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.ListarRegistrosUseCase;
 import com.ensambla.backend.domain.useCase.registro.ObtenerRegistroUseCase;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -45,42 +46,43 @@ public class RegistroUseCaseConfig {
     public CrearRegistroUseCase crearRegistroUseCase(NegocioService negocioService,
                                                      BloqueService bloqueService,
                                                      CampoService campoService,
-                                                     RegistroService registroService,
+                                                     RegistroDatosService registroDatosService,
                                                      CrearRegistroMapper crearRegistroMapper,
-                                                     Clock clock) {
-        return new CrearRegistroUseCase(
-                negocioService, bloqueService, campoService, registroService, crearRegistroMapper, clock);
+                                                     ObjectProvider<Clock> clock) {
+        return new CrearRegistroUseCase(negocioService, bloqueService, campoService, registroDatosService,
+                crearRegistroMapper, clock.getIfAvailable(Clock::systemUTC));
     }
 
     @Bean
     public ListarRegistrosUseCase listarRegistrosUseCase(NegocioService negocioService,
                                                          BloqueService bloqueService,
                                                          CampoService campoService,
-                                                         RegistroService registroService,
+                                                         RegistroDatosService registroDatosService,
                                                          ListarRegistrosMapper listarRegistrosMapper) {
         return new ListarRegistrosUseCase(
-                negocioService, bloqueService, campoService, registroService, listarRegistrosMapper);
+                negocioService, bloqueService, campoService, registroDatosService, listarRegistrosMapper);
     }
 
     @Bean
     public ObtenerRegistroUseCase obtenerRegistroUseCase(NegocioService negocioService,
-                                                         RegistroService registroService,
+                                                         RegistroDatosService registroDatosService,
                                                          ObtenerRegistroMapper obtenerRegistroMapper) {
-        return new ObtenerRegistroUseCase(negocioService, registroService, obtenerRegistroMapper);
+        return new ObtenerRegistroUseCase(negocioService, registroDatosService, obtenerRegistroMapper);
     }
 
     @Bean
     public EditarRegistroUseCase editarRegistroUseCase(NegocioService negocioService,
                                                        CampoService campoService,
-                                                       RegistroService registroService,
+                                                       RegistroDatosService registroDatosService,
                                                        EditarRegistroMapper editarRegistroMapper,
-                                                       Clock clock) {
-        return new EditarRegistroUseCase(negocioService, campoService, registroService, editarRegistroMapper, clock);
+                                                       ObjectProvider<Clock> clock) {
+        return new EditarRegistroUseCase(negocioService, campoService, registroDatosService, editarRegistroMapper,
+                clock.getIfAvailable(Clock::systemUTC));
     }
 
     @Bean
     public EliminarRegistroUseCase eliminarRegistroUseCase(NegocioService negocioService,
-                                                           RegistroService registroService) {
-        return new EliminarRegistroUseCase(negocioService, registroService);
+                                                           RegistroDatosService registroDatosService) {
+        return new EliminarRegistroUseCase(negocioService, registroDatosService);
     }
 }

@@ -2,16 +2,12 @@ package com.ensambla.backend.infrastructure.repository.jpaRepository.implementat
 
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
-import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IBloqueJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.ICampoJpaRepository;
-import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.INegocioJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.BloqueRepositoryMapper;
 import com.ensambla.backend.infrastructure.repository.mapper.CampoRepositoryMapper;
-import com.ensambla.backend.infrastructure.repository.mapper.NegocioRepositoryMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,20 +22,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class BloqueCampoNegocioRepositoryImplTest {
+class BloqueCampoRepositoryImplTest {
 
     private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
     private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
 
     @Mock
     private IBloqueJpaRepository bloqueJpa;
 
     @Mock
     private ICampoJpaRepository campoJpa;
-
-    @Mock
-    private INegocioJpaRepository negocioJpa;
 
     @Test
     @DisplayName("El bloque se busca por id dentro del negocio y se mapea")
@@ -64,17 +56,5 @@ class BloqueCampoNegocioRepositoryImplTest {
         List<Campo> result = repository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID);
 
         assertThat(result).extracting(Campo::getNombre).containsExactly("Primero", "Segundo");
-    }
-
-    @Test
-    @DisplayName("El negocio se busca por el dueño y se mapea")
-    void negocioFindByDuenioIdShouldMapResult() {
-        NegocioRepositoryImpl repository = new NegocioRepositoryImpl(negocioJpa, new NegocioRepositoryMapper());
-        when(negocioJpa.findByDuenioId(USUARIO_ID))
-                .thenReturn(Optional.of(NegocioEntity.builder().id(NEGOCIO_ID).duenioId(USUARIO_ID).build()));
-
-        Optional<Negocio> result = repository.findByDuenioId(USUARIO_ID);
-
-        assertThat(result).map(Negocio::getId).contains(NEGOCIO_ID);
     }
 }

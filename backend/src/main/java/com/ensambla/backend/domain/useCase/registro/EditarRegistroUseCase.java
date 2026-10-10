@@ -7,7 +7,7 @@ import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.registro.RegistroService;
+import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
@@ -20,15 +20,15 @@ public class EditarRegistroUseCase {
 
     private final NegocioService negocioService;
     private final CampoService campoService;
-    private final RegistroService registroService;
+    private final RegistroDatosService registroDatosService;
     private final EditarRegistroMapper mapper;
     private final Clock clock;
 
     public EditarRegistroResponse execute(EditarRegistroRequest request) {
-        UUID negocioId = negocioService.obtenerIdDelUsuario(request.usuarioId());
-        Registro registro = registroService.obtener(request.registroId(), negocioId);
+        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        Registro registro = registroDatosService.obtener(request.registroId(), negocioId);
         List<Campo> campos = campoService.listarDeBloque(registro.getBloqueId(), negocioId);
-        Registro editado = registroService.editar(registro, campos, request.valores(), OffsetDateTime.now(clock));
+        Registro editado = registroDatosService.editar(registro, campos, request.valores(), OffsetDateTime.now(clock));
         return mapper.toResponse(editado);
     }
 }

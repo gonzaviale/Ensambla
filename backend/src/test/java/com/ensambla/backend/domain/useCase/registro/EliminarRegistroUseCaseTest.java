@@ -4,7 +4,7 @@ import com.ensambla.backend.domain.dto.registro.EliminarRegistroRequest;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.registro.RegistroService;
+import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,39 +30,39 @@ class EliminarRegistroUseCaseTest {
     private NegocioService negocioService;
 
     @Mock
-    private RegistroService registroService;
+    private RegistroDatosService registroDatosService;
 
     private EliminarRegistroUseCase eliminarRegistroUseCase;
 
     @BeforeEach
     void setUp() {
-        eliminarRegistroUseCase = new EliminarRegistroUseCase(negocioService, registroService);
+        eliminarRegistroUseCase = new EliminarRegistroUseCase(negocioService, registroDatosService);
     }
 
     @Test
     @DisplayName("Elimina el registro del negocio de la sesión")
     void executeShouldDeleteRegistroOfTheSessionNegocio() {
         Registro registro = Registro.builder().id(REGISTRO_ID).build();
-        when(negocioService.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(registroService.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(registro);
+        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(registro);
 
         eliminarRegistroUseCase.execute(new EliminarRegistroRequest(USUARIO_ID, REGISTRO_ID));
 
-        verify(registroService).eliminar(registro);
+        verify(registroDatosService).eliminar(registro);
     }
 
     @Test
     @DisplayName("No elimina nada cuando el registro es de otro negocio")
     void executeShouldNotDeleteWhenRegistroIsNotOfTheNegocio() {
-        when(negocioService.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(registroService.obtener(REGISTRO_ID, NEGOCIO_ID))
+        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID))
                 .thenThrow(new ResourceNotFoundException("El registro no existe"));
 
         assertThatThrownBy(() -> eliminarRegistroUseCase.execute(
                 new EliminarRegistroRequest(USUARIO_ID, REGISTRO_ID)))
                 .isInstanceOf(ResourceNotFoundException.class);
 
-        verify(registroService).obtener(REGISTRO_ID, NEGOCIO_ID);
-        verifyNoMoreInteractions(registroService);
+        verify(registroDatosService).obtener(REGISTRO_ID, NEGOCIO_ID);
+        verifyNoMoreInteractions(registroDatosService);
     }
 }

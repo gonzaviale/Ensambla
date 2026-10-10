@@ -11,7 +11,7 @@ import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.registro.RegistroService;
+import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
@@ -23,11 +23,11 @@ public class ListarRegistrosUseCase {
     private final NegocioService negocioService;
     private final BloqueService bloqueService;
     private final CampoService campoService;
-    private final RegistroService registroService;
+    private final RegistroDatosService registroDatosService;
     private final ListarRegistrosMapper mapper;
 
     public ListarRegistrosResponse execute(ListarRegistrosRequest request) {
-        UUID negocioId = negocioService.obtenerIdDelUsuario(request.usuarioId());
+        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         Bloque bloque = bloqueService.obtener(request.bloqueId(), negocioId);
         List<Campo> campos = campoService.listarDeBloque(bloque.getId(), negocioId);
         ConsultaRegistros consulta = ConsultaRegistros.armar(
@@ -39,7 +39,7 @@ public class ListarRegistrosUseCase {
                 request.direccion(),
                 request.pagina(),
                 request.tamanio());
-        Pagina<Registro> pagina = registroService.listar(consulta);
+        Pagina<Registro> pagina = registroDatosService.listar(consulta);
         return mapper.toResponse(pagina);
     }
 }
