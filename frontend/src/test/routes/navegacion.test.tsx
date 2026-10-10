@@ -1,6 +1,7 @@
 import userEvent from '@testing-library/user-event';
 import { crearProyecto } from '@/api/proyectos';
-import { describe, it } from 'vitest';
+import { screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 import { renderApp } from '@/test/renderApp';
 import {
   clickButton,
@@ -49,6 +50,29 @@ describe('navegación y guards', () => {
     renderApp(`/proyectos/${proyecto.id}/construir`);
 
     await verifyHeadingPresentAsync('Constructor de bloques y campos');
+  });
+
+  it('muestra los breadcrumbs y la barra inferior dentro de un proyecto', async () => {
+    setupUsuarioConSesion();
+    const proyecto = await crearProyecto({ nombre: 'Mi proyecto' });
+    renderApp(`/proyectos/${proyecto.id}/construir`);
+    await verifyHeadingPresentAsync('Constructor de bloques y campos');
+
+    const migas = screen.getByRole('navigation', { name: 'Ruta de navegación' });
+    expect(migas).toHaveTextContent('Mis proyectos');
+    expect(migas).toHaveTextContent('Construir');
+    const barra = screen.getByRole('navigation', { name: 'Secciones' });
+    expect(barra).toHaveTextContent('Mis proyectos');
+    expect(barra).toHaveTextContent('Usar');
+  });
+
+  it('no muestra breadcrumbs en Mis proyectos', async () => {
+    setupUsuarioConSesion();
+    renderApp('/proyectos');
+    await verifyHeadingPresentAsync('¿Por dónde querés empezar?');
+
+    expect(screen.queryByRole('navigation', { name: 'Ruta de navegación' })).toBeNull();
+    expect(screen.getByRole('navigation', { name: 'Secciones' })).toBeInTheDocument();
   });
 
   it('inicia sesión y vuelve a la pantalla que se quería ver', async () => {

@@ -19,12 +19,6 @@ export function UsarPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Link
-        to="/proyectos"
-        className={buttonClasses({ variant: 'ghost', className: 'self-start' })}
-      >
-        ← Volver a mis proyectos
-      </Link>
       <PageHeading
         kicker="Modo usar"
         title={proyecto.nombre}

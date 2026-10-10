@@ -67,7 +67,7 @@
     background: var(--color-canvas);
     color: var(--color-fg);
     font-family: var(--font-sans);
-    font-size: 15px;
+    font-size: 18px;
     line-height: 1.55;
   }
   h1,
@@ -88,11 +88,11 @@
     outline: 2px solid var(--color-accent-700);
     outline-offset: 2px;
   }
-  /* Controles táctiles de al menos 44px (manual y T-035) */
+  /* Controles táctiles de al menos 48px (T-033, personas mayores) */
   button,
   input,
   textarea,
   select {
-    min-height: 2.75rem;
+    min-height: 3rem;
   }
 }
