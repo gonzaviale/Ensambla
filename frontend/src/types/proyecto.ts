@@ -30,6 +30,6 @@ export const crearProyectoSchema = z.object({
 });
 export const renombrarProyectoSchema = crearProyectoSchema.pick({ nombre: true });
 export type Proyecto = z.infer<typeof proyectoSchema>;
-export type Campo = z.infer<typeof campoSchema>;
 export type Bloque = z.infer<typeof bloqueSchema>;
+export type Campo = z.infer<typeof campoSchema>;
 export type CrearProyecto = z.infer<typeof crearProyectoSchema>;

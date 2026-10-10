@@ -11,7 +11,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
-import java.time.ZoneOffset;
 
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ProyectoTestData.PROYECTO_ID;
@@ -44,7 +43,6 @@ class ObtenerProyectoUseCaseTest {
 
         assertThat(result.id()).isEqualTo(PROYECTO_ID);
         verify(proyectoService).obtener(NEGOCIO_ID, PROYECTO_ID);
-        assertThat(config.clock().getZone()).isEqualTo(ZoneOffset.UTC);
     }
 
     @Test

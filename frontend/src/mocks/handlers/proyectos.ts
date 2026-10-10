@@ -1,6 +1,7 @@
 import { delay, http, HttpResponse } from 'msw';
 import { crearProyectoSchema, renombrarProyectoSchema, type Proyecto } from '@/types/proyecto';
 import { estado, plantillasMock } from '../db/estado';
+import { sembrarRegistrosDemo } from '../db/registros';
 import { errorResponse } from '../errores';
 import { api, exigirCsrf, exigirSesion, LATENCIA_BACKEND_MS } from './comun';
 
@@ -85,7 +86,9 @@ export const handlersProyectos = [
         posicion,
       })),
     }));
-    return guardar(plantilla.nombre, plantilla.descripcion, plantilla.id, bloques);
+    const respuesta = guardar(plantilla.nombre, plantilla.descripcion, plantilla.id, bloques);
+    if (import.meta.env.MODE === 'development') sembrarRegistrosDemo(bloques);
+    return respuesta;
   }),
   http.get(api('/proyectos/:id'), ({ request, params }) => {
     const error = privado(request);

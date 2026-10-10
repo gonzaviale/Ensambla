@@ -1,166 +1,234 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { delay, http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { crearProyecto, crearProyectoDesdePlantilla } from '@/api/proyectos';
-import { estado, plantillasMock } from '@/mocks/db/estado';
-import { server } from '@/mocks/node';
+import { plantillasMock } from '@/mocks/db/estado';
+import { agregarRegistro } from '@/mocks/db/registros';
 import { renderApp } from '@/test/renderApp';
 import {
+  ESPERA,
   setupServerError,
   setupUsuarioConSesion,
   verifyHeadingPresentAsync,
 } from '@/test/testHelpers';
-import type { Proyecto } from '@/types/proyecto';
 
-async function prepararInventario() {
+function elemento<T>(items: readonly T[], indice = 0): T {
+  const item = items[indice];
+  if (item === undefined) throw new Error(`Falta el elemento de prueba ${indice}`);
+  return item;
+}
+
+type Producto = { nombre: string; stock: number; rubro: string };
+
+const PRODUCTOS: Producto[] = [
+  { nombre: 'Harina 000', stock: 1500, rubro: 'Insumos' },
+  { nombre: 'Azúcar', stock: 20, rubro: 'Insumos' },
+  { nombre: 'Torta', stock: 300, rubro: 'Terminados' },
+];
+
+async function abrirUsar(productos: Producto[] = PRODUCTOS) {
   setupUsuarioConSesion();
-  const plantilla = plantillasMock.find((item) => item.nombre === 'Inventario');
-  if (!plantilla) throw new Error('Falta Inventario');
-  return crearProyectoDesdePlantilla(plantilla.id);
-}
-
-function primerBloque(proyecto: Proyecto) {
-  const bloque = proyecto.bloques[0];
-  if (!bloque) throw new Error('Falta el bloque');
-  return bloque;
-}
-
-describe('ENS-6: carga de registros por bloque', () => {
-  it('abre desde el constructor y guarda un registro sin herramientas de edición', async () => {
-    const proyecto = await prepararInventario();
-    const user = userEvent.setup();
-    renderApp(`/proyectos/${proyecto.id}/construir`);
-    await verifyHeadingPresentAsync('Inventario');
-    await user.click(screen.getByRole('link', { name: 'Cargar datos' }));
-    await verifyHeadingPresentAsync('¿Dónde querés cargar?');
-    expect(screen.queryByText('Constructor de bloques y campos')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Stock (obligatorio)')).toHaveValue(0);
-    await user.type(screen.getByLabelText('Nombre (obligatorio)'), 'Harina');
-    await user.selectOptions(screen.getByLabelText('Rubro'), 'Insumos');
-    await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('Registro guardado');
-    expect(estado.registros.size).toBe(1);
-    const registro = [...estado.registros.values()][0]?.registro;
-    expect(registro?.bloqueId).toBe(primerBloque(proyecto).id);
-    expect(Object.values(registro?.valores ?? {})).toEqual(['Harina', 0, 'Insumos']);
-    expect(screen.getByLabelText('Nombre (obligatorio)')).toHaveValue('');
-    expect(screen.getByLabelText('Stock (obligatorio)')).toHaveValue(0);
-  });
-
-  it('conserva un borrador al cambiar de bloque y guarda en el bloque seleccionado', async () => {
-    const proyecto = await prepararInventario();
-    const original = primerBloque(proyecto);
-    const segundo = {
-      id: crypto.randomUUID(),
-      nombre: 'Clientes',
-      posicion: 1,
-      campos: [
-        {
-          ...original.campos[0],
-          id: crypto.randomUUID(),
-          nombre: 'Cliente',
-          tipo: 'TEXTO' as const,
-          obligatorio: true,
-          valorInicial: null,
-          opciones: [],
-          posicion: 0,
-        },
-      ],
-    };
-    proyecto.bloques.push(segundo);
-    const item = estado.proyectos.get(proyecto.id);
-    if (!item) throw new Error('Falta el proyecto simulado');
-    item.proyecto = proyecto;
-    const user = userEvent.setup();
-    renderApp(`/proyectos/${proyecto.id}/usar`);
-    await verifyHeadingPresentAsync('Productos');
-    await user.type(screen.getByLabelText('Nombre (obligatorio)'), 'Borrador');
-    await user.selectOptions(screen.getByLabelText('Bloque'), segundo.id);
-    const clientes = screen.getByRole('region', { name: 'Clientes' });
-    await user.type(within(clientes).getByLabelText('Cliente (obligatorio)'), 'Ana');
-    await user.click(within(clientes).getByRole('button', { name: 'Guardar registro' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('Registro guardado');
-    expect([...estado.registros.values()][0]?.registro.bloqueId).toBe(segundo.id);
-    await user.selectOptions(screen.getByLabelText('Bloque'), original.id);
-    expect(screen.getByLabelText('Nombre (obligatorio)')).toHaveValue('Borrador');
-  });
-
-  it('bloquea el selector durante el guardado', async () => {
-    const proyecto = await prepararInventario();
-    const bloque = primerBloque(proyecto);
-    server.use(
-      http.post(`/api/bloques/${bloque.id}/registros`, async () => {
-        await delay(250);
-        return HttpResponse.json(
-          {
-            id: crypto.randomUUID(),
-            bloqueId: bloque.id,
-            valores: {},
-            creadoEn: '',
-            actualizadoEn: '',
-          },
-          { status: 201 },
-        );
-      }),
+  const proyecto = await crearProyectoDesdePlantilla(elemento(plantillasMock).id);
+  const bloque = elemento(proyecto.bloques);
+  const [nombre, stock, rubro] = [0, 1, 2].map((i) => elemento(bloque.campos, i).id);
+  productos.forEach((producto, n) => {
+    agregarRegistro(
+      bloque.id,
+      {
+        [String(nombre)]: producto.nombre,
+        [String(stock)]: producto.stock,
+        [String(rubro)]: producto.rubro,
+      },
+      new Date(Date.UTC(2026, 9, 10, 12, n)).toISOString(),
     );
-    const user = userEvent.setup();
-    renderApp(`/proyectos/${proyecto.id}/usar`);
-    await verifyHeadingPresentAsync('Productos');
-    await user.type(screen.getByLabelText('Nombre (obligatorio)'), 'Producto');
-    await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
-    expect(screen.getByLabelText('Bloque')).toBeDisabled();
-    await waitFor(() => expect(screen.getByLabelText('Bloque')).toBeEnabled());
+  });
+  renderApp(`/proyectos/${proyecto.id}/usar`);
+  await verifyHeadingPresentAsync(proyecto.nombre);
+  return { bloqueId: bloque.id };
+}
+
+const filasDeDatos = () => screen.getAllByRole('row').slice(1);
+const primeraCelda = (fila: HTMLElement) => elemento(within(fila).getAllByRole('cell')).textContent;
+
+describe('H-06: tabla de registros', () => {
+  it('muestra una columna por campo del bloque y formatea los datos', async () => {
+    await abrirUsar();
+
+    for (const nombre of ['Nombre', 'Stock', 'Rubro', 'Cargado']) {
+      expect(await screen.findByRole('columnheader', { name: nombre }, ESPERA)).toBeInTheDocument();
+    }
+    expect(screen.getByText('Harina 000')).toBeInTheDocument();
+    expect(screen.getByText('1.500')).toBeInTheDocument();
+    expect(screen.getByText('3 registros')).toBeInTheDocument();
   });
 
-  it('explica un proyecto sin bloques', async () => {
+  it('por defecto muestra primero lo último que se cargó', async () => {
+    await abrirUsar();
+
+    await screen.findByText('Torta', {}, ESPERA);
+
+    expect(filasDeDatos().map(primeraCelda)).toEqual(['Torta', 'Azúcar', 'Harina 000']);
+  });
+
+  it('la búsqueda filtra los registros y avisa cuando no hay coincidencias', async () => {
+    await abrirUsar();
+    const user = userEvent.setup();
+    await screen.findByText('Azúcar', {}, ESPERA);
+
+    await user.type(screen.getByLabelText('Buscar en Productos'), 'harina');
+
+    await waitFor(() => expect(screen.queryByText('Azúcar')).not.toBeInTheDocument(), ESPERA);
+    expect(screen.getByText('Harina 000')).toBeInTheDocument();
+    expect(screen.getByText('1 registro')).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText('Buscar en Productos'));
+    await user.type(screen.getByLabelText('Buscar en Productos'), 'zzz');
+
+    expect(await screen.findByText('No hay resultados', {}, ESPERA)).toBeInTheDocument();
+  });
+
+  it('ordena por una columna y invierte el orden al segundo click', async () => {
+    await abrirUsar();
+    const user = userEvent.setup();
+    await screen.findByText('Azúcar', {}, ESPERA);
+
+    await user.click(screen.getByRole('button', { name: 'Stock' }));
+
+    await waitFor(
+      () =>
+        expect(screen.getByRole('columnheader', { name: 'Stock' })).toHaveAttribute(
+          'aria-sort',
+          'ascending',
+        ),
+      ESPERA,
+    );
+    await waitFor(
+      () => expect(filasDeDatos().map(primeraCelda)).toEqual(['Azúcar', 'Torta', 'Harina 000']),
+      ESPERA,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Stock' }));
+
+    await waitFor(
+      () => expect(filasDeDatos().map(primeraCelda)).toEqual(['Harina 000', 'Torta', 'Azúcar']),
+      ESPERA,
+    );
+    expect(screen.getByRole('columnheader', { name: 'Stock' })).toHaveAttribute(
+      'aria-sort',
+      'descending',
+    );
+  });
+
+  it('pagina cuando hay más registros que los de una página', async () => {
+    const muchos = Array.from({ length: 45 }, (_, n) => ({
+      nombre: `Producto ${String(n + 1).padStart(2, '0')}`,
+      stock: n,
+      rubro: 'Insumos',
+    }));
+    await abrirUsar(muchos);
+    const user = userEvent.setup();
+
+    expect(await screen.findByText('Página 1 de 3', {}, ESPERA)).toBeInTheDocument();
+    expect(filasDeDatos()).toHaveLength(20);
+    expect(screen.getByRole('button', { name: 'Anterior' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+
+    expect(await screen.findByText('Página 2 de 3', {}, ESPERA)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Anterior' })).toBeEnabled();
+  });
+
+  it('indica que todavía no hay datos cuando el bloque está vacío', async () => {
+    await abrirUsar([]);
+
+    expect(await screen.findByText('Todavía no cargaste nada', {}, ESPERA)).toBeInTheDocument();
+  });
+
+  it('muestra el error y permite reintentar cuando falla la carga', async () => {
+    const { bloqueId } = await abrirUsar();
+    await screen.findByText('Azúcar', {}, ESPERA);
+    setupServerError('get', `/bloques/${bloqueId}/registros`, 500, 'No pudimos leer los registros');
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText('Buscar en Productos'), 'a');
+
+    expect(await screen.findByRole('alert', {}, ESPERA)).toHaveTextContent(
+      'No pudimos leer los registros',
+    );
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+  });
+
+  it('avisa cuando el proyecto todavía no tiene bloques', async () => {
     setupUsuarioConSesion();
-    const proyecto = await crearProyecto({ nombre: 'Vacío' });
+    const proyecto = await crearProyecto({ nombre: 'Mi taller' });
     renderApp(`/proyectos/${proyecto.id}/usar`);
-    await verifyHeadingPresentAsync('Todavía no hay bloques');
-    expect(screen.queryByRole('button', { name: 'Guardar registro' })).not.toBeInTheDocument();
-  });
 
-  it('no ofrece guardado si el bloque no tiene campos', async () => {
-    const proyecto = await prepararInventario();
-    primerBloque(proyecto).campos = [];
-    const item = estado.proyectos.get(proyecto.id);
-    if (!item) throw new Error('Falta el proyecto simulado');
-    item.proyecto = proyecto;
-    renderApp(`/proyectos/${proyecto.id}/usar`);
-    await verifyHeadingPresentAsync('Productos');
-    expect(screen.getByText(/todavía no tiene campos/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Guardar registro' })).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Este proyecto no tiene bloques' }, ESPERA),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ir al constructor' })).toBeInTheDocument();
   });
+});
 
-  it('conserva el formulario ante errores de la API', async () => {
-    const proyecto = await prepararInventario();
-    setupServerError(
-      'post',
-      `/bloques/${primerBloque(proyecto).id}/registros`,
-      500,
-      'No pudimos guardar',
-    );
+describe('H-06: ficha del registro', () => {
+  it('muestra todos los datos del registro', async () => {
+    await abrirUsar();
     const user = userEvent.setup();
-    renderApp(`/proyectos/${proyecto.id}/usar`);
-    await verifyHeadingPresentAsync('Productos');
-    await user.type(screen.getByLabelText('Nombre (obligatorio)'), 'Conservar');
-    await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos guardar');
-    expect(screen.getByLabelText('Nombre (obligatorio)')).toHaveValue('Conservar');
-    expect(estado.registros.size).toBe(0);
+    await screen.findByText('Harina 000', {}, ESPERA);
+
+    await user.click(screen.getByRole('button', { name: 'Ver ficha de Harina 000' }));
+
+    const ficha = screen.getByRole('complementary', { name: 'Ficha del registro' });
+    expect(within(ficha).getByRole('heading', { name: 'Ficha de Productos' })).toBeInTheDocument();
+    expect(within(ficha).getByText('Nombre')).toBeInTheDocument();
+    expect(within(ficha).getByText('Harina 000')).toBeInTheDocument();
+    expect(within(ficha).getByText('1.500')).toBeInTheDocument();
+    expect(within(ficha).getByText('Insumos')).toBeInTheDocument();
+    expect(within(ficha).getByText(/Cargado:/)).toBeInTheDocument();
   });
 
-  it('redirige al login al entrar sin sesión', async () => {
-    renderApp(`/proyectos/${crypto.randomUUID()}/usar`);
-    await verifyHeadingPresentAsync('Ingresá a tu cuenta');
+  it('se cierra sin tocar los datos', async () => {
+    await abrirUsar();
+    const user = userEvent.setup();
+    await screen.findByText('Azúcar', {}, ESPERA);
+    await user.click(screen.getByRole('button', { name: 'Ver ficha de Azúcar' }));
+
+    await user.click(screen.getByRole('button', { name: 'Cerrar ficha' }));
+
+    expect(
+      screen.queryByRole('complementary', { name: 'Ficha del registro' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('3 registros')).toBeInTheDocument();
   });
 
-  it('no carga el formulario de un proyecto ajeno', async () => {
-    const proyecto = await prepararInventario();
-    setupUsuarioConSesion({ email: 'otro@example.com' });
-    renderApp(`/proyectos/${proyecto.id}/usar`);
-    await verifyHeadingPresentAsync('No encontramos esta página');
-    expect(screen.queryByRole('button', { name: 'Guardar registro' })).not.toBeInTheDocument();
+  it('pide confirmación para eliminar y actualiza la tabla', async () => {
+    await abrirUsar();
+    const user = userEvent.setup();
+    await screen.findByText('Azúcar', {}, ESPERA);
+    await user.click(screen.getByRole('button', { name: 'Ver ficha de Azúcar' }));
+
+    await user.click(screen.getByRole('button', { name: 'Eliminar registro' }));
+    expect(screen.getByText(/Esta acción no se puede deshacer/)).toBeInTheDocument();
+    expect(screen.getByText('3 registros')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Sí, eliminar registro' }));
+
+    await waitFor(() => expect(screen.getByText('2 registros')).toBeInTheDocument(), ESPERA);
+    expect(screen.queryByText('Azúcar')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('complementary', { name: 'Ficha del registro' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('conserva el registro si se cancela la confirmación', async () => {
+    await abrirUsar();
+    const user = userEvent.setup();
+    await screen.findByText('Azúcar', {}, ESPERA);
+    await user.click(screen.getByRole('button', { name: 'Ver ficha de Azúcar' }));
+    await user.click(screen.getByRole('button', { name: 'Eliminar registro' }));
+
+    await user.click(screen.getByRole('button', { name: 'Conservar registro' }));
+
+    expect(screen.queryByText(/Esta acción no se puede deshacer/)).not.toBeInTheDocument();
+    expect(screen.getByText('3 registros')).toBeInTheDocument();
   });
 });

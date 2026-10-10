@@ -1,9 +1,9 @@
 import { AuthCard, EnlaceAuth } from '@/components/AuthForm/AuthCard';
-import { PendingTask } from '@/components/ui/PendingTask';
+import { RegistroForm } from '@/components/AuthForm/RegistroForm';
+import { useRouter } from '@tanstack/react-router';
 
-// T-008: formulario de registro con el campo "nombre del negocio". Usar LoginForm como modelo y
-// useRegistro (hooks/auth/mutations) para crear la cuenta y abrir sesión.
 export function RegistroPage() {
+  const router = useRouter();
   return (
     <AuthCard
       title="Creá tu cuenta"
@@ -14,7 +14,7 @@ export function RegistroPage() {
         </>
       }
     >
-      <PendingTask tarea="T-008" title="Formulario de registro" />
+      <RegistroForm onExito={() => void router.navigate({ to: '/proyectos' })} />
     </AuthCard>
   );
 }

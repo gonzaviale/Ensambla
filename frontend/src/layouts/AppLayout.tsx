@@ -1,4 +1,6 @@
 import { Outlet } from '@tanstack/react-router';
+import { BottomNav } from '@/components/Navbar/BottomNav';
+import { Breadcrumbs } from '@/components/Navbar/Breadcrumbs';
 import { Navbar } from '@/components/Navbar/Navbar';
 import { useUsuarioOpcional } from '@/hooks/auth/queries';
 
@@ -11,9 +13,11 @@ export function AppLayout() {
   return (
     <>
       <Navbar />
-      <main className="mx-auto min-h-[calc(100vh-4rem)] w-full max-w-300 px-4 pt-6 pb-16 md:px-8 md:pt-8">
+      <main className="mx-auto min-h-[calc(100vh-4rem)] w-full max-w-300 px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-16">
+        <Breadcrumbs />
         <Outlet />
       </main>
+      <BottomNav />
     </>
   );
 }

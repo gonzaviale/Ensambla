@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // completo: todo lo atiende MSW. parcial: MSW solo atiende lo que el backend todavía no tiene.
 // ninguno: todo va al backend real.
-const modoMocksSchema = z.enum(['completo', 'parcial', 'ninguno']).default('parcial');
+const modoMocksSchema = z.enum(['completo', 'parcial', 'ninguno']).default('ninguno');
 
 const envSchema = z.object({
   VITE_API_URL: z.string().default('/api'),

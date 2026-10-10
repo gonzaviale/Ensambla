@@ -3,6 +3,7 @@ package com.ensambla.backend.infrastructure.presentation.exception;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.CredencialesInvalidasException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
+import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -67,6 +69,18 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ErrorResponse> response = handler.handleBusinessRule(exception, request);
 
         thenResponseHasStatusAndMessage(response, 400, BUSINESS_MESSAGE);
+    }
+
+    @Test
+    @DisplayName("Responde 400 con el mensaje de cada campo cuando un registro no es válido")
+    void handleRegistroInvalidoShouldReturnBadRequestWithErrorPerField() {
+        RegistroInvalidoException exception = new RegistroInvalidoException(
+                Map.of("campo-1", "Este dato es obligatorio"));
+
+        ResponseEntity<ErrorResponse> response = handler.handleRegistroInvalido(exception, request);
+
+        thenResponseIsBadRequestWithError(response, "campo-1", "Este dato es obligatorio");
+        assertThat(response.getBody().getMessage()).isEqualTo("Revisá los datos marcados");
     }
 
     @Test

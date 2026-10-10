@@ -11,7 +11,7 @@ export type UsuarioMock = {
 
 type Estado = {
   proyectos: Map<string, { usuarioId: string; proyecto: Proyecto }>;
-  registros: Map<string, { usuarioId: string; registro: Registro }>;
+  registros: Map<string, Registro>;
   usuarios: Map<string, UsuarioMock>;
   sesionUsuarioId: string | null;
 };
