@@ -101,4 +101,45 @@ class BloqueCampoRepositoryMapperTest {
         assertThat(result.getCreadoEn()).isEqualTo(CREADO);
         assertThat(result.getActualizadoEn()).isEqualTo(ACTUALIZADO);
     }
+
+    @Test
+    @DisplayName("Pasa todos los datos del modelo del campo a la entidad")
+    void campoToEntityShouldMapEveryField() {
+        Campo campo = Campo.builder()
+                .id(ID)
+                .negocioId(NEGOCIO_ID)
+                .bloqueId(PADRE_ID)
+                .nombre("Pagado")
+                .tipo(TipoCampo.SI_NO)
+                .obligatorio(false)
+                .valorInicial("true")
+                .opciones(List.of())
+                .posicion((short) 4)
+                .creadoEn(CREADO)
+                .actualizadoEn(ACTUALIZADO)
+                .build();
+
+        CampoEntity result = new CampoRepositoryMapper().toEntity(campo);
+
+        assertThat(result.getId()).isEqualTo(ID);
+        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(result.getBloqueId()).isEqualTo(PADRE_ID);
+        assertThat(result.getNombre()).isEqualTo("Pagado");
+        assertThat(result.getTipo()).isEqualTo(TipoCampo.SI_NO);
+        assertThat(result.getObligatorio()).isFalse();
+        assertThat(result.getValorInicial()).isEqualTo("true");
+        assertThat(result.getOpciones()).isEmpty();
+        assertThat(result.getPosicion()).isEqualTo((short) 4);
+        assertThat(result.getCreadoEn()).isEqualTo(CREADO);
+        assertThat(result.getActualizadoEn()).isEqualTo(ACTUALIZADO);
+    }
+
+    @Test
+    @DisplayName("Un campo nuevo sin id pasa a una entidad sin id para que la base lo genere")
+    void campoToEntityShouldKeepNullId() {
+        CampoEntity result = new CampoRepositoryMapper().toEntity(Campo.builder().nombre("Nuevo").build());
+
+        assertThat(result.getId()).isNull();
+        assertThat(result.getNombre()).isEqualTo("Nuevo");
+    }
 }

@@ -4,12 +4,18 @@ import com.ensambla.backend.domain.model.enums.TipoCampo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CampoTest {
+
+    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
+    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
+    private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
 
     @Test
     @DisplayName("Un campo marcado como obligatorio es obligatorio")
@@ -120,12 +126,52 @@ class CampoTest {
         assertThat(errorDe(TipoCampo.SI_NO, "sí")).contains("Tiene que ser sí o no");
     }
 
+    @Test
+    @DisplayName("Crea un campo nuevo con la configuración validada y las dos fechas iguales")
+    void nuevoShouldApplyConfiguracionAndSetDates() {
+        Campo result = Campo.nuevo(NEGOCIO_ID, BLOQUE_ID, (short) 2, configuracion("Talle"), AHORA);
+
+        assertThat(result.getId()).isNull();
+        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(result.getBloqueId()).isEqualTo(BLOQUE_ID);
+        assertThat(result.getPosicion()).isEqualTo((short) 2);
+        assertThat(result.getNombre()).isEqualTo("Talle");
+        assertThat(result.getTipo()).isEqualTo(TipoCampo.OPCION);
+        assertThat(result.getObligatorio()).isTrue();
+        assertThat(result.getValorInicial()).isEqualTo("Chico");
+        assertThat(result.getOpciones()).containsExactly("Chico", "Grande");
+        assertThat(result.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(result.getActualizadoEn()).isEqualTo(AHORA);
+    }
+
+    @Test
+    @DisplayName("Configurar reemplaza la configuración y conserva la fecha de creación")
+    void configurarShouldReplaceConfiguracionAndKeepCreationDate() {
+        Campo campo = Campo.nuevo(NEGOCIO_ID, BLOQUE_ID, (short) 0, configuracion("Talle"), AHORA);
+        ConfiguracionCampo.Validada nueva =
+                new ConfiguracionCampo.Validada("Precio", TipoCampo.NUMERO, false, null, List.of());
+
+        campo.configurar(nueva, AHORA.plusHours(1));
+
+        assertThat(campo.getNombre()).isEqualTo("Precio");
+        assertThat(campo.getTipo()).isEqualTo(TipoCampo.NUMERO);
+        assertThat(campo.getObligatorio()).isFalse();
+        assertThat(campo.getValorInicial()).isNull();
+        assertThat(campo.getOpciones()).isEmpty();
+        assertThat(campo.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(campo.getActualizadoEn()).isEqualTo(AHORA.plusHours(1));
+    }
+
     // --- act ---
     private Optional<String> errorDe(TipoCampo tipo, Object valor) {
         return campo(tipo).errorDe(valor);
     }
 
     // --- helpers ---
+    private ConfiguracionCampo.Validada configuracion(String nombre) {
+        return new ConfiguracionCampo.Validada(nombre, TipoCampo.OPCION, true, "Chico", List.of("Chico", "Grande"));
+    }
+
     private Campo campo(TipoCampo tipo) {
         return Campo.builder()
                 .tipo(tipo)

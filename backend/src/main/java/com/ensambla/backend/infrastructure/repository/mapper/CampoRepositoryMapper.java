@@ -22,4 +22,20 @@ public class CampoRepositoryMapper {
                 .actualizadoEn(entity.getActualizadoEn())
                 .build();
     }
+
+    public CampoEntity toEntity(Campo campo) {
+        return CampoEntity.builder()
+                .id(campo.getId())
+                .negocioId(campo.getNegocioId())
+                .bloqueId(campo.getBloqueId())
+                .nombre(campo.getNombre())
+                .tipo(campo.getTipo())
+                .obligatorio(campo.getObligatorio())
+                .valorInicial(campo.getValorInicial())
+                .opciones(campo.getOpciones())
+                .posicion(campo.getPosicion())
+                .creadoEn(campo.getCreadoEn())
+                .actualizadoEn(campo.getActualizadoEn())
+                .build();
+    }
 }
