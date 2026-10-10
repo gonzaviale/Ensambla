@@ -65,4 +65,39 @@ describe('ENS-52: formulario dinámico', () => {
     expect(screen.getByText(/todavía no tiene campos/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Guardar registro' })).not.toBeInTheDocument();
   });
+
+  it('muestra el error junto al campo, lo enfoca y conserva el resto de los valores', async () => {
+    const guardar = vi.fn();
+    const user = userEvent.setup();
+    render(<FormRenderer campos={camposFormulario} onSubmit={guardar} />);
+    const nombre = screen.getByLabelText('Nombre (obligatorio)');
+    await user.clear(nombre);
+    await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
+
+    expect(guardar).not.toHaveBeenCalled();
+    expect(nombre).toHaveFocus();
+    expect(nombre).toHaveAttribute('aria-invalid', 'true');
+    expect(nombre).toHaveAccessibleDescription('Este dato es obligatorio');
+    expect(screen.getByLabelText('Precio (obligatorio)')).toHaveValue(0);
+    expect(screen.getByLabelText('Entregado (obligatorio)')).toHaveValue('false');
+    await user.type(nombre, 'Corregido');
+    expect(nombre).not.toHaveAttribute('aria-invalid');
+    await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
+    expect(guardar).toHaveBeenCalledOnce();
+  });
+
+  it('exige responder sí o no sin confundir No con un campo vacío', async () => {
+    const campo = { ...campoPorTipo('SI_NO'), valorInicial: null };
+    const guardar = vi.fn();
+    const user = userEvent.setup();
+    render(<FormRenderer campos={[campo]} onSubmit={guardar} />);
+    await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
+    expect(guardar).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Entregado (obligatorio)')).toHaveAccessibleDescription(
+      'Este dato es obligatorio',
+    );
+    await user.selectOptions(screen.getByLabelText('Entregado (obligatorio)'), 'false');
+    await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
+    expect(guardar).toHaveBeenCalledWith({ [campo.id]: false });
+  });
 });
