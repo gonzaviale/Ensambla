@@ -113,8 +113,9 @@ export function DetalleBloque({
             }
           >
             <p className="m-0">
-              Se van a borrar {cantidad ? `sus ${cantidad} datos` : 'sus datos'} y todos los
-              registros que tengas cargados en este bloque. No se puede deshacer.
+              Se van a borrar{' '}
+              {cantidad === 1 ? 'su único dato' : cantidad ? `sus ${cantidad} datos` : 'sus datos'}{' '}
+              y todos los registros que tengas cargados en este bloque. No se puede deshacer.
             </p>
             {errorEliminar && (
               <p role="alert" className="mt-2 mb-0 text-bad">
