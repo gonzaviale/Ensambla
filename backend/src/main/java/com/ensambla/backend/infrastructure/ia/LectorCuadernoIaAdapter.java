@@ -6,9 +6,12 @@ import com.ensambla.backend.domain.model.lectura.ConsumoIa;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
 import com.ensambla.backend.domain.model.lectura.PaginaCuaderno;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
+import com.ensambla.backend.domain.service.procesamiento.ValidacionLecturaService;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
+import tools.jackson.core.StreamReadFeature;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.DeserializationFeature;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -20,7 +23,8 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class LectorCuadernoIaAdapter implements LectorCuadernoPort {
 
-    static final String ERROR_PROVEEDOR = "No pudimos leer el cuaderno en este momento. Probá de nuevo en unos minutos.";
+    static final String ERROR_PROVEEDOR =
+            "No pudimos leer el cuaderno en este momento. Probá de nuevo en unos minutos.";
     static final String ERROR_JSON = LecturaIaJsonMapper.PREFIJO_ERROR + "la respuesta no es el JSON esperado";
 
     private final ClienteModeloVision cliente;
@@ -47,12 +51,16 @@ public class LectorCuadernoIaAdapter implements LectorCuadernoPort {
         long duracionMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - inicio);
         ConsumoIa consumo = new ConsumoIa(respuesta.proveedor(), respuesta.modelo(), PromptLecturaCuaderno.VERSION,
                 paginas.size(), respuesta.tokensEntrada(), respuesta.tokensSalida(), duracionMs);
-        return mapper.toDomain(parsear(respuesta.json()), bloquesExistentes, paginas.size(), consumo);
+        LecturaCuaderno lectura = mapper.toDomain(
+                parsear(respuesta.json()), bloquesExistentes, paginas.size(), consumo);
+        new ValidacionLecturaService().validar(lectura);
+        return lectura;
     }
 
     private void validarCantidad(List<PaginaCuaderno> paginas) {
         if (paginas.isEmpty() || paginas.size() > maxPaginas) {
-            throw new LecturaCuadernoException("Se pueden leer entre 1 y " + maxPaginas + " páginas por vez");
+            throw new LecturaCuadernoException(
+                    "Se pueden leer entre 1 y " + maxPaginas + " páginas por vez", null, false);
         }
     }
 
@@ -69,12 +77,18 @@ public class LectorCuadernoIaAdapter implements LectorCuadernoPort {
 
     private LecturaIaJson parsear(String json) {
         if (json == null || json.isBlank()) {
-            throw new LecturaCuadernoException(ERROR_JSON);
+            throw new LecturaCuadernoException(ERROR_JSON, null, false);
         }
         try {
-            return objectMapper.readValue(json, LecturaIaJson.class);
+            new ValidacionEstructuraIa().validar(objectMapper.reader()
+                    .with(StreamReadFeature.STRICT_DUPLICATE_DETECTION).readTree(json));
+            return objectMapper.readerFor(LecturaIaJson.class)
+                    .with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+                            DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES,
+                            DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+                    .readValue(json);
         } catch (JacksonException e) {
-            throw new LecturaCuadernoException(ERROR_JSON, e);
+            throw new LecturaCuadernoException(ERROR_JSON, e, false);
         }
     }
 }
