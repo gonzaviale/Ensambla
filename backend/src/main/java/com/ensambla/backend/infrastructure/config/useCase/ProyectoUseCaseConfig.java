@@ -24,11 +24,6 @@ import java.time.Clock;
 public class ProyectoUseCaseConfig {
 
     @Bean
-    public Clock clock() {
-        return Clock.systemUTC();
-    }
-
-    @Bean
     public ProyectoItemMapper proyectoItemMapper() {
         return new ProyectoItemMapper();
     }

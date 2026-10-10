@@ -49,7 +49,6 @@ class CrearProyectoDesdePlantillaUseCaseTest {
 
         assertThat(result.id()).isEqualTo(PROYECTO_ID);
         verify(proyectoService).crearDesdePlantilla(NEGOCIO_ID, ProyectoTestData.plantilla(), AHORA);
-        assertThat(config.clock().getZone()).isEqualTo(ZoneOffset.UTC);
     }
 
     @Test

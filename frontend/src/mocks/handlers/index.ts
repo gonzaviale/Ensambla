@@ -9,6 +9,7 @@ export function handlersPara(modo: ModoMocks) {
   if (modo === 'completo') {
     return [...handlersAuth, ...handlersPlantillas, ...handlersProyectos, ...handlersRegistros];
   }
-  if (modo === 'parcial') return [...handlersAuth];
+  // Todos los endpoints actuales ya existen en el backend.
+  if (modo === 'parcial') return [];
   return [];
 }
