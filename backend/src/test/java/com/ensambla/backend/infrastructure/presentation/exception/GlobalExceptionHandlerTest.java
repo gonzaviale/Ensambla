@@ -18,6 +18,8 @@ import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.util.UUID;
 
@@ -170,6 +172,26 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ErrorResponse> response = handler.handleUnreadable(exception, request);
 
         thenResponseHasStatusWithoutSecret(response, 400);
+    }
+
+    @Test
+    @DisplayName("Responde 400 identificando el archivo obligatorio que falta en un pedido multipart")
+    void handleMissingPartShouldReturnBadRequestWithPartName() {
+        MissingServletRequestPartException exception = new MissingServletRequestPartException("fotos");
+
+        ResponseEntity<ErrorResponse> response = handler.handleMissingPart(exception, request);
+
+        thenResponseIsBadRequestWithError(response, "fotos", "El parámetro es obligatorio");
+    }
+
+    @Test
+    @DisplayName("Responde 400 con los límites de tamaño cuando el archivo subido es demasiado grande")
+    void handleMaxUploadSizeShouldReturnBadRequestWithLimits() {
+        MaxUploadSizeExceededException exception = new MaxUploadSizeExceededException(10L * 1024 * 1024);
+
+        ResponseEntity<ErrorResponse> response = handler.handleMaxUploadSize(exception, request);
+
+        thenResponseHasStatusAndMessage(response, 400, "Cada foto puede pesar hasta 10 MB y el lote hasta 100 MB");
     }
 
     // --- arrange ---
