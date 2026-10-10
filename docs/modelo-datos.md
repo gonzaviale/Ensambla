@@ -1,7 +1,8 @@
 # Modelo de datos (MVP 2 · T-004, T-109)
 
 Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (`V1__esquema_inicial.sql`,
-`V2__digitalizacion_cuaderno.sql`). Este documento explica el
+`V2__digitalizacion_cuaderno.sql`, `V3__plantillas_base.sql`). V3 carga Inventario, Pedidos y Clientes
+como plantillas globales; sus UUID coinciden con los del modo simulado del frontend. Este documento explica el
 porqué; si cambian, se actualizan juntos.
 
 ## Convenciones

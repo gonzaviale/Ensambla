@@ -80,6 +80,16 @@ con `@ConditionalOnProperty(prefix = "ensambla.ia", name = "proveedor", havingVa
 |---|---|---|
 | `GET /api/auth/csrf` | público | Token CSRF y nombre del header |
 | `GET /api/plantillas` | público | Plantillas activas con su estructura, ordenadas por nombre |
+| `GET /api/proyectos` | sesión | Proyectos del negocio del usuario autenticado |
+| `GET /api/proyectos/{proyectoId}` | sesión | Proyecto con sus bloques y campos ordenados |
+| `POST /api/proyectos` | sesión + CSRF | Crear en blanco: `nombre` y `descripcion` opcional |
+| `POST /api/proyectos/desde-plantilla/{plantillaId}` | sesión + CSRF | Copiar una plantilla activa con ids nuevos |
+| `PATCH /api/proyectos/{proyectoId}` | sesión + CSRF | Renombrar: `nombre` |
+| `DELETE /api/proyectos/{proyectoId}` | sesión + CSRF | Eliminar proyecto y sus bloques, campos y registros |
+
+V3 carga Inventario, Pedidos y Clientes. La copia de una plantilla se guarda en una única transacción.
+El negocio se resuelve desde el dueño autenticado (primero por creación e id, hasta el selector de T-061);
+no se acepta un `negocioId` del cliente. Consultar, renombrar o eliminar un proyecto ajeno devuelve 404.
 
 Los de acceso (`/api/auth/register`, `/login`, `/logout`, `/me`) los implementan T-005 y T-006; el contrato que espera el
 frontend está en `frontend/src/api/auth.ts`.

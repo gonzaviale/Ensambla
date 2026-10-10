@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.model.bloque;
 
+import com.ensambla.backend.domain.model.campo.Campo;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -7,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -29,4 +31,7 @@ public class Bloque {
     private OffsetDateTime creadoEn;
 
     private OffsetDateTime actualizadoEn;
+
+    @Builder.Default
+    private List<Campo> campos = List.of();
 }

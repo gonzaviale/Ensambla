@@ -1,4 +1,5 @@
 import type { Plantilla } from '@/types/plantilla';
+import type { Proyecto } from '@/types/proyecto';
 
 export type UsuarioMock = {
   id: string;
@@ -8,16 +9,19 @@ export type UsuarioMock = {
 };
 
 type Estado = {
+  proyectos: Map<string, { usuarioId: string; proyecto: Proyecto }>;
   usuarios: Map<string, UsuarioMock>;
   sesionUsuarioId: string | null;
 };
 
 export const estado: Estado = {
+  proyectos: new Map(),
   usuarios: new Map(),
   sesionUsuarioId: null,
 };
 
 export function reiniciarEstado() {
+  estado.proyectos = new Map();
   estado.usuarios = new Map();
   estado.sesionUsuarioId = null;
 }
