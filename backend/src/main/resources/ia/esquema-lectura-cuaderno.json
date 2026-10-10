@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LecturaCuaderno",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tipoRegistro", "bloque", "filas", "advertencias"],
+  "properties": {
+    "tipoRegistro": {
+      "type": "string",
+      "enum": ["VENTAS", "GASTOS", "PEDIDOS", "STOCK", "FIADOS", "CLIENTES", "OTRO"]
+    },
+    "bloque": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nombre", "bloqueExistenteId", "campos"],
+      "properties": {
+        "nombre": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "bloqueExistenteId": { "type": ["string", "null"] },
+        "campos": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["clave", "nombre", "tipo", "opciones"],
+            "properties": {
+              "clave": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+              "nombre": { "type": "string", "minLength": 1, "maxLength": 120 },
+              "tipo": { "type": "string", "enum": ["TEXTO", "NUMERO", "FECHA", "OPCION", "SI_NO"] },
+              "opciones": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "filas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pagina", "renglon", "datos"],
+        "properties": {
+          "pagina": { "type": "integer", "minimum": 1 },
+          "renglon": { "type": "integer", "minimum": 1 },
+          "datos": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["valor", "confianza"],
+              "properties": {
+                "valor": { "type": ["string", "null"] },
+                "confianza": { "type": "number", "minimum": 0, "maximum": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "advertencias": { "type": "array", "items": { "type": "string" } }
+  }
+}
