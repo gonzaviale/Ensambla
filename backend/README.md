@@ -95,6 +95,9 @@ con `@ConditionalOnProperty(prefix = "ensambla.ia", name = "proveedor", havingVa
 | `GET /api/registros/{id}` | sesión | Un registro |
 | `PATCH /api/registros/{id}` | sesión + CSRF | Edita sólo los campos enviados; un valor `null` o vacío borra el dato. Revalida el registro completo |
 | `DELETE /api/registros/{id}` | sesión + CSRF | Elimina el registro. `204` |
+| `GET /api/lotes/{loteId}/lectura` | sesión | Estado, motivo y propuesta tipada del lote |
+| `POST /api/lotes/{loteId}/reintentar` | sesión + CSRF | Reencolar ERROR del negocio; 202 |
+| `GET /api/ia/consumo` | sesión | Consumo, reservas y disponibilidad diaria UTC |
 
 V3 carga Inventario, Pedidos y Clientes. La copia de una plantilla se guarda en una única transacción.
 El negocio se resuelve desde el dueño autenticado (primero por creación e id, hasta el selector de T-061);
@@ -119,5 +122,11 @@ Ver [acceso-sesion.md](../docs/acceso-sesion.md) para validaciones, sesión y pr
 ```
 
 ## Calidad
+
+ENS-120 agrega una cola PostgreSQL con reclamos exclusivos, timeout, reintentos, recuperación y
+reservas diarias de consumo. El worker persiste propuestas para revisión; la confirmación corresponde
+a H-30. El modelo real y las fotos de evaluación siguen pendientes por acuerdo del usuario.
+Configuración, integración con ENS-124 y evaluación:
+[lectura-cuaderno-ia.md](../docs/lectura-cuaderno-ia.md).
 
 `./mvnw verify` corre los tests y exige **100 % de líneas y ramas por clase** (JaCoCo). Detalle en [TESTING.md](TESTING.md).
