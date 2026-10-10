@@ -5,6 +5,7 @@ import { handlersPlantillas } from './plantillas';
 // completo: todo simulado | parcial: sólo lo que el backend todavía no tiene | ninguno: backend real.
 export function handlersPara(modo: ModoMocks) {
   if (modo === 'completo') return [...handlersAuth, ...handlersPlantillas];
-  if (modo === 'parcial') return [...handlersAuth];
+  // Todos los endpoints actuales ya existen en el backend.
+  if (modo === 'parcial') return [];
   return [];
 }

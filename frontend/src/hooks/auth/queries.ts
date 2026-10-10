@@ -9,7 +9,8 @@ export const sesionQuery = () =>
   queryOptions({
     queryKey: sesionKeys.actual,
     queryFn: ({ signal }) => obtenerUsuarioActual(signal),
-    staleTime: 5 * 60_000,
+    staleTime: 0,
+    retry: false,
   });
 
 // Para pantallas que viven detrás del guard de sesión: el usuario siempre existe.

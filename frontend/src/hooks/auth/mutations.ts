@@ -35,19 +35,19 @@ export function useRegistro() {
   });
 }
 
-// Cierra la sesión (aunque el backend falle, acá la persona ya salió) y deja a la app "anónima".
+// Solo confirma la salida cuando el servidor invalidó la sesión.
 export function useLogout() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: cerrarSesion,
-    onSettled: () => {
+    onSuccess: () => {
       queryClient.setQueryData(sesionKeys.actual, null);
     },
   });
 }
 
-// Para la UI: cierra la sesión, vuelve a la landing y recién ahí descarta los datos privados
+// Para la UI: cierra la sesión, vuelve al login y recién ahí descarta los datos privados
 // (si se descartaran antes, las pantallas privadas todavía montadas volverían a pedirlos).
 export function useCerrarSesion() {
   const logout = useLogout();
@@ -55,10 +55,10 @@ export function useCerrarSesion() {
   const router = useRouter();
 
   const cerrar = async () => {
-    await logout.mutateAsync().catch(() => undefined);
-    await router.navigate({ to: '/' });
+    await logout.mutateAsync();
+    await router.navigate({ to: '/login', search: { redirect: undefined } });
     descartarDatosPrivados(queryClient);
   };
 
-  return { cerrarSesion: cerrar, cerrando: logout.isPending };
+  return { cerrarSesion: cerrar, cerrando: logout.isPending, error: logout.error };
 }

@@ -17,7 +17,12 @@ const emailSchema = z
 
 export const loginSchema = z.object({
   email: emailSchema,
-  contrasenia: z.string().min(1, 'Ingresá tu contraseña').max(MAX_BYTES_CONTRASENIA),
+  contrasenia: z
+    .string()
+    .min(1, 'Ingresá tu contraseña')
+    .refine((valor) => new TextEncoder().encode(valor).length <= MAX_BYTES_CONTRASENIA, {
+      message: 'La contraseña es demasiado larga',
+    }),
 });
 
 export const registroSchema = z.object({
