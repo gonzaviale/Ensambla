@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: ensambla-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${ENSAMBLA_POSTGRES_DB:-ensambla}
+      POSTGRES_USER: ${ENSAMBLA_POSTGRES_USER:-ensambla_user}
+      POSTGRES_PASSWORD: ${ENSAMBLA_POSTGRES_PASSWORD:-ensambla_pass}
+    ports:
+      - "${ENSAMBLA_POSTGRES_PORT:-5435}:5432"
+    volumes:
+      - ensambla-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ENSAMBLA_POSTGRES_USER:-ensambla_user} -d ${ENSAMBLA_POSTGRES_DB:-ensambla}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  ensambla-pgdata:

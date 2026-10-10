@@ -1,0 +1,141 @@
+# ========================
+# BUILD & MAVEN
+# ========================
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/*
+!.mvn/wrapper/
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ========================
+# IDE - IntelliJ IDEA
+# ========================
+.idea/
+*.iws
+*.iml
+*.ipr
+*.orig
+
+# ========================
+# IDE - Visual Studio Code
+# ========================
+.vscode/
+*.code-workspace
+
+# ========================
+# IDE - Spring Tool Suite
+# ========================
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+
+# ========================
+# IDE - Eclipse
+# ========================
+.metadata
+bin/
+tmp/
+*.tmp
+.loadpath
+.recommenders
+
+# ========================
+# IDE - NetBeans
+# ========================
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# ========================
+# OS SPECIFIC
+# ========================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.AppleDouble
+.LSOverride
+
+# ========================
+# LOGS
+# ========================
+*.log
+logs/
+log.txt
+
+# ========================
+# ENVIRONMENT & SECRETS
+# ========================
+.env
+.env.local
+.env.*.local
+.env.prod
+src/main/resources/application-ensambla-secrets.properties
+
+# ========================
+# DATABASES & CACHES
+# ========================
+*.db
+*.sqlite
+*.sqlite3
+*.h2.db
+
+# ========================
+# RUNTIME & TEMP
+# ========================
+*.pid
+*.seed
+*.pid.lock
+*.tmp
+*.bak
+*.backup
+
+# ========================
+# CODE COVERAGE
+# ========================
+jacoco.exec
+coverage/
+*.coverage
+
+# ========================
+# GRADLE (if used)
+# ========================
+.gradle/
+gradle-build/
+gradlew
+gradlew.bat
+
+# ========================
+# DOCUMENTATION
+# ========================
+HELP.md
+
+
+# ========================
+# SKILLS
+# ========================
+/.agents
+skills-lock.json
+
+# ========================
+# CONFIGURATION
+# ========================
+#Node
+node_modules

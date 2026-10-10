@@ -1,0 +1,9 @@
+target/
+.git
+.idea
+.vscode
+*.iml
+# Secretos locales: nunca deben entrar a la imagen
+**/application-ensambla-secrets.properties
+docker-compose.yml
+*.md
