@@ -1,0 +1,41 @@
+name: CI frontend (lint, tipos, tests y build)
+
+on:
+  push:
+    branches: [dev, stg, main]
+    paths: ["frontend/**", ".github/workflows/ci-frontend.yml"]
+  pull_request:
+    branches: [dev, stg, main]
+    paths: ["frontend/**", ".github/workflows/ci-frontend.yml"]
+
+jobs:
+  frontend:
+    name: ci-frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tipos
+        run: npm run typecheck
+
+      # Los tests usan MSW (API simulada en memoria): no necesitan backend ni base de datos
+      - name: Tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
