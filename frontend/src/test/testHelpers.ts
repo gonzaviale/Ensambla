@@ -1,0 +1,80 @@
+import { screen, waitFor } from '@testing-library/react';
+import type { UserEvent } from '@testing-library/user-event';
+import { HttpResponse, http } from 'msw';
+import { expect } from 'vitest';
+import { sembrarUsuario, type UsuarioMock } from '@/mocks/db/estado';
+import { server } from '@/mocks/node';
+
+export const ESPERA = { timeout: 5000 };
+
+type Metodo = 'get' | 'post' | 'put' | 'patch' | 'delete';
+
+/* setup: backend simulado */
+
+export const setupServerResponse = (
+  metodo: Metodo,
+  path: string,
+  status: number,
+  body?: unknown,
+) => {
+  server.use(
+    http[metodo](`/api${path}`, () =>
+      body === undefined ? new HttpResponse(null, { status }) : HttpResponse.json(body, { status }),
+    ),
+  );
+};
+
+export const setupServerError = (
+  metodo: Metodo,
+  path: string,
+  status: number,
+  message: string,
+  errors?: Record<string, string>,
+) => {
+  setupServerResponse(metodo, path, status, {
+    timestamp: '2026-10-09T10:00:00',
+    status,
+    error: 'Error',
+    message,
+    path: `/api${path}`,
+    traceId: 'traza-de-prueba',
+    ...(errors && { errors }),
+  });
+};
+
+export const setupUsuarioConSesion = (datos: Partial<UsuarioMock> = {}) =>
+  sembrarUsuario({ ...datos, conSesion: true });
+
+export const setupUsuarioSinSesion = (datos: Partial<UsuarioMock> = {}) => sembrarUsuario(datos);
+
+/* interacciones */
+
+export const clickButton = (user: UserEvent, name: string | RegExp) =>
+  user.click(screen.getByRole('button', { name }));
+
+export const clickLink = (user: UserEvent, name: string | RegExp) =>
+  user.click(screen.getByRole('link', { name }));
+
+export const typeLabel = (user: UserEvent, label: string | RegExp, texto: string) =>
+  user.type(screen.getByLabelText(label), texto);
+
+/* verificaciones */
+
+export const verifyTextPresentAsync = async (texto: string | RegExp) => {
+  expect(await screen.findByText(texto, {}, ESPERA)).toBeInTheDocument();
+};
+
+export const verifyHeadingPresentAsync = async (name: string | RegExp) => {
+  expect(await screen.findByRole('heading', { name }, ESPERA)).toBeInTheDocument();
+};
+
+export const verifyAlertPresentAsync = async (texto: string | RegExp) => {
+  expect(await screen.findByRole('alert', {}, ESPERA)).toHaveTextContent(texto);
+};
+
+export const verifyPathAsync = async (
+  router: { state: { location: { pathname: string } } },
+  path: string,
+) => {
+  await waitFor(() => expect(router.state.location.pathname).toBe(path), ESPERA);
+};
