@@ -82,6 +82,12 @@ MinIO responde 403. La implementación está en `infrastructure/almacenamiento`:
 - Variables: `ENSAMBLA_ALMACENAMIENTO_ENDPOINT`, `_ACCESS_KEY`, `_SECRET_KEY`, `_BUCKET`, `_REGION`, `_EXPIRACION_URL`.
   Los valores por defecto apuntan al MinIO del `docker-compose.yml`.
 
+**Subida de fotos (T-090).** `POST /api/lotes` recibe hasta 10 archivos de hasta 10 MB cada uno. El tipo se detecta
+por los primeros bytes (JPEG, PNG, WEBP, HEIC o PDF), no por lo que declara el navegador; un archivo vacío, grande o de
+otro tipo responde 400 con un mensaje que dice qué foto falló. El backend sube cada foto a `negocios/{negocioId}/fotos/`
+y guarda el lote; si algo falla a mitad de camino borra del bucket lo que ya había subido. Un lote de otro negocio
+responde 404, así que sus URLs firmadas nunca llegan a otro negocio.
+
 La imagen es `cgr.dev/chainguard/minio`: MinIO dejó de publicar imágenes oficiales y Chainguard la compila desde el
 código de MinIO. Los tests (`AlmacenamientoS3IntegrationTest`) levantan la misma imagen con Testcontainers.
 
@@ -105,6 +111,8 @@ código de MinIO. Los tests (`AlmacenamientoS3IntegrationTest`) levantan la mism
 | `POST /api/proyectos/desde-plantilla/{plantillaId}` | sesión + CSRF | Copiar una plantilla activa con ids nuevos |
 | `PATCH /api/proyectos/{proyectoId}` | sesión + CSRF | Renombrar: `nombre` |
 | `DELETE /api/proyectos/{proyectoId}` | sesión + CSRF | Eliminar proyecto y sus bloques, campos y registros |
+| `POST /api/lotes` | sesión + CSRF | Subir fotos del cuaderno (multipart, campo `fotos`): crea un lote `PENDIENTE` |
+| `GET /api/lotes/{loteId}` | sesión | Lote con sus fotos y una URL firmada de lectura por foto |
 
 V3 carga Inventario, Pedidos y Clientes. La copia de una plantilla se guarda en una única transacción.
 El negocio se resuelve desde el dueño autenticado (primero por creación e id, hasta el selector de T-061);

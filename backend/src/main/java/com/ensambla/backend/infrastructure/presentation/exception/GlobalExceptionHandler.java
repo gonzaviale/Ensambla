@@ -17,6 +17,8 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -85,6 +87,21 @@ public class GlobalExceptionHandler {
                                                                HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST, "Falta el parámetro: " + e.getParameterName(), request,
                 Map.of(e.getParameterName(), "El parámetro es obligatorio"));
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ErrorResponse> handleMissingPart(MissingServletRequestPartException e,
+                                                          HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "Falta el parámetro: " + e.getRequestPartName(), request,
+                Map.of(e.getRequestPartName(), "El parámetro es obligatorio"));
+    }
+
+    /** El archivo o el pedido superan {@code spring.servlet.multipart.*}; se corta antes de llegar al dominio. */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSize(MaxUploadSizeExceededException e,
+                                                            HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST,
+                "Cada foto puede pesar hasta 10 MB y el lote hasta 100 MB", request, null);
     }
 
     @ExceptionHandler(Exception.class)
