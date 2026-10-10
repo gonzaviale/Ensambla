@@ -48,7 +48,7 @@ describe('navegación y guards', () => {
     const proyecto = await crearProyecto({ nombre: 'Mi proyecto' });
     renderApp(`/proyectos/${proyecto.id}/construir`);
 
-    await verifyHeadingPresentAsync('Constructor de bloques y campos');
+    await verifyHeadingPresentAsync('Tus bloques');
   });
 
   it('inicia sesión y vuelve a la pantalla que se quería ver', async () => {
