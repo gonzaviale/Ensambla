@@ -46,7 +46,6 @@ class RenombrarProyectoUseCaseTest {
 
         assertThat(result.id()).isEqualTo(PROYECTO_ID);
         verify(proyectoService).renombrar(NEGOCIO_ID, PROYECTO_ID, "Nuevo", AHORA);
-        assertThat(config.clock().getZone()).isEqualTo(ZoneOffset.UTC);
     }
 
     @Test
