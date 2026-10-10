@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicaRouteImport } from './routes/_publica'
+import { Route as AppCuadernoRouteImport } from './routes/_app/cuaderno'
 import { Route as PublicaIndexRouteImport } from './routes/_publica/index'
 import { Route as PublicaLoginRouteImport } from './routes/_publica/login'
 import { Route as PublicaRegistroRouteImport } from './routes/_publica/registro'
@@ -25,6 +26,11 @@ const AppRoute = AppRouteImport.update({
 const PublicaRoute = PublicaRouteImport.update({
   id: '/_publica',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppCuadernoRoute = AppCuadernoRouteImport.update({
+  id: '/cuaderno',
+  path: '/cuaderno',
+  getParentRoute: () => AppRoute,
 } as any)
 const PublicaIndexRoute = PublicaIndexRouteImport.update({
   id: '/',
@@ -61,6 +67,7 @@ const AppProyectosProyectoIdUsarRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicaIndexRoute
+  '/cuaderno': typeof AppCuadernoRoute
   '/login': typeof PublicaLoginRoute
   '/registro': typeof PublicaRegistroRoute
   '/proyectos/': typeof AppProyectosIndexRoute
@@ -69,6 +76,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof PublicaIndexRoute
+  '/cuaderno': typeof AppCuadernoRoute
   '/login': typeof PublicaLoginRoute
   '/registro': typeof PublicaRegistroRoute
   '/proyectos': typeof AppProyectosIndexRoute
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_publica': typeof PublicaRouteWithChildren
+  '/_app/cuaderno': typeof AppCuadernoRoute
   '/_publica/login': typeof PublicaLoginRoute
   '/_publica/registro': typeof PublicaRegistroRoute
   '/_publica/': typeof PublicaIndexRoute
@@ -90,6 +99,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/cuaderno'
     | '/login'
     | '/registro'
     | '/proyectos/'
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/cuaderno'
     | '/login'
     | '/registro'
     | '/proyectos'
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/_publica'
+    | '/_app/cuaderno'
     | '/_publica/login'
     | '/_publica/registro'
     | '/_publica/'
@@ -135,6 +147,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof PublicaRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/cuaderno': {
+      id: '/_app/cuaderno'
+      path: '/cuaderno'
+      fullPath: '/cuaderno'
+      preLoaderRoute: typeof AppCuadernoRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_publica/': {
       id: '/_publica/'
@@ -182,12 +201,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppCuadernoRoute: typeof AppCuadernoRoute
   AppProyectosIndexRoute: typeof AppProyectosIndexRoute
   AppProyectosProyectoIdConstruirRoute: typeof AppProyectosProyectoIdConstruirRoute
   AppProyectosProyectoIdUsarRoute: typeof AppProyectosProyectoIdUsarRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppCuadernoRoute: AppCuadernoRoute,
   AppProyectosIndexRoute: AppProyectosIndexRoute,
   AppProyectosProyectoIdConstruirRoute: AppProyectosProyectoIdConstruirRoute,
   AppProyectosProyectoIdUsarRoute: AppProyectosProyectoIdUsarRoute,

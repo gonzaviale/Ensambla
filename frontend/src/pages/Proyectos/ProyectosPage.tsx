@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { CameraIcon, SquaresFourIcon, PlusIcon } from '@phosphor-icons/react';
 import { Button, PageHeading, Panel, buttonClasses } from '@/components/ui';
 import { CatalogoPlantillas } from '@/components/Proyectos/CatalogoPlantillas';
@@ -9,7 +10,6 @@ import { useProyectos } from '@/hooks/proyectos/queries';
 export function ProyectosPage() {
   const proyectos = useProyectos();
   const [creando, setCreando] = useState(false);
-  const [avisoFoto, setAvisoFoto] = useState(false);
   return (
     <div className="flex flex-col gap-8">
       <PageHeading
@@ -28,15 +28,9 @@ export function ProyectosPage() {
         <p className="max-w-xl text-soft">
           Una foto será el primer paso para ordenar tus productos, pedidos o clientes.
         </p>
-        <Button variant="solid" onClick={() => setAvisoFoto(true)}>
+        <Link to="/cuaderno" className={buttonClasses({ variant: 'solid' })}>
           Subir foto de mi cuaderno
-        </Button>
-        {avisoFoto && (
-          <p role="status" className="mb-0 max-w-xl text-soft">
-            La carga de fotos estará disponible próximamente. Mientras tanto, podés usar una
-            plantilla o empezar en blanco.
-          </p>
-        )}
+        </Link>
       </section>
       <div className="flex flex-wrap gap-3" aria-label="Otras formas de empezar">
         <a href="#plantillas" className={buttonClasses()}>

@@ -2,3 +2,4 @@
 export const SECCION_PROYECTOS = 'Mis proyectos';
 export const SECCION_CONSTRUIR = 'Construir';
 export const SECCION_USAR = 'Usar';
+export const SECCION_CUADERNO = 'Subir foto';
