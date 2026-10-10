@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,7 +15,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ArchitectureTest {
 
-    private static final Path DOMAIN_CLASSES = Path.of("target/classes/com/ensambla/backend/domain");
+    private static final Path DOMAIN_CLASSES = Path.of(URI.create(
+            BackendApplication.class.getProtectionDomain().getCodeSource().getLocation().toString()))
+            .resolve("com/ensambla/backend/domain");
     private static final String INFRASTRUCTURE_PACKAGE = "com/ensambla/backend/infrastructure";
 
     @Test
