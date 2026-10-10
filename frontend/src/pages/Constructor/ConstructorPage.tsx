@@ -19,6 +19,13 @@ export function ConstructorPage() {
         lead={proyecto.descripcion || 'Organizá tu negocio con bloques y campos.'}
       />
       <h2 className="m-0 text-xl">Constructor de bloques y campos</h2>
+      <Link
+        to="/proyectos/$proyectoId/usar"
+        params={{ proyectoId }}
+        className={buttonClasses({ variant: 'solid', className: 'self-start' })}
+      >
+        Cargar datos
+      </Link>
       {proyecto.bloques.length === 0 ? (
         <Panel>
           <h3 className="mt-0">Primer paso: agregá un bloque</h3>

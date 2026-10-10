@@ -28,8 +28,36 @@ Fuente: comentario de Facundo en ENS-51 y código de `origin/feat/ens-7-registro
 1. FormRenderer reutilizable con cinco controles, valores iniciales, orden y serialización; pruebas de componente.
 2. Validación de registros y errores accesibles junto al campo; pruebas de casos inválidos.
 3. Cliente API y hook de guardado, simulación del contrato, avisos y bloqueo inmediato de envíos repetidos.
-4. Selección de bloque e integración del formulario en modo usar, enlaces desde constructor/proyectos,
+4. Selección de bloque e integración del formulario en modo usar, acceso desde el constructor del proyecto,
    pruebas del flujo, revisión visual y documentación para integrar con el backend de Facundo.
 
 Cada incremento se verifica antes del commit. Verificación final: lint, TypeScript, tests y build de frontend.
 Sin cambios en Java ni migraciones. La demo usa MSW completo hasta integrar backend y login reales.
+
+## Decisiones de interfaz e integración
+
+- Sí/no usa un selector con tres estados: sin responder, Sí y No. Así un obligatorio no obliga a
+  responder Sí, y `false` no se confunde con un valor vacío.
+- Los borradores de cada bloque se mantienen montados y ocultos al cambiar de selección. El selector
+  se bloquea durante el envío; los valores se restablecen únicamente después de una respuesta válida.
+- El guardado pasa por `components → hooks → api`, usando el cliente HTTP y CSRF existentes. La UI
+  recibe un resultado normalizado, sin importar errores ni clientes de red.
+- Un bloqueo inmediato con `useRef` complementa el botón deshabilitado. No se reintenta automáticamente
+  una creación ante un error de red; no se agregó idempotencia de servidor fuera del alcance asignado.
+- El hook invalida `['registros', bloqueId]` para que el listado de ENS-7 pueda actualizarse al integrarlo.
+
+## Verificación y límites
+
+Resultado: `npm test` con 84 pruebas en 10 archivos, `npm run lint` y `npm run build` correctos
+(el build incluye TypeScript). Revisión en navegador de Inventario y Pedidos: obligatorio vacío,
+guardado con stock cero, fecha y No inicial; aviso de éxito y restablecimiento del formulario.
+Revisión a 360 px sin desbordamiento horizontal. Capturas fuera del repositorio en el espacio de
+artefactos de Codex: `ens-6-inventario.png` y `ens-6-pedidos-movil.png`.
+
+Las pruebas cubren los cinco controles, orden, valores iniciales, obligatorios, límites de texto,
+números finitos, fechas reales, opciones, cero/falso, errores por UUID del servidor, conservación de
+datos, bloqueo de envíos inmediatos, cambio de bloque y acceso con sesión/propiedad.
+
+Las pruebas de API y navegador usan MSW completo. La persistencia real y la validación Java pertenecen
+a ENS-50/51; falta comprobar la integración contra PostgreSQL después de incorporar ese backend y la
+autenticación real en `dev`. No se modificaron sus archivos ni se fusionó la rama de Facundo.
