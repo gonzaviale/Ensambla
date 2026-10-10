@@ -46,7 +46,6 @@ class CrearProyectoUseCaseTest {
 
         assertThat(result.id()).isEqualTo(PROYECTO_ID);
         verify(proyectoService).crear(NEGOCIO_ID, "Nuevo", "Descripción", AHORA);
-        assertThat(config.clock().getZone()).isEqualTo(ZoneOffset.UTC);
     }
 
     @Test

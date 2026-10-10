@@ -19,11 +19,11 @@ Columna **Base** = qué deja resuelto esta estructura inicial y qué falta.
 
 | ID | Área | Talle | Tarea | Depende de | Base |
 |---|---|---|---|---|---|
-| T-005 | BE | M | `POST /auth/register` (usuario + negocio en una transacción) | T-004 | ⏳ falta; el front lo simula con MSW |
-| T-006 | BE | M | Login, logout y sesión actual (`/auth/me`) | T-005 | ⏳ falta; ya existen `SesionAdapter`, CSRF y CORS |
-| T-007 | BE | S | Middleware de autenticación | T-006 | ✅ `SecurityConfig` ya exige sesión en todo lo no público; falta test por endpoint |
-| T-008 | FE | M | Pantallas de login y registro | T-006 | 🟡 `LoginForm` de referencia; falta `RegistroPage` |
-| T-009 | FE | S | Sesión en el cliente y rutas protegidas | T-008 | ✅ guards y `useCerrarSesion`; falta cierre de sesión en UI final |
+| T-005 | BE | M | `POST /auth/register` (usuario + negocio en una transacción) | T-004 | ✅ registro, BCrypt, duplicados y rollback verificado en PostgreSQL |
+| T-006 | BE | M | Login, logout y sesión actual (`/auth/me`) | T-005 | ✅ sesión JDBC, rotación, expiración y revocación en logout |
+| T-007 | BE | S | Middleware de autenticación | T-006 | ✅ rutas privadas y escrituras sin sesión responden 401; tests parametrizados |
+| T-008 | FE | M | Pantallas de login y registro | T-006 | ✅ formularios reales con nombre de negocio, validación y errores del servidor |
+| T-009 | FE | S | Sesión en el cliente y rutas protegidas | T-008 | ✅ revalidación por servidor, logout a login y descarte de datos privados |
 
 ## H-02 · Espacio de negocio y aislamiento
 
