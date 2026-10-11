@@ -62,7 +62,7 @@ describe('ENS-52: formulario dinámico', () => {
   it('explica un bloque sin campos y no permite guardar un formulario vacío', () => {
     render(<FormRenderer campos={[]} onSubmit={vi.fn()} />);
 
-    expect(screen.getByText(/todavía no tiene campos/)).toBeInTheDocument();
+    expect(screen.getByText(/todavía no tiene datos/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Guardar registro' })).not.toBeInTheDocument();
   });
 

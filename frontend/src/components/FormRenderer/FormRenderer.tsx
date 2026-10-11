@@ -83,7 +83,7 @@ export function FormRenderer({ campos, onSubmit, onEnviandoChange }: FormRendere
   }
 
   if (campos.length === 0) {
-    return <p className="m-0 text-soft">Este bloque todavía no tiene campos para cargar datos.</p>;
+    return <p className="m-0 text-soft">Este bloque todavía no tiene datos para completar.</p>;
   }
 
   return (
