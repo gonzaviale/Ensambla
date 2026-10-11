@@ -30,16 +30,14 @@ jobs:
       - name: Validar imagen Docker
         run: docker build -t ensambla-backend .
 
-  # Por ahora Render despliega solo al pushear a main (Auto-Deploy activo).
-  # Para pasar a desplegar desde el pipeline (T-036): descomentar este job y
-  # poner Auto-Deploy en "No" en Render (si no, se despliega dos veces).
-  #
-  # deploy:
-  #   needs: build-test
-  #   runs-on: ubuntu-latest
-  #   environment: production
-  #   steps:
-  #     - name: Disparar deploy en Render
-  #       env:
-  #         RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
-  #       run: curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"
+  # Render tiene el Auto-Deploy apagado: sólo despliega cuando este job
+  # dispara el deploy hook, después de que build-test pasó.
+  deploy:
+    needs: build-test
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Disparar deploy en Render
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"
