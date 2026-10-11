@@ -1,6 +1,9 @@
 package com.ensambla.backend.domain.service.lote;
 
+import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.exception.LecturaCuadernoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.lote.ArchivoFoto;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
@@ -43,9 +46,47 @@ public class LoteSubidaService {
         }
     }
 
+    /**
+     * Marca el lote como confirmado y lo vincula al bloque donde quedaron los datos.
+     *
+     * @throws BusinessRuleException si otra confirmación se adelantó o el lote ya no estaba listo
+     */
+    @Transactional
+    public void confirmar(LoteSubida lote, UUID bloqueDestinoId, OffsetDateTime ahora) {
+        if (!loteSubidaRepository.confirmar(lote.getId(), lote.getNegocioId(), bloqueDestinoId, ahora)) {
+            throw new BusinessRuleException("Este cuaderno ya se guardó");
+        }
+    }
+
+    /** La foto de un lote del negocio; si el lote o la foto no son del negocio responde como inexistente. */
+    public ArchivoFoto leerFotoDeLote(UUID negocioId, UUID loteId, UUID fotoId) {
+        FotoCuaderno foto = obtener(negocioId, loteId).getFotos().stream()
+                .filter(candidata -> candidata.getId().equals(fotoId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Foto no encontrada"));
+        return leer(negocioId, foto);
+    }
+
+    /** Una foto del negocio, por ejemplo la de origen de un registro. */
+    public ArchivoFoto leerFoto(UUID negocioId, UUID fotoId) {
+        FotoCuaderno foto = loteSubidaRepository.findFotoByIdAndNegocioId(fotoId, negocioId)
+                .orElseThrow(() -> new ResourceNotFoundException("Foto no encontrada"));
+        return leer(negocioId, foto);
+    }
+
     /** El lote del negocio con sus fotos; un lote ajeno responde como inexistente. */
     public LoteSubida obtener(UUID negocioId, UUID loteId) {
         return loteSubidaRepository.findByIdAndNegocioId(loteId, negocioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Lote no encontrado"));
+    }
+
+    /** Una foto registrada cuyo archivo ya no está o no se puede abrir se muestra como no disponible, no como error. */
+    private ArchivoFoto leer(UUID negocioId, FotoCuaderno foto) {
+        try {
+            return new ArchivoFoto(
+                    archivoCuadernoPort.leer(negocioId, foto.getClaveAlmacenamiento()), foto.getTipoContenido());
+        } catch (LecturaCuadernoException e) {
+            throw new ResourceNotFoundException("La foto ya no está disponible");
+        }
     }
 }

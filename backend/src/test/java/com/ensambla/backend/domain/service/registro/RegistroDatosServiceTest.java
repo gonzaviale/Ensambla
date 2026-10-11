@@ -65,6 +65,17 @@ class RegistroDatosServiceTest {
     }
 
     @Test
+    @DisplayName("Guarda de una vez los registros ya validados")
+    void crearVariosShouldSaveAll() {
+        List<Registro> registros = List.of(registro());
+        when(registroRepository.saveAll(registros)).thenReturn(registros);
+
+        List<Registro> result = registroDatosService.crearVarios(registros);
+
+        assertThat(result).isSameAs(registros);
+    }
+
+    @Test
     @DisplayName("No guarda nada cuando los valores no son válidos")
     void crearShouldNotSaveWhenValuesAreInvalid() {
         Map<String, Object> valores = Map.of(CANTIDAD_ID.toString(), 3);

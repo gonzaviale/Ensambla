@@ -1,11 +1,14 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.dto.lote.FotoArchivoResponse;
 import com.ensambla.backend.domain.dto.lote.LoteItem;
 import com.ensambla.backend.domain.dto.lote.LoteItem.FotoItem;
+import com.ensambla.backend.domain.dto.lote.ObtenerFotoLoteRequest;
 import com.ensambla.backend.domain.dto.lote.ObtenerLoteRequest;
 import com.ensambla.backend.domain.dto.lote.SubirLoteRequest;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.useCase.lote.ObtenerFotoLoteUseCase;
 import com.ensambla.backend.domain.useCase.lote.ObtenerLoteUseCase;
 import com.ensambla.backend.domain.useCase.lote.SubirLoteUseCase;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
@@ -36,6 +39,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -44,6 +48,7 @@ class LoteControllerTest {
 
     private final SubirLoteUseCase subirLoteUseCase = mock(SubirLoteUseCase.class);
     private final ObtenerLoteUseCase obtenerLoteUseCase = mock(ObtenerLoteUseCase.class);
+    private final ObtenerFotoLoteUseCase obtenerFotoLoteUseCase = mock(ObtenerFotoLoteUseCase.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
 
@@ -54,6 +59,7 @@ class LoteControllerTest {
         LoteController controller = new LoteController(
                 subirLoteUseCase,
                 obtenerLoteUseCase,
+                obtenerFotoLoteUseCase,
                 new LotePresentationMapper());
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
@@ -140,6 +146,32 @@ class LoteControllerTest {
 
         result.andExpect(status().isBadRequest());
         verifyNoInteractions(obtenerLoteUseCase);
+    }
+
+    @Test
+    @DisplayName("GET de una foto devuelve sus bytes con su tipo y caché privada")
+    void fotoShouldReturnBytesWithTypeAndPrivateCache() throws Exception {
+        when(obtenerFotoLoteUseCase.execute(any())).thenReturn(new FotoArchivoResponse(JPEG, "image/jpeg"));
+
+        ResultActions result = mockMvc.perform(
+                get("/api/lotes/{id}/fotos/{fotoId}", LOTE_ID, FOTO_ID).principal(principal));
+
+        result.andExpect(status().isOk())
+                .andExpect(content().contentType("image/jpeg"))
+                .andExpect(content().bytes(JPEG))
+                .andExpect(header().string("Cache-Control", "max-age=300, private"));
+        verify(obtenerFotoLoteUseCase).execute(new ObtenerFotoLoteRequest(USUARIO_ID, LOTE_ID, FOTO_ID));
+    }
+
+    @Test
+    @DisplayName("GET de una foto de otro negocio devuelve 404")
+    void fotoShouldReturn404WhenFotoIsForeign() throws Exception {
+        when(obtenerFotoLoteUseCase.execute(any())).thenThrow(new ResourceNotFoundException("Foto no encontrada"));
+
+        ResultActions result = mockMvc.perform(
+                get("/api/lotes/{id}/fotos/{fotoId}", LOTE_ID, FOTO_ID).principal(principal));
+
+        result.andExpect(status().isNotFound());
     }
 
     // --- arrange ---

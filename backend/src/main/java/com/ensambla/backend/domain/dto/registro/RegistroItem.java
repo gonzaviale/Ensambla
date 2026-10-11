@@ -10,6 +10,7 @@ public record RegistroItem(
         UUID id,
         UUID bloqueId,
         Map<String, Object> valores,
+        UUID fotoOrigenId,
         OffsetDateTime creadoEn,
         OffsetDateTime actualizadoEn) {
 
@@ -18,6 +19,7 @@ public record RegistroItem(
                 registro.getId(),
                 registro.getBloqueId(),
                 registro.getValores(),
+                registro.getFotoOrigenId(),
                 registro.getCreadoEn(),
                 registro.getActualizadoEn());
     }

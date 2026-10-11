@@ -19,10 +19,12 @@ const foto = (nombre: string, tipo = 'image/jpeg') =>
 const paginas = (cantidad: number) =>
   Array.from({ length: cantidad }, (_, i) => foto(`pagina-${i + 1}.jpg`));
 
+let router: ReturnType<typeof renderApp>;
+
 async function abrirCuaderno() {
   setupUsuarioConSesion();
   const user = userEvent.setup({ applyAccept: false });
-  renderApp('/cuaderno');
+  router = renderApp('/cuaderno');
   await verifyHeadingPresentAsync('Subir foto de mi cuaderno');
   return user;
 }
@@ -107,16 +109,18 @@ describe('T-091: subir foto de mi cuaderno', () => {
     expect(screen.getByText(/Recibimos 3 páginas/)).toBeInTheDocument();
   });
 
-  it('muestra lo que leyó la IA cuando termina y marca los datos dudosos', async () => {
+  it('lleva a la dirección de la lectura y, al terminar, deja revisar lo que leyó la IA', async () => {
     const user = await abrirCuaderno();
     await user.upload(galeria(), paginas(1));
     await user.click(screen.getByRole('button', { name: 'Leer mi cuaderno (1 página)' }));
 
     await verifyHeadingPresentAsync('Esto es lo que leímos de tu cuaderno');
 
-    expect(screen.getByRole('cell', { name: 'Pan' })).toBeInTheDocument();
-    expect(screen.getByRole('cell', { name: /850.*dato dudoso/ })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Subir más páginas' }));
+    expect(router.state.location.pathname).toMatch(/^\/cuaderno\/[0-9a-f-]{36}$/);
+    expect(screen.getByRole('textbox', { name: 'Producto, fila 1' })).toHaveValue('Pan');
+    expect(screen.getByRole('textbox', { name: 'Monto, fila 2' })).toHaveValue('850');
+    expect(screen.getByText('No estamos seguros de este dato.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Descartar y subir otras fotos' }));
     expect(await screen.findByLabelText('Elegir de la galería', {}, ESPERA)).toBeInTheDocument();
   }, 10000);
 

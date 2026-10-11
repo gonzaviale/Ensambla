@@ -55,13 +55,13 @@ function BloqueSinDatos({ proyectoId, bloque }: { proyectoId: string; bloque: Bl
 
 export function UsarPage() {
   const { proyectoId } = useParams({ from: RUTA });
-  const { nuevo } = useSearch({ from: RUTA });
+  const { nuevo, bloque: bloqueInicial } = useSearch({ from: RUTA });
   const navigate = useNavigate();
   const proyecto = useProyecto(proyectoId);
   const panelCarga = useRef<HTMLDivElement>(null);
   const enfocarCarga = useRef(false);
   const bloques = [...proyecto.bloques].sort((a, b) => a.posicion - b.posicion);
-  const [bloqueId, setBloqueId] = useState<string>();
+  const [bloqueId, setBloqueId] = useState<string | undefined>(bloqueInicial);
   const [seleccionado, setSeleccionado] = useState<Registro>();
   const [vista, setVista] = useState<Vista>('registros');
   // Los formularios quedan montados una vez abiertos para no perder los borradores.

@@ -8,6 +8,7 @@ public record RegistroResponse(
         UUID id,
         UUID bloqueId,
         Map<String, Object> valores,
+        UUID fotoOrigenId,
         OffsetDateTime creadoEn,
         OffsetDateTime actualizadoEn
 ) {

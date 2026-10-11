@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.presentation.mapper.lote;
 
 import com.ensambla.backend.domain.dto.lote.LoteItem;
 import com.ensambla.backend.domain.dto.lote.LoteItem.FotoItem;
+import com.ensambla.backend.domain.dto.lote.ObtenerFotoLoteRequest;
 import com.ensambla.backend.domain.dto.lote.ObtenerLoteRequest;
 import com.ensambla.backend.domain.dto.lote.SubirLoteRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.lote.LoteResponse;
@@ -63,6 +64,14 @@ class LotePresentationMapperTest {
         ObtenerLoteRequest result = lotePresentationMapper.toObtenerRequest(USUARIO_ID, LOTE_ID);
 
         assertThat(result).isEqualTo(new ObtenerLoteRequest(USUARIO_ID, LOTE_ID));
+    }
+
+    @Test
+    @DisplayName("Arma el pedido de una foto con el usuario, el lote y la foto")
+    void toFotoRequestShouldMapIds() {
+        ObtenerFotoLoteRequest result = lotePresentationMapper.toFotoRequest(USUARIO_ID, LOTE_ID, FOTO_ID);
+
+        assertThat(result).isEqualTo(new ObtenerFotoLoteRequest(USUARIO_ID, LOTE_ID, FOTO_ID));
     }
 
     @Test

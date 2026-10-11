@@ -11,6 +11,8 @@ export const registroSchema = z.object({
   id: z.string().uuid(),
   bloqueId: z.string().uuid(),
   valores: z.record(valorSchema),
+  // Foto del cuaderno de la que salió; null si se cargó a mano.
+  fotoOrigenId: z.string().uuid().nullish(),
   creadoEn: z.string(),
   actualizadoEn: z.string(),
 });
