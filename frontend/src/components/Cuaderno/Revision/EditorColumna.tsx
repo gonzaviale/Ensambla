@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { ConfirmarEliminacion } from '@/components/Constructor/ConfirmarEliminacion';
-import { TIPOS_DE_DATO } from '@/components/Constructor/tiposDeDato';
-import { Button, InputField, Panel, TextareaField } from '@/components/ui';
-import { SelectField } from '@/components/ui/SelectField';
+import { OpcionesEditor } from '@/components/Constructor/OpcionesEditor';
+import { TipoDeDatoCards } from '@/components/Constructor/TipoDeDatoCards';
+import { Button, ConfirmDialog, InputField, Sheet } from '@/components/ui';
 import { errorDeColumna, type ColumnaRevision } from '@/lib/revisionLectura';
-import { TIPOS_CAMPO, type TipoCampo } from '@/types/campo';
+import type { TipoCampo } from '@/types/campo';
 
 type Props = {
   columna: ColumnaRevision;
@@ -17,6 +16,8 @@ type Props = {
 };
 
 // Corrige una columna: cómo se llama, qué tipo de dato guarda y, si es una lista, sus opciones.
+// Vive en una hoja anclada a la ventana (abajo en el celular, a la derecha en escritorio): se abre
+// a la vista y devuelve el foco al botón que la abrió.
 export function EditorColumna({
   columna,
   columnas,
@@ -30,71 +31,72 @@ export function EditorColumna({
   const error = errorDeColumna(columna, columnas);
   const errorDeOpciones = error && columna.tipo === 'OPCION' && /opci[oó]n/i.test(error);
 
-  return (
-    <Panel
-      flat
-      aria-label={`Editar la columna «${columna.nombre}»`}
-      className="flex flex-col gap-3"
-    >
-      <h3 className="m-0 text-hint">Columna «{columna.nombre || 'sin nombre'}»</h3>
-      {bloqueada && (
-        <p className="m-0 text-hint text-soft">
-          Esta columna ya existe en tu tabla «{nombreTabla}»: no se puede cambiar su nombre ni su
-          tipo.
-        </p>
-      )}
-      <InputField
-        label="Nombre de la columna"
-        value={columna.nombre}
-        disabled={bloqueada}
-        error={errorDeOpciones ? undefined : error}
-        onChange={(e) => onCambiar({ nombre: e.target.value })}
-      />
-      <SelectField
-        label="Qué tipo de dato guarda"
-        value={columna.tipo}
-        disabled={bloqueada}
-        hint={TIPOS_DE_DATO[columna.tipo].ayuda}
-        onChange={(e) => onCambiar({ tipo: e.target.value as TipoCampo })}
-      >
-        {TIPOS_CAMPO.map((tipo) => (
-          <option key={tipo} value={tipo}>
-            {TIPOS_DE_DATO[tipo].nombre}
-          </option>
-        ))}
-      </SelectField>
-      {columna.tipo === 'OPCION' && (
-        <TextareaField
-          label="Opciones (una por renglón)"
-          className="min-h-24"
-          disabled={bloqueada}
-          value={columna.opciones.join('\n')}
-          error={errorDeOpciones ? error : undefined}
-          onChange={(e) => onCambiar({ opciones: e.target.value.split('\n') })}
-        />
-      )}
+  function cambiarTipo(tipo: TipoCampo) {
+    const sinOpciones = tipo === 'OPCION' && columna.opciones.length === 0;
+    onCambiar({ tipo, ...(sinOpciones ? { opciones: ['', ''] } : {}) });
+  }
 
-      {confirmando ? (
-        <ConfirmarEliminacion
-          titulo={`¿Quitar la columna «${columna.nombre}»?`}
-          confirmar="Sí, quitar columna"
-          conservar="Conservar columna"
-          ocupado={false}
-          onConfirmar={onQuitar}
-          onConservar={() => setConfirmando(false)}
-        >
-          Se pierden los datos de esta columna en todas las filas.
-        </ConfirmarEliminacion>
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          <Button variant="primary" onClick={onCerrar}>
-            Listo
-          </Button>
-          <Button variant="ghost" onClick={() => setConfirmando(true)}>
-            Quitar columna
-          </Button>
+  return (
+    <>
+      <Sheet
+        open
+        onClose={onCerrar}
+        title="Editar columna"
+        description={`«${columna.nombre || 'sin nombre'}»`}
+        footer={
+          <>
+            <Button variant="danger" onClick={() => setConfirmando(true)}>
+              Quitar columna
+            </Button>
+            <Button variant="solid" onClick={onCerrar}>
+              Listo
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-5">
+          {bloqueada && (
+            <p className="m-0 rounded-md bg-sand-100 p-3 text-hint text-soft">
+              Esta columna ya existe en tu tabla «{nombreTabla}»: no se puede cambiar su nombre ni
+              su tipo.
+            </p>
+          )}
+          <InputField
+            label="Nombre de la columna"
+            data-autofocus
+            value={columna.nombre}
+            disabled={bloqueada}
+            error={errorDeOpciones ? undefined : error}
+            onChange={(e) => onCambiar({ nombre: e.target.value })}
+          />
+          <TipoDeDatoCards
+            legend="¿Qué tipo de dato guarda?"
+            unaColumna
+            valor={columna.tipo}
+            disabled={bloqueada}
+            onCambiar={cambiarTipo}
+          />
+          {columna.tipo === 'OPCION' && (
+            <OpcionesEditor
+              opciones={columna.opciones}
+              disabled={bloqueada}
+              error={errorDeOpciones ? error : undefined}
+              onCambiar={(opciones) => onCambiar({ opciones })}
+            />
+          )}
         </div>
-      )}
-    </Panel>
+      </Sheet>
+
+      <ConfirmDialog
+        open={confirmando}
+        titulo={`¿Quitar la columna «${columna.nombre}»?`}
+        confirmar="Sí, quitar columna"
+        conservar="Conservar columna"
+        onConfirmar={onQuitar}
+        onConservar={() => setConfirmando(false)}
+      >
+        <p className="m-0">Se pierden los datos de esta columna en todas las filas.</p>
+      </ConfirmDialog>
+    </>
   );
 }

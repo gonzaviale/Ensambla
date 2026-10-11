@@ -174,7 +174,12 @@ describe('siguienteDuda', () => {
 
   it('un dato inválido sigue siendo una duda aunque se haya mirado', () => {
     let base = borrador();
-    base = reducirBorrador(base, { tipo: 'editarCelda', filaId: 'fila-1', clave: 'monto', texto: 'abc' });
+    base = reducirBorrador(base, {
+      tipo: 'editarCelda',
+      filaId: 'fila-1',
+      clave: 'monto',
+      texto: 'abc',
+    });
 
     expect(siguienteDuda(base)).toEqual({ filaId: 'fila-1', clave: 'monto' });
   });
@@ -213,14 +218,19 @@ describe('errorDeCelda', () => {
 });
 
 describe('errorDeColumna', () => {
-  const todas = [columna({ clave: 'a', nombre: 'Monto' }), columna({ clave: 'b', nombre: 'Rubro' })];
+  const todas = [
+    columna({ clave: 'a', nombre: 'Monto' }),
+    columna({ clave: 'b', nombre: 'Rubro' }),
+  ];
 
   it('acepta una columna correcta', () => {
     expect(errorDeColumna(en(todas), todas)).toBeUndefined();
   });
 
   it('exige un nombre', () => {
-    expect(errorDeColumna(columna({ nombre: '  ' }), todas)).toBe('Escribí un nombre para la columna.');
+    expect(errorDeColumna(columna({ nombre: '  ' }), todas)).toBe(
+      'Escribí un nombre para la columna.',
+    );
   });
 
   it('limita el largo del nombre', () => {
@@ -232,11 +242,14 @@ describe('errorDeColumna', () => {
   it('no admite dos columnas con el mismo nombre', () => {
     const repetida = columna({ clave: 'c', nombre: ' monto ' });
 
-    expect(errorDeColumna(repetida, [...todas, repetida])).toBe('Ya hay otra columna con este nombre.');
+    expect(errorDeColumna(repetida, [...todas, repetida])).toBe(
+      'Ya hay otra columna con este nombre.',
+    );
   });
 
   it('una lista necesita opciones y sin repetir', () => {
-    const lista = (opciones: string[]) => columna({ clave: 'z', nombre: 'Lista', tipo: 'OPCION', opciones });
+    const lista = (opciones: string[]) =>
+      columna({ clave: 'z', nombre: 'Lista', tipo: 'OPCION', opciones });
 
     expect(errorDeColumna(lista(['', ' ']), todas)).toBe('Agregá al menos una opción.');
     expect(errorDeColumna(lista(['A', 'a']), todas)).toBe('La opción «a» está repetida.');
@@ -254,6 +267,27 @@ describe('reducirBorrador', () => {
     const borrador = reducirBorrador(base(), { tipo: 'quitarFila', filaId: 'fila-1' });
 
     expect(borrador.filas.map((f) => f.id)).toEqual(['fila-2']);
+  });
+
+  it('restaura una fila quitada en su lugar y no la duplica', () => {
+    const original = base();
+    const quitada = original.filas[0];
+    if (!quitada) throw new Error('Falta la fila de prueba');
+    const sinFila = reducirBorrador(original, { tipo: 'quitarFila', filaId: quitada.id });
+
+    const restaurado = reducirBorrador(sinFila, {
+      tipo: 'restaurarFila',
+      fila: quitada,
+      indice: 0,
+    });
+    const repetido = reducirBorrador(restaurado, {
+      tipo: 'restaurarFila',
+      fila: quitada,
+      indice: 0,
+    });
+
+    expect(restaurado.filas.map((f) => f.id)).toEqual(['fila-1', 'fila-2']);
+    expect(repetido.filas).toHaveLength(2);
   });
 
   it('agrega una fila a mano, vacía y sin dudas', () => {
@@ -319,9 +353,9 @@ describe('reducirBorrador', () => {
   it('ignora una celda que no existe', () => {
     const inicial = base();
 
-    expect(reducirBorrador(inicial, { tipo: 'marcarRevisada', filaId: 'x', clave: 'monto' })).toEqual(
-      inicial,
-    );
+    expect(
+      reducirBorrador(inicial, { tipo: 'marcarRevisada', filaId: 'x', clave: 'monto' }),
+    ).toEqual(inicial);
   });
 });
 
@@ -356,7 +390,12 @@ describe('aConfirmacion', () => {
   const revisado = (): BorradorRevision => {
     contador = 0;
     let borrador = borradorInicial();
-    borrador = reducirBorrador(borrador, { tipo: 'editarCelda', filaId: 'fila-2', clave: 'monto', texto: '850,5' });
+    borrador = reducirBorrador(borrador, {
+      tipo: 'editarCelda',
+      filaId: 'fila-2',
+      clave: 'monto',
+      texto: '850,5',
+    });
     borrador = reducirBorrador(borrador, { tipo: 'agregarFila', id: 'manual' });
     return borrador;
   };
@@ -379,7 +418,11 @@ describe('aConfirmacion', () => {
   it('en un proyecto existente manda su id y el nombre de la tabla', () => {
     const datos = aConfirmacion(revisado(), { modo: 'proyecto', proyectoId: 'p-1' });
 
-    expect(datos).toMatchObject({ proyectoId: 'p-1', nombreProyecto: null, nombreBloque: 'Ventas' });
+    expect(datos).toMatchObject({
+      proyectoId: 'p-1',
+      nombreProyecto: null,
+      nombreBloque: 'Ventas',
+    });
     expect(datos.campos.every((campo) => campo.campoId === null)).toBe(true);
   });
 
@@ -409,7 +452,9 @@ describe('aConfirmacion', () => {
 
     expect(estaBloqueada(en(borrador.columnas, 1), destino)).toBe(true);
     expect(estaBloqueada(en(borrador.columnas), destino)).toBe(false);
-    expect(estaBloqueada(en(borrador.columnas, 1), { modo: 'nuevo', nombreProyecto: '' })).toBe(false);
+    expect(estaBloqueada(en(borrador.columnas, 1), { modo: 'nuevo', nombreProyecto: '' })).toBe(
+      false,
+    );
   });
 });
 
@@ -417,7 +462,10 @@ describe('persistencia del borrador', () => {
   beforeEach(() => sessionStorage.clear());
 
   it('guarda, lee y borra el borrador de un lote', () => {
-    const guardado = { borrador: borradorInicial(), destino: { modo: 'nuevo', nombreProyecto: 'X' } } as const;
+    const guardado = {
+      borrador: borradorInicial(),
+      destino: { modo: 'nuevo', nombreProyecto: 'X' },
+    } as const;
 
     guardarBorrador('lote-1', guardado);
     expect(leerBorradorGuardado('lote-1')).toEqual(guardado);
@@ -452,7 +500,10 @@ describe('persistencia del borrador', () => {
     try {
       expect(leerBorradorGuardado('lote-1')).toBeUndefined();
       expect(() =>
-        guardarBorrador('lote-1', { borrador: borradorInicial(), destino: { modo: 'proyecto', proyectoId: 'p' } }),
+        guardarBorrador('lote-1', {
+          borrador: borradorInicial(),
+          destino: { modo: 'proyecto', proyectoId: 'p' },
+        }),
       ).not.toThrow();
       expect(() => borrarBorrador('lote-1')).not.toThrow();
     } finally {

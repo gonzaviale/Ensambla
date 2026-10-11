@@ -52,6 +52,8 @@ export type AccionRevision =
   | { tipo: 'editarCelda'; filaId: string; clave: string; texto: string }
   | { tipo: 'marcarRevisada'; filaId: string; clave: string }
   | { tipo: 'quitarFila'; filaId: string }
+  /** Deshace «quitarFila»: vuelve a poner la fila en su lugar (índice previo). */
+  | { tipo: 'restaurarFila'; fila: FilaRevision; indice: number }
   | { tipo: 'agregarFila'; id: string }
   | { tipo: 'renombrarBloque'; nombre: string }
   | {
@@ -148,6 +150,12 @@ export function reducirBorrador(
       }));
     case 'quitarFila':
       return { ...borrador, filas: borrador.filas.filter((fila) => fila.id !== accion.filaId) };
+    case 'restaurarFila': {
+      if (borrador.filas.some((fila) => fila.id === accion.fila.id)) return borrador;
+      const filas = [...borrador.filas];
+      filas.splice(Math.min(Math.max(accion.indice, 0), filas.length), 0, accion.fila);
+      return { ...borrador, filas };
+    }
     case 'agregarFila':
       return {
         ...borrador,
@@ -338,7 +346,12 @@ export function leerBorradorGuardado(loteId: string): BorradorGuardado | undefin
     if (!crudo) return undefined;
     const datos = JSON.parse(crudo) as Partial<BorradorGuardado>;
     const { borrador, destino } = datos;
-    if (!borrador || !destino || !Array.isArray(borrador.columnas) || !Array.isArray(borrador.filas)) {
+    if (
+      !borrador ||
+      !destino ||
+      !Array.isArray(borrador.columnas) ||
+      !Array.isArray(borrador.filas)
+    ) {
       return undefined;
     }
     return { borrador, destino };

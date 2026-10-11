@@ -119,8 +119,9 @@ describe('T-091: subir foto de mi cuaderno', () => {
     expect(router.state.location.pathname).toMatch(/^\/cuaderno\/[0-9a-f-]{36}$/);
     expect(screen.getByRole('textbox', { name: 'Producto, fila 1' })).toHaveValue('Pan');
     expect(screen.getByRole('textbox', { name: 'Monto, fila 2' })).toHaveValue('850');
-    expect(screen.getByText('No estamos seguros de este dato.')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Descartar y subir otras fotos' }));
+    expect(screen.getByText('Leímos «850», ¿es correcto?')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Descartar' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, descartar' }));
     expect(await screen.findByLabelText('Elegir de la galería', {}, ESPERA)).toBeInTheDocument();
   }, 10000);
 

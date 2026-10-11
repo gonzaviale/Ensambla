@@ -1,6 +1,6 @@
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { confirmarLectura, obtenerLectura, subirLote } from '@/api/lotes';
 import { crearProyecto, crearProyectoDesdePlantilla } from '@/api/proyectos';
 import { plantillasMock } from '@/mocks/db/estado';
@@ -51,10 +51,10 @@ const editar = async (user: ReturnType<typeof userEvent.setup>, nombre: string, 
 beforeEach(() => sessionStorage.clear());
 
 describe('H-30: revisar lo que leyó la IA', () => {
-  it('muestra la foto de cada página junto a los datos para corregir', async () => {
+  it('muestra la foto de cada hoja junto a los datos para corregir', async () => {
     const { lote } = await abrirRevision();
 
-    const imagen = await screen.findByRole('img', { name: 'Página 1 del cuaderno' }, ESPERA);
+    const imagen = await screen.findByRole('img', { name: 'Hoja 1 del cuaderno' }, ESPERA);
     expect(imagen).toHaveAttribute('src', expect.stringContaining(`/lotes/${lote.id}/fotos/`));
     expect(celda('Producto, fila 1')).toHaveValue('Pan');
     expect(celda('Monto, fila 2')).toHaveValue('850');
@@ -63,24 +63,25 @@ describe('H-30: revisar lo que leyó la IA', () => {
 
   it('resalta los datos dudosos y corregirlos los da por revisados', async () => {
     const { user } = await abrirRevision();
-    expect(screen.getByText('No estamos seguros de este dato.')).toBeInTheDocument();
+    expect(screen.getByText('Leímos «850», ¿es correcto?')).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Queda 1 dato por revisar.');
 
     await editar(user, 'Monto, fila 2', '900');
 
-    expect(screen.queryByText('No estamos seguros de este dato.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Leímos «850», ¿es correcto?')).not.toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('No quedan datos por revisar.');
   });
 
-  it('«Siguiente duda» lleva el foco al dato dudoso y después lo da por mirado', async () => {
+  it('«Ir al próximo dato» lleva el foco al dato dudoso y «Está bien» lo da por mirado', async () => {
     const { user } = await abrirRevision();
 
-    await user.click(screen.getByRole('button', { name: 'Siguiente duda' }));
+    await user.click(screen.getByRole('button', { name: 'Ir al próximo dato para revisar' }));
 
     expect(celda('Monto, fila 2')).toHaveFocus();
-    await user.click(screen.getByRole('button', { name: 'Siguiente duda' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Queda 1 dato por revisar.');
+    await user.click(screen.getByRole('button', { name: /Está bien/ }));
     expect(screen.getByRole('status')).toHaveTextContent('No quedan datos por revisar.');
-    expect(screen.getByRole('button', { name: 'Siguiente duda' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Ir al próximo dato para revisar' })).toBeDisabled();
   });
 
   it('quita una fila y agrega otra a mano', async () => {
@@ -91,6 +92,32 @@ describe('H-30: revisar lo que leyó la IA', () => {
 
     await user.click(screen.getByRole('button', { name: 'Agregar fila' }));
     expect(celda('Producto, fila 2')).toHaveValue('');
+  });
+
+  it('quitar una fila se puede deshacer y devuelve la fila a su lugar', async () => {
+    const { user } = await abrirRevision();
+
+    await user.click(screen.getByRole('button', { name: 'Quitar la fila 1' }));
+    expect(screen.getByText('Quitaste la fila 1.')).toBeInTheDocument();
+    expect(celda('Producto, fila 1')).toHaveValue('Leche');
+
+    await user.click(screen.getByRole('button', { name: 'Deshacer' }));
+
+    expect(celda('Producto, fila 1')).toHaveValue('Pan');
+    expect(celda('Producto, fila 2')).toHaveValue('Leche');
+  });
+
+  it('el editor de columna es una hoja con el foco en el nombre y devuelve el foco al cerrar', async () => {
+    const { user } = await abrirRevision();
+    const abrir = screen.getByRole('button', { name: 'Editar la columna «Monto»' });
+
+    await user.click(abrir);
+
+    expect(screen.getByRole('dialog', { name: 'Editar columna' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Nombre de la columna')).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(abrir).toHaveFocus();
   });
 
   it('renombra una columna desde su editor', async () => {
@@ -108,26 +135,27 @@ describe('H-30: revisar lo que leyó la IA', () => {
     const { user } = await abrirRevision();
 
     await user.click(screen.getByRole('button', { name: 'Editar la columna «Monto»' }));
-    await user.selectOptions(screen.getByLabelText('Qué tipo de dato guarda'), 'FECHA');
+    await user.click(screen.getByRole('radio', { name: 'Fecha' }));
 
     expect(screen.getAllByText('Elegí una fecha válida.')).toHaveLength(2);
     expect(screen.getByText('Hay 2 datos para corregir.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Guardar' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Guardar mi cuaderno' })).toBeDisabled();
   });
 
   it('una columna de lista pide sus opciones', async () => {
     const { user } = await abrirRevision();
 
     await user.click(screen.getByRole('button', { name: 'Editar la columna «Producto»' }));
-    await user.selectOptions(screen.getByLabelText('Qué tipo de dato guarda'), 'OPCION');
+    await user.click(screen.getByRole('radio', { name: 'Lista de opciones' }));
     expect(screen.getByText('Agregá al menos una opción.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Guardar' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Guardar mi cuaderno' })).toBeDisabled();
 
-    await user.type(screen.getByLabelText('Opciones (una por renglón)'), 'Pan{Enter}Leche');
+    await user.type(screen.getByLabelText('Opción 1'), 'Pan');
+    await user.type(screen.getByLabelText('Opción 2'), 'Leche');
 
     expect(screen.queryByText('Agregá al menos una opción.')).not.toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Producto, fila 1' })).toHaveValue('Pan');
-    expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Guardar mi cuaderno' })).toBeEnabled();
   });
 
   it('agrega una columna nueva y quita otra pidiendo confirmación', async () => {
@@ -138,7 +166,9 @@ describe('H-30: revisar lo que leyó la IA', () => {
 
     await user.click(screen.getByRole('button', { name: 'Editar la columna «Monto»' }));
     await user.click(screen.getByRole('button', { name: 'Quitar columna' }));
-    expect(screen.getByRole('alertdialog', { name: '¿Quitar la columna «Monto»?' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('alertdialog', { name: '¿Quitar la columna «Monto»?' }),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Sí, quitar columna' }));
 
     expect(screen.queryByRole('textbox', { name: 'Monto, fila 1' })).not.toBeInTheDocument();
@@ -147,10 +177,10 @@ describe('H-30: revisar lo que leyó la IA', () => {
   it('no deja guardar sin nombre de proyecto', async () => {
     const { user } = await abrirRevision();
 
-    await user.clear(screen.getByLabelText('Nombre del proyecto'));
+    await user.clear(screen.getByLabelText('Nombre del sistema'));
 
-    expect(screen.getByText('Escribí un nombre para el proyecto.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Guardar' })).toBeDisabled();
+    expect(screen.getByText('Escribí un nombre para el sistema.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Guardar mi cuaderno' })).toBeDisabled();
   });
 
   it('conserva lo corregido si se recarga la página', async () => {
@@ -170,9 +200,12 @@ describe('H-30: guardar lo revisado', () => {
     const { user, router } = await abrirRevision();
     await editar(user, 'Producto, fila 1', 'Pan lactal');
 
-    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar mi cuaderno' }));
 
-    await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/proyectos\/.+\/usar$/), ESPERA);
+    await waitFor(
+      () => expect(router.state.location.pathname).toMatch(/^\/proyectos\/.+\/usar$/),
+      ESPERA,
+    );
     expect(await screen.findByText('Pan lactal', {}, ESPERA)).toBeInTheDocument();
     expect(screen.getByText('Leche')).toBeInTheDocument();
     expect(sessionStorage.length).toBe(0);
@@ -187,13 +220,13 @@ describe('H-30: guardar lo revisado', () => {
     await verifyHeadingPresentAsync(TITULO);
 
     const opcion = await screen.findByRole('radio', {
-      name: 'Agregar una tabla a un proyecto que ya tengo',
+      name: 'Agregar una tabla a un sistema que ya tengo',
     });
     // Se habilita cuando llega la lista de proyectos.
     await waitFor(() => expect(opcion).toBeEnabled(), ESPERA);
     await user.click(opcion);
-    expect(screen.getByLabelText('Proyecto')).toHaveValue(existente.id);
-    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+    expect(screen.getByLabelText('Sistema')).toHaveValue(existente.id);
+    await user.click(screen.getByRole('button', { name: 'Guardar mi cuaderno' }));
 
     await verifyPathAsync(router, `/proyectos/${existente.id}/usar`);
     expect(await screen.findByText('Pan', {}, ESPERA)).toBeInTheDocument();
@@ -223,7 +256,10 @@ describe('H-30: guardar lo revisado', () => {
           {
             pagina: 1,
             renglon: 1,
-            datos: { nombre: { valor: 'Sal', confianza: 0.99 }, stock: { valor: '20', confianza: 0.99 } },
+            datos: {
+              nombre: { valor: 'Sal', confianza: 0.99 },
+              stock: { valor: '20', confianza: 0.99 },
+            },
           },
         ],
       },
@@ -234,12 +270,14 @@ describe('H-30: guardar lo revisado', () => {
     await verifyHeadingPresentAsync(TITULO);
 
     expect(
-      await screen.findByRole('radio', { name: new RegExp(`Sumar las filas a tu tabla «${bloque.nombre}»`) }),
+      await screen.findByRole('radio', {
+        name: new RegExp(`Sumar las filas a tu tabla «${bloque.nombre}»`),
+      }),
     ).toBeChecked();
     expect(screen.queryByLabelText('Nombre de la tabla')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Editar la columna «Stock»' }));
     expect(screen.getByLabelText('Nombre de la columna')).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar mi cuaderno' }));
 
     await verifyPathAsync(router, `/proyectos/${proyecto.id}/usar`);
     expect(await screen.findByText('Sal', {}, ESPERA)).toBeInTheDocument();
@@ -251,9 +289,11 @@ describe('H-30: guardar lo revisado', () => {
       'filas[0].monto': 'Tiene que ser un número',
     });
 
-    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar mi cuaderno' }));
 
-    expect(await screen.findByRole('alert', {}, ESPERA)).toHaveTextContent('Revisá los datos marcados');
+    expect(await screen.findByRole('alert', {}, ESPERA)).toHaveTextContent(
+      'Revisá los datos marcados',
+    );
     expect(screen.getByText('Tiene que ser un número')).toBeInTheDocument();
     expect(celda('Monto, fila 1')).toHaveAttribute('aria-invalid', 'true');
     await editar(user, 'Monto, fila 1', '1300');
@@ -278,15 +318,16 @@ describe('H-30: guardar lo revisado', () => {
     renderApp(`/cuaderno/${lote.id}`);
 
     await verifyHeadingPresentAsync('Este cuaderno ya se guardó');
-    expect(screen.queryByRole('button', { name: 'Guardar' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Ir a mis proyectos' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Guardar mi cuaderno' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ir a mis sistemas' })).toBeInTheDocument();
   });
 
   it('descartar vuelve a subir fotos y olvida lo corregido', async () => {
     const { user, router } = await abrirRevision();
     await editar(user, 'Producto, fila 1', 'Otro');
 
-    await user.click(screen.getByRole('button', { name: 'Descartar y subir otras fotos' }));
+    await user.click(screen.getByRole('button', { name: 'Descartar' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, descartar' }));
 
     await verifyPathAsync(router, '/cuaderno');
     expect(sessionStorage.length).toBe(0);
@@ -304,7 +345,9 @@ describe('T-104: ver en el cuaderno desde la ficha del registro', () => {
         nombreProyecto: 'Ventas',
         bloqueId: null,
         nombreBloque: 'Hoja',
-        campos: [{ clave: 'producto', campoId: null, nombre: 'Producto', tipo: 'TEXTO', opciones: [] }],
+        campos: [
+          { clave: 'producto', campoId: null, nombre: 'Producto', tipo: 'TEXTO', opciones: [] },
+        ],
         filas: [
           { pagina: 1, valores: { producto: 'Pan' } },
           { pagina: null, valores: { producto: 'Leche' } },
@@ -323,7 +366,7 @@ describe('T-104: ver en el cuaderno desde la ficha del registro', () => {
     const ficha = screen.getByRole('complementary', { name: 'Ficha del registro' });
     await user.click(within(ficha).getByRole('button', { name: 'Ver en el cuaderno' }));
 
-    const imagen = await within(ficha).findByRole('img', { name: 'Página 1 del cuaderno' }, ESPERA);
+    const imagen = await within(ficha).findByRole('img', { name: 'Hoja 1 del cuaderno' }, ESPERA);
     expect(imagen).toHaveAttribute('src', expect.stringMatching(/\/registros\/.+\/foto-origen$/));
     await user.click(within(ficha).getByRole('button', { name: 'Ocultar el cuaderno' }));
     expect(within(ficha).queryByRole('img')).not.toBeInTheDocument();
@@ -335,6 +378,50 @@ describe('T-104: ver en el cuaderno desde la ficha del registro', () => {
     await user.click(screen.getByRole('button', { name: 'Ver ficha de Leche' }));
 
     const ficha = screen.getByRole('complementary', { name: 'Ficha del registro' });
-    expect(within(ficha).queryByRole('button', { name: 'Ver en el cuaderno' })).not.toBeInTheDocument();
+    expect(
+      within(ficha).queryByRole('button', { name: 'Ver en el cuaderno' }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe('revisión en el celular: una tarjeta por renglón', () => {
+  beforeEach(() => {
+    window.matchMedia = ((consulta: string) => ({
+      matches: false,
+      media: consulta,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    })) as unknown as typeof window.matchMedia;
+  });
+  afterEach(() => {
+    // @ts-expect-error jsdom no define matchMedia: se deja como estaba.
+    delete window.matchMedia;
+  });
+
+  it('muestra cada renglón como tarjeta con sus datos apilados y el aviso de duda', async () => {
+    const { user } = await abrirRevision();
+
+    expect(screen.getByRole('heading', { name: /Renglón 1/ })).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(celda('Producto, fila 1')).toHaveValue('Pan');
+    expect(screen.getByText('Leímos «850», ¿es correcto?')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Está bien/ }));
+
+    expect(screen.queryByText('Leímos «850», ¿es correcto?')).not.toBeInTheDocument();
+  });
+
+  it('abre la foto en una hoja y quita un renglón con Deshacer', async () => {
+    const { user } = await abrirRevision();
+
+    await user.click(screen.getByRole('button', { name: 'Ver mi cuaderno' }));
+    const hoja = screen.getByRole('dialog', { name: 'Mi cuaderno' });
+    expect(within(hoja).getByRole('button', { name: 'Acercar la foto' })).toBeInTheDocument();
+    await user.click(within(hoja).getByRole('button', { name: 'Cerrar' }));
+
+    await user.click(screen.getByRole('button', { name: 'Quitar la fila 2' }));
+    expect(screen.queryByRole('textbox', { name: 'Producto, fila 2' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Deshacer' }));
+    expect(celda('Producto, fila 2')).toHaveValue('Leche');
   });
 });

@@ -1,14 +1,18 @@
-import { PencilSimpleIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
+import { PencilSimpleIcon, TrashIcon } from '@phosphor-icons/react';
 import { Button } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import {
   claveErrorServidor,
+  errorDeCelda,
   errorDeColumna,
+  esDudosa,
   idCelda,
   type AccionRevision,
   type BorradorRevision,
   type PosicionCelda,
 } from '@/lib/revisionLectura';
+import { AvisoCelda } from './AvisoCelda';
+import { avisoDeCelda } from './avisosRevision';
 import { CeldaRevision } from './CeldaRevision';
 
 type Props = {
@@ -19,9 +23,12 @@ type Props = {
   onAccion: (accion: AccionRevision) => void;
   onEditarColumna: (clave: string) => void;
   onEnfocarCelda: (posicion: PosicionCelda, pagina: number | null) => void;
+  onQuitarFila: (filaId: string) => void;
 };
 
-// Los datos leídos, listos para corregir: cada celda se edita en el lugar.
+// Escritorio (>= lg): los datos leídos en una tabla, cada celda se edita en el lugar. Los avisos de
+// duda o error van en una columna de estado para que las celdas no cambien de alto, y la primera
+// columna (renglón y hoja) queda fija al desplazar hacia los costados.
 export function TablaRevision({
   borrador,
   columnaEditando,
@@ -29,64 +36,93 @@ export function TablaRevision({
   onAccion,
   onEditarColumna,
   onEnfocarCelda,
+  onQuitarFila,
 }: Props) {
   const { columnas, filas } = borrador;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-left text-hint">
-          <caption className="sr-only">{borrador.nombreBloque}</caption>
-          <thead>
-            <tr>
-              <th scope="col" className="px-2 py-1.5 text-soft">
-                Pág.
+    <div className="max-h-[70dvh] overflow-auto rounded-lg border border-line">
+      <table className="w-full border-collapse text-left text-hint">
+        <caption className="sr-only">{borrador.nombreBloque}</caption>
+        <thead className="sticky top-0 z-10 bg-surface shadow-[0_1px_0_var(--color-line)]">
+          <tr>
+            <th scope="col" className="sticky left-0 z-20 bg-surface px-3 py-2 text-soft">
+              Renglón
+            </th>
+            {columnas.map((columna) => (
+              <th
+                key={columna.clave}
+                scope="col"
+                aria-invalid={errorDeColumna(columna, columnas) ? true : undefined}
+                className={cn(
+                  'min-w-40 px-2 py-2 align-bottom font-semibold text-fg',
+                  columnaEditando === columna.clave && 'bg-accent-100',
+                )}
+              >
+                <div className="flex flex-col items-start gap-1">
+                  <span className="break-words">{columna.nombre || 'Sin nombre'}</span>
+                  <Button
+                    variant="ghost"
+                    size="compact"
+                    aria-label={`Editar la columna «${columna.nombre}»`}
+                    onClick={() => onEditarColumna(columna.clave)}
+                  >
+                    <PencilSimpleIcon aria-hidden size={18} />
+                    Editar
+                  </Button>
+                </div>
               </th>
-              {columnas.map((columna) => (
+            ))}
+            <th scope="col" className="min-w-64 px-3 py-2 text-soft">
+              Para revisar
+            </th>
+            <th scope="col" className="px-2 py-2">
+              <span className="sr-only">Acciones de la fila</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {filas.map((fila, indice) => {
+            const numero = indice + 1;
+            const avisos = columnas.flatMap((columna) => {
+              const celda = fila.celdas[columna.clave];
+              const aviso =
+                celda &&
+                avisoDeCelda(
+                  columna,
+                  celda,
+                  erroresServidor[claveErrorServidor(fila.id, columna.clave)],
+                );
+              return aviso ? [{ columna, aviso }] : [];
+            });
+            return (
+              <tr key={fila.id} className="border-t border-line align-top">
                 <th
-                  key={columna.clave}
-                  scope="col"
-                  aria-invalid={errorDeColumna(columna, columnas) ? true : undefined}
-                  className={cn(
-                    'px-2 py-1.5 align-bottom font-semibold text-soft',
-                    columnaEditando === columna.clave && 'bg-accent/10',
-                  )}
+                  scope="row"
+                  className="sticky left-0 z-10 bg-surface px-3 py-3 text-left font-semibold whitespace-nowrap"
                 >
-                  <span className="flex items-center gap-1">
-                    {columna.nombre || 'Sin nombre'}
-                    <Button
-                      variant="ghost"
-                      aria-label={`Editar la columna «${columna.nombre}»`}
-                      onClick={() => onEditarColumna(columna.clave)}
-                    >
-                      <PencilSimpleIcon aria-hidden size={14} />
-                    </Button>
+                  {numero}
+                  <span className="block text-caption font-normal text-muted">
+                    {fila.pagina ? `Hoja ${fila.pagina}` : 'A mano'}
                   </span>
                 </th>
-              ))}
-              <th scope="col" className="px-2 py-1.5">
-                <span className="sr-only">Acciones de la fila</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filas.map((fila, indice) => (
-              <tr key={fila.id} className="border-t border-line align-top">
-                <td className="px-2 py-2 text-soft">{fila.pagina ?? '—'}</td>
                 {columnas.map((columna) => {
                   const celda = fila.celdas[columna.clave];
                   const posicion = { filaId: fila.id, clave: columna.clave };
+                  const conAviso = avisos.some((a) => a.columna.clave === columna.clave);
+                  const errorServidor = erroresServidor[claveErrorServidor(fila.id, columna.clave)];
                   return (
-                    <td key={columna.clave} className="px-2 py-1.5">
+                    <td key={columna.clave} className="px-2 py-2">
                       {celda && (
                         <CeldaRevision
                           id={idCelda(posicion)}
                           columna={columna}
                           celda={celda}
-                          numeroFila={indice + 1}
-                          errorServidor={
-                            erroresServidor[claveErrorServidor(fila.id, columna.clave)]
-                          }
+                          numeroFila={numero}
+                          tamano="compacta"
+                          invalida={errorDeCelda(columna, celda) !== undefined || !!errorServidor}
+                          dudosa={esDudosa(celda)}
+                          avisoId={conAviso ? `aviso-${idCelda(posicion)}` : undefined}
                           onCambiar={(texto) =>
                             onAccion({ tipo: 'editarCelda', ...posicion, texto })
                           }
@@ -96,40 +132,40 @@ export function TablaRevision({
                     </td>
                   );
                 })}
-                <td className="px-2 py-1.5">
+                <td className="px-3 py-2">
+                  <ul className="m-0 flex list-none flex-col gap-2 p-0">
+                    {avisos.map(({ columna, aviso }) => {
+                      const posicion = { filaId: fila.id, clave: columna.clave };
+                      return (
+                        <li key={columna.clave}>
+                          <AvisoCelda
+                            id={`aviso-${idCelda(posicion)}`}
+                            aviso={aviso}
+                            prefijo={columna.nombre}
+                            donde={`${columna.nombre}, fila ${numero}`}
+                            onEstaBien={() => onAccion({ tipo: 'marcarRevisada', ...posicion })}
+                          />
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </td>
+                <td className="px-2 py-2">
                   <Button
                     variant="ghost"
-                    aria-label={`Quitar la fila ${indice + 1}`}
-                    onClick={() => onAccion({ tipo: 'quitarFila', filaId: fila.id })}
+                    size="compact"
+                    aria-label={`Quitar la fila ${numero}`}
+                    onClick={() => onQuitarFila(fila.id)}
                   >
-                    <TrashIcon aria-hidden size={16} />
+                    <TrashIcon aria-hidden size={18} />
+                    Quitar
                   </Button>
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {filas.length === 0 && (
-        <p className="m-0 text-soft">
-          No quedan filas. Agregá una a mano o volvé a subir las fotos.
-        </p>
-      )}
-
-      <div className="flex flex-wrap gap-2">
-        <Button
-          disabled={columnas.length === 0}
-          onClick={() => onAccion({ tipo: 'agregarFila', id: crypto.randomUUID() })}
-        >
-          <PlusIcon aria-hidden size={16} />
-          Agregar fila
-        </Button>
-        <Button onClick={() => onAccion({ tipo: 'agregarColumna' })}>
-          <PlusIcon aria-hidden size={16} />
-          Agregar columna
-        </Button>
-      </div>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
