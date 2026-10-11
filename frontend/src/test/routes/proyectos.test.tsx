@@ -32,6 +32,21 @@ describe('ENS-4: crear y gestionar proyectos', () => {
     );
   });
 
+  it('con proyectos, el inicio muestra primero Mis proyectos y deja las formas de empezar abajo', async () => {
+    setupUsuarioConSesion();
+    await crearProyecto({ nombre: 'Mi almacén' });
+    renderApp('/proyectos');
+
+    await verifyHeadingPresentAsync('Mis proyectos');
+    expect(screen.queryByRole('heading', { name: '¿Por dónde querés empezar?' })).toBeNull();
+    expect(screen.queryByText(/Todavía no tenés proyectos/)).toBeNull();
+    const lista = screen.getByRole('region', { name: 'Tus proyectos' });
+    const nuevo = screen.getByRole('heading', { name: 'Empezar otro proyecto' });
+    expect(within(lista).getByRole('heading', { name: 'Mi almacén' })).toBeInTheDocument();
+    expect(lista.compareDocumentPosition(nuevo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Empezar en blanco' })).toBeInTheDocument();
+  });
+
   it('crea en blanco y abre el proyecto con orientación para agregar el primer bloque', async () => {
     setupUsuarioConSesion();
     const user = userEvent.setup();
