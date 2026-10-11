@@ -19,17 +19,16 @@ function inventario() {
 }
 
 describe('ENS-4: crear y gestionar proyectos', () => {
-  it('presenta el inicio vacío y explica la disponibilidad de fotos', async () => {
+  it('presenta el inicio vacío y lleva a subir la foto del cuaderno', async () => {
     setupUsuarioConSesion();
     const user = userEvent.setup();
-    renderApp('/proyectos');
+    const router = renderApp('/proyectos');
 
     await verifyHeadingPresentAsync('¿Por dónde querés empezar?');
     expect(screen.getByText(/Todavía no tenés proyectos/)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Subir foto de mi cuaderno' }));
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'La carga de fotos estará disponible próximamente',
-    );
+    await user.click(screen.getByRole('link', { name: 'Subir foto de mi cuaderno' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/cuaderno'));
+    await verifyHeadingPresentAsync('Subir foto de mi cuaderno');
   });
 
   it('con proyectos, el inicio muestra primero Mis proyectos y deja las formas de empezar abajo', async () => {

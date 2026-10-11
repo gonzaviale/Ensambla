@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { CameraIcon, SquaresFourIcon, PlusIcon } from '@phosphor-icons/react';
 import { Button, PageHeading, Panel, buttonClasses } from '@/components/ui';
 import { CatalogoPlantillas } from '@/components/Proyectos/CatalogoPlantillas';
@@ -66,13 +67,6 @@ function ListaProyectos({ proyectos }: { proyectos: Proyecto[] }) {
 // para quien ya tiene proyectos las tres opciones van compactas, debajo de la lista.
 function FormasDeEmpezar({ destacarFoto = false }: { destacarFoto?: boolean }) {
   const [creando, setCreando] = useState(false);
-  const [avisoFoto, setAvisoFoto] = useState(false);
-  const aviso = avisoFoto && (
-    <p role="status" className="mb-0 max-w-xl text-soft">
-      La carga de fotos estará disponible próximamente. Mientras tanto, podés usar una plantilla o
-      empezar en blanco.
-    </p>
-  );
   return (
     <>
       {destacarFoto && (
@@ -87,18 +81,17 @@ function FormasDeEmpezar({ destacarFoto = false }: { destacarFoto?: boolean }) {
           <p className="max-w-xl text-soft">
             Una foto será el primer paso para ordenar tus productos, pedidos o clientes.
           </p>
-          <Button variant="solid" onClick={() => setAvisoFoto(true)}>
+          <Link to="/cuaderno" className={buttonClasses({ variant: 'solid' })}>
             Subir foto de mi cuaderno
-          </Button>
-          {aviso}
+          </Link>
         </section>
       )}
       <div className="flex flex-wrap gap-3" aria-label="Formas de empezar">
         {!destacarFoto && (
-          <Button onClick={() => setAvisoFoto(true)}>
+          <Link to="/cuaderno" className={buttonClasses()}>
             <CameraIcon size={20} aria-hidden />
             Subir foto de mi cuaderno
-          </Button>
+          </Link>
         )}
         <a href="#plantillas" className={buttonClasses()}>
           <SquaresFourIcon size={20} aria-hidden />
@@ -109,7 +102,6 @@ function FormasDeEmpezar({ destacarFoto = false }: { destacarFoto?: boolean }) {
           Empezar en blanco
         </Button>
       </div>
-      {!destacarFoto && aviso}
       {creando && (
         <Panel>
           <CrearProyectoForm onCancelar={() => setCreando(false)} />

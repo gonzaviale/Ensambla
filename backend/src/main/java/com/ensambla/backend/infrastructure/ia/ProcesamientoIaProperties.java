@@ -18,7 +18,7 @@ public record ProcesamientoIaProperties(
         @DefaultValue("100") @Min(1) int limiteDiario,
         @DefaultValue("30s") Duration demoraReintento,
         @DefaultValue("120s") Duration vigenciaReclamo,
-        @DefaultValue("../datos/ia/fotos-privadas") @NotBlank String archivosRaiz,
+        @DefaultValue("../datos/ia/cuadernos/fotos") @NotBlank String archivosRaiz,
         @DecimalMin("0") BigDecimal precioEntradaMillon,
         @DecimalMin("0") BigDecimal precioSalidaMillon
 ) {

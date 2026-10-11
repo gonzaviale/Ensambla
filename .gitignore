@@ -15,7 +15,8 @@ Thumbs.db
 !/datos/ia/cuadernos/reportes/.gitkeep
 /datos/ia/cuadernos/manifest.json
 
-/datos/ia/fotos-privadas/
+/datos/ia/cuadernos/fotos/*
+!/datos/ia/cuadernos/fotos/.gitkeep
 
 __pycache__/
 *.pyc

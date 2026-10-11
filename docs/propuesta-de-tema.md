@@ -261,7 +261,7 @@ Inteligencia artificial: modelo multimodal (visión y lenguaje) accedido por API
 
 Procesamiento asíncrono: cola de trabajos para procesar las fotos en segundo plano, con estados, reintentos y límites de uso.
 
-Almacenamiento de imágenes: almacenamiento de objetos privado (compatible con S3) con acceso mediante URL firmadas.
+Almacenamiento de imágenes: almacenamiento privado de archivos, con acceso restringido al negocio dueño.
 
 Persistencia: base de datos para usuarios, negocios, bloques, campos, registros, fotos y procesamientos, vinculando cada registro con la imagen de la que surgió; motor a validar según el modelo de datos.
 

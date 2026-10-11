@@ -38,4 +38,33 @@ public class ArchivoCuadernoLocalAdapter implements ArchivoCuadernoPort {
             throw new LecturaCuadernoException("No se pudo acceder a la foto privada del lote", e, false);
         }
     }
+
+    @Override
+    public void guardar(UUID negocioId, String clave, byte[] contenido) {
+        Path destino = aArchivoDelNegocio(negocioId, clave);
+        try {
+            Files.createDirectories(destino.getParent());
+            Files.write(destino, contenido);
+        } catch (IOException e) {
+            throw new LecturaCuadernoException("No se pudo guardar la foto privada del lote", e, false);
+        }
+    }
+
+    @Override
+    public void eliminar(UUID negocioId, String clave) {
+        try {
+            Files.deleteIfExists(aArchivoDelNegocio(negocioId, clave));
+        } catch (IOException e) {
+            throw new LecturaCuadernoException("No se pudo eliminar la foto privada del lote", e, false);
+        }
+    }
+
+    private Path aArchivoDelNegocio(UUID negocioId, String clave) {
+        Path base = raiz.resolve(negocioId.toString()).normalize();
+        Path archivo = raiz.resolve(clave).normalize();
+        if (!archivo.startsWith(base)) {
+            throw new LecturaCuadernoException("La foto no pertenece al negocio del lote", null, false);
+        }
+        return archivo;
+    }
 }

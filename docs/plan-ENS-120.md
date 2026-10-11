@@ -45,7 +45,7 @@ pendientes: los tests con datos sintéticos no prueban esos criterios de Jira.
 
 | Jira | Trabajo de esta etapa | Criterio que requiere material o decisión posterior |
 |---|---|---|
-| ENS-127 / T-093 | Carpeta vacía, instrucciones y contrato de anotación; datos fuera de Git | Reunir 30+ fotos consentidas/anonimizadas y versionarlas en bucket privado |
+| ENS-127 / T-093 | Carpeta vacía, instrucciones y contrato de anotación; datos fuera de Git | Reunir 30+ fotos consentidas/anonimizadas y versionarlas fuera de Git |
 | ENS-128 / T-094 | Preparar ejecución reproducible y captura de precisión, costo y latencia por modelo | Ejecutar 2–3 modelos multimodales y OCR sobre el set real; decisión del equipo |
 | ENS-129 / T-110 | Documento de comparación con estado explícito y criterios de selección | Resultados reales, condiciones del proveedor elegido y meta de precisión revisada por el equipo |
 | ENS-130 / T-095 | Completar validación de la extracción y contrato intercambiable; probar con cliente simulado | Conectar y verificar el cliente del proveedor real cuando se elija |

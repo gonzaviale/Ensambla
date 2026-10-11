@@ -72,7 +72,9 @@ async function send(
 ): Promise<Response> {
   const esMutacion = method !== 'GET';
   const headers: Record<string, string> = {};
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  // Con FormData el navegador arma el Content-Type multipart con su boundary.
+  const esFormulario = body instanceof FormData;
+  if (body !== undefined && !esFormulario) headers['Content-Type'] = 'application/json';
   if (esMutacion) {
     const { token, headerName } = await obtenerCsrf();
     headers[headerName] = token;
@@ -82,7 +84,7 @@ async function send(
     method,
     signal,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined || esFormulario ? body : JSON.stringify(body),
   });
 
   if (response.status === 403 && esMutacion && puedeReintentar) {
@@ -113,6 +115,8 @@ export const http = {
   get: <S extends z.ZodTypeAny>(path: string, schema: S, signal?: AbortSignal) =>
     request(path, schema, { signal }),
   post: <S extends z.ZodTypeAny>(path: string, body: unknown, schema: S) =>
+    request(path, schema, { method: 'POST', body }),
+  postForm: <S extends z.ZodTypeAny>(path: string, body: FormData, schema: S) =>
     request(path, schema, { method: 'POST', body }),
   put: <S extends z.ZodTypeAny>(path: string, body: unknown, schema: S) =>
     request(path, schema, { method: 'PUT', body }),
