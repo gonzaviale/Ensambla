@@ -39,6 +39,23 @@ class RegistroTest {
     }
 
     @Test
+    @DisplayName("Un registro del cuaderno guarda la foto de la que salió")
+    void desdeCuadernoShouldKeepFotoOrigen() {
+        UUID fotoId = UUID.fromString("f0000000-0000-4000-8000-000000000001");
+
+        Registro registro = Registro.desdeCuaderno(NEGOCIO_ID, BLOQUE_ID, Map.of("k", "v"), fotoId, AHORA);
+
+        assertThat(registro.getId()).isNull();
+        assertThat(registro.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(registro.getBloqueId()).isEqualTo(BLOQUE_ID);
+        assertThat(registro.getValores()).containsEntry("k", "v");
+        assertThat(registro.getFotoOrigenId()).isEqualTo(fotoId);
+        assertThat(registro.getCreadoEn()).isEqualTo(AHORA);
+    }
+
+
+
+    @Test
     @DisplayName("Valida y devuelve los valores de los campos sin espacios en los bordes")
     void validarShouldReturnTrimmedValues() {
         Map<String, Object> valores = Map.of(

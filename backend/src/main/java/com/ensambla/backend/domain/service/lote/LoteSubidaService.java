@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.service.lote;
 
+import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
@@ -40,6 +41,18 @@ public class LoteSubidaService {
         } catch (RuntimeException e) {
             subidas.forEach(clave -> archivoCuadernoPort.eliminar(negocioId, clave));
             throw e;
+        }
+    }
+
+    /**
+     * Marca el lote como confirmado y lo vincula al bloque donde quedaron los datos.
+     *
+     * @throws BusinessRuleException si otra confirmación se adelantó o el lote ya no estaba listo
+     */
+    @Transactional
+    public void confirmar(LoteSubida lote, UUID bloqueDestinoId, OffsetDateTime ahora) {
+        if (!loteSubidaRepository.confirmar(lote.getId(), lote.getNegocioId(), bloqueDestinoId, ahora)) {
+            throw new BusinessRuleException("Este cuaderno ya se guardó");
         }
     }
 

@@ -1,14 +1,18 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
+import com.ensambla.backend.domain.mapper.procesamiento.ConfirmarLecturaMapper;
 import com.ensambla.backend.domain.mapper.procesamiento.ConsultarConsumoMapper;
 import com.ensambla.backend.domain.mapper.procesamiento.ObtenerLecturaMapper;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
+import com.ensambla.backend.domain.service.lote.LoteSubidaService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.procesamiento.ConfirmacionLecturaService;
 import com.ensambla.backend.domain.service.procesamiento.ProcesamientoService;
 import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
+import com.ensambla.backend.domain.useCase.procesamiento.ConfirmarLecturaUseCase;
 import com.ensambla.backend.domain.useCase.procesamiento.ConsultarConsumoUseCase;
 import com.ensambla.backend.domain.useCase.procesamiento.ObtenerLecturaUseCase;
 import com.ensambla.backend.domain.useCase.procesamiento.ProcesarLoteUseCase;
@@ -97,6 +101,21 @@ public class LecturaUseCaseConfig {
     public ReintentarLecturaUseCase reintentarLecturaUseCase(NegocioService negocioService,
                                                            ProcesamientoService procesamientoService, Clock clock) {
         return new ReintentarLecturaUseCase(negocioService, procesamientoService, clock);
+    }
+
+    @Bean
+    public ConfirmarLecturaMapper confirmarLecturaMapper() {
+        return new ConfirmarLecturaMapper();
+    }
+
+    @Bean
+    public ConfirmarLecturaUseCase confirmarLecturaUseCase(NegocioService negocioService,
+                                                         LoteSubidaService loteSubidaService,
+                                                         ConfirmacionLecturaService confirmacionLecturaService,
+                                                         ConfirmarLecturaMapper confirmarLecturaMapper,
+                                                         Clock clock) {
+        return new ConfirmarLecturaUseCase(
+                negocioService, loteSubidaService, confirmacionLecturaService, confirmarLecturaMapper, clock);
     }
 
     @Bean

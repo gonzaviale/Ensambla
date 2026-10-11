@@ -49,6 +49,14 @@ public class Registro {
                 .build();
     }
 
+    /** Registro que salió de una página del cuaderno; {@code fotoOrigenId} es null si la fila se agregó a mano. */
+    public static Registro desdeCuaderno(UUID negocioId, UUID bloqueId, Map<String, Object> valores,
+                                         UUID fotoOrigenId, OffsetDateTime ahora) {
+        Registro registro = nuevo(negocioId, bloqueId, valores, ahora);
+        registro.setFotoOrigenId(fotoOrigenId);
+        return registro;
+    }
+
     /**
      * Controla los valores contra los campos del bloque: tipo, obligatoriedad y opciones. Descarta las claves que no
      * son campos del bloque y los valores vacíos; los textos se devuelven sin espacios en los bordes.

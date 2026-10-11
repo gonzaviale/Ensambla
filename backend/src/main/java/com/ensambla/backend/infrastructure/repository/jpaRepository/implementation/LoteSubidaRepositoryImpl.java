@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.model.enums.EstadoLote;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
@@ -10,6 +11,7 @@ import com.ensambla.backend.infrastructure.repository.mapper.LoteSubidaRepositor
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,6 +37,12 @@ public class LoteSubidaRepositoryImpl implements LoteSubidaRepository {
                 .map(loteSubidaRepositoryMapper::toDomain)
                 .toList());
         return guardado;
+    }
+
+    @Override
+    public boolean confirmar(UUID loteId, UUID negocioId, UUID bloqueDestinoId, OffsetDateTime ahora) {
+        return loteSubidaJpaRepository.cambiarEstado(
+                loteId, negocioId, EstadoLote.LISTO, EstadoLote.CONFIRMADO, bloqueDestinoId, ahora) == 1;
     }
 
     @Override

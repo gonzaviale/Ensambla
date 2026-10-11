@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.model.enums.EstadoLote;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
 import com.ensambla.backend.infrastructure.repository.entity.FotoCuadernoEntity;
@@ -14,7 +15,9 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
+import static com.ensambla.backend.support.LoteTestData.AHORA;
 import static com.ensambla.backend.support.LoteTestData.FOTO_ID;
 import static com.ensambla.backend.support.LoteTestData.LOTE_ID;
 import static com.ensambla.backend.support.LoteTestData.NEGOCIO_ID;
@@ -27,6 +30,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class LoteSubidaRepositoryImplTest {
+
+    private static final UUID BLOQUE_ID = UUID.fromString("00000000-0000-4000-8000-000000000015");
 
     private final ILoteSubidaJpaRepository loteSubidaJpaRepository = mock(ILoteSubidaJpaRepository.class);
     private final IFotoCuadernoJpaRepository fotoCuadernoJpaRepository = mock(IFotoCuadernoJpaRepository.class);
@@ -46,6 +51,30 @@ class LoteSubidaRepositoryImplTest {
         assertThat(result.getFotos()).extracting("id").containsExactly(FOTO_ID);
         assertThat(thenSavedFotos()).extracting(FotoCuadernoEntity::getLoteId).containsExactly(LOTE_ID);
     }
+
+    @Test
+    @DisplayName("Confirma el lote cuando la sentencia condicional cambió una fila")
+    void confirmarShouldReturnTrueWhenOneRowChanged() {
+        givenEstadoChanges(1);
+
+        boolean result = loteSubidaRepositoryImpl.confirmar(LOTE_ID, NEGOCIO_ID, BLOQUE_ID, AHORA);
+
+        assertThat(result).isTrue();
+        verify(loteSubidaJpaRepository)
+                .cambiarEstado(LOTE_ID, NEGOCIO_ID, EstadoLote.LISTO, EstadoLote.CONFIRMADO, BLOQUE_ID, AHORA);
+    }
+
+    @Test
+    @DisplayName("No confirma cuando el lote ya no estaba listo o es de otro negocio")
+    void confirmarShouldReturnFalseWhenNoRowChanged() {
+        givenEstadoChanges(0);
+
+        boolean result = loteSubidaRepositoryImpl.confirmar(LOTE_ID, NEGOCIO_ID, BLOQUE_ID, AHORA);
+
+        assertThat(result).isFalse();
+    }
+
+
 
     @Test
     @DisplayName("Trae el lote del negocio con sus fotos ordenadas")
@@ -78,6 +107,10 @@ class LoteSubidaRepositoryImplTest {
     private void givenFotosSaved() {
         when(fotoCuadernoJpaRepository.saveAllAndFlush(anyList()))
                 .thenReturn(List.of(loteSubidaRepositoryMapper.toEntity(LoteTestData.foto())));
+    }
+
+    private void givenEstadoChanges(int filas) {
+        when(loteSubidaJpaRepository.cambiarEstado(any(), any(), any(), any(), any(), any())).thenReturn(filas);
     }
 
     private void givenLoteFound() {

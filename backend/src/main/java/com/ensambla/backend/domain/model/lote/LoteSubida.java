@@ -11,6 +11,7 @@ import lombok.Setter;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /** Una tanda de fotos del cuaderno que se sube junta para que la IA la lea. */
@@ -58,6 +59,27 @@ public class LoteSubida {
                 .actualizadoEn(ahora)
                 .fotos(fotos)
                 .build();
+    }
+
+    /**
+     * Sólo una lectura terminada se puede confirmar, y una sola vez.
+     *
+     * @throws BusinessRuleException si el lote todavía se está leyendo, falló o ya se guardó
+     */
+    public void validarConfirmable() {
+        if (estado == EstadoLote.CONFIRMADO) {
+            throw new BusinessRuleException("Este cuaderno ya se guardó");
+        }
+        if (estado != EstadoLote.LISTO) {
+            throw new BusinessRuleException("Este cuaderno todavía no terminó de leerse");
+        }
+    }
+
+    /** La foto de la página indicada (1 = la primera subida), si el lote la tiene. */
+    public Optional<FotoCuaderno> fotoDePagina(int pagina) {
+        return fotos.stream()
+                .filter(foto -> foto.getPosicion() == pagina - 1)
+                .findFirst();
     }
 
     private static void validarCantidad(List<byte[]> contenidos) {

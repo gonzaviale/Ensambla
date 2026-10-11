@@ -13,6 +13,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static com.ensambla.backend.support.LoteTestData.AHORA;
 import static com.ensambla.backend.support.LoteTestData.JPEG;
@@ -32,6 +33,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class LoteSubidaServiceTest {
+
+    private static final UUID BLOQUE_ID = UUID.fromString("00000000-0000-4000-8000-000000000015");
 
     private final LoteSubidaRepository loteSubidaRepository = mock(LoteSubidaRepository.class);
     private final ArchivoCuadernoPort archivoCuadernoPort = mock(ArchivoCuadernoPort.class);
@@ -85,6 +88,32 @@ class LoteSubidaServiceTest {
         String guardada = thenStoredClave(JPEG);
         verify(archivoCuadernoPort).eliminar(NEGOCIO_ID, guardada);
     }
+
+    @Test
+    @DisplayName("Confirma el lote vinculándolo al bloque donde quedaron los datos")
+    void confirmarShouldMarkLoteAsConfirmed() {
+        when(loteSubidaRepository.confirmar(LOTE_ID, NEGOCIO_ID, BLOQUE_ID, AHORA)).thenReturn(true);
+
+        loteSubidaService.confirmar(LoteTestData.lote(List.of()), BLOQUE_ID, AHORA);
+
+        verify(loteSubidaRepository).confirmar(LOTE_ID, NEGOCIO_ID, BLOQUE_ID, AHORA);
+    }
+
+    @Test
+    @DisplayName("Rechaza la confirmación si otra se adelantó")
+    void confirmarShouldThrowWhenLoteWasAlreadyConfirmed() {
+        when(loteSubidaRepository.confirmar(LOTE_ID, NEGOCIO_ID, BLOQUE_ID, AHORA)).thenReturn(false);
+        LoteSubida lote = LoteTestData.lote(List.of());
+
+        assertThatThrownBy(() -> loteSubidaService.confirmar(lote, BLOQUE_ID, AHORA))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("Este cuaderno ya se guardó");
+    }
+
+
+
+
+
 
     @Test
     @DisplayName("Devuelve el lote del negocio con sus fotos")

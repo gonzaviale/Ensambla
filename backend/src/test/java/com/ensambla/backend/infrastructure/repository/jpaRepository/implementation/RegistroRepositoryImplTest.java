@@ -25,6 +25,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,6 +57,16 @@ class RegistroRepositoryImplTest {
 
         assertThat(result.getId()).isEqualTo(REGISTRO_ID);
         assertThat(result.getValores()).containsEntry("k", "v");
+    }
+
+    @Test
+    @DisplayName("Guarda varios registros juntos y devuelve los modelos persistidos")
+    void saveAllShouldPersistAllAndReturnDomain() {
+        when(jpa.saveAll(anyList())).thenReturn(List.of(entity()));
+
+        List<Registro> result = repository.saveAll(List.of(Registro.builder().bloqueId(BLOQUE_ID).build()));
+
+        assertThat(result).extracting(Registro::getId).containsExactly(REGISTRO_ID);
     }
 
     @Test

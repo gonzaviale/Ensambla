@@ -29,6 +29,12 @@ public class RegistroDatosService {
         return registroRepository.save(Registro.nuevo(negocioId, bloqueId, validos, ahora));
     }
 
+    /** Guarda registros ya validados (por ejemplo, los que salen de una lectura del cuaderno). */
+    @Transactional
+    public List<Registro> crearVarios(List<Registro> registros) {
+        return registroRepository.saveAll(registros);
+    }
+
     public Registro obtener(UUID registroId, UUID negocioId) {
         return registroRepository.findByIdAndNegocioId(registroId, negocioId)
                 .orElseThrow(() -> new ResourceNotFoundException("El registro no existe"));

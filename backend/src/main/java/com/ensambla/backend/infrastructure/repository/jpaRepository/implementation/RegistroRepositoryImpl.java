@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -26,6 +27,13 @@ public class RegistroRepositoryImpl implements RegistroRepository {
     @Override
     public Registro save(Registro registro) {
         return mapper.toDomain(jpa.save(mapper.toEntity(registro)));
+    }
+
+    @Override
+    public List<Registro> saveAll(List<Registro> registros) {
+        return jpa.saveAll(registros.stream().map(mapper::toEntity).toList()).stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override
