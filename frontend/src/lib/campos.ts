@@ -75,7 +75,7 @@ export function prepararCampo(
 ): { ok: true; datos: GuardarCampo } | { ok: false; errores: ErroresCampo } {
   const errores: ErroresCampo = {};
   const nombre = borrador.nombre.trim();
-  if (!nombre) errores.nombre = 'Escribí un nombre para el dato.';
+  if (!nombre) errores.nombre = 'Escribí un nombre para la columna.';
   else if (nombre.length > MAX_NOMBRE_CAMPO)
     errores.nombre = `Usá hasta ${MAX_NOMBRE_CAMPO} caracteres.`;
 

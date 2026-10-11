@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
-import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
-import { SquaresFourIcon, TableIcon } from '@phosphor-icons/react';
+import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
+import { SquaresFourIcon } from '@phosphor-icons/react';
 import { AgregarBloque } from '@/components/Constructor/AgregarBloque';
 import { DetalleBloque } from '@/components/Constructor/DetalleBloque';
 import { ListaBloques } from '@/components/Constructor/ListaBloques';
-import { EmptyState, ErrorState, PageHeading, Spinner, buttonClasses } from '@/components/ui';
+import { EmptyState, ErrorState, PageHeading, Spinner } from '@/components/ui';
 import { useBloques } from '@/hooks/bloques/queries';
 import { leerErrorServidor } from '@/hooks/errores';
 import { useProyecto } from '@/hooks/proyectos/queries';
@@ -12,10 +12,10 @@ import { cn } from '@/lib/cn';
 
 const RUTA = '/_app/proyectos/$proyectoId/construir';
 
-// T-019 a T-021: constructor de bloques y datos (campos).
-// Escritorio: lista de bloques a la izquierda y el bloque elegido a la derecha.
-// Celular: primero la lista; al tocar un bloque se ve sólo su detalle, con "Ver todos los bloques"
-// (y el botón atrás del teléfono) para volver. El bloque elegido va en la URL (?bloque=).
+// T-019 a T-021: «Armar mi sistema» (bloques = tablas, campos = columnas).
+// Escritorio: lista de tablas a la izquierda y la tabla elegida a la derecha.
+// Celular: primero la lista; al tocar una tabla se ve sólo su detalle, con "Ver todas las tablas"
+// (y el botón atrás del teléfono) para volver. La tabla elegida va en la URL (?bloque=).
 export function ConstructorPage() {
   const { proyectoId } = useParams({ from: RUTA });
   const { bloque: elegidoId } = useSearch({ from: RUTA });
@@ -58,27 +58,18 @@ export function ConstructorPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Volver a Mis proyectos lo resuelven los breadcrumbs del layout (ENS-61). */}
-      <Link
-        to="/proyectos/$proyectoId/usar"
-        params={{ proyectoId }}
-        className={buttonClasses({ variant: 'secondary', className: 'self-end' })}
-      >
-        <TableIcon aria-hidden size={18} />
-        Ver mis registros
-      </Link>
-
+      {/* Volver a Mis sistemas y pasar a Cargar y ver lo resuelven los breadcrumbs y el selector de modo del layout. */}
       <PageHeading
-        kicker="Modo construir"
+        kicker="Armar"
         title={proyecto.nombre}
-        lead="Elegí cómo se ordena tu información: bloques, como Productos o Clientes, y los datos que guarda cada uno."
+        lead="Elegí cómo se ordena tu información: tablas, como Productos o Clientes, y las columnas que guarda cada una."
       />
 
       {bloques.isPending ? (
-        <Spinner label="Cargando los bloques…" />
+        <Spinner label="Cargando las tablas…" />
       ) : bloques.isError ? (
         <ErrorState
-          title="No pudimos cargar los bloques"
+          title="No pudimos cargar las tablas"
           message={leerErrorServidor(bloques.error)?.mensaje ?? ''}
           onRetry={() => void bloques.refetch()}
         />
@@ -97,22 +88,29 @@ export function ConstructorPage() {
               !seleccionado && 'max-w-xl',
             )}
           >
-            <h2
-              ref={tituloLista}
-              id="titulo-bloques"
-              tabIndex={-1}
-              className="m-0 text-xl focus:outline-none focus-visible:outline-2"
-            >
-              Tus bloques
-            </h2>
+            <div className="flex flex-col gap-1">
+              <h2
+                ref={tituloLista}
+                id="titulo-bloques"
+                tabIndex={-1}
+                className="m-0 text-h3 focus:outline-none focus-visible:outline-3"
+              >
+                Tus tablas
+              </h2>
+              {ordenados.length > 0 && (
+                <p className="m-0 text-hint text-soft">
+                  Una tabla junta información del mismo tipo.
+                </p>
+              )}
+            </div>
             {ordenados.length === 0 ? (
               <EmptyState
                 icon={<SquaresFourIcon aria-hidden size={32} />}
-                title="Todavía no hay bloques en este proyecto"
+                title="Todavía no hay tablas en este sistema"
               >
-                <p className="m-0 text-hint">
-                  Un bloque junta información del mismo tipo, como tus Productos, tus Clientes o tus
-                  Pedidos. Empezá agregando el primero.
+                <p className="m-0">
+                  Una tabla junta información del mismo tipo, como tus Productos, tus Clientes o tus
+                  Pedidos. Empezá agregando la primera.
                 </p>
               </EmptyState>
             ) : (

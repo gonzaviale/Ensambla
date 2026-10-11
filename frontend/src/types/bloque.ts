@@ -17,7 +17,7 @@ export const nombreBloqueSchema = z.object({
   nombre: z
     .string()
     .trim()
-    .min(1, 'Escribí un nombre para el bloque.')
+    .min(1, 'Escribí un nombre para la tabla.')
     .max(MAX_NOMBRE_BLOQUE, `Usá hasta ${MAX_NOMBRE_BLOQUE} caracteres.`),
 });
 

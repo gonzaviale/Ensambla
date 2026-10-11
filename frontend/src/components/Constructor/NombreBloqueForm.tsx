@@ -54,12 +54,12 @@ export function NombreBloqueForm({
         }}
       />
       {general && (
-        <p role="alert" className="m-0 text-bad">
+        <p role="alert" className="m-0 font-semibold text-bad">
           {general}
         </p>
       )}
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" variant="solid" disabled={ocupado}>
+      <div className="flex flex-wrap gap-3">
+        <Button type="submit" variant="solid" loading={ocupado}>
           {ocupado ? 'Guardando…' : textoGuardar}
         </Button>
         <Button onClick={onCancelar} disabled={ocupado}>
