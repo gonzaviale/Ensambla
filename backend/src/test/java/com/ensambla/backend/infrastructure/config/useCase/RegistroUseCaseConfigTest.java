@@ -12,6 +12,7 @@ import com.ensambla.backend.domain.dto.registro.ObtenerRegistroResponse;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.TotalesRegistros;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
@@ -27,6 +28,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -76,6 +78,8 @@ class RegistroUseCaseConfigTest {
         when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
         when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
         when(registroDatosService.listar(any())).thenReturn(new Pagina<>(List.of(registro()), 0, 20, 1));
+        when(registroDatosService.totales(any(), any(), anyLong()))
+                .thenReturn(new TotalesRegistros(1, Map.of()));
 
         ListarRegistrosResponse response = config.listarRegistrosUseCase(
                 negocioService, bloqueService, campoService, registroDatosService,
@@ -83,6 +87,7 @@ class RegistroUseCaseConfigTest {
                 .execute(new ListarRegistrosRequest(USUARIO_ID, BLOQUE_ID, null, null, null, null, null));
 
         assertThat(response.contenido()).hasSize(1);
+        assertThat(response.totales().cantidad()).isEqualTo(1);
     }
 
     @Test
