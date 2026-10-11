@@ -139,6 +139,41 @@ describe('registros: contrato del listado', () => {
   });
 });
 
+describe('registros: totales del listado', () => {
+  it('cuenta y suma sobre todos los registros, no sólo sobre la página', async () => {
+    const { bloqueId, stock } = await inventario();
+    for (let n = 0; n < 120; n++) agregarRegistro(bloqueId, { [stock]: n }, minutos(n % 60));
+
+    const pagina = await listarRegistros(bloqueId, { tamanio: 20, pagina: 1 });
+
+    expect(pagina.content).toHaveLength(20);
+    expect(pagina.totales).toEqual({ cantidad: 120, sumas: { [stock]: 7140 } });
+  });
+
+  it('sólo totaliza los registros que cumplen la búsqueda', async () => {
+    const { bloqueId, nombre, stock } = await inventario();
+    agregarRegistro(bloqueId, { [nombre]: 'Harina 000', [stock]: 1500 });
+    agregarRegistro(bloqueId, { [nombre]: 'Harina integral', [stock]: 300 });
+    agregarRegistro(bloqueId, { [nombre]: 'Azúcar', [stock]: 20 });
+
+    const pagina = await listarRegistros(bloqueId, { q: 'harina' });
+
+    expect(pagina.totales).toEqual({ cantidad: 2, sumas: { [stock]: 1800 } });
+  });
+
+  it('suma cero cuando no hay registros y no suma los campos que no son numéricos', async () => {
+    const { bloqueId, nombre, stock, rubro } = await inventario();
+
+    const vacia = await listarRegistros(bloqueId, {});
+    agregarRegistro(bloqueId, { [nombre]: 'Harina', [rubro]: 'Insumos' });
+    const sinStock = await listarRegistros(bloqueId, {});
+
+    expect(vacia.totales).toEqual({ cantidad: 0, sumas: { [stock]: 0 } });
+    expect(sinStock.totales).toEqual({ cantidad: 1, sumas: { [stock]: 0 } });
+    expect(Object.keys(sinStock.totales.sumas)).toEqual([stock]);
+  });
+});
+
 describe('registros: eliminación', () => {
   it('elimina el registro y deja de listarlo', async () => {
     const { bloqueId, nombre } = await inventario();
