@@ -1,5 +1,6 @@
-import { queryOptions, useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { queryOptions, useQueries, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { listarProyectos, obtenerProyecto } from '@/api/proyectos';
+import type { Bloque } from '@/types/proyecto';
 
 export const proyectosKeys = {
   all: ['proyectos'] as const,
@@ -32,4 +33,26 @@ export function useProyecto(id: string) {
  */
 export function useEstructuraProyecto(id: string) {
   return useQuery(proyectoQuery(id));
+}
+
+/**
+ * Estructura de varios proyectos en una sola pasada (un `useQueries` para toda la lista), para que
+ * Mis sistemas muestre los resúmenes sin que cada tarjeta dispare y reaccione a su propia petición.
+ * Devuelve un mapa id → resultado; comparte la caché de `proyectoQuery`.
+ */
+export function useEstructuras(ids: string[]) {
+  return useQueries({
+    queries: ids.map((id) => proyectoQuery(id)),
+    combine: (resultados) =>
+      Object.fromEntries(
+        resultados.map((resultado, i) => [
+          ids[i] as string,
+          {
+            bloques: resultado.data?.bloques,
+            cargando: resultado.isPending,
+            fallo: resultado.isError,
+          },
+        ]),
+      ) as Record<string, { bloques: Bloque[] | undefined; cargando: boolean; fallo: boolean }>,
+  });
 }

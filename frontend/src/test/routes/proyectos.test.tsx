@@ -18,43 +18,43 @@ function inventario() {
   return plantilla;
 }
 
-describe('ENS-4: crear y gestionar proyectos', () => {
+describe('ENS-4: crear y gestionar sistemas', () => {
   it('presenta el inicio vacío y lleva a subir la foto del cuaderno', async () => {
     setupUsuarioConSesion();
     const user = userEvent.setup();
     const router = renderApp('/proyectos');
 
     await verifyHeadingPresentAsync('¿Por dónde querés empezar?');
-    expect(screen.getByText(/Todavía no tenés proyectos/)).toBeInTheDocument();
+    expect(screen.getByText(/Todavía no tenés sistemas/)).toBeInTheDocument();
     await user.click(screen.getByRole('link', { name: 'Subir foto de mi cuaderno' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/cuaderno'));
     await verifyHeadingPresentAsync('Subir foto de mi cuaderno');
   });
 
-  it('con proyectos, el inicio muestra primero Mis proyectos y deja las formas de empezar abajo', async () => {
+  it('con sistemas, el inicio muestra primero Mis sistemas y deja las formas de empezar abajo', async () => {
     setupUsuarioConSesion();
     await crearProyecto({ nombre: 'Mi almacén' });
     renderApp('/proyectos');
 
-    await verifyHeadingPresentAsync('Mis proyectos');
+    await verifyHeadingPresentAsync('Mis sistemas');
     expect(screen.queryByRole('heading', { name: '¿Por dónde querés empezar?' })).toBeNull();
-    expect(screen.queryByText(/Todavía no tenés proyectos/)).toBeNull();
-    const lista = screen.getByRole('region', { name: 'Tus proyectos' });
-    const nuevo = screen.getByRole('heading', { name: 'Empezar otro proyecto' });
+    expect(screen.queryByText(/Todavía no tenés sistemas/)).toBeNull();
+    const lista = screen.getByRole('region', { name: 'Tus sistemas' });
+    const nuevo = screen.getByRole('heading', { name: 'Empezar otro sistema' });
     expect(within(lista).getByRole('heading', { name: 'Mi almacén' })).toBeInTheDocument();
     expect(lista.compareDocumentPosition(nuevo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Empezar en blanco' })).toBeInTheDocument();
   });
 
-  it('crea en blanco y abre el proyecto con orientación para agregar el primer bloque', async () => {
+  it('crea en blanco y abre el sistema con orientación para agregar la primera tabla', async () => {
     setupUsuarioConSesion();
     const user = userEvent.setup();
     const router = renderApp('/proyectos');
     await verifyHeadingPresentAsync('¿Por dónde querés empezar?');
 
     await user.click(screen.getByRole('button', { name: 'Empezar en blanco' }));
-    await user.type(screen.getByLabelText('Nombre del proyecto'), 'Mi taller');
-    await user.click(screen.getByRole('button', { name: 'Crear proyecto' }));
+    await user.type(screen.getByLabelText('Nombre del sistema'), 'Mi taller');
+    await user.click(screen.getByRole('button', { name: 'Crear sistema' }));
 
     await verifyHeadingPresentAsync('Mi taller');
     await verifyHeadingPresentAsync('Todavía no hay bloques en este proyecto');
@@ -94,84 +94,85 @@ describe('ENS-4: crear y gestionar proyectos', () => {
     await verifyHeadingPresentAsync('¿Por dónde querés empezar?');
 
     await user.click(screen.getByRole('button', { name: 'Empezar en blanco' }));
-    await user.type(screen.getByLabelText('Nombre del proyecto'), 'Mi taller');
-    await user.click(screen.getByRole('button', { name: 'Crear proyecto' }));
+    await user.type(screen.getByLabelText('Nombre del sistema'), 'Mi taller');
+    await user.click(screen.getByRole('button', { name: 'Crear sistema' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos guardar el proyecto');
-    expect(screen.getByLabelText('Nombre del proyecto')).toHaveValue('Mi taller');
+    expect(screen.getByLabelText('Nombre del sistema')).toHaveValue('Mi taller');
   });
 });
 
-describe('Tarjetas de Tus proyectos', () => {
-  it('muestra los bloques del proyecto y cuántos datos tiene cada uno', async () => {
+describe('Tarjetas de Tus sistemas', () => {
+  it('resume cuántas tablas y columnas tiene cada sistema', async () => {
     setupUsuarioConSesion();
     await crearProyectoDesdePlantilla(inventario().id);
     renderApp('/proyectos');
 
-    const bloques = await screen.findByRole('list', { name: 'Bloques de Inventario' }, ESPERA);
-    expect(within(bloques).getByRole('listitem')).toHaveTextContent('Productos · 3 datos');
+    const lista = await screen.findByRole('region', { name: 'Tus sistemas' }, ESPERA);
+    expect(await within(lista).findByText(/1 tabla · 3 columnas/, {}, ESPERA)).toBeInTheDocument();
   });
 
-  it('la acción principal es Usar y la secundaria lleva a Construir', async () => {
+  it('la acción principal es Abrir y la secundaria lleva a Armar tablas', async () => {
     setupUsuarioConSesion();
     const proyecto = await crearProyectoDesdePlantilla(inventario().id);
     const user = userEvent.setup();
     const router = renderApp('/proyectos');
-    await screen.findByRole('list', { name: 'Bloques de Inventario' }, ESPERA);
-    expect(screen.getByRole('link', { name: 'Cambiar estructura de Inventario' })).toHaveAttribute(
+    await screen.findByText(/1 tabla · 3 columnas/, {}, ESPERA);
+    expect(screen.getByRole('link', { name: 'Armar tablas de Inventario' })).toHaveAttribute(
       'href',
       `/proyectos/${proyecto.id}/construir`,
     );
 
-    await user.click(screen.getByRole('link', { name: 'Usar Inventario' }));
+    await user.click(screen.getByRole('link', { name: 'Abrir Inventario' }));
 
     await verifyPathAsync(router, `/proyectos/${proyecto.id}/usar`);
     expect(await screen.findByRole('columnheader', { name: 'Stock' }, ESPERA)).toBeInTheDocument();
   });
 
-  it('un proyecto sin bloques explica que hay que armarlos y lleva a Construir', async () => {
+  it('un sistema sin tablas explica que hay que armarlas y lleva a Armar', async () => {
     setupUsuarioConSesion();
     await crearProyecto({ nombre: 'Mi almacén' });
     const user = userEvent.setup();
     renderApp('/proyectos');
     await verifyHeadingPresentAsync('Mi almacén');
 
-    expect(await screen.findByText(/Todavía no tiene bloques/, {}, ESPERA)).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Usar Mi almacén' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('link', { name: 'Armar bloques de Mi almacén' }));
+    expect(await screen.findByText(/Todavía no tiene tablas/, {}, ESPERA)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Abrir Mi almacén' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: 'Armar tablas de Mi almacén' }));
 
     await verifyHeadingPresentAsync('Tus bloques');
   });
 
-  it('Más opciones se abre y se cierra con Escape devolviendo el foco', async () => {
+  it('Más acciones se abre y se cierra con Escape devolviendo el foco', async () => {
     setupUsuarioConSesion();
     await crearProyecto({ nombre: 'Original' });
     const user = userEvent.setup();
     renderApp('/proyectos');
     await verifyHeadingPresentAsync('Original');
-    const boton = screen.getByRole('button', { name: 'Más opciones de Original' });
+    const boton = screen.getByRole('button', { name: 'Más acciones de Original' });
     expect(boton).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByRole('button', { name: 'Renombrar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Cambiar nombre' })).not.toBeInTheDocument();
 
     await user.click(boton);
     expect(boton).toHaveAttribute('aria-expanded', 'true');
-    await user.tab();
-    expect(screen.getByRole('button', { name: 'Renombrar' })).toHaveFocus();
+    expect(screen.getByRole('menuitem', { name: 'Cambiar nombre' })).toHaveFocus();
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getByRole('menuitem', { name: 'Eliminar sistema' })).toHaveFocus();
     await user.keyboard('{Escape}');
 
-    expect(screen.queryByRole('button', { name: 'Renombrar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Cambiar nombre' })).not.toBeInTheDocument();
     expect(boton).toHaveFocus();
   });
 
-  it('renombra un proyecto desde su tarjeta', async () => {
+  it('renombra un sistema desde su tarjeta', async () => {
     setupUsuarioConSesion();
     await crearProyecto({ nombre: 'Original' });
     const user = userEvent.setup();
     renderApp('/proyectos');
     await verifyHeadingPresentAsync('Original');
 
-    await user.click(screen.getByRole('button', { name: 'Más opciones de Original' }));
-    await user.click(screen.getByRole('button', { name: 'Renombrar' }));
+    await user.click(screen.getByRole('button', { name: 'Más acciones de Original' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Cambiar nombre' }));
     await user.clear(screen.getByLabelText('Nuevo nombre'));
     await user.type(screen.getByLabelText('Nuevo nombre'), 'Nombre nuevo');
     await user.click(screen.getByRole('button', { name: 'Guardar nombre' }));
@@ -187,15 +188,15 @@ describe('Tarjetas de Tus proyectos', () => {
     renderApp('/proyectos');
     await verifyHeadingPresentAsync('Temporal');
 
-    await user.click(screen.getByRole('button', { name: 'Más opciones de Temporal' }));
-    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+    await user.click(screen.getByRole('button', { name: 'Más acciones de Temporal' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Eliminar sistema' }));
     expect(screen.getByRole('heading', { name: 'Temporal' })).toBeInTheDocument();
     expect(screen.getByText(/Esta acción no se puede deshacer/)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Sí, eliminar proyecto' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, eliminar sistema' }));
 
     await waitFor(() =>
       expect(screen.queryByRole('heading', { name: 'Temporal' })).not.toBeInTheDocument(),
     );
-    expect(screen.getByText(/Todavía no tenés proyectos/)).toBeInTheDocument();
+    expect(screen.getByText(/Todavía no tenés sistemas/)).toBeInTheDocument();
   });
 });

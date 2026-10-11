@@ -1,112 +1,162 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { CameraIcon, SquaresFourIcon, PlusIcon } from '@phosphor-icons/react';
-import { Button, PageHeading, Panel, buttonClasses } from '@/components/ui';
+import { CameraIcon, MagnifyingGlassIcon, PlusIcon, SquaresFourIcon } from '@phosphor-icons/react';
+import {
+  Button,
+  InputField,
+  Isotipo,
+  PageHeading,
+  Panel,
+  Sheet,
+  buttonClasses,
+} from '@/components/ui';
 import { CatalogoPlantillas } from '@/components/Proyectos/CatalogoPlantillas';
 import { CrearProyectoForm } from '@/components/Proyectos/CrearProyectoForm';
 import { ProyectoCard } from '@/components/Proyectos/ProyectoCard';
-import { useProyectos } from '@/hooks/proyectos/queries';
+import { useEstructuras, useProyectos } from '@/hooks/proyectos/queries';
 import type { Proyecto } from '@/types/proyecto';
 
-// Quien vuelve ve primero sus proyectos; la bienvenida para empezar sólo encabeza la pantalla
-// mientras la persona todavía no tiene ninguno.
+// Con más sistemas que esto aparece el buscador.
+const UMBRAL_BUSCADOR = 6;
+
+// Quien vuelve ve primero sus sistemas; la bienvenida para empezar sólo encabeza la pantalla
+// mientras la persona todavía no tiene ninguno. La acción principal (subir la foto del cuaderno,
+// T-015) está siempre arriba y es la única en naranja.
 export function ProyectosPage() {
   const proyectos = useProyectos();
+  const [creando, setCreando] = useState(false);
+
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       {proyectos.length === 0 ? (
         <>
           <PageHeading
-            kicker="Mis proyectos"
+            kicker="Mis sistemas"
             title="¿Por dónde querés empezar?"
             lead="Pasá lo que tenés en el cuaderno a un sistema para tu negocio."
           />
-          <FormasDeEmpezar destacarFoto />
-          <Panel>
-            <p className="m-0 text-soft">
-              Todavía no tenés proyectos. Elegí una de las opciones de arriba para empezar.
-            </p>
-          </Panel>
+          <section
+            aria-labelledby="cuaderno-titulo"
+            className="flex flex-col items-start gap-5 rounded-lg border border-accent-200 bg-accent-100 p-6 sm:flex-row sm:items-center sm:p-8"
+          >
+            <Isotipo className="size-20 shrink-0" />
+            <div className="flex min-w-0 flex-col items-start gap-3">
+              <h2 id="cuaderno-titulo" className="m-0 text-h2">
+                Tu cuaderno, más organizado
+              </h2>
+              <p className="m-0 max-w-xl text-lead text-soft">
+                Una foto es el primer paso para ordenar tus productos, pedidos o clientes.
+              </p>
+              <Link to="/cuaderno" className={buttonClasses({ variant: 'solid', size: 'lg' })}>
+                <CameraIcon size={24} aria-hidden />
+                Subir foto de mi cuaderno
+              </Link>
+            </div>
+          </section>
+          <section aria-label="Otras formas de empezar" className="flex flex-col gap-4">
+            <Panel flat>
+              <p className="m-0 text-body text-soft">
+                Todavía no tenés sistemas. También podés empezar con una plantilla o desde cero.
+              </p>
+            </Panel>
+            <FormasDeEmpezar onEmpezarEnBlanco={() => setCreando(true)} />
+          </section>
         </>
       ) : (
         <>
           <PageHeading
             kicker="Inicio"
-            title="Mis proyectos"
-            lead="Elegí un proyecto para seguir cargando tus datos, o armá uno nuevo."
+            title="Mis sistemas"
+            lead="Elegí un sistema para seguir cargando tus datos, o armá uno nuevo."
+            actions={
+              <Link to="/cuaderno" className={buttonClasses({ variant: 'solid', size: 'lg' })}>
+                <CameraIcon size={24} aria-hidden />
+                Subir foto de mi cuaderno
+              </Link>
+            }
           />
           <ListaProyectos proyectos={proyectos} />
           <section aria-labelledby="nuevo-titulo" className="flex flex-col gap-4">
-            <h2 id="nuevo-titulo" className="m-0 text-xl">
-              Empezar otro proyecto
+            <h2 id="nuevo-titulo" className="m-0 text-h3">
+              Empezar otro sistema
             </h2>
-            <FormasDeEmpezar />
+            <FormasDeEmpezar onEmpezarEnBlanco={() => setCreando(true)} />
           </section>
         </>
       )}
       <CatalogoPlantillas />
+      <Sheet
+        open={creando}
+        onClose={() => setCreando(false)}
+        title="Tu sistema en blanco"
+        description="Dale un nombre y después armás sus tablas."
+      >
+        <CrearProyectoForm onCancelar={() => setCreando(false)} />
+      </Sheet>
     </div>
   );
 }
 
 function ListaProyectos({ proyectos }: { proyectos: Proyecto[] }) {
+  const [busqueda, setBusqueda] = useState('');
+  const estructuras = useEstructuras(proyectos.map((proyecto) => proyecto.id));
+  const visibles = useMemo(() => {
+    const texto = busqueda.trim().toLowerCase();
+    return texto
+      ? proyectos.filter((proyecto) => proyecto.nombre.toLowerCase().includes(texto))
+      : proyectos;
+  }, [proyectos, busqueda]);
+
   return (
-    <section aria-label="Tus proyectos">
-      <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
-        {proyectos.map((proyecto) => (
-          <li key={proyecto.id}>
-            <ProyectoCard proyecto={proyecto} />
-          </li>
-        ))}
-      </ul>
+    <section aria-label="Tus sistemas" className="flex flex-col gap-4">
+      {proyectos.length > UMBRAL_BUSCADOR && (
+        <div className="max-w-md">
+          <InputField
+            label="Buscar un sistema"
+            type="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Escribí parte del nombre"
+          />
+        </div>
+      )}
+      {visibles.length === 0 ? (
+        <Panel flat className="flex items-center gap-3">
+          <MagnifyingGlassIcon aria-hidden size={24} />
+          <p className="m-0">Ningún sistema se llama así. Probá con otra palabra.</p>
+        </Panel>
+      ) : (
+        <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-4 p-0">
+          {visibles.map((proyecto) => {
+            const estructura = estructuras[proyecto.id];
+            return (
+              <li key={proyecto.id} className="min-w-0">
+                <ProyectoCard
+                  proyecto={proyecto}
+                  bloques={estructura?.bloques}
+                  cargando={estructura?.cargando ?? true}
+                />
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </section>
   );
 }
 
-// Foto del cuaderno, plantilla o en blanco. Para quien empieza la foto va destacada;
-// para quien ya tiene proyectos las tres opciones van compactas, debajo de la lista.
-function FormasDeEmpezar({ destacarFoto = false }: { destacarFoto?: boolean }) {
-  const [creando, setCreando] = useState(false);
+// Plantilla o en blanco: apoyos de la acción principal, siempre en contorno.
+function FormasDeEmpezar({ onEmpezarEnBlanco }: { onEmpezarEnBlanco: () => void }) {
   return (
-    <>
-      {destacarFoto && (
-        <section
-          aria-labelledby="cuaderno-titulo"
-          className="rounded-lg border border-accent-200 bg-accent-100 p-6 sm:p-8"
-        >
-          <CameraIcon size={36} aria-hidden className="mb-4 text-accent-800" />
-          <h2 id="cuaderno-titulo" className="m-0 text-2xl">
-            Tu cuaderno, más organizado
-          </h2>
-          <p className="max-w-xl text-soft">
-            Una foto será el primer paso para ordenar tus productos, pedidos o clientes.
-          </p>
-          <Link to="/cuaderno" className={buttonClasses({ variant: 'solid' })}>
-            Subir foto de mi cuaderno
-          </Link>
-        </section>
-      )}
-      <div className="flex flex-wrap gap-3" aria-label="Formas de empezar">
-        {!destacarFoto && (
-          <Link to="/cuaderno" className={buttonClasses()}>
-            <CameraIcon size={20} aria-hidden />
-            Subir foto de mi cuaderno
-          </Link>
-        )}
-        <a href="#plantillas" className={buttonClasses()}>
-          <SquaresFourIcon size={20} aria-hidden />
-          Usar plantilla
-        </a>
-        <Button onClick={() => setCreando(true)}>
-          <PlusIcon size={20} aria-hidden />
-          Empezar en blanco
-        </Button>
-      </div>
-      {creando && (
-        <Panel>
-          <CrearProyectoForm onCancelar={() => setCreando(false)} />
-        </Panel>
-      )}
-    </>
+    <div className="flex flex-wrap gap-3" aria-label="Formas de empezar">
+      <a href="#plantillas" className={buttonClasses()}>
+        <SquaresFourIcon size={22} aria-hidden />
+        Usar plantilla
+      </a>
+      <Button onClick={onEmpezarEnBlanco}>
+        <PlusIcon size={22} aria-hidden />
+        Empezar en blanco
+      </Button>
+    </div>
   );
 }
