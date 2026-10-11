@@ -49,7 +49,11 @@ async function abrirUsar(productos: Producto[] = PRODUCTOS) {
   return { bloqueId: bloque.id };
 }
 
-const filasDeDatos = () => screen.getAllByRole('row').slice(1);
+const filasDeDatos = () =>
+  screen
+    .getAllByRole('row')
+    .slice(1)
+    .filter((fila) => !fila.closest('tfoot'));
 const primeraCelda = (fila: HTMLElement) => elemento(within(fila).getAllByRole('cell')).textContent;
 
 describe('H-06: tabla de registros', () => {
@@ -62,6 +66,36 @@ describe('H-06: tabla de registros', () => {
     expect(screen.getByText('Harina 000')).toBeInTheDocument();
     expect(screen.getByText('1.500')).toBeInTheDocument();
     expect(screen.getByText('3 filas')).toBeInTheDocument();
+  });
+
+  it('muestra al pie la cantidad de filas y la suma de las columnas numéricas', async () => {
+    await abrirUsar();
+
+    const pie = await screen.findByRole('row', { name: /Totales de 3 filas/ }, ESPERA);
+
+    expect(within(pie).getByText('Totales de 3 filas')).toBeInTheDocument();
+    expect(within(pie).getByText('1.820')).toBeInTheDocument();
+  });
+
+  it('los totales respetan la búsqueda y no sólo la página', async () => {
+    const muchos = Array.from({ length: 45 }, (_, n) => ({
+      nombre: n < 5 ? `Harina ${n}` : `Producto ${n}`,
+      stock: n + 1,
+      rubro: 'Insumos',
+    }));
+    await abrirUsar(muchos);
+    const user = userEvent.setup();
+
+    const pie = await screen.findByRole('row', { name: /Totales de 45 filas/ }, ESPERA);
+    // 1 + 2 + … + 45 = 1.035, aunque la página muestre sólo 20 filas.
+    expect(within(pie).getByText('1.035')).toBeInTheDocument();
+    expect(filasDeDatos()).toHaveLength(20);
+
+    await user.type(screen.getByLabelText('Buscar en Productos'), 'harina');
+
+    const filtrado = await screen.findByRole('row', { name: /Totales de 5 filas/ }, ESPERA);
+    // 1 + 2 + 3 + 4 + 5
+    expect(within(filtrado).getByText('15')).toBeInTheDocument();
   });
 
   it('por defecto muestra primero lo último que se cargó', async () => {
@@ -436,6 +470,16 @@ describe('Cargar y ver en el celular', () => {
   afterEach(() => {
     // @ts-expect-error jsdom no define matchMedia: se deja como estaba.
     delete window.matchMedia;
+  });
+
+  it('muestra los totales en un resumen debajo de las tarjetas', async () => {
+    await abrirUsar();
+
+    const panel = await screen.findByRole('region', { name: 'Totales' }, ESPERA);
+
+    expect(within(panel).getByText('Filas:').nextSibling).toHaveTextContent('3');
+    expect(within(panel).getByText('Stock:').nextSibling).toHaveTextContent('1.820');
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
   it('muestra cada fila como tarjeta y abre la ficha en una hoja', async () => {

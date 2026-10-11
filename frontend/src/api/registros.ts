@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { env } from '@/config/env';
 import {
   registroSchema,
+  totalesRegistrosSchema,
   type CambiosRegistro,
   type FiltroRegistros,
   type ValoresRegistro,
@@ -24,7 +25,7 @@ export const crearRegistro = (bloqueId: string, valores: ValoresRegistro) =>
 export const listarRegistros = (bloqueId: string, filtro: FiltroRegistros, signal?: AbortSignal) =>
   http.get(
     `/bloques/${encodeURIComponent(bloqueId)}/registros${aQuery(filtro)}`,
-    pageSchema(registroSchema),
+    pageSchema(registroSchema).extend({ totales: totalesRegistrosSchema }),
     signal,
   );
 
