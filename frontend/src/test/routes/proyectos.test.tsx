@@ -57,7 +57,7 @@ describe('ENS-4: crear y gestionar sistemas', () => {
     await user.click(screen.getByRole('button', { name: 'Crear sistema' }));
 
     await verifyHeadingPresentAsync('Mi taller');
-    await verifyHeadingPresentAsync('Todavía no hay bloques en este proyecto');
+    await verifyHeadingPresentAsync('Todavía no hay tablas en este sistema');
     expect(router.state.location.pathname).toMatch(/\/proyectos\/[^/]+\/construir$/);
   });
 
@@ -140,7 +140,7 @@ describe('Tarjetas de Tus sistemas', () => {
     expect(screen.queryByRole('link', { name: 'Abrir Mi almacén' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('link', { name: 'Armar tablas de Mi almacén' }));
 
-    await verifyHeadingPresentAsync('Tus bloques');
+    await verifyHeadingPresentAsync('Tus tablas');
   });
 
   it('Más acciones se abre y se cierra con Escape devolviendo el foco', async () => {
