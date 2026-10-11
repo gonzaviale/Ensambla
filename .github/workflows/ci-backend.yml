@@ -3,10 +3,10 @@ name: CI backend (build y test)
 on:
   push:
     branches: [dev, stg, main]
-    paths: ["backend/**", ".github/workflows/ci-backend.yml"]
+    paths: ["backend/**", "scripts/**", ".github/workflows/ci-backend.yml"]
   pull_request:
     branches: [dev, stg, main]
-    paths: ["backend/**", ".github/workflows/ci-backend.yml"]
+    paths: ["backend/**", "scripts/**", ".github/workflows/ci-backend.yml"]
 
 jobs:
   backend:
@@ -28,6 +28,16 @@ jobs:
       # `verify` también exige 100 % de cobertura por clase (JaCoCo).
       - name: Build y tests
         run: ./mvnw -B verify
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Tests de evaluación de cuadernos
+        working-directory: .
+        env:
+          ENSAMBLA_EVAL_JAR: ${{ github.workspace }}/backend/target/backend-0.0.1-SNAPSHOT.jar
+        run: python -m unittest discover -s scripts/tests -v
 
       - name: Reporte de cobertura
         if: always()

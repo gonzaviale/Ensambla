@@ -1,0 +1,129 @@
+package com.ensambla.backend.infrastructure.config.useCase;
+
+import com.ensambla.backend.domain.mapper.procesamiento.ConfirmarLecturaMapper;
+import com.ensambla.backend.domain.mapper.procesamiento.ConsultarConsumoMapper;
+import com.ensambla.backend.domain.mapper.procesamiento.ObtenerLecturaMapper;
+import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
+import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
+import com.ensambla.backend.domain.port.LectorCuadernoPort;
+import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
+import com.ensambla.backend.domain.service.lote.LoteSubidaService;
+import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.procesamiento.ConfirmacionLecturaService;
+import com.ensambla.backend.domain.service.procesamiento.ProcesamientoService;
+import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
+import com.ensambla.backend.domain.useCase.procesamiento.ConfirmarLecturaUseCase;
+import com.ensambla.backend.domain.useCase.procesamiento.ConsultarConsumoUseCase;
+import com.ensambla.backend.domain.useCase.procesamiento.ObtenerLecturaUseCase;
+import com.ensambla.backend.domain.useCase.procesamiento.ProcesarLoteUseCase;
+import com.ensambla.backend.domain.useCase.procesamiento.ReintentarLecturaUseCase;
+import com.ensambla.backend.infrastructure.ia.ArchivoCuadernoLocalAdapter;
+import com.ensambla.backend.infrastructure.ia.IaProperties;
+import com.ensambla.backend.infrastructure.ia.LectorCuadernoTimeoutAdapter;
+import com.ensambla.backend.infrastructure.ia.ProcesamientoIaProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
+import java.nio.file.Path;
+import java.time.Clock;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+@Configuration
+@EnableScheduling
+@EnableConfigurationProperties(ProcesamientoIaProperties.class)
+public class LecturaUseCaseConfig {
+
+    @Bean
+    public PoliticaProcesamiento politicaProcesamiento(ProcesamientoIaProperties properties, IaProperties ia) {
+        if (ia.timeout().isZero() || ia.timeout().isNegative()
+                || properties.vigenciaReclamo().compareTo(ia.timeout()) <= 0
+                || properties.demoraReintento().isNegative()) {
+            throw new IllegalArgumentException("Timeout positivo, reclamo mayor al timeout y demora no negativa");
+        }
+        return new PoliticaProcesamiento(properties.maxIntentos(), ia.maxPaginasPorLectura(),
+                properties.limiteDiario(), properties.vigenciaReclamo(), properties.demoraReintento(),
+                properties.precioEntradaMillon(), properties.precioSalidaMillon());
+    }
+
+    @Bean(destroyMethod = "shutdownNow")
+    public ExecutorService executorLecturaIa() {
+        return new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS, new SynchronousQueue<>());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(ArchivoCuadernoPort.class)
+    public ArchivoCuadernoPort archivoCuadernoPort(ProcesamientoIaProperties properties) {
+        return new ArchivoCuadernoLocalAdapter(Path.of(properties.archivosRaiz()), 20 * 1024 * 1024);
+    }
+
+    @Bean
+    public ProcesamientoService procesamientoService(ProcesamientoRepository procesamientoRepository,
+                                                     ArchivoCuadernoPort archivoCuadernoPort,
+                                                     LectorCuadernoPort lectorCuadernoPort,
+                                                     PropuestaLecturaService propuestaLecturaService,
+                                                     PoliticaProcesamiento politicaProcesamiento,
+                                                     ExecutorService executorLecturaIa,
+                                                     IaProperties iaProperties) {
+        return new ProcesamientoService(procesamientoRepository, archivoCuadernoPort,
+                new LectorCuadernoTimeoutAdapter(lectorCuadernoPort, executorLecturaIa, iaProperties.timeout()),
+                propuestaLecturaService, politicaProcesamiento);
+    }
+
+    @Bean
+    public ProcesarLoteUseCase procesarLoteUseCase(ProcesamientoService procesamientoService, Clock clock) {
+        return new ProcesarLoteUseCase(procesamientoService, clock);
+    }
+
+    @Bean
+    public ObtenerLecturaMapper obtenerLecturaMapper() {
+        return new ObtenerLecturaMapper();
+    }
+
+    @Bean
+    public ConsultarConsumoMapper consultarConsumoMapper() {
+        return new ConsultarConsumoMapper();
+    }
+
+    @Bean
+    public ObtenerLecturaUseCase obtenerLecturaUseCase(NegocioService negocioService,
+                                                       ProcesamientoService procesamientoService,
+                                                       ObtenerLecturaMapper obtenerLecturaMapper) {
+        return new ObtenerLecturaUseCase(negocioService, procesamientoService, obtenerLecturaMapper);
+    }
+
+    @Bean
+    public ReintentarLecturaUseCase reintentarLecturaUseCase(NegocioService negocioService,
+                                                           ProcesamientoService procesamientoService, Clock clock) {
+        return new ReintentarLecturaUseCase(negocioService, procesamientoService, clock);
+    }
+
+    @Bean
+    public ConfirmarLecturaMapper confirmarLecturaMapper() {
+        return new ConfirmarLecturaMapper();
+    }
+
+    @Bean
+    public ConfirmarLecturaUseCase confirmarLecturaUseCase(NegocioService negocioService,
+                                                         LoteSubidaService loteSubidaService,
+                                                         ConfirmacionLecturaService confirmacionLecturaService,
+                                                         ConfirmarLecturaMapper confirmarLecturaMapper,
+                                                         Clock clock) {
+        return new ConfirmarLecturaUseCase(
+                negocioService, loteSubidaService, confirmacionLecturaService, confirmarLecturaMapper, clock);
+    }
+
+    @Bean
+    public ConsultarConsumoUseCase consultarConsumoUseCase(NegocioService negocioService,
+                                                         ProcesamientoService procesamientoService,
+                                                         ConsultarConsumoMapper consultarConsumoMapper,
+                                                         PoliticaProcesamiento politicaProcesamiento, Clock clock) {
+        return new ConsultarConsumoUseCase(negocioService, procesamientoService, consultarConsumoMapper,
+                politicaProcesamiento, clock);
+    }
+}

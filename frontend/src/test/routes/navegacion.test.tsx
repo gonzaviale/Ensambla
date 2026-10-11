@@ -1,5 +1,7 @@
 import userEvent from '@testing-library/user-event';
-import { describe, it } from 'vitest';
+import { crearProyecto } from '@/api/proyectos';
+import { screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 import { renderApp } from '@/test/renderApp';
 import {
   clickButton,
@@ -26,7 +28,7 @@ describe('navegación y guards', () => {
     await verifyPathAsync(router, '/login');
   });
 
-  it('lleva a Mis proyectos a quien ya tiene sesión y entra a la landing', async () => {
+  it('lleva a Mis sistemas a quien ya tiene sesión y entra a la landing', async () => {
     setupUsuarioConSesion();
     const router = renderApp('/');
 
@@ -34,7 +36,7 @@ describe('navegación y guards', () => {
     await verifyHeadingPresentAsync('¿Por dónde querés empezar?');
   });
 
-  it('lista las plantillas del backend en Mis proyectos', async () => {
+  it('lista las plantillas del backend en Mis sistemas', async () => {
     setupUsuarioConSesion();
     renderApp('/proyectos');
 
@@ -44,9 +46,37 @@ describe('navegación y guards', () => {
 
   it('abre el constructor de un proyecto con sesión', async () => {
     setupUsuarioConSesion();
-    renderApp('/proyectos/abc/construir');
+    const proyecto = await crearProyecto({ nombre: 'Mi proyecto' });
+    renderApp(`/proyectos/${proyecto.id}/construir`);
 
-    await verifyHeadingPresentAsync('Constructor de bloques y campos');
+    await verifyHeadingPresentAsync('Tus tablas');
+  });
+
+  it('muestra los breadcrumbs y la barra inferior dentro de un proyecto', async () => {
+    setupUsuarioConSesion();
+    const proyecto = await crearProyecto({ nombre: 'Mi proyecto' });
+    renderApp(`/proyectos/${proyecto.id}/construir`);
+    await verifyHeadingPresentAsync('Tus tablas');
+
+    const migas = screen.getByRole('navigation', { name: 'Ruta de navegación' });
+    expect(migas).toHaveTextContent('Mis sistemas');
+    expect(migas).toHaveTextContent('Armar');
+    const modo = screen.getByRole('navigation', { name: 'Modo del sistema' });
+    expect(modo).toHaveTextContent('Cargar y ver');
+    expect(modo).toHaveTextContent('Armar');
+    const barra = screen.getByRole('navigation', { name: 'Secciones' });
+    expect(barra).toHaveTextContent('Mis sistemas');
+    expect(barra).toHaveTextContent('Subir foto');
+    expect(barra).toHaveTextContent('Mi cuenta');
+  });
+
+  it('no muestra breadcrumbs en Mis sistemas', async () => {
+    setupUsuarioConSesion();
+    renderApp('/proyectos');
+    await verifyHeadingPresentAsync('¿Por dónde querés empezar?');
+
+    expect(screen.queryByRole('navigation', { name: 'Ruta de navegación' })).toBeNull();
+    expect(screen.getByRole('navigation', { name: 'Secciones' })).toBeInTheDocument();
   });
 
   it('inicia sesión y vuelve a la pantalla que se quería ver', async () => {

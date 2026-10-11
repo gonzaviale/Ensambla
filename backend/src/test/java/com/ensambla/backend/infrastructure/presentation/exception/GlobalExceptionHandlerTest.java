@@ -1,8 +1,10 @@
 package com.ensambla.backend.infrastructure.presentation.exception;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.exception.CredencialesInvalidasException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
+import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,7 +20,10 @@ import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -67,6 +72,30 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ErrorResponse> response = handler.handleBusinessRule(exception, request);
 
         thenResponseHasStatusAndMessage(response, 400, BUSINESS_MESSAGE);
+    }
+
+    @Test
+    @DisplayName("Responde 400 con el mensaje de cada campo cuando un registro no es válido")
+    void handleRegistroInvalidoShouldReturnBadRequestWithErrorPerField() {
+        RegistroInvalidoException exception = new RegistroInvalidoException(
+                Map.of("campo-1", "Este dato es obligatorio"));
+
+        ResponseEntity<ErrorResponse> response = handler.handleRegistroInvalido(exception, request);
+
+        thenResponseIsBadRequestWithError(response, "campo-1", "Este dato es obligatorio");
+        assertThat(response.getBody().getMessage()).isEqualTo("Revisá los datos marcados");
+    }
+
+    @Test
+    @DisplayName("Responde 400 con el mensaje de cada dato cuando la configuración de un campo no es válida")
+    void handleCampoInvalidoShouldReturnBadRequestWithErrorPerDato() {
+        CampoInvalidoException exception = new CampoInvalidoException(
+                Map.of("opciones", "Agregá al menos una opción"));
+
+        ResponseEntity<ErrorResponse> response = handler.handleCampoInvalido(exception, request);
+
+        thenResponseIsBadRequestWithError(response, "opciones", "Agregá al menos una opción");
+        assertThat(response.getBody().getMessage()).isEqualTo("Revisá la configuración del campo");
     }
 
     @Test
@@ -170,6 +199,26 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ErrorResponse> response = handler.handleUnreadable(exception, request);
 
         thenResponseHasStatusWithoutSecret(response, 400);
+    }
+
+    @Test
+    @DisplayName("Responde 400 identificando el archivo obligatorio que falta en un pedido multipart")
+    void handleMissingPartShouldReturnBadRequestWithPartName() {
+        MissingServletRequestPartException exception = new MissingServletRequestPartException("fotos");
+
+        ResponseEntity<ErrorResponse> response = handler.handleMissingPart(exception, request);
+
+        thenResponseIsBadRequestWithError(response, "fotos", "El parámetro es obligatorio");
+    }
+
+    @Test
+    @DisplayName("Responde 400 con los límites de tamaño cuando el archivo subido es demasiado grande")
+    void handleMaxUploadSizeShouldReturnBadRequestWithLimits() {
+        MaxUploadSizeExceededException exception = new MaxUploadSizeExceededException(10L * 1024 * 1024);
+
+        ResponseEntity<ErrorResponse> response = handler.handleMaxUploadSize(exception, request);
+
+        thenResponseHasStatusAndMessage(response, 400, "Cada foto puede pesar hasta 10 MB y el lote hasta 100 MB");
     }
 
     // --- arrange ---

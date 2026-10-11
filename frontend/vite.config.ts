@@ -18,7 +18,7 @@ export default defineConfig({
     },
   },
   test: {
-    environment: 'jsdom',
+    environment: fileURLToPath(new URL('./src/test/environment.ts', import.meta.url)),
     setupFiles: ['./src/test/setup.ts'],
     css: false,
     testTimeout: 20_000,

@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.config;
 
 import com.ensambla.backend.infrastructure.security.SecurityErrorHandler;
+import com.ensambla.backend.infrastructure.security.SesionRequeridaFilter;
 import com.ensambla.backend.infrastructure.security.UsuarioActivoFilter;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +15,10 @@ import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 
 import java.util.Map;
 
@@ -40,12 +45,19 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http, SecurityErrorHandler securityErrorHandler, UsuarioActivoFilter usuarioActivoFilter)
             throws Exception {
+        PathPatternRequestMatcher.Builder paths = PathPatternRequestMatcher.withDefaults();
+        RequestMatcher rutasPublicas = new OrRequestMatcher(
+                paths.matcher(HttpMethod.GET, "/api/plantillas"),
+                paths.matcher(HttpMethod.GET, "/api/plantillas/**"),
+                paths.matcher("/swagger-ui.html"),
+                paths.matcher("/swagger-ui/**"),
+                paths.matcher("/v3/api-docs/**"),
+                paths.matcher(HttpMethod.GET, "/api/auth/csrf"),
+                paths.matcher(HttpMethod.POST, "/api/auth/register"),
+                paths.matcher(HttpMethod.POST, "/api/auth/login"),
+                paths.matcher(HttpMethod.POST, "/api/auth/logout"));
         http.authorizeHttpRequests(authorize -> authorize
-                .requestMatchers(HttpMethod.GET, "/api/plantillas", "/api/plantillas/**").permitAll()
-                .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/auth/registro", "/api/auth/login",
-                "/api/auth/logout").permitAll()
+                .requestMatchers(rutasPublicas).permitAll()
                 .anyRequest().authenticated())
                 .csrf(Customizer.withDefaults())
                 .requestCache(AbstractHttpConfigurer::disable)
@@ -56,6 +68,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(securityErrorHandler)
                         .accessDeniedHandler(securityErrorHandler))
                 .addFilterBefore(usuarioActivoFilter, AnonymousAuthenticationFilter.class);
+        http.addFilterBefore(new SesionRequeridaFilter(rutasPublicas, securityErrorHandler), CsrfFilter.class);
         return http.build();
     }
 }

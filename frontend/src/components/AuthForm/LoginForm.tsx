@@ -20,16 +20,19 @@ function mensajeDeError(error: unknown) {
 export function LoginForm({ onExito }: { onExito: () => void }) {
   const login = useLogin();
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
+  const [erroresServidor, setErroresServidor] = useState<Record<string, string>>({});
 
   const form = useForm({
     defaultValues: { email: '', contrasenia: '' },
     validators: { onSubmit: loginSchema },
     onSubmit: async ({ value }) => {
       setErrorGeneral(null);
+      setErroresServidor({});
       try {
         await login.mutateAsync({ ...value, email: value.email.trim() });
         onExito();
       } catch (error) {
+        if (error instanceof ApiError) setErroresServidor(error.fieldErrors);
         setErrorGeneral(mensajeDeError(error));
       }
     },
@@ -53,7 +56,7 @@ export function LoginForm({ onExito }: { onExito: () => void }) {
             value={field.state.value}
             onBlur={field.handleBlur}
             onChange={(event) => field.handleChange(event.target.value)}
-            error={primerError(field.state.meta.errors)}
+            error={primerError(field.state.meta.errors) ?? erroresServidor.email}
           />
         )}
       </form.Field>
@@ -65,18 +68,18 @@ export function LoginForm({ onExito }: { onExito: () => void }) {
             value={field.state.value}
             onBlur={field.handleBlur}
             onChange={(event) => field.handleChange(event.target.value)}
-            error={primerError(field.state.meta.errors)}
+            error={primerError(field.state.meta.errors) ?? erroresServidor.contrasenia}
           />
         )}
       </form.Field>
       {errorGeneral && (
-        <p role="alert" className="text-[13px] text-bad">
+        <p role="alert" className="m-0 text-base font-semibold text-bad">
           {errorGeneral}
         </p>
       )}
       <form.Subscribe selector={(estado) => estado.isSubmitting}>
         {(enviando) => (
-          <Button type="submit" variant="solid" disabled={enviando} className="w-full">
+          <Button type="submit" variant="solid" size="lg" fullWidth loading={enviando}>
             {enviando ? 'Ingresando…' : 'Ingresar'}
           </Button>
         )}

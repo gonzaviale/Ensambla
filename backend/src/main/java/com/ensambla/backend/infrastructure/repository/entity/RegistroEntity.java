@@ -41,6 +41,9 @@ public class RegistroEntity {
     @Column(nullable = false)
     private Map<String, Object> valores;
 
+    @Column(name = "foto_origen_id")
+    private UUID fotoOrigenId;
+
     @Column(name = "creado_en", nullable = false, updatable = false)
     private OffsetDateTime creadoEn;
 
