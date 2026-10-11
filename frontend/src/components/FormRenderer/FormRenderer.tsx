@@ -2,12 +2,14 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { FloppyDiskIcon } from '@phosphor-icons/react';
 import { Button } from '@/components/ui';
 import { Toast } from '@/components/ui/Toast';
+import { cn } from '@/lib/cn';
 import { CampoRegistro } from './CampoRegistro';
 import {
   validarFormulario,
   valoresIniciales,
   valoresParaGuardar,
   type ErroresFormulario,
+  type ValoresFormulario,
 } from '@/lib/formularioRegistro';
 import type { Campo } from '@/types/proyecto';
 import type { ResultadoGuardado, ValoresRegistro } from '@/types/registro';
@@ -16,6 +18,14 @@ type FormRendererProps = {
   campos: readonly Campo[];
   onSubmit: (valores: ValoresRegistro) => Promise<ResultadoGuardado>;
   onEnviandoChange?: (enviando: boolean) => void;
+  /**
+   * `crear` (por defecto) deja el formulario listo para otra fila al guardar. `editar` parte de
+   * `valores`, conserva lo cargado al guardar y deja el aviso de éxito a quien lo usa.
+   */
+  modo?: 'crear' | 'editar';
+  /** Valores con los que arranca el formulario; por defecto, el valor inicial de cada campo. */
+  valores?: ValoresFormulario;
+  onCancelar?: () => void;
 };
 
 // Un control con ese `name` puede ser un input suelto o un grupo de radios (Sí / No).
@@ -25,8 +35,16 @@ function primerControl(formulario: HTMLFormElement | null, nombre: string) {
   return primero instanceof HTMLElement ? primero : undefined;
 }
 
-export function FormRenderer({ campos, onSubmit, onEnviandoChange }: FormRendererProps) {
-  const [valores, setValores] = useState(() => valoresIniciales(campos));
+export function FormRenderer({
+  campos,
+  onSubmit,
+  onEnviandoChange,
+  modo = 'crear',
+  valores: valoresDeArranque,
+  onCancelar,
+}: FormRendererProps) {
+  const editando = modo === 'editar';
+  const [valores, setValores] = useState(() => valoresDeArranque ?? valoresIniciales(campos));
   const [errores, setErrores] = useState<ErroresFormulario>({});
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState<{ mensaje: string; tipo: 'exito' | 'error' } | null>(null);
@@ -63,10 +81,12 @@ export function FormRenderer({ campos, onSubmit, onEnviandoChange }: FormRendere
     try {
       const resultado = await onSubmit(valoresParaGuardar(campos, valores));
       if (resultado.exito) {
-        setValores(valoresIniciales(campos));
-        // Listo para cargar otra fila: el foco vuelve al primer campo.
-        campoAEnfocar.current = camposOrdenados[0]?.id ?? null;
-        setAviso({ tipo: 'exito', mensaje: 'Fila guardada. Ya podés cargar otra.' });
+        if (!editando) {
+          setValores(valoresIniciales(campos));
+          // Listo para cargar otra fila: el foco vuelve al primer campo.
+          campoAEnfocar.current = camposOrdenados[0]?.id ?? null;
+          setAviso({ tipo: 'exito', mensaje: 'Fila guardada. Ya podés cargar otra.' });
+        }
       } else {
         const erroresVisibles = Object.fromEntries(
           Object.entries(resultado.errores).filter(([id]) =>
@@ -127,18 +147,29 @@ export function FormRenderer({ campos, onSubmit, onEnviandoChange }: FormRendere
             }}
           />
         ))}
-        {/* En el celular el botón queda fijo sobre la barra inferior: siempre a mano al cargar. */}
-        <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 -mx-5 -mb-5 border-t border-line bg-surface px-5 py-3 md:static md:mx-0 md:mb-0 md:border-0 md:bg-transparent md:p-0">
+        {/* Al cargar, en el celular el botón queda fijo sobre la barra inferior: siempre a mano. */}
+        <div
+          className={cn(
+            'flex flex-wrap gap-3',
+            !editando &&
+              'sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 -mx-5 -mb-5 border-t border-line bg-surface px-5 py-3 md:static md:mx-0 md:mb-0 md:border-0 md:bg-transparent md:p-0',
+          )}
+        >
           <Button
             type="submit"
             variant="solid"
             size="lg"
             loading={enviando}
-            className="max-md:w-full"
+            className={cn(!editando && 'max-md:w-full')}
           >
             {!enviando && <FloppyDiskIcon aria-hidden size={24} />}
-            {enviando ? 'Guardando…' : 'Guardar fila'}
+            {enviando ? 'Guardando…' : editando ? 'Guardar cambios' : 'Guardar fila'}
           </Button>
+          {onCancelar && (
+            <Button type="button" size="lg" onClick={onCancelar}>
+              Cancelar
+            </Button>
+          )}
         </div>
       </fieldset>
       {aviso && <Toast {...aviso} onClose={() => setAviso(null)} />}

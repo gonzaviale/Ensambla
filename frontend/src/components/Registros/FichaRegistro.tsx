@@ -1,36 +1,85 @@
 import { useEffect, useRef, useState } from 'react';
-import { ImageIcon, TrashIcon, XIcon } from '@phosphor-icons/react';
+import { ImageIcon, PencilSimpleIcon, TrashIcon, XIcon } from '@phosphor-icons/react';
 import { VisorFoto } from '@/components/Cuaderno/Revision/VisorFoto';
+import { FormRenderer } from '@/components/FormRenderer/FormRenderer';
 import { Button, ConfirmDialog, Panel, Sheet } from '@/components/ui';
 import { urlFotoOrigen } from '@/hooks/lotes/fotos';
 import { useEliminarRegistro } from '@/hooks/registros/mutations';
+import { useEditarRegistro } from '@/hooks/registros/useEditarRegistro';
 import { useEsEscritorio } from '@/hooks/useMediaQuery';
+import { cambiosParaEditar, valoresDeRegistro } from '@/lib/formularioRegistro';
 import { formatearMomento, formatearValor } from '@/lib/valores';
 import type { Bloque } from '@/types/proyecto';
-import type { Registro } from '@/types/registro';
+import type { Registro, ResultadoEdicion, ValoresRegistro } from '@/types/registro';
 
 type FichaRegistroProps = {
   bloque: Bloque;
   registro: Registro;
   onCerrar: () => void;
+  /** Avisa con la fila ya guardada, para que quien la mostró no quede con los datos viejos. */
+  onActualizado: (registro: Registro) => void;
 };
 
 // Ficha de una fila: panel lateral fijo en escritorio, hoja desde abajo en el celular.
-// Editar una fila existente necesita un endpoint de modificación que el backend todavía no expone.
-export function FichaRegistro({ bloque, registro, onCerrar }: FichaRegistroProps) {
+// Conviene montarla con `key={registro.id}`: al elegir otra fila arranca de cero, sin edición.
+export function FichaRegistro({ bloque, registro, onCerrar, onActualizado }: FichaRegistroProps) {
   const esEscritorio = useEsEscritorio();
   const [confirmando, setConfirmando] = useState(false);
   const [viendoFoto, setViendoFoto] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const [guardado, setGuardado] = useState(false);
   const titulo = useRef<HTMLHeadingElement>(null);
+  const cuerpoRef = useRef<HTMLDivElement>(null);
+  const botonEditar = useRef<HTMLButtonElement>(null);
+  const foco = useRef<'formulario' | 'editar' | null>(null);
   const eliminar = useEliminarRegistro(bloque.id);
+  const editar = useEditarRegistro(bloque.id);
   const campos = [...bloque.campos].sort((a, b) => a.posicion - b.posicion);
 
   useEffect(() => {
     titulo.current?.focus();
   }, [registro.id, esEscritorio]);
 
-  const cuerpo = (
-    <div className="flex flex-col gap-4">
+  // Al entrar o salir de la edición el botón que tenía el foco desaparece: se lo lleva a donde sigue.
+  useEffect(() => {
+    if (foco.current === 'formulario') {
+      cuerpoRef.current
+        ?.querySelector<HTMLElement>('input:not([type="hidden"]), select, textarea')
+        ?.focus();
+    } else if (foco.current === 'editar') {
+      botonEditar.current?.focus();
+    }
+    foco.current = null;
+  }, [editando]);
+
+  function empezarEdicion() {
+    foco.current = 'formulario';
+    setGuardado(false);
+    setEditando(true);
+  }
+
+  function terminarEdicion() {
+    foco.current = 'editar';
+    setEditando(false);
+  }
+
+  async function guardar(cargados: ValoresRegistro): Promise<ResultadoEdicion> {
+    const resultado = await editar(registro.id, cambiosParaEditar(campos, cargados));
+    if (resultado.exito) {
+      onActualizado(resultado.registro);
+      setGuardado(true);
+      terminarEdicion();
+    }
+    return resultado;
+  }
+
+  const datos = (
+    <>
+      {guardado && (
+        <p role="status" className="m-0 text-base font-semibold text-ok">
+          Cambios guardados.
+        </p>
+      )}
       <dl className="m-0 flex flex-col gap-3">
         {campos.map((campo) => (
           <div key={campo.id} className="flex flex-col gap-0.5 border-b border-line pb-2">
@@ -66,10 +115,16 @@ export function FichaRegistro({ bloque, registro, onCerrar }: FichaRegistroProps
         </div>
       )}
 
-      <Button variant="danger" className="self-start" onClick={() => setConfirmando(true)}>
-        <TrashIcon aria-hidden size={20} />
-        Eliminar fila
-      </Button>
+      <div className="flex flex-wrap gap-3">
+        <Button ref={botonEditar} variant="solid" onClick={empezarEdicion}>
+          <PencilSimpleIcon aria-hidden size={20} />
+          Editar fila
+        </Button>
+        <Button variant="danger" onClick={() => setConfirmando(true)}>
+          <TrashIcon aria-hidden size={20} />
+          Eliminar fila
+        </Button>
+      </div>
 
       <ConfirmDialog
         open={confirmando}
@@ -86,6 +141,22 @@ export function FichaRegistro({ bloque, registro, onCerrar }: FichaRegistroProps
       >
         <p className="m-0">Se eliminará esta fila. Esta acción no se puede deshacer.</p>
       </ConfirmDialog>
+    </>
+  );
+
+  const cuerpo = (
+    <div ref={cuerpoRef} className="flex flex-col gap-4">
+      {editando ? (
+        <FormRenderer
+          modo="editar"
+          campos={bloque.campos}
+          valores={valoresDeRegistro(bloque.campos, registro.valores)}
+          onSubmit={guardar}
+          onCancelar={terminarEdicion}
+        />
+      ) : (
+        datos
+      )}
     </div>
   );
 

@@ -1,5 +1,5 @@
 import type { Campo } from '@/types/proyecto';
-import type { ValoresRegistro } from '@/types/registro';
+import type { CambiosRegistro, Registro, ValoresRegistro } from '@/types/registro';
 
 export type ValoresFormulario = Record<string, string>;
 export type ErroresFormulario = Record<string, string>;
@@ -53,6 +53,19 @@ export function valoresIniciales(campos: readonly Campo[]): ValoresFormulario {
   return Object.fromEntries(campos.map((campo) => [campo.id, campo.valorInicial ?? '']));
 }
 
+// Los datos de una fila ya guardada, como texto para precargar el formulario de edición.
+export function valoresDeRegistro(
+  campos: readonly Campo[],
+  valores: Registro['valores'],
+): ValoresFormulario {
+  return Object.fromEntries(
+    campos.map((campo) => {
+      const valor = valores[campo.id];
+      return [campo.id, valor === undefined || valor === null ? '' : String(valor)];
+    }),
+  );
+}
+
 export function valoresParaGuardar(
   campos: readonly Campo[],
   valores: ValoresFormulario,
@@ -66,4 +79,13 @@ export function valoresParaGuardar(
     else resultado[campo.id] = valor;
   }
   return resultado;
+}
+
+// Al editar hay que mandar también lo que se vació: el backend conserva lo que no se envía y
+// sólo borra un dato cuando llega `null`.
+export function cambiosParaEditar(
+  campos: readonly Campo[],
+  cargados: ValoresRegistro,
+): CambiosRegistro {
+  return Object.fromEntries(campos.map((campo) => [campo.id, cargados[campo.id] ?? null]));
 }

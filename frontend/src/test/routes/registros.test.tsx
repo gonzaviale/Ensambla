@@ -298,6 +298,112 @@ describe('H-06: ficha del registro', () => {
   });
 });
 
+describe('H-06: edición desde la ficha', () => {
+  const abrirFicha = async (nombre: string) => {
+    await abrirUsar();
+    const user = userEvent.setup();
+    await screen.findByText(nombre, {}, ESPERA);
+    await user.click(screen.getByRole('button', { name: `Ver ficha de ${nombre}` }));
+    return user;
+  };
+  const ficha = () => screen.getByRole('complementary', { name: 'Ficha de la fila' });
+  const registroDe = (nombre: string) => {
+    const registro = [...estado.registros.values()].find((item) =>
+      Object.values(item.valores).includes(nombre),
+    );
+    if (!registro) throw new Error(`Falta el registro ${nombre}`);
+    return registro;
+  };
+
+  it('edita la fila, muestra los datos nuevos y actualiza la tabla', async () => {
+    const user = await abrirFicha('Azúcar');
+
+    await user.click(within(ficha()).getByRole('button', { name: 'Editar fila' }));
+    expect(within(ficha()).getByLabelText('Nombre')).toHaveValue('Azúcar');
+    expect(within(ficha()).getByLabelText('Stock')).toHaveValue('20');
+    await user.clear(within(ficha()).getByLabelText('Stock'));
+    await user.type(within(ficha()).getByLabelText('Stock'), '35');
+    await user.click(within(ficha()).getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(await within(ficha()).findByText('Cambios guardados.', {}, ESPERA)).toBeInTheDocument();
+    expect(within(ficha()).getByText('35')).toBeInTheDocument();
+    expect(within(ficha()).queryByLabelText('Stock')).not.toBeInTheDocument();
+    await waitFor(
+      () => expect(within(screen.getByRole('table')).getByText('35')).toBeInTheDocument(),
+      ESPERA,
+    );
+    expect(within(screen.getByRole('table')).queryByText('20')).not.toBeInTheDocument();
+    expect(within(ficha()).getByRole('button', { name: 'Editar fila' })).toHaveFocus();
+  });
+
+  it('borra un dato opcional al vaciarlo', async () => {
+    const user = await abrirFicha('Azúcar');
+    await user.click(within(ficha()).getByRole('button', { name: 'Editar fila' }));
+
+    await user.selectOptions(within(ficha()).getByLabelText('Rubro'), '');
+    await user.click(within(ficha()).getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(await within(ficha()).findByText('Cambios guardados.', {}, ESPERA)).toBeInTheDocument();
+    expect(within(ficha()).queryByText('Insumos')).not.toBeInTheDocument();
+    expect(Object.values(registroDe('Azúcar').valores)).toEqual(['Azúcar', 20]);
+  });
+
+  it('no guarda si falta un dato obligatorio y marca el campo', async () => {
+    const user = await abrirFicha('Azúcar');
+    await user.click(within(ficha()).getByRole('button', { name: 'Editar fila' }));
+
+    await user.clear(within(ficha()).getByLabelText('Nombre'));
+    await user.click(within(ficha()).getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(await within(ficha()).findByText('Este dato es obligatorio')).toBeInTheDocument();
+    expect(within(ficha()).getByLabelText('Nombre')).toHaveFocus();
+    expect(Object.values(registroDe('Azúcar').valores)).toContain('Azúcar');
+  });
+
+  it('muestra el error del servidor y conserva lo escrito para reintentar', async () => {
+    const user = await abrirFicha('Azúcar');
+    setupServerError('patch', '/registros/:id', 500, 'No pudimos guardar los cambios');
+    await user.click(within(ficha()).getByRole('button', { name: 'Editar fila' }));
+
+    await user.clear(within(ficha()).getByLabelText('Stock'));
+    await user.type(within(ficha()).getByLabelText('Stock'), '35');
+    await user.click(within(ficha()).getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(
+      await screen.findByText('No pudimos guardar los cambios', {}, ESPERA),
+    ).toBeInTheDocument();
+    expect(within(ficha()).getByLabelText('Stock')).toHaveValue('35');
+    expect(within(ficha()).getByRole('button', { name: 'Guardar cambios' })).toBeEnabled();
+    expect(Object.values(registroDe('Azúcar').valores)).toContain(20);
+  });
+
+  it('cancela la edición sin tocar los datos', async () => {
+    const user = await abrirFicha('Azúcar');
+    await user.click(within(ficha()).getByRole('button', { name: 'Editar fila' }));
+    await user.clear(within(ficha()).getByLabelText('Nombre'));
+    await user.type(within(ficha()).getByLabelText('Nombre'), 'Otra cosa');
+
+    await user.click(within(ficha()).getByRole('button', { name: 'Cancelar' }));
+
+    expect(within(ficha()).getByText('Azúcar')).toBeInTheDocument();
+    expect(within(ficha()).queryByText('Otra cosa')).not.toBeInTheDocument();
+    expect(within(ficha()).queryByText('Cambios guardados.')).not.toBeInTheDocument();
+    expect(within(ficha()).getByRole('button', { name: 'Editar fila' })).toHaveFocus();
+  });
+
+  it('al elegir otra fila sale de la edición', async () => {
+    const user = await abrirFicha('Azúcar');
+    await user.click(within(ficha()).getByRole('button', { name: 'Editar fila' }));
+
+    await user.click(screen.getByRole('button', { name: 'Ver ficha de Torta' }));
+
+    expect(within(ficha()).getByText('Torta')).toBeInTheDocument();
+    expect(
+      within(ficha()).queryByRole('button', { name: 'Guardar cambios' }),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe('Cargar y ver: pestañas con teclado', () => {
   it('Cargar es la vista por defecto y las flechas pasan a Ver filas', async () => {
     setupUsuarioConSesion();

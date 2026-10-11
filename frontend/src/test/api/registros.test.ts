@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { crearProyectoDesdePlantilla } from '@/api/proyectos';
-import { eliminarRegistro, listarRegistros } from '@/api/registros';
+import { editarRegistro, eliminarRegistro, listarRegistros } from '@/api/registros';
 import { estado, plantillasMock } from '@/mocks/db/estado';
 import { agregarRegistro } from '@/mocks/db/registros';
 import { setupUsuarioConSesion } from '@/test/testHelpers';
@@ -157,5 +157,66 @@ describe('registros: eliminación', () => {
     await expect(eliminarRegistro(registro.id)).rejects.toMatchObject({ status: 404 });
     await expect(eliminarRegistro(crypto.randomUUID())).rejects.toMatchObject({ status: 404 });
     expect(estado.registros.has(registro.id)).toBe(true);
+  });
+});
+
+describe('registros: edición', () => {
+  it('conserva los campos que no se envían y actualiza la fecha de modificación', async () => {
+    const { bloqueId, nombre, stock, rubro } = await inventario();
+    const registro = agregarRegistro(
+      bloqueId,
+      { [nombre]: 'Harina', [stock]: 10, [rubro]: 'Insumos' },
+      minutos(0),
+    );
+
+    const editado = await editarRegistro(registro.id, { [stock]: 12 });
+
+    expect(editado.valores).toEqual({ [nombre]: 'Harina', [stock]: 12, [rubro]: 'Insumos' });
+    expect(editado.creadoEn).toBe(registro.creadoEn);
+    expect(editado.actualizadoEn > registro.actualizadoEn).toBe(true);
+    expect(estado.registros.get(registro.id)?.valores[stock]).toBe(12);
+  });
+
+  it('borra un dato opcional cuando llega null', async () => {
+    const { bloqueId, nombre, stock, rubro } = await inventario();
+    const registro = agregarRegistro(bloqueId, {
+      [nombre]: 'Harina',
+      [stock]: 10,
+      [rubro]: 'Insumos',
+    });
+
+    const editado = await editarRegistro(registro.id, { [rubro]: null });
+
+    expect(editado.valores).toEqual({ [nombre]: 'Harina', [stock]: 10 });
+  });
+
+  it('devuelve un error por campo y no modifica el registro', async () => {
+    const { bloqueId, nombre, stock } = await inventario();
+    const registro = agregarRegistro(bloqueId, { [nombre]: 'Harina', [stock]: 10 });
+    const ajeno = crypto.randomUUID();
+
+    await expect(
+      editarRegistro(registro.id, { [nombre]: null, [stock]: 'mucho', [ajeno]: 1 }),
+    ).rejects.toMatchObject({
+      status: 400,
+      fieldErrors: {
+        [nombre]: 'Este dato es obligatorio',
+        [stock]: 'Tiene que ser un número',
+        [ajeno]: 'Este campo no pertenece al bloque',
+      },
+    });
+    expect(estado.registros.get(registro.id)?.valores).toEqual({ [nombre]: 'Harina', [stock]: 10 });
+  });
+
+  it('no edita registros de otro usuario ni inexistentes', async () => {
+    const { bloqueId, nombre } = await inventario();
+    const registro = agregarRegistro(bloqueId, { [nombre]: 'Privado' });
+    setupUsuarioConSesion({ email: 'otro@example.com' });
+
+    await expect(editarRegistro(registro.id, { [nombre]: 'Mío' })).rejects.toMatchObject({
+      status: 404,
+    });
+    await expect(editarRegistro(crypto.randomUUID(), {})).rejects.toMatchObject({ status: 404 });
+    expect(estado.registros.get(registro.id)?.valores[nombre]).toBe('Privado');
   });
 });
