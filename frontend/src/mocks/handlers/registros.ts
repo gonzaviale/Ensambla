@@ -55,6 +55,22 @@ function ordenar(registros: Registro[], campoId: string | null, descendente: boo
   });
 }
 
+// Cuenta y suma sobre toda la búsqueda (no sólo la página), como el backend.
+function totalesDe(bloque: Bloque, registros: Registro[]) {
+  const sumas = Object.fromEntries(
+    bloque.campos
+      .filter((campo) => campo.tipo === 'NUMERO')
+      .map((campo) => [
+        campo.id,
+        registros.reduce((total, registro) => {
+          const valor = registro.valores[campo.id];
+          return typeof valor === 'number' ? total + valor : total;
+        }, 0),
+      ]),
+  );
+  return { cantidad: registros.length, sumas };
+}
+
 const coincide = (registro: Registro, texto: string) =>
   Object.values(registro.valores).some(
     (valor) => valor !== null && String(valor).toLowerCase().includes(texto),
@@ -120,6 +136,7 @@ export const handlersRegistros = [
       totalPages,
       first: pagina === 0,
       last: pagina >= totalPages - 1,
+      totales: totalesDe(bloque, ordenados),
     });
   }),
 

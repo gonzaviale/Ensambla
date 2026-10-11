@@ -7,6 +7,8 @@ import {
   PlusIcon,
   TableIcon,
 } from '@phosphor-icons/react';
+import { FilaTotales } from '@/components/Registros/FilaTotales';
+import { ResumenTotales } from '@/components/Registros/ResumenTotales';
 import {
   Button,
   EmptyState,
@@ -113,6 +115,7 @@ export function TablaRegistros({
   const busqueda = useDebouncedValue(texto.trim(), ESPERA_BUSQUEDA_MS);
 
   const campos = [...bloque.campos].sort((a, b) => a.posicion - b.posicion);
+  const hayNumericos = campos.some((campo) => campo.tipo === 'NUMERO');
   const columnas: Columna[] = [
     ...campos.map((campo) => ({ id: campo.id, nombre: campo.nombre })),
     { id: COLUMNA_CARGA, nombre: 'Cargado' },
@@ -294,6 +297,9 @@ export function TablaRegistros({
                     );
                   })}
                 </tbody>
+                {hayNumericos && (
+                  <FilaTotales campos={campos} totales={data.totales} actualizando={isFetching} />
+                )}
               </table>
             </div>
           ) : (
@@ -343,6 +349,10 @@ export function TablaRegistros({
                 );
               })}
             </ul>
+          )}
+
+          {!esEscritorio && hayNumericos && (
+            <ResumenTotales campos={campos} totales={data.totales} actualizando={isFetching} />
           )}
 
           <nav aria-label="Paginación" className="flex items-center justify-between gap-3">
