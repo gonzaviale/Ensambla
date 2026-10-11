@@ -1,5 +1,7 @@
-import { useId, type ComponentProps, type ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { cn } from '@/lib/cn';
+import { FieldShell } from './FieldShell';
+import { fieldControlClasses } from './fieldStyles';
 
 type TextareaFieldProps = ComponentProps<'textarea'> & {
   label: string;
@@ -7,36 +9,26 @@ type TextareaFieldProps = ComponentProps<'textarea'> & {
   error?: string;
 };
 
-export function TextareaField({ label, hint, error, className, ...props }: TextareaFieldProps) {
-  const id = useId();
-  const hintId = `${id}-hint`;
-  const errorId = `${id}-error`;
-  const describedBy = [hint && hintId, error && errorId].filter(Boolean).join(' ') || undefined;
+export function TextareaField({
+  label,
+  hint,
+  error,
+  required,
+  className,
+  ...props
+}: TextareaFieldProps) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-[12.5px] text-soft">
-        {label}
-      </label>
-      <textarea
-        id={id}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy}
-        className={cn(
-          'min-h-36 w-full resize-y rounded-md border border-fg/16 bg-canvas px-2.5 py-2 text-sm text-fg caret-accent hover:border-fg/45 focus-visible:border-accent focus-visible:outline-none aria-invalid:border-bad',
-          className,
-        )}
-        {...props}
-      />
-      {hint && (
-        <p id={hintId} className="text-[11px] text-muted">
-          {hint}
-        </p>
+    <FieldShell label={label} hint={hint} error={error} required={required}>
+      {({ id, describedBy }) => (
+        <textarea
+          id={id}
+          required={required}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy}
+          className={cn(fieldControlClasses, 'min-h-32 resize-y', className)}
+          {...props}
+        />
       )}
-      {error && (
-        <p id={errorId} className="text-[12.5px] text-bad">
-          {error}
-        </p>
-      )}
-    </div>
+    </FieldShell>
   );
 }

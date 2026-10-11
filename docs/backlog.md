@@ -19,11 +19,11 @@ Columna **Base** = qué deja resuelto esta estructura inicial y qué falta.
 
 | ID | Área | Talle | Tarea | Depende de | Base |
 |---|---|---|---|---|---|
-| T-005 | BE | M | `POST /auth/register` (usuario + negocio en una transacción) | T-004 | ⏳ falta; el front lo simula con MSW |
-| T-006 | BE | M | Login, logout y sesión actual (`/auth/me`) | T-005 | ⏳ falta; ya existen `SesionAdapter`, CSRF y CORS |
-| T-007 | BE | S | Middleware de autenticación | T-006 | ✅ `SecurityConfig` ya exige sesión en todo lo no público; falta test por endpoint |
-| T-008 | FE | M | Pantallas de login y registro | T-006 | 🟡 `LoginForm` de referencia; falta `RegistroPage` |
-| T-009 | FE | S | Sesión en el cliente y rutas protegidas | T-008 | ✅ guards y `useCerrarSesion`; falta cierre de sesión en UI final |
+| T-005 | BE | M | `POST /auth/register` (usuario + negocio en una transacción) | T-004 | ✅ registro, BCrypt, duplicados y rollback verificado en PostgreSQL |
+| T-006 | BE | M | Login, logout y sesión actual (`/auth/me`) | T-005 | ✅ sesión JDBC, rotación, expiración y revocación en logout |
+| T-007 | BE | S | Middleware de autenticación | T-006 | ✅ rutas privadas y escrituras sin sesión responden 401; tests parametrizados |
+| T-008 | FE | M | Pantallas de login y registro | T-006 | ✅ formularios reales con nombre de negocio, validación y errores del servidor |
+| T-009 | FE | S | Sesión en el cliente y rutas protegidas | T-008 | ✅ revalidación por servidor, logout a login y descarte de datos privados |
 
 ## H-02 · Espacio de negocio y aislamiento
 
@@ -46,8 +46,8 @@ Columna **Base** = qué deja resuelto esta estructura inicial y qué falta.
 
 | ID | Área | Talle | Tarea | Depende de | Base |
 |---|---|---|---|---|---|
-| T-017 | BE | S | CRUD de bloques | T-012 | ⏳ falta (entidad y repo JPA ya existen) |
-| T-018 | BE | M | CRUD de campos tipados | T-017 | ⏳ falta (`ck_campo_opciones` ya en la base) |
+| T-017 | BE | S | CRUD de bloques | T-012 | 🟡 `GET`/`POST /api/proyectos/{id}/bloques`, `PATCH`/`DELETE /api/bloques/{id}`; nombre único por proyecto (409) y borrado en cascada probado contra PostgreSQL |
+| T-018 | BE | M | CRUD de campos tipados | T-017 | 🟡 `GET`/`POST /api/bloques/{id}/campos`, `PATCH`/`DELETE /api/campos/{id}`; `ConfiguracionCampo` valida tipo, opciones y valor inicial (400 con `errors` por dato) y `Bloque` el nombre único (409) |
 | T-019 | FE | M | Layout del constructor | T-015 | 🟡 ruta `/proyectos/$proyectoId/construir` placeholder |
 | T-020 | FE | S | Agregar, renombrar y eliminar bloques | T-019, T-017 | ⏳ falta |
 | T-021 | FE | M | Editor de campos | T-019, T-018 | ⏳ falta |
@@ -56,8 +56,8 @@ Columna **Base** = qué deja resuelto esta estructura inicial y qué falta.
 
 | ID | Área | Talle | Tarea | Depende de | Base |
 |---|---|---|---|---|---|
-| T-022 | BE | M | Validador dinámico de registros | T-018 | ⏳ falta |
-| T-023 | BE | S | Crear registro (`POST /blocks/:id/records`) | T-022, T-010 | ⏳ falta |
+| T-022 | BE | M | Validador dinámico de registros | T-018 | 🟡 `Registro.validar` y `Campo.errorDe`; falta el CRUD de campos (T-018) para armarlos desde la API |
+| T-023 | BE | S | Crear registro (`POST /blocks/:id/records`) | T-022, T-010 | 🟡 `POST /api/bloques/{id}/registros`; el negocio sale del dueño de la sesión hasta que T-010 lo generalice |
 | T-024 | FE | M | `FormRenderer` dinámico | T-021 | ⏳ falta; `InputField`/`TextareaField` ya existen |
 | T-025 | FE | S | Validación y feedback del formulario | T-024, T-023 | ⏳ falta; patrón en `LoginForm` |
 
@@ -65,8 +65,8 @@ Columna **Base** = qué deja resuelto esta estructura inicial y qué falta.
 
 | ID | Área | Talle | Tarea | Depende de | Base |
 |---|---|---|---|---|---|
-| T-026 | BE | M | Listado de registros (paginación, búsqueda, orden) | T-023 | ⏳ falta; índice GIN ya creado |
-| T-027 | BE | S | Ver, editar y eliminar registro | T-023 | ⏳ falta |
+| T-026 | BE | M | Listado de registros (paginación, búsqueda, orden) | T-023 | 🟡 `GET /api/bloques/{id}/registros?q&orden&direccion&pagina&tamanio` |
+| T-027 | BE | S | Ver, editar y eliminar registro | T-023 | 🟡 `GET`, `PATCH` y `DELETE /api/registros/{id}` |
 | T-028 | FE | M | Tabla dinámica de registros | T-026, T-024 | ⏳ falta |
 | T-029 | FE | S | Búsqueda y orden en la tabla | T-028 | ⏳ falta |
 | T-030 | FE | M | Ficha de registro con editar y eliminar | T-028, T-027 | ⏳ falta |

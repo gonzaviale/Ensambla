@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ensambla · Tu sistema, un bloque a la vez</title>
+  <meta name="description" content="Ensambla es la plataforma no-code para emprendedores, comercios y PyMEs. Armá el sistema de tu negocio con bloques: inventario, pedidos, clientes y más, sin programar.">
+  <meta name="theme-color" content="#FFF8F1">
+  <link rel="icon" href="assets/images/isotipo.svg" type="image/svg+xml">
+
+  <!-- Tema antes de pintar, para evitar el parpadeo al recargar en modo oscuro -->
+  <script>
+    try {
+      if (localStorage.getItem('ensambla-tema') === 'dark') document.documentElement.dataset.theme = 'dark';
+    } catch (e) {}
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <!-- Isotipo reutilizable: cinco módulos que sugieren una E (manual de marca, 04.1) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="isotipo" viewBox="0 0 24 24">
+      <rect class="iso-naranja" x="1" y="1" width="10" height="14" rx="2" fill="#F97316"/>
+      <rect class="iso-coral" x="13" y="1" width="10" height="6" rx="2" fill="#FB5852"/>
+      <rect class="iso-arena" x="13" y="9" width="10" height="6" rx="2" fill="#E6C9A8"/>
+      <rect class="iso-pizarra" x="1" y="17" width="10" height="6" rx="2" fill="var(--iso-pizarra, #263443)"/>
+      <rect class="iso-ambar" x="13" y="17" width="10" height="6" rx="2" fill="#F59E0B"/>
+    </symbol>
+  </svg>
+
+  <a class="saltar" href="#contenido">Saltar al contenido</a>
+
+  <!-- ============ ENCABEZADO ============ -->
+  <header class="encabezado" id="encabezado">
+    <div class="contenedor encabezado__fila">
+      <a href="#inicio" class="marca" aria-label="Ensambla, ir al inicio">
+        <svg class="marca__iso" aria-hidden="true"><use href="#isotipo"/></svg>
+        <span class="marca__nombre">Ensambla</span>
+      </a>
+
+      <nav class="nav" id="nav" aria-label="Principal">
+        <a href="#como-funciona">Cómo funciona</a>
+        <a href="#bloques">Bloques</a>
+        <a href="#plantillas">Plantillas</a>
+        <a href="#comentarios">Comentarios</a>
+        <a href="#" data-app="login" class="nav__login">Ingresar</a>
+      </nav>
+
+      <div class="encabezado__acciones">
+        <button class="tema" id="tema" type="button" aria-label="Activar modo oscuro" aria-pressed="false">
+          <span class="tema__pista" aria-hidden="true">
+            <span class="tema__bloque"></span>
+          </span>
+          <svg class="tema__icono tema__icono--sol" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+          <svg class="tema__icono tema__icono--luna" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+        </button>
+        <a href="#" data-app="registro" class="boton boton--primario boton--chico ocultar-movil">Empezar gratis</a>
+        <button class="menu" id="menu" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="nav">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="contenido">
+    <!-- ============ INICIO / BIENVENIDA ============ -->
+    <section class="hero" id="inicio">
+      <div class="hero__fondo" aria-hidden="true">
+        <span class="deco deco--1"></span>
+        <span class="deco deco--2"></span>
+        <span class="deco deco--3"></span>
+        <span class="deco deco--4"></span>
+      </div>
+
+      <div class="contenedor hero__grilla">
+        <div class="hero__texto">
+          <p class="etiqueta aparecer">
+            <span class="etiqueta__punto" aria-hidden="true"></span>
+            Plataforma no-code para emprendedores, comercios y PyMEs
+          </p>
+          <h1 class="hero__titulo">
+            <span class="linea aparecer" style="--d:.05s">Tu sistema,</span>
+            <span class="linea aparecer" style="--d:.15s">un <span class="resaltado">bloque</span></span>
+            <span class="linea aparecer" style="--d:.25s">a la vez.</span>
+          </h1>
+          <span class="subrayado aparecer" style="--d:.35s" aria-hidden="true"></span>
+          <p class="hero__bajada aparecer" style="--d:.4s">
+            Convertí los procesos de tu negocio en herramientas digitales simples.
+            Elegí una plantilla, sumá bloques de inventario, pedidos o clientes, y empezá a usarlos hoy. Sin programar.
+          </p>
+          <div class="hero__acciones aparecer" style="--d:.5s">
+            <a href="#" data-app="registro" class="boton boton--primario">
+              Crear mi sistema gratis
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a href="#como-funciona" class="boton boton--secundario">Ver cómo funciona</a>
+          </div>
+          <ul class="hero__datos aparecer" style="--d:.6s">
+            <li><strong>0</strong> líneas de código</li>
+            <li><strong>3</strong> plantillas para empezar</li>
+            <li><strong>∞</strong> combinaciones de bloques</li>
+          </ul>
+        </div>
+
+        <div class="hero__visual" aria-hidden="true">
+          <div class="hero__aro"></div>
+          <!-- Composición de bloques en CSS 3D (misma estructura que la portada del manual) -->
+          <div class="bloques3d">
+            <div class="bloques3d__sombra"></div>
+            <div class="bloques3d__escena">
+              <div class="b3d b3d--naranja" style="--x:0;--y:0;--w:2.2;--h:3.1;--ex:-1;--ey:-1;--ez:0.4;--dl:0s"><i class="b3d__frente"></i><i class="b3d__arriba"></i><i class="b3d__der"></i><i class="b3d__izq"></i></div>
+              <div class="b3d b3d--pizarra" style="--x:0;--y:3.25;--w:2.2;--h:1.95;--ex:-1;--ey:0.9;--ez:-0.3;--dl:0.1s"><i class="b3d__frente"></i><i class="b3d__arriba"></i><i class="b3d__der"></i><i class="b3d__izq"></i></div>
+              <div class="b3d b3d--coral" style="--x:2.35;--y:0.45;--w:2.9;--h:1.6;--ex:0.6;--ey:-1.3;--ez:0.5;--dl:0.2s"><i class="b3d__frente"></i><i class="b3d__arriba"></i><i class="b3d__der"></i><i class="b3d__izq"></i></div>
+              <div class="b3d b3d--arena" style="--x:2.35;--y:2.2;--w:3.9;--h:1.75;--ex:1.2;--ey:-0.2;--ez:-0.4;--dl:0.3s"><i class="b3d__frente"></i><i class="b3d__arriba"></i><i class="b3d__der"></i><i class="b3d__izq"></i></div>
+              <div class="b3d b3d--naranja" style="--x:2.35;--y:4.1;--w:3.9;--h:2.1;--ex:0.6;--ey:1;--ez:0.3;--dl:0.4s"><i class="b3d__frente"></i><i class="b3d__arriba"></i><i class="b3d__der"></i><i class="b3d__izq"></i></div>
+            </div>
+          </div>
+          <div class="ficha ficha--1">
+            <span class="ficha__icono ficha__icono--naranja">▤</span>
+            <div><b>Inventario</b><small>128 productos</small></div>
+          </div>
+          <div class="ficha ficha--2">
+            <span class="ficha__icono ficha__icono--coral">✓</span>
+            <div><b>Pedido #204</b><small>Listo para entregar</small></div>
+          </div>
+          <div class="ficha ficha--3">
+            <span class="ficha__icono ficha__icono--pizarra">◎</span>
+            <div><b>+12 clientes</b><small>esta semana</small></div>
+          </div>
+        </div>
+      </div>
+
+      <a href="#como-funciona" class="hero__bajar" aria-label="Bajar a cómo funciona">
+        <span></span>
+      </a>
+    </section>
+
+    <!-- ============ PARA QUIÉN ============ -->
+    <section class="cinta" aria-label="Para quién es Ensambla">
+      <div class="cinta__pista">
+        <ul class="cinta__lista">
+          <li>Almacenes</li><li>Ferreterías</li><li>Tiendas online</li><li>Gastronomía</li><li>Talleres</li><li>Estudios</li><li>Distribuidoras</li><li>Emprendimientos</li>
+        </ul>
+        <ul class="cinta__lista" aria-hidden="true">
+          <li>Almacenes</li><li>Ferreterías</li><li>Tiendas online</li><li>Gastronomía</li><li>Talleres</li><li>Estudios</li><li>Distribuidoras</li><li>Emprendimientos</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ CÓMO FUNCIONA ============ -->
+    <section class="seccion" id="como-funciona">
+      <div class="contenedor">
+        <header class="seccion__cabecera revelar">
+          <p class="sobretitulo">Cómo funciona</p>
+          <h2>El sistema crece<br>bloque a bloque.</h2>
+          <p>Cada bloque representa una parte de tu negocio. Cuando se conecta con otros, deja de ser una tarea aislada y pasa a formar parte de un sistema propio.</p>
+        </header>
+
+        <ol class="pasos">
+          <li class="paso revelar" style="--d:0s">
+            <div class="paso__figura paso__figura--pieza" aria-hidden="true">
+              <span></span>
+            </div>
+            <span class="paso__num">01</span>
+            <h3>Pieza</h3>
+            <p class="paso__sub">Unidad modular</p>
+            <p>Cada dato, persona, paso o regla funciona como una pieza que se combina con otras. Arrancá con un bloque y sus campos.</p>
+          </li>
+          <li class="paso revelar" style="--d:.12s">
+            <div class="paso__figura paso__figura--flujo" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </div>
+            <span class="paso__num">02</span>
+            <h3>Flujo</h3>
+            <p class="paso__sub">Proceso conectado</p>
+            <p>Las piezas se relacionan con estados, responsables y permisos. Un pedido sabe qué cliente lo hizo y qué productos descuenta.</p>
+          </li>
+          <li class="paso revelar" style="--d:.24s">
+            <div class="paso__figura paso__figura--sistema" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <span class="paso__num">03</span>
+            <h3>Sistema</h3>
+            <p class="paso__sub">Herramienta propia</p>
+            <p>El conjunto se convierte en la aplicación interna de tu negocio, con formularios y tablas listos para usar.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============ ARMÁ TU SISTEMA (interactivo) ============ -->
+    <section class="seccion seccion--tono" id="bloques">
+      <div class="contenedor armador">
+        <div class="armador__texto revelar">
+          <p class="sobretitulo">Probalo acá</p>
+          <h2>Armá tu sistema en segundos.</h2>
+          <p>Tocá los bloques que necesita tu negocio y mirá cómo se ensamblan. Así de simple es construir en Ensambla.</p>
+
+          <div class="piezas" id="piezas" role="group" aria-label="Bloques disponibles">
+            <button type="button" class="pieza" data-bloque="Inventario" data-color="naranja" data-icono="▤">Inventario</button>
+            <button type="button" class="pieza" data-bloque="Pedidos" data-color="coral" data-icono="✓">Pedidos</button>
+            <button type="button" class="pieza" data-bloque="Clientes" data-color="arena" data-icono="◎">Clientes</button>
+            <button type="button" class="pieza" data-bloque="Proveedores" data-color="pizarra" data-icono="⇄">Proveedores</button>
+            <button type="button" class="pieza" data-bloque="Ventas" data-color="ambar" data-icono="$">Ventas</button>
+            <button type="button" class="pieza" data-bloque="Turnos" data-color="coral" data-icono="◷">Turnos</button>
+          </div>
+
+          <div class="armador__acciones">
+            <a href="#" data-app="registro" class="boton boton--primario">Crear este sistema</a>
+            <button type="button" class="boton boton--fantasma" id="reiniciar">Empezar de nuevo</button>
+          </div>
+        </div>
+
+        <div class="tablero revelar" style="--d:.1s">
+          <div class="tablero__barra">
+            <span class="tablero__puntos" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="tablero__titulo">Mi negocio</span>
+            <span class="tablero__contador" id="contador" aria-live="polite">0 bloques</span>
+          </div>
+          <div class="tablero__grilla" id="tablero">
+            <p class="tablero__vacio" id="vacio">
+              <span class="tablero__fantasma" aria-hidden="true"></span>
+              Elegí un bloque para empezar
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PLANTILLAS ============ -->
+    <section class="seccion" id="plantillas">
+      <div class="contenedor">
+        <header class="seccion__cabecera revelar">
+          <p class="sobretitulo">Plantillas</p>
+          <h2>No arranques de cero.</h2>
+          <p>Elegí una plantilla pensada para tu rubro y adaptala a tu forma de trabajar. O empezá en blanco, como prefieras.</p>
+        </header>
+
+        <div class="plantillas">
+          <article class="plantilla revelar" style="--d:0s">
+            <div class="plantilla__mini plantilla__mini--naranja" aria-hidden="true">
+              <span></span><span></span><span></span><span></span>
+            </div>
+            <h3>Inventario</h3>
+            <p>Productos, stock, precios y alertas cuando algo se está por terminar.</p>
+            <ul class="campos">
+              <li>Texto</li><li>Número</li><li>Precio</li><li>Categoría</li>
+            </ul>
+            <a href="#" data-app="registro" class="enlace">Usar plantilla <span aria-hidden="true">→</span></a>
+          </article>
+
+          <article class="plantilla revelar" style="--d:.1s">
+            <div class="plantilla__mini plantilla__mini--coral" aria-hidden="true">
+              <span></span><span></span><span></span><span></span>
+            </div>
+            <h3>Pedidos</h3>
+            <p>Seguí cada pedido desde que entra hasta que se entrega, con estados claros.</p>
+            <ul class="campos">
+              <li>Fecha</li><li>Estado</li><li>Cliente</li><li>Total</li>
+            </ul>
+            <a href="#" data-app="registro" class="enlace">Usar plantilla <span aria-hidden="true">→</span></a>
+          </article>
+
+          <article class="plantilla revelar" style="--d:.2s">
+            <div class="plantilla__mini plantilla__mini--pizarra" aria-hidden="true">
+              <span></span><span></span><span></span><span></span>
+            </div>
+            <h3>Clientes</h3>
+            <p>Datos de contacto, historial de compras y notas de cada cliente en un solo lugar.</p>
+            <ul class="campos">
+              <li>Nombre</li><li>Email</li><li>Teléfono</li><li>Notas</li>
+            </ul>
+            <a href="#" data-app="registro" class="enlace">Usar plantilla <span aria-hidden="true">→</span></a>
+          </article>
+
+          <article class="plantilla plantilla--blanco revelar" style="--d:.3s">
+            <div class="plantilla__mini plantilla__mini--vacia" aria-hidden="true">
+              <span>+</span>
+            </div>
+            <h3>En blanco</h3>
+            <p>Tu negocio es único. Armá tu sistema desde la primera pieza.</p>
+            <a href="#" data-app="registro" class="enlace">Empezar en blanco <span aria-hidden="true">→</span></a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PILARES ============ -->
+    <section class="seccion seccion--oscura">
+      <div class="contenedor">
+        <header class="seccion__cabecera revelar">
+          <p class="sobretitulo">Por qué Ensambla</p>
+          <h2>Simple hoy.<br>Listo para crecer mañana.</h2>
+        </header>
+
+        <div class="pilares">
+          <article class="pilar revelar" style="--d:0s">
+            <span class="pilar__num">01</span>
+            <span class="pilar__tag">Piezas</span>
+            <h3>Modularidad</h3>
+            <p>Cada parte de tu negocio es un bloque independiente que podés sumar, mover o quitar cuando quieras.</p>
+          </article>
+          <article class="pilar revelar" style="--d:.1s">
+            <span class="pilar__num">02</span>
+            <span class="pilar__tag">Orden</span>
+            <h3>Simplicidad</h3>
+            <p>Formularios y tablas que se generan solos. Sin jerga técnica, sin manuales eternos.</p>
+          </article>
+          <article class="pilar revelar" style="--d:.2s">
+            <span class="pilar__num">03</span>
+            <span class="pilar__tag">Crecimiento</span>
+            <h3>Escalabilidad</h3>
+            <p>Empezá con un bloque. Cuando tu negocio crezca, tu sistema crece con él.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ COMENTARIOS ============ -->
+    <section class="seccion" id="comentarios">
+      <div class="contenedor">
+        <header class="seccion__cabecera revelar">
+          <p class="sobretitulo">Comentarios</p>
+          <h2>Lo que dicen quienes<br>ya ensamblan.</h2>
+          <p>Negocios reales que ordenaron su día a día, un bloque a la vez.</p>
+        </header>
+
+        <div class="comentarios" id="lista-comentarios">
+          <article class="comentario revelar" style="--d:0s">
+            <div class="puntaje" aria-label="Puntaje: 5 de 5"><i></i><i></i><i></i><i></i><i></i></div>
+            <blockquote>“Antes llevaba el stock en un cuaderno. Ahora armé el inventario en una tarde y sé qué reponer sin contar cajas.”</blockquote>
+            <footer>
+              <span class="avatar avatar--naranja" aria-hidden="true">L</span>
+              <div><b>Laura M.</b><small>Almacén de barrio</small></div>
+            </footer>
+          </article>
+          <article class="comentario revelar" style="--d:.1s">
+            <div class="puntaje" aria-label="Puntaje: 5 de 5"><i></i><i></i><i></i><i></i><i></i></div>
+            <blockquote>“Conectamos pedidos con clientes y se terminaron los mensajes perdidos. Todo el equipo ve el mismo estado.”</blockquote>
+            <footer>
+              <span class="avatar avatar--coral" aria-hidden="true">D</span>
+              <div><b>Diego R.</b><small>Distribuidora de bebidas</small></div>
+            </footer>
+          </article>
+          <article class="comentario revelar" style="--d:.2s">
+            <div class="puntaje" aria-label="Puntaje: 4 de 5"><i></i><i></i><i></i><i></i><i class="off"></i></div>
+            <blockquote>“No sé programar y no lo necesité. Empecé con la plantilla de clientes y la fui adaptando a mi estudio.”</blockquote>
+            <footer>
+              <span class="avatar avatar--pizarra" aria-hidden="true">C</span>
+              <div><b>Carla S.</b><small>Estudio de diseño</small></div>
+            </footer>
+          </article>
+        </div>
+
+        <div class="opinar revelar">
+          <div class="opinar__texto">
+            <h3>Dejanos tu comentario</h3>
+            <p>¿Probaste Ensambla o tenés una idea para un bloque nuevo? Contanos.</p>
+          </div>
+          <form class="formulario" id="formulario" novalidate>
+            <div class="formulario__fila">
+              <label class="campo">
+                <span>Nombre</span>
+                <input type="text" name="nombre" autocomplete="given-name" required maxlength="40" placeholder="Tu nombre">
+              </label>
+              <label class="campo">
+                <span>Negocio <em>(opcional)</em></span>
+                <input type="text" name="negocio" maxlength="50" placeholder="Ej.: Ferretería del centro">
+              </label>
+            </div>
+            <fieldset class="campo campo--puntaje">
+              <legend>Puntaje</legend>
+              <div class="selector-puntaje" id="selector-puntaje">
+                <input type="radio" name="puntaje" id="p1" value="1"><label for="p1" aria-label="1 bloque"></label>
+                <input type="radio" name="puntaje" id="p2" value="2"><label for="p2" aria-label="2 bloques"></label>
+                <input type="radio" name="puntaje" id="p3" value="3"><label for="p3" aria-label="3 bloques"></label>
+                <input type="radio" name="puntaje" id="p4" value="4"><label for="p4" aria-label="4 bloques"></label>
+                <input type="radio" name="puntaje" id="p5" value="5" checked><label for="p5" aria-label="5 bloques"></label>
+              </div>
+            </fieldset>
+            <label class="campo">
+              <span>Comentario</span>
+              <textarea name="comentario" rows="3" required maxlength="280" placeholder="¿Qué te pareció?"></textarea>
+            </label>
+            <div class="formulario__pie">
+              <p class="formulario__mensaje" id="mensaje" role="status"></p>
+              <button type="submit" class="boton boton--primario">Publicar comentario</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ LLAMADA FINAL ============ -->
+    <section class="seccion seccion--final" id="empezar">
+      <div class="contenedor">
+        <div class="final revelar">
+          <div class="final__bloques" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="final__texto">
+            <h2>Tu primer bloque te está esperando.</h2>
+            <p>Creá tu cuenta gratis y armá el sistema de tu negocio hoy mismo.</p>
+          </div>
+          <div class="final__acciones">
+            <a href="#" data-app="registro" class="boton boton--primario boton--grande">Empezar gratis</a>
+            <a href="#" data-app="login" class="boton boton--claro">Ya tengo cuenta</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ PIE ============ -->
+  <footer class="pie">
+    <div class="contenedor pie__grilla">
+      <div class="pie__marca">
+        <a href="#inicio" class="marca" aria-label="Ensambla, volver al inicio">
+          <svg class="marca__iso" aria-hidden="true"><use href="#isotipo"/></svg>
+          <span class="marca__nombre">Ensambla</span>
+        </a>
+        <p>Tu sistema, un bloque a la vez.</p>
+      </div>
+      <nav class="pie__nav" aria-label="Pie de página">
+        <div>
+          <h4>Producto</h4>
+          <a href="#como-funciona">Cómo funciona</a>
+          <a href="#bloques">Bloques</a>
+          <a href="#plantillas">Plantillas</a>
+        </div>
+        <div>
+          <h4>Cuenta</h4>
+          <a href="#" data-app="registro">Crear cuenta</a>
+          <a href="#" data-app="login">Ingresar</a>
+          <a href="#comentarios">Comentarios</a>
+        </div>
+      </nav>
+    </div>
+    <div class="contenedor pie__legal">
+      <p>© <span id="anio">2026</span> Ensambla · Trabajo Práctico Integrador · UNLaM</p>
+      <a href="#inicio" class="arriba">Volver arriba ↑</a>
+    </div>
+  </footer>
+
+  <script src="assets/js/main.js" defer></script>
+</body>
+</html>
