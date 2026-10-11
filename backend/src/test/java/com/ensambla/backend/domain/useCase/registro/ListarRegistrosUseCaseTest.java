@@ -1,5 +1,8 @@
 package com.ensambla.backend.domain.useCase.registro;
 
+import com.ensambla.backend.domain.model.registro.TotalesRegistros;
+import java.util.Map;
+import java.math.BigDecimal;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosRequest;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosResponse;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
@@ -25,6 +28,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.entry;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -67,6 +73,8 @@ class ListarRegistrosUseCaseTest {
         givenBloqueOfNegocioWithCampo();
         when(registroDatosService.listar(any(ConsultaRegistros.class)))
                 .thenReturn(new Pagina<>(List.of(Registro.builder().id(REGISTRO_ID).build()), 1, 5, 6));
+        when(registroDatosService.totales(any(ConsultaRegistros.class), anyList(), eq(6L)))
+                .thenReturn(new TotalesRegistros(6, Map.of(CAMPO_ID, new BigDecimal("30"))));
 
         ListarRegistrosResponse response = listarRegistrosUseCase.execute(new ListarRegistrosRequest(
                 USUARIO_ID, BLOQUE_ID, " harina ", CAMPO_ID.toString(), "asc", 1, 5));
@@ -83,6 +91,8 @@ class ListarRegistrosUseCaseTest {
         assertThat(response.contenido()).extracting("id").containsExactly(REGISTRO_ID);
         assertThat(response.totalElementos()).isEqualTo(6);
         assertThat(response.totalPaginas()).isEqualTo(2);
+        assertThat(response.totales().cantidad()).isEqualTo(6);
+        assertThat(response.totales().sumas()).containsOnly(entry(CAMPO_ID, new BigDecimal("30")));
     }
 
     @Test

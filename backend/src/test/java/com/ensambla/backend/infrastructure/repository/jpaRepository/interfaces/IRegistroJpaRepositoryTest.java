@@ -1,5 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces;
 
+import java.util.stream.Collectors;
+import java.math.BigDecimal;
 import com.ensambla.backend.domain.model.enums.TipoCampo;
 import com.ensambla.backend.infrastructure.repository.entity.RegistroEntity;
 import com.ensambla.backend.support.PostgresDatosTestSupport;
@@ -215,5 +217,63 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
         Map<String, Object> valores = new HashMap<>();
         valores.put(campoId.toString(), valor);
         return valores;
+    }
+
+    @Test
+    @DisplayName("Suma los valores numéricos de cada campo y no cuenta los registros que no lo cargaron")
+    void sumarNumericosShouldAddNumbersPerCampo() {
+        givenRegistro(negocioA, bloqueA, valores(campoCantidad, 10), hace(3));
+        givenRegistro(negocioA, bloqueA, valores(campoCantidad, 5.5), hace(2));
+        givenRegistro(negocioA, bloqueA, valores(campoNombre, "Sin cantidad"), hace(1));
+
+        Map<String, BigDecimal> sumas = sumasPorCampo(registros.sumarNumericos(
+                negocioA, bloqueA, null, List.of(campoCantidad.toString())));
+
+        assertThat(sumas).containsOnlyKeys(campoCantidad.toString());
+        assertThat(sumas.get(campoCantidad.toString())).isEqualByComparingTo("15.5");
+    }
+
+    @Test
+    @DisplayName("Suma sólo lo que cumple la búsqueda y deja afuera otros bloques y otros negocios")
+    void sumarNumericosShouldRespectSearchBloqueAndNegocio() {
+        givenRegistro(negocioA, bloqueA, producto("Harina 000", 40), hace(4));
+        givenRegistro(negocioA, bloqueA, producto("Azúcar", 7), hace(3));
+        givenRegistro(negocioA, givenBloque(negocioA, "Clientes"), producto("Harina 000", 100), hace(2));
+        givenRegistro(negocioB, givenBloque(negocioB, "Productos"), producto("Harina 000", 1000), hace(1));
+
+        Map<String, BigDecimal> conBusqueda = sumasPorCampo(registros.sumarNumericos(
+                negocioA, bloqueA, "%HARINA%", List.of(campoCantidad.toString())));
+        Map<String, BigDecimal> sinBusqueda = sumasPorCampo(registros.sumarNumericos(
+                negocioA, bloqueA, null, List.of(campoCantidad.toString())));
+
+        assertThat(conBusqueda.get(campoCantidad.toString())).isEqualByComparingTo("40");
+        assertThat(sinBusqueda.get(campoCantidad.toString())).isEqualByComparingTo("47");
+    }
+
+    @Test
+    @DisplayName("Sólo suma los campos pedidos y un campo sin números queda en cero")
+    void sumarNumericosShouldOnlyReturnRequestedCamposAndZeroWithoutNumbers() {
+        Map<String, Object> registro = producto("Texto", 3);
+        registro.put(campoActivo.toString(), true);
+        givenRegistro(negocioA, bloqueA, registro, hace(1));
+
+        Map<String, BigDecimal> sumas = sumasPorCampo(registros.sumarNumericos(
+                negocioA, bloqueA, null, List.of(campoCantidad.toString(), campoNombre.toString())));
+
+        assertThat(sumas).containsOnlyKeys(campoCantidad.toString(), campoNombre.toString());
+        assertThat(sumas.get(campoCantidad.toString())).isEqualByComparingTo("3");
+        assertThat(sumas.get(campoNombre.toString())).isEqualByComparingTo("0");
+    }
+
+    private Map<String, Object> producto(String nombre, Object cantidad) {
+        Map<String, Object> valores = valores(campoNombre, nombre);
+        valores.put(campoCantidad.toString(), cantidad);
+        return valores;
+    }
+
+    private Map<String, BigDecimal> sumasPorCampo(List<IRegistroJpaRepository.SumaPorCampo> filas) {
+        return filas.stream().collect(Collectors.toMap(
+                IRegistroJpaRepository.SumaPorCampo::getCampo,
+                IRegistroJpaRepository.SumaPorCampo::getSuma));
     }
 }
