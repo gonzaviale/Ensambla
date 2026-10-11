@@ -46,6 +46,12 @@ public class LoteSubidaRepositoryImpl implements LoteSubidaRepository {
     }
 
     @Override
+    public Optional<FotoCuaderno> findFotoByIdAndNegocioId(UUID fotoId, UUID negocioId) {
+        return fotoCuadernoJpaRepository.findByIdAndNegocioId(fotoId, negocioId)
+                .map(loteSubidaRepositoryMapper::toDomain);
+    }
+
+    @Override
     public Optional<LoteSubida> findByIdAndNegocioId(UUID loteId, UUID negocioId) {
         return loteSubidaJpaRepository.findByIdAndNegocioId(loteId, negocioId)
                 .map(loteSubidaRepositoryMapper::toDomain)

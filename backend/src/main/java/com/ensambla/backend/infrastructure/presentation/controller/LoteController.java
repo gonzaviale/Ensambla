@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.useCase.lote.ObtenerFotoLoteUseCase;
 import com.ensambla.backend.domain.useCase.lote.ObtenerLoteUseCase;
 import com.ensambla.backend.domain.useCase.lote.SubirLoteUseCase;
 import com.ensambla.backend.infrastructure.presentation.dto.lote.LoteResponse;
@@ -32,6 +33,8 @@ public class LoteController {
 
     private final ObtenerLoteUseCase obtenerLoteUseCase;
 
+    private final ObtenerFotoLoteUseCase obtenerFotoLoteUseCase;
+
     private final LotePresentationMapper lotePresentationMapper;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -41,6 +44,14 @@ public class LoteController {
         LoteResponse response = lotePresentationMapper.toResponse(subirLoteUseCase.execute(
                 lotePresentationMapper.toSubirRequest(UUID.fromString(authentication.getName()), fotos)));
         return ResponseEntity.created(URI.create("/api/lotes/" + response.id())).body(response);
+    }
+
+    @GetMapping("/{loteId}/fotos/{fotoId}")
+    @Operation(summary = "Ver una página subida del lote; sólo la ve el negocio dueño")
+    public ResponseEntity<byte[]> foto(
+            Authentication authentication, @PathVariable UUID loteId, @PathVariable UUID fotoId) {
+        return RespuestaFoto.de(obtenerFotoLoteUseCase.execute(lotePresentationMapper.toFotoRequest(
+                UUID.fromString(authentication.getName()), loteId, fotoId)));
     }
 
     @GetMapping("/{loteId}")

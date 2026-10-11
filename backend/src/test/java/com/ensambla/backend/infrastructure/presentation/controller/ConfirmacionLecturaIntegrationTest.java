@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.Filter;
@@ -24,12 +25,15 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static com.ensambla.backend.support.LoteTestData.JPEG;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -62,6 +66,9 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private ArchivoCuadernoPort archivoCuadernoPort;
+
     private MockMvc mockMvc;
     private UUID usuarioId;
     private UUID negocioId;
@@ -69,6 +76,7 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
     private UUID fotoId;
     private MockHttpSession sesion;
     private String csrfToken;
+    private final List<String> clavesGuardadas = new ArrayList<>();
 
     @BeforeEach
     void setUp() throws Exception {
@@ -86,6 +94,7 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
 
     @AfterEach
     void tearDown() {
+        clavesGuardadas.forEach(clave -> archivoCuadernoPort.eliminar(negocioId, clave));
         jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId);
         jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId);
     }
@@ -240,12 +249,98 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
         }
     }
 
+    @Test
+    @DisplayName("Sirve la foto de un lote del negocio con su tipo")
+    void fotoShouldServeFotoOfOwnLote() throws Exception {
+        mockMvc.perform(get("/api/lotes/{id}/fotos/{fotoId}", loteId, fotoId).session(sesion))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("image/jpeg"))
+                .andExpect(content().bytes(JPEG));
+    }
 
+    @Test
+    @DisplayName("Pedir una foto sin sesión devuelve 401")
+    void fotoShouldRequireSession() throws Exception {
+        mockMvc.perform(get("/api/lotes/{id}/fotos/{fotoId}", loteId, fotoId))
+                .andExpect(status().isUnauthorized());
+    }
 
+    @Test
+    @DisplayName("Una foto que no es del lote devuelve 404")
+    void fotoShouldReturn404WhenFotoIsNotInLote() throws Exception {
+        mockMvc.perform(get("/api/lotes/{id}/fotos/{fotoId}", loteId, UUID.randomUUID()).session(sesion))
+                .andExpect(status().isNotFound());
+    }
 
+    @Test
+    @DisplayName("La foto de un lote de otro negocio devuelve 404")
+    void fotoShouldHideFotoOfForeignNegocio() throws Exception {
+        UUID otroUsuario = UUID.randomUUID();
+        UUID otroNegocio = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Otra persona')",
+                otroUsuario, otroUsuario + "@example.test");
+        jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Otro', ?)",
+                otroNegocio, otroUsuario);
+        MockHttpSession sesionAjena = givenSesion(otroUsuario);
 
+        try {
+            mockMvc.perform(get("/api/lotes/{id}/fotos/{fotoId}", loteId, fotoId).session(sesionAjena))
+                    .andExpect(status().isNotFound());
+        } finally {
+            jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", otroNegocio);
+            jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", otroUsuario);
+        }
+    }
 
+    @Test
+    @DisplayName("Un registro confirmado expone su foto de origen y se puede ver")
+    void fotoOrigenShouldServeFotoOfConfirmedRegistro() throws Exception {
+        confirmar(loteId, CUERPO_NUEVO).andExpect(status().isCreated());
+        UUID registroId = registroConFoto();
 
+        mockMvc.perform(get("/api/registros/{id}", registroId).session(sesion))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fotoOrigenId").value(fotoId.toString()));
+        mockMvc.perform(get("/api/registros/{id}/foto-origen", registroId).session(sesion))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("image/jpeg"))
+                .andExpect(content().bytes(JPEG));
+    }
+
+    @Test
+    @DisplayName("Un registro cargado a mano no tiene foto de origen y devuelve 404")
+    void fotoOrigenShouldReturn404WhenRegistroHasNoFoto() throws Exception {
+        confirmar(loteId, CUERPO_NUEVO).andExpect(status().isCreated());
+        UUID registroId = jdbcTemplate.queryForObject(
+                "SELECT id FROM registro WHERE negocio_id = ? AND foto_origen_id IS NULL", UUID.class, negocioId);
+
+        mockMvc.perform(get("/api/registros/{id}", registroId).session(sesion))
+                .andExpect(jsonPath("$.fotoOrigenId").isEmpty());
+        mockMvc.perform(get("/api/registros/{id}/foto-origen", registroId).session(sesion))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("La foto de origen de un registro de otro negocio devuelve 404")
+    void fotoOrigenShouldHideRegistroOfForeignNegocio() throws Exception {
+        confirmar(loteId, CUERPO_NUEVO).andExpect(status().isCreated());
+        UUID registroId = registroConFoto();
+        UUID otroUsuario = UUID.randomUUID();
+        UUID otroNegocio = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Otra persona')",
+                otroUsuario, otroUsuario + "@example.test");
+        jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Otro', ?)",
+                otroNegocio, otroUsuario);
+        MockHttpSession sesionAjena = givenSesion(otroUsuario);
+
+        try {
+            mockMvc.perform(get("/api/registros/{id}/foto-origen", registroId).session(sesionAjena))
+                    .andExpect(status().isNotFound());
+        } finally {
+            jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", otroNegocio);
+            jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", otroUsuario);
+        }
+    }
 
     @Test
     @DisplayName("Un body sin columnas devuelve 400")
@@ -257,12 +352,15 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
     // --- arrange ---
     private UUID givenLote(String estado, UUID foto) {
         UUID id = UUID.randomUUID();
+        String clave = negocioId + "/fotos/" + foto + ".jpg";
         jdbcTemplate.update("INSERT INTO lote_subida (id, negocio_id, estado) VALUES (?, ?, ?)", id, negocioId, estado);
         jdbcTemplate.update("""
                 INSERT INTO foto_cuaderno (id, negocio_id, lote_id, clave_almacenamiento, tipo_contenido,
                                            tamanio_bytes, posicion)
-                VALUES (?, ?, ?, ?, 'image/jpeg', 10, 0)
-                """, foto, negocioId, id, negocioId + "/fotos/" + foto + ".jpg");
+                VALUES (?, ?, ?, ?, 'image/jpeg', ?, 0)
+                """, foto, negocioId, id, clave, JPEG.length);
+        archivoCuadernoPort.guardar(negocioId, clave, JPEG);
+        clavesGuardadas.add(clave);
         return id;
     }
 
@@ -297,6 +395,11 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
     private int contarConFoto(UUID foto) {
         return jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM registro WHERE foto_origen_id = ?", Integer.class, foto);
+    }
+
+    private UUID registroConFoto() {
+        return jdbcTemplate.queryForObject(
+                "SELECT id FROM registro WHERE negocio_id = ? AND foto_origen_id = ?", UUID.class, negocioId, fotoId);
     }
 
     private String estadoDelLote(UUID lote) {

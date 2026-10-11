@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.useCase.registro.CrearRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.EditarRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.EliminarRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.ListarRegistrosUseCase;
+import com.ensambla.backend.domain.useCase.registro.ObtenerFotoOrigenUseCase;
 import com.ensambla.backend.domain.useCase.registro.ObtenerRegistroUseCase;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.PaginaRegistrosResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.RegistroRequest;
@@ -39,6 +40,7 @@ public class RegistroController {
     private final ObtenerRegistroUseCase obtenerRegistroUseCase;
     private final EditarRegistroUseCase editarRegistroUseCase;
     private final EliminarRegistroUseCase eliminarRegistroUseCase;
+    private final ObtenerFotoOrigenUseCase obtenerFotoOrigenUseCase;
     private final RegistroPresentationMapper presentationMapper;
 
     @PostMapping("/bloques/{bloqueId}/registros")
@@ -72,6 +74,13 @@ public class RegistroController {
         RegistroResponse response = presentationMapper.toResponse(obtenerRegistroUseCase.execute(
                 presentationMapper.toObtenerRequest(usuarioDe(authentication), id)));
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/registros/{id}/foto-origen")
+    @Operation(summary = "Ver la foto del cuaderno de la que salió el registro")
+    public ResponseEntity<byte[]> fotoOrigen(Authentication authentication, @PathVariable UUID id) {
+        return RespuestaFoto.de(obtenerFotoOrigenUseCase.execute(
+                presentationMapper.toFotoOrigenRequest(usuarioDe(authentication), id)));
     }
 
     @PatchMapping("/registros/{id}")

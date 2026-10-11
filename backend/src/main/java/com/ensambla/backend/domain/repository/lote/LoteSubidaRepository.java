@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.repository.lote;
 
+import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
 
 import java.time.OffsetDateTime;
@@ -16,6 +17,9 @@ public interface LoteSubidaRepository {
      * o ya no estaba LISTO (por ejemplo, otra confirmación se adelantó), así dos confirmaciones no se pisan.
      */
     boolean confirmar(UUID loteId, UUID negocioId, UUID bloqueDestinoId, OffsetDateTime ahora);
+
+    /** La foto sólo si es del negocio; una foto ajena se comporta como inexistente. */
+    Optional<FotoCuaderno> findFotoByIdAndNegocioId(UUID fotoId, UUID negocioId);
 
     /** El lote con sus fotos ordenadas por posición, sólo si es del negocio. */
     Optional<LoteSubida> findByIdAndNegocioId(UUID loteId, UUID negocioId);

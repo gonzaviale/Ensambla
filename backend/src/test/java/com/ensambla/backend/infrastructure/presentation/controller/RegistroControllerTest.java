@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.dto.lote.FotoArchivoResponse;
 import com.ensambla.backend.domain.dto.registro.CrearRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.CrearRegistroResponse;
 import com.ensambla.backend.domain.dto.registro.EditarRegistroRequest;
@@ -7,6 +8,7 @@ import com.ensambla.backend.domain.dto.registro.EditarRegistroResponse;
 import com.ensambla.backend.domain.dto.registro.EliminarRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosRequest;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosResponse;
+import com.ensambla.backend.domain.dto.registro.ObtenerFotoOrigenRequest;
 import com.ensambla.backend.domain.dto.registro.ObtenerRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.ObtenerRegistroResponse;
 import com.ensambla.backend.domain.dto.registro.RegistroItem;
@@ -16,6 +18,7 @@ import com.ensambla.backend.domain.useCase.registro.CrearRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.EditarRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.EliminarRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.ListarRegistrosUseCase;
+import com.ensambla.backend.domain.useCase.registro.ObtenerFotoOrigenUseCase;
 import com.ensambla.backend.domain.useCase.registro.ObtenerRegistroUseCase;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.registro.RegistroPresentationMapper;
@@ -46,6 +49,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -56,7 +60,7 @@ class RegistroControllerTest {
     private static final UUID REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
     private static final RegistroItem ITEM = new RegistroItem(
-            REGISTRO_ID, BLOQUE_ID, Map.of("campo", "dato"), AHORA, AHORA);
+            REGISTRO_ID, BLOQUE_ID, Map.of("campo", "dato"), null, AHORA, AHORA);
     private static final String CUERPO = "{\"valores\":{\"campo\":\"dato\"}}";
 
     private final Principal sesion = new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
@@ -66,6 +70,7 @@ class RegistroControllerTest {
     private ObtenerRegistroUseCase obtenerRegistroUseCase;
     private EditarRegistroUseCase editarRegistroUseCase;
     private EliminarRegistroUseCase eliminarRegistroUseCase;
+    private ObtenerFotoOrigenUseCase obtenerFotoOrigenUseCase;
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -75,12 +80,14 @@ class RegistroControllerTest {
         obtenerRegistroUseCase = mock(ObtenerRegistroUseCase.class);
         editarRegistroUseCase = mock(EditarRegistroUseCase.class);
         eliminarRegistroUseCase = mock(EliminarRegistroUseCase.class);
+        obtenerFotoOrigenUseCase = mock(ObtenerFotoOrigenUseCase.class);
         mockMvc = MockMvcBuilders.standaloneSetup(new RegistroController(
                         crearRegistroUseCase,
                         listarRegistrosUseCase,
                         obtenerRegistroUseCase,
                         editarRegistroUseCase,
                         eliminarRegistroUseCase,
+                        obtenerFotoOrigenUseCase,
                         new RegistroPresentationMapper()))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -104,6 +111,32 @@ class RegistroControllerTest {
         assertThat(request.getValue().usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(request.getValue().bloqueId()).isEqualTo(BLOQUE_ID);
         assertThat(request.getValue().valores()).containsEntry("campo", "dato");
+    }
+
+    @Test
+    @DisplayName("GET de la foto de origen devuelve sus bytes y pasa el usuario de la sesión")
+    void fotoOrigenShouldReturnBytesAndPassSessionUser() throws Exception {
+        byte[] bytes = {1, 2, 3};
+        when(obtenerFotoOrigenUseCase.execute(any(ObtenerFotoOrigenRequest.class)))
+                .thenReturn(new FotoArchivoResponse(bytes, "image/png"));
+
+        ResultActions result = mockMvc.perform(get("/api/registros/{id}/foto-origen", REGISTRO_ID).principal(sesion));
+
+        result.andExpect(status().isOk())
+                .andExpect(content().contentType("image/png"))
+                .andExpect(content().bytes(bytes));
+        verify(obtenerFotoOrigenUseCase).execute(new ObtenerFotoOrigenRequest(USUARIO_ID, REGISTRO_ID));
+    }
+
+    @Test
+    @DisplayName("GET de la foto de origen devuelve 404 cuando el registro no tiene foto")
+    void fotoOrigenShouldReturn404WhenRegistroHasNoFoto() throws Exception {
+        when(obtenerFotoOrigenUseCase.execute(any(ObtenerFotoOrigenRequest.class)))
+                .thenThrow(new ResourceNotFoundException("El registro no tiene foto de origen"));
+
+        ResultActions result = mockMvc.perform(get("/api/registros/{id}/foto-origen", REGISTRO_ID).principal(sesion));
+
+        result.andExpect(status().isNotFound());
     }
 
     @Test

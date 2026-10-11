@@ -1,17 +1,20 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
+import com.ensambla.backend.domain.mapper.lote.FotoArchivoMapper;
 import com.ensambla.backend.domain.mapper.registro.CrearRegistroMapper;
 import com.ensambla.backend.domain.mapper.registro.EditarRegistroMapper;
 import com.ensambla.backend.domain.mapper.registro.ListarRegistrosMapper;
 import com.ensambla.backend.domain.mapper.registro.ObtenerRegistroMapper;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
+import com.ensambla.backend.domain.service.lote.LoteSubidaService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.registro.CrearRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.EditarRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.EliminarRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.ListarRegistrosUseCase;
+import com.ensambla.backend.domain.useCase.registro.ObtenerFotoOrigenUseCase;
 import com.ensambla.backend.domain.useCase.registro.ObtenerRegistroUseCase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -77,6 +80,15 @@ public class RegistroUseCaseConfig {
                                                        Clock clock) {
         return new EditarRegistroUseCase(negocioService, campoService, registroDatosService, editarRegistroMapper,
                 clock);
+    }
+
+    @Bean
+    public ObtenerFotoOrigenUseCase obtenerFotoOrigenUseCase(NegocioService negocioService,
+                                                             RegistroDatosService registroDatosService,
+                                                             LoteSubidaService loteSubidaService,
+                                                             FotoArchivoMapper fotoArchivoMapper) {
+        return new ObtenerFotoOrigenUseCase(
+                negocioService, registroDatosService, loteSubidaService, fotoArchivoMapper);
     }
 
     @Bean

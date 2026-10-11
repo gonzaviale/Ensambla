@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.dto.registro.EditarRegistroResponse;
 import com.ensambla.backend.domain.dto.registro.EliminarRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosRequest;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosResponse;
+import com.ensambla.backend.domain.dto.registro.ObtenerFotoOrigenRequest;
 import com.ensambla.backend.domain.dto.registro.ObtenerRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.ObtenerRegistroResponse;
 import com.ensambla.backend.domain.dto.registro.RegistroItem;
@@ -28,6 +29,7 @@ class RegistroPresentationMapperTest {
     private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
     private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
     private static final UUID REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
+    private static final UUID FOTO_ID = UUID.fromString("f0000000-0000-4000-8000-000000000001");
     private static final Map<String, Object> VALORES = Map.of("campo", "dato");
     private static final OffsetDateTime CREADO = OffsetDateTime.parse("2026-10-09T12:00:00Z");
     private static final OffsetDateTime ACTUALIZADO = OffsetDateTime.parse("2026-10-10T12:00:00Z");
@@ -79,6 +81,15 @@ class RegistroPresentationMapperTest {
     }
 
     @Test
+    @DisplayName("Arma el pedido de la foto de origen con el usuario y el registro")
+    void toFotoOrigenRequestShouldCarryUsuarioAndRegistro() {
+        ObtenerFotoOrigenRequest result = mapper.toFotoOrigenRequest(USUARIO_ID, REGISTRO_ID);
+
+        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
+        assertThat(result.registroId()).isEqualTo(REGISTRO_ID);
+    }
+
+    @Test
     @DisplayName("Arma el pedido de eliminar con el usuario y el registro")
     void toEliminarRequestShouldCarryUsuarioAndRegistro() {
         EliminarRegistroRequest result = mapper.toEliminarRequest(USUARIO_ID, REGISTRO_ID);
@@ -90,7 +101,7 @@ class RegistroPresentationMapperTest {
     @Test
     @DisplayName("Convierte la respuesta de crear, obtener y editar en el mismo registro web")
     void toResponseShouldMapSingleRegistroResponses() {
-        RegistroItem item = new RegistroItem(REGISTRO_ID, BLOQUE_ID, VALORES, CREADO, ACTUALIZADO);
+        RegistroItem item = new RegistroItem(REGISTRO_ID, BLOQUE_ID, VALORES, FOTO_ID, CREADO, ACTUALIZADO);
 
         RegistroResponse creado = mapper.toResponse(new CrearRegistroResponse(item));
         RegistroResponse obtenido = mapper.toResponse(new ObtenerRegistroResponse(item));
@@ -100,6 +111,7 @@ class RegistroPresentationMapperTest {
         assertThat(creado.id()).isEqualTo(REGISTRO_ID);
         assertThat(creado.bloqueId()).isEqualTo(BLOQUE_ID);
         assertThat(creado.valores()).isEqualTo(VALORES);
+        assertThat(creado.fotoOrigenId()).isEqualTo(FOTO_ID);
         assertThat(creado.creadoEn()).isEqualTo(CREADO);
         assertThat(creado.actualizadoEn()).isEqualTo(ACTUALIZADO);
     }
@@ -130,7 +142,7 @@ class RegistroPresentationMapperTest {
     // --- helpers ---
     private ListarRegistrosResponse pagina(int numero, int totalPaginas) {
         return new ListarRegistrosResponse(
-                List.of(new RegistroItem(REGISTRO_ID, BLOQUE_ID, VALORES, CREADO, ACTUALIZADO)),
+                List.of(new RegistroItem(REGISTRO_ID, BLOQUE_ID, VALORES, FOTO_ID, CREADO, ACTUALIZADO)),
                 numero,
                 20,
                 45,

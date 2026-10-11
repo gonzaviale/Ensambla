@@ -1,7 +1,9 @@
 package com.ensambla.backend.domain.service.lote;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.exception.LecturaCuadernoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.lote.ArchivoFoto;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
@@ -16,6 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static com.ensambla.backend.support.LoteTestData.AHORA;
+import static com.ensambla.backend.support.LoteTestData.FOTO_ID;
 import static com.ensambla.backend.support.LoteTestData.JPEG;
 import static com.ensambla.backend.support.LoteTestData.LOTE_ID;
 import static com.ensambla.backend.support.LoteTestData.NEGOCIO_ID;
@@ -110,10 +113,66 @@ class LoteSubidaServiceTest {
                 .hasMessage("Este cuaderno ya se guardó");
     }
 
+    @Test
+    @DisplayName("Lee los bytes de una foto del lote del negocio junto con su tipo")
+    void leerFotoDeLoteShouldReturnBytesAndType() {
+        givenLoteExists();
+        when(archivoCuadernoPort.leer(NEGOCIO_ID, LoteTestData.CLAVE)).thenReturn(JPEG);
 
+        ArchivoFoto result = loteSubidaService.leerFotoDeLote(NEGOCIO_ID, LOTE_ID, FOTO_ID);
 
+        assertThat(result.contenido()).isEqualTo(JPEG);
+        assertThat(result.tipoContenido()).isEqualTo("image/jpeg");
+    }
 
+    @Test
+    @DisplayName("Una foto que no es del lote responde como inexistente sin leer el archivo")
+    void leerFotoDeLoteShouldThrowWhenFotoIsNotInLote() {
+        givenLoteExists();
+        UUID otraFoto = UUID.fromString("00000000-0000-4000-8000-000000000099");
 
+        assertThatThrownBy(() -> loteSubidaService.leerFotoDeLote(NEGOCIO_ID, LOTE_ID, otraFoto))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Foto no encontrada");
+        verifyNoInteractions(archivoCuadernoPort);
+    }
+
+    @Test
+    @DisplayName("Lee los bytes de una foto del negocio por su id")
+    void leerFotoShouldReturnBytesAndType() {
+        when(loteSubidaRepository.findFotoByIdAndNegocioId(FOTO_ID, NEGOCIO_ID))
+                .thenReturn(Optional.of(LoteTestData.foto()));
+        when(archivoCuadernoPort.leer(NEGOCIO_ID, LoteTestData.CLAVE)).thenReturn(PNG);
+
+        ArchivoFoto result = loteSubidaService.leerFoto(NEGOCIO_ID, FOTO_ID);
+
+        assertThat(result.contenido()).isEqualTo(PNG);
+        assertThat(result.tipoContenido()).isEqualTo("image/jpeg");
+    }
+
+    @Test
+    @DisplayName("Una foto registrada cuyo archivo falta responde como no disponible")
+    void leerFotoShouldThrowNotFoundWhenFileIsMissing() {
+        when(loteSubidaRepository.findFotoByIdAndNegocioId(FOTO_ID, NEGOCIO_ID))
+                .thenReturn(Optional.of(LoteTestData.foto()));
+        when(archivoCuadernoPort.leer(NEGOCIO_ID, LoteTestData.CLAVE))
+                .thenThrow(new LecturaCuadernoException("No se pudo acceder a la foto privada del lote"));
+
+        assertThatThrownBy(() -> loteSubidaService.leerFoto(NEGOCIO_ID, FOTO_ID))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("La foto ya no está disponible");
+    }
+
+    @Test
+    @DisplayName("Una foto de otro negocio responde como inexistente sin leer el archivo")
+    void leerFotoShouldThrowWhenFotoBelongsToOtherNegocio() {
+        when(loteSubidaRepository.findFotoByIdAndNegocioId(FOTO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> loteSubidaService.leerFoto(NEGOCIO_ID, FOTO_ID))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Foto no encontrada");
+        verifyNoInteractions(archivoCuadernoPort);
+    }
 
     @Test
     @DisplayName("Devuelve el lote del negocio con sus fotos")

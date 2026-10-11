@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.model.registro;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
+import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.enums.TipoCampo;
 import org.junit.jupiter.api.DisplayName;
@@ -53,7 +54,24 @@ class RegistroTest {
         assertThat(registro.getCreadoEn()).isEqualTo(AHORA);
     }
 
+    @Test
+    @DisplayName("Devuelve la foto de origen del registro del cuaderno")
+    void exigirFotoOrigenShouldReturnFotoId() {
+        UUID fotoId = UUID.fromString("f0000000-0000-4000-8000-000000000001");
+        Registro registro = Registro.desdeCuaderno(NEGOCIO_ID, BLOQUE_ID, Map.of(), fotoId, AHORA);
 
+        assertThat(registro.exigirFotoOrigen()).isEqualTo(fotoId);
+    }
+
+    @Test
+    @DisplayName("Un registro cargado a mano no tiene foto de origen")
+    void exigirFotoOrigenShouldThrowWhenRegistroWasLoadedByHand() {
+        Registro registro = Registro.nuevo(NEGOCIO_ID, BLOQUE_ID, Map.of(), AHORA);
+
+        assertThatThrownBy(registro::exigirFotoOrigen)
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("El registro no tiene foto de origen");
+    }
 
     @Test
     @DisplayName("Valida y devuelve los valores de los campos sin espacios en los bordes")

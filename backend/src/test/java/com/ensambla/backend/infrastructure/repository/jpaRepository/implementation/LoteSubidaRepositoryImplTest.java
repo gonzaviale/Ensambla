@@ -74,7 +74,24 @@ class LoteSubidaRepositoryImplTest {
         assertThat(result).isFalse();
     }
 
+    @Test
+    @DisplayName("Trae una foto del negocio por su id")
+    void findFotoByIdAndNegocioIdShouldMapFoto() {
+        when(fotoCuadernoJpaRepository.findByIdAndNegocioId(FOTO_ID, NEGOCIO_ID))
+                .thenReturn(Optional.of(loteSubidaRepositoryMapper.toEntity(LoteTestData.foto())));
 
+        Optional<FotoCuaderno> result = loteSubidaRepositoryImpl.findFotoByIdAndNegocioId(FOTO_ID, NEGOCIO_ID);
+
+        assertThat(result).map(FotoCuaderno::getId).contains(FOTO_ID);
+    }
+
+    @Test
+    @DisplayName("Una foto de otro negocio no se encuentra")
+    void findFotoByIdAndNegocioIdShouldReturnEmptyWhenFotoIsForeign() {
+        when(fotoCuadernoJpaRepository.findByIdAndNegocioId(FOTO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+
+        assertThat(loteSubidaRepositoryImpl.findFotoByIdAndNegocioId(FOTO_ID, NEGOCIO_ID)).isEmpty();
+    }
 
     @Test
     @DisplayName("Trae el lote del negocio con sus fotos ordenadas")

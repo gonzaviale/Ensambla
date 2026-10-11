@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.model.registro;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
+import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.campo.Campo;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -80,6 +81,18 @@ public class Registro {
             throw new RegistroInvalidoException(errores);
         }
         return limpios;
+    }
+
+    /**
+     * Id de la foto de la que salió el registro.
+     *
+     * @throws ResourceNotFoundException si se cargó a mano y no tiene foto de origen
+     */
+    public UUID exigirFotoOrigen() {
+        if (fotoOrigenId == null) {
+            throw new ResourceNotFoundException("El registro no tiene foto de origen");
+        }
+        return fotoOrigenId;
     }
 
     /** Valores actuales con los cambios encima; un cambio {@code null} o en blanco borra el dato. */

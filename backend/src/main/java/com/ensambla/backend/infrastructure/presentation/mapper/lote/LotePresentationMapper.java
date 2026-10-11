@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.presentation.mapper.lote;
 
 import com.ensambla.backend.domain.dto.lote.LoteItem;
 import com.ensambla.backend.domain.dto.lote.LoteItem.FotoItem;
+import com.ensambla.backend.domain.dto.lote.ObtenerFotoLoteRequest;
 import com.ensambla.backend.domain.dto.lote.ObtenerLoteRequest;
 import com.ensambla.backend.domain.dto.lote.SubirLoteRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.lote.LoteResponse;
@@ -23,6 +24,10 @@ public class LotePresentationMapper {
 
     public ObtenerLoteRequest toObtenerRequest(UUID usuarioId, UUID loteId) {
         return new ObtenerLoteRequest(usuarioId, loteId);
+    }
+
+    public ObtenerFotoLoteRequest toFotoRequest(UUID usuarioId, UUID loteId, UUID fotoId) {
+        return new ObtenerFotoLoteRequest(usuarioId, loteId, fotoId);
     }
 
     public LoteResponse toResponse(LoteItem lote) {

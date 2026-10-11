@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.dto.registro.EditarRegistroResponse;
 import com.ensambla.backend.domain.dto.registro.EliminarRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosRequest;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosResponse;
+import com.ensambla.backend.domain.dto.registro.ObtenerFotoOrigenRequest;
 import com.ensambla.backend.domain.dto.registro.ObtenerRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.ObtenerRegistroResponse;
 import com.ensambla.backend.domain.dto.registro.RegistroItem;
@@ -35,6 +36,10 @@ public class RegistroPresentationMapper {
 
     public EditarRegistroRequest toEditarRequest(UUID usuarioId, UUID registroId, RegistroRequest request) {
         return new EditarRegistroRequest(usuarioId, registroId, request.valores());
+    }
+
+    public ObtenerFotoOrigenRequest toFotoOrigenRequest(UUID usuarioId, UUID registroId) {
+        return new ObtenerFotoOrigenRequest(usuarioId, registroId);
     }
 
     public EliminarRegistroRequest toEliminarRequest(UUID usuarioId, UUID registroId) {
@@ -66,6 +71,7 @@ public class RegistroPresentationMapper {
 
     private RegistroResponse toResponse(RegistroItem item) {
         return new RegistroResponse(
-                item.id(), item.bloqueId(), item.valores(), item.creadoEn(), item.actualizadoEn());
+                item.id(), item.bloqueId(), item.valores(), item.fotoOrigenId(), item.creadoEn(),
+                item.actualizadoEn());
     }
 }
