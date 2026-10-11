@@ -18,6 +18,10 @@ export const proyectoQuery = (id: string) =>
 export function useProyectos() {
   return useSuspenseQuery(proyectosQuery()).data;
 }
+// La lista de proyectos sin suspender la pantalla que la usa (por ejemplo, para elegir un destino).
+export function useProyectosDisponibles() {
+  return useQuery(proyectosQuery());
+}
 export function useProyecto(id: string) {
   return useSuspenseQuery(proyectoQuery(id)).data;
 }
