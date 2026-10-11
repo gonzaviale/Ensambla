@@ -2,6 +2,7 @@ import { useId } from 'react';
 import { cn } from '@/lib/cn';
 import {
   errorDeCelda,
+  esDudosa,
   opcionesLimpias,
   type CeldaRevision as Celda,
   type ColumnaRevision,
@@ -35,7 +36,8 @@ export function CeldaRevision({
 }: Props) {
   const avisoId = useId();
   const error = errorDeCelda(columna, celda) ?? errorServidor;
-  const aviso = error;
+  const dudosa = esDudosa(celda);
+  const aviso = error ?? (dudosa ? 'No estamos seguros de este dato.' : undefined);
   const propiedades = {
     id,
     'aria-label': `${columna.nombre}, fila ${numeroFila}`,
@@ -43,7 +45,7 @@ export function CeldaRevision({
     'aria-describedby': aviso ? avisoId : undefined,
     className: cn(
       controlBase,
-      error ? 'border-bad' : 'border-fg/16',
+      error ? 'border-bad' : dudosa ? 'border-warn bg-warn/10' : 'border-fg/16',
     ),
     onFocus: onEnfocar,
   };
@@ -52,7 +54,7 @@ export function CeldaRevision({
     <div className="flex flex-col gap-1">
       <Control columna={columna} celda={celda} onCambiar={onCambiar} propiedades={propiedades} />
       {aviso && (
-        <p id={avisoId} className="m-0 text-[12px] text-bad">
+        <p id={avisoId} className={cn('m-0 text-[12px]', error ? 'text-bad' : 'text-warn')}>
           {aviso}
         </p>
       )}

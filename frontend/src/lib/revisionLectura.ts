@@ -1,6 +1,11 @@
 import { esValorInicialValido, mismoNombre, opcionRepetida } from '@/lib/campos';
 import { MAX_NOMBRE_CAMPO, type TipoCampo } from '@/types/campo';
-import type { ConfirmarLectura, PropuestaLectura, ValorConfirmado } from '@/types/lectura';
+import {
+  UMBRAL_CONFIANZA,
+  type ConfirmarLectura,
+  type PropuestaLectura,
+  type ValorConfirmado,
+} from '@/types/lectura';
 
 // Lo que la persona va corrigiendo antes de guardar. Todo vive en el navegador: nada llega al
 // servidor hasta confirmar (H-30). Los valores se editan como texto y se tipan recién al enviar.
@@ -228,6 +233,15 @@ export function errorDeCelda(columna: ColumnaRevision, celda: CeldaRevision) {
   return valido ? undefined : MENSAJE_CELDA[columna.tipo];
 }
 
+/** Dato que la IA no leyó con seguridad y todavía nadie miró. */
+export function esDudosa(celda: CeldaRevision) {
+  if (celda.revisada || celda.confianza === null) return false;
+  return celda.texto.trim() === '' || celda.confianza < UMBRAL_CONFIANZA;
+}
+
+const pendiente = (columna: ColumnaRevision, celda: CeldaRevision) =>
+  esDudosa(celda) || errorDeCelda(columna, celda) !== undefined;
+
 function celdasEnOrden(borrador: BorradorRevision) {
   return borrador.filas.flatMap((fila) =>
     borrador.columnas.flatMap((columna) => {
@@ -235,6 +249,24 @@ function celdasEnOrden(borrador: BorradorRevision) {
       return celda ? [{ filaId: fila.id, clave: columna.clave, columna, celda }] : [];
     }),
   );
+}
+
+export function cantidadPorRevisar(borrador: BorradorRevision) {
+  return celdasEnOrden(borrador).filter(({ columna, celda }) => pendiente(columna, celda)).length;
+}
+
+/** La próxima celda dudosa o inválida después de `desde`; al llegar al final vuelve a empezar. */
+export function siguienteDuda(
+  borrador: BorradorRevision,
+  desde?: PosicionCelda,
+): PosicionCelda | undefined {
+  const celdas = celdasEnOrden(borrador);
+  const indice = desde
+    ? celdas.findIndex((c) => c.filaId === desde.filaId && c.clave === desde.clave)
+    : -1;
+  const ordenadas = [...celdas.slice(indice + 1), ...celdas.slice(0, indice + 1)];
+  const siguiente = ordenadas.find(({ columna, celda }) => pendiente(columna, celda));
+  return siguiente && { filaId: siguiente.filaId, clave: siguiente.clave };
 }
 
 export function erroresDeEstructura(borrador: BorradorRevision) {

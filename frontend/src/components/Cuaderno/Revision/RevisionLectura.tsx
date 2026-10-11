@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { CheckCircleIcon, WarningIcon } from '@phosphor-icons/react';
+import { ArrowBendDownRightIcon, CheckCircleIcon, WarningIcon } from '@phosphor-icons/react';
 import { Button, InputField, Panel, Spinner } from '@/components/ui';
 import { leerErrorServidor } from '@/hooks/errores';
 import { urlFotoLote } from '@/hooks/lotes/fotos';
@@ -10,12 +10,17 @@ import { useRevisionLectura } from '@/hooks/lotes/useRevisionLectura';
 import {
   aConfirmacion,
   cantidadInvalidas,
+  cantidadPorRevisar,
   claveErrorServidor,
   erroresDeEstructura,
   estaBloqueada,
+  idCelda,
+  reducirBorrador,
+  siguienteDuda,
   type AccionRevision,
   type BorradorRevision,
   type Destino,
+  type PosicionCelda,
 } from '@/lib/revisionLectura';
 import type { PropuestaLectura } from '@/types/lectura';
 import { DestinoGuardado } from './DestinoGuardado';
@@ -64,12 +69,14 @@ export function RevisionLectura({ loteId, propuesta }: Props) {
   const confirmar = useConfirmarLectura(loteId);
   const [columnaEditando, setColumnaEditando] = useState<string>();
   const [pagina, setPagina] = useState(1);
+  const [duda, setDuda] = useState<PosicionCelda>();
 
   const error = leerErrorServidor(confirmar.error);
   const erroresServidor = useMemo(
     () => erroresPorCelda(error?.campos ?? {}, borrador),
     [error, borrador],
   );
+  const porRevisar = cantidadPorRevisar(borrador);
   const motivos = motivosParaNoGuardar(borrador, destino);
   const columna = borrador.columnas.find((item) => item.clave === columnaEditando);
   const tablaExistente = propuesta.bloqueExistenteId
@@ -82,6 +89,17 @@ export function RevisionLectura({ loteId, propuesta }: Props) {
   const actuar = (accion: AccionRevision) => {
     confirmar.reset();
     dispatch(accion);
+  };
+
+  // Al pasar a la siguiente duda, la anterior se da por mirada; si sigue inválida vuelve a aparecer.
+  const irASiguienteDuda = () => {
+    const base = duda ? reducirBorrador(borrador, { tipo: 'marcarRevisada', ...duda }) : borrador;
+    if (duda) dispatch({ tipo: 'marcarRevisada', ...duda });
+    const proxima = siguienteDuda(base, duda);
+    setDuda(proxima);
+    const celda = proxima && document.getElementById(idCelda(proxima));
+    celda?.focus();
+    celda?.scrollIntoView?.({ block: 'center' });
   };
 
   const guardar = () =>
@@ -107,7 +125,8 @@ export function RevisionLectura({ loteId, propuesta }: Props) {
         <CheckCircleIcon aria-hidden size={32} className="text-ok" />
         <h1 className="m-0 text-[24px]">Esto es lo que leímos de tu cuaderno</h1>
         <p className="text-soft">
-          Revisá los datos con la foto al lado. Podés corregir cualquier dato, quitar filas y cambiar las columnas. Nada se
+          Revisá los datos con la foto al lado. Los marcados son los que no pudimos leer con
+          seguridad. Podés corregir cualquier dato, quitar filas y cambiar las columnas. Nada se
           guarda hasta que toques «Guardar».
         </p>
       </Panel>
@@ -140,13 +159,28 @@ export function RevisionLectura({ loteId, propuesta }: Props) {
             </p>
           ))}
 
+          <div className="flex flex-wrap items-center gap-3">
+            <Button size="sm" disabled={porRevisar === 0} onClick={irASiguienteDuda}>
+              <ArrowBendDownRightIcon aria-hidden size={16} />
+              Siguiente duda
+            </Button>
+            <p role="status" className="m-0 text-[13px] text-soft">
+              {porRevisar === 0
+                ? 'No quedan datos por revisar.'
+                : porRevisar === 1
+                  ? 'Queda 1 dato por revisar.'
+                  : `Quedan ${porRevisar} datos por revisar.`}
+            </p>
+          </div>
+
           <TablaRevision
             borrador={borrador}
             columnaEditando={columnaEditando}
             erroresServidor={erroresServidor}
             onAccion={actuar}
             onEditarColumna={setColumnaEditando}
-            onEnfocarCelda={(_posicion, paginaDeLaFila) => {
+            onEnfocarCelda={(posicion, paginaDeLaFila) => {
+              setDuda(posicion);
               if (paginaDeLaFila) setPagina(paginaDeLaFila);
             }}
           />

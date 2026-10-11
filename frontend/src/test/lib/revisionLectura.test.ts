@@ -2,14 +2,17 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   aConfirmacion,
   borrarBorrador,
+  cantidadPorRevisar,
   errorDeCelda,
   errorDeColumna,
+  esDudosa,
   estaBloqueada,
   guardarBorrador,
   iniciarBorrador,
   leerBorradorGuardado,
   puedeGuardar,
   reducirBorrador,
+  siguienteDuda,
   type BorradorRevision,
   type ColumnaRevision,
 } from '@/lib/revisionLectura';
@@ -105,7 +108,77 @@ describe('iniciarBorrador', () => {
   });
 });
 
+describe('datos dudosos', () => {
+  it('es dudoso lo que tiene poca confianza o está vacío y nadie miró', () => {
+    expect(esDudosa(celda('850', 0.4))).toBe(true);
+    expect(esDudosa(celda('', 0.99))).toBe(true);
+    expect(esDudosa(celda('1200', 0.95))).toBe(false);
+  });
 
+  it('lo corregido o ya mirado, y lo agregado a mano, no es dudoso', () => {
+    expect(esDudosa(celda('850', 0.4, true))).toBe(false);
+    expect(esDudosa(celda('', null))).toBe(false);
+  });
+
+  it('cuenta los dudosos y los que tienen error', () => {
+    const borrador = borradorInicial();
+
+    // monto de la fila 2 (poca confianza) y pagado de la fila 2 (vacío).
+    expect(cantidadPorRevisar(borrador)).toBe(2);
+  });
+
+  it('corregir una celda la da por revisada', () => {
+    const inicial = borradorInicial();
+
+    const borrador = reducirBorrador(inicial, {
+      tipo: 'editarCelda',
+      filaId: inicial.filas[1]?.id ?? '',
+      clave: 'monto',
+      texto: '900',
+    });
+
+    expect(cantidadPorRevisar(borrador)).toBe(1);
+  });
+});
+
+describe('siguienteDuda', () => {
+  const borrador = () => {
+    contador = 0;
+    return borradorInicial();
+  };
+
+  it('empieza por la primera duda', () => {
+    expect(siguienteDuda(borrador())).toEqual({ filaId: 'fila-2', clave: 'monto' });
+  });
+
+  it('sigue con la que viene después y al terminar vuelve a empezar', () => {
+    const base = borrador();
+
+    expect(siguienteDuda(base, { filaId: 'fila-2', clave: 'monto' })).toEqual({
+      filaId: 'fila-2',
+      clave: 'pagado',
+    });
+    expect(siguienteDuda(base, { filaId: 'fila-2', clave: 'pagado' })).toEqual({
+      filaId: 'fila-2',
+      clave: 'monto',
+    });
+  });
+
+  it('no devuelve nada cuando no queda ninguna', () => {
+    let base = borrador();
+    base = reducirBorrador(base, { tipo: 'marcarRevisada', filaId: 'fila-2', clave: 'monto' });
+    base = reducirBorrador(base, { tipo: 'marcarRevisada', filaId: 'fila-2', clave: 'pagado' });
+
+    expect(siguienteDuda(base)).toBeUndefined();
+  });
+
+  it('un dato inválido sigue siendo una duda aunque se haya mirado', () => {
+    let base = borrador();
+    base = reducirBorrador(base, { tipo: 'editarCelda', filaId: 'fila-1', clave: 'monto', texto: 'abc' });
+
+    expect(siguienteDuda(base)).toEqual({ filaId: 'fila-1', clave: 'monto' });
+  });
+});
 
 describe('errorDeCelda', () => {
   it.each([
@@ -189,6 +262,7 @@ describe('reducirBorrador', () => {
 
     expect(fila?.pagina).toBeNull();
     expect(Object.keys(fila?.celdas ?? {})).toEqual(['producto', 'monto', 'pagado']);
+    expect(cantidadPorRevisar(borrador)).toBe(2);
   });
 
   it('renombra la tabla y edita una columna', () => {

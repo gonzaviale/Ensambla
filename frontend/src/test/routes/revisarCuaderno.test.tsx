@@ -61,7 +61,27 @@ describe('H-30: revisar lo que leyó la IA', () => {
     expect(screen.getByRole('button', { name: 'Acercar la foto' })).toBeEnabled();
   });
 
+  it('resalta los datos dudosos y corregirlos los da por revisados', async () => {
+    const { user } = await abrirRevision();
+    expect(screen.getByText('No estamos seguros de este dato.')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Queda 1 dato por revisar.');
 
+    await editar(user, 'Monto, fila 2', '900');
+
+    expect(screen.queryByText('No estamos seguros de este dato.')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('No quedan datos por revisar.');
+  });
+
+  it('«Siguiente duda» lleva el foco al dato dudoso y después lo da por mirado', async () => {
+    const { user } = await abrirRevision();
+
+    await user.click(screen.getByRole('button', { name: 'Siguiente duda' }));
+
+    expect(celda('Monto, fila 2')).toHaveFocus();
+    await user.click(screen.getByRole('button', { name: 'Siguiente duda' }));
+    expect(screen.getByRole('status')).toHaveTextContent('No quedan datos por revisar.');
+    expect(screen.getByRole('button', { name: 'Siguiente duda' })).toBeDisabled();
+  });
 
   it('quita una fila y agrega otra a mano', async () => {
     const { user } = await abrirRevision();
