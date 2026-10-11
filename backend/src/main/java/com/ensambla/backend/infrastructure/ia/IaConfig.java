@@ -1,5 +1,7 @@
 package com.ensambla.backend.infrastructure.ia;
 
+import com.anthropic.client.AnthropicClient;
+import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -26,6 +28,16 @@ public class IaConfig {
     @ConditionalOnProperty(prefix = "ensambla.ia", name = "proveedor", havingValue = "simulado", matchIfMissing = true)
     ClienteModeloVision clienteModeloVisionSimulado() {
         return new ClienteModeloVisionSimulado(new ClassPathResource("ia/lectura-simulada.json"));
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "ensambla.ia", name = "proveedor", havingValue = "anthropic")
+    ClienteModeloVision clienteModeloVisionAnthropic(IaProperties properties) {
+        AnthropicClient client = AnthropicOkHttpClient.builder()
+                .apiKey(properties.apiKey())
+                .timeout(properties.timeout())
+                .build();
+        return new ClienteModeloVisionAnthropic(client, properties.modelo());
     }
 
     @Bean

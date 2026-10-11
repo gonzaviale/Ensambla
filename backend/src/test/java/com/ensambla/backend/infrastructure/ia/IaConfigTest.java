@@ -36,6 +36,17 @@ class IaConfigTest {
         thenExampleLecturaIsValid(lectura);
     }
 
+    @Test
+    @DisplayName("Con el proveedor anthropic, crea el cliente real de Claude con el modelo configurado")
+    void clienteModeloVisionAnthropicShouldBuildClaudeClient() {
+        IaProperties properties = new IaProperties("anthropic", "claude-haiku-5-5", "clave-de-prueba",
+                Duration.ofSeconds(60), 10, 0.8);
+
+        ClienteModeloVision cliente = config.clienteModeloVisionAnthropic(properties);
+
+        assertThat(cliente).isInstanceOf(ClienteModeloVisionAnthropic.class);
+    }
+
     // --- assert ---
     private void thenExampleLecturaIsValid(LecturaCuaderno lectura) {
         assertThat(lectura.bloque().nombre()).isEqualTo("Ventas");
