@@ -19,10 +19,12 @@ const foto = (nombre: string, tipo = 'image/jpeg') =>
 const paginas = (cantidad: number) =>
   Array.from({ length: cantidad }, (_, i) => foto(`pagina-${i + 1}.jpg`));
 
+let router: ReturnType<typeof renderApp>;
+
 async function abrirCuaderno() {
   setupUsuarioConSesion();
   const user = userEvent.setup({ applyAccept: false });
-  renderApp('/cuaderno');
+  router = renderApp('/cuaderno');
   await verifyHeadingPresentAsync('Subir foto de mi cuaderno');
   return user;
 }
@@ -114,6 +116,7 @@ describe('T-091: subir foto de mi cuaderno', () => {
 
     await verifyHeadingPresentAsync('Esto es lo que leímos de tu cuaderno');
 
+    expect(router.state.location.pathname).toMatch(/^\/cuaderno\/[0-9a-f-]{36}$/);
     expect(screen.getByRole('cell', { name: 'Pan' })).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: /850.*dato dudoso/ })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Subir más páginas' }));

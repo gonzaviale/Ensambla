@@ -10,6 +10,9 @@ export const subirLote = (fotos: Blob[]) => {
   return http.postForm('/lotes', datos, loteSchema);
 };
 
+export const obtenerLote = (loteId: string, signal?: AbortSignal) =>
+  http.get(`/lotes/${encodeURIComponent(loteId)}`, loteSchema, signal);
+
 export const obtenerLectura = (loteId: string, signal?: AbortSignal) =>
   http.get(`/lotes/${loteId}/lectura`, lecturaSchema, signal);
 

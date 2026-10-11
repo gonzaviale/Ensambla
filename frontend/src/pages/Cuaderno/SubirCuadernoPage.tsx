@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { CameraIcon, ImagesIcon } from '@phosphor-icons/react';
 import { ConsejosFoto } from '@/components/Cuaderno/ConsejosFoto';
-import { LecturaLote } from '@/components/Cuaderno/LecturaLote';
 import { MiniaturaPagina } from '@/components/Cuaderno/MiniaturaPagina';
 import { Button, PageHeading, buttonClasses } from '@/components/ui';
 import { useSubirLote } from '@/hooks/lotes/mutations';
@@ -18,6 +18,7 @@ export function SubirCuadernoPage() {
   const [aviso, setAviso] = useState<string>();
   const [preparando, setPreparando] = useState(false);
   const subirLote = useSubirLote();
+  const navigate = useNavigate();
   const paginasActuales = useRef(paginas);
 
   useEffect(() => {
@@ -64,27 +65,13 @@ export function SubirCuadernoPage() {
     setPreparando(true);
     try {
       const fotos = await Promise.all(paginas.map((p) => prepararFoto(p.archivo, p.rotacion)));
-      subirLote.mutate(fotos);
+      subirLote.mutate(fotos, {
+        onSuccess: (lote) =>
+          void navigate({ to: '/cuaderno/$loteId', params: { loteId: lote.id } }),
+      });
     } finally {
       setPreparando(false);
     }
-  }
-
-  function empezarDeNuevo() {
-    paginas.forEach((p) => URL.revokeObjectURL(p.url));
-    setPaginas([]);
-    setAviso(undefined);
-    subirLote.reset();
-  }
-
-  if (subirLote.isSuccess) {
-    return (
-      <LecturaLote
-        loteId={subirLote.data.id}
-        paginas={subirLote.data.fotos.length}
-        onSubirMas={empezarDeNuevo}
-      />
-    );
   }
 
   return (

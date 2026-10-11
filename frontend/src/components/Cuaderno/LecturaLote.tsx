@@ -2,17 +2,23 @@ import { Link } from '@tanstack/react-router';
 import { CheckCircleIcon, SmileySadIcon, WarningIcon } from '@phosphor-icons/react';
 import { Button, Panel, Spinner, buttonClasses } from '@/components/ui';
 import { useReintentarLectura } from '@/hooks/lotes/mutations';
-import { useLectura } from '@/hooks/lotes/queries';
+import { useLectura, useLote } from '@/hooks/lotes/queries';
 import { UMBRAL_CONFIANZA, type PropuestaLectura } from '@/types/lectura';
 
-type Props = { loteId: string; paginas: number; onSubirMas: () => void };
+type Props = { loteId: string; onSubirMas: () => void };
 
 const MENSAJE_ERROR_CONSULTA = 'No pudimos consultar la lectura. Probá de nuevo en unos minutos.';
 
+const recibidas = (paginas: number) =>
+  paginas === 1 ? 'Recibimos 1 página.' : `Recibimos ${paginas} páginas.`;
+
 // Sigue la lectura de un lote: mientras la IA trabaja avisa, y al terminar muestra lo que leyó (sólo lectura).
-export function LecturaLote({ loteId, paginas, onSubirMas }: Props) {
+// Vive en su propia dirección (/cuaderno/{loteId}) para sobrevivir a una recarga.
+export function LecturaLote({ loteId, onSubirMas }: Props) {
   const lectura = useLectura(loteId);
+  const lote = useLote(loteId);
   const reintentar = useReintentarLectura(loteId);
+  const paginas = lote.data?.fotos.length;
 
   if (lectura.isError) {
     return (
@@ -82,8 +88,8 @@ export function LecturaLote({ loteId, paginas, onSubirMas }: Props) {
     <Panel role="status" className="mx-auto flex max-w-xl flex-col items-start gap-3">
       <h1 className="m-0 text-[24px]">Estamos leyendo tu cuaderno</h1>
       <p className="text-soft">
-        {paginas === 1 ? 'Recibimos 1 página.' : `Recibimos ${paginas} páginas.`} Puede tardar un
-        minuto. No hace falta que te quedes en esta pantalla.
+        {paginas !== undefined && `${recibidas(paginas)} `}Puede tardar un minuto. No hace falta
+        que te quedes en esta pantalla.
       </p>
       <Spinner label="Leyendo…" />
     </Panel>

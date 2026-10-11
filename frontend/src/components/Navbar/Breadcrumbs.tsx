@@ -13,7 +13,7 @@ export function Breadcrumbs() {
     enabled: !!proyectoId,
   });
 
-  if (pathname === '/cuaderno') {
+  if (pathname === '/cuaderno' || pathname.startsWith('/cuaderno/')) {
     return (
       <nav aria-label="Ruta de navegación" className="mb-4 text-[15px] text-soft">
         <ol className="m-0 flex list-none flex-wrap items-center gap-x-2 gap-y-1 p-0">

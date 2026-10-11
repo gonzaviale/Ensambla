@@ -6,6 +6,8 @@ import { api, exigirCsrf, exigirSesion, LATENCIA_BACKEND_MS } from './comun';
 
 // Cantidad de veces que se consultó la lectura de cada lote creado por el mock.
 const consultas = new Map<string, number>();
+// Lotes creados por el mock, para poder consultarlos por su id (GET /api/lotes/{id}).
+const lotesCreados = new Map<string, Lote>();
 
 const PROPUESTA_EJEMPLO: NonNullable<Lectura['propuesta']> = {
   tipoRegistro: 'VENTAS',
@@ -60,10 +62,20 @@ export const handlersLotes = [
       })),
     };
     consultas.set(lote.id, 0);
+    lotesCreados.set(lote.id, lote);
     return HttpResponse.json(lote, {
       status: 201,
       headers: { Location: `/api/lotes/${lote.id}` },
     });
+  }),
+
+  http.get(api('/lotes/:id'), async ({ request, params }) => {
+    await delay(LATENCIA_BACKEND_MS);
+    const error = exigirSesion(request);
+    if (error) return error;
+    const lote = lotesCreados.get(String(params.id));
+    if (!lote) return errorResponse(404, 'Lote no encontrado', `/api/lotes/${String(params.id)}`);
+    return HttpResponse.json(lote);
   }),
 
   // Simula GET /api/lotes/{id}/lectura: la primera consulta responde PROCESANDO y las siguientes LISTO.
