@@ -1,5 +1,7 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.dto.registro.TotalesItem;
+import java.math.BigDecimal;
 import com.ensambla.backend.domain.dto.lote.FotoArchivoResponse;
 import com.ensambla.backend.domain.dto.registro.CrearRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.CrearRegistroResponse;
@@ -61,6 +63,7 @@ class RegistroControllerTest {
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
     private static final RegistroItem ITEM = new RegistroItem(
             REGISTRO_ID, BLOQUE_ID, Map.of("campo", "dato"), null, AHORA, AHORA);
+    private static final UUID CAMPO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
     private static final String CUERPO = "{\"valores\":{\"campo\":\"dato\"}}";
 
     private final Principal sesion = new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
@@ -178,7 +181,8 @@ class RegistroControllerTest {
     @DisplayName("GET lista la página con las claves que espera el frontend")
     void listarShouldReturnPageWithFrontendKeys() throws Exception {
         when(listarRegistrosUseCase.execute(any(ListarRegistrosRequest.class)))
-                .thenReturn(new ListarRegistrosResponse(List.of(ITEM), 0, 20, 1, 1));
+                .thenReturn(new ListarRegistrosResponse(List.of(ITEM), 0, 20, 1, 1,
+                        new TotalesItem(1, Map.of(CAMPO_ID, new BigDecimal("1500.5")))));
 
         ResultActions result = mockMvc.perform(get("/api/bloques/{id}/registros", BLOQUE_ID).principal(sesion));
 
@@ -189,14 +193,16 @@ class RegistroControllerTest {
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1))
                 .andExpect(jsonPath("$.first").value(true))
-                .andExpect(jsonPath("$.last").value(true));
+                .andExpect(jsonPath("$.last").value(true))
+                .andExpect(jsonPath("$.totales.cantidad").value(1))
+                .andExpect(jsonPath("$.totales.sumas['" + CAMPO_ID + "']").value(1500.5));
     }
 
     @Test
     @DisplayName("GET pasa la búsqueda, el orden y la página al caso de uso")
     void listarShouldPassQueryParametersToUseCase() throws Exception {
         when(listarRegistrosUseCase.execute(any(ListarRegistrosRequest.class)))
-                .thenReturn(new ListarRegistrosResponse(List.of(), 1, 5, 0, 1));
+                .thenReturn(new ListarRegistrosResponse(List.of(), 1, 5, 0, 1, new TotalesItem(0, Map.of())));
 
         mockMvc.perform(get("/api/bloques/{id}/registros", BLOQUE_ID).principal(sesion)
                 .param("q", "harina").param("orden", "creadoEn").param("direccion", "asc")

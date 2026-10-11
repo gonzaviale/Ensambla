@@ -3,8 +3,10 @@ package com.ensambla.backend.domain.service.registro;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.common.Pagina;
+import com.ensambla.backend.domain.model.enums.TipoCampo;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.TotalesRegistros;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -42,6 +44,15 @@ public class RegistroDatosService {
 
     public Pagina<Registro> listar(ConsultaRegistros consulta) {
         return registroRepository.buscar(consulta);
+    }
+
+    /** Cantidad y suma de cada campo numérico de los registros que cumplen la consulta, sin importar la página. */
+    public TotalesRegistros totales(ConsultaRegistros consulta, List<Campo> campos, long cantidad) {
+        List<UUID> numericos = campos.stream()
+                .filter(campo -> campo.getTipo() == TipoCampo.NUMERO)
+                .map(Campo::getId)
+                .toList();
+        return TotalesRegistros.armar(cantidad, numericos, registroRepository.sumarNumericos(consulta, numericos));
     }
 
     @Transactional
