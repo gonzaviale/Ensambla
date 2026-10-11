@@ -8,24 +8,23 @@ describe('ENS-52: formulario dinámico', () => {
   it('renderiza los cinco tipos con controles accesibles y valores iniciales', () => {
     render(<FormRenderer campos={camposFormulario} onSubmit={vi.fn()} />);
 
-    expect(screen.getByLabelText('Nombre (obligatorio)')).toHaveAttribute('type', 'text');
-    expect(screen.getByLabelText('Nombre (obligatorio)')).toHaveValue('Producto');
-    expect(screen.getByLabelText('Precio (obligatorio)')).toHaveAttribute('type', 'number');
-    expect(screen.getByLabelText('Precio (obligatorio)')).toHaveValue(0);
+    expect(screen.getByLabelText('Nombre')).toHaveAttribute('type', 'text');
+    expect(screen.getByLabelText('Nombre')).toHaveValue('Producto');
+    expect(screen.getByLabelText('Precio')).toHaveAttribute('type', 'text');
+    expect(screen.getByLabelText('Precio')).toHaveAttribute('inputmode', 'decimal');
+    expect(screen.getByLabelText('Precio')).toHaveValue('0');
     expect(screen.getByLabelText('Entrega')).toHaveAttribute('type', 'date');
     expect(screen.getByLabelText('Entrega')).toHaveValue('2026-10-10');
     expect(screen.getByRole('combobox', { name: 'Rubro' })).toHaveValue('Insumos');
-    expect(screen.getByRole('combobox', { name: 'Entregado (obligatorio)' })).toHaveValue('false');
+    expect(screen.getByRole('radio', { name: 'No' })).toBeChecked();
   });
 
   it('respeta la posición de los campos sin modificar la definición recibida', () => {
     const campos = [...camposFormulario].reverse();
     render(<FormRenderer campos={campos} onSubmit={vi.fn()} />);
 
-    const controles = screen.getAllByLabelText(/Nombre|Precio|Entrega|Rubro|Entregado/);
-    expect(controles.map((control) => control.getAttribute('name'))).toEqual(
-      camposFormulario.map((campo) => campo.id),
-    );
+    const nombres = [...document.querySelectorAll('[name]')].map((el) => el.getAttribute('name'));
+    expect([...new Set(nombres)]).toEqual(camposFormulario.map((campo) => campo.id));
     expect(campos[0]?.tipo).toBe('SI_NO');
   });
 
@@ -34,10 +33,10 @@ describe('ENS-52: formulario dinámico', () => {
     const user = userEvent.setup();
     render(<FormRenderer campos={camposFormulario} onSubmit={guardar} />);
 
-    await user.clear(screen.getByLabelText('Precio (obligatorio)'));
-    await user.type(screen.getByLabelText('Precio (obligatorio)'), '12.5');
+    await user.clear(screen.getByLabelText('Precio'));
+    await user.type(screen.getByLabelText('Precio'), '12.5');
     await user.selectOptions(screen.getByLabelText('Rubro'), 'Terminados');
-    await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar fila' }));
 
     expect(guardar).toHaveBeenCalledWith({
       [campoPorTipo('TEXTO').id]: 'Producto',
@@ -54,7 +53,7 @@ describe('ENS-52: formulario dinámico', () => {
     render(<FormRenderer campos={[campo]} onSubmit={guardar} />);
 
     expect(screen.getByLabelText('Nombre')).toHaveValue('');
-    await userEvent.click(screen.getByRole('button', { name: 'Guardar registro' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar fila' }));
 
     expect(guardar).toHaveBeenCalledWith({});
   });
@@ -62,27 +61,27 @@ describe('ENS-52: formulario dinámico', () => {
   it('explica un bloque sin campos y no permite guardar un formulario vacío', () => {
     render(<FormRenderer campos={[]} onSubmit={vi.fn()} />);
 
-    expect(screen.getByText(/todavía no tiene datos/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Guardar registro' })).not.toBeInTheDocument();
+    expect(screen.getByText(/todavía no tiene columnas/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Guardar fila' })).not.toBeInTheDocument();
   });
 
   it('muestra el error junto al campo, lo enfoca y conserva el resto de los valores', async () => {
     const guardar = vi.fn(async () => ({ exito: true as const }));
     const user = userEvent.setup();
     render(<FormRenderer campos={camposFormulario} onSubmit={guardar} />);
-    const nombre = screen.getByLabelText('Nombre (obligatorio)');
+    const nombre = screen.getByLabelText('Nombre');
     await user.clear(nombre);
-    await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar fila' }));
 
     expect(guardar).not.toHaveBeenCalled();
     expect(nombre).toHaveFocus();
     expect(nombre).toHaveAttribute('aria-invalid', 'true');
     expect(nombre).toHaveAccessibleDescription('Este dato es obligatorio');
-    expect(screen.getByLabelText('Precio (obligatorio)')).toHaveValue(0);
-    expect(screen.getByLabelText('Entregado (obligatorio)')).toHaveValue('false');
+    expect(screen.getByLabelText('Precio')).toHaveValue('0');
+    expect(screen.getByRole('radio', { name: 'No' })).toBeChecked();
     await user.type(nombre, 'Corregido');
     expect(nombre).not.toHaveAttribute('aria-invalid');
-    await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar fila' }));
     expect(guardar).toHaveBeenCalledOnce();
   });
 
@@ -91,13 +90,13 @@ describe('ENS-52: formulario dinámico', () => {
     const guardar = vi.fn(async () => ({ exito: true as const }));
     const user = userEvent.setup();
     render(<FormRenderer campos={[campo]} onSubmit={guardar} />);
-    await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar fila' }));
     expect(guardar).not.toHaveBeenCalled();
-    expect(screen.getByLabelText('Entregado (obligatorio)')).toHaveAccessibleDescription(
+    expect(screen.getByRole('group', { name: /Entregado/ })).toHaveAccessibleDescription(
       'Este dato es obligatorio',
     );
-    await user.selectOptions(screen.getByLabelText('Entregado (obligatorio)'), 'false');
-    await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
+    await user.click(screen.getByRole('radio', { name: 'No' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar fila' }));
     expect(guardar).toHaveBeenCalledWith({ [campo.id]: false });
   });
 });

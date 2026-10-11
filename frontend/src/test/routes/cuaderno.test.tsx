@@ -31,7 +31,7 @@ async function abrirCuaderno() {
 
 const galeria = () => screen.getByLabelText('Elegir de la galería');
 const miniaturas = () =>
-  within(screen.getByRole('list', { name: 'Páginas para leer' })).getAllByRole('listitem');
+  within(screen.getByRole('list', { name: 'Hojas para leer' })).getAllByRole('listitem');
 
 describe('T-091: subir foto de mi cuaderno', () => {
   beforeEach(() => {
@@ -50,14 +50,14 @@ describe('T-091: subir foto de mi cuaderno', () => {
     expect(screen.queryByRole('button', { name: /Leer mi cuaderno/ })).not.toBeInTheDocument();
   });
 
-  it('muestra una miniatura por página elegida, en orden', async () => {
+  it('muestra una miniatura por hoja elegida, en orden', async () => {
     const user = await abrirCuaderno();
 
     await user.upload(galeria(), paginas(3));
 
     expect(miniaturas()).toHaveLength(3);
-    expect(screen.getByRole('img', { name: 'Página 3' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Leer mi cuaderno (3 páginas)' })).toBeEnabled();
+    expect(screen.getByRole('img', { name: 'Hoja 3' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Leer mi cuaderno (3 hojas)' })).toBeEnabled();
   });
 
   it('ignora los archivos que no son imágenes', async () => {
@@ -68,59 +68,60 @@ describe('T-091: subir foto de mi cuaderno', () => {
     expect(miniaturas()).toHaveLength(1);
   });
 
-  it('gira una página de a 90° desde su miniatura', async () => {
+  it('gira una hoja de a 90° desde su miniatura', async () => {
     const user = await abrirCuaderno();
     await user.upload(galeria(), paginas(1));
 
-    await user.click(screen.getByRole('button', { name: 'Girar página 1' }));
+    await user.click(screen.getByRole('button', { name: 'Girar hoja 1' }));
 
-    expect(screen.getByRole('img', { name: 'Página 1' })).toHaveStyle({
+    expect(screen.getByRole('img', { name: 'Hoja 1' })).toHaveStyle({
       transform: 'rotate(90deg)',
     });
   });
 
-  it('quita una página y renumera las demás', async () => {
+  it('quita una hoja y renumera las demás', async () => {
     const user = await abrirCuaderno();
     await user.upload(galeria(), paginas(3));
 
-    await user.click(screen.getByRole('button', { name: 'Quitar página 2' }));
+    await user.click(screen.getByRole('button', { name: 'Quitar hoja 2' }));
 
     expect(miniaturas()).toHaveLength(2);
-    expect(screen.queryByRole('img', { name: 'Página 3' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'Hoja 3' })).not.toBeInTheDocument();
     expect(URL.revokeObjectURL).toHaveBeenCalled();
   });
 
-  it('acepta hasta 10 páginas y avisa si se eligen más', async () => {
+  it('acepta hasta 10 hojas y avisa si se eligen más', async () => {
     const user = await abrirCuaderno();
 
     await user.upload(galeria(), paginas(12));
 
     expect(miniaturas()).toHaveLength(10);
-    await verifyAlertPresentAsync('Podés subir hasta 10 páginas por vez');
+    await verifyAlertPresentAsync('Podés subir hasta 10 hojas por vez');
   });
 
-  it('manda las páginas a leer y confirma cuántas recibió', async () => {
+  it('manda las hojas a leer y confirma cuántas recibió', async () => {
     const user = await abrirCuaderno();
     await user.upload(galeria(), paginas(3));
 
-    await user.click(screen.getByRole('button', { name: 'Leer mi cuaderno (3 páginas)' }));
+    await user.click(screen.getByRole('button', { name: 'Leer mi cuaderno (3 hojas)' }));
 
     await verifyHeadingPresentAsync('Estamos leyendo tu cuaderno');
-    expect(screen.getByText(/Recibimos 3 páginas/)).toBeInTheDocument();
+    expect(screen.getByText(/Recibimos 3 hojas/)).toBeInTheDocument();
   });
 
   it('lleva a la dirección de la lectura y, al terminar, deja revisar lo que leyó la IA', async () => {
     const user = await abrirCuaderno();
     await user.upload(galeria(), paginas(1));
-    await user.click(screen.getByRole('button', { name: 'Leer mi cuaderno (1 página)' }));
+    await user.click(screen.getByRole('button', { name: 'Leer mi cuaderno (1 hoja)' }));
 
     await verifyHeadingPresentAsync('Esto es lo que leímos de tu cuaderno');
 
     expect(router.state.location.pathname).toMatch(/^\/cuaderno\/[0-9a-f-]{36}$/);
     expect(screen.getByRole('textbox', { name: 'Producto, fila 1' })).toHaveValue('Pan');
     expect(screen.getByRole('textbox', { name: 'Monto, fila 2' })).toHaveValue('850');
-    expect(screen.getByText('No estamos seguros de este dato.')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Descartar y subir otras fotos' }));
+    expect(screen.getByText('Leímos «850», ¿es correcto?')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Descartar' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, descartar' }));
     expect(await screen.findByLabelText('Elegir de la galería', {}, ESPERA)).toBeInTheDocument();
   }, 10000);
 
@@ -133,18 +134,18 @@ describe('T-091: subir foto de mi cuaderno', () => {
       motivoError: 'No se pudo leer la foto',
       intentos: 3,
     });
-    await user.click(screen.getByRole('button', { name: 'Leer mi cuaderno (1 página)' }));
+    await user.click(screen.getByRole('button', { name: 'Leer mi cuaderno (1 hoja)' }));
 
     await verifyHeadingPresentAsync('No pudimos leer tu cuaderno');
-    expect(screen.getByRole('button', { name: 'Reintentar lectura' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Volver a intentar' })).toBeEnabled();
   });
 
-  it('muestra el error del servidor y conserva las páginas para reintentar', async () => {
+  it('muestra el error del servidor y conserva las hojas para reintentar', async () => {
     const user = await abrirCuaderno();
     setupServerError('post', '/lotes', 400, ERROR_TIPO);
     await user.upload(galeria(), paginas(1));
 
-    await user.click(screen.getByRole('button', { name: 'Leer mi cuaderno (1 página)' }));
+    await user.click(screen.getByRole('button', { name: 'Leer mi cuaderno (1 hoja)' }));
 
     await verifyAlertPresentAsync(ERROR_TIPO);
     expect(miniaturas()).toHaveLength(1);

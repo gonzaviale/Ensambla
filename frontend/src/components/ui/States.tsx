@@ -5,8 +5,8 @@ import { Panel } from './Panel';
 
 export function Spinner({ label }: { label: string }) {
   return (
-    <div role="status" className="flex items-center gap-2.5 text-[13px] text-soft">
-      <CircleNotchIcon aria-hidden className="animate-spin" size={18} />
+    <div role="status" className="flex items-center gap-2.5 text-hint text-soft">
+      <CircleNotchIcon aria-hidden className="animate-spin" size={22} />
       {label}
     </div>
   );
@@ -29,11 +29,13 @@ export function ErrorState({
 }: ErrorStateProps) {
   return (
     <Panel role="alert" className="mx-auto mt-10 flex max-w-xl flex-col items-start gap-3">
-      <SmileySadIcon aria-hidden size={28} className="text-bad" />
-      <h2 className="m-0 text-[17px]">{title}</h2>
-      <p className="text-soft">{message}</p>
+      <span className="flex size-12 items-center justify-center rounded-full bg-coral-100 text-bad">
+        <SmileySadIcon aria-hidden size={30} />
+      </span>
+      <h2 className="m-0 text-h3">{title}</h2>
+      <p className="m-0 text-body text-soft">{message}</p>
       {onRetry && (
-        <Button variant="primary" onClick={onRetry}>
+        <Button variant="solid" onClick={onRetry}>
           Reintentar
         </Button>
       )}
@@ -43,12 +45,15 @@ export function ErrorState({
 
 type EmptyStateProps = { icon: ReactNode; title: string; children?: ReactNode };
 
+// Vacío con ilustración: el ícono va sobre un círculo arena y el texto explica qué hacer.
 export function EmptyState({ icon, title, children }: EmptyStateProps) {
   return (
-    <Panel flat className="flex flex-col items-center gap-2 py-10 text-center">
-      <span className="text-muted">{icon}</span>
-      <h2 className="m-0 text-[17px]">{title}</h2>
-      {children && <div className="text-[13px] text-soft">{children}</div>}
+    <Panel flat className="flex flex-col items-center gap-3 py-10 text-center">
+      <span className="flex size-16 items-center justify-center rounded-full bg-sand-100 text-fg">
+        {icon}
+      </span>
+      <h2 className="m-0 text-h3">{title}</h2>
+      {children && <div className="max-w-md text-body text-soft">{children}</div>}
     </Panel>
   );
 }

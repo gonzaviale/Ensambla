@@ -24,9 +24,19 @@ Texto secundario `soft` (`#3E4B59`) y terciario `muted` (`#5A6570`) cumplen AA s
 
 ## Tipografía
 
-- **Plus Jakarta Sans** (principal; pesos 400–800). Respaldo: **Lato**.
-- Títulos grandes y en negrita; etiquetas pequeñas en mayúsculas y negrita.
-- Cuerpo 15 px; texto secundario 13–14 px.
+- **Plus Jakarta Sans** (principal; pesos 400–800), autoalojada con `@fontsource-variable/plus-jakarta-sans` (sin CDN).
+- Escala por rol, definida en `@theme` (`frontend/src/styles/index.css`); no se usan tamaños sueltos (`text-[13px]`):
+
+| Rol | Token | Tamaño | Uso |
+|---|---|---|---|
+| Caption | `text-caption` | 14 px | Metadatos, chips (mínimo absoluto) |
+| Hint | `text-hint` | 15 px | Ayudas y texto secundario |
+| Body | `text-body` | 18 px | Lectura y campos de formulario |
+| Lead | `text-lead` | 20 px | Bajada de pantalla |
+| H3 / H2 / H1 | `text-h3` `text-h2` `text-h1` | 22 / 28 / 34 px | Títulos |
+| Display | `text-display` | 44 px | Sólo Landing |
+
+- Etiquetas de campo: 16 px en semibold; ayudas: 15 px.
 
 ## Logo
 
@@ -38,7 +48,30 @@ Texto secundario `soft` (`#3E4B59`) y terciario `muted` (`#5A6570`) cumplen AA s
 
 ## Interfaz
 
-- Tarjetas blancas con esquinas muy redondeadas y sombra suave; fondo Marfil.
-- Controles táctiles de al menos 44 px (ya aplicado en `index.css`).
-- Layout responsive hasta 360 px (T-035). Nombres de secciones y botones consistentes en todo el core (T-033).
-- Toda pantalla tiene estado vacío, de carga y de error (T-034).
+- Pensada para emprendedores adultos y mayores: **texto de lectura 18 px, controles de 48 px** (variante `compact` de 40 px, con área
+  de toque de 44 px, sólo en celdas de tabla de escritorio) y flujo completo a 360 px (T-033, T-035, T-056).
+- **Una sola acción principal por pantalla**, en naranja sólido; las de apoyo van en contorno y las terciarias como texto.
+- Tarjetas blancas con radio único (`lg`, 16 px), sombra suave en dos niveles (`shadow-sm` en reposo, `shadow-md` al elevar) y pocos bordes;
+  fondo Marfil. Chips con radio completo. Coral, Ámbar y Arena se usan en estados, vacíos y el isotipo.
+- Foco visible en todo: anillo de 3 px `accent-700` con separación de 2 px. Bordes de campos con contraste ≥ 3 : 1.
+- Nada de color como única señal: los avisos de duda o error llevan ícono y texto.
+- Toda pantalla tiene estado vacío, de carga (con `Skeleton` de alto fijo) y de error con reintentar (T-034).
+- Acciones destructivas: **Deshacer** donde es reversible (quitar una fila en la revisión); confirmación que nombra el elemento y lo que se
+  pierde (con conteo) para borrar un sistema, tabla, columna o fila guardada.
+- Primitivos en `components/ui`: `Button`, campos (`InputField`, `SelectField`, `TextareaField`), `Sheet` (hoja desde abajo en celular,
+  panel lateral desde `lg`), `Menu`, `ConfirmDialog`, `Toast`, `Stepper`, `StickyActionBar`, `Badge`, `Skeleton`, `Panel`, `PageHeading`.
+
+## Glosario de la interfaz
+
+Un término por concepto. El código y la API conservan los nombres técnicos (`proyecto`, `bloque`, `campo`, `registro`); las rutas siguen en `/proyectos`.
+
+| Antes | Ahora |
+|---|---|
+| Proyecto | **Sistema** (plural: «Mis sistemas») |
+| Bloque | **Tabla** |
+| Dato / campo (columna) | **Columna** |
+| Registro | **Fila** |
+| Modo construir / usar | **Armar** / **Cargar y ver** |
+| Siguiente duda | **Ir al próximo dato para revisar** |
+| Pág. | **Hoja** |
+| Lote / lectura IA | «tu cuaderno» / «lo que leímos» |

@@ -1,13 +1,12 @@
 import { useRef, useState } from 'react';
 import { PencilSimpleIcon, TrashIcon } from '@phosphor-icons/react';
-import { Button, Spinner } from '@/components/ui';
+import { Badge, Button, ConfirmDialog, Sheet, SkeletonCards } from '@/components/ui';
 import { useEliminarCampo } from '@/hooks/bloques/mutations';
 import { useCampos } from '@/hooks/bloques/queries';
 import { leerErrorServidor } from '@/hooks/errores';
 import { describirValorInicial } from '@/lib/campos';
 import type { Campo } from '@/types/campo';
 import { CampoForm } from './CampoForm';
-import { ConfirmarEliminacion } from './ConfirmarEliminacion';
 import { TIPOS_DE_DATO } from './tiposDeDato';
 
 type Props = { proyectoId: string; bloqueId: string };
@@ -31,7 +30,7 @@ export function ListaCampos({ proyectoId, bloqueId }: Props) {
     });
   }
 
-  if (campos.isPending) return <Spinner label="Cargando los datos del bloque…" />;
+  if (campos.isPending) return <SkeletonCards cantidad={2} />;
 
   if (campos.isError) {
     return (
@@ -39,9 +38,9 @@ export function ListaCampos({ proyectoId, bloqueId }: Props) {
         role="alert"
         className="flex flex-col items-start gap-2 rounded-md border border-bad/30 p-3"
       >
-        <p className="m-0">No pudimos cargar los datos de este bloque.</p>
-        <p className="m-0 text-[13px] text-soft">{leerErrorServidor(campos.error)?.mensaje}</p>
-        <Button variant="primary" onClick={() => void campos.refetch()}>
+        <p className="m-0">No pudimos cargar las columnas de esta tabla.</p>
+        <p className="m-0 text-hint text-soft">{leerErrorServidor(campos.error)?.mensaje}</p>
+        <Button variant="solid" onClick={() => void campos.refetch()}>
           Reintentar
         </Button>
       </div>
@@ -50,81 +49,86 @@ export function ListaCampos({ proyectoId, bloqueId }: Props) {
 
   if (campos.data.length === 0) {
     return (
-      <p className="m-0 rounded-md border border-dashed border-fg/25 p-4 text-soft">
-        Este bloque todavía no tiene datos. Agregá el primero, por ejemplo «Nombre».
+      <p className="m-0 rounded-md border border-dashed border-fg/30 p-4 text-body text-soft">
+        Esta tabla todavía no tiene columnas. Agregá la primera, por ejemplo «Nombre».
       </p>
     );
   }
 
   const errorEliminar = leerErrorServidor(eliminar.error);
+  const aCambiar = campos.data.find((c) => c.id === accion?.campoId && accion.tipo === 'cambiar');
+  const aEliminar = campos.data.find((c) => c.id === accion?.campoId && accion.tipo === 'eliminar');
 
   return (
-    <ul
-      ref={lista}
-      tabIndex={-1}
-      aria-label="Datos del bloque"
-      className="m-0 flex list-none flex-col gap-2 p-0 focus:outline-none"
-    >
-      {campos.data.map((campo) => (
-        <li key={campo.id}>
-          {accion?.campoId === campo.id && accion.tipo === 'cambiar' ? (
-            <CampoForm
-              proyectoId={proyectoId}
-              bloqueId={bloqueId}
-              campo={campo}
-              onListo={() => terminar(campo.id)}
-              onCancelar={() => terminar(campo.id)}
-            />
-          ) : (
-            <div className="flex flex-col gap-3 rounded-md border border-line bg-surface p-3 sm:flex-row sm:items-center sm:justify-between">
+    <>
+      <ul
+        ref={lista}
+        tabIndex={-1}
+        aria-label="Columnas de la tabla"
+        className="m-0 flex list-none flex-col gap-3 p-0 focus:outline-none"
+      >
+        {campos.data.map((campo) => (
+          <li key={campo.id}>
+            <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
               <ResumenCampo campo={campo} />
               <div className="flex shrink-0 flex-wrap gap-2">
                 <Button
                   data-cambiar={campo.id}
                   aria-label={`Cambiar ${campo.nombre}`}
-                  disabled={accion !== undefined}
                   onClick={() => setAccion({ campoId: campo.id, tipo: 'cambiar' })}
                 >
-                  <PencilSimpleIcon aria-hidden size={18} />
+                  <PencilSimpleIcon aria-hidden size={20} />
                   Cambiar
                 </Button>
                 <Button
+                  variant="danger"
                   aria-label={`Eliminar ${campo.nombre}`}
-                  disabled={accion !== undefined}
                   onClick={() => setAccion({ campoId: campo.id, tipo: 'eliminar' })}
                 >
-                  <TrashIcon aria-hidden size={18} />
+                  <TrashIcon aria-hidden size={20} />
                   Eliminar
                 </Button>
               </div>
             </div>
-          )}
+          </li>
+        ))}
+      </ul>
 
-          {accion?.campoId === campo.id && accion.tipo === 'eliminar' && (
-            <div className="mt-2">
-              <ConfirmarEliminacion
-                titulo={`¿Eliminar el dato «${campo.nombre}»?`}
-                confirmar="Sí, eliminar dato"
-                conservar="No, conservarlo"
-                ocupado={eliminar.isPending}
-                onConservar={() => terminar(campo.id)}
-                onConfirmar={() => eliminar.mutate(campo.id, { onSuccess: () => terminar() })}
-              >
-                <p className="m-0">
-                  Se va a borrar esta columna y lo que tengas anotado en ella en cada registro. No
-                  se puede deshacer.
-                </p>
-                {errorEliminar && (
-                  <p role="alert" className="mt-2 mb-0 text-bad">
-                    {errorEliminar.mensaje}
-                  </p>
-                )}
-              </ConfirmarEliminacion>
-            </div>
-          )}
-        </li>
-      ))}
-    </ul>
+      <Sheet
+        open={aCambiar !== undefined}
+        onClose={() => terminar(aCambiar?.id)}
+        title="Cambiar columna"
+        description={aCambiar ? `«${aCambiar.nombre}»` : undefined}
+      >
+        {aCambiar && (
+          <CampoForm
+            proyectoId={proyectoId}
+            bloqueId={bloqueId}
+            campo={aCambiar}
+            onListo={() => terminar(aCambiar.id)}
+            onCancelar={() => terminar(aCambiar.id)}
+          />
+        )}
+      </Sheet>
+
+      <ConfirmDialog
+        open={aEliminar !== undefined}
+        titulo={`¿Eliminar la columna «${aEliminar?.nombre ?? ''}»?`}
+        confirmar="Sí, eliminar columna"
+        conservar="No, conservarla"
+        ocupado={eliminar.isPending}
+        error={errorEliminar?.mensaje}
+        onConservar={() => terminar(aEliminar?.id)}
+        onConfirmar={() =>
+          aEliminar && eliminar.mutate(aEliminar.id, { onSuccess: () => terminar() })
+        }
+      >
+        <p className="m-0">
+          Se va a borrar esta columna y lo que tengas anotado en ella en cada fila. No se puede
+          deshacer.
+        </p>
+      </ConfirmDialog>
+    </>
   );
 }
 
@@ -132,19 +136,15 @@ function ResumenCampo({ campo }: { campo: Campo }) {
   const valor = describirValorInicial(campo.tipo, campo.valorInicial);
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <p className="m-0 flex flex-wrap items-center gap-2 text-base font-semibold break-words">
+      <p className="m-0 flex flex-wrap items-center gap-2 text-body font-semibold break-words">
         <span>{campo.nombre}</span>
-        {campo.obligatorio && (
-          <span className="rounded-sm bg-accent-100 px-1.5 py-0.5 text-[12px] font-bold text-accent-900">
-            Obligatorio
-          </span>
-        )}
+        {campo.obligatorio && <Badge tone="accent">Obligatorio</Badge>}
       </p>
-      <p className="m-0 text-[13px] text-soft">
+      <p className="m-0 text-hint text-soft">
         {TIPOS_DE_DATO[campo.tipo].nombre}
         {campo.tipo === 'OPCION' && `: ${campo.opciones.join(', ')}`}
       </p>
-      {valor !== null && <p className="m-0 text-[13px] text-soft">Valor inicial: {valor}</p>}
+      {valor !== null && <p className="m-0 text-hint text-soft">Valor inicial: {valor}</p>}
     </div>
   );
 }

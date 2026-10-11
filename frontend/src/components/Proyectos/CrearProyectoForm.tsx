@@ -30,21 +30,14 @@ export function CrearProyectoForm({ onCancelar }: Props) {
     }
   }
   return (
-    <form
-      onSubmit={(event) => void enviar(event)}
-      className="flex max-w-xl flex-col gap-4"
-      aria-labelledby="crear-titulo"
-    >
-      <h2 id="crear-titulo" className="m-0 text-xl">
-        Tu proyecto en blanco
-      </h2>
+    <form onSubmit={(event) => void enviar(event)} className="flex flex-col gap-4">
       <InputField
-        label="Nombre del proyecto"
+        label="Nombre del sistema"
+        hint="Por ejemplo: Mi almacén, Pedidos del taller."
         value={nombre}
         onChange={(e) => setNombre(e.target.value)}
         maxLength={120}
         error={errorNombre}
-        autoFocus
         required
         disabled={crear.isPending}
       />
@@ -56,16 +49,16 @@ export function CrearProyectoForm({ onCancelar }: Props) {
         disabled={crear.isPending}
       />
       {crear.error && (
-        <p role="alert" className="text-bad">
+        <p role="alert" className="m-0 font-semibold text-bad">
           {crear.error.message}
         </p>
       )}
-      <div className="flex flex-wrap gap-3">
-        <Button type="submit" variant="solid" disabled={crear.isPending}>
-          {crear.isPending ? 'Creando…' : 'Crear proyecto'}
-        </Button>
+      <div className="flex flex-wrap justify-end gap-3">
         <Button onClick={onCancelar} disabled={crear.isPending}>
           Cancelar
+        </Button>
+        <Button type="submit" variant="solid" loading={crear.isPending}>
+          {crear.isPending ? 'Creando…' : 'Crear sistema'}
         </Button>
       </div>
     </form>

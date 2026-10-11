@@ -22,23 +22,18 @@ export function AgregarBloque({ proyectoId, onCreado }: Props) {
 
   if (!abierto) {
     return (
-      <Button
-        ref={boton}
-        variant="primary"
-        className="w-full text-base"
-        onClick={() => setAbierto(true)}
-      >
-        <PlusIcon aria-hidden size={20} />
-        Agregar bloque
+      <Button ref={boton} variant="primary" fullWidth onClick={() => setAbierto(true)}>
+        <PlusIcon aria-hidden size={22} />
+        Agregar tabla
       </Button>
     );
   }
 
   return (
-    <Panel tight aria-label="Agregar bloque">
+    <Panel tight aria-label="Agregar tabla">
       <NombreBloqueForm
-        etiqueta="Nombre del bloque nuevo"
-        textoGuardar="Agregar bloque"
+        etiqueta="Nombre de la tabla nueva"
+        textoGuardar="Agregar tabla"
         ocupado={crear.isPending}
         errorServidor={leerErrorServidor(crear.error)}
         onCancelar={cerrar}

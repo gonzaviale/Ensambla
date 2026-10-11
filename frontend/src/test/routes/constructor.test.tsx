@@ -53,36 +53,36 @@ async function abrirConstructor(proyectoId: string, bloqueId?: string) {
   const router = renderApp(
     `/proyectos/${proyectoId}/construir${bloqueId ? `?bloque=${bloqueId}` : ''}`,
   );
-  await verifyHeadingPresentAsync('Tus bloques');
+  await verifyHeadingPresentAsync('Tus tablas');
   return router;
 }
 
 /* consultas */
 
-const listaDeBloques = () => screen.getByRole('navigation', { name: 'Bloques del proyecto' });
+const listaDeBloques = () => screen.getByRole('navigation', { name: 'Tablas del sistema' });
 const botonDeBloque = (nombre: string) =>
   within(listaDeBloques()).getByRole('button', { name: nombre });
 const detalle = (nombre: string) => screen.getByRole('region', { name: nombre });
-const datosDelBloque = () => screen.findByRole('list', { name: 'Datos del bloque' }, ESPERA);
+const datosDelBloque = () => screen.findByRole('list', { name: 'Columnas de la tabla' }, ESPERA);
 const formulario = (nombre: string | RegExp) => screen.getByRole('form', { name: nombre });
 
 async function abrirNuevoDato(user: UserEvent) {
-  await user.click(await screen.findByRole('button', { name: 'Agregar dato' }, ESPERA));
-  return formulario('Nuevo dato');
+  await user.click(await screen.findByRole('button', { name: 'Agregar columna' }, ESPERA));
+  return formulario('Nueva columna');
 }
 
 async function guardarDato(user: UserEvent, form: HTMLElement) {
-  await user.click(within(form).getByRole('button', { name: 'Guardar dato' }));
+  await user.click(within(form).getByRole('button', { name: 'Guardar columna' }));
 }
 
 describe('ENS-47 · T-019: layout del constructor', () => {
-  it('muestra la carga y después el estado vacío con la explicación de qué es un bloque', async () => {
+  it('muestra la carga y después el estado vacío con la explicación de qué es una tabla', async () => {
     const proyecto = await setupProyecto();
     renderApp(`/proyectos/${proyecto.id}/construir`);
 
-    expect(await screen.findByText('Cargando los bloques…', {}, ESPERA)).toBeInTheDocument();
-    await verifyHeadingPresentAsync('Todavía no hay bloques en este proyecto');
-    expect(screen.getByRole('button', { name: 'Agregar bloque' })).toBeInTheDocument();
+    expect(await screen.findByText('Cargando las tablas…', {}, ESPERA)).toBeInTheDocument();
+    await verifyHeadingPresentAsync('Todavía no hay tablas en este sistema');
+    expect(screen.getByRole('button', { name: 'Agregar tabla' })).toBeInTheDocument();
   });
 
   it('abre el primer bloque y navega entre bloques mostrando sus datos', async () => {
@@ -111,7 +111,7 @@ describe('ENS-47 · T-019: layout del constructor', () => {
     const router = await abrirConstructor(proyecto.id, clientes.id);
 
     await verifyHeadingPresentAsync('Clientes');
-    await user.click(screen.getByRole('button', { name: 'Ver todos los bloques' }));
+    await user.click(screen.getByRole('button', { name: 'Ver todas las tablas' }));
 
     await waitFor(() => expect(router.state.location.search).toEqual({}), ESPERA);
     await waitFor(() => expect(botonDeBloque('Clientes')).toHaveFocus(), ESPERA);
@@ -128,11 +128,11 @@ describe('ENS-47 · T-019: layout del constructor', () => {
     const user = userEvent.setup();
     renderApp(`/proyectos/${proyecto.id}/construir`);
 
-    await verifyHeadingPresentAsync('No pudimos cargar los bloques');
+    await verifyHeadingPresentAsync('No pudimos cargar las tablas');
     expect(screen.getByRole('alert')).toHaveTextContent('El servidor no responde');
     await user.click(screen.getByRole('button', { name: 'Reintentar' }));
 
-    await verifyHeadingPresentAsync('Todavía no hay bloques en este proyecto');
+    await verifyHeadingPresentAsync('Todavía no hay tablas en este sistema');
   });
 });
 
@@ -142,13 +142,15 @@ describe('ENS-48 · T-020: agregar, renombrar y eliminar bloques', () => {
     const user = userEvent.setup();
     await abrirConstructor(proyecto.id);
 
-    await user.click(screen.getByRole('button', { name: 'Agregar bloque' }));
-    await user.type(screen.getByLabelText('Nombre del bloque nuevo'), 'Pedidos');
-    await user.click(screen.getByRole('button', { name: 'Agregar bloque' }));
+    await user.click(screen.getByRole('button', { name: 'Agregar tabla' }));
+    await user.type(screen.getByLabelText('Nombre de la tabla nueva'), 'Pedidos');
+    await user.click(screen.getByRole('button', { name: 'Agregar tabla' }));
 
     await verifyHeadingPresentAsync('Pedidos');
     expect(botonDeBloque('Pedidos')).toHaveAttribute('aria-current', 'true');
-    expect(await screen.findByText(/Este bloque todavía no tiene datos/, {}, ESPERA)).toBeVisible();
+    expect(
+      await screen.findByText(/Esta tabla todavía no tiene columnas/, {}, ESPERA),
+    ).toBeVisible();
   });
 
   it('pide un nombre antes de agregar el bloque', async () => {
@@ -156,12 +158,12 @@ describe('ENS-48 · T-020: agregar, renombrar y eliminar bloques', () => {
     const user = userEvent.setup();
     await abrirConstructor(proyecto.id);
 
-    await user.click(screen.getByRole('button', { name: 'Agregar bloque' }));
-    await user.click(screen.getByRole('button', { name: 'Agregar bloque' }));
+    await user.click(screen.getByRole('button', { name: 'Agregar tabla' }));
+    await user.click(screen.getByRole('button', { name: 'Agregar tabla' }));
 
-    const input = screen.getByLabelText('Nombre del bloque nuevo');
+    const input = screen.getByLabelText('Nombre de la tabla nueva');
     expect(input).toHaveAttribute('aria-invalid', 'true');
-    expect(input).toHaveAccessibleDescription(/Escribí un nombre para el bloque/);
+    expect(input).toHaveAccessibleDescription(/Escribí un nombre para la tabla/);
   });
 
   it('muestra junto al nombre el 409 del servidor cuando el bloque ya existe', async () => {
@@ -169,11 +171,11 @@ describe('ENS-48 · T-020: agregar, renombrar y eliminar bloques', () => {
     const user = userEvent.setup();
     await abrirConstructor(proyecto.id);
 
-    await user.click(screen.getByRole('button', { name: 'Agregar bloque' }));
-    await user.type(screen.getByLabelText('Nombre del bloque nuevo'), 'productos');
-    await user.click(screen.getByRole('button', { name: 'Agregar bloque' }));
+    await user.click(screen.getByRole('button', { name: 'Agregar tabla' }));
+    await user.type(screen.getByLabelText('Nombre de la tabla nueva'), 'productos');
+    await user.click(screen.getByRole('button', { name: 'Agregar tabla' }));
 
-    const input = screen.getByLabelText('Nombre del bloque nuevo');
+    const input = screen.getByLabelText('Nombre de la tabla nueva');
     await waitFor(
       () =>
         expect(input).toHaveAccessibleDescription(
@@ -196,13 +198,13 @@ describe('ENS-48 · T-020: agregar, renombrar y eliminar bloques', () => {
     const user = userEvent.setup();
     await abrirConstructor(proyecto.id);
 
-    await user.click(screen.getByRole('button', { name: 'Agregar bloque' }));
-    await user.type(screen.getByLabelText('Nombre del bloque nuevo'), '***');
-    await user.click(screen.getByRole('button', { name: 'Agregar bloque' }));
+    await user.click(screen.getByRole('button', { name: 'Agregar tabla' }));
+    await user.type(screen.getByLabelText('Nombre de la tabla nueva'), '***');
+    await user.click(screen.getByRole('button', { name: 'Agregar tabla' }));
 
     await waitFor(
       () =>
-        expect(screen.getByLabelText('Nombre del bloque nuevo')).toHaveAccessibleDescription(
+        expect(screen.getByLabelText('Nombre de la tabla nueva')).toHaveAccessibleDescription(
           /El nombre no puede tener sólo símbolos/,
         ),
       ESPERA,
@@ -216,7 +218,7 @@ describe('ENS-48 · T-020: agregar, renombrar y eliminar bloques', () => {
     await verifyHeadingPresentAsync('Productos');
 
     await user.click(screen.getByRole('button', { name: 'Cambiar nombre' }));
-    const input = screen.getByLabelText('Nuevo nombre del bloque');
+    const input = screen.getByLabelText('Nuevo nombre de la tabla');
     expect(input).toHaveValue('Productos');
     await user.clear(input);
     await user.type(input, 'Mercadería');
@@ -234,13 +236,13 @@ describe('ENS-48 · T-020: agregar, renombrar y eliminar bloques', () => {
     await verifyHeadingPresentAsync('Productos');
 
     await user.click(screen.getByRole('button', { name: 'Cambiar nombre' }));
-    await user.clear(screen.getByLabelText('Nuevo nombre del bloque'));
-    await user.type(screen.getByLabelText('Nuevo nombre del bloque'), 'Clientes');
+    await user.clear(screen.getByLabelText('Nuevo nombre de la tabla'));
+    await user.type(screen.getByLabelText('Nuevo nombre de la tabla'), 'Clientes');
     await user.click(screen.getByRole('button', { name: 'Guardar nombre' }));
 
     await waitFor(
       () =>
-        expect(screen.getByLabelText('Nuevo nombre del bloque')).toHaveAccessibleDescription(
+        expect(screen.getByLabelText('Nuevo nombre de la tabla')).toHaveAccessibleDescription(
           /Ya hay un bloque llamado "Clientes"/,
         ),
       ESPERA,
@@ -255,18 +257,18 @@ describe('ENS-48 · T-020: agregar, renombrar y eliminar bloques', () => {
     await verifyHeadingPresentAsync('Productos');
     await datosDelBloque();
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar bloque' }));
-    const aviso = screen.getByRole('alertdialog', { name: '¿Eliminar el bloque «Productos»?' });
-    expect(aviso).toHaveFocus();
-    expect(aviso).toHaveTextContent('Se van a borrar sus 2 datos y todos los registros');
+    await user.click(screen.getByRole('button', { name: 'Eliminar tabla' }));
+    const aviso = screen.getByRole('alertdialog', { name: '¿Eliminar la tabla «Productos»?' });
+    expect(within(aviso).getByRole('button', { name: 'No, conservarla' })).toHaveFocus();
+    expect(aviso).toHaveTextContent('Se van a borrar sus 2 columnas y la fila que cargaste.');
     expect(aviso).toHaveTextContent('No se puede deshacer');
 
-    await user.click(within(aviso).getByRole('button', { name: 'No, conservarlo' }));
+    await user.click(within(aviso).getByRole('button', { name: 'No, conservarla' }));
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     expect(botonDeBloque('Productos')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar bloque' }));
-    await user.click(screen.getByRole('button', { name: 'Sí, eliminar bloque' }));
+    await user.click(screen.getByRole('button', { name: 'Eliminar tabla' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, eliminar tabla' }));
 
     await waitFor(
       () => expect(within(listaDeBloques()).queryByText('Productos')).not.toBeInTheDocument(),
@@ -274,7 +276,7 @@ describe('ENS-48 · T-020: agregar, renombrar y eliminar bloques', () => {
     );
     await verifyHeadingPresentAsync('Clientes');
     await waitFor(
-      () => expect(screen.getByRole('heading', { name: 'Tus bloques' })).toHaveFocus(),
+      () => expect(screen.getByRole('heading', { name: 'Tus tablas' })).toHaveFocus(),
       ESPERA,
     );
     expect([...estado.registros.values()]).toHaveLength(0);
@@ -284,11 +286,11 @@ describe('ENS-48 · T-020: agregar, renombrar y eliminar bloques', () => {
     const proyecto = await setupProyecto();
     const user = userEvent.setup();
     await abrirConstructor(proyecto.id);
-    await user.click(screen.getByRole('button', { name: 'Agregar bloque' }));
-    await user.type(screen.getByLabelText('Nombre del bloque nuevo'), 'Ventas');
-    await user.click(screen.getByRole('button', { name: 'Agregar bloque' }));
+    await user.click(screen.getByRole('button', { name: 'Agregar tabla' }));
+    await user.type(screen.getByLabelText('Nombre de la tabla nueva'), 'Ventas');
+    await user.click(screen.getByRole('button', { name: 'Agregar tabla' }));
     const form = await abrirNuevoDato(user);
-    await user.type(within(form).getByLabelText('Nombre del dato'), 'Monto');
+    await user.type(within(form).getByLabelText('Nombre de la columna'), 'Monto');
     await user.click(within(form).getByRole('radio', { name: 'Número' }));
     await guardarDato(user, form);
     await waitFor(() => expect(screen.queryByRole('form')).not.toBeInTheDocument(), ESPERA);
@@ -310,25 +312,25 @@ describe('ENS-49 · T-021: editor de datos (campos)', () => {
     await abrirConstructor(proyecto.id, bloque.id);
 
     let form = await abrirNuevoDato(user);
-    await user.type(within(form).getByLabelText('Nombre del dato'), 'Cliente');
+    await user.type(within(form).getByLabelText('Nombre de la columna'), 'Cliente');
     await user.type(within(form).getByLabelText('Valor inicial (opcional)'), 'Consumidor final');
     await user.click(within(form).getByRole('checkbox', { name: 'Es obligatorio' }));
     await guardarDato(user, form);
 
     form = await abrirNuevoDato(user);
-    await user.type(within(form).getByLabelText('Nombre del dato'), 'Precio');
+    await user.type(within(form).getByLabelText('Nombre de la columna'), 'Precio');
     await user.click(within(form).getByRole('radio', { name: 'Número' }));
     await user.type(within(form).getByLabelText('Valor inicial (opcional)'), '12,5');
     await guardarDato(user, form);
 
     form = await abrirNuevoDato(user);
-    await user.type(within(form).getByLabelText('Nombre del dato'), 'Entrega');
+    await user.type(within(form).getByLabelText('Nombre de la columna'), 'Entrega');
     await user.click(within(form).getByRole('radio', { name: 'Fecha' }));
     await user.type(within(form).getByLabelText('Valor inicial (opcional)'), '2026-10-20');
     await guardarDato(user, form);
 
     form = await abrirNuevoDato(user);
-    await user.type(within(form).getByLabelText('Nombre del dato'), 'Tamaño');
+    await user.type(within(form).getByLabelText('Nombre de la columna'), 'Tamaño');
     await user.click(within(form).getByRole('radio', { name: 'Lista de opciones' }));
     await user.type(within(form).getByLabelText('Opción 1'), 'Chico');
     await user.type(within(form).getByLabelText('Opción 2'), 'Mediano');
@@ -338,7 +340,7 @@ describe('ENS-49 · T-021: editor de datos (campos)', () => {
     await guardarDato(user, form);
 
     form = await abrirNuevoDato(user);
-    await user.type(within(form).getByLabelText('Nombre del dato'), 'Pagado');
+    await user.type(within(form).getByLabelText('Nombre de la columna'), 'Pagado');
     await user.click(within(form).getByRole('radio', { name: 'Sí o no' }));
     const valor = within(form).getByRole('group', { name: 'Valor inicial (opcional)' });
     await user.click(within(valor).getByRole('radio', { name: 'No' }));
@@ -413,8 +415,8 @@ describe('ENS-49 · T-021: editor de datos (campos)', () => {
     const form = await abrirNuevoDato(user);
     await user.click(within(form).getByRole('radio', { name: 'Lista de opciones' }));
     await guardarDato(user, form);
-    const nombre = within(form).getByLabelText('Nombre del dato');
-    expect(nombre).toHaveAccessibleDescription(/Escribí un nombre para el dato/);
+    const nombre = within(form).getByLabelText('Nombre de la columna');
+    expect(nombre).toHaveAccessibleDescription(/Escribí un nombre para la columna/);
     await waitFor(() => expect(nombre).toHaveFocus());
     expect(within(form).getByRole('group', { name: 'Opciones de la lista' })).toHaveTextContent(
       'Agregá al menos una opción.',
@@ -452,7 +454,7 @@ describe('ENS-49 · T-021: editor de datos (campos)', () => {
     await abrirConstructor(proyecto.id);
 
     const form = await abrirNuevoDato(user);
-    await user.type(within(form).getByLabelText('Nombre del dato'), 'Rubro');
+    await user.type(within(form).getByLabelText('Nombre de la columna'), 'Rubro');
     await user.click(within(form).getByRole('radio', { name: 'Lista de opciones' }));
     await user.type(within(form).getByLabelText('Opción 1'), 'Insumos');
     await user.selectOptions(within(form).getByLabelText('Valor inicial (opcional)'), 'Insumos');
@@ -468,7 +470,7 @@ describe('ENS-49 · T-021: editor de datos (campos)', () => {
     expect(within(form).getByLabelText('Valor inicial (opcional)')).toHaveAccessibleDescription(
       /El valor inicial no es válido para el tipo de campo/,
     );
-    expect(within(form).getByLabelText('Nombre del dato')).toHaveValue('Rubro');
+    expect(within(form).getByLabelText('Nombre de la columna')).toHaveValue('Rubro');
   });
 
   it('muestra junto al nombre el 409 cuando el dato ya existe en el bloque', async () => {
@@ -477,12 +479,12 @@ describe('ENS-49 · T-021: editor de datos (campos)', () => {
     await abrirConstructor(proyecto.id);
 
     const form = await abrirNuevoDato(user);
-    await user.type(within(form).getByLabelText('Nombre del dato'), 'stock');
+    await user.type(within(form).getByLabelText('Nombre de la columna'), 'stock');
     await guardarDato(user, form);
 
     await waitFor(
       () =>
-        expect(within(form).getByLabelText('Nombre del dato')).toHaveAccessibleDescription(
+        expect(within(form).getByLabelText('Nombre de la columna')).toHaveAccessibleDescription(
           /Ya hay un campo llamado "stock" en este bloque/,
         ),
       ESPERA,
@@ -496,7 +498,7 @@ describe('ENS-49 · T-021: editor de datos (campos)', () => {
     await abrirConstructor(proyecto.id);
 
     const form = await abrirNuevoDato(user);
-    await user.type(within(form).getByLabelText('Nombre del dato'), 'Color');
+    await user.type(within(form).getByLabelText('Nombre de la columna'), 'Color');
     await guardarDato(user, form);
 
     expect(await within(form).findByRole('alert', {}, ESPERA)).toHaveTextContent(
@@ -511,13 +513,13 @@ describe('ENS-49 · T-021: editor de datos (campos)', () => {
     await datosDelBloque();
 
     await user.click(screen.getByRole('button', { name: 'Cambiar Stock' }));
-    const form = formulario('Cambiar el dato «Stock»');
-    expect(within(form).getByLabelText('Nombre del dato')).toHaveValue('Stock');
+    const form = formulario('Cambiar la columna «Stock»');
+    expect(within(form).getByLabelText('Nombre de la columna')).toHaveValue('Stock');
     expect(within(form).getByRole('radio', { name: 'Número' })).toBeChecked();
     expect(within(form).getByLabelText('Valor inicial (opcional)')).toHaveValue('0');
 
-    await user.clear(within(form).getByLabelText('Nombre del dato'));
-    await user.type(within(form).getByLabelText('Nombre del dato'), 'Cantidad');
+    await user.clear(within(form).getByLabelText('Nombre de la columna'));
+    await user.type(within(form).getByLabelText('Nombre de la columna'), 'Cantidad');
     await user.clear(within(form).getByLabelText('Valor inicial (opcional)'));
     await user.type(within(form).getByLabelText('Valor inicial (opcional)'), '3,5');
     await user.click(within(form).getByRole('checkbox', { name: 'Es obligatorio' }));
@@ -540,13 +542,13 @@ describe('ENS-49 · T-021: editor de datos (campos)', () => {
     await datosDelBloque();
 
     await user.click(screen.getByRole('button', { name: 'Eliminar Stock' }));
-    const aviso = screen.getByRole('alertdialog', { name: '¿Eliminar el dato «Stock»?' });
+    const aviso = screen.getByRole('alertdialog', { name: '¿Eliminar la columna «Stock»?' });
     expect(aviso).toHaveTextContent('No se puede deshacer');
-    await user.click(within(aviso).getByRole('button', { name: 'No, conservarlo' }));
+    await user.click(within(aviso).getByRole('button', { name: 'No, conservarla' }));
     expect(screen.getByText('Stock')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Eliminar Stock' }));
-    await user.click(screen.getByRole('button', { name: 'Sí, eliminar dato' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, eliminar columna' }));
 
     await waitFor(() => expect(screen.queryByText('Stock')).not.toBeInTheDocument(), ESPERA);
     expect(within(detalle('Productos')).getByText('Nombre')).toBeInTheDocument();

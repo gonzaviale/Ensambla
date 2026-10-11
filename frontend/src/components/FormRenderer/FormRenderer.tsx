@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { FloppyDiskIcon } from '@phosphor-icons/react';
 import { Button } from '@/components/ui';
 import { Toast } from '@/components/ui/Toast';
 import { CampoRegistro } from './CampoRegistro';
@@ -17,6 +18,13 @@ type FormRendererProps = {
   onEnviandoChange?: (enviando: boolean) => void;
 };
 
+// Un control con ese `name` puede ser un input suelto o un grupo de radios (Sí / No).
+function primerControl(formulario: HTMLFormElement | null, nombre: string) {
+  const control = formulario?.elements.namedItem(nombre);
+  const primero = control instanceof RadioNodeList ? control[0] : control;
+  return primero instanceof HTMLElement ? primero : undefined;
+}
+
 export function FormRenderer({ campos, onSubmit, onEnviandoChange }: FormRendererProps) {
   const [valores, setValores] = useState(() => valoresIniciales(campos));
   const [errores, setErrores] = useState<ErroresFormulario>({});
@@ -29,10 +37,9 @@ export function FormRenderer({ campos, onSubmit, onEnviandoChange }: FormRendere
 
   useEffect(() => {
     if (enviando || !campoAEnfocar.current) return;
-    const control = formulario.current?.elements.namedItem(campoAEnfocar.current);
-    if (control instanceof HTMLElement) control.focus();
+    primerControl(formulario.current, campoAEnfocar.current)?.focus();
     campoAEnfocar.current = null;
-  }, [enviando, errores]);
+  }, [enviando, errores, valores]);
 
   async function guardar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,8 +49,7 @@ export function FormRenderer({ campos, onSubmit, onEnviandoChange }: FormRendere
     for (const campo of campos) {
       const control = event.currentTarget.elements.namedItem(campo.id);
       if (control instanceof HTMLInputElement && control.validity.badInput)
-        nuevosErrores[campo.id] =
-          campo.tipo === 'NUMERO' ? 'Tiene que ser un número' : 'Tiene que ser una fecha válida';
+        nuevosErrores[campo.id] = 'Tiene que ser una fecha válida';
     }
     setErrores(nuevosErrores);
     const primero = camposOrdenados.find((campo) => nuevosErrores[campo.id]);
@@ -58,7 +64,9 @@ export function FormRenderer({ campos, onSubmit, onEnviandoChange }: FormRendere
       const resultado = await onSubmit(valoresParaGuardar(campos, valores));
       if (resultado.exito) {
         setValores(valoresIniciales(campos));
-        setAviso({ tipo: 'exito', mensaje: 'Registro guardado. Ya podés cargar otro.' });
+        // Listo para cargar otra fila: el foco vuelve al primer campo.
+        campoAEnfocar.current = camposOrdenados[0]?.id ?? null;
+        setAviso({ tipo: 'exito', mensaje: 'Fila guardada. Ya podés cargar otra.' });
       } else {
         const erroresVisibles = Object.fromEntries(
           Object.entries(resultado.errores).filter(([id]) =>
@@ -83,7 +91,11 @@ export function FormRenderer({ campos, onSubmit, onEnviandoChange }: FormRendere
   }
 
   if (campos.length === 0) {
-    return <p className="m-0 text-soft">Este bloque todavía no tiene datos para completar.</p>;
+    return (
+      <p className="m-0 text-body text-soft">
+        Esta tabla todavía no tiene columnas para completar.
+      </p>
+    );
   }
 
   return (
@@ -94,9 +106,9 @@ export function FormRenderer({ campos, onSubmit, onEnviandoChange }: FormRendere
       aria-busy={enviando}
       className="flex flex-col gap-5"
     >
-      <p className="m-0 text-sm text-muted">Completá los datos marcados como obligatorios.</p>
+      <p className="m-0 text-hint text-muted">Completá las columnas marcadas como obligatorias.</p>
       {Object.keys(errores).length > 0 && (
-        <p role={aviso ? undefined : 'alert'} className="m-0 text-sm text-bad">
+        <p role={aviso ? undefined : 'alert'} className="m-0 text-base font-semibold text-bad">
           Revisá los campos marcados para guardar.
         </p>
       )}
@@ -115,9 +127,19 @@ export function FormRenderer({ campos, onSubmit, onEnviandoChange }: FormRendere
             }}
           />
         ))}
-        <Button type="submit" variant="solid" disabled={enviando} className="self-start">
-          {enviando ? 'Guardando…' : 'Guardar registro'}
-        </Button>
+        {/* En el celular el botón queda fijo sobre la barra inferior: siempre a mano al cargar. */}
+        <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 -mx-5 -mb-5 border-t border-line bg-surface px-5 py-3 md:static md:mx-0 md:mb-0 md:border-0 md:bg-transparent md:p-0">
+          <Button
+            type="submit"
+            variant="solid"
+            size="lg"
+            loading={enviando}
+            className="max-md:w-full"
+          >
+            {!enviando && <FloppyDiskIcon aria-hidden size={24} />}
+            {enviando ? 'Guardando…' : 'Guardar fila'}
+          </Button>
+        </div>
       </fieldset>
       {aviso && <Toast {...aviso} onClose={() => setAviso(null)} />}
     </form>

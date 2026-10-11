@@ -34,17 +34,17 @@ describe('ENS-6: carga de registros por bloque', () => {
     await verifyHeadingPresentAsync('Inventario');
     await user.click(await screen.findByRole('tab', { name: 'Cargar' }));
     expect(screen.queryByText('Constructor de bloques y campos')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Stock (obligatorio)')).toHaveValue(0);
-    await user.type(screen.getByLabelText('Nombre (obligatorio)'), 'Harina');
+    expect(screen.getByLabelText('Stock')).toHaveValue('0');
+    await user.type(screen.getByLabelText('Nombre'), 'Harina');
     await user.selectOptions(screen.getByLabelText('Rubro'), 'Insumos');
-    await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('Registro guardado');
+    await user.click(screen.getByRole('button', { name: 'Guardar fila' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Fila guardada');
     expect(estado.registros.size).toBe(1);
     const registro = [...estado.registros.values()][0];
     expect(registro?.bloqueId).toBe(primerBloque(proyecto).id);
     expect(Object.values(registro?.valores ?? {})).toEqual(['Harina', 0, 'Insumos']);
-    expect(screen.getByLabelText('Nombre (obligatorio)')).toHaveValue('');
-    expect(screen.getByLabelText('Stock (obligatorio)')).toHaveValue(0);
+    expect(screen.getByLabelText('Nombre')).toHaveValue('');
+    expect(screen.getByLabelText('Stock')).toHaveValue('0');
   });
 
   it('conserva un borrador al cambiar de bloque y guarda en el bloque seleccionado', async () => {
@@ -75,15 +75,15 @@ describe('ENS-6: carga de registros por bloque', () => {
     renderApp(`/proyectos/${proyecto.id}/usar`);
     await user.click(await screen.findByRole('tab', { name: 'Cargar' }));
     await verifyHeadingPresentAsync('Productos');
-    await user.type(screen.getByLabelText('Nombre (obligatorio)'), 'Borrador');
+    await user.type(screen.getByLabelText('Nombre'), 'Borrador');
     await user.click(screen.getByRole('radio', { name: 'Clientes' }));
     const clientes = screen.getByRole('region', { name: 'Clientes' });
-    await user.type(within(clientes).getByLabelText('Cliente (obligatorio)'), 'Ana');
-    await user.click(within(clientes).getByRole('button', { name: 'Guardar registro' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('Registro guardado');
+    await user.type(within(clientes).getByLabelText('Cliente'), 'Ana');
+    await user.click(within(clientes).getByRole('button', { name: 'Guardar fila' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Fila guardada');
     expect([...estado.registros.values()][0]?.bloqueId).toBe(segundo.id);
     await user.click(screen.getByRole('radio', { name: 'Productos' }));
-    expect(screen.getByLabelText('Nombre (obligatorio)')).toHaveValue('Borrador');
+    expect(screen.getByLabelText('Nombre')).toHaveValue('Borrador');
   });
 
   it('bloquea el selector durante el guardado', async () => {
@@ -108,8 +108,8 @@ describe('ENS-6: carga de registros por bloque', () => {
     renderApp(`/proyectos/${proyecto.id}/usar`);
     await user.click(await screen.findByRole('tab', { name: 'Cargar' }));
     await verifyHeadingPresentAsync('Productos');
-    await user.type(screen.getByLabelText('Nombre (obligatorio)'), 'Producto');
-    await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
+    await user.type(screen.getByLabelText('Nombre'), 'Producto');
+    await user.click(screen.getByRole('button', { name: 'Guardar fila' }));
     expect(screen.getByRole('radio', { name: 'Productos' })).toBeDisabled();
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Productos' })).toBeEnabled());
   });
@@ -118,8 +118,8 @@ describe('ENS-6: carga de registros por bloque', () => {
     setupUsuarioConSesion();
     const proyecto = await crearProyecto({ nombre: 'Vacío' });
     renderApp(`/proyectos/${proyecto.id}/usar`);
-    await verifyHeadingPresentAsync('Este proyecto no tiene bloques');
-    expect(screen.queryByRole('button', { name: 'Guardar registro' })).not.toBeInTheDocument();
+    await verifyHeadingPresentAsync('Este sistema no tiene tablas');
+    expect(screen.queryByRole('button', { name: 'Guardar fila' })).not.toBeInTheDocument();
   });
 
   it('no ofrece guardado si el bloque no tiene campos', async () => {
@@ -132,8 +132,8 @@ describe('ENS-6: carga de registros por bloque', () => {
     renderApp(`/proyectos/${proyecto.id}/usar`);
     await user.click(await screen.findByRole('tab', { name: 'Cargar' }));
     await verifyHeadingPresentAsync('Productos');
-    expect(screen.getByText(/todavía no tiene datos/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Guardar registro' })).not.toBeInTheDocument();
+    expect(screen.getByText(/todavía no tiene columnas/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Guardar fila' })).not.toBeInTheDocument();
   });
 
   it('conserva el formulario ante errores de la API', async () => {
@@ -148,10 +148,10 @@ describe('ENS-6: carga de registros por bloque', () => {
     renderApp(`/proyectos/${proyecto.id}/usar`);
     await user.click(await screen.findByRole('tab', { name: 'Cargar' }));
     await verifyHeadingPresentAsync('Productos');
-    await user.type(screen.getByLabelText('Nombre (obligatorio)'), 'Conservar');
-    await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
+    await user.type(screen.getByLabelText('Nombre'), 'Conservar');
+    await user.click(screen.getByRole('button', { name: 'Guardar fila' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos guardar');
-    expect(screen.getByLabelText('Nombre (obligatorio)')).toHaveValue('Conservar');
+    expect(screen.getByLabelText('Nombre')).toHaveValue('Conservar');
     expect(estado.registros.size).toBe(0);
   });
 
@@ -165,6 +165,6 @@ describe('ENS-6: carga de registros por bloque', () => {
     setupUsuarioConSesion({ email: 'otro@example.com' });
     renderApp(`/proyectos/${proyecto.id}/usar`);
     await verifyHeadingPresentAsync('No encontramos esta página');
-    expect(screen.queryByRole('button', { name: 'Guardar registro' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Guardar fila' })).not.toBeInTheDocument();
   });
 });
