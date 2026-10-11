@@ -120,7 +120,7 @@ erDiagram
         uuid id PK
         uuid negocio_id FK
         uuid lote_id FK
-        text clave_almacenamiento UK "clave en el bucket privado"
+        text clave_almacenamiento UK "clave del archivo en el almacenamiento privado"
         text tipo_contenido
         bigint tamanio_bytes
         smallint rotacion "0 | 90 | 180 | 270"

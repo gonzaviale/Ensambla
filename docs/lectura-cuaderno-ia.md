@@ -37,7 +37,7 @@ No se agrega otra ruta de subida en esta historia.
   Rechaza rutas que terminen fuera del directorio de ese negocio y archivos vacíos o mayores a 20 MiB.
 - Raíz de desarrollo: `datos/ia/cuadernos/fotos/`, excluida de Git (salvo `.gitkeep`), fuera de cualquier ruta pública.
   Se puede configurar una ruta absoluta.
-- Un bucket futuro implementa `ArchivoCuadernoPort`; la cola y el dominio no necesitan conocer su SDK.
+- Otro almacenamiento puede implementar `ArchivoCuadernoPort`; la cola y el dominio no necesitan conocer su SDK.
 - Coordinar estas consultas con ENS-124 si esa tarea agrega rutas equivalentes.
 
 ## Consumo y configuración
@@ -125,7 +125,7 @@ un reporte distinto; el adaptador OCR todavía depende de la decisión del spike
 
 | Subtarea | Estado de esta entrega |
 |---|---|
-| ENS-127 | Carpeta/contrato preparados; faltan las 30+ fotos reales y bucket privado versionado |
+| ENS-127 | Carpeta/contrato preparados; faltan las 30+ fotos reales |
 | ENS-128 | Circuito de medición preparado; falta ejecutar modelos/OCR y elegir proveedor |
 | ENS-129 | [Informe pendiente](comparacion-modelos-ia.md); faltan resultados y revisión del equipo |
 | ENS-130 | Extracción intercambiable y validación probadas con simulado; falta cliente real elegido |
