@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { crearProyecto } from '@/api/proyectos';
 import { renderApp } from '@/test/renderApp';
 import {
+  ESPERA,
   setupUsuarioConSesion,
   setupServerError,
   verifyHeadingPresentAsync,
@@ -33,7 +34,7 @@ describe('ENS-4: crear y gestionar proyectos', () => {
     await user.click(screen.getByRole('button', { name: 'Crear proyecto' }));
 
     await verifyHeadingPresentAsync('Mi taller');
-    await verifyHeadingPresentAsync('Primer paso: agregá un bloque');
+    await verifyHeadingPresentAsync('Todavía no hay bloques en este proyecto');
     expect(router.state.location.pathname).toMatch(/\/proyectos\/[^/]+\/construir$/);
   });
 
@@ -47,7 +48,7 @@ describe('ENS-4: crear y gestionar proyectos', () => {
 
     await verifyHeadingPresentAsync('Inventario');
     await verifyHeadingPresentAsync('Productos');
-    expect(screen.getByText('Stock')).toBeInTheDocument();
+    expect(await screen.findByText('Stock', {}, ESPERA)).toBeInTheDocument();
     expect(screen.getByText('Rubro')).toBeInTheDocument();
   });
 
@@ -60,7 +61,7 @@ describe('ENS-4: crear y gestionar proyectos', () => {
 
     await user.click(screen.getByRole('link', { name: 'Abrir Mi almacén' }));
 
-    await verifyHeadingPresentAsync('Constructor de bloques y campos');
+    await verifyHeadingPresentAsync('Tus bloques');
   });
 
   it('renombra un proyecto desde su tarjeta', async () => {

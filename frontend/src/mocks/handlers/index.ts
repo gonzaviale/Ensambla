@@ -1,5 +1,7 @@
 import type { ModoMocks } from '@/config/env';
 import { handlersAuth } from './auth';
+import { handlersBloques } from './bloques';
+import { handlersCampos } from './campos';
 import { handlersLotes } from './lotes';
 import { handlersPlantillas } from './plantillas';
 import { handlersProyectos } from './proyectos';
@@ -12,11 +14,12 @@ export function handlersPara(modo: ModoMocks) {
       ...handlersAuth,
       ...handlersPlantillas,
       ...handlersProyectos,
+      ...handlersBloques,
+      ...handlersCampos,
       ...handlersRegistros,
       ...handlersLotes,
     ];
   }
-  // Todos los endpoints actuales ya existen en el backend.
-  if (modo === 'parcial') return [];
+  // Hoy el backend ya cubre todo lo que usa la interfaz: parcial no simula nada.
   return [];
 }

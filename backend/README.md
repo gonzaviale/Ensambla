@@ -115,6 +115,14 @@ código de MinIO. Los tests (`AlmacenamientoS3IntegrationTest`) levantan la mism
 | `POST /api/proyectos/desde-plantilla/{plantillaId}` | sesión + CSRF | Copiar una plantilla activa con ids nuevos |
 | `PATCH /api/proyectos/{proyectoId}` | sesión + CSRF | Renombrar: `nombre` |
 | `DELETE /api/proyectos/{proyectoId}` | sesión + CSRF | Eliminar proyecto y sus bloques, campos y registros |
+| `GET /api/proyectos/{proyectoId}/bloques` | sesión | Bloques del proyecto ordenados por `posicion` (sin campos; para la estructura completa, `GET /api/proyectos/{id}`) |
+| `POST /api/proyectos/{proyectoId}/bloques` | sesión + CSRF | Agrega un bloque al final: `nombre`. `201`, o `409` si el nombre ya existe en el proyecto (sin distinguir mayúsculas) |
+| `PATCH /api/bloques/{bloqueId}` | sesión + CSRF | Renombrar: `nombre`. `409` si lo usa otro bloque del proyecto |
+| `DELETE /api/bloques/{bloqueId}` | sesión + CSRF | Elimina el bloque y, en cascada, sus campos y registros. `204` |
+| `GET /api/bloques/{bloqueId}/campos` | sesión | Campos del bloque ordenados por `posicion` |
+| `POST /api/bloques/{bloqueId}/campos` | sesión + CSRF | Agrega un campo al final: `nombre`, `tipo` (`TEXTO`, `NUMERO`, `FECHA`, `OPCION`, `SI_NO`), `obligatorio` (por defecto `false`), `valorInicial` y `opciones` (obligatorias y sin repetir si es `OPCION`; se ignoran en los demás tipos). `201` con `Location: /api/campos/{id}`, `400` con `errors` por dato o `409` si el nombre ya existe en el bloque (sin distinguir mayúsculas) |
+| `PATCH /api/campos/{campoId}` | sesión + CSRF | Reemplaza toda la configuración (mismo body que crear). `400` o `409` como al crear; el campo puede conservar su nombre |
+| `DELETE /api/campos/{campoId}` | sesión + CSRF | Elimina el campo; los registros se conservan (sus valores de ese campo quedan sin usarse). `204` |
 | `POST /api/lotes` | sesión + CSRF | Subir fotos del cuaderno (multipart, campo `fotos`): crea un lote `PENDIENTE` |
 | `GET /api/lotes/{loteId}` | sesión | Lote con sus fotos y una URL firmada de lectura por foto |
 | `POST /api/bloques/{bloqueId}/registros` | sesión + CSRF | Carga un registro; `valores` va indexado por id de campo. `201`, o `400` con `errors` por campo |
@@ -129,7 +137,7 @@ código de MinIO. Los tests (`AlmacenamientoS3IntegrationTest`) levantan la mism
 V3 carga Inventario, Pedidos y Clientes. La copia de una plantilla se guarda en una única transacción.
 El negocio se resuelve desde el dueño autenticado (primero por creación e id, hasta el selector de T-061);
 no se acepta un `negocioId` del cliente. Consultar, renombrar o eliminar un proyecto ajeno devuelve 404.
-Los registros se resuelven igual: un bloque o un registro de otro negocio responde 404.
+Los campos y los registros se resuelven igual: un bloque, un campo o un registro de otro negocio responde 404.
 
 Los endpoints de acceso están implementados. El contrato del cliente está en `frontend/src/api/auth.ts`.
 Ver [acceso-sesion.md](../docs/acceso-sesion.md) para validaciones, sesión y pruebas.

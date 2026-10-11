@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { registroSchema, type FiltroRegistros } from '@/types/registro';
+import {
+  registroSchema,
+  type FiltroRegistros,
+  type ValoresRegistro,
+} from '@/types/registro';
 import { http } from './client';
 import { pageSchema } from './types';
 
@@ -11,6 +15,9 @@ function aQuery(filtro: FiltroRegistros) {
   const query = params.toString();
   return query ? `?${query}` : '';
 }
+
+export const crearRegistro = (bloqueId: string, valores: ValoresRegistro) =>
+  http.post(`/bloques/${bloqueId}/registros`, { valores }, registroSchema);
 
 export const listarRegistros = (bloqueId: string, filtro: FiltroRegistros, signal?: AbortSignal) =>
   http.get(

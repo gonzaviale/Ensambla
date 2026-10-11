@@ -18,4 +18,16 @@ public class BloqueRepositoryMapper {
                 .actualizadoEn(entity.getActualizadoEn())
                 .build();
     }
+
+    public BloqueEntity toEntity(Bloque bloque) {
+        return BloqueEntity.builder()
+                .id(bloque.getId())
+                .negocioId(bloque.getNegocioId())
+                .proyectoId(bloque.getProyectoId())
+                .nombre(bloque.getNombre())
+                .posicion(bloque.getPosicion())
+                .creadoEn(bloque.getCreadoEn())
+                .actualizadoEn(bloque.getActualizadoEn())
+                .build();
+    }
 }

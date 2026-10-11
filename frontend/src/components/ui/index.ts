@@ -3,6 +3,7 @@ export { buttonClasses, type ButtonSize, type ButtonVariant } from './buttonStyl
 export { InputField, PasswordField } from './Input';
 export { Isotipo, Logo } from './Logo';
 export { TextareaField } from './Field';
+export { SelectField } from './SelectField';
 export { PageHeading } from './PageHeading';
 export { Panel } from './Panel';
 export { EmptyState, ErrorState, PageSpinner, Spinner } from './States';

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -22,5 +23,20 @@ public class CampoRepositoryImpl implements CampoRepository {
         return jpa.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioId).stream()
                 .map(mapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public Optional<Campo> findByIdAndNegocioId(UUID id, UUID negocioId) {
+        return jpa.findByIdAndNegocioId(id, negocioId).map(mapper::toDomain);
+    }
+
+    @Override
+    public Campo save(Campo campo) {
+        return mapper.toDomain(jpa.save(mapper.toEntity(campo)));
+    }
+
+    @Override
+    public void deleteByIdAndNegocioId(UUID id, UUID negocioId) {
+        jpa.deleteByIdAndNegocioId(id, negocioId);
     }
 }
