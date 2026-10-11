@@ -10,6 +10,9 @@ function esFechaValida(valor: string) {
   return Number.isFinite(fecha.getTime()) && fecha.toISOString().slice(0, 10) === valor;
 }
 
+// En pantalla se acepta coma o punto decimal (12,5 o 12.5); al validar y guardar se usa el punto.
+const aNumero = (valor: string) => valor.replace(',', '.');
+
 export function validarFormulario(
   campos: readonly Campo[],
   valores: ValoresFormulario,
@@ -58,7 +61,7 @@ export function valoresParaGuardar(
   for (const campo of campos) {
     const valor = valores[campo.id]?.trim() ?? '';
     if (valor === '') continue;
-    if (campo.tipo === 'NUMERO') resultado[campo.id] = Number(valor);
+    if (campo.tipo === 'NUMERO') resultado[campo.id] = Number(aNumero(valor));
     else if (campo.tipo === 'SI_NO') resultado[campo.id] = valor === 'true';
     else resultado[campo.id] = valor;
   }

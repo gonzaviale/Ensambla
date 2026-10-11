@@ -363,7 +363,7 @@ describe('T-104: ver en el cuaderno desde la ficha del registro', () => {
     const user = await abrirFicha();
 
     await user.click(screen.getByRole('button', { name: 'Ver ficha de Pan' }));
-    const ficha = screen.getByRole('complementary', { name: 'Ficha del registro' });
+    const ficha = screen.getByRole('complementary', { name: 'Ficha de la fila' });
     await user.click(within(ficha).getByRole('button', { name: 'Ver en el cuaderno' }));
 
     const imagen = await within(ficha).findByRole('img', { name: 'Hoja 1 del cuaderno' }, ESPERA);
@@ -377,7 +377,7 @@ describe('T-104: ver en el cuaderno desde la ficha del registro', () => {
 
     await user.click(screen.getByRole('button', { name: 'Ver ficha de Leche' }));
 
-    const ficha = screen.getByRole('complementary', { name: 'Ficha del registro' });
+    const ficha = screen.getByRole('complementary', { name: 'Ficha de la fila' });
     expect(
       within(ficha).queryByRole('button', { name: 'Ver en el cuaderno' }),
     ).not.toBeInTheDocument();

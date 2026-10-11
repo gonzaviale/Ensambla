@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { crearProyecto, crearProyectoDesdePlantilla } from '@/api/proyectos';
 import { estado, plantillasMock } from '@/mocks/db/estado';
 import { agregarRegistro } from '@/mocks/db/registros';
@@ -44,6 +44,8 @@ async function abrirUsar(productos: Producto[] = PRODUCTOS) {
   });
   renderApp(`/proyectos/${proyecto.id}/usar`);
   await verifyHeadingPresentAsync(proyecto.nombre);
+  // «Cargar» es la vista por defecto: acá se mira la tabla de filas.
+  await userEvent.setup().click(await screen.findByRole('tab', { name: 'Ver filas' }));
   return { bloqueId: bloque.id };
 }
 
@@ -59,7 +61,7 @@ describe('H-06: tabla de registros', () => {
     }
     expect(screen.getByText('Harina 000')).toBeInTheDocument();
     expect(screen.getByText('1.500')).toBeInTheDocument();
-    expect(screen.getByText('3 registros')).toBeInTheDocument();
+    expect(screen.getByText('3 filas')).toBeInTheDocument();
   });
 
   it('por defecto muestra primero lo último que se cargó', async () => {
@@ -79,7 +81,7 @@ describe('H-06: tabla de registros', () => {
 
     await waitFor(() => expect(screen.queryByText('Azúcar')).not.toBeInTheDocument(), ESPERA);
     expect(screen.getByText('Harina 000')).toBeInTheDocument();
-    expect(screen.getByText('1 registro')).toBeInTheDocument();
+    expect(screen.getByText('1 fila')).toBeInTheDocument();
 
     await user.clear(screen.getByLabelText('Buscar en Productos'));
     await user.type(screen.getByLabelText('Buscar en Productos'), 'zzz');
@@ -149,10 +151,10 @@ describe('H-06: tabla de registros', () => {
       expect(screen.getByRole('columnheader', { name: nombre })).toBeInTheDocument();
     }
 
-    await user.click(screen.getByRole('button', { name: 'Cargar el primer registro' }));
+    await user.click(screen.getByRole('button', { name: 'Cargar la primera fila' }));
 
     expect(screen.getByRole('tab', { name: 'Cargar' })).toHaveAttribute('aria-selected', 'true');
-    await waitFor(() => expect(screen.getByLabelText('Nombre (obligatorio)')).toHaveFocus());
+    await waitFor(() => expect(screen.getByLabelText('Nombre')).toHaveFocus());
   });
 
   it('avisa si el bloque no tiene datos y ofrece agregarlos en Construir', async () => {
@@ -163,9 +165,10 @@ describe('H-06: tabla de registros', () => {
     if (!item) throw new Error('Falta el proyecto simulado');
     item.proyecto = { ...proyecto, bloques: [{ ...bloque, campos: [] }] };
     renderApp(`/proyectos/${proyecto.id}/usar`);
+    await userEvent.setup().click(await screen.findByRole('tab', { name: 'Ver filas' }));
 
-    await verifyHeadingPresentAsync('Productos todavía no tiene datos');
-    expect(screen.getByRole('link', { name: 'Agregar datos en Construir' })).toHaveAttribute(
+    await verifyHeadingPresentAsync('Productos todavía no tiene columnas');
+    expect(screen.getByRole('link', { name: 'Agregar columnas en Armar' })).toHaveAttribute(
       'href',
       `/proyectos/${proyecto.id}/construir?bloque=${bloque.id}`,
     );
@@ -193,8 +196,9 @@ describe('H-06: tabla de registros', () => {
     const user = userEvent.setup();
     renderApp(`/proyectos/${proyecto.id}/usar`);
     await verifyHeadingPresentAsync(proyecto.nombre);
+    await user.click(await screen.findByRole('tab', { name: 'Ver filas' }));
 
-    const grupo = screen.getByRole('group', { name: 'Bloque' });
+    const grupo = screen.getByRole('group', { name: 'Tabla' });
     expect(within(grupo).getByRole('radio', { name: 'Productos' })).toBeChecked();
     await user.click(within(grupo).getByRole('radio', { name: 'Clientes' }));
 
@@ -219,15 +223,15 @@ describe('H-06: tabla de registros', () => {
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
   });
 
-  it('avisa cuando el proyecto todavía no tiene bloques', async () => {
+  it('avisa cuando el sistema todavía no tiene tablas', async () => {
     setupUsuarioConSesion();
     const proyecto = await crearProyecto({ nombre: 'Mi taller' });
     renderApp(`/proyectos/${proyecto.id}/usar`);
 
     expect(
-      await screen.findByRole('heading', { name: 'Este proyecto no tiene bloques' }, ESPERA),
+      await screen.findByRole('heading', { name: 'Este sistema no tiene tablas' }, ESPERA),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Ir al constructor' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Armar mis tablas' })).toBeInTheDocument();
   });
 });
 
@@ -239,7 +243,7 @@ describe('H-06: ficha del registro', () => {
 
     await user.click(screen.getByRole('button', { name: 'Ver ficha de Harina 000' }));
 
-    const ficha = screen.getByRole('complementary', { name: 'Ficha del registro' });
+    const ficha = screen.getByRole('complementary', { name: 'Ficha de la fila' });
     expect(within(ficha).getByRole('heading', { name: 'Ficha de Productos' })).toBeInTheDocument();
     expect(within(ficha).getByText('Nombre')).toBeInTheDocument();
     expect(within(ficha).getByText('Harina 000')).toBeInTheDocument();
@@ -257,9 +261,9 @@ describe('H-06: ficha del registro', () => {
     await user.click(screen.getByRole('button', { name: 'Cerrar ficha' }));
 
     expect(
-      screen.queryByRole('complementary', { name: 'Ficha del registro' }),
+      screen.queryByRole('complementary', { name: 'Ficha de la fila' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('3 registros')).toBeInTheDocument();
+    expect(screen.getByText('3 filas')).toBeInTheDocument();
   });
 
   it('pide confirmación para eliminar y actualiza la tabla', async () => {
@@ -268,15 +272,15 @@ describe('H-06: ficha del registro', () => {
     await screen.findByText('Azúcar', {}, ESPERA);
     await user.click(screen.getByRole('button', { name: 'Ver ficha de Azúcar' }));
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar registro' }));
+    await user.click(screen.getByRole('button', { name: 'Eliminar fila' }));
     expect(screen.getByText(/Esta acción no se puede deshacer/)).toBeInTheDocument();
-    expect(screen.getByText('3 registros')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Sí, eliminar registro' }));
+    expect(screen.getByText('3 filas')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Sí, eliminar fila' }));
 
-    await waitFor(() => expect(screen.getByText('2 registros')).toBeInTheDocument(), ESPERA);
+    await waitFor(() => expect(screen.getByText('2 filas')).toBeInTheDocument(), ESPERA);
     expect(screen.queryByText('Azúcar')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('complementary', { name: 'Ficha del registro' }),
+      screen.queryByRole('complementary', { name: 'Ficha de la fila' }),
     ).not.toBeInTheDocument();
   });
 
@@ -285,11 +289,61 @@ describe('H-06: ficha del registro', () => {
     const user = userEvent.setup();
     await screen.findByText('Azúcar', {}, ESPERA);
     await user.click(screen.getByRole('button', { name: 'Ver ficha de Azúcar' }));
-    await user.click(screen.getByRole('button', { name: 'Eliminar registro' }));
+    await user.click(screen.getByRole('button', { name: 'Eliminar fila' }));
 
-    await user.click(screen.getByRole('button', { name: 'Conservar registro' }));
+    await user.click(screen.getByRole('button', { name: 'Conservar fila' }));
 
     expect(screen.queryByText(/Esta acción no se puede deshacer/)).not.toBeInTheDocument();
-    expect(screen.getByText('3 registros')).toBeInTheDocument();
+    expect(screen.getByText('3 filas')).toBeInTheDocument();
+  });
+});
+
+describe('Cargar y ver: pestañas con teclado', () => {
+  it('Cargar es la vista por defecto y las flechas pasan a Ver filas', async () => {
+    setupUsuarioConSesion();
+    const proyecto = await crearProyectoDesdePlantilla(elemento(plantillasMock).id);
+    const user = userEvent.setup();
+    renderApp(`/proyectos/${proyecto.id}/usar`);
+    await verifyHeadingPresentAsync(proyecto.nombre);
+
+    const cargar = await screen.findByRole('tab', { name: 'Cargar' });
+    expect(cargar).toHaveAttribute('aria-selected', 'true');
+    cargar.focus();
+    await user.keyboard('{ArrowRight}');
+
+    const ver = screen.getByRole('tab', { name: 'Ver filas' });
+    expect(ver).toHaveAttribute('aria-selected', 'true');
+    expect(ver).toHaveFocus();
+    expect(await screen.findByLabelText('Buscar en Productos', {}, ESPERA)).toBeInTheDocument();
+  });
+});
+
+describe('Cargar y ver en el celular', () => {
+  beforeEach(() => {
+    window.matchMedia = ((consulta: string) => ({
+      matches: false,
+      media: consulta,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    })) as unknown as typeof window.matchMedia;
+  });
+  afterEach(() => {
+    // @ts-expect-error jsdom no define matchMedia: se deja como estaba.
+    delete window.matchMedia;
+  });
+
+  it('muestra cada fila como tarjeta y abre la ficha en una hoja', async () => {
+    await abrirUsar();
+    const user = userEvent.setup();
+
+    const lista = await screen.findByRole('list', { name: 'Filas de Productos' }, ESPERA);
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(within(lista).getAllByRole('listitem')).toHaveLength(3);
+    await user.click(screen.getByRole('button', { name: 'Ver ficha de Azúcar' }));
+
+    const hoja = screen.getByRole('dialog', { name: 'Ficha de Productos' });
+    expect(within(hoja).getByText('Azúcar')).toBeInTheDocument();
+    await user.click(within(hoja).getByRole('button', { name: 'Cerrar' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

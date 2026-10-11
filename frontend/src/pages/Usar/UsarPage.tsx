@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
-import { TableIcon } from '@phosphor-icons/react';
+import { PlusCircleIcon, TableIcon } from '@phosphor-icons/react';
 import { FormularioRegistro } from '@/components/FormRenderer/FormularioRegistro';
 import { FichaRegistro } from '@/components/Registros/FichaRegistro';
 import { SelectorBloque } from '@/components/Registros/SelectorBloque';
@@ -16,13 +16,14 @@ const RUTA = '/_app/proyectos/$proyectoId/usar';
 
 type Vista = 'registros' | 'cargar';
 
-const VISTAS: { id: Vista; etiqueta: string }[] = [
-  { id: 'registros', etiqueta: 'Ver registros' },
-  { id: 'cargar', etiqueta: 'Cargar' },
+// "Cargar" va primero y es la vista por defecto: es lo que más se hace.
+const VISTAS: { id: Vista; etiqueta: string; icono: typeof TableIcon }[] = [
+  { id: 'cargar', etiqueta: 'Cargar', icono: PlusCircleIcon },
+  { id: 'registros', etiqueta: 'Ver filas', icono: TableIcon },
 ];
 
-// Tabla de registros por bloque (búsqueda, orden y ficha) y formulario de carga (ENS-6).
-// Con pocos bloques se muestran todos como botones; con más, una lista desplegable.
+// Filas por tabla (búsqueda, orden y ficha) y formulario de carga (ENS-6).
+// Con pocas tablas se muestran todas como botones; con más, una lista desplegable.
 const MAX_BLOQUES_EN_BOTONES = 5;
 
 function IrAConstruir({ proyectoId, bloqueId }: { proyectoId: string; bloqueId: string }) {
@@ -33,7 +34,7 @@ function IrAConstruir({ proyectoId, bloqueId }: { proyectoId: string; bloqueId: 
       search={{ bloque: bloqueId }}
       className={buttonClasses({ variant: 'primary', className: 'mt-3' })}
     >
-      Agregar datos en Construir
+      Agregar columnas en Armar
     </Link>
   );
 }
@@ -42,9 +43,9 @@ function BloqueSinDatos({ proyectoId, bloque }: { proyectoId: string; bloque: Bl
   return (
     <EmptyState
       icon={<TableIcon aria-hidden size={32} />}
-      title={`${bloque.nombre} todavía no tiene datos`}
+      title={`${bloque.nombre} todavía no tiene columnas`}
     >
-      <p className="m-0 text-hint">
+      <p className="m-0">
         Para cargar algo, primero elegí qué datos guarda, como Nombre o Precio. Cada dato es una
         columna de la tabla.
       </p>
@@ -59,13 +60,15 @@ export function UsarPage() {
   const navigate = useNavigate();
   const proyecto = useProyecto(proyectoId);
   const panelCarga = useRef<HTMLDivElement>(null);
+  const botonesVista = useRef<Partial<Record<Vista, HTMLButtonElement | null>>>({});
   const enfocarCarga = useRef(false);
   const bloques = [...proyecto.bloques].sort((a, b) => a.posicion - b.posicion);
   const [bloqueId, setBloqueId] = useState<string | undefined>(bloqueInicial);
   const [seleccionado, setSeleccionado] = useState<Registro>();
-  const [vista, setVista] = useState<Vista>('registros');
+  // Quien llega de guardar un cuaderno (?bloque=) quiere ver las filas que se guardaron.
+  const [vista, setVista] = useState<Vista>(bloqueInicial ? 'registros' : 'cargar');
   // Los formularios quedan montados una vez abiertos para no perder los borradores.
-  const [cargaAbierta, setCargaAbierta] = useState(false);
+  const [cargaAbierta, setCargaAbierta] = useState(!bloqueInicial);
   const [enviando, setEnviando] = useState(false);
   const bloque = bloques.find((item) => item.id === bloqueId) ?? bloques[0];
 
@@ -79,7 +82,7 @@ export function UsarPage() {
     setSeleccionado(undefined);
   };
 
-  // "Cargar el primer registro": abre la carga y lleva el foco al primer dato del formulario.
+  // "Cargar la primera fila": abre la carga y lleva el foco al primer campo del formulario.
   const abrirCarga = () => {
     enfocarCarga.current = true;
     elegirVista('cargar');
@@ -95,12 +98,31 @@ export function UsarPage() {
       ?.focus();
   }, [vista]);
 
+  // Pestañas con flechas: izquierda/derecha cambian de vista, Inicio/Fin van a los extremos.
+  function alTeclear(evento: KeyboardEvent<HTMLDivElement>) {
+    const indice = VISTAS.findIndex((item) => item.id === vista);
+    const destino =
+      evento.key === 'ArrowRight'
+        ? (VISTAS[(indice + 1) % VISTAS.length] ?? VISTAS[0])
+        : evento.key === 'ArrowLeft'
+          ? (VISTAS[(indice - 1 + VISTAS.length) % VISTAS.length] ?? VISTAS[0])
+          : evento.key === 'Home'
+            ? VISTAS[0]
+            : evento.key === 'End'
+              ? VISTAS[VISTAS.length - 1]
+              : undefined;
+    if (!destino || enviando) return;
+    evento.preventDefault();
+    elegirVista(destino.id);
+    botonesVista.current[destino.id]?.focus();
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeading
-        kicker="Modo usar"
+        kicker="Cargar y ver"
         title={proyecto.nombre}
-        lead="Cargá datos en cada bloque y buscá, ordená y revisá lo que ya cargaste."
+        lead="Cargá filas en cada tabla y buscá, ordená y revisá lo que ya cargaste."
       />
 
       {nuevo && (
@@ -108,17 +130,17 @@ export function UsarPage() {
           role="status"
           className="flex flex-col items-start gap-3 border-accent-200 bg-accent-100"
         >
-          <p className="m-0">
-            <strong>¡Listo! Tu proyecto ya viene armado.</strong> Podés empezar a cargar. Si querés
-            cambiar los bloques o sus datos, podés hacerlo en Construir.
+          <p className="m-0 text-body">
+            <strong>¡Listo! Tu sistema ya viene armado.</strong> Podés empezar a cargar. Si querés
+            cambiar las tablas o sus columnas, podés hacerlo en Armar.
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             <Link
               to="/proyectos/$proyectoId/construir"
               params={{ proyectoId }}
               className={buttonClasses()}
             >
-              Cambiar la estructura
+              Armar mis tablas
             </Link>
             <Button
               variant="ghost"
@@ -138,17 +160,14 @@ export function UsarPage() {
       )}
 
       {!bloque ? (
-        <EmptyState
-          icon={<TableIcon aria-hidden size={32} />}
-          title="Este proyecto no tiene bloques"
-        >
-          <p>Armá primero su estructura en el modo construir.</p>
+        <EmptyState icon={<TableIcon aria-hidden size={32} />} title="Este sistema no tiene tablas">
+          <p className="m-0">Armá primero sus tablas para poder cargar filas.</p>
           <Link
             to="/proyectos/$proyectoId/construir"
             params={{ proyectoId }}
-            className={buttonClasses({ variant: 'primary', className: 'mt-3' })}
+            className={buttonClasses({ variant: 'solid', className: 'mt-3' })}
           >
-            Ir al constructor
+            Armar mis tablas
           </Link>
         </EmptyState>
       ) : (
@@ -162,9 +181,9 @@ export function UsarPage() {
                 onElegir={elegirBloque}
               />
             ) : (
-              <div className="min-w-48">
+              <div className="w-full max-w-sm">
                 <SelectField
-                  label="Bloque"
+                  label="Tabla"
                   value={bloque.id}
                   disabled={enviando}
                   onChange={(event) => elegirBloque(event.target.value)}
@@ -177,22 +196,40 @@ export function UsarPage() {
                 </SelectField>
               </div>
             )}
-            <div role="tablist" aria-label="Vista del bloque" className="flex gap-2">
-              {VISTAS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="tab"
-                  id={`vista-${item.id}`}
-                  aria-selected={vista === item.id}
-                  aria-controls={`panel-${item.id}`}
-                  disabled={enviando}
-                  onClick={() => elegirVista(item.id)}
-                  className={cn(buttonClasses(), vista === item.id && 'border-accent bg-accent/10')}
-                >
-                  {item.etiqueta}
-                </button>
-              ))}
+            <div
+              role="tablist"
+              aria-label="Qué querés hacer con la tabla"
+              onKeyDown={alTeclear}
+              className="flex w-full gap-1 rounded-lg bg-fg/8 p-1 sm:w-fit"
+            >
+              {VISTAS.map((item) => {
+                const activa = vista === item.id;
+                const Icono = item.icono;
+                return (
+                  <button
+                    key={item.id}
+                    ref={(el) => {
+                      botonesVista.current[item.id] = el;
+                    }}
+                    type="button"
+                    role="tab"
+                    id={`vista-${item.id}`}
+                    aria-selected={activa}
+                    aria-controls={`panel-${item.id}`}
+                    tabIndex={activa ? 0 : -1}
+                    disabled={enviando}
+                    onClick={() => elegirVista(item.id)}
+                    className={cn(
+                      'flex min-h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-md px-5 text-base font-semibold sm:flex-none',
+                      activa ? 'bg-surface text-fg shadow-sm' : 'text-soft hover:text-fg',
+                      'disabled:cursor-not-allowed disabled:opacity-60',
+                    )}
+                  >
+                    <Icono aria-hidden size={22} />
+                    {item.etiqueta}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -206,7 +243,7 @@ export function UsarPage() {
               <BloqueSinDatos proyectoId={proyectoId} bloque={bloque} />
             )}
             {vista === 'registros' && bloque.campos.length > 0 && (
-              <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+              <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
                 <TablaRegistros
                   key={bloque.id}
                   bloque={bloque}
@@ -240,10 +277,10 @@ export function UsarPage() {
                   hidden={item.id !== bloque.id}
                   aria-labelledby={`bloque-${item.id}`}
                 >
-                  <p className="mt-0 mb-1 text-xs tracking-wide text-accent-800 uppercase">
-                    Nuevo registro
+                  <p className="mt-0 mb-1 text-caption font-bold tracking-widest text-accent-800 uppercase">
+                    Nueva fila
                   </p>
-                  <h2 id={`bloque-${item.id}`} className="mt-0 mb-5 text-xl">
+                  <h2 id={`bloque-${item.id}`} className="mt-0 mb-5 text-h3">
                     {item.nombre}
                   </h2>
                   <FormularioRegistro bloque={item} onEnviandoChange={setEnviando} />

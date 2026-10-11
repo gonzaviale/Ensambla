@@ -60,40 +60,40 @@ describe('ENS-53: guardado y feedback', () => {
         );
       }),
     );
-    const boton = screen.getByRole('button', { name: 'Guardar registro' });
+    const boton = screen.getByRole('button', { name: 'Guardar fila' });
     const form = boton.closest('form');
     if (!form) throw new Error('Falta formulario');
     fireEvent.submit(form);
     fireEvent.submit(form);
     expect(screen.getByRole('button', { name: 'Guardando…' })).toBeDisabled();
-    expect(screen.getByLabelText('Nombre (obligatorio)')).toBeDisabled();
+    expect(screen.getByLabelText('Nombre')).toBeDisabled();
     await waitFor(() => expect(solicitudes).toBe(1));
     terminar?.();
-    expect(await screen.findByRole('status')).toHaveTextContent('Registro guardado');
-    expect(screen.getByRole('button', { name: 'Guardar registro' })).toBeEnabled();
+    expect(await screen.findByRole('status')).toHaveTextContent('Fila guardada');
+    expect(screen.getByRole('button', { name: 'Guardar fila' })).toBeEnabled();
     expect(solicitudes).toBe(1);
   });
 
   it('ubica los errores del servidor junto a cada campo y conserva lo escrito para corregirlo', async () => {
     const bloque = preparar();
     const user = userEvent.setup();
-    const nombre = screen.getByLabelText('Nombre (obligatorio)');
+    const nombre = screen.getByLabelText('Nombre');
     await user.clear(nombre);
     await user.type(nombre, 'Mi producto');
     setupServerError('post', `/bloques/${bloque.id}/registros`, 400, 'Revisá el nombre', {
       [campoPorTipo('TEXTO').id]: 'Este nombre ya existe',
     });
-    await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar fila' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Revisá el nombre');
     expect(nombre).toHaveValue('Mi producto');
     expect(nombre).toHaveAccessibleDescription('Este nombre ya existe');
     expect(nombre).toHaveFocus();
-    expect(screen.getByLabelText('Precio (obligatorio)')).toHaveValue(0);
+    expect(screen.getByLabelText('Precio')).toHaveValue('0');
     server.resetHandlers();
     await user.clear(nombre);
     await user.type(nombre, 'Otro producto');
-    await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('Registro guardado');
+    await user.click(screen.getByRole('button', { name: 'Guardar fila' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Fila guardada');
     expect(estado.registros.size).toBe(1);
     expect(nombre).toHaveValue('Producto');
     await user.click(screen.getByRole('button', { name: 'Cerrar aviso' }));
@@ -124,14 +124,14 @@ describe('ENS-53: guardado y feedback', () => {
               );
         }),
       );
-      await user.clear(screen.getByLabelText('Nombre (obligatorio)'));
-      await user.type(screen.getByLabelText('Nombre (obligatorio)'), 'Conservar');
-      await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
+      await user.clear(screen.getByLabelText('Nombre'));
+      await user.type(screen.getByLabelText('Nombre'), 'Conservar');
+      await user.click(screen.getByRole('button', { name: 'Guardar fila' }));
       expect(await screen.findByRole('alert')).toHaveTextContent(
         tipo === 'conexión' ? 'No pudimos conectarnos' : 'Servicio no disponible',
       );
-      expect(screen.getByLabelText('Nombre (obligatorio)')).toHaveValue('Conservar');
-      expect(screen.getByRole('button', { name: 'Guardar registro' })).toBeEnabled();
+      expect(screen.getByLabelText('Nombre')).toHaveValue('Conservar');
+      expect(screen.getByRole('button', { name: 'Guardar fila' })).toBeEnabled();
       expect(solicitudes).toBe(1);
     },
   );

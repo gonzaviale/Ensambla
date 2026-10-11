@@ -69,10 +69,11 @@ describe('ENS-4: crear y gestionar sistemas', () => {
 
     await user.click(screen.getByRole('button', { name: 'Usar plantilla Inventario' }));
 
-    expect(await screen.findByText(/Tu proyecto ya viene armado/, {}, ESPERA)).toBeInTheDocument();
+    expect(await screen.findByText(/Tu sistema ya viene armado/, {}, ESPERA)).toBeInTheDocument();
     expect(router.state.location.pathname).toMatch(/\/proyectos\/[^/]+\/usar$/);
     expect(screen.getByRole('heading', { level: 1, name: 'Inventario' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Cambiar la estructura' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Armar mis tablas' })).toBeInTheDocument();
+    await user.click(await screen.findByRole('tab', { name: 'Ver filas' }));
     for (const columna of ['Nombre', 'Stock', 'Rubro']) {
       expect(
         await screen.findByRole('columnheader', { name: columna }, ESPERA),
@@ -82,7 +83,7 @@ describe('ENS-4: crear y gestionar sistemas', () => {
     await user.click(screen.getByRole('button', { name: 'Entendido' }));
 
     await waitFor(() =>
-      expect(screen.queryByText(/Tu proyecto ya viene armado/)).not.toBeInTheDocument(),
+      expect(screen.queryByText(/Tu sistema ya viene armado/)).not.toBeInTheDocument(),
     );
   });
 
@@ -126,6 +127,7 @@ describe('Tarjetas de Tus sistemas', () => {
     await user.click(screen.getByRole('link', { name: 'Abrir Inventario' }));
 
     await verifyPathAsync(router, `/proyectos/${proyecto.id}/usar`);
+    await user.click(await screen.findByRole('tab', { name: 'Ver filas' }));
     expect(await screen.findByRole('columnheader', { name: 'Stock' }, ESPERA)).toBeInTheDocument();
   });
 
