@@ -14,6 +14,7 @@ import com.ensambla.backend.domain.dto.registro.RegistroItem;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.PaginaRegistrosResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.RegistroRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.RegistroResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.registro.TotalesRegistrosResponse;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
@@ -66,7 +67,8 @@ public class RegistroPresentationMapper {
                 response.totalElementos(),
                 response.totalPaginas(),
                 response.pagina() == 0,
-                response.pagina() >= response.totalPaginas() - 1);
+                response.pagina() >= response.totalPaginas() - 1,
+                new TotalesRegistrosResponse(response.totales().cantidad(), response.totales().sumas()));
     }
 
     private RegistroResponse toResponse(RegistroItem item) {

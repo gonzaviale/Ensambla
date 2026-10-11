@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import java.math.BigDecimal;
 import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.enums.DireccionOrden;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
@@ -23,6 +24,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -127,7 +130,43 @@ class RegistroRepositoryImplTest {
         assertThat(campoOrden.getValue()).isEqualTo(CAMPO_ID.toString());
     }
 
+    @Test
+    @DisplayName("Suma con el mismo patrón escapado del listado y devuelve las sumas por campo")
+    void sumarNumericosShouldQueryWithEscapedPatternAndMapSums() {
+        when(jpa.sumarNumericos(eq(NEGOCIO_ID), eq(BLOQUE_ID), eq("%50\\%%"), eq(List.of(CAMPO_ID.toString()))))
+                .thenReturn(List.of(suma(CAMPO_ID, "1500.50")));
+
+        Map<UUID, BigDecimal> result = repository.sumarNumericos(
+                consulta("50%", null, DireccionOrden.DESC, 0, 20), List.of(CAMPO_ID));
+
+        assertThat(result).containsOnly(entry(CAMPO_ID, new BigDecimal("1500.50")));
+    }
+
+    @Test
+    @DisplayName("Sin campos numéricos no consulta la base")
+    void sumarNumericosShouldNotQueryWhenThereAreNoCampos() {
+        Map<UUID, BigDecimal> result = repository.sumarNumericos(
+                consulta(null, null, DireccionOrden.DESC, 0, 20), List.of());
+
+        assertThat(result).isEmpty();
+        verifyNoInteractions(jpa);
+    }
+
     // --- helpers ---
+    private IRegistroJpaRepository.SumaPorCampo suma(UUID campoId, String valor) {
+        return new IRegistroJpaRepository.SumaPorCampo() {
+            @Override
+            public String getCampo() {
+                return campoId.toString();
+            }
+
+            @Override
+            public BigDecimal getSuma() {
+                return new BigDecimal(valor);
+            }
+        };
+    }
+
     private ConsultaRegistros consulta(String texto, UUID campoOrdenId, DireccionOrden direccion, int pagina,
                                        int tamanio) {
         return new ConsultaRegistros(NEGOCIO_ID, BLOQUE_ID, texto, campoOrdenId, direccion, pagina, tamanio);

@@ -7,5 +7,6 @@ public record ListarRegistrosResponse(
         int pagina,
         int tamanio,
         long totalElementos,
-        int totalPaginas) {
+        int totalPaginas,
+        TotalesItem totales) {
 }

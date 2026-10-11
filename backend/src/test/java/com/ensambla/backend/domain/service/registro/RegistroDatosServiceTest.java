@@ -1,5 +1,7 @@
 package com.ensambla.backend.domain.service.registro;
 
+import com.ensambla.backend.domain.model.registro.TotalesRegistros;
+import java.math.BigDecimal;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.campo.Campo;
@@ -23,6 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -155,6 +158,34 @@ class RegistroDatosServiceTest {
         registroDatosService.eliminar(registro());
 
         verify(registroRepository).deleteById(REGISTRO_ID);
+    }
+
+    @Test
+    @DisplayName("Totaliza la cantidad y la suma de cada campo numérico de los registros de la consulta")
+    void totalesShouldSumNumericCamposOfTheQuery() {
+        ConsultaRegistros consulta = new ConsultaRegistros(
+                NEGOCIO_ID, BLOQUE_ID, "harina", null, DireccionOrden.DESC, 0, 20);
+        when(registroRepository.sumarNumericos(consulta, List.of(CANTIDAD_ID)))
+                .thenReturn(Map.of(CANTIDAD_ID, new BigDecimal("12.5")));
+
+        TotalesRegistros result = registroDatosService.totales(consulta, campos(), 7);
+
+        assertThat(result.cantidad()).isEqualTo(7);
+        assertThat(result.sumas()).containsOnly(entry(CANTIDAD_ID, new BigDecimal("12.5")));
+    }
+
+    @Test
+    @DisplayName("Sin campos numéricos devuelve sólo la cantidad")
+    void totalesShouldReturnOnlyCountWhenThereAreNoNumericCampos() {
+        ConsultaRegistros consulta = new ConsultaRegistros(
+                NEGOCIO_ID, BLOQUE_ID, null, null, DireccionOrden.DESC, 0, 20);
+        List<Campo> soloTexto = List.of(Campo.builder().id(NOMBRE_ID).tipo(TipoCampo.TEXTO).build());
+        when(registroRepository.sumarNumericos(consulta, List.of())).thenReturn(Map.of());
+
+        TotalesRegistros result = registroDatosService.totales(consulta, soloTexto, 3);
+
+        assertThat(result.cantidad()).isEqualTo(3);
+        assertThat(result.sumas()).isEmpty();
     }
 
     // --- helpers ---

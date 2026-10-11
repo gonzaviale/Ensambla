@@ -13,9 +13,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -54,6 +57,22 @@ public class RegistroRepositoryImpl implements RegistroRepository {
                 consulta.pagina(),
                 consulta.tamanio(),
                 pagina.getTotalElements());
+    }
+
+    @Override
+    public Map<UUID, BigDecimal> sumarNumericos(ConsultaRegistros consulta, List<UUID> campoIds) {
+        if (campoIds.isEmpty()) {
+            return Map.of();
+        }
+        return jpa.sumarNumericos(
+                        consulta.negocioId(),
+                        consulta.bloqueId(),
+                        patronDe(consulta.texto()),
+                        campoIds.stream().map(UUID::toString).toList())
+                .stream()
+                .collect(Collectors.toMap(
+                        fila -> UUID.fromString(fila.getCampo()),
+                        IRegistroJpaRepository.SumaPorCampo::getSuma));
     }
 
     private Page<RegistroEntity> consultar(ConsultaRegistros consulta) {
