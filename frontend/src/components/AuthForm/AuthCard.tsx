@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
-import { Panel } from '@/components/ui';
+import { PageHeading, Panel } from '@/components/ui';
 
 type AuthCardProps = {
   title: string;
@@ -11,17 +11,18 @@ type AuthCardProps = {
 
 export function AuthCard({ title, lead, children, footer }: AuthCardProps) {
   return (
-    <div className="mx-auto flex w-full max-w-105 animate-fade-in flex-col gap-5 px-4 py-10 sm:py-16">
-      <header className="flex flex-col gap-1.5">
-        <h1 className="m-0 text-h2 sm:text-h1">{title}</h1>
-        <p className="text-hint leading-relaxed text-soft">{lead}</p>
-      </header>
-      <Panel>{children}</Panel>
-      <p className="text-center text-hint text-soft">{footer}</p>
+    <div className="mx-auto flex w-full max-w-lg animate-fade-in flex-col gap-6 px-4 py-10 sm:py-16">
+      <PageHeading title={title} lead={lead} />
+      <Panel className="p-5 sm:p-6">{children}</Panel>
+      <p className="m-0 text-center text-body text-soft">{footer}</p>
     </div>
   );
 }
 
 export function EnlaceAuth({ to, children }: { to: '/login' | '/registro'; children: ReactNode }) {
-  return <Link to={to}>{children}</Link>;
+  return (
+    <Link to={to} className="font-semibold">
+      {children}
+    </Link>
+  );
 }

@@ -108,7 +108,10 @@ function ListaProyectos({ proyectos }: { proyectos: Proyecto[] }) {
   }, [proyectos, busqueda]);
 
   return (
-    <section aria-label="Tus sistemas" className="flex flex-col gap-4">
+    <section aria-labelledby="lista-sistemas" className="flex flex-col gap-4">
+      <h2 id="lista-sistemas" className="sr-only">
+        Tus sistemas
+      </h2>
       {proyectos.length > UMBRAL_BUSCADOR && (
         <div className="max-w-md">
           <InputField

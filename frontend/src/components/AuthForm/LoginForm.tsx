@@ -73,13 +73,13 @@ export function LoginForm({ onExito }: { onExito: () => void }) {
         )}
       </form.Field>
       {errorGeneral && (
-        <p role="alert" className="text-hint text-bad">
+        <p role="alert" className="m-0 text-base font-semibold text-bad">
           {errorGeneral}
         </p>
       )}
       <form.Subscribe selector={(estado) => estado.isSubmitting}>
         {(enviando) => (
-          <Button type="submit" variant="solid" disabled={enviando} className="w-full">
+          <Button type="submit" variant="solid" size="lg" fullWidth loading={enviando}>
             {enviando ? 'Ingresando…' : 'Ingresar'}
           </Button>
         )}
