@@ -1,12 +1,18 @@
 import { delay, http, HttpResponse } from 'msw';
 import type { Bloque } from '@/types/proyecto';
-import { crearRegistroSchema, type Registro, type Valor } from '@/types/registro';
+import {
+  crearRegistroSchema,
+  editarRegistroSchema,
+  type Registro,
+  type Valor,
+  type ValoresRegistro,
+} from '@/types/registro';
 import { validarFormulario, valoresParaGuardar } from '@/lib/formularioRegistro';
 import { estado } from '../db/estado';
 import { errorResponse } from '../errores';
 import { api, exigirCsrf, exigirSesion, LATENCIA_BACKEND_MS } from './comun';
 
-// Mismo contrato que GET /api/bloques/{id}/registros y DELETE /api/registros/{id} del backend.
+// Mismo contrato que GET /api/bloques/{id}/registros, PATCH y DELETE /api/registros/{id} del backend.
 const TAMANIO_POR_DEFECTO = 20;
 const TAMANIO_MAXIMO = 100;
 const ORDEN_POR_CARGA = 'creadoEn';
@@ -54,6 +60,25 @@ const coincide = (registro: Registro, texto: string) =>
     (valor) => valor !== null && String(valor).toLowerCase().includes(texto),
   );
 
+// Un error por id de campo, con el mismo criterio al crear y al editar.
+function erroresDeValores(bloque: Bloque, valores: ValoresRegistro) {
+  const texto = Object.fromEntries(
+    Object.entries(valores).map(([id, valor]) => [id, String(valor)]),
+  );
+  const errores = validarFormulario(bloque.campos, texto);
+  for (const [id, valor] of Object.entries(valores)) {
+    const campo = bloque.campos.find((campo) => campo.id === id);
+    if (!campo) errores[id] = 'Este campo no pertenece al bloque';
+    else if (campo.tipo === 'NUMERO' && typeof valor !== 'number')
+      errores[id] = 'Tiene que ser un número';
+    else if (campo.tipo === 'SI_NO' && typeof valor !== 'boolean')
+      errores[id] = 'Tiene que ser sí o no';
+    else if (campo.tipo !== 'NUMERO' && campo.tipo !== 'SI_NO' && typeof valor !== 'string')
+      errores[id] = 'Tiene que ser un texto';
+  }
+  return errores;
+}
+
 export const handlersRegistros = [
   http.get(api('/bloques/:id/registros'), async ({ request, params }) => {
     await delay(LATENCIA_BACKEND_MS);
@@ -98,6 +123,37 @@ export const handlersRegistros = [
     });
   }),
 
+  // Los campos que no se envían conservan su valor; un null o un texto en blanco borra el dato.
+  http.patch(api('/registros/:id'), async ({ request, params }) => {
+    const error = privado(request, true);
+    if (error) return error;
+    await delay(LATENCIA_BACKEND_MS);
+    const path = pathDe(request);
+    const registro = estado.registros.get(String(params.id));
+    const bloque = registro && bloqueDeLaSesion(registro.bloqueId);
+    if (!registro || !bloque) return errorResponse(404, 'El registro no existe', path);
+    const datos = editarRegistroSchema.safeParse(await request.json());
+    if (!datos.success) return errorResponse(400, 'Revisá los datos del registro', path);
+
+    const combinados: Record<string, Valor> = { ...registro.valores, ...datos.data.valores };
+    const valores: ValoresRegistro = {};
+    for (const [id, valor] of Object.entries(combinados)) {
+      if (valor === null || (typeof valor === 'string' && valor.trim() === '')) continue;
+      valores[id] = valor;
+    }
+    const errores = erroresDeValores(bloque, valores);
+    if (Object.keys(errores).length)
+      return errorResponse(400, 'Revisá los campos marcados', path, errores);
+
+    const editado: Registro = {
+      ...registro,
+      valores,
+      actualizadoEn: new Date().toISOString(),
+    };
+    estado.registros.set(editado.id, editado);
+    return HttpResponse.json(editado);
+  }),
+
   http.delete(api('/registros/:id'), ({ request, params }) => {
     const error = privado(request, true);
     if (error) return error;
@@ -118,27 +174,19 @@ export const handlersRegistros = [
     if (!bloque) return errorResponse(404, 'Bloque no encontrado', path);
     const datos = crearRegistroSchema.safeParse(await request.json());
     if (!datos.success) return errorResponse(400, 'Revisá los datos del registro', path);
-    const valores = Object.fromEntries(
-      Object.entries(datos.data.valores).map(([id, valor]) => [id, String(valor)]),
-    );
-    const errores = validarFormulario(bloque.campos, valores);
-    for (const [id, valor] of Object.entries(datos.data.valores)) {
-      const campo = bloque.campos.find((campo) => campo.id === id);
-      if (!campo) errores[id] = 'Este campo no pertenece al bloque';
-      else if (campo.tipo === 'NUMERO' && typeof valor !== 'number')
-        errores[id] = 'Tiene que ser un número';
-      else if (campo.tipo === 'SI_NO' && typeof valor !== 'boolean')
-        errores[id] = 'Tiene que ser sí o no';
-      else if (campo.tipo !== 'NUMERO' && campo.tipo !== 'SI_NO' && typeof valor !== 'string')
-        errores[id] = 'Tiene que ser un texto';
-    }
+    const errores = erroresDeValores(bloque, datos.data.valores);
     if (Object.keys(errores).length)
       return errorResponse(400, 'Revisá los campos marcados', path, errores);
     const ahora = new Date().toISOString();
     const registro: Registro = {
       id: crypto.randomUUID(),
       bloqueId: bloque.id,
-      valores: valoresParaGuardar(bloque.campos, valores),
+      valores: valoresParaGuardar(
+        bloque.campos,
+        Object.fromEntries(
+          Object.entries(datos.data.valores).map(([id, valor]) => [id, String(valor)]),
+        ),
+      ),
       creadoEn: ahora,
       actualizadoEn: ahora,
     };

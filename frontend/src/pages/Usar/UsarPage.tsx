@@ -253,9 +253,11 @@ export function UsarPage() {
                 />
                 {seleccionado?.bloqueId === bloque.id && (
                   <FichaRegistro
+                    key={seleccionado.id}
                     bloque={bloque}
                     registro={seleccionado}
                     onCerrar={() => setSeleccionado(undefined)}
+                    onActualizado={setSeleccionado}
                   />
                 )}
               </div>

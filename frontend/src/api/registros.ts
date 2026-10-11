@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { env } from '@/config/env';
 import {
   registroSchema,
+  type CambiosRegistro,
   type FiltroRegistros,
   type ValoresRegistro,
 } from '@/types/registro';
@@ -26,6 +27,10 @@ export const listarRegistros = (bloqueId: string, filtro: FiltroRegistros, signa
     pageSchema(registroSchema),
     signal,
   );
+
+// PATCH: los campos que no se envían conservan su valor; un `null` borra el dato.
+export const editarRegistro = (id: string, valores: CambiosRegistro) =>
+  http.patch(`/registros/${encodeURIComponent(id)}`, { valores }, registroSchema);
 
 export const eliminarRegistro = (id: string) =>
   http.delete(`/registros/${encodeURIComponent(id)}`, z.undefined());

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { validarFormulario, valoresIniciales, valoresParaGuardar } from '@/lib/formularioRegistro';
+import {
+  cambiosParaEditar,
+  validarFormulario,
+  valoresDeRegistro,
+  valoresIniciales,
+  valoresParaGuardar,
+} from '@/lib/formularioRegistro';
 import { campoPorTipo, camposFormulario } from './formularioTestData';
 
 describe('Validación de registros', () => {
@@ -54,6 +60,41 @@ describe('Validación de registros', () => {
       [campoPorTipo('NUMERO').id]: 0,
       [campoPorTipo('SI_NO').id]: false,
       [campoPorTipo('OPCION').id]: 'Insumos',
+    });
+  });
+});
+
+describe('Edición de registros', () => {
+  it('precarga el formulario con los datos guardados como texto', () => {
+    const valores = valoresDeRegistro(camposFormulario, {
+      [campoPorTipo('TEXTO').id]: 'Harina',
+      [campoPorTipo('NUMERO').id]: 12.5,
+      [campoPorTipo('FECHA').id]: null,
+      [campoPorTipo('SI_NO').id]: true,
+    });
+
+    expect(valores).toEqual({
+      [campoPorTipo('TEXTO').id]: 'Harina',
+      [campoPorTipo('NUMERO').id]: '12.5',
+      [campoPorTipo('FECHA').id]: '',
+      [campoPorTipo('OPCION').id]: '',
+      [campoPorTipo('SI_NO').id]: 'true',
+    });
+    expect(validarFormulario(camposFormulario, valores)).toEqual({});
+  });
+
+  it('manda null en lo que se vació para que el backend lo borre', () => {
+    const cargados = valoresParaGuardar(camposFormulario, {
+      ...valoresIniciales(camposFormulario),
+      [campoPorTipo('FECHA').id]: '',
+    });
+
+    expect(cambiosParaEditar(camposFormulario, cargados)).toEqual({
+      [campoPorTipo('TEXTO').id]: 'Producto',
+      [campoPorTipo('NUMERO').id]: 0,
+      [campoPorTipo('FECHA').id]: null,
+      [campoPorTipo('OPCION').id]: 'Insumos',
+      [campoPorTipo('SI_NO').id]: false,
     });
   });
 });
