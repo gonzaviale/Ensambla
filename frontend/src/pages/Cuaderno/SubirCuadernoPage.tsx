@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { Link } from '@tanstack/react-router';
-import { CameraIcon, CheckCircleIcon, ImagesIcon } from '@phosphor-icons/react';
+import { CameraIcon, ImagesIcon } from '@phosphor-icons/react';
 import { ConsejosFoto } from '@/components/Cuaderno/ConsejosFoto';
+import { LecturaLote } from '@/components/Cuaderno/LecturaLote';
 import { MiniaturaPagina } from '@/components/Cuaderno/MiniaturaPagina';
-import { Button, PageHeading, Panel, buttonClasses } from '@/components/ui';
+import { Button, PageHeading, buttonClasses } from '@/components/ui';
 import { useSubirLote } from '@/hooks/lotes/mutations';
 import { girar, prepararFoto, type Rotacion } from '@/lib/imagen';
 import { MAX_FOTOS_POR_LOTE } from '@/types/lote';
@@ -78,24 +78,12 @@ export function SubirCuadernoPage() {
   }
 
   if (subirLote.isSuccess) {
-    const cantidad = subirLote.data.fotos.length;
     return (
-      <Panel role="status" className="mx-auto flex max-w-xl flex-col items-start gap-3">
-        <CheckCircleIcon aria-hidden size={32} className="text-ok" />
-        <h1 className="m-0 text-[24px]">¡Listo! Recibimos tu cuaderno</h1>
-        <p className="text-soft">
-          {cantidad === 1 ? 'Recibimos 1 página.' : `Recibimos ${cantidad} páginas.`} La estamos
-          leyendo; cuando termine vas a poder revisar los datos.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="primary" onClick={empezarDeNuevo}>
-            Subir más páginas
-          </Button>
-          <Link to="/proyectos" className={buttonClasses()}>
-            Ir a mis proyectos
-          </Link>
-        </div>
-      </Panel>
+      <LecturaLote
+        loteId={subirLote.data.id}
+        paginas={subirLote.data.fotos.length}
+        onSubirMas={empezarDeNuevo}
+      />
     );
   }
 

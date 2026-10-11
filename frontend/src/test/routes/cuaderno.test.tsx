@@ -5,6 +5,7 @@ import { renderApp } from '@/test/renderApp';
 import {
   ESPERA,
   setupServerError,
+  setupServerResponse,
   setupUsuarioConSesion,
   verifyAlertPresentAsync,
   verifyHeadingPresentAsync,
@@ -102,10 +103,36 @@ describe('T-091: subir foto de mi cuaderno', () => {
 
     await user.click(screen.getByRole('button', { name: 'Leer mi cuaderno (3 páginas)' }));
 
-    await verifyHeadingPresentAsync('¡Listo! Recibimos tu cuaderno');
+    await verifyHeadingPresentAsync('Estamos leyendo tu cuaderno');
     expect(screen.getByText(/Recibimos 3 páginas/)).toBeInTheDocument();
+  });
+
+  it('muestra lo que leyó la IA cuando termina y marca los datos dudosos', async () => {
+    const user = await abrirCuaderno();
+    await user.upload(galeria(), paginas(1));
+    await user.click(screen.getByRole('button', { name: 'Leer mi cuaderno (1 página)' }));
+
+    await verifyHeadingPresentAsync('Esto es lo que leímos de tu cuaderno');
+
+    expect(screen.getByRole('cell', { name: 'Pan' })).toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: /850.*dato dudoso/ })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Subir más páginas' }));
     expect(await screen.findByLabelText('Elegir de la galería', {}, ESPERA)).toBeInTheDocument();
+  }, 10000);
+
+  it('ofrece reintentar cuando la lectura falló', async () => {
+    const user = await abrirCuaderno();
+    await user.upload(galeria(), paginas(1));
+    setupServerResponse('get', '/lotes/:id/lectura', 200, {
+      loteId: crypto.randomUUID(),
+      estado: 'ERROR',
+      motivoError: 'No se pudo leer la foto',
+      intentos: 3,
+    });
+    await user.click(screen.getByRole('button', { name: 'Leer mi cuaderno (1 página)' }));
+
+    await verifyHeadingPresentAsync('No pudimos leer tu cuaderno');
+    expect(screen.getByRole('button', { name: 'Reintentar lectura' })).toBeEnabled();
   });
 
   it('muestra el error del servidor y conserva las páginas para reintentar', async () => {
