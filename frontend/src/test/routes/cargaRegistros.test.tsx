@@ -76,13 +76,13 @@ describe('ENS-6: carga de registros por bloque', () => {
     await user.click(await screen.findByRole('tab', { name: 'Cargar' }));
     await verifyHeadingPresentAsync('Productos');
     await user.type(screen.getByLabelText('Nombre (obligatorio)'), 'Borrador');
-    await user.selectOptions(screen.getByLabelText('Bloque'), segundo.id);
+    await user.click(screen.getByRole('radio', { name: 'Clientes' }));
     const clientes = screen.getByRole('region', { name: 'Clientes' });
     await user.type(within(clientes).getByLabelText('Cliente (obligatorio)'), 'Ana');
     await user.click(within(clientes).getByRole('button', { name: 'Guardar registro' }));
     expect(await screen.findByRole('status')).toHaveTextContent('Registro guardado');
     expect([...estado.registros.values()][0]?.bloqueId).toBe(segundo.id);
-    await user.selectOptions(screen.getByLabelText('Bloque'), original.id);
+    await user.click(screen.getByRole('radio', { name: 'Productos' }));
     expect(screen.getByLabelText('Nombre (obligatorio)')).toHaveValue('Borrador');
   });
 
@@ -110,8 +110,8 @@ describe('ENS-6: carga de registros por bloque', () => {
     await verifyHeadingPresentAsync('Productos');
     await user.type(screen.getByLabelText('Nombre (obligatorio)'), 'Producto');
     await user.click(screen.getByRole('button', { name: 'Guardar registro' }));
-    expect(screen.getByLabelText('Bloque')).toBeDisabled();
-    await waitFor(() => expect(screen.getByLabelText('Bloque')).toBeEnabled());
+    expect(screen.getByRole('radio', { name: 'Productos' })).toBeDisabled();
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Productos' })).toBeEnabled());
   });
 
   it('explica un proyecto sin bloques', async () => {
@@ -132,7 +132,7 @@ describe('ENS-6: carga de registros por bloque', () => {
     renderApp(`/proyectos/${proyecto.id}/usar`);
     await user.click(await screen.findByRole('tab', { name: 'Cargar' }));
     await verifyHeadingPresentAsync('Productos');
-    expect(screen.getByText(/todavía no tiene campos/)).toBeInTheDocument();
+    expect(screen.getByText(/todavía no tiene datos/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Guardar registro' })).not.toBeInTheDocument();
   });
 

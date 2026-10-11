@@ -44,13 +44,15 @@ npm.cmd run dev -- --host 127.0.0.1
 
 Ingresá en `/login` con `demo@ensambla.local` / `EnsamblaDemo2026!`. Esta cuenta sólo existe en la simulación.
 Podés crear en blanco o desde Inventario, Pedidos y Clientes; abrir, renombrar y eliminar proyectos.
+Cada tarjeta muestra sus bloques y cuántos datos tiene cada uno (se leen de `GET /api/proyectos/{id}`, porque
+`GET /api/proyectos` todavía no trae la estructura); «Usar» es la acción principal y renombrar/eliminar están en «Más opciones».
 Los datos simulados viven en memoria y se reinician al recargar la página.
 
 La carga efectiva de fotos corresponde a otra historia.
 
 ### Probar el constructor (ENS-5 · H-04)
 
-En `/proyectos/<id>/construir` (botón «Abrir proyecto»): lista de bloques a la izquierda y el bloque elegido
+En `/proyectos/<id>/construir` (botón «Cambiar estructura» de la tarjeta, o «Armar bloques» si está vacío): lista de bloques a la izquierda y el bloque elegido
 a la derecha; en el celular, primero la lista y al tocar un bloque su detalle («Ver todos los bloques» o el
 botón atrás vuelven). El bloque abierto queda en la URL (`?bloque=<id>`). Se agregan, renombran y eliminan
 bloques (con confirmación) y sus datos (campos) de los cinco tipos, con obligatorio, valor inicial y opciones.
@@ -63,7 +65,7 @@ En la interfaz los campos se llaman «datos» (cada uno es una columna de la tab
 
 ### Cargar registros (ENS-6 · ENS-52/T-024 y ENS-53/T-025)
 
-En modo `completo`, creá un proyecto desde una plantilla, abrilo y elegí **Cargar datos**.
+En modo `completo`, creá un proyecto desde una plantilla: se abre directo en Usar (con un aviso para cambiar la estructura en Construir); elegí la pestaña **Cargar** o «Cargar el primer registro».
 El modo usar permite elegir un bloque y genera sus controles de texto, número, fecha, opción y sí/no,
 respetando el orden y los valores iniciales. Los borradores se conservan al cambiar de bloque dentro
 de la pantalla; se pierden al salir o recargar. Después de confirmar el guardado se vuelven a aplicar

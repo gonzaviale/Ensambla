@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { crearProyecto, crearProyectoDesdePlantilla } from '@/api/proyectos';
-import { plantillasMock } from '@/mocks/db/estado';
+import { estado, plantillasMock } from '@/mocks/db/estado';
 import { agregarRegistro } from '@/mocks/db/registros';
 import { renderApp } from '@/test/renderApp';
 import {
@@ -138,10 +138,71 @@ describe('H-06: tabla de registros', () => {
     expect(screen.getByRole('button', { name: 'Anterior' })).toBeEnabled();
   });
 
-  it('indica que todavía no hay datos cuando el bloque está vacío', async () => {
+  it('sin registros igual muestra las columnas y ofrece cargar el primero', async () => {
     await abrirUsar([]);
+    const user = userEvent.setup();
 
-    expect(await screen.findByText('Todavía no cargaste nada', {}, ESPERA)).toBeInTheDocument();
+    expect(
+      await screen.findByText('Todavía no cargaste nada en Productos.', {}, ESPERA),
+    ).toBeInTheDocument();
+    for (const nombre of ['Nombre', 'Stock', 'Rubro', 'Cargado']) {
+      expect(screen.getByRole('columnheader', { name: nombre })).toBeInTheDocument();
+    }
+
+    await user.click(screen.getByRole('button', { name: 'Cargar el primer registro' }));
+
+    expect(screen.getByRole('tab', { name: 'Cargar' })).toHaveAttribute('aria-selected', 'true');
+    await waitFor(() => expect(screen.getByLabelText('Nombre (obligatorio)')).toHaveFocus());
+  });
+
+  it('avisa si el bloque no tiene datos y ofrece agregarlos en Construir', async () => {
+    setupUsuarioConSesion();
+    const proyecto = await crearProyectoDesdePlantilla(elemento(plantillasMock).id);
+    const bloque = elemento(proyecto.bloques);
+    const item = estado.proyectos.get(proyecto.id);
+    if (!item) throw new Error('Falta el proyecto simulado');
+    item.proyecto = { ...proyecto, bloques: [{ ...bloque, campos: [] }] };
+    renderApp(`/proyectos/${proyecto.id}/usar`);
+
+    await verifyHeadingPresentAsync('Productos todavía no tiene datos');
+    expect(screen.getByRole('link', { name: 'Agregar datos en Construir' })).toHaveAttribute(
+      'href',
+      `/proyectos/${proyecto.id}/construir?bloque=${bloque.id}`,
+    );
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
+  it('con pocos bloques los muestra como botones y cambia de bloque', async () => {
+    setupUsuarioConSesion();
+    const proyecto = await crearProyectoDesdePlantilla(elemento(plantillasMock).id);
+    const original = elemento(proyecto.bloques);
+    const item = estado.proyectos.get(proyecto.id);
+    if (!item) throw new Error('Falta el proyecto simulado');
+    item.proyecto = {
+      ...proyecto,
+      bloques: [
+        original,
+        {
+          id: crypto.randomUUID(),
+          nombre: 'Clientes',
+          posicion: 1,
+          campos: [{ ...elemento(original.campos), id: crypto.randomUUID(), nombre: 'Teléfono' }],
+        },
+      ],
+    };
+    const user = userEvent.setup();
+    renderApp(`/proyectos/${proyecto.id}/usar`);
+    await verifyHeadingPresentAsync(proyecto.nombre);
+
+    const grupo = screen.getByRole('group', { name: 'Bloque' });
+    expect(within(grupo).getByRole('radio', { name: 'Productos' })).toBeChecked();
+    await user.click(within(grupo).getByRole('radio', { name: 'Clientes' }));
+
+    expect(within(grupo).getByRole('radio', { name: 'Clientes' })).toBeChecked();
+    expect(
+      await screen.findByRole('columnheader', { name: 'Teléfono' }, ESPERA),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Buscar en Clientes')).toBeInTheDocument();
   });
 
   it('muestra el error y permite reintentar cuando falla la carga', async () => {

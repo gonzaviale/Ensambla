@@ -4,6 +4,7 @@ import {
   ArrowUpIcon,
   ArrowsDownUpIcon,
   MagnifyingGlassIcon,
+  PlusIcon,
   TableIcon,
 } from '@phosphor-icons/react';
 import { Button, EmptyState, ErrorState, InputField, Spinner } from '@/components/ui';
@@ -18,7 +19,59 @@ type TablaRegistrosProps = {
   bloque: Bloque;
   seleccionadoId?: string;
   onSeleccionar: (registro: Registro) => void;
+  /** Abre la carga de un registro nuevo; se ofrece cuando el bloque todavía está vacío. */
+  onCargar?: () => void;
 };
+
+type Columna = { id: string; nombre: string };
+
+// Bloque sin registros: igual se ven las columnas (los datos del bloque) y cómo empezar.
+function TablaVacia({
+  bloque,
+  columnas,
+  onCargar,
+}: {
+  bloque: Bloque;
+  columnas: Columna[];
+  onCargar?: () => void;
+}) {
+  return (
+    <div className="overflow-x-auto rounded-lg border border-line bg-surface">
+      <table className="w-full min-w-max border-collapse text-left text-sm">
+        <caption className="sr-only">Registros de {bloque.nombre}</caption>
+        <thead>
+          <tr className="border-b border-line">
+            {columnas.map((columna) => (
+              <th key={columna.id} scope="col" className="px-3 py-2 font-semibold">
+                {columna.nombre}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colSpan={columnas.length} className="px-3 py-8">
+              <div className="sticky left-0 flex max-w-[calc(100vw-4rem)] flex-col items-start gap-3 sm:max-w-md">
+                <p className="m-0 text-base font-semibold">
+                  Todavía no cargaste nada en {bloque.nombre}.
+                </p>
+                <p className="m-0 text-[15px] text-soft">
+                  Cada columna es un dato que vas a completar. Lo que cargues va a aparecer acá.
+                </p>
+                {onCargar && (
+                  <Button variant="solid" onClick={onCargar}>
+                    <PlusIcon aria-hidden size={20} />
+                    Cargar el primer registro
+                  </Button>
+                )}
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 type Orden = { columna: string; direccion: 'asc' | 'desc' };
 
@@ -34,14 +87,19 @@ function IconoOrden({ direccion }: { direccion?: Orden['direccion'] }) {
   return <ArrowsDownUpIcon aria-hidden size={14} className="text-muted" />;
 }
 
-export function TablaRegistros({ bloque, seleccionadoId, onSeleccionar }: TablaRegistrosProps) {
+export function TablaRegistros({
+  bloque,
+  seleccionadoId,
+  onSeleccionar,
+  onCargar,
+}: TablaRegistrosProps) {
   const [texto, setTexto] = useState('');
   const [orden, setOrden] = useState<Orden>({ columna: COLUMNA_CARGA, direccion: 'desc' });
   const [pagina, setPagina] = useState(0);
   const busqueda = useDebouncedValue(texto.trim(), ESPERA_BUSQUEDA_MS);
 
   const campos = [...bloque.campos].sort((a, b) => a.posicion - b.posicion);
-  const columnas = [
+  const columnas: Columna[] = [
     ...campos.map((campo) => ({ id: campo.id, nombre: campo.nombre })),
     { id: COLUMNA_CARGA, nombre: 'Cargado' },
   ];
@@ -104,16 +162,11 @@ export function TablaRegistros({ bloque, seleccionadoId, onSeleccionar }: TablaR
           message={error.message}
           onRetry={() => void refetch()}
         />
+      ) : data.content.length === 0 && !busqueda ? (
+        <TablaVacia bloque={bloque} columnas={columnas} onCargar={onCargar} />
       ) : data.content.length === 0 ? (
-        <EmptyState
-          icon={<TableIcon aria-hidden size={32} />}
-          title={busqueda ? 'No hay resultados' : 'Todavía no cargaste nada'}
-        >
-          <p>
-            {busqueda
-              ? `Ningún registro coincide con «${busqueda}».`
-              : 'Cuando cargues datos en este bloque, van a aparecer acá.'}
-          </p>
+        <EmptyState icon={<TableIcon aria-hidden size={32} />} title="No hay resultados">
+          <p>Ningún registro coincide con «{busqueda}».</p>
         </EmptyState>
       ) : (
         <>

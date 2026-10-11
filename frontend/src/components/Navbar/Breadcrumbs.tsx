@@ -39,7 +39,7 @@ export function Breadcrumbs() {
         </li>
         <li aria-hidden>›</li>
         <li>
-          <Link to="/proyectos/$proyectoId/construir" params={{ proyectoId }}>
+          <Link to="/proyectos/$proyectoId/usar" params={{ proyectoId }}>
             {proyecto?.nombre ?? 'Proyecto'}
           </Link>
         </li>

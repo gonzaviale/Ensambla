@@ -10,9 +10,11 @@ export function CatalogoPlantillas() {
   async function usar(id: string) {
     try {
       const proyecto = await crear.mutateAsync(id);
+      // La plantilla ya trae bloques y datos: se cae directo en Usar, con un aviso para cambiarla.
       await navigate({
-        to: '/proyectos/$proyectoId/construir',
+        to: '/proyectos/$proyectoId/usar',
         params: { proyectoId: proyecto.id },
+        search: { nuevo: true },
       });
     } catch {
       /* El error se anuncia debajo del catálogo. */
