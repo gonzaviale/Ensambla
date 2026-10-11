@@ -3,7 +3,11 @@ package com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces;
 import com.ensambla.backend.infrastructure.repository.entity.LoteSubidaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ILoteSubidaJpaRepository extends JpaRepository<LoteSubidaEntity, UUID> {
+
+    /** Un lote de otro negocio se comporta como inexistente. */
+    Optional<LoteSubidaEntity> findByIdAndNegocioId(UUID id, UUID negocioId);
 }

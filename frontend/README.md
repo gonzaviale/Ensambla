@@ -97,6 +97,16 @@ con todos los datos y la eliminación con confirmación.
 - Falta la edición desde la ficha: reutiliza el `FormRenderer` de T-024. La carga de registros llega con T-025
   y T-031.
 
+### Subir foto del cuaderno (T-091)
+
+`/cuaderno` (botón «Subir foto de mi cuaderno» en Mis proyectos): sacar foto con la cámara o elegir de la galería,
+miniaturas con girar y quitar, consejos para una buena foto y «Leer mi cuaderno», que manda hasta 10 páginas a
+`POST /api/lotes` (multipart, campo `fotos`). Antes de subir, `lib/imagen.ts` prepara cada foto en el navegador
+(T-092): la endereza según la orientación EXIF, aplica el giro elegido, achica el lado mayor a 2000px y la comprime
+en JPEG bajando la calidad hasta quedar por debajo de 1,5 MB. Si no puede decodificarla (HEIC fuera de Safari) manda
+el archivo original. En modo `completo` el lote se
+simula sin guardar los archivos.
+
 ## Estructura
 
 ```
