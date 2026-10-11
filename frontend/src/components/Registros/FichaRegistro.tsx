@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { XIcon } from '@phosphor-icons/react';
+import { ImageIcon, XIcon } from '@phosphor-icons/react';
+import { VisorFoto } from '@/components/Cuaderno/Revision/VisorFoto';
 import { Button, Panel } from '@/components/ui';
+import { urlFotoOrigen } from '@/hooks/lotes/fotos';
 import { useEliminarRegistro } from '@/hooks/registros/mutations';
 import { formatearMomento, formatearValor } from '@/lib/valores';
 import type { Bloque } from '@/types/proyecto';
@@ -14,6 +16,7 @@ type FichaRegistroProps = {
 
 export function FichaRegistro({ bloque, registro, onCerrar }: FichaRegistroProps) {
   const [confirmando, setConfirmando] = useState(false);
+  const [viendoFoto, setViendoFoto] = useState(false);
   const titulo = useRef<HTMLHeadingElement>(null);
   const eliminar = useEliminarRegistro(bloque.id);
   const campos = [...bloque.campos].sort((a, b) => a.posicion - b.posicion);
@@ -48,6 +51,26 @@ export function FichaRegistro({ bloque, registro, onCerrar }: FichaRegistroProps
             <span>Última modificación: {formatearMomento(registro.actualizadoEn)}</span>
           </div>
         </dl>
+
+        {registro.fotoOrigenId && (
+          <div className="flex flex-col gap-2">
+            <Button
+              className="self-start"
+              aria-expanded={viendoFoto}
+              onClick={() => setViendoFoto((abierta) => !abierta)}
+            >
+              <ImageIcon aria-hidden size={16} />
+              {viendoFoto ? 'Ocultar el cuaderno' : 'Ver en el cuaderno'}
+            </Button>
+            {viendoFoto && (
+              <VisorFoto
+                paginas={[{ numero: 1, url: urlFotoOrigen(registro.id) }]}
+                actual={1}
+                onElegir={() => undefined}
+              />
+            )}
+          </div>
+        )}
 
         {confirmando ? (
           <div

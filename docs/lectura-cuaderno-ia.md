@@ -23,7 +23,42 @@ si su nombre y cada columna tienen una coincidencia única con tipo/opciones com
 Se ignoran diferencias de mayúsculas y acentos. Ante varios candidatos, se propone un bloque nuevo
 para revisión; un destino explícito incompatible produce ERROR.
 El mapeo relaciona las claves leídas con los UUID de campos existentes.
-Esta historia **no crea registros definitivos ni confirma bloques nuevos**: eso corresponde a ENS-121 / H-30.
+Esta historia **no crea registros definitivos ni confirma bloques nuevos**: eso es ENS-121 / H-30 (ver [Revisión y confirmación](#revisión-y-confirmación-ens-121--h-30)).
+
+## Revisión y confirmación (ENS-121 / H-30)
+
+La persona revisa la propuesta con la foto al lado, la corrige y recién entonces se guarda. Nada se escribe
+en proyectos, bloques, campos ni registros hasta confirmar.
+
+**Pantalla** (`/cuaderno/{loteId}`): la lectura tiene su propia dirección, así que se puede recargar. En celular
+la foto va arriba y los datos debajo; en computadora, lado a lado. Se puede corregir cualquier celda, quitar y
+agregar filas, renombrar, cambiar de tipo, quitar y agregar columnas, y renombrar la tabla. Los datos con
+confianza menor al umbral (o vacíos) se resaltan y «Siguiente duda» los recorre. Lo corregido se conserva en
+`sessionStorage` por lote hasta confirmar o descartar.
+
+**Destino** al guardar: un proyecto nuevo, una tabla nueva dentro de un proyecto existente o, si la IA reconoció
+una tabla del negocio (`bloqueExistenteId` + `mapeoCampos`), sumar las filas a ella.
+
+| Ruta | Resultado |
+|---|---|
+| `POST /api/lotes/{loteId}/confirmar` | 201 `{ proyectoId, bloqueId, registros }` |
+| `GET /api/lotes/{loteId}/fotos/{fotoId}` | 200 con los bytes de la foto (`Cache-Control: private`) |
+| `GET /api/registros/{id}/foto-origen` | 200 con los bytes de la foto de la que salió el registro |
+
+`POST …/confirmar` recibe el destino (`proyectoId` o `nombreProyecto`; `bloqueId` o `nombreBloque`), las `campos`
+finales (`clave`, `campoId` si ya existe, `nombre`, `tipo`, `opciones`) y las `filas` (`pagina` desde 1 o `null` si
+se agregó a mano, y `valores` por clave **ya tipados**: número, sí/no o texto). Se valida igual que una carga manual
+(`Registro.validar`) y los errores vuelven ubicados: `filas[2].monto`, `campos[0].nombre`.
+
+- Todo ocurre en **una transacción**: si algo falla no queda proyecto, tabla, campos ni registros a medias.
+- El lote debe estar `LISTO` y pasa a `CONFIRMADO` con `confirmado_en` y `bloque_destino_id` mediante una
+  sentencia condicional, así dos confirmaciones simultáneas no duplican datos (la segunda responde 400).
+- Cada registro guarda `foto_origen_id` según su página; las filas agregadas a mano quedan sin foto.
+- Máximo 500 filas por confirmación.
+- Las fotos son privadas: se sirven con la sesión y sólo al negocio dueño (otro negocio recibe 404). Reemplazan a
+  la «URL firmada» de Jira porque el almacenamiento es local; si se pasa a un almacenamiento externo, este es
+  el único punto que cambia.
+- `RegistroResponse` suma `fotoOrigenId` para saber si mostrar «Ver en el cuaderno».
 
 ## Contrato para integrar ENS-124 / T-090
 
@@ -133,6 +168,7 @@ un reporte distinto; el adaptador OCR todavía depende de la decisión del spike
 | ENS-132 | Propuesta/mapeo tipado implementados; falta medir con fotos reales |
 | ENS-133 | Reserva, límites y consulta implementados; tarifas reales pendientes |
 | ENS-134 | Herramienta/pruebas preparadas; precisión real y meta acordada pendientes |
+| ENS-121 | Revisión, edición, confirmación y foto de origen implementadas; falta probarlo con fotos reales |
 
 Estos pendientes fueron acordados explícitamente con el usuario. Esta entrega no demuestra la
 precisión real del producto ni declara completos los criterios que requieren ese material.

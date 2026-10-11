@@ -294,6 +294,7 @@ export const handlersLotes = [
         id: crypto.randomUUID(),
         bloqueId: bloque.id,
         valores,
+        fotoOrigenId: fila.pagina === null ? null : (item.lote.fotos[fila.pagina - 1]?.id ?? null),
         creadoEn: ahora,
         actualizadoEn: ahora,
       };
@@ -304,5 +305,15 @@ export const handlersLotes = [
       { proyectoId: proyecto.id, bloqueId: bloque.id, registros: datos.filas.length },
       { status: 201 },
     );
+  }),
+
+  http.get(api('/registros/:id/foto-origen'), ({ request, params }) => {
+    const error = exigirSesion(request);
+    if (error) return error;
+    const registro = estado.registros.get(String(params.id));
+    if (!registro?.fotoOrigenId || !bloqueDeLaSesion(registro.bloqueId)) {
+      return errorResponse(404, 'El registro no tiene foto de origen', pathDe(request));
+    }
+    return respuestaFoto();
   }),
 ];

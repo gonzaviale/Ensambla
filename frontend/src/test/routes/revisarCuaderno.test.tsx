@@ -1,4 +1,4 @@
-import { cleanup, screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { confirmarLectura, obtenerLectura, subirLote } from '@/api/lotes';
@@ -290,5 +290,51 @@ describe('H-30: guardar lo revisado', () => {
 
     await verifyPathAsync(router, '/cuaderno');
     expect(sessionStorage.length).toBe(0);
+  });
+});
+
+describe('T-104: ver en el cuaderno desde la ficha del registro', () => {
+  async function abrirFicha() {
+    setupUsuarioConSesion();
+    const lote = await crearLote();
+    const guardado = await confirmarLectura({
+      loteId: lote.id,
+      datos: {
+        proyectoId: null,
+        nombreProyecto: 'Ventas',
+        bloqueId: null,
+        nombreBloque: 'Hoja',
+        campos: [{ clave: 'producto', campoId: null, nombre: 'Producto', tipo: 'TEXTO', opciones: [] }],
+        filas: [
+          { pagina: 1, valores: { producto: 'Pan' } },
+          { pagina: null, valores: { producto: 'Leche' } },
+        ],
+      },
+    });
+    renderApp(`/proyectos/${guardado.proyectoId}/usar?bloque=${guardado.bloqueId}`);
+    await screen.findByText('Pan', {}, ESPERA);
+    return userEvent.setup();
+  }
+
+  it('abre la foto de la que salió un registro del cuaderno', async () => {
+    const user = await abrirFicha();
+
+    await user.click(screen.getByRole('button', { name: 'Ver ficha de Pan' }));
+    const ficha = screen.getByRole('complementary', { name: 'Ficha del registro' });
+    await user.click(within(ficha).getByRole('button', { name: 'Ver en el cuaderno' }));
+
+    const imagen = await within(ficha).findByRole('img', { name: 'Página 1 del cuaderno' }, ESPERA);
+    expect(imagen).toHaveAttribute('src', expect.stringMatching(/\/registros\/.+\/foto-origen$/));
+    await user.click(within(ficha).getByRole('button', { name: 'Ocultar el cuaderno' }));
+    expect(within(ficha).queryByRole('img')).not.toBeInTheDocument();
+  });
+
+  it('un registro cargado a mano no ofrece el botón', async () => {
+    const user = await abrirFicha();
+
+    await user.click(screen.getByRole('button', { name: 'Ver ficha de Leche' }));
+
+    const ficha = screen.getByRole('complementary', { name: 'Ficha del registro' });
+    expect(within(ficha).queryByRole('button', { name: 'Ver en el cuaderno' })).not.toBeInTheDocument();
   });
 });

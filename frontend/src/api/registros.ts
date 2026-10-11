@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { env } from '@/config/env';
 import {
   registroSchema,
   type FiltroRegistros,
@@ -28,3 +29,7 @@ export const listarRegistros = (bloqueId: string, filtro: FiltroRegistros, signa
 
 export const eliminarRegistro = (id: string) =>
   http.delete(`/registros/${encodeURIComponent(id)}`, z.undefined());
+
+// Foto del cuaderno de la que salió el registro; sólo existe si no se cargó a mano.
+export const urlFotoOrigen = (registroId: string) =>
+  `${env.apiUrl}/registros/${encodeURIComponent(registroId)}/foto-origen`;
