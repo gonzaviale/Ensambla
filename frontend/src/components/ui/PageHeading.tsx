@@ -22,7 +22,7 @@ export function PageHeading({ kicker, title, lead, actions }: PageHeadingProps) 
             {kicker}
           </p>
         )}
-        <h1 className="m-0 text-h1 break-words">{title}</h1>
+        <h1 className="m-0 text-h2 break-words sm:text-h1">{title}</h1>
         {lead && <p className="m-0 text-lead text-soft">{lead}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-3">{actions}</div>}

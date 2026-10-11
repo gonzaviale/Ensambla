@@ -203,7 +203,7 @@ export function RevisionLectura({ loteId, propuesta }: Props) {
         lead="Revisá los datos con la foto al lado. Los marcados son los que no pudimos leer con seguridad. Nada se guarda hasta que toques «Guardar mi cuaderno»."
       />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(16rem,1fr)_minmax(0,2fr)]">
         {esEscritorio && (
           <Panel className="lg:sticky lg:top-20 lg:self-start">
             {paginas.length > 0 ? (
@@ -337,7 +337,7 @@ export function RevisionLectura({ loteId, propuesta }: Props) {
       )}
 
       <StickyActionBar label="Guardar el cuaderno">
-        <div className="min-w-0 flex-1 basis-56">
+        <div className="min-w-0 sm:flex-1">
           {motivos.length > 0 ? (
             <p className="m-0 flex flex-wrap items-center gap-x-2 text-base font-semibold">
               Faltan {motivos.length === 1 ? '1 cosa' : `${motivos.length} cosas`} para guardar.
@@ -347,11 +347,17 @@ export function RevisionLectura({ loteId, propuesta }: Props) {
               </Button>
             </p>
           ) : (
-            <p className="m-0 text-base font-semibold text-ok">Todo listo para guardar.</p>
+            <p className="m-0 text-base font-semibold text-ok">
+              {porRevisar === 0
+                ? 'Todo listo para guardar.'
+                : `Podés guardar. ${textoPorRevisar(porRevisar)}`}
+            </p>
           )}
-          <p className="m-0 text-caption text-muted">Tus cambios se guardan en este dispositivo.</p>
+          <p className="m-0 text-caption text-muted max-sm:hidden">
+            Tus cambios se guardan en este dispositivo.
+          </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex w-full items-center gap-2 sm:w-auto sm:gap-3">
           <Button
             variant="ghost"
             disabled={confirmar.isPending}
@@ -362,11 +368,14 @@ export function RevisionLectura({ loteId, propuesta }: Props) {
           <Button
             variant="solid"
             size="lg"
+            className="flex-1 px-3 text-base sm:flex-none sm:px-6 sm:text-body"
             loading={confirmar.isPending}
             disabled={motivos.length > 0}
             onClick={guardar}
           >
-            {!confirmar.isPending && <FloppyDiskIcon aria-hidden size={24} />}
+            {!confirmar.isPending && (
+              <FloppyDiskIcon aria-hidden size={24} className="max-sm:hidden" />
+            )}
             {confirmar.isPending ? 'Guardando…' : 'Guardar mi cuaderno'}
           </Button>
         </div>

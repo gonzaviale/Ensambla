@@ -55,7 +55,7 @@ export function TablaRevision({
                 scope="col"
                 aria-invalid={errorDeColumna(columna, columnas) ? true : undefined}
                 className={cn(
-                  'min-w-40 px-2 py-2 align-bottom font-semibold text-fg',
+                  'min-w-36 px-2 py-2 align-bottom font-semibold text-fg',
                   columnaEditando === columna.clave && 'bg-accent-100',
                 )}
               >
@@ -73,7 +73,7 @@ export function TablaRevision({
                 </div>
               </th>
             ))}
-            <th scope="col" className="min-w-64 px-3 py-2 text-soft">
+            <th scope="col" className="min-w-52 px-3 py-2 text-soft">
               Para revisar
             </th>
             <th scope="col" className="px-2 py-2">
