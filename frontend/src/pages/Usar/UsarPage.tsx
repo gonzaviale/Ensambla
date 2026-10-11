@@ -44,7 +44,7 @@ function BloqueSinDatos({ proyectoId, bloque }: { proyectoId: string; bloque: Bl
       icon={<TableIcon aria-hidden size={32} />}
       title={`${bloque.nombre} todavía no tiene datos`}
     >
-      <p className="m-0 text-[15px]">
+      <p className="m-0 text-hint">
         Para cargar algo, primero elegí qué datos guarda, como Nombre o Precio. Cada dato es una
         columna de la tabla.
       </p>
@@ -116,12 +116,11 @@ export function UsarPage() {
             <Link
               to="/proyectos/$proyectoId/construir"
               params={{ proyectoId }}
-              className={buttonClasses({ size: 'sm' })}
+              className={buttonClasses()}
             >
               Cambiar la estructura
             </Link>
             <Button
-              size="sm"
               variant="ghost"
               onClick={() =>
                 void navigate({
@@ -189,10 +188,7 @@ export function UsarPage() {
                   aria-controls={`panel-${item.id}`}
                   disabled={enviando}
                   onClick={() => elegirVista(item.id)}
-                  className={cn(
-                    buttonClasses({ size: 'sm' }),
-                    vista === item.id && 'border-accent bg-accent/10',
-                  )}
+                  className={cn(buttonClasses(), vista === item.id && 'border-accent bg-accent/10')}
                 >
                   {item.etiqueta}
                 </button>

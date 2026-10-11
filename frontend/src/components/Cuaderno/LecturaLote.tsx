@@ -25,7 +25,7 @@ export function LecturaLote({ loteId, onSubirMas }: Props) {
     return (
       <Panel role="alert" className="mx-auto flex max-w-xl flex-col items-start gap-3">
         <SmileySadIcon aria-hidden size={32} className="text-bad" />
-        <h1 className="m-0 text-[24px]">No pudimos ver cómo va tu cuaderno</h1>
+        <h1 className="m-0 text-h3">No pudimos ver cómo va tu cuaderno</h1>
         <p className="text-soft">{lectura.error.message || MENSAJE_ERROR_CONSULTA}</p>
         <Button variant="primary" onClick={() => void lectura.refetch()}>
           Volver a consultar
@@ -38,7 +38,7 @@ export function LecturaLote({ loteId, onSubirMas }: Props) {
     return (
       <Panel role="alert" className="mx-auto flex max-w-xl flex-col items-start gap-3">
         <SmileySadIcon aria-hidden size={32} className="text-bad" />
-        <h1 className="m-0 text-[24px]">No pudimos leer tu cuaderno</h1>
+        <h1 className="m-0 text-h3">No pudimos leer tu cuaderno</h1>
         <p className="text-soft">
           {lectura.data.motivoError ?? 'La lectura falló.'} Podés intentarlo de nuevo o subir fotos
           más nítidas.
@@ -66,8 +66,10 @@ export function LecturaLote({ loteId, onSubirMas }: Props) {
     return (
       <Panel className="mx-auto flex max-w-xl flex-col items-start gap-3">
         <CheckCircleIcon aria-hidden size={32} className="text-ok" />
-        <h1 className="m-0 text-[24px]">Este cuaderno ya se guardó</h1>
-        <p className="text-soft">Sus datos están en tus proyectos. Si tenés más páginas, subilas.</p>
+        <h1 className="m-0 text-h3">Este cuaderno ya se guardó</h1>
+        <p className="text-soft">
+          Sus datos están en tus proyectos. Si tenés más páginas, subilas.
+        </p>
         <div className="flex flex-wrap gap-2">
           <Link to="/proyectos" className={buttonClasses({ variant: 'primary' })}>
             Ir a mis proyectos
@@ -84,10 +86,10 @@ export function LecturaLote({ loteId, onSubirMas }: Props) {
 
   return (
     <Panel role="status" className="mx-auto flex max-w-xl flex-col items-start gap-3">
-      <h1 className="m-0 text-[24px]">Estamos leyendo tu cuaderno</h1>
+      <h1 className="m-0 text-h3">Estamos leyendo tu cuaderno</h1>
       <p className="text-soft">
-        {paginas !== undefined && `${recibidas(paginas)} `}Puede tardar un minuto. No hace falta
-        que te quedes en esta pantalla.
+        {paginas !== undefined && `${recibidas(paginas)} `}Puede tardar un minuto. No hace falta que
+        te quedes en esta pantalla.
       </p>
       <Spinner label="Leyendo…" />
     </Panel>

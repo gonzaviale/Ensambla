@@ -20,14 +20,14 @@ function ContenidoProyecto({ nombre, bloques }: { nombre: string; bloques: Bloqu
       {visibles.map((bloque) => (
         <li
           key={bloque.id}
-          className="rounded-full border border-accent-200 bg-accent-100 px-3 py-1 text-[15px] leading-snug"
+          className="rounded-full border border-accent-200 bg-accent-100 px-3 py-1 text-hint leading-snug"
         >
           <span className="font-semibold">{bloque.nombre}</span>
           <span className="text-soft"> · {contarDatos(bloque.campos.length)}</span>
         </li>
       ))}
       {resto > 0 && (
-        <li className="rounded-full border border-line px-3 py-1 text-[15px] leading-snug text-soft">
+        <li className="rounded-full border border-line px-3 py-1 text-hint leading-snug text-soft">
           {resto === 1 ? 'y 1 bloque más' : `y ${resto} bloques más`}
         </li>
       )}
@@ -77,19 +77,17 @@ export function ProyectoCard({ proyecto }: { proyecto: Proyecto }) {
     <Panel className="flex h-full flex-col gap-3 p-4 sm:p-5">
       <h3 className="m-0 text-lg">{proyecto.nombre}</h3>
       {proyecto.descripcion && (
-        <p className="m-0 line-clamp-2 text-[15px] text-soft">{proyecto.descripcion}</p>
+        <p className="m-0 line-clamp-2 text-hint text-soft">{proyecto.descripcion}</p>
       )}
       <div className="flex-1">
         {estructura.isPending ? (
           <Spinner label="Mirando qué tiene adentro…" />
         ) : sinBloques ? (
-          <p className="m-0 text-[15px]">
-            Todavía no tiene bloques: armalos para empezar a usarlo.
-          </p>
+          <p className="m-0 text-hint">Todavía no tiene bloques: armalos para empezar a usarlo.</p>
         ) : bloques ? (
           <ContenidoProyecto nombre={proyecto.nombre} bloques={bloques} />
         ) : (
-          <p className="m-0 text-[15px] text-soft">No pudimos ver qué tiene adentro.</p>
+          <p className="m-0 text-hint text-soft">No pudimos ver qué tiene adentro.</p>
         )}
       </div>
       {editando ? (
@@ -137,7 +135,7 @@ export function ProyectoCard({ proyecto }: { proyecto: Proyecto }) {
               <Link
                 to="/proyectos/$proyectoId/construir"
                 params={{ proyectoId: proyecto.id }}
-                className={buttonClasses({ size: 'sm', className: 'min-h-12' })}
+                className={buttonClasses({ className: 'min-h-12' })}
               >
                 {/* En 320px el ícono no entra junto a "Más opciones": se oculta para no partir la fila. */}
                 <HammerIcon aria-hidden size={18} className="max-[359px]:hidden" />
@@ -168,7 +166,6 @@ export function ProyectoCard({ proyecto }: { proyecto: Proyecto }) {
             >
               <Button
                 variant="ghost"
-                size="sm"
                 onClick={() => {
                   setNombre(proyecto.nombre);
                   setErrorNombre(undefined);
@@ -182,7 +179,6 @@ export function ProyectoCard({ proyecto }: { proyecto: Proyecto }) {
               </Button>
               <Button
                 variant="ghost"
-                size="sm"
                 className="text-bad"
                 onClick={() => {
                   setOpcionesAbiertas(false);

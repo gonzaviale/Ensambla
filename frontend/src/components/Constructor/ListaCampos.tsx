@@ -40,7 +40,7 @@ export function ListaCampos({ proyectoId, bloqueId }: Props) {
         className="flex flex-col items-start gap-2 rounded-md border border-bad/30 p-3"
       >
         <p className="m-0">No pudimos cargar los datos de este bloque.</p>
-        <p className="m-0 text-[13px] text-soft">{leerErrorServidor(campos.error)?.mensaje}</p>
+        <p className="m-0 text-hint text-soft">{leerErrorServidor(campos.error)?.mensaje}</p>
         <Button variant="primary" onClick={() => void campos.refetch()}>
           Reintentar
         </Button>
@@ -135,16 +135,16 @@ function ResumenCampo({ campo }: { campo: Campo }) {
       <p className="m-0 flex flex-wrap items-center gap-2 text-base font-semibold break-words">
         <span>{campo.nombre}</span>
         {campo.obligatorio && (
-          <span className="rounded-sm bg-accent-100 px-1.5 py-0.5 text-[12px] font-bold text-accent-900">
+          <span className="rounded-sm bg-accent-100 px-1.5 py-0.5 text-caption font-bold text-accent-900">
             Obligatorio
           </span>
         )}
       </p>
-      <p className="m-0 text-[13px] text-soft">
+      <p className="m-0 text-hint text-soft">
         {TIPOS_DE_DATO[campo.tipo].nombre}
         {campo.tipo === 'OPCION' && `: ${campo.opciones.join(', ')}`}
       </p>
-      {valor !== null && <p className="m-0 text-[13px] text-soft">Valor inicial: {valor}</p>}
+      {valor !== null && <p className="m-0 text-hint text-soft">Valor inicial: {valor}</p>}
     </div>
   );
 }

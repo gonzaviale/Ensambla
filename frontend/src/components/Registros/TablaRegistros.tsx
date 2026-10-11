@@ -55,7 +55,7 @@ function TablaVacia({
                 <p className="m-0 text-base font-semibold">
                   Todavía no cargaste nada en {bloque.nombre}.
                 </p>
-                <p className="m-0 text-[15px] text-soft">
+                <p className="m-0 text-hint text-soft">
                   Cada columna es un dato que vas a completar. Lo que cargues va a aparecer acá.
                 </p>
                 {onCargar && (
@@ -142,7 +142,7 @@ export function TablaRegistros({
             trailing={<MagnifyingGlassIcon aria-hidden size={16} className="mr-2 text-muted" />}
           />
         </div>
-        <div className="flex items-center gap-3 text-[13px] text-soft">
+        <div className="flex items-center gap-3 text-hint text-soft">
           {isFetching && !isPending && <Spinner label="Actualizando…" />}
           {data && (
             <span>
@@ -221,7 +221,6 @@ export function TablaRegistros({
                     <td className="px-3 py-2 text-right">
                       <Button
                         variant="ghost"
-                        size="sm"
                         aria-label={`Ver ficha de ${descripcion(registro)}`}
                         onClick={() => onSeleccionar(registro)}
                       >
@@ -236,20 +235,15 @@ export function TablaRegistros({
 
           <nav aria-label="Paginación" className="flex items-center justify-between gap-3">
             <Button
-              size="sm"
               disabled={data.first}
               onClick={() => setPagina((actual) => Math.max(0, actual - 1))}
             >
               Anterior
             </Button>
-            <span className="text-[13px] text-soft">
+            <span className="text-hint text-soft">
               Página {data.pageNumber + 1} de {data.totalPages}
             </span>
-            <Button
-              size="sm"
-              disabled={data.last}
-              onClick={() => setPagina((actual) => actual + 1)}
-            >
+            <Button disabled={data.last} onClick={() => setPagina((actual) => actual + 1)}>
               Siguiente
             </Button>
           </nav>

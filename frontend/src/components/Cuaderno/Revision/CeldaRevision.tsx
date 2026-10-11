@@ -54,7 +54,7 @@ export function CeldaRevision({
     <div className="flex flex-col gap-1">
       <Control columna={columna} celda={celda} onCambiar={onCambiar} propiedades={propiedades} />
       {aviso && (
-        <p id={avisoId} className={cn('m-0 text-[12px]', error ? 'text-bad' : 'text-warn')}>
+        <p id={avisoId} className={cn('m-0 text-caption', error ? 'text-bad' : 'text-warn')}>
           {aviso}
         </p>
       )}

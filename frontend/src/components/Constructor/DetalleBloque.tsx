@@ -64,7 +64,7 @@ export function DetalleBloque({
       </Button>
 
       <header className="flex flex-col gap-3">
-        <p className="m-0 text-[11px] font-bold tracking-widest text-accent-800 uppercase">
+        <p className="m-0 text-caption font-bold tracking-widest text-accent-800 uppercase">
           Bloque
         </p>
         <h2
@@ -131,7 +131,7 @@ export function DetalleBloque({
           <h3 id={`datos-${bloque.id}`} className="m-0 text-lg">
             Datos que guarda este bloque
           </h3>
-          <p className="m-0 text-[13px] text-soft">
+          <p className="m-0 text-hint text-soft">
             Cada dato es una columna de la tabla, como Nombre, Precio o Teléfono.
           </p>
         </div>

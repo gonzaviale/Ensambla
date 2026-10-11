@@ -29,23 +29,13 @@ export function MiniaturaPagina({
           className="max-h-full max-w-full object-contain transition-transform"
         />
       </div>
-      <p className="m-0 text-center text-[15px] font-semibold">Página {numero}</p>
+      <p className="m-0 text-center text-hint font-semibold">Página {numero}</p>
       <div className="grid grid-cols-2 gap-2">
-        <Button
-          size="sm"
-          aria-label={`Girar página ${numero}`}
-          disabled={deshabilitada}
-          onClick={onGirar}
-        >
+        <Button aria-label={`Girar página ${numero}`} disabled={deshabilitada} onClick={onGirar}>
           <ArrowClockwiseIcon aria-hidden size={20} />
           Girar
         </Button>
-        <Button
-          size="sm"
-          aria-label={`Quitar página ${numero}`}
-          disabled={deshabilitada}
-          onClick={onQuitar}
-        >
+        <Button aria-label={`Quitar página ${numero}`} disabled={deshabilitada} onClick={onQuitar}>
           <TrashIcon aria-hidden size={20} />
           Quitar
         </Button>

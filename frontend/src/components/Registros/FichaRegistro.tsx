@@ -32,7 +32,7 @@ export function FichaRegistro({ bloque, registro, onCerrar }: FichaRegistroProps
           <h2 ref={titulo} tabIndex={-1} className="m-0 text-lg focus:outline-none">
             Ficha de {bloque.nombre}
           </h2>
-          <Button variant="ghost" size="sm" aria-label="Cerrar ficha" onClick={onCerrar}>
+          <Button variant="ghost" aria-label="Cerrar ficha" onClick={onCerrar}>
             <XIcon aria-hidden size={16} />
           </Button>
         </div>
@@ -40,13 +40,13 @@ export function FichaRegistro({ bloque, registro, onCerrar }: FichaRegistroProps
         <dl className="m-0 flex flex-col gap-3">
           {campos.map((campo) => (
             <div key={campo.id} className="flex flex-col gap-0.5 border-b border-line pb-2">
-              <dt className="text-[12.5px] text-soft">{campo.nombre}</dt>
+              <dt className="text-hint text-soft">{campo.nombre}</dt>
               <dd className="m-0 break-words">
                 {formatearValor(campo.tipo, registro.valores[campo.id])}
               </dd>
             </div>
           ))}
-          <div className="flex flex-col gap-0.5 text-[12.5px] text-muted">
+          <div className="flex flex-col gap-0.5 text-hint text-muted">
             <span>Cargado: {formatearMomento(registro.creadoEn)}</span>
             <span>Última modificación: {formatearMomento(registro.actualizadoEn)}</span>
           </div>

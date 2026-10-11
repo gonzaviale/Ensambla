@@ -21,7 +21,7 @@ export function DestinoGuardado({ destino, tablaExistente, onCambiar }: Props) {
 
   return (
     <fieldset className="m-0 flex flex-col gap-3 rounded-lg border border-line p-4">
-      <legend className="px-1 text-[15px] font-semibold">¿Dónde lo guardamos?</legend>
+      <legend className="px-1 text-hint font-semibold">¿Dónde lo guardamos?</legend>
 
       {tablaExistente && (
         <label className="flex items-start gap-2">
@@ -34,7 +34,7 @@ export function DestinoGuardado({ destino, tablaExistente, onCambiar }: Props) {
           />
           <span>
             Sumar las filas a tu tabla «{tablaExistente.nombre}»
-            <span className="block text-[13px] text-soft">
+            <span className="block text-hint text-soft">
               La reconocimos porque se llama igual y tiene las mismas columnas.
             </span>
           </span>

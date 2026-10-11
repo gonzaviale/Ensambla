@@ -1,5 +1,8 @@
-import { useId, type ComponentProps, type ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
+import { CaretDownIcon } from '@phosphor-icons/react';
 import { cn } from '@/lib/cn';
+import { FieldShell } from './FieldShell';
+import { fieldControlClasses } from './fieldStyles';
 
 type SelectFieldProps = ComponentProps<'select'> & {
   label: string;
@@ -11,41 +14,33 @@ export function SelectField({
   label,
   hint,
   error,
+  required,
   className,
   children,
   ...props
 }: SelectFieldProps) {
-  const id = useId();
-  const hintId = `${id}-hint`;
-  const errorId = `${id}-error`;
-  const describedBy = [hint && hintId, error && errorId].filter(Boolean).join(' ') || undefined;
   return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-[12.5px] text-soft">
-        {label}
-      </label>
-      <select
-        id={id}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy}
-        className={cn(
-          'w-full rounded-md border border-fg/16 bg-canvas px-2.5 py-2 text-sm text-fg hover:border-fg/45 focus-visible:border-accent focus-visible:outline-none aria-invalid:border-bad',
-          className,
-        )}
-        {...props}
-      >
-        {children}
-      </select>
-      {hint && (
-        <p id={hintId} className="text-[11px] text-muted">
-          {hint}
-        </p>
+    <FieldShell label={label} hint={hint} error={error} required={required}>
+      {({ id, describedBy }) => (
+        <div className="relative">
+          <select
+            id={id}
+            required={required}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={describedBy}
+            className={cn(fieldControlClasses, 'cursor-pointer appearance-none pr-11', className)}
+            {...props}
+          >
+            {children}
+          </select>
+          <CaretDownIcon
+            aria-hidden
+            size={20}
+            weight="bold"
+            className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-soft"
+          />
+        </div>
       )}
-      {error && (
-        <p id={errorId} className="text-[12.5px] text-bad">
-          {error}
-        </p>
-      )}
-    </div>
+    </FieldShell>
   );
 }

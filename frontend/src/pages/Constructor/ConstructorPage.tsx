@@ -110,7 +110,7 @@ export function ConstructorPage() {
                 icon={<SquaresFourIcon aria-hidden size={32} />}
                 title="Todavía no hay bloques en este proyecto"
               >
-                <p className="m-0 text-[15px]">
+                <p className="m-0 text-hint">
                   Un bloque junta información del mismo tipo, como tus Productos, tus Clientes o tus
                   Pedidos. Empezá agregando el primero.
                 </p>

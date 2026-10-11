@@ -16,7 +16,7 @@ export function SelectorBloque({ bloques, seleccionadoId, disabled, onElegir }: 
   const nombre = useId();
   return (
     <fieldset disabled={disabled} className="m-0 min-w-0 border-0 p-0">
-      <legend className="mb-1.5 p-0 text-[12.5px] text-soft">Bloque</legend>
+      <legend className="mb-1.5 p-0 text-hint text-soft">Bloque</legend>
       <div className="flex flex-wrap gap-2">
         {bloques.map((bloque) => (
           <label

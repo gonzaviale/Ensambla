@@ -123,7 +123,7 @@ export function RevisionLectura({ loteId, propuesta }: Props) {
     <div className="flex flex-col gap-4">
       <Panel className="flex flex-col items-start gap-3">
         <CheckCircleIcon aria-hidden size={32} className="text-ok" />
-        <h1 className="m-0 text-[24px]">Esto es lo que leímos de tu cuaderno</h1>
+        <h1 className="m-0 text-h3">Esto es lo que leímos de tu cuaderno</h1>
         <p className="text-soft">
           Revisá los datos con la foto al lado. Los marcados son los que no pudimos leer con
           seguridad. Podés corregir cualquier dato, quitar filas y cambiar las columnas. Nada se
@@ -153,18 +153,18 @@ export function RevisionLectura({ loteId, propuesta }: Props) {
             />
           )}
           {propuesta.advertencias?.map((aviso) => (
-            <p key={aviso} className="m-0 flex items-start gap-2 text-[13px] text-warn">
+            <p key={aviso} className="m-0 flex items-start gap-2 text-hint text-warn">
               <WarningIcon aria-hidden size={18} className="mt-0.5 shrink-0" />
               {aviso}
             </p>
           ))}
 
           <div className="flex flex-wrap items-center gap-3">
-            <Button size="sm" disabled={porRevisar === 0} onClick={irASiguienteDuda}>
+            <Button disabled={porRevisar === 0} onClick={irASiguienteDuda}>
               <ArrowBendDownRightIcon aria-hidden size={16} />
               Siguiente duda
             </Button>
-            <p role="status" className="m-0 text-[13px] text-soft">
+            <p role="status" className="m-0 text-hint text-soft">
               {porRevisar === 0
                 ? 'No quedan datos por revisar.'
                 : porRevisar === 1
@@ -220,7 +220,7 @@ export function RevisionLectura({ loteId, propuesta }: Props) {
         </p>
       )}
       {motivos.length > 0 && (
-        <ul className="m-0 flex list-none flex-col gap-1 p-0 text-[14px] text-soft">
+        <ul className="m-0 flex list-none flex-col gap-1 p-0 text-hint text-soft">
           {motivos.map((motivo) => (
             <li key={motivo}>{motivo}</li>
           ))}

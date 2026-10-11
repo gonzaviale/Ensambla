@@ -138,7 +138,7 @@ export function CampoForm({ proyectoId, bloqueId, campo, onListo, onCancelar }: 
                 <span id={`${id}-${tipo}`} className="font-semibold">
                   {TIPOS_DE_DATO[tipo].nombre}
                 </span>
-                <span id={`${id}-${tipo}-ayuda`} className="text-[13px] text-soft">
+                <span id={`${id}-${tipo}-ayuda`} className="text-hint text-soft">
                   {TIPOS_DE_DATO[tipo].ayuda}
                 </span>
               </span>
@@ -146,7 +146,7 @@ export function CampoForm({ proyectoId, bloqueId, campo, onListo, onCancelar }: 
           ))}
         </div>
         {error('tipo') && (
-          <p id={`${id}-tipo-error`} className="m-0 text-[12.5px] text-bad">
+          <p id={`${id}-tipo-error`} className="m-0 text-hint text-bad">
             {error('tipo')}
           </p>
         )}
@@ -158,7 +158,7 @@ export function CampoForm({ proyectoId, bloqueId, campo, onListo, onCancelar }: 
           aria-describedby={cn(`${id}-opciones-ayuda`, error('opciones') && `${id}-opciones-error`)}
         >
           <legend className="px-1 font-semibold">Opciones de la lista</legend>
-          <p id={`${id}-opciones-ayuda`} className="m-0 text-[13px] text-soft">
+          <p id={`${id}-opciones-ayuda`} className="m-0 text-hint text-soft">
             Escribí una opción en cada renglón. Los renglones vacíos no se guardan.
           </p>
           {borrador.opciones.map((opcion, indice) => (
@@ -200,7 +200,7 @@ export function CampoForm({ proyectoId, bloqueId, campo, onListo, onCancelar }: 
             Agregar otra opción
           </Button>
           {error('opciones') && (
-            <p id={`${id}-opciones-error`} className="m-0 text-[12.5px] text-bad">
+            <p id={`${id}-opciones-error`} className="m-0 text-hint text-bad">
               {error('opciones')}
             </p>
           )}
@@ -231,7 +231,7 @@ export function CampoForm({ proyectoId, bloqueId, campo, onListo, onCancelar }: 
           <span id={`${id}-obligatorio`} className="font-semibold">
             Es obligatorio
           </span>
-          <span id={`${id}-obligatorio-ayuda`} className="text-[13px] text-soft">
+          <span id={`${id}-obligatorio-ayuda`} className="text-hint text-soft">
             No se va a poder guardar un registro sin completar este dato.
           </span>
         </span>
@@ -282,7 +282,7 @@ function ValorInicial({ id, tipo, valor, opciones, error, ocupado, onCambiar }: 
         className="m-0 flex flex-col gap-2 border-0 p-0"
         aria-describedby={cn(`${id}-valor-ayuda`, error && `${id}-valor-error`)}
       >
-        <legend className="mb-1 p-0 text-[12.5px] text-soft">{etiqueta}</legend>
+        <legend className="mb-1 p-0 text-hint text-soft">{etiqueta}</legend>
         <div className="flex flex-wrap gap-2">
           {elecciones.map((eleccion) => (
             <label key={eleccion.valor} className={cn(tarjeta, 'items-center py-2')}>
@@ -299,11 +299,11 @@ function ValorInicial({ id, tipo, valor, opciones, error, ocupado, onCambiar }: 
             </label>
           ))}
         </div>
-        <p id={`${id}-valor-ayuda`} className="m-0 text-[11px] text-muted">
+        <p id={`${id}-valor-ayuda`} className="m-0 text-caption text-muted">
           {AYUDA_VALOR}
         </p>
         {error && (
-          <p id={`${id}-valor-error`} className="m-0 text-[12.5px] text-bad">
+          <p id={`${id}-valor-error`} className="m-0 text-hint text-bad">
             {error}
           </p>
         )}

@@ -13,11 +13,11 @@ export function AuthCard({ title, lead, children, footer }: AuthCardProps) {
   return (
     <div className="mx-auto flex w-full max-w-105 animate-fade-in flex-col gap-5 px-4 py-10 sm:py-16">
       <header className="flex flex-col gap-1.5">
-        <h1 className="m-0 text-[23px] sm:text-[26px]">{title}</h1>
-        <p className="text-[14px] leading-relaxed text-soft">{lead}</p>
+        <h1 className="m-0 text-h2 sm:text-h1">{title}</h1>
+        <p className="text-hint leading-relaxed text-soft">{lead}</p>
       </header>
       <Panel>{children}</Panel>
-      <p className="text-center text-[13px] text-soft">{footer}</p>
+      <p className="text-center text-hint text-soft">{footer}</p>
     </div>
   );
 }

@@ -36,9 +36,9 @@ export function EditorColumna({
       aria-label={`Editar la columna «${columna.nombre}»`}
       className="flex flex-col gap-3"
     >
-      <h3 className="m-0 text-[15px]">Columna «{columna.nombre || 'sin nombre'}»</h3>
+      <h3 className="m-0 text-hint">Columna «{columna.nombre || 'sin nombre'}»</h3>
       {bloqueada && (
-        <p className="m-0 text-[13px] text-soft">
+        <p className="m-0 text-hint text-soft">
           Esta columna ya existe en tu tabla «{nombreTabla}»: no se puede cambiar su nombre ni su
           tipo.
         </p>
@@ -87,10 +87,10 @@ export function EditorColumna({
         </ConfirmarEliminacion>
       ) : (
         <div className="flex flex-wrap gap-2">
-          <Button variant="primary" size="sm" onClick={onCerrar}>
+          <Button variant="primary" onClick={onCerrar}>
             Listo
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => setConfirmando(true)}>
+          <Button variant="ghost" onClick={() => setConfirmando(true)}>
             Quitar columna
           </Button>
         </div>

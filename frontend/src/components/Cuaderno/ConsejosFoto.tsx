@@ -11,7 +11,7 @@ const CONSEJOS = [
 export function ConsejosFoto() {
   return (
     <Panel flat tight>
-      <h2 className="m-0 flex items-center gap-2 text-[17px]">
+      <h2 className="m-0 flex items-center gap-2 text-lead">
         <LightbulbIcon aria-hidden size={22} className="text-accent-800" />
         Consejos para una buena foto
       </h2>

@@ -73,7 +73,7 @@ export function LoginForm({ onExito }: { onExito: () => void }) {
         )}
       </form.Field>
       {errorGeneral && (
-        <p role="alert" className="text-[13px] text-bad">
+        <p role="alert" className="text-hint text-bad">
           {errorGeneral}
         </p>
       )}

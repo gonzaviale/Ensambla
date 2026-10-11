@@ -35,7 +35,7 @@ export function TablaRevision({
   return (
     <div className="flex flex-col gap-3">
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-left text-[14px]">
+        <table className="w-full border-collapse text-left text-hint">
           <caption className="sr-only">{borrador.nombreBloque}</caption>
           <thead>
             <tr>
@@ -55,7 +55,6 @@ export function TablaRevision({
                   <span className="flex items-center gap-1">
                     {columna.nombre || 'Sin nombre'}
                     <Button
-                      size="sm"
                       variant="ghost"
                       aria-label={`Editar la columna «${columna.nombre}»`}
                       onClick={() => onEditarColumna(columna.clave)}
@@ -85,7 +84,9 @@ export function TablaRevision({
                           columna={columna}
                           celda={celda}
                           numeroFila={indice + 1}
-                          errorServidor={erroresServidor[claveErrorServidor(fila.id, columna.clave)]}
+                          errorServidor={
+                            erroresServidor[claveErrorServidor(fila.id, columna.clave)]
+                          }
                           onCambiar={(texto) =>
                             onAccion({ tipo: 'editarCelda', ...posicion, texto })
                           }
@@ -97,7 +98,6 @@ export function TablaRevision({
                 })}
                 <td className="px-2 py-1.5">
                   <Button
-                    size="sm"
                     variant="ghost"
                     aria-label={`Quitar la fila ${indice + 1}`}
                     onClick={() => onAccion({ tipo: 'quitarFila', filaId: fila.id })}
@@ -119,14 +119,13 @@ export function TablaRevision({
 
       <div className="flex flex-wrap gap-2">
         <Button
-          size="sm"
           disabled={columnas.length === 0}
           onClick={() => onAccion({ tipo: 'agregarFila', id: crypto.randomUUID() })}
         >
           <PlusIcon aria-hidden size={16} />
           Agregar fila
         </Button>
-        <Button size="sm" onClick={() => onAccion({ tipo: 'agregarColumna' })}>
+        <Button onClick={() => onAccion({ tipo: 'agregarColumna' })}>
           <PlusIcon aria-hidden size={16} />
           Agregar columna
         </Button>
