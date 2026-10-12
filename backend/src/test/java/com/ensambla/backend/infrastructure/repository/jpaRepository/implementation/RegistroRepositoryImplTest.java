@@ -152,6 +152,27 @@ class RegistroRepositoryImplTest {
         verifyNoInteractions(jpa);
     }
 
+    @Test
+    @DisplayName("Busca los registros pedidos por id dentro del bloque y del negocio")
+    void findAllByIdsAndBloqueShouldQueryAndMap() {
+        when(jpa.findAllByIdInAndBloqueIdAndNegocioIdOrderByCreadoEnDescIdDesc(
+                List.of(REGISTRO_ID), BLOQUE_ID, NEGOCIO_ID))
+                .thenReturn(List.of(entity()));
+
+        List<Registro> result = repository.findAllByIdsAndBloque(List.of(REGISTRO_ID), BLOQUE_ID, NEGOCIO_ID);
+
+        assertThat(result).extracting(Registro::getId).containsExactly(REGISTRO_ID);
+    }
+
+    @Test
+    @DisplayName("Sin ids no consulta la base")
+    void findAllByIdsAndBloqueShouldNotQueryWhenIdsAreEmpty() {
+        List<Registro> result = repository.findAllByIdsAndBloque(List.of(), BLOQUE_ID, NEGOCIO_ID);
+
+        assertThat(result).isEmpty();
+        verifyNoInteractions(jpa);
+    }
+
     // --- helpers ---
     private IRegistroJpaRepository.SumaPorCampo suma(UUID campoId, String valor) {
         return new IRegistroJpaRepository.SumaPorCampo() {

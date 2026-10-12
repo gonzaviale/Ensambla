@@ -41,6 +41,9 @@ public class Campo {
     /** Opciones válidas; sólo aplica a campos de tipo OPCION. */
     private List<String> opciones;
 
+    /** Bloque al que apunta; sólo aplica a campos de tipo RELACION. */
+    private UUID bloqueRelacionadoId;
+
     private Short posicion;
 
     private OffsetDateTime creadoEn;
@@ -71,11 +74,16 @@ public class Campo {
         this.obligatorio = configuracion.obligatorio();
         this.valorInicial = configuracion.valorInicial();
         this.opciones = configuracion.opciones();
+        this.bloqueRelacionadoId = configuracion.bloqueRelacionadoId();
         this.actualizadoEn = ahora;
     }
 
     public boolean esObligatorio() {
         return Boolean.TRUE.equals(obligatorio);
+    }
+
+    public boolean esRelacion() {
+        return tipo == TipoCampo.RELACION;
     }
 
     /** Mensaje de error si el valor no corresponde al tipo del campo; vacío si es válido. */
@@ -86,6 +94,7 @@ public class Campo {
             case FECHA -> errorSi(!esFechaIso(valor), "Tiene que ser una fecha válida");
             case OPCION -> errorSi(!esOpcion(valor), "Elegí una de las opciones");
             case SI_NO -> errorSi(!(valor instanceof Boolean), "Tiene que ser sí o no");
+            case RELACION -> errorSi(!esUuid(valor), "Elegí una fila de la tabla relacionada");
         };
     }
 
@@ -112,6 +121,18 @@ public class Campo {
             LocalDate.parse(texto);
             return true;
         } catch (DateTimeParseException e) {
+            return false;
+        }
+    }
+
+    /** El valor de una conexión es el id del registro referenciado, en su forma canónica de 36 caracteres. */
+    private static boolean esUuid(Object valor) {
+        if (!(valor instanceof String texto)) {
+            return false;
+        }
+        try {
+            return UUID.fromString(texto).toString().equalsIgnoreCase(texto);
+        } catch (IllegalArgumentException e) {
             return false;
         }
     }

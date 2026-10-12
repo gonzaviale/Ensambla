@@ -6,17 +6,21 @@ import com.ensambla.backend.domain.dto.registro.EditarRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.EditarRegistroResponse;
 import com.ensambla.backend.domain.dto.registro.EliminarRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosRequest;
+import com.ensambla.backend.domain.dto.registro.ListarReferenciasRequest;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosResponse;
 import com.ensambla.backend.domain.dto.registro.ObtenerFotoOrigenRequest;
 import com.ensambla.backend.domain.dto.registro.ObtenerRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.ObtenerRegistroResponse;
+import com.ensambla.backend.domain.dto.registro.ReferenciaItem;
 import com.ensambla.backend.domain.dto.registro.RegistroItem;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.PaginaRegistrosResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.registro.ReferenciaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.RegistroRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.RegistroResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.TotalesRegistrosResponse;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -29,6 +33,11 @@ public class RegistroPresentationMapper {
     public ListarRegistrosRequest toListarRequest(UUID usuarioId, UUID bloqueId, String texto, String orden,
                                                   String direccion, Integer pagina, Integer tamanio) {
         return new ListarRegistrosRequest(usuarioId, bloqueId, texto, orden, direccion, pagina, tamanio);
+    }
+
+    /** Sin {@code ids} (parámetro ausente) se busca por texto. */
+    public ListarReferenciasRequest toReferenciasRequest(UUID usuarioId, UUID bloqueId, String texto, List<UUID> ids) {
+        return new ListarReferenciasRequest(usuarioId, bloqueId, texto, ids == null ? List.of() : ids);
     }
 
     public ObtenerRegistroRequest toObtenerRequest(UUID usuarioId, UUID registroId) {
@@ -69,6 +78,12 @@ public class RegistroPresentationMapper {
                 response.pagina() == 0,
                 response.pagina() >= response.totalPaginas() - 1,
                 new TotalesRegistrosResponse(response.totales().cantidad(), response.totales().sumas()));
+    }
+
+    public List<ReferenciaResponse> toResponse(List<ReferenciaItem> referencias) {
+        return referencias.stream()
+                .map(referencia -> new ReferenciaResponse(referencia.id(), referencia.etiqueta()))
+                .toList();
     }
 
     private RegistroResponse toResponse(RegistroItem item) {

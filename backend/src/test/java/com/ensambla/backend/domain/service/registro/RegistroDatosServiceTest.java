@@ -23,12 +23,14 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -41,6 +43,11 @@ class RegistroDatosServiceTest {
     private static final UUID REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
     private static final UUID NOMBRE_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
     private static final UUID CANTIDAD_ID = UUID.fromString("c0000000-0000-4000-8000-000000000002");
+    private static final UUID CLIENTES_ID = UUID.fromString("b0000000-0000-4000-8000-000000000002");
+    private static final UUID CLIENTE_ID = UUID.fromString("c0000000-0000-4000-8000-000000000003");
+    private static final UUID GARANTE_ID = UUID.fromString("c0000000-0000-4000-8000-000000000004");
+    private static final UUID ANA_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
+    private static final UUID BETO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000003");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
     private static final OffsetDateTime ANTES = OffsetDateTime.parse("2026-10-09T12:00:00Z");
 
@@ -188,7 +195,112 @@ class RegistroDatosServiceTest {
         assertThat(result.sumas()).isEmpty();
     }
 
+    @Test
+    @DisplayName("Crea el registro cuando la fila a la que apunta la conexión existe")
+    void crearShouldSaveWhenReferencedRowExists() {
+        givenFilasExistentes(Set.of(ANA_ID), ANA_ID);
+        when(registroRepository.save(any(Registro.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Registro result = registroDatosService.crear(
+                NEGOCIO_ID, BLOQUE_ID, conexiones(), valoresCliente(ANA_ID), AHORA);
+
+        assertThat(result.getValores()).containsEntry(CLIENTE_ID.toString(), ANA_ID.toString());
+    }
+
+    @Test
+    @DisplayName("Rechaza el registro cuando la fila a la que apunta la conexión ya no existe")
+    void crearShouldRejectWhenReferencedRowIsMissing() {
+        givenFilasExistentes(Set.of(ANA_ID));
+        Map<String, Object> valores = valoresCliente(ANA_ID);
+
+        assertThatThrownBy(() -> registroDatosService.crear(NEGOCIO_ID, BLOQUE_ID, conexiones(), valores, AHORA))
+                .isInstanceOf(RegistroInvalidoException.class)
+                .extracting(error -> ((RegistroInvalidoException) error).getErrores())
+                .isEqualTo(Map.of(CLIENTE_ID.toString(), "Esa fila ya no existe"));
+        verify(registroRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Busca de una vez las filas de todas las conexiones a la misma tabla y marca sólo las que faltan")
+    void crearShouldQueryOncePerBloqueAndReportOnlyMissingRows() {
+        givenFilasExistentes(Set.of(ANA_ID, BETO_ID), ANA_ID);
+        Map<String, Object> valores = Map.of(CLIENTE_ID.toString(), ANA_ID.toString(), GARANTE_ID.toString(),
+                BETO_ID.toString());
+
+        assertThatThrownBy(() -> registroDatosService.crear(NEGOCIO_ID, BLOQUE_ID, conexiones(), valores, AHORA))
+                .isInstanceOf(RegistroInvalidoException.class)
+                .extracting(error -> ((RegistroInvalidoException) error).getErrores())
+                .isEqualTo(Map.of(GARANTE_ID.toString(), "Esa fila ya no existe"));
+    }
+
+    @Test
+    @DisplayName("No consulta otras tablas cuando las conexiones quedan vacías")
+    void crearShouldNotQueryWhenConexionesAreEmpty() {
+        when(registroRepository.save(any(Registro.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        registroDatosService.crear(NEGOCIO_ID, BLOQUE_ID, conexiones(), Map.of(), AHORA);
+
+        verify(registroRepository, never()).findAllByIdsAndBloque(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("No guarda la edición cuando la conexión apunta a una fila que ya no existe")
+    void editarShouldRejectWhenReferencedRowIsMissing() {
+        givenFilasExistentes(Set.of(BETO_ID));
+        Registro registro = registro();
+        Map<String, Object> cambios = valoresCliente(BETO_ID);
+
+        assertThatThrownBy(() -> registroDatosService.editar(registro, conexiones(), cambios, AHORA))
+                .isInstanceOf(RegistroInvalidoException.class);
+        verify(registroRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Las referencias pedidas por id salen del repositorio filtradas por bloque y negocio")
+    void buscarReferenciablesShouldFindByIdsWhenIdsArePresent() {
+        List<Registro> encontrados = List.of(registro());
+        when(registroRepository.findAllByIdsAndBloque(List.of(REGISTRO_ID), BLOQUE_ID, NEGOCIO_ID))
+                .thenReturn(encontrados);
+
+        List<Registro> result = registroDatosService.buscarReferenciables(
+                NEGOCIO_ID, BLOQUE_ID, campos(), "ignorado", List.of(REGISTRO_ID));
+
+        assertThat(result).isSameAs(encontrados);
+    }
+
+    @Test
+    @DisplayName("Sin ids busca por texto las 20 filas más nuevas del bloque")
+    void buscarReferenciablesShouldSearchByTextoWhenIdsAreEmpty() {
+        ConsultaRegistros consulta = new ConsultaRegistros(
+                NEGOCIO_ID, BLOQUE_ID, "ana", null, DireccionOrden.DESC, 0, 20);
+        when(registroRepository.buscar(consulta)).thenReturn(new Pagina<>(List.of(registro()), 0, 20, 1));
+
+        List<Registro> result = registroDatosService.buscarReferenciables(
+                NEGOCIO_ID, BLOQUE_ID, campos(), " ana ", List.of());
+
+        assertThat(result).extracting(Registro::getId).containsExactly(REGISTRO_ID);
+    }
+
+    // --- arrange ---
+    private void givenFilasExistentes(Set<UUID> buscados, UUID... existentes) {
+        List<Registro> filas = List.of(existentes).stream()
+                .map(id -> Registro.builder().id(id).bloqueId(CLIENTES_ID).build())
+                .toList();
+        when(registroRepository.findAllByIdsAndBloque(buscados, CLIENTES_ID, NEGOCIO_ID)).thenReturn(filas);
+    }
+
     // --- helpers ---
+    private List<Campo> conexiones() {
+        return List.of(
+                Campo.builder().id(CLIENTE_ID).tipo(TipoCampo.RELACION).bloqueRelacionadoId(CLIENTES_ID).build(),
+                Campo.builder().id(GARANTE_ID).tipo(TipoCampo.RELACION).bloqueRelacionadoId(CLIENTES_ID).build(),
+                Campo.builder().id(NOMBRE_ID).tipo(TipoCampo.TEXTO).build());
+    }
+
+    private Map<String, Object> valoresCliente(UUID filaId) {
+        return Map.of(CLIENTE_ID.toString(), filaId.toString());
+    }
+
     private List<Campo> campos() {
         return List.of(
                 Campo.builder().id(NOMBRE_ID).tipo(TipoCampo.TEXTO).obligatorio(true).build(),

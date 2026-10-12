@@ -114,6 +114,38 @@ class CampoSeguridadIntegrationTest {
     }
 
     @Test
+    @DisplayName("Crear un campo de conexión con el propio bloque lo guarda con la tabla conectada")
+    void crearShouldPersistRelacionWithBloqueOfSameProyecto() throws Exception {
+        UUID bloqueId = givenBloque(negocioId);
+
+        crear(bloqueId, """
+                {"nombre":"Recomendado por","tipo":"RELACION","bloqueRelacionadoId":"%s"}
+                """.formatted(bloqueId))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.tipo").value("RELACION"))
+                .andExpect(jsonPath("$.bloqueRelacionadoId").value(bloqueId.toString()));
+
+        assertThat(campos.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioId))
+                .extracting(CampoEntity::getBloqueRelacionadoId)
+                .containsExactly(bloqueId);
+    }
+
+    @Test
+    @DisplayName("Crear un campo de conexión con una tabla de otro sistema devuelve 400 en bloqueRelacionadoId")
+    void crearShouldRejectRelacionWithBloqueOfOtherProyecto() throws Exception {
+        UUID bloqueId = givenBloque(negocioId);
+        UUID deOtroSistema = givenBloque(negocioId);
+
+        crear(bloqueId, """
+                {"nombre":"Cliente","tipo":"RELACION","bloqueRelacionadoId":"%s"}
+                """.formatted(deOtroSistema))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.bloqueRelacionadoId").value("Elegí una tabla de este sistema"));
+
+        assertThat(campos.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioId)).isEmpty();
+    }
+
+    @Test
     @DisplayName("Listar devuelve los campos del bloque propio ordenados por posición")
     void listarShouldReturnCamposInOrder() throws Exception {
         UUID bloqueId = givenBloque(negocioId);

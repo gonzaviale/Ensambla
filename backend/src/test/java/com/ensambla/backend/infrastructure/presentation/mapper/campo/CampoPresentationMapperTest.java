@@ -23,8 +23,9 @@ class CampoPresentationMapperTest {
     private static final UUID CAMPO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime CREADO = OffsetDateTime.parse("2026-10-09T12:00:00Z");
     private static final OffsetDateTime ACTUALIZADO = OffsetDateTime.parse("2026-10-10T12:00:00Z");
+    private static final UUID RELACIONADO_ID = UUID.fromString("b0000000-0000-4000-8000-000000000002");
     private static final List<String> TALLES = List.of("Chico", "Grande");
-    private static final CampoWebRequest BODY = new CampoWebRequest("Talle", "OPCION", true, "Chico", TALLES);
+    private static final CampoWebRequest BODY = new CampoWebRequest("Talle", "OPCION", true, "Chico", TALLES, null);
 
     private final CampoPresentationMapper campoPresentationMapper = new CampoPresentationMapper();
 
@@ -42,7 +43,7 @@ class CampoPresentationMapperTest {
         CrearCampoRequest result = campoPresentationMapper.toCrearRequest(USUARIO_ID, BLOQUE_ID, BODY);
 
         assertThat(result).isEqualTo(
-                new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES));
+                new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES, null));
     }
 
     @Test
@@ -51,7 +52,40 @@ class CampoPresentationMapperTest {
         EditarCampoRequest result = campoPresentationMapper.toEditarRequest(USUARIO_ID, CAMPO_ID, BODY);
 
         assertThat(result).isEqualTo(
-                new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Talle", "OPCION", true, "Chico", TALLES));
+                new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Talle", "OPCION", true, "Chico", TALLES, null));
+    }
+
+    @Test
+    @DisplayName("Pasa la tabla conectada de un campo de conexión al pedido de crear")
+    void toCrearRequestShouldCarryBloqueRelacionado() {
+        CampoWebRequest body = new CampoWebRequest("Cliente", "RELACION", false, null, null, RELACIONADO_ID);
+
+        CrearCampoRequest result = campoPresentationMapper.toCrearRequest(USUARIO_ID, BLOQUE_ID, body);
+
+        assertThat(result.bloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
+    }
+
+    @Test
+    @DisplayName("Pasa la tabla conectada de un campo de conexión al pedido de editar")
+    void toEditarRequestShouldCarryBloqueRelacionado() {
+        CampoWebRequest body = new CampoWebRequest("Cliente", "RELACION", false, null, null, RELACIONADO_ID);
+
+        EditarCampoRequest result = campoPresentationMapper.toEditarRequest(USUARIO_ID, CAMPO_ID, body);
+
+        assertThat(result.bloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
+    }
+
+    @Test
+    @DisplayName("Pasa a la respuesta la tabla con la que se conecta el campo")
+    void toResponseShouldMapBloqueRelacionado() {
+        CampoItem item = new CampoItem(
+                CAMPO_ID, BLOQUE_ID, "Cliente", "RELACION", false, null, List.of(), RELACIONADO_ID, (short) 2, CREADO,
+                ACTUALIZADO);
+
+        CampoResponse result = campoPresentationMapper.toResponse(item);
+
+        assertThat(result.bloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
+        assertThat(result.tipo()).isEqualTo("RELACION");
     }
 
     @Test
@@ -74,6 +108,7 @@ class CampoPresentationMapperTest {
         assertThat(result.obligatorio()).isTrue();
         assertThat(result.valorInicial()).isEqualTo("Chico");
         assertThat(result.opciones()).containsExactly("Chico", "Grande");
+        assertThat(result.bloqueRelacionadoId()).isNull();
         assertThat(result.posicion()).isEqualTo((short) 1);
         assertThat(result.creadoEn()).isEqualTo(CREADO);
         assertThat(result.actualizadoEn()).isEqualTo(ACTUALIZADO);
@@ -99,6 +134,6 @@ class CampoPresentationMapperTest {
     // --- helpers ---
     private CampoItem givenItem(String nombre) {
         return new CampoItem(
-                CAMPO_ID, BLOQUE_ID, nombre, "OPCION", true, "Chico", TALLES, (short) 1, CREADO, ACTUALIZADO);
+                CAMPO_ID, BLOQUE_ID, nombre, "OPCION", true, "Chico", TALLES, null, (short) 1, CREADO, ACTUALIZADO);
     }
 }
