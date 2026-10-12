@@ -7,13 +7,16 @@ import com.ensambla.backend.domain.dto.registro.CrearRegistroResponse;
 import com.ensambla.backend.domain.dto.registro.EditarRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.EditarRegistroResponse;
 import com.ensambla.backend.domain.dto.registro.EliminarRegistroRequest;
+import com.ensambla.backend.domain.dto.registro.ListarReferenciasRequest;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosRequest;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosResponse;
 import com.ensambla.backend.domain.dto.registro.ObtenerFotoOrigenRequest;
 import com.ensambla.backend.domain.dto.registro.ObtenerRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.ObtenerRegistroResponse;
+import com.ensambla.backend.domain.dto.registro.ReferenciaItem;
 import com.ensambla.backend.domain.dto.registro.RegistroItem;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.PaginaRegistrosResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.registro.ReferenciaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.RegistroRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.RegistroResponse;
 import org.junit.jupiter.api.DisplayName;
@@ -32,6 +35,7 @@ class RegistroPresentationMapperTest {
     private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
     private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
     private static final UUID REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
+    private static final UUID OTRO_REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
     private static final UUID FOTO_ID = UUID.fromString("f0000000-0000-4000-8000-000000000001");
     private static final UUID CAMPO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
     private static final Map<String, Object> VALORES = Map.of("campo", "dato");
@@ -39,6 +43,33 @@ class RegistroPresentationMapperTest {
     private static final OffsetDateTime ACTUALIZADO = OffsetDateTime.parse("2026-10-10T12:00:00Z");
 
     private final RegistroPresentationMapper mapper = new RegistroPresentationMapper();
+
+    @Test
+    @DisplayName("Arma el pedido de referencias con el texto y los ids pedidos")
+    void toReferenciasRequestShouldCarryTextoAndIds() {
+        ListarReferenciasRequest result =
+                mapper.toReferenciasRequest(USUARIO_ID, BLOQUE_ID, "ana", List.of(REGISTRO_ID));
+
+        assertThat(result).isEqualTo(new ListarReferenciasRequest(USUARIO_ID, BLOQUE_ID, "ana", List.of(REGISTRO_ID)));
+    }
+
+    @Test
+    @DisplayName("Sin el parámetro ids el pedido de referencias lleva una lista vacía")
+    void toReferenciasRequestShouldUseEmptyListWhenIdsAreMissing() {
+        ListarReferenciasRequest result = mapper.toReferenciasRequest(USUARIO_ID, BLOQUE_ID, null, null);
+
+        assertThat(result.ids()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Pasa el id y la etiqueta de cada referencia, en orden")
+    void toResponseShouldMapReferencias() {
+        List<ReferenciaResponse> result = mapper.toResponse(
+                List.of(new ReferenciaItem(REGISTRO_ID, "Ana"), new ReferenciaItem(OTRO_REGISTRO_ID, "Beto")));
+
+        assertThat(result).containsExactly(
+                new ReferenciaResponse(REGISTRO_ID, "Ana"), new ReferenciaResponse(OTRO_REGISTRO_ID, "Beto"));
+    }
 
     @Test
     @DisplayName("Arma el pedido de crear con el usuario de la sesión, el bloque y los valores")

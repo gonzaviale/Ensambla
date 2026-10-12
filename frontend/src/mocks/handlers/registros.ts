@@ -76,6 +76,26 @@ const coincide = (registro: Registro, texto: string) =>
     (valor) => valor !== null && String(valor).toLowerCase().includes(texto),
   );
 
+const MAX_REFERENCIAS = 20;
+
+// Etiqueta de una fila para quien la elige desde otra tabla: el valor de la primera columna de
+// texto u opción (por posición) o, si no hay, de la primera columna; vacío → «Sin nombre».
+function etiquetaDe(bloque: Bloque, registro: Registro) {
+  const ordenados = [...bloque.campos].sort((a, b) => a.posicion - b.posicion);
+  const campo =
+    ordenados.find((item) => item.tipo === 'TEXTO' || item.tipo === 'OPCION') ?? ordenados[0];
+  const valor = campo ? registro.valores[campo.id] : undefined;
+  const texto = valor === null || valor === undefined ? '' : String(valor).trim();
+  return texto || 'Sin nombre';
+}
+
+// Una columna RELACION guarda el id de una fila de su tabla conectada.
+function errorDeRelacion(campo: Bloque['campos'][number], valor: unknown) {
+  if (typeof valor !== 'string' || !valor) return 'Elegí una fila de la tabla relacionada';
+  const fila = estado.registros.get(valor);
+  return fila && fila.bloqueId === campo.bloqueRelacionadoId ? undefined : 'Esa fila ya no existe';
+}
+
 // Un error por id de campo, con el mismo criterio al crear y al editar.
 function erroresDeValores(bloque: Bloque, valores: ValoresRegistro) {
   const texto = Object.fromEntries(
@@ -89,13 +109,47 @@ function erroresDeValores(bloque: Bloque, valores: ValoresRegistro) {
       errores[id] = 'Tiene que ser un número';
     else if (campo.tipo === 'SI_NO' && typeof valor !== 'boolean')
       errores[id] = 'Tiene que ser sí o no';
-    else if (campo.tipo !== 'NUMERO' && campo.tipo !== 'SI_NO' && typeof valor !== 'string')
+    else if (campo.tipo === 'RELACION') {
+      const problema = errorDeRelacion(campo, valor);
+      if (problema) errores[id] = problema;
+    } else if (campo.tipo !== 'NUMERO' && campo.tipo !== 'SI_NO' && typeof valor !== 'string')
       errores[id] = 'Tiene que ser un texto';
   }
   return errores;
 }
 
 export const handlersRegistros = [
+  http.get(api('/bloques/:id/referencias'), async ({ request, params }) => {
+    await delay(LATENCIA_BACKEND_MS);
+    const error = privado(request);
+    if (error) return error;
+    const bloque = bloqueDeLaSesion(String(params.id));
+    if (!bloque) return errorResponse(404, 'El bloque no existe', pathDe(request));
+
+    const consulta = new URL(request.url).searchParams;
+    const texto = consulta.get('q')?.trim().toLowerCase() ?? '';
+    const ids = consulta
+      .get('ids')
+      ?.split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+    const delBloque = [...estado.registros.values()]
+      .filter((registro) => registro.bloqueId === bloque.id)
+      .sort((a, b) => b.creadoEn.localeCompare(a.creadoEn) || b.id.localeCompare(a.id))
+      .map((registro) => ({ registro, etiqueta: etiquetaDe(bloque, registro) }));
+    const elegidas = ids
+      ? delBloque.filter(({ registro }) => ids.includes(registro.id))
+      : delBloque
+          .filter(
+            ({ registro, etiqueta }) =>
+              !texto || etiqueta.toLowerCase().includes(texto) || coincide(registro, texto),
+          )
+          .slice(0, MAX_REFERENCIAS);
+    return HttpResponse.json(
+      elegidas.map(({ registro, etiqueta }) => ({ id: registro.id, etiqueta })),
+    );
+  }),
+
   http.get(api('/bloques/:id/registros'), async ({ request, params }) => {
     await delay(LATENCIA_BACKEND_MS);
     const error = privado(request);

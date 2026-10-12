@@ -22,6 +22,7 @@ class CampoMappersTest {
     private static final UUID CAMPO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime CREADO = OffsetDateTime.parse("2026-10-09T12:00:00Z");
     private static final OffsetDateTime ACTUALIZADO = OffsetDateTime.parse("2026-10-10T12:00:00Z");
+    private static final UUID RELACIONADO_ID = UUID.fromString("b0000000-0000-4000-8000-000000000002");
     private static final List<String> TALLES = List.of("Chico", "Grande");
 
     private final CampoItemMapper campoItemMapper = new CampoItemMapper();
@@ -38,6 +39,7 @@ class CampoMappersTest {
         assertThat(result.obligatorio()).isTrue();
         assertThat(result.valorInicial()).isEqualTo("Chico");
         assertThat(result.opciones()).containsExactly("Chico", "Grande");
+        assertThat(result.bloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
         assertThat(result.posicion()).isEqualTo((short) 1);
         assertThat(result.creadoEn()).isEqualTo(CREADO);
         assertThat(result.actualizadoEn()).isEqualTo(ACTUALIZADO);
@@ -72,11 +74,11 @@ class CampoMappersTest {
     @DisplayName("Crear arma la configuración con todos los datos del pedido")
     void crearCampoMapperShouldBuildConfiguracion() {
         CrearCampoRequest request =
-                new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES);
+                new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES, RELACIONADO_ID);
 
         ConfiguracionCampo result = new CrearCampoMapper(campoItemMapper).toConfiguracion(request);
 
-        assertThat(result).isEqualTo(new ConfiguracionCampo("Talle", "OPCION", true, "Chico", TALLES));
+        assertThat(result).isEqualTo(new ConfiguracionCampo("Talle", "OPCION", true, "Chico", TALLES, RELACIONADO_ID));
     }
 
     @Test
@@ -91,11 +93,11 @@ class CampoMappersTest {
     @DisplayName("Editar arma la configuración con todos los datos del pedido")
     void editarCampoMapperShouldBuildConfiguracion() {
         EditarCampoRequest request =
-                new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Talle", "OPCION", false, null, TALLES);
+                new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Talle", "OPCION", false, null, TALLES, RELACIONADO_ID);
 
         ConfiguracionCampo result = new EditarCampoMapper(campoItemMapper).toConfiguracion(request);
 
-        assertThat(result).isEqualTo(new ConfiguracionCampo("Talle", "OPCION", false, null, TALLES));
+        assertThat(result).isEqualTo(new ConfiguracionCampo("Talle", "OPCION", false, null, TALLES, RELACIONADO_ID));
     }
 
     @Test
@@ -116,6 +118,7 @@ class CampoMappersTest {
                 .obligatorio(obligatorio)
                 .valorInicial("Chico")
                 .opciones(TALLES)
+                .bloqueRelacionadoId(RELACIONADO_ID)
                 .posicion((short) 1)
                 .creadoEn(CREADO)
                 .actualizadoEn(ACTUALIZADO)

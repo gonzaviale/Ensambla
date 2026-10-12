@@ -26,6 +26,8 @@ type FormRendererProps = {
   /** Valores con los que arranca el formulario; por defecto, el valor inicial de cada campo. */
   valores?: ValoresFormulario;
   onCancelar?: () => void;
+  /** Tablas del sistema, para nombrar la tabla con la que se conecta una columna. */
+  tablas?: readonly { id: string; nombre: string }[];
 };
 
 // Un control con ese `name` puede ser un input suelto o un grupo de radios (Sí / No).
@@ -42,6 +44,7 @@ export function FormRenderer({
   modo = 'crear',
   valores: valoresDeArranque,
   onCancelar,
+  tablas = [],
 }: FormRendererProps) {
   const editando = modo === 'editar';
   const [valores, setValores] = useState(() => valoresDeArranque ?? valoresIniciales(campos));
@@ -139,6 +142,7 @@ export function FormRenderer({
             campo={campo}
             valor={valores[campo.id] ?? ''}
             error={errores[campo.id]}
+            nombreTabla={tablas.find((tabla) => tabla.id === campo.bloqueRelacionadoId)?.nombre}
             onChange={(valor) => {
               setValores((actuales) => ({ ...actuales, [campo.id]: valor }));
               setErrores((actuales) =>

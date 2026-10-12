@@ -3,6 +3,7 @@ package com.ensambla.backend.infrastructure.config.useCase;
 import com.ensambla.backend.domain.mapper.lote.FotoArchivoMapper;
 import com.ensambla.backend.domain.mapper.registro.CrearRegistroMapper;
 import com.ensambla.backend.domain.mapper.registro.EditarRegistroMapper;
+import com.ensambla.backend.domain.mapper.registro.ListarReferenciasMapper;
 import com.ensambla.backend.domain.mapper.registro.ListarRegistrosMapper;
 import com.ensambla.backend.domain.mapper.registro.ObtenerRegistroMapper;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
@@ -13,6 +14,7 @@ import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.registro.CrearRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.EditarRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.EliminarRegistroUseCase;
+import com.ensambla.backend.domain.useCase.registro.ListarReferenciasUseCase;
 import com.ensambla.backend.domain.useCase.registro.ListarRegistrosUseCase;
 import com.ensambla.backend.domain.useCase.registro.ObtenerFotoOrigenUseCase;
 import com.ensambla.backend.domain.useCase.registro.ObtenerRegistroUseCase;
@@ -32,6 +34,11 @@ public class RegistroUseCaseConfig {
     @Bean
     public ListarRegistrosMapper listarRegistrosMapper() {
         return new ListarRegistrosMapper();
+    }
+
+    @Bean
+    public ListarReferenciasMapper listarReferenciasMapper() {
+        return new ListarReferenciasMapper();
     }
 
     @Bean
@@ -63,6 +70,16 @@ public class RegistroUseCaseConfig {
                                                          ListarRegistrosMapper listarRegistrosMapper) {
         return new ListarRegistrosUseCase(
                 negocioService, bloqueService, campoService, registroDatosService, listarRegistrosMapper);
+    }
+
+    @Bean
+    public ListarReferenciasUseCase listarReferenciasUseCase(NegocioService negocioService,
+                                                             BloqueService bloqueService,
+                                                             CampoService campoService,
+                                                             RegistroDatosService registroDatosService,
+                                                             ListarReferenciasMapper listarReferenciasMapper) {
+        return new ListarReferenciasUseCase(
+                negocioService, bloqueService, campoService, registroDatosService, listarReferenciasMapper);
     }
 
     @Bean

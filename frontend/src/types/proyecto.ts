@@ -1,12 +1,14 @@
 import { z } from 'zod';
+import { tipoCampoSchema } from './campo';
 
 export const campoSchema = z.object({
   id: z.string().uuid(),
   nombre: z.string(),
-  tipo: z.enum(['TEXTO', 'NUMERO', 'FECHA', 'OPCION', 'SI_NO']),
+  tipo: tipoCampoSchema,
   obligatorio: z.boolean(),
   valorInicial: z.string().nullable(),
   opciones: z.array(z.string()),
+  bloqueRelacionadoId: z.string().uuid().nullable().default(null),
   posicion: z.number(),
 });
 export const bloqueSchema = z.object({

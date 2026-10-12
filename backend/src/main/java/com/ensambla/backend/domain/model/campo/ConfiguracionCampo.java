@@ -12,6 +12,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
@@ -23,7 +24,8 @@ public record ConfiguracionCampo(
         String tipo,
         Boolean obligatorio,
         String valorInicial,
-        List<String> opciones
+        List<String> opciones,
+        UUID bloqueRelacionadoId
 ) {
 
     static final int MAX_CARACTERES_NOMBRE = 120;
@@ -31,13 +33,17 @@ public record ConfiguracionCampo(
     private static final Pattern NUMERO = Pattern.compile("-?\\d+(\\.\\d+)?");
     private static final Pattern FECHA = Pattern.compile("\\d{4}-\\d{2}-\\d{2}");
 
-    /** Configuración ya validada: nombre y opciones sin espacios en los extremos, valor inicial vacío como null. */
+    /**
+     * Configuración ya validada: nombre y opciones sin espacios en los extremos, valor inicial vacío como null.
+     * {@code bloqueRelacionadoId} sólo queda cargado en un campo RELACION.
+     */
     public record Validada(
             String nombre,
             TipoCampo tipo,
             boolean obligatorio,
             String valorInicial,
-            List<String> opciones
+            List<String> opciones,
+            UUID bloqueRelacionadoId
     ) {
     }
 
@@ -49,16 +55,19 @@ public record ConfiguracionCampo(
         Map<String, String> errores = new LinkedHashMap<>();
         errorDeNombre(nombreLimpio).ifPresent(error -> errores.put("nombre", error));
         if (tipoCampo == null) {
-            errores.put("tipo", "Elegí un tipo válido: texto, número, fecha, opción o sí/no");
+            errores.put("tipo", "Elegí un tipo válido: texto, número, fecha, opción, sí/no o conexión");
         } else {
             errorDeOpciones(tipoCampo, opcionesLimpias).ifPresent(error -> errores.put("opciones", error));
             errorDeValorInicial(tipoCampo, valorLimpio, opcionesLimpias)
                     .ifPresent(error -> errores.put("valorInicial", error));
+            errorDeBloqueRelacionado(tipoCampo).ifPresent(error -> errores.put("bloqueRelacionadoId", error));
         }
         if (!errores.isEmpty()) {
             throw new CampoInvalidoException(errores);
         }
-        return new Validada(nombreLimpio, tipoCampo, Boolean.TRUE.equals(obligatorio), valorLimpio, opcionesLimpias);
+        UUID relacionado = tipoCampo == TipoCampo.RELACION ? bloqueRelacionadoId : null;
+        return new Validada(
+                nombreLimpio, tipoCampo, Boolean.TRUE.equals(obligatorio), valorLimpio, opcionesLimpias, relacionado);
     }
 
     private List<String> limpiarOpciones() {
@@ -101,7 +110,13 @@ public record ConfiguracionCampo(
             case OPCION -> errorSi(!opciones.contains(valor), "Tiene que ser una de las opciones");
             case SI_NO -> errorSi(!"true".equals(valor) && !"false".equals(valor),
                     "Tiene que ser true (sí) o false (no)");
+            case RELACION -> Optional.of("Una conexión no tiene valor inicial");
         };
+    }
+
+    private Optional<String> errorDeBloqueRelacionado(TipoCampo tipo) {
+        return errorSi(tipo == TipoCampo.RELACION && bloqueRelacionadoId == null,
+                "Elegí la tabla con la que se conecta");
     }
 
     private static boolean esFecha(String valor) {

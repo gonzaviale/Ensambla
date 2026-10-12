@@ -3,10 +3,12 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 import com.ensambla.backend.domain.useCase.registro.CrearRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.EditarRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.EliminarRegistroUseCase;
+import com.ensambla.backend.domain.useCase.registro.ListarReferenciasUseCase;
 import com.ensambla.backend.domain.useCase.registro.ListarRegistrosUseCase;
 import com.ensambla.backend.domain.useCase.registro.ObtenerFotoOrigenUseCase;
 import com.ensambla.backend.domain.useCase.registro.ObtenerRegistroUseCase;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.PaginaRegistrosResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.registro.ReferenciaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.RegistroRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.RegistroResponse;
 import com.ensambla.backend.infrastructure.presentation.mapper.registro.RegistroPresentationMapper;
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -37,6 +40,7 @@ public class RegistroController {
 
     private final CrearRegistroUseCase crearRegistroUseCase;
     private final ListarRegistrosUseCase listarRegistrosUseCase;
+    private final ListarReferenciasUseCase listarReferenciasUseCase;
     private final ObtenerRegistroUseCase obtenerRegistroUseCase;
     private final EditarRegistroUseCase editarRegistroUseCase;
     private final EliminarRegistroUseCase eliminarRegistroUseCase;
@@ -65,6 +69,17 @@ public class RegistroController {
         PaginaRegistrosResponse response = presentationMapper.toResponse(listarRegistrosUseCase.execute(
                 presentationMapper.toListarRequest(
                         usuarioDe(authentication), bloqueId, q, orden, direccion, pagina, tamanio)));
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/bloques/{bloqueId}/referencias")
+    @Operation(summary = "Filas de un bloque para elegir en un campo de conexión: por texto (hasta 20) o por ids")
+    public ResponseEntity<List<ReferenciaResponse>> referencias(Authentication authentication,
+                                                                @PathVariable UUID bloqueId,
+                                                                @RequestParam(required = false) String q,
+                                                                @RequestParam(required = false) List<UUID> ids) {
+        List<ReferenciaResponse> response = presentationMapper.toResponse(listarReferenciasUseCase.execute(
+                presentationMapper.toReferenciasRequest(usuarioDe(authentication), bloqueId, q, ids)));
         return ResponseEntity.ok(response);
     }
 

@@ -75,6 +75,19 @@ class CampoRepositoryImplTest {
     }
 
     @Test
+    @DisplayName("Las conexiones hacia un bloque se buscan dentro del negocio y se mapean")
+    void findRelacionesHaciaShouldMapResult() {
+        when(campoJpa.findRelacionesHacia(BLOQUE_ID, NEGOCIO_ID))
+                .thenReturn(List.of(CampoEntity.builder().id(CAMPO_ID).nombre("Cliente").tipo(TipoCampo.RELACION)
+                        .bloqueRelacionadoId(BLOQUE_ID).build()));
+
+        List<Campo> result = campoRepositoryImpl.findRelacionesHacia(BLOQUE_ID, NEGOCIO_ID);
+
+        assertThat(result).extracting(Campo::getNombre).containsExactly("Cliente");
+        assertThat(result).extracting(Campo::getBloqueRelacionadoId).containsExactly(BLOQUE_ID);
+    }
+
+    @Test
     @DisplayName("Eliminar un campo delega el borrado con el filtro de negocio")
     void deleteByIdAndNegocioIdShouldDelegate() {
         campoRepositoryImpl.deleteByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID);

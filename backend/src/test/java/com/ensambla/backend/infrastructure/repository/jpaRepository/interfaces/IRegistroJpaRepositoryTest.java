@@ -265,6 +265,31 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
         assertThat(sumas.get(campoNombre.toString())).isEqualByComparingTo("0");
     }
 
+    @Test
+    @DisplayName("Trae sólo los ids pedidos del bloque y negocio, los más nuevos primero")
+    void findAllByIdInShouldReturnRequestedRegistrosOfBloqueAndNegocioNewestFirst() {
+        UUID viejo = givenRegistro(negocioA, bloqueA, Map.of(), hace(2));
+        UUID nuevo = givenRegistro(negocioA, bloqueA, Map.of(), hace(1));
+        givenRegistro(negocioA, bloqueA, Map.of(), hace(0));
+        UUID otroBloque = givenRegistro(negocioA, givenBloque(negocioA, "Clientes"), Map.of(), hace(0));
+
+        List<RegistroEntity> result = registros.findAllByIdInAndBloqueIdAndNegocioIdOrderByCreadoEnDescIdDesc(
+                List.of(viejo, nuevo, otroBloque), bloqueA, negocioA);
+
+        assertThat(result).extracting(RegistroEntity::getId).containsExactly(nuevo, viejo);
+    }
+
+    @Test
+    @DisplayName("No trae registros pedidos por id con el negocio equivocado")
+    void findAllByIdInShouldReturnNothingForOtherNegocio() {
+        UUID registroId = givenRegistro(negocioA, bloqueA, Map.of(), hace(0));
+
+        List<RegistroEntity> result = registros.findAllByIdInAndBloqueIdAndNegocioIdOrderByCreadoEnDescIdDesc(
+                List.of(registroId), bloqueA, negocioB);
+
+        assertThat(result).isEmpty();
+    }
+
     private Map<String, Object> producto(String nombre, Object cantidad) {
         Map<String, Object> valores = valores(campoNombre, nombre);
         valores.put(campoCantidad.toString(), cantidad);

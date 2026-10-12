@@ -66,6 +66,7 @@ class ProyectoRepositoryMapperTest {
         assertThat(result.getObligatorio()).isEqualTo(original.getObligatorio());
         assertThat(result.getValorInicial()).isEqualTo(original.getValorInicial());
         assertThat(result.getOpciones()).isEqualTo(original.getOpciones());
+        assertThat(result.getBloqueRelacionadoId()).isEqualTo(original.getBloqueRelacionadoId());
         assertThat(result.getPosicion()).isEqualTo(original.getPosicion());
         assertThat(result.getCreadoEn()).isEqualTo(original.getCreadoEn());
         assertThat(result.getActualizadoEn()).isEqualTo(original.getActualizadoEn());

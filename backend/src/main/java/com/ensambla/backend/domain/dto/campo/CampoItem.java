@@ -12,6 +12,7 @@ public record CampoItem(
         boolean obligatorio,
         String valorInicial,
         List<String> opciones,
+        UUID bloqueRelacionadoId,
         Short posicion,
         OffsetDateTime creadoEn,
         OffsetDateTime actualizadoEn
