@@ -77,6 +77,8 @@ const MENSAJE_CELDA: Record<Exclude<TipoCampo, 'TEXTO'>, string> = {
   FECHA: 'Elegí una fecha válida.',
   OPCION: 'Elegí una de las opciones.',
   SI_NO: 'Elegí Sí o No.',
+  // El cuaderno no crea conexiones: esas columnas se completan desde Cargar y ver.
+  RELACION: 'Esta columna se completa desde Cargar y ver.',
 };
 
 const celdaVacia = (): CeldaRevision => ({ texto: '', confianza: null, revisada: true });

@@ -23,6 +23,7 @@ const dato = (datos: Partial<GuardarCampo> & Pick<GuardarCampo, 'nombre'>): Guar
   obligatorio: false,
   valorInicial: null,
   opciones: [],
+  bloqueRelacionadoId: null,
   ...datos,
 });
 
@@ -552,5 +553,111 @@ describe('ENS-49 · T-021: editor de datos (campos)', () => {
 
     await waitFor(() => expect(screen.queryByText('Stock')).not.toBeInTheDocument(), ESPERA);
     expect(within(detalle('Productos')).getByText('Nombre')).toBeInTheDocument();
+  });
+});
+
+describe('ENS-158: columna que se conecta con otra tabla', () => {
+  it('crea una conexión eligiendo la tabla, sin valor inicial', async () => {
+    const { proyecto, productos, clientes } = await setupProyectoConBloques();
+    const user = userEvent.setup();
+    await abrirConstructor(proyecto.id, productos.id);
+
+    const form = await abrirNuevoDato(user);
+    await user.type(within(form).getByLabelText('Nombre de la columna'), 'Proveedor');
+    await user.click(within(form).getByRole('radio', { name: 'Conexión con otra tabla' }));
+    expect(within(form).queryByLabelText('Valor inicial (opcional)')).not.toBeInTheDocument();
+    const tabla = await within(form).findByLabelText('¿Con qué tabla se conecta?');
+    await waitFor(() => expect(tabla).toBeEnabled());
+    expect(
+      within(tabla).getByRole('option', { name: 'Productos (esta misma tabla)' }),
+    ).toBeInTheDocument();
+    await user.selectOptions(tabla, 'Clientes');
+    await guardarDato(user, form);
+    await waitFor(() => expect(screen.queryByRole('form')).not.toBeInTheDocument(), ESPERA);
+
+    const lista = await datosDelBloque();
+    expect(await within(lista).findByText('Se conecta con «Clientes»', {}, ESPERA)).toBeVisible();
+    expect(within(lista).getByText('Conexión con otra tabla')).toBeVisible();
+    const guardados = await listarCampos(productos.id);
+    expect(guardados.at(-1)).toMatchObject({
+      nombre: 'Proveedor',
+      tipo: 'RELACION',
+      bloqueRelacionadoId: clientes.id,
+      valorInicial: null,
+      opciones: [],
+    });
+  });
+
+  it('pide la tabla antes de enviar y la vacía al cambiar de tipo', async () => {
+    const { proyecto, productos } = await setupProyectoConBloques();
+    const user = userEvent.setup();
+    await abrirConstructor(proyecto.id, productos.id);
+
+    const form = await abrirNuevoDato(user);
+    await user.type(within(form).getByLabelText('Nombre de la columna'), 'Proveedor');
+    await user.click(within(form).getByRole('radio', { name: 'Conexión con otra tabla' }));
+    await guardarDato(user, form);
+    const tabla = within(form).getByLabelText('¿Con qué tabla se conecta?');
+    expect(tabla).toHaveAccessibleDescription(/Elegí la tabla con la que se conecta/);
+    expect(screen.getByRole('form', { name: 'Nueva columna' })).toBeInTheDocument();
+    expect(await listarCampos(productos.id)).toHaveLength(2);
+
+    await waitFor(() => expect(tabla).toBeEnabled());
+    await user.selectOptions(tabla, 'Clientes');
+    await user.click(within(form).getByRole('radio', { name: 'Texto' }));
+    await user.click(within(form).getByRole('radio', { name: 'Conexión con otra tabla' }));
+    expect(within(form).getByLabelText('¿Con qué tabla se conecta?')).toHaveValue('');
+  });
+
+  it('muestra junto a la tabla el error 400 del servidor', async () => {
+    const { proyecto, productos } = await setupProyectoConBloques();
+    server.use(
+      http.post('/api/bloques/:bloqueId/campos', ({ request }) =>
+        errorResponse(
+          400,
+          'Error de validación en los datos enviados',
+          new URL(request.url).pathname,
+          { bloqueRelacionadoId: 'Elegí una tabla de este sistema' },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    await abrirConstructor(proyecto.id, productos.id);
+
+    const form = await abrirNuevoDato(user);
+    await user.type(within(form).getByLabelText('Nombre de la columna'), 'Proveedor');
+    await user.click(within(form).getByRole('radio', { name: 'Conexión con otra tabla' }));
+    const tabla = within(form).getByLabelText('¿Con qué tabla se conecta?');
+    await waitFor(() => expect(tabla).toBeEnabled());
+    await user.selectOptions(tabla, 'Clientes');
+    await guardarDato(user, form);
+    await waitFor(
+      () => expect(tabla).toHaveAccessibleDescription(/Elegí una tabla de este sistema/),
+      ESPERA,
+    );
+  });
+
+  it('no elimina una tabla que usa otra y explica dónde se usa', async () => {
+    const { proyecto, productos, clientes } = await setupProyectoConBloques();
+    await crearCampo({
+      bloqueId: productos.id,
+      datos: dato({ nombre: 'Proveedor', tipo: 'RELACION', bloqueRelacionadoId: clientes.id }),
+    });
+    const user = userEvent.setup();
+    await abrirConstructor(proyecto.id, clientes.id);
+    await verifyHeadingPresentAsync('Clientes');
+    await datosDelBloque();
+
+    await user.click(screen.getByRole('button', { name: 'Eliminar tabla' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, eliminar tabla' }));
+    const aviso = screen.getByRole('alertdialog', { name: '¿Eliminar la tabla «Clientes»?' });
+    expect(
+      await within(aviso).findByText(
+        'La tabla «Clientes» se usa en la columna «Proveedor» de «Productos»',
+        {},
+        ESPERA,
+      ),
+    ).toBeVisible();
+    expect(botonDeBloque('Clientes')).toBeInTheDocument();
   });
 });

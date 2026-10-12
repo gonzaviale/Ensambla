@@ -1,6 +1,7 @@
 import { useId, useRef, useState, type FormEvent } from 'react';
 import { Button, InputField, SelectField } from '@/components/ui';
 import { useCrearCampo, useEditarCampo } from '@/hooks/bloques/mutations';
+import { useBloques } from '@/hooks/bloques/queries';
 import { leerErrorServidor, ubicarErrores } from '@/hooks/errores';
 import { prepararCampo, type BorradorCampo, type ErroresCampo } from '@/lib/campos';
 import { cn } from '@/lib/cn';
@@ -18,11 +19,18 @@ type Props = {
   onCancelar: () => void;
 };
 
-const INPUTS = ['nombre', 'tipo', 'opciones', 'valorInicial'] as const;
+const INPUTS = ['nombre', 'tipo', 'opciones', 'bloqueRelacionadoId', 'valorInicial'] as const;
 
 function borradorDe(campo?: Campo): BorradorCampo {
   if (!campo) {
-    return { nombre: '', tipo: 'TEXTO', obligatorio: false, valorInicial: '', opciones: [] };
+    return {
+      nombre: '',
+      tipo: 'TEXTO',
+      obligatorio: false,
+      valorInicial: '',
+      opciones: [],
+      bloqueRelacionadoId: '',
+    };
   }
   const valor = campo.valorInicial ?? '';
   return {
@@ -31,6 +39,7 @@ function borradorDe(campo?: Campo): BorradorCampo {
     obligatorio: campo.obligatorio,
     valorInicial: campo.tipo === 'NUMERO' ? valor.replace('.', ',') : valor,
     opciones: campo.opciones.length > 0 ? [...campo.opciones] : [],
+    bloqueRelacionadoId: campo.bloqueRelacionadoId ?? '',
   };
 }
 
@@ -42,6 +51,8 @@ export function CampoForm({ proyectoId, bloqueId, campo, onListo, onCancelar }: 
   const [errores, setErrores] = useState<ErroresCampo>({});
   const crear = useCrearCampo(proyectoId, bloqueId);
   const editar = useEditarCampo(proyectoId, bloqueId);
+  // Las tablas del sistema, para elegir con cuál se conecta una columna (la lista ya está en caché).
+  const tablas = useBloques(proyectoId);
   const guardado = campo ? editar : crear;
   const ocupado = guardado.isPending;
   const servidor = ubicarErrores(leerErrorServidor(guardado.error), INPUTS);
@@ -51,13 +62,20 @@ export function CampoForm({ proyectoId, bloqueId, campo, onListo, onCancelar }: 
     setBorrador((actual) => ({ ...actual, ...cambios }));
 
   function cambiarTipo(tipo: TipoCampo) {
-    // El valor inicial depende del tipo: al cambiarlo se vacía para no guardar algo inválido.
+    // El valor inicial y la tabla conectada dependen del tipo: al cambiarlo se vacían para no
+    // guardar algo inválido.
     cambiar({
       tipo,
       valorInicial: '',
+      bloqueRelacionadoId: '',
       ...(tipo === 'OPCION' && borrador.opciones.length === 0 ? { opciones: ['', ''] } : {}),
     });
-    setErrores((actual) => ({ ...actual, valorInicial: undefined, opciones: undefined }));
+    setErrores((actual) => ({
+      ...actual,
+      valorInicial: undefined,
+      opciones: undefined,
+      bloqueRelacionadoId: undefined,
+    }));
   }
 
   function enfocarPrimerError() {
@@ -123,15 +141,39 @@ export function CampoForm({ proyectoId, bloqueId, campo, onListo, onCancelar }: 
         />
       )}
 
-      <ValorInicial
-        id={id}
-        tipo={borrador.tipo}
-        valor={borrador.valorInicial}
-        opciones={opcionesElegibles}
-        error={error('valorInicial')}
-        ocupado={ocupado}
-        onCambiar={(valorInicial) => cambiar({ valorInicial })}
-      />
+      {borrador.tipo === 'RELACION' ? (
+        <SelectField
+          label="¿Con qué tabla se conecta?"
+          hint={
+            tablas.isError
+              ? 'No pudimos cargar las tablas de este sistema. Cerrá y probá de nuevo.'
+              : 'Cada fila va a elegir una fila de esa tabla.'
+          }
+          value={borrador.bloqueRelacionadoId}
+          onChange={(event) => cambiar({ bloqueRelacionadoId: event.target.value })}
+          error={error('bloqueRelacionadoId')}
+          disabled={ocupado || !tablas.isSuccess}
+        >
+          <option value="">{tablas.isPending ? 'Cargando las tablas…' : 'Elegí una tabla'}</option>
+          {[...(tablas.data ?? [])]
+            .sort((a, b) => a.posicion - b.posicion)
+            .map((tabla) => (
+              <option key={tabla.id} value={tabla.id}>
+                {tabla.id === bloqueId ? `${tabla.nombre} (esta misma tabla)` : tabla.nombre}
+              </option>
+            ))}
+        </SelectField>
+      ) : (
+        <ValorInicial
+          id={id}
+          tipo={borrador.tipo}
+          valor={borrador.valorInicial}
+          opciones={opcionesElegibles}
+          error={error('valorInicial')}
+          ocupado={ocupado}
+          onCambiar={(valorInicial) => cambiar({ valorInicial })}
+        />
+      )}
 
       <label className={tarjetaOpcion}>
         <input
@@ -173,7 +215,7 @@ export function CampoForm({ proyectoId, bloqueId, campo, onListo, onCancelar }: 
 
 type ValorInicialProps = {
   id: string;
-  tipo: TipoCampo;
+  tipo: Exclude<TipoCampo, 'RELACION'>;
   valor: string;
   opciones: string[];
   error?: string;

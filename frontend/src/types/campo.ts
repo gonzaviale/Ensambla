@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // Contrato de T-018: GET/POST /api/bloques/{id}/campos, PATCH/DELETE /api/campos/{id}.
-export const TIPOS_CAMPO = ['TEXTO', 'NUMERO', 'FECHA', 'OPCION', 'SI_NO'] as const;
+export const TIPOS_CAMPO = ['TEXTO', 'NUMERO', 'FECHA', 'OPCION', 'SI_NO', 'RELACION'] as const;
 
 export const tipoCampoSchema = z.enum(TIPOS_CAMPO);
 
@@ -11,9 +11,11 @@ export const campoSchema = z.object({
   nombre: z.string(),
   tipo: tipoCampoSchema,
   obligatorio: z.boolean(),
-  // Viaja como texto: NUMERO "12.5", FECHA "aaaa-mm-dd", SI_NO "true"/"false", OPCION una de `opciones`.
+  // Viaja como texto (RELACION no tiene): NUMERO "12.5", FECHA "aaaa-mm-dd", SI_NO "true"/"false", OPCION una de `opciones`.
   valorInicial: z.string().nullable(),
   opciones: z.array(z.string()),
+  // Sólo en RELACION: la tabla (bloque del mismo sistema) a la que apunta cada fila.
+  bloqueRelacionadoId: z.string().uuid().nullable().default(null),
   posicion: z.number(),
   creadoEn: z.string(),
   actualizadoEn: z.string(),
@@ -31,4 +33,6 @@ export type GuardarCampo = {
   obligatorio: boolean;
   valorInicial: string | null;
   opciones: string[];
+  /** Tabla con la que se conecta; null salvo en RELACION. */
+  bloqueRelacionadoId: string | null;
 };

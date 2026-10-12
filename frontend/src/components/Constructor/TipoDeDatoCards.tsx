@@ -11,6 +11,8 @@ type Props = {
   legend?: string;
   /** Una columna en lugar de dos (para paneles angostos). */
   unaColumna?: boolean;
+  /** Tipos que se ofrecen, en este orden (por defecto, todos). */
+  tipos?: readonly TipoCampo[];
 };
 
 // Tarjetas de radio para elegir qué tipo de dato guarda una columna, con un ejemplo de cada uno.
@@ -21,6 +23,7 @@ export function TipoDeDatoCards({
   error,
   legend = '¿Qué tipo de dato es?',
   unaColumna,
+  tipos = TIPOS_CAMPO,
 }: Props) {
   const id = useId();
 
@@ -31,7 +34,7 @@ export function TipoDeDatoCards({
     >
       <legend className="mb-2 p-0 text-base font-semibold">{legend}</legend>
       <div className={unaColumna ? 'grid gap-2' : 'grid gap-2 sm:grid-cols-2'}>
-        {TIPOS_CAMPO.map((tipo) => (
+        {tipos.map((tipo) => (
           <label key={tipo} className={tarjetaOpcion}>
             <input
               type="radio"

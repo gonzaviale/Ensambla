@@ -44,6 +44,9 @@ export function validarFormulario(
       case 'SI_NO':
         if (valor !== 'true' && valor !== 'false') errores[campo.id] = 'Tiene que ser sí o no';
         break;
+      // El id de una fila de otra tabla: que exista lo confirma el servidor.
+      case 'RELACION':
+        break;
     }
   }
   return errores;

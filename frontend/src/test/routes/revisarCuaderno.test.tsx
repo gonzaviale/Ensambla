@@ -115,6 +115,11 @@ describe('H-30: revisar lo que leyó la IA', () => {
 
     expect(screen.getByRole('dialog', { name: 'Editar columna' })).toBeInTheDocument();
     expect(screen.getByLabelText('Nombre de la columna')).toHaveFocus();
+    // Lo leído del cuaderno no se conecta con otra tabla: ese tipo no se ofrece.
+    expect(screen.getByRole('radio', { name: 'Lista de opciones' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('radio', { name: 'Conexión con otra tabla' }),
+    ).not.toBeInTheDocument();
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(abrir).toHaveFocus();

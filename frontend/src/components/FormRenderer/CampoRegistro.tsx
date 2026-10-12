@@ -3,12 +3,15 @@ import { InputField, SelectField } from '@/components/ui';
 import { controlOpcion, tarjetaOpcion } from '@/components/Constructor/opcionStyles';
 import { cn } from '@/lib/cn';
 import type { Campo } from '@/types/proyecto';
+import { SelectorRelacion } from './SelectorRelacion';
 
 type CampoRegistroProps = {
   campo: Campo;
   valor: string;
   onChange: (valor: string) => void;
   error?: string;
+  /** Nombre de la tabla con la que se conecta (sólo para RELACION). */
+  nombreTabla?: string;
 };
 
 const RESPUESTAS_SI_NO = [
@@ -17,7 +20,18 @@ const RESPUESTAS_SI_NO = [
   { valor: '', texto: 'Sin responder' },
 ];
 
-export function CampoRegistro({ campo, valor, onChange, error }: CampoRegistroProps) {
+export function CampoRegistro({ campo, valor, onChange, error, nombreTabla }: CampoRegistroProps) {
+  if (campo.tipo === 'RELACION') {
+    return (
+      <SelectorRelacion
+        campo={campo}
+        nombreTabla={nombreTabla ?? 'la tabla conectada'}
+        valor={valor}
+        onChange={onChange}
+        error={error}
+      />
+    );
+  }
   if (campo.tipo === 'SI_NO') {
     return <CampoSiNo campo={campo} valor={valor} onChange={onChange} error={error} />;
   }
