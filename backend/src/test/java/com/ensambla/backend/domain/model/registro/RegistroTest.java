@@ -196,4 +196,43 @@ class RegistroTest {
                 .actualizadoEn(ANTES)
                 .build();
     }
+
+    @Test
+    @DisplayName("Calcula el valor de los campos fórmula sin tocar los valores guardados")
+    void conFormulasShouldAddCalculatedValuesToACopy() {
+        UUID totalId = UUID.fromString("c0000000-0000-4000-8000-000000000003");
+        Campo total = Campo.builder().id(totalId).tipo(TipoCampo.FORMULA)
+                .formula("{" + CANTIDAD_ID + "} * 1.5").build();
+        Registro registro = registroConValores(Map.of(CANTIDAD_ID.toString(), 4));
+
+        Registro result = registro.conFormulas(List.of(campos(false).get(1), total));
+
+        assertThat(result.getValores()).containsEntry(totalId.toString(), new java.math.BigDecimal("6"));
+        assertThat(result.getId()).isEqualTo(registro.getId());
+        assertThat(registro.getValores()).doesNotContainKey(totalId.toString());
+    }
+
+    @Test
+    @DisplayName("Una fórmula a la que le falta un dato queda sin valor")
+    void conFormulasShouldSkipFormulaWithMissingData() {
+        UUID totalId = UUID.fromString("c0000000-0000-4000-8000-000000000003");
+        Campo total = Campo.builder().id(totalId).tipo(TipoCampo.FORMULA)
+                .formula("{" + CANTIDAD_ID + "} * 2").build();
+        Registro registro = registroConValores(Map.of(CANTIDAD_ID.toString(), "no es número"));
+
+        Registro result = registro.conFormulas(List.of(total));
+
+        assertThat(result.getValores()).doesNotContainKey(totalId.toString());
+    }
+
+    @Test
+    @DisplayName("Ignora lo que se mande en un campo fórmula al validar")
+    void validarShouldIgnoreValuesOfFormulaFields() {
+        Campo total = Campo.builder().id(UUID.randomUUID()).tipo(TipoCampo.FORMULA).obligatorio(true)
+                .formula("1 + 1").build();
+
+        Map<String, Object> result = Registro.validar(List.of(total), Map.of(total.getId().toString(), 99));
+
+        assertThat(result).isEmpty();
+    }
 }

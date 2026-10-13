@@ -6,5 +6,6 @@ public enum TipoCampo {
     FECHA,
     OPCION,
     SI_NO,
-    RELACION
+    RELACION,
+    FORMULA
 }

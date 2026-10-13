@@ -119,4 +119,13 @@ class ValidacionLecturaServiceTest {
         LecturaCuaderno base = ProcesamientoTestData.lectura();
         return new LecturaCuaderno(base.tipoRegistro(), bloque, filas, List.of(), base.consumo());
     }
+
+    @Test
+    @DisplayName("Rechaza un valor en un campo fórmula: la lectura de la IA no propone fórmulas")
+    void validarShouldRejectFormulaValues() {
+        LecturaCuaderno lectura = ProcesamientoTestData.lectura(TipoCampo.FORMULA, "10", List.of());
+
+        assertThatThrownBy(() -> validacionLecturaService.validar(lectura))
+                .isInstanceOf(LecturaCuadernoException.class).hasMessageContaining("no coincide");
+    }
 }

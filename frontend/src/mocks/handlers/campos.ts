@@ -3,6 +3,7 @@ import { TIPOS_CAMPO, type Campo as CampoResponse, type GuardarCampo } from '@/t
 import type { Campo } from '@/types/proyecto';
 import { esValorInicialValido, mismoNombre, opcionRepetida } from '@/lib/campos';
 import { estado } from '../db/estado';
+import { interpretarFormula } from '../db/formula';
 import {
   bloqueDeLaSesion,
   fechasDe,
@@ -86,7 +87,7 @@ async function leerCampo(
   if (!cuerpo || typeof cuerpo !== 'object') {
     return { error: errorResponse(400, 'El cuerpo JSON no es válido', pathDe(request)) };
   }
-  const { nombre, tipo, obligatorio, valorInicial, opciones, bloqueRelacionadoId } =
+  const { nombre, tipo, obligatorio, valorInicial, opciones, bloqueRelacionadoId, formula } =
     cuerpo as Record<string, unknown>;
   const otros = contenedor.campos();
   const errores: Record<string, string> = {};
@@ -118,9 +119,24 @@ async function leerCampo(
     else relacionado = bloqueRelacionadoId;
   }
 
+  let expresion: string | null = null;
+  if (tipoValido === 'FORMULA') {
+    try {
+      const interpretada = interpretarFormula(esTexto(formula) ? formula : '');
+      const numericos = new Set(
+        otros.filter((otro) => otro.tipo === 'NUMERO' && otro.id !== propioId).map((otro) => otro.id),
+      );
+      if (interpretada.referencias.every((id) => numericos.has(id))) expresion = formula as string;
+      else errores.formula = 'Usá sólo campos numéricos de esta tabla';
+    } catch (error) {
+      errores.formula = error instanceof Error ? error.message : 'No se entiende la fórmula';
+    }
+  }
+
   const inicial = esTexto(valorInicial) && valorInicial.trim() !== '' ? valorInicial : null;
-  if (tipoValido === 'RELACION' && inicial !== null) {
-    errores.valorInicial = 'Una conexión no tiene valor inicial';
+  if ((tipoValido === 'RELACION' || tipoValido === 'FORMULA') && inicial !== null) {
+    errores.valorInicial =
+      tipoValido === 'FORMULA' ? 'Una fórmula no tiene valor inicial' : 'Una conexión no tiene valor inicial';
   } else if (
     inicial !== null &&
     tipoValido &&
@@ -161,6 +177,7 @@ async function leerCampo(
       valorInicial: inicial === null || tipoValido === 'TEXTO' ? inicial : inicial.trim(),
       opciones: listaOpciones,
       bloqueRelacionadoId: relacionado,
+      formula: expresion,
     },
   };
 }

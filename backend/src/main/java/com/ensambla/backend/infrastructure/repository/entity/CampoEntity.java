@@ -60,6 +60,9 @@ public class CampoEntity {
     @Column(name = "bloque_relacionado_id")
     private UUID bloqueRelacionadoId;
 
+    @Column(columnDefinition = "text")
+    private String formula;
+
     @Column(nullable = false)
     private Short posicion;
 

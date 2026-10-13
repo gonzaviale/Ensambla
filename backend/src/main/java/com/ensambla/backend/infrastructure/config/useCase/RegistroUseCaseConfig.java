@@ -84,9 +84,10 @@ public class RegistroUseCaseConfig {
 
     @Bean
     public ObtenerRegistroUseCase obtenerRegistroUseCase(NegocioService negocioService,
+                                                         CampoService campoService,
                                                          RegistroDatosService registroDatosService,
                                                          ObtenerRegistroMapper obtenerRegistroMapper) {
-        return new ObtenerRegistroUseCase(negocioService, registroDatosService, obtenerRegistroMapper);
+        return new ObtenerRegistroUseCase(negocioService, campoService, registroDatosService, obtenerRegistroMapper);
     }
 
     @Bean

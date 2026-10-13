@@ -72,7 +72,7 @@ class ListarRegistrosUseCaseTest {
     void executeShouldQueryWithSessionNegocioAndReturnMappedPage() {
         givenBloqueOfNegocioWithCampo();
         when(registroDatosService.listar(any(ConsultaRegistros.class)))
-                .thenReturn(new Pagina<>(List.of(Registro.builder().id(REGISTRO_ID).build()), 1, 5, 6));
+                .thenReturn(new Pagina<>(List.of(Registro.builder().id(REGISTRO_ID).valores(Map.of()).build()), 1, 5, 6));
         when(registroDatosService.totales(any(ConsultaRegistros.class), anyList(), eq(6L)))
                 .thenReturn(new TotalesRegistros(6, Map.of(CAMPO_ID, new BigDecimal("30"))));
 

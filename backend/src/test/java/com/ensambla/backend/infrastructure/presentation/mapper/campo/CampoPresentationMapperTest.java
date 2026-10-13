@@ -25,7 +25,7 @@ class CampoPresentationMapperTest {
     private static final OffsetDateTime ACTUALIZADO = OffsetDateTime.parse("2026-10-10T12:00:00Z");
     private static final UUID RELACIONADO_ID = UUID.fromString("b0000000-0000-4000-8000-000000000002");
     private static final List<String> TALLES = List.of("Chico", "Grande");
-    private static final CampoWebRequest BODY = new CampoWebRequest("Talle", "OPCION", true, "Chico", TALLES, null);
+    private static final CampoWebRequest BODY = new CampoWebRequest("Talle", "OPCION", true, "Chico", TALLES, null, null);
 
     private final CampoPresentationMapper campoPresentationMapper = new CampoPresentationMapper();
 
@@ -43,7 +43,7 @@ class CampoPresentationMapperTest {
         CrearCampoRequest result = campoPresentationMapper.toCrearRequest(USUARIO_ID, BLOQUE_ID, BODY);
 
         assertThat(result).isEqualTo(
-                new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES, null));
+                new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES, null, null));
     }
 
     @Test
@@ -52,13 +52,13 @@ class CampoPresentationMapperTest {
         EditarCampoRequest result = campoPresentationMapper.toEditarRequest(USUARIO_ID, CAMPO_ID, BODY);
 
         assertThat(result).isEqualTo(
-                new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Talle", "OPCION", true, "Chico", TALLES, null));
+                new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Talle", "OPCION", true, "Chico", TALLES, null, null));
     }
 
     @Test
     @DisplayName("Pasa la tabla conectada de un campo de conexión al pedido de crear")
     void toCrearRequestShouldCarryBloqueRelacionado() {
-        CampoWebRequest body = new CampoWebRequest("Cliente", "RELACION", false, null, null, RELACIONADO_ID);
+        CampoWebRequest body = new CampoWebRequest("Cliente", "RELACION", false, null, null, RELACIONADO_ID, null);
 
         CrearCampoRequest result = campoPresentationMapper.toCrearRequest(USUARIO_ID, BLOQUE_ID, body);
 
@@ -68,7 +68,7 @@ class CampoPresentationMapperTest {
     @Test
     @DisplayName("Pasa la tabla conectada de un campo de conexión al pedido de editar")
     void toEditarRequestShouldCarryBloqueRelacionado() {
-        CampoWebRequest body = new CampoWebRequest("Cliente", "RELACION", false, null, null, RELACIONADO_ID);
+        CampoWebRequest body = new CampoWebRequest("Cliente", "RELACION", false, null, null, RELACIONADO_ID, null);
 
         EditarCampoRequest result = campoPresentationMapper.toEditarRequest(USUARIO_ID, CAMPO_ID, body);
 
@@ -79,7 +79,7 @@ class CampoPresentationMapperTest {
     @DisplayName("Pasa a la respuesta la tabla con la que se conecta el campo")
     void toResponseShouldMapBloqueRelacionado() {
         CampoItem item = new CampoItem(
-                CAMPO_ID, BLOQUE_ID, "Cliente", "RELACION", false, null, List.of(), RELACIONADO_ID, (short) 2, CREADO,
+                CAMPO_ID, BLOQUE_ID, "Cliente", "RELACION", false, null, List.of(), RELACIONADO_ID, null, (short) 2, CREADO,
                 ACTUALIZADO);
 
         CampoResponse result = campoPresentationMapper.toResponse(item);
@@ -134,6 +134,6 @@ class CampoPresentationMapperTest {
     // --- helpers ---
     private CampoItem givenItem(String nombre) {
         return new CampoItem(
-                CAMPO_ID, BLOQUE_ID, nombre, "OPCION", true, "Chico", TALLES, null, (short) 1, CREADO, ACTUALIZADO);
+                CAMPO_ID, BLOQUE_ID, nombre, "OPCION", true, "Chico", TALLES, null, null, (short) 1, CREADO, ACTUALIZADO);
     }
 }

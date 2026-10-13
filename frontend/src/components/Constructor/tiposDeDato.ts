@@ -14,4 +14,8 @@ export const TIPOS_DE_DATO: Record<TipoCampo, { nombre: string; ayuda: string }>
     nombre: 'Conexión con otra tabla',
     ayuda: 'Cada fila elige una fila de otra tabla, como el producto de una venta.',
   },
+  FORMULA: {
+    nombre: 'Cálculo',
+    ayuda: 'Se calcula solo con otras columnas numéricas, como cantidad por precio.',
+  },
 };

@@ -24,6 +24,7 @@ const dato = (datos: Partial<GuardarCampo> & Pick<GuardarCampo, 'nombre'>): Guar
   valorInicial: null,
   opciones: [],
   bloqueRelacionadoId: null,
+  formula: null,
   ...datos,
 });
 
@@ -583,6 +584,7 @@ describe('ENS-158: columna que se conecta con otra tabla', () => {
       nombre: 'Proveedor',
       tipo: 'RELACION',
       bloqueRelacionadoId: clientes.id,
+      formula: null,
       valorInicial: null,
       opciones: [],
     });

@@ -84,6 +84,7 @@ export const handlersProyectos = [
         valorInicial: campo.valorInicial ?? null,
         opciones: [...(campo.opciones ?? [])],
         bloqueRelacionadoId: null,
+        formula: null,
         posicion,
       })),
     }));

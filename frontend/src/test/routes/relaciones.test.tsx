@@ -23,6 +23,7 @@ const columna = (datos: Partial<GuardarCampo> & Pick<GuardarCampo, 'nombre'>): G
   valorInicial: null,
   opciones: [],
   bloqueRelacionadoId: null,
+  formula: null,
   ...datos,
 });
 
@@ -41,6 +42,7 @@ async function setupVentas({ conProductos = true } = {}) {
       tipo: 'RELACION',
       obligatorio: true,
       bloqueRelacionadoId: productos.id,
+      formula: null,
     }),
   });
   const cantidad = await crearCampo({

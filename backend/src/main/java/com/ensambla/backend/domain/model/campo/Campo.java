@@ -7,12 +7,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 
 @Getter
 @Setter
@@ -43,6 +45,9 @@ public class Campo {
 
     /** Bloque al que apunta; sólo aplica a campos de tipo RELACION. */
     private UUID bloqueRelacionadoId;
+
+    /** Expresión con los campos referenciados por id ({id}); sólo aplica a campos de tipo FORMULA. */
+    private String formula;
 
     private Short posicion;
 
@@ -75,6 +80,7 @@ public class Campo {
         this.valorInicial = configuracion.valorInicial();
         this.opciones = configuracion.opciones();
         this.bloqueRelacionadoId = configuracion.bloqueRelacionadoId();
+        this.formula = configuracion.formula();
         this.actualizadoEn = ahora;
     }
 
@@ -86,6 +92,15 @@ public class Campo {
         return tipo == TipoCampo.RELACION;
     }
 
+    public boolean esFormula() {
+        return tipo == TipoCampo.FORMULA;
+    }
+
+    /** Valor de un campo FORMULA con los datos de un registro; {@code null} si falta algún dato. */
+    public BigDecimal calcular(Function<UUID, BigDecimal> valorDe) {
+        return Formula.parsear(formula).evaluar(valorDe);
+    }
+
     /** Mensaje de error si el valor no corresponde al tipo del campo; vacío si es válido. */
     public Optional<String> errorDe(Object valor) {
         return switch (tipo) {
@@ -95,6 +110,7 @@ public class Campo {
             case OPCION -> errorSi(!esOpcion(valor), "Elegí una de las opciones");
             case SI_NO -> errorSi(!(valor instanceof Boolean), "Tiene que ser sí o no");
             case RELACION -> errorSi(!esUuid(valor), "Elegí una fila de la tabla relacionada");
+            case FORMULA -> Optional.of("Este dato se calcula solo");
         };
     }
 

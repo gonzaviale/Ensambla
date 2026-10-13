@@ -28,8 +28,9 @@ export function esValorInicialValido(tipo: TipoCampo, valor: string, opciones: r
       return valor === 'true' || valor === 'false';
     case 'OPCION':
       return opciones.includes(valor);
-    // Una conexión no tiene valor inicial: cada fila elige la suya.
+    // Una conexión o un cálculo no tienen valor inicial: cada fila elige o calcula el suyo.
     case 'RELACION':
+    case 'FORMULA':
       return false;
   }
 }
@@ -57,10 +58,12 @@ export type BorradorCampo = {
   opciones: string[];
   /** Tabla con la que se conecta (sólo RELACION); vacío si todavía no se eligió. */
   bloqueRelacionadoId: string;
+  /** Expresión del cálculo (sólo FORMULA), con las columnas citadas como {id}. */
+  formula: string;
 };
 
 export type ErroresCampo = Partial<
-  Record<'nombre' | 'tipo' | 'opciones' | 'valorInicial' | 'bloqueRelacionadoId', string>
+  Record<'nombre' | 'tipo' | 'opciones' | 'valorInicial' | 'bloqueRelacionadoId' | 'formula', string>
 >;
 
 const MENSAJE_VALOR: Record<TipoCampo, string> = {
@@ -70,6 +73,7 @@ const MENSAJE_VALOR: Record<TipoCampo, string> = {
   OPCION: 'Elegí una de las opciones de la lista.',
   SI_NO: 'Elegí Sí o No.',
   RELACION: 'Una conexión no tiene valor inicial.',
+  FORMULA: 'Un cálculo no tiene valor inicial.',
 };
 
 function normalizarValor(tipo: TipoCampo, texto: string) {
@@ -103,7 +107,11 @@ export function prepararCampo(
   if (esRelacion && !bloqueRelacionadoId)
     errores.bloqueRelacionadoId = 'Elegí la tabla con la que se conecta.';
 
-  const valor = esRelacion ? '' : normalizarValor(borrador.tipo, borrador.valorInicial);
+  const esFormula = borrador.tipo === 'FORMULA';
+  const formula = esFormula ? borrador.formula.trim() : '';
+  if (esFormula && !formula) errores.formula = 'Armá el cálculo con al menos una columna.';
+
+  const valor = esRelacion || esFormula ? '' : normalizarValor(borrador.tipo, borrador.valorInicial);
   const valorInicial = valor.trim() === '' ? null : valor;
   if (valorInicial !== null && !esValorInicialValido(borrador.tipo, valorInicial, opciones)) {
     errores.valorInicial = MENSAJE_VALOR[borrador.tipo];
@@ -119,13 +127,14 @@ export function prepararCampo(
       valorInicial,
       opciones,
       bloqueRelacionadoId: bloqueRelacionadoId || null,
+      formula: formula || null,
     },
   };
 }
 
 /** Valor inicial guardado → texto para mostrar o editar (coma decimal, fecha dd/mm/aaaa, Sí/No). */
 export function describirValorInicial(tipo: TipoCampo, valor: string | null) {
-  if (valor === null || tipo === 'RELACION') return null;
+  if (valor === null || tipo === 'RELACION' || tipo === 'FORMULA') return null;
   if (tipo === 'SI_NO') return valor === 'true' ? 'Sí' : 'No';
   if (tipo === 'NUMERO') return valor.replace('.', ',');
   if (tipo === 'FECHA') {
@@ -133,4 +142,29 @@ export function describirValorInicial(tipo: TipoCampo, valor: string | null) {
     return partes ? `${partes[3]}/${partes[2]}/${partes[1]}` : valor;
   }
   return valor;
+}
+
+const PIEZA_FORMULA = /\{[0-9a-f-]{36}\}|\d+(?:\.\d+)?|[-+*/()]/gi;
+
+/** Las piezas de una fórmula (columnas, números, operadores y paréntesis), en orden. */
+export function piezasDeFormula(formula: string) {
+  return formula.match(PIEZA_FORMULA) ?? [];
+}
+
+const SIMBOLO_FORMULA: Record<string, string> = { '*': '×', '/': '÷', '-': '−' };
+
+/** La fórmula como la lee una persona: «Cantidad» × «Precio». */
+export function describirFormula(
+  formula: string,
+  campos: readonly { id: string; nombre: string }[],
+) {
+  return piezasDeFormula(formula)
+    .map((pieza) => {
+      if (pieza.startsWith('{')) {
+        const nombre = campos.find((campo) => campo.id === pieza.slice(1, -1))?.nombre;
+        return nombre ? `«${nombre}»` : '«columna eliminada»';
+      }
+      return (SIMBOLO_FORMULA[pieza] ?? pieza).replace('.', ',');
+    })
+    .join(' ');
 }

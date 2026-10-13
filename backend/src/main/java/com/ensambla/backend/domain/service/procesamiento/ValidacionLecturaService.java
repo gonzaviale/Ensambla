@@ -60,7 +60,7 @@ public class ValidacionLecturaService {
                 case FECHA -> LocalDate.parse(dato.valor());
                 case SI_NO -> comprobar("true".equals(dato.valor()) || "false".equals(dato.valor()));
                 case OPCION -> comprobar(campo.opciones().contains(dato.valor()));
-                case RELACION -> throw new IllegalArgumentException("La lectura no propone conexiones");
+                case RELACION, FORMULA -> throw new IllegalArgumentException("La lectura no propone conexiones ni fórmulas");
                 default -> { } // TEXTO: cualquier texto sirve
             }
         } catch (IllegalArgumentException | DateTimeParseException e) {

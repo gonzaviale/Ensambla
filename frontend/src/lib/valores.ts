@@ -39,7 +39,7 @@ export function formatearValor(
 ): string {
   if (valor === null || valor === undefined || valor === '') return SIN_DATO;
   if (tipo === 'SI_NO') return valor === true ? 'Sí' : 'No';
-  if (tipo === 'NUMERO' && typeof valor === 'number') return formatoNumero.format(valor);
+  if ((tipo === 'NUMERO' || tipo === 'FORMULA') && typeof valor === 'number') return formatoNumero.format(valor);
   if (tipo === 'FECHA' && typeof valor === 'string') return formatearFecha(valor);
   if (tipo === 'RELACION') return describirEtiqueta(etiqueta);
   return String(valor);

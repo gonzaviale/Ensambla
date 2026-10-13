@@ -9,6 +9,7 @@ export const campoSchema = z.object({
   valorInicial: z.string().nullable(),
   opciones: z.array(z.string()),
   bloqueRelacionadoId: z.string().uuid().nullable().default(null),
+  formula: z.string().nullable().default(null),
   posicion: z.number(),
 });
 export const bloqueSchema = z.object({

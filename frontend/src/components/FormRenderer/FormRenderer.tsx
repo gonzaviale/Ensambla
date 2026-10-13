@@ -54,7 +54,10 @@ export function FormRenderer({
   const bloqueo = useRef(false);
   const formulario = useRef<HTMLFormElement>(null);
   const campoAEnfocar = useRef<string | null>(null);
-  const camposOrdenados = [...campos].sort((a, b) => a.posicion - b.posicion);
+  // Una columna de cálculo (FORMULA) no se carga: se muestra ya calculada en la tabla y la ficha.
+  const camposOrdenados = campos
+    .filter((campo) => campo.tipo !== 'FORMULA')
+    .sort((a, b) => a.posicion - b.posicion);
 
   useEffect(() => {
     if (enviando || !campoAEnfocar.current) return;

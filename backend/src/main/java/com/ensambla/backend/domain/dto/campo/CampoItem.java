@@ -13,6 +13,7 @@ public record CampoItem(
         String valorInicial,
         List<String> opciones,
         UUID bloqueRelacionadoId,
+        String formula,
         Short posicion,
         OffsetDateTime creadoEn,
         OffsetDateTime actualizadoEn

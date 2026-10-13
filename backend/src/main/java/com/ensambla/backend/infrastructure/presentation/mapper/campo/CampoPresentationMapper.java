@@ -28,7 +28,8 @@ public class CampoPresentationMapper {
                 request.obligatorio(),
                 request.valorInicial(),
                 request.opciones(),
-                request.bloqueRelacionadoId());
+                request.bloqueRelacionadoId(),
+                request.formula());
     }
 
     public EditarCampoRequest toEditarRequest(UUID usuarioId, UUID campoId, CampoWebRequest request) {
@@ -40,7 +41,8 @@ public class CampoPresentationMapper {
                 request.obligatorio(),
                 request.valorInicial(),
                 request.opciones(),
-                request.bloqueRelacionadoId());
+                request.bloqueRelacionadoId(),
+                request.formula());
     }
 
     public EliminarCampoRequest toEliminarRequest(UUID usuarioId, UUID campoId) {
@@ -61,6 +63,7 @@ public class CampoPresentationMapper {
                 campo.valorInicial(),
                 campo.opciones(),
                 campo.bloqueRelacionadoId(),
+                campo.formula(),
                 campo.posicion(),
                 campo.creadoEn(),
                 campo.actualizadoEn());

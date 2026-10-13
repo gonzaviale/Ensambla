@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.model.registro;
 
+import com.ensambla.backend.domain.model.enums.TipoCampo;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.enums.DireccionOrden;
@@ -91,5 +92,17 @@ class ConsultaRegistrosTest {
     // --- act ---
     private ConsultaRegistros armar(String texto, String orden, String direccion, Integer pagina, Integer tamanio) {
         return ConsultaRegistros.armar(NEGOCIO_ID, BLOQUE_ID, CAMPOS, texto, orden, direccion, pagina, tamanio);
+    }
+
+    @Test
+    @DisplayName("Rechaza ordenar por un campo fórmula, que no se guarda")
+    void armarShouldRejectOrderingByFormulaField() {
+        UUID formulaId = UUID.fromString("c0000000-0000-4000-8000-000000000002");
+        List<Campo> campos = List.of(Campo.builder().id(formulaId).tipo(TipoCampo.FORMULA).build());
+
+        assertThatThrownBy(() -> ConsultaRegistros.armar(
+                NEGOCIO_ID, BLOQUE_ID, campos, null, formulaId.toString(), null, null, null))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("No se puede ordenar por ese campo");
     }
 }

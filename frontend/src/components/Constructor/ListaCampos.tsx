@@ -4,7 +4,7 @@ import { Badge, Button, ConfirmDialog, Sheet, SkeletonCards } from '@/components
 import { useEliminarCampo } from '@/hooks/bloques/mutations';
 import { useBloques, useCampos } from '@/hooks/bloques/queries';
 import { leerErrorServidor } from '@/hooks/errores';
-import { describirValorInicial } from '@/lib/campos';
+import { describirFormula, describirValorInicial } from '@/lib/campos';
 import type { Campo } from '@/types/campo';
 import { CampoForm } from './CampoForm';
 import { TIPOS_DE_DATO } from './tiposDeDato';
@@ -76,6 +76,7 @@ export function ListaCampos({ proyectoId, bloqueId }: Props) {
                 tablaConectada={
                   tablas.data?.find((tabla) => tabla.id === campo.bloqueRelacionadoId)?.nombre
                 }
+                columnas={campos.data}
               />
               <div className="flex shrink-0 flex-wrap gap-2">
                 <Button
@@ -138,7 +139,15 @@ export function ListaCampos({ proyectoId, bloqueId }: Props) {
   );
 }
 
-function ResumenCampo({ campo, tablaConectada }: { campo: Campo; tablaConectada?: string }) {
+function ResumenCampo({
+  campo,
+  tablaConectada,
+  columnas,
+}: {
+  campo: Campo;
+  tablaConectada?: string;
+  columnas: readonly Campo[];
+}) {
   const valor = describirValorInicial(campo.tipo, campo.valorInicial);
   return (
     <div className="flex min-w-0 flex-col gap-1">
@@ -152,6 +161,9 @@ function ResumenCampo({ campo, tablaConectada }: { campo: Campo; tablaConectada?
       </p>
       {campo.tipo === 'RELACION' && tablaConectada && (
         <p className="m-0 text-hint text-soft">Se conecta con «{tablaConectada}»</p>
+      )}
+      {campo.tipo === 'FORMULA' && campo.formula && (
+        <p className="m-0 text-hint text-soft">Calcula {describirFormula(campo.formula, columnas)}</p>
       )}
       {valor !== null && <p className="m-0 text-hint text-soft">Valor inicial: {valor}</p>}
     </div>
