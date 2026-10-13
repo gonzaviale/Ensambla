@@ -83,6 +83,7 @@ export const handlersProyectos = [
         obligatorio: campo.obligatorio ?? false,
         valorInicial: campo.valorInicial ?? null,
         opciones: [...(campo.opciones ?? [])],
+        bloqueRelacionadoId: null,
         posicion,
       })),
     }));

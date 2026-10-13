@@ -8,17 +8,20 @@ import com.ensambla.backend.domain.dto.registro.CrearRegistroResponse;
 import com.ensambla.backend.domain.dto.registro.EditarRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.EditarRegistroResponse;
 import com.ensambla.backend.domain.dto.registro.EliminarRegistroRequest;
+import com.ensambla.backend.domain.dto.registro.ListarReferenciasRequest;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosRequest;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosResponse;
 import com.ensambla.backend.domain.dto.registro.ObtenerFotoOrigenRequest;
 import com.ensambla.backend.domain.dto.registro.ObtenerRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.ObtenerRegistroResponse;
+import com.ensambla.backend.domain.dto.registro.ReferenciaItem;
 import com.ensambla.backend.domain.dto.registro.RegistroItem;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.useCase.registro.CrearRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.EditarRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.EliminarRegistroUseCase;
+import com.ensambla.backend.domain.useCase.registro.ListarReferenciasUseCase;
 import com.ensambla.backend.domain.useCase.registro.ListarRegistrosUseCase;
 import com.ensambla.backend.domain.useCase.registro.ObtenerFotoOrigenUseCase;
 import com.ensambla.backend.domain.useCase.registro.ObtenerRegistroUseCase;
@@ -64,12 +67,14 @@ class RegistroControllerTest {
     private static final RegistroItem ITEM = new RegistroItem(
             REGISTRO_ID, BLOQUE_ID, Map.of("campo", "dato"), null, AHORA, AHORA);
     private static final UUID CAMPO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
+    private static final UUID OTRO_REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
     private static final String CUERPO = "{\"valores\":{\"campo\":\"dato\"}}";
 
     private final Principal sesion = new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
 
     private CrearRegistroUseCase crearRegistroUseCase;
     private ListarRegistrosUseCase listarRegistrosUseCase;
+    private ListarReferenciasUseCase listarReferenciasUseCase;
     private ObtenerRegistroUseCase obtenerRegistroUseCase;
     private EditarRegistroUseCase editarRegistroUseCase;
     private EliminarRegistroUseCase eliminarRegistroUseCase;
@@ -80,6 +85,7 @@ class RegistroControllerTest {
     void setUp() {
         crearRegistroUseCase = mock(CrearRegistroUseCase.class);
         listarRegistrosUseCase = mock(ListarRegistrosUseCase.class);
+        listarReferenciasUseCase = mock(ListarReferenciasUseCase.class);
         obtenerRegistroUseCase = mock(ObtenerRegistroUseCase.class);
         editarRegistroUseCase = mock(EditarRegistroUseCase.class);
         eliminarRegistroUseCase = mock(EliminarRegistroUseCase.class);
@@ -87,6 +93,7 @@ class RegistroControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(new RegistroController(
                         crearRegistroUseCase,
                         listarRegistrosUseCase,
+                        listarReferenciasUseCase,
                         obtenerRegistroUseCase,
                         editarRegistroUseCase,
                         eliminarRegistroUseCase,
@@ -228,6 +235,55 @@ class RegistroControllerTest {
         ResultActions result = mockMvc.perform(get("/api/bloques/{id}/registros", BLOQUE_ID).principal(sesion));
 
         result.andExpect(status().isNotFound()).andExpect(jsonPath("$.message").value("El bloque no existe"));
+    }
+
+    @Test
+    @DisplayName("GET de referencias devuelve id y etiqueta de cada fila y pasa el texto buscado")
+    void referenciasShouldReturnItemsAndPassTexto() throws Exception {
+        when(listarReferenciasUseCase.execute(any(ListarReferenciasRequest.class)))
+                .thenReturn(List.of(new ReferenciaItem(REGISTRO_ID, "Ana")));
+
+        ResultActions result = mockMvc.perform(get("/api/bloques/{id}/referencias", BLOQUE_ID)
+                .principal(sesion).param("q", "an"));
+
+        result.andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(REGISTRO_ID.toString()))
+                .andExpect(jsonPath("$[0].etiqueta").value("Ana"));
+        verify(listarReferenciasUseCase).execute(new ListarReferenciasRequest(USUARIO_ID, BLOQUE_ID, "an", List.of()));
+    }
+
+    @Test
+    @DisplayName("GET de referencias pasa los ids separados por coma")
+    void referenciasShouldPassCommaSeparatedIds() throws Exception {
+        when(listarReferenciasUseCase.execute(any(ListarReferenciasRequest.class))).thenReturn(List.of());
+
+        ResultActions result = mockMvc.perform(get("/api/bloques/{id}/referencias", BLOQUE_ID)
+                .principal(sesion).param("ids", REGISTRO_ID + "," + OTRO_REGISTRO_ID));
+
+        result.andExpect(status().isOk()).andExpect(content().json("[]"));
+        verify(listarReferenciasUseCase).execute(new ListarReferenciasRequest(
+                USUARIO_ID, BLOQUE_ID, null, List.of(REGISTRO_ID, OTRO_REGISTRO_ID)));
+    }
+
+    @Test
+    @DisplayName("GET de referencias devuelve 404 cuando el bloque no es del negocio")
+    void referenciasShouldReturn404WhenBloqueIsNotFound() throws Exception {
+        when(listarReferenciasUseCase.execute(any(ListarReferenciasRequest.class)))
+                .thenThrow(new ResourceNotFoundException("El bloque no existe"));
+
+        ResultActions result = mockMvc.perform(get("/api/bloques/{id}/referencias", BLOQUE_ID).principal(sesion));
+
+        result.andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("GET de referencias devuelve 400 cuando un id no es un UUID")
+    void referenciasShouldReturn400WhenIdIsNotUuid() throws Exception {
+        ResultActions result = mockMvc.perform(get("/api/bloques/{id}/referencias", BLOQUE_ID)
+                .principal(sesion).param("ids", "no-es-uuid"));
+
+        result.andExpect(status().isBadRequest());
+        verifyNoInteractions(listarReferenciasUseCase);
     }
 
     @Test

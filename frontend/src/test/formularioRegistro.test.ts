@@ -6,10 +6,10 @@ import {
   valoresIniciales,
   valoresParaGuardar,
 } from '@/lib/formularioRegistro';
-import { campoPorTipo, camposFormulario } from './formularioTestData';
+import { campoPorTipo, campoRelacion, camposFormulario } from './formularioTestData';
 
 describe('Validación de registros', () => {
-  it.each(['TEXTO', 'NUMERO', 'FECHA', 'OPCION', 'SI_NO'] as const)(
+  it.each(['TEXTO', 'NUMERO', 'FECHA', 'OPCION', 'SI_NO', 'RELACION'] as const)(
     'rechaza un %s obligatorio vacío, incluyendo espacios',
     (tipo) => {
       const campo = { ...campoPorTipo(tipo), obligatorio: true };
@@ -44,6 +44,7 @@ describe('Validación de registros', () => {
     ['SI_NO', 'false'],
     ['SI_NO', 'true'],
     ['OPCION', 'Insumos'],
+    ['RELACION', '00000000-0000-4000-8000-0000000000c1'],
   ] as const)('acepta %s válido', (tipo, valor) => {
     const campo = campoPorTipo(tipo);
     expect(validarFormulario([campo], { [campo.id]: valor })).toEqual({});
@@ -60,6 +61,17 @@ describe('Validación de registros', () => {
       [campoPorTipo('NUMERO').id]: 0,
       [campoPorTipo('SI_NO').id]: false,
       [campoPorTipo('OPCION').id]: 'Insumos',
+    });
+  });
+
+  it('una conexión empieza sin fila elegida y guarda el id de la fila como texto', () => {
+    const campos = [campoRelacion];
+    const valores = valoresIniciales(campos);
+    expect(valores).toEqual({ [campoRelacion.id]: '' });
+    expect(valoresParaGuardar(campos, valores)).toEqual({});
+    const fila = '00000000-0000-4000-8000-0000000000c1';
+    expect(valoresParaGuardar(campos, { [campoRelacion.id]: fila })).toEqual({
+      [campoRelacion.id]: fila,
     });
   });
 });
@@ -96,5 +108,18 @@ describe('Edición de registros', () => {
       [campoPorTipo('OPCION').id]: 'Insumos',
       [campoPorTipo('SI_NO').id]: false,
     });
+  });
+
+  it('al editar, una conexión parte del id guardado y lo manda como texto o null', () => {
+    const campos = [campoRelacion];
+    const fila = '00000000-0000-4000-8000-0000000000c1';
+    const valores = valoresDeRegistro(campos, { [campoRelacion.id]: fila });
+    expect(valores).toEqual({ [campoRelacion.id]: fila });
+    expect(cambiosParaEditar(campos, valoresParaGuardar(campos, valores))).toEqual({
+      [campoRelacion.id]: fila,
+    });
+    expect(
+      cambiosParaEditar(campos, valoresParaGuardar(campos, { [campoRelacion.id]: '' })),
+    ).toEqual({ [campoRelacion.id]: null });
   });
 });

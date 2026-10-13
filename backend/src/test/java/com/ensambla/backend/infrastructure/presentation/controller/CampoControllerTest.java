@@ -47,6 +47,7 @@ class CampoControllerTest {
     private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
     private static final UUID CAMPO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
+    private static final UUID RELACIONADO_ID = UUID.fromString("b0000000-0000-4000-8000-000000000002");
     private static final List<String> TALLES = List.of("Chico", "Grande");
     private static final String MENSAJE_TIPO = "Elegí un tipo válido: texto, número, fecha, opción o sí/no";
     private static final String BODY_TALLE = """
@@ -133,7 +134,7 @@ class CampoControllerTest {
                 .andExpect(header().string("Location", "/api/campos/" + CAMPO_ID))
                 .andExpect(jsonPath("$.nombre").value("Talle"));
         verify(crearCampoUseCase).execute(
-                new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES));
+                new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES, null));
     }
 
     @Test
@@ -144,7 +145,20 @@ class CampoControllerTest {
         crear("{\"nombre\":\"Producto\",\"tipo\":\"TEXTO\"}")
                 .andExpect(status().isCreated());
         verify(crearCampoUseCase).execute(
-                new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Producto", "TEXTO", null, null, null));
+                new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Producto", "TEXTO", null, null, null, null));
+    }
+
+    @Test
+    @DisplayName("POST pasa al caso de uso la tabla de un campo de conexión y la devuelve en el JSON")
+    void crearShouldPassBloqueRelacionado() throws Exception {
+        when(crearCampoUseCase.execute(any())).thenReturn(givenRelacion());
+
+        crear("{\"nombre\":\"Cliente\",\"tipo\":\"RELACION\",\"bloqueRelacionadoId\":\"" + RELACIONADO_ID + "\"}")
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.tipo").value("RELACION"))
+                .andExpect(jsonPath("$.bloqueRelacionadoId").value(RELACIONADO_ID.toString()));
+        verify(crearCampoUseCase).execute(new CrearCampoRequest(
+                USUARIO_ID, BLOQUE_ID, "Cliente", "RELACION", null, null, null, RELACIONADO_ID));
     }
 
     @Test
@@ -227,7 +241,7 @@ class CampoControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("Talle"));
         verify(editarCampoUseCase).execute(
-                new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Talle", "OPCION", true, "Chico", TALLES));
+                new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Talle", "OPCION", true, "Chico", TALLES, null));
     }
 
     @Test
@@ -318,7 +332,14 @@ class CampoControllerTest {
     }
 
     private CampoItem givenItem(String nombre) {
-        return new CampoItem(CAMPO_ID, BLOQUE_ID, nombre, "OPCION", true, "Chico", TALLES, (short) 0, AHORA, AHORA);
+        return new CampoItem(
+                CAMPO_ID, BLOQUE_ID, nombre, "OPCION", true, "Chico", TALLES, null, (short) 0, AHORA, AHORA);
+    }
+
+    private CampoItem givenRelacion() {
+        return new CampoItem(
+                CAMPO_ID, BLOQUE_ID, "Cliente", "RELACION", false, null, List.of(), RELACIONADO_ID, (short) 0, AHORA,
+                AHORA);
     }
 
     // --- act ---

@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -17,6 +18,9 @@ public interface RegistroRepository {
     List<Registro> saveAll(List<Registro> registros);
 
     Optional<Registro> findByIdAndNegocioId(UUID id, UUID negocioId);
+
+    /** Registros del bloque con esos ids; los que no existen (o son de otro bloque o negocio) no vienen. */
+    List<Registro> findAllByIdsAndBloque(Collection<UUID> ids, UUID bloqueId, UUID negocioId);
 
     void deleteById(UUID id);
 

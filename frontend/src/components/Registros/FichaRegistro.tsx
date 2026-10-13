@@ -5,6 +5,7 @@ import { FormRenderer } from '@/components/FormRenderer/FormRenderer';
 import { Button, ConfirmDialog, Panel, Sheet } from '@/components/ui';
 import { urlFotoOrigen } from '@/hooks/lotes/fotos';
 import { useEliminarRegistro } from '@/hooks/registros/mutations';
+import { useEtiquetas } from '@/hooks/registros/queries';
 import { useEditarRegistro } from '@/hooks/registros/useEditarRegistro';
 import { useEsEscritorio } from '@/hooks/useMediaQuery';
 import { cambiosParaEditar, valoresDeRegistro } from '@/lib/formularioRegistro';
@@ -18,11 +19,19 @@ type FichaRegistroProps = {
   onCerrar: () => void;
   /** Avisa con la fila ya guardada, para que quien la mostró no quede con los datos viejos. */
   onActualizado: (registro: Registro) => void;
+  /** Tablas del sistema: al editar, las columnas que se conectan con otra tabla la nombran. */
+  tablas?: readonly { id: string; nombre: string }[];
 };
 
 // Ficha de una fila: panel lateral fijo en escritorio, hoja desde abajo en el celular.
 // Conviene montarla con `key={registro.id}`: al elegir otra fila arranca de cero, sin edición.
-export function FichaRegistro({ bloque, registro, onCerrar, onActualizado }: FichaRegistroProps) {
+export function FichaRegistro({
+  bloque,
+  registro,
+  onCerrar,
+  onActualizado,
+  tablas,
+}: FichaRegistroProps) {
   const esEscritorio = useEsEscritorio();
   const [confirmando, setConfirmando] = useState(false);
   const [viendoFoto, setViendoFoto] = useState(false);
@@ -35,6 +44,7 @@ export function FichaRegistro({ bloque, registro, onCerrar, onActualizado }: Fic
   const eliminar = useEliminarRegistro(bloque.id);
   const editar = useEditarRegistro(bloque.id);
   const campos = [...bloque.campos].sort((a, b) => a.posicion - b.posicion);
+  const etiquetaDe = useEtiquetas(campos, [registro]);
 
   useEffect(() => {
     titulo.current?.focus();
@@ -85,7 +95,11 @@ export function FichaRegistro({ bloque, registro, onCerrar, onActualizado }: Fic
           <div key={campo.id} className="flex flex-col gap-0.5 border-b border-line pb-2">
             <dt className="text-hint text-soft">{campo.nombre}</dt>
             <dd className="m-0 text-body break-words">
-              {formatearValor(campo.tipo, registro.valores[campo.id])}
+              {formatearValor(
+                campo.tipo,
+                registro.valores[campo.id],
+                etiquetaDe(campo, registro.valores[campo.id]),
+              )}
             </dd>
           </div>
         ))}
@@ -151,6 +165,7 @@ export function FichaRegistro({ bloque, registro, onCerrar, onActualizado }: Fic
           modo="editar"
           campos={bloque.campos}
           valores={valoresDeRegistro(bloque.campos, registro.valores)}
+          tablas={tablas}
           onSubmit={guardar}
           onCancelar={terminarEdicion}
         />

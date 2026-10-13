@@ -69,6 +69,9 @@ public interface IRegistroJpaRepository extends JpaRepository<RegistroEntity, UU
 
     Optional<RegistroEntity> findByIdAndNegocioId(UUID id, UUID negocioId);
 
+    List<RegistroEntity> findAllByIdInAndBloqueIdAndNegocioIdOrderByCreadoEnDescIdDesc(
+            Collection<UUID> ids, UUID bloqueId, UUID negocioId);
+
     @Query(value = SUMAS_POR_CAMPO, nativeQuery = true)
     List<SumaPorCampo> sumarNumericos(@Param("negocioId") UUID negocioId,
                                       @Param("bloqueId") UUID bloqueId,

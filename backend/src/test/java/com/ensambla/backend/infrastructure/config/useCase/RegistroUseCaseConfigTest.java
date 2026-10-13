@@ -5,10 +5,12 @@ import com.ensambla.backend.domain.dto.registro.CrearRegistroResponse;
 import com.ensambla.backend.domain.dto.registro.EditarRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.EditarRegistroResponse;
 import com.ensambla.backend.domain.dto.registro.EliminarRegistroRequest;
+import com.ensambla.backend.domain.dto.registro.ListarReferenciasRequest;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosRequest;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosResponse;
 import com.ensambla.backend.domain.dto.registro.ObtenerRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.ObtenerRegistroResponse;
+import com.ensambla.backend.domain.dto.registro.ReferenciaItem;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.registro.Registro;
@@ -88,6 +90,22 @@ class RegistroUseCaseConfigTest {
 
         assertThat(response.contenido()).hasSize(1);
         assertThat(response.totales().cantidad()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("El wiring de referencias conecta los servicios y el mapper")
+    void listarReferenciasUseCaseShouldWireCollaborators() {
+        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
+        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
+        when(registroDatosService.buscarReferenciables(NEGOCIO_ID, BLOQUE_ID, List.of(), null, List.of()))
+                .thenReturn(List.of(registro()));
+
+        List<ReferenciaItem> response = config.listarReferenciasUseCase(
+                negocioService, bloqueService, campoService, registroDatosService,
+                config.listarReferenciasMapper())
+                .execute(new ListarReferenciasRequest(USUARIO_ID, BLOQUE_ID, null, List.of()));
+
+        assertThat(response).containsExactly(new ReferenciaItem(REGISTRO_ID, "Sin nombre"));
     }
 
     @Test

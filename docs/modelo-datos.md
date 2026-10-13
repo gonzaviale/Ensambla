@@ -1,7 +1,9 @@
 # Modelo de datos (MVP 2 · T-004, T-109)
 
 Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (`V1__esquema_inicial.sql`,
-`V2__digitalizacion_cuaderno.sql`, `V3__plantillas_base.sql`, `V4__procesamiento_lecturas_ia.sql`).
+`V2__digitalizacion_cuaderno.sql`, `V3__plantillas_base.sql`, `V4__procesamiento_lecturas_ia.sql`,
+`V5__campo_relacion.sql`).
+V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
 V3 carga Inventario, Pedidos y Clientes
 como plantillas globales; sus UUID coinciden con los del modo simulado del frontend. Este documento explica el
@@ -49,6 +51,7 @@ erDiagram
     plantilla ||--o{ proyecto : "origen de"
     proyecto ||--o{ bloque : contiene
     bloque ||--o{ campo : define
+    bloque |o--o{ campo : "relacionado desde"
     bloque ||--o{ registro : almacena
     negocio ||--o{ lote_subida : sube
     bloque |o--o{ lote_subida : "destino elegido"
@@ -95,10 +98,11 @@ erDiagram
         uuid negocio_id FK
         uuid bloque_id FK
         text nombre "único por bloque"
-        text tipo "TEXTO | NUMERO | FECHA | OPCION | SI_NO"
+        text tipo "TEXTO | NUMERO | FECHA | OPCION | SI_NO | RELACION"
         boolean obligatorio
         text valor_inicial
         jsonb opciones "lista; obligatoria si tipo = OPCION"
+        uuid bloque_relacionado_id FK "sólo si tipo = RELACION"
         smallint posicion
     }
     registro {
@@ -150,7 +154,7 @@ erDiagram
 | `plantilla` | Estructuras listas para copiar (T-013) | Global: sin `negocio_id`. `estructura` = `{ "bloques": [ { "nombre", "campos": [ { "nombre", "tipo", "obligatorio", "valorInicial", "opciones" } ] } ] }`. Crear un proyecto desde una plantilla **copia** la estructura; editar el proyecto no toca la plantilla (T-014). |
 | `proyecto` | Un sistema armado por el usuario | `plantilla_id` guarda el origen y pasa a `NULL` si la plantilla se borra. Borrar un proyecto borra en cascada bloques, campos y registros (T-012). |
 | `bloque` | Una "pieza": Productos, Clientes, Pedidos… | Nombre único por proyecto; `posicion` ordena la lista del constructor. |
-| `campo` | Un dato de un bloque, con tipo y reglas | Tipos del MVP 2: texto, número, fecha, opción, sí/no. `ck_campo_opciones`: `opciones` es un arreglo y, para `OPCION`, no está vacío (T-018). `valor_inicial` es texto y se interpreta según el tipo. |
+| `campo` | Un dato de un bloque, con tipo y reglas | Tipos del MVP 2: texto, número, fecha, opción, sí/no; desde V5, `RELACION` (conexión con otra tabla). `ck_campo_opciones`: `opciones` es un arreglo y, para `OPCION`, no está vacío (T-018). `valor_inicial` es texto y se interpreta según el tipo. Un campo `RELACION` apunta con `bloque_relacionado_id` a un bloque del mismo proyecto (puede ser el propio): FK compuesta `(negocio_id, bloque_relacionado_id)` con `ON DELETE CASCADE` y `ck_campo_relacion` (la columna está cargada si y sólo si el tipo es `RELACION`). El valor en `registro.valores` es el id del registro referenciado; borrar ese registro deja la referencia colgando. La app no deja borrar un bloque usado por un campo de otro bloque. |
 | `registro` | Una fila cargada en un bloque | `valores` está indexado por **id de campo**, así renombrar un campo no rompe los datos viejos. El validador dinámico (T-022) controla tipo, obligatoriedad y opciones. Desde V2, `foto_origen_id` apunta a la foto de la que salió (T-103, T-104); si se borra la foto queda en `NULL`. |
 | `lote_subida` | Una tanda de fotos del cuaderno para leer (T-090) | `estado` es la cola del worker (T-096): `PENDIENTE → PROCESANDO → LISTO` o `ERROR`, y después `CONFIRMADO` o `DESCARTADO`. `ERROR` exige `motivo_error`. `bloque_destino_id` es opcional (sumar a un bloque existente) y pasa a `NULL` si se borra el bloque. |
 | `foto_cuaderno` | Cada página subida (T-090) | Sólo guarda la **clave** del archivo en el almacenamiento privado (T-077), nunca la imagen. Tipos permitidos: JPEG, PNG, WEBP, HEIC y PDF. Posición única dentro del lote. |

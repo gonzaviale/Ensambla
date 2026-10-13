@@ -14,6 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -42,6 +43,16 @@ public class RegistroRepositoryImpl implements RegistroRepository {
     @Override
     public Optional<Registro> findByIdAndNegocioId(UUID id, UUID negocioId) {
         return jpa.findByIdAndNegocioId(id, negocioId).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<Registro> findAllByIdsAndBloque(Collection<UUID> ids, UUID bloqueId, UUID negocioId) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return jpa.findAllByIdInAndBloqueIdAndNegocioIdOrderByCreadoEnDescIdDesc(ids, bloqueId, negocioId).stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override

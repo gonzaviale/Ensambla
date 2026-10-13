@@ -125,6 +125,21 @@ export const handlersBloques = [
     if (!ubicado) return errorResponse(404, 'El bloque no existe', pathDe(request));
     const { proyecto, bloque } = ubicado;
 
+    // Como el backend: no se borra una tabla con la que se conecta una columna de otra tabla.
+    for (const otra of proyecto.bloques) {
+      if (otra.id === bloque.id) continue;
+      const columna = otra.campos.find(
+        (campo) => campo.tipo === 'RELACION' && campo.bloqueRelacionadoId === bloque.id,
+      );
+      if (columna) {
+        return errorResponse(
+          400,
+          `La tabla «${bloque.nombre}» se usa en la columna «${columna.nombre}» de «${otra.nombre}»`,
+          pathDe(request),
+        );
+      }
+    }
+
     proyecto.bloques = proyecto.bloques.filter((item) => item.id !== bloque.id);
     for (const registro of [...estado.registros.values()]) {
       if (registro.bloqueId === bloque.id) estado.registros.delete(registro.id);

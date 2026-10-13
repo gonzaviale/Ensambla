@@ -8,6 +8,7 @@ import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ICampoJpaRepositoryTest extends PostgresDatosTestSupport {
 
@@ -96,5 +98,111 @@ class ICampoJpaRepositoryTest extends PostgresDatosTestSupport {
         campos.deleteByIdAndNegocioId(campoDeA, negocioB);
 
         assertThat(campos.findByIdAndNegocioId(campoDeA, negocioA)).isPresent();
+    }
+
+    @Test
+    @DisplayName("Encuentra los campos de otros bloques que se conectan con el bloque, sin contar la autorreferencia")
+    void findRelacionesHaciaShouldReturnConexionesFromOtherBloques() {
+        UUID negocioId = givenNegocio("a@example.com").getId();
+        UUID clientes = givenBloque(negocioId, "Clientes");
+        UUID pedidos = givenBloque(negocioId, "Pedidos");
+        givenCampo(negocioId, pedidos, "Total", TipoCampo.NUMERO, 0);
+        givenRelacion(negocioId, clientes, "Recomendado por", clientes);
+        UUID cliente = givenRelacion(negocioId, pedidos, "Cliente", clientes);
+
+        List<CampoEntity> result = campos.findRelacionesHacia(clientes, negocioId);
+
+        assertThat(result).extracting(CampoEntity::getId).containsExactly(cliente);
+    }
+
+    @Test
+    @DisplayName("No devuelve conexiones de otro negocio")
+    void findRelacionesHaciaShouldReturnNothingForOtherNegocio() {
+        UUID negocioA = givenNegocio("a@example.com").getId();
+        UUID negocioB = givenNegocio("b@example.com").getId();
+        UUID clientes = givenBloque(negocioA, "Clientes");
+        givenRelacion(negocioA, givenBloque(negocioA, "Pedidos"), "Cliente", clientes);
+
+        List<CampoEntity> result = campos.findRelacionesHacia(clientes, negocioB);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Guarda y relee la tabla con la que se conecta un campo de conexión")
+    void saveShouldRoundTripBloqueRelacionado() {
+        UUID negocioId = givenNegocio("a@example.com").getId();
+        UUID clientes = givenBloque(negocioId, "Clientes");
+        UUID campoId = givenRelacion(negocioId, givenBloque(negocioId, "Pedidos"), "Cliente", clientes);
+        entityManager.clear();
+
+        CampoEntity result = campos.findByIdAndNegocioId(campoId, negocioId).orElseThrow();
+
+        assertThat(result.getTipo()).isEqualTo(TipoCampo.RELACION);
+        assertThat(result.getBloqueRelacionadoId()).isEqualTo(clientes);
+    }
+
+    @Test
+    @DisplayName("La base rechaza un campo de conexión sin tabla")
+    void saveShouldRejectRelacionWithoutBloque() {
+        UUID negocioId = givenNegocio("a@example.com").getId();
+        UUID pedidos = givenBloque(negocioId, "Pedidos");
+
+        assertThatThrownBy(() -> givenRelacion(negocioId, pedidos, "Cliente", null))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("La base rechaza una tabla conectada en un campo que no es de conexión")
+    void saveShouldRejectBloqueRelacionadoOnOtherTipo() {
+        UUID negocioId = givenNegocio("a@example.com").getId();
+        UUID clientes = givenBloque(negocioId, "Clientes");
+        CampoEntity texto = campo(negocioId, givenBloque(negocioId, "Pedidos"), "Cliente", TipoCampo.TEXTO, clientes);
+
+        assertThatThrownBy(() -> campos.saveAndFlush(texto)).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("La base rechaza conectar con una tabla de otro negocio")
+    void saveShouldRejectBloqueRelacionadoOfOtherNegocio() {
+        UUID negocioA = givenNegocio("a@example.com").getId();
+        UUID negocioB = givenNegocio("b@example.com").getId();
+        UUID clientesDeB = givenBloque(negocioB, "Clientes");
+        UUID pedidosDeA = givenBloque(negocioA, "Pedidos");
+
+        assertThatThrownBy(() -> givenRelacion(negocioA, pedidosDeA, "Cliente", clientesDeB))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("Borrar la tabla conectada borra en cascada el campo de conexión")
+    void deleteBloqueShouldCascadeToRelacion() {
+        UUID negocioId = givenNegocio("a@example.com").getId();
+        UUID clientes = givenBloque(negocioId, "Clientes");
+        UUID campoId = givenRelacion(negocioId, givenBloque(negocioId, "Pedidos"), "Cliente", clientes);
+
+        bloques.deleteByIdAndNegocioId(clientes, negocioId);
+
+        assertThat(campos.findById(campoId)).isEmpty();
+    }
+
+    // --- arrange ---
+    private UUID givenRelacion(UUID negocioId, UUID bloqueId, String nombre, UUID relacionadoId) {
+        return campos.saveAndFlush(campo(negocioId, bloqueId, nombre, TipoCampo.RELACION, relacionadoId)).getId();
+    }
+
+    private CampoEntity campo(UUID negocioId, UUID bloqueId, String nombre, TipoCampo tipo, UUID relacionadoId) {
+        return CampoEntity.builder()
+                .negocioId(negocioId)
+                .bloqueId(bloqueId)
+                .nombre(nombre)
+                .tipo(tipo)
+                .obligatorio(false)
+                .opciones(List.of())
+                .bloqueRelacionadoId(relacionadoId)
+                .posicion((short) 1)
+                .creadoEn(AHORA)
+                .actualizadoEn(AHORA)
+                .build();
     }
 }

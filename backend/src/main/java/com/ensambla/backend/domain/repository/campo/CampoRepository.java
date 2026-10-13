@@ -13,6 +13,12 @@ public interface CampoRepository {
 
     Optional<Campo> findByIdAndNegocioId(UUID id, UUID negocioId);
 
+    /**
+     * Campos RELACION de otros bloques del negocio que apuntan a {@code bloqueId} (sin contar los del propio bloque),
+     * en orden de bloque y posición.
+     */
+    List<Campo> findRelacionesHacia(UUID bloqueId, UUID negocioId);
+
     Campo save(Campo campo);
 
     /** Borra sólo el campo; los valores que tenía en los registros quedan en el JSON sin usarse. */

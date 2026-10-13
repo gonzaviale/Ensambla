@@ -93,7 +93,7 @@ public class ConfirmacionLecturaService {
 
     private Campo crearCampo(Bloque bloque, CampoConfirmado campo, int indice, OffsetDateTime ahora) {
         ConfiguracionCampo configuracion = new ConfiguracionCampo(
-                campo.nombre(), campo.tipo(), false, null, campo.opciones());
+                campo.nombre(), campo.tipo(), false, null, campo.opciones(), null);
         try {
             return campoService.crear(bloque, configuracion, ahora);
         } catch (CampoInvalidoException e) {

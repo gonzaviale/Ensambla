@@ -89,7 +89,7 @@ class BloqueTest {
     @DisplayName("Una configuración inválida se informa antes que un nombre repetido")
     void agregarCampoShouldReportInvalidConfiguracionFirst() {
         Bloque bloque = givenBloqueConCampos();
-        ConfiguracionCampo invalida = new ConfiguracionCampo("Precio", "MONEDA", null, null, null);
+        ConfiguracionCampo invalida = new ConfiguracionCampo("Precio", "MONEDA", null, null, null, null);
 
         assertThatThrownBy(() -> bloque.agregarCampo(invalida, AHORA))
                 .isInstanceOf(CampoInvalidoException.class);
@@ -123,7 +123,7 @@ class BloqueTest {
     void editarCampoShouldNotModifyWhenConfiguracionIsInvalid() {
         Bloque bloque = givenBloqueConCampos();
         Campo precio = givenCampo(PRECIO_ID, "Precio", 3);
-        ConfiguracionCampo invalida = new ConfiguracionCampo("Costo", "OPCION", null, null, List.of());
+        ConfiguracionCampo invalida = new ConfiguracionCampo("Costo", "OPCION", null, null, List.of(), null);
 
         assertThatThrownBy(() -> bloque.editarCampo(precio, invalida, AHORA))
                 .isInstanceOf(CampoInvalidoException.class);
@@ -151,6 +151,6 @@ class BloqueTest {
     }
 
     private ConfiguracionCampo configuracion(String nombre) {
-        return new ConfiguracionCampo(nombre, "TEXTO", null, null, null);
+        return new ConfiguracionCampo(nombre, "TEXTO", null, null, null, null);
     }
 }

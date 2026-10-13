@@ -38,6 +38,7 @@ class ProyectoItemMapperTest {
         assertThat(campo.obligatorio()).isTrue();
         assertThat(campo.valorInicial()).isNull();
         assertThat(campo.opciones()).isEmpty();
+        assertThat(campo.bloqueRelacionadoId()).isNull();
         assertThat(campo.posicion()).isZero();
         assertThat(result.bloques().get(1).campos()).isEmpty();
     }
