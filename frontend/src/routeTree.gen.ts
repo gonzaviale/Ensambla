@@ -18,6 +18,7 @@ import { Route as AppCuadernoIndexRouteImport } from './routes/_app/cuaderno.ind
 import { Route as AppCuadernoLoteIdRouteImport } from './routes/_app/cuaderno.$loteId'
 import { Route as AppProyectosIndexRouteImport } from './routes/_app/proyectos.index'
 import { Route as AppProyectosProyectoIdConstruirRouteImport } from './routes/_app/proyectos.$proyectoId.construir'
+import { Route as AppProyectosProyectoIdReportesRouteImport } from './routes/_app/proyectos.$proyectoId.reportes'
 import { Route as AppProyectosProyectoIdStockRouteImport } from './routes/_app/proyectos.$proyectoId.stock'
 import { Route as AppProyectosProyectoIdUsarRouteImport } from './routes/_app/proyectos.$proyectoId.usar'
 
@@ -65,6 +66,12 @@ const AppProyectosProyectoIdConstruirRoute =
     path: '/proyectos/$proyectoId/construir',
     getParentRoute: () => AppRoute,
   } as any)
+const AppProyectosProyectoIdReportesRoute =
+  AppProyectosProyectoIdReportesRouteImport.update({
+    id: '/proyectos/$proyectoId/reportes',
+    path: '/proyectos/$proyectoId/reportes',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppProyectosProyectoIdStockRoute =
   AppProyectosProyectoIdStockRouteImport.update({
     id: '/proyectos/$proyectoId/stock',
@@ -86,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/cuaderno/': typeof AppCuadernoIndexRoute
   '/proyectos/': typeof AppProyectosIndexRoute
   '/proyectos/$proyectoId/construir': typeof AppProyectosProyectoIdConstruirRoute
+  '/proyectos/$proyectoId/reportes': typeof AppProyectosProyectoIdReportesRoute
   '/proyectos/$proyectoId/stock': typeof AppProyectosProyectoIdStockRoute
   '/proyectos/$proyectoId/usar': typeof AppProyectosProyectoIdUsarRoute
 }
@@ -97,6 +105,7 @@ export interface FileRoutesByTo {
   '/cuaderno': typeof AppCuadernoIndexRoute
   '/proyectos': typeof AppProyectosIndexRoute
   '/proyectos/$proyectoId/construir': typeof AppProyectosProyectoIdConstruirRoute
+  '/proyectos/$proyectoId/reportes': typeof AppProyectosProyectoIdReportesRoute
   '/proyectos/$proyectoId/stock': typeof AppProyectosProyectoIdStockRoute
   '/proyectos/$proyectoId/usar': typeof AppProyectosProyectoIdUsarRoute
 }
@@ -111,6 +120,7 @@ export interface FileRoutesById {
   '/_app/cuaderno/': typeof AppCuadernoIndexRoute
   '/_app/proyectos/': typeof AppProyectosIndexRoute
   '/_app/proyectos/$proyectoId/construir': typeof AppProyectosProyectoIdConstruirRoute
+  '/_app/proyectos/$proyectoId/reportes': typeof AppProyectosProyectoIdReportesRoute
   '/_app/proyectos/$proyectoId/stock': typeof AppProyectosProyectoIdStockRoute
   '/_app/proyectos/$proyectoId/usar': typeof AppProyectosProyectoIdUsarRoute
 }
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
     | '/cuaderno/'
     | '/proyectos/'
     | '/proyectos/$proyectoId/construir'
+    | '/proyectos/$proyectoId/reportes'
     | '/proyectos/$proyectoId/stock'
     | '/proyectos/$proyectoId/usar'
   fileRoutesByTo: FileRoutesByTo
@@ -135,6 +146,7 @@ export interface FileRouteTypes {
     | '/cuaderno'
     | '/proyectos'
     | '/proyectos/$proyectoId/construir'
+    | '/proyectos/$proyectoId/reportes'
     | '/proyectos/$proyectoId/stock'
     | '/proyectos/$proyectoId/usar'
   id:
@@ -148,6 +160,7 @@ export interface FileRouteTypes {
     | '/_app/cuaderno/'
     | '/_app/proyectos/'
     | '/_app/proyectos/$proyectoId/construir'
+    | '/_app/proyectos/$proyectoId/reportes'
     | '/_app/proyectos/$proyectoId/stock'
     | '/_app/proyectos/$proyectoId/usar'
   fileRoutesById: FileRoutesById
@@ -222,6 +235,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProyectosProyectoIdConstruirRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/proyectos/$proyectoId/reportes': {
+      id: '/_app/proyectos/$proyectoId/reportes'
+      path: '/proyectos/$proyectoId/reportes'
+      fullPath: '/proyectos/$proyectoId/reportes'
+      preLoaderRoute: typeof AppProyectosProyectoIdReportesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/proyectos/$proyectoId/stock': {
       id: '/_app/proyectos/$proyectoId/stock'
       path: '/proyectos/$proyectoId/stock'
@@ -244,6 +264,7 @@ interface AppRouteChildren {
   AppCuadernoIndexRoute: typeof AppCuadernoIndexRoute
   AppProyectosIndexRoute: typeof AppProyectosIndexRoute
   AppProyectosProyectoIdConstruirRoute: typeof AppProyectosProyectoIdConstruirRoute
+  AppProyectosProyectoIdReportesRoute: typeof AppProyectosProyectoIdReportesRoute
   AppProyectosProyectoIdStockRoute: typeof AppProyectosProyectoIdStockRoute
   AppProyectosProyectoIdUsarRoute: typeof AppProyectosProyectoIdUsarRoute
 }
@@ -253,6 +274,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCuadernoIndexRoute: AppCuadernoIndexRoute,
   AppProyectosIndexRoute: AppProyectosIndexRoute,
   AppProyectosProyectoIdConstruirRoute: AppProyectosProyectoIdConstruirRoute,
+  AppProyectosProyectoIdReportesRoute: AppProyectosProyectoIdReportesRoute,
   AppProyectosProyectoIdStockRoute: AppProyectosProyectoIdStockRoute,
   AppProyectosProyectoIdUsarRoute: AppProyectosProyectoIdUsarRoute,
 }

@@ -1,13 +1,13 @@
 import { Link, useParams } from '@tanstack/react-router';
-import { HammerIcon, PackageIcon, TableIcon } from '@phosphor-icons/react';
+import { ChartBarIcon, HammerIcon, PackageIcon, TableIcon } from '@phosphor-icons/react';
 import { cn } from '@/lib/cn';
-import { SECCION_CONSTRUIR, SECCION_STOCK, SECCION_USAR } from './secciones';
+import { SECCION_CONSTRUIR, SECCION_REPORTES, SECCION_STOCK, SECCION_USAR } from './secciones';
 
 const itemClasses =
   'flex min-h-12 flex-1 items-center justify-center gap-2 rounded-md px-4 text-base font-semibold text-soft no-underline hover:text-fg sm:flex-none';
 const activeClasses = 'bg-surface text-fg shadow-sm';
 
-// Selector de modo dentro de un sistema: Armar (estructura) ↔ Cargar y ver (datos) ↔ Stock. Aparece en
+// Selector de modo dentro de un sistema: Armar (estructura) ↔ Cargar y ver (datos) ↔ Stock ↔ Reportes. Aparece en
 // todas las pantallas del sistema, en celular y escritorio.
 export function ModoProyecto() {
   const { proyectoId } = useParams({ strict: false });
@@ -35,6 +35,15 @@ export function ModoProyecto() {
       >
         <PackageIcon aria-hidden size={22} />
         {SECCION_STOCK}
+      </Link>
+      <Link
+        to="/proyectos/$proyectoId/reportes"
+        params={{ proyectoId }}
+        className={itemClasses}
+        activeProps={{ className: cn(itemClasses, activeClasses), 'aria-current': 'page' }}
+      >
+        <ChartBarIcon aria-hidden size={22} />
+        {SECCION_REPORTES}
       </Link>
       <Link
         to="/proyectos/$proyectoId/construir"

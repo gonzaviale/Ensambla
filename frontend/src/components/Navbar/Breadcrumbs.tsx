@@ -5,6 +5,7 @@ import {
   SECCION_CONSTRUIR,
   SECCION_CUADERNO,
   SECCION_PROYECTOS,
+  SECCION_REPORTES,
   SECCION_REVISAR,
   SECCION_STOCK,
   SECCION_USAR,
@@ -15,7 +16,7 @@ const olClasses =
 // Cada miga es un área de toque de 48 px aunque el texto sea chico.
 const enlaceClasses = 'inline-flex min-h-12 items-center px-1 font-semibold';
 
-// Ruta de migas de pan: Mis sistemas › {sistema} › Armar | Cargar y ver | Stock, o Mis sistemas › Subir foto
+// Ruta de migas de pan: Mis sistemas › {sistema} › Armar | Cargar y ver | Stock | Reportes, o Mis sistemas › Subir foto
 // › Revisar cuaderno. En Mis sistemas no se muestra.
 export function Breadcrumbs() {
   const { proyectoId } = useParams({ strict: false });
@@ -62,7 +63,9 @@ export function Breadcrumbs() {
     ? SECCION_USAR
     : pathname.endsWith('/stock')
       ? SECCION_STOCK
-      : SECCION_CONSTRUIR;
+      : pathname.endsWith('/reportes')
+        ? SECCION_REPORTES
+        : SECCION_CONSTRUIR;
 
   return (
     <nav aria-label="Ruta de navegación" className="mb-2">

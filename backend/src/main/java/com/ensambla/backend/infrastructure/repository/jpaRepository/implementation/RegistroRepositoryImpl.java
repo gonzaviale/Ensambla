@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.enums.DireccionOrden;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.reporte.FiltroReporte;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.infrastructure.repository.entity.RegistroEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IRegistroJpaRepository;
@@ -86,6 +87,54 @@ public class RegistroRepositoryImpl implements RegistroRepository {
                         IRegistroJpaRepository.SumaPorCampo::getSuma));
     }
 
+    @Override
+    public List<Registro> buscarFiltrados(FiltroReporte filtro, int limite) {
+        return jpa.buscarParaReporte(
+                        filtro.negocioId(),
+                        filtro.bloqueId(),
+                        patronDe(filtro.texto()),
+                        textoDe(filtro.desde()),
+                        textoDe(filtro.hasta()),
+                        textoDe(filtro.campoId()),
+                        filtro.valor(),
+                        limite)
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public long contarFiltrados(FiltroReporte filtro) {
+        return jpa.contarParaReporte(
+                filtro.negocioId(),
+                filtro.bloqueId(),
+                patronDe(filtro.texto()),
+                textoDe(filtro.desde()),
+                textoDe(filtro.hasta()),
+                textoDe(filtro.campoId()),
+                filtro.valor());
+    }
+
+    @Override
+    public Map<UUID, BigDecimal> sumarNumericos(FiltroReporte filtro, List<UUID> campoIds) {
+        if (campoIds.isEmpty()) {
+            return Map.of();
+        }
+        return jpa.sumarNumericosParaReporte(
+                        filtro.negocioId(),
+                        filtro.bloqueId(),
+                        patronDe(filtro.texto()),
+                        textoDe(filtro.desde()),
+                        textoDe(filtro.hasta()),
+                        textoDe(filtro.campoId()),
+                        filtro.valor(),
+                        campoIds.stream().map(UUID::toString).toList())
+                .stream()
+                .collect(Collectors.toMap(
+                        fila -> UUID.fromString(fila.getCampo()),
+                        IRegistroJpaRepository.SumaPorCampo::getSuma));
+    }
+
     private Page<RegistroEntity> consultar(ConsultaRegistros consulta) {
         PageRequest pageable = PageRequest.of(consulta.pagina(), consulta.tamanio());
         String patron = patronDe(consulta.texto());
@@ -94,6 +143,10 @@ public class RegistroRepositoryImpl implements RegistroRepository {
             return jpa.buscarAscendente(consulta.negocioId(), consulta.bloqueId(), patron, campoOrden, pageable);
         }
         return jpa.buscarDescendente(consulta.negocioId(), consulta.bloqueId(), patron, campoOrden, pageable);
+    }
+
+    private static String textoDe(Object valor) {
+        return valor == null ? null : valor.toString();
     }
 
     private static String patronDe(String texto) {

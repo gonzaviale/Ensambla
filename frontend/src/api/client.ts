@@ -94,24 +94,49 @@ async function send(
   return response;
 }
 
+async function exigirOk(path: string, response: Response) {
+  if (response.ok) return;
+  // Un 401 en /auth/* es una respuesta esperable (credenciales, "no hay sesión").
+  if (response.status === 401 && !path.startsWith('/auth/')) {
+    window.dispatchEvent(new CustomEvent(EVENTO_SESION_EXPIRADA));
+  }
+  throw await toApiError(response);
+}
+
 async function request<S extends z.ZodTypeAny>(
   path: string,
   schema: S,
   options: RequestOptions = {},
 ): Promise<z.output<S>> {
   const response = await send(path, options);
-  if (!response.ok) {
-    // Un 401 en /auth/* es una respuesta esperable (credenciales, "no hay sesión").
-    if (response.status === 401 && !path.startsWith('/auth/')) {
-      window.dispatchEvent(new CustomEvent(EVENTO_SESION_EXPIRADA));
-    }
-    throw await toApiError(response);
-  }
+  await exigirOk(path, response);
   const data: unknown = response.status === 204 ? undefined : await response.json();
   return schema.parse(data);
 }
 
+/** Un archivo que el servidor manda para descargar, con el nombre que sugiere. */
+export type Archivo = { blob: Blob; nombre: string };
+
+const NOMBRE_POR_DEFECTO = 'descarga';
+
+// «attachment; filename="reporte.xlsx"» (o la variante filename*=UTF-8''...).
+export function nombreDeArchivo(disposicion: string | null) {
+  const codificado = /filename\*=UTF-8''([^;]+)/i.exec(disposicion ?? '')?.[1];
+  if (codificado) return decodeURIComponent(codificado);
+  return /filename="?([^";]+)"?/i.exec(disposicion ?? '')?.[1] ?? NOMBRE_POR_DEFECTO;
+}
+
+async function requestArchivo(path: string, signal?: AbortSignal): Promise<Archivo> {
+  const response = await send(path, { signal });
+  await exigirOk(path, response);
+  return {
+    blob: await response.blob(),
+    nombre: nombreDeArchivo(response.headers.get('Content-Disposition')),
+  };
+}
+
 export const http = {
+  getArchivo: (path: string, signal?: AbortSignal) => requestArchivo(path, signal),
   get: <S extends z.ZodTypeAny>(path: string, schema: S, signal?: AbortSignal) =>
     request(path, schema, { signal }),
   post: <S extends z.ZodTypeAny>(path: string, body: unknown, schema: S) =>

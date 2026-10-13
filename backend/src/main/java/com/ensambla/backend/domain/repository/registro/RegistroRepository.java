@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.repository.registro;
 import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.reporte.FiltroReporte;
 
 import java.math.BigDecimal;
 import java.util.Collection;
@@ -31,4 +32,13 @@ public interface RegistroRepository {
      * campos que algún registro cargó.
      */
     Map<UUID, BigDecimal> sumarNumericos(ConsultaRegistros consulta, List<UUID> campoIds);
+
+    /** Las primeras {@code limite} filas del reporte, las más nuevas primero. */
+    List<Registro> buscarFiltrados(FiltroReporte filtro, int limite);
+
+    /** Cuántas filas cumplen el filtro del reporte. */
+    long contarFiltrados(FiltroReporte filtro);
+
+    /** Suma de cada campo numérico entre todas las filas que cumplen el filtro del reporte. */
+    Map<UUID, BigDecimal> sumarNumericos(FiltroReporte filtro, List<UUID> campoIds);
 }
