@@ -5,6 +5,7 @@ import { handlersCampos } from './campos';
 import { handlersLotes } from './lotes';
 import { handlersPlantillas } from './plantillas';
 import { handlersProyectos } from './proyectos';
+import { handlersReceta } from './receta';
 import { handlersRegistros } from './registros';
 import { handlersStock } from './stock';
 
@@ -19,6 +20,7 @@ export function handlersPara(modo: ModoMocks) {
       ...handlersCampos,
       ...handlersRegistros,
       ...handlersStock,
+      ...handlersReceta,
       ...handlersLotes,
     ];
   }

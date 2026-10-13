@@ -1,6 +1,7 @@
 import type { Plantilla } from '@/types/plantilla';
 import type { Proyecto } from '@/types/proyecto';
 import type { Registro } from '@/types/registro';
+import type { GuardarReceta } from '@/types/receta';
 import type { Movimiento } from '@/types/stock';
 
 export type UsuarioMock = {
@@ -19,6 +20,8 @@ type Estado = {
   registros: Map<string, Registro>;
   /** Entradas y salidas de stock; el stock de cada fila es su suma. */
   movimientos: Map<string, Movimiento>;
+  /** Receta de cada producto (fila), indexada por el id de la fila. */
+  recetas: Map<string, GuardarReceta>;
   usuarios: Map<string, UsuarioMock>;
   sesionUsuarioId: string | null;
 };
@@ -28,6 +31,7 @@ export const estado: Estado = {
   fechas: new Map(),
   registros: new Map(),
   movimientos: new Map(),
+  recetas: new Map(),
   usuarios: new Map(),
   sesionUsuarioId: null,
 };
@@ -37,6 +41,7 @@ export function reiniciarEstado() {
   estado.fechas = new Map();
   estado.registros = new Map();
   estado.movimientos = new Map();
+  estado.recetas = new Map();
   estado.usuarios = new Map();
   estado.sesionUsuarioId = null;
 }

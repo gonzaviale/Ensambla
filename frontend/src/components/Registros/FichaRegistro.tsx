@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { ImageIcon, PencilSimpleIcon, TrashIcon, XIcon } from '@phosphor-icons/react';
+import {
+  CookingPotIcon,
+  ImageIcon,
+  PencilSimpleIcon,
+  TrashIcon,
+  XIcon,
+} from '@phosphor-icons/react';
 import { VisorFoto } from '@/components/Cuaderno/Revision/VisorFoto';
 import { FormRenderer } from '@/components/FormRenderer/FormRenderer';
+import { SeccionReceta } from '@/components/Receta/SeccionReceta';
 import { Button, ConfirmDialog, Panel, Sheet } from '@/components/ui';
 import { urlFotoOrigen } from '@/hooks/lotes/fotos';
 import { useEliminarRegistro } from '@/hooks/registros/mutations';
@@ -35,6 +42,7 @@ export function FichaRegistro({
   const esEscritorio = useEsEscritorio();
   const [confirmando, setConfirmando] = useState(false);
   const [viendoFoto, setViendoFoto] = useState(false);
+  const [viendoReceta, setViendoReceta] = useState(false);
   const [editando, setEditando] = useState(false);
   const [guardado, setGuardado] = useState(false);
   const titulo = useRef<HTMLHeadingElement>(null);
@@ -45,6 +53,10 @@ export function FichaRegistro({
   const editar = useEditarRegistro(bloque.id);
   const campos = [...bloque.campos].sort((a, b) => a.posicion - b.posicion);
   const etiquetaDe = useEtiquetas(campos, [registro]);
+  // Cómo se llama la fila en los textos de la receta: el valor de su primera columna de texto u opción.
+  const columnaNombre = campos.find((c) => c.tipo === 'TEXTO' || c.tipo === 'OPCION') ?? campos[0];
+  const nombreDeLaFila =
+    String(registro.valores[columnaNombre?.id ?? ''] ?? '').trim() || 'esta fila';
 
   useEffect(() => {
     titulo.current?.focus();
@@ -124,6 +136,27 @@ export function FichaRegistro({
               paginas={[{ numero: 1, url: urlFotoOrigen(registro.id) }]}
               actual={1}
               onElegir={() => undefined}
+            />
+          )}
+        </div>
+      )}
+
+      {tablas && tablas.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <Button
+            className="self-start"
+            aria-expanded={viendoReceta}
+            onClick={() => setViendoReceta((abierta) => !abierta)}
+          >
+            <CookingPotIcon aria-hidden size={20} />
+            {viendoReceta ? 'Ocultar la receta' : 'Receta y costo'}
+          </Button>
+          {viendoReceta && (
+            <SeccionReceta
+              registro={registro}
+              producto={nombreDeLaFila}
+              tablas={tablas}
+              bloqueId={bloque.id}
             />
           )}
         </div>

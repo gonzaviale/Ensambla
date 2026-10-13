@@ -254,6 +254,7 @@ export const handlersRegistros = [
     for (const [id, movimiento] of estado.movimientos) {
       if (movimiento.registroId === registro.id) estado.movimientos.delete(id);
     }
+    estado.recetas.delete(registro.id);
     return new HttpResponse(null, { status: 204 });
   }),
 
