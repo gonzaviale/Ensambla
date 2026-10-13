@@ -47,6 +47,7 @@ public record ConsultaRegistros(
         }
         String buscado = orden.strip();
         return campos.stream()
+                .filter(campo -> !campo.esFormula())
                 .map(Campo::getId)
                 .filter(id -> id.toString().equals(buscado))
                 .findFirst()

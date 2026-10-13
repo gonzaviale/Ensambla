@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.service.campo;
 
+import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
@@ -114,7 +115,7 @@ class CampoServiceTest {
     void crearShouldNotSaveWhenConfiguracionIsInvalid() {
         givenCamposDelBloque();
         Bloque bloque = givenBloque();
-        ConfiguracionCampo invalida = new ConfiguracionCampo("Talle", "OPCION", null, null, null, null);
+        ConfiguracionCampo invalida = new ConfiguracionCampo("Talle", "OPCION", null, null, null, null, null);
 
         assertThatThrownBy(() -> campoService.crear(bloque, invalida, AHORA))
                 .isInstanceOf(CampoInvalidoException.class);
@@ -234,6 +235,107 @@ class CampoServiceTest {
         verify(campoRepository).deleteByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID);
     }
 
+    @Test
+    @DisplayName("Crear guarda una fórmula que usa campos numéricos del bloque")
+    void crearShouldSaveFormulaThatUsesNumericFields() {
+        givenCamposDelBloque(givenCampo(OTRO_CAMPO_ID, "Cantidad", 0));
+        givenSaveReturnsArgument();
+
+        Campo result = campoService.crear(givenBloque(), formula("{" + OTRO_CAMPO_ID + "} * 2"), AHORA);
+
+        assertThat(result.getTipo()).isEqualTo(TipoCampo.FORMULA);
+        assertThat(result.getFormula()).isEqualTo("{" + OTRO_CAMPO_ID + "} * 2");
+    }
+
+    @Test
+    @DisplayName("Crear rechaza una fórmula que cita un campo que no es del bloque")
+    void crearShouldRejectFormulaWithUnknownField() {
+        givenCamposDelBloque(givenCampo(OTRO_CAMPO_ID, "Cantidad", 0));
+        Bloque bloque = givenBloque();
+        ConfiguracionCampo ajena = formula("{" + CAMPO_ID + "} * 2");
+
+        assertThatThrownBy(() -> campoService.crear(bloque, ajena, AHORA))
+                .isInstanceOfSatisfying(CampoInvalidoException.class, e -> assertThat(e.getErrores())
+                        .containsEntry("formula", "Usá sólo campos numéricos de esta tabla"));
+        verify(campoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Crear rechaza una fórmula que cita un campo que no es numérico")
+    void crearShouldRejectFormulaWithNonNumericField() {
+        Campo texto = givenCampo(OTRO_CAMPO_ID, "Nombre", 0);
+        texto.setTipo(TipoCampo.TEXTO);
+        givenCamposDelBloque(texto);
+        Bloque bloque = givenBloque();
+        ConfiguracionCampo conTexto = formula("{" + OTRO_CAMPO_ID + "} * 2");
+
+        assertThatThrownBy(() -> campoService.crear(bloque, conTexto, AHORA))
+                .isInstanceOf(CampoInvalidoException.class);
+    }
+
+    @Test
+    @DisplayName("Editar un campo para que sea una fórmula que se cita a sí misma no guarda nada")
+    void editarShouldRejectFormulaThatUsesItself() {
+        Campo campo = givenCampo(CAMPO_ID, "Total", 0);
+        givenCamposDelBloque(givenCampo(CAMPO_ID, "Total", 0));
+        Bloque bloque = givenBloque();
+        ConfiguracionCampo propia = formula("{" + CAMPO_ID + "} * 2");
+
+        assertThatThrownBy(() -> campoService.editar(bloque, campo, propia, AHORA))
+                .isInstanceOf(CampoInvalidoException.class);
+        verify(campoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Editar no deja cambiar el tipo de un campo que usa una fórmula")
+    void editarShouldRejectChangingTypeOfFieldUsedByFormula() {
+        Campo cantidad = givenCampo(CAMPO_ID, "Cantidad", 0);
+        givenCamposDelBloque(cantidad, givenFormula(OTRO_CAMPO_ID, "Doble", "{" + CAMPO_ID + "} * 2"));
+        Bloque bloque = givenBloque();
+        ConfiguracionCampo texto = configuracion("Cantidad");
+
+        assertThatThrownBy(() -> campoService.editar(bloque, cantidad, texto, AHORA))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("No se puede cambiar el tipo de «Cantidad»: la fórmula «Doble» lo usa");
+        verify(campoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Editar deja cambiar el tipo de un campo que ninguna fórmula usa")
+    void editarShouldAllowChangingTypeOfFieldNotUsedByFormula() {
+        Campo cantidad = givenCampo(CAMPO_ID, "Cantidad", 0);
+        givenCamposDelBloque(cantidad, givenFormula(OTRO_CAMPO_ID, "Doble", "2 * 2"));
+        givenSaveReturnsArgument();
+
+        Campo result = campoService.editar(givenBloque(), cantidad, configuracion("Cantidad"), AHORA);
+
+        assertThat(result.getTipo()).isEqualTo(TipoCampo.TEXTO);
+    }
+
+    @Test
+    @DisplayName("Editar un campo numérico que usa una fórmula no revisa las fórmulas")
+    void editarShouldKeepNumericFieldUsedByFormula() {
+        Campo cantidad = givenCampo(CAMPO_ID, "Cantidad", 0);
+        givenCamposDelBloque(cantidad, givenFormula(OTRO_CAMPO_ID, "Doble", "{" + CAMPO_ID + "} * 2"));
+        givenSaveReturnsArgument();
+
+        Campo result = campoService.editar(givenBloque(), cantidad, numero("Cantidad"), AHORA);
+
+        assertThat(result.getTipo()).isEqualTo(TipoCampo.NUMERO);
+    }
+
+    @Test
+    @DisplayName("Eliminar rechaza borrar un campo que usa una fórmula")
+    void eliminarShouldRejectFieldUsedByFormula() {
+        Campo cantidad = givenCampo(CAMPO_ID, "Cantidad", 0);
+        givenCamposDelBloque(cantidad, givenFormula(OTRO_CAMPO_ID, "Doble", "{" + CAMPO_ID + "} * 2"));
+
+        assertThatThrownBy(() -> campoService.eliminar(cantidad))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("No se puede eliminar «Cantidad»: la fórmula «Doble» lo usa");
+        verify(campoRepository, never()).deleteByIdAndNegocioId(any(), any());
+    }
+
     // --- arrange ---
     private void givenCamposDelBloque(Campo... campos) {
         when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(campos));
@@ -265,10 +367,23 @@ class CampoServiceTest {
     }
 
     private ConfiguracionCampo configuracion(String nombre) {
-        return new ConfiguracionCampo(nombre, "TEXTO", null, null, null, null);
+        return new ConfiguracionCampo(nombre, "TEXTO", null, null, null, null, null);
     }
 
     private ConfiguracionCampo relacion() {
-        return new ConfiguracionCampo("Cliente", "RELACION", null, null, null, RELACIONADO_ID);
+        return new ConfiguracionCampo("Cliente", "RELACION", null, null, null, RELACIONADO_ID, null);
+    }
+
+    private ConfiguracionCampo formula(String expresion) {
+        return new ConfiguracionCampo("Total", "FORMULA", null, null, null, null, expresion);
+    }
+
+    private ConfiguracionCampo numero(String nombre) {
+        return new ConfiguracionCampo(nombre, "NUMERO", null, null, null, null, null);
+    }
+
+    private Campo givenFormula(UUID id, String nombre, String expresion) {
+        return Campo.builder().id(id).negocioId(NEGOCIO_ID).bloqueId(BLOQUE_ID).nombre(nombre)
+                .tipo(TipoCampo.FORMULA).formula(expresion).posicion((short) 1).build();
     }
 }

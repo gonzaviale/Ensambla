@@ -42,6 +42,6 @@ public class ListarRegistrosUseCase {
                 request.tamanio());
         Pagina<Registro> pagina = registroDatosService.listar(consulta);
         TotalesRegistros totales = registroDatosService.totales(consulta, campos, pagina.totalElementos());
-        return mapper.toResponse(pagina, totales);
+        return mapper.toResponse(pagina.map(registro -> registro.conFormulas(campos)), totales);
     }
 }

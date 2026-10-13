@@ -301,4 +301,74 @@ class IRegistroJpaRepositoryTest extends PostgresDatosTestSupport {
                 IRegistroJpaRepository.SumaPorCampo::getCampo,
                 IRegistroJpaRepository.SumaPorCampo::getSuma));
     }
+
+    @Test
+    @DisplayName("El reporte trae las filas del rango de fechas, las más nuevas primero, y respeta el límite")
+    void buscarParaReporteShouldFilterByDateRangeNewestFirst() {
+        UUID viejo = givenRegistro(negocioA, bloqueA, producto("Viejo", 1), hace(60 * 24 * 10));
+        UUID medio = givenRegistro(negocioA, bloqueA, producto("Medio", 2), hace(60 * 24 * 5));
+        UUID nuevo = givenRegistro(negocioA, bloqueA, producto("Nuevo", 3), hace(60 * 24));
+        String desde = AHORA.minusDays(6).toInstant().toString();
+        String hasta = AHORA.minusDays(2).toInstant().toString();
+
+        List<RegistroEntity> enRango = registros.buscarParaReporte(negocioA, bloqueA, null, desde, hasta, null, null, 100);
+        List<RegistroEntity> desdeSolo = registros.buscarParaReporte(negocioA, bloqueA, null, desde, null, null, null, 100);
+        List<RegistroEntity> hastaSolo = registros.buscarParaReporte(negocioA, bloqueA, null, null, hasta, null, null, 100);
+        List<RegistroEntity> limitado = registros.buscarParaReporte(negocioA, bloqueA, null, null, null, null, null, 2);
+
+        assertThat(enRango).extracting(RegistroEntity::getId).containsExactly(medio);
+        assertThat(desdeSolo).extracting(RegistroEntity::getId).containsExactly(nuevo, medio);
+        assertThat(hastaSolo).extracting(RegistroEntity::getId).containsExactly(medio, viejo);
+        assertThat(limitado).extracting(RegistroEntity::getId).containsExactly(nuevo, medio);
+    }
+
+    @Test
+    @DisplayName("El reporte filtra por el texto y por el valor de una columna")
+    void buscarParaReporteShouldFilterByTextAndColumnValue() {
+        UUID activoHarina = givenRegistro(negocioA, bloqueA, activo("Harina 000", true), hace(3));
+        givenRegistro(negocioA, bloqueA, activo("Harina integral", false), hace(2));
+        givenRegistro(negocioA, bloqueA, activo("Azúcar", true), hace(1));
+
+        List<RegistroEntity> result = registros.buscarParaReporte(
+                negocioA, bloqueA, "%harina%", null, null, campoActivo.toString(), "true", 100);
+        List<RegistroEntity> soloColumna = registros.buscarParaReporte(
+                negocioA, bloqueA, null, null, null, campoActivo.toString(), "false", 100);
+
+        assertThat(result).extracting(RegistroEntity::getId).containsExactly(activoHarina);
+        assertThat(soloColumna).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("La cantidad y las sumas del reporte coinciden con sus filtros y no incluyen a otros negocios")
+    void reporteTotalsShouldMatchTheFiltersAndExcludeOtherNegocios() {
+        givenRegistro(negocioA, bloqueA, activo("Harina", true, 40), hace(60 * 24 * 3));
+        givenRegistro(negocioA, bloqueA, activo("Azúcar", true, 7), hace(60 * 24 * 3));
+        givenRegistro(negocioA, bloqueA, activo("Sal", false, 100), hace(60 * 24 * 3));
+        givenRegistro(negocioA, bloqueA, activo("Harina vieja", true, 1000), hace(60 * 24 * 30));
+        givenRegistro(negocioB, givenBloque(negocioB, "Productos"), activo("Harina", true, 5000), hace(60 * 24 * 3));
+        String desde = AHORA.minusDays(10).toInstant().toString();
+        String ids = campoCantidad.toString();
+
+        long cantidad = registros.contarParaReporte(negocioA, bloqueA, null, desde, null, campoActivo.toString(), "true");
+        Map<String, BigDecimal> sumas = sumasPorCampo(registros.sumarNumericosParaReporte(
+                negocioA, bloqueA, null, desde, null, campoActivo.toString(), "true", List.of(ids)));
+        long deOtroNegocio = registros.contarParaReporte(negocioB, bloqueA, null, desde, null, null, null);
+
+        assertThat(cantidad).isEqualTo(2);
+        assertThat(sumas.get(ids)).isEqualByComparingTo("47");
+        assertThat(deOtroNegocio).isZero();
+    }
+
+    private Map<String, Object> activo(String nombre, boolean activo) {
+        Map<String, Object> valores = new HashMap<>();
+        valores.put(campoNombre.toString(), nombre);
+        valores.put(campoActivo.toString(), activo);
+        return valores;
+    }
+
+    private Map<String, Object> activo(String nombre, boolean activo, Number cantidad) {
+        Map<String, Object> valores = activo(nombre, activo);
+        valores.put(campoCantidad.toString(), cantidad);
+        return valores;
+    }
 }

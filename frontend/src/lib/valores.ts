@@ -17,6 +17,8 @@ const TEXTO_RELACION: Record<Exclude<EtiquetaRelacion['estado'], 'lista'>, strin
 };
 
 const formatoNumero = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 });
+const formatoCantidad = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 3 });
+const formatoDinero = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });
 const formatoMomento = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' });
 
 function formatearFecha(iso: string) {
@@ -39,7 +41,7 @@ export function formatearValor(
 ): string {
   if (valor === null || valor === undefined || valor === '') return SIN_DATO;
   if (tipo === 'SI_NO') return valor === true ? 'Sí' : 'No';
-  if (tipo === 'NUMERO' && typeof valor === 'number') return formatoNumero.format(valor);
+  if ((tipo === 'NUMERO' || tipo === 'FORMULA') && typeof valor === 'number') return formatoNumero.format(valor);
   if (tipo === 'FECHA' && typeof valor === 'string') return formatearFecha(valor);
   if (tipo === 'RELACION') return describirEtiqueta(etiqueta);
   return String(valor);
@@ -50,3 +52,9 @@ export function formatearMomento(iso: string) {
   const fecha = new Date(iso);
   return Number.isNaN(fecha.getTime()) ? iso : formatoMomento.format(fecha);
 }
+
+/** Una cantidad de stock con separadores y hasta tres decimales: 1.250,5. */
+export const formatearCantidad = (cantidad: number) => formatoCantidad.format(cantidad);
+
+/** Un importe en pesos con separadores y dos decimales: $ 1.250,50. */
+export const formatearDinero = (importe: number) => formatoDinero.format(importe);

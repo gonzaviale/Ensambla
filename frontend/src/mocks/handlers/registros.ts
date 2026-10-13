@@ -9,6 +9,7 @@ import {
 } from '@/types/registro';
 import { validarFormulario, valoresParaGuardar } from '@/lib/formularioRegistro';
 import { estado } from '../db/estado';
+import { conFormulas } from '../db/formula';
 import { errorResponse } from '../errores';
 import { api, exigirCsrf, exigirSesion, LATENCIA_BACKEND_MS } from './comun';
 
@@ -23,7 +24,7 @@ function privado(request: Request, escritura = false) {
   return (escritura && exigirCsrf(request)) || exigirSesion(request);
 }
 
-function bloqueDeLaSesion(id: string): Bloque | undefined {
+export function bloqueDeLaSesion(id: string): Bloque | undefined {
   for (const { usuarioId, proyecto } of estado.proyectos.values()) {
     if (usuarioId !== estado.sesionUsuarioId) continue;
     const bloque = proyecto.bloques.find((item) => item.id === id);
@@ -71,7 +72,7 @@ function totalesDe(bloque: Bloque, registros: Registro[]) {
   return { cantidad: registros.length, sumas };
 }
 
-const coincide = (registro: Registro, texto: string) =>
+export const coincide = (registro: Registro, texto: string) =>
   Object.values(registro.valores).some(
     (valor) => valor !== null && String(valor).toLowerCase().includes(texto),
   );
@@ -80,7 +81,7 @@ const MAX_REFERENCIAS = 20;
 
 // Etiqueta de una fila para quien la elige desde otra tabla: el valor de la primera columna de
 // texto u opción (por posición) o, si no hay, de la primera columna; vacío → «Sin nombre».
-function etiquetaDe(bloque: Bloque, registro: Registro) {
+export function etiquetaDe(bloque: Bloque, registro: Registro) {
   const ordenados = [...bloque.campos].sort((a, b) => a.posicion - b.posicion);
   const campo =
     ordenados.find((item) => item.tipo === 'TEXTO' || item.tipo === 'OPCION') ?? ordenados[0];
@@ -95,6 +96,17 @@ function errorDeRelacion(campo: Bloque['campos'][number], valor: unknown) {
   const fila = estado.registros.get(valor);
   return fila && fila.bloqueId === campo.bloqueRelacionadoId ? undefined : 'Esa fila ya no existe';
 }
+
+// Lo que se mande en una columna FORMULA se ignora: el valor se calcula al leer y no se guarda.
+function sinFormulas<V>(bloque: Bloque, valores: Record<string, V>): Record<string, V> {
+  const formulas = new Set(bloque.campos.filter((c) => c.tipo === 'FORMULA').map((c) => c.id));
+  return Object.fromEntries(Object.entries(valores).filter(([id]) => !formulas.has(id)));
+}
+
+const conCalculos = (bloque: Bloque, registro: Registro): Registro => ({
+  ...registro,
+  valores: conFormulas(bloque.campos, registro.valores),
+});
 
 // Un error por id de campo, con el mismo criterio al crear y al editar.
 function erroresDeValores(bloque: Bloque, valores: ValoresRegistro) {
@@ -183,7 +195,9 @@ export const handlersRegistros = [
     );
     const totalPages = Math.max(1, Math.ceil(ordenados.length / tamanio));
     return HttpResponse.json({
-      content: ordenados.slice(pagina * tamanio, (pagina + 1) * tamanio),
+      content: ordenados
+        .slice(pagina * tamanio, (pagina + 1) * tamanio)
+        .map((registro) => conCalculos(bloque, registro)),
       pageNumber: pagina,
       pageSize: tamanio,
       totalElements: ordenados.length,
@@ -206,7 +220,10 @@ export const handlersRegistros = [
     const datos = editarRegistroSchema.safeParse(await request.json());
     if (!datos.success) return errorResponse(400, 'Revisá los datos del registro', path);
 
-    const combinados: Record<string, Valor> = { ...registro.valores, ...datos.data.valores };
+    const combinados: Record<string, Valor> = {
+      ...registro.valores,
+      ...sinFormulas(bloque, datos.data.valores),
+    };
     const valores: ValoresRegistro = {};
     for (const [id, valor] of Object.entries(combinados)) {
       if (valor === null || (typeof valor === 'string' && valor.trim() === '')) continue;
@@ -222,7 +239,7 @@ export const handlersRegistros = [
       actualizadoEn: new Date().toISOString(),
     };
     estado.registros.set(editado.id, editado);
-    return HttpResponse.json(editado);
+    return HttpResponse.json(conCalculos(bloque, editado));
   }),
 
   http.delete(api('/registros/:id'), ({ request, params }) => {
@@ -233,6 +250,11 @@ export const handlersRegistros = [
       return errorResponse(404, 'El registro no existe', pathDe(request));
     }
     estado.registros.delete(registro.id);
+    // Borrar un producto borra su historial de movimientos.
+    for (const [id, movimiento] of estado.movimientos) {
+      if (movimiento.registroId === registro.id) estado.movimientos.delete(id);
+    }
+    estado.recetas.delete(registro.id);
     return new HttpResponse(null, { status: 204 });
   }),
 
@@ -245,7 +267,8 @@ export const handlersRegistros = [
     if (!bloque) return errorResponse(404, 'Bloque no encontrado', path);
     const datos = crearRegistroSchema.safeParse(await request.json());
     if (!datos.success) return errorResponse(400, 'Revisá los datos del registro', path);
-    const errores = erroresDeValores(bloque, datos.data.valores);
+    const recibidos = sinFormulas(bloque, datos.data.valores);
+    const errores = erroresDeValores(bloque, recibidos);
     if (Object.keys(errores).length)
       return errorResponse(400, 'Revisá los campos marcados', path, errores);
     const ahora = new Date().toISOString();
@@ -255,13 +278,13 @@ export const handlersRegistros = [
       valores: valoresParaGuardar(
         bloque.campos,
         Object.fromEntries(
-          Object.entries(datos.data.valores).map(([id, valor]) => [id, String(valor)]),
+          Object.entries(recibidos).map(([id, valor]) => [id, String(valor)]),
         ),
       ),
       creadoEn: ahora,
       actualizadoEn: ahora,
     };
     estado.registros.set(registro.id, registro);
-    return HttpResponse.json(registro, { status: 201 });
+    return HttpResponse.json(conCalculos(bloque, registro), { status: 201 });
   }),
 ];

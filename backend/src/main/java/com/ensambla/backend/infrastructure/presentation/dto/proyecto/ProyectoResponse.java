@@ -25,6 +25,7 @@ public record ProyectoResponse(
             String valorInicial,
             List<String> opciones,
             UUID bloqueRelacionadoId,
+            String formula,
             Short posicion
     ) {
     }

@@ -25,7 +25,8 @@ public record ConfiguracionCampo(
         Boolean obligatorio,
         String valorInicial,
         List<String> opciones,
-        UUID bloqueRelacionadoId
+        UUID bloqueRelacionadoId,
+        String formula
 ) {
 
     static final int MAX_CARACTERES_NOMBRE = 120;
@@ -35,7 +36,7 @@ public record ConfiguracionCampo(
 
     /**
      * Configuración ya validada: nombre y opciones sin espacios en los extremos, valor inicial vacío como null.
-     * {@code bloqueRelacionadoId} sólo queda cargado en un campo RELACION.
+     * {@code bloqueRelacionadoId} sólo queda cargado en un campo RELACION y {@code formula} en un campo FORMULA.
      */
     public record Validada(
             String nombre,
@@ -43,7 +44,8 @@ public record ConfiguracionCampo(
             boolean obligatorio,
             String valorInicial,
             List<String> opciones,
-            UUID bloqueRelacionadoId
+            UUID bloqueRelacionadoId,
+            String formula
     ) {
     }
 
@@ -52,22 +54,25 @@ public record ConfiguracionCampo(
         TipoCampo tipoCampo = tipoDe(tipo);
         List<String> opcionesLimpias = tipoCampo == TipoCampo.OPCION ? limpiarOpciones() : List.of();
         String valorLimpio = limpiar(valorInicial);
+        String formulaLimpia = limpiar(formula);
         Map<String, String> errores = new LinkedHashMap<>();
         errorDeNombre(nombreLimpio).ifPresent(error -> errores.put("nombre", error));
         if (tipoCampo == null) {
-            errores.put("tipo", "Elegí un tipo válido: texto, número, fecha, opción, sí/no o conexión");
+            errores.put("tipo", "Elegí un tipo válido: texto, número, fecha, opción, sí/no, conexión o fórmula");
         } else {
             errorDeOpciones(tipoCampo, opcionesLimpias).ifPresent(error -> errores.put("opciones", error));
             errorDeValorInicial(tipoCampo, valorLimpio, opcionesLimpias)
                     .ifPresent(error -> errores.put("valorInicial", error));
             errorDeBloqueRelacionado(tipoCampo).ifPresent(error -> errores.put("bloqueRelacionadoId", error));
+            errorDeFormula(tipoCampo, formulaLimpia).ifPresent(error -> errores.put("formula", error));
         }
         if (!errores.isEmpty()) {
             throw new CampoInvalidoException(errores);
         }
         UUID relacionado = tipoCampo == TipoCampo.RELACION ? bloqueRelacionadoId : null;
-        return new Validada(
-                nombreLimpio, tipoCampo, Boolean.TRUE.equals(obligatorio), valorLimpio, opcionesLimpias, relacionado);
+        String formulaFinal = tipoCampo == TipoCampo.FORMULA ? formulaLimpia : null;
+        return new Validada(nombreLimpio, tipoCampo, Boolean.TRUE.equals(obligatorio), valorLimpio, opcionesLimpias,
+                relacionado, formulaFinal);
     }
 
     private List<String> limpiarOpciones() {
@@ -111,12 +116,26 @@ public record ConfiguracionCampo(
             case SI_NO -> errorSi(!"true".equals(valor) && !"false".equals(valor),
                     "Tiene que ser true (sí) o false (no)");
             case RELACION -> Optional.of("Una conexión no tiene valor inicial");
+            case FORMULA -> Optional.of("Una fórmula no tiene valor inicial");
         };
     }
 
     private Optional<String> errorDeBloqueRelacionado(TipoCampo tipo) {
         return errorSi(tipo == TipoCampo.RELACION && bloqueRelacionadoId == null,
                 "Elegí la tabla con la que se conecta");
+    }
+
+    /** La sintaxis se valida acá; que los campos citados existan y sean numéricos lo controla CampoService. */
+    private static Optional<String> errorDeFormula(TipoCampo tipo, String formula) {
+        if (tipo != TipoCampo.FORMULA) {
+            return Optional.empty();
+        }
+        try {
+            Formula.parsear(formula);
+            return Optional.empty();
+        } catch (IllegalArgumentException e) {
+            return Optional.of(e.getMessage());
+        }
     }
 
     private static boolean esFecha(String valor) {

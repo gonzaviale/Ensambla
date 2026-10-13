@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,7 +18,7 @@ import java.util.UUID;
 
 @Getter
 @Setter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class Registro {
@@ -67,7 +68,7 @@ public class Registro {
     public static Map<String, Object> validar(List<Campo> campos, Map<String, Object> valores) {
         Map<String, String> errores = new LinkedHashMap<>();
         Map<String, Object> limpios = new LinkedHashMap<>();
-        for (Campo campo : campos) {
+        for (Campo campo : campos.stream().filter(campo -> !campo.esFormula()).toList()) {
             String clave = campo.getId().toString();
             Object valor = sinVacios(valores.get(clave));
             if (valor == null) {
@@ -81,6 +82,34 @@ public class Registro {
             throw new RegistroInvalidoException(errores);
         }
         return limpios;
+    }
+
+    /**
+     * Copia del registro con el valor de cada campo FORMULA calculado a partir de sus datos; no se guarda. Una fórmula
+     * a la que le falta un dato (o que divide por cero) queda sin valor.
+     */
+    public Registro conFormulas(List<Campo> campos) {
+        Map<String, Object> conCalculados = new LinkedHashMap<>(valores);
+        for (Campo campo : campos.stream().filter(Campo::esFormula).toList()) {
+            BigDecimal calculado = campo.calcular(this::numeroDe);
+            if (calculado != null) {
+                conCalculados.put(campo.getId().toString(), calculado);
+            }
+        }
+        return toBuilder().valores(conCalculados).build();
+    }
+
+    private BigDecimal numeroDe(UUID campoId) {
+        return valores.get(campoId.toString()) instanceof Number numero ? new BigDecimal(numero.toString()) : null;
+    }
+
+    /**
+     * @throws ResourceNotFoundException si el registro es de otro bloque: responde igual que uno inexistente
+     */
+    public void exigirDelBloque(UUID otroBloqueId) {
+        if (!bloqueId.equals(otroBloqueId)) {
+            throw new ResourceNotFoundException("El registro no existe");
+        }
     }
 
     /**

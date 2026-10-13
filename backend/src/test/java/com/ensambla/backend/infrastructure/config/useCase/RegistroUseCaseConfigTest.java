@@ -112,9 +112,10 @@ class RegistroUseCaseConfigTest {
     @DisplayName("El wiring de obtener conecta los servicios y el mapper")
     void obtenerRegistroUseCaseShouldWireCollaborators() {
         when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(registro());
+        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
 
         ObtenerRegistroResponse response = config.obtenerRegistroUseCase(
-                negocioService, registroDatosService, config.obtenerRegistroMapper())
+                negocioService, campoService, registroDatosService, config.obtenerRegistroMapper())
                 .execute(new ObtenerRegistroRequest(USUARIO_ID, REGISTRO_ID));
 
         assertThat(response.registro().id()).isEqualTo(REGISTRO_ID);

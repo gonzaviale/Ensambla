@@ -9,6 +9,7 @@ export const camposFormulario: Campo[] = [
     valorInicial: 'Producto',
     opciones: [],
     bloqueRelacionadoId: null,
+    formula: null,
     posicion: 0,
   },
   {
@@ -19,6 +20,7 @@ export const camposFormulario: Campo[] = [
     valorInicial: '0',
     opciones: [],
     bloqueRelacionadoId: null,
+    formula: null,
     posicion: 1,
   },
   {
@@ -29,6 +31,7 @@ export const camposFormulario: Campo[] = [
     valorInicial: '2026-10-10',
     opciones: [],
     bloqueRelacionadoId: null,
+    formula: null,
     posicion: 2,
   },
   {
@@ -39,6 +42,7 @@ export const camposFormulario: Campo[] = [
     valorInicial: 'Insumos',
     opciones: ['Insumos', 'Terminados'],
     bloqueRelacionadoId: null,
+    formula: null,
     posicion: 3,
   },
   {
@@ -49,6 +53,7 @@ export const camposFormulario: Campo[] = [
     valorInicial: 'false',
     opciones: [],
     bloqueRelacionadoId: null,
+    formula: null,
     posicion: 4,
   },
 ];
@@ -62,6 +67,7 @@ export const campoRelacion: Campo = {
   valorInicial: null,
   opciones: [],
   bloqueRelacionadoId: '00000000-0000-4000-8000-0000000000b1',
+  formula: null,
   posicion: 5,
 };
 

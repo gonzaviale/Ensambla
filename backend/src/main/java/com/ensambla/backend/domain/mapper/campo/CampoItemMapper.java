@@ -15,6 +15,7 @@ public class CampoItemMapper {
                 campo.getValorInicial(),
                 campo.getOpciones(),
                 campo.getBloqueRelacionadoId(),
+                campo.getFormula(),
                 campo.getPosicion(),
                 campo.getCreadoEn(),
                 campo.getActualizadoEn());

@@ -10,6 +10,9 @@ function esFechaValida(valor: string) {
   return Number.isFinite(fecha.getTime()) && fecha.toISOString().slice(0, 10) === valor;
 }
 
+// Una columna de cálculo (FORMULA) no se carga a mano: el servidor la calcula.
+const sePide = (campo: Campo) => campo.tipo !== 'FORMULA';
+
 // En pantalla se acepta coma o punto decimal (12,5 o 12.5); al validar y guardar se usa el punto.
 const aNumero = (valor: string) => valor.replace(',', '.');
 
@@ -19,6 +22,7 @@ export function validarFormulario(
 ): ErroresFormulario {
   const errores: ErroresFormulario = {};
   for (const campo of campos) {
+    if (campo.tipo === 'FORMULA') continue;
     const valor = valores[campo.id]?.trim() ?? '';
     if (!valor) {
       if (campo.obligatorio) errores[campo.id] = 'Este dato es obligatorio';
@@ -53,7 +57,9 @@ export function validarFormulario(
 }
 
 export function valoresIniciales(campos: readonly Campo[]): ValoresFormulario {
-  return Object.fromEntries(campos.map((campo) => [campo.id, campo.valorInicial ?? '']));
+  return Object.fromEntries(
+    campos.filter(sePide).map((campo) => [campo.id, campo.valorInicial ?? '']),
+  );
 }
 
 // Los datos de una fila ya guardada, como texto para precargar el formulario de edición.
@@ -74,7 +80,7 @@ export function valoresParaGuardar(
   valores: ValoresFormulario,
 ): ValoresRegistro {
   const resultado: ValoresRegistro = {};
-  for (const campo of campos) {
+  for (const campo of campos.filter(sePide)) {
     const valor = valores[campo.id]?.trim() ?? '';
     if (valor === '') continue;
     if (campo.tipo === 'NUMERO') resultado[campo.id] = Number(aNumero(valor));
@@ -90,5 +96,7 @@ export function cambiosParaEditar(
   campos: readonly Campo[],
   cargados: ValoresRegistro,
 ): CambiosRegistro {
-  return Object.fromEntries(campos.map((campo) => [campo.id, cargados[campo.id] ?? null]));
+  return Object.fromEntries(
+    campos.filter(sePide).map((campo) => [campo.id, cargados[campo.id] ?? null]),
+  );
 }

@@ -79,6 +79,7 @@ public class ProyectoPresentationMapper {
                 campo.valorInicial(),
                 campo.opciones(),
                 campo.bloqueRelacionadoId(),
+                campo.formula(),
                 campo.posicion());
     }
 }

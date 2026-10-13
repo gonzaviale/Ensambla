@@ -11,6 +11,7 @@ public record CrearCampoRequest(
         Boolean obligatorio,
         String valorInicial,
         List<String> opciones,
-        UUID bloqueRelacionadoId
+        UUID bloqueRelacionadoId,
+        String formula
 ) {
 }

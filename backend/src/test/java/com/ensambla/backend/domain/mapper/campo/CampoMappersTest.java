@@ -74,11 +74,11 @@ class CampoMappersTest {
     @DisplayName("Crear arma la configuración con todos los datos del pedido")
     void crearCampoMapperShouldBuildConfiguracion() {
         CrearCampoRequest request =
-                new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES, RELACIONADO_ID);
+                new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES, RELACIONADO_ID, null);
 
         ConfiguracionCampo result = new CrearCampoMapper(campoItemMapper).toConfiguracion(request);
 
-        assertThat(result).isEqualTo(new ConfiguracionCampo("Talle", "OPCION", true, "Chico", TALLES, RELACIONADO_ID));
+        assertThat(result).isEqualTo(new ConfiguracionCampo("Talle", "OPCION", true, "Chico", TALLES, RELACIONADO_ID, null));
     }
 
     @Test
@@ -93,11 +93,11 @@ class CampoMappersTest {
     @DisplayName("Editar arma la configuración con todos los datos del pedido")
     void editarCampoMapperShouldBuildConfiguracion() {
         EditarCampoRequest request =
-                new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Talle", "OPCION", false, null, TALLES, RELACIONADO_ID);
+                new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Talle", "OPCION", false, null, TALLES, RELACIONADO_ID, null);
 
         ConfiguracionCampo result = new EditarCampoMapper(campoItemMapper).toConfiguracion(request);
 
-        assertThat(result).isEqualTo(new ConfiguracionCampo("Talle", "OPCION", false, null, TALLES, RELACIONADO_ID));
+        assertThat(result).isEqualTo(new ConfiguracionCampo("Talle", "OPCION", false, null, TALLES, RELACIONADO_ID, null));
     }
 
     @Test

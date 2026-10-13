@@ -168,7 +168,7 @@ class CampoTest {
     void configurarShouldKeepBloqueRelacionado() {
         Campo campo = Campo.nuevo(NEGOCIO_ID, BLOQUE_ID, (short) 0, configuracion("Talle"), AHORA);
         ConfiguracionCampo.Validada relacion =
-                new ConfiguracionCampo.Validada("Cliente", TipoCampo.RELACION, false, null, List.of(), RELACIONADO_ID);
+                new ConfiguracionCampo.Validada("Cliente", TipoCampo.RELACION, false, null, List.of(), RELACIONADO_ID, null);
 
         campo.configurar(relacion, AHORA);
 
@@ -199,7 +199,7 @@ class CampoTest {
     void configurarShouldReplaceConfiguracionAndKeepCreationDate() {
         Campo campo = Campo.nuevo(NEGOCIO_ID, BLOQUE_ID, (short) 0, configuracion("Talle"), AHORA);
         ConfiguracionCampo.Validada nueva =
-                new ConfiguracionCampo.Validada("Precio", TipoCampo.NUMERO, false, null, List.of(), null);
+                new ConfiguracionCampo.Validada("Precio", TipoCampo.NUMERO, false, null, List.of(), null, null);
 
         campo.configurar(nueva, AHORA.plusHours(1));
 
@@ -220,7 +220,7 @@ class CampoTest {
     // --- helpers ---
     private ConfiguracionCampo.Validada configuracion(String nombre) {
         return new ConfiguracionCampo.Validada(
-                nombre, TipoCampo.OPCION, true, "Chico", List.of("Chico", "Grande"), null);
+                nombre, TipoCampo.OPCION, true, "Chico", List.of("Chico", "Grande"), null, null);
     }
 
     private Campo campo(TipoCampo tipo) {
@@ -228,5 +228,39 @@ class CampoTest {
                 .tipo(tipo)
                 .opciones(List.of("Minorista", "Mayorista"))
                 .build();
+    }
+
+    @Test
+    @DisplayName("Un campo fórmula no admite que se cargue un valor")
+    void errorDeShouldRejectAnyValueOfFormula() {
+        assertThat(errorDe(TipoCampo.FORMULA, 3)).contains("Este dato se calcula solo");
+    }
+
+    @Test
+    @DisplayName("Sólo un campo de tipo fórmula es una fórmula")
+    void esFormulaShouldDependOnTipo() {
+        assertThat(campo(TipoCampo.FORMULA).esFormula()).isTrue();
+        assertThat(campo(TipoCampo.NUMERO).esFormula()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Calcula la fórmula con los valores que le da el registro")
+    void calcularShouldEvaluateFormulaWithGivenValues() {
+        Campo campo = campo(TipoCampo.FORMULA);
+        campo.setFormula("{" + RELACIONADO_ID + "} + 1");
+
+        assertThat(campo.calcular(id -> new java.math.BigDecimal("4"))).isEqualByComparingTo("5");
+    }
+
+    @Test
+    @DisplayName("Configurar un campo fórmula guarda la expresión")
+    void configurarShouldKeepFormula() {
+        Campo campo = Campo.nuevo(NEGOCIO_ID, BLOQUE_ID, (short) 0, configuracion("Talle"), AHORA);
+        ConfiguracionCampo.Validada formula =
+                new ConfiguracionCampo.Validada("Total", TipoCampo.FORMULA, false, null, List.of(), null, "1 + 1");
+
+        campo.configurar(formula, AHORA);
+
+        assertThat(campo.getFormula()).isEqualTo("1 + 1");
     }
 }

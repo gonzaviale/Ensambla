@@ -1,12 +1,13 @@
 import { useId, useRef, useState, type FormEvent } from 'react';
 import { Button, InputField, SelectField } from '@/components/ui';
 import { useCrearCampo, useEditarCampo } from '@/hooks/bloques/mutations';
-import { useBloques } from '@/hooks/bloques/queries';
+import { useBloques, useCampos } from '@/hooks/bloques/queries';
 import { leerErrorServidor, ubicarErrores } from '@/hooks/errores';
 import { prepararCampo, type BorradorCampo, type ErroresCampo } from '@/lib/campos';
 import { cn } from '@/lib/cn';
 import { MAX_NOMBRE_CAMPO, type Campo, type TipoCampo } from '@/types/campo';
 import { controlOpcion, tarjetaOpcion } from './opcionStyles';
+import { EditorFormula } from './EditorFormula';
 import { OpcionesEditor } from './OpcionesEditor';
 import { TipoDeDatoCards } from './TipoDeDatoCards';
 
@@ -19,7 +20,14 @@ type Props = {
   onCancelar: () => void;
 };
 
-const INPUTS = ['nombre', 'tipo', 'opciones', 'bloqueRelacionadoId', 'valorInicial'] as const;
+const INPUTS = [
+  'nombre',
+  'tipo',
+  'opciones',
+  'bloqueRelacionadoId',
+  'formula',
+  'valorInicial',
+] as const;
 
 function borradorDe(campo?: Campo): BorradorCampo {
   if (!campo) {
@@ -30,6 +38,7 @@ function borradorDe(campo?: Campo): BorradorCampo {
       valorInicial: '',
       opciones: [],
       bloqueRelacionadoId: '',
+      formula: '',
     };
   }
   const valor = campo.valorInicial ?? '';
@@ -40,6 +49,7 @@ function borradorDe(campo?: Campo): BorradorCampo {
     valorInicial: campo.tipo === 'NUMERO' ? valor.replace('.', ',') : valor,
     opciones: campo.opciones.length > 0 ? [...campo.opciones] : [],
     bloqueRelacionadoId: campo.bloqueRelacionadoId ?? '',
+    formula: campo.formula ?? '',
   };
 }
 
@@ -53,6 +63,11 @@ export function CampoForm({ proyectoId, bloqueId, campo, onListo, onCancelar }: 
   const editar = useEditarCampo(proyectoId, bloqueId);
   // Las tablas del sistema, para elegir con cuál se conecta una columna (la lista ya está en caché).
   const tablas = useBloques(proyectoId);
+  // Las columnas numéricas de esta tabla, para armar un cálculo (nunca la propia columna).
+  const columnas = useCampos(bloqueId);
+  const numericas = (columnas.data ?? []).filter(
+    (columna) => columna.tipo === 'NUMERO' && columna.id !== campo?.id,
+  );
   const guardado = campo ? editar : crear;
   const ocupado = guardado.isPending;
   const servidor = ubicarErrores(leerErrorServidor(guardado.error), INPUTS);
@@ -68,6 +83,7 @@ export function CampoForm({ proyectoId, bloqueId, campo, onListo, onCancelar }: 
       tipo,
       valorInicial: '',
       bloqueRelacionadoId: '',
+      formula: '',
       ...(tipo === 'OPCION' && borrador.opciones.length === 0 ? { opciones: ['', ''] } : {}),
     });
     setErrores((actual) => ({
@@ -75,6 +91,7 @@ export function CampoForm({ proyectoId, bloqueId, campo, onListo, onCancelar }: 
       valorInicial: undefined,
       opciones: undefined,
       bloqueRelacionadoId: undefined,
+      formula: undefined,
     }));
   }
 
@@ -163,6 +180,14 @@ export function CampoForm({ proyectoId, bloqueId, campo, onListo, onCancelar }: 
               </option>
             ))}
         </SelectField>
+      ) : borrador.tipo === 'FORMULA' ? (
+        <EditorFormula
+          formula={borrador.formula}
+          columnas={numericas}
+          onCambiar={(formula) => cambiar({ formula })}
+          disabled={ocupado}
+          error={error('formula')}
+        />
       ) : (
         <ValorInicial
           id={id}
@@ -215,7 +240,7 @@ export function CampoForm({ proyectoId, bloqueId, campo, onListo, onCancelar }: 
 
 type ValorInicialProps = {
   id: string;
-  tipo: Exclude<TipoCampo, 'RELACION'>;
+  tipo: Exclude<TipoCampo, 'RELACION' | 'FORMULA'>;
   valor: string;
   opciones: string[];
   error?: string;

@@ -134,7 +134,7 @@ class CampoControllerTest {
                 .andExpect(header().string("Location", "/api/campos/" + CAMPO_ID))
                 .andExpect(jsonPath("$.nombre").value("Talle"));
         verify(crearCampoUseCase).execute(
-                new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES, null));
+                new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES, null, null));
     }
 
     @Test
@@ -145,7 +145,7 @@ class CampoControllerTest {
         crear("{\"nombre\":\"Producto\",\"tipo\":\"TEXTO\"}")
                 .andExpect(status().isCreated());
         verify(crearCampoUseCase).execute(
-                new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Producto", "TEXTO", null, null, null, null));
+                new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Producto", "TEXTO", null, null, null, null, null));
     }
 
     @Test
@@ -158,7 +158,7 @@ class CampoControllerTest {
                 .andExpect(jsonPath("$.tipo").value("RELACION"))
                 .andExpect(jsonPath("$.bloqueRelacionadoId").value(RELACIONADO_ID.toString()));
         verify(crearCampoUseCase).execute(new CrearCampoRequest(
-                USUARIO_ID, BLOQUE_ID, "Cliente", "RELACION", null, null, null, RELACIONADO_ID));
+                USUARIO_ID, BLOQUE_ID, "Cliente", "RELACION", null, null, null, RELACIONADO_ID, null));
     }
 
     @Test
@@ -241,7 +241,7 @@ class CampoControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("Talle"));
         verify(editarCampoUseCase).execute(
-                new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Talle", "OPCION", true, "Chico", TALLES, null));
+                new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Talle", "OPCION", true, "Chico", TALLES, null, null));
     }
 
     @Test
@@ -333,12 +333,12 @@ class CampoControllerTest {
 
     private CampoItem givenItem(String nombre) {
         return new CampoItem(
-                CAMPO_ID, BLOQUE_ID, nombre, "OPCION", true, "Chico", TALLES, null, (short) 0, AHORA, AHORA);
+                CAMPO_ID, BLOQUE_ID, nombre, "OPCION", true, "Chico", TALLES, null, null, (short) 0, AHORA, AHORA);
     }
 
     private CampoItem givenRelacion() {
         return new CampoItem(
-                CAMPO_ID, BLOQUE_ID, "Cliente", "RELACION", false, null, List.of(), RELACIONADO_ID, (short) 0, AHORA,
+                CAMPO_ID, BLOQUE_ID, "Cliente", "RELACION", false, null, List.of(), RELACIONADO_ID, null, (short) 0, AHORA,
                 AHORA);
     }
 
