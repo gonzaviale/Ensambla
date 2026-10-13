@@ -37,6 +37,7 @@ Texto secundario `soft` (`#3E4B59`) y terciario `muted` (`#5A6570`) cumplen AA s
 | Display | `text-display` | 44 px | Sólo Landing |
 
 - Etiquetas de campo: 16 px en semibold; ayudas: 15 px.
+- La Landing es la excepción: tiene su propia hoja (`frontend/src/pages/Landing/landing.css`), acotada a `.landing`, con tamaños en px y tokens propios. Sólo ahí; el resto de la app usa la escala de arriba. Mínimo absoluto igual: 14 px.
 
 ## Logo
 
