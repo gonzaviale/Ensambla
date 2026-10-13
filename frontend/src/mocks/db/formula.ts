@@ -103,7 +103,10 @@ export function interpretarFormula(texto: string): FormulaInterpretada {
 }
 
 /** Copia de los valores de una fila con el resultado de cada columna FORMULA (sin dato si no se puede calcular). */
-export function conFormulas(campos: readonly Campo[], valores: Registro['valores']): Registro['valores'] {
+export function conFormulas(
+  campos: readonly Campo[],
+  valores: Registro['valores'],
+): Registro['valores'] {
   const resultado: Registro['valores'] = { ...valores };
   for (const campo of campos) {
     if (campo.tipo !== 'FORMULA' || !campo.formula) continue;

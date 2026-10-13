@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,11 @@ public class RegistroDatosService {
     public Registro obtener(UUID registroId, UUID negocioId) {
         return registroRepository.findByIdAndNegocioId(registroId, negocioId)
                 .orElseThrow(() -> new ResourceNotFoundException("El registro no existe"));
+    }
+
+    /** Las filas del bloque con esos ids, las más nuevas primero; las que no existen no vienen. */
+    public List<Registro> obtenerVarios(Collection<UUID> ids, UUID bloqueId, UUID negocioId) {
+        return registroRepository.findAllByIdsAndBloque(ids, bloqueId, negocioId);
     }
 
     /**

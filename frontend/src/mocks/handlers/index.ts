@@ -6,6 +6,7 @@ import { handlersLotes } from './lotes';
 import { handlersPlantillas } from './plantillas';
 import { handlersProyectos } from './proyectos';
 import { handlersRegistros } from './registros';
+import { handlersStock } from './stock';
 
 // completo: todo simulado | parcial: sólo lo que el backend todavía no tiene | ninguno: backend real.
 export function handlersPara(modo: ModoMocks) {
@@ -17,6 +18,7 @@ export function handlersPara(modo: ModoMocks) {
       ...handlersBloques,
       ...handlersCampos,
       ...handlersRegistros,
+      ...handlersStock,
       ...handlersLotes,
     ];
   }

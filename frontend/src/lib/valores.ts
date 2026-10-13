@@ -17,6 +17,7 @@ const TEXTO_RELACION: Record<Exclude<EtiquetaRelacion['estado'], 'lista'>, strin
 };
 
 const formatoNumero = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 });
+const formatoCantidad = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 3 });
 const formatoMomento = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' });
 
 function formatearFecha(iso: string) {
@@ -50,3 +51,6 @@ export function formatearMomento(iso: string) {
   const fecha = new Date(iso);
   return Number.isNaN(fecha.getTime()) ? iso : formatoMomento.format(fecha);
 }
+
+/** Una cantidad de stock con separadores y hasta tres decimales: 1.250,5. */
+export const formatearCantidad = (cantidad: number) => formatoCantidad.format(cantidad);

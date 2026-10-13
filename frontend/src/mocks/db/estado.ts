@@ -1,6 +1,7 @@
 import type { Plantilla } from '@/types/plantilla';
 import type { Proyecto } from '@/types/proyecto';
 import type { Registro } from '@/types/registro';
+import type { Movimiento } from '@/types/stock';
 
 export type UsuarioMock = {
   id: string;
@@ -16,6 +17,8 @@ type Estado = {
   /** Alta y última modificación de bloques y campos (la estructura del proyecto no las guarda). */
   fechas: Map<string, Fechas>;
   registros: Map<string, Registro>;
+  /** Entradas y salidas de stock; el stock de cada fila es su suma. */
+  movimientos: Map<string, Movimiento>;
   usuarios: Map<string, UsuarioMock>;
   sesionUsuarioId: string | null;
 };
@@ -24,6 +27,7 @@ export const estado: Estado = {
   proyectos: new Map(),
   fechas: new Map(),
   registros: new Map(),
+  movimientos: new Map(),
   usuarios: new Map(),
   sesionUsuarioId: null,
 };
@@ -32,6 +36,7 @@ export function reiniciarEstado() {
   estado.proyectos = new Map();
   estado.fechas = new Map();
   estado.registros = new Map();
+  estado.movimientos = new Map();
   estado.usuarios = new Map();
   estado.sesionUsuarioId = null;
 }

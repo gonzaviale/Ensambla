@@ -235,4 +235,25 @@ class RegistroTest {
 
         assertThat(result).isEmpty();
     }
+
+    @Test
+    @DisplayName("Un registro del bloque pasa la comprobación")
+    void exigirDelBloqueShouldAcceptRegistroOfTheBloque() {
+        Registro registro = Registro.nuevo(NEGOCIO_ID, BLOQUE_ID, Map.of(), AHORA);
+
+        registro.exigirDelBloque(BLOQUE_ID);
+
+        assertThat(registro.getBloqueId()).isEqualTo(BLOQUE_ID);
+    }
+
+    @Test
+    @DisplayName("Un registro de otro bloque responde 'no existe'")
+    void exigirDelBloqueShouldRejectRegistroOfAnotherBloque() {
+        Registro registro = Registro.nuevo(NEGOCIO_ID, BLOQUE_ID, Map.of(), AHORA);
+        UUID otroBloque = UUID.fromString("b0000000-0000-4000-8000-000000000002");
+
+        assertThatThrownBy(() -> registro.exigirDelBloque(otroBloque))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("El registro no existe");
+    }
 }

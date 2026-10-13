@@ -3,6 +3,7 @@
 export const SECCION_PROYECTOS = 'Mis sistemas';
 export const SECCION_CONSTRUIR = 'Armar';
 export const SECCION_USAR = 'Cargar y ver';
+export const SECCION_STOCK = 'Stock';
 export const SECCION_CUADERNO = 'Subir foto';
 export const SECCION_REVISAR = 'Revisar cuaderno';
 export const SECCION_CUENTA = 'Mi cuenta';

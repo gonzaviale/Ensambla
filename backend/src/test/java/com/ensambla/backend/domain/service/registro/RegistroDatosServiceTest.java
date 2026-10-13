@@ -317,4 +317,16 @@ class RegistroDatosServiceTest {
                 .actualizadoEn(ANTES)
                 .build();
     }
+
+    @Test
+    @DisplayName("Obtiene varias filas del bloque por id desde el repositorio")
+    void obtenerVariosShouldFindByIdsScopedToBloqueAndNegocio() {
+        List<Registro> encontrados = List.of(registro());
+        when(registroRepository.findAllByIdsAndBloque(List.of(REGISTRO_ID), BLOQUE_ID, NEGOCIO_ID))
+                .thenReturn(encontrados);
+
+        List<Registro> result = registroDatosService.obtenerVarios(List.of(REGISTRO_ID), BLOQUE_ID, NEGOCIO_ID);
+
+        assertThat(result).isSameAs(encontrados);
+    }
 }

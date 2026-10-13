@@ -24,7 +24,7 @@ function privado(request: Request, escritura = false) {
   return (escritura && exigirCsrf(request)) || exigirSesion(request);
 }
 
-function bloqueDeLaSesion(id: string): Bloque | undefined {
+export function bloqueDeLaSesion(id: string): Bloque | undefined {
   for (const { usuarioId, proyecto } of estado.proyectos.values()) {
     if (usuarioId !== estado.sesionUsuarioId) continue;
     const bloque = proyecto.bloques.find((item) => item.id === id);
@@ -72,7 +72,7 @@ function totalesDe(bloque: Bloque, registros: Registro[]) {
   return { cantidad: registros.length, sumas };
 }
 
-const coincide = (registro: Registro, texto: string) =>
+export const coincide = (registro: Registro, texto: string) =>
   Object.values(registro.valores).some(
     (valor) => valor !== null && String(valor).toLowerCase().includes(texto),
   );
@@ -81,7 +81,7 @@ const MAX_REFERENCIAS = 20;
 
 // Etiqueta de una fila para quien la elige desde otra tabla: el valor de la primera columna de
 // texto u opción (por posición) o, si no hay, de la primera columna; vacío → «Sin nombre».
-function etiquetaDe(bloque: Bloque, registro: Registro) {
+export function etiquetaDe(bloque: Bloque, registro: Registro) {
   const ordenados = [...bloque.campos].sort((a, b) => a.posicion - b.posicion);
   const campo =
     ordenados.find((item) => item.tipo === 'TEXTO' || item.tipo === 'OPCION') ?? ordenados[0];
@@ -250,6 +250,10 @@ export const handlersRegistros = [
       return errorResponse(404, 'El registro no existe', pathDe(request));
     }
     estado.registros.delete(registro.id);
+    // Borrar un producto borra su historial de movimientos.
+    for (const [id, movimiento] of estado.movimientos) {
+      if (movimiento.registroId === registro.id) estado.movimientos.delete(id);
+    }
     return new HttpResponse(null, { status: 204 });
   }),
 

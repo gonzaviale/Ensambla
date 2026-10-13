@@ -104,6 +104,15 @@ public class Registro {
     }
 
     /**
+     * @throws ResourceNotFoundException si el registro es de otro bloque: responde igual que uno inexistente
+     */
+    public void exigirDelBloque(UUID otroBloqueId) {
+        if (!bloqueId.equals(otroBloqueId)) {
+            throw new ResourceNotFoundException("El registro no existe");
+        }
+    }
+
+    /**
      * Id de la foto de la que salió el registro.
      *
      * @throws ResourceNotFoundException si se cargó a mano y no tiene foto de origen
