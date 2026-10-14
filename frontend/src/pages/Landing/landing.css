@@ -863,7 +863,7 @@
 }
 .landing .paso__figura--sistema span:nth-child(1) {
   grid-row: 1 / 3;
-  background: var(--naranja);
+  background: #ee8000;
 }
 .landing .paso__figura--sistema span:nth-child(2) {
   background: var(--coral);
@@ -1600,19 +1600,19 @@
   background: var(--naranja);
 }
 .landing .final__bloques span:nth-child(2) {
-  background: var(--coral);
+  background: #ebce32;
   animation-delay: 0.15s;
 }
 .landing .final__bloques span:nth-child(3) {
-  background: var(--arena);
+  background: #4eb2d4;
   animation-delay: 0.3s;
 }
 .landing .final__bloques span:nth-child(4) {
-  background: #3b5068;
+  background: #00506a;
   animation-delay: 0.45s;
 }
 .landing .final__bloques span:nth-child(5) {
-  background: var(--ambar);
+  background: #f85f5a;
   animation-delay: 0.6s;
 }
 /* ---------- Pie ---------- */
