@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { CameraIcon, ImagesIcon } from '@phosphor-icons/react';
 import { ConsejosFoto } from '@/components/Cuaderno/ConsejosFoto';
+import { DestinoSubida } from '@/components/Cuaderno/DestinoSubida';
 import { MiniaturaPagina, type EstadoHoja } from '@/components/Cuaderno/MiniaturaPagina';
 import { Button, PageHeading, StickyActionBar, buttonClasses } from '@/components/ui';
 import { useSubirLote } from '@/hooks/lotes/mutations';
@@ -22,6 +23,7 @@ export function SubirCuadernoPage() {
   const [paginas, setPaginas] = useState<Pagina[]>([]);
   const [aviso, setAviso] = useState<string>();
   const [preparando, setPreparando] = useState(false);
+  const [bloqueDestinoId, setBloqueDestinoId] = useState<string>();
   const subirLote = useSubirLote();
   const navigate = useNavigate();
   const paginasActuales = useRef(paginas);
@@ -89,10 +91,13 @@ export function SubirCuadernoPage() {
         }
       }
       if (fallo) return;
-      subirLote.mutate(fotos, {
-        onSuccess: (lote) =>
-          void navigate({ to: '/cuaderno/$loteId', params: { loteId: lote.id } }),
-      });
+      subirLote.mutate(
+        { fotos, bloqueDestinoId },
+        {
+          onSuccess: (lote) =>
+            void navigate({ to: '/cuaderno/$loteId', params: { loteId: lote.id } }),
+        },
+      );
     } finally {
       setPreparando(false);
     }
@@ -109,6 +114,12 @@ export function SubirCuadernoPage() {
       />
 
       <ConsejosFoto />
+
+      <DestinoSubida
+        bloqueId={bloqueDestinoId}
+        onCambiar={setBloqueDestinoId}
+        disabled={enviando}
+      />
 
       <section aria-label="Agregar hojas" className="flex flex-col gap-3">
         <p aria-live="polite" className="m-0 text-body font-semibold">

@@ -65,6 +65,7 @@ export type AccionRevision =
   | { tipo: 'agregarColumna' };
 
 const MAX_TEXTO = 1000;
+const ES_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Id del control de una celda: sirve para llevarle el foco desde «Siguiente duda». */
 export const idCelda = ({ filaId, clave }: PosicionCelda) => `celda-${filaId}-${clave}`;
@@ -77,8 +78,8 @@ const MENSAJE_CELDA: Record<Exclude<TipoCampo, 'TEXTO'>, string> = {
   FECHA: 'Elegí una fecha válida.',
   OPCION: 'Elegí una de las opciones.',
   SI_NO: 'Elegí Sí o No.',
-  // El cuaderno no crea conexiones: esas columnas se completan desde Cargar y ver.
-  RELACION: 'Esta columna se completa desde Cargar y ver.',
+  // El cuaderno no crea conexiones, pero sí completa las de una tabla que ya las tiene: se elige la fila.
+  RELACION: 'Elegí una fila de la tabla conectada.',
   FORMULA: 'Esta columna se calcula sola.',
 };
 
@@ -239,6 +240,8 @@ export function errorDeCelda(columna: ColumnaRevision, celda: CeldaRevision) {
   if (columna.tipo === 'TEXTO') {
     return texto.length > MAX_TEXTO ? `Usá hasta ${MAX_TEXTO} caracteres.` : undefined;
   }
+  // El valor de una conexión es el id de la fila elegida, no un texto escrito.
+  if (columna.tipo === 'RELACION') return ES_ID.test(texto) ? undefined : MENSAJE_CELDA.RELACION;
   const normalizado = columna.tipo === 'NUMERO' ? texto.replace(',', '.') : texto;
   const valido = esValorInicialValido(columna.tipo, normalizado, opcionesLimpias(columna));
   return valido ? undefined : MENSAJE_CELDA[columna.tipo];

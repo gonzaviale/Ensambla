@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.mapper.lote.FotoArchivoMapper;
 import com.ensambla.backend.domain.mapper.lote.LoteItemMapper;
 import com.ensambla.backend.domain.mapper.lote.ObtenerLoteMapper;
 import com.ensambla.backend.domain.mapper.lote.SubirLoteMapper;
+import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.lote.LoteSubidaService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.useCase.lote.ObtenerFotoLoteUseCase;
@@ -52,11 +53,13 @@ public class LoteUseCaseConfig {
     public SubirLoteUseCase subirLoteUseCase(
             NegocioService negocioService,
             LoteSubidaService loteSubidaService,
+            BloqueService bloqueService,
             SubirLoteMapper subirLoteMapper,
             Clock clock) {
         return new SubirLoteUseCase(
                 negocioService,
                 loteSubidaService,
+                bloqueService,
                 subirLoteMapper,
                 clock);
     }

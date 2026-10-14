@@ -2,11 +2,13 @@ package com.ensambla.backend.infrastructure.repository;
 
 import com.ensambla.backend.domain.model.enums.EstadoLote;
 import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
+import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.ConsumoDiario;
 import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
+import com.ensambla.backend.domain.service.procesamiento.ConexionesLecturaService;
 import com.ensambla.backend.domain.service.procesamiento.ProcesamientoService;
 import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
 import com.ensambla.backend.domain.useCase.procesamiento.ProcesarLoteUseCase;
@@ -89,7 +91,8 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
         Files.write(archivos.resolve(negocioId + "/segunda.jpg"), new byte[]{4, 5, 6});
         var procesamientoService = new ProcesamientoService(procesamientoRepository,
                 new ArchivoCuadernoLocalAdapter(archivos, 10), lectorCuadernoPort,
-                new PropuestaLecturaService(), ProcesamientoTestData.politica());
+                new PropuestaLecturaService(), new ConexionesLecturaService(null, null),
+                ProcesamientoTestData.politica());
         var useCase = new ProcesarLoteUseCase(procesamientoService, Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
 
         useCase.execute();
@@ -341,6 +344,35 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
         assertThat(bloques.getFirst().campos().getFirst().id()).isEqualTo(campoId);
         assertThat(bloques.getFirst().campos().getFirst().opciones()).containsExactly("A", "B");
         assertThat(procesamientoRepository.bloques(UUID.randomUUID())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Lee a qué tabla apunta cada campo de conexión")
+    void bloquesShouldReadRelatedBloqueOfConexionCampo() {
+        UUID proyectoId = UUID.randomUUID();
+        UUID ventasId = UUID.randomUUID();
+        UUID clientesId = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO proyecto (id, negocio_id, nombre) VALUES (?, ?, 'Proyecto')",
+                proyectoId, negocioId);
+        jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre) VALUES (?, ?, ?, 'Clientes')",
+                clientesId, negocioId, proyectoId);
+        jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre) VALUES (?, ?, ?, 'Ventas')",
+                ventasId, negocioId, proyectoId);
+        jdbcTemplate.update("""
+                INSERT INTO campo (negocio_id, bloque_id, nombre, tipo, opciones, bloque_relacionado_id)
+                VALUES (?, ?, 'Cliente', 'RELACION', '[]', ?)
+                """, negocioId, ventasId, clientesId);
+        jdbcTemplate.update("""
+                INSERT INTO campo (negocio_id, bloque_id, nombre, tipo, opciones) VALUES (?, ?, 'Monto', 'NUMERO', '[]')
+                """, negocioId, ventasId);
+
+        List<CampoConocido> campos = procesamientoRepository.bloques(negocioId).stream()
+                .filter(bloque -> bloque.id().equals(ventasId))
+                .findFirst().orElseThrow().campos();
+
+        assertThat(campos).extracting(CampoConocido::nombre, CampoConocido::bloqueRelacionadoId)
+                .containsExactlyInAnyOrder(org.assertj.core.groups.Tuple.tuple("Cliente", clientesId),
+                        org.assertj.core.groups.Tuple.tuple("Monto", null));
     }
 
     private UUID givenLote() {

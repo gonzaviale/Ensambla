@@ -18,6 +18,7 @@ import java.io.UncheckedIOException;
 import java.util.List;
 
 import static com.ensambla.backend.support.LoteTestData.AHORA;
+import static com.ensambla.backend.support.LoteTestData.BLOQUE_ID;
 import static com.ensambla.backend.support.LoteTestData.FOTO_ID;
 import static com.ensambla.backend.support.LoteTestData.JPEG;
 import static com.ensambla.backend.support.LoteTestData.LOTE_ID;
@@ -42,10 +43,20 @@ class LotePresentationMapperTest {
     void toSubirRequestShouldReadBytesInOrder() {
         List<MultipartFile> fotos = List.of(archivo(JPEG), archivo(PNG));
 
-        SubirLoteRequest result = lotePresentationMapper.toSubirRequest(USUARIO_ID, fotos);
+        SubirLoteRequest result = lotePresentationMapper.toSubirRequest(USUARIO_ID, fotos, null);
 
         assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(result.fotos()).containsExactly(JPEG, PNG);
+        assertThat(result.bloqueDestinoId()).isNull();
+    }
+
+    @Test
+    @DisplayName("Arma el pedido de subida con el bloque destino elegido")
+    void toSubirRequestShouldKeepBloqueDestino() {
+        SubirLoteRequest result = lotePresentationMapper.toSubirRequest(
+                USUARIO_ID, List.of(archivo(JPEG)), BLOQUE_ID);
+
+        assertThat(result.bloqueDestinoId()).isEqualTo(BLOQUE_ID);
     }
 
     @Test
@@ -53,7 +64,7 @@ class LotePresentationMapperTest {
     void toSubirRequestShouldFailWhenFileCannotBeRead() throws IOException {
         List<MultipartFile> fotos = List.of(givenUnreadableFile());
 
-        assertThatThrownBy(() -> lotePresentationMapper.toSubirRequest(USUARIO_ID, fotos))
+        assertThatThrownBy(() -> lotePresentationMapper.toSubirRequest(USUARIO_ID, fotos, null))
                 .isInstanceOf(UncheckedIOException.class)
                 .hasMessage("No se pudo leer la foto recibida");
     }

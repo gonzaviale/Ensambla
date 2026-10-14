@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.ia;
 
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
+import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import com.ensambla.backend.domain.model.enums.TipoCampo;
 import com.ensambla.backend.domain.model.enums.TipoRegistroCuaderno;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
@@ -22,6 +23,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Valida la salida del modelo y la convierte al dominio. No confía en nada de lo que devuelve la IA: tipos,
@@ -47,12 +49,25 @@ class LecturaIaJsonMapper {
         if (json == null) {
             throw invalida("falta el bloque propuesto");
         }
-        List<CampoPropuesto> campos = listaOVacia(json.campos()).stream().map(this::campo).toList();
+        UUID existente = bloqueExistente(json.bloqueExistenteId(), bloquesExistentes);
+        Set<String> conexiones = conexionesDe(existente, bloquesExistentes);
+        List<CampoPropuesto> campos = listaOVacia(json.campos()).stream()
+                .map(campo -> campo(campo, conexiones))
+                .toList();
         if (campos.isEmpty()) {
             throw invalida("el bloque no tiene campos");
         }
-        return new BloquePropuesto(textoObligatorio(json.nombre(), "el nombre del bloque"),
-                bloqueExistente(json.bloqueExistenteId(), bloquesExistentes), campos);
+        return new BloquePropuesto(textoObligatorio(json.nombre(), "el nombre del bloque"), existente, campos);
+    }
+
+    /** Nombres de los campos RELACION del bloque existente elegido: son los únicos que la IA puede leer como conexión. */
+    private Set<String> conexionesDe(UUID bloqueId, List<BloqueConocido> bloquesExistentes) {
+        return bloquesExistentes.stream()
+                .filter(bloque -> bloque.id().equals(bloqueId))
+                .flatMap(bloque -> bloque.campos().stream())
+                .filter(campo -> campo.tipo() == TipoCampo.RELACION)
+                .map(campo -> TextoNormalizado.de(campo.nombre()))
+                .collect(Collectors.toSet());
     }
 
     /** Sólo se acepta un id que esté entre los bloques del negocio; cualquier otro se descarta (propone uno nuevo). */
@@ -64,9 +79,13 @@ class LecturaIaJsonMapper {
                 .orElse(null);
     }
 
-    private CampoPropuesto campo(CampoJson json) {
+    private CampoPropuesto campo(CampoJson json, Set<String> conexiones) {
         String clave = textoObligatorio(json.clave(), "la clave de un campo");
         TipoCampo tipo = enumeracion(TipoCampo.class, json.tipo(), "el tipo del campo " + clave);
+        if (tipo == TipoCampo.RELACION && !conexiones.contains(TextoNormalizado.de(textoObligatorio(
+                json.nombre(), "el nombre del campo " + clave)))) {
+            tipo = TipoCampo.TEXTO; // una conexión que el bloque no tiene se lee como el texto escrito
+        }
         List<String> opciones = listaOVacia(json.opciones());
         if (tipo == TipoCampo.OPCION && opciones.isEmpty()) {
             throw invalida("el campo " + clave + " es OPCION y no tiene opciones");

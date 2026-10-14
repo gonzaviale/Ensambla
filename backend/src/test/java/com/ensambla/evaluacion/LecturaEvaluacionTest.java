@@ -45,7 +45,7 @@ class LecturaEvaluacionTest {
         Path entrada = givenSolicitud();
         Path salida = carpeta.resolve("salida.json");
         LectorCuadernoPort lector = mock(LectorCuadernoPort.class);
-        when(lector.leer(any(), any())).thenThrow(new LecturaCuadernoException("Falla"));
+        when(lector.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Falla"));
         var evaluacion = new LecturaEvaluacion(lector, JsonMapper.builder().build());
 
         evaluacion.ejecutar(entrada, salida, Duration.ofSeconds(5));

@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.model.procesamiento;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.enums.TipoCampo;
 
 import java.util.HashSet;
 import java.util.List;
@@ -72,6 +73,10 @@ public record ConfirmacionLectura(
         for (CampoConfirmado campo : campos) {
             if (esVacio(campo.clave()) || !vistas.add(campo.clave())) {
                 throw new BusinessRuleException("Las columnas necesitan una clave distinta cada una");
+            }
+            if (TipoCampo.RELACION.name().equals(campo.tipo()) && campo.campoId() == null) {
+                throw new BusinessRuleException(
+                        "Una conexión con otra tabla no se puede crear acá: elegí una columna de tu tabla");
             }
         }
     }

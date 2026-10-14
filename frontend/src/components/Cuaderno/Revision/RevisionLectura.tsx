@@ -23,6 +23,7 @@ import { leerErrorServidor } from '@/hooks/errores';
 import { urlFotoLote } from '@/hooks/lotes/fotos';
 import { useConfirmarLectura } from '@/hooks/lotes/mutations';
 import { useLote } from '@/hooks/lotes/queries';
+import { useConexiones } from '@/hooks/lotes/useConexiones';
 import { useRevisionLectura } from '@/hooks/lotes/useRevisionLectura';
 import { useEsEscritorio } from '@/hooks/useMediaQuery';
 import {
@@ -74,8 +75,16 @@ function motivosDeDatos(borrador: BorradorRevision) {
   return motivos;
 }
 
-function motivosDeDestino(destino: Destino) {
+function motivosDeDestino(destino: Destino, borrador: BorradorRevision) {
   const motivos: string[] = [];
+  if (
+    destino.modo !== 'bloque' &&
+    borrador.columnas.some((columna) => columna.tipo === 'RELACION')
+  ) {
+    motivos.push(
+      'Una columna conectada con otra tabla sólo se puede guardar en tu tabla existente.',
+    );
+  }
   if (destino.modo === 'nuevo' && !destino.nombreProyecto.trim()) {
     motivos.push('Escribí un nombre para el sistema.');
   }
@@ -103,6 +112,7 @@ export function RevisionLectura({ loteId, propuesta }: Props) {
     propuesta,
   );
   const confirmar = useConfirmarLectura(loteId);
+  const conexiones = useConexiones(borrador.columnas, destino);
   const [columnaEditando, setColumnaEditando] = useState<string>();
   const [pagina, setPagina] = useState(1);
   const [duda, setDuda] = useState<PosicionCelda>();
@@ -117,7 +127,7 @@ export function RevisionLectura({ loteId, propuesta }: Props) {
   );
   const porRevisar = cantidadPorRevisar(borrador);
   const motivosDatos = motivosDeDatos(borrador);
-  const motivosDestino = motivosDeDestino(destino);
+  const motivosDestino = motivosDeDestino(destino, borrador);
   const motivos = [...motivosDatos, ...motivosDestino];
   const paso = porRevisar > 0 || motivosDatos.length > 0 ? 0 : motivosDestino.length > 0 ? 1 : 2;
   const columna = borrador.columnas.find((item) => item.clave === columnaEditando);
@@ -267,6 +277,7 @@ export function RevisionLectura({ loteId, propuesta }: Props) {
           {esEscritorio ? (
             <TablaRevision
               borrador={borrador}
+              conexiones={conexiones}
               columnaEditando={columnaEditando}
               erroresServidor={erroresServidor}
               onAccion={actuar}
@@ -277,6 +288,7 @@ export function RevisionLectura({ loteId, propuesta }: Props) {
           ) : (
             <FilasTarjetas
               borrador={borrador}
+              conexiones={conexiones}
               erroresServidor={erroresServidor}
               onAccion={actuar}
               onEnfocarCelda={enfocarCelda}

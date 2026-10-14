@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static com.ensambla.backend.support.LoteTestData.AHORA;
+import static com.ensambla.backend.support.LoteTestData.BLOQUE_ID;
 import static com.ensambla.backend.support.LoteTestData.CLAVE;
 import static com.ensambla.backend.support.LoteTestData.FOTO_ID;
 import static com.ensambla.backend.support.LoteTestData.JPEG;
@@ -36,6 +37,7 @@ class LoteSubidaRepositoryMapperTest {
 
         assertThat(result.getId()).isEqualTo(LOTE_ID);
         assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(result.getBloqueDestinoId()).isEqualTo(BLOQUE_ID);
         assertThat(result.getEstado()).isEqualTo(EstadoLote.PENDIENTE);
         assertThat(result.getIntentos()).isZero();
         assertThat(result.getCreadoEn()).isEqualTo(AHORA);
@@ -51,6 +53,7 @@ class LoteSubidaRepositoryMapperTest {
 
         assertThat(result.getId()).isEqualTo(LOTE_ID);
         assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(result.getBloqueDestinoId()).isEqualTo(BLOQUE_ID);
         assertThat(result.getEstado()).isEqualTo(EstadoLote.PENDIENTE);
         assertThat(result.getIntentos()).isZero();
         assertThat(result.getCreadoEn()).isEqualTo(AHORA);

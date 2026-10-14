@@ -26,7 +26,7 @@
             "properties": {
               "clave": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
               "nombre": { "type": "string", "minLength": 1, "maxLength": 120 },
-              "tipo": { "type": "string", "enum": ["TEXTO", "NUMERO", "FECHA", "OPCION", "SI_NO"] },
+              "tipo": { "type": "string", "enum": ["TEXTO", "NUMERO", "FECHA", "OPCION", "SI_NO", "RELACION"] },
               "opciones": { "type": "array", "items": { "type": "string" } }
             }
           }
