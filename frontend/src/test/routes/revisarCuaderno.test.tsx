@@ -2,8 +2,11 @@ import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { confirmarLectura, obtenerLectura, subirLote } from '@/api/lotes';
+import { crearBloque } from '@/api/bloques';
+import { crearCampo } from '@/api/campos';
 import { crearProyecto, crearProyectoDesdePlantilla } from '@/api/proyectos';
 import { plantillasMock } from '@/mocks/db/estado';
+import { agregarRegistro } from '@/mocks/db/registros';
 import { renderApp } from '@/test/renderApp';
 import {
   ESPERA,
@@ -13,9 +16,20 @@ import {
   verifyHeadingPresentAsync,
   verifyPathAsync,
 } from '@/test/testHelpers';
+import type { GuardarCampo } from '@/types/campo';
 import type { Lectura } from '@/types/lectura';
 
 const TITULO = 'Esto es lo que leímos de tu cuaderno';
+
+const columna = (nombre: string, tipo: GuardarCampo['tipo']): GuardarCampo => ({
+  nombre,
+  tipo,
+  obligatorio: false,
+  valorInicial: null,
+  opciones: [],
+  bloqueRelacionadoId: null,
+  formula: null,
+});
 
 function elemento<T>(items: readonly T[], indice = 0): T {
   const item = items[indice];
@@ -286,6 +300,107 @@ describe('H-30: guardar lo revisado', () => {
 
     await verifyPathAsync(router, `/proyectos/${proyecto.id}/usar`);
     expect(await screen.findByText('Sal', {}, ESPERA)).toBeInTheDocument();
+  });
+
+  describe('columnas conectadas con otra tabla', () => {
+    // Productos (Nombre) y Ventas (Producto → Productos, Cantidad), con una lectura que ya reconoció Ventas.
+    async function abrirVentasConConexion() {
+      setupUsuarioConSesion();
+      const proyecto = await crearProyecto({ nombre: 'Mi almacén' });
+      const productos = await crearBloque({ proyectoId: proyecto.id, nombre: 'Productos' });
+      const ventas = await crearBloque({ proyectoId: proyecto.id, nombre: 'Ventas' });
+      const nombre = await crearCampo({
+        bloqueId: productos.id,
+        datos: columna('Nombre', 'TEXTO'),
+      });
+      const producto = await crearCampo({
+        bloqueId: ventas.id,
+        datos: { ...columna('Producto', 'RELACION'), bloqueRelacionadoId: productos.id },
+      });
+      const cantidad = await crearCampo({
+        bloqueId: ventas.id,
+        datos: columna('Cantidad', 'NUMERO'),
+      });
+      const harina = agregarRegistro(
+        productos.id,
+        { [nombre.id]: 'Harina 000' },
+        '2026-10-01T10:00:00Z',
+      );
+      agregarRegistro(productos.id, { [nombre.id]: 'Azúcar' }, '2026-10-02T10:00:00Z');
+      const lote = await crearLote();
+      const lectura: Lectura = {
+        loteId: lote.id,
+        estado: 'LISTO',
+        intentos: 1,
+        propuesta: {
+          nombre: 'Ventas',
+          bloqueExistenteId: ventas.id,
+          mapeoCampos: { producto: producto.id, cantidad: cantidad.id },
+          campos: [
+            { clave: 'producto', nombre: 'Producto', tipo: 'RELACION' },
+            { clave: 'cantidad', nombre: 'Cantidad', tipo: 'NUMERO' },
+          ],
+          filas: [
+            {
+              pagina: 1,
+              renglon: 1,
+              datos: {
+                producto: { valor: harina.id, confianza: 0.9 },
+                cantidad: { valor: '2', confianza: 0.99 },
+              },
+            },
+            {
+              pagina: 1,
+              renglon: 2,
+              datos: {
+                producto: { valor: null, confianza: 0 },
+                cantidad: { valor: '1', confianza: 0.99 },
+              },
+            },
+          ],
+          advertencias: [
+            'No encontramos «Azucar» en «Productos», o hay más de una igual: elegila vos.',
+          ],
+        },
+      };
+      setupServerResponse('get', '/lotes/:id/lectura', 200, lectura);
+      const user = userEvent.setup();
+      const router = renderApp(`/cuaderno/${lote.id}`);
+      await verifyHeadingPresentAsync(TITULO);
+      return { user, router, proyecto };
+    }
+
+    it('muestra la fila que la lectura reconoció y deja elegir la que no encontró', async () => {
+      const { user, router, proyecto } = await abrirVentasConConexion();
+
+      expect(
+        await screen.findByRole('button', { name: 'Producto, fila 1: Harina 000' }, ESPERA),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/No encontramos «Azucar» en «Productos»/)).toBeInTheDocument();
+      const sinElegir = screen.getByRole('button', { name: 'Producto, fila 2: sin elegir' });
+      expect(sinElegir).toHaveAttribute('aria-describedby');
+
+      await user.click(sinElegir);
+      await user.click(await screen.findByRole('radio', { name: 'Azúcar' }, ESPERA));
+      await user.click(screen.getByRole('button', { name: 'Listo' }));
+
+      expect(
+        await screen.findByRole('button', { name: 'Producto, fila 2: Azúcar' }, ESPERA),
+      ).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Guardar mi cuaderno' }));
+      await verifyPathAsync(router, `/proyectos/${proyecto.id}/usar`);
+    });
+
+    it('no deja guardar la conexión en un sistema nuevo', async () => {
+      const { user } = await abrirVentasConConexion();
+      await screen.findByRole('button', { name: 'Producto, fila 1: Harina 000' }, ESPERA);
+
+      await user.click(screen.getByRole('radio', { name: /Crear un sistema nuevo/ }));
+
+      expect(
+        screen.getAllByText(/sólo se puede guardar en tu tabla existente/).length,
+      ).toBeGreaterThan(0);
+    });
   });
 
   it('muestra junto al dato el error que devuelve el servidor y deja corregirlo', async () => {

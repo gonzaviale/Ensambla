@@ -25,6 +25,33 @@ para revisión; un destino explícito incompatible produce ERROR.
 El mapeo relaciona las claves leídas con los UUID de campos existentes.
 Esta historia **no crea registros definitivos ni confirma bloques nuevos**: eso es ENS-121 / H-30 (ver [Revisión y confirmación](#revisión-y-confirmación-ens-121--h-30)).
 
+## Destino elegido al subir y conexiones entre tablas
+
+**Destino fijo (opcional).** `POST /api/lotes` acepta `bloqueDestinoId` (parte multipart opcional). Se valida contra el
+negocio de la sesión (un bloque ajeno responde 404) y se guarda en `lote_subida.bloque_destino_id`. Con destino, el
+contexto que recibe la IA incluye **sólo ese bloque** y le pide copiar su nombre, campos, tipos y opciones tal cual,
+sin agregar campos: así no adivina a cuál sumar las filas y `PropuestaLecturaService` encuentra el bloque compatible.
+Sin destino, la IA ve todos los bloques del negocio y propone como antes (la pantalla de subida lo ofrece como
+«Una tabla nueva»). Si las fotos no tienen que ver con el bloque, la IA devuelve filas vacías y una advertencia.
+
+**Contexto con tipos.** Cada campo se le muestra como `Nombre (TIPO)`, `Nombre (OPCION: a|b)` o
+`Nombre (RELACION → Tabla: devolvé el texto tal como está escrito)`. `PromptLecturaCuaderno.VERSION` pasó a `v2`:
+hay que volver a medir la precisión (T-099) antes de comparar con resultados de `v1`.
+
+**Conexiones (`RELACION`).** La IA sólo lee conexiones de campos `RELACION` que ya tiene el bloque existente (destino
+o reconocido) y devuelve el **texto** escrito en el cuaderno, nunca un id. Si propone una conexión que el bloque no
+tiene, se lee como `TEXTO`. Después, `ConexionesLecturaService` busca en la tabla conectada una fila cuya etiqueta
+(`Referencia`) sea igual al texto sin importar tildes ni mayúsculas:
+
+| Coincidencias | Resultado |
+|---|---|
+| Una | La celda guarda el id de la fila, con la confianza de la lectura |
+| Ninguna o varias | Celda vacía, confianza 0 y una advertencia; la persona la elige en la revisión |
+
+En la revisión, la celda muestra el nombre de la fila y se cambia con el mismo buscador del formulario de registros.
+Una conexión sólo se guarda sumando las filas a la tabla que ya la tiene: `POST …/confirmar` rechaza una columna
+`RELACION` sin `campoId` y comprueba que cada id exista en la tabla conectada del negocio.
+
 ## Revisión y confirmación (ENS-121 / H-30)
 
 La persona revisa la propuesta con la foto al lado, la corrige y recién entonces se guarda. Nada se escribe
@@ -65,7 +92,7 @@ se agregó a mano, y `valores` por clave **ya tipados**: número, sí/no o texto
 La tarea de subida debe guardar archivos privados y crear, en su transacción, el lote PENDIENTE y sus fotos.
 No se agrega otra ruta de subida en esta historia.
 
-- Negocio y bloque de destino se validan desde la sesión en la subida.
+- Negocio y bloque de destino (`bloqueDestinoId`, opcional) se validan desde la sesión en la subida.
 - `foto_cuaderno.posicion` establece el orden; el lector recibe números consecutivos desde 1.
 - Los archivos llegan comprimidos y rotados, como define `PaginaCuaderno`.
 - El adaptador local admite claves `<uuid-negocio>/<archivo>`, relativas a una raíz privada.

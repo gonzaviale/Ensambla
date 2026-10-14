@@ -13,10 +13,13 @@ import {
 } from '@/lib/revisionLectura';
 import { AvisoCelda } from './AvisoCelda';
 import { avisoDeCelda } from './avisosRevision';
+import type { Conexion } from '@/hooks/lotes/useConexiones';
 import { CeldaRevision } from './CeldaRevision';
 
 type Props = {
   borrador: BorradorRevision;
+  /** Por clave de columna: a qué tabla apunta cada columna de conexión. */
+  conexiones: Record<string, Conexion>;
   columnaEditando?: string;
   /** Errores que devolvió el servidor, por `${filaId}:${clave}`. */
   erroresServidor: Record<string, string>;
@@ -31,6 +34,7 @@ type Props = {
 // columna (renglón y hoja) queda fija al desplazar hacia los costados.
 export function TablaRevision({
   borrador,
+  conexiones,
   columnaEditando,
   erroresServidor,
   onAccion,
@@ -120,6 +124,7 @@ export function TablaRevision({
                           celda={celda}
                           numeroFila={numero}
                           tamano="compacta"
+                          conexion={conexiones[columna.clave]}
                           invalida={errorDeCelda(columna, celda) !== undefined || !!errorServidor}
                           dudosa={esDudosa(celda)}
                           avisoId={conAviso ? `aviso-${idCelda(posicion)}` : undefined}

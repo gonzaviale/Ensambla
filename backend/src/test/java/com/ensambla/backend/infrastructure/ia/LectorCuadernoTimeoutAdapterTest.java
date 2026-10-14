@@ -50,10 +50,10 @@ class LectorCuadernoTimeoutAdapterTest {
     @DisplayName("Devuelve el resultado del lector dentro del plazo")
     void leerShouldReturnDelegateResult() {
         try (ExecutorService real = Executors.newSingleThreadExecutor()) {
-            when(lectorCuadernoPort.leer(List.of(), List.of())).thenReturn(ProcesamientoTestData.lectura());
+            when(lectorCuadernoPort.leer(List.of(), List.of(), null)).thenReturn(ProcesamientoTestData.lectura());
             var lector = new LectorCuadernoTimeoutAdapter(lectorCuadernoPort, real, Duration.ofSeconds(5));
 
-            LecturaCuaderno resultado = lector.leer(List.of(), List.of());
+            LecturaCuaderno resultado = lector.leer(List.of(), List.of(), null);
 
             assertThat(resultado).isEqualTo(ProcesamientoTestData.lectura());
         }
@@ -65,7 +65,7 @@ class LectorCuadernoTimeoutAdapterTest {
         givenFuture();
         when(futuro.get(100, TimeUnit.MILLISECONDS)).thenThrow(new TimeoutException());
 
-        assertThatThrownBy(() -> adapter.leer(List.of(), List.of())).hasMessageContaining("tiempo de respuesta");
+        assertThatThrownBy(() -> adapter.leer(List.of(), List.of(), null)).hasMessageContaining("tiempo de respuesta");
         verify(futuro).cancel(true);
     }
 
@@ -76,7 +76,7 @@ class LectorCuadernoTimeoutAdapterTest {
         when(futuro.get(100, TimeUnit.MILLISECONDS)).thenThrow(new InterruptedException());
 
         try {
-            assertThatThrownBy(() -> adapter.leer(List.of(), List.of())).hasMessageContaining("interrumpió");
+            assertThatThrownBy(() -> adapter.leer(List.of(), List.of(), null)).hasMessageContaining("interrumpió");
             assertThat(Thread.currentThread().isInterrupted()).isTrue();
             verify(futuro).cancel(true);
         } finally {
@@ -91,7 +91,7 @@ class LectorCuadernoTimeoutAdapterTest {
         LecturaCuadernoException error = new LecturaCuadernoException("Salida inválida", null, false);
         when(futuro.get(100, TimeUnit.MILLISECONDS)).thenThrow(new ExecutionException(error));
 
-        assertThatThrownBy(() -> adapter.leer(List.of(), List.of())).isSameAs(error);
+        assertThatThrownBy(() -> adapter.leer(List.of(), List.of(), null)).isSameAs(error);
     }
 
     @Test
@@ -101,7 +101,7 @@ class LectorCuadernoTimeoutAdapterTest {
         when(futuro.get(100, TimeUnit.MILLISECONDS))
                 .thenThrow(new ExecutionException(new IllegalStateException("privado")));
 
-        assertThatThrownBy(() -> adapter.leer(List.of(), List.of()))
+        assertThatThrownBy(() -> adapter.leer(List.of(), List.of(), null))
                 .hasMessage(LectorCuadernoIaAdapter.ERROR_PROVEEDOR);
     }
 

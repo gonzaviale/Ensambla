@@ -9,17 +9,26 @@ import { estado } from '../db/estado';
 import { errorResponse } from '../errores';
 import { api, exigirCsrf, exigirSesion, LATENCIA_BACKEND_MS } from './comun';
 
-// Lotes creados por el mock: cuántas veces se consultó su lectura y si ya se confirmaron.
-type LoteMock = { lote: Lote; consultas: number; confirmado: boolean };
+// Lotes creados por el mock: cuántas veces se consultó su lectura, si ya se confirmaron y el bloque
+// destino que eligió la persona al subir las fotos (null si dejó que la IA proponga uno).
+type LoteMock = {
+  lote: Lote;
+  consultas: number;
+  confirmado: boolean;
+  bloqueDestinoId: string | null;
+};
 const lotes = new Map<string, LoteMock>();
 
 // Un PNG de 1×1 para que las fotos del mock se vean como imagen.
 const PNG_UN_PIXEL = Uint8Array.from(
-  atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg=='),
+  atob(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==',
+  ),
   (caracter) => caracter.charCodeAt(0),
 );
 
-const respuestaFoto = () => new HttpResponse(PNG_UN_PIXEL, { headers: { 'Content-Type': 'image/png' } });
+const respuestaFoto = () =>
+  new HttpResponse(PNG_UN_PIXEL, { headers: { 'Content-Type': 'image/png' } });
 
 const PROPUESTA_EJEMPLO: NonNullable<Lectura['propuesta']> = {
   tipoRegistro: 'VENTAS',
@@ -106,9 +115,11 @@ function errorDeValor(tipo: Campo['tipo'], opciones: string[], valor: string | n
         : 'Elegí una de las opciones';
     case 'TEXTO':
       return typeof valor === 'string' ? undefined : 'Tiene que ser un texto';
-    // Lo leído del cuaderno no elige filas de otra tabla.
+    // La fila elegida en la revisión tiene que existir (el backend lo comprueba contra la tabla conectada).
     case 'RELACION':
-      return 'Elegí una fila de la tabla relacionada';
+      return typeof valor === 'string' && estado.registros.has(valor)
+        ? undefined
+        : 'Esa fila ya no existe';
     case 'FORMULA':
       return 'Este dato se calcula solo';
   }
@@ -181,13 +192,21 @@ function destinoDeLaConfirmacion(datos: Confirmar) {
   return { proyecto, bloque, esNuevo: !datos.proyectoId };
 }
 
+// Bloque destino que la persona eligió al subir las fotos del lote (null si dejó que la IA proponga uno).
+export const destinoDelLote = (loteId: string) => lotes.get(loteId)?.bloqueDestinoId ?? null;
+
 // Simula POST /api/lotes (T-090): valida la cantidad y crea un lote pendiente. No guarda los archivos.
 export const handlersLotes = [
   http.post(api('/lotes'), async ({ request }) => {
     await delay(LATENCIA_BACKEND_MS);
     const error = exigirCsrf(request) ?? exigirSesion(request);
     if (error) return error;
-    const fotos = (await request.formData()).getAll('fotos');
+    const formulario = await request.formData();
+    const fotos = formulario.getAll('fotos');
+    const bloqueDestinoId = formulario.get('bloqueDestinoId');
+    if (typeof bloqueDestinoId === 'string' && !bloqueDeLaSesion(bloqueDestinoId)) {
+      return errorResponse(404, 'Bloque no encontrado', '/api/lotes');
+    }
     if (fotos.length === 0) {
       return errorResponse(400, 'Falta el parámetro: fotos', '/api/lotes');
     }
@@ -205,7 +224,12 @@ export const handlersLotes = [
         tamanioBytes: foto instanceof Blob ? foto.size : 0,
       })),
     };
-    lotes.set(lote.id, { lote, consultas: 0, confirmado: false });
+    lotes.set(lote.id, {
+      lote,
+      consultas: 0,
+      confirmado: false,
+      bloqueDestinoId: typeof bloqueDestinoId === 'string' ? bloqueDestinoId : null,
+    });
     return HttpResponse.json(lote, {
       status: 201,
       headers: { Location: `/api/lotes/${lote.id}` },
@@ -274,7 +298,11 @@ export const handlersLotes = [
 
     const destino = destinoDeLaConfirmacion(datos);
     if (!destino) return errorResponse(404, 'No se encontró el destino', path);
-    const errores = validarFilas(datos, 'esNuevo' in destino ? undefined : destino.bloque, item.lote.fotos);
+    const errores = validarFilas(
+      datos,
+      'esNuevo' in destino ? undefined : destino.bloque,
+      item.lote.fotos,
+    );
     if (Object.keys(errores).length > 0) {
       return errorResponse(400, 'Revisá los datos marcados', path, errores);
     }

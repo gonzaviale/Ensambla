@@ -49,7 +49,7 @@ class LoteSubidaServiceTest {
     void subirShouldStoreFotosAndSaveLote() {
         givenRepositorySaves();
 
-        LoteSubida result = loteSubidaService.subir(NEGOCIO_ID, List.of(JPEG, PNG), AHORA);
+        LoteSubida result = loteSubidaService.subir(NEGOCIO_ID, List.of(JPEG, PNG), null, AHORA);
 
         assertThat(result.getId()).isEqualTo(LOTE_ID);
         verify(archivoCuadernoPort).guardar(eq(NEGOCIO_ID), startsWith(NEGOCIO_ID + "/fotos/"), eq(JPEG));
@@ -58,11 +58,21 @@ class LoteSubidaServiceTest {
     }
 
     @Test
+    @DisplayName("Guarda el lote con el bloque destino que eligió la persona")
+    void subirShouldSaveLoteWithBloqueDestino() {
+        givenRepositorySaves();
+
+        loteSubidaService.subir(NEGOCIO_ID, List.of(JPEG), BLOQUE_ID, AHORA);
+
+        thenSavedLoteHasBloqueDestino(BLOQUE_ID);
+    }
+
+    @Test
     @DisplayName("Si una foto es inválida no guarda nada ni el lote")
     void subirShouldNotStoreWhenFotoIsInvalid() {
         List<byte[]> contenidos = List.of(JPEG, new byte[0]);
 
-        assertThatThrownBy(() -> loteSubidaService.subir(NEGOCIO_ID, contenidos, AHORA))
+        assertThatThrownBy(() -> loteSubidaService.subir(NEGOCIO_ID, contenidos, null, AHORA))
                 .isInstanceOf(BusinessRuleException.class);
         verifyNoInteractions(archivoCuadernoPort, loteSubidaRepository);
     }
@@ -72,7 +82,7 @@ class LoteSubidaServiceTest {
     void subirShouldDeleteStoredFotosWhenStorageFails() {
         givenStorageFailsOn(PNG);
 
-        assertThatThrownBy(() -> loteSubidaService.subir(NEGOCIO_ID, List.of(JPEG, PNG), AHORA))
+        assertThatThrownBy(() -> loteSubidaService.subir(NEGOCIO_ID, List.of(JPEG, PNG), null, AHORA))
                 .isInstanceOf(IllegalStateException.class);
         String guardadaJpeg = thenStoredClave(JPEG);
         String fallidaPng = thenStoredClave(PNG);
@@ -86,7 +96,7 @@ class LoteSubidaServiceTest {
     void subirShouldDeleteStoredFotosWhenSaveFails() {
         givenRepositoryFails();
 
-        assertThatThrownBy(() -> loteSubidaService.subir(NEGOCIO_ID, List.of(JPEG), AHORA))
+        assertThatThrownBy(() -> loteSubidaService.subir(NEGOCIO_ID, List.of(JPEG), null, AHORA))
                 .isInstanceOf(IllegalStateException.class);
         String guardada = thenStoredClave(JPEG);
         verify(archivoCuadernoPort).eliminar(NEGOCIO_ID, guardada);
@@ -223,6 +233,12 @@ class LoteSubidaServiceTest {
         ArgumentCaptor<String> clave = ArgumentCaptor.forClass(String.class);
         verify(archivoCuadernoPort).guardar(eq(NEGOCIO_ID), clave.capture(), eq(contenido));
         return clave.getValue();
+    }
+
+    private void thenSavedLoteHasBloqueDestino(UUID bloqueId) {
+        ArgumentCaptor<LoteSubida> lote = ArgumentCaptor.forClass(LoteSubida.class);
+        verify(loteSubidaRepository).saveConFotos(lote.capture());
+        assertThat(lote.getValue().getBloqueDestinoId()).isEqualTo(bloqueId);
     }
 
     private void thenSavedLoteHasFotos(int cantidad) {

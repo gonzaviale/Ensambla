@@ -60,8 +60,8 @@ public class ValidacionLecturaService {
                 case FECHA -> LocalDate.parse(dato.valor());
                 case SI_NO -> comprobar("true".equals(dato.valor()) || "false".equals(dato.valor()));
                 case OPCION -> comprobar(campo.opciones().contains(dato.valor()));
-                case RELACION, FORMULA -> throw new IllegalArgumentException("La lectura no propone conexiones ni fórmulas");
-                default -> { } // TEXTO: cualquier texto sirve
+                case FORMULA -> throw new IllegalArgumentException("La lectura no propone fórmulas");
+                default -> { } // TEXTO y RELACION: cualquier texto sirve (la conexión se resuelve a una fila después)
             }
         } catch (IllegalArgumentException | DateTimeParseException e) {
             throw invalida("El valor del campo " + campo.clave() + " no coincide con su tipo");

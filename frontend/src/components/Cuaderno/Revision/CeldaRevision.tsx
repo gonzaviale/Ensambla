@@ -1,9 +1,12 @@
+import type { Conexion } from '@/hooks/lotes/useConexiones';
 import { cn } from '@/lib/cn';
 import {
   opcionesLimpias,
   type CeldaRevision as Celda,
   type ColumnaRevision,
 } from '@/lib/revisionLectura';
+
+import { CeldaConexion } from './CeldaConexion';
 
 type Props = {
   id: string;
@@ -18,6 +21,8 @@ type Props = {
   avisoId?: string;
   /** "compacta" en celdas de tabla de escritorio (40 px); "normal" en tarjetas (48 px). */
   tamano?: 'compacta' | 'normal';
+  /** A qué tabla apunta la columna; sólo en las columnas de conexión. */
+  conexion?: Conexion;
   onCambiar: (texto: string) => void;
   onEnfocar: () => void;
 };
@@ -38,6 +43,7 @@ export function CeldaRevision({
   dudosa,
   avisoId,
   tamano = 'normal',
+  conexion,
   onCambiar,
   onEnfocar,
 }: Props) {
@@ -59,6 +65,24 @@ export function CeldaRevision({
     onFocus: onEnfocar,
   };
   const { texto } = celda;
+
+  if (columna.tipo === 'RELACION') {
+    return (
+      <CeldaConexion
+        id={id}
+        columna={columna}
+        celda={celda}
+        numeroFila={numeroFila}
+        conexion={conexion}
+        invalida={invalida}
+        dudosa={dudosa}
+        avisoId={avisoId}
+        tamano={tamano}
+        onCambiar={onCambiar}
+        onEnfocar={onEnfocar}
+      />
+    );
+  }
 
   if (columna.tipo === 'OPCION' || columna.tipo === 'SI_NO') {
     const opciones =

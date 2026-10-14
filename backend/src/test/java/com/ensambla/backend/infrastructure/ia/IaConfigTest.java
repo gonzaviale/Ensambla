@@ -31,7 +31,7 @@ class IaConfigTest {
         LectorCuadernoPort lector = config.lectorCuaderno(config.clienteModeloVisionSimulado(),
                 config.promptLecturaCuaderno(), JsonMapper.builder().build(), PROPERTIES);
 
-        LecturaCuaderno lectura = lector.leer(List.of(new PaginaCuaderno(1, new byte[]{1}, "image/jpeg")), List.of());
+        LecturaCuaderno lectura = lector.leer(List.of(new PaginaCuaderno(1, new byte[]{1}, "image/jpeg")), List.of(), null);
 
         thenExampleLecturaIsValid(lectura);
     }

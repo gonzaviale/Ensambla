@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.dto.lote.LoteItem;
 import com.ensambla.backend.domain.dto.lote.ObtenerLoteRequest;
 import com.ensambla.backend.domain.dto.lote.SubirLoteRequest;
 import com.ensambla.backend.domain.mapper.lote.LoteItemMapper;
+import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.lote.LoteSubidaService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.support.LoteTestData;
@@ -30,17 +31,18 @@ class LoteUseCaseConfigTest {
     private final LoteUseCaseConfig config = new LoteUseCaseConfig();
     private final NegocioService negocioService = mock(NegocioService.class);
     private final LoteSubidaService loteSubidaService = mock(LoteSubidaService.class);
+    private final BloqueService bloqueService = mock(BloqueService.class);
     private final LoteItemMapper loteItemMapper = config.loteItemMapper();
 
     @Test
     @DisplayName("El wiring de la subida conecta negocio, servicio, mapper y reloj")
     void subirLoteUseCaseShouldWireDependencies() {
         givenNegocio();
-        when(loteSubidaService.subir(NEGOCIO_ID, FOTOS, AHORA)).thenReturn(LoteTestData.lote(List.of()));
+        when(loteSubidaService.subir(NEGOCIO_ID, FOTOS, null, AHORA)).thenReturn(LoteTestData.lote(List.of()));
 
-        LoteItem result = config.subirLoteUseCase(negocioService, loteSubidaService,
+        LoteItem result = config.subirLoteUseCase(negocioService, loteSubidaService, bloqueService,
                 config.subirLoteMapper(loteItemMapper), Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC))
-                .execute(new SubirLoteRequest(USUARIO_ID, FOTOS));
+                .execute(new SubirLoteRequest(USUARIO_ID, FOTOS, null));
 
         assertThat(result.id()).isEqualTo(LOTE_ID);
     }

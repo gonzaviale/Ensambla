@@ -45,6 +45,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -192,7 +193,7 @@ class ConfirmacionLecturaServiceTest {
         assertThatThrownBy(() -> confirmar(lote, confirmacion))
                 .isInstanceOfSatisfying(RegistroInvalidoException.class,
                         e -> assertThat(e.getErrores()).containsOnly(Map.entry("filas[1].monto", "Tiene que ser un número")));
-        verifyNoInteractions(registroDatosService);
+        verify(registroDatosService, never()).crearVarios(any());
         verifyNoInteractions(loteSubidaService);
     }
 
@@ -211,7 +212,7 @@ class ConfirmacionLecturaServiceTest {
                 .isInstanceOfSatisfying(RegistroInvalidoException.class,
                         e -> assertThat(e.getErrores())
                                 .containsOnly(Map.entry("filas[0].pagina", "Esta página no está en el cuaderno")));
-        verifyNoInteractions(registroDatosService);
+        verify(registroDatosService, never()).crearVarios(any());
     }
 
     @Test
@@ -230,6 +231,44 @@ class ConfirmacionLecturaServiceTest {
                 .isInstanceOfSatisfying(RegistroInvalidoException.class,
                         e -> assertThat(e.getErrores())
                                 .containsOnly(Map.entry("filas[0]." + EXTRA_ID, "Este dato es obligatorio")));
+    }
+
+    @Test
+    @DisplayName("Ubica por columna el error de una conexión que apunta a una fila que no existe")
+    void confirmarShouldLocateMissingConexionRow() {
+        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
+        Campo cliente = campo(EXTRA_ID, "Cliente", TipoCampo.RELACION, false);
+        givenCamposDelBloque(List.of(cliente), List.of(cliente));
+        UUID fila = UUID.fromString("00000000-0000-4000-8000-000000000099");
+        doThrow(new RegistroInvalidoException(Map.of(EXTRA_ID.toString(), "Esa fila ya no existe")))
+                .when(registroDatosService).validarConexiones(eq(NEGOCIO_ID), any(), any());
+        List<CampoConfirmado> columnas = List.of(new CampoConfirmado("cliente", EXTRA_ID, "Cliente", "RELACION", List.of()));
+        ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID, columnas,
+                List.of(new FilaConfirmada(1, Map.of("cliente", fila.toString()))));
+        LoteSubida lote = loteListo();
+
+        assertThatThrownBy(() -> confirmar(lote, confirmacion))
+                .isInstanceOfSatisfying(RegistroInvalidoException.class,
+                        e -> assertThat(e.getErrores())
+                                .containsOnly(Map.entry("filas[0].cliente", "Esa fila ya no existe")));
+        verify(registroDatosService, never()).crearVarios(any());
+    }
+
+    @Test
+    @DisplayName("Guarda las filas con la conexión elegida cuando la fila existe")
+    void confirmarShouldSaveRowsWithValidConexion() {
+        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
+        Campo cliente = campo(EXTRA_ID, "Cliente", TipoCampo.RELACION, false);
+        givenCamposDelBloque(List.of(cliente), List.of(cliente));
+        UUID fila = UUID.fromString("00000000-0000-4000-8000-000000000099");
+        List<CampoConfirmado> columnas = List.of(new CampoConfirmado("cliente", EXTRA_ID, "Cliente", "RELACION", List.of()));
+
+        confirmar(loteListo(), confirmacion(null, null, BLOQUE_ID, columnas,
+                List.of(new FilaConfirmada(1, Map.of("cliente", fila.toString())))));
+
+        assertThat(thenRegistrosGuardados().getFirst().getValores())
+                .containsEntry(EXTRA_ID.toString(), fila.toString());
+        verify(registroDatosService).validarConexiones(eq(NEGOCIO_ID), any(), any());
     }
 
     @Test

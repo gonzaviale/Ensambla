@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -23,8 +24,9 @@ public class LectorCuadernoTimeoutAdapter implements LectorCuadernoPort {
     private final Duration timeout;
 
     @Override
-    public LecturaCuaderno leer(List<PaginaCuaderno> paginas, List<BloqueConocido> bloques) {
-        Future<LecturaCuaderno> futuro = executorService.submit(() -> lectorCuadernoPort.leer(paginas, bloques));
+    public LecturaCuaderno leer(List<PaginaCuaderno> paginas, List<BloqueConocido> bloques, UUID bloqueDestinoId) {
+        Future<LecturaCuaderno> futuro = executorService.submit(
+                () -> lectorCuadernoPort.leer(paginas, bloques, bloqueDestinoId));
         try {
             return futuro.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {

@@ -1,6 +1,8 @@
 package com.ensambla.backend.infrastructure.ia;
 
+import com.ensambla.backend.domain.model.enums.TipoCampo;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
+import com.ensambla.backend.domain.model.lectura.CampoContexto;
 import com.ensambla.backend.domain.model.lectura.PaginaCuaderno;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class PromptLecturaCuadernoTest {
 
     private static final UUID VENTAS_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    private static final UUID GASTOS_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
     private static final PaginaCuaderno PAGINA = new PaginaCuaderno(1, new byte[]{1}, "image/png");
 
     private PromptLecturaCuaderno prompt;
@@ -30,7 +33,7 @@ class PromptLecturaCuadernoTest {
     @Test
     @DisplayName("Arma la petición con instrucciones, esquema y páginas")
     void peticionShouldCarryInstruccionesEsquemaAndPaginas() {
-        PeticionModeloVision peticion = prompt.peticion(List.of(PAGINA), List.of());
+        PeticionModeloVision peticion = prompt.peticion(List.of(PAGINA), List.of(), null);
 
         assertThat(peticion.instrucciones()).isEqualTo("Leé el cuaderno");
         assertThat(peticion.esquemaJson()).isEqualTo("{}");
@@ -40,20 +43,49 @@ class PromptLecturaCuadernoTest {
     @Test
     @DisplayName("Sin bloques existentes le pide a la IA que proponga uno nuevo")
     void peticionShouldAskForNewBloqueWhenNegocioHasNoBloques() {
-        PeticionModeloVision peticion = prompt.peticion(List.of(PAGINA), List.of());
+        PeticionModeloVision peticion = prompt.peticion(List.of(PAGINA), List.of(), null);
 
         assertThat(peticion.contexto()).isEqualTo(PromptLecturaCuaderno.SIN_BLOQUES);
     }
 
     @Test
-    @DisplayName("Lista los bloques existentes con su id, nombre y campos")
+    @DisplayName("Lista los bloques existentes con su id, nombre y los campos con su tipo")
     void peticionShouldListBloquesExistentes() {
-        BloqueConocido ventas = new BloqueConocido(VENTAS_ID, "Ventas", List.of("Fecha", "Monto"));
-
-        PeticionModeloVision peticion = prompt.peticion(List.of(PAGINA), List.of(ventas));
+        PeticionModeloVision peticion = prompt.peticion(List.of(PAGINA), List.of(ventas()), null);
 
         assertThat(peticion.contexto()).isEqualTo(PromptLecturaCuaderno.ENCABEZADO_BLOQUES
-                + "\n- 00000000-0000-0000-0000-000000000001: Ventas [Fecha, Monto]");
+                + "\n- 00000000-0000-0000-0000-000000000001: Ventas [Fecha (FECHA), Monto (NUMERO),"
+                + " Estado (OPCION: Pagado|Debe)]");
+    }
+
+    @Test
+    @DisplayName("Con destino fijo le muestra a la IA sólo ese bloque y le pide copiarlo tal cual")
+    void peticionShouldShowOnlyDestinoWhenBloqueDestinoIsChosen() {
+        BloqueConocido gastos = new BloqueConocido(GASTOS_ID, "Gastos", List.of());
+
+        PeticionModeloVision peticion = prompt.peticion(List.of(PAGINA), List.of(gastos, ventas()), VENTAS_ID);
+
+        assertThat(peticion.contexto()).startsWith(PromptLecturaCuaderno.ENCABEZADO_DESTINO)
+                .contains("- 00000000-0000-0000-0000-000000000001: Ventas [Fecha (FECHA)")
+                .doesNotContain("Gastos");
+    }
+
+    @Test
+    @DisplayName("Muestra a qué tabla apunta cada campo de conexión y pide el texto escrito")
+    void peticionShouldShowTableOfConexionCampo() {
+        BloqueConocido ventas = new BloqueConocido(VENTAS_ID, "Ventas", List.of(
+                new CampoContexto("Cliente", TipoCampo.RELACION, List.of(), "Clientes")));
+
+        PeticionModeloVision peticion = prompt.peticion(List.of(PAGINA), List.of(ventas), VENTAS_ID);
+
+        assertThat(peticion.contexto()).endsWith(
+                "[Cliente (RELACION → Clientes: devolvé el texto tal como está escrito)]");
+    }
+
+    @Test
+    @DisplayName("La versión del prompt cambia cuando se agrega el contexto con tipos y destino")
+    void versionShouldBeV2() {
+        assertThat(PromptLecturaCuaderno.VERSION).isEqualTo("v2");
     }
 
     @Test
@@ -62,7 +94,7 @@ class PromptLecturaCuadernoTest {
         PromptLecturaCuaderno real = new PromptLecturaCuaderno(new ClassPathResource("ia/prompt-lectura-cuaderno.md"),
                 new ClassPathResource("ia/esquema-lectura-cuaderno.json"));
 
-        PeticionModeloVision peticion = real.peticion(List.of(PAGINA), List.of());
+        PeticionModeloVision peticion = real.peticion(List.of(PAGINA), List.of(), null);
 
         assertThat(peticion.instrucciones()).contains("Respondé únicamente con el JSON");
         assertThat(peticion.esquemaJson()).contains("\"tipoRegistro\"", "\"confianza\"");
@@ -80,6 +112,13 @@ class PromptLecturaCuadernoTest {
     }
 
     // --- arrange ---
+    private static BloqueConocido ventas() {
+        return new BloqueConocido(VENTAS_ID, "Ventas", List.of(
+                new CampoContexto("Fecha", TipoCampo.FECHA, List.of()),
+                new CampoContexto("Monto", TipoCampo.NUMERO, List.of()),
+                new CampoContexto("Estado", TipoCampo.OPCION, List.of("Pagado", "Debe"))));
+    }
+
     private static ByteArrayResource texto(String contenido) {
         return new ByteArrayResource(contenido.getBytes(StandardCharsets.UTF_8));
     }

@@ -14,6 +14,7 @@ public final class LoteTestData {
     public static final UUID NEGOCIO_ID = UUID.fromString("00000000-0000-4000-8000-000000000012");
     public static final UUID LOTE_ID = UUID.fromString("00000000-0000-4000-8000-000000000013");
     public static final UUID FOTO_ID = UUID.fromString("00000000-0000-4000-8000-000000000014");
+    public static final UUID BLOQUE_ID = UUID.fromString("00000000-0000-4000-8000-000000000015");
     public static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
     public static final String CLAVE = NEGOCIO_ID + "/fotos/pagina.jpg";
     public static final byte[] JPEG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 1, 2, 3};
@@ -41,6 +42,7 @@ public final class LoteTestData {
         return LoteSubida.builder()
                 .id(LOTE_ID)
                 .negocioId(NEGOCIO_ID)
+                .bloqueDestinoId(BLOQUE_ID)
                 .estado(EstadoLote.PENDIENTE)
                 .intentos((short) 0)
                 .creadoEn(AHORA)

@@ -5,12 +5,15 @@ import com.ensambla.backend.domain.exception.LecturaCuadernoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.enums.EstadoLote;
 import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.lectura.BloqueConocido;
+import com.ensambla.backend.domain.model.lectura.CampoContexto;
 import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
 import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.ConsumoDiario;
 import com.ensambla.backend.domain.model.procesamiento.EstadoLectura;
 import com.ensambla.backend.domain.model.procesamiento.FotoLectura;
 import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
+import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
@@ -27,7 +30,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import static com.ensambla.backend.support.ProcesamientoTestData.AHORA;
 import static com.ensambla.backend.support.ProcesamientoTestData.LOTE_ID;
@@ -56,6 +61,9 @@ class ProcesamientoServiceTest {
     @Mock
     private LectorCuadernoPort lectorCuadernoPort;
 
+    @Mock
+    private ConexionesLecturaService conexionesLecturaService;
+
     private ProcesamientoService procesamientoService;
     private LoteTrabajo lote;
 
@@ -63,7 +71,8 @@ class ProcesamientoServiceTest {
     void setUp() {
         lote = ProcesamientoTestData.lote(1);
         procesamientoService = new ProcesamientoService(procesamientoRepository, archivoCuadernoPort,
-                lectorCuadernoPort, new PropuestaLecturaService(), ProcesamientoTestData.politica());
+                lectorCuadernoPort, new PropuestaLecturaService(), conexionesLecturaService,
+                ProcesamientoTestData.politica());
     }
 
     @Test
@@ -81,7 +90,9 @@ class ProcesamientoServiceTest {
     void leerShouldReadAndReserveBeforeProvider() {
         givenReadableLote();
         when(procesamientoRepository.reservar(lote, 1, 100, AHORA)).thenReturn(true);
-        when(lectorCuadernoPort.leer(any(), any())).thenReturn(ProcesamientoTestData.lectura());
+        when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(ProcesamientoTestData.lectura());
+        when(conexionesLecturaService.resolver(eq(NEGOCIO_ID), any(), any()))
+                .thenAnswer(invocacion -> invocacion.getArgument(1));
 
         ResultadoIntento resultado = procesamientoService.leer(lote, AHORA);
 
@@ -92,7 +103,76 @@ class ProcesamientoServiceTest {
         var orden = inOrder(archivoCuadernoPort, procesamientoRepository, lectorCuadernoPort);
         orden.verify(archivoCuadernoPort).leer(NEGOCIO_ID, FOTO.clave());
         orden.verify(procesamientoRepository).reservar(lote, 1, 100, AHORA);
-        orden.verify(lectorCuadernoPort).leer(any(), any());
+        orden.verify(lectorCuadernoPort).leer(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Con bloque destino le pasa a la IA sólo ese bloque, con tipos y opciones")
+    void leerShouldSendOnlyDestinoBlockToProvider() {
+        lote = new LoteTrabajo(LOTE_ID, NEGOCIO_ID, ProcesamientoTestData.BLOQUE_ID, lote.reclamoId(), 1);
+        givenReadableLoteWithOtherBloque();
+        when(procesamientoRepository.reservar(lote, 1, 100, AHORA)).thenReturn(true);
+        when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Corte"));
+
+        procesamientoService.leer(lote, AHORA);
+
+        ArgumentCaptor<List<BloqueConocido>> contexto = ArgumentCaptor.forClass(List.class);
+        verify(lectorCuadernoPort).leer(any(), contexto.capture(), eq(ProcesamientoTestData.BLOQUE_ID));
+        assertThat(contexto.getValue()).extracting(BloqueConocido::nombre).containsExactly("Ventas");
+        assertThat(contexto.getValue().getFirst().campos())
+                .containsExactly(new CampoContexto("Monto", TipoCampo.NUMERO, List.of()));
+    }
+
+    @Test
+    @DisplayName("Sin bloque destino le pasa a la IA todos los bloques del negocio")
+    void leerShouldSendAllBloquesWhenNoDestino() {
+        givenReadableLoteWithOtherBloque();
+        when(procesamientoRepository.reservar(lote, 1, 100, AHORA)).thenReturn(true);
+        when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Corte"));
+
+        procesamientoService.leer(lote, AHORA);
+
+        ArgumentCaptor<List<BloqueConocido>> contexto = ArgumentCaptor.forClass(List.class);
+        verify(lectorCuadernoPort).leer(any(), contexto.capture(), eq(null));
+        assertThat(contexto.getValue()).extracting(BloqueConocido::nombre).containsExactly("Ventas", "Gastos");
+    }
+
+    @Test
+    @DisplayName("Devuelve la propuesta con las conexiones ya resueltas a filas")
+    void leerShouldReturnPropuestaWithResolvedConexiones() {
+        givenReservedLote();
+        when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(ProcesamientoTestData.lectura());
+        PropuestaLectura resuelta = new PropuestaLectura(ProcesamientoTestData.lectura(), Map.of());
+        when(conexionesLecturaService.resolver(eq(NEGOCIO_ID), any(), any())).thenReturn(resuelta);
+
+        ResultadoIntento resultado = procesamientoService.leer(lote, AHORA);
+
+        assertThat(resultado.propuesta()).isSameAs(resuelta);
+    }
+
+    @Test
+    @DisplayName("Le dice a la IA a qué tabla apunta cada campo de conexión")
+    void leerShouldTellProviderWhichTableEachConexionPointsTo() {
+        UUID clientesId = UUID.randomUUID();
+        when(procesamientoRepository.fotos(lote)).thenReturn(List.of(FOTO));
+        when(archivoCuadernoPort.leer(NEGOCIO_ID, FOTO.clave())).thenReturn(new byte[]{1});
+        when(procesamientoRepository.bloques(NEGOCIO_ID)).thenReturn(List.of(
+                new BloqueLectura(ProcesamientoTestData.BLOQUE_ID, "Ventas", List.of(
+                        new CampoConocido(ProcesamientoTestData.CAMPO_ID, "Cliente", TipoCampo.RELACION,
+                                List.of(), clientesId),
+                        new CampoConocido(UUID.randomUUID(), "Fiado", TipoCampo.RELACION, List.of(),
+                                UUID.randomUUID()))),
+                new BloqueLectura(clientesId, "Clientes", List.of())));
+        when(procesamientoRepository.reservar(lote, 1, 100, AHORA)).thenReturn(true);
+        when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Corte"));
+
+        procesamientoService.leer(lote, AHORA);
+
+        ArgumentCaptor<List<BloqueConocido>> contexto = ArgumentCaptor.forClass(List.class);
+        verify(lectorCuadernoPort).leer(any(), contexto.capture(), eq(null));
+        assertThat(contexto.getValue().getFirst().campos()).containsExactly(
+                new CampoContexto("Cliente", TipoCampo.RELACION, List.of(), "Clientes"),
+                new CampoContexto("Fiado", TipoCampo.RELACION, List.of(), null));
     }
 
     @Test
@@ -135,7 +215,7 @@ class ProcesamientoServiceTest {
     @DisplayName("Conserva un fallo transitorio del lector para reintentar")
     void leerShouldMarkTransientFailure() {
         givenReservedLote();
-        when(lectorCuadernoPort.leer(any(), any())).thenThrow(new LecturaCuadernoException("Timeout"));
+        when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Timeout"));
 
         ResultadoIntento resultado = procesamientoService.leer(lote, AHORA);
 
@@ -279,6 +359,15 @@ class ProcesamientoServiceTest {
         when(procesamientoRepository.bloques(NEGOCIO_ID)).thenReturn(List.of(new BloqueLectura(
                 ProcesamientoTestData.BLOQUE_ID, "Ventas", List.of(new CampoConocido(
                 ProcesamientoTestData.CAMPO_ID, "Monto", TipoCampo.NUMERO, List.of())))));
+    }
+
+    private void givenReadableLoteWithOtherBloque() {
+        when(procesamientoRepository.fotos(lote)).thenReturn(List.of(FOTO));
+        when(archivoCuadernoPort.leer(NEGOCIO_ID, FOTO.clave())).thenReturn(new byte[]{1});
+        when(procesamientoRepository.bloques(NEGOCIO_ID)).thenReturn(List.of(
+                new BloqueLectura(ProcesamientoTestData.BLOQUE_ID, "Ventas", List.of(new CampoConocido(
+                        ProcesamientoTestData.CAMPO_ID, "Monto", TipoCampo.NUMERO, List.of()))),
+                new BloqueLectura(UUID.randomUUID(), "Gastos", List.of())));
     }
 
     private void givenReservedLote() {

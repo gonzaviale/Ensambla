@@ -43,13 +43,11 @@ class ValidacionLecturaServiceTest {
     }
 
     @Test
-    @DisplayName("Rechaza un valor en un campo de conexión: la lectura de la IA no propone conexiones")
-    void validarShouldRejectRelacionValues() {
-        LecturaCuaderno lectura = ProcesamientoTestData.lectura(
-                TipoCampo.RELACION, "d0000000-0000-4000-8000-000000000001", List.of());
+    @DisplayName("Acepta el texto leído en un campo de conexión: después se resuelve a una fila")
+    void validarShouldAcceptTextInRelacionCampo() {
+        LecturaCuaderno lectura = ProcesamientoTestData.lectura(TipoCampo.RELACION, "Juan Pérez", List.of());
 
-        assertThatThrownBy(() -> validacionLecturaService.validar(lectura))
-                .isInstanceOf(LecturaCuadernoException.class).hasMessageContaining("no coincide");
+        assertThatCode(() -> validacionLecturaService.validar(lectura)).doesNotThrowAnyException();
     }
 
     @Test
