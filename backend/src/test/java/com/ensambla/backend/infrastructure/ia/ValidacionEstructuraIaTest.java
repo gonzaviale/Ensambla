@@ -28,6 +28,14 @@ class ValidacionEstructuraIaTest {
     }
 
     @Test
+    @DisplayName("Acepta un campo de conexión")
+    void validarShouldAcceptRelacionTipo() {
+        String json = JSON.replace("\"tipo\":\"NUMERO\"", "\"tipo\":\"RELACION\"");
+
+        assertThatCode(() -> validacionEstructuraIa.validar(jsonMapper.readTree(json))).doesNotThrowAnyException();
+    }
+
+    @Test
     @DisplayName("Acepta valores nulos sin inventar texto")
     void validarShouldAcceptNullValuesAndStringBlockId() {
         String json = JSON.replace("\"valor\":\"10\"", "\"valor\":null")

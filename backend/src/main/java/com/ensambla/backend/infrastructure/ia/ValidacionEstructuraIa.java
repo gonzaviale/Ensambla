@@ -24,7 +24,7 @@ class ValidacionEstructuraIa {
             for (String clave : List.of("clave", "nombre", "tipo")) {
                 texto(campo.path(clave));
             }
-            exigir(List.of("TEXTO", "NUMERO", "FECHA", "OPCION", "SI_NO").contains(campo.path("tipo").asString()));
+            exigir(List.of("TEXTO", "NUMERO", "FECHA", "OPCION", "SI_NO", "RELACION").contains(campo.path("tipo").asString()));
             textos(campo.path("opciones"));
         });
         textos(raiz.path("advertencias"));

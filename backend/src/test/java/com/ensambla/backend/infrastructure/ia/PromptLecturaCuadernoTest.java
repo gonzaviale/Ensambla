@@ -71,6 +71,18 @@ class PromptLecturaCuadernoTest {
     }
 
     @Test
+    @DisplayName("Muestra a qué tabla apunta cada campo de conexión y pide el texto escrito")
+    void peticionShouldShowTableOfConexionCampo() {
+        BloqueConocido ventas = new BloqueConocido(VENTAS_ID, "Ventas", List.of(
+                new CampoContexto("Cliente", TipoCampo.RELACION, List.of(), "Clientes")));
+
+        PeticionModeloVision peticion = prompt.peticion(List.of(PAGINA), List.of(ventas), VENTAS_ID);
+
+        assertThat(peticion.contexto()).endsWith(
+                "[Cliente (RELACION → Clientes: devolvé el texto tal como está escrito)]");
+    }
+
+    @Test
     @DisplayName("La versión del prompt cambia cuando se agrega el contexto con tipos y destino")
     void versionShouldBeV2() {
         assertThat(PromptLecturaCuaderno.VERSION).isEqualTo("v2");

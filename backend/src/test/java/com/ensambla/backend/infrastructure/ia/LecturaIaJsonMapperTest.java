@@ -100,6 +100,39 @@ class LecturaIaJsonMapperTest {
     }
 
     @Test
+    @DisplayName("Acepta un campo de conexión que el bloque existente elegido ya tiene")
+    void toDomainShouldKeepRelacionCampoOfExistingBloque() {
+        List<BloqueConocido> bloques = List.of(new BloqueConocido(BLOQUE_VENTAS_ID, "Ventas", List.of(
+                new CampoContexto("Cliente", TipoCampo.RELACION, List.of(), "Clientes"))));
+        CampoJson cliente = new CampoJson("cliente", " cliente ", "RELACION", List.of());
+        LecturaIaJson json = givenLectura(givenBloque(BLOQUE_VENTAS_ID.toString(), cliente), List.of(), List.of());
+
+        LecturaCuaderno result = mapper.toDomain(json, bloques, PAGINAS, CONSUMO);
+
+        assertThat(result.bloque().campos().getFirst().tipo()).isEqualTo(TipoCampo.RELACION);
+    }
+
+    @Test
+    @DisplayName("Una conexión que el bloque no tiene se lee como el texto escrito")
+    void toDomainShouldDegradeInventedRelacionToTexto() {
+        CampoJson cliente = new CampoJson("cliente", "Cliente", "RELACION", List.of());
+        LecturaIaJson json = givenLectura(givenBloque(null, cliente), List.of(), List.of());
+
+        LecturaCuaderno result = mapper.toDomain(json, BLOQUES, PAGINAS, CONSUMO);
+
+        assertThat(result.bloque().campos().getFirst().tipo()).isEqualTo(TipoCampo.TEXTO);
+    }
+
+    @Test
+    @DisplayName("Una conexión sin nombre se rechaza como cualquier campo sin nombre")
+    void toDomainShouldRejectRelacionWithoutName() {
+        CampoJson sinNombre = new CampoJson("cliente", null, "RELACION", List.of());
+        LecturaIaJson json = givenLectura(givenBloque(null, sinNombre), List.of(), List.of());
+
+        thenRejects(json, "falta el nombre del campo cliente");
+    }
+
+    @Test
     @DisplayName("Acepta un campo OPCION con opciones")
     void toDomainShouldMapOpcionCampoWithOptions() {
         CampoJson producto = new CampoJson("producto", "Producto", "OPCION", List.of("Vela", "Difusor"));

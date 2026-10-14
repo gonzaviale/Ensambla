@@ -121,6 +121,7 @@ public class ConfirmacionLecturaService {
             UUID fotoOrigenId = fotoOrigen(lote, fila, "filas[" + i + "].pagina", errores);
             try {
                 Map<String, Object> validos = Registro.validar(delBloque, valoresPorCampo(campos, fila));
+                registroDatosService.validarConexiones(negocioId, delBloque, validos);
                 registros.add(Registro.desdeCuaderno(negocioId, bloque.getId(), validos, fotoOrigenId, ahora));
             } catch (RegistroInvalidoException e) {
                 errores.putAll(ubicarPorClave("filas[" + i + "].", e.getErrores(), clavePorCampoId));

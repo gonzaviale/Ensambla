@@ -8,6 +8,9 @@ Reglas:
    - Cada campo tiene una clave en snake_case sin tildes (fecha, cliente, monto) y un nombre legible.
    - Tipos posibles: TEXTO, NUMERO, FECHA, OPCION, SI_NO. Usá OPCION sólo si los valores se repiten de una lista
      corta y completá "opciones" con esa lista; en los demás tipos "opciones" va vacío.
+   - RELACION (una conexión con otra tabla) sólo la podés usar para un campo que el bloque existente del contexto
+     ya tiene como RELACION. En ese campo escribí el texto tal como está en el cuaderno (por ejemplo el nombre del
+     cliente); nunca un id. Nunca propongas RELACION en un bloque nuevo.
    - Si en el contexto aparece un bloque existente que corresponde a estas anotaciones, devolvé su id en
      bloqueExistenteId y copiá su nombre y sus campos tal cual (mismo nombre, mismo tipo y mismas opciones), sin
      agregar campos que el bloque no tenga. Si no, bloqueExistenteId es null.

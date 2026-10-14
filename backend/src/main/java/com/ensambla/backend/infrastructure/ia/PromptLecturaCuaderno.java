@@ -66,6 +66,10 @@ public class PromptLecturaCuaderno {
     }
 
     private String campo(CampoContexto campo) {
+        if (campo.bloqueRelacionado() != null) {
+            return "%s (%s → %s: devolvé el texto tal como está escrito)"
+                    .formatted(campo.nombre(), campo.tipo(), campo.bloqueRelacionado());
+        }
         if (campo.opciones().isEmpty()) {
             return "%s (%s)".formatted(campo.nombre(), campo.tipo());
         }

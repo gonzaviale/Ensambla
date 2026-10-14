@@ -117,6 +117,26 @@ class ConfirmacionLecturaTest {
                 .hasMessage("Podés guardar hasta 500 filas por vez");
     }
 
+    @Test
+    @DisplayName("Rechaza una columna de conexión nueva: las conexiones se arman en la tabla, no en la lectura")
+    void validarShouldRejectNewRelacionColumn() {
+        ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID, null,
+                List.of(new CampoConfirmado("cliente", null, "Cliente", "RELACION", List.of())));
+
+        assertThatThrownBy(confirmacion::validar)
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("Una conexión con otra tabla no se puede crear acá: elegí una columna de tu tabla");
+    }
+
+    @Test
+    @DisplayName("Acepta una columna de conexión que ya existe en la tabla")
+    void validarShouldAcceptExistingRelacionColumn() {
+        ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID, null,
+                List.of(new CampoConfirmado("cliente", UUID.randomUUID(), "Cliente", "RELACION", List.of())));
+
+        assertThatCode(confirmacion::validar).doesNotThrowAnyException();
+    }
+
     // --- helpers ---
     private ConfirmacionLectura confirmacion(UUID proyectoId, String nombreProyecto, UUID bloqueId,
                                              String nombreBloque, List<CampoConfirmado> campos) {
