@@ -1782,6 +1782,150 @@
   }
 }
 /* ---------- Responsive ---------- */
+/* ---------- De la foto al sistema ---------- */
+.landing .foto {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(32px, 6vw, 80px);
+  align-items: center;
+}
+.landing .foto h2 {
+  font-size: clamp(34px, 5vw, 54px);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+.landing .foto__bajada {
+  margin-top: 18px;
+  font-size: 17px;
+  color: var(--texto-suave);
+}
+.landing .foto__pasos {
+  display: grid;
+  gap: 18px;
+  margin: 28px 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: foto;
+}
+.landing .foto__pasos li {
+  position: relative;
+  padding-left: 52px;
+  counter-increment: foto;
+}
+.landing .foto__pasos li::before {
+  content: counter(foto);
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--naranja);
+  color: var(--pizarra);
+  font-weight: 800;
+}
+.landing .foto__pasos h3 {
+  font-size: 19px;
+  font-weight: 800;
+}
+.landing .foto__pasos p {
+  margin-top: 2px;
+  font-size: 15.5px;
+  color: var(--texto-suave);
+}
+.landing .foto__visual {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.15fr);
+  gap: 12px;
+  align-items: center;
+}
+.landing .foto__hoja {
+  position: relative;
+  padding: 22px 18px;
+  border-radius: var(--r);
+  background: var(--superficie);
+  box-shadow:
+    var(--sombra),
+    inset 0 0 0 1px var(--borde);
+  transform: rotate(-3deg);
+  background-image: repeating-linear-gradient(
+    transparent 0 31px,
+    rgba(38, 52, 67, 0.14) 31px 32px
+  );
+}
+.landing .foto__hoja p {
+  margin: 0;
+  line-height: 32px;
+  font-size: 15px;
+  font-style: italic;
+  color: var(--texto-suave);
+}
+.landing .foto__esquina {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 0 solid var(--naranja);
+}
+.landing .foto__esquina--1 {
+  top: -6px;
+  left: -6px;
+  border-width: 3px 0 0 3px;
+}
+.landing .foto__esquina--2 {
+  top: -6px;
+  right: -6px;
+  border-width: 3px 3px 0 0;
+}
+.landing .foto__esquina--3 {
+  bottom: -6px;
+  left: -6px;
+  border-width: 0 0 3px 3px;
+}
+.landing .foto__esquina--4 {
+  right: -6px;
+  bottom: -6px;
+  border-width: 0 3px 3px 0;
+}
+.landing .foto__flecha {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--naranja-700);
+}
+.landing .foto__tabla {
+  overflow: hidden;
+  border-radius: var(--r);
+  background: var(--superficie);
+  box-shadow:
+    var(--sombra-alta),
+    inset 0 0 0 1px var(--borde);
+}
+.landing .foto__fila {
+  display: grid;
+  grid-template-columns: 1fr 76px;
+  gap: 8px;
+  padding: 11px 14px;
+  font-size: 14.5px;
+  border-bottom: 1px solid var(--borde);
+}
+.landing .foto__fila--cabeza {
+  background: var(--superficie-2);
+  font-weight: 800;
+}
+.landing .foto__celda--duda {
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.22);
+  box-shadow: inset 0 0 0 1.5px var(--ambar);
+  padding-inline: 6px;
+}
+.landing .foto__aviso {
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--naranja-800);
+}
 @media (max-width: 1024px) {
   .landing .plantillas {
     grid-template-columns: repeat(2, 1fr);
@@ -1797,6 +1941,7 @@
 @media (max-width: 900px) {
   .landing .hero__grilla,
   .landing .armador,
+  .landing .foto,
   .landing .opinar {
     grid-template-columns: 1fr;
   }
