@@ -24,8 +24,10 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
+import java.util.UUID;
 
 import static com.ensambla.backend.support.LoteTestData.AHORA;
+import static com.ensambla.backend.support.LoteTestData.BLOQUE_ID;
 import static com.ensambla.backend.support.LoteTestData.FOTO_ID;
 import static com.ensambla.backend.support.LoteTestData.JPEG;
 import static com.ensambla.backend.support.LoteTestData.LOTE_ID;
@@ -94,6 +96,26 @@ class LoteControllerTest {
         SubirLoteRequest request = thenSubirRequest();
         assertThat(request.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(request.fotos()).containsExactly(JPEG, PNG);
+    }
+
+    @Test
+    @DisplayName("POST con bloqueDestinoId lo manda al use case")
+    void subirShouldPassBloqueDestino() throws Exception {
+        givenLoteSubido();
+
+        subir(BLOQUE_ID, foto(JPEG));
+
+        assertThat(thenSubirRequest().bloqueDestinoId()).isEqualTo(BLOQUE_ID);
+    }
+
+    @Test
+    @DisplayName("POST sin bloqueDestinoId deja que la IA proponga el bloque")
+    void subirShouldLeaveBloqueDestinoEmptyWhenMissing() throws Exception {
+        givenLoteSubido();
+
+        subir(foto(JPEG));
+
+        assertThat(thenSubirRequest().bloqueDestinoId()).isNull();
     }
 
     @Test
@@ -194,7 +216,14 @@ class LoteControllerTest {
 
     // --- act ---
     private ResultActions subir(MockMultipartFile... fotos) throws Exception {
+        return subir(null, fotos);
+    }
+
+    private ResultActions subir(UUID bloqueDestinoId, MockMultipartFile... fotos) throws Exception {
         var request = multipart("/api/lotes");
+        if (bloqueDestinoId != null) {
+            request.param("bloqueDestinoId", bloqueDestinoId.toString());
+        }
         for (MockMultipartFile foto : fotos) {
             request.file(foto);
         }

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,11 +39,12 @@ public class LoteController {
     private final LotePresentationMapper lotePresentationMapper;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Subir fotos del cuaderno: guarda las fotos y crea un lote pendiente de lectura")
+    @Operation(summary = "Subir fotos del cuaderno: guarda las fotos y crea un lote pendiente de lectura; bloqueDestinoId (opcional) indica a qué bloque van las filas")
     public ResponseEntity<LoteResponse> subir(
-            Authentication authentication, @RequestPart("fotos") List<MultipartFile> fotos) {
+            Authentication authentication, @RequestPart("fotos") List<MultipartFile> fotos,
+            @RequestParam(value = "bloqueDestinoId", required = false) UUID bloqueDestinoId) {
         LoteResponse response = lotePresentationMapper.toResponse(subirLoteUseCase.execute(
-                lotePresentationMapper.toSubirRequest(UUID.fromString(authentication.getName()), fotos)));
+                lotePresentationMapper.toSubirRequest(UUID.fromString(authentication.getName()), fotos, bloqueDestinoId)));
         return ResponseEntity.created(URI.create("/api/lotes/" + response.id())).body(response);
     }
 
