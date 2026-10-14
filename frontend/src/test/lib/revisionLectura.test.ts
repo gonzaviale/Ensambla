@@ -195,7 +195,8 @@ describe('errorDeCelda', () => {
     ['SI_NO', 'false', undefined],
     ['SI_NO', 'quizás', 'Elegí Sí o No.'],
     ['TEXTO', 'cualquier cosa', undefined],
-    ['RELACION', 'Harina', 'Esta columna se completa desde Cargar y ver.'],
+    ['RELACION', 'Harina', 'Elegí una fila de la tabla conectada.'],
+    ['RELACION', '3e352abb-2b08-46c2-81fe-ca54bd4adac3', undefined],
   ] as const)('%s con «%s»', (tipo, texto, esperado) => {
     expect(errorDeCelda(columna({ tipo }), celda(texto))).toBe(esperado);
   });
