@@ -2,6 +2,7 @@ import { ArmadorBloques } from '@/components/Landing/ArmadorBloques';
 import { CintaRubros } from '@/components/Landing/CintaRubros';
 import { Comentarios } from '@/components/Landing/Comentarios';
 import { ComoFunciona } from '@/components/Landing/ComoFunciona';
+import { DeLaFoto } from '@/components/Landing/DeLaFoto';
 import { Hero } from '@/components/Landing/Hero';
 import { LandingFooter } from '@/components/Landing/LandingFooter';
 import { LlamadaFinal } from '@/components/Landing/LlamadaFinal';
@@ -19,6 +20,7 @@ export function LandingPage() {
     <div className="landing" ref={raiz}>
       <Hero />
       <CintaRubros />
+      <DeLaFoto />
       <ComoFunciona />
       <ArmadorBloques />
       <Plantillas />
