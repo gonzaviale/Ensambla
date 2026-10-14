@@ -8,7 +8,8 @@ import { lecturaKey, loteKey } from './queries';
 export function useSubirLote() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: subirLote,
+    mutationFn: ({ fotos, bloqueDestinoId }: { fotos: Blob[]; bloqueDestinoId?: string }) =>
+      subirLote(fotos, bloqueDestinoId),
     onSuccess: (lote) => queryClient.setQueryData(loteKey(lote.id), lote),
   });
 }
