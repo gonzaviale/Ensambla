@@ -51,7 +51,7 @@ class LectorCuadernoIaAdapterTest {
     void leerShouldReturnLecturaWithConsumoWhenModelAnswersValidJson() {
         givenModelAnswers(lecturaDeEjemplo());
 
-        LecturaCuaderno result = adapter.leer(List.of(PAGINA), SIN_BLOQUES);
+        LecturaCuaderno result = adapter.leer(List.of(PAGINA), SIN_BLOQUES, null);
 
         thenLecturaHasConsumo(result);
     }
@@ -61,7 +61,7 @@ class LectorCuadernoIaAdapterTest {
     void leerShouldSendPromptSchemaAndPagesToModel() {
         givenModelAnswers(lecturaDeEjemplo());
 
-        adapter.leer(List.of(PAGINA), SIN_BLOQUES);
+        adapter.leer(List.of(PAGINA), SIN_BLOQUES, null);
 
         thenModelReceived();
     }
@@ -69,7 +69,7 @@ class LectorCuadernoIaAdapterTest {
     @Test
     @DisplayName("Rechaza un lote sin páginas sin llamar al modelo")
     void leerShouldRejectEmptyLoteWithoutCallingModel() {
-        assertThatThrownBy(() -> adapter.leer(List.of(), SIN_BLOQUES))
+        assertThatThrownBy(() -> adapter.leer(List.of(), SIN_BLOQUES, null))
                 .isInstanceOf(LecturaCuadernoException.class)
                 .hasMessage("Se pueden leer entre 1 y 3 páginas por vez");
         verify(cliente, never()).completar(any());
@@ -80,7 +80,7 @@ class LectorCuadernoIaAdapterTest {
     void leerShouldRejectLoteAboveMaxPaginas() {
         List<PaginaCuaderno> paginas = Collections.nCopies(MAX_PAGINAS + 1, PAGINA);
 
-        assertThatThrownBy(() -> adapter.leer(paginas, SIN_BLOQUES))
+        assertThatThrownBy(() -> adapter.leer(paginas, SIN_BLOQUES, null))
                 .isInstanceOf(LecturaCuadernoException.class)
                 .hasMessageContaining("entre 1 y 3");
     }
@@ -91,7 +91,7 @@ class LectorCuadernoIaAdapterTest {
         IllegalStateException falla = new IllegalStateException("timeout");
         when(cliente.completar(any())).thenThrow(falla);
 
-        assertThatThrownBy(() -> adapter.leer(List.of(PAGINA), SIN_BLOQUES))
+        assertThatThrownBy(() -> adapter.leer(List.of(PAGINA), SIN_BLOQUES, null))
                 .isInstanceOf(LecturaCuadernoException.class)
                 .hasMessage(LectorCuadernoIaAdapter.ERROR_PROVEEDOR)
                 .hasCause(falla);
@@ -103,7 +103,7 @@ class LectorCuadernoIaAdapterTest {
         LecturaCuadernoException error = new LecturaCuadernoException("Límite diario alcanzado");
         when(cliente.completar(any())).thenThrow(error);
 
-        assertThatThrownBy(() -> adapter.leer(List.of(PAGINA), SIN_BLOQUES)).isSameAs(error);
+        assertThatThrownBy(() -> adapter.leer(List.of(PAGINA), SIN_BLOQUES, null)).isSameAs(error);
     }
 
     @Test
@@ -127,7 +127,7 @@ class LectorCuadernoIaAdapterTest {
     void leerShouldRejectMalformedJson() {
         givenModelAnswers("Acá tenés la lectura: {");
 
-        assertThatThrownBy(() -> adapter.leer(List.of(PAGINA), SIN_BLOQUES))
+        assertThatThrownBy(() -> adapter.leer(List.of(PAGINA), SIN_BLOQUES, null))
                 .isInstanceOf(LecturaCuadernoException.class)
                 .hasMessage(LectorCuadernoIaAdapter.ERROR_JSON)
                 .hasCauseInstanceOf(tools.jackson.core.JacksonException.class);
@@ -203,7 +203,7 @@ class LectorCuadernoIaAdapterTest {
     }
 
     private void thenRejectsJson() {
-        assertThatThrownBy(() -> adapter.leer(List.of(PAGINA), SIN_BLOQUES))
+        assertThatThrownBy(() -> adapter.leer(List.of(PAGINA), SIN_BLOQUES, null))
                 .isInstanceOf(LecturaCuadernoException.class)
                 .hasMessage(LectorCuadernoIaAdapter.ERROR_JSON);
     }

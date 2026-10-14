@@ -1,10 +1,12 @@
 package com.ensambla.backend.infrastructure.ia;
 
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
+import com.ensambla.backend.domain.model.lectura.CampoContexto;
 import com.ensambla.backend.domain.model.lectura.PaginaCuaderno;
 import org.springframework.core.io.Resource;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -13,10 +15,15 @@ import java.util.stream.Collectors;
  */
 public class PromptLecturaCuaderno {
 
-    public static final String VERSION = "v1";
+    public static final String VERSION = "v2";
 
     static final String SIN_BLOQUES = "El negocio todavía no tiene bloques: proponé uno nuevo.";
-    static final String ENCABEZADO_BLOQUES = "Bloques que el negocio ya tiene (id: nombre [campos]):";
+    static final String ENCABEZADO_BLOQUES = "Bloques que el negocio ya tiene (id: nombre [campo (TIPO), ...]):";
+    static final String ENCABEZADO_DESTINO = "DESTINO FIJO: la persona indicó que estas fotos son filas del bloque"
+            + " existente que sigue (id: nombre [campo (TIPO), ...]). Devolvé su id en bloqueExistenteId, usá"
+            + " exactamente el mismo nombre de bloque y los mismos nombres, tipos y opciones de campo, y no agregues"
+            + " campos nuevos. Si las fotos no tienen nada que ver con este bloque, devolvé filas vacías y explicalo"
+            + " en \"advertencias\".";
 
     private final String instrucciones;
     private final String esquemaJson;
@@ -26,16 +33,42 @@ public class PromptLecturaCuaderno {
         this.esquemaJson = RecursoTexto.contenido(esquemaJson);
     }
 
-    public PeticionModeloVision peticion(List<PaginaCuaderno> paginas, List<BloqueConocido> bloquesExistentes) {
-        return new PeticionModeloVision(instrucciones, contexto(bloquesExistentes), List.copyOf(paginas), esquemaJson);
+    /**
+     * @param bloqueDestinoId bloque elegido por la persona antes de subir las fotos; con destino la IA sólo ve ese
+     *                        bloque y no tiene que adivinar a cuál sumar las filas
+     */
+    public PeticionModeloVision peticion(List<PaginaCuaderno> paginas, List<BloqueConocido> bloquesExistentes,
+                                         UUID bloqueDestinoId) {
+        return new PeticionModeloVision(
+                instrucciones, contexto(bloquesExistentes, bloqueDestinoId), List.copyOf(paginas), esquemaJson);
     }
 
-    private String contexto(List<BloqueConocido> bloquesExistentes) {
+    private String contexto(List<BloqueConocido> bloquesExistentes, UUID bloqueDestinoId) {
+        if (bloqueDestinoId != null) {
+            return lista(ENCABEZADO_DESTINO, bloquesExistentes.stream()
+                    .filter(bloque -> bloque.id().equals(bloqueDestinoId))
+                    .toList());
+        }
         if (bloquesExistentes.isEmpty()) {
             return SIN_BLOQUES;
         }
-        return bloquesExistentes.stream()
-                .map(bloque -> "- %s: %s [%s]".formatted(bloque.id(), bloque.nombre(), String.join(", ", bloque.campos())))
-                .collect(Collectors.joining("\n", ENCABEZADO_BLOQUES + "\n", ""));
+        return lista(ENCABEZADO_BLOQUES, bloquesExistentes);
+    }
+
+    private String lista(String encabezado, List<BloqueConocido> bloques) {
+        return bloques.stream()
+                .map(bloque -> "- %s: %s [%s]".formatted(bloque.id(), bloque.nombre(), campos(bloque)))
+                .collect(Collectors.joining("\n", encabezado + "\n", ""));
+    }
+
+    private String campos(BloqueConocido bloque) {
+        return bloque.campos().stream().map(this::campo).collect(Collectors.joining(", "));
+    }
+
+    private String campo(CampoContexto campo) {
+        if (campo.opciones().isEmpty()) {
+            return "%s (%s)".formatted(campo.nombre(), campo.tipo());
+        }
+        return "%s (%s: %s)".formatted(campo.nombre(), campo.tipo(), String.join("|", campo.opciones()));
     }
 }

@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.exception.LecturaCuadernoException;
 import com.ensambla.backend.domain.model.enums.TipoCampo;
 import com.ensambla.backend.domain.model.enums.TipoRegistroCuaderno;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
+import com.ensambla.backend.domain.model.lectura.CampoContexto;
 import com.ensambla.backend.domain.model.lectura.ConsumoIa;
 import com.ensambla.backend.domain.model.lectura.DatoLeido;
 import com.ensambla.backend.domain.model.lectura.FilaLeida;
@@ -29,7 +30,9 @@ class LecturaIaJsonMapperTest {
     private static final int PAGINAS = 2;
     private static final UUID BLOQUE_VENTAS_ID = UUID.randomUUID();
     private static final List<BloqueConocido> BLOQUES = List.of(
-            new BloqueConocido(BLOQUE_VENTAS_ID, "Ventas", List.of("Fecha", "Monto")));
+            new BloqueConocido(BLOQUE_VENTAS_ID, "Ventas", List.of(
+                    new CampoContexto("Fecha", TipoCampo.FECHA, List.of()),
+                    new CampoContexto("Monto", TipoCampo.NUMERO, List.of()))));
     private static final ConsumoIa CONSUMO = new ConsumoIa("simulado", "modelo", "v1", PAGINAS, 10, 20, 5);
     private static final CampoJson FECHA = new CampoJson("fecha", "Fecha", "FECHA", List.of());
     private static final CampoJson MONTO = new CampoJson("monto", "Monto", "numero", null);

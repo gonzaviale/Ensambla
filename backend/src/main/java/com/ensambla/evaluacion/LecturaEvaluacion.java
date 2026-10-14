@@ -42,7 +42,7 @@ public class LecturaEvaluacion {
         byte[] bytes = Files.readAllBytes(Path.of(caso.archivo()));
         try {
             LecturaCuaderno lectura = lector.leer(
-                    List.of(new PaginaCuaderno(1, bytes, caso.tipoContenido())), List.of());
+                    List.of(new PaginaCuaderno(1, bytes, caso.tipoContenido())), List.of(), null);
             return new ResultadoEvaluacion(caso.id(), lectura, null);
         } catch (LecturaCuadernoException e) {
             return new ResultadoEvaluacion(caso.id(), null, e.getMessage());

@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
+import com.ensambla.backend.domain.model.lectura.CampoContexto;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
 import com.ensambla.backend.domain.model.lectura.PaginaCuaderno;
 import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
@@ -57,10 +58,10 @@ public class ProcesamientoService {
                 return new ResultadoIntento(null, LIMITE_AGOTADO, false);
             }
             List<BloqueConocido> contexto = bloques.stream()
-                    .map(bloque -> new BloqueConocido(bloque.id(), bloque.nombre(),
-                            bloque.campos().stream().map(campo -> campo.nombre()).toList()))
+                    .filter(bloque -> lote.bloqueDestinoId() == null || bloque.id().equals(lote.bloqueDestinoId()))
+                    .map(this::conocido)
                     .toList();
-            LecturaCuaderno lectura = lectorCuadernoPort.leer(paginas, contexto);
+            LecturaCuaderno lectura = lectorCuadernoPort.leer(paginas, contexto, lote.bloqueDestinoId());
             return new ResultadoIntento(propuestaLecturaService.proponer(lectura, bloques, lote.bloqueDestinoId()),
                     null, false);
         } catch (BusinessRuleException e) {
@@ -102,6 +103,12 @@ public class ProcesamientoService {
         if (!procesamientoRepository.reencolar(negocioId, loteId, ahora)) {
             throw new BusinessRuleException("Sólo se puede reintentar un lote en estado ERROR");
         }
+    }
+
+    private BloqueConocido conocido(BloqueLectura bloque) {
+        return new BloqueConocido(bloque.id(), bloque.nombre(), bloque.campos().stream()
+                .map(campo -> new CampoContexto(campo.nombre(), campo.tipo(), campo.opciones()))
+                .toList());
     }
 
     private void validarPaginas(List<FotoLectura> fotos) {

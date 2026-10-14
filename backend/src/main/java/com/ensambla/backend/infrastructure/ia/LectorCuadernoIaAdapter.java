@@ -14,6 +14,7 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.DeserializationFeature;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -43,9 +44,10 @@ public class LectorCuadernoIaAdapter implements LectorCuadernoPort {
     }
 
     @Override
-    public LecturaCuaderno leer(List<PaginaCuaderno> paginas, List<BloqueConocido> bloquesExistentes) {
+    public LecturaCuaderno leer(List<PaginaCuaderno> paginas, List<BloqueConocido> bloquesExistentes,
+                                UUID bloqueDestinoId) {
         validarCantidad(paginas);
-        PeticionModeloVision peticion = prompt.peticion(paginas, bloquesExistentes);
+        PeticionModeloVision peticion = prompt.peticion(paginas, bloquesExistentes, bloqueDestinoId);
         long inicio = System.nanoTime();
         RespuestaModeloVision respuesta = invocar(peticion);
         long duracionMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - inicio);
