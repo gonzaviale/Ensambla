@@ -106,6 +106,11 @@ function errorDeValor(tipo: Campo['tipo'], opciones: string[], valor: string | n
         : 'Elegí una de las opciones';
     case 'TEXTO':
       return typeof valor === 'string' ? undefined : 'Tiene que ser un texto';
+    // Lo leído del cuaderno no elige filas de otra tabla.
+    case 'RELACION':
+      return 'Elegí una fila de la tabla relacionada';
+    case 'FORMULA':
+      return 'Este dato se calcula solo';
   }
 }
 
@@ -142,6 +147,8 @@ function crearCampos(datos: Confirmar, bloque: Bloque) {
         obligatorio: false,
         valorInicial: null,
         opciones: campo.opciones,
+        bloqueRelacionadoId: null,
+        formula: null,
         posicion: bloque.campos.length,
       };
       bloque.campos.push(nuevo);

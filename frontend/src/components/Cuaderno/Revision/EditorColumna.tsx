@@ -3,7 +3,10 @@ import { OpcionesEditor } from '@/components/Constructor/OpcionesEditor';
 import { TipoDeDatoCards } from '@/components/Constructor/TipoDeDatoCards';
 import { Button, ConfirmDialog, InputField, Sheet } from '@/components/ui';
 import { errorDeColumna, type ColumnaRevision } from '@/lib/revisionLectura';
-import type { TipoCampo } from '@/types/campo';
+import { TIPOS_CAMPO, type TipoCampo } from '@/types/campo';
+
+// Lo que se lee del cuaderno no puede conectarse con otra tabla ni calcularse: eso se arma desde Armar.
+const TIPOS_DEL_CUADERNO = TIPOS_CAMPO.filter((tipo) => tipo !== 'RELACION' && tipo !== 'FORMULA');
 
 type Props = {
   columna: ColumnaRevision;
@@ -71,6 +74,7 @@ export function EditorColumna({
           />
           <TipoDeDatoCards
             legend="¿Qué tipo de dato guarda?"
+            tipos={TIPOS_DEL_CUADERNO}
             unaColumna
             valor={columna.tipo}
             disabled={bloqueada}

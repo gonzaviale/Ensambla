@@ -11,6 +11,8 @@ public record EditarCampoRequest(
         String tipo,
         Boolean obligatorio,
         String valorInicial,
-        List<String> opciones
+        List<String> opciones,
+        UUID bloqueRelacionadoId,
+        String formula
 ) {
 }

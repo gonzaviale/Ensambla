@@ -31,4 +31,15 @@ class PaginaTest {
     private Pagina<String> pagina(long total) {
         return new Pagina<>(List.of(), 0, 20, total);
     }
+
+    @Test
+    @DisplayName("Transforma el contenido y conserva los datos de la página")
+    void mapShouldTransformContentAndKeepPageData() {
+        Pagina<Integer> result = new Pagina<>(List.of("a", "bb"), 2, 20, 42).map(String::length);
+
+        assertThat(result.contenido()).containsExactly(1, 2);
+        assertThat(result.numero()).isEqualTo(2);
+        assertThat(result.tamanio()).isEqualTo(20);
+        assertThat(result.totalElementos()).isEqualTo(42);
+    }
 }

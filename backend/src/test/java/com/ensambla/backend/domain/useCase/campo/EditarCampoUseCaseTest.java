@@ -36,8 +36,9 @@ class EditarCampoUseCaseTest {
     private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
     private static final UUID CAMPO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
     private static final EditarCampoRequest REQUEST =
-            new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Costo", "NUMERO", false, "0", null);
-    private static final ConfiguracionCampo CONFIGURACION = new ConfiguracionCampo("Costo", "NUMERO", false, "0", null);
+            new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Costo", "NUMERO", false, "0", null, null, null);
+    private static final ConfiguracionCampo CONFIGURACION =
+            new ConfiguracionCampo("Costo", "NUMERO", false, "0", null, null, null);
 
     private final NegocioService negocioService = mock(NegocioService.class);
     private final CampoService campoService = mock(CampoService.class);

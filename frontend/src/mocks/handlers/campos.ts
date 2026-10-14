@@ -3,6 +3,7 @@ import { TIPOS_CAMPO, type Campo as CampoResponse, type GuardarCampo } from '@/t
 import type { Campo } from '@/types/proyecto';
 import { esValorInicialValido, mismoNombre, opcionRepetida } from '@/lib/campos';
 import { estado } from '../db/estado';
+import { interpretarFormula } from '../db/formula';
 import {
   bloqueDeLaSesion,
   fechasDe,
@@ -25,6 +26,8 @@ type Contenedor = {
   bloqueId: string;
   campos: () => Campo[];
   reemplazar: (campos: Campo[]) => void;
+  /** Ids de las tablas del mismo sistema (con las que una columna RELACION se puede conectar). */
+  tablasDelSistema: () => string[];
   /** Fecha que se informa para campos sembrados sin fecha propia (los de una plantilla). */
   fechaBase: string;
 };
@@ -48,6 +51,7 @@ const almacenCompleto: Almacen = {
       reemplazar: (campos) => {
         bloque.campos = campos;
       },
+      tablasDelSistema: () => proyecto.bloques.map((item) => item.id),
       fechaBase: proyecto.creadoEn,
     };
   },
@@ -76,14 +80,16 @@ const esTexto = (valor: unknown): valor is string => typeof valor === 'string';
 // 409 cuando el nombre ya lo usa otro campo del bloque (sin distinguir mayúsculas).
 async function leerCampo(
   request: Request,
-  otros: Campo[],
+  contenedor: Contenedor,
   propioId?: string,
 ): Promise<{ error: Response } | { datos: GuardarCampo }> {
   const cuerpo: unknown = await request.json().catch(() => null);
   if (!cuerpo || typeof cuerpo !== 'object') {
     return { error: errorResponse(400, 'El cuerpo JSON no es válido', pathDe(request)) };
   }
-  const { nombre, tipo, obligatorio, valorInicial, opciones } = cuerpo as Record<string, unknown>;
+  const { nombre, tipo, obligatorio, valorInicial, opciones, bloqueRelacionadoId, formula } =
+    cuerpo as Record<string, unknown>;
+  const otros = contenedor.campos();
   const errores: Record<string, string> = {};
 
   const texto = esTexto(nombre) ? nombre.trim() : '';
@@ -104,8 +110,34 @@ async function leerCampo(
     else if (opcionRepetida(listaOpciones)) errores.opciones = 'Las opciones no pueden repetirse';
   }
 
+  let relacionado: string | null = null;
+  if (tipoValido === 'RELACION') {
+    if (!esTexto(bloqueRelacionadoId) || !bloqueRelacionadoId)
+      errores.bloqueRelacionadoId = 'Elegí la tabla con la que se conecta';
+    else if (!contenedor.tablasDelSistema().includes(bloqueRelacionadoId))
+      errores.bloqueRelacionadoId = 'Elegí una tabla de este sistema';
+    else relacionado = bloqueRelacionadoId;
+  }
+
+  let expresion: string | null = null;
+  if (tipoValido === 'FORMULA') {
+    try {
+      const interpretada = interpretarFormula(esTexto(formula) ? formula : '');
+      const numericos = new Set(
+        otros.filter((otro) => otro.tipo === 'NUMERO' && otro.id !== propioId).map((otro) => otro.id),
+      );
+      if (interpretada.referencias.every((id) => numericos.has(id))) expresion = formula as string;
+      else errores.formula = 'Usá sólo campos numéricos de esta tabla';
+    } catch (error) {
+      errores.formula = error instanceof Error ? error.message : 'No se entiende la fórmula';
+    }
+  }
+
   const inicial = esTexto(valorInicial) && valorInicial.trim() !== '' ? valorInicial : null;
-  if (
+  if ((tipoValido === 'RELACION' || tipoValido === 'FORMULA') && inicial !== null) {
+    errores.valorInicial =
+      tipoValido === 'FORMULA' ? 'Una fórmula no tiene valor inicial' : 'Una conexión no tiene valor inicial';
+  } else if (
     inicial !== null &&
     tipoValido &&
     !errores.opciones &&
@@ -144,6 +176,8 @@ async function leerCampo(
       obligatorio: obligatorio === true,
       valorInicial: inicial === null || tipoValido === 'TEXTO' ? inicial : inicial.trim(),
       opciones: listaOpciones,
+      bloqueRelacionadoId: relacionado,
+      formula: expresion,
     },
   };
 }
@@ -169,7 +203,7 @@ function crearHandlers(almacen: Almacen) {
       if (error) return error;
       const contenedor = almacen.bloque(String(params.bloqueId));
       if (!contenedor) return errorResponse(404, 'El bloque no existe', pathDe(request));
-      const leido = await leerCampo(request, contenedor.campos());
+      const leido = await leerCampo(request, contenedor);
       if ('error' in leido) return leido.error;
 
       const campos = contenedor.campos();
@@ -193,7 +227,7 @@ function crearHandlers(almacen: Almacen) {
       const ubicado = almacen.campo(String(params.campoId));
       if (!ubicado) return errorResponse(404, 'El campo no existe', pathDe(request));
       const { contenedor, campo } = ubicado;
-      const leido = await leerCampo(request, contenedor.campos(), campo.id);
+      const leido = await leerCampo(request, contenedor, campo.id);
       if ('error' in leido) return leido.error;
 
       const editado: Campo = { ...campo, ...leido.datos };

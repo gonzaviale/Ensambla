@@ -8,6 +8,8 @@ export const camposFormulario: Campo[] = [
     obligatorio: true,
     valorInicial: 'Producto',
     opciones: [],
+    bloqueRelacionadoId: null,
+    formula: null,
     posicion: 0,
   },
   {
@@ -17,6 +19,8 @@ export const camposFormulario: Campo[] = [
     obligatorio: true,
     valorInicial: '0',
     opciones: [],
+    bloqueRelacionadoId: null,
+    formula: null,
     posicion: 1,
   },
   {
@@ -26,6 +30,8 @@ export const camposFormulario: Campo[] = [
     obligatorio: false,
     valorInicial: '2026-10-10',
     opciones: [],
+    bloqueRelacionadoId: null,
+    formula: null,
     posicion: 2,
   },
   {
@@ -35,6 +41,8 @@ export const camposFormulario: Campo[] = [
     obligatorio: false,
     valorInicial: 'Insumos',
     opciones: ['Insumos', 'Terminados'],
+    bloqueRelacionadoId: null,
+    formula: null,
     posicion: 3,
   },
   {
@@ -44,12 +52,27 @@ export const camposFormulario: Campo[] = [
     obligatorio: true,
     valorInicial: 'false',
     opciones: [],
+    bloqueRelacionadoId: null,
+    formula: null,
     posicion: 4,
   },
 ];
 
+// Fuera de `camposFormulario`: su selector pide filas a la API y esos tests no la simulan.
+export const campoRelacion: Campo = {
+  id: '00000000-0000-4000-8000-000000000006',
+  nombre: 'Producto',
+  tipo: 'RELACION',
+  obligatorio: false,
+  valorInicial: null,
+  opciones: [],
+  bloqueRelacionadoId: '00000000-0000-4000-8000-0000000000b1',
+  formula: null,
+  posicion: 5,
+};
+
 export function campoPorTipo(tipo: Campo['tipo']): Campo {
-  const campo = camposFormulario.find((item) => item.tipo === tipo);
+  const campo = [...camposFormulario, campoRelacion].find((item) => item.tipo === tipo);
   if (!campo) throw new Error(`Falta el campo de prueba ${tipo}`);
   return campo;
 }

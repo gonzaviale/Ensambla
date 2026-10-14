@@ -33,6 +33,6 @@ public class CrearRegistroUseCase {
         List<Campo> campos = campoService.listarDeBloque(bloque.getId(), negocioId);
         Registro creado = registroDatosService.crear(
                 negocioId, bloque.getId(), campos, request.valores(), OffsetDateTime.now(clock));
-        return mapper.toResponse(creado);
+        return mapper.toResponse(creado.conFormulas(campos));
     }
 }

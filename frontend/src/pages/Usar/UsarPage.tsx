@@ -253,9 +253,12 @@ export function UsarPage() {
                 />
                 {seleccionado?.bloqueId === bloque.id && (
                   <FichaRegistro
+                    key={seleccionado.id}
                     bloque={bloque}
                     registro={seleccionado}
                     onCerrar={() => setSeleccionado(undefined)}
+                    onActualizado={setSeleccionado}
+                    tablas={bloques}
                   />
                 )}
               </div>
@@ -283,7 +286,11 @@ export function UsarPage() {
                   <h2 id={`bloque-${item.id}`} className="mt-0 mb-5 text-h3">
                     {item.nombre}
                   </h2>
-                  <FormularioRegistro bloque={item} onEnviandoChange={setEnviando} />
+                  <FormularioRegistro
+                    bloque={item}
+                    tablas={bloques}
+                    onEnviandoChange={setEnviando}
+                  />
                   {item.campos.length === 0 && (
                     <IrAConstruir proyectoId={proyectoId} bloqueId={item.id} />
                   )}

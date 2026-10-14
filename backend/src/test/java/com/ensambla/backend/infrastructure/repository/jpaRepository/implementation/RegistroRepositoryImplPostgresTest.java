@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import java.math.BigDecimal;
 import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.enums.DireccionOrden;
 import com.ensambla.backend.domain.model.enums.TipoCampo;
@@ -90,7 +91,42 @@ class RegistroRepositoryImplPostgresTest extends PostgresDatosTestSupport {
         assertThat(nombres(barra)).containsExactly("C:\\temp");
     }
 
+    @Test
+    @DisplayName("Suma la cantidad de los 120 registros sin paginar")
+    void sumarNumericosShouldAddEveryRegistroOverOneHundredTwentyRegistros() {
+        givenProductos(REGISTROS);
+
+        Map<UUID, BigDecimal> sumas = sumar(null);
+
+        assertThat(sumas).containsOnlyKeys(campoCantidad);
+        assertThat(sumas.get(campoCantidad)).isEqualByComparingTo("7140");
+    }
+
+    @Test
+    @DisplayName("Suma sólo los registros que cumplen la búsqueda, no los de la página")
+    void sumarNumericosShouldAddOnlyRegistrosMatchingTheSearch() {
+        givenProductos(REGISTROS);
+
+        Map<UUID, BigDecimal> sumas = sumar("PRODUCTO 11");
+
+        assertThat(sumas.get(campoCantidad)).isEqualByComparingTo("1156");
+    }
+
+    @Test
+    @DisplayName("Sin coincidencias no hay sumas")
+    void sumarNumericosShouldReturnNothingWhenNoRegistroMatches() {
+        givenProductos(REGISTROS);
+
+        assertThat(sumar("no existe")).isEmpty();
+    }
+
     // --- act ---
+    private Map<UUID, BigDecimal> sumar(String texto) {
+        return repository.sumarNumericos(
+                new ConsultaRegistros(negocioId, bloqueId, texto, null, DireccionOrden.DESC, 0, 20),
+                List.of(campoCantidad));
+    }
+
     private Pagina<Registro> buscar(String texto, UUID campoOrdenId, DireccionOrden direccion, int pagina,
                                     int tamanio) {
         return repository.buscar(new ConsultaRegistros(

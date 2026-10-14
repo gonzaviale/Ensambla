@@ -63,6 +63,8 @@ describe('ENS-6: carga de registros por bloque', () => {
           obligatorio: true,
           valorInicial: null,
           opciones: [],
+          bloqueRelacionadoId: null,
+          formula: null,
           posicion: 0,
         },
       ],

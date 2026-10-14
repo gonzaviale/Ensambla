@@ -5,9 +5,10 @@ services:
     branch: main
     dockerContext: backend
     dockerfilePath: backend/Dockerfile
-    # Render despliega solo al pushear a main. Para desplegar desde el
-    # pipeline (deploy hook) cambiar a "off" y descomentar el job en deploy-main.yml
-    autoDeployTrigger: commit
+    # El deploy lo dispara el pipeline de main (job deploy en deploy-main.yml,
+    # vía RENDER_DEPLOY_HOOK_URL), por eso el auto-deploy de Render queda apagado.
+    autoDeployTrigger: "off"
+    healthCheckPath: /api/auth/csrf
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod

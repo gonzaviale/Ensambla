@@ -7,12 +7,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 
 @Getter
 @Setter
@@ -40,6 +42,12 @@ public class Campo {
 
     /** Opciones válidas; sólo aplica a campos de tipo OPCION. */
     private List<String> opciones;
+
+    /** Bloque al que apunta; sólo aplica a campos de tipo RELACION. */
+    private UUID bloqueRelacionadoId;
+
+    /** Expresión con los campos referenciados por id ({id}); sólo aplica a campos de tipo FORMULA. */
+    private String formula;
 
     private Short posicion;
 
@@ -71,11 +79,26 @@ public class Campo {
         this.obligatorio = configuracion.obligatorio();
         this.valorInicial = configuracion.valorInicial();
         this.opciones = configuracion.opciones();
+        this.bloqueRelacionadoId = configuracion.bloqueRelacionadoId();
+        this.formula = configuracion.formula();
         this.actualizadoEn = ahora;
     }
 
     public boolean esObligatorio() {
         return Boolean.TRUE.equals(obligatorio);
+    }
+
+    public boolean esRelacion() {
+        return tipo == TipoCampo.RELACION;
+    }
+
+    public boolean esFormula() {
+        return tipo == TipoCampo.FORMULA;
+    }
+
+    /** Valor de un campo FORMULA con los datos de un registro; {@code null} si falta algún dato. */
+    public BigDecimal calcular(Function<UUID, BigDecimal> valorDe) {
+        return Formula.parsear(formula).evaluar(valorDe);
     }
 
     /** Mensaje de error si el valor no corresponde al tipo del campo; vacío si es válido. */
@@ -86,6 +109,8 @@ public class Campo {
             case FECHA -> errorSi(!esFechaIso(valor), "Tiene que ser una fecha válida");
             case OPCION -> errorSi(!esOpcion(valor), "Elegí una de las opciones");
             case SI_NO -> errorSi(!(valor instanceof Boolean), "Tiene que ser sí o no");
+            case RELACION -> errorSi(!esUuid(valor), "Elegí una fila de la tabla relacionada");
+            case FORMULA -> Optional.of("Este dato se calcula solo");
         };
     }
 
@@ -112,6 +137,18 @@ public class Campo {
             LocalDate.parse(texto);
             return true;
         } catch (DateTimeParseException e) {
+            return false;
+        }
+    }
+
+    /** El valor de una conexión es el id del registro referenciado, en su forma canónica de 36 caracteres. */
+    private static boolean esUuid(Object valor) {
+        if (!(valor instanceof String texto)) {
+            return false;
+        }
+        try {
+            return UUID.fromString(texto).toString().equalsIgnoreCase(texto);
+        } catch (IllegalArgumentException e) {
             return false;
         }
     }

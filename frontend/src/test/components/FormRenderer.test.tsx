@@ -100,3 +100,66 @@ describe('ENS-52: formulario dinámico', () => {
     expect(guardar).toHaveBeenCalledWith({ [campo.id]: false });
   });
 });
+
+describe('ENS-58: formulario en modo edición', () => {
+  const valores = {
+    [campoPorTipo('TEXTO').id]: 'Harina',
+    [campoPorTipo('NUMERO').id]: '12.5',
+    [campoPorTipo('FECHA').id]: '',
+    [campoPorTipo('OPCION').id]: 'Terminados',
+    [campoPorTipo('SI_NO').id]: 'true',
+  };
+
+  it('arranca con los valores recibidos y no con los iniciales del campo', () => {
+    render(
+      <FormRenderer modo="editar" campos={camposFormulario} valores={valores} onSubmit={vi.fn()} />,
+    );
+
+    expect(screen.getByLabelText('Nombre')).toHaveValue('Harina');
+    expect(screen.getByLabelText('Precio')).toHaveValue('12.5');
+    expect(screen.getByLabelText('Entrega')).toHaveValue('');
+    expect(screen.getByRole('combobox', { name: 'Rubro' })).toHaveValue('Terminados');
+    expect(screen.getByRole('radio', { name: 'Sí' })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'Guardar cambios' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Guardar fila' })).not.toBeInTheDocument();
+  });
+
+  it('al guardar conserva lo escrito y no muestra el aviso de carga', async () => {
+    const guardar = vi.fn(async () => ({ exito: true as const }));
+    const user = userEvent.setup();
+    render(
+      <FormRenderer modo="editar" campos={camposFormulario} valores={valores} onSubmit={guardar} />,
+    );
+
+    await user.clear(screen.getByLabelText('Nombre'));
+    await user.type(screen.getByLabelText('Nombre'), 'Harina integral');
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(guardar).toHaveBeenCalledWith(
+      expect.objectContaining({ [campoPorTipo('TEXTO').id]: 'Harina integral' }),
+    );
+    expect(screen.getByLabelText('Nombre')).toHaveValue('Harina integral');
+    expect(screen.queryByText(/Ya podés cargar otra/)).not.toBeInTheDocument();
+  });
+
+  it('ofrece cancelar sólo cuando se pasa onCancelar', async () => {
+    const cancelar = vi.fn();
+    const { rerender } = render(
+      <FormRenderer modo="editar" campos={camposFormulario} valores={valores} onSubmit={vi.fn()} />,
+    );
+    expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument();
+
+    rerender(
+      <FormRenderer
+        modo="editar"
+        campos={camposFormulario}
+        valores={valores}
+        onSubmit={vi.fn()}
+        onCancelar={cancelar}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(cancelar).toHaveBeenCalledTimes(1);
+  });
+});

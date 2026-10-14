@@ -31,6 +31,13 @@ public class CampoRepositoryImpl implements CampoRepository {
     }
 
     @Override
+    public List<Campo> findRelacionesHacia(UUID bloqueId, UUID negocioId) {
+        return jpa.findRelacionesHacia(bloqueId, negocioId).stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public Campo save(Campo campo) {
         return mapper.toDomain(jpa.save(mapper.toEntity(campo)));
     }

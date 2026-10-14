@@ -17,6 +17,16 @@ public interface ICampoJpaRepository extends JpaRepository<CampoEntity, UUID> {
 
     Optional<CampoEntity> findByIdAndNegocioId(UUID id, UUID negocioId);
 
+    /** Campos de otros bloques del negocio que apuntan a {@code bloqueId}; la autorreferencia no cuenta. */
+    @Query("""
+            select c from CampoEntity c
+            where c.negocioId = :negocioId
+              and c.bloqueRelacionadoId = :bloqueId
+              and c.bloqueId <> :bloqueId
+            order by c.bloqueId, c.posicion, c.id
+            """)
+    List<CampoEntity> findRelacionesHacia(UUID bloqueId, UUID negocioId);
+
     /** Borra sólo el campo: los registros no tienen FK al campo, sus valores quedan en el JSON sin usarse. */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("delete from CampoEntity c where c.id = :id and c.negocioId = :negocioId")

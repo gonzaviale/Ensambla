@@ -24,6 +24,8 @@ public record ProyectoItem(
             Boolean obligatorio,
             String valorInicial,
             List<String> opciones,
+            UUID bloqueRelacionadoId,
+            String formula,
             Short posicion
     ) {
     }

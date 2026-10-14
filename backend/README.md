@@ -110,7 +110,7 @@ guardado. Un lote de otro negocio responde 404.
 | `POST /api/lotes` | sesión + CSRF | Subir fotos del cuaderno (multipart, campo `fotos`): crea un lote `PENDIENTE` |
 | `GET /api/lotes/{loteId}` | sesión | Lote con sus fotos |
 | `POST /api/bloques/{bloqueId}/registros` | sesión + CSRF | Carga un registro; `valores` va indexado por id de campo. `201`, o `400` con `errors` por campo |
-| `GET /api/bloques/{bloqueId}/registros` | sesión | Registros del bloque. Parámetros: `q` (texto entre los valores), `orden` (id de campo o `creadoEn`), `direccion` (`asc`/`desc`, por defecto `desc`), `pagina` (desde 0), `tamanio` (1 a 100, por defecto 20) |
+| `GET /api/bloques/{bloqueId}/registros` | sesión | Registros del bloque. Parámetros: `q` (texto entre los valores), `orden` (id de campo o `creadoEn`), `direccion` (`asc`/`desc`, por defecto `desc`), `pagina` (desde 0), `tamanio` (1 a 100, por defecto 20). Además de la página, devuelve `totales`: `cantidad` y `sumas` (suma de cada campo numérico, por id de campo) de **todos** los registros que cumplen `q`, no sólo de la página |
 | `GET /api/registros/{id}` | sesión | Un registro |
 | `PATCH /api/registros/{id}` | sesión + CSRF | Edita sólo los campos enviados; un valor `null` o vacío borra el dato. Revalida el registro completo |
 | `DELETE /api/registros/{id}` | sesión + CSRF | Elimina el registro. `204` |
