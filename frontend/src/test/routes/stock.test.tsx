@@ -231,6 +231,8 @@ describe('ENS-159: cargar movimientos y ver el stock', () => {
 
     expect(await within(form).findByText('Elegí el producto.')).toBeVisible();
     expect(within(form).getByText('Escribí la cantidad, por ejemplo 5 o 2,5.')).toBeVisible();
+    // El foco salta al primer error en el próximo cuadro; hay que esperarlo o pisaría lo que se escribe.
+    await waitFor(() => expect(within(form).getByRole('searchbox')).toHaveFocus());
     await user.type(within(form).getByLabelText('Cantidad'), '0');
     await user.click(within(form).getByRole('button', { name: 'Registrar movimiento' }));
     expect(await within(form).findByText('Tiene que ser mayor a cero.')).toBeVisible();
