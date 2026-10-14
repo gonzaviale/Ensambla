@@ -410,7 +410,7 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  width: calc(var(--u) * 6.25);
+  width: calc(var(--u) * 5.84);
   height: calc(var(--u) * 6.2);
   transform-style: preserve-3d;
   transform: translate(-50%, -50%) rotateX(-24deg) rotateY(-30deg);
@@ -495,6 +495,21 @@
 }
 .landing .b3d--pizarra {
   --c: var(--pizarra);
+}
+.landing .b3d--logo-naranja {
+  --c: #ee8000;
+}
+.landing .b3d--logo-turquesa {
+  --c: #00506a;
+}
+.landing .b3d--logo-amarillo {
+  --c: #ebce32;
+}
+.landing .b3d--logo-celeste {
+  --c: #4eb2d4;
+}
+.landing .b3d--logo-coral {
+  --c: #f85f5a;
 }
 /* Los bloques se separan apenas y vuelven a encastrar: el sistema se ensambla en loop */
 @keyframes landing-ensamblar {

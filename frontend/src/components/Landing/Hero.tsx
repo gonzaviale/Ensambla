@@ -2,11 +2,11 @@ import { Link } from '@tanstack/react-router';
 import { variables } from './estilos';
 
 const BLOQUES_3D = [
-  { color: 'naranja', x: 0, y: 0, w: 2.2, h: 3.1, ex: -1, ey: -1, ez: 0.4, dl: '0s' },
-  { color: 'pizarra', x: 0, y: 3.25, w: 2.2, h: 1.95, ex: -1, ey: 0.9, ez: -0.3, dl: '0.1s' },
-  { color: 'coral', x: 2.35, y: 0.45, w: 2.9, h: 1.6, ex: 0.6, ey: -1.3, ez: 0.5, dl: '0.2s' },
-  { color: 'arena', x: 2.35, y: 2.2, w: 3.9, h: 1.75, ex: 1.2, ey: -0.2, ez: -0.4, dl: '0.3s' },
-  { color: 'naranja', x: 2.35, y: 4.1, w: 3.9, h: 2.1, ex: 0.6, ey: 1, ez: 0.3, dl: '0.4s' },
+  { color: 'logo-naranja', x: 0, y: 0, w: 2.74, h: 4.01, ex: -1, ey: -1, ez: 0.4, dl: '0s' },
+  { color: 'logo-turquesa', x: 0, y: 4.38, w: 2.74, h: 1.82, ex: -1, ey: 0.9, ez: -0.3, dl: '0.1s' },
+  { color: 'logo-amarillo', x: 3.1, y: 0, w: 2.74, h: 1.82, ex: 0.6, ey: -1.3, ez: 0.5, dl: '0.2s' },
+  { color: 'logo-celeste', x: 3.1, y: 2.19, w: 2.74, h: 1.82, ex: 1.2, ey: -0.2, ez: -0.4, dl: '0.3s' },
+  { color: 'logo-coral', x: 3.1, y: 4.38, w: 2.74, h: 1.82, ex: 0.6, ey: 1, ez: 0.3, dl: '0.4s' },
 ] as const;
 
 const FICHAS = [
