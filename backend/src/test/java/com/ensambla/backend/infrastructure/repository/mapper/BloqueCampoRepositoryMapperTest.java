@@ -19,6 +19,7 @@ class BloqueCampoRepositoryMapperTest {
     private static final UUID ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
     private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
     private static final UUID PADRE_ID = UUID.fromString("e0000000-0000-4000-8000-000000000001");
+    private static final UUID RELACIONADO_ID = UUID.fromString("e0000000-0000-4000-8000-000000000002");
     private static final OffsetDateTime CREADO = OffsetDateTime.parse("2026-10-09T12:00:00Z");
     private static final OffsetDateTime ACTUALIZADO = OffsetDateTime.parse("2026-10-10T12:00:00Z");
 
@@ -82,6 +83,7 @@ class BloqueCampoRepositoryMapperTest {
                 .obligatorio(true)
                 .valorInicial("Velas")
                 .opciones(List.of("Velas", "Moldes"))
+                .bloqueRelacionadoId(RELACIONADO_ID)
                 .posicion((short) 1)
                 .creadoEn(CREADO)
                 .actualizadoEn(ACTUALIZADO)
@@ -97,6 +99,7 @@ class BloqueCampoRepositoryMapperTest {
         assertThat(result.getObligatorio()).isTrue();
         assertThat(result.getValorInicial()).isEqualTo("Velas");
         assertThat(result.getOpciones()).containsExactly("Velas", "Moldes");
+        assertThat(result.getBloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
         assertThat(result.getPosicion()).isEqualTo((short) 1);
         assertThat(result.getCreadoEn()).isEqualTo(CREADO);
         assertThat(result.getActualizadoEn()).isEqualTo(ACTUALIZADO);
@@ -114,6 +117,7 @@ class BloqueCampoRepositoryMapperTest {
                 .obligatorio(false)
                 .valorInicial("true")
                 .opciones(List.of())
+                .bloqueRelacionadoId(RELACIONADO_ID)
                 .posicion((short) 4)
                 .creadoEn(CREADO)
                 .actualizadoEn(ACTUALIZADO)
@@ -129,6 +133,7 @@ class BloqueCampoRepositoryMapperTest {
         assertThat(result.getObligatorio()).isFalse();
         assertThat(result.getValorInicial()).isEqualTo("true");
         assertThat(result.getOpciones()).isEmpty();
+        assertThat(result.getBloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
         assertThat(result.getPosicion()).isEqualTo((short) 4);
         assertThat(result.getCreadoEn()).isEqualTo(CREADO);
         assertThat(result.getActualizadoEn()).isEqualTo(ACTUALIZADO);

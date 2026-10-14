@@ -23,6 +23,8 @@ const dato = (datos: Partial<GuardarCampo> & Pick<GuardarCampo, 'nombre'>): Guar
   obligatorio: false,
   valorInicial: null,
   opciones: [],
+  bloqueRelacionadoId: null,
+  formula: null,
   ...datos,
 });
 
@@ -64,6 +66,9 @@ const botonDeBloque = (nombre: string) =>
   within(listaDeBloques()).getByRole('button', { name: nombre });
 const detalle = (nombre: string) => screen.getByRole('region', { name: nombre });
 const datosDelBloque = () => screen.findByRole('list', { name: 'Columnas de la tabla' }, ESPERA);
+// «Stock» también es una sección del sistema (en la navegación): sólo cuenta el texto de la pantalla.
+const textoFueraDeLaNavegacion = (texto: string) =>
+  screen.queryAllByText(texto).filter((elemento) => !elemento.closest('nav'));
 const formulario = (nombre: string | RegExp) => screen.getByRole('form', { name: nombre });
 
 async function abrirNuevoDato(user: UserEvent) {
@@ -101,7 +106,7 @@ describe('ENS-47 · T-019: layout del constructor', () => {
     expect(botonDeBloque('Clientes')).toHaveAttribute('aria-current', 'true');
     expect(botonDeBloque('Productos')).not.toHaveAttribute('aria-current');
     expect(await screen.findByText('Teléfono', {}, ESPERA)).toBeInTheDocument();
-    expect(screen.queryByText('Stock')).not.toBeInTheDocument();
+    expect(textoFueraDeLaNavegacion('Stock')).toHaveLength(0);
     expect(router.state.location.search).toMatchObject({ bloque: expect.any(String) });
   });
 
@@ -527,7 +532,7 @@ describe('ENS-49 · T-021: editor de datos (campos)', () => {
 
     await waitFor(() => expect(screen.queryByRole('form')).not.toBeInTheDocument(), ESPERA);
     expect(await screen.findByText('Cantidad', {}, ESPERA)).toBeInTheDocument();
-    expect(screen.queryByText('Stock')).not.toBeInTheDocument();
+    expect(textoFueraDeLaNavegacion('Stock')).toHaveLength(0);
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Cambiar Cantidad' })).toHaveFocus(),
     );
@@ -545,12 +550,119 @@ describe('ENS-49 · T-021: editor de datos (campos)', () => {
     const aviso = screen.getByRole('alertdialog', { name: '¿Eliminar la columna «Stock»?' });
     expect(aviso).toHaveTextContent('No se puede deshacer');
     await user.click(within(aviso).getByRole('button', { name: 'No, conservarla' }));
-    expect(screen.getByText('Stock')).toBeInTheDocument();
+    expect(textoFueraDeLaNavegacion('Stock')).toHaveLength(1);
 
     await user.click(screen.getByRole('button', { name: 'Eliminar Stock' }));
     await user.click(screen.getByRole('button', { name: 'Sí, eliminar columna' }));
 
-    await waitFor(() => expect(screen.queryByText('Stock')).not.toBeInTheDocument(), ESPERA);
+    await waitFor(() => expect(textoFueraDeLaNavegacion('Stock')).toHaveLength(0), ESPERA);
     expect(within(detalle('Productos')).getByText('Nombre')).toBeInTheDocument();
+  });
+});
+
+describe('ENS-158: columna que se conecta con otra tabla', () => {
+  it('crea una conexión eligiendo la tabla, sin valor inicial', async () => {
+    const { proyecto, productos, clientes } = await setupProyectoConBloques();
+    const user = userEvent.setup();
+    await abrirConstructor(proyecto.id, productos.id);
+
+    const form = await abrirNuevoDato(user);
+    await user.type(within(form).getByLabelText('Nombre de la columna'), 'Proveedor');
+    await user.click(within(form).getByRole('radio', { name: 'Conexión con otra tabla' }));
+    expect(within(form).queryByLabelText('Valor inicial (opcional)')).not.toBeInTheDocument();
+    const tabla = await within(form).findByLabelText('¿Con qué tabla se conecta?');
+    await waitFor(() => expect(tabla).toBeEnabled());
+    expect(
+      within(tabla).getByRole('option', { name: 'Productos (esta misma tabla)' }),
+    ).toBeInTheDocument();
+    await user.selectOptions(tabla, 'Clientes');
+    await guardarDato(user, form);
+    await waitFor(() => expect(screen.queryByRole('form')).not.toBeInTheDocument(), ESPERA);
+
+    const lista = await datosDelBloque();
+    expect(await within(lista).findByText('Se conecta con «Clientes»', {}, ESPERA)).toBeVisible();
+    expect(within(lista).getByText('Conexión con otra tabla')).toBeVisible();
+    const guardados = await listarCampos(productos.id);
+    expect(guardados.at(-1)).toMatchObject({
+      nombre: 'Proveedor',
+      tipo: 'RELACION',
+      bloqueRelacionadoId: clientes.id,
+      formula: null,
+      valorInicial: null,
+      opciones: [],
+    });
+  });
+
+  it('pide la tabla antes de enviar y la vacía al cambiar de tipo', async () => {
+    const { proyecto, productos } = await setupProyectoConBloques();
+    const user = userEvent.setup();
+    await abrirConstructor(proyecto.id, productos.id);
+
+    const form = await abrirNuevoDato(user);
+    await user.type(within(form).getByLabelText('Nombre de la columna'), 'Proveedor');
+    await user.click(within(form).getByRole('radio', { name: 'Conexión con otra tabla' }));
+    await guardarDato(user, form);
+    const tabla = within(form).getByLabelText('¿Con qué tabla se conecta?');
+    expect(tabla).toHaveAccessibleDescription(/Elegí la tabla con la que se conecta/);
+    expect(screen.getByRole('form', { name: 'Nueva columna' })).toBeInTheDocument();
+    expect(await listarCampos(productos.id)).toHaveLength(2);
+
+    await waitFor(() => expect(tabla).toBeEnabled());
+    await user.selectOptions(tabla, 'Clientes');
+    await user.click(within(form).getByRole('radio', { name: 'Texto' }));
+    await user.click(within(form).getByRole('radio', { name: 'Conexión con otra tabla' }));
+    expect(within(form).getByLabelText('¿Con qué tabla se conecta?')).toHaveValue('');
+  });
+
+  it('muestra junto a la tabla el error 400 del servidor', async () => {
+    const { proyecto, productos } = await setupProyectoConBloques();
+    server.use(
+      http.post('/api/bloques/:bloqueId/campos', ({ request }) =>
+        errorResponse(
+          400,
+          'Error de validación en los datos enviados',
+          new URL(request.url).pathname,
+          { bloqueRelacionadoId: 'Elegí una tabla de este sistema' },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    await abrirConstructor(proyecto.id, productos.id);
+
+    const form = await abrirNuevoDato(user);
+    await user.type(within(form).getByLabelText('Nombre de la columna'), 'Proveedor');
+    await user.click(within(form).getByRole('radio', { name: 'Conexión con otra tabla' }));
+    const tabla = within(form).getByLabelText('¿Con qué tabla se conecta?');
+    await waitFor(() => expect(tabla).toBeEnabled());
+    await user.selectOptions(tabla, 'Clientes');
+    await guardarDato(user, form);
+    await waitFor(
+      () => expect(tabla).toHaveAccessibleDescription(/Elegí una tabla de este sistema/),
+      ESPERA,
+    );
+  });
+
+  it('no elimina una tabla que usa otra y explica dónde se usa', async () => {
+    const { proyecto, productos, clientes } = await setupProyectoConBloques();
+    await crearCampo({
+      bloqueId: productos.id,
+      datos: dato({ nombre: 'Proveedor', tipo: 'RELACION', bloqueRelacionadoId: clientes.id }),
+    });
+    const user = userEvent.setup();
+    await abrirConstructor(proyecto.id, clientes.id);
+    await verifyHeadingPresentAsync('Clientes');
+    await datosDelBloque();
+
+    await user.click(screen.getByRole('button', { name: 'Eliminar tabla' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, eliminar tabla' }));
+    const aviso = screen.getByRole('alertdialog', { name: '¿Eliminar la tabla «Clientes»?' });
+    expect(
+      await within(aviso).findByText(
+        'La tabla «Clientes» se usa en la columna «Proveedor» de «Productos»',
+        {},
+        ESPERA,
+      ),
+    ).toBeVisible();
+    expect(botonDeBloque('Clientes')).toBeInTheDocument();
   });
 });

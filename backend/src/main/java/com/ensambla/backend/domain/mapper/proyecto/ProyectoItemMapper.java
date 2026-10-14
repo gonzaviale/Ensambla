@@ -36,6 +36,8 @@ public class ProyectoItemMapper {
                 campo.getObligatorio(),
                 campo.getValorInicial(),
                 campo.getOpciones(),
+                campo.getBloqueRelacionadoId(),
+                campo.getFormula(),
                 campo.getPosicion());
     }
 }

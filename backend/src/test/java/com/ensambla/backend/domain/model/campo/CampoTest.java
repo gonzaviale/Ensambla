@@ -16,6 +16,7 @@ class CampoTest {
     private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
     private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
+    private static final UUID RELACIONADO_ID = UUID.fromString("b0000000-0000-4000-8000-000000000002");
 
     @Test
     @DisplayName("Un campo marcado como obligatorio es obligatorio")
@@ -127,6 +128,54 @@ class CampoTest {
     }
 
     @Test
+    @DisplayName("Acepta el id de una fila como valor de una conexión")
+    void errorDeShouldBeEmptyWhenRelacionIsUuid() {
+        assertThat(errorDe(TipoCampo.RELACION, RELACIONADO_ID.toString())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Rechaza un texto que no es un id como valor de una conexión")
+    void errorDeShouldReportWhenRelacionIsNotUuid() {
+        assertThat(errorDe(TipoCampo.RELACION, "Ana")).contains("Elegí una fila de la tabla relacionada");
+    }
+
+    @Test
+    @DisplayName("Rechaza un id abreviado como valor de una conexión")
+    void errorDeShouldReportWhenRelacionIsNotCanonicalUuid() {
+        assertThat(errorDe(TipoCampo.RELACION, "1-1-1-1-1")).contains("Elegí una fila de la tabla relacionada");
+    }
+
+    @Test
+    @DisplayName("Rechaza un valor de conexión que no es un texto")
+    void errorDeShouldReportWhenRelacionIsNotAString() {
+        assertThat(errorDe(TipoCampo.RELACION, 12)).contains("Elegí una fila de la tabla relacionada");
+    }
+
+    @Test
+    @DisplayName("Un campo de conexión es una relación")
+    void esRelacionShouldBeTrueWhenTipoIsRelacion() {
+        assertThat(campo(TipoCampo.RELACION).esRelacion()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Un campo de otro tipo no es una relación")
+    void esRelacionShouldBeFalseWhenTipoIsOther() {
+        assertThat(campo(TipoCampo.TEXTO).esRelacion()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Configurar un campo de conexión guarda la tabla con la que se conecta")
+    void configurarShouldKeepBloqueRelacionado() {
+        Campo campo = Campo.nuevo(NEGOCIO_ID, BLOQUE_ID, (short) 0, configuracion("Talle"), AHORA);
+        ConfiguracionCampo.Validada relacion =
+                new ConfiguracionCampo.Validada("Cliente", TipoCampo.RELACION, false, null, List.of(), RELACIONADO_ID, null);
+
+        campo.configurar(relacion, AHORA);
+
+        assertThat(campo.getBloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
+    }
+
+    @Test
     @DisplayName("Crea un campo nuevo con la configuración validada y las dos fechas iguales")
     void nuevoShouldApplyConfiguracionAndSetDates() {
         Campo result = Campo.nuevo(NEGOCIO_ID, BLOQUE_ID, (short) 2, configuracion("Talle"), AHORA);
@@ -140,6 +189,7 @@ class CampoTest {
         assertThat(result.getObligatorio()).isTrue();
         assertThat(result.getValorInicial()).isEqualTo("Chico");
         assertThat(result.getOpciones()).containsExactly("Chico", "Grande");
+        assertThat(result.getBloqueRelacionadoId()).isNull();
         assertThat(result.getCreadoEn()).isEqualTo(AHORA);
         assertThat(result.getActualizadoEn()).isEqualTo(AHORA);
     }
@@ -149,7 +199,7 @@ class CampoTest {
     void configurarShouldReplaceConfiguracionAndKeepCreationDate() {
         Campo campo = Campo.nuevo(NEGOCIO_ID, BLOQUE_ID, (short) 0, configuracion("Talle"), AHORA);
         ConfiguracionCampo.Validada nueva =
-                new ConfiguracionCampo.Validada("Precio", TipoCampo.NUMERO, false, null, List.of());
+                new ConfiguracionCampo.Validada("Precio", TipoCampo.NUMERO, false, null, List.of(), null, null);
 
         campo.configurar(nueva, AHORA.plusHours(1));
 
@@ -169,7 +219,8 @@ class CampoTest {
 
     // --- helpers ---
     private ConfiguracionCampo.Validada configuracion(String nombre) {
-        return new ConfiguracionCampo.Validada(nombre, TipoCampo.OPCION, true, "Chico", List.of("Chico", "Grande"));
+        return new ConfiguracionCampo.Validada(
+                nombre, TipoCampo.OPCION, true, "Chico", List.of("Chico", "Grande"), null, null);
     }
 
     private Campo campo(TipoCampo tipo) {
@@ -177,5 +228,39 @@ class CampoTest {
                 .tipo(tipo)
                 .opciones(List.of("Minorista", "Mayorista"))
                 .build();
+    }
+
+    @Test
+    @DisplayName("Un campo fórmula no admite que se cargue un valor")
+    void errorDeShouldRejectAnyValueOfFormula() {
+        assertThat(errorDe(TipoCampo.FORMULA, 3)).contains("Este dato se calcula solo");
+    }
+
+    @Test
+    @DisplayName("Sólo un campo de tipo fórmula es una fórmula")
+    void esFormulaShouldDependOnTipo() {
+        assertThat(campo(TipoCampo.FORMULA).esFormula()).isTrue();
+        assertThat(campo(TipoCampo.NUMERO).esFormula()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Calcula la fórmula con los valores que le da el registro")
+    void calcularShouldEvaluateFormulaWithGivenValues() {
+        Campo campo = campo(TipoCampo.FORMULA);
+        campo.setFormula("{" + RELACIONADO_ID + "} + 1");
+
+        assertThat(campo.calcular(id -> new java.math.BigDecimal("4"))).isEqualByComparingTo("5");
+    }
+
+    @Test
+    @DisplayName("Configurar un campo fórmula guarda la expresión")
+    void configurarShouldKeepFormula() {
+        Campo campo = Campo.nuevo(NEGOCIO_ID, BLOQUE_ID, (short) 0, configuracion("Talle"), AHORA);
+        ConfiguracionCampo.Validada formula =
+                new ConfiguracionCampo.Validada("Total", TipoCampo.FORMULA, false, null, List.of(), null, "1 + 1");
+
+        campo.configurar(formula, AHORA);
+
+        assertThat(campo.getFormula()).isEqualTo("1 + 1");
     }
 }

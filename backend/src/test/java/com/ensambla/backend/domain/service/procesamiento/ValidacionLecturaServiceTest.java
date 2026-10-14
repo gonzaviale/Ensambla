@@ -43,6 +43,16 @@ class ValidacionLecturaServiceTest {
     }
 
     @Test
+    @DisplayName("Rechaza un valor en un campo de conexión: la lectura de la IA no propone conexiones")
+    void validarShouldRejectRelacionValues() {
+        LecturaCuaderno lectura = ProcesamientoTestData.lectura(
+                TipoCampo.RELACION, "d0000000-0000-4000-8000-000000000001", List.of());
+
+        assertThatThrownBy(() -> validacionLecturaService.validar(lectura))
+                .isInstanceOf(LecturaCuadernoException.class).hasMessageContaining("no coincide");
+    }
+
+    @Test
     @DisplayName("Conserva un valor ilegible nulo")
     void validarShouldAcceptNullValue() {
         LecturaCuaderno lectura = ProcesamientoTestData.lectura(TipoCampo.NUMERO, null, List.of());
@@ -108,5 +118,14 @@ class ValidacionLecturaServiceTest {
     private LecturaCuaderno givenLectura(BloquePropuesto bloque, List<FilaLeida> filas) {
         LecturaCuaderno base = ProcesamientoTestData.lectura();
         return new LecturaCuaderno(base.tipoRegistro(), bloque, filas, List.of(), base.consumo());
+    }
+
+    @Test
+    @DisplayName("Rechaza un valor en un campo fórmula: la lectura de la IA no propone fórmulas")
+    void validarShouldRejectFormulaValues() {
+        LecturaCuaderno lectura = ProcesamientoTestData.lectura(TipoCampo.FORMULA, "10", List.of());
+
+        assertThatThrownBy(() -> validacionLecturaService.validar(lectura))
+                .isInstanceOf(LecturaCuadernoException.class).hasMessageContaining("no coincide");
     }
 }

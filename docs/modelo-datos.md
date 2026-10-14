@@ -1,7 +1,9 @@
 # Modelo de datos (MVP 2 · T-004, T-109)
 
 Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (`V1__esquema_inicial.sql`,
-`V2__digitalizacion_cuaderno.sql`, `V3__plantillas_base.sql`, `V4__procesamiento_lecturas_ia.sql`).
+`V2__digitalizacion_cuaderno.sql`, `V3__plantillas_base.sql`, `V4__procesamiento_lecturas_ia.sql`,
+`V5__campo_relacion.sql`, `V6__campo_formula.sql`, `V7__movimiento_stock.sql`, `V8__receta.sql`).
+V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
 V3 carga Inventario, Pedidos y Clientes
 como plantillas globales; sus UUID coinciden con los del modo simulado del frontend. Este documento explica el
@@ -49,7 +51,11 @@ erDiagram
     plantilla ||--o{ proyecto : "origen de"
     proyecto ||--o{ bloque : contiene
     bloque ||--o{ campo : define
+    bloque |o--o{ campo : "relacionado desde"
     bloque ||--o{ registro : almacena
+    registro ||--o{ movimiento_stock : "entradas y salidas"
+    registro ||--o| receta : "tiene"
+    campo ||--o{ receta : "precio de los insumos"
     negocio ||--o{ lote_subida : sube
     bloque |o--o{ lote_subida : "destino elegido"
     lote_subida ||--o{ foto_cuaderno : contiene
@@ -95,10 +101,12 @@ erDiagram
         uuid negocio_id FK
         uuid bloque_id FK
         text nombre "único por bloque"
-        text tipo "TEXTO | NUMERO | FECHA | OPCION | SI_NO"
+        text tipo "TEXTO | NUMERO | FECHA | OPCION | SI_NO | RELACION | FORMULA"
         boolean obligatorio
         text valor_inicial
         jsonb opciones "lista; obligatoria si tipo = OPCION"
+        uuid bloque_relacionado_id FK "sólo si tipo = RELACION"
+        text formula "sólo si tipo = FORMULA"
         smallint posicion
     }
     registro {
@@ -107,6 +115,22 @@ erDiagram
         uuid bloque_id FK
         jsonb valores "{ campo_id: valor }"
         uuid foto_origen_id FK "SET NULL; NULL = carga manual"
+    }
+    movimiento_stock {
+        uuid id PK
+        uuid negocio_id FK
+        uuid registro_id FK "el producto; CASCADE"
+        text tipo "ENTRADA | SALIDA"
+        numeric cantidad "(14,3) > 0"
+        date fecha
+        text nota "hasta 300"
+    }
+    receta {
+        uuid id PK
+        uuid negocio_id FK
+        uuid producto_id FK "único; CASCADE"
+        uuid campo_precio_id FK "columna numérica del precio; CASCADE"
+        jsonb lineas "[{insumoId, cantidad, unidad}]"
     }
     lote_subida {
         uuid id PK
@@ -150,7 +174,9 @@ erDiagram
 | `plantilla` | Estructuras listas para copiar (T-013) | Global: sin `negocio_id`. `estructura` = `{ "bloques": [ { "nombre", "campos": [ { "nombre", "tipo", "obligatorio", "valorInicial", "opciones" } ] } ] }`. Crear un proyecto desde una plantilla **copia** la estructura; editar el proyecto no toca la plantilla (T-014). |
 | `proyecto` | Un sistema armado por el usuario | `plantilla_id` guarda el origen y pasa a `NULL` si la plantilla se borra. Borrar un proyecto borra en cascada bloques, campos y registros (T-012). |
 | `bloque` | Una "pieza": Productos, Clientes, Pedidos… | Nombre único por proyecto; `posicion` ordena la lista del constructor. |
-| `campo` | Un dato de un bloque, con tipo y reglas | Tipos del MVP 2: texto, número, fecha, opción, sí/no. `ck_campo_opciones`: `opciones` es un arreglo y, para `OPCION`, no está vacío (T-018). `valor_inicial` es texto y se interpreta según el tipo. |
+| `campo` | Un dato de un bloque, con tipo y reglas | Tipos del MVP 2: texto, número, fecha, opción, sí/no; desde V5, `RELACION` (conexión con otra tabla). `ck_campo_opciones`: `opciones` es un arreglo y, para `OPCION`, no está vacío (T-018). `valor_inicial` es texto y se interpreta según el tipo. Un campo `RELACION` apunta con `bloque_relacionado_id` a un bloque del mismo proyecto (puede ser el propio): FK compuesta `(negocio_id, bloque_relacionado_id)` con `ON DELETE CASCADE` y `ck_campo_relacion` (la columna está cargada si y sólo si el tipo es `RELACION`). El valor en `registro.valores` es el id del registro referenciado; borrar ese registro deja la referencia colgando. La app no deja borrar un bloque usado por un campo de otro bloque. Desde V6, un campo `FORMULA` guarda en `formula` una expresión (`+ - * /`, paréntesis, números y campos citados como `{id-del-campo}`; `ck_campo_formula`: la columna está cargada si y sólo si el tipo es `FORMULA`). Sólo puede citar campos `NUMERO` del mismo bloque, así que no hay referencias circulares. El resultado no se guarda: se calcula al leer los registros. La app no deja eliminar ni cambiar de tipo un campo que usa una fórmula. |
+| `movimiento_stock` | Una entrada o una salida de un producto (un `registro` de cualquier bloque) | Desde V7. El stock **no se guarda**: es la suma de entradas menos salidas de cada producto, y una salida no puede dejarlo en negativo (lo valida la app). FK compuesta `(negocio_id, registro_id) → registro (negocio_id, id)` (V7 agrega `ux_registro_negocio_id`) con `ON DELETE CASCADE`: borrar un producto borra su historial. `cantidad` es `numeric(14,3)` mayor a cero. |
+| `receta` | Qué insumos (otros registros) y cuánto de cada uno lleva un producto (un `registro`) | Desde V8. Un producto tiene una sola receta (`ux_receta_producto`). `campo_precio_id` es la columna numérica de la que sale el precio de cada insumo (los insumos son filas de su tabla). El costo **no se guarda**: se calcula al leer como la suma de `cantidad × precio actual`; un insumo sin precio o borrado deja la receta como incompleta. `lineas` es un arreglo JSON con la cantidad como texto para no perder decimales; borrar un insumo deja la línea colgando (como una conexión). Borrar el producto o la columna del precio borra la receta (`ON DELETE CASCADE`, FK compuestas por negocio). `unidad` es sólo una etiqueta: la cantidad se expresa en la misma unidad en la que está el precio. |
 | `registro` | Una fila cargada en un bloque | `valores` está indexado por **id de campo**, así renombrar un campo no rompe los datos viejos. El validador dinámico (T-022) controla tipo, obligatoriedad y opciones. Desde V2, `foto_origen_id` apunta a la foto de la que salió (T-103, T-104); si se borra la foto queda en `NULL`. |
 | `lote_subida` | Una tanda de fotos del cuaderno para leer (T-090) | `estado` es la cola del worker (T-096): `PENDIENTE → PROCESANDO → LISTO` o `ERROR`, y después `CONFIRMADO` o `DESCARTADO`. `ERROR` exige `motivo_error`. `bloque_destino_id` es opcional (sumar a un bloque existente) y pasa a `NULL` si se borra el bloque. |
 | `foto_cuaderno` | Cada página subida (T-090) | Sólo guarda la **clave** del archivo en el almacenamiento privado (T-077), nunca la imagen. Tipos permitidos: JPEG, PNG, WEBP, HEIC y PDF. Posición única dentro del lote. |

@@ -116,7 +116,7 @@ src/
 ├── routes/        rutas file-based de TanStack Router: finas (guard + loader + <Page/>)
 ├── pages/         una carpeta por pantalla
 ├── layouts/       PublicLayout, AppLayout
-├── components/    ui/ (átomos), AuthForm/, Navbar/ … componentes por feature
+├── components/    ui/ (átomos), AuthForm/, Navbar/, Landing/ … componentes por feature
 ├── hooks/<dominio>/  queries.ts (queryOptions + keys + useSuspenseQuery), mutations.ts
 ├── api/           cliente fetch (CSRF, errores) + un archivo por recurso con schemas zod
 ├── stores/        estado de cliente con zustand (vacío por ahora)

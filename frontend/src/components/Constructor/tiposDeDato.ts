@@ -10,4 +10,12 @@ export const TIPOS_DE_DATO: Record<TipoCampo, { nombre: string; ayuda: string }>
     ayuda: 'Se elige una opción de una lista que armás vos, como Chico, Mediano o Grande.',
   },
   SI_NO: { nombre: 'Sí o no', ayuda: 'Una respuesta de sí o no, como «¿Pagó?».' },
+  RELACION: {
+    nombre: 'Conexión con otra tabla',
+    ayuda: 'Cada fila elige una fila de otra tabla, como el producto de una venta.',
+  },
+  FORMULA: {
+    nombre: 'Cálculo',
+    ayuda: 'Se calcula solo con otras columnas numéricas, como cantidad por precio.',
+  },
 };

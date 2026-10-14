@@ -8,6 +8,7 @@ import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.TotalesRegistros;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
@@ -40,6 +41,7 @@ public class ListarRegistrosUseCase {
                 request.pagina(),
                 request.tamanio());
         Pagina<Registro> pagina = registroDatosService.listar(consulta);
-        return mapper.toResponse(pagina);
+        TotalesRegistros totales = registroDatosService.totales(consulta, campos, pagina.totalElementos());
+        return mapper.toResponse(pagina.map(registro -> registro.conFormulas(campos)), totales);
     }
 }

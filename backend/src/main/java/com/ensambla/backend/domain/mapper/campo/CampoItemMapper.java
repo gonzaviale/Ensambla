@@ -14,6 +14,8 @@ public class CampoItemMapper {
                 campo.esObligatorio(),
                 campo.getValorInicial(),
                 campo.getOpciones(),
+                campo.getBloqueRelacionadoId(),
+                campo.getFormula(),
                 campo.getPosicion(),
                 campo.getCreadoEn(),
                 campo.getActualizadoEn());

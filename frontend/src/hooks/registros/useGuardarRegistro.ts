@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ApiError } from '@/api/apiError';
 import { crearRegistro } from '@/api/registros';
 import type { ResultadoGuardado, ValoresRegistro } from '@/types/registro';
+import { registrosKeys } from './queries';
+import { resultadoFallido } from './resultadoFallido';
 
 export function useGuardarRegistro(bloqueId: string) {
   const queryClient = useQueryClient();
@@ -9,7 +10,7 @@ export function useGuardarRegistro(bloqueId: string) {
     mutationFn: (valores: ValoresRegistro) => crearRegistro(bloqueId, valores),
     retry: false,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['registros', bloqueId] });
+      void queryClient.invalidateQueries({ queryKey: registrosKeys.bloque(bloqueId) });
     },
   });
 
@@ -18,14 +19,7 @@ export function useGuardarRegistro(bloqueId: string) {
       await mutateAsync(valores);
       return { exito: true };
     } catch (error) {
-      return {
-        exito: false,
-        mensaje:
-          error instanceof ApiError
-            ? error.message
-            : 'No pudimos confirmar el guardado. Revisá antes de volver a intentar.',
-        errores: error instanceof ApiError ? error.fieldErrors : {},
-      };
+      return resultadoFallido(error);
     }
   };
 }

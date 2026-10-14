@@ -7,6 +7,8 @@ import {
   PlusIcon,
   TableIcon,
 } from '@phosphor-icons/react';
+import { FilaTotales } from '@/components/Registros/FilaTotales';
+import { ResumenTotales } from '@/components/Registros/ResumenTotales';
 import {
   Button,
   EmptyState,
@@ -17,12 +19,12 @@ import {
   Skeleton,
   Spinner,
 } from '@/components/ui';
-import { useRegistros } from '@/hooks/registros/queries';
+import { useEtiquetas, useRegistros } from '@/hooks/registros/queries';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useEsEscritorio } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/cn';
 import { SIN_DATO, formatearMomento, formatearValor } from '@/lib/valores';
-import type { Bloque } from '@/types/proyecto';
+import type { Bloque, Campo } from '@/types/proyecto';
 import type { Registro } from '@/types/registro';
 
 type TablaRegistrosProps = {
@@ -113,6 +115,7 @@ export function TablaRegistros({
   const busqueda = useDebouncedValue(texto.trim(), ESPERA_BUSQUEDA_MS);
 
   const campos = [...bloque.campos].sort((a, b) => a.posicion - b.posicion);
+  const hayNumericos = campos.some((campo) => campo.tipo === 'NUMERO');
   const columnas: Columna[] = [
     ...campos.map((campo) => ({ id: campo.id, nombre: campo.nombre })),
     { id: COLUMNA_CARGA, nombre: 'Cargado' },
@@ -126,6 +129,14 @@ export function TablaRegistros({
     tamanio: TAMANIO_PAGINA,
   });
 
+  const etiquetaDe = useEtiquetas(campos, data?.content ?? []);
+  const mostrar = (campo: Campo, registro: Registro) =>
+    formatearValor(
+      campo.tipo,
+      registro.valores[campo.id],
+      etiquetaDe(campo, registro.valores[campo.id]),
+    );
+
   function ordenarPor(columna: string) {
     setPagina(0);
     setOrden((actual) =>
@@ -136,8 +147,8 @@ export function TablaRegistros({
   }
 
   function descripcion(registro: Registro) {
-    const primero = campos.map((campo) => registro.valores[campo.id]).find((valor) => valor);
-    return primero ? String(primero) : 'fila';
+    const primero = campos.find((campo) => registro.valores[campo.id]);
+    return primero ? mostrar(primero, registro) : 'fila';
   }
 
   return (
@@ -273,7 +284,7 @@ export function TablaRegistros({
                               indice === 0 && !elegido && 'bg-surface',
                             )}
                           >
-                            {formatearValor(campo.tipo, registro.valores[campo.id])}
+                            {mostrar(campo, registro)}
                           </td>
                         ))}
                         <td className="px-3 py-2 whitespace-nowrap text-soft">
@@ -294,6 +305,9 @@ export function TablaRegistros({
                     );
                   })}
                 </tbody>
+                {hayNumericos && (
+                  <FilaTotales campos={campos} totales={data.totales} actualizando={isFetching} />
+                )}
               </table>
             </div>
           ) : (
@@ -313,16 +327,14 @@ export function TablaRegistros({
                       )}
                     >
                       {primero && (
-                        <h3 className="m-0 text-h3 break-words">
-                          {formatearValor(primero.tipo, registro.valores[primero.id])}
-                        </h3>
+                        <h3 className="m-0 text-h3 break-words">{mostrar(primero, registro)}</h3>
                       )}
                       <dl className="m-0 grid grid-cols-1 gap-2">
                         {resto.map((campo) => (
                           <div key={campo.id} className="flex flex-wrap gap-x-2">
                             <dt className="text-hint text-soft">{campo.nombre}:</dt>
                             <dd className="m-0 font-semibold break-words">
-                              {formatearValor(campo.tipo, registro.valores[campo.id])}
+                              {mostrar(campo, registro)}
                             </dd>
                           </div>
                         ))}
@@ -343,6 +355,10 @@ export function TablaRegistros({
                 );
               })}
             </ul>
+          )}
+
+          {!esEscritorio && hayNumericos && (
+            <ResumenTotales campos={campos} totales={data.totales} actualizando={isFetching} />
           )}
 
           <nav aria-label="Paginación" className="flex items-center justify-between gap-3">

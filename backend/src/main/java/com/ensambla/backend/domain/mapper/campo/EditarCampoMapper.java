@@ -17,7 +17,9 @@ public class EditarCampoMapper {
                 request.tipo(),
                 request.obligatorio(),
                 request.valorInicial(),
-                request.opciones());
+                request.opciones(),
+                request.bloqueRelacionadoId(),
+                request.formula());
     }
 
     public CampoItem toResponse(Campo campo) {

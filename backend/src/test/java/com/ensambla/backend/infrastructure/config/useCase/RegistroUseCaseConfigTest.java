@@ -5,13 +5,16 @@ import com.ensambla.backend.domain.dto.registro.CrearRegistroResponse;
 import com.ensambla.backend.domain.dto.registro.EditarRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.EditarRegistroResponse;
 import com.ensambla.backend.domain.dto.registro.EliminarRegistroRequest;
+import com.ensambla.backend.domain.dto.registro.ListarReferenciasRequest;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosRequest;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosResponse;
 import com.ensambla.backend.domain.dto.registro.ObtenerRegistroRequest;
 import com.ensambla.backend.domain.dto.registro.ObtenerRegistroResponse;
+import com.ensambla.backend.domain.dto.registro.ReferenciaItem;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.TotalesRegistros;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
@@ -27,6 +30,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -76,6 +80,8 @@ class RegistroUseCaseConfigTest {
         when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
         when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
         when(registroDatosService.listar(any())).thenReturn(new Pagina<>(List.of(registro()), 0, 20, 1));
+        when(registroDatosService.totales(any(), any(), anyLong()))
+                .thenReturn(new TotalesRegistros(1, Map.of()));
 
         ListarRegistrosResponse response = config.listarRegistrosUseCase(
                 negocioService, bloqueService, campoService, registroDatosService,
@@ -83,15 +89,33 @@ class RegistroUseCaseConfigTest {
                 .execute(new ListarRegistrosRequest(USUARIO_ID, BLOQUE_ID, null, null, null, null, null));
 
         assertThat(response.contenido()).hasSize(1);
+        assertThat(response.totales().cantidad()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("El wiring de referencias conecta los servicios y el mapper")
+    void listarReferenciasUseCaseShouldWireCollaborators() {
+        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
+        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
+        when(registroDatosService.buscarReferenciables(NEGOCIO_ID, BLOQUE_ID, List.of(), null, List.of()))
+                .thenReturn(List.of(registro()));
+
+        List<ReferenciaItem> response = config.listarReferenciasUseCase(
+                negocioService, bloqueService, campoService, registroDatosService,
+                config.listarReferenciasMapper())
+                .execute(new ListarReferenciasRequest(USUARIO_ID, BLOQUE_ID, null, List.of()));
+
+        assertThat(response).containsExactly(new ReferenciaItem(REGISTRO_ID, "Sin nombre"));
     }
 
     @Test
     @DisplayName("El wiring de obtener conecta los servicios y el mapper")
     void obtenerRegistroUseCaseShouldWireCollaborators() {
         when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(registro());
+        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
 
         ObtenerRegistroResponse response = config.obtenerRegistroUseCase(
-                negocioService, registroDatosService, config.obtenerRegistroMapper())
+                negocioService, campoService, registroDatosService, config.obtenerRegistroMapper())
                 .execute(new ObtenerRegistroRequest(USUARIO_ID, REGISTRO_ID));
 
         assertThat(response.registro().id()).isEqualTo(REGISTRO_ID);

@@ -2,9 +2,9 @@ import { useRef, useState } from 'react';
 import { PencilSimpleIcon, TrashIcon } from '@phosphor-icons/react';
 import { Badge, Button, ConfirmDialog, Sheet, SkeletonCards } from '@/components/ui';
 import { useEliminarCampo } from '@/hooks/bloques/mutations';
-import { useCampos } from '@/hooks/bloques/queries';
+import { useBloques, useCampos } from '@/hooks/bloques/queries';
 import { leerErrorServidor } from '@/hooks/errores';
-import { describirValorInicial } from '@/lib/campos';
+import { describirFormula, describirValorInicial } from '@/lib/campos';
 import type { Campo } from '@/types/campo';
 import { CampoForm } from './CampoForm';
 import { TIPOS_DE_DATO } from './tiposDeDato';
@@ -15,6 +15,7 @@ type Accion = { campoId: string; tipo: 'cambiar' | 'eliminar' };
 
 export function ListaCampos({ proyectoId, bloqueId }: Props) {
   const campos = useCampos(bloqueId);
+  const tablas = useBloques(proyectoId);
   const [accion, setAccion] = useState<Accion>();
   const lista = useRef<HTMLUListElement>(null);
   const eliminar = useEliminarCampo(proyectoId, bloqueId);
@@ -70,7 +71,13 @@ export function ListaCampos({ proyectoId, bloqueId }: Props) {
         {campos.data.map((campo) => (
           <li key={campo.id}>
             <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
-              <ResumenCampo campo={campo} />
+              <ResumenCampo
+                campo={campo}
+                tablaConectada={
+                  tablas.data?.find((tabla) => tabla.id === campo.bloqueRelacionadoId)?.nombre
+                }
+                columnas={campos.data}
+              />
               <div className="flex shrink-0 flex-wrap gap-2">
                 <Button
                   data-cambiar={campo.id}
@@ -132,7 +139,15 @@ export function ListaCampos({ proyectoId, bloqueId }: Props) {
   );
 }
 
-function ResumenCampo({ campo }: { campo: Campo }) {
+function ResumenCampo({
+  campo,
+  tablaConectada,
+  columnas,
+}: {
+  campo: Campo;
+  tablaConectada?: string;
+  columnas: readonly Campo[];
+}) {
   const valor = describirValorInicial(campo.tipo, campo.valorInicial);
   return (
     <div className="flex min-w-0 flex-col gap-1">
@@ -144,6 +159,12 @@ function ResumenCampo({ campo }: { campo: Campo }) {
         {TIPOS_DE_DATO[campo.tipo].nombre}
         {campo.tipo === 'OPCION' && `: ${campo.opciones.join(', ')}`}
       </p>
+      {campo.tipo === 'RELACION' && tablaConectada && (
+        <p className="m-0 text-hint text-soft">Se conecta con «{tablaConectada}»</p>
+      )}
+      {campo.tipo === 'FORMULA' && campo.formula && (
+        <p className="m-0 text-hint text-soft">Calcula {describirFormula(campo.formula, columnas)}</p>
+      )}
       {valor !== null && <p className="m-0 text-hint text-soft">Valor inicial: {valor}</p>}
     </div>
   );

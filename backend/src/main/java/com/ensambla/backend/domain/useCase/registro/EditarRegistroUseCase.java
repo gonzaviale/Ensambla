@@ -29,6 +29,6 @@ public class EditarRegistroUseCase {
         Registro registro = registroDatosService.obtener(request.registroId(), negocioId);
         List<Campo> campos = campoService.listarDeBloque(registro.getBloqueId(), negocioId);
         Registro editado = registroDatosService.editar(registro, campos, request.valores(), OffsetDateTime.now(clock));
-        return mapper.toResponse(editado);
+        return mapper.toResponse(editado.conFormulas(campos));
     }
 }

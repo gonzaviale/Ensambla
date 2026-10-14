@@ -30,6 +30,11 @@ function valorDemo(campo: Campo, n: number): Valor {
       return n % 2 === 0;
     case 'TEXTO':
       return `${campo.nombre} ${n + 1}`;
+    // Las plantillas no traen conexiones; si hubiera, se dejan sin elegir.
+    // Un cálculo lo resuelve el servidor al leer.
+    case 'RELACION':
+    case 'FORMULA':
+      return null;
   }
 }
 

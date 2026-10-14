@@ -1,5 +1,7 @@
 package com.ensambla.backend.domain.mapper.registro;
 
+import com.ensambla.backend.domain.model.registro.TotalesRegistros;
+import java.math.BigDecimal;
 import com.ensambla.backend.domain.dto.registro.CrearRegistroResponse;
 import com.ensambla.backend.domain.dto.registro.EditarRegistroResponse;
 import com.ensambla.backend.domain.dto.registro.ListarRegistrosResponse;
@@ -15,12 +17,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RegistroMappersTest {
 
     private static final UUID REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
     private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
+    private static final UUID CAMPO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime CREADO = OffsetDateTime.parse("2026-10-09T12:00:00Z");
     private static final OffsetDateTime ACTUALIZADO = OffsetDateTime.parse("2026-10-10T12:00:00Z");
 
@@ -54,21 +58,28 @@ class RegistroMappersTest {
         Registro segundo = Registro.builder().id(UUID.randomUUID()).bloqueId(BLOQUE_ID).build();
         Pagina<Registro> pagina = new Pagina<>(List.of(registro(), segundo), 2, 20, 45);
 
-        ListarRegistrosResponse response = new ListarRegistrosMapper().toResponse(pagina);
+        TotalesRegistros totales = new TotalesRegistros(45, Map.of(CAMPO_ID, new BigDecimal("1500.50")));
+
+        ListarRegistrosResponse response = new ListarRegistrosMapper().toResponse(pagina, totales);
 
         assertThat(response.contenido()).extracting(RegistroItem::id).containsExactly(REGISTRO_ID, segundo.getId());
         assertThat(response.pagina()).isEqualTo(2);
         assertThat(response.tamanio()).isEqualTo(20);
         assertThat(response.totalElementos()).isEqualTo(45);
         assertThat(response.totalPaginas()).isEqualTo(3);
+        assertThat(response.totales().cantidad()).isEqualTo(45);
+        assertThat(response.totales().sumas()).containsOnly(entry(CAMPO_ID, new BigDecimal("1500.50")));
     }
 
     @Test
     @DisplayName("Listar devuelve una página vacía cuando no hay registros")
     void listarToResponseShouldReturnEmptyContent() {
-        ListarRegistrosResponse response = new ListarRegistrosMapper().toResponse(new Pagina<>(List.of(), 0, 20, 0));
+        ListarRegistrosResponse response = new ListarRegistrosMapper().toResponse(
+                new Pagina<>(List.of(), 0, 20, 0), new TotalesRegistros(0, Map.of()));
 
         assertThat(response.contenido()).isEmpty();
+        assertThat(response.totales().cantidad()).isZero();
+        assertThat(response.totales().sumas()).isEmpty();
         assertThat(response.totalPaginas()).isEqualTo(1);
     }
 

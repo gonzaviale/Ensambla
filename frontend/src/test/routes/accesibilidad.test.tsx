@@ -79,6 +79,8 @@ describe('T-056: accesibilidad (axe)', () => {
         obligatorio: true,
         valorInicial: null,
         opciones: [],
+        bloqueRelacionadoId: null,
+        formula: null,
       },
     });
     renderApp(`/proyectos/${proyecto.id}/construir`);

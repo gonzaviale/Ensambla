@@ -1,12 +1,19 @@
 import { delay, http, HttpResponse } from 'msw';
 import type { Bloque } from '@/types/proyecto';
-import { crearRegistroSchema, type Registro, type Valor } from '@/types/registro';
+import {
+  crearRegistroSchema,
+  editarRegistroSchema,
+  type Registro,
+  type Valor,
+  type ValoresRegistro,
+} from '@/types/registro';
 import { validarFormulario, valoresParaGuardar } from '@/lib/formularioRegistro';
 import { estado } from '../db/estado';
+import { conFormulas } from '../db/formula';
 import { errorResponse } from '../errores';
 import { api, exigirCsrf, exigirSesion, LATENCIA_BACKEND_MS } from './comun';
 
-// Mismo contrato que GET /api/bloques/{id}/registros y DELETE /api/registros/{id} del backend.
+// Mismo contrato que GET /api/bloques/{id}/registros, PATCH y DELETE /api/registros/{id} del backend.
 const TAMANIO_POR_DEFECTO = 20;
 const TAMANIO_MAXIMO = 100;
 const ORDEN_POR_CARGA = 'creadoEn';
@@ -17,7 +24,7 @@ function privado(request: Request, escritura = false) {
   return (escritura && exigirCsrf(request)) || exigirSesion(request);
 }
 
-function bloqueDeLaSesion(id: string): Bloque | undefined {
+export function bloqueDeLaSesion(id: string): Bloque | undefined {
   for (const { usuarioId, proyecto } of estado.proyectos.values()) {
     if (usuarioId !== estado.sesionUsuarioId) continue;
     const bloque = proyecto.bloques.find((item) => item.id === id);
@@ -49,12 +56,112 @@ function ordenar(registros: Registro[], campoId: string | null, descendente: boo
   });
 }
 
-const coincide = (registro: Registro, texto: string) =>
+// Cuenta y suma sobre toda la búsqueda (no sólo la página), como el backend.
+function totalesDe(bloque: Bloque, registros: Registro[]) {
+  const sumas = Object.fromEntries(
+    bloque.campos
+      .filter((campo) => campo.tipo === 'NUMERO')
+      .map((campo) => [
+        campo.id,
+        registros.reduce((total, registro) => {
+          const valor = registro.valores[campo.id];
+          return typeof valor === 'number' ? total + valor : total;
+        }, 0),
+      ]),
+  );
+  return { cantidad: registros.length, sumas };
+}
+
+export const coincide = (registro: Registro, texto: string) =>
   Object.values(registro.valores).some(
     (valor) => valor !== null && String(valor).toLowerCase().includes(texto),
   );
 
+const MAX_REFERENCIAS = 20;
+
+// Etiqueta de una fila para quien la elige desde otra tabla: el valor de la primera columna de
+// texto u opción (por posición) o, si no hay, de la primera columna; vacío → «Sin nombre».
+export function etiquetaDe(bloque: Bloque, registro: Registro) {
+  const ordenados = [...bloque.campos].sort((a, b) => a.posicion - b.posicion);
+  const campo =
+    ordenados.find((item) => item.tipo === 'TEXTO' || item.tipo === 'OPCION') ?? ordenados[0];
+  const valor = campo ? registro.valores[campo.id] : undefined;
+  const texto = valor === null || valor === undefined ? '' : String(valor).trim();
+  return texto || 'Sin nombre';
+}
+
+// Una columna RELACION guarda el id de una fila de su tabla conectada.
+function errorDeRelacion(campo: Bloque['campos'][number], valor: unknown) {
+  if (typeof valor !== 'string' || !valor) return 'Elegí una fila de la tabla relacionada';
+  const fila = estado.registros.get(valor);
+  return fila && fila.bloqueId === campo.bloqueRelacionadoId ? undefined : 'Esa fila ya no existe';
+}
+
+// Lo que se mande en una columna FORMULA se ignora: el valor se calcula al leer y no se guarda.
+function sinFormulas<V>(bloque: Bloque, valores: Record<string, V>): Record<string, V> {
+  const formulas = new Set(bloque.campos.filter((c) => c.tipo === 'FORMULA').map((c) => c.id));
+  return Object.fromEntries(Object.entries(valores).filter(([id]) => !formulas.has(id)));
+}
+
+const conCalculos = (bloque: Bloque, registro: Registro): Registro => ({
+  ...registro,
+  valores: conFormulas(bloque.campos, registro.valores),
+});
+
+// Un error por id de campo, con el mismo criterio al crear y al editar.
+function erroresDeValores(bloque: Bloque, valores: ValoresRegistro) {
+  const texto = Object.fromEntries(
+    Object.entries(valores).map(([id, valor]) => [id, String(valor)]),
+  );
+  const errores = validarFormulario(bloque.campos, texto);
+  for (const [id, valor] of Object.entries(valores)) {
+    const campo = bloque.campos.find((campo) => campo.id === id);
+    if (!campo) errores[id] = 'Este campo no pertenece al bloque';
+    else if (campo.tipo === 'NUMERO' && typeof valor !== 'number')
+      errores[id] = 'Tiene que ser un número';
+    else if (campo.tipo === 'SI_NO' && typeof valor !== 'boolean')
+      errores[id] = 'Tiene que ser sí o no';
+    else if (campo.tipo === 'RELACION') {
+      const problema = errorDeRelacion(campo, valor);
+      if (problema) errores[id] = problema;
+    } else if (campo.tipo !== 'NUMERO' && campo.tipo !== 'SI_NO' && typeof valor !== 'string')
+      errores[id] = 'Tiene que ser un texto';
+  }
+  return errores;
+}
+
 export const handlersRegistros = [
+  http.get(api('/bloques/:id/referencias'), async ({ request, params }) => {
+    await delay(LATENCIA_BACKEND_MS);
+    const error = privado(request);
+    if (error) return error;
+    const bloque = bloqueDeLaSesion(String(params.id));
+    if (!bloque) return errorResponse(404, 'El bloque no existe', pathDe(request));
+
+    const consulta = new URL(request.url).searchParams;
+    const texto = consulta.get('q')?.trim().toLowerCase() ?? '';
+    const ids = consulta
+      .get('ids')
+      ?.split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+    const delBloque = [...estado.registros.values()]
+      .filter((registro) => registro.bloqueId === bloque.id)
+      .sort((a, b) => b.creadoEn.localeCompare(a.creadoEn) || b.id.localeCompare(a.id))
+      .map((registro) => ({ registro, etiqueta: etiquetaDe(bloque, registro) }));
+    const elegidas = ids
+      ? delBloque.filter(({ registro }) => ids.includes(registro.id))
+      : delBloque
+          .filter(
+            ({ registro, etiqueta }) =>
+              !texto || etiqueta.toLowerCase().includes(texto) || coincide(registro, texto),
+          )
+          .slice(0, MAX_REFERENCIAS);
+    return HttpResponse.json(
+      elegidas.map(({ registro, etiqueta }) => ({ id: registro.id, etiqueta })),
+    );
+  }),
+
   http.get(api('/bloques/:id/registros'), async ({ request, params }) => {
     await delay(LATENCIA_BACKEND_MS);
     const error = privado(request);
@@ -88,14 +195,51 @@ export const handlersRegistros = [
     );
     const totalPages = Math.max(1, Math.ceil(ordenados.length / tamanio));
     return HttpResponse.json({
-      content: ordenados.slice(pagina * tamanio, (pagina + 1) * tamanio),
+      content: ordenados
+        .slice(pagina * tamanio, (pagina + 1) * tamanio)
+        .map((registro) => conCalculos(bloque, registro)),
       pageNumber: pagina,
       pageSize: tamanio,
       totalElements: ordenados.length,
       totalPages,
       first: pagina === 0,
       last: pagina >= totalPages - 1,
+      totales: totalesDe(bloque, ordenados),
     });
+  }),
+
+  // Los campos que no se envían conservan su valor; un null o un texto en blanco borra el dato.
+  http.patch(api('/registros/:id'), async ({ request, params }) => {
+    const error = privado(request, true);
+    if (error) return error;
+    await delay(LATENCIA_BACKEND_MS);
+    const path = pathDe(request);
+    const registro = estado.registros.get(String(params.id));
+    const bloque = registro && bloqueDeLaSesion(registro.bloqueId);
+    if (!registro || !bloque) return errorResponse(404, 'El registro no existe', path);
+    const datos = editarRegistroSchema.safeParse(await request.json());
+    if (!datos.success) return errorResponse(400, 'Revisá los datos del registro', path);
+
+    const combinados: Record<string, Valor> = {
+      ...registro.valores,
+      ...sinFormulas(bloque, datos.data.valores),
+    };
+    const valores: ValoresRegistro = {};
+    for (const [id, valor] of Object.entries(combinados)) {
+      if (valor === null || (typeof valor === 'string' && valor.trim() === '')) continue;
+      valores[id] = valor;
+    }
+    const errores = erroresDeValores(bloque, valores);
+    if (Object.keys(errores).length)
+      return errorResponse(400, 'Revisá los campos marcados', path, errores);
+
+    const editado: Registro = {
+      ...registro,
+      valores,
+      actualizadoEn: new Date().toISOString(),
+    };
+    estado.registros.set(editado.id, editado);
+    return HttpResponse.json(conCalculos(bloque, editado));
   }),
 
   http.delete(api('/registros/:id'), ({ request, params }) => {
@@ -106,6 +250,11 @@ export const handlersRegistros = [
       return errorResponse(404, 'El registro no existe', pathDe(request));
     }
     estado.registros.delete(registro.id);
+    // Borrar un producto borra su historial de movimientos.
+    for (const [id, movimiento] of estado.movimientos) {
+      if (movimiento.registroId === registro.id) estado.movimientos.delete(id);
+    }
+    estado.recetas.delete(registro.id);
     return new HttpResponse(null, { status: 204 });
   }),
 
@@ -118,31 +267,24 @@ export const handlersRegistros = [
     if (!bloque) return errorResponse(404, 'Bloque no encontrado', path);
     const datos = crearRegistroSchema.safeParse(await request.json());
     if (!datos.success) return errorResponse(400, 'Revisá los datos del registro', path);
-    const valores = Object.fromEntries(
-      Object.entries(datos.data.valores).map(([id, valor]) => [id, String(valor)]),
-    );
-    const errores = validarFormulario(bloque.campos, valores);
-    for (const [id, valor] of Object.entries(datos.data.valores)) {
-      const campo = bloque.campos.find((campo) => campo.id === id);
-      if (!campo) errores[id] = 'Este campo no pertenece al bloque';
-      else if (campo.tipo === 'NUMERO' && typeof valor !== 'number')
-        errores[id] = 'Tiene que ser un número';
-      else if (campo.tipo === 'SI_NO' && typeof valor !== 'boolean')
-        errores[id] = 'Tiene que ser sí o no';
-      else if (campo.tipo !== 'NUMERO' && campo.tipo !== 'SI_NO' && typeof valor !== 'string')
-        errores[id] = 'Tiene que ser un texto';
-    }
+    const recibidos = sinFormulas(bloque, datos.data.valores);
+    const errores = erroresDeValores(bloque, recibidos);
     if (Object.keys(errores).length)
       return errorResponse(400, 'Revisá los campos marcados', path, errores);
     const ahora = new Date().toISOString();
     const registro: Registro = {
       id: crypto.randomUUID(),
       bloqueId: bloque.id,
-      valores: valoresParaGuardar(bloque.campos, valores),
+      valores: valoresParaGuardar(
+        bloque.campos,
+        Object.fromEntries(
+          Object.entries(recibidos).map(([id, valor]) => [id, String(valor)]),
+        ),
+      ),
       creadoEn: ahora,
       actualizadoEn: ahora,
     };
     estado.registros.set(registro.id, registro);
-    return HttpResponse.json(registro, { status: 201 });
+    return HttpResponse.json(conCalculos(bloque, registro), { status: 201 });
   }),
 ];

@@ -36,9 +36,9 @@ class CrearCampoUseCaseTest {
     private static final UUID CAMPO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
     private static final List<String> TALLES = List.of("Chico", "Grande");
     private static final CrearCampoRequest REQUEST =
-            new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES);
+            new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES, null, null);
     private static final ConfiguracionCampo CONFIGURACION =
-            new ConfiguracionCampo("Talle", "OPCION", true, "Chico", TALLES);
+            new ConfiguracionCampo("Talle", "OPCION", true, "Chico", TALLES, null, null);
 
     private final NegocioService negocioService = mock(NegocioService.class);
     private final BloqueService bloqueService = mock(BloqueService.class);

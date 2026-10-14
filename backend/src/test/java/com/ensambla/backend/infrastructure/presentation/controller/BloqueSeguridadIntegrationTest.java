@@ -1,12 +1,15 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.model.enums.EstadoUsuario;
+import com.ensambla.backend.domain.model.enums.TipoCampo;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
+import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
 import com.ensambla.backend.infrastructure.repository.entity.ProyectoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.UsuarioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IBloqueJpaRepository;
+import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.ICampoJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.INegocioJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IProyectoJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IUsuarioJpaRepository;
@@ -67,6 +70,9 @@ class BloqueSeguridadIntegrationTest {
 
     @Autowired
     private IBloqueJpaRepository bloques;
+
+    @Autowired
+    private ICampoJpaRepository campos;
 
     private MockMvc mockMvc;
     private UUID negocioId;
@@ -166,6 +172,36 @@ class BloqueSeguridadIntegrationTest {
     }
 
     @Test
+    @DisplayName("Un DELETE a una tabla que otra tabla usa en una conexión responde 400 y conserva la tabla")
+    void eliminarShouldRejectBloqueUsedByConexion() throws Exception {
+        UUID proyectoId = givenProyecto(negocioId);
+        UUID clientes = givenBloque(negocioId, proyectoId, "Clientes", 0);
+        UUID pedidos = givenBloque(negocioId, proyectoId, "Pedidos", 1);
+        givenConexion(pedidos, "Cliente", clientes);
+
+        mockMvc.perform(delete("/api/bloques/{id}", clientes).session(sesion)
+                        .header("X-CSRF-TOKEN", csrfToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("La tabla «Clientes» se usa en la columna «Cliente» de «Pedidos»"));
+
+        assertThat(bloques.findByIdAndNegocioId(clientes, negocioId)).isPresent();
+    }
+
+    @Test
+    @DisplayName("Un DELETE a una tabla que sólo se conecta consigo misma la borra")
+    void eliminarShouldDeleteBloqueWithSelfConexion() throws Exception {
+        UUID clientes = givenBloque(negocioId, givenProyecto(negocioId), "Clientes", 0);
+        givenConexion(clientes, "Recomendado por", clientes);
+
+        mockMvc.perform(delete("/api/bloques/{id}", clientes).session(sesion)
+                        .header("X-CSRF-TOKEN", csrfToken))
+                .andExpect(status().isNoContent());
+
+        assertThat(bloques.findByIdAndNegocioId(clientes, negocioId)).isEmpty();
+    }
+
+    @Test
     @DisplayName("Crear un bloque sin CSRF devuelve 403")
     void crearShouldRequireCsrf() throws Exception {
         UUID proyectoId = givenProyecto(negocioId);
@@ -222,6 +258,21 @@ class BloqueSeguridadIntegrationTest {
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
+    }
+
+    private void givenConexion(UUID bloqueId, String nombre, UUID relacionadoId) {
+        campos.saveAndFlush(CampoEntity.builder()
+                .negocioId(negocioId)
+                .bloqueId(bloqueId)
+                .nombre(nombre)
+                .tipo(TipoCampo.RELACION)
+                .obligatorio(false)
+                .opciones(List.of())
+                .bloqueRelacionadoId(relacionadoId)
+                .posicion((short) 0)
+                .creadoEn(AHORA)
+                .actualizadoEn(AHORA)
+                .build());
     }
 
     private MockHttpSession givenSesion(UUID usuarioId) throws Exception {
