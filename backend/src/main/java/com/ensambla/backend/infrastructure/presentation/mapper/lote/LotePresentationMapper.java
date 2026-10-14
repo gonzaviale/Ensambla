@@ -18,8 +18,8 @@ import java.util.UUID;
 @Component
 public class LotePresentationMapper {
 
-    public SubirLoteRequest toSubirRequest(UUID usuarioId, List<MultipartFile> fotos) {
-        return new SubirLoteRequest(usuarioId, fotos.stream().map(this::contenido).toList());
+    public SubirLoteRequest toSubirRequest(UUID usuarioId, List<MultipartFile> fotos, UUID bloqueDestinoId) {
+        return new SubirLoteRequest(usuarioId, fotos.stream().map(this::contenido).toList(), bloqueDestinoId);
     }
 
     public ObtenerLoteRequest toObtenerRequest(UUID usuarioId, UUID loteId) {

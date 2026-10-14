@@ -9,6 +9,7 @@ import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.domain.service.lote.LoteSubidaService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.procesamiento.ConexionesLecturaService;
 import com.ensambla.backend.domain.service.procesamiento.ConfirmacionLecturaService;
 import com.ensambla.backend.domain.service.procesamiento.ProcesamientoService;
 import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
@@ -67,12 +68,13 @@ public class LecturaUseCaseConfig {
                                                      ArchivoCuadernoPort archivoCuadernoPort,
                                                      LectorCuadernoPort lectorCuadernoPort,
                                                      PropuestaLecturaService propuestaLecturaService,
+                                                     ConexionesLecturaService conexionesLecturaService,
                                                      PoliticaProcesamiento politicaProcesamiento,
                                                      ExecutorService executorLecturaIa,
                                                      IaProperties iaProperties) {
         return new ProcesamientoService(procesamientoRepository, archivoCuadernoPort,
                 new LectorCuadernoTimeoutAdapter(lectorCuadernoPort, executorLecturaIa, iaProperties.timeout()),
-                propuestaLecturaService, politicaProcesamiento);
+                propuestaLecturaService, conexionesLecturaService, politicaProcesamiento);
     }
 
     @Bean

@@ -104,7 +104,7 @@ public class RegistroDatosService {
      *
      * @throws RegistroInvalidoException con "Esa fila ya no existe" en cada campo que apunta a una fila inexistente
      */
-    private void validarConexiones(UUID negocioId, List<Campo> campos, Map<String, Object> valores) {
+    public void validarConexiones(UUID negocioId, List<Campo> campos, Map<String, Object> valores) {
         Map<UUID, List<Campo>> porBloque = campos.stream()
                 .filter(Campo::esRelacion)
                 .filter(campo -> valores.containsKey(campo.getId().toString()))

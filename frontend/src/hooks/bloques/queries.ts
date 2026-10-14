@@ -28,5 +28,5 @@ export function useBloques(proyectoId: string) {
 }
 
 export function useCampos(bloqueId: string) {
-  return useQuery(camposQuery(bloqueId));
+  return useQuery({ ...camposQuery(bloqueId), enabled: bloqueId !== '' });
 }

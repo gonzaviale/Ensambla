@@ -4,14 +4,17 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
+import com.ensambla.backend.domain.model.lectura.CampoContexto;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
 import com.ensambla.backend.domain.model.lectura.PaginaCuaderno;
 import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
+import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.ConsumoDiario;
 import com.ensambla.backend.domain.model.procesamiento.EstadoLectura;
 import com.ensambla.backend.domain.model.procesamiento.FotoLectura;
 import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
+import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
@@ -36,6 +39,7 @@ public class ProcesamientoService {
     private final ArchivoCuadernoPort archivoCuadernoPort;
     private final LectorCuadernoPort lectorCuadernoPort;
     private final PropuestaLecturaService propuestaLecturaService;
+    private final ConexionesLecturaService conexionesLecturaService;
     private final PoliticaProcesamiento politicaProcesamiento;
 
     public Optional<LoteTrabajo> reclamar(OffsetDateTime ahora) {
@@ -57,11 +61,12 @@ public class ProcesamientoService {
                 return new ResultadoIntento(null, LIMITE_AGOTADO, false);
             }
             List<BloqueConocido> contexto = bloques.stream()
-                    .map(bloque -> new BloqueConocido(bloque.id(), bloque.nombre(),
-                            bloque.campos().stream().map(campo -> campo.nombre()).toList()))
+                    .filter(bloque -> lote.bloqueDestinoId() == null || bloque.id().equals(lote.bloqueDestinoId()))
+                    .map(bloque -> conocido(bloque, bloques))
                     .toList();
-            LecturaCuaderno lectura = lectorCuadernoPort.leer(paginas, contexto);
-            return new ResultadoIntento(propuestaLecturaService.proponer(lectura, bloques, lote.bloqueDestinoId()),
+            LecturaCuaderno lectura = lectorCuadernoPort.leer(paginas, contexto, lote.bloqueDestinoId());
+            PropuestaLectura propuesta = propuestaLecturaService.proponer(lectura, bloques, lote.bloqueDestinoId());
+            return new ResultadoIntento(conexionesLecturaService.resolver(lote.negocioId(), propuesta, bloques),
                     null, false);
         } catch (BusinessRuleException e) {
             return new ResultadoIntento(null, e.getMessage(), false);
@@ -102,6 +107,21 @@ public class ProcesamientoService {
         if (!procesamientoRepository.reencolar(negocioId, loteId, ahora)) {
             throw new BusinessRuleException("Sólo se puede reintentar un lote en estado ERROR");
         }
+    }
+
+    private BloqueConocido conocido(BloqueLectura bloque, List<BloqueLectura> bloques) {
+        return new BloqueConocido(bloque.id(), bloque.nombre(), bloque.campos().stream()
+                .map(campo -> new CampoContexto(campo.nombre(), campo.tipo(), campo.opciones(),
+                        nombreConectado(campo, bloques)))
+                .toList());
+    }
+
+    private String nombreConectado(CampoConocido campo, List<BloqueLectura> bloques) {
+        return bloques.stream()
+                .filter(bloque -> bloque.id().equals(campo.bloqueRelacionadoId()))
+                .map(BloqueLectura::nombre)
+                .findFirst()
+                .orElse(null);
     }
 
     private void validarPaginas(List<FotoLectura> fotos) {

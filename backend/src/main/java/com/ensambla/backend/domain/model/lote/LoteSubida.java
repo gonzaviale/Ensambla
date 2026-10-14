@@ -29,6 +29,9 @@ public class LoteSubida {
 
     private UUID negocioId;
 
+    /** Bloque al que la persona dijo que van las filas; {@code null} si la IA propone uno. */
+    private UUID bloqueDestinoId;
+
     private EstadoLote estado;
 
     private Short intentos;
@@ -45,7 +48,8 @@ public class LoteSubida {
      *
      * @throws BusinessRuleException si no hay fotos, hay más de {@link #MAX_FOTOS} o alguna no es válida
      */
-    public static LoteSubida nuevo(UUID negocioId, List<byte[]> contenidos, OffsetDateTime ahora) {
+    public static LoteSubida nuevo(UUID negocioId, List<byte[]> contenidos, UUID bloqueDestinoId,
+                                  OffsetDateTime ahora) {
         validarCantidad(contenidos);
         List<FotoCuaderno> fotos = new ArrayList<>();
         for (byte[] contenido : contenidos) {
@@ -53,6 +57,7 @@ public class LoteSubida {
         }
         return LoteSubida.builder()
                 .negocioId(negocioId)
+                .bloqueDestinoId(bloqueDestinoId)
                 .estado(EstadoLote.PENDIENTE)
                 .intentos((short) 0)
                 .creadoEn(ahora)

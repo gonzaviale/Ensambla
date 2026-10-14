@@ -14,10 +14,13 @@ import {
 } from '@/lib/revisionLectura';
 import { AvisoCelda } from './AvisoCelda';
 import { avisoDeCelda } from './avisosRevision';
+import type { Conexion } from '@/hooks/lotes/useConexiones';
 import { CeldaRevision } from './CeldaRevision';
 
 type Props = {
   borrador: BorradorRevision;
+  /** Por clave de columna: a qué tabla apunta cada columna de conexión. */
+  conexiones: Record<string, Conexion>;
   erroresServidor: Record<string, string>;
   onAccion: (accion: AccionRevision) => void;
   onEnfocarCelda: (posicion: PosicionCelda, pagina: number | null) => void;
@@ -47,6 +50,7 @@ function agruparPorHoja(filas: FilaRevision[]): Grupo[] {
 // el aviso de duda justo debajo. Las hojas se pliegan para que una lista larga no abrume.
 export function FilasTarjetas({
   borrador,
+  conexiones,
   erroresServidor,
   onAccion,
   onEnfocarCelda,
@@ -143,6 +147,7 @@ export function FilasTarjetas({
                                 columna={columna}
                                 celda={celda}
                                 numeroFila={numero}
+                                conexion={conexiones[columna.clave]}
                                 invalida={
                                   errorDeCelda(columna, celda) !== undefined || !!errorServidor
                                 }

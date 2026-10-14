@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.exception.LecturaCuadernoException;
 import com.ensambla.backend.domain.model.enums.TipoCampo;
 import com.ensambla.backend.domain.model.enums.TipoRegistroCuaderno;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
+import com.ensambla.backend.domain.model.lectura.CampoContexto;
 import com.ensambla.backend.domain.model.lectura.ConsumoIa;
 import com.ensambla.backend.domain.model.lectura.DatoLeido;
 import com.ensambla.backend.domain.model.lectura.FilaLeida;
@@ -29,7 +30,9 @@ class LecturaIaJsonMapperTest {
     private static final int PAGINAS = 2;
     private static final UUID BLOQUE_VENTAS_ID = UUID.randomUUID();
     private static final List<BloqueConocido> BLOQUES = List.of(
-            new BloqueConocido(BLOQUE_VENTAS_ID, "Ventas", List.of("Fecha", "Monto")));
+            new BloqueConocido(BLOQUE_VENTAS_ID, "Ventas", List.of(
+                    new CampoContexto("Fecha", TipoCampo.FECHA, List.of()),
+                    new CampoContexto("Monto", TipoCampo.NUMERO, List.of()))));
     private static final ConsumoIa CONSUMO = new ConsumoIa("simulado", "modelo", "v1", PAGINAS, 10, 20, 5);
     private static final CampoJson FECHA = new CampoJson("fecha", "Fecha", "FECHA", List.of());
     private static final CampoJson MONTO = new CampoJson("monto", "Monto", "numero", null);
@@ -94,6 +97,39 @@ class LecturaIaJsonMapperTest {
         LecturaCuaderno result = mapper.toDomain(json, BLOQUES, PAGINAS, CONSUMO);
 
         assertThat(result.bloque().bloqueExistente()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Acepta un campo de conexión que el bloque existente elegido ya tiene")
+    void toDomainShouldKeepRelacionCampoOfExistingBloque() {
+        List<BloqueConocido> bloques = List.of(new BloqueConocido(BLOQUE_VENTAS_ID, "Ventas", List.of(
+                new CampoContexto("Cliente", TipoCampo.RELACION, List.of(), "Clientes"))));
+        CampoJson cliente = new CampoJson("cliente", " cliente ", "RELACION", List.of());
+        LecturaIaJson json = givenLectura(givenBloque(BLOQUE_VENTAS_ID.toString(), cliente), List.of(), List.of());
+
+        LecturaCuaderno result = mapper.toDomain(json, bloques, PAGINAS, CONSUMO);
+
+        assertThat(result.bloque().campos().getFirst().tipo()).isEqualTo(TipoCampo.RELACION);
+    }
+
+    @Test
+    @DisplayName("Una conexión que el bloque no tiene se lee como el texto escrito")
+    void toDomainShouldDegradeInventedRelacionToTexto() {
+        CampoJson cliente = new CampoJson("cliente", "Cliente", "RELACION", List.of());
+        LecturaIaJson json = givenLectura(givenBloque(null, cliente), List.of(), List.of());
+
+        LecturaCuaderno result = mapper.toDomain(json, BLOQUES, PAGINAS, CONSUMO);
+
+        assertThat(result.bloque().campos().getFirst().tipo()).isEqualTo(TipoCampo.TEXTO);
+    }
+
+    @Test
+    @DisplayName("Una conexión sin nombre se rechaza como cualquier campo sin nombre")
+    void toDomainShouldRejectRelacionWithoutName() {
+        CampoJson sinNombre = new CampoJson("cliente", null, "RELACION", List.of());
+        LecturaIaJson json = givenLectura(givenBloque(null, sinNombre), List.of(), List.of());
+
+        thenRejects(json, "falta el nombre del campo cliente");
     }
 
     @Test

@@ -5,9 +5,11 @@ import { loteSchema } from '@/types/lote';
 import { http } from './client';
 
 // El backend valida tipo y tamaño de cada foto; el campo multipart se llama "fotos".
-export const subirLote = (fotos: Blob[]) => {
+// Con `bloqueDestinoId` la IA lee las hojas como filas de esa tabla en vez de proponer una estructura.
+export const subirLote = (fotos: Blob[], bloqueDestinoId?: string) => {
   const datos = new FormData();
   fotos.forEach((foto, i) => datos.append('fotos', foto, `pagina-${i + 1}.jpg`));
+  if (bloqueDestinoId) datos.append('bloqueDestinoId', bloqueDestinoId);
   return http.postForm('/lotes', datos, loteSchema);
 };
 

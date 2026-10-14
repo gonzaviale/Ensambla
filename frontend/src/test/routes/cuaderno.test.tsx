@@ -1,6 +1,9 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { crearBloque } from '@/api/bloques';
+import { crearProyecto } from '@/api/proyectos';
+import { destinoDelLote } from '@/mocks/handlers/lotes';
 import { renderApp } from '@/test/renderApp';
 import {
   ESPERA,
@@ -21,8 +24,9 @@ const paginas = (cantidad: number) =>
 
 let router: ReturnType<typeof renderApp>;
 
-async function abrirCuaderno() {
+async function abrirCuaderno(sembrar?: () => Promise<unknown>) {
   setupUsuarioConSesion();
+  await sembrar?.();
   const user = userEvent.setup({ applyAccept: false });
   router = renderApp('/cuaderno');
   await verifyHeadingPresentAsync('Subir foto de mi cuaderno');
@@ -30,6 +34,12 @@ async function abrirCuaderno() {
 }
 
 const galeria = () => screen.getByLabelText('Elegir de la galería');
+const loteDeLaRuta = () => router.state.location.pathname.split('/').at(-1) ?? '';
+
+async function sembrarTablaDeVentas() {
+  const proyecto = await crearProyecto({ nombre: 'Mi almacén' });
+  return crearBloque({ proyectoId: proyecto.id, nombre: 'Ventas' });
+}
 const miniaturas = () =>
   within(screen.getByRole('list', { name: 'Hojas para leer' })).getAllByRole('listitem');
 
@@ -124,6 +134,57 @@ describe('T-091: subir foto de mi cuaderno', () => {
     await user.click(screen.getByRole('button', { name: 'Sí, descartar' }));
     expect(await screen.findByLabelText('Elegir de la galería', {}, ESPERA)).toBeInTheDocument();
   }, 10000);
+
+  it('no pregunta dónde van las hojas si todavía no hay sistemas', async () => {
+    await abrirCuaderno();
+
+    expect(
+      screen.queryByRole('heading', { name: '¿Dónde van estas hojas?' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('manda las hojas a la tabla elegida para que la IA no tenga que adivinar', async () => {
+    let tabla: Awaited<ReturnType<typeof sembrarTablaDeVentas>> | undefined;
+    const user = await abrirCuaderno(async () => {
+      tabla = await sembrarTablaDeVentas();
+    });
+    await user.upload(galeria(), paginas(1));
+
+    await user.selectOptions(await screen.findByLabelText('Sistema', {}, ESPERA), 'Mi almacén');
+    await screen.findByRole('option', { name: 'Ventas' }, ESPERA);
+    await user.selectOptions(screen.getByLabelText('Tabla'), 'Ventas');
+    await user.click(screen.getByRole('button', { name: 'Leer mi cuaderno (1 hoja)' }));
+
+    await verifyHeadingPresentAsync('Estamos leyendo tu cuaderno');
+    expect(destinoDelLote(loteDeLaRuta())).toBe(tabla?.id);
+  });
+
+  it('sin elegir tabla deja que la IA proponga una nueva', async () => {
+    const user = await abrirCuaderno(sembrarTablaDeVentas);
+    await user.upload(galeria(), paginas(1));
+
+    await user.selectOptions(await screen.findByLabelText('Sistema', {}, ESPERA), 'Mi almacén');
+    await user.click(screen.getByRole('button', { name: 'Leer mi cuaderno (1 hoja)' }));
+
+    await verifyHeadingPresentAsync('Estamos leyendo tu cuaderno');
+    expect(destinoDelLote(loteDeLaRuta())).toBeNull();
+  });
+
+  it('al cambiar de sistema se descarta la tabla elegida', async () => {
+    const user = await abrirCuaderno(sembrarTablaDeVentas);
+    await user.upload(galeria(), paginas(1));
+    const sistema = await screen.findByLabelText('Sistema', {}, ESPERA);
+    await user.selectOptions(sistema, 'Mi almacén');
+    await screen.findByRole('option', { name: 'Ventas' }, ESPERA);
+    await user.selectOptions(screen.getByLabelText('Tabla'), 'Ventas');
+
+    await user.selectOptions(sistema, 'Una tabla nueva');
+    await user.click(screen.getByRole('button', { name: 'Leer mi cuaderno (1 hoja)' }));
+
+    await verifyHeadingPresentAsync('Estamos leyendo tu cuaderno');
+    expect(destinoDelLote(loteDeLaRuta())).toBeNull();
+    expect(screen.queryByLabelText('Tabla')).not.toBeInTheDocument();
+  });
 
   it('ofrece reintentar cuando la lectura falló', async () => {
     const user = await abrirCuaderno();

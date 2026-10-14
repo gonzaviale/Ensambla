@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.service.procesamiento;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import com.ensambla.backend.domain.model.lectura.BloquePropuesto;
 import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
@@ -9,10 +10,8 @@ import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
 import org.springframework.stereotype.Service;
 
-import java.text.Normalizer;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -57,7 +56,6 @@ public class PropuestaLecturaService {
     }
 
     private String normalizar(String valor) {
-        return Normalizer.normalize(valor.strip(), Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
+        return TextoNormalizado.de(valor);
     }
 }

@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.ensambla.backend.support.LoteTestData.AHORA;
+import static com.ensambla.backend.support.LoteTestData.BLOQUE_ID;
 import static com.ensambla.backend.support.LoteTestData.JPEG;
 import static com.ensambla.backend.support.LoteTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.LoteTestData.PNG;
@@ -23,7 +24,7 @@ class LoteSubidaTest {
     @Test
     @DisplayName("Un lote nuevo queda pendiente, sin intentos y con las fotos en el orden recibido")
     void nuevoShouldCreatePendingLoteWithOrderedFotos() {
-        LoteSubida lote = LoteSubida.nuevo(NEGOCIO_ID, List.of(JPEG, PNG), AHORA);
+        LoteSubida lote = LoteSubida.nuevo(NEGOCIO_ID, List.of(JPEG, PNG), null, AHORA);
 
         thenLoteIsPending(lote);
         assertThat(lote.getFotos()).extracting(FotoCuaderno::getPosicion).containsExactly((short) 0, (short) 1);
@@ -32,11 +33,27 @@ class LoteSubidaTest {
     }
 
     @Test
+    @DisplayName("Un lote nuevo recuerda el bloque destino que eligió la persona")
+    void nuevoShouldKeepBloqueDestino() {
+        LoteSubida lote = LoteSubida.nuevo(NEGOCIO_ID, List.of(JPEG), BLOQUE_ID, AHORA);
+
+        assertThat(lote.getBloqueDestinoId()).isEqualTo(BLOQUE_ID);
+    }
+
+    @Test
+    @DisplayName("Un lote nuevo sin bloque destino deja que la IA proponga uno")
+    void nuevoShouldLeaveBloqueDestinoEmptyWhenNoneChosen() {
+        LoteSubida lote = LoteSubida.nuevo(NEGOCIO_ID, List.of(JPEG), null, AHORA);
+
+        assertThat(lote.getBloqueDestinoId()).isNull();
+    }
+
+    @Test
     @DisplayName("Rechaza un lote sin fotos")
     void nuevoShouldRejectEmptyLote() {
         List<byte[]> contenidos = List.of();
 
-        assertThatThrownBy(() -> LoteSubida.nuevo(NEGOCIO_ID, contenidos, AHORA))
+        assertThatThrownBy(() -> LoteSubida.nuevo(NEGOCIO_ID, contenidos, null, AHORA))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Subí al menos una foto");
     }
@@ -46,7 +63,7 @@ class LoteSubidaTest {
     void nuevoShouldRejectTooManyFotos() {
         List<byte[]> contenidos = Collections.nCopies(LoteSubida.MAX_FOTOS + 1, JPEG);
 
-        assertThatThrownBy(() -> LoteSubida.nuevo(NEGOCIO_ID, contenidos, AHORA))
+        assertThatThrownBy(() -> LoteSubida.nuevo(NEGOCIO_ID, contenidos, null, AHORA))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Podés subir hasta 10 fotos por lote");
     }
@@ -56,7 +73,7 @@ class LoteSubidaTest {
     void nuevoShouldAcceptMaxFotos() {
         List<byte[]> contenidos = Collections.nCopies(LoteSubida.MAX_FOTOS, JPEG);
 
-        LoteSubida lote = LoteSubida.nuevo(NEGOCIO_ID, contenidos, AHORA);
+        LoteSubida lote = LoteSubida.nuevo(NEGOCIO_ID, contenidos, null, AHORA);
 
         assertThat(lote.getFotos()).hasSize(LoteSubida.MAX_FOTOS);
     }

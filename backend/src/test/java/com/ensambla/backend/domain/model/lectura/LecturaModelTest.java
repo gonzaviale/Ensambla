@@ -75,11 +75,23 @@ class LecturaModelTest {
     @Test
     @DisplayName("El bloque conocido copia la lista de campos")
     void bloqueConocidoShouldCopyCampos() {
-        List<String> campos = new ArrayList<>(List.of("Fecha"));
+        CampoContexto fecha = new CampoContexto("Fecha", TipoCampo.FECHA, List.of());
+        List<CampoContexto> campos = new ArrayList<>(List.of(fecha));
         BloqueConocido bloque = new BloqueConocido(UUID.randomUUID(), "Ventas", campos);
 
-        campos.add("Monto");
+        campos.add(new CampoContexto("Monto", TipoCampo.NUMERO, List.of()));
 
-        assertThat(bloque.campos()).containsExactly("Fecha");
+        assertThat(bloque.campos()).containsExactly(fecha);
+    }
+
+    @Test
+    @DisplayName("El campo de contexto copia la lista de opciones")
+    void campoContextoShouldCopyOpciones() {
+        List<String> opciones = new ArrayList<>(List.of("Pagado"));
+        CampoContexto campo = new CampoContexto("Estado", TipoCampo.OPCION, opciones);
+
+        opciones.add("Debe");
+
+        assertThat(campo.opciones()).containsExactly("Pagado");
     }
 }

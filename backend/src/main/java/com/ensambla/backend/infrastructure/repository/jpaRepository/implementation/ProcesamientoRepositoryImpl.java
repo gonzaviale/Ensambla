@@ -86,14 +86,15 @@ public class ProcesamientoRepositoryImpl implements ProcesamientoRepository {
                 """, Map.of("negocio", negocioId));
         Map<UUID, List<CampoConocido>> campos = new LinkedHashMap<>();
         jdbcTemplate.query("""
-                SELECT id, bloque_id, nombre, tipo, opciones FROM campo
+                SELECT id, bloque_id, nombre, tipo, opciones, bloque_relacionado_id FROM campo
                 WHERE negocio_id = :negocio ORDER BY posicion, id
                 """, Map.of("negocio", negocioId), fila -> {
             UUID bloqueId = fila.getObject("bloque_id", UUID.class);
             List<String> opciones = objectMapper.readValue(fila.getString("opciones"), new TypeReference<>() { });
             campos.computeIfAbsent(bloqueId, id -> new ArrayList<>()).add(new CampoConocido(
                     fila.getObject("id", UUID.class), fila.getString("nombre"),
-                    TipoCampo.valueOf(fila.getString("tipo")), opciones));
+                    TipoCampo.valueOf(fila.getString("tipo")), opciones,
+                    fila.getObject("bloque_relacionado_id", UUID.class)));
         });
         return bloques.stream().map(bloque -> new BloqueLectura((UUID) bloque.get("id"),
                 (String) bloque.get("nombre"), campos.getOrDefault(bloque.get("id"), List.of()))).toList();

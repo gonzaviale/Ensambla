@@ -31,8 +31,8 @@ public class LoteSubidaService {
      * de camino borra lo que ya se había guardado, así no quedan archivos sin lote.
      */
     @Transactional
-    public LoteSubida subir(UUID negocioId, List<byte[]> contenidos, OffsetDateTime ahora) {
-        LoteSubida lote = LoteSubida.nuevo(negocioId, contenidos, ahora);
+    public LoteSubida subir(UUID negocioId, List<byte[]> contenidos, UUID bloqueDestinoId, OffsetDateTime ahora) {
+        LoteSubida lote = LoteSubida.nuevo(negocioId, contenidos, bloqueDestinoId, ahora);
         List<String> subidas = new ArrayList<>();
         try {
             for (FotoCuaderno foto : lote.getFotos()) {
