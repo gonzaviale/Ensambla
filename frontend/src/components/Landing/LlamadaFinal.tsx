@@ -13,8 +13,11 @@ export function LlamadaFinal() {
             <span />
           </div>
           <div className="final__texto">
-            <h2>Tu primer bloque te está esperando.</h2>
-            <p>Creá tu cuenta gratis y armá el sistema de tu negocio hoy mismo.</p>
+            <h2>Que la próxima lista no te agarre desprevenido.</h2>
+            <p>
+              Creá tu cuenta gratis, cargá la lista de tu proveedor y mirá qué precios te conviene
+              revisar hoy.
+            </p>
           </div>
           <div className="final__acciones">
             <Link to="/registro" className="boton boton--primario boton--grande">

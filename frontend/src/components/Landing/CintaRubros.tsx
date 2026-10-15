@@ -1,17 +1,17 @@
 const RUBROS = [
   'Almacenes',
+  'Kioscos',
+  'Despensas',
+  'Autoservicios',
   'Ferreterías',
-  'Tiendas online',
-  'Gastronomía',
-  'Talleres',
-  'Estudios',
-  'Distribuidoras',
-  'Emprendimientos',
+  'Panaderías',
+  'Dietéticas',
+  'Librerías',
 ];
 
 export function CintaRubros() {
   return (
-    <section className="cinta" aria-label="Para quién es Ensambla">
+    <section className="cinta" aria-label="Para comercios de barrio como los tuyos">
       <div className="cinta__pista">
         <ul className="cinta__lista">
           {RUBROS.map((rubro) => (

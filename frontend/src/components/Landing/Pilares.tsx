@@ -3,31 +3,33 @@ import { variables } from './estilos';
 const PILARES = [
   {
     num: '01',
-    tag: 'Piezas',
-    titulo: 'Modularidad',
+    tag: 'Sencillez',
+    titulo: 'Una línea, un toque',
     texto:
-      'Cada parte de tu negocio es un bloque independiente que podés sumar, mover o quitar cuando quieras.',
+      'Sin tablas ni menús: ves tus productos, tus proveedores y tus avisos con las palabras de siempre. Todo se confirma de un toque.',
     retraso: '0s',
   },
   {
     num: '02',
-    tag: 'Orden',
-    titulo: 'Simplicidad',
-    texto: 'Formularios y tablas que se generan solos. Sin jerga técnica, sin manuales eternos.',
+    tag: 'Red',
+    titulo: 'Cada lista sirve a todos',
+    texto:
+      'Cuando un producto queda emparejado, sirve para toda la red: comparás costos y ofertas sin cargar nada dos veces.',
     retraso: '.1s',
   },
   {
     num: '03',
     tag: 'Crecimiento',
-    titulo: 'Escalabilidad',
-    texto: 'Empezá con un bloque. Cuando tu negocio crezca, tu sistema crece con él.',
+    titulo: 'Crece con tu negocio',
+    texto:
+      'Empezá por los precios. Después sumá stock, pedidos, clientes o proveedores, un bloque a la vez.',
     retraso: '.2s',
   },
 ] as const;
 
 export function Pilares() {
   return (
-    <section className="seccion seccion--oscura">
+    <section className="seccion seccion--oscura" id="por-que">
       <div className="contenedor">
         <header className="seccion__cabecera revelar">
           <p className="sobretitulo">Por qué Ensambla</p>

@@ -1,24 +1,61 @@
 import { Link } from '@tanstack/react-router';
+import { DIAS_DE_PRUEBA } from '@/lib/red/planes';
 import { variables } from './estilos';
 
 const BLOQUES_3D = [
   { color: 'logo-naranja', x: 0, y: 0, w: 2.74, h: 4.01, ex: -1, ey: -1, ez: 0.4, dl: '0s' },
-  { color: 'logo-turquesa', x: 0, y: 4.38, w: 2.74, h: 1.82, ex: -1, ey: 0.9, ez: -0.3, dl: '0.1s' },
-  { color: 'logo-amarillo', x: 3.1, y: 0, w: 2.74, h: 1.82, ex: 0.6, ey: -1.3, ez: 0.5, dl: '0.2s' },
-  { color: 'logo-celeste', x: 3.1, y: 2.19, w: 2.74, h: 1.82, ex: 1.2, ey: -0.2, ez: -0.4, dl: '0.3s' },
+  {
+    color: 'logo-turquesa',
+    x: 0,
+    y: 4.38,
+    w: 2.74,
+    h: 1.82,
+    ex: -1,
+    ey: 0.9,
+    ez: -0.3,
+    dl: '0.1s',
+  },
+  {
+    color: 'logo-amarillo',
+    x: 3.1,
+    y: 0,
+    w: 2.74,
+    h: 1.82,
+    ex: 0.6,
+    ey: -1.3,
+    ez: 0.5,
+    dl: '0.2s',
+  },
+  {
+    color: 'logo-celeste',
+    x: 3.1,
+    y: 2.19,
+    w: 2.74,
+    h: 1.82,
+    ex: 1.2,
+    ey: -0.2,
+    ez: -0.4,
+    dl: '0.3s',
+  },
   { color: 'logo-coral', x: 3.1, y: 4.38, w: 2.74, h: 1.82, ex: 0.6, ey: 1, ez: 0.3, dl: '0.4s' },
 ] as const;
 
 const FICHAS = [
-  { n: 1, icono: '▤', color: 'naranja', titulo: 'Inventario', detalle: '128 productos' },
-  { n: 2, icono: '✓', color: 'coral', titulo: 'Pedido #204', detalle: 'Listo para entregar' },
-  { n: 3, icono: '◎', color: 'pizarra', titulo: '+12 clientes', detalle: 'esta semana' },
+  {
+    n: 1,
+    icono: '!',
+    color: 'coral',
+    titulo: 'Precio en riesgo',
+    detalle: 'Aceite: 11 % de margen',
+  },
+  { n: 2, icono: '↗', color: 'naranja', titulo: 'Lista nueva', detalle: '31 precios por revisar' },
+  { n: 3, icono: '▤', color: 'pizarra', titulo: 'Yerba 1 kg', detalle: 'se termina el jueves' },
 ] as const;
 
 const DATOS = [
-  { valor: '0', texto: 'líneas de código' },
-  { valor: '3', texto: 'plantillas para empezar' },
-  { valor: '∞', texto: 'combinaciones de bloques' },
+  { valor: '1 toque', texto: 'para aplicar un precio nuevo' },
+  { valor: '0', texto: 'cambios sin tu confirmación' },
+  { valor: `${DIAS_DE_PRUEBA} días`, texto: 'para probarlo gratis' },
 ] as const;
 
 export function Hero() {
@@ -35,7 +72,7 @@ export function Hero() {
         <div className="hero__texto">
           <p className="etiqueta aparecer">
             <span className="etiqueta__punto" aria-hidden="true" />
-            Plataforma no-code para emprendedores, comercios y PyMEs
+            Para almacenes, kioscos y comercios de barrio
           </p>
           <h1 className="hero__titulo">
             <span className="linea aparecer" style={variables({ '--d': '.05s' })}>
@@ -54,9 +91,9 @@ export function Hero() {
             aria-hidden="true"
           />
           <p className="hero__bajada aparecer" style={variables({ '--d': '.4s' })}>
-            Convertí los procesos de tu negocio en herramientas digitales simples. Elegí una
-            plantilla, sumá bloques de inventario, pedidos o clientes, y empezá a usarlos hoy. Sin
-            programar.
+            <strong>Llegó la lista de tu proveedor.</strong> Ensambla te muestra qué precios revisar
+            y te ayuda a actualizarlos en tu negocio, sin que compares listas a mano. Y si todavía
+            anotás en papel, empezá sacándole una foto a tu cuaderno.
           </p>
           <div className="hero__acciones aparecer" style={variables({ '--d': '.5s' })}>
             <Link to="/registro" className="boton boton--primario">
@@ -65,8 +102,8 @@ export function Hero() {
                 <path d="M5 12h14M13 6l6 6-6 6" />
               </svg>
             </Link>
-            <a href="#como-funciona" className="boton boton--secundario">
-              Ver cómo funciona
+            <a href="#lista-llega" className="boton boton--secundario">
+              Mirá cómo funciona
             </a>
           </div>
           <ul className="hero__datos aparecer" style={variables({ '--d': '.6s' })}>
@@ -119,7 +156,7 @@ export function Hero() {
         </div>
       </div>
 
-      <a href="#como-funciona" className="hero__bajar" aria-label="Bajar a cómo funciona">
+      <a href="#dolor" className="hero__bajar" aria-label="Bajar a la próxima sección">
         <span />
       </a>
     </section>

@@ -33,8 +33,8 @@ export function Plantillas() {
           <p className="sobretitulo">Plantillas</p>
           <h2>No arranques de cero.</h2>
           <p>
-            Elegí una plantilla pensada para tu rubro y adaptala a tu forma de trabajar. O empezá en
-            blanco, como prefieras.
+            Elegí una plantilla pensada para un comercio de barrio y adaptala a tu forma de
+            trabajar. O empezá en blanco, como prefieras.
           </p>
         </header>
 

@@ -12,23 +12,23 @@ const MUESTRAS: (Comentario & { color: string })[] = [
     puntaje: 5,
     color: 'naranja',
     texto:
-      'Antes llevaba el stock en un cuaderno. Ahora armé el inventario en una tarde y sé qué reponer sin contar cajas.',
+      'Antes llevaba los precios en un cuaderno. Ahora llega la lista del proveedor y en diez minutos sé qué precios cambiar.',
   },
   {
     nombre: 'Diego R.',
-    negocio: 'Distribuidora de bebidas',
+    negocio: 'Kiosco',
     puntaje: 5,
     color: 'coral',
     texto:
-      'Conectamos pedidos con clientes y se terminaron los mensajes perdidos. Todo el equipo ve el mismo estado.',
+      'Me avisó que el aceite estaba casi al costo. Sin ese aviso lo seguía vendiendo igual y no me daba cuenta.',
   },
   {
     nombre: 'Carla S.',
-    negocio: 'Estudio de diseño',
+    negocio: 'Despensa',
     puntaje: 4,
     color: 'pizarra',
     texto:
-      'No sé programar y no lo necesité. Empecé con la plantilla de clientes y la fui adaptando a mi estudio.',
+      'No sé de computación y no lo necesité. Miro lo que cambió, toco Confirmar y cambio las etiquetas.',
   },
 ];
 
@@ -132,7 +132,10 @@ export function Comentarios() {
             <br />
             ya ensamblan.
           </h2>
-          <p>Negocios reales que ordenaron su día a día, un bloque a la vez.</p>
+          <p>
+            Tres comentarios de ejemplo, y los que deja quien prueba Ensambla: dejá el tuyo más
+            abajo.
+          </p>
         </header>
 
         <div className="comentarios" ref={lista}>
@@ -154,7 +157,7 @@ export function Comentarios() {
         <div className="opinar revelar">
           <div className="opinar__texto">
             <h3>Dejanos tu comentario</h3>
-            <p>¿Probaste Ensambla o tenés una idea para un bloque nuevo? Contanos.</p>
+            <p>¿Probaste Ensambla o tenés una idea para un aviso nuevo? Contanos.</p>
           </div>
           <form className="formulario" onSubmit={publicar} noValidate>
             <div className="formulario__fila">

@@ -19,7 +19,9 @@ export function AuthCard({ title, lead, children, footer }: AuthCardProps) {
   );
 }
 
-export function EnlaceAuth({ to, children }: { to: '/login' | '/registro'; children: ReactNode }) {
+type DestinoAuth = '/login' | '/registro' | '/olvide-contrasena';
+
+export function EnlaceAuth({ to, children }: { to: DestinoAuth; children: ReactNode }) {
   return (
     <Link to={to} className="font-semibold">
       {children}

@@ -38,15 +38,15 @@ export function ComoFunciona() {
     <section className="seccion" id="como-funciona">
       <div className="contenedor">
         <header className="seccion__cabecera revelar">
-          <p className="sobretitulo">Cómo funciona</p>
+          <p className="sobretitulo">Cómo se arma</p>
           <h2>
-            El sistema crece
+            Tu sistema crece
             <br />
             bloque a bloque.
           </h2>
           <p>
-            Cada bloque representa una parte de tu negocio. Cuando se conecta con otros, deja de ser
-            una tarea aislada y pasa a formar parte de un sistema propio.
+            Además de los precios, Ensambla te deja armar el resto de tu negocio. Cada bloque es una
+            parte de lo que hacés; cuando se conectan, ya no son tareas sueltas.
           </p>
         </header>
 

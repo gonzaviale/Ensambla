@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useForm } from '@tanstack/react-form';
+import { Link } from '@tanstack/react-router';
 import { ApiError } from '@/api';
-import { Button, InputField, PasswordField } from '@/components/ui';
+import { Button, InputField, PasswordField, buttonClasses } from '@/components/ui';
 import { useLogin } from '@/hooks/auth/mutations';
 import { primerError } from '@/lib/formErrors';
 import { loginSchema } from '@/types/auth';
@@ -72,6 +73,12 @@ export function LoginForm({ onExito }: { onExito: () => void }) {
           />
         )}
       </form.Field>
+      <Link
+        to="/olvide-contrasena"
+        className={buttonClasses({ variant: 'ghost', className: 'self-start' })}
+      >
+        ¿Te olvidaste la contraseña?
+      </Link>
       {errorGeneral && (
         <p role="alert" className="m-0 text-base font-semibold text-bad">
           {errorGeneral}

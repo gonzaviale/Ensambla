@@ -39,8 +39,8 @@ export function ArmadorBloques() {
           <p className="sobretitulo">Probalo acá</p>
           <h2>Armá tu sistema en segundos.</h2>
           <p>
-            Tocá los bloques que necesita tu negocio y mirá cómo se ensamblan. Así de simple es
-            construir en Ensambla.
+            Tocá los bloques que necesita tu comercio y mirá cómo se ensamblan. Los precios y los
+            avisos de arriba se apoyan en estos mismos bloques.
           </p>
 
           <div className="piezas" role="group" aria-label="Bloques disponibles">

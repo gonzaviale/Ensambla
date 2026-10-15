@@ -28,12 +28,12 @@ describe('navegación y guards', () => {
     await verifyPathAsync(router, '/login');
   });
 
-  it('lleva a Mis sistemas a quien ya tiene sesión y entra a la landing', async () => {
+  it('lleva a Hoy a quien ya tiene sesión y entra a la landing', async () => {
     setupUsuarioConSesion();
     const router = renderApp('/');
 
-    await verifyPathAsync(router, '/proyectos');
-    await verifyHeadingPresentAsync('¿Por dónde querés empezar?');
+    await verifyPathAsync(router, '/hoy');
+    await verifyHeadingPresentAsync(/Almacén Don Carlos/);
   });
 
   it('lista las plantillas del backend en Mis sistemas', async () => {
@@ -65,9 +65,9 @@ describe('navegación y guards', () => {
     expect(modo).toHaveTextContent('Cargar y ver');
     expect(modo).toHaveTextContent('Armar');
     const barra = screen.getByRole('navigation', { name: 'Secciones' });
-    expect(barra).toHaveTextContent('Mis sistemas');
-    expect(barra).toHaveTextContent('Subir foto');
-    expect(barra).toHaveTextContent('Mi cuenta');
+    expect(barra).toHaveTextContent('Hoy');
+    expect(barra).toHaveTextContent('Listas');
+    expect(barra).toHaveTextContent('Más');
   });
 
   it('no muestra breadcrumbs en Mis sistemas', async () => {

@@ -10,14 +10,16 @@ export function LandingFooter() {
             <Isotipo className="marca__iso" />
             <span className="marca__nombre">Ensambla</span>
           </a>
-          <p>Tu sistema, un bloque a la vez.</p>
+          <p>Tu sistema, un bloque a la vez. Para almacenes, kioscos y comercios de barrio.</p>
         </div>
         <nav className="pie__nav" aria-label="Pie de página">
           <div>
             <h3>Producto</h3>
-            <a href="#como-funciona">Cómo funciona</a>
-            <a href="#bloques">Bloques</a>
-            <a href="#plantillas">Plantillas</a>
+            <a href="#lista-llega">Llegó la lista</a>
+            <a href="#avisos">Avisos</a>
+            <a href="#red">La red</a>
+            <a href="#planes">Planes y precios</a>
+            <a href="#como-funciona">Cómo se arma</a>
           </div>
           <div>
             <h3>Cuenta</h3>

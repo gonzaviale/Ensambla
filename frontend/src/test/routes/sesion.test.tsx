@@ -34,8 +34,7 @@ describe('registro y sesión del cliente', () => {
 
     await completarRegistro();
 
-    await verifyPathAsync(router, '/proyectos');
-    await verifyHeadingPresentAsync('¿Por dónde querés empezar?');
+    await verifyPathAsync(router, '/bienvenida');
     expect(estado.usuarios.get(EMAIL)?.nombre).toBe('Brian');
     expect(localStorage.length).toBe(0);
   });
@@ -88,7 +87,10 @@ describe('registro y sesión del cliente', () => {
     await verifyPathAsync(router, '/login');
     await verifyHeadingPresentAsync('Ingresá a tu cuenta');
     expect(estado.sesionUsuarioId).toBeNull();
-    await router.navigate({ to: '/proyectos/$proyectoId/construir', params: { proyectoId: 'abc' } });
+    await router.navigate({
+      to: '/proyectos/$proyectoId/construir',
+      params: { proyectoId: 'abc' },
+    });
     await verifyPathAsync(router, '/login');
   });
 
@@ -129,4 +131,3 @@ describe('registro y sesión del cliente', () => {
     expect(response).toEqual({ id: 'id', nombre: 'Brian', email: EMAIL });
   });
 });
-

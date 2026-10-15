@@ -7,8 +7,7 @@ const PASOS = [
   },
   {
     titulo: 'Revisá lo que leyó',
-    texto:
-      'La IA arma la tabla con sus columnas y marca los datos que no pudo leer con seguridad.',
+    texto: 'La IA arma la tabla con sus columnas y marca los datos que no pudo leer con seguridad.',
   },
   {
     titulo: 'Guardalo y listo',
@@ -32,8 +31,8 @@ export function DeLaFoto() {
           <p className="sobretitulo">Con tu cámara</p>
           <h2>De la foto del cuaderno a tu sistema.</h2>
           <p className="foto__bajada">
-            Si hoy anotás todo en papel, no hace falta empezar de cero: sacale una foto y Ensambla
-            lo pasa a tablas listas para usar.
+            Otra forma de empezar: si hoy anotás todo en papel, o te llega una lista impresa, no
+            hace falta tipear. Sacale una foto y Ensambla la pasa a tablas listas para usar.
           </p>
           <ol className="foto__pasos">
             {PASOS.map(({ titulo, texto }) => (

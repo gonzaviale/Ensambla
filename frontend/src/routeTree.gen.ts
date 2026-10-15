@@ -11,12 +11,24 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicaRouteImport } from './routes/_publica'
+import { Route as AppBienvenidaRouteImport } from './routes/_app/bienvenida'
+import { Route as AppCuentaRouteImport } from './routes/_app/cuenta'
+import { Route as AppHoyRouteImport } from './routes/_app/hoy'
+import { Route as AppMostradorRouteImport } from './routes/_app/mostrador'
+import { Route as AppPlanRouteImport } from './routes/_app/plan'
+import { Route as AppPreciosRouteImport } from './routes/_app/precios'
 import { Route as PublicaIndexRouteImport } from './routes/_publica/index'
 import { Route as PublicaLoginRouteImport } from './routes/_publica/login'
+import { Route as PublicaOlvideContrasenaRouteImport } from './routes/_publica/olvide-contrasena'
 import { Route as PublicaRegistroRouteImport } from './routes/_publica/registro'
+import { Route as PublicaRestablecerContrasenaRouteImport } from './routes/_publica/restablecer-contrasena'
 import { Route as AppCuadernoIndexRouteImport } from './routes/_app/cuaderno.index'
 import { Route as AppCuadernoLoteIdRouteImport } from './routes/_app/cuaderno.$loteId'
+import { Route as AppListasIndexRouteImport } from './routes/_app/listas.index'
+import { Route as AppListasListaIdRouteImport } from './routes/_app/listas.$listaId'
 import { Route as AppProyectosIndexRouteImport } from './routes/_app/proyectos.index'
+import { Route as AppRedIndexRouteImport } from './routes/_app/red.index'
+import { Route as AppRedMayoristaRouteImport } from './routes/_app/red.mayorista'
 import { Route as AppProyectosProyectoIdConstruirRouteImport } from './routes/_app/proyectos.$proyectoId.construir'
 import { Route as AppProyectosProyectoIdReportesRouteImport } from './routes/_app/proyectos.$proyectoId.reportes'
 import { Route as AppProyectosProyectoIdStockRouteImport } from './routes/_app/proyectos.$proyectoId.stock'
@@ -30,6 +42,36 @@ const PublicaRoute = PublicaRouteImport.update({
   id: '/_publica',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppBienvenidaRoute = AppBienvenidaRouteImport.update({
+  id: '/bienvenida',
+  path: '/bienvenida',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCuentaRoute = AppCuentaRouteImport.update({
+  id: '/cuenta',
+  path: '/cuenta',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHoyRoute = AppHoyRouteImport.update({
+  id: '/hoy',
+  path: '/hoy',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMostradorRoute = AppMostradorRouteImport.update({
+  id: '/mostrador',
+  path: '/mostrador',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPlanRoute = AppPlanRouteImport.update({
+  id: '/plan',
+  path: '/plan',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPreciosRoute = AppPreciosRouteImport.update({
+  id: '/precios',
+  path: '/precios',
+  getParentRoute: () => AppRoute,
+} as any)
 const PublicaIndexRoute = PublicaIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -40,11 +82,22 @@ const PublicaLoginRoute = PublicaLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => PublicaRoute,
 } as any)
+const PublicaOlvideContrasenaRoute = PublicaOlvideContrasenaRouteImport.update({
+  id: '/olvide-contrasena',
+  path: '/olvide-contrasena',
+  getParentRoute: () => PublicaRoute,
+} as any)
 const PublicaRegistroRoute = PublicaRegistroRouteImport.update({
   id: '/registro',
   path: '/registro',
   getParentRoute: () => PublicaRoute,
 } as any)
+const PublicaRestablecerContrasenaRoute =
+  PublicaRestablecerContrasenaRouteImport.update({
+    id: '/restablecer-contrasena',
+    path: '/restablecer-contrasena',
+    getParentRoute: () => PublicaRoute,
+  } as any)
 const AppCuadernoIndexRoute = AppCuadernoIndexRouteImport.update({
   id: '/cuaderno/',
   path: '/cuaderno/',
@@ -55,9 +108,29 @@ const AppCuadernoLoteIdRoute = AppCuadernoLoteIdRouteImport.update({
   path: '/cuaderno/$loteId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppListasIndexRoute = AppListasIndexRouteImport.update({
+  id: '/listas/',
+  path: '/listas/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppListasListaIdRoute = AppListasListaIdRouteImport.update({
+  id: '/listas/$listaId',
+  path: '/listas/$listaId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppProyectosIndexRoute = AppProyectosIndexRouteImport.update({
   id: '/proyectos/',
   path: '/proyectos/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRedIndexRoute = AppRedIndexRouteImport.update({
+  id: '/red/',
+  path: '/red/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRedMayoristaRoute = AppRedMayoristaRouteImport.update({
+  id: '/red/mayorista',
+  path: '/red/mayorista',
   getParentRoute: () => AppRoute,
 } as any)
 const AppProyectosProyectoIdConstruirRoute =
@@ -87,11 +160,23 @@ const AppProyectosProyectoIdUsarRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicaIndexRoute
+  '/bienvenida': typeof AppBienvenidaRoute
+  '/cuenta': typeof AppCuentaRoute
+  '/hoy': typeof AppHoyRoute
+  '/mostrador': typeof AppMostradorRoute
+  '/plan': typeof AppPlanRoute
+  '/precios': typeof AppPreciosRoute
   '/login': typeof PublicaLoginRoute
+  '/olvide-contrasena': typeof PublicaOlvideContrasenaRoute
   '/registro': typeof PublicaRegistroRoute
+  '/restablecer-contrasena': typeof PublicaRestablecerContrasenaRoute
   '/cuaderno/$loteId': typeof AppCuadernoLoteIdRoute
+  '/listas/$listaId': typeof AppListasListaIdRoute
+  '/red/mayorista': typeof AppRedMayoristaRoute
   '/cuaderno/': typeof AppCuadernoIndexRoute
+  '/listas/': typeof AppListasIndexRoute
   '/proyectos/': typeof AppProyectosIndexRoute
+  '/red/': typeof AppRedIndexRoute
   '/proyectos/$proyectoId/construir': typeof AppProyectosProyectoIdConstruirRoute
   '/proyectos/$proyectoId/reportes': typeof AppProyectosProyectoIdReportesRoute
   '/proyectos/$proyectoId/stock': typeof AppProyectosProyectoIdStockRoute
@@ -99,11 +184,23 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof PublicaIndexRoute
+  '/bienvenida': typeof AppBienvenidaRoute
+  '/cuenta': typeof AppCuentaRoute
+  '/hoy': typeof AppHoyRoute
+  '/mostrador': typeof AppMostradorRoute
+  '/plan': typeof AppPlanRoute
+  '/precios': typeof AppPreciosRoute
   '/login': typeof PublicaLoginRoute
+  '/olvide-contrasena': typeof PublicaOlvideContrasenaRoute
   '/registro': typeof PublicaRegistroRoute
+  '/restablecer-contrasena': typeof PublicaRestablecerContrasenaRoute
   '/cuaderno/$loteId': typeof AppCuadernoLoteIdRoute
+  '/listas/$listaId': typeof AppListasListaIdRoute
+  '/red/mayorista': typeof AppRedMayoristaRoute
   '/cuaderno': typeof AppCuadernoIndexRoute
+  '/listas': typeof AppListasIndexRoute
   '/proyectos': typeof AppProyectosIndexRoute
+  '/red': typeof AppRedIndexRoute
   '/proyectos/$proyectoId/construir': typeof AppProyectosProyectoIdConstruirRoute
   '/proyectos/$proyectoId/reportes': typeof AppProyectosProyectoIdReportesRoute
   '/proyectos/$proyectoId/stock': typeof AppProyectosProyectoIdStockRoute
@@ -113,12 +210,24 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_publica': typeof PublicaRouteWithChildren
+  '/_app/bienvenida': typeof AppBienvenidaRoute
+  '/_app/cuenta': typeof AppCuentaRoute
+  '/_app/hoy': typeof AppHoyRoute
+  '/_app/mostrador': typeof AppMostradorRoute
+  '/_app/plan': typeof AppPlanRoute
+  '/_app/precios': typeof AppPreciosRoute
   '/_publica/login': typeof PublicaLoginRoute
+  '/_publica/olvide-contrasena': typeof PublicaOlvideContrasenaRoute
   '/_publica/registro': typeof PublicaRegistroRoute
+  '/_publica/restablecer-contrasena': typeof PublicaRestablecerContrasenaRoute
   '/_publica/': typeof PublicaIndexRoute
   '/_app/cuaderno/$loteId': typeof AppCuadernoLoteIdRoute
+  '/_app/listas/$listaId': typeof AppListasListaIdRoute
+  '/_app/red/mayorista': typeof AppRedMayoristaRoute
   '/_app/cuaderno/': typeof AppCuadernoIndexRoute
+  '/_app/listas/': typeof AppListasIndexRoute
   '/_app/proyectos/': typeof AppProyectosIndexRoute
+  '/_app/red/': typeof AppRedIndexRoute
   '/_app/proyectos/$proyectoId/construir': typeof AppProyectosProyectoIdConstruirRoute
   '/_app/proyectos/$proyectoId/reportes': typeof AppProyectosProyectoIdReportesRoute
   '/_app/proyectos/$proyectoId/stock': typeof AppProyectosProyectoIdStockRoute
@@ -128,11 +237,23 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/bienvenida'
+    | '/cuenta'
+    | '/hoy'
+    | '/mostrador'
+    | '/plan'
+    | '/precios'
     | '/login'
+    | '/olvide-contrasena'
     | '/registro'
+    | '/restablecer-contrasena'
     | '/cuaderno/$loteId'
+    | '/listas/$listaId'
+    | '/red/mayorista'
     | '/cuaderno/'
+    | '/listas/'
     | '/proyectos/'
+    | '/red/'
     | '/proyectos/$proyectoId/construir'
     | '/proyectos/$proyectoId/reportes'
     | '/proyectos/$proyectoId/stock'
@@ -140,11 +261,23 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/bienvenida'
+    | '/cuenta'
+    | '/hoy'
+    | '/mostrador'
+    | '/plan'
+    | '/precios'
     | '/login'
+    | '/olvide-contrasena'
     | '/registro'
+    | '/restablecer-contrasena'
     | '/cuaderno/$loteId'
+    | '/listas/$listaId'
+    | '/red/mayorista'
     | '/cuaderno'
+    | '/listas'
     | '/proyectos'
+    | '/red'
     | '/proyectos/$proyectoId/construir'
     | '/proyectos/$proyectoId/reportes'
     | '/proyectos/$proyectoId/stock'
@@ -153,12 +286,24 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/_publica'
+    | '/_app/bienvenida'
+    | '/_app/cuenta'
+    | '/_app/hoy'
+    | '/_app/mostrador'
+    | '/_app/plan'
+    | '/_app/precios'
     | '/_publica/login'
+    | '/_publica/olvide-contrasena'
     | '/_publica/registro'
+    | '/_publica/restablecer-contrasena'
     | '/_publica/'
     | '/_app/cuaderno/$loteId'
+    | '/_app/listas/$listaId'
+    | '/_app/red/mayorista'
     | '/_app/cuaderno/'
+    | '/_app/listas/'
     | '/_app/proyectos/'
+    | '/_app/red/'
     | '/_app/proyectos/$proyectoId/construir'
     | '/_app/proyectos/$proyectoId/reportes'
     | '/_app/proyectos/$proyectoId/stock'
@@ -186,6 +331,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/bienvenida': {
+      id: '/_app/bienvenida'
+      path: '/bienvenida'
+      fullPath: '/bienvenida'
+      preLoaderRoute: typeof AppBienvenidaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/cuenta': {
+      id: '/_app/cuenta'
+      path: '/cuenta'
+      fullPath: '/cuenta'
+      preLoaderRoute: typeof AppCuentaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/hoy': {
+      id: '/_app/hoy'
+      path: '/hoy'
+      fullPath: '/hoy'
+      preLoaderRoute: typeof AppHoyRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/mostrador': {
+      id: '/_app/mostrador'
+      path: '/mostrador'
+      fullPath: '/mostrador'
+      preLoaderRoute: typeof AppMostradorRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/plan': {
+      id: '/_app/plan'
+      path: '/plan'
+      fullPath: '/plan'
+      preLoaderRoute: typeof AppPlanRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/precios': {
+      id: '/_app/precios'
+      path: '/precios'
+      fullPath: '/precios'
+      preLoaderRoute: typeof AppPreciosRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_publica/': {
       id: '/_publica/'
       path: '/'
@@ -200,11 +387,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicaLoginRouteImport
       parentRoute: typeof PublicaRoute
     }
+    '/_publica/olvide-contrasena': {
+      id: '/_publica/olvide-contrasena'
+      path: '/olvide-contrasena'
+      fullPath: '/olvide-contrasena'
+      preLoaderRoute: typeof PublicaOlvideContrasenaRouteImport
+      parentRoute: typeof PublicaRoute
+    }
     '/_publica/registro': {
       id: '/_publica/registro'
       path: '/registro'
       fullPath: '/registro'
       preLoaderRoute: typeof PublicaRegistroRouteImport
+      parentRoute: typeof PublicaRoute
+    }
+    '/_publica/restablecer-contrasena': {
+      id: '/_publica/restablecer-contrasena'
+      path: '/restablecer-contrasena'
+      fullPath: '/restablecer-contrasena'
+      preLoaderRoute: typeof PublicaRestablecerContrasenaRouteImport
       parentRoute: typeof PublicaRoute
     }
     '/_app/cuaderno/': {
@@ -221,11 +422,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCuadernoLoteIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/listas/': {
+      id: '/_app/listas/'
+      path: '/listas'
+      fullPath: '/listas/'
+      preLoaderRoute: typeof AppListasIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/listas/$listaId': {
+      id: '/_app/listas/$listaId'
+      path: '/listas/$listaId'
+      fullPath: '/listas/$listaId'
+      preLoaderRoute: typeof AppListasListaIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/proyectos/': {
       id: '/_app/proyectos/'
       path: '/proyectos'
       fullPath: '/proyectos/'
       preLoaderRoute: typeof AppProyectosIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/red/': {
+      id: '/_app/red/'
+      path: '/red'
+      fullPath: '/red/'
+      preLoaderRoute: typeof AppRedIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/red/mayorista': {
+      id: '/_app/red/mayorista'
+      path: '/red/mayorista'
+      fullPath: '/red/mayorista'
+      preLoaderRoute: typeof AppRedMayoristaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/proyectos/$proyectoId/construir': {
@@ -260,9 +489,19 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppBienvenidaRoute: typeof AppBienvenidaRoute
+  AppCuentaRoute: typeof AppCuentaRoute
+  AppHoyRoute: typeof AppHoyRoute
+  AppMostradorRoute: typeof AppMostradorRoute
+  AppPlanRoute: typeof AppPlanRoute
+  AppPreciosRoute: typeof AppPreciosRoute
   AppCuadernoLoteIdRoute: typeof AppCuadernoLoteIdRoute
+  AppListasListaIdRoute: typeof AppListasListaIdRoute
+  AppRedMayoristaRoute: typeof AppRedMayoristaRoute
   AppCuadernoIndexRoute: typeof AppCuadernoIndexRoute
+  AppListasIndexRoute: typeof AppListasIndexRoute
   AppProyectosIndexRoute: typeof AppProyectosIndexRoute
+  AppRedIndexRoute: typeof AppRedIndexRoute
   AppProyectosProyectoIdConstruirRoute: typeof AppProyectosProyectoIdConstruirRoute
   AppProyectosProyectoIdReportesRoute: typeof AppProyectosProyectoIdReportesRoute
   AppProyectosProyectoIdStockRoute: typeof AppProyectosProyectoIdStockRoute
@@ -270,9 +509,19 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppBienvenidaRoute: AppBienvenidaRoute,
+  AppCuentaRoute: AppCuentaRoute,
+  AppHoyRoute: AppHoyRoute,
+  AppMostradorRoute: AppMostradorRoute,
+  AppPlanRoute: AppPlanRoute,
+  AppPreciosRoute: AppPreciosRoute,
   AppCuadernoLoteIdRoute: AppCuadernoLoteIdRoute,
+  AppListasListaIdRoute: AppListasListaIdRoute,
+  AppRedMayoristaRoute: AppRedMayoristaRoute,
   AppCuadernoIndexRoute: AppCuadernoIndexRoute,
+  AppListasIndexRoute: AppListasIndexRoute,
   AppProyectosIndexRoute: AppProyectosIndexRoute,
+  AppRedIndexRoute: AppRedIndexRoute,
   AppProyectosProyectoIdConstruirRoute: AppProyectosProyectoIdConstruirRoute,
   AppProyectosProyectoIdReportesRoute: AppProyectosProyectoIdReportesRoute,
   AppProyectosProyectoIdStockRoute: AppProyectosProyectoIdStockRoute,
@@ -283,13 +532,17 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface PublicaRouteChildren {
   PublicaLoginRoute: typeof PublicaLoginRoute
+  PublicaOlvideContrasenaRoute: typeof PublicaOlvideContrasenaRoute
   PublicaRegistroRoute: typeof PublicaRegistroRoute
+  PublicaRestablecerContrasenaRoute: typeof PublicaRestablecerContrasenaRoute
   PublicaIndexRoute: typeof PublicaIndexRoute
 }
 
 const PublicaRouteChildren: PublicaRouteChildren = {
   PublicaLoginRoute: PublicaLoginRoute,
+  PublicaOlvideContrasenaRoute: PublicaOlvideContrasenaRoute,
   PublicaRegistroRoute: PublicaRegistroRoute,
+  PublicaRestablecerContrasenaRoute: PublicaRestablecerContrasenaRoute,
   PublicaIndexRoute: PublicaIndexRoute,
 }
 

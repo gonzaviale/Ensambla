@@ -146,3 +146,22 @@ Pantallas pendientes del MVP 2 están marcadas con `<PendingTask tarea="T-0XX" /
 ## Marca
 
 Tokens de color y tipografía en `src/styles/index.css`; guía en [../docs/marca.md](../docs/marca.md).
+
+### La red proactiva (demostración · MVP 3)
+
+Después de iniciar sesión se entra a **Hoy** (`/hoy`): avisos derivados de los datos, valor aportado, pedido y resumen del día.
+Todo lo de esta sección **vive en el navegador** (`localStorage`, clave `ensambla-red-demo-v1`) y funciona igual en los tres modos
+de la API: no hay endpoints nuevos. Mapa de pantallas, planes y reglas de UI en [`docs/pantallas-red-proactiva.md`](../docs/pantallas-red-proactiva.md).
+
+| Capa | Dónde |
+|---|---|
+| Tipos | `src/types/red.ts` |
+| Cálculos, avisos, planes, valor, semilla, acciones (puras) | `src/lib/red/*` |
+| Estado persistido (Zustand) | `src/stores/red.ts` |
+| Hooks que usa la UI | `src/hooks/red/useRed.ts` |
+| Pantallas | `src/pages/{Hoy,Listas,Precios,Red,Plan,Cuenta,Bienvenida,RecuperarClave}` |
+
+- Para recorrer la demo: modo `completo`, ingresá con `demo@ensambla.local` y mirá `/hoy`. «Mi cuenta → Modo demostración» vuelve a los datos de ejemplo.
+- La suscripción (prueba de 7 días, pago simulado con Mercado Pago o tarjeta de prueba, cancelar) está en `/plan`. Una tarjeta terminada en `0002` simula un pago rechazado.
+- «Adelantar el fin de la prueba» (en `/plan`, sección de demostración) muestra cómo queda el plan Gratis: avisos y funciones de pago con candado.
+- Los precios de los planes son ilustrativos; los datos de la red (comercios, promedios de zona) son de demostración.
