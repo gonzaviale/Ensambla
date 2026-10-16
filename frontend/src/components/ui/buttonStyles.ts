@@ -4,17 +4,18 @@ export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'solid' | 'dange
 export type ButtonSize = 'compact' | 'md' | 'lg';
 
 const base =
-  'relative inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-transparent text-center font-semibold leading-tight text-fg no-underline transition-colors disabled:cursor-not-allowed disabled:border-transparent disabled:bg-fg/10 disabled:text-muted disabled:shadow-none aria-disabled:cursor-not-allowed aria-disabled:bg-fg/10 aria-disabled:text-muted';
+  'relative inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-transparent text-center font-bold leading-tight text-fg no-underline transition-colors disabled:cursor-not-allowed disabled:border-transparent disabled:bg-fg/10 disabled:text-muted disabled:shadow-none aria-disabled:cursor-not-allowed aria-disabled:bg-fg/10 aria-disabled:text-muted';
 
 // El naranja de marca es la acción principal de la pantalla (una sola, sólida); el texto va en
 // pizarra para cumplir contraste AA. Las acciones de apoyo van en contorno o como texto.
 const variants: Record<ButtonVariant, string> = {
   solid:
-    'border-accent bg-accent shadow-sm hover:border-accent-400 hover:bg-accent-400 hover:text-fg active:bg-accent-600',
+    'border-accent bg-accent shadow-button hover:border-accent-400 hover:bg-accent-400 hover:text-fg active:bg-accent-400 active:shadow-none',
   primary:
-    'border-accent-700 bg-surface text-accent-800 hover:bg-accent-100 hover:text-accent-900 active:bg-accent-200',
-  secondary: 'border-fg/30 bg-surface hover:bg-fg/6 hover:text-fg active:bg-fg/12',
-  ghost: 'text-accent-800 hover:bg-accent-100 hover:text-accent-900 active:bg-accent-200',
+    'border-petrol bg-petrol text-white shadow-petrol-button hover:border-petrol-700 hover:bg-petrol-700 hover:text-white active:bg-petrol-700',
+  secondary:
+    'border-line bg-surface text-fg hover:border-petrol/30 hover:bg-soft-surface hover:text-fg active:bg-petrol-100',
+  ghost: 'text-petrol hover:bg-petrol-100 hover:text-petrol-700 active:bg-petrol-100',
   danger: 'border-bad bg-surface text-bad hover:bg-coral-100 hover:text-bad active:bg-coral-100',
   'danger-solid': 'border-bad bg-bad text-white hover:bg-bad/90 hover:text-white',
 };

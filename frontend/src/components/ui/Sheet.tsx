@@ -109,9 +109,9 @@ function SheetBody({
         className,
       )}
     >
-      <header className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
+      <header className="flex items-start justify-between gap-3 border-b border-line bg-canvas px-5 py-5">
         <div className="min-w-0">
-          <h2 id={titleId} className="m-0 text-h3 break-words">
+          <h2 id={titleId} className="m-0 text-h3 break-words text-petrol">
             {title}
           </h2>
           {description && (

@@ -10,7 +10,7 @@ import { SECCION_CUADERNO, SECCION_CUENTA, SECCION_PROYECTOS } from './secciones
 // El borde superior siempre ocupa su lugar (transparente) para que el estado activo no mueva nada.
 const itemClasses =
   'flex min-h-16 flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 border-t-4 border-transparent bg-transparent px-2 text-hint font-semibold text-soft no-underline hover:text-fg';
-const activeClasses = 'border-accent-700 text-accent-800';
+const activeClasses = 'border-petrol bg-petrol-100 text-petrol';
 
 // Barra inferior del celular (oculta desde md): tres destinos fijos, siempre los mismos.
 export function BottomNav() {
