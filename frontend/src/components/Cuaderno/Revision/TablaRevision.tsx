@@ -45,12 +45,12 @@ export function TablaRevision({
   const { columnas, filas } = borrador;
 
   return (
-    <div className="max-h-[70dvh] overflow-auto rounded-lg border border-line">
+    <div className="max-h-[70dvh] overflow-auto rounded-xl border border-line/70 bg-surface">
       <table className="w-full border-collapse text-left text-hint">
         <caption className="sr-only">{borrador.nombreBloque}</caption>
-        <thead className="sticky top-0 z-10 bg-surface shadow-[0_1px_0_var(--color-line)]">
+        <thead className="sticky top-0 z-10 bg-petrol-100 shadow-[0_1px_0_var(--color-line)]">
           <tr>
-            <th scope="col" className="sticky left-0 z-20 bg-surface px-3 py-2 text-soft">
+            <th scope="col" className="sticky left-0 z-20 bg-petrol-100 px-3 py-3 text-petrol">
               Renglón
             </th>
             {columnas.map((columna) => (
@@ -59,8 +59,8 @@ export function TablaRevision({
                 scope="col"
                 aria-invalid={errorDeColumna(columna, columnas) ? true : undefined}
                 className={cn(
-                  'min-w-36 px-2 py-2 align-bottom font-semibold text-fg',
-                  columnaEditando === columna.clave && 'bg-accent-100',
+                  'min-w-36 px-2 py-3 align-bottom font-semibold text-petrol',
+                  columnaEditando === columna.clave && 'bg-blue-100',
                 )}
               >
                 <div className="flex flex-col items-start gap-1">
@@ -100,7 +100,7 @@ export function TablaRevision({
               return aviso ? [{ columna, aviso }] : [];
             });
             return (
-              <tr key={fila.id} className="border-t border-line align-top">
+              <tr key={fila.id} className="border-t border-line/70 align-top hover:bg-cream">
                 <th
                   scope="row"
                   className="sticky left-0 z-10 bg-surface px-3 py-3 text-left font-semibold whitespace-nowrap"

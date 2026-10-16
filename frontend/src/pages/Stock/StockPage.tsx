@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link, useParams, useSearch } from '@tanstack/react-router';
-import { PackageIcon } from '@phosphor-icons/react';
+import { ArrowsLeftRightIcon, PackageIcon } from '@phosphor-icons/react';
 import { FormularioMovimiento } from '@/components/Stock/FormularioMovimiento';
 import { ListaMovimientos } from '@/components/Stock/ListaMovimientos';
 import { TablaStock } from '@/components/Stock/TablaStock';
 import { EmptyState, PageHeading, Panel, SelectField, buttonClasses } from '@/components/ui';
 import { useProyecto } from '@/hooks/proyectos/queries';
+import '@/styles/workspace.css';
 
 const RUTA = '/_app/proyectos/$proyectoId/stock';
 
@@ -20,7 +21,7 @@ export function StockPage() {
   const bloque = bloques.find((item) => item.id === bloqueId) ?? bloques[0];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flow-page flex flex-col gap-6">
       <PageHeading
         kicker="Stock"
         title={proyecto.nombre}
@@ -60,26 +61,42 @@ export function StockPage() {
             </div>
           )}
 
-          <Panel aria-labelledby="stock-registrar" className="flex flex-col gap-4">
-            <h2 id="stock-registrar" className="m-0 text-h3">
-              Registrar un movimiento
-            </h2>
-            <FormularioMovimiento key={bloque.id} bloque={bloque} />
-          </Panel>
+          <div className="stock-workspace grid items-start gap-5 xl:grid-cols-[minmax(20rem,0.85fr)_minmax(0,1.3fr)]">
+            <Panel
+              aria-labelledby="stock-registrar"
+              className="workspace-entry flex flex-col gap-4"
+            >
+              <h2
+                id="stock-registrar"
+                className="workspace-entry-heading m-0 flex items-center gap-2 text-h3"
+              >
+                <ArrowsLeftRightIcon aria-hidden size={23} />
+                Registrar un movimiento
+              </h2>
+              <FormularioMovimiento key={bloque.id} bloque={bloque} />
+            </Panel>
 
-          <section aria-labelledby="stock-actual" className="flex flex-col gap-4">
-            <h2 id="stock-actual" className="m-0 text-h3">
-              Stock actual
-            </h2>
-            <TablaStock key={bloque.id} bloque={bloque} />
-          </section>
+            <section
+              aria-labelledby="stock-actual"
+              className="workspace-section flex min-w-0 flex-col gap-4"
+            >
+              <h2 id="stock-actual" className="m-0 flex items-center gap-2 text-h3 text-petrol">
+                <PackageIcon aria-hidden size={23} />
+                Stock actual
+              </h2>
+              <TablaStock key={bloque.id} bloque={bloque} />
+            </section>
 
-          <section aria-labelledby="stock-movimientos" className="flex flex-col gap-4">
-            <h2 id="stock-movimientos" className="m-0 text-h3">
-              Últimos movimientos
-            </h2>
-            <ListaMovimientos key={bloque.id} bloque={bloque} />
-          </section>
+            <section
+              aria-labelledby="stock-movimientos"
+              className="workspace-section flex min-w-0 flex-col gap-4 xl:col-span-2"
+            >
+              <h2 id="stock-movimientos" className="m-0 text-h3 text-petrol">
+                Últimos movimientos
+              </h2>
+              <ListaMovimientos key={bloque.id} bloque={bloque} />
+            </section>
+          </div>
         </>
       )}
     </div>

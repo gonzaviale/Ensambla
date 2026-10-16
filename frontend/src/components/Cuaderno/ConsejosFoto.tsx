@@ -13,18 +13,21 @@ const CONSEJOS: {
 // Tres consejos con ícono, antes de los botones de la cámara: lo justo para sacar una buena foto.
 export function ConsejosFoto() {
   return (
-    <section aria-labelledby="consejos-titulo" className="flex flex-col gap-3">
-      <h2 id="consejos-titulo" className="m-0 text-h3">
+    <section
+      aria-labelledby="consejos-titulo"
+      className="flex flex-col gap-4 rounded-2xl border border-line/70 bg-surface p-5 sm:p-6"
+    >
+      <h2 id="consejos-titulo" className="m-0 text-h3 text-petrol">
         Consejos para una buena foto
       </h2>
       <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-3">
         {CONSEJOS.map(({ Icono, texto }) => (
           <li
             key={texto}
-            className="flex items-center gap-3 rounded-lg bg-sand-100 px-4 py-3 text-body sm:flex-col sm:items-start"
+            className="flex items-center gap-3 rounded-xl bg-cream px-4 py-4 text-hint sm:flex-col sm:items-start"
           >
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-surface text-accent-800">
-              <Icono size={28} aria-hidden />
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-yellow/20 text-petrol">
+              <Icono size={24} aria-hidden />
             </span>
             <span className="min-w-0">{texto}</span>
           </li>

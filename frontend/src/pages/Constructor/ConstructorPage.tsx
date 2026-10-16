@@ -9,6 +9,7 @@ import { useBloques } from '@/hooks/bloques/queries';
 import { leerErrorServidor } from '@/hooks/errores';
 import { useProyecto } from '@/hooks/proyectos/queries';
 import { cn } from '@/lib/cn';
+import '@/styles/workspace.css';
 
 const RUTA = '/_app/proyectos/$proyectoId/construir';
 
@@ -57,7 +58,7 @@ export function ConstructorPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flow-page flex flex-col gap-6">
       {/* Volver a Mis sistemas y pasar a Cargar y ver lo resuelven los breadcrumbs y el selector de modo del layout. */}
       <PageHeading
         kicker="Armar"
@@ -76,24 +77,24 @@ export function ConstructorPage() {
       ) : (
         <div
           className={cn(
-            'grid items-start gap-6',
-            seleccionado && 'lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)]',
+            'workspace-board grid items-start gap-5',
+            seleccionado && 'lg:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)]',
           )}
         >
           <section
             aria-labelledby="titulo-bloques"
             className={cn(
-              'flex flex-col gap-4',
+              'workspace-library flex flex-col gap-4',
               enDetalle && 'hidden lg:flex',
               !seleccionado && 'max-w-xl',
             )}
           >
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 border-b border-line pb-4">
               <h2
                 ref={tituloLista}
                 id="titulo-bloques"
                 tabIndex={-1}
-                className="m-0 text-h3 focus:outline-none focus-visible:outline-3"
+                className="m-0 text-h3 text-petrol focus:outline-none focus-visible:outline-3"
               >
                 Tus tablas
               </h2>

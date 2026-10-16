@@ -22,9 +22,9 @@ export function SelectorBloque({ bloques, seleccionadoId, disabled, onElegir }: 
           <label
             key={bloque.id}
             className={cn(
-              'relative inline-flex min-h-12 cursor-pointer items-center rounded-md border-2 border-line bg-surface px-4 py-2 text-base font-semibold text-fg shadow-sm transition-colors',
-              'hover:border-accent-700 has-checked:border-accent-700 has-checked:bg-accent-100',
-              'has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent-700',
+              'relative inline-flex min-h-12 cursor-pointer items-center rounded-xl border border-line bg-surface px-4 py-2 text-base font-semibold text-fg transition-colors',
+              'hover:border-petrol/50 has-checked:border-petrol has-checked:bg-petrol-100 has-checked:text-petrol',
+              'has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-petrol',
               'has-disabled:cursor-not-allowed has-disabled:opacity-60',
             )}
           >
@@ -37,7 +37,7 @@ export function SelectorBloque({ bloques, seleccionadoId, disabled, onElegir }: 
               className="sr-only"
             />
             {bloque.id === seleccionadoId && (
-              <CheckIcon aria-hidden size={20} weight="bold" className="mr-1.5 text-accent-800" />
+              <CheckIcon aria-hidden size={20} weight="bold" className="mr-1.5 text-petrol" />
             )}
             {bloque.nombre}
           </label>

@@ -152,7 +152,11 @@ export function TablaRegistros({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="workspace-data-card flex min-w-0 flex-col gap-4">
+      <p className="m-0 flex items-center gap-2 text-h3 text-petrol">
+        <TableIcon aria-hidden size={23} />
+        {bloque.nombre}
+      </p>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="w-full max-w-sm">
           <InputField
@@ -272,7 +276,7 @@ export function TablaRegistros({
                         data-seleccionada={elegido || undefined}
                         className={cn(
                           'border-b border-line last:border-b-0',
-                          elegido && 'bg-accent-100',
+                          elegido && 'bg-petrol-100',
                         )}
                       >
                         {campos.map((campo, indice) => (
@@ -323,7 +327,7 @@ export function TablaRegistros({
                     <Panel
                       className={cn(
                         'flex flex-col gap-3 p-4',
-                        registro.id === seleccionadoId && 'border-accent-700 bg-accent-100',
+                        registro.id === seleccionadoId && 'border-petrol bg-petrol-100',
                       )}
                     >
                       {primero && (

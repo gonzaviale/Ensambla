@@ -24,7 +24,10 @@ export function LecturaLote({ loteId, onSubirMas }: Props) {
 
   if (lectura.isError) {
     return (
-      <Panel role="alert" className="mx-auto flex max-w-xl flex-col items-start gap-3">
+      <Panel
+        role="alert"
+        className="mx-auto flex w-full max-w-xl flex-col items-start gap-4 border-bad/20 p-6 sm:p-8"
+      >
         <SmileySadIcon aria-hidden size={32} className="text-bad" />
         <h1 className="m-0 text-h3">No pudimos ver cómo va tu cuaderno</h1>
         <p className="m-0 text-body text-soft">{lectura.error.message || MENSAJE_ERROR_CONSULTA}</p>
@@ -37,7 +40,10 @@ export function LecturaLote({ loteId, onSubirMas }: Props) {
 
   if (lectura.data?.estado === 'ERROR') {
     return (
-      <Panel role="alert" className="mx-auto flex max-w-xl flex-col items-start gap-4">
+      <Panel
+        role="alert"
+        className="mx-auto flex w-full max-w-xl flex-col items-start gap-5 border-bad/20 p-6 sm:p-8"
+      >
         <Stepper pasos={PASOS_LECTURA} actual={1} label="Avance de la lectura" />
         <SmileySadIcon aria-hidden size={32} className="text-bad" />
         <h1 className="m-0 text-h3">No pudimos leer tu cuaderno</h1>
@@ -69,9 +75,11 @@ export function LecturaLote({ loteId, onSubirMas }: Props) {
 
   if (lectura.data?.estado === ESTADO_CONFIRMADO) {
     return (
-      <Panel className="mx-auto flex max-w-xl flex-col items-start gap-3">
-        <CheckCircleIcon aria-hidden size={32} className="text-ok" />
-        <h1 className="m-0 text-h3">Este cuaderno ya se guardó</h1>
+      <Panel className="mx-auto flex w-full max-w-xl flex-col items-start gap-4 border-petrol/15 bg-sage p-6 sm:p-8">
+        <span className="flex size-14 items-center justify-center rounded-2xl bg-surface">
+          <CheckCircleIcon aria-hidden size={32} className="text-ok" weight="duotone" />
+        </span>
+        <h1 className="m-0 text-h3 text-petrol">Este cuaderno ya se guardó</h1>
         <p className="m-0 text-body text-soft">
           Sus datos están en tus sistemas. Si tenés más hojas, subilas.
         </p>
@@ -90,9 +98,19 @@ export function LecturaLote({ loteId, onSubirMas }: Props) {
   }
 
   return (
-    <Panel role="status" className="mx-auto flex max-w-xl flex-col items-start gap-4">
+    <Panel
+      role="status"
+      className="mx-auto flex w-full max-w-xl flex-col items-start gap-5 p-6 sm:p-8"
+    >
       <Stepper pasos={PASOS_LECTURA} actual={1} label="Avance de la lectura" />
-      <h1 className="m-0 text-h3">Estamos leyendo tu cuaderno</h1>
+      <div className="flex w-full justify-center rounded-2xl bg-blue-100 py-4">
+        <img
+          src="/mockup/sami-armando-sin-fondo.png"
+          alt=""
+          className="h-36 w-auto object-contain sm:h-44"
+        />
+      </div>
+      <h1 className="m-0 text-h3 text-petrol">Estamos leyendo tu cuaderno</h1>
       <p className="m-0 text-body text-soft">
         {hojas !== undefined && `${recibidas(hojas)} `}Puede tardar un minuto. No hace falta que te
         quedes en esta pantalla: podés salir y volver, tu cuaderno se sigue leyendo.

@@ -66,7 +66,7 @@ export function VisorFoto({ paginas, actual, onElegir, className, altoClassName 
         role="group"
         aria-label={`Hoja ${pagina.numero} del cuaderno, con desplazamiento`}
         className={cn(
-          'overflow-auto rounded-md border border-line bg-canvas',
+          'overflow-auto rounded-xl border border-line/70 bg-cream',
           altoClassName ?? 'max-h-[60dvh]',
         )}
       >
@@ -92,7 +92,7 @@ export function VisorFoto({ paginas, actual, onElegir, className, altoClassName 
               key={item.numero}
               aria-pressed={item.numero === pagina.numero}
               variant={item.numero === pagina.numero ? 'primary' : 'secondary'}
-              className={cn(item.numero === pagina.numero && 'border-2 bg-accent-100')}
+              className={cn(item.numero === pagina.numero && 'border-2 bg-petrol-100')}
               onClick={() => onElegir(item.numero)}
             >
               Hoja {item.numero}

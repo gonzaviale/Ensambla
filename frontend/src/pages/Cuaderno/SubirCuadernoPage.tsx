@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { CameraIcon, ImagesIcon } from '@phosphor-icons/react';
+import { CameraIcon, ImagesIcon, ShieldCheckIcon, UploadSimpleIcon } from '@phosphor-icons/react';
 import { ConsejosFoto } from '@/components/Cuaderno/ConsejosFoto';
 import { DestinoSubida } from '@/components/Cuaderno/DestinoSubida';
 import { MiniaturaPagina, type EstadoHoja } from '@/components/Cuaderno/MiniaturaPagina';
-import { Button, PageHeading, StickyActionBar, buttonClasses } from '@/components/ui';
+import { Button, PageHeading, Stepper, StickyActionBar, buttonClasses } from '@/components/ui';
 import { useSubirLote } from '@/hooks/lotes/mutations';
 import { girar, prepararFoto, type Rotacion } from '@/lib/imagen';
 import { MAX_FOTOS_POR_LOTE } from '@/types/lote';
@@ -106,14 +106,25 @@ export function SubirCuadernoPage() {
   const etiquetaLeer = enviando ? 'Enviando…' : `Leer mi cuaderno (${textoHojas(paginas.length)})`;
 
   return (
-    <div className="flex flex-col gap-8">
-      <PageHeading
-        kicker="Cuaderno"
-        title="Subir foto de mi cuaderno"
-        lead="Sacá una foto de cada hoja. Revisalas y tocá «Leer mi cuaderno»."
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+      <div className="flex items-center gap-5 rounded-2xl border border-blue/20 bg-blue-100 p-5 sm:p-7">
+        <span
+          aria-hidden
+          className="hidden size-14 shrink-0 items-center justify-center rounded-2xl bg-surface text-petrol sm:flex"
+        >
+          <CameraIcon size={30} weight="duotone" />
+        </span>
+        <PageHeading
+          kicker="Del papel a tu sistema"
+          title="Subir foto de mi cuaderno"
+          lead="Sacá una foto de cada hoja. Revisalas y tocá «Leer mi cuaderno»."
+        />
+      </div>
+      <Stepper
+        pasos={['Subida', 'Leyendo', 'Para revisar']}
+        actual={0}
+        label="Avance de la lectura"
       />
-
-      <ConsejosFoto />
 
       <DestinoSubida
         bloqueId={bloqueDestinoId}
@@ -121,10 +132,29 @@ export function SubirCuadernoPage() {
         disabled={enviando}
       />
 
-      <section aria-label="Agregar hojas" className="flex flex-col gap-3">
-        <p aria-live="polite" className="m-0 text-body font-semibold">
-          {paginas.length} de {MAX_FOTOS_POR_LOTE} hojas
-        </p>
+      <section
+        aria-label="Agregar hojas"
+        className="flex flex-col gap-5 rounded-2xl border-2 border-dashed border-petrol/20 bg-sage px-5 py-7 sm:px-8 sm:py-9"
+      >
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span
+            aria-hidden
+            className="flex size-14 items-center justify-center rounded-2xl bg-surface text-petrol"
+          >
+            <UploadSimpleIcon size={30} weight="duotone" />
+          </span>
+          <h2 className="m-0 text-h3 text-petrol">Traé lo que ya tenés</h2>
+          <p className="m-0 max-w-lg text-hint text-soft">
+            Una hoja, un cuaderno o una captura. Elegí tus imágenes y las convertimos en datos que
+            podés revisar.
+          </p>
+          <p
+            aria-live="polite"
+            className="m-0 rounded-full border border-petrol/10 bg-surface px-3 py-1 text-caption font-semibold text-petrol"
+          >
+            {paginas.length} de {MAX_FOTOS_POR_LOTE} hojas
+          </p>
+        </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <label
             className={buttonClasses({
@@ -159,12 +189,18 @@ export function SubirCuadernoPage() {
             />
           </label>
         </div>
+        <p className="m-0 flex items-center justify-center gap-2 text-center text-caption text-soft">
+          <ShieldCheckIcon aria-hidden size={18} className="shrink-0 text-petrol" />
+          Siempre revisás los datos antes de incorporarlos a tu sistema.
+        </p>
         {aviso && (
           <p role="alert" className="m-0 font-semibold text-warn">
             {aviso}
           </p>
         )}
       </section>
+
+      <ConsejosFoto />
 
       {paginas.length > 0 && (
         <>

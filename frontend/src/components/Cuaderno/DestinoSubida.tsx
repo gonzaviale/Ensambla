@@ -43,8 +43,11 @@ export function DestinoSubida({ bloqueId, onCambiar, disabled }: Props) {
   if (!proyectos.data || proyectos.data.length === 0) return null;
 
   return (
-    <section aria-labelledby="destino-subida-titulo" className="flex flex-col gap-3">
-      <h2 id="destino-subida-titulo" className="m-0 text-h3">
+    <section
+      aria-labelledby="destino-subida-titulo"
+      className="flex flex-col gap-4 rounded-2xl border border-line/70 bg-surface p-5 sm:p-6"
+    >
+      <h2 id="destino-subida-titulo" className="m-0 text-h3 text-petrol">
         ¿Dónde van estas hojas?
       </h2>
       <div className="grid gap-4 sm:grid-cols-2">

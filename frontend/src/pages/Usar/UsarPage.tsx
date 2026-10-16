@@ -11,6 +11,7 @@ import { useProyecto } from '@/hooks/proyectos/queries';
 import { cn } from '@/lib/cn';
 import type { Bloque } from '@/types/proyecto';
 import type { Registro } from '@/types/registro';
+import '@/styles/workspace.css';
 
 const RUTA = '/_app/proyectos/$proyectoId/usar';
 
@@ -118,7 +119,7 @@ export function UsarPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flow-page flex flex-col gap-6">
       <PageHeading
         kicker="Cargar y ver"
         title={proyecto.nombre}
@@ -126,10 +127,7 @@ export function UsarPage() {
       />
 
       {nuevo && (
-        <Panel
-          role="status"
-          className="flex flex-col items-start gap-3 border-accent-200 bg-accent-100"
-        >
+        <Panel role="status" className="flex flex-col items-start gap-3 border-blue/25 bg-blue-100">
           <p className="m-0 text-body">
             <strong>¡Listo! Tu sistema ya viene armado.</strong> Podés empezar a cargar. Si querés
             cambiar las tablas o sus columnas, podés hacerlo en Armar.
@@ -172,7 +170,7 @@ export function UsarPage() {
         </EmptyState>
       ) : (
         <>
-          <div className="flex flex-col items-start gap-4">
+          <div className="workspace-controls flex flex-col items-start justify-between gap-4 xl:flex-row xl:items-end">
             {bloques.length <= MAX_BLOQUES_EN_BOTONES ? (
               <SelectorBloque
                 bloques={bloques}
@@ -200,7 +198,7 @@ export function UsarPage() {
               role="tablist"
               aria-label="Qué querés hacer con la tabla"
               onKeyDown={alTeclear}
-              className="flex w-full gap-1 rounded-lg bg-fg/8 p-1 sm:w-fit"
+              className="flex w-full shrink-0 gap-1 rounded-xl border border-line bg-sage p-1 sm:w-fit"
             >
               {VISTAS.map((item) => {
                 const activa = vista === item.id;
@@ -221,7 +219,7 @@ export function UsarPage() {
                     onClick={() => elegirVista(item.id)}
                     className={cn(
                       'flex min-h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-md px-5 text-base font-semibold sm:flex-none',
-                      activa ? 'bg-surface text-fg shadow-sm' : 'text-soft hover:text-fg',
+                      activa ? 'bg-petrol text-white shadow-sm' : 'text-soft hover:text-petrol',
                       'disabled:cursor-not-allowed disabled:opacity-60',
                     )}
                   >
@@ -243,7 +241,12 @@ export function UsarPage() {
               <BloqueSinDatos proyectoId={proyectoId} bloque={bloque} />
             )}
             {vista === 'registros' && bloque.campos.length > 0 && (
-              <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+              <div
+                className={cn(
+                  'grid grid-cols-1 items-start gap-5',
+                  seleccionado?.bloqueId === bloque.id && 'lg:grid-cols-[minmax(0,1fr)_22rem]',
+                )}
+              >
                 <TablaRegistros
                   key={bloque.id}
                   bloque={bloque}
@@ -276,16 +279,18 @@ export function UsarPage() {
               bloques.map((item) => (
                 <Panel
                   key={item.id}
-                  className="max-w-2xl"
+                  className="workspace-entry max-w-3xl"
                   hidden={item.id !== bloque.id}
                   aria-labelledby={`bloque-${item.id}`}
                 >
-                  <p className="mt-0 mb-1 text-caption font-bold tracking-widest text-accent-800 uppercase">
-                    Nueva fila
-                  </p>
-                  <h2 id={`bloque-${item.id}`} className="mt-0 mb-5 text-h3">
-                    {item.nombre}
-                  </h2>
+                  <div className="workspace-entry-heading">
+                    <p className="mt-0 mb-1 text-caption font-bold tracking-widest uppercase">
+                      Nueva fila
+                    </p>
+                    <h2 id={`bloque-${item.id}`} className="mt-0 mb-5 text-h3">
+                      {item.nombre}
+                    </h2>
+                  </div>
                   <FormularioRegistro
                     bloque={item}
                     tablas={bloques}

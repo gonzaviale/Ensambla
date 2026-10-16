@@ -305,13 +305,13 @@ function EditorReceta({
         aria-labelledby={`${id}-costo`}
         className={cn(
           'flex flex-col gap-1 rounded-lg border p-4',
-          receta.incompleta ? 'border-bad/40 bg-coral-100' : 'border-line bg-accent-100',
+          receta.incompleta ? 'border-bad/40 bg-coral-100' : 'border-blue/30 bg-blue-100',
         )}
       >
         <span id={`${id}-costo`} className="text-hint text-soft">
           Costo de la receta
         </span>
-        <span className="text-h2 font-bold">{formatearDinero(receta.costo)}</span>
+        <span className="text-h2 font-bold text-petrol">{formatearDinero(receta.costo)}</span>
         {receta.lineas.length === 0 && (
           <span className="text-hint text-soft">Todavía no hay una receta guardada.</span>
         )}

@@ -89,7 +89,7 @@ export function FilasTarjetas({
               aria-expanded={abierta}
               aria-controls={panelId}
               onClick={() => setCerradas((c) => ({ ...c, [grupo.clave]: abierta }))}
-              className="flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-md bg-fg/6 px-3 text-left text-base font-bold text-fg hover:bg-fg/10"
+              className="flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-xl bg-petrol-100 px-4 text-left text-base font-bold text-petrol hover:bg-petrol/10"
             >
               <CaretDownIcon
                 aria-hidden
