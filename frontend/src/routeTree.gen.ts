@@ -11,9 +11,20 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicaRouteImport } from './routes/_publica'
+import { Route as AppBienvenidaRouteImport } from './routes/_app/bienvenida'
+import { Route as AppCuentaRouteImport } from './routes/_app/cuenta'
+import { Route as AppInicioRouteImport } from './routes/_app/inicio'
+import { Route as AppPlanRouteImport } from './routes/_app/plan'
+import { Route as AppRespuestasRouteImport } from './routes/_app/respuestas'
+import { Route as AppSubirRouteImport } from './routes/_app/subir'
 import { Route as PublicaIndexRouteImport } from './routes/_publica/index'
 import { Route as PublicaLoginRouteImport } from './routes/_publica/login'
+import { Route as PublicaOlvideContrasenaRouteImport } from './routes/_publica/olvide-contrasena'
+import { Route as PublicaProbarRouteImport } from './routes/_publica/probar'
 import { Route as PublicaRegistroRouteImport } from './routes/_publica/registro'
+import { Route as PublicaRestablecerContrasenaRouteImport } from './routes/_publica/restablecer-contrasena'
+import { Route as AppBloquesIndexRouteImport } from './routes/_app/bloques.index'
+import { Route as AppBloquesBloqueIdRouteImport } from './routes/_app/bloques.$bloqueId'
 import { Route as AppCuadernoIndexRouteImport } from './routes/_app/cuaderno.index'
 import { Route as AppCuadernoLoteIdRouteImport } from './routes/_app/cuaderno.$loteId'
 import { Route as AppProyectosIndexRouteImport } from './routes/_app/proyectos.index'
@@ -30,6 +41,36 @@ const PublicaRoute = PublicaRouteImport.update({
   id: '/_publica',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppBienvenidaRoute = AppBienvenidaRouteImport.update({
+  id: '/bienvenida',
+  path: '/bienvenida',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCuentaRoute = AppCuentaRouteImport.update({
+  id: '/cuenta',
+  path: '/cuenta',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInicioRoute = AppInicioRouteImport.update({
+  id: '/inicio',
+  path: '/inicio',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPlanRoute = AppPlanRouteImport.update({
+  id: '/plan',
+  path: '/plan',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRespuestasRoute = AppRespuestasRouteImport.update({
+  id: '/respuestas',
+  path: '/respuestas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSubirRoute = AppSubirRouteImport.update({
+  id: '/subir',
+  path: '/subir',
+  getParentRoute: () => AppRoute,
+} as any)
 const PublicaIndexRoute = PublicaIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -40,10 +81,36 @@ const PublicaLoginRoute = PublicaLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => PublicaRoute,
 } as any)
+const PublicaOlvideContrasenaRoute = PublicaOlvideContrasenaRouteImport.update({
+  id: '/olvide-contrasena',
+  path: '/olvide-contrasena',
+  getParentRoute: () => PublicaRoute,
+} as any)
+const PublicaProbarRoute = PublicaProbarRouteImport.update({
+  id: '/probar',
+  path: '/probar',
+  getParentRoute: () => PublicaRoute,
+} as any)
 const PublicaRegistroRoute = PublicaRegistroRouteImport.update({
   id: '/registro',
   path: '/registro',
   getParentRoute: () => PublicaRoute,
+} as any)
+const PublicaRestablecerContrasenaRoute =
+  PublicaRestablecerContrasenaRouteImport.update({
+    id: '/restablecer-contrasena',
+    path: '/restablecer-contrasena',
+    getParentRoute: () => PublicaRoute,
+  } as any)
+const AppBloquesIndexRoute = AppBloquesIndexRouteImport.update({
+  id: '/bloques/',
+  path: '/bloques/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBloquesBloqueIdRoute = AppBloquesBloqueIdRouteImport.update({
+  id: '/bloques/$bloqueId',
+  path: '/bloques/$bloqueId',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppCuadernoIndexRoute = AppCuadernoIndexRouteImport.update({
   id: '/cuaderno/',
@@ -87,9 +154,20 @@ const AppProyectosProyectoIdUsarRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicaIndexRoute
+  '/bienvenida': typeof AppBienvenidaRoute
+  '/cuenta': typeof AppCuentaRoute
+  '/inicio': typeof AppInicioRoute
+  '/plan': typeof AppPlanRoute
+  '/respuestas': typeof AppRespuestasRoute
+  '/subir': typeof AppSubirRoute
   '/login': typeof PublicaLoginRoute
+  '/olvide-contrasena': typeof PublicaOlvideContrasenaRoute
+  '/probar': typeof PublicaProbarRoute
   '/registro': typeof PublicaRegistroRoute
+  '/restablecer-contrasena': typeof PublicaRestablecerContrasenaRoute
+  '/bloques/$bloqueId': typeof AppBloquesBloqueIdRoute
   '/cuaderno/$loteId': typeof AppCuadernoLoteIdRoute
+  '/bloques/': typeof AppBloquesIndexRoute
   '/cuaderno/': typeof AppCuadernoIndexRoute
   '/proyectos/': typeof AppProyectosIndexRoute
   '/proyectos/$proyectoId/construir': typeof AppProyectosProyectoIdConstruirRoute
@@ -99,9 +177,20 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof PublicaIndexRoute
+  '/bienvenida': typeof AppBienvenidaRoute
+  '/cuenta': typeof AppCuentaRoute
+  '/inicio': typeof AppInicioRoute
+  '/plan': typeof AppPlanRoute
+  '/respuestas': typeof AppRespuestasRoute
+  '/subir': typeof AppSubirRoute
   '/login': typeof PublicaLoginRoute
+  '/olvide-contrasena': typeof PublicaOlvideContrasenaRoute
+  '/probar': typeof PublicaProbarRoute
   '/registro': typeof PublicaRegistroRoute
+  '/restablecer-contrasena': typeof PublicaRestablecerContrasenaRoute
+  '/bloques/$bloqueId': typeof AppBloquesBloqueIdRoute
   '/cuaderno/$loteId': typeof AppCuadernoLoteIdRoute
+  '/bloques': typeof AppBloquesIndexRoute
   '/cuaderno': typeof AppCuadernoIndexRoute
   '/proyectos': typeof AppProyectosIndexRoute
   '/proyectos/$proyectoId/construir': typeof AppProyectosProyectoIdConstruirRoute
@@ -113,10 +202,21 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_publica': typeof PublicaRouteWithChildren
+  '/_app/bienvenida': typeof AppBienvenidaRoute
+  '/_app/cuenta': typeof AppCuentaRoute
+  '/_app/inicio': typeof AppInicioRoute
+  '/_app/plan': typeof AppPlanRoute
+  '/_app/respuestas': typeof AppRespuestasRoute
+  '/_app/subir': typeof AppSubirRoute
   '/_publica/login': typeof PublicaLoginRoute
+  '/_publica/olvide-contrasena': typeof PublicaOlvideContrasenaRoute
+  '/_publica/probar': typeof PublicaProbarRoute
   '/_publica/registro': typeof PublicaRegistroRoute
+  '/_publica/restablecer-contrasena': typeof PublicaRestablecerContrasenaRoute
   '/_publica/': typeof PublicaIndexRoute
+  '/_app/bloques/$bloqueId': typeof AppBloquesBloqueIdRoute
   '/_app/cuaderno/$loteId': typeof AppCuadernoLoteIdRoute
+  '/_app/bloques/': typeof AppBloquesIndexRoute
   '/_app/cuaderno/': typeof AppCuadernoIndexRoute
   '/_app/proyectos/': typeof AppProyectosIndexRoute
   '/_app/proyectos/$proyectoId/construir': typeof AppProyectosProyectoIdConstruirRoute
@@ -128,9 +228,20 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/bienvenida'
+    | '/cuenta'
+    | '/inicio'
+    | '/plan'
+    | '/respuestas'
+    | '/subir'
     | '/login'
+    | '/olvide-contrasena'
+    | '/probar'
     | '/registro'
+    | '/restablecer-contrasena'
+    | '/bloques/$bloqueId'
     | '/cuaderno/$loteId'
+    | '/bloques/'
     | '/cuaderno/'
     | '/proyectos/'
     | '/proyectos/$proyectoId/construir'
@@ -140,9 +251,20 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/bienvenida'
+    | '/cuenta'
+    | '/inicio'
+    | '/plan'
+    | '/respuestas'
+    | '/subir'
     | '/login'
+    | '/olvide-contrasena'
+    | '/probar'
     | '/registro'
+    | '/restablecer-contrasena'
+    | '/bloques/$bloqueId'
     | '/cuaderno/$loteId'
+    | '/bloques'
     | '/cuaderno'
     | '/proyectos'
     | '/proyectos/$proyectoId/construir'
@@ -153,10 +275,21 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/_publica'
+    | '/_app/bienvenida'
+    | '/_app/cuenta'
+    | '/_app/inicio'
+    | '/_app/plan'
+    | '/_app/respuestas'
+    | '/_app/subir'
     | '/_publica/login'
+    | '/_publica/olvide-contrasena'
+    | '/_publica/probar'
     | '/_publica/registro'
+    | '/_publica/restablecer-contrasena'
     | '/_publica/'
+    | '/_app/bloques/$bloqueId'
     | '/_app/cuaderno/$loteId'
+    | '/_app/bloques/'
     | '/_app/cuaderno/'
     | '/_app/proyectos/'
     | '/_app/proyectos/$proyectoId/construir'
@@ -186,6 +319,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/bienvenida': {
+      id: '/_app/bienvenida'
+      path: '/bienvenida'
+      fullPath: '/bienvenida'
+      preLoaderRoute: typeof AppBienvenidaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/cuenta': {
+      id: '/_app/cuenta'
+      path: '/cuenta'
+      fullPath: '/cuenta'
+      preLoaderRoute: typeof AppCuentaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/inicio': {
+      id: '/_app/inicio'
+      path: '/inicio'
+      fullPath: '/inicio'
+      preLoaderRoute: typeof AppInicioRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/plan': {
+      id: '/_app/plan'
+      path: '/plan'
+      fullPath: '/plan'
+      preLoaderRoute: typeof AppPlanRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/respuestas': {
+      id: '/_app/respuestas'
+      path: '/respuestas'
+      fullPath: '/respuestas'
+      preLoaderRoute: typeof AppRespuestasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/subir': {
+      id: '/_app/subir'
+      path: '/subir'
+      fullPath: '/subir'
+      preLoaderRoute: typeof AppSubirRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_publica/': {
       id: '/_publica/'
       path: '/'
@@ -200,12 +375,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicaLoginRouteImport
       parentRoute: typeof PublicaRoute
     }
+    '/_publica/olvide-contrasena': {
+      id: '/_publica/olvide-contrasena'
+      path: '/olvide-contrasena'
+      fullPath: '/olvide-contrasena'
+      preLoaderRoute: typeof PublicaOlvideContrasenaRouteImport
+      parentRoute: typeof PublicaRoute
+    }
+    '/_publica/probar': {
+      id: '/_publica/probar'
+      path: '/probar'
+      fullPath: '/probar'
+      preLoaderRoute: typeof PublicaProbarRouteImport
+      parentRoute: typeof PublicaRoute
+    }
     '/_publica/registro': {
       id: '/_publica/registro'
       path: '/registro'
       fullPath: '/registro'
       preLoaderRoute: typeof PublicaRegistroRouteImport
       parentRoute: typeof PublicaRoute
+    }
+    '/_publica/restablecer-contrasena': {
+      id: '/_publica/restablecer-contrasena'
+      path: '/restablecer-contrasena'
+      fullPath: '/restablecer-contrasena'
+      preLoaderRoute: typeof PublicaRestablecerContrasenaRouteImport
+      parentRoute: typeof PublicaRoute
+    }
+    '/_app/bloques/': {
+      id: '/_app/bloques/'
+      path: '/bloques'
+      fullPath: '/bloques/'
+      preLoaderRoute: typeof AppBloquesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/bloques/$bloqueId': {
+      id: '/_app/bloques/$bloqueId'
+      path: '/bloques/$bloqueId'
+      fullPath: '/bloques/$bloqueId'
+      preLoaderRoute: typeof AppBloquesBloqueIdRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/cuaderno/': {
       id: '/_app/cuaderno/'
@@ -260,7 +470,15 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppBienvenidaRoute: typeof AppBienvenidaRoute
+  AppCuentaRoute: typeof AppCuentaRoute
+  AppInicioRoute: typeof AppInicioRoute
+  AppPlanRoute: typeof AppPlanRoute
+  AppRespuestasRoute: typeof AppRespuestasRoute
+  AppSubirRoute: typeof AppSubirRoute
+  AppBloquesBloqueIdRoute: typeof AppBloquesBloqueIdRoute
   AppCuadernoLoteIdRoute: typeof AppCuadernoLoteIdRoute
+  AppBloquesIndexRoute: typeof AppBloquesIndexRoute
   AppCuadernoIndexRoute: typeof AppCuadernoIndexRoute
   AppProyectosIndexRoute: typeof AppProyectosIndexRoute
   AppProyectosProyectoIdConstruirRoute: typeof AppProyectosProyectoIdConstruirRoute
@@ -270,7 +488,15 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppBienvenidaRoute: AppBienvenidaRoute,
+  AppCuentaRoute: AppCuentaRoute,
+  AppInicioRoute: AppInicioRoute,
+  AppPlanRoute: AppPlanRoute,
+  AppRespuestasRoute: AppRespuestasRoute,
+  AppSubirRoute: AppSubirRoute,
+  AppBloquesBloqueIdRoute: AppBloquesBloqueIdRoute,
   AppCuadernoLoteIdRoute: AppCuadernoLoteIdRoute,
+  AppBloquesIndexRoute: AppBloquesIndexRoute,
   AppCuadernoIndexRoute: AppCuadernoIndexRoute,
   AppProyectosIndexRoute: AppProyectosIndexRoute,
   AppProyectosProyectoIdConstruirRoute: AppProyectosProyectoIdConstruirRoute,
@@ -283,13 +509,19 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface PublicaRouteChildren {
   PublicaLoginRoute: typeof PublicaLoginRoute
+  PublicaOlvideContrasenaRoute: typeof PublicaOlvideContrasenaRoute
+  PublicaProbarRoute: typeof PublicaProbarRoute
   PublicaRegistroRoute: typeof PublicaRegistroRoute
+  PublicaRestablecerContrasenaRoute: typeof PublicaRestablecerContrasenaRoute
   PublicaIndexRoute: typeof PublicaIndexRoute
 }
 
 const PublicaRouteChildren: PublicaRouteChildren = {
   PublicaLoginRoute: PublicaLoginRoute,
+  PublicaOlvideContrasenaRoute: PublicaOlvideContrasenaRoute,
+  PublicaProbarRoute: PublicaProbarRoute,
   PublicaRegistroRoute: PublicaRegistroRoute,
+  PublicaRestablecerContrasenaRoute: PublicaRestablecerContrasenaRoute,
   PublicaIndexRoute: PublicaIndexRoute,
 }
 

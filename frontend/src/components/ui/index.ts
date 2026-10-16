@@ -5,6 +5,7 @@ export { ConfirmDialog } from './ConfirmDialog';
 export { TextareaField } from './Field';
 export { FieldShell } from './FieldShell';
 export { fieldControlClasses } from './fieldStyles';
+export { InfoTip } from './InfoTip';
 export { InputField, PasswordField } from './Input';
 export { Isotipo, Logo } from './Logo';
 export { Menu, type MenuItem } from './Menu';

@@ -1,134 +1,146 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { axe } from 'vitest-axe';
 import { describe, expect, it } from 'vitest';
+import { pesos } from '@/lib/formato';
+import { ORDEN_PLANES, PLANES } from '@/lib/planes/planes';
 import { renderApp } from '@/test/renderApp';
 import { verifyHeadingPresentAsync } from '@/test/testHelpers';
 
 async function abrirLanding() {
   renderApp('/');
-  await verifyHeadingPresentAsync('Tu sistema, un bloque a la vez.');
+  await verifyHeadingPresentAsync('Contá tu negocio. Ensambla lo arma.');
   return userEvent.setup();
 }
 
 describe('landing', () => {
-  it('tiene un único h1 y lleva a registro y a login', async () => {
+  it('tiene un único h1 y lleva a probar, a registro y a login', async () => {
     await abrirLanding();
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-    expect(screen.getByRole('link', { name: /Crear mi sistema gratis/ })).toHaveAttribute(
+    expect(screen.getAllByRole('link', { name: /Probá ahora/ })[0]).toHaveAttribute(
+      'href',
+      '/probar',
+    );
+    expect(screen.getAllByRole('link', { name: 'Crear mi sistema gratis' })[0]).toHaveAttribute(
       'href',
       '/registro',
     );
-    expect(screen.getByRole('link', { name: 'Ya tengo cuenta' })).toHaveAttribute('href', '/login');
+    expect(screen.getAllByRole('link', { name: 'Ya tengo cuenta' })[0]).toHaveAttribute(
+      'href',
+      '/login',
+    );
   });
 
-  describe('armador de bloques', () => {
-    it('suma y quita bloques y cuenta los activos', async () => {
-      const user = await abrirLanding();
-      const grupo = screen.getByRole('group', { name: 'Bloques disponibles' });
-      const inventario = within(grupo).getByRole('button', { name: 'Inventario' });
-
-      expect(screen.getByText('0 bloques')).toBeInTheDocument();
-      expect(inventario).toHaveAttribute('aria-pressed', 'false');
-
-      await user.click(inventario);
-      expect(screen.getByText('1 bloque')).toBeInTheDocument();
-      expect(inventario).toHaveAttribute('aria-pressed', 'true');
-
-      await user.click(within(grupo).getByRole('button', { name: 'Ventas' }));
-      expect(screen.getByText('2 bloques')).toBeInTheDocument();
-
-      await user.click(inventario);
-      expect(screen.getByText('1 bloque')).toBeInTheDocument();
-      expect(inventario).toHaveAttribute('aria-pressed', 'false');
+  it('cuenta para quién es: no sólo el almacén', async () => {
+    await abrirLanding();
+    const seccion = screen.getByRole('region', {
+      name: 'No sólo el almacén. Tu negocio también.',
     });
 
-    it('vuelve a empezar', async () => {
-      const user = await abrirLanding();
-      const grupo = screen.getByRole('group', { name: 'Bloques disponibles' });
-
-      await user.click(within(grupo).getByRole('button', { name: 'Pedidos' }));
-      await user.click(within(grupo).getByRole('button', { name: 'Clientes' }));
-      await user.click(screen.getByRole('button', { name: 'Empezar de nuevo' }));
-
-      expect(screen.getByText('0 bloques')).toBeInTheDocument();
-      expect(within(grupo).getByRole('button', { name: 'Pedidos' })).toHaveAttribute(
-        'aria-pressed',
-        'false',
-      );
-    });
+    expect(within(seccion).getByText('Comercio de barrio')).toBeInTheDocument();
+    expect(within(seccion).getByText('Gastronomía y viandas')).toBeInTheDocument();
+    expect(within(seccion).getByText('Tu negocio, sea cual sea')).toBeInTheDocument();
   });
 
-  describe('comentarios', () => {
-    it('pide el nombre y un comentario de al menos 5 caracteres', async () => {
+  describe('demo «Se ensambla solo»', () => {
+    it('arma bloques con su motivo y muestra la respuesta que desbloquean', async () => {
       const user = await abrirLanding();
+      const demo = screen.getByRole('region', { name: 'Se ensambla solo.' });
+      const campo = within(demo).getByRole('textbox', {
+        name: 'Contá tu negocio con tus palabras',
+      });
 
-      await user.click(screen.getByRole('button', { name: 'Publicar comentario' }));
-      expect(screen.getByRole('status')).toHaveTextContent('Contanos tu nombre.');
-      expect(screen.getByRole('textbox', { name: 'Nombre' })).toHaveAttribute(
-        'aria-invalid',
-        'true',
-      );
+      await user.clear(campo);
+      expect(within(demo).getByText('Escribí tu negocio para empezar')).toBeInTheDocument();
 
-      await user.type(screen.getByRole('textbox', { name: 'Nombre' }), 'Ana');
-      await user.type(screen.getByRole('textbox', { name: 'Comentario' }), 'Ok');
-      await user.click(screen.getByRole('button', { name: 'Publicar comentario' }));
-      expect(screen.getByRole('status')).toHaveTextContent('al menos 5 caracteres');
+      await user.type(campo, 'Tengo un almacén y a veces fío');
+
+      expect(within(demo).getByText('Lo leí como: Comercio de barrio')).toBeInTheDocument();
+      expect(within(demo).getByText('Fiados')).toBeInTheDocument();
+      expect(within(demo).getByText(/La sumé porque mencionaste «fio»/)).toBeInTheDocument();
+      expect(within(demo).getByText('¿Quién te debe?')).toBeInTheDocument();
+      expect(within(demo).getByRole('status')).toHaveTextContent('4 bloques');
     });
 
-    it('publica el comentario, lo muestra primero y lo guarda en el navegador', async () => {
+    it('los ejemplos completan la frase y cambian el sistema', async () => {
       const user = await abrirLanding();
+      const demo = screen.getByRole('region', { name: 'Se ensambla solo.' });
+      const ejemplos = within(demo).getByRole('group', { name: 'Ejemplos para probar' });
 
-      await user.type(screen.getByRole('textbox', { name: 'Nombre' }), 'Ana');
-      await user.type(screen.getByRole('textbox', { name: /Negocio/ }), 'Panadería Ana');
-      await user.type(screen.getByRole('textbox', { name: 'Comentario' }), 'Muy simple de usar');
-      await user.click(screen.getByRole('radio', { name: '4 bloques' }));
-      await user.click(screen.getByRole('button', { name: 'Publicar comentario' }));
-
-      expect(screen.getByRole('status')).toHaveTextContent('Tu comentario ya es parte del sistema');
-      const tarjetas = screen.getAllByRole('article').filter((a) => a.classList.contains('comentario'));
-      expect(tarjetas[0]).toHaveTextContent('Muy simple de usar');
-      expect(within(tarjetas[0] as HTMLElement).getByRole('img')).toHaveAccessibleName(
-        'Puntaje: 4 de 5',
+      await user.click(
+        within(ejemplos).getByRole('button', { name: /Hago tortas y anoto lo que gasto/ }),
       );
-      expect(screen.getByRole('textbox', { name: 'Nombre' })).toHaveValue('');
 
-      const guardados = JSON.parse(localStorage.getItem('ensambla-comentarios') ?? '[]') as unknown[];
-      expect(guardados).toEqual([
-        { nombre: 'Ana', negocio: 'Panadería Ana', puntaje: 4, texto: 'Muy simple de usar' },
-      ]);
-    });
-
-    it('recupera los comentarios guardados', async () => {
-      localStorage.setItem(
-        'ensambla-comentarios',
-        JSON.stringify([{ nombre: 'Beto', negocio: '', puntaje: 5, texto: 'Me ordenó el día' }]),
-      );
-      await abrirLanding();
-
-      expect(screen.getByText('“Me ordenó el día”')).toBeInTheDocument();
-      expect(screen.getByText('Comunidad Ensambla')).toBeInTheDocument();
+      expect(
+        within(demo).getByRole('textbox', { name: 'Contá tu negocio con tus palabras' }),
+      ).toHaveValue('Hago tortas y anoto lo que gasto en ingredientes');
+      expect(within(demo).getByText('Lo leí como: Gastronomía y viandas')).toBeInTheDocument();
+      expect(within(demo).getByText('Insumos')).toBeInTheDocument();
+      expect(within(demo).getByText('¿Cuánto te cuesta cada producto?')).toBeInTheDocument();
     });
   });
 
-  describe('menú del encabezado', () => {
-    it('abre y cierra el menú de secciones', async () => {
-      const user = await abrirLanding();
-      const boton = screen.getByRole('button', { name: 'Abrir menú' });
+  it('muestra cuatro respuestas de ejemplo, rotuladas', async () => {
+    await abrirLanding();
+    const seccion = screen.getByRole('region', { name: 'Cada bloque desbloquea una respuesta.' });
 
-      expect(boton).toHaveAttribute('aria-expanded', 'false');
-      await user.click(boton);
-      expect(screen.getByRole('button', { name: 'Cerrar menú' })).toHaveAttribute(
-        'aria-expanded',
-        'true',
-      );
-      expect(screen.getByRole('navigation', { name: 'Menú de secciones' })).toBeVisible();
+    expect(within(seccion).getAllByText('Número de ejemplo')).toHaveLength(4);
+    expect(within(seccion).getByText('¿Cuánto te quedó este mes?')).toBeInTheDocument();
+    expect(within(seccion).getByText('¿Quién te debe?')).toBeInTheDocument();
+  });
 
-      await user.keyboard('{Escape}');
-      expect(screen.getByRole('button', { name: 'Abrir menú' })).toHaveAttribute(
-        'aria-expanded',
-        'false',
-      );
+  it('compara con otras herramientas en una tabla con título', async () => {
+    await abrirLanding();
+    const tabla = screen.getByRole('table', {
+      name: 'Qué hacés vos y qué te queda con cada herramienta',
     });
+
+    expect(within(tabla).getByRole('rowheader', { name: 'Treinta, Kyte' })).toBeInTheDocument();
+    expect(
+      within(tabla).getByRole('rowheader', { name: 'Excel, Google Sheets' }),
+    ).toBeInTheDocument();
+    expect(within(tabla).getByRole('rowheader', { name: 'Airtable, Notion' })).toBeInTheDocument();
+    expect(within(tabla).getByRole('rowheader', { name: 'Ensambla' })).toBeInTheDocument();
+    expect(tabla.querySelector('caption')).not.toBeNull();
+  });
+
+  it('muestra los tres planes con sus precios y una sola invitación', async () => {
+    await abrirLanding();
+    const seccion = screen.getByRole('region', {
+      name: 'Empezá gratis. Crecé cuando lo necesites.',
+    });
+
+    for (const id of ORDEN_PLANES) {
+      const { nombre, precioMensual } = PLANES[id];
+      const tarjeta = within(seccion)
+        .getByRole('heading', { level: 3, name: nombre })
+        .closest('li');
+      expect(tarjeta).not.toBeNull();
+      // Intl usa espacios no separables: se comparan con espacios comunes.
+      const texto = (tarjeta?.textContent ?? '').replace(/\s/g, ' ');
+      expect(texto).toContain(pesos(precioMensual).replace(/\s/g, ' '));
+    }
+    expect(within(seccion).getByText(/Precios ilustrativos/)).toBeInTheDocument();
+    expect(within(seccion).getByText('Probá 7 días gratis')).toBeInTheDocument();
+    const invitaciones = within(seccion).getAllByRole('link');
+    expect(invitaciones).toHaveLength(1);
+    expect(invitaciones[0]).toHaveAttribute('href', '/registro');
+  });
+
+  it('las anclas del menú existen en la página', async () => {
+    await abrirLanding();
+
+    for (const id of ['se-arma', 'desbloquea', 'diferencia', 'planes']) {
+      expect(document.getElementById(id)).not.toBeNull();
+    }
+  });
+
+  it('no tiene violaciones de accesibilidad detectables (axe)', async () => {
+    await abrirLanding();
+
+    // El contraste no se puede medir en jsdom (sin estilos): se cuida con los tokens.
+    const resultado = await axe(document.body, { rules: { 'color-contrast': { enabled: false } } });
+    expect(resultado.violations.map((v) => `${v.id}: ${v.nodes[0]?.html ?? ''}`)).toEqual([]);
   });
 });

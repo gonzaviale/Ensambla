@@ -34,8 +34,7 @@ describe('registro y sesión del cliente', () => {
 
     await completarRegistro();
 
-    await verifyPathAsync(router, '/proyectos');
-    await verifyHeadingPresentAsync('¿Por dónde querés empezar?');
+    await verifyPathAsync(router, '/bienvenida');
     expect(estado.usuarios.get(EMAIL)?.nombre).toBe('Brian');
     expect(localStorage.length).toBe(0);
   });
