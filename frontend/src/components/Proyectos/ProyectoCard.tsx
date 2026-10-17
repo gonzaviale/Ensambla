@@ -5,7 +5,6 @@ import {
   Button,
   ConfirmDialog,
   InputField,
-  Isotipo,
   Menu,
   Panel,
   Sheet,
@@ -65,10 +64,10 @@ export function ProyectoCard({ proyecto, bloques, cargando }: Props) {
   }
 
   return (
-    <Panel interactive className="flex h-full flex-col gap-4 p-4 sm:p-5">
+    <Panel interactive className="proyecto-saved-card flex h-full flex-col gap-4 p-4 sm:p-5">
       <div className="flex items-start gap-3">
-        <span className="flex size-12 shrink-0 items-center justify-center rounded-md bg-sand-100">
-          <Isotipo className="size-8" />
+        <span className="proyecto-saved-icon">
+          <TableIcon size={24} aria-hidden />
         </span>
         <h3 className="m-0 line-clamp-2 min-w-0 flex-1 pt-1 text-h3 leading-tight break-words">
           {proyecto.nombre}
@@ -100,6 +99,23 @@ export function ProyectoCard({ proyecto, bloques, cargando }: Props) {
         />
       </div>
 
+      {bloques && bloques.length > 0 && (
+        <div className="proyecto-saved-blocks" aria-hidden="true">
+          {bloques.slice(0, 3).map((bloque) => (
+            <div key={bloque.id}>
+              <TableIcon size={16} />
+              <strong>{bloque.nombre}</strong>
+              <span>
+                {bloque.campos
+                  .slice(0, 3)
+                  .map((campo) => campo.nombre)
+                  .join(' · ') || 'Sin columnas'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="min-h-6 text-hint text-soft">
         {cargando ? (
           <Skeleton className="h-5 w-3/4" />
@@ -119,7 +135,7 @@ export function ProyectoCard({ proyecto, bloques, cargando }: Props) {
           <Link
             to="/proyectos/$proyectoId/construir"
             params={{ proyectoId: proyecto.id }}
-            className={buttonClasses({ variant: 'solid', fullWidth: true })}
+            className={buttonClasses({ variant: 'primary', fullWidth: true })}
           >
             <HammerIcon aria-hidden size={22} />
             Armar tablas<span className="sr-only"> de {proyecto.nombre}</span>
@@ -129,7 +145,7 @@ export function ProyectoCard({ proyecto, bloques, cargando }: Props) {
             <Link
               to="/proyectos/$proyectoId/usar"
               params={{ proyectoId: proyecto.id }}
-              className={buttonClasses({ variant: 'solid', fullWidth: true })}
+              className={buttonClasses({ variant: 'primary', fullWidth: true })}
             >
               <TableIcon aria-hidden size={22} />
               Abrir<span className="sr-only"> {proyecto.nombre}</span>

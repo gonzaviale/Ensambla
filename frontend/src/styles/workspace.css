@@ -1,0 +1,157 @@
+/* Superficies del taller y de los bloques, tomadas del mockup de Ensambla.
+   Las clases se limitan a las pantallas de trabajo; no alteran controles ni estados. */
+.workspace-board {
+  min-width: 0;
+  border: 1px solid var(--color-line);
+  border-radius: 20px;
+  padding: 20px;
+  background-color: #f7f8f3;
+  background-image: radial-gradient(#d8ddd2 0.65px, transparent 0.65px);
+  background-size: 16px 16px;
+}
+
+.workspace-library {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #e7e7d9;
+  border-radius: 15px;
+  background: #fffaf1;
+}
+
+.workspace-icon {
+  display: inline-flex;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  color: var(--color-petrol);
+}
+
+.workspace-icon-0 {
+  background: #e0f0f5;
+}
+.workspace-icon-1 {
+  background: #fff0bc;
+}
+.workspace-icon-2 {
+  background: #e7efd7;
+}
+.workspace-icon-3 {
+  background: #ffe3d9;
+}
+
+.workspace-detail,
+.workspace-entry,
+.workspace-record,
+.workspace-data-card,
+.workspace-section {
+  --workspace-padding: 22px;
+  padding: var(--workspace-padding);
+  border: 1px solid #e3e7dc;
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: 0 3px 12px #26344305;
+}
+
+.workspace-block-heading {
+  margin: calc(-1 * var(--workspace-padding)) calc(-1 * var(--workspace-padding)) 4px;
+  padding: 22px;
+  border-bottom: 1px solid #dbe8eb;
+  border-radius: 15px 15px 0 0;
+  background: #edf6f7;
+}
+
+.workspace-block-heading .workspace-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--color-petrol);
+  color: white;
+}
+
+.workspace-field {
+  background: #fffefa;
+  border-color: #e7e7d9;
+}
+
+.workspace-entry-heading {
+  margin: calc(-1 * var(--workspace-padding)) calc(-1 * var(--workspace-padding)) 20px;
+  padding: 20px var(--workspace-padding);
+  border-radius: 15px 15px 0 0;
+  background: var(--color-petrol);
+  color: white;
+}
+
+.workspace-entry-heading h2 {
+  margin-bottom: 0;
+}
+.workspace-entry-heading p {
+  opacity: 0.8;
+}
+.workspace-entry > .workspace-entry-heading {
+  margin-bottom: 0;
+}
+.workspace-record {
+  background: #fffdf7;
+}
+.workspace-record-heading {
+  border-bottom: 1px solid #e3e7dc;
+  padding-bottom: 14px;
+}
+
+.flow-page table {
+  font-size: 0.875rem;
+}
+.flow-page table thead,
+.flow-page table thead th {
+  background: #edf4e8;
+  color: #4f6450;
+}
+.flow-page table thead th {
+  font-weight: 600;
+}
+.flow-page table tbody tr {
+  border-color: #edf0e7;
+}
+.flow-page table tbody tr:hover {
+  background-color: #f7f9f3;
+}
+.flow-page table tbody tr[data-seleccionada] {
+  background-color: #e0f0f5;
+}
+.flow-page table tbody td,
+.flow-page table tbody th {
+  padding-top: 13px;
+  padding-bottom: 13px;
+}
+.report-total:nth-child(3n + 2) {
+  background: #fff5d0;
+}
+.report-total:nth-child(3n) {
+  background: #eaf0dd;
+}
+
+@media (max-width: 639px) {
+  .workspace-board {
+    padding: 10px;
+    border-radius: 15px;
+  }
+  .workspace-library {
+    padding: 14px;
+  }
+  .workspace-detail,
+  .workspace-entry,
+  .workspace-record,
+  .workspace-data-card,
+  .workspace-section {
+    --workspace-padding: 16px;
+  }
+  .workspace-block-heading {
+    padding: 18px 16px;
+  }
+  .workspace-entry-heading {
+    padding-top: 17px;
+    padding-bottom: 17px;
+  }
+}

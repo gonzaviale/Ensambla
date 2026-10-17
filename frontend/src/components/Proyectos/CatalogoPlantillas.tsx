@@ -2,7 +2,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { Badge, Button, Panel } from '@/components/ui';
 import { usePlantillas } from '@/hooks/plantillas/queries';
 import { useCrearDesdePlantilla } from '@/hooks/proyectos/mutations';
-import { CheckCircleIcon } from '@phosphor-icons/react';
+import { ArrowRightIcon, CheckCircleIcon, TableIcon } from '@phosphor-icons/react';
 
 export function CatalogoPlantillas() {
   const plantillas = usePlantillas();
@@ -22,8 +22,13 @@ export function CatalogoPlantillas() {
     }
   }
   return (
-    <section id="plantillas" aria-labelledby="plantillas-titulo" className="flex flex-col gap-4">
-      <div>
+    <section
+      id="plantillas"
+      aria-labelledby="plantillas-titulo"
+      className="proyectos-catalogo flex flex-col gap-5"
+    >
+      <div className="proyectos-catalogo-heading">
+        <span className="proyectos-eyebrow">Piezas que ya encajan</span>
         <h2 id="plantillas-titulo" className="m-0 text-h3">
           Plantillas disponibles
         </h2>
@@ -34,23 +39,42 @@ export function CatalogoPlantillas() {
       {plantillas.length === 0 ? (
         <p className="m-0">Todavía no hay plantillas disponibles. Podés empezar en blanco.</p>
       ) : (
-        <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-4 p-0">
+        <ul className="proyectos-card-grid">
           {plantillas.map((plantilla) => (
             <li key={plantilla.id} className="min-w-0">
-              <Panel interactive className="flex h-full flex-col gap-3">
+              <Panel interactive className="proyectos-plantilla flex h-full flex-col gap-3">
+                <div className="proyectos-plantilla-visual" aria-hidden="true">
+                  <div className="proyectos-plantilla-window">
+                    <i />
+                    <i />
+                    <i />
+                  </div>
+                  <div className="proyectos-plantilla-pieces">
+                    {[0, 1, 2].map((pieza) => (
+                      <div key={pieza}>
+                        <TableIcon size={22} />
+                        <i />
+                        <i />
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <Badge tone="ok" icon={<CheckCircleIcon size={16} weight="fill" />}>
                   Ya viene armada
                 </Badge>
                 <h3 className="m-0 text-h3 break-words">{plantilla.nombre}</h3>
                 <p className="m-0 flex-1 text-body text-soft">{plantilla.descripcion}</p>
                 <Button
+                  variant="primary"
                   onClick={() => void usar(plantilla.id)}
                   disabled={crear.isPending}
                   aria-label={`Usar plantilla ${plantilla.nombre}`}
+                  className="proyectos-plantilla-action"
                 >
                   {crear.isPending && crear.variables === plantilla.id
                     ? 'Creando…'
                     : 'Usar esta plantilla'}
+                  <ArrowRightIcon size={19} aria-hidden />
                 </Button>
               </Panel>
             </li>

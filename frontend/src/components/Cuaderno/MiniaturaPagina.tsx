@@ -24,8 +24,8 @@ export function MiniaturaPagina({
   onQuitar,
 }: MiniaturaPaginaProps) {
   return (
-    <li className="flex min-w-0 flex-col gap-2 rounded-lg border border-line/60 bg-surface p-2 shadow-sm">
-      <div className="flex aspect-square items-center justify-center overflow-hidden rounded-md bg-canvas">
+    <li className="flex min-w-0 flex-col gap-3 rounded-2xl border border-line/70 bg-surface p-3 shadow-sm">
+      <div className="flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-cream">
         <img
           src={url}
           alt={`Hoja ${numero}`}
@@ -33,7 +33,7 @@ export function MiniaturaPagina({
           className="max-h-full max-w-full object-contain transition-transform"
         />
       </div>
-      <p className="m-0 text-center text-hint font-semibold">Hoja {numero}</p>
+      <p className="m-0 text-center text-hint font-bold text-petrol">Hoja {numero}</p>
       {estado === 'preparando' && <Spinner label="Preparando…" />}
       {estado === 'error' && (
         <Badge tone="bad" icon={<WarningCircleIcon size={16} weight="fill" />}>

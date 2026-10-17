@@ -208,14 +208,17 @@ export function RevisionLectura({ loteId, propuesta }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <Stepper pasos={PASOS} actual={paso} label="Pasos para guardar tu cuaderno" />
-      <PageHeading
-        title="Esto es lo que leímos de tu cuaderno"
-        lead="Revisá los datos con la foto al lado. Los marcados son los que no pudimos leer con seguridad. Nada se guarda hasta que toques «Guardar mi cuaderno»."
-      />
+      <div className="rounded-2xl border border-blue/20 bg-blue-100 p-5 sm:p-6">
+        <PageHeading
+          kicker="Del papel a tu sistema"
+          title="Esto es lo que leímos de tu cuaderno"
+          lead="Revisá los datos con la foto al lado. Los marcados son los que no pudimos leer con seguridad. Nada se guarda hasta que toques «Guardar mi cuaderno»."
+        />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(16rem,1fr)_minmax(0,2fr)]">
         {esEscritorio && (
-          <Panel className="lg:sticky lg:top-20 lg:self-start">
+          <Panel className="bg-cream lg:sticky lg:top-24 lg:self-start">
             {paginas.length > 0 ? (
               visor
             ) : lote.isError ? (
@@ -228,8 +231,11 @@ export function RevisionLectura({ loteId, propuesta }: Props) {
           </Panel>
         )}
 
-        <section aria-labelledby="revisar-titulo" className="flex min-w-0 flex-col gap-4">
-          <h2 id="revisar-titulo" className="m-0 text-h3">
+        <section
+          aria-labelledby="revisar-titulo"
+          className="flex min-w-0 flex-col gap-4 rounded-2xl border border-line/70 bg-surface p-4 sm:p-5"
+        >
+          <h2 id="revisar-titulo" className="m-0 text-h3 text-petrol">
             1. Revisá los datos
           </h2>
 

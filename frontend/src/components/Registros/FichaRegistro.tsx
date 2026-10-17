@@ -218,9 +218,13 @@ export function FichaRegistro({
 
   return (
     <aside aria-label="Ficha de la fila" className="lg:sticky lg:top-20 lg:self-start">
-      <Panel className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-3">
-          <h2 ref={titulo} tabIndex={-1} className="m-0 text-h3 break-words focus:outline-none">
+      <Panel className="workspace-record flex flex-col gap-4">
+        <div className="workspace-record-heading flex items-start justify-between gap-3">
+          <h2
+            ref={titulo}
+            tabIndex={-1}
+            className="m-0 text-h3 break-words text-petrol focus:outline-none"
+          >
             Ficha de {bloque.nombre}
           </h2>
           <Button variant="ghost" iconOnly aria-label="Cerrar ficha" onClick={onCerrar}>

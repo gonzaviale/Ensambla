@@ -15,7 +15,7 @@ export function Panel({ tight, flat, interactive, className, ...props }: PanelPr
     <section
       className={cn(
         'min-w-0 rounded-lg',
-        flat ? 'border border-line bg-canvas' : 'border border-line/60 bg-surface shadow-sm',
+        flat ? 'border border-line bg-soft-surface' : 'border border-line bg-surface shadow-sm',
         interactive && 'transition-shadow hover:shadow-md',
         tight ? 'px-4 py-3.5' : 'p-5',
         className,

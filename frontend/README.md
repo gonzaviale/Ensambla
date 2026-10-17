@@ -146,3 +146,7 @@ Pantallas pendientes del MVP 2 están marcadas con `<PendingTask tarea="T-0XX" /
 ## Marca
 
 Tokens de color y tipografía en `src/styles/index.css`; guía en [../docs/marca.md](../docs/marca.md).
+
+La interfaz toma como referencia `Ensambla_Mockup`: fondo papel, paleta de cinco piezas, navegación
+petróleo y recursos locales de Sami. El backend, los hooks y las reglas de los flujos existentes se
+conservan. Ver [adaptación visual y verificación](../docs/ui-mockup.md).

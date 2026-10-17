@@ -70,7 +70,7 @@ export function ListaCampos({ proyectoId, bloqueId }: Props) {
       >
         {campos.data.map((campo) => (
           <li key={campo.id}>
-            <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="workspace-field flex flex-col gap-3 rounded-xl border border-line bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
               <ResumenCampo
                 campo={campo}
                 tablaConectada={
@@ -163,7 +163,9 @@ function ResumenCampo({
         <p className="m-0 text-hint text-soft">Se conecta con «{tablaConectada}»</p>
       )}
       {campo.tipo === 'FORMULA' && campo.formula && (
-        <p className="m-0 text-hint text-soft">Calcula {describirFormula(campo.formula, columnas)}</p>
+        <p className="m-0 text-hint text-soft">
+          Calcula {describirFormula(campo.formula, columnas)}
+        </p>
       )}
       {valor !== null && <p className="m-0 text-hint text-soft">Valor inicial: {valor}</p>}
     </div>

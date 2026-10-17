@@ -11,7 +11,7 @@ export function StickyActionBar({ children, label }: { children: ReactNode; labe
         aria-label={label ?? 'Acciones'}
         className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-(--z-nav) border-t border-line bg-surface shadow-lg md:bottom-0"
       >
-        <div className="mx-auto flex w-full max-w-300 flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 md:px-8">
+        <div className="mx-auto flex w-full max-w-330 flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 md:px-8">
           {children}
         </div>
       </div>

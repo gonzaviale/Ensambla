@@ -19,7 +19,7 @@ export function AppLayout() {
       <main
         id="contenido"
         tabIndex={-1}
-        className="mx-auto min-h-[calc(100dvh-4rem)] w-full max-w-300 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] focus:outline-none md:px-8 md:pt-8 md:pb-16"
+        className="mx-auto min-h-[calc(100dvh-4.5rem)] w-full max-w-330 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] focus:outline-none md:px-8 md:pt-10 md:pb-16"
       >
         <Breadcrumbs />
         <ModoProyecto />

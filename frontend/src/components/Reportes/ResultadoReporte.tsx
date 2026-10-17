@@ -48,7 +48,7 @@ export function ResultadoReporte({ bloque, filtro }: Props) {
   const cantidad = data.totales.cantidad;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="workspace-data-card flex min-w-0 flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="m-0 text-lead font-semibold">
           {cantidad === 1 ? '1 fila' : `${cantidad} filas`} en el reporte
@@ -81,10 +81,10 @@ export function ResultadoReporte({ bloque, filtro }: Props) {
           {numericos.map((campo) => (
             <div
               key={campo.id}
-              className="flex flex-col gap-0.5 rounded-lg border border-line bg-accent-100 p-4"
+              className="report-total flex flex-col gap-1 rounded-xl border border-line bg-blue-100 p-4"
             >
               <dt className="text-hint text-soft">Total de {campo.nombre}</dt>
-              <dd className="m-0 text-h3 font-bold">
+              <dd className="m-0 text-h2 font-bold text-petrol">
                 {formatoNumero.format(data.totales.sumas[campo.id] ?? 0)}
               </dd>
             </div>

@@ -1,4 +1,4 @@
-import { CaretRightIcon } from '@phosphor-icons/react';
+import { CaretRightIcon, TableIcon } from '@phosphor-icons/react';
 import { cn } from '@/lib/cn';
 import type { Bloque } from '@/types/bloque';
 
@@ -13,7 +13,7 @@ export function ListaBloques({ bloques, seleccionadoId, onSeleccionar }: Props) 
   return (
     <nav aria-label="Tablas del sistema">
       <ul className="m-0 flex list-none flex-col gap-2 p-0">
-        {bloques.map((bloque) => {
+        {bloques.map((bloque, indice) => {
           const elegido = bloque.id === seleccionadoId;
           return (
             <li key={bloque.id}>
@@ -23,12 +23,17 @@ export function ListaBloques({ bloques, seleccionadoId, onSeleccionar }: Props) 
                 aria-current={elegido ? 'true' : undefined}
                 onClick={() => onSeleccionar(bloque)}
                 className={cn(
-                  'flex min-h-14 w-full cursor-pointer items-center justify-between gap-3 rounded-lg border-2 px-4 py-3 text-left text-body font-semibold text-fg shadow-sm transition-colors hover:border-accent-700',
-                  elegido ? 'border-accent-700 bg-accent-100' : 'border-line bg-surface',
+                  'library-table flex min-h-16 w-full cursor-pointer items-center gap-3 rounded-xl border px-3 py-3 text-left text-base font-semibold transition-colors hover:border-petrol/40',
+                  elegido
+                    ? 'border-petrol bg-petrol-100 text-petrol'
+                    : 'border-line bg-surface text-fg',
                 )}
               >
-                <span className="min-w-0 break-words">{bloque.nombre}</span>
-                <CaretRightIcon aria-hidden size={22} className="shrink-0 text-accent-800" />
+                <span className={`workspace-icon workspace-icon-${indice % 4}`}>
+                  <TableIcon aria-hidden size={21} />
+                </span>
+                <span className="min-w-0 flex-1 break-words">{bloque.nombre}</span>
+                <CaretRightIcon aria-hidden size={18} className="shrink-0 text-petrol" />
               </button>
             </li>
           );

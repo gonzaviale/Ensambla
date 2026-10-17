@@ -1,18 +1,21 @@
 import { useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { CameraIcon, MagnifyingGlassIcon, PlusIcon, SquaresFourIcon } from '@phosphor-icons/react';
 import {
-  Button,
-  InputField,
-  Isotipo,
-  PageHeading,
-  Panel,
-  Sheet,
-  buttonClasses,
-} from '@/components/ui';
+  ArrowRightIcon,
+  CameraIcon,
+  MagnifyingGlassIcon,
+  PlusIcon,
+  SquaresFourIcon,
+  TableIcon,
+  UsersIcon,
+  PackageIcon,
+} from '@phosphor-icons/react';
+import { Button, InputField, PageHeading, Panel, Sheet, buttonClasses } from '@/components/ui';
 import { CatalogoPlantillas } from '@/components/Proyectos/CatalogoPlantillas';
 import { CrearProyectoForm } from '@/components/Proyectos/CrearProyectoForm';
 import { ProyectoCard } from '@/components/Proyectos/ProyectoCard';
+import { ProyectosBienvenida } from '@/components/Proyectos/ProyectosBienvenida';
+import '@/components/Proyectos/proyectos.css';
 import { useEstructuras, useProyectos } from '@/hooks/proyectos/queries';
 import type { Proyecto } from '@/types/proyecto';
 
@@ -27,40 +30,18 @@ export function ProyectosPage() {
   const [creando, setCreando] = useState(false);
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="proyectos-home">
       {proyectos.length === 0 ? (
         <>
-          <PageHeading
-            kicker="Mis sistemas"
-            title="¿Por dónde querés empezar?"
-            lead="Pasá lo que tenés en el cuaderno a un sistema para tu negocio."
-          />
-          <section
-            aria-labelledby="cuaderno-titulo"
-            className="flex flex-col items-start gap-5 rounded-lg border border-accent-200 bg-accent-100 p-6 sm:flex-row sm:items-center sm:p-8"
-          >
-            <Isotipo className="size-20 shrink-0" />
-            <div className="flex min-w-0 flex-col items-start gap-3">
-              <h2 id="cuaderno-titulo" className="m-0 text-h2">
-                Tu cuaderno, más organizado
-              </h2>
-              <p className="m-0 max-w-xl text-lead text-soft">
-                Una foto es el primer paso para ordenar tus productos, pedidos o clientes.
-              </p>
-              <Link to="/cuaderno" className={buttonClasses({ variant: 'solid', size: 'lg' })}>
-                <CameraIcon size={24} aria-hidden />
-                Subir foto de mi cuaderno
-              </Link>
-            </div>
-          </section>
-          <section aria-label="Otras formas de empezar" className="flex flex-col gap-4">
-            <Panel flat>
-              <p className="m-0 text-body text-soft">
-                Todavía no tenés sistemas. También podés empezar con una plantilla o desde cero.
-              </p>
-            </Panel>
-            <FormasDeEmpezar onEmpezarEnBlanco={() => setCreando(true)} />
-          </section>
+          <ProyectosBienvenida />
+          <div className="proyectos-section-heading">
+            <h2>Tres caminos. Tu próximo sistema.</h2>
+            <span />
+          </div>
+          <p className="proyectos-empty-note">
+            Todavía no tenés sistemas. Elegí cómo querés empezar.
+          </p>
+          <FormasDeEmpezar onEmpezarEnBlanco={() => setCreando(true)} />
         </>
       ) : (
         <>
@@ -80,7 +61,7 @@ export function ProyectosPage() {
             <h2 id="nuevo-titulo" className="m-0 text-h3">
               Empezar otro sistema
             </h2>
-            <FormasDeEmpezar onEmpezarEnBlanco={() => setCreando(true)} />
+            <FormasDeEmpezar onEmpezarEnBlanco={() => setCreando(true)} mostrarFoto={false} />
           </section>
         </>
       )}
@@ -129,7 +110,7 @@ function ListaProyectos({ proyectos }: { proyectos: Proyecto[] }) {
           <p className="m-0">Ningún sistema se llama así. Probá con otra palabra.</p>
         </Panel>
       ) : (
-        <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-4 p-0">
+        <ul className="proyectos-card-grid">
           {visibles.map((proyecto) => {
             const estructura = estructuras[proyecto.id];
             return (
@@ -149,17 +130,84 @@ function ListaProyectos({ proyectos }: { proyectos: Proyecto[] }) {
 }
 
 // Plantilla o en blanco: apoyos de la acción principal, siempre en contorno.
-function FormasDeEmpezar({ onEmpezarEnBlanco }: { onEmpezarEnBlanco: () => void }) {
+function FormasDeEmpezar({
+  onEmpezarEnBlanco,
+  mostrarFoto = true,
+}: {
+  onEmpezarEnBlanco: () => void;
+  mostrarFoto?: boolean;
+}) {
   return (
-    <div className="flex flex-wrap gap-3" aria-label="Formas de empezar">
-      <a href="#plantillas" className={buttonClasses()}>
-        <SquaresFourIcon size={22} aria-hidden />
-        Usar plantilla
-      </a>
-      <Button onClick={onEmpezarEnBlanco}>
-        <PlusIcon size={22} aria-hidden />
-        Empezar en blanco
-      </Button>
+    <div
+      className={`proyectos-start-grid ${!mostrarFoto ? 'proyectos-start-grid-two' : ''}`}
+      aria-label="Formas de empezar"
+    >
+      {mostrarFoto && (
+        <article className="proyectos-start-card proyectos-photo-card">
+          <span className="proyectos-card-tag">Desde tu cuaderno</span>
+          <img className="proyectos-card-sami" src="/mockup/sami-armando-sin-fondo.png" alt="" />
+          <h3>
+            Tu cuaderno,
+            <br />
+            más organizado.
+          </h3>
+          <p>Una foto es el primer paso. Revisá lo que leímos y convertí tus apuntes en tablas.</p>
+          <Link
+            to="/cuaderno"
+            className={buttonClasses({ variant: 'solid', className: 'proyectos-route-button' })}
+          >
+            <CameraIcon size={20} aria-hidden />
+            Subir foto de mi cuaderno
+            <ArrowRightIcon size={18} aria-hidden />
+          </Link>
+        </article>
+      )}
+      <article className="proyectos-start-card proyectos-template-card">
+        <div className="proyectos-route-blocks" aria-hidden="true">
+          <i>
+            <TableIcon size={23} />
+          </i>
+          <i>
+            <UsersIcon size={23} />
+          </i>
+          <i>
+            <PackageIcon size={23} />
+          </i>
+        </div>
+        <h3>
+          Un conjunto
+          <br />
+          que ya funciona.
+        </h3>
+        <p>
+          Elegí una base ya armada. Después ajustá las tablas y columnas a tu manera de trabajar.
+        </p>
+        <a href="#plantillas" className={buttonClasses({ className: 'proyectos-route-button' })}>
+          <SquaresFourIcon size={20} aria-hidden />
+          Usar plantilla
+          <ArrowRightIcon size={18} aria-hidden />
+        </a>
+      </article>
+      <article className="proyectos-start-card proyectos-blank-card">
+        <div className="proyectos-free-arrangement" aria-hidden="true">
+          <i />
+          <i />
+          <i>
+            <PlusIcon size={18} />
+          </i>
+        </div>
+        <h3>
+          Tu lienzo.
+          <br />
+          Tus reglas.
+        </h3>
+        <p>Empezá por un nombre y armá las tablas que necesitás, columna por columna.</p>
+        <Button onClick={onEmpezarEnBlanco} className="proyectos-route-button">
+          <PlusIcon size={20} aria-hidden />
+          Empezar en blanco
+          <ArrowRightIcon size={18} aria-hidden />
+        </Button>
+      </article>
     </div>
   );
 }

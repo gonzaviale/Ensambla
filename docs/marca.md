@@ -1,6 +1,6 @@
 # Guía de marca (resumen para desarrollo)
 
-Fuente: *Manual de Marca de Ensambla*. Los tokens ya están implementados en
+Fuente visual vigente: *Ensambla_Mockup*, provisto como carpeta y ZIP en el escritorio. Los tokens están implementados en
 [`frontend/src/styles/index.css`](../frontend/src/styles/index.css) (Tailwind 4, bloque `@theme`).
 
 **Concepto:** *Tu sistema, un bloque a la vez.* Modular, cálida y reconocible. Tono cercano, claro y sin jerga técnica.
@@ -9,18 +9,22 @@ Fuente: *Manual de Marca de Ensambla*. Los tokens ya están implementados en
 
 | Nombre | Hex | Token Tailwind | Uso |
 |---|---|---|---|
-| Naranja | `#F97316` | `accent` | Acción principal, énfasis |
-| Coral | `#FB5852` | `coral` | Movimiento, cercanía, acentos |
-| Arena | `#E6C9A8` | `sand` | Calidez, superficies secundarias |
-| Pizarra | `#263443` | `fg` | Estructura, texto, fondos oscuros |
-| Marfil | `#FFF8F1` | `canvas` | Fondo claro |
-| Ámbar | `#F59E0B` | `amber` | Color de apoyo (acento del isotipo) |
+| Naranja | `#EE8000` | `accent` | Acción destacada, énfasis |
+| Amarillo | `#EBCE32` | `yellow` | Piezas, etiquetas y acentos |
+| Celeste | `#4EB2D4` | `blue` | Piezas, cabeceras y superficies claras |
+| Petróleo | `#00506A` | `petrol` | Navegación, títulos y botones principales de trabajo |
+| Coral | `#F85F5A` | `coral` | Piezas y acentos |
+| Pizarra | `#263443` | `fg` | Texto |
+| Papel | `#FFFDFA` | `canvas` | Fondo general |
+| Crema | `#FFF7EB` | `cream` | Superficies cálidas |
+| Salvia | `#F1F5ED` | `sage` | Taller e ilustraciones |
 
-Reglas: tonos cálidos para la acción, Pizarra para la estructura, Ámbar como apoyo.
+Los cinco colores del mockup conviven en el isotipo y la franja del encabezado. Petróleo organiza la interfaz;
+naranja destaca la acción de entrada. `sand` y `amber` quedan disponibles para estados existentes.
 
-**Contraste (accesibilidad, T-056):** el texto sobre naranja va en **Pizarra** (4,5 : 1); el blanco sobre `#F97316`
-no cumple AA (2,8 : 1). Para texto o bordes de acción sobre fondo claro usá `accent-700`/`accent-800`.
-Texto secundario `soft` (`#3E4B59`) y terciario `muted` (`#5A6570`) cumplen AA sobre Marfil.
+**Contraste (accesibilidad, T-056):** el texto sobre naranja va en **Pizarra**; los botones petróleo llevan texto
+blanco. Para texto naranja sobre claro usá `accent-700`/`accent-800`. Texto secundario `soft` (`#526268`) y
+terciario `muted` (`#5F6E73`) se usan sobre fondos claros. Se mantiene el foco visible en petróleo.
 
 ## Tipografía
 
@@ -37,24 +41,24 @@ Texto secundario `soft` (`#3E4B59`) y terciario `muted` (`#5A6570`) cumplen AA s
 | Display | `text-display` | 44 px | Sólo Landing |
 
 - Etiquetas de campo: 16 px en semibold; ayudas: 15 px.
-- La Landing es la excepción: tiene su propia hoja (`frontend/src/pages/Landing/landing.css`), acotada a `.landing`, con tamaños en px y tokens propios. Sólo ahí; el resto de la app usa la escala de arriba. Mínimo absoluto igual: 14 px.
+- La Landing y las composiciones de bienvenida tienen CSS acotado para reproducir el mockup; la paleta proviene de los tokens comunes. Los textos informativos conservan un mínimo de 14 px; los detalles de las ilustraciones decorativas pueden ser menores.
 
 ## Logo
 
-- **Isotipo:** cinco bloques redondeados que sugieren una "E": naranja (alto, a la izquierda), coral y arena
-  (arriba a la derecha), pizarra (abajo a la izquierda) y ámbar (abajo a la derecha). Componente `Isotipo` en
-  `components/ui/Logo.tsx` y `public/favicon.svg`. **Es una aproximación**: reemplazar por el SVG oficial del kit de marca.
-- **Logotipo:** "Ensambla" en sans bold, color Pizarra. Versiones: color sobre Marfil, monocromo Pizarra y negativo blanco sobre Pizarra.
+- **Isotipo:** cinco bloques redondeados: naranja alto a la izquierda, amarillo y celeste a la derecha,
+  petróleo abajo a la izquierda y coral abajo a la derecha. Componente `Isotipo` en
+  `components/ui/Logo.tsx` y `public/favicon.svg`.
+- **Logotipo:** "Ensambla" en sans bold, color Petróleo.
+- **Sami:** recursos originales transparentes del mockup en `public/mockup/`, usados como apoyo visual; no representan una conversación o servicio adicional.
 - A tamaños chicos (≤ 48 px) usar sólo el isotipo. Sin sombras, brillos ni 3D.
 
 ## Interfaz
 
 - Pensada para emprendedores adultos y mayores: **texto de lectura 18 px, controles de 48 px** (variante `compact` de 40 px, con área
   de toque de 44 px, sólo en celdas de tabla de escritorio) y flujo completo a 360 px (T-033, T-035, T-056).
-- **Una sola acción principal por pantalla**, en naranja sólido; las de apoyo van en contorno y las terciarias como texto.
-- Tarjetas blancas con radio único (`lg`, 16 px), sombra suave en dos niveles (`shadow-sm` en reposo, `shadow-md` al elevar) y pocos bordes;
-  fondo Marfil. Chips con radio completo. Coral, Ámbar y Arena se usan en estados, vacíos y el isotipo.
-- Foco visible en todo: anillo de 3 px `accent-700` con separación de 2 px. Bordes de campos con contraste ≥ 3 : 1.
+- **Jerarquía de acciones:** `solid` naranja para la acción destacada; `primary` petróleo para trabajar con sistemas y plantillas; `secondary` blanco con borde; `ghost` como texto.
+- Tarjetas blancas con radio `lg` (20 px), sombras suaves y bordes claros; fondo Papel. Chips con radio completo y superficies de apoyo Crema, Celeste y Salvia.
+- Foco visible en todo: anillo de 3 px `petrol` con separación de 2 px. Bordes de campos con contraste ≥ 3 : 1.
 - Nada de color como única señal: los avisos de duda o error llevan ícono y texto.
 - Toda pantalla tiene estado vacío, de carga (con `Skeleton` de alto fijo) y de error con reintentar (T-034).
 - Acciones destructivas: **Deshacer** donde es reversible (quitar una fila en la revisión); confirmación que nombra el elemento y lo que se

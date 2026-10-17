@@ -18,12 +18,12 @@ export function PageHeading({ kicker, title, lead, actions }: PageHeadingProps) 
     <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div className="flex min-w-0 flex-1 basis-80 flex-col gap-1.5">
         {kicker && (
-          <p className="m-0 text-caption font-bold tracking-widest text-accent-800 uppercase">
+          <p className="m-0 text-caption font-bold tracking-widest text-petrol uppercase">
             {kicker}
           </p>
         )}
-        <h1 className="m-0 text-h2 break-words sm:text-h1">{title}</h1>
-        {lead && <p className="m-0 text-lead text-soft">{lead}</p>}
+        <h1 className="m-0 text-h2 break-words text-petrol sm:text-h1">{title}</h1>
+        {lead && <p className="m-0 max-w-3xl text-lead text-soft">{lead}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-3">{actions}</div>}
     </header>

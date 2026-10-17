@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeftIcon, PencilSimpleIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
+import {
+  ArrowLeftIcon,
+  PencilSimpleIcon,
+  PlusIcon,
+  TableIcon,
+  TrashIcon,
+} from '@phosphor-icons/react';
 import { Button, ConfirmDialog, Panel, Sheet } from '@/components/ui';
 import { useEliminarBloque, useRenombrarBloque } from '@/hooks/bloques/mutations';
 import { useCampos } from '@/hooks/bloques/queries';
@@ -68,7 +74,7 @@ export function DetalleBloque({
   return (
     <Panel
       aria-labelledby={`bloque-${bloque.id}`}
-      className={cn('flex min-w-0 flex-col gap-6', className)}
+      className={cn('workspace-detail flex min-w-0 flex-col gap-6', className)}
     >
       <Button variant="ghost" className="self-start lg:hidden" onClick={onVolver}>
         <ArrowLeftIcon aria-hidden size={20} />
@@ -76,17 +82,24 @@ export function DetalleBloque({
       </Button>
 
       <header className="flex flex-col gap-3">
-        <p className="m-0 text-caption font-bold tracking-widest text-accent-800 uppercase">
-          Tabla
-        </p>
-        <h2
-          ref={titulo}
-          id={`bloque-${bloque.id}`}
-          tabIndex={-1}
-          className="m-0 text-h2 break-words focus:outline-none focus-visible:outline-3"
-        >
-          {bloque.nombre}
-        </h2>
+        <div className="workspace-block-heading flex items-center gap-3">
+          <span className="workspace-icon workspace-icon-0">
+            <TableIcon aria-hidden size={25} />
+          </span>
+          <div className="min-w-0">
+            <p className="m-0 text-caption font-bold tracking-widest text-petrol uppercase">
+              Tabla
+            </p>
+            <h2
+              ref={titulo}
+              id={`bloque-${bloque.id}`}
+              tabIndex={-1}
+              className="m-0 text-h2 break-words text-petrol focus:outline-none focus-visible:outline-3"
+            >
+              {bloque.nombre}
+            </h2>
+          </div>
+        </div>
 
         {modo === 'renombrando' ? (
           <NombreBloqueForm
@@ -117,7 +130,7 @@ export function DetalleBloque({
       <section aria-labelledby={`datos-${bloque.id}`} className="flex flex-col gap-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
-            <h3 id={`datos-${bloque.id}`} className="m-0 text-h3">
+            <h3 id={`datos-${bloque.id}`} className="m-0 text-h3 text-petrol">
               Columnas de esta tabla
             </h3>
             <p className="m-0 text-hint text-soft">

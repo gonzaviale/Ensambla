@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link, useParams, useSearch } from '@tanstack/react-router';
-import { ChartBarIcon } from '@phosphor-icons/react';
+import { ChartBarIcon, FunnelIcon } from '@phosphor-icons/react';
 import { FiltrosReporte } from '@/components/Reportes/FiltrosReporte';
 import { ResultadoReporte } from '@/components/Reportes/ResultadoReporte';
 import { EmptyState, PageHeading, Panel, SelectField, buttonClasses } from '@/components/ui';
 import { useProyecto } from '@/hooks/proyectos/queries';
 import type { FiltroReporte } from '@/types/reporte';
+import '@/styles/workspace.css';
 
 const RUTA = '/_app/proyectos/$proyectoId/reportes';
 
@@ -21,7 +22,7 @@ export function ReportesPage() {
   const bloque = bloques.find((item) => item.id === bloqueId) ?? bloques[0];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flow-page flex flex-col gap-6">
       <PageHeading
         kicker="Reportes"
         title={proyecto.nombre}
@@ -63,8 +64,12 @@ export function ReportesPage() {
             </div>
           )}
 
-          <Panel aria-labelledby="reporte-filtros" className="flex flex-col gap-4">
-            <h2 id="reporte-filtros" className="m-0 text-h3">
+          <Panel aria-labelledby="reporte-filtros" className="workspace-entry flex flex-col gap-4">
+            <h2
+              id="reporte-filtros"
+              className="workspace-entry-heading m-0 flex items-center gap-2 text-h3"
+            >
+              <FunnelIcon aria-hidden size={23} />
               Filtros
             </h2>
             <FiltrosReporte
@@ -76,7 +81,8 @@ export function ReportesPage() {
           </Panel>
 
           <section aria-labelledby="reporte-resultado" className="flex flex-col gap-4">
-            <h2 id="reporte-resultado" className="m-0 text-h3">
+            <h2 id="reporte-resultado" className="m-0 flex items-center gap-2 text-h3 text-petrol">
+              <ChartBarIcon aria-hidden size={23} />
               Reporte
             </h2>
             <ResultadoReporte key={bloque.id} bloque={bloque} filtro={filtro} />
