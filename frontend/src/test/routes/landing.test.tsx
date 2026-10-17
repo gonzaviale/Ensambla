@@ -59,6 +59,75 @@ describe('landing', () => {
     });
   });
 
+  describe('entrada de datos', () => {
+    it('muestra la foto por defecto y cambia a voz y texto', async () => {
+      const user = await abrirLanding();
+      const foto = screen.getByRole('tab', { name: 'Foto' });
+
+      expect(foto).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByRole('tabpanel')).toHaveTextContent('Revisá este dato');
+
+      await user.click(screen.getByRole('tab', { name: 'Voz' }));
+      expect(screen.getByRole('tab', { name: 'Voz' })).toHaveAttribute('aria-selected', 'true');
+      expect(foto).toHaveAttribute('aria-selected', 'false');
+      expect(screen.getByRole('tabpanel')).toHaveTextContent('Vendí 3 yerbas');
+
+      await user.click(screen.getByRole('tab', { name: 'Texto' }));
+      expect(screen.getByRole('tabpanel')).toHaveTextContent('Llegaron 24 gaseosas');
+    });
+
+    it('se mueve entre pestañas con el teclado', async () => {
+      const user = await abrirLanding();
+
+      screen.getByRole('tab', { name: 'Foto' }).focus();
+      await user.keyboard('{ArrowRight}');
+      expect(screen.getByRole('tab', { name: 'Voz' })).toHaveFocus();
+      expect(screen.getByRole('tab', { name: 'Voz' })).toHaveAttribute('aria-selected', 'true');
+
+      await user.keyboard('{End}');
+      expect(screen.getByRole('tab', { name: 'Texto' })).toHaveFocus();
+
+      await user.keyboard('{ArrowRight}');
+      expect(screen.getByRole('tab', { name: 'Foto' })).toHaveFocus();
+    });
+  });
+
+  describe('Sami', () => {
+    it('tiene su sección y su escena', async () => {
+      await abrirLanding();
+
+      expect(
+        screen.getByRole('heading', { level: 2, name: 'Sami arma tu sistema por vos.' }),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('img', { name: /Sami, el pulpo de Ensambla/ })).toBeInTheDocument();
+    });
+  });
+
+  describe('centro de avisos', () => {
+    it('aplica y descarta avisos, y los vuelve a mostrar', async () => {
+      const user = await abrirLanding();
+
+      expect(screen.getByText('4 avisos')).toBeInTheDocument();
+
+      await user.click(
+        screen.getByRole('button', { name: /^Aplicar: Subir el precio a \$2\.500/ }),
+      );
+      expect(screen.getByText('Precio actualizado a $2.500.')).toBeInTheDocument();
+      expect(screen.getByText('3 avisos')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: /^Descartar aviso: La yerba de 1 kg/ }));
+      expect(screen.getByText('Aviso descartado.')).toBeInTheDocument();
+      expect(screen.getByText('2 avisos')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: /^Descartar aviso: El pan lactal/ }));
+      await user.click(screen.getByRole('button', { name: /^Descartar aviso: Fideos y salsa/ }));
+      expect(screen.getByText('Todo al día')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Ver los avisos de nuevo' }));
+      expect(screen.getByText('4 avisos')).toBeInTheDocument();
+    });
+  });
+
   describe('comentarios', () => {
     it('pide el nombre y un comentario de al menos 5 caracteres', async () => {
       const user = await abrirLanding();
@@ -86,14 +155,18 @@ describe('landing', () => {
       await user.click(screen.getByRole('button', { name: 'Publicar comentario' }));
 
       expect(screen.getByRole('status')).toHaveTextContent('Tu comentario ya es parte del sistema');
-      const tarjetas = screen.getAllByRole('article').filter((a) => a.classList.contains('comentario'));
+      const tarjetas = screen
+        .getAllByRole('article')
+        .filter((a) => a.classList.contains('comentario'));
       expect(tarjetas[0]).toHaveTextContent('Muy simple de usar');
       expect(within(tarjetas[0] as HTMLElement).getByRole('img')).toHaveAccessibleName(
         'Puntaje: 4 de 5',
       );
       expect(screen.getByRole('textbox', { name: 'Nombre' })).toHaveValue('');
 
-      const guardados = JSON.parse(localStorage.getItem('ensambla-comentarios') ?? '[]') as unknown[];
+      const guardados = JSON.parse(
+        localStorage.getItem('ensambla-comentarios') ?? '[]',
+      ) as unknown[];
       expect(guardados).toEqual([
         { nombre: 'Ana', negocio: 'Panadería Ana', puntaje: 4, texto: 'Muy simple de usar' },
       ]);

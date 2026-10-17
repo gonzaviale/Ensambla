@@ -14,7 +14,10 @@ export function LlamadaFinal() {
           </div>
           <div className="final__texto">
             <h2>Tu primer bloque te está esperando.</h2>
-            <p>Creá tu cuenta gratis y armá el sistema de tu negocio hoy mismo.</p>
+            <p>
+              Creá tu cuenta gratis, contale a Sami cómo trabajás y empezá a recibir avisos para
+              decidir mejor.
+            </p>
           </div>
           <div className="final__acciones">
             <Link to="/registro" className="boton boton--primario boton--grande">

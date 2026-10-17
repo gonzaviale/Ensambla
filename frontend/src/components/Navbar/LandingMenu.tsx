@@ -3,10 +3,10 @@ import { ListIcon, XIcon } from '@phosphor-icons/react';
 import { cn } from '@/lib/cn';
 
 const SECCIONES = [
-  { id: 'camara', nombre: 'Con tu cámara' },
+  { id: 'entrada', nombre: 'Cargá' },
+  { id: 'sami', nombre: 'Sami' },
+  { id: 'monitoreo', nombre: 'Monitoreo' },
   { id: 'como-funciona', nombre: 'Cómo funciona' },
-  { id: 'bloques', nombre: 'Bloques' },
-  { id: 'plantillas', nombre: 'Plantillas' },
   { id: 'comentarios', nombre: 'Comentarios' },
 ] as const;
 

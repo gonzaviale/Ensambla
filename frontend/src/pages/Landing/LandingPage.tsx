@@ -2,12 +2,13 @@ import { ArmadorBloques } from '@/components/Landing/ArmadorBloques';
 import { CintaRubros } from '@/components/Landing/CintaRubros';
 import { Comentarios } from '@/components/Landing/Comentarios';
 import { ComoFunciona } from '@/components/Landing/ComoFunciona';
-import { DeLaFoto } from '@/components/Landing/DeLaFoto';
+import { EntradaDatos } from '@/components/Landing/EntradaDatos';
 import { Hero } from '@/components/Landing/Hero';
 import { LandingFooter } from '@/components/Landing/LandingFooter';
 import { LlamadaFinal } from '@/components/Landing/LlamadaFinal';
+import { MotorMonitoreo } from '@/components/Landing/MotorMonitoreo';
 import { Pilares } from '@/components/Landing/Pilares';
-import { Plantillas } from '@/components/Landing/Plantillas';
+import { SamiAgente } from '@/components/Landing/SamiAgente';
 import { useRevelado } from '@/hooks/landing/useRevelado';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import './landing.css';
@@ -20,10 +21,11 @@ export function LandingPage() {
     <div className="landing" ref={raiz}>
       <Hero />
       <CintaRubros />
-      <DeLaFoto />
+      <EntradaDatos />
+      <SamiAgente />
+      <MotorMonitoreo />
       <ComoFunciona />
       <ArmadorBloques />
-      <Plantillas />
       <Pilares />
       <Comentarios />
       <LlamadaFinal />

@@ -15,9 +15,10 @@ export function LandingFooter() {
         <nav className="pie__nav" aria-label="Pie de página">
           <div>
             <h3>Producto</h3>
+            <a href="#entrada">Cargá como te salga</a>
+            <a href="#sami">Sami</a>
+            <a href="#monitoreo">Motor de monitoreo</a>
             <a href="#como-funciona">Cómo funciona</a>
-            <a href="#bloques">Bloques</a>
-            <a href="#plantillas">Plantillas</a>
           </div>
           <div>
             <h3>Cuenta</h3>

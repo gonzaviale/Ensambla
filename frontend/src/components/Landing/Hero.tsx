@@ -2,22 +2,28 @@ import { Link } from '@tanstack/react-router';
 import { variables } from './estilos';
 
 const BLOQUES_3D = [
-  { color: 'logo-naranja', x: 0, y: 0, w: 2.74, h: 4.01, ex: -1, ey: -1, ez: 0.4, dl: '0s' },
-  { color: 'logo-turquesa', x: 0, y: 4.38, w: 2.74, h: 1.82, ex: -1, ey: 0.9, ez: -0.3, dl: '0.1s' },
-  { color: 'logo-amarillo', x: 3.1, y: 0, w: 2.74, h: 1.82, ex: 0.6, ey: -1.3, ez: 0.5, dl: '0.2s' },
-  { color: 'logo-celeste', x: 3.1, y: 2.19, w: 2.74, h: 1.82, ex: 1.2, ey: -0.2, ez: -0.4, dl: '0.3s' },
-  { color: 'logo-coral', x: 3.1, y: 4.38, w: 2.74, h: 1.82, ex: 0.6, ey: 1, ez: 0.3, dl: '0.4s' },
+  { color: 'naranja', x: 0, y: 0, w: 2.74, h: 4.01, ex: -1, ey: -1, ez: 0.4, dl: '0s' },
+  { color: 'petroleo', x: 0, y: 4.38, w: 2.74, h: 1.82, ex: -1, ey: 0.9, ez: -0.3, dl: '0.1s' },
+  { color: 'amarillo', x: 3.1, y: 0, w: 2.74, h: 1.82, ex: 0.6, ey: -1.3, ez: 0.5, dl: '0.2s' },
+  { color: 'celeste', x: 3.1, y: 2.19, w: 2.74, h: 1.82, ex: 1.2, ey: -0.2, ez: -0.4, dl: '0.3s' },
+  { color: 'coral', x: 3.1, y: 4.38, w: 2.74, h: 1.82, ex: 0.6, ey: 1, ez: 0.3, dl: '0.4s' },
 ] as const;
 
 const FICHAS = [
   { n: 1, icono: '▤', color: 'naranja', titulo: 'Inventario', detalle: '128 productos' },
   { n: 2, icono: '✓', color: 'coral', titulo: 'Pedido #204', detalle: 'Listo para entregar' },
-  { n: 3, icono: '◎', color: 'pizarra', titulo: '+12 clientes', detalle: 'esta semana' },
+  {
+    n: 3,
+    icono: '!',
+    color: 'petroleo',
+    titulo: 'Aviso de precio',
+    detalle: 'La yerba está 8 % abajo',
+  },
 ] as const;
 
 const DATOS = [
   { valor: '0', texto: 'líneas de código' },
-  { valor: '3', texto: 'plantillas para empezar' },
+  { valor: '3', texto: 'formas de cargar: foto, voz o texto' },
   { valor: '∞', texto: 'combinaciones de bloques' },
 ] as const;
 
@@ -35,7 +41,7 @@ export function Hero() {
         <div className="hero__texto">
           <p className="etiqueta aparecer">
             <span className="etiqueta__punto" aria-hidden="true" />
-            Plataforma no-code para emprendedores, comercios y PyMEs
+            Plataforma no-code para almacenes, kioscos y PyMEs
           </p>
           <h1 className="hero__titulo">
             <span className="linea aparecer" style={variables({ '--d': '.05s' })}>
@@ -54,9 +60,8 @@ export function Hero() {
             aria-hidden="true"
           />
           <p className="hero__bajada aparecer" style={variables({ '--d': '.4s' })}>
-            Convertí los procesos de tu negocio en herramientas digitales simples. Elegí una
-            plantilla, sumá bloques de inventario, pedidos o clientes, y empezá a usarlos hoy. Sin
-            programar.
+            Contale a Sami cómo trabajás y armá el sistema de tu negocio con bloques. Cargá con una
+            foto, un audio o un mensaje, y recibí avisos para decidir mejor. Sin programar.
           </p>
           <div className="hero__acciones aparecer" style={variables({ '--d': '.5s' })}>
             <Link to="/registro" className="boton boton--primario">

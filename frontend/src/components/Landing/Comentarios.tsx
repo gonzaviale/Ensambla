@@ -12,27 +12,27 @@ const MUESTRAS: (Comentario & { color: string })[] = [
     puntaje: 5,
     color: 'naranja',
     texto:
-      'Antes llevaba el stock en un cuaderno. Ahora armé el inventario en una tarde y sé qué reponer sin contar cajas.',
+      'Le saqué una foto a mi cuaderno de ventas y en minutos tenía el inventario armado. Sami me preguntó lo justo.',
   },
   {
     nombre: 'Diego R.',
-    negocio: 'Distribuidora de bebidas',
+    negocio: 'Kiosco',
     puntaje: 5,
     color: 'coral',
     texto:
-      'Conectamos pedidos con clientes y se terminaron los mensajes perdidos. Todo el equipo ve el mismo estado.',
+      'Le dicto las ventas por audio mientras atiendo. Después sólo confirmo y listo: se terminó el cuaderno.',
   },
   {
     nombre: 'Carla S.',
-    negocio: 'Estudio de diseño',
+    negocio: 'Dietética',
     puntaje: 4,
-    color: 'pizarra',
+    color: 'petroleo',
     texto:
-      'No sé programar y no lo necesité. Empecé con la plantilla de clientes y la fui adaptando a mi estudio.',
+      'Me avisó que un producto no salía y me sugirió una rebaja. La apliqué y volvió a venderse.',
   },
 ];
 
-const COLORES_AVATAR = ['naranja', 'coral', 'arena', 'ambar', 'pizarra'];
+const COLORES_AVATAR = ['naranja', 'coral', 'amarillo', 'celeste', 'petroleo'];
 const MINIMO_COMENTARIO = 5;
 
 function valorDe(form: HTMLFormElement, nombre: string): string {
@@ -132,7 +132,7 @@ export function Comentarios() {
             <br />
             ya ensamblan.
           </h2>
-          <p>Negocios reales que ordenaron su día a día, un bloque a la vez.</p>
+          <p>Comercios que ordenaron su día a día, un bloque a la vez.</p>
         </header>
 
         <div className="comentarios" ref={lista}>
@@ -179,7 +179,7 @@ export function Comentarios() {
                   type="text"
                   name="negocio"
                   maxLength={50}
-                  placeholder="Ej.: Ferretería del centro"
+                  placeholder="Ej.: Kiosco del centro"
                 />
               </label>
             </div>

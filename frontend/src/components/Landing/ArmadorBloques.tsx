@@ -7,10 +7,10 @@ import { variables } from './estilos';
 const PIEZAS = [
   { nombre: 'Inventario', color: 'naranja', icono: '▤' },
   { nombre: 'Pedidos', color: 'coral', icono: '✓' },
-  { nombre: 'Clientes', color: 'arena', icono: '◎' },
-  { nombre: 'Proveedores', color: 'pizarra', icono: '⇄' },
-  { nombre: 'Ventas', color: 'ambar', icono: '$' },
-  { nombre: 'Turnos', color: 'coral', icono: '◷' },
+  { nombre: 'Clientes', color: 'amarillo', icono: '◎' },
+  { nombre: 'Proveedores', color: 'petroleo', icono: '⇄' },
+  { nombre: 'Ventas', color: 'celeste', icono: '$' },
+  { nombre: 'Avisos', color: 'coral', icono: '!' },
 ] as const;
 
 export function ArmadorBloques() {
@@ -33,7 +33,7 @@ export function ArmadorBloques() {
   }, [mostrarDemo]);
 
   return (
-    <section className="seccion seccion--tono" id="bloques" ref={seccion}>
+    <section className="seccion" id="bloques" ref={seccion}>
       <div className="contenedor armador">
         <div className="armador__texto revelar">
           <p className="sobretitulo">Probalo acá</p>

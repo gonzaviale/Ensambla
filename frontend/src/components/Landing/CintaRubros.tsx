@@ -1,12 +1,12 @@
 const RUBROS = [
   'Almacenes',
-  'Ferreterías',
-  'Tiendas online',
-  'Gastronomía',
-  'Talleres',
-  'Estudios',
-  'Distribuidoras',
-  'Emprendimientos',
+  'Kioscos',
+  'Minimercados',
+  'Dietéticas',
+  'Verdulerías',
+  'Librerías',
+  'Perfumerías',
+  'Comercios de barrio',
 ];
 
 export function CintaRubros() {
