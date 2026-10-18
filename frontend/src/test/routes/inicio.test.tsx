@@ -7,6 +7,7 @@ import { useSistemaStore } from '@/stores/sistemaStore';
 import { renderApp } from '@/test/renderApp';
 import {
   ESPERA,
+  verifyToastAsync,
   clickButton,
   setupUsuarioConSesion,
   verifyHeadingPresentAsync,
@@ -60,10 +61,7 @@ describe('inicio', () => {
 
     await clickButton(user, 'Mis sistemas');
 
-    await waitFor(
-      () => expect(screen.getByRole('status')).toHaveTextContent(/tres caminos/),
-      ESPERA,
-    );
+    await verifyToastAsync(/tres caminos/);
   });
 
   it('muestra la zona sin mapa y lleva a «Mi zona»', async () => {

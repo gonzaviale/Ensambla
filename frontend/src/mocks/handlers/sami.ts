@@ -10,9 +10,9 @@ const DEMORA_DE_SAMI_MS = import.meta.env.MODE === 'test' ? 0 : 650;
 // El backend real va a pedirle esto a Sami; mientras tanto responde con las mismas reglas del mockup.
 export const handlersSami = [
   http.post(api('/sami/propuesta'), async ({ request }) => {
-    await delay(DEMORA_DE_SAMI_MS);
     const { error } = cuenta(request, true);
     if (error) return error;
+    await delay(DEMORA_DE_SAMI_MS);
     const pedido = pedidoDePropuestaSchema.safeParse(await request.json());
     if (!pedido.success) {
       return errorResponse(

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { getRouteApi, useNavigate } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
+import { Campana } from '@/components/sistema/avisos/Campana';
+import { FranjaDeSami } from '@/components/sistema/avisos/FranjaDeSami';
 import { BibliotecaDeBloques } from '@/components/sistema/editor/BibliotecaDeBloques';
 import { BloqueEnLienzo } from '@/components/sistema/editor/BloqueEnLienzo';
 import { EncabezadoDelEditor } from '@/components/sistema/editor/EncabezadoDelEditor';
@@ -126,6 +128,7 @@ export function SistemaPage() {
         modo={modo}
         guardando={guardando}
         puedeDeshacer={hayHistorial}
+        campana={<Campana />}
         onInicio={() => void navegacion.irAInicio()}
         onModo={cambiarModo}
         onDeshacer={deshacerCambio}
@@ -243,11 +246,13 @@ export function SistemaPage() {
               </button>
             </div>
           )}
-          {construyendo && (
+          {construyendo ? (
             <LayoutToolbar
               distribucion={sistema.layout}
               onElegir={(distribucion: Distribucion) => aplicarDistribucion(distribucion)}
             />
+          ) : (
+            <FranjaDeSami sistemaId={sistema.id} />
           )}
           <div
             className={`canvas-grid ${arrastre.sobre?.destino === '#canvas-drop' ? 'drop-active' : ''}`.trim()}

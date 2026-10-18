@@ -6,7 +6,13 @@ import type { Sistema } from '@/lib/sistema/tipos';
 import { estado } from '@/mocks/db/estado';
 import { seleccionarSistemaActivo, useSistemaStore } from '@/stores/sistemaStore';
 import { renderApp } from '@/test/renderApp';
-import { ESPERA, clickButton, setupUsuarioConSesion, verifyPathAsync } from '@/test/testHelpers';
+import {
+  ESPERA,
+  clickButton,
+  setupUsuarioConSesion,
+  verifyPathAsync,
+  verifyToastAsync,
+} from '@/test/testHelpers';
 
 const abrirEditor = async (
   sistema: Sistema = makeTemplate('shop', {}, true),
@@ -116,13 +122,13 @@ describe('bloques', () => {
 
     await user.click(screen.getByRole('button', { name: 'Agregar Gastos' }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Gastos agregado');
+    await verifyToastAsync('Gastos agregado');
     expect(activo().sections[0]?.blocks.at(-1)?.type).toBe('expenses');
     expect(screen.getByLabelText('Personalizar Gastos')).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Deshacer el último cambio' }));
     expect(activo().sections[0]?.blocks).toHaveLength(3);
-    expect(screen.getByRole('status')).toHaveTextContent('Cambio deshecho.');
+    await verifyToastAsync('Cambio deshecho.');
   });
 
   it('Enter en una pieza de la biblioteca la agrega y Ctrl+Z deshace', async () => {
@@ -256,9 +262,7 @@ describe('bloques', () => {
 
     expect(tipoDeBloque('clients').width).toBe('half');
     expect(tipoDeBloque('sales').width).toBe('half');
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Las dos piezas comparten la fila.',
-    );
+    await verifyToastAsync('Las dos piezas comparten la fila.');
   });
 });
 
@@ -275,7 +279,7 @@ describe('registros', () => {
     await user.click(within(modal).getByRole('button', { name: 'Guardar' }));
 
     expect(await within(inventario).findByText('Alfajor Jorgito')).toBeVisible();
-    expect(screen.getByRole('status')).toHaveTextContent('Registro guardado.');
+    await verifyToastAsync('Registro guardado.');
 
     const fila = within(inventario).getByText('Alfajor Jorgito').closest('tr');
     if (!fila) throw new Error('Falta la fila');
@@ -285,9 +289,7 @@ describe('registros', () => {
     await user.clear(cantidad);
     await user.type(cantidad, '5');
     await user.click(within(edicion).getByRole('button', { name: 'Guardar' }));
-    await waitFor(() =>
-      expect(screen.getByRole('status')).toHaveTextContent('Registro actualizado.'),
-    );
+    await verifyToastAsync('Registro actualizado.');
     expect(
       tipoDeBloque('inventory').rows.find((fila) => fila.name === 'Alfajor Jorgito')?.quantity,
     ).toBe(5);
@@ -500,7 +502,7 @@ describe('traer datos de una foto', () => {
 
     await waitFor(() => expect(tipoDeBloque('inventory').rows).toHaveLength(2), ESPERA);
     expect(tipoDeBloque('inventory').rows[0]?.name).toBe('Mate listo');
-    expect(screen.getByRole('status')).toHaveTextContent('2 registros incorporados');
+    await verifyToastAsync('2 registros incorporados');
   });
 
   it('rechaza un archivo que no es una imagen', async () => {

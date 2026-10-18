@@ -1,0 +1,40 @@
+// Los datos de la zona son AGREGADOS y ANÓNIMOS: nunca se sabe qué comercio cobra qué ni dónde queda. Un
+// dato sólo existe si lo aportan al menos tres comercios; con menos, no se muestra ni se usa.
+export const MINIMO_DE_COMERCIOS = 3;
+
+export type ProductoDeZona = {
+  nombre: string;
+  /** Cuántos comercios aportan el precio de este producto. */
+  comercios: number;
+  precio: { minimo: number; promedio: number; maximo: number };
+  ventas: {
+    /** Cuántos comercios lo venden. */
+    comercios: number;
+    /** Unidades que vende por semana un comercio promedio. */
+    unidadesPorSemana: number;
+  };
+};
+
+export type Zona = {
+  /** El nombre de la zona tal como se muestra. */
+  nombre: string;
+  /** Cuántos comercios de la zona entran en el análisis. */
+  comercios: number;
+  productos: ProductoDeZona[];
+};
+
+/** Sin datos: lo que se usa mientras la zona carga o cuando no hay suficientes comercios. */
+export const ZONA_VACIA: Zona = { nombre: '', comercios: 0, productos: [] };
+
+/** Deja sólo lo que cumple el mínimo de comercios. Si la zona entera no lo cumple, no queda nada. */
+export function sinDatosInsuficientes(zona: Zona): Zona {
+  if (zona.comercios < MINIMO_DE_COMERCIOS) return { ...zona, productos: [] };
+  return {
+    ...zona,
+    productos: zona.productos.filter(
+      (producto) =>
+        producto.comercios >= MINIMO_DE_COMERCIOS &&
+        producto.ventas.comercios >= MINIMO_DE_COMERCIOS,
+    ),
+  };
+}

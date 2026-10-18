@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { clone } from '@/lib/sistema/core';
+import type { Aviso, Respuesta } from '@/lib/sistema/alertas';
 import type { Bloque, ClavePlantilla, Seccion, Sistema } from '@/lib/sistema/tipos';
 
 // El estado del taller y del editor: los sistemas de la persona y lo que está haciendo con ellos. Es el
@@ -52,6 +53,22 @@ export type Taller = {
   mensajes: MensajeDelTaller[];
 };
 
+/** El panel de avisos de Sami y lo que se ve de él. */
+export type PanelDeAvisos = {
+  abierto: boolean;
+  filtro: string;
+  respuesta: Respuesta | null;
+  /** El aviso que se abrió desde el toast o la franja: el panel lo muestra resaltado. */
+  foco: string | null;
+};
+
+const PANEL_CERRADO: PanelDeAvisos = {
+  abierto: false,
+  filtro: 'todas',
+  respuesta: null,
+  foco: null,
+};
+
 const MAX_HISTORIAL = 30;
 
 type EstadoDelStore = {
@@ -73,6 +90,11 @@ type EstadoDelStore = {
   aviso: { id: number; texto: string } | null;
   modal: Modal | null;
   taller: Taller | null;
+  /** Los avisos de Sami que la persona todavía no descartó. Los calcula el motor de avisos. */
+  avisos: Aviso[];
+  panel: PanelDeAvisos;
+  /** «Sami vio un cambio»: el aviso nuevo que se muestra un rato arriba a la derecha. */
+  avisoNuevo: { aviso: Aviso; cantidad: number } | null;
 };
 
 type Acciones = {
@@ -101,6 +123,12 @@ type Acciones = {
   actualizarTaller: (cambio: Partial<Taller> | ((taller: Taller) => Partial<Taller>)) => void;
   /** Aplica un cambio sobre una copia de la propuesta de Sami. */
   editarBorrador: (cambio: (borrador: Sistema) => void) => void;
+  ponerAvisos: (avisos: Aviso[]) => void;
+  abrirPanel: (foco?: string | null) => void;
+  cerrarPanel: () => void;
+  actualizarPanel: (cambio: Partial<PanelDeAvisos>) => void;
+  mostrarAvisoNuevo: (aviso: Aviso, cantidad: number) => void;
+  ocultarAvisoNuevo: () => void;
 };
 
 export type SistemaStore = EstadoDelStore & Acciones;
@@ -119,6 +147,9 @@ const ESTADO_INICIAL: EstadoDelStore = {
   aviso: null,
   modal: null,
   taller: null,
+  avisos: [],
+  panel: PANEL_CERRADO,
+  avisoNuevo: null,
 };
 
 let contadorDeAvisos = 0;
@@ -246,6 +277,22 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
       const parcial = typeof cambio === 'function' ? cambio(estado.taller) : cambio;
       return { taller: { ...estado.taller, ...parcial } };
     }),
+
+  ponerAvisos: (avisos) => set({ avisos }),
+  abrirPanel: (foco = null) =>
+    set((estado) => ({
+      panel: {
+        abierto: true,
+        filtro: foco ? 'todas' : estado.panel.filtro,
+        respuesta: null,
+        foco,
+      },
+      avisoNuevo: null,
+    })),
+  cerrarPanel: () => set((estado) => ({ panel: { ...estado.panel, abierto: false } })),
+  actualizarPanel: (cambio) => set((estado) => ({ panel: { ...estado.panel, ...cambio } })),
+  mostrarAvisoNuevo: (aviso, cantidad) => set({ avisoNuevo: { aviso, cantidad } }),
+  ocultarAvisoNuevo: () => set({ avisoNuevo: null }),
 
   editarBorrador: (cambio) =>
     set((estado) => {

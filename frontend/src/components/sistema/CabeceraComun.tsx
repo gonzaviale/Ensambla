@@ -1,5 +1,6 @@
 import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
 import { useSistemaStore } from '@/stores/sistemaStore';
+import { Campana } from './avisos/Campana';
 import { TopBar, type SeccionActiva } from './TopBar';
 
 // El `commonHeader()` del mockup: la barra de arriba conectada al router, al store y a la sesión.
@@ -14,6 +15,7 @@ export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
       active={active}
       nombre={nombre}
       sistemas={sistemas}
+      campana={<Campana />}
       onInicio={() => void navegacion.irAInicio()}
       onSistemas={() => void navegacion.irAMisSistemas()}
       onPlantillas={() => void navegacion.irAPlantillas()}

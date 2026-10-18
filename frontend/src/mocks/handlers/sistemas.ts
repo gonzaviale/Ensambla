@@ -14,9 +14,9 @@ function erroresDeCampos(error: { issues: { path: PropertyKey[]; message: string
 // Los sistemas de la persona. El backend real los guardará por negocio; acá, por cuenta.
 export const handlersSistemas = [
   http.get(api('/sistemas'), async ({ request }) => {
-    await delay(LATENCIA_BACKEND_MS);
     const { usuario, error } = cuenta(request);
     if (error) return error;
+    await delay(LATENCIA_BACKEND_MS);
     return HttpResponse.json(
       [...sistemasDe(usuario.email)].sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
     );
@@ -24,9 +24,9 @@ export const handlersSistemas = [
 
   // Guarda el sistema entero: crea si no existe y reemplaza si existe (se puede reintentar sin duplicar).
   http.put(api('/sistemas/:id'), async ({ request, params }) => {
-    await delay(LATENCIA_BACKEND_MS);
     const { usuario, error } = cuenta(request, true);
     if (error) return error;
+    await delay(LATENCIA_BACKEND_MS);
     const cuerpo = sistemaSchema.safeParse(await request.json());
     if (!cuerpo.success) {
       return errorResponse(
@@ -51,9 +51,9 @@ export const handlersSistemas = [
   }),
 
   http.delete(api('/sistemas/:id'), async ({ request, params }) => {
-    await delay(LATENCIA_BACKEND_MS);
     const { usuario, error } = cuenta(request, true);
     if (error) return error;
+    await delay(LATENCIA_BACKEND_MS);
     const actuales = sistemasDe(usuario.email);
     if (!actuales.some((sistema) => sistema.id === params.id)) {
       return errorResponse(404, 'Sistema no encontrado', pathDe(request));
@@ -66,16 +66,16 @@ export const handlersSistemas = [
   }),
 
   http.get(api('/preferencias'), async ({ request }) => {
-    await delay(LATENCIA_BACKEND_MS);
     const { usuario, error } = cuenta(request);
     if (error) return error;
+    await delay(LATENCIA_BACKEND_MS);
     return HttpResponse.json(preferenciasDe(usuario.email));
   }),
 
   http.put(api('/preferencias'), async ({ request }) => {
-    await delay(LATENCIA_BACKEND_MS);
     const { usuario, error } = cuenta(request, true);
     if (error) return error;
+    await delay(LATENCIA_BACKEND_MS);
     const cuerpo = preferenciasSchema.safeParse(await request.json());
     if (!cuerpo.success) {
       return errorResponse(

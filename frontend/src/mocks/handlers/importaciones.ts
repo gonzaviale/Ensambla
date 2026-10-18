@@ -10,9 +10,9 @@ const DEMORA_DE_LECTURA_MS = import.meta.env.MODE === 'test' ? 0 : 650;
 // de negocio de muestra. Cuando exista el servicio real, cambia sólo este handler.
 export const handlersImportaciones = [
   http.post(api('/importaciones/lectura'), async ({ request }) => {
-    await delay(DEMORA_DE_LECTURA_MS);
     const { error } = cuenta(request, true);
     if (error) return error;
+    await delay(DEMORA_DE_LECTURA_MS);
     const pedido = pedidoDeLecturaSchema.safeParse(await request.json());
     if (!pedido.success) {
       return errorResponse(400, 'No se pudo leer la imagen', pathDe(request));

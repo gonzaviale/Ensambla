@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Outlet } from '@tanstack/react-router';
+import { MotorDeAvisos } from '@/components/sistema/avisos/MotorDeAvisos';
 import { IconSprite } from '@/components/sistema/IconSprite';
 import { ModalHost } from '@/components/sistema/ModalHost';
 import { Toast } from '@/components/sistema/Toast';
@@ -51,5 +52,11 @@ function SistemaConDatos({ usuarioId }: { usuarioId: string }) {
     hidratar(usuarioId, sistemas);
   }, [hidratar, usuarioId, sistemas]);
 
-  return hidratado ? <Outlet /> : null;
+  if (!hidratado) return null;
+  return (
+    <>
+      <Outlet />
+      <MotorDeAvisos />
+    </>
+  );
 }

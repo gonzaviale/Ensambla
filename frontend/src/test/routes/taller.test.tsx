@@ -6,6 +6,7 @@ import { useSistemaStore } from '@/stores/sistemaStore';
 import { renderApp } from '@/test/renderApp';
 import {
   ESPERA,
+  verifyToastAsync,
   clickButton,
   setupUsuarioConSesion,
   verifyHeadingPresentAsync,
@@ -60,10 +61,7 @@ describe('el taller de Sami', () => {
     await user.type(screen.getByLabelText('Contame un poco de tu negocio'), 'hola');
     await clickButton(user, /Pensalo conmigo/);
 
-    await waitFor(
-      () => expect(screen.getByRole('status')).toHaveTextContent(/Contame un poquito más/),
-      ESPERA,
-    );
+    await verifyToastAsync(/Contame un poquito más/);
     expect(useSistemaStore.getState().taller?.borrador).toBeNull();
   });
 
