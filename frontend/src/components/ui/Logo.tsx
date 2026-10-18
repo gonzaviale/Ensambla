@@ -20,9 +20,9 @@ export function Isotipo({ className }: { className?: string }) {
 
 export function Logo() {
   return (
-    <span className="flex items-center gap-2">
-      <Isotipo />
-      <span className="text-lg font-extrabold tracking-tight">Ensambla</span>
+    <span className="flex items-center gap-2.5">
+      <Isotipo className="size-8" />
+      <span className="text-xl font-extrabold tracking-tight text-petrol">Ensambla</span>
     </span>
   );
 }

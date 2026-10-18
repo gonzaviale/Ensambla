@@ -6,10 +6,8 @@ import '@/styles/index.css';
 
 async function iniciar() {
   if (env.mocks !== 'ninguno') {
-    const { worker } = await import('@/mocks/browser');
-    await worker.start({ onUnhandledRequest: 'bypass', quiet: true }).catch((error: unknown) => {
-      console.error('No se pudo iniciar la API simulada (MSW)', error);
-    });
+    const { iniciarMocks } = await import('@/mocks/browser');
+    await iniciarMocks();
   }
 
   const root = document.getElementById('root');

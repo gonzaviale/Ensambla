@@ -14,7 +14,7 @@ export function RegistroPage() {
         </>
       }
     >
-      <RegistroForm onExito={() => void router.navigate({ to: '/proyectos' })} />
+      <RegistroForm onExito={() => void router.navigate({ to: '/inicio' })} />
     </AuthCard>
   );
 }

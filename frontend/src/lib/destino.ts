@@ -1,4 +1,4 @@
-export const DESTINO_POR_DEFECTO = '/proyectos';
+export const DESTINO_POR_DEFECTO = '/inicio';
 
 // El destino post-login viaja en la URL: solo se acepta una ruta interna (evita redirecciones abiertas).
 export function destinoSeguro(destino: string | undefined): string {

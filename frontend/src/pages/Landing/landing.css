@@ -6,35 +6,35 @@
 /* ---------- Tokens de marca ---------- */
 .landing {
   /* Paleta oficial */
-  --naranja: #f97316;
-  --coral: #fb5852;
-  --arena: #e6c9a8;
-  --pizarra: #263443;
-  --marfil: #fff8f1;
-  --ambar: #f59e0b;
+  --naranja: var(--color-accent);
+  --coral: var(--color-coral);
+  --arena: var(--color-blue);
+  --pizarra: var(--color-petrol);
+  --marfil: var(--color-canvas);
+  --ambar: var(--color-yellow);
 
   /* Derivados accesibles (texto de acción sobre fondo claro) */
-  --naranja-700: #c2410c;
-  --naranja-800: #9a3412;
+  --naranja-700: var(--color-accent-700);
+  --naranja-800: var(--color-accent-800);
 
   /* Tema claro (por defecto) */
   --fondo: var(--marfil);
-  --fondo-tono: #fbeedf;
+  --fondo-tono: var(--color-cream);
   --superficie: #ffffff;
-  --superficie-2: #fdf3e8;
-  --texto: var(--pizarra);
-  --texto-suave: #3e4b59;
-  --texto-tenue: #5a6570;
+  --superficie-2: var(--color-sage);
+  --texto: var(--color-fg);
+  --texto-suave: var(--color-soft);
+  --texto-tenue: var(--color-muted);
   --borde: rgba(38, 52, 67, 0.12);
   --borde-fuerte: rgba(38, 52, 67, 0.22);
-  --enlace: var(--naranja-700);
+  --enlace: var(--color-petrol);
   --grilla: rgba(38, 52, 67, 0.06);
   --sombra: 0 1px 2px rgba(38, 52, 67, 0.06), 0 10px 30px -12px rgba(38, 52, 67, 0.18);
   --sombra-alta: 0 2px 4px rgba(38, 52, 67, 0.06), 0 24px 50px -18px rgba(38, 52, 67, 0.28);
   --iso-pizarra: var(--pizarra);
   --oscura-fondo: var(--pizarra);
   --oscura-texto: var(--marfil);
-  --deco: rgba(230, 201, 168, 0.35);
+  --deco: #4eb2d433;
 
   /* Tipografía */
   --fuente:
@@ -1865,10 +1865,7 @@
     var(--sombra),
     inset 0 0 0 1px var(--borde);
   transform: rotate(-3deg);
-  background-image: repeating-linear-gradient(
-    transparent 0 31px,
-    rgba(38, 52, 67, 0.14) 31px 32px
-  );
+  background-image: repeating-linear-gradient(transparent 0 31px, rgba(38, 52, 67, 0.14) 31px 32px);
 }
 .landing .foto__hoja p {
   margin: 0;

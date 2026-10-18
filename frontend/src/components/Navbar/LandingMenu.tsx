@@ -16,7 +16,7 @@ const enlace =
 // Anclas a las secciones de la landing, en línea desde md.
 export function LandingLinks() {
   return (
-    <nav aria-label="Secciones" className="ml-4 hidden items-center gap-1 md:flex">
+    <nav aria-label="Secciones" className="ml-4 hidden items-center gap-1 xl:flex">
       {SECCIONES.map(({ id, nombre }) => (
         <a key={id} href={`#${id}`} className={enlace}>
           {nombre}
@@ -48,7 +48,7 @@ export function LandingMenu() {
   }, [abierto]);
 
   return (
-    <div ref={contenedor} className="md:hidden">
+    <div ref={contenedor} className="xl:hidden">
       <button
         type="button"
         aria-label={abierto ? 'Cerrar menú' : 'Abrir menú'}

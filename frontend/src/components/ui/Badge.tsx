@@ -4,8 +4,8 @@ import { cn } from '@/lib/cn';
 export type BadgeTone = 'neutral' | 'accent' | 'ok' | 'warn' | 'bad';
 
 const tones: Record<BadgeTone, string> = {
-  neutral: 'bg-sand-100 text-soft',
-  accent: 'bg-accent-100 text-accent-800',
+  neutral: 'bg-soft-surface text-soft',
+  accent: 'bg-petrol-100 text-petrol',
   ok: 'bg-ok/12 text-ok',
   warn: 'bg-amber-100 text-amber-700',
   bad: 'bg-coral-100 text-bad',
