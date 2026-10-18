@@ -63,6 +63,7 @@ export function PlantillasPage() {
                 key={valor}
                 type="button"
                 className={filtro === valor ? 'active' : ''}
+                data-accion="filter-template"
                 onClick={() => setFiltro(valor)}
               >
                 {etiqueta}
@@ -81,7 +82,7 @@ export function PlantillasPage() {
             />
           </label>
         </div>
-        <div className="template-grid">
+        <div className="template-grid" data-tour="pickTemplate">
           {CLAVES.map((clave) => (
             <TemplateCard
               key={clave}

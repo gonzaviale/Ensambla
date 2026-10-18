@@ -9,19 +9,20 @@ const ANCHOS: { valor: Ancho; etiqueta: string; titulo: string }[] = [
 type WidthButtonsProps = {
   ancho: Ancho;
   onElegir: (ancho: Ancho) => void;
-  /** Los botones del tutorial se reconocen por este atributo. */
-  tour?: string;
+  /** El nombre de la acción de los botones: el tutorial decide con él qué deja tocar. */
+  accion?: string;
 };
 
-export function WidthButtons({ ancho, onElegir, tour }: WidthButtonsProps) {
+export function WidthButtons({ ancho, onElegir, accion = 'set-width' }: WidthButtonsProps) {
   return (
-    <div className="width-buttons" role="group" aria-label="Ancho del bloque" data-tour={tour}>
+    <div className="width-buttons" role="group" aria-label="Ancho del bloque">
       {ANCHOS.map(({ valor, etiqueta, titulo }) => (
         <button
           key={valor}
           type="button"
           className={ancho === valor ? 'active' : ''}
           aria-pressed={ancho === valor}
+          data-accion={accion}
           title={titulo}
           aria-label={titulo}
           onClick={() => onElegir(valor)}

@@ -4,10 +4,12 @@ import { MotorDeAvisos } from '@/components/sistema/avisos/MotorDeAvisos';
 import { IconSprite } from '@/components/sistema/IconSprite';
 import { ModalHost } from '@/components/sistema/ModalHost';
 import { Toast } from '@/components/sistema/Toast';
+import { Tutorial } from '@/components/sistema/tutorial/Tutorial';
 import { useUsuarioOpcional } from '@/hooks/auth/queries';
 import { usePreferencias } from '@/hooks/preferencias/queries';
 import { useSistemasDelServidor } from '@/hooks/sistemas/queries';
 import { useSincronizarSistemas } from '@/hooks/sistemas/useSincronizarSistemas';
+import { useBienvenida } from '@/hooks/tutorial/useBienvenida';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import '@/styles/sistema/index.css';
 
@@ -53,10 +55,17 @@ function SistemaConDatos({ usuarioId }: { usuarioId: string }) {
   }, [hidratar, usuarioId, sistemas]);
 
   if (!hidratado) return null;
+  return <PantallaConAvisosYGuia />;
+}
+
+// Lo que acompaña a todas las pantallas: avisos de Sami, la bienvenida y la guía interactiva.
+function PantallaConAvisosYGuia() {
+  useBienvenida();
   return (
     <>
       <Outlet />
       <MotorDeAvisos />
+      <Tutorial />
     </>
   );
 }

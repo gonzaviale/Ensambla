@@ -64,7 +64,7 @@ export function ModalRegistro({ bloqueId, filaId }: { bloqueId: string; filaId?:
         {AYUDA[bloque.type] ??
           'Los campos con * son obligatorios. Completá los datos que te sirven.'}
       </p>
-      <form ref={formulario} onSubmit={guardar} noValidate>
+      <form ref={formulario} data-tour="fillRecord" onSubmit={guardar} noValidate>
         <div className="record-form-grid">
           {bloque.fields.map((campo) => (
             <CampoDeFormulario
@@ -89,7 +89,7 @@ export function ModalRegistro({ bloqueId, filaId }: { bloqueId: string; filaId?:
             <span />
           )}
           <div className="row">
-            <Btn cls="secondary" onClick={cerrarModal}>
+            <Btn cls="secondary" data-accion="close-modal" onClick={cerrarModal}>
               Cancelar
             </Btn>
             <button type="submit" className="btn primary">

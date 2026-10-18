@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { clone } from '@/lib/sistema/core';
 import type { Aviso, Respuesta } from '@/lib/sistema/alertas';
 import type { Bloque, ClavePlantilla, Seccion, Sistema } from '@/lib/sistema/tipos';
+import { TUTORIAL_INICIAL, type EstadoDelTutorial } from '@/lib/sistema/tutorial';
 
 // El estado del taller y del editor: los sistemas de la persona y lo que está haciendo con ellos. Es el
 // equivalente a las variables de módulo de app.js del mockup; ahora los componentes lo leen del store y
@@ -18,6 +19,7 @@ export type Modal =
   | { tipo: 'renombrarPieza'; bloqueId: string }
   | { tipo: 'registro'; bloqueId: string; filaId?: string | null }
   | { tipo: 'campo'; bloqueId: string; clave?: string | null }
+  | { tipo: 'bienvenida' }
   | { tipo: 'secciones' }
   | { tipo: 'agregarSeccion' }
   | { tipo: 'elegirBloque' }
@@ -95,6 +97,8 @@ type EstadoDelStore = {
   panel: PanelDeAvisos;
   /** «Sami vio un cambio»: el aviso nuevo que se muestra un rato arriba a la derecha. */
   avisoNuevo: { aviso: Aviso; cantidad: number } | null;
+  /** El tutorial interactivo: en qué paso va y con qué está practicando la persona. */
+  tutorial: EstadoDelTutorial;
 };
 
 type Acciones = {
@@ -129,6 +133,8 @@ type Acciones = {
   actualizarPanel: (cambio: Partial<PanelDeAvisos>) => void;
   mostrarAvisoNuevo: (aviso: Aviso, cantidad: number) => void;
   ocultarAvisoNuevo: () => void;
+  /** Cambia lo que el tutorial recuerda (el paso, el bloque, etc.). */
+  ponerTutorial: (cambio: Partial<EstadoDelTutorial>) => void;
 };
 
 export type SistemaStore = EstadoDelStore & Acciones;
@@ -150,6 +156,7 @@ const ESTADO_INICIAL: EstadoDelStore = {
   avisos: [],
   panel: PANEL_CERRADO,
   avisoNuevo: null,
+  tutorial: TUTORIAL_INICIAL,
 };
 
 let contadorDeAvisos = 0;
@@ -293,6 +300,7 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
   actualizarPanel: (cambio) => set((estado) => ({ panel: { ...estado.panel, ...cambio } })),
   mostrarAvisoNuevo: (aviso, cantidad) => set({ avisoNuevo: { aviso, cantidad } }),
   ocultarAvisoNuevo: () => set({ avisoNuevo: null }),
+  ponerTutorial: (cambio) => set((estado) => ({ tutorial: { ...estado.tutorial, ...cambio } })),
 
   editarBorrador: (cambio) =>
     set((estado) => {

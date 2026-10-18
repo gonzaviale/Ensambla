@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { ModalAgregarSeccion } from './modales/ModalAgregarSeccion';
 import { ModalAyuda } from './modales/ModalAyuda';
+import { ModalBienvenida } from './modales/ModalBienvenida';
 import { ModalBlanco } from './modales/ModalBlanco';
 import { ModalCampo } from './modales/ModalCampo';
 import { ModalConfirmar } from './modales/ModalConfirmar';
@@ -23,6 +24,8 @@ function ContenidoDelModal() {
   const modal = useSistemaStore((estado) => estado.modal);
   if (!modal) return null;
   switch (modal.tipo) {
+    case 'bienvenida':
+      return <ModalBienvenida />;
     case 'blanco':
       return <ModalBlanco />;
     case 'plantilla':

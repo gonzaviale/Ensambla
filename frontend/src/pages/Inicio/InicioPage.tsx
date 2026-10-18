@@ -11,6 +11,7 @@ import { COLORS, TEMPLATES } from '@/lib/sistema/catalogo';
 import { allBlocks, applyLayout, makeTemplate, totals } from '@/lib/sistema/core';
 import type { ClavePlantilla, Distribucion } from '@/lib/sistema/tipos';
 import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
+import { useAccionesDelTutorial } from '@/hooks/tutorial/useAccionesDelTutorial';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
 const CLAVES = Object.keys(TEMPLATES) as ClavePlantilla[];
@@ -20,7 +21,7 @@ export function InicioPage() {
   const nombre = useNombre();
   const sistemas = useSistemaStore((estado) => estado.sistemas);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
-  const avisar = useSistemaStore((estado) => estado.avisar);
+  const tutorial = useAccionesDelTutorial();
   const navegacion = useNavegacion();
   const [distribucion, setDistribucion] =
     useState<Extract<Distribucion, 'mosaic' | 'single'>>('mosaic');
@@ -55,22 +56,19 @@ export function InicioPage() {
               <div>
                 <strong>Soy Sami. Lo armamos juntos.</strong>
                 <span>Te acompaño desde tu primer bloque.</span>
-                <button
-                  type="button"
-                  className="text-link"
-                  onClick={() => avisar('El recorrido guiado llega más adelante.')}
-                >
+                <button type="button" className="text-link" onClick={tutorial.empezar}>
                   Mostrarme cómo empezar <Icon name="arrow" />
                 </button>
               </div>
             </div>
             <div className="hero-actions">
-              <Btn cls="primary" onClick={() => void navegacion.irATaller()}>
+              <Btn cls="primary" data-accion="guide" onClick={() => void navegacion.irATaller()}>
                 Armémoslo con Sami <Icon name="arrow" />
               </Btn>
               <button
                 type="button"
                 className="text-link"
+                data-accion="templates"
                 onClick={() => void navegacion.irAPlantillas()}
               >
                 Quiero ver plantillas
@@ -147,7 +145,7 @@ export function InicioPage() {
           <h2>Tres puertas. El mismo lugar para crear.</h2>
           <span />
         </div>
-        <section className="start-grid start-grid-v2">
+        <section className="start-grid start-grid-v2" data-tour="choose">
           <article className="route-card sami-route">
             <span className="card-tag">TU PRIMER SISTEMA, ACOMPAÑADO</span>
             <Sami />
@@ -161,7 +159,7 @@ export function InicioPage() {
               está lista.
             </p>
             <div className="card-foot">
-              <Btn cls="orange" onClick={() => void navegacion.irATaller()}>
+              <Btn cls="orange" data-accion="guide" onClick={() => void navegacion.irATaller()}>
                 Crear con Sami <Icon name="arrow" />
               </Btn>
             </div>
@@ -188,7 +186,11 @@ export function InicioPage() {
               ventaja.
             </p>
             <div className="card-foot">
-              <Btn cls="secondary" onClick={() => void navegacion.irAPlantillas()}>
+              <Btn
+                cls="secondary"
+                data-accion="templates"
+                onClick={() => void navegacion.irAPlantillas()}
+              >
                 Elegir una plantilla <Icon name="arrow" />
               </Btn>
             </div>
@@ -211,7 +213,11 @@ export function InicioPage() {
               quieras.
             </p>
             <div className="card-foot">
-              <Btn cls="secondary" onClick={() => abrirModal({ tipo: 'blanco' })}>
+              <Btn
+                cls="secondary"
+                data-accion="blank"
+                onClick={() => abrirModal({ tipo: 'blanco' })}
+              >
                 Empezar de cero <Icon name="arrow" />
               </Btn>
             </div>

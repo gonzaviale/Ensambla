@@ -86,6 +86,7 @@ function Registros({
         <button
           type="button"
           className="text-link"
+          data-accion="add-record"
           onClick={() => abrirModal({ tipo: 'registro', bloqueId: bloque.id })}
         >
           Cargá el primero <Icon name="arrow" />
@@ -141,6 +142,7 @@ function Registros({
                   <IconBtn
                     name="edit"
                     label="Editar registro"
+                    data-accion="edit-record"
                     onClick={() =>
                       abrirModal({ tipo: 'registro', bloqueId: bloque.id, filaId: fila.id })
                     }
@@ -229,6 +231,8 @@ export function BloqueEnLienzo({
         .trim()}
       style={estilo}
       data-block={bloque.id}
+      data-tour="done"
+      data-tour-id={bloque.id}
       data-width={bloque.width}
       aria-label={bloque.name}
     >
@@ -239,13 +243,14 @@ export function BloqueEnLienzo({
           <p>{bloque.description}</p>
         </div>
         {modo === 'build' && (
-          <div className="block-tools">
+          <div className="block-tools" data-tour="move" data-tour-id={bloque.id}>
             <button
               type="button"
               className="icon-btn"
               title="Arrastrar bloque"
               aria-label="Arrastrar bloque"
               draggable
+              data-accion="noop"
               data-drag-kind="block"
               data-value={bloque.id}
               onDragStart={(evento) => onArrastrar(evento, { tipo: 'bloque', valor: bloque.id })}
@@ -256,28 +261,35 @@ export function BloqueEnLienzo({
             <IconBtn
               name="up"
               label="Mover arriba"
+              data-accion="move-up"
               disabled={primero}
               onClick={() => moverBloque(bloque.id, 'arriba')}
             />
             <IconBtn
               name="down"
               label="Mover abajo"
+              data-accion="move-down"
               disabled={ultimo}
               onClick={() => moverBloque(bloque.id, 'abajo')}
             />
             <IconBtn
               name="settings"
               label="Personalizar bloque"
+              data-accion="select-block"
+              data-tour="customize"
+              data-tour-id={bloque.id}
               onClick={() => seleccionar(bloque.id)}
             />
             <IconBtn
               name="copy"
               label="Duplicar bloque"
+              data-accion="duplicate-block"
               onClick={() => duplicarBloque(bloque.id)}
             />
             <IconBtn
               name="trash"
               label="Quitar bloque"
+              data-accion="delete-block"
               onClick={() => pedirQuitarBloque(bloque.id)}
             />
           </div>
@@ -321,6 +333,9 @@ export function BloqueEnLienzo({
             <span className="record-count">{bloque.rows.length} registros</span>
             <Btn
               cls="soft small"
+              data-accion="add-record"
+              data-tour="openRecord"
+              data-tour-id={bloque.id}
               onClick={() => abrirModal({ tipo: 'registro', bloqueId: bloque.id })}
             >
               <Icon name="plus" /> Registrar

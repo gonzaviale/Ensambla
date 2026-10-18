@@ -175,7 +175,7 @@ export function TallerPage() {
                 </div>
               ))}
               {taller.pensando && (
-                <div className="thinking-bubble">
+                <div className="thinking-bubble" data-tour="describe-pensando">
                   <Sami pose="think" />
                   <div>
                     <strong>Estoy buscando qué piezas encajan…</strong>
@@ -218,7 +218,7 @@ export function TallerPage() {
                 ))}
               </div>
             )}
-            <form className="guide-composer" onSubmit={alEnviar}>
+            <form className="guide-composer" data-tour="describe" onSubmit={alEnviar}>
               <label htmlFor="guide-message">
                 {borrador ? '¿Qué le falta? ¿Qué cambiarías?' : 'Contame un poco de tu negocio'}
               </label>
@@ -238,6 +238,7 @@ export function TallerPage() {
               <div className="row between">
                 <Btn
                   cls="ghost small"
+                  data-accion="guide-photo"
                   aria-label="Aportar una foto o captura"
                   onClick={() =>
                     abrirModal({
@@ -339,7 +340,7 @@ export function TallerPage() {
                   onSoltar={soltar}
                   onFinArrastre={terminarArrastre}
                 />
-                <div className="draft-footer">
+                <div className="draft-footer" data-tour="create">
                   <div>
                     <Icon name="check-circle" />
                     <span>
@@ -347,7 +348,7 @@ export function TallerPage() {
                       <small>Podés seguir ajustándolo después de crearlo.</small>
                     </span>
                   </div>
-                  <Btn cls="primary" onClick={crearSistema}>
+                  <Btn cls="primary" data-accion="guide-create" onClick={crearSistema}>
                     Sí, crear mi sistema <Icon name="arrow" />
                   </Btn>
                 </div>

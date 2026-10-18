@@ -211,10 +211,11 @@ export function PreviewBoard({
               )}
             </div>
             {editable && (
-              <div className="preview-sizing">
+              <div className="preview-sizing" data-tour="review">
                 <span>Arrastrá para ordenar</span>
                 <WidthButtons
                   ancho={bloque.width}
+                  accion="draft-width"
                   onElegir={(ancho) => onAncho?.(bloque.id, ancho)}
                 />
               </div>

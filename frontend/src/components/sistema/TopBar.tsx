@@ -35,7 +35,12 @@ export function TopBar({
     <header className="topbar">
       <Logo onClick={onInicio} />
       <nav className="topnav" aria-label="Principal">
-        <button type="button" className={active === 'home' ? 'active' : ''} onClick={onInicio}>
+        <button
+          type="button"
+          className={active === 'home' ? 'active' : ''}
+          data-accion="home"
+          onClick={onInicio}
+        >
           Inicio
         </button>
         <button type="button" onClick={onSistemas}>

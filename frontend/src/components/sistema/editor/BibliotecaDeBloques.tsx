@@ -46,7 +46,13 @@ export function BibliotecaDeBloques({
     <aside className={`block-library ${abiertaEnCelular ? 'mobile-open' : ''}`.trim()}>
       <div className="row between library-head">
         <h2>Tus piezas</h2>
-        <IconBtn name="close" label="Cerrar catálogo" data-mobile-close="true" onClick={onCerrar} />
+        <IconBtn
+          name="close"
+          label="Cerrar catálogo"
+          data-mobile-close="true"
+          data-accion="close-library"
+          onClick={onCerrar}
+        />
       </div>
       <p className="small-text muted" style={{ fontSize: 10, margin: '5px 0 12px' }}>
         Arrastrá una pieza o tocá +.
@@ -94,6 +100,12 @@ export function BibliotecaDeBloques({
                     tabIndex={0}
                     draggable
                     hidden={!texto.includes(buscado)}
+                    data-accion="add-block"
+                    data-tour={
+                      definicion.fields.length > 0 && !['entries', 'exits'].includes(tipo)
+                        ? 'agregar-pieza'
+                        : undefined
+                    }
                     data-drag-kind="catalog"
                     data-value={tipo}
                     aria-label={`Agregar ${definicion.name}`}

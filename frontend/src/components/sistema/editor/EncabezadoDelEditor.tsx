@@ -39,6 +39,7 @@ export function EncabezadoDelEditor({
         <button
           type="button"
           className="editor-crumb"
+          data-accion="home"
           title="Volver a mis sistemas"
           onClick={onInicio}
         >
@@ -54,6 +55,8 @@ export function EncabezadoDelEditor({
           <button
             type="button"
             className={modo === 'build' ? 'active' : ''}
+            data-accion="mode"
+            data-tour="buildMode"
             aria-pressed={modo === 'build'}
             onClick={() => onModo('build')}
           >
@@ -63,6 +66,8 @@ export function EncabezadoDelEditor({
           <button
             type="button"
             className={modo === 'use' ? 'active' : ''}
+            data-accion="mode"
+            data-tour="useMode"
             aria-pressed={modo === 'use'}
             onClick={() => onModo('use')}
           >

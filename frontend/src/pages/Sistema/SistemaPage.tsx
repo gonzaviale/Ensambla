@@ -180,7 +180,12 @@ export function SistemaPage() {
             </div>
             <div className="canvas-heading-actions">
               {construyendo && (
-                <Btn cls="secondary mobile-blocks" onClick={() => setBibliotecaAbierta(true)}>
+                <Btn
+                  cls="secondary mobile-blocks"
+                  data-accion="mobile-library"
+                  data-tour="agregar-pieza-movil"
+                  onClick={() => setBibliotecaAbierta(true)}
+                >
                   <Icon name="plus" /> Bloques
                 </Btn>
               )}
@@ -257,6 +262,7 @@ export function SistemaPage() {
           <div
             className={`canvas-grid ${arrastre.sobre?.destino === '#canvas-drop' ? 'drop-active' : ''}`.trim()}
             id="canvas-drop"
+            data-tour="lienzo"
             aria-label={`Bloques de ${seccion.name}`}
           >
             {bloques.length ? (
@@ -297,12 +303,18 @@ export function SistemaPage() {
                 <div className="row">
                   {construyendo ? (
                     (['inventory', 'orders', 'clients'] as TipoBloque[]).map((tipo) => (
-                      <Btn key={tipo} cls="secondary" onClick={() => agregarBloque(tipo)}>
+                      <Btn
+                        key={tipo}
+                        cls="secondary"
+                        data-accion="add-block"
+                        data-tour="agregar-pieza-vacio"
+                        onClick={() => agregarBloque(tipo)}
+                      >
                         <Icon name={CATALOG[tipo].icon} /> {CATALOG[tipo].name}
                       </Btn>
                     ))
                   ) : (
-                    <Btn cls="primary" onClick={() => cambiarModo('build')}>
+                    <Btn cls="primary" data-accion="mode" onClick={() => cambiarModo('build')}>
                       Agregar mi primer bloque
                     </Btn>
                   )}

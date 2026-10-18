@@ -45,6 +45,7 @@ function TextoAlSalir({
   area?: boolean;
   id: string;
   maxLength: number;
+  'data-tour'?: string;
 }) {
   const [escrito, setEscrito] = useState(valor);
   useEffect(() => setEscrito(valor), [valor]);
@@ -117,6 +118,7 @@ export function Inspector({ bloque, sistema }: { bloque: Bloque | undefined; sis
         <label htmlFor="block-name">Nombre</label>
         <TextoAlSalir
           id="block-name"
+          data-tour="rename"
           maxLength={80}
           valor={bloque.name}
           alGuardar={(valor) => valor && cambiarDatoDelBloque(bloque.id, 'name', valor)}

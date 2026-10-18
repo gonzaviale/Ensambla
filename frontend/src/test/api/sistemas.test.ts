@@ -79,7 +79,7 @@ describe('API de sistemas', () => {
 
 describe('API de preferencias', () => {
   it('arranca con todo prendido y guarda lo que la persona decide', async () => {
-    setupUsuarioConSesion();
+    setupUsuarioConSesion({}, { bienvenidaVista: false });
 
     expect(await obtenerPreferencias()).toEqual({
       descartadas: [],
