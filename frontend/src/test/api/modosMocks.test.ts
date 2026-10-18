@@ -8,22 +8,13 @@ const rutas = (modo: Parameters<typeof handlersPara>[0]) =>
   });
 
 describe('API simulada según VITE_API_MOCKS', () => {
-  it('en modo completo simula bloques y campos', () => {
+  it('en modo completo simula la sesión', () => {
     expect(rutas('completo')).toEqual(
-      expect.arrayContaining([
-        'GET /proyectos/:proyectoId/bloques',
-        'POST /proyectos/:proyectoId/bloques',
-        'PATCH /bloques/:bloqueId',
-        'DELETE /bloques/:bloqueId',
-        'GET /bloques/:bloqueId/campos',
-        'POST /bloques/:bloqueId/campos',
-        'PATCH /campos/:campoId',
-        'DELETE /campos/:campoId',
-      ]),
+      expect.arrayContaining(['POST /auth/login', 'POST /auth/register', 'GET /auth/me']),
     );
   });
 
-  it('en modo parcial deja bloques (T-017) y campos (T-018) al backend real', () => {
+  it('en modo parcial deja todo al backend real', () => {
     expect(rutas('parcial')).toEqual([]);
   });
 

@@ -11,16 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicaRouteImport } from './routes/_publica'
+import { Route as AppInicioRouteImport } from './routes/_app/inicio'
 import { Route as PublicaIndexRouteImport } from './routes/_publica/index'
 import { Route as PublicaLoginRouteImport } from './routes/_publica/login'
 import { Route as PublicaRegistroRouteImport } from './routes/_publica/registro'
-import { Route as AppCuadernoIndexRouteImport } from './routes/_app/cuaderno.index'
-import { Route as AppCuadernoLoteIdRouteImport } from './routes/_app/cuaderno.$loteId'
-import { Route as AppProyectosIndexRouteImport } from './routes/_app/proyectos.index'
-import { Route as AppProyectosProyectoIdConstruirRouteImport } from './routes/_app/proyectos.$proyectoId.construir'
-import { Route as AppProyectosProyectoIdReportesRouteImport } from './routes/_app/proyectos.$proyectoId.reportes'
-import { Route as AppProyectosProyectoIdStockRouteImport } from './routes/_app/proyectos.$proyectoId.stock'
-import { Route as AppProyectosProyectoIdUsarRouteImport } from './routes/_app/proyectos.$proyectoId.usar'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -29,6 +23,11 @@ const AppRoute = AppRouteImport.update({
 const PublicaRoute = PublicaRouteImport.update({
   id: '/_publica',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppInicioRoute = AppInicioRouteImport.update({
+  id: '/inicio',
+  path: '/inicio',
+  getParentRoute: () => AppRoute,
 } as any)
 const PublicaIndexRoute = PublicaIndexRouteImport.update({
   id: '/',
@@ -45,124 +44,41 @@ const PublicaRegistroRoute = PublicaRegistroRouteImport.update({
   path: '/registro',
   getParentRoute: () => PublicaRoute,
 } as any)
-const AppCuadernoIndexRoute = AppCuadernoIndexRouteImport.update({
-  id: '/cuaderno/',
-  path: '/cuaderno/',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppCuadernoLoteIdRoute = AppCuadernoLoteIdRouteImport.update({
-  id: '/cuaderno/$loteId',
-  path: '/cuaderno/$loteId',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppProyectosIndexRoute = AppProyectosIndexRouteImport.update({
-  id: '/proyectos/',
-  path: '/proyectos/',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppProyectosProyectoIdConstruirRoute =
-  AppProyectosProyectoIdConstruirRouteImport.update({
-    id: '/proyectos/$proyectoId/construir',
-    path: '/proyectos/$proyectoId/construir',
-    getParentRoute: () => AppRoute,
-  } as any)
-const AppProyectosProyectoIdReportesRoute =
-  AppProyectosProyectoIdReportesRouteImport.update({
-    id: '/proyectos/$proyectoId/reportes',
-    path: '/proyectos/$proyectoId/reportes',
-    getParentRoute: () => AppRoute,
-  } as any)
-const AppProyectosProyectoIdStockRoute =
-  AppProyectosProyectoIdStockRouteImport.update({
-    id: '/proyectos/$proyectoId/stock',
-    path: '/proyectos/$proyectoId/stock',
-    getParentRoute: () => AppRoute,
-  } as any)
-const AppProyectosProyectoIdUsarRoute =
-  AppProyectosProyectoIdUsarRouteImport.update({
-    id: '/proyectos/$proyectoId/usar',
-    path: '/proyectos/$proyectoId/usar',
-    getParentRoute: () => AppRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicaIndexRoute
+  '/inicio': typeof AppInicioRoute
   '/login': typeof PublicaLoginRoute
   '/registro': typeof PublicaRegistroRoute
-  '/cuaderno/$loteId': typeof AppCuadernoLoteIdRoute
-  '/cuaderno/': typeof AppCuadernoIndexRoute
-  '/proyectos/': typeof AppProyectosIndexRoute
-  '/proyectos/$proyectoId/construir': typeof AppProyectosProyectoIdConstruirRoute
-  '/proyectos/$proyectoId/reportes': typeof AppProyectosProyectoIdReportesRoute
-  '/proyectos/$proyectoId/stock': typeof AppProyectosProyectoIdStockRoute
-  '/proyectos/$proyectoId/usar': typeof AppProyectosProyectoIdUsarRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicaIndexRoute
+  '/inicio': typeof AppInicioRoute
   '/login': typeof PublicaLoginRoute
   '/registro': typeof PublicaRegistroRoute
-  '/cuaderno/$loteId': typeof AppCuadernoLoteIdRoute
-  '/cuaderno': typeof AppCuadernoIndexRoute
-  '/proyectos': typeof AppProyectosIndexRoute
-  '/proyectos/$proyectoId/construir': typeof AppProyectosProyectoIdConstruirRoute
-  '/proyectos/$proyectoId/reportes': typeof AppProyectosProyectoIdReportesRoute
-  '/proyectos/$proyectoId/stock': typeof AppProyectosProyectoIdStockRoute
-  '/proyectos/$proyectoId/usar': typeof AppProyectosProyectoIdUsarRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_publica': typeof PublicaRouteWithChildren
+  '/_app/inicio': typeof AppInicioRoute
   '/_publica/login': typeof PublicaLoginRoute
   '/_publica/registro': typeof PublicaRegistroRoute
   '/_publica/': typeof PublicaIndexRoute
-  '/_app/cuaderno/$loteId': typeof AppCuadernoLoteIdRoute
-  '/_app/cuaderno/': typeof AppCuadernoIndexRoute
-  '/_app/proyectos/': typeof AppProyectosIndexRoute
-  '/_app/proyectos/$proyectoId/construir': typeof AppProyectosProyectoIdConstruirRoute
-  '/_app/proyectos/$proyectoId/reportes': typeof AppProyectosProyectoIdReportesRoute
-  '/_app/proyectos/$proyectoId/stock': typeof AppProyectosProyectoIdStockRoute
-  '/_app/proyectos/$proyectoId/usar': typeof AppProyectosProyectoIdUsarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/login'
-    | '/registro'
-    | '/cuaderno/$loteId'
-    | '/cuaderno/'
-    | '/proyectos/'
-    | '/proyectos/$proyectoId/construir'
-    | '/proyectos/$proyectoId/reportes'
-    | '/proyectos/$proyectoId/stock'
-    | '/proyectos/$proyectoId/usar'
+  fullPaths: '/' | '/inicio' | '/login' | '/registro'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/login'
-    | '/registro'
-    | '/cuaderno/$loteId'
-    | '/cuaderno'
-    | '/proyectos'
-    | '/proyectos/$proyectoId/construir'
-    | '/proyectos/$proyectoId/reportes'
-    | '/proyectos/$proyectoId/stock'
-    | '/proyectos/$proyectoId/usar'
+  to: '/' | '/inicio' | '/login' | '/registro'
   id:
     | '__root__'
     | '/_app'
     | '/_publica'
+    | '/_app/inicio'
     | '/_publica/login'
     | '/_publica/registro'
     | '/_publica/'
-    | '/_app/cuaderno/$loteId'
-    | '/_app/cuaderno/'
-    | '/_app/proyectos/'
-    | '/_app/proyectos/$proyectoId/construir'
-    | '/_app/proyectos/$proyectoId/reportes'
-    | '/_app/proyectos/$proyectoId/stock'
-    | '/_app/proyectos/$proyectoId/usar'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -186,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/inicio': {
+      id: '/_app/inicio'
+      path: '/inicio'
+      fullPath: '/inicio'
+      preLoaderRoute: typeof AppInicioRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_publica/': {
       id: '/_publica/'
       path: '/'
@@ -207,76 +130,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicaRegistroRouteImport
       parentRoute: typeof PublicaRoute
     }
-    '/_app/cuaderno/': {
-      id: '/_app/cuaderno/'
-      path: '/cuaderno'
-      fullPath: '/cuaderno/'
-      preLoaderRoute: typeof AppCuadernoIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/cuaderno/$loteId': {
-      id: '/_app/cuaderno/$loteId'
-      path: '/cuaderno/$loteId'
-      fullPath: '/cuaderno/$loteId'
-      preLoaderRoute: typeof AppCuadernoLoteIdRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/proyectos/': {
-      id: '/_app/proyectos/'
-      path: '/proyectos'
-      fullPath: '/proyectos/'
-      preLoaderRoute: typeof AppProyectosIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/proyectos/$proyectoId/construir': {
-      id: '/_app/proyectos/$proyectoId/construir'
-      path: '/proyectos/$proyectoId/construir'
-      fullPath: '/proyectos/$proyectoId/construir'
-      preLoaderRoute: typeof AppProyectosProyectoIdConstruirRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/proyectos/$proyectoId/reportes': {
-      id: '/_app/proyectos/$proyectoId/reportes'
-      path: '/proyectos/$proyectoId/reportes'
-      fullPath: '/proyectos/$proyectoId/reportes'
-      preLoaderRoute: typeof AppProyectosProyectoIdReportesRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/proyectos/$proyectoId/stock': {
-      id: '/_app/proyectos/$proyectoId/stock'
-      path: '/proyectos/$proyectoId/stock'
-      fullPath: '/proyectos/$proyectoId/stock'
-      preLoaderRoute: typeof AppProyectosProyectoIdStockRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/proyectos/$proyectoId/usar': {
-      id: '/_app/proyectos/$proyectoId/usar'
-      path: '/proyectos/$proyectoId/usar'
-      fullPath: '/proyectos/$proyectoId/usar'
-      preLoaderRoute: typeof AppProyectosProyectoIdUsarRouteImport
-      parentRoute: typeof AppRoute
-    }
   }
 }
 
 interface AppRouteChildren {
-  AppCuadernoLoteIdRoute: typeof AppCuadernoLoteIdRoute
-  AppCuadernoIndexRoute: typeof AppCuadernoIndexRoute
-  AppProyectosIndexRoute: typeof AppProyectosIndexRoute
-  AppProyectosProyectoIdConstruirRoute: typeof AppProyectosProyectoIdConstruirRoute
-  AppProyectosProyectoIdReportesRoute: typeof AppProyectosProyectoIdReportesRoute
-  AppProyectosProyectoIdStockRoute: typeof AppProyectosProyectoIdStockRoute
-  AppProyectosProyectoIdUsarRoute: typeof AppProyectosProyectoIdUsarRoute
+  AppInicioRoute: typeof AppInicioRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppCuadernoLoteIdRoute: AppCuadernoLoteIdRoute,
-  AppCuadernoIndexRoute: AppCuadernoIndexRoute,
-  AppProyectosIndexRoute: AppProyectosIndexRoute,
-  AppProyectosProyectoIdConstruirRoute: AppProyectosProyectoIdConstruirRoute,
-  AppProyectosProyectoIdReportesRoute: AppProyectosProyectoIdReportesRoute,
-  AppProyectosProyectoIdStockRoute: AppProyectosProyectoIdStockRoute,
-  AppProyectosProyectoIdUsarRoute: AppProyectosProyectoIdUsarRoute,
+  AppInicioRoute: AppInicioRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

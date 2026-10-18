@@ -1,0 +1,6 @@
+/* Diferencias con el mockup. Todo lo demás está en los archivos originales. */
+
+/* Lo que en el mockup hacía `body`: aquí el contenedor de la app ocupa la pantalla. */
+.mk-root {
+  min-height: 100dvh;
+}
