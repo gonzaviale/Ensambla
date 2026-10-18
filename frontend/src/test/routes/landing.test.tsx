@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderApp } from '@/test/renderApp';
 import { verifyHeadingPresentAsync } from '@/test/testHelpers';
 
@@ -176,6 +176,32 @@ describe('landing', () => {
         'aria-expanded',
         'false',
       );
+    });
+  });
+
+  describe('volver arriba', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it('el botón de la esquina lleva al principio de la página', async () => {
+      const irA = vi.fn();
+      vi.stubGlobal('scrollTo', irA);
+      const user = await abrirLanding();
+
+      await user.click(screen.getByRole('button', { name: 'Volver arriba', hidden: true }));
+
+      expect(irA).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+      vi.unstubAllGlobals();
+    });
+
+    it('el logo del encabezado también lleva al principio sin cambiar de página', async () => {
+      const irA = vi.fn();
+      vi.stubGlobal('scrollTo', irA);
+      const user = await abrirLanding();
+
+      await user.click(screen.getAllByRole('link', { name: 'Ensambla, ir al inicio' })[0]);
+
+      expect(irA).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+      vi.unstubAllGlobals();
     });
   });
 });

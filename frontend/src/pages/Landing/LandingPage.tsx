@@ -1,3 +1,4 @@
+import { BotonSubir } from '@/components/Landing/BotonSubir';
 import { CintaRubros } from '@/components/Landing/CintaRubros';
 import { Comentarios } from '@/components/Landing/Comentarios';
 import { ComoFunciona } from '@/components/Landing/ComoFunciona';
@@ -32,6 +33,7 @@ export function LandingPage() {
       <Comentarios />
       <LlamadaFinal />
       <LandingFooter />
+      <BotonSubir />
     </div>
   );
 }
