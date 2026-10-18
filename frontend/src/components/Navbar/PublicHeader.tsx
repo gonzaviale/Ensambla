@@ -28,7 +28,10 @@ export function PublicHeader() {
           </Link>
           <Link
             to="/registro"
-            className={buttonClasses({ variant: 'solid', className: 'max-sm:hidden' })}
+            className={buttonClasses({
+              variant: 'solid',
+              className: 'font-extrabold text-white hover:text-white max-sm:hidden',
+            })}
           >
             Crear cuenta
           </Link>

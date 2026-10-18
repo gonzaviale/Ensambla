@@ -8,7 +8,7 @@ const NUMEROS = [
 
 const PILARES = [
   {
-    color: 'celeste',
+    color: 'naranja',
     tag: 'Bloques',
     titulo: 'Un bloque por cada parte de tu negocio',
     texto:
@@ -27,7 +27,7 @@ const PILARES = [
     texto: 'Foto del cuaderno, audio, texto o WhatsApp. Vos revisás y confirmás.',
   },
   {
-    color: 'vidrio',
+    color: 'celeste',
     tag: 'Avisos',
     titulo: 'Te avisa antes de que sea tarde',
     texto:
@@ -41,7 +41,7 @@ const PILARES = [
       'Te comparás con comercios cercanos usando datos de varios negocios juntos. Nadie ve los números de otro.',
   },
   {
-    color: 'vidrio',
+    color: 'amarillo',
     tag: 'Crece con vos',
     titulo: 'Empezá chico, seguí cuando quieras',
     texto: 'Arrancá con un bloque. Cuando tu negocio crezca, tu sistema crece con él.',

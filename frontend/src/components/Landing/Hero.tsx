@@ -32,37 +32,41 @@ export function Hero() {
         <span className="deco deco--4" />
       </div>
 
-      <div className="contenedor hero__centro">
-        <p className="etiqueta aparecer">
-          <span className="etiqueta__punto" aria-hidden="true" />
-          Tu sistema, un bloque a la vez.
-        </p>
-        <h1 className="hero__titulo">
-          <span className="linea aparecer" style={variables({ '--d': '.05s' })}>
-            ¿Todavía anotás todo
-          </span>{' '}
-          <span className="linea aparecer" style={variables({ '--d': '.15s' })}>
-            en el cuaderno?
-          </span>
-        </h1>
-        <p className="hero__bajada aparecer" style={variables({ '--d': '.3s' })}>
-          Te entiendo: no tenés tiempo para aprender un sistema. Por eso Sami, nuestro asistente,
-          arma el de tu negocio con bloques. Vos le contás cómo trabajás, y él se encarga del resto.
-        </p>
-        <div className="hero__acciones aparecer" style={variables({ '--d': '.4s' })}>
-          <Link to="/registro" className="boton boton--primario boton--grande">
-            Crear mi sistema gratis
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          </Link>
-          <a href="#el-problema" className="boton boton--secundario boton--grande">
-            ¿Te pasa esto?
-          </a>
+      <div className="contenedor hero__grilla">
+        <div className="hero__centro">
+          <h1 className="hero__titulo">
+            <span className="linea aparecer" style={variables({ '--d': '.05s' })}>
+              ¿Todavía anotás todo
+            </span>{' '}
+            <span className="linea aparecer" style={variables({ '--d': '.15s' })}>
+              en el cuaderno?
+            </span>
+          </h1>
+          <p className="hero__bajada aparecer" style={variables({ '--d': '.3s' })}>
+            Te entiendo: no tenés tiempo para aprender un sistema. Por eso Sami, nuestro asistente,
+            arma el diseño de tu negocio con bloques. Vos le contás cómo trabajás, y él se encarga del
+            resto.
+          </p>
+          <div className="hero__acciones aparecer" style={variables({ '--d': '.4s' })}>
+            <Link to="/registro" className="boton boton--primario boton--grande">
+              Crear mi sistema gratis
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </Link>
+            <a href="#el-problema" className="boton boton--secundario boton--grande">
+              ¿Te pasa esto?
+            </a>
+          </div>
+          <ul className="hero__datos aparecer" style={variables({ '--d': '.6s' })}>
+            {DATOS.map(({ valor, texto }) => (
+              <li key={texto}>
+                <strong>{valor}</strong> {texto}
+              </li>
+            ))}
+          </ul>
         </div>
-      </div>
 
-      <div className="contenedor">
         <div className="hero__visual" aria-hidden="true">
           <div className="hero__aro" />
           {/* Composición de bloques en CSS 3D (misma estructura que la portada del manual) */}
@@ -104,14 +108,6 @@ export function Hero() {
             ))}
           </div>
         </div>
-
-        <ul className="hero__datos aparecer" style={variables({ '--d': '.6s' })}>
-          {DATOS.map(({ valor, texto }) => (
-            <li key={texto}>
-              <strong>{valor}</strong> {texto}
-            </li>
-          ))}
-        </ul>
       </div>
 
       <a href="#el-problema" className="hero__bajar" aria-label="Bajar a ver el problema">
