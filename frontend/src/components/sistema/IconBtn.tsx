@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
 import { Icon } from './Icon';
-import type { NombreDeIcono } from './iconos';
+import type { NombreDeIcono } from '@/lib/sistema/iconos';
 
 type IconBtnProps = Omit<ComponentProps<'button'>, 'className' | 'children' | 'title'> & {
   name: NombreDeIcono;

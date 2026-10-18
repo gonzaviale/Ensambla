@@ -1,4 +1,4 @@
-import type { NombreDeIcono } from './iconos';
+import type { NombreDeIcono } from '@/lib/sistema/iconos';
 
 export function Icon({ name }: { name: NombreDeIcono }) {
   return (

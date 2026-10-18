@@ -1,4 +1,4 @@
-import type { NombreDeIcono } from '@/components/sistema/iconos';
+import type { NombreDeIcono } from './iconos';
 
 export type Color = 'orange' | 'coral' | 'yellow' | 'blue' | 'petrol';
 
