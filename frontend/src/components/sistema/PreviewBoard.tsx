@@ -2,6 +2,7 @@ import type { CSSProperties, DragEvent } from 'react';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import { findBlock, totals } from '@/lib/sistema/core';
 import type { Ancho, Bloque, Campo, Sistema, Valor } from '@/lib/sistema/tipos';
+import { LIENZO } from './arrastre';
 import { varsDeColor } from './colores';
 import { Icon } from './Icon';
 import { IconBtn } from './IconBtn';
@@ -18,8 +19,19 @@ type PreviewBoardProps = {
   onRenombrar?: (bloqueId: string) => void;
   onQuitar?: (bloqueId: string) => void;
   onAncho?: (bloqueId: string, ancho: Ancho) => void;
+  /** Arrastrar y soltar las piezas de la propuesta. */
+  arrastrando?: string | null;
+  /** La pieza (o `#canvas`, el lienzo vacío) sobre la que está pasando lo que se arrastra. */
+  sobre?: string | null;
   onArrastrar?: (evento: DragEvent<HTMLButtonElement>, bloqueId: string) => void;
+  onSobre?: (destino: string) => void;
+  onSoltar?: (antesDe: string | null) => void;
+  onFinArrastre?: () => void;
 };
+
+const bloqueDeEvento = (evento: DragEvent<HTMLElement>) =>
+  (evento.target as HTMLElement).closest<HTMLElement>('[data-draft-block]')?.dataset.draftBlock ??
+  null;
 
 const CAMPOS_OCULTOS = ['notes', 'detail', 'minimum'];
 
@@ -107,15 +119,37 @@ export function PreviewBoard({
   onRenombrar,
   onQuitar,
   onAncho,
+  arrastrando = null,
+  sobre = null,
   onArrastrar,
+  onSobre,
+  onSoltar,
+  onFinArrastre,
 }: PreviewBoardProps) {
   const seccion = sistema.sections.find((item) => item.id === seccionId) ?? sistema.sections[0];
   const bloques = seccion?.blocks ?? [];
 
   return (
     <div
-      className={`preview-grid ${compacto ? 'compact' : ''}`.trim()}
+      className={`preview-grid ${compacto ? 'compact' : ''} ${sobre === LIENZO ? 'drop-active' : ''}`.trim()}
       id={editable ? 'draft-canvas' : undefined}
+      onDragOver={
+        editable && arrastrando
+          ? (evento) => {
+              evento.preventDefault();
+              const bloque = bloqueDeEvento(evento);
+              onSobre?.(bloque && bloque !== arrastrando ? bloque : LIENZO);
+            }
+          : undefined
+      }
+      onDrop={
+        editable && arrastrando
+          ? (evento) => {
+              evento.preventDefault();
+              onSoltar?.(bloqueDeEvento(evento));
+            }
+          : undefined
+      }
       aria-label={`Propuesta visual de ${sistema.name}`}
       data-tour={editable ? 'draft-canvas' : undefined}
     >
@@ -133,7 +167,7 @@ export function PreviewBoard({
         return (
           <section
             key={bloque.id}
-            className="preview-block"
+            className={`preview-block ${arrastrando === bloque.id ? 'dragging' : ''} ${sobre === bloque.id ? 'drag-over' : ''}`.trim()}
             data-width={bloque.width}
             data-draft-block={editable ? bloque.id : undefined}
             style={estilo}
@@ -164,6 +198,7 @@ export function PreviewBoard({
                     data-drag-kind="draft"
                     data-value={bloque.id}
                     onDragStart={(evento) => onArrastrar?.(evento, bloque.id)}
+                    onDragEnd={onFinArrastre}
                   >
                     <Icon name="grip" />
                   </button>

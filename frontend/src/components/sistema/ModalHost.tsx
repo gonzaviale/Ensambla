@@ -6,6 +6,7 @@ import { ModalConfirmar } from './modales/ModalConfirmar';
 import { ModalPerfil } from './modales/ModalPerfil';
 import { ModalPlantilla } from './modales/ModalPlantilla';
 import { ModalRenombrar } from './modales/ModalRenombrar';
+import { ModalRenombrarPieza } from './modales/ModalRenombrarPieza';
 
 const ENFOCABLES =
   'button:not(:disabled),a[href],input:not([hidden]),select,textarea,[tabindex="0"]';
@@ -26,6 +27,8 @@ function ContenidoDelModal() {
       return <ModalPerfil />;
     case 'renombrar':
       return <ModalRenombrar />;
+    case 'renombrarPieza':
+      return <ModalRenombrarPieza bloqueId={modal.bloqueId} />;
     case 'confirmar':
       return <ModalConfirmar {...modal} />;
   }

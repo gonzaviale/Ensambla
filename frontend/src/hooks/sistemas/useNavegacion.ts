@@ -12,10 +12,14 @@ export function useNombre() {
   return usePreferencias().nombre ?? usuario.nombre;
 }
 
+export const saludoDeSami = (nombre: string) =>
+  `Hola, ${nombre}. Contame qué hacés y cómo te organizás hoy. Yo pienso una base y vos me decís si te sirve.`;
+
 // Los movimientos entre pantallas del mockup (navigate(), openSystem(), saveNew()) hechos con el router.
 // Cada uno cierra el modal abierto y deja sin selección, como navigate() del original.
 export function useNavegacion() {
   const navigate = useNavigate();
+  const nombre = useNombre();
 
   const limpiar = () => {
     const estado = useSistemaStore.getState();
@@ -42,7 +46,11 @@ export function useNavegacion() {
   return {
     irAInicio: () => irA('/inicio'),
     irAPlantillas: () => irA('/plantillas'),
-    irATaller: () => irA('/taller'),
+    /** «Armémoslo con Sami»: cada vez empieza una conversación nueva. */
+    irATaller: () => {
+      useSistemaStore.getState().iniciarTaller(saludoDeSami(nombre));
+      return irA('/taller');
+    },
     irAZona: () => irA('/zona'),
     abrirSistema,
     /** saveNew() del mockup: guarda el sistema nuevo y lo abre. */

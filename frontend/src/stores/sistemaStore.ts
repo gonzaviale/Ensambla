@@ -14,6 +14,7 @@ export type Modal =
   | { tipo: 'ayuda'; respuesta?: string }
   | { tipo: 'perfil' }
   | { tipo: 'renombrar' }
+  | { tipo: 'renombrarPieza'; bloqueId: string }
   | {
       tipo: 'confirmar';
       titulo: string;
@@ -21,6 +22,22 @@ export type Modal =
       etiqueta: string;
       onConfirmar: () => void;
     };
+
+export type MensajeDelTaller = { quien: 'sami' | 'you'; texto: string };
+
+/** La conversación con Sami y la propuesta que va tomando forma (el `wizard` del mockup). */
+export type Taller = {
+  /** Distingue una conversación de otra: la respuesta tardía de una vieja se descarta. */
+  id: number;
+  /** El nombre que se eligió con un ejemplo, si se eligió alguno. */
+  nombre: string;
+  entrada: string;
+  actividad: '' | 'warehouse' | 'orders' | 'shop';
+  borrador: Sistema | null;
+  seccionId: string | null;
+  pensando: boolean;
+  mensajes: MensajeDelTaller[];
+};
 
 const MAX_HISTORIAL = 30;
 
@@ -42,6 +59,7 @@ type EstadoDelStore = {
   listo: boolean;
   aviso: { id: number; texto: string } | null;
   modal: Modal | null;
+  taller: Taller | null;
 };
 
 type Acciones = {
@@ -65,6 +83,11 @@ type Acciones = {
   cerrarAviso: () => void;
   abrirModal: (modal: Modal) => void;
   cerrarModal: () => void;
+  iniciarTaller: (saludo: string) => void;
+  /** Cambia la conversación actual; si no hay, no hace nada. */
+  actualizarTaller: (cambio: Partial<Taller> | ((taller: Taller) => Partial<Taller>)) => void;
+  /** Aplica un cambio sobre una copia de la propuesta de Sami. */
+  editarBorrador: (cambio: (borrador: Sistema) => void) => void;
 };
 
 export type SistemaStore = EstadoDelStore & Acciones;
@@ -82,9 +105,11 @@ const ESTADO_INICIAL: EstadoDelStore = {
   listo: false,
   aviso: null,
   modal: null,
+  taller: null,
 };
 
 let contadorDeAvisos = 0;
+let contadorDeTalleres = 0;
 
 const sinRepetir = (ids: string[], id: string) => (ids.includes(id) ? ids : [...ids, id]);
 
@@ -187,6 +212,36 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
   cerrarAviso: () => set({ aviso: null }),
   abrirModal: (modal) => set({ modal }),
   cerrarModal: () => set({ modal: null }),
+
+  iniciarTaller: (saludo) =>
+    set({
+      taller: {
+        id: ++contadorDeTalleres,
+        nombre: '',
+        entrada: '',
+        actividad: '',
+        borrador: null,
+        seccionId: null,
+        pensando: false,
+        mensajes: [{ quien: 'sami', texto: saludo }],
+      },
+    }),
+
+  actualizarTaller: (cambio) =>
+    set((estado) => {
+      if (!estado.taller) return estado;
+      const parcial = typeof cambio === 'function' ? cambio(estado.taller) : cambio;
+      return { taller: { ...estado.taller, ...parcial } };
+    }),
+
+  editarBorrador: (cambio) =>
+    set((estado) => {
+      const borrador = estado.taller?.borrador;
+      if (!estado.taller || !borrador) return estado;
+      const copia = clone(borrador);
+      cambio(copia);
+      return { taller: { ...estado.taller, borrador: copia } };
+    }),
 }));
 
 /* Lectores: lo que el mockup calculaba con system(), section() y block(). */
