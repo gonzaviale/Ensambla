@@ -1,12 +1,23 @@
+import { useEffect } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { IconSprite } from '@/components/sistema/IconSprite';
 import { useUsuarioOpcional } from '@/hooks/auth/queries';
+import { usePreferencias } from '@/hooks/preferencias/queries';
+import { useSistemasDelServidor } from '@/hooks/sistemas/queries';
+import { useSincronizarSistemas } from '@/hooks/sistemas/useSincronizarSistemas';
+import { useSistemaStore } from '@/stores/sistemaStore';
 import '@/styles/sistema/index.css';
 
 // Todo lo que está adentro de `.mk-root` usa las hojas del mockup; la landing y el acceso quedan afuera.
 // Mismo armazón que el index.html del mockup: sprite de íconos, enlace de salto, #app, #overlay y #toast.
 export function SistemaLayout() {
   const usuario = useUsuarioOpcional();
+
+  // Al cerrar la sesión no queda nada de la cuenta anterior en memoria.
+  useEffect(() => {
+    if (!usuario) useSistemaStore.getState().reiniciar();
+  }, [usuario]);
+
   // Sesión cerrada: el guard de la ruta destino redirige en un instante.
   if (!usuario) return null;
 
@@ -17,10 +28,26 @@ export function SistemaLayout() {
         Ir al contenido
       </a>
       <div id="app">
-        <Outlet />
+        <SistemaConDatos usuarioId={usuario.id} />
       </div>
       <div id="overlay" />
       <div id="toast" className="toast" role="status" aria-live="polite" />
     </div>
   );
+}
+
+// Los sistemas llegan del servidor una vez; de ahí en más la pantalla trabaja sobre su copia en el store
+// y un hook aparte la va guardando.
+function SistemaConDatos({ usuarioId }: { usuarioId: string }) {
+  const sistemas = useSistemasDelServidor();
+  usePreferencias();
+  const hidratar = useSistemaStore((estado) => estado.hidratar);
+  const hidratado = useSistemaStore((estado) => estado.usuarioId === usuarioId);
+  useSincronizarSistemas();
+
+  useEffect(() => {
+    hidratar(usuarioId, sistemas);
+  }, [hidratar, usuarioId, sistemas]);
+
+  return hidratado ? <Outlet /> : null;
 }

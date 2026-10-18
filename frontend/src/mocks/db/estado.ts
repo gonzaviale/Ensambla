@@ -1,3 +1,6 @@
+import type { Sistema } from '@/lib/sistema/tipos';
+import { PREFERENCIAS_INICIALES, type Preferencias } from '@/types/preferencias';
+
 export type UsuarioMock = {
   id: string;
   nombre: string;
@@ -8,16 +11,46 @@ export type UsuarioMock = {
 type Estado = {
   usuarios: Map<string, UsuarioMock>;
   sesionUsuarioId: string | null;
+  /** Los sistemas de cada cuenta (por email). */
+  sistemas: Map<string, Sistema[]>;
+  preferencias: Map<string, Preferencias>;
+  /** Se llama después de cada cambio de datos: el navegador lo usa para no perderlos al recargar. */
+  alCambiar: (() => void) | null;
 };
 
 export const estado: Estado = {
   usuarios: new Map(),
   sesionUsuarioId: null,
+  sistemas: new Map(),
+  preferencias: new Map(),
+  alCambiar: null,
 };
 
 export function reiniciarEstado() {
   estado.usuarios = new Map();
   estado.sesionUsuarioId = null;
+  estado.sistemas = new Map();
+  estado.preferencias = new Map();
+  estado.alCambiar = null;
+}
+
+export function usuarioActual() {
+  return [...estado.usuarios.values()].find((usuario) => usuario.id === estado.sesionUsuarioId);
+}
+
+export const sistemasDe = (email: string) => estado.sistemas.get(email) ?? [];
+
+export const preferenciasDe = (email: string) =>
+  estado.preferencias.get(email) ?? PREFERENCIAS_INICIALES;
+
+export function guardarSistemasDe(email: string, sistemas: Sistema[]) {
+  estado.sistemas.set(email, sistemas);
+  estado.alCambiar?.();
+}
+
+export function guardarPreferenciasDe(email: string, preferencias: Preferencias) {
+  estado.preferencias.set(email, preferencias);
+  estado.alCambiar?.();
 }
 
 export function sembrarUsuario(datos: Partial<UsuarioMock> & { conSesion?: boolean } = {}) {

@@ -4,17 +4,19 @@ import { PageFooter } from '@/components/sistema/PageFooter';
 import { Sami } from '@/components/sistema/Sami';
 import { TopBar } from '@/components/sistema/TopBar';
 import { useUsuario } from '@/hooks/auth/queries';
+import { useSistemaStore } from '@/stores/sistemaStore';
 
 // Provisorio: sirve para comprobar el CSS del mockup. Se reemplaza por el inicio real.
 export function InicioPage() {
   const usuario = useUsuario();
+  const sistemas = useSistemaStore((estado) => estado.sistemas.length);
   const nada = () => undefined;
 
   return (
     <>
       <TopBar
         nombre={usuario.nombre}
-        sistemas={0}
+        sistemas={sistemas}
         onInicio={nada}
         onSistemas={nada}
         onPlantillas={nada}
