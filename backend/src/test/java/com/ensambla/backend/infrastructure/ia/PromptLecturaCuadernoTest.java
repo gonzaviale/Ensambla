@@ -59,7 +59,7 @@ class PromptLecturaCuadernoTest {
     }
 
     @Test
-    @DisplayName("Con destino fijo le muestra a la IA sólo ese bloque y le pide copiarlo tal cual")
+    @DisplayName("Con destino fijo le muestra a la IA sólo ese bloque y le deja agregar las columnas que falten")
     void peticionShouldShowOnlyDestinoWhenBloqueDestinoIsChosen() {
         BloqueConocido gastos = new BloqueConocido(GASTOS_ID, "Gastos", List.of());
 
@@ -68,6 +68,8 @@ class PromptLecturaCuadernoTest {
         assertThat(peticion.contexto()).startsWith(PromptLecturaCuaderno.ENCABEZADO_DESTINO)
                 .contains("- 00000000-0000-0000-0000-000000000001: Ventas [Fecha (FECHA)")
                 .doesNotContain("Gastos");
+        assertThat(PromptLecturaCuaderno.ENCABEZADO_DESTINO).contains("agregala como campo nuevo")
+                .doesNotContain("no agregues campos");
     }
 
     @Test
@@ -83,9 +85,9 @@ class PromptLecturaCuadernoTest {
     }
 
     @Test
-    @DisplayName("La versión del prompt cambia cuando se agrega el contexto con tipos y destino")
-    void versionShouldBeV2() {
-        assertThat(PromptLecturaCuaderno.VERSION).isEqualTo("v2");
+    @DisplayName("La versión del prompt cambia cuando con destino fijo la IA puede proponer campos nuevos")
+    void versionShouldBeV3() {
+        assertThat(PromptLecturaCuaderno.VERSION).isEqualTo("v3");
     }
 
     @Test

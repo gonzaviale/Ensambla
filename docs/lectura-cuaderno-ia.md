@@ -29,14 +29,15 @@ Esta historia **no crea registros definitivos ni confirma bloques nuevos**: eso 
 
 **Destino fijo (opcional).** `POST /api/lotes` acepta `bloqueDestinoId` (parte multipart opcional). Se valida contra el
 negocio de la sesión (un bloque ajeno responde 404) y se guarda en `lote_subida.bloque_destino_id`. Con destino, el
-contexto que recibe la IA incluye **sólo ese bloque** y le pide copiar su nombre, campos, tipos y opciones tal cual,
-sin agregar campos: así no adivina a cuál sumar las filas y `PropuestaLecturaService` encuentra el bloque compatible.
+contexto que recibe la IA incluye **sólo ese bloque** y le pide usar su nombre y, para las columnas que ya tiene, sus
+campos, tipos y opciones tal cual: así no adivina a cuál sumar las filas. Si la foto trae una columna que el bloque no
+tiene, la IA la agrega como campo nuevo (ver [Campos nuevos](#campos-nuevos-en-el-bloque-destino-ens-172--h-35)).
 Sin destino, la IA ve todos los bloques del negocio y propone como antes (la pantalla de subida lo ofrece como
 «Una tabla nueva»). Si las fotos no tienen que ver con el bloque, la IA devuelve filas vacías y una advertencia.
 
 **Contexto con tipos.** Cada campo se le muestra como `Nombre (TIPO)`, `Nombre (OPCION: a|b)` o
-`Nombre (RELACION → Tabla: devolvé el texto tal como está escrito)`. `PromptLecturaCuaderno.VERSION` pasó a `v2`:
-hay que volver a medir la precisión (T-099) antes de comparar con resultados de `v1`.
+`Nombre (RELACION → Tabla: devolvé el texto tal como está escrito)`. `PromptLecturaCuaderno.VERSION` pasó a `v2` y, con los campos nuevos, a `v3`:
+hay que volver a medir la precisión (T-099) antes de comparar con resultados de `v1` o `v2`.
 
 **Conexiones (`RELACION`).** La IA sólo lee conexiones de campos `RELACION` que ya tiene el bloque existente (destino
 o reconocido) y devuelve el **texto** escrito en el cuaderno, nunca un id. Si propone una conexión que el bloque no
@@ -51,6 +52,42 @@ tiene, se lee como `TEXTO`. Después, `ConexionesLecturaService` busca en la tab
 En la revisión, la celda muestra el nombre de la fila y se cambia con el mismo buscador del formulario de registros.
 Una conexión sólo se guarda sumando las filas a la tabla que ya la tiene: `POST …/confirmar` rechaza una columna
 `RELACION` sin `campoId` y comprueba que cada id exista en la tabla conectada del negocio.
+
+## Campos nuevos en el bloque destino (ENS-172 / H-35)
+
+Cuando la persona elige un bloque al subir las fotos, la lectura no exige que todas las columnas de la foto estén en
+el bloque: las cruza con sus campos y separa las que ya existen de las que faltan. Los cuadernos cambian con el
+tiempo y el bloque tiene que poder crecer con la foto. Sin destino todo sigue igual (un bloque se reutiliza sólo si
+**todas** sus columnas coinciden; si no, se propone uno nuevo).
+
+**Cómo se cruza** (`PropuestaLecturaService`, sólo con destino):
+
+1. Primero, por **nombre**, sin importar tildes, mayúsculas ni puntuación («Tel.» = «tel»).
+2. Después, por **sinónimo** entre los campos que quedaron libres (`SinonimosCampo`: teléfono/celular/whatsapp,
+   dirección/domicilio, monto/importe/total, cantidad/unidades, producto/artículo, cliente/comprador,
+   email/mail/correo, observaciones/notas/comentarios). La lista es corta a propósito.
+3. Cada campo del bloque se usa **una sola vez**: nunca se duplica un campo existente.
+4. Una columna que podría ser más de un campo (por ejemplo «Tel» con «Teléfono» y «Celular» en el bloque) no se
+   adivina: se propone como nueva y se agrega una advertencia para que la persona la revise.
+
+**Qué devuelve** (`GET /api/lotes/{loteId}/lectura`, dentro de `propuesta`):
+
+| Campo | Contenido |
+|---|---|
+| `campos` | Todas las columnas de la foto. Las que coinciden llevan el **nombre, tipo y opciones del campo del bloque**; las nuevas, lo que propuso la IA |
+| `mapeoCampos` | Clave de cada columna que coincide → id del campo del bloque. Las nuevas **no** aparecen |
+| `camposNuevos` | Las columnas que el bloque no tiene: `clave`, `nombre`, `tipo` sugerido y `opciones`. Vacía si no hay (y en las lecturas guardadas antes de esta versión) |
+| `nombre` | El nombre del bloque elegido, no el que leyó la IA |
+
+- **Tipo sugerido:** lo propone la IA según los valores y el backend lo valida como el resto de la lectura (cada valor
+  tiene que cumplir el tipo; `OPCION` necesita sus opciones). Nunca es `RELACION` ni `FORMULA`: una columna que la IA
+  marque como conexión que el bloque no tiene se lee como `TEXTO`.
+- **Columnas sin datos:** una columna nueva sin ningún valor en la foto no se propone (nada que guardar); se avisa en
+  `advertencias` y se sacan sus celdas de las filas.
+- **Foto de otro bloque:** si ninguna columna coincide con un campo del bloque se rechaza con «La estructura leída no
+  es compatible con el bloque de destino» (lote en `ERROR`), igual que antes.
+- **Qué no cambia:** la lectura no escribe nada. Los campos nuevos se crean recién al confirmar (`POST …/confirmar`,
+  columna sin `campoId`), en la misma transacción que los registros (ENS-189).
 
 ## Revisión y confirmación (ENS-121 / H-30)
 
@@ -147,7 +184,7 @@ El negocio nunca se toma de la URL, body o query.
 Los errores de regla (estado incorrecto o límite) responden 400 con mensaje claro.
 
 La propuesta HTTP contiene tipoRegistro, nombre, bloqueExistenteId, campos, filas, advertencias,
-mapeoCampos y consumo. Cada dato conserva `valor` nullable y `confianza`.
+mapeoCampos, camposNuevos y consumo. Cada dato conserva `valor` nullable y `confianza`.
 La consulta no entrega claves de archivos, bytes ni credenciales.
 
 ## Evaluación
@@ -196,6 +233,7 @@ un reporte distinto; el adaptador OCR todavía depende de la decisión del spike
 | ENS-133 | Reserva, límites y consulta implementados; tarifas reales pendientes |
 | ENS-134 | Herramienta/pruebas preparadas; precisión real y meta acordada pendientes |
 | ENS-121 | Revisión, edición, confirmación y foto de origen implementadas; falta probarlo con fotos reales |
+| ENS-188 | Detección de columnas ausentes en el bloque destino (`camposNuevos`) con prompt v3; falta medir el acierto con fotos reales (ENS-192) |
 
 Estos pendientes fueron acordados explícitamente con el usuario. Esta entrega no demuestra la
 precisión real del producto ni declara completos los criterios que requieren ese material.

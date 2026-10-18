@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.mapper.procesamiento;
 
 import com.ensambla.backend.domain.dto.procesamiento.LecturaItem;
 import com.ensambla.backend.domain.dto.procesamiento.PropuestaItem;
+import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
 import com.ensambla.backend.domain.model.lectura.ConsumoIa;
 import com.ensambla.backend.domain.model.lectura.FilaLeida;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
@@ -25,13 +26,15 @@ public class ObtenerLecturaMapper {
         LecturaCuaderno lectura = propuesta.lectura();
         ConsumoIa consumo = lectura.consumo();
         return new PropuestaItem(lectura.tipoRegistro().name(), lectura.bloque().nombre(),
-                lectura.bloque().bloqueExistenteId(), lectura.bloque().campos().stream().map(campo ->
-                        new PropuestaItem.CampoItem(
-                                campo.clave(), campo.nombre(), campo.tipo().name(), campo.opciones()))
-                        .toList(),
+                lectura.bloque().bloqueExistenteId(), lectura.bloque().campos().stream().map(this::campo).toList(),
                 lectura.filas().stream().map(this::fila).toList(), lectura.advertencias(), propuesta.mapeoCampos(),
+                propuesta.camposNuevos().stream().map(this::campo).toList(),
                 new PropuestaItem.ConsumoItem(consumo.proveedor(), consumo.modelo(), consumo.versionPrompt(),
                         consumo.paginas(), consumo.tokensEntrada(), consumo.tokensSalida(), consumo.duracionMs()));
+    }
+
+    private PropuestaItem.CampoItem campo(CampoPropuesto campo) {
+        return new PropuestaItem.CampoItem(campo.clave(), campo.nombre(), campo.tipo().name(), campo.opciones());
     }
 
     private PropuestaItem.FilaItem fila(FilaLeida fila) {

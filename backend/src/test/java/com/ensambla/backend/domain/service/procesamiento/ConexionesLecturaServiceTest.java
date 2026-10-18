@@ -72,6 +72,18 @@ class ConexionesLecturaServiceTest {
     }
 
     @Test
+    @DisplayName("Al resolver las conexiones conserva los campos nuevos detectados")
+    void resolverShouldKeepNewFields() {
+        givenClientes(registro(JUAN_ID, "Juan Pérez"));
+        PropuestaLectura base = propuesta(fila(1, dato("juan perez", 0.8)));
+        CampoPropuesto telefono = new CampoPropuesto("telefono", "Teléfono", TipoCampo.TEXTO, List.of());
+
+        PropuestaLectura result = resolver(new PropuestaLectura(base.lectura(), base.mapeoCampos(), List.of(telefono)));
+
+        assertThat(result.camposNuevos()).containsExactly(telefono);
+    }
+
+    @Test
     @DisplayName("Si no hay ninguna fila con ese nombre deja la celda vacía, sin confianza, y avisa")
     void resolverShouldLeaveEmptyWhenNothingMatches() {
         givenClientes(registro(JUAN_ID, "Juan Pérez"));
