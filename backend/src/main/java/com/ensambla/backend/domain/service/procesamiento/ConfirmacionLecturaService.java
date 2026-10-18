@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.service.procesamiento;
 
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
+import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
@@ -76,7 +77,10 @@ public class ConfirmacionLecturaService {
         return bloqueService.crear(proyecto, confirmacion.nombreBloque(), ahora);
     }
 
-    /** Las columnas con campo existente se reutilizan; las demás se crean al final del bloque. */
+    /**
+     * Las columnas con campo existente se reutilizan; las demás se crean al final del bloque, con el nombre y el tipo
+     * que la persona dejó al revisar. Si una falla no se crea ninguna: todo corre en la transacción de {@link #confirmar}.
+     */
     private Map<String, Campo> prepararCampos(UUID negocioId, Bloque bloque, ConfirmacionLectura confirmacion,
                                               OffsetDateTime ahora) {
         Map<UUID, Campo> existentes = campoService.listarDeBloque(bloque.getId(), negocioId).stream()
@@ -98,6 +102,9 @@ public class ConfirmacionLecturaService {
             return campoService.crear(bloque, configuracion, ahora);
         } catch (CampoInvalidoException e) {
             throw new CampoInvalidoException(ubicar("campos[" + indice + "].", e.getErrores()));
+        } catch (DuplicateResourceException e) {
+            // Un nombre repetido (con un campo del bloque o con otra columna nueva) se ubica en su columna.
+            throw new CampoInvalidoException(Map.of("campos[" + indice + "].nombre", e.getMessage()));
         }
     }
 

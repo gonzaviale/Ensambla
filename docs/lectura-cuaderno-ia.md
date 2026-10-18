@@ -119,6 +119,14 @@ se agregó a mano, y `valores` por clave **ya tipados**: número, sí/no o texto
   sentencia condicional, así dos confirmaciones simultáneas no duplican datos (la segunda responde 400).
 - Cada registro guarda `foto_origen_id` según su página; las filas agregadas a mano quedan sin foto.
 - Máximo 500 filas por confirmación.
+- **Columnas nuevas en una tabla existente (ENS-189):** con `bloqueId`, una columna sin `campoId` se crea como campo
+  del bloque (no obligatorio, al final) con el `nombre`, `tipo` y `opciones` finales que dejó la persona, y recién
+  después se crean los registros con esos valores. Todo en la misma transacción: si falla una columna o una fila
+  no queda ningún campo ni registro, y el lote sigue `LISTO`. Los registros que ya tenía la tabla no se modifican (los
+  nuevos campos quedan vacíos en ellos). Una columna descartada en la revisión simplemente no se envía.
+- Reglas de columnas: dos columnas no pueden apuntar al mismo `campoId` (400), una columna sin `campoId` no puede ser
+  `RELACION`, y un nombre que ya usa otro campo (o otra columna nueva), sin importar mayúsculas ni espacios de los
+  bordes, vuelve **400** ubicado en su columna: `errors["campos[2].nombre"]`.
 - Las fotos son privadas: se sirven con la sesión y sólo al negocio dueño (otro negocio recibe 404). Reemplazan a
   la «URL firmada» de Jira porque el almacenamiento es local; si se pasa a un almacenamiento externo, este es
   el único punto que cambia.
@@ -234,6 +242,7 @@ un reporte distinto; el adaptador OCR todavía depende de la decisión del spike
 | ENS-134 | Herramienta/pruebas preparadas; precisión real y meta acordada pendientes |
 | ENS-121 | Revisión, edición, confirmación y foto de origen implementadas; falta probarlo con fotos reales |
 | ENS-188 | Detección de columnas ausentes en el bloque destino (`camposNuevos`) con prompt v3; falta medir el acierto con fotos reales (ENS-192) |
+| ENS-189 | Confirmación con columnas nuevas y registros en una transacción, probada contra PostgreSQL (rollback, nombre repetido, registros previos intactos) |
 
 Estos pendientes fueron acordados explícitamente con el usuario. Esta entrega no demuestra la
 precisión real del producto ni declara completos los criterios que requieren ese material.

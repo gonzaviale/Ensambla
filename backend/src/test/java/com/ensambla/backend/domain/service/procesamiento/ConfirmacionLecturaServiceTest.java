@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.service.procesamiento;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
+import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
@@ -177,6 +178,26 @@ class ConfirmacionLecturaServiceTest {
                 .isInstanceOfSatisfying(CampoInvalidoException.class,
                         e -> assertThat(e.getErrores()).containsOnly(Map.entry("campos[0].nombre", "Escribí un nombre")));
         verifyNoInteractions(registroDatosService);
+    }
+
+    @Test
+    @DisplayName("Ubica en su columna el nombre repetido de un campo nuevo y no guarda registros")
+    void confirmarShouldLocateDuplicatedFieldName() {
+        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
+        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(
+                campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false)));
+        when(campoService.crear(any(Bloque.class), any(ConfiguracionCampo.class), eq(AHORA)))
+                .thenThrow(new DuplicateResourceException("Ya hay un campo llamado \"Monto\" en este bloque"));
+        ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID,
+                List.of(new CampoConfirmado("monto", MONTO_ID, "Monto", "NUMERO", List.of()),
+                        new CampoConfirmado("importe", null, "Monto", "NUMERO", List.of())),
+                List.of(new FilaConfirmada(1, Map.of("monto", 1, "importe", 2))));
+        LoteSubida lote = loteListo();
+
+        assertThatThrownBy(() -> confirmar(lote, confirmacion))
+                .isInstanceOfSatisfying(CampoInvalidoException.class, e -> assertThat(e.getErrores()).containsOnly(
+                        Map.entry("campos[1].nombre", "Ya hay un campo llamado \"Monto\" en este bloque")));
+        verifyNoInteractions(registroDatosService, loteSubidaService);
     }
 
     @Test
