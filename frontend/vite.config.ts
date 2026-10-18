@@ -41,9 +41,38 @@ const renombrarAnimaciones: PluginPostcss = {
   },
 };
 
+// El «preflight» de Tailwind (capa base) borra los márgenes, rellenos y fuentes que el navegador pone por
+// defecto, y el mockup cuenta con ellos. Se deja de aplicar adentro de `.mk-root`; la landing y el acceso
+// siguen igual.
+const AFUERA_DEL_SISTEMA = ':not(.mk-root *)';
+const ELEMENTOS_DEL_DOCUMENTO = /^(html|:host|body|:root)(?![\w-])/;
+
+const excluirDelSistema = (selector: string) => {
+  const limpio = selector.trim();
+  if (ELEMENTOS_DEL_DOCUMENTO.test(limpio)) return limpio;
+  // Los pseudoelementos (`::before`, `::placeholder`) van al final del selector compuesto.
+  const corte = limpio.indexOf('::');
+  return corte === -1
+    ? `${limpio}${AFUERA_DEL_SISTEMA}`
+    : `${limpio.slice(0, corte)}${AFUERA_DEL_SISTEMA}${limpio.slice(corte)}`;
+};
+
+const aislarBaseDeTailwind: PluginPostcss = {
+  postcssPlugin: 'aislar-base-de-tailwind',
+  Once(raiz) {
+    if (ES_DEL_SISTEMA.test(raiz.source?.input.file ?? '')) return;
+    raiz.walkAtRules('layer', (capa) => {
+      if (capa.params.trim() !== 'base') return;
+      capa.walkRules((regla) => {
+        regla.selectors = regla.selectors.map(excluirDelSistema);
+      });
+    });
+  },
+};
+
 export default defineConfig({
   plugins: [tanstackRouter({ target: 'react', autoCodeSplitting: true }), react(), tailwindcss()],
-  css: { postcss: { plugins: [acotarSistema, renombrarAnimaciones] } },
+  css: { postcss: { plugins: [acotarSistema, renombrarAnimaciones, aislarBaseDeTailwind] } },
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

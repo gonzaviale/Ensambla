@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { IconSprite } from '@/components/sistema/IconSprite';
+import { ModalHost } from '@/components/sistema/ModalHost';
+import { Toast } from '@/components/sistema/Toast';
 import { useUsuarioOpcional } from '@/hooks/auth/queries';
 import { usePreferencias } from '@/hooks/preferencias/queries';
 import { useSistemasDelServidor } from '@/hooks/sistemas/queries';
@@ -30,8 +32,8 @@ export function SistemaLayout() {
       <div id="app">
         <SistemaConDatos usuarioId={usuario.id} />
       </div>
-      <div id="overlay" />
-      <div id="toast" className="toast" role="status" aria-live="polite" />
+      <ModalHost />
+      <Toast />
     </div>
   );
 }

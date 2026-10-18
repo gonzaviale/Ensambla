@@ -1,12 +1,26 @@
 import { create } from 'zustand';
 import { clone } from '@/lib/sistema/core';
-import type { Bloque, Seccion, Sistema } from '@/lib/sistema/tipos';
+import type { Bloque, ClavePlantilla, Seccion, Sistema } from '@/lib/sistema/tipos';
 
 // El estado del taller y del editor: los sistemas de la persona y lo que está haciendo con ellos. Es el
 // equivalente a las variables de módulo de app.js del mockup; ahora los componentes lo leen del store y
 // los cambios viajan a la API por un hook aparte (useSincronizarSistemas).
 
 export type ModoDelEditor = 'build' | 'use';
+
+export type Modal =
+  | { tipo: 'blanco' }
+  | { tipo: 'plantilla'; clave: ClavePlantilla }
+  | { tipo: 'ayuda'; respuesta?: string }
+  | { tipo: 'perfil' }
+  | { tipo: 'renombrar' }
+  | {
+      tipo: 'confirmar';
+      titulo: string;
+      mensaje: string;
+      etiqueta: string;
+      onConfirmar: () => void;
+    };
 
 const MAX_HISTORIAL = 30;
 
@@ -27,6 +41,7 @@ type EstadoDelStore = {
   /** Recién creado: se muestra el cartel «tu sistema está listo». */
   listo: boolean;
   aviso: { id: number; texto: string } | null;
+  modal: Modal | null;
 };
 
 type Acciones = {
@@ -48,6 +63,8 @@ type Acciones = {
   marcarGuardados: (ids: string[], eliminados: string[]) => void;
   avisar: (texto: string) => void;
   cerrarAviso: () => void;
+  abrirModal: (modal: Modal) => void;
+  cerrarModal: () => void;
 };
 
 export type SistemaStore = EstadoDelStore & Acciones;
@@ -64,6 +81,7 @@ const ESTADO_INICIAL: EstadoDelStore = {
   historial: [],
   listo: false,
   aviso: null,
+  modal: null,
 };
 
 let contadorDeAvisos = 0;
@@ -167,6 +185,8 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
 
   avisar: (texto) => set({ aviso: { id: ++contadorDeAvisos, texto } }),
   cerrarAviso: () => set({ aviso: null }),
+  abrirModal: (modal) => set({ modal }),
+  cerrarModal: () => set({ modal: null }),
 }));
 
 /* Lectores: lo que el mockup calculaba con system(), section() y block(). */

@@ -260,6 +260,23 @@ export const COLORS: Record<Color, string> = {
   petrol: '#00506A',
 };
 
+// Fondo suave de cada color de bloque.
+export const TINTS: Record<Color, string> = {
+  orange: '#fff0da',
+  coral: '#ffe8e4',
+  yellow: '#fbf5d5',
+  blue: '#e8f5fa',
+  petrol: '#e5f1f0',
+};
+
+export const NOMBRES_DE_COLOR: Record<Color, string> = {
+  orange: 'Naranja',
+  coral: 'Coral',
+  yellow: 'Amarillo',
+  blue: 'Celeste',
+  petrol: 'Petróleo',
+};
+
 export const FIELD_TYPES: Record<TipoCampo, string> = {
   text: 'Texto',
   textarea: 'Texto largo',

@@ -12,9 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicaRouteImport } from './routes/_publica'
 import { Route as AppInicioRouteImport } from './routes/_app/inicio'
+import { Route as AppPlantillasRouteImport } from './routes/_app/plantillas'
+import { Route as AppTallerRouteImport } from './routes/_app/taller'
+import { Route as AppZonaRouteImport } from './routes/_app/zona'
 import { Route as PublicaIndexRouteImport } from './routes/_publica/index'
 import { Route as PublicaLoginRouteImport } from './routes/_publica/login'
 import { Route as PublicaRegistroRouteImport } from './routes/_publica/registro'
+import { Route as AppSistemasSistemaIdRouteImport } from './routes/_app/sistemas.$sistemaId'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -27,6 +31,21 @@ const PublicaRoute = PublicaRouteImport.update({
 const AppInicioRoute = AppInicioRouteImport.update({
   id: '/inicio',
   path: '/inicio',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPlantillasRoute = AppPlantillasRouteImport.update({
+  id: '/plantillas',
+  path: '/plantillas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTallerRoute = AppTallerRouteImport.update({
+  id: '/taller',
+  path: '/taller',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppZonaRoute = AppZonaRouteImport.update({
+  id: '/zona',
+  path: '/zona',
   getParentRoute: () => AppRoute,
 } as any)
 const PublicaIndexRoute = PublicaIndexRouteImport.update({
@@ -44,41 +63,78 @@ const PublicaRegistroRoute = PublicaRegistroRouteImport.update({
   path: '/registro',
   getParentRoute: () => PublicaRoute,
 } as any)
+const AppSistemasSistemaIdRoute = AppSistemasSistemaIdRouteImport.update({
+  id: '/sistemas/$sistemaId',
+  path: '/sistemas/$sistemaId',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicaIndexRoute
   '/inicio': typeof AppInicioRoute
+  '/plantillas': typeof AppPlantillasRoute
+  '/taller': typeof AppTallerRoute
+  '/zona': typeof AppZonaRoute
   '/login': typeof PublicaLoginRoute
   '/registro': typeof PublicaRegistroRoute
+  '/sistemas/$sistemaId': typeof AppSistemasSistemaIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicaIndexRoute
   '/inicio': typeof AppInicioRoute
+  '/plantillas': typeof AppPlantillasRoute
+  '/taller': typeof AppTallerRoute
+  '/zona': typeof AppZonaRoute
   '/login': typeof PublicaLoginRoute
   '/registro': typeof PublicaRegistroRoute
+  '/sistemas/$sistemaId': typeof AppSistemasSistemaIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_publica': typeof PublicaRouteWithChildren
   '/_app/inicio': typeof AppInicioRoute
+  '/_app/plantillas': typeof AppPlantillasRoute
+  '/_app/taller': typeof AppTallerRoute
+  '/_app/zona': typeof AppZonaRoute
   '/_publica/login': typeof PublicaLoginRoute
   '/_publica/registro': typeof PublicaRegistroRoute
   '/_publica/': typeof PublicaIndexRoute
+  '/_app/sistemas/$sistemaId': typeof AppSistemasSistemaIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/inicio' | '/login' | '/registro'
+  fullPaths:
+    | '/'
+    | '/inicio'
+    | '/plantillas'
+    | '/taller'
+    | '/zona'
+    | '/login'
+    | '/registro'
+    | '/sistemas/$sistemaId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/inicio' | '/login' | '/registro'
+  to:
+    | '/'
+    | '/inicio'
+    | '/plantillas'
+    | '/taller'
+    | '/zona'
+    | '/login'
+    | '/registro'
+    | '/sistemas/$sistemaId'
   id:
     | '__root__'
     | '/_app'
     | '/_publica'
     | '/_app/inicio'
+    | '/_app/plantillas'
+    | '/_app/taller'
+    | '/_app/zona'
     | '/_publica/login'
     | '/_publica/registro'
     | '/_publica/'
+    | '/_app/sistemas/$sistemaId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -109,6 +165,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppInicioRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/plantillas': {
+      id: '/_app/plantillas'
+      path: '/plantillas'
+      fullPath: '/plantillas'
+      preLoaderRoute: typeof AppPlantillasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/taller': {
+      id: '/_app/taller'
+      path: '/taller'
+      fullPath: '/taller'
+      preLoaderRoute: typeof AppTallerRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/zona': {
+      id: '/_app/zona'
+      path: '/zona'
+      fullPath: '/zona'
+      preLoaderRoute: typeof AppZonaRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_publica/': {
       id: '/_publica/'
       path: '/'
@@ -130,15 +207,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicaRegistroRouteImport
       parentRoute: typeof PublicaRoute
     }
+    '/_app/sistemas/$sistemaId': {
+      id: '/_app/sistemas/$sistemaId'
+      path: '/sistemas/$sistemaId'
+      fullPath: '/sistemas/$sistemaId'
+      preLoaderRoute: typeof AppSistemasSistemaIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppInicioRoute: typeof AppInicioRoute
+  AppPlantillasRoute: typeof AppPlantillasRoute
+  AppTallerRoute: typeof AppTallerRoute
+  AppZonaRoute: typeof AppZonaRoute
+  AppSistemasSistemaIdRoute: typeof AppSistemasSistemaIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppInicioRoute: AppInicioRoute,
+  AppPlantillasRoute: AppPlantillasRoute,
+  AppTallerRoute: AppTallerRoute,
+  AppZonaRoute: AppZonaRoute,
+  AppSistemasSistemaIdRoute: AppSistemasSistemaIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
