@@ -227,7 +227,14 @@ export function InicioPage() {
           <button
             type="button"
             className="text-link"
-            onClick={() => avisar('La carga desde una foto llega con el editor.')}
+            onClick={() =>
+              abrirModal({
+                tipo: 'importar',
+                sistemaId: null,
+                bloqueId: null,
+                contexto: 'registros',
+              })
+            }
           >
             Mostrarme cómo <Icon name="arrow" />
           </button>

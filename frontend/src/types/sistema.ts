@@ -3,7 +3,7 @@ import type { Sistema } from '@/lib/sistema/tipos';
 
 const colorSchema = z.enum(['orange', 'coral', 'yellow', 'blue', 'petrol']);
 
-const campoSchema = z.object({
+export const campoSchema = z.object({
   key: z.string(),
   label: z.string(),
   type: z.enum([

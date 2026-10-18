@@ -30,3 +30,9 @@ export function textoPlano(sistema: Sistema | undefined, campo: Campo, valor: Va
 
 export const ESTADOS_BUENOS = ['Entregado'];
 export const ESTADOS_EN_CURSO = ['En preparación'];
+
+/** La fecha de hoy como «aaaa-mm-dd», que es lo que guardan los campos de fecha. */
+export function hoy() {
+  const fecha = new Date();
+  return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`;
+}

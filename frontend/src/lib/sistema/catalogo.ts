@@ -290,3 +290,16 @@ export const FIELD_TYPES: Record<TipoCampo, string> = {
   relation: 'Vínculo con otro bloque',
   time: 'Horario',
 };
+
+/** Con qué puede arrancar una sección nueva: las piezas que ya vienen conectadas. */
+export const PRESETS_DE_SECCION: Record<
+  string,
+  { name: string; label: string; types: TipoBloque[] }
+> = {
+  sales: { name: 'Ventas', label: 'Ventas + clientes', types: ['sales', 'clients'] },
+  operations: {
+    name: 'Productos',
+    label: 'Inventario + gastos + resumen',
+    types: ['inventory', 'expenses', 'summary'],
+  },
+};

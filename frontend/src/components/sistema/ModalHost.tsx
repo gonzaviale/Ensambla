@@ -1,12 +1,18 @@
 import { useEffect, useRef } from 'react';
 import { useSistemaStore } from '@/stores/sistemaStore';
+import { ModalAgregarSeccion } from './modales/ModalAgregarSeccion';
 import { ModalAyuda } from './modales/ModalAyuda';
 import { ModalBlanco } from './modales/ModalBlanco';
+import { ModalCampo } from './modales/ModalCampo';
 import { ModalConfirmar } from './modales/ModalConfirmar';
+import { ModalElegirBloque } from './modales/ModalElegirBloque';
+import { ModalImportar } from './modales/ModalImportar';
 import { ModalPerfil } from './modales/ModalPerfil';
 import { ModalPlantilla } from './modales/ModalPlantilla';
 import { ModalRenombrar } from './modales/ModalRenombrar';
+import { ModalRegistro } from './modales/ModalRegistro';
 import { ModalRenombrarPieza } from './modales/ModalRenombrarPieza';
+import { ModalSecciones } from './modales/ModalSecciones';
 
 const ENFOCABLES =
   'button:not(:disabled),a[href],input:not([hidden]),select,textarea,[tabindex="0"]';
@@ -29,6 +35,24 @@ function ContenidoDelModal() {
       return <ModalRenombrar />;
     case 'renombrarPieza':
       return <ModalRenombrarPieza bloqueId={modal.bloqueId} />;
+    case 'registro':
+      return <ModalRegistro bloqueId={modal.bloqueId} filaId={modal.filaId} />;
+    case 'campo':
+      return <ModalCampo bloqueId={modal.bloqueId} clave={modal.clave} />;
+    case 'secciones':
+      return <ModalSecciones />;
+    case 'agregarSeccion':
+      return <ModalAgregarSeccion />;
+    case 'elegirBloque':
+      return <ModalElegirBloque />;
+    case 'importar':
+      return (
+        <ModalImportar
+          sistemaId={modal.sistemaId}
+          bloqueId={modal.bloqueId}
+          contexto={modal.contexto}
+        />
+      );
     case 'confirmar':
       return <ModalConfirmar {...modal} />;
   }

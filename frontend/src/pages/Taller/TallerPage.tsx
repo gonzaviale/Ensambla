@@ -62,7 +62,6 @@ export function TallerPage() {
   const actualizarTaller = useSistemaStore((estado) => estado.actualizarTaller);
   const editarBorrador = useSistemaStore((estado) => estado.editarBorrador);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
-  const avisar = useSistemaStore((estado) => estado.avisar);
   const navegacion = useNavegacion();
   const { enviar } = useTaller();
   const mensajes = useRef<HTMLDivElement>(null);
@@ -240,7 +239,14 @@ export function TallerPage() {
                 <Btn
                   cls="ghost small"
                   aria-label="Aportar una foto o captura"
-                  onClick={() => avisar('La carga desde una foto llega con el editor.')}
+                  onClick={() =>
+                    abrirModal({
+                      tipo: 'importar',
+                      sistemaId: null,
+                      bloqueId: null,
+                      contexto: 'negocio',
+                    })
+                  }
                 >
                   <Icon name="camera" />
                 </Btn>

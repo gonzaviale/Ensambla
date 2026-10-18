@@ -72,7 +72,12 @@ export function ModalAyuda({ respuesta }: { respuesta?: string }) {
           <Btn
             cls="secondary"
             onClick={() =>
-              useSistemaStore.getState().avisar('La carga desde una foto llega con el editor.')
+              abrirModal({
+                tipo: 'importar',
+                sistemaId: useSistemaStore.getState().activeId,
+                bloqueId: null,
+                contexto: 'registros',
+              })
             }
           >
             <Icon name="camera" /> Probar una foto

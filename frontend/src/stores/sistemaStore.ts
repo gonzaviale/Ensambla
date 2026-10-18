@@ -15,6 +15,19 @@ export type Modal =
   | { tipo: 'perfil' }
   | { tipo: 'renombrar' }
   | { tipo: 'renombrarPieza'; bloqueId: string }
+  | { tipo: 'registro'; bloqueId: string; filaId?: string | null }
+  | { tipo: 'campo'; bloqueId: string; clave?: string | null }
+  | { tipo: 'secciones' }
+  | { tipo: 'agregarSeccion' }
+  | { tipo: 'elegirBloque' }
+  | {
+      tipo: 'importar';
+      /** El sistema al que se llevan los datos; sin sistema se crea uno nuevo. */
+      sistemaId: string | null;
+      bloqueId: string | null;
+      /** `negocio`: la foto sirve para contarle a Sami cómo trabaja la persona. */
+      contexto: 'registros' | 'negocio';
+    }
   | {
       tipo: 'confirmar';
       titulo: string;
