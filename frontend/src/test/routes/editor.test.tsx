@@ -495,9 +495,11 @@ describe('traer datos de una foto', () => {
     expect(revision).toBeVisible();
     const nombres = screen.getAllByLabelText(/Producto, registro/);
     expect(nombres).toHaveLength(3);
+    expect(screen.getAllByRole('article')).toHaveLength(3);
     await user.clear(nombres[0] as HTMLElement);
     await user.type(nombres[0] as HTMLElement, 'Mate listo');
-    await user.click(screen.getByLabelText('Incorporar registro 3'));
+    await user.click(screen.getByRole('button', { name: 'Quitar el registro 3' }));
+    await user.click(screen.getByRole('button', { name: /Descartar/ }));
     await clickButton(user, /Incorporar registros/);
 
     await waitFor(() => expect(tipoDeBloque('inventory').rows).toHaveLength(2), ESPERA);

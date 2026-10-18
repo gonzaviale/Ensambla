@@ -100,3 +100,27 @@ Registrar dispositivo, duración, errores, dudas, intervenciones y resultado. Ej
 | 3 | Pendiente | Pendiente | Pendiente | Pendiente | Pendiente |
 | 4 | Pendiente | Pendiente | Pendiente | Pendiente | Pendiente |
 | 5 | Pendiente | Pendiente | Pendiente | Pendiente | Pendiente |
+
+## Traer datos de una foto: revisión en tarjetas y campos nuevos (ENS-172)
+
+El paso «Revisar» de **Traer datos de una foto** (`ModalImportar`) muestra un **registro por tarjeta**, no una tabla:
+la foto queda arriba en el celular y al costado (fija) en la computadora. La lectura sigue siendo **simulada**
+(`POST /importaciones/lectura`); el contrato que usa la pantalla es el que tendrá la lectura real.
+
+- **Tarjetas (ENS-190):** cada dato se edita en la tarjeta y cada registro tiene «Quitar» (con «Deshacer»). Un dato
+  dudoso se distingue por el borde punteado, el ícono y el texto «Revisá este dato: …», no sólo por el color; se
+  resuelve corrigiéndolo o con «Está bien». Arriba se cuenta cuántos quedan por revisar.
+- **Campos nuevos detectados (ENS-191):** si el bloque destino ya existe y la foto trae una columna que no tiene, una
+  tarjeta al inicio la propone con su tipo sugerido y ejemplos de lo que se leyó. Se puede **aceptar**, **renombrar**,
+  **cambiar el tipo** o **descartar** (y volver a sumar). Hasta decidir cada una no se puede incorporar; el nombre no
+  puede estar vacío ni repetir un campo del bloque. Los aceptados aparecen en las tarjetas con la etiqueta «Campo
+  nuevo» y se crean **junto con los registros, en una sola operación**: se ensaya sobre una copia y, si algo falla,
+  no se guarda nada. Una columna descartada no se crea y sus valores se ignoran. Los registros que el bloque ya tenía
+  no se modifican (el campo nuevo queda vacío en ellos).
+
+Contrato de la lectura (`types/importacion.ts`): además de `filas` y `descripcion`, devuelve `camposNuevos` (campos
+con `key`, `label` y `type`; sus valores vienen en cada fila por esa clave) y `dudas` (`fila`, `campo`, `motivo`).
+El pedido suma `destinoExistente`: sólo con un bloque que ya está en el sistema se detectan columnas nuevas. La
+lógica pura vive en `lib/sistema/revision.ts`; el backend real ya devuelve `camposNuevos` (ENS-188) y confirma
+columnas nuevas y registros en una transacción (ENS-189).
+
