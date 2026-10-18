@@ -1,46 +1,50 @@
 import { variables } from './estilos';
 
+const NUMEROS = [
+  { color: 'amarillo', valor: '3', texto: 'formas de contarle las cosas: foto, voz o texto' },
+  { color: 'celeste', valor: '6', texto: 'bloques listos para encajar y armar tu negocio' },
+  { color: 'blanco', valor: '0', texto: 'planillas o cuentas que tengas que armar vos' },
+] as const;
+
 const PILARES = [
   {
-    num: '01',
-    tag: 'Piezas',
-    titulo: 'Modularidad',
+    color: 'celeste',
+    tag: 'Bloques',
+    titulo: 'Un bloque por cada parte de tu negocio',
     texto:
-      'Cada parte de tu negocio es un bloque independiente que podés sumar, mover o quitar cuando quieras.',
+      'Productos, ventas, gastos, fiados, pedidos… Cada uno se encaja con los otros. Sumás o sacás bloques cuando quieras, sin romper nada.',
   },
   {
-    num: '02',
-    tag: 'Agente',
-    titulo: 'Sami arma tu sistema',
-    texto:
-      'Te escucha, propone las tablas y las columnas y las deja listas. No hay nada que configurar.',
+    color: 'amarillo',
+    tag: 'Sami',
+    titulo: 'Sami lo arma por vos',
+    texto: 'Le contás cómo trabajás y te deja todo listo. No hay nada que configurar.',
   },
   {
-    num: '03',
-    tag: 'Entrada',
+    color: 'coral',
+    tag: 'Fácil',
     titulo: 'Cargá como te salga',
-    texto:
-      'Foto del cuaderno, nota de voz, texto o WhatsApp. Revisás y confirmás antes de que se guarde.',
+    texto: 'Foto del cuaderno, audio, texto o WhatsApp. Vos revisás y confirmás.',
   },
   {
-    num: '04',
-    tag: 'Monitoreo',
-    titulo: 'Avisos para decidir',
+    color: 'vidrio',
+    tag: 'Avisos',
+    titulo: 'Te avisa antes de que sea tarde',
     texto:
-      'Precios mal ubicados, productos estancados y combos, en lenguaje simple y con una acción sugerida.',
+      'Cuándo subir un precio, qué se está por acabar y quién te debe, con palabras simples y una sugerencia para hacer.',
   },
   {
-    num: '05',
-    tag: 'Zona',
-    titulo: 'Datos de tu zona, sin exponer a nadie',
+    color: 'blanco',
+    tag: 'Tu zona',
+    titulo: 'Mirá cómo te va frente a tu barrio',
     texto:
-      'Te comparás con comercios cercanos con datos agregados y anónimos, siempre de varios negocios.',
+      'Te comparás con comercios cercanos usando datos de varios negocios juntos. Nadie ve los números de otro.',
   },
   {
-    num: '06',
-    tag: 'Crecimiento',
-    titulo: 'Escalabilidad',
-    texto: 'Empezá con un bloque. Cuando tu negocio crezca, tu sistema crece con él.',
+    color: 'vidrio',
+    tag: 'Crece con vos',
+    titulo: 'Empezá chico, seguí cuando quieras',
+    texto: 'Arrancá con un bloque. Cuando tu negocio crezca, tu sistema crece con él.',
   },
 ] as const;
 
@@ -55,18 +59,26 @@ export function Pilares() {
             <br />
             Listo para crecer mañana.
           </h2>
-          <p>Un sistema a tu medida, un agente que lo arma y un motor que te avisa qué hacer.</p>
+          <p>Un sistema a tu medida, una ayuda que lo arma y avisos que te dicen qué hacer.</p>
         </header>
 
-        <div className="pilares">
-          {PILARES.map(({ num, tag, titulo, texto }, i) => (
+        <ul className="numeros">
+          {NUMEROS.map(({ color, valor, texto }, i) => (
+            <li key={texto} className="revelar" style={variables({ '--d': `${i / 10}s` })}>
+              <strong className={`numeros__valor numeros__valor--${color}`}>{valor}</strong>
+              <span>{texto}</span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="bento">
+          {PILARES.map(({ color, tag, titulo, texto }, i) => (
             <article
-              key={num}
-              className="pilar revelar"
+              key={titulo}
+              className={`bento__celda bento__celda--${i + 1} bento__celda--${color} revelar`}
               style={variables({ '--d': `${(i % 3) / 10}s` })}
             >
-              <span className="pilar__num">{num}</span>
-              <span className="pilar__tag">{tag}</span>
+              <span className="bento__tag">{tag}</span>
               <h3>{titulo}</h3>
               <p>{texto}</p>
             </article>

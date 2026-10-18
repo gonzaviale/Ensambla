@@ -27,7 +27,7 @@ async function sinViolaciones() {
 describe('T-056: accesibilidad (axe)', () => {
   it('Landing', async () => {
     renderApp('/');
-    await verifyHeadingPresentAsync('Tu sistema, un bloque a la vez.');
+    await verifyHeadingPresentAsync('¿Todavía anotás todo en el cuaderno?');
     await sinViolaciones();
   });
 

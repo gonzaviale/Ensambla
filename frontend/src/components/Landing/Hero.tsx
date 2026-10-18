@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { variables } from './estilos';
 
+// Composición del isotipo: el bloque grande es el naranja (la persona que arma su sistema).
 const BLOQUES_3D = [
   { color: 'naranja', x: 0, y: 0, w: 2.74, h: 4.01, ex: -1, ey: -1, ez: 0.4, dl: '0s' },
   { color: 'petroleo', x: 0, y: 4.38, w: 2.74, h: 1.82, ex: -1, ey: 0.9, ez: -0.3, dl: '0.1s' },
@@ -10,21 +11,15 @@ const BLOQUES_3D = [
 ] as const;
 
 const FICHAS = [
-  { n: 1, icono: '▤', color: 'naranja', titulo: 'Inventario', detalle: '128 productos' },
-  { n: 2, icono: '✓', color: 'coral', titulo: 'Pedido #204', detalle: 'Listo para entregar' },
-  {
-    n: 3,
-    icono: '!',
-    color: 'petroleo',
-    titulo: 'Aviso de precio',
-    detalle: 'La yerba está 8 % abajo',
-  },
+  { n: 1, icono: '▤', color: 'celeste', titulo: 'Tus productos', detalle: '128 cargados' },
+  { n: 2, icono: '$', color: 'amarillo', titulo: 'Este mes te quedó', detalle: '$ 184.500' },
+  { n: 3, icono: '!', color: 'coral', titulo: 'Subí la yerba', detalle: 'Está 8 % abajo' },
 ] as const;
 
 const DATOS = [
-  { valor: '0', texto: 'líneas de código' },
-  { valor: '3', texto: 'formas de cargar: foto, voz o texto' },
-  { valor: '∞', texto: 'combinaciones de bloques' },
+  { valor: '3', texto: 'formas de contarle: foto, voz o texto' },
+  { valor: '0', texto: 'planillas que armar' },
+  { valor: '1', texto: 'asistente que te ayuda: Sami' },
 ] as const;
 
 export function Hero() {
@@ -37,52 +32,37 @@ export function Hero() {
         <span className="deco deco--4" />
       </div>
 
-      <div className="contenedor hero__grilla">
-        <div className="hero__texto">
-          <p className="etiqueta aparecer">
-            <span className="etiqueta__punto" aria-hidden="true" />
-            Plataforma no-code para almacenes, kioscos y PyMEs
-          </p>
-          <h1 className="hero__titulo">
-            <span className="linea aparecer" style={variables({ '--d': '.05s' })}>
-              Tu sistema,
-            </span>{' '}
-            <span className="linea aparecer" style={variables({ '--d': '.15s' })}>
-              un <span className="resaltado">bloque</span>
-            </span>{' '}
-            <span className="linea aparecer" style={variables({ '--d': '.25s' })}>
-              a la vez.
-            </span>
-          </h1>
-          <span
-            className="subrayado aparecer"
-            style={variables({ '--d': '.35s' })}
-            aria-hidden="true"
-          />
-          <p className="hero__bajada aparecer" style={variables({ '--d': '.4s' })}>
-            Contale a Sami cómo trabajás y armá el sistema de tu negocio con bloques. Cargá con una
-            foto, un audio o un mensaje, y recibí avisos para decidir mejor. Sin programar.
-          </p>
-          <div className="hero__acciones aparecer" style={variables({ '--d': '.5s' })}>
-            <Link to="/registro" className="boton boton--primario">
-              Crear mi sistema gratis
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
-            </Link>
-            <a href="#como-funciona" className="boton boton--secundario">
-              Ver cómo funciona
-            </a>
-          </div>
-          <ul className="hero__datos aparecer" style={variables({ '--d': '.6s' })}>
-            {DATOS.map(({ valor, texto }) => (
-              <li key={texto}>
-                <strong>{valor}</strong> {texto}
-              </li>
-            ))}
-          </ul>
+      <div className="contenedor hero__centro">
+        <p className="etiqueta aparecer">
+          <span className="etiqueta__punto" aria-hidden="true" />
+          Tu sistema, un bloque a la vez.
+        </p>
+        <h1 className="hero__titulo">
+          <span className="linea aparecer" style={variables({ '--d': '.05s' })}>
+            ¿Todavía anotás todo
+          </span>{' '}
+          <span className="linea aparecer" style={variables({ '--d': '.15s' })}>
+            en el cuaderno?
+          </span>
+        </h1>
+        <p className="hero__bajada aparecer" style={variables({ '--d': '.3s' })}>
+          Te entiendo: no tenés tiempo para aprender un sistema. Por eso Sami, nuestro asistente,
+          arma el de tu negocio con bloques. Vos le contás cómo trabajás, y él se encarga del resto.
+        </p>
+        <div className="hero__acciones aparecer" style={variables({ '--d': '.4s' })}>
+          <Link to="/registro" className="boton boton--primario boton--grande">
+            Crear mi sistema gratis
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </Link>
+          <a href="#el-problema" className="boton boton--secundario boton--grande">
+            ¿Te pasa esto?
+          </a>
         </div>
+      </div>
 
+      <div className="contenedor">
         <div className="hero__visual" aria-hidden="true">
           <div className="hero__aro" />
           {/* Composición de bloques en CSS 3D (misma estructura que la portada del manual) */}
@@ -112,19 +92,29 @@ export function Hero() {
               ))}
             </div>
           </div>
-          {FICHAS.map(({ n, icono, color, titulo, detalle }) => (
-            <div key={n} className={`ficha ficha--${n}`}>
-              <span className={`ficha__icono ficha__icono--${color}`}>{icono}</span>
-              <div>
-                <b>{titulo}</b>
-                <small>{detalle}</small>
+          <div className="hero__fichas">
+            {FICHAS.map(({ n, icono, color, titulo, detalle }) => (
+              <div key={n} className={`ficha ficha--${n}`}>
+                <span className={`ficha__icono ficha__icono--${color}`}>{icono}</span>
+                <div>
+                  <b>{titulo}</b>
+                  <small>{detalle}</small>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+
+        <ul className="hero__datos aparecer" style={variables({ '--d': '.6s' })}>
+          {DATOS.map(({ valor, texto }) => (
+            <li key={texto}>
+              <strong>{valor}</strong> {texto}
+            </li>
+          ))}
+        </ul>
       </div>
 
-      <a href="#como-funciona" className="hero__bajar" aria-label="Bajar a cómo funciona">
+      <a href="#el-problema" className="hero__bajar" aria-label="Bajar a ver el problema">
         <span />
       </a>
     </section>

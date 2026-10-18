@@ -18,7 +18,7 @@ describe('navegación y guards', () => {
   it('muestra la landing a quien no tiene sesión', async () => {
     renderApp('/');
 
-    await verifyHeadingPresentAsync('Tu sistema, un bloque a la vez.');
+    await verifyHeadingPresentAsync('¿Todavía anotás todo en el cuaderno?');
   });
 
   it('manda al login a quien entra a una pantalla privada sin sesión', async () => {

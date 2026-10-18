@@ -6,7 +6,7 @@ import { verifyHeadingPresentAsync } from '@/test/testHelpers';
 
 async function abrirLanding() {
   renderApp('/');
-  await verifyHeadingPresentAsync('Tu sistema, un bloque a la vez.');
+  await verifyHeadingPresentAsync('¿Todavía anotás todo en el cuaderno?');
   return userEvent.setup();
 }
 
@@ -22,40 +22,38 @@ describe('landing', () => {
     expect(screen.getByRole('link', { name: 'Ya tengo cuenta' })).toHaveAttribute('href', '/login');
   });
 
-  describe('armador de bloques', () => {
-    it('suma y quita bloques y cuenta los activos', async () => {
-      const user = await abrirLanding();
-      const grupo = screen.getByRole('group', { name: 'Bloques disponibles' });
-      const inventario = within(grupo).getByRole('button', { name: 'Inventario' });
+  describe('el problema', () => {
+    it('muestra el eslogan y el problema antes que el funcionamiento', async () => {
+      await abrirLanding();
 
-      expect(screen.getByText('0 bloques')).toBeInTheDocument();
-      expect(inventario).toHaveAttribute('aria-pressed', 'false');
-
-      await user.click(inventario);
-      expect(screen.getByText('1 bloque')).toBeInTheDocument();
-      expect(inventario).toHaveAttribute('aria-pressed', 'true');
-
-      await user.click(within(grupo).getByRole('button', { name: 'Ventas' }));
-      expect(screen.getByText('2 bloques')).toBeInTheDocument();
-
-      await user.click(inventario);
-      expect(screen.getByText('1 bloque')).toBeInTheDocument();
-      expect(inventario).toHaveAttribute('aria-pressed', 'false');
+      const hero = document.getElementById('inicio') as HTMLElement;
+      expect(within(hero).getByText('Tu sistema, un bloque a la vez.')).toBeInTheDocument();
+      const problema = document.getElementById('el-problema') as HTMLElement;
+      expect(
+        within(problema).getByRole('heading', { level: 2, name: /Tu negocio anda/ }),
+      ).toBeInTheDocument();
+      expect(within(problema).getAllByRole('heading', { level: 3 })).toHaveLength(5);
+      expect(within(problema).getByText(/A fin de mes no sé cuánto gané/)).toBeInTheDocument();
     });
 
-    it('vuelve a empezar', async () => {
-      const user = await abrirLanding();
-      const grupo = screen.getByRole('group', { name: 'Bloques disponibles' });
+    it('ordena las secciones: el problema va antes que cómo te ayuda', async () => {
+      await abrirLanding();
 
-      await user.click(within(grupo).getByRole('button', { name: 'Pedidos' }));
-      await user.click(within(grupo).getByRole('button', { name: 'Clientes' }));
-      await user.click(screen.getByRole('button', { name: 'Empezar de nuevo' }));
+      const orden = ['el-problema', 'sami', 'como-funciona', 'monitoreo', 'entrada', 'comentarios'];
+      const posiciones = orden.map((id) => {
+        const seccion = document.getElementById(id);
+        expect(seccion, id).not.toBeNull();
+        return Array.from(document.querySelectorAll('section')).indexOf(seccion as HTMLElement);
+      });
+      expect(posiciones).toEqual([...posiciones].sort((x, y) => x - y));
+    });
 
-      expect(screen.getByText('0 bloques')).toBeInTheDocument();
-      expect(within(grupo).getByRole('button', { name: 'Pedidos' })).toHaveAttribute(
-        'aria-pressed',
-        'false',
-      );
+    it('explica cómo te ayuda en tres pasos cortos', async () => {
+      await abrirLanding();
+      const seccion = document.getElementById('como-funciona') as HTMLElement;
+
+      expect(within(seccion).getAllByRole('listitem')).toHaveLength(3);
+      expect(within(seccion).getByText('Contale tu negocio')).toBeInTheDocument();
     });
   });
 
@@ -92,39 +90,15 @@ describe('landing', () => {
     });
   });
 
-  describe('Sami', () => {
-    it('tiene su sección y su escena', async () => {
+  describe('Sami y los avisos', () => {
+    it('tienen su sección con un título', async () => {
       await abrirLanding();
 
-      expect(
-        screen.getByRole('heading', { level: 2, name: 'Sami arma tu sistema por vos.' }),
-      ).toBeInTheDocument();
-      expect(screen.getByRole('img', { name: /Sami, el pulpo de Ensambla/ })).toBeInTheDocument();
-    });
-  });
-
-  describe('centro de avisos', () => {
-    it('aplica y descarta avisos, y los vuelve a mostrar', async () => {
-      const user = await abrirLanding();
-
-      expect(screen.getByText('4 avisos')).toBeInTheDocument();
-
-      await user.click(
-        screen.getByRole('button', { name: /^Aplicar: Subir el precio a \$2\.500/ }),
-      );
-      expect(screen.getByText('Precio actualizado a $2.500.')).toBeInTheDocument();
-      expect(screen.getByText('3 avisos')).toBeInTheDocument();
-
-      await user.click(screen.getByRole('button', { name: /^Descartar aviso: La yerba de 1 kg/ }));
-      expect(screen.getByText('Aviso descartado.')).toBeInTheDocument();
-      expect(screen.getByText('2 avisos')).toBeInTheDocument();
-
-      await user.click(screen.getByRole('button', { name: /^Descartar aviso: El pan lactal/ }));
-      await user.click(screen.getByRole('button', { name: /^Descartar aviso: Fideos y salsa/ }));
-      expect(screen.getByText('Todo al día')).toBeInTheDocument();
-
-      await user.click(screen.getByRole('button', { name: 'Ver los avisos de nuevo' }));
-      expect(screen.getByText('4 avisos')).toBeInTheDocument();
+      for (const id of ['sami', 'monitoreo']) {
+        const seccion = document.getElementById(id) as HTMLElement;
+        expect(seccion, id).not.toBeNull();
+        expect(within(seccion).getByRole('heading', { level: 2 })).toBeInTheDocument();
+      }
     });
   });
 
