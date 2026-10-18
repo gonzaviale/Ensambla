@@ -2127,15 +2127,18 @@
 
   /* Por qué Ensambla: números y tarjetas más compactos. */
   .landing .numeros {
-    margin-bottom: 20px;
-    padding: 14px 0;
+    margin-bottom: 16px;
+    padding: 10px 0;
+  }
+  .landing .numeros__valor {
+    font-size: 56px;
   }
   .landing .bento {
     gap: 14px;
   }
   .landing .bento__celda {
-    padding: 18px 22px;
-    border-radius: 24px;
+    padding: 14px 20px;
+    border-radius: 22px;
   }
   .landing .bento__tag {
     margin-bottom: 8px;
@@ -2165,9 +2168,9 @@
     column-gap: 14px;
   }
   .landing .comentario {
-    gap: 12px;
-    margin-bottom: 14px;
-    padding: 18px 20px;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 14px 18px;
   }
   .landing .opinar {
     max-width: none;
@@ -2183,6 +2186,174 @@
   }
   .landing .formulario {
     gap: 12px;
+  }
+}
+/* ---------- Pantallas bajas (notebooks): todo un poco más chico para que cada sección entre entera ---------- */
+@media (min-width: 1000px) and (max-height: 900px) {
+  .landing .seccion__cabecera {
+    margin-bottom: 18px;
+  }
+  .landing .seccion__cabecera h2,
+  .landing .problema .seccion__cabecera h2,
+  .landing .sami-texto h2,
+  .landing .vigia-texto h2 {
+    font-size: clamp(26px, 3.2vw, 38px);
+  }
+  .landing .seccion__cabecera p:not(.sobretitulo) {
+    margin-top: 8px;
+    font-size: 16px;
+  }
+  .landing .dolor {
+    padding: 14px 14px 16px;
+  }
+  .landing .dolor__icono {
+    width: 38px;
+    height: 38px;
+    margin-bottom: 10px;
+  }
+  .landing .dolor p {
+    font-size: 14px;
+  }
+  .landing .problema__salida {
+    margin-top: 16px;
+    gap: 10px;
+  }
+  .landing .entrada__panel {
+    min-height: 260px;
+  }
+  .landing .entrada__paso {
+    padding: 8px 14px;
+  }
+  .landing .numeros {
+    margin-bottom: 14px;
+    padding: 8px 0;
+  }
+  .landing .numeros__valor {
+    font-size: 48px;
+  }
+  .landing .bento__celda {
+    padding: 12px 18px;
+  }
+  .landing .bento__celda p {
+    font-size: 14px;
+  }
+  .landing .comentario {
+    padding: 12px 16px;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .landing .comentario blockquote,
+  .landing .comentario p {
+    font-size: 15px;
+  }
+  .landing .opinar {
+    padding: 14px 18px;
+  }
+  .landing .vigia-avisos li {
+    min-height: 34px;
+  }
+  .landing .sami-ayuda {
+    padding: 6px 14px 8px;
+  }
+}
+
+/* ---------- Pantallas muy bajas (notebooks chicas): una vuelta más de ajuste ---------- */
+@media (min-width: 1000px) and (max-height: 760px) {
+  .landing .seccion__cabecera {
+    margin-bottom: 12px;
+  }
+  .landing .seccion__cabecera h2,
+  .landing .problema .seccion__cabecera h2,
+  .landing .sami-texto h2,
+  .landing .vigia-texto h2 {
+    font-size: clamp(24px, 2.8vw, 32px);
+  }
+  .landing .seccion__cabecera p:not(.sobretitulo) {
+    margin-top: 4px;
+    font-size: 15px;
+  }
+  .landing .numeros {
+    margin-bottom: 10px;
+    padding: 4px 0;
+  }
+  .landing .numeros__valor {
+    font-size: 40px;
+  }
+  .landing .numeros li > span:last-child {
+    font-size: 14px;
+  }
+  .landing .bento {
+    gap: 10px;
+  }
+  .landing .bento__celda {
+    padding: 8px 16px;
+  }
+  .landing .bento__tag {
+    margin-bottom: 4px;
+    padding: 2px 8px;
+    font-size: 12px;
+  }
+  .landing .bento__celda h3 {
+    font-size: 17px;
+  }
+  .landing .bento__celda--1 h3 {
+    font-size: 24px;
+  }
+  .landing .bento__celda p {
+    margin-top: 3px;
+    font-size: 13.5px;
+    line-height: 1.35;
+  }
+  .landing .comentarios__fila {
+    gap: 18px;
+  }
+  .landing .comentario {
+    padding: 7px 14px;
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+  .landing .comentario blockquote,
+  .landing .comentario p {
+    font-size: 13.5px;
+    line-height: 1.35;
+  }
+  .landing .opinar {
+    padding: 10px 16px;
+  }
+  .landing .opinar__texto {
+    margin-bottom: 8px;
+  }
+  .landing .opinar h3 {
+    font-size: 18px;
+  }
+  .landing .opinar p {
+    font-size: 13.5px;
+  }
+  .landing .formulario {
+    gap: 7px;
+  }
+  .landing .formulario textarea {
+    min-height: 0;
+    height: 64px;
+  }
+}
+/* ---------- Pantalla por sección: en escritorio cada sección ocupa la pantalla ---------- */
+@media (min-width: 1000px) and (min-height: 600px) {
+  .landing {
+    --alto-barra: 64px;
+    --alto-cinta: 95px;
+  }
+  .landing > section:not(.cinta) {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: calc(100svh - var(--alto-barra));
+    padding-block: 24px;
+    scroll-margin-top: var(--alto-barra);
+  }
+  /* El inicio comparte pantalla con la cinta de rubros. */
+  .landing > section.hero {
+    min-height: calc(100svh - var(--alto-barra) - var(--alto-cinta));
   }
 }
 @media (max-width: 1024px) {
