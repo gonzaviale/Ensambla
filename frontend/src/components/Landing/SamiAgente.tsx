@@ -1,5 +1,4 @@
 import { Link } from '@tanstack/react-router';
-import { EscenaBloques } from './sami/EscenaBloques';
 import './sami.css';
 
 const AYUDAS = [
@@ -8,38 +7,45 @@ const AYUDAS = [
   { color: 'coral', titulo: 'Te pide tu OK', texto: 'Nada se guarda sin que lo confirmes.' },
 ] as const;
 
-// «Conocé a Sami»: la mascota recibe bloques, los ordena y los apila (escena con GSAP).
+// «Conocé a Sami»: texto a un lado e ilustración de la mascota armando bloques al otro.
 export function SamiAgente() {
   return (
     <section className="sami-seccion" id="sami" aria-labelledby="sami-titulo">
-      <div className="contenedor">
-        <header className="sami-cabecera revelar">
+      <div className="contenedor sami-grilla">
+        <div className="sami-texto revelar">
           <p className="sami-kicker">Conocé a Sami</p>
           <h2 id="sami-titulo">Sami te da una mano. Bueno, ocho.</h2>
-          <p>
+          <p className="sami-bajada">
             Es el asistente de Ensambla. Le contás cómo trabajás y él va encajando cada parte de tu
             negocio, bloque a bloque. Vos no tenés que armar nada.
           </p>
-        </header>
 
-        <div className="sami-escenario revelar">
-          <EscenaBloques />
+          <ul className="sami-ayudas">
+            {AYUDAS.map(({ color, titulo, texto }) => (
+              <li key={titulo} className={`sami-ayuda sami-ayuda--${color}`}>
+                <h3>{titulo}</h3>
+                <p>{texto}</p>
+              </li>
+            ))}
+          </ul>
+
+          <p className="sami-cierre">
+            <Link to="/registro" className="boton boton--primario">
+              Empezar con Sami
+            </Link>
+          </p>
         </div>
 
-        <ul className="sami-ayudas">
-          {AYUDAS.map(({ color, titulo, texto }) => (
-            <li key={titulo} className={`sami-ayuda sami-ayuda--${color}`}>
-              <h3>{titulo}</h3>
-              <p>{texto}</p>
-            </li>
-          ))}
-        </ul>
-
-        <p className="sami-cierre">
-          <Link to="/registro" className="boton boton--primario">
-            Empezar con Sami
-          </Link>
-        </p>
+        <figure className="sami-figura revelar">
+          <img
+            src="/landing/sami-bloques.webp"
+            width={1536}
+            height={1024}
+            loading="lazy"
+            decoding="async"
+            alt="Sami, el pulpo de Ensambla, sostiene un bloque naranja junto a una pila de bloques de colores."
+          />
+        </figure>
       </div>
     </section>
   );

@@ -1,5 +1,4 @@
 import { Link } from '@tanstack/react-router';
-import { EscenaMonitores } from './sami/EscenaMonitores';
 import './sami.css';
 
 const AVISOS = [
@@ -8,22 +7,27 @@ const AVISOS = [
   { color: 'coral', texto: 'Un precio para ajustar' },
 ] as const;
 
-// «Sami vigila»: la mascota mira tres pantallas y avisa cuando algo cambia (escena con GSAP).
+// «Sami vigila»: ilustración de la mascota frente a sus pantallas y texto con lo que te avisa.
 export function MotorMonitoreo() {
   return (
     <section className="vigia" id="monitoreo" aria-labelledby="vigia-titulo">
-      <div className="contenedor">
-        <header className="vigia-cabecera revelar">
+      <div className="contenedor vigia-grilla">
+        <figure className="vigia-figura revelar">
+          <img
+            src="/landing/sami-vigila.webp"
+            width={1536}
+            height={1024}
+            loading="lazy"
+            decoding="async"
+            alt="Sami, el pulpo de Ensambla, frente a varias pantallas con gráficos de ventas, stock y precios."
+          />
+        </figure>
+
+        <div className="vigia-texto revelar">
           <p className="sami-kicker sami-kicker--claro">Sami vigila</p>
           <h2 id="vigia-titulo">Mientras vos atendés, Sami mira tus números.</h2>
-          <p>Y te avisa cuando algo cambia, sin gráficos raros.</p>
-        </header>
+          <p className="vigia-bajada">Y te avisa cuando algo cambia, sin gráficos raros.</p>
 
-        <div className="vigia-escenario revelar">
-          <EscenaMonitores />
-        </div>
-
-        <div className="vigia-pie">
           <ul className="vigia-avisos" aria-label="Sami te avisa de">
             {AVISOS.map(({ color, texto }) => (
               <li key={texto}>

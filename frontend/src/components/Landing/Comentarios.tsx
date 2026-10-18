@@ -166,89 +166,91 @@ export function Comentarios() {
           <p>Dueños de negocios de barrio que ordenaron su día a día, un bloque a la vez.</p>
         </header>
 
-        <div className="comentarios" ref={lista}>
-          {[...propios].reverse().map((c, i) => (
-            <TarjetaComentario
-              key={`${propios.length - i}-${c.nombre}-${c.texto}`}
-              comentario={c}
-              color={
-                COLORES_AVATAR[(c.nombre.charCodeAt(0) || 0) % COLORES_AVATAR.length] ?? 'celeste'
-              }
-              nuevo={c === nuevo}
-            />
-          ))}
-          {MUESTRAS.map(({ fondo, avatar, ...c }, i) => (
-            <TarjetaComentario
-              key={c.nombre}
-              comentario={c}
-              color={avatar}
-              fondo={fondo}
-              retraso={`${(i % 3) / 10}s`}
-            />
-          ))}
-        </div>
-
-        <div className="opinar revelar">
-          <div className="opinar__texto">
-            <h3>Dejanos tu comentario</h3>
-            <p>¿Probaste Ensambla o tenés una idea para un bloque nuevo? Contanos, te leemos.</p>
-          </div>
-          <form className="formulario" onSubmit={publicar} noValidate>
-            <div className="formulario__fila">
-              <label className="campo">
-                <span>Nombre</span>
-                <input
-                  type="text"
-                  name="nombre"
-                  autoComplete="given-name"
-                  required
-                  maxLength={40}
-                  placeholder="Tu nombre"
-                  aria-invalid={invalido.nombre}
-                  onChange={() => limpiarError('nombre')}
-                />
-              </label>
-              <label className="campo">
-                <span>
-                  Negocio <em>(opcional)</em>
-                </span>
-                <input
-                  type="text"
-                  name="negocio"
-                  maxLength={50}
-                  placeholder="Ej.: Kiosco del centro"
-                />
-              </label>
-            </div>
-            <fieldset className="campo campo--puntaje">
-              <legend>Puntaje</legend>
-              <div className="selector-puntaje">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <PuntajeOpcion key={n} n={n} />
-                ))}
-              </div>
-            </fieldset>
-            <label className="campo">
-              <span>Comentario</span>
-              <textarea
-                name="comentario"
-                rows={3}
-                required
-                maxLength={280}
-                placeholder="¿Qué te pareció?"
-                aria-invalid={invalido.comentario}
-                onChange={() => limpiarError('comentario')}
+        <div className="comentarios__fila">
+          <div className="comentarios" ref={lista}>
+            {[...propios].reverse().map((c, i) => (
+              <TarjetaComentario
+                key={`${propios.length - i}-${c.nombre}-${c.texto}`}
+                comentario={c}
+                color={
+                  COLORES_AVATAR[(c.nombre.charCodeAt(0) || 0) % COLORES_AVATAR.length] ?? 'celeste'
+                }
+                nuevo={c === nuevo}
               />
-            </label>
-            <div className="formulario__pie">
-              <p className={cn('formulario__mensaje', mensaje?.tipo)} role="status">
-                {mensaje?.texto}
-              </p>
-              <button type="submit" className="boton boton--primario">
-                Publicar comentario
-              </button>
+            ))}
+            {MUESTRAS.map(({ fondo, avatar, ...c }, i) => (
+              <TarjetaComentario
+                key={c.nombre}
+                comentario={c}
+                color={avatar}
+                fondo={fondo}
+                retraso={`${(i % 3) / 10}s`}
+              />
+            ))}
+          </div>
+
+          <div className="opinar revelar">
+            <div className="opinar__texto">
+              <h3>Dejanos tu comentario</h3>
+              <p>¿Probaste Ensambla o tenés una idea para un bloque nuevo? Contanos, te leemos.</p>
             </div>
-          </form>
+            <form className="formulario" onSubmit={publicar} noValidate>
+              <div className="formulario__fila">
+                <label className="campo">
+                  <span>Nombre</span>
+                  <input
+                    type="text"
+                    name="nombre"
+                    autoComplete="given-name"
+                    required
+                    maxLength={40}
+                    placeholder="Tu nombre"
+                    aria-invalid={invalido.nombre}
+                    onChange={() => limpiarError('nombre')}
+                  />
+                </label>
+                <label className="campo">
+                  <span>
+                    Negocio <em>(opcional)</em>
+                  </span>
+                  <input
+                    type="text"
+                    name="negocio"
+                    maxLength={50}
+                    placeholder="Ej.: Kiosco del centro"
+                  />
+                </label>
+              </div>
+              <fieldset className="campo campo--puntaje">
+                <legend>Puntaje</legend>
+                <div className="selector-puntaje">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <PuntajeOpcion key={n} n={n} />
+                  ))}
+                </div>
+              </fieldset>
+              <label className="campo">
+                <span>Comentario</span>
+                <textarea
+                  name="comentario"
+                  rows={3}
+                  required
+                  maxLength={280}
+                  placeholder="¿Qué te pareció?"
+                  aria-invalid={invalido.comentario}
+                  onChange={() => limpiarError('comentario')}
+                />
+              </label>
+              <div className="formulario__pie">
+                <p className={cn('formulario__mensaje', mensaje?.tipo)} role="status">
+                  {mensaje?.texto}
+                </p>
+                <button type="submit" className="boton boton--primario">
+                  Publicar comentario
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </section>
