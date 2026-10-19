@@ -3,6 +3,7 @@ import { clone } from '@/lib/sistema/core';
 import type { Aviso, Respuesta } from '@/lib/sistema/alertas';
 import type { Bloque, ClavePlantilla, Seccion, Sistema } from '@/lib/sistema/tipos';
 import { TUTORIAL_INICIAL, type EstadoDelTutorial } from '@/lib/sistema/tutorial';
+import type { OpcionesDeSami } from '@/types/samiTaller';
 
 // El estado del taller y del editor: los sistemas de la persona y lo que está haciendo con ellos. Es el
 // equivalente a las variables de módulo de app.js del mockup; ahora los componentes lo leen del store y
@@ -53,6 +54,10 @@ export type Taller = {
   seccionId: string | null;
   pensando: boolean;
   mensajes: MensajeDelTaller[];
+  /** La pregunta con respuestas rápidas que Sami dejó a la vista; la pantalla siempre suma «escribir otra cosa». */
+  opciones: OpcionesDeSami | null;
+  /** La propuesta como estaba antes del último cambio de Sami, para «Deshacer lo último». */
+  anterior: Sistema | null;
 };
 
 /** El panel de avisos de Sami y lo que se ve de él. */
@@ -275,6 +280,8 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
         seccionId: null,
         pensando: false,
         mensajes: [{ quien: 'sami', texto: saludo }],
+        opciones: null,
+        anterior: null,
       },
     }),
 

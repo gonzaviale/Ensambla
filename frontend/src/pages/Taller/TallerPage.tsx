@@ -64,7 +64,7 @@ export function TallerPage() {
   const editarBorrador = useSistemaStore((estado) => estado.editarBorrador);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const navegacion = useNavegacion();
-  const { enviar } = useTaller();
+  const { enviar, deshacer } = useTaller();
   const avisar = useSistemaStore((estado) => estado.avisar);
   // La voz se transcribe en el navegador y queda en el campo para revisarla antes de enviar.
   const dictado = useDictado({
@@ -100,6 +100,12 @@ export function TallerPage() {
     evento.preventDefault();
     dictado.detener();
     void enviar();
+  };
+
+  // Como en Claude: siempre se puede dejar las opciones y escribir lo que uno quiera.
+  const escribirOtraCosa = () => {
+    actualizarTaller({ opciones: null });
+    campo.current?.focus();
   };
 
   const usarEjemplo = (ejemplo: (typeof EJEMPLOS)[number]) => {
@@ -197,14 +203,38 @@ export function TallerPage() {
                 </div>
               )}
             </div>
-            {borrador ? (
+            {taller.opciones ? (
+              <div className="conversation-examples" role="group" aria-label="Respuestas rápidas">
+                <span>{taller.opciones.pregunta}</span>
+                {taller.opciones.opciones.map((opcion) => (
+                  <button
+                    key={opcion}
+                    type="button"
+                    disabled={taller.pensando}
+                    onClick={() => void enviar(opcion, { esOpcion: true })}
+                  >
+                    {opcion}
+                    <Icon name="arrow" />
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  data-accion="escribir-otra-cosa"
+                  disabled={taller.pensando}
+                  onClick={escribirOtraCosa}
+                >
+                  <Icon name="edit" />
+                  Escribir otra cosa…
+                </button>
+              </div>
+            ) : borrador ? (
               <div className="feedback-chips">
                 {AJUSTES.map(({ mensaje, etiqueta }) => (
                   <button
                     key={etiqueta}
                     type="button"
                     disabled={taller.pensando}
-                    onClick={() => void enviar(mensaje)}
+                    onClick={() => void enviar(mensaje, { soloReglas: true })}
                   >
                     {etiqueta}
                   </button>
@@ -225,6 +255,13 @@ export function TallerPage() {
                     <Icon name="arrow" />
                   </button>
                 ))}
+              </div>
+            )}
+            {taller.anterior && (
+              <div className="feedback-chips">
+                <button type="button" disabled={taller.pensando} onClick={deshacer}>
+                  <Icon name="undo" /> Deshacer lo último
+                </button>
               </div>
             )}
             <form className="guide-composer" data-tour="describe" onSubmit={alEnviar}>
