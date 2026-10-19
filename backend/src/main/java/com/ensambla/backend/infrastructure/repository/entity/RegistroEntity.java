@@ -44,6 +44,13 @@ public class RegistroEntity {
     @Column(name = "foto_origen_id")
     private UUID fotoOrigenId;
 
+    @Column(name = "es_ejemplo", nullable = false)
+    @Builder.Default
+    private Boolean esEjemplo = false;
+
+    @Column(columnDefinition = "text")
+    private String origen;
+
     @Column(name = "creado_en", nullable = false, updatable = false)
     private OffsetDateTime creadoEn;
 

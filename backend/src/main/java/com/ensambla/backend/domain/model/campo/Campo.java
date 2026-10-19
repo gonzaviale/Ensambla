@@ -49,6 +49,12 @@ public class Campo {
     /** Expresión con los campos referenciados por id ({id}); sólo aplica a campos de tipo FORMULA. */
     private String formula;
 
+    /** Clave semántica que usan los avisos y la zona para reconocer el dato (name, price, cost, quantity…). */
+    private String clave;
+
+    /** Valor mínimo permitido en campos numéricos. */
+    private BigDecimal minimo;
+
     private Short posicion;
 
     private OffsetDateTime creadoEn;
@@ -104,8 +110,8 @@ public class Campo {
     /** Mensaje de error si el valor no corresponde al tipo del campo; vacío si es válido. */
     public Optional<String> errorDe(Object valor) {
         return switch (tipo) {
-            case TEXTO -> errorDeTexto(valor);
-            case NUMERO -> errorSi(!esNumeroFinito(valor), "Tiene que ser un número");
+            case TEXTO, TEXTO_LARGO, EMAIL, TELEFONO, HORA -> errorDeTexto(valor);
+            case NUMERO, MONEDA -> errorSi(!esNumeroFinito(valor), "Tiene que ser un número");
             case FECHA -> errorSi(!esFechaIso(valor), "Tiene que ser una fecha válida");
             case OPCION -> errorSi(!esOpcion(valor), "Elegí una de las opciones");
             case SI_NO -> errorSi(!(valor instanceof Boolean), "Tiene que ser sí o no");
