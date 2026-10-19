@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Optional;
 
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
@@ -27,6 +28,14 @@ class NegocioServiceTest {
         var result = negocioService.obtenerDelUsuario(USUARIO_ID);
 
         assertThat(result).isEqualTo(NEGOCIO_ID);
+    }
+
+    @Test
+    @DisplayName("Lista los ids de todos los negocios")
+    void listarIdsShouldReturnEveryNegocioId() {
+        when(negocioRepository.findAllIds()).thenReturn(List.of(NEGOCIO_ID));
+
+        assertThat(negocioService.listarIds()).containsExactly(NEGOCIO_ID);
     }
 
     @Test
