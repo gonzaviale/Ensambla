@@ -1,10 +1,10 @@
-# Modelo de datos (MVP 2 · T-004, T-109; V9 y V10 adaptan el modelo al frontend nuevo y a la propuesta v1.3)
+# Modelo de datos (MVP 2 · T-004, T-109; V9 a V11 adaptan el modelo al frontend nuevo y a la propuesta v1.3)
 
 Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (`V1__esquema_inicial.sql`,
 `V2__digitalizacion_cuaderno.sql`, `V3__plantillas_base.sql`, `V4__procesamiento_lecturas_ia.sql`,
 `V5__campo_relacion.sql`, `V6__campo_formula.sql`, `V7__movimiento_stock.sql`, `V8__receta.sql`,
-`V9__modelo_sistema_y_monitoreo.sql`, `V10__datos_prueba_san_justo.sql`).
-V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba».
+`V9__modelo_sistema_y_monitoreo.sql`, `V10__datos_prueba_san_justo.sql`, `V11__avisos_entidad_y_datos.sql`).
+V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
 V3 carga Inventario, Pedidos y Clientes
@@ -79,8 +79,22 @@ que traducirlos al guardar; `MONEDA` todavía no cuenta como numérica para fór
 (`STOCK`, `VENTAS`, `ZONA`), `prioridad` (3 urgente, 2 para hoy, 1 para mirar), `huella` (el id estable del frontend, único por
 negocio), `titulo`, `detalle`, `motivos` y `acciones` (JSON) y `estado` (`PENDIENTE`, `APLICADO`, `DESCARTADO`, `VENCIDO`).
 `resuelto_en` está cargado si y sólo si el aviso se aplicó o se descartó (`ck_aviso_resuelto`): con eso se mide cuántos se aplican
-y cuántos se descartan, como pide la propuesta. Las entidades JPA de las tablas nuevas existen, pero todavía no hay repositorios
-ni casos de uso.
+y cuántos se descartan, como pide la propuesta.
+
+V11 suma `entidad` (sobre qué habla el aviso, con la forma `registro:<uuid>`) y `datos` (JSON con los datos de origen). Un índice
+único parcial (`ux_aviso_pendiente_entidad`) impide dos avisos pendientes del mismo tipo sobre la misma entidad. La `huella`
+pasa a ser `tipo:entidad:hash(datos)`: si los datos de origen no cambian, la huella tampoco, y un aviso descartado o aplicado no
+se vuelve a crear.
+
+**Motor de monitoreo.** `MonitoreoAvisosWorker` corre `EjecutarMotorAvisosUseCase` cada `ensambla.avisos.motor.intervalo` ms
+(5 minutos por defecto; se apaga con `ensambla.avisos.motor.habilitado=false`). `MotorAvisosService` recibe todas las `ReglaAviso`
+registradas como bean, así que una regla nueva no toca el motor. Por cada negocio crea los avisos nuevos, actualiza los que
+cambiaron, reactiva los vencidos y vence los pendientes que la regla ya no detecta. Hoy hay una regla, `ReglaStockBajo`.
+
+**API.** `GET /api/avisos[?estado=]` (pendientes primero, del más urgente al menos urgente), `GET /api/avisos/contador`,
+`POST /api/avisos/{id}/aplicar` y `POST /api/avisos/{id}/descartar`. Aplicar ejecuta la acción sugerida (`EDITAR_REGISTRO` cambia
+valores de un registro por clave de campo; `REGISTRAR` y `ABRIR` son atajos de pantalla) y marca el aviso como aplicado en la misma
+transacción. Un aviso de otro negocio responde 404.
 
 ## Datos de prueba (V10)
 
@@ -178,7 +192,9 @@ erDiagram
         text tipo
         text grupo
         smallint prioridad
+        text entidad "registro:<uuid>"
         text huella UK "único por negocio"
+        jsonb datos "datos de origen"
         text estado "PENDIENTE | APLICADO | DESCARTADO | VENCIDO"
         timestamptz resuelto_en
     }
