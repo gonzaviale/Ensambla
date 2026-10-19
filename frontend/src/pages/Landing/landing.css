@@ -645,7 +645,7 @@
 .landing .cinta {
   overflow: hidden;
   contain: paint;
-  padding: 22px 0;
+  padding: 12px 0;
   background: var(--amarillo);
   color: var(--tinta);
 }
@@ -659,26 +659,26 @@
 }
 .landing .cinta__lista {
   display: flex;
-  gap: 28px;
+  gap: 18px;
   margin: 0;
-  padding: 0 14px;
+  padding: 0 9px;
   list-style: none;
 }
 .landing .cinta__lista li {
   display: inline-flex;
   align-items: center;
-  gap: 28px;
+  gap: 18px;
   font-weight: 800;
-  font-size: clamp(22px, 3vw, 32px);
+  font-size: clamp(15px, 1.6vw, 20px);
   letter-spacing: -0.02em;
   color: var(--tinta);
   white-space: nowrap;
 }
 .landing .cinta__lista li::after {
   content: '';
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
   background: var(--petroleo);
 }
 .landing .cinta__lista li:nth-child(4n + 2)::after {
@@ -2394,7 +2394,7 @@
 @media (min-width: 1000px) and (min-height: 600px) {
   .landing {
     --alto-barra: 64px;
-    --alto-cinta: 95px;
+    --alto-cinta: 48px;
   }
   .landing > section:not(.cinta) {
     display: flex;
