@@ -86,6 +86,11 @@ public class ImportacionPresentationMapper {
             case OPCION -> "select";
             case SI_NO -> "checkbox";
             case RELACION -> "relation";
+            case TEXTO_LARGO -> "textarea";
+            case MONEDA -> "currency";
+            case EMAIL -> "email";
+            case TELEFONO -> "tel";
+            case HORA -> "time";
             case TEXTO, FORMULA -> "text";
         };
     }

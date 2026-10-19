@@ -141,7 +141,8 @@ class ImportacionPresentationMapperTest {
 
     @ParameterizedTest
     @CsvSource({"TEXTO,text", "NUMERO,number", "FECHA,date", "OPCION,select", "SI_NO,checkbox", "RELACION,relation",
-            "FORMULA,text"})
+            "FORMULA,text",
+            "TEXTO_LARGO,textarea", "MONEDA,currency", "EMAIL,email", "TELEFONO,tel", "HORA,time"})
     @DisplayName("Traduce el tipo de la columna nueva al de la pantalla y sólo las opciones llevan lista")
     void toResponseShouldTranslateNewColumnTypes(TipoCampo tipo, String esperado) {
         CampoPropuesto nueva = new CampoPropuesto("x", "X", tipo, List.of("A", "B"));
