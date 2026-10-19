@@ -1,0 +1,145 @@
+{
+  "tipoRegistro": "VENTAS",
+  "bloque": {
+    "nombre": "Ventas",
+    "bloqueExistenteId": null,
+    "campos": [
+      {
+        "clave": "fecha",
+        "nombre": "Fecha",
+        "tipo": "FECHA",
+        "opciones": []
+      },
+      {
+        "clave": "cliente",
+        "nombre": "Cliente",
+        "tipo": "TEXTO",
+        "opciones": []
+      },
+      {
+        "clave": "producto",
+        "nombre": "Producto",
+        "tipo": "OPCION",
+        "opciones": [
+          "Vela grande",
+          "Vela chica",
+          "Difusor"
+        ]
+      },
+      {
+        "clave": "cantidad",
+        "nombre": "Cantidad",
+        "tipo": "NUMERO",
+        "opciones": []
+      },
+      {
+        "clave": "monto",
+        "nombre": "Monto",
+        "tipo": "NUMERO",
+        "opciones": []
+      },
+      {
+        "clave": "pagado",
+        "nombre": "¿Pagó?",
+        "tipo": "SI_NO",
+        "opciones": []
+      }
+    ]
+  },
+  "filas": [
+    {
+      "pagina": 1,
+      "renglon": 1,
+      "datos": {
+        "fecha": {
+          "valor": "2026-10-03",
+          "confianza": 0.96
+        },
+        "cliente": {
+          "valor": "Marta",
+          "confianza": 0.93
+        },
+        "producto": {
+          "valor": "Vela grande",
+          "confianza": 0.9
+        },
+        "cantidad": {
+          "valor": "3",
+          "confianza": 0.97
+        },
+        "monto": {
+          "valor": "13500",
+          "confianza": 0.95
+        },
+        "pagado": {
+          "valor": "true",
+          "confianza": 0.88
+        }
+      }
+    },
+    {
+      "pagina": 1,
+      "renglon": 2,
+      "datos": {
+        "fecha": {
+          "valor": "2026-10-03",
+          "confianza": 0.95
+        },
+        "cliente": {
+          "valor": "Rosa",
+          "confianza": 0.62
+        },
+        "producto": {
+          "valor": "Difusor",
+          "confianza": 0.91
+        },
+        "cantidad": {
+          "valor": "1",
+          "confianza": 0.98
+        },
+        "monto": {
+          "valor": "8000",
+          "confianza": 0.74
+        },
+        "pagado": {
+          "valor": "false",
+          "confianza": 0.9
+        }
+      }
+    },
+    {
+      "pagina": 1,
+      "renglon": 3,
+      "datos": {
+        "fecha": {
+          "valor": "2026-10-04",
+          "confianza": 0.94
+        },
+        "cliente": {
+          "valor": "Doña Elsa",
+          "confianza": 0.89
+        },
+        "producto": {
+          "valor": "Vela chica",
+          "confianza": 0.92
+        },
+        "cantidad": {
+          "valor": "5",
+          "confianza": 0.96
+        },
+        "monto": {
+          "valor": "12500",
+          "confianza": 0.93
+        },
+        "pagado": {
+          "valor": null,
+          "confianza": 0.4
+        }
+      }
+    }
+  ],
+  "advertencias": [
+    "En el renglón 3 no se ve si la venta está pagada."
+  ],
+  "camposNuevos": []
+}

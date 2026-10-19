@@ -216,6 +216,11 @@ La carpeta real preparada para el usuario permanece vacía.
 
 Reporte por tipo de registro: clasificación, campos/tipos, datos, errores, latencia, tokens y costo
 cuando hay tarifas. Filas/celdas adicionales se penalizan; `null` se compara sin inventar valores.
+
+**Columnas nuevas (ENS-192):** un caso del manifest puede declarar el bloque `destino` y las `camposNuevos` que la
+foto trae y el bloque no tiene; el reporte suma `columnasNuevas` con precisión, recall, tipo correcto y casos
+exactos. Cómo armar los casos, la muestra sintética y la corrida real con Anthropic están en la
+[carpeta de carga](../datos/ia/cuadernos/README.md#columnas-nuevas-y-casos-borde-ens-192--t-130).
 Se guardan hashes de fotos, anotaciones y manifest para reproducibilidad.
 Opcionales: `--meta porcentaje`, `--precio-entrada-millon tarifa`, `--precio-salida-millon tarifa`
 y `--reporte ruta.json`. La meta evalúa clasificación, campos y datos de cada categoría presente.
@@ -242,6 +247,7 @@ un reporte distinto; el adaptador OCR todavía depende de la decisión del spike
 | ENS-134 | Herramienta/pruebas preparadas; precisión real y meta acordada pendientes |
 | ENS-121 | Revisión, edición, confirmación y foto de origen implementadas; falta probarlo con fotos reales |
 | ENS-188 | Detección de columnas ausentes en el bloque destino (`camposNuevos`) con prompt v3; falta medir el acierto con fotos reales (ENS-192) |
+| ENS-192 | Casos con `destino` y `camposNuevos`, métrica `columnasNuevas` y muestra sintética (`scripts/muestras/columnas-nuevas`) listas; falta correrlo con fotos reales y un modelo real |
 | ENS-189 | Confirmación con columnas nuevas y registros en una transacción, probada contra PostgreSQL (rollback, nombre repetido, registros previos intactos) |
 
 Estos pendientes fueron acordados explícitamente con el usuario. Esta entrega no demuestra la
