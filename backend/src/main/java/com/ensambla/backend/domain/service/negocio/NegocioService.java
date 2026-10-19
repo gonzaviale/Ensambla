@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -14,6 +15,10 @@ import java.util.UUID;
 public class NegocioService {
 
     private final NegocioRepository negocioRepository;
+
+    public List<UUID> listarIds() {
+        return negocioRepository.findAllIds();
+    }
 
     public UUID obtenerDelUsuario(UUID usuarioId) {
         return negocioRepository.findIdByDuenioId(usuarioId)

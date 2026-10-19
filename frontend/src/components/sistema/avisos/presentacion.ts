@@ -12,7 +12,7 @@ export const ICONO_DE_AVISO: Record<TipoDeAviso, NombreDeIcono> = {
 
 /** Lo que dice el botón: lo que modifica los datos arranca con «Aplicar». */
 export function textoDeAccion(accion: AccionDeAviso) {
-  if (accion.tipo === 'aplicar' || accion.tipo === 'crear') {
+  if (accion.tipo === 'aplicar' || accion.tipo === 'crear' || accion.tipo === 'servidor') {
     return `Aplicar: ${accion.texto.charAt(0).toLowerCase()}${accion.texto.slice(1)}`;
   }
   return accion.texto;

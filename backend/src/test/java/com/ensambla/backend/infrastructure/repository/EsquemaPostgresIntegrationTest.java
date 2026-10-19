@@ -341,6 +341,27 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(entityManager.find(AvisoEntity.class, avisoId).getEstado()).isEqualTo(EstadoAviso.DESCARTADO);
     }
 
+    @Test
+    @DisplayName("La base no admite dos avisos pendientes del mismo tipo sobre la misma entidad")
+    void shouldRejectTwoPendingAvisosOfSameTipoAndEntidad() {
+        UUID negocioId = givenNegocio("a@example.com");
+        givenAviso(negocioId, "stock:1:a", "registro:1", EstadoAviso.PENDIENTE, null);
+
+        assertThatThrownBy(() -> givenAviso(negocioId, "stock:1:b", "registro:1", EstadoAviso.PENDIENTE, null))
+                .isInstanceOf(PersistenceException.class);
+    }
+
+    @Test
+    @DisplayName("Un aviso descartado no impide un pendiente nuevo sobre la misma entidad")
+    void shouldAllowPendingAvisoWhenPreviousOneWasDiscarded() {
+        UUID negocioId = givenNegocio("a@example.com");
+        givenAviso(negocioId, "stock:1:a", "registro:1", EstadoAviso.DESCARTADO, AHORA);
+
+        UUID avisoId = givenAviso(negocioId, "stock:1:b", "registro:1", EstadoAviso.PENDIENTE, null);
+
+        assertThat(avisoId).isNotNull();
+    }
+
     // --- arrange (modelo del frontend) ---
     private UUID givenSeccion(UUID negocioId, UUID proyectoId, String nombre) {
         SeccionEntity seccion = SeccionEntity.builder()
@@ -368,9 +389,14 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     private UUID givenAviso(UUID negocioId, String huella, EstadoAviso estado, OffsetDateTime resueltoEn) {
+        return givenAviso(negocioId, huella, "registro:1", estado, resueltoEn);
+    }
+
+    private UUID givenAviso(UUID negocioId, String huella, String entidad, EstadoAviso estado,
+                            OffsetDateTime resueltoEn) {
         AvisoEntity aviso = AvisoEntity.builder()
                 .negocioId(negocioId).tipo(TipoAviso.STOCK).grupo(GrupoAviso.STOCK).prioridad((short) 2)
-                .huella(huella).titulo("Yerba por debajo del mínimo").detalle("Te quedan 4").estado(estado)
+                .entidad(entidad).huella(huella).titulo("Yerba por debajo del mínimo").detalle("Te quedan 4").estado(estado)
                 .resueltoEn(resueltoEn).creadoEn(AHORA).actualizadoEn(AHORA).build();
         return persistirYVaciar(aviso).getId();
     }

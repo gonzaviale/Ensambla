@@ -7,6 +7,7 @@ import com.ensambla.backend.infrastructure.repository.mapper.NegocioRepositoryMa
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Optional;
 
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
@@ -50,5 +51,12 @@ class NegocioRepositoryImplTest {
 
         assertThat(result).contains(NEGOCIO_ID);
     }
-}
 
+    @Test
+    @DisplayName("Lista los ids de todos los negocios")
+    void findAllIdsShouldDelegateToJpa() {
+        when(negocioJpaRepository.findAllIds()).thenReturn(List.of(NEGOCIO_ID));
+
+        assertThat(negocioRepository.findAllIds()).containsExactly(NEGOCIO_ID);
+    }
+}

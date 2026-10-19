@@ -21,6 +21,7 @@ import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /** Recomendación del motor de monitoreo, con su motivo y las acciones que se pueden aplicar o descartar. */
@@ -58,6 +59,16 @@ public class AvisoEntity {
     /** Identificador estable: depende del estado de los datos que dispararon el aviso. */
     @Column(nullable = false, columnDefinition = "text")
     private String huella;
+
+    /** Entidad que afecta el aviso, con la forma {@code registro:<uuid>}. */
+    @Column(nullable = false, columnDefinition = "text")
+    private String entidad;
+
+    /** Datos de origen con los que el motor armó el aviso. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(nullable = false)
+    @Builder.Default
+    private Map<String, Object> datos = Map.of();
 
     @Column(nullable = false, columnDefinition = "text")
     private String titulo;

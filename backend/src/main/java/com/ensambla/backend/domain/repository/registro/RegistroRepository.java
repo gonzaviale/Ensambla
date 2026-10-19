@@ -23,6 +23,9 @@ public interface RegistroRepository {
     /** Registros del bloque con esos ids; los que no existen (o son de otro bloque o negocio) no vienen. */
     List<Registro> findAllByIdsAndBloque(Collection<UUID> ids, UUID bloqueId, UUID negocioId);
 
+    /** Todos los registros del bloque, los más viejos primero. */
+    List<Registro> findAllByBloqueIdAndNegocioId(UUID bloqueId, UUID negocioId);
+
     void deleteById(UUID id);
 
     Pagina<Registro> buscar(ConsultaRegistros consulta);
