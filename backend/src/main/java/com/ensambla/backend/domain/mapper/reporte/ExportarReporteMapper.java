@@ -62,11 +62,11 @@ public class ExportarReporteMapper {
             return null;
         }
         return switch (campo.getTipo()) {
-            case NUMERO, FORMULA -> new BigDecimal(valor.toString());
+            case NUMERO, MONEDA, FORMULA -> new BigDecimal(valor.toString());
             case FECHA -> LocalDate.parse(valor.toString());
             case SI_NO -> Boolean.TRUE.equals(valor) ? "Sí" : "No";
             case RELACION -> etiquetas.getOrDefault(UUID.fromString(valor.toString()), FILA_ELIMINADA);
-            case TEXTO, OPCION -> valor.toString();
+            case TEXTO, OPCION, TEXTO_LARGO, EMAIL, TELEFONO, HORA -> valor.toString();
         };
     }
 

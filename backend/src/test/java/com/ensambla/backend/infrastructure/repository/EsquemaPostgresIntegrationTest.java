@@ -1,8 +1,13 @@
 package com.ensambla.backend.infrastructure.repository;
 
+import com.ensambla.backend.domain.model.enums.EstadoAviso;
 import com.ensambla.backend.domain.model.enums.EstadoLote;
 import com.ensambla.backend.domain.model.enums.EstadoUsuario;
+import com.ensambla.backend.domain.model.enums.GrupoAviso;
+import com.ensambla.backend.domain.model.enums.TipoAviso;
 import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.infrastructure.repository.entity.AgregadoZonaProductoEntity;
+import com.ensambla.backend.infrastructure.repository.entity.AvisoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.FotoCuadernoEntity;
@@ -12,7 +17,9 @@ import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
 import com.ensambla.backend.infrastructure.repository.entity.PlantillaEntity;
 import com.ensambla.backend.infrastructure.repository.entity.ProyectoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.RegistroEntity;
+import com.ensambla.backend.infrastructure.repository.entity.SeccionEntity;
 import com.ensambla.backend.infrastructure.repository.entity.UsuarioEntity;
+import com.ensambla.backend.infrastructure.repository.entity.ZonaEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IBloqueJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.ICampoJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IFotoCuadernoJpaRepository;
@@ -25,6 +32,7 @@ import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.I
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IUsuarioJpaRepository;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +40,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +50,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Verifica que las migraciones (V1, V2) y las entidades coinciden (el perfil usa ddl-auto=validate) y que las reglas de
+ * Verifica que las migraciones (V1 a V10) y las entidades coinciden (el perfil usa ddl-auto=validate) y que las reglas de
  * aislamiento por negocio las hace cumplir la base. Cada test hace rollback.
  */
 @Transactional
@@ -81,6 +90,7 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Autowired
     private EntityManager entityManager;
+
 
     @Test
     @DisplayName("Persiste y relee el grafo completo usuario → negocio → proyecto → bloque → campo → registro")
@@ -252,6 +262,123 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         RegistroEntity registro = registros.findById(registroId).orElseThrow();
         assertThat(registro.getFotoOrigenId()).isNull();
         assertThat(registro.getNegocioId()).isEqualTo(negocioId);
+    }
+
+    @Test
+    @DisplayName("La base rechaza una sección cuyo negocio no es el del proyecto")
+    void shouldRejectSeccionWhoseNegocioIsNotTheProyectoOne() {
+        UUID negocioA = givenNegocio("a@example.com");
+        UUID negocioB = givenNegocio("b@example.com");
+        UUID proyectoDeA = givenProyecto(negocioA, "Proyecto de A");
+
+        assertThatThrownBy(() -> givenSeccion(negocioB, proyectoDeA, "Vista general"))
+                .isInstanceOf(PersistenceException.class);
+    }
+
+    @Test
+    @DisplayName("Un bloque nuevo nace con los valores por defecto del frontend")
+    void shouldPersistBloqueWithDefaultAttributes() {
+        UUID negocioId = givenNegocio("a@example.com");
+        UUID bloqueId = givenBloque(negocioId, givenProyecto(negocioId, "Proyecto"), "Notas");
+        entityManager.clear();
+
+        BloqueEntity bloque = bloques.findById(bloqueId).orElseThrow();
+
+        assertThat(bloque.getTipo().name()).isEqualTo("FORMULARIO");
+        assertThat(bloque.getColor().name()).isEqualTo("CELESTE");
+        assertThat(bloque.getAncho().name()).isEqualTo("MEDIO");
+        assertThat(bloque.getEmpiezaFila()).isFalse();
+        assertThat(bloque.getDireccionStock()).isNull();
+    }
+
+    @Test
+    @DisplayName("La base rechaza un negocio con una sola coordenada")
+    void shouldRejectNegocioWithOnlyLatitud() {
+        UUID duenioId = givenUsuario("a@example.com");
+
+        assertThatThrownBy(() -> negocios.saveAndFlush(NegocioEntity.builder()
+                .nombre("Sin longitud").duenioId(duenioId).latitud(new BigDecimal("-34.670300"))
+                .creadoEn(AHORA).actualizadoEn(AHORA).build()))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("La base rechaza un agregado de zona con menos de 3 comercios")
+    void shouldRejectAgregadoWithFewerThanThreeComercios() {
+        UUID zonaId = givenZona("Zona de prueba");
+
+        assertThatThrownBy(() -> givenAgregado(zonaId, "yerba", 2, 2))
+                .isInstanceOf(PersistenceException.class);
+    }
+
+    @Test
+    @DisplayName("Guarda un agregado de zona con 3 o más comercios")
+    void shouldPersistAgregadoWithThreeComercios() {
+        UUID zonaId = givenZona("Zona de prueba");
+
+        UUID agregadoId = givenAgregado(zonaId, "yerba", 3, 3);
+
+        assertThat(agregadoId).isNotNull();
+    }
+
+    @Test
+    @DisplayName("La base exige fecha de resolución sólo en los avisos aplicados o descartados")
+    void shouldRequireResueltoEnOnlyForResolvedAvisos() {
+        UUID negocioId = givenNegocio("a@example.com");
+
+        assertThatThrownBy(() -> givenAviso(negocioId, "stock:1", EstadoAviso.APLICADO, null))
+                .isInstanceOf(PersistenceException.class);
+    }
+
+    @Test
+    @DisplayName("Un aviso descartado guarda cuándo se descartó")
+    void shouldPersistDescartadoAvisoWithResueltoEn() {
+        UUID negocioId = givenNegocio("a@example.com");
+
+        UUID avisoId = givenAviso(negocioId, "stock:1", EstadoAviso.DESCARTADO, AHORA);
+        entityManager.clear();
+
+        assertThat(entityManager.find(AvisoEntity.class, avisoId).getEstado()).isEqualTo(EstadoAviso.DESCARTADO);
+    }
+
+    // --- arrange (modelo del frontend) ---
+    private UUID givenSeccion(UUID negocioId, UUID proyectoId, String nombre) {
+        SeccionEntity seccion = SeccionEntity.builder()
+                .negocioId(negocioId).proyectoId(proyectoId).nombre(nombre).posicion((short) 0)
+                .creadoEn(AHORA).actualizadoEn(AHORA).build();
+        return persistirYVaciar(seccion).getId();
+    }
+
+    private UUID givenZona(String nombre) {
+        ZonaEntity zona = ZonaEntity.builder()
+                .nombre(nombre).localidad("San Justo").partido("La Matanza").provincia("Buenos Aires")
+                .latitud(new BigDecimal("-34.670300")).longitud(new BigDecimal("-58.562800")).radioMetros(1500)
+                .creadoEn(AHORA).actualizadoEn(AHORA).build();
+        return persistirYVaciar(zona).getId();
+    }
+
+    private UUID givenAgregado(UUID zonaId, String producto, int comercios, int comerciosVenden) {
+        AgregadoZonaProductoEntity agregado = AgregadoZonaProductoEntity.builder()
+                .zonaId(zonaId).productoNormalizado(producto).nombre(producto).comercios(comercios)
+                .comerciosVenden(comerciosVenden).precioMinimo(new BigDecimal("3500"))
+                .precioPromedio(new BigDecimal("3900")).precioMaximo(new BigDecimal("4300"))
+                .unidadesSemana(new BigDecimal("30")).periodoDesde(LocalDate.parse("2026-09-21"))
+                .periodoHasta(LocalDate.parse("2026-10-18")).calculadoEn(AHORA).build();
+        return persistirYVaciar(agregado).getId();
+    }
+
+    private UUID givenAviso(UUID negocioId, String huella, EstadoAviso estado, OffsetDateTime resueltoEn) {
+        AvisoEntity aviso = AvisoEntity.builder()
+                .negocioId(negocioId).tipo(TipoAviso.STOCK).grupo(GrupoAviso.STOCK).prioridad((short) 2)
+                .huella(huella).titulo("Yerba por debajo del mínimo").detalle("Te quedan 4").estado(estado)
+                .resueltoEn(resueltoEn).creadoEn(AHORA).actualizadoEn(AHORA).build();
+        return persistirYVaciar(aviso).getId();
+    }
+
+    private <T> T persistirYVaciar(T entidad) {
+        entityManager.persist(entidad);
+        entityManager.flush();
+        return entidad;
     }
 
     // --- arrange ---
