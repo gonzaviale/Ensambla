@@ -6,7 +6,7 @@ import java.util.UUID;
 
 public record PropuestaItem(String tipoRegistro, String nombre, UUID bloqueExistenteId, List<CampoItem> campos,
                            List<FilaItem> filas, List<String> advertencias, Map<String, UUID> mapeoCampos,
-                           ConsumoItem consumo) {
+                           List<CampoItem> camposNuevos, ConsumoItem consumo) {
 
     public record CampoItem(String clave, String nombre, String tipo, List<String> opciones) {
     }
