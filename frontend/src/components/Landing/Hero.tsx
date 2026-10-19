@@ -44,7 +44,6 @@ export function Hero() {
             Probá este ejemplo <ArrowDownIcon aria-hidden size={18} />
           </span>
         </a>
-        <figcaption className="ens-photo-label">Imagen y datos ilustrativos.</figcaption>
       </figure>
     </section>
   );
