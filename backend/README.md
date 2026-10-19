@@ -86,7 +86,7 @@ guardado. Un lote de otro negocio responde 404.
 ## Endpoints
 
 La búsqueda privada de direcciones y el catálogo de rubros se documentan en
-[Ubicación y rubro · ENS-209](../docs/ubicacion-negocio.md), incluidos los límites de Nominatim y el alcance sin guardado.
+[Configuración, ubicación y rubro](../docs/ubicacion-negocio.md), incluidos ENS-69, persistencia y límites de Nominatim.
 
 | Método y ruta | Acceso | Descripción |
 |---|---|---|
@@ -95,6 +95,8 @@ La búsqueda privada de direcciones y el catálogo de rubros se documentan en
 | `POST /api/auth/login` | público + CSRF | Abre sesión; 200, 400 o 401 |
 | `POST /api/auth/logout` | público + CSRF | Invalida sesión y cookie; 204 |
 | `GET /api/auth/me` | sesión | Identidad actual sin contraseña ni hash; 200 o 401 |
+| `GET /api/business` | sesión del dueño | Configuración de su negocio, incluida ubicación y rubro; sin identificadores ajenos |
+| `PATCH /api/business` | sesión del dueño + CSRF | Editar nombre, ubicación completa, rubro y participación en agregados; campos omitidos conservan su valor |
 | `GET /api/plantillas` | público | Plantillas activas con su estructura, ordenadas por nombre |
 | `GET /api/proyectos` | sesión | Proyectos del negocio del usuario autenticado |
 | `GET /api/proyectos/{proyectoId}` | sesión | Proyecto con sus bloques y campos ordenados |
