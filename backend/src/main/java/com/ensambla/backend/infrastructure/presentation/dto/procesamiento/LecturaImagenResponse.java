@@ -1,4 +1,4 @@
-package com.ensambla.backend.infrastructure.presentation.dto.importacion;
+package com.ensambla.backend.infrastructure.presentation.dto.procesamiento;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
