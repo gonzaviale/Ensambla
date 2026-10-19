@@ -108,16 +108,6 @@
   margin: 20px 0 22px;
   max-width: 10em;
 }
-.landing .ens-hero h1 em {
-  font-style: normal;
-  position: relative;
-  background: linear-gradient(
-    transparent 78%,
-    var(--ens-yellow) 78%,
-    var(--ens-yellow) 94%,
-    transparent 94%
-  );
-}
 .landing .ens-hero-copy > p {
   font-size: 16px;
   line-height: 1.8;
@@ -208,20 +198,49 @@
   object-position: 50% 55%;
   border-radius: 110px 16px 16px 16px;
 }
-.landing .ens-sticker {
+.landing .ens-hero-result {
   position: absolute;
-  bottom: 7px;
-  left: -15px;
-  background: var(--ens-yellow);
+  bottom: 64px;
+  left: -28px;
+  display: grid;
+  width: 225px;
+  padding: 17px 21px;
+  border-radius: 13px;
+  background: white;
   color: var(--ens-ink);
-  font-size: 19px;
-  line-height: 1.2;
+  box-shadow:
+    -7px 7px 0 var(--ens-yellow),
+    0 8px 25px #00303f26;
+  font-size: 14px;
+  line-height: 1.6;
+  transform: rotate(-3deg);
+  transition: transform 0.2s;
+}
+.landing .ens-hero-result:hover {
+  transform: rotate(0deg);
+}
+.landing .ens-hero-result .ens-result-label {
+  color: var(--ens-muted);
+  font-size: 14px;
+}
+.landing .ens-hero-result strong {
+  font-size: 22px;
+  line-height: 1.35;
+  margin-top: 6px;
+}
+.landing .ens-hero-result b {
+  font-size: 30px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+.landing .ens-result-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
   font-weight: 800;
-  letter-spacing: -0.6px;
-  max-width: 218px;
-  padding: 16px 24px;
-  transform: rotate(-5deg);
-  box-shadow: 0 3px 0 #c0a72a;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 .landing .ens-photo-label {
   display: block;
@@ -565,25 +584,27 @@
   list-style: none;
 }
 .landing .ens-tags li {
+  --tag-tilt: -3deg;
   padding: 7px 12px;
   border-radius: 7px;
   font-size: 14px;
   font-weight: 800;
   color: var(--ens-ink-deep);
   background: var(--ens-yellow);
-  transform: rotate(-3deg);
+  transform: rotate(var(--tag-tilt));
+  transition: transform 0.25s;
 }
 .landing .ens-tags li:nth-child(2) {
+  --tag-tilt: 3deg;
   background: var(--ens-blue);
-  transform: rotate(3deg);
 }
 .landing .ens-tags li:nth-child(3) {
+  --tag-tilt: -2deg;
   background: var(--ens-coral);
-  transform: rotate(-2deg);
 }
 .landing .ens-tags li:nth-child(4) {
+  --tag-tilt: 4deg;
   background: var(--ens-orange);
-  transform: rotate(4deg);
 }
 .landing .ens-sami {
   position: relative;
@@ -1434,6 +1455,64 @@
     max-width: none;
   }
 }
+@media (max-width: 1000px) {
+  .landing .ens-hero-result {
+    width: 210px;
+    left: -12px;
+    padding: 13px 17px;
+  }
+}
+@media (max-width: 760px) {
+  .landing .ens-hero-result {
+    left: -5px;
+    bottom: 52px;
+  }
+}
+@media (max-width: 480px) {
+  .landing .ens-hero-result {
+    width: 195px;
+    padding: 12px 15px;
+  }
+  .landing .ens-hero-result strong {
+    font-size: 20px;
+  }
+  .landing .ens-hero-result b {
+    font-size: 27px;
+  }
+  .landing .ens-hero-photo .ens-photo-label {
+    max-width: 150px;
+    margin-left: auto;
+  }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .landing .ens-tags:hover li {
+    animation: ens-tag-bounce 650ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .landing .ens-tags:hover li:nth-child(2) {
+    animation-delay: 60ms;
+  }
+  .landing .ens-tags:hover li:nth-child(3) {
+    animation-delay: 120ms;
+  }
+  .landing .ens-tags:hover li:nth-child(4) {
+    animation-delay: 180ms;
+  }
+  .landing .ens-tags li:hover {
+    transform: translateY(-5px) rotate(0deg);
+  }
+}
+@keyframes ens-tag-bounce {
+  0%,
+  100% {
+    transform: rotate(var(--tag-tilt));
+  }
+  45% {
+    transform: translateY(-12px) rotate(calc(-1 * var(--tag-tilt)));
+  }
+  70% {
+    transform: translateY(-3px) rotate(0deg);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .landing *,
   .landing *::before,
@@ -1442,7 +1521,8 @@
     transition: none !important;
     scroll-behavior: auto !important;
   }
-  .landing .ens-primary:hover {
+  .landing .ens-primary:hover,
+  .landing .ens-hero-result:hover {
     transform: none;
   }
 }

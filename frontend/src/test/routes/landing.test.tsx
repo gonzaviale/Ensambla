@@ -38,42 +38,73 @@ describe('landing del cuaderno digital', () => {
     expect(router.state.location.pathname).toBe('/login');
   });
 
-  it('el ejemplo cambia de paso, comunica la revisión y permite volver al inicio', async () => {
+  it('permite corregir un importe y encontrar el resultado confirmado', async () => {
     const { user } = await abrirLanding();
-    const foto = screen.getByRole('button', { name: 'Sacás una foto' });
-    const revisar = screen.getByRole('button', { name: 'Revisás los datos' });
-    const guardar = screen.getByRole('button', { name: 'Guardás en tu cuaderno' });
-
-    expect(foto).toHaveAttribute('aria-pressed', 'true');
-    await user.click(revisar);
-    expect(revisar).toHaveAttribute('aria-pressed', 'true');
-    expect(foto).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.getByRole('status')).toHaveTextContent('Vos tenés la última palabra.');
-    expect(screen.getByRole('table')).toHaveTextContent('Yerba 500 g');
-
-    await user.click(guardar);
-    expect(screen.getByRole('status')).toHaveTextContent('Listo para volver a consultarlo.');
-    expect(screen.getByText('Ejemplo: anotaciones confirmadas en tu cuaderno.')).toBeVisible();
-
-    await user.click(foto);
-    expect(screen.getByRole('status')).toHaveTextContent('Tu punto de partida.');
-    expect(foto).toHaveAttribute('aria-pressed', 'true');
+    await user.click(screen.getByRole('button', { name: 'Revisás lo leído' }));
+    const importe = screen.getByLabelText('Importe del fiado');
+    await user.clear(importe);
+    await user.type(importe, '4500.5');
+    await user.click(screen.getByRole('button', { name: /Confirmar y buscar/ }));
+    const resultados = screen.getByRole('list', { name: 'Fiados encontrados' });
+    expect(within(resultados).getByText('Ana López')).toBeVisible();
+    expect(resultados).toHaveTextContent(/4\.500,5/);
+    expect(within(resultados).getAllByRole('listitem')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Lo encontrás' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(localStorage.length).toBe(0);
   });
 
-  it('permite recorrer el ejemplo con el teclado', async () => {
+  it('la búsqueda encuentra por nombre sin depender de mayúsculas o tildes y resuelve el vacío', async () => {
     const { user } = await abrirLanding();
+    await user.click(screen.getByRole('button', { name: 'Lo encontrás' }));
+    const buscar = screen.getByRole('searchbox', { name: 'Buscá un nombre en este ejemplo' });
+    const lista = screen.getByRole('list', { name: 'Fiados encontrados' });
+    await user.clear(buscar);
+    expect(within(lista).getAllByRole('listitem')).toHaveLength(3);
+    await user.type(buscar, 'LOPEZ');
+    expect(lista).toHaveTextContent('Ana López');
+    expect(within(lista).getAllByRole('listitem')).toHaveLength(1);
+    await user.clear(buscar);
+    await user.type(buscar, 'nadie');
+    expect(within(lista).queryByRole('listitem')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('No hay coincidencias');
+    await user.clear(buscar);
+    await user.type(buscar, 'luci');
+    expect(lista).toHaveTextContent('Lucía Pérez');
+  });
 
-    screen.getByRole('button', { name: 'Sacás una foto' }).focus();
+  it('rechaza un importe vacío o no positivo sin pasar a la confirmación', async () => {
+    const { user } = await abrirLanding();
+    await user.click(screen.getByRole('button', { name: 'Revisás lo leído' }));
+    const importe = screen.getByLabelText('Importe del fiado');
+    await user.clear(importe);
+    await user.type(importe, '0');
+    await user.click(screen.getByRole('button', { name: /Confirmar y buscar/ }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Ingresá un importe mayor a cero.');
+    expect(importe).toHaveFocus();
+    expect(importe).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+  });
+
+  it('permite recorrer los pasos del ejemplo con el teclado', async () => {
+    const { user } = await abrirLanding();
+    screen.getByRole('button', { name: 'Lo tenés en papel' }).focus();
     await user.keyboard('{Tab}{Enter}');
-    expect(screen.getByRole('button', { name: 'Revisás los datos' })).toHaveFocus();
-    expect(screen.getByRole('status')).toHaveTextContent('Vos tenés la última palabra.');
+    expect(screen.getByRole('button', { name: 'Revisás lo leído' })).toHaveFocus();
+    expect(screen.getByLabelText('Importe del fiado')).toBeVisible();
   });
 
   it('cada enlace interno tiene un destino y el ejemplo se alcanza desde la primera pantalla', async () => {
     await abrirLanding();
 
     expect(screen.getByRole('link', { name: /Ver un ejemplo/ })).toHaveAttribute(
+      'href',
+      '#como-funciona',
+    );
+    const inicio = document.getElementById('inicio') as HTMLElement;
+    expect(within(inicio).getByRole('link', { name: /Ana López/ })).toHaveAttribute(
       'href',
       '#como-funciona',
     );
@@ -86,15 +117,25 @@ describe('landing del cuaderno digital', () => {
   });
 
   it('identifica la descarga como pendiente sin ofrecer una acción falsa', async () => {
-    await abrirLanding();
-    const seccion = screen.getByRole('region', { name: 'Tus anotaciones son tuyas.' });
+    const { user } = await abrirLanding();
+    await user.click(screen.getByText('¿Puedo descargar una copia de mis datos?'));
+    const seccion = document.getElementById('tus-datos') as HTMLElement;
 
-    expect(within(seccion).getByText('Función prevista')).toBeVisible();
-    expect(within(seccion).getByText('La descarga todavía no está disponible.')).toBeVisible();
+    expect(within(seccion).getByText(/Todavía no/)).toBeVisible();
     expect(within(seccion).queryByRole('button')).not.toBeInTheDocument();
     expect(within(seccion).queryByRole('link')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Publicar comentario' })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Voz' })).not.toBeInTheDocument();
+  });
+
+  it('guía el ejemplo con acciones de avance y lleva el foco al campo del nuevo paso', async () => {
+    const { user } = await abrirLanding();
+    await user.click(screen.getByRole('button', { name: 'Comenzar el ejemplo' }));
+    expect(screen.getByLabelText('Importe del fiado')).toHaveFocus();
+    expect(screen.getByText('Paso 2 de 3')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: /Confirmar y buscar/ }));
+    expect(screen.getByRole('searchbox')).toHaveFocus();
+    expect(screen.getByText('Paso 3 de 3')).toBeVisible();
   });
 
   it('abre y cierra las preguntas sin salir de la página', async () => {

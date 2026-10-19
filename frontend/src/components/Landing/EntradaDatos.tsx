@@ -1,54 +1,71 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowRightIcon } from '@phosphor-icons/react/dist/csr/ArrowRight';
-import { NotebookIcon } from '@phosphor-icons/react/dist/csr/Notebook';
-import { ScanIcon } from '@phosphor-icons/react/dist/csr/Scan';
+import { MagnifyingGlassIcon } from '@phosphor-icons/react/dist/csr/MagnifyingGlass';
+import { CheckCircleIcon } from '@phosphor-icons/react/dist/csr/CheckCircle';
 
 const PASOS = [
-  {
-    id: 'foto',
-    nombre: 'Sacás una foto',
-    titulo: 'Así podrían quedar tus anotaciones',
-    pie: 'De tus anotaciones a un cuaderno digital.',
-    resumen: 'Tu punto de partida.',
-    detalle:
-      'Usás lo que ya tenés anotado. No hace falta volver a escribir cada dato para empezar.',
-  },
-  {
-    id: 'revisar',
-    nombre: 'Revisás los datos',
-    titulo: 'Revisá antes de guardar',
-    pie: 'Revisá la cantidad de yerba marcada en amarillo.',
-    resumen: 'Vos tenés la última palabra.',
-    detalle:
-      'La cantidad de yerba necesita una segunda mirada. Revisás si dice 2, corregís lo que haga falta y elegís qué guardar.',
-  },
-  {
-    id: 'guardar',
-    nombre: 'Guardás en tu cuaderno',
-    titulo: 'Tus anotaciones, en un solo lugar',
-    pie: 'Ejemplo: anotaciones confirmadas en tu cuaderno.',
-    resumen: 'Listo para volver a consultarlo.',
-    detalle:
-      'Después de confirmar, tus anotaciones quedan en tu cuaderno digital. Podés encontrarlas sin buscar hoja por hoja.',
-  },
+  { id: 'cuaderno', nombre: 'Lo tenés en papel' },
+  { id: 'revisar', nombre: 'Revisás lo leído' },
+  { id: 'buscar', nombre: 'Lo encontrás' },
 ] as const;
-
 type PasoId = (typeof PASOS)[number]['id'];
 const PESOS = new Intl.NumberFormat('es-AR', {
   style: 'currency',
   currency: 'ARS',
-  maximumFractionDigits: 0,
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
 });
-const ANOTACIONES = [
-  { nombre: 'Yerba 500 g', cantidad: '2', importe: 5600 },
-  { nombre: 'Fideos', cantidad: '1', importe: 1400 },
-  { nombre: 'Fiado · Ana', cantidad: '—', importe: 3200 },
-] as const;
+const OTROS_FIADOS = [
+  { nombre: 'Pedro Ruiz', importe: 1400 },
+  { nombre: 'Lucía Pérez', importe: 5000 },
+];
+const normalizar = (valor: string) =>
+  valor
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .trim()
+    .toLocaleLowerCase('es');
 
-// Demostración local del recorrido: cambiar de paso no lee fotos ni guarda anotaciones.
+// Recorrido ilustrativo con datos ficticios: no procesa fotos ni escribe en la cuenta.
 export function EntradaDatos() {
-  const [pasoId, setPasoId] = useState<PasoId>('foto');
-  const paso = PASOS.find((opcion) => opcion.id === pasoId) ?? PASOS[0];
+  const [paso, setPaso] = useState<PasoId>('cuaderno');
+  const [importe, setImporte] = useState('3200');
+  const [confirmado, setConfirmado] = useState(3200);
+  const [busqueda, setBusqueda] = useState('Ana');
+  const [error, setError] = useState('');
+  const campoImporte = useRef<HTMLInputElement>(null);
+  const campoBusqueda = useRef<HTMLInputElement>(null);
+  const enfocarCampo = useRef(false);
+  const fiados = [{ nombre: 'Ana López', importe: confirmado }, ...OTROS_FIADOS];
+  const encontrados = fiados.filter((fiado) =>
+    normalizar(fiado.nombre).includes(normalizar(busqueda)),
+  );
+
+  useEffect(() => {
+    if (!enfocarCampo.current) return;
+    const campo = paso === 'revisar' ? campoImporte.current : campoBusqueda.current;
+    campo?.focus({ preventScroll: true });
+    enfocarCampo.current = false;
+  }, [paso]);
+
+  const avanzar = (siguiente: PasoId) => {
+    enfocarCampo.current = true;
+    setPaso(siguiente);
+  };
+
+  const confirmar = (evento: FormEvent<HTMLFormElement>) => {
+    evento.preventDefault();
+    const valor = Number(importe);
+    if (!Number.isFinite(valor) || valor <= 0) {
+      setError('Ingresá un importe mayor a cero.');
+      campoImporte.current?.focus();
+      return;
+    }
+    setError('');
+    setConfirmado(valor);
+    setBusqueda('Ana');
+    avanzar('buscar');
+  };
 
   return (
     <section
@@ -58,91 +75,153 @@ export function EntradaDatos() {
     >
       <div className="ens-wrap">
         <div className="ens-demo-intro">
-          <p className="ens-eyebrow">Mirá un ejemplo</p>
+          <p className="ens-eyebrow">Ayer lo anotaste. Hoy lo necesitás.</p>
           <h2 id="ejemplo-titulo">
-            Lo que ya anotás,
-            <br />
-            más fácil de encontrar.
+            ¿Quién te debía
+            <br />y cuánto?
           </h2>
           <p>
-            Podés empezar con una foto de tu cuaderno. Revisás lo que se leyó y confirmás qué querés
-            guardar.
+            En este ejemplo, Ana llevó {PESOS.format(3200)} fiado. Mirá cómo pasás de ese apunte a
+            encontrarlo por nombre.
           </p>
         </div>
+        <p className="ens-demo-guide">Probalo paso a paso. Tocá los botones para avanzar.</p>
         <ol className="ens-steps" aria-label="Pasos del ejemplo">
           {PASOS.map(({ id, nombre }, indice) => (
             <li key={id}>
               <button
                 type="button"
                 className="ens-step"
-                aria-pressed={pasoId === id}
+                aria-pressed={paso === id}
                 aria-controls="ejemplo-contenido"
-                onClick={() => setPasoId(id)}
+                onClick={() => setPaso(id)}
               >
                 <span className="ens-step-number" aria-hidden="true">
                   {indice + 1}
                 </span>
-                {nombre}
+                <span>
+                  {nombre}
+                  <span className="ens-step-action" aria-hidden="true">
+                    Ver paso
+                  </span>
+                </span>
               </button>
             </li>
           ))}
         </ol>
-        <div className="ens-example" id="ejemplo-contenido" aria-describedby="ejemplo-nota">
-          <div className="ens-book" aria-label="Anotaciones del ejemplo en un cuaderno">
-            <p className="ens-hand ens-hand-head">Ventas del día</p>
+        <div className="ens-example" id="ejemplo-contenido">
+          <div className="ens-book" aria-label="Cuaderno de ejemplo con tres fiados">
+            <p className="ens-hand ens-hand-head">Fiados del día</p>
             <p className="ens-hand">
-              Yerba 500 g × <span className="ens-circle">2</span>
+              <span className="ens-circle">Ana</span> — {PESOS.format(3200)}
             </p>
-            <p className="ens-hand">{PESOS.format(5600)}</p>
-            <p className="ens-hand">Fideos × 1 · {PESOS.format(1400)}</p>
-            <p className="ens-hand">Ana — fiado {PESOS.format(3200)}</p>
+            <p className="ens-hand">Pedro — {PESOS.format(1400)}</p>
+            <p className="ens-hand">Lucía — {PESOS.format(5000)}</p>
+            <p className="ens-paper-question">“¿Dónde lo había anotado?”</p>
           </div>
-          <div className="ens-example-arrow">
-            <ArrowRightIcon aria-hidden size={28} />
-          </div>
+          <ArrowRightIcon className="ens-example-arrow" aria-hidden size={28} />
           <div className="ens-digital">
             <div className="ens-digital-head">
-              <span>{paso.titulo}</span>
-              <NotebookIcon aria-hidden size={23} />
+              <span>Mi cuaderno · Fiados</span>
+              <span className="ens-demo-badge">Ejemplo</span>
             </div>
-            <table className="ens-table">
-              <caption className="sr-only">Ejemplo ilustrativo de anotaciones ordenadas</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Anotación</th>
-                  <th scope="col">Cant.</th>
-                  <th scope="col">Importe</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ANOTACIONES.map(({ nombre, cantidad, importe }, indice) => (
-                  <tr key={nombre}>
-                    <th scope="row">{nombre}</th>
-                    <td>
-                      <span
-                        className={indice === 0 && pasoId !== 'guardar' ? 'ens-pending' : undefined}
-                      >
-                        {cantidad}
-                      </span>
-                    </td>
-                    <td>{PESOS.format(importe)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="ens-digital-foot">
-              <ScanIcon aria-hidden size={20} />
-              {paso.pie}
+            <p className="ens-demo-progress" aria-live="polite">
+              Paso {PASOS.findIndex(({ id }) => id === paso) + 1} de {PASOS.length}
             </p>
+            {paso === 'cuaderno' && (
+              <div className="ens-demo-start">
+                <p className="ens-example-question">
+                  Ese dato que necesitás,
+                  <br />
+                  <strong>sin recorrer todas las hojas.</strong>
+                </p>
+                <p>Una foto puede ser tu punto de partida. Antes de guardar, revisás los datos.</p>
+                <button type="button" className="ens-secondary" onClick={() => avanzar('revisar')}>
+                  Comenzar el ejemplo <ArrowRightIcon aria-hidden size={19} />
+                </button>
+                <p className="ens-demo-next-hint">Tocá el botón para pasar al paso 2.</p>
+              </div>
+            )}
+            {paso === 'revisar' && (
+              <form className="ens-review-form" onSubmit={confirmar} noValidate>
+                <p>¿Esto es lo que anotaste? Podés corregir el importe para probar.</p>
+                <div className="ens-example-person">
+                  <span>Cliente</span>
+                  <strong>Ana López</strong>
+                </div>
+                <label htmlFor="ejemplo-importe">Importe del fiado</label>
+                <div className="ens-money-input">
+                  <span aria-hidden="true">$</span>
+                  <input
+                    ref={campoImporte}
+                    id="ejemplo-importe"
+                    name="importe-ejemplo"
+                    type="number"
+                    inputMode="decimal"
+                    min="0.01"
+                    step="any"
+                    required
+                    value={importe}
+                    aria-invalid={Boolean(error)}
+                    aria-describedby={error ? 'ejemplo-error' : undefined}
+                    onChange={(evento) => {
+                      setImporte(evento.target.value);
+                      setError('');
+                    }}
+                  />
+                </div>
+                {error && (
+                  <p className="ens-example-error" id="ejemplo-error" role="alert">
+                    {error}
+                  </p>
+                )}
+                <button className="ens-secondary" type="submit">
+                  Confirmar y buscar <CheckCircleIcon aria-hidden size={20} />
+                </button>
+              </form>
+            )}
+            {paso === 'buscar' && (
+              <div className="ens-demo-search">
+                <label htmlFor="ejemplo-busqueda">Buscá un nombre en este ejemplo</label>
+                <div className="ens-search-input">
+                  <MagnifyingGlassIcon aria-hidden size={20} />
+                  <input
+                    ref={campoBusqueda}
+                    id="ejemplo-busqueda"
+                    name="buscar-ejemplo"
+                    type="search"
+                    placeholder="Por ejemplo, Ana…"
+                    value={busqueda}
+                    autoComplete="off"
+                    onChange={(evento) => setBusqueda(evento.target.value)}
+                  />
+                </div>
+                <ul className="ens-example-results" aria-label="Fiados encontrados">
+                  {encontrados.map((fiado) => (
+                    <li key={fiado.nombre}>
+                      <div>
+                        <strong>{fiado.nombre}</strong>
+                        <span>Fiado registrado</span>
+                      </div>
+                      <b>{PESOS.format(fiado.importe)}</b>
+                    </li>
+                  ))}
+                </ul>
+                <p className="ens-search-status" role="status">
+                  {encontrados.length === 0
+                    ? 'No hay coincidencias. Probá con Ana, Pedro o Lucía.'
+                    : encontrados.length === 1
+                      ? 'Encontraste el fiado. Ya sabés a quién y cuánto anotaste.'
+                      : encontrados.length +
+                        ' fiados de ejemplo. Escribí un nombre para encontrar el que buscás.'}
+                </p>
+              </div>
+            )}
           </div>
         </div>
-        <p className="ens-stage-caption" role="status">
-          <strong>{paso.resumen}</strong>
-          <span>{paso.detalle}</span>
-        </p>
         <p className="ens-example-disclaimer" id="ejemplo-nota">
-          Ejemplo ilustrativo. La lectura puede necesitar correcciones: siempre revisás antes de
-          confirmar.
+          Ejemplo interactivo con datos inventados: no se guarda información. La lectura de una foto
+          puede necesitar correcciones.
         </p>
       </div>
     </section>

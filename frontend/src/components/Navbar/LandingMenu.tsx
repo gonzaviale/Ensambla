@@ -5,7 +5,6 @@ import { cn } from '@/lib/cn';
 const SECCIONES = [
   { id: 'como-funciona', nombre: 'Cómo te ayuda' },
   { id: 'a-tu-manera', nombre: 'A tu manera' },
-  { id: 'tus-datos', nombre: 'Tus datos' },
   { id: 'tus-dudas', nombre: 'Tus dudas' },
 ] as const;
 

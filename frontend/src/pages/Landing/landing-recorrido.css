@@ -1,0 +1,207 @@
+/* Pausa tipográfica, una sola aparición de Sami y acciones más explícitas. */
+.landing .ens-outcome.ens-outcome--statement {
+  padding-block: 56px;
+}
+.landing .ens-outcome--statement .ens-wrap {
+  display: block;
+  text-align: center;
+}
+.landing .ens-outcome--statement h2 {
+  max-width: 1000px;
+  margin-inline: auto;
+  font-size: clamp(36px, 4.7vw, 60px);
+  line-height: 1.18;
+  letter-spacing: -1.8px;
+}
+.landing .ens-outcome--statement h2 span {
+  color: var(--ens-yellow);
+}
+.landing .ens-your-way.ens-your-way--centered {
+  display: block;
+  text-align: center;
+}
+.landing .ens-your-way--centered > div {
+  max-width: 760px;
+  margin-inline: auto;
+}
+.landing .ens-your-way--centered .ens-eyebrow {
+  justify-content: center;
+}
+.landing .ens-your-way--centered h2 {
+  margin: 13px auto 16px;
+  max-width: 680px;
+}
+.landing .ens-your-way--centered .ens-lead {
+  max-width: 600px;
+  margin-inline: auto;
+}
+.landing .ens-sami-scene {
+  margin-top: 22px;
+}
+.landing .ens-sami-stage {
+  position: relative;
+  max-width: 800px;
+  margin-inline: auto;
+}
+.landing .ens-sami-stage > img {
+  width: 480px;
+  height: auto;
+  margin-inline: auto;
+  border-radius: 50%;
+}
+.landing .ens-sami-stage .ens-tags {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: block;
+  pointer-events: none;
+}
+.landing .ens-sami-stage .ens-tags li {
+  position: absolute;
+  left: 3%;
+  top: 16%;
+  font-size: 20px;
+  padding: 11px 19px;
+  box-shadow: 0 4px 0 #00303f12;
+  pointer-events: auto;
+}
+.landing .ens-sami-stage .ens-tags li:nth-child(2) {
+  left: auto;
+  right: 2%;
+  top: 24%;
+}
+.landing .ens-sami-stage .ens-tags li:nth-child(3) {
+  left: 8%;
+  top: 62%;
+}
+.landing .ens-sami-stage .ens-tags li:nth-child(4) {
+  left: auto;
+  right: 6%;
+  top: 68%;
+}
+.landing .ens-sami-scene figcaption {
+  max-width: 520px;
+  margin: 19px auto 0;
+  color: var(--ens-muted);
+  font-size: 18px;
+  line-height: 1.7;
+}
+.landing .ens-sami-scene figcaption strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--ens-ink);
+  font-size: 24px;
+  line-height: 1.35;
+}
+.landing .ens-hero-result {
+  width: 245px;
+}
+.landing .ens-hero-result .ens-result-link {
+  display: flex;
+  justify-content: center;
+  min-height: 48px;
+  padding: 10px 8px;
+  margin-top: 13px;
+  border: 1px solid var(--ens-orange);
+  border-radius: 7px;
+  background: var(--ens-orange);
+  color: var(--ens-ink-deep);
+  box-shadow: 0 3px 0 #b85e00;
+  text-decoration: none;
+  font-size: 14px;
+}
+.landing .ens-hero-result:hover .ens-result-link,
+.landing .ens-hero-result:focus-visible .ens-result-link {
+  background: #ff9b24;
+}
+.landing .ens-demo-section .ens-demo-guide {
+  margin-bottom: 16px;
+  color: var(--ens-ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+.landing .ens-demo-section .ens-step {
+  border: 1px solid #b3cad4;
+  border-bottom-width: 3px;
+  border-radius: 9px;
+  background: white;
+}
+.landing .ens-demo-section .ens-step:hover,
+.landing .ens-demo-section .ens-step[aria-pressed='true'] {
+  border-color: var(--ens-ink);
+  border-radius: 9px;
+  background: #d7edf6;
+}
+.landing .ens-demo-section .ens-step-action {
+  display: block;
+  margin-top: 3px;
+  color: var(--ens-ink);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.landing .ens-demo-section .ens-demo-progress {
+  padding: 10px 23px 0;
+  color: var(--ens-ink);
+  font-size: 14px;
+  font-weight: 800;
+}
+.landing .ens-demo-section .ens-secondary {
+  border-color: var(--ens-orange);
+  background: var(--ens-orange);
+  color: var(--ens-ink-deep);
+  box-shadow: 0 3px 0 #b85e00;
+}
+.landing .ens-demo-section .ens-secondary:hover {
+  background: #ff9b24;
+}
+.landing .ens-demo-section .ens-demo-start .ens-demo-next-hint {
+  font-size: 14px;
+  line-height: 1.6;
+}
+@media (max-width: 1000px) {
+  .landing .ens-hero-result {
+    width: 230px;
+  }
+}
+@media (max-width: 600px) {
+  .landing .ens-outcome.ens-outcome--statement {
+    padding-block: 38px;
+  }
+  .landing .ens-outcome--statement h2 {
+    font-size: clamp(32px, 8vw, 42px);
+    letter-spacing: -1px;
+  }
+  .landing .ens-sami-stage > img {
+    width: 100%;
+    max-width: 380px;
+  }
+  .landing .ens-sami-stage .ens-tags {
+    position: static;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .landing .ens-sami-stage .ens-tags li {
+    position: static;
+    padding: 9px 15px;
+    font-size: 18px;
+  }
+  .landing .ens-sami-scene figcaption {
+    margin-top: 26px;
+    font-size: 17px;
+  }
+  .landing .ens-sami-scene figcaption strong {
+    font-size: 23px;
+  }
+  .landing .ens-demo-section .ens-demo-progress {
+    padding-inline: 13px;
+  }
+}
+@media (max-width: 480px) {
+  .landing .ens-hero-result {
+    width: 215px;
+  }
+}

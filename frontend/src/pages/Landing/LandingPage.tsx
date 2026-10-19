@@ -8,10 +8,11 @@ import { Pilares } from '@/components/Landing/Pilares';
 import { Preguntas } from '@/components/Landing/Preguntas';
 import { Problema } from '@/components/Landing/Problema';
 import { SamiAgente } from '@/components/Landing/SamiAgente';
-import { TusDatos } from '@/components/Landing/TusDatos';
 import { useDesplazamientoSuave } from '@/hooks/landing/useDesplazamientoSuave';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import './landing.css';
+import './landing-ejemplo.css';
+import './landing-recorrido.css';
 
 export function LandingPage() {
   useTituloPagina('Tu cuaderno digital, tus cuentas más claras');
@@ -25,7 +26,6 @@ export function LandingPage() {
       <EntradaDatos />
       <Pilares />
       <SamiAgente />
-      <TusDatos />
       <Preguntas />
       <LlamadaFinal />
       <LandingFooter />

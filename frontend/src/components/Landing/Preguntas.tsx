@@ -14,6 +14,11 @@ const PREGUNTAS = [
     respuesta:
       'Antes de guardar, revisás los datos. Podés corregirlos o quitar lo que no querés incorporar.',
   },
+  {
+    pregunta: '¿Puedo descargar una copia de mis datos?',
+    respuesta:
+      'Todavía no. La descarga de una copia de tus datos está prevista, pero aún no está disponible.',
+  },
 ] as const;
 
 export function Preguntas() {
@@ -26,7 +31,10 @@ export function Preguntas() {
         </div>
         <div>
           {PREGUNTAS.map(({ pregunta, respuesta }) => (
-            <details key={pregunta}>
+            <details
+              key={pregunta}
+              id={pregunta.startsWith('¿Puedo descargar') ? 'tus-datos' : undefined}
+            >
               <summary>{pregunta}</summary>
               <p>{respuesta}</p>
             </details>
