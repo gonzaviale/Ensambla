@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.ia;
 
 import com.ensambla.backend.domain.model.sami.DiccionarioSami;
 import com.ensambla.backend.domain.port.SamiIaPort;
+import com.ensambla.backend.domain.port.TallerIaPort;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -68,5 +69,29 @@ public class SamiConfig {
             }
         }
         return new SamiIaAdapter(modelos, promptSami, objectMapper, ia.umbralEscalar());
+    }
+
+    @Bean
+    PromptTaller promptTaller() {
+        return new PromptTaller(new ClassPathResource("ia/prompt-taller.md"));
+    }
+
+    /**
+     * IA del taller conversacional: una sola llamada por turno al modelo rápido, con las herramientas de
+     * {@code ia/herramientas-taller.json}. Sin Bedrock responde el cliente simulado, que no cuesta nada.
+     */
+    @Bean
+    TallerIaPort tallerIaPort(PromptTaller promptTaller, ObjectMapper objectMapper, SamiProperties properties,
+                              ObjectProvider<BedrockRuntimeClient> bedrock) {
+        SamiProperties.Ia ia = properties.ia();
+        List<DefinicionHerramienta> herramientas = List.of(objectMapper.readValue(
+                RecursoTexto.contenido(new ClassPathResource("ia/herramientas-taller.json")),
+                DefinicionHerramienta[].class));
+        BedrockRuntimeClient cliente = bedrock.getIfAvailable();
+        ClienteModeloConHerramientas modelo = cliente == null
+                ? new ClienteModeloConHerramientasSimulado()
+                : new ClienteModeloConHerramientasBedrock(
+                        cliente, ia.modeloRapido(), ia.maxTokensTaller(), herramientas);
+        return new TallerIaAdapter(modelo, promptTaller);
     }
 }

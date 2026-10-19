@@ -10,7 +10,9 @@ import java.time.Duration;
  *
  * @param umbralConfianza confianza mínima para proponer sin preguntar más ni consultar a la IA
  * @param maxPreguntas    cuántas preguntas de aclaración se le hacen como máximo a la persona
- * @param limiteDiarioIa  consultas con IA por negocio y por día (UTC)
+ * @param limiteDiarioIa  consultas con IA por negocio y por día (UTC) del asistente de plantillas
+ * @param limiteDiarioTaller consultas con IA por negocio y por día (UTC) del taller conversacional; comparte el
+ *                        contador con el asistente de plantillas
  * @param ia              proveedor y modelos del respaldo con IA
  */
 @ConfigurationProperties(prefix = "ensambla.sami")
@@ -18,6 +20,7 @@ public record SamiProperties(
         @DefaultValue("0.7") double umbralConfianza,
         @DefaultValue("3") int maxPreguntas,
         @DefaultValue("20") int limiteDiarioIa,
+        @DefaultValue("60") int limiteDiarioTaller,
         @DefaultValue Ia ia
 ) {
 
@@ -30,6 +33,7 @@ public record SamiProperties(
      * @param modeloAvanzado perfil de inferencia del modelo capaz, que sólo se consulta si el chico no alcanza;
      *                      vacío desactiva el escalado
      * @param umbralEscalar confianza que tiene que alcanzar un modelo para no pasar al siguiente
+     * @param maxTokensTaller tokens de salida máximos de un turno del taller (usa el modelo rápido)
      */
     public record Ia(
             @DefaultValue("simulado") String proveedor,
@@ -39,7 +43,8 @@ public record SamiProperties(
             @DefaultValue("us.anthropic.claude-sonnet-4-6") String modeloAvanzado,
             @DefaultValue("30s") Duration timeout,
             @DefaultValue("700") int maxTokens,
-            @DefaultValue("0.6") double umbralEscalar
+            @DefaultValue("0.6") double umbralEscalar,
+            @DefaultValue("400") int maxTokensTaller
     ) {
     }
 }

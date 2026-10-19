@@ -2,13 +2,16 @@ package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.mapper.proyecto.ProyectoItemMapper;
 import com.ensambla.backend.domain.mapper.sami.ConversarConSamiMapper;
+import com.ensambla.backend.domain.mapper.sami.ConversarEnTallerMapper;
 import com.ensambla.backend.domain.mapper.sami.CrearProyectoDesdeSamiMapper;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plantilla.PlantillaService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.domain.service.sami.ConversacionSamiService;
 import com.ensambla.backend.domain.service.sami.RespaldoIaSamiService;
+import com.ensambla.backend.domain.service.sami.TallerSamiService;
 import com.ensambla.backend.domain.useCase.sami.ConversarConSamiUseCase;
+import com.ensambla.backend.domain.useCase.sami.ConversarEnTallerUseCase;
 import com.ensambla.backend.domain.useCase.sami.CrearProyectoDesdeSamiUseCase;
 import com.ensambla.backend.infrastructure.ia.SamiProperties;
 import org.springframework.context.annotation.Bean;
@@ -38,6 +41,25 @@ public class SamiUseCaseConfig {
             Clock clock) {
         return new CrearProyectoDesdeSamiUseCase(
                 negocioService, plantillaService, proyectoService, crearProyectoDesdeSamiMapper, clock);
+    }
+
+    @Bean
+    public ConversarEnTallerMapper conversarEnTallerMapper() {
+        return new ConversarEnTallerMapper();
+    }
+
+    @Bean
+    public ConversarEnTallerUseCase conversarEnTallerUseCase(NegocioService negocioService,
+                                                             TallerSamiService tallerSamiService,
+                                                             ConversarEnTallerMapper conversarEnTallerMapper,
+                                                             Clock clock,
+                                                             SamiProperties samiProperties) {
+        return new ConversarEnTallerUseCase(
+                negocioService,
+                tallerSamiService,
+                conversarEnTallerMapper,
+                clock,
+                samiProperties.limiteDiarioTaller());
     }
 
     @Bean

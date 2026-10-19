@@ -3,7 +3,11 @@ package com.ensambla.backend.infrastructure.ia;
 import com.ensambla.backend.domain.model.sami.ConsultaIaSami;
 import com.ensambla.backend.domain.model.sami.DiccionarioSami;
 import com.ensambla.backend.domain.model.sami.PropuestaIaSami;
+import com.ensambla.backend.domain.model.sami.taller.ConsultaTaller;
+import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
+import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
 import com.ensambla.backend.domain.port.SamiIaPort;
+import com.ensambla.backend.domain.port.TallerIaPort;
 import com.ensambla.backend.domain.service.sami.SamiPruebas;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -105,6 +109,56 @@ class SamiConfigTest {
     }
 
     @Test
+    @DisplayName("Sin Bedrock, la IA del taller es el cliente simulado: sin costo y con botonera")
+    void tallerIaPortShouldUseSimulatedClientWithoutBedrock() {
+        TallerIaPort port = config.tallerIaPort(config.promptTaller(), JsonMapper.builder().build(),
+                propiedades(AVANZADO), new StaticListableBeanFactory().getBeanProvider(BedrockRuntimeClient.class));
+
+        ResultadoTallerIa result = port.conversar(consultaDeTaller("ayuda"));
+
+        assertThat(result.consumo().proveedor()).isEqualTo("simulado");
+        assertThat(result.llamadas().getFirst().nombre()).isEqualTo("ofrecer_opciones");
+    }
+
+    @Test
+    @DisplayName("Con Bedrock, el taller usa el modelo rápido, una sola llamada y las nueve herramientas")
+    void tallerIaPortShouldUseFastModelWithAllTools() {
+        BedrockRuntimeClient bedrock = mock(BedrockRuntimeClient.class);
+        when(bedrock.converse(any(ConverseRequest.class))).thenReturn(ConverseResponse.builder()
+                .output(ConverseOutput.builder().message(Message.builder()
+                        .role(ConversationRole.ASSISTANT).content(ContentBlock.fromText("Hola")).build()).build())
+                .usage(TokenUsage.builder().inputTokens(800).outputTokens(40).build())
+                .build());
+
+        ResultadoTallerIa result = config.tallerIaPort(config.promptTaller(), JsonMapper.builder().build(),
+                propiedades(AVANZADO), proveedorDe(bedrock)).conversar(consultaDeTaller("hola"));
+
+        assertThat(result.texto()).isEqualTo("Hola");
+        assertThat(result.consumo().modelo()).isEqualTo(RAPIDO);
+        org.mockito.ArgumentCaptor<ConverseRequest> captor = org.mockito.ArgumentCaptor.forClass(ConverseRequest.class);
+        verify(bedrock).converse(captor.capture());
+        assertThat(captor.getValue().inferenceConfig().maxTokens()).isEqualTo(400);
+        assertThat(captor.getValue().toolConfig().tools())
+                .extracting(herramienta -> herramienta.toolSpec().name())
+                .containsExactly("agregar_pieza", "quitar_pieza", "renombrar_pieza", "renombrar_sistema",
+                        "agregar_campo", "quitar_campo", "separar_en_seccion", "cambiar_distribucion",
+                        "ofrecer_opciones");
+    }
+
+    @Test
+    @DisplayName("Las herramientas del taller del recurso coinciden con las que valida el dominio")
+    void bundledToolsShouldMatchTheDomainTools() throws Exception {
+        DefinicionHerramienta[] definiciones = JsonMapper.builder().build().readValue(
+                getClass().getResourceAsStream("/ia/herramientas-taller.json"), DefinicionHerramienta[].class);
+
+        assertThat(definiciones).extracting(DefinicionHerramienta::name).containsExactlyInAnyOrder(
+                java.util.Arrays.stream(com.ensambla.backend.domain.model.sami.taller.HerramientaTaller.values())
+                        .map(com.ensambla.backend.domain.model.sami.taller.HerramientaTaller::nombre)
+                        .toArray(String[]::new));
+        assertThat(definiciones).allSatisfy(definicion -> assertThat(definicion.inputSchema()).containsKey("type"));
+    }
+
+    @Test
     @DisplayName("Crea el cliente de Bedrock con el perfil de AWS indicado o con las credenciales por defecto")
     void bedrockRuntimeClientShouldBuildWithProfileOrDefaultCredentials() {
         try (BedrockRuntimeClient conPerfil = config.bedrockRuntimeClient(propiedades("x", "perfil-de-prueba"));
@@ -116,13 +170,17 @@ class SamiConfigTest {
         }
     }
 
+    private ConsultaTaller consultaDeTaller(String mensaje) {
+        return new ConsultaTaller(mensaje, new EstadoTaller("Mi almacén", "mosaic", List.of()), List.of());
+    }
+
     private SamiProperties propiedades(String modeloAvanzado) {
         return propiedades(modeloAvanzado, null);
     }
 
     private SamiProperties propiedades(String modeloAvanzado, String perfilAws) {
-        return new SamiProperties(0.7, 3, 20, new SamiProperties.Ia(
-                "bedrock", "us-east-1", perfilAws, RAPIDO, modeloAvanzado, Duration.ofSeconds(30), 700, 0.6));
+        return new SamiProperties(0.7, 3, 20, 60, new SamiProperties.Ia(
+                "bedrock", "us-east-1", perfilAws, RAPIDO, modeloAvanzado, Duration.ofSeconds(30), 700, 0.6, 400));
     }
 
     private ObjectProvider<BedrockRuntimeClient> proveedorDe(BedrockRuntimeClient bedrock) {

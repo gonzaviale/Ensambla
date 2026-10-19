@@ -3,10 +3,15 @@ package com.ensambla.backend.infrastructure.repository;
 import com.ensambla.backend.domain.dto.sami.ColumnaSamiItem;
 import com.ensambla.backend.domain.dto.sami.ConversarConSamiRequest;
 import com.ensambla.backend.domain.dto.sami.ConversarConSamiResponse;
+import com.ensambla.backend.domain.dto.sami.ConversarEnTallerRequest;
+import com.ensambla.backend.domain.dto.sami.ConversarEnTallerResponse;
 import com.ensambla.backend.domain.dto.sami.CrearProyectoDesdeSamiRequest;
+import com.ensambla.backend.domain.dto.sami.EstadoTallerItem;
+import com.ensambla.backend.domain.dto.sami.MensajeTallerItem;
 import com.ensambla.backend.domain.dto.sami.RespuestaSamiItem;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.useCase.sami.ConversarConSamiUseCase;
+import com.ensambla.backend.domain.useCase.sami.ConversarEnTallerUseCase;
 import com.ensambla.backend.domain.useCase.sami.CrearProyectoDesdeSamiUseCase;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import org.junit.jupiter.api.AfterEach;
@@ -32,6 +37,9 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Autowired
     private CrearProyectoDesdeSamiUseCase crearProyectoDesdeSamiUseCase;
+
+    @Autowired
+    private ConversarEnTallerUseCase conversarEnTallerUseCase;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -99,6 +107,31 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT consultas FROM consumo_sami_diario WHERE negocio_id = ?", Integer.class, negocioId))
                 .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("Un turno del taller pasa por la IA simulada, valida las herramientas y registra la consulta")
+    void tallerShouldRunATurnAndRecordTheConsultation() {
+        ConversarEnTallerResponse response = conversarEnTallerUseCase.execute(new ConversarEnTallerRequest(
+                usuarioId, "sumá los gastos",
+                new EstadoTallerItem("Mi almacén", "mosaic", List.of()),
+                List.of(new MensajeTallerItem("sami", "Hola"))));
+
+        assertThat(response.acciones()).extracting("herramienta").containsExactly("agregar_pieza");
+        assertThat(response.acciones().getFirst().argumentos()).containsEntry("tipo", "expenses");
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT consultas FROM consumo_sami_diario WHERE negocio_id = ?", Integer.class, negocioId))
+                .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("Un turno del taller que no se entiende devuelve una botonera para elegir")
+    void tallerShouldAskWithOptionsWhenItDoesNotUnderstand() {
+        ConversarEnTallerResponse response = conversarEnTallerUseCase.execute(new ConversarEnTallerRequest(
+                usuarioId, "ayuda", new EstadoTallerItem("", "mosaic", List.of()), List.of()));
+
+        assertThat(response.opciones().opciones()).hasSizeBetween(2, 6);
+        assertThat(response.acciones()).isEmpty();
     }
 
     @Test

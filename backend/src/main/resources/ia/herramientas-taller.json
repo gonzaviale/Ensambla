@@ -1,0 +1,88 @@
+[
+  {
+    "name": "agregar_pieza",
+    "description": "Suma una pieza.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"tipo": {"type": "string", "enum": ["inventory", "sales", "clients", "orders", "expenses", "entries", "exits"]}},
+      "required": ["tipo"]
+    }
+  },
+  {
+    "name": "quitar_pieza",
+    "description": "Quita una pieza.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"pieza": {"type": "string"}},
+      "required": ["pieza"]
+    }
+  },
+  {
+    "name": "renombrar_pieza",
+    "description": "Renombra una pieza.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"pieza": {"type": "string"}, "nombre": {"type": "string"}},
+      "required": ["pieza", "nombre"]
+    }
+  },
+  {
+    "name": "renombrar_sistema",
+    "description": "Renombra el sistema.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"nombre": {"type": "string"}},
+      "required": ["nombre"]
+    }
+  },
+  {
+    "name": "agregar_campo",
+    "description": "Suma un dato a una pieza.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "pieza": {"type": "string"},
+        "etiqueta": {"type": "string"},
+        "tipo": {"type": "string", "enum": ["text", "number", "currency", "date", "select", "email", "tel", "checkbox"]},
+        "opciones": {"type": "array", "items": {"type": "string"}}
+      },
+      "required": ["pieza", "etiqueta", "tipo"]
+    }
+  },
+  {
+    "name": "quitar_campo",
+    "description": "Quita un dato de una pieza.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"pieza": {"type": "string"}, "campo": {"type": "string"}},
+      "required": ["pieza", "campo"]
+    }
+  },
+  {
+    "name": "separar_en_seccion",
+    "description": "Pasa una pieza a una sección aparte.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"pieza": {"type": "string"}, "seccion": {"type": "string"}},
+      "required": ["pieza", "seccion"]
+    }
+  },
+  {
+    "name": "cambiar_distribucion",
+    "description": "Cambia cómo se reparten las piezas.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"layout": {"type": "string", "enum": ["mosaic", "single", "two", "three"]}},
+      "required": ["layout"]
+    }
+  },
+  {
+    "name": "ofrecer_opciones",
+    "description": "Pregunta con 2 a 6 respuestas rápidas cuando falta información. No cambia nada.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"pregunta": {"type": "string"}, "opciones": {"type": "array", "items": {"type": "string"}}},
+      "required": ["pregunta", "opciones"]
+    }
+  }
+]

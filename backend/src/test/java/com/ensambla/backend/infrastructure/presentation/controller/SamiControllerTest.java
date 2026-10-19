@@ -3,15 +3,20 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 import com.ensambla.backend.domain.dto.proyecto.ProyectoItem;
 import com.ensambla.backend.domain.dto.sami.ConversarConSamiRequest;
 import com.ensambla.backend.domain.dto.sami.ConversarConSamiResponse;
+import com.ensambla.backend.domain.dto.sami.ConversarEnTallerRequest;
+import com.ensambla.backend.domain.dto.sami.ConversarEnTallerResponse;
 import com.ensambla.backend.domain.dto.sami.CrearProyectoDesdeSamiRequest;
 import com.ensambla.backend.domain.dto.sami.OpcionSamiItem;
 import com.ensambla.backend.domain.dto.sami.PreguntaSamiItem;
+import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.useCase.sami.ConversarConSamiUseCase;
+import com.ensambla.backend.domain.useCase.sami.ConversarEnTallerUseCase;
 import com.ensambla.backend.domain.useCase.sami.CrearProyectoDesdeSamiUseCase;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.proyecto.ProyectoPresentationMapper;
 import com.ensambla.backend.infrastructure.presentation.mapper.sami.SamiPresentationMapper;
+import com.ensambla.backend.infrastructure.presentation.mapper.sami.TallerPresentationMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,6 +51,7 @@ class SamiControllerTest {
 
     private ConversarConSamiUseCase conversarConSamiUseCase;
     private CrearProyectoDesdeSamiUseCase crearProyectoDesdeSamiUseCase;
+    private ConversarEnTallerUseCase conversarEnTallerUseCase;
 
     private MockMvc mockMvc;
 
@@ -53,12 +59,88 @@ class SamiControllerTest {
     void setUp() {
         conversarConSamiUseCase = mock(ConversarConSamiUseCase.class);
         crearProyectoDesdeSamiUseCase = mock(CrearProyectoDesdeSamiUseCase.class);
+        conversarEnTallerUseCase = mock(ConversarEnTallerUseCase.class);
         mockMvc = MockMvcBuilders.standaloneSetup(new SamiController(
                         conversarConSamiUseCase,
                         crearProyectoDesdeSamiUseCase,
+                        conversarEnTallerUseCase,
                         new SamiPresentationMapper(),
-                        new ProyectoPresentationMapper()))
+                        new ProyectoPresentationMapper(),
+                        new TallerPresentationMapper()))
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
+    }
+
+    @Test
+    @DisplayName("Un turno del taller devuelve la respuesta, las acciones y la botonera, con el usuario de la sesión")
+    void tallerShouldReturnReplyActionsAndOptions() throws Exception {
+        when(conversarEnTallerUseCase.execute(any())).thenReturn(new ConversarEnTallerResponse(
+                "Listo, sumé gastos.",
+                List.of(new ConversarEnTallerResponse.AccionTallerItem("agregar_pieza", Map.of("tipo", "expenses"))),
+                new ConversarEnTallerResponse.OpcionesTallerItem("¿Seguimos?", List.of("Sí", "No"))));
+
+        ResultActions result = whenPosting("/api/sami/taller", """
+                {"mensaje":"  sumá gastos ","usuarioId":"otro",
+                 "estado":{"nombre":"Mi almacén","distribucion":"mosaic","piezas":[
+                   {"id":"e1","tipo":"inventory","nombre":"Inventario","seccion":"General",
+                    "campos":[{"etiqueta":"Producto","tipo":"text"}]}]},
+                 "historial":[{"quien":"sami","texto":"Hola"},{"quien":"you","texto":"hola"}]}
+                """);
+
+        result.andExpect(status().isOk())
+                .andExpect(jsonPath("$.respuesta").value("Listo, sumé gastos."))
+                .andExpect(jsonPath("$.acciones[0].herramienta").value("agregar_pieza"))
+                .andExpect(jsonPath("$.acciones[0].argumentos.tipo").value("expenses"))
+                .andExpect(jsonPath("$.opciones.pregunta").value("¿Seguimos?"))
+                .andExpect(jsonPath("$.opciones.opciones[1]").value("No"));
+        ArgumentCaptor<ConversarEnTallerRequest> captor = ArgumentCaptor.forClass(ConversarEnTallerRequest.class);
+        verify(conversarEnTallerUseCase).execute(captor.capture());
+        assertThat(captor.getValue().usuarioId()).isEqualTo(USUARIO_ID);
+        assertThat(captor.getValue().mensaje()).isEqualTo("sumá gastos");
+        assertThat(captor.getValue().estado().piezas().getFirst().campos()).hasSize(1);
+        assertThat(captor.getValue().historial()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("Sin historial ni opciones el turno igual responde")
+    void tallerShouldAcceptMissingHistoryAndReturnNullOptions() throws Exception {
+        when(conversarEnTallerUseCase.execute(any()))
+                .thenReturn(new ConversarEnTallerResponse("Hola", List.of(), null));
+
+        ResultActions result = whenPosting("/api/sami/taller", """
+                {"mensaje":"hola","estado":{"nombre":"","distribucion":"mosaic","piezas":[]}}
+                """);
+
+        result.andExpect(status().isOk()).andExpect(jsonPath("$.opciones").doesNotExist());
+        ArgumentCaptor<ConversarEnTallerRequest> captor = ArgumentCaptor.forClass(ConversarEnTallerRequest.class);
+        verify(conversarEnTallerUseCase).execute(captor.capture());
+        assertThat(captor.getValue().historial()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Rechaza con 400 un mensaje vacío, un pedido sin estado o un historial con un autor inválido")
+    void tallerShouldRejectInvalidRequests() throws Exception {
+        whenPosting("/api/sami/taller", "{\"mensaje\":\"  \",\"estado\":{\"distribucion\":\"mosaic\",\"piezas\":[]}}")
+                .andExpect(status().isBadRequest());
+        whenPosting("/api/sami/taller", "{\"mensaje\":\"hola\"}").andExpect(status().isBadRequest());
+        whenPosting("/api/sami/taller", """
+                {"mensaje":"hola","estado":{"distribucion":"mosaic","piezas":[]},
+                 "historial":[{"quien":"robot","texto":"x"}]}
+                """).andExpect(status().isBadRequest());
+        verify(conversarEnTallerUseCase, never()).execute(any());
+    }
+
+    @Test
+    @DisplayName("Si el límite diario se agotó responde 400 con el mensaje para la persona")
+    void tallerShouldReturnBusinessRuleMessage() throws Exception {
+        when(conversarEnTallerUseCase.execute(any()))
+                .thenThrow(new BusinessRuleException("Hoy ya usaste todas las consultas con IA."));
+
+        ResultActions result = whenPosting("/api/sami/taller", """
+                {"mensaje":"hola","estado":{"distribucion":"mosaic","piezas":[]}}
+                """);
+
+        result.andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Hoy ya usaste todas las consultas con IA."));
     }
 
     @Test
