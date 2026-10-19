@@ -1,0 +1,220 @@
+{
+  "plantillas": [
+    {
+      "plantilla": "Ventas",
+      "terminos": [
+        {"termino": "vendo", "peso": 3},
+        {"termino": "vender", "peso": 3},
+        {"termino": "vendemos", "peso": 3},
+        {"termino": "vendi", "peso": 3},
+        {"termino": "venta", "peso": 3},
+        {"termino": "cobro", "peso": 2},
+        {"termino": "cobrar", "peso": 2},
+        {"termino": "cobramos", "peso": 2},
+        {"termino": "caja", "peso": 2},
+        {"termino": "mostrador", "peso": 2},
+        {"termino": "ticket", "peso": 1},
+        {"termino": "facturo", "peso": 2},
+        {"termino": "facturar", "peso": 2},
+        {"termino": "mi negocio", "peso": 1},
+        {"termino": "fiado", "peso": 2},
+        {"termino": "fio", "peso": 2},
+        {"termino": "fiamos", "peso": 2},
+        {"termino": "me deben", "peso": 2},
+        {"termino": "me debe", "peso": 2},
+        {"termino": "me pagan", "peso": 1},
+        {"termino": "kiosco", "peso": 2},
+        {"termino": "almacen", "peso": 2},
+        {"termino": "despensa", "peso": 2},
+        {"termino": "tienda", "peso": 2},
+        {"termino": "local", "peso": 1},
+        {"termino": "feria", "peso": 2},
+        {"termino": "emprendimiento", "peso": 1}
+      ]
+    },
+    {
+      "plantilla": "Inventario",
+      "terminos": [
+        {"termino": "stock", "peso": 3},
+        {"termino": "inventario", "peso": 3},
+        {"termino": "mercaderia", "peso": 3},
+        {"termino": "existencias", "peso": 3},
+        {"termino": "productos", "peso": 2},
+        {"termino": "articulos", "peso": 2},
+        {"termino": "insumos", "peso": 2},
+        {"termino": "materia prima", "peso": 3},
+        {"termino": "materiales", "peso": 2},
+        {"termino": "unidades", "peso": 2},
+        {"termino": "reponer", "peso": 3},
+        {"termino": "reposicion", "peso": 3},
+        {"termino": "me quedo sin", "peso": 3},
+        {"termino": "me quedan", "peso": 3},
+        {"termino": "me falta", "peso": 2},
+        {"termino": "faltantes", "peso": 2},
+        {"termino": "cuanto tengo", "peso": 3},
+        {"termino": "deposito", "peso": 2},
+        {"termino": "control de", "peso": 1},
+        {"termino": "controlar", "peso": 1}
+      ]
+    },
+    {
+      "plantilla": "Pedidos",
+      "terminos": [
+        {"termino": "pedido", "peso": 3},
+        {"termino": "encargo", "peso": 3},
+        {"termino": "encargan", "peso": 3},
+        {"termino": "me piden", "peso": 3},
+        {"termino": "me encargan", "peso": 3},
+        {"termino": "entrega", "peso": 2},
+        {"termino": "entregar", "peso": 2},
+        {"termino": "reserva", "peso": 2},
+        {"termino": "delivery", "peso": 2},
+        {"termino": "envio", "peso": 2},
+        {"termino": "a pedido", "peso": 3},
+        {"termino": "por encargo", "peso": 3},
+        {"termino": "turno", "peso": 1}
+      ]
+    },
+    {
+      "plantilla": "Clientes",
+      "terminos": [
+        {"termino": "agenda", "peso": 3},
+        {"termino": "contactos", "peso": 3},
+        {"termino": "contacto", "peso": 2},
+        {"termino": "mis clientes", "peso": 3},
+        {"termino": "lista de clientes", "peso": 5},
+        {"termino": "base de clientes", "peso": 5},
+        {"termino": "datos de mis clientes", "peso": 5},
+        {"termino": "clientela", "peso": 3},
+        {"termino": "cliente", "peso": 1},
+        {"termino": "telefonos", "peso": 2},
+        {"termino": "whatsapp", "peso": 1},
+        {"termino": "alumnos", "peso": 2},
+        {"termino": "pacientes", "peso": 2},
+        {"termino": "socios", "peso": 2}
+      ]
+    },
+    {
+      "plantilla": "Gastos",
+      "terminos": [
+        {"termino": "gasto", "peso": 3},
+        {"termino": "gastar", "peso": 3},
+        {"termino": "egresos", "peso": 3},
+        {"termino": "lo que gasto", "peso": 3},
+        {"termino": "plata que sale", "peso": 3},
+        {"termino": "alquiler", "peso": 2},
+        {"termino": "sueldos", "peso": 2},
+        {"termino": "impuestos", "peso": 2},
+        {"termino": "monotributo", "peso": 2},
+        {"termino": "servicios", "peso": 1},
+        {"termino": "luz", "peso": 1},
+        {"termino": "facturas", "peso": 1},
+        {"termino": "proveedor", "peso": 1},
+        {"termino": "pago", "peso": 1},
+        {"termino": "pagar", "peso": 1},
+        {"termino": "cuentas", "peso": 1}
+      ]
+    }
+  ],
+  "columnas": [
+    {
+      "nombre": "Saldo pendiente",
+      "tipo": "NUMERO",
+      "disparadores": ["me deben", "me debe", "debe", "deben", "fiado", "fio", "fiamos", "deuda", "deudor", "cuenta corriente", "saldo", "a cuenta", "pagan despues"],
+      "plantillas": ["Ventas", "Pedidos"]
+    },
+    {
+      "nombre": "Seña",
+      "tipo": "NUMERO",
+      "disparadores": ["seña", "anticipo", "adelanto"],
+      "plantillas": ["Ventas", "Pedidos"]
+    },
+    {
+      "nombre": "Forma de pago",
+      "tipo": "OPCION",
+      "opciones": ["Efectivo", "Transferencia", "Tarjeta"],
+      "disparadores": ["efectivo", "transferencia", "tarjeta", "mercado pago", "mercadopago", "forma de pago", "debito", "credito", "qr"],
+      "plantillas": ["Ventas", "Pedidos", "Gastos"]
+    },
+    {
+      "nombre": "Teléfono",
+      "tipo": "TEXTO",
+      "disparadores": ["telefono", "whatsapp", "celular", "contacto"],
+      "plantillas": ["Ventas", "Pedidos"]
+    },
+    {
+      "nombre": "Dirección",
+      "tipo": "TEXTO",
+      "disparadores": ["direccion", "domicilio", "reparto", "delivery", "envio"],
+      "plantillas": ["Pedidos", "Clientes"]
+    },
+    {
+      "nombre": "Proveedor",
+      "tipo": "TEXTO",
+      "disparadores": ["proveedor", "distribuidor", "mayorista", "a quien le compro"],
+      "plantillas": ["Inventario", "Gastos"]
+    },
+    {
+      "nombre": "Vencimiento",
+      "tipo": "FECHA",
+      "disparadores": ["vence", "vencimiento", "perecedero", "caduca", "caducidad"],
+      "plantillas": ["Inventario"]
+    },
+    {
+      "nombre": "Costo",
+      "tipo": "NUMERO",
+      "disparadores": ["costo", "me cuesta", "precio de compra", "ganancia", "margen"],
+      "plantillas": ["Inventario", "Ventas"]
+    },
+    {
+      "nombre": "Precio de venta",
+      "tipo": "NUMERO",
+      "disparadores": ["precio", "lista de precios"],
+      "plantillas": ["Inventario"]
+    },
+    {
+      "nombre": "Talle y color",
+      "tipo": "TEXTO",
+      "disparadores": ["talle", "color"],
+      "plantillas": ["Inventario", "Ventas"]
+    }
+  ],
+  "preguntas": [
+    {
+      "id": "principal",
+      "texto": "¿Qué es lo principal que querés anotar?",
+      "opciones": [
+        {"id": "ventas", "texto": "Lo que vendo", "plantilla": "Ventas"},
+        {"id": "stock", "texto": "Lo que tengo en stock", "plantilla": "Inventario"},
+        {"id": "pedidos", "texto": "Los pedidos de mis clientes", "plantilla": "Pedidos"},
+        {"id": "gastos", "texto": "Mis gastos", "plantilla": "Gastos"},
+        {"id": "clientes", "texto": "Los datos de mis clientes", "plantilla": "Clientes"},
+        {"id": "otra", "texto": "Otra cosa", "plantilla": null}
+      ]
+    },
+    {
+      "id": "venta-o-stock",
+      "texto": "¿Querés anotar cada venta o controlar cuánto te queda?",
+      "opciones": [
+        {"id": "venta", "texto": "Anotar cada venta", "plantilla": "Ventas"},
+        {"id": "stock", "texto": "Controlar cuánto me queda", "plantilla": "Inventario"}
+      ]
+    },
+    {
+      "id": "encargo-o-venta",
+      "texto": "¿Te encargan las cosas con anticipación o las vendés en el momento?",
+      "opciones": [
+        {"id": "encargo", "texto": "Me las encargan", "plantilla": "Pedidos"},
+        {"id": "momento", "texto": "Las vendo en el momento", "plantilla": "Ventas"}
+      ]
+    },
+    {
+      "id": "gasto-o-mercaderia",
+      "texto": "¿Querés anotar lo que gastás o lo que tenés para vender?",
+      "opciones": [
+        {"id": "gasto", "texto": "Lo que gasto", "plantilla": "Gastos"},
+        {"id": "mercaderia", "texto": "Lo que tengo para vender", "plantilla": "Inventario"}
+      ]
+    }
+  ]
+}

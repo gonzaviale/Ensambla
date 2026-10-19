@@ -1,6 +1,8 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.model.enums.TipoCampo;
 import com.ensambla.backend.domain.model.plantilla.Plantilla;
+import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
 import com.ensambla.backend.infrastructure.repository.entity.PlantillaEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IPlantillaJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.PlantillaRepositoryMapper;
@@ -12,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,6 +46,26 @@ class PlantillaRepositoryImplTest {
         List<Plantilla> result = repository.findAllActivas();
 
         assertThat(result).extracting(Plantilla::getId).containsExactly(PRIMER_ID, SEGUNDO_ID);
+    }
+
+    @Test
+    @DisplayName("Devuelve las plantillas activas con su estructura interpretada, en el orden de la consulta")
+    void findAllParaProyectoActivasShouldReturnParsedStructures() {
+        when(jpa.findByActivaTrueOrderByNombreAscIdAsc()).thenReturn(List.of(PlantillaEntity.builder()
+                .id(PRIMER_ID)
+                .nombre("Ventas")
+                .descripcion("Anotá lo que vendés")
+                .estructura(Map.of("bloques", List.of(Map.of(
+                        "nombre", "Ventas",
+                        "campos", List.of(Map.of("nombre", "Monto", "tipo", "NUMERO"))))))
+                .build()));
+
+        List<PlantillaProyecto> result = repository.findAllParaProyectoActivas();
+
+        assertThat(result).extracting(PlantillaProyecto::id, PlantillaProyecto::nombre)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(PRIMER_ID, "Ventas"));
+        assertThat(result.getFirst().estructura().bloques().getFirst().campos()).extracting("nombre", "tipo")
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("Monto", TipoCampo.NUMERO));
     }
 
     @Test
