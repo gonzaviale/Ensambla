@@ -15,16 +15,19 @@ type Modo = (typeof MODOS)[number]['id'];
 
 const PASOS = [
   {
-    titulo: 'Elegí cómo cargar',
-    texto: 'Sacale una foto al cuaderno, dictale una nota de voz o escribile como en un mensaje.',
+    color: 'celeste',
+    titulo: 'Elegí cómo contarle',
+    texto: 'Sacale una foto al cuaderno, mandale un audio o escribile como en un mensaje.',
   },
   {
+    color: 'amarillo',
     titulo: 'Sami lo entiende',
-    texto: 'Lo ordena en tablas y marca los datos que no pudo leer o escuchar con seguridad.',
+    texto: 'Lo ordena y te marca los datos que no pudo leer o escuchar con seguridad.',
   },
   {
-    titulo: 'Confirmá y listo',
-    texto: 'Nada se guarda sin tu OK. Queda en tu sistema, sin papel y sin planillas.',
+    color: 'coral',
+    titulo: 'Confirmás y listo',
+    texto: 'No se guarda nada sin tu OK. Queda todo en un solo lugar, sin papel.',
   },
 ] as const;
 
@@ -186,37 +189,22 @@ export function EntradaDatos() {
   };
 
   return (
-    <section className="seccion" id="entrada">
+    <section className="seccion seccion--celeste" id="entrada">
       <div className="contenedor entrada">
-        <div className="entrada__texto revelar">
-          <p className="sobretitulo">Cargá como te salga</p>
+        <header className="seccion__cabecera revelar">
+          <p className="sobretitulo">Contale como te salga</p>
           <h2>Foto, voz o texto. Sami hace el resto.</h2>
-          <p className="entrada__bajada">
+          <p>
             Si hoy anotás todo en un cuaderno, no hace falta empezar de cero. Sacale una foto,
-            dictale una nota de voz o escribile, y Sami lo pasa a tablas listas para usar.
+            mandale un audio o escribile, y Sami lo deja ordenado.
           </p>
-          <ol className="entrada__pasos">
-            {PASOS.map(({ titulo, texto }) => (
-              <li key={titulo}>
-                <h3>{titulo}</h3>
-                <p>{texto}</p>
-              </li>
-            ))}
-          </ol>
-          <p className="entrada__whatsapp">
-            <WhatsappLogoIcon aria-hidden size={22} weight="fill" />
-            También podés mandarle todo a Sami por WhatsApp.
-          </p>
-          <Link to="/registro" className="boton boton--primario">
-            Probalo con tu negocio
-          </Link>
-        </div>
+        </header>
 
         <div className="entrada__demo revelar" style={variables({ '--d': '.1s' })}>
           <div
             className="entrada__pestanas"
             role="tablist"
-            aria-label="Formas de cargar tus datos"
+            aria-label="Formas de contarle las cosas a Sami"
             onKeyDown={alTeclear}
           >
             {MODOS.map(({ id, nombre, Icono }) => (
@@ -247,6 +235,29 @@ export function EntradaDatos() {
           >
             <Panel key={modo} />
           </div>
+        </div>
+
+        <ol className="entrada__pasos">
+          {PASOS.map(({ color, titulo, texto }, i) => (
+            <li
+              key={titulo}
+              className={`entrada__paso entrada__paso--${color} revelar`}
+              style={variables({ '--d': `${i / 10}s` })}
+            >
+              <h3>{titulo}</h3>
+              <p>{texto}</p>
+            </li>
+          ))}
+        </ol>
+
+        <div className="entrada__cierre revelar">
+          <p className="entrada__whatsapp">
+            <WhatsappLogoIcon aria-hidden size={22} weight="fill" />
+            También podés mandarle todo a Sami por WhatsApp.
+          </p>
+          <Link to="/registro" className="boton boton--primario">
+            Probalo con tu negocio
+          </Link>
         </div>
       </div>
     </section>

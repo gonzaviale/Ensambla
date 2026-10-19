@@ -1,14 +1,27 @@
 import { Link, useRouterState } from '@tanstack/react-router';
 import { Logo, buttonClasses } from '@/components/ui';
+import { subirArriba } from '@/hooks/landing/subirArriba';
 import { LandingLinks, LandingMenu } from './LandingMenu';
 
 export function PublicHeader() {
   const enLanding = useRouterState({ select: (s) => s.location.pathname === '/' });
 
   return (
-    <header className="brand-header sticky top-0 z-(--z-nav) border-b border-line bg-canvas">
-      <div className="mx-auto flex min-h-18 w-full max-w-330 items-center gap-3 px-4 md:px-8">
-        <Link to="/" aria-label="Ensambla, ir al inicio" className="text-fg no-underline">
+    <header className="sticky top-0 z-(--z-nav) border-b border-line bg-surface">
+      <div className="mx-auto flex h-16 w-full max-w-300 items-center gap-3 px-4 md:px-8">
+        <Link
+          to="/"
+          aria-label="Ensambla, ir al inicio"
+          className="text-fg no-underline"
+          // Estando ya en la landing el router no navega: subimos al principio a mano.
+          onClick={(e) => {
+            if (!enLanding || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+              return;
+            }
+            e.preventDefault();
+            subirArriba();
+          }}
+        >
           <Logo />
         </Link>
         {enLanding && <LandingLinks />}
@@ -28,7 +41,10 @@ export function PublicHeader() {
           </Link>
           <Link
             to="/registro"
-            className={buttonClasses({ variant: 'solid', className: 'max-sm:hidden' })}
+            className={buttonClasses({
+              variant: 'solid',
+              className: 'font-extrabold text-white hover:text-white max-sm:hidden',
+            })}
           >
             Crear cuenta
           </Link>
