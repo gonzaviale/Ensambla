@@ -7,6 +7,7 @@ import {
   ESPERA,
   clickButton,
   setupServerError,
+  setupServerResponse,
   setupUsuarioConSesion,
   verifyHeadingPresentAsync,
   verifyPathAsync,
@@ -63,10 +64,29 @@ describe('«Armalo con Sami» (crear un proyecto real)', () => {
     expect(screen.queryByRole('group', { name: 'Respuestas rápidas' })).toBeNull();
   });
 
-  it('si la persona elige «otra cosa», Sami pide más detalle y deja volver a escribir', async () => {
+  it('si la persona elige «otra cosa», Sami lo piensa con la IA y lo dice en la propuesta', async () => {
     const { user } = await abrirSami();
     await contar(user, 'quiero ordenar mi negocio');
     await user.click(await screen.findByRole('button', { name: 'Otra cosa' }, ESPERA));
+
+    expect(await nombreDelProyecto()).toBeVisible();
+    expect(
+      within(screen.getByRole('region', { name: 'Tu proyecto' })).getByText(
+        'Armada con ayuda de IA',
+      ),
+    ).toBeVisible();
+  });
+
+  it('si el servidor no tiene propuesta, Sami pide más detalle y deja volver a escribir', async () => {
+    const { user } = await abrirSami();
+    setupServerResponse('post', '/sami/conversacion', 200, {
+      tipo: 'RESPALDO_IA',
+      pregunta: null,
+      propuesta: null,
+      preguntasHechas: 3,
+    });
+
+    await contar(user, 'quiero ordenar mi negocio');
 
     expect(
       await screen.findByText(/todavía no encuentro un punto de partida/, {}, ESPERA),

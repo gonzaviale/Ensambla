@@ -15,6 +15,9 @@ posible: cada etapa sólo corre si la anterior no alcanzó.
 **Confianza** = `fuerza × separación`. La fuerza crece con los puntos de la mejor plantilla hasta 5; la separación
 baja si la segunda anda cerca (un empate da 0 y obliga a preguntar). El umbral es `0.7`.
 
+Si la persona responde **«Otra cosa»** en la pregunta general, Sami no sigue preguntando por plantillas que ya
+descartó: pasa directo a la IA.
+
 **La IA no puede inventar.** Se le manda un vocabulario cerrado (las plantillas reales con sus columnas y los tipos
 permitidos) y su respuesta se valida: la plantilla tiene que existir, las columnas inválidas, repetidas o que la
 plantilla ya trae se descartan, y como mucho se conservan 6. Una respuesta ilegible o con una plantilla inexistente

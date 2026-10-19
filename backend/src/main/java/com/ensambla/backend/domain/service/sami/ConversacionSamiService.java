@@ -47,7 +47,8 @@ public class ConversacionSamiService {
         if (interpretacion.alcanza(umbral)) {
             return new PasoConversacionSami(TipoPaso.PROPUESTA, null, interpretacion, respuestas.size());
         }
-        Optional<PreguntaDiccionario> pregunta = respuestas.size() < maxPreguntas
+        boolean puedePreguntar = respuestas.size() < maxPreguntas && !respondioNingunaDeEstas(respuestas);
+        Optional<PreguntaDiccionario> pregunta = puedePreguntar
                 ? elegirPregunta(interpretacion, respuestas, disponibles)
                 : Optional.empty();
         return pregunta
@@ -57,7 +58,18 @@ public class ConversacionSamiService {
                         TipoPaso.RESPALDO_IA, null, interpretacion, respuestas.size()));
     }
 
-    /** La no hecha que separa a más candidatas; a igualdad, la más específica (menos opciones) y luego la primera. */
+    /**
+     * Si la persona dijo «otra cosa» ninguna plantilla de la pregunta le sirve: seguir preguntando por ellas no
+     * ayuda y corresponde pensarlo con la IA.
+     */
+    private boolean respondioNingunaDeEstas(List<RespuestaSami> respuestas) {
+        return respuestas.stream().anyMatch(respuesta -> preguntas.stream()
+                .filter(pregunta -> pregunta.id().equals(respuesta.preguntaId()))
+                .flatMap(pregunta -> pregunta.opciones().stream())
+                .anyMatch(opcion -> opcion.id().equals(respuesta.opcionId()) && opcion.plantilla() == null));
+    }
+
+    /** La no hecha que separa a más candidatas; a igualdad, la más específica (menos opciones) y luego la 1.ª. */
     private Optional<PreguntaDiccionario> elegirPregunta(InterpretacionSami interpretacion,
                                                          List<RespuestaSami> respuestas,
                                                          List<PlantillaProyecto> disponibles) {

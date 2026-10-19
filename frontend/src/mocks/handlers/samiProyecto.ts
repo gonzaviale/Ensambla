@@ -161,19 +161,24 @@ const propuestaDe = (nombre: string, texto: string, confianza: number) => {
   };
 };
 
+// Cuando el algoritmo no alcanza (o la persona dice «otra cosa») el backend consulta a la IA. El cliente simulado
+// del backend elige la primera plantilla por nombre; acá se imita eso.
+const propuestaDeIa = (preguntasHechas: number) => {
+  const primera = [...PLANTILLAS].sort((a, b) => a.nombre.localeCompare(b.nombre))[0] as Plantilla;
+  return {
+    tipo: 'PROPUESTA',
+    pregunta: null,
+    propuesta: { ...propuestaDe(primera.nombre, '', 0.5), origen: 'IA' },
+    preguntasHechas,
+  };
+};
+
 function conversar({ texto, respuestas }: Pedido) {
   const normalizado = normalizar(texto);
   const principal = respuestas.find((respuesta) => respuesta.preguntaId === 'principal');
   const elegida = OPCIONES_PRINCIPAL.find((opcion) => opcion.id === principal?.opcionId);
   if (principal) {
-    if (!elegida?.plantilla) {
-      return {
-        tipo: 'RESPALDO_IA',
-        pregunta: null,
-        propuesta: null,
-        preguntasHechas: respuestas.length,
-      };
-    }
+    if (!elegida?.plantilla) return propuestaDeIa(respuestas.length);
     return {
       tipo: 'PROPUESTA',
       pregunta: null,
@@ -209,12 +214,7 @@ function conversar({ texto, respuestas }: Pedido) {
       preguntasHechas: respuestas.length,
     };
   }
-  return {
-    tipo: 'RESPALDO_IA',
-    pregunta: null,
-    propuesta: null,
-    preguntasHechas: respuestas.length,
-  };
+  return propuestaDeIa(respuestas.length);
 }
 
 type PedidoDeProyecto = {

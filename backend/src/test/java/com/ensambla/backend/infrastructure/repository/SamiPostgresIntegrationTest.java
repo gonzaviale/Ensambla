@@ -90,13 +90,10 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     @Test
-    @DisplayName("Si ya no quedan preguntas, consulta a la IA, que reserva y registra el consumo del negocio")
+    @DisplayName("Con «otra cosa» consulta a la IA, que reserva y registra el consumo del negocio")
     void conversarShouldFallBackToAiAndRecordConsumption() {
         ConversarConSamiResponse response = conversarConSamiUseCase.execute(new ConversarConSamiRequest(
-                usuarioId, "hola", List.of(
-                new RespuestaSamiItem("principal", "otra"),
-                new RespuestaSamiItem("principal", "otra"),
-                new RespuestaSamiItem("principal", "otra"))));
+                usuarioId, "quiero ordenar mi negocio", List.of(new RespuestaSamiItem("principal", "otra"))));
 
         assertThat(response.propuesta().origen()).isEqualTo("IA");
         assertThat(jdbcTemplate.queryForObject(

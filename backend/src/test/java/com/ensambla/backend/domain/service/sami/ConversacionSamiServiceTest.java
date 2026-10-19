@@ -89,12 +89,22 @@ class ConversacionSamiServiceTest {
     }
 
     @Test
-    @DisplayName("Si responde «otra cosa» sigue preguntando con otra pregunta distinta")
-    void siguientePasoShouldAskAnotherQuestionAfterNoneOfThese() {
-        PasoConversacionSami paso = paso("hola", new RespuestaSami("principal", "otra"));
+    @DisplayName("Si responde «otra cosa» no sigue preguntando por plantillas y pasa directo a la IA")
+    void siguientePasoShouldFallBackToAiAfterNoneOfThese() {
+        PasoConversacionSami paso = paso("quiero ordenar mi negocio", new RespuestaSami("principal", "otra"));
+
+        assertThat(paso.tipo()).isEqualTo(TipoPaso.RESPALDO_IA);
+        assertThat(paso.pregunta()).isNull();
+        assertThat(paso.preguntasHechas()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("Una respuesta que sí elige una plantilla no corta las preguntas")
+    void siguientePasoShouldKeepAskingAfterAnAnswerThatPicksATemplate() {
+        PasoConversacionSami paso = paso("quiero un stock y llevar los pedidos",
+                new RespuestaSami("venta-o-stock", "stock"));
 
         assertThat(paso.tipo()).isEqualTo(TipoPaso.PREGUNTA);
-        assertThat(paso.pregunta().id()).isEqualTo("venta-o-stock");
         assertThat(paso.preguntasHechas()).isEqualTo(1);
     }
 
@@ -102,7 +112,8 @@ class ConversacionSamiServiceTest {
     @DisplayName("Al llegar al máximo de preguntas deriva al respaldo con IA")
     void siguientePasoShouldFallBackToAiWhenQuestionsAreExhausted() {
         PasoConversacionSami paso = service.siguientePaso(
-                "hola", List.of(new RespuestaSami("principal", "otra")), SamiPruebas.plantillas(), UMBRAL, 1);
+                "quiero un stock y llevar los pedidos", List.of(new RespuestaSami("venta-o-stock", "stock")),
+                SamiPruebas.plantillas(), UMBRAL, 1);
 
         assertThat(paso.tipo()).isEqualTo(TipoPaso.RESPALDO_IA);
         assertThat(paso.pregunta()).isNull();
