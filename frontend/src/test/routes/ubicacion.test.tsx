@@ -7,6 +7,7 @@ import { DIRECCIONES_DE_PRUEBA } from '@/mocks/db/ubicacion';
 import { handlersPara } from '@/mocks/handlers';
 import { server } from '@/mocks/node';
 import { renderApp } from '@/test/renderApp';
+import { estado } from '@/mocks/db/estado';
 import {
   ESPERA,
   setupServerError,
@@ -19,6 +20,7 @@ async function abrirUbicacion() {
   const router = renderApp('/ubicacion');
   await screen.findByRole('heading', { level: 1, name: 'Ubicación y rubro' }, ESPERA);
   await screen.findByRole('option', { name: 'Almacén' }, ESPERA);
+  await waitFor(() => expect(screen.getByLabelText('Nombre del comercio')).toBeEnabled(), ESPERA);
   return { user: userEvent.setup(), router };
 }
 
@@ -36,7 +38,7 @@ async function elegirDireccion(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('radio', { name: DIRECCIONES_DE_PRUEBA[0].direccion }));
 }
 
-describe('Ubicación y rubro, sin persistencia', () => {
+describe('Ubicación y rubro del negocio', () => {
   it('conserva etiquetas y nombres accesibles con dirección, mapa y revisión', async () => {
     const { user } = await abrirUbicacion();
     await elegirDireccion(user);
@@ -94,7 +96,7 @@ describe('Ubicación y rubro, sin persistencia', () => {
     expect(within(resumen).getByText('Almacén')).toBeVisible();
     expect(resumen).toHaveTextContent('-34.6701, -58.5625');
     expect(resumen).toHaveTextContent('todavía no se guardaron');
-    expect(screen.queryByRole('button', { name: /^Guardar/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeEnabled();
   });
 
   it('corrige coordenadas con teclado y descarta la revisión cuando cambia un dato', async () => {
@@ -218,5 +220,89 @@ describe('Ubicación y rubro, sin persistencia', () => {
     expect(
       handlersPara('completo').filter((handler) => sonDeUbicacion(handler.info.path)),
     ).toHaveLength(2);
+    expect(
+      handlersPara('parcial').some((handler) => String(handler.info.path).endsWith('/business')),
+    ).toBe(false);
+  });
+
+  it('recupera la configuración guardada sin consultar al geocodificador', async () => {
+    const usuario = setupUsuarioConSesion();
+    estado.negocios.set(usuario.email, {
+      nombre: 'Almacén guardado',
+      rubro: 'KIOSCO',
+      comparteDatosZona: false,
+      ubicacion: {
+        direccion: 'Dirección guardada',
+        localidad: 'San Justo',
+        latitud: -34.68,
+        longitud: -58.56,
+      },
+    });
+    renderApp('/ubicacion');
+    await waitFor(
+      () => expect(screen.getByLabelText('Nombre del comercio')).toHaveValue('Almacén guardado'),
+      ESPERA,
+    );
+    expect(screen.getByLabelText('Dirección del comercio')).toHaveValue('Dirección guardada');
+    expect(screen.getByLabelText('Localidad del comercio')).toHaveValue('San Justo');
+    expect(screen.getByLabelText('Rubro del comercio')).toHaveValue('KIOSCO');
+    expect(screen.getByLabelText('Latitud')).toHaveValue('-34.68');
+    expect(screen.getByRole('checkbox', { name: /Compartir datos agregados/ })).not.toBeChecked();
+    expect(screen.queryByRole('radio')).toBeNull();
+  });
+
+  it('guarda los datos y los recupera al salir y volver a entrar', async () => {
+    const { user, router } = await abrirUbicacion();
+    await elegirDireccion(user);
+    await user.type(screen.getByLabelText('Localidad del comercio'), 'San Justo');
+    await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'ALMACEN');
+    await user.click(screen.getByRole('checkbox', { name: /Compartir datos agregados/ }));
+    await user.click(screen.getByRole('button', { name: 'Guardar configuración' }));
+    expect(await screen.findByText(/se guardó correctamente/, {}, ESPERA)).toBeVisible();
+    await user.click(screen.getByRole('link', { name: /Volver a Mi zona/ }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/zona'), ESPERA);
+    await user.click(await screen.findByRole('link', { name: /Probar ubicación y rubro/ }, ESPERA));
+    await waitFor(() => expect(screen.getByLabelText('Latitud')).toHaveValue('-34.6701'), ESPERA);
+    expect(screen.getByLabelText('Localidad del comercio')).toHaveValue('San Justo');
+    expect(screen.getByLabelText('Rubro del comercio')).toHaveValue('ALMACEN');
+    expect(screen.getByRole('checkbox', { name: /Compartir datos agregados/ })).not.toBeChecked();
+  });
+
+  it('conserva el borrador si falla el guardado y permite reintentar', async () => {
+    setupServerError('patch', '/business', 503, 'No pudimos guardar tu comercio.');
+    const { user } = await abrirUbicacion();
+    await elegirDireccion(user);
+    await user.type(screen.getByLabelText('Localidad del comercio'), 'San Justo');
+    await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'ALMACEN');
+    await user.click(screen.getByRole('button', { name: 'Guardar configuración' }));
+    expect(await screen.findByText('No pudimos guardar tu comercio.', {}, ESPERA)).toBeVisible();
+    expect(screen.queryByText(/se guardó correctamente/)).toBeNull();
+    expect(screen.getByLabelText('Latitud')).toHaveValue('-34.6701');
+    server.resetHandlers();
+    await user.click(screen.getByRole('button', { name: 'Guardar configuración' }));
+    expect(await screen.findByText(/se guardó correctamente/, {}, ESPERA)).toBeVisible();
+  });
+
+  it('exige nombre y localidad antes de enviar el guardado', async () => {
+    const { user } = await abrirUbicacion();
+    await elegirDireccion(user);
+    await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'ALMACEN');
+    await user.click(screen.getByRole('button', { name: 'Guardar configuración' }));
+    expect(screen.getByText(/Completá el nombre y la localidad/)).toBeVisible();
+    expect(estado.negocios.size).toBe(0);
+  });
+
+  it('no permite guardar una configuración que no pudo cargar y ofrece reintentar', async () => {
+    setupServerError('get', '/business', 503, 'Sin servicio');
+    setupUsuarioConSesion();
+    renderApp('/ubicacion');
+    expect(
+      await screen.findByText('No pudimos cargar la configuración de tu comercio.', {}, ESPERA),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeDisabled();
+    server.resetHandlers();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Reintentar configuración' }));
+    await waitFor(() => expect(screen.getByLabelText('Nombre del comercio')).toBeEnabled(), ESPERA);
+    expect(screen.getByLabelText('Nombre del comercio')).not.toHaveValue('');
   });
 });

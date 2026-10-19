@@ -5,6 +5,7 @@ import { AjusteUbicacion } from '@/components/sistema/ubicacion/AjusteUbicacion'
 import { BuscadorDireccion } from '@/components/sistema/ubicacion/BuscadorDireccion';
 import { RevisionUbicacion } from '@/components/sistema/ubicacion/RevisionUbicacion';
 import { SelectorRubro } from '@/components/sistema/ubicacion/SelectorRubro';
+import { DatosDelComercio } from '@/components/sistema/ubicacion/DatosDelComercio';
 import { useConfiguracionUbicacion } from '@/hooks/ubicacion/useConfiguracionUbicacion';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 
@@ -26,56 +27,100 @@ export function UbicacionPage() {
           </p>
         </div>
         <aside className="ubicacion-aviso">
-          <strong>Vista previa, sin guardar</strong>
+          <strong>Configuración privada de tu comercio</strong>
           <p>
-            Podés probar el flujo completo. Los datos se borran al salir de esta pantalla y no
-            modifican tu negocio ni los datos de Mi zona.
+            Los cambios se aplican al confirmar Guardar configuración. Al volver a entrar vas a ver
+            los datos que guardaste.
           </p>
           {estado.busquedaSimulada && (
-            <p>En este modo se muestran direcciones de ejemplo de San Justo.</p>
+            <p>
+              Modo de prueba: direcciones de ejemplo de San Justo y guardado simulado en este
+              navegador.
+            </p>
           )}
         </aside>
-        <div className="ubicacion-grid">
-          <BuscadorDireccion
-            consulta={estado.consulta}
-            onConsulta={estado.cambiarConsulta}
-            onBuscar={estado.buscar}
-            buscando={estado.buscando}
-            resultados={estado.resultados}
-            elegida={estado.direccion}
-            onElegir={estado.elegirDireccion}
-            error={estado.errorBusqueda}
+        {estado.cargandoConfiguracion && (
+          <p role="status">Cargando la configuración del comercio…</p>
+        )}
+        {estado.errorConfiguracion && (
+          <div role="alert">
+            <p>{estado.errorConfiguracion}</p>
+            <button className="btn secondary" onClick={estado.reintentarConfiguracion}>
+              Reintentar configuración
+            </button>
+          </div>
+        )}
+        <fieldset
+          className="ubicacion-formulario"
+          disabled={estado.cargandoConfiguracion || !!estado.errorConfiguracion || estado.guardando}
+        >
+          <legend className="sr-only">Configuración del comercio</legend>
+          <DatosDelComercio
+            nombre={estado.nombre}
+            localidad={estado.localidad}
+            comparteDatosZona={estado.comparteDatosZona}
+            onNombre={estado.cambiarNombre}
+            onLocalidad={estado.cambiarLocalidad}
+            onCompartir={estado.cambiarCompartir}
           />
-          <AjusteUbicacion
-            elegida={!!estado.direccion}
-            punto={estado.punto}
-            latitud={estado.latitud}
-            longitud={estado.longitud}
-            onCoordenada={estado.cambiarCoordenada}
-            onMover={estado.moverPunto}
-          />
-          <SelectorRubro
-            rubros={estado.rubros}
-            valor={estado.rubro}
-            onCambiar={estado.cambiarRubro}
-            cargando={estado.cargandoRubros}
-            error={estado.errorRubros}
-            onReintentar={estado.reintentarRubros}
-          />
-        </div>
-        <div className="ubicacion-acciones">
-          <button
-            type="button"
-            className="btn primary"
-            disabled={estado.buscando || estado.cargandoRubros || !!estado.errorRubros}
-            onClick={estado.revisar}
-          >
-            Revisar configuración
-          </button>
-          <p className="form-error" role="alert">
-            {estado.errorRevision}
+          <div className="ubicacion-grid">
+            <BuscadorDireccion
+              consulta={estado.consulta}
+              onConsulta={estado.cambiarConsulta}
+              onBuscar={estado.buscar}
+              buscando={estado.buscando}
+              resultados={estado.resultados}
+              elegida={estado.direccion}
+              onElegir={estado.elegirDireccion}
+              error={estado.errorBusqueda}
+            />
+            <AjusteUbicacion
+              elegida={!!estado.direccion}
+              punto={estado.punto}
+              latitud={estado.latitud}
+              longitud={estado.longitud}
+              onCoordenada={estado.cambiarCoordenada}
+              onMover={estado.moverPunto}
+            />
+            <SelectorRubro
+              rubros={estado.rubros}
+              valor={estado.rubro}
+              onCambiar={estado.cambiarRubro}
+              cargando={estado.cargandoRubros}
+              error={estado.errorRubros}
+              onReintentar={estado.reintentarRubros}
+            />
+          </div>
+          <div className="ubicacion-acciones">
+            <button
+              type="button"
+              className="btn primary"
+              disabled={estado.buscando || estado.cargandoRubros || !!estado.errorRubros}
+              onClick={estado.revisar}
+            >
+              Revisar configuración
+            </button>
+            <button
+              type="button"
+              className="btn primary"
+              disabled={estado.buscando || estado.cargandoRubros || !!estado.errorRubros}
+              onClick={() => void estado.guardar()}
+            >
+              {estado.guardando ? 'Guardando…' : 'Guardar configuración'}
+            </button>
+            <p className="form-error" role="alert">
+              {estado.errorRevision}
+            </p>
+            <p className="form-error" role="alert">
+              {estado.errorGuardado}
+            </p>
+          </div>
+        </fieldset>
+        {estado.guardado && (
+          <p className="ubicacion-revision" role="status">
+            La configuración de tu comercio se guardó correctamente.
           </p>
-        </div>
+        )}
         {estado.revision && <RevisionUbicacion configuracion={estado.revision} />}
         <p className="ubicacion-ayuda">
           El mapa muestra sólo tu punto. Los datos de otros comercios se presentan agregados y

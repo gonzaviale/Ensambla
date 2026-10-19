@@ -21,8 +21,8 @@ export function RevisionUbicacion({ configuracion }: { configuracion: Configurac
         </div>
       </dl>
       <p>
-        La búsqueda y la validación están listas. Estos datos siguen en esta pantalla: todavía no se
-        guardaron ni cambiaron tu zona.
+        Estos datos todavía no se guardaron. Confirmá con Guardar configuración para actualizar tu
+        comercio.
       </p>
     </section>
   );

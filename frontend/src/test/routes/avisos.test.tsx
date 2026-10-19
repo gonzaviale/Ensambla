@@ -18,8 +18,20 @@ import {
   verifyToastAsync,
 } from '@/test/testHelpers';
 
-const abrirConDemo = async (ruta: 'usar' | 'construir' = 'usar') => {
+const abrirConDemo = async (ruta: 'usar' | 'construir' = 'usar', configurado = false) => {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+  if (configurado)
+    estado.negocios.set(usuario.email, {
+      nombre: 'Mi almacén',
+      rubro: 'ALMACEN',
+      comparteDatosZona: true,
+      ubicacion: {
+        direccion: 'Calle 123',
+        localidad: 'San Justo',
+        latitud: -34.67,
+        longitud: -58.56,
+      },
+    });
   const sistema = crearAlmacenDeEjemplo(hoy());
   estado.sistemas.set(usuario.email, [sistema]);
   renderApp(`/sistemas/${sistema.id}?modo=${ruta}`);
@@ -45,6 +57,19 @@ const tarjeta = (titulo: RegExp | string) => {
 };
 
 describe('la campana y el panel de avisos', () => {
+  it('invita a completar el comercio y lleva a la pantalla de configuración', async () => {
+    const { user } = await abrirConDemo();
+    await abrirPanel(user);
+    await user.click(await screen.findByRole('link', { name: 'Configurar mi comercio' }, ESPERA));
+    expect(await screen.findByRole('heading', { name: 'Ubicación y rubro' }, ESPERA)).toBeVisible();
+  });
+
+  it('no invita a completar una ubicación que ya está guardada', async () => {
+    const { user } = await abrirConDemo('usar', true);
+    const panel = await abrirPanel(user);
+    expect(within(panel).queryByRole('link', { name: 'Configurar mi comercio' })).toBeNull();
+  });
+
   it('la campana cuenta los avisos y se pone urgente si hay algo para hoy', async () => {
     await abrirConDemo();
 

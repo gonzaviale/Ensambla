@@ -164,6 +164,19 @@
   justify-items: start;
   gap: 8px;
 }
+.ubicacion-formulario {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+.ubicacion-formulario .input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
 .ubicacion-revision {
   display: grid;
   gap: 14px;
