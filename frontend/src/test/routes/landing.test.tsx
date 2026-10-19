@@ -27,7 +27,7 @@ describe('landing', () => {
       await abrirLanding();
 
       const hero = document.getElementById('inicio') as HTMLElement;
-      expect(within(hero).getByText('Tu sistema, un bloque a la vez.')).toBeInTheDocument();
+      expect(within(hero).getByRole('heading', { level: 1, name: /cuaderno/ })).toBeInTheDocument();
       const problema = document.getElementById('el-problema') as HTMLElement;
       expect(
         within(problema).getByRole('heading', { level: 2, name: /Tu negocio anda/ }),
@@ -198,7 +198,8 @@ describe('landing', () => {
       vi.stubGlobal('scrollTo', irA);
       const user = await abrirLanding();
 
-      await user.click(screen.getAllByRole('link', { name: 'Ensambla, ir al inicio' })[0]);
+      const [logo] = screen.getAllByRole('link', { name: 'Ensambla, ir al inicio' });
+      await user.click(logo as HTMLElement);
 
       expect(irA).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
       vi.unstubAllGlobals();
