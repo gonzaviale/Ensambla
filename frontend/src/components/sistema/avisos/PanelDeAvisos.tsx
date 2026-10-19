@@ -135,13 +135,13 @@ export function PanelDeAvisos() {
   return (
     <div id="alertas-capa" className={`alertas-capa ${visible ? 'visible' : ''}`.trim()}>
       <div className="alertas-fondo" onClick={cerrarPanel} />
-      <aside
+      <div
         className="alertas-panel"
         role="dialog"
         aria-modal="true"
         aria-labelledby="alertas-titulo"
       >
-        <header className="alertas-head">
+        <div className="alertas-head">
           <Sami pose="think" />
           <div>
             <span className="eyebrow">Sami está atento</span>
@@ -158,7 +158,7 @@ export function PanelDeAvisos() {
             </p>
           </div>
           <IconBtn name="close" label="Cerrar avisos" onClick={cerrarPanel} />
-        </header>
+        </div>
         <form className="alertas-pregunta" onSubmit={enviar}>
           <label className="sr-only" htmlFor="alertas-q">
             Preguntale a Sami
@@ -314,7 +314,7 @@ export function PanelDeAvisos() {
             apliques.
           </p>
         </details>
-      </aside>
+      </div>
     </div>
   );
 }

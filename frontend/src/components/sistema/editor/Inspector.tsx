@@ -79,7 +79,7 @@ export function Inspector({ bloque, sistema }: { bloque: Bloque | undefined; sis
 
   if (!bloque) {
     return (
-      <aside className="inspector">
+      <aside className="inspector" aria-label="Ajustes del bloque">
         <div className="inspector-heading">
           <h2>A tu manera</h2>
           <p>El detalle de cada pieza.</p>

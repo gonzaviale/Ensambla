@@ -43,7 +43,10 @@ export function BibliotecaDeBloques({
   };
 
   return (
-    <aside className={`block-library ${abiertaEnCelular ? 'mobile-open' : ''}`.trim()}>
+    <aside
+      aria-label="Piezas disponibles"
+      className={`block-library ${abiertaEnCelular ? 'mobile-open' : ''}`.trim()}
+    >
       <div className="row between library-head">
         <h2>Tus piezas</h2>
         <IconBtn
