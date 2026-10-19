@@ -85,6 +85,9 @@ guardado. Un lote de otro negocio responde 404.
 
 ## Endpoints
 
+La búsqueda privada de direcciones y el catálogo de rubros se documentan en
+[Ubicación y rubro · ENS-209](../docs/ubicacion-negocio.md), incluidos los límites de Nominatim y el alcance sin guardado.
+
 | Método y ruta | Acceso | Descripción |
 |---|---|---|
 | `GET /api/auth/csrf` | público | Token CSRF y nombre del header |

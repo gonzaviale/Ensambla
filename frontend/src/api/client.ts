@@ -139,8 +139,8 @@ export const http = {
   getArchivo: (path: string, signal?: AbortSignal) => requestArchivo(path, signal),
   get: <S extends z.ZodTypeAny>(path: string, schema: S, signal?: AbortSignal) =>
     request(path, schema, { signal }),
-  post: <S extends z.ZodTypeAny>(path: string, body: unknown, schema: S) =>
-    request(path, schema, { method: 'POST', body }),
+  post: <S extends z.ZodTypeAny>(path: string, body: unknown, schema: S, signal?: AbortSignal) =>
+    request(path, schema, { method: 'POST', body, signal }),
   postForm: <S extends z.ZodTypeAny>(path: string, body: FormData, schema: S) =>
     request(path, schema, { method: 'POST', body }),
   put: <S extends z.ZodTypeAny>(path: string, body: unknown, schema: S) =>

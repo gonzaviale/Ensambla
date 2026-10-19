@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Link } from '@tanstack/react-router';
 import { Btn } from '../Btn';
 import { Modal } from '../Modal';
 import { useCerrarSesion } from '@/hooks/auth/mutations';
@@ -50,6 +51,9 @@ export function ModalPerfil() {
           </button>
         </div>
       </form>
+      <Link className="text-link" to="/ubicacion" onClick={cerrarModal}>
+        Ubicación y rubro de mi comercio
+      </Link>
     </Modal>
   );
 }
