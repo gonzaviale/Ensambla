@@ -2,6 +2,7 @@ import { responder, type AccionDeAviso, type Aviso } from '@/lib/sistema/alertas
 import { findBlock, id as nuevoId } from '@/lib/sistema/core';
 import { crearAlmacenDeEjemplo } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
+import { useAplicarAviso, useDescartarAviso } from '@/hooks/avisos/mutations';
 import { useGuardarPreferencias } from '@/hooks/preferencias/mutations';
 import { usePreferencias } from '@/hooks/preferencias/queries';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
@@ -14,6 +15,8 @@ const MAXIMO_DE_DESCARTADOS = 200;
 export function useAccionesDeAvisos() {
   const preferencias = usePreferencias();
   const guardarPreferencias = useGuardarPreferencias();
+  const aplicarEnServidor = useAplicarAviso();
+  const descartarEnServidor = useDescartarAviso();
   const zona = useZona();
   const navegacion = useNavegacion();
 
@@ -79,16 +82,28 @@ export function useAccionesDeAvisos() {
         store.ocultarAvisoNuevo();
         void navegacion.irAZona();
         break;
+      case 'servidor':
+        aplicarEnServidor.mutate(accion.avisoId, {
+          onSuccess: () => store.avisar(accion.confirmacion),
+          onError: () => store.avisar('No pudimos aplicar el cambio. Probá de nuevo.'),
+        });
+        break;
     }
   };
 
-  const descartar = (aviso: Aviso) =>
+  const descartar = (aviso: Aviso) => {
+    // Los avisos del servidor se descartan allá: el motor no los vuelve a crear mientras no cambien sus datos.
+    if (aviso.servidorId) {
+      descartarEnServidor.mutate(aviso.servidorId);
+      return;
+    }
     guardarPreferencias.mutate({
       ...preferencias,
       descartadas: [...new Set([...preferencias.descartadas, aviso.id])].slice(
         -MAXIMO_DE_DESCARTADOS,
       ),
     });
+  };
 
   const restaurar = () => guardarPreferencias.mutate({ ...preferencias, descartadas: [] });
 

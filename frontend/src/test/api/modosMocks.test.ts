@@ -33,6 +33,17 @@ describe('API simulada según VITE_API_MOCKS', () => {
     expect(rutas('parcial')).not.toContain('POST /importaciones/lectura');
   });
 
+  it('los avisos del motor de monitoreo sólo se simulan en el modo completo: en parcial los da el backend', () => {
+    expect(rutas('completo')).toEqual(
+      expect.arrayContaining([
+        'GET /avisos',
+        'POST /avisos/:id/aplicar',
+        'POST /avisos/:id/descartar',
+      ]),
+    );
+    expect(rutas('parcial').filter((ruta) => ruta.includes('/avisos'))).toEqual([]);
+  });
+
   it('en modo ninguno no simula nada', () => {
     expect(rutas('ninguno')).toEqual([]);
   });
