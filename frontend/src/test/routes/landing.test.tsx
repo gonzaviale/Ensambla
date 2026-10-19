@@ -1,208 +1,146 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { axe } from 'vitest-axe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderApp } from '@/test/renderApp';
-import { verifyHeadingPresentAsync } from '@/test/testHelpers';
+import { ESPERA, verifyHeadingPresentAsync } from '@/test/testHelpers';
 
 async function abrirLanding() {
-  renderApp('/');
-  await verifyHeadingPresentAsync('¿Todavía anotás todo en el cuaderno?');
-  return userEvent.setup();
+  const router = renderApp('/');
+  await verifyHeadingPresentAsync('Tu cuaderno de siempre. Tus cuentas, más claras.');
+  return { router, user: userEvent.setup() };
 }
 
-describe('landing', () => {
-  it('tiene un único h1 y lleva a registro y a login', async () => {
-    await abrirLanding();
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+describe('landing del cuaderno digital', () => {
+  it('presenta un solo h1 y sus llamadas principales abren el registro real', async () => {
+    const { router, user } = await abrirLanding();
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-    expect(screen.getByRole('link', { name: /Crear mi sistema gratis/ })).toHaveAttribute(
+    const enlaces = screen.getAllByRole('link', { name: /Empezar mi cuaderno/ });
+    for (const enlace of enlaces) expect(enlace).toHaveAttribute('href', '/registro');
+
+    await user.click(enlaces[0] as HTMLElement);
+    await screen.findByRole('heading', { name: 'Creá tu cuenta' }, ESPERA);
+    expect(router.state.location.pathname).toBe('/registro');
+    expect(screen.getByText('Empezá a ordenar las anotaciones de tu negocio.')).toBeVisible();
+  });
+
+  it('lleva al ingreso existente desde el cierre', async () => {
+    const { router, user } = await abrirLanding();
+
+    await user.click(screen.getByRole('link', { name: 'Ya tengo cuenta' }));
+    await screen.findByRole('heading', { name: 'Ingresá a tu cuenta' }, ESPERA);
+    expect(router.state.location.pathname).toBe('/login');
+  });
+
+  it('el ejemplo cambia de paso, comunica la revisión y permite volver al inicio', async () => {
+    const { user } = await abrirLanding();
+    const foto = screen.getByRole('button', { name: 'Sacás una foto' });
+    const revisar = screen.getByRole('button', { name: 'Revisás los datos' });
+    const guardar = screen.getByRole('button', { name: 'Guardás en tu cuaderno' });
+
+    expect(foto).toHaveAttribute('aria-pressed', 'true');
+    await user.click(revisar);
+    expect(revisar).toHaveAttribute('aria-pressed', 'true');
+    expect(foto).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('status')).toHaveTextContent('Vos tenés la última palabra.');
+    expect(screen.getByRole('table')).toHaveTextContent('Yerba 500 g');
+
+    await user.click(guardar);
+    expect(screen.getByRole('status')).toHaveTextContent('Listo para volver a consultarlo.');
+    expect(screen.getByText('Ejemplo: anotaciones confirmadas en tu cuaderno.')).toBeVisible();
+
+    await user.click(foto);
+    expect(screen.getByRole('status')).toHaveTextContent('Tu punto de partida.');
+    expect(foto).toHaveAttribute('aria-pressed', 'true');
+    expect(localStorage.length).toBe(0);
+  });
+
+  it('permite recorrer el ejemplo con el teclado', async () => {
+    const { user } = await abrirLanding();
+
+    screen.getByRole('button', { name: 'Sacás una foto' }).focus();
+    await user.keyboard('{Tab}{Enter}');
+    expect(screen.getByRole('button', { name: 'Revisás los datos' })).toHaveFocus();
+    expect(screen.getByRole('status')).toHaveTextContent('Vos tenés la última palabra.');
+  });
+
+  it('cada enlace interno tiene un destino y el ejemplo se alcanza desde la primera pantalla', async () => {
+    await abrirLanding();
+
+    expect(screen.getByRole('link', { name: /Ver un ejemplo/ })).toHaveAttribute(
       'href',
-      '/registro',
+      '#como-funciona',
     );
-    expect(screen.getByRole('link', { name: 'Ya tengo cuenta' })).toHaveAttribute('href', '/login');
-  });
-
-  describe('el problema', () => {
-    it('muestra el eslogan y el problema antes que el funcionamiento', async () => {
-      await abrirLanding();
-
-      const hero = document.getElementById('inicio') as HTMLElement;
-      expect(within(hero).getByRole('heading', { level: 1, name: /cuaderno/ })).toBeInTheDocument();
-      const problema = document.getElementById('el-problema') as HTMLElement;
+    for (const enlace of document.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')) {
       expect(
-        within(problema).getByRole('heading', { level: 2, name: /Tu negocio anda/ }),
-      ).toBeInTheDocument();
-      expect(within(problema).getAllByRole('heading', { level: 3 })).toHaveLength(5);
-      expect(within(problema).getByText(/A fin de mes no sé cuánto gané/)).toBeInTheDocument();
-    });
-
-    it('ordena las secciones: el problema va antes que cómo te ayuda', async () => {
-      await abrirLanding();
-
-      const orden = ['el-problema', 'sami', 'como-funciona', 'monitoreo', 'entrada', 'comentarios'];
-      const posiciones = orden.map((id) => {
-        const seccion = document.getElementById(id);
-        expect(seccion, id).not.toBeNull();
-        return Array.from(document.querySelectorAll('section')).indexOf(seccion as HTMLElement);
-      });
-      expect(posiciones).toEqual([...posiciones].sort((x, y) => x - y));
-    });
-
-    it('explica cómo te ayuda en tres pasos cortos', async () => {
-      await abrirLanding();
-      const seccion = document.getElementById('como-funciona') as HTMLElement;
-
-      expect(within(seccion).getAllByRole('listitem')).toHaveLength(3);
-      expect(within(seccion).getByText('Contale tu negocio')).toBeInTheDocument();
-    });
+        document.getElementById(decodeURIComponent(enlace.hash.slice(1))),
+        enlace.hash,
+      ).not.toBeNull();
+    }
   });
 
-  describe('entrada de datos', () => {
-    it('muestra la foto por defecto y cambia a voz y texto', async () => {
-      const user = await abrirLanding();
-      const foto = screen.getByRole('tab', { name: 'Foto' });
+  it('identifica la descarga como pendiente sin ofrecer una acción falsa', async () => {
+    await abrirLanding();
+    const seccion = screen.getByRole('region', { name: 'Tus anotaciones son tuyas.' });
 
-      expect(foto).toHaveAttribute('aria-selected', 'true');
-      expect(screen.getByRole('tabpanel')).toHaveTextContent('Revisá este dato');
-
-      await user.click(screen.getByRole('tab', { name: 'Voz' }));
-      expect(screen.getByRole('tab', { name: 'Voz' })).toHaveAttribute('aria-selected', 'true');
-      expect(foto).toHaveAttribute('aria-selected', 'false');
-      expect(screen.getByRole('tabpanel')).toHaveTextContent('Vendí 3 yerbas');
-
-      await user.click(screen.getByRole('tab', { name: 'Texto' }));
-      expect(screen.getByRole('tabpanel')).toHaveTextContent('Llegaron 24 gaseosas');
-    });
-
-    it('se mueve entre pestañas con el teclado', async () => {
-      const user = await abrirLanding();
-
-      screen.getByRole('tab', { name: 'Foto' }).focus();
-      await user.keyboard('{ArrowRight}');
-      expect(screen.getByRole('tab', { name: 'Voz' })).toHaveFocus();
-      expect(screen.getByRole('tab', { name: 'Voz' })).toHaveAttribute('aria-selected', 'true');
-
-      await user.keyboard('{End}');
-      expect(screen.getByRole('tab', { name: 'Texto' })).toHaveFocus();
-
-      await user.keyboard('{ArrowRight}');
-      expect(screen.getByRole('tab', { name: 'Foto' })).toHaveFocus();
-    });
+    expect(within(seccion).getByText('Función prevista')).toBeVisible();
+    expect(within(seccion).getByText('La descarga todavía no está disponible.')).toBeVisible();
+    expect(within(seccion).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(seccion).queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Publicar comentario' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Voz' })).not.toBeInTheDocument();
   });
 
-  describe('Sami y los avisos', () => {
-    it('tienen su sección con un título', async () => {
-      await abrirLanding();
+  it('abre y cierra las preguntas sin salir de la página', async () => {
+    const { user, router } = await abrirLanding();
+    const pregunta = screen.getByText('¿Tengo que dejar de usar mi cuaderno?');
+    const detalle = pregunta.closest('details');
 
-      for (const id of ['sami', 'monitoreo']) {
-        const seccion = document.getElementById(id) as HTMLElement;
-        expect(seccion, id).not.toBeNull();
-        expect(within(seccion).getByRole('heading', { level: 2 })).toBeInTheDocument();
-      }
-    });
+    expect(detalle).not.toHaveAttribute('open');
+    await user.click(pregunta);
+    expect(detalle).toHaveAttribute('open');
+    expect(screen.getByText(/Podés seguir anotando como hasta ahora/)).toBeVisible();
+    await user.click(pregunta);
+    expect(detalle).not.toHaveAttribute('open');
+    expect(router.state.location.pathname).toBe('/');
   });
 
-  describe('comentarios', () => {
-    it('pide el nombre y un comentario de al menos 5 caracteres', async () => {
-      const user = await abrirLanding();
+  it('abre el menú de secciones y lo cierra con Escape', async () => {
+    const { user } = await abrirLanding();
+    const boton = screen.getByRole('button', { name: 'Abrir menú' });
 
-      await user.click(screen.getByRole('button', { name: 'Publicar comentario' }));
-      expect(screen.getByRole('status')).toHaveTextContent('Contanos tu nombre.');
-      expect(screen.getByRole('textbox', { name: 'Nombre' })).toHaveAttribute(
-        'aria-invalid',
-        'true',
-      );
-
-      await user.type(screen.getByRole('textbox', { name: 'Nombre' }), 'Ana');
-      await user.type(screen.getByRole('textbox', { name: 'Comentario' }), 'Ok');
-      await user.click(screen.getByRole('button', { name: 'Publicar comentario' }));
-      expect(screen.getByRole('status')).toHaveTextContent('al menos 5 caracteres');
-    });
-
-    it('publica el comentario, lo muestra primero y lo guarda en el navegador', async () => {
-      const user = await abrirLanding();
-
-      await user.type(screen.getByRole('textbox', { name: 'Nombre' }), 'Ana');
-      await user.type(screen.getByRole('textbox', { name: /Negocio/ }), 'Panadería Ana');
-      await user.type(screen.getByRole('textbox', { name: 'Comentario' }), 'Muy simple de usar');
-      await user.click(screen.getByRole('radio', { name: '4 bloques' }));
-      await user.click(screen.getByRole('button', { name: 'Publicar comentario' }));
-
-      expect(screen.getByRole('status')).toHaveTextContent('Tu comentario ya es parte del sistema');
-      const tarjetas = screen
-        .getAllByRole('article')
-        .filter((a) => a.classList.contains('comentario'));
-      expect(tarjetas[0]).toHaveTextContent('Muy simple de usar');
-      expect(within(tarjetas[0] as HTMLElement).getByRole('img')).toHaveAccessibleName(
-        'Puntaje: 4 de 5',
-      );
-      expect(screen.getByRole('textbox', { name: 'Nombre' })).toHaveValue('');
-
-      const guardados = JSON.parse(
-        localStorage.getItem('ensambla-comentarios') ?? '[]',
-      ) as unknown[];
-      expect(guardados).toEqual([
-        { nombre: 'Ana', negocio: 'Panadería Ana', puntaje: 4, texto: 'Muy simple de usar' },
-      ]);
-    });
-
-    it('recupera los comentarios guardados', async () => {
-      localStorage.setItem(
-        'ensambla-comentarios',
-        JSON.stringify([{ nombre: 'Beto', negocio: '', puntaje: 5, texto: 'Me ordenó el día' }]),
-      );
-      await abrirLanding();
-
-      expect(screen.getByText('“Me ordenó el día”')).toBeInTheDocument();
-      expect(screen.getByText('Comunidad Ensambla')).toBeInTheDocument();
-    });
+    await user.click(boton);
+    expect(screen.getByRole('navigation', { name: 'Menú de secciones' })).toBeVisible();
+    await user.keyboard('{Escape}');
+    expect(boton).toHaveAttribute('aria-expanded', 'false');
+    expect(boton).toHaveFocus();
   });
 
-  describe('menú del encabezado', () => {
-    it('abre y cierra el menú de secciones', async () => {
-      const user = await abrirLanding();
-      const boton = screen.getByRole('button', { name: 'Abrir menú' });
+  it('el botón de volver arriba y el logo conservan su navegación local', async () => {
+    const irA = vi.fn();
+    vi.stubGlobal('scrollTo', irA);
+    const { user } = await abrirLanding();
+    irA.mockClear();
 
-      expect(boton).toHaveAttribute('aria-expanded', 'false');
-      await user.click(boton);
-      expect(screen.getByRole('button', { name: 'Cerrar menú' })).toHaveAttribute(
-        'aria-expanded',
-        'true',
-      );
-      expect(screen.getByRole('navigation', { name: 'Menú de secciones' })).toBeVisible();
+    await user.click(screen.getByRole('link', { name: 'Ensambla, ir al inicio' }));
+    expect(irA).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+    irA.mockClear();
 
-      await user.keyboard('{Escape}');
-      expect(screen.getByRole('button', { name: 'Abrir menú' })).toHaveAttribute(
-        'aria-expanded',
-        'false',
-      );
-    });
+    await user.click(screen.getByRole('button', { name: 'Volver arriba', hidden: true }));
+    expect(irA).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
   });
 
-  describe('volver arriba', () => {
-    afterEach(() => vi.restoreAllMocks());
-
-    it('el botón de la esquina lleva al principio de la página', async () => {
-      const irA = vi.fn();
-      vi.stubGlobal('scrollTo', irA);
-      const user = await abrirLanding();
-
-      await user.click(screen.getByRole('button', { name: 'Volver arriba', hidden: true }));
-
-      expect(irA).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
-      vi.unstubAllGlobals();
+  it('no tiene problemas de accesibilidad detectables sin layout', async () => {
+    await abrirLanding();
+    const resultado = await axe(document.body, {
+      rules: { 'color-contrast': { enabled: false } },
     });
-
-    it('el logo del encabezado también lleva al principio sin cambiar de página', async () => {
-      const irA = vi.fn();
-      vi.stubGlobal('scrollTo', irA);
-      const user = await abrirLanding();
-
-      const [logo] = screen.getAllByRole('link', { name: 'Ensambla, ir al inicio' });
-      await user.click(logo as HTMLElement);
-
-      expect(irA).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
-      vi.unstubAllGlobals();
-    });
+    expect(resultado.violations.map((v) => v.id)).toEqual([]);
   });
 });

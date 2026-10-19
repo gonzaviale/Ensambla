@@ -1,29 +1,31 @@
 import { Link } from '@tanstack/react-router';
+import { ArrowUpRightIcon } from '@phosphor-icons/react/dist/csr/ArrowUpRight';
 
 export function LlamadaFinal() {
   return (
-    <section className="seccion seccion--final" id="empezar">
-      <div className="contenedor final revelar">
-        <div className="final__bloques" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
+    <section className="ens-final" id="empezar" aria-labelledby="empezar-titulo">
+      <div className="ens-wrap">
+        <div className="ens-mini-blocks" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+          <i />
         </div>
-        <h2>Dejá el cuaderno para otra cosa.</h2>
+        <h2 id="empezar-titulo">
+          Tu negocio ya tiene bastante movimiento.
+          <br />
+          Dale un lugar a tus anotaciones.
+        </h2>
         <p>
-          Creá tu cuenta gratis, contale a Sami cómo trabajás y mirá tu negocio ordenado desde el
-          primer día.
+          Empezá con una venta, un gasto o un fiado. Lo importante es tenerlo a mano cuando lo
+          necesites.
         </p>
-        <div className="final__acciones">
-          <Link to="/registro" className="boton boton--primario boton--grande">
-            Empezar gratis
-          </Link>
-          <Link to="/login" className="boton boton--contorno boton--grande">
-            Ya tengo cuenta
-          </Link>
-        </div>
+        <Link to="/registro" className="ens-primary">
+          Empezar mi cuaderno <ArrowUpRightIcon aria-hidden size={20} />
+        </Link>
+        <Link to="/login" className="ens-final-login">
+          Ya tengo cuenta
+        </Link>
       </div>
     </section>
   );
