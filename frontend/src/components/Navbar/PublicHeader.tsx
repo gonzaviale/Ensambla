@@ -6,8 +6,8 @@ export function PublicHeader() {
   const enLanding = useRouterState({ select: (s) => s.location.pathname === '/' });
 
   return (
-    <header className="sticky top-0 z-(--z-nav) border-b border-line bg-surface">
-      <div className="mx-auto flex h-16 w-full max-w-300 items-center gap-3 px-4 md:px-8">
+    <header className="brand-header sticky top-0 z-(--z-nav) border-b border-line bg-canvas">
+      <div className="mx-auto flex min-h-18 w-full max-w-330 items-center gap-3 px-4 md:px-8">
         <Link to="/" aria-label="Ensambla, ir al inicio" className="text-fg no-underline">
           <Logo />
         </Link>

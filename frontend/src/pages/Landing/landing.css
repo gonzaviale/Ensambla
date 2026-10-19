@@ -22,7 +22,7 @@
 
   /* Tema claro (por defecto) */
   --fondo: var(--marfil);
-  --fondo-tono: #fbeedf;
+  --fondo-tono: var(--color-cream);
   --superficie: #ffffff;
   --superficie-2: #fdf3e8;
   --texto: var(--petroleo);

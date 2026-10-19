@@ -2,104 +2,80 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { describe, expect, it } from 'vitest';
-import { obtenerLectura, subirLote } from '@/api/lotes';
-import { crearBloque } from '@/api/bloques';
-import { crearCampo } from '@/api/campos';
-import { crearProyecto, crearProyectoDesdePlantilla } from '@/api/proyectos';
-import { plantillasMock } from '@/mocks/db/estado';
+import { crearAlmacenDeEjemplo } from '@/lib/sistema/demo';
+import { hoy } from '@/lib/sistema/formato';
+import { estado } from '@/mocks/db/estado';
 import { renderApp } from '@/test/renderApp';
-import { ESPERA, setupUsuarioConSesion, verifyHeadingPresentAsync } from '@/test/testHelpers';
+import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
 
-function plantillaInicial() {
-  const plantilla = plantillasMock[0];
-  if (!plantilla) throw new Error('Falta una plantilla de prueba');
-  return plantilla;
-}
+// Reglas que no aplican a una pantalla suelta en jsdom (no hay layout real ni colores calculados).
+// `heading-order`: el mockup titula las tarjetas con h3 bajo el h1 y se respeta su marcado.
+const OPCIONES = {
+  rules: {
+    'color-contrast': { enabled: false },
+    region: { enabled: false },
+    'heading-order': { enabled: false },
+  },
+};
 
-// T-056: sin violaciones de accesibilidad detectables por axe en las pantallas del flujo central.
-// El contraste de color no se puede medir en jsdom (sin estilos): se verifica a mano con los tokens.
-async function sinViolaciones() {
-  const resultado = await axe(document.body, { rules: { 'color-contrast': { enabled: false } } });
-  const resumen = resultado.violations.map((v) => `${v.id}: ${v.nodes[0]?.html ?? ''}`);
-  expect(resumen).toEqual([]);
-}
+const sinViolaciones = async () => {
+  const resultado = await axe(document.body, OPCIONES);
+  expect(resultado.violations.map((v) => `${v.id}: ${v.nodes[0]?.html}`)).toEqual([]);
+};
 
-describe('T-056: accesibilidad (axe)', () => {
-  it('Landing', async () => {
-    renderApp('/');
-    await verifyHeadingPresentAsync('Tu sistema, un bloque a la vez.');
-    await sinViolaciones();
-  });
-
-  it('Ingresar y Crear cuenta', async () => {
-    renderApp('/login');
-    await verifyHeadingPresentAsync('Ingresá a tu cuenta');
-    await sinViolaciones();
-  });
-
-  it('Mis sistemas', async () => {
+describe('accesibilidad de las pantallas', () => {
+  it('inicio', async () => {
     setupUsuarioConSesion();
-    await crearProyectoDesdePlantilla(plantillaInicial().id);
-    renderApp('/proyectos');
-    await verifyHeadingPresentAsync('Mis sistemas');
-    await screen.findByText(/1 tabla/, {}, ESPERA);
+    renderApp('/inicio');
+    await screen.findByRole('heading', { name: /En qué puedo/ }, ESPERA);
     await sinViolaciones();
   });
 
-  it('Subir foto', async () => {
+  it('plantillas', async () => {
     setupUsuarioConSesion();
-    renderApp('/cuaderno');
-    await verifyHeadingPresentAsync('Subir foto de mi cuaderno');
+    renderApp('/plantillas');
+    await screen.findByRole('heading', { name: /Elegí una base/ }, ESPERA);
     await sinViolaciones();
   });
 
-  it('Revisar cuaderno, con el editor de columna abierto', async () => {
+  it('taller de Sami', async () => {
     setupUsuarioConSesion();
-    const lote = await subirLote([new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0])])]);
-    await obtenerLectura(lote.id);
+    renderApp('/taller');
+    await screen.findByRole('heading', { name: 'Lo armamos juntos.' }, ESPERA);
+    await sinViolaciones();
+  });
+
+  it('Mi zona', async () => {
+    setupUsuarioConSesion();
+    renderApp('/zona');
+    await screen.findByRole('heading', { level: 1, name: /Mirá cuánto se cobra/ }, ESPERA);
+    await sinViolaciones();
+  });
+
+  it.each(['construir', 'usar'])('editor en modo %s', async (modo) => {
+    const usuario = setupUsuarioConSesion();
+    const sistema = crearAlmacenDeEjemplo(hoy());
+    estado.sistemas.set(usuario.email, [sistema]);
+    renderApp(`/sistemas/${sistema.id}?modo=${modo}`);
+    await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
+    await sinViolaciones();
+  });
+
+  it('el panel de avisos y un modal', async () => {
+    const usuario = setupUsuarioConSesion();
+    const sistema = crearAlmacenDeEjemplo(hoy());
+    estado.sistemas.set(usuario.email, [sistema]);
+    renderApp(`/sistemas/${sistema.id}?modo=usar`);
     const user = userEvent.setup();
-    renderApp(`/cuaderno/${lote.id}`);
-    await verifyHeadingPresentAsync('Esto es lo que leímos de tu cuaderno');
-    await sinViolaciones();
-
-    await user.click(screen.getByRole('button', { name: 'Editar la columna «Monto»' }));
-    await screen.findByRole('dialog', { name: 'Editar columna' });
+    await user.click(await screen.findByRole('button', { name: /Avisos de Sami/ }, ESPERA));
+    await screen.findByRole('dialog', { name: /Lo que encontré/ });
     await sinViolaciones();
   });
 
-  it('Armar', async () => {
-    setupUsuarioConSesion();
-    const proyecto = await crearProyecto({ nombre: 'Mi almacén' });
-    const bloque = await crearBloque({ proyectoId: proyecto.id, nombre: 'Productos' });
-    await crearCampo({
-      bloqueId: bloque.id,
-      datos: {
-        nombre: 'Nombre',
-        tipo: 'TEXTO',
-        obligatorio: true,
-        valorInicial: null,
-        opciones: [],
-        bloqueRelacionadoId: null,
-        formula: null,
-      },
-    });
-    renderApp(`/proyectos/${proyecto.id}/construir`);
-    await verifyHeadingPresentAsync('Tus tablas');
-    await screen.findByRole('list', { name: 'Columnas de la tabla' }, ESPERA);
-    await sinViolaciones();
-  });
-
-  it('Cargar y ver', async () => {
-    setupUsuarioConSesion();
-    const proyecto = await crearProyectoDesdePlantilla(plantillaInicial().id);
-    const user = userEvent.setup();
-    renderApp(`/proyectos/${proyecto.id}/usar`);
-    await verifyHeadingPresentAsync(proyecto.nombre);
-    await screen.findByLabelText('Nombre', {}, ESPERA);
-    await sinViolaciones();
-
-    await user.click(screen.getByRole('tab', { name: 'Ver filas' }));
-    await screen.findByLabelText('Buscar en Productos', {}, ESPERA);
+  it('la bienvenida', async () => {
+    setupUsuarioConSesion({}, { bienvenidaVista: false });
+    renderApp('/inicio');
+    await screen.findByRole('dialog', { name: /Bienvenido a Ensambla/ }, ESPERA);
     await sinViolaciones();
   });
 });

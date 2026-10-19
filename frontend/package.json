@@ -33,6 +33,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@mswjs/interceptors": "^0.41.9",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/eslint-plugin-query": "^5.104.1",
     "@tanstack/eslint-plugin-router": "^1.162.0",
@@ -52,6 +53,7 @@
     "globals": "^17.13.0",
     "jsdom": "^26.1.0",
     "msw": "^2.15.0",
+    "postcss-prefix-selector": "^2.2.1",
     "prettier": "^3.9.9",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4.3.3",

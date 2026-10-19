@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/plus-jakarta-sans';
 
-/* Tokens del manual de marca de Ensambla (docs/marca.md). Tema claro, tipografía Plus Jakarta Sans. */
+/* Identidad de Ensambla_Mockup. Valores compartidos por la app y la landing. */
 @theme {
   --font-sans: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
@@ -11,24 +11,35 @@
   --color-transparent: transparent;
 
   /* Marca: naranja = acción, pizarra = estructura y texto, marfil = fondo */
-  --color-canvas: #fff8f1; /* Marfil */
+  --color-canvas: #fffdfa; /* Papel */
   --color-surface: #ffffff;
   --color-fg: #263443; /* Pizarra */
-  --color-accent: #f97316; /* Naranja */
-  --color-coral: #fb5852; /* Coral */
+  --color-accent: #ee8000; /* Naranja */
+  --color-coral: #f85f5a; /* Coral */
+  --color-petrol: #00506a;
+  --color-petrol-100: #e6f3f7;
+  --color-petrol-700: #003e53;
+  --color-blue: #4eb2d4;
+  --color-blue-100: #edf7fb;
+  --color-yellow: #ebce32;
+  --color-yellow-100: #fff9dc;
+  --color-cream: #fff7eb;
+  --color-sage: #f1f5ed;
+  --color-sage-700: #416048;
+  --color-soft-surface: #f5f6f3;
   --color-sand: #e6c9a8; /* Arena */
   --color-amber: #f59e0b; /* Ámbar */
 
   /* Escala del naranja de acción (500 = marca). Para texto sobre claro usar 700-800. */
-  --color-accent-100: #fff3e8;
-  --color-accent-200: #ffe0c2;
-  --color-accent-300: #ffc48a;
-  --color-accent-400: #ff9f4f;
-  --color-accent-500: #f97316;
-  --color-accent-600: #e2620b;
-  --color-accent-700: #c2540a;
-  --color-accent-800: #9a4108;
-  --color-accent-900: #6e2e06;
+  --color-accent-100: #fff3df;
+  --color-accent-200: #ffd099;
+  --color-accent-300: #ffc078;
+  --color-accent-400: #f29122;
+  --color-accent-500: #ee8000;
+  --color-accent-600: #ce6d00;
+  --color-accent-700: #a95700;
+  --color-accent-800: #8b4800;
+  --color-accent-900: #653500;
 
   /* Apoyos cálidos para estados y vacíos (tintes claros de coral, ámbar y arena). */
   --color-coral-100: #ffe9e8;
@@ -36,17 +47,17 @@
   --color-amber-700: #8a5300;
   --color-sand-100: #f8eddf;
 
-  --color-line: #e9e4de;
-  --color-muted: #5a6570; /* texto terciario, 5.7:1 sobre marfil */
-  --color-soft: #3e4b59; /* texto secundario */
+  --color-line: #e9e8e1;
+  --color-muted: #5f6e73;
+  --color-soft: #526268;
   --color-ok: #2f7a55;
   --color-warn: #9a5b06;
   --color-bad: #c42b2b;
 
-  --radius-sm: 6px;
+  --radius-sm: 8px;
   --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
 
   /* Escala tipográfica por rol (T-033: lectura >= 18 px, nada por debajo de 14 px). */
   --text-caption: 0.875rem; /* 14: metadatos, chips */
@@ -67,9 +78,11 @@
   --text-display--line-height: 1.08;
 
   /* Sombra suave en dos niveles: reposo (sm) y elevada (md); lg sólo para hojas y avisos. */
-  --shadow-sm: 0 1px 3px rgba(38, 52, 67, 0.1), 0 1px 2px rgba(38, 52, 67, 0.06);
-  --shadow-md: 0 6px 18px rgba(38, 52, 67, 0.12);
+  --shadow-sm: 0 8px 28px rgba(38, 52, 67, 0.035);
+  --shadow-md: 0 16px 50px rgba(38, 52, 67, 0.07);
   --shadow-lg: 0 14px 36px rgba(38, 52, 67, 0.16);
+  --shadow-button: 0 3px 0 #ce6d00;
+  --shadow-petrol-button: 0 3px 0 #00384c;
 
   --animate-fade-in: fade-in 0.25s ease-out;
   --animate-sheet-in: sheet-in 0.22s ease-out;
@@ -126,23 +139,24 @@
     font-family: var(--font-sans);
     font-size: 18px;
     line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
   }
   h1,
   h2,
   h3,
   h4 {
     font-weight: 700;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.035em;
     line-height: 1.15;
   }
   a {
-    color: var(--color-accent-800);
+    color: var(--color-petrol);
   }
   a:hover {
-    color: var(--color-accent-900);
+    color: var(--color-petrol-700);
   }
   :focus-visible {
-    outline: 3px solid var(--color-accent-700);
+    outline: 3px solid var(--color-petrol);
     outline-offset: 2px;
   }
   /* El tamaño táctil (>= 48 px) lo da cada componente (Button, Field); aquí no se infla nada. */
@@ -155,5 +169,50 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+}
+
+@layer components {
+  /* La franja de cinco piezas identifica la marca en todas las pantallas. */
+  .brand-header::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    height: 4px;
+    background: linear-gradient(
+      90deg,
+      var(--color-accent) 0 20%,
+      var(--color-yellow) 20% 40%,
+      var(--color-blue) 40% 60%,
+      var(--color-petrol) 60% 80%,
+      var(--color-coral) 80%
+    );
+  }
+
+  .brand-pieces {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .brand-pieces > i {
+    width: 13px;
+    height: 17px;
+    border-radius: 3px;
+    background: var(--color-accent);
+  }
+  .brand-pieces > i:nth-child(2) {
+    height: 12px;
+    background: var(--color-yellow);
+  }
+  .brand-pieces > i:nth-child(3) {
+    height: 15px;
+    background: var(--color-blue);
+  }
+  .brand-pieces > i:nth-child(4) {
+    height: 12px;
+    background: var(--color-petrol);
+  }
+  .brand-pieces > i:nth-child(5) {
+    background: var(--color-coral);
   }
 }

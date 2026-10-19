@@ -2,7 +2,8 @@ import { screen, waitFor } from '@testing-library/react';
 import type { UserEvent } from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { expect } from 'vitest';
-import { sembrarUsuario, type UsuarioMock } from '@/mocks/db/estado';
+import { estado, sembrarUsuario, type UsuarioMock } from '@/mocks/db/estado';
+import { PREFERENCIAS_INICIALES } from '@/types/preferencias';
 import { server } from '@/mocks/node';
 
 export const ESPERA = { timeout: 5000 };
@@ -42,8 +43,15 @@ export const setupServerError = (
   });
 };
 
-export const setupUsuarioConSesion = (datos: Partial<UsuarioMock> = {}) =>
-  sembrarUsuario({ ...datos, conSesion: true });
+// La bienvenida de la primera vez tapa la pantalla con un modal: salvo que la prueba la quiera ver, ya fue vista.
+export const setupUsuarioConSesion = (
+  datos: Partial<UsuarioMock> = {},
+  { bienvenidaVista = true }: { bienvenidaVista?: boolean } = {},
+) => {
+  const usuario = sembrarUsuario({ ...datos, conSesion: true });
+  estado.preferencias.set(usuario.email, { ...PREFERENCIAS_INICIALES, bienvenidaVista });
+  return usuario;
+};
 
 export const setupUsuarioSinSesion = (datos: Partial<UsuarioMock> = {}) => sembrarUsuario(datos);
 
@@ -78,3 +86,12 @@ export const verifyPathAsync = async (
 ) => {
   await waitFor(() => expect(router.state.location.pathname).toBe(path), ESPERA);
 };
+
+/** El aviso breve de abajo (`#toast`); hay otros `status` en pantalla, como «Sami vio un cambio». */
+export const verifyToastAsync = (texto: string | RegExp) =>
+  waitFor(() => {
+    const toast = document.getElementById('toast');
+    if (!toast) throw new Error('Falta el aviso breve');
+    if (typeof texto === 'string') expect(toast).toHaveTextContent(texto);
+    else expect(toast.textContent).toMatch(texto);
+  }, ESPERA);
