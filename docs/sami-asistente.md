@@ -62,7 +62,7 @@ Los nombres de plantilla tienen que existir en la base (hay un test contra Postg
 
 `AciertoSamiTest` corre `src/test/resources/sami/frases-prueba.json` (48 frases con la plantilla y las columnas
 esperadas) y exige ≥ 80 % de acierto de plantilla, ≥ 90 % de precisión en lo que da por resuelto y que lo vago no se
-resuelva. Imprime el reporte en cada corrida. Resultado actual: **45/45 plantillas (100 %)**, 25 de 48 frases se
+resuelva. Imprime el reporte en cada corrida. Resultado actual: **45/45 plantillas (100 %)**, 26 de 48 frases se
 resuelven sin preguntar, 22 de 23 columnas esperadas acertadas.
 
 > **Ojo.** Las frases las escribió el mismo equipo que armó el diccionario, así que ese 100 % es optimista. Falta

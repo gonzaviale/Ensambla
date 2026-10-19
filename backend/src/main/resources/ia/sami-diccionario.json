@@ -16,7 +16,6 @@
         {"termino": "ticket", "peso": 1},
         {"termino": "facturo", "peso": 2},
         {"termino": "facturar", "peso": 2},
-        {"termino": "mi negocio", "peso": 1},
         {"termino": "fiado", "peso": 2},
         {"termino": "fio", "peso": 2},
         {"termino": "fiamos", "peso": 2},
