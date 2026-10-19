@@ -35,6 +35,16 @@ porqué; si cambian, se actualizan juntos.
 
 Detalles y contrato con subida: [lectura-cuaderno-ia.md](lectura-cuaderno-ia.md).
 
+### Sami (V9, V10)
+
+- `plantilla`: V9 suma **Ventas** y **Gastos** (ids `…0a4` y `…0a5`) junto a las tres de V3. El diccionario de Sami
+  nombra las plantillas por su `nombre`, así que renombrarlas o desactivarlas cambia lo que Sami puede proponer.
+- `consumo_sami_diario`: clave primaria (negocio_id, fecha UTC), `consultas` con la IA del día (no negativas),
+  `tokens_entrada`/`tokens_salida` acumulados y el último `modelo`. La reserva es una sola sentencia
+  `INSERT … ON CONFLICT DO UPDATE … WHERE consultas < límite`, atómica por negocio y día.
+
+Detalles: [sami-asistente.md](sami-asistente.md).
+
 ## Aislamiento entre negocios (T-010, T-011)
 
 Todo lo que construye un usuario cuelga de un **negocio**. Para que sea imposible —aun con un bug en la aplicación—
