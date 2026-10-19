@@ -18,6 +18,7 @@ import {
 } from '@/lib/sistema/core';
 import type { ClavePlantilla, Distribucion, TipoBloque } from '@/lib/sistema/tipos';
 import { saludoDeSami, useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
+import { useDictado } from '@/hooks/sistemas/useDictado';
 import { useTaller } from '@/hooks/sistemas/useTaller';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { useSistemaStore } from '@/stores/sistemaStore';
@@ -64,6 +65,13 @@ export function TallerPage() {
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const navegacion = useNavegacion();
   const { enviar } = useTaller();
+  const avisar = useSistemaStore((estado) => estado.avisar);
+  // La voz se transcribe en el navegador y queda en el campo para revisarla antes de enviar.
+  const dictado = useDictado({
+    obtenerBase: () => useSistemaStore.getState().taller?.entrada ?? '',
+    alTexto: (entrada) => actualizarTaller({ entrada }),
+    alAvisar: avisar,
+  });
   const mensajes = useRef<HTMLDivElement>(null);
   const campo = useRef<HTMLTextAreaElement>(null);
   const [arrastrando, setArrastrando] = useState<string | null>(null);
@@ -90,6 +98,7 @@ export function TallerPage() {
 
   const alEnviar = (evento: FormEvent) => {
     evento.preventDefault();
+    dictado.detener();
     void enviar();
   };
 
@@ -236,21 +245,33 @@ export function TallerPage() {
                 onChange={(evento) => actualizarTaller({ entrada: evento.target.value })}
               />
               <div className="row between">
-                <Btn
-                  cls="ghost small"
-                  data-accion="guide-photo"
-                  aria-label="Aportar una foto o captura"
-                  onClick={() =>
-                    abrirModal({
-                      tipo: 'importar',
-                      sistemaId: null,
-                      bloqueId: null,
-                      contexto: 'negocio',
-                    })
-                  }
-                >
-                  <Icon name="camera" />
-                </Btn>
+                <div className="row">
+                  <Btn
+                    cls="ghost small"
+                    data-accion="guide-photo"
+                    aria-label="Aportar una foto o captura"
+                    onClick={() =>
+                      abrirModal({
+                        tipo: 'importar',
+                        sistemaId: null,
+                        bloqueId: null,
+                        contexto: 'negocio',
+                      })
+                    }
+                  >
+                    <Icon name="camera" />
+                  </Btn>
+                  <Btn
+                    cls={dictado.escuchando ? 'soft small' : 'ghost small'}
+                    data-accion="guide-voice"
+                    aria-label={dictado.escuchando ? 'Dejar de dictar' : 'Dictar con la voz'}
+                    aria-pressed={dictado.escuchando}
+                    disabled={taller.pensando}
+                    onClick={dictado.alternar}
+                  >
+                    <Icon name="mic" />
+                  </Btn>
+                </div>
                 <button className="btn primary" type="submit" disabled={taller.pensando}>
                   {borrador ? 'Ajustalo conmigo' : 'Pensalo conmigo'} <Icon name="arrow" />
                 </button>
