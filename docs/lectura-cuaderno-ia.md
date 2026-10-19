@@ -195,6 +195,27 @@ La propuesta HTTP contiene tipoRegistro, nombre, bloqueExistenteId, campos, fila
 mapeoCampos, camposNuevos y consumo. Cada dato conserva `valor` nullable y `confianza`.
 La consulta no entrega claves de archivos, bytes ni credenciales.
 
+## Lectura de una foto desde la pantalla de importar
+
+`POST /api/importaciones/lectura` (multipart, con sesión y CSRF) lee **una** foto contra un bloque y devuelve lo
+leído **sin guardar nada**: la persona revisa y recién ahí incorpora los registros desde la pantalla. Usa el mismo
+lector y las mismas reglas de cruce que el lote (el bloque es el destino; nombre y sinónimos; sin duplicar).
+
+| Parte | Contenido |
+|---|---|
+| `imagen` | JPG, PNG, WEBP o GIF de hasta 5 MB (la pantalla la achica y la guarda como JPG antes de enviarla) |
+| `pedido` | JSON con `nombre` del bloque, `destinoExistente` y `campos` (`key`, `label`, `type`, `options`) con los tipos de la pantalla |
+
+Respuesta 200: `filas` (un mapa por registro, por la clave del campo; las columnas nuevas también), `camposNuevos`
+(sólo si `destinoExistente`), `dudas` (`fila` desde 0, `campo`, `motivo`: los datos con confianza menor al umbral) y
+`descripcion` (vacía: la lectura no interpreta el negocio). Los campos que apuntan a otro bloque (`relation`) no se
+mandan a leer y vuelven vacíos. Errores: 400 si la imagen o el pedido no sirven o la foto no es de ese bloque
+(«La estructura leída no es compatible…»), 502 si la IA no pudo leerla, 401 sin sesión.
+
+No pasa por la cola ni por el límite diario del lote: cada pedido llama a la IA, así que con un proveedor real
+consume saldo de la API. Para probar con un modelo de Anthropic: `scripts/levantar-backend-ia.ps1` (pide la API key
+por pantalla, sólo vive en esa ventana) y el front en modo `parcial` (`VITE_API_MOCKS=parcial`).
+
 ## Evaluación
 
 Fotos y anotaciones: [carpeta de carga](../datos/ia/cuadernos/README.md).

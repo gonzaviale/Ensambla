@@ -17,8 +17,10 @@ const tiposDeBloque = [
 
 // Lo que se le pide a la lectura de una imagen: a qué bloque se llevan los datos y, para los campos que
 // apuntan a otro bloque, qué registros hay para elegir. `destinoExistente` avisa que el bloque ya está
-// en el sistema: sólo ahí tiene sentido detectar columnas que le faltan. La imagen en sí todavía no viaja.
+// en el sistema: sólo ahí tiene sentido detectar columnas que le faltan. La imagen viaja aparte, en el mismo
+// multipart, y `nombre` es el del bloque de destino.
 export const pedidoDeLecturaSchema = z.object({
+  nombre: z.string().default(''),
   contexto: z.enum(['registros', 'negocio']),
   tipo: z.enum(tiposDeBloque),
   campos: z.array(campoSchema),
@@ -27,6 +29,7 @@ export const pedidoDeLecturaSchema = z.object({
 });
 
 export type PedidoDeLectura = {
+  nombre: string;
   contexto: 'registros' | 'negocio';
   tipo: TipoBloque;
   campos: Campo[];

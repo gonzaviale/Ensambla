@@ -28,6 +28,11 @@ describe('API simulada según VITE_API_MOCKS', () => {
     expect(parcial.filter((ruta) => ruta.includes('/auth/'))).toEqual([]);
   });
 
+  it('la lectura de fotos sólo se simula en el modo completo: en parcial la hace la IA del backend', () => {
+    expect(rutas('completo')).toContain('POST /importaciones/lectura');
+    expect(rutas('parcial')).not.toContain('POST /importaciones/lectura');
+  });
+
   it('en modo ninguno no simula nada', () => {
     expect(rutas('ninguno')).toEqual([]);
   });

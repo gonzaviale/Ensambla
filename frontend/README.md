@@ -23,7 +23,7 @@ npm run dev        # http://localhost:5173 (proxy /api → http://localhost:8080
 
 | Valor | Comportamiento |
 |---|---|
-| `parcial` | Backend real salvo lo pendiente: hoy no queda nada simulado |
+| `parcial` | Backend real (sesión y lectura de fotos con IA) salvo lo que todavía no tiene: sistemas, preferencias, Sami y zona |
 | `completo` | Todo simulado con MSW; no hace falta backend |
 | `ninguno` (default) | Todo contra el backend real, incluidos registro, login y logout |
 

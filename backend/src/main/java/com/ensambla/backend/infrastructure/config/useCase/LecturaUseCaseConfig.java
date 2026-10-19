@@ -13,6 +13,7 @@ import com.ensambla.backend.domain.service.procesamiento.ConexionesLecturaServic
 import com.ensambla.backend.domain.service.procesamiento.ConfirmacionLecturaService;
 import com.ensambla.backend.domain.service.procesamiento.ProcesamientoService;
 import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
+import com.ensambla.backend.domain.useCase.lectura.LeerImagenUseCase;
 import com.ensambla.backend.domain.useCase.procesamiento.ConfirmarLecturaUseCase;
 import com.ensambla.backend.domain.useCase.procesamiento.ConsultarConsumoUseCase;
 import com.ensambla.backend.domain.useCase.procesamiento.ObtenerLecturaUseCase;
@@ -31,6 +32,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -55,6 +57,21 @@ public class LecturaUseCaseConfig {
     @Bean(destroyMethod = "shutdownNow")
     public ExecutorService executorLecturaIa() {
         return new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS, new SynchronousQueue<>());
+    }
+
+    /** Aparte de {@link #executorLecturaIa()}: la lectura de una foto es inmediata y no puede esperar al worker. */
+    @Bean(destroyMethod = "shutdownNow")
+    public ExecutorService executorLecturaImagen() {
+        return Executors.newVirtualThreadPerTaskExecutor();
+    }
+
+    @Bean
+    public LeerImagenUseCase leerImagenUseCase(LectorCuadernoPort lectorCuadernoPort,
+                                               PropuestaLecturaService propuestaLecturaService,
+                                               ExecutorService executorLecturaImagen, IaProperties iaProperties) {
+        return new LeerImagenUseCase(
+                new LectorCuadernoTimeoutAdapter(lectorCuadernoPort, executorLecturaImagen, iaProperties.timeout()),
+                propuestaLecturaService);
     }
 
     @Bean

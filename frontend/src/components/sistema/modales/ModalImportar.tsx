@@ -1,5 +1,6 @@
 import { useRef, useState, type DragEvent } from 'react';
-import { useLecturaDeImagen } from '@/hooks/sistemas/useLecturaDeImagen';
+import { leerErrorServidor } from '@/hooks/errores';
+import { LECTURA_CON_IA, useLecturaDeImagen } from '@/hooks/sistemas/useLecturaDeImagen';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useRevisionDeLectura } from '@/hooks/sistemas/useRevisionDeLectura';
 import { CATALOG } from '@/lib/sistema/catalogo';
@@ -47,7 +48,8 @@ const Cuaderno = () => (
 );
 
 // Traer datos de una foto: elegir la imagen, revisar lo que "se leyó" y recién ahí incorporarlo.
-// La lectura es simulada (POST /importaciones/lectura); la foto elegida se muestra como referencia.
+// Con una foto, la lee la IA del backend (POST /importaciones/lectura) en los registros de un bloque; en el
+// modo completo, o sin foto («Probar con un ejemplo»), la lectura es de muestra.
 export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
   const sistemas = useSistemaStore((estado) => estado.sistemas);
   const cerrarModal = useSistemaStore((estado) => estado.cerrarModal);
@@ -68,6 +70,7 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
   const [intentado, setIntentado] = useState(false);
   const [omitirDuplicados, setOmitirDuplicados] = useState(true);
   const [descripcion, setDescripcion] = useState('');
+  const [leidaPorIa, setLeidaPorIa] = useState(false);
   const [error, setError] = useState('');
   const [encima, setEncima] = useState(false);
 
@@ -81,21 +84,28 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
       vinculos[campo.key] = (findBlock(sistema, campo.target)?.rows ?? []).map((fila) => fila.id);
     }
     try {
+      // La IA lee los registros de un bloque; lo que Sami entiende del negocio sigue siendo de muestra.
+      const aLeer = contexto === 'registros' ? imagen : null;
       const resultado = await lectura.mutateAsync({
-        contexto,
-        tipo: destino.type,
-        campos: destino.fields,
-        vinculos,
-        destinoExistente: Boolean(destinoId && findBlock(sistema, destinoId)),
+        pedido: {
+          nombre: destino.name,
+          contexto,
+          tipo: destino.type,
+          campos: destino.fields,
+          vinculos,
+          destinoExistente: Boolean(destinoId && findBlock(sistema, destinoId)),
+        },
+        imagen: aLeer,
       });
+      setLeidaPorIa(Boolean(aLeer) && LECTURA_CON_IA);
       setArchivo(imagen);
       setUrl(dataUrl);
       setDescripcion(resultado.descripcion);
       cargar(resultado);
       setIntentado(false);
       setPaso('revisar');
-    } catch {
-      setError('No pudimos leer la imagen. Probá de nuevo.');
+    } catch (falla) {
+      setError(leerErrorServidor(falla)?.mensaje ?? 'No pudimos leer la imagen. Probá de nuevo.');
     }
   };
 
@@ -288,11 +298,19 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
           </p>
           <span className="btn secondary small">Elegir imagen</span>
         </button>
-        <div className="simulation-label">
-          <strong>Lectura de imágenes simulada</strong>
-          La imagen que elijas se muestra como referencia. Para probar el recorrido, vamos a
-          proponer datos de ejemplo que podés editar antes de confirmar.
-        </div>
+        {LECTURA_CON_IA && contexto === 'registros' ? (
+          <div className="simulation-label">
+            <strong>Lectura con inteligencia artificial</strong>
+            La foto se envía a un servicio de IA para leerla y te proponemos los registros. Puede
+            equivocarse: revisalos antes de confirmar. «Probar con un ejemplo» usa datos de muestra.
+          </div>
+        ) : (
+          <div className="simulation-label">
+            <strong>Lectura de imágenes simulada</strong>
+            La imagen que elijas se muestra como referencia. Para probar el recorrido, vamos a
+            proponer datos de ejemplo que podés editar antes de confirmar.
+          </div>
+        )}
         <div className="form-error" id="import-error" role="alert">
           {error}
         </div>
@@ -378,8 +396,18 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
         </div>
         <div>
           <div className="simulation-label" style={{ marginTop: 0 }}>
-            <strong>{revision.filas.length} registros de ejemplo · lectura simulada</strong>
-            Estos datos son una propuesta de prueba. Podés cambiarlos antes de incorporarlos.
+            {leidaPorIa ? (
+              <>
+                <strong>{revision.filas.length} registros leídos de tu foto</strong>
+                La lectura puede equivocarse: revisá lo marcado y corregí lo que haga falta antes de
+                incorporarlos.
+              </>
+            ) : (
+              <>
+                <strong>{revision.filas.length} registros de ejemplo · lectura simulada</strong>
+                Estos datos son una propuesta de prueba. Podés cambiarlos antes de incorporarlos.
+              </>
+            )}
           </div>
           <RevisionDeLectura
             revision={revision}
