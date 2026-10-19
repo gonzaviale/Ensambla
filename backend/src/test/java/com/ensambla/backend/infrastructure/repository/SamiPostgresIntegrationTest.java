@@ -1,0 +1,136 @@
+package com.ensambla.backend.infrastructure.repository;
+
+import com.ensambla.backend.domain.dto.sami.ColumnaSamiItem;
+import com.ensambla.backend.domain.dto.sami.ConversarConSamiRequest;
+import com.ensambla.backend.domain.dto.sami.ConversarConSamiResponse;
+import com.ensambla.backend.domain.dto.sami.CrearProyectoDesdeSamiRequest;
+import com.ensambla.backend.domain.dto.sami.RespuestaSamiItem;
+import com.ensambla.backend.domain.exception.CampoInvalidoException;
+import com.ensambla.backend.domain.useCase.sami.ConversarConSamiUseCase;
+import com.ensambla.backend.domain.useCase.sami.CrearProyectoDesdeSamiUseCase;
+import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import java.util.List;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+/** Sami contra la base real: las plantillas que nombra el diccionario existen y el proyecto se crea entero o no se crea. */
+class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
+
+    private static final UUID VENTAS_ID = UUID.fromString("00000000-0000-4000-8000-0000000000a4");
+
+    @Autowired
+    private ConversarConSamiUseCase conversarConSamiUseCase;
+
+    @Autowired
+    private CrearProyectoDesdeSamiUseCase crearProyectoDesdeSamiUseCase;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    private UUID usuarioId;
+    private UUID negocioId;
+
+    @BeforeEach
+    void setUp() {
+        usuarioId = UUID.randomUUID();
+        negocioId = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Prueba Sami')",
+                usuarioId, usuarioId + "@example.test");
+        jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Prueba Sami', ?)",
+                negocioId, usuarioId);
+    }
+
+    @AfterEach
+    void tearDown() {
+        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId);
+        jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId);
+    }
+
+    @Test
+    @DisplayName("«Vendo velas y anoto quién me debe» propone la plantilla Ventas de la base con saldo pendiente")
+    void conversarShouldProposeSeededVentasTemplate() {
+        ConversarConSamiResponse response = conversarConSamiUseCase.execute(
+                new ConversarConSamiRequest(usuarioId, "Vendo velas y anoto quién me debe", List.of()));
+
+        assertThat(response.tipo()).isEqualTo("PROPUESTA");
+        assertThat(response.propuesta().plantillaId()).isEqualTo(VENTAS_ID);
+        assertThat(response.propuesta().columnas()).extracting("nombre").containsExactly("Saldo pendiente");
+    }
+
+    @Test
+    @DisplayName("Cada plantilla que nombra el diccionario existe en la base")
+    void everyDictionaryTemplateShouldExistInTheDatabase() {
+        List<String> nombres = jdbcTemplate.queryForList("SELECT nombre FROM plantilla WHERE activa", String.class);
+
+        assertThat(nombres).contains("Ventas", "Inventario", "Pedidos", "Clientes", "Gastos");
+    }
+
+    @Test
+    @DisplayName("Con un texto ambiguo pregunta y, tras responder, propone la plantilla elegida")
+    void conversarShouldAskThenProposeAfterAnswer() {
+        String texto = "quiero un stock y llevar los pedidos";
+
+        ConversarConSamiResponse pregunta = conversarConSamiUseCase.execute(
+                new ConversarConSamiRequest(usuarioId, texto, List.of()));
+        ConversarConSamiResponse propuesta = conversarConSamiUseCase.execute(new ConversarConSamiRequest(
+                usuarioId, texto, List.of(new RespuestaSamiItem(pregunta.pregunta().id(), "pedidos"))));
+
+        assertThat(pregunta.tipo()).isEqualTo("PREGUNTA");
+        assertThat(propuesta.tipo()).isEqualTo("PROPUESTA");
+        assertThat(propuesta.propuesta().plantilla()).isEqualTo("Pedidos");
+    }
+
+    @Test
+    @DisplayName("Si ya no quedan preguntas, consulta a la IA, que reserva y registra el consumo del negocio")
+    void conversarShouldFallBackToAiAndRecordConsumption() {
+        ConversarConSamiResponse response = conversarConSamiUseCase.execute(new ConversarConSamiRequest(
+                usuarioId, "hola", List.of(
+                new RespuestaSamiItem("principal", "otra"),
+                new RespuestaSamiItem("principal", "otra"),
+                new RespuestaSamiItem("principal", "otra"))));
+
+        assertThat(response.propuesta().origen()).isEqualTo("IA");
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT consultas FROM consumo_sami_diario WHERE negocio_id = ?", Integer.class, negocioId))
+                .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("Crea el proyecto con los bloques de la plantilla más las columnas aceptadas")
+    void crearProyectoShouldPersistTemplateAndExtraColumns() {
+        var proyecto = crearProyectoDesdeSamiUseCase.execute(new CrearProyectoDesdeSamiRequest(
+                usuarioId, VENTAS_ID, "Velas de Ana", List.of(
+                new ColumnaSamiItem("Saldo pendiente", "NUMERO", null),
+                new ColumnaSamiItem("Forma de pago", "OPCION", List.of("Efectivo", "Tarjeta")))));
+
+        assertThat(proyecto.nombre()).isEqualTo("Velas de Ana");
+        List<String> campos = jdbcTemplate.queryForList("""
+                SELECT c.nombre FROM campo c JOIN bloque b ON b.id = c.bloque_id
+                WHERE b.proyecto_id = ? ORDER BY c.posicion
+                """, String.class, proyecto.id());
+        assertThat(campos).containsExactly(
+                "Fecha", "Producto", "Cantidad", "Monto", "Cliente", "Saldo pendiente", "Forma de pago");
+    }
+
+    @Test
+    @DisplayName("Si una columna falla no queda ningún proyecto del negocio")
+    void crearProyectoShouldCreateNothingWhenAColumnFails() {
+        assertThatThrownBy(() -> crearProyectoDesdeSamiUseCase.execute(new CrearProyectoDesdeSamiRequest(
+                usuarioId, VENTAS_ID, null, List.of(
+                new ColumnaSamiItem("Saldo pendiente", "NUMERO", null),
+                new ColumnaSamiItem(" ", "TEXTO", null)))))
+                .isInstanceOf(CampoInvalidoException.class);
+
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM proyecto WHERE negocio_id = ?", Integer.class, negocioId)).isZero();
+    }
+}
