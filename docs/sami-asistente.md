@@ -116,8 +116,9 @@ Sin estado en el servidor: `hooks/sistemas/useSamiProyecto.ts` guarda el texto y
 pedido. Si el servidor rechaza algo (por ejemplo el límite diario de IA) se muestra su mensaje y se conserva lo
 escrito.
 
-El taller del mockup (`/taller`) **no se tocó**: sigue con su modelo de «sistema» y su API simulada
-(`/sami/propuesta`). Son dos caminos distintos hasta que se decida cuál es la fuente de verdad.
+Esta pantalla crea un proyecto real (`proyecto`, `bloque`, `campo`), que ninguna pantalla de `dev` muestra todavía.
+Para conversar con Sami y armar un sistema que sí queda en «Mis sistemas», el camino es el **taller conversacional**
+(sección siguiente). Conviven hasta decidir cuál es la fuente de verdad.
 
 - **Modo `completo`** (demo sin backend): `mocks/handlers/samiProyecto.ts` simula las tres rutas con una versión
   chica del diccionario. En `parcial` y `ninguno` responde el backend de verdad.
@@ -126,7 +127,67 @@ El taller del mockup (`/taller`) **no se tocó**: sigue con su modelo de «siste
 - Todavía no hay una pantalla donde abrir el proyecto creado (el frontend de `dev` no tiene pantallas de
   proyectos): al terminar se ofrece volver al inicio.
 
+## Taller conversacional con herramientas (`POST /api/sami/taller`)
+
+El taller (`/taller`) es una conversación: la persona escribe lo que quiera y Sami contesta, cambia la propuesta o
+pregunta con una botonera. **El modelo decide y el sistema ejecuta**: Haiku no escribe el sistema, invoca
+herramientas de vocabulario cerrado; el backend valida lo que pidió y el taller lo aplica con las funciones que ya
+tiene (`lib/sistema/core.ts`). El resultado es el mismo sistema del taller, así que se guarda y se usa en «Mis
+sistemas».
+
+**Gasta lo menos posible (híbrido).** El primer mensaje con una descripción clara arma la base con las reglas del taller,
+sin IA; también las órdenes simples (un verbo y una pieza: «sumá gastos», «sacá los clientes») y los ajustes fijos de
+la pantalla. Todo lo demás va a la IA: descripciones vagas, datos («agregá un campo de proveedor»), renombres,
+preguntas. Las reglas buscan palabras sueltas y confundirían «proveedor» con la pieza de gastos, por eso se limitan a
+órdenes simples.
+
+**Un turno = una llamada.** Haiku responde con texto y con las herramientas que quiere invocar en la misma respuesta;
+no hay segundo viaje. Cada turno manda un contexto chico: el prompt fijo, el sistema resumido (piezas y datos, sin
+filas), los últimos 6 mensajes y el mensaje. Cada turno se registra en `consumo_sami_diario` y respeta el límite
+`ensambla.sami.limite-diario-taller` (60 por negocio y día), que comparte contador con el asistente de plantillas.
+
+| Herramienta | Efecto en el taller |
+|---|---|
+| `agregar_pieza(tipo)` / `quitar_pieza(pieza)` | suma o quita inventario, ventas, clientes, pedidos, gastos, entradas, salidas |
+| `renombrar_pieza(pieza, nombre)` / `renombrar_sistema(nombre)` | cambia nombres |
+| `agregar_campo(pieza, etiqueta, tipo, opciones?)` / `quitar_campo(pieza, campo)` | suma o quita un dato; `select` necesita 2 opciones |
+| `separar_en_seccion(pieza, seccion)` | pasa la pieza a una sección aparte |
+| `cambiar_distribucion(layout)` | mosaic, single, two o three |
+| `ofrecer_opciones(pregunta, opciones)` | **no cambia nada**: Sami pregunta con una botonera |
+
+`ofrecer_opciones` llega en el campo `opciones` de la respuesta (dato estructurado, sin parsear texto). La pantalla
+dibuja una botonera con 2 a 6 respuestas y **siempre** un último botón «Escribir otra cosa…» que enfoca el campo,
+como en Claude. Elegir una opción equivale a escribir su texto. Cada cambio de Sami se puede deshacer con «Deshacer lo
+último».
+
+**Validación (`HerramientasTallerService`).** El modelo nunca escribe el sistema: se descarta toda herramienta
+desconocida, pieza o dato inexistente o repetido, tipo fuera del catálogo y lo que pase los topes (5 acciones por
+turno, 12 datos por pieza, nombres de 60 caracteres). Las llamadas se validan en orden sobre una copia del estado.
+
+**Contrato.** Request: `{mensaje, estado: {nombre, distribucion, piezas[{id, tipo, nombre, seccion, campos[{etiqueta,
+tipo}]}]}, historial[{quien, texto}]}`. Response: `{respuesta, acciones[{herramienta, argumentos}], opciones}`.
+
+### Evaluación
+
+`TallerBedrockEvaluacionTest` (opt-in con `SAMI_BEDROCK_PERFIL`) corre 25 conversaciones de
+`sami/conversaciones-taller.json` con el prompt, las herramientas y la validación de producción:
+
+```bash
+SAMI_BEDROCK_PERFIL=mi-perfil ./mvnw test -Dtest=TallerBedrockEvaluacionTest
+```
+
+Resultado con Haiku 4.5: **25/25 (100 %)**, ≈ **1830 tokens de entrada y 100 de salida por turno**, ≈ 1,5 s de
+latencia: unos 0,2 centavos de dólar por turno. La meta de tokens es < 2000: con las nueve herramientas el piso real es
+alto (Bedrock suma ≈ 350 tokens de sistema de herramientas, más los esquemas y el prompt). Recortar descripciones y
+prompt bajó el consumo de 2225 a 1830 sin perder acierto.
+
+> **Ojo.** Las conversaciones y el prompt los escribió el mismo equipo, así que el 100 % es optimista; hay que probar
+> con lo que escribe la gente de verdad. Las cuentas nuevas de Bedrock tienen una cuota baja de pedidos por minuto
+> (respondió 429 a ráfagas de 25 pedidos): el test espera entre casos y reintenta.
+
 ## Pendiente
 
-- Frases reales para medir el acierto (ver arriba).
+- Frases reales para medir el acierto (ver arriba) y conversaciones reales para el taller.
+- Aviso a Gonzalo: el taller del mockup (`/taller`) ahora habla con el backend de Sami y se retiró su API simulada
+  `/sami/propuesta`.
 - Que `RespaldoIaSamiService` tenga un tope de gasto en dinero además del de consultas, si hace falta.
