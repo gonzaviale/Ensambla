@@ -28,7 +28,7 @@ export function useNavegacion() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
-  const irA = (to: '/inicio' | '/plantillas' | '/taller' | '/zona') => {
+  const irA = (to: '/inicio' | '/plantillas' | '/taller' | '/zona' | '/sami') => {
     limpiar();
     return navigate({ to });
   };
@@ -52,6 +52,8 @@ export function useNavegacion() {
       return irA('/taller');
     },
     irAZona: () => irA('/zona'),
+    /** «Armalo con Sami»: la conversación que crea un proyecto real en el backend. */
+    irASami: () => irA('/sami'),
     abrirSistema,
     /** saveNew() del mockup: guarda el sistema nuevo y lo abre. */
     crearYAbrir: (sistema: Sistema, modo: ModoDelEditor = 'use') => {

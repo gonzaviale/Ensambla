@@ -73,6 +73,14 @@ export function InicioPage() {
               >
                 Quiero ver plantillas
               </button>
+              <button
+                type="button"
+                className="text-link"
+                data-accion="sami-proyecto"
+                onClick={() => void navegacion.irASami()}
+              >
+                Armalo con Sami
+              </button>
             </div>
             <div className="brand-pieces" aria-label="Los cinco colores de Ensambla">
               <i />
