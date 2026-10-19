@@ -2,8 +2,9 @@
 
 Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (`V1__esquema_inicial.sql`,
 `V2__digitalizacion_cuaderno.sql`, `V3__plantillas_base.sql`, `V4__procesamiento_lecturas_ia.sql`,
-`V5__campo_relacion.sql`, `V6__campo_formula.sql`, `V7__movimiento_stock.sql`, `V8__receta.sql`).
-V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
+`V5__campo_relacion.sql`, `V6__campo_formula.sql`, `V7__movimiento_stock.sql`, `V8__receta.sql`,
+`V9__whatsapp.sql`).
+V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`). V9 agrega la carga por WhatsApp (`vinculo_whatsapp`, `mensaje_whatsapp`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
 V3 carga Inventario, Pedidos y Clientes
 como plantillas globales; sus UUID coinciden con los del modo simulado del frontend. Este documento explica el
@@ -57,6 +58,8 @@ erDiagram
     registro ||--o| receta : "tiene"
     campo ||--o{ receta : "precio de los insumos"
     negocio ||--o{ lote_subida : sube
+    negocio ||--o| vinculo_whatsapp : "número de WhatsApp"
+    negocio ||--o{ mensaje_whatsapp : recibe
     bloque |o--o{ lote_subida : "destino elegido"
     lote_subida ||--o{ foto_cuaderno : contiene
     lote_subida ||--o{ lectura_ia : "se lee en"
@@ -125,6 +128,23 @@ erDiagram
         date fecha
         text nota "hasta 300"
     }
+    vinculo_whatsapp {
+        uuid id PK
+        uuid negocio_id FK "único; CASCADE"
+        text telefono "único; sólo dígitos; NULL = sin vincular"
+        text codigo "único; 6 dígitos; NULL = sin código pendiente"
+        timestamptz codigo_vence_en "10 minutos"
+    }
+    mensaje_whatsapp {
+        uuid id PK
+        uuid negocio_id FK "CASCADE"
+        text telefono
+        text wa_mensaje_id "único (id de Meta)"
+        text tipo "TEXTO | AUDIO"
+        text texto "sólo TEXTO"
+        text media_id "sólo AUDIO"
+        text estado "PENDIENTE | INTERPRETADO | ERROR"
+    }
     receta {
         uuid id PK
         uuid negocio_id FK
@@ -178,6 +198,8 @@ erDiagram
 | `movimiento_stock` | Una entrada o una salida de un producto (un `registro` de cualquier bloque) | Desde V7. El stock **no se guarda**: es la suma de entradas menos salidas de cada producto, y una salida no puede dejarlo en negativo (lo valida la app). FK compuesta `(negocio_id, registro_id) → registro (negocio_id, id)` (V7 agrega `ux_registro_negocio_id`) con `ON DELETE CASCADE`: borrar un producto borra su historial. `cantidad` es `numeric(14,3)` mayor a cero. |
 | `receta` | Qué insumos (otros registros) y cuánto de cada uno lleva un producto (un `registro`) | Desde V8. Un producto tiene una sola receta (`ux_receta_producto`). `campo_precio_id` es la columna numérica de la que sale el precio de cada insumo (los insumos son filas de su tabla). El costo **no se guarda**: se calcula al leer como la suma de `cantidad × precio actual`; un insumo sin precio o borrado deja la receta como incompleta. `lineas` es un arreglo JSON con la cantidad como texto para no perder decimales; borrar un insumo deja la línea colgando (como una conexión). Borrar el producto o la columna del precio borra la receta (`ON DELETE CASCADE`, FK compuestas por negocio). `unidad` es sólo una etiqueta: la cantidad se expresa en la misma unidad en la que está el precio. |
 | `registro` | Una fila cargada en un bloque | `valores` está indexado por **id de campo**, así renombrar un campo no rompe los datos viejos. El validador dinámico (T-022) controla tipo, obligatoriedad y opciones. Desde V2, `foto_origen_id` apunta a la foto de la que salió (T-103, T-104); si se borra la foto queda en `NULL`. |
+| `vinculo_whatsapp` | El número de WhatsApp de un negocio (T-106) | Desde V9. Una fila por negocio y un número en un solo negocio (`ux_vinculo_whatsapp_telefono`). Para vincular, la app genera un código de 6 dígitos que vence a los 10 minutos (`POST /api/whatsapp/vinculo/codigo`) y la persona lo manda por WhatsApp desde su número: el número del que llega el código queda vinculado y el código se borra. Si el número estaba en otro negocio, pasa al nuevo. `telefono` va como lo manda Meta (país y número, sólo dígitos). |
+| `mensaje_whatsapp` | Cada texto o nota de voz que llegó de un número vinculado (T-106) | Desde V9. Lo recibe el webhook de Meta (`/api/whatsapp/webhook`, firmado con el secreto de la app). Un número sin vincular se descarta: no carga datos en ningún negocio. `wa_mensaje_id` es único porque Meta reintenta el aviso. De un audio sólo se guarda `media_id` (el archivo queda en Meta y se descarga al transcribirlo, T-107). `estado` empieza en `PENDIENTE`; lo cambian T-142 y T-107 al interpretarlo. |
 | `lote_subida` | Una tanda de fotos del cuaderno para leer (T-090) | `estado` es la cola del worker (T-096): `PENDIENTE → PROCESANDO → LISTO` o `ERROR`, y después `CONFIRMADO` o `DESCARTADO`. `ERROR` exige `motivo_error`. `bloque_destino_id` es opcional (sumar a un bloque existente) y pasa a `NULL` si se borra el bloque. |
 | `foto_cuaderno` | Cada página subida (T-090) | Sólo guarda la **clave** del archivo en el almacenamiento privado (T-077), nunca la imagen. Tipos permitidos: JPEG, PNG, WEBP, HEIC y PDF. Posición única dentro del lote. |
 | `lectura_ia` | Cada intento de leer un lote con IA (T-096, T-098) | Un reintento suma una fila. Tiene `resultado` (JSON ya validado contra el esquema) **o** `motivo_error`, nunca ambos. Guarda proveedor, modelo, versión del prompt, tokens, costo y duración para medir consumo y precisión. |
@@ -190,6 +212,7 @@ erDiagram
 - `ix_registro_valores` GIN `jsonb_path_ops` sobre `valores`: búsqueda y filtros por contenido (T-026, T-050).
 - `ix_lote_subida_pendiente` parcial (`WHERE estado = 'PENDIENTE'`): el worker toma los lotes en orden de llegada (T-096).
 - `ix_lectura_ia_negocio (negocio_id, creado_en DESC)`: consumo de IA por negocio y período (T-098).
+- `ix_mensaje_whatsapp_pendiente` parcial (`WHERE estado = 'PENDIENTE'`): los mensajes por interpretar de cada negocio en orden de llegada (T-142).
 
 Los `ON DELETE SET NULL (columna)` de V2 necesitan PostgreSQL 15 o superior (local y CI usan 17).
 

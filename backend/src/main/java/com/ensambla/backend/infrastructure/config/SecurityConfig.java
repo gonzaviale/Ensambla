@@ -7,7 +7,6 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -46,6 +45,8 @@ public class SecurityConfig {
             HttpSecurity http, SecurityErrorHandler securityErrorHandler, UsuarioActivoFilter usuarioActivoFilter)
             throws Exception {
         PathPatternRequestMatcher.Builder paths = PathPatternRequestMatcher.withDefaults();
+        // Meta llama al webhook sin sesión ni token CSRF: cada aviso se valida con su firma (VerificadorWebhookMeta).
+        RequestMatcher webhookWhatsapp = paths.matcher("/api/whatsapp/webhook");
         RequestMatcher rutasPublicas = new OrRequestMatcher(
                 paths.matcher(HttpMethod.GET, "/api/plantillas"),
                 paths.matcher(HttpMethod.GET, "/api/plantillas/**"),
@@ -55,11 +56,12 @@ public class SecurityConfig {
                 paths.matcher(HttpMethod.GET, "/api/auth/csrf"),
                 paths.matcher(HttpMethod.POST, "/api/auth/register"),
                 paths.matcher(HttpMethod.POST, "/api/auth/login"),
-                paths.matcher(HttpMethod.POST, "/api/auth/logout"));
+                paths.matcher(HttpMethod.POST, "/api/auth/logout"),
+                webhookWhatsapp);
         http.authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(rutasPublicas).permitAll()
                 .anyRequest().authenticated())
-                .csrf(Customizer.withDefaults())
+                .csrf(csrf -> csrf.ignoringRequestMatchers(webhookWhatsapp))
                 .requestCache(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
