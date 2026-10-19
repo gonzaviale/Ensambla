@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.service.sami;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.sami.ConsumoIaSami;
+import com.ensambla.backend.domain.model.sami.taller.CampoTaller;
 import com.ensambla.backend.domain.model.sami.taller.ConsultaTaller;
 import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
 import com.ensambla.backend.domain.model.sami.taller.LlamadaHerramienta;
@@ -42,6 +43,9 @@ class TallerSamiServiceTest {
     private static final ConsumoIaSami CONSUMO = new ConsumoIaSami("bedrock", "haiku", 800, 90);
     private static final EstadoTaller ESTADO = new EstadoTaller("Mi almacén", "mosaic", List.of(
             new PiezaTaller("e1", "inventory", "Inventario", null, List.of())));
+    private static final EstadoTaller ESTADO_CON_DATOS = new EstadoTaller("Mi almacén", "mosaic", List.of(
+            new PiezaTaller("e1", "inventory", "Inventario", null, List.of(new CampoTaller("Producto", "text"))),
+            new PiezaTaller("e2", "clients", "Clientes", null, List.of())));
     private static final List<MensajeTaller> HISTORIAL = List.of(new MensajeTaller("sami", "Hola"));
 
     @Mock
@@ -126,7 +130,7 @@ class TallerSamiServiceTest {
     }
 
     @Test
-    @DisplayName("Si el modelo no escribió texto cuenta cuántos cambios hizo")
+    @DisplayName("Si el modelo no escribió texto cuenta lo que quedó hecho")
     void conversarShouldDescribeChangesWhenThereIsNoText() {
         givenQuotaAvailable();
         when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa("  ", List.of(
@@ -138,8 +142,40 @@ class TallerSamiServiceTest {
 
         RespuestaTaller dos = service.conversar(NEGOCIO_ID, "gastos", ESTADO, HISTORIAL, AHORA, LIMITE);
 
-        assertThat(uno.texto()).isEqualTo("Listo, hice el cambio. Mirá cómo queda.");
-        assertThat(dos.texto()).isEqualTo("Listo, hice 2 cambios. Mirá cómo queda.");
+        assertThat(uno.texto()).isEqualTo("Sumé gastos. Mirá cómo queda.");
+        assertThat(dos.texto()).isEqualTo("Sumé gastos. Cambié la distribución. Mirá cómo queda.");
+    }
+
+    @Test
+    @DisplayName("Describe con el nombre de cada pieza las piezas y los datos que se tocaron")
+    void conversarShouldDescribePiecesAndFieldsByName() {
+        givenQuotaAvailable();
+        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa(null, List.of(
+                new LlamadaHerramienta("quitar_pieza", Map.of("pieza", "e2")),
+                new LlamadaHerramienta("renombrar_pieza", Map.of("pieza", "e1", "nombre", "Productos")),
+                new LlamadaHerramienta("renombrar_sistema", Map.of("nombre", "Velas")),
+                new LlamadaHerramienta("agregar_campo", Map.of("pieza", "e1", "etiqueta", "Proveedor", "tipo", "text")),
+                new LlamadaHerramienta("quitar_campo", Map.of("pieza", "e1", "campo", "Producto"))), CONSUMO));
+
+        RespuestaTaller result = service.conversar(NEGOCIO_ID, "ordená", ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(result.texto()).isEqualTo("Quité clientes. Renombré inventario a Productos. Llamé al sistema Velas."
+                + " Sumé Proveedor a inventario. Quité Producto de inventario. Mirá cómo queda.");
+    }
+
+    @Test
+    @DisplayName("Describe una pieza que se sumó en el mismo turno con su nombre del catálogo")
+    void conversarShouldDescribePiecesAddedInTheSameTurn() {
+        givenQuotaAvailable();
+        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa(null, List.of(
+                new LlamadaHerramienta("agregar_pieza", Map.of("tipo", "expenses")),
+                new LlamadaHerramienta("agregar_campo", Map.of("pieza", "expenses", "etiqueta", "Rubro", "tipo", "text")),
+                new LlamadaHerramienta("separar_en_seccion", Map.of("pieza", "e2", "seccion", "Aparte"))), CONSUMO));
+
+        RespuestaTaller result = service.conversar(NEGOCIO_ID, "gastos", ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(result.texto())
+                .isEqualTo("Sumé gastos. Sumé Rubro a gastos. Pasé clientes a la sección Aparte. Mirá cómo queda.");
     }
 
     @Test

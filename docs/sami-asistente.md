@@ -155,6 +155,9 @@ filas), los últimos 6 mensajes y el mensaje. Cada turno se registra en `consumo
 | `cambiar_distribucion(layout)` | mosaic, single, two o three |
 | `ofrecer_opciones(pregunta, opciones)` | **no cambia nada**: Sami pregunta con una botonera |
 
+Si el modelo sólo invoca herramientas y no escribe nada (pasa seguido con Haiku), Sami cuenta lo que quedó hecho a
+partir de las acciones ya validadas («Sumé gastos. Quité clientes. Mirá cómo queda.»).
+
 `ofrecer_opciones` llega en el campo `opciones` de la respuesta (dato estructurado, sin parsear texto). La pantalla
 dibuja una botonera con 2 a 6 respuestas y **siempre** un último botón «Escribir otra cosa…» que enfoca el campo,
 como en Claude. Elegir una opción equivale a escribir su texto. Cada cambio de Sami se puede deshacer con «Deshacer lo
