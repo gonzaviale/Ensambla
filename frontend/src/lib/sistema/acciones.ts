@@ -480,23 +480,25 @@ function conectar(
   return hecho(descripcion);
 }
 
-/** Las filas de ejemplo que mandó Sami (cada valor bajo la etiqueta de su dato), listas para la pieza. */
+/**
+ * Las filas de ejemplo que mandó Sami (cada valor bajo la etiqueta de su dato), listas para la pieza. Una fila sin el
+ * dato principal (el primero: Producto, Nombre, Pedido…) se descarta: en la tabla se vería vacía.
+ */
 function filasDeEjemplo(pieza: Bloque, crudas: unknown): Fila[] {
+  const principal = pieza.fields[0]?.key;
   const filas: Fila[] = [];
   for (const cruda of lista(crudas)) {
     if (filas.length >= MAXIMO_DE_EJEMPLOS) break;
     if (!esObjeto(cruda)) continue;
     const fila: Fila = { id: id(), __example: true };
-    let conDatos = false;
     for (const [etiqueta, valor] of Object.entries(cruda)) {
       const campo =
         buscarCampo(pieza, etiqueta) ?? pieza.fields.find((item) => item.key === etiqueta);
       const convertido = campo ? valorDeEjemplo(campo, valor) : undefined;
       if (!campo || convertido === undefined) continue;
       fila[campo.key] = convertido;
-      conDatos = true;
     }
-    if (conDatos) filas.push(fila);
+    if (principal && fila[principal] !== undefined) filas.push(fila);
   }
   return filas;
 }

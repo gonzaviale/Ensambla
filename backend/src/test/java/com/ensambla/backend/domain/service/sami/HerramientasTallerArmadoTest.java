@@ -145,12 +145,14 @@ class HerramientasTallerArmadoTest {
         ejemplos.add(Map.of("Inventado", "x"));
         ejemplos.add(conNulo);
         ejemplos.add(Map.of("Producto", "x".repeat(81), "Cantidad", List.of(1)));
+        // Sin el dato principal (Producto) la fila se vería vacía en la tabla: se cae.
         ejemplos.add(Map.of("cantidad", 3, "Fiado", true, "Inventado", "y"));
+        ejemplos.add(Map.of("producto", "Vela lavanda", "cantidad", 2, "Fiado", true, "Inventado", "y"));
 
         ValidacionTaller result = validar(VACIO, llamada("agregar_pieza", Map.of("tipo", "sales", "ejemplos", ejemplos)));
 
-        assertThat(result.acciones().getFirst().argumentos())
-                .containsEntry("ejemplos", List.of(Map.of("Cantidad", 3, "Fiado", true)));
+        assertThat(result.acciones().getFirst().argumentos()).containsEntry("ejemplos",
+                List.of(Map.of("Producto", "Vela lavanda", "Cantidad", 2, "Fiado", true)));
     }
 
     @Test

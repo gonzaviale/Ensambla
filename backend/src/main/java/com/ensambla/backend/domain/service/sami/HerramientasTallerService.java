@@ -521,11 +521,15 @@ public class HerramientasTallerService {
                 .map(pregunta -> new OpcionesTaller(pregunta, opciones));
     }
 
-    /** Filas de ejemplo con etiquetas de {@code campos} y valores simples; las celdas y filas inválidas se caen. */
+    /**
+     * Filas de ejemplo con etiquetas de {@code campos} y valores simples; las celdas inválidas se caen. Una fila sin el
+     * dato principal de la pieza (el primero: Producto, Nombre, Pedido…) también se cae: en la tabla se vería vacía.
+     */
     private List<Map<String, Object>> filas(Object valor, List<CampoTaller> campos) {
+        Optional<String> principal = campos.stream().findFirst().map(CampoTaller::etiqueta);
         return mapas(valor).stream()
                 .map(pedida -> fila(pedida, campos))
-                .filter(fila -> !fila.isEmpty())
+                .filter(fila -> principal.map(fila::containsKey).orElse(false))
                 .limit(CatalogoTaller.MAX_FILAS_EJEMPLO)
                 .toList();
     }

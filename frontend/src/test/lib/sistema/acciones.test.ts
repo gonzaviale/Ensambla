@@ -779,6 +779,24 @@ describe('Sami ensambla el sistema desde cero', () => {
   });
 
   describe('cargar_ejemplos', () => {
+    it('descarta las filas sin el dato principal y, si no queda ninguna, conserva los ejemplos que había', () => {
+      aplicarAcciones(sistema, [
+        accion('agregar_pieza', {
+          tipo: 'inventory',
+          nombre: 'Velas',
+          ejemplos: [{ Producto: 'Vela lavanda', Cantidad: 8 }, { Cantidad: 3 }],
+        }),
+      ]);
+      expect(llamada('Velas').rows.map((fila) => fila.name)).toEqual(['Vela lavanda']);
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('cargar_ejemplos', { pieza: 'Velas', filas: [{ Cantidad: 5 }, { Precio: 900 }] }),
+      ]);
+
+      expect(resultado.omitidas).toEqual(['No pude cargar esos ejemplos en velas.']);
+      expect(llamada('Velas').rows.map((fila) => fila.name)).toEqual(['Vela lavanda']);
+    });
+
     it('reemplaza las filas de ejemplo de la pieza y deja las reales', () => {
       aplicarAcciones(sistema, [accion('agregar_pieza', { tipo: 'clients' })]);
       const clientes = llamada('Clientes');
