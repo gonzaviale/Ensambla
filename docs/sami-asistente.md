@@ -185,17 +185,17 @@ comparte contador con el asistente de plantillas.
 | Herramienta | Efecto en el taller |
 |---|---|
 | `usar_kit(rubro)` | **sólo backend**: se expande en `agregar_pieza` y `conectar` con todo el kit; cuenta como una acción |
-| `agregar_pieza(tipo, nombre?, campos?, ejemplos?, seccion?)` | suma un componente con su nombre, datos extra (≤ 8) y filas de ejemplo (≤ 5) |
+| `agregar_pieza(tipo, nombre?, campos?, seccion?)` | suma un componente con su nombre y datos extra (≤ 8). Las filas que el modelo mande como `ejemplos` se descartan siempre (ver «Nunca datos inventados») |
 | `quitar_pieza(pieza)` | quita una pieza |
-| `cargar_ejemplos(pieza, filas)` | reemplaza las filas de ejemplo (las reales quedan) |
 | `cargar_registros(pieza, filas)` | suma **registros reales** (por ejemplo, lo que se lee de una foto), hasta 30; se guardan al crear el sistema |
+| `borrar_registros(pieza, donde)` | quita de una pieza los registros que coinciden con `donde`: `{Cliente: "Anto Solari"}` (coinciden todos sus datos) o una lista de esos (≤ 10; basta con que coincida uno). **Nunca borra todo**: sin `donde`, o con un dato que la pieza no tiene o un valor que no es simple, el criterio no vale. Se identifican por sus datos porque Sami no conoce los ids de las filas |
 | `conectar(desde, hacia, etiqueta?)` | suma en `desde` un dato vínculo a `hacia` (o convierte en vínculo un dato con esa etiqueta) |
 | `renombrar_pieza(pieza, nombre)` / `renombrar_sistema(nombre)` | cambia nombres |
 | `agregar_campo(pieza, etiqueta, tipo, opciones?)` / `quitar_campo(pieza, campo)` | suma o quita un dato; `select` necesita 2 opciones |
 | `editar_campo(pieza, campo, etiqueta?, tipo?, opciones?, obligatorio?, posicion?)` | cambia un dato que ya existe: nombre, tipo, opciones, si es obligatorio y su lugar (desde 1); no cambia el tipo de un vínculo ni del primer dato |
 | `separar_en_seccion(pieza, seccion)` | pasa la pieza a una sección aparte |
 | `cambiar_distribucion(layout)` | mosaic, single, two o three |
-| `ofrecer_opciones(pregunta, opciones)` | **no cambia nada**: Sami pregunta con una botonera |
+| `ofrecer_opciones(preguntas[{tema?, pregunta, opciones}])` o `ofrecer_opciones(pregunta, opciones)` | **no cambia nada**: Sami plantea hasta 3 dudas con botonera en una sola llamada (con una sola alcanza `pregunta` y `opciones`; varias llamadas del turno se juntan) |
 
 **Mandarle una foto a Sami.** La cámara del taller (también en «Ajustar con Sami») adjunta una foto del cuaderno, una
 lista o una planilla al próximo mensaje. El navegador la achica (lado mayor 1600 px) y viaja en
@@ -208,19 +208,45 @@ foto no se guarda ni viaja en el historial.
 
 **Con foto, Sami conversa antes de dar nada por hecho.** La línea `CON_FOTO` de `PromptTaller` le pide, en orden:
 (1) contar en 1 o 2 frases lo que **entendió** de la foto; (2) hacer **una pregunta de confirmación con botonera**
-(`ofrecer_opciones`) sobre lo más ambiguo (por ejemplo, si los tildes son lo ya pagado y lo sin tildar es deuda), sin
-bloquear; (3) armar una **primera versión**: los pedidos de clientes van en Ventas (o Pedidos) con su Cliente, nunca
+(`ofrecer_opciones`) con **todas** sus dudas juntas (hasta 3: qué significan los tildes, si el número de la derecha es
+costo o deuda, cuál de dos totales es el correcto), sin bloquear; (3) armar una **primera versión**: los pedidos de clientes van en Ventas (o Pedidos) con su Cliente, nunca
 en Compras con la clienta de proveedora, y la deuda sale de esos pedidos (Fiado), sin inventar nada que no esté en
 la foto. Con las respuestas de la persona en el turno siguiente (viajan en el historial), Sami ajusta con las
-herramientas de siempre (`editar_campo`, `cargar_registros`…). Hoy la botonera admite una sola pregunta por turno; la
-segunda duda queda para el turno siguiente. El modelo suele invocar una sola herramienta por respuesta, así que el
-segundo pedido del turno (`PEDIDO_REGISTROS`) le pide juntas `cargar_registros` y `ofrecer_opciones`; esa duda
-reemplaza a la pregunta genérica del kit (que no tiene que ver con la foto). `cargar_registros` suma: si Sami recarga
-las filas en un turno de ajuste, no borra las anteriores (pendiente).
+herramientas de siempre (`editar_campo`, `cargar_registros`…). El modelo suele invocar una sola herramienta por
+respuesta, así que el backend le hace pedidos extra, cada uno una vez y viendo ya las piezas armadas:
+`PEDIDO_REGISTROS` si no cargó lo que lee (le pide `cargar_registros` y las dudas juntas; esas dudas reemplazan a la
+pregunta genérica del kit) y `PEDIDO_DUDAS` si con foto no dejó ninguna duda. Además de las ventas por clienta, carga
+la pieza de productos con los productos **distintos** (nombre y precio de lista, sin inventar costos ni stock) y
+separa en cada fila Cliente, Producto sin la cantidad, Cantidad numérica (1/2 = 0,5) y Precio.
 
-Lo leído de la foto son datos reales y no se mezclan con ejemplos: en un turno con foto el backend quita las filas de
-ejemplo de las piezas que arma (también las del kit), y `cargar_registros` en el taller reemplaza las filas de
-ejemplo de esa pieza por los registros leídos.
+**Varias dudas, respondidas de a una y enviadas juntas.** La respuesta trae `preguntas[{tema?, pregunta, opciones}]`.
+La pantalla (`BotoneraDeDudas`) muestra una por vez («Duda 1 de 3») con sus botones, «Escribir otra respuesta…» y
+«Saltear esta duda»; al responder la última (o saltear lo que quedaba) arma **un solo mensaje** con las respuestas
+(`Tildes: ya entregado y cobrado. Número de la derecha: lo que me deben.`; usa el `tema` o, si no hay, la pregunta) y lo
+manda en un único turno. Lo salteado no viaja; si se saltea todo no se manda nada. Con una sola duda es la botonera de
+siempre y la respuesta va tal cual. Las preguntas de la botonera viajan en el historial como lo último que dijo Sami.
+
+**Corregir sin duplicar.** `cargar_registros` suma; para recargar lo ya cargado Sami usa `borrar_registros` y a
+continuación `cargar_registros` en la misma respuesta (el prompt se lo indica). Si la persona pidió recargar, Sami borró y
+no cargó, el backend le hace un pedido extra (`PEDIDO_RECARGA`) para que cargue lo corregido. En el frontend
+(`acciones.ts`) el criterio se compara sin importar mayúsculas ni tildes y convertido al tipo del dato (un vínculo se
+compara con el nombre de la fila vinculada); los vínculos de otras piezas que apuntaban a lo borrado quedan vacíos. El
+texto de lo que hizo dice qué borró («Borré los registros de ventas donde Cliente es Anto Sdani») y la regla
+`AFIRMA_CAMBIOS` vale también para «borré» y «eliminé»: si lo dice sin invocar la herramienta, se le pide una vez que lo
+haga y, si no, responde que no pudo.
+
+**Nunca datos inventados.** Las filas que inventa el modelo (`ejemplos` de `agregar_pieza`, y la herramienta
+`cargar_ejemplos`, que se eliminó) se descartan **siempre**. Los únicos ejemplos válidos son los del kit del catálogo
+(`kits-rubro.json`) y sólo al armar un sistema nuevo sin foto: con foto, o ajustando un sistema que ya tiene piezas, se
+quitan también. El prompt prohíbe inventar filas: si no hay datos, la pieza queda vacía. En el frontend, toda fila de
+ejemplo se ve distinta en la vista previa (fondo y cursiva apagados, etiqueta «Ejemplo» y el aviso «Datos de ejemplo,
+no son reales») y `cargar_registros` reemplaza las filas de ejemplo de esa pieza; los ejemplos nunca se guardan.
+
+**Completitud.** Las filas pedidas con `cargar_registros` que no se pueden cargar (sin el dato principal, de más de 30 o
+con una pieza inexistente) se cuentan (`ValidacionTaller.registrosDescartados`) y se loguean con `WARN`; Sami agrega a
+su texto «No pude cargar N renglones de la foto: faltan en la tabla, revisalos» en vez de afirmar que cargó todo. El tope
+de tokens de salida del taller (`ENSAMBLA_SAMI_IA_MAX_TOKENS_TALLER`) ahora es 8000 por defecto (900 cortaba la carga de
+un cuaderno entero); si el modelo corta por tope (`MAX_TOKENS` en Bedrock) queda un `WARN`.
 
 **Ajustar con Sami un sistema ya creado.** En la pantalla de un sistema, «Ajustar con Sami» abre el taller con ese
 sistema (`/taller?sistema=<id>`): Sami lo ve con sus piezas y datos y lo cambia con las mismas herramientas. La
@@ -245,9 +271,9 @@ evaluación mide al modelo sin este reintento.
 renombrar una pieza a su mismo nombre no cuenta; y si un kit trae clientes, el dato Cliente de sus ventas va al lugar 2,
 porque la vista de cada tabla muestra sólo los primeros 4 datos.
 
-`ofrecer_opciones` llega en el campo `opciones` de la respuesta (dato estructurado, sin parsear texto). La pantalla
-dibuja una botonera con 2 a 6 respuestas y **siempre** un último botón «Escribir otra cosa…» que enfoca el campo,
-como en Claude. Elegir una opción equivale a escribir su texto. Cada cambio de Sami se puede deshacer con «Deshacer lo
+`ofrecer_opciones` llega en el campo `preguntas` de la respuesta (lista de hasta 3; vacía si no hay; dato estructurado,
+sin parsear texto). La pantalla dibuja una botonera con 2 a 6 respuestas y **siempre** un último botón «Escribir otra
+cosa…» (con una duda, enfoca el campo, como en Claude). Elegir una opción equivale a escribir su texto. Cada cambio de Sami se puede deshacer con «Deshacer lo
 último».
 
 **Validación (`HerramientasTallerService`).** El modelo nunca escribe el sistema: se descarta toda herramienta
@@ -258,7 +284,7 @@ sobre una copia del estado. El frontend (`aplicarAcciones` en `lib/sistema/accio
 convierte cada valor al tipo del dato.
 
 **Contrato.** Request: `{mensaje, estado: {nombre, distribucion, piezas[{id, tipo, nombre, seccion, campos[{etiqueta,
-tipo}]}]}, historial[{quien, texto}]}`. Response: `{respuesta, acciones[{herramienta, argumentos}], opciones}`.
+tipo}]}]}, historial[{quien, texto}]}`. Response: `{respuesta, acciones[{herramienta, argumentos}], preguntas[{tema?, pregunta, opciones}]}`.
 
 ### Evaluación
 
@@ -289,6 +315,9 @@ mínimo que pide Haiku.
 > (respondió 429 a ráfagas de 25 pedidos): el test espera entre casos y reintenta.
 
 ## Pendiente
+
+- `borrar_registros` no tiene un modo «todas las filas de la pieza»: se borra por criterio (hasta 10). Sami tampoco ve las filas ya cargadas (el estado compacto no las lleva), así que depende de lo que recuerde de la charla o de que la persona se las diga.
+- El tope de tokens por turno es fijo; un cuaderno muy largo (más de 30 renglones por pieza) se parte a mano en dos mensajes.
 
 - Frases reales para medir el acierto (ver arriba) y conversaciones reales para el taller.
 - Aviso a Gonzalo: el taller del mockup (`/taller`) ahora habla con el backend de Sami y se retiró su API simulada
