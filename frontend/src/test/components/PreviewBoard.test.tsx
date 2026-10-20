@@ -27,4 +27,15 @@ describe('las filas de ejemplo en la vista previa', () => {
     expect(screen.queryByText('Ejemplo')).not.toBeInTheDocument();
     expect(screen.queryByText('Datos de ejemplo, no son reales')).not.toBeInTheDocument();
   });
+
+  it('avisa cuántas filas se ven cuando la tabla tiene más de las que entran en la vista previa', () => {
+    const sistema = makeTemplate('shop', {}, true);
+    const inventario = allBlocks(sistema).find((bloque) => bloque.type === 'inventory');
+    if (!inventario) throw new Error('Falta el inventario');
+    const base = inventario.rows[0];
+    inventario.rows = Array.from({ length: 16 }, (_, i) => ({ ...base, id: `fila-${i}`, __example: undefined }));
+    render(<PreviewBoard sistema={sistema} />);
+
+    expect(screen.getByText('Se ven 3 de 16 filas; el resto está cargado.')).toBeVisible();
+  });
 });

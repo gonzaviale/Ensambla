@@ -2799,6 +2799,11 @@ body.resizing {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+.preview-more {
+  margin: 4px 0 0;
+  font-size: 8px;
+  color: #6b6350;
+}
 .example-notice {
   margin: 4px 0 0;
   font-size: 8px;

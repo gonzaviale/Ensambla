@@ -109,6 +109,11 @@ function Contenido({
           )}
         </tbody>
       </table>
+      {bloque.rows.length > filas.length && (
+        <p className="preview-more">
+          Se ven {filas.length} de {bloque.rows.length} filas; el resto está cargado.
+        </p>
+      )}
       {filas.some((fila) => fila.__example) && (
         <p className="example-notice">Datos de ejemplo, no son reales</p>
       )}
