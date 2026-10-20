@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { buscarDirecciones, listarRubros } from '@/api/ubicacion';
+import { buscarDirecciones, listarRubros, resolverLocalidad } from '@/api/ubicacion';
 import { leerErrorServidor } from '@/hooks/errores';
 import {
+  coincideLocalidad,
   errorDeConsulta,
   leerPunto,
   normalizarConsulta,
@@ -13,6 +14,12 @@ import { env } from '@/config/env';
 import { useConfiguracionNegocio } from '@/hooks/negocio/queries';
 import { useActualizarNegocio } from '@/hooks/negocio/mutations';
 import { cambiosNegocioSchema } from '@/types/negocio';
+
+// Espera tras el último movimiento del punto: el proveedor del mapa admite una consulta por segundo.
+const ESPERA_LOCALIDAD_MS = 700;
+
+// Las localidades que el mapa reconoce en un punto, con la clave del punto al que pertenecen.
+type LocalidadesDelPunto = { clave: string; localidades: string[] };
 
 // Los cambios son un borrador hasta confirmar el PATCH. La carga nunca reemplaza una edición en curso.
 export function useConfiguracionUbicacion() {
@@ -44,6 +51,54 @@ export function useConfiguracionUbicacion() {
   const [errorRevision, setErrorRevision] = useState('');
   const [revision, setRevision] = useState<ConfiguracionUbicacion | null>(null);
   const pedido = useRef<AbortController | null>(null);
+  const [delMapa, setDelMapa] = useState<LocalidadesDelPunto | null>(null);
+  const [errorLocalidad, setErrorLocalidad] = useState('');
+  const [reintentosLocalidad, setReintentosLocalidad] = useState(0);
+  // Verdadero tras elegir o mover el punto: la próxima localidad del mapa reemplaza la escrita.
+  const seguirAlMapa = useRef(false);
+
+  const punto = useMemo(
+    () => (direccion ? leerPunto(latitud, longitud) : null),
+    [direccion, latitud, longitud],
+  );
+  const clavePunto = punto ? `${punto.latitud},${punto.longitud}` : '';
+
+  useEffect(() => {
+    setErrorLocalidad('');
+    if (!punto) return;
+    const actual = new AbortController();
+    const temporizador = setTimeout(async () => {
+      try {
+        const respuesta = await resolverLocalidad(punto, actual.signal);
+        if (actual.signal.aborted) return;
+        setDelMapa({ clave: `${punto.latitud},${punto.longitud}`, localidades: respuesta.localidades });
+        if (seguirAlMapa.current && respuesta.localidad) setLocalidad(respuesta.localidad);
+        seguirAlMapa.current = false;
+      } catch (error) {
+        if (!actual.signal.aborted)
+          setErrorLocalidad(
+            leerErrorServidor(error)?.mensaje ?? 'No pudimos verificar la localidad con el mapa.',
+          );
+      }
+    }, ESPERA_LOCALIDAD_MS);
+    return () => {
+      clearTimeout(temporizador);
+      actual.abort();
+    };
+  }, [punto, reintentosLocalidad]);
+
+  // Una respuesta vale sólo para el punto que la pidió: al mover el pin deja de contar al instante.
+  const localidadesDelMapa = delMapa?.clave === clavePunto && punto ? delMapa.localidades : null;
+  const localidadDelMapa = localidadesDelMapa?.[0] ?? null;
+  const verificandoLocalidad = !!punto && localidadesDelMapa === null && !errorLocalidad;
+  const localidadNoCoincide =
+    localidadesDelMapa !== null && !coincideLocalidad(localidad, localidadesDelMapa);
+  const errorDeLocalidad =
+    errorLocalidad ||
+    (localidadNoCoincide
+      ? `La localidad no coincide con la del mapa${localidadDelMapa ? ` (${localidadDelMapa})` : ''}.`
+      : '');
+  const localidadBloquea = !!punto && (localidadesDelMapa === null || localidadNoCoincide);
 
   useEffect(() => {
     const datos = configuracion.data;
@@ -118,6 +173,8 @@ export function useConfiguracionUbicacion() {
 
   const elegirDireccion = (valor: Direccion) => {
     cambio();
+    seguirAlMapa.current = true;
+    if (valor.localidad) setLocalidad(valor.localidad);
     setDireccion(valor);
     setLatitud(String(valor.latitud));
     setLongitud(String(valor.longitud));
@@ -125,16 +182,18 @@ export function useConfiguracionUbicacion() {
     setRevision(null);
   };
 
-  const moverPunto = (punto: Punto) => {
+  const moverPunto = (nuevo: Punto) => {
     cambio();
-    setLatitud(punto.latitud.toFixed(6));
-    setLongitud(punto.longitud.toFixed(6));
+    seguirAlMapa.current = true;
+    setLatitud(nuevo.latitud.toFixed(6));
+    setLongitud(nuevo.longitud.toFixed(6));
     setRevision(null);
     setErrorRevision('');
   };
 
   const cambiarCoordenada = (eje: 'latitud' | 'longitud', valor: string) => {
     cambio();
+    seguirAlMapa.current = true;
     (eje === 'latitud' ? setLatitud : setLongitud)(valor);
     setRevision(null);
     setErrorRevision('');
@@ -165,6 +224,12 @@ export function useConfiguracionUbicacion() {
     setErrorGuardado('');
     const revisada = revisar();
     if (!revisada) return;
+    if (localidadBloquea) {
+      setErrorGuardado(
+        errorDeLocalidad || 'Esperá a que verifiquemos la localidad con el mapa para guardar.',
+      );
+      return;
+    }
     const datos = cambiosNegocioSchema.safeParse({
       nombre,
       rubro: revisada.rubro.codigo,
@@ -212,8 +277,19 @@ export function useConfiguracionUbicacion() {
     },
     cambiarLocalidad: (valor: string) => {
       cambio();
+      seguirAlMapa.current = false;
       setLocalidad(valor);
     },
+    localidadDelMapa,
+    errorLocalidad: errorDeLocalidad,
+    verificandoLocalidad,
+    localidadBloquea,
+    usarLocalidadDelMapa: () => {
+      if (!localidadDelMapa) return;
+      cambio();
+      setLocalidad(localidadDelMapa);
+    },
+    reintentarLocalidad: () => setReintentosLocalidad((cantidad) => cantidad + 1),
     cambiarCompartir: (valor: boolean) => {
       cambio();
       setComparteDatosZona(valor);
@@ -240,7 +316,7 @@ export function useConfiguracionUbicacion() {
     longitud,
     cambiarCoordenada,
     moverPunto,
-    punto: direccion ? leerPunto(latitud, longitud) : null,
+    punto,
     rubro,
     cambiarRubro,
     rubros: rubros.data?.rubros ?? [],

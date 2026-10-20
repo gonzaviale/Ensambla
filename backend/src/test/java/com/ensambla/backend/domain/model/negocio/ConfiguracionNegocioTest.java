@@ -77,6 +77,23 @@ class ConfiguracionNegocioTest {
     }
 
     @Test
+    @DisplayName("La misma ubicación guardada no cuenta como cambio")
+    void cambiaUbicacionShouldBeFalseForSameLocation() {
+        assertThat(givenNegocio().cambiaUbicacion(givenUbicacion("-34", "-58"))).isFalse();
+    }
+
+    @Test
+    @DisplayName("Cambiar la latitud, la longitud o la localidad cuenta como cambio")
+    void cambiaUbicacionShouldBeTrueWhenPointOrLocalityDiffers() {
+        Negocio negocio = givenNegocio();
+
+        assertThat(negocio.cambiaUbicacion(givenUbicacion("-35", "-58"))).isTrue();
+        assertThat(negocio.cambiaUbicacion(givenUbicacion("-34", "-59"))).isTrue();
+        assertThat(negocio.cambiaUbicacion(new UbicacionNegocio("Calle 1", "Ramos Mejía",
+                new BigDecimal("-34"), new BigDecimal("-58")))).isTrue();
+    }
+
+    @Test
     @DisplayName("Necesita zona si tiene punto y no tiene zona")
     void necesitaZonaShouldBeTrueForPointWithoutZone() {
         Negocio negocio = givenNegocio();

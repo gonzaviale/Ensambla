@@ -61,8 +61,13 @@ export function UbicacionPage() {
             comparteDatosZona={estado.comparteDatosZona}
             zona={estado.zona}
             ubicacionGuardada={estado.ubicacionGuardada}
+            localidadDelMapa={estado.localidadDelMapa}
+            errorLocalidad={estado.errorLocalidad}
+            verificandoLocalidad={estado.verificandoLocalidad}
             onNombre={estado.cambiarNombre}
             onLocalidad={estado.cambiarLocalidad}
+            onUsarLocalidadDelMapa={estado.usarLocalidadDelMapa}
+            onReintentarLocalidad={estado.reintentarLocalidad}
             onCompartir={estado.cambiarCompartir}
           />
           <div className="ubicacion-grid">
@@ -105,7 +110,12 @@ export function UbicacionPage() {
             <button
               type="button"
               className="btn primary"
-              disabled={estado.buscando || estado.cargandoRubros || !!estado.errorRubros}
+              disabled={
+                estado.buscando ||
+                estado.cargandoRubros ||
+                !!estado.errorRubros ||
+                estado.localidadBloquea
+              }
               onClick={() => void estado.guardar()}
             >
               {estado.guardando ? 'Guardando…' : 'Guardar configuración'}

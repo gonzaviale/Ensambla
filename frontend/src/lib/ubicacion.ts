@@ -16,6 +16,20 @@ export function errorDeConsulta(consulta: string) {
     : '';
 }
 
+const sinTildes = (texto: string) =>
+  texto
+    .normalize('NFD')
+    .replace(/\p{M}+/gu, '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ');
+
+// Misma regla que el backend: sin mayúsculas, tildes ni espacios de más. Si el mapa no
+// reconoce ninguna localidad en el punto, no hay nada que contradecir.
+export function coincideLocalidad(escrita: string, delMapa: string[]) {
+  return delMapa.length === 0 || delMapa.some((nombre) => sinTildes(nombre) === sinTildes(escrita));
+}
+
 export function leerPunto(latitud: string, longitud: string) {
   if (!latitud.trim() || !longitud.trim()) return null;
   const parsed = puntoSchema.safeParse({
