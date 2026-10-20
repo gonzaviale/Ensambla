@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.exception.CredencialesInvalidasException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
+import com.ensambla.backend.domain.exception.LecturaCuadernoException;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -115,6 +116,13 @@ public class GlobalExceptionHandler {
                                                             HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST,
                 "Cada foto puede pesar hasta 10 MB y el lote hasta 100 MB", request, null);
+    }
+
+    /** La IA no pudo leer la foto o devolvió algo inválido: el mensaje ya está pensado para la persona. */
+    @ExceptionHandler(LecturaCuadernoException.class)
+    public ResponseEntity<ErrorResponse> handleLecturaCuaderno(LecturaCuadernoException e,
+                                                              HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_GATEWAY, e.getMessage(), request, null);
     }
 
     @ExceptionHandler(Exception.class)

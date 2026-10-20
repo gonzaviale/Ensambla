@@ -8,4 +8,6 @@
 /* Lo único propio: «Mi zona» y «Armalo con Sami» (contra el backend real), que el mockup no tiene. */
 @import './zona.css';
 @import './sami-proyecto.css';
+/* La revisión de lo que leyó una foto en tarjetas y los campos nuevos detectados. */
+@import './revision.css';
 @import './overrides.css';

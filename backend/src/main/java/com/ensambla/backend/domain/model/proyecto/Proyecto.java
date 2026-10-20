@@ -2,6 +2,8 @@ package com.ensambla.backend.domain.model.proyecto;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
+import com.ensambla.backend.domain.model.enums.DistribucionProyecto;
+import com.ensambla.backend.domain.model.enums.PlantillaSistema;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
@@ -46,6 +48,22 @@ public class Proyecto {
 
     /** Plantilla de origen; null si se creó en blanco o si la plantilla ya no existe. */
     private UUID plantillaId;
+
+    /** Plantilla de sistema del frontend (almacén, depósito, pedidos y clientes); null si se armó a medida. */
+    private PlantillaSistema plantillaClave;
+
+    @Builder.Default
+    private DistribucionProyecto distribucion = DistribucionProyecto.MOSAICO;
+
+    @Builder.Default
+    private Boolean conMovimientos = false;
+
+    @Builder.Default
+    private Boolean conGastos = false;
+
+    /** El almacén de ejemplo que arma el panel de avisos. */
+    @Builder.Default
+    private Boolean esDemo = false;
 
     private OffsetDateTime creadoEn;
 

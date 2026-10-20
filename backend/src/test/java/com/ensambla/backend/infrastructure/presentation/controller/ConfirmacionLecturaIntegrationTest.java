@@ -27,6 +27,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static com.ensambla.backend.support.LoteTestData.JPEG;
@@ -349,7 +350,126 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    @DisplayName("Suma las filas a una tabla existente, le agrega la columna nueva y no toca los registros previos")
+    void confirmarShouldAddNewFieldAndRowsToExistingBloque() throws Exception {
+        BloqueExistente bloque = givenBloqueConfirmado();
+        List<Map<String, Object>> antes = registrosDe(bloque.id());
+        UUID otroLote = givenLote("LISTO", UUID.randomUUID());
+
+        confirmar(otroLote, cuerpoConTelefono(bloque, "40", "11 4444-5555"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.bloqueId").value(bloque.id()))
+                .andExpect(jsonPath("$.registros").value(2));
+
+        assertThat(contar("campo")).isEqualTo(3);
+        UUID telefono = jdbcTemplate.queryForObject(
+                "SELECT id FROM campo WHERE bloque_id = ?::uuid AND nombre = 'Teléfono'", UUID.class, bloque.id());
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT posicion FROM campo WHERE id = ?", Integer.class, telefono)).isEqualTo(2);
+        assertThat(contar("registro")).isEqualTo(4);
+        assertThat(jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM registro WHERE bloque_id = ?::uuid AND valores ->> ? = '11 4444-5555'
+                """, Integer.class, bloque.id(), telefono.toString())).isEqualTo(2);
+        assertThat(registrosDe(bloque.id()).stream().filter(antes::contains).toList())
+                .containsExactlyInAnyOrderElementsOf(antes);
+        assertThat(estadoDelLote(otroLote)).isEqualTo("CONFIRMADO");
+    }
+
+    @Test
+    @DisplayName("Si una fila es inválida no queda la columna nueva ni los registros y el lote sigue listo")
+    void confirmarShouldRollbackNewFieldWhenRowIsInvalid() throws Exception {
+        BloqueExistente bloque = givenBloqueConfirmado();
+        List<Map<String, Object>> antes = registrosDe(bloque.id());
+        UUID otroLote = givenLote("LISTO", UUID.randomUUID());
+
+        confirmar(otroLote, cuerpoConTelefono(bloque, "\"mucho\"", "11 4444-5555"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors['filas[1].monto']").value("Tiene que ser un número"));
+
+        assertThat(contar("campo")).isEqualTo(2);
+        assertThat(registrosDe(bloque.id())).containsExactlyInAnyOrderElementsOf(antes);
+        assertThat(estadoDelLote(otroLote)).isEqualTo("LISTO");
+    }
+
+    @Test
+    @DisplayName("Si una columna nueva repite el nombre de un campo no se crea ninguna de las nuevas")
+    void confirmarShouldRollbackEveryNewFieldWhenOneNameIsTaken() throws Exception {
+        BloqueExistente bloque = givenBloqueConfirmado();
+        UUID otroLote = givenLote("LISTO", UUID.randomUUID());
+        String cuerpo = """
+                {
+                  "bloqueId": "%s",
+                  "campos": [
+                    {"clave": "monto", "campoId": "%s", "nombre": "Monto", "tipo": "NUMERO"},
+                    {"clave": "telefono", "nombre": "Teléfono", "tipo": "TEXTO"},
+                    {"clave": "importe", "nombre": " monto ", "tipo": "NUMERO"}
+                  ],
+                  "filas": [{"pagina": 1, "valores": {"monto": 40, "telefono": "1", "importe": 5}}]
+                }
+                """.formatted(bloque.id(), bloque.campoMonto());
+
+        confirmar(otroLote, cuerpo).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors['campos[2].nombre']").value("Ya hay un campo llamado \"monto\" en este bloque"));
+
+        assertThat(contar("campo")).isEqualTo(2);
+        assertThat(contar("registro")).isEqualTo(2);
+        assertThat(estadoDelLote(otroLote)).isEqualTo("LISTO");
+    }
+
+    @Test
+    @DisplayName("Dos columnas que apuntan al mismo campo de la tabla se rechazan y no se guarda nada")
+    void confirmarShouldRejectTwoColumnsForTheSameField() throws Exception {
+        BloqueExistente bloque = givenBloqueConfirmado();
+        UUID otroLote = givenLote("LISTO", UUID.randomUUID());
+        String cuerpo = """
+                {
+                  "bloqueId": "%s",
+                  "campos": [
+                    {"clave": "monto", "campoId": "%s", "nombre": "Monto", "tipo": "NUMERO"},
+                    {"clave": "importe", "campoId": "%s", "nombre": "Monto", "tipo": "NUMERO"}
+                  ],
+                  "filas": [{"pagina": 1, "valores": {"monto": 40, "importe": 5}}]
+                }
+                """.formatted(bloque.id(), bloque.campoMonto(), bloque.campoMonto());
+
+        confirmar(otroLote, cuerpo).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Dos columnas no pueden guardarse en el mismo campo de la tabla"));
+
+        assertThat(contar("registro")).isEqualTo(2);
+        assertThat(estadoDelLote(otroLote)).isEqualTo("LISTO");
+    }
+
     // --- arrange ---
+    private record BloqueExistente(String id, UUID campoMonto) {
+    }
+
+    /** Una tabla que ya tiene datos: la que dejaría una primera lectura confirmada (Monto y Pagado, 2 registros). */
+    private BloqueExistente givenBloqueConfirmado() throws Exception {
+        String bloqueId = JsonPath.read(
+                confirmar(loteId, CUERPO_NUEVO).andReturn().getResponse().getContentAsString(), "$.bloqueId");
+        UUID campoMonto = jdbcTemplate.queryForObject(
+                "SELECT id FROM campo WHERE bloque_id = ?::uuid AND nombre = 'Monto'", UUID.class, bloqueId);
+        return new BloqueExistente(bloqueId, campoMonto);
+    }
+
+    /** Dos filas que suman a la tabla y traen la columna nueva «Teléfono» (el monto de la segunda se pasa tal cual). */
+    private String cuerpoConTelefono(BloqueExistente bloque, String montoSegundaFila, String telefono) {
+        return """
+                {
+                  "bloqueId": "%s",
+                  "campos": [
+                    {"clave": "monto", "campoId": "%s", "nombre": "Monto", "tipo": "NUMERO"},
+                    {"clave": "telefono", "nombre": "Teléfono", "tipo": "TEXTO"}
+                  ],
+                  "filas": [
+                    {"pagina": 1, "valores": {"monto": 20, "telefono": "%s"}},
+                    {"pagina": 1, "valores": {"monto": %s, "telefono": "%s"}}
+                  ]
+                }
+                """.formatted(bloque.id(), bloque.campoMonto(), telefono, montoSegundaFila, telefono);
+    }
+
     private UUID givenLote(String estado, UUID foto) {
         UUID id = UUID.randomUUID();
         String clave = negocioId + "/fotos/" + foto + ".jpg";
@@ -390,6 +510,12 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
     private int contar(String tabla) {
         return jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM " + tabla + " WHERE negocio_id = ?", Integer.class, negocioId);
+    }
+
+    private List<Map<String, Object>> registrosDe(String bloqueId) {
+        return jdbcTemplate.queryForList(
+                "SELECT id::text AS id, valores::text AS valores, actualizado_en::text AS actualizado_en "
+                        + "FROM registro WHERE bloque_id = ?::uuid ORDER BY id", bloqueId);
     }
 
     private int contarConFoto(UUID foto) {

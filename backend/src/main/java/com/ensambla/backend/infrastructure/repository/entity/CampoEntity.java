@@ -17,6 +17,7 @@ import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -62,6 +63,12 @@ public class CampoEntity {
 
     @Column(columnDefinition = "text")
     private String formula;
+
+    @Column(columnDefinition = "text")
+    private String clave;
+
+    @Column(precision = 14, scale = 3)
+    private BigDecimal minimo;
 
     @Column(nullable = false)
     private Short posicion;

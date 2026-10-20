@@ -59,7 +59,7 @@ opción y sí/no.
   su plantilla y descarta a las otras que esa pregunta separaba.
 
 Los nombres de plantilla tienen que existir en la base (hay un test contra Postgres). Las plantillas **Ventas** y
-**Gastos** las sembró `V9`, porque con las tres originales no había adónde apuntar «vendo velas».
+**Gastos** las sembró `V12`, porque con las tres originales no había adónde apuntar «vendo velas».
 
 ### Cómo se mide
 
@@ -87,7 +87,7 @@ Se activa con `ensambla.sami.ia.proveedor=bedrock` (variables `ENSAMBLA_SAMI_*`,
 | `limite-diario-ia` | `20` | consultas con IA por negocio y por día (UTC) |
 
 - **Costo medido** con Haiku 4.5 real: ≈ 830 tokens de entrada y 100 de salida por consulta.
-- **Consumo**: `consumo_sami_diario` (migración `V10`) guarda, por negocio y día, las consultas y los tokens. La
+- **Consumo**: `consumo_sami_diario` (migración `V13`) guarda, por negocio y día, las consultas y los tokens. La
   reserva es atómica en una sola sentencia, así que pedidos simultáneos no pasan el límite; un rechazo por límite no
   llama a la IA.
 - **Prueba contra Bedrock real**: `SAMI_BEDROCK_PERFIL=<perfil> ./mvnw test -Dtest=SamiBedrockRealTest`. Se salta sola

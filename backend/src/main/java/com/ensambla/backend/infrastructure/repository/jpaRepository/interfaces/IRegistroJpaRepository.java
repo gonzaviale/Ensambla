@@ -100,6 +100,8 @@ public interface IRegistroJpaRepository extends JpaRepository<RegistroEntity, UU
 
     Optional<RegistroEntity> findByIdAndNegocioId(UUID id, UUID negocioId);
 
+    List<RegistroEntity> findAllByBloqueIdAndNegocioIdOrderByCreadoEnAscIdAsc(UUID bloqueId, UUID negocioId);
+
     List<RegistroEntity> findAllByIdInAndBloqueIdAndNegocioIdOrderByCreadoEnDescIdDesc(
             Collection<UUID> ids, UUID bloqueId, UUID negocioId);
 

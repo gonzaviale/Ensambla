@@ -1,5 +1,8 @@
 package com.ensambla.backend.domain.model.bloque;
 
+import com.ensambla.backend.domain.model.enums.AnchoBloque;
+import com.ensambla.backend.domain.model.enums.ColorBloque;
+import com.ensambla.backend.domain.model.enums.TipoBloque;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
@@ -29,6 +32,31 @@ public class Bloque {
     private String nombre;
 
     private Short posicion;
+
+    private UUID seccionId;
+
+    @Builder.Default
+    private TipoBloque tipo = TipoBloque.FORMULARIO;
+
+    @Builder.Default
+    private String descripcion = "";
+
+    @Builder.Default
+    private ColorBloque color = ColorBloque.CELESTE;
+
+    @Builder.Default
+    private AnchoBloque ancho = AnchoBloque.MEDIO;
+
+    /** Texto de los bloques de tipo NOTA. */
+    @Builder.Default
+    private String contenido = "";
+
+    /** El bloque siguiente se une a éste en la misma fila. */
+    @Builder.Default
+    private Boolean empiezaFila = false;
+
+    /** +1 suma stock (entradas), -1 lo descuenta (salidas y ventas); null si el bloque no mueve stock. */
+    private Short direccionStock;
 
     private OffsetDateTime creadoEn;
 

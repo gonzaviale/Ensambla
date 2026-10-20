@@ -44,7 +44,8 @@ public record ConfirmacionLectura(
     }
 
     /**
-     * Reglas que no necesitan la base: hay destino, hay columnas, las claves no se repiten y no son demasiadas filas.
+     * Reglas que no necesitan la base: hay destino, hay columnas, las claves no se repiten, dos columnas no van al
+     * mismo campo del bloque y no son demasiadas filas.
      *
      * @throws BusinessRuleException con un mensaje que explica qué falta
      */
@@ -70,9 +71,13 @@ public record ConfirmacionLectura(
             throw new BusinessRuleException("Dejá al menos una columna");
         }
         Set<String> vistas = new HashSet<>();
+        Set<UUID> camposUsados = new HashSet<>();
         for (CampoConfirmado campo : campos) {
             if (esVacio(campo.clave()) || !vistas.add(campo.clave())) {
                 throw new BusinessRuleException("Las columnas necesitan una clave distinta cada una");
+            }
+            if (campo.campoId() != null && !camposUsados.add(campo.campoId())) {
+                throw new BusinessRuleException("Dos columnas no pueden guardarse en el mismo campo de la tabla");
             }
             if (TipoCampo.RELACION.name().equals(campo.tipo()) && campo.campoId() == null) {
                 throw new BusinessRuleException(
