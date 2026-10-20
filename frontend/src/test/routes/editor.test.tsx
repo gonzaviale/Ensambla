@@ -274,22 +274,35 @@ describe('bloques', () => {
     expect(tipos?.indexOf('expenses')).toBe((tipos?.indexOf('sales') ?? 0) - 1);
   });
 
-  it('soltar un bloque al lado de otro hace que compartan la fila', async () => {
+  it('soltar un bloque sobre otro los cambia de lugar y cada uno conserva su ancho', async () => {
     await abrirEditor();
+    const antes = activo().sections[0]?.blocks.map((bloque) => bloque.type) ?? [];
+    const anchoDeClientes = tipoDeBloque('clients').width;
     const tirador = within(bloquePorNombre('Clientes')).getByRole('button', {
       name: 'Arrastrar bloque',
     });
-    const lado = bloquePorNombre('Ventas').querySelector<HTMLElement>('[data-drop-side="left"]');
-    if (!lado) throw new Error('Falta la zona de soltar');
+    const destino = bloquePorNombre('Ventas');
     const dataTransfer = { setData: () => undefined, effectAllowed: '' };
 
     fireEvent.dragStart(tirador, { dataTransfer });
-    fireEvent.dragOver(lado, { dataTransfer });
-    fireEvent.drop(lado, { dataTransfer });
+    fireEvent.dragOver(destino, { dataTransfer });
+    expect(destino.className).toMatch(/cambio-(left|right|top|bottom)/);
+    expect(destino.querySelector('[data-drop-side]')).toBeNull();
+    fireEvent.drop(destino, { dataTransfer });
 
-    expect(tipoDeBloque('clients').width).toBe('half');
-    expect(tipoDeBloque('sales').width).toBe('half');
-    await verifyToastAsync('Las dos piezas comparten la fila.');
+    const despues = activo().sections[0]?.blocks.map((bloque) => bloque.type) ?? [];
+    expect(despues.indexOf('clients')).toBe(antes.indexOf('sales'));
+    expect(despues.indexOf('sales')).toBe(antes.indexOf('clients'));
+    expect(tipoDeBloque('clients').width).toBe(anchoDeClientes);
+    await verifyToastAsync('Las tablas cambiaron de lugar.');
+  });
+
+  it('el ancho de un tercio deja tres tablas por fila', async () => {
+    const { user } = await abrirEditor();
+
+    await user.click(within(bloquePorNombre('Ventas')).getByRole('button', { name: 'Un tercio' }));
+
+    expect(tipoDeBloque('sales').width).toBe('third');
   });
 });
 

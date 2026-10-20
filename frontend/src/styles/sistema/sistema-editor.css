@@ -98,6 +98,21 @@ body:has(.editor-layout) {
   .fijar-piezas {
     display: none;
   }
+  .canvas-titulo {
+    gap: 10px;
+  }
+  .canvas-titulo-icono {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+  .canvas-titulo-icono .icon {
+    width: 20px;
+    height: 20px;
+  }
+  .section-tabs-label {
+    display: none;
+  }
 }
 @media (min-width: 901px) {
   .inspector {
@@ -213,12 +228,175 @@ body:has(.editor-layout) {
   color: var(--muted);
 }
 
-/* Encabezado de la página */
+/* Encabezado de la página: ícono de color, etiqueta «Gestión de tablas», nombre y cifras del sistema */
+.canvas-titulo {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+.canvas-titulo-icono {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--orange);
+  color: #fff;
+}
+.canvas-titulo-icono.usando {
+  background: var(--petrol);
+}
+.canvas-titulo-icono .icon {
+  width: 26px;
+  height: 26px;
+}
+.canvas-etiqueta {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--yellow);
+  color: var(--petrol);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.canvas-heading h1 {
+  margin-top: 4px;
+}
 .canvas-heading p {
   font-size: 13px;
+  color: var(--muted);
 }
-.section-tab button {
+.canvas-cifras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.canvas-cifras > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1.5px solid;
+  background: #fff;
+  font-size: 12px;
+  color: var(--ink);
+}
+.canvas-cifras strong {
+  font-size: 14px;
+}
+.canvas-cifras > [data-color='orange'] {
+  border-color: var(--orange);
+}
+.canvas-cifras > [data-color='orange'] strong {
+  color: var(--orange);
+}
+.canvas-cifras > [data-color='blue'] {
+  border-color: var(--blue);
+}
+.canvas-cifras > [data-color='blue'] strong {
+  color: #2a8db0;
+}
+.canvas-cifras > [data-color='coral'] {
+  border-color: var(--coral);
+}
+.canvas-cifras > [data-color='coral'] strong {
+  color: var(--coral);
+}
+
+/* Secciones como pastillas de color: la elegida va llena, las otras con borde y punto de su color */
+.section-tabs {
+  gap: 8px;
+  padding: 4px 0 12px;
+}
+.section-tabs-label {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 2px;
+}
+.section-tab {
+  gap: 2px;
+  padding-right: 4px;
+  border: 1.5px solid var(--accent);
+  border-radius: 999px;
+  background: #fff;
+}
+.section-tab > button:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 6px 7px 12px;
+  border-bottom: 0;
   font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.section-tab > button:first-child::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.section-tab-cuenta {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+.section-tab.active {
+  background: var(--accent);
+}
+.section-tab.active > button:first-child {
+  color: #fff;
+  font-weight: 700;
+}
+.section-tab.active > button:first-child::before {
+  background: #fff;
+}
+.section-tab.active .section-tab-cuenta {
+  background: #fff;
+  color: var(--accent);
+}
+.section-tab.active .icon-btn {
+  color: #fff;
+}
+.section-tab:not(.active):hover {
+  background: var(--tint);
+}
+.section-tab[data-color='yellow'].active > button:first-child,
+.section-tab[data-color='yellow'].active .icon-btn {
+  color: var(--petrol);
+}
+.section-tab[data-color='yellow'].active > button:first-child::before {
+  background: var(--petrol);
+}
+.section-tab[data-color='yellow'] .section-tab-cuenta {
+  color: var(--petrol);
+}
+.section-tab[data-color='yellow'].active .section-tab-cuenta {
+  background: var(--petrol);
+  color: #fff;
+}
+.section-tabs > .icon-btn {
+  margin-bottom: 0;
+  border: 1.5px dashed var(--line);
+  border-radius: 999px;
+  width: 32px;
+  height: 32px;
 }
 
 /* Bloques: cabecera del color de la paleta, cuerpo blanco */
@@ -507,5 +685,56 @@ body:has(.editor-layout) {
   .library-item:hover,
   .section-preset:hover {
     transform: none;
+  }
+}
+
+/* Mover tablas: al soltar una sobre otra cambian de lugar. Una barra marca hacia qué lado se corre
+   la tabla de destino (el lugar de la que se arrastra). */
+.block.cambio-left::after,
+.block.cambio-right::after,
+.block.cambio-top::after,
+.block.cambio-bottom::after {
+  content: '';
+  position: absolute;
+  z-index: 8;
+  border-radius: 999px;
+  background: var(--petrol);
+  box-shadow: 0 0 0 4px rgb(0 80 106 / 0.18);
+  pointer-events: none;
+}
+.block.cambio-left::after,
+.block.cambio-right::after {
+  top: 10px;
+  bottom: 10px;
+  width: 6px;
+}
+.block.cambio-left::after {
+  left: -11px;
+}
+.block.cambio-right::after {
+  right: -11px;
+}
+.block.cambio-top::after,
+.block.cambio-bottom::after {
+  left: 10px;
+  right: 10px;
+  height: 6px;
+}
+.block.cambio-top::after {
+  top: -11px;
+}
+.block.cambio-bottom::after {
+  bottom: -11px;
+}
+.block.cambio-left,
+.block.cambio-right,
+.block.cambio-top,
+.block.cambio-bottom {
+  border-color: var(--petrol);
+}
+/* Entran tres tablas de un tercio por fila también en pantallas medianas. */
+@media (min-width: 681px) and (max-width: 1150px) {
+  .block[data-width='third'] {
+    grid-column: span 4;
   }
 }

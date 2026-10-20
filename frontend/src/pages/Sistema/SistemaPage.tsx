@@ -13,8 +13,9 @@ import { IconTile } from '@/components/sistema/IconTile';
 import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
 import { Sami } from '@/components/sistema/Sami';
 import { CATALOG } from '@/lib/sistema/catalogo';
-import { allBlocks } from '@/lib/sistema/core';
-import type { Distribucion, TipoBloque } from '@/lib/sistema/tipos';
+import { varsDeColor } from '@/components/sistema/colores';
+import { allBlocks, totals } from '@/lib/sistema/core';
+import type { Color, Distribucion, TipoBloque } from '@/lib/sistema/tipos';
 import {
   agregarBloque,
   aplicarDistribucion,
@@ -33,6 +34,9 @@ import {
 } from '@/stores/sistemaStore';
 
 const ruta = getRouteApi('/_app/sistemas/$sistemaId');
+
+// Cada sección lleva un color de la paleta, en orden, para distinguirlas de un vistazo.
+const COLORES_DE_SECCION: Color[] = ['orange', 'blue', 'coral', 'petrol', 'yellow'];
 
 const MODO_DE_LA_URL: Record<'construir' | 'usar', ModoDelEditor> = {
   construir: 'build',
@@ -192,17 +196,36 @@ export function SistemaPage() {
             </div>
           )}
           <div className="canvas-heading">
-            <div>
-              <h1>
-                <button type="button" onClick={() => abrirModal({ tipo: 'renombrar' })}>
-                  {sistema.name} <Icon name="edit" />
-                </button>
-              </h1>
-              <p>
-                {construyendo
-                  ? 'Cada bloque tiene un propósito. Acomodalos a tu manera.'
-                  : 'Tu día a día, un poco más organizado.'}
-              </p>
+            <div className="canvas-titulo">
+              <span className={`canvas-titulo-icono ${construyendo ? '' : 'usando'}`.trim()}>
+                <Icon name={construyendo ? 'tools' : 'grid'} />
+              </span>
+              <div>
+                <span className="canvas-etiqueta">
+                  {construyendo ? 'Gestión de tablas · Armado' : 'Gestión de tablas · Uso diario'}
+                </span>
+                <h1>
+                  <button type="button" onClick={() => abrirModal({ tipo: 'renombrar' })}>
+                    {sistema.name} <Icon name="edit" />
+                  </button>
+                </h1>
+                <p>
+                  {construyendo
+                    ? 'Sumá tablas, movelas entre secciones y elegí qué datos guarda cada una.'
+                    : 'Cargá registros, buscá lo que necesitás y revisá cómo viene tu negocio.'}
+                </p>
+                <div className="canvas-cifras">
+                  <span data-color="orange">
+                    <strong>{allBlocks(sistema).length}</strong> tablas
+                  </span>
+                  <span data-color="blue">
+                    <strong>{sistema.sections.length}</strong> secciones
+                  </span>
+                  <span data-color="coral">
+                    <strong>{totals(sistema).records}</strong> registros
+                  </span>
+                </div>
+              </div>
             </div>
             <div className="canvas-heading-actions">
               {construyendo && (
@@ -237,9 +260,14 @@ export function SistemaPage() {
           </div>
           <div className="tabs-y-distribucion">
             <nav className="section-tabs" aria-label="Secciones del sistema">
-              {sistema.sections.map((otra) => (
+              {/* <span className="section-tabs-label">Secciones</span> */}
+              {sistema.sections.map((otra, indice) => (
                 <div
                   key={otra.id}
+                  style={varsDeColor(
+                    COLORES_DE_SECCION[indice % COLORES_DE_SECCION.length] ?? 'orange',
+                  )}
+                  data-color={COLORES_DE_SECCION[indice % COLORES_DE_SECCION.length]}
                   className={`section-tab ${otra.id === seccion.id ? 'active' : ''} ${arrastre.sobre?.destino === otra.id ? 'drop-active' : ''}`
                     .replace(/\s+/g, ' ')
                     .trim()}
@@ -251,6 +279,9 @@ export function SistemaPage() {
                     onClick={() => elegirSeccion(otra.id)}
                   >
                     {otra.name}
+                    <span className="section-tab-cuenta" aria-hidden="true">
+                      {otra.blocks.length}
+                    </span>
                   </button>
                   {construyendo && (
                     <IconBtn
@@ -307,6 +338,9 @@ export function SistemaPage() {
                     arrastre.carga?.tipo === 'bloque' && arrastre.carga.valor === bloque.id
                   }
                   sobre={arrastre.sobre?.bloque === bloque.id}
+                  ladoDelCambio={
+                    arrastre.sobre?.bloque === bloque.id ? arrastre.sobre.lado : undefined
+                  }
                   anchoProvisorio={
                     arrastre.ajuste?.id === bloque.id ? arrastre.ajuste.span : undefined
                   }
@@ -362,7 +396,8 @@ export function SistemaPage() {
               </button>
               <p className="builder-note">
                 <Icon name="grip" />
-                Arrastrá para ordenar. También podés usar las flechas de cada bloque.
+                Arrastrá una tabla sobre otra para cambiarlas de lugar. También podés usar las
+                flechas.
               </p>
             </>
           )}
