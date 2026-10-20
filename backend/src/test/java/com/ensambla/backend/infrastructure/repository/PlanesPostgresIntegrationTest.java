@@ -50,7 +50,7 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    @DisplayName("Carga el catálogo inicial sin inventar condiciones comerciales")
+    @DisplayName("Carga las cuotas aprobadas sin inventar precio premium ni moneda")
     void findByCodigoShouldReadUnconfiguredCatalog() {
         PlanEntity gratuito = planes.findByCodigo(CodigoPlan.GRATUITO).orElseThrow();
 
@@ -62,7 +62,16 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
         assertThat(premium.getNombre()).isEqualTo("Premium");
         assertThat(premium.getPrecioMensual()).isNull();
         thenCommercialValuesPending(premium);
-
+        assertThat(gratuito.getLimitesConfigurados()).isTrue();
+        assertThat(gratuito.getLimiteProyectos()).isEqualTo(1);
+        assertThat(gratuito.getLimiteRegistros()).isEqualTo(1000L);
+        assertThat(gratuito.getLimitePaginasIaMensuales()).isEqualTo(10);
+        assertThat(gratuito.getFunciones()).isEmpty();
+        assertThat(premium.getLimitesConfigurados()).isTrue();
+        assertThat(premium.getLimiteProyectos()).isNull();
+        assertThat(premium.getLimiteRegistros()).isNull();
+        assertThat(premium.getLimitePaginasIaMensuales()).isEqualTo(100);
+        assertThat(premium.getFunciones()).containsExactly("RECETAS_COSTOS", "REPORTES_FILTRADOS", "EXPORTAR_EXCEL");
     }
 
     @Test
@@ -204,9 +213,5 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
     private void thenCommercialValuesPending(PlanEntity plan) {
         assertThat(plan.getConfigurado()).isFalse();
         assertThat(plan.getMoneda()).isNull();
-        assertThat(plan.getLimiteProyectos()).isNull();
-        assertThat(plan.getLimiteRegistros()).isNull();
-        assertThat(plan.getLimitePaginasIaMensuales()).isNull();
-        assertThat(plan.getFunciones()).isEmpty();
     }
 }

@@ -10,10 +10,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -24,10 +27,12 @@ public class ImportacionController {
     private final ImportacionPresentationMapper importacionPresentationMapper;
 
     @PostMapping(value = "/api/importaciones/lectura", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Leer una foto contra un bloque con IA: devuelve registros y columnas nuevas para revisar, sin guardar nada")
+    @Operation(summary = "Leer una foto con IA y registrar su consumo, sin crear las filas propuestas")
     public ResponseEntity<LecturaImagenResponse> leer(
+            Authentication authentication,
             @RequestPart("imagen") MultipartFile imagen, @RequestPart("pedido") @Valid PedidoLecturaRequest pedido) {
         return ResponseEntity.ok(importacionPresentationMapper.toResponse(
-                leerImagenUseCase.execute(importacionPresentationMapper.toRequest(imagen, pedido)), pedido));
+                leerImagenUseCase.execute(UUID.fromString(authentication.getName()),
+                        importacionPresentationMapper.toRequest(imagen, pedido)), pedido));
     }
 }

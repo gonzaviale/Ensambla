@@ -16,6 +16,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -23,10 +24,12 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -36,6 +39,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class ImportacionControllerTest {
+
+    private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
 
     private static final String PEDIDO = """
             {"nombre":"Ventas","destinoExistente":true,"contexto":"registros","tipo":"sales",
@@ -52,13 +57,15 @@ class ImportacionControllerTest {
                 new ImportacionPresentationMapper(new IaProperties("simulado", "", "", Duration.ofSeconds(60), 10, 0.8)));
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
+                .defaultRequest(multipart("/api/importaciones/lectura").principal(
+                        new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null, List.of())))
                 .build();
     }
 
     @Test
     @DisplayName("POST devuelve los registros, las columnas nuevas y las dudas con la forma de la pantalla")
     void leerShouldReturnReadingInTheScreenShape() throws Exception {
-        when(leerImagenUseCase.execute(any())).thenReturn(new LeerImagenItem(
+        when(leerImagenUseCase.execute(eq(USUARIO_ID), any())).thenReturn(new LeerImagenItem(
                 List.of(Map.of("monto", new DatoLeido("1500", 0.95), "cliente", new DatoLeido("Ana", 0.3),
                         "direccion", new DatoLeido("Belgrano 1", 0.9))),
                 List.of(new CampoPropuesto("direccion", "Dirección", TipoCampo.TEXTO, List.of())), List.of()));
@@ -82,12 +89,12 @@ class ImportacionControllerTest {
     @Test
     @DisplayName("POST manda al use case la imagen, su tipo y el bloque de destino")
     void leerShouldSendTheImageAndTheBlockToTheUseCase() throws Exception {
-        when(leerImagenUseCase.execute(any())).thenReturn(new LeerImagenItem(List.of(), List.of(), List.of()));
+        when(leerImagenUseCase.execute(eq(USUARIO_ID), any())).thenReturn(new LeerImagenItem(List.of(), List.of(), List.of()));
 
         leer(foto("image/png"), pedido(PEDIDO)).andExpect(status().isOk());
 
         ArgumentCaptor<LeerImagenRequest> captor = ArgumentCaptor.forClass(LeerImagenRequest.class);
-        verify(leerImagenUseCase).execute(captor.capture());
+        verify(leerImagenUseCase).execute(eq(USUARIO_ID), captor.capture());
         assertThat(captor.getValue().contenido()).containsExactly(7, 8, 9);
         assertThat(captor.getValue().tipoContenido()).isEqualTo("image/png");
         assertThat(captor.getValue().nombreBloque()).isEqualTo("Ventas");
@@ -100,7 +107,7 @@ class ImportacionControllerTest {
     @Test
     @DisplayName("POST responde 400 con el mensaje cuando la foto no es del bloque o no es válida")
     void leerShouldReturnBadRequestWhenTheBusinessRuleFails() throws Exception {
-        when(leerImagenUseCase.execute(any()))
+        when(leerImagenUseCase.execute(eq(USUARIO_ID), any()))
                 .thenThrow(new BusinessRuleException("La estructura leída no es compatible con el bloque de destino"));
 
         leer(foto("image/jpeg"), pedido(PEDIDO)).andExpect(status().isBadRequest())
@@ -110,7 +117,7 @@ class ImportacionControllerTest {
     @Test
     @DisplayName("POST responde 502 con el mensaje cuando la IA no puede leer la foto")
     void leerShouldReturnBadGatewayWhenTheReaderFails() throws Exception {
-        when(leerImagenUseCase.execute(any())).thenThrow(new LecturaCuadernoException("No pudimos leer el cuaderno"));
+        when(leerImagenUseCase.execute(eq(USUARIO_ID), any())).thenThrow(new LecturaCuadernoException("No pudimos leer el cuaderno"));
 
         leer(foto("image/jpeg"), pedido(PEDIDO)).andExpect(status().isBadGateway())
                 .andExpect(jsonPath("$.message").value("No pudimos leer el cuaderno"));

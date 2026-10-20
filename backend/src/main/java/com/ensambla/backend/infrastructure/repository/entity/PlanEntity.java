@@ -45,6 +45,10 @@ public class PlanEntity {
     @Column(nullable = false)
     private Boolean configurado;
 
+    @Column(name = "limites_configurados", nullable = false)
+    @Builder.Default
+    private Boolean limitesConfigurados = false;
+
     @Column(name = "precio_mensual", precision = 14, scale = 2)
     private BigDecimal precioMensual;
 

@@ -13,6 +13,7 @@ public class PlanRepositoryMapper {
                 .codigo(origen.getCodigo())
                 .nombre(origen.getNombre())
                 .configurado(origen.getConfigurado())
+                .limitesConfigurados(origen.getLimitesConfigurados())
                 .precioMensual(origen.getPrecioMensual())
                 .moneda(origen.getMoneda())
                 .limiteProyectos(origen.getLimiteProyectos())

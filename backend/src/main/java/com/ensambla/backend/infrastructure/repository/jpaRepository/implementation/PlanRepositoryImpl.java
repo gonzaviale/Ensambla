@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -23,4 +24,8 @@ public class PlanRepositoryImpl implements PlanRepository {
         return planJpaRepository.findByCodigo(codigo).map(planRepositoryMapper::toDomain);
     }
 
+    @Override
+    public Optional<Plan> findById(UUID planId) {
+        return planJpaRepository.findById(planId).map(planRepositoryMapper::toDomain);
+    }
 }

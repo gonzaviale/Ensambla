@@ -35,6 +35,38 @@ class MigracionPlanesPostgresIntegrationTest extends PostgresRepositoryTestSuppo
         }
     }
 
+    @Test
+    @DisplayName("V13 agrega las capacidades aprobadas sin reemplazar un precio ya definido ni el consumo")
+    void migrateShouldConfigureCapabilitiesWithoutChangingPriceOrUsage() {
+        try {
+            givenSchemaAtVersionEleven();
+            migrateToVersionTwelve();
+            jdbcTemplate.update("UPDATE " + ESQUEMA + ".plan "
+                    + "SET precio_mensual = 123.45, moneda = 'ARS', configurado = true WHERE codigo = 'PREMIUM'");
+            jdbcTemplate.update("INSERT INTO " + ESQUEMA + ".consumo_ia_diario (negocio_id, fecha, paginas, reservadas) "
+                    + "SELECT id, DATE '2026-10-19', 3, 2 FROM " + ESQUEMA + ".negocio");
+
+            Flyway.configure().dataSource(dataSource).schemas(ESQUEMA).defaultSchema(ESQUEMA)
+                    .target("13").load().migrate();
+
+            assertThat(jdbcTemplate.queryForObject("SELECT limite_proyectos FROM " + ESQUEMA
+                    + ".plan WHERE codigo = 'GRATUITO'", Integer.class)).isEqualTo(1);
+            assertThat(jdbcTemplate.queryForObject("SELECT limite_registros FROM " + ESQUEMA
+                    + ".plan WHERE codigo = 'GRATUITO'", Long.class)).isEqualTo(1000);
+            assertThat(jdbcTemplate.queryForObject("SELECT limite_paginas_ia_mensuales FROM " + ESQUEMA
+                    + ".plan WHERE codigo = 'PREMIUM'", Integer.class)).isEqualTo(100);
+            assertThat(jdbcTemplate.queryForObject("SELECT precio_mensual::text FROM " + ESQUEMA
+                    + ".plan WHERE codigo = 'PREMIUM'", String.class)).isEqualTo("123.45");
+            assertThat(jdbcTemplate.queryForObject("SELECT moneda FROM " + ESQUEMA
+                    + ".plan WHERE codigo = 'PREMIUM'", String.class)).isEqualTo("ARS");
+            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA
+                    + ".consumo_ia_diario WHERE paginas = 3 AND reservadas = 2 AND paginas_inmediatas = 0",
+                    Long.class)).isEqualTo(12);
+        } finally {
+            jdbcTemplate.execute("DROP SCHEMA IF EXISTS " + ESQUEMA + " CASCADE");
+        }
+    }
+
     // --- arrange ---
     private Totales givenSchemaAtVersionEleven() {
         Flyway.configure()

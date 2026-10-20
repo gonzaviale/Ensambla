@@ -9,10 +9,12 @@ import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.domain.service.lote.LoteSubidaService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.ConsumoIaInmediatoService;
 import com.ensambla.backend.domain.service.procesamiento.ConexionesLecturaService;
 import com.ensambla.backend.domain.service.procesamiento.ConfirmacionLecturaService;
 import com.ensambla.backend.domain.service.procesamiento.ProcesamientoService;
 import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
+import com.ensambla.backend.domain.service.procesamiento.ReservaIaService;
 import com.ensambla.backend.domain.useCase.lectura.LeerImagenUseCase;
 import com.ensambla.backend.domain.useCase.procesamiento.ConfirmarLecturaUseCase;
 import com.ensambla.backend.domain.useCase.procesamiento.ConsultarConsumoUseCase;
@@ -23,8 +25,8 @@ import com.ensambla.backend.infrastructure.ia.ArchivoCuadernoLocalAdapter;
 import com.ensambla.backend.infrastructure.ia.IaProperties;
 import com.ensambla.backend.infrastructure.ia.LectorCuadernoTimeoutAdapter;
 import com.ensambla.backend.infrastructure.ia.ProcesamientoIaProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -67,11 +69,14 @@ public class LecturaUseCaseConfig {
 
     @Bean
     public LeerImagenUseCase leerImagenUseCase(LectorCuadernoPort lectorCuadernoPort,
+                                               NegocioService negocioService,
+                                               ConsumoIaInmediatoService consumoIaInmediatoService,
+                                               Clock clock,
                                                PropuestaLecturaService propuestaLecturaService,
                                                ExecutorService executorLecturaImagen, IaProperties iaProperties) {
         return new LeerImagenUseCase(
                 new LectorCuadernoTimeoutAdapter(lectorCuadernoPort, executorLecturaImagen, iaProperties.timeout()),
-                propuestaLecturaService);
+                propuestaLecturaService, negocioService, consumoIaInmediatoService, clock);
     }
 
     @Bean
@@ -87,11 +92,12 @@ public class LecturaUseCaseConfig {
                                                      PropuestaLecturaService propuestaLecturaService,
                                                      ConexionesLecturaService conexionesLecturaService,
                                                      PoliticaProcesamiento politicaProcesamiento,
+                                                     ReservaIaService reservaIaService,
                                                      ExecutorService executorLecturaIa,
                                                      IaProperties iaProperties) {
         return new ProcesamientoService(procesamientoRepository, archivoCuadernoPort,
                 new LectorCuadernoTimeoutAdapter(lectorCuadernoPort, executorLecturaIa, iaProperties.timeout()),
-                propuestaLecturaService, conexionesLecturaService, politicaProcesamiento);
+                propuestaLecturaService, conexionesLecturaService, politicaProcesamiento, reservaIaService);
     }
 
     @Bean

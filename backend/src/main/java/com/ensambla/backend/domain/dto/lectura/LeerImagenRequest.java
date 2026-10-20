@@ -5,7 +5,7 @@ import com.ensambla.backend.domain.model.enums.TipoCampo;
 import java.util.List;
 
 /**
- * Una foto suelta para leer contra un bloque. No se guarda nada: la persona revisa lo leído y recién ahí lo incorpora.
+ * Una foto suelta para leer contra un bloque. Se cuenta el consumo, pero las filas se incorporan luego de revisarlas.
  *
  * @param nombreBloque    nombre del bloque al que irían las filas
  * @param campos          campos del bloque que la IA puede leer; {@code clave} es el identificador que usa quien llama

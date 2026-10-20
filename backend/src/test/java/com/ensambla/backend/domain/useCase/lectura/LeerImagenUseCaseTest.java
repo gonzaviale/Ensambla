@@ -1,8 +1,8 @@
 package com.ensambla.backend.domain.useCase.lectura;
 
 import com.ensambla.backend.domain.dto.lectura.LeerImagenItem;
-import com.ensambla.backend.domain.dto.lectura.LeerImagenRequest;
 import com.ensambla.backend.domain.dto.lectura.LeerImagenRequest.CampoImagen;
+import com.ensambla.backend.domain.dto.lectura.LeerImagenRequest;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
 import com.ensambla.backend.domain.model.enums.TipoCampo;
@@ -16,11 +16,14 @@ import com.ensambla.backend.domain.model.lectura.FilaLeida;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
 import com.ensambla.backend.domain.model.lectura.PaginaCuaderno;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
+import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.ConsumoIaInmediatoService;
 import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.time.Clock;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,10 +40,13 @@ import static org.mockito.Mockito.when;
 
 class LeerImagenUseCaseTest {
 
+    private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
+
     private static final byte[] FOTO = {1, 2, 3};
 
     private final LectorCuadernoPort lectorCuadernoPort = mock(LectorCuadernoPort.class);
-    private final LeerImagenUseCase useCase = new LeerImagenUseCase(lectorCuadernoPort, new PropuestaLecturaService());
+    private final LeerImagenUseCase useCase = new LeerImagenUseCase(lectorCuadernoPort, new PropuestaLecturaService(),
+            mock(NegocioService.class), mock(ConsumoIaInmediatoService.class), Clock.systemUTC());
 
     @Test
     @DisplayName("Los datos leídos van por la clave del campo del bloque y la columna que falta se propone como nueva")
@@ -50,7 +56,7 @@ class LeerImagenUseCaseTest {
                         columna("telefono", "Teléfono", TipoCampo.TEXTO)),
                 fila(dato("monto", "1500", 0.95), dato("cliente", "Ana", 0.9), dato("telefono", "1155", 0.5)));
 
-        LeerImagenItem item = useCase.execute(request(true,
+        LeerImagenItem item = useCase.execute(USUARIO_ID, request(true,
                 campo("importe", "Monto", TipoCampo.NUMERO), campo("cliente", "Cliente", TipoCampo.TEXTO)));
 
         assertThat(item.camposNuevos()).extracting(CampoPropuesto::clave, CampoPropuesto::nombre, CampoPropuesto::tipo)
@@ -68,7 +74,7 @@ class LeerImagenUseCaseTest {
     void executeShouldAskTheReaderForOnlyTheChosenBlock() {
         givenLectura(List.of(columna("monto", "Monto", TipoCampo.NUMERO)), fila(dato("monto", "1", 0.9)));
 
-        useCase.execute(request(true, campo("importe", "Monto", TipoCampo.NUMERO)));
+        useCase.execute(USUARIO_ID, request(true, campo("importe", "Monto", TipoCampo.NUMERO)));
 
         ArgumentCaptor<List<PaginaCuaderno>> paginas = ArgumentCaptor.forClass(List.class);
         ArgumentCaptor<List<BloqueConocido>> bloques = ArgumentCaptor.forClass(List.class);
@@ -89,7 +95,7 @@ class LeerImagenUseCaseTest {
         givenLectura(List.of(columna("monto", "Monto", TipoCampo.NUMERO), columna("telefono", "Teléfono", TipoCampo.TEXTO)),
                 fila(dato("monto", "1500", 0.9), dato("telefono", "1155", 0.9)));
 
-        LeerImagenItem item = useCase.execute(request(false, campo("importe", "Monto", TipoCampo.NUMERO)));
+        LeerImagenItem item = useCase.execute(USUARIO_ID, request(false, campo("importe", "Monto", TipoCampo.NUMERO)));
 
         assertThat(item.camposNuevos()).isEmpty();
         assertThat(item.filas().getFirst().keySet()).containsExactly("importe");
@@ -102,7 +108,7 @@ class LeerImagenUseCaseTest {
                         columna("c", "¡Marca!", TipoCampo.TEXTO), columna("d", "¿?", TipoCampo.TEXTO)),
                 fila(dato("a", "Yerba", 0.9), dato("b", "Taragüí", 0.9), dato("c", "Otra", 0.9), dato("d", "x", 0.9)));
 
-        LeerImagenItem item = useCase.execute(request(true, campo("marca", "Producto", TipoCampo.TEXTO)));
+        LeerImagenItem item = useCase.execute(USUARIO_ID, request(true, campo("marca", "Producto", TipoCampo.TEXTO)));
 
         assertThat(item.camposNuevos()).extracting(CampoPropuesto::clave).containsExactly("marca_2", "marca_3", "columna");
         assertThat(item.filas().getFirst().keySet()).containsExactlyInAnyOrder("marca", "marca_2", "marca_3", "columna");
@@ -116,7 +122,7 @@ class LeerImagenUseCaseTest {
                 List.of(fila(dato("monto", "1", 0.9))), List.of("Página torcida"), consumo());
         when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(lectura);
 
-        LeerImagenItem item = useCase.execute(request(true, campo("importe", "Monto", TipoCampo.NUMERO)));
+        LeerImagenItem item = useCase.execute(USUARIO_ID, request(true, campo("importe", "Monto", TipoCampo.NUMERO)));
 
         assertThat(item.advertencias()).containsExactly("Página torcida");
     }
@@ -126,7 +132,8 @@ class LeerImagenUseCaseTest {
     void executeShouldRejectPhotoThatIsNotFromTheBlock() {
         givenLectura(List.of(columna("color", "Color", TipoCampo.TEXTO)), fila(dato("color", "Rojo", 0.9)));
 
-        assertThatThrownBy(() -> useCase.execute(request(true, campo("importe", "Monto", TipoCampo.NUMERO))))
+        assertThatThrownBy(() -> useCase.execute(USUARIO_ID,
+                request(true, campo("importe", "Monto", TipoCampo.NUMERO))))
                 .isInstanceOf(BusinessRuleException.class).hasMessageContaining("compatible");
     }
 
@@ -135,7 +142,8 @@ class LeerImagenUseCaseTest {
     void executeShouldPropagateReaderFailure() {
         when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Falla de la IA"));
 
-        assertThatThrownBy(() -> useCase.execute(request(true, campo("importe", "Monto", TipoCampo.NUMERO))))
+        assertThatThrownBy(() -> useCase.execute(USUARIO_ID,
+                request(true, campo("importe", "Monto", TipoCampo.NUMERO))))
                 .isInstanceOf(LecturaCuadernoException.class).hasMessage("Falla de la IA");
     }
 
@@ -144,18 +152,24 @@ class LeerImagenUseCaseTest {
     void executeShouldRejectInvalidRequestsWithoutCallingTheReader() {
         CampoImagen monto = campo("importe", "Monto", TipoCampo.NUMERO);
 
-        assertThatThrownBy(() -> useCase.execute(new LeerImagenRequest(null, "image/jpeg", "Ventas", List.of(monto), true)))
+        assertThatThrownBy(() -> useCase.execute(USUARIO_ID,
+                new LeerImagenRequest(null, "image/jpeg", "Ventas", List.of(monto), true)))
                 .isInstanceOf(BusinessRuleException.class).hasMessage("La imagen está vacía");
-        assertThatThrownBy(() -> useCase.execute(new LeerImagenRequest(new byte[0], "image/jpeg", "Ventas", List.of(monto), true)))
+        assertThatThrownBy(() -> useCase.execute(USUARIO_ID,
+                new LeerImagenRequest(new byte[0], "image/jpeg", "Ventas", List.of(monto), true)))
                 .isInstanceOf(BusinessRuleException.class).hasMessage("La imagen está vacía");
-        assertThatThrownBy(() -> useCase.execute(new LeerImagenRequest(
+        assertThatThrownBy(() -> useCase.execute(USUARIO_ID,
+                new LeerImagenRequest(
                 new byte[(int) LeerImagenUseCase.MAXIMO_BYTES + 1], "image/jpeg", "Ventas", List.of(monto), true)))
                 .isInstanceOf(BusinessRuleException.class).hasMessageContaining("5 MB");
-        assertThatThrownBy(() -> useCase.execute(new LeerImagenRequest(FOTO, "application/pdf", "Ventas", List.of(monto), true)))
+        assertThatThrownBy(() -> useCase.execute(USUARIO_ID,
+                new LeerImagenRequest(FOTO, "application/pdf", "Ventas", List.of(monto), true)))
                 .isInstanceOf(BusinessRuleException.class).hasMessageContaining("JPG, PNG o WEBP");
-        assertThatThrownBy(() -> useCase.execute(new LeerImagenRequest(FOTO, null, "Ventas", List.of(monto), true)))
+        assertThatThrownBy(() -> useCase.execute(USUARIO_ID,
+                new LeerImagenRequest(FOTO, null, "Ventas", List.of(monto), true)))
                 .isInstanceOf(BusinessRuleException.class).hasMessageContaining("JPG, PNG o WEBP");
-        assertThatThrownBy(() -> useCase.execute(new LeerImagenRequest(FOTO, "image/png", "Ventas", List.of(), true)))
+        assertThatThrownBy(() -> useCase.execute(USUARIO_ID,
+                new LeerImagenRequest(FOTO, "image/png", "Ventas", List.of(), true)))
                 .isInstanceOf(BusinessRuleException.class).hasMessageContaining("no tiene datos");
         verifyNoInteractions(lectorCuadernoPort);
     }

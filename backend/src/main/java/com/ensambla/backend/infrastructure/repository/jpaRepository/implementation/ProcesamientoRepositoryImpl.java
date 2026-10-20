@@ -23,10 +23,10 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.sql.Date;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -194,14 +194,16 @@ public class ProcesamientoRepositoryImpl implements ProcesamientoRepository {
         return jdbcTemplate.queryForObject("""
                 SELECT COALESCE(c.paginas, 0) AS paginas, COALESCE(c.reservadas, 0) AS reservadas,
                     COALESCE(SUM(i.tokens_entrada), 0) AS entrada, COALESCE(SUM(i.tokens_salida), 0) AS salida,
-                    CASE WHEN COUNT(i.id) = 0 THEN 0 ELSE SUM(i.costo_estimado_usd) END AS costo,
-                    CASE WHEN COUNT(i.id) = 0 THEN true
+                    CASE WHEN COALESCE(c.paginas_inmediatas, 0) > 0 THEN NULL
+                        WHEN COUNT(i.id) = 0 THEN 0 ELSE SUM(i.costo_estimado_usd) END AS costo,
+                    CASE WHEN COALESCE(c.paginas_inmediatas, 0) > 0 THEN false
+                        WHEN COUNT(i.id) = 0 THEN true
                         ELSE BOOL_AND(i.consumo_completo AND i.costo_estimado_usd IS NOT NULL) END AS completo
                 FROM (VALUES (1)) base(dummy)
                 LEFT JOIN consumo_ia_diario c ON c.negocio_id = :negocio AND c.fecha = :fecha
                 LEFT JOIN lectura_ia i ON i.negocio_id = :negocio
                     AND i.dia_consumo = :fecha
-                GROUP BY c.paginas, c.reservadas
+                GROUP BY c.paginas, c.reservadas, c.paginas_inmediatas
                 """, Map.of("negocio", negocioId, "fecha", fecha), (fila, indice) ->
                 new ConsumoDiario(fecha, fila.getInt("paginas"), fila.getInt("reservadas"),
                         fila.getLong("entrada"), fila.getLong("salida"),

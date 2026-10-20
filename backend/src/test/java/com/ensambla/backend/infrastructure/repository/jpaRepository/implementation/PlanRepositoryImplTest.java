@@ -50,6 +50,7 @@ class PlanRepositoryImplTest {
         assertThat(result.getCodigo()).isEqualTo(esperado.getCodigo());
         assertThat(result.getNombre()).isEqualTo(esperado.getNombre());
         assertThat(result.getConfigurado()).isEqualTo(esperado.getConfigurado());
+        assertThat(result.getLimitesConfigurados()).isEqualTo(esperado.getLimitesConfigurados());
         assertThat(result.getPrecioMensual()).isEqualTo(esperado.getPrecioMensual());
         assertThat(result.getMoneda()).isEqualTo(esperado.getMoneda());
         assertThat(result.getLimiteProyectos()).isEqualTo(esperado.getLimiteProyectos());

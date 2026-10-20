@@ -8,6 +8,7 @@ import com.ensambla.backend.domain.model.receta.Receta;
 import com.ensambla.backend.domain.model.receta.RecetaCosteada;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.receta.RecetaService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,8 +54,8 @@ class RecetaUseCaseConfigTest {
         when(recetaService.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(Receta.builder().lineas(List.of()).build());
 
         RecetaItem response = config.obtenerRecetaUseCase(
-                        negocioService, registroDatosService, recetaService,
-                        config.obtenerRecetaMapper(recetaItemMapper))
+                        negocioService, mock(ControlPlanService.class), Clock.systemUTC(),
+                        registroDatosService, recetaService, config.obtenerRecetaMapper(recetaItemMapper))
                 .execute(new ObtenerRecetaRequest(USUARIO_ID, PRODUCTO_ID));
 
         assertThat(response.lineas()).isEmpty();
@@ -67,7 +68,7 @@ class RecetaUseCaseConfigTest {
         when(recetaService.guardar(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RecetaItem response = config.guardarRecetaUseCase(
-                        negocioService, registroDatosService, recetaService,
+                        negocioService, mock(ControlPlanService.class), registroDatosService, recetaService,
                         config.guardarRecetaMapper(recetaItemMapper), Clock.systemUTC())
                 .execute(new GuardarRecetaRequest(USUARIO_ID, PRODUCTO_ID, null, List.of()));
 

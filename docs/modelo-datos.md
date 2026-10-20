@@ -1,10 +1,10 @@
-# Modelo de datos (MVP 2 · T-004, T-109; V9 a V12 incorporan frontend, monitoreo y planes)
+# Modelo de datos (MVP 2 · T-004, T-109; V9 a V13 incorporan frontend, monitoreo y planes)
 
 Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (`V1__esquema_inicial.sql`,
 `V2__digitalizacion_cuaderno.sql`, `V3__plantillas_base.sql`, `V4__procesamiento_lecturas_ia.sql`,
 `V5__campo_relacion.sql`, `V6__campo_formula.sql`, `V7__movimiento_stock.sql`, `V8__receta.sql`,
 `V9__modelo_sistema_y_monitoreo.sql`, `V10__datos_prueba_san_justo.sql`, `V11__avisos_entidad_y_datos.sql`,
-`V12__planes_y_suscripciones.sql`).
+`V12__planes_y_suscripciones.sql`, `V13__limites_y_funciones_por_plan.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -61,6 +61,34 @@ Detalles y contrato con subida: [lectura-cuaderno-ia.md](lectura-cuaderno-ia.md)
 - ENS-94 sólo incorpora persistencia y asignación. Los controles efectivos y consumo mensual corresponden
   a ENS-95, la prueba y su vencimiento a ENS-96, la pantalla a ENS-97 y los pagos a ENS-98. Los estados del
   esquema no activan esas operaciones por sí mismos. El límite técnico diario de IA existente sigue funcionando.
+
+## Control por plan (V13 · ENS-95 / T-067)
+
+- V12 conserva el catálogo inicial sin condiciones comerciales inventadas. V13 agrega
+  `limites_configurados` y establece las capacidades aprobadas: gratuito de un sistema,
+  1.000 registros totales y diez páginas de IA al mes UTC; premium sin límite comercial de
+  sistemas/registros y con cien páginas mensuales.
+- `limites_configurados=true` identifica los límites listos para controlar. Es independiente de
+  `configurado`, que sigue identificando precio y moneda. Un límite nulo de sistemas/registros
+  significa sin límite comercial sólo cuando las capacidades están configuradas; no habilita
+  nada por sí mismo en un catálogo pendiente.
+- `funciones` de premium contiene `RECETAS_COSTOS`, `REPORTES_FILTRADOS` y `EXPORTAR_EXCEL`;
+  el gratuito no contiene esas funciones. La suscripción se evalúa con el instante recibido del
+  caso de uso: estado activo, inicio alcanzado y fin no vencido. Ante falta de vigencia se usa
+  el gratuito, conservando todos los datos. La activación y cuota de pruebas se incorporan en ENS-96.
+- Las altas de sistemas y filas, individuales o múltiples, bloquean la fila del negocio hasta
+  terminar la transacción que cuenta y guarda. No se toma el negocio del cuerpo ni de un query param.
+- No se duplica el contador mensual: se suman `paginas + reservadas` de `consumo_ia_diario` entre
+  los límites del mes UTC usando su clave primaria `(negocio_id, fecha)`. Los intentos reservados
+  conservan su día/mes original al finalizar, aun después de medianoche.
+- `consumo_ia_diario.paginas_inmediatas` cuenta el subconjunto de `paginas` originado en lectura
+  inmediata, con restricciones `0 <= paginas_inmediatas <= paginas`. La consulta del mes incluye
+  ese consumo; la cuota diaria técnica también se respeta. Los errores del proveedor pueden tener
+  costo, por lo que el intento inmediato se registra antes de la llamada externa.
+- El resumen diario marca `consumoCompleto=false` y costo desconocido cuando hay intentos
+  inmediatos, cuyo detalle completo de tokens/costo aún no se persiste. No los presenta como costo cero.
+- No se cambian V1–V12, las cuotas no borran datos y el proveedor se llama fuera del bloqueo.
+  Contratos, errores 403, pruebas y límites del alcance: [plan-ENS-95.md](plan-ENS-95.md).
 
 ## Frontend nuevo y monitoreo (V9)
 
@@ -404,7 +432,7 @@ Testcontainers.
 | Borrador vs. versión publicada de la estructura | MVP 3 · T-047 | Tablas o columnas de versión en una migración nueva |
 | Columnas visibles por bloque y dispositivo | MVP 3 · T-049 | Tabla de preferencias por bloque |
 | Membresías y roles, invitaciones, auditoría | MVP 4 · T-060, T-063, T-065 | `membresia`, `invitacion`, `auditoria` |
-| Control por plan, prueba, pantalla y cobro | ENS-95 a ENS-98 | ENS-94 incorpora el catálogo y la suscripción inicial; las capacidades se habilitan en sus subtareas |
+| Prueba, pantalla y cobro | ENS-96 a ENS-98 | ENS-95 controla capacidades y consumo mensual; las siguientes subtareas incorporan prueba, pantalla y pagos |
 | Relación entre bloques, stock, recetas | MVP 4 · T-073 a T-075 | Nuevos tipos de campo y tablas de movimientos |
 | Repositorios y casos de uso de zona, avisos y preferencias | Cuando se haga el motor de monitoreo | Entidades ya creadas en V9 |
 | Archivos adjuntos a registros | MVP 4 · T-078 | Tipo de campo `ARCHIVO` sobre el mismo almacenamiento que `foto_cuaderno` |

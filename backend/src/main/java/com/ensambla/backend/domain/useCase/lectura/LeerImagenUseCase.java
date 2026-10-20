@@ -1,8 +1,8 @@
 package com.ensambla.backend.domain.useCase.lectura;
 
 import com.ensambla.backend.domain.dto.lectura.LeerImagenItem;
-import com.ensambla.backend.domain.dto.lectura.LeerImagenRequest;
 import com.ensambla.backend.domain.dto.lectura.LeerImagenRequest.CampoImagen;
+import com.ensambla.backend.domain.dto.lectura.LeerImagenRequest;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
@@ -15,9 +15,13 @@ import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
 import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
+import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.ConsumoIaInmediatoService;
 import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
 import lombok.RequiredArgsConstructor;
 
+import java.time.Clock;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,7 +34,7 @@ import java.util.UUID;
 /**
  * Lee una foto contra un bloque y devuelve los registros y las columnas nuevas para revisar. Es la misma lectura que
  * el lote de fotos (el bloque elegido es el destino y se cruzan columnas por nombre y sinónimos), pero sin guardar
- * nada: la respuesta es inmediata y la persona decide después qué incorporar.
+ * las filas propuestas: registra el consumo, devuelve la respuesta inmediata y la persona decide qué incorporar.
  */
 @RequiredArgsConstructor
 public class LeerImagenUseCase {
@@ -40,9 +44,14 @@ public class LeerImagenUseCase {
 
     private final LectorCuadernoPort lectorCuadernoPort;
     private final PropuestaLecturaService propuestaLecturaService;
+    private final NegocioService negocioService;
+    private final ConsumoIaInmediatoService consumoIaInmediatoService;
+    private final Clock clock;
 
-    public LeerImagenItem execute(LeerImagenRequest request) {
+    public LeerImagenItem execute(UUID usuarioId, LeerImagenRequest request) {
         validar(request);
+        UUID negocioId = negocioService.obtenerDelUsuario(usuarioId);
+        consumoIaInmediatoService.registrar(negocioId, OffsetDateTime.now(clock));
         UUID destinoId = UUID.randomUUID();
         Map<UUID, String> clavesPorCampo = new HashMap<>();
         List<CampoContexto> contexto = new ArrayList<>();

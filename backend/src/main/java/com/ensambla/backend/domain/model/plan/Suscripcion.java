@@ -33,4 +33,8 @@ public class Suscripcion {
 
     private OffsetDateTime actualizadoEn;
 
+    public boolean estaVigente(OffsetDateTime ahora) {
+        return estado == EstadoSuscripcion.ACTIVA && !inicioEn.isAfter(ahora)
+                && (finEn == null || finEn.isAfter(ahora));
+    }
 }
