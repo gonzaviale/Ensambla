@@ -180,7 +180,8 @@ function aplicarUna(
       return hecho(`Cargué ${cuantos} en ${pieza.name.toLowerCase()}.`);
     }
     case 'cargar_registros': {
-      // Lo que Sami leyó de una foto: se suma a lo que haya, sin reemplazar nada, y se guarda con el sistema.
+      // Lo que Sami leyó de una foto: se suma a los registros que haya y se guarda con el sistema. Las filas de
+      // ejemplo de esa pieza se reemplazan: no se mezclan con los datos reales.
       // Antes se conecta lo que el taller ya sabe conectar, así un «Cliente» por nombre se busca en los clientes.
       wireSystem(sistema);
       const pieza = resolverPieza(sistema, args.pieza);
@@ -188,7 +189,7 @@ function aplicarUna(
       if (!pieza.fields.length) return `«${pieza.name}» no lleva filas.`;
       const filas = filasDeSami(pieza, args.filas, MAXIMO_DE_REGISTROS, false);
       if (!filas.length) return `No pude cargar esos registros en ${pieza.name.toLowerCase()}.`;
-      pieza.rows.push(...filas);
+      pieza.rows = [...pieza.rows.filter((fila) => !fila.__example), ...filas];
       for (const fila of filas) registrosNuevos.add(fila.id);
       const cuantos = filas.length === 1 ? 'un registro' : `${filas.length} registros`;
       return hecho(`Cargué ${cuantos} en ${pieza.name.toLowerCase()}.`);

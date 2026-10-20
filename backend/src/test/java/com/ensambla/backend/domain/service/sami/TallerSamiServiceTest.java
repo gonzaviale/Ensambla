@@ -225,6 +225,48 @@ class TallerSamiServiceTest {
     }
 
     @Test
+    @DisplayName("Con foto, las filas de ejemplo de las piezas armadas se omiten; sin foto se conservan")
+    void conversarShouldDropExamplesOnlyWithPhoto() {
+        givenQuotaAvailable();
+        ResultadoTallerIa armado = new ResultadoTallerIa("Armé las ventas.", List.of(
+                new LlamadaHerramienta("agregar_pieza", Map.of("tipo", "sales", "nombre", "Ventas",
+                        "ejemplos", List.of(Map.of("Producto", "Vela lavanda")))),
+                new LlamadaHerramienta("cargar_registros", Map.of("pieza", "e1", "filas", List.of(
+                        Map.of("Producto", "Yerba"))))), CONSUMO);
+        when(tallerIaPort.conversar(any())).thenReturn(armado);
+
+        RespuestaTaller conFoto = service.conversar(NEGOCIO_ID, "mirá", FOTO, ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
+        RespuestaTaller sinFoto = service.conversar(NEGOCIO_ID, "mirá", null, ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(conFoto.acciones().get(0).argumentos()).doesNotContainKey("ejemplos").containsKey("nombre");
+        assertThat(sinFoto.acciones().get(0).argumentos()).containsKey("ejemplos");
+    }
+
+    @Test
+    @DisplayName("Con foto, la duda del segundo pedido va a la botonera salvo que el modelo ya hubiera preguntado")
+    void conversarShouldUseThePhotoQuestionOnlyWhenTheModelDidNotAskIt() {
+        givenQuotaAvailable();
+        LlamadaHerramienta registros = new LlamadaHerramienta("cargar_registros", Map.of("pieza", "e1",
+                "filas", List.of(Map.of("Producto", "Yerba"))));
+        LlamadaHerramienta duda = new LlamadaHerramienta("ofrecer_opciones", Map.of(
+                "pregunta", "¿Qué significan los tildes?", "opciones", List.of("Pagado", "Entregado")));
+        LlamadaHerramienta otra = new LlamadaHerramienta("ofrecer_opciones", Map.of(
+                "pregunta", "¿Otra cosa?", "opciones", List.of("Sí", "No")));
+        when(tallerIaPort.conversar(any()))
+                .thenReturn(new ResultadoTallerIa("Veo un cuaderno.", List.of(
+                        new LlamadaHerramienta("agregar_pieza", Map.of("tipo", "sales", "nombre", "Ventas"))), CONSUMO))
+                .thenReturn(new ResultadoTallerIa("", List.of(registros, duda), CONSUMO))
+                .thenReturn(new ResultadoTallerIa("Veo un cuaderno.", List.of(duda), CONSUMO))
+                .thenReturn(new ResultadoTallerIa("", List.of(registros, otra), CONSUMO));
+
+        RespuestaTaller sinPreguntar = service.conversar(NEGOCIO_ID, "foto", FOTO, ESTADO, HISTORIAL, AHORA, LIMITE);
+        RespuestaTaller preguntando = service.conversar(NEGOCIO_ID, "foto", FOTO, ESTADO, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(sinPreguntar.opciones().pregunta()).isEqualTo("¿Qué significan los tildes?");
+        assertThat(preguntando.opciones().pregunta()).isEqualTo("¿Qué significan los tildes?");
+    }
+
+    @Test
     @DisplayName("Con foto, si ya cargó registros no se le pide nada más; sin foto, tampoco")
     void conversarShouldNotAskForRecordsWhenAlreadyLoadedOrWithoutPhoto() {
         givenQuotaAvailable();

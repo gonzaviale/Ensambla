@@ -206,6 +206,22 @@ un segundo pedido sólo para los registros, mostrándole las piezas ya armadas p
 se suman a la respuesta. Al crear el sistema se descartan sólo las filas de ejemplo: los registros reales quedan. La
 foto no se guarda ni viaja en el historial.
 
+**Con foto, Sami conversa antes de dar nada por hecho.** La línea `CON_FOTO` de `PromptTaller` le pide, en orden:
+(1) contar en 1 o 2 frases lo que **entendió** de la foto; (2) hacer **una pregunta de confirmación con botonera**
+(`ofrecer_opciones`) sobre lo más ambiguo (por ejemplo, si los tildes son lo ya pagado y lo sin tildar es deuda), sin
+bloquear; (3) armar una **primera versión**: los pedidos de clientes van en Ventas (o Pedidos) con su Cliente, nunca
+en Compras con la clienta de proveedora, y la deuda sale de esos pedidos (Fiado), sin inventar nada que no esté en
+la foto. Con las respuestas de la persona en el turno siguiente (viajan en el historial), Sami ajusta con las
+herramientas de siempre (`editar_campo`, `cargar_registros`…). Hoy la botonera admite una sola pregunta por turno; la
+segunda duda queda para el turno siguiente. El modelo suele invocar una sola herramienta por respuesta, así que el
+segundo pedido del turno (`PEDIDO_REGISTROS`) le pide juntas `cargar_registros` y `ofrecer_opciones`; esa duda
+reemplaza a la pregunta genérica del kit (que no tiene que ver con la foto). `cargar_registros` suma: si Sami recarga
+las filas en un turno de ajuste, no borra las anteriores (pendiente).
+
+Lo leído de la foto son datos reales y no se mezclan con ejemplos: en un turno con foto el backend quita las filas de
+ejemplo de las piezas que arma (también las del kit), y `cargar_registros` en el taller reemplaza las filas de
+ejemplo de esa pieza por los registros leídos.
+
 **Ajustar con Sami un sistema ya creado.** En la pantalla de un sistema, «Ajustar con Sami» abre el taller con ese
 sistema (`/taller?sistema=<id>`): Sami lo ve con sus piezas y datos y lo cambia con las mismas herramientas. La
 acción principal pasa a ser «Guardar cambios», que reemplaza el sistema (`actualizarSistema`, y de ahí

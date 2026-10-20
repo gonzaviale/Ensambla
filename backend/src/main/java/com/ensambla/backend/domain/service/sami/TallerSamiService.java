@@ -49,9 +49,12 @@ public class TallerSamiService {
     static final String RECORDATORIO = "\n\n(Aviso del sistema: en tu respuesta anterior dijiste que hiciste cambios, pero"
             + " no invocaste ninguna herramienta. Hacelos ahora invocando las herramientas.)";
     /** El segundo pedido de un turno con foto, cuando el primero armó las piezas pero no cargó lo que se lee. */
-    static final String PEDIDO_REGISTROS = "Ya armé las piezas que ves. Ahora invocá cargar_registros con todas las"
-            + " filas que se leen en la foto, en la pieza que corresponda y con las etiquetas de sus datos. No cambies"
-            + " nada más.";
+    static final String PEDIDO_REGISTROS = "Ya armé las piezas que ves. Tu respuesta tiene que llevar DOS"
+            + " invocaciones juntas: (1) cargar_registros con todas las filas que se leen en la foto, en la pieza que"
+            + " corresponda (los pedidos de clientes van en Ventas o Pedidos con su Cliente, no en Compras) y con las"
+            + " etiquetas de sus datos; (2) ofrecer_opciones, con la duda más importante de la foto (por ejemplo qué"
+            + " significan los tildes: ¿ya pagado y lo sin tildar es deuda?) y 2 a 4 respuestas cortas. No cambies nada"
+            + " más.";
     /** Verbos con los que Sami cuenta un cambio hecho («Armé tu sistema…»). */
     private static final Pattern AFIRMA_CAMBIOS = Pattern.compile(
             "(?iU)\\b(armé|sumé|agregué|renombré|moví|conecté|quité|cambié|cargué|creé|separé)\\b");
@@ -132,19 +135,40 @@ public class TallerSamiService {
             }
         }
         String texto = texto(resultado.texto(), validacion, estado);
-        List<AccionTaller> acciones = validacion.acciones();
+        List<AccionTaller> acciones = imagen == null ? validacion.acciones() : sinEjemplos(validacion.acciones());
+        OpcionesTaller opciones = opciones(resultado, validacion);
         if (imagen != null && sinRegistros(acciones)) {
             // Con una foto, el modelo a veces arma las piezas y se olvida de cargar lo que lee. Se le pide una vez que
-            // cargue las filas, viendo ya las piezas armadas (y sus datos) para que use las etiquetas correctas.
-            List<AccionTaller> registros = registrosDeLaFoto(negocioId, fecha, ahora, imagen, estado, historial,
+            // cargue las filas, viendo ya las piezas armadas (y sus datos) para que use las etiquetas correctas. Si el
+            // modelo no había preguntado nada, la duda de este segundo pedido reemplaza a la pregunta genérica del kit.
+            ValidacionTaller segunda = registrosDeLaFoto(negocioId, fecha, ahora, imagen, estado, historial,
                     validacion.piezas());
+            List<AccionTaller> registros = soloRegistros(segunda);
             if (!registros.isEmpty()) {
                 acciones = new ArrayList<>(acciones);
                 acciones.addAll(registros);
                 texto = texto + " " + describirTodas(registros, validacion.piezas()) + ".";
             }
+            if (!usoLaBotonera(resultado)) {
+                opciones = segunda.opciones();
+            }
         }
-        return new RespuestaTaller(texto, List.copyOf(acciones), opciones(resultado, validacion));
+        return new RespuestaTaller(texto, List.copyOf(acciones), opciones);
+    }
+
+    /**
+     * Con una foto, lo que se lee son los datos de la persona: las filas de ejemplo (las del kit o las que invente el
+     * modelo) no se suman a las piezas, para que no se mezclen con lo leído como si fueran suyas.
+     */
+    private List<AccionTaller> sinEjemplos(List<AccionTaller> acciones) {
+        return acciones.stream().map(accion -> {
+            if (!accion.argumentos().containsKey("ejemplos")) {
+                return accion;
+            }
+            Map<String, Object> argumentos = new HashMap<>(accion.argumentos());
+            argumentos.remove("ejemplos");
+            return new AccionTaller(accion.herramienta(), argumentos);
+        }).toList();
     }
 
     private boolean sinRegistros(List<AccionTaller> acciones) {
@@ -152,13 +176,17 @@ public class TallerSamiService {
                 .noneMatch(accion -> HerramientaTaller.CARGAR_REGISTROS.nombre().equals(accion.herramienta()));
     }
 
-    private List<AccionTaller> registrosDeLaFoto(UUID negocioId, LocalDate fecha, OffsetDateTime ahora,
-                                                 ImagenTaller imagen, EstadoTaller estado,
-                                                 List<MensajeTaller> historial, List<PiezaTaller> piezas) {
+    private ValidacionTaller registrosDeLaFoto(UUID negocioId, LocalDate fecha, OffsetDateTime ahora,
+                                               ImagenTaller imagen, EstadoTaller estado,
+                                               List<MensajeTaller> historial, List<PiezaTaller> piezas) {
         EstadoTaller armado = new EstadoTaller(estado.nombre(), estado.distribucion(), piezas);
         ResultadoTallerIa resultado = consultar(new ConsultaTaller(PEDIDO_REGISTROS, armado, historial, null, imagen));
         consumoSamiRepository.registrar(negocioId, fecha, resultado.consumo(), ahora);
-        return herramientasTallerService.validar(resultado.llamadas(), armado).acciones().stream()
+        return herramientasTallerService.validar(resultado.llamadas(), armado);
+    }
+
+    private List<AccionTaller> soloRegistros(ValidacionTaller validacion) {
+        return validacion.acciones().stream()
                 .filter(accion -> HerramientaTaller.CARGAR_REGISTROS.nombre().equals(accion.herramienta()))
                 .toList();
     }
@@ -174,9 +202,12 @@ public class TallerSamiService {
      */
     private OpcionesTaller opciones(ResultadoTallerIa resultado, ValidacionTaller validacion) {
         boolean preguntoEnElTexto = resultado.texto() != null && resultado.texto().contains("?");
-        boolean usoLaBotonera = resultado.llamadas().stream()
+        return preguntoEnElTexto && !usoLaBotonera(resultado) ? null : validacion.opciones();
+    }
+
+    private boolean usoLaBotonera(ResultadoTallerIa resultado) {
+        return resultado.llamadas().stream()
                 .anyMatch(llamada -> HerramientaTaller.OFRECER_OPCIONES.nombre().equals(llamada.nombre()));
-        return preguntoEnElTexto && !usoLaBotonera ? null : validacion.opciones();
     }
 
     private ResultadoTallerIa consultar(ConsultaTaller consulta) {

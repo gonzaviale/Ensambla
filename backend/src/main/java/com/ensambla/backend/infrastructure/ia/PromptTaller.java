@@ -31,11 +31,21 @@ public class PromptTaller {
     /** v3: fotos en el turno y {@code cargar_registros}. */
     public static final String VERSION = "v3";
     static final String MARCA_MENSAJE = "Mensaje de la persona:";
-    static final String CON_FOTO = "La persona adjuntó una foto. Leé sus columnas y filas: armá o ajustá las piezas con"
-            + " esas columnas (si hay kit, usalo y sumá lo que falte) y SIEMPRE invocá cargar_registros con todas las"
-            + " filas que se leen: son datos reales, no ejemplos. Cada fila va con las etiquetas de los datos de la pieza"
-            + " («Vela» de la foto va en «Producto», «Clienta» en «Cliente») o renombrá antes el dato con editar_campo."
-            + " Lo que no se lee bien, no lo inventes.";
+    static final String CON_FOTO = "La persona adjuntó una foto. En ESTE turno hacé todo esto: (1) en 1 o 2 frases"
+            + " contale lo que ENTENDISTE de la foto («Veo un cuaderno de pedidos por clienta: Ana, Vero y Giz, con lo"
+            + " que pidió cada una y un total»); (2) armá una primera versión SIN esperar respuestas: usar_kit o"
+            + " agregar_pieza si el sistema está vacío, y SIEMPRE cargar_registros con todas las filas que se leen;"
+            + " (3) al FINAL, como última herramienta, invocá ofrecer_opciones UNA vez con la duda más importante de"
+            + " lo ambiguo (por ejemplo si los tildes son lo que ya pagaron y lo sin tildar es deuda). Nunca contestes"
+            + " sólo con la pregunta ni digas «antes de arrancar»."
+            + " Los pedidos o ventas de clientes van en Ventas (o Pedidos) con su Cliente, nunca en"
+            + " Compras ni con la clienta como proveedor; si hay deuda, es lo que cada cliente debe de esos pedidos"
+            + " (Fiado = Sí / Debe), no una lista aparte inventada. Armá las piezas con las columnas de la foto"
+            + " («Vela» va en «Producto», «Clienta» en «Cliente») o renombrá antes el dato con editar_campo. Lo que"
+            + " viene de la foto son datos reales: no cargues ejemplos (ni uses los del kit) y no inventes lo que no se"
+            + " lee ni lo que no está en la foto. Mientras la persona no confirme, hablá de «primera versión» y de lo"
+            + " que supusiste, nunca de «tus datos ya quedaron». Si en la conversación reciente ya respondió tu"
+            + " pregunta, ajustá con las herramientas (editar_campo, cargar_registros…) según su respuesta.";
     static final String MARCA_KIT = "Kit del rubro:";
     static final String SIN_PIEZAS = "Todavía no tiene piezas.";
 

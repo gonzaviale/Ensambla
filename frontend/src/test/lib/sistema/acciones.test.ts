@@ -869,7 +869,7 @@ describe('Sami ensambla el sistema desde cero', () => {
       ).toEqual([`${anio}-10-02`, '2025-03-05', '2024-10-09', '2026-01-31', undefined]);
     });
 
-    it('suma registros reales, sin reemplazar ni los ejemplos ni lo que ya había', () => {
+    it('suma registros reales a lo que ya había y reemplaza los ejemplos de esa pieza', () => {
       aplicarAcciones(sistema, [
         accion('agregar_pieza', { tipo: 'clients', ejemplos: [{ Nombre: 'Ejemplo' }] }),
       ]);
@@ -888,15 +888,9 @@ describe('Sami ensambla el sistema desde cero', () => {
       ]);
 
       expect(resultado).toEqual({ aplicadas: ['Cargué 3 registros en clientes.'], omitidas: [] });
-      expect(clientes.rows.map((fila) => fila.name)).toEqual([
-        'Ejemplo',
-        'Rosa',
-        'Lucía',
-        'Marta',
-        'Pedro',
-      ]);
-      expect(clientes.rows[1]).toBe(real);
-      const nuevas = clientes.rows.slice(2);
+      expect(clientes.rows.map((fila) => fila.name)).toEqual(['Rosa', 'Lucía', 'Marta', 'Pedro']);
+      expect(clientes.rows[0]).toBe(real);
+      const nuevas = clientes.rows.slice(1);
       expect(nuevas.every((fila) => !('__example' in fila))).toBe(true);
       expect(sinId(nuevas)[0]).toEqual({ name: 'Lucía', phone: '11 5555-0101' });
     });
