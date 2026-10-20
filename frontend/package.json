@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "catalogo:sami": "vitest run src/test/lib/catalogoSami.test.ts --mode actualizar-catalogo-sami"
   },
   "msw": {
     "workerDirectory": [

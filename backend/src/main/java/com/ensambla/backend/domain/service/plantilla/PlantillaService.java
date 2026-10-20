@@ -22,6 +22,10 @@ public class PlantillaService {
         return plantillaRepository.findAllActivas();
     }
 
+    public List<PlantillaProyecto> listarParaProyecto() {
+        return plantillaRepository.findAllParaProyectoActivas();
+    }
+
     public PlantillaProyecto obtenerParaProyecto(UUID plantillaId) {
         return plantillaRepository.findParaProyectoByIdAndActivaTrue(plantillaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Plantilla no encontrada"));

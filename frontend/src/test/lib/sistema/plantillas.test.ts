@@ -3,9 +3,7 @@ import {
   allBlocks,
   applyLayout,
   clearExamples,
-  createGuided,
   makeTemplate,
-  refineDraft,
   removeBlock,
   removeRow,
   splitBlocks,
@@ -224,50 +222,6 @@ describe('distribución y propuesta guiada', () => {
     applyLayout(sistema, 'mosaic');
     expect(stock.width).toBe('full');
     expect(clientes.startRow).toBeUndefined();
-  });
-
-  it('la propuesta guiada se puede refinar con bloques, distribución y secciones', () => {
-    const { system: sistema } = createGuided(
-      'Tengo un kiosco y vendo bebidas y golosinas',
-      'Lo de Rosa',
-    );
-
-    expect(sistema.name).toBe('Lo de Rosa');
-    for (const tipo of ['inventory', 'sales', 'clients'] as const) {
-      expect(tipos(sistema)).toContain(tipo);
-    }
-    refineDraft(sistema, 'Me falta controlar gastos');
-    expect(tipos(sistema)).toContain('expenses');
-    refineDraft(sistema, 'Prefiero dos columnas y el stock de todo el ancho');
-    expect(bloque(sistema, 'inventory').width).toBe('full');
-    refineDraft(sistema, 'Separar clientes en otra sección');
-    expect(sistema.sections).toHaveLength(2);
-    expect(sistema.sections[1]?.blocks[0]?.type).toBe('clients');
-    expect(bloque(sistema, 'sales').fields.find((campo) => campo.key === 'customer')?.target).toBe(
-      bloque(sistema, 'clients').id,
-    );
-  });
-
-  it('elige la base según lo que cuenta la persona y le pone nombre', () => {
-    expect(createGuided('Tengo un kiosco').system.name).toBe('Mi kiosco');
-    expect(createGuided('Tengo un minimercado').system.name).toBe('Mi minimercado');
-    expect(tipos(createGuided('Vendo por encargo y pedidos').system)).toEqual([
-      'orders',
-      'clients',
-      'inventory',
-    ]);
-    expect(tipos(createGuided('Necesito llevar entradas y salidas de mi depósito').system)).toEqual(
-      ['inventory', 'entries', 'exits'],
-    );
-  });
-
-  it('refinar quita y suma bloques con mensajes claros, y avisa cuando no entiende', () => {
-    const { system: sistema } = createGuided('Tengo un almacén');
-
-    expect(refineDraft(sistema, 'No quiero clientes')).toContain('Quité clientes.');
-    expect(tipos(sistema)).not.toContain('clients');
-    expect(refineDraft(sistema, 'Sumá pedidos')).toContain('Sumé pedidos.');
-    expect(refineDraft(sistema, 'asdf')).toContain('¿Qué te serviría?');
   });
 
   it('valida un pedido con el cliente de la plantilla', () => {

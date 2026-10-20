@@ -15,6 +15,10 @@ export function useNombre() {
 export const saludoDeSami = (nombre: string) =>
   `Hola, ${nombre}. Contame qué hacés y cómo te organizás hoy. Yo pienso una base y vos me decís si te sirve.`;
 
+/** Cómo arranca Sami cuando se abre el taller sobre un sistema que ya existe. */
+export const saludoParaAjustar = (nombreDelSistema: string) =>
+  `Estoy mirando «${nombreDelSistema}». ¿Qué querés cambiar? Te muestro cómo queda antes de guardar.`;
+
 // Los movimientos entre pantallas del mockup (navigate(), openSystem(), saveNew()) hechos con el router.
 // Cada uno cierra el modal abierto y deja sin selección, como navigate() del original.
 export function useNavegacion() {
@@ -28,7 +32,7 @@ export function useNavegacion() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
-  const irA = (to: '/inicio' | '/plantillas' | '/taller' | '/zona') => {
+  const irA = (to: '/inicio' | '/plantillas' | '/taller' | '/zona' | '/sami') => {
     limpiar();
     return navigate({ to });
   };
@@ -51,7 +55,17 @@ export function useNavegacion() {
       useSistemaStore.getState().iniciarTaller(saludoDeSami(nombre));
       return irA('/taller');
     },
+    /** «Ajustar con Sami»: una conversación nueva sobre una copia del sistema; nada cambia hasta guardar. */
+    ajustarConSami: (id: string) => {
+      const estado = useSistemaStore.getState();
+      const sistema = estado.sistemas.find((item) => item.id === id);
+      if (sistema) estado.iniciarTaller(saludoParaAjustar(sistema.name), sistema);
+      limpiar();
+      return navigate({ to: '/taller', search: { sistema: id } });
+    },
     irAZona: () => irA('/zona'),
+    /** «Armalo con Sami»: la conversación que crea un proyecto real en el backend. */
+    irASami: () => irA('/sami'),
     abrirSistema,
     /** saveNew() del mockup: guarda el sistema nuevo y lo abre. */
     crearYAbrir: (sistema: Sistema, modo: ModoDelEditor = 'use') => {
