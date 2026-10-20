@@ -210,8 +210,12 @@ class SamiConfigTest {
                     List.of(new LlamadaHerramienta("usar_kit", Map.of("rubro", kit.id()))),
                     new EstadoTaller("Mi sistema", "mosaic", List.of()));
 
+            // Con clientes, el dato Cliente de las ventas va al lugar 2: una edición más.
+            boolean conClientes = kit.piezas().stream().anyMatch(pieza -> pieza.tipo().equals("clients"));
+            long ediciones = conClientes ? kit.piezas().stream()
+                    .filter(pieza -> pieza.tipo().equals("sales")).count() : 0;
             assertThat(result.acciones()).as("acciones de %s", kit.id())
-                    .hasSize(kit.piezas().size() + kit.conexiones().size());
+                    .hasSize(kit.piezas().size() + kit.conexiones().size() + (int) ediciones);
             List<Integer> ejemplos = result.acciones().stream()
                     .filter(accion -> accion.herramienta().equals("agregar_pieza"))
                     .map(accion -> ((List<?>) accion.argumentos().get("ejemplos")).size())

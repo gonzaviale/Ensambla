@@ -313,11 +313,14 @@ class HerramientasTallerArmadoTest {
         ValidacionTaller result = validar(VACIO, llamada("usar_kit", Map.of("rubro", "Velas")));
 
         assertThat(result.acciones()).extracting(AccionTaller::herramienta).containsExactly(
-                "agregar_pieza", "agregar_pieza", "agregar_pieza", "agregar_pieza", "conectar");
+                "agregar_pieza", "agregar_pieza", "agregar_pieza", "agregar_pieza", "conectar", "editar_campo");
         assertThat(result.acciones()).extracting(accion -> accion.argumentos().get("nombre"))
-                .containsExactly("Velas", "Materiales", "Ventas", "Quién me debe", null);
+                .containsExactly("Velas", "Materiales", "Ventas", "Quién me debe", null, null);
         assertThat(result.acciones().get(4).argumentos()).isEqualTo(
                 Map.of("desde", "inventory", "hacia", "Materiales", "etiqueta", "Materiales que lleva"));
+        // Con clientas en el kit, el dato Cliente de las ventas va al lugar 2 para que se vea.
+        assertThat(result.acciones().get(5).argumentos())
+                .isEqualTo(Map.of("pieza", "sales", "campo", "Cliente", "posicion", 2));
         assertThat((List<?>) result.acciones().getFirst().argumentos().get("ejemplos")).hasSize(3);
         assertThat(result.descartadas()).isZero();
     }
@@ -343,7 +346,7 @@ class HerramientasTallerArmadoTest {
                 llamada("usar_kit", Map.of("rubro", "velas")),
                 llamada("usar_kit", Map.of("rubro", "velas")));
 
-        assertThat(result.acciones()).hasSize(5);
+        assertThat(result.acciones()).hasSize(6);
         assertThat(result.descartadas()).isEqualTo(3);
     }
 
@@ -370,6 +373,18 @@ class HerramientasTallerArmadoTest {
     }
 
     @Test
+    @DisplayName("Renombrar una pieza a su mismo nombre no es un cambio y se descarta")
+    void renombrarPiezaShouldDiscardTheSameName() {
+        ValidacionTaller result = validar(CON_PIEZAS,
+                llamada("renombrar_pieza", Map.of("pieza", "e1", "nombre", "Stock")),
+                llamada("renombrar_pieza", Map.of("pieza", "e1", "nombre", "Velas")));
+
+        assertThat(result.acciones()).containsExactly(
+                accion("renombrar_pieza", Map.of("pieza", "e1", "nombre", "Velas")));
+        assertThat(result.descartadas()).isEqualTo(1);
+    }
+
+    @Test
     @DisplayName("usar_kit cuenta como una sola acción del modelo")
     void usarKitShouldCountAsOneModelAction() {
         List<LlamadaHerramienta> llamadas = new ArrayList<>();
@@ -379,7 +394,7 @@ class HerramientasTallerArmadoTest {
 
         ValidacionTaller result = herramientasTallerService.validar(llamadas, VACIO);
 
-        assertThat(result.acciones()).hasSize(16);
+        assertThat(result.acciones()).hasSize(17);
         assertThat(result.descartadas()).isEqualTo(1);
     }
 

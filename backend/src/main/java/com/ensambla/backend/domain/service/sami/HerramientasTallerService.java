@@ -13,6 +13,7 @@ import com.ensambla.backend.domain.model.sami.taller.KitRubro;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
 import com.ensambla.backend.domain.model.sami.taller.LlamadaHerramienta;
 import com.ensambla.backend.domain.model.sami.taller.OpcionesTaller;
+import com.ensambla.backend.domain.model.sami.taller.PiezaKit;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
 import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,12 @@ import java.util.stream.IntStream;
  */
 @Service
 public class HerramientasTallerService {
+
+    private static final String TIPO_CLIENTES = "clients";
+    /** En ventas el dato Cliente es el quinto; en pedidos ya es el segundo. */
+    private static final List<String> TIPOS_CON_CLIENTE = List.of("sales");
+    /** Etiqueta del dato cliente de ventas y pedidos en el catálogo de componentes. */
+    private static final String CAMPO_CLIENTE = "Cliente";
 
     private interface Manejador extends BiFunction<Map<String, Object>, List<PiezaTaller>, Optional<AccionTaller>> {
     }
@@ -161,11 +168,29 @@ public class HerramientasTallerService {
                     acciones, lugar, () -> agregarPieza(pieza.comoArgumentos(), turno.piezas)));
             kit.conexiones().forEach(conexion -> sumarSiHayLugar(
                     acciones, lugar, () -> conectar(argumentosDe(kit, conexion), turno.piezas)));
+            clienteALaVista(kit).forEach(edicion -> sumarSiHayLugar(
+                    acciones, lugar, () -> editarCampo(edicion, turno.piezas)));
             if (!acciones.isEmpty()) {
                 turno.preguntaDelKit = kit.pregunta();
             }
         });
         return acciones;
+    }
+
+    /**
+     * Si el kit trae clientes, en sus ventas el dato Cliente va al lugar 2: las tablas muestran sólo los
+     * primeros datos, y lo que más se busca es qué se le vendió a quién.
+     */
+    private List<Map<String, Object>> clienteALaVista(KitRubro kit) {
+        boolean conClientes = kit.piezas().stream().anyMatch(pieza -> TIPO_CLIENTES.equals(pieza.tipo()));
+        if (!conClientes) {
+            return List.of();
+        }
+        return kit.piezas().stream()
+                .map(PiezaKit::tipo)
+                .filter(TIPOS_CON_CLIENTE::contains)
+                .<Map<String, Object>>map(tipo -> Map.of("pieza", tipo, "campo", CAMPO_CLIENTE, "posicion", 2))
+                .toList();
     }
 
     private void sumarSiHayLugar(List<AccionTaller> acciones, int lugar, Supplier<Optional<AccionTaller>> accion) {
@@ -251,11 +276,14 @@ public class HerramientasTallerService {
 
     private Optional<AccionTaller> renombrarPieza(Map<String, Object> args, List<PiezaTaller> piezas) {
         Optional<String> nombre = texto(args.get("nombre"), CatalogoTaller.MAX_LARGO_NOMBRE);
-        return indiceDe(args.get("pieza"), piezas).flatMap(indice -> nombre.map(nuevo -> {
+        return indiceDe(args.get("pieza"), piezas).flatMap(indice -> {
             PiezaTaller pieza = piezas.get(indice);
-            piezas.set(indice, new PiezaTaller(pieza.id(), pieza.tipo(), nuevo, pieza.seccion(), pieza.campos()));
-            return accionConPieza(HerramientaTaller.RENOMBRAR_PIEZA, pieza, "nombre", nuevo);
-        }));
+            // Renombrar al mismo nombre no es un cambio: el modelo a veces lo pide de paso.
+            return nombre.filter(nuevo -> !nuevo.equals(pieza.nombre())).map(nuevo -> {
+                piezas.set(indice, new PiezaTaller(pieza.id(), pieza.tipo(), nuevo, pieza.seccion(), pieza.campos()));
+                return accionConPieza(HerramientaTaller.RENOMBRAR_PIEZA, pieza, "nombre", nuevo);
+            });
+        });
     }
 
     private Optional<AccionTaller> renombrarSistema(Map<String, Object> args, List<PiezaTaller> piezas) {

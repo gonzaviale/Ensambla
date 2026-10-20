@@ -32,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -110,11 +111,11 @@ class TallerSamiServiceTest {
     void conversarShouldRemoveMarkdownBold() {
         givenQuotaAvailable();
         when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa(
-                " Armé **Turnos** y **Clientes**. ", List.of(), CONSUMO));
+                " Tenés **Turnos** y **Clientes**. ", List.of(), CONSUMO));
 
         RespuestaTaller result = service.conversar(NEGOCIO_ID, "peluquería", ESTADO, HISTORIAL, AHORA, LIMITE);
 
-        assertThat(result.texto()).isEqualTo("Armé Turnos y Clientes.");
+        assertThat(result.texto()).isEqualTo("Tenés Turnos y Clientes.");
     }
 
     @Test
@@ -291,6 +292,53 @@ class TallerSamiServiceTest {
         when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa("  Hola  \n", List.of(), CONSUMO));
 
         assertThat(service.conversar(NEGOCIO_ID, "hola", ESTADO, HISTORIAL, AHORA, LIMITE).texto()).isEqualTo("Hola");
+    }
+
+    @Test
+    @DisplayName("Si dice que armó algo sin invocar herramientas, se le pide una vez que lo haga y vale el reintento")
+    void conversarShouldRetryWhenTheModelClaimsChangesWithoutTools() {
+        givenQuotaAvailable();
+        when(tallerIaPort.conversar(any()))
+                .thenReturn(new ResultadoTallerIa("Armé tu sistema con Arreglos y Clientes.", List.of(), CONSUMO))
+                .thenReturn(new ResultadoTallerIa("Armé Gastos.", List.of(
+                        new LlamadaHerramienta("agregar_pieza", Map.of("tipo", "expenses"))), CONSUMO));
+
+        RespuestaTaller result = service.conversar(NEGOCIO_ID, "llevo arreglos", ESTADO, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(result.texto()).isEqualTo("Armé Gastos.");
+        assertThat(result.acciones()).hasSize(1);
+        ArgumentCaptor<ConsultaTaller> captor = ArgumentCaptor.forClass(ConsultaTaller.class);
+        verify(tallerIaPort, times(2)).conversar(captor.capture());
+        assertThat(captor.getAllValues().get(1).mensaje()).isEqualTo("llevo arreglos" + TallerSamiService.RECORDATORIO);
+        verify(consumoSamiRepository, times(1)).reservar(NEGOCIO_ID, HOY, LIMITE, AHORA);
+        verify(consumoSamiRepository, times(2)).registrar(NEGOCIO_ID, HOY, CONSUMO, AHORA);
+    }
+
+    @Test
+    @DisplayName("Si después del reintento sigue diciendo que hizo algo sin hacerlo, contesta con honestidad")
+    void conversarShouldNotClaimChangesItDidNotMake() {
+        givenQuotaAvailable();
+        when(tallerIaPort.conversar(any()))
+                .thenReturn(new ResultadoTallerIa("Moví el cliente adelante.", List.of(), CONSUMO));
+
+        RespuestaTaller result = service.conversar(NEGOCIO_ID, "poné el cliente primero", ESTADO, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(result.texto()).isEqualTo(TallerSamiService.SIN_CAMBIOS);
+        assertThat(result.acciones()).isEmpty();
+        verify(tallerIaPort, times(2)).conversar(any());
+    }
+
+    @Test
+    @DisplayName("Una explicación sin cambios no se reintenta")
+    void conversarShouldNotRetryAnExplanation() {
+        givenQuotaAvailable();
+        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa(
+                "Ya está vinculado: al registrar una venta elegís la clienta de una lista.", List.of(), CONSUMO));
+
+        RespuestaTaller result = service.conversar(NEGOCIO_ID, "¿están vinculadas?", ESTADO, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(result.texto()).startsWith("Ya está vinculado");
+        verify(tallerIaPort, times(1)).conversar(any());
     }
 
     private void givenQuotaAvailable() {

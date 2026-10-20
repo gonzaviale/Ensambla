@@ -191,6 +191,15 @@ con un kit y no preguntó nada, la respuesta lleva la pregunta del kit en la bot
 Si el modelo sólo invoca herramientas y no escribe nada (pasa seguido con Haiku), Sami cuenta lo que quedó hecho a
 partir de las acciones ya validadas («Sumé gastos. Quité clientes. Mirá cómo queda.»).
 
+**Sami no dice que hizo algo que no hizo.** Si el texto cuenta un cambio («Armé…», «Moví…», «Renombré…») y no llegó
+ninguna acción válida, `TallerSamiService` le pide al modelo una vez más que lo haga con las herramientas (no reserva
+otra consulta del día; los tokens se registran). Si tampoco lo hace, la respuesta es «No pude hacer eso…». La
+evaluación mide al modelo sin este reintento.
+
+**Reglas fijas del ensamblado** (no dependen del modelo): las conexiones que el taller hace solo se descartan;
+renombrar una pieza a su mismo nombre no cuenta; y si un kit trae clientes, el dato Cliente de sus ventas va al lugar 2,
+porque la vista de cada tabla muestra sólo los primeros 4 datos.
+
 `ofrecer_opciones` llega en el campo `opciones` de la respuesta (dato estructurado, sin parsear texto). La pantalla
 dibuja una botonera con 2 a 6 respuestas y **siempre** un último botón «Escribir otra cosa…» que enfoca el campo,
 como en Claude. Elegir una opción equivale a escribir su texto. Cada cambio de Sami se puede deshacer con «Deshacer lo

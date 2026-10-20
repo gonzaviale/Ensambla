@@ -27,6 +27,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.BiFunction;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -42,6 +43,11 @@ public class TallerSamiService {
             "Hoy ya usaste todas las consultas con IA. Probá mañana o seguí armándolo a mano.";
     static final String IA_NO_DISPONIBLE = "Sami no pudo pensar la respuesta ahora. Probá de nuevo en un rato.";
     static final String SIN_CAMBIOS = "No pude hacer eso con lo que tengo. ¿Me lo contás de otra forma?";
+    static final String RECORDATORIO = "\n\n(Aviso del sistema: en tu respuesta anterior dijiste que hiciste cambios, pero"
+            + " no invocaste ninguna herramienta. Hacelos ahora invocando las herramientas.)";
+    /** Verbos con los que Sami cuenta un cambio hecho («Armé tu sistema…»). */
+    private static final Pattern AFIRMA_CAMBIOS = Pattern.compile(
+            "(?iU)\\b(armé|sumé|agregué|renombré|moví|conecté|quité|cambié|cargué|creé|separé)\\b");
 
     /** Describe una acción; recibe sus argumentos y el nombre de cada pieza según cómo la nombran las acciones. */
     private interface Descripcion extends BiFunction<Map<String, Object>, Map<String, String>, String> {
@@ -103,8 +109,23 @@ public class TallerSamiService {
         ResultadoTallerIa resultado = consultar(new ConsultaTaller(mensaje, estado, historial, kit));
         consumoSamiRepository.registrar(negocioId, fecha, resultado.consumo(), ahora);
         ValidacionTaller validacion = herramientasTallerService.validar(resultado.llamadas(), estado);
+        if (afirmaCambiosSinHacerlos(resultado, validacion)) {
+            // Sami nunca dice que hizo algo que no hizo: se le pide una vez que lo haga con las herramientas. El reintento
+            // no reserva otra consulta del día, pero sus tokens se registran.
+            resultado = consultar(new ConsultaTaller(mensaje + RECORDATORIO, estado, historial, kit));
+            consumoSamiRepository.registrar(negocioId, fecha, resultado.consumo(), ahora);
+            validacion = herramientasTallerService.validar(resultado.llamadas(), estado);
+            if (afirmaCambiosSinHacerlos(resultado, validacion)) {
+                return new RespuestaTaller(SIN_CAMBIOS, List.of(), validacion.opciones());
+            }
+        }
         return new RespuestaTaller(
                 texto(resultado.texto(), validacion, estado), validacion.acciones(), opciones(resultado, validacion));
+    }
+
+    private boolean afirmaCambiosSinHacerlos(ResultadoTallerIa resultado, ValidacionTaller validacion) {
+        return validacion.acciones().isEmpty() && resultado.texto() != null
+                && AFIRMA_CAMBIOS.matcher(resultado.texto()).find();
     }
 
     /**
