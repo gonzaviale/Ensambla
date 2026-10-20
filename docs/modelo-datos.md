@@ -1,9 +1,10 @@
-# Modelo de datos (MVP 2 · T-004, T-109; V9 a V11 adaptan el modelo al frontend nuevo y a la propuesta v1.3)
+# Modelo de datos (MVP 2 · T-004, T-109; V9 a V12 incorporan frontend, monitoreo y planes)
 
 Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (`V1__esquema_inicial.sql`,
 `V2__digitalizacion_cuaderno.sql`, `V3__plantillas_base.sql`, `V4__procesamiento_lecturas_ia.sql`,
 `V5__campo_relacion.sql`, `V6__campo_formula.sql`, `V7__movimiento_stock.sql`, `V8__receta.sql`,
-`V9__modelo_sistema_y_monitoreo.sql`, `V10__datos_prueba_san_justo.sql`, `V11__avisos_entidad_y_datos.sql`).
+`V9__modelo_sistema_y_monitoreo.sql`, `V10__datos_prueba_san_justo.sql`, `V11__avisos_entidad_y_datos.sql`,
+`V12__planes_y_suscripciones.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -36,6 +37,30 @@ porqué; si cambian, se actualizan juntos.
   y el acceso a archivos ocurren fuera de esas transacciones.
 
 Detalles y contrato con subida: [lectura-cuaderno-ia.md](lectura-cuaderno-ia.md).
+
+## Planes y suscripciones (V12 · ENS-94 / T-066)
+
+- `plan` es un catálogo global con códigos únicos `GRATUITO` y `PREMIUM`, nombre, precio mensual,
+  moneda de tres letras, límites de proyectos, registros y páginas de IA mensuales, y una lista JSON de funciones.
+  Las cuotas y el precio no admiten números negativos. Se permiten cero y límites nulos según la configuración.
+- `configurado=false` identifica las condiciones comerciales todavía pendientes. En ese estado, un límite
+  nulo **no significa ilimitado**. El catálogo inicial no fija cuotas, moneda, precio premium ni funciones.
+  Sólo el gratuito tiene precio cero. La lista inicial de funciones está vacía y el indicador sigue en falso.
+- Un plan configurado exige precio y moneda; el gratuito exige además límites explícitos de proyectos y
+  páginas mensuales, y premium exige precio positivo. Un límite nulo en un plan configurado representa
+  que no tiene límite para ese recurso. Los valores concretos y las funciones se definen antes de habilitar
+  el control comercial de ENS-95. `configurado` no es un permiso premium ni equivale a un pago aprobado.
+- `suscripcion` guarda una única suscripción actual por negocio (`ux_suscripcion_negocio`), su plan,
+  estado (`ACTIVA`, `PRUEBA`, `VENCIDA`, `CANCELADA`), inicio y fin opcional del período. El fin, si existe,
+  debe ser posterior al inicio. La FK del negocio borra en cascada; la FK del plan impide eliminar un plan en uso.
+- V12 asigna el gratuito activo, sin fin, a todos los negocios que ya existen, sin borrar sus datos.
+  `RegistroService` crea usuario, negocio y suscripción gratuita en una sola transacción: si falla cualquiera,
+  se revierte todo. Las fechas de las nuevas cuentas vienen del instante recibido por el caso de uso.
+- La consulta de suscripción recibe el negocio resuelto por el servidor; el puerto no ofrece búsqueda por id
+  de suscripción sin negocio. `plan` se consulta por código porque es un catálogo global.
+- ENS-94 sólo incorpora persistencia y asignación. Los controles efectivos y consumo mensual corresponden
+  a ENS-95, la prueba y su vencimiento a ENS-96, la pantalla a ENS-97 y los pagos a ENS-98. Los estados del
+  esquema no activan esas operaciones por sí mismos. El límite técnico diario de IA existente sigue funcionando.
 
 ## Frontend nuevo y monitoreo (V9)
 
@@ -126,6 +151,8 @@ foránea es **compuesta**: `(negocio_id, bloque_id) → bloque (negocio_id, id)`
 erDiagram
     usuario ||--o{ negocio : "es dueño de"
     negocio ||--o{ proyecto : tiene
+    negocio ||--o| suscripcion : tiene
+    plan ||--o{ suscripcion : asignado
     zona ||--o{ negocio : agrupa
     zona ||--o{ agregado_zona_producto : resume
     proyecto ||--o{ seccion : organiza
@@ -171,6 +198,26 @@ erDiagram
         numeric latitud
         numeric longitud
         int radio_metros
+    }
+    plan {
+        uuid id PK
+        text codigo UK "GRATUITO | PREMIUM"
+        boolean configurado "false = condiciones comerciales pendientes"
+        boolean limites_configurados "capacidades aprobadas, independiente del precio"
+        numeric precio_mensual
+        text moneda
+        int limite_proyectos
+        bigint limite_registros
+        int limite_paginas_ia_mensuales
+        jsonb funciones
+    }
+    suscripcion {
+        uuid id PK
+        uuid negocio_id FK,UK
+        uuid plan_id FK
+        text estado "ACTIVA | PRUEBA | VENCIDA | CANCELADA"
+        timestamptz inicio_en
+        timestamptz fin_en
     }
     seccion {
         uuid id PK
@@ -317,6 +364,8 @@ erDiagram
 |---|---|---|
 | `usuario` | Cuenta de acceso | `email` único y normalizado por `CHECK`. MVP 2: un único dueño por negocio. |
 | `negocio` | Espacio de trabajo y límite de aislamiento | Se crea junto con el usuario en el registro (T-005). `duenio_id` `RESTRICT`. Miembros y roles (dueño / editor / operador) llegan en MVP 4 (T-060) con una tabla nueva. |
+| `plan` | Catálogo global de planes (ENS-94 / T-066) | Código único, precio, moneda, límites y funciones; condiciones comerciales iniciales pendientes (`configurado=false`). |
+| `suscripcion` | Plan actual de un negocio (ENS-94 / T-066) | Única por negocio, con período y estado. V12 y el registro asignan el gratuito activo. Prueba, control y pagos se agregan en las subtareas siguientes. |
 | `plantilla` | Estructuras listas para copiar (T-013) | Global: sin `negocio_id`. `estructura` = `{ "bloques": [ { "nombre", "campos": [ { "nombre", "tipo", "obligatorio", "valorInicial", "opciones" } ] } ] }`. Crear un proyecto desde una plantilla **copia** la estructura; editar el proyecto no toca la plantilla (T-014). |
 | `proyecto` | Un sistema armado por el usuario | `plantilla_id` guarda el origen y pasa a `NULL` si la plantilla se borra. Borrar un proyecto borra en cascada bloques, campos y registros (T-012). |
 | `bloque` | Una "pieza": Productos, Clientes, Pedidos… | Nombre único por proyecto; `posicion` ordena la lista del constructor. |
@@ -355,7 +404,7 @@ Testcontainers.
 | Borrador vs. versión publicada de la estructura | MVP 3 · T-047 | Tablas o columnas de versión en una migración nueva |
 | Columnas visibles por bloque y dispositivo | MVP 3 · T-049 | Tabla de preferencias por bloque |
 | Membresías y roles, invitaciones, auditoría | MVP 4 · T-060, T-063, T-065 | `membresia`, `invitacion`, `auditoria` |
-| Planes, suscripciones, límites | MVP 4 · T-066 | `plan`, `suscripcion` |
+| Control por plan, prueba, pantalla y cobro | ENS-95 a ENS-98 | ENS-94 incorpora el catálogo y la suscripción inicial; las capacidades se habilitan en sus subtareas |
 | Relación entre bloques, stock, recetas | MVP 4 · T-073 a T-075 | Nuevos tipos de campo y tablas de movimientos |
 | Repositorios y casos de uso de zona, avisos y preferencias | Cuando se haga el motor de monitoreo | Entidades ya creadas en V9 |
 | Archivos adjuntos a registros | MVP 4 · T-078 | Tipo de campo `ARCHIVO` sobre el mismo almacenamiento que `foto_cuaderno` |
