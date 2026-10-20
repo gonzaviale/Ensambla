@@ -3,7 +3,10 @@ import { Logo, buttonClasses } from '@/components/ui';
 import { LandingLinks, LandingMenu } from './LandingMenu';
 
 export function PublicHeader() {
-  const enLanding = useRouterState({ select: (s) => s.location.pathname === '/' });
+  const ruta = useRouterState({ select: (s) => s.location.pathname });
+  const enLanding = ruta === '/';
+  // En el ingreso y el registro el formulario ya está en pantalla: el "Entrar" sobra.
+  const enAcceso = ruta === '/login' || ruta === '/registro';
 
   return (
     <header className="brand-header sticky top-0 z-(--z-nav) border-b border-line bg-canvas">
@@ -14,12 +17,14 @@ export function PublicHeader() {
         {enLanding && <LandingLinks />}
         <nav aria-label="Cuenta" className="ml-auto flex items-center gap-2">
           {/* En 320 px no entran dos botones junto al logo: se colapsan en un único "Entrar". */}
-          <Link
-            to="/login"
-            className={buttonClasses({ variant: 'primary', className: 'sm:hidden' })}
-          >
-            Entrar
-          </Link>
+          {!enAcceso && (
+            <Link
+              to="/login"
+              className={buttonClasses({ variant: 'primary', className: 'sm:hidden' })}
+            >
+              Entrar
+            </Link>
+          )}
           <Link
             to="/login"
             className={buttonClasses({ variant: 'ghost', className: 'max-sm:hidden' })}
