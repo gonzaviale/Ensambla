@@ -97,6 +97,15 @@
     }
   },
   {
+    "name": "cargar_registros",
+    "description": "Suma registros reales (de una foto) a una pieza; hasta 30 filas.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"pieza": {"type": "string"}, "filas": {"type": "array"}},
+      "required": ["pieza", "filas"]
+    }
+  },
+  {
     "name": "conectar",
     "description": "Suma en desde un vínculo a hacia.",
     "inputSchema": {

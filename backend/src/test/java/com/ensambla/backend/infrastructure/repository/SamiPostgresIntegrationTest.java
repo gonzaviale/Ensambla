@@ -115,7 +115,7 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         ConversarEnTallerResponse response = conversarEnTallerUseCase.execute(new ConversarEnTallerRequest(
                 usuarioId, "sumá los gastos",
                 new EstadoTallerItem("Mi almacén", "mosaic", List.of()),
-                List.of(new MensajeTallerItem("sami", "Hola"))));
+                List.of(new MensajeTallerItem("sami", "Hola")), null));
 
         assertThat(response.acciones()).extracting("herramienta").containsExactly("agregar_pieza");
         assertThat(response.acciones().getFirst().argumentos()).containsEntry("tipo", "expenses");
@@ -128,7 +128,7 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @DisplayName("Un turno del taller que no se entiende devuelve una botonera para elegir")
     void tallerShouldAskWithOptionsWhenItDoesNotUnderstand() {
         ConversarEnTallerResponse response = conversarEnTallerUseCase.execute(new ConversarEnTallerRequest(
-                usuarioId, "ayuda", new EstadoTallerItem("", "mosaic", List.of()), List.of()));
+                usuarioId, "ayuda", new EstadoTallerItem("", "mosaic", List.of()), List.of(), null));
 
         assertThat(response.opciones().opciones()).hasSizeBetween(2, 6);
         assertThat(response.acciones()).isEmpty();

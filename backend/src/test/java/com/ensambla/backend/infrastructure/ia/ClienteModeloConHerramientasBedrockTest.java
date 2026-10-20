@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.ia;
 
+import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
 import com.ensambla.backend.domain.model.sami.taller.LlamadaHerramienta;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -12,6 +13,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseOutput;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
+import software.amazon.awssdk.services.bedrockruntime.model.ImageFormat;
 import software.amazon.awssdk.services.bedrockruntime.model.Message;
 import software.amazon.awssdk.services.bedrockruntime.model.TokenUsage;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
@@ -103,6 +105,21 @@ class ClienteModeloConHerramientasBedrockTest {
 
         assertThat(result.texto()).isEqualTo("Claro, contame más.");
         assertThat(result.llamadas()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("La foto adjunta va en el mismo mensaje como ImageBlock, antes del texto del turno")
+    void completarShouldSendAttachedImageAsImageBlock() {
+        givenModelAnswers(ContentBlock.fromText("Leí la foto."));
+
+        cliente.completar(new PeticionConHerramientas("i", "contexto",
+                List.of(new ImagenTaller("image/webp", new byte[]{4, 5}))));
+
+        List<ContentBlock> bloques = capturedRequest().messages().getFirst().content();
+        assertThat(bloques).hasSize(2);
+        assertThat(bloques.getFirst().image().format()).isEqualTo(ImageFormat.WEBP);
+        assertThat(bloques.getFirst().image().source().bytes().asByteArray()).containsExactly(4, 5);
+        assertThat(bloques.get(1).text()).isEqualTo("contexto");
     }
 
     private void givenModelAnswers(ContentBlock... bloques) {

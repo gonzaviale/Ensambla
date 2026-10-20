@@ -71,18 +71,37 @@ resuelven sin preguntar, 22 de 23 columnas esperadas acertadas.
 > **Ojo.** Las frases las escribió el mismo equipo que armó el diccionario, así que ese 100 % es optimista. Falta
 > sumar descripciones reales de comerciantes (el Jira pide 40 o más) antes de creerle la cifra.
 
-## IA con Amazon Bedrock
+## Proveedor de IA intercambiable (Anthropic o Bedrock)
 
-Se activa con `ensambla.sami.ia.proveedor=bedrock` (variables `ENSAMBLA_SAMI_*`, ver
-`application-ensambla-secrets.properties.example`).
+Sami y la lectura del cuaderno piden una **puerta** y la configuración decide por atrás qué proveedor la atiende:
+
+| Puerta | La usa | Simulado | API de Anthropic | Amazon Bedrock |
+|---|---|---|---|---|
+| `ClienteModeloVision` (imágenes → JSON) | lectura del cuaderno | ✅ | ✅ | ✅ |
+| `ClienteModeloTexto` (texto → JSON) | asistente de plantillas | ✅ | ✅ | ✅ |
+| `ClienteModeloConHerramientas` (charla con herramientas e imágenes) | taller de Sami | ✅ | ✅ | ✅ |
+
+- **Un solo selector:** `ensambla.ia.proveedor = simulado | anthropic | bedrock` (`ENSAMBLA_IA_PROVEEDOR`). Las
+  credenciales y los modelos de cada proveedor van en `ensambla.ia.proveedores.<nombre>.*`:
+  - Anthropic: `ENSAMBLA_IA_API_KEY` y `ENSAMBLA_IA_ANTHROPIC_MODELO_RAPIDO` / `_AVANZADO` / `_VISION`.
+  - Bedrock: `ENSAMBLA_IA_BEDROCK_REGION`, `ENSAMBLA_IA_BEDROCK_PERFIL_AWS` (vacío = credenciales por defecto) y
+    `ENSAMBLA_IA_BEDROCK_MODELO_RAPIDO` / `_AVANZADO` / `_VISION`.
+  - `ENSAMBLA_IA_MODELO` sigue pisando el modelo de visión.
+- **Sami puede usar otro:** cada valor de `ensambla.sami.ia.*` vacío sale del global; con valor, manda el de Sami
+  (`ENSAMBLA_SAMI_IA_PROVEEDOR`, `_PERFIL_AWS`, `_MODELO_RAPIDO`, …). Ojo: un archivo de secretos viejo con
+  `ENSAMBLA_SAMI_IA_PROVEEDOR=simulado` deja a Sami simulado aunque el global sea `bedrock`.
+- **Sumar un proveedor:** implementar `ProveedorIa` (arma sus tres clientes), registrarlo como bean en `IaConfig` y
+  poner sus datos en `ensambla.ia.proveedores.<nombre>.*`. `IaConfig` y `SamiConfig` sólo piden puertas a
+  `ProveedoresIa`; un nombre desconocido no deja arrancar la app.
+
+### Ajustes de Sami
 
 | Propiedad | Por defecto | Para qué |
 |---|---|---|
-| `proveedor` | `simulado` | `simulado` elige la primera plantilla sin costo; `bedrock` usa Claude |
-| `region` | `us-east-1` | región donde están habilitados los modelos |
-| `perfil-aws` | vacío | perfil de `~/.aws`; vacío usa la cadena por defecto (variables `AWS_*`, rol de la instancia) |
-| `modelo-rapido` | `us.anthropic.claude-haiku-4-5-20251001-v1:0` | atiende todo |
-| `modelo-avanzado` | `us.anthropic.claude-sonnet-4-6` | sólo si el rápido no está seguro; vacío desactiva el escalado |
+| `proveedor` | el global | `simulado` elige la primera plantilla sin costo; `bedrock` o `anthropic` usan Claude |
+| `region` / `perfil-aws` | los del proveedor | región y perfil de AWS (sólo Bedrock) |
+| `modelo-rapido` | Haiku 4.5 del proveedor | atiende todo |
+| `modelo-avanzado` | Sonnet 4.6 del proveedor | sólo si el rápido no está seguro; para apagar el escalado, dejar vacío también el avanzado del proveedor |
 | `umbral-escalar` | `0.6` | confianza que tiene que alcanzar un modelo para no escalar |
 | `limite-diario-ia` | `20` | consultas con IA por negocio y por día (UTC) |
 
@@ -169,6 +188,7 @@ comparte contador con el asistente de plantillas.
 | `agregar_pieza(tipo, nombre?, campos?, ejemplos?, seccion?)` | suma un componente con su nombre, datos extra (≤ 8) y filas de ejemplo (≤ 5) |
 | `quitar_pieza(pieza)` | quita una pieza |
 | `cargar_ejemplos(pieza, filas)` | reemplaza las filas de ejemplo (las reales quedan) |
+| `cargar_registros(pieza, filas)` | suma **registros reales** (por ejemplo, lo que se lee de una foto), hasta 30; se guardan al crear el sistema |
 | `conectar(desde, hacia, etiqueta?)` | suma en `desde` un dato vínculo a `hacia` (o convierte en vínculo un dato con esa etiqueta) |
 | `renombrar_pieza(pieza, nombre)` / `renombrar_sistema(nombre)` | cambia nombres |
 | `agregar_campo(pieza, etiqueta, tipo, opciones?)` / `quitar_campo(pieza, campo)` | suma o quita un dato; `select` necesita 2 opciones |
@@ -176,6 +196,15 @@ comparte contador con el asistente de plantillas.
 | `separar_en_seccion(pieza, seccion)` | pasa la pieza a una sección aparte |
 | `cambiar_distribucion(layout)` | mosaic, single, two o three |
 | `ofrecer_opciones(pregunta, opciones)` | **no cambia nada**: Sami pregunta con una botonera |
+
+**Mandarle una foto a Sami.** La cámara del taller (también en «Ajustar con Sami») adjunta una foto del cuaderno, una
+lista o una planilla al próximo mensaje. El navegador la achica (lado mayor 1600 px) y viaja en
+`POST /api/sami/taller` como `imagen: {tipo, datos}` (JPEG, PNG o WEBP en base64, hasta 5 MB; si no, 400 con un mensaje
+para la persona). El modelo la ve en el mismo turno, arma o ajusta las piezas según sus columnas y carga lo que lee
+con `cargar_registros`. Si el modelo arma las piezas y se olvida de cargar lo que lee (pasa con los kits), se le hace
+un segundo pedido sólo para los registros, mostrándole las piezas ya armadas para que use sus etiquetas; los registros
+se suman a la respuesta. Al crear el sistema se descartan sólo las filas de ejemplo: los registros reales quedan. La
+foto no se guarda ni viaja en el historial.
 
 **Ajustar con Sami un sistema ya creado.** En la pantalla de un sistema, «Ajustar con Sami» abre el taller con ese
 sistema (`/taller?sistema=<id>`): Sami lo ve con sus piezas y datos y lo cambia con las mismas herramientas. La
@@ -217,22 +246,27 @@ tipo}]}]}, historial[{quien, texto}]}`. Response: `{respuesta, acciones[{herrami
 
 ### Evaluación
 
-`TallerBedrockEvaluacionTest` (opt-in con `SAMI_BEDROCK_PERFIL`) corre 41 conversaciones de
+`TallerBedrockEvaluacionTest` (opt-in con `SAMI_BEDROCK_PERFIL`) corre 45 conversaciones de
 `sami/conversaciones-taller.json` con el prompt, el catálogo, los kits, las herramientas y la validación de
 producción: pedidos puntuales, preguntas, pedidos fuera del catálogo, armado desde cero con y sin kit, conexiones,
-edición de datos y charlas reales de prueba (velas).
+edición de datos, charlas reales de prueba (velas) y dos fotos (un cuaderno de ventas y una lista de stock).
+`SAMI_EVAL_CASOS=foto` corre sólo los casos cuyo id contiene «foto»; los fallos muestran las llamadas crudas del modelo.
 
 ```bash
 SAMI_BEDROCK_PERFIL=mi-perfil ./mvnw test -Dtest=TallerBedrockEvaluacionTest
 ```
 
-Resultado con Haiku 4.5 (prompt v2, 2026-10-20): **40/41 (98 %)**, ≈ **2542 tokens de entrada y 162 de salida por
-turno**, ≈ 1,7 s de latencia: unos 0,33 centavos de dólar por turno. La meta es ≥ 85 % y < 2600 tokens. El caso que a
-veces falla es «llevo los arreglos de bicis»: en ocasiones pregunta antes de armar. La primera versión del ensamblado
-dio 80 %: conectaba de más, hacía más de lo pedido y preguntaba el rubro en vez de armar; lo corrigieron reglas
-concretas en el prompt y descartar las conexiones que el taller ya hace solo. La meta de tokens empezó en 2000 y pasó a
-2300 y después a 2600 (con `editar_campo`): cerca de la mitad del turno son las 13 herramientas que Bedrock manda
-siempre, y el prompt caching no aplica porque el prefijo es más corto que el mínimo que pide Haiku.
+Resultado con Haiku 4.5 (prompt v3, 14 herramientas, 2026-10-20): **93–96 %** según la corrida, ≈ **2680 tokens de
+entrada sin foto y ≈ 3500 con foto**, ≈ 1,8 s de latencia: unos 0,3 centavos de dólar por turno sin foto y 0,35 con
+foto. La meta es ≥ 85 % y < 2800 tokens sin foto. La evaluación mide al modelo solo: no pasa por los reintentos de
+`TallerSamiService` (si dice que hizo algo sin hacerlo, o si con una foto no cargó registros), que en la app corrigen
+justamente los casos que más fallan (bicicletas y el cuaderno de velas).
+
+La primera versión del ensamblado dio 80 %: conectaba de más, hacía más de lo pedido y preguntaba el rubro en vez de
+armar; lo corrigieron reglas concretas en el prompt y reglas fijas en la validación. La meta de tokens empezó en 2000 y
+subió con cada herramienta (2300, 2600 con `editar_campo`, 2800 con `cargar_registros`): cerca de la mitad del turno son
+las herramientas que el proveedor manda siempre, y el prompt caching no aplica porque el prefijo es más corto que el
+mínimo que pide Haiku.
 
 > **Ojo.** Las conversaciones y el prompt los escribió el mismo equipo, así que el 100 % es optimista; hay que probar
 > con lo que escribe la gente de verdad. Las cuentas nuevas de Bedrock tienen una cuota baja de pedidos por minuto

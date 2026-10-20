@@ -23,7 +23,7 @@ import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Las herramientas para ensamblar: agregar_pieza completa, usar_kit, cargar_ejemplos y conectar. */
+/** Las herramientas para ensamblar: agregar_pieza completa, usar_kit, cargar_ejemplos, cargar_registros y conectar. */
 class HerramientasTallerArmadoTest {
 
     private static final EstadoTaller VACIO = new EstadoTaller("Mi sistema", "mosaic", List.of());
@@ -191,6 +191,51 @@ class HerramientasTallerArmadoTest {
                 llamada("cargar_ejemplos", Map.of("pieza", "e1", "filas", List.of(Map.of("Color", "Rojo")))),
                 llamada("cargar_ejemplos", Map.of("pieza", "e1")),
                 llamada("cargar_ejemplos", Map.of("pieza", "nada", "filas", List.of(Map.of("Producto", "x")))));
+
+        assertThat(result.acciones()).isEmpty();
+        assertThat(result.descartadas()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("Carga registros reales en una pieza existente o recién sumada, con las etiquetas de la pieza")
+    void cargarRegistrosShouldAcceptRowsForExistingOrNewPiece() {
+        ValidacionTaller result = validar(VACIO,
+                llamada("agregar_pieza", Map.of("tipo", "form", "nombre", "Ventas de velas", "campos", List.of(
+                        Map.of("etiqueta", "Clienta", "tipo", "text"), Map.of("etiqueta", "Precio", "tipo", "currency")))),
+                llamada("cargar_registros", Map.of("pieza", "ventas de velas", "filas", List.of(
+                        Map.of("nombre", "Vela lavanda", "clienta", "Ana", "Precio", 4500),
+                        Map.of("Nombre", "Vela coco", "Clienta", "Luz", "Inventada", "x")))));
+
+        assertThat(result.acciones()).containsExactly(
+                accion("agregar_pieza", Map.of("tipo", "form", "nombre", "Ventas de velas", "campos", List.of(
+                        Map.of("etiqueta", "Clienta", "tipo", "text"), Map.of("etiqueta", "Precio", "tipo", "currency")))),
+                accion("cargar_registros", Map.of("pieza", "Ventas de velas", "filas", List.of(
+                        Map.of("Nombre", "Vela lavanda", "Clienta", "Ana", "Precio", 4500),
+                        Map.of("Nombre", "Vela coco", "Clienta", "Luz")))));
+    }
+
+    @Test
+    @DisplayName("Los registros sin el dato principal se caen y no se cargan más de 30 por llamada")
+    void cargarRegistrosShouldDropRowsWithoutMainFieldAndCapAtThirty() {
+        List<Map<String, Object>> filas = new ArrayList<>(IntStream.rangeClosed(1, 35)
+                .<Map<String, Object>>mapToObj(numero -> Map.of("Producto", "Producto " + numero, "Cantidad", numero))
+                .toList());
+        filas.addFirst(Map.of("Cantidad", 9));
+
+        ValidacionTaller result = validar(CON_PIEZAS, llamada("cargar_registros", Map.of("pieza", "e1", "filas", filas)));
+
+        List<?> cargadas = (List<?>) result.acciones().getFirst().argumentos().get("filas");
+        assertThat(cargadas).hasSize(30);
+        assertThat(cargadas.getFirst()).isEqualTo(Map.of("Producto", "Producto 1", "Cantidad", 1));
+    }
+
+    @Test
+    @DisplayName("No carga registros sin filas válidas o en una pieza que no existe")
+    void cargarRegistrosShouldRejectInvalidInput() {
+        ValidacionTaller result = validar(CON_PIEZAS,
+                llamada("cargar_registros", Map.of("pieza", "e1", "filas", List.of(Map.of("Cantidad", 3)))),
+                llamada("cargar_registros", Map.of("pieza", "e1")),
+                llamada("cargar_registros", Map.of("pieza", "nada", "filas", List.of(Map.of("Producto", "x")))));
 
         assertThat(result.acciones()).isEmpty();
         assertThat(result.descartadas()).isEqualTo(3);

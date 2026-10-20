@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.sami.taller.CampoTaller;
 import com.ensambla.backend.domain.model.sami.taller.CatalogoComponentes;
 import com.ensambla.backend.domain.model.sami.taller.ConsultaTaller;
 import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
+import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
 import com.ensambla.backend.domain.model.sami.taller.KitRubro;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
 import com.ensambla.backend.domain.model.sami.taller.LlamadaHerramienta;
@@ -45,7 +46,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * prompt, catálogo, kits, herramientas y validación que producción y mide el acierto de las acciones, los tokens y la
  * latencia.
  * <pre>SAMI_BEDROCK_PERFIL=mi-perfil ./mvnw test -Dtest=TallerBedrockEvaluacionTest</pre>
- * Meta: 85 % de acierto y menos de 2600 tokens de entrada por turno.
+ * Meta: 85 % de acierto y menos de 2800 tokens de entrada por turno (sin foto). Con
+ * {@code SAMI_EVAL_CASOS=foto} corren sólo los casos cuyo id contiene «foto».
  * <p>
  * Cada caso puede pedir: {@code esperadas} (todas tienen que estar), {@code alguna} (alcanza con una), {@code opciones}
  * (tiene que haber botonera), {@code permiteExtras} (puede hacer más de lo esperado) y {@code armado} (arma al menos
@@ -54,6 +56,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * de los argumentos se compara como texto contenido, sin mayúsculas ni tildes: un valor vacío sólo pide que el
  * argumento venga (la {@code posicion} de un {@code editar_campo}, por ejemplo, que puede ser 1 o 2 según el orden en
  * que el modelo mueva los datos).
+ * <p>
+ * Un caso con {@code imagen} adjunta ese archivo de {@code src/test/resources/sami/} (por ejemplo
+ * {@code cuaderno-ventas-velas.png}); sus tokens de entrada se informan aparte y no cuentan para la meta de tokens.
  * <p>
  * En el estado {@code almacen} las ventas ya tienen el vínculo {@code Cliente}, como las arma el taller
  * ({@code wireSystem}), para poder evaluar {@code editar_campo} sobre ese dato.
@@ -67,9 +72,10 @@ class TallerBedrockEvaluacionTest {
      * (cerca de la mitad del turno) + el prompt + el contexto. Con 2000 había que sacar reglas del prompt que llevaron
      * el acierto de 80 % a 100 %. Con editar_campo (13 herramientas) la meta pasó de 2300 a 2600: v2, 2026-10-20,
      * 41 casos, 2542 de entrada y 162 de salida, ≈ 0,33 centavos de dólar por turno
-     * con Haiku 4.5.
+     * con Haiku 4.5. v3 suma cargar_registros (14 herramientas) y la meta pasa a 2800: 2026-10-20, 45 casos, 2682 de
+     * entrada sin foto y ≈ 3500 con foto (≈ 0,35 centavos por turno con foto).
      */
-    private static final int META_TOKENS_DE_ENTRADA = 2600;
+    private static final int META_TOKENS_DE_ENTRADA = 2800;
     private static final String MODELO = System.getenv().getOrDefault(
             "SAMI_BEDROCK_RAPIDO", "us.anthropic.claude-haiku-4-5-20251001-v1:0");
     private static final long PAUSA_ENTRE_CASOS_MS = Long.parseLong(
@@ -82,9 +88,10 @@ class TallerBedrockEvaluacionTest {
     private record Esperada(String herramienta, Map<String, String> args) {
     }
 
+    /** @param imagen archivo de {@code src/test/resources/sami/} que la persona adjunta en el turno; nulo si no hay */
     private record Caso(String id, String estado, String mensaje, List<MensajeTaller> historial,
                         List<Esperada> esperadas, List<Esperada> alguna, Boolean opciones, Boolean permiteExtras,
-                        Boolean armado) {
+                        Boolean armado, String imagen) {
     }
 
     @Test
@@ -95,6 +102,8 @@ class TallerBedrockEvaluacionTest {
         int aciertos = 0;
         long tokensEntrada = 0;
         long tokensSalida = 0;
+        long tokensEntradaConFoto = 0;
+        int conFoto = 0;
         long milisegundos = 0;
         CatalogoComponentes catalogo = SamiPruebas.catalogoReal();
         KitsRubro kits = SamiPruebas.kitsReales();
@@ -116,28 +125,39 @@ class TallerBedrockEvaluacionTest {
                 List<MensajeTaller> historial = Objects.requireNonNullElse(caso.historial(), List.of());
                 KitRubro kit = rubros.detectar(caso.mensaje(), estado, historial).orElse(null);
                 long inicio = System.nanoTime();
+                ImagenTaller imagen = imagen(caso.imagen());
                 ResultadoTallerIa resultado = conversar(adapter, new ConsultaTaller(
-                        caso.mensaje(), estado, historial, kit));
+                        caso.mensaje(), estado, historial, kit, imagen));
                 milisegundos += (System.nanoTime() - inicio) / 1_000_000 - PAUSA_MS_DESCONTADA.get();
                 PAUSA_MS_DESCONTADA.set(0);
                 Thread.sleep(PAUSA_ENTRE_CASOS_MS);
-                tokensEntrada += resultado.consumo().tokensEntrada();
+                // Una foto suma del orden de mil tokens: va aparte para que no tape la meta de los turnos de texto.
+                if (imagen == null) {
+                    tokensEntrada += resultado.consumo().tokensEntrada();
+                } else {
+                    tokensEntradaConFoto += resultado.consumo().tokensEntrada();
+                    conFoto++;
+                }
                 tokensSalida += resultado.consumo().tokensSalida();
                 ValidacionTaller validacion = validador.validar(resultado.llamadas(), estado);
                 String problema = problema(caso, validacion, resultado.llamadas(), estado, kits);
                 if (problema == null) {
                     aciertos++;
                 } else {
-                    fallos.add("  - %s «%s»: %s | texto: %s".formatted(
-                            caso.id(), caso.mensaje(), problema, resultado.texto().replace('\n', ' ')));
+                    // Las llamadas crudas (antes de validar) muestran si el modelo no la pidió o la validación la descartó.
+                    fallos.add("  - %s «%s»: %s | texto: %s | crudas: %s | descartadas: %d".formatted(
+                            caso.id(), caso.mensaje(), problema, resultado.texto().replace('\n', ' '),
+                            resultado.llamadas(), validacion.descartadas()));
                 }
             }
         }
         double acierto = (double) aciertos / casos.size();
-        long promedioEntrada = tokensEntrada / casos.size();
+        int sinFoto = casos.size() - conFoto;
+        long promedioEntrada = sinFoto == 0 ? 0 : tokensEntrada / sinFoto;
         String reporte = "SAMI-TALLER %s %s: %d casos | acierto %d/%d = %.0f %% | tokens por turno %d entrada / %d salida"
                 .formatted(MODELO, PromptTaller.VERSION, casos.size(), aciertos, casos.size(), acierto * 100,
                         promedioEntrada, tokensSalida / casos.size())
+                + " | con foto %d entrada".formatted(conFoto == 0 ? 0 : tokensEntradaConFoto / conFoto)
                 + " | latencia media %d ms%n%s".formatted(milisegundos / casos.size(), String.join("\n", fallos));
         System.out.println(reporte);
         assertThat(acierto).as(reporte).isGreaterThanOrEqualTo(META_ACIERTO);
@@ -237,9 +257,33 @@ class TallerBedrockEvaluacionTest {
         return Normalizer.normalize(texto.toLowerCase(Locale.ROOT), Normalizer.Form.NFD).replaceAll("\\p{M}", "");
     }
 
+    /**
+     * Las conversaciones del set. Con {@code SAMI_EVAL_CASOS} (ids separados por coma, o un pedazo del id) corre sólo
+     * esas: sirve para probar un ajuste del prompt sin pagar el set entero. La meta se mide siempre con el set completo.
+     */
     private List<Caso> casos() throws IOException {
+        List<Caso> todos;
         try (InputStream json = recurso("/sami/conversaciones-taller.json")) {
-            return JsonMapper.builder().build().readValue(json, new TypeReference<>() { });
+            todos = JsonMapper.builder().build().readValue(json, new TypeReference<>() { });
+        }
+        String filtro = System.getenv("SAMI_EVAL_CASOS");
+        if (filtro == null || filtro.isBlank()) {
+            return todos;
+        }
+        List<String> partes = List.of(filtro.split(","));
+        return todos.stream().filter(caso -> partes.stream().anyMatch(parte -> caso.id().contains(parte.strip())))
+                .toList();
+    }
+
+    /** La foto del caso, con el tipo según la extensión; nula si el caso no adjunta ninguna. */
+    private ImagenTaller imagen(String archivo) throws IOException {
+        if (archivo == null) {
+            return null;
+        }
+        try (InputStream datos = recurso("/sami/" + archivo)) {
+            String extension = archivo.substring(archivo.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
+            String tipo = "image/" + (extension.equals("jpg") ? "jpeg" : extension);
+            return new ImagenTaller(tipo, Objects.requireNonNull(datos, archivo).readAllBytes());
         }
     }
 

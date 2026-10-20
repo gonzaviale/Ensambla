@@ -7,12 +7,14 @@ import com.ensambla.backend.domain.model.sami.taller.CatalogoComponentes;
 import com.ensambla.backend.domain.model.sami.taller.CatalogoTaller;
 import com.ensambla.backend.domain.model.sami.taller.ComponenteCatalogo;
 import com.ensambla.backend.domain.model.sami.taller.ConsultaTaller;
+import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
 import com.ensambla.backend.domain.model.sami.taller.KitRubro;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
 import com.ensambla.backend.domain.model.sami.taller.PiezaKit;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
 import org.springframework.core.io.Resource;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -26,8 +28,14 @@ import java.util.stream.Collectors;
  */
 public class PromptTaller {
 
-    public static final String VERSION = "v2";
+    /** v3: fotos en el turno y {@code cargar_registros}. */
+    public static final String VERSION = "v3";
     static final String MARCA_MENSAJE = "Mensaje de la persona:";
+    static final String CON_FOTO = "La persona adjuntó una foto. Leé sus columnas y filas: armá o ajustá las piezas con"
+            + " esas columnas (si hay kit, usalo y sumá lo que falte) y SIEMPRE invocá cargar_registros con todas las"
+            + " filas que se leen: son datos reales, no ejemplos. Cada fila va con las etiquetas de los datos de la pieza"
+            + " («Vela» de la foto va en «Producto», «Clienta» en «Cliente») o renombrá antes el dato con editar_campo."
+            + " Lo que no se lee bien, no lo inventes.";
     static final String MARCA_KIT = "Kit del rubro:";
     static final String SIN_PIEZAS = "Todavía no tiene piezas.";
 
@@ -42,7 +50,8 @@ public class PromptTaller {
     }
 
     public PeticionConHerramientas peticion(ConsultaTaller consulta) {
-        return new PeticionConHerramientas(instrucciones, contexto(consulta));
+        List<ImagenTaller> imagenes = consulta.imagen() == null ? List.of() : List.of(consulta.imagen());
+        return new PeticionConHerramientas(instrucciones, contexto(consulta), imagenes);
     }
 
     /**
@@ -82,6 +91,9 @@ public class PromptTaller {
             consulta.historial().forEach(mensaje -> contexto.append("%s: %s\n"
                     .formatted(mensaje.quien().equals("sami") ? "Sami" : "Persona", mensaje.texto())));
         }
+        if (consulta.imagen() != null) {
+            contexto.append('\n').append(CON_FOTO);
+        }
         return contexto.append('\n').append(MARCA_MENSAJE).append(' ').append(consulta.mensaje()).toString();
     }
 
@@ -91,7 +103,9 @@ public class PromptTaller {
                 .map(this::campo)
                 .collect(Collectors.joining(", "));
         String seccion = pieza.seccion() == null ? "" : " sección «%s»".formatted(pieza.seccion());
-        return "- id %s, tipo %s, «%s»%s: %s\n".formatted(pieza.id(), pieza.tipo(), pieza.nombre(), seccion, campos);
+        // Una pieza recién armada en el turno todavía no tiene id: se la nombra por su nombre.
+        String id = pieza.id() == null ? "" : "id %s, ".formatted(pieza.id());
+        return "- %stipo %s, «%s»%s: %s\n".formatted(id, pieza.tipo(), pieza.nombre(), seccion, campos);
     }
 
     private String campo(CampoTaller campo) {

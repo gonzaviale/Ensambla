@@ -3,6 +3,7 @@ package com.ensambla.backend.infrastructure.ia;
 import com.ensambla.backend.domain.model.sami.taller.CampoTaller;
 import com.ensambla.backend.domain.model.sami.taller.ConsultaTaller;
 import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
+import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
 import com.ensambla.backend.domain.model.sami.taller.MensajeTaller;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
@@ -56,6 +57,39 @@ class PromptTallerTest {
                 .contains("\nComponentes (tipo Nombre): inventory Inventario; orders Pedidos;")
                 .contains("; summary Resumen; form Formulario: Nombre, Detalle, Fecha; note Nota; ")
                 .endsWith("; exits Salidas.");
+    }
+
+    @Test
+    @DisplayName("Con foto, la manda en el pedido y suma al contexto la línea de la foto antes del mensaje")
+    void peticionShouldCarryImageAndPhotoLine() {
+        ImagenTaller foto = new ImagenTaller("image/png", new byte[]{1});
+
+        PeticionConHerramientas peticion = prompt.peticion(new ConsultaTaller("te paso mi cuaderno", VACIO, List.of(),
+                null, foto));
+
+        assertThat(peticion.imagenes()).containsExactly(foto);
+        assertThat(peticion.contexto())
+                .endsWith(PromptTaller.CON_FOTO + "\n" + PromptTaller.MARCA_MENSAJE + " te paso mi cuaderno");
+    }
+
+    @Test
+    @DisplayName("Sin foto, el pedido no lleva imágenes ni la línea de la foto")
+    void peticionShouldNotMentionPhotoWithoutImage() {
+        PeticionConHerramientas peticion = prompt.peticion(new ConsultaTaller("hola", VACIO, List.of()));
+
+        assertThat(peticion.imagenes()).isEmpty();
+        assertThat(peticion.contexto()).doesNotContain(PromptTaller.CON_FOTO);
+    }
+
+    @Test
+    @DisplayName("Una pieza recién armada en el turno, sin id, se muestra sin id")
+    void peticionShouldShowPiecesWithoutId() {
+        EstadoTaller armado = new EstadoTaller("S", "mosaic", List.of(
+                new PiezaTaller(null, "sales", "Ventas", null, List.of(new CampoTaller("Producto", "relation")))));
+
+        PeticionConHerramientas peticion = prompt.peticion(new ConsultaTaller("cargá", armado, List.of()));
+
+        assertThat(peticion.contexto()).contains("- tipo sales, «Ventas»: Producto (vínculo)\n").doesNotContain("id null");
     }
 
     @Test
@@ -135,8 +169,8 @@ class PromptTallerTest {
     }
 
     @Test
-    @DisplayName("La versión del prompt es la del taller que ensambla")
-    void versionShouldBeV2() {
-        assertThat(PromptTaller.VERSION).isEqualTo("v2");
+    @DisplayName("La versión del prompt es la del taller con fotos y registros")
+    void versionShouldBeV3() {
+        assertThat(PromptTaller.VERSION).isEqualTo("v3");
     }
 }

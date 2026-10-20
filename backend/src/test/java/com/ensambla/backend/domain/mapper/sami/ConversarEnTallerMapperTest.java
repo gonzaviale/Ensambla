@@ -4,10 +4,12 @@ import com.ensambla.backend.domain.dto.sami.ConversarEnTallerResponse;
 import com.ensambla.backend.domain.dto.sami.EstadoTallerItem;
 import com.ensambla.backend.domain.dto.sami.EstadoTallerItem.CampoTallerItem;
 import com.ensambla.backend.domain.dto.sami.EstadoTallerItem.PiezaTallerItem;
+import com.ensambla.backend.domain.dto.sami.ImagenTallerItem;
 import com.ensambla.backend.domain.dto.sami.MensajeTallerItem;
 import com.ensambla.backend.domain.model.sami.taller.AccionTaller;
 import com.ensambla.backend.domain.model.sami.taller.CampoTaller;
 import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
+import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
 import com.ensambla.backend.domain.model.sami.taller.MensajeTaller;
 import com.ensambla.backend.domain.model.sami.taller.OpcionesTaller;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
@@ -68,5 +70,20 @@ class ConversarEnTallerMapperTest {
 
         assertThat(result.opciones()).isNull();
         assertThat(result.acciones()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Convierte la foto adjunta con su tipo y sus bytes")
+    void toImagenShouldMapTypeAndBytes() {
+        ImagenTaller result = mapper.toImagen(new ImagenTallerItem("image/webp", new byte[]{7, 8}));
+
+        assertThat(result.tipo()).isEqualTo("image/webp");
+        assertThat(result.datos()).containsExactly(7, 8);
+    }
+
+    @Test
+    @DisplayName("Sin foto adjunta no hay imagen")
+    void toImagenShouldReturnNullWithoutImage() {
+        assertThat(mapper.toImagen(null)).isNull();
     }
 }

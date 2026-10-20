@@ -10,6 +10,7 @@ import com.ensambla.backend.domain.dto.sami.OpcionSamiItem;
 import com.ensambla.backend.domain.dto.sami.PreguntaSamiItem;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
+import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
 import com.ensambla.backend.domain.useCase.sami.ConversarConSamiUseCase;
 import com.ensambla.backend.domain.useCase.sami.ConversarEnTallerUseCase;
 import com.ensambla.backend.domain.useCase.sami.CrearProyectoDesdeSamiUseCase;
@@ -28,6 +29,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.OffsetDateTime;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -37,6 +39,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -127,6 +130,40 @@ class SamiControllerTest {
                  "historial":[{"quien":"robot","texto":"x"}]}
                 """).andExpect(status().isBadRequest());
         verify(conversarEnTallerUseCase, never()).execute(any());
+    }
+
+    @Test
+    @DisplayName("Un turno con foto le pasa al use case la imagen decodificada y su tipo")
+    void tallerShouldPassDecodedImageToUseCase() throws Exception {
+        when(conversarEnTallerUseCase.execute(any())).thenReturn(new ConversarEnTallerResponse("Leí 3", List.of(), null));
+
+        ResultActions result = whenPosting("/api/sami/taller", conImagen("image/jpeg", "AQID"));
+
+        result.andExpect(status().isOk()).andExpect(jsonPath("$.respuesta").value("Leí 3"));
+        ArgumentCaptor<ConversarEnTallerRequest> captor = ArgumentCaptor.forClass(ConversarEnTallerRequest.class);
+        verify(conversarEnTallerUseCase).execute(captor.capture());
+        assertThat(captor.getValue().imagen().tipo()).isEqualTo("image/jpeg");
+        assertThat(captor.getValue().imagen().datos()).containsExactly(1, 2, 3);
+    }
+
+    @Test
+    @DisplayName("Rechaza con 400 y un mensaje para la persona una foto de un tipo que no va")
+    void tallerShouldRejectImageWithInvalidType() throws Exception {
+        ResultActions result = whenPosting("/api/sami/taller", conImagen("application/pdf", "AQID"));
+
+        result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").value(ImagenTaller.TIPO_INVALIDO));
+        verifyNoInteractions(conversarEnTallerUseCase);
+    }
+
+    @Test
+    @DisplayName("Rechaza con 400 y un mensaje para la persona una foto de más de 5 MB")
+    void tallerShouldRejectImageLargerThanFiveMegabytes() throws Exception {
+        String datos = Base64.getEncoder().encodeToString(new byte[ImagenTaller.MAX_BYTES + 1]);
+
+        ResultActions result = whenPosting("/api/sami/taller", conImagen("image/png", datos));
+
+        result.andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").value(ImagenTaller.MUY_GRANDE));
+        verifyNoInteractions(conversarEnTallerUseCase);
     }
 
     @Test
@@ -247,5 +284,13 @@ class SamiControllerTest {
                 .principal(new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), "n/a"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json));
+    }
+
+    /** Un turno del taller con el sistema vacío y una foto adjunta. */
+    private String conImagen(String tipo, String datos) {
+        return """
+                {"mensaje":"te paso la foto","estado":{"distribucion":"mosaic","piezas":[]},
+                 "imagen":{"tipo":"%s","datos":"%s"}}
+                """.formatted(tipo, datos);
     }
 }

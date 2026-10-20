@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.ia;
 
 /**
- * Punto de conexión con el proveedor de IA para el taller de Sami: una llamada con herramientas. Para sumar un
- * proveedor alcanza con implementar esta interfaz y registrarlo en {@link SamiConfig}.
+ * Punto de conexión con el proveedor de IA para el taller de Sami: una llamada con herramientas. Cada proveedor la
+ * arma en {@link ProveedorIa#conHerramientas}; las fotos que adjunta la persona llegan en la petición.
  */
 public interface ClienteModeloConHerramientas {
 

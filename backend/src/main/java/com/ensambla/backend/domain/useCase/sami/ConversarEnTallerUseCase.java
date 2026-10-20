@@ -30,6 +30,7 @@ public class ConversarEnTallerUseCase {
         RespuestaTaller respuesta = tallerSamiService.conversar(
                 negocioId,
                 request.mensaje(),
+                conversarEnTallerMapper.toImagen(request.imagen()),
                 conversarEnTallerMapper.toEstado(request.estado()),
                 conversarEnTallerMapper.toHistorial(request.historial()),
                 OffsetDateTime.now(clock),

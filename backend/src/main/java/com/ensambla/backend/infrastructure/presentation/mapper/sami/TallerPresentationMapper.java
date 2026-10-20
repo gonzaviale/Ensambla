@@ -5,7 +5,9 @@ import com.ensambla.backend.domain.dto.sami.ConversarEnTallerResponse;
 import com.ensambla.backend.domain.dto.sami.EstadoTallerItem;
 import com.ensambla.backend.domain.dto.sami.EstadoTallerItem.CampoTallerItem;
 import com.ensambla.backend.domain.dto.sami.EstadoTallerItem.PiezaTallerItem;
+import com.ensambla.backend.domain.dto.sami.ImagenTallerItem;
 import com.ensambla.backend.domain.dto.sami.MensajeTallerItem;
+import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
 import com.ensambla.backend.infrastructure.presentation.dto.sami.ConversarTallerRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.sami.ConversarTallerResponse;
 import org.springframework.stereotype.Component;
@@ -36,7 +38,17 @@ public class TallerPresentationMapper {
                 usuarioId,
                 body.mensaje().trim(),
                 new EstadoTallerItem(body.estado().nombre(), body.estado().distribucion(), piezas),
-                historial);
+                historial,
+                imagen(body.imagen()));
+    }
+
+    /** Decodifica el base64; si la foto no vale (tipo, tamaño o datos), {@link ImagenTaller} la rechaza con un 400. */
+    private ImagenTallerItem imagen(ConversarTallerRequest.Imagen imagen) {
+        if (imagen == null) {
+            return null;
+        }
+        ImagenTaller decodificada = ImagenTaller.desdeBase64(imagen.tipo(), imagen.datos());
+        return new ImagenTallerItem(decodificada.tipo(), decodificada.datos());
     }
 
     public ConversarTallerResponse toResponse(ConversarEnTallerResponse response) {

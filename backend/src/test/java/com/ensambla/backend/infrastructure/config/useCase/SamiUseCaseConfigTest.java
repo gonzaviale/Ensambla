@@ -90,14 +90,14 @@ class SamiUseCaseConfigTest {
         NegocioService negocioService = mock(NegocioService.class);
         TallerSamiService tallerSamiService = mock(TallerSamiService.class);
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(UUID.randomUUID());
-        when(tallerSamiService.conversar(any(), eq("hola"), any(), any(), any(), eq(11)))
+        when(tallerSamiService.conversar(any(), eq("hola"), any(), any(), any(), any(), eq(11)))
                 .thenReturn(new RespuestaTaller("Hola", List.of(), null));
 
         ConversarEnTallerResponse response = config.conversarEnTallerUseCase(
                         negocioService, tallerSamiService, config.conversarEnTallerMapper(), Clock.systemUTC(),
                         propiedades(3))
                 .execute(new ConversarEnTallerRequest(
-                        USUARIO_ID, "hola", new EstadoTallerItem("", "mosaic", List.of()), List.of()));
+                        USUARIO_ID, "hola", new EstadoTallerItem("", "mosaic", List.of()), List.of(), null));
 
         assertThat(response.respuesta()).isEqualTo("Hola");
     }

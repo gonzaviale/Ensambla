@@ -1,5 +1,7 @@
 package com.ensambla.backend.infrastructure.ia;
 
+import com.anthropic.client.AnthropicClient;
+import com.anthropic.models.messages.MessageCreateParams;
 import com.ensambla.backend.domain.model.sami.ConsultaIaSami;
 import com.ensambla.backend.domain.model.sami.DiccionarioSami;
 import com.ensambla.backend.domain.model.sami.PropuestaIaSami;
@@ -8,6 +10,7 @@ import com.ensambla.backend.domain.model.sami.taller.CatalogoTaller;
 import com.ensambla.backend.domain.model.sami.taller.ComponenteCatalogo;
 import com.ensambla.backend.domain.model.sami.taller.ConsultaTaller;
 import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
+import com.ensambla.backend.domain.model.sami.taller.HerramientaTaller;
 import com.ensambla.backend.domain.model.sami.taller.KitRubro;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
 import com.ensambla.backend.domain.model.sami.taller.LlamadaHerramienta;
@@ -22,34 +25,30 @@ import com.ensambla.backend.domain.service.sami.SamiPruebas;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.support.StaticListableBeanFactory;
+import org.mockito.ArgumentCaptor;
+import org.springframework.core.io.ClassPathResource;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
-import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
-import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
-import software.amazon.awssdk.services.bedrockruntime.model.ConverseOutput;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseRequest;
-import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
-import software.amazon.awssdk.services.bedrockruntime.model.Message;
-import software.amazon.awssdk.services.bedrockruntime.model.TokenUsage;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static com.ensambla.backend.infrastructure.ia.RespuestasAnthropicDePrueba.anthropicQueResponde;
+import static com.ensambla.backend.infrastructure.ia.RespuestasDePrueba.bedrockQueResponde;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class SamiConfigTest {
 
     private static final String RAPIDO = "modelo-rapido";
     private static final String AVANZADO = "modelo-avanzado";
+    private static final String CLAVE = "clave-de-prueba";
 
     private final SamiConfig config = new SamiConfig();
     private ConsultaIaSami consulta;
@@ -84,10 +83,10 @@ class SamiConfigTest {
     }
 
     @Test
-    @DisplayName("Sin Bedrock, la IA es el cliente simulado: elige la primera plantilla sin costo")
-    void samiIaPortShouldUseSimulatedClientWithoutBedrock() {
-        SamiIaPort port = config.samiIaPort(config.promptSami(), JsonMapper.builder().build(), propiedades(AVANZADO),
-                new StaticListableBeanFactory().getBeanProvider(BedrockRuntimeClient.class));
+    @DisplayName("Con el proveedor global simulado y sin pisarlo, la IA de Sami elige la primera plantilla sin costo")
+    void samiIaPortShouldUseSimulatedProviderWhenGlobalIsSimulated() {
+        SamiIaPort port = config.samiIaPort(config.promptSami(), JsonMapper.builder().build(), sami(null, AVANZADO),
+                global("simulado"), proveedores(mock(BedrockRuntimeClient.class)));
 
         PropuestaIaSami result = port.proponer(consulta);
 
@@ -96,40 +95,97 @@ class SamiConfigTest {
     }
 
     @Test
-    @DisplayName("Con Bedrock usa el modelo rápido y escala al avanzado cuando el primero no está seguro")
-    void samiIaPortShouldEscalateFromFastToAdvancedModel() {
+    @DisplayName("Si Sami pisa el proveedor con bedrock usa el modelo rápido y escala al avanzado cuando no está seguro")
+    void samiIaPortShouldEscalateFromFastToAdvancedModelWhenSamiOverridesProvider() {
         BedrockRuntimeClient bedrock = bedrockQueResponde("{\"plantilla\":\"Ventas\",\"confianza\":0.2,\"columnas\":[]}");
 
         PropuestaIaSami result = config.samiIaPort(config.promptSami(), JsonMapper.builder().build(),
-                propiedades(AVANZADO), proveedorDe(bedrock)).proponer(consulta);
+                sami("bedrock", AVANZADO), global("simulado"), proveedores(bedrock)).proponer(consulta);
 
         assertThat(result.consumo().modelo()).isEqualTo(RAPIDO + " + " + AVANZADO);
         assertThat(modelosConsultados(bedrock, 2)).containsExactly(RAPIDO, AVANZADO);
     }
 
     @Test
-    @DisplayName("Sin modelo avanzado configurado nunca escala")
+    @DisplayName("Sin modelo avanzado ni en Sami ni en el proveedor nunca escala")
     void samiIaPortShouldNotEscalateWithoutAdvancedModel() {
         BedrockRuntimeClient bedrock = bedrockQueResponde("{\"plantilla\":\"Ventas\",\"confianza\":0.2,\"columnas\":[]}");
 
-        for (String sinAvanzado : new String[]{null, "  "}) {
-            config.samiIaPort(config.promptSami(), JsonMapper.builder().build(), propiedades(sinAvanzado),
-                    proveedorDe(bedrock)).proponer(consulta);
-        }
+        config.samiIaPort(config.promptSami(), JsonMapper.builder().build(), sami("bedrock", "  "),
+                global("simulado"), proveedores(bedrock)).proponer(consulta);
 
-        assertThat(modelosConsultados(bedrock, 2)).containsExactly(RAPIDO, RAPIDO);
+        assertThat(modelosConsultados(bedrock, 1)).containsExactly(RAPIDO);
     }
 
     @Test
-    @DisplayName("Sin Bedrock, la IA del taller es el cliente simulado: sin costo y con botonera")
-    void tallerIaPortShouldUseSimulatedClientWithoutBedrock() {
-        TallerIaPort port = config.tallerIaPort(promptTaller(), JsonMapper.builder().build(), propiedades(AVANZADO),
-                new StaticListableBeanFactory().getBeanProvider(BedrockRuntimeClient.class), kits());
+    @DisplayName("Con el proveedor global anthropic y sin pisarlo, Sami usa Claude de la API de Anthropic")
+    void samiIaPortShouldUseAnthropicWhenGlobalIsAnthropic() {
+        AnthropicClient anthropic = anthropicQueResponde("{\"plantilla\":\"Ventas\",\"confianza\":0.9,\"columnas\":[]}");
+
+        PropuestaIaSami result = config.samiIaPort(config.promptSami(), JsonMapper.builder().build(),
+                sami(null, null), global("anthropic"), proveedores(anthropic)).proponer(consulta);
+
+        assertThat(result.plantilla()).isEqualTo("Ventas");
+        assertThat(result.consumo().proveedor()).isEqualTo("anthropic");
+        assertThat(result.consumo().modelo()).isEqualTo("haiku");
+    }
+
+    @Test
+    @DisplayName("Con el proveedor simulado, la IA del taller no cuesta nada y pregunta con botonera")
+    void tallerIaPortShouldUseSimulatedProviderWhenGlobalIsSimulated() {
+        TallerIaPort port = config.tallerIaPort(promptTaller(), JsonMapper.builder().build(), sami(null, AVANZADO),
+                global("simulado"), proveedores(mock(BedrockRuntimeClient.class)));
 
         ResultadoTallerIa result = port.conversar(consultaDeTaller("ayuda"));
 
         assertThat(result.consumo().proveedor()).isEqualTo("simulado");
         assertThat(result.llamadas().getFirst().nombre()).isEqualTo("ofrecer_opciones");
+    }
+
+    @Test
+    @DisplayName("Si Sami pisa el proveedor con simulado, el taller no llama al proveedor global")
+    void tallerIaPortShouldUseSamiOverrideOverGlobalProvider() {
+        BedrockRuntimeClient bedrock = mock(BedrockRuntimeClient.class);
+
+        ResultadoTallerIa result = config.tallerIaPort(promptTaller(), JsonMapper.builder().build(),
+                sami("simulado", null), global("bedrock"), proveedores(bedrock)).conversar(consultaDeTaller("ayuda"));
+
+        assertThat(result.consumo().proveedor()).isEqualTo("simulado");
+    }
+
+    @Test
+    @DisplayName("Con el proveedor global bedrock, el taller usa el modelo rápido, una sola llamada y las catorce herramientas")
+    void tallerIaPortShouldUseFastModelWithAllToolsWhenGlobalIsBedrock() {
+        BedrockRuntimeClient bedrock = bedrockQueResponde("Hola");
+
+        ResultadoTallerIa result = config.tallerIaPort(promptTaller(), JsonMapper.builder().build(),
+                sami(null, AVANZADO), global("bedrock"), proveedores(bedrock)).conversar(consultaDeTaller("hola"));
+
+        assertThat(result.texto()).isEqualTo("Hola");
+        assertThat(result.consumo().modelo()).isEqualTo(RAPIDO);
+        ArgumentCaptor<ConverseRequest> captor = ArgumentCaptor.forClass(ConverseRequest.class);
+        verify(bedrock).converse(captor.capture());
+        assertThat(captor.getValue().inferenceConfig().maxTokens()).isEqualTo(400);
+        assertThat(captor.getValue().toolConfig().tools())
+                .hasSize(14)
+                .extracting(herramienta -> herramienta.toolSpec().name())
+                .containsExactly(HERRAMIENTAS);
+    }
+
+    @Test
+    @DisplayName("Con el proveedor global anthropic, el taller manda las catorce herramientas a la API de Anthropic")
+    void tallerIaPortShouldSendAllToolsWhenGlobalIsAnthropic() {
+        AnthropicClient anthropic = anthropicQueResponde("Hola");
+
+        ResultadoTallerIa result = config.tallerIaPort(promptTaller(), JsonMapper.builder().build(),
+                sami(null, null), global("anthropic"), proveedores(anthropic)).conversar(consultaDeTaller("hola"));
+
+        assertThat(result.consumo().proveedor()).isEqualTo("anthropic");
+        ArgumentCaptor<MessageCreateParams> captor = ArgumentCaptor.forClass(MessageCreateParams.class);
+        verify(anthropic.messages()).create(captor.capture());
+        assertThat(captor.getValue().tools().orElseThrow())
+                .extracting(herramienta -> herramienta.asTool().name())
+                .containsExactly(HERRAMIENTAS);
     }
 
     @Test
@@ -239,54 +295,20 @@ class SamiConfigTest {
     }
 
     @Test
-    @DisplayName("Con Bedrock, el taller usa el modelo rápido, una sola llamada y las trece herramientas")
-    void tallerIaPortShouldUseFastModelWithAllTools() {
-        BedrockRuntimeClient bedrock = mock(BedrockRuntimeClient.class);
-        when(bedrock.converse(any(ConverseRequest.class))).thenReturn(ConverseResponse.builder()
-                .output(ConverseOutput.builder().message(Message.builder()
-                        .role(ConversationRole.ASSISTANT).content(ContentBlock.fromText("Hola")).build()).build())
-                .usage(TokenUsage.builder().inputTokens(800).outputTokens(40).build())
-                .build());
-
-        ResultadoTallerIa result = config.tallerIaPort(promptTaller(), JsonMapper.builder().build(),
-                propiedades(AVANZADO), proveedorDe(bedrock), kits()).conversar(consultaDeTaller("hola"));
-
-        assertThat(result.texto()).isEqualTo("Hola");
-        assertThat(result.consumo().modelo()).isEqualTo(RAPIDO);
-        org.mockito.ArgumentCaptor<ConverseRequest> captor = org.mockito.ArgumentCaptor.forClass(ConverseRequest.class);
-        verify(bedrock).converse(captor.capture());
-        assertThat(captor.getValue().inferenceConfig().maxTokens()).isEqualTo(400);
-        assertThat(captor.getValue().toolConfig().tools())
-                .extracting(herramienta -> herramienta.toolSpec().name())
-                .containsExactly("agregar_pieza", "usar_kit", "quitar_pieza", "renombrar_pieza", "renombrar_sistema",
-                        "agregar_campo", "quitar_campo", "editar_campo", "cargar_ejemplos", "conectar", "separar_en_seccion",
-                        "cambiar_distribucion", "ofrecer_opciones");
-    }
-
-    @Test
     @DisplayName("Las herramientas del taller del recurso coinciden con las que valida el dominio")
     void bundledToolsShouldMatchTheDomainTools() throws Exception {
         DefinicionHerramienta[] definiciones = JsonMapper.builder().build().readValue(
                 getClass().getResourceAsStream("/ia/herramientas-taller.json"), DefinicionHerramienta[].class);
 
         assertThat(definiciones).extracting(DefinicionHerramienta::name).containsExactlyInAnyOrder(
-                java.util.Arrays.stream(com.ensambla.backend.domain.model.sami.taller.HerramientaTaller.values())
-                        .map(com.ensambla.backend.domain.model.sami.taller.HerramientaTaller::nombre)
-                        .toArray(String[]::new));
+                Arrays.stream(HerramientaTaller.values()).map(HerramientaTaller::nombre).toArray(String[]::new));
         assertThat(definiciones).allSatisfy(definicion -> assertThat(definicion.inputSchema()).containsKey("type"));
     }
 
-    @Test
-    @DisplayName("Crea el cliente de Bedrock con el perfil de AWS indicado o con las credenciales por defecto")
-    void bedrockRuntimeClientShouldBuildWithProfileOrDefaultCredentials() {
-        try (BedrockRuntimeClient conPerfil = config.bedrockRuntimeClient(propiedades("x", "perfil-de-prueba"));
-             BedrockRuntimeClient sinPerfil = config.bedrockRuntimeClient(propiedades("x", null));
-             BedrockRuntimeClient perfilEnBlanco = config.bedrockRuntimeClient(propiedades("x", "  "))) {
-            assertThat(conPerfil).isNotNull();
-            assertThat(sinPerfil).isNotNull();
-            assertThat(perfilEnBlanco).isNotNull();
-        }
-    }
+    // --- helpers ---
+    private static final String[] HERRAMIENTAS = {"agregar_pieza", "usar_kit", "quitar_pieza", "renombrar_pieza",
+            "renombrar_sistema", "agregar_campo", "quitar_campo", "editar_campo", "cargar_ejemplos", "cargar_registros",
+            "conectar", "separar_en_seccion", "cambiar_distribucion", "ofrecer_opciones"};
 
     private ConsultaTaller consultaDeTaller(String mensaje) {
         return new ConsultaTaller(mensaje, new EstadoTaller("Mi almacén", "mosaic", List.of()), List.of());
@@ -314,33 +336,37 @@ class SamiConfigTest {
                 || valor instanceof String texto && !texto.isBlank() && texto.length() <= CatalogoTaller.MAX_LARGO_VALOR;
     }
 
-    private SamiProperties propiedades(String modeloAvanzado) {
-        return propiedades(modeloAvanzado, null);
-    }
-
-    private SamiProperties propiedades(String modeloAvanzado, String perfilAws) {
+    /** Lo de Sami: el proveedor que pisa (nulo = el global) y el modelo avanzado que pisa. */
+    private SamiProperties sami(String proveedor, String modeloAvanzado) {
         return new SamiProperties(0.7, 3, 20, 60, new SamiProperties.Ia(
-                "bedrock", "us-east-1", perfilAws, RAPIDO, modeloAvanzado, Duration.ofSeconds(30), 700, 0.6, 400));
+                proveedor, null, null, null, modeloAvanzado, Duration.ofSeconds(30), 700, 0.6, 400));
     }
 
-    private ObjectProvider<BedrockRuntimeClient> proveedorDe(BedrockRuntimeClient bedrock) {
-        StaticListableBeanFactory factory = new StaticListableBeanFactory();
-        factory.addBean("bedrockRuntimeClient", bedrock);
-        return factory.getBeanProvider(BedrockRuntimeClient.class);
+    /** Global con Bedrock (sin modelo avanzado: lo pone Sami) y Anthropic configurados. */
+    private IaProperties global(String proveedor) {
+        return new IaProperties(proveedor, null, Duration.ofSeconds(60), 10, 0.8, Map.of(
+                "bedrock", new IaProperties.Proveedor(null, "us-east-1", null, RAPIDO, null, "vision"),
+                "anthropic", new IaProperties.Proveedor(CLAVE, null, null, "haiku", null, "haiku")));
     }
 
-    private BedrockRuntimeClient bedrockQueResponde(String json) {
-        BedrockRuntimeClient bedrock = mock(BedrockRuntimeClient.class);
-        when(bedrock.converse(any(ConverseRequest.class))).thenReturn(ConverseResponse.builder()
-                .output(ConverseOutput.builder().message(Message.builder()
-                        .role(ConversationRole.ASSISTANT).content(ContentBlock.fromText(json)).build()).build())
-                .usage(TokenUsage.builder().inputTokens(10).outputTokens(5).build())
-                .build());
-        return bedrock;
+    private ProveedoresIa proveedores(BedrockRuntimeClient bedrock) {
+        return proveedores(bedrock, mock(AnthropicClient.class));
     }
 
+    private ProveedoresIa proveedores(AnthropicClient anthropic) {
+        return proveedores(mock(BedrockRuntimeClient.class), anthropic);
+    }
+
+    private ProveedoresIa proveedores(BedrockRuntimeClient bedrock, AnthropicClient anthropic) {
+        return new ProveedoresIa(List.of(
+                new ProveedorIaSimulado(new ClassPathResource("ia/lectura-simulada.json"), this::kits),
+                new ProveedorIaBedrock(ajustes -> bedrock),
+                new ProveedorIaAnthropic(ajustes -> anthropic)));
+    }
+
+    // --- assert ---
     private List<String> modelosConsultados(BedrockRuntimeClient bedrock, int veces) {
-        org.mockito.ArgumentCaptor<ConverseRequest> captor = org.mockito.ArgumentCaptor.forClass(ConverseRequest.class);
+        ArgumentCaptor<ConverseRequest> captor = ArgumentCaptor.forClass(ConverseRequest.class);
         verify(bedrock, times(veces)).converse(captor.capture());
         return captor.getAllValues().stream().map(ConverseRequest::modelId).toList();
     }

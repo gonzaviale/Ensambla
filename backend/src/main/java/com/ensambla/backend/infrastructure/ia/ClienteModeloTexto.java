@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.ia;
 
 /**
- * Punto de conexión con el proveedor de IA para Sami (sólo texto). Para sumar un proveedor alcanza con implementar
- * esta interfaz y registrarlo en {@link SamiConfig} según {@code ensambla.sami.ia.proveedor}.
+ * Punto de conexión con el proveedor de IA para Sami (sólo texto). Cada proveedor la arma en
+ * {@link ProveedorIa#texto}.
  */
 public interface ClienteModeloTexto {
 

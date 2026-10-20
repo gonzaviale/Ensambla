@@ -51,14 +51,14 @@ class ConversarEnTallerUseCaseTest {
         EstadoTaller estado = new EstadoTaller("Mi almacén", "mosaic", List.of());
         List<MensajeTaller> historial = List.of(new MensajeTaller("sami", "Hola"));
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(tallerSamiService.conversar(NEGOCIO_ID, "sumá gastos", estado, historial, ahora, LIMITE))
+        when(tallerSamiService.conversar(NEGOCIO_ID, "sumá gastos", null, estado, historial, ahora, LIMITE))
                 .thenReturn(new RespuestaTaller(
                         "Listo", List.of(new AccionTaller("agregar_pieza", Map.of("tipo", "expenses"))), null));
 
         ConversarEnTallerResponse result = useCase.execute(new ConversarEnTallerRequest(
                 USUARIO_ID, "sumá gastos",
                 new EstadoTallerItem("Mi almacén", "mosaic", List.of()),
-                List.of(new MensajeTallerItem("sami", "Hola"))));
+                List.of(new MensajeTallerItem("sami", "Hola")), null));
 
         assertThat(result.respuesta()).isEqualTo("Listo");
         assertThat(result.acciones()).extracting("herramienta").containsExactly("agregar_pieza");
@@ -70,8 +70,8 @@ class ConversarEnTallerUseCaseTest {
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenThrow(new ResourceNotFoundException("Sin negocio"));
 
         assertThatThrownBy(() -> useCase.execute(new ConversarEnTallerRequest(
-                USUARIO_ID, "hola", new EstadoTallerItem("", "mosaic", List.of()), List.of())))
+                USUARIO_ID, "hola", new EstadoTallerItem("", "mosaic", List.of()), List.of(), null)))
                 .isInstanceOf(ResourceNotFoundException.class);
-        verify(tallerSamiService, never()).conversar(any(), any(), any(), any(), any(), anyInt());
+        verify(tallerSamiService, never()).conversar(any(), any(), any(), any(), any(), any(), anyInt());
     }
 }

@@ -121,7 +121,10 @@ public class HerramientasTallerService {
         manejadores.put(HerramientaTaller.AGREGAR_CAMPO, this::agregarCampo);
         manejadores.put(HerramientaTaller.QUITAR_CAMPO, this::quitarCampo);
         manejadores.put(HerramientaTaller.EDITAR_CAMPO, this::editarCampo);
-        manejadores.put(HerramientaTaller.CARGAR_EJEMPLOS, this::cargarEjemplos);
+        manejadores.put(HerramientaTaller.CARGAR_EJEMPLOS, (args, piezas) -> cargarFilas(
+                HerramientaTaller.CARGAR_EJEMPLOS, CatalogoTaller.MAX_FILAS_EJEMPLO, args, piezas));
+        manejadores.put(HerramientaTaller.CARGAR_REGISTROS, (args, piezas) -> cargarFilas(
+                HerramientaTaller.CARGAR_REGISTROS, CatalogoTaller.MAX_REGISTROS, args, piezas));
         manejadores.put(HerramientaTaller.CONECTAR, this::conectar);
         manejadores.put(HerramientaTaller.SEPARAR_EN_SECCION, this::separarEnSeccion);
         manejadores.put(HerramientaTaller.CAMBIAR_DISTRIBUCION, this::cambiarDistribucion);
@@ -145,7 +148,8 @@ public class HerramientasTallerService {
         }
         // Al armar con un kit Sami siempre propone cómo seguir: si el modelo no preguntó, va la pregunta del kit.
         OpcionesTaller opciones = turno.opciones != null ? turno.opciones : turno.preguntaDelKit;
-        return new ValidacionTaller(List.copyOf(turno.acciones), opciones, turno.descartadas);
+        return new ValidacionTaller(
+                List.copyOf(turno.acciones), opciones, turno.descartadas, List.copyOf(turno.piezas));
     }
 
     private List<AccionTaller> aplicar(HerramientaTaller herramienta, Map<String, Object> args, Turno turno) {
@@ -221,7 +225,7 @@ public class HerramientasTallerService {
                                     List<PiezaTaller> piezas) {
         List<CampoTaller> campos = new ArrayList<>(componente.camposTaller());
         List<Map<String, Object>> extras = campos.isEmpty() ? List.of() : camposExtra(args.get("campos"), campos);
-        List<Map<String, Object>> ejemplos = filas(args.get("ejemplos"), campos);
+        List<Map<String, Object>> ejemplos = filas(args.get("ejemplos"), campos, CatalogoTaller.MAX_FILAS_EJEMPLO);
         Optional<String> seccion = texto(args.get("seccion"), CatalogoTaller.MAX_LARGO_NOMBRE);
         piezas.add(new PiezaTaller(
                 null, componente.tipo(), nombre.orElse(componente.nombre()), seccion.orElse(null), campos));
@@ -434,16 +438,21 @@ public class HerramientasTallerService {
                 && !(valor instanceof List<?> lista && lista.isEmpty());
     }
 
-    private Optional<AccionTaller> cargarEjemplos(Map<String, Object> args, List<PiezaTaller> piezas) {
+    /**
+     * {@code cargar_ejemplos} (reemplaza los ejemplos de la pieza) y {@code cargar_registros} (registros reales que se
+     * suman a los que haya) validan igual; cambian el tope de filas y lo que hace el taller con ellas.
+     */
+    private Optional<AccionTaller> cargarFilas(HerramientaTaller herramienta, int maximo, Map<String, Object> args,
+                                               List<PiezaTaller> piezas) {
         return indiceDe(args.get("pieza"), piezas).flatMap(indice -> {
             PiezaTaller pieza = piezas.get(indice);
-            return Optional.of(filas(args.get("filas"), pieza.campos()))
+            return Optional.of(filas(args.get("filas"), pieza.campos(), maximo))
                     .filter(filas -> !filas.isEmpty())
                     .map(filas -> {
                         Map<String, Object> argumentos = new LinkedHashMap<>();
                         argumentos.put("pieza", referencia(pieza));
                         argumentos.put("filas", filas);
-                        return new AccionTaller(HerramientaTaller.CARGAR_EJEMPLOS.nombre(), argumentos);
+                        return new AccionTaller(herramienta.nombre(), argumentos);
                     });
         });
     }
@@ -522,15 +531,16 @@ public class HerramientasTallerService {
     }
 
     /**
-     * Filas de ejemplo con etiquetas de {@code campos} y valores simples; las celdas inválidas se caen. Una fila sin el
-     * dato principal de la pieza (el primero: Producto, Nombre, Pedido…) también se cae: en la tabla se vería vacía.
+     * Filas (de ejemplo o registros) con etiquetas de {@code campos} y valores simples; las celdas inválidas se caen.
+     * Una fila sin el dato principal de la pieza (el primero: Producto, Nombre, Pedido…) también se cae: en la tabla se
+     * vería vacía. Quedan hasta {@code maximo}.
      */
-    private List<Map<String, Object>> filas(Object valor, List<CampoTaller> campos) {
+    private List<Map<String, Object>> filas(Object valor, List<CampoTaller> campos, int maximo) {
         Optional<String> principal = campos.stream().findFirst().map(CampoTaller::etiqueta);
         return mapas(valor).stream()
                 .map(pedida -> fila(pedida, campos))
                 .filter(fila -> principal.map(fila::containsKey).orElse(false))
-                .limit(CatalogoTaller.MAX_FILAS_EJEMPLO)
+                .limit(maximo)
                 .toList();
     }
 

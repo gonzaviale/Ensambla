@@ -113,5 +113,13 @@
   {"id": "ventas-como-tabla-de-clientas", "estado": "almacen",
    "mensaje": "quiero que ventas sea una tabla que junte clienta y producto, con la clienta primero",
    "esperadas": [{"herramienta": "editar_campo", "args": {"pieza": "sales", "campo": "cliente", "posicion": ""}}],
+   "permiteExtras": true},
+  {"id": "foto-cuaderno-ventas-velas", "estado": "vacio", "imagen": "cuaderno-ventas-velas.png",
+   "mensaje": "vendo velas, te paso la foto del cuaderno donde anoto las ventas",
+   "esperadas": [{"herramienta": "cargar_registros", "args": {"filas": "lavanda"}}],
+   "permiteExtras": true},
+  {"id": "foto-lista-stock", "estado": "almacen", "imagen": "lista-stock-almacen.png",
+   "mensaje": "cargá lo que tengo en esta lista de stock",
+   "esperadas": [{"herramienta": "cargar_registros", "args": {"pieza": "inventory", "filas": "yerba"}}],
    "permiteExtras": true}
 ]

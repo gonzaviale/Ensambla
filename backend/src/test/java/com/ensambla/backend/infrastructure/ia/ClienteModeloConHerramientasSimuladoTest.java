@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.ia;
 
 import com.ensambla.backend.domain.model.sami.taller.ConsultaTaller;
 import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
+import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
 import com.ensambla.backend.domain.service.sami.SamiPruebas;
@@ -35,6 +36,19 @@ class ClienteModeloConHerramientasSimuladoTest {
         assertThat(result.llamadas().getFirst().argumentos()).containsEntry("tipo", "expenses");
         assertThat(result.proveedor()).isEqualTo("simulado");
         assertThat(result.tokensEntrada()).isZero();
+    }
+
+    @Test
+    @DisplayName("Ignora la foto adjunta: contesta lo mismo que sin ella")
+    void completarShouldIgnoreAttachedImage() {
+        ImagenTaller foto = new ImagenTaller("image/png", new byte[]{1});
+
+        RespuestaConHerramientas conFoto = cliente.completar(prompt.peticion(
+                new ConsultaTaller("hola", CON_PIEZAS, List.of(), null, foto)));
+        RespuestaConHerramientas sinFoto = cliente.completar(prompt.peticion(
+                new ConsultaTaller("hola", CON_PIEZAS, List.of())));
+
+        assertThat(conFoto).isEqualTo(sinFoto);
     }
 
     @Test

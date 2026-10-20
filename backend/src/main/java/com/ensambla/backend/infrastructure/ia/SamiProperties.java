@@ -4,6 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
 import java.time.Duration;
+import java.util.Locale;
 
 /**
  * Configuración de Sami ({@code ensambla.sami.*}).
@@ -25,26 +26,41 @@ public record SamiProperties(
 ) {
 
     /**
-     * @param proveedor     {@code simulado} (por defecto, sin costo) o {@code bedrock}
-     * @param region        región de AWS donde está habilitado el acceso a los modelos
-     * @param perfilAws     perfil de {@code ~/.aws}; vacío usa la cadena de credenciales por defecto (variables de
-     *                      entorno, rol de la instancia, etc.)
-     * @param modeloRapido  perfil de inferencia del modelo chico, que atiende todo lo que consulta a la IA
-     * @param modeloAvanzado perfil de inferencia del modelo capaz, que sólo se consulta si el chico no alcanza;
-     *                      vacío desactiva el escalado
+     * Lo que Sami pisa de la configuración global ({@code ensambla.ia.*}); todo lo que quede vacío sale de ahí.
+     *
+     * @param proveedor     vacío usa {@code ensambla.ia.proveedor}; si tiene valor ({@code simulado},
+     *                      {@code anthropic}, {@code bedrock}) manda ése
+     * @param region        región que pisa la del proveedor (Bedrock)
+     * @param perfilAws     perfil de {@code ~/.aws} que pisa el del proveedor (Bedrock)
+     * @param modeloRapido  modelo chico que pisa el del proveedor: atiende todo lo que consulta a la IA
+     * @param modeloAvanzado modelo capaz que pisa el del proveedor: sólo se consulta si el chico no alcanza; si los dos
+     *                      quedan vacíos no hay escalado
      * @param umbralEscalar confianza que tiene que alcanzar un modelo para no pasar al siguiente
      * @param maxTokensTaller tokens de salida máximos de un turno del taller (usa el modelo rápido)
      */
     public record Ia(
-            @DefaultValue("simulado") String proveedor,
-            @DefaultValue("us-east-1") String region,
+            String proveedor,
+            String region,
             String perfilAws,
-            @DefaultValue("us.anthropic.claude-haiku-4-5-20251001-v1:0") String modeloRapido,
-            @DefaultValue("us.anthropic.claude-sonnet-4-6") String modeloAvanzado,
+            String modeloRapido,
+            String modeloAvanzado,
             @DefaultValue("30s") Duration timeout,
             @DefaultValue("700") int maxTokens,
             @DefaultValue("0.6") double umbralEscalar,
             @DefaultValue("900") int maxTokensTaller
     ) {
+
+        /** Los ajustes con los que habla Sami: los del proveedor que corresponda, con lo que Sami pisa. */
+        public AjustesIa ajustes(IaProperties global) {
+            String nombre = AjustesIa.vacio(proveedor) ? global.proveedor() : proveedor.strip().toLowerCase(Locale.ROOT);
+            IaProperties.Proveedor datos = global.de(nombre);
+            return new AjustesIa(nombre, datos.apiKey(),
+                    AjustesIa.elegir(region, datos.region()),
+                    AjustesIa.elegir(perfilAws, datos.perfilAws()),
+                    AjustesIa.elegir(modeloRapido, datos.modeloRapido()),
+                    AjustesIa.elegir(modeloAvanzado, datos.modeloAvanzado()),
+                    datos.modeloVision(),
+                    timeout);
+        }
     }
 }

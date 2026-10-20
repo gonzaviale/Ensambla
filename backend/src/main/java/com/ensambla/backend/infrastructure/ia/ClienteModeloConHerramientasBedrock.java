@@ -22,7 +22,7 @@ import java.util.Map;
 /**
  * Claude en Amazon Bedrock con la API Converse y herramientas (tool use). Hace <b>una sola llamada</b>: el modelo
  * contesta con texto y con las herramientas que quiere invocar, y ahí termina; no se le devuelve ningún resultado.
- * Es el cliente del taller de Sami cuando {@code ensambla.sami.ia.proveedor=bedrock}.
+ * Lo arma {@link ProveedorIaBedrock}; las fotos van como {@code ImageBlock} antes del texto del turno.
  */
 public class ClienteModeloConHerramientasBedrock implements ClienteModeloConHerramientas {
 
@@ -50,7 +50,7 @@ public class ClienteModeloConHerramientasBedrock implements ClienteModeloConHerr
                 .system(SystemContentBlock.builder().text(peticion.instrucciones()).build())
                 .messages(Message.builder()
                         .role(ConversationRole.USER)
-                        .content(ContentBlock.fromText(peticion.contexto()))
+                        .content(contenidoUsuario(peticion))
                         .build())
                 .toolConfig(herramientas)
                 .inferenceConfig(config -> config.maxTokens(maxTokens).temperature(0f))
@@ -68,6 +68,14 @@ public class ClienteModeloConHerramientasBedrock implements ClienteModeloConHerr
         }
         return new RespuestaConHerramientas(texto.toString(), llamadas, PROVEEDOR, modelo,
                 respuesta.usage().inputTokens(), respuesta.usage().outputTokens());
+    }
+
+    /** Las fotos van primero (como {@code ImageBlock}) y después el texto del turno. */
+    private List<ContentBlock> contenidoUsuario(PeticionConHerramientas peticion) {
+        List<ContentBlock> bloques = new ArrayList<>();
+        peticion.imagenes().forEach(imagen -> bloques.add(BloquesBedrock.imagen(imagen.tipo(), imagen.datos())));
+        bloques.add(ContentBlock.fromText(peticion.contexto()));
+        return bloques;
     }
 
     private Tool aHerramienta(DefinicionHerramienta definicion) {

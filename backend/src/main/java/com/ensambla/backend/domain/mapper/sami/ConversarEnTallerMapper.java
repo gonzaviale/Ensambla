@@ -4,9 +4,11 @@ import com.ensambla.backend.domain.dto.sami.ConversarEnTallerResponse;
 import com.ensambla.backend.domain.dto.sami.ConversarEnTallerResponse.AccionTallerItem;
 import com.ensambla.backend.domain.dto.sami.ConversarEnTallerResponse.OpcionesTallerItem;
 import com.ensambla.backend.domain.dto.sami.EstadoTallerItem;
+import com.ensambla.backend.domain.dto.sami.ImagenTallerItem;
 import com.ensambla.backend.domain.dto.sami.MensajeTallerItem;
 import com.ensambla.backend.domain.model.sami.taller.CampoTaller;
 import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
+import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
 import com.ensambla.backend.domain.model.sami.taller.MensajeTaller;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
 import com.ensambla.backend.domain.model.sami.taller.RespuestaTaller;
@@ -14,6 +16,11 @@ import com.ensambla.backend.domain.model.sami.taller.RespuestaTaller;
 import java.util.List;
 
 public class ConversarEnTallerMapper {
+
+    /** {@code null} si no adjuntó foto; si la foto no vale, {@link ImagenTaller} la rechaza. */
+    public ImagenTaller toImagen(ImagenTallerItem imagen) {
+        return imagen == null ? null : new ImagenTaller(imagen.tipo(), imagen.datos());
+    }
 
     public EstadoTaller toEstado(EstadoTallerItem estado) {
         List<PiezaTaller> piezas = estado.piezas().stream()

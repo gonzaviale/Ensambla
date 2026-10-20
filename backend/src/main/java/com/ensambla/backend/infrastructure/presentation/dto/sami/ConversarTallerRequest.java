@@ -14,12 +14,24 @@ import java.util.List;
  * @param mensaje   lo que la persona escribió o eligió en la botonera
  * @param estado    el sistema que se está armando, resumido (sin filas ni datos de ejemplo)
  * @param historial los últimos mensajes de la charla, del más viejo al más nuevo
+ * @param imagen    una foto opcional (cuaderno, lista, planilla) para que Sami arme las piezas y cargue lo que lee
  */
 public record ConversarTallerRequest(
         @NotBlank @Size(max = 2500) String mensaje,
         @NotNull @Valid Estado estado,
-        @Size(max = 10) List<@Valid Mensaje> historial
+        @Size(max = 10) List<@Valid Mensaje> historial,
+        Imagen imagen
 ) {
+
+    /**
+     * La foto en base64 (también se acepta la data URL que da el navegador). El tipo y el tamaño (hasta 5 MB
+     * decodificada) los valida el dominio, que responde 400 con un mensaje para la persona.
+     *
+     * @param tipo  {@code image/jpeg}, {@code image/png} o {@code image/webp}
+     * @param datos los bytes en base64
+     */
+    public record Imagen(String tipo, String datos) {
+    }
 
     public record Estado(
             @Size(max = 120) String nombre,
