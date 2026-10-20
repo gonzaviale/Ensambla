@@ -135,25 +135,49 @@ herramientas de vocabulario cerrado; el backend valida lo que pidió y el taller
 tiene (`lib/sistema/core.ts`). El resultado es el mismo sistema del taller, así que se guarda y se usa en «Mis
 sistemas».
 
-**Gasta lo menos posible (híbrido).** El primer mensaje con una descripción clara arma la base con las reglas del taller,
-sin IA; también las órdenes simples (un verbo y una pieza: «sumá gastos», «sacá los clientes») y los ajustes fijos de
-la pantalla. Todo lo demás va a la IA: descripciones vagas, datos («agregá un campo de proveedor»), renombres,
-preguntas. Las reglas buscan palabras sueltas y confundirían «proveedor» con la pieza de gastos, por eso se limitan a
-órdenes simples.
+**Sami ensambla, no inventa.** Todo mensaje (también el primero) va a la IA; no hay reglas locales ni ajustes fijos en
+la pantalla. Sami arma con los **componentes del editor** y los adapta al rubro: los elige, les pone los nombres de la
+persona, suma datos propios, carga ejemplos del rubro y los conecta. Como sólo elige y completa, cada turno es barato y
+el resultado es siempre un sistema que el editor sabe mostrar y editar a mano.
+
+- **Catálogo único.** Los componentes son los bloques de `frontend/src/lib/sistema/catalogo.ts` (los 10 del editor).
+  `npm run catalogo:sami` los exporta a `backend/src/main/resources/ia/catalogo-componentes.json` y un test del
+  frontend (`src/test/lib/catalogoSami.test.ts`) falla si el archivo quedó viejo. Si el editor suma un bloque o un
+  campo, Sami lo puede usar sin tocar el backend.
+- **Tabla a medida.** El componente `form` («Formulario») es la pieza genérica: lo que no tiene componente propio
+  (turnos, trabajos, arreglos, materiales…) se arma como una tabla con nombre y campos. Es el único que se repite.
+- **Kits por rubro** (`ia/kits-rubro.json`, del backend): qué componentes lleva cada rubro, con qué nombres, qué datos
+  extra (con opciones), 2 o 3 filas de ejemplo, conexiones y una pregunta para seguir. Hay 10: almacén, dietética,
+  velas, panadería, viandas, ropa, peluquería, taller mecánico, ferretería y librería. Un test valida que cada kit use
+  sólo componentes, tipos de dato, etiquetas y conexiones que existen.
+- **Detección del rubro sin costo** (`RubroTallerService`): busca los términos de cada kit en el mensaje, la charla y
+  el nombre del sistema. Con el sistema vacío, el contexto lleva el resumen del kit reconocido o, si no hay, la lista
+  de kits; con piezas ya armadas no se nombran kits (un pedido puntual no arma el kit).
+- **Conexiones.** `wireSystem` ya vincula ventas y pedidos con clientes, y ventas, entradas y salidas con el
+  inventario; el backend descarta un `conectar` entre esos tipos para no duplicar el vínculo. `conectar` es para el
+  resto (turnos con clientes, velas con materiales, pedidos con platos).
 
 **Un turno = una llamada.** Haiku responde con texto y con las herramientas que quiere invocar en la misma respuesta;
-no hay segundo viaje. Cada turno manda un contexto chico: el prompt fijo, el sistema resumido (piezas y datos, sin
-filas), los últimos 6 mensajes y el mensaje. Cada turno se registra en `consumo_sami_diario` y respeta el límite
-`ensambla.sami.limite-diario-taller` (60 por negocio y día), que comparte contador con el asistente de plantillas.
+no hay segundo viaje. Cada turno manda un contexto chico: el prompt fijo con la lista de componentes, el sistema
+resumido (piezas y datos, sin filas), el kit si corresponde, los últimos 6 mensajes y el mensaje. Cada turno se
+registra en `consumo_sami_diario` y respeta el límite `ensambla.sami.limite-diario-taller` (60 por negocio y día), que
+comparte contador con el asistente de plantillas.
 
 | Herramienta | Efecto en el taller |
 |---|---|
-| `agregar_pieza(tipo)` / `quitar_pieza(pieza)` | suma o quita inventario, ventas, clientes, pedidos, gastos, entradas, salidas |
+| `usar_kit(rubro)` | **sólo backend**: se expande en `agregar_pieza` y `conectar` con todo el kit; cuenta como una acción |
+| `agregar_pieza(tipo, nombre?, campos?, ejemplos?, seccion?)` | suma un componente con su nombre, datos extra (≤ 8) y filas de ejemplo (≤ 5) |
+| `quitar_pieza(pieza)` | quita una pieza |
+| `cargar_ejemplos(pieza, filas)` | reemplaza las filas de ejemplo (las reales quedan) |
+| `conectar(desde, hacia, etiqueta?)` | suma en `desde` un dato vínculo a `hacia` (o convierte en vínculo un dato con esa etiqueta) |
 | `renombrar_pieza(pieza, nombre)` / `renombrar_sistema(nombre)` | cambia nombres |
 | `agregar_campo(pieza, etiqueta, tipo, opciones?)` / `quitar_campo(pieza, campo)` | suma o quita un dato; `select` necesita 2 opciones |
 | `separar_en_seccion(pieza, seccion)` | pasa la pieza a una sección aparte |
 | `cambiar_distribucion(layout)` | mosaic, single, two o three |
 | `ofrecer_opciones(pregunta, opciones)` | **no cambia nada**: Sami pregunta con una botonera |
+
+Las piezas se nombran por id, tipo o nombre; una pieza sumada en el mismo turno, por tipo o por nombre. Si Sami armó
+con un kit y no preguntó nada, la respuesta lleva la pregunta del kit en la botonera, así la charla siempre sigue.
 
 Si el modelo sólo invoca herramientas y no escribe nada (pasa seguido con Haiku), Sami cuenta lo que quedó hecho a
 partir de las acciones ya validadas («Sumé gastos. Quité clientes. Mirá cómo queda.»).
@@ -164,25 +188,31 @@ como en Claude. Elegir una opción equivale a escribir su texto. Cada cambio de 
 último».
 
 **Validación (`HerramientasTallerService`).** El modelo nunca escribe el sistema: se descarta toda herramienta
-desconocida, pieza o dato inexistente o repetido, tipo fuera del catálogo y lo que pase los topes (5 acciones por
-turno, 12 datos por pieza, nombres de 60 caracteres). Las llamadas se validan en orden sobre una copia del estado.
+desconocida, pieza o dato inexistente o repetido, tipo fuera del catálogo y lo que pase los topes (12 acciones del
+modelo y 24 contando los kits expandidos, 12 datos por pieza, 5 filas de ejemplo, nombres de 60 caracteres y valores
+de 80). Un dato extra o una celda inválidos se caen de a uno sin descartar la llamada. Las llamadas se validan en orden
+sobre una copia del estado. El frontend (`aplicarAcciones` en `lib/sistema/acciones.ts`) vuelve a defenderse y
+convierte cada valor al tipo del dato.
 
 **Contrato.** Request: `{mensaje, estado: {nombre, distribucion, piezas[{id, tipo, nombre, seccion, campos[{etiqueta,
 tipo}]}]}, historial[{quien, texto}]}`. Response: `{respuesta, acciones[{herramienta, argumentos}], opciones}`.
 
 ### Evaluación
 
-`TallerBedrockEvaluacionTest` (opt-in con `SAMI_BEDROCK_PERFIL`) corre 25 conversaciones de
-`sami/conversaciones-taller.json` con el prompt, las herramientas y la validación de producción:
+`TallerBedrockEvaluacionTest` (opt-in con `SAMI_BEDROCK_PERFIL`) corre 35 conversaciones de
+`sami/conversaciones-taller.json` con el prompt, el catálogo, los kits, las herramientas y la validación de
+producción: pedidos puntuales, preguntas, pedidos fuera del catálogo, armado desde cero con y sin kit, y conexiones.
 
 ```bash
 SAMI_BEDROCK_PERFIL=mi-perfil ./mvnw test -Dtest=TallerBedrockEvaluacionTest
 ```
 
-Resultado con Haiku 4.5: **25/25 (100 %)**, ≈ **1830 tokens de entrada y 100 de salida por turno**, ≈ 1,5 s de
-latencia: unos 0,2 centavos de dólar por turno. La meta de tokens es < 2000: con las nueve herramientas el piso real es
-alto (Bedrock suma ≈ 350 tokens de sistema de herramientas, más los esquemas y el prompt). Recortar descripciones y
-prompt bajó el consumo de 2225 a 1830 sin perder acierto.
+Resultado con Haiku 4.5 (prompt v2, 2026-10-20): **35/35 (100 %)**, ≈ **2235 tokens de entrada y 142 de salida por
+turno**, ≈ 1,6 s de latencia: unos 0,3 centavos de dólar por turno. La meta es ≥ 85 % y < 2300 tokens. La primera
+versión del ensamblado dio 80 %: conectaba de más, hacía más de lo pedido y preguntaba el rubro en vez de armar; lo
+corrigieron reglas concretas en el prompt y descartar las conexiones que el taller ya hace solo. La meta de tokens
+era 2000, pero la mitad del turno son las 12 herramientas que Bedrock manda siempre, y bajar más obligaba a sacar esas
+reglas.
 
 > **Ojo.** Las conversaciones y el prompt los escribió el mismo equipo, así que el 100 % es optimista; hay que probar
 > con lo que escribe la gente de verdad. Las cuentas nuevas de Bedrock tienen una cuota baja de pedidos por minuto
@@ -192,5 +222,11 @@ prompt bajó el consumo de 2225 a 1830 sin perder acierto.
 
 - Frases reales para medir el acierto (ver arriba) y conversaciones reales para el taller.
 - Aviso a Gonzalo: el taller del mockup (`/taller`) ahora habla con el backend de Sami y se retiró su API simulada
-  `/sami/propuesta`.
+  `/sami/propuesta`; también se sacaron `createGuided`, `refineDraft` y `recommend` de `lib/sistema/core.ts`, que sólo
+  usaba esa API simulada.
+- Guardar el sistema en el backend: el taller crea el sistema en el navegador y `useSincronizarSistemas` lo manda a
+  `PUT /api/sistemas/{id}`, que todavía no existe en el backend (lo simula MSW en `parcial` y `completo`). Cuando
+  exista, lo que arma Sami se guarda sin cambios en Sami: Sami no tiene estado.
+- Unificar con el catálogo de piezas por rubro de la rama `feat/ensambla-se-ensambla-solo`, que no está mergeada y
+  usa la API vieja de proyectos.
 - Que `RespaldoIaSamiService` tenga un tope de gasto en dinero además del de consultas, si hace falta.
