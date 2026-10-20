@@ -199,7 +199,7 @@ tipo}]}]}, historial[{quien, texto}]}`. Response: `{respuesta, acciones[{herrami
 
 ### Evaluación
 
-`TallerBedrockEvaluacionTest` (opt-in con `SAMI_BEDROCK_PERFIL`) corre 35 conversaciones de
+`TallerBedrockEvaluacionTest` (opt-in con `SAMI_BEDROCK_PERFIL`) corre 38 conversaciones de
 `sami/conversaciones-taller.json` con el prompt, el catálogo, los kits, las herramientas y la validación de
 producción: pedidos puntuales, preguntas, pedidos fuera del catálogo, armado desde cero con y sin kit, y conexiones.
 
@@ -207,7 +207,7 @@ producción: pedidos puntuales, preguntas, pedidos fuera del catálogo, armado d
 SAMI_BEDROCK_PERFIL=mi-perfil ./mvnw test -Dtest=TallerBedrockEvaluacionTest
 ```
 
-Resultado con Haiku 4.5 (prompt v2, 2026-10-20): **35/35 (100 %)**, ≈ **2235 tokens de entrada y 142 de salida por
+Resultado con Haiku 4.5 (prompt v2, 2026-10-20): **38/38 (100 %)**, ≈ **2293 tokens de entrada y 146 de salida por
 turno**, ≈ 1,6 s de latencia: unos 0,3 centavos de dólar por turno. La meta es ≥ 85 % y < 2300 tokens. La primera
 versión del ensamblado dio 80 %: conectaba de más, hacía más de lo pedido y preguntaba el rubro en vez de armar; lo
 corrigieron reglas concretas en el prompt y descartar las conexiones que el taller ya hace solo. La meta de tokens

@@ -72,8 +72,8 @@ class PromptTallerTest {
         PeticionConHerramientas peticion = prompt.peticion(new ConsultaTaller("hola", VACIO, List.of()));
 
         assertThat(peticion.contexto())
-                .contains("Kits por rubro (usar_kit): almacen Almacén y kiosco, dietetica Dietética, velas Velas")
-                .contains("libreria Librería y papelería.\n")
+                .contains("Kits por rubro (usar_kit): almacen, dietetica, velas, panaderia, viandas, ropa, peluqueria, "
+                        + "taller-mecanico, ferreteria, libreria.\n")
                 .doesNotContain(PromptTaller.MARCA_KIT);
     }
 

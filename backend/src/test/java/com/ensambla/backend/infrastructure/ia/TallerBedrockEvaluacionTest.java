@@ -59,7 +59,7 @@ class TallerBedrockEvaluacionTest {
     /**
      * Piso real con Bedrock: ~350 tokens de sistema de herramientas del proveedor + los esquemas de las 12 herramientas
      * (cerca de la mitad del turno) + el prompt + el contexto. Con 2000 había que sacar reglas del prompt que llevaron
-     * el acierto de 80 % a 100 % (v2, 2026-10-20: 2235 de entrada y 142 de salida, ≈ 0,3 centavos de dólar por turno
+     * el acierto de 80 % a 100 % (v2, 2026-10-20: 2293 de entrada y 146 de salida, ≈ 0,3 centavos de dólar por turno
      * con Haiku 4.5).
      */
     private static final int META_TOKENS_DE_ENTRADA = 2300;

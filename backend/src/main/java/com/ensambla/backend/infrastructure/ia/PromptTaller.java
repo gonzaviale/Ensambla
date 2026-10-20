@@ -37,7 +37,7 @@ public class PromptTaller {
     public PromptTaller(Resource instrucciones, CatalogoComponentes catalogo, KitsRubro kits) {
         this.instrucciones = RecursoTexto.contenido(instrucciones).strip() + "\n" + componentes(catalogo);
         this.kitsDisponibles = "Kits por rubro (usar_kit): " + kits.kits().stream()
-                .map(kit -> kit.id() + " " + kit.nombre())
+                .map(KitRubro::id)
                 .collect(Collectors.joining(", ")) + ".";
     }
 

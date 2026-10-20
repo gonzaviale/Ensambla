@@ -82,5 +82,14 @@
   {"id": "armado-panaderia", "estado": "vacio", "mensaje": "tengo una panadería y quiero controlar lo que se vence",
    "esperadas": [], "permiteExtras": true, "armado": true},
   {"id": "saludo-que-sabes", "estado": "vacio", "mensaje": "hola que sabes hacer",
-   "esperadas": [], "opciones": true}
+   "esperadas": [], "opciones": true},
+
+  {"id": "velas-con-pedidos-de-clientas", "estado": "vacio",
+   "mensaje": "Hago velas artesanales y las vendo por Instagram y en ferias. Compro cera, mechas y esencias, y anoto los pedidos de mis clientas.",
+   "esperadas": [{"herramienta": "agregar_pieza", "args": {"tipo": "orders"}}], "permiteExtras": true, "armado": true},
+  {"id": "tabla-que-junta-clienta-y-producto", "estado": "almacen",
+   "mensaje": "no podemos asociarlo en una tabla? quiero ver qué producto le vendí a cada clienta",
+   "historial": [{"quien": "you", "texto": "podemos unificar las ventas con los clientes?"},
+                 {"quien": "sami", "texto": "Ya está: cuando cargás una venta, el producto y el cliente quedan vinculados."}],
+   "esperadas": [{"herramienta": "agregar_pieza", "args": {"tipo": "orders"}}], "permiteExtras": true}
 ]
