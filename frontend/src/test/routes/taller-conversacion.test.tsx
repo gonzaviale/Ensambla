@@ -193,7 +193,7 @@ describe('la conversación de Sami en el taller', () => {
         { herramienta: 'agregar_pieza', argumentos: { tipo: 'sales' } },
         { herramienta: 'agregar_pieza', argumentos: { tipo: 'clients' } },
       ],
-      opciones: { pregunta: '¿Llevás stock?', opciones: ['Sí', 'No'] },
+      preguntas: [{ pregunta: '¿Llevás stock?', opciones: ['Sí', 'No'] }],
     }));
     const user = await abrirTaller();
 
@@ -257,7 +257,7 @@ describe('la conversación de Sami en el taller', () => {
         : {
             respuesta: '¿Sumamos gastos?',
             acciones: [],
-            opciones: { pregunta: '¿Sumamos gastos?', opciones: ['Sí', 'No'] },
+            preguntas: [{ pregunta: '¿Sumamos gastos?', opciones: ['Sí', 'No'] }],
           },
     );
     const user = await abrirTaller();
@@ -276,10 +276,12 @@ describe('la conversación de Sami en el taller', () => {
         : {
             respuesta: 'Te armé turnos y servicios.',
             acciones: [],
-            opciones: {
-              pregunta: '¿Vendés productos o sólo servicios?',
-              opciones: ['Productos', 'Sólo servicios'],
-            },
+            preguntas: [
+              {
+                pregunta: '¿Vendés productos o sólo servicios?',
+                opciones: ['Productos', 'Sólo servicios'],
+              },
+            ],
           },
     );
     const user = await abrirTaller();

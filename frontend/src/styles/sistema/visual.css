@@ -2779,3 +2779,49 @@ body.resizing {
     transition: none;
   }
 }
+
+/* Las filas de ejemplo (nunca son datos reales) se ven distintas: tinte, cursiva, texto apagado y una etiqueta. */
+.preview-table tr.example-row td {
+  background: #f6f1e4;
+  color: #8a7f68;
+  font-style: italic;
+}
+.example-badge {
+  display: inline-block;
+  margin-right: 5px;
+  padding: 0 5px;
+  border-radius: 6px;
+  background: #ead9b0;
+  color: #6b5a2f;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.example-notice {
+  margin: 4px 0 0;
+  font-size: 8px;
+  font-style: italic;
+  color: #8a7f68;
+}
+/* Una duda de Sami entre varias: el progreso y la respuesta escrita. */
+.conversation-examples > .duda-progreso {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--petrol);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.duda-otra {
+  display: flex;
+  gap: 5px;
+}
+.duda-otra input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #e9dec9;
+  border-radius: 8px;
+  font-size: 10px;
+}

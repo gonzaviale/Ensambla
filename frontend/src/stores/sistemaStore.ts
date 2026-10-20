@@ -60,8 +60,10 @@ export type Taller = {
   seccionId: string | null;
   pensando: boolean;
   mensajes: MensajeDelTaller[];
-  /** La pregunta con respuestas rápidas que Sami dejó a la vista; la pantalla siempre suma «escribir otra cosa». */
-  opciones: OpcionesDeSami | null;
+  /** Las dudas con respuestas rápidas que Sami dejó; se muestran de a una y siempre se puede saltear o escribir otra cosa. */
+  dudas: OpcionesDeSami[];
+  /** Lo que la persona fue respondiendo, en orden; `null` es una duda salteada. La duda a la vista es `dudas[respuestasDeDudas.length]`. */
+  respuestasDeDudas: (string | null)[];
   /** La propuesta como estaba antes del último cambio de Sami, para «Deshacer lo último». */
   anterior: Sistema | null;
   /** El sistema que se está ajustando con Sami; `null` si se está armando uno nuevo. */
@@ -289,7 +291,8 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
         seccionId: sistema?.sections[0]?.id ?? null,
         pensando: false,
         mensajes: [{ quien: 'sami', texto: saludo }],
-        opciones: null,
+        dudas: [],
+        respuestasDeDudas: [],
         anterior: null,
         sistemaId: sistema?.id ?? null,
       },

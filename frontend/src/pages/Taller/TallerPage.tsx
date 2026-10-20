@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { getRouteApi } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
+import { BotoneraDeDudas } from '@/components/sistema/BotoneraDeDudas';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
 import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
@@ -92,7 +93,7 @@ export function TallerPage() {
   const editarBorrador = useSistemaStore((estado) => estado.editarBorrador);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const navegacion = useNavegacion();
-  const { enviar, deshacer, adjuntarFoto, quitarFoto } = useTaller();
+  const { enviar, responderDuda, deshacer, adjuntarFoto, quitarFoto } = useTaller();
   const avisar = useSistemaStore((estado) => estado.avisar);
   // La voz se transcribe en el navegador y queda en el campo para revisarla antes de enviar.
   const dictado = useDictado({
@@ -147,7 +148,7 @@ export function TallerPage() {
 
   // Como en Claude: siempre se puede dejar las opciones y escribir lo que uno quiera.
   const escribirOtraCosa = () => {
-    actualizarTaller({ opciones: null });
+    actualizarTaller({ dudas: [], respuestasDeDudas: [] });
     campo.current?.focus();
   };
 
@@ -306,30 +307,14 @@ export function TallerPage() {
                   </div>
                 )}
               </div>
-              {taller.opciones ? (
-                <div className="conversation-examples" role="group" aria-label="Respuestas rápidas">
-                  <span>{taller.opciones.pregunta}</span>
-                  {taller.opciones.opciones.map((opcion) => (
-                    <button
-                      key={opcion}
-                      type="button"
-                      disabled={taller.pensando}
-                      onClick={() => void enviar(opcion, { esOpcion: true })}
-                    >
-                      {opcion}
-                      <Icon name="arrow" />
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    data-accion="escribir-otra-cosa"
-                    disabled={taller.pensando}
-                    onClick={escribirOtraCosa}
-                  >
-                    <Icon name="edit" />
-                    Escribir otra cosa…
-                  </button>
-                </div>
+              {taller.dudas[taller.respuestasDeDudas.length] ? (
+                <BotoneraDeDudas
+                  dudas={taller.dudas}
+                  respondidas={taller.respuestasDeDudas.length}
+                  pensando={taller.pensando}
+                  onResponder={responderDuda}
+                  onEscribirOtraCosa={escribirOtraCosa}
+                />
               ) : borrador ? null : (
                 <div className="conversation-examples">
                   <span>O probá con un ejemplo:</span>
@@ -508,8 +493,8 @@ export function TallerPage() {
                   ))}
                   <span className="preview-example-label">
                     {ajustando
-                      ? 'Los ejemplos nuevos no se guardan'
-                      : 'Datos de ejemplo para imaginarlo'}
+                      ? 'Las filas de ejemplo no se guardan ni son reales'
+                      : 'Las filas marcadas «Ejemplo» no son reales: están para imaginarlo'}
                   </span>
                 </div>
                 <PreviewBoard

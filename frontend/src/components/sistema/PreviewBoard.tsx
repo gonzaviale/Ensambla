@@ -89,9 +89,12 @@ function Contenido({
         <tbody>
           {filas.length ? (
             filas.map((fila) => (
-              <tr key={fila.id}>
-                {campos.map((campo) => (
-                  <td key={campo.key}>{valorDeVista(sistema, campo, fila[campo.key])}</td>
+              <tr key={fila.id} className={fila.__example ? 'example-row' : undefined}>
+                {campos.map((campo, indice) => (
+                  <td key={campo.key}>
+                    {indice === 0 && fila.__example && <em className="example-badge">Ejemplo</em>}
+                    {valorDeVista(sistema, campo, fila[campo.key])}
+                  </td>
                 ))}
               </tr>
             ))
@@ -106,6 +109,9 @@ function Contenido({
           )}
         </tbody>
       </table>
+      {filas.some((fila) => fila.__example) && (
+        <p className="example-notice">Datos de ejemplo, no son reales</p>
+      )}
     </div>
   );
 }

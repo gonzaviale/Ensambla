@@ -1147,6 +1147,153 @@ describe('Sami ensambla el sistema desde cero', () => {
       expect(llamada('Ventas').rows[0]?.product).toBe('');
     });
   });
+
+  describe('borrar_registros', () => {
+    beforeEach(() => {
+      aplicarAcciones(sistema, [
+        accion('agregar_pieza', {
+          tipo: 'sales',
+          ejemplos: [{ Producto: 'Yerba', Cantidad: 2 }],
+        }),
+        accion('agregar_pieza', { tipo: 'clients', ejemplos: [{ Nombre: 'Lucía' }] }),
+      ]);
+    });
+
+    const cargarVentas = () => {
+      aplicarAcciones(sistema, [
+        accion('cargar_registros', {
+          pieza: 'sales',
+          filas: [
+            { Producto: 'Almohaditas', Cantidad: 0.5, Precio: 3200, Cliente: 'Anto Sdani' },
+            { Producto: 'Bolitas', Cantidad: 1, Precio: 2900, Cliente: 'Anto Sdani' },
+            { Producto: 'Almohaditas', Cantidad: 1, Precio: 3200, Cliente: 'Vero Susy' },
+          ],
+        }),
+      ]);
+      return llamada('Ventas');
+    };
+
+    it('borra las filas cuyos datos coinciden, sin importar mayúsculas ni tildes, y sólo esas', () => {
+      const ventas = cargarVentas();
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('borrar_registros', { pieza: 'sales', donde: { cliente: 'anto sdani' } }),
+      ]);
+
+      expect(resultado).toEqual({ aplicadas: ['Borré 2 registros de ventas.'], omitidas: [] });
+      expect(ventas.rows).toHaveLength(1);
+      expect(ventas.rows[0]?.product).toBeDefined();
+    });
+
+    it('exige que coincidan todos los datos de un criterio y acepta una lista de criterios', () => {
+      const ventas = cargarVentas();
+
+      aplicarAcciones(sistema, [
+        accion('borrar_registros', {
+          pieza: 'sales',
+          donde: { Cliente: 'Anto Sdani', Cantidad: '0,5' },
+        }),
+      ]);
+      expect(ventas.rows).toHaveLength(2);
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('borrar_registros', {
+          pieza: 'Ventas',
+          donde: [{ Cliente: 'Vero Susy' }, { Cliente: 'Anto Sdani' }],
+        }),
+      ]);
+      expect(resultado.aplicadas).toEqual(['Borré 2 registros de ventas.']);
+      expect(ventas.rows).toHaveLength(0);
+    });
+
+    it('un solo registro se cuenta en singular y los vínculos que apuntaban a él quedan vacíos', () => {
+      cargarVentas();
+      const clientes = llamada('Clientes');
+      const anto = clientes.rows.find((fila) => fila.name === 'Anto Sdani');
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('borrar_registros', { pieza: 'clients', donde: { Nombre: 'Anto Sdani' } }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual(['Borré un registro de clientes.']);
+      expect(clientes.rows.some((fila) => fila.id === anto?.id)).toBe(false);
+      expect(
+        llamada('Ventas').rows.filter((fila) => fila.client === anto?.id),
+      ).toHaveLength(0);
+    });
+
+    it('nunca borra de más: sin criterio, con un dato que no existe o sin coincidencias no se borra nada', () => {
+      const ventas = cargarVentas();
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('borrar_registros', { pieza: 'sales' }),
+        accion('borrar_registros', { pieza: 'sales', donde: {} }),
+        accion('borrar_registros', { pieza: 'sales', donde: 'todo' }),
+        accion('borrar_registros', { pieza: 'sales', donde: { Color: 'Rojo' } }),
+        accion('borrar_registros', { pieza: 'sales', donde: { Cliente: 'Anto Sdani', Color: 'Rojo' } }),
+        accion('borrar_registros', { pieza: 'sales', donde: { Cantidad: 'mucho' } }),
+        accion('borrar_registros', { pieza: 'sales', donde: { Cliente: 'Nadie' } }),
+        accion('borrar_registros', { pieza: 'nada', donde: { Cliente: 'Anto Sdani' } }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual([]);
+      expect(resultado.omitidas).toHaveLength(8);
+      expect(ventas.rows).toHaveLength(3);
+    });
+
+    it('usar borrar y cargar en el mismo turno corrige sin duplicar', () => {
+      const ventas = cargarVentas();
+
+      aplicarAcciones(sistema, [
+        accion('borrar_registros', { pieza: 'sales', donde: { Cliente: 'Anto Sdani' } }),
+        accion('cargar_registros', {
+          pieza: 'sales',
+          filas: [{ Producto: 'Almohaditas', Cantidad: 0.5, Precio: 3200, Cliente: 'Anto Solari' }],
+        }),
+      ]);
+
+      expect(ventas.rows).toHaveLength(2);
+      expect(ventas.rows.filter((fila) => fila.__example)).toHaveLength(0);
+    });
+  });
+
+  describe('los ejemplos no se mezclan con lo real', () => {
+    beforeEach(() => {
+      aplicarAcciones(sistema, [
+        accion('agregar_pieza', {
+          tipo: 'sales',
+          ejemplos: [{ Producto: 'Yerba', Cantidad: 2 }],
+        }),
+        accion('agregar_pieza', { tipo: 'clients', ejemplos: [{ Nombre: 'Lucía' }] }),
+      ]);
+    });
+
+    it('al cargar registros reales en una pieza desaparecen sus ejemplos, y los de otras piezas siguen marcados', () => {
+      const ventas = llamada('Ventas');
+      const clientes = llamada('Clientes');
+      expect(ventas.rows.every((fila) => fila.__example)).toBe(true);
+      expect(clientes.rows.every((fila) => fila.__example)).toBe(true);
+
+      aplicarAcciones(sistema, [
+        accion('cargar_registros', { pieza: 'sales', filas: [{ Producto: 'Yerba', Cantidad: 1 }] }),
+      ]);
+
+      expect(ventas.rows.some((fila) => fila.__example)).toBe(false);
+      expect(ventas.rows).toHaveLength(1);
+      expect(clientes.rows.every((fila) => fila.__example)).toBe(true);
+    });
+
+    it('lo que se guarda al crear nunca incluye una fila de ejemplo', () => {
+      aplicarAcciones(sistema, [
+        accion('cargar_registros', { pieza: 'sales', filas: [{ Producto: 'Yerba', Cantidad: 1 }] }),
+      ]);
+
+      const creado = sistemaParaCrear(sistema);
+
+      expect(allBlocks(creado).flatMap((bloque) => bloque.rows).some((fila) => fila.__example)).toBe(false);
+      expect(allBlocks(creado).find((bloque) => bloque.type === 'sales')?.rows).toHaveLength(1);
+    });
+  });
 });
 
 describe('ajusteParaGuardar: el sistema ajustado con Sami', () => {

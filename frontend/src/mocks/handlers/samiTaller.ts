@@ -32,7 +32,7 @@ type Kit = {
   opciones: Opciones;
 };
 
-const sinAcciones = (respuesta: string) => ({ respuesta, acciones: [], opciones: null });
+const sinAcciones = (respuesta: string) => ({ respuesta, acciones: [], preguntas: [] });
 const accion = (herramienta: string, argumentos: Record<string, unknown>): Accion => ({
   herramienta,
   argumentos,
@@ -236,10 +236,12 @@ const KITS: Kit[] = [
 const PREGUNTA_POR_EL_RUBRO = {
   respuesta: 'Contame un poco más así lo armo a tu medida.',
   acciones: [],
-  opciones: {
-    pregunta: '¿De qué es tu negocio?',
-    opciones: ['Tengo un almacén', 'Hago velas artesanales', 'Tengo una peluquería'],
-  },
+  preguntas: [
+    {
+      pregunta: '¿De qué es tu negocio?',
+      opciones: ['Tengo un almacén', 'Hago velas artesanales', 'Tengo una peluquería'],
+    },
+  ],
 };
 
 const sinTildes = (texto: string) =>
@@ -301,7 +303,7 @@ const ajusteDeDato = (mensaje: string, piezas: Pieza[]) => {
           etiqueta: nuevo.texto,
         }),
       ],
-      opciones: null,
+      preguntas: [],
     };
   }
   const [, crudo, cola = ''] = PONER_PRIMERO.exec(mensaje) ?? [];
@@ -321,7 +323,7 @@ const ajusteDeDato = (mensaje: string, piezas: Pieza[]) => {
           posicion: 1,
         }),
       ],
-      opciones: null,
+      preguntas: [],
     };
   }
   return undefined;
@@ -346,7 +348,18 @@ const respuestaALaFoto = (piezas: Pieza[]) => {
       ...(ventas ? [] : [accion('agregar_pieza', { tipo: 'sales', nombre: 'Ventas' })]),
       accion('cargar_registros', { pieza: ventas?.id ?? 'Ventas', filas: VENTAS_DE_LA_FOTO }),
     ],
-    opciones: null,
+    preguntas: [
+      {
+        tema: 'Tildes',
+        pregunta: '¿Qué significan los tildes?',
+        opciones: ['Ya entregado y cobrado', 'Entregado pero sin cobrar'],
+      },
+      {
+        tema: 'Número de la derecha',
+        pregunta: '¿El número de la derecha es costo o lo que deben?',
+        opciones: ['El costo', 'Lo que me deben'],
+      },
+    ],
   };
 };
 
@@ -366,7 +379,7 @@ const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
     return {
       respuesta: kit.respuesta,
       acciones: [...renombrar, ...kit.acciones],
-      opciones: kit.opciones,
+      preguntas: [kit.opciones],
     };
   }
 
@@ -381,7 +394,7 @@ const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
     return {
       respuesta: `Listo, ahora se llama ${nombre}.`,
       acciones: [accion('renombrar_sistema', { nombre })],
-      opciones: null,
+      preguntas: [],
     };
   }
   const clientes = deTipo('clients');
@@ -389,14 +402,14 @@ const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
     return {
       respuesta: `Listo, saqué ${clientes.nombre.toLowerCase()}.`,
       acciones: [accion('quitar_pieza', { pieza: clientes.id })],
-      opciones: null,
+      preguntas: [],
     };
   }
   if (/gasto/.test(texto) && !deTipo('expenses')) {
     return {
       respuesta: 'Listo, sumé los gastos.',
       acciones: [accion('agregar_pieza', { tipo: 'expenses' })],
-      opciones: null,
+      preguntas: [],
     };
   }
   const inventario = deTipo('inventory');
@@ -406,14 +419,14 @@ const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
       acciones: [
         accion('agregar_campo', { pieza: inventario.id, etiqueta: 'Proveedor', tipo: 'text' }),
       ],
-      opciones: null,
+      preguntas: [],
     };
   }
   if (/una columna|todo en una/.test(texto)) {
     return {
       respuesta: 'Listo, una pieza por fila.',
       acciones: [accion('cambiar_distribucion', { layout: 'single' })],
-      opciones: null,
+      preguntas: [],
     };
   }
   if (/gracias|^no,? por ahora/.test(texto)) return sinAcciones('¡Dale! Cuando quieras seguimos.');
@@ -421,10 +434,12 @@ const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
   return {
     respuesta: 'Te cuento qué puedo hacer. ¿Por dónde seguimos?',
     acciones: [],
-    opciones: {
-      pregunta: '¿Qué querés hacer con tu sistema?',
-      opciones: ['Sumar gastos', 'Agregar un proveedor al inventario', 'Poner todo en una columna'],
-    },
+    preguntas: [
+      {
+        pregunta: '¿Qué querés hacer con tu sistema?',
+        opciones: ['Sumar gastos', 'Agregar un proveedor al inventario', 'Poner todo en una columna'],
+      },
+    ],
   };
 };
 
