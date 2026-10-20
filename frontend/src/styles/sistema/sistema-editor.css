@@ -771,3 +771,45 @@ body:has(.editor-layout) {
     width: 52px;
   }
 }
+
+/* Franja con avisos: naranja, con Sami detective. */
+.sami-franja:not(.ok) {
+  grid-template-columns: 72px 1fr auto;
+  background: var(--orange);
+  border: 0;
+  border-left: 6px solid var(--petrol);
+  box-shadow: 0 6px 18px #ee800033;
+}
+.sami-franja:not(.ok) .sami-franja-img {
+  box-sizing: border-box;
+  width: 72px;
+  height: 72px;
+  padding: 6px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: #fff;
+  filter: none;
+  box-shadow: 0 4px 10px #0002;
+}
+.sami-franja:not(.ok) .sami-franja-txt > strong {
+  color: #fff;
+}
+.sami-franja:not(.ok) .sami-chip {
+  border: 0;
+  background: #fff;
+}
+.sami-franja:not(.ok) .sami-chip:hover {
+  box-shadow: 0 0 0 2px var(--petrol);
+}
+@media (max-width: 640px) {
+  .sami-franja:not(.ok) {
+    grid-template-columns: 56px 1fr;
+  }
+  .sami-franja:not(.ok) .sami-franja-img {
+    width: 56px;
+    height: 56px;
+  }
+  .sami-franja:not(.ok) > .btn {
+    grid-column: 2;
+  }
+}

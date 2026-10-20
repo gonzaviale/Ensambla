@@ -312,8 +312,12 @@ export function PanelDeAvisos() {
               {lista.length ? (
                 tarjetas(lista)
               ) : (
-                <div className="alertas-vacio">
-                  <Sami />
+                <div className={sinDatos ? 'alertas-vacio' : 'alertas-vacio ok'}>
+                  {sinDatos ? (
+                    <Sami />
+                  ) : (
+                    <img className="alertas-vacio-img" src="/mockup/sami-guino.webp" alt="" />
+                  )}
                   {sinDatos ? (
                     <>
                       <h3>Todavía no tengo datos para mirar.</h3>

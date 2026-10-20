@@ -1054,3 +1054,25 @@ body.alertas-abiertas {
   margin-top: 1px;
   color: var(--petrol);
 }
+
+/* Panel sin avisos: petróleo, como la franja "Todo en orden", con Sami guiñando. */
+.alertas-vacio.ok {
+  background: var(--petrol);
+  border: 0;
+  border-top: 6px solid var(--yellow);
+  box-shadow: 0 8px 20px #00506a26;
+}
+.alertas-vacio.ok h3 {
+  color: var(--yellow);
+}
+.alertas-vacio.ok p {
+  color: #fff;
+  margin-bottom: 0;
+}
+.alertas-vacio-img {
+  display: block;
+  width: 120px;
+  height: auto;
+  margin: 0 auto;
+  filter: drop-shadow(0 6px 8px #0003);
+}
