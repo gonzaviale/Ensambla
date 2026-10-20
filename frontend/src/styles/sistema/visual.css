@@ -889,10 +889,16 @@
   flex-direction: column;
   gap: 5px;
 }
+/* La pregunta de Sami se ve como cualquier respuesta suya en la charla: recuadro blanco y letra de lectura. */
 .conversation-examples > span {
-  font-size: 9px;
-  color: #9a8a6a;
-  margin-bottom: 2px;
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--ink);
+  background: white;
+  border: 1px solid #e9e3d1;
+  border-radius: 11px 11px 11px 3px;
+  padding: 12px 13px;
+  margin: 0 15px 6px 0;
 }
 .conversation-examples button {
   display: flex;
@@ -2451,7 +2457,6 @@ body.resizing {
   }
   .conversation-examples > span {
     grid-column: span 2;
-    font-size: 9px;
   }
   .conversation-examples > button {
     font-size: 9px;
@@ -2800,16 +2805,19 @@ body.resizing {
   letter-spacing: 0.04em;
 }
 .preview-more {
-  margin: 4px 0 0;
-  padding: 0;
+  margin: 6px 0 2px 8px;
+  padding: 2px 4px;
   border: 0;
   background: none;
   font: inherit;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
-  color: #2f6f8f;
+  color: var(--petrol);
   cursor: pointer;
-  text-decoration: underline;
+  text-decoration: none;
+}
+.preview-more:hover {
+  opacity: 0.75;
 }
 .preview-table-expandida {
   max-height: 320px;
