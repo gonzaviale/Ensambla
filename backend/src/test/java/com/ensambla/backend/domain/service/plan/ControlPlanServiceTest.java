@@ -8,6 +8,7 @@ import com.ensambla.backend.domain.model.enums.FuncionPlan;
 import com.ensambla.backend.domain.model.plan.Plan;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
+import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -45,6 +46,9 @@ class ControlPlanServiceTest {
 
     @Mock
     private UsoPlanRepository usoPlanRepository;
+
+    @Mock
+    private PruebaPremiumRepository pruebaPremiumRepository;
 
     @InjectMocks
     private ControlPlanService controlPlanService;
@@ -158,6 +162,38 @@ class ControlPlanServiceTest {
         assertThatThrownBy(() -> controlPlanService.validarFuncion(
                 NEGOCIO_ID, FuncionPlan.RECETAS_COSTOS, INSTANTE))
                 .isInstanceOf(ResourceNotFoundException.class).hasMessage("Plan gratuito no encontrado");
+    }
+
+    @Test
+    @DisplayName("Una prueba sin historial persistido falla sin autorizar páginas")
+    void validarPaginasIaShouldRejectTrialWithoutHistory() {
+        givenActivePlan();
+        Suscripcion prueba = suscripcion();
+        prueba.setEstado(EstadoSuscripcion.PRUEBA);
+        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(prueba));
+
+        assertThatThrownBy(() -> controlPlanService.validarPaginasIa(NEGOCIO_ID, 1, INSTANTE))
+                .isInstanceOf(ResourceNotFoundException.class).hasMessage("Prueba no encontrada");
+    }
+
+    @Test
+    @DisplayName("El registro de consumo tampoco admite un negocio sin suscripción")
+    void registrarPaginasPruebaShouldRejectMissingSubscription() {
+        assertThatThrownBy(() -> controlPlanService.registrarPaginasPrueba(NEGOCIO_ID, 1, INSTANTE))
+                .isInstanceOf(ResourceNotFoundException.class).hasMessage("Suscripción no encontrada");
+    }
+
+    @Test
+    @DisplayName("Una prueba vencida usa la cuota mensual gratuita y no incrementa el historial de prueba")
+    void registrarPaginasPruebaShouldIgnoreExpiredTrial() {
+        Suscripcion prueba = suscripcion();
+        prueba.setEstado(EstadoSuscripcion.PRUEBA);
+        prueba.setFinEn(INSTANTE);
+        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(prueba));
+
+        controlPlanService.registrarPaginasPrueba(NEGOCIO_ID, 1, INSTANTE);
+
+        verifyNoInteractions(pruebaPremiumRepository);
     }
 
     // --- arrange ---

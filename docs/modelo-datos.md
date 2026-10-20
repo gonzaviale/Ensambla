@@ -1,10 +1,10 @@
-# Modelo de datos (MVP 2 · T-004, T-109; V9 a V13 incorporan frontend, monitoreo y planes)
+# Modelo de datos (MVP 2 · T-004, T-109; V9 a V14 incorporan frontend, monitoreo, planes y prueba)
 
 Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (`V1__esquema_inicial.sql`,
 `V2__digitalizacion_cuaderno.sql`, `V3__plantillas_base.sql`, `V4__procesamiento_lecturas_ia.sql`,
 `V5__campo_relacion.sql`, `V6__campo_formula.sql`, `V7__movimiento_stock.sql`, `V8__receta.sql`,
 `V9__modelo_sistema_y_monitoreo.sql`, `V10__datos_prueba_san_justo.sql`, `V11__avisos_entidad_y_datos.sql`,
-`V12__planes_y_suscripciones.sql`, `V13__limites_y_funciones_por_plan.sql`).
+`V12__planes_y_suscripciones.sql`, `V13__limites_y_funciones_por_plan.sql`, `V14__prueba_premium.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -89,6 +89,26 @@ Detalles y contrato con subida: [lectura-cuaderno-ia.md](lectura-cuaderno-ia.md)
   inmediatos, cuyo detalle completo de tokens/costo aún no se persiste. No los presenta como costo cero.
 - No se cambian V1–V12, las cuotas no borran datos y el proveedor se llama fuera del bloqueo.
   Contratos, errores 403, pruebas y límites del alcance: [plan-ENS-95.md](plan-ENS-95.md).
+
+## Prueba premium (V14 · ENS-96 / T-068)
+
+- `prueba_premium`: una fila por negocio, PK/FK `negocio_id` con cascada, `inicio_en`, `fin_en`
+  y `paginas_ia`. El período original es inmutable desde la aplicación; su inicio también representa
+  la creación del historial. Se conserva al vencer o convertir la suscripción a premium pago.
+- Las restricciones exigen 168 horas y contador entre cero y diez. La suscripción `PRUEBA` también
+  exige fin no nulo a siete días del inicio. No se activan pruebas al migrar.
+- El inicio serializa por negocio, cambia la suscripción a premium `PRUEBA` y crea su historial en
+  la misma transacción. Una segunda solicitud no renueva fechas ni cuota.
+- Durante su vigencia se aplican las funciones premium, con diez páginas de IA totales en lugar
+  de cien mensuales. Se cargan al admitir un intento inmediato o reservar un lote; la finalización
+  no vuelve a cobrarlas. Rechazos diarios y reservas duplicadas no gastan prueba. El contador
+  es independiente del consumo previo y no se reinicia al cambiar de mes.
+- El índice parcial `ix_suscripcion_pruebas_vencidas` usa `(fin_en, negocio_id)` para `PRUEBA`.
+  El job obtiene cien candidatos por ciclo y verifica nuevamente estado/fin bajo bloqueo. Una
+  suscripción `ACTIVA` ya convertida por pago no se modifica. Las operaciones también comprueban
+  vigencia al ejecutarse, sin depender del job para bloquear accesos vencidos.
+- Se conservan sistemas y filas al volver al gratuito; el historial diario sigue intacto y cuenta
+  en el mes correspondiente. Contrato y validación: [plan-ENS-96.md](plan-ENS-96.md).
 
 ## Frontend nuevo y monitoreo (V9)
 
@@ -432,7 +452,7 @@ Testcontainers.
 | Borrador vs. versión publicada de la estructura | MVP 3 · T-047 | Tablas o columnas de versión en una migración nueva |
 | Columnas visibles por bloque y dispositivo | MVP 3 · T-049 | Tabla de preferencias por bloque |
 | Membresías y roles, invitaciones, auditoría | MVP 4 · T-060, T-063, T-065 | `membresia`, `invitacion`, `auditoria` |
-| Prueba, pantalla y cobro | ENS-96 a ENS-98 | ENS-95 controla capacidades y consumo mensual; las siguientes subtareas incorporan prueba, pantalla y pagos |
+| Pantalla y cobro | ENS-97 y ENS-98 | ENS-95 controla capacidades; ENS-96 incorpora prueba, cuota total y vencimiento |
 | Relación entre bloques, stock, recetas | MVP 4 · T-073 a T-075 | Nuevos tipos de campo y tablas de movimientos |
 | Repositorios y casos de uso de zona, avisos y preferencias | Cuando se haga el motor de monitoreo | Entidades ya creadas en V9 |
 | Archivos adjuntos a registros | MVP 4 · T-078 | Tipo de campo `ARCHIVO` sobre el mismo almacenamiento que `foto_cuaderno` |

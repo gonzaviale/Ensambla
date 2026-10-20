@@ -228,6 +228,71 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    @DisplayName("El inicio de prueba exige una sesión autenticada")
+    void iniciarPruebaShouldRequireSession() throws Exception {
+        mockMvc.perform(post("/api/planes/prueba"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("El inicio de prueba exige el token CSRF de la sesión")
+    void iniciarPruebaShouldRequireCsrfToken() throws Exception {
+        mockMvc.perform(post("/api/planes/prueba").session(sesion))
+                .andExpect(status().isForbidden());
+
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
+                Long.class, negocioId)).isZero();
+    }
+
+    @Test
+    @DisplayName("La prueba ignora plan, fechas y negocio enviados por el cliente")
+    void iniciarPruebaShouldUseSessionBusinessAndServerPolicy() throws Exception {
+        UUID ajenoId = UUID.randomUUID();
+
+        mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken)
+                        .param("negocioId", ajenoId.toString()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"negocioId\":\"" + ajenoId + "\",\"dias\":365,\"paginasIa\":999}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.inicioEn").isNotEmpty())
+                .andExpect(jsonPath("$.finEn").isNotEmpty())
+                .andExpect(jsonPath("$.paginasIaUtilizadas").value(0))
+                .andExpect(jsonPath("$.limitePaginasIa").value(10))
+                .andExpect(header().string("Cache-Control", "no-store"));
+
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
+                Long.class, negocioId)).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
+                Long.class, ajenoId)).isZero();
+    }
+
+    @Test
+    @DisplayName("Repetir el inicio devuelve una restricción clara sin renovar la prueba")
+    void iniciarPruebaShouldRejectRepeatedRequest() throws Exception {
+        mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.codigo").value("PRUEBA_UTILIZADA"));
+    }
+
+    @Test
+    @DisplayName("El consumo agotado de prueba devuelve su código propio en la ruta de IA")
+    void leerImagenShouldRejectExhaustedTrialQuota() throws Exception {
+        mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
+                .andExpect(status().isOk());
+        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 10 WHERE negocio_id = ?", negocioId);
+        entityManager.clear();
+        MockMultipartFile imagen = new MockMultipartFile("imagen", "foto.jpg", "image/jpeg", new byte[] {1, 2, 3});
+        MockMultipartFile pedido = new MockMultipartFile(
+                "pedido", "", "application/json", PEDIDO.getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(multipart("/api/importaciones/lectura").file(imagen).file(pedido).session(sesion)
+                        .header("X-CSRF-TOKEN", csrfToken))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("LIMITE_IA_PRUEBA"));
+    }
+
     // --- arrange ---
     private void givenPremium(OffsetDateTime fin) {
         jdbcTemplate.update("""

@@ -46,7 +46,7 @@ class SuscripcionTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = EstadoSuscripcion.class, names = {"VENCIDA", "CANCELADA", "PRUEBA"})
+    @EnumSource(value = EstadoSuscripcion.class, names = {"VENCIDA", "CANCELADA"})
     @DisplayName("Estados sin activación no habilitan premium")
     void estaVigenteShouldRejectInactiveStates(EstadoSuscripcion estado) {
         Suscripcion suscripcion = suscripcion();
@@ -55,4 +55,16 @@ class SuscripcionTest {
         assertThat(suscripcion.estaVigente(INSTANTE)).isFalse();
     }
 
+    @Test
+    @DisplayName("La prueba habilita premium desde su inicio y termina exactamente a los siete días")
+    void estaVigenteShouldEnableTrialWithinPeriod() {
+        Suscripcion suscripcion = suscripcion();
+        suscripcion.setEstado(EstadoSuscripcion.PRUEBA);
+        suscripcion.setFinEn(INSTANTE.plusDays(7));
+
+        assertThat(suscripcion.estaVigente(INSTANTE)).isTrue();
+        assertThat(suscripcion.estaVigente(INSTANTE.plusDays(7).minusNanos(1))).isTrue();
+        assertThat(suscripcion.estaVigente(INSTANTE.plusDays(7))).isFalse();
+        assertThat(suscripcion.estaVigente(INSTANTE.minusNanos(1))).isFalse();
+    }
 }

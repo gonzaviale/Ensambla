@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-/** La cuota mensual y la reserva diaria comparten transacción y bloqueo por negocio. */
+/** Las cuotas mensual/de prueba y la reserva diaria comparten transacción y bloqueo por negocio. */
 @Service
 @RequiredArgsConstructor
 public class ReservaIaService {
@@ -22,7 +22,11 @@ public class ReservaIaService {
     @Transactional
     public boolean reservar(LoteTrabajo lote, int paginas, int limiteDiario, OffsetDateTime ahora) {
         controlPlanService.validarPaginasIa(lote.negocioId(), paginas, ahora);
-        return procesamientoRepository.reservar(lote, paginas, limiteDiario, ahora);
+        boolean reservada = procesamientoRepository.reservar(lote, paginas, limiteDiario, ahora);
+        if (reservada) {
+            controlPlanService.registrarPaginasPrueba(lote.negocioId(), paginas, ahora);
+        }
+        return reservada;
     }
 
     public void validarDisponibilidad(UUID negocioId, OffsetDateTime ahora) {

@@ -67,6 +67,29 @@ class MigracionPlanesPostgresIntegrationTest extends PostgresRepositoryTestSuppo
         }
     }
 
+    @Test
+    @DisplayName("V14 conserva negocios, suscripciones, datos y consumo al agregar pruebas sin activarlas")
+    void migrateShouldPreserveVersionThirteenDataWithoutStartingTrials() {
+        try {
+            Totales anteriores = givenSchemaAtVersionEleven();
+            Flyway.configure().dataSource(dataSource).schemas(ESQUEMA).defaultSchema(ESQUEMA)
+                    .target("13").load().migrate();
+            jdbcTemplate.update("INSERT INTO " + ESQUEMA + ".consumo_ia_diario (negocio_id, fecha, paginas) "
+                    + "SELECT id, DATE '2026-10-19', 7 FROM " + ESQUEMA + ".negocio");
+
+            Flyway.configure().dataSource(dataSource).schemas(ESQUEMA).defaultSchema(ESQUEMA)
+                    .target("14").load().migrate();
+
+            thenEveryExistingNegocioHasFreePlan(anteriores);
+            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA + ".prueba_premium",
+                    Long.class)).isZero();
+            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA
+                    + ".consumo_ia_diario WHERE paginas = 7", Long.class)).isEqualTo(anteriores.negocios());
+        } finally {
+            jdbcTemplate.execute("DROP SCHEMA IF EXISTS " + ESQUEMA + " CASCADE");
+        }
+    }
+
     // --- arrange ---
     private Totales givenSchemaAtVersionEleven() {
         Flyway.configure()

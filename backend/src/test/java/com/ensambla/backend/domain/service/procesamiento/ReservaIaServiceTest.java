@@ -14,6 +14,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -37,6 +38,18 @@ class ReservaIaServiceTest {
         var orden = inOrder(controlPlanService, procesamientoRepository);
         orden.verify(controlPlanService).validarPaginasIa(NEGOCIO_ID, 2, AHORA);
         orden.verify(procesamientoRepository).reservar(lote, 2, 100, AHORA);
+        orden.verify(controlPlanService).registrarPaginasPrueba(NEGOCIO_ID, 2, AHORA);
+    }
+
+    @Test
+    @DisplayName("Una reserva fallida no descuenta páginas de la prueba")
+    void reservarShouldNotChargeTrialWhenReservationFails() {
+        var lote = lote(1);
+
+        boolean result = reservaIaService.reservar(lote, 2, 1, AHORA);
+
+        assertThat(result).isFalse();
+        verify(controlPlanService, never()).registrarPaginasPrueba(NEGOCIO_ID, 2, AHORA);
     }
 
     @Test

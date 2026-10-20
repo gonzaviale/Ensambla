@@ -32,5 +32,6 @@ public class ConsumoIaInmediatoService {
             throw new RestriccionPlanException("LIMITE_IA_DIARIO",
                     "Se alcanzó el límite diario de páginas de IA. Probá mañana.");
         }
+        controlPlanService.registrarPaginasPrueba(negocioId, 1, ahora);
     }
 }

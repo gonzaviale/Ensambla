@@ -34,7 +34,7 @@ public class Suscripcion {
     private OffsetDateTime actualizadoEn;
 
     public boolean estaVigente(OffsetDateTime ahora) {
-        return estado == EstadoSuscripcion.ACTIVA && !inicioEn.isAfter(ahora)
+        return (estado == EstadoSuscripcion.ACTIVA || estado == EstadoSuscripcion.PRUEBA) && !inicioEn.isAfter(ahora)
                 && (finEn == null || finEn.isAfter(ahora));
     }
 }
