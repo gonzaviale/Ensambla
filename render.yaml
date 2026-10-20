@@ -20,3 +20,15 @@ services:
         sync: false
       - key: SPRING_DATASOURCE_PASSWORD
         sync: false
+      - key: ENSAMBLA_WHATSAPP_PROVEEDOR
+        sync: false
+      - key: ENSAMBLA_WHATSAPP_NUMERO_BOT
+        sync: false
+      - key: ENSAMBLA_WHATSAPP_WEBHOOK_SECRETO
+        sync: false
+      - key: ENSAMBLA_WHATSAPP_EVOLUTION_URL
+        sync: false
+      - key: ENSAMBLA_WHATSAPP_EVOLUTION_API_KEY
+        sync: false
+      - key: ENSAMBLA_WHATSAPP_EVOLUTION_INSTANCIA
+        sync: false

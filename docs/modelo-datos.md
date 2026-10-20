@@ -3,7 +3,7 @@
 Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (`V1__esquema_inicial.sql`,
 `V2__digitalizacion_cuaderno.sql`, `V3__plantillas_base.sql`, `V4__procesamiento_lecturas_ia.sql`,
 `V5__campo_relacion.sql`, `V6__campo_formula.sql`, `V7__movimiento_stock.sql`, `V8__receta.sql`,
-`V9__modelo_sistema_y_monitoreo.sql`, `V10__datos_prueba_san_justo.sql`, `V11__avisos_entidad_y_datos.sql`).
+`V9__modelo_sistema_y_monitoreo.sql`, `V10__datos_prueba_san_justo.sql`, `V11__avisos_entidad_y_datos.sql`, `V12__whatsapp_vinculacion_y_mensajes.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -95,6 +95,17 @@ cambiaron, reactiva los vencidos y vence los pendientes que la regla ya no detec
 `POST /api/avisos/{id}/aplicar` y `POST /api/avisos/{id}/descartar`. Aplicar ejecuta la acción sugerida (`EDITAR_REGISTRO` cambia
 valores de un registro por clave de campo; `REGISTRAR` y `ABRIR` son atajos de pantalla) y marca el aviso como aplicado en la misma
 transacción. Un aviso de otro negocio responde 404.
+
+## Carga por WhatsApp (V12)
+
+`whatsapp_vinculo` une un número con un usuario y su negocio (un número por usuario y un usuario por número, ambos únicos; el
+teléfono va en sólo dígitos con código de país). `whatsapp_codigo_vinculacion` guarda el código de un solo uso que el usuario
+genera en la app (6 caracteres, vigente 10 minutos) y manda por el chat como `VINCULAR <código>`. `whatsapp_mensaje` guarda cada
+texto o nota de voz que llega de un número vinculado: `id_externo` (único) evita duplicados si el proveedor reintenta el webhook,
+y un `CHECK` exige `texto` en los textos y `mime_audio` en los audios. El audio no se guarda: se descarga al transcribirlo.
+
+**API.** `POST /api/whatsapp/vinculacion/codigo`, `GET` y `DELETE /api/whatsapp/vinculacion` (con sesión) y
+`POST /api/whatsapp/webhook` (público, sin CSRF, protegido con el header `X-Ensambla-Webhook-Token`). Ver `docs/whatsapp-evolution.md`.
 
 ## Datos de prueba (V10)
 

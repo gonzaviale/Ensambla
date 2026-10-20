@@ -7,7 +7,6 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -55,11 +54,12 @@ public class SecurityConfig {
                 paths.matcher(HttpMethod.GET, "/api/auth/csrf"),
                 paths.matcher(HttpMethod.POST, "/api/auth/register"),
                 paths.matcher(HttpMethod.POST, "/api/auth/login"),
-                paths.matcher(HttpMethod.POST, "/api/auth/logout"));
+                paths.matcher(HttpMethod.POST, "/api/auth/logout"),
+                paths.matcher(HttpMethod.POST, "/api/whatsapp/webhook"));
         http.authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(rutasPublicas).permitAll()
                 .anyRequest().authenticated())
-                .csrf(Customizer.withDefaults())
+                .csrf(csrf -> csrf.ignoringRequestMatchers(paths.matcher(HttpMethod.POST, "/api/whatsapp/webhook")))
                 .requestCache(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
