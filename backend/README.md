@@ -75,6 +75,33 @@ con un mensaje que dice qué foto falló. Las fotos se guardan con `ArchivoCuade
 [lectura-cuaderno-ia.md](../docs/lectura-cuaderno-ia.md)); si algo falla a mitad de camino se borra lo que ya se había
 guardado. Un lote de otro negocio responde 404.
 
+## Planes, suscripciones y prueba premium (ENS-94 a ENS-96)
+
+V12 agrega el catálogo `plan` y la suscripción actual `suscripcion`, asigna el gratuito activo a
+negocios existentes y lo crea junto con cada cuenta nueva en una sola transacción.
+V13 configura los límites aprobados: gratuito de un sistema, 1.000 registros totales y diez páginas
+de IA por mes calendario UTC; premium sin límite comercial de sistemas/registros y cien páginas mensuales.
+
+`limites_configurados=true` habilita el control de capacidades; `configurado` sigue identificando
+precio/moneda, que aún no se definieron. Recetas/costos, reportes filtrados y XLSX requieren premium activo.
+Las altas se validan dentro de la transacción, con bloqueo por negocio; las dos vías de IA comparten
+el consumo mensual, incluidas reservas, y conservan el límite diario técnico.
+
+`POST /api/importaciones/lectura` identifica el negocio desde la sesión y cuenta el intento inmediato
+antes de llamar a IA. Si hay lecturas inmediatas, el resumen diario marca tokens/costo como incompletos.
+Un rechazo de plan devuelve 403 con `message` y `codigo`; un recurso ajeno sigue devolviendo 404.
+Superar una cuota no borra los datos ni bloquea su lectura/edición básica.
+
+V14 incorpora una única prueba premium por negocio. `POST /api/planes/prueba` requiere sesión y CSRF;
+inicia siete días exactos de capacidades premium y **diez páginas de IA totales**, sin renovación mensual.
+Las dos vías de IA comparten el contador persistido, incluidas las reservas admitidas; fallos y timeouts
+conservan el cargo del intento. Una reserva rechazada no lo consume. Repetir el inicio no renueva la prueba.
+Al vencer se usa el gratuito sin borrar datos, incluso antes de ejecutar el job automático de cada minuto.
+El job conserva cualquier premium ya activado por un pago. Puede deshabilitarse con `ENSAMBLA_PRUEBAS_WORKER=false`.
+La pantalla y los pagos corresponden a ENS-97–98. Detalle:
+[prueba premium](../docs/plan-ENS-96.md), [control por plan](../docs/plan-ENS-95.md)
+y [modelo de datos](../docs/modelo-datos.md).
+
 ## Seguridad
 
 - Sesión por cookie `SESSION` (Spring Session JDBC), `HttpOnly`, `SameSite=Lax`, `Secure` fuera de `dev`.
