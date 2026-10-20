@@ -2,6 +2,7 @@ import { setupWorker } from 'msw/browser';
 import { env } from '@/config/env';
 import type { Sistema } from '@/lib/sistema/tipos';
 import type { Preferencias } from '@/types/preferencias';
+import type { ConfiguracionNegocio } from '@/types/negocio';
 import { handlersPara } from './handlers';
 import { estado, sembrarUsuario } from './db/estado';
 import { interceptarFetch } from './interceptarFetch';
@@ -11,6 +12,7 @@ const CLAVE = 'ensambla.mock.datos.v1';
 type Guardado = {
   sistemas: Record<string, Sistema[]>;
   preferencias: Record<string, Preferencias>;
+  negocios: Record<string, ConfiguracionNegocio>;
 };
 
 // La API simulada vive en memoria: en el navegador se copia a localStorage para que los sistemas y las
@@ -22,6 +24,7 @@ function restaurar() {
     const guardado = JSON.parse(crudo) as Partial<Guardado>;
     estado.sistemas = new Map(Object.entries(guardado.sistemas ?? {}));
     estado.preferencias = new Map(Object.entries(guardado.preferencias ?? {}));
+    estado.negocios = new Map(Object.entries(guardado.negocios ?? {}));
   } catch {
     // Datos ilegibles: se arranca de cero.
   }
@@ -32,6 +35,7 @@ function conservar() {
     const guardado: Guardado = {
       sistemas: Object.fromEntries(estado.sistemas),
       preferencias: Object.fromEntries(estado.preferencias),
+      negocios: Object.fromEntries(estado.negocios),
     };
     localStorage.setItem(CLAVE, JSON.stringify(guardado));
   } catch {

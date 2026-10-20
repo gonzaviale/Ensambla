@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.mapper.procesamiento.ConfirmarLecturaMapper;
 import com.ensambla.backend.domain.mapper.procesamiento.ConsultarConsumoMapper;
+import com.ensambla.backend.domain.mapper.procesamiento.LeerImagenMapper;
 import com.ensambla.backend.domain.mapper.procesamiento.ObtenerLecturaMapper;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
@@ -12,12 +13,13 @@ import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ConsumoIaInmediatoService;
 import com.ensambla.backend.domain.service.procesamiento.ConexionesLecturaService;
 import com.ensambla.backend.domain.service.procesamiento.ConfirmacionLecturaService;
+import com.ensambla.backend.domain.service.procesamiento.LecturaImagenService;
 import com.ensambla.backend.domain.service.procesamiento.ProcesamientoService;
 import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
 import com.ensambla.backend.domain.service.procesamiento.ReservaIaService;
-import com.ensambla.backend.domain.useCase.lectura.LeerImagenUseCase;
 import com.ensambla.backend.domain.useCase.procesamiento.ConfirmarLecturaUseCase;
 import com.ensambla.backend.domain.useCase.procesamiento.ConsultarConsumoUseCase;
+import com.ensambla.backend.domain.useCase.procesamiento.LeerImagenUseCase;
 import com.ensambla.backend.domain.useCase.procesamiento.ObtenerLecturaUseCase;
 import com.ensambla.backend.domain.useCase.procesamiento.ProcesarLoteUseCase;
 import com.ensambla.backend.domain.useCase.procesamiento.ReintentarLecturaUseCase;
@@ -68,15 +70,27 @@ public class LecturaUseCaseConfig {
     }
 
     @Bean
-    public LeerImagenUseCase leerImagenUseCase(LectorCuadernoPort lectorCuadernoPort,
-                                               NegocioService negocioService,
-                                               ConsumoIaInmediatoService consumoIaInmediatoService,
-                                               Clock clock,
-                                               PropuestaLecturaService propuestaLecturaService,
-                                               ExecutorService executorLecturaImagen, IaProperties iaProperties) {
-        return new LeerImagenUseCase(
+    public LecturaImagenService lecturaImagenService(LectorCuadernoPort lectorCuadernoPort,
+                                                     PropuestaLecturaService propuestaLecturaService,
+                                                     ExecutorService executorLecturaImagen,
+                                                     IaProperties iaProperties) {
+        return new LecturaImagenService(
                 new LectorCuadernoTimeoutAdapter(lectorCuadernoPort, executorLecturaImagen, iaProperties.timeout()),
-                propuestaLecturaService, negocioService, consumoIaInmediatoService, clock);
+                propuestaLecturaService);
+    }
+
+    @Bean
+    public LeerImagenMapper leerImagenMapper(IaProperties iaProperties) {
+        return new LeerImagenMapper(iaProperties.umbralConfianza());
+    }
+
+    @Bean
+    public LeerImagenUseCase leerImagenUseCase(LecturaImagenService lecturaImagenService,
+                                               LeerImagenMapper leerImagenMapper,
+                                               NegocioService negocioService,
+                                               ConsumoIaInmediatoService consumoIaInmediatoService, Clock clock) {
+        return new LeerImagenUseCase(
+                lecturaImagenService, leerImagenMapper, negocioService, consumoIaInmediatoService, clock);
     }
 
     @Bean

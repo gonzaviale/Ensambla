@@ -9,4 +9,5 @@
 @import './zona.css';
 /* La revisión de lo que leyó una foto en tarjetas y los campos nuevos detectados. */
 @import './revision.css';
+@import './ubicacion.css';
 @import './overrides.css';
