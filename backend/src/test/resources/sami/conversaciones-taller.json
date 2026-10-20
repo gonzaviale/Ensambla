@@ -53,5 +53,18 @@
    "historial": [{"quien": "sami", "texto": "¿Qué querés hacer con tu sistema?"}],
    "esperadas": [], "opciones": true},
   {"id": "descripcion-libre", "estado": "vacio", "mensaje": "tengo una peluquería, agendo turnos y vendo productos de belleza",
-   "esperadas": [{"herramienta": "agregar_pieza", "args": {"tipo": "sales"}}], "permiteExtras": true}
+   "esperadas": [{"herramienta": "agregar_pieza", "args": {"tipo": "sales"}}], "permiteExtras": true},
+
+  {"id": "armado-velas-fiado", "estado": "vacio", "mensaje": "Vendo velas y anoto quién me debe",
+   "esperadas": [{"herramienta": "agregar_pieza", "args": {"tipo": "sales"}}], "permiteExtras": true, "armado": true},
+  {"id": "armado-negocio-velas", "estado": "vacio", "mensaje": "armame un negocio sobre velas",
+   "esperadas": [], "permiteExtras": true, "armado": true},
+  {"id": "armado-taller-mecanico", "estado": "vacio", "mensaje": "tengo un taller mecánico, hago arreglos y vendo repuestos",
+   "esperadas": [], "permiteExtras": true, "armado": true},
+  {"id": "armado-ropa", "estado": "vacio", "mensaje": "vendo ropa por instagram y hago envíos",
+   "esperadas": [], "permiteExtras": true, "armado": true},
+  {"id": "armado-panaderia", "estado": "vacio", "mensaje": "tengo una panadería y quiero controlar lo que se vence",
+   "esperadas": [], "permiteExtras": true, "armado": true},
+  {"id": "saludo-que-sabes", "estado": "vacio", "mensaje": "hola que sabes hacer",
+   "esperadas": [], "opciones": true}
 ]

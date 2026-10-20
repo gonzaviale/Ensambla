@@ -59,7 +59,7 @@ class TallerBedrockEvaluacionTest {
     }
 
     private record Caso(String id, String estado, String mensaje, List<MensajeTaller> historial,
-                        List<Esperada> esperadas, Boolean opciones, Boolean permiteExtras) {
+                        List<Esperada> esperadas, Boolean opciones, Boolean permiteExtras, Boolean armado) {
     }
 
     @Test
@@ -80,7 +80,7 @@ class TallerBedrockEvaluacionTest {
             DefinicionHerramienta[] herramientas = mapper.readValue(
                     recurso("/ia/herramientas-taller.json"), DefinicionHerramienta[].class);
             TallerIaAdapter adapter = new TallerIaAdapter(
-                    new ClienteModeloConHerramientasBedrock(bedrock, MODELO, 400, List.of(herramientas)),
+                    new ClienteModeloConHerramientasBedrock(bedrock, MODELO, 900, List.of(herramientas)),
                     new PromptTaller(new ClassPathResource("ia/prompt-taller.md")));
             HerramientasTallerService validador = new HerramientasTallerService();
             for (Caso caso : casos) {

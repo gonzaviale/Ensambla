@@ -324,16 +324,16 @@ class HerramientasTallerServiceTest {
     }
 
     @Test
-    @DisplayName("Aplica como mucho cinco acciones por turno y descarta el resto")
+    @DisplayName("Aplica como mucho doce acciones por turno y descarta el resto")
     void validarShouldCapActionsPerTurn() {
-        List<LlamadaHerramienta> siete = new ArrayList<>();
-        for (int i = 0; i < 7; i++) {
-            siete.add(llamada("cambiar_distribucion", Map.of("layout", "single")));
+        List<LlamadaHerramienta> catorce = new ArrayList<>();
+        for (int i = 0; i < 14; i++) {
+            catorce.add(llamada("cambiar_distribucion", Map.of("layout", "single")));
         }
 
-        ValidacionTaller result = service.validar(siete, estado);
+        ValidacionTaller result = service.validar(catorce, estado);
 
-        assertThat(result.acciones()).hasSize(5);
+        assertThat(result.acciones()).hasSize(12);
         assertThat(result.descartadas()).isEqualTo(2);
     }
 

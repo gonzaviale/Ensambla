@@ -21,7 +21,7 @@ public final class CatalogoTaller {
 
     public static final Set<String> DISTRIBUCIONES = Set.of("mosaic", "single", "two", "three");
 
-    public static final int MAX_ACCIONES = 5;
+    public static final int MAX_ACCIONES = 12;
     public static final int MAX_CAMPOS_POR_PIEZA = 12;
     public static final int MAX_LARGO_NOMBRE = 60;
     public static final int MIN_OPCIONES = 2;

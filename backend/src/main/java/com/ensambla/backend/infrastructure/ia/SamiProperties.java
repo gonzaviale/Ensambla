@@ -44,7 +44,7 @@ public record SamiProperties(
             @DefaultValue("30s") Duration timeout,
             @DefaultValue("700") int maxTokens,
             @DefaultValue("0.6") double umbralEscalar,
-            @DefaultValue("400") int maxTokensTaller
+            @DefaultValue("900") int maxTokensTaller
     ) {
     }
 }
