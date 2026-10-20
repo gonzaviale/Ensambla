@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { axe } from 'vitest-axe';
@@ -88,7 +88,7 @@ describe('una foto para Sami en el taller', () => {
     expect(screen.getByRole('button', { name: 'Cambiar la foto para Sami' })).toBeVisible();
     await sinViolaciones();
 
-    await clickButton(user, /Quitar foto/);
+    await user.click(screen.getByRole('button', { name: 'Quitar foto' }));
     expect(miniatura()).toBeNull();
     expect(useSistemaStore.getState().taller?.foto).toBeNull();
 
@@ -117,6 +117,37 @@ describe('una foto para Sami en el taller', () => {
     expect(pedidos[1]?.imagen).toBeUndefined();
     expect(pedidos[1]?.historial).toContainEqual({ quien: 'you', texto: 'Te mando una foto.' });
     expect(JSON.stringify(pedidos[1]?.historial)).not.toContain(btoa('pixeles'));
+  });
+
+  it('la miniatura se expande en un diálogo que se cierra con la X, afuera o Escape', async () => {
+    const { user } = await abrirTaller();
+    await adjuntar(user);
+    await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });
+    const abrir = screen.getByRole('button', { name: 'Ver la foto en grande' });
+    expect(screen.queryByRole('dialog', { name: 'La foto en grande' })).toBeNull();
+
+    await user.click(abrir);
+    const dialogo = screen.getByRole('dialog', { name: 'La foto en grande' });
+    expect(within(dialogo).getByRole('img')).toHaveAttribute(
+      'src',
+      `data:image/jpeg;base64,${btoa('pixeles')}`,
+    );
+    expect(within(dialogo).getByRole('button', { name: 'Cerrar' })).toHaveFocus();
+    await sinViolaciones();
+
+    await user.click(within(dialogo).getByRole('button', { name: 'Cerrar' }));
+    expect(screen.queryByRole('dialog', { name: 'La foto en grande' })).toBeNull();
+    expect(abrir).toHaveFocus();
+
+    await user.click(abrir);
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: 'La foto en grande' })).toBeNull();
+
+    await user.click(abrir);
+    await user.click(screen.getByRole('dialog').parentElement as HTMLElement);
+    expect(screen.queryByRole('dialog', { name: 'La foto en grande' })).toBeNull();
+    // La foto sigue adjunta.
+    expect(miniatura()).toBeVisible();
   });
 
   it('con texto, la foto viaja con lo que se escribió', async () => {

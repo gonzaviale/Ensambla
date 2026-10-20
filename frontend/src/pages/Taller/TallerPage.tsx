@@ -13,6 +13,7 @@ import { Icon } from '@/components/sistema/Icon';
 import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
 import { PreviewBoard } from '@/components/sistema/PreviewBoard';
 import { Sami } from '@/components/sistema/Sami';
+import { VisorDeFoto } from '@/components/sistema/VisorDeFoto';
 import { varsDeColor } from '@/components/sistema/colores';
 import { ajusteParaGuardar, mismoSistema, sistemaParaCrear } from '@/lib/sistema/acciones';
 import { CATALOG } from '@/lib/sistema/catalogo';
@@ -105,6 +106,7 @@ export function TallerPage() {
   const [preparandoFoto, setPreparandoFoto] = useState(false);
   const [arrastrando, setArrastrando] = useState<string | null>(null);
   const [sobre, setSobre] = useState<string | null>(null);
+  const [fotoAmpliada, setFotoAmpliada] = useState(false);
 
   // Si se entra por la dirección, sin pasar por un botón, la conversación empieza igual: sobre el sistema que diga
   // la dirección o, si no hay (o ya no existe), una nueva.
@@ -205,6 +207,7 @@ export function TallerPage() {
   };
 
   const sacarFoto = () => {
+    setFotoAmpliada(false);
     quitarFoto();
     campo.current?.focus();
   };
@@ -273,81 +276,85 @@ export function TallerPage() {
                 </p>
               </div>
             </header>
-            <div className="conversation-messages" aria-live="polite" ref={mensajes}>
-              {taller.mensajes.map((mensaje, indice) => (
-                <div key={indice} className={`conversation-bubble ${mensaje.quien}`}>
-                  {mensaje.foto && (
-                    <img
-                      className="conversation-photo"
-                      src={mensaje.foto}
-                      alt={mensaje.quien === 'you' ? 'La foto que le mandaste a Sami' : 'Una foto'}
-                    />
-                  )}
-                  {mensaje.texto}
-                </div>
-              ))}
-              {taller.pensando && (
-                <div className="thinking-bubble" data-tour="describe-pensando">
-                  <Sami pose="think" />
-                  <div>
-                    <strong>Estoy buscando qué piezas encajan…</strong>
-                    <span>
-                      <i />
-                      <i />
-                      <i />
-                    </span>
+            <div className="conversation-scroll" ref={mensajes}>
+              <div className="conversation-messages" aria-live="polite">
+                {taller.mensajes.map((mensaje, indice) => (
+                  <div key={indice} className={`conversation-bubble ${mensaje.quien}`}>
+                    {mensaje.foto && (
+                      <img
+                        className="conversation-photo"
+                        src={mensaje.foto}
+                        alt={
+                          mensaje.quien === 'you' ? 'La foto que le mandaste a Sami' : 'Una foto'
+                        }
+                      />
+                    )}
+                    {mensaje.texto}
                   </div>
+                ))}
+                {taller.pensando && (
+                  <div className="thinking-bubble" data-tour="describe-pensando">
+                    <Sami pose="think" />
+                    <div>
+                      <strong>Estoy buscando qué piezas encajan…</strong>
+                      <span>
+                        <i />
+                        <i />
+                        <i />
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {taller.opciones ? (
+                <div className="conversation-examples" role="group" aria-label="Respuestas rápidas">
+                  <span>{taller.opciones.pregunta}</span>
+                  {taller.opciones.opciones.map((opcion) => (
+                    <button
+                      key={opcion}
+                      type="button"
+                      disabled={taller.pensando}
+                      onClick={() => void enviar(opcion, { esOpcion: true })}
+                    >
+                      {opcion}
+                      <Icon name="arrow" />
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    data-accion="escribir-otra-cosa"
+                    disabled={taller.pensando}
+                    onClick={escribirOtraCosa}
+                  >
+                    <Icon name="edit" />
+                    Escribir otra cosa…
+                  </button>
+                </div>
+              ) : borrador ? null : (
+                <div className="conversation-examples">
+                  <span>O probá con un ejemplo:</span>
+                  {EJEMPLOS.map((ejemplo) => (
+                    <button
+                      key={ejemplo.clave}
+                      type="button"
+                      disabled={taller.pensando}
+                      onClick={() => usarEjemplo(ejemplo)}
+                    >
+                      <Icon name={ejemplo.icono} />
+                      {ejemplo.etiqueta}
+                      <Icon name="arrow" />
+                    </button>
+                  ))}
+                </div>
+              )}
+              {taller.anterior && (
+                <div className="feedback-chips">
+                  <button type="button" disabled={taller.pensando} onClick={deshacer}>
+                    <Icon name="undo" /> Deshacer lo último
+                  </button>
                 </div>
               )}
             </div>
-            {taller.opciones ? (
-              <div className="conversation-examples" role="group" aria-label="Respuestas rápidas">
-                <span>{taller.opciones.pregunta}</span>
-                {taller.opciones.opciones.map((opcion) => (
-                  <button
-                    key={opcion}
-                    type="button"
-                    disabled={taller.pensando}
-                    onClick={() => void enviar(opcion, { esOpcion: true })}
-                  >
-                    {opcion}
-                    <Icon name="arrow" />
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  data-accion="escribir-otra-cosa"
-                  disabled={taller.pensando}
-                  onClick={escribirOtraCosa}
-                >
-                  <Icon name="edit" />
-                  Escribir otra cosa…
-                </button>
-              </div>
-            ) : borrador ? null : (
-              <div className="conversation-examples">
-                <span>O probá con un ejemplo:</span>
-                {EJEMPLOS.map((ejemplo) => (
-                  <button
-                    key={ejemplo.clave}
-                    type="button"
-                    disabled={taller.pensando}
-                    onClick={() => usarEjemplo(ejemplo)}
-                  >
-                    <Icon name={ejemplo.icono} />
-                    {ejemplo.etiqueta}
-                    <Icon name="arrow" />
-                  </button>
-                ))}
-              </div>
-            )}
-            {taller.anterior && (
-              <div className="feedback-chips">
-                <button type="button" disabled={taller.pensando} onClick={deshacer}>
-                  <Icon name="undo" /> Deshacer lo último
-                </button>
-              </div>
-            )}
             <form className="guide-composer" data-tour="describe" onSubmit={alEnviar}>
               <label htmlFor="guide-message">
                 {borrador ? '¿Qué le falta? ¿Qué cambiarías?' : 'Contame un poco de tu negocio'}
@@ -367,15 +374,24 @@ export function TallerPage() {
               />
               {taller.foto && (
                 <div className="guide-photo-preview">
-                  <img src={vistaDeFoto(taller.foto)} alt="La foto que vas a mandar a Sami" />
-                  <Btn
-                    cls="ghost small"
+                  <button
+                    type="button"
+                    className="guide-photo-thumb"
+                    aria-label="Ver la foto en grande"
+                    onClick={() => setFotoAmpliada(true)}
+                  >
+                    <img src={vistaDeFoto(taller.foto)} alt="La foto que vas a mandar a Sami" />
+                  </button>
+                  <button
+                    type="button"
+                    className="guide-photo-remove"
                     data-accion="guide-photo-remove"
+                    aria-label="Quitar foto"
                     disabled={taller.pensando}
                     onClick={sacarFoto}
                   >
-                    <Icon name="close" /> Quitar foto
-                  </Btn>
+                    <Icon name="close" />
+                  </button>
                 </div>
               )}
               {/* Con `image/*` el celular ofrece sacar la foto en el momento o elegir una de la galería. */}
@@ -586,6 +602,13 @@ export function TallerPage() {
             )}
           </section>
         </div>
+        {fotoAmpliada && taller.foto && (
+          <VisorDeFoto
+            src={vistaDeFoto(taller.foto)}
+            alt="La foto que vas a mandar a Sami, en grande"
+            alCerrar={() => setFotoAmpliada(false)}
+          />
+        )}
       </main>
     </>
   );
