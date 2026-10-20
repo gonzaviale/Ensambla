@@ -49,7 +49,6 @@ export type Taller = {
   /** El nombre que se eligió con un ejemplo, si se eligió alguno. */
   nombre: string;
   entrada: string;
-  actividad: '' | 'warehouse' | 'orders' | 'shop';
   borrador: Sistema | null;
   seccionId: string | null;
   pensando: boolean;
@@ -275,7 +274,6 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
         id: ++contadorDeTalleres,
         nombre: '',
         entrada: '',
-        actividad: '',
         borrador: null,
         seccionId: null,
         pensando: false,

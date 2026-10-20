@@ -58,21 +58,19 @@ describe('el taller de Sami', () => {
   it('pide un poco más cuando lo escrito es muy corto', async () => {
     const { user } = await abrirTaller();
 
-    await user.type(screen.getByLabelText('Contame un poco de tu negocio'), 'hola');
+    await user.type(screen.getByLabelText('Contame un poco de tu negocio'), 'a');
     await clickButton(user, /Pensalo conmigo/);
 
     await verifyToastAsync(/Contame un poquito más/);
     expect(useSistemaStore.getState().taller?.borrador).toBeNull();
   });
 
-  it('con un ejemplo propone una base que se ve a la derecha', async () => {
+  it('con un ejemplo Sami arma una base que se ve a la derecha', async () => {
     await conPropuesta();
 
     expect(screen.getByLabelText('Nombre de tu sistema')).toHaveValue('Mi almacén');
     expect(screen.getByText('Propuesta sin guardar')).toBeVisible();
-    expect(
-      screen.getByText(/Te propongo esta base: .+\. Ya podés verla a la derecha/),
-    ).toBeVisible();
+    expect(screen.getByText(/Te armé los productos .+ Ya lo podés ver a la derecha/)).toBeVisible();
     expect(screen.getByText('3 piezas conectadas')).toBeVisible();
     expect(screen.getByLabelText('¿Qué le falta? ¿Qué cambiarías?')).toBeVisible();
   });
@@ -80,9 +78,10 @@ describe('el taller de Sami', () => {
   it('lo que se escribe después ajusta la propuesta', async () => {
     const { user } = await conPropuesta();
 
-    await clickButton(user, 'Sumar gastos');
+    await user.type(screen.getByLabelText('¿Qué le falta? ¿Qué cambiarías?'), 'sumá gastos');
+    await clickButton(user, /Ajustalo conmigo/);
 
-    expect(await screen.findByText(/Sumé gastos\./, {}, ESPERA)).toBeVisible();
+    expect(await screen.findByText('Listo, sumé los gastos.', {}, ESPERA)).toBeVisible();
     expect(screen.getByText('4 piezas conectadas')).toBeVisible();
   });
 
@@ -111,7 +110,7 @@ describe('el taller de Sami', () => {
   it('suma una pieza de la paleta y cambia la distribución', async () => {
     const { user } = await conPropuesta();
 
-    await user.click(screen.getByRole('button', { name: /Gastos/ }));
+    await user.click(screen.getByRole('button', { name: /^Gastos/ }));
     expect(screen.getByText('4 piezas conectadas')).toBeVisible();
 
     await clickButton(user, /1 columna/);

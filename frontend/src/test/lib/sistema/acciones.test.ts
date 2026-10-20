@@ -1,14 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   aplicarAcciones,
-  entiendeElNegocio,
-  esOrdenSimple,
   mismoSistema,
   resumirSistema,
   type AccionDeSami,
 } from '@/lib/sistema/acciones';
-import { allBlocks, clone, makeTemplate } from '@/lib/sistema/core';
-import type { Sistema } from '@/lib/sistema/tipos';
+import { allBlocks, clone, makeSystem, makeTemplate, upsertRow } from '@/lib/sistema/core';
+import type { Fila, Sistema } from '@/lib/sistema/tipos';
 
 const accion = (herramienta: string, argumentos: Record<string, unknown>): AccionDeSami => ({
   herramienta,
@@ -58,16 +56,25 @@ describe('las acciones de Sami sobre el taller', () => {
       expect(pieza('expenses').rows.length).toBeGreaterThan(0);
     });
 
-    it('no suma una pieza repetida, inventada ni de un tipo que no es del catálogo', () => {
+    it('no suma una pieza repetida ni de un tipo que no es del catálogo', () => {
       const resultado = aplicarAcciones(sistema, [
         accion('agregar_pieza', { tipo: 'inventory' }),
         accion('agregar_pieza', { tipo: 'turnos' }),
-        accion('agregar_pieza', { tipo: 'note' }),
       ]);
 
       expect(resultado.aplicadas).toEqual([]);
-      expect(resultado.omitidas).toHaveLength(3);
+      expect(resultado.omitidas).toEqual(['Esa pieza ya está.', 'No existe una pieza «turnos».']);
       expect(allBlocks(sistema)).toHaveLength(3);
+    });
+
+    it('suma cualquiera de los componentes del catálogo, también la nota y el resumen', () => {
+      const resultado = aplicarAcciones(sistema, [
+        accion('agregar_pieza', { tipo: 'note', nombre: 'Para recordar' }),
+        accion('agregar_pieza', { tipo: 'summary', campos: [{ etiqueta: 'X', tipo: 'text' }] }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual(['Sumé para recordar.', 'Sumé resumen.']);
+      expect(pieza('summary').fields).toEqual([]);
     });
 
     it('no puede sumar nada si no hay secciones', () => {
@@ -291,19 +298,6 @@ describe('las acciones de Sami sobre el taller', () => {
     expect(resultado.aplicadas).toEqual(['Sumé gastos.']);
   });
 
-  describe('entiendeElNegocio', () => {
-    it('reconoce descripciones de un negocio, con o sin tildes', () => {
-      expect(entiendeElNegocio('Tengo un almacén y vendo productos')).toBe(true);
-      expect(entiendeElNegocio('TENGO UN KIOSCO')).toBe(true);
-      expect(entiendeElNegocio('anoto mis pedidos')).toBe(true);
-    });
-
-    it('no reconoce lo que no dice nada del negocio', () => {
-      expect(entiendeElNegocio('no sé por dónde empezar')).toBe(false);
-      expect(entiendeElNegocio('quiero ordenar todo')).toBe(false);
-    });
-  });
-
   describe('mismoSistema', () => {
     it('ignora la fecha de actualización pero detecta cualquier otro cambio', () => {
       const copia = clone(sistema);
@@ -316,19 +310,308 @@ describe('las acciones de Sami sobre el taller', () => {
   });
 });
 
-describe('esOrdenSimple', () => {
-  it('reconoce un verbo y una pieza, con tildes, artículos y signos', () => {
-    expect(esOrdenSimple('sumá gastos')).toBe(true);
-    expect(esOrdenSimple('Sacá los clientes!')).toBe(true);
-    expect(esOrdenSimple('  poné el stock  ')).toBe(true);
-    expect(esOrdenSimple('separá las ventas.')).toBe(true);
+describe('Sami ensambla el sistema desde cero', () => {
+  let sistema: Sistema;
+  const llamada = (nombre: string) => {
+    const encontrada = allBlocks(sistema).find((bloque) => bloque.name === nombre);
+    if (!encontrada) throw new Error(`Falta la pieza ${nombre}`);
+    return encontrada;
+  };
+  const sinId = (filas: Fila[]) =>
+    filas.map((fila) => {
+      const resto: Partial<Fila> = { ...fila };
+      delete resto.id;
+      return resto;
+    });
+
+  beforeEach(() => {
+    sistema = makeSystem('Mi sistema', [], false);
   });
 
-  it('no reconoce lo que podría confundir un dato con una pieza ni lo que es una charla', () => {
-    expect(esOrdenSimple('agregá un campo de proveedor')).toBe(false);
-    expect(esOrdenSimple('agregá proveedores')).toBe(false);
-    expect(esOrdenSimple('quiero dos columnas')).toBe(false);
-    expect(esOrdenSimple('¿por qué me pusiste clientes?')).toBe(false);
-    expect(esOrdenSimple('sumá gastos y clientes')).toBe(false);
+  describe('agregar_pieza con nombre, datos y ejemplos', () => {
+    it('suma el componente con su nombre, los datos nuevos y las filas de ejemplo de Sami', () => {
+      const resultado = aplicarAcciones(sistema, [
+        accion('agregar_pieza', {
+          tipo: 'inventory',
+          nombre: 'Velas',
+          campos: [
+            { etiqueta: 'Aroma', tipo: 'text' },
+            { etiqueta: 'producto', tipo: 'text' },
+            { etiqueta: 'Color', tipo: 'color' },
+          ],
+          ejemplos: [
+            {
+              Producto: 'Vela de lavanda',
+              Cantidad: '12',
+              Precio: 6500,
+              Aroma: 'Lavanda',
+              Otra: 1,
+            },
+            { 'Algo que no existe': 'x' },
+          ],
+        }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual(['Sumé velas.']);
+      expect(resultado.omitidas).toEqual(['«producto» ya está.', 'No pude sumar ese dato.']);
+      const velas = llamada('Velas');
+      expect(velas.type).toBe('inventory');
+      expect(velas.fields.map((campo) => campo.label)).toEqual([
+        'Producto',
+        'Cantidad',
+        'Precio',
+        'Costo',
+        'Stock mínimo',
+        'Aroma',
+      ]);
+      expect(velas.fields.at(-1)).toMatchObject({ key: 'aroma', type: 'text', required: false });
+      expect(sinId(velas.rows)).toEqual([
+        { __example: true, name: 'Vela de lavanda', quantity: 12, price: 6500, aroma: 'Lavanda' },
+      ]);
+      expect(JSON.stringify(velas.rows)).not.toContain('Yerba');
+    });
+
+    it('convierte cada valor al tipo del dato, descarta lo que no sirve y carga como mucho cinco filas', () => {
+      aplicarAcciones(sistema, [
+        accion('agregar_pieza', {
+          tipo: 'form',
+          nombre: 'Turnos',
+          campos: [
+            { etiqueta: 'Hora', tipo: 'time' },
+            { etiqueta: 'Seña', tipo: 'checkbox' },
+            { etiqueta: 'Servicio', tipo: 'select', opciones: ['Corte', 'Color'] },
+            { etiqueta: 'Precio', tipo: 'currency' },
+          ],
+          ejemplos: [
+            {
+              Nombre: 'Sofía',
+              Hora: '9:05',
+              Seña: 'Sí',
+              Servicio: 'color',
+              Fecha: '20/10',
+              Precio: 'gratis',
+            },
+            ...Array.from({ length: 6 }, (_, indice) => ({ Nombre: `Turno ${indice}` })),
+          ],
+        }),
+      ]);
+
+      const turnos = llamada('Turnos');
+      expect(turnos.rows).toHaveLength(5);
+      expect(sinId(turnos.rows)[0]).toEqual({
+        __example: true,
+        name: 'Sofía',
+        hora: '09:05',
+        sena: true,
+        servicio: 'Color',
+      });
+    });
+
+    it('sin ejemplos usa las filas del catálogo', () => {
+      aplicarAcciones(sistema, [accion('agregar_pieza', { tipo: 'expenses', nombre: 'Insumos' })]);
+
+      expect(llamada('Insumos').rows.length).toBeGreaterThan(0);
+      expect(llamada('Insumos').rows.every((fila) => fila.__example)).toBe(true);
+    });
+
+    it('la tabla a medida se puede repetir con otro nombre; las demás piezas y los nombres, no', () => {
+      const resultado = aplicarAcciones(sistema, [
+        accion('agregar_pieza', { tipo: 'form', nombre: 'Turnos' }),
+        accion('agregar_pieza', { tipo: 'form', nombre: 'Encargos', seccion: 'Agenda' }),
+        accion('agregar_pieza', { tipo: 'form', nombre: 'turnos' }),
+        accion('agregar_pieza', { tipo: 'clients', nombre: 'Encargos' }),
+        accion('agregar_pieza', { tipo: 'clients' }),
+        accion('agregar_pieza', { tipo: 'clients', nombre: 'Otra' }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual([
+        'Sumé turnos.',
+        'Sumé encargos en la sección Agenda.',
+        'Sumé clientes.',
+      ]);
+      expect(resultado.omitidas).toEqual([
+        'Ya hay una pieza «turnos».',
+        'Ya hay una pieza «Encargos».',
+        'Esa pieza ya está.',
+      ]);
+      expect(sistema.sections.map((seccion) => seccion.name)).toEqual(['Vista general', 'Agenda']);
+      expect(sistema.sections[1]?.blocks.map((bloque) => bloque.name)).toEqual(['Encargos']);
+    });
+  });
+
+  describe('cargar_ejemplos', () => {
+    it('reemplaza las filas de ejemplo de la pieza y deja las reales', () => {
+      aplicarAcciones(sistema, [accion('agregar_pieza', { tipo: 'clients' })]);
+      const clientes = llamada('Clientes');
+      const real = upsertRow(clientes, { name: 'Rosa' }, null, sistema).row;
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('cargar_ejemplos', {
+          pieza: 'clientes',
+          filas: Array.from({ length: 7 }, (_, indice) => ({ Nombre: `Cliente ${indice}` })),
+        }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual(['Cargué 5 ejemplos en clientes.']);
+      expect(clientes.rows[0]).toBe(real);
+      expect(clientes.rows.slice(1).map((fila) => fila.name)).toEqual([
+        'Cliente 0',
+        'Cliente 1',
+        'Cliente 2',
+        'Cliente 3',
+        'Cliente 4',
+      ]);
+    });
+
+    it('omite una pieza que no existe, filas vacías o una pieza que no lleva filas', () => {
+      aplicarAcciones(sistema, [
+        accion('agregar_pieza', { tipo: 'clients' }),
+        accion('agregar_pieza', { tipo: 'note' }),
+      ]);
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('cargar_ejemplos', { pieza: 'nada', filas: [{ Nombre: 'X' }] }),
+        accion('cargar_ejemplos', { pieza: 'clients', filas: [] }),
+        accion('cargar_ejemplos', { pieza: 'clients', filas: [{ Color: 'Rojo' }] }),
+        accion('cargar_ejemplos', { pieza: 'note', filas: [{ Nombre: 'X' }] }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual([]);
+      expect(resultado.omitidas).toEqual([
+        'No encontré esa pieza.',
+        'No pude cargar esos ejemplos en clientes.',
+        'No pude cargar esos ejemplos en clientes.',
+        '«Nota» no lleva filas.',
+      ]);
+    });
+  });
+
+  describe('conectar', () => {
+    it('suma un vínculo con el nombre de la otra pieza y no lo duplica', () => {
+      const resultado = aplicarAcciones(sistema, [
+        accion('agregar_pieza', { tipo: 'inventory', nombre: 'Velas' }),
+        accion('agregar_pieza', { tipo: 'orders' }),
+        accion('conectar', { desde: 'orders', hacia: 'Velas' }),
+        accion('conectar', { desde: 'Pedidos', hacia: 'inventory', etiqueta: 'Otra vela' }),
+        accion('conectar', { desde: 'Pedidos', hacia: 'Pedidos' }),
+        accion('conectar', { desde: 'Pedidos', hacia: 'nada' }),
+      ]);
+
+      expect(resultado.aplicadas).toContain('Conecté pedidos con velas.');
+      expect(resultado.omitidas).toEqual([
+        'Pedidos ya está conectada con velas.',
+        'Una pieza no se conecta consigo misma.',
+        'No encontré las piezas para conectar.',
+      ]);
+      const vinculos = llamada('Pedidos').fields.filter((campo) => campo.type === 'relation');
+      expect(vinculos).toEqual([
+        {
+          key: 'velas',
+          label: 'Velas',
+          type: 'relation',
+          required: false,
+          target: llamada('Velas').id,
+        },
+      ]);
+    });
+
+    it('un vínculo que la pieza ya trae de fábrica no se duplica', () => {
+      const resultado = aplicarAcciones(sistema, [
+        accion('agregar_pieza', { tipo: 'clients' }),
+        accion('agregar_pieza', { tipo: 'orders' }),
+        accion('conectar', { desde: 'orders', hacia: 'clients' }),
+      ]);
+
+      expect(resultado.omitidas).toEqual(['Pedidos ya está conectada con clientes.']);
+      expect(llamada('Pedidos').fields.filter((campo) => campo.type === 'relation')).toHaveLength(
+        1,
+      );
+    });
+
+    it('un dato escrito con la etiqueta del vínculo pasa a ser el vínculo; el dato principal, no', () => {
+      const resultado = aplicarAcciones(sistema, [
+        accion('agregar_pieza', { tipo: 'clients' }),
+        accion('agregar_pieza', {
+          tipo: 'form',
+          nombre: 'Turnos',
+          campos: [{ etiqueta: 'Cliente', tipo: 'text' }],
+        }),
+        accion('conectar', { desde: 'Turnos', hacia: 'Clientes', etiqueta: 'Nombre' }),
+        accion('conectar', { desde: 'Turnos', hacia: 'Clientes', etiqueta: 'cliente' }),
+      ]);
+
+      expect(resultado.omitidas).toEqual(['«Nombre» ya está en turnos.']);
+      expect(llamada('Turnos').fields.filter((campo) => campo.label === 'Cliente')).toEqual([
+        {
+          key: 'cliente',
+          label: 'Cliente',
+          type: 'relation',
+          required: false,
+          target: llamada('Clientes').id,
+        },
+      ]);
+    });
+  });
+
+  describe('referencias y vínculos en el mismo turno', () => {
+    it('lo que se suma en el turno se referencia por nombre y los ejemplos se vinculan por nombre', () => {
+      const resultado = aplicarAcciones(sistema, [
+        accion('agregar_pieza', {
+          tipo: 'clients',
+          nombre: 'Clientas',
+          ejemplos: [{ Nombre: 'Carla Gómez' }, { Nombre: 'Juli Sosa' }],
+        }),
+        accion('agregar_pieza', {
+          tipo: 'form',
+          nombre: 'Turnos',
+          campos: [{ etiqueta: 'Clienta', tipo: 'text' }],
+        }),
+        accion('conectar', { desde: 'turnos', hacia: 'CLIENTAS', etiqueta: 'Clienta' }),
+        accion('cargar_ejemplos', {
+          pieza: 'Turnos',
+          filas: [
+            { Nombre: 'Corte', Clienta: 'carla gomez' },
+            { Nombre: 'Color', Clienta: 'Alguien más' },
+          ],
+        }),
+      ]);
+
+      expect(resultado.omitidas).toEqual([]);
+      const carla = llamada('Clientas').rows.find((fila) => fila.name === 'Carla Gómez');
+      expect(llamada('Turnos').rows.map((fila) => fila.clienta)).toEqual([carla?.id, '']);
+    });
+
+    it('los vínculos del catálogo (producto y cliente de una venta) también se resuelven por nombre', () => {
+      aplicarAcciones(sistema, [
+        accion('agregar_pieza', {
+          tipo: 'inventory',
+          ejemplos: [{ Producto: 'Yerba 1 kg', Cantidad: 10 }],
+        }),
+        accion('agregar_pieza', {
+          tipo: 'sales',
+          ejemplos: [{ Producto: 'Yerba 1 kg', Cantidad: 2, Cliente: 'Martín', Fiado: true }],
+        }),
+        accion('agregar_pieza', { tipo: 'clients', ejemplos: [{ Nombre: 'Martín' }] }),
+      ]);
+
+      const [venta] = llamada('Ventas').rows;
+      expect(venta?.product).toBe(llamada('Inventario').rows[0]?.id);
+      expect(venta?.customer).toBe(llamada('Clientes').rows[0]?.id);
+      expect(venta?.credit).toBe(true);
+    });
+
+    it('si cambian los ejemplos de la pieza vinculada, el vínculo que quedó sin registro se vacía', () => {
+      aplicarAcciones(sistema, [
+        accion('agregar_pieza', { tipo: 'inventory', ejemplos: [{ Producto: 'Yerba' }] }),
+        accion('agregar_pieza', { tipo: 'sales', ejemplos: [{ Producto: 'Yerba', Cantidad: 1 }] }),
+      ]);
+      expect(llamada('Ventas').rows[0]?.product).toBe(llamada('Inventario').rows[0]?.id);
+
+      aplicarAcciones(sistema, [
+        accion('cargar_ejemplos', { pieza: 'inventory', filas: [{ Producto: 'Fideos' }] }),
+      ]);
+
+      expect(llamada('Ventas').rows[0]?.product).toBe('');
+    });
   });
 });

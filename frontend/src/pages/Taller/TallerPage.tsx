@@ -6,7 +6,7 @@ import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
 import { PreviewBoard } from '@/components/sistema/PreviewBoard';
 import { Sami } from '@/components/sistema/Sami';
 import { varsDeColor } from '@/components/sistema/colores';
-import { CATALOG, TEMPLATES } from '@/lib/sistema/catalogo';
+import { CATALOG } from '@/lib/sistema/catalogo';
 import {
   allBlocks,
   applyLayout,
@@ -16,41 +16,46 @@ import {
   moveBlock,
   wireSystem,
 } from '@/lib/sistema/core';
-import type { ClavePlantilla, Distribucion, TipoBloque } from '@/lib/sistema/tipos';
+import type { NombreDeIcono } from '@/lib/sistema/iconos';
+import type { Distribucion, TipoBloque } from '@/lib/sistema/tipos';
 import { saludoDeSami, useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
 import { useDictado } from '@/hooks/sistemas/useDictado';
 import { useTaller } from '@/hooks/sistemas/useTaller';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
-const EJEMPLOS: { clave: ClavePlantilla; etiqueta: string; nombre: string; texto: string }[] = [
+// Para arrancar sin escribir: el texto va a Sami igual que si la persona lo hubiera escrito.
+const EJEMPLOS: {
+  clave: string;
+  icono: NombreDeIcono;
+  etiqueta: string;
+  nombre: string;
+  texto: string;
+}[] = [
   {
-    clave: 'shop',
+    clave: 'almacen',
+    icono: 'check-circle',
     etiqueta: 'Almacén o kiosco',
     nombre: 'Mi almacén',
     texto:
       'Tengo un almacén de barrio. Vendo productos de almacén y kiosco, anoto lo que me fían y quiero saber qué stock me queda y a qué precio vender.',
   },
   {
-    clave: 'warehouse',
-    etiqueta: 'Un depósito',
-    nombre: 'Mi depósito',
+    clave: 'velas',
+    icono: 'spark',
+    etiqueta: 'Velas artesanales',
+    nombre: 'Mis velas',
     texto:
-      'Tengo un depósito de productos. Necesito cargar productos, registrar entradas y salidas y saber cuánto stock queda.',
+      'Hago velas artesanales y las vendo por Instagram y en ferias. Compro cera, mechas y esencias, y anoto los pedidos de mis clientas.',
   },
   {
-    clave: 'business',
-    etiqueta: 'Un local de ropa',
-    nombre: 'Mi tienda de ropa',
+    clave: 'peluqueria',
+    icono: 'clock',
+    etiqueta: 'Una peluquería',
+    nombre: 'Mi peluquería',
     texto:
-      'Tengo un local de indumentaria. Vendo ropa y accesorios, manejo productos con precios y stock y anoto pedidos de mis clientes.',
+      'Tengo una peluquería. Doy turnos para corte y color, quiero tener a mis clientes con su teléfono y saber qué productos me quedan.',
   },
-];
-
-const AJUSTES: { mensaje: string; etiqueta: string }[] = [
-  { mensaje: 'Me falta controlar gastos', etiqueta: 'Sumar gastos' },
-  { mensaje: 'Prefiero dos columnas y el stock de todo el ancho', etiqueta: 'Otra distribución' },
-  { mensaje: 'Separar clientes en otra sección', etiqueta: 'Separar clientes' },
 ];
 
 const PIEZAS_PARA_SUMAR: TipoBloque[] = ['clients', 'sales', 'inventory', 'orders', 'expenses'];
@@ -227,20 +232,7 @@ export function TallerPage() {
                   Escribir otra cosa…
                 </button>
               </div>
-            ) : borrador ? (
-              <div className="feedback-chips">
-                {AJUSTES.map(({ mensaje, etiqueta }) => (
-                  <button
-                    key={etiqueta}
-                    type="button"
-                    disabled={taller.pensando}
-                    onClick={() => void enviar(mensaje, { soloReglas: true })}
-                  >
-                    {etiqueta}
-                  </button>
-                ))}
-              </div>
-            ) : (
+            ) : borrador ? null : (
               <div className="conversation-examples">
                 <span>O probá con un ejemplo:</span>
                 {EJEMPLOS.map((ejemplo) => (
@@ -250,7 +242,7 @@ export function TallerPage() {
                     disabled={taller.pensando}
                     onClick={() => usarEjemplo(ejemplo)}
                   >
-                    <Icon name={TEMPLATES[ejemplo.clave].icon} />
+                    <Icon name={ejemplo.icono} />
                     {ejemplo.etiqueta}
                     <Icon name="arrow" />
                   </button>
