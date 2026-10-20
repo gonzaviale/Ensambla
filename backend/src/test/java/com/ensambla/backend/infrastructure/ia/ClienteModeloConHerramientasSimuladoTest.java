@@ -59,7 +59,7 @@ class ClienteModeloConHerramientasSimuladoTest {
                 .containsExactly("usar_kit", "ofrecer_opciones");
         assertThat(result.llamadas().getFirst().argumentos()).isEqualTo(Map.of("rubro", "velas"));
         assertThat(result.llamadas().get(1).argumentos()).containsEntry(
-                "pregunta", "¿Dónde vendés más: en ferias, por redes o en un local?");
+                "pregunta", "¿Querés que te avise cuando te quedan pocos materiales?");
         assertThat(result.texto())
                 .isEqualTo("Te armé una base para velas y aromas: Velas, Materiales, Ventas, Quién me debe. Mirá cómo queda.");
     }

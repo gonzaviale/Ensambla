@@ -172,9 +172,18 @@ comparte contador con el asistente de plantillas.
 | `conectar(desde, hacia, etiqueta?)` | suma en `desde` un dato vínculo a `hacia` (o convierte en vínculo un dato con esa etiqueta) |
 | `renombrar_pieza(pieza, nombre)` / `renombrar_sistema(nombre)` | cambia nombres |
 | `agregar_campo(pieza, etiqueta, tipo, opciones?)` / `quitar_campo(pieza, campo)` | suma o quita un dato; `select` necesita 2 opciones |
+| `editar_campo(pieza, campo, etiqueta?, tipo?, opciones?, obligatorio?, posicion?)` | cambia un dato que ya existe: nombre, tipo, opciones, si es obligatorio y su lugar (desde 1); no cambia el tipo de un vínculo ni del primer dato |
 | `separar_en_seccion(pieza, seccion)` | pasa la pieza a una sección aparte |
 | `cambiar_distribucion(layout)` | mosaic, single, two o three |
 | `ofrecer_opciones(pregunta, opciones)` | **no cambia nada**: Sami pregunta con una botonera |
+
+**Ajustar con Sami un sistema ya creado.** En la pantalla de un sistema, «Ajustar con Sami» abre el taller con ese
+sistema (`/taller?sistema=<id>`): Sami lo ve con sus piezas y datos y lo cambia con las mismas herramientas. La
+acción principal pasa a ser «Guardar cambios», que reemplaza el sistema (`actualizarSistema`, y de ahí
+`PUT /sistemas/{id}`); «Volver» sale sin guardar. Los registros reales se conservan; las filas de ejemplo que se
+sumaron en el taller no se guardan (`ajusteParaGuardar` en `lib/sistema/acciones.ts`). Como un sistema creado no
+tiene ejemplos, si Sami carga un ejemplo que nombra un registro de otra pieza («Vela lavanda» en una venta), ese
+registro se suma como ejemplo en la pieza vinculada, así el vínculo se ve.
 
 Las piezas se nombran por id, tipo o nombre; una pieza sumada en el mismo turno, por tipo o por nombre. Si Sami armó
 con un kit y no preguntó nada, la respuesta lleva la pregunta del kit en la botonera, así la charla siempre sigue.
@@ -199,20 +208,22 @@ tipo}]}]}, historial[{quien, texto}]}`. Response: `{respuesta, acciones[{herrami
 
 ### Evaluación
 
-`TallerBedrockEvaluacionTest` (opt-in con `SAMI_BEDROCK_PERFIL`) corre 38 conversaciones de
+`TallerBedrockEvaluacionTest` (opt-in con `SAMI_BEDROCK_PERFIL`) corre 41 conversaciones de
 `sami/conversaciones-taller.json` con el prompt, el catálogo, los kits, las herramientas y la validación de
-producción: pedidos puntuales, preguntas, pedidos fuera del catálogo, armado desde cero con y sin kit, y conexiones.
+producción: pedidos puntuales, preguntas, pedidos fuera del catálogo, armado desde cero con y sin kit, conexiones,
+edición de datos y charlas reales de prueba (velas).
 
 ```bash
 SAMI_BEDROCK_PERFIL=mi-perfil ./mvnw test -Dtest=TallerBedrockEvaluacionTest
 ```
 
-Resultado con Haiku 4.5 (prompt v2, 2026-10-20): **38/38 (100 %)**, ≈ **2293 tokens de entrada y 146 de salida por
-turno**, ≈ 1,6 s de latencia: unos 0,3 centavos de dólar por turno. La meta es ≥ 85 % y < 2300 tokens. La primera
-versión del ensamblado dio 80 %: conectaba de más, hacía más de lo pedido y preguntaba el rubro en vez de armar; lo
-corrigieron reglas concretas en el prompt y descartar las conexiones que el taller ya hace solo. La meta de tokens
-era 2000, pero la mitad del turno son las 12 herramientas que Bedrock manda siempre, y bajar más obligaba a sacar esas
-reglas.
+Resultado con Haiku 4.5 (prompt v2, 2026-10-20): **40/41 (98 %)**, ≈ **2542 tokens de entrada y 162 de salida por
+turno**, ≈ 1,7 s de latencia: unos 0,33 centavos de dólar por turno. La meta es ≥ 85 % y < 2600 tokens. El caso que a
+veces falla es «llevo los arreglos de bicis»: en ocasiones pregunta antes de armar. La primera versión del ensamblado
+dio 80 %: conectaba de más, hacía más de lo pedido y preguntaba el rubro en vez de armar; lo corrigieron reglas
+concretas en el prompt y descartar las conexiones que el taller ya hace solo. La meta de tokens empezó en 2000 y pasó a
+2300 y después a 2600 (con `editar_campo`): cerca de la mitad del turno son las 13 herramientas que Bedrock manda
+siempre, y el prompt caching no aplica porque el prefijo es más corto que el mínimo que pide Haiku.
 
 > **Ojo.** Las conversaciones y el prompt los escribió el mismo equipo, así que el 100 % es optimista; hay que probar
 > con lo que escribe la gente de verdad. Las cuentas nuevas de Bedrock tienen una cuota baja de pedidos por minuto

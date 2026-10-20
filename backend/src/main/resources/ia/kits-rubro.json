@@ -187,8 +187,8 @@
       {"desde": "Velas", "hacia": "Materiales", "etiqueta": "Materiales que lleva"}
     ],
     "pregunta": {
-      "pregunta": "¿Dónde vendés más: en ferias, por redes o en un local?",
-      "opciones": ["En ferias", "Por redes", "En un local", "Un poco de todo"]
+      "pregunta": "¿Querés que te avise cuando te quedan pocos materiales?",
+      "opciones": ["Sí, avisame", "Por ahora no"]
     }
   },
   {
