@@ -9,4 +9,6 @@
 @import './zona.css';
 /* La revisión de lo que leyó una foto en tarjetas y los campos nuevos detectados. */
 @import './revision.css';
+/* El inicio rearmado: acciones a mano, fondo blanco y la paleta completa. */
+@import './inicio.css';
 @import './overrides.css';

@@ -23,13 +23,13 @@ const abrirInicio = async (sistemas = false) => {
 };
 
 describe('inicio', () => {
-  it('saluda con el nombre de la cuenta y muestra las tres puertas', async () => {
+  it('saluda con el nombre de la cuenta y muestra las tres maneras de empezar', async () => {
     await abrirInicio();
 
     expect(screen.getByText('Hola, Ana Pérez.')).toBeVisible();
-    expect(screen.getByRole('heading', { name: /Contalo\./ })).toBeVisible();
-    expect(screen.getByRole('heading', { name: /Un conjunto/ })).toBeVisible();
-    expect(screen.getByRole('heading', { name: /Tu lienzo\./ })).toBeVisible();
+    expect(screen.getByRole('button', { name: /Crear con Sami/ })).toBeVisible();
+    expect(screen.getByRole('button', { name: /Elegir una plantilla/ })).toBeVisible();
+    expect(screen.getByRole('button', { name: /Empezar de cero/ })).toBeVisible();
     expect(screen.queryByRole('heading', { name: 'Seguí donde lo dejaste' })).toBeNull();
   });
 

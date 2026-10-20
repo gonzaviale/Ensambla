@@ -1,0 +1,484 @@
+/* Inicio. Fondo blanco y los cinco colores de la marca llenos en cada ficha, con los íconos en blanco.
+   Todo derecho: es una página para manejar datos. */
+body:has(.inicio) {
+  background: #fff;
+}
+.inicio {
+  max-width: 1180px;
+  padding-top: 44px;
+}
+
+/* Portada: saludo a la izquierda, las tres maneras de empezar a la derecha */
+.inicio-portada {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  align-items: center;
+  gap: 56px;
+}
+.inicio-hola {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--coral);
+  margin-bottom: 6px;
+}
+.inicio-saludo h1 {
+  font-size: clamp(34px, 4.4vw, 54px);
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+  color: var(--petrol);
+}
+.inicio-saludo mark {
+  color: inherit;
+  background: linear-gradient(
+    transparent 58%,
+    color-mix(in srgb, var(--yellow) 75%, transparent) 58%
+  );
+  padding: 0 4px;
+  border-radius: 4px;
+}
+.inicio-bajada {
+  margin-top: 14px;
+  font-size: 16px;
+  max-width: 420px;
+}
+.inicio-guia {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 26px;
+  padding: 8px 18px 8px 8px;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+  color: var(--petrol);
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--petrol) 22%, transparent);
+  transition:
+    box-shadow 0.2s,
+    color 0.2s;
+}
+.inicio-guia-icono {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--petrol);
+  color: #fff;
+}
+.inicio-guia-icono .icon {
+  width: 17px;
+  height: 17px;
+}
+.inicio-guia:hover,
+.inicio-guia:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--petrol);
+}
+
+/* Fichas de color, cada una de su color */
+.inicio-fichas {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 10px 0;
+}
+.inicio-ficha {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 22px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--accent);
+  color: #fff;
+  text-align: left;
+  box-shadow: 0 16px 28px -20px color-mix(in srgb, var(--accent) 80%, #000);
+  transition:
+    transform 0.25s cubic-bezier(0.3, 1.4, 0.5, 1),
+    box-shadow 0.25s;
+}
+.inicio-ficha:hover,
+.inicio-ficha:focus-visible {
+  transform: translateY(-3px);
+  box-shadow: 0 24px 36px -20px color-mix(in srgb, var(--accent) 90%, #000);
+}
+.inicio-ficha:focus-visible {
+  outline: 3px solid var(--petrol);
+  outline-offset: 3px;
+}
+.inicio-ficha-icono {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  background: rgb(255 255 255 / 0.22);
+  color: #fff;
+}
+.inicio-ficha-imagen {
+  width: 58px;
+  height: 58px;
+  padding: 4px;
+  border-radius: 18px;
+  background: #fff;
+  object-fit: contain;
+}
+.inicio-ficha-icono .icon {
+  width: 30px;
+  height: 30px;
+}
+.inicio-ficha-texto strong {
+  display: block;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+}
+.inicio-ficha-texto span {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  line-height: 1.45;
+  opacity: 0.92;
+}
+.inicio-ficha-flecha {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--accent);
+  transition: transform 0.25s;
+}
+.inicio-ficha-flecha .icon {
+  width: 16px;
+  height: 16px;
+}
+.inicio-ficha:hover .inicio-ficha-flecha,
+.inicio-ficha:focus-visible .inicio-ficha-flecha {
+  transform: translateX(4px);
+}
+/* Sobre amarillo el blanco no se lee: el texto va en petróleo y el ícono blanco sobre un círculo petróleo. */
+.inicio-ficha[data-color='yellow'] {
+  color: var(--petrol);
+}
+.inicio-ficha[data-color='yellow'] .inicio-ficha-icono {
+  background: var(--petrol);
+}
+.inicio-ficha[data-color='yellow'] .inicio-ficha-flecha {
+  color: var(--petrol);
+}
+
+/* Otras herramientas: botones redondos de color, sin caja alrededor */
+.inicio-atajos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 18px 64px;
+  margin-top: 56px;
+  padding: 26px 0;
+  border-top: 2px dashed var(--line);
+  border-bottom: 2px dashed var(--line);
+}
+.inicio-atajo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 440px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.inicio-atajo-icono {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 16%, transparent);
+  transition:
+    transform 0.25s cubic-bezier(0.3, 1.4, 0.5, 1),
+    box-shadow 0.25s;
+}
+.inicio-atajo-icono .icon {
+  width: 30px;
+  height: 30px;
+}
+.inicio-atajo-texto strong {
+  display: block;
+  font-size: 17px;
+  color: var(--ink);
+  text-decoration: underline 3px transparent;
+  text-underline-offset: 4px;
+  transition: text-decoration-color 0.2s;
+}
+.inicio-atajo-texto span {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.inicio-atajo:hover .inicio-atajo-icono,
+.inicio-atajo:focus-visible .inicio-atajo-icono {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.inicio-atajo:hover strong,
+.inicio-atajo:focus-visible strong {
+  text-decoration-color: var(--accent);
+}
+
+/* Títulos de sección */
+.inicio-bloque {
+  margin-top: 64px;
+}
+.inicio-titulo {
+  margin-bottom: 22px;
+}
+.inicio-titulo h2 {
+  font-size: 26px;
+  color: var(--ink);
+}
+.inicio-titulo p {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+/* Cuadernos guardados: tapa de color con su lomo de espiral */
+.inicio-cuadernos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 26px;
+  padding: 6px 4px;
+}
+.inicio-cuaderno {
+  display: flex;
+  width: 220px;
+  min-height: 150px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px 18px 18px 8px;
+  background: var(--accent);
+  color: #fff;
+  text-align: left;
+  overflow: hidden;
+  box-shadow: 0 14px 24px -18px color-mix(in srgb, var(--accent) 80%, #000);
+  transition: transform 0.25s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.inicio-cuaderno:hover,
+.inicio-cuaderno:focus-visible {
+  transform: translateY(-3px);
+}
+.inicio-cuaderno-lomo {
+  flex-shrink: 0;
+  width: 22px;
+  background:
+    radial-gradient(circle, #fff 3.5px, transparent 4px) center 6px / 22px 18px repeat-y,
+    color-mix(in srgb, var(--accent) 75%, #000);
+}
+.inicio-cuaderno-tapa {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 18px 16px;
+}
+.inicio-cuaderno-tapa .icon {
+  width: 28px;
+  height: 28px;
+  margin-bottom: auto;
+}
+.inicio-cuaderno-tapa strong {
+  margin-top: 18px;
+  font-size: 17px;
+}
+.inicio-cuaderno-tapa span {
+  font-size: 12px;
+  opacity: 0.9;
+}
+.inicio-cuaderno[data-color='yellow'] {
+  color: var(--petrol);
+}
+
+/* Plantillas: tarjetas de color */
+.inicio-plantillas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+}
+.inicio-plantilla {
+  display: flex;
+  flex-direction: column;
+  padding: 26px 24px 22px;
+  border-radius: 24px;
+  background: var(--accent);
+  color: #fff;
+  transition: transform 0.25s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.inicio-plantilla:hover,
+.inicio-plantilla:focus-within {
+  transform: translateY(-3px);
+}
+.inicio-plantilla-icono {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.24);
+}
+.inicio-plantilla-icono .icon {
+  width: 30px;
+  height: 30px;
+}
+.inicio-plantilla h3 {
+  margin-top: 16px;
+  font-size: 22px;
+  color: inherit;
+}
+.inicio-plantilla p {
+  margin-top: 4px;
+  font-size: 14px;
+  color: inherit;
+  opacity: 0.92;
+}
+.inicio-plantilla-piezas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 16px 0 20px;
+  flex: 1;
+  align-content: flex-start;
+  padding: 0;
+  list-style: none;
+}
+.inicio-plantilla-piezas li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 99px;
+  background: rgb(255 255 255 / 0.22);
+  font-size: 12px;
+  font-weight: 700;
+}
+.inicio-plantilla-piezas .icon {
+  width: 14px;
+  height: 14px;
+}
+.inicio-plantilla-ver {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 99px;
+  background: #fff;
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 14px;
+}
+.inicio-plantilla-ver .icon {
+  width: 15px;
+  height: 15px;
+  transition: transform 0.2s;
+}
+.inicio-plantilla-ver:hover .icon,
+.inicio-plantilla-ver:focus-visible .icon {
+  transform: translateX(3px);
+}
+.inicio-plantilla[data-color='yellow'] {
+  color: var(--petrol);
+}
+.inicio-plantilla[data-color='yellow'] .inicio-plantilla-icono {
+  background: var(--petrol);
+  color: #fff;
+}
+.inicio-plantilla[data-color='yellow'] .inicio-plantilla-piezas li {
+  background: rgb(255 255 255 / 0.45);
+}
+.inicio-plantilla[data-color='yellow'] .inicio-plantilla-ver {
+  color: var(--petrol);
+}
+
+/* Ejemplo: el sistema de muestra, en blanco */
+.inicio .hero-system {
+  position: relative;
+  max-width: 860px;
+  background: #fff;
+  border: 2px solid var(--line);
+  box-shadow: none;
+}
+.inicio .hero-sticker {
+  transform: none;
+}
+
+@media (max-width: 1000px) {
+  .inicio-portada {
+    grid-template-columns: 1fr;
+    gap: 34px;
+  }
+  .inicio-plantillas {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 680px) {
+  .inicio {
+    padding-top: 28px;
+  }
+  .inicio-ficha {
+    gap: 14px;
+    padding: 16px;
+  }
+  .inicio-ficha-imagen {
+    width: 48px;
+    height: 48px;
+  }
+  .inicio-ficha-icono {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+  }
+  .inicio-ficha-texto strong {
+    font-size: 17px;
+  }
+  .inicio-atajos {
+    flex-direction: column;
+    align-items: stretch;
+    margin-top: 40px;
+  }
+  .inicio-atajo-icono {
+    width: 56px;
+    height: 56px;
+  }
+  .inicio-bloque {
+    margin-top: 48px;
+  }
+  .inicio-titulo h2 {
+    font-size: 22px;
+  }
+  .inicio-plantillas {
+    grid-template-columns: 1fr;
+  }
+  .inicio-cuaderno {
+    width: calc(50% - 13px);
+    min-width: 150px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .inicio-ficha,
+  .inicio-ficha-flecha,
+  .inicio-atajo-icono,
+  .inicio-cuaderno,
+  .inicio-plantilla {
+    transition: none;
+  }
+}
