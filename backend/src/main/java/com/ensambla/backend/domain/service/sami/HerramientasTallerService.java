@@ -81,6 +81,25 @@ public class HerramientasTallerService {
         }
     }
 
+    /** Lo que cambia un {@code editar_campo}, en el orden en que viaja; si una parte llegó inválida, no vale nada. */
+    private static final class Cambios {
+
+        private final Map<String, Object> argumentos = new LinkedHashMap<>();
+        private boolean invalido;
+
+        private void exigir(boolean valido) {
+            invalido |= !valido;
+        }
+
+        private void anotar(String clave, Object valor) {
+            argumentos.put(clave, valor);
+        }
+
+        private Optional<Map<String, Object>> validos() {
+            return invalido || argumentos.isEmpty() ? Optional.empty() : Optional.of(argumentos);
+        }
+    }
+
     private final CatalogoComponentes catalogoComponentes;
     private final KitsRubro kitsRubro;
     private final Map<HerramientaTaller, Manejador> manejadores = new EnumMap<>(HerramientaTaller.class);
@@ -94,6 +113,7 @@ public class HerramientasTallerService {
         manejadores.put(HerramientaTaller.RENOMBRAR_SISTEMA, this::renombrarSistema);
         manejadores.put(HerramientaTaller.AGREGAR_CAMPO, this::agregarCampo);
         manejadores.put(HerramientaTaller.QUITAR_CAMPO, this::quitarCampo);
+        manejadores.put(HerramientaTaller.EDITAR_CAMPO, this::editarCampo);
         manejadores.put(HerramientaTaller.CARGAR_EJEMPLOS, this::cargarEjemplos);
         manejadores.put(HerramientaTaller.CONECTAR, this::conectar);
         manejadores.put(HerramientaTaller.SEPARAR_EN_SECCION, this::separarEnSeccion);
@@ -279,6 +299,111 @@ public class HerramientasTallerService {
                 .flatMap(componente -> componente.campos().stream())
                 .anyMatch(base -> base.obligatorio() && base.etiqueta().equalsIgnoreCase(campo.etiqueta()));
         return !CatalogoTaller.TIPO_VINCULO.equals(campo.tipo()) && !obligatorio;
+    }
+
+    /**
+     * Edita un dato que ya existe. Cada parte que llega tiene que valer (si no, se descarta la llamada), salvo el tipo
+     * de un vínculo o del primer dato, que no se cambia y se ignora. En la acción viajan sólo las partes que cambian y
+     * {@code campo} con la etiqueta exacta que tenía; si no cambia nada, se descarta.
+     */
+    private Optional<AccionTaller> editarCampo(Map<String, Object> args, List<PiezaTaller> piezas) {
+        Optional<String> buscado = texto(args.get("campo"), CatalogoTaller.MAX_LARGO_NOMBRE);
+        return indiceDe(args.get("pieza"), piezas).flatMap(indice -> {
+            PiezaTaller pieza = piezas.get(indice);
+            return buscado.flatMap(etiqueta -> campoDe(etiqueta, pieza.campos())).flatMap(campo ->
+                    cambiosDe(args, pieza.campos(), campo).map(cambios -> {
+                        piezas.set(indice, conCampos(pieza, camposEditados(pieza.campos(), campo, cambios)));
+                        Map<String, Object> argumentos = new LinkedHashMap<>();
+                        argumentos.put("pieza", referencia(pieza));
+                        argumentos.put("campo", campo.etiqueta());
+                        argumentos.putAll(cambios);
+                        return new AccionTaller(HerramientaTaller.EDITAR_CAMPO.nombre(), argumentos);
+                    }));
+        });
+    }
+
+    private Optional<Map<String, Object>> cambiosDe(Map<String, Object> args, List<CampoTaller> campos,
+                                                    CampoTaller campo) {
+        Cambios cambios = new Cambios();
+        etiquetaEditada(args.get("etiqueta"), campos, campo, cambios);
+        String tipo = tipoEditado(args.get("tipo"), campos, campo, cambios);
+        opcionesEditadas(args.get("opciones"), tipo, campo, cambios);
+        if (llego(args.get("obligatorio"))) {
+            cambios.exigir(args.get("obligatorio") instanceof Boolean);
+            cambios.anotar("obligatorio", args.get("obligatorio"));
+        }
+        posicionEditada(args.get("posicion"), campos, campo, cambios);
+        return cambios.validos();
+    }
+
+    /** La etiqueta nueva no puede repetir la de otro dato de la pieza; la misma de antes no es un cambio. */
+    private void etiquetaEditada(Object valor, List<CampoTaller> campos, CampoTaller campo, Cambios cambios) {
+        if (llego(valor)) {
+            Optional<String> etiqueta = texto(valor, CatalogoTaller.MAX_LARGO_NOMBRE)
+                    .filter(nueva -> campoDe(nueva, campos).filter(otro -> !otro.equals(campo)).isEmpty());
+            cambios.exigir(etiqueta.isPresent());
+            etiqueta.filter(nueva -> !nueva.equals(campo.etiqueta()))
+                    .ifPresent(nueva -> cambios.anotar("etiqueta", nueva));
+        }
+    }
+
+    /** El tipo con el que queda el dato. Un vínculo o el primer dato (el que nombra cada fila) lo conservan. */
+    private String tipoEditado(Object valor, List<CampoTaller> campos, CampoTaller campo, Cambios cambios) {
+        boolean fijo = CatalogoTaller.TIPO_VINCULO.equals(campo.tipo()) || campo.equals(campos.getFirst());
+        if (fijo || !llego(valor)) {
+            return campo.tipo();
+        }
+        Optional<String> tipo = clave(valor).filter(CatalogoTaller.TIPOS_DE_CAMPO::contains);
+        cambios.exigir(tipo.isPresent());
+        tipo.filter(nuevo -> !nuevo.equals(campo.tipo())).ifPresent(nuevo -> cambios.anotar("tipo", nuevo));
+        return tipo.orElse(campo.tipo());
+    }
+
+    /**
+     * Las opciones sólo valen si el dato queda como lista: son obligatorias si recién pasa a serlo y, si ya lo era,
+     * reemplazan a las que tenía. En otro tipo se ignoran.
+     */
+    private void opcionesEditadas(Object valor, String tipo, CampoTaller campo, Cambios cambios) {
+        boolean esLista = CatalogoTaller.TIPO_LISTA.equals(tipo);
+        if (esLista && (llego(valor) || !tipo.equals(campo.tipo()))) {
+            List<String> opciones = textos(valor).stream().limit(CatalogoTaller.MAX_OPCIONES).toList();
+            cambios.exigir(opciones.size() >= CatalogoTaller.MIN_OPCIONES);
+            cambios.anotar("opciones", opciones);
+        }
+    }
+
+    /** La posición empieza en 1 y se acota a la cantidad de datos de la pieza. */
+    private void posicionEditada(Object valor, List<CampoTaller> campos, CampoTaller campo, Cambios cambios) {
+        if (llego(valor)) {
+            Optional<Long> entera = Optional.of(valor)
+                    .filter(Number.class::isInstance)
+                    .map(numero -> ((Number) numero).doubleValue())
+                    .filter(numero -> numero == Math.rint(numero))
+                    .map(Math::round);
+            cambios.exigir(entera.isPresent());
+            entera.map(posicion -> Math.clamp(posicion, 1, campos.size()))
+                    .filter(posicion -> posicion != campos.indexOf(campo) + 1)
+                    .ifPresent(posicion -> cambios.anotar("posicion", posicion));
+        }
+    }
+
+    /** Los datos de la pieza con el dato editado, en su lugar nuevo, para las llamadas siguientes del turno. */
+    private List<CampoTaller> camposEditados(List<CampoTaller> campos, CampoTaller campo, Map<String, Object> cambios) {
+        List<CampoTaller> editados = new ArrayList<>(campos);
+        int lugar = editados.indexOf(campo);
+        editados.remove(lugar);
+        CampoTaller editado = new CampoTaller(
+                (String) cambios.getOrDefault("etiqueta", campo.etiqueta()),
+                (String) cambios.getOrDefault("tipo", campo.tipo()));
+        editados.add((int) cambios.getOrDefault("posicion", lugar + 1) - 1, editado);
+        return editados;
+    }
+
+    /** Si el modelo mandó algo en un argumento optativo: un nulo, un texto en blanco o una lista vacía no cuentan. */
+    private boolean llego(Object valor) {
+        return valor != null
+                && !(valor instanceof String texto && texto.isBlank())
+                && !(valor instanceof List<?> lista && lista.isEmpty());
     }
 
     private Optional<AccionTaller> cargarEjemplos(Map<String, Object> args, List<PiezaTaller> piezas) {

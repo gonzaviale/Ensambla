@@ -13,6 +13,8 @@ public enum HerramientaTaller {
     RENOMBRAR_SISTEMA("renombrar_sistema"),
     AGREGAR_CAMPO("agregar_campo"),
     QUITAR_CAMPO("quitar_campo"),
+    /** Cambia la etiqueta, el tipo, las opciones, si es obligatorio o el lugar de un dato que ya existe. */
+    EDITAR_CAMPO("editar_campo"),
     CARGAR_EJEMPLOS("cargar_ejemplos"),
     CONECTAR("conectar"),
     SEPARAR_EN_SECCION("separar_en_seccion"),

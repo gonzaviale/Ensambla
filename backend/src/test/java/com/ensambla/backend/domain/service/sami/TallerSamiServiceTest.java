@@ -244,6 +244,19 @@ class TallerSamiServiceTest {
     }
 
     @Test
+    @DisplayName("Cuenta qué dato cambió y en qué pieza, con la etiqueta que tenía")
+    void conversarShouldDescribeEditedField() {
+        givenQuotaAvailable();
+        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa(null, List.of(
+                new LlamadaHerramienta("editar_campo", Map.of("pieza", "e1", "campo", "producto", "etiqueta", "Artículo"))),
+                CONSUMO));
+
+        RespuestaTaller result = service.conversar(NEGOCIO_ID, "cambialo", ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(result.texto()).isEqualTo("Cambié Producto en inventario. Mirá cómo queda.");
+    }
+
+    @Test
     @DisplayName("Describe una pieza que se sumó en el mismo turno con su nombre del catálogo")
     void conversarShouldDescribePiecesAddedInTheSameTurn() {
         givenQuotaAvailable();

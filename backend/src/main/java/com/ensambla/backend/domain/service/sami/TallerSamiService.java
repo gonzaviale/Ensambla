@@ -74,6 +74,8 @@ public class TallerSamiService {
                 (args, nombres) -> "Sumé " + args.get("etiqueta") + " a " + pieza(args.get("pieza"), nombres));
         descripciones.put(HerramientaTaller.QUITAR_CAMPO,
                 (args, nombres) -> "Quité " + args.get("campo") + " de " + pieza(args.get("pieza"), nombres));
+        descripciones.put(HerramientaTaller.EDITAR_CAMPO,
+                (args, nombres) -> "Cambié " + args.get("campo") + " en " + pieza(args.get("pieza"), nombres));
         descripciones.put(HerramientaTaller.CARGAR_EJEMPLOS,
                 (args, nombres) -> "Cargué ejemplos en " + pieza(args.get("pieza"), nombres));
         descripciones.put(HerramientaTaller.CONECTAR,

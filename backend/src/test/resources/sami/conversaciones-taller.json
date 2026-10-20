@@ -91,5 +91,19 @@
    "mensaje": "no podemos asociarlo en una tabla? quiero ver qué producto le vendí a cada clienta",
    "historial": [{"quien": "you", "texto": "podemos unificar las ventas con los clientes?"},
                  {"quien": "sami", "texto": "Ya está: cuando cargás una venta, el producto y el cliente quedan vinculados."}],
-   "esperadas": [{"herramienta": "agregar_pieza", "args": {"tipo": "orders"}}], "permiteExtras": true}
+   "esperadas": [], "alguna": [{"herramienta": "renombrar_pieza", "args": {"pieza": "sales"}},
+                               {"herramienta": "editar_campo", "args": {"pieza": "sales"}},
+                               {"herramienta": "agregar_pieza", "args": {"tipo": "orders"}}],
+   "permiteExtras": true},
+
+  {"id": "renombrar-dato-cliente", "estado": "almacen", "mensaje": "cambiale el nombre al dato Cliente de ventas por Clienta",
+   "esperadas": [{"herramienta": "editar_campo", "args": {"pieza": "sales", "campo": "cliente", "etiqueta": "clienta"}}]},
+  {"id": "ordenar-datos-ventas", "estado": "almacen", "mensaje": "en ventas poné el producto y el cliente primero",
+   "esperadas": [{"herramienta": "editar_campo", "args": {"pieza": "sales", "campo": "cliente", "posicion": ""}}],
+   "permiteExtras": true},
+  {"id": "ventas-como-tabla-de-clientas", "estado": "almacen",
+   "mensaje": "quiero que ventas sea una tabla que junte clienta y producto, con la clienta primero",
+   "esperadas": [], "alguna": [{"herramienta": "editar_campo", "args": {"pieza": "sales"}},
+                               {"herramienta": "renombrar_pieza", "args": {"pieza": "sales"}}],
+   "permiteExtras": true}
 ]

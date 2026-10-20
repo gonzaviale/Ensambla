@@ -45,24 +45,31 @@ import static org.assertj.core.api.Assertions.assertThat;
  * prompt, catálogo, kits, herramientas y validación que producción y mide el acierto de las acciones, los tokens y la
  * latencia.
  * <pre>SAMI_BEDROCK_PERFIL=mi-perfil ./mvnw test -Dtest=TallerBedrockEvaluacionTest</pre>
- * Meta: 85 % de acierto y menos de 2300 tokens de entrada por turno.
+ * Meta: 85 % de acierto y menos de 2600 tokens de entrada por turno.
  * <p>
  * Cada caso puede pedir: {@code esperadas} (todas tienen que estar), {@code alguna} (alcanza con una), {@code opciones}
  * (tiene que haber botonera), {@code permiteExtras} (puede hacer más de lo esperado) y {@code armado} (arma al menos
  * dos piezas o usa un kit). {@code usar_kit} se busca en lo que pidió el modelo, porque la validación lo expande;
- * {@code pieza}, {@code desde} y {@code hacia} se comparan por tipo (o por nombre, si es una tabla a medida).
+ * {@code pieza}, {@code desde} y {@code hacia} se comparan por tipo (o por nombre, si es una tabla a medida). El resto
+ * de los argumentos se compara como texto contenido, sin mayúsculas ni tildes: un valor vacío sólo pide que el
+ * argumento venga (la {@code posicion} de un {@code editar_campo}, por ejemplo, que puede ser 1 o 2 según el orden en
+ * que el modelo mueva los datos).
+ * <p>
+ * En el estado {@code almacen} las ventas ya tienen el vínculo {@code Cliente}, como las arma el taller
+ * ({@code wireSystem}), para poder evaluar {@code editar_campo} sobre ese dato.
  */
 @EnabledIfEnvironmentVariable(named = "SAMI_BEDROCK_PERFIL", matches = ".+")
 class TallerBedrockEvaluacionTest {
 
     private static final double META_ACIERTO = 0.85;
     /**
-     * Piso real con Bedrock: ~350 tokens de sistema de herramientas del proveedor + los esquemas de las 12 herramientas
+     * Piso real con Bedrock: ~350 tokens de sistema de herramientas del proveedor + los esquemas de las 13 herramientas
      * (cerca de la mitad del turno) + el prompt + el contexto. Con 2000 había que sacar reglas del prompt que llevaron
-     * el acierto de 80 % a 100 % (v2, 2026-10-20: 2293 de entrada y 146 de salida, ≈ 0,3 centavos de dólar por turno
-     * con Haiku 4.5).
+     * el acierto de 80 % a 100 %. Con editar_campo (13 herramientas) la meta pasó de 2300 a 2600: v2, 2026-10-20,
+     * 41 casos, 2542 de entrada y 162 de salida, ≈ 0,33 centavos de dólar por turno
+     * con Haiku 4.5.
      */
-    private static final int META_TOKENS_DE_ENTRADA = 2300;
+    private static final int META_TOKENS_DE_ENTRADA = 2600;
     private static final String MODELO = System.getenv().getOrDefault(
             "SAMI_BEDROCK_RAPIDO", "us.anthropic.claude-haiku-4-5-20251001-v1:0");
     private static final long PAUSA_ENTRE_CASOS_MS = Long.parseLong(
@@ -246,7 +253,7 @@ class TallerBedrockEvaluacionTest {
                 new CampoTaller("Precio", "currency")));
         PiezaTaller ventas = new PiezaTaller("e2", "sales", "Ventas", null, List.of(
                 new CampoTaller("Producto", "relation"), new CampoTaller("Cantidad", "number"),
-                new CampoTaller("Precio", "currency")));
+                new CampoTaller("Precio", "currency"), new CampoTaller("Cliente", "relation")));
         PiezaTaller clientes = new PiezaTaller("e3", "clients", "Clientes", null, List.of(
                 new CampoTaller("Nombre", "text"), new CampoTaller("Teléfono", "tel")));
         PiezaTaller gastos = new PiezaTaller("e4", "expenses", "Gastos", null, List.of(

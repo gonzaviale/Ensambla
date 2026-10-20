@@ -235,7 +235,7 @@ class SamiConfigTest {
     }
 
     @Test
-    @DisplayName("Con Bedrock, el taller usa el modelo rápido, una sola llamada y las doce herramientas")
+    @DisplayName("Con Bedrock, el taller usa el modelo rápido, una sola llamada y las trece herramientas")
     void tallerIaPortShouldUseFastModelWithAllTools() {
         BedrockRuntimeClient bedrock = mock(BedrockRuntimeClient.class);
         when(bedrock.converse(any(ConverseRequest.class))).thenReturn(ConverseResponse.builder()
@@ -255,7 +255,7 @@ class SamiConfigTest {
         assertThat(captor.getValue().toolConfig().tools())
                 .extracting(herramienta -> herramienta.toolSpec().name())
                 .containsExactly("agregar_pieza", "usar_kit", "quitar_pieza", "renombrar_pieza", "renombrar_sistema",
-                        "agregar_campo", "quitar_campo", "cargar_ejemplos", "conectar", "separar_en_seccion",
+                        "agregar_campo", "quitar_campo", "editar_campo", "cargar_ejemplos", "conectar", "separar_en_seccion",
                         "cambiar_distribucion", "ofrecer_opciones");
     }
 

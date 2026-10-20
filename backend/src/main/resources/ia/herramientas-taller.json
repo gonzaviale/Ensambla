@@ -71,6 +71,23 @@
     }
   },
   {
+    "name": "editar_campo",
+    "description": "Cambia un dato de una pieza; posicion desde 1.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "pieza": {"type": "string"},
+        "campo": {"type": "string"},
+        "etiqueta": {"type": "string"},
+        "tipo": {"type": "string"},
+        "opciones": {"type": "array", "items": {"type": "string"}},
+        "obligatorio": {"type": "boolean"},
+        "posicion": {"type": "integer"}
+      },
+      "required": ["pieza", "campo"]
+    }
+  },
+  {
     "name": "cargar_ejemplos",
     "description": "Reemplaza los ejemplos de una pieza.",
     "inputSchema": {
