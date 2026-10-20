@@ -1,4 +1,4 @@
-import type { CSSProperties, DragEvent } from 'react';
+import { useState, type CSSProperties, type DragEvent } from 'react';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import { findBlock, totals } from '@/lib/sistema/core';
 import type { Ancho, Bloque, Campo, Sistema, Valor } from '@/lib/sistema/tipos';
@@ -60,6 +60,7 @@ function Contenido({
   sistema: Sistema;
   compacto: boolean;
 }) {
+  const [verTodas, setVerTodas] = useState(false);
   if (bloque.type === 'summary') {
     const resumen = totals(sistema);
     return (
@@ -75,9 +76,10 @@ function Contenido({
   const campos = bloque.fields
     .filter((campo) => !CAMPOS_OCULTOS.includes(campo.key))
     .slice(0, compacto ? 3 : 4);
-  const filas = bloque.rows.slice(0, compacto ? 2 : 3);
+  const limite = compacto ? 2 : 3;
+  const filas = verTodas ? bloque.rows : bloque.rows.slice(0, limite);
   return (
-    <div className="preview-table-scroll">
+    <div className={`preview-table-scroll${verTodas ? ' preview-table-expandida' : ''}`}>
       <table className="preview-table">
         <thead>
           <tr>
@@ -109,10 +111,10 @@ function Contenido({
           )}
         </tbody>
       </table>
-      {bloque.rows.length > filas.length && (
-        <p className="preview-more">
-          Se ven {filas.length} de {bloque.rows.length} filas; el resto está cargado.
-        </p>
+      {bloque.rows.length > limite && (
+        <button type="button" className="preview-more" onClick={() => setVerTodas((valor) => !valor)}>
+          {verTodas ? 'Ver menos' : `Ver todas (${bloque.rows.length})`}
+        </button>
       )}
       {filas.some((fila) => fila.__example) && (
         <p className="example-notice">Datos de ejemplo, no son reales</p>

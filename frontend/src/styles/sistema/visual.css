@@ -2801,8 +2801,19 @@ body.resizing {
 }
 .preview-more {
   margin: 4px 0 0;
-  font-size: 8px;
-  color: #6b6350;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 600;
+  color: #2f6f8f;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.preview-table-expandida {
+  max-height: 320px;
+  overflow-y: auto;
 }
 .example-notice {
   margin: 4px 0 0;
