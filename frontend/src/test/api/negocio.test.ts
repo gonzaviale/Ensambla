@@ -13,8 +13,23 @@ describe('Configuración del negocio', () => {
       rubro: 'KIOSCO',
       ubicacion: null,
       comparteDatosZona: false,
+      zona: null,
     });
     expect(await obtenerConfiguracionNegocio()).toEqual(respuesta);
+  });
+
+  it('asigna la zona que cubre la ubicación y la quita si queda fuera de toda zona', async () => {
+    setupUsuarioConSesion();
+    const ubicacion = { direccion: 'Calle 123', localidad: 'San Justo' };
+    const dentro = await actualizarNegocio({
+      ubicacion: { ...ubicacion, latitud: -34.6701, longitud: -58.5625 },
+    });
+    expect(dentro.zona).toBe('San Justo - UNLaM');
+    const fuera = await actualizarNegocio({
+      ubicacion: { ...ubicacion, latitud: -34.6037, longitud: -58.3816 },
+    });
+    expect(fuera.zona).toBeNull();
+    expect((await obtenerConfiguracionNegocio()).zona).toBeNull();
   });
 
   it('no mezcla la configuración entre dos cuentas', async () => {

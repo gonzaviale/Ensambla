@@ -231,6 +231,7 @@ describe('Ubicación y rubro del negocio', () => {
       nombre: 'Almacén guardado',
       rubro: 'KIOSCO',
       comparteDatosZona: false,
+      zona: 'San Justo - UNLaM',
       ubicacion: {
         direccion: 'Dirección guardada',
         localidad: 'San Justo',
@@ -248,7 +249,35 @@ describe('Ubicación y rubro del negocio', () => {
     expect(screen.getByLabelText('Rubro del comercio')).toHaveValue('KIOSCO');
     expect(screen.getByLabelText('Latitud')).toHaveValue('-34.68');
     expect(screen.getByRole('checkbox', { name: /Compartir datos agregados/ })).not.toBeChecked();
+    expect(screen.getByText('Tu zona: San Justo - UNLaM')).toBeVisible();
     expect(screen.queryByRole('radio')).toBeNull();
+  });
+
+  it('avisa que ninguna zona cubre la ubicación guardada', async () => {
+    const usuario = setupUsuarioConSesion();
+    estado.negocios.set(usuario.email, {
+      nombre: 'Almacén lejano',
+      rubro: 'KIOSCO',
+      comparteDatosZona: true,
+      zona: null,
+      ubicacion: {
+        direccion: 'Dirección lejana',
+        localidad: 'CABA',
+        latitud: -34.6037,
+        longitud: -58.3816,
+      },
+    });
+    renderApp('/ubicacion');
+    expect(
+      await screen.findByText(/Todavía no hay una zona que cubra/, {}, ESPERA),
+    ).toBeVisible();
+  });
+
+  it('no muestra zona mientras el comercio no tiene ubicación guardada', async () => {
+    const { user } = await abrirUbicacion();
+    await elegirDireccion(user);
+    expect(screen.queryByText(/Tu zona:/)).toBeNull();
+    expect(screen.queryByText(/Todavía no hay una zona/)).toBeNull();
   });
 
   it('guarda los datos y los recupera al salir y volver a entrar', async () => {
@@ -259,10 +288,12 @@ describe('Ubicación y rubro del negocio', () => {
     await user.click(screen.getByRole('checkbox', { name: /Compartir datos agregados/ }));
     await user.click(screen.getByRole('button', { name: 'Guardar configuración' }));
     expect(await screen.findByText(/se guardó correctamente/, {}, ESPERA)).toBeVisible();
+    expect(screen.getByText('Tu zona: San Justo - UNLaM')).toBeVisible();
     await user.click(screen.getByRole('link', { name: /Volver a Mi zona/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/zona'), ESPERA);
     await user.click(await screen.findByRole('link', { name: /Probar ubicación y rubro/ }, ESPERA));
     await waitFor(() => expect(screen.getByLabelText('Latitud')).toHaveValue('-34.6701'), ESPERA);
+    expect(screen.getByText('Tu zona: San Justo - UNLaM')).toBeVisible();
     expect(screen.getByLabelText('Localidad del comercio')).toHaveValue('San Justo');
     expect(screen.getByLabelText('Rubro del comercio')).toHaveValue('ALMACEN');
     expect(screen.getByRole('checkbox', { name: /Compartir datos agregados/ })).not.toBeChecked();

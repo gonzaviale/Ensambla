@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.negocio.UbicacionNegocio;
 import com.ensambla.backend.domain.model.enums.RubroNegocio;
+import com.ensambla.backend.domain.service.zona.ZonaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import java.time.OffsetDateTime;
 public class NegocioService {
 
     private final NegocioRepository negocioRepository;
+    private final ZonaService zonaService;
 
     public List<UUID> listarIds() {
         return negocioRepository.findAllIds();
@@ -41,6 +43,9 @@ public class NegocioService {
         Negocio negocio = negocioRepository.findByDuenioIdParaActualizar(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("No se encontró el negocio del usuario"));
         negocio.configurar(nombre, rubro, ubicacion, comparteDatosZona, ahora);
+        if (negocio.necesitaZona()) {
+            negocio.asignarZona(zonaService.resolver(negocio.getLatitud(), negocio.getLongitud()).orElse(null));
+        }
         return negocioRepository.save(negocio);
     }
 }

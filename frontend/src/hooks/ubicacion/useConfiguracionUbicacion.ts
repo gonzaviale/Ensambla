@@ -22,6 +22,9 @@ export function useConfiguracionUbicacion() {
   const [nombre, setNombre] = useState('');
   const [localidad, setLocalidad] = useState('');
   const [comparteDatosZona, setComparteDatosZona] = useState(true);
+  // La zona sólo se muestra para la ubicación ya guardada, nunca para un borrador.
+  const [zona, setZona] = useState<string | null>(null);
+  const [ubicacionGuardada, setUbicacionGuardada] = useState(false);
   const [guardado, setGuardado] = useState(false);
   const [errorGuardado, setErrorGuardado] = useState('');
   const rubros = useQuery({
@@ -48,6 +51,8 @@ export function useConfiguracionUbicacion() {
     setNombre(datos.nombre);
     setLocalidad(datos.ubicacion?.localidad ?? '');
     setComparteDatosZona(datos.comparteDatosZona);
+    setZona(datos.zona);
+    setUbicacionGuardada(!!datos.ubicacion);
     setRubro(datos.ubicacion || datos.rubro !== 'OTRO' ? datos.rubro : '');
     const ubicacion = datos.ubicacion;
     if (ubicacion?.direccion) {
@@ -174,6 +179,8 @@ export function useConfiguracionUbicacion() {
       const respuesta = await guardarNegocio.mutateAsync(datos.data);
       setNombre(respuesta.nombre);
       setLocalidad(respuesta.ubicacion?.localidad ?? '');
+      setZona(respuesta.zona);
+      setUbicacionGuardada(!!respuesta.ubicacion);
       const ubicacion = respuesta.ubicacion;
       if (ubicacion?.direccion) {
         setDireccion({
@@ -197,6 +204,8 @@ export function useConfiguracionUbicacion() {
     nombre,
     localidad,
     comparteDatosZona,
+    zona,
+    ubicacionGuardada,
     cambiarNombre: (valor: string) => {
       cambio();
       setNombre(valor);

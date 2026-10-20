@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.model.negocio;
 
 import com.ensambla.backend.domain.model.enums.RubroNegocio;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.zona.Zona;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -74,5 +75,14 @@ public class Negocio {
             this.comparteDatosZona = comparteDatosZona;
         }
         actualizadoEn = ahora;
+    }
+
+    /** Un negocio con punto y sin zona necesita que se la resuelvan; un punto nuevo la invalida. */
+    public boolean necesitaZona() {
+        return latitud != null && zonaId == null;
+    }
+
+    public void asignarZona(Zona zona) {
+        zonaId = zona == null ? null : zona.getId();
     }
 }

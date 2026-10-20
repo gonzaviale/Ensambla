@@ -11,6 +11,8 @@ export const configuracionNegocioSchema = z.object({
   rubro: z.string().min(1),
   ubicacion: ubicacionNegocioSchema.nullable(),
   comparteDatosZona: z.boolean(),
+  // Nombre de la zona que cubre la ubicación; null mientras ninguna la cubra.
+  zona: z.string().nullable(),
 });
 
 export type ConfiguracionNegocio = z.infer<typeof configuracionNegocioSchema>;

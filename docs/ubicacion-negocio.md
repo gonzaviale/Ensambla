@@ -42,13 +42,22 @@ Ejemplo de cuerpo de PATCH y de respuesta (GET/PATCH):
     "latitud": -34.670123,
     "longitud": -58.560789
   },
-  "comparteDatosZona": false
+  "comparteDatosZona": false,
+  "zona": "San Justo - UNLaM"
 }
 ```
 
-Un negocio sin coordenadas devuelve `ubicacion: null`. No se devuelven dueño, zona ni otros comercios.
-Cambiar sólo el nombre, rubro o privacidad conserva la ubicación. Cambiar el punto invalida `zona_id` para no
-mantener una asignación geográfica anterior; el cálculo de pertenencia por radio sigue correspondiendo a ENS-219.
+Un negocio sin coordenadas devuelve `ubicacion: null`. `zona` es sólo el nombre de la zona asignada (o `null`);
+no se devuelven dueño, id de zona ni otros comercios (el PATCH ignora `zona` si el cliente la envía).
+Cambiar sólo el nombre, rubro o privacidad conserva la ubicación y la zona.
+
+### Asignación de la zona
+
+Al guardar, `NegocioService` completa `negocio.zona_id` cuando el negocio tiene punto y no tiene zona, que pasa si
+el punto cambió (se invalida la asignación anterior) o si nunca se resolvió. `ZonaService.resolver` busca la zona
+cuyo radio (`radio_metros`, distancia haversine al centro) contiene el punto y, si hay varias, elige la de centro más
+cercano. Si ninguna lo contiene, `zona_id` queda en `null`: las zonas son datos precargados por migración, no se crean
+a demanda. En ese caso la pantalla avisa que todavía no hay una zona que cubra la ubicación.
 Desactivar `comparteDatosZona` persiste el opt-out; no recalcula los agregados estáticos de la migración de demo V10.
 
 ## Proveedor y límites

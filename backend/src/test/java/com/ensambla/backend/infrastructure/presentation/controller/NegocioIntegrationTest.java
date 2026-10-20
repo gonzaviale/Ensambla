@@ -100,6 +100,7 @@ class NegocioIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(jsonPath("$.nombre").value("Mi negocio"))
                 .andExpect(jsonPath("$.rubro").value("OTRO"))
                 .andExpect(jsonPath("$.ubicacion").isEmpty())
+                .andExpect(jsonPath("$.zona").isEmpty())
                 .andExpect(jsonPath("$.comparteDatosZona").value(true))
                 .andExpect(jsonPath("$.duenioId").doesNotExist())
                 .andExpect(jsonPath("$.zonaId").doesNotExist());
@@ -121,6 +122,33 @@ class NegocioIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(jsonPath("$.comparteDatosZona").value(false));
         assertThat(jdbcTemplate.queryForObject("SELECT direccion FROM negocio WHERE id = ?", String.class, negocioId))
                 .isEqualTo("Calle 123");
+    }
+
+    @Test
+    @DisplayName("Un punto dentro de la zona de San Justo queda asignado a esa zona")
+    void actualizarShouldAssignZoneContainingPoint() throws Exception {
+        actualizar(CONFIGURACION).andExpect(status().isOk())
+                .andExpect(jsonPath("$.zona").value("San Justo - UNLaM"));
+
+        assertThat(jdbcTemplate.queryForObject("SELECT zona_id FROM negocio WHERE id = ?", UUID.class, negocioId))
+                .isNotNull();
+        mockMvc.perform(get(API).session(sesion)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.zona").value("San Justo - UNLaM"))
+                .andExpect(jsonPath("$.zonaId").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("Un punto fuera de toda zona deja el negocio sin zona")
+    void actualizarShouldLeaveZoneEmptyForFarPoint() throws Exception {
+        actualizar(CONFIGURACION).andExpect(status().isOk());
+
+        actualizar("""
+                {"ubicacion":{"direccion":"Av. Corrientes 1000","localidad":"CABA",
+                              "latitud":-34.6037,"longitud":-58.3816}}
+                """).andExpect(status().isOk()).andExpect(jsonPath("$.zona").isEmpty());
+
+        assertThat(jdbcTemplate.queryForObject("SELECT zona_id FROM negocio WHERE id = ?", UUID.class, negocioId))
+                .isNull();
     }
 
     @Test

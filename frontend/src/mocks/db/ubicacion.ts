@@ -6,6 +6,13 @@ export const RUBROS_DE_PRUEBA = [
   { codigo: 'DIETETICA', nombre: 'Dietética' },
   { codigo: 'OTRO', nombre: 'Otro' },
 ];
+// Misma zona que carga la migración V10 del backend.
+export const ZONA_DE_PRUEBA = {
+  nombre: 'San Justo - UNLaM',
+  latitud: -34.6703,
+  longitud: -58.5628,
+  radioMetros: 1500,
+};
 export const DIRECCIONES_DE_PRUEBA = [
   {
     direccion: 'Florencio Varela 1903, San Justo, Buenos Aires, Argentina',

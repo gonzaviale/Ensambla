@@ -3,6 +3,7 @@ package com.ensambla.backend.infrastructure.config.useCase;
 import com.ensambla.backend.domain.mapper.negocio.ActualizarNegocioMapper;
 import com.ensambla.backend.domain.mapper.negocio.ObtenerConfiguracionNegocioMapper;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.zona.ZonaService;
 import com.ensambla.backend.domain.useCase.negocio.ActualizarNegocioUseCase;
 import com.ensambla.backend.domain.useCase.negocio.ObtenerConfiguracionNegocioUseCase;
 import org.springframework.context.annotation.Bean;
@@ -25,13 +26,13 @@ public class NegocioUseCaseConfig {
 
     @Bean
     public ObtenerConfiguracionNegocioUseCase obtenerConfiguracionNegocioUseCase(
-            NegocioService negocioService, ObtenerConfiguracionNegocioMapper mapper) {
-        return new ObtenerConfiguracionNegocioUseCase(negocioService, mapper);
+            NegocioService negocioService, ZonaService zonaService, ObtenerConfiguracionNegocioMapper mapper) {
+        return new ObtenerConfiguracionNegocioUseCase(negocioService, zonaService, mapper);
     }
 
     @Bean
     public ActualizarNegocioUseCase actualizarNegocioUseCase(
-            NegocioService negocioService, ActualizarNegocioMapper mapper, Clock clock) {
-        return new ActualizarNegocioUseCase(negocioService, mapper, clock);
+            NegocioService negocioService, ZonaService zonaService, ActualizarNegocioMapper mapper, Clock clock) {
+        return new ActualizarNegocioUseCase(negocioService, zonaService, mapper, clock);
     }
 }

@@ -2,6 +2,8 @@ type Props = {
   nombre: string;
   localidad: string;
   comparteDatosZona: boolean;
+  zona: string | null;
+  ubicacionGuardada: boolean;
   onNombre: (valor: string) => void;
   onLocalidad: (valor: string) => void;
   onCompartir: (valor: boolean) => void;
@@ -31,6 +33,13 @@ export function DatosDelComercio(props: Props) {
           onChange={(evento) => props.onLocalidad(evento.target.value)}
         />
       </div>
+      {props.ubicacionGuardada && (
+        <p className="ubicacion-ayuda" role="status">
+          {props.zona
+            ? `Tu zona: ${props.zona}`
+            : 'Todavía no hay una zona que cubra la ubicación de tu comercio.'}
+        </p>
+      )}
       <label className="check-row">
         <input
           type="checkbox"

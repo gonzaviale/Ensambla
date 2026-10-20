@@ -31,6 +31,6 @@ public class NegocioPresentationMapper {
         UbicacionNegocioWeb ubicacion = punto == null ? null : new UbicacionNegocioWeb(
                 punto.direccion(), punto.localidad(), punto.latitud(), punto.longitud());
         return new ConfiguracionNegocioWebResponse(response.nombre(), response.rubro().name(),
-                ubicacion, response.comparteDatosZona());
+                ubicacion, response.comparteDatosZona(), response.zona());
     }
 }

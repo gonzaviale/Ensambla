@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.model.negocio;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.enums.RubroNegocio;
+import com.ensambla.backend.domain.model.zona.Zona;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -71,6 +72,48 @@ class ConfiguracionNegocioTest {
         Negocio negocio = givenNegocio();
 
         negocio.configurar(null, null, givenUbicacion("-34", "-59"), null, AHORA);
+
+        assertThat(negocio.getZonaId()).isNull();
+    }
+
+    @Test
+    @DisplayName("Necesita zona si tiene punto y no tiene zona")
+    void necesitaZonaShouldBeTrueForPointWithoutZone() {
+        Negocio negocio = givenNegocio();
+        negocio.setZonaId(null);
+
+        assertThat(negocio.necesitaZona()).isTrue();
+    }
+
+    @Test
+    @DisplayName("No necesita zona si ya tiene una")
+    void necesitaZonaShouldBeFalseWhenZoneAssigned() {
+        assertThat(givenNegocio().necesitaZona()).isFalse();
+    }
+
+    @Test
+    @DisplayName("No necesita zona si no tiene punto")
+    void necesitaZonaShouldBeFalseWithoutPoint() {
+        assertThat(Negocio.builder().build().necesitaZona()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Asigna el id de la zona resuelta")
+    void asignarZonaShouldStoreZoneId() {
+        Negocio negocio = givenNegocio();
+        UUID otraZona = UUID.fromString("00000000-0000-4000-8000-000000000002");
+
+        negocio.asignarZona(Zona.builder().id(otraZona).build());
+
+        assertThat(negocio.getZonaId()).isEqualTo(otraZona);
+    }
+
+    @Test
+    @DisplayName("Quita la zona si no se resolvió ninguna")
+    void asignarZonaShouldClearZoneWhenNoneResolved() {
+        Negocio negocio = givenNegocio();
+
+        negocio.asignarZona(null);
 
         assertThat(negocio.getZonaId()).isNull();
     }

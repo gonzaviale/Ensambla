@@ -59,6 +59,8 @@ export function UbicacionPage() {
             nombre={estado.nombre}
             localidad={estado.localidad}
             comparteDatosZona={estado.comparteDatosZona}
+            zona={estado.zona}
+            ubicacionGuardada={estado.ubicacionGuardada}
             onNombre={estado.cambiarNombre}
             onLocalidad={estado.cambiarLocalidad}
             onCompartir={estado.cambiarCompartir}

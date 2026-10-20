@@ -25,6 +25,7 @@ const abrirConDemo = async (ruta: 'usar' | 'construir' = 'usar', configurado = f
       nombre: 'Mi almacén',
       rubro: 'ALMACEN',
       comparteDatosZona: true,
+      zona: null,
       ubicacion: {
         direccion: 'Calle 123',
         localidad: 'San Justo',
