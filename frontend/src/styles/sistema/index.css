@@ -11,4 +11,6 @@
 @import './revision.css';
 /* El inicio rearmado: acciones a mano, fondo blanco y la paleta completa. */
 @import './inicio.css';
+/* La pantalla del sistema: fondo blanco, piezas y cabeceras de color. */
+@import './sistema-editor.css';
 @import './overrides.css';

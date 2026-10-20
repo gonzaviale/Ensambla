@@ -48,7 +48,7 @@ const tipoDeBloque = (tipo: string) => {
 };
 
 describe('el editor: construir y usar', () => {
-  it('abre el sistema de la dirección con la biblioteca, el lienzo y el inspector', async () => {
+  it('abre el sistema de la dirección con la biblioteca y el lienzo, sin el panel de ajustes', async () => {
     await abrirEditor();
 
     expect(screen.getByRole('button', { name: /Construir/ })).toHaveAttribute(
@@ -56,7 +56,7 @@ describe('el editor: construir y usar', () => {
       'true',
     );
     expect(screen.getByText('Tus piezas')).toBeVisible();
-    expect(screen.getByText('Elegí un bloque.')).toBeVisible();
+    expect(screen.queryByRole('complementary', { name: /Personalizar/ })).toBeNull();
     expect(document.querySelectorAll('.library-item')).toHaveLength(10);
     expect(document.querySelectorAll('.block')).toHaveLength(3);
     expect(screen.getByText(/Estás viendo datos de ejemplo/)).toBeVisible();
@@ -198,6 +198,33 @@ describe('bloques', () => {
 
     await user.selectOptions(within(inspector).getByLabelText('Ancho en la pantalla'), 'third');
     expect(tipoDeBloque('clients').width).toBe('third');
+  });
+
+  it('el panel de ajustes se despliega al personalizar un bloque y la X lo cierra', async () => {
+    const { user } = await abrirEditor();
+    await user.click(
+      within(bloquePorNombre('Clientes')).getByRole('button', { name: 'Personalizar bloque' }),
+    );
+    const panel = screen.getByLabelText('Personalizar Clientes');
+
+    await user.click(within(panel).getByRole('button', { name: 'Cerrar personalización' }));
+
+    expect(screen.queryByLabelText('Personalizar Clientes')).toBeNull();
+  });
+
+  it('«Tus piezas» flota y con «Fijar» toma su columna; «Soltar» la vuelve a hacer flotar', async () => {
+    const { user } = await abrirEditor();
+    const piezas = screen.getByRole('complementary', { name: 'Piezas disponibles' });
+    expect(document.querySelector('.editor-layout')).not.toHaveClass('con-piezas-fijas');
+
+    await user.click(within(piezas).getByRole('button', { name: /Fijar/ }));
+
+    expect(document.querySelector('.editor-layout')).toHaveClass('con-piezas-fijas');
+    expect(localStorage.getItem('ensambla.piezasFijas')).toBe('si');
+
+    await user.click(within(piezas).getByRole('button', { name: /Soltar/ }));
+
+    expect(document.querySelector('.editor-layout')).not.toHaveClass('con-piezas-fijas');
   });
 
   it('un nombre vacío en el inspector no se guarda', async () => {

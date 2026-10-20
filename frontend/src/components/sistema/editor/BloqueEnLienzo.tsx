@@ -234,6 +234,7 @@ export function BloqueEnLienzo({
       data-tour="done"
       data-tour-id={bloque.id}
       data-width={bloque.width}
+      data-color={bloque.color}
       aria-label={bloque.name}
     >
       <header className="block-head">

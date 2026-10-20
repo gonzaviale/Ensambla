@@ -1,0 +1,511 @@
+/* El sistema por dentro (Construir y Usar). Fondo blanco, sin pasteles: las piezas de la izquierda y la
+   cabecera de cada tabla van del color lleno de la paleta, con íconos y textos en blanco; el cuerpo de
+   la tabla queda blanco. La letra es un poco más grande que en el mockup. */
+body:has(.editor-layout) {
+  background: #fff;
+}
+.editor-layout,
+.editor-layout.using,
+.canvas-area,
+.block-library,
+.inspector {
+  background: #fff;
+}
+.canvas-area {
+  background-image: none;
+}
+
+/* Sin el panel «A tu manera». «Tus piezas» y el panel de ajustes flotan encima del lienzo, así que el
+   lienzo ocupa todo el ancho; solo si se fijan las piezas vuelve la columna de la izquierda. */
+.editor-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+.editor-layout.con-piezas-fijas {
+  grid-template-columns: 235px minmax(0, 1fr);
+}
+@media (min-width: 1600px) {
+  .editor-layout.con-piezas-fijas {
+    grid-template-columns: 255px minmax(0, 1fr);
+  }
+}
+@media (max-width: 1150px) {
+  .editor-layout.con-piezas-fijas {
+    grid-template-columns: 210px minmax(0, 1fr);
+  }
+}
+@media (min-width: 681px) {
+  .block-library:not(.fijada) {
+    display: none;
+    position: fixed;
+    top: 90px;
+    left: 24px;
+    width: 280px;
+    height: auto;
+    max-height: calc(100vh - 110px);
+    overflow: auto;
+    z-index: 35;
+    border: 1.5px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 0 22px 50px -18px rgb(38 52 67 / 0.35);
+    animation: piezas-entran 0.22s ease-out;
+  }
+  .block-library:not(.fijada).mobile-open {
+    display: flex;
+  }
+  .block-library.fijada [data-accion='close-library'] {
+    display: none;
+  }
+  .editor-layout:not(.con-piezas-fijas) .mobile-blocks {
+    display: inline-flex;
+  }
+}
+@keyframes piezas-entran {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+.library-head-acciones {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.fijar-piezas {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--petrol);
+  font-size: 12px;
+  font-weight: 700;
+}
+.fijar-piezas .icon {
+  width: 14px;
+  height: 14px;
+}
+.fijar-piezas:hover {
+  border-color: var(--petrol);
+}
+.fijar-piezas.activo {
+  background: var(--petrol);
+  border-color: var(--petrol);
+  color: #fff;
+}
+@media (max-width: 680px) {
+  .fijar-piezas {
+    display: none;
+  }
+}
+@media (min-width: 901px) {
+  .inspector {
+    position: fixed;
+    top: 90px;
+    right: 24px;
+    width: 330px;
+    height: auto;
+    max-height: calc(100vh - 110px);
+    overflow: auto;
+    z-index: 30;
+    border: 1.5px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 0 22px 50px -18px rgb(38 52 67 / 0.35);
+  }
+}
+
+/* El panel de ajustes se despliega desde la derecha y se cierra con su X. */
+.inspector {
+  animation: panel-entra 0.22s ease-out;
+}
+@keyframes panel-entra {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+.inspector .inspector-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.inspector-heading h2 {
+  font-size: 18px;
+}
+.inspector-heading p {
+  font-size: 12px;
+}
+.inspector .inspector-heading .icon-btn {
+  display: flex;
+  flex-shrink: 0;
+}
+.inspector label,
+.inspector .field-label {
+  font-size: 13px;
+}
+.inspector .input,
+.inspector select,
+.inspector textarea {
+  font-size: 13px;
+}
+.field-item strong {
+  font-size: 13px;
+}
+.field-item small,
+.inspector-hint {
+  font-size: 11.5px;
+}
+
+/* Piezas de la izquierda: color lleno, ícono y texto en blanco */
+.library-head h2 {
+  font-size: 18px;
+}
+.library-label {
+  font-size: 11px;
+}
+.library-tabs button {
+  font-size: 13px;
+}
+.library-item {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
+}
+.library-item:hover {
+  background: var(--accent);
+  border-color: transparent;
+  box-shadow: 0 6px 14px -8px var(--accent);
+  transform: translateY(-1px);
+}
+.library-item .icon-tile {
+  background: rgb(255 255 255 / 0.22);
+  color: #fff;
+}
+.library-item strong {
+  font-size: 13px;
+  color: inherit;
+}
+.library-item p {
+  font-size: 11px;
+  color: inherit;
+  opacity: 0.92;
+}
+.library-item > .icon {
+  color: #fff;
+}
+/* Sobre amarillo el blanco no se lee: texto en petróleo y el ícono blanco sobre un cuadrado petróleo. */
+.library-item[data-color='yellow'] {
+  color: var(--petrol);
+}
+.library-item[data-color='yellow'] .icon-tile {
+  background: var(--petrol);
+}
+.library-item[data-color='yellow'] > .icon {
+  color: var(--petrol);
+}
+.block-library .library-tip {
+  background: #fff;
+  border: 1.5px solid var(--line);
+}
+.library-tip p {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Encabezado de la página */
+.canvas-heading p {
+  font-size: 13px;
+}
+.section-tab button {
+  font-size: 13px;
+}
+
+/* Bloques: cabecera del color de la paleta, cuerpo blanco */
+.block {
+  border: 2px solid #c9cfc1;
+  border-top: 0;
+}
+.block.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.block .block-head {
+  background: var(--accent);
+  border-radius: 12px 12px 0 0;
+  color: #fff;
+}
+.block-head .icon-tile {
+  width: 34px;
+  height: 34px;
+  background: rgb(255 255 255 / 0.22);
+  color: #fff;
+}
+.block-head .icon-tile .icon {
+  width: 18px;
+  height: 18px;
+}
+.block-title h2 {
+  font-size: 16px;
+  color: inherit;
+}
+.block-title p {
+  font-size: 11.5px;
+  color: inherit;
+  opacity: 0.9;
+}
+.block-tools .icon-btn {
+  color: #fff;
+}
+.block-tools .icon-btn:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.2);
+}
+.block-tools .icon-btn:disabled {
+  opacity: 0.4;
+}
+.block[data-color='yellow'] .block-head,
+.block[data-color='yellow'] .block-tools .icon-btn {
+  color: var(--petrol);
+}
+.block[data-color='yellow'] .block-head .icon-tile {
+  background: var(--petrol);
+  color: #fff;
+}
+.block-width-row {
+  border-bottom-color: var(--line);
+}
+.block-width-row > span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.block-bar {
+  padding-top: 12px;
+}
+.block-bar .input {
+  font-size: 12px;
+  min-height: 34px;
+}
+.block-bar .btn {
+  font-size: 12px;
+  min-height: 34px;
+}
+.record-count {
+  font-size: 11.5px;
+}
+.data-table {
+  font-size: 14px;
+}
+.data-table th {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink);
+  background: #fff;
+  border-top: 1px solid var(--line);
+  border-bottom: 2px solid var(--accent);
+}
+.data-table tbody tr:hover {
+  background: #fafafa;
+}
+.data-empty {
+  font-size: 13px;
+}
+.data-empty .text-link {
+  font-size: 13px;
+}
+.summary-label {
+  font-size: 12px;
+}
+
+.block-width-row {
+  margin-bottom: 0;
+}
+/* «Registrar» del color del bloque */
+.block-bar .btn.soft {
+  background: var(--accent);
+  color: #fff;
+}
+.block[data-color='yellow'] .block-bar .btn.soft {
+  color: var(--petrol);
+}
+
+/* Conjuntos listos: igual que las piezas, color lleno con íconos y texto en blanco */
+.section-preset {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
+}
+.section-preset:hover {
+  box-shadow: 0 6px 14px -8px var(--accent);
+  transform: translateY(-1px);
+}
+.section-preset .icon-tile {
+  width: 28px;
+  height: 28px;
+  background: rgb(255 255 255 / 0.22);
+  color: #fff;
+}
+.section-preset h3 {
+  font-size: 14px;
+  color: inherit;
+}
+.section-preset p {
+  font-size: 11px;
+  color: inherit;
+  opacity: 0.92;
+}
+.section-preset[data-color='yellow'] {
+  color: var(--petrol);
+}
+.section-preset[data-color='yellow'] .icon-tile {
+  background: var(--petrol);
+}
+
+/* «Distribuí tus piezas» va en la misma fila que las secciones, a la derecha */
+.tabs-y-distribucion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 23px;
+}
+.tabs-y-distribucion .section-tabs {
+  flex: 1;
+  min-width: 0;
+  border-bottom: 0;
+  margin-bottom: 0;
+}
+.layout-toolbar.compacta {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  gap: 10px;
+}
+.layout-toolbar.compacta > div:first-child > strong {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Botones y textos chicos del encabezado y la barra de distribución */
+.canvas-heading-actions .btn {
+  font-size: 13px;
+}
+.block-library .small-text {
+  font-size: 12px !important;
+}
+.block-library .searchbox .input {
+  font-size: 13px;
+}
+.inspector-section-label,
+.input-hint {
+  font-size: 12px;
+}
+.layout-toolbar > div:first-child > strong {
+  font-size: 13px;
+}
+.layout-toolbar > div:first-child > span {
+  font-size: 11px;
+}
+.layout-choice {
+  font-size: 12px;
+}
+.layout-choice.active {
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--petrol);
+}
+
+/* Carteles sin fondos pasteles: blancos con borde de color */
+.layout-toolbar {
+  background: #fff;
+  border: 1.5px solid var(--line);
+}
+.sample-data-banner {
+  background: #fff;
+  border: 1.5px solid var(--yellow);
+  color: var(--ink);
+  font-size: 12px;
+}
+.sample-data-banner .icon {
+  color: #8a7412;
+}
+.sample-data-banner button {
+  font-size: 12px;
+  color: var(--petrol);
+}
+.system-ready {
+  background: #fff;
+  border: 1.5px solid var(--petrol);
+}
+.system-ready > .icon,
+.system-ready strong {
+  color: var(--petrol);
+}
+.system-ready strong {
+  font-size: 14px;
+}
+.system-ready p {
+  font-size: 12px;
+  color: var(--muted);
+}
+.sami-franja,
+.sami-franja.ok {
+  background: #fff;
+  border: 1.5px solid var(--orange);
+}
+.sami-franja.ok {
+  border-color: var(--petrol);
+}
+.sami-franja .sami {
+  mix-blend-mode: normal;
+}
+.sami-franja-txt > strong {
+  font-size: 15px;
+}
+.sami-chip {
+  font-size: 13px;
+  border-color: var(--line);
+}
+.sami-franja.ok p {
+  font-size: 14px;
+}
+.sami-franja > .btn {
+  background: var(--petrol);
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  .editor-layout.con-piezas-fijas {
+    grid-template-columns: 190px minmax(0, 1fr);
+  }
+  .inspector {
+    animation: none;
+  }
+  .tabs-y-distribucion {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .tabs-y-distribucion .section-tabs {
+    flex-basis: 100%;
+  }
+  .layout-toolbar.compacta {
+    padding-bottom: 10px;
+  }
+}
+@media (max-width: 680px) {
+  .editor-layout,
+  .editor-layout.con-piezas-fijas {
+    display: block;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .inspector,
+  .block-library {
+    animation: none;
+  }
+  .library-item:hover,
+  .section-preset:hover {
+    transform: none;
+  }
+}
