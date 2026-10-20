@@ -1,11 +1,25 @@
 [
   {
     "name": "agregar_pieza",
-    "description": "Suma una pieza.",
+    "description": "Suma un componente. campos extra: [{etiqueta,tipo,opciones}]; ejemplos: [{etiqueta: valor}].",
     "inputSchema": {
       "type": "object",
-      "properties": {"tipo": {"type": "string", "enum": ["inventory", "sales", "clients", "orders", "expenses", "entries", "exits"]}},
+      "properties": {
+        "tipo": {"type": "string"},
+        "nombre": {"type": "string"},
+        "campos": {"type": "array"},
+        "ejemplos": {"type": "array"},
+        "seccion": {"type": "string"}
+      },
       "required": ["tipo"]
+    }
+  },
+  {
+    "name": "usar_kit",
+    "description": "Arma el kit de un rubro.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"rubro": {"type": "string"}}
     }
   },
   {
@@ -13,8 +27,7 @@
     "description": "Quita una pieza.",
     "inputSchema": {
       "type": "object",
-      "properties": {"pieza": {"type": "string"}},
-      "required": ["pieza"]
+      "properties": {"pieza": {"type": "string"}}
     }
   },
   {
@@ -31,8 +44,7 @@
     "description": "Renombra el sistema.",
     "inputSchema": {
       "type": "object",
-      "properties": {"nombre": {"type": "string"}},
-      "required": ["nombre"]
+      "properties": {"nombre": {"type": "string"}}
     }
   },
   {
@@ -43,7 +55,7 @@
       "properties": {
         "pieza": {"type": "string"},
         "etiqueta": {"type": "string"},
-        "tipo": {"type": "string", "enum": ["text", "number", "currency", "date", "select", "email", "tel", "checkbox"]},
+        "tipo": {"type": "string"},
         "opciones": {"type": "array", "items": {"type": "string"}}
       },
       "required": ["pieza", "etiqueta", "tipo"]
@@ -59,8 +71,26 @@
     }
   },
   {
+    "name": "cargar_ejemplos",
+    "description": "Reemplaza los ejemplos de una pieza.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"pieza": {"type": "string"}, "filas": {"type": "array"}},
+      "required": ["pieza", "filas"]
+    }
+  },
+  {
+    "name": "conectar",
+    "description": "Suma en desde un vínculo a hacia.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"desde": {"type": "string"}, "hacia": {"type": "string"}, "etiqueta": {"type": "string"}},
+      "required": ["desde", "hacia"]
+    }
+  },
+  {
     "name": "separar_en_seccion",
-    "description": "Pasa una pieza a una sección aparte.",
+    "description": "Pasa una pieza a otra sección.",
     "inputSchema": {
       "type": "object",
       "properties": {"pieza": {"type": "string"}, "seccion": {"type": "string"}},
@@ -72,13 +102,12 @@
     "description": "Cambia cómo se reparten las piezas.",
     "inputSchema": {
       "type": "object",
-      "properties": {"layout": {"type": "string", "enum": ["mosaic", "single", "two", "three"]}},
-      "required": ["layout"]
+      "properties": {"layout": {"type": "string", "enum": ["mosaic", "single", "two", "three"]}}
     }
   },
   {
     "name": "ofrecer_opciones",
-    "description": "Pregunta con 2 a 6 respuestas rápidas cuando falta información. No cambia nada.",
+    "description": "Pregunta con botonera.",
     "inputSchema": {
       "type": "object",
       "properties": {"pregunta": {"type": "string"}, "opciones": {"type": "array", "items": {"type": "string"}}},

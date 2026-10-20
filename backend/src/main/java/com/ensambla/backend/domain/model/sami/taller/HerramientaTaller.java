@@ -6,11 +6,15 @@ import java.util.Optional;
 /** Las herramientas que Sami puede invocar en el taller. {@code nombre} es el que ve el modelo y el frontend. */
 public enum HerramientaTaller {
     AGREGAR_PIEZA("agregar_pieza"),
+    /** Sólo backend: se expande en {@code agregar_pieza} y {@code conectar}; el frontend nunca la recibe. */
+    USAR_KIT("usar_kit"),
     QUITAR_PIEZA("quitar_pieza"),
     RENOMBRAR_PIEZA("renombrar_pieza"),
     RENOMBRAR_SISTEMA("renombrar_sistema"),
     AGREGAR_CAMPO("agregar_campo"),
     QUITAR_CAMPO("quitar_campo"),
+    CARGAR_EJEMPLOS("cargar_ejemplos"),
+    CONECTAR("conectar"),
     SEPARAR_EN_SECCION("separar_en_seccion"),
     CAMBIAR_DISTRIBUCION("cambiar_distribucion"),
     /** No cambia el sistema: es una pregunta con respuestas rápidas. */

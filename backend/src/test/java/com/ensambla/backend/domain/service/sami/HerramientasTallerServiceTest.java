@@ -24,10 +24,11 @@ class HerramientasTallerServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new HerramientasTallerService();
+        service = new HerramientasTallerService(SamiPruebas.catalogoReal(), SamiPruebas.kitsReales());
         estado = new EstadoTaller("Mi almacén", "mosaic", List.of(
                 new PiezaTaller("e1", "inventory", "Inventario", null, List.of(
-                        new CampoTaller("Producto", "text"), new CampoTaller("Cantidad", "number"))),
+                        new CampoTaller("Producto", "text"), new CampoTaller("Cantidad", "number"),
+                        new CampoTaller("Precio", "currency"))),
                 new PiezaTaller("e2", "clients", "Clientes", "General", List.of(new CampoTaller("Nombre", "text")))));
     }
 
@@ -232,10 +233,31 @@ class HerramientasTallerServiceTest {
     @Test
     @DisplayName("Quita un dato con la etiqueta exacta que tiene la pieza")
     void quitarCampoShouldUseExistingLabel() {
-        ValidacionTaller result = validar(llamada("quitar_campo", Map.of("pieza", "e1", "campo", "cantidad")));
+        ValidacionTaller result = validar(llamada("quitar_campo", Map.of("pieza", "e1", "campo", "precio")));
 
         assertThat(result.acciones())
-                .containsExactly(accion("quitar_campo", Map.of("pieza", "e1", "campo", "Cantidad")));
+                .containsExactly(accion("quitar_campo", Map.of("pieza", "e1", "campo", "Precio")));
+    }
+
+    @Test
+    @DisplayName("No quita un dato obligatorio del componente ni un vínculo")
+    void quitarCampoShouldKeepRequiredFieldsAndLinks() {
+        EstadoTaller conVinculo = new EstadoTaller("S", "mosaic", List.of(
+                new PiezaTaller("e1", "sales", "Ventas", null, List.of(
+                        new CampoTaller("Producto", "relation"), new CampoTaller("Cantidad", "number"),
+                        new CampoTaller("Cliente", "text"))),
+                new PiezaTaller("e2", "calendar", "Agenda", null, List.of(new CampoTaller("Cantidad", "number")))));
+
+        ValidacionTaller result = service.validar(List.of(
+                llamada("quitar_campo", Map.of("pieza", "e1", "campo", "Producto")),
+                llamada("quitar_campo", Map.of("pieza", "e1", "campo", "Cantidad")),
+                llamada("quitar_campo", Map.of("pieza", "e1", "campo", "Cliente")),
+                llamada("quitar_campo", Map.of("pieza", "e2", "campo", "Cantidad"))), conVinculo);
+
+        assertThat(result.acciones()).containsExactly(
+                accion("quitar_campo", Map.of("pieza", "e1", "campo", "Cliente")),
+                accion("quitar_campo", Map.of("pieza", "e2", "campo", "Cantidad")));
+        assertThat(result.descartadas()).isEqualTo(2);
     }
 
     @Test
@@ -335,6 +357,61 @@ class HerramientasTallerServiceTest {
 
         assertThat(result.acciones()).hasSize(12);
         assertThat(result.descartadas()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("Busca una pieza primero por id, después por tipo y por último por nombre")
+    void validarShouldResolvePiecesByIdThenTypeThenName() {
+        EstadoTaller cruzado = new EstadoTaller("Cruzado", "mosaic", List.of(
+                new PiezaTaller("e1", "inventory", "Sales", null, List.of()),
+                new PiezaTaller("e2", "sales", "Caja", null, List.of()),
+                new PiezaTaller("e2b", "clients", "e2", null, List.of())));
+
+        ValidacionTaller result = service.validar(List.of(
+                llamada("separar_en_seccion", Map.of("pieza", "sales", "seccion", "Caja")),
+                llamada("separar_en_seccion", Map.of("pieza", "e2", "seccion", "Otra")),
+                llamada("separar_en_seccion", Map.of("pieza", "«Sales»", "seccion", "Depósito"))), cruzado);
+
+        assertThat(result.acciones()).containsExactly(
+                accion("separar_en_seccion", Map.of("pieza", "e2", "seccion", "Caja")),
+                accion("separar_en_seccion", Map.of("pieza", "e2", "seccion", "Otra")),
+                accion("separar_en_seccion", Map.of("pieza", "e1", "seccion", "Depósito")));
+    }
+
+    @Test
+    @DisplayName("Encuentra una pieza por su nombre sin importar tildes, mayúsculas ni plural")
+    void validarShouldResolveNamesIgnoringAccentsAndPlural() {
+        EstadoTaller conDeudores = new EstadoTaller("Velas", "mosaic", List.of(
+                new PiezaTaller("e7", "clients", "Quién me debe", null, List.of()),
+                new PiezaTaller("e8", "form", "Material", null, List.of())));
+
+        ValidacionTaller result = service.validar(List.of(
+                llamada("quitar_pieza", Map.of("pieza", "QUIEN ME DEBE")),
+                llamada("quitar_pieza", Map.of("pieza", "materiales"))), conDeudores);
+
+        assertThat(result.acciones()).containsExactly(
+                accion("quitar_pieza", Map.of("pieza", "e7")),
+                accion("quitar_pieza", Map.of("pieza", "e8")));
+    }
+
+    @Test
+    @DisplayName("Un dato de lista se queda con las primeras seis opciones")
+    void agregarCampoShouldKeepAtMostSixOptions() {
+        ValidacionTaller result = validar(llamada("agregar_campo", Map.of("pieza", "e1", "etiqueta", "Talle",
+                "tipo", "select", "opciones", List.of("XS", "S", "M", "L", "XL", "XXL", "3XL"))));
+
+        assertThat(result.acciones().getFirst().argumentos())
+                .containsEntry("opciones", List.of("XS", "S", "M", "L", "XL", "XXL"));
+    }
+
+    @Test
+    @DisplayName("No suma un vínculo como dato común: eso es conectar")
+    void agregarCampoShouldRejectRelationType() {
+        ValidacionTaller result = validar(
+                llamada("agregar_campo", Map.of("pieza", "e1", "etiqueta", "Cliente", "tipo", "relation")));
+
+        assertThat(result.acciones()).isEmpty();
+        assertThat(result.descartadas()).isEqualTo(1);
     }
 
     private ValidacionTaller validar(LlamadaHerramienta... llamadas) {

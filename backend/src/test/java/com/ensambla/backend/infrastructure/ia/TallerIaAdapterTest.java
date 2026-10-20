@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.sami.taller.ConsultaTaller;
 import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
 import com.ensambla.backend.domain.model.sami.taller.LlamadaHerramienta;
 import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
+import com.ensambla.backend.domain.service.sami.SamiPruebas;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
@@ -18,7 +19,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class TallerIaAdapterTest {
 
-    private final PromptTaller prompt = new PromptTaller(new ClassPathResource("ia/prompt-taller.md"));
+    private final PromptTaller prompt = new PromptTaller(new ClassPathResource("ia/prompt-taller.md"),
+            SamiPruebas.catalogoReal(), SamiPruebas.kitsReales());
     private final List<PeticionConHerramientas> pedidos = new ArrayList<>();
 
     @Test

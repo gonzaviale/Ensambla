@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,9 +41,18 @@ class ModelosTallerTest {
     }
 
     @Test
-    @DisplayName("El catálogo tiene los siete tipos de pieza del frontend")
-    void catalogShouldHaveTheFrontendPieceTypes() {
-        assertThat(CatalogoTaller.TIPOS_DE_PIEZA).containsOnlyKeys(
-                "inventory", "sales", "clients", "orders", "expenses", "entries", "exits");
+    @DisplayName("Los vínculos no se suman como un dato más: sólo con conectar")
+    void catalogShouldNotAllowRelationsAsPlainFields() {
+        assertThat(CatalogoTaller.TIPOS_DE_CAMPO)
+                .contains("textarea", "time")
+                .doesNotContain(CatalogoTaller.TIPO_VINCULO);
+    }
+
+    @Test
+    @DisplayName("Una consulta armada sin kit lo deja vacío")
+    void consultaShouldHaveNoKitWhenBuiltWithoutOne() {
+        ConsultaTaller consulta = new ConsultaTaller("hola", new EstadoTaller("S", "mosaic", null), List.of());
+
+        assertThat(consulta.kit()).isNull();
     }
 }

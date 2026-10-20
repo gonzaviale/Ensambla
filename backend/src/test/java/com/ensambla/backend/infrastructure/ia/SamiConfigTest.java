@@ -3,11 +3,21 @@ package com.ensambla.backend.infrastructure.ia;
 import com.ensambla.backend.domain.model.sami.ConsultaIaSami;
 import com.ensambla.backend.domain.model.sami.DiccionarioSami;
 import com.ensambla.backend.domain.model.sami.PropuestaIaSami;
+import com.ensambla.backend.domain.model.sami.taller.CatalogoComponentes;
+import com.ensambla.backend.domain.model.sami.taller.CatalogoTaller;
+import com.ensambla.backend.domain.model.sami.taller.ComponenteCatalogo;
 import com.ensambla.backend.domain.model.sami.taller.ConsultaTaller;
 import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
+import com.ensambla.backend.domain.model.sami.taller.KitRubro;
+import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
+import com.ensambla.backend.domain.model.sami.taller.LlamadaHerramienta;
+import com.ensambla.backend.domain.model.sami.taller.PiezaKit;
 import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
+import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
 import com.ensambla.backend.domain.port.SamiIaPort;
 import com.ensambla.backend.domain.port.TallerIaPort;
+import com.ensambla.backend.domain.service.sami.HerramientasTallerService;
+import com.ensambla.backend.domain.service.sami.RubroTallerService;
 import com.ensambla.backend.domain.service.sami.SamiPruebas;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,7 +35,9 @@ import software.amazon.awssdk.services.bedrockruntime.model.TokenUsage;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -111,8 +123,8 @@ class SamiConfigTest {
     @Test
     @DisplayName("Sin Bedrock, la IA del taller es el cliente simulado: sin costo y con botonera")
     void tallerIaPortShouldUseSimulatedClientWithoutBedrock() {
-        TallerIaPort port = config.tallerIaPort(config.promptTaller(), JsonMapper.builder().build(),
-                propiedades(AVANZADO), new StaticListableBeanFactory().getBeanProvider(BedrockRuntimeClient.class));
+        TallerIaPort port = config.tallerIaPort(promptTaller(), JsonMapper.builder().build(), propiedades(AVANZADO),
+                new StaticListableBeanFactory().getBeanProvider(BedrockRuntimeClient.class), kits());
 
         ResultadoTallerIa result = port.conversar(consultaDeTaller("ayuda"));
 
@@ -121,7 +133,109 @@ class SamiConfigTest {
     }
 
     @Test
-    @DisplayName("Con Bedrock, el taller usa el modelo rápido, una sola llamada y las nueve herramientas")
+    @DisplayName("Carga el catálogo de componentes generado por el frontend con sus diez tipos")
+    void catalogoComponentesShouldLoadBundledCatalog() {
+        CatalogoComponentes catalogo = config.catalogoComponentes(JsonMapper.builder().build());
+
+        assertThat(catalogo.componentes()).extracting(ComponenteCatalogo::tipo).containsExactly(
+                "inventory", "orders", "clients", "sales", "expenses", "summary", "form", "note", "entries", "exits");
+        assertThat(catalogo.componentes()).allSatisfy(componente -> assertThat(componente.singular()).isNotBlank());
+    }
+
+    @Test
+    @DisplayName("Carga los diez kits por rubro con ids únicos y términos en minúscula y sin tildes")
+    void kitsRubroShouldLoadTenKitsWithUniqueIds() {
+        KitsRubro kits = kits();
+
+        assertThat(kits.kits()).extracting(KitRubro::id).containsExactly("almacen", "dietetica", "velas",
+                "panaderia", "viandas", "ropa", "peluqueria", "taller-mecanico", "ferreteria", "libreria");
+        assertThat(kits.kits()).allSatisfy(kit -> assertThat(kit.terminos())
+                .isNotEmpty()
+                .allMatch(termino -> termino.matches("[a-z0-9 ]+")));
+    }
+
+    @Test
+    @DisplayName("Cada pieza de un kit usa un componente del catálogo, con datos válidos y sin repetir tipos")
+    void kitsRubroShouldOnlyUseCatalogComponentsAndValidFields() {
+        CatalogoComponentes catalogo = config.catalogoComponentes(JsonMapper.builder().build());
+
+        for (KitRubro kit : kits().kits()) {
+            List<String> tipos = kit.piezas().stream().map(PiezaKit::tipo).toList();
+            assertThat(tipos).as("tipos de %s", kit.id()).allMatch(tipo -> catalogo.buscar(tipo).isPresent());
+            assertThat(tipos.stream().filter(tipo -> !tipo.equals(CatalogoComponentes.TIPO_A_MEDIDA)))
+                    .as("tipos que no se repiten en %s", kit.id()).doesNotHaveDuplicates();
+            assertThat(kit.piezas()).extracting(PiezaKit::nombre).as("nombres de %s", kit.id())
+                    .doesNotHaveDuplicates()
+                    .allMatch(nombre -> nombre != null && !nombre.isBlank());
+            for (PiezaKit pieza : kit.piezas()) {
+                List<String> etiquetas = etiquetas(catalogo, pieza);
+                assertThat(etiquetas).as("datos de %s/%s", kit.id(), pieza.nombre()).doesNotHaveDuplicates()
+                        .hasSizeLessThanOrEqualTo(CatalogoTaller.MAX_CAMPOS_POR_PIEZA);
+                assertThat(pieza.campos()).as("datos extra de %s/%s", kit.id(), pieza.nombre())
+                        .hasSizeLessThanOrEqualTo(CatalogoTaller.MAX_CAMPOS_EXTRA)
+                        .allSatisfy(campo -> assertThat(CatalogoTaller.TIPOS_DE_CAMPO).contains(campo.tipo()))
+                        .allSatisfy(campo -> assertThat(campo.opciones().size()).isBetween(
+                                campo.tipo().equals("select") ? 2 : 0, campo.tipo().equals("select") ? 6 : 0));
+                assertThat(pieza.ejemplos()).as("ejemplos de %s/%s", kit.id(), pieza.nombre())
+                        .hasSizeBetween(2, 3)
+                        .allSatisfy(fila -> assertThat(etiquetas).containsAll(fila.keySet()))
+                        .allSatisfy(fila -> assertThat(fila.values()).allMatch(this::esValorDeEjemplo));
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("Las conexiones de cada kit unen dos piezas distintas del mismo kit y tienen etiqueta")
+    void kitsRubroShouldOnlyConnectPiecesOfTheKit() {
+        for (KitRubro kit : kits().kits()) {
+            List<String> nombres = kit.piezas().stream().map(PiezaKit::nombre).toList();
+            assertThat(kit.conexiones()).as("conexiones de %s", kit.id()).allSatisfy(conexion -> {
+                assertThat(nombres).contains(conexion.desde(), conexion.hacia());
+                assertThat(conexion.desde()).isNotEqualTo(conexion.hacia());
+                assertThat(conexion.etiqueta()).isNotBlank();
+            });
+            assertThat(kit.pregunta().pregunta()).as("pregunta de %s", kit.id()).isNotBlank();
+            assertThat(kit.pregunta().opciones()).as("opciones de %s", kit.id()).hasSizeBetween(2, 4);
+        }
+    }
+
+    @Test
+    @DisplayName("Cada kit se arma entero, sin descartes, sobre un sistema vacío")
+    void kitsRubroShouldExpandWithoutDiscards() {
+        HerramientasTallerService herramientas =
+                new HerramientasTallerService(config.catalogoComponentes(JsonMapper.builder().build()), kits());
+
+        for (KitRubro kit : kits().kits()) {
+            ValidacionTaller result = herramientas.validar(
+                    List.of(new LlamadaHerramienta("usar_kit", Map.of("rubro", kit.id()))),
+                    new EstadoTaller("Mi sistema", "mosaic", List.of()));
+
+            assertThat(result.acciones()).as("acciones de %s", kit.id())
+                    .hasSize(kit.piezas().size() + kit.conexiones().size());
+            List<Integer> ejemplos = result.acciones().stream()
+                    .filter(accion -> accion.herramienta().equals("agregar_pieza"))
+                    .map(accion -> ((List<?>) accion.argumentos().get("ejemplos")).size())
+                    .toList();
+            assertThat(ejemplos).as("ejemplos de %s", kit.id())
+                    .isEqualTo(kit.piezas().stream().map(pieza -> pieza.ejemplos().size()).toList());
+        }
+    }
+
+    @Test
+    @DisplayName("Cada kit se reconoce por su propio nombre, que es lo que ofrece la botonera")
+    void kitsRubroShouldBeDetectedByTheirOwnName() {
+        RubroTallerService rubros = new RubroTallerService(kits());
+
+        for (KitRubro kit : kits().kits()) {
+            assertThat(rubros.detectar(kit.nombre(), new EstadoTaller(null, "mosaic", List.of()), List.of()))
+                    .as("rubro de «%s»", kit.nombre())
+                    .map(KitRubro::id)
+                    .contains(kit.id());
+        }
+    }
+
+    @Test
+    @DisplayName("Con Bedrock, el taller usa el modelo rápido, una sola llamada y las doce herramientas")
     void tallerIaPortShouldUseFastModelWithAllTools() {
         BedrockRuntimeClient bedrock = mock(BedrockRuntimeClient.class);
         when(bedrock.converse(any(ConverseRequest.class))).thenReturn(ConverseResponse.builder()
@@ -130,8 +244,8 @@ class SamiConfigTest {
                 .usage(TokenUsage.builder().inputTokens(800).outputTokens(40).build())
                 .build());
 
-        ResultadoTallerIa result = config.tallerIaPort(config.promptTaller(), JsonMapper.builder().build(),
-                propiedades(AVANZADO), proveedorDe(bedrock)).conversar(consultaDeTaller("hola"));
+        ResultadoTallerIa result = config.tallerIaPort(promptTaller(), JsonMapper.builder().build(),
+                propiedades(AVANZADO), proveedorDe(bedrock), kits()).conversar(consultaDeTaller("hola"));
 
         assertThat(result.texto()).isEqualTo("Hola");
         assertThat(result.consumo().modelo()).isEqualTo(RAPIDO);
@@ -140,9 +254,9 @@ class SamiConfigTest {
         assertThat(captor.getValue().inferenceConfig().maxTokens()).isEqualTo(400);
         assertThat(captor.getValue().toolConfig().tools())
                 .extracting(herramienta -> herramienta.toolSpec().name())
-                .containsExactly("agregar_pieza", "quitar_pieza", "renombrar_pieza", "renombrar_sistema",
-                        "agregar_campo", "quitar_campo", "separar_en_seccion", "cambiar_distribucion",
-                        "ofrecer_opciones");
+                .containsExactly("agregar_pieza", "usar_kit", "quitar_pieza", "renombrar_pieza", "renombrar_sistema",
+                        "agregar_campo", "quitar_campo", "cargar_ejemplos", "conectar", "separar_en_seccion",
+                        "cambiar_distribucion", "ofrecer_opciones");
     }
 
     @Test
@@ -172,6 +286,28 @@ class SamiConfigTest {
 
     private ConsultaTaller consultaDeTaller(String mensaje) {
         return new ConsultaTaller(mensaje, new EstadoTaller("Mi almacén", "mosaic", List.of()), List.of());
+    }
+
+    private KitsRubro kits() {
+        return config.kitsRubro(JsonMapper.builder().build());
+    }
+
+    private PromptTaller promptTaller() {
+        return config.promptTaller(config.catalogoComponentes(JsonMapper.builder().build()), kits());
+    }
+
+    /** Las etiquetas de una pieza de kit: las de su componente más las extra. */
+    private List<String> etiquetas(CatalogoComponentes catalogo, PiezaKit pieza) {
+        List<String> etiquetas = new ArrayList<>();
+        catalogo.buscar(pieza.tipo()).orElseThrow().campos().forEach(campo -> etiquetas.add(campo.etiqueta()));
+        pieza.campos().forEach(campo -> etiquetas.add(campo.etiqueta()));
+        return etiquetas;
+    }
+
+    private boolean esValorDeEjemplo(Object valor) {
+        return valor instanceof Number
+                || valor instanceof Boolean
+                || valor instanceof String texto && !texto.isBlank() && texto.length() <= CatalogoTaller.MAX_LARGO_VALOR;
     }
 
     private SamiProperties propiedades(String modeloAvanzado) {

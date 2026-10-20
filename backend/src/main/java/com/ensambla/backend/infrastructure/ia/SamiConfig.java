@@ -1,6 +1,9 @@
 package com.ensambla.backend.infrastructure.ia;
 
 import com.ensambla.backend.domain.model.sami.DiccionarioSami;
+import com.ensambla.backend.domain.model.sami.taller.CatalogoComponentes;
+import com.ensambla.backend.domain.model.sami.taller.KitRubro;
+import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
 import com.ensambla.backend.domain.port.SamiIaPort;
 import com.ensambla.backend.domain.port.TallerIaPort;
 import org.springframework.beans.factory.ObjectProvider;
@@ -20,8 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Cableado de Sami: el diccionario de {@code ia/sami-diccionario.json} (si está mal formado no levanta) y el
- * respaldo con IA. Para activar Bedrock: {@code ENSAMBLA_SAMI_IA_PROVEEDOR=bedrock}, la región y las credenciales
+ * Cableado de Sami: el diccionario de {@code ia/sami-diccionario.json}, el catálogo de componentes y los kits por rubro
+ * del taller (si alguno está mal formado no levanta) y el respaldo con IA. Para activar Bedrock: {@code ENSAMBLA_SAMI_IA_PROVEEDOR=bedrock}, la región y las credenciales
  * de AWS (perfil o variables de entorno). Ver {@link SamiProperties.Ia}.
  */
 @Configuration
@@ -71,9 +74,26 @@ public class SamiConfig {
         return new SamiIaAdapter(modelos, promptSami, objectMapper, ia.umbralEscalar());
     }
 
+    /**
+     * Los componentes del editor que Sami puede ensamblar. El archivo se genera desde el frontend
+     * ({@code npm run catalogo:sami}); si está mal formado la aplicación no levanta.
+     */
     @Bean
-    PromptTaller promptTaller() {
-        return new PromptTaller(new ClassPathResource("ia/prompt-taller.md"));
+    CatalogoComponentes catalogoComponentes(ObjectMapper objectMapper) {
+        String json = RecursoTexto.contenido(new ClassPathResource("ia/catalogo-componentes.json"));
+        return objectMapper.readValue(json, CatalogoComponentes.class);
+    }
+
+    /** Los sistemas listos por rubro de {@code ia/kits-rubro.json}; si está mal formado la aplicación no levanta. */
+    @Bean
+    KitsRubro kitsRubro(ObjectMapper objectMapper) {
+        String json = RecursoTexto.contenido(new ClassPathResource("ia/kits-rubro.json"));
+        return new KitsRubro(List.of(objectMapper.readValue(json, KitRubro[].class)));
+    }
+
+    @Bean
+    PromptTaller promptTaller(CatalogoComponentes catalogoComponentes, KitsRubro kitsRubro) {
+        return new PromptTaller(new ClassPathResource("ia/prompt-taller.md"), catalogoComponentes, kitsRubro);
     }
 
     /**
@@ -82,14 +102,14 @@ public class SamiConfig {
      */
     @Bean
     TallerIaPort tallerIaPort(PromptTaller promptTaller, ObjectMapper objectMapper, SamiProperties properties,
-                              ObjectProvider<BedrockRuntimeClient> bedrock) {
+                              ObjectProvider<BedrockRuntimeClient> bedrock, KitsRubro kitsRubro) {
         SamiProperties.Ia ia = properties.ia();
         List<DefinicionHerramienta> herramientas = List.of(objectMapper.readValue(
                 RecursoTexto.contenido(new ClassPathResource("ia/herramientas-taller.json")),
                 DefinicionHerramienta[].class));
         BedrockRuntimeClient cliente = bedrock.getIfAvailable();
         ClienteModeloConHerramientas modelo = cliente == null
-                ? new ClienteModeloConHerramientasSimulado()
+                ? new ClienteModeloConHerramientasSimulado(kitsRubro)
                 : new ClienteModeloConHerramientasBedrock(
                         cliente, ia.modeloRapido(), ia.maxTokensTaller(), herramientas);
         return new TallerIaAdapter(modelo, promptTaller);

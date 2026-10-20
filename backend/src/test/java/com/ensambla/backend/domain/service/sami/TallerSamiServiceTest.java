@@ -3,6 +3,8 @@ package com.ensambla.backend.domain.service.sami;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.sami.ConsumoIaSami;
 import com.ensambla.backend.domain.model.sami.taller.CampoTaller;
+import com.ensambla.backend.domain.model.sami.taller.CatalogoComponentes;
+import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
 import com.ensambla.backend.domain.model.sami.taller.ConsultaTaller;
 import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
 import com.ensambla.backend.domain.model.sami.taller.LlamadaHerramienta;
@@ -46,6 +48,7 @@ class TallerSamiServiceTest {
     private static final EstadoTaller ESTADO_CON_DATOS = new EstadoTaller("Mi almacén", "mosaic", List.of(
             new PiezaTaller("e1", "inventory", "Inventario", null, List.of(new CampoTaller("Producto", "text"))),
             new PiezaTaller("e2", "clients", "Clientes", null, List.of())));
+    private static final EstadoTaller SIN_PIEZAS = new EstadoTaller("Mi sistema", "mosaic", List.of());
     private static final List<MensajeTaller> HISTORIAL = List.of(new MensajeTaller("sami", "Hola"));
 
     @Mock
@@ -58,7 +61,10 @@ class TallerSamiServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TallerSamiService(tallerIaPort, consumoSamiRepository, new HerramientasTallerService());
+        CatalogoComponentes catalogo = SamiPruebas.catalogoReal();
+        KitsRubro kits = SamiPruebas.kitsReales();
+        service = new TallerSamiService(tallerIaPort, consumoSamiRepository,
+                new HerramientasTallerService(catalogo, kits), new RubroTallerService(kits), catalogo);
     }
 
     @Test
@@ -79,16 +85,90 @@ class TallerSamiServiceTest {
     }
 
     @Test
-    @DisplayName("Le pasa a la IA el mensaje, el estado y la charla reciente")
-    void conversarShouldSendMessageStateAndHistory() {
+    @DisplayName("Si Sami ya preguntó en su texto sin botonera, no suma la pregunta del kit; con botonera vale la suya")
+    void conversarShouldNotAddKitQuestionWhenTheModelAlreadyAsked() {
+        givenQuotaAvailable();
+        LlamadaHerramienta kit = new LlamadaHerramienta("usar_kit", Map.of("rubro", "peluqueria"));
+        LlamadaHerramienta botonera = new LlamadaHerramienta("ofrecer_opciones",
+                Map.of("pregunta", "¿Sumamos productos?", "opciones", List.of("Sí", "No")));
+        when(tallerIaPort.conversar(any()))
+                .thenReturn(new ResultadoTallerIa("Armé turnos. ¿Le agrego algo?", List.of(kit), CONSUMO))
+                .thenReturn(new ResultadoTallerIa("Armé turnos. ¿Sumamos productos?", List.of(kit, botonera), CONSUMO))
+                .thenReturn(new ResultadoTallerIa("Armé turnos.", List.of(kit), CONSUMO));
+
+        RespuestaTaller preguntoEnElTexto = service.conversar(NEGOCIO_ID, "peluquería", SIN_PIEZAS, HISTORIAL, AHORA, LIMITE);
+        RespuestaTaller usoLaBotonera = service.conversar(NEGOCIO_ID, "peluquería", SIN_PIEZAS, HISTORIAL, AHORA, LIMITE);
+        RespuestaTaller noPregunto = service.conversar(NEGOCIO_ID, "peluquería", SIN_PIEZAS, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(preguntoEnElTexto.opciones()).isNull();
+        assertThat(usoLaBotonera.opciones().pregunta()).isEqualTo("¿Sumamos productos?");
+        assertThat(noPregunto.opciones().pregunta()).isEqualTo("¿Atendés vos o trabajan más personas en el local?");
+    }
+
+    @Test
+    @DisplayName("Saca las negritas de markdown: la charla muestra texto plano")
+    void conversarShouldRemoveMarkdownBold() {
+        givenQuotaAvailable();
+        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa(
+                " Armé **Turnos** y **Clientes**. ", List.of(), CONSUMO));
+
+        RespuestaTaller result = service.conversar(NEGOCIO_ID, "peluquería", ESTADO, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(result.texto()).isEqualTo("Armé Turnos y Clientes.");
+    }
+
+    @Test
+    @DisplayName("Le pasa a la IA el mensaje, el estado, la charla reciente y el kit del rubro reconocido")
+    void conversarShouldSendMessageStateHistoryAndKit() {
         givenQuotaAvailable();
         when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa("Hola", List.of(), CONSUMO));
 
-        service.conversar(NEGOCIO_ID, "hola", ESTADO, HISTORIAL, AHORA, LIMITE);
+        service.conversar(NEGOCIO_ID, "vendo velas", ESTADO, HISTORIAL, AHORA, LIMITE);
 
-        ArgumentCaptor<ConsultaTaller> captor = ArgumentCaptor.forClass(ConsultaTaller.class);
-        verify(tallerIaPort).conversar(captor.capture());
-        assertThat(captor.getValue()).isEqualTo(new ConsultaTaller("hola", ESTADO, HISTORIAL));
+        ConsultaTaller consulta = consultaEnviada();
+        assertThat(consulta.mensaje()).isEqualTo("vendo velas");
+        assertThat(consulta.estado()).isEqualTo(ESTADO);
+        assertThat(consulta.historial()).isEqualTo(HISTORIAL);
+        assertThat(consulta.kit().id()).isEqualTo("velas");
+    }
+
+    @Test
+    @DisplayName("Si no reconoce el rubro no le pasa ningún kit")
+    void conversarShouldSendNoKitWhenRubroIsUnknown() {
+        givenQuotaAvailable();
+        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa("Hola", List.of(), CONSUMO));
+
+        service.conversar(NEGOCIO_ID, "hola", SIN_PIEZAS, List.of(), AHORA, LIMITE);
+
+        assertThat(consultaEnviada()).isEqualTo(new ConsultaTaller("hola", SIN_PIEZAS, List.of()));
+    }
+
+    @Test
+    @DisplayName("Si el modelo sólo usó un kit, cuenta cada pieza y cada conexión por su nombre")
+    void conversarShouldDescribeKitExpansionByName() {
+        givenQuotaAvailable();
+        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa(null, List.of(
+                new LlamadaHerramienta("usar_kit", Map.of("rubro", "peluqueria"))), CONSUMO));
+
+        RespuestaTaller result = service.conversar(NEGOCIO_ID, "peluquería", SIN_PIEZAS, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(result.texto()).isEqualTo("Sumé turnos. Sumé servicios. Sumé clientes."
+                + " Conecté turnos con clientes. Conecté turnos con servicios. Mirá cómo queda."
+                + " ¿Atendés vos o trabajan más personas en el local?");
+        assertThat(result.acciones()).hasSize(5);
+    }
+
+    @Test
+    @DisplayName("Cuenta que cargó ejemplos en una pieza")
+    void conversarShouldDescribeLoadedExamples() {
+        givenQuotaAvailable();
+        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa(null, List.of(
+                new LlamadaHerramienta("cargar_ejemplos", Map.of(
+                        "pieza", "e1", "filas", List.of(Map.of("Producto", "Yerba"))))), CONSUMO));
+
+        RespuestaTaller result = service.conversar(NEGOCIO_ID, "ejemplos", ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(result.texto()).isEqualTo("Cargué ejemplos en inventario. Mirá cómo queda.");
     }
 
     @Test
@@ -155,12 +235,12 @@ class TallerSamiServiceTest {
                 new LlamadaHerramienta("renombrar_pieza", Map.of("pieza", "e1", "nombre", "Productos")),
                 new LlamadaHerramienta("renombrar_sistema", Map.of("nombre", "Velas")),
                 new LlamadaHerramienta("agregar_campo", Map.of("pieza", "e1", "etiqueta", "Proveedor", "tipo", "text")),
-                new LlamadaHerramienta("quitar_campo", Map.of("pieza", "e1", "campo", "Producto"))), CONSUMO));
+                new LlamadaHerramienta("quitar_campo", Map.of("pieza", "e1", "campo", "proveedor"))), CONSUMO));
 
         RespuestaTaller result = service.conversar(NEGOCIO_ID, "ordená", ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
 
         assertThat(result.texto()).isEqualTo("Quité clientes. Renombré inventario a Productos. Llamé al sistema Velas."
-                + " Sumé Proveedor a inventario. Quité Producto de inventario. Mirá cómo queda.");
+                + " Sumé Proveedor a inventario. Quité Proveedor de inventario. Mirá cómo queda.");
     }
 
     @Test
@@ -202,5 +282,11 @@ class TallerSamiServiceTest {
 
     private void givenQuotaAvailable() {
         when(consumoSamiRepository.reservar(NEGOCIO_ID, HOY, LIMITE, AHORA)).thenReturn(true);
+    }
+
+    private ConsultaTaller consultaEnviada() {
+        ArgumentCaptor<ConsultaTaller> captor = ArgumentCaptor.forClass(ConsultaTaller.class);
+        verify(tallerIaPort).conversar(captor.capture());
+        return captor.getValue();
     }
 }
