@@ -1,9 +1,17 @@
 package com.ensambla.backend.domain.model.enums;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+@Getter
+@RequiredArgsConstructor
 public enum RubroNegocio {
-    ALMACEN,
-    KIOSCO,
-    MINIMERCADO,
-    DIETETICA,
-    OTRO
+
+    ALMACEN("Almacén"),
+    KIOSCO("Kiosco"),
+    MINIMERCADO("Minimercado"),
+    DIETETICA("Dietética"),
+    OTRO("Otro");
+
+    private final String nombre;
 }

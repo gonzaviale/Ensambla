@@ -25,6 +25,18 @@ public class NegocioRepositoryImpl implements NegocioRepository {
     }
 
     @Override
+    public Optional<Negocio> findByDuenioId(UUID usuarioId) {
+        return negocioJpaRepository.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(usuarioId)
+                .map(negocioRepositoryMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Negocio> findByDuenioIdParaActualizar(UUID usuarioId) {
+        return negocioJpaRepository.findTopByDuenioIdOrderByCreadoEnAscIdAsc(usuarioId)
+                .map(negocioRepositoryMapper::toDomain);
+    }
+
+    @Override
     public List<UUID> findAllIds() {
         return negocioJpaRepository.findAllIds();
     }
