@@ -4,6 +4,7 @@ import {
   aplicarAcciones,
   mismoSistema,
   resumirSistema,
+  sistemaParaCrear,
   type AccionDeSami,
 } from '@/lib/sistema/acciones';
 import { allBlocks, clone, makeSystem, makeTemplate, upsertRow } from '@/lib/sistema/core';
@@ -843,6 +844,131 @@ describe('Sami ensambla el sistema desde cero', () => {
     });
   });
 
+  describe('cargar_registros', () => {
+    it('suma registros reales, sin reemplazar ni los ejemplos ni lo que ya había', () => {
+      aplicarAcciones(sistema, [
+        accion('agregar_pieza', { tipo: 'clients', ejemplos: [{ Nombre: 'Ejemplo' }] }),
+      ]);
+      const clientes = llamada('Clientes');
+      const real = upsertRow(clientes, { name: 'Rosa' }, null, sistema).row;
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('cargar_registros', {
+          pieza: 'Clientes',
+          filas: [
+            { Nombre: 'Lucía', Teléfono: '11 5555-0101' },
+            { Nombre: 'Marta' },
+            { Nombre: 'Pedro' },
+          ],
+        }),
+      ]);
+
+      expect(resultado).toEqual({ aplicadas: ['Cargué 3 registros en clientes.'], omitidas: [] });
+      expect(clientes.rows.map((fila) => fila.name)).toEqual([
+        'Ejemplo',
+        'Rosa',
+        'Lucía',
+        'Marta',
+        'Pedro',
+      ]);
+      expect(clientes.rows[1]).toBe(real);
+      const nuevas = clientes.rows.slice(2);
+      expect(nuevas.every((fila) => !('__example' in fila))).toBe(true);
+      expect(sinId(nuevas)[0]).toEqual({ name: 'Lucía', phone: '11 5555-0101' });
+    });
+
+    it('convierte los valores como los ejemplos, descarta las filas sin el dato principal y carga hasta 30', () => {
+      aplicarAcciones(sistema, [accion('agregar_pieza', { tipo: 'inventory', ejemplos: [] })]);
+      llamada('Inventario').rows = [];
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('cargar_registros', {
+          pieza: 'inventory',
+          filas: [
+            { Producto: 'Vela lavanda', Cantidad: '8', Precio: '6500,5', Costo: 'mucho' },
+            { Cantidad: 3 },
+            'no es una fila',
+            ...Array.from({ length: 40 }, (_, indice) => ({ Producto: `Vela ${indice}` })),
+          ],
+        }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual(['Cargué 30 registros en inventario.']);
+      const filas = llamada('Inventario').rows;
+      expect(filas).toHaveLength(30);
+      expect(sinId(filas)[0]).toEqual({ name: 'Vela lavanda', quantity: 8, price: 6500.5 });
+      expect(filas.at(-1)?.name).toBe('Vela 28');
+    });
+
+    it('omite una pieza que no existe, una que no lleva filas o filas sin el dato principal', () => {
+      aplicarAcciones(sistema, [
+        accion('agregar_pieza', { tipo: 'clients' }),
+        accion('agregar_pieza', { tipo: 'note' }),
+      ]);
+      const antes = clone(sistema);
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('cargar_registros', { pieza: 'nada', filas: [{ Nombre: 'X' }] }),
+        accion('cargar_registros', { pieza: 'clients', filas: [] }),
+        accion('cargar_registros', { pieza: 'clients', filas: [{ Teléfono: '11 5555-0000' }] }),
+        accion('cargar_registros', { pieza: 'note', filas: [{ Nombre: 'X' }] }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual([]);
+      expect(resultado.omitidas).toEqual([
+        'No encontré esa pieza.',
+        'No pude cargar esos registros en clientes.',
+        'No pude cargar esos registros en clientes.',
+        '«Nota» no lleva filas.',
+      ]);
+      expect(mismoSistema(sistema, antes)).toBe(true);
+    });
+
+    it('los vínculos por nombre usan un registro real que ya está o crean uno real en la otra pieza', () => {
+      aplicarAcciones(sistema, [
+        accion('agregar_pieza', {
+          tipo: 'inventory',
+          nombre: 'Velas',
+          ejemplos: [{ Producto: 'Vela lavanda', Cantidad: 5 }],
+        }),
+        accion('agregar_pieza', { tipo: 'clients', nombre: 'Clientas', ejemplos: [] }),
+      ]);
+      llamada('Clientas').rows = [];
+      const rosa = upsertRow(llamada('Clientas'), { name: 'Rosa' }, null, sistema).row;
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('agregar_pieza', { tipo: 'sales', ejemplos: [] }),
+        accion('cargar_registros', {
+          pieza: 'Ventas',
+          filas: [
+            { Producto: 'Vela lavanda', Cliente: 'rosa', Cantidad: 2 },
+            { Producto: 'Vela vainilla', Cliente: 'Lucía', Cantidad: 1 },
+            { Producto: 'vela vainilla', Cliente: 'Lucía', Cantidad: 3 },
+          ],
+        }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual(['Sumé ventas.', 'Cargué 3 registros en ventas.']);
+      const velas = llamada('Velas').rows;
+      // El ejemplo «Vela lavanda» no se guarda al crear el sistema: el registro real tiene su propia vela, real.
+      expect(velas.map((fila) => [fila.name, Boolean(fila.__example)])).toEqual([
+        ['Vela lavanda', true],
+        ['Vela lavanda', false],
+        ['Vela vainilla', false],
+      ]);
+      const clientas = llamada('Clientas').rows;
+      expect(clientas.map((fila) => [fila.name, Boolean(fila.__example)])).toEqual([
+        ['Rosa', false],
+        ['Lucía', false],
+      ]);
+      expect(llamada('Ventas').rows.map((fila) => [fila.product, fila.customer])).toEqual([
+        [velas[1]?.id, rosa?.id],
+        [velas[2]?.id, clientas[1]?.id],
+        [velas[2]?.id, clientas[1]?.id],
+      ]);
+    });
+  });
+
   describe('conectar', () => {
     it('suma un vínculo con el nombre de la otra pieza y no lo duplica', () => {
       const resultado = aplicarAcciones(sistema, [
@@ -1048,5 +1174,86 @@ describe('ajusteParaGuardar: el sistema ajustado con Sami', () => {
     const original = makeTemplate('shop', {}, true);
 
     expect(mismoSistema(ajusteParaGuardar(original, clone(original)), original)).toBe(true);
+  });
+
+  it('guarda los registros reales que Sami cargó de una foto, con sus vínculos', () => {
+    const original = makeTemplate('shop', {}, false);
+    const borrador = clone(original);
+    aplicarAcciones(borrador, [
+      accion('cargar_registros', {
+        pieza: 'sales',
+        filas: [{ Producto: 'Vela lavanda', Cliente: 'Lucía', Cantidad: 2, Precio: 13000 }],
+      }),
+    ]);
+
+    const ajustado = ajusteParaGuardar(original, borrador);
+
+    const [venta] = deTipo(ajustado, 'sales').rows;
+    const [vela] = deTipo(ajustado, 'inventory').rows;
+    const [lucia] = deTipo(ajustado, 'clients').rows;
+    expect(vela).toMatchObject({ name: 'Vela lavanda' });
+    expect(lucia).toMatchObject({ name: 'Lucía' });
+    expect(venta).toMatchObject({
+      product: vela?.id,
+      customer: lucia?.id,
+      quantity: 2,
+      price: 13000,
+    });
+    expect(
+      allBlocks(ajustado)
+        .flatMap((bloque) => bloque.rows)
+        .some((fila) => fila.__example),
+    ).toBe(false);
+  });
+});
+
+describe('sistemaParaCrear: el sistema que sale del taller', () => {
+  const deTipo = (sistema: Sistema, tipo: string) => {
+    const bloque = allBlocks(sistema).find((item) => item.type === tipo);
+    if (!bloque) throw new Error(`Falta la pieza ${tipo}`);
+    return bloque;
+  };
+
+  it('descarta los ejemplos, conserva los registros reales y vacía los vínculos a un ejemplo', () => {
+    const borrador = makeTemplate('shop', {}, true);
+    borrador.name = '  ';
+    const ejemploDeCliente = deTipo(borrador, 'clients').rows[0] as Fila;
+    aplicarAcciones(borrador, [
+      accion('cargar_registros', {
+        pieza: 'sales',
+        filas: [
+          { Producto: 'Vela lavanda', Cliente: 'Lucía', Cantidad: 2 },
+          { Producto: 'Vela vainilla', Cantidad: 1 },
+        ],
+      }),
+    ]);
+    const [, real] = deTipo(borrador, 'sales').rows.filter((fila) => !fila.__example);
+    if (!real) throw new Error('Falta el registro real');
+    real.customer = ejemploDeCliente.id;
+
+    const sistema = sistemaParaCrear(borrador);
+
+    expect(sistema.name).toBe('Mi sistema');
+    expect(sistema.id).toBe(borrador.id);
+    const filas = allBlocks(sistema).flatMap((bloque) => bloque.rows);
+    expect(filas.some((fila) => fila.__example)).toBe(false);
+    expect(deTipo(sistema, 'inventory').rows.map((fila) => fila.name)).toEqual([
+      'Vela lavanda',
+      'Vela vainilla',
+    ]);
+    expect(deTipo(sistema, 'clients').rows.map((fila) => fila.name)).toEqual(['Lucía']);
+    const ventas = deTipo(sistema, 'sales').rows;
+    expect(ventas.map((fila) => fila.customer)).toEqual([
+      deTipo(sistema, 'clients').rows[0]?.id,
+      '',
+    ]);
+    // La propuesta queda como estaba.
+    expect(deTipo(borrador, 'clients').rows[0]).toBe(ejemploDeCliente);
+  });
+
+  it('sin registros reales, el sistema arranca vacío', () => {
+    const sistema = sistemaParaCrear(makeTemplate('shop', {}, true));
+
+    expect(allBlocks(sistema).every((bloque) => bloque.rows.length === 0)).toBe(true);
   });
 });

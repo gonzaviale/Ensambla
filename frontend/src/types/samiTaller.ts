@@ -23,8 +23,19 @@ export const respuestaDelTallerSchema = z.object({
 export type OpcionesDeSami = z.infer<typeof opcionesDeSamiSchema>;
 export type RespuestaDelTaller = z.infer<typeof respuestaDelTallerSchema>;
 
+/** Los formatos de foto que Sami puede mirar. */
+export const TIPOS_DE_IMAGEN_PARA_SAMI = ['image/jpeg', 'image/png', 'image/webp'] as const;
+
+/** Una foto para Sami: `datos` es la imagen en base64, sin el prefijo `data:`. */
+export type ImagenParaSami = {
+  tipo: (typeof TIPOS_DE_IMAGEN_PARA_SAMI)[number];
+  datos: string;
+};
+
 export type PedidoAlTaller = {
   mensaje: string;
   estado: EstadoCompacto;
   historial: { quien: 'sami' | 'you'; texto: string }[];
+  /** La foto que la persona adjuntó a este mensaje, si adjuntó una. No queda en el historial. */
+  imagen?: ImagenParaSami;
 };

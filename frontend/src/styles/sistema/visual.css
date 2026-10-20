@@ -971,6 +971,29 @@
   width: 17px;
   height: 17px;
 }
+/* La foto que va con el próximo mensaje, y la que ya se mandó. */
+.guide-photo-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0 8px;
+}
+.guide-photo-preview img,
+.conversation-photo {
+  display: block;
+  max-width: 96px;
+  max-height: 96px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e9e3d1;
+}
+.guide-composer .guide-photo-preview .btn.ghost {
+  min-height: 48px;
+  padding: 5px 10px;
+}
+.conversation-photo {
+  margin-bottom: 8px;
+}
 .conversation-foot {
   font-size: 8px;
   text-align: center;

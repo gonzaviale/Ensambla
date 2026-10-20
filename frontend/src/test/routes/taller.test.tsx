@@ -136,7 +136,7 @@ describe('el taller de Sami', () => {
     await waitFor(() => expect(piezas().slice(0, 2)).toEqual([segunda, primera]), ESPERA);
   });
 
-  it('crear el sistema lo guarda vacío y lo abre listo para usar', async () => {
+  it('crear el sistema lo guarda sin los ejemplos y lo abre listo para usar', async () => {
     const { user, router } = await conPropuesta();
     const nombre = screen.getByLabelText('Nombre de tu sistema');
     await user.clear(nombre);

@@ -3,7 +3,7 @@ import { clone } from '@/lib/sistema/core';
 import type { Aviso, Respuesta } from '@/lib/sistema/alertas';
 import type { Bloque, ClavePlantilla, Seccion, Sistema } from '@/lib/sistema/tipos';
 import { TUTORIAL_INICIAL, type EstadoDelTutorial } from '@/lib/sistema/tutorial';
-import type { OpcionesDeSami } from '@/types/samiTaller';
+import type { ImagenParaSami, OpcionesDeSami } from '@/types/samiTaller';
 
 // El estado del taller y del editor: los sistemas de la persona y lo que está haciendo con ellos. Es el
 // equivalente a las variables de módulo de app.js del mockup; ahora los componentes lo leen del store y
@@ -40,7 +40,12 @@ export type Modal =
       onConfirmar: () => void;
     };
 
-export type MensajeDelTaller = { quien: 'sami' | 'you'; texto: string };
+export type MensajeDelTaller = {
+  quien: 'sami' | 'you';
+  texto: string;
+  /** La miniatura de la foto que la persona mandó con el mensaje (una dirección `data:`). */
+  foto?: string;
+};
 
 /** La conversación con Sami y la propuesta que va tomando forma (el `wizard` del mockup). */
 export type Taller = {
@@ -49,6 +54,8 @@ export type Taller = {
   /** El nombre que se eligió con un ejemplo, si se eligió alguno. */
   nombre: string;
   entrada: string;
+  /** La foto que se va a mandar con el próximo mensaje, ya achicada. */
+  foto: ImagenParaSami | null;
   borrador: Sistema | null;
   seccionId: string | null;
   pensando: boolean;
@@ -277,6 +284,7 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
         id: ++contadorDeTalleres,
         nombre: sistema?.name ?? '',
         entrada: '',
+        foto: null,
         borrador: sistema ? clone(sistema) : null,
         seccionId: sistema?.sections[0]?.id ?? null,
         pensando: false,

@@ -7,6 +7,7 @@ import { api, cuenta, pathDe } from './comun';
 // detectan por palabras y responden lo mismo que el backend: `agregar_pieza` con nombre, datos y ejemplos, `conectar`,
 // `cargar_ejemplos` y una pregunta con respuestas rápidas. Nunca devuelve `usar_kit`: eso lo expande el backend.
 // Sobre un sistema armado entiende algunos ajustes, entre ellos renombrar un dato o ponerlo primero (`editar_campo`).
+// Con una foto no la mira: responde siempre lo mismo, unas ventas «leídas» de un cuaderno (`cargar_registros`).
 
 const DEMORA_MS = import.meta.env.MODE === 'test' ? 0 : 650;
 
@@ -19,6 +20,7 @@ type Pieza = {
 type Pedido = {
   mensaje?: string;
   estado?: { nombre?: string; distribucion?: string; piezas?: Pieza[] };
+  imagen?: { tipo?: string; datos?: string };
 };
 type Accion = { herramienta: string; argumentos: Record<string, unknown> };
 type Opciones = { pregunta: string; opciones: string[] };
@@ -325,7 +327,32 @@ const ajusteDeDato = (mensaje: string, piezas: Pieza[]) => {
   return undefined;
 };
 
-const respuestaDe = ({ mensaje = '', estado }: Pedido) => {
+// Lo que Sami «leyó» de la foto: tres ventas del cuaderno, que se cargan como registros reales. Si no hay dónde
+// anotarlas, suma las ventas (y los productos, para que cada venta diga qué se vendió).
+const VENTAS_DE_LA_FOTO = [
+  { Producto: 'Vela lavanda', Cliente: 'Lucía', Cantidad: 2, Precio: 13000, Fecha: '2026-10-18' },
+  { Producto: 'Vela vainilla', Cliente: 'Marta', Cantidad: 1, Precio: 8200, Fecha: '2026-10-18' },
+  { Producto: 'Vela flotante', Cliente: 'Lucía', Cantidad: 4, Precio: 6000, Fecha: '2026-10-19' },
+];
+
+const respuestaALaFoto = (piezas: Pieza[]) => {
+  const ventas = piezas.find((pieza) => pieza.tipo === 'sales');
+  const productos = piezas.some((pieza) => pieza.tipo === 'inventory');
+  return {
+    respuesta:
+      'Miré tu foto: anotaste tres ventas. Las cargué en tus ventas, con el producto y la clienta de cada una. Fijate si están bien.',
+    acciones: [
+      ...(productos ? [] : [accion('agregar_pieza', { tipo: 'inventory', nombre: 'Productos' })]),
+      ...(ventas ? [] : [accion('agregar_pieza', { tipo: 'sales', nombre: 'Ventas' })]),
+      accion('cargar_registros', { pieza: ventas?.id ?? 'Ventas', filas: VENTAS_DE_LA_FOTO }),
+    ],
+    opciones: null,
+  };
+};
+
+const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
+  if (imagen?.datos) return respuestaALaFoto(estado?.piezas ?? []);
+
   const texto = mensaje.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const piezas = estado?.piezas ?? [];
   const deTipo = (tipo: string) => piezas.find((pieza) => pieza.tipo === tipo);

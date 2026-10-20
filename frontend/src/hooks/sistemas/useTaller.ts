@@ -2,9 +2,14 @@ import { useMutation } from '@tanstack/react-query';
 import { conversarEnTaller } from '@/api/samiTaller';
 import { aplicarAcciones, mismoSistema, resumirSistema } from '@/lib/sistema/acciones';
 import { applyLayout, clone, makeSystem } from '@/lib/sistema/core';
+import { aBase64, reducirImagen } from '@/lib/sistema/imagen';
 import type { Sistema } from '@/lib/sistema/tipos';
 import { useSistemaStore, type Taller } from '@/stores/sistemaStore';
-import type { OpcionesDeSami } from '@/types/samiTaller';
+import {
+  TIPOS_DE_IMAGEN_PARA_SAMI,
+  type ImagenParaSami,
+  type OpcionesDeSami,
+} from '@/types/samiTaller';
 
 const MENSAJE_CORTO = 'Contame un poquito más para encontrar un punto de partida.';
 const MENSAJE_FALLO = 'Sami no pudo pensar la propuesta. Probá de nuevo en un momento.';
@@ -12,6 +17,32 @@ const MENSAJE_DESHECHO = 'Listo, volví atrás. ¿Probamos otra cosa?';
 const MENSAJE_SIN_CAMBIOS = 'No pude hacer ese cambio. ¿Me lo contás de otra manera?';
 const MENSAJES_DE_HISTORIAL = 6;
 const LARGO_MAXIMO_DE_MENSAJE = 1000;
+const MENSAJE_SOLO_FOTO = 'Te mando una foto.';
+const MENSAJE_FOTO_PESADA = 'La foto pesa más de 5 MB aun achicada. Probá con otra más liviana.';
+const MENSAJE_FOTO_TIPO = 'Esa foto no la puedo mirar. Elegí una JPG, PNG o WEBP.';
+const MENSAJE_FOTO_FALLO = 'No pude abrir esa foto. Probá con otra.';
+/** Para que Sami lea una anotación alcanza con este lado mayor; la foto viaja más liviana. */
+const LADO_DE_LA_FOTO = 1600;
+const BYTES_DE_LA_FOTO = 5 * 1024 * 1024;
+
+const esTipoParaSami = (tipo: string): tipo is ImagenParaSami['tipo'] =>
+  (TIPOS_DE_IMAGEN_PARA_SAMI as readonly string[]).includes(tipo);
+
+/** La foto achicada y en base64, lista para viajar a Sami; si no se puede mandar, el motivo. */
+async function prepararFoto(archivo: File): Promise<ImagenParaSami | string> {
+  try {
+    const reducida = await reducirImagen(archivo, LADO_DE_LA_FOTO);
+    const tipo = reducida.type || archivo.type;
+    if (!esTipoParaSami(tipo)) return MENSAJE_FOTO_TIPO;
+    if (reducida.size > BYTES_DE_LA_FOTO) return MENSAJE_FOTO_PESADA;
+    return { tipo, datos: await aBase64(reducida) };
+  } catch {
+    return MENSAJE_FOTO_FALLO;
+  }
+}
+
+/** La foto como dirección `data:`, para mostrarla en una miniatura. */
+export const vistaDeFoto = (foto: ImagenParaSami) => `data:${foto.tipo};base64,${foto.datos}`;
 
 type Turno = {
   borrador: Sistema | null;
@@ -40,7 +71,11 @@ function textoDeSami(
 export function useTaller() {
   const consulta = useMutation({ mutationFn: conversarEnTaller });
 
-  const resolverTurno = async (texto: string, taller: Taller): Promise<Turno> => {
+  const resolverTurno = async (
+    texto: string,
+    taller: Taller,
+    imagen: ImagenParaSami | null,
+  ): Promise<Turno> => {
     const { borrador } = taller;
     const base = borrador ?? makeSystem(taller.nombre || 'Mi sistema', [], false);
     const charla = taller.mensajes.map((mensaje) => ({
@@ -58,6 +93,7 @@ export function useTaller() {
       mensaje: texto,
       estado: resumirSistema(base),
       historial,
+      ...(imagen && { imagen }),
     });
     const copia = clone(base);
     const { aplicadas } = aplicarAcciones(copia, respuesta.acciones);
@@ -78,7 +114,10 @@ export function useTaller() {
     const store = useSistemaStore.getState();
     const taller = store.taller;
     if (!taller || taller.pensando) return;
-    const texto = (mensaje ?? taller.entrada).trim();
+    // La foto adjunta va con este mensaje (sea cual sea) y se puede mandar sola.
+    const { foto } = taller;
+    const escrito = (mensaje ?? taller.entrada).trim();
+    const texto = foto && !escrito ? MENSAJE_SOLO_FOTO : escrito;
     // Un saludo corto («hola») ya es una charla con Sami: sólo se frena lo que no llega a ser una palabra.
     if (texto.length < (esOpcion ? 1 : 2)) {
       store.avisar(MENSAJE_CORTO);
@@ -86,16 +125,20 @@ export function useTaller() {
     }
     store.actualizarTaller((actual) => ({
       entrada: '',
+      foto: null,
       pensando: true,
       opciones: null,
-      mensajes: [...actual.mensajes, { quien: 'you', texto }],
+      mensajes: [
+        ...actual.mensajes,
+        { quien: 'you', texto, ...(foto && { foto: vistaDeFoto(foto) }) },
+      ],
     }));
 
     // Si mientras tanto empezó otra conversación, la respuesta de esta ya no importa.
     const vigente = () => useSistemaStore.getState().taller?.id === taller.id;
     const nombreAlEnviar = taller.borrador?.name;
     try {
-      const turno = await resolverTurno(texto, taller);
+      const turno = await resolverTurno(texto, taller, foto);
       if (!vigente()) return;
       useSistemaStore.getState().actualizarTaller((actual) => {
         const sistema = turno.borrador;
@@ -135,5 +178,19 @@ export function useTaller() {
     }));
   };
 
-  return { enviar, deshacer };
+  /** Achica la foto elegida y la deja lista para el próximo mensaje; si no sirve, avisa y no la adjunta. */
+  const adjuntarFoto = async (archivo: File) => {
+    const taller = useSistemaStore.getState().taller;
+    if (!taller) return;
+    const foto = await prepararFoto(archivo);
+    const store = useSistemaStore.getState();
+    // Si mientras tanto empezó otra conversación, la foto ya no va.
+    if (store.taller?.id !== taller.id) return;
+    if (typeof foto === 'string') store.avisar(foto);
+    else store.actualizarTaller({ foto });
+  };
+
+  const quitarFoto = () => useSistemaStore.getState().actualizarTaller({ foto: null });
+
+  return { enviar, deshacer, adjuntarFoto, quitarFoto };
 }

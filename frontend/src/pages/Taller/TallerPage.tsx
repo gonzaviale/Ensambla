@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+  type FormEvent,
+} from 'react';
 import { getRouteApi } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
@@ -7,12 +14,11 @@ import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
 import { PreviewBoard } from '@/components/sistema/PreviewBoard';
 import { Sami } from '@/components/sistema/Sami';
 import { varsDeColor } from '@/components/sistema/colores';
-import { ajusteParaGuardar, mismoSistema } from '@/lib/sistema/acciones';
+import { ajusteParaGuardar, mismoSistema, sistemaParaCrear } from '@/lib/sistema/acciones';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import {
   allBlocks,
   applyLayout,
-  clone,
   findBlock,
   makeBlock,
   moveBlock,
@@ -27,7 +33,7 @@ import {
   useNombre,
 } from '@/hooks/sistemas/useNavegacion';
 import { useDictado } from '@/hooks/sistemas/useDictado';
-import { useTaller } from '@/hooks/sistemas/useTaller';
+import { useTaller, vistaDeFoto } from '@/hooks/sistemas/useTaller';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
@@ -85,7 +91,7 @@ export function TallerPage() {
   const editarBorrador = useSistemaStore((estado) => estado.editarBorrador);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const navegacion = useNavegacion();
-  const { enviar, deshacer } = useTaller();
+  const { enviar, deshacer, adjuntarFoto, quitarFoto } = useTaller();
   const avisar = useSistemaStore((estado) => estado.avisar);
   // La voz se transcribe en el navegador y queda en el campo para revisarla antes de enviar.
   const dictado = useDictado({
@@ -95,6 +101,8 @@ export function TallerPage() {
   });
   const mensajes = useRef<HTMLDivElement>(null);
   const campo = useRef<HTMLTextAreaElement>(null);
+  const selectorDeFoto = useRef<HTMLInputElement>(null);
+  const [preparandoFoto, setPreparandoFoto] = useState(false);
   const [arrastrando, setArrastrando] = useState<string | null>(null);
   const [sobre, setSobre] = useState<string | null>(null);
 
@@ -182,13 +190,29 @@ export function TallerPage() {
     });
   };
 
+  // La foto va con el próximo mensaje: se achica al elegirla y se ve en miniatura hasta mandarla.
+  const elegirFoto = async (evento: ChangeEvent<HTMLInputElement>) => {
+    const archivo = evento.target.files?.[0];
+    evento.target.value = '';
+    if (!archivo) return;
+    setPreparandoFoto(true);
+    try {
+      await adjuntarFoto(archivo);
+    } finally {
+      setPreparandoFoto(false);
+    }
+    campo.current?.focus();
+  };
+
+  const sacarFoto = () => {
+    quitarFoto();
+    campo.current?.focus();
+  };
+
+  // La propuesta se imaginó con datos de ejemplo, que no pasan al sistema; los registros reales que cargó Sami, sí.
   const crearSistema = () => {
     if (!borrador) return;
-    const sistema = clone(borrador);
-    sistema.name = sistema.name.trim() || 'Mi sistema';
-    // La propuesta se imaginó con datos de ejemplo; el sistema nuevo arranca vacío.
-    for (const bloque of allBlocks(sistema)) bloque.rows = [];
-    void navegacion.crearYAbrir(sistema);
+    void navegacion.crearYAbrir(sistemaParaCrear(borrador));
   };
 
   // Reemplaza el sistema con la propuesta (así se guarda en el servidor) y vuelve a él, en el modo en que estaba.
@@ -252,6 +276,13 @@ export function TallerPage() {
             <div className="conversation-messages" aria-live="polite" ref={mensajes}>
               {taller.mensajes.map((mensaje, indice) => (
                 <div key={indice} className={`conversation-bubble ${mensaje.quien}`}>
+                  {mensaje.foto && (
+                    <img
+                      className="conversation-photo"
+                      src={mensaje.foto}
+                      alt={mensaje.quien === 'you' ? 'La foto que le mandaste a Sami' : 'Una foto'}
+                    />
+                  )}
                   {mensaje.texto}
                 </div>
               ))}
@@ -334,20 +365,38 @@ export function TallerPage() {
                 value={taller.entrada}
                 onChange={(evento) => actualizarTaller({ entrada: evento.target.value })}
               />
+              {taller.foto && (
+                <div className="guide-photo-preview">
+                  <img src={vistaDeFoto(taller.foto)} alt="La foto que vas a mandar a Sami" />
+                  <Btn
+                    cls="ghost small"
+                    data-accion="guide-photo-remove"
+                    disabled={taller.pensando}
+                    onClick={sacarFoto}
+                  >
+                    <Icon name="close" /> Quitar foto
+                  </Btn>
+                </div>
+              )}
+              {/* Con `image/*` el celular ofrece sacar la foto en el momento o elegir una de la galería. */}
+              <input
+                ref={selectorDeFoto}
+                id="guide-photo-file"
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(evento) => void elegirFoto(evento)}
+              />
               <div className="row between">
                 <div className="row">
                   <Btn
                     cls="ghost small"
                     data-accion="guide-photo"
-                    aria-label="Aportar una foto o captura"
-                    onClick={() =>
-                      abrirModal({
-                        tipo: 'importar',
-                        sistemaId: null,
-                        bloqueId: null,
-                        contexto: 'negocio',
-                      })
+                    aria-label={
+                      taller.foto ? 'Cambiar la foto para Sami' : 'Mandarle una foto a Sami'
                     }
+                    disabled={taller.pensando || preparandoFoto}
+                    onClick={() => selectorDeFoto.current?.click()}
                   >
                     <Icon name="camera" />
                   </Btn>
@@ -362,7 +411,11 @@ export function TallerPage() {
                     <Icon name="mic" />
                   </Btn>
                 </div>
-                <button className="btn primary" type="submit" disabled={taller.pensando}>
+                <button
+                  className="btn primary"
+                  type="submit"
+                  disabled={taller.pensando || preparandoFoto}
+                >
                   {borrador ? 'Ajustalo conmigo' : 'Pensalo conmigo'} <Icon name="arrow" />
                 </button>
               </div>

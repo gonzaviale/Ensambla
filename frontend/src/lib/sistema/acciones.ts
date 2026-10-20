@@ -26,7 +26,8 @@ import type {
 // Las herramientas con las que Sami arma y cambia el sistema del taller. El backend (POST /api/sami/taller) valida lo
 // que pidió el modelo contra el catálogo de componentes y devuelve acciones; acá se aplican con las mismas funciones
 // del taller. Sami ensambla: suma componentes del catálogo (con nombre, datos y ejemplos propios), los conecta y les
-// carga filas de ejemplo. Ver docs/sami-asistente.md.
+// carga filas de ejemplo. Con una foto (de un cuaderno, una lista) también carga registros reales, que se guardan.
+// Ver docs/sami-asistente.md.
 
 export type AccionDeSami = { herramienta: string; argumentos: Record<string, unknown> };
 
@@ -83,6 +84,7 @@ const TIPOS_DE_CAMPO = new Set<string>([
 ]);
 const DISTRIBUCIONES = new Set<string>(['mosaic', 'single', 'two', 'three']);
 const MAXIMO_DE_EJEMPLOS = 5;
+const MAXIMO_DE_REGISTROS = 30;
 const MAXIMO_DE_OPCIONES = 6;
 const LARGO_DE_NOMBRE = 60;
 const LARGO_DE_VALOR = 200;
@@ -122,13 +124,15 @@ const buscarCampo = (bloque: Bloque, etiqueta: string) =>
  */
 export function aplicarAcciones(sistema: Sistema, acciones: AccionDeSami[]): ResultadoDeAcciones {
   const resultado: ResultadoDeAcciones = { aplicadas: [], omitidas: [] };
+  // Los registros reales que cargó Sami en este turno: sus vínculos llegan por nombre y se resuelven al final.
+  const registrosNuevos = new Set<string>();
   for (const accion of acciones) {
-    const motivo = aplicarUna(sistema, accion, resultado);
+    const motivo = aplicarUna(sistema, accion, resultado, registrosNuevos);
     if (motivo) resultado.omitidas.push(motivo);
   }
   soltarVinculosSinDestino(sistema);
   wireSystem(sistema);
-  resolverVinculosDeEjemplo(sistema);
+  resolverVinculosPorNombre(sistema, registrosNuevos);
   return resultado;
 }
 
@@ -155,6 +159,7 @@ function aplicarUna(
   sistema: Sistema,
   { herramienta, argumentos }: AccionDeSami,
   resultado: ResultadoDeAcciones,
+  registrosNuevos: Set<string>,
 ): string | undefined {
   const hecho = (descripcion: string) => {
     resultado.aplicadas.push(descripcion);
@@ -172,6 +177,20 @@ function aplicarUna(
       if (!filas.length) return `No pude cargar esos ejemplos en ${pieza.name.toLowerCase()}.`;
       pieza.rows = [...pieza.rows.filter((fila) => !fila.__example), ...filas];
       const cuantos = filas.length === 1 ? 'un ejemplo' : `${filas.length} ejemplos`;
+      return hecho(`Cargué ${cuantos} en ${pieza.name.toLowerCase()}.`);
+    }
+    case 'cargar_registros': {
+      // Lo que Sami leyó de una foto: se suma a lo que haya, sin reemplazar nada, y se guarda con el sistema.
+      // Antes se conecta lo que el taller ya sabe conectar, así un «Cliente» por nombre se busca en los clientes.
+      wireSystem(sistema);
+      const pieza = resolverPieza(sistema, args.pieza);
+      if (!pieza) return 'No encontré esa pieza.';
+      if (!pieza.fields.length) return `«${pieza.name}» no lleva filas.`;
+      const filas = filasDeSami(pieza, args.filas, MAXIMO_DE_REGISTROS, false);
+      if (!filas.length) return `No pude cargar esos registros en ${pieza.name.toLowerCase()}.`;
+      pieza.rows.push(...filas);
+      for (const fila of filas) registrosNuevos.add(fila.id);
+      const cuantos = filas.length === 1 ? 'un registro' : `${filas.length} registros`;
       return hecho(`Cargué ${cuantos} en ${pieza.name.toLowerCase()}.`);
     }
     case 'conectar':
@@ -480,17 +499,21 @@ function conectar(
   return hecho(descripcion);
 }
 
+const filasDeEjemplo = (pieza: Bloque, crudas: unknown) =>
+  filasDeSami(pieza, crudas, MAXIMO_DE_EJEMPLOS, true);
+
 /**
- * Las filas de ejemplo que mandó Sami (cada valor bajo la etiqueta de su dato), listas para la pieza. Una fila sin el
- * dato principal (el primero: Producto, Nombre, Pedido…) se descarta: en la tabla se vería vacía.
+ * Las filas que mandó Sami (cada valor bajo la etiqueta de su dato), listas para la pieza: de ejemplo o registros
+ * reales. Una fila sin el dato principal (el primero: Producto, Nombre, Pedido…) se descarta: en la tabla se vería
+ * vacía.
  */
-function filasDeEjemplo(pieza: Bloque, crudas: unknown): Fila[] {
+function filasDeSami(pieza: Bloque, crudas: unknown, maximo: number, deEjemplo: boolean): Fila[] {
   const principal = pieza.fields[0]?.key;
   const filas: Fila[] = [];
   for (const cruda of lista(crudas)) {
-    if (filas.length >= MAXIMO_DE_EJEMPLOS) break;
+    if (filas.length >= maximo) break;
     if (!esObjeto(cruda)) continue;
-    const fila: Fila = { id: id(), __example: true };
+    const fila: Fila = deEjemplo ? { id: id(), __example: true } : { id: id() };
     for (const [etiqueta, valor] of Object.entries(cruda)) {
       const campo =
         buscarCampo(pieza, etiqueta) ?? pieza.fields.find((item) => item.key === etiqueta);
@@ -532,29 +555,36 @@ function valorDeEjemplo(campo: Campo, valor: unknown): Valor {
 
 const ES_ID_DE_FILA = /^e[0-9a-f]{8}-/;
 
-// En las filas de ejemplo, un vínculo llega con el nombre del registro («Lucía Pérez»): se busca en la pieza a la que
-// apunta y se guarda su id. Si esa pieza no lo tiene, se suma ahí como ejemplo, así el vínculo se ve aunque la pieza
-// esté vacía (pasa al ajustar un sistema ya creado, que no tiene ejemplos). Si lo que hay es el id de un registro que
-// ya no existe, queda vacío. Las filas reales no se tocan.
-function resolverVinculosDeEjemplo(sistema: Sistema) {
+// En las filas de ejemplo y en los registros que Sami acaba de cargar, un vínculo llega con el nombre del registro
+// («Lucía Pérez»): se busca en la pieza a la que apunta y se guarda su id. Si esa pieza no lo tiene, se suma ahí, así
+// el vínculo se ve aunque la pieza esté vacía (pasa al ajustar un sistema ya creado, que no tiene ejemplos): como
+// ejemplo si la fila es de ejemplo y como registro real si es real. Un registro real sólo se vincula con otro real (los
+// ejemplos no se guardan). Si lo que hay es el id de un registro que ya no existe, queda vacío. Las demás filas reales
+// no se tocan.
+function resolverVinculosPorNombre(sistema: Sistema, registrosNuevos: Set<string>) {
   for (const bloque of allBlocks(sistema)) {
     for (const campo of bloque.fields.filter((item) => item.type === 'relation')) {
       const destino = findBlock(sistema, campo.target);
       const principal = destino?.fields[0]?.key;
-      for (const fila of bloque.rows.filter((item) => item.__example)) {
+      for (const fila of bloque.rows) {
+        const deEjemplo = Boolean(fila.__example);
+        if (!deEjemplo && !registrosNuevos.has(fila.id)) continue;
         const valor = fila[campo.key];
         if (valor === undefined || valor === null || valor === '') continue;
-        if (destino?.rows.some((otra) => otra.id === valor)) continue;
+        const candidatas = destino?.rows.filter((otra) => deEjemplo || !otra.__example) ?? [];
+        if (candidatas.some((otra) => otra.id === valor)) continue;
         if (!destino || !principal) {
           fila[campo.key] = '';
           continue;
         }
         const nombre = String(valor).slice(0, LARGO_DE_VALOR);
-        let encontrada = destino.rows.find(
+        let encontrada = candidatas.find(
           (otra) => normalize(otra[principal]) === normalize(nombre),
         );
         if (!encontrada && !ES_ID_DE_FILA.test(nombre)) {
-          encontrada = { id: id(), [principal]: nombre, __example: true };
+          encontrada = deEjemplo
+            ? { id: id(), [principal]: nombre, __example: true }
+            : { id: id(), [principal]: nombre };
           destino.rows.push(encontrada);
         }
         fila[campo.key] = encontrada?.id ?? '';
@@ -580,10 +610,27 @@ export function ajusteParaGuardar(original: Sistema, borrador: Sistema): Sistema
   const previas = new Set(
     allBlocks(original).flatMap((bloque) => bloque.rows.map((fila) => fila.id)),
   );
+  descartarEjemplos(sistema, previas);
+  return sistema;
+}
+
+/**
+ * El sistema que se crea con la propuesta del taller. Las filas de ejemplo, que estaban para imaginarlo, no pasan; los
+ * registros reales (los que Sami cargó de una foto), sí. Un vínculo que apuntaba a un ejemplo queda vacío.
+ */
+export function sistemaParaCrear(borrador: Sistema): Sistema {
+  const sistema = clone(borrador);
+  sistema.name = sistema.name.trim() || 'Mi sistema';
+  descartarEjemplos(sistema, new Set());
+  return sistema;
+}
+
+/** Quita (en el lugar) las filas de ejemplo que no están en `conservar` y vacía los vínculos que apuntaban a ellas. */
+function descartarEjemplos(sistema: Sistema, conservar: Set<string>) {
   const quitadas = new Set<string>();
   for (const bloque of allBlocks(sistema)) {
     for (const fila of bloque.rows) {
-      if (fila.__example && !previas.has(fila.id)) quitadas.add(fila.id);
+      if (fila.__example && !conservar.has(fila.id)) quitadas.add(fila.id);
     }
     bloque.rows = bloque.rows.filter((fila) => !quitadas.has(fila.id));
   }
@@ -594,5 +641,4 @@ export function ajusteParaGuardar(original: Sistema, borrador: Sistema): Sistema
       }
     }
   }
-  return sistema;
 }
