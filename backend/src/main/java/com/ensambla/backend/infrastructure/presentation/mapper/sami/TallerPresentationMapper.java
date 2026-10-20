@@ -55,9 +55,9 @@ public class TallerPresentationMapper {
         List<ConversarTallerResponse.Accion> acciones = response.acciones().stream()
                 .map(accion -> new ConversarTallerResponse.Accion(accion.herramienta(), accion.argumentos()))
                 .toList();
-        ConversarTallerResponse.Opciones opciones = response.opciones() == null
-                ? null
-                : new ConversarTallerResponse.Opciones(response.opciones().pregunta(), response.opciones().opciones());
-        return new ConversarTallerResponse(response.respuesta(), acciones, opciones);
+        List<ConversarTallerResponse.Opciones> preguntas = response.preguntas().stream()
+                .map(duda -> new ConversarTallerResponse.Opciones(duda.tema(), duda.pregunta(), duda.opciones()))
+                .toList();
+        return new ConversarTallerResponse(response.respuesta(), acciones, preguntas);
     }
 }

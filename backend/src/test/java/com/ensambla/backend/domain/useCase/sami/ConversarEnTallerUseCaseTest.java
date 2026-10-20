@@ -53,7 +53,7 @@ class ConversarEnTallerUseCaseTest {
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(tallerSamiService.conversar(NEGOCIO_ID, "sumá gastos", null, estado, historial, ahora, LIMITE))
                 .thenReturn(new RespuestaTaller(
-                        "Listo", List.of(new AccionTaller("agregar_pieza", Map.of("tipo", "expenses"))), null));
+                        "Listo", List.of(new AccionTaller("agregar_pieza", Map.of("tipo", "expenses"))), List.of()));
 
         ConversarEnTallerResponse result = useCase.execute(new ConversarEnTallerRequest(
                 USUARIO_ID, "sumá gastos",

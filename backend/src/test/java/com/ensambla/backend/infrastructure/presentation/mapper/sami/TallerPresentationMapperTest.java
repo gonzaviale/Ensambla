@@ -83,21 +83,22 @@ class TallerPresentationMapperTest {
         ConversarEnTallerResponse response = new ConversarEnTallerResponse(
                 "Listo",
                 List.of(new ConversarEnTallerResponse.AccionTallerItem("agregar_pieza", Map.of("tipo", "expenses"))),
-                new ConversarEnTallerResponse.OpcionesTallerItem("¿Seguimos?", List.of("Sí", "No")));
+                List.of(new ConversarEnTallerResponse.OpcionesTallerItem("Seguir", "¿Seguimos?", List.of("Sí", "No"))));
 
         ConversarTallerResponse result = mapper.toResponse(response);
 
         assertThat(result.respuesta()).isEqualTo("Listo");
         assertThat(result.acciones().getFirst().herramienta()).isEqualTo("agregar_pieza");
         assertThat(result.acciones().getFirst().argumentos()).containsEntry("tipo", "expenses");
-        assertThat(result.opciones().opciones()).containsExactly("Sí", "No");
+        assertThat(result.preguntas().getFirst().tema()).isEqualTo("Seguir");
+        assertThat(result.preguntas().getFirst().opciones()).containsExactly("Sí", "No");
     }
 
     @Test
     @DisplayName("Sin botonera la respuesta no lleva opciones")
     void toResponseShouldLeaveOptionsNullWhenThereAreNone() {
-        ConversarTallerResponse result = mapper.toResponse(new ConversarEnTallerResponse("Hola", List.of(), null));
+        ConversarTallerResponse result = mapper.toResponse(new ConversarEnTallerResponse("Hola", List.of(), List.of()));
 
-        assertThat(result.opciones()).isNull();
+        assertThat(result.preguntas()).isEmpty();
     }
 }

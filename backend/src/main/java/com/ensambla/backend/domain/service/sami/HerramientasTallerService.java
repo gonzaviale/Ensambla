@@ -16,6 +16,8 @@ import com.ensambla.backend.domain.model.sami.taller.OpcionesTaller;
 import com.ensambla.backend.domain.model.sami.taller.PiezaKit;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
 import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -30,6 +32,7 @@ import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * Valida lo que la IA pidió en un turno del taller. El modelo nunca escribe el sistema: pide herramientas con
@@ -45,6 +48,8 @@ import java.util.stream.IntStream;
 @Service
 public class HerramientasTallerService {
 
+    private static final Logger log = LoggerFactory.getLogger(HerramientasTallerService.class);
+
     private static final String TIPO_CLIENTES = "clients";
     /** En ventas el dato Cliente es el quinto; en pedidos ya es el segundo. */
     private static final List<String> TIPOS_CON_CLIENTE = List.of("sales");
@@ -59,10 +64,11 @@ public class HerramientasTallerService {
 
         private final List<PiezaTaller> piezas;
         private final List<AccionTaller> acciones = new ArrayList<>();
-        private OpcionesTaller opciones;
+        private final List<OpcionesTaller> preguntas = new ArrayList<>();
         /** La pregunta del kit que se armó, por si el modelo no preguntó nada. */
         private OpcionesTaller preguntaDelKit;
         private int descartadas;
+        private int registrosDescartados;
         private int delModelo;
 
         private Turno(List<PiezaTaller> piezas) {
@@ -75,6 +81,17 @@ public class HerramientasTallerService {
 
         private int lugar() {
             return CatalogoTaller.MAX_ACCIONES_TOTALES - acciones.size();
+        }
+
+        /** Las dudas válidas se juntan hasta el tope del turno; una repetida no se suma. */
+        private void sumarPreguntas(List<OpcionesTaller> nuevas) {
+            nuevas.stream()
+                    .filter(nueva -> preguntas.stream().noneMatch(pregunta -> pregunta.pregunta().equals(nueva.pregunta())))
+                    .forEach(nueva -> {
+                        if (preguntas.size() < CatalogoTaller.MAX_PREGUNTAS) {
+                            preguntas.add(nueva);
+                        }
+                    });
         }
 
         /** Una llamada del modelo cuenta una vez aunque se haya expandido en varias acciones. */
@@ -121,10 +138,8 @@ public class HerramientasTallerService {
         manejadores.put(HerramientaTaller.AGREGAR_CAMPO, this::agregarCampo);
         manejadores.put(HerramientaTaller.QUITAR_CAMPO, this::quitarCampo);
         manejadores.put(HerramientaTaller.EDITAR_CAMPO, this::editarCampo);
-        manejadores.put(HerramientaTaller.CARGAR_EJEMPLOS, (args, piezas) -> cargarFilas(
-                HerramientaTaller.CARGAR_EJEMPLOS, CatalogoTaller.MAX_FILAS_EJEMPLO, args, piezas));
-        manejadores.put(HerramientaTaller.CARGAR_REGISTROS, (args, piezas) -> cargarFilas(
-                HerramientaTaller.CARGAR_REGISTROS, CatalogoTaller.MAX_REGISTROS, args, piezas));
+        manejadores.put(HerramientaTaller.CARGAR_REGISTROS, this::cargarRegistros);
+        manejadores.put(HerramientaTaller.BORRAR_REGISTROS, this::borrarRegistros);
         manejadores.put(HerramientaTaller.CONECTAR, this::conectar);
         manejadores.put(HerramientaTaller.SEPARAR_EN_SECCION, this::separarEnSeccion);
         manejadores.put(HerramientaTaller.CAMBIAR_DISTRIBUCION, this::cambiarDistribucion);
@@ -137,9 +152,12 @@ public class HerramientasTallerService {
             if (herramienta.isEmpty()) {
                 turno.descartadas++;
             } else if (herramienta.get() == HerramientaTaller.OFRECER_OPCIONES) {
-                Optional<OpcionesTaller> pregunta = opciones(llamada.argumentos());
-                turno.opciones = pregunta.orElse(turno.opciones);
-                turno.descartadas += pregunta.isPresent() ? 0 : 1;
+                List<OpcionesTaller> dudas = preguntas(llamada.argumentos());
+                turno.sumarPreguntas(dudas);
+                if (dudas.isEmpty()) {
+                    log.warn("ofrecer_opciones descartada por inválida: {}", llamada.argumentos());
+                    turno.descartadas++;
+                }
             } else {
                 turno.sumarDelModelo(turno.admiteOtraDelModelo()
                         ? aplicar(herramienta.get(), llamada.argumentos(), turno)
@@ -147,16 +165,24 @@ public class HerramientasTallerService {
             }
         }
         // Al armar con un kit Sami siempre propone cómo seguir: si el modelo no preguntó, va la pregunta del kit.
-        OpcionesTaller opciones = turno.opciones != null ? turno.opciones : turno.preguntaDelKit;
+        List<OpcionesTaller> preguntas = turno.preguntas.isEmpty() && turno.preguntaDelKit != null
+                ? List.of(turno.preguntaDelKit)
+                : List.copyOf(turno.preguntas);
         return new ValidacionTaller(
-                List.copyOf(turno.acciones), opciones, turno.descartadas, List.copyOf(turno.piezas));
+                List.copyOf(turno.acciones), preguntas, turno.descartadas, turno.registrosDescartados,
+                List.copyOf(turno.piezas));
     }
 
     private List<AccionTaller> aplicar(HerramientaTaller herramienta, Map<String, Object> args, Turno turno) {
         if (herramienta == HerramientaTaller.USAR_KIT) {
             return usarKit(args, turno);
         }
-        return manejadores.get(herramienta).apply(args, turno.piezas).stream().toList();
+        List<AccionTaller> hechas = manejadores.get(herramienta)
+                .apply(sinEjemplosDelModelo(args), turno.piezas).stream().toList();
+        if (herramienta == HerramientaTaller.CARGAR_REGISTROS) {
+            contarRegistrosDescartados(args, hechas, turno);
+        }
+        return hechas;
     }
 
     /**
@@ -164,6 +190,28 @@ public class HerramientasTallerService {
      * medida con el mismo nombre, se saltean) y después sus conexiones, sin pasarse del lugar que queda en el turno.
      * Si sumó algo, guarda la pregunta del kit.
      */
+    /** Las filas pedidas que no llegaron a cargarse se cuentan (y se loguean) para que Sami no diga que cargó todo. */
+    private void contarRegistrosDescartados(Map<String, Object> args, List<AccionTaller> hechas, Turno turno) {
+        int cargadas = hechas.stream().mapToInt(accion -> ((List<?>) accion.argumentos().get("filas")).size()).sum();
+        int descartadas = (args.get("filas") instanceof List<?> pedidas ? pedidas.size() : 0) - cargadas;
+        if (descartadas > 0) {
+            log.warn("cargar_registros: se descartaron {} filas de {} pedidas (sin el dato principal, con datos que"
+                    + " no son de la pieza o pasadas del tope de {})", descartadas, descartadas + cargadas,
+                    CatalogoTaller.MAX_REGISTROS);
+            turno.registrosDescartados += descartadas;
+        }
+    }
+
+    /**
+     * Las filas que inventa el modelo («ejemplos» de una pieza) no pasan nunca: se mostrarían como si fueran datos de
+     * la persona. Los únicos ejemplos válidos son los del kit del catálogo, que se suman sin pasar por acá.
+     */
+    private Map<String, Object> sinEjemplosDelModelo(Map<String, Object> args) {
+        Map<String, Object> limpios = new LinkedHashMap<>(args);
+        limpios.remove("ejemplos");
+        return limpios;
+    }
+
     private List<AccionTaller> usarKit(Map<String, Object> args, Turno turno) {
         List<AccionTaller> acciones = new ArrayList<>();
         int lugar = turno.lugar();
@@ -438,23 +486,50 @@ public class HerramientasTallerService {
                 && !(valor instanceof List<?> lista && lista.isEmpty());
     }
 
-    /**
-     * {@code cargar_ejemplos} (reemplaza los ejemplos de la pieza) y {@code cargar_registros} (registros reales que se
-     * suman a los que haya) validan igual; cambian el tope de filas y lo que hace el taller con ellas.
-     */
-    private Optional<AccionTaller> cargarFilas(HerramientaTaller herramienta, int maximo, Map<String, Object> args,
-                                               List<PiezaTaller> piezas) {
+    /** {@code cargar_registros}: registros reales (leídos de una foto, por ejemplo) que se suman a los que haya. */
+    private Optional<AccionTaller> cargarRegistros(Map<String, Object> args, List<PiezaTaller> piezas) {
         return indiceDe(args.get("pieza"), piezas).flatMap(indice -> {
             PiezaTaller pieza = piezas.get(indice);
-            return Optional.of(filas(args.get("filas"), pieza.campos(), maximo))
+            return Optional.of(filas(args.get("filas"), pieza.campos(), CatalogoTaller.MAX_REGISTROS))
                     .filter(filas -> !filas.isEmpty())
                     .map(filas -> {
                         Map<String, Object> argumentos = new LinkedHashMap<>();
                         argumentos.put("pieza", referencia(pieza));
                         argumentos.put("filas", filas);
-                        return new AccionTaller(herramienta.nombre(), argumentos);
+                        return new AccionTaller(HerramientaTaller.CARGAR_REGISTROS.nombre(), argumentos);
                     });
         });
+    }
+
+    /**
+     * {@code borrar_registros} quita de una pieza los registros que coinciden con lo que se indica en {@code donde}: un
+     * criterio ({@code {Cliente: "Anto Solari"}}, todos sus datos tienen que coincidir) o una lista de criterios (basta
+     * con que coincida uno). Nunca borra "todo": un criterio vacío, con un dato que la pieza no tiene o con un valor
+     * que no es simple se descarta entero, porque ignorarlo ampliaría lo que se borra. Sami no conoce los ids de las
+     * filas, así que las identifica por sus datos; las filas coincidentes las busca el taller.
+     */
+    private Optional<AccionTaller> borrarRegistros(Map<String, Object> args, List<PiezaTaller> piezas) {
+        return indiceDe(args.get("pieza"), piezas).flatMap(indice -> {
+            PiezaTaller pieza = piezas.get(indice);
+            Object pedidos = args.get("donde") instanceof Map<?, ?> unico ? List.of(unico) : args.get("donde");
+            List<Map<String, Object>> criterios = mapas(pedidos).stream()
+                    .map(pedido -> criterioDeBorrado(pedido, pieza.campos()))
+                    .flatMap(Optional::stream)
+                    .limit(CatalogoTaller.MAX_CRITERIOS_BORRADO)
+                    .toList();
+            return Optional.of(criterios).filter(validos -> !validos.isEmpty()).map(validos -> {
+                Map<String, Object> argumentos = new LinkedHashMap<>();
+                argumentos.put("pieza", referencia(pieza));
+                argumentos.put("donde", validos);
+                return new AccionTaller(HerramientaTaller.BORRAR_REGISTROS.nombre(), argumentos);
+            });
+        });
+    }
+
+    /** El criterio con las etiquetas de la pieza; si algún dato no vale, el criterio entero no vale. */
+    private Optional<Map<String, Object>> criterioDeBorrado(Map<String, Object> pedido, List<CampoTaller> campos) {
+        Map<String, Object> criterio = fila(pedido, campos);
+        return Optional.of(criterio).filter(valido -> !pedido.isEmpty() && valido.size() == pedido.size());
     }
 
     /**
@@ -521,13 +596,24 @@ public class HerramientasTallerService {
                 .map(layout -> accion(HerramientaTaller.CAMBIAR_DISTRIBUCION, "layout", layout));
     }
 
+    /**
+     * Las dudas de una llamada a {@code ofrecer_opciones}: una sola ({@code pregunta} y {@code opciones} en los
+     * argumentos) o varias ({@code preguntas}: una lista de ellas). Las que no valen se descartan.
+     */
+    private List<OpcionesTaller> preguntas(Map<String, Object> args) {
+        return Stream.concat(mapas(args.get("preguntas")).stream(), Stream.of(args))
+                .flatMap(duda -> opciones(duda).stream())
+                .toList();
+    }
+
     private Optional<OpcionesTaller> opciones(Map<String, Object> args) {
         List<String> opciones = textos(args.get("opciones")).stream()
                 .limit(CatalogoTaller.MAX_OPCIONES)
                 .toList();
         return texto(args.get("pregunta"), CatalogoTaller.MAX_LARGO_PREGUNTA)
                 .filter(pregunta -> opciones.size() >= CatalogoTaller.MIN_OPCIONES)
-                .map(pregunta -> new OpcionesTaller(pregunta, opciones));
+                .map(pregunta -> new OpcionesTaller(
+                        texto(args.get("tema"), CatalogoTaller.MAX_LARGO_TEMA).orElse(null), pregunta, opciones));
     }
 
     /**

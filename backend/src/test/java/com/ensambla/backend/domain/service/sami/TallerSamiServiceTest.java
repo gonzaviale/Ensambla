@@ -84,7 +84,7 @@ class TallerSamiServiceTest {
         assertThat(result.texto()).isEqualTo("Listo, sumé gastos.");
         assertThat(result.acciones()).hasSize(1);
         assertThat(result.acciones().getFirst().herramienta()).isEqualTo("agregar_pieza");
-        assertThat(result.opciones()).isNull();
+        assertThat(result.preguntas()).isEmpty();
         verify(consumoSamiRepository).registrar(NEGOCIO_ID, HOY, CONSUMO, AHORA);
     }
 
@@ -104,9 +104,9 @@ class TallerSamiServiceTest {
         RespuestaTaller usoLaBotonera = service.conversar(NEGOCIO_ID, "peluquería", null, SIN_PIEZAS, HISTORIAL, AHORA, LIMITE);
         RespuestaTaller noPregunto = service.conversar(NEGOCIO_ID, "peluquería", null, SIN_PIEZAS, HISTORIAL, AHORA, LIMITE);
 
-        assertThat(preguntoEnElTexto.opciones()).isNull();
-        assertThat(usoLaBotonera.opciones().pregunta()).isEqualTo("¿Sumamos productos?");
-        assertThat(noPregunto.opciones().pregunta()).isEqualTo("¿Atendés vos o trabajan más personas en el local?");
+        assertThat(preguntoEnElTexto.preguntas()).isEmpty();
+        assertThat(usoLaBotonera.preguntas().getFirst().pregunta()).isEqualTo("¿Sumamos productos?");
+        assertThat(noPregunto.preguntas().getFirst().pregunta()).isEqualTo("¿Atendés vos o trabajan más personas en el local?");
     }
 
     @Test
@@ -190,12 +190,12 @@ class TallerSamiServiceTest {
 
         service.conversar(NEGOCIO_ID, "te paso la foto", FOTO, ESTADO, HISTORIAL, AHORA, LIMITE);
 
-        // Turno, reintento por «dijo que hizo sin hacer» y pedido de los registros de la foto.
+        // Turno, reintento por «dijo que hizo sin hacer», pedido de los registros y pedido de las dudas de la foto.
         ArgumentCaptor<ConsultaTaller> captor = ArgumentCaptor.forClass(ConsultaTaller.class);
-        verify(tallerIaPort, times(3)).conversar(captor.capture());
-        assertThat(captor.getAllValues()).extracting(ConsultaTaller::imagen).containsExactly(FOTO, FOTO, FOTO);
+        verify(tallerIaPort, times(4)).conversar(captor.capture());
+        assertThat(captor.getAllValues()).extracting(ConsultaTaller::imagen).containsExactly(FOTO, FOTO, FOTO, FOTO);
         verify(consumoSamiRepository, times(1)).reservar(NEGOCIO_ID, HOY, LIMITE, AHORA);
-        verify(consumoSamiRepository, times(3)).registrar(NEGOCIO_ID, HOY, CONSUMO, AHORA);
+        verify(consumoSamiRepository, times(4)).registrar(NEGOCIO_ID, HOY, CONSUMO, AHORA);
     }
 
     @Test
@@ -216,30 +216,29 @@ class TallerSamiServiceTest {
                 .containsExactly("agregar_pieza", "cargar_registros");
         assertThat(result.texto()).isEqualTo("Te armo las ventas. Cargué 1 registro en ventas.");
         ArgumentCaptor<ConsultaTaller> captor = ArgumentCaptor.forClass(ConsultaTaller.class);
-        verify(tallerIaPort, times(2)).conversar(captor.capture());
+        verify(tallerIaPort, times(3)).conversar(captor.capture());
         ConsultaTaller segunda = captor.getAllValues().get(1);
         assertThat(segunda.mensaje()).isEqualTo(TallerSamiService.PEDIDO_REGISTROS);
         assertThat(segunda.estado().piezas()).extracting(PiezaTaller::nombre).containsExactly("Inventario", "Ventas");
         assertThat(segunda.kit()).isNull();
-        verify(consumoSamiRepository, times(2)).registrar(NEGOCIO_ID, HOY, CONSUMO, AHORA);
+        assertThat(captor.getAllValues().get(2).mensaje()).isEqualTo(TallerSamiService.PEDIDO_DUDAS);
+        verify(consumoSamiRepository, times(3)).registrar(NEGOCIO_ID, HOY, CONSUMO, AHORA);
     }
 
     @Test
-    @DisplayName("Con foto, las filas de ejemplo de las piezas armadas se omiten; sin foto se conservan")
-    void conversarShouldDropExamplesOnlyWithPhoto() {
+    @DisplayName("Los ejemplos del kit sólo se conservan al armar un sistema nuevo sin foto")
+    void conversarShouldKeepKitExamplesOnlyForANewSystemWithoutPhoto() {
         givenQuotaAvailable();
-        ResultadoTallerIa armado = new ResultadoTallerIa("Armé las ventas.", List.of(
-                new LlamadaHerramienta("agregar_pieza", Map.of("tipo", "sales", "nombre", "Ventas",
-                        "ejemplos", List.of(Map.of("Producto", "Vela lavanda")))),
-                new LlamadaHerramienta("cargar_registros", Map.of("pieza", "e1", "filas", List.of(
-                        Map.of("Producto", "Yerba"))))), CONSUMO);
-        when(tallerIaPort.conversar(any())).thenReturn(armado);
+        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa("Armé tus velas.", List.of(
+                new LlamadaHerramienta("usar_kit", Map.of("rubro", "velas"))), CONSUMO));
 
-        RespuestaTaller conFoto = service.conversar(NEGOCIO_ID, "mirá", FOTO, ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
-        RespuestaTaller sinFoto = service.conversar(NEGOCIO_ID, "mirá", null, ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
+        RespuestaTaller nuevo = service.conversar(NEGOCIO_ID, "velas", null, SIN_PIEZAS, HISTORIAL, AHORA, LIMITE);
+        RespuestaTaller conFoto = service.conversar(NEGOCIO_ID, "velas", FOTO, SIN_PIEZAS, HISTORIAL, AHORA, LIMITE);
+        RespuestaTaller ajustando = service.conversar(NEGOCIO_ID, "velas", null, ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
 
-        assertThat(conFoto.acciones().get(0).argumentos()).doesNotContainKey("ejemplos").containsKey("nombre");
-        assertThat(sinFoto.acciones().get(0).argumentos()).containsKey("ejemplos");
+        assertThat(nuevo.acciones()).anyMatch(accion -> accion.argumentos().containsKey("ejemplos"));
+        assertThat(conFoto.acciones()).noneMatch(accion -> accion.argumentos().containsKey("ejemplos"));
+        assertThat(ajustando.acciones()).noneMatch(accion -> accion.argumentos().containsKey("ejemplos"));
     }
 
     @Test
@@ -262,12 +261,12 @@ class TallerSamiServiceTest {
         RespuestaTaller sinPreguntar = service.conversar(NEGOCIO_ID, "foto", FOTO, ESTADO, HISTORIAL, AHORA, LIMITE);
         RespuestaTaller preguntando = service.conversar(NEGOCIO_ID, "foto", FOTO, ESTADO, HISTORIAL, AHORA, LIMITE);
 
-        assertThat(sinPreguntar.opciones().pregunta()).isEqualTo("¿Qué significan los tildes?");
-        assertThat(preguntando.opciones().pregunta()).isEqualTo("¿Qué significan los tildes?");
+        assertThat(sinPreguntar.preguntas().getFirst().pregunta()).isEqualTo("¿Qué significan los tildes?");
+        assertThat(preguntando.preguntas().getFirst().pregunta()).isEqualTo("¿Qué significan los tildes?");
     }
 
     @Test
-    @DisplayName("Con foto, si ya cargó registros no se le pide nada más; sin foto, tampoco")
+    @DisplayName("Con foto, si ya cargó registros sólo se le piden las dudas; sin foto, no se le pide nada")
     void conversarShouldNotAskForRecordsWhenAlreadyLoadedOrWithoutPhoto() {
         givenQuotaAvailable();
         when(tallerIaPort.conversar(any()))
@@ -278,7 +277,29 @@ class TallerSamiServiceTest {
         service.conversar(NEGOCIO_ID, "te paso la foto", FOTO, ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
         service.conversar(NEGOCIO_ID, "hola", null, ESTADO, HISTORIAL, AHORA, LIMITE);
 
-        verify(tallerIaPort, times(2)).conversar(any());
+        verify(tallerIaPort, times(3)).conversar(any());
+    }
+
+    @Test
+    @DisplayName("Con foto, si el modelo no dejó dudas se le piden juntas; si ya preguntó en el texto, no")
+    void conversarShouldAskForTheDoubtsOfThePhotoOnlyWhenTheModelLeftNone() {
+        givenQuotaAvailable();
+        LlamadaHerramienta registros = new LlamadaHerramienta("cargar_registros", Map.of("pieza", "e1",
+                "filas", List.of(Map.of("Producto", "Yerba"))));
+        LlamadaHerramienta dudas = new LlamadaHerramienta("ofrecer_opciones", Map.of("preguntas", List.of(
+                Map.of("tema", "Tildes", "pregunta", "¿Qué significan los tildes?", "opciones", List.of("Entregado", "Pagado")),
+                Map.of("tema", "Número", "pregunta", "¿Qué es el número de la derecha?", "opciones", List.of("Costo", "Deuda")))));
+        when(tallerIaPort.conversar(any()))
+                .thenReturn(new ResultadoTallerIa("Cargué lo que leí.", List.of(registros), CONSUMO))
+                .thenReturn(new ResultadoTallerIa("", List.of(dudas), CONSUMO))
+                .thenReturn(new ResultadoTallerIa("Cargué lo que leí. ¿Los tildes son pagos?", List.of(registros), CONSUMO));
+
+        RespuestaTaller sinDudas = service.conversar(NEGOCIO_ID, "foto", FOTO, ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
+        RespuestaTaller yaPregunto = service.conversar(NEGOCIO_ID, "foto", FOTO, ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(sinDudas.preguntas()).extracting("tema").containsExactly("Tildes", "Número");
+        assertThat(yaPregunto.preguntas()).isEmpty();
+        verify(tallerIaPort, times(3)).conversar(any());
     }
 
     @Test
@@ -297,16 +318,127 @@ class TallerSamiServiceTest {
     }
 
     @Test
-    @DisplayName("Cuenta que cargó ejemplos en una pieza")
-    void conversarShouldDescribeLoadedExamples() {
+    @DisplayName("Cuenta que borró registros, con los criterios en palabras")
+    void conversarShouldDescribeDeletedRecords() {
         givenQuotaAvailable();
         when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa(null, List.of(
-                new LlamadaHerramienta("cargar_ejemplos", Map.of(
-                        "pieza", "e1", "filas", List.of(Map.of("Producto", "Yerba"))))), CONSUMO));
+                new LlamadaHerramienta("borrar_registros", Map.of("pieza", "e1", "donde", List.of(
+                        Map.of("Producto", "Yerba"), Map.of("Producto", "Fideos"))))), CONSUMO));
 
-        RespuestaTaller result = service.conversar(NEGOCIO_ID, "ejemplos", null, ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
+        RespuestaTaller result = service.conversar(NEGOCIO_ID, "borrá", null, ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
 
-        assertThat(result.texto()).isEqualTo("Cargué ejemplos en inventario. Mirá cómo queda.");
+        assertThat(result.texto())
+                .isEqualTo("Borré los registros de inventario donde Producto es Yerba, o Producto es Fideos. Mirá cómo queda.");
+    }
+
+    @Test
+    @DisplayName("Si dice que borró pero no invocó la herramienta, se le pide que lo haga")
+    void conversarShouldRetryWhenItClaimsToHaveDeletedWithoutTheTool() {
+        givenQuotaAvailable();
+        when(tallerIaPort.conversar(any()))
+                .thenReturn(new ResultadoTallerIa("Listo, borré las ventas de Anto.", List.of(), CONSUMO))
+                .thenReturn(new ResultadoTallerIa("Eliminé todo.", List.of(), CONSUMO));
+
+        RespuestaTaller result = service.conversar(NEGOCIO_ID, "borrá", null, ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(result.texto()).isEqualTo(TallerSamiService.SIN_CAMBIOS);
+        verify(tallerIaPort, times(2)).conversar(any());
+    }
+
+    @Test
+    @DisplayName("Si algunos renglones no se pudieron cargar, Sami lo dice en vez de afirmar que cargó todo")
+    void conversarShouldAdmitRecordsItCouldNotLoad() {
+        givenQuotaAvailable();
+        LlamadaHerramienta registros = new LlamadaHerramienta("cargar_registros", Map.of("pieza", "e1", "filas", List.of(
+                Map.of("Producto", "Yerba"), Map.of("Cantidad", 2), Map.of("Cantidad", 3))));
+        LlamadaHerramienta otra = new LlamadaHerramienta("cargar_registros", Map.of("pieza", "e1", "filas", List.of(
+                Map.of("Producto", "Fideos"), Map.of("Cantidad", 2))));
+        when(tallerIaPort.conversar(any()))
+                .thenReturn(new ResultadoTallerIa("Cargué todo.", List.of(registros), CONSUMO))
+                .thenReturn(new ResultadoTallerIa("Cargué todo.", List.of(otra), CONSUMO));
+
+        RespuestaTaller varios = service.conversar(NEGOCIO_ID, "foto", FOTO, ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
+        RespuestaTaller uno = service.conversar(NEGOCIO_ID, "foto", FOTO, ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(varios.texto()).endsWith("No pude cargar 2 renglones de la foto: faltan en la tabla, revisalos.");
+        assertThat(uno.texto()).endsWith("No pude cargar 1 renglón de la foto: faltan en la tabla, revisalos.");
+    }
+
+    @Test
+    @DisplayName("Si el segundo pedido de la foto también descarta renglones, se suman a los del primero")
+    void conversarShouldAddUpRecordsDroppedInTheSecondRequest() {
+        givenQuotaAvailable();
+        LlamadaHerramienta registros = new LlamadaHerramienta("cargar_registros", Map.of("pieza", "e1", "filas", List.of(
+                Map.of("Producto", "Yerba"), Map.of("Cantidad", 2))));
+        when(tallerIaPort.conversar(any()))
+                .thenReturn(new ResultadoTallerIa("Armé.", List.of(
+                        new LlamadaHerramienta("renombrar_sistema", Map.of("nombre", "Mis ventas"))), CONSUMO))
+                .thenReturn(new ResultadoTallerIa("", List.of(registros), CONSUMO));
+
+        RespuestaTaller result = service.conversar(NEGOCIO_ID, "foto", FOTO, ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(result.texto()).endsWith("No pude cargar 1 renglón de la foto: faltan en la tabla, revisalos.");
+    }
+
+    @Test
+    @DisplayName("Si borra para recargar, como pidió la persona, y no carga, se le pide una vez que cargue lo corregido")
+    void conversarShouldAskToReloadWhenItOnlyDeleted() {
+        givenQuotaAvailable();
+        LlamadaHerramienta borrar = new LlamadaHerramienta("borrar_registros",
+                Map.of("pieza", "e1", "donde", Map.of("Producto", "Yerba")));
+        LlamadaHerramienta cargar = new LlamadaHerramienta("cargar_registros",
+                Map.of("pieza", "e1", "filas", List.of(Map.of("Producto", "Yerba Playadito"))));
+        when(tallerIaPort.conversar(any()))
+                .thenReturn(new ResultadoTallerIa("Borro y recargo.", List.of(borrar), CONSUMO))
+                .thenReturn(new ResultadoTallerIa("", List.of(cargar), CONSUMO));
+
+        RespuestaTaller result = service.conversar(NEGOCIO_ID, "borrá la yerba y cargala de nuevo como Yerba Playadito",
+                null, ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(result.acciones()).extracting(AccionTaller::herramienta)
+                .containsExactly("borrar_registros", "cargar_registros");
+        assertThat(result.texto()).isEqualTo("Borro y recargo. Cargué 1 registro en inventario.");
+        ArgumentCaptor<ConsultaTaller> captor = ArgumentCaptor.forClass(ConsultaTaller.class);
+        verify(tallerIaPort, times(2)).conversar(captor.capture());
+        assertThat(captor.getAllValues().get(1).mensaje()).startsWith(TallerSamiService.PEDIDO_RECARGA)
+                .endsWith("como Yerba Playadito");
+    }
+
+    @Test
+    @DisplayName("Si sólo pidió borrar, no se le pide cargar nada; y si el pedido extra no carga, queda el borrado")
+    void conversarShouldNotAskToReloadWhenOnlyDeletingWasRequested() {
+        givenQuotaAvailable();
+        LlamadaHerramienta borrar = new LlamadaHerramienta("borrar_registros",
+                Map.of("pieza", "e1", "donde", Map.of("Producto", "Yerba")));
+        when(tallerIaPort.conversar(any()))
+                .thenReturn(new ResultadoTallerIa("Listo.", List.of(borrar), CONSUMO))
+                .thenReturn(new ResultadoTallerIa("Listo.", List.of(borrar), CONSUMO))
+                .thenReturn(new ResultadoTallerIa("No sé.", List.of(), CONSUMO));
+
+        RespuestaTaller soloBorrar = service.conversar(NEGOCIO_ID, "borrá la yerba", null, ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
+        RespuestaTaller sinRecarga = service.conversar(NEGOCIO_ID, "borrala y cargala otra vez", null, ESTADO_CON_DATOS, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(soloBorrar.acciones()).hasSize(1);
+        assertThat(sinRecarga.acciones()).hasSize(1);
+        assertThat(sinRecarga.texto()).isEqualTo("Listo.");
+        verify(tallerIaPort, times(3)).conversar(any());
+    }
+
+    @Test
+    @DisplayName("Si borra y carga en la misma respuesta, no se le pide nada más")
+    void conversarShouldNotAskAgainWhenItDeletedAndReloadedTogether() {
+        givenQuotaAvailable();
+        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa("Listo.", List.of(
+                new LlamadaHerramienta("borrar_registros", Map.of("pieza", "e1", "donde", Map.of("Producto", "Yerba"))),
+                new LlamadaHerramienta("cargar_registros", Map.of("pieza", "e1",
+                        "filas", List.of(Map.of("Producto", "Yerba Playadito"))))), CONSUMO));
+
+        RespuestaTaller result = service.conversar(NEGOCIO_ID, "borrala y cargala de nuevo", null, ESTADO_CON_DATOS,
+                HISTORIAL, AHORA, LIMITE);
+
+        assertThat(result.acciones()).extracting(AccionTaller::herramienta)
+                .containsExactly("borrar_registros", "cargar_registros");
+        verify(tallerIaPort, times(1)).conversar(any());
     }
 
     @Test
@@ -344,7 +476,7 @@ class TallerSamiServiceTest {
         RespuestaTaller result = service.conversar(NEGOCIO_ID, "ayuda", null, ESTADO, HISTORIAL, AHORA, LIMITE);
 
         assertThat(result.texto()).isEqualTo("¿Qué sumamos?");
-        assertThat(result.opciones().opciones()).containsExactly("Gastos", "Clientes");
+        assertThat(result.preguntas().getFirst().opciones()).containsExactly("Gastos", "Clientes");
     }
 
     @Test

@@ -28,24 +28,32 @@ import java.util.stream.Collectors;
  */
 public class PromptTaller {
 
-    /** v3: fotos en el turno y {@code cargar_registros}. */
-    public static final String VERSION = "v3";
+    /** v4: varias dudas juntas, {@code borrar_registros} y sin filas inventadas por el modelo. */
+    public static final String VERSION = "v4";
     static final String MARCA_MENSAJE = "Mensaje de la persona:";
     static final String CON_FOTO = "La persona adjuntó una foto. En ESTE turno hacé todo esto: (1) en 1 o 2 frases"
             + " contale lo que ENTENDISTE de la foto («Veo un cuaderno de pedidos por clienta: Ana, Vero y Giz, con lo"
             + " que pidió cada una y un total»); (2) armá una primera versión SIN esperar respuestas: usar_kit o"
-            + " agregar_pieza si el sistema está vacío, y SIEMPRE cargar_registros con todas las filas que se leen;"
-            + " (3) al FINAL, como última herramienta, invocá ofrecer_opciones UNA vez con la duda más importante de"
-            + " lo ambiguo (por ejemplo si los tildes son lo que ya pagaron y lo sin tildar es deuda). Nunca contestes"
+            + " agregar_pieza si el sistema está vacío, y SIEMPRE cargar_registros con TODAS las filas que se leen, sin saltear ningún renglón (cada compra de un"
+            + " cliente es una fila de Ventas; contá los renglones y no dejes ninguno afuera; uno tachado no se carga y"
+            + " lo mencionás). En cada fila de Ventas separá los datos: Cliente (la clienta del bloque), Producto SIN la"
+            + " cantidad en el nombre («Almohaditas Frutilla», no «Almohaditas Frutilla 1/2»), Cantidad como número (1/2 = 0.5,"
+            + " 1/4 = 0.25, «1» = 1) y Precio; y también con los productos DISTINTOS que aparecen (nombre y precio de"
+            + " lista si se ve) en la pieza de productos/inventario, sin inventar costos ni cantidades de stock;"
+            + " (3) al FINAL, como última herramienta y SIEMPRE (un turno con foto sin ofrecer_opciones está incompleto), invocá"
+            + " ofrecer_opciones UNA sola vez con TODAS tus dudas de"
+            + " lo ambiguo en `preguntas` (hasta 3; por ejemplo qué significan los tildes, si el número de la derecha"
+            + " es costo o lo que deben, cuál de dos totales es el correcto). Nunca contestes"
             + " sólo con la pregunta ni digas «antes de arrancar»."
             + " Los pedidos o ventas de clientes van en Ventas (o Pedidos) con su Cliente, nunca en"
             + " Compras ni con la clienta como proveedor; si hay deuda, es lo que cada cliente debe de esos pedidos"
             + " (Fiado = Sí / Debe), no una lista aparte inventada. Armá las piezas con las columnas de la foto"
             + " («Vela» va en «Producto», «Clienta» en «Cliente») o renombrá antes el dato con editar_campo. Lo que"
-            + " viene de la foto son datos reales: no cargues ejemplos (ni uses los del kit) y no inventes lo que no se"
+            + " viene de la foto son datos reales: no cargues ejemplos (ni uses los del kit) y no inventes ninguna fila, producto ni cliente lo que no se"
             + " lee ni lo que no está en la foto. Mientras la persona no confirme, hablá de «primera versión» y de lo"
-            + " que supusiste, nunca de «tus datos ya quedaron». Si en la conversación reciente ya respondió tu"
-            + " pregunta, ajustá con las herramientas (editar_campo, cargar_registros…) según su respuesta.";
+            + " que supusiste, nunca de «tus datos ya quedaron». Si en la conversación reciente ya respondió tus"
+            + " dudas, ajustá con las herramientas (editar_campo, cargar_registros…) según sus respuestas; si tenés que"
+            + " recargar registros que ya cargaste, antes borralos con borrar_registros.";
     static final String MARCA_KIT = "Kit del rubro:";
     static final String SIN_PIEZAS = "Todavía no tiene piezas.";
 

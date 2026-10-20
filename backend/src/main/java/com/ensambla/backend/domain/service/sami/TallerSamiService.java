@@ -52,12 +52,25 @@ public class TallerSamiService {
     static final String PEDIDO_REGISTROS = "Ya armé las piezas que ves. Tu respuesta tiene que llevar DOS"
             + " invocaciones juntas: (1) cargar_registros con todas las filas que se leen en la foto, en la pieza que"
             + " corresponda (los pedidos de clientes van en Ventas o Pedidos con su Cliente, no en Compras) y con las"
-            + " etiquetas de sus datos; (2) ofrecer_opciones, con la duda más importante de la foto (por ejemplo qué"
-            + " significan los tildes: ¿ya pagado y lo sin tildar es deuda?) y 2 a 4 respuestas cortas. No cambies nada"
-            + " más.";
+            + " etiquetas de sus datos, SIN saltearte ningún renglón; además cargá en Productos (inventario) los"
+            + " productos DISTINTOS que se leen, con su nombre y su precio de lista si se ve (sin costos ni cantidades de"
+            + " stock que no estén en la foto); (2) ofrecer_opciones UNA sola vez, con en `preguntas` TODAS las dudas"
+            + " importantes de la foto (hasta 3; por ejemplo qué significan los tildes, si un número es costo o lo que"
+            + " debe, cuál de dos totales es el correcto), cada una con `tema` corto, `pregunta` y 2 a 4 respuestas"
+            + " cortas. No cambies nada más.";
+    /** El pedido extra de un turno con foto en el que el modelo no dejó ninguna duda. */
+    static final String PEDIDO_DUDAS = "Ya armé y cargué lo que se lee en la foto. Tu respuesta tiene que ser UNA sola"
+            + " invocación de ofrecer_opciones con en `preguntas` las dudas importantes de la foto (hasta 3; por ejemplo"
+            + " qué significan los tildes, si un número es costo o lo que deben, cuál de dos totales es el correcto),"
+            + " cada una con `tema` corto, `pregunta` y 2 a 4 respuestas cortas. No cambies nada más.";
+    /** El pedido extra cuando Sami borró registros para recargarlos (como pidió la persona) y no los cargó. */
+    static final String PEDIDO_RECARGA = "Ya borraste los registros que la persona pidió. Tu respuesta tiene que ser UNA"
+            + " invocación de cargar_registros con las filas corregidas que la persona te indicó, en la pieza que"
+            + " corresponda y con las etiquetas de sus datos. No cambies nada más. Lo que pidió la persona: ";
+    private static final Pattern PIDE_CARGAR = Pattern.compile("(?iU)\\b(re)?carg\\w*");
     /** Verbos con los que Sami cuenta un cambio hecho («Armé tu sistema…»). */
     private static final Pattern AFIRMA_CAMBIOS = Pattern.compile(
-            "(?iU)\\b(armé|sumé|agregué|renombré|moví|conecté|quité|cambié|cargué|creé|separé)\\b");
+            "(?iU)\\b(armé|sumé|agregué|renombré|moví|conecté|quité|cambié|cargué|creé|separé|borré|eliminé)\\b");
 
     /** Describe una acción; recibe sus argumentos y el nombre de cada pieza según cómo la nombran las acciones. */
     private interface Descripcion extends BiFunction<Map<String, Object>, Map<String, String>, String> {
@@ -92,11 +105,12 @@ public class TallerSamiService {
                 (args, nombres) -> "Quité " + args.get("campo") + " de " + pieza(args.get("pieza"), nombres));
         descripciones.put(HerramientaTaller.EDITAR_CAMPO,
                 (args, nombres) -> "Cambié " + args.get("campo") + " en " + pieza(args.get("pieza"), nombres));
-        descripciones.put(HerramientaTaller.CARGAR_EJEMPLOS,
-                (args, nombres) -> "Cargué ejemplos en " + pieza(args.get("pieza"), nombres));
         descripciones.put(HerramientaTaller.CARGAR_REGISTROS,
                 (args, nombres) -> registros(((List<?>) args.get("filas")).size())
                         + " en " + pieza(args.get("pieza"), nombres));
+        descripciones.put(HerramientaTaller.BORRAR_REGISTROS,
+                (args, nombres) -> "Borré los registros de " + pieza(args.get("pieza"), nombres)
+                        + " donde " + criterios(args.get("donde")));
         descripciones.put(HerramientaTaller.CONECTAR,
                 (args, nombres) -> "Conecté " + pieza(args.get("desde"), nombres)
                         + " con " + pieza(args.get("hacia"), nombres));
@@ -131,18 +145,22 @@ public class TallerSamiService {
             consumoSamiRepository.registrar(negocioId, fecha, resultado.consumo(), ahora);
             validacion = herramientasTallerService.validar(resultado.llamadas(), estado);
             if (afirmaCambiosSinHacerlos(resultado, validacion)) {
-                return new RespuestaTaller(SIN_CAMBIOS, List.of(), validacion.opciones());
+                return new RespuestaTaller(SIN_CAMBIOS, List.of(), validacion.preguntas());
             }
         }
         String texto = texto(resultado.texto(), validacion, estado);
-        List<AccionTaller> acciones = imagen == null ? validacion.acciones() : sinEjemplos(validacion.acciones());
-        OpcionesTaller opciones = opciones(resultado, validacion);
+        // Los ejemplos del kit sólo sirven para imaginar un sistema nuevo: con una foto, o ajustando uno armado, no.
+        boolean sinDatosDeEjemplo = imagen != null || !estado.piezas().isEmpty();
+        List<AccionTaller> acciones = sinDatosDeEjemplo ? sinEjemplos(validacion.acciones()) : validacion.acciones();
+        List<OpcionesTaller> preguntas = preguntas(resultado, validacion);
+        int sinCargar = validacion.registrosDescartados();
         if (imagen != null && sinRegistros(acciones)) {
             // Con una foto, el modelo a veces arma las piezas y se olvida de cargar lo que lee. Se le pide una vez que
             // cargue las filas, viendo ya las piezas armadas (y sus datos) para que use las etiquetas correctas. Si el
             // modelo no había preguntado nada, la duda de este segundo pedido reemplaza a la pregunta genérica del kit.
             ValidacionTaller segunda = registrosDeLaFoto(negocioId, fecha, ahora, imagen, estado, historial,
                     validacion.piezas());
+            sinCargar += segunda.registrosDescartados();
             List<AccionTaller> registros = soloRegistros(segunda);
             if (!registros.isEmpty()) {
                 acciones = new ArrayList<>(acciones);
@@ -150,10 +168,31 @@ public class TallerSamiService {
                 texto = texto + " " + describirTodas(registros, validacion.piezas()) + ".";
             }
             if (!usoLaBotonera(resultado)) {
-                opciones = segunda.opciones();
+                preguntas = segunda.preguntas();
             }
         }
-        return new RespuestaTaller(texto, List.copyOf(acciones), opciones);
+        if (borraSinRecargar(acciones, mensaje)) {
+            // Sami borró lo que había para cargarlo de nuevo, como pidió la persona, pero se quedó a mitad de camino.
+            // Se le pide una vez que cargue las filas corregidas, viendo ya el estado después de borrar.
+            acciones = new ArrayList<>(acciones);
+            List<AccionTaller> recarga = recarga(negocioId, fecha, ahora, imagen, estado, historial, mensaje,
+                    validacion.piezas());
+            acciones.addAll(recarga);
+            if (!recarga.isEmpty()) {
+                texto = texto + " " + describirTodas(recarga, validacion.piezas()) + ".";
+            }
+        }
+        if (imagen != null && preguntas.isEmpty() && !preguntoEnElTexto(resultado)) {
+            // Con una foto siempre hay algo para confirmar (los tildes, un número, un total): si el modelo no lo
+            // preguntó, se le pide una vez, viendo ya lo armado, que junte sus dudas en la botonera.
+            preguntas = dudasDeLaFoto(negocioId, fecha, ahora, imagen, estado, historial, validacion.piezas());
+        }
+        if (sinCargar > 0) {
+            // Sami nunca afirma que cargó todo si parte de lo que leyó no se pudo cargar.
+            texto = texto + " " + (sinCargar == 1 ? "No pude cargar 1 renglón de la foto"
+                    : "No pude cargar " + sinCargar + " renglones de la foto") + ": faltan en la tabla, revisalos.";
+        }
+        return new RespuestaTaller(texto, List.copyOf(acciones), preguntas);
     }
 
     /**
@@ -185,6 +224,29 @@ public class TallerSamiService {
         return herramientasTallerService.validar(resultado.llamadas(), armado);
     }
 
+    private List<OpcionesTaller> dudasDeLaFoto(UUID negocioId, LocalDate fecha, OffsetDateTime ahora,
+                                                ImagenTaller imagen, EstadoTaller estado,
+                                                List<MensajeTaller> historial, List<PiezaTaller> piezas) {
+        EstadoTaller armado = new EstadoTaller(estado.nombre(), estado.distribucion(), piezas);
+        ResultadoTallerIa resultado = consultar(new ConsultaTaller(PEDIDO_DUDAS, armado, historial, null, imagen));
+        consumoSamiRepository.registrar(negocioId, fecha, resultado.consumo(), ahora);
+        return herramientasTallerService.validar(resultado.llamadas(), armado).preguntas();
+    }
+
+    private boolean borraSinRecargar(List<AccionTaller> acciones, String mensaje) {
+        return acciones.stream().anyMatch(accion -> HerramientaTaller.BORRAR_REGISTROS.nombre().equals(accion.herramienta()))
+                && sinRegistros(acciones) && PIDE_CARGAR.matcher(mensaje).find();
+    }
+
+    private List<AccionTaller> recarga(UUID negocioId, LocalDate fecha, OffsetDateTime ahora, ImagenTaller imagen,
+                                       EstadoTaller estado, List<MensajeTaller> historial, String mensaje,
+                                       List<PiezaTaller> piezas) {
+        EstadoTaller armado = new EstadoTaller(estado.nombre(), estado.distribucion(), piezas);
+        ResultadoTallerIa resultado = consultar(new ConsultaTaller(PEDIDO_RECARGA + mensaje, armado, historial, null, imagen));
+        consumoSamiRepository.registrar(negocioId, fecha, resultado.consumo(), ahora);
+        return soloRegistros(herramientasTallerService.validar(resultado.llamadas(), armado));
+    }
+
     private List<AccionTaller> soloRegistros(ValidacionTaller validacion) {
         return validacion.acciones().stream()
                 .filter(accion -> HerramientaTaller.CARGAR_REGISTROS.nombre().equals(accion.herramienta()))
@@ -200,9 +262,12 @@ public class TallerSamiService {
      * Si el modelo ya preguntó en su texto sin usar la botonera, no se suma la pregunta del kit: serían dos preguntas
      * distintas a la vez.
      */
-    private OpcionesTaller opciones(ResultadoTallerIa resultado, ValidacionTaller validacion) {
-        boolean preguntoEnElTexto = resultado.texto() != null && resultado.texto().contains("?");
-        return preguntoEnElTexto && !usoLaBotonera(resultado) ? null : validacion.opciones();
+    private List<OpcionesTaller> preguntas(ResultadoTallerIa resultado, ValidacionTaller validacion) {
+        return preguntoEnElTexto(resultado) && !usoLaBotonera(resultado) ? List.of() : validacion.preguntas();
+    }
+
+    private boolean preguntoEnElTexto(ResultadoTallerIa resultado) {
+        return resultado.texto() != null && resultado.texto().contains("?");
     }
 
     private boolean usoLaBotonera(ResultadoTallerIa resultado) {
@@ -227,7 +292,7 @@ public class TallerSamiService {
         if (texto != null && !texto.isBlank()) {
             return texto.replace("**", "").strip();
         }
-        String pregunta = validacion.opciones() == null ? null : validacion.opciones().pregunta();
+        String pregunta = validacion.preguntas().isEmpty() ? null : validacion.preguntas().getFirst().pregunta();
         if (validacion.acciones().isEmpty()) {
             return pregunta == null ? SIN_CAMBIOS : pregunta;
         }
@@ -267,6 +332,15 @@ public class TallerSamiService {
             nombres.put(pieza.nombre(), pieza.nombre());
         });
         return acciones.stream().map(accion -> describir(accion, nombres)).collect(Collectors.joining(". "));
+    }
+
+    /** Los criterios de un borrado en palabras: {@code Cliente es Ana y Fecha es 2026-10-18, o …}. */
+    private String criterios(Object donde) {
+        return ((List<?>) donde).stream()
+                .map(criterio -> ((Map<?, ?>) criterio).entrySet().stream()
+                        .map(dato -> dato.getKey() + " es " + dato.getValue())
+                        .collect(Collectors.joining(" y ")))
+                .collect(Collectors.joining(", o "));
     }
 
     private String registros(int cantidad) {

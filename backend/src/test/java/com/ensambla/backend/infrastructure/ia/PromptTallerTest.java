@@ -169,8 +169,8 @@ class PromptTallerTest {
     }
 
     @Test
-    @DisplayName("La versión del prompt es la del taller con fotos y registros")
-    void versionShouldBeV3() {
-        assertThat(PromptTaller.VERSION).isEqualTo("v3");
+    @DisplayName("La versión del prompt es la de varias dudas, borrado de registros y sin filas inventadas")
+    void versionShouldBeV4() {
+        assertThat(PromptTaller.VERSION).isEqualTo("v4");
     }
 }

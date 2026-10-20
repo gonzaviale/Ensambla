@@ -130,7 +130,7 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         ConversarEnTallerResponse response = conversarEnTallerUseCase.execute(new ConversarEnTallerRequest(
                 usuarioId, "ayuda", new EstadoTallerItem("", "mosaic", List.of()), List.of(), null));
 
-        assertThat(response.opciones().opciones()).hasSizeBetween(2, 6);
+        assertThat(response.preguntas().getFirst().opciones()).hasSizeBetween(2, 6);
         assertThat(response.acciones()).isEmpty();
     }
 

@@ -47,7 +47,7 @@ class HerramientasTallerServiceTest {
         ValidacionTaller result = validar();
 
         assertThat(result.acciones()).isEmpty();
-        assertThat(result.opciones()).isNull();
+        assertThat(result.preguntas()).isEmpty();
         assertThat(result.descartadas()).isZero();
     }
 
@@ -304,8 +304,9 @@ class HerramientasTallerServiceTest {
                 "pregunta", " ¿Qué querés sumar? ", "opciones", List.of("Gastos", " Clientes ", "Gastos"))));
 
         assertThat(result.acciones()).isEmpty();
-        assertThat(result.opciones().pregunta()).isEqualTo("¿Qué querés sumar?");
-        assertThat(result.opciones().opciones()).containsExactly("Gastos", "Clientes");
+        assertThat(result.preguntas()).hasSize(1);
+        assertThat(result.preguntas().getFirst().pregunta()).isEqualTo("¿Qué querés sumar?");
+        assertThat(result.preguntas().getFirst().opciones()).containsExactly("Gastos", "Clientes");
     }
 
     @Test
@@ -315,7 +316,7 @@ class HerramientasTallerServiceTest {
 
         ValidacionTaller result = validar(llamada("ofrecer_opciones", Map.of("pregunta", "¿Cuál?", "opciones", muchas)));
 
-        assertThat(result.opciones().opciones()).containsExactly("1", "2", "3", "4", "5", "6");
+        assertThat(result.preguntas().getFirst().opciones()).containsExactly("1", "2", "3", "4", "5", "6");
     }
 
     @Test
@@ -330,7 +331,7 @@ class HerramientasTallerServiceTest {
                 llamada("ofrecer_opciones", Map.of("pregunta", "¿Cuál?", "opciones", List.of("A", 5, " "))),
                 llamada("ofrecer_opciones", noEsLista));
 
-        assertThat(result.opciones()).isNull();
+        assertThat(result.preguntas()).isEmpty();
         assertThat(result.descartadas()).isEqualTo(4);
     }
 
@@ -341,7 +342,7 @@ class HerramientasTallerServiceTest {
                 llamada("ofrecer_opciones", Map.of("pregunta", "¿Cuál?", "opciones", List.of("A", "B"))),
                 llamada("ofrecer_opciones", Map.of("pregunta", "¿Otra?", "opciones", List.of("A"))));
 
-        assertThat(result.opciones().pregunta()).isEqualTo("¿Cuál?");
+        assertThat(result.preguntas()).extracting("pregunta").containsExactly("¿Cuál?");
         assertThat(result.descartadas()).isEqualTo(1);
     }
 

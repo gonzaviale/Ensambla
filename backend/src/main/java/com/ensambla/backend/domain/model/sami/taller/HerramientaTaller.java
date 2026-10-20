@@ -15,9 +15,10 @@ public enum HerramientaTaller {
     QUITAR_CAMPO("quitar_campo"),
     /** Cambia la etiqueta, el tipo, las opciones, si es obligatorio o el lugar de un dato que ya existe. */
     EDITAR_CAMPO("editar_campo"),
-    CARGAR_EJEMPLOS("cargar_ejemplos"),
     /** Registros reales (por ejemplo, leídos de una foto): se suman a los que haya y se guardan al crear el sistema. */
     CARGAR_REGISTROS("cargar_registros"),
+    /** Quita registros ya cargados de una pieza: los que coinciden con los datos que se indican. */
+    BORRAR_REGISTROS("borrar_registros"),
     CONECTAR("conectar"),
     SEPARAR_EN_SECCION("separar_en_seccion"),
     CAMBIAR_DISTRIBUCION("cambiar_distribucion"),

@@ -73,8 +73,6 @@
    "permiteExtras": true, "armado": true},
   {"id": "conectar-turnos-clientes", "estado": "peluqueria", "mensaje": "conectá los turnos con los clientes",
    "esperadas": [{"herramienta": "conectar", "args": {"desde": "Turnos", "hacia": "clients"}}]},
-  {"id": "cargar-ejemplos-inventario", "estado": "almacen", "mensaje": "cargale al inventario de ejemplo yerba, fideos y aceite",
-   "esperadas": [{"herramienta": "cargar_ejemplos", "args": {"pieza": "inventory"}}]},
   {"id": "armado-negocio-velas", "estado": "vacio", "mensaje": "armame un negocio sobre velas",
    "esperadas": [], "permiteExtras": true, "armado": true},
   {"id": "armado-taller-mecanico", "estado": "vacio", "mensaje": "tengo un taller mecánico, hago arreglos y vendo repuestos",

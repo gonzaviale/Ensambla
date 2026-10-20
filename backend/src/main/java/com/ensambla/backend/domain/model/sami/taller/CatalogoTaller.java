@@ -48,6 +48,11 @@ public final class CatalogoTaller {
     public static final int MIN_OPCIONES = 2;
     public static final int MAX_OPCIONES = 6;
     public static final int MAX_LARGO_PREGUNTA = 200;
+    /** Dudas que Sami puede plantear juntas en un turno. */
+    public static final int MAX_PREGUNTAS = 3;
+    public static final int MAX_LARGO_TEMA = 40;
+    /** Condiciones que puede traer un {@code borrar_registros} (cada una identifica filas por sus datos). */
+    public static final int MAX_CRITERIOS_BORRADO = 10;
 
     private CatalogoTaller() {
     }

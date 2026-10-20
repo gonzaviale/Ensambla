@@ -44,9 +44,9 @@ public class ConversarEnTallerMapper {
         List<AccionTallerItem> acciones = respuesta.acciones().stream()
                 .map(accion -> new AccionTallerItem(accion.herramienta(), accion.argumentos()))
                 .toList();
-        OpcionesTallerItem opciones = respuesta.opciones() == null
-                ? null
-                : new OpcionesTallerItem(respuesta.opciones().pregunta(), respuesta.opciones().opciones());
-        return new ConversarEnTallerResponse(respuesta.texto(), acciones, opciones);
+        List<OpcionesTallerItem> preguntas = respuesta.preguntas().stream()
+                .map(duda -> new OpcionesTallerItem(duda.tema(), duda.pregunta(), duda.opciones()))
+                .toList();
+        return new ConversarEnTallerResponse(respuesta.texto(), acciones, preguntas);
     }
 }

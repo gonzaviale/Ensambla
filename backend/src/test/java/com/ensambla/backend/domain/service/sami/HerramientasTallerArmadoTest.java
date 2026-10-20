@@ -40,8 +40,8 @@ class HerramientasTallerArmadoTest {
     }
 
     @Test
-    @DisplayName("Suma una pieza con nombre, datos extra, ejemplos y sección")
-    void agregarPiezaShouldAcceptNameFieldsExamplesAndSection() {
+    @DisplayName("Suma una pieza con nombre, datos extra y sección, e ignora las filas de ejemplo que inventa el modelo")
+    void agregarPiezaShouldAcceptNameFieldsAndSectionAndIgnoreInventedExamples() {
         ValidacionTaller result = validar(VACIO, llamada("agregar_pieza", Map.of(
                 "tipo", "inventory",
                 "nombre", " Velas ",
@@ -55,7 +55,6 @@ class HerramientasTallerArmadoTest {
                 "nombre", "Velas",
                 "campos", List.of(Map.of("etiqueta", "Aroma", "tipo", "text"),
                         Map.of("etiqueta", "Cera", "tipo", "select", "opciones", List.of("Soja", "Coco"))),
-                "ejemplos", List.of(Map.of("Producto", "Vela lavanda", "Cantidad", 8, "Aroma", "Lavanda")),
                 "seccion", "Taller")));
     }
 
@@ -136,64 +135,23 @@ class HerramientasTallerArmadoTest {
     }
 
     @Test
-    @DisplayName("Los ejemplos usan las etiquetas de la pieza y descartan celdas, filas y valores inválidos")
-    void agregarPiezaShouldCleanExamples() {
-        Map<String, Object> conNulo = new HashMap<>();
-        conNulo.put("Producto", null);
-        List<Object> ejemplos = new ArrayList<>();
-        ejemplos.add("no es una fila");
-        ejemplos.add(Map.of("Inventado", "x"));
-        ejemplos.add(conNulo);
-        ejemplos.add(Map.of("Producto", "x".repeat(81), "Cantidad", List.of(1)));
-        // Sin el dato principal (Producto) la fila se vería vacía en la tabla: se cae.
-        ejemplos.add(Map.of("cantidad", 3, "Fiado", true, "Inventado", "y"));
-        ejemplos.add(Map.of("producto", "Vela lavanda", "cantidad", 2, "Fiado", true, "Inventado", "y"));
-
-        ValidacionTaller result = validar(VACIO, llamada("agregar_pieza", Map.of("tipo", "sales", "ejemplos", ejemplos)));
-
-        assertThat(result.acciones().getFirst().argumentos()).containsEntry("ejemplos",
-                List.of(Map.of("Producto", "Vela lavanda", "Cantidad", 2, "Fiado", true)));
-    }
-
-    @Test
-    @DisplayName("Se queda con las primeras cinco filas de ejemplo y no manda ejemplos si no es una lista")
-    void agregarPiezaShouldCapExamples() {
-        List<Map<String, Object>> siete = IntStream.rangeClosed(1, 7)
-                .mapToObj(numero -> Map.<String, Object>of("Concepto", "Gasto " + numero))
-                .toList();
-
-        ValidacionTaller result = validar(VACIO,
-                llamada("agregar_pieza", Map.of("tipo", "expenses", "ejemplos", siete)),
-                llamada("agregar_pieza", Map.of("tipo", "clients", "ejemplos", "Juan")));
-
-        assertThat((List<?>) result.acciones().get(0).argumentos().get("ejemplos")).hasSize(5);
-        assertThat(result.acciones().get(1).argumentos()).doesNotContainKey("ejemplos");
-    }
-
-    @Test
-    @DisplayName("Reemplaza los ejemplos de una pieza existente o recién sumada")
-    void cargarEjemplosShouldReplaceRows() {
+    @DisplayName("Las filas que inventa el modelo nunca pasan: ni en agregar_pieza ni con cargar_ejemplos")
+    void ejemplosDelModeloShouldNeverPass() {
         ValidacionTaller result = validar(CON_PIEZAS,
-                llamada("cargar_ejemplos", Map.of("pieza", "Stock", "filas", List.of(Map.of("Producto", "Yerba")))),
-                llamada("agregar_pieza", Map.of("tipo", "form", "nombre", "Turnos")),
-                llamada("cargar_ejemplos", Map.of("pieza", "turnos", "filas", List.of(Map.of("nombre", "Paula")))));
+                llamada("agregar_pieza", Map.of("tipo", "expenses",
+                        "ejemplos", List.of(Map.of("Concepto", "Alquiler")))),
+                llamada("cargar_ejemplos", Map.of("pieza", "e1", "filas", List.of(Map.of("Producto", "Yerba")))));
 
-        assertThat(result.acciones()).containsExactly(
-                accion("cargar_ejemplos", Map.of("pieza", "e1", "filas", List.of(Map.of("Producto", "Yerba")))),
-                accion("agregar_pieza", Map.of("tipo", "form", "nombre", "Turnos")),
-                accion("cargar_ejemplos", Map.of("pieza", "Turnos", "filas", List.of(Map.of("Nombre", "Paula")))));
+        assertThat(result.acciones()).containsExactly(accion("agregar_pieza", Map.of("tipo", "expenses")));
+        assertThat(result.descartadas()).isEqualTo(1);
     }
 
     @Test
-    @DisplayName("No carga ejemplos sin filas válidas o en una pieza que no existe")
-    void cargarEjemplosShouldRejectInvalidInput() {
-        ValidacionTaller result = validar(CON_PIEZAS,
-                llamada("cargar_ejemplos", Map.of("pieza", "e1", "filas", List.of(Map.of("Color", "Rojo")))),
-                llamada("cargar_ejemplos", Map.of("pieza", "e1")),
-                llamada("cargar_ejemplos", Map.of("pieza", "nada", "filas", List.of(Map.of("Producto", "x")))));
+    @DisplayName("Los ejemplos del kit del catálogo sí se suman al armar con usar_kit")
+    void usarKitShouldKeepTheCatalogExamples() {
+        ValidacionTaller result = validar(VACIO, llamada("usar_kit", Map.of("rubro", "velas")));
 
-        assertThat(result.acciones()).isEmpty();
-        assertThat(result.descartadas()).isEqualTo(3);
+        assertThat(result.acciones()).anyMatch(accion -> accion.argumentos().containsKey("ejemplos"));
     }
 
     @Test
@@ -227,6 +185,7 @@ class HerramientasTallerArmadoTest {
         List<?> cargadas = (List<?>) result.acciones().getFirst().argumentos().get("filas");
         assertThat(cargadas).hasSize(30);
         assertThat(cargadas.getFirst()).isEqualTo(Map.of("Producto", "Producto 1", "Cantidad", 1));
+        assertThat(result.registrosDescartados()).as("la fila sin producto y las 5 pasadas del tope").isEqualTo(6);
     }
 
     @Test
@@ -239,6 +198,72 @@ class HerramientasTallerArmadoTest {
 
         assertThat(result.acciones()).isEmpty();
         assertThat(result.descartadas()).isEqualTo(3);
+        assertThat(result.registrosDescartados()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("Borra registros por los datos que coinciden: un criterio o una lista, con las etiquetas de la pieza")
+    void borrarRegistrosShouldAcceptOneOrManyCriteria() {
+        ValidacionTaller result = validar(CON_PIEZAS,
+                llamada("borrar_registros", Map.of("pieza", "Stock", "donde", Map.of("producto", " Yerba ", "cantidad", 3))),
+                llamada("borrar_registros", Map.of("pieza", "e1", "donde", List.of(
+                        Map.of("Producto", "Fideos"), Map.of("Producto", "Aceite")))));
+
+        assertThat(result.acciones()).containsExactly(
+                accion("borrar_registros", Map.of("pieza", "e1", "donde", List.of(
+                        Map.of("Producto", "Yerba", "Cantidad", 3)))),
+                accion("borrar_registros", Map.of("pieza", "e1", "donde", List.of(
+                        Map.of("Producto", "Fideos"), Map.of("Producto", "Aceite")))));
+    }
+
+    @Test
+    @DisplayName("Nunca borra de más: sin criterio, con un dato que la pieza no tiene o con un valor no simple se descarta")
+    void borrarRegistrosShouldNeverWidenTheCriterion() {
+        Map<String, Object> vacio = new HashMap<>();
+        ValidacionTaller result = validar(CON_PIEZAS,
+                llamada("borrar_registros", Map.of("pieza", "e1")),
+                llamada("borrar_registros", Map.of("pieza", "e1", "donde", vacio)),
+                llamada("borrar_registros", Map.of("pieza", "e1", "donde", Map.of("Color", "Rojo"))),
+                llamada("borrar_registros", Map.of("pieza", "e1", "donde", Map.of("Producto", "Yerba", "Color", "Rojo"))),
+                llamada("borrar_registros", Map.of("pieza", "e1", "donde", Map.of("Producto", List.of("x")))),
+                llamada("borrar_registros", Map.of("pieza", "e1", "donde", "todo")),
+                llamada("borrar_registros", Map.of("pieza", "nada", "donde", Map.of("Producto", "Yerba"))));
+
+        assertThat(result.acciones()).isEmpty();
+        assertThat(result.descartadas()).isEqualTo(7);
+    }
+
+    @Test
+    @DisplayName("Si un criterio no vale pero otro sí, sólo se borra con el válido; y no más de diez criterios")
+    void borrarRegistrosShouldKeepOnlyValidCriteriaUpToTen() {
+        List<Map<String, Object>> criterios = new ArrayList<>(IntStream.rangeClosed(1, 12)
+                .<Map<String, Object>>mapToObj(numero -> Map.of("Producto", "P" + numero)).toList());
+        criterios.addFirst(Map.of("Color", "Rojo"));
+
+        ValidacionTaller result = validar(CON_PIEZAS,
+                llamada("borrar_registros", Map.of("pieza", "e1", "donde", criterios)));
+
+        assertThat((List<?>) result.acciones().getFirst().argumentos().get("donde")).hasSize(10)
+                .first().isEqualTo(Map.of("Producto", "P1"));
+    }
+
+    @Test
+    @DisplayName("Varias dudas juntas: llegan en el orden pedido con su tema, hasta tres, sin repetir y sumando llamadas")
+    void ofrecerOpcionesShouldCollectUpToThreeQuestions() {
+        ValidacionTaller result = validar(VACIO,
+                llamada("ofrecer_opciones", Map.of("preguntas", List.of(
+                        Map.of("tema", " Tildes ", "pregunta", "¿Qué significan los tildes?", "opciones", List.of("Entregado", "Pagado")),
+                        Map.of("pregunta", "¿Costo o deuda?", "opciones", List.of("Costo", "Deuda")),
+                        Map.of("pregunta", "¿Sin opciones?", "opciones", List.of("Una sola")),
+                        "no es una duda"))),
+                llamada("ofrecer_opciones", Map.of("pregunta", "¿Costo o deuda?", "opciones", List.of("Costo", "Deuda"))),
+                llamada("ofrecer_opciones", Map.of("pregunta", "¿Cuál total?", "opciones", List.of("37.000", "28.800"))),
+                llamada("ofrecer_opciones", Map.of("pregunta", "¿Una cuarta?", "opciones", List.of("Sí", "No"))));
+
+        assertThat(result.preguntas()).extracting("pregunta")
+                .containsExactly("¿Qué significan los tildes?", "¿Costo o deuda?", "¿Cuál total?");
+        assertThat(result.preguntas().getFirst().tema()).isEqualTo("Tildes");
+        assertThat(result.preguntas().get(1).tema()).isNull();
     }
 
     @Test
@@ -402,7 +427,8 @@ class HerramientasTallerArmadoTest {
     void usarKitShouldAddTheKitQuestionWhenTheModelDidNotAsk() {
         ValidacionTaller result = validar(VACIO, llamada("usar_kit", Map.of("rubro", "velas")));
 
-        assertThat(result.opciones()).isEqualTo(SamiPruebas.kitsReales().buscar("velas").orElseThrow().pregunta());
+        assertThat(result.preguntas())
+                .containsExactly(SamiPruebas.kitsReales().buscar("velas").orElseThrow().pregunta());
     }
 
     @Test
@@ -414,9 +440,9 @@ class HerramientasTallerArmadoTest {
         ValidacionTaller dosVeces = validar(CON_PIEZAS, llamada("usar_kit", Map.of("rubro", "velas")),
                 llamada("usar_kit", Map.of("rubro", "velas")));
 
-        assertThat(conPregunta.opciones()).isEqualTo(new OpcionesTaller("¿Vendés por pedido?", List.of("Sí", "No")));
-        assertThat(validar(VACIO, llamada("usar_kit", Map.of("rubro", "astronautas"))).opciones()).isNull();
-        assertThat(dosVeces.opciones()).as("la segunda vez no suma nada, la primera sí").isNotNull();
+        assertThat(conPregunta.preguntas()).containsExactly(new OpcionesTaller("¿Vendés por pedido?", List.of("Sí", "No")));
+        assertThat(validar(VACIO, llamada("usar_kit", Map.of("rubro", "astronautas"))).preguntas()).isEmpty();
+        assertThat(dosVeces.preguntas()).as("la segunda vez no suma nada, la primera sí").hasSize(1);
     }
 
     @Test

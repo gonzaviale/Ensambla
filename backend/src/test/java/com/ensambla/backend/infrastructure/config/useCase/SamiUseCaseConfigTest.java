@@ -91,7 +91,7 @@ class SamiUseCaseConfigTest {
         TallerSamiService tallerSamiService = mock(TallerSamiService.class);
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(UUID.randomUUID());
         when(tallerSamiService.conversar(any(), eq("hola"), any(), any(), any(), any(), eq(11)))
-                .thenReturn(new RespuestaTaller("Hola", List.of(), null));
+                .thenReturn(new RespuestaTaller("Hola", List.of(), List.of()));
 
         ConversarEnTallerResponse response = config.conversarEnTallerUseCase(
                         negocioService, tallerSamiService, config.conversarEnTallerMapper(), Clock.systemUTC(),

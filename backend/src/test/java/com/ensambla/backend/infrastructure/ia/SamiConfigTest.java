@@ -307,8 +307,8 @@ class SamiConfigTest {
 
     // --- helpers ---
     private static final String[] HERRAMIENTAS = {"agregar_pieza", "usar_kit", "quitar_pieza", "renombrar_pieza",
-            "renombrar_sistema", "agregar_campo", "quitar_campo", "editar_campo", "cargar_ejemplos", "cargar_registros",
-            "conectar", "separar_en_seccion", "cambiar_distribucion", "ofrecer_opciones"};
+            "renombrar_sistema", "agregar_campo", "quitar_campo", "editar_campo", "cargar_registros",
+            "borrar_registros", "conectar", "separar_en_seccion", "cambiar_distribucion", "ofrecer_opciones"};
 
     private ConsultaTaller consultaDeTaller(String mensaje) {
         return new ConsultaTaller(mensaje, new EstadoTaller("Mi almacén", "mosaic", List.of()), List.of());

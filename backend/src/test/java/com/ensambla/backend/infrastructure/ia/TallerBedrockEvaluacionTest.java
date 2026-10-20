@@ -199,7 +199,7 @@ class TallerBedrockEvaluacionTest {
         if (!Boolean.TRUE.equals(caso.permiteExtras()) && acciones.size() > caso.esperadas().size()) {
             return "acciones de más: " + acciones;
         }
-        if (Boolean.TRUE.equals(caso.opciones()) && validacion.opciones() == null) {
+        if (Boolean.TRUE.equals(caso.opciones()) && validacion.preguntas().isEmpty()) {
             return "tenía que ofrecer opciones";
         }
         if (Boolean.TRUE.equals(caso.armado()) && !armo(acciones, llamadas, kits)) {

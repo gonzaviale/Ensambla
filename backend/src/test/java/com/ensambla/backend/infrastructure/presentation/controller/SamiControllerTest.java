@@ -79,7 +79,7 @@ class SamiControllerTest {
         when(conversarEnTallerUseCase.execute(any())).thenReturn(new ConversarEnTallerResponse(
                 "Listo, sumé gastos.",
                 List.of(new ConversarEnTallerResponse.AccionTallerItem("agregar_pieza", Map.of("tipo", "expenses"))),
-                new ConversarEnTallerResponse.OpcionesTallerItem("¿Seguimos?", List.of("Sí", "No"))));
+                List.of(new ConversarEnTallerResponse.OpcionesTallerItem(null, "¿Seguimos?", List.of("Sí", "No")))));
 
         ResultActions result = whenPosting("/api/sami/taller", """
                 {"mensaje":"  sumá gastos ","usuarioId":"otro",
@@ -93,8 +93,8 @@ class SamiControllerTest {
                 .andExpect(jsonPath("$.respuesta").value("Listo, sumé gastos."))
                 .andExpect(jsonPath("$.acciones[0].herramienta").value("agregar_pieza"))
                 .andExpect(jsonPath("$.acciones[0].argumentos.tipo").value("expenses"))
-                .andExpect(jsonPath("$.opciones.pregunta").value("¿Seguimos?"))
-                .andExpect(jsonPath("$.opciones.opciones[1]").value("No"));
+                .andExpect(jsonPath("$.preguntas[0].pregunta").value("¿Seguimos?"))
+                .andExpect(jsonPath("$.preguntas[0].opciones[1]").value("No"));
         ArgumentCaptor<ConversarEnTallerRequest> captor = ArgumentCaptor.forClass(ConversarEnTallerRequest.class);
         verify(conversarEnTallerUseCase).execute(captor.capture());
         assertThat(captor.getValue().usuarioId()).isEqualTo(USUARIO_ID);
@@ -107,13 +107,13 @@ class SamiControllerTest {
     @DisplayName("Sin historial ni opciones el turno igual responde")
     void tallerShouldAcceptMissingHistoryAndReturnNullOptions() throws Exception {
         when(conversarEnTallerUseCase.execute(any()))
-                .thenReturn(new ConversarEnTallerResponse("Hola", List.of(), null));
+                .thenReturn(new ConversarEnTallerResponse("Hola", List.of(), List.of()));
 
         ResultActions result = whenPosting("/api/sami/taller", """
                 {"mensaje":"hola","estado":{"nombre":"","distribucion":"mosaic","piezas":[]}}
                 """);
 
-        result.andExpect(status().isOk()).andExpect(jsonPath("$.opciones").doesNotExist());
+        result.andExpect(status().isOk()).andExpect(jsonPath("$.preguntas").isEmpty());
         ArgumentCaptor<ConversarEnTallerRequest> captor = ArgumentCaptor.forClass(ConversarEnTallerRequest.class);
         verify(conversarEnTallerUseCase).execute(captor.capture());
         assertThat(captor.getValue().historial()).isEmpty();
@@ -135,7 +135,7 @@ class SamiControllerTest {
     @Test
     @DisplayName("Un turno con foto le pasa al use case la imagen decodificada y su tipo")
     void tallerShouldPassDecodedImageToUseCase() throws Exception {
-        when(conversarEnTallerUseCase.execute(any())).thenReturn(new ConversarEnTallerResponse("Leí 3", List.of(), null));
+        when(conversarEnTallerUseCase.execute(any())).thenReturn(new ConversarEnTallerResponse("Leí 3", List.of(), List.of()));
 
         ResultActions result = whenPosting("/api/sami/taller", conImagen("image/jpeg", "AQID"));
 
