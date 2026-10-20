@@ -47,4 +47,11 @@ describe('API simulada según VITE_API_MOCKS', () => {
   it('en modo ninguno no simula nada', () => {
     expect(rutas('ninguno')).toEqual([]);
   });
+
+  it('la ubicación y los rubros sólo se simulan en modo completo', () => {
+    expect(rutas('completo')).toEqual(
+      expect.arrayContaining(['POST /ubicacion/direcciones', 'GET /ubicacion/rubros']),
+    );
+    expect(rutas('parcial').filter((ruta) => ruta.includes('/ubicacion/'))).toEqual([]);
+  });
 });

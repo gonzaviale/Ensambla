@@ -1,4 +1,4 @@
-// Las fotos de un celular pesan varios MB y el servicio de lectura admite hasta 5 MB por imagen: antes de
+// Las fotos de un celular pesan varios MB y el servicio de lectura admite hasta 10 MB por imagen: antes de
 // enviarla se achica (sin perder lo legible de una anotación) y se guarda como JPG.
 const LADO_MAXIMO = 2000;
 const BYTES_SIN_ACHICAR = 1_500_000;

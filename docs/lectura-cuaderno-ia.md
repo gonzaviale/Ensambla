@@ -203,7 +203,7 @@ lector y las mismas reglas de cruce que el lote (el bloque es el destino; nombre
 
 | Parte | Contenido |
 |---|---|
-| `imagen` | JPG, PNG, WEBP o GIF de hasta 5 MB (la pantalla la achica y la guarda como JPG antes de enviarla) |
+| `imagen` | JPG, PNG o WEBP de hasta 10 MB, igual que las fotos del lote. El tipo se reconoce por los bytes, no por el `Content-Type` (la pantalla la achica y la guarda como JPG antes de enviarla) |
 | `pedido` | JSON con `nombre` del bloque, `destinoExistente` y `campos` (`key`, `label`, `type`, `options`) con los tipos de la pantalla |
 
 Respuesta 200: `filas` (un mapa por registro, por la clave del campo; las columnas nuevas también), `camposNuevos`
