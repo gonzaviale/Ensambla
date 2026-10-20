@@ -57,6 +57,8 @@ export type Taller = {
   opciones: OpcionesDeSami | null;
   /** La propuesta como estaba antes del último cambio de Sami, para «Deshacer lo último». */
   anterior: Sistema | null;
+  /** El sistema que se está ajustando con Sami; `null` si se está armando uno nuevo. */
+  sistemaId: string | null;
 };
 
 /** El panel de avisos de Sami y lo que se ve de él. */
@@ -126,7 +128,8 @@ type Acciones = {
   cerrarAviso: () => void;
   abrirModal: (modal: Modal) => void;
   cerrarModal: () => void;
-  iniciarTaller: (saludo: string) => void;
+  /** Empieza una conversación nueva; con un sistema, para ajustarlo (la propuesta arranca como una copia de él). */
+  iniciarTaller: (saludo: string, sistema?: Sistema) => void;
   /** Cambia la conversación actual; si no hay, no hace nada. */
   actualizarTaller: (cambio: Partial<Taller> | ((taller: Taller) => Partial<Taller>)) => void;
   /** Aplica un cambio sobre una copia de la propuesta de Sami. */
@@ -268,18 +271,19 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
   abrirModal: (modal) => set({ modal }),
   cerrarModal: () => set({ modal: null }),
 
-  iniciarTaller: (saludo) =>
+  iniciarTaller: (saludo, sistema) =>
     set({
       taller: {
         id: ++contadorDeTalleres,
-        nombre: '',
+        nombre: sistema?.name ?? '',
         entrada: '',
-        borrador: null,
-        seccionId: null,
+        borrador: sistema ? clone(sistema) : null,
+        seccionId: sistema?.sections[0]?.id ?? null,
         pensando: false,
         mensajes: [{ quien: 'sami', texto: saludo }],
         opciones: null,
         anterior: null,
+        sistemaId: sistema?.id ?? null,
       },
     }),
 

@@ -6,10 +6,16 @@ import { api, cuenta, pathDe } from './comun';
 // herramientas. Sólo se usa en el modo `completo`. Acá no hay IA: tres mini-kits (velas, almacén y peluquería) se
 // detectan por palabras y responden lo mismo que el backend: `agregar_pieza` con nombre, datos y ejemplos, `conectar`,
 // `cargar_ejemplos` y una pregunta con respuestas rápidas. Nunca devuelve `usar_kit`: eso lo expande el backend.
+// Sobre un sistema armado entiende algunos ajustes, entre ellos renombrar un dato o ponerlo primero (`editar_campo`).
 
 const DEMORA_MS = import.meta.env.MODE === 'test' ? 0 : 650;
 
-type Pieza = { id: string; tipo: string; nombre: string };
+type Pieza = {
+  id: string;
+  tipo: string;
+  nombre: string;
+  campos?: { etiqueta: string; tipo: string }[];
+};
 type Pedido = {
   mensaje?: string;
   estado?: { nombre?: string; distribucion?: string; piezas?: Pieza[] };
@@ -234,6 +240,91 @@ const PREGUNTA_POR_EL_RUBRO = {
   },
 };
 
+const sinTildes = (texto: string) =>
+  texto
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+const sinComillas = (texto: string) => texto.replace(/^[«"'“\s]+|[»"'”.!?\s]+$/g, '').trim();
+
+/** La pieza que tiene un dato con esa etiqueta; si se nombró la pieza («… en ventas»), se busca ahí. */
+const buscarDato = (piezas: Pieza[], etiqueta: string, enPieza?: string) => {
+  const candidatas = enPieza
+    ? piezas.filter((pieza) => sinTildes(pieza.nombre) === sinTildes(enPieza))
+    : piezas;
+  for (const pieza of candidatas) {
+    const campo = pieza.campos?.find((item) => sinTildes(item.etiqueta) === sinTildes(etiqueta));
+    if (campo) return { pieza, campo };
+  }
+  return undefined;
+};
+
+const RENOMBRAR_DATO = [
+  /cambi\S*\s+el\s+nombre\s+(?:a|al|de|del)\s+(.+?)\s+por\s+(.+)/i,
+  /renombr\S*\s+(.+?)\s+(?:a|como|por)\s+(.+)/i,
+];
+const PONER_PRIMERO =
+  /pon\S*\s+(?:el\s+|la\s+)?(.+?)\s+(?:primero|primera|al\s+principio|adelante)\b(.*)/i;
+
+/** «Cambiale el nombre a Cliente por Clienta», «poné Cliente primero» (con «en ventas» opcional). */
+const ajusteDeDato = (mensaje: string, piezas: Pieza[]) => {
+  // «… en ventas» al final nombra la pieza, si hay una que se llame así.
+  const separarPieza = (texto: string) => {
+    const [, resto, pieza = ''] = /^(.*)\s+en\s+(?:la\s+pieza\s+)?(.+)$/i.exec(texto) ?? [];
+    const nombrada = piezas.find(
+      (item) => sinTildes(item.nombre) === sinTildes(sinComillas(pieza)),
+    );
+    return nombrada && resto !== undefined
+      ? { texto: sinComillas(resto), pieza: nombrada.nombre }
+      : { texto: sinComillas(texto), pieza: undefined };
+  };
+  for (const patron of RENOMBRAR_DATO) {
+    const [, crudo, nuevoCrudo] = patron.exec(mensaje) ?? [];
+    if (!crudo || !nuevoCrudo) continue;
+    const nuevo = separarPieza(nuevoCrudo);
+    const actual = sinComillas(crudo);
+    const encontrado = buscarDato(piezas, actual, nuevo.pieza);
+    // «Renombrá …» también puede ser otra cosa (el sistema, una pieza): si no es un dato, sigue de largo.
+    if ((!encontrado || !nuevo.texto) && patron !== RENOMBRAR_DATO[0]) continue;
+    if (!encontrado || !nuevo.texto) {
+      return sinAcciones(`No encontré el dato «${actual}». ¿Cómo se llama en tu sistema?`);
+    }
+    return {
+      respuesta: `Listo, «${encontrado.campo.etiqueta}» ahora se llama «${nuevo.texto}» en ${encontrado.pieza.nombre.toLowerCase()}.`,
+      acciones: [
+        accion('editar_campo', {
+          pieza: encontrado.pieza.id,
+          campo: encontrado.campo.etiqueta,
+          etiqueta: nuevo.texto,
+        }),
+      ],
+      opciones: null,
+    };
+  }
+  const [, crudo, cola = ''] = PONER_PRIMERO.exec(mensaje) ?? [];
+  if (crudo) {
+    const actual = sinComillas(crudo);
+    const enPieza = separarPieza(`x${cola}`).pieza;
+    const encontrado = buscarDato(piezas, actual, enPieza);
+    if (!encontrado) {
+      return sinAcciones(`No encontré el dato «${actual}». ¿Cómo se llama en tu sistema?`);
+    }
+    return {
+      respuesta: `Listo, puse «${encontrado.campo.etiqueta}» primero en ${encontrado.pieza.nombre.toLowerCase()}.`,
+      acciones: [
+        accion('editar_campo', {
+          pieza: encontrado.pieza.id,
+          campo: encontrado.campo.etiqueta,
+          posicion: 1,
+        }),
+      ],
+      opciones: null,
+    };
+  }
+  return undefined;
+};
+
 const respuestaDe = ({ mensaje = '', estado }: Pedido) => {
   const texto = mensaje.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const piezas = estado?.piezas ?? [];
@@ -251,6 +342,9 @@ const respuestaDe = ({ mensaje = '', estado }: Pedido) => {
       opciones: kit.opciones,
     };
   }
+
+  const ajuste = piezas.length ? ajusteDeDato(mensaje, piezas) : undefined;
+  if (ajuste) return ajuste;
 
   const nombre = /llamal[oa]\s+(.+)/i
     .exec(mensaje)?.[1]

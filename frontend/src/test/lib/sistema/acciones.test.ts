@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  ajusteParaGuardar,
   aplicarAcciones,
   mismoSistema,
   resumirSistema,
@@ -100,6 +101,34 @@ describe('las acciones de Sami sobre el taller', () => {
       const resultado = aplicarAcciones(sistema, [accion('quitar_pieza', { pieza: 'fantasma' })]);
 
       expect(resultado.omitidas).toEqual(['No encontré esa pieza.']);
+    });
+
+    it('al quitar una pieza, los vínculos que apuntaban a ella no quedan colgados', () => {
+      aplicarAcciones(sistema, [
+        accion('agregar_pieza', { tipo: 'form', nombre: 'Turnos' }),
+        accion('conectar', { desde: 'Turnos', hacia: 'clients', etiqueta: 'Clienta' }),
+      ]);
+      expect(pieza('sales').fields.find((campo) => campo.key === 'customer')?.target).toBe(
+        pieza('clients').id,
+      );
+
+      aplicarAcciones(sistema, [accion('quitar_pieza', { pieza: 'clients' })]);
+
+      const cliente = pieza('sales').fields.find((campo) => campo.key === 'customer');
+      expect(cliente).toMatchObject({ type: 'text' });
+      expect(cliente?.target).toBeUndefined();
+      expect(pieza('sales').rows.every((fila) => !('customer' in fila))).toBe(true);
+      const clienta = pieza('form').fields.find((campo) => campo.label === 'Clienta');
+      expect(clienta).toMatchObject({ type: 'text' });
+      expect(clienta?.target).toBeUndefined();
+    });
+
+    it('al quitar el inventario, el producto de las ventas sigue siendo un vínculo, sin destino', () => {
+      aplicarAcciones(sistema, [accion('quitar_pieza', { pieza: 'inventory' })]);
+
+      const producto = pieza('sales').fields.find((campo) => campo.key === 'product');
+      expect(producto).toMatchObject({ type: 'relation' });
+      expect(producto?.target).toBeUndefined();
     });
   });
 
@@ -285,6 +314,316 @@ describe('las acciones de Sami sobre el taller', () => {
       ]);
 
       expect(resultado.omitidas).toEqual(['No conozco esa distribución.']);
+    });
+  });
+
+  describe('editar_campo', () => {
+    const campo = (tipo: string, etiqueta: string) =>
+      pieza(tipo).fields.find((item) => item.label === etiqueta);
+    const etiquetas = (tipo: string) => pieza(tipo).fields.map((item) => item.label);
+
+    it('renombra un dato buscándolo sin importar mayúsculas ni tildes; la clave no cambia', () => {
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_campo', { pieza: 'Clientes', campo: 'telefono', etiqueta: ' Celular ' }),
+      ]);
+
+      expect(resultado).toEqual({
+        aplicadas: ['Renombré Teléfono a Celular en clientes.'],
+        omitidas: [],
+      });
+      expect(campo('clients', 'Celular')).toMatchObject({ key: 'phone', type: 'tel' });
+      expect(pieza('clients').rows[0]?.phone).toBe('11 5555-0101');
+    });
+
+    it('recorta el nombre nuevo y permite cambiar sólo mayúsculas', () => {
+      aplicarAcciones(sistema, [
+        accion('editar_campo', { pieza: 'clients', campo: 'Notas', etiqueta: 'x'.repeat(80) }),
+        accion('editar_campo', { pieza: 'clients', campo: 'Correo', etiqueta: 'CORREO' }),
+      ]);
+
+      expect(pieza('clients').fields.find((item) => item.key === 'notes')?.label).toHaveLength(60);
+      expect(pieza('clients').fields.find((item) => item.key === 'email')?.label).toBe('CORREO');
+    });
+
+    it('no repite el nombre de otro dato de la pieza', () => {
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_campo', { pieza: 'clients', campo: 'Correo', etiqueta: 'teléfono' }),
+      ]);
+
+      expect(resultado.omitidas).toEqual(['Ya hay un dato «teléfono» en clientes.']);
+      expect(campo('clients', 'Correo')).toBeDefined();
+    });
+
+    it('cambia el tipo y convierte los valores de las filas; lo que no sirve se borra', () => {
+      const inventario = pieza('inventory');
+      const [primera, segunda] = inventario.rows as [Fila, Fila];
+      primera.minimum = 5;
+      segunda.minimum = 'mucho';
+      const real: Fila = { id: 'real', name: 'Arroz', minimum: '7' };
+      inventario.rows.push(real);
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_campo', { pieza: 'inventory', campo: 'Stock mínimo', tipo: 'text' }),
+        accion('editar_campo', { pieza: 'inventory', campo: 'Stock mínimo', tipo: 'number' }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual([
+        'Cambié Stock mínimo a texto en inventario.',
+        'Cambié Stock mínimo a número en inventario.',
+      ]);
+      expect(campo('inventory', 'Stock mínimo')?.type).toBe('number');
+      expect(primera.minimum).toBe(5);
+      expect('minimum' in segunda).toBe(false);
+      expect(real.minimum).toBe(7);
+    });
+
+    it('al pasar a lista usa las opciones (hasta seis, sin repetir) y descarta los valores que no están', () => {
+      const clientes = pieza('clients');
+      const [primera, segunda] = clientes.rows as [Fila, Fila];
+      primera.notes = 'mayorista';
+      segunda.notes = 'Otra cosa';
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_campo', {
+          pieza: 'clients',
+          campo: 'Notas',
+          tipo: 'select',
+          opciones: ['Mayorista', 'MAYORISTA', 'Minorista', 'A', 'B', 'C', 'D', 'E', ''],
+        }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual(['Cambié Notas a lista de opciones en clientes.']);
+      expect(campo('clients', 'Notas')).toMatchObject({
+        type: 'select',
+        options: ['Mayorista', 'Minorista', 'A', 'B', 'C', 'D'],
+      });
+      expect(primera.notes).toBe('Mayorista');
+      expect('notes' in segunda).toBe(false);
+    });
+
+    it('cambia las opciones de una lista y al dejar de ser lista las saca', () => {
+      aplicarAcciones(sistema, [accion('agregar_pieza', { tipo: 'expenses' })]);
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_campo', {
+          pieza: 'expenses',
+          campo: 'Categoría',
+          opciones: ['Mercadería', 'Impuestos'],
+        }),
+      ]);
+      expect(resultado.aplicadas).toEqual(['Cambié las opciones de Categoría en gastos.']);
+      expect(campo('expenses', 'Categoría')?.options).toEqual(['Mercadería', 'Impuestos']);
+      expect(pieza('expenses').rows.map((fila) => fila.category)).toEqual([
+        'Mercadería',
+        undefined,
+      ]);
+
+      aplicarAcciones(sistema, [
+        accion('editar_campo', { pieza: 'expenses', campo: 'Categoría', tipo: 'text' }),
+      ]);
+      expect(campo('expenses', 'Categoría')?.type).toBe('text');
+      expect(campo('expenses', 'Categoría')?.options).toBeUndefined();
+    });
+
+    it('no pasa a lista sin al menos dos opciones válidas', () => {
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_campo', { pieza: 'clients', campo: 'Notas', tipo: 'select' }),
+        accion('editar_campo', {
+          pieza: 'clients',
+          campo: 'Notas',
+          tipo: 'select',
+          opciones: ['Sola', ' ', 'sola'],
+        }),
+      ]);
+
+      expect(resultado.omitidas).toEqual([
+        'Una lista necesita al menos dos opciones.',
+        'Una lista necesita al menos dos opciones.',
+      ]);
+      expect(campo('clients', 'Notas')?.type).toBe('textarea');
+    });
+
+    it('no cambia el tipo de un vínculo, del dato principal ni a un tipo desconocido', () => {
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_campo', { pieza: 'sales', campo: 'Cliente', tipo: 'text' }),
+        accion('editar_campo', { pieza: 'clients', campo: 'Nombre', tipo: 'number' }),
+        accion('editar_campo', { pieza: 'clients', campo: 'Notas', tipo: 'relation' }),
+        accion('editar_campo', { pieza: 'clients', campo: 'Notas', tipo: 'color' }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual([]);
+      expect(resultado.omitidas).toEqual([
+        '«Cliente» conecta con otra pieza: no le puedo cambiar el tipo.',
+        '«Nombre» es el dato principal de clientes: no le puedo cambiar el tipo.',
+        'No conozco el tipo «relation».',
+        'No conozco el tipo «color».',
+      ]);
+      expect(campo('sales', 'Cliente')?.type).toBe('relation');
+      expect(campo('clients', 'Nombre')?.type).toBe('text');
+    });
+
+    it('un vínculo y el dato principal sí se pueden renombrar', () => {
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_campo', { pieza: 'Ventas', campo: 'Cliente', etiqueta: 'Clienta' }),
+        accion('editar_campo', {
+          pieza: 'clients',
+          campo: 'Nombre',
+          etiqueta: 'Nombre y apellido',
+        }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual([
+        'Renombré Cliente a Clienta en ventas.',
+        'Renombré Nombre a Nombre y apellido en clientes.',
+      ]);
+      expect(campo('sales', 'Clienta')).toMatchObject({ key: 'customer', type: 'relation' });
+    });
+
+    it('lo hace obligatorio o no', () => {
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_campo', { pieza: 'clients', campo: 'Teléfono', obligatorio: true }),
+        accion('editar_campo', { pieza: 'clients', campo: 'Nombre', obligatorio: false }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual([
+        'Hice obligatorio Teléfono en clientes.',
+        'Nombre ya no es obligatorio en clientes.',
+      ]);
+      expect(campo('clients', 'Teléfono')?.required).toBe(true);
+      expect(campo('clients', 'Nombre')?.required).toBe(false);
+    });
+
+    it('mueve el dato al lugar pedido, acotado a los que hay', () => {
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_campo', { pieza: 'Ventas', campo: 'Cliente', posicion: 1 }),
+        accion('editar_campo', { pieza: 'clients', campo: 'Nombre', posicion: 99 }),
+        accion('editar_campo', { pieza: 'clients', campo: 'Correo', posicion: '0' }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual([
+        'Moví Cliente al lugar 1 en ventas.',
+        'Moví Nombre al lugar 4 en clientes.',
+        'Moví Correo al lugar 1 en clientes.',
+      ]);
+      expect(etiquetas('sales')).toEqual([
+        'Cliente',
+        'Producto',
+        'Cantidad',
+        'Precio',
+        'Fecha',
+        'Fiado',
+      ]);
+      expect(etiquetas('clients')).toEqual(['Correo', 'Teléfono', 'Notas', 'Nombre']);
+    });
+
+    it('renombra y mueve en la misma acción', () => {
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_campo', {
+          pieza: 'sales',
+          campo: 'Cliente',
+          etiqueta: 'Clienta',
+          posicion: 1,
+        }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual([
+        'Renombré Cliente a Clienta en ventas.',
+        'Moví Clienta al lugar 1 en ventas.',
+      ]);
+      expect(etiquetas('sales')[0]).toBe('Clienta');
+    });
+
+    it('omite un lugar que no es un número', () => {
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_campo', { pieza: 'clients', campo: 'Notas', posicion: 'arriba' }),
+      ]);
+
+      expect(resultado.omitidas).toEqual(['No entendí a qué lugar mover ese dato.']);
+    });
+
+    it('si no cambia nada, o si falta la pieza o el dato, se omite', () => {
+      const antes = clone(sistema);
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_campo', {
+          pieza: 'clients',
+          campo: 'Teléfono',
+          etiqueta: 'Teléfono',
+          tipo: 'tel',
+          obligatorio: false,
+          posicion: 2,
+        }),
+        accion('editar_campo', { pieza: 'clients', campo: 'Teléfono' }),
+        accion('editar_campo', { pieza: 'clients', campo: 'Teléfono', obligatorio: 'sí' }),
+        accion('editar_campo', { pieza: 'clients', campo: 'Edad', etiqueta: 'Años' }),
+        accion('editar_campo', { pieza: 'proveedores', campo: 'Nombre', etiqueta: 'Razón' }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual([]);
+      expect(resultado.omitidas).toEqual([
+        '«Teléfono» ya estaba así.',
+        '«Teléfono» ya estaba así.',
+        'No entendí si «Teléfono» es obligatorio.',
+        'No encontré ese dato.',
+        'No encontré ese dato.',
+      ]);
+      expect(mismoSistema(sistema, antes)).toBe(true);
+    });
+
+    it('es todo o nada: si una parte no vale, no cambia el resto', () => {
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_campo', {
+          pieza: 'clients',
+          campo: 'Notas',
+          etiqueta: 'Comentarios',
+          tipo: 'color',
+          posicion: 1,
+        }),
+        accion('editar_campo', {
+          pieza: 'clients',
+          campo: 'Notas',
+          etiqueta: 'Comentarios',
+          obligatorio: 'sí',
+        }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual([]);
+      expect(etiquetas('clients')).toEqual(['Nombre', 'Teléfono', 'Correo', 'Notas']);
+    });
+
+    it('el tipo de un vínculo o del dato principal se ignora y lo demás se aplica', () => {
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_campo', {
+          pieza: 'clients',
+          campo: 'Nombre',
+          etiqueta: 'Razón social',
+          tipo: 'number',
+        }),
+      ]);
+
+      expect(resultado).toEqual({
+        aplicadas: ['Renombré Nombre a Razón social en clientes.'],
+        omitidas: [],
+      });
+      expect(campo('clients', 'Razón social')?.type).toBe('text');
+    });
+
+    it('lista vacía, nulos o textos en blanco cuentan como no pedidos', () => {
+      aplicarAcciones(sistema, [accion('agregar_pieza', { tipo: 'expenses' })]);
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_campo', {
+          pieza: 'expenses',
+          campo: 'Categoría',
+          etiqueta: ' ',
+          tipo: null,
+          opciones: [],
+          obligatorio: null,
+          posicion: '',
+        }),
+      ]);
+
+      expect(resultado.omitidas).toEqual(['«Categoría» ya estaba así.']);
     });
   });
 
@@ -578,7 +917,39 @@ describe('Sami ensambla el sistema desde cero', () => {
 
       expect(resultado.omitidas).toEqual([]);
       const carla = llamada('Clientas').rows.find((fila) => fila.name === 'Carla Gómez');
-      expect(llamada('Turnos').rows.map((fila) => fila.clienta)).toEqual([carla?.id, '']);
+      // «Alguien más» no estaba: se suma a Clientas como ejemplo, así el vínculo se ve.
+      const otra = llamada('Clientas').rows.find((fila) => fila.name === 'Alguien más');
+      expect(otra).toMatchObject({ __example: true });
+      expect(llamada('Turnos').rows.map((fila) => fila.clienta)).toEqual([carla?.id, otra?.id]);
+    });
+
+    it('si la pieza vinculada está vacía, el ejemplo suma ahí lo que nombra; un id que ya no existe queda vacío', () => {
+      aplicarAcciones(sistema, [
+        accion('agregar_pieza', { tipo: 'inventory', nombre: 'Velas', ejemplos: [] }),
+        accion('agregar_pieza', { tipo: 'clients', nombre: 'Clientas', ejemplos: [] }),
+        accion('agregar_pieza', { tipo: 'sales' }),
+      ]);
+      llamada('Velas').rows = [];
+      llamada('Clientas').rows = [];
+
+      aplicarAcciones(sistema, [
+        accion('cargar_ejemplos', {
+          pieza: 'sales',
+          filas: [
+            { Producto: 'Vela lavanda', Cliente: 'Lucía', Cantidad: 2 },
+            { Producto: 'e1234abcd-0000-4000-8000-000000000000', Cantidad: 1 },
+          ],
+        }),
+      ]);
+
+      const [lavanda] = llamada('Velas').rows;
+      const [lucia] = llamada('Clientas').rows;
+      expect(lavanda).toMatchObject({ name: 'Vela lavanda', __example: true });
+      expect(lucia).toMatchObject({ name: 'Lucía', __example: true });
+      expect(llamada('Ventas').rows.map((fila) => [fila.product, fila.customer ?? ''])).toEqual([
+        [lavanda?.id, lucia?.id],
+        ['', ''],
+      ]);
     });
 
     it('los vínculos del catálogo (producto y cliente de una venta) también se resuelven por nombre', () => {
@@ -613,5 +984,51 @@ describe('Sami ensambla el sistema desde cero', () => {
 
       expect(llamada('Ventas').rows[0]?.product).toBe('');
     });
+  });
+});
+
+describe('ajusteParaGuardar: el sistema ajustado con Sami', () => {
+  const deTipo = (sistema: Sistema, tipo: string) => {
+    const bloque = allBlocks(sistema).find((item) => item.type === tipo);
+    if (!bloque) throw new Error(`Falta la pieza ${tipo}`);
+    return bloque;
+  };
+
+  it('no guarda los ejemplos que se sumaron en el taller; conserva las filas que ya tenía', () => {
+    const original = makeTemplate('shop', {}, true);
+    const real: Fila = { id: 'real', name: 'Rosa', phone: '11 4444-0000' };
+    deTipo(original, 'clients').rows.push(real);
+    deTipo(original, 'sales').rows.push({ id: 'venta', __example: true, quantity: 1 });
+    const borrador = clone(original);
+    borrador.name = '  ';
+    borrador.id = 'otro';
+    aplicarAcciones(borrador, [
+      accion('agregar_pieza', { tipo: 'expenses' }),
+      accion('editar_campo', { pieza: 'clients', campo: 'Teléfono', etiqueta: 'Celular' }),
+    ]);
+    deTipo(borrador, 'clients').rows.push({ id: 'nueva', __example: true, name: 'Nueva' });
+    const venta = deTipo(borrador, 'sales').rows[0] as Fila;
+    venta.customer = 'nueva';
+
+    const ajustado = ajusteParaGuardar(original, borrador);
+
+    expect(ajustado).toMatchObject({
+      id: original.id,
+      createdAt: original.createdAt,
+      name: original.name,
+    });
+    expect(deTipo(ajustado, 'expenses').rows).toEqual([]);
+    expect(deTipo(ajustado, 'clients').rows.map((fila) => fila.id)).toEqual(
+      deTipo(original, 'clients').rows.map((fila) => fila.id),
+    );
+    expect(deTipo(ajustado, 'clients').fields[1]?.label).toBe('Celular');
+    expect(deTipo(ajustado, 'sales').rows[0]?.customer).toBe('');
+    expect(deTipo(borrador, 'expenses').rows.length).toBeGreaterThan(0);
+  });
+
+  it('sin cambios queda igual al original', () => {
+    const original = makeTemplate('shop', {}, true);
+
+    expect(mismoSistema(ajusteParaGuardar(original, clone(original)), original)).toBe(true);
   });
 });

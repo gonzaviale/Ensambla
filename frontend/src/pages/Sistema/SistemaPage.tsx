@@ -202,6 +202,13 @@ export function SistemaPage() {
               >
                 <Icon name="camera" /> <span className="upload-label">Traer datos de una foto</span>
               </Btn>
+              <Btn
+                cls="secondary"
+                data-accion="ajustar-con-sami"
+                onClick={() => void navegacion.ajustarConSami(sistema.id)}
+              >
+                <Icon name="spark" /> Ajustar con Sami
+              </Btn>
               {construyendo && (
                 <Btn cls="secondary" onClick={() => abrirModal({ tipo: 'secciones' })}>
                   <Icon name="folder" /> Secciones

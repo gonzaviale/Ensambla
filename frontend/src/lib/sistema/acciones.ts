@@ -1,7 +1,8 @@
-import { CATALOG } from './catalogo';
+import { CATALOG, FIELD_TYPES } from './catalogo';
 import {
   allBlocks,
   applyLayout,
+  clone,
   findBlock,
   id,
   makeBlock,
@@ -82,6 +83,7 @@ const TIPOS_DE_CAMPO = new Set<string>([
 ]);
 const DISTRIBUCIONES = new Set<string>(['mosaic', 'single', 'two', 'three']);
 const MAXIMO_DE_EJEMPLOS = 5;
+const MAXIMO_DE_OPCIONES = 6;
 const LARGO_DE_NOMBRE = 60;
 const LARGO_DE_VALOR = 200;
 
@@ -124,9 +126,28 @@ export function aplicarAcciones(sistema: Sistema, acciones: AccionDeSami[]): Res
     const motivo = aplicarUna(sistema, accion, resultado);
     if (motivo) resultado.omitidas.push(motivo);
   }
+  soltarVinculosSinDestino(sistema);
   wireSystem(sistema);
   resolverVinculosDeEjemplo(sistema);
   return resultado;
+}
+
+/**
+ * `removeBlock` quita la pieza pero no los vínculos que apuntaban a ella. Un vínculo sin destino vuelve a ser como en
+ * el catálogo (el «Cliente» de una venta, texto) y pierde los valores, que eran ids de filas que ya no están; si
+ * después hay con qué, `wireSystem` lo vuelve a conectar.
+ */
+function soltarVinculosSinDestino(sistema: Sistema) {
+  const ids = new Set(allBlocks(sistema).map((bloque) => bloque.id));
+  for (const bloque of allBlocks(sistema)) {
+    for (const campo of bloque.fields) {
+      if (!campo.target || ids.has(campo.target)) continue;
+      delete campo.target;
+      const base = CATALOG[bloque.type].fields.find((item) => item.key === campo.key);
+      campo.type = base?.type === 'relation' ? 'relation' : 'text';
+      for (const fila of bloque.rows) Reflect.deleteProperty(fila, campo.key);
+    }
+  }
 }
 
 // Devuelve el motivo si no se pudo aplicar; si se aplicó, anota qué se hizo y devuelve `undefined`.
@@ -178,6 +199,8 @@ function aplicarUna(
     }
     case 'agregar_campo':
       return agregarCampo(sistema, args, hecho);
+    case 'editar_campo':
+      return editarCampo(sistema, args, hecho);
     case 'quitar_campo': {
       const pieza = resolverPieza(sistema, args.pieza);
       const campo = pieza && buscarCampo(pieza, texto(args.campo));
@@ -290,6 +313,133 @@ function agregarCampo(
   return hecho(`Sumé ${etiqueta} a ${pieza.name.toLowerCase()}.`);
 }
 
+/**
+ * Cambia un dato que ya existe: el nombre (la clave no cambia, así las filas no se pierden), el tipo, las opciones,
+ * si es obligatorio y su lugar en la pieza. Es todo o nada: si algo de lo pedido no vale, no se cambia nada (salvo el
+ * tipo de un vínculo o del primer dato, que se ignora). Si no cambia nada, se omite.
+ */
+function editarCampo(
+  sistema: Sistema,
+  args: Record<string, unknown>,
+  hecho: (descripcion: string) => undefined,
+): string | undefined {
+  const pieza = resolverPieza(sistema, args.pieza);
+  const campo = pieza && buscarCampo(pieza, texto(args.campo));
+  if (!pieza || !campo) return 'No encontré ese dato.';
+  const enLaPieza = pieza.name.toLowerCase();
+  const indice = pieza.fields.indexOf(campo);
+
+  const etiqueta = texto(args.etiqueta).slice(0, LARGO_DE_NOMBRE);
+  const renombra = Boolean(etiqueta) && etiqueta !== campo.label;
+  if (
+    renombra &&
+    pieza.fields.some((otro) => otro !== campo && normalize(otro.label) === normalize(etiqueta))
+  ) {
+    return `Ya hay un dato «${etiqueta}» en ${enLaPieza}.`;
+  }
+
+  // El tipo de un vínculo o del primer dato (el que nombra cada fila) no cambia: se ignora, como en el backend.
+  const tipoPedido = texto(args.tipo);
+  let tipoIgnorado: string | undefined;
+  let tipo = campo.type;
+  if (tipoPedido && campo.type === 'relation') {
+    tipoIgnorado = `«${campo.label}» conecta con otra pieza: no le puedo cambiar el tipo.`;
+  } else if (tipoPedido && indice === 0) {
+    tipoIgnorado = `«${campo.label}» es el dato principal de ${enLaPieza}: no le puedo cambiar el tipo.`;
+  } else if (tipoPedido) {
+    if (!TIPOS_DE_CAMPO.has(tipoPedido)) return `No conozco el tipo «${tipoPedido}».`;
+    tipo = tipoPedido as TipoCampo;
+  }
+  const cambiaTipo = tipo !== campo.type;
+
+  let opciones: string[] | undefined;
+  if (tipo === 'select' && llego(args.opciones)) {
+    opciones = lista(args.opciones)
+      .map(texto)
+      .filter(
+        (opcion, indice, todas) =>
+          opcion && todas.findIndex((otra) => normalize(otra) === normalize(opcion)) === indice,
+      )
+      .slice(0, MAXIMO_DE_OPCIONES);
+    if (opciones.length < 2) return 'Una lista necesita al menos dos opciones.';
+  }
+  if (cambiaTipo && tipo === 'select' && !opciones) {
+    return 'Una lista necesita al menos dos opciones.';
+  }
+  const cambianOpciones =
+    opciones !== undefined && JSON.stringify(opciones) !== JSON.stringify(campo.options ?? []);
+
+  const obligatorio = llego(args.obligatorio) ? args.obligatorio : undefined;
+  if (obligatorio !== undefined && typeof obligatorio !== 'boolean') {
+    return `No entendí si «${campo.label}» es obligatorio.`;
+  }
+  const cambiaObligatorio = obligatorio !== undefined && obligatorio !== campo.required;
+
+  const lugar = posicionPedida(args.posicion, pieza.fields.length);
+  if (lugar === null) return 'No entendí a qué lugar mover ese dato.';
+  const mueve = lugar !== undefined && lugar - 1 !== indice;
+
+  if (!renombra && !cambiaTipo && !cambianOpciones && !cambiaObligatorio && !mueve) {
+    return tipoIgnorado ?? `«${campo.label}» ya estaba así.`;
+  }
+
+  const nombreAntes = campo.label;
+  if (renombra) {
+    campo.label = etiqueta;
+    hecho(`Renombré ${nombreAntes} a ${etiqueta} en ${enLaPieza}.`);
+  }
+  if (cambiaTipo || cambianOpciones) {
+    campo.type = tipo;
+    if (tipo === 'select') campo.options = opciones ?? campo.options;
+    else delete campo.options;
+    if (tipo !== 'number' && tipo !== 'currency') delete campo.min;
+    // Los valores que ya había se pasan al tipo nuevo; lo que no sirve se borra.
+    for (const fila of pieza.rows) {
+      if (!(campo.key in fila)) continue;
+      const convertido = valorDeEjemplo(campo, fila[campo.key]);
+      if (convertido === undefined) Reflect.deleteProperty(fila, campo.key);
+      else fila[campo.key] = convertido;
+    }
+    hecho(
+      cambiaTipo
+        ? `Cambié ${campo.label} a ${nombreDeTipo(tipo)} en ${enLaPieza}.`
+        : `Cambié las opciones de ${campo.label} en ${enLaPieza}.`,
+    );
+  }
+  if (cambiaObligatorio) {
+    campo.required = Boolean(obligatorio);
+    hecho(
+      campo.required
+        ? `Hice obligatorio ${campo.label} en ${enLaPieza}.`
+        : `${campo.label} ya no es obligatorio en ${enLaPieza}.`,
+    );
+  }
+  if (mueve && lugar !== undefined) {
+    pieza.fields.splice(indice, 1);
+    pieza.fields.splice(lugar - 1, 0, campo);
+    hecho(`Moví ${campo.label} al lugar ${lugar} en ${enLaPieza}.`);
+  }
+  return undefined;
+}
+
+/** Si llegó un argumento optativo: un nulo, un texto en blanco o una lista vacía no cuentan (como en el backend). */
+const llego = (valor: unknown) =>
+  valor !== undefined &&
+  valor !== null &&
+  !(typeof valor === 'string' && !valor.trim()) &&
+  !(Array.isArray(valor) && !valor.length);
+
+const nombreDeTipo = (tipo: TipoCampo) =>
+  tipo === 'select' ? 'lista de opciones' : FIELD_TYPES[tipo].toLowerCase();
+
+/** El lugar pedido (desde 1), acotado a los que hay. `undefined` si no se pidió; `null` si no es un número. */
+function posicionPedida(valor: unknown, cantidad: number): number | null | undefined {
+  if (!llego(valor)) return undefined;
+  const numero = typeof valor === 'number' || typeof valor === 'string' ? Number(valor) : NaN;
+  if (!Number.isFinite(numero)) return null;
+  return Math.min(Math.max(Math.round(numero), 1), cantidad);
+}
+
 function conectar(
   sistema: Sistema,
   args: Record<string, unknown>,
@@ -378,8 +528,12 @@ function valorDeEjemplo(campo: Campo, valor: unknown): Valor {
   }
 }
 
+const ES_ID_DE_FILA = /^e[0-9a-f]{8}-/;
+
 // En las filas de ejemplo, un vínculo llega con el nombre del registro («Lucía Pérez»): se busca en la pieza a la que
-// apunta y se guarda su id. Si no está (o el registro ya no existe), queda vacío. Las filas reales no se tocan.
+// apunta y se guarda su id. Si esa pieza no lo tiene, se suma ahí como ejemplo, así el vínculo se ve aunque la pieza
+// esté vacía (pasa al ajustar un sistema ya creado, que no tiene ejemplos). Si lo que hay es el id de un registro que
+// ya no existe, queda vacío. Las filas reales no se tocan.
 function resolverVinculosDeEjemplo(sistema: Sistema) {
   for (const bloque of allBlocks(sistema)) {
     for (const campo of bloque.fields.filter((item) => item.type === 'relation')) {
@@ -389,10 +543,18 @@ function resolverVinculosDeEjemplo(sistema: Sistema) {
         const valor = fila[campo.key];
         if (valor === undefined || valor === null || valor === '') continue;
         if (destino?.rows.some((otra) => otra.id === valor)) continue;
-        const encontrada =
-          destino && principal
-            ? destino.rows.find((otra) => normalize(otra[principal]) === normalize(valor))
-            : undefined;
+        if (!destino || !principal) {
+          fila[campo.key] = '';
+          continue;
+        }
+        const nombre = String(valor).slice(0, LARGO_DE_VALOR);
+        let encontrada = destino.rows.find(
+          (otra) => normalize(otra[principal]) === normalize(nombre),
+        );
+        if (!encontrada && !ES_ID_DE_FILA.test(nombre)) {
+          encontrada = { id: id(), [principal]: nombre, __example: true };
+          destino.rows.push(encontrada);
+        }
         fila[campo.key] = encontrada?.id ?? '';
       }
     }
@@ -402,3 +564,33 @@ function resolverVinculosDeEjemplo(sistema: Sistema) {
 /** Dos sistemas son iguales si se guardarían igual: sirve para saber si un ajuste cambió algo. */
 export const mismoSistema = (a: Sistema, b: Sistema) =>
   JSON.stringify({ ...a, updatedAt: '' }) === JSON.stringify({ ...b, updatedAt: '' });
+
+/**
+ * El sistema que se guarda después de ajustarlo con Sami. Como al crear uno desde el taller, las filas de ejemplo que
+ * se sumaron para imaginarlo no se guardan; las que el sistema ya tenía (las reales y sus propios ejemplos), sí. Un
+ * vínculo que apuntaba a un ejemplo que no se guarda queda vacío.
+ */
+export function ajusteParaGuardar(original: Sistema, borrador: Sistema): Sistema {
+  const sistema = clone(borrador);
+  sistema.id = original.id;
+  sistema.createdAt = original.createdAt;
+  sistema.name = sistema.name.trim() || original.name;
+  const previas = new Set(
+    allBlocks(original).flatMap((bloque) => bloque.rows.map((fila) => fila.id)),
+  );
+  const quitadas = new Set<string>();
+  for (const bloque of allBlocks(sistema)) {
+    for (const fila of bloque.rows) {
+      if (fila.__example && !previas.has(fila.id)) quitadas.add(fila.id);
+    }
+    bloque.rows = bloque.rows.filter((fila) => !quitadas.has(fila.id));
+  }
+  for (const bloque of allBlocks(sistema)) {
+    for (const campo of bloque.fields.filter((item) => item.type === 'relation')) {
+      for (const fila of bloque.rows) {
+        if (quitadas.has(String(fila[campo.key]))) fila[campo.key] = '';
+      }
+    }
+  }
+  return sistema;
+}

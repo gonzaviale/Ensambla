@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
+import { getRouteApi } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
@@ -6,6 +7,7 @@ import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
 import { PreviewBoard } from '@/components/sistema/PreviewBoard';
 import { Sami } from '@/components/sistema/Sami';
 import { varsDeColor } from '@/components/sistema/colores';
+import { ajusteParaGuardar, mismoSistema } from '@/lib/sistema/acciones';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import {
   allBlocks,
@@ -18,7 +20,12 @@ import {
 } from '@/lib/sistema/core';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
 import type { Distribucion, TipoBloque } from '@/lib/sistema/tipos';
-import { saludoDeSami, useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
+import {
+  saludoDeSami,
+  saludoParaAjustar,
+  useNavegacion,
+  useNombre,
+} from '@/hooks/sistemas/useNavegacion';
 import { useDictado } from '@/hooks/sistemas/useDictado';
 import { useTaller } from '@/hooks/sistemas/useTaller';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
@@ -60,11 +67,20 @@ const EJEMPLOS: {
 
 const PIEZAS_PARA_SUMAR: TipoBloque[] = ['clients', 'sales', 'inventory', 'orders', 'expenses'];
 
-// El taller de Sami: una conversación a la izquierda y la propuesta, editable, a la derecha.
+const ruta = getRouteApi('/_app/taller');
+
+// El taller de Sami: una conversación a la izquierda y la propuesta, editable, a la derecha. Con `?sistema=<id>`,
+// la propuesta arranca como una copia de ese sistema y «Guardar cambios» lo reemplaza.
 export function TallerPage() {
   useTituloPagina('La guía de Sami');
   const nombre = useNombre();
+  const { sistema: sistemaDeLaUrl } = ruta.useSearch();
   const taller = useSistemaStore((estado) => estado.taller);
+  const original = useSistemaStore((estado) =>
+    estado.taller?.sistemaId
+      ? estado.sistemas.find((item) => item.id === estado.taller?.sistemaId)
+      : undefined,
+  );
   const actualizarTaller = useSistemaStore((estado) => estado.actualizarTaller);
   const editarBorrador = useSistemaStore((estado) => estado.editarBorrador);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
@@ -82,12 +98,21 @@ export function TallerPage() {
   const [arrastrando, setArrastrando] = useState<string | null>(null);
   const [sobre, setSobre] = useState<string | null>(null);
 
-  // Si se entra por la dirección, sin pasar por un botón, la conversación empieza igual.
+  // Si se entra por la dirección, sin pasar por un botón, la conversación empieza igual: sobre el sistema que diga
+  // la dirección o, si no hay (o ya no existe), una nueva.
   useEffect(() => {
-    if (!useSistemaStore.getState().taller) {
-      useSistemaStore.getState().iniciarTaller(saludoDeSami(nombre));
+    const estado = useSistemaStore.getState();
+    const sistema = sistemaDeLaUrl
+      ? estado.sistemas.find((item) => item.id === sistemaDeLaUrl)
+      : undefined;
+    if (sistema) {
+      if (estado.taller?.sistemaId !== sistema.id) {
+        estado.iniciarTaller(saludoParaAjustar(sistema.name), sistema);
+      }
+    } else if (!estado.taller || estado.taller.sistemaId) {
+      estado.iniciarTaller(saludoDeSami(nombre));
     }
-  }, [nombre]);
+  }, [nombre, sistemaDeLaUrl]);
 
   const cantidadDeMensajes = taller?.mensajes.length ?? 0;
   const pensando = taller?.pensando ?? false;
@@ -100,6 +125,9 @@ export function TallerPage() {
   if (!taller) return null;
   const { borrador } = taller;
   const seccionId = taller.seccionId ?? borrador?.sections[0]?.id ?? null;
+  const ajustando = Boolean(original);
+  const hayCambios =
+    !original || !borrador || !mismoSistema(ajusteParaGuardar(original, borrador), original);
 
   const alEnviar = (evento: FormEvent) => {
     evento.preventDefault();
@@ -163,17 +191,50 @@ export function TallerPage() {
     void navegacion.crearYAbrir(sistema);
   };
 
+  // Reemplaza el sistema con la propuesta (así se guarda en el servidor) y vuelve a él, en el modo en que estaba.
+  const guardarCambios = () => {
+    if (!borrador || !original) return;
+    const estado = useSistemaStore.getState();
+    const modo = estado.activeId === original.id ? estado.modo : 'use';
+    if (hayCambios) {
+      const ajustado = ajusteParaGuardar(original, borrador);
+      estado.actualizarSistema(original.id, (sistema) => {
+        for (const clave of Object.keys(sistema)) {
+          if (!(clave in ajustado)) Reflect.deleteProperty(sistema, clave);
+        }
+        Object.assign(sistema, ajustado);
+      });
+      avisar(`Guardé los cambios en «${ajustado.name}».`);
+    } else {
+      avisar('No había cambios para guardar.');
+    }
+    void navegacion.abrirSistema(original.id, modo);
+  };
+
+  const volver = () => {
+    if (original) void navegacion.abrirSistema(original.id);
+    else void navegacion.irAInicio();
+  };
+
   return (
     <>
       <CabeceraComun />
       <main id="main" tabIndex={-1} className="creation-studio reveal">
         <div className="studio-top">
-          <Btn cls="ghost small" onClick={() => void navegacion.irAInicio()}>
-            <Icon name="back" /> Inicio
+          <Btn cls="ghost small" onClick={volver}>
+            <Icon name="back" /> {original ? `Volver a ${original.name}` : 'Inicio'}
           </Btn>
-          <span>EL TALLER DE TU PRIMER SISTEMA</span>
+          <span>
+            {ajustando ? 'AJUSTANDO TU SISTEMA CON SAMI' : 'EL TALLER DE TU PRIMER SISTEMA'}
+          </span>
           <span className="tag outline">
-            {borrador ? 'Propuesta sin guardar' : 'Tu idea es el punto de partida'}
+            {ajustando
+              ? hayCambios
+                ? 'Cambios sin guardar'
+                : 'Sin cambios todavía'
+              : borrador
+                ? 'Propuesta sin guardar'
+                : 'Tu idea es el punto de partida'}
           </span>
         </div>
         <div className="studio-layout">
@@ -181,7 +242,7 @@ export function TallerPage() {
             <header className="conversation-head">
               <Sami pose={taller.pensando ? 'think' : 'hello'} />
               <div>
-                <h1>Lo armamos juntos.</h1>
+                <h1>{ajustando ? 'Lo ajustamos juntos.' : 'Lo armamos juntos.'}</h1>
                 <p>
                   <span className="live-dot" />
                   Sami · Tu guía
@@ -306,7 +367,11 @@ export function TallerPage() {
                 </button>
               </div>
             </form>
-            <p className="conversation-foot">Vos decidís qué queda y cuándo está listo.</p>
+            <p className="conversation-foot">
+              {ajustando
+                ? 'Nada cambia en tu sistema hasta que guardes.'
+                : 'Vos decidís qué queda y cuándo está listo.'}
+            </p>
           </aside>
 
           <section className="studio-canvas">
@@ -314,7 +379,9 @@ export function TallerPage() {
               <>
                 <div className="draft-heading">
                   <div>
-                    <span className="eyebrow">TU PROPUESTA, A LA VISTA</span>
+                    <span className="eyebrow">
+                      {ajustando ? 'TU SISTEMA, CON LOS CAMBIOS' : 'TU PROPUESTA, A LA VISTA'}
+                    </span>
                     <input
                       className="draft-name-input"
                       id="guide-system-name"
@@ -331,8 +398,9 @@ export function TallerPage() {
                   <span className="tag">{allBlocks(borrador).length} piezas conectadas</span>
                 </div>
                 <p className="draft-intro">
-                  Esto ya tiene forma. Cambiá nombres, anchos y posiciones, o pedile un ajuste a
-                  Sami.
+                  {ajustando
+                    ? 'Pedile a Sami lo que quieras cambiar, o cambiá nombres, anchos y posiciones acá. Tus registros se conservan.'
+                    : 'Esto ya tiene forma. Cambiá nombres, anchos y posiciones, o pedile un ajuste a Sami.'}
                 </p>
                 <LayoutToolbar
                   distribucion={borrador.layout}
@@ -369,7 +437,11 @@ export function TallerPage() {
                       <span>{seccion.blocks.length}</span>
                     </button>
                   ))}
-                  <span className="preview-example-label">Datos de ejemplo para imaginarlo</span>
+                  <span className="preview-example-label">
+                    {ajustando
+                      ? 'Los ejemplos nuevos no se guardan'
+                      : 'Datos de ejemplo para imaginarlo'}
+                  </span>
                 </div>
                 <PreviewBoard
                   sistema={borrador}
@@ -393,14 +465,27 @@ export function TallerPage() {
                 <div className="draft-footer" data-tour="create">
                   <div>
                     <Icon name="check-circle" />
-                    <span>
-                      <strong>¿Se parece a tu manera de trabajar?</strong>
-                      <small>Podés seguir ajustándolo después de crearlo.</small>
-                    </span>
+                    {ajustando ? (
+                      <span>
+                        <strong>¿Te sirve así?</strong>
+                        <small>Se guarda sobre tu sistema, con tus registros.</small>
+                      </span>
+                    ) : (
+                      <span>
+                        <strong>¿Se parece a tu manera de trabajar?</strong>
+                        <small>Podés seguir ajustándolo después de crearlo.</small>
+                      </span>
+                    )}
                   </div>
-                  <Btn cls="primary" data-accion="guide-create" onClick={crearSistema}>
-                    Sí, crear mi sistema <Icon name="arrow" />
-                  </Btn>
+                  {ajustando ? (
+                    <Btn cls="primary" data-accion="guide-save" onClick={guardarCambios}>
+                      Guardar cambios <Icon name="arrow" />
+                    </Btn>
+                  ) : (
+                    <Btn cls="primary" data-accion="guide-create" onClick={crearSistema}>
+                      Sí, crear mi sistema <Icon name="arrow" />
+                    </Btn>
+                  )}
                 </div>
               </>
             ) : (
