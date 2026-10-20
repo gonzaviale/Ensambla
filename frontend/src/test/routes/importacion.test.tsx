@@ -31,7 +31,7 @@ const abrirImportador = async () => {
     }),
   );
   await user.click(await screen.findByRole('button', { name: /Probar con un ejemplo/ }));
-  await screen.findByRole('heading', { name: 'Vos tenés la última palabra.' }, ESPERA);
+  await screen.findByRole('heading', { name: 'Confirmar registros' }, ESPERA);
   return { user, inventarioId };
 };
 

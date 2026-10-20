@@ -529,7 +529,7 @@ describe('traer datos de una foto', () => {
 
     const revision = await screen.findByRole(
       'heading',
-      { name: 'Vos tenés la última palabra.' },
+      { name: 'Confirmar registros' },
       ESPERA,
     );
     expect(revision).toBeVisible();

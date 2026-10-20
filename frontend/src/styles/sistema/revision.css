@@ -188,3 +188,263 @@
   padding: 0;
   list-style: none;
 }
+
+/* Ventanas de «Cargar desde una foto» y «Confirmar registros»: colores de la paleta, sin pasteles,
+   con el coral de la acción del inicio como color principal. */
+.modal-importar {
+  background: #fff;
+  border-top: 6px solid var(--coral);
+}
+.modal-importar .importar-icono {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--coral);
+  color: #fff;
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--coral) 18%, transparent);
+}
+.modal-importar .importar-icono .icon {
+  width: 25px;
+  height: 25px;
+}
+.modal-importar h2 {
+  font-size: 27px;
+}
+.modal-importar > p {
+  font-size: 13px;
+  color: var(--muted);
+}
+.modal-importar .paso-importar {
+  background: var(--petrol);
+  color: #fff;
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+
+/* Selects con flecha propia y borde marcado */
+.modal-importar .field > label {
+  font-size: 13px;
+  color: var(--ink);
+}
+.modal-importar select {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 48px;
+  padding: 10px 46px 10px 16px;
+  border: 2px solid #c9cfc1;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+      no-repeat right 11px center / 12px 8px,
+    linear-gradient(var(--coral), var(--coral)) no-repeat right 5px center / 30px 30px,
+    #fff;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.modal-importar select:hover {
+  border-color: var(--coral);
+}
+.modal-importar select:focus {
+  outline: none;
+  border-color: var(--coral);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--coral) 22%, transparent);
+}
+
+/* Inputs de las tarjetas */
+.modal-importar .input,
+.modal-importar input:not([type='checkbox']),
+.modal-importar textarea {
+  border: 2px solid #dfe3db;
+  border-radius: 10px;
+  font-size: 14px;
+}
+.modal-importar .input:focus,
+.modal-importar input:not([type='checkbox']):focus,
+.modal-importar textarea:focus {
+  outline: none;
+  border-color: var(--coral);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--coral) 18%, transparent);
+}
+
+/* Zona para soltar la foto */
+.modal-importar .upload-zone {
+  border: 2px dashed var(--coral);
+  background: #fff;
+  min-height: 210px;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.modal-importar .upload-zone:hover,
+.modal-importar .upload-zone.drop-active {
+  border-style: solid;
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--coral) 14%, transparent);
+}
+.modal-importar .upload-icono {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--coral);
+  color: #fff;
+}
+.modal-importar .upload-icono .icon {
+  width: 26px;
+  height: 26px;
+}
+.modal-importar .upload-zone strong {
+  font-size: 15px;
+}
+.modal-importar .upload-zone p {
+  font-size: 12px;
+  color: var(--muted);
+}
+.modal-importar .upload-zone .btn.secondary {
+  background: var(--petrol);
+  color: #fff;
+  border-color: var(--petrol);
+}
+
+/* Aviso de lectura simulada o con IA: blanco con borde amarillo */
+.modal-importar .simulation-label {
+  position: relative;
+  padding: 13px 16px 13px 20px;
+  border: 2px solid var(--yellow);
+  border-left-width: 8px;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 12px;
+}
+.modal-importar .simulation-label strong {
+  font-size: 13px;
+  color: var(--petrol);
+}
+.modal-importar .info-box {
+  border: 2px solid var(--blue);
+  background: #fff;
+  color: var(--ink);
+}
+
+/* Botón principal en coral, como la acción del inicio */
+.modal-importar .btn.primary {
+  background: var(--coral);
+  color: #fff;
+  box-shadow: 0 3px 0 #c8433f;
+}
+.modal-importar .btn.primary:hover {
+  background: #e64c47;
+}
+.modal-importar .modal-footer {
+  border-top: 2px solid var(--line);
+}
+.modal-importar .modal-footer .small-text {
+  font-size: 12px !important;
+}
+
+/* Cuaderno de ejemplo: hoja blanca rayada en celeste con margen coral */
+.modal-importar .fake-notebook {
+  background-color: #fff;
+  border: 2px solid #c9cfc1;
+  box-shadow: 4px 5px 0 var(--blue);
+  color: var(--ink);
+  background-image:
+    linear-gradient(
+      90deg,
+      transparent 22px,
+      var(--coral) 22px,
+      var(--coral) 24px,
+      transparent 24px
+    ),
+    repeating-linear-gradient(transparent, transparent 31px, #b5dcea 32px);
+  padding-left: 34px;
+}
+.modal-importar .fake-notebook strong {
+  color: var(--petrol);
+}
+
+/* Ventana de revisar: más ancha para que entren los campos */
+.modal.modal-revisar {
+  max-width: min(1160px, 100%);
+}
+.modal-revisar .import-layout {
+  grid-template-columns: 220px 1fr;
+  gap: 28px;
+}
+.modal-revisar .revision-estado {
+  font-size: 13px;
+}
+.modal-revisar .tarjeta-registro {
+  border: 2px solid #c9cfc1;
+  padding: 0 18px 6px;
+  overflow: hidden;
+}
+.modal-revisar .tarjeta-registro-cabecera {
+  margin: 0 -18px 16px;
+  padding: 10px 18px;
+  border-bottom: 2px solid #c9cfc1;
+}
+.modal-revisar .tarjeta-registro-cabecera h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+.modal-revisar .tarjeta-registro-cabecera h3::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--coral);
+}
+.modal-revisar .tarjeta-registro-campos {
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 0 18px;
+}
+.modal-revisar .tarjeta-registro-campos .field > label {
+  font-size: 12px;
+}
+.modal-importar .btn.danger {
+  background: #fff;
+  color: #c8433f;
+  border: 2px solid var(--coral);
+}
+.modal-importar .btn.danger:hover {
+  background: var(--coral);
+  color: #fff;
+}
+.modal-revisar .tarjeta-registro .field.con-duda {
+  border: 2px dashed var(--orange);
+  background: #fff;
+}
+.modal-revisar .aviso-duda {
+  color: #9a4f00;
+}
+.modal-revisar .campos-nuevos {
+  border: 2px solid var(--blue);
+  background: #fff;
+}
+.modal-revisar .revision-deshacer {
+  border: 2px solid var(--petrol);
+  background: #fff;
+}
+.modal-importar .check-row input {
+  accent-color: var(--coral);
+}
+
+@media (max-width: 720px) {
+  .modal-revisar .import-layout {
+    grid-template-columns: 1fr;
+  }
+  .modal-importar h2 {
+    font-size: 23px;
+  }
+}
