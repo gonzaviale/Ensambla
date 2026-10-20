@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.support.ImagenTestData;
 import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import com.jayway.jsonpath.JsonPath;
@@ -179,7 +180,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @DisplayName("La lectura inmediata no puede eludir la cuota mensual ni elegir otro negocio")
     void leerImagenShouldRejectMonthlyQuotaFromSession() throws Exception {
         givenMonthlyQuotaFull();
-        MockMultipartFile imagen = new MockMultipartFile("imagen", "foto.jpg", "image/jpeg", new byte[] {1, 2, 3});
+        MockMultipartFile imagen = new MockMultipartFile("imagen", "foto.jpg", "image/jpeg", ImagenTestData.jpeg());
         MockMultipartFile pedido = new MockMultipartFile(
                 "pedido", "", "application/json", PEDIDO.getBytes(StandardCharsets.UTF_8));
 
@@ -284,7 +285,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(status().isOk());
         jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 10 WHERE negocio_id = ?", negocioId);
         entityManager.clear();
-        MockMultipartFile imagen = new MockMultipartFile("imagen", "foto.jpg", "image/jpeg", new byte[] {1, 2, 3});
+        MockMultipartFile imagen = new MockMultipartFile("imagen", "foto.jpg", "image/jpeg", ImagenTestData.jpeg());
         MockMultipartFile pedido = new MockMultipartFile(
                 "pedido", "", "application/json", PEDIDO.getBytes(StandardCharsets.UTF_8));
 
