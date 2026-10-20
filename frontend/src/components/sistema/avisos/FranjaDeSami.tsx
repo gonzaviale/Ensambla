@@ -14,7 +14,7 @@ export function FranjaDeSami({ sistemaId }: { sistemaId: string }) {
   if (!avisos.length) {
     return (
       <section className="sami-franja ok" aria-label="Avisos de Sami">
-        <Sami />
+        <img className="sami-franja-img" src="/mockup/sami-guino.webp" alt="" />
         <p>
           <strong>Todo en orden.</strong> Sigo mirando tu stock, tus ventas y los precios de tu
           zona.

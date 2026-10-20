@@ -11,7 +11,6 @@ import { Icon } from '@/components/sistema/Icon';
 import { IconBtn } from '@/components/sistema/IconBtn';
 import { IconTile } from '@/components/sistema/IconTile';
 import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
-import { Sami } from '@/components/sistema/Sami';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import { varsDeColor } from '@/components/sistema/colores';
 import { allBlocks, totals } from '@/lib/sistema/core';
@@ -154,7 +153,6 @@ export function SistemaPage() {
         onInicio={() => void navegacion.irAInicio()}
         onModo={cambiarModo}
         onDeshacer={deshacerCambio}
-        onAyuda={() => abrirModal({ tipo: 'ayuda' })}
       />
       <main
         id="main"
@@ -404,9 +402,14 @@ export function SistemaPage() {
         </div>
         {construyendo && bloqueElegido && <Inspector bloque={bloqueElegido} sistema={sistema} />}
       </main>
-      <button type="button" className="sami-float" onClick={() => abrirModal({ tipo: 'ayuda' })}>
-        <Sami />
-        ¿Una mano con esto?
+      <button
+        type="button"
+        className="sami-float"
+        aria-label="¿Una mano con esto?"
+        title="¿Una mano con esto?"
+        onClick={() => abrirModal({ tipo: 'ayuda' })}
+      >
+        <img className="sami-float-img" src="/mockup/sami-boton.webp" alt="" />
       </button>
     </>
   );

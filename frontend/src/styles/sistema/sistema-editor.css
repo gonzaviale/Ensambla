@@ -738,3 +738,36 @@ body:has(.editor-layout) {
     grid-column: span 4;
   }
 }
+
+/* Franja "Todo en orden": color de la paleta y Sami guiñando. */
+.sami-franja.ok {
+  grid-template-columns: 64px 1fr;
+  align-items: center;
+  background: var(--petrol);
+  border: 0;
+  border-left: 6px solid var(--yellow);
+  padding: 10px 20px;
+  box-shadow: 0 6px 18px #00506a26;
+}
+.sami-franja.ok p {
+  color: #fff;
+  font-size: 15px;
+}
+.sami-franja.ok strong {
+  color: var(--yellow);
+}
+.sami-franja-img {
+  display: block;
+  width: 64px;
+  height: auto;
+  filter: drop-shadow(0 4px 6px #0003);
+}
+@media (max-width: 640px) {
+  .sami-franja.ok {
+    grid-template-columns: 52px 1fr;
+    padding: 10px 14px;
+  }
+  .sami-franja-img {
+    width: 52px;
+  }
+}
