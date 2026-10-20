@@ -728,7 +728,7 @@ describe('Sami ensambla el sistema desde cero', () => {
               Hora: '9:05',
               Seña: 'Sí',
               Servicio: 'color',
-              Fecha: '20/10',
+              Fecha: 'mañana',
               Precio: 'gratis',
             },
             ...Array.from({ length: 6 }, (_, indice) => ({ Nombre: `Turno ${indice}` })),
@@ -845,6 +845,30 @@ describe('Sami ensambla el sistema desde cero', () => {
   });
 
   describe('cargar_registros', () => {
+    it('entiende las fechas como se anotan en un cuaderno y descarta las que no existen', () => {
+      aplicarAcciones(sistema, [accion('agregar_pieza', { tipo: 'expenses', ejemplos: [] })]);
+      const anio = new Date().getFullYear();
+
+      aplicarAcciones(sistema, [
+        accion('cargar_registros', {
+          pieza: 'expenses',
+          filas: [
+            { Concepto: 'Luz', Fecha: '02/10' },
+            { Concepto: 'Gas', Fecha: '5/3/25' },
+            { Concepto: 'Agua', Fecha: '09-10-2024' },
+            { Concepto: 'Internet', Fecha: '2026-01-31' },
+            { Concepto: 'Alquiler', Fecha: '31/02' },
+          ],
+        }),
+      ]);
+
+      expect(
+        llamada('Gastos')
+          .rows.filter((fila) => !fila.__example)
+          .map((fila) => fila.date),
+      ).toEqual([`${anio}-10-02`, '2025-03-05', '2024-10-09', '2026-01-31', undefined]);
+    });
+
     it('suma registros reales, sin reemplazar ni los ejemplos ni lo que ya había', () => {
       aplicarAcciones(sistema, [
         accion('agregar_pieza', { tipo: 'clients', ejemplos: [{ Nombre: 'Ejemplo' }] }),

@@ -527,6 +527,25 @@ function filasDeSami(pieza: Bloque, crudas: unknown, maximo: number, deEjemplo: 
 }
 
 /** El valor de ejemplo convertido al tipo del dato; `undefined` si no sirve. */
+/**
+ * Una fecha como se anota en un cuaderno, en AAAA-MM-DD: acepta AAAA-MM-DD, DD/MM/AAAA, DD/MM/AA y DD/MM (sin año,
+ * el del año en curso). Una fecha que no existe (31/02) no sirve.
+ */
+function fechaDeCuaderno(texto: string): string | undefined {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) return texto;
+  const partes = /^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2}|\d{4}))?$/.exec(texto);
+  if (!partes) return undefined;
+  const [, dia = '', mes = '', anio] = partes;
+  const completo = !anio
+    ? new Date().getFullYear()
+    : anio.length === 2
+      ? 2000 + Number(anio)
+      : Number(anio);
+  const fecha = new Date(Date.UTC(completo, Number(mes) - 1, Number(dia)));
+  if (fecha.getUTCMonth() !== Number(mes) - 1 || fecha.getUTCDate() !== Number(dia)) return undefined;
+  return fecha.toISOString().slice(0, 10);
+}
+
 function valorDeEjemplo(campo: Campo, valor: unknown): Valor {
   if (valor === null || valor === undefined || typeof valor === 'object') return undefined;
   const crudo = typeof valor === 'string' ? valor.trim() : valor;
@@ -539,7 +558,7 @@ function valorDeEjemplo(campo: Campo, valor: unknown): Valor {
     case 'checkbox':
       return crudo === true || ['si', 'true', '1', 'x'].includes(normalize(crudo));
     case 'date':
-      return typeof crudo === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(crudo) ? crudo : undefined;
+      return typeof crudo === 'string' ? fechaDeCuaderno(crudo) : undefined;
     case 'time': {
       const [, horas = '', minutos = ''] = /^(\d{1,2}):(\d{2})$/.exec(String(crudo)) ?? [];
       return horas && Number(horas) < 24 && Number(minutos) < 60
