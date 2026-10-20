@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { dimensionesReducidas, reducirImagen } from '@/lib/sistema/imagen';
+import { aBase64, dimensionesReducidas, reducirImagen } from '@/lib/sistema/imagen';
 
 const MB = 1024 * 1024;
 
@@ -79,6 +79,15 @@ describe('reducirImagen', () => {
     expect(imagen.close).toHaveBeenCalled();
   });
 
+  it('con otro lado máximo (el de las fotos para Sami) achica hasta ese lado', async () => {
+    vi.stubGlobal('createImageBitmap', vi.fn().mockResolvedValue(mapa(4000, 3000)));
+    const reducida = new Blob([new Uint8Array(MB)], { type: 'image/jpeg' });
+    const canvas = givenCanvas(contexto2d(), reducida);
+
+    expect(await reducirImagen(archivo(6 * MB), 1600)).toBe(reducida);
+    expect([canvas.width, canvas.height]).toEqual([1600, 1200]);
+  });
+
   it('si la versión achicada pesa más que la original, manda la original', async () => {
     vi.stubGlobal('createImageBitmap', vi.fn().mockResolvedValue(mapa(1800, 1200)));
     givenCanvas(contexto2d(), new Blob([new Uint8Array(4 * MB)]));
@@ -110,5 +119,17 @@ describe('reducirImagen', () => {
     const foto = archivo(6 * MB);
 
     expect(await reducirImagen(foto)).toBe(foto);
+  });
+});
+
+describe('aBase64', () => {
+  it('devuelve el contenido en base64, sin el prefijo data:', async () => {
+    expect(await aBase64(new Blob(['pixeles'], { type: 'image/jpeg' }))).toBe(btoa('pixeles'));
+  });
+
+  it('una imagen grande no desborda la pila', async () => {
+    const bytes = new Uint8Array(300_000).fill(65);
+
+    expect(await aBase64(new Blob([bytes]))).toBe(btoa('A'.repeat(300_000)));
   });
 });

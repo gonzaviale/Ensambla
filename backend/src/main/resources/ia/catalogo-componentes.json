@@ -1,0 +1,304 @@
+{
+  "aviso": "Generado desde frontend/src/lib/sistema/catalogo.ts con `npm run catalogo:sami`. No editar a mano.",
+  "componentes": [
+    {
+      "tipo": "inventory",
+      "nombre": "Inventario",
+      "singular": "producto",
+      "proposito": "Sabé qué tenés, a cuánto lo vendés y qué necesitás reponer.",
+      "campos": [
+        {
+          "clave": "name",
+          "etiqueta": "Producto",
+          "tipo": "text",
+          "obligatorio": true
+        },
+        {
+          "clave": "quantity",
+          "etiqueta": "Cantidad",
+          "tipo": "number",
+          "obligatorio": true
+        },
+        {
+          "clave": "price",
+          "etiqueta": "Precio",
+          "tipo": "currency",
+          "obligatorio": false
+        },
+        {
+          "clave": "cost",
+          "etiqueta": "Costo",
+          "tipo": "currency",
+          "obligatorio": false
+        },
+        {
+          "clave": "minimum",
+          "etiqueta": "Stock mínimo",
+          "tipo": "number",
+          "obligatorio": false
+        }
+      ]
+    },
+    {
+      "tipo": "orders",
+      "nombre": "Pedidos",
+      "singular": "pedido",
+      "proposito": "Seguí tus pedidos desde que llegan hasta que los entregás.",
+      "campos": [
+        {
+          "clave": "name",
+          "etiqueta": "Pedido",
+          "tipo": "text",
+          "obligatorio": true
+        },
+        {
+          "clave": "customer",
+          "etiqueta": "Cliente",
+          "tipo": "text",
+          "obligatorio": false
+        },
+        {
+          "clave": "date",
+          "etiqueta": "Fecha",
+          "tipo": "date",
+          "obligatorio": false
+        },
+        {
+          "clave": "total",
+          "etiqueta": "Total",
+          "tipo": "currency",
+          "obligatorio": false
+        },
+        {
+          "clave": "status",
+          "etiqueta": "Estado",
+          "tipo": "select",
+          "obligatorio": false,
+          "opciones": [
+            "Pendiente",
+            "En preparación",
+            "Entregado"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "clients",
+      "nombre": "Clientes",
+      "singular": "cliente",
+      "proposito": "Reuní los datos de quienes te compran y lo que te deben.",
+      "campos": [
+        {
+          "clave": "name",
+          "etiqueta": "Nombre",
+          "tipo": "text",
+          "obligatorio": true
+        },
+        {
+          "clave": "phone",
+          "etiqueta": "Teléfono",
+          "tipo": "tel",
+          "obligatorio": false
+        },
+        {
+          "clave": "email",
+          "etiqueta": "Correo",
+          "tipo": "email",
+          "obligatorio": false
+        },
+        {
+          "clave": "notes",
+          "etiqueta": "Notas",
+          "tipo": "textarea",
+          "obligatorio": false
+        }
+      ]
+    },
+    {
+      "tipo": "sales",
+      "nombre": "Ventas",
+      "singular": "venta",
+      "proposito": "Cada venta descuenta stock y muestra qué se mueve y qué no.",
+      "campos": [
+        {
+          "clave": "product",
+          "etiqueta": "Producto",
+          "tipo": "relation",
+          "obligatorio": true
+        },
+        {
+          "clave": "quantity",
+          "etiqueta": "Cantidad",
+          "tipo": "number",
+          "obligatorio": true
+        },
+        {
+          "clave": "price",
+          "etiqueta": "Precio",
+          "tipo": "currency",
+          "obligatorio": false
+        },
+        {
+          "clave": "date",
+          "etiqueta": "Fecha",
+          "tipo": "date",
+          "obligatorio": false
+        },
+        {
+          "clave": "customer",
+          "etiqueta": "Cliente",
+          "tipo": "text",
+          "obligatorio": false
+        },
+        {
+          "clave": "credit",
+          "etiqueta": "Fiado",
+          "tipo": "checkbox",
+          "obligatorio": false
+        }
+      ]
+    },
+    {
+      "tipo": "expenses",
+      "nombre": "Gastos",
+      "singular": "gasto",
+      "proposito": "Registrá compras y gastos para entender tus costos.",
+      "campos": [
+        {
+          "clave": "name",
+          "etiqueta": "Concepto",
+          "tipo": "text",
+          "obligatorio": true
+        },
+        {
+          "clave": "date",
+          "etiqueta": "Fecha",
+          "tipo": "date",
+          "obligatorio": false
+        },
+        {
+          "clave": "total",
+          "etiqueta": "Importe",
+          "tipo": "currency",
+          "obligatorio": true
+        },
+        {
+          "clave": "category",
+          "etiqueta": "Categoría",
+          "tipo": "select",
+          "obligatorio": false,
+          "opciones": [
+            "Mercadería",
+            "Servicios",
+            "Alquiler",
+            "Otros"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "summary",
+      "nombre": "Resumen",
+      "singular": "indicador",
+      "proposito": "Mirá totales que se actualizan con tus registros.",
+      "campos": []
+    },
+    {
+      "tipo": "form",
+      "nombre": "Formulario",
+      "singular": "registro",
+      "proposito": "Pedí exactamente los datos que necesitás.",
+      "campos": [
+        {
+          "clave": "name",
+          "etiqueta": "Nombre",
+          "tipo": "text",
+          "obligatorio": true
+        },
+        {
+          "clave": "detail",
+          "etiqueta": "Detalle",
+          "tipo": "textarea",
+          "obligatorio": false
+        },
+        {
+          "clave": "date",
+          "etiqueta": "Fecha",
+          "tipo": "date",
+          "obligatorio": false
+        }
+      ]
+    },
+    {
+      "tipo": "note",
+      "nombre": "Nota",
+      "singular": "nota",
+      "proposito": "Dejá un mensaje útil junto a tus herramientas.",
+      "campos": []
+    },
+    {
+      "tipo": "entries",
+      "nombre": "Entradas",
+      "singular": "entrada",
+      "proposito": "Cada entrada suma unidades al stock del producto.",
+      "campos": [
+        {
+          "clave": "product",
+          "etiqueta": "Producto",
+          "tipo": "relation",
+          "obligatorio": true
+        },
+        {
+          "clave": "quantity",
+          "etiqueta": "Cantidad",
+          "tipo": "number",
+          "obligatorio": true
+        },
+        {
+          "clave": "date",
+          "etiqueta": "Fecha",
+          "tipo": "date",
+          "obligatorio": false
+        },
+        {
+          "clave": "notes",
+          "etiqueta": "Referencia",
+          "tipo": "text",
+          "obligatorio": false
+        }
+      ]
+    },
+    {
+      "tipo": "exits",
+      "nombre": "Salidas",
+      "singular": "salida",
+      "proposito": "Cada salida descuenta unidades del stock disponible.",
+      "campos": [
+        {
+          "clave": "product",
+          "etiqueta": "Producto",
+          "tipo": "relation",
+          "obligatorio": true
+        },
+        {
+          "clave": "quantity",
+          "etiqueta": "Cantidad",
+          "tipo": "number",
+          "obligatorio": true
+        },
+        {
+          "clave": "date",
+          "etiqueta": "Fecha",
+          "tipo": "date",
+          "obligatorio": false
+        },
+        {
+          "clave": "notes",
+          "etiqueta": "Referencia",
+          "tipo": "text",
+          "obligatorio": false
+        }
+      ]
+    }
+  ]
+}

@@ -251,6 +251,7 @@ describe('el tutorial', () => {
     await empezarLaGuia(user);
     await user.click(screen.getByRole('button', { name: /Elegir una plantilla/ }));
     await esperarPaso('Una plantilla es un conjunto.');
+    await verifyHeadingPresentAsync(/Elegí una base/);
 
     await user.click(screen.getByRole('button', { name: 'Ensambla, ir al inicio' }));
 

@@ -5,12 +5,14 @@
 @import './visual.css';
 @import './alertas.css';
 @import './onboarding.css';
-/* Lo único propio: la pantalla «Mi zona», que el mockup no tiene. */
+/* Lo único propio: «Mi zona» y «Armalo con Sami» (contra el backend real), que el mockup no tiene. */
 @import './zona.css';
+@import './sami-proyecto.css';
 /* La revisión de lo que leyó una foto en tarjetas y los campos nuevos detectados. */
 @import './revision.css';
 /* El inicio rearmado: acciones a mano, fondo blanco y la paleta completa. */
 @import './inicio.css';
 /* La pantalla del sistema: fondo blanco, piezas y cabeceras de color. */
 @import './sistema-editor.css';
+@import './ubicacion.css';
 @import './overrides.css';

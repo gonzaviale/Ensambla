@@ -1,10 +1,13 @@
 package com.ensambla.backend.domain.model.proyecto;
 
+import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.model.enums.DistribucionProyecto;
 import com.ensambla.backend.domain.model.enums.PlantillaSistema;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.BloquePlantilla;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.CampoPlantilla;
 import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
@@ -16,8 +19,13 @@ import lombok.Setter;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -25,6 +33,10 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Proyecto {
+
+    private static final Set<String> TIPOS_NO_SUGERIBLES = Set.of("RELACION", "FORMULA");
+    private static final String TIPO_NO_SUGERIBLE =
+            "Sami sólo agrega columnas de texto, número, fecha, opción o sí/no";
 
     private UUID id;
 
@@ -101,6 +113,46 @@ public class Proyecto {
         }
         proyecto.setBloques(bloques);
         return proyecto;
+    }
+
+    /**
+     * Suma al primer bloque las columnas que Sami propuso y la persona aceptó. Cada una se valida como si se creara
+     * a mano; si alguna falla se lanza el error y el proyecto no se guarda (todo se guarda en una sola transacción).
+     * Sólo admite tipos que se configuran con un nombre: no conexiones ni fórmulas.
+     */
+    public void agregarColumnas(List<ConfiguracionCampo> columnas, OffsetDateTime ahora) {
+        if (columnas.isEmpty()) {
+            return;
+        }
+        if (bloques.isEmpty()) {
+            throw new BusinessRuleException("La plantilla no tiene una tabla donde agregar columnas");
+        }
+        Bloque destino = bloques.getFirst();
+        List<Campo> campos = new ArrayList<>(destino.getCampos());
+        Set<String> nombres = campos.stream()
+                .map(campo -> campo.getNombre().strip().toLowerCase())
+                .collect(Collectors.toCollection(HashSet::new));
+        for (int i = 0; i < columnas.size(); i++) {
+            ConfiguracionCampo.Validada validada = validarColumna(columnas.get(i), i);
+            if (!nombres.add(validada.nombre().toLowerCase())) {
+                throw new DuplicateResourceException("Ya hay una columna llamada \"" + validada.nombre() + "\"");
+            }
+            campos.add(Campo.nuevo(negocioId, null, (short) campos.size(), validada, ahora));
+        }
+        destino.setCampos(campos);
+    }
+
+    private ConfiguracionCampo.Validada validarColumna(ConfiguracionCampo columna, int indice) {
+        if (TIPOS_NO_SUGERIBLES.contains(columna.tipo())) {
+            throw new CampoInvalidoException(Map.of("columnas[" + indice + "].tipo", TIPO_NO_SUGERIBLE));
+        }
+        try {
+            return columna.validar();
+        } catch (CampoInvalidoException e) {
+            Map<String, String> errores = new LinkedHashMap<>();
+            e.getErrores().forEach((dato, error) -> errores.put("columnas[" + indice + "]." + dato, error));
+            throw new CampoInvalidoException(errores);
+        }
     }
 
     public void renombrar(String nombre, OffsetDateTime ahora) {

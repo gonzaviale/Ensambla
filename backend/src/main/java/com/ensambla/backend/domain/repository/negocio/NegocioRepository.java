@@ -10,6 +10,10 @@ public interface NegocioRepository {
 
     Optional<UUID> findIdByDuenioId(UUID usuarioId);
 
+    Optional<Negocio> findByDuenioId(UUID usuarioId);
+
+    Optional<Negocio> findByDuenioIdParaActualizar(UUID usuarioId);
+
     Negocio save(Negocio negocio);
 
     /** Ids de todos los negocios; los usa el motor de monitoreo para recorrerlos. */
