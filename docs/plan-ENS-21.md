@@ -5,14 +5,40 @@ de ENS-94 a ENS-96 se completaron primero en local, sin commits.
 Posteriormente el usuario autorizó commits explicativos con Conventional Commits y su publicación
 en `feat/ens-21-planes-suscripciones`. Las notas de cada etapa conservan el alcance de esa validación local.
 
-## Etapa actual: ENS-96
+## Etapa actual: ENS-98
+
+Brian aprobó renovación automática con Mercado Pago por ARS 14.900 finales cada treinta días,
+primer cobro al terminar la prueba vigente y cancelación desde Planes. Se implementaron contratos,
+facturas y períodos idempotentes, conciliación, notificaciones firmadas, adaptador del proveedor y UI.
+Se conserva la prueba de diez páginas totales y la cuota Premium mensual UTC de cien páginas.
+
+Se trabaja únicamente en local, **sin commits ni push**, sobre los cambios locales de ENS-97.
+La aplicación de Mercado Pago todavía no fue creada por el usuario; la configuración queda preparada,
+deshabilitada por defecto. La validación externa con cuentas del proveedor queda pendiente y no se
+hicieron cobros reales. Diseño y resultado: [plan-ENS-98.md](plan-ENS-98.md).
+[Configuración paso a paso](mercado-pago-configuracion-local.md).
+
+## ENS-97: resultado de la etapa anterior
+
+La pantalla privada `/planes` permite comparar el catálogo, ver el plan y consumo del negocio,
+y activar explícitamente la prueba de siete días con diez páginas totales. Consulta el backend
+real mediante `GET /api/planes`; precio y moneda pendientes se muestran sin inventar valores.
+Se validaron activación, persistencia, repetición rechazada, cupo agotado y vencimiento automático
+de la pantalla con PostgreSQL local aislado. Se conservan los datos al volver al gratuito.
+
+Esta etapa queda **sólo en local, sin commits ni push**, por instrucción del usuario.
+Validación: 1.512 pruebas del backend, 288 del frontend y 39 del evaluador aprobadas;
+456 clases con 100 % de líneas y ramas. Detalle y alcance de la revisión en navegador:
+[plan-ENS-97.md](plan-ENS-97.md). Continúa pendiente ENS-98 (pagos y definición comercial).
+
+## ENS-96: resultado de la etapa anterior
 
 El usuario aprobó continuar ENS-96 con una única prueba por negocio de siete días exactos y diez
 páginas de IA totales. Se incorporaron V14, el inicio privado desde sesión y CSRF, el contador
 persistente compartido por lectura inmediata y cola, y el vencimiento automático sin pérdida de datos.
 El detalle técnico y la validación están en [plan-ENS-96.md](plan-ENS-96.md).
-La publicación autorizada corresponde a esta rama de funcionalidad. La pantalla pertenece a ENS-97
-y los pagos a ENS-98; ambas subtareas siguen pendientes.
+La publicación autorizada de ENS-94 a ENS-96 corresponde a esta rama de funcionalidad.
+La pantalla de ENS-97 se documenta arriba; los pagos de ENS-98 siguen pendientes.
 ENS-96 quedó validada con 1.489 pruebas del backend y 39 del evaluador sin fallos ni omitidas;
 444 clases con el 100 % de líneas y ramas. V14 se verificó en PostgreSQL temporal sin aplicarla desde
 esta tarea a la base habitual. [Archivos creados y modificados en ENS-96](archivos-ENS-96.md).
@@ -142,13 +168,13 @@ Los datos pasan por `api` y hooks; las respuestas se validan con zod.
 
 ### Pagos
 
-Proponer Mercado Pago en ambiente de pruebas, pendiente de confirmar como pasarela.
-Consultar documentación oficial vigente antes de implementar el contrato del proveedor.
-Separar el puerto de pagos del adaptador externo y persistir la referencia de la operación.
+Se integra Mercado Pago en ambiente de pruebas con las condiciones comerciales aprobadas abajo.
+El contrato del proveedor se contrastó con documentación oficial y respuestas de cuentas de prueba.
+El puerto de pagos está separado del adaptador externo y la referencia de la operación se persiste.
 Validar la notificación según el proveedor y corroborar el pago en su API, incluidos negocio,
 referencia, importe, moneda y estado. Procesar notificaciones repetidas de forma idempotente.
 La vuelta desde el checkout no activa premium. Un pago rechazado no revoca por sí solo un período
-ya pagado y vigente. Deben definirse cobro recurrente y vencimiento de los períodos pagos.
+ya pagado y vigente. Cada factura aprobada concede treinta días desde su fecha de débito.
 
 ## Orden de implementación y validación
 
@@ -156,16 +182,22 @@ ya pagado y vigente. Deben definirse cobro recurrente y vencimiento de los perí
 2. ENS-95: capacidades y cuotas en todas las rutas de creación; tests de aislamiento y concurrencia.
 3. ENS-96: prueba y vencimiento con reloj controlado; probar el límite exacto de siete días,
    solicitudes repetidas y conservación de datos.
-4. ENS-98: adaptador y estados de pago; probar aprobación, rechazo, duplicados, errores del proveedor
+4. ENS-97: página conectada, estado, consumo y prueba; pruebas de interacción y revisión en navegador.
+5. ENS-98: adaptador y estados de pago e incorporación del cobro en la pantalla; probar aprobación,
+   rechazo, duplicados, errores del proveedor
    y notificaciones que no coinciden con la operación. Validación externa en pruebas según acceso disponible.
-5. ENS-97: página conectada, estado, consumo, prueba y pago; pruebas de interacción y revisión en navegador.
 6. Ejecutar `backend/mvnw.cmd clean verify` con el 100 % de líneas y ramas por clase exigido,
    pruebas del evaluador de IA y lint, tipos, tests y build del frontend. Actualizar documentación.
 
-## Decisiones comerciales pendientes
+## Decisiones comerciales aprobadas para ENS-98
 
-- Precio, moneda y condiciones del período mensual. Las cuotas y funciones ya fueron aprobadas.
-- Confirmar Mercado Pago y si el cobro mensual será recurrente automático o por renovación manual.
+- Mercado Pago, renovación automática cada treinta días, ARS 14.900 finales.
+- Primer cobro al terminar la prueba vigente. Si no hay prueba o tiempo pagado vigente, desde la contratación.
+- Cancelación desde Planes, conservando prueba y tiempo ya pagado hasta su vencimiento.
+- Las cuotas y funciones siguen siendo las aprobadas; IA mensual UTC no se reinicia al pagar otra vez.
 
-No se fija precio ni moneda ni se declara completa la integración de pagos sin esas definiciones
-y sin evidencia de sus pruebas correspondientes.
+La aplicación y las cuentas de prueba están configuradas. Se verificaron externamente autorización,
+retorno, fechas, cancelación, factura aprobada con acceso Premium y factura rechazada conservando
+Gratuito. Siguen pendientes el segundo cobro recurrente, el reembolso externo y las notificaciones
+firmadas del proveedor. Los períodos y reembolsos están cubiertos en pruebas locales; no se habilitan
+cobros reales ni se declara producción validada a partir de ellas. Detalle: [ENS-98](plan-ENS-98.md).

@@ -1,10 +1,11 @@
-# Modelo de datos (MVP 2 · T-004, T-109; V9 a V14 incorporan frontend, monitoreo, planes y prueba)
+# Modelo de datos (MVP 2 · T-004, T-109; V9 a V15 incorporan frontend, monitoreo, planes, prueba y pagos)
 
 Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (`V1__esquema_inicial.sql`,
 `V2__digitalizacion_cuaderno.sql`, `V3__plantillas_base.sql`, `V4__procesamiento_lecturas_ia.sql`,
 `V5__campo_relacion.sql`, `V6__campo_formula.sql`, `V7__movimiento_stock.sql`, `V8__receta.sql`,
 `V9__modelo_sistema_y_monitoreo.sql`, `V10__datos_prueba_san_justo.sql`, `V11__avisos_entidad_y_datos.sql`,
-`V12__planes_y_suscripciones.sql`, `V13__limites_y_funciones_por_plan.sql`, `V14__prueba_premium.sql`).
+`V12__planes_y_suscripciones.sql`, `V13__limites_y_funciones_por_plan.sql`, `V14__prueba_premium.sql`,
+`V15__renovaciones_y_pagos_premium.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -109,6 +110,41 @@ Detalles y contrato con subida: [lectura-cuaderno-ia.md](lectura-cuaderno-ia.md)
   vigencia al ejecutarse, sin depender del job para bloquear accesos vencidos.
 - Se conservan sistemas y filas al volver al gratuito; el historial diario sigue intacto y cuenta
   en el mes correspondiente. Contrato y validación: [plan-ENS-96.md](plan-ENS-96.md).
+
+## Renovación automática y pagos (V15 · ENS-98)
+
+- El precio inicial aprobado de Premium es ARS 14.900 finales cada treinta días. V15 completa los
+  catálogos todavía pendientes; conserva una configuración comercial ya existente. `precio_mensual`
+  conserva su nombre por compatibilidad, aunque el ciclo de cobro contratado es de treinta días.
+- `renovacion_premium` identifica cada contratación con un UUID enviado como referencia externa.
+  Guarda negocio, identificador y enlace del proveedor, estado, importe/moneda contratados, primer
+  cobro, próxima fecha informada, intención de cancelación y tiempos de sincronización.
+  Un índice parcial admite un solo contrato no cancelado por negocio. La creación se guarda antes
+  de llamar a Mercado Pago; una respuesta perdida se busca por referencia sin repetir la creación.
+  Los contratos cancelados conservan su historia y pueden conciliar pagos o reembolsos posteriores.
+- `pago_premium` usa la factura del proveedor como clave y el pago como identificador único.
+  La FK compuesta `(negocio_id, renovacion_id)` evita relacionar pagos con contratos de otro negocio.
+  Cada factura conserva su intervalo de 720 horas desde el débito; el orden de los webhooks no
+  modifica ese intervalo. Su estado conserva el valor externo del proveedor (`approved`, `refunded`,
+  etc.); sólo `approved` puede conceder acceso. No se guardan tarjetas ni datos del medio de pago.
+- Bajo el mismo bloqueo de negocio de ENS-95, se actualiza la versión del pago y se calcula el período
+  aprobado vigente. Duplicados y versiones antiguas no extienden acceso. Un cobro rechazado no retira
+  otro período pagado. Un reembolso completo o contracargo retira sólo el período afectado.
+- Autorizar la renovación no modifica la prueba. Se programa el primer cobro para su fin, redondeado
+  hacia arriba a milisegundos para no anticiparlo; no reinicia los siete días ni sus diez páginas.
+  Cancelar sólo detiene renovaciones: conserva prueba y tiempo pagado. La baja se confirma en el
+  proveedor y una falla conserva la intención para reintentar. El vencimiento de pago también se
+  controla al consultar capacidades, sin depender de recibir un webhook.
+- Una contratación abierta impide iniciar posteriormente una prueba, evitando que un cobro ya
+  programado caiga dentro de esa nueva prueba. Ambos caminos serializan con el bloqueo de negocio.
+  La consulta prioriza el contrato abierto sobre el historial aun con fechas de creación iguales.
+- El worker consulta lotes de cien contratos ordenados por último intento, incluidos los cancelados,
+  y rota los intentos fallidos para no impedir la conciliación de otros negocios. La API del proveedor
+  se consulta fuera de las transacciones con bloqueo. Índices de negocio, período, referencia y
+  sincronización evitan recorrer tablas completas en las consultas habituales.
+
+Contrato y validación: [plan-ENS-98.md](plan-ENS-98.md).
+Configuración del proveedor: [mercado-pago-configuracion-local.md](mercado-pago-configuracion-local.md).
 
 ## Frontend nuevo y monitoreo (V9)
 
