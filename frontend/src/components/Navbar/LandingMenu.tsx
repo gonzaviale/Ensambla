@@ -3,15 +3,13 @@ import { ListIcon, XIcon } from '@phosphor-icons/react';
 import { cn } from '@/lib/cn';
 
 const SECCIONES = [
-  { id: 'camara', nombre: 'Con tu cámara' },
-  { id: 'como-funciona', nombre: 'Cómo funciona' },
-  { id: 'bloques', nombre: 'Bloques' },
-  { id: 'plantillas', nombre: 'Plantillas' },
-  { id: 'comentarios', nombre: 'Comentarios' },
+  { id: 'como-funciona', nombre: 'Cómo te ayuda' },
+  { id: 'a-tu-manera', nombre: 'A tu manera' },
+  { id: 'tus-dudas', nombre: 'Tus dudas' },
 ] as const;
 
 const enlace =
-  'rounded-md px-3 py-2 text-hint font-semibold text-soft no-underline hover:bg-canvas hover:text-fg';
+  'inline-flex min-h-12 items-center rounded-md px-3 py-2 text-hint font-semibold text-soft no-underline hover:bg-canvas hover:text-fg';
 
 // Anclas a las secciones de la landing, en línea desde md.
 export function LandingLinks() {
@@ -30,11 +28,15 @@ export function LandingLinks() {
 export function LandingMenu() {
   const [abierto, setAbierto] = useState(false);
   const contenedor = useRef<HTMLDivElement>(null);
+  const boton = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!abierto) return;
     const alTeclear = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setAbierto(false);
+      if (e.key === 'Escape') {
+        setAbierto(false);
+        boton.current?.focus();
+      }
     };
     const alTocarFuera = (e: PointerEvent) => {
       if (e.target instanceof Node && !contenedor.current?.contains(e.target)) setAbierto(false);
@@ -50,12 +52,13 @@ export function LandingMenu() {
   return (
     <div ref={contenedor} className="xl:hidden">
       <button
+        ref={boton}
         type="button"
         aria-label={abierto ? 'Cerrar menú' : 'Abrir menú'}
         aria-expanded={abierto}
         aria-controls="menu-landing"
         onClick={() => setAbierto((v) => !v)}
-        className="flex size-11 items-center justify-center rounded-md border border-line bg-surface text-fg"
+        className="flex size-12 items-center justify-center rounded-md border border-line bg-surface text-fg"
       >
         {abierto ? <XIcon aria-hidden size={22} /> : <ListIcon aria-hidden size={22} />}
       </button>
