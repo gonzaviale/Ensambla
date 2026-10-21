@@ -20,6 +20,7 @@ import java.io.UncheckedIOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,6 +29,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class LecturaPresentationMapperTest {
+
+    private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
 
     private final LecturaPresentationMapper mapper = new LecturaPresentationMapper();
 
@@ -41,9 +44,10 @@ class LecturaPresentationMapperTest {
                 campo("estado", "Estado", "select", "A", "B"), campo("pago", "Pagó", "checkbox"),
                 campo("cliente", "Cliente", "relation"));
 
-        LeerImagenRequest request = mapper.toRequest(
+        LeerImagenRequest request = mapper.toRequest(USUARIO_ID,
                 new MockMultipartFile("imagen", "foto.jpg", "image/jpeg", new byte[]{1, 2}), pedido);
 
+        assertThat(request.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(request.contenido()).containsExactly(1, 2);
         assertThat(request.nombreBloque()).isEqualTo("Ventas");
         assertThat(request.destinoExistente()).isTrue();
@@ -60,7 +64,7 @@ class LecturaPresentationMapperTest {
         MultipartFile imagen = mock(MultipartFile.class);
         when(imagen.getBytes()).thenThrow(new IOException("disco"));
 
-        assertThatThrownBy(() -> mapper.toRequest(imagen, pedido(false, campo("a", "A", "text"))))
+        assertThatThrownBy(() -> mapper.toRequest(USUARIO_ID, imagen, pedido(false, campo("a", "A", "text"))))
                 .isInstanceOf(UncheckedIOException.class).hasMessageContaining("No se pudo leer la imagen");
     }
 

@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -24,6 +25,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -43,6 +45,8 @@ class LecturaControllerTest {
              "campos":[{"key":"monto","label":"Monto","type":"currency","required":true},
                        {"key":"cliente","label":"Cliente","type":"text","required":false}]}""";
 
+    private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
+
     private final LeerImagenUseCase leerImagenUseCase = mock(LeerImagenUseCase.class);
 
     private MockMvc mockMvc;
@@ -55,6 +59,8 @@ class LecturaControllerTest {
                 new LecturaPresentationMapper());
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
+                .defaultRequest(multipart("/api/importaciones/lectura").principal(
+                        new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null, List.of())))
                 .build();
     }
 
@@ -158,6 +164,7 @@ class LecturaControllerTest {
     private void thenElUseCaseRecibioElBloqueVentas() {
         ArgumentCaptor<LeerImagenRequest> captor = ArgumentCaptor.forClass(LeerImagenRequest.class);
         verify(leerImagenUseCase).execute(captor.capture());
+        assertThat(captor.getValue().usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(captor.getValue().contenido()).containsExactly(7, 8, 9);
         assertThat(captor.getValue().nombreBloque()).isEqualTo("Ventas");
         assertThat(captor.getValue().destinoExistente()).isTrue();

@@ -16,6 +16,9 @@ export type Modal =
   | { tipo: 'plantilla'; clave: ClavePlantilla }
   | { tipo: 'ayuda'; respuesta?: string }
   | { tipo: 'perfil' }
+  | { tipo: 'pruebaPremium' }
+  | { tipo: 'contratarPremium' }
+  | { tipo: 'cancelarRenovacion' }
   | { tipo: 'renombrar' }
   | { tipo: 'renombrarPieza'; bloqueId: string }
   | { tipo: 'registro'; bloqueId: string; filaId?: string | null }

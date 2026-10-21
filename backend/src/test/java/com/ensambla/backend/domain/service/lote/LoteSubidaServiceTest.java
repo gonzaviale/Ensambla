@@ -8,6 +8,7 @@ import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.support.LoteTestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,7 +43,7 @@ class LoteSubidaServiceTest {
     private final LoteSubidaRepository loteSubidaRepository = mock(LoteSubidaRepository.class);
     private final ArchivoCuadernoPort archivoCuadernoPort = mock(ArchivoCuadernoPort.class);
     private final LoteSubidaService loteSubidaService =
-            new LoteSubidaService(loteSubidaRepository, archivoCuadernoPort);
+            new LoteSubidaService(loteSubidaRepository, archivoCuadernoPort, mock(ControlPlanService.class));
 
     @Test
     @DisplayName("Guarda cada foto en la carpeta del negocio y después guarda el lote pendiente")

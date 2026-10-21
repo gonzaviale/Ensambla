@@ -42,6 +42,8 @@ public class ProcesamientoService {
     private final ConexionesLecturaService conexionesLecturaService;
     private final PoliticaProcesamiento politicaProcesamiento;
 
+    private final ReservaIaService reservaIaService;
+
     public Optional<LoteTrabajo> reclamar(OffsetDateTime ahora) {
         return procesamientoRepository.reclamar(ahora, ahora.plus(politicaProcesamiento.vigenciaReclamo()));
     }
@@ -57,7 +59,7 @@ public class ProcesamientoService {
             validarPaginas(fotos);
             List<PaginaCuaderno> paginas = paginas(lote, fotos);
             List<BloqueLectura> bloques = procesamientoRepository.bloques(lote.negocioId());
-            if (!procesamientoRepository.reservar(lote, paginas.size(), politicaProcesamiento.limiteDiario(), ahora)) {
+            if (!reservaIaService.reservar(lote, paginas.size(), politicaProcesamiento.limiteDiario(), ahora)) {
                 return new ResultadoIntento(null, LIMITE_AGOTADO, false);
             }
             List<BloqueConocido> contexto = bloques.stream()
@@ -100,6 +102,7 @@ public class ProcesamientoService {
 
     public void reintentar(UUID negocioId, UUID loteId, OffsetDateTime ahora) {
         obtener(negocioId, loteId);
+        reservaIaService.validarDisponibilidad(negocioId, ahora);
         ConsumoDiario consumo = consumo(negocioId, ahora);
         if (consumo.paginas() + consumo.reservadas() >= politicaProcesamiento.limiteDiario()) {
             throw new BusinessRuleException(LIMITE_AGOTADO);

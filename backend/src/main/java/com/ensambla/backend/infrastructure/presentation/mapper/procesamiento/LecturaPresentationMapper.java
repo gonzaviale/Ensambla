@@ -82,13 +82,13 @@ public class LecturaPresentationMapper {
     }
 
     /** Sólo se leen los tipos que la IA sabe leer; un campo que apunta a otro bloque ({@code relation}) lo completa la persona. */
-    public LeerImagenRequest toRequest(MultipartFile imagen, PedidoLecturaRequest pedido) {
+    public LeerImagenRequest toRequest(UUID usuarioId, MultipartFile imagen, PedidoLecturaRequest pedido) {
         List<LeerImagenRequest.CampoItem> campos = pedido.campos().stream()
                 .filter(campo -> TIPOS_DE_DOMINIO.containsKey(campo.type()))
                 .map(campo -> new LeerImagenRequest.CampoItem(
                         campo.key(), campo.label(), TIPOS_DE_DOMINIO.get(campo.type()), campo.options()))
                 .toList();
-        return new LeerImagenRequest(contenido(imagen), pedido.nombre(), campos, pedido.destinoExistente());
+        return new LeerImagenRequest(usuarioId, contenido(imagen), pedido.nombre(), campos, pedido.destinoExistente());
     }
 
     public LecturaImagenResponse toResponse(LeerImagenItem item, PedidoLecturaRequest pedido) {

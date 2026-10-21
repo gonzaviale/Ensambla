@@ -1,9 +1,11 @@
-# Modelo de datos (MVP 2 · T-004, T-109; V9 a V11 adaptan el modelo al frontend nuevo y a la propuesta v1.3)
+# Modelo de datos (MVP 2 · T-004, T-109; V9 a V15 incorporan frontend, monitoreo, planes, prueba y pagos)
 
 Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (`V1__esquema_inicial.sql`,
 `V2__digitalizacion_cuaderno.sql`, `V3__plantillas_base.sql`, `V4__procesamiento_lecturas_ia.sql`,
 `V5__campo_relacion.sql`, `V6__campo_formula.sql`, `V7__movimiento_stock.sql`, `V8__receta.sql`,
-`V9__modelo_sistema_y_monitoreo.sql`, `V10__datos_prueba_san_justo.sql`, `V11__avisos_entidad_y_datos.sql`).
+`V9__modelo_sistema_y_monitoreo.sql`, `V10__datos_prueba_san_justo.sql`, `V11__avisos_entidad_y_datos.sql`,
+`V12__planes_y_suscripciones.sql`, `V13__limites_y_funciones_por_plan.sql`, `V14__prueba_premium.sql`,
+`V15__renovaciones_y_pagos_premium.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -36,6 +38,113 @@ porqué; si cambian, se actualizan juntos.
   y el acceso a archivos ocurren fuera de esas transacciones.
 
 Detalles y contrato con subida: [lectura-cuaderno-ia.md](lectura-cuaderno-ia.md).
+
+## Planes y suscripciones (V12 · ENS-94 / T-066)
+
+- `plan` es un catálogo global con códigos únicos `GRATUITO` y `PREMIUM`, nombre, precio mensual,
+  moneda de tres letras, límites de proyectos, registros y páginas de IA mensuales, y una lista JSON de funciones.
+  Las cuotas y el precio no admiten números negativos. Se permiten cero y límites nulos según la configuración.
+- `configurado=false` identifica las condiciones comerciales todavía pendientes. En ese estado, un límite
+  nulo **no significa ilimitado**. El catálogo inicial no fija cuotas, moneda, precio premium ni funciones.
+  Sólo el gratuito tiene precio cero. La lista inicial de funciones está vacía y el indicador sigue en falso.
+- Un plan configurado exige precio y moneda; el gratuito exige además límites explícitos de proyectos y
+  páginas mensuales, y premium exige precio positivo. Un límite nulo en un plan configurado representa
+  que no tiene límite para ese recurso. Los valores concretos y las funciones se definen antes de habilitar
+  el control comercial de ENS-95. `configurado` no es un permiso premium ni equivale a un pago aprobado.
+- `suscripcion` guarda una única suscripción actual por negocio (`ux_suscripcion_negocio`), su plan,
+  estado (`ACTIVA`, `PRUEBA`, `VENCIDA`, `CANCELADA`), inicio y fin opcional del período. El fin, si existe,
+  debe ser posterior al inicio. La FK del negocio borra en cascada; la FK del plan impide eliminar un plan en uso.
+- V12 asigna el gratuito activo, sin fin, a todos los negocios que ya existen, sin borrar sus datos.
+  `RegistroService` crea usuario, negocio y suscripción gratuita en una sola transacción: si falla cualquiera,
+  se revierte todo. Las fechas de las nuevas cuentas vienen del instante recibido por el caso de uso.
+- La consulta de suscripción recibe el negocio resuelto por el servidor; el puerto no ofrece búsqueda por id
+  de suscripción sin negocio. `plan` se consulta por código porque es un catálogo global.
+- ENS-94 sólo incorpora persistencia y asignación. Los controles efectivos y consumo mensual corresponden
+  a ENS-95, la prueba y su vencimiento a ENS-96, la pantalla a ENS-97 y los pagos a ENS-98. Los estados del
+  esquema no activan esas operaciones por sí mismos. El límite técnico diario de IA existente sigue funcionando.
+
+## Control por plan (V13 · ENS-95 / T-067)
+
+- V12 conserva el catálogo inicial sin condiciones comerciales inventadas. V13 agrega
+  `limites_configurados` y establece las capacidades aprobadas: gratuito de un sistema,
+  1.000 registros totales y diez páginas de IA al mes UTC; premium sin límite comercial de
+  sistemas/registros y con cien páginas mensuales.
+- `limites_configurados=true` identifica los límites listos para controlar. Es independiente de
+  `configurado`, que sigue identificando precio y moneda. Un límite nulo de sistemas/registros
+  significa sin límite comercial sólo cuando las capacidades están configuradas; no habilita
+  nada por sí mismo en un catálogo pendiente.
+- `funciones` de premium contiene `RECETAS_COSTOS`, `REPORTES_FILTRADOS` y `EXPORTAR_EXCEL`;
+  el gratuito no contiene esas funciones. La suscripción se evalúa con el instante recibido del
+  caso de uso: estado activo, inicio alcanzado y fin no vencido. Ante falta de vigencia se usa
+  el gratuito, conservando todos los datos. La activación y cuota de pruebas se incorporan en ENS-96.
+- Las altas de sistemas y filas, individuales o múltiples, bloquean la fila del negocio hasta
+  terminar la transacción que cuenta y guarda. No se toma el negocio del cuerpo ni de un query param.
+- No se duplica el contador mensual: se suman `paginas + reservadas` de `consumo_ia_diario` entre
+  los límites del mes UTC usando su clave primaria `(negocio_id, fecha)`. Los intentos reservados
+  conservan su día/mes original al finalizar, aun después de medianoche.
+- `consumo_ia_diario.paginas_inmediatas` cuenta el subconjunto de `paginas` originado en lectura
+  inmediata, con restricciones `0 <= paginas_inmediatas <= paginas`. La consulta del mes incluye
+  ese consumo; la cuota diaria técnica también se respeta. Los errores del proveedor pueden tener
+  costo, por lo que el intento inmediato se registra antes de la llamada externa.
+- El resumen diario marca `consumoCompleto=false` y costo desconocido cuando hay intentos
+  inmediatos, cuyo detalle completo de tokens/costo aún no se persiste. No los presenta como costo cero.
+- No se cambian V1–V12, las cuotas no borran datos y el proveedor se llama fuera del bloqueo.
+  Contratos, errores 403, pruebas y límites del alcance: [plan-ENS-95.md](plan-ENS-95.md).
+
+## Prueba premium (V14 · ENS-96 / T-068)
+
+- `prueba_premium`: una fila por negocio, PK/FK `negocio_id` con cascada, `inicio_en`, `fin_en`
+  y `paginas_ia`. El período original es inmutable desde la aplicación; su inicio también representa
+  la creación del historial. Se conserva al vencer o convertir la suscripción a premium pago.
+- Las restricciones exigen 168 horas y contador entre cero y diez. La suscripción `PRUEBA` también
+  exige fin no nulo a siete días del inicio. No se activan pruebas al migrar.
+- El inicio serializa por negocio, cambia la suscripción a premium `PRUEBA` y crea su historial en
+  la misma transacción. Una segunda solicitud no renueva fechas ni cuota.
+- Durante su vigencia se aplican las funciones premium, con diez páginas de IA totales en lugar
+  de cien mensuales. Se cargan al admitir un intento inmediato o reservar un lote; la finalización
+  no vuelve a cobrarlas. Rechazos diarios y reservas duplicadas no gastan prueba. El contador
+  es independiente del consumo previo y no se reinicia al cambiar de mes.
+- El índice parcial `ix_suscripcion_pruebas_vencidas` usa `(fin_en, negocio_id)` para `PRUEBA`.
+  El job obtiene cien candidatos por ciclo y verifica nuevamente estado/fin bajo bloqueo. Una
+  suscripción `ACTIVA` ya convertida por pago no se modifica. Las operaciones también comprueban
+  vigencia al ejecutarse, sin depender del job para bloquear accesos vencidos.
+- Se conservan sistemas y filas al volver al gratuito; el historial diario sigue intacto y cuenta
+  en el mes correspondiente. Contrato y validación: [plan-ENS-96.md](plan-ENS-96.md).
+
+## Renovación automática y pagos (V15 · ENS-98)
+
+- El precio inicial aprobado de Premium es ARS 14.900 finales cada treinta días. V15 completa los
+  catálogos todavía pendientes; conserva una configuración comercial ya existente. `precio_mensual`
+  conserva su nombre por compatibilidad, aunque el ciclo de cobro contratado es de treinta días.
+- `renovacion_premium` identifica cada contratación con un UUID enviado como referencia externa.
+  Guarda negocio, identificador y enlace del proveedor, estado, importe/moneda contratados, primer
+  cobro, próxima fecha informada, intención de cancelación y tiempos de sincronización.
+  Un índice parcial admite un solo contrato no cancelado por negocio. La creación se guarda antes
+  de llamar a Mercado Pago; una respuesta perdida se busca por referencia sin repetir la creación.
+  Los contratos cancelados conservan su historia y pueden conciliar pagos o reembolsos posteriores.
+- `pago_premium` usa la factura del proveedor como clave y el pago como identificador único.
+  La FK compuesta `(negocio_id, renovacion_id)` evita relacionar pagos con contratos de otro negocio.
+  Cada factura conserva su intervalo de 720 horas desde el débito; el orden de los webhooks no
+  modifica ese intervalo. Su estado conserva el valor externo del proveedor (`approved`, `refunded`,
+  etc.); sólo `approved` puede conceder acceso. No se guardan tarjetas ni datos del medio de pago.
+- Bajo el mismo bloqueo de negocio de ENS-95, se actualiza la versión del pago y se calcula el período
+  aprobado vigente. Duplicados y versiones antiguas no extienden acceso. Un cobro rechazado no retira
+  otro período pagado. Un reembolso completo o contracargo retira sólo el período afectado.
+- Autorizar la renovación no modifica la prueba. Se programa el primer cobro para su fin, redondeado
+  hacia arriba a milisegundos para no anticiparlo; no reinicia los siete días ni sus diez páginas.
+  Cancelar sólo detiene renovaciones: conserva prueba y tiempo pagado. La baja se confirma en el
+  proveedor y una falla conserva la intención para reintentar. El vencimiento de pago también se
+  controla al consultar capacidades, sin depender de recibir un webhook.
+- Una contratación abierta impide iniciar posteriormente una prueba, evitando que un cobro ya
+  programado caiga dentro de esa nueva prueba. Ambos caminos serializan con el bloqueo de negocio.
+  La consulta prioriza el contrato abierto sobre el historial aun con fechas de creación iguales.
+- El worker consulta lotes de cien contratos ordenados por último intento, incluidos los cancelados,
+  y rota los intentos fallidos para no impedir la conciliación de otros negocios. La API del proveedor
+  se consulta fuera de las transacciones con bloqueo. Índices de negocio, período, referencia y
+  sincronización evitan recorrer tablas completas en las consultas habituales.
+
+Contrato y validación: [plan-ENS-98.md](plan-ENS-98.md).
+Configuración del proveedor: [mercado-pago-configuracion-local.md](mercado-pago-configuracion-local.md).
 
 ## Frontend nuevo y monitoreo (V9)
 
@@ -140,6 +249,8 @@ foránea es **compuesta**: `(negocio_id, bloque_id) → bloque (negocio_id, id)`
 erDiagram
     usuario ||--o{ negocio : "es dueño de"
     negocio ||--o{ proyecto : tiene
+    negocio ||--o| suscripcion : tiene
+    plan ||--o{ suscripcion : asignado
     zona ||--o{ negocio : agrupa
     zona ||--o{ agregado_zona_producto : resume
     proyecto ||--o{ seccion : organiza
@@ -185,6 +296,26 @@ erDiagram
         numeric latitud
         numeric longitud
         int radio_metros
+    }
+    plan {
+        uuid id PK
+        text codigo UK "GRATUITO | PREMIUM"
+        boolean configurado "false = condiciones comerciales pendientes"
+        boolean limites_configurados "capacidades aprobadas, independiente del precio"
+        numeric precio_mensual
+        text moneda
+        int limite_proyectos
+        bigint limite_registros
+        int limite_paginas_ia_mensuales
+        jsonb funciones
+    }
+    suscripcion {
+        uuid id PK
+        uuid negocio_id FK,UK
+        uuid plan_id FK
+        text estado "ACTIVA | PRUEBA | VENCIDA | CANCELADA"
+        timestamptz inicio_en
+        timestamptz fin_en
     }
     seccion {
         uuid id PK
@@ -331,6 +462,8 @@ erDiagram
 |---|---|---|
 | `usuario` | Cuenta de acceso | `email` único y normalizado por `CHECK`. MVP 2: un único dueño por negocio. |
 | `negocio` | Espacio de trabajo y límite de aislamiento | Se crea junto con el usuario en el registro (T-005). `duenio_id` `RESTRICT`. Miembros y roles (dueño / editor / operador) llegan en MVP 4 (T-060) con una tabla nueva. |
+| `plan` | Catálogo global de planes (ENS-94 / T-066) | Código único, precio, moneda, límites y funciones; condiciones comerciales iniciales pendientes (`configurado=false`). |
+| `suscripcion` | Plan actual de un negocio (ENS-94 / T-066) | Única por negocio, con período y estado. V12 y el registro asignan el gratuito activo. Prueba, control y pagos se agregan en las subtareas siguientes. |
 | `plantilla` | Estructuras listas para copiar (T-013) | Global: sin `negocio_id`. `estructura` = `{ "bloques": [ { "nombre", "campos": [ { "nombre", "tipo", "obligatorio", "valorInicial", "opciones" } ] } ] }`. Crear un proyecto desde una plantilla **copia** la estructura; editar el proyecto no toca la plantilla (T-014). |
 | `proyecto` | Un sistema armado por el usuario | `plantilla_id` guarda el origen y pasa a `NULL` si la plantilla se borra. Borrar un proyecto borra en cascada bloques, campos y registros (T-012). |
 | `bloque` | Una "pieza": Productos, Clientes, Pedidos… | Nombre único por proyecto; `posicion` ordena la lista del constructor. |
@@ -369,7 +502,7 @@ Testcontainers.
 | Borrador vs. versión publicada de la estructura | MVP 3 · T-047 | Tablas o columnas de versión en una migración nueva |
 | Columnas visibles por bloque y dispositivo | MVP 3 · T-049 | Tabla de preferencias por bloque |
 | Membresías y roles, invitaciones, auditoría | MVP 4 · T-060, T-063, T-065 | `membresia`, `invitacion`, `auditoria` |
-| Planes, suscripciones, límites | MVP 4 · T-066 | `plan`, `suscripcion` |
+| Pantalla y cobro | ENS-97 y ENS-98 | ENS-95 controla capacidades; ENS-96 incorpora prueba, cuota total y vencimiento |
 | Relación entre bloques, stock, recetas | MVP 4 · T-073 a T-075 | Nuevos tipos de campo y tablas de movimientos |
 | Repositorios y casos de uso de zona, avisos y preferencias | Cuando se haga el motor de monitoreo | Entidades ya creadas en V9 |
 | Archivos adjuntos a registros | MVP 4 · T-078 | Tipo de campo `ARCHIVO` sobre el mismo almacenamiento que `foto_cuaderno` |

@@ -6,6 +6,7 @@ import com.ensambla.backend.domain.port.ExportadorReportePort;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.reporte.ReporteService;
 import com.ensambla.backend.domain.useCase.reporte.ExportarReporteUseCase;
 import com.ensambla.backend.domain.useCase.reporte.GenerarReporteUseCase;
@@ -29,23 +30,28 @@ public class ReporteUseCaseConfig {
 
     @Bean
     public GenerarReporteUseCase generarReporteUseCase(NegocioService negocioService,
+                                                       ControlPlanService controlPlanService,
+                                                       Clock clock,
                                                        BloqueService bloqueService,
                                                        CampoService campoService,
                                                        ReporteService reporteService,
                                                        GenerarReporteMapper generarReporteMapper) {
         return new GenerarReporteUseCase(
-                negocioService, bloqueService, campoService, reporteService, generarReporteMapper);
+                negocioService, controlPlanService, clock, bloqueService, campoService, reporteService,
+                generarReporteMapper);
     }
 
     @Bean
     public ExportarReporteUseCase exportarReporteUseCase(NegocioService negocioService,
+                                                         ControlPlanService controlPlanService,
                                                          BloqueService bloqueService,
                                                          CampoService campoService,
                                                          ReporteService reporteService,
                                                          ExportadorReportePort exportadorReportePort,
                                                          ExportarReporteMapper exportarReporteMapper,
                                                          Clock clock) {
-        return new ExportarReporteUseCase(negocioService, bloqueService, campoService, reporteService,
+        return new ExportarReporteUseCase(
+                negocioService, controlPlanService, bloqueService, campoService, reporteService,
                 exportadorReportePort, exportarReporteMapper, clock);
     }
 }

@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.service.proyecto;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.support.ProyectoTestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,7 +26,8 @@ import static org.mockito.Mockito.when;
 class ProyectoServiceTest {
 
     private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
-    private final ProyectoService proyectoService = new ProyectoService(proyectoRepository);
+    private final ProyectoService proyectoService = new ProyectoService(
+            proyectoRepository, mock(ControlPlanService.class));
 
     @Test
     @DisplayName("Lista sólo los proyectos del negocio recibido")

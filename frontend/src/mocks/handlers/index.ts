@@ -8,6 +8,7 @@ import { handlersSistemas } from './sistemas';
 import { handlersZona } from './zona';
 import { handlersUbicacion } from './ubicacion';
 import { handlersNegocio } from './negocio';
+import { handlersPlanes } from './planes';
 
 // El backend todavía no tiene los sistemas, las preferencias ni la zona: es lo que simula el modo parcial.
 // La lectura de fotos, los avisos, la búsqueda de ubicación y rubros, las plantillas, «Armalo con Sami» y la charla
@@ -24,6 +25,7 @@ export function handlersPara(modo: ModoMocks) {
       ...handlersAvisos,
       ...handlersUbicacion,
       ...handlersNegocio,
+      ...handlersPlanes,
       ...handlersSamiProyecto,
       ...handlersSamiTaller,
     ];
