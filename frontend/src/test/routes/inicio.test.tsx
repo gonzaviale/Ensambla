@@ -33,7 +33,8 @@ describe('inicio', () => {
     expect(screen.queryByRole('heading', { name: 'Seguí donde lo dejaste' })).toBeNull();
   });
 
-  it('cambia la distribución del ejemplo entre mosaico y una columna', async () => {
+  // La sección «Así se ve un sistema» está comentada en InicioPage: se retoma si vuelve.
+  it.skip('cambia la distribución del ejemplo entre mosaico y una columna', async () => {
     const { user } = await abrirInicio();
     const bloques = () => document.querySelectorAll('.hero-system .preview-block');
 
@@ -56,10 +57,10 @@ describe('inicio', () => {
     expect(useSistemaStore.getState().modo).toBe('use');
   });
 
-  it('«Mis sistemas» sin sistemas explica por dónde empezar', async () => {
+  it('«Mi Negocio» sin sistemas explica por dónde empezar', async () => {
     const { user } = await abrirInicio();
 
-    await clickButton(user, 'Mis sistemas');
+    await clickButton(user, 'Mi Negocio');
 
     await verifyToastAsync(/tres caminos/);
   });

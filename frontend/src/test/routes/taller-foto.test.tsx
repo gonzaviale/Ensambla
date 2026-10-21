@@ -31,7 +31,7 @@ const abrirTaller = async () => {
   const router = renderApp('/inicio');
   await verifyHeadingPresentAsync(/En qué puedo/);
   const user = userEvent.setup();
-  await clickButton(user, /Armémoslo con Sami/);
+  await clickButton(user, /Crear con Sami/);
   await verifyHeadingPresentAsync('Lo armamos juntos.');
   return { router, user };
 };

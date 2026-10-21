@@ -565,7 +565,7 @@ describe('traer datos de una foto', () => {
     await screen.findByRole('heading', { name: /En qué puedo/ }, ESPERA);
     const user = userEvent.setup();
 
-    await user.click(screen.getAllByRole('button', { name: /Mostrarme cómo/ })[1] as HTMLElement);
+    await user.click(screen.getByRole('button', { name: /Cargar desde una foto/ }));
     await user.click(await screen.findByRole('button', { name: /Probar con un ejemplo/ }));
     await user.click(await screen.findByRole('button', { name: /Incorporar registros/ }, ESPERA));
 
