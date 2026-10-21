@@ -79,7 +79,7 @@ function Contenido({
   const limite = compacto ? 2 : 3;
   const filas = verTodas ? bloque.rows : bloque.rows.slice(0, limite);
   return (
-    <div className={`preview-table-scroll${verTodas ? ' preview-table-expandida' : ''}`}>
+    <div className={`preview-table-scroll${verTodas ? 'preview-table-expandida' : ''}`}>
       <table className="preview-table">
         <thead>
           <tr>
@@ -112,7 +112,11 @@ function Contenido({
         </tbody>
       </table>
       {bloque.rows.length > limite && (
-        <button type="button" className="preview-more" onClick={() => setVerTodas((valor) => !valor)}>
+        <button
+          type="button"
+          className="preview-more"
+          onClick={() => setVerTodas((valor) => !valor)}
+        >
           {verTodas ? 'Ver menos' : `Ver todas (${bloque.rows.length})`}
         </button>
       )}
@@ -182,6 +186,7 @@ export function PreviewBoard({
             key={bloque.id}
             className={`preview-block ${arrastrando === bloque.id ? 'dragging' : ''} ${sobre === bloque.id ? 'drag-over' : ''}`.trim()}
             data-width={bloque.width}
+            data-color={bloque.color}
             data-draft-block={editable ? bloque.id : undefined}
             style={estilo}
           >

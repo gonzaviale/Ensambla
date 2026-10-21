@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { CircleNotchIcon, SmileySadIcon } from '@phosphor-icons/react';
+import { CircleNotchIcon } from '@phosphor-icons/react';
 import { Button } from './Button';
 import { Panel } from './Panel';
 
@@ -28,18 +28,21 @@ export function ErrorState({
   onRetry,
 }: ErrorStateProps) {
   return (
-    <Panel role="alert" className="mx-auto mt-10 flex max-w-xl flex-col items-start gap-3">
-      <span className="flex size-12 items-center justify-center rounded-full bg-coral-100 text-bad">
-        <SmileySadIcon aria-hidden size={30} />
-      </span>
-      <h2 className="m-0 text-h3">{title}</h2>
-      <p className="m-0 text-body text-soft">{message}</p>
-      {onRetry && (
-        <Button variant="solid" onClick={onRetry}>
-          Reintentar
-        </Button>
-      )}
-    </Panel>
+    <div className="flex min-h-[70vh] items-center justify-center px-4">
+      <div
+        role="alert"
+        className="flex w-full max-w-xl flex-col items-center gap-3 rounded-3xl border-t-[6px] border-accent bg-white px-8 py-10 text-center shadow-xl"
+      >
+        <img src="/mockup/sami-error.webp" alt="" className="w-36" />
+        <h2 className="m-0 text-h3">{title}</h2>
+        <p className="m-0 text-body text-soft">{message}</p>
+        {onRetry && (
+          <Button variant="solid" className="mt-2 text-white hover:text-white" onClick={onRetry}>
+            Reintentar
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
 

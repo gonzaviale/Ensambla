@@ -48,7 +48,7 @@ const tipoDeBloque = (tipo: string) => {
 };
 
 describe('el editor: construir y usar', () => {
-  it('abre el sistema de la dirección con la biblioteca, el lienzo y el inspector', async () => {
+  it('abre el sistema de la dirección con la biblioteca y el lienzo, sin el panel de ajustes', async () => {
     await abrirEditor();
 
     expect(screen.getByRole('button', { name: /Construir/ })).toHaveAttribute(
@@ -56,7 +56,7 @@ describe('el editor: construir y usar', () => {
       'true',
     );
     expect(screen.getByText('Tus piezas')).toBeVisible();
-    expect(screen.getByText('Elegí un bloque.')).toBeVisible();
+    expect(screen.queryByRole('complementary', { name: /Personalizar/ })).toBeNull();
     expect(document.querySelectorAll('.library-item')).toHaveLength(10);
     expect(document.querySelectorAll('.block')).toHaveLength(3);
     expect(screen.getByText(/Estás viendo datos de ejemplo/)).toBeVisible();
@@ -200,6 +200,33 @@ describe('bloques', () => {
     expect(tipoDeBloque('clients').width).toBe('third');
   });
 
+  it('el panel de ajustes se despliega al personalizar un bloque y la X lo cierra', async () => {
+    const { user } = await abrirEditor();
+    await user.click(
+      within(bloquePorNombre('Clientes')).getByRole('button', { name: 'Personalizar bloque' }),
+    );
+    const panel = screen.getByLabelText('Personalizar Clientes');
+
+    await user.click(within(panel).getByRole('button', { name: 'Cerrar personalización' }));
+
+    expect(screen.queryByLabelText('Personalizar Clientes')).toBeNull();
+  });
+
+  it('«Tus piezas» flota y con «Fijar» toma su columna; «Soltar» la vuelve a hacer flotar', async () => {
+    const { user } = await abrirEditor();
+    const piezas = screen.getByRole('complementary', { name: 'Piezas disponibles' });
+    expect(document.querySelector('.editor-layout')).not.toHaveClass('con-piezas-fijas');
+
+    await user.click(within(piezas).getByRole('button', { name: /Fijar/ }));
+
+    expect(document.querySelector('.editor-layout')).toHaveClass('con-piezas-fijas');
+    expect(localStorage.getItem('ensambla.piezasFijas')).toBe('si');
+
+    await user.click(within(piezas).getByRole('button', { name: /Soltar/ }));
+
+    expect(document.querySelector('.editor-layout')).not.toHaveClass('con-piezas-fijas');
+  });
+
   it('un nombre vacío en el inspector no se guarda', async () => {
     const { user } = await abrirEditor();
     await user.click(
@@ -247,22 +274,35 @@ describe('bloques', () => {
     expect(tipos?.indexOf('expenses')).toBe((tipos?.indexOf('sales') ?? 0) - 1);
   });
 
-  it('soltar un bloque al lado de otro hace que compartan la fila', async () => {
+  it('soltar un bloque sobre otro los cambia de lugar y cada uno conserva su ancho', async () => {
     await abrirEditor();
+    const antes = activo().sections[0]?.blocks.map((bloque) => bloque.type) ?? [];
+    const anchoDeClientes = tipoDeBloque('clients').width;
     const tirador = within(bloquePorNombre('Clientes')).getByRole('button', {
       name: 'Arrastrar bloque',
     });
-    const lado = bloquePorNombre('Ventas').querySelector<HTMLElement>('[data-drop-side="left"]');
-    if (!lado) throw new Error('Falta la zona de soltar');
+    const destino = bloquePorNombre('Ventas');
     const dataTransfer = { setData: () => undefined, effectAllowed: '' };
 
     fireEvent.dragStart(tirador, { dataTransfer });
-    fireEvent.dragOver(lado, { dataTransfer });
-    fireEvent.drop(lado, { dataTransfer });
+    fireEvent.dragOver(destino, { dataTransfer });
+    expect(destino.className).toMatch(/cambio-(left|right|top|bottom)/);
+    expect(destino.querySelector('[data-drop-side]')).toBeNull();
+    fireEvent.drop(destino, { dataTransfer });
 
-    expect(tipoDeBloque('clients').width).toBe('half');
-    expect(tipoDeBloque('sales').width).toBe('half');
-    await verifyToastAsync('Las dos piezas comparten la fila.');
+    const despues = activo().sections[0]?.blocks.map((bloque) => bloque.type) ?? [];
+    expect(despues.indexOf('clients')).toBe(antes.indexOf('sales'));
+    expect(despues.indexOf('sales')).toBe(antes.indexOf('clients'));
+    expect(tipoDeBloque('clients').width).toBe(anchoDeClientes);
+    await verifyToastAsync('Las tablas cambiaron de lugar.');
+  });
+
+  it('el ancho de un tercio deja tres tablas por fila', async () => {
+    const { user } = await abrirEditor();
+
+    await user.click(within(bloquePorNombre('Ventas')).getByRole('button', { name: 'Un tercio' }));
+
+    expect(tipoDeBloque('sales').width).toBe('third');
   });
 });
 
@@ -489,7 +529,7 @@ describe('traer datos de una foto', () => {
 
     const revision = await screen.findByRole(
       'heading',
-      { name: 'Vos tenés la última palabra.' },
+      { name: 'Confirmar registros' },
       ESPERA,
     );
     expect(revision).toBeVisible();
@@ -525,7 +565,7 @@ describe('traer datos de una foto', () => {
     await screen.findByRole('heading', { name: /En qué puedo/ }, ESPERA);
     const user = userEvent.setup();
 
-    await user.click(screen.getAllByRole('button', { name: /Mostrarme cómo/ })[1] as HTMLElement);
+    await user.click(screen.getByRole('button', { name: /Cargar desde una foto/ }));
     await user.click(await screen.findByRole('button', { name: /Probar con un ejemplo/ }));
     await user.click(await screen.findByRole('button', { name: /Incorporar registros/ }, ESPERA));
 

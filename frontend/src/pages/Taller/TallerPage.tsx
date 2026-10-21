@@ -268,7 +268,7 @@ export function TallerPage() {
         <div className="studio-layout">
           <aside className="sami-conversation">
             <header className="conversation-head">
-              <Sami pose={taller.pensando ? 'think' : 'hello'} />
+              <img className="conversation-sami" src="/mockup/sami-constructora.webp" alt="" />
               <div>
                 <h1>{ajustando ? 'Lo ajustamos juntos.' : 'Lo armamos juntos.'}</h1>
                 <p>
@@ -579,10 +579,10 @@ export function TallerPage() {
                   Una propuesta de bloques que podés mover, combinar y cambiar. Sin tener que
                   imaginar el sistema a ciegas.
                 </p>
-                <span className="empty-studio-note">
+                {/* <span className="empty-studio-note">
                   <Icon name="spark" />
                   No hay una única forma de hacerlo.
-                </span>
+                </span> */}
               </div>
             )}
           </section>

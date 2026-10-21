@@ -181,7 +181,8 @@ describe('«Armalo con Sami» (crear un proyecto real)', () => {
     expect(screen.queryByText('Vendo velas y anoto quién me debe')).toBeNull();
   });
 
-  it('se llega desde el inicio', async () => {
+  // La home ya no enlaza a /sami («Crear con Sami» abre el taller): se retoma si vuelve el acceso.
+  it.skip('se llega desde el inicio', async () => {
     setupUsuarioConSesion({ nombre: 'Ana Pérez' });
     const router = renderApp('/inicio');
     await verifyHeadingPresentAsync(/En qué puedo/);

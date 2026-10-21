@@ -38,6 +38,7 @@ export const NOMBRES_DE_ICONO = [
   'folder',
   'bell',
   'menu',
+  'pin',
   'mic',
 ] as const;
 

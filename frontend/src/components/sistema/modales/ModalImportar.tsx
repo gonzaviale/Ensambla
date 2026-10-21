@@ -236,12 +236,12 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
   /* Paso 1: elegir la imagen */
   if (paso === 'elegir') {
     return (
-      <Modal>
-        <div className="icon-tile" style={varsDeColor('blue')}>
+      <Modal clase="modal-importar">
+        <div className="icon-tile importar-icono" style={varsDeColor('coral')}>
           <Icon name="camera" />
         </div>
-        <h2 id="modal-title">Traé lo que ya tenés.</h2>
-        <p>Probá cómo sería pasar de una foto o captura a datos que podés revisar y organizar.</p>
+        <h2 id="modal-title">Cargar datos desde una foto</h2>
+        <p>Elegí dónde van los datos y subí una foto o captura. Antes de guardar, los revisás.</p>
         {contexto === 'negocio' ? (
           <div className="info-box" style={{ marginBottom: 18 }}>
             Podés mostrarle a Sami un ejemplo de cómo anotás hoy para contarle sobre tu negocio.
@@ -289,7 +289,9 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
           onDragLeave={() => setEncima(false)}
           onDrop={soltarImagen}
         >
-          <Icon name="upload" />
+          <span className="upload-icono">
+            <Icon name="upload" />
+          </span>
           <strong>Elegí una foto o arrastrala acá</strong>
           <p>
             Una hoja, un cuaderno o una captura de pantalla.
@@ -329,7 +331,7 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
   /* Paso 2 (negocio): lo que Sami entendió, para llevarlo al taller */
   if (contexto === 'negocio') {
     return (
-      <Modal ancho>
+      <Modal ancho clase="modal-importar">
         <div className="sami-intro">
           <Sami pose="think" />
           <div>
@@ -375,12 +377,12 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
 
   /* Paso 2: revisar los registros leídos */
   return (
-    <Modal ancho>
+    <Modal ancho clase="modal-importar modal-revisar">
       <div className="row">
-        <IconTile tipo={destino.type} />
-        <span className="tag">PASO 2 / REVISAR</span>
+        <IconTile tipo={destino.type} color="coral" className="importar-icono" />
+        <span className="tag paso-importar">Paso 2 · Revisar</span>
       </div>
-      <h2 id="modal-title">Vos tenés la última palabra.</h2>
+      <h2 id="modal-title">Confirmar registros</h2>
       <p>
         Corregí lo que haga falta, quitá lo que no quieras y sumá el resto a{' '}
         {destino.name.toLowerCase()}.

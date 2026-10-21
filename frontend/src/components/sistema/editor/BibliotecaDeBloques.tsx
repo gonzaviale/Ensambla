@@ -5,6 +5,7 @@ import type { ClavePlantilla, TipoBloque } from '@/lib/sistema/tipos';
 import { agregarBloque, agregarConjunto } from '@/stores/accionesDelEditor';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { Btn } from '../Btn';
+import { varsDeColor } from '../colores';
 import { Icon } from '../Icon';
 import { IconBtn } from '../IconBtn';
 import { IconTile } from '../IconTile';
@@ -17,16 +18,21 @@ const GRUPOS: [string, TipoBloque[]][] = [
 ];
 
 type Props = {
-  abiertaEnCelular: boolean;
+  abierta: boolean;
+  fijada: boolean;
   onCerrar: () => void;
+  onFijar: (fijada: boolean) => void;
   onArrastrar: (evento: DragEvent<HTMLElement>, carga: CargaDeArrastre) => void;
   onFinArrastre: () => void;
 };
 
-// El catálogo de piezas de la izquierda en Construir: bloques sueltos y conjuntos listos.
+// El catálogo de piezas de la izquierda en Construir: bloques sueltos y conjuntos listos. Flota encima
+// del lienzo y se abre con «Bloques»; fijado, ocupa su columna y achica el lienzo (en el celular, nunca).
 export function BibliotecaDeBloques({
-  abiertaEnCelular,
+  abierta,
+  fijada,
   onCerrar,
+  onFijar,
   onArrastrar,
   onFinArrastre,
 }: Props) {
@@ -45,17 +51,30 @@ export function BibliotecaDeBloques({
   return (
     <aside
       aria-label="Piezas disponibles"
-      className={`block-library ${abiertaEnCelular ? 'mobile-open' : ''}`.trim()}
+      className={`block-library ${abierta ? 'mobile-open' : ''} ${fijada ? 'fijada' : ''}`
+        .replace(/\s+/g, ' ')
+        .trim()}
     >
       <div className="row between library-head">
         <h2>Tus piezas</h2>
-        <IconBtn
-          name="close"
-          label="Cerrar catálogo"
-          data-mobile-close="true"
-          data-accion="close-library"
-          onClick={onCerrar}
-        />
+        <div className="library-head-acciones">
+          <button
+            type="button"
+            className={`fijar-piezas ${fijada ? 'activo' : ''}`.trim()}
+            aria-pressed={fijada}
+            title={fijada ? 'Soltar: el panel vuelve a flotar' : 'Fijar el panel al costado'}
+            onClick={() => onFijar(!fijada)}
+          >
+            <Icon name="pin" /> {fijada ? 'Soltar' : 'Fijar'}
+          </button>
+          <IconBtn
+            name="close"
+            label="Cerrar catálogo"
+            data-mobile-close="true"
+            data-accion="close-library"
+            onClick={onCerrar}
+          />
+        </div>
       </div>
       <p className="small-text muted" style={{ fontSize: 10, margin: '5px 0 12px' }}>
         Arrastrá una pieza o tocá +.
@@ -99,6 +118,8 @@ export function BibliotecaDeBloques({
                   <div
                     key={tipo}
                     className="library-item"
+                    style={varsDeColor(definicion.color)}
+                    data-color={definicion.color}
                     role="button"
                     tabIndex={0}
                     draggable
@@ -141,6 +162,8 @@ export function BibliotecaDeBloques({
               key={clave}
               type="button"
               className="section-preset"
+              style={varsDeColor(definicion.color)}
+              data-color={definicion.color}
               onClick={() => agregarConjunto(clave)}
             >
               <div className="row">

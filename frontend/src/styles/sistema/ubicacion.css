@@ -212,3 +212,107 @@
     width: 100%;
   }
 }
+
+/* Ubicación y rubro con la paleta: fondo blanco, cada paso con su color y sin pasteles. */
+body:has(.ubicacion-page) {
+  background: white;
+}
+.ubicacion-page > .page-title .eyebrow {
+  color: var(--orange);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.ubicacion-page > .page-title h1 {
+  color: var(--petrol);
+}
+.ubicacion-panel {
+  --paso: var(--petrol);
+  background: white;
+  border: 2px solid var(--paso);
+  border-top-width: 6px;
+  box-shadow: 0 6px 22px rgb(0 80 106 / 0.1);
+}
+.ubicacion-direccion {
+  --paso: var(--orange);
+}
+.ubicacion-ajuste {
+  --paso: var(--blue);
+}
+.ubicacion-rubro {
+  --paso: var(--coral);
+}
+.ubicacion-panel .eyebrow {
+  justify-self: start;
+  background: var(--paso);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+.ubicacion-panel h2,
+.ubicacion-revision h2 {
+  color: var(--petrol);
+}
+.ubicacion-panel label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.ubicacion-panel .input {
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  font-size: 15px;
+}
+.ubicacion-panel .input:focus {
+  outline: none;
+  border-color: var(--paso);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--paso) 25%, transparent);
+}
+.ubicacion-ayuda {
+  font-size: 15px;
+  color: var(--muted);
+}
+.ubicacion-aviso {
+  background: white;
+  border: 2px solid var(--yellow);
+  border-left-width: 8px;
+}
+.ubicacion-aviso strong {
+  color: var(--petrol);
+}
+.ubicacion-opcion {
+  border: 2px solid var(--line);
+  background: white;
+}
+.ubicacion-opcion:hover {
+  border-color: var(--orange);
+}
+.ubicacion-opcion:has(input:checked) {
+  background: var(--petrol);
+  border-color: var(--petrol);
+  color: white;
+}
+.ubicacion-opcion input {
+  accent-color: var(--orange);
+}
+.ubicacion-pin {
+  background: var(--coral);
+}
+.ubicacion-sin-mapa {
+  background: white;
+  border: 2px dashed var(--blue);
+  color: var(--petrol);
+}
+.ubicacion-revision {
+  background: white;
+  border: 2px solid var(--petrol);
+  border-left-width: 8px;
+}
+.ubicacion-revision dt {
+  color: var(--petrol);
+}
+.ubicacion-page .check-row input {
+  accent-color: var(--petrol);
+}

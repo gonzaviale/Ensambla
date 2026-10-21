@@ -111,7 +111,14 @@ export function RegistroForm({ onExito }: { onExito: () => void }) {
       )}
       <form.Subscribe selector={(estado) => estado.isSubmitting}>
         {(enviando) => (
-          <Button type="submit" variant="solid" size="lg" fullWidth loading={enviando}>
+          <Button
+            type="submit"
+            variant="solid"
+            size="lg"
+            fullWidth
+            loading={enviando}
+            className="text-white hover:text-white"
+          >
             {enviando ? 'Creando tu cuenta…' : 'Crear cuenta'}
           </Button>
         )}

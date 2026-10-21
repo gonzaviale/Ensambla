@@ -87,6 +87,8 @@ export default defineConfig({
     environment: fileURLToPath(new URL('./src/test/environment.ts', import.meta.url)),
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // Los tests simulan todo el backend: no dependen del VITE_API_MOCKS del .env de cada persona.
+    env: { VITE_API_MOCKS: 'completo' },
     testTimeout: 20_000,
   },
 });

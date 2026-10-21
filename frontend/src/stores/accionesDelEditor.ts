@@ -14,7 +14,6 @@ import {
   removeBlock,
   removeRow,
   resolveValues,
-  splitBlocks,
   upsertRow,
   validateRow,
   wireSystem,
@@ -69,29 +68,22 @@ export function agregarBloque(
   store().avisar(`${CATALOG[tipo].name} agregado. Podés personalizarlo a la derecha.`);
 }
 
-/** Suelta una pieza de la biblioteca o un bloque junto a otro: comparten la fila. */
-export function juntarBloques(
-  origen: { tipo: 'catalogo'; valor: TipoBloque } | { tipo: 'bloque'; valor: string },
-  destinoId: string,
-  lado: 'left' | 'right',
-  seccionId: string,
-) {
-  if (origen.tipo === 'bloque') {
-    if (origen.valor === destinoId) return;
-    useSistemaStore.setState({ sectionId: seccionId, selectedId: origen.valor });
-    store().commit((s) => {
-      splitBlocks(s, origen.valor, destinoId, lado);
-    });
-  } else {
-    const creado = makeBlock(origen.valor);
-    useSistemaStore.setState({ sectionId: seccionId, selectedId: creado.id });
-    store().commit((s) => {
-      s.sections.find((seccion) => seccion.id === seccionId)?.blocks.push(creado);
-      splitBlocks(s, creado.id, destinoId, lado);
-      wireSystem(s);
-    });
-  }
-  store().avisar('Las dos piezas comparten la fila.');
+/** Soltar un bloque sobre otro de la misma sección los cambia de lugar; cada uno conserva su ancho. */
+export function intercambiarBloques(bloqueId: string, otroId: string) {
+  if (bloqueId === otroId) return;
+  store().commit((s) => {
+    const lista = s.sections.find((seccion) =>
+      seccion.blocks.some((bloque) => bloque.id === bloqueId),
+    )?.blocks;
+    if (!lista) return;
+    const uno = lista.findIndex((bloque) => bloque.id === bloqueId);
+    const otro = lista.findIndex((bloque) => bloque.id === otroId);
+    const [a, b] = [lista[uno], lista[otro]];
+    if (!a || !b) return;
+    lista[uno] = b;
+    lista[otro] = a;
+  });
+  store().avisar('Las tablas cambiaron de lugar.');
 }
 
 export function reubicarBloque(bloqueId: string, seccionId: string, antesDeId: string | null) {

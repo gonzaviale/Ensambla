@@ -1,10 +1,8 @@
 import type { ReactNode } from 'react';
 import type { ModoDelEditor } from '@/stores/sistemaStore';
-import { Btn } from '../Btn';
 import { Icon } from '../Icon';
 import { IconBtn } from '../IconBtn';
 import { Logo } from '../Logo';
-import { Sami } from '../Sami';
 
 type Props = {
   nombre: string;
@@ -16,10 +14,9 @@ type Props = {
   onInicio: () => void;
   onModo: (modo: ModoDelEditor) => void;
   onDeshacer: () => void;
-  onAyuda: () => void;
 };
 
-// La barra de arriba del editor: migas, estado de guardado, Construir/Usar, deshacer y ayuda de Sami.
+// La barra de arriba del editor: migas, estado de guardado, Construir/Usar, deshacer y avisos.
 export function EncabezadoDelEditor({
   nombre,
   modo,
@@ -29,7 +26,6 @@ export function EncabezadoDelEditor({
   onInicio,
   onModo,
   onDeshacer,
-  onAyuda,
 }: Props) {
   return (
     <header className="topbar editor-topbar">
@@ -82,9 +78,6 @@ export function EncabezadoDelEditor({
           onClick={onDeshacer}
         />
         {campana}
-        <Btn cls="soft small" onClick={onAyuda}>
-          <Sami /> Sami
-        </Btn>
       </div>
     </header>
   );
