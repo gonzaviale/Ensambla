@@ -570,6 +570,10 @@ body:has(.editor-layout) {
 .canvas-heading-actions .btn {
   font-size: 13px;
 }
+.canvas-heading-actions {
+  align-items: center;
+  gap: 14px;
+}
 .block-library .small-text {
   font-size: 12px !important;
 }
@@ -822,7 +826,7 @@ body:has(.editor-layout) {
   height: 18px;
 }
 
-/* Botón redondo de foto, como el del inicio pero sin aura */
+/* Botón redondo de foto, como el del inicio, con su aura */
 .foto-redonda {
   display: grid;
   place-items: center;
@@ -835,7 +839,10 @@ body:has(.editor-layout) {
   background: var(--coral);
   color: #fff;
   cursor: pointer;
-  transition: transform 0.25s cubic-bezier(0.3, 1.4, 0.5, 1);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--coral) 16%, transparent);
+  transition:
+    transform 0.25s cubic-bezier(0.3, 1.4, 0.5, 1),
+    box-shadow 0.25s;
 }
 .foto-redonda .icon {
   width: 22px;
@@ -843,6 +850,7 @@ body:has(.editor-layout) {
 }
 .foto-redonda:hover {
   transform: scale(1.08);
+  box-shadow: 0 0 0 10px color-mix(in srgb, var(--coral) 20%, transparent);
 }
 .foto-redonda:focus-visible {
   outline: 3px solid var(--petrol);
@@ -868,4 +876,28 @@ body:has(.editor-layout) {
   background: var(--orange);
   color: #fff;
   transform: scale(1.08);
+}
+
+/* Sección vacía: fondo blanco e íconos sólidos de la paleta */
+.canvas-empty {
+  background: #fff;
+  border: 2px dashed var(--line);
+}
+.empty-blocks .icon-tile {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.empty-blocks .icon-tile .icon {
+  width: 24px;
+  height: 24px;
+}
+.canvas-empty p {
+  font-size: 13px;
+}
+.canvas-empty .btn {
+  font-size: 13px;
 }

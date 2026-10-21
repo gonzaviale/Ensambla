@@ -236,6 +236,11 @@ export function SistemaPage() {
                   <Icon name="plus" /> Bloques
                 </Btn>
               )}
+              {construyendo && (
+                <Btn cls="secondary" onClick={() => abrirModal({ tipo: 'secciones' })}>
+                  <Icon name="folder" /> Secciones
+                </Btn>
+              )}
               <button
                 type="button"
                 className="foto-redonda"
@@ -252,11 +257,7 @@ export function SistemaPage() {
               >
                 <Icon name="camera" />
               </button>
-              {construyendo && (
-                <Btn cls="secondary" onClick={() => abrirModal({ tipo: 'secciones' })}>
-                  <Icon name="folder" /> Secciones
-                </Btn>
-              )}
+              
             </div>
           </div>
           <div className="tabs-y-distribucion">
