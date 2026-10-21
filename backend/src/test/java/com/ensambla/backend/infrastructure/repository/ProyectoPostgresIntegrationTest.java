@@ -161,8 +161,8 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                 .descripcion("Para probar rollback")
                 .activa(true)
                 .estructura(Map.of("bloques", List.of(Map.of("nombre", "Productos", "campos", List.of(
-                        Map.of("nombre", "Duplicado", "tipo", "TEXTO"),
-                        Map.of("nombre", "Duplicado", "tipo", "TEXTO"))))))
+                        Map.of("nombre", "Nombre", "tipo", "TEXTO"),
+                        Map.of("nombre", "Estado", "tipo", "OPCION", "opciones", List.of()))))))
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId());

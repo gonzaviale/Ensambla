@@ -11,6 +11,7 @@ public class ZonaRepositoryMapper {
         return Zona.builder()
                 .id(entity.getId())
                 .nombre(entity.getNombre())
+                .localidad(entity.getLocalidad())
                 .latitud(entity.getLatitud())
                 .longitud(entity.getLongitud())
                 .radioMetros(entity.getRadioMetros())

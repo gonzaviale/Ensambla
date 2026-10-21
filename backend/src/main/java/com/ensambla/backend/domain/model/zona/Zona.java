@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.util.UUID;
 
 /** Barrio global donde se agrupan los comercios: un centro y un radio. */
@@ -22,6 +23,8 @@ public class Zona {
     private UUID id;
 
     private String nombre;
+
+    private String localidad;
 
     private BigDecimal latitud;
 
@@ -42,5 +45,23 @@ public class Zona {
 
     public boolean contiene(BigDecimal latitudPunto, BigDecimal longitudPunto) {
         return distanciaMetros(latitudPunto, longitudPunto) <= radioMetros;
+    }
+
+    /** El texto escrito nombra a la zona o a su localidad, sin importar mayúsculas ni tildes. */
+    public boolean coincideCon(String texto) {
+        String buscado = normalizar(texto);
+        return !buscado.isEmpty()
+                && (normalizar(nombre).contains(buscado) || normalizar(localidad).contains(buscado));
+    }
+
+    private static String normalizar(String texto) {
+        if (texto == null) {
+            return "";
+        }
+        return Normalizer.normalize(texto, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase()
+                .replaceAll("\\s+", " ")
+                .strip();
     }
 }

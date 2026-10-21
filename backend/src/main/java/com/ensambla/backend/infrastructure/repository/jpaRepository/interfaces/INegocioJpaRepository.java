@@ -19,6 +19,8 @@ public interface INegocioJpaRepository extends JpaRepository<NegocioEntity, UUID
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<NegocioEntity> findTopByDuenioIdOrderByCreadoEnAscIdAsc(UUID duenioId);
 
+    long countByZonaIdAndComparteDatosZonaTrue(UUID zonaId);
+
     @Query("select n.id from NegocioEntity n order by n.creadoEn, n.id")
     List<UUID> findAllIds();
 }

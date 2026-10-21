@@ -46,6 +46,43 @@ class ZonaTest {
         assertThat(zona.contiene(LATITUD_A_111_METROS, LONGITUD_CENTRO)).isFalse();
     }
 
+    @Test
+    @DisplayName("Coincide con el texto que nombra a la zona, sin importar mayúsculas ni tildes")
+    void coincideConShouldMatchNombreIgnoringCaseAndAccents() {
+        Zona zona = Zona.builder().nombre("San Justo - UNLaM").localidad("San Justo").build();
+
+        assertThat(zona.coincideCon("  UNLAM ")).isTrue();
+        assertThat(zona.coincideCon("san   justo")).isTrue();
+    }
+
+    @Test
+    @DisplayName("Coincide con el texto que nombra a la localidad aunque el nombre sea otro")
+    void coincideConShouldMatchLocalidad() {
+        Zona zona = Zona.builder().nombre("Centro comercial").localidad("Villa Crespo").build();
+
+        assertThat(zona.coincideCon("villa crespo")).isTrue();
+        assertThat(zona.coincideCon("VILLA CRESPÓ")).isTrue();
+    }
+
+    @Test
+    @DisplayName("No coincide con un texto vacío ni con uno que no la nombra")
+    void coincideConShouldRejectBlankOrUnrelatedText() {
+        Zona zona = Zona.builder().nombre("San Justo - UNLaM").localidad("San Justo").build();
+
+        assertThat(zona.coincideCon("   ")).isFalse();
+        assertThat(zona.coincideCon(null)).isFalse();
+        assertThat(zona.coincideCon("Palermo")).isFalse();
+    }
+
+    @Test
+    @DisplayName("Una zona sin localidad igual coincide por nombre")
+    void coincideConShouldTolerateMissingLocalidad() {
+        Zona zona = Zona.builder().nombre("San Justo").build();
+
+        assertThat(zona.coincideCon("justo")).isTrue();
+        assertThat(zona.coincideCon("Palermo")).isFalse();
+    }
+
     // --- arrange ---
     private Zona givenZona(int radioMetros) {
         return Zona.builder().nombre("San Justo - UNLaM")

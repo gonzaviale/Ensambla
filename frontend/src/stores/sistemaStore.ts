@@ -122,6 +122,8 @@ type Acciones = {
   reiniciar: () => void;
   abrirSistema: (id: string, modo?: ModoDelEditor, esNuevo?: boolean) => void;
   agregarSistema: (sistema: Sistema) => void;
+  /** Suma los sistemas que el servidor creó por su cuenta (por ejemplo con Sami) y que la copia local no tiene. */
+  incorporarSistemas: (sistemas: Sistema[]) => void;
   eliminarSistema: (id: string) => void;
   /** Aplica un cambio sobre una copia del sistema activo y lo marca para guardar. */
   commit: <T>(cambio: (sistema: Sistema) => T) => T | undefined;
@@ -207,6 +209,16 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
       sistemas: [...estado.sistemas, sistema],
       pendientes: sinRepetir(estado.pendientes, sistema.id),
     })),
+
+  incorporarSistemas: (sistemas) =>
+    set((estado) => {
+      const nuevos = sistemas.filter(
+        (sistema) =>
+          !estado.eliminados.includes(sistema.id) &&
+          !estado.sistemas.some((actual) => actual.id === sistema.id),
+      );
+      return nuevos.length > 0 ? { sistemas: [...estado.sistemas, ...nuevos] } : estado;
+    }),
 
   eliminarSistema: (id) =>
     set((estado) => ({
