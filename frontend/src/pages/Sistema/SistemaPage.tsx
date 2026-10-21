@@ -236,8 +236,11 @@ export function SistemaPage() {
                   <Icon name="plus" /> Bloques
                 </Btn>
               )}
-              <Btn
-                cls="secondary"
+              <button
+                type="button"
+                className="foto-redonda"
+                aria-label="Traer datos de una foto"
+                title="Traer datos de una foto"
                 onClick={() =>
                   abrirModal({
                     tipo: 'importar',
@@ -247,8 +250,8 @@ export function SistemaPage() {
                   })
                 }
               >
-                <Icon name="camera" /> <span className="upload-label">Traer datos de una foto</span>
-              </Btn>
+                <Icon name="camera" />
+              </button>
               {construyendo && (
                 <Btn cls="secondary" onClick={() => abrirModal({ tipo: 'secciones' })}>
                   <Icon name="folder" /> Secciones
@@ -281,13 +284,6 @@ export function SistemaPage() {
                       {otra.blocks.length}
                     </span>
                   </button>
-                  {construyendo && (
-                    <IconBtn
-                      name="edit"
-                      label="Administrar secciones"
-                      onClick={() => abrirModal({ tipo: 'secciones' })}
-                    />
-                  )}
                 </div>
               ))}
               {construyendo && (
