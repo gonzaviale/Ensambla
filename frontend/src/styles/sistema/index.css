@@ -15,4 +15,6 @@
 /* La pantalla del sistema: fondo blanco, piezas y cabeceras de color. */
 @import './sistema-editor.css';
 @import './ubicacion.css';
+/* Plantillas con la paleta completa. */
+@import './plantillas.css';
 @import './overrides.css';
