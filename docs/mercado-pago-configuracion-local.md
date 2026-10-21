@@ -6,6 +6,49 @@ cuentas de prueba argentinas. No se hicieron cobros reales. La configuración pr
 pagos deshabilitados. La instancia temporal los habilita sólo para el circuito activo de prueba;
 producción permanece deshabilitada. Los circuitos cerrados tienen su renovación cancelada.
 
+## Verificación posterior a las migraciones V14–V17 (21/10/2026)
+
+Esta comprobación se realizó con el código de `84ce2c3`, antes de incorporar el siguiente avance
+del equipo. Se sincronizó la rama y se respaldaron la base habitual y la base aislada de facturas.
+La base habitual `ensambla` estaba en V4: Flyway aplicó sus trece migraciones pendientes hasta V17,
+sin errores y sin eliminar la base. Se conservaron por sus identificadores los dos usuarios y los
+dos negocios que existían antes de migrar. Los datos de demostración agregados por las migraciones
+explican el incremento posterior de negocios.
+
+El backend y el frontend compilados con esa versión se levantaron en `localhost:8080` y
+`localhost:5173`. Autenticación, Planes y pagos consultaban el backend; el modo parcial seguía
+simulando sistemas y zona. Se comprobó la redirección a login, HTTP 401 en las consultas protegidas
+de planes y renovación sin sesión, y la carga de la interfaz actualizada. Los pagos y el modo de
+producción quedaron deshabilitados. Los túneles de los ensayos anteriores quedaron detenidos:
+sus direcciones privadas guardadas no deben reutilizarse sin comprobarlas.
+
+La validación enfocada aprobó **214 pruebas del backend**, sin fallos, errores ni omitidas, y
+**26 pruebas del frontend en tres archivos** de planes y pagos. La primera ejecución del frontend
+se interrumpió por baja memoria disponible; la ejecución completa posterior con un solo worker
+aprobó sin cambios de código ni de los tiempos de espera.
+
+En navegador, el usuario inició sesión y se comprobó el catálogo: Gratuito con un sistema,
+1.000 registros y diez páginas mensuales; Premium por ARS 14.900 cada treinta días y cien páginas
+mensuales. Cerrar con Escape la confirmación de prueba no la activó y devolvió el foco al botón.
+Al confirmar, la base registró `PREMIUM / PRUEBA`, una duración exacta de 168 horas y cero páginas
+consumidas de diez totales. El estado se conservó al recargar y el botón de una nueva activación
+quedó deshabilitado. No se crearon contratos de renovación ni pagos. Las claves, capturas y
+respaldos permanecen fuera del repositorio.
+
+### Diferencia con el último avance de dev
+
+Antes de publicar esta documentación se incorporó `dev` hasta `f54fa04`, que agrega sistemas,
+preferencias, zona y la migración `V18__sistema_documento_del_front.sql`. Los resultados anteriores
+corresponden expresamente a `84ce2c3` con V17: no certifican todavía ese nuevo conjunto ni la
+aplicación de V18. La publicación de esta documentación no reinicia el entorno ni aplica V18.
+Antes del próximo ensayo externo debe validarse esa versión en una base de pruebas independiente,
+manteniendo los respaldos y las bases históricas de Mercado Pago.
+
+Para retomar Mercado Pago hay que abrir nuevos túneles, actualizar las direcciones de retorno y
+notificaciones de la aplicación del vendedor de prueba y verificar su identidad antes de habilitar
+el circuito de pruebas. El usuario ingresa las credenciales, códigos y datos de tarjeta. La
+habilitación de producción y los cobros reales siguen fuera de alcance.
+
 ## Estado verificado del circuito de prueba gratuita (20/10/2026)
 
 - Las claves quedaron en `application-ensambla-secrets.properties`, excluido de Git. El archivo
