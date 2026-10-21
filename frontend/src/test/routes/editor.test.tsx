@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { findBlock, makeSystem, makeTemplate } from '@/lib/sistema/core';
@@ -575,13 +575,21 @@ describe('traer datos de una foto', () => {
     await verifyPathAsync(router, `/sistemas/${useSistemaStore.getState().activeId}`);
   });
 
-  it('desde Sami lleva la descripción al taller', async () => {
+  it('con una foto del negocio lleva la descripción al taller', async () => {
     setupUsuarioConSesion();
     const router = renderApp('/taller');
     await screen.findByRole('heading', { name: 'Lo armamos juntos.' }, ESPERA);
     const user = userEvent.setup();
 
-    await clickButton(user, 'Aportar una foto o captura');
+    // La cámara del taller ahora le manda la foto a Sami (taller-foto.test.tsx); este importador se abre aparte.
+    act(() =>
+      useSistemaStore.getState().abrirModal({
+        tipo: 'importar',
+        sistemaId: null,
+        bloqueId: null,
+        contexto: 'negocio',
+      }),
+    );
     await user.click(await screen.findByRole('button', { name: /Probar con un ejemplo/ }));
     await user.click(await screen.findByRole('button', { name: /Usar esta descripción/ }, ESPERA));
 

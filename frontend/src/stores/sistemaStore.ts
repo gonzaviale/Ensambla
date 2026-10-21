@@ -3,6 +3,7 @@ import { clone } from '@/lib/sistema/core';
 import type { Aviso, Respuesta } from '@/lib/sistema/alertas';
 import type { Bloque, ClavePlantilla, Seccion, Sistema } from '@/lib/sistema/tipos';
 import { TUTORIAL_INICIAL, type EstadoDelTutorial } from '@/lib/sistema/tutorial';
+import type { ImagenParaSami, OpcionesDeSami } from '@/types/samiTaller';
 
 // El estado del taller y del editor: los sistemas de la persona y lo que está haciendo con ellos. Es el
 // equivalente a las variables de módulo de app.js del mockup; ahora los componentes lo leen del store y
@@ -39,7 +40,12 @@ export type Modal =
       onConfirmar: () => void;
     };
 
-export type MensajeDelTaller = { quien: 'sami' | 'you'; texto: string };
+export type MensajeDelTaller = {
+  quien: 'sami' | 'you';
+  texto: string;
+  /** La miniatura de la foto que la persona mandó con el mensaje (una dirección `data:`). */
+  foto?: string;
+};
 
 /** La conversación con Sami y la propuesta que va tomando forma (el `wizard` del mockup). */
 export type Taller = {
@@ -48,11 +54,20 @@ export type Taller = {
   /** El nombre que se eligió con un ejemplo, si se eligió alguno. */
   nombre: string;
   entrada: string;
-  actividad: '' | 'warehouse' | 'orders' | 'shop';
+  /** La foto que se va a mandar con el próximo mensaje, ya achicada. */
+  foto: ImagenParaSami | null;
   borrador: Sistema | null;
   seccionId: string | null;
   pensando: boolean;
   mensajes: MensajeDelTaller[];
+  /** Las dudas con respuestas rápidas que Sami dejó; se muestran de a una y siempre se puede saltear o escribir otra cosa. */
+  dudas: OpcionesDeSami[];
+  /** Lo que la persona fue respondiendo, en orden; `null` es una duda salteada. La duda a la vista es `dudas[respuestasDeDudas.length]`. */
+  respuestasDeDudas: (string | null)[];
+  /** La propuesta como estaba antes del último cambio de Sami, para «Deshacer lo último». */
+  anterior: Sistema | null;
+  /** El sistema que se está ajustando con Sami; `null` si se está armando uno nuevo. */
+  sistemaId: string | null;
 };
 
 /** El panel de avisos de Sami y lo que se ve de él. */
@@ -122,7 +137,8 @@ type Acciones = {
   cerrarAviso: () => void;
   abrirModal: (modal: Modal) => void;
   cerrarModal: () => void;
-  iniciarTaller: (saludo: string) => void;
+  /** Empieza una conversación nueva; con un sistema, para ajustarlo (la propuesta arranca como una copia de él). */
+  iniciarTaller: (saludo: string, sistema?: Sistema) => void;
   /** Cambia la conversación actual; si no hay, no hace nada. */
   actualizarTaller: (cambio: Partial<Taller> | ((taller: Taller) => Partial<Taller>)) => void;
   /** Aplica un cambio sobre una copia de la propuesta de Sami. */
@@ -264,17 +280,21 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
   abrirModal: (modal) => set({ modal }),
   cerrarModal: () => set({ modal: null }),
 
-  iniciarTaller: (saludo) =>
+  iniciarTaller: (saludo, sistema) =>
     set({
       taller: {
         id: ++contadorDeTalleres,
-        nombre: '',
+        nombre: sistema?.name ?? '',
         entrada: '',
-        actividad: '',
-        borrador: null,
-        seccionId: null,
+        foto: null,
+        borrador: sistema ? clone(sistema) : null,
+        seccionId: sistema?.sections[0]?.id ?? null,
         pensando: false,
         mensajes: [{ quien: 'sami', texto: saludo }],
+        dudas: [],
+        respuestasDeDudas: [],
+        anterior: null,
+        sistemaId: sistema?.id ?? null,
       },
     }),
 

@@ -23,6 +23,20 @@ class SeguridadIntegrationTest {
     private MockMvc mockMvc;
 
     @Test
+    @DisplayName("El catálogo de rubros exige sesión")
+    void rubrosShouldRequireSession() throws Exception {
+        mockMvc.perform(get("/api/ubicacion/rubros"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("La búsqueda geográfica exige sesión incluso antes de validar CSRF")
+    void direccionesShouldRequireSession() throws Exception {
+        mockMvc.perform(post("/api/ubicacion/direcciones"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @DisplayName("Un endpoint privado sin sesión responde 401 con el cuerpo de error estándar")
     void privateEndpointShouldReturn401WithoutSession() throws Exception {
         mockMvc.perform(get("/api/proyectos"))

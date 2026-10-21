@@ -4,3 +4,27 @@
 .mk-root {
   min-height: 100dvh;
 }
+
+/* En teléfonos, la navegación pasa a una segunda fila para mantener accesibles perfil y avisos. */
+@media (max-width: 680px) {
+  .topbar {
+    height: auto;
+    min-height: 68px;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px 19px;
+  }
+  .topbar-right {
+    margin-left: auto;
+  }
+  .topnav {
+    order: 1;
+    flex: 1 0 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+  .topnav button {
+    font-size: 12px;
+    padding: 10px 7px;
+  }
+}

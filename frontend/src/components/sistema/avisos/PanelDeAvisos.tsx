@@ -9,6 +9,8 @@ import { Btn } from '../Btn';
 import { Icon } from '../Icon';
 import { Sami } from '../Sami';
 import { TarjetaDeAviso } from './TarjetaDeAviso';
+import { InvitacionConfigurarComercio } from '../ubicacion/InvitacionConfigurarComercio';
+import { useFaltaConfiguracionNegocio } from '@/hooks/negocio/queries';
 
 const PREGUNTAS = [
   '¿Qué tengo que reponer?',
@@ -34,6 +36,7 @@ export function PanelDeAvisos() {
   const cerrarPanel = useSistemaStore((estado) => estado.cerrarPanel);
   const actualizarPanel = useSistemaStore((estado) => estado.actualizarPanel);
   const zona = useZona();
+  const faltaConfiguracion = useFaltaConfiguracionNegocio();
   const navegacion = useNavegacion();
   const acciones = useAccionesDeAvisos();
   const [montado, setMontado] = useState(false);
@@ -194,6 +197,7 @@ export function PanelDeAvisos() {
             </p>
           </div>
         </div>
+        <InvitacionConfigurarComercio visible={faltaConfiguracion} onIr={cerrarPanel} />
         <form className="alertas-pregunta" onSubmit={enviar}>
           <label className="sr-only" htmlFor="alertas-q">
             Preguntale a Sami

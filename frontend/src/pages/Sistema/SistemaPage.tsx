@@ -257,7 +257,13 @@ export function SistemaPage() {
               >
                 <Icon name="camera" />
               </button>
-              
+              <Btn
+                cls="secondary"
+                data-accion="ajustar-con-sami"
+                onClick={() => void navegacion.ajustarConSami(sistema.id)}
+              >
+                <Icon name="spark" /> Ajustar con Sami
+              </Btn>
             </div>
           </div>
           <div className="tabs-y-distribucion">

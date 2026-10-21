@@ -174,8 +174,10 @@ Si `consumoCompleto=false`, el total de tokens/costo puede ser parcial; no repre
 | `ensambla.ia.procesamiento.precio-entrada-millon` | desconocido | USD por millón de tokens de entrada |
 | `ensambla.ia.procesamiento.precio-salida-millon` | desconocido | USD por millón de tokens de salida |
 
-Con `proveedor=simulado`, los resultados son datos de demostración del JSON del proyecto.
-Activar el proveedor real requiere implementar/registrar su cliente después de la decisión del equipo.
+Con `proveedor=simulado`, los resultados son datos de demostración del JSON del proyecto. Con `anthropic` (API key
+en `ENSAMBLA_IA_API_KEY`) o `bedrock` (perfil de AWS en `ENSAMBLA_IA_BEDROCK_PERFIL_AWS`) la lectura usa Claude con
+visión; el proveedor se elige en un solo lugar para toda la IA de la app (ver «Proveedor de IA intercambiable» en
+[sami-asistente.md](sami-asistente.md)).
 
 ## API privada
 
@@ -203,7 +205,7 @@ lector y las mismas reglas de cruce que el lote (el bloque es el destino; nombre
 
 | Parte | Contenido |
 |---|---|
-| `imagen` | JPG, PNG, WEBP o GIF de hasta 5 MB (la pantalla la achica y la guarda como JPG antes de enviarla) |
+| `imagen` | JPG, PNG o WEBP de hasta 10 MB, igual que las fotos del lote. El tipo se reconoce por los bytes, no por el `Content-Type` (la pantalla la achica y la guarda como JPG antes de enviarla) |
 | `pedido` | JSON con `nombre` del bloque, `destinoExistente` y `campos` (`key`, `label`, `type`, `options`) con los tipos de la pantalla |
 
 Respuesta 200: `filas` (un mapa por registro, por la clave del campo; las columnas nuevas también), `camposNuevos`

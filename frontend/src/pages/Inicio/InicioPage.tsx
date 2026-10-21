@@ -1,14 +1,11 @@
-import { useMemo, useState } from 'react';
-import { Btn } from '@/components/sistema/Btn';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
 import { PageFooter } from '@/components/sistema/PageFooter';
-import { PreviewBoard } from '@/components/sistema/PreviewBoard';
 import { varsDeColor } from '@/components/sistema/colores';
 import { CATALOG, TEMPLATES } from '@/lib/sistema/catalogo';
-import { allBlocks, applyLayout, makeTemplate, totals } from '@/lib/sistema/core';
+import { allBlocks, totals } from '@/lib/sistema/core';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
-import type { ClavePlantilla, Color, Distribucion } from '@/lib/sistema/tipos';
+import type { ClavePlantilla, Color } from '@/lib/sistema/tipos';
 import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
 import { useAccionesDelTutorial } from '@/hooks/tutorial/useAccionesDelTutorial';
 import { useSistemaStore } from '@/stores/sistemaStore';
@@ -25,15 +22,6 @@ export function InicioPage() {
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const tutorial = useAccionesDelTutorial();
   const navegacion = useNavegacion();
-  const [distribucion, setDistribucion] =
-    useState<Extract<Distribucion, 'mosaic' | 'single'>>('mosaic');
-
-  const ejemplo = useMemo(() => {
-    const sistema = makeTemplate('shop', {}, true);
-    applyLayout(sistema, distribucion);
-    return sistema;
-  }, [distribucion]);
-
   return (
     <>
       <CabeceraComun />

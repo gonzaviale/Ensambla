@@ -69,6 +69,10 @@ que traducirlos al guardar; `MONEDA` todavía no cuenta como numérica para fór
 - `zona` (global): nombre, localidad, partido, provincia, centro (`latitud`, `longitud`) y `radio_metros`.
 - `negocio` suma `rubro` (`ALMACEN`, `KIOSCO`, `MINIMERCADO`, `DIETETICA`, `OTRO`), `direccion`, `localidad`, coordenadas
   (`ck_negocio_coordenadas`: ambas o ninguna), `zona_id` y `comparte_datos_zona`. Si es `false`, el negocio no aporta a los agregados.
+  ENS-69 reutiliza estas columnas con `GET/PATCH /api/business`, sin modificar migraciones. El dueño se obtiene
+  desde la sesión; al guardar un punto nuevo, `zona_id` se reasigna a la zona cuyo `radio_metros` contiene el punto
+  (la más cercana si hay varias) o queda en `NULL` si ninguna lo cubre (ver `docs/ubicacion-negocio.md`).
+  El opt-out se persiste; los agregados de demo V10 no se recalculan por esta edición.
 - `agregado_zona_producto`: precio mínimo, promedio y máximo, comercios que lo tienen y que lo venden, y unidades por semana de un
   comercio promedio. Es el dato que consume `Zona` del frontend. La privacidad la hace cumplir la base: `comercios >= 3` y
   `comercios_venden >= 3`, así nunca se guarda un dato que identifique a un comercio. Único por `(zona_id, producto_normalizado)`.
@@ -112,6 +116,16 @@ producción hay que borrarlo antes de publicar.
   que no se mueve, alfajor y galletitas que salen juntos y productos populares de la zona que no tiene.
 - `agregado_zona_producto` se calcula en la misma migración a partir de lo sembrado (sin el demo).
 - Los ids se derivan con `md5` de un texto, así que son los mismos en cualquier base.
+
+### Sami (V12, V13)
+
+- `plantilla`: V12 suma **Ventas** y **Gastos** (ids `…0a4` y `…0a5`) junto a las tres de V3. El diccionario de Sami
+  nombra las plantillas por su `nombre`, así que renombrarlas o desactivarlas cambia lo que Sami puede proponer.
+- `consumo_sami_diario`: clave primaria (negocio_id, fecha UTC), `consultas` con la IA del día (no negativas),
+  `tokens_entrada`/`tokens_salida` acumulados y el último `modelo`. La reserva es una sola sentencia
+  `INSERT … ON CONFLICT DO UPDATE … WHERE consultas < límite`, atómica por negocio y día.
+
+Detalles: [sami-asistente.md](sami-asistente.md).
 
 ## Aislamiento entre negocios (T-010, T-011)
 
