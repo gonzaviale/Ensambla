@@ -17,4 +17,6 @@
 @import './ubicacion.css';
 /* Plantillas con la paleta completa. */
 @import './plantillas.css';
+/* Taller de Sami con la paleta completa. */
+@import './taller.css';
 @import './overrides.css';
