@@ -1094,3 +1094,90 @@ body:has(.editor-layout) {
   width: 96px;
   height: auto;
 }
+
+/* Selector Construir / Usar sistema: un solo color (petróleo) que se desliza al modo elegido. */
+.mode-switch {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  background: white;
+  border: 2px solid var(--petrol);
+  border-radius: 999px;
+  padding: 4px;
+}
+.mode-switch::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  border-radius: 999px;
+  background: var(--petrol);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.mode-switch:has(button.active:last-child)::before {
+  transform: translateX(100%);
+}
+.mode-switch button {
+  position: relative;
+  z-index: 1;
+  justify-content: center;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 700;
+  transition: color 0.3s;
+}
+.mode-switch button.active {
+  background: transparent;
+  box-shadow: none;
+  color: white;
+}
+@media (max-width: 680px) {
+  .mode-switch button {
+    font-size: 11px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mode-switch::before,
+  .mode-switch button {
+    transition: none;
+  }
+}
+
+/* Menú de arriba con la paleta: la sección actual en petróleo y una rayita celeste al pasar el mouse. */
+.topnav button {
+  position: relative;
+  font-size: 13px;
+  color: var(--petrol);
+  border-radius: 999px;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+.topnav button::after {
+  content: '';
+  position: absolute;
+  left: 15px;
+  right: 15px;
+  bottom: 3px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--blue);
+  transform: scaleX(0);
+  transition: transform 0.2s;
+}
+.topnav button:hover {
+  background: transparent;
+}
+.topnav button:not(.active):hover::after {
+  transform: scaleX(1);
+}
+.topnav button.active {
+  background: var(--petrol);
+  color: white;
+}
