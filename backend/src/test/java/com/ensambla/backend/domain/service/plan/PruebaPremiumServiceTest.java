@@ -11,6 +11,7 @@ import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
+import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +38,9 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PruebaPremiumServiceTest {
+
+    @Mock
+    private RenovacionPremiumRepository renovacionPremiumRepository;
 
     @Mock
     private PruebaPremiumRepository pruebaPremiumRepository;

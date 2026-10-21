@@ -294,6 +294,104 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("LIMITE_IA_PRUEBA"));
     }
 
+    @Test
+    @DisplayName("Consultar planes exige sesión")
+    void consultarPlanesShouldRequireSession() throws Exception {
+        mockMvc.perform(get("/api/planes")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("El gratuito consulta catálogo y uso del negocio sin activar la prueba")
+    void consultarPlanesShouldReturnFreePlanAndUsageFromSession() throws Exception {
+        mockMvc.perform(get("/api/planes").session(sesion).param("negocioId", UUID.randomUUID().toString()))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.planes.length()").value(2))
+                .andExpect(jsonPath("$.planes[0].codigo").value("GRATUITO"))
+                .andExpect(jsonPath("$.planes[1].precioMensual").value(14900))
+                .andExpect(jsonPath("$.planes[1].moneda").value("ARS"))
+                .andExpect(jsonPath("$.suscripcion.codigoPlanActual").value("GRATUITO"))
+                .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(true))
+                .andExpect(jsonPath("$.suscripcion.pruebaActiva").value(false))
+                .andExpect(jsonPath("$.uso.proyectos").value(1))
+                .andExpect(jsonPath("$.uso.registros").value(1))
+                .andExpect(jsonPath("$.uso.periodoIa").value("MENSUAL"))
+                .andExpect(jsonPath("$.uso.limitePaginasIa").value(10))
+                .andExpect(jsonPath("$.prueba").doesNotExist());
+
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
+                Long.class, negocioId)).isZero();
+    }
+
+    @Test
+    @DisplayName("Consultar después de activar muestra diez páginas totales y las fechas persistidas")
+    void consultarPlanesShouldReflectTrialActivation() throws Exception {
+        mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
+                .andExpect(status().isOk());
+        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 8 WHERE negocio_id = ?", negocioId);
+        entityManager.clear();
+
+        mockMvc.perform(get("/api/planes").session(sesion))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.suscripcion.codigoPlanActual").value("PREMIUM"))
+                .andExpect(jsonPath("$.suscripcion.pruebaActiva").value(true))
+                .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(false))
+                .andExpect(jsonPath("$.uso.paginasIa").value(8))
+                .andExpect(jsonPath("$.uso.periodoIa").value("PRUEBA"))
+                .andExpect(jsonPath("$.uso.limitePaginasIa").value(10))
+                .andExpect(jsonPath("$.prueba.paginasIaUtilizadas").value(8))
+                .andExpect(jsonPath("$.prueba.finEn").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("Una prueba agotada mantiene premium y no ofrece otra activación")
+    void consultarPlanesShouldKeepPremiumWhenTrialPagesAreExhausted() throws Exception {
+        mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
+                .andExpect(status().isOk());
+        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 10 WHERE negocio_id = ?", negocioId);
+        entityManager.clear();
+
+        mockMvc.perform(get("/api/planes").session(sesion))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.suscripcion.pruebaActiva").value(true))
+                .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(false))
+                .andExpect(jsonPath("$.uso.paginasIa").value(10));
+    }
+
+    @Test
+    @DisplayName("Una prueba vencida aparece gratuita sin depender del worker y conserva su historial")
+    void consultarPlanesShouldFallBackBeforeExpirationWorkerRuns() throws Exception {
+        mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
+                .andExpect(status().isOk());
+        jdbcTemplate.update("UPDATE suscripcion SET inicio_en = ?, fin_en = ? WHERE negocio_id = ?",
+                ahora.minusDays(8), ahora.minusDays(1), negocioId);
+        jdbcTemplate.update("UPDATE prueba_premium SET inicio_en = ?, fin_en = ? WHERE negocio_id = ?",
+                ahora.minusDays(8), ahora.minusDays(1), negocioId);
+        entityManager.clear();
+
+        mockMvc.perform(get("/api/planes").session(sesion))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.suscripcion.codigoPlanActual").value("GRATUITO"))
+                .andExpect(jsonPath("$.suscripcion.pruebaActiva").value(false))
+                .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(false))
+                .andExpect(jsonPath("$.uso.periodoIa").value("MENSUAL"))
+                .andExpect(jsonPath("$.prueba.finEn").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("Premium vigente mantiene cien páginas mensuales y no ofrece prueba")
+    void consultarPlanesShouldReturnPaidPremiumWithoutOfferingTrial() throws Exception {
+        givenPremium(ahora.plusDays(30));
+
+        mockMvc.perform(get("/api/planes").session(sesion))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.suscripcion.codigoPlanActual").value("PREMIUM"))
+                .andExpect(jsonPath("$.suscripcion.pruebaActiva").value(false))
+                .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(false))
+                .andExpect(jsonPath("$.uso.periodoIa").value("MENSUAL"))
+                .andExpect(jsonPath("$.uso.limitePaginasIa").value(100));
+    }
+
     // --- arrange ---
     private void givenPremium(OffsetDateTime fin) {
         jdbcTemplate.update("""

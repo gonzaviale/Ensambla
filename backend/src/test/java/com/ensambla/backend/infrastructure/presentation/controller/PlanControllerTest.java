@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.dto.plan.IniciarPruebaRequest;
 import com.ensambla.backend.domain.dto.plan.PruebaPremiumResponse;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.useCase.plan.IniciarPruebaUseCase;
+import com.ensambla.backend.domain.useCase.plan.ConsultarPlanesUseCase;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.plan.PlanPresentationMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -28,7 +29,7 @@ class PlanControllerTest {
 
     private final IniciarPruebaUseCase iniciarPruebaUseCase = mock(IniciarPruebaUseCase.class);
     private final MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-            new PlanController(iniciarPruebaUseCase, new PlanPresentationMapper()))
+            new PlanController(iniciarPruebaUseCase, new PlanPresentationMapper(), mock(ConsultarPlanesUseCase.class)))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
 
     @Test

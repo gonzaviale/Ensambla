@@ -11,6 +11,7 @@ import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
+import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,12 +33,18 @@ public class PruebaPremiumService {
 
     private final UsoPlanRepository usoPlanRepository;
 
+    private final RenovacionPremiumRepository renovacionPremiumRepository;
+
     @Transactional
     public PruebaPremium iniciar(UUID negocioId, OffsetDateTime ahora) {
         usoPlanRepository.bloquearNegocio(negocioId);
         Suscripcion suscripcion = obtenerSuscripcion(negocioId);
         if (pruebaPremiumRepository.findByNegocioId(negocioId).isPresent()) {
             throw new RestriccionPlanException("PRUEBA_UTILIZADA", "Este negocio ya utilizó su prueba premium.");
+        }
+        if (renovacionPremiumRepository.existeAbierta(negocioId)) {
+            throw new RestriccionPlanException("RENOVACION_EN_CURSO",
+                    "Tenés una contratación en curso. Cancelala antes de iniciar una prueba.");
         }
         Plan premium = obtenerPlan(CodigoPlan.PREMIUM);
         premium.validarLimitesConfigurados();

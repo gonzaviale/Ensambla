@@ -50,8 +50,8 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    @DisplayName("Carga las cuotas aprobadas sin inventar precio premium ni moneda")
-    void findByCodigoShouldReadUnconfiguredCatalog() {
+    @DisplayName("Carga las cuotas y el precio Premium aprobados para la renovación")
+    void findByCodigoShouldReadApprovedCatalog() {
         PlanEntity gratuito = planes.findByCodigo(CodigoPlan.GRATUITO).orElseThrow();
 
         PlanEntity premium = planes.findByCodigo(CodigoPlan.PREMIUM).orElseThrow();
@@ -60,8 +60,9 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
         assertThat(gratuito.getPrecioMensual()).isEqualByComparingTo(BigDecimal.ZERO);
         thenCommercialValuesPending(gratuito);
         assertThat(premium.getNombre()).isEqualTo("Premium");
-        assertThat(premium.getPrecioMensual()).isNull();
-        thenCommercialValuesPending(premium);
+        assertThat(premium.getPrecioMensual()).isEqualByComparingTo("14900.00");
+        assertThat(premium.getMoneda()).isEqualTo("ARS");
+        assertThat(premium.getConfigurado()).isTrue();
         assertThat(gratuito.getLimitesConfigurados()).isTrue();
         assertThat(gratuito.getLimiteProyectos()).isEqualTo(1);
         assertThat(gratuito.getLimiteRegistros()).isEqualTo(1000L);

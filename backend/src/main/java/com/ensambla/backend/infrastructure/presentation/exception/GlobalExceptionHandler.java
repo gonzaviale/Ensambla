@@ -1,6 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.exception;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.exception.PasarelaPagoException;
+import com.ensambla.backend.domain.exception.NotificacionPagoInvalidaException;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.exception.CredencialesInvalidasException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
@@ -37,6 +39,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ServicioUbicacionException.class)
     public ResponseEntity<ErrorResponse> handleUbicacion(ServicioUbicacionException e, HttpServletRequest request) {
         return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(NotificacionPagoInvalidaException.class)
+    public ResponseEntity<ErrorResponse> handleNotificacionPago(NotificacionPagoInvalidaException e,
+                                                              HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).cacheControl(CacheControl.noStore())
+                .body(buildResponse(HttpStatus.UNAUTHORIZED, e.getMessage(), request, null).getBody());
+    }
+
+    @ExceptionHandler(PasarelaPagoException.class)
+    public ResponseEntity<ErrorResponse> handlePasarelaPago(PasarelaPagoException e, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_GATEWAY, e.getMessage(), request, null);
     }
 
     @ExceptionHandler(CredencialesInvalidasException.class)
