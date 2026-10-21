@@ -341,3 +341,51 @@ Las compilaciones se generaron en directorios separados de los servidores manual
 externos descritos arriba corresponden a la instancia manual anterior; no se aplicaron las nuevas
 migraciones a sus bases durante esta verificación. Las claves, capturas, respaldos y logs permanecen
 fuera de Git. La emisión de una segunda factura automática de Mercado Pago sigue pendiente.
+
+### Vencimiento de la prueba con reloj adelantado (21/10/2026)
+
+Después de verificar Planes con V17 se ejecutaron pruebas existentes sobre el código `84ce2c3`,
+sin modificar producción ni adelantar el reloj de Windows. PostgreSQL temporal de Testcontainers
+aplicó V1–V17 y el reloj del caso de uso se fijó en el instante exacto de inicio de la prueba más
+siete días. Estas comprobaciones no cambiaron las fechas de la prueba activa de la cuenta local.
+
+El conjunto enfocado aprobó **18 pruebas del backend**, sin fallos, errores ni omitidas. Comprueba:
+
+- Regreso a `GRATUITO / ACTIVA` en el instante exacto del vencimiento.
+- Conservación de dos proyectos y 1.001 registros, aunque superen los límites de Gratuito.
+- Repetir el vencimiento no borra datos ni permite crear un tercer proyecto por encima del límite.
+- Una nueva activación responde `PRUEBA_UTILIZADA` y conserva el historial original.
+- Las funciones Premium se restringen al vencer aunque todavía no se haya ejecutado el job.
+- Un período Premium pagado después de seleccionar los candidatos no se revoca por vencer la prueba.
+- El caso de uso utiliza el reloj del servidor y el worker programa su ejecución por defecto.
+
+La prueba enfocada de la interfaz aprobó **un caso**: Planes muestra «Tu prueba terminó», informa
+que se conservan los sistemas, registros y recetas, y deshabilita «Prueba ya utilizada». Los otros
+diez casos de ese archivo se omitieron intencionalmente por el filtro de selección; no constituyen
+una corrida completa nueva del frontend. No hubo llamadas de cobro a Mercado Pago ni contratos
+nuevos. Los comandos para repetir esta comprobación son:
+
+```powershell
+# Desde backend/
+.\mvnw.cmd "-Dtest=PruebaPremiumPostgresIntegrationTest#executeShouldExpireTrialAndPreserveData+validarFuncionShouldRejectTrialAtExactExpiryWithoutJob+vencerShouldPreservePaidPremiumAfterTrial,VencerPruebasUseCaseTest,VencimientoPruebasWorkerTest,PruebaPremiumServiceTest" test
+
+# Desde frontend/
+npm run test -- src/test/routes/planes.test.tsx -t "muestra la prueba finalizada" --maxWorkers=1 --minWorkers=1
+```
+
+### Pendientes para completar la validación externa
+
+1. Validar el conjunto posterior `f54fa04` y su nueva migración V18 en una base independiente antes
+   de repetir el circuito de Mercado Pago. Los resultados publicados arriba corresponden a V17.
+2. Restablecer los túneles y repetir una factura de prueba aprobada con su notificación automática
+   firmada en el conjunto actualizado. El evento automático ya comprobado fue una cancelación;
+   los avisos de pago anteriores se enviaron desde el simulador del panel.
+3. Observar la segunda factura automática del contrato de treinta días y su aviso de pago.
+   Las simulaciones aceleradas validan Ensambla, pero no demuestran esa emisión del proveedor.
+4. Investigar el HTTP 502 aislado al reenviar una notificación. El reintento respondió 200 y no
+   duplicó la factura, pero la causa todavía no está determinada.
+
+Las pruebas externas deben utilizar únicamente la aplicación, el vendedor, el comprador y las
+tarjetas de prueba. El usuario completa autenticación, códigos y datos de pago. Los contratos de
+los circuitos terminados permanecen cancelados. No se habilita producción ni se declaran probados
+los pendientes por publicar esta documentación.
