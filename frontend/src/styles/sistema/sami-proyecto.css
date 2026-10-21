@@ -1,0 +1,83 @@
+/* «Armalo con Sami» contra el backend real: la vista previa de la plantilla y de las columnas que Sami propone.
+   El resto de la pantalla usa las clases del taller del mockup. */
+
+.sp-bloques {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0;
+}
+
+.sp-bloque {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+
+.sp-bloque h3 {
+  font-size: 16px;
+  margin: 0 0 10px;
+}
+
+.sp-columnas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sp-columna {
+  align-items: center;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 12px;
+}
+
+.sp-columna small {
+  color: var(--muted);
+}
+
+.sp-columna.extra {
+  background: #fff;
+  border-color: var(--orange);
+}
+
+.sp-columna.quitada {
+  border-style: dashed;
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+.sp-columna.quitada > span {
+  text-decoration: line-through;
+}
+
+.sp-columna button {
+  background: none;
+  border: 0;
+  color: var(--petrol);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  min-height: 44px;
+  padding: 0 4px;
+  text-decoration: underline;
+}
+
+.sp-hecho {
+  display: grid;
+  gap: 8px;
+}
+
+.sp-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}

@@ -87,6 +87,7 @@
   --animate-fade-in: fade-in 0.25s ease-out;
   --animate-sheet-in: sheet-in 0.22s ease-out;
   --animate-pulse-soft: pulse-soft 1.6s ease-in-out infinite;
+  --animate-flotar: flotar 3s ease-in-out infinite;
 
   @keyframes fade-in {
     from {
@@ -115,6 +116,16 @@
     }
     50% {
       opacity: 0.55;
+    }
+  }
+  /* Globito de Sami en el ingreso y el registro: sube y baja apenas. */
+  @keyframes flotar {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4px);
     }
   }
 }

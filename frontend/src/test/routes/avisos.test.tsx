@@ -282,7 +282,7 @@ describe('sin datos y con el almacén de ejemplo', () => {
     await abrirConDemo('construir');
 
     expect(screen.queryByLabelText('Avisos de Sami', { selector: 'section' })).toBeNull();
-    expect(screen.getByText('Distribuí tus piezas')).toBeVisible();
+    expect(screen.getByRole('group', { name: 'Distribuí tus piezas' })).toBeVisible();
   });
 });
 

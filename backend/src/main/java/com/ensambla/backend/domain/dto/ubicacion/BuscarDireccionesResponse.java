@@ -5,6 +5,6 @@ import java.util.List;
 
 public record BuscarDireccionesResponse(List<DireccionItem> resultados) {
 
-    public record DireccionItem(String direccion, BigDecimal latitud, BigDecimal longitud) {
+    public record DireccionItem(String direccion, BigDecimal latitud, BigDecimal longitud, String localidad) {
     }
 }

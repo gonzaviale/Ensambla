@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -237,10 +238,7 @@ public class ProcesamientoRepositoryImpl implements ProcesamientoRepository {
         if (resultado.propuesta() != null) {
             return resultado.propuesta().lectura().consumo();
         }
-        String modelo = iaProperties.modelo();
-        if (modelo == null || modelo.isBlank()) {
-            modelo = "no-disponible";
-        }
+        String modelo = Objects.requireNonNullElse(iaProperties.modeloVision(), "no-disponible");
         return new ConsumoIa(iaProperties.proveedor(), modelo, PromptLecturaCuaderno.VERSION, paginas, 0, 0, 0);
     }
 

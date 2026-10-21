@@ -295,7 +295,7 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
         LoteTrabajo lote = claim();
         procesamientoRepository.reservar(lote, 1, 100, AHORA);
         var repository = new ProcesamientoRepositoryImpl(namedParameterJdbcTemplate, objectMapper,
-                new IaProperties("prueba", modelo, null, Duration.ofSeconds(1), 10, 0.8));
+                new IaProperties("prueba", modelo, Duration.ofSeconds(1), 10, 0.8, null));
 
         new TransactionTemplate(transactionManager).executeWithoutResult(status ->
                 repository.finalizar(lote, new ResultadoIntento(null, "Timeout", false), null, AHORA, null));

@@ -18,7 +18,7 @@ class LecturaUseCaseConfigTest {
     void politicaShouldRejectUnsafeDurations(int timeout, int vigencia, int demora) {
         var properties = new ProcesamientoIaProperties(3, 100, Duration.ofSeconds(demora),
                 Duration.ofSeconds(vigencia), "privadas", null, null);
-        var ia = new IaProperties("simulado", "", "", Duration.ofSeconds(timeout), 10, 0.8);
+        var ia = new IaProperties("simulado", "", Duration.ofSeconds(timeout), 10, 0.8, null);
         var config = new LecturaUseCaseConfig();
 
         assertThatThrownBy(() -> config.politicaProcesamiento(properties, ia))

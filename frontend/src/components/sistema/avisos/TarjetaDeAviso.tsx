@@ -46,8 +46,14 @@ export function TarjetaDeAviso({ aviso, enfocado = false, onAccion, onDescartar 
               {textoDeAccion(accion)}
             </button>
           ))}
-          <button type="button" className="text-link" onClick={() => onDescartar(aviso)}>
-            Descartar
+          <button
+            type="button"
+            className="alerta-descartar"
+            aria-label="Descartar"
+            title="Descartar"
+            onClick={() => onDescartar(aviso)}
+          >
+            <Icon name="trash" />
           </button>
         </div>
       </div>

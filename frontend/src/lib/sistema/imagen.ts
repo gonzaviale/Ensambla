@@ -14,12 +14,13 @@ export function dimensionesReducidas(ancho: number, alto: number, maximo = LADO_
 const aJpg = (canvas: HTMLCanvasElement) =>
   new Promise<Blob | null>((resolver) => canvas.toBlob(resolver, 'image/jpeg', CALIDAD_JPG));
 
-// Si el navegador no puede achicarla (o la foto ya es liviana), se envía tal cual.
-export async function reducirImagen(imagen: File): Promise<Blob> {
+// Si el navegador no puede achicarla (o la foto ya es liviana), se envía tal cual. `ladoMaximo`: el lado más largo
+// que puede tener (para Sami alcanza con menos que para la lectura).
+export async function reducirImagen(imagen: File, ladoMaximo = LADO_MAXIMO): Promise<Blob> {
   if (typeof createImageBitmap !== 'function' || imagen.type === 'image/gif') return imagen;
   try {
     const mapa = await createImageBitmap(imagen, { imageOrientation: 'from-image' });
-    const { ancho, alto } = dimensionesReducidas(mapa.width, mapa.height);
+    const { ancho, alto } = dimensionesReducidas(mapa.width, mapa.height, ladoMaximo);
     if (ancho === mapa.width && imagen.size <= BYTES_SIN_ACHICAR) {
       mapa.close();
       return imagen;
@@ -42,4 +43,15 @@ export async function reducirImagen(imagen: File): Promise<Blob> {
   } catch {
     return imagen;
   }
+}
+
+/** El contenido de la imagen en base64, sin el prefijo `data:` (así viaja en un JSON). */
+export async function aBase64(imagen: Blob): Promise<string> {
+  const bytes = new Uint8Array(await imagen.arrayBuffer());
+  let binario = '';
+  // De a pedazos: `String.fromCharCode` con millones de argumentos desborda la pila.
+  for (let desde = 0; desde < bytes.length; desde += 0x8000) {
+    binario += String.fromCharCode(...bytes.subarray(desde, desde + 0x8000));
+  }
+  return btoa(binario);
 }

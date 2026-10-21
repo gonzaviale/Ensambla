@@ -38,6 +38,18 @@ async function elegirDireccion(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('radio', { name: DIRECCIONES_DE_PRUEBA[0].direccion }));
 }
 
+// La localidad queda verificada cuando el mapa respondió y el campo muestra la del mapa.
+async function esperarLocalidad(localidad: string) {
+  await waitFor(
+    () => expect(screen.getByLabelText('Localidad del comercio')).toHaveValue(localidad),
+    ESPERA,
+  );
+  await waitFor(
+    () => expect(screen.getByText(/Según el mapa:/)).toHaveTextContent(`Según el mapa: ${localidad}`),
+    ESPERA,
+  );
+}
+
 describe('Ubicación y rubro del negocio', () => {
   it('conserva etiquetas y nombres accesibles con dirección, mapa y revisión', async () => {
     const { user } = await abrirUbicacion();
@@ -96,6 +108,7 @@ describe('Ubicación y rubro del negocio', () => {
     expect(within(resumen).getByText('Almacén')).toBeVisible();
     expect(resumen).toHaveTextContent('-34.6701, -58.5625');
     expect(resumen).toHaveTextContent('todavía no se guardaron');
+    await esperarLocalidad('San Justo');
     expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeEnabled();
   });
 
@@ -219,7 +232,7 @@ describe('Ubicación y rubro del negocio', () => {
     );
     expect(
       handlersPara('completo').filter((handler) => sonDeUbicacion(handler.info.path)),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
     expect(
       handlersPara('parcial').some((handler) => String(handler.info.path).endsWith('/business')),
     ).toBe(false);
@@ -283,7 +296,7 @@ describe('Ubicación y rubro del negocio', () => {
   it('guarda los datos y los recupera al salir y volver a entrar', async () => {
     const { user, router } = await abrirUbicacion();
     await elegirDireccion(user);
-    await user.type(screen.getByLabelText('Localidad del comercio'), 'San Justo');
+    await esperarLocalidad('San Justo');
     await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'ALMACEN');
     await user.click(screen.getByRole('checkbox', { name: /Compartir datos agregados/ }));
     await user.click(screen.getByRole('button', { name: 'Guardar configuración' }));
@@ -303,7 +316,7 @@ describe('Ubicación y rubro del negocio', () => {
     setupServerError('patch', '/business', 503, 'No pudimos guardar tu comercio.');
     const { user } = await abrirUbicacion();
     await elegirDireccion(user);
-    await user.type(screen.getByLabelText('Localidad del comercio'), 'San Justo');
+    await esperarLocalidad('San Justo');
     await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'ALMACEN');
     await user.click(screen.getByRole('button', { name: 'Guardar configuración' }));
     expect(await screen.findByText('No pudimos guardar tu comercio.', {}, ESPERA)).toBeVisible();
@@ -317,10 +330,94 @@ describe('Ubicación y rubro del negocio', () => {
   it('exige nombre y localidad antes de enviar el guardado', async () => {
     const { user } = await abrirUbicacion();
     await elegirDireccion(user);
+    await esperarLocalidad('San Justo');
     await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'ALMACEN');
+    await user.clear(screen.getByLabelText('Nombre del comercio'));
     await user.click(screen.getByRole('button', { name: 'Guardar configuración' }));
     expect(screen.getByText(/Completá el nombre y la localidad/)).toBeVisible();
     expect(estado.negocios.size).toBe(0);
+  });
+
+  it('completa la localidad sola con la que el mapa reconoce al elegir la dirección', async () => {
+    const { user } = await abrirUbicacion();
+    expect(screen.getByLabelText('Localidad del comercio')).toHaveValue('');
+    await elegirDireccion(user);
+    await esperarLocalidad('San Justo');
+    expect(screen.queryByText(/no coincide con la del mapa/)).toBeNull();
+  });
+
+  it('actualiza la localidad cuando se mueve el punto a otra localidad', async () => {
+    const { user } = await abrirUbicacion();
+    await elegirDireccion(user);
+    await esperarLocalidad('San Justo');
+    await user.clear(screen.getByLabelText('Latitud'));
+    await user.type(screen.getByLabelText('Latitud'), '-34.6037');
+    await user.clear(screen.getByLabelText('Longitud'));
+    await user.type(screen.getByLabelText('Longitud'), '-58.3816');
+    await esperarLocalidad('Otra localidad');
+  });
+
+  it('permite escribir la localidad pero no guardar una que no coincide con el mapa', async () => {
+    const { user } = await abrirUbicacion();
+    await elegirDireccion(user);
+    await esperarLocalidad('San Justo');
+    await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'ALMACEN');
+    await user.clear(screen.getByLabelText('Localidad del comercio'));
+    await user.type(screen.getByLabelText('Localidad del comercio'), 'Ramos Mejía');
+    expect(
+      screen.getByText('La localidad no coincide con la del mapa (San Justo).'),
+    ).toBeVisible();
+    expect(screen.getByLabelText('Localidad del comercio')).toBeInvalid();
+    expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Usar San Justo' }));
+    expect(screen.getByLabelText('Localidad del comercio')).toHaveValue('San Justo');
+    expect(screen.queryByText(/no coincide con la del mapa/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeEnabled();
+  });
+
+  it('acepta la localidad escrita sin importar mayúsculas, tildes ni espacios de más', async () => {
+    const { user } = await abrirUbicacion();
+    await elegirDireccion(user);
+    await esperarLocalidad('San Justo');
+    await user.clear(screen.getByLabelText('Localidad del comercio'));
+    await user.type(screen.getByLabelText('Localidad del comercio'), '  sAn   jústo ');
+    expect(screen.queryByText(/no coincide con la del mapa/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeEnabled();
+  });
+
+  it('no permite guardar mientras no se pudo verificar la localidad y ofrece reintentar', async () => {
+    setupServerError('post', '/ubicacion/localidad', 503, 'No pudimos verificar la localidad.');
+    const { user } = await abrirUbicacion();
+    await elegirDireccion(user);
+    expect(await screen.findByText('No pudimos verificar la localidad.', {}, ESPERA)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeDisabled();
+    server.resetHandlers();
+    await user.click(screen.getByRole('button', { name: 'Reintentar verificación' }));
+    await esperarLocalidad('San Justo');
+    expect(screen.queryByText('No pudimos verificar la localidad.')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeEnabled();
+  });
+
+  it('no pisa la localidad guardada al cargar, pero avisa si no coincide con el mapa', async () => {
+    const usuario = setupUsuarioConSesion();
+    estado.negocios.set(usuario.email, {
+      nombre: 'Almacén viejo',
+      rubro: 'KIOSCO',
+      comparteDatosZona: true,
+      zona: 'San Justo - UNLaM',
+      ubicacion: {
+        direccion: 'Dirección guardada',
+        localidad: 'Ciudad Vieja',
+        latitud: -34.6701,
+        longitud: -58.5625,
+      },
+    });
+    renderApp('/ubicacion');
+    expect(
+      await screen.findByText('La localidad no coincide con la del mapa (San Justo).', {}, ESPERA),
+    ).toBeVisible();
+    expect(screen.getByLabelText('Localidad del comercio')).toHaveValue('Ciudad Vieja');
+    expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeDisabled();
   });
 
   it('no permite guardar una configuración que no pudo cargar y ofrece reintentar', async () => {

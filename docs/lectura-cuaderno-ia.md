@@ -174,8 +174,10 @@ Si `consumoCompleto=false`, el total de tokens/costo puede ser parcial; no repre
 | `ensambla.ia.procesamiento.precio-entrada-millon` | desconocido | USD por millón de tokens de entrada |
 | `ensambla.ia.procesamiento.precio-salida-millon` | desconocido | USD por millón de tokens de salida |
 
-Con `proveedor=simulado`, los resultados son datos de demostración del JSON del proyecto.
-Activar el proveedor real requiere implementar/registrar su cliente después de la decisión del equipo.
+Con `proveedor=simulado`, los resultados son datos de demostración del JSON del proyecto. Con `anthropic` (API key
+en `ENSAMBLA_IA_API_KEY`) o `bedrock` (perfil de AWS en `ENSAMBLA_IA_BEDROCK_PERFIL_AWS`) la lectura usa Claude con
+visión; el proveedor se elige en un solo lugar para toda la IA de la app (ver «Proveedor de IA intercambiable» en
+[sami-asistente.md](sami-asistente.md)).
 
 ## API privada
 

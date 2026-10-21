@@ -13,7 +13,8 @@ public class BuscarDireccionesMapper {
                 .map(direccion -> new DireccionItem(
                         direccion.direccion(),
                         direccion.latitud(),
-                        direccion.longitud()))
+                        direccion.longitud(),
+                        direccion.localidad()))
                 .toList());
     }
 }

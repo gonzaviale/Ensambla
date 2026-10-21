@@ -77,6 +77,12 @@ public class Negocio {
         actualizadoEn = ahora;
     }
 
+    /** Si la ubicación recibida cambia el punto o la localidad guardados. */
+    public boolean cambiaUbicacion(UbicacionNegocio ubicacion) {
+        return !Objects.equals(latitud, ubicacion.latitud()) || !Objects.equals(longitud, ubicacion.longitud())
+                || !Objects.equals(localidad, ubicacion.localidad());
+    }
+
     /** Un negocio con punto y sin zona necesita que se la resuelvan; un punto nuevo la invalida. */
     public boolean necesitaZona() {
         return latitud != null && zonaId == null;

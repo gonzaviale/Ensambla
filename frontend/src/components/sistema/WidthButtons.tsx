@@ -1,6 +1,7 @@
 import type { Ancho } from '@/lib/sistema/tipos';
 
 const ANCHOS: { valor: Ancho; etiqueta: string; titulo: string }[] = [
+  { valor: 'third', etiqueta: '⅓', titulo: 'Un tercio' },
   { valor: 'half', etiqueta: '½', titulo: 'Media fila' },
   { valor: 'wide', etiqueta: '⅔', titulo: 'Dos tercios' },
   { valor: 'full', etiqueta: '1', titulo: 'Fila completa' },

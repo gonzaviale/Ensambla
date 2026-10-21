@@ -1,10 +1,12 @@
 package com.ensambla.backend.domain.service.negocio;
 
+import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.negocio.UbicacionNegocio;
 import com.ensambla.backend.domain.model.zona.Zona;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.service.ubicacion.UbicacionService;
 import com.ensambla.backend.domain.service.zona.ZonaService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,7 +22,10 @@ import static com.ensambla.backend.support.ProyectoTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -32,7 +37,8 @@ class NegocioServiceTest {
 
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final ZonaService zonaService = mock(ZonaService.class);
-    private final NegocioService negocioService = new NegocioService(negocioRepository, zonaService);
+    private final UbicacionService ubicacionService = mock(UbicacionService.class);
+    private final NegocioService negocioService = new NegocioService(negocioRepository, zonaService, ubicacionService);
 
     @Test
     @DisplayName("Resuelve el negocio usando el usuario autenticado")
@@ -125,6 +131,51 @@ class NegocioServiceTest {
 
         assertThat(result.getZonaId()).isEqualTo(zonaId);
         verifyNoInteractions(zonaService);
+    }
+
+    @Test
+    @DisplayName("Verifica la localidad contra el mapa cuando cambia el punto o la localidad")
+    void actualizarConfiguracionShouldCheckLocalityWhenLocationChanges() {
+        givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).build());
+
+        whenActualizaUbicacion();
+
+        verify(ubicacionService).exigirLocalidadDelPunto("San Justo", LATITUD, LONGITUD, AHORA.toInstant());
+    }
+
+    @Test
+    @DisplayName("No guarda nada si la localidad no coincide con la del mapa")
+    void actualizarConfiguracionShouldRejectLocalityOutsideMap() {
+        Negocio negocio = Negocio.builder().id(NEGOCIO_ID).nombre("Mi negocio").build();
+        givenNegocioParaActualizar(negocio);
+        doThrow(new BusinessRuleException("La localidad no coincide con la del mapa (San Justo)"))
+                .when(ubicacionService).exigirLocalidadDelPunto("San Justo", LATITUD, LONGITUD, AHORA.toInstant());
+
+        assertThatThrownBy(this::whenActualizaUbicacion).isInstanceOf(BusinessRuleException.class);
+
+        assertThat(negocio.getLatitud()).isNull();
+        verify(negocioRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("No consulta al mapa si la ubicación enviada es la ya guardada")
+    void actualizarConfiguracionShouldSkipLocalityCheckForSameLocation() {
+        givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).latitud(LATITUD).longitud(LONGITUD)
+                .localidad("San Justo").zonaId(UUID.randomUUID()).build());
+
+        whenActualizaUbicacion();
+
+        verifyNoInteractions(ubicacionService);
+    }
+
+    @Test
+    @DisplayName("No verifica la localidad si no se envía ubicación")
+    void actualizarConfiguracionShouldSkipLocalityCheckWithoutLocation() {
+        givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).build());
+
+        negocioService.actualizarConfiguracion(USUARIO_ID, "Nuevo nombre", null, null, null, AHORA);
+
+        verifyNoInteractions(ubicacionService);
     }
 
     @Test

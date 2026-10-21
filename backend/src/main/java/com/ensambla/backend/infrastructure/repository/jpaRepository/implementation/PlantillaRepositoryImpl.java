@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla;
 import com.ensambla.backend.domain.model.plantilla.Plantilla;
 import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
+import com.ensambla.backend.infrastructure.repository.entity.PlantillaEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IPlantillaJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.PlantillaRepositoryMapper;
 import lombok.RequiredArgsConstructor;
@@ -27,11 +28,20 @@ public class PlantillaRepositoryImpl implements PlantillaRepository {
     }
 
     @Override
+    public List<PlantillaProyecto> findAllParaProyectoActivas() {
+        return jpa.findByActivaTrueOrderByNombreAscIdAsc().stream().map(this::toPlantillaProyecto).toList();
+    }
+
+    @Override
     public Optional<PlantillaProyecto> findParaProyectoByIdAndActivaTrue(UUID plantillaId) {
-        return jpa.findByIdAndActivaTrue(plantillaId).map(entity -> new PlantillaProyecto(
+        return jpa.findByIdAndActivaTrue(plantillaId).map(this::toPlantillaProyecto);
+    }
+
+    private PlantillaProyecto toPlantillaProyecto(PlantillaEntity entity) {
+        return new PlantillaProyecto(
                 entity.getId(),
                 entity.getNombre(),
                 entity.getDescripcion(),
-                JsonMapper.builder().build().convertValue(entity.getEstructura(), EstructuraPlantilla.class)));
+                JsonMapper.builder().build().convertValue(entity.getEstructura(), EstructuraPlantilla.class));
     }
 }

@@ -14,6 +14,7 @@ import { Route as PublicaRouteImport } from './routes/_publica'
 import { Route as AppInicioRouteImport } from './routes/_app/inicio'
 import { Route as AppPlanesRouteImport } from './routes/_app/planes'
 import { Route as AppPlantillasRouteImport } from './routes/_app/plantillas'
+import { Route as AppSamiRouteImport } from './routes/_app/sami'
 import { Route as AppTallerRouteImport } from './routes/_app/taller'
 import { Route as AppUbicacionRouteImport } from './routes/_app/ubicacion'
 import { Route as AppZonaRouteImport } from './routes/_app/zona'
@@ -43,6 +44,11 @@ const AppPlanesRoute = AppPlanesRouteImport.update({
 const AppPlantillasRoute = AppPlantillasRouteImport.update({
   id: '/plantillas',
   path: '/plantillas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSamiRoute = AppSamiRouteImport.update({
+  id: '/sami',
+  path: '/sami',
   getParentRoute: () => AppRoute,
 } as any)
 const AppTallerRoute = AppTallerRouteImport.update({
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/inicio': typeof AppInicioRoute
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
+  '/sami': typeof AppSamiRoute
   '/taller': typeof AppTallerRoute
   '/ubicacion': typeof AppUbicacionRoute
   '/zona': typeof AppZonaRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByTo {
   '/inicio': typeof AppInicioRoute
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
+  '/sami': typeof AppSamiRoute
   '/taller': typeof AppTallerRoute
   '/ubicacion': typeof AppUbicacionRoute
   '/zona': typeof AppZonaRoute
@@ -112,6 +120,7 @@ export interface FileRoutesById {
   '/_app/inicio': typeof AppInicioRoute
   '/_app/planes': typeof AppPlanesRoute
   '/_app/plantillas': typeof AppPlantillasRoute
+  '/_app/sami': typeof AppSamiRoute
   '/_app/taller': typeof AppTallerRoute
   '/_app/ubicacion': typeof AppUbicacionRoute
   '/_app/zona': typeof AppZonaRoute
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
     | '/inicio'
     | '/planes'
     | '/plantillas'
+    | '/sami'
     | '/taller'
     | '/ubicacion'
     | '/zona'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/inicio'
     | '/planes'
     | '/plantillas'
+    | '/sami'
     | '/taller'
     | '/ubicacion'
     | '/zona'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/_app/inicio'
     | '/_app/planes'
     | '/_app/plantillas'
+    | '/_app/sami'
     | '/_app/taller'
     | '/_app/ubicacion'
     | '/_app/zona'
@@ -201,6 +213,13 @@ declare module '@tanstack/react-router' {
       path: '/plantillas'
       fullPath: '/plantillas'
       preLoaderRoute: typeof AppPlantillasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/sami': {
+      id: '/_app/sami'
+      path: '/sami'
+      fullPath: '/sami'
+      preLoaderRoute: typeof AppSamiRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/taller': {
@@ -259,6 +278,7 @@ interface AppRouteChildren {
   AppInicioRoute: typeof AppInicioRoute
   AppPlanesRoute: typeof AppPlanesRoute
   AppPlantillasRoute: typeof AppPlantillasRoute
+  AppSamiRoute: typeof AppSamiRoute
   AppTallerRoute: typeof AppTallerRoute
   AppUbicacionRoute: typeof AppUbicacionRoute
   AppZonaRoute: typeof AppZonaRoute
@@ -269,6 +289,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppInicioRoute: AppInicioRoute,
   AppPlanesRoute: AppPlanesRoute,
   AppPlantillasRoute: AppPlantillasRoute,
+  AppSamiRoute: AppSamiRoute,
   AppTallerRoute: AppTallerRoute,
   AppUbicacionRoute: AppUbicacionRoute,
   AppZonaRoute: AppZonaRoute,
