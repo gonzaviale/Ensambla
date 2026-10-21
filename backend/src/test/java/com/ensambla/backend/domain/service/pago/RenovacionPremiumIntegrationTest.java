@@ -10,6 +10,8 @@ import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.service.plan.PruebaPremiumService;
 import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.domain.useCase.pago.SincronizarRenovacionUseCase;
+import com.ensambla.backend.infrastructure.pago.MercadoPagoProperties;
+import com.ensambla.backend.infrastructure.pago.MercadoPagoSuscripcionesAdapter;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.Filter;
@@ -29,11 +31,17 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import tools.jackson.databind.ObjectMapper;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.net.http.HttpClient;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.HexFormat;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,6 +66,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
+
+    private static final String SECRETO_WEBHOOK_LOCAL = "secreto-exclusivo-del-test-sin-credenciales";
+
+    private static final String SOLICITUD_SEGUNDA_FACTURA = "aviso-local-segunda-factura";
 
     @Autowired
     private WebApplicationContext context;
@@ -559,6 +571,78 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(status().isUnauthorized()).andExpect(header().string("Cache-Control", "no-store"));
 
         assertThat(planActual()).isEqualTo("GRATUITO");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"subscription_authorized_payment", "payment"})
+    @DisplayName("El aviso firmado de la segunda factura renueva una sola vez aunque llegue dos días tarde")
+    void notificarShouldRenewOnceWhenSecondApprovedInvoiceArrivesLate(String tipo) throws Exception {
+        String recursoId = givenSecondInvoiceWithRealSignatureValidation(tipo, "approved", AHORA.plusDays(32));
+
+        notificarSegundaFactura(tipo, recursoId);
+        notificarSegundaFactura(tipo, recursoId);
+
+        assertThat(planActual()).isEqualTo("PREMIUM");
+        assertThat(finPagado()).isEqualTo(AHORA.plusDays(60));
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM pago_premium WHERE negocio_id=?",
+                Integer.class, negocioId)).isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM pago_premium WHERE factura_id=?",
+                String.class, facturaId("segunda-firmada"))).isEqualTo("approved");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"pending", "rejected"})
+    @DisplayName("El aviso firmado de una segunda factura sin cobrar no renueva al vencer el primer período")
+    void notificarShouldReturnToFreeWhenSecondInvoiceRemainsUnpaid(String estado) throws Exception {
+        String recursoId = givenSecondInvoiceWithRealSignatureValidation(
+                "subscription_authorized_payment", estado, AHORA.plusDays(30));
+
+        notificarSegundaFactura("subscription_authorized_payment", recursoId);
+
+        assertThat(planActual()).isEqualTo("GRATUITO");
+        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM pago_premium WHERE factura_id=?",
+                String.class, facturaId("primera-firmada"))).isEqualTo("approved");
+        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM pago_premium WHERE factura_id=?",
+                String.class, facturaId("segunda-firmada"))).isEqualTo(estado);
+    }
+
+    // --- arrange ---
+
+    private String givenSecondInvoiceWithRealSignatureValidation(String tipo, String estado,
+                                                               OffsetDateTime instante) throws Exception {
+        givenContrato();
+        RenovacionPremium renovacion = renovacion();
+        renovacionPremiumService.aplicarPago(renovacion.getId(),
+                pago(renovacion, facturaId("primera-firmada"), "approved", AHORA, AHORA), AHORA);
+        remotos.put(renovacion.getProveedorId(), contrato(renovacion, "authorized", AHORA.plusDays(30)));
+        givenPago(pago(renovacion, facturaId("segunda-firmada"), estado, AHORA.plusDays(30), AHORA.plusDays(30)));
+        when(clock.instant()).thenReturn(instante.toInstant());
+        String recursoId = facturaId("segunda-firmada");
+        when(pasarelaSuscripcionesPort.identificarContrato(tipo, recursoId)).thenReturn(renovacion.getProveedorId());
+        MercadoPagoProperties propiedades = new MercadoPagoProperties();
+        propiedades.setHabilitado(true);
+        propiedades.setWebhookSecret(SECRETO_WEBHOOK_LOCAL);
+        var validador = new MercadoPagoSuscripcionesAdapter(propiedades, new ObjectMapper(), HttpClient.newHttpClient());
+        doAnswer(invocacion -> {
+            validador.validarNotificacion(invocacion.getArgument(0), invocacion.getArgument(1), invocacion.getArgument(2));
+            return null;
+        }).when(pasarelaSuscripcionesPort).validarNotificacion(anyString(), anyString(), anyString());
+        return recursoId;
+    }
+
+    // --- act ---
+
+    private void notificarSegundaFactura(String tipo, String recursoId) throws Exception {
+        String tiempo = Long.toString(clock.instant().getEpochSecond());
+        String manifiesto = "id:" + recursoId + ";request-id:" + SOLICITUD_SEGUNDA_FACTURA + ";ts:" + tiempo + ";";
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(SECRETO_WEBHOOK_LOCAL.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+        String firma = HexFormat.of().formatHex(mac.doFinal(manifiesto.getBytes(StandardCharsets.UTF_8)));
+
+        mockMvc.perform(post("/api/pagos/mercadopago").param("type", tipo).param("data.id", recursoId)
+                        .header("x-signature", "ts=" + tiempo + ",v1=" + firma)
+                        .header("x-request-id", SOLICITUD_SEGUNDA_FACTURA))
+                .andExpect(status().isOk());
     }
 
     private RenovacionPremium renovacion() {
