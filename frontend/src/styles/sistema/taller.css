@@ -243,71 +243,73 @@ body:has(.creation-studio) {
   color: var(--muted);
 }
 
-/* Piezas de la vista previa */
-.studio-canvas .preview-block {
+/* Piezas de la vista previa (Taller y vista de una plantilla) */
+:is(.studio-canvas, .template-preview-stage) .preview-block {
   border: 2px solid var(--accent);
   background: white;
 }
-.studio-canvas .preview-block-head {
+:is(.studio-canvas, .template-preview-stage) .preview-block-head {
   background: var(--accent);
   color: white;
   padding: 12px 14px;
 }
-.studio-canvas .preview-block[data-color='yellow'] .preview-block-head {
+:is(.studio-canvas, .template-preview-stage)
+  .preview-block[data-color='yellow']
+  .preview-block-head {
   color: var(--petrol);
 }
-.studio-canvas .preview-block-head > strong,
-.studio-canvas .preview-name {
+:is(.studio-canvas, .template-preview-stage) .preview-block-head > strong,
+:is(.studio-canvas, .template-preview-stage) .preview-name {
   font-size: 16px;
   color: inherit;
 }
-.studio-canvas .preview-name .icon,
-.studio-canvas .preview-controls .icon-btn {
+:is(.studio-canvas, .template-preview-stage) .preview-name .icon,
+:is(.studio-canvas, .template-preview-stage) .preview-controls .icon-btn {
   color: inherit;
 }
-.studio-canvas .preview-block-icon {
+:is(.studio-canvas, .template-preview-stage) .preview-block-icon {
   border-radius: 50%;
   padding: 6px;
 }
-.studio-canvas .preview-block-icon .icon {
+:is(.studio-canvas, .template-preview-stage) .preview-block-icon .icon {
   width: 18px;
   height: 18px;
 }
-.studio-canvas .preview-sizing > span {
+:is(.studio-canvas, .template-preview-stage) .preview-sizing > span {
   font-size: 13px;
   color: var(--muted);
 }
-.studio-canvas .preview-table {
+:is(.studio-canvas, .template-preview-stage) .preview-table {
   font-size: 14px;
 }
-.studio-canvas .preview-table th {
+:is(.studio-canvas, .template-preview-stage) .preview-table th {
   font-size: 13px;
   font-weight: 700;
   color: var(--petrol);
   border-bottom: 2px solid var(--line);
 }
-.studio-canvas .preview-table .status-badge {
+:is(.studio-canvas, .template-preview-stage) .preview-table .status-badge {
   font-size: 12px;
 }
-.studio-canvas .preview-table tr.example-row td {
+:is(.studio-canvas, .template-preview-stage) .preview-table tr.example-row td {
   background: white;
   color: var(--muted);
 }
-.studio-canvas .example-badge {
+:is(.studio-canvas, .template-preview-stage) .example-badge {
   background: var(--yellow);
   color: var(--petrol);
   font-size: 11px;
   padding: 1px 7px;
 }
-.studio-canvas .example-notice,
-.studio-canvas .preview-more {
+:is(.studio-canvas, .template-preview-stage) .example-notice,
+:is(.studio-canvas, .template-preview-stage) .preview-more {
   font-size: 13px;
 }
-.studio-canvas .preview-field-tags {
+:is(.studio-canvas, .template-preview-stage) .preview-field-tags {
   gap: 7px;
   padding: 10px 14px;
 }
-.studio-canvas .preview-field-tags span {
+:is(.studio-canvas, .template-preview-stage) .preview-field-tags span {
   font-size: 13px;
   font-weight: 600;
   background: white;
@@ -341,4 +343,56 @@ body:has(.creation-studio) {
 .studio-canvas .draft-footer .btn {
   font-size: 15px;
   padding: 11px 18px;
+}
+
+/* Vista de una plantilla (Plantillas → Ver el sistema) con la paleta. */
+.template-preview-header .eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--orange);
+}
+.template-preview-header h2 {
+  color: var(--petrol);
+}
+.template-preview-header p {
+  font-size: 16px;
+  color: var(--ink);
+}
+.template-preview-header .icon-tile[style] {
+  background: var(--accent);
+  color: white;
+}
+.template-preview-options > label {
+  border: 2px solid var(--line);
+  border-radius: 14px;
+}
+.template-preview-options > label:hover {
+  border-color: var(--orange);
+}
+.template-preview-options > label:has(input:checked) {
+  border-color: var(--petrol);
+  background: var(--petrol);
+  color: white;
+}
+.template-preview-options > label:has(input:checked) small {
+  color: white;
+}
+.template-preview-options input {
+  accent-color: var(--orange);
+}
+.template-preview-options strong {
+  font-size: 15px;
+}
+.template-preview-options small {
+  font-size: 13px;
+  color: var(--muted);
+}
+.template-preview-stage {
+  background: white;
+  border: 2px dashed var(--blue);
+}
+.modal .preview-example-label {
+  font-size: 14px;
+  color: var(--muted);
 }
