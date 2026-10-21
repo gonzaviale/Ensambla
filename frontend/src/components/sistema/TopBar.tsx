@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Icon } from './Icon';
 import { Logo } from './Logo';
 
-export type SeccionActiva = 'home' | 'templates' | 'zone';
+export type SeccionActiva = 'home' | 'templates' | 'zone' | 'plans';
 
 type TopBarProps = {
   active?: SeccionActiva;
@@ -14,6 +14,7 @@ type TopBarProps = {
   onSistemas: () => void;
   onPlantillas: () => void;
   onZona: () => void;
+  onPlanes: () => void;
   onAyuda: () => void;
   onPerfil: () => void;
 };
@@ -28,6 +29,7 @@ export function TopBar({
   onSistemas,
   onPlantillas,
   onZona,
+  onPlanes,
   onAyuda,
   onPerfil,
 }: TopBarProps) {
@@ -55,6 +57,14 @@ export function TopBar({
         </button>
         <button type="button" className={active === 'zone' ? 'active' : ''} onClick={onZona}>
           Mi zona
+        </button>
+        <button
+          type="button"
+          className={active === 'plans' ? 'active' : ''}
+          aria-current={active === 'plans' ? 'page' : undefined}
+          onClick={onPlanes}
+        >
+          Planes
         </button>
       </nav>
       <div className="row topbar-right">

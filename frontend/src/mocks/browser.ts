@@ -3,6 +3,7 @@ import { env } from '@/config/env';
 import type { Sistema } from '@/lib/sistema/tipos';
 import type { Preferencias } from '@/types/preferencias';
 import type { ConfiguracionNegocio } from '@/types/negocio';
+import { pruebaPremiumSchema, type PruebaPremium } from '@/types/planes';
 import { handlersPara } from './handlers';
 import { estado, sembrarUsuario } from './db/estado';
 import { interceptarFetch } from './interceptarFetch';
@@ -13,6 +14,7 @@ type Guardado = {
   sistemas: Record<string, Sistema[]>;
   preferencias: Record<string, Preferencias>;
   negocios: Record<string, ConfiguracionNegocio>;
+  pruebasPremium: Record<string, PruebaPremium>;
 };
 
 // La API simulada vive en memoria: en el navegador se copia a localStorage para que los sistemas y las
@@ -25,6 +27,12 @@ function restaurar() {
     estado.sistemas = new Map(Object.entries(guardado.sistemas ?? {}));
     estado.preferencias = new Map(Object.entries(guardado.preferencias ?? {}));
     estado.negocios = new Map(Object.entries(guardado.negocios ?? {}));
+    estado.pruebasPremium = new Map(
+      Object.entries(guardado.pruebasPremium ?? {}).flatMap(([email, valor]) => {
+        const prueba = pruebaPremiumSchema.safeParse(valor);
+        return prueba.success ? [[email, prueba.data] as const] : [];
+      }),
+    );
   } catch {
     // Datos ilegibles: se arranca de cero.
   }
@@ -36,6 +44,7 @@ function conservar() {
       sistemas: Object.fromEntries(estado.sistemas),
       preferencias: Object.fromEntries(estado.preferencias),
       negocios: Object.fromEntries(estado.negocios),
+      pruebasPremium: Object.fromEntries(estado.pruebasPremium),
     };
     localStorage.setItem(CLAVE, JSON.stringify(guardado));
   } catch {

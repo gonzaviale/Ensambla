@@ -249,6 +249,9 @@ describe('el tutorial', () => {
     await esperarPaso('Una plantilla es un conjunto.');
     await verifyHeadingPresentAsync(/Elegí una base/);
 
+    // El paso puede cambiar con la ruta pendiente: el logo anterior todavía se está desmontando.
+    await waitFor(() => expect(router.state.status).toBe('idle'), ESPERA);
+
     await user.click(screen.getByRole('button', { name: 'Ensambla, ir al inicio' }));
 
     await verifyPathAsync(router, '/inicio');
