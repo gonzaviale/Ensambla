@@ -252,16 +252,55 @@ También se comprobaron autorización, retorno y cancelación desde Planes antes
 También se comprobó una factura de prueba aprobada, su período de acceso y la cancelación posterior
 sin perderlo. Se comprobó también un pago de factura rechazado y que el negocio limpio conserva
 Gratuito, con renovación cancelada y sincronización del rechazo sin correo completada.
-Pendiente: renovación posterior, reembolso y entrega/firma de eventos del proveedor.
+El 21/10/2026 se completó la devolución externa desde el panel del vendedor de prueba, después
+de que la API de devolución hubiera respondido HTTP 401. La API confirmó el reembolso total y
+la conciliación devolvió el negocio a Gratuito. No se sustituyeron las claves por las de una
+cuenta real ni se modificó el plan manualmente.
 
-El 21/10/2026 se amplió la validación local de períodos y reembolsos. El reembolso externo no pudo
-completarse: la API respondió HTTP 401 `Unauthorized use of live credentials` aun después de
-verificar las cuentas de prueba. No se sustituyen esas claves por las de una cuenta real.
-El pago aprobado no fue devuelto. La prueba HTTP de notificación sin firma devolvió 401 sin
-alterar el plan. Sigue pendiente observar una notificación auténtica firmada por el proveedor;
-el acceso al panel de la aplicación configurada no estaba disponible en la sesión abierta.
+También se verificó la entrega firmada del simulador del panel de Mercado Pago para el pago
+ya devuelto: dos envíos respondieron HTTP 200 y conservaron una única factura y el plan Gratuito.
+Entre ambos hubo un HTTP 502 de causa no determinada; se recuperó con un único reintento.
+Los avisos sin firma y con firma inválida respondieron HTTP 401. La firma permanece en el archivo
+privado local; la URL del túnel es temporal y debe renovarse si cambia o termina el proceso.
+
+Luego se comprobó un evento automático `subscription_preapproval` al cancelar desde Planes una
+nueva solicitud pendiente sin tarjeta ni autorización de pago. Se configuró la misma dirección
+temporal en ambas pestañas del panel de la aplicación del vendedor de prueba; «Modo productivo»
+es el nombre de una pestaña de esa cuenta de prueba y no implica cambiar a un vendedor real.
+El receptor validó la firma y respondió HTTP 200 en 453 ms. El nuevo contrato quedó cancelado,
+sin facturas, y el negocio permaneció en Gratuito. No se usó el simulador para ese evento.
+
+Pendiente: la segunda renovación real a los treinta días y su aviso de pago. La entrega automática
+comprobada corresponde a una cancelación de suscripción, sin cobro.
 El servidor local y las pruebas automatizadas validan nuestra implementación del contrato; no
 demuestran que una cuenta concreta de Mercado Pago ya esté habilitada para cobrar.
 
 Para continuar, alcanza con avisar que creaste la aplicación y en qué paso estás. Las claves quedan
 en tu configuración local. No hace falta pegarlas en el chat. Producción y cobros reales son otra etapa.
+
+## 6. Probar la segunda renovación sin esperar treinta días
+
+`RenovacionPremiumIntegrationTest` permite recorrer el ciclo con un `Clock` controlado y PostgreSQL
+aislado de Testcontainers. No modifica el reloj de Windows ni los contratos del vendedor de prueba.
+Las consultas al proveedor usan respuestas simuladas; la firma HMAC se genera y valida con una
+clave exclusiva del test, sin leer las claves privadas de la aplicación.
+
+El caso aprobado parte de una primera factura que cubre los días 0 a 30. Simula una segunda
+factura con débito en el día 30 y entrega su aviso en el día 32 mediante el receptor HTTP de
+pruebas, tanto para `subscription_authorized_payment` como para `payment`. Dos entregas del
+mismo aviso deben dejar dos facturas en total y acceso hasta el día 60, sin agregar días por
+la demora o por repetir el evento.
+
+Los otros dos casos envían el aviso firmado de la segunda factura en estado `pending` o
+`rejected` al llegar al día 30. Debe conservarse el historial del primer pago y quedar Gratuito,
+sin conceder un nuevo período. Los casos existentes cubren también los días anteriores al
+vencimiento, durante los cuales se conserva el acceso ya pagado.
+
+Para repetir estos casos, con Docker activo y desde `backend/`:
+
+```powershell
+.\mvnw.cmd "-Dtest=RenovacionPremiumIntegrationTest" test
+```
+
+Este circuito comprueba el comportamiento de Ensambla ante una segunda factura. No genera ni
+demuestra una segunda factura automática de Mercado Pago; esa comprobación externa sigue pendiente.

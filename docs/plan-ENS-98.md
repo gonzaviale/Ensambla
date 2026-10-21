@@ -245,3 +245,99 @@ errores ni omitidas; **537 clases, 5.127 líneas y 1.322 ramas** al 100 % por cl
 **39 pruebas** con el jar recién compilado. Frontend: **344 pruebas en 32 archivos**, con lint,
 tipos y build de producción aprobados. Las claves privadas, logs y recursos de prueba locales
 quedan excluidos de la publicación.
+
+### Devolución y entrega firmada desde el panel de pruebas (21/10/2026)
+
+Se verificó el acceso con el vendedor de prueba de la aplicación configurada, sin reemplazar
+las claves por credenciales de una cuenta real. Brian confirmó desde el panel la devolución
+total de ARS 14.900 del pago `185274130912`. La API confirmó `refunded`, importe devuelto
+de ARS 14.900 y devolución `approved`. La conciliación existente actualizó la única factura
+local a `refunded`, mantuvo la renovación cancelada y dejó la suscripción `GRATUITO / ACTIVA`.
+No se modificó el plan manualmente por SQL.
+
+Brian configuró la firma secreta en el archivo privado excluido de Git. Se preparó un túnel
+temporal que sólo acepta POST en la ruta del webhook; las demás rutas públicas devuelven 404.
+Se desactivó temporalmente la ejecución periódica del conciliador mediante su demora inicial
+para distinguir el procesamiento del webhook de una actualización en segundo plano.
+
+El simulador del panel de Mercado Pago envió un evento `payment` con el id del pago devuelto.
+El receptor recibió `x-signature` y `x-request-id`, validó HMAC y respondió HTTP 200 en 2.192 ms.
+La fecha de sincronización del contrato cambió, y el plan se mantuvo en Gratuito con una sola
+factura. Una repetición devolvió HTTP 502; un único reintento posterior volvió a devolver HTTP
+200 en 1.528 ms, sin duplicar facturas ni cambiar el plan. No se determinó la causa del 502.
+Los avisos sin firma y con una firma deliberadamente inválida devolvieron HTTP 401.
+
+Esta evidencia comprueba la entrega firmada del simulador de Mercado Pago y el procesamiento
+del recurso real de prueba. No demuestra todavía la emisión automática tras un nuevo evento
+de suscripción ni una segunda factura generada por el proveedor a los treinta días. No se
+crearon nuevos pagos ni suscripciones; se conserva la cancelación de los contratos terminados.
+Estos ensayos se realizaron en local, sin commits ni push durante su ejecución y sin cobros reales.
+
+### Notificación automática de cancelación sin autorizar un pago (21/10/2026)
+
+La API impide modificar una suscripción ya cancelada. Desde Planes se preparó una nueva solicitud
+pendiente en la misma base aislada: referencia local `907127ac-4385-4125-8e89-b8419b211027`,
+contrato remoto `659c6b4dcb864084a70fe4ec82690f1a`. No se abrió ni autorizó el checkout ni se
+asoció una tarjeta. El negocio permaneció en Gratuito.
+
+En la aplicación del vendedor verificado como `test_user` se configuró también la dirección
+temporal en la pestaña denominada «Modo productivo», que estaba vacía. Esto corresponde a esa
+cuenta de prueba; no se cambiaron el vendedor, token, aplicación ni el indicador local de producción.
+Se aceptó un cambio de descripción del contrato pendiente, pero no se observó un aviso por esa
+acción. No se atribuye con esta evidencia una causa definitiva a la ausencia del aviso inicial.
+
+Después se canceló la solicitud desde Planes. El receptor registró a las `2026-10-21T15:27:06.569Z`
+un evento automático `subscription_preapproval` para ese contrato, con `x-signature` y
+`x-request-id` presentes. La validación HMAC y el procesamiento devolvieron HTTP 200 en 453 ms.
+No se utilizó «Enviar prueba» para este evento y el conciliador periódico permanecía demorado.
+
+La API confirmó `cancelled`, ninguna tarjeta y cero facturas del nuevo contrato; PostgreSQL y
+Planes confirmaron renovación cancelada y `GRATUITO / ACTIVA`. Esta prueba verifica la entrega
+automática firmada de una cancelación. Sigue pendiente la segunda factura de un ciclo real de
+treinta días; no se considera probado un cobro recurrente ni su notificación de pago por este caso.
+
+### Segunda renovación acelerada con reloj de prueba (21/10/2026)
+
+Se agregaron cuatro casos a `RenovacionPremiumIntegrationTest` para comprobar la segunda factura
+sin esperar treinta días ni modificar contratos de Mercado Pago. Testcontainers utiliza PostgreSQL
+aislado, el reloj del test avanza al límite del segundo período y las respuestas del proveedor se
+simulan. El endpoint real de notificaciones se recorre mediante MockMvc con validación HMAC real
+del adaptador y una clave exclusiva del test; no se emplean las credenciales privadas del vendedor.
+
+Dos casos cubren una segunda factura aprobada con débito en el día 30 y aviso recibido en el día
+32, para los tópicos `subscription_authorized_payment` y `payment`. Repetir el aviso conserva sólo
+dos facturas y acceso hasta el día 60. Los otros dos cubren una segunda factura pendiente o
+rechazada al vencer el primer período: no renuevan Premium y conservan el historial aprobado.
+La clase de integración completa pasó sus 36 pruebas, incluidos estos cuatro casos.
+
+La simulación comprueba la lógica de Ensambla y no demuestra la emisión de una segunda factura
+automática de Mercado Pago. La comprobación del proveedor continúa pendiente. No se alteraron
+las fechas del sistema operativo, las bases de los ensayos manuales ni el período comercial de
+treinta días; no se generaron cobros, contratos ni commits en este seguimiento.
+
+Verificación final en un directorio de compilación separado del jar en ejecución: `clean verify`
+aprobado con **1.821 pruebas**, sin fallos, errores ni omitidas; **537 clases, 5.127 líneas y
+1.322 ramas** al 100 % por clase. Se conservó el entorno manual en ejecución y se eliminó
+el archivo Maven temporal usado para separar la salida de la compilación.
+
+### Verificación después de integrar los cambios del equipo (21/10/2026)
+
+Antes de publicar estas pruebas se respaldaron los tres archivos locales y se incorporaron
+78 commits mediante avance directo hasta `1578c52`, que incluye el `dev` descargado. Los cambios
+locales se recuperaron sin conflictos y se verificó que su parche fuera idéntico al respaldo.
+
+El conjunto integrado aprobó `clean verify`: **2.270 casos**, sin fallos ni errores, con dos pruebas
+reales de Bedrock omitidas por no tener configurado `SAMI_BEDROCK_PERFIL`. Las **678 clases,
+6.827 líneas y 1.878 ramas** cumplen el 100 % de cobertura por clase. La clase de renovaciones
+aprobó sus **36 pruebas**. El evaluador aprobó **39 pruebas** con el jar de esta compilación.
+
+El frontend aprobó lint, tipos y build. La primera ejecución completa recorrió 42 archivos y
+505 casos: 494 aprobados, nueve fallos mientras las pantallas seguían cargando y dos omitidos.
+Se repitieron únicamente los nueve archivos afectados con dos workers: **153 pruebas aprobadas**,
+sin modificar código ni tiempos de espera. No se presenta como una única corrida completa sin
+reintentos; la PC tenía poca memoria libre durante las comprobaciones.
+
+Las compilaciones se generaron en directorios separados de los servidores manuales. Los ensayos
+externos descritos arriba corresponden a la instancia manual anterior; no se aplicaron las nuevas
+migraciones a sus bases durante esta verificación. Las claves, capturas, respaldos y logs permanecen
+fuera de Git. La emisión de una segunda factura automática de Mercado Pago sigue pendiente.
