@@ -29,7 +29,7 @@ class MigracionPlanesPostgresIntegrationTest extends PostgresRepositoryTestSuppo
         try {
             Totales anteriores = givenSchemaAtVersionEleven();
 
-            migrateToVersionTwelve();
+            migrateToVersionFourteen();
 
             thenEveryExistingNegocioHasFreePlan(anteriores);
         } finally {
@@ -38,18 +38,18 @@ class MigracionPlanesPostgresIntegrationTest extends PostgresRepositoryTestSuppo
     }
 
     @Test
-    @DisplayName("V13 agrega las capacidades aprobadas sin reemplazar un precio ya definido ni el consumo")
+    @DisplayName("V15 agrega las capacidades aprobadas sin reemplazar un precio ya definido ni el consumo")
     void migrateShouldConfigureCapabilitiesWithoutChangingPriceOrUsage() {
         try {
             givenSchemaAtVersionEleven();
-            migrateToVersionTwelve();
+            migrateToVersionFourteen();
             jdbcTemplate.update("UPDATE " + ESQUEMA + ".plan "
                     + "SET precio_mensual = 123.45, moneda = 'ARS', configurado = true WHERE codigo = 'PREMIUM'");
             jdbcTemplate.update("INSERT INTO " + ESQUEMA + ".consumo_ia_diario (negocio_id, fecha, paginas, reservadas) "
                     + "SELECT id, DATE '2026-10-19', 3, 2 FROM " + ESQUEMA + ".negocio");
 
             Flyway.configure().dataSource(dataSource).schemas(ESQUEMA).defaultSchema(ESQUEMA)
-                    .target("13").load().migrate();
+                    .target("15").load().migrate();
 
             assertThat(jdbcTemplate.queryForObject("SELECT limite_proyectos FROM " + ESQUEMA
                     + ".plan WHERE codigo = 'GRATUITO'", Integer.class)).isEqualTo(1);
@@ -70,17 +70,17 @@ class MigracionPlanesPostgresIntegrationTest extends PostgresRepositoryTestSuppo
     }
 
     @Test
-    @DisplayName("V14 conserva negocios, suscripciones, datos y consumo al agregar pruebas sin activarlas")
-    void migrateShouldPreserveVersionThirteenDataWithoutStartingTrials() {
+    @DisplayName("V16 conserva negocios, suscripciones, datos y consumo al agregar pruebas sin activarlas")
+    void migrateShouldPreserveVersionFifteenDataWithoutStartingTrials() {
         try {
             Totales anteriores = givenSchemaAtVersionEleven();
             Flyway.configure().dataSource(dataSource).schemas(ESQUEMA).defaultSchema(ESQUEMA)
-                    .target("13").load().migrate();
+                    .target("15").load().migrate();
             jdbcTemplate.update("INSERT INTO " + ESQUEMA + ".consumo_ia_diario (negocio_id, fecha, paginas) "
                     + "SELECT id, DATE '2026-10-19', 7 FROM " + ESQUEMA + ".negocio");
 
             Flyway.configure().dataSource(dataSource).schemas(ESQUEMA).defaultSchema(ESQUEMA)
-                    .target("14").load().migrate();
+                    .target("16").load().migrate();
 
             thenEveryExistingNegocioHasFreePlan(anteriores);
             assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA + ".prueba_premium",
@@ -94,12 +94,12 @@ class MigracionPlanesPostgresIntegrationTest extends PostgresRepositoryTestSuppo
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    @DisplayName("V15 conserva prueba, suscripción y datos, configura el precio pendiente y no inicia cobros")
+    @DisplayName("V17 conserva prueba, suscripción y datos, configura el precio pendiente y no inicia cobros")
     void migrateShouldPreserveTrialAndConfiguredPriceWithoutCreatingPayments(boolean precioAnterior) {
         try {
             Totales anteriores = givenSchemaAtVersionEleven();
             Flyway.configure().dataSource(dataSource).schemas(ESQUEMA).defaultSchema(ESQUEMA)
-                    .target("14").load().migrate();
+                    .target("16").load().migrate();
             jdbcTemplate.update("INSERT INTO " + ESQUEMA + ".prueba_premium "
                     + "(negocio_id,inicio_en,fin_en,paginas_ia) SELECT id,TIMESTAMPTZ '2026-10-20T12:00:00Z',"
                     + "TIMESTAMPTZ '2026-10-27T12:00:00Z',8 FROM " + ESQUEMA + ".negocio");
@@ -112,7 +112,7 @@ class MigracionPlanesPostgresIntegrationTest extends PostgresRepositoryTestSuppo
             }
 
             Flyway.configure().dataSource(dataSource).schemas(ESQUEMA).defaultSchema(ESQUEMA)
-                    .target("15").load().migrate();
+                    .target("17").load().migrate();
 
             assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA
                     + ".prueba_premium WHERE paginas_ia=8", Long.class)).isEqualTo(anteriores.negocios());
@@ -145,19 +145,19 @@ class MigracionPlanesPostgresIntegrationTest extends PostgresRepositoryTestSuppo
                 "antes-ens94@example.com", "Cuenta existente");
         jdbcTemplate.update("INSERT INTO " + ESQUEMA + ".negocio (nombre, duenio_id) "
                 + "SELECT ?, id FROM " + ESQUEMA + ".usuario WHERE email = ?",
-                "Negocio anterior a V12", "antes-ens94@example.com");
+                "Negocio anterior a V14", "antes-ens94@example.com");
         return new Totales(
                 jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA + ".negocio", Long.class),
                 jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA + ".registro", Long.class));
     }
 
     // --- act ---
-    private void migrateToVersionTwelve() {
+    private void migrateToVersionFourteen() {
         Flyway.configure()
                 .dataSource(dataSource)
                 .schemas(ESQUEMA)
                 .defaultSchema(ESQUEMA)
-                .target("12")
+                .target("14")
                 .load()
                 .migrate();
     }
@@ -171,7 +171,7 @@ class MigracionPlanesPostgresIntegrationTest extends PostgresRepositoryTestSuppo
         assertThat(negocios).isEqualTo(anteriores.negocios());
         assertThat(gratuitos).isEqualTo(negocios);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA
-                + ".negocio WHERE nombre = 'Negocio anterior a V12'", Long.class)).isEqualTo(1);
+                + ".negocio WHERE nombre = 'Negocio anterior a V14'", Long.class)).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA
                 + ".registro", Long.class)).isEqualTo(anteriores.registros());
         assertThat(anteriores.registros()).isPositive();
