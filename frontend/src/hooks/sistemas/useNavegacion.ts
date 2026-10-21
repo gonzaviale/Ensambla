@@ -32,7 +32,7 @@ export function useNavegacion() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
-  const irA = (to: '/inicio' | '/plantillas' | '/taller' | '/zona' | '/sami') => {
+  const irA = (to: '/inicio' | '/plantillas' | '/taller' | '/zona' | '/planes' | '/sami') => {
     limpiar();
     return navigate({ to });
   };
@@ -64,6 +64,7 @@ export function useNavegacion() {
       return navigate({ to: '/taller', search: { sistema: id } });
     },
     irAZona: () => irA('/zona'),
+    irAPlanes: () => irA('/planes'),
     /** «Armalo con Sami»: la conversación que crea un proyecto real en el backend. */
     irASami: () => irA('/sami'),
     abrirSistema,

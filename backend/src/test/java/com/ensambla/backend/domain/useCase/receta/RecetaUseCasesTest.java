@@ -14,6 +14,7 @@ import com.ensambla.backend.domain.model.receta.Receta;
 import com.ensambla.backend.domain.model.receta.RecetaCosteada;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.receta.RecetaService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +35,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,6 +53,8 @@ class RecetaUseCasesTest {
 
     @Mock
     private NegocioService negocioService;
+    @Mock
+    private ControlPlanService controlPlanService;
 
     @Mock
     private RegistroDatosService registroDatosService;
@@ -65,9 +69,11 @@ class RecetaUseCasesTest {
     void setUp() {
         RecetaItemMapper itemMapper = new RecetaItemMapper();
         obtenerRecetaUseCase = new ObtenerRecetaUseCase(
-                negocioService, registroDatosService, recetaService, new ObtenerRecetaMapper(itemMapper));
+                negocioService, controlPlanService, RELOJ, registroDatosService, recetaService,
+                new ObtenerRecetaMapper(itemMapper));
         guardarRecetaUseCase = new GuardarRecetaUseCase(
-                negocioService, registroDatosService, recetaService, new GuardarRecetaMapper(itemMapper), RELOJ);
+                negocioService, controlPlanService, registroDatosService, recetaService,
+                new GuardarRecetaMapper(itemMapper), RELOJ);
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
@@ -106,7 +112,7 @@ class RecetaUseCasesTest {
     void guardarShouldSaveRecetaAndReturnCost() {
         when(registroDatosService.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(givenProducto());
         when(recetaService.guardar(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(recetaService.costear(any(), org.mockito.ArgumentMatchers.eq(NEGOCIO_ID))).thenReturn(givenCosteada());
+        when(recetaService.costear(any(), eq(NEGOCIO_ID))).thenReturn(givenCosteada());
 
         RecetaItem response = guardarRecetaUseCase.execute(new GuardarRecetaRequest(
                 USUARIO_ID, PRODUCTO_ID, PRECIO_ID, List.of(new LineaRecetaRequest(HARINA_ID, new BigDecimal("3"), "kg"))));

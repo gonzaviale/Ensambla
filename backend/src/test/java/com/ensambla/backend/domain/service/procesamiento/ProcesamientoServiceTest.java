@@ -54,6 +54,8 @@ class ProcesamientoServiceTest {
 
     @Mock
     private ProcesamientoRepository procesamientoRepository;
+    @Mock
+    private ReservaIaService reservaIaService;
 
     @Mock
     private ArchivoCuadernoPort archivoCuadernoPort;
@@ -72,7 +74,7 @@ class ProcesamientoServiceTest {
         lote = ProcesamientoTestData.lote(1);
         procesamientoService = new ProcesamientoService(procesamientoRepository, archivoCuadernoPort,
                 lectorCuadernoPort, new PropuestaLecturaService(), conexionesLecturaService,
-                ProcesamientoTestData.politica());
+                ProcesamientoTestData.politica(), reservaIaService);
     }
 
     @Test
@@ -89,7 +91,7 @@ class ProcesamientoServiceTest {
     @DisplayName("Lee archivos, reserva consumo y llama al proveedor en ese orden")
     void leerShouldReadAndReserveBeforeProvider() {
         givenReadableLote();
-        when(procesamientoRepository.reservar(lote, 1, 100, AHORA)).thenReturn(true);
+        when(reservaIaService.reservar(lote, 1, 100, AHORA)).thenReturn(true);
         when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(ProcesamientoTestData.lectura());
         when(conexionesLecturaService.resolver(eq(NEGOCIO_ID), any(), any()))
                 .thenAnswer(invocacion -> invocacion.getArgument(1));
@@ -100,9 +102,9 @@ class ProcesamientoServiceTest {
                 .isEqualTo(ProcesamientoTestData.lectura().tipoRegistro());
         assertThat(resultado.error()).isNull();
         assertThat(resultado.recuperable()).isFalse();
-        var orden = inOrder(archivoCuadernoPort, procesamientoRepository, lectorCuadernoPort);
+        var orden = inOrder(archivoCuadernoPort, procesamientoRepository, reservaIaService, lectorCuadernoPort);
         orden.verify(archivoCuadernoPort).leer(NEGOCIO_ID, FOTO.clave());
-        orden.verify(procesamientoRepository).reservar(lote, 1, 100, AHORA);
+        orden.verify(reservaIaService).reservar(lote, 1, 100, AHORA);
         orden.verify(lectorCuadernoPort).leer(any(), any(), any());
     }
 
@@ -111,7 +113,7 @@ class ProcesamientoServiceTest {
     void leerShouldSendOnlyDestinoBlockToProvider() {
         lote = new LoteTrabajo(LOTE_ID, NEGOCIO_ID, ProcesamientoTestData.BLOQUE_ID, lote.reclamoId(), 1);
         givenReadableLoteWithOtherBloque();
-        when(procesamientoRepository.reservar(lote, 1, 100, AHORA)).thenReturn(true);
+        when(reservaIaService.reservar(lote, 1, 100, AHORA)).thenReturn(true);
         when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Corte"));
 
         procesamientoService.leer(lote, AHORA);
@@ -127,7 +129,7 @@ class ProcesamientoServiceTest {
     @DisplayName("Sin bloque destino le pasa a la IA todos los bloques del negocio")
     void leerShouldSendAllBloquesWhenNoDestino() {
         givenReadableLoteWithOtherBloque();
-        when(procesamientoRepository.reservar(lote, 1, 100, AHORA)).thenReturn(true);
+        when(reservaIaService.reservar(lote, 1, 100, AHORA)).thenReturn(true);
         when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Corte"));
 
         procesamientoService.leer(lote, AHORA);
@@ -163,7 +165,7 @@ class ProcesamientoServiceTest {
                         new CampoConocido(UUID.randomUUID(), "Fiado", TipoCampo.RELACION, List.of(),
                                 UUID.randomUUID()))),
                 new BloqueLectura(clientesId, "Clientes", List.of())));
-        when(procesamientoRepository.reservar(lote, 1, 100, AHORA)).thenReturn(true);
+        when(reservaIaService.reservar(lote, 1, 100, AHORA)).thenReturn(true);
         when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Corte"));
 
         procesamientoService.leer(lote, AHORA);
@@ -202,7 +204,7 @@ class ProcesamientoServiceTest {
     @DisplayName("No invoca IA cuando la reserva diaria fue rechazada")
     void leerShouldRejectExhaustedQuota() {
         givenReadableLote();
-        when(procesamientoRepository.reservar(lote, 1, 100, AHORA)).thenReturn(false);
+        when(reservaIaService.reservar(lote, 1, 100, AHORA)).thenReturn(false);
 
         ResultadoIntento resultado = procesamientoService.leer(lote, AHORA);
 
@@ -372,7 +374,7 @@ class ProcesamientoServiceTest {
 
     private void givenReservedLote() {
         givenReadableLote();
-        when(procesamientoRepository.reservar(lote, 1, 100, AHORA)).thenReturn(true);
+        when(reservaIaService.reservar(lote, 1, 100, AHORA)).thenReturn(true);
     }
 
     private void givenRetry(int paginas, int reservadas) {

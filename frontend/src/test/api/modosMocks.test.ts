@@ -8,6 +8,12 @@ const rutas = (modo: Parameters<typeof handlersPara>[0]) =>
   });
 
 describe('API simulada según VITE_API_MOCKS', () => {
+  it('los planes y la prueba sólo se simulan en el modo completo', () => {
+    expect(rutas('completo')).toEqual(
+      expect.arrayContaining(['GET /planes', 'POST /planes/prueba']),
+    );
+    expect(rutas('parcial').filter((ruta) => ruta.includes('/planes'))).toEqual([]);
+  });
   it('en modo completo simula la sesión y los sistemas', () => {
     expect(rutas('completo')).toEqual(
       expect.arrayContaining([

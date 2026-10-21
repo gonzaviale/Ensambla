@@ -8,6 +8,7 @@ import { handlersSistemas } from './sistemas';
 import { handlersZona } from './zona';
 import { handlersUbicacion } from './ubicacion';
 import { handlersNegocio } from './negocio';
+import { handlersPlanes } from './planes';
 
 // Los sistemas, las preferencias y la zona ya están en el backend (/api/sistemas, /api/preferencias, /api/zona):
 // el modo parcial los simula igual para trabajar la pantalla sin levantar el servidor.
@@ -25,6 +26,7 @@ export function handlersPara(modo: ModoMocks) {
       ...handlersAvisos,
       ...handlersUbicacion,
       ...handlersNegocio,
+      ...handlersPlanes,
       ...handlersSamiProyecto,
       ...handlersSamiTaller,
     ];

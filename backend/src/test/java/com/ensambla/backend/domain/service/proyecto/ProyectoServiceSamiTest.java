@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.support.ProyectoTestData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,11 +31,14 @@ class ProyectoServiceSamiTest {
     @Mock
     private ProyectoRepository proyectoRepository;
 
+    @Mock
+    private ControlPlanService controlPlanService;
+
     private ProyectoService proyectoService;
 
     @BeforeEach
     void setUp() {
-        proyectoService = new ProyectoService(proyectoRepository);
+        proyectoService = new ProyectoService(proyectoRepository, controlPlanService);
     }
 
     @Test

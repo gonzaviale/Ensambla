@@ -68,12 +68,12 @@ public class LecturaController {
     }
 
     @PostMapping(value = "/api/importaciones/lectura", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Leer una foto contra un bloque con IA: devuelve registros y columnas nuevas para revisar, "
-            + "sin guardar nada")
-    public ResponseEntity<LecturaImagenResponse> leerImagen(@RequestPart("imagen") MultipartFile imagen,
+    @Operation(summary = "Leer una foto con IA y registrar su consumo, sin crear las filas propuestas")
+    public ResponseEntity<LecturaImagenResponse> leerImagen(Authentication authentication,
+                                                            @RequestPart("imagen") MultipartFile imagen,
                                                             @RequestPart("pedido") @Valid PedidoLecturaRequest pedido) {
-        return ResponseEntity.ok(lecturaPresentationMapper.toResponse(
-                leerImagenUseCase.execute(lecturaPresentationMapper.toRequest(imagen, pedido)), pedido));
+        return ResponseEntity.ok(lecturaPresentationMapper.toResponse(leerImagenUseCase.execute(
+                lecturaPresentationMapper.toRequest(UUID.fromString(authentication.getName()), imagen, pedido)), pedido));
     }
 
     @GetMapping("/api/ia/consumo")

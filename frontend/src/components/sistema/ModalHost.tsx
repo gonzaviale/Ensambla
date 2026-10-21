@@ -14,6 +14,8 @@ import { ModalRenombrar } from './modales/ModalRenombrar';
 import { ModalRegistro } from './modales/ModalRegistro';
 import { ModalRenombrarPieza } from './modales/ModalRenombrarPieza';
 import { ModalSecciones } from './modales/ModalSecciones';
+import { ModalPruebaPremium } from '@/components/planes/ModalPruebaPremium';
+import { ModalRenovacion } from '@/components/planes/ModalRenovacion';
 
 const ENFOCABLES =
   'button:not(:disabled),a[href],input:not([hidden]),select,textarea,[tabindex="0"]';
@@ -34,6 +36,12 @@ function ContenidoDelModal() {
       return <ModalAyuda respuesta={modal.respuesta} />;
     case 'perfil':
       return <ModalPerfil />;
+    case 'pruebaPremium':
+      return <ModalPruebaPremium />;
+    case 'contratarPremium':
+      return <ModalRenovacion />;
+    case 'cancelarRenovacion':
+      return <ModalRenovacion cancelar />;
     case 'renombrar':
       return <ModalRenombrar />;
     case 'renombrarPieza':
@@ -100,7 +108,7 @@ export function ModalHost() {
     return () => {
       document.removeEventListener('keydown', alTeclear);
       document.body.style.overflow = '';
-      if (anterior?.isConnected) anterior.focus();
+      if (anterior?.isConnected && !anterior.matches(':disabled')) anterior.focus();
       else document.getElementById('main')?.focus({ preventScroll: true });
     };
   }, [hayModal, cerrarModal]);

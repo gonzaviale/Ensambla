@@ -17,6 +17,7 @@ import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.reporte.ReporteService;
 import com.ensambla.backend.infrastructure.reporte.ExportadorReporteXlsxAdapter;
 import org.dhatim.fastexcel.reader.ReadableWorkbook;
@@ -62,6 +63,8 @@ class ReporteUseCasesTest {
 
     @Mock
     private NegocioService negocioService;
+    @Mock
+    private ControlPlanService controlPlanService;
 
     @Mock
     private BloqueService bloqueService;
@@ -82,9 +85,11 @@ class ReporteUseCasesTest {
     void setUp() {
         ReporteService reporteService = new ReporteService(registroRepository, campoRepository);
         generarReporteUseCase = new GenerarReporteUseCase(
-                negocioService, bloqueService, campoService, reporteService, new GenerarReporteMapper());
+                negocioService, controlPlanService, RELOJ, bloqueService, campoService, reporteService,
+                new GenerarReporteMapper());
         exportarReporteUseCase = new ExportarReporteUseCase(
-                negocioService, bloqueService, campoService, reporteService, new ExportadorReporteXlsxAdapter(),
+                negocioService, controlPlanService, bloqueService, campoService, reporteService,
+                new ExportadorReporteXlsxAdapter(),
                 new ExportarReporteMapper(), RELOJ);
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID))

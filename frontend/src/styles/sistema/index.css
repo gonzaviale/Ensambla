@@ -15,6 +15,7 @@
 /* La pantalla del sistema: fondo blanco, piezas y cabeceras de color. */
 @import './sistema-editor.css';
 @import './ubicacion.css';
+@import './planes.css';
 /* Plantillas con la paleta completa. */
 @import './plantillas.css';
 /* Taller de Sami con la paleta completa. */

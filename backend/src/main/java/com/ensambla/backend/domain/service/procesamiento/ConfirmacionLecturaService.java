@@ -10,9 +10,9 @@ import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionGuardada;
-import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura.CampoConfirmado;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura.FilaConfirmada;
+import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
@@ -62,7 +62,7 @@ public class ConfirmacionLecturaService {
         Bloque bloque = destino(negocioId, confirmacion, ahora);
         Map<String, Campo> campos = prepararCampos(negocioId, bloque, confirmacion, ahora);
         List<Registro> registros = armarRegistros(negocioId, bloque, campos, lote, confirmacion, ahora);
-        registroDatosService.crearVarios(registros);
+        registroDatosService.crearVarios(negocioId, registros, ahora);
         loteSubidaService.confirmar(lote, bloque.getId(), ahora);
         return new ConfirmacionGuardada(bloque.getProyectoId(), bloque.getId(), registros.size());
     }

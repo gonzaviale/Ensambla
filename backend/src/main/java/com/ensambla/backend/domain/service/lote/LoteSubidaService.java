@@ -8,6 +8,7 @@ import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,8 @@ public class LoteSubidaService {
 
     private final ArchivoCuadernoPort archivoCuadernoPort;
 
+    private final ControlPlanService controlPlanService;
+
     /**
      * Valida las fotos, las guarda en la carpeta privada del negocio y guarda el lote pendiente. Si algo falla a mitad
      * de camino borra lo que ya se había guardado, así no quedan archivos sin lote.
@@ -33,6 +36,7 @@ public class LoteSubidaService {
     @Transactional
     public LoteSubida subir(UUID negocioId, List<byte[]> contenidos, UUID bloqueDestinoId, OffsetDateTime ahora) {
         LoteSubida lote = LoteSubida.nuevo(negocioId, contenidos, bloqueDestinoId, ahora);
+        controlPlanService.validarPaginasIa(negocioId, lote.getFotos().size(), ahora);
         List<String> subidas = new ArrayList<>();
         try {
             for (FotoCuaderno foto : lote.getFotos()) {

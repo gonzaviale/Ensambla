@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicaRouteImport } from './routes/_publica'
 import { Route as AppInicioRouteImport } from './routes/_app/inicio'
+import { Route as AppPlanesRouteImport } from './routes/_app/planes'
 import { Route as AppPlantillasRouteImport } from './routes/_app/plantillas'
 import { Route as AppSamiRouteImport } from './routes/_app/sami'
 import { Route as AppTallerRouteImport } from './routes/_app/taller'
@@ -33,6 +34,11 @@ const PublicaRoute = PublicaRouteImport.update({
 const AppInicioRoute = AppInicioRouteImport.update({
   id: '/inicio',
   path: '/inicio',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPlanesRoute = AppPlanesRouteImport.update({
+  id: '/planes',
+  path: '/planes',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPlantillasRoute = AppPlantillasRouteImport.update({
@@ -84,6 +90,7 @@ const AppSistemasSistemaIdRoute = AppSistemasSistemaIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof PublicaIndexRoute
   '/inicio': typeof AppInicioRoute
+  '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
   '/sami': typeof AppSamiRoute
   '/taller': typeof AppTallerRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof PublicaIndexRoute
   '/inicio': typeof AppInicioRoute
+  '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
   '/sami': typeof AppSamiRoute
   '/taller': typeof AppTallerRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_publica': typeof PublicaRouteWithChildren
   '/_app/inicio': typeof AppInicioRoute
+  '/_app/planes': typeof AppPlanesRoute
   '/_app/plantillas': typeof AppPlantillasRoute
   '/_app/sami': typeof AppSamiRoute
   '/_app/taller': typeof AppTallerRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/inicio'
+    | '/planes'
     | '/plantillas'
     | '/sami'
     | '/taller'
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/inicio'
+    | '/planes'
     | '/plantillas'
     | '/sami'
     | '/taller'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/_publica'
     | '/_app/inicio'
+    | '/_app/planes'
     | '/_app/plantillas'
     | '/_app/sami'
     | '/_app/taller'
@@ -187,6 +199,13 @@ declare module '@tanstack/react-router' {
       path: '/inicio'
       fullPath: '/inicio'
       preLoaderRoute: typeof AppInicioRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/planes': {
+      id: '/_app/planes'
+      path: '/planes'
+      fullPath: '/planes'
+      preLoaderRoute: typeof AppPlanesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/plantillas': {
@@ -257,6 +276,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppInicioRoute: typeof AppInicioRoute
+  AppPlanesRoute: typeof AppPlanesRoute
   AppPlantillasRoute: typeof AppPlantillasRoute
   AppSamiRoute: typeof AppSamiRoute
   AppTallerRoute: typeof AppTallerRoute
@@ -267,6 +287,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppInicioRoute: AppInicioRoute,
+  AppPlanesRoute: AppPlanesRoute,
   AppPlantillasRoute: AppPlantillasRoute,
   AppSamiRoute: AppSamiRoute,
   AppTallerRoute: AppTallerRoute,

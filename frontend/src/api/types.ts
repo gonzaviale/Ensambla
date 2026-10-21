@@ -8,6 +8,7 @@ export const errorResponseSchema = z.object({
   path: z.string(),
   traceId: z.string(),
   errors: z.record(z.string()).optional(),
+  codigo: z.string().optional(),
 });
 
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;

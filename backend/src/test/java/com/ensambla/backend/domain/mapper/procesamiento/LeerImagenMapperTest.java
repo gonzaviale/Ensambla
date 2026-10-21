@@ -15,6 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -89,7 +90,7 @@ class LeerImagenMapperTest {
 
     // --- arrange ---
     private LeerImagenRequest request(byte[] contenido, CampoItem... campos) {
-        return new LeerImagenRequest(contenido, "Ventas", List.of(campos), true);
+        return new LeerImagenRequest(UUID.randomUUID(), contenido, "Ventas", List.of(campos), true);
     }
 
     private CampoItem campo(String clave, String nombre, String tipo) {
