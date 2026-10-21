@@ -1,4 +1,4 @@
-import type { CSSProperties, DragEvent } from 'react';
+import { useState, type CSSProperties, type DragEvent } from 'react';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import { findBlock, totals } from '@/lib/sistema/core';
 import type { Ancho, Bloque, Campo, Sistema, Valor } from '@/lib/sistema/tipos';
@@ -60,6 +60,7 @@ function Contenido({
   sistema: Sistema;
   compacto: boolean;
 }) {
+  const [verTodas, setVerTodas] = useState(false);
   if (bloque.type === 'summary') {
     const resumen = totals(sistema);
     return (
@@ -75,9 +76,10 @@ function Contenido({
   const campos = bloque.fields
     .filter((campo) => !CAMPOS_OCULTOS.includes(campo.key))
     .slice(0, compacto ? 3 : 4);
-  const filas = bloque.rows.slice(0, compacto ? 2 : 3);
+  const limite = compacto ? 2 : 3;
+  const filas = verTodas ? bloque.rows : bloque.rows.slice(0, limite);
   return (
-    <div className="preview-table-scroll">
+    <div className={`preview-table-scroll${verTodas ? 'preview-table-expandida' : ''}`}>
       <table className="preview-table">
         <thead>
           <tr>
@@ -89,9 +91,12 @@ function Contenido({
         <tbody>
           {filas.length ? (
             filas.map((fila) => (
-              <tr key={fila.id}>
-                {campos.map((campo) => (
-                  <td key={campo.key}>{valorDeVista(sistema, campo, fila[campo.key])}</td>
+              <tr key={fila.id} className={fila.__example ? 'example-row' : undefined}>
+                {campos.map((campo, indice) => (
+                  <td key={campo.key}>
+                    {indice === 0 && fila.__example && <em className="example-badge">Ejemplo</em>}
+                    {valorDeVista(sistema, campo, fila[campo.key])}
+                  </td>
                 ))}
               </tr>
             ))
@@ -106,6 +111,18 @@ function Contenido({
           )}
         </tbody>
       </table>
+      {bloque.rows.length > limite && (
+        <button
+          type="button"
+          className="preview-more"
+          onClick={() => setVerTodas((valor) => !valor)}
+        >
+          {verTodas ? 'Ver menos' : `Ver todas (${bloque.rows.length})`}
+        </button>
+      )}
+      {filas.some((fila) => fila.__example) && (
+        <p className="example-notice">Datos de ejemplo, no son reales</p>
+      )}
     </div>
   );
 }
@@ -169,6 +186,7 @@ export function PreviewBoard({
             key={bloque.id}
             className={`preview-block ${arrastrando === bloque.id ? 'dragging' : ''} ${sobre === bloque.id ? 'drag-over' : ''}`.trim()}
             data-width={bloque.width}
+            data-color={bloque.color}
             data-draft-block={editable ? bloque.id : undefined}
             style={estilo}
           >

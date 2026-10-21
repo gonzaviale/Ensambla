@@ -1,4 +1,6 @@
 import type { Sistema } from '@/lib/sistema/tipos';
+import type { AvisoDelServidor } from '@/types/avisos';
+import type { ConfiguracionNegocio } from '@/types/negocio';
 import { PREFERENCIAS_INICIALES, type Preferencias } from '@/types/preferencias';
 
 export type UsuarioMock = {
@@ -14,6 +16,9 @@ type Estado = {
   /** Los sistemas de cada cuenta (por email). */
   sistemas: Map<string, Sistema[]>;
   preferencias: Map<string, Preferencias>;
+  negocios: Map<string, ConfiguracionNegocio>;
+  /** Los avisos que el motor del servidor dejó a cada cuenta (por email); los tests los siembran. */
+  avisosDelServidor: Map<string, AvisoDelServidor[]>;
   /** Se llama después de cada cambio de datos: el navegador lo usa para no perderlos al recargar. */
   alCambiar: (() => void) | null;
 };
@@ -23,6 +28,8 @@ export const estado: Estado = {
   sesionUsuarioId: null,
   sistemas: new Map(),
   preferencias: new Map(),
+  negocios: new Map(),
+  avisosDelServidor: new Map(),
   alCambiar: null,
 };
 
@@ -31,6 +38,8 @@ export function reiniciarEstado() {
   estado.sesionUsuarioId = null;
   estado.sistemas = new Map();
   estado.preferencias = new Map();
+  estado.negocios = new Map();
+  estado.avisosDelServidor = new Map();
   estado.alCambiar = null;
 }
 

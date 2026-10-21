@@ -1,22 +1,22 @@
 import { useRef, useState, type DragEvent } from 'react';
-import { useLecturaDeImagen } from '@/hooks/sistemas/useLecturaDeImagen';
+import { leerErrorServidor } from '@/hooks/errores';
+import { LECTURA_CON_IA, useLecturaDeImagen } from '@/hooks/sistemas/useLecturaDeImagen';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
+import { useRevisionDeLectura } from '@/hooks/sistemas/useRevisionDeLectura';
 import { CATALOG } from '@/lib/sistema/catalogo';
+import { allBlocks, clone, findBlock, importRows, makeBlock, makeSystem } from '@/lib/sistema/core';
 import {
-  allBlocks,
-  clone,
-  findBlock,
-  importRows,
-  makeBlock,
-  makeSystem,
-  validateRow,
-} from '@/lib/sistema/core';
-import type { Bloque, Sistema, TipoBloque, Valor } from '@/lib/sistema/tipos';
+  aIncorporacion,
+  erroresDeLosRegistros,
+  motivosPendientes,
+  type AccionDeRevision,
+} from '@/lib/sistema/revision';
+import type { Bloque, Sistema, TipoBloque } from '@/lib/sistema/tipos';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { Btn } from '../Btn';
-import { ControlDeCampo } from '../editor/CampoDeFormulario';
 import { Icon } from '../Icon';
 import { IconTile } from '../IconTile';
+import { RevisionDeLectura } from '../importar/RevisionDeLectura';
 import { Modal } from '../Modal';
 import { Sami } from '../Sami';
 import { varsDeColor } from '../colores';
@@ -29,8 +29,6 @@ const NOMBRE_DEL_SISTEMA_NUEVO: Partial<Record<TipoBloque, string>> = {
   sales: 'Mi registro de ventas',
   clients: 'Mi registro de clientes',
 };
-
-type Fila = Record<string, Valor>;
 
 type Props = {
   sistemaId: string | null;
@@ -50,7 +48,8 @@ const Cuaderno = () => (
 );
 
 // Traer datos de una foto: elegir la imagen, revisar lo que "se leyó" y recién ahí incorporarlo.
-// La lectura es simulada (POST /importaciones/lectura); la foto elegida se muestra como referencia.
+// Con una foto, la lee la IA del backend (POST /importaciones/lectura) en los registros de un bloque; en el
+// modo completo, o sin foto («Probar con un ejemplo»), la lectura es de muestra.
 export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
   const sistemas = useSistemaStore((estado) => estado.sistemas);
   const cerrarModal = useSistemaStore((estado) => estado.cerrarModal);
@@ -67,10 +66,11 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
   const [paso, setPaso] = useState<'elegir' | 'revisar'>('elegir');
   const [archivo, setArchivo] = useState<File | null>(null);
   const [url, setUrl] = useState<string | null>(null);
-  const [filas, setFilas] = useState<Fila[]>([]);
-  const [marcadas, setMarcadas] = useState<boolean[]>([]);
+  const { revision, cargar, actuar } = useRevisionDeLectura();
+  const [intentado, setIntentado] = useState(false);
   const [omitirDuplicados, setOmitirDuplicados] = useState(true);
   const [descripcion, setDescripcion] = useState('');
+  const [leidaPorIa, setLeidaPorIa] = useState(false);
   const [error, setError] = useState('');
   const [encima, setEncima] = useState(false);
 
@@ -84,20 +84,28 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
       vinculos[campo.key] = (findBlock(sistema, campo.target)?.rows ?? []).map((fila) => fila.id);
     }
     try {
+      // La IA lee los registros de un bloque; lo que Sami entiende del negocio sigue siendo de muestra.
+      const aLeer = contexto === 'registros' ? imagen : null;
       const resultado = await lectura.mutateAsync({
-        contexto,
-        tipo: destino.type,
-        campos: destino.fields,
-        vinculos,
+        pedido: {
+          nombre: destino.name,
+          contexto,
+          tipo: destino.type,
+          campos: destino.fields,
+          vinculos,
+          destinoExistente: Boolean(destinoId && findBlock(sistema, destinoId)),
+        },
+        imagen: aLeer,
       });
+      setLeidaPorIa(Boolean(aLeer) && LECTURA_CON_IA);
       setArchivo(imagen);
       setUrl(dataUrl);
       setDescripcion(resultado.descripcion);
-      setFilas(resultado.filas);
-      setMarcadas(resultado.filas.map(() => true));
+      cargar(resultado);
+      setIntentado(false);
       setPaso('revisar');
-    } catch {
-      setError('No pudimos leer la imagen. Probá de nuevo.');
+    } catch (falla) {
+      setError(leerErrorServidor(falla)?.mensaje ?? 'No pudimos leer la imagen. Probá de nuevo.');
     }
   };
 
@@ -133,36 +141,40 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
     }
   };
 
-  const editarCelda = (indice: number, clave: string, valor: Valor) =>
-    setFilas((actuales) =>
-      actuales.map((fila, i) =>
-        i === indice ? { ...fila, [clave]: valor, __example: false } : fila,
-      ),
-    );
+  // Cualquier corrección de la revisión borra el aviso anterior: se vuelve a comprobar al incorporar.
+  const corregir = (accion: AccionDeRevision) => {
+    setError('');
+    actuar(accion);
+  };
 
   const incorporar = () => {
-    const elegidas = filas.filter((_, indice) => marcadas[indice]);
-    if (!elegidas.length) {
-      setError('Seleccioná al menos un registro.');
+    setIntentado(true);
+    const motivos = motivosPendientes(revision, destino.fields);
+    if (motivos[0]) {
+      setError(motivos[0]);
       return;
     }
-    const invalida = elegidas.findIndex(
-      (fila) => Object.keys(validateRow(destino, fila, sistema ?? makeSystem('_'))).length,
-    );
+    const problemas = erroresDeLosRegistros(destino, revision, sistema ?? makeSystem('_'));
+    const invalida = revision.filas.findIndex((fila) => problemas[fila.id]);
     if (invalida >= 0) {
-      const errores = validateRow(destino, elegidas[invalida] ?? {}, sistema ?? makeSystem('_'));
-      setError(`Revisá el registro ${invalida + 1}: ${Object.values(errores)[0]}`);
+      const errores = problemas[revision.filas[invalida]?.id ?? ''] ?? {};
+      setError(`Revisá el registro ${invalida + 1}: ${Object.values(errores)[0] ?? ''}`);
       return;
     }
+    // Los campos nuevos aceptados y los registros se incorporan juntos; lo descartado no entra.
+    const { bloque: conCamposNuevos, filas } = aIncorporacion(destino, revision);
+    const camposNuevos = conCamposNuevos.fields.length - destino.fields.length;
     if (sistema) {
-      // Primero se ensaya sobre una copia: si algo falla no se incorpora nada.
+      // Primero se ensaya sobre una copia: si algo falla no se incorpora nada (ni campos ni registros).
       const ensayo = clone(sistema);
       let bloqueDeEnsayo = findBlock(ensayo, destinoId ?? undefined);
-      if (!bloqueDeEnsayo) {
-        bloqueDeEnsayo = clone(destino);
+      if (bloqueDeEnsayo) {
+        bloqueDeEnsayo.fields = clone(conCamposNuevos.fields);
+      } else {
+        bloqueDeEnsayo = clone(conCamposNuevos);
         ensayo.sections[0]?.blocks.push(bloqueDeEnsayo);
       }
-      const control = importRows(bloqueDeEnsayo, elegidas, ensayo, omitirDuplicados);
+      const control = importRows(bloqueDeEnsayo, filas, ensayo, omitirDuplicados);
       if (control.errors.length) {
         setError(
           `${Object.values(control.errors[0] ?? {})[0] ?? ''} Revisá el lote antes de incorporarlo.`,
@@ -172,33 +184,40 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
       let resultado: ReturnType<typeof importRows> | undefined;
       useSistemaStore.getState().commit((s) => {
         let objetivo = findBlock(s, destinoId ?? undefined);
-        if (!objetivo) {
-          objetivo = clone(destino);
+        if (objetivo) {
+          objetivo.fields = clone(conCamposNuevos.fields);
+        } else {
+          objetivo = clone(conCamposNuevos);
           s.sections[0]?.blocks.push(objetivo);
         }
-        resultado = importRows(objetivo, elegidas, s, omitirDuplicados);
+        resultado = importRows(objetivo, filas, s, omitirDuplicados);
       });
       cerrarModal();
-      avisarResultado(resultado);
+      avisarResultado(resultado, camposNuevos);
       return;
     }
     const nuevo = makeSystem(NOMBRE_DEL_SISTEMA_NUEVO[tipo] ?? 'Mi sistema', [tipo]);
     const bloqueNuevo = nuevo.sections[0]?.blocks[0];
     const resultado = bloqueNuevo
-      ? importRows(bloqueNuevo, elegidas, nuevo, omitirDuplicados)
+      ? importRows(bloqueNuevo, filas, nuevo, omitirDuplicados)
       : undefined;
     cerrarModal();
     void navegacion.crearYAbrir(nuevo);
-    avisarResultado(resultado);
+    avisarResultado(resultado, 0);
   };
 
-  const avisarResultado = (resultado: { added: number; skipped: number } | undefined) => {
+  const avisarResultado = (
+    resultado: { added: number; skipped: number } | undefined,
+    camposNuevos: number,
+  ) => {
     if (!resultado) return;
+    const omitidos = resultado.skipped ? ` · ${resultado.skipped} duplicados omitidos` : '';
+    const campos = camposNuevos
+      ? ` · ${camposNuevos === 1 ? '1 campo nuevo' : `${camposNuevos} campos nuevos`}`
+      : '';
     useSistemaStore
       .getState()
-      .avisar(
-        `${resultado.added} registros incorporados${resultado.skipped ? ` · ${resultado.skipped} duplicados omitidos` : ''}.`,
-      );
+      .avisar(`${resultado.added} registros incorporados${omitidos}${campos}.`);
   };
 
   const usarDescripcion = () => {
@@ -217,12 +236,12 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
   /* Paso 1: elegir la imagen */
   if (paso === 'elegir') {
     return (
-      <Modal>
-        <div className="icon-tile" style={varsDeColor('blue')}>
+      <Modal clase="modal-importar">
+        <div className="icon-tile importar-icono" style={varsDeColor('coral')}>
           <Icon name="camera" />
         </div>
-        <h2 id="modal-title">Traé lo que ya tenés.</h2>
-        <p>Probá cómo sería pasar de una foto o captura a datos que podés revisar y organizar.</p>
+        <h2 id="modal-title">Cargar datos desde una foto</h2>
+        <p>Elegí dónde van los datos y subí una foto o captura. Antes de guardar, los revisás.</p>
         {contexto === 'negocio' ? (
           <div className="info-box" style={{ marginBottom: 18 }}>
             Podés mostrarle a Sami un ejemplo de cómo anotás hoy para contarle sobre tu negocio.
@@ -270,7 +289,9 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
           onDragLeave={() => setEncima(false)}
           onDrop={soltarImagen}
         >
-          <Icon name="upload" />
+          <span className="upload-icono">
+            <Icon name="upload" />
+          </span>
           <strong>Elegí una foto o arrastrala acá</strong>
           <p>
             Una hoja, un cuaderno o una captura de pantalla.
@@ -279,11 +300,19 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
           </p>
           <span className="btn secondary small">Elegir imagen</span>
         </button>
-        <div className="simulation-label">
-          <strong>Lectura de imágenes simulada</strong>
-          La imagen que elijas se muestra como referencia. Para probar el recorrido, vamos a
-          proponer datos de ejemplo que podés editar antes de confirmar.
-        </div>
+        {LECTURA_CON_IA && contexto === 'registros' ? (
+          <div className="simulation-label">
+            <strong>Lectura con inteligencia artificial</strong>
+            La foto se envía a un servicio de IA para leerla y te proponemos los registros. Puede
+            equivocarse: revisalos antes de confirmar. «Probar con un ejemplo» usa datos de muestra.
+          </div>
+        ) : (
+          <div className="simulation-label">
+            <strong>Lectura de imágenes simulada</strong>
+            La imagen que elijas se muestra como referencia. Para probar el recorrido, vamos a
+            proponer datos de ejemplo que podés editar antes de confirmar.
+          </div>
+        )}
         <div className="form-error" id="import-error" role="alert">
           {error}
         </div>
@@ -302,7 +331,7 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
   /* Paso 2 (negocio): lo que Sami entendió, para llevarlo al taller */
   if (contexto === 'negocio') {
     return (
-      <Modal ancho>
+      <Modal ancho clase="modal-importar">
         <div className="sami-intro">
           <Sami pose="think" />
           <div>
@@ -348,13 +377,16 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
 
   /* Paso 2: revisar los registros leídos */
   return (
-    <Modal ancho>
+    <Modal ancho clase="modal-importar modal-revisar">
       <div className="row">
-        <IconTile tipo={destino.type} />
-        <span className="tag">PASO 2 / REVISAR</span>
+        <IconTile tipo={destino.type} color="coral" className="importar-icono" />
+        <span className="tag paso-importar">Paso 2 · Revisar</span>
       </div>
-      <h2 id="modal-title">Vos tenés la última palabra.</h2>
-      <p>Corregí lo que haga falta y elegí qué registros sumar a {destino.name.toLowerCase()}.</p>
+      <h2 id="modal-title">Confirmar registros</h2>
+      <p>
+        Corregí lo que haga falta, quitá lo que no quieras y sumá el resto a{' '}
+        {destino.name.toLowerCase()}.
+      </p>
       <div className="import-layout">
         <div className="import-visual">
           {url ? (
@@ -366,57 +398,28 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
         </div>
         <div>
           <div className="simulation-label" style={{ marginTop: 0 }}>
-            <strong>{filas.length} registros de ejemplo · lectura simulada</strong>
-            Los datos de esta tabla son una propuesta de prueba. Podés cambiarlos antes de
-            incorporarlos.
+            {leidaPorIa ? (
+              <>
+                <strong>{revision.filas.length} registros leídos de tu foto</strong>
+                La lectura puede equivocarse: revisá lo marcado y corregí lo que haga falta antes de
+                incorporarlos.
+              </>
+            ) : (
+              <>
+                <strong>{revision.filas.length} registros de ejemplo · lectura simulada</strong>
+                Estos datos son una propuesta de prueba. Podés cambiarlos antes de incorporarlos.
+              </>
+            )}
           </div>
-          <div className="table-scroll">
-            <table className="data-table import-table">
-              <thead>
-                <tr>
-                  <th scope="col">Sumar</th>
-                  {destino.fields.map((campo) => (
-                    <th scope="col" key={campo.key}>
-                      {campo.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filas.map((fila, indice) => (
-                  <tr key={indice}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={marcadas[indice] ?? false}
-                        aria-label={`Incorporar registro ${indice + 1}`}
-                        onChange={(evento) =>
-                          setMarcadas((actuales) =>
-                            actuales.map((marca, i) =>
-                              i === indice ? evento.target.checked : marca,
-                            ),
-                          )
-                        }
-                      />
-                    </td>
-                    {destino.fields.map((campo) => (
-                      <td key={campo.key}>
-                        <ControlDeCampo
-                          sistema={sistema}
-                          campo={{ ...campo, required: false }}
-                          valor={fila[campo.key]}
-                          id={`imp-${indice}-${campo.key}`}
-                          etiqueta={`${campo.label}, registro ${indice + 1}`}
-                          onCambio={(valor) => editarCelda(indice, campo.key, valor)}
-                        />
-                        <span className="field-error" id={`imp-${indice}-${campo.key}-error`} />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <RevisionDeLectura
+            revision={revision}
+            destino={destino}
+            sistema={sistema}
+            errores={
+              intentado ? erroresDeLosRegistros(destino, revision, sistema ?? makeSystem('_')) : {}
+            }
+            onAccion={corregir}
+          />
           <label className="check-row" style={{ marginTop: 17 }}>
             <input
               type="checkbox"

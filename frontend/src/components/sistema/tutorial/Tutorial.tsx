@@ -3,7 +3,6 @@ import { salirDelTutorial } from '@/hooks/tutorial/useAccionesDelTutorial';
 import { useTutorialEnPantalla } from '@/hooks/tutorial/useTutorialEnPantalla';
 import { Btn } from '../Btn';
 import { Icon } from '../Icon';
-import { Sami } from '../Sami';
 
 // La guía interactiva: un reflector que deja iluminado sólo lo que toca y un cartel de Sami que explica el
 // paso. Se avanza haciendo: cada paso comprueba una acción real (ver lib/sistema/tutorial).
@@ -72,7 +71,11 @@ export function Tutorial() {
           ))}
         </div>
         <div className="tour-message">
-          <Sami pose={pensandoAhora ? 'think' : terminado ? 'build' : 'hello'} />
+          <img
+            className="tour-sami"
+            src={pensandoAhora ? '/mockup/sami-pensando.webp' : '/mockup/sami-saludando.webp'}
+            alt=""
+          />
           <div>
             <h2 id="tour-title">
               {pensandoAhora ? 'Estoy pensando tu propuesta…' : detalle.title}

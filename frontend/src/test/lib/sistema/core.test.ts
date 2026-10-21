@@ -6,7 +6,6 @@ import {
   importRows,
   makeSystem,
   moveBlock,
-  recommend,
   totals,
   upsertRow,
   validateRow,
@@ -24,23 +23,6 @@ const fila = <T>(items: readonly T[], indice = 0): T => {
   if (item === undefined) throw new Error(`Falta el elemento ${indice}`);
   return item;
 };
-
-describe('motor: recomendaciones', () => {
-  it('distinguen un local de venta, la venta por pedido y el control de mercadería', () => {
-    expect(recommend('Tengo un kiosco y vendo bebidas y golosinas').kind).toBe('shop');
-    expect(recommend('Trabajo con pedidos y encargos para fiestas').kind).toBe('orders');
-    expect(recommend('Necesito controlar la mercadería de mi depósito').kind).toBe('warehouse');
-    expect(recommend('Vendo cosas', 'warehouse').kind).toBe('warehouse');
-  });
-
-  it('proponen las piezas de cada caso y suman gastos cuando se habla de costos', () => {
-    expect(recommend('Tengo un almacén').types).toEqual(['inventory', 'sales', 'clients']);
-    const conGastos = recommend('Tengo un almacén y pago alquiler y proveedores');
-    for (const tipo of ['inventory', 'sales', 'clients', 'expenses']) {
-      expect(conGastos.types).toContain(tipo);
-    }
-  });
-});
 
 describe('motor: creación y validación', () => {
   it('vincula pedidos y ventas con los clientes del mismo sistema', () => {

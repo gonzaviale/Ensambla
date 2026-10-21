@@ -1,0 +1,614 @@
+[
+  {
+    "id": "almacen",
+    "nombre": "Almacén y kiosco",
+    "terminos": ["almacen", "kiosco", "kiosko", "maxikiosco", "minimercado", "minimarket", "despensa", "autoservicio", "mercadito", "polirrubro"],
+    "piezas": [
+      {
+        "tipo": "inventory",
+        "nombre": "Inventario",
+        "campos": [
+          {"etiqueta": "Vencimiento", "tipo": "date"},
+          {"etiqueta": "Rubro", "tipo": "select", "opciones": ["Almacén", "Bebidas", "Limpieza", "Golosinas"]}
+        ],
+        "ejemplos": [
+          {"Producto": "Yerba 1 kg", "Cantidad": 12, "Precio": 4200, "Costo": 3100, "Stock mínimo": 4, "Vencimiento": "2027-03-01", "Rubro": "Almacén"},
+          {"Producto": "Gaseosa cola 2,25 L", "Cantidad": 24, "Precio": 2900, "Costo": 2000, "Stock mínimo": 6, "Rubro": "Bebidas"},
+          {"Producto": "Lavandina 1 L", "Cantidad": 10, "Precio": 1300, "Costo": 850, "Rubro": "Limpieza"}
+        ]
+      },
+      {
+        "tipo": "sales",
+        "nombre": "Ventas",
+        "campos": [
+          {"etiqueta": "Forma de pago", "tipo": "select", "opciones": ["Efectivo", "Transferencia", "Débito", "Crédito"]}
+        ],
+        "ejemplos": [
+          {"Producto": "Yerba 1 kg", "Cantidad": 1, "Precio": 4200, "Fecha": "2026-10-18", "Forma de pago": "Efectivo"},
+          {"Producto": "Gaseosa cola 2,25 L", "Cantidad": 2, "Precio": 5800, "Fecha": "2026-10-18", "Cliente": "Marta", "Fiado": true}
+        ]
+      },
+      {
+        "tipo": "clients",
+        "nombre": "Libreta de fiado",
+        "campos": [
+          {"etiqueta": "Saldo", "tipo": "currency"}
+        ],
+        "ejemplos": [
+          {"Nombre": "Marta (la del 3° B)", "Teléfono": "11 5555-1234", "Saldo": 5800},
+          {"Nombre": "Don Carlos", "Saldo": 2300, "Notas": "Paga los viernes"}
+        ]
+      },
+      {
+        "tipo": "form",
+        "nombre": "Proveedores",
+        "campos": [
+          {"etiqueta": "Teléfono", "tipo": "tel"},
+          {"etiqueta": "Días de visita", "tipo": "text"}
+        ],
+        "ejemplos": [
+          {"Nombre": "Distribuidora La Norteña", "Teléfono": "11 4444-0000", "Días de visita": "Martes y viernes"},
+          {"Nombre": "Mayorista de bebidas", "Días de visita": "Lunes", "Detalle": "Pedido mínimo de 10 packs"}
+        ]
+      },
+      {
+        "tipo": "expenses",
+        "nombre": "Gastos",
+        "campos": [],
+        "ejemplos": [
+          {"Concepto": "Luz", "Fecha": "2026-10-05", "Importe": 38000, "Categoría": "Servicios"},
+          {"Concepto": "Reposición de bebidas", "Fecha": "2026-10-14", "Importe": 95000, "Categoría": "Mercadería"}
+        ]
+      }
+    ],
+    "conexiones": [
+      {"desde": "Inventario", "hacia": "Proveedores", "etiqueta": "Proveedor"}
+    ],
+    "pregunta": {
+      "pregunta": "¿Sumamos las entradas de mercadería para que el stock se actualice solo?",
+      "opciones": ["Sí, sumalas", "Por ahora no", "Contame cómo funciona"]
+    }
+  },
+  {
+    "id": "dietetica",
+    "nombre": "Dietética",
+    "terminos": ["dietetica", "granel", "sin tacc", "celiaco", "naturista", "herboristeria", "frutos secos", "almacen natural", "productos naturales"],
+    "piezas": [
+      {
+        "tipo": "inventory",
+        "nombre": "Productos",
+        "campos": [
+          {"etiqueta": "Unidad", "tipo": "select", "opciones": ["Kg", "100 g", "Unidad", "Paquete"]},
+          {"etiqueta": "Sin TACC", "tipo": "checkbox"},
+          {"etiqueta": "Vencimiento", "tipo": "date"}
+        ],
+        "ejemplos": [
+          {"Producto": "Almendras", "Cantidad": 5, "Unidad": "Kg", "Precio": 18000, "Costo": 13000, "Sin TACC": true},
+          {"Producto": "Avena arrollada", "Cantidad": 8, "Unidad": "Kg", "Precio": 3500, "Costo": 2200, "Sin TACC": false},
+          {"Producto": "Galletitas de arroz", "Cantidad": 20, "Unidad": "Paquete", "Precio": 1800, "Sin TACC": true, "Vencimiento": "2027-01-15"}
+        ]
+      },
+      {
+        "tipo": "sales",
+        "nombre": "Ventas",
+        "campos": [
+          {"etiqueta": "Forma de pago", "tipo": "select", "opciones": ["Efectivo", "Transferencia", "Débito", "Crédito"]}
+        ],
+        "ejemplos": [
+          {"Producto": "Almendras", "Cantidad": 0.25, "Precio": 4500, "Fecha": "2026-10-18", "Forma de pago": "Transferencia"},
+          {"Producto": "Avena arrollada", "Cantidad": 1, "Precio": 3500, "Fecha": "2026-10-18", "Forma de pago": "Efectivo"}
+        ]
+      },
+      {
+        "tipo": "entries",
+        "nombre": "Compras",
+        "campos": [
+          {"etiqueta": "Proveedor", "tipo": "text"},
+          {"etiqueta": "Costo total", "tipo": "currency"}
+        ],
+        "ejemplos": [
+          {"Producto": "Almendras", "Cantidad": 10, "Fecha": "2026-10-14", "Proveedor": "Granos del Sur", "Costo total": 130000},
+          {"Producto": "Avena arrollada", "Cantidad": 25, "Fecha": "2026-10-14", "Proveedor": "Molino San José", "Referencia": "Bolsa de 25 kg"}
+        ]
+      },
+      {
+        "tipo": "expenses",
+        "nombre": "Gastos",
+        "campos": [],
+        "ejemplos": [
+          {"Concepto": "Bolsitas y etiquetas", "Fecha": "2026-10-03", "Importe": 12000, "Categoría": "Otros"},
+          {"Concepto": "Alquiler", "Fecha": "2026-10-01", "Importe": 280000, "Categoría": "Alquiler"}
+        ]
+      }
+    ],
+    "conexiones": [],
+    "pregunta": {
+      "pregunta": "¿Vendés suelto por peso, por unidad o de las dos formas?",
+      "opciones": ["Por peso", "Por unidad", "De las dos formas"]
+    }
+  },
+  {
+    "id": "velas",
+    "nombre": "Velas y aromas",
+    "terminos": ["vela", "aroma", "aromatizante", "difusor", "sahumerio", "artesania", "artesanal", "jabon artesanal", "cera de soja", "home spa"],
+    "piezas": [
+      {
+        "tipo": "inventory",
+        "nombre": "Velas",
+        "campos": [
+          {"etiqueta": "Aroma", "tipo": "text"},
+          {"etiqueta": "Cera", "tipo": "select", "opciones": ["Soja", "Parafina", "Coco"]},
+          {"etiqueta": "Tamaño", "tipo": "select", "opciones": ["Chica", "Mediana", "Grande"]}
+        ],
+        "ejemplos": [
+          {"Producto": "Vela lavanda", "Cantidad": 8, "Precio": 6500, "Costo": 2800, "Aroma": "Lavanda", "Cera": "Soja", "Tamaño": "Mediana"},
+          {"Producto": "Vela vainilla", "Cantidad": 5, "Precio": 9000, "Costo": 3900, "Aroma": "Vainilla", "Cera": "Soja", "Tamaño": "Grande"},
+          {"Producto": "Vela citronela", "Cantidad": 12, "Precio": 4500, "Costo": 1900, "Aroma": "Citronela", "Cera": "Parafina", "Tamaño": "Chica"}
+        ]
+      },
+      {
+        "tipo": "form",
+        "nombre": "Materiales",
+        "campos": [
+          {"etiqueta": "Cantidad", "tipo": "number"},
+          {"etiqueta": "Unidad", "tipo": "select", "opciones": ["Kg", "Litro", "Unidad"]},
+          {"etiqueta": "Costo", "tipo": "currency"}
+        ],
+        "ejemplos": [
+          {"Nombre": "Cera de soja", "Cantidad": 5, "Unidad": "Kg", "Costo": 24000, "Fecha": "2026-10-10"},
+          {"Nombre": "Esencia de lavanda", "Cantidad": 0.5, "Unidad": "Litro", "Costo": 15000},
+          {"Nombre": "Pabilos", "Cantidad": 200, "Unidad": "Unidad", "Costo": 6000}
+        ]
+      },
+      {
+        "tipo": "sales",
+        "nombre": "Ventas",
+        "campos": [
+          {"etiqueta": "Canal", "tipo": "select", "opciones": ["Feria", "Instagram", "Local", "Por encargo"]}
+        ],
+        "ejemplos": [
+          {"Producto": "Vela lavanda", "Cantidad": 2, "Precio": 13000, "Fecha": "2026-10-12", "Canal": "Feria"},
+          {"Producto": "Vela vainilla", "Cantidad": 1, "Precio": 9000, "Fecha": "2026-10-15", "Cliente": "Lucía", "Fiado": true, "Canal": "Instagram"}
+        ]
+      },
+      {
+        "tipo": "clients",
+        "nombre": "Quién me debe",
+        "campos": [
+          {"etiqueta": "Debe", "tipo": "currency"}
+        ],
+        "ejemplos": [
+          {"Nombre": "Lucía", "Teléfono": "11 6666-2222", "Debe": 9000},
+          {"Nombre": "Sofi (feria de San Telmo)", "Debe": 4500, "Notas": "Paga a fin de mes"}
+        ]
+      }
+    ],
+    "conexiones": [
+      {"desde": "Velas", "hacia": "Materiales", "etiqueta": "Materiales que lleva"}
+    ],
+    "pregunta": {
+      "pregunta": "¿Querés que te avise cuando te quedan pocos materiales?",
+      "opciones": ["Sí, avisame", "Por ahora no"]
+    }
+  },
+  {
+    "id": "panaderia",
+    "nombre": "Panadería",
+    "terminos": ["panaderia", "panadero", "pan", "confiteria", "pasteleria", "medialuna", "torta", "budin", "prepizza"],
+    "piezas": [
+      {
+        "tipo": "inventory",
+        "nombre": "Productos",
+        "campos": [
+          {"etiqueta": "Elaborado el", "tipo": "date"},
+          {"etiqueta": "Vence", "tipo": "date"}
+        ],
+        "ejemplos": [
+          {"Producto": "Pan francés (kg)", "Cantidad": 15, "Precio": 3200, "Costo": 1400, "Elaborado el": "2026-10-19", "Vence": "2026-10-20"},
+          {"Producto": "Medialunas (docena)", "Cantidad": 10, "Precio": 7000, "Costo": 3000, "Elaborado el": "2026-10-19", "Vence": "2026-10-21"},
+          {"Producto": "Budín de limón", "Cantidad": 6, "Precio": 5500, "Costo": 2300, "Vence": "2026-10-26"}
+        ]
+      },
+      {
+        "tipo": "form",
+        "nombre": "Producción",
+        "campos": [
+          {"etiqueta": "Cantidad", "tipo": "number"},
+          {"etiqueta": "Turno", "tipo": "select", "opciones": ["Mañana", "Tarde"]},
+          {"etiqueta": "Sobró", "tipo": "number"}
+        ],
+        "ejemplos": [
+          {"Nombre": "Pan francés", "Fecha": "2026-10-19", "Cantidad": 40, "Turno": "Mañana", "Sobró": 3},
+          {"Nombre": "Medialunas de manteca", "Fecha": "2026-10-19", "Cantidad": 120, "Turno": "Mañana", "Sobró": 10}
+        ]
+      },
+      {
+        "tipo": "orders",
+        "nombre": "Encargos",
+        "campos": [
+          {"etiqueta": "Seña", "tipo": "currency"}
+        ],
+        "ejemplos": [
+          {"Pedido": "Torta de cumpleaños 2 kg", "Cliente": "Andrea", "Fecha": "2026-10-25", "Total": 28000, "Estado": "Pendiente", "Seña": 10000},
+          {"Pedido": "3 docenas de facturas surtidas", "Cliente": "Oficina de la esquina", "Fecha": "2026-10-20", "Total": 21000, "Estado": "En preparación"}
+        ]
+      },
+      {
+        "tipo": "sales",
+        "nombre": "Ventas",
+        "campos": [],
+        "ejemplos": [
+          {"Producto": "Pan francés (kg)", "Cantidad": 2, "Precio": 6400, "Fecha": "2026-10-19"},
+          {"Producto": "Medialunas (docena)", "Cantidad": 1, "Precio": 7000, "Fecha": "2026-10-19"}
+        ]
+      },
+      {
+        "tipo": "expenses",
+        "nombre": "Gastos",
+        "campos": [],
+        "ejemplos": [
+          {"Concepto": "Harina 000 (bolsa de 25 kg)", "Fecha": "2026-10-15", "Importe": 21000, "Categoría": "Mercadería"},
+          {"Concepto": "Gas del horno", "Fecha": "2026-10-10", "Importe": 45000, "Categoría": "Servicios"}
+        ]
+      }
+    ],
+    "conexiones": [
+      {"desde": "Encargos", "hacia": "Productos", "etiqueta": "Producto encargado"}
+    ],
+    "pregunta": {
+      "pregunta": "¿Querés que el sistema te muestre qué productos vencen mañana?",
+      "opciones": ["Sí, mostrámelo", "Por ahora no"]
+    }
+  },
+  {
+    "id": "viandas",
+    "nombre": "Viandas y comidas",
+    "terminos": ["vianda", "comida", "rotiseria", "delivery", "catering", "menu", "almuerzo", "gastronomia", "empanada", "pizzeria", "cocino"],
+    "piezas": [
+      {
+        "tipo": "inventory",
+        "nombre": "Platos",
+        "campos": [
+          {"etiqueta": "Categoría", "tipo": "select", "opciones": ["Minutas", "Pastas", "Tartas", "Ensaladas", "Postres"]},
+          {"etiqueta": "Apto celíacos", "tipo": "checkbox"}
+        ],
+        "ejemplos": [
+          {"Producto": "Milanesa con puré", "Cantidad": 20, "Precio": 7500, "Costo": 3200, "Categoría": "Minutas", "Apto celíacos": false},
+          {"Producto": "Tarta de verdura", "Cantidad": 12, "Precio": 5500, "Costo": 2100, "Categoría": "Tartas", "Apto celíacos": false},
+          {"Producto": "Ensalada completa", "Cantidad": 8, "Precio": 6000, "Costo": 2500, "Categoría": "Ensaladas", "Apto celíacos": true}
+        ]
+      },
+      {
+        "tipo": "orders",
+        "nombre": "Pedidos",
+        "campos": [
+          {"etiqueta": "Dirección", "tipo": "text"},
+          {"etiqueta": "Hora de entrega", "tipo": "time"},
+          {"etiqueta": "Pago", "tipo": "select", "opciones": ["Efectivo", "Transferencia", "Ya pagó"]}
+        ],
+        "ejemplos": [
+          {"Pedido": "2 milanesas con puré", "Cliente": "Oficina Paraná 120", "Fecha": "2026-10-20", "Total": 15000, "Estado": "Pendiente", "Dirección": "Paraná 120, 3° piso", "Hora de entrega": "12:30", "Pago": "Transferencia"},
+          {"Pedido": "Tarta de verdura", "Cliente": "Julián", "Fecha": "2026-10-20", "Total": 5500, "Estado": "Entregado", "Hora de entrega": "13:00", "Pago": "Ya pagó"}
+        ]
+      },
+      {
+        "tipo": "form",
+        "nombre": "Insumos",
+        "campos": [
+          {"etiqueta": "Cantidad", "tipo": "number"},
+          {"etiqueta": "Unidad", "tipo": "select", "opciones": ["Kg", "Litro", "Unidad"]},
+          {"etiqueta": "Costo", "tipo": "currency"}
+        ],
+        "ejemplos": [
+          {"Nombre": "Carne para milanesa", "Fecha": "2026-10-18", "Cantidad": 6, "Unidad": "Kg", "Costo": 54000},
+          {"Nombre": "Papa", "Fecha": "2026-10-18", "Cantidad": 10, "Unidad": "Kg", "Costo": 9000}
+        ]
+      },
+      {
+        "tipo": "clients",
+        "nombre": "Clientes",
+        "campos": [
+          {"etiqueta": "Dirección", "tipo": "text"}
+        ],
+        "ejemplos": [
+          {"Nombre": "Julián", "Teléfono": "11 3333-4444", "Dirección": "Av. Rivadavia 5200"},
+          {"Nombre": "Oficina Paraná 120", "Teléfono": "11 4321-0000", "Notas": "Piden de lunes a viernes"}
+        ]
+      }
+    ],
+    "conexiones": [
+      {"desde": "Platos", "hacia": "Insumos", "etiqueta": "Insumos que lleva"},
+      {"desde": "Pedidos", "hacia": "Platos", "etiqueta": "Plato"}
+    ],
+    "pregunta": {
+      "pregunta": "¿Cocinás por encargo o con un menú fijo de la semana?",
+      "opciones": ["Por encargo", "Menú semanal", "Las dos cosas"]
+    }
+  },
+  {
+    "id": "ropa",
+    "nombre": "Ropa e indumentaria",
+    "terminos": ["ropa", "indumentaria", "prenda", "remera", "jean", "buzo", "showroom", "boutique", "lenceria", "calzado", "zapatilla", "talle"],
+    "piezas": [
+      {
+        "tipo": "inventory",
+        "nombre": "Prendas",
+        "campos": [
+          {"etiqueta": "Talle", "tipo": "select", "opciones": ["XS", "S", "M", "L", "XL", "XXL"]},
+          {"etiqueta": "Color", "tipo": "text"},
+          {"etiqueta": "Temporada", "tipo": "select", "opciones": ["Verano", "Invierno", "Todo el año"]}
+        ],
+        "ejemplos": [
+          {"Producto": "Remera básica", "Cantidad": 10, "Precio": 12000, "Costo": 5500, "Talle": "M", "Color": "Negro", "Temporada": "Todo el año"},
+          {"Producto": "Jean mom", "Cantidad": 4, "Precio": 38000, "Costo": 19000, "Talle": "S", "Color": "Celeste", "Temporada": "Todo el año"},
+          {"Producto": "Buzo canguro", "Cantidad": 3, "Precio": 29000, "Costo": 14000, "Talle": "L", "Color": "Gris", "Temporada": "Invierno"}
+        ]
+      },
+      {
+        "tipo": "sales",
+        "nombre": "Ventas",
+        "campos": [
+          {"etiqueta": "Canal", "tipo": "select", "opciones": ["Instagram", "WhatsApp", "Local", "Feria"]}
+        ],
+        "ejemplos": [
+          {"Producto": "Remera básica", "Cantidad": 2, "Precio": 24000, "Fecha": "2026-10-17", "Cliente": "Caro", "Canal": "Instagram"},
+          {"Producto": "Jean mom", "Cantidad": 1, "Precio": 38000, "Fecha": "2026-10-18", "Canal": "Local"}
+        ]
+      },
+      {
+        "tipo": "orders",
+        "nombre": "Envíos",
+        "campos": [
+          {"etiqueta": "Dirección", "tipo": "text"},
+          {"etiqueta": "Forma de envío", "tipo": "select", "opciones": ["Correo", "Moto", "Retira en punto"]},
+          {"etiqueta": "Seguimiento", "tipo": "text"}
+        ],
+        "ejemplos": [
+          {"Pedido": "Remera básica x2", "Cliente": "Caro", "Fecha": "2026-10-20", "Total": 24000, "Estado": "En preparación", "Dirección": "Córdoba Capital", "Forma de envío": "Correo"},
+          {"Pedido": "Buzo canguro", "Cliente": "Mati", "Fecha": "2026-10-18", "Total": 29000, "Estado": "Entregado", "Forma de envío": "Moto"}
+        ]
+      },
+      {
+        "tipo": "clients",
+        "nombre": "Clientes",
+        "campos": [
+          {"etiqueta": "Instagram", "tipo": "text"},
+          {"etiqueta": "Talle habitual", "tipo": "text"}
+        ],
+        "ejemplos": [
+          {"Nombre": "Caro", "Teléfono": "351 555-1111", "Instagram": "@caro.estilo", "Talle habitual": "M"},
+          {"Nombre": "Mati", "Teléfono": "11 2222-3333", "Talle habitual": "L"}
+        ]
+      }
+    ],
+    "conexiones": [
+      {"desde": "Envíos", "hacia": "Prendas", "etiqueta": "Prenda"}
+    ],
+    "pregunta": {
+      "pregunta": "¿Hacés envíos a todo el país o sólo en tu zona?",
+      "opciones": ["A todo el país", "Sólo en mi zona", "No hago envíos"]
+    }
+  },
+  {
+    "id": "peluqueria",
+    "nombre": "Peluquería y estética",
+    "terminos": ["peluqueria", "peluquero", "peluquera", "barberia", "barbero", "estetica", "manicura", "manicuria", "depilacion", "cosmetologia", "salon de belleza", "corte de pelo"],
+    "piezas": [
+      {
+        "tipo": "form",
+        "nombre": "Turnos",
+        "campos": [
+          {"etiqueta": "Hora", "tipo": "time"},
+          {"etiqueta": "Estado", "tipo": "select", "opciones": ["Reservado", "Atendido", "No vino"]}
+        ],
+        "ejemplos": [
+          {"Nombre": "Paula · corte y brushing", "Fecha": "2026-10-21", "Hora": "10:30", "Estado": "Reservado"},
+          {"Nombre": "Martín · corte y barba", "Fecha": "2026-10-21", "Hora": "11:15", "Estado": "Reservado"}
+        ]
+      },
+      {
+        "tipo": "form",
+        "nombre": "Servicios",
+        "campos": [
+          {"etiqueta": "Precio", "tipo": "currency"},
+          {"etiqueta": "Duración", "tipo": "select", "opciones": ["30 min", "45 min", "1 hora", "2 horas"]}
+        ],
+        "ejemplos": [
+          {"Nombre": "Corte", "Precio": 9000, "Duración": "30 min"},
+          {"Nombre": "Color", "Precio": 25000, "Duración": "2 horas"},
+          {"Nombre": "Brushing", "Precio": 7000, "Duración": "45 min"}
+        ]
+      },
+      {
+        "tipo": "clients",
+        "nombre": "Clientes",
+        "campos": [
+          {"etiqueta": "Cumpleaños", "tipo": "date"}
+        ],
+        "ejemplos": [
+          {"Nombre": "Paula Gómez", "Teléfono": "11 4567-8901", "Notas": "Tintura 6.1, sin amoníaco"},
+          {"Nombre": "Martín Ruiz", "Teléfono": "11 2345-6789", "Cumpleaños": "1990-05-12"}
+        ]
+      }
+    ],
+    "conexiones": [
+      {"desde": "Turnos", "hacia": "Clientes", "etiqueta": "Cliente"},
+      {"desde": "Turnos", "hacia": "Servicios", "etiqueta": "Servicio"}
+    ],
+    "pregunta": {
+      "pregunta": "¿Atendés vos o trabajan más personas en el local?",
+      "opciones": ["Atiendo yo", "Somos varias personas"]
+    }
+  },
+  {
+    "id": "taller-mecanico",
+    "nombre": "Taller mecánico",
+    "terminos": ["taller mecanico", "mecanico", "mecanica", "auto", "vehiculo", "moto", "repuesto", "chapa y pintura", "gomeria", "lubricentro", "patente"],
+    "piezas": [
+      {
+        "tipo": "orders",
+        "nombre": "Trabajos",
+        "campos": [
+          {"etiqueta": "Patente", "tipo": "text"},
+          {"etiqueta": "Vehículo", "tipo": "text"},
+          {"etiqueta": "Mano de obra", "tipo": "currency"}
+        ],
+        "ejemplos": [
+          {"Pedido": "Cambio de aceite y filtros", "Cliente": "Roberto", "Fecha": "2026-10-19", "Total": 65000, "Estado": "Entregado", "Patente": "AB 123 CD", "Vehículo": "Fiat Cronos 2021", "Mano de obra": 20000},
+          {"Pedido": "Pastillas de freno", "Cliente": "Laura", "Fecha": "2026-10-20", "Total": 58000, "Estado": "En preparación", "Patente": "KJH 456", "Vehículo": "VW Gol 2012", "Mano de obra": 30000}
+        ]
+      },
+      {
+        "tipo": "inventory",
+        "nombre": "Repuestos",
+        "campos": [
+          {"etiqueta": "Código", "tipo": "text"},
+          {"etiqueta": "Para qué vehículo", "tipo": "text"}
+        ],
+        "ejemplos": [
+          {"Producto": "Filtro de aceite", "Cantidad": 6, "Precio": 9500, "Costo": 6000, "Stock mínimo": 2, "Código": "FA-102"},
+          {"Producto": "Pastillas de freno delanteras", "Cantidad": 4, "Precio": 28000, "Costo": 19000, "Para qué vehículo": "Gol / Voyage"},
+          {"Producto": "Aceite 5W30 (4 L)", "Cantidad": 10, "Precio": 42000, "Costo": 31000, "Stock mínimo": 3}
+        ]
+      },
+      {
+        "tipo": "clients",
+        "nombre": "Clientes",
+        "campos": [
+          {"etiqueta": "Vehículo", "tipo": "text"},
+          {"etiqueta": "Patente", "tipo": "text"}
+        ],
+        "ejemplos": [
+          {"Nombre": "Roberto Díaz", "Teléfono": "11 5000-1111", "Vehículo": "Fiat Cronos 2021", "Patente": "AB 123 CD"},
+          {"Nombre": "Laura Sosa", "Teléfono": "11 5000-2222", "Vehículo": "VW Gol 2012", "Patente": "KJH 456"}
+        ]
+      }
+    ],
+    "conexiones": [
+      {"desde": "Trabajos", "hacia": "Repuestos", "etiqueta": "Repuesto usado"}
+    ],
+    "pregunta": {
+      "pregunta": "¿Querés ver el historial de cada vehículo por su patente?",
+      "opciones": ["Sí, por patente", "No hace falta"]
+    }
+  },
+  {
+    "id": "ferreteria",
+    "nombre": "Ferretería",
+    "terminos": ["ferreteria", "ferretero", "buloneria", "herramienta", "pintureria", "corralon", "materiales de construccion", "sanitario", "tornillo", "bulon"],
+    "piezas": [
+      {
+        "tipo": "inventory",
+        "nombre": "Artículos",
+        "campos": [
+          {"etiqueta": "Rubro", "tipo": "select", "opciones": ["Herramientas", "Bulonería", "Electricidad", "Plomería", "Pinturería"]},
+          {"etiqueta": "Unidad", "tipo": "select", "opciones": ["Unidad", "Metro", "Kg", "Caja"]},
+          {"etiqueta": "Código", "tipo": "text"}
+        ],
+        "ejemplos": [
+          {"Producto": "Tornillos autoperforantes (caja x100)", "Cantidad": 15, "Precio": 6500, "Costo": 4200, "Rubro": "Bulonería", "Unidad": "Caja"},
+          {"Producto": "Cable unipolar 2,5 mm", "Cantidad": 200, "Precio": 900, "Costo": 600, "Rubro": "Electricidad", "Unidad": "Metro"},
+          {"Producto": "Llave francesa", "Cantidad": 4, "Precio": 18000, "Costo": 11000, "Stock mínimo": 2, "Rubro": "Herramientas", "Unidad": "Unidad"}
+        ]
+      },
+      {
+        "tipo": "sales",
+        "nombre": "Ventas",
+        "campos": [
+          {"etiqueta": "Forma de pago", "tipo": "select", "opciones": ["Efectivo", "Transferencia", "Débito", "Cuenta corriente"]}
+        ],
+        "ejemplos": [
+          {"Producto": "Cable unipolar 2,5 mm", "Cantidad": 20, "Precio": 18000, "Fecha": "2026-10-18", "Forma de pago": "Efectivo"},
+          {"Producto": "Tornillos autoperforantes (caja x100)", "Cantidad": 2, "Precio": 13000, "Fecha": "2026-10-18", "Cliente": "Construcciones Pérez", "Forma de pago": "Cuenta corriente"}
+        ]
+      },
+      {
+        "tipo": "entries",
+        "nombre": "Entradas",
+        "campos": [
+          {"etiqueta": "Proveedor", "tipo": "text"},
+          {"etiqueta": "Remito", "tipo": "text"}
+        ],
+        "ejemplos": [
+          {"Producto": "Cable unipolar 2,5 mm", "Cantidad": 500, "Fecha": "2026-10-15", "Proveedor": "Distribuidora Eléctrica", "Remito": "0001-00012345"},
+          {"Producto": "Llave francesa", "Cantidad": 6, "Fecha": "2026-10-15", "Proveedor": "Herramientas del Oeste", "Referencia": "Reposición mensual"}
+        ]
+      },
+      {
+        "tipo": "clients",
+        "nombre": "Cuentas corrientes",
+        "campos": [
+          {"etiqueta": "CUIT", "tipo": "text"},
+          {"etiqueta": "Saldo", "tipo": "currency"}
+        ],
+        "ejemplos": [
+          {"Nombre": "Construcciones Pérez", "Teléfono": "11 4000-5555", "CUIT": "30-12345678-9", "Saldo": 13000},
+          {"Nombre": "Jorge (plomero)", "Teléfono": "11 4000-6666", "Saldo": 0}
+        ]
+      }
+    ],
+    "conexiones": [],
+    "pregunta": {
+      "pregunta": "¿Querés que te avise qué artículos están por debajo del stock mínimo?",
+      "opciones": ["Sí, avisame", "Por ahora no"]
+    }
+  },
+  {
+    "id": "libreria",
+    "nombre": "Librería y papelería",
+    "terminos": ["libreria", "papeleria", "escolar", "utiles", "cotillon", "fotocopia", "regaleria", "resma", "cuaderno", "lapicera"],
+    "piezas": [
+      {
+        "tipo": "inventory",
+        "nombre": "Artículos",
+        "campos": [
+          {"etiqueta": "Categoría", "tipo": "select", "opciones": ["Escolar", "Oficina", "Regalería", "Cotillón"]},
+          {"etiqueta": "Marca", "tipo": "text"}
+        ],
+        "ejemplos": [
+          {"Producto": "Cuaderno tapa dura 48 hojas", "Cantidad": 30, "Precio": 3500, "Costo": 2100, "Categoría": "Escolar"},
+          {"Producto": "Resma A4 75 g", "Cantidad": 12, "Precio": 9800, "Costo": 7600, "Stock mínimo": 5, "Categoría": "Oficina"},
+          {"Producto": "Lapicera azul", "Cantidad": 60, "Precio": 700, "Costo": 350, "Categoría": "Escolar"}
+        ]
+      },
+      {
+        "tipo": "sales",
+        "nombre": "Ventas",
+        "campos": [
+          {"etiqueta": "Forma de pago", "tipo": "select", "opciones": ["Efectivo", "Transferencia", "Débito", "Crédito"]}
+        ],
+        "ejemplos": [
+          {"Producto": "Cuaderno tapa dura 48 hojas", "Cantidad": 2, "Precio": 7000, "Fecha": "2026-10-18", "Forma de pago": "Efectivo"},
+          {"Producto": "Resma A4 75 g", "Cantidad": 1, "Precio": 9800, "Fecha": "2026-10-18", "Forma de pago": "Transferencia"}
+        ]
+      },
+      {
+        "tipo": "orders",
+        "nombre": "Encargos",
+        "campos": [
+          {"etiqueta": "Seña", "tipo": "currency"}
+        ],
+        "ejemplos": [
+          {"Pedido": "Lista escolar 3° grado", "Cliente": "Mamá de Tomi", "Fecha": "2026-02-25", "Total": 42000, "Estado": "Pendiente", "Seña": 15000},
+          {"Pedido": "50 fotocopias anilladas", "Cliente": "Profe Laura", "Fecha": "2026-10-20", "Total": 9000, "Estado": "Entregado"}
+        ]
+      },
+      {
+        "tipo": "expenses",
+        "nombre": "Gastos",
+        "campos": [],
+        "ejemplos": [
+          {"Concepto": "Alquiler del local", "Fecha": "2026-10-01", "Importe": 350000, "Categoría": "Alquiler"},
+          {"Concepto": "Tóner de la fotocopiadora", "Fecha": "2026-10-09", "Importe": 60000, "Categoría": "Otros"}
+        ]
+      }
+    ],
+    "conexiones": [
+      {"desde": "Encargos", "hacia": "Artículos", "etiqueta": "Artículos del encargo"}
+    ],
+    "pregunta": {
+      "pregunta": "¿Armás listas escolares por encargo?",
+      "opciones": ["Sí, en temporada", "No, sólo vendo en el mostrador"]
+    }
+  }
+]

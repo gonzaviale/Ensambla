@@ -1,43 +1,52 @@
 package com.ensambla.backend.infrastructure.ia;
 
-import com.anthropic.client.AnthropicClient;
-import com.anthropic.client.okhttp.AnthropicOkHttpClient;
+import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.List;
+
 /**
- * Cableado de la lectura con IA. Para conectar un proveedor real:
- * <ol>
- *   <li>implementar {@link ClienteModeloVision} (por ejemplo {@code ClienteModeloVisionAnthropic});</li>
- *   <li>registrarlo acá con {@code @ConditionalOnProperty(prefix = "ensambla.ia", name = "proveedor",
- *       havingValue = "<nombre>")};</li>
- *   <li>configurar {@code ENSAMBLA_IA_PROVEEDOR}, {@code ENSAMBLA_IA_MODELO} y {@code ENSAMBLA_IA_API_KEY}.</li>
- * </ol>
- * El resto (prompt, esquema, validación y consumo) ya lo resuelve {@link LectorCuadernoIaAdapter}.
+ * Cableado de la IA. Los proveedores ({@link ProveedorIa}) arman los clientes; {@code ensambla.ia.proveedor} elige cuál
+ * atiende la lectura de cuadernos (y a Sami, si no lo pisa). Para sumar un proveedor alcanza con implementar
+ * {@link ProveedorIa} y registrarlo acá como bean; sus credenciales y modelos van en
+ * {@code ensambla.ia.proveedores.<nombre>.*}. El resto (prompt, esquema, validación y consumo) ya lo resuelve
+ * {@link LectorCuadernoIaAdapter}. Un proveedor que no se elige no se conecta a nada.
  */
 @Configuration
 @EnableConfigurationProperties(IaProperties.class)
 public class IaConfig {
 
+    /** Los kits los carga {@link SamiConfig}; se piden recién al armar el taller (la evaluación de lectura no los usa). */
     @Bean
-    @ConditionalOnProperty(prefix = "ensambla.ia", name = "proveedor", havingValue = "simulado", matchIfMissing = true)
-    ClienteModeloVision clienteModeloVisionSimulado() {
-        return new ClienteModeloVisionSimulado(new ClassPathResource("ia/lectura-simulada.json"));
+    ProveedorIaSimulado proveedorIaSimulado(ObjectProvider<KitsRubro> kitsRubro) {
+        return new ProveedorIaSimulado(new ClassPathResource("ia/lectura-simulada.json"), kitsRubro::getObject);
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "ensambla.ia", name = "proveedor", havingValue = "anthropic")
-    ClienteModeloVision clienteModeloVisionAnthropic(IaProperties properties) {
-        AnthropicClient client = AnthropicOkHttpClient.builder()
-                .apiKey(properties.apiKey())
-                .timeout(properties.timeout())
-                .build();
-        return new ClienteModeloVisionAnthropic(client, properties.modelo());
+    ProveedorIaAnthropic proveedorIaAnthropic() {
+        return new ProveedorIaAnthropic();
+    }
+
+    @Bean
+    ProveedorIaBedrock proveedorIaBedrock() {
+        return new ProveedorIaBedrock();
+    }
+
+    @Bean
+    ProveedoresIa proveedoresIa(List<ProveedorIa> proveedores) {
+        return new ProveedoresIa(proveedores);
+    }
+
+    @Bean
+    ClienteModeloVision clienteModeloVision(ProveedoresIa proveedores, IaProperties properties) {
+        AjustesIa ajustes = properties.ajustes();
+        return proveedores.elegir(ajustes.proveedor()).vision(ajustes);
     }
 
     @Bean

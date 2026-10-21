@@ -97,7 +97,7 @@ class ConfiguracionCampoTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"MONEDA", "texto", "", "SI NO"})
+    @ValueSource(strings = {"ARCHIVO", "texto", "", "SI NO"})
     @DisplayName("Rechaza un tipo fuera de la lista")
     void validarShouldRejectUnknownTipo(String tipo) {
         Map<String, String> errores = erroresDe(new ConfiguracionCampo("Dato", tipo, null, null, null, null, null));
@@ -117,7 +117,7 @@ class ConfiguracionCampoTest {
     @Test
     @DisplayName("Informa todos los errores juntos: nombre y tipo")
     void validarShouldReportEveryError() {
-        Map<String, String> errores = erroresDe(new ConfiguracionCampo("", "MONEDA", null, "x", null, null, null));
+        Map<String, String> errores = erroresDe(new ConfiguracionCampo("", "ARCHIVO", null, "x", null, null, null));
 
         assertThat(errores).containsOnlyKeys("nombre", "tipo");
     }

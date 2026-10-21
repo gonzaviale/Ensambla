@@ -56,7 +56,7 @@ public class ConexionesLecturaService {
         advertencias.addAll(resolucion.advertencias);
         LecturaCuaderno lectura = propuesta.lectura();
         return new PropuestaLectura(new LecturaCuaderno(lectura.tipoRegistro(), lectura.bloque(), filas, advertencias,
-                lectura.consumo()), propuesta.mapeoCampos());
+                lectura.consumo()), propuesta.mapeoCampos(), propuesta.camposNuevos());
     }
 
     /** Clave de cada columna de conexión del bloque destino → tabla con la que se conecta. */

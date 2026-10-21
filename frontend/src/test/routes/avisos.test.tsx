@@ -1,22 +1,38 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import { makeSystem } from '@/lib/sistema/core';
 import { crearAlmacenDeEjemplo } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
 import type { Sistema } from '@/lib/sistema/tipos';
 import { estado } from '@/mocks/db/estado';
 import { useSistemaStore } from '@/stores/sistemaStore';
+import { avisoDelServidor } from '@/test/avisosData';
 import { renderApp } from '@/test/renderApp';
 import {
   ESPERA,
   clickButton,
+  setupServerError,
   setupUsuarioConSesion,
   verifyHeadingPresentAsync,
   verifyToastAsync,
 } from '@/test/testHelpers';
 
-const abrirConDemo = async (ruta: 'usar' | 'construir' = 'usar') => {
+const abrirConDemo = async (ruta: 'usar' | 'construir' = 'usar', configurado = false) => {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+  if (configurado)
+    estado.negocios.set(usuario.email, {
+      nombre: 'Mi almacén',
+      rubro: 'ALMACEN',
+      comparteDatosZona: true,
+      zona: null,
+      ubicacion: {
+        direccion: 'Calle 123',
+        localidad: 'San Justo',
+        latitud: -34.67,
+        longitud: -58.56,
+      },
+    });
   const sistema = crearAlmacenDeEjemplo(hoy());
   estado.sistemas.set(usuario.email, [sistema]);
   renderApp(`/sistemas/${sistema.id}?modo=${ruta}`);
@@ -42,6 +58,19 @@ const tarjeta = (titulo: RegExp | string) => {
 };
 
 describe('la campana y el panel de avisos', () => {
+  it('invita a completar el comercio y lleva a la pantalla de configuración', async () => {
+    const { user } = await abrirConDemo();
+    await abrirPanel(user);
+    await user.click(await screen.findByRole('link', { name: 'Configurar mi comercio' }, ESPERA));
+    expect(await screen.findByRole('heading', { name: 'Ubicación y rubro' }, ESPERA)).toBeVisible();
+  });
+
+  it('no invita a completar una ubicación que ya está guardada', async () => {
+    const { user } = await abrirConDemo('usar', true);
+    const panel = await abrirPanel(user);
+    expect(within(panel).queryByRole('link', { name: 'Configurar mi comercio' })).toBeNull();
+  });
+
   it('la campana cuenta los avisos y se pone urgente si hay algo para hoy', async () => {
     await abrirConDemo();
 
@@ -253,7 +282,7 @@ describe('sin datos y con el almacén de ejemplo', () => {
     await abrirConDemo('construir');
 
     expect(screen.queryByLabelText('Avisos de Sami', { selector: 'section' })).toBeNull();
-    expect(screen.getByText('Distribuí tus piezas')).toBeVisible();
+    expect(screen.getByRole('group', { name: 'Distribuí tus piezas' })).toBeVisible();
   });
 });
 
@@ -285,5 +314,98 @@ describe('«Sami vio un cambio»', () => {
     expect(document.querySelector('.alerta.foco')).toHaveTextContent(
       'Coca-Cola 2,25 L está por debajo del mínimo',
     );
+  });
+});
+
+// El almacén vacío igual recibe los avisos de la zona que Sami calcula en el navegador: los del servidor se distinguen
+// por su id.
+const delServidor = () => useSistemaStore.getState().avisos.filter((aviso) => aviso.servidorId);
+
+describe('los avisos del motor del servidor', () => {
+  const abrirConAvisosDelServidor = async (...avisos: ReturnType<typeof avisoDelServidor>[]) => {
+    const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+    const sistema = makeSystem('Mi almacén', ['inventory']);
+    for (const bloque of sistema.sections.flatMap((seccion) => seccion.blocks)) bloque.rows = [];
+    estado.sistemas.set(usuario.email, [sistema]);
+    estado.avisosDelServidor.set(usuario.email, avisos);
+    renderApp(`/sistemas/${sistema.id}?modo=usar`);
+    await screen.findByRole('heading', { level: 1, name: /Mi almacén/ }, ESPERA);
+    await waitFor(() => expect(delServidor()).toHaveLength(avisos.length), ESPERA);
+    return { user: userEvent.setup(), usuario };
+  };
+
+  it('aparecen en la campana y en el panel junto con los del navegador', async () => {
+    const { user } = await abrirConAvisosDelServidor(avisoDelServidor());
+
+    const total = useSistemaStore.getState().avisos.length;
+    expect(total).toBeGreaterThan(1);
+    expect(screen.getByRole('button', { name: `Avisos de Sami: ${total}` })).toHaveClass('urgente');
+    await abrirPanel(user);
+    expect(
+      screen.getByRole('heading', { level: 3, name: 'Te quedaste sin Yerba Playadito 1 kg' }),
+    ).toBeVisible();
+  });
+
+  it('descartar lo descarta en el servidor y el aviso no vuelve', async () => {
+    const { user, usuario } = await abrirConAvisosDelServidor(avisoDelServidor());
+    await abrirPanel(user);
+
+    await user.click(
+      within(tarjeta('Te quedaste sin Yerba Playadito 1 kg')).getByRole('button', {
+        name: 'Descartar',
+      }),
+    );
+
+    await waitFor(() => expect(delServidor()).toHaveLength(0), ESPERA);
+    await waitFor(
+      () => expect(estado.avisosDelServidor.get(usuario.email)?.[0]?.estado).toBe('DESCARTADO'),
+      ESPERA,
+    );
+    expect(estado.preferencias.get(usuario.email)?.descartadas).toEqual([]);
+  });
+
+  it('aplicar un cambio de datos lo ejecuta el servidor, que cierra el aviso', async () => {
+    const { user, usuario } = await abrirConAvisosDelServidor(
+      avisoDelServidor({
+        acciones: [{ tipo: 'EDITAR_REGISTRO', texto: 'Subir a $ 4.200', registroId: 'fila-1' }],
+      }),
+    );
+    await abrirPanel(user);
+
+    await user.click(
+      within(tarjeta('Te quedaste sin Yerba Playadito 1 kg')).getByRole('button', {
+        name: 'Aplicar: subir a $ 4.200',
+      }),
+    );
+
+    await verifyToastAsync('Listo, aplicamos el cambio.');
+    await waitFor(() => expect(delServidor()).toHaveLength(0), ESPERA);
+    expect(estado.avisosDelServidor.get(usuario.email)?.[0]?.estado).toBe('APLICADO');
+  });
+
+  it('si el servidor no puede aplicar el cambio, el aviso vuelve y se avisa', async () => {
+    const { user } = await abrirConAvisosDelServidor(
+      avisoDelServidor({
+        acciones: [{ tipo: 'EDITAR_REGISTRO', texto: 'Subir a $ 4.200', registroId: 'fila-1' }],
+      }),
+    );
+    await abrirPanel(user);
+    setupServerError('post', '/avisos/:id/aplicar', 400, 'El aviso ya fue resuelto');
+
+    await user.click(
+      within(tarjeta('Te quedaste sin Yerba Playadito 1 kg')).getByRole('button', {
+        name: 'Aplicar: subir a $ 4.200',
+      }),
+    );
+
+    await verifyToastAsync('No pudimos aplicar el cambio. Probá de nuevo.');
+    await waitFor(() => expect(delServidor()).toHaveLength(1), ESPERA);
+  });
+
+  it('si el servidor no responde, siguen los avisos que Sami calcula en el navegador', async () => {
+    setupServerError('get', '/avisos', 500, 'Error interno');
+    await abrirConDemo();
+
+    expect(screen.getByRole('button', { name: 'Avisos de Sami: 9' })).toBeVisible();
   });
 });

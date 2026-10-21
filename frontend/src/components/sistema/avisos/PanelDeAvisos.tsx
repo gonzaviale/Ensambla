@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { GRUPOS, pesos, type GrupoDeAviso } from '@/lib/sistema/alertas';
 import { MINIMO_DE_COMERCIOS } from '@/lib/sistema/zona';
 import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
@@ -7,9 +7,10 @@ import { useZona } from '@/hooks/zona/queries';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { Btn } from '../Btn';
 import { Icon } from '../Icon';
-import { IconBtn } from '../IconBtn';
 import { Sami } from '../Sami';
 import { TarjetaDeAviso } from './TarjetaDeAviso';
+import { InvitacionConfigurarComercio } from '../ubicacion/InvitacionConfigurarComercio';
+import { useFaltaConfiguracionNegocio } from '@/hooks/negocio/queries';
 
 const PREGUNTAS = [
   '¿Qué tengo que reponer?',
@@ -35,6 +36,7 @@ export function PanelDeAvisos() {
   const cerrarPanel = useSistemaStore((estado) => estado.cerrarPanel);
   const actualizarPanel = useSistemaStore((estado) => estado.actualizarPanel);
   const zona = useZona();
+  const faltaConfiguracion = useFaltaConfiguracionNegocio();
   const navegacion = useNavegacion();
   const acciones = useAccionesDeAvisos();
   const [montado, setMontado] = useState(false);
@@ -85,6 +87,32 @@ export function PanelDeAvisos() {
     document.addEventListener('keydown', alTeclear, true);
     return () => document.removeEventListener('keydown', alTeclear, true);
   }, [abierto, cerrarPanel]);
+
+  // La cinta de filtros: una marca que se desliza hasta el filtro elegido y flechas para correrla.
+  const cinta = useRef<HTMLDivElement>(null);
+  const [marca, setMarca] = useState<{ left: number; width: number }>();
+  const [bordes, setBordes] = useState({ izquierda: false, derecha: false });
+
+  const medirCinta = () => {
+    const nodo = cinta.current;
+    if (!nodo) return;
+    setBordes({
+      izquierda: nodo.scrollLeft > 2,
+      derecha: nodo.scrollLeft + nodo.clientWidth < nodo.scrollWidth - 2,
+    });
+  };
+
+  useLayoutEffect(() => {
+    const activo = cinta.current?.querySelector<HTMLElement>(`[data-filtro="${panel.filtro}"]`);
+    if (activo) {
+      setMarca({ left: activo.offsetLeft, width: activo.offsetWidth });
+      activo.scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+    }
+    medirCinta();
+  }, [panel.filtro, visible, montado]);
+
+  const deslizar = (sentido: number) =>
+    cinta.current?.scrollBy?.({ left: sentido * 160, behavior: 'smooth' });
 
   if (!montado) return null;
 
@@ -141,8 +169,19 @@ export function PanelDeAvisos() {
         aria-modal="true"
         aria-labelledby="alertas-titulo"
       >
+        <div className="alertas-barra">
+          <button
+            type="button"
+            className="alertas-cerrar"
+            aria-label="Cerrar avisos"
+            title="Cerrar"
+            onClick={cerrarPanel}
+          >
+            <Icon name="close" />
+          </button>
+        </div>
         <div className="alertas-head">
-          <Sami pose="think" />
+          <img className="alertas-sami" src="/mockup/sami-detective.webp" alt="" />
           <div>
             <span className="eyebrow">Sami está atento</span>
             <h2 id="alertas-titulo">
@@ -157,8 +196,8 @@ export function PanelDeAvisos() {
                 : 'pero todavía no hay comercios suficientes en tu zona para usar sus datos.'}
             </p>
           </div>
-          <IconBtn name="close" label="Cerrar avisos" onClick={cerrarPanel} />
         </div>
+        <InvitacionConfigurarComercio visible={faltaConfiguracion} onIr={cerrarPanel} />
         <form className="alertas-pregunta" onSubmit={enviar}>
           <label className="sr-only" htmlFor="alertas-q">
             Preguntale a Sami
@@ -226,31 +265,63 @@ export function PanelDeAvisos() {
           </div>
         ) : (
           <>
-            <div className="alertas-filtros" role="group" aria-label="Filtrar avisos">
-              {filtros.map(([clave, texto, cantidad]) => (
-                <button
-                  key={clave}
-                  type="button"
-                  className={panel.filtro === clave ? 'active' : ''}
-                  aria-pressed={panel.filtro === clave}
-                  onClick={() => actualizarPanel({ filtro: clave })}
-                >
-                  {texto}
-                  {cantidad ? (
-                    <>
-                      {' '}
-                      <span>{cantidad}</span>
-                    </>
-                  ) : null}
-                </button>
-              ))}
+            <div className="alertas-cinta">
+              <button
+                type="button"
+                className="cinta-flecha"
+                aria-label="Ver filtros anteriores"
+                disabled={!bordes.izquierda}
+                onClick={() => deslizar(-1)}
+              >
+                <Icon name="back" />
+              </button>
+              <div
+                ref={cinta}
+                className="alertas-filtros"
+                role="group"
+                aria-label="Filtrar avisos"
+                onScroll={medirCinta}
+              >
+                <span className="alertas-filtro-marca" style={marca} aria-hidden="true" />
+                {filtros.map(([clave, texto, cantidad]) => (
+                  <button
+                    key={clave}
+                    type="button"
+                    data-filtro={clave}
+                    className={panel.filtro === clave ? 'active' : ''}
+                    aria-pressed={panel.filtro === clave}
+                    onClick={() => actualizarPanel({ filtro: clave })}
+                  >
+                    {texto}
+                    {cantidad ? (
+                      <>
+                        {' '}
+                        <span>{cantidad}</span>
+                      </>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="cinta-flecha"
+                aria-label="Ver más filtros"
+                disabled={!bordes.derecha}
+                onClick={() => deslizar(1)}
+              >
+                <Icon name="arrow" />
+              </button>
             </div>
             <div className="alertas-lista">
               {lista.length ? (
                 tarjetas(lista)
               ) : (
-                <div className="alertas-vacio">
-                  <Sami />
+                <div className={sinDatos ? 'alertas-vacio' : 'alertas-vacio ok'}>
+                  {sinDatos ? (
+                    <Sami />
+                  ) : (
+                    <img className="alertas-vacio-img" src="/mockup/sami-guino.webp" alt="" />
+                  )}
                   {sinDatos ? (
                     <>
                       <h3>Todavía no tengo datos para mirar.</h3>
@@ -282,10 +353,17 @@ export function PanelDeAvisos() {
         )}
         <details className="alertas-ajustes" ref={ajustes}>
           <summary>
-            <Icon name="settings" /> Qué me avisa Sami
+            <span className="ajustes-icono">
+              <Icon name="settings" />
+            </span>
+            <span className="ajustes-titulo">
+              <strong>Qué me avisa Sami</strong>
+              <small>Elegí de qué temas querés recibir avisos</small>
+            </span>
+            <Icon name="down" />
           </summary>
           {GRUPOS_EN_ORDEN.map(([clave, nombre]) => (
-            <label className="check-row" key={clave}>
+            <label className="check-row ajuste-tema" key={clave}>
               <input
                 type="checkbox"
                 checked={acciones.grupos[clave] !== false}
@@ -308,8 +386,11 @@ export function PanelDeAvisos() {
             </button>
           )}
           <p className="alertas-nota">
+            <Icon name="help" />
             Sami arma los avisos con reglas sobre tus datos y sobre datos agregados de tu zona:
-            nunca se muestra un comercio puntual y hace falta un mínimo de {MINIMO_DE_COMERCIOS}{' '}
+            nunca se muestra un comercio puntual y hace falta un mínimo de {
+              MINIMO_DE_COMERCIOS
+            }{' '}
             para que un dato cuente. Cada aviso muestra de dónde sale. No cambia nada sin que vos lo
             apliques.
           </p>

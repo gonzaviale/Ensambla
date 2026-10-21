@@ -1,0 +1,138 @@
+{
+  "version": "sintetico-columnas-nuevas-v1",
+  "consentimiento": true,
+  "anonimizado": true,
+  "casos": [
+    {
+      "id": "nueva-001",
+      "foto": "fotos/nueva-001.png",
+      "esperado": "esperados/nueva-001.json",
+      "destino": {
+        "nombre": "Ventas",
+        "campos": [
+          {
+            "nombre": "Fecha",
+            "tipo": "FECHA"
+          },
+          {
+            "nombre": "Cliente",
+            "tipo": "TEXTO"
+          },
+          {
+            "nombre": "Producto",
+            "tipo": "OPCION",
+            "opciones": [
+              "Vela grande",
+              "Vela chica",
+              "Difusor"
+            ]
+          },
+          {
+            "nombre": "Cantidad",
+            "tipo": "NUMERO"
+          },
+          {
+            "nombre": "Monto",
+            "tipo": "NUMERO"
+          }
+        ]
+      }
+    },
+    {
+      "id": "parecida-001",
+      "foto": "fotos/parecida-001.png",
+      "esperado": "esperados/parecida-001.json",
+      "destino": {
+        "nombre": "Ventas",
+        "campos": [
+          {
+            "nombre": "Fecha",
+            "tipo": "FECHA"
+          },
+          {
+            "nombre": "Cliente",
+            "tipo": "TEXTO"
+          },
+          {
+            "nombre": "Producto",
+            "tipo": "OPCION",
+            "opciones": [
+              "Vela grande",
+              "Vela chica",
+              "Difusor"
+            ]
+          },
+          {
+            "nombre": "Cantidad",
+            "tipo": "NUMERO"
+          },
+          {
+            "nombre": "Importe",
+            "tipo": "NUMERO"
+          },
+          {
+            "nombre": "Pagó",
+            "tipo": "SI_NO"
+          }
+        ]
+      }
+    },
+    {
+      "id": "completa-001",
+      "foto": "fotos/completa-001.png",
+      "esperado": "esperados/completa-001.json",
+      "destino": {
+        "nombre": "Ventas",
+        "campos": [
+          {
+            "nombre": "Fecha",
+            "tipo": "FECHA"
+          },
+          {
+            "nombre": "Cliente",
+            "tipo": "TEXTO"
+          },
+          {
+            "nombre": "Producto",
+            "tipo": "OPCION",
+            "opciones": [
+              "Vela grande",
+              "Vela chica",
+              "Difusor"
+            ]
+          },
+          {
+            "nombre": "Cantidad",
+            "tipo": "NUMERO"
+          },
+          {
+            "nombre": "Monto",
+            "tipo": "NUMERO"
+          },
+          {
+            "nombre": "¿Pagó?",
+            "tipo": "SI_NO"
+          }
+        ]
+      }
+    },
+    {
+      "id": "varias-001",
+      "foto": "fotos/varias-001.png",
+      "esperado": "esperados/varias-001.json",
+      "destino": {
+        "nombre": "Ventas",
+        "campos": [
+          {
+            "nombre": "Fecha",
+            "tipo": "FECHA"
+          },
+          {
+            "nombre": "Cliente",
+            "tipo": "TEXTO"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -4,19 +4,20 @@ import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
 import { PageFooter } from '@/components/sistema/PageFooter';
 import { TemplateCard } from '@/components/sistema/TemplateCard';
+import { varsDeColor } from '@/components/sistema/colores';
 import { TEMPLATES } from '@/lib/sistema/catalogo';
 import { normalize } from '@/lib/sistema/core';
-import type { ClavePlantilla } from '@/lib/sistema/tipos';
+import type { ClavePlantilla, Color } from '@/lib/sistema/tipos';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
 const CLAVES = Object.keys(TEMPLATES) as ClavePlantilla[];
 
-const FILTROS: { valor: 'all' | ClavePlantilla; etiqueta: string }[] = [
-  { valor: 'all', etiqueta: 'Todas' },
-  { valor: 'shop', etiqueta: 'Almacén o kiosco' },
-  { valor: 'warehouse', etiqueta: 'Stock y movimientos' },
-  { valor: 'business', etiqueta: 'Pedidos y clientes' },
+const FILTROS: { valor: 'all' | ClavePlantilla; etiqueta: string; color: Color }[] = [
+  { valor: 'all', etiqueta: 'Todas', color: 'petrol' },
+  { valor: 'shop', etiqueta: 'Almacén o kiosco', color: 'yellow' },
+  { valor: 'warehouse', etiqueta: 'Stock y movimientos', color: 'orange' },
+  { valor: 'business', etiqueta: 'Pedidos y clientes', color: 'coral' },
 ];
 
 // El texto de cada tarjeta, para que el buscador encuentre por nombre, descripción o piezas.
@@ -58,14 +59,18 @@ export function PlantillasPage() {
         </div>
         <div className="gallery-toolbar">
           <div className="filter-pills">
-            {FILTROS.map(({ valor, etiqueta }) => (
+            {FILTROS.map(({ valor, etiqueta, color }) => (
               <button
                 key={valor}
                 type="button"
                 className={filtro === valor ? 'active' : ''}
+                style={varsDeColor(color)}
+                data-color={color}
+                aria-pressed={filtro === valor}
                 data-accion="filter-template"
                 onClick={() => setFiltro(valor)}
               >
+                <span className="filtro-punto" aria-hidden="true" />
                 {etiqueta}
               </button>
             ))}

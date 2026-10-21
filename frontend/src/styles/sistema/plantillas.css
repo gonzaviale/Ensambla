@@ -1,0 +1,147 @@
+/* Plantillas: fondo blanco, la paleta llena en cada tarjeta, filtros que se ven elegibles y un buscador marcado. */
+body:has(.template-page) {
+  background: #fff;
+}
+.template-page .page-title .eyebrow {
+  color: var(--orange);
+  font-size: 13px;
+}
+.template-page .page-title h1 {
+  font-size: 44px;
+}
+.template-page .page-title p {
+  font-size: 16px;
+}
+
+/* Filtros */
+.template-page .filter-pills {
+  gap: 10px;
+}
+.template-page .filter-pills button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    transform 0.15s;
+}
+.template-page .filter-pills button:not(.active):hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.template-page .filter-pills button.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.template-page .filter-pills button[data-color='yellow'].active {
+  color: var(--petrol);
+}
+.filtro-punto {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.template-page .filter-pills button.active .filtro-punto {
+  background: #fff;
+}
+.template-page .filter-pills button[data-color='yellow'].active .filtro-punto {
+  background: var(--petrol);
+}
+
+/* Buscador */
+.template-page .searchbox input {
+  min-width: 280px;
+  min-height: 48px;
+  border: 2px solid var(--petrol);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 15px;
+  box-shadow: 0 6px 16px #00506a1a;
+}
+.template-page .searchbox input:focus {
+  outline: none;
+  border-color: var(--orange);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--orange) 20%, transparent);
+}
+.template-page .searchbox > .icon {
+  top: 15px;
+  left: 15px;
+  width: 18px;
+  height: 18px;
+  color: var(--petrol);
+}
+.template-page .searchbox input {
+  padding-left: 42px !important;
+}
+
+/* Tarjetas: portada del color de la plantilla, sin pasteles */
+.template-page .template-card {
+  border: 2px solid var(--line);
+}
+.template-page .set-visual {
+  background: var(--accent);
+}
+.template-page .set-top span {
+  background: #fff;
+  opacity: 0.8;
+}
+.template-page .set-piece {
+  border: 0;
+  border-top: 4px solid var(--accent);
+  box-shadow: 0 4px 10px #0000001f;
+}
+.template-page .set-piece strong {
+  font-size: 10px;
+}
+.template-page .set-count {
+  color: #fff;
+  font-weight: 700;
+}
+.template-page [data-template='shop'] .set-count {
+  color: var(--petrol);
+}
+.template-page .template-body .icon-tile {
+  background: var(--accent);
+  color: #fff;
+}
+.template-page .template-set .template-body h3 {
+  font-size: 26px;
+}
+.template-page .template-subtitle {
+  font-size: 14px;
+}
+.template-page .template-set .template-body p {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.template-page .field-tags span {
+  border: 2px solid var(--accent);
+  background: #fff;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+.template-page .template-help {
+  font-size: 15px;
+}
+
+@media (max-width: 760px) {
+  .template-page .page-title h1 {
+    font-size: 32px;
+  }
+  .template-page .searchbox input {
+    min-width: 0;
+    width: 100%;
+  }
+}

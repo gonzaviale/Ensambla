@@ -138,6 +138,13 @@ export function IconSprite() {
         <symbol id="i-menu" viewBox="0 0 24 24">
           <path d="M4 6h16M4 12h16M4 18h16" />
         </symbol>
+        <symbol id="i-pin" viewBox="0 0 24 24">
+          <path d="M9 3h6l-1 7 4 4H6l4-4-1-7Zm3 11v7" />
+        </symbol>
+        <symbol id="i-mic" viewBox="0 0 24 24">
+          <rect x="9" y="3" width="6" height="11" rx="3" />
+          <path d="M5 11a7 7 0 0 0 14 0m-7 7v3m-3 0h6" />
+        </symbol>
       </defs>
     </svg>
   );

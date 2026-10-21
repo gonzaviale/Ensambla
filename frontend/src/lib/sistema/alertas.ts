@@ -50,7 +50,9 @@ export type AccionDeAviso =
   | { tipo: 'registrar'; texto: string; sistemaId: string; bloqueId: string }
   | { tipo: 'abrir'; texto: string; sistemaId: string; bloqueId: string; filaId?: string }
   /** Lleva a «Mi zona», filtrando por un producto. */
-  | { tipo: 'zona'; texto: string; producto?: string };
+  | { tipo: 'zona'; texto: string; producto?: string }
+  /** Le pide al servidor que ejecute la acción del aviso y lo cierre, todo en una sola operación. */
+  | { tipo: 'servidor'; texto: string; avisoId: string; confirmacion: string };
 
 export type Aviso = {
   /** Depende del estado de los datos: si lo que lo disparó cambia, el id cambia y el aviso desaparece. */
@@ -65,6 +67,8 @@ export type Aviso = {
   detalle: string;
   porque: string[];
   acciones: AccionDeAviso[];
+  /** Id del aviso en el servidor; falta en los que Sami calcula en el navegador. */
+  servidorId?: string;
 };
 
 const ORDEN: TipoDeAviso[] = [

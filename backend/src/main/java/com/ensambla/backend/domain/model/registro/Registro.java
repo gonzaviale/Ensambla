@@ -37,6 +37,13 @@ public class Registro {
     /** Foto del cuaderno de la que salió el registro; {@code null} si se cargó a mano. */
     private UUID fotoOrigenId;
 
+    /** Marca los registros de ejemplo que trae una plantilla. */
+    @Builder.Default
+    private Boolean esEjemplo = false;
+
+    /** Quién lo creó cuando no fue una carga manual ("Aviso de Sami", "Lectura de foto"…). */
+    private String origen;
+
     private OffsetDateTime creadoEn;
 
     private OffsetDateTime actualizadoEn;

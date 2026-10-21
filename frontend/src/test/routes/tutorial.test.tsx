@@ -205,6 +205,10 @@ describe('el tutorial', () => {
     await user.click(screen.getByRole('button', { name: /Seguir desde cero/ }));
     await esperarPaso('Traé tu primera pieza.');
 
+    // «Tus piezas» flota cerrada: primero se abre con «Bloques».
+    await screen.findByRole('complementary', { name: 'Piezas disponibles' }, ESPERA);
+    const abrirPiezas = document.querySelector('[data-accion="mobile-library"]');
+    await user.click(abrirPiezas as HTMLElement);
     await user.click(await screen.findByRole('button', { name: 'Agregar Clientes' }, ESPERA));
     await esperarPaso('De acá se cambia.');
   });
@@ -247,6 +251,7 @@ describe('el tutorial', () => {
     await empezarLaGuia(user);
     await user.click(screen.getByRole('button', { name: /Elegir una plantilla/ }));
     await esperarPaso('Una plantilla es un conjunto.');
+    await verifyHeadingPresentAsync(/Elegí una base/);
 
     await user.click(screen.getByRole('button', { name: 'Ensambla, ir al inicio' }));
 

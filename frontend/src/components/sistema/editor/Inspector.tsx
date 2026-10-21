@@ -72,29 +72,10 @@ function TextoAlSalir({
   );
 }
 
-// El panel de la derecha en Construir: los ajustes del bloque elegido.
-export function Inspector({ bloque, sistema }: { bloque: Bloque | undefined; sistema: Sistema }) {
+// El panel que se despliega a la derecha en Construir con los ajustes del bloque elegido; la X lo cierra.
+export function Inspector({ bloque, sistema }: { bloque: Bloque; sistema: Sistema }) {
   const seleccionar = useSistemaStore((estado) => estado.seleccionar);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
-
-  if (!bloque) {
-    return (
-      <aside className="inspector" aria-label="Ajustes del bloque">
-        <div className="inspector-heading">
-          <h2>A tu manera</h2>
-          <p>El detalle de cada pieza.</p>
-        </div>
-        <div className="inspector-empty">
-          <Icon name="settings" />
-          <h3>Elegí un bloque.</h3>
-          <p>
-            Tocá el botón de ajustes de un bloque para cambiar su nombre, sus campos, su color o su
-            ubicación.
-          </p>
-        </div>
-      </aside>
-    );
-  }
 
   const seccionDelBloque = sistema.sections.find((seccion) =>
     seccion.blocks.some((otro) => otro.id === bloque.id),
@@ -209,7 +190,9 @@ export function Inspector({ bloque, sistema }: { bloque: Bloque | undefined; sis
               className="field-item"
               onClick={() => abrirModal({ tipo: 'campo', bloqueId: bloque.id, clave: campo.key })}
             >
-              <span className="field-type-badge">{INSIGNIAS[campo.type]}</span>
+              <span className="field-type-badge" data-tipo={campo.type}>
+                {INSIGNIAS[campo.type]}
+              </span>
               <span>
                 <strong>
                   {campo.label}

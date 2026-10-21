@@ -1,8 +1,10 @@
-# Modelo de datos (MVP 2 · T-004, T-109)
+# Modelo de datos (MVP 2 · T-004, T-109; V9 a V11 adaptan el modelo al frontend nuevo y a la propuesta v1.3)
 
 Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (`V1__esquema_inicial.sql`,
 `V2__digitalizacion_cuaderno.sql`, `V3__plantillas_base.sql`, `V4__procesamiento_lecturas_ia.sql`,
-`V5__campo_relacion.sql`, `V6__campo_formula.sql`, `V7__movimiento_stock.sql`, `V8__receta.sql`).
+`V5__campo_relacion.sql`, `V6__campo_formula.sql`, `V7__movimiento_stock.sql`, `V8__receta.sql`,
+`V9__modelo_sistema_y_monitoreo.sql`, `V10__datos_prueba_san_justo.sql`, `V11__avisos_entidad_y_datos.sql`).
+V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
 V3 carga Inventario, Pedidos y Clientes
@@ -35,6 +37,96 @@ porqué; si cambian, se actualizan juntos.
 
 Detalles y contrato con subida: [lectura-cuaderno-ia.md](lectura-cuaderno-ia.md).
 
+## Frontend nuevo y monitoreo (V9)
+
+El frontend llama **sistema** a lo que la base llama `proyecto`: se conservaron los nombres de las tablas y la API hace la
+traducción. V9 sólo agrega columnas con `DEFAULT` o nullable y tablas nuevas; no cambia lo que ya existía.
+
+| Front (`lib/sistema/tipos.ts`) | Base | Notas |
+|---|---|---|
+| `Sistema.template` (`shop`, `warehouse`, `business`) | `proyecto.plantilla_clave` (`ALMACEN`, `DEPOSITO`, `PEDIDOS_Y_CLIENTES`) | Distinta de `plantilla_id`, que apunta a las plantillas globales del backend. |
+| `Sistema.layout` (`mosaic`, `single`, `two`, `three`) | `proyecto.distribucion` (`MOSAICO`, `UNA`, `DOS`, `TRES`) | |
+| `Sistema.options.movements` / `.expenses` | `proyecto.con_movimientos` / `con_gastos` | |
+| `Sistema.demoAlmacen` | `proyecto.es_demo` | |
+| `Seccion` | `seccion` (nueva) | FK compuesta a `proyecto`. V9 crea «Vista general» para cada proyecto que ya tenía bloques y le asigna sus bloques. `bloque.seccion_id` queda nullable hasta que la API de sistemas lo exija. |
+| `Bloque.type` | `bloque.tipo` (`INVENTARIO`, `PEDIDOS`, `CLIENTES`, `VENTAS`, `GASTOS`, `RESUMEN`, `FORMULARIO`, `NOTA`, `ENTRADAS`, `SALIDAS`) | |
+| `Bloque.color` | `bloque.color` (`NARANJA`, `CORAL`, `AMARILLO`, `CELESTE`, `PETROLEO`) | |
+| `Bloque.width` | `bloque.ancho` (`TERCIO`, `MEDIO`, `ANCHO`, `COMPLETO`) | |
+| `Bloque.description` / `content` / `startRow` | `bloque.descripcion` / `contenido` / `empieza_fila` | `contenido` es el texto de las notas. |
+| `Bloque.stockDirection` (`1`, `-1`) | `bloque.direccion_stock` (`1`, `-1`, `NULL`) | |
+| `Campo.key` | `campo.clave` | Única por bloque. La usan los avisos y la zona: `name`, `price`, `cost`, `quantity`, `minimum`, `product`… |
+| `Campo.type` | `campo.tipo` | `text`→`TEXTO`, `number`→`NUMERO`, `date`→`FECHA`, `select`→`OPCION`, `checkbox`→`SI_NO`, `relation`→`RELACION`; nuevos: `textarea`→`TEXTO_LARGO`, `currency`→`MONEDA`, `email`→`EMAIL`, `tel`→`TELEFONO`, `time`→`HORA`. |
+| `Campo.min` | `campo.minimo` | |
+| `Campo.target` | `campo.bloque_relacionado_id` | Ya existía (V5). |
+| `Fila.__example` / `__source` | `registro.es_ejemplo` / `origen` | |
+| `Preferencias` | `preferencia_usuario` (nueva, una fila por usuario) | `descartadas`→`avisos_descartados`, `grupos`→`grupos_avisos`, `bienvenidaVista`→`bienvenida_vista`, `nombre`→`nombre_preferido`. |
+
+Pendiente para cuando se haga `PUT /sistemas`: el frontend genera ids `e<uuid>` y las columnas son `uuid`, así que la API tiene
+que traducirlos al guardar; `MONEDA` todavía no cuenta como numérica para fórmulas, recetas ni totales.
+
+### Zona y negocio
+
+- `zona` (global): nombre, localidad, partido, provincia, centro (`latitud`, `longitud`) y `radio_metros`.
+- `negocio` suma `rubro` (`ALMACEN`, `KIOSCO`, `MINIMERCADO`, `DIETETICA`, `OTRO`), `direccion`, `localidad`, coordenadas
+  (`ck_negocio_coordenadas`: ambas o ninguna), `zona_id` y `comparte_datos_zona`. Si es `false`, el negocio no aporta a los agregados.
+  ENS-69 reutiliza estas columnas con `GET/PATCH /api/business`, sin modificar migraciones. El dueño se obtiene
+  desde la sesión; al guardar un punto nuevo, `zona_id` se reasigna a la zona cuyo `radio_metros` contiene el punto
+  (la más cercana si hay varias) o queda en `NULL` si ninguna lo cubre (ver `docs/ubicacion-negocio.md`).
+  El opt-out se persiste; los agregados de demo V10 no se recalculan por esta edición.
+- `agregado_zona_producto`: precio mínimo, promedio y máximo, comercios que lo tienen y que lo venden, y unidades por semana de un
+  comercio promedio. Es el dato que consume `Zona` del frontend. La privacidad la hace cumplir la base: `comercios >= 3` y
+  `comercios_venden >= 3`, así nunca se guarda un dato que identifique a un comercio. Único por `(zona_id, producto_normalizado)`.
+
+### Avisos del motor de monitoreo
+
+`aviso` guarda cada recomendación: `tipo` (`STOCK`, `PRECIO_ZONA`, `ESTANCADO`, `MUY_VENDIDO`, `COMBO`, `CONSUMO_ZONA`), `grupo`
+(`STOCK`, `VENTAS`, `ZONA`), `prioridad` (3 urgente, 2 para hoy, 1 para mirar), `huella` (el id estable del frontend, único por
+negocio), `titulo`, `detalle`, `motivos` y `acciones` (JSON) y `estado` (`PENDIENTE`, `APLICADO`, `DESCARTADO`, `VENCIDO`).
+`resuelto_en` está cargado si y sólo si el aviso se aplicó o se descartó (`ck_aviso_resuelto`): con eso se mide cuántos se aplican
+y cuántos se descartan, como pide la propuesta.
+
+V11 suma `entidad` (sobre qué habla el aviso, con la forma `registro:<uuid>`) y `datos` (JSON con los datos de origen). Un índice
+único parcial (`ux_aviso_pendiente_entidad`) impide dos avisos pendientes del mismo tipo sobre la misma entidad. La `huella`
+pasa a ser `tipo:entidad:hash(datos)`: si los datos de origen no cambian, la huella tampoco, y un aviso descartado o aplicado no
+se vuelve a crear.
+
+**Motor de monitoreo.** `MonitoreoAvisosWorker` corre `EjecutarMotorAvisosUseCase` cada `ensambla.avisos.motor.intervalo` ms
+(5 minutos por defecto; se apaga con `ensambla.avisos.motor.habilitado=false`). `MotorAvisosService` recibe todas las `ReglaAviso`
+registradas como bean, así que una regla nueva no toca el motor. Por cada negocio crea los avisos nuevos, actualiza los que
+cambiaron, reactiva los vencidos y vence los pendientes que la regla ya no detecta. Hoy hay una regla, `ReglaStockBajo`.
+
+**API.** `GET /api/avisos[?estado=]` (pendientes primero, del más urgente al menos urgente), `GET /api/avisos/contador`,
+`POST /api/avisos/{id}/aplicar` y `POST /api/avisos/{id}/descartar`. Aplicar ejecuta la acción sugerida (`EDITAR_REGISTRO` cambia
+valores de un registro por clave de campo; `REGISTRAR` y `ABRIR` son atajos de pantalla) y marca el aviso como aplicado en la misma
+transacción. Un aviso de otro negocio responde 404.
+
+## Datos de prueba (V10)
+
+`V10__datos_prueba_san_justo.sql` crea la zona **San Justo - UNLaM** (centro en la universidad, radio 1500 m), 10 comercios
+ficticios que aportan a la zona y un negocio **demo** que no aporta. Corre en todos los ambientes, así que si no se quiere en
+producción hay que borrarlo antes de publicar.
+
+- Cuentas (misma contraseña de prueba, `Ensambla-Test-2026`): `comercio01@ensambla.test` … `comercio10@ensambla.test` y
+  `demo@ensambla.test`.
+- Cada comercio tiene el sistema «Mi almacén» (plantilla `ALMACEN`) con una sección «Vista general» y los bloques Inventario,
+  Ventas, Clientes y Entradas, con las claves del catálogo del frontend. Lleva ~75 % de un catálogo de 20 productos, con precios
+  entre -10 % y +10 % del base, y 60 días de ventas relativas al día en que se aplica la migración.
+- El Fernet sólo lo llevan dos comercios, así que no aparece en los agregados (prueba la regla de mínimo 3).
+- El demo replica `crearAlmacenDeEjemplo` (`lib/sistema/demo.ts`): stock bajo y agotado, un producto muy vendido y barato, uno caro
+  que no se mueve, alfajor y galletitas que salen juntos y productos populares de la zona que no tiene.
+- `agregado_zona_producto` se calcula en la misma migración a partir de lo sembrado (sin el demo).
+- Los ids se derivan con `md5` de un texto, así que son los mismos en cualquier base.
+
+### Sami (V12, V13)
+
+- `plantilla`: V12 suma **Ventas** y **Gastos** (ids `…0a4` y `…0a5`) junto a las tres de V3. El diccionario de Sami
+  nombra las plantillas por su `nombre`, así que renombrarlas o desactivarlas cambia lo que Sami puede proponer.
+- `consumo_sami_diario`: clave primaria (negocio_id, fecha UTC), `consultas` con la IA del día (no negativas),
+  `tokens_entrada`/`tokens_salida` acumulados y el último `modelo`. La reserva es una sola sentencia
+  `INSERT … ON CONFLICT DO UPDATE … WHERE consultas < límite`, atómica por negocio y día.
+
+Detalles: [sami-asistente.md](sami-asistente.md).
+
 ## Aislamiento entre negocios (T-010, T-011)
 
 Todo lo que construye un usuario cuelga de un **negocio**. Para que sea imposible —aun con un bug en la aplicación—
@@ -48,6 +140,12 @@ foránea es **compuesta**: `(negocio_id, bloque_id) → bloque (negocio_id, id)`
 erDiagram
     usuario ||--o{ negocio : "es dueño de"
     negocio ||--o{ proyecto : tiene
+    zona ||--o{ negocio : agrupa
+    zona ||--o{ agregado_zona_producto : resume
+    proyecto ||--o{ seccion : organiza
+    seccion ||--o{ bloque : agrupa
+    negocio ||--o{ aviso : recibe
+    usuario ||--o| preferencia_usuario : guarda
     plantilla ||--o{ proyecto : "origen de"
     proyecto ||--o{ bloque : contiene
     bloque ||--o{ campo : define
@@ -73,6 +171,57 @@ erDiagram
         uuid id PK
         text nombre
         uuid duenio_id FK
+        text rubro "ALMACEN | KIOSCO | MINIMERCADO | DIETETICA | OTRO"
+        text direccion
+        numeric latitud
+        numeric longitud
+        uuid zona_id FK "SET NULL"
+        boolean comparte_datos_zona
+    }
+    zona {
+        uuid id PK
+        text nombre
+        text localidad
+        numeric latitud
+        numeric longitud
+        int radio_metros
+    }
+    seccion {
+        uuid id PK
+        uuid negocio_id FK
+        uuid proyecto_id FK
+        text nombre
+        smallint posicion
+    }
+    preferencia_usuario {
+        uuid usuario_id PK
+        jsonb avisos_descartados
+        jsonb grupos_avisos
+        boolean bienvenida_vista
+        text nombre_preferido
+    }
+    aviso {
+        uuid id PK
+        uuid negocio_id FK
+        text tipo
+        text grupo
+        smallint prioridad
+        text entidad "registro:<uuid>"
+        text huella UK "único por negocio"
+        jsonb datos "datos de origen"
+        text estado "PENDIENTE | APLICADO | DESCARTADO | VENCIDO"
+        timestamptz resuelto_en
+    }
+    agregado_zona_producto {
+        uuid id PK
+        uuid zona_id FK
+        text producto_normalizado
+        int comercios ">= 3"
+        int comercios_venden ">= 3"
+        numeric precio_minimo
+        numeric precio_promedio
+        numeric precio_maximo
+        numeric unidades_semana
     }
     plantilla {
         uuid id PK
@@ -88,6 +237,9 @@ erDiagram
         text nombre
         text descripcion
         uuid plantilla_id FK "SET NULL"
+        text plantilla_clave "ALMACEN | DEPOSITO | PEDIDOS_Y_CLIENTES"
+        text distribucion
+        boolean es_demo
     }
     bloque {
         uuid id PK
@@ -95,13 +247,19 @@ erDiagram
         uuid proyecto_id FK
         text nombre "único por proyecto"
         smallint posicion
+        uuid seccion_id FK
+        text tipo "INVENTARIO | PEDIDOS | CLIENTES | VENTAS | …"
+        text color
+        text ancho
+        smallint direccion_stock "1 | -1"
     }
     campo {
         uuid id PK
         uuid negocio_id FK
         uuid bloque_id FK
         text nombre "único por bloque"
-        text tipo "TEXTO | NUMERO | FECHA | OPCION | SI_NO | RELACION | FORMULA"
+        text tipo "TEXTO | NUMERO | FECHA | OPCION | SI_NO | RELACION | FORMULA | TEXTO_LARGO | MONEDA | EMAIL | TELEFONO | HORA"
+        text clave "única por bloque"
         boolean obligatorio
         text valor_inicial
         jsonb opciones "lista; obligatoria si tipo = OPCION"
@@ -115,6 +273,8 @@ erDiagram
         uuid bloque_id FK
         jsonb valores "{ campo_id: valor }"
         uuid foto_origen_id FK "SET NULL; NULL = carga manual"
+        boolean es_ejemplo
+        text origen
     }
     movimiento_stock {
         uuid id PK
@@ -211,6 +371,7 @@ Testcontainers.
 | Membresías y roles, invitaciones, auditoría | MVP 4 · T-060, T-063, T-065 | `membresia`, `invitacion`, `auditoria` |
 | Planes, suscripciones, límites | MVP 4 · T-066 | `plan`, `suscripcion` |
 | Relación entre bloques, stock, recetas | MVP 4 · T-073 a T-075 | Nuevos tipos de campo y tablas de movimientos |
+| Repositorios y casos de uso de zona, avisos y preferencias | Cuando se haga el motor de monitoreo | Entidades ya creadas en V9 |
 | Archivos adjuntos a registros | MVP 4 · T-078 | Tipo de campo `ARCHIVO` sobre el mismo almacenamiento que `foto_cuaderno` |
 | Búsqueda semántica / deduplicación | Cuando haga falta | pgvector (ver arriba) |
 | Recuperación de contraseña | MVP 3 · T-039 | Tabla de tokens temporales |

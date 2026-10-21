@@ -44,7 +44,7 @@ export function TopBar({
           Inicio
         </button>
         <button type="button" onClick={onSistemas}>
-          Mis sistemas{sistemas ? ` · ${sistemas}` : ''}
+          Mi Negocio{sistemas ? ` · ${sistemas}` : ''}
         </button>
         <button
           type="button"

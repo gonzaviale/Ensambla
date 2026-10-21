@@ -2,6 +2,13 @@ package com.ensambla.backend.domain.service.procesamiento;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.enums.TipoRegistroCuaderno;
+import com.ensambla.backend.domain.model.lectura.BloquePropuesto;
+import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
+import com.ensambla.backend.domain.model.lectura.ConsumoIa;
+import com.ensambla.backend.domain.model.lectura.DatoLeido;
+import com.ensambla.backend.domain.model.lectura.FilaLeida;
+import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
 import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
 import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
@@ -9,7 +16,9 @@ import com.ensambla.backend.support.ProcesamientoTestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -115,6 +124,156 @@ class PropuestaLecturaServiceTest {
         assertThatThrownBy(() -> propuestaLecturaService.proponer(
                 ProcesamientoTestData.lectura(), List.of(), UUID.randomUUID()))
                 .isInstanceOf(BusinessRuleException.class).hasMessageContaining("compatible");
+    }
+
+    @Test
+    @DisplayName("Con destino propone como campo nuevo la columna que el bloque no tiene, sin duplicar las que tiene")
+    void proponerShouldDetectNewColumnWhenDestinationLacksIt() {
+        BloqueLectura bloque = givenBlock("Ventas", "Monto", TipoCampo.NUMERO, List.of());
+        LecturaCuaderno lectura = givenLectura(
+                List.of(columna("monto", "Monto", TipoCampo.NUMERO), columna("telefono", "Teléfono", TipoCampo.TEXTO)),
+                givenFila(1, "monto", "100", "telefono", "11 4444-5555"));
+
+        PropuestaLectura propuesta = propuestaLecturaService.proponer(lectura, List.of(bloque), bloque.id());
+
+        thenNuevosAre(propuesta, "telefono");
+        assertThat(propuesta.camposNuevos().getFirst().tipo()).isEqualTo(TipoCampo.TEXTO);
+        assertThat(propuesta.mapeoCampos()).containsOnlyKeys("monto");
+        assertThat(propuesta.lectura().bloque().campos()).extracting(CampoPropuesto::clave)
+                .containsExactly("monto", "telefono");
+        assertThat(propuesta.lectura().bloque().bloqueExistenteId()).isEqualTo(bloque.id());
+        assertThat(propuesta.lectura().filas()).isEqualTo(lectura.filas());
+    }
+
+    @Test
+    @DisplayName("Con destino, una columna que existe pasa a llamarse y tipificarse como el campo del bloque")
+    void proponerShouldAdoptExistingFieldDefinition() {
+        BloqueLectura bloque = givenBlock("Ventas", "Monto", TipoCampo.NUMERO, List.of());
+        LecturaCuaderno lectura = givenLectura(
+                List.of(columna("monto", " MÓNTO ", TipoCampo.TEXTO)), givenFila(1, "monto", "100"));
+
+        PropuestaLectura propuesta = propuestaLecturaService.proponer(lectura, List.of(bloque), bloque.id());
+
+        CampoPropuesto campo = propuesta.lectura().bloque().campos().getFirst();
+        assertThat(campo.nombre()).isEqualTo("Monto");
+        assertThat(campo.tipo()).isEqualTo(TipoCampo.NUMERO);
+        assertThat(propuesta.camposNuevos()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Con destino, el nombre del bloque leído no importa: se usa el del bloque elegido")
+    void proponerShouldUseDestinationName() {
+        BloqueLectura bloque = givenBlock("Mis ventas", "Monto", TipoCampo.NUMERO, List.of());
+
+        PropuestaLectura propuesta = propuestaLecturaService.proponer(
+                ProcesamientoTestData.lectura(), List.of(bloque), bloque.id());
+
+        assertThat(propuesta.lectura().bloque().nombre()).isEqualTo("Mis ventas");
+    }
+
+    @Test
+    @DisplayName("Con destino, un sinónimo del campo existente no se propone como campo nuevo")
+    void proponerShouldMapSynonymToExistingField() {
+        BloqueLectura bloque = givenBlock("Clientes", "Celular", TipoCampo.TEXTO, List.of());
+        LecturaCuaderno lectura = givenLectura(
+                List.of(columna("telefono", "Teléfono", TipoCampo.TEXTO)), givenFila(1, "telefono", "11 4444-5555"));
+
+        PropuestaLectura propuesta = propuestaLecturaService.proponer(lectura, List.of(bloque), bloque.id());
+
+        assertThat(propuesta.mapeoCampos()).containsEntry("telefono", ProcesamientoTestData.CAMPO_ID);
+        assertThat(propuesta.lectura().bloque().campos().getFirst().nombre()).isEqualTo("Celular");
+        assertThat(propuesta.camposNuevos()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Con destino, el nombre igual gana al sinónimo y cada campo se usa una sola vez")
+    void proponerShouldPreferExactNameOverSynonym() {
+        UUID telefonoId = UUID.randomUUID();
+        UUID celularId = UUID.randomUUID();
+        BloqueLectura bloque = new BloqueLectura(UUID.randomUUID(), "Clientes", List.of(
+                new CampoConocido(celularId, "Celular", TipoCampo.TEXTO, List.of()),
+                new CampoConocido(telefonoId, "Teléfono", TipoCampo.TEXTO, List.of())));
+        LecturaCuaderno lectura = givenLectura(
+                List.of(columna("cel", "Cel", TipoCampo.TEXTO), columna("tel", "Teléfono", TipoCampo.TEXTO)),
+                givenFila(1, "cel", "1", "tel", "2"));
+
+        PropuestaLectura propuesta = propuestaLecturaService.proponer(lectura, List.of(bloque), bloque.id());
+
+        assertThat(propuesta.mapeoCampos()).containsEntry("tel", telefonoId).containsEntry("cel", celularId);
+        assertThat(propuesta.camposNuevos()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Con destino, una columna que podría ser dos campos se propone como nueva y se avisa")
+    void proponerShouldWarnWhenSynonymIsAmbiguous() {
+        BloqueLectura bloque = new BloqueLectura(UUID.randomUUID(), "Clientes", List.of(
+                new CampoConocido(UUID.randomUUID(), "Celular", TipoCampo.TEXTO, List.of()),
+                new CampoConocido(ProcesamientoTestData.CAMPO_ID, "Teléfono", TipoCampo.TEXTO, List.of()),
+                new CampoConocido(UUID.randomUUID(), "Nombre", TipoCampo.TEXTO, List.of())));
+        LecturaCuaderno lectura = givenLectura(
+                List.of(columna("nombre", "Nombre", TipoCampo.TEXTO), columna("tel", "Tel", TipoCampo.TEXTO)),
+                givenFila(1, "nombre", "Ana", "tel", "11 4444-5555"));
+
+        PropuestaLectura propuesta = propuestaLecturaService.proponer(lectura, List.of(bloque), bloque.id());
+
+        thenNuevosAre(propuesta, "tel");
+        assertThat(propuesta.lectura().advertencias()).anyMatch(aviso -> aviso.contains("«Tel»")
+                && aviso.contains("«Clientes»"));
+    }
+
+    @Test
+    @DisplayName("Con destino, una columna nueva sin datos no se propone y sus celdas se descartan")
+    void proponerShouldIgnoreNewColumnsWithoutData() {
+        BloqueLectura bloque = givenBlock("Ventas", "Monto", TipoCampo.NUMERO, List.of());
+        LecturaCuaderno lectura = givenLectura(
+                List.of(columna("monto", "Monto", TipoCampo.NUMERO), columna("nota", "Nota", TipoCampo.TEXTO),
+                        columna("color", "Color", TipoCampo.TEXTO), columna("zona", "Zona", TipoCampo.TEXTO)),
+                givenFila(1, "monto", "100", "nota", null, "color", "  "),
+                givenFila(2, "monto", "200", "nota", null));
+
+        PropuestaLectura propuesta = propuestaLecturaService.proponer(lectura, List.of(bloque), bloque.id());
+
+        assertThat(propuesta.camposNuevos()).isEmpty();
+        assertThat(propuesta.lectura().bloque().campos()).extracting(CampoPropuesto::clave).containsExactly("monto");
+        assertThat(propuesta.lectura().filas()).allSatisfy(fila -> assertThat(fila.datos()).containsOnlyKeys("monto"));
+        assertThat(propuesta.lectura().advertencias()).contains(
+                "La columna «Nota» no tiene datos en la foto, así que no se propone.",
+                "La columna «Color» no tiene datos en la foto, así que no se propone.",
+                "La columna «Zona» no tiene datos en la foto, así que no se propone.");
+    }
+
+    @Test
+    @DisplayName("Con destino, si ninguna columna coincide con el bloque la foto no es de ese bloque")
+    void proponerShouldRejectWhenNoColumnMatchesDestination() {
+        BloqueLectura bloque = givenBlock("Ventas", "Monto", TipoCampo.NUMERO, List.of());
+        LecturaCuaderno lectura = givenLectura(
+                List.of(columna("color", "Color", TipoCampo.TEXTO)), givenFila(1, "color", "rojo"));
+
+        assertThatThrownBy(() -> propuestaLecturaService.proponer(lectura, List.of(bloque), bloque.id()))
+                .isInstanceOf(BusinessRuleException.class).hasMessageContaining("compatible");
+    }
+
+    private void thenNuevosAre(PropuestaLectura propuesta, String... claves) {
+        assertThat(propuesta.camposNuevos()).extracting(CampoPropuesto::clave).containsExactly(claves);
+        assertThat(propuesta.mapeoCampos()).doesNotContainKeys(claves);
+    }
+
+    private CampoPropuesto columna(String clave, String nombre, TipoCampo tipo) {
+        return new CampoPropuesto(clave, nombre, tipo, List.of());
+    }
+
+    /** {@code datos}: pares clave, valor. */
+    private FilaLeida givenFila(int renglon, String... datos) {
+        Map<String, DatoLeido> mapa = new LinkedHashMap<>();
+        for (int i = 0; i < datos.length; i += 2) {
+            mapa.put(datos[i], new DatoLeido(datos[i + 1], 0.9));
+        }
+        return new FilaLeida(1, renglon, mapa);
+    }
+
+    private LecturaCuaderno givenLectura(List<CampoPropuesto> campos, FilaLeida... filas) {
+        return new LecturaCuaderno(TipoRegistroCuaderno.OTRO, new BloquePropuesto("Ventas", null, campos),
+                List.of(filas), List.of("Aviso"), new ConsumoIa("simulado", "demo", "v3", 1, 10, 20, 30));
     }
 
     private BloqueLectura givenBlock(String nombre, String campo, TipoCampo tipo, List<String> opciones) {

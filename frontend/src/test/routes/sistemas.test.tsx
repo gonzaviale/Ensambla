@@ -19,7 +19,7 @@ describe('los sistemas llegan del servidor y vuelven a él', () => {
     renderApp('/inicio');
 
     await verifyHeadingPresentAsync(/En qué puedo/);
-    expect(await screen.findByRole('button', { name: 'Mis sistemas · 1' }, ESPERA)).toBeVisible();
+    expect(await screen.findByRole('button', { name: 'Mi Negocio · 1' }, ESPERA)).toBeVisible();
     expect(useSistemaStore.getState().sistemas).toHaveLength(1);
   });
 
