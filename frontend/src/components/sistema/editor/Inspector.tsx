@@ -190,7 +190,9 @@ export function Inspector({ bloque, sistema }: { bloque: Bloque; sistema: Sistem
               className="field-item"
               onClick={() => abrirModal({ tipo: 'campo', bloqueId: bloque.id, clave: campo.key })}
             >
-              <span className="field-type-badge">{INSIGNIAS[campo.type]}</span>
+              <span className="field-type-badge" data-tipo={campo.type}>
+                {INSIGNIAS[campo.type]}
+              </span>
               <span>
                 <strong>
                   {campo.label}

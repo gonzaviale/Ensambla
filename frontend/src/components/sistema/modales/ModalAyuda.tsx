@@ -2,7 +2,6 @@ import { useRouterState } from '@tanstack/react-router';
 import { Btn } from '../Btn';
 import { Icon } from '../Icon';
 import { Modal } from '../Modal';
-import { Sami } from '../Sami';
 import { varsDeColor } from '../colores';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
@@ -49,7 +48,7 @@ export function ModalAyuda({ respuesta }: { respuesta?: string }) {
   return (
     <Modal>
       <div className="sami-intro">
-        <Sami />
+        <img className="sami-intro-img" src="/mockup/sami-pensando.webp" alt="" />
         <div>
           <h2 id="modal-title">¿En qué te doy una mano?</h2>
           <p>Te ayudo a encontrar el próximo paso.</p>
