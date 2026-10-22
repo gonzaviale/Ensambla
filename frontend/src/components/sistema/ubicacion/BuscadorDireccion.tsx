@@ -1,6 +1,14 @@
 import type { FormEvent } from 'react';
 import type { Direccion } from '@/types/ubicacion';
 
+const TEXTOS_DEL_COMERCIO = {
+  paso: 'PASO 1',
+  titulo: 'Encontrá tu comercio',
+  etiqueta: 'Dirección del comercio',
+  ayuda: 'Calle, altura y localidad. Buscamos direcciones de Argentina.',
+  ejemplo: 'Ej.: Florencio Varela 1903, San Justo',
+};
+
 type Props = {
   consulta: string;
   onConsulta: (valor: string) => void;
@@ -10,17 +18,22 @@ type Props = {
   elegida: Direccion | null;
   onElegir: (direccion: Direccion) => void;
   error: string;
+  /** Textos propios de cada pantalla; sin ellos, los del paso «Encontrá tu comercio». */
+  textos?: Partial<typeof TEXTOS_DEL_COMERCIO>;
+  /** Con otra acción principal en la pantalla, el botón de buscar pasa a secundario. */
+  botonSecundario?: boolean;
 };
 
 export function BuscadorDireccion(props: Props) {
+  const textos = { ...TEXTOS_DEL_COMERCIO, ...props.textos };
   return (
     <section className="ubicacion-panel ubicacion-direccion" aria-labelledby="titulo-direccion">
-      <div className="eyebrow">PASO 1</div>
-      <h2 id="titulo-direccion">Encontrá tu comercio</h2>
+      <div className="eyebrow">{textos.paso}</div>
+      <h2 id="titulo-direccion">{textos.titulo}</h2>
       <form onSubmit={props.onBuscar} noValidate>
         <div className="field">
-          <label htmlFor="direccion-comercial">Dirección del comercio</label>
-          <p id="ayuda-direccion">Calle, altura y localidad. Buscamos direcciones de Argentina.</p>
+          <label htmlFor="direccion-comercial">{textos.etiqueta}</label>
+          <p id="ayuda-direccion">{textos.ayuda}</p>
           <div className="ubicacion-buscador">
             <input
               id="direccion-comercial"
@@ -28,13 +41,17 @@ export function BuscadorDireccion(props: Props) {
               type="text"
               autoComplete="off"
               maxLength={200}
-              placeholder="Ej.: Florencio Varela 1903, San Justo"
+              placeholder={textos.ejemplo}
               aria-describedby="ayuda-direccion error-direccion"
               aria-invalid={!!props.error}
               value={props.consulta}
               onChange={(evento) => props.onConsulta(evento.target.value)}
             />
-            <button type="submit" className="btn primary" disabled={props.buscando}>
+            <button
+              type="submit"
+              className={props.botonSecundario ? 'btn secondary' : 'btn primary'}
+              disabled={props.buscando}
+            >
               {props.buscando ? 'Buscando…' : 'Buscar dirección'}
             </button>
           </div>

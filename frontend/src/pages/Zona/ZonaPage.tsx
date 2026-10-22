@@ -1,9 +1,11 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
 import { PageFooter } from '@/components/sistema/PageFooter';
+import { BuscadorDireccion } from '@/components/sistema/ubicacion/BuscadorDireccion';
+import { MapaUbicacion } from '@/components/sistema/ubicacion/MapaUbicacion';
 import { ResumenFrenteALaZona } from '@/components/sistema/zona/ResumenFrenteALaZona';
 import { TarjetaDePrecio } from '@/components/sistema/zona/TarjetaDePrecio';
 import { varsDeColor } from '@/components/sistema/colores';
@@ -18,7 +20,8 @@ import {
 } from '@/lib/sistema/zona';
 import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
-import { useAnalisisDeZona, useZona } from '@/hooks/zona/queries';
+import { useAnalisisDeOtraZona } from '@/hooks/zona/useAnalisisDeOtraZona';
+import { useZona } from '@/hooks/zona/queries';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
 type Vista = 'precios' | 'cerca' | 'otra';
@@ -60,7 +63,7 @@ const TITULOS: Record<Vista, { titulo: ReactNode; texto: string }> = {
       </>
     ),
     texto:
-      'Escribí un barrio o una dirección y te mostramos el mismo análisis agregado. Si hay pocos comercios, no mostramos nada.',
+      'Buscá un barrio o una dirección, ajustá el punto en el mapa y te mostramos el mismo análisis agregado. Si hay pocos comercios, no mostramos nada.',
   },
 };
 
@@ -96,7 +99,9 @@ export function ZonaPage() {
     <>
       <CabeceraComun active="zone" />
       <main id="main" tabIndex={-1} className="page-wrap zona-page reveal">
-        <Link className="text-link" to="/ubicacion">Probar ubicación y rubro de mi comercio</Link>
+        <Link className="text-link" to="/ubicacion">
+          Probar ubicación y rubro de mi comercio
+        </Link>
         <div className="zona-cabeza">
           <div className="page-title">
             <div className="eyebrow">
@@ -300,45 +305,74 @@ function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
   );
 }
 
+const TEXTOS_DEL_BUSCADOR = {
+  paso: 'PASO 1',
+  titulo: 'Buscá el lugar',
+  etiqueta: 'Barrio o dirección',
+  ayuda: 'Un barrio, o calle, altura y localidad. Buscamos direcciones de Argentina.',
+  ejemplo: 'Ej.: Av. de Mayo 500, Ramos Mejía',
+};
+
+const TEXTOS_DEL_MARCADOR = {
+  titulo: 'Punto de la zona a analizar',
+  alternativo: 'Punto de la zona a analizar: arrastrá para ajustarlo',
+};
+
 function VistaDeOtraZona() {
   const sistemas = useSistemaStore((estado) => estado.sistemas);
   const propios = useMemo(() => productosPropios(sistemas), [sistemas]);
-  const analisis = useAnalisisDeZona();
-  const [lugar, setLugar] = useState('');
-  const [error, setError] = useState('');
+  const estado = useAnalisisDeOtraZona();
+  const resultado = estado.resultado;
 
-  const analizar = (evento: FormEvent) => {
-    evento.preventDefault();
-    const limpio = lugar.trim();
-    if (limpio.length < 2) {
-      setError('Escribí un barrio o una dirección.');
-      return;
-    }
-    setError('');
-    analisis.mutate({ lugar: limpio });
-  };
-
-  const resultado = analisis.data;
   return (
     <div className="zona-panel">
-      <form className="zona-otra" onSubmit={analizar}>
-        <label className="searchbox">
-          <Icon name="search" />
-          <input
-            className="input"
-            placeholder="Un barrio o una dirección. Ej.: Palermo"
-            aria-label="Barrio o dirección"
-            maxLength={120}
-            value={lugar}
-            onChange={(evento) => setLugar(evento.target.value)}
-          />
-        </label>
-        <button className="btn primary" type="submit" disabled={analisis.isPending}>
-          {analisis.isPending ? 'Analizando…' : 'Analizar la zona'}
+      <div className="zona-otra-grid">
+        <BuscadorDireccion
+          consulta={estado.consulta}
+          onConsulta={estado.cambiarConsulta}
+          onBuscar={estado.buscar}
+          buscando={estado.buscando}
+          resultados={estado.resultados}
+          elegida={estado.elegida}
+          onElegir={estado.elegirDireccion}
+          error={estado.errorBusqueda}
+          textos={TEXTOS_DEL_BUSCADOR}
+          botonSecundario
+        />
+        <section className="ubicacion-panel ubicacion-ajuste" aria-labelledby="titulo-punto-zona">
+          <div className="eyebrow">PASO 2</div>
+          <h2 id="titulo-punto-zona">Revisá el punto en el mapa</h2>
+          <p>
+            Arrastrá el marcador o tocá otro lugar del mapa. Analizamos la zona que contiene ese
+            punto.
+          </p>
+          {estado.punto ? (
+            <MapaUbicacion
+              punto={estado.punto}
+              onMover={estado.moverPunto}
+              etiqueta="Mapa de la zona a analizar"
+              marcador={TEXTOS_DEL_MARCADOR}
+              ayudaSinMapa="No se pudo cargar parte del mapa. Igual podés analizar el punto elegido."
+            />
+          ) : (
+            <div className="ubicacion-sin-mapa">
+              Buscá un lugar y elegilo para verlo acá. Si no, escribí un barrio y analizalo directo.
+            </div>
+          )}
+        </section>
+      </div>
+      <div className="zona-otra-acciones">
+        <button
+          className="btn primary"
+          type="button"
+          onClick={() => estado.analizar()}
+          disabled={estado.analizando}
+        >
+          {estado.analizando ? 'Analizando…' : 'Analizar la zona'}
         </button>
-      </form>
+      </div>
       <div className="form-error" role="alert">
-        {error || (analisis.isError ? 'No pudimos analizar esa zona. Probá de nuevo.' : '')}
+        {estado.error}
       </div>
       {resultado ? (
         sinSuficientes(resultado) ? (
@@ -369,11 +403,12 @@ function VistaDeOtraZona() {
             </aside>
           </div>
         )
-      ) : (
+      ) : null}
+      {estado.simulado && (
         <div className="simulation-label">
           <strong>Análisis simulado</strong>
-          Los datos de otra zona son de ejemplo. Cuando exista el servicio real, vas a ver los
-          precios y ventas agregados de los comercios de ese lugar.
+          Los datos de otra zona son de ejemplo. Con el servicio real vas a ver los precios y ventas
+          agregados de los comercios de ese lugar.
         </div>
       )}
     </div>

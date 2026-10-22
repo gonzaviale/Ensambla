@@ -1,11 +1,18 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { crearAlmacenDeEjemplo } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
 import { MINIMO_DE_COMERCIOS } from '@/lib/sistema/zona';
 import { estado } from '@/mocks/db/estado';
+import {
+  DIRECCION_EN_ZONA_CHICA_DE_PRUEBA,
+  DIRECCION_SIN_ZONA_DE_PRUEBA,
+  DIRECCIONES_DE_PRUEBA,
+} from '@/mocks/db/ubicacion';
 import { zonaParaTexto } from '@/mocks/db/zona';
+import { server } from '@/mocks/node';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { renderApp } from '@/test/renderApp';
 import {
@@ -210,7 +217,152 @@ describe('Otra zona', () => {
     await clickButton(user, 'Analizar la zona');
 
     await waitFor(() =>
-      expect(screen.getByRole('alert')).toHaveTextContent('Escribí un barrio o una dirección.'),
+      expect(screen.getByText('Escribí un barrio o una dirección.')).toBeVisible(),
     );
+  });
+});
+
+describe('Otra zona por punto del mapa', () => {
+  const abrirOtraZona = async () => {
+    const abierta = await abrirZona();
+    await abierta.user.click(screen.getByRole('tab', { name: /Otra zona/ }));
+    return abierta;
+  };
+
+  const buscarYElegir = async (
+    user: ReturnType<typeof userEvent.setup>,
+    consulta: string,
+    direccion: string,
+  ) => {
+    await user.type(screen.getByLabelText('Barrio o dirección'), consulta);
+    await clickButton(user, 'Buscar dirección');
+    await user.click(await screen.findByRole('radio', { name: direccion }, ESPERA));
+  };
+
+  it('sin lugar elegido no muestra el mapa y lo explica', async () => {
+    await abrirOtraZona();
+
+    expect(screen.queryByRole('region', { name: 'Mapa de la zona a analizar' })).toBeNull();
+    expect(screen.getByText(/Buscá un lugar y elegilo para verlo acá/)).toBeVisible();
+    expect(screen.getByText('Análisis simulado')).toBeVisible();
+  });
+
+  it('busca una dirección, la elige, ve el mapa y analiza la zona de ese punto', async () => {
+    const { user } = await abrirOtraZona();
+    let pedido: unknown = null;
+    server.use(
+      http.post('/api/zona/analisis', async ({ request }) => {
+        pedido = await request.json();
+        return HttpResponse.json({
+          nombre: 'San Justo - UNLaM',
+          comercios: 10,
+          productos: [
+            {
+              nombre: 'Leche La Serenísima 1 L',
+              comercios: 10,
+              precio: { minimo: 1500, promedio: 1650, maximo: 1800 },
+              ventas: { comercios: 10, unidadesPorSemana: 60 },
+            },
+          ],
+        });
+      }),
+    );
+
+    await buscarYElegir(
+      user,
+      'Florencio Varela 1903, San Justo',
+      DIRECCIONES_DE_PRUEBA[0].direccion,
+    );
+    expect(screen.getByRole('region', { name: 'Mapa de la zona a analizar' })).toBeVisible();
+    await clickButton(user, 'Analizar la zona');
+
+    expect(
+      await screen.findByRole(
+        'heading',
+        { level: 2, name: 'Precios en San Justo - UNLaM' },
+        ESPERA,
+      ),
+    ).toBeVisible();
+    expect(pedido).toEqual({
+      latitud: DIRECCIONES_DE_PRUEBA[0].latitud,
+      longitud: DIRECCIONES_DE_PRUEBA[0].longitud,
+    });
+    expect(document.querySelectorAll('.zona-tarjeta')).toHaveLength(1);
+  });
+
+  it('con los datos de demostración, la zona de San Justo llega ordenada por lo que más se vende', async () => {
+    const { user } = await abrirOtraZona();
+
+    await buscarYElegir(
+      user,
+      'Florencio Varela 1903, San Justo',
+      DIRECCIONES_DE_PRUEBA[0].direccion,
+    );
+    await clickButton(user, 'Analizar la zona');
+
+    await screen.findByRole('heading', { level: 2, name: 'Precios en San Justo - UNLaM' }, ESPERA);
+    const nombres = [...document.querySelectorAll('.zona-tarjeta strong')].map(
+      (nodo) => nodo.textContent,
+    );
+    expect(nombres[0]).toBe('Leche La Serenísima 1 L');
+    // Fernet lo aportan menos de tres comercios: no llega.
+    expect(nombres).not.toContain('Fernet Branca 750 ml');
+  });
+
+  it('una zona con menos de tres comercios no muestra productos', async () => {
+    const { user } = await abrirOtraZona();
+
+    await buscarYElegir(user, 'Ramos Mejía', DIRECCION_EN_ZONA_CHICA_DE_PRUEBA.direccion);
+    await clickButton(user, 'Analizar la zona');
+
+    expect(
+      await screen.findByText(/Hay 2 comercios en esta zona\. Hacen falta al menos 3/, {}, ESPERA),
+    ).toBeVisible();
+    expect(document.querySelectorAll('.zona-tarjeta')).toHaveLength(0);
+  });
+
+  it('un punto fuera de toda zona avisa que todavía no hay datos', async () => {
+    const { user } = await abrirOtraZona();
+
+    await buscarYElegir(user, 'Palermo', DIRECCION_SIN_ZONA_DE_PRUEBA.direccion);
+    await clickButton(user, 'Analizar la zona');
+
+    expect(
+      await screen.findByText('Todavía no tenemos datos de esa zona.', {}, ESPERA),
+    ).toBeVisible();
+    expect(document.querySelectorAll('.zona-tarjeta')).toHaveLength(0);
+  });
+
+  it('un error del servidor se muestra sin datos viejos', async () => {
+    const { user } = await abrirOtraZona();
+    server.use(http.post('/api/zona/analisis', () => HttpResponse.error()));
+
+    await buscarYElegir(
+      user,
+      'Florencio Varela 1903, San Justo',
+      DIRECCIONES_DE_PRUEBA[0].direccion,
+    );
+    await clickButton(user, 'Analizar la zona');
+
+    expect(
+      await screen.findByText('No pudimos analizar esa zona. Probá de nuevo.', {}, ESPERA),
+    ).toBeVisible();
+  });
+
+  it('al elegir otra dirección descarta el análisis anterior', async () => {
+    const { user } = await abrirOtraZona();
+    await buscarYElegir(
+      user,
+      'Florencio Varela 1903, San Justo',
+      DIRECCIONES_DE_PRUEBA[0].direccion,
+    );
+    await clickButton(user, 'Analizar la zona');
+    await screen.findByRole('heading', { level: 2, name: 'Precios en San Justo - UNLaM' }, ESPERA);
+
+    await user.click(screen.getByRole('radio', { name: DIRECCIONES_DE_PRUEBA[1].direccion }));
+
+    expect(
+      screen.queryByRole('heading', { level: 2, name: 'Precios en San Justo - UNLaM' }),
+    ).toBeNull();
   });
 });

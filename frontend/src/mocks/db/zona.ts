@@ -1,4 +1,5 @@
 import { sinDatosInsuficientes, type ProductoDeZona, type Zona } from '@/lib/sistema/zona';
+import { distanciaEnMetros, ZONA_DE_PRUEBA } from './ubicacion';
 
 const producto = (
   nombre: string,
@@ -73,4 +74,41 @@ export function zonaParaTexto(texto: string): Zona {
     };
   });
   return sinDatosInsuficientes({ nombre: limpio, comercios, productos });
+}
+
+// Zonas precargadas que el servidor reconoce por punto: un centro, un radio y cuántos comercios aportan.
+// La de Ramos Mejía tiene pocos comercios a propósito, para ver el caso «sin datos suficientes».
+const ZONAS_POR_PUNTO = [
+  { ...ZONA_DE_PRUEBA, comercios: 10 },
+  {
+    nombre: 'Ramos Mejía - Centro',
+    latitud: -34.6419,
+    longitud: -58.5666,
+    radioMetros: 800,
+    comercios: 2,
+  },
+];
+
+/**
+ * El análisis de la zona que contiene el punto, o `null` si el punto no cae en ninguna zona precargada.
+ * Igual que el servidor: la de centro más cercano, con los productos ordenados por cuántos comercios los
+ * venden y sin productos si aportan menos de tres comercios.
+ */
+export function zonaParaPunto(punto: { latitud: number; longitud: number }): Zona | null {
+  const zona = ZONAS_POR_PUNTO.filter(
+    (candidata) => distanciaEnMetros(candidata, punto) <= candidata.radioMetros,
+  ).sort((a, b) => distanciaEnMetros(a, punto) - distanciaEnMetros(b, punto))[0];
+  if (!zona) return null;
+  const productos = ZONA_EN_CRUDO.productos
+    .map((origen) => ({
+      ...origen,
+      comercios: Math.min(origen.comercios, zona.comercios),
+      ventas: { ...origen.ventas, comercios: Math.min(origen.ventas.comercios, zona.comercios) },
+    }))
+    .sort(
+      (a, b) =>
+        b.ventas.comercios - a.ventas.comercios ||
+        b.ventas.unidadesPorSemana - a.ventas.unidadesPorSemana,
+    );
+  return sinDatosInsuficientes({ nombre: zona.nombre, comercios: zona.comercios, productos });
 }

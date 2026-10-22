@@ -478,3 +478,27 @@ body:has(.zona-page) {
     font-size: 30px;
   }
 }
+
+/* «Otra zona»: buscador y mapa lado a lado; en pantallas angostas, uno debajo del otro. */
+.zona-otra-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.zona-otra-grid > .ubicacion-panel {
+  grid-area: auto;
+}
+.zona-otra-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+@media (max-width: 760px) {
+  .zona-otra-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .zona-otra-acciones .btn {
+    width: 100%;
+  }
+}
