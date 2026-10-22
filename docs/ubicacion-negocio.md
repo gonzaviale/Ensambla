@@ -81,6 +81,23 @@ cercano. Si ninguna lo contiene, `zona_id` queda en `null`: las zonas son datos 
 a demanda. En ese caso la pantalla avisa que todavía no hay una zona que cubra la ubicación.
 Desactivar `comparteDatosZona` persiste el opt-out; no recalcula los agregados estáticos de la migración de demo V10.
 
+### Análisis de otra zona por punto del mapa (ENS-215 / H-45)
+
+Sirve para decidir dónde abrir una sucursal: en «Mi zona → Otra zona» se busca una dirección, se elige, se ajusta el
+punto en el mapa y se analiza. `POST /api/zona/analisis` acepta `{ "latitud", "longitud" }` (rangos ±90 y ±180) o,
+como antes, `{ "lugar" }` con un barrio o una dirección; hace falta uno de los dos (400 si no viene ninguno). Si vienen
+los dos, manda el punto.
+
+- Con punto, `ZonaService.resolver` elige la zona precargada cuyo radio lo contiene (la de centro más cercano si hay
+  varias). Si ninguna lo contiene, 404 «Todavía no tenemos datos de esa zona».
+- Sólo se devuelven los **agregados precalculados** de la zona (`agregado_zona_producto`): precios mínimo, promedio y
+  máximo, cuántos comercios lo venden y unidades por semana. Ningún comercio aparece solo ni con su lugar.
+- Mínimo de 3 comercios: si la zona tiene menos, la respuesta trae el nombre y la cantidad pero `productos` vacío (el
+  front muestra «Hacen falta al menos 3 para mostrar datos»).
+- Los productos salen ordenados por cuántos comercios los venden y, a igualdad, por unidades por semana.
+- **No filtra por rubro**: usa las zonas fijas ya cargadas y sus agregados globales. Filtrar por rubro (y por radio
+  libre alrededor del punto) queda para cuando existan los agregados por rubro de H-38 / H-44.
+
 ## Proveedor y límites
 
 Antes de desplegar, leer la [política de Nominatim](https://operations.osmfoundation.org/policies/nominatim/) y la
