@@ -12,10 +12,22 @@ import {
   ESPERA,
   clickButton,
   setupServerResponse,
-  setupUsuarioConSesion,
+  setupUsuarioConSesion as setupUsuarioBase,
   verifyPathAsync,
   verifyToastAsync,
 } from '@/test/testHelpers';
+
+// Estos casos revisan todas las herramientas; los límites gratuitos tienen pruebas propias.
+const setupUsuarioConSesion = (...args: Parameters<typeof setupUsuarioBase>) => {
+  const usuario = setupUsuarioBase(...args);
+  estado.pruebasPremium.set(usuario.email, {
+    inicioEn: new Date(Date.now() - 1000).toISOString(),
+    finEn: new Date(Date.now() + 7 * 86400000).toISOString(),
+    paginasIaUtilizadas: 0,
+    limitePaginasIa: 10,
+  });
+  return usuario;
+};
 
 const abrirZona = async (conDemo = false) => {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });

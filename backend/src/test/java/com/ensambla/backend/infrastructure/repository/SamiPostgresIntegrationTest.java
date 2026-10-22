@@ -10,6 +10,7 @@ import com.ensambla.backend.domain.dto.sami.EstadoTallerItem;
 import com.ensambla.backend.domain.dto.sami.MensajeTallerItem;
 import com.ensambla.backend.domain.dto.sami.RespuestaSamiItem;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
+import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.domain.useCase.sami.ConversarConSamiUseCase;
 import com.ensambla.backend.domain.useCase.sami.ConversarEnTallerUseCase;
 import com.ensambla.backend.domain.useCase.sami.CrearProyectoDesdeSamiUseCase;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,6 +33,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     private static final UUID VENTAS_ID = UUID.fromString("00000000-0000-4000-8000-0000000000a4");
+
+    @Autowired
+    private SuscripcionService suscripcionService;
 
     @Autowired
     private ConversarConSamiUseCase conversarConSamiUseCase;
@@ -55,6 +60,7 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                 usuarioId, usuarioId + "@example.test");
         jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Prueba Sami', ?)",
                 negocioId, usuarioId);
+        suscripcionService.asignarGratuito(negocioId, OffsetDateTime.parse("2026-01-01T00:00:00Z"));
     }
 
     @AfterEach

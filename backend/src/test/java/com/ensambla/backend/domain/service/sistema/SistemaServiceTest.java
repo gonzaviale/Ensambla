@@ -2,9 +2,12 @@ package com.ensambla.backend.domain.service.sistema;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.sistema.Sistema;
+import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -28,7 +31,9 @@ class SistemaServiceTest {
 
     private final SistemaRepository sistemaRepository = mock(SistemaRepository.class);
     private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
-    private final SistemaService sistemaService = new SistemaService(sistemaRepository, proyectoRepository);
+    private final ControlPlanService controlPlanService = mock(ControlPlanService.class);
+    private final UsoPlanRepository usoPlanRepository = mock(UsoPlanRepository.class);
+    private final SistemaService sistemaService = new SistemaService(sistemaRepository, proyectoRepository, controlPlanService, usoPlanRepository);
 
     @Test
     @DisplayName("Listar devuelve los sistemas del negocio")
@@ -78,6 +83,21 @@ class SistemaServiceTest {
         sistemaService.eliminar(NEGOCIO_ID, PROYECTO_ID);
 
         verify(proyectoRepository).deleteByIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID);
+    }
+
+    @Test
+    @DisplayName("Guardar valida sólo el incremento de registros del sistema completo")
+    void guardarShouldValidateOnlyAdditionalRows() {
+        Sistema vacio = givenSistema();
+        Sistema conFilas = new Sistema(vacio.proyecto(), List.of(), Map.of(UUID.randomUUID(),
+                List.of(Registro.builder().build(), Registro.builder().build())));
+        when(sistemaRepository.findNegocioIdByProyectoId(PROYECTO_ID)).thenReturn(Optional.of(NEGOCIO_ID));
+        when(usoPlanRepository.contarRegistrosProyecto(NEGOCIO_ID, PROYECTO_ID)).thenReturn(1L);
+
+        sistemaService.guardar(NEGOCIO_ID, conFilas);
+
+        verify(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 1, null);
+        verify(sistemaRepository).guardar(conFilas);
     }
 
     // --- arrange ---

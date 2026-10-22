@@ -23,11 +23,12 @@ npm run dev        # http://localhost:5173 (proxy /api → http://localhost:8080
 
 | Valor | Comportamiento |
 |---|---|
-| `parcial` | Backend real (sesión, planes, prueba, pagos, fotos, avisos, configuración del negocio y ubicación) salvo sistemas, preferencias, Sami y zona |
+| `parcial` | Todas las rutas actuales usan el backend real; se mantiene el valor por compatibilidad |
 | `completo` | Todo simulado con MSW; no hace falta backend |
 | `ninguno` (default) | Todo contra el backend real, incluidos registro, login y logout |
 
-La sesión se guarda en una cookie HttpOnly del servidor. TanStack Query mantiene la identidad del usuario
+La sesión se guarda en la cookie HttpOnly `ENSAMBLA_SESSION`, con dos horas de inactividad por defecto.
+TanStack Query mantiene la identidad del usuario
 en memoria; los guards revalidan la sesión al navegar a rutas privadas. Logout vuelve a `/login`.
 El formulario de registro incluye nombre del negocio y muestra errores del cliente y del servidor.
 Los tests usan MSW completo y un entorno jsdom que conserva los AbortSignal nativos de Node para fetch.
@@ -52,8 +53,10 @@ tras éxito o error, al recuperar el foco y periódicamente; cerca del vencimien
 servidor para actualizar el estado. Un 403 con código comercial se conserva sin repetir la escritura.
 
 `completo` simula planes y conserva el historial de prueba en la base local de demostración;
-`parcial` y `ninguno` usan el backend real para este contrato. En `parcial`, los contadores de planes
-son reales y los sistemas del editor siguen siendo simulados; no deben usarse para validar cuotas.
+`parcial` y `ninguno` usan el backend real, incluidos sistemas, preferencias, Sami y zona. Para validar
+los límites comerciales usá el backend y PostgreSQL reales; `completo` sigue siendo una simulación.
+Gratuito incluye tres avisos mensuales y tres recomendaciones mensuales compartidas entre Mi zona y
+Otra zona. Los cupos se guardan por negocio en el servidor y el contenido adicional invita a Planes.
 Detalle de pruebas y entorno local aislado en [plan-ENS-97.md](../docs/plan-ENS-97.md).
 
 ### Renovación automática (ENS-98)

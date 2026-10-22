@@ -1,9 +1,16 @@
+import { contenidoDe } from '../db/contenidoPlan';
 import { delay, http, HttpResponse } from 'msw';
 import { estado } from '../db/estado';
 import { planesDe } from '../db/planes';
 import { api, cuenta, LATENCIA_BACKEND_MS, pathDe } from './comun';
 
 export const handlersPlanes = [
+  http.post(api('/planes/contenidos'), async ({ request }) => {
+    const sesion = cuenta(request, true);
+    if (sesion.error) return sesion.error;
+    const pedido = (await request.json()) as { tipo: 'AVISOS' | 'ZONA'; claves: string[] };
+    return HttpResponse.json(contenidoDe(sesion.usuario.email, pedido.tipo, pedido.claves));
+  }),
   http.get(api('/planes/renovacion'), async ({ request }) => {
     const sesion = cuenta(request);
     if (sesion.error) return sesion.error;

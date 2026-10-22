@@ -82,7 +82,7 @@ class SesionAdapterTest {
     private void thenCerrarShouldInvalidateSessionAndClearCookie(
             MockHttpSession session, MockHttpServletResponse response) {
         assertThat(session.isInvalid()).isTrue();
-        assertThat(response.getCookie("SESSION").getMaxAge()).isZero();
+        assertThat(response.getCookie("ENSAMBLA_SESSION").getMaxAge()).isZero();
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 

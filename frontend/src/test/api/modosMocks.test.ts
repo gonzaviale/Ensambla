@@ -27,10 +27,10 @@ describe('API simulada según VITE_API_MOCKS', () => {
     );
   });
 
-  it('en modo parcial simula lo que el backend no tiene y deja la sesión al real', () => {
+  it('en modo parcial deja todas las rutas implementadas al backend real', () => {
     const parcial = rutas('parcial');
 
-    expect(parcial).toEqual(expect.arrayContaining(['GET /sistemas', 'PUT /preferencias']));
+    expect(parcial).toEqual([]);
     expect(parcial.filter((ruta) => ruta.includes('/auth/'))).toEqual([]);
   });
 

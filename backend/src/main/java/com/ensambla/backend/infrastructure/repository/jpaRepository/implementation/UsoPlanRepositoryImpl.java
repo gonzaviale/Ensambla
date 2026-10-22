@@ -35,6 +35,14 @@ public class UsoPlanRepositoryImpl implements UsoPlanRepository {
     }
 
     @Override
+    public long contarRegistrosProyecto(UUID negocioId, UUID proyectoId) {
+        return jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM registro r JOIN bloque b ON b.id = r.bloque_id AND b.negocio_id = r.negocio_id
+                WHERE r.negocio_id = ? AND b.proyecto_id = ?
+                """, Long.class, negocioId, proyectoId);
+    }
+
+    @Override
     public long paginasEnPeriodo(UUID negocioId, LocalDate desde, LocalDate hasta) {
         return jdbcTemplate.queryForObject("""
                 SELECT COALESCE(sum(paginas::bigint + reservadas), 0)
