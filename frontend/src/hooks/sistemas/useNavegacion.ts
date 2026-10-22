@@ -1,3 +1,5 @@
+import { guardarSistema } from '@/api/sistemas';
+import { ApiError } from '@/api/apiError';
 import { useNavigate } from '@tanstack/react-router';
 import { useUsuario } from '@/hooks/auth/queries';
 import { usePreferencias } from '@/hooks/preferencias/queries';
@@ -69,9 +71,21 @@ export function useNavegacion() {
     irASami: () => irA('/sami'),
     abrirSistema,
     /** saveNew() del mockup: guarda el sistema nuevo y lo abre. */
-    crearYAbrir: (sistema: Sistema, modo: ModoDelEditor = 'use') => {
-      useSistemaStore.getState().agregarSistema(sistema);
-      return abrirSistema(sistema.id, modo, true);
+    crearYAbrir: async (sistema: Sistema, modo: ModoDelEditor = 'use') => {
+      try {
+        const guardado = await guardarSistema(sistema);
+        useSistemaStore.getState().agregarSistema(guardado);
+        useSistemaStore.getState().marcarGuardados([guardado.id], []);
+        await abrirSistema(guardado.id, modo, true);
+      } catch (error) {
+        useSistemaStore
+          .getState()
+          .avisar(
+            error instanceof ApiError
+              ? `${error.message}${error.status === 403 && error.codigo ? ' Revisá los beneficios de Premium en Planes.' : ''}`
+              : 'No pudimos crear tu sistema. Tus datos todavía no se guardaron. Probá de nuevo.',
+          );
+      }
     },
     /** «Mis sistemas»: vuelve al inicio y baja a la lista, o explica por dónde empezar. */
     irAMisSistemas: async () => {

@@ -1,3 +1,4 @@
+import { ContenidoPremium } from '@/components/planes/ContenidoPremium';
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { GRUPOS, pesos, type GrupoDeAviso } from '@/lib/sistema/alertas';
 import { MINIMO_DE_COMERCIOS } from '@/lib/sistema/zona';
@@ -32,6 +33,7 @@ function conClaseEnRaiz(clase: string, activa: boolean) {
 export function PanelDeAvisos() {
   const panel = useSistemaStore((estado) => estado.panel);
   const avisos = useSistemaStore((estado) => estado.avisos);
+  const acceso = useSistemaStore((estado) => estado.accesoAvisos);
   const sistemas = useSistemaStore((estado) => estado.sistemas);
   const cerrarPanel = useSistemaStore((estado) => estado.cerrarPanel);
   const actualizarPanel = useSistemaStore((estado) => estado.actualizarPanel);
@@ -189,7 +191,8 @@ export function PanelDeAvisos() {
             </h2>
             <p>
               {avisos.length > 0 &&
-                `${urgentes ? `${urgentes} para resolver pronto · ` : ''}${avisos.length} en total. `}
+                `${urgentes ? `${urgentes} para resolver pronto · ` : ''}${avisos.length} ${acceso?.bloqueadas ? 'visibles' : 'en total'}. `}
+              {acceso?.bloqueadas ? `${acceso.bloqueadas} más con Premium. ` : ''}
               Miré {sistemas.length === 1 ? '1 sistema' : `${sistemas.length} sistemas`}{' '}
               {zonaSuficiente
                 ? `y los datos de tu zona (${zona.comercios} comercios, sin nombres).`
@@ -313,6 +316,7 @@ export function PanelDeAvisos() {
               </button>
             </div>
             <div className="alertas-lista">
+              <ContenidoPremium acceso={acceso} recurso="avisos" />
               {lista.length ? (
                 tarjetas(lista)
               ) : (

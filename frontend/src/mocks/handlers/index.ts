@@ -10,10 +10,7 @@ import { handlersUbicacion } from './ubicacion';
 import { handlersNegocio } from './negocio';
 import { handlersPlanes } from './planes';
 
-// Los sistemas, las preferencias y la zona ya están en el backend (/api/sistemas, /api/preferencias, /api/zona):
-// el modo parcial los simula igual para trabajar la pantalla sin levantar el servidor.
-// La lectura de fotos, los avisos, la búsqueda de ubicación y rubros, las plantillas, «Armalo con Sami» y la charla
-// del taller con Sami sí están en el backend, así que sólo se simulan en el modo completo.
+// Las rutas actuales ya existen en el backend. Sólo el modo completo las simula para tests y demos.
 const handlersDelSistema = [...handlersSistemas, ...handlersZona];
 
 // completo: todo simulado | parcial: sólo lo que el backend todavía no tiene | ninguno: backend real.
@@ -30,6 +27,6 @@ export function handlersPara(modo: ModoMocks) {
       ...handlersSamiProyecto,
       ...handlersSamiTaller,
     ];
-  if (modo === 'parcial') return handlersDelSistema;
+  if (modo === 'parcial') return []; // Las rutas ya implementadas usan el backend real.
   return [];
 }

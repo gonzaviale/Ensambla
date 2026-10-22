@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.mapper.aviso.AvisoItemMapper;
 import com.ensambla.backend.domain.service.aviso.AvisoService;
 import com.ensambla.backend.domain.service.aviso.MotorAvisosService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.AccesoContenidoService;
 import com.ensambla.backend.domain.useCase.aviso.AplicarAvisoUseCase;
 import com.ensambla.backend.domain.useCase.aviso.ContarAvisosUseCase;
 import com.ensambla.backend.domain.useCase.aviso.DescartarAvisoUseCase;
@@ -34,8 +35,8 @@ public class AvisoUseCaseConfig {
     public ListarAvisosUseCase listarAvisosUseCase(
             NegocioService negocioService,
             AvisoService avisoService,
-            AvisoItemMapper avisoItemMapper) {
-        return new ListarAvisosUseCase(negocioService, avisoService, avisoItemMapper);
+            AvisoItemMapper avisoItemMapper, AccesoContenidoService accesoContenidoService, Clock clock) {
+        return new ListarAvisosUseCase(negocioService, avisoService, avisoItemMapper, accesoContenidoService, clock);
     }
 
     @Bean
@@ -48,8 +49,8 @@ public class AvisoUseCaseConfig {
             NegocioService negocioService,
             AvisoService avisoService,
             AvisoItemMapper avisoItemMapper,
-            Clock clock) {
-        return new AplicarAvisoUseCase(negocioService, avisoService, avisoItemMapper, clock);
+            Clock clock, AccesoContenidoService accesoContenidoService) {
+        return new AplicarAvisoUseCase(negocioService, avisoService, avisoItemMapper, clock, accesoContenidoService);
     }
 
     @Bean
@@ -57,7 +58,7 @@ public class AvisoUseCaseConfig {
             NegocioService negocioService,
             AvisoService avisoService,
             AvisoItemMapper avisoItemMapper,
-            Clock clock) {
-        return new DescartarAvisoUseCase(negocioService, avisoService, avisoItemMapper, clock);
+            Clock clock, AccesoContenidoService accesoContenidoService) {
+        return new DescartarAvisoUseCase(negocioService, avisoService, avisoItemMapper, clock, accesoContenidoService);
     }
 }

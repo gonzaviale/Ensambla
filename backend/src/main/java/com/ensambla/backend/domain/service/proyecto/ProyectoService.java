@@ -51,6 +51,7 @@ public class ProyectoService {
     @Transactional
     public Proyecto crearDesdePlantilla(UUID negocioId, PlantillaProyecto plantilla, String nombre,
                                         List<ConfiguracionCampo> columnasExtra, OffsetDateTime ahora) {
+        controlPlanService.validarAltaProyecto(negocioId, ahora);
         Proyecto proyecto = Proyecto.desdePlantilla(negocioId, plantilla, ahora);
         proyecto.agregarColumnas(columnasExtra, ahora);
         if (nombre != null && !nombre.isBlank()) {

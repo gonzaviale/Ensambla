@@ -4,14 +4,17 @@ import com.ensambla.backend.domain.dto.aviso.AvisoItem;
 import com.ensambla.backend.domain.dto.aviso.ContadorAvisos;
 import com.ensambla.backend.domain.dto.aviso.ListarAvisosRequest;
 import com.ensambla.backend.domain.dto.aviso.ResolverAvisoRequest;
+import com.ensambla.backend.domain.dto.plan.AccesoContenidoItem;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.mapper.aviso.AvisoItemMapper;
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.enums.EstadoAviso;
 import com.ensambla.backend.domain.service.aviso.AvisoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.AccesoContenidoService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Answers;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -39,6 +42,13 @@ class AvisoUseCasesTest {
 
     private final NegocioService negocioService = mock(NegocioService.class);
     private final AvisoService avisoService = mock(AvisoService.class);
+    private final AccesoContenidoService accesoContenidoService = mock(AccesoContenidoService.class, invocation -> {
+        if (invocation.getMethod().getName().equals("seleccionar")) {
+            List<String> claves = invocation.getArgument(2);
+            return new AccesoContenidoItem(claves, 0, null, claves.size(), 0, AHORA.plusMonths(1));
+        }
+        return Answers.RETURNS_DEFAULTS.answer(invocation);
+    });
     private final AvisoItemMapper avisoItemMapper = new AvisoItemMapper();
 
     @Test
@@ -47,7 +57,7 @@ class AvisoUseCasesTest {
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(avisoService.listar(NEGOCIO_ID, EstadoAviso.PENDIENTE)).thenReturn(List.of(givenAviso()));
 
-        List<AvisoItem> result = new ListarAvisosUseCase(negocioService, avisoService, avisoItemMapper)
+        List<AvisoItem> result = new ListarAvisosUseCase(negocioService, avisoService, avisoItemMapper, accesoContenidoService, CLOCK)
                 .execute(new ListarAvisosRequest(USUARIO_ID, EstadoAviso.PENDIENTE));
 
         assertThat(result).extracting(AvisoItem::id).containsExactly(AVISO_ID);
@@ -72,7 +82,7 @@ class AvisoUseCasesTest {
         when(avisoService.obtener(AVISO_ID, NEGOCIO_ID)).thenReturn(aviso);
         when(avisoService.aplicar(aviso, AHORA)).thenReturn(aviso);
 
-        AvisoItem result = new AplicarAvisoUseCase(negocioService, avisoService, avisoItemMapper, CLOCK)
+        AvisoItem result = new AplicarAvisoUseCase(negocioService, avisoService, avisoItemMapper, CLOCK, accesoContenidoService)
                 .execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID));
 
         assertThat(result.id()).isEqualTo(AVISO_ID);
@@ -85,7 +95,7 @@ class AvisoUseCasesTest {
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(avisoService.obtener(AVISO_ID, NEGOCIO_ID)).thenThrow(new ResourceNotFoundException("El aviso no existe"));
 
-        assertThatThrownBy(() -> new AplicarAvisoUseCase(negocioService, avisoService, avisoItemMapper, CLOCK)
+        assertThatThrownBy(() -> new AplicarAvisoUseCase(negocioService, avisoService, avisoItemMapper, CLOCK, accesoContenidoService)
                 .execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID)))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(avisoService).obtener(AVISO_ID, NEGOCIO_ID);
@@ -100,7 +110,7 @@ class AvisoUseCasesTest {
         when(avisoService.obtener(AVISO_ID, NEGOCIO_ID)).thenReturn(aviso);
         when(avisoService.descartar(any(Aviso.class), any(OffsetDateTime.class))).thenReturn(aviso);
 
-        AvisoItem result = new DescartarAvisoUseCase(negocioService, avisoService, avisoItemMapper, CLOCK)
+        AvisoItem result = new DescartarAvisoUseCase(negocioService, avisoService, avisoItemMapper, CLOCK, accesoContenidoService)
                 .execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID));
 
         assertThat(result.id()).isEqualTo(AVISO_ID);

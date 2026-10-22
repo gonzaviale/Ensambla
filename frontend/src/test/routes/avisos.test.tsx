@@ -13,10 +13,22 @@ import {
   ESPERA,
   clickButton,
   setupServerError,
-  setupUsuarioConSesion,
+  setupUsuarioConSesion as setupUsuarioBase,
   verifyHeadingPresentAsync,
   verifyToastAsync,
 } from '@/test/testHelpers';
+
+// Estos casos revisan todas las herramientas; los límites gratuitos tienen pruebas propias.
+const setupUsuarioConSesion = (...args: Parameters<typeof setupUsuarioBase>) => {
+  const usuario = setupUsuarioBase(...args);
+  estado.pruebasPremium.set(usuario.email, {
+    inicioEn: new Date(Date.now() - 1000).toISOString(),
+    finEn: new Date(Date.now() + 7 * 86400000).toISOString(),
+    paginasIaUtilizadas: 0,
+    limitePaginasIa: 10,
+  });
+  return usuario;
+};
 
 const abrirConDemo = async (ruta: 'usar' | 'construir' = 'usar', configurado = false) => {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
@@ -337,8 +349,11 @@ describe('los avisos del motor del servidor', () => {
   it('aparecen en la campana y en el panel junto con los del navegador', async () => {
     const { user } = await abrirConAvisosDelServidor(avisoDelServidor());
 
+    await waitFor(
+      () => expect(useSistemaStore.getState().avisos.length).toBeGreaterThan(1),
+      ESPERA,
+    );
     const total = useSistemaStore.getState().avisos.length;
-    expect(total).toBeGreaterThan(1);
     expect(screen.getByRole('button', { name: `Avisos de Sami: ${total}` })).toHaveClass('urgente');
     await abrirPanel(user);
     expect(

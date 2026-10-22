@@ -76,7 +76,7 @@ class ZonaControllerTest {
                         .content("{\"lugar\":\"San Justo\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("San Justo - UNLaM"));
-        verify(analizarZonaUseCase).execute(new AnalizarZonaRequest("San Justo"));
+        verify(analizarZonaUseCase).execute(new AnalizarZonaRequest("San Justo", USUARIO_ID));
     }
 
     @Test

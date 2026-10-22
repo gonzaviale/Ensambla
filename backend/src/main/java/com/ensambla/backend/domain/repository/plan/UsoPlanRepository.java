@@ -13,6 +13,8 @@ public interface UsoPlanRepository {
 
     long contarRegistros(UUID negocioId);
 
+    long contarRegistrosProyecto(UUID negocioId, UUID proyectoId);
+
     /** Páginas procesadas y reservadas, desde inclusive y hasta exclusive, en días UTC. */
     long paginasEnPeriodo(UUID negocioId, LocalDate desde, LocalDate hasta);
 

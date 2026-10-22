@@ -1,19 +1,20 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.model.enums.EstadoUsuario;
+import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
 import com.ensambla.backend.infrastructure.repository.entity.UsuarioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.INegocioJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IProyectoJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IUsuarioJpaRepository;
+import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import jakarta.servlet.Filter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
@@ -22,7 +23,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,13 +42,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Los endpoints que carga la pantalla al entrar: sistemas, preferencias y zona. */
-@SpringBootTest
-@ActiveProfiles("h2-test")
 @Transactional
-class SistemaSeguridadIntegrationTest {
+class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     private static final String SISTEMA_ID = "e0b5e2c3a-6d8f-4f1e-9a47-3c2d1e0f9a8b";
     private static final UUID SISTEMA_UUID = UUID.fromString("0b5e2c3a-6d8f-4f1e-9a47-3c2d1e0f9a8b");
+
+    @Autowired
+    private SuscripcionService suscripcionService;
 
     @Autowired
     private WebApplicationContext context;
@@ -247,12 +248,14 @@ class SistemaSeguridadIntegrationTest {
     }
 
     private UUID givenNegocio(UUID usuarioId) {
-        return negocios.saveAndFlush(NegocioEntity.builder()
+        UUID creado = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId)
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
+        suscripcionService.asignarGratuito(creado, AHORA.minusDays(1));
+        return creado;
     }
 
     private UUID givenUsuarioConNegocio() {

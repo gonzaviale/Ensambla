@@ -3,6 +3,7 @@ package com.ensambla.backend.infrastructure.config.useCase;
 import com.ensambla.backend.domain.mapper.zona.ZonaItemMapper;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.ubicacion.UbicacionService;
+import com.ensambla.backend.domain.service.zona.AccesoZonaService;
 import com.ensambla.backend.domain.service.zona.AgregadoZonaService;
 import com.ensambla.backend.domain.service.zona.ZonaService;
 import com.ensambla.backend.domain.useCase.zona.AnalizarZonaUseCase;
@@ -25,8 +26,9 @@ public class ZonaUseCaseConfig {
             NegocioService negocioService,
             ZonaService zonaService,
             AgregadoZonaService agregadoZonaService,
-            ZonaItemMapper zonaItemMapper) {
-        return new ObtenerZonaUseCase(negocioService, zonaService, agregadoZonaService, zonaItemMapper);
+            ZonaItemMapper zonaItemMapper, AccesoZonaService accesoZonaService, Clock clock) {
+        return new ObtenerZonaUseCase(negocioService, zonaService, agregadoZonaService, zonaItemMapper,
+                accesoZonaService, clock);
     }
 
     @Bean
@@ -35,7 +37,8 @@ public class ZonaUseCaseConfig {
             UbicacionService ubicacionService,
             AgregadoZonaService agregadoZonaService,
             ZonaItemMapper zonaItemMapper,
-            Clock clock) {
-        return new AnalizarZonaUseCase(zonaService, ubicacionService, agregadoZonaService, zonaItemMapper, clock);
+            Clock clock, NegocioService negocioService, AccesoZonaService accesoZonaService) {
+        return new AnalizarZonaUseCase(zonaService, ubicacionService, agregadoZonaService, zonaItemMapper, clock,
+                negocioService, accesoZonaService);
     }
 }

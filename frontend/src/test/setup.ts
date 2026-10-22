@@ -42,6 +42,7 @@ afterEach(async () => {
   useSistemaStore.getState().reiniciar();
   invalidarCsrf();
   localStorage.clear();
+  sessionStorage.clear();
 });
 
 afterAll(() => server.close());
