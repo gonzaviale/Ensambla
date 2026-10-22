@@ -11,6 +11,8 @@ services:
       dockerfile: ../deploy/web.Dockerfile
     container_name: ensambla-web
     restart: unless-stopped
+    labels:
+      ensambla.commit: ${GIT_SHA:-desconocido}
     depends_on:
       - backend
     environment:
@@ -29,6 +31,9 @@ services:
       context: ../backend
     container_name: ensambla-backend
     restart: unless-stopped
+    # Lo completa deploy.sh con el commit desplegado (docker inspect lo muestra).
+    labels:
+      ensambla.commit: ${GIT_SHA:-desconocido}
     depends_on:
       postgres:
         condition: service_healthy
