@@ -1,3 +1,4 @@
+import type { QueryClient } from '@tanstack/react-query';
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -47,10 +48,15 @@ const abrirConDemo = async (ruta: 'usar' | 'construir' = 'usar', configurado = f
     });
   const sistema = crearAlmacenDeEjemplo(hoy());
   estado.sistemas.set(usuario.email, [sistema]);
-  renderApp(`/sistemas/${sistema.id}?modo=${ruta}`);
+  const router = renderApp(`/sistemas/${sistema.id}?modo=${ruta}`);
   await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
   await waitFor(() => expect(useSistemaStore.getState().avisos.length).toBeGreaterThan(0), ESPERA);
-  return { user: userEvent.setup(), sistema, usuario };
+  return {
+    user: userEvent.setup(),
+    sistema,
+    usuario,
+    cliente: router.options.context.queryClient as QueryClient,
+  };
 };
 
 const productoDe = (sistema: Sistema | undefined, nombre: string) =>
@@ -300,8 +306,21 @@ describe('sin datos y con el almacén de ejemplo', () => {
 
 describe('«Sami vio un cambio»', () => {
   it('no avisa al abrir, pero sí cuando un cambio genera un aviso nuevo', async () => {
-    await abrirConDemo();
+    const { cliente } = await abrirConDemo();
     expect(document.getElementById('sami-aviso')).toBeNull();
+    // Mientras cargan los avisos del servidor el motor todavía no tomó su línea base: sin esperarlos, el cambio
+    // de abajo quedaría incluido en ella y no se avisaría.
+    await waitFor(
+      () => expect(cliente.isFetching({ queryKey: ['avisos', 'pendientes'] })).toBe(0),
+      ESPERA,
+    );
+    await waitFor(
+      () => expect(cliente.getQueryState(['avisos', 'pendientes'])?.status).toBe('success'),
+      ESPERA,
+    );
+    await act(async () => {
+      await new Promise((resolver) => setTimeout(resolver, 50));
+    });
 
     // Bajar la gaseosa por debajo de su mínimo: aparece un aviso de stock nuevo.
     act(() => {
@@ -313,15 +332,11 @@ describe('«Sami vio un cambio»', () => {
       });
     });
 
-    // El aviso nuevo espera a que el servidor autorice las claves recalculadas; en CI esa vuelta tarda más de 5 s.
-    const aviso = await waitFor(
-      () => {
-        const nodo = document.getElementById('sami-aviso');
-        if (!nodo) throw new Error('Todavía no apareció');
-        return nodo;
-      },
-      { timeout: 15_000 },
-    );
+    const aviso = await waitFor(() => {
+      const nodo = document.getElementById('sami-aviso');
+      if (!nodo) throw new Error('Todavía no apareció');
+      return nodo;
+    }, ESPERA);
     expect(within(aviso).getByText('Sami vio un cambio')).toBeVisible();
     expect(within(aviso).getByText('Coca-Cola 2,25 L está por debajo del mínimo')).toBeVisible();
 
