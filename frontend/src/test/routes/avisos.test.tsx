@@ -313,11 +313,15 @@ describe('«Sami vio un cambio»', () => {
       });
     });
 
-    const aviso = await waitFor(() => {
-      const nodo = document.getElementById('sami-aviso');
-      if (!nodo) throw new Error('Todavía no apareció');
-      return nodo;
-    }, ESPERA);
+    // El aviso nuevo espera a que el servidor autorice las claves recalculadas; en CI esa vuelta tarda más de 5 s.
+    const aviso = await waitFor(
+      () => {
+        const nodo = document.getElementById('sami-aviso');
+        if (!nodo) throw new Error('Todavía no apareció');
+        return nodo;
+      },
+      { timeout: 15_000 },
+    );
     expect(within(aviso).getByText('Sami vio un cambio')).toBeVisible();
     expect(within(aviso).getByText('Coca-Cola 2,25 L está por debajo del mínimo')).toBeVisible();
 
