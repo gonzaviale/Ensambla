@@ -1,5 +1,6 @@
 import { recuperarBorradorSesion } from '@/lib/borradorSesion';
 import { create } from 'zustand';
+import type { AccesoContenido } from '@/types/contenidoPlan';
 import { clone } from '@/lib/sistema/core';
 import type { Aviso, Respuesta } from '@/lib/sistema/alertas';
 import type { Bloque, ClavePlantilla, Seccion, Sistema } from '@/lib/sistema/tipos';
@@ -113,6 +114,7 @@ type EstadoDelStore = {
   taller: Taller | null;
   /** Los avisos de Sami que la persona todavía no descartó. Los calcula el motor de avisos. */
   avisos: Aviso[];
+  accesoAvisos: Pick<AccesoContenido, 'usadas' | 'limite' | 'bloqueadas' | 'finPeriodo'> | null;
   panel: PanelDeAvisos;
   /** «Sami vio un cambio»: el aviso nuevo que se muestra un rato arriba a la derecha. */
   avisoNuevo: { aviso: Aviso; cantidad: number } | null;
@@ -176,6 +178,7 @@ const ESTADO_INICIAL: EstadoDelStore = {
   modal: null,
   taller: null,
   avisos: [],
+  accesoAvisos: null,
   panel: PANEL_CERRADO,
   avisoNuevo: null,
   tutorial: TUTORIAL_INICIAL,

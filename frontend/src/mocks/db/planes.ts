@@ -25,7 +25,13 @@ const CATALOGO: Plan[] = [
     limiteProyectos: null,
     limiteRegistros: null,
     limitePaginasIaMensuales: 100,
-    funciones: ['RECETAS_COSTOS', 'REPORTES_FILTRADOS', 'EXPORTAR_EXCEL'],
+    funciones: [
+      'RECETAS_COSTOS',
+      'REPORTES_FILTRADOS',
+      'EXPORTAR_EXCEL',
+      'AVISOS_COMPLETOS',
+      'ZONA_COMPLETA',
+    ],
   },
 ];
 
@@ -52,7 +58,9 @@ export function planesDe(email: string, ahora = new Date()): Planes {
     uso: {
       proyectos: sistemas.length,
       registros: sistemas.reduce((suma, sistema) => suma + totals(sistema).records, 0),
-      paginasIa: activa ? prueba.paginasIaUtilizadas : 0,
+      paginasIa: activa
+        ? prueba.paginasIaUtilizadas
+        : (estado.paginasIa.get(`${email}|${ahora.toISOString().slice(0, 7)}`) ?? 0),
       limitePaginasIa: 10,
       periodoIa: activa ? 'PRUEBA' : 'MENSUAL',
       inicioPeriodoIa: activa ? prueba.inicioEn : inicioMes.toISOString(),

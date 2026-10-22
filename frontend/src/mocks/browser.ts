@@ -15,6 +15,7 @@ type Guardado = {
   preferencias: Record<string, Preferencias>;
   negocios: Record<string, ConfiguracionNegocio>;
   pruebasPremium: Record<string, PruebaPremium>;
+  contenidosDesbloqueados?: Record<string, string[]>;
 };
 
 // La API simulada vive en memoria: en el navegador se copia a localStorage para que los sistemas y las
@@ -25,6 +26,9 @@ function restaurar() {
     if (!crudo) return;
     const guardado = JSON.parse(crudo) as Partial<Guardado>;
     estado.sistemas = new Map(Object.entries(guardado.sistemas ?? {}));
+    estado.contenidosDesbloqueados = new Map(
+      Object.entries(guardado.contenidosDesbloqueados ?? {}),
+    );
     estado.preferencias = new Map(Object.entries(guardado.preferencias ?? {}));
     estado.negocios = new Map(Object.entries(guardado.negocios ?? {}));
     estado.pruebasPremium = new Map(
@@ -45,6 +49,7 @@ function conservar() {
       preferencias: Object.fromEntries(estado.preferencias),
       negocios: Object.fromEntries(estado.negocios),
       pruebasPremium: Object.fromEntries(estado.pruebasPremium),
+      contenidosDesbloqueados: Object.fromEntries(estado.contenidosDesbloqueados),
     };
     localStorage.setItem(CLAVE, JSON.stringify(guardado));
   } catch {

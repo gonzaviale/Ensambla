@@ -21,5 +21,6 @@ const SIN_AVISOS: AvisoDelServidor[] = [];
 
 /** Los avisos pendientes del motor del servidor; vacío mientras carga o si falla. */
 export function useAvisosDelServidor() {
-  return useQuery(avisosPendientesQuery()).data ?? SIN_AVISOS;
+  const consulta = useQuery(avisosPendientesQuery());
+  return { avisos: consulta.data ?? SIN_AVISOS, cargando: consulta.isPending };
 }

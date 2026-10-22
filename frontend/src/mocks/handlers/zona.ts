@@ -1,3 +1,4 @@
+import { zonaConAcceso } from '../db/contenidoPlan';
 import { delay, http, HttpResponse } from 'msw';
 import { pedidoDeAnalisisSchema } from '@/types/zona';
 import { zonaDeLaPersona, zonaParaTexto } from '../db/zona';
@@ -9,20 +10,20 @@ const DEMORA_DEL_ANALISIS_MS = import.meta.env.MODE === 'test' ? 0 : 650;
 // La zona llega siempre agregada: el mínimo de tres comercios se aplica acá, antes de entregar nada.
 export const handlersZona = [
   http.get(api('/zona/agregados'), async ({ request }) => {
-    const { error } = cuenta(request);
+    const { usuario, error } = cuenta(request);
     if (error) return error;
     await delay(LATENCIA_BACKEND_MS);
-    return HttpResponse.json(zonaDeLaPersona());
+    return HttpResponse.json(zonaConAcceso(usuario.email, zonaDeLaPersona()));
   }),
 
   http.post(api('/zona/analisis'), async ({ request }) => {
-    const { error } = cuenta(request, true);
+    const { usuario, error } = cuenta(request, true);
     if (error) return error;
     await delay(DEMORA_DEL_ANALISIS_MS);
     const pedido = pedidoDeAnalisisSchema.safeParse(await request.json());
     if (!pedido.success) {
       return errorResponse(400, 'Escribí un barrio o una dirección', pathDe(request));
     }
-    return HttpResponse.json(zonaParaTexto(pedido.data.lugar));
+    return HttpResponse.json(zonaConAcceso(usuario.email, zonaParaTexto(pedido.data.lugar)));
   }),
 ];

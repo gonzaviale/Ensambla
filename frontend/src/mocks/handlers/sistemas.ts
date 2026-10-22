@@ -1,3 +1,5 @@
+import { planesDe } from '../db/planes';
+import { totals } from '@/lib/sistema/core';
 import { delay, http, HttpResponse } from 'msw';
 import { preferenciasSchema } from '@/types/preferencias';
 import { sistemaSchema } from '@/types/sistema';
@@ -40,6 +42,24 @@ export const handlersSistemas = [
       return errorResponse(400, 'El id del sistema no coincide con la dirección', pathDe(request));
     }
     const actuales = sistemasDe(usuario.email);
+    if (planesDe(usuario.email).suscripcion.codigoPlanActual === 'GRATUITO') {
+      const anterior = actuales.find((sistema) => sistema.id === cuerpo.data.id);
+      const cantidad = actuales.reduce((total, sistema) => total + totals(sistema).records, 0);
+      const nuevas = totals(cuerpo.data).records - (anterior ? totals(anterior).records : 0);
+      if ((!anterior && actuales.length >= 1) || (nuevas > 0 && cantidad + nuevas > 1000))
+        return HttpResponse.json(
+          {
+            timestamp: new Date().toISOString(),
+            status: 403,
+            error: 'Forbidden',
+            path: pathDe(request),
+            traceId: crypto.randomUUID(),
+            message: 'Alcanzaste el límite de tu plan. Conocé Premium en Planes.',
+            codigo: 'LIMITE_PLAN',
+          },
+          { status: 403 },
+        );
+    }
     const existe = actuales.some((sistema) => sistema.id === cuerpo.data.id);
     guardarSistemasDe(
       usuario.email,

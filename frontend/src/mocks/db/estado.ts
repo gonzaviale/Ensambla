@@ -21,6 +21,8 @@ type Estado = {
   /** Los avisos que el motor del servidor dejó a cada cuenta (por email); los tests los siembran. */
   avisosDelServidor: Map<string, AvisoDelServidor[]>;
   pruebasPremium: Map<string, PruebaPremium>;
+  contenidosDesbloqueados: Map<string, string[]>;
+  paginasIa: Map<string, number>;
   /** Se llama después de cada cambio de datos: el navegador lo usa para no perderlos al recargar. */
   alCambiar: (() => void) | null;
 };
@@ -33,6 +35,8 @@ export const estado: Estado = {
   negocios: new Map(),
   avisosDelServidor: new Map(),
   pruebasPremium: new Map(),
+  contenidosDesbloqueados: new Map(),
+  paginasIa: new Map(),
   alCambiar: null,
 };
 
@@ -44,6 +48,8 @@ export function reiniciarEstado() {
   estado.negocios = new Map();
   estado.avisosDelServidor = new Map();
   estado.pruebasPremium = new Map();
+  estado.contenidosDesbloqueados = new Map();
+  estado.paginasIa = new Map();
   estado.alCambiar = null;
 }
 

@@ -40,7 +40,14 @@ export function useIniciarPrueba() {
       );
     },
     // También se vuelve a consultar si una respuesta se perdió o la prueba se activó desde otra pestaña.
-    onSettled: () => queryClient.invalidateQueries({ queryKey: planesKeys.all }),
+    onSettled: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: planesKeys.all }),
+        queryClient.invalidateQueries({ queryKey: ['contenido-plan'] }),
+        queryClient.invalidateQueries({ queryKey: ['avisos'] }),
+        queryClient.invalidateQueries({ queryKey: ['zona'] }),
+      ]);
+    },
   });
   return {
     ...mutacion,

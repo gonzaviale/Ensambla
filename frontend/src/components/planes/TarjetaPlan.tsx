@@ -84,6 +84,14 @@ export function TarjetaPlan({
           <dt>Páginas de IA por mes</dt>
           <dd>{limite(plan.limitePaginasIaMensuales, plan.limitesConfigurados)}</dd>
         </div>
+        <div>
+          <dt>Avisos por mes</dt>
+          <dd>{premium ? 'Todos los disponibles' : '3'}</dd>
+        </div>
+        <div>
+          <dt>Recomendaciones de Mi zona y Otra zona por mes</dt>
+          <dd>{premium ? 'Todas las disponibles' : '3 entre ambas funciones'}</dd>
+        </div>
       </dl>
       <ul className="plan-features">
         <li>
