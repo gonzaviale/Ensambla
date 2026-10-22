@@ -18,8 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.UUID;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -63,6 +63,10 @@ public class ControlPlanService {
 
     public void validarFuncion(UUID negocioId, FuncionPlan funcion, OffsetDateTime ahora) {
         vigente(negocioId, ahora).validarFuncion(funcion);
+    }
+
+    public boolean esPremium(UUID negocioId, OffsetDateTime ahora) {
+        return vigente(negocioId, ahora).getCodigo() == CodigoPlan.PREMIUM;
     }
 
     /** Se cobra al admitir un intento. También cuentan errores y timeouts, sin duplicar al finalizar el lote. */

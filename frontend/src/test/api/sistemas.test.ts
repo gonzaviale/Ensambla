@@ -35,8 +35,27 @@ describe('API de sistemas', () => {
     expect(estado.sistemas.get(lucia.email)).toHaveLength(1);
   });
 
-  it('devuelve los sistemas en el orden en que se crearon', async () => {
+  it('Gratuito rechaza el segundo sistema y conserva el primero', async () => {
     setupUsuarioConSesion();
+    const primero = makeTemplate('shop', {}, false);
+    await guardarSistema(primero);
+
+    await expect(guardarSistema(makeTemplate('warehouse', {}, false))).rejects.toMatchObject({
+      status: 403,
+      codigo: 'LIMITE_PLAN',
+    });
+
+    expect((await listarSistemas()).map((sistema) => sistema.id)).toEqual([primero.id]);
+  });
+
+  it('devuelve los sistemas en el orden en que se crearon', async () => {
+    const usuario = setupUsuarioConSesion();
+    estado.pruebasPremium.set(usuario.email, {
+      inicioEn: new Date(Date.now() - 1000).toISOString(),
+      finEn: new Date(Date.now() + 7 * 86400000).toISOString(),
+      paginasIaUtilizadas: 0,
+      limitePaginasIa: 10,
+    });
     const primero = { ...makeTemplate('shop', {}, false), createdAt: '2026-10-01T10:00:00.000Z' };
     const segundo = {
       ...makeTemplate('warehouse', {}, false),

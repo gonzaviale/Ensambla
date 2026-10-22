@@ -1,3 +1,4 @@
+import type { QueryClient } from '@tanstack/react-query';
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -13,10 +14,22 @@ import {
   ESPERA,
   clickButton,
   setupServerError,
-  setupUsuarioConSesion,
+  setupUsuarioConSesion as setupUsuarioBase,
   verifyHeadingPresentAsync,
   verifyToastAsync,
 } from '@/test/testHelpers';
+
+// Estos casos revisan todas las herramientas; los límites gratuitos tienen pruebas propias.
+const setupUsuarioConSesion = (...args: Parameters<typeof setupUsuarioBase>) => {
+  const usuario = setupUsuarioBase(...args);
+  estado.pruebasPremium.set(usuario.email, {
+    inicioEn: new Date(Date.now() - 1000).toISOString(),
+    finEn: new Date(Date.now() + 7 * 86400000).toISOString(),
+    paginasIaUtilizadas: 0,
+    limitePaginasIa: 10,
+  });
+  return usuario;
+};
 
 const abrirConDemo = async (ruta: 'usar' | 'construir' = 'usar', configurado = false) => {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
@@ -35,10 +48,15 @@ const abrirConDemo = async (ruta: 'usar' | 'construir' = 'usar', configurado = f
     });
   const sistema = crearAlmacenDeEjemplo(hoy());
   estado.sistemas.set(usuario.email, [sistema]);
-  renderApp(`/sistemas/${sistema.id}?modo=${ruta}`);
+  const router = renderApp(`/sistemas/${sistema.id}?modo=${ruta}`);
   await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
   await waitFor(() => expect(useSistemaStore.getState().avisos.length).toBeGreaterThan(0), ESPERA);
-  return { user: userEvent.setup(), sistema, usuario };
+  return {
+    user: userEvent.setup(),
+    sistema,
+    usuario,
+    cliente: router.options.context.queryClient as QueryClient,
+  };
 };
 
 const productoDe = (sistema: Sistema | undefined, nombre: string) =>
@@ -288,8 +306,21 @@ describe('sin datos y con el almacén de ejemplo', () => {
 
 describe('«Sami vio un cambio»', () => {
   it('no avisa al abrir, pero sí cuando un cambio genera un aviso nuevo', async () => {
-    await abrirConDemo();
+    const { cliente } = await abrirConDemo();
     expect(document.getElementById('sami-aviso')).toBeNull();
+    // Mientras cargan los avisos del servidor el motor todavía no tomó su línea base: sin esperarlos, el cambio
+    // de abajo quedaría incluido en ella y no se avisaría.
+    await waitFor(
+      () => expect(cliente.isFetching({ queryKey: ['avisos', 'pendientes'] })).toBe(0),
+      ESPERA,
+    );
+    await waitFor(
+      () => expect(cliente.getQueryState(['avisos', 'pendientes'])?.status).toBe('success'),
+      ESPERA,
+    );
+    await act(async () => {
+      await new Promise((resolver) => setTimeout(resolver, 50));
+    });
 
     // Bajar la gaseosa por debajo de su mínimo: aparece un aviso de stock nuevo.
     act(() => {
@@ -337,8 +368,11 @@ describe('los avisos del motor del servidor', () => {
   it('aparecen en la campana y en el panel junto con los del navegador', async () => {
     const { user } = await abrirConAvisosDelServidor(avisoDelServidor());
 
+    await waitFor(
+      () => expect(useSistemaStore.getState().avisos.length).toBeGreaterThan(1),
+      ESPERA,
+    );
     const total = useSistemaStore.getState().avisos.length;
-    expect(total).toBeGreaterThan(1);
     expect(screen.getByRole('button', { name: `Avisos de Sami: ${total}` })).toHaveClass('urgente');
     await abrirPanel(user);
     expect(

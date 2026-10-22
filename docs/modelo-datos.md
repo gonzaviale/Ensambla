@@ -458,6 +458,19 @@ erDiagram
 
 ## Tablas
 
+Desde V19, `contenido_plan_desbloqueado` persiste las claves admitidas por negocio, tipo (`AVISOS`
+o `ZONA`) y mes calendario UTC. La clave primaria compuesta impide cobrar dos veces el mismo
+contenido. La validación mantiene bloqueada la fila de `negocio` hasta registrar el desbloqueo:
+dos consultas concurrentes comparten el mismo cupo. Gratuito dispone de tres avisos y, por
+separado, tres recomendaciones compartidas entre Mi zona y Otra zona. Premium vigente, incluida
+la prueba, no consume desbloqueos gratuitos. La expiración de Premium vuelve a aplicar el cupo
+del mes y conserva sistemas, registros e historial.
+
+La cookie de sesión se llama `ENSAMBLA_SESSION` por defecto para evitar colisiones con otras
+aplicaciones Spring en el mismo host. `SESSION_COOKIE_NAME` permite cambiarla; el cierre y Swagger
+usan el mismo nombre. La inactividad del servidor es de dos horas (`SESSION_TIMEOUT`), con las
+protecciones de cookie existentes. Cambiar de nombre requiere iniciar sesión nuevamente.
+
 | Tabla | Para qué | Notas |
 |---|---|---|
 | `usuario` | Cuenta de acceso | `email` único y normalizado por `CHECK`. MVP 2: un único dueño por negocio. |

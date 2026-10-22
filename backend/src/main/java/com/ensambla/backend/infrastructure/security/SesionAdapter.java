@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.security;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -20,6 +21,9 @@ import java.util.UUID;
 
 @Component
 public class SesionAdapter {
+
+    @Value("${server.servlet.session.cookie.name:ENSAMBLA_SESSION}")
+    private String nombreCookie = "ENSAMBLA_SESSION";
 
     private final HttpSessionSecurityContextRepository securityContextRepository =
             new HttpSessionSecurityContextRepository();
@@ -41,6 +45,6 @@ public class SesionAdapter {
                 request, response, SecurityContextHolder.getContext().getAuthentication());
         new SecurityContextLogoutHandler().logout(
                 request, response, SecurityContextHolder.getContext().getAuthentication());
-        new CookieClearingLogoutHandler("SESSION").logout(request, response, null);
+        new CookieClearingLogoutHandler(nombreCookie).logout(request, response, null);
     }
 }

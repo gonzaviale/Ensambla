@@ -1,3 +1,4 @@
+import { borrarBorradorSesion } from '@/lib/borradorSesion';
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 import { cerrarSesion, iniciarSesion, registrarUsuario } from '@/api/auth';
@@ -56,6 +57,7 @@ export function useCerrarSesion() {
 
   const cerrar = async () => {
     await logout.mutateAsync();
+    borrarBorradorSesion();
     await router.navigate({ to: '/login', search: { redirect: undefined } });
     descartarDatosPrivados(queryClient);
   };

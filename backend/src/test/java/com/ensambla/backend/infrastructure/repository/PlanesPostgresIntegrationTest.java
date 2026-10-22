@@ -72,7 +72,7 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
         assertThat(premium.getLimiteProyectos()).isNull();
         assertThat(premium.getLimiteRegistros()).isNull();
         assertThat(premium.getLimitePaginasIaMensuales()).isEqualTo(100);
-        assertThat(premium.getFunciones()).containsExactly("RECETAS_COSTOS", "REPORTES_FILTRADOS", "EXPORTAR_EXCEL");
+        assertThat(premium.getFunciones()).containsExactly("RECETAS_COSTOS", "REPORTES_FILTRADOS", "EXPORTAR_EXCEL", "AVISOS_COMPLETOS", "ZONA_COMPLETA");
     }
 
     @Test

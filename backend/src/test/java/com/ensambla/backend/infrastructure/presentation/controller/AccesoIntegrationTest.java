@@ -9,15 +9,15 @@ import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.I
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.http.Cookie;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -149,7 +149,7 @@ class AccesoIntegrationTest extends PostgresRepositoryTestSupport {
 
         MvcResult result = login(csrf, LOGIN).andExpect(status().isOk()).andReturn();
 
-        Cookie cookie = result.getResponse().getCookie("SESSION");
+        Cookie cookie = result.getResponse().getCookie("ENSAMBLA_SESSION");
         assertThat(cookie).isNotNull();
         assertThat(cookie.getValue()).isNotEqualTo(csrf.cookie().getValue());
         assertThat(result.getResponse().getHeaders("Set-Cookie").toString())
@@ -163,7 +163,7 @@ class AccesoIntegrationTest extends PostgresRepositoryTestSupport {
         Long timeout = jdbcTemplate.queryForObject(
                 "SELECT max_inactive_interval FROM spring_session WHERE session_id = ?", Long.class,
                 decodeSessionId(cookie));
-        assertThat(timeout).isEqualTo(1800);
+        assertThat(timeout).isEqualTo(7200);
     }
 
     @Test
@@ -284,7 +284,7 @@ class AccesoIntegrationTest extends PostgresRepositoryTestSupport {
             builder.cookie(cookie);
         }
         MvcResult result = mockMvc.perform(builder).andExpect(status().isOk()).andReturn();
-        Cookie responseCookie = result.getResponse().getCookie("SESSION");
+        Cookie responseCookie = result.getResponse().getCookie("ENSAMBLA_SESSION");
         String token = JsonPath.read(result.getResponse().getContentAsString(), "$.token");
         return new Csrf(responseCookie == null ? cookie : responseCookie, token);
     }
@@ -297,7 +297,7 @@ class AccesoIntegrationTest extends PostgresRepositoryTestSupport {
 
     private Cookie givenLogin() throws Exception {
         return login(givenRegisteredAccount(), LOGIN).andExpect(status().isOk())
-                .andReturn().getResponse().getCookie("SESSION");
+                .andReturn().getResponse().getCookie("ENSAMBLA_SESSION");
     }
 
     private void givenSuspendedUsuario() {

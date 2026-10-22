@@ -12,6 +12,7 @@ import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.model.zona.Zona;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.ubicacion.UbicacionService;
+import com.ensambla.backend.domain.service.zona.AccesoZonaService;
 import com.ensambla.backend.domain.service.zona.AgregadoZonaService;
 import com.ensambla.backend.domain.service.zona.ZonaService;
 import com.ensambla.backend.infrastructure.config.useCase.ZonaUseCaseConfig;
@@ -45,11 +46,13 @@ class ZonaUseCaseTest {
     private final ZonaService zonaService = mock(ZonaService.class);
     private final UbicacionService ubicacionService = mock(UbicacionService.class);
     private final AgregadoZonaService agregadoZonaService = mock(AgregadoZonaService.class);
+    private final AccesoZonaService accesoZonaService = mock(AccesoZonaService.class,
+            invocation -> invocation.getArgument(1));
     private final ZonaUseCaseConfig config = new ZonaUseCaseConfig();
     private final ObtenerZonaUseCase obtenerZonaUseCase = config.obtenerZonaUseCase(
-            negocioService, zonaService, agregadoZonaService, config.zonaItemMapper());
+            negocioService, zonaService, agregadoZonaService, config.zonaItemMapper(), accesoZonaService, CLOCK);
     private final AnalizarZonaUseCase analizarZonaUseCase = config.analizarZonaUseCase(
-            zonaService, ubicacionService, agregadoZonaService, config.zonaItemMapper(), CLOCK);
+            zonaService, ubicacionService, agregadoZonaService, config.zonaItemMapper(), CLOCK, negocioService, accesoZonaService);
 
     @Test
     @DisplayName("Obtener devuelve los agregados de la zona del negocio de la sesión")
@@ -94,7 +97,7 @@ class ZonaUseCaseTest {
         when(zonaService.buscarPorTexto("San Justo")).thenReturn(Optional.of(zona));
         when(agregadoZonaService.analizar(zona)).thenReturn(givenAnalisis());
 
-        ZonaItem result = analizarZonaUseCase.execute(new AnalizarZonaRequest("San Justo"));
+        ZonaItem result = analizarZonaUseCase.execute(new AnalizarZonaRequest("San Justo", USUARIO_ID));
 
         assertThat(result.nombre()).isEqualTo("San Justo - UNLaM");
         verifyNoInteractions(ubicacionService);
@@ -110,7 +113,7 @@ class ZonaUseCaseTest {
         when(zonaService.resolver(LATITUD, LONGITUD)).thenReturn(Optional.of(zona));
         when(agregadoZonaService.analizar(zona)).thenReturn(givenAnalisis());
 
-        ZonaItem result = analizarZonaUseCase.execute(new AnalizarZonaRequest("Arieta 3120, San Justo"));
+        ZonaItem result = analizarZonaUseCase.execute(new AnalizarZonaRequest("Arieta 3120, San Justo", USUARIO_ID));
 
         assertThat(result.comercios()).isEqualTo(10);
     }
@@ -121,7 +124,7 @@ class ZonaUseCaseTest {
         when(zonaService.buscarPorTexto("Calle inexistente 1")).thenReturn(Optional.empty());
         when(ubicacionService.buscar("Calle inexistente 1", AHORA)).thenReturn(List.of());
 
-        assertThatThrownBy(() -> analizarZonaUseCase.execute(new AnalizarZonaRequest("Calle inexistente 1")))
+        assertThatThrownBy(() -> analizarZonaUseCase.execute(new AnalizarZonaRequest("Calle inexistente 1", USUARIO_ID)))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Todavía no tenemos datos de esa zona");
         verifyNoInteractions(agregadoZonaService);
@@ -135,7 +138,7 @@ class ZonaUseCaseTest {
                 List.of(new DireccionEncontrada("Av. Corrientes 1234", LATITUD, LONGITUD, "CABA")));
         when(zonaService.resolver(LATITUD, LONGITUD)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> analizarZonaUseCase.execute(new AnalizarZonaRequest("Av. Corrientes 1234")))
+        assertThatThrownBy(() -> analizarZonaUseCase.execute(new AnalizarZonaRequest("Av. Corrientes 1234", USUARIO_ID)))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -145,7 +148,7 @@ class ZonaUseCaseTest {
         when(zonaService.buscarPorTexto("ab")).thenReturn(Optional.empty());
         when(ubicacionService.buscar("ab", AHORA)).thenThrow(new BusinessRuleException("Escribí una dirección"));
 
-        assertThatThrownBy(() -> analizarZonaUseCase.execute(new AnalizarZonaRequest("ab")))
+        assertThatThrownBy(() -> analizarZonaUseCase.execute(new AnalizarZonaRequest("ab", USUARIO_ID)))
                 .isInstanceOf(BusinessRuleException.class);
     }
 

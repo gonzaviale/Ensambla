@@ -40,8 +40,10 @@ public class ZonaController {
 
     @PostMapping("/analisis")
     @Operation(summary = "Precios y ventas agregados de otra zona, indicada por barrio o dirección")
-    public ResponseEntity<ZonaWebResponse> analizar(@Valid @RequestBody AnalizarZonaWebRequest request) {
+    public ResponseEntity<ZonaWebResponse> analizar(Authentication authentication,
+                                                  @Valid @RequestBody AnalizarZonaWebRequest request) {
         return ResponseEntity.ok(zonaPresentationMapper.toResponse(
-                analizarZonaUseCase.execute(zonaPresentationMapper.toAnalizarRequest(request))));
+                analizarZonaUseCase.execute(zonaPresentationMapper.toAnalizarRequest(
+                        request, UUID.fromString(authentication.getName())))));
     }
 }
