@@ -1,7 +1,7 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.support.ImagenTestData;
 import com.ensambla.backend.domain.service.plan.SuscripcionService;
+import com.ensambla.backend.support.ImagenTestData;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.persistence.EntityManager;
@@ -103,6 +103,35 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         jdbcTemplate.update("INSERT INTO registro (id, negocio_id, bloque_id, valores) VALUES (?, ?, ?, '{}')",
                 registroId, negocioId, bloqueId);
         sesion = givenSesion();
+    }
+
+    @Test
+    @DisplayName("El receptor real de contenidos admite tres claves y rechaza la cuarta sin reiniciar el cupo")
+    void contenidosShouldEnforceMonthlyQuotaOverHttp() throws Exception {
+        mockMvc.perform(post("/api/planes/contenidos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tipo\":\"AVISOS\",\"claves\":[\"a\",\"b\",\"c\",\"d\"]}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.autorizadas.length()").value(3))
+                .andExpect(jsonPath("$.bloqueadas").value(1))
+                .andExpect(header().string("Cache-Control", "no-store"));
+
+        mockMvc.perform(post("/api/planes/contenidos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"tipo\":\"AVISOS\",\"claves\":[\"d\"]}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.autorizadas.length()").value(0))
+                .andExpect(jsonPath("$.usadas").value(3));
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM contenido_plan_desbloqueado WHERE negocio_id=?",
+                Long.class, negocioId)).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("El desbloqueo exige autenticación y CSRF")
+    void contenidosShouldRequireAuthenticationAndCsrf() throws Exception {
+        mockMvc.perform(post("/api/planes/contenidos").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tipo\":\"AVISOS\",\"claves\":[]}"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/planes/contenidos").session(sesion).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tipo\":\"AVISOS\",\"claves\":[]}"))
+                .andExpect(status().isForbidden());
     }
 
     @ParameterizedTest

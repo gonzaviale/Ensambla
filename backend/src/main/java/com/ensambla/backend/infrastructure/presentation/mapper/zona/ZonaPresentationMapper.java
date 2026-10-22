@@ -20,15 +20,15 @@ public class ZonaPresentationMapper {
         return new ObtenerZonaRequest(usuarioId);
     }
 
-    public AnalizarZonaRequest toAnalizarRequest(AnalizarZonaWebRequest request) {
-        return new AnalizarZonaRequest(request.lugar());
+    public AnalizarZonaRequest toAnalizarRequest(AnalizarZonaWebRequest request, UUID usuarioId) {
+        return new AnalizarZonaRequest(request.lugar(), usuarioId);
     }
 
     public ZonaWebResponse toResponse(ZonaItem zona) {
         return new ZonaWebResponse(
                 zona.nombre(),
                 zona.comercios(),
-                zona.productos().stream().map(this::toResponse).toList());
+                zona.productos().stream().map(this::toResponse).toList(), zona.acceso());
     }
 
     private ProductoWebResponse toResponse(ProductoItem producto) {

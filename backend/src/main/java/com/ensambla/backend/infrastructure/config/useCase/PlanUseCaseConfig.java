@@ -1,11 +1,13 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.mapper.plan.IniciarPruebaMapper;
 import com.ensambla.backend.domain.mapper.plan.ConsultarPlanesMapper;
-import com.ensambla.backend.domain.service.plan.ConsultaPlanesService;
-import com.ensambla.backend.domain.useCase.plan.ConsultarPlanesUseCase;
+import com.ensambla.backend.domain.mapper.plan.IniciarPruebaMapper;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.AccesoContenidoService;
+import com.ensambla.backend.domain.service.plan.ConsultaPlanesService;
 import com.ensambla.backend.domain.service.plan.PruebaPremiumService;
+import com.ensambla.backend.domain.useCase.plan.ConsultarPlanesUseCase;
+import com.ensambla.backend.domain.useCase.plan.DesbloquearContenidosUseCase;
 import com.ensambla.backend.domain.useCase.plan.IniciarPruebaUseCase;
 import com.ensambla.backend.domain.useCase.plan.VencerPruebasUseCase;
 import org.springframework.context.annotation.Bean;
@@ -15,6 +17,12 @@ import java.time.Clock;
 
 @Configuration
 public class PlanUseCaseConfig {
+
+    @Bean
+    public DesbloquearContenidosUseCase desbloquearContenidosUseCase(
+            NegocioService negocioService, AccesoContenidoService accesoContenidoService, Clock clock) {
+        return new DesbloquearContenidosUseCase(negocioService, accesoContenidoService, clock);
+    }
 
     @Bean
     public ConsultarPlanesMapper consultarPlanesMapper() {
