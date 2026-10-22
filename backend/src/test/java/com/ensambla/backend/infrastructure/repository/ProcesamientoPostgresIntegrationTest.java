@@ -8,9 +8,11 @@ import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
+import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.domain.service.procesamiento.ConexionesLecturaService;
 import com.ensambla.backend.domain.service.procesamiento.ProcesamientoService;
 import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
+import com.ensambla.backend.domain.service.procesamiento.ReservaIaService;
 import com.ensambla.backend.domain.useCase.procesamiento.ProcesarLoteUseCase;
 import com.ensambla.backend.infrastructure.ia.ArchivoCuadernoLocalAdapter;
 import com.ensambla.backend.infrastructure.ia.IaProperties;
@@ -26,20 +28,20 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
-import java.nio.file.Path;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Clock;
-import java.time.ZoneOffset;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -64,7 +66,13 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
     private ProcesamientoRepository procesamientoRepository;
 
     @Autowired
+    private ReservaIaService reservaIaService;
+
+    @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private SuscripcionService suscripcionService;
 
     @Autowired
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
@@ -92,7 +100,7 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
         var procesamientoService = new ProcesamientoService(procesamientoRepository,
                 new ArchivoCuadernoLocalAdapter(archivos, 10), lectorCuadernoPort,
                 new PropuestaLecturaService(), new ConexionesLecturaService(null, null),
-                ProcesamientoTestData.politica());
+                ProcesamientoTestData.politica(), reservaIaService);
         var useCase = new ProcesarLoteUseCase(procesamientoService, Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
 
         useCase.execute();
@@ -119,6 +127,7 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
                 usuarioId, usuarioId + "@example.test");
         jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Prueba IA', ?)",
                 negocioId, usuarioId);
+        suscripcionService.asignarGratuito(negocioId, AHORA.minusDays(1));
     }
 
     @AfterEach
@@ -286,7 +295,7 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
         LoteTrabajo lote = claim();
         procesamientoRepository.reservar(lote, 1, 100, AHORA);
         var repository = new ProcesamientoRepositoryImpl(namedParameterJdbcTemplate, objectMapper,
-                new IaProperties("prueba", modelo, null, Duration.ofSeconds(1), 10, 0.8));
+                new IaProperties("prueba", modelo, Duration.ofSeconds(1), 10, 0.8, null));
 
         new TransactionTemplate(transactionManager).executeWithoutResult(status ->
                 repository.finalizar(lote, new ResultadoIntento(null, "Timeout", false), null, AHORA, null));

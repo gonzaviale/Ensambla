@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.repository;
 
 import com.ensambla.backend.domain.model.enums.EstadoUsuario;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.domain.service.plantilla.PlantillaService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
@@ -21,9 +22,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
@@ -50,6 +51,9 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Autowired
     private INegocioJpaRepository negocios;
+
+    @Autowired
+    private SuscripcionService suscripcionService;
 
     @Autowired
     private IProyectoJpaRepository proyectos;
@@ -161,8 +165,8 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                 .descripcion("Para probar rollback")
                 .activa(true)
                 .estructura(Map.of("bloques", List.of(Map.of("nombre", "Productos", "campos", List.of(
-                        Map.of("nombre", "Duplicado", "tipo", "TEXTO"),
-                        Map.of("nombre", "Duplicado", "tipo", "TEXTO"))))))
+                        Map.of("nombre", "Nombre", "tipo", "TEXTO"),
+                        Map.of("nombre", "Estado", "tipo", "OPCION", "opciones", List.of()))))))
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId());
@@ -193,12 +197,14 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
-        return negocios.saveAndFlush(NegocioEntity.builder()
+        UUID creadoId = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId)
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
+        suscripcionService.asignarGratuito(creadoId, AHORA.minusDays(1));
+        return creadoId;
     }
 }
 

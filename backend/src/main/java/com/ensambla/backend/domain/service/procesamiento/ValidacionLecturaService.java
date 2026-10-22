@@ -56,7 +56,7 @@ public class ValidacionLecturaService {
         }
         try {
             switch (campo.tipo()) {
-                case NUMERO -> new BigDecimal(dato.valor());
+                case NUMERO, MONEDA -> new BigDecimal(dato.valor());
                 case FECHA -> LocalDate.parse(dato.valor());
                 case SI_NO -> comprobar("true".equals(dato.valor()) || "false".equals(dato.valor()));
                 case OPCION -> comprobar(campo.opciones().contains(dato.valor()));

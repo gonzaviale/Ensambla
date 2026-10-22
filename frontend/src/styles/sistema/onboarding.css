@@ -1,0 +1,582 @@
+/* Solo bienvenida, guía y presencia inicial de Sami. El diseño base no cambia. */
+svg.sami {
+  background: transparent !important;
+  mix-blend-mode: normal !important;
+}
+.hero-sami {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin: 17px 0 4px;
+}
+.hero-sami > .sami {
+  width: 76px;
+  height: 72px;
+  flex-shrink: 0;
+}
+.hero-sami > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+.hero-sami strong {
+  font-size: 12px;
+  color: #00506a;
+  line-height: 1.5;
+}
+.hero-sami span {
+  font-size: 10px;
+  color: #69777c;
+  line-height: 1.5;
+}
+.hero-sami .text-link {
+  font-size: 10px;
+  margin-top: 4px;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  color: #00506a;
+}
+.hero-sami .text-link .icon {
+  width: 13px;
+  height: 13px;
+}
+#overlay .modal.welcome-modal {
+  width: min(640px, calc(100vw - 30px));
+  max-width: 640px;
+  padding: 28px 34px 22px;
+  background: #fffdfa;
+  border-radius: 25px;
+  overflow: auto;
+}
+.welcome-modal::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5px;
+  background: linear-gradient(
+    to right,
+    #ee8000 0% 20%,
+    #ebce32 20% 40%,
+    #4eb2d4 40% 60%,
+    #00506a 60% 80%,
+    #f85f5a 80%
+  );
+}
+.demo-welcome {
+  text-align: center;
+}
+.welcome-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #12394f;
+}
+.welcome-brand > .brand-mark {
+  width: 44px;
+  height: 47px;
+}
+.welcome-brand > span {
+  font-size: 31px;
+  font-weight: 800;
+  letter-spacing: -1.2px;
+  line-height: 1.2;
+}
+.welcome-hello {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 17px 0 10px;
+}
+.welcome-hello > .sami {
+  width: 126px;
+  height: 105px;
+}
+.welcome-bubble {
+  position: relative;
+  background: #e8f5fa;
+  color: #00506a;
+  padding: 10px 14px;
+  border-radius: 12px 12px 12px 3px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.demo-welcome > .eyebrow {
+  font-size: 9px;
+  letter-spacing: 1.3px;
+  color: #a36828;
+}
+.welcome-modal .demo-welcome h2 {
+  margin: 9px 0 12px;
+  font-size: 27px;
+  line-height: 1.35;
+  letter-spacing: -0.9px;
+  color: #153d51;
+}
+.welcome-modal .demo-welcome > p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #687a80;
+  margin: 0 auto 17px;
+  max-width: 440px;
+}
+.welcome-choices,
+.demo-back-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+.welcome-choice {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  border: 1px solid #dce4e4;
+  border-radius: 13px;
+  background: #fff;
+  padding: 16px;
+  text-align: left;
+  color: #234655;
+}
+.welcome-choice > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.welcome-choice > .icon-tile {
+  width: 38px;
+  height: 38px;
+  background: #e8f5fa;
+  color: #00506a;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.welcome-choice > .icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: #00506a;
+}
+.welcome-choice strong {
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #17465a;
+}
+.welcome-choice small {
+  display: block;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #738188;
+  margin-top: 4px;
+}
+.welcome-choice.guided {
+  border-color: #ecc993;
+  background: #fff3de;
+  box-shadow: 0 2px 0 #e9cd9a33;
+}
+.welcome-choice.guided > .icon-tile {
+  background: #ee8000;
+  color: white;
+}
+.welcome-choice.reset {
+  background: #fff7f5;
+  border-color: #f1d8d2;
+}
+.welcome-choice.reset > .icon-tile {
+  background: #ffe8e4;
+  color: #bb4944;
+}
+.welcome-choice:hover {
+  border-color: #ee8000;
+  box-shadow: 0 3px 12px #183e4d0a;
+}
+.welcome-modal .demo-welcome > .welcome-note {
+  font-size: 10px;
+  color: #8b8b80;
+  margin: 14px auto 0;
+  max-width: none;
+}
+#ensambla-tutorial {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  pointer-events: none;
+}
+#ensambla-tutorial[hidden] {
+  display: none;
+}
+.tour-spotlight {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.tour-coach {
+  position: fixed;
+  pointer-events: auto;
+  background: #fffdfa;
+  border: 1px solid #eddbbc;
+  border-top: 4px solid #ee8000;
+  border-radius: 16px;
+  box-shadow: 0 15px 65px #122e4540;
+  padding: 15px 17px 14px;
+  color: #263443;
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  animation: tour-appear 0.2s ease-out;
+}
+.tour-coach-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+}
+.tour-coach-top > span {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1.1px;
+  color: #8a7453;
+}
+.tour-coach-top > button {
+  border: 0;
+  background: transparent;
+  color: #7a8b91;
+  padding: 5px;
+  line-height: 1;
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+}
+.tour-coach-top .icon {
+  width: 15px;
+  height: 15px;
+}
+.tour-progress {
+  display: flex;
+  gap: 5px;
+  margin: 6px 0 15px;
+}
+.tour-progress > i {
+  height: 4px;
+  flex: 1;
+  border-radius: 3px;
+  background: #e8edeb;
+}
+.tour-progress > i.active:nth-child(1) {
+  background: #ee8000;
+}
+.tour-progress > i.active:nth-child(2) {
+  background: #ebce32;
+}
+.tour-progress > i.active:nth-child(3) {
+  background: #4eb2d4;
+}
+.tour-progress > i.active:nth-child(4) {
+  background: #00506a;
+}
+.tour-progress > i.active:nth-child(5) {
+  background: #f85f5a;
+}
+.tour-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+.tour-message > .sami {
+  width: 62px;
+  height: 62px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.tour-message > div {
+  min-width: 0;
+  flex: 1;
+}
+.tour-coach h2 {
+  font-size: 16px;
+  letter-spacing: -0.45px;
+  line-height: 1.4;
+  margin: 0 0 8px;
+  color: #153f53;
+}
+.tour-coach p {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #647780;
+  margin: 0;
+}
+.tour-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  background: #fff2d8;
+  border-radius: 8px;
+  padding: 9px 10px;
+  margin: 13px 0 11px;
+  color: #795726;
+  font-size: 10px;
+  line-height: 1.6;
+  font-weight: 600;
+}
+.tour-hint > .icon {
+  height: 15px;
+  width: 15px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.tour-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.tour-footer > span {
+  font-size: 8px;
+  color: #8f9a9d;
+}
+.tour-footer .text-link {
+  font-size: 9px;
+  color: #426a7a;
+}
+.tour-footer .btn {
+  font-size: 10px;
+}
+#ensambla-tutorial button:focus-visible,
+.welcome-choice:focus-visible {
+  outline: 3px solid #00506a;
+  outline-offset: 3px;
+}
+.tour-target {
+  scroll-margin: 85px 16px;
+}
+@keyframes tour-appear {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 760px) {
+  .hero-sami {
+    gap: 9px;
+    margin: 13px 0 8px;
+  }
+  .hero-sami > .sami {
+    width: 64px;
+    height: 60px;
+  }
+  .hero-sami strong {
+    font-size: 11px;
+  }
+  .hero-sami span,
+  .hero-sami .text-link {
+    font-size: 9px;
+  }
+  #overlay .modal.welcome-modal {
+    width: calc(100vw - 22px);
+    padding: 24px 18px 20px;
+    border-radius: 19px;
+    max-height: calc(100dvh - 24px);
+  }
+  .welcome-brand > .brand-mark {
+    width: 36px;
+    height: 39px;
+  }
+  .welcome-brand > span {
+    font-size: 27px;
+  }
+  .welcome-hello {
+    margin: 12px 0 8px;
+    gap: 5px;
+  }
+  .welcome-hello > .sami {
+    width: 104px;
+    height: 92px;
+  }
+  .welcome-bubble {
+    font-size: 10px;
+    padding: 9px 11px;
+  }
+  .welcome-modal .demo-welcome h2 {
+    font-size: 24px;
+    margin: 9px 0 11px;
+  }
+  .welcome-modal .demo-welcome > p {
+    font-size: 11px;
+    margin-bottom: 13px;
+  }
+  .demo-welcome > .eyebrow {
+    font-size: 8px;
+  }
+  .welcome-choice {
+    padding: 13px;
+    gap: 10px;
+  }
+  .welcome-choice > .icon-tile {
+    width: 32px;
+    height: 32px;
+  }
+  .welcome-choice strong {
+    font-size: 12px;
+  }
+  .welcome-choice small {
+    font-size: 10px;
+  }
+  .welcome-choice > .icon {
+    width: 15px;
+  }
+  .welcome-modal .demo-welcome > .welcome-note {
+    font-size: 9px;
+    margin-top: 12px;
+  }
+  .tour-coach {
+    padding: 11px 13px 12px;
+    border-radius: 13px;
+  }
+  .tour-coach-top > span {
+    font-size: 7px;
+  }
+  .tour-progress {
+    margin: 4px 0 10px;
+  }
+  .tour-message {
+    gap: 8px;
+  }
+  .tour-message > .sami {
+    width: 48px;
+    height: 48px;
+  }
+  .tour-coach h2 {
+    font-size: 15px;
+    margin-bottom: 5px;
+  }
+  .tour-coach p {
+    font-size: 10px;
+    line-height: 1.7;
+  }
+  .tour-hint {
+    padding: 8px;
+    margin: 10px 0;
+    font-size: 9px;
+  }
+  .tour-footer {
+    gap: 8px;
+  }
+  .tour-coach-top > button {
+    min-height: 28px;
+    min-width: 28px;
+  }
+  .tour-footer .text-link {
+    min-height: 30px;
+  }
+  .tour-footer > span {
+    font-size: 7px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-coach,
+  .welcome-choice {
+    animation: none;
+    transition: none;
+  }
+  .tour-target {
+    scroll-behavior: auto;
+  }
+}
+/* Reserva espacio mientras se aprende; al salir, el diseño original vuelve tal cual. */
+body.tutorial-running {
+  padding-bottom: var(--tour-space, 245px);
+}
+@media (max-width: 1100px) {
+  body.tutorial-modal .overlay-backdrop {
+    align-items: flex-start;
+    padding-top: 14px;
+    padding-bottom: var(--tour-space, 245px);
+  }
+  body.tutorial-modal .modal {
+    max-height: calc(100dvh - var(--tour-space, 245px) - 28px);
+  }
+}
+
+/* El cartel de la guía con la paleta, Sami saludando y letra más grande. */
+.tour-coach {
+  background: white;
+  border: 2px solid var(--orange);
+  border-top-width: 6px;
+  padding: 18px 20px 16px;
+}
+.tour-coach-top > span {
+  font-size: 12px;
+  color: var(--orange);
+}
+.tour-coach-top > button {
+  color: var(--petrol);
+}
+.tour-coach-top .icon {
+  width: 18px;
+  height: 18px;
+}
+.tour-progress > i {
+  height: 6px;
+  background: var(--line);
+}
+.tour-message {
+  gap: 14px;
+  align-items: center;
+}
+.tour-sami {
+  width: 84px;
+  height: auto;
+  flex-shrink: 0;
+}
+.tour-coach h2 {
+  font-size: 20px;
+  color: var(--petrol);
+}
+.tour-coach p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.tour-hint {
+  background: var(--orange);
+  color: white;
+  border-radius: 12px;
+  padding: 11px 13px;
+  font-size: 14px;
+}
+.tour-hint > .icon {
+  width: 18px;
+  height: 18px;
+}
+.tour-footer > span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.tour-footer .text-link {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--petrol);
+}
+.tour-footer .btn {
+  font-size: 14px;
+}
+@media (max-width: 680px) {
+  .tour-sami {
+    width: 60px;
+  }
+  .tour-coach h2 {
+    font-size: 17px;
+  }
+  .tour-coach p {
+    font-size: 14px;
+  }
+}

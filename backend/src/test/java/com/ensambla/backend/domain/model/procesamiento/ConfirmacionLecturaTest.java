@@ -137,6 +137,31 @@ class ConfirmacionLecturaTest {
         assertThatCode(confirmacion::validar).doesNotThrowAnyException();
     }
 
+    @Test
+    @DisplayName("Rechaza dos columnas que apuntan al mismo campo del bloque: una pisaría los valores de la otra")
+    void validarShouldRejectTwoColumnsOfTheSameCampo() {
+        UUID campoId = UUID.randomUUID();
+        ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID, null, List.of(
+                new CampoConfirmado("monto", campoId, "Monto", "NUMERO", List.of()),
+                new CampoConfirmado("importe", campoId, "Monto", "NUMERO", List.of())));
+
+        assertThatThrownBy(confirmacion::validar)
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("Dos columnas no pueden guardarse en el mismo campo de la tabla");
+    }
+
+    @Test
+    @DisplayName("Acepta columnas de campos distintos junto con columnas nuevas")
+    void validarShouldAcceptExistingAndNewColumnsTogether() {
+        ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID, null, List.of(
+                new CampoConfirmado("monto", UUID.randomUUID(), "Monto", "NUMERO", List.of()),
+                new CampoConfirmado("fecha", UUID.randomUUID(), "Fecha", "FECHA", List.of()),
+                new CampoConfirmado("telefono", null, "Teléfono", "TEXTO", List.of()),
+                new CampoConfirmado("direccion", null, "Dirección", "TEXTO", List.of())));
+
+        assertThatCode(confirmacion::validar).doesNotThrowAnyException();
+    }
+
     // --- helpers ---
     private ConfirmacionLectura confirmacion(UUID proyectoId, String nombreProyecto, UUID bloqueId,
                                              String nombreBloque, List<CampoConfirmado> campos) {

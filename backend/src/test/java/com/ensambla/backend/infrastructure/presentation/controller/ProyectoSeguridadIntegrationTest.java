@@ -1,11 +1,15 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.enums.CodigoPlan;
 import com.ensambla.backend.domain.model.enums.EstadoUsuario;
+import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
+import com.ensambla.backend.infrastructure.repository.entity.PlanEntity;
 import com.ensambla.backend.infrastructure.repository.entity.ProyectoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.UsuarioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.INegocioJpaRepository;
+import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IPlanJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IProyectoJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IUsuarioJpaRepository;
 import jakarta.servlet.Filter;
@@ -61,6 +65,12 @@ class ProyectoSeguridadIntegrationTest {
     private INegocioJpaRepository negocios;
 
     @Autowired
+    private IPlanJpaRepository planes;
+
+    @Autowired
+    private SuscripcionService suscripcionService;
+
+    @Autowired
     private IProyectoJpaRepository proyectos;
 
     private MockMvc mockMvc;
@@ -72,6 +82,7 @@ class ProyectoSeguridadIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
+        givenPlanGratuito();
         UUID usuarioId = givenUsuario();
         negocioId = givenNegocio(usuarioId);
         sesion = givenSesion(usuarioId);
@@ -169,12 +180,14 @@ class ProyectoSeguridadIntegrationTest {
     }
 
     private UUID givenNegocio(UUID usuarioId) {
-        return negocios.saveAndFlush(NegocioEntity.builder()
+        UUID creadoId = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId)
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
+        suscripcionService.asignarGratuito(creadoId, AHORA.minusDays(1));
+        return creadoId;
     }
 
     private UUID givenProyecto(UUID negocioId, String nombre) {
@@ -184,6 +197,16 @@ class ProyectoSeguridadIntegrationTest {
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
+    }
+
+    private void givenPlanGratuito() {
+        if (planes.findByCodigo(CodigoPlan.GRATUITO).isEmpty()) {
+            planes.saveAndFlush(PlanEntity.builder()
+                    .codigo(CodigoPlan.GRATUITO).nombre("Gratuito").configurado(false)
+                    .limitesConfigurados(true).limiteProyectos(1).limiteRegistros(1000L)
+                    .limitePaginasIaMensuales(10).funciones(List.of())
+                    .creadoEn(AHORA).actualizadoEn(AHORA).build());
+        }
     }
 
     private MockHttpSession givenSesion(UUID usuarioId) throws Exception {

@@ -15,6 +15,8 @@ public interface ICampoJpaRepository extends JpaRepository<CampoEntity, UUID> {
 
     List<CampoEntity> findAllByBloqueIdInAndNegocioIdOrderByPosicionAscIdAsc(List<UUID> bloqueIds, UUID negocioId);
 
+    List<CampoEntity> findAllByNegocioIdOrderByPosicionAscIdAsc(UUID negocioId);
+
     Optional<CampoEntity> findByIdAndNegocioId(UUID id, UUID negocioId);
 
     /** Campos de otros bloques del negocio que apuntan a {@code bloqueId}; la autorreferencia no cuenta. */

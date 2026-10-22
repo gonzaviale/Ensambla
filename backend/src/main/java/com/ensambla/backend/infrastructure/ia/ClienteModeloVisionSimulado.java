@@ -4,7 +4,7 @@ import org.springframework.core.io.Resource;
 
 /**
  * Cliente sin IA real: siempre devuelve la misma lectura de ejemplo. Sirve para desarrollar el front, los tests E2E
- * (T-037) y la demo sin gastar en el proveedor. Se activa con {@code ensambla.ia.proveedor=simulado}.
+ * (T-037) y la demo sin gastar en el proveedor. Lo arma {@link ProveedorIaSimulado}.
  */
 public class ClienteModeloVisionSimulado implements ClienteModeloVision {
 

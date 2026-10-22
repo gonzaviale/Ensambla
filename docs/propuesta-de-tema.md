@@ -1,6 +1,6 @@
-# Propuesta de tema — ENSAMBLA (v1.1, 10/10/2026)
+# Propuesta de tema — ENSAMBLA (v1.2, 14/10/2026)
 
-Generado desde `originales/Propuesta_de_Tema_ENSAMBLA_2026_v1.1.docx`. El original es la fuente de verdad.
+Generado desde `originales/Propuesta_de_Tema_ENSAMBLA_2026_v1.2.docx`. El original es la fuente de verdad.
 
 UNIVERSIDAD NACIONAL DE LA MATANZA
 
@@ -58,9 +58,9 @@ Lic. Juan De Cicco · Ing. Alejandro Rusticcini · Ing. Sergio Bonavento · Ing.
 
 Identificación del documento
 
-| Versión | 1.1 |
+| Versión | 1.2 |
 |---|---|
-| Última actualización | 10/10/2026 |
+| Última actualización | 14/10/2026 |
 
 Control de versiones
 
@@ -68,8 +68,9 @@ Control de versiones
 |---|---|---|---|
 | 1.0 | Equipo Ensambla | 09/10/2026 | Propuesta inicial del proyecto |
 | 1.1 | Equipo Ensambla | 10/10/2026 | Reenfoque del producto: digitalización de cuadernos con IA para emprendedores mayores |
+| 1.2 | Equipo Ensambla | 14/10/2026 | Actualización al MVP 2: stack definido, hoja de ruta, ampliaciones implementadas y estado de la IA |
 
-Nota de edición: los datos de tutoría, referentes y distribución interna de roles deben completarse cuando se confirmen. La propuesta funcional y técnica es preliminar y está sujeta a validación del equipo.
+Nota de edición: los datos de tutoría, referentes y distribución interna de roles deben completarse cuando se confirmen. La propuesta funcional y técnica es preliminar y está sujeta a validación del equipo. Este documento se actualiza en cada MVP; la versión 1.2 refleja el estado del MVP 2.
 
 ## ÍNDICE
 
@@ -93,7 +94,7 @@ Ensambla propone que emprendedores que llevan su negocio en cuadernos de papel �
 
 Ensambla es una aplicación web, pensada primero para el celular, que ayuda a emprendedores adultos y adultos mayores a ordenar su emprendimiento a partir de lo que ya hacen: anotar en un cuaderno. La persona saca una foto de sus páginas de ventas, gastos, pedidos, stock o fiados; la plataforma, mediante inteligencia artificial, interpreta lo escrito, propone cómo organizarlo y lo convierte en registros digitales que se pueden revisar, corregir, consultar y ampliar con el tiempo. No hace falta saber usar Excel, diseñar tablas ni aprender términos técnicos.
 
-El núcleo del producto —y lo que define su primer MVP— es ese recorrido: de la foto del cuaderno a un sistema ordenado, con la persona siempre confirmando lo que leyó la IA. Sobre esa base, Ensambla conserva su enfoque modular: los datos se organizan en bloques (Ventas, Clientes, Stock…) que pueden ajustarse o ampliarse, y se ofrecen plantillas para quien prefiera empezar sin fotos. Indicadores, roles, automatizaciones, integraciones y un mercado de plantillas se contemplan como líneas de evolución.
+El núcleo del producto —y lo que define su primer MVP— es ese recorrido: de la foto del cuaderno a un sistema ordenado, con la persona siempre confirmando lo que leyó la IA. Sobre esa base, Ensambla conserva su enfoque modular: los datos se organizan en proyectos —el sistema de cada emprendimiento— formados por bloques (Ventas, Clientes, Stock…) que pueden conectarse entre sí, ajustarse o ampliarse, y se ofrecen plantillas (Inventario, Pedidos y Clientes) para quien prefiera empezar sin fotos. Indicadores, equipos con roles, planes, importación de planillas, automatizaciones, integraciones y un mercado de plantillas se contemplan como líneas de evolución para los MVP 3 y 4.
 
 ## II · MERCADO
 
@@ -151,7 +152,7 @@ Por ejemplo, una emprendedora que vende velas artesanales anota sus ventas en un
 
 1. Crear la cuenta.  La persona se registra con pocos datos y se crea el espacio de su emprendimiento.
 
-2. Sacar la foto.  Desde la pantalla principal elige «Subir foto de mi cuaderno» y fotografía una o varias páginas con el celular, o las elige de la galería.
+2. Sacar la foto.  Desde la pantalla principal elige «Subir foto de mi cuaderno» y fotografía una o varias páginas con el celular, o las elige de la galería. Antes de subirlas puede indicar a qué tabla ya existente se suman, o dejar que Ensambla proponga una nueva.
 
 3. Ensambla lo lee.  La inteligencia artificial interpreta las páginas, propone cómo organizarlas (por ejemplo, un bloque «Ventas» con fecha, cliente, producto y monto) y extrae los registros.
 
@@ -161,17 +162,17 @@ Por ejemplo, una emprendedora que vende velas artesanales anota sus ventas en un
 
 ### 3. Lista de funcionalidades y alcance del MVP
 
-Digitalización con IA (núcleo).  Subida de fotos desde la cámara o la galería; lectura de escritura manuscrita e impresa; propuesta automática de bloques y campos; extracción de registros con indicación de datos dudosos; pantalla de revisión y confirmación; posibilidad de sumar nuevas fotos a un bloque existente.
+Digitalización con IA (núcleo).  Subida de fotos desde la cámara o la galería; lectura de escritura manuscrita e impresa; propuesta automática de bloques y campos; extracción de registros con indicación de datos dudosos; pantalla de revisión y confirmación; posibilidad de elegir antes de subir el bloque al que se suman las fotos, con lectura de las conexiones entre tablas; procesamiento en segundo plano con estados visibles y límite diario de páginas por negocio.
 
 Acceso y espacio del negocio.  Registro, inicio de sesión y aislamiento de la información de cada emprendimiento.
 
-Consulta y uso diario.  Tablas de registros con búsqueda, orden y totales simples; ficha de cada registro con acceso a la foto de origen; edición, eliminación y carga manual cuando haga falta.
+Consulta y uso diario.  Tablas de registros con búsqueda, orden y totales simples; ficha de cada registro con acceso a la foto de origen; edición, eliminación y carga manual cuando haga falta. Por decisión del equipo se adelantaron funciones previstas para el MVP 4: inventario con entradas y salidas de stock, recetas con costo calculado y reportes por tabla con filtros, totales y descarga en XLSX.
 
-Ajustes y plantillas.  Renombrar bloques y campos, agregar o quitar campos, y 2-3 plantillas base para empezar sin fotos.
+Ajustes y plantillas.  Armar el sistema en proyectos y bloques: renombrar bloques y campos, agregar o quitar campos (texto, número, fecha, opción, sí/no, conexión con otra tabla y fórmula calculada) y tres plantillas base —Inventario, Pedidos y Clientes— para empezar sin fotos.
 
 Experiencia accesible.  Diseño pensado para el celular, tipografía grande, alto contraste, botones amplios y textos sin tecnicismos.
 
-Fuera del MVP inicial.  Panel de indicadores y gráficos, importación de planillas, carga por audio o WhatsApp, automatizaciones, integraciones comerciales, equipos con roles, marketplace de plantillas y analítica avanzada. Son posibles evoluciones, no prestaciones comprometidas para la primera entrega.
+Hoja de ruta (fuera del MVP 2).  MVP 1: pantallas (entregado). MVP 2 (en curso): el núcleo descripto arriba. MVP 3: modo construir/usar, borrador y versión publicada, recuperación de contraseña y datos del negocio, panel de indicadores y gráficos básicos, personalización de columnas, tutorial y ayuda, respaldos y monitoreo. MVP 4: importación de planillas, equipos con roles e invitaciones, planes y prueba premium, administración interna, adjuntos en registros, formularios compartibles, automatizaciones, integraciones comerciales, carga por WhatsApp o audio y marketplace de plantillas. Son evoluciones posibles, no prestaciones comprometidas para la primera entrega.
 
 ## VII · COMPETENCIA
 
@@ -209,7 +210,7 @@ Para usuarios: dejar de depender solo del papel sin cambiar su forma de anotar, 
 
 Modalidad.  Servicio de software en la nube (SaaS), con acceso mediante navegador y suscripciones para capacidades ampliadas.
 
-Plan gratuito.  Una cantidad mensual limitada de páginas digitalizadas con IA, junto con la consulta y la carga manual, para que la persona compruebe el valor antes de pagar.
+Plan gratuito.  Una cantidad mensual limitada de páginas digitalizadas con IA, junto con la consulta y la carga manual, para que la persona compruebe el valor antes de pagar. En el MVP 2 existe un límite diario de páginas por negocio (configurable); los planes y la prueba premium llegan en el MVP 4.
 
 Planes pagos.  Mayor volumen de páginas procesadas por mes y funciones avanzadas sujetas a validación, como indicadores, reportes, carga por audio o WhatsApp, permisos por rol e integraciones. El costo de procesamiento por página condiciona los límites de cada plan.
 
@@ -229,13 +230,15 @@ La distribución formal de responsabilidades queda pendiente de definición. Par
 
 Precisión de la lectura.  La escritura manuscrita, las abreviaturas y las fotos de baja calidad pueden generar errores. Mitigar con revisión obligatoria antes de guardar, resaltado de datos dudosos, consejos para sacar la foto y un set de fotos reales de cuadernos para medir la precisión ante cada cambio.
 
+Evaluación de IA pendiente.  El circuito de medición ya está preparado (herramienta de evaluación y contrato del set de 30 o más fotos reales, con consentimiento y anonimización), pero faltan las fotos y la corrida con modelos reales. Hasta entonces la precisión no está demostrada y el proveedor de IA definitivo no está elegido.
+
 Costo y dependencia del proveedor de IA.  Medir el costo por página, fijar límites de uso por plan y encapsular el proveedor detrás de un servicio propio para poder reemplazarlo.
 
 Privacidad y seguridad de los datos.  Las fotos pueden contener nombres, teléfonos o montos de clientes. Diseñar autenticación, aislamiento por negocio y almacenamiento privado de imágenes desde el inicio, y revisar las condiciones de uso de datos del proveedor de IA.
 
 Usabilidad y accesibilidad.  Priorizar textos comprensibles, tipografía grande, contraste, pocos pasos y pruebas periódicas con personas mayores sin experiencia técnica.
 
-Alcance excesivo.  Concentrar el MVP en el recorrido foto → revisión → registros y postergar indicadores avanzados, integraciones, automatizaciones y marketplace.
+Alcance excesivo.  Concentrar el MVP en el recorrido foto → revisión → registros y postergar indicadores avanzados, integraciones, automatizaciones y marketplace. Al adelantarse inventario, recetas y reportes (previstos para el MVP 4), cuidar que no desplacen la validación del núcleo con usuarios.
 
 Adopción y sostenibilidad.  Validar el beneficio concreto, la confianza en la IA, los costos de infraestructura y la disposición a pagar mediante pilotos con emprendedores reales.
 
@@ -251,25 +254,25 @@ Se propone consultar al menos tres perfiles externos para contrastar la factibil
 
 ## XIII · TECNOLOGÍAS INVOLUCRADAS
 
-La arquitectura definitiva se definirá a partir del repositorio del proyecto y de las capacidades del equipo. Como lineamiento técnico preliminar se considera:
+La arquitectura se definió durante el MVP 2 y se documenta en el repositorio del proyecto. Lo adoptado y lo que sigue abierto es lo siguiente:
 
-Frontend: aplicación web responsiva con React y TypeScript, priorizando el uso desde el celular (captura con la cámara, compresión de imágenes) y criterios de accesibilidad; posible instalación como aplicación web progresiva (PWA).
+Frontend: aplicación web responsiva (SPA) con Vite, React 19 y TypeScript (TanStack Router, Query y Form, Tailwind 4 y zod), priorizando el uso desde el celular (captura con la cámara, compresión de imágenes) y criterios de accesibilidad; posible instalación como aplicación web progresiva (PWA).
 
-Backend: API de negocio y autenticación; evaluación de Node.js/TypeScript u otra alternativa alineada con el trabajo del equipo.
+Backend: API REST de negocio y autenticación con Java 21 y Spring Boot 4, organizada por capas y casos de uso; sesión por cookie con protección CSRF y contraseñas con BCrypt.
 
-Inteligencia artificial: modelo multimodal (visión y lenguaje) accedido por API, con salida estructurada en JSON validada contra un esquema. El proveedor se elegirá comparando precisión, costo por página y tiempo de respuesta sobre fotos reales de cuadernos; se evaluará OCR tradicional como apoyo o alternativa de menor costo.
+Inteligencia artificial: modelo multimodal (visión y lenguaje) accedido por API, con salida estructurada en JSON validada contra un esquema. El proveedor está encapsulado detrás de un puerto propio: hay un proveedor simulado para desarrollo y un cliente para Anthropic disponible como opción. La elección definitiva queda pendiente de comparar precisión, costo por página y tiempo de respuesta sobre fotos reales de cuadernos; se evaluará OCR tradicional como apoyo o alternativa de menor costo.
 
-Procesamiento asíncrono: cola de trabajos para procesar las fotos en segundo plano, con estados, reintentos y límites de uso.
+Procesamiento asíncrono: cola de trabajos para procesar las fotos en segundo plano, con estados, reintentos y límites de uso. La cola se persiste en PostgreSQL y la consume un worker propio, sin broker externo, con recuperación tras reinicios y límite diario de páginas por negocio.
 
-Almacenamiento de imágenes: almacenamiento privado de archivos, con acceso restringido al negocio dueño.
+Almacenamiento de imágenes: almacenamiento privado de archivos, hoy en el sistema de archivos local detrás de un puerto intercambiable (puede pasarse a almacenamiento de objetos compatible con S3); las fotos se sirven sólo con sesión y al negocio que las subió, sin URL públicas.
 
-Persistencia: base de datos para usuarios, negocios, bloques, campos, registros, fotos y procesamientos, vinculando cada registro con la imagen de la que surgió; motor a validar según el modelo de datos.
+Persistencia: base de datos para usuarios, negocios, bloques, campos, registros, fotos y procesamientos, vinculando cada registro con la imagen de la que surgió; motor definido: PostgreSQL 17, con migraciones versionadas (Flyway) y aislamiento entre negocios reforzado con claves foráneas compuestas.
 
-Infraestructura y trabajo colaborativo: Git/GitHub, entornos separados, configuración mediante variables de entorno, pruebas y despliegue reproducible con contenedores si resulta conveniente.
+Infraestructura y trabajo colaborativo: Git/GitHub, entornos separados, configuración mediante variables de entorno, pruebas automáticas, integración continua con GitHub Actions y contenedores (Docker) para el entorno local y el despliegue.
 
 Seguridad: contraseñas protegidas, sesiones seguras, control de acceso por negocio, validación de entradas, respaldos y tratamiento cuidadoso de los datos enviados al proveedor de IA.
 
-Estos elementos son opciones de implementación, no una afirmación de tecnologías ya adoptadas. La elección final debe documentarse tras la definición de arquitectura.
+Los elementos anteriores corresponden a lo adoptado en el MVP 2. Quedan abiertos el proveedor de IA definitivo y la instalación como aplicación web progresiva (PWA); su resolución se documentará en la próxima versión.
 
 ## XIV · BIBLIOGRAFÍA Y SITIOS DE INTERÉS
 
@@ -295,7 +298,7 @@ Las referencias de productos se incluyen como puntos de comparación funcional; 
 
 ## XV · GLOSARIO
 
-| Bloque | Componente reutilizable que aporta una función a un sistema construido en Ensambla. |
+| Bloque | Tabla de un proyecto (por ejemplo Ventas o Clientes), con sus campos tipados y sus registros; es la pieza con la que se arma el sistema en Ensambla. |
 |---|---|
 | Constructor | Interfaz desde la cual se configuran los bloques, campos y vistas. |
 | No-code | Creación de herramientas digitales sin escribir código. |
@@ -314,3 +317,7 @@ Las referencias de productos se incluyen como puntos de comparación funcional; 
 | Extracción estructurada | Obtención de datos ordenados en campos (fecha, monto, cliente…) a partir de una imagen o un texto libre. |
 | Nivel de confianza | Indicador de cuán segura está la IA de un dato leído; los valores bajos se resaltan para revisión. |
 | Registro | Cada fila de información guardada en un bloque, por ejemplo, una venta. |
+| Proyecto | Sistema armado por la persona para su emprendimiento; reúne uno o más bloques relacionados. |
+| Conexión entre tablas | Campo que apunta a una fila de otro bloque del mismo proyecto (por ejemplo, el cliente de un pedido). |
+| Fórmula | Campo cuyo valor se calcula a partir de otros campos numéricos del mismo bloque. |
+| Lote | Conjunto de fotos de páginas del cuaderno que se suben y leen juntas. |

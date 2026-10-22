@@ -8,6 +8,7 @@ import com.ensambla.backend.domain.model.usuario.Usuario;
 import com.ensambla.backend.domain.port.ContraseniaPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.usuario.UsuarioRepository;
+import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,7 @@ public class RegistroService {
     private final UsuarioRepository usuarioRepository;
     private final NegocioRepository negocioRepository;
     private final ContraseniaPort contraseniaPort;
+    private final SuscripcionService suscripcionService;
 
     @Transactional
     public Usuario registrar(RegistrarUsuarioRequest request, OffsetDateTime instante) {
@@ -36,12 +38,13 @@ public class RegistroService {
                 .creadoEn(instante)
                 .actualizadoEn(instante)
                 .build());
-        negocioRepository.save(Negocio.builder()
+        Negocio negocio = negocioRepository.save(Negocio.builder()
                 .nombre(request.nombreNegocio().trim())
                 .duenioId(usuario.getId())
                 .creadoEn(instante)
                 .actualizadoEn(instante)
                 .build());
+        suscripcionService.asignarGratuito(negocio.getId(), instante);
         return usuario;
     }
 }

@@ -167,6 +167,17 @@ class RegistroRepositoryImplTest {
     }
 
     @Test
+    @DisplayName("Lista todos los registros del bloque y del negocio")
+    void findAllByBloqueIdAndNegocioIdShouldQueryAndMap() {
+        when(jpa.findAllByBloqueIdAndNegocioIdOrderByCreadoEnAscIdAsc(BLOQUE_ID, NEGOCIO_ID))
+                .thenReturn(List.of(entity()));
+
+        List<Registro> result = repository.findAllByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID);
+
+        assertThat(result).extracting(Registro::getId).containsExactly(REGISTRO_ID);
+    }
+
+    @Test
     @DisplayName("Sin ids no consulta la base")
     void findAllByIdsAndBloqueShouldNotQueryWhenIdsAreEmpty() {
         List<Registro> result = repository.findAllByIdsAndBloque(List.of(), BLOQUE_ID, NEGOCIO_ID);

@@ -2,25 +2,31 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.useCase.procesamiento.ConfirmarLecturaUseCase;
 import com.ensambla.backend.domain.useCase.procesamiento.ConsultarConsumoUseCase;
+import com.ensambla.backend.domain.useCase.procesamiento.LeerImagenUseCase;
 import com.ensambla.backend.domain.useCase.procesamiento.ObtenerLecturaUseCase;
 import com.ensambla.backend.domain.useCase.procesamiento.ReintentarLecturaUseCase;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.ConfirmacionRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.ConfirmacionResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.ConsumoResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.LecturaImagenResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.LecturaResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.PedidoLecturaRequest;
 import com.ensambla.backend.infrastructure.presentation.mapper.procesamiento.LecturaPresentationMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
@@ -33,6 +39,7 @@ public class LecturaController {
     private final ReintentarLecturaUseCase reintentarLecturaUseCase;
     private final ConfirmarLecturaUseCase confirmarLecturaUseCase;
     private final ConsultarConsumoUseCase consultarConsumoUseCase;
+    private final LeerImagenUseCase leerImagenUseCase;
     private final LecturaPresentationMapper lecturaPresentationMapper;
 
     @GetMapping("/api/lotes/{loteId}/lectura")
@@ -58,6 +65,15 @@ public class LecturaController {
         ConfirmacionResponse response = lecturaPresentationMapper.toResponse(confirmarLecturaUseCase.execute(
                 lecturaPresentationMapper.toConfirmarRequest(UUID.fromString(authentication.getName()), loteId, body)));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping(value = "/api/importaciones/lectura", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Leer una foto con IA y registrar su consumo, sin crear las filas propuestas")
+    public ResponseEntity<LecturaImagenResponse> leerImagen(Authentication authentication,
+                                                            @RequestPart("imagen") MultipartFile imagen,
+                                                            @RequestPart("pedido") @Valid PedidoLecturaRequest pedido) {
+        return ResponseEntity.ok(lecturaPresentationMapper.toResponse(leerImagenUseCase.execute(
+                lecturaPresentationMapper.toRequest(UUID.fromString(authentication.getName()), imagen, pedido)), pedido));
     }
 
     @GetMapping("/api/ia/consumo")

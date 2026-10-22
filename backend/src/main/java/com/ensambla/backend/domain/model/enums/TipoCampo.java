@@ -7,5 +7,10 @@ public enum TipoCampo {
     OPCION,
     SI_NO,
     RELACION,
-    FORMULA
+    FORMULA,
+    TEXTO_LARGO,
+    MONEDA,
+    EMAIL,
+    TELEFONO,
+    HORA
 }

@@ -164,7 +164,7 @@ class CampoSeguridadIntegrationTest {
     void crearShouldRejectUnknownTipo() throws Exception {
         UUID bloqueId = givenBloque(negocioId);
 
-        crear(bloqueId, "{\"nombre\":\"Moneda\",\"tipo\":\"MONEDA\"}")
+        crear(bloqueId, "{\"nombre\":\"Adjunto\",\"tipo\":\"ARCHIVO\"}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.tipo").exists());
 

@@ -47,6 +47,13 @@ public class RegistroRepositoryImpl implements RegistroRepository {
     }
 
     @Override
+    public List<Registro> findAllByBloqueIdAndNegocioId(UUID bloqueId, UUID negocioId) {
+        return jpa.findAllByBloqueIdAndNegocioIdOrderByCreadoEnAscIdAsc(bloqueId, negocioId).stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<Registro> findAllByIdsAndBloque(Collection<UUID> ids, UUID bloqueId, UUID negocioId) {
         if (ids.isEmpty()) {
             return List.of();
