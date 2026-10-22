@@ -59,3 +59,6 @@ Detalle y criterios verificados: [docs/acceso-sesion.md](docs/acceso-sesion.md).
 
 Ramas `tipo/descripcion-corta`, Conventional Commits, PR a `dev` con 1 aprobación y *Squash and merge*.
 Detalle en [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md). Flujo de ramas: `main` ← `stg` ← `dev` ← feature.
+
+<!-- prueba: sin checks de Vercel en el PR -->
+
