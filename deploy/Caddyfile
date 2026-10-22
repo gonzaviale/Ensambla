@@ -6,7 +6,7 @@ www.{$DOMINIO} {
 {$DOMINIO} {
 	encode zstd gzip
 
-	# El backend atiende /api igual que el rewrite de Vercel.
+	# El backend atiende /api; el front lo llama en el mismo origen (VITE_API_URL=/api).
 	handle /api/* {
 		reverse_proxy backend:8080
 	}

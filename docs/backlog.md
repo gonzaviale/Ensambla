@@ -90,7 +90,7 @@ Columna **Base** = qué deja resuelto esta estructura inicial y qué falta.
 
 | ID | Área | Talle | Tarea | Depende de | Base |
 |---|---|---|---|---|---|
-| T-036 | Infra | M | Deploy en entorno público | T-003, T-002 | 🟡 `render.yaml` + `deploy-main.yml`; falta servicio del front y secretos |
+| T-036 | Infra | M | Deploy en entorno público | T-003, T-002 | ✅ VPS Contabo con Docker Compose (`deploy/`) + `deploy-main.yml` por SSH; front, API y BD con HTTPS en `ensambla.com.ar` |
 | T-037 | QA | M | Test E2E del flujo principal | T-035, T-036 | ⏳ falta (Playwright o Cypress) |
 | T-038 | QA | S | Datos de demo para la venta | T-014, T-023 | ⏳ falta |
 
