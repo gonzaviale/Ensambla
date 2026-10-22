@@ -14,6 +14,9 @@ public class RegistroRepositoryMapper {
                 .bloqueId(entity.getBloqueId())
                 .valores(entity.getValores())
                 .fotoOrigenId(entity.getFotoOrigenId())
+                .esEjemplo(entity.getEsEjemplo())
+                .origen(entity.getOrigen())
+                .orden(entity.getOrden())
                 .creadoEn(entity.getCreadoEn())
                 .actualizadoEn(entity.getActualizadoEn())
                 .build();
@@ -26,6 +29,9 @@ public class RegistroRepositoryMapper {
                 .bloqueId(registro.getBloqueId())
                 .valores(registro.getValores())
                 .fotoOrigenId(registro.getFotoOrigenId())
+                .esEjemplo(registro.getEsEjemplo())
+                .origen(registro.getOrigen())
+                .orden(registro.getOrden())
                 .creadoEn(registro.getCreadoEn())
                 .actualizadoEn(registro.getActualizadoEn())
                 .build();

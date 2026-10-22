@@ -1,9 +1,8 @@
 package com.ensambla.backend.infrastructure.ia;
 
 /**
- * Punto de conexión con el proveedor de IA. Para sumar un proveedor real alcanza con implementar esta interfaz
- * (llamada HTTP, autenticación, salida estructurada con {@link PeticionModeloVision#esquemaJson()}) y registrarla
- * como bean cuando {@code ensambla.ia.proveedor} tenga su nombre. Ver {@link IaConfig}.
+ * Punto de conexión con el proveedor de IA para leer fotos. Cada proveedor la arma en {@link ProveedorIa#vision}
+ * (llamada, autenticación, el esquema de {@link PeticionModeloVision#esquemaJson()}). Ver {@link IaConfig}.
  */
 public interface ClienteModeloVision {
 

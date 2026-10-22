@@ -15,15 +15,17 @@ import java.util.stream.Collectors;
  */
 public class PromptLecturaCuaderno {
 
-    public static final String VERSION = "v2";
+    public static final String VERSION = "v3";
 
     static final String SIN_BLOQUES = "El negocio todavía no tiene bloques: proponé uno nuevo.";
     static final String ENCABEZADO_BLOQUES = "Bloques que el negocio ya tiene (id: nombre [campo (TIPO), ...]):";
     static final String ENCABEZADO_DESTINO = "DESTINO FIJO: la persona indicó que estas fotos son filas del bloque"
-            + " existente que sigue (id: nombre [campo (TIPO), ...]). Devolvé su id en bloqueExistenteId, usá"
-            + " exactamente el mismo nombre de bloque y los mismos nombres, tipos y opciones de campo, y no agregues"
-            + " campos nuevos. Si las fotos no tienen nada que ver con este bloque, devolvé filas vacías y explicalo"
-            + " en \"advertencias\".";
+            + " existente que sigue (id: nombre [campo (TIPO), ...]). Devolvé su id en bloqueExistenteId y usá"
+            + " exactamente el mismo nombre de bloque. Las columnas de la foto que el bloque ya tiene van con el mismo"
+            + " nombre, tipo y opciones. Si la foto trae una columna que el bloque no tiene, agregala como campo nuevo"
+            + " con un nombre legible y el tipo que sugieran sus valores (nunca RELACION). Incluí sólo las columnas"
+            + " que están escritas en la foto. Si las fotos no tienen nada que ver con este bloque, devolvé filas"
+            + " vacías y explicalo en \"advertencias\".";
 
     private final String instrucciones;
     private final String esquemaJson;

@@ -27,8 +27,8 @@ async function toApiError(response: Response) {
   const body: unknown = await response.json().catch(() => null);
   const parsed = errorResponseSchema.safeParse(body);
   if (!parsed.success) return new ApiError(response.status, MENSAJE_INESPERADO);
-  const { status, message, errors, traceId } = parsed.data;
-  return new ApiError(status, message, errors, traceId);
+  const { status, message, errors, traceId, codigo } = parsed.data;
+  return new ApiError(status, message, errors, traceId, codigo);
 }
 
 async function fetchRed(url: URL, init: RequestInit) {
@@ -88,6 +88,14 @@ async function send(
   });
 
   if (response.status === 403 && esMutacion && puedeReintentar) {
+    // Una restricción comercial no es un CSRF vencido: repetir la escritura no la resuelve.
+    const rechazo = errorResponseSchema.safeParse(
+      await response
+        .clone()
+        .json()
+        .catch(() => null),
+    );
+    if (rechazo.success && rechazo.data.codigo) return response;
     invalidarCsrf();
     return send(path, { method, body, signal }, false);
   }
@@ -139,8 +147,8 @@ export const http = {
   getArchivo: (path: string, signal?: AbortSignal) => requestArchivo(path, signal),
   get: <S extends z.ZodTypeAny>(path: string, schema: S, signal?: AbortSignal) =>
     request(path, schema, { signal }),
-  post: <S extends z.ZodTypeAny>(path: string, body: unknown, schema: S) =>
-    request(path, schema, { method: 'POST', body }),
+  post: <S extends z.ZodTypeAny>(path: string, body: unknown, schema: S, signal?: AbortSignal) =>
+    request(path, schema, { method: 'POST', body, signal }),
   postForm: <S extends z.ZodTypeAny>(path: string, body: FormData, schema: S) =>
     request(path, schema, { method: 'POST', body }),
   put: <S extends z.ZodTypeAny>(path: string, body: unknown, schema: S) =>

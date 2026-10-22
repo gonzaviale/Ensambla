@@ -3,6 +3,7 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 import com.ensambla.backend.domain.model.enums.EstadoLote;
 import com.ensambla.backend.domain.model.enums.EstadoUsuario;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
+import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
 import com.ensambla.backend.infrastructure.repository.entity.FotoCuadernoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.LoteSubidaEntity;
@@ -39,9 +40,9 @@ import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
@@ -77,6 +78,9 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Autowired
     private INegocioJpaRepository negocios;
+
+    @Autowired
+    private SuscripcionService suscripcionService;
 
     @Autowired
     private ILoteSubidaJpaRepository lotes;
@@ -182,12 +186,14 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     private UUID givenNegocio(UUID usuarioId) {
-        return negocios.saveAndFlush(NegocioEntity.builder()
+        UUID creadoId = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId)
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
+        suscripcionService.asignarGratuito(creadoId, AHORA.minusDays(1));
+        return creadoId;
     }
 
     private UUID givenUsuarioConNegocio() {

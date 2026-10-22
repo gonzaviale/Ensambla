@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.exception.CredencialesInvalidasException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
+import com.ensambla.backend.domain.exception.LecturaCuadernoException;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,6 +63,16 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ErrorResponse> response = handler.handleDuplicate(exception, request);
 
         thenResponseHasStatusAndMessage(response, 409, exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Responde 502 con el mensaje cuando la IA no puede leer la foto")
+    void handleLecturaCuadernoShouldReturnBadGatewayWithMessage() {
+        LecturaCuadernoException exception = new LecturaCuadernoException("No pudimos leer el cuaderno");
+
+        ResponseEntity<ErrorResponse> response = handler.handleLecturaCuaderno(exception, request);
+
+        thenResponseHasStatusAndMessage(response, 502, "No pudimos leer el cuaderno");
     }
 
     @Test

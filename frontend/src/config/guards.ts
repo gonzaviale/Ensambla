@@ -17,5 +17,5 @@ export async function requerirUsuario({ context, location }: Contexto) {
 // Pantallas públicas (landing, login, registro): con sesión no tienen sentido.
 export async function redirigirSiHaySesion({ context }: Pick<Contexto, 'context'>) {
   const usuario = await context.queryClient.fetchQuery(sesionQuery());
-  if (usuario) throw redirect({ to: '/proyectos' });
+  if (usuario) throw redirect({ to: '/inicio' });
 }

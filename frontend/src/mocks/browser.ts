@@ -1,7 +1,59 @@
 import { setupWorker } from 'msw/browser';
 import { env } from '@/config/env';
+import type { Sistema } from '@/lib/sistema/tipos';
+import type { Preferencias } from '@/types/preferencias';
+import type { ConfiguracionNegocio } from '@/types/negocio';
+import { pruebaPremiumSchema, type PruebaPremium } from '@/types/planes';
 import { handlersPara } from './handlers';
-import { sembrarUsuario } from './db/estado';
+import { estado, sembrarUsuario } from './db/estado';
+import { interceptarFetch } from './interceptarFetch';
+
+const CLAVE = 'ensambla.mock.datos.v1';
+
+type Guardado = {
+  sistemas: Record<string, Sistema[]>;
+  preferencias: Record<string, Preferencias>;
+  negocios: Record<string, ConfiguracionNegocio>;
+  pruebasPremium: Record<string, PruebaPremium>;
+};
+
+// La API simulada vive en memoria: en el navegador se copia a localStorage para que los sistemas y las
+// preferencias sobrevivan a recargar la página, como hacía el mockup.
+function restaurar() {
+  try {
+    const crudo = localStorage.getItem(CLAVE);
+    if (!crudo) return;
+    const guardado = JSON.parse(crudo) as Partial<Guardado>;
+    estado.sistemas = new Map(Object.entries(guardado.sistemas ?? {}));
+    estado.preferencias = new Map(Object.entries(guardado.preferencias ?? {}));
+    estado.negocios = new Map(Object.entries(guardado.negocios ?? {}));
+    estado.pruebasPremium = new Map(
+      Object.entries(guardado.pruebasPremium ?? {}).flatMap(([email, valor]) => {
+        const prueba = pruebaPremiumSchema.safeParse(valor);
+        return prueba.success ? [[email, prueba.data] as const] : [];
+      }),
+    );
+  } catch {
+    // Datos ilegibles: se arranca de cero.
+  }
+}
+
+function conservar() {
+  try {
+    const guardado: Guardado = {
+      sistemas: Object.fromEntries(estado.sistemas),
+      preferencias: Object.fromEntries(estado.preferencias),
+      negocios: Object.fromEntries(estado.negocios),
+      pruebasPremium: Object.fromEntries(estado.pruebasPremium),
+    };
+    localStorage.setItem(CLAVE, JSON.stringify(guardado));
+  } catch {
+    // Sin almacenamiento (modo privado, lleno): la demo sigue andando, solo no se conserva.
+  }
+}
+
+restaurar();
+estado.alCambiar = conservar;
 
 // Cuenta sólo del modo simulado; no se crea ni autentica ningún usuario en el backend.
 if (env.mocks === 'completo') {
@@ -12,4 +64,14 @@ if (env.mocks === 'completo') {
   });
 }
 
-export const worker = setupWorker(...handlersPara(env.mocks));
+const handlers = handlersPara(env.mocks);
+const worker = setupWorker(...handlers);
+
+// Con service worker si el navegador lo permite; si no, interceptando fetch.
+export async function iniciarMocks() {
+  try {
+    await worker.start({ onUnhandledRequest: 'bypass', quiet: true });
+  } catch {
+    interceptarFetch(handlers);
+  }
+}

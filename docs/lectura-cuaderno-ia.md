@@ -29,14 +29,15 @@ Esta historia **no crea registros definitivos ni confirma bloques nuevos**: eso 
 
 **Destino fijo (opcional).** `POST /api/lotes` acepta `bloqueDestinoId` (parte multipart opcional). Se valida contra el
 negocio de la sesión (un bloque ajeno responde 404) y se guarda en `lote_subida.bloque_destino_id`. Con destino, el
-contexto que recibe la IA incluye **sólo ese bloque** y le pide copiar su nombre, campos, tipos y opciones tal cual,
-sin agregar campos: así no adivina a cuál sumar las filas y `PropuestaLecturaService` encuentra el bloque compatible.
+contexto que recibe la IA incluye **sólo ese bloque** y le pide usar su nombre y, para las columnas que ya tiene, sus
+campos, tipos y opciones tal cual: así no adivina a cuál sumar las filas. Si la foto trae una columna que el bloque no
+tiene, la IA la agrega como campo nuevo (ver [Campos nuevos](#campos-nuevos-en-el-bloque-destino-ens-172--h-35)).
 Sin destino, la IA ve todos los bloques del negocio y propone como antes (la pantalla de subida lo ofrece como
 «Una tabla nueva»). Si las fotos no tienen que ver con el bloque, la IA devuelve filas vacías y una advertencia.
 
 **Contexto con tipos.** Cada campo se le muestra como `Nombre (TIPO)`, `Nombre (OPCION: a|b)` o
-`Nombre (RELACION → Tabla: devolvé el texto tal como está escrito)`. `PromptLecturaCuaderno.VERSION` pasó a `v2`:
-hay que volver a medir la precisión (T-099) antes de comparar con resultados de `v1`.
+`Nombre (RELACION → Tabla: devolvé el texto tal como está escrito)`. `PromptLecturaCuaderno.VERSION` pasó a `v2` y, con los campos nuevos, a `v3`:
+hay que volver a medir la precisión (T-099) antes de comparar con resultados de `v1` o `v2`.
 
 **Conexiones (`RELACION`).** La IA sólo lee conexiones de campos `RELACION` que ya tiene el bloque existente (destino
 o reconocido) y devuelve el **texto** escrito en el cuaderno, nunca un id. Si propone una conexión que el bloque no
@@ -51,6 +52,42 @@ tiene, se lee como `TEXTO`. Después, `ConexionesLecturaService` busca en la tab
 En la revisión, la celda muestra el nombre de la fila y se cambia con el mismo buscador del formulario de registros.
 Una conexión sólo se guarda sumando las filas a la tabla que ya la tiene: `POST …/confirmar` rechaza una columna
 `RELACION` sin `campoId` y comprueba que cada id exista en la tabla conectada del negocio.
+
+## Campos nuevos en el bloque destino (ENS-172 / H-35)
+
+Cuando la persona elige un bloque al subir las fotos, la lectura no exige que todas las columnas de la foto estén en
+el bloque: las cruza con sus campos y separa las que ya existen de las que faltan. Los cuadernos cambian con el
+tiempo y el bloque tiene que poder crecer con la foto. Sin destino todo sigue igual (un bloque se reutiliza sólo si
+**todas** sus columnas coinciden; si no, se propone uno nuevo).
+
+**Cómo se cruza** (`PropuestaLecturaService`, sólo con destino):
+
+1. Primero, por **nombre**, sin importar tildes, mayúsculas ni puntuación («Tel.» = «tel»).
+2. Después, por **sinónimo** entre los campos que quedaron libres (`SinonimosCampo`: teléfono/celular/whatsapp,
+   dirección/domicilio, monto/importe/total, cantidad/unidades, producto/artículo, cliente/comprador,
+   email/mail/correo, observaciones/notas/comentarios). La lista es corta a propósito.
+3. Cada campo del bloque se usa **una sola vez**: nunca se duplica un campo existente.
+4. Una columna que podría ser más de un campo (por ejemplo «Tel» con «Teléfono» y «Celular» en el bloque) no se
+   adivina: se propone como nueva y se agrega una advertencia para que la persona la revise.
+
+**Qué devuelve** (`GET /api/lotes/{loteId}/lectura`, dentro de `propuesta`):
+
+| Campo | Contenido |
+|---|---|
+| `campos` | Todas las columnas de la foto. Las que coinciden llevan el **nombre, tipo y opciones del campo del bloque**; las nuevas, lo que propuso la IA |
+| `mapeoCampos` | Clave de cada columna que coincide → id del campo del bloque. Las nuevas **no** aparecen |
+| `camposNuevos` | Las columnas que el bloque no tiene: `clave`, `nombre`, `tipo` sugerido y `opciones`. Vacía si no hay (y en las lecturas guardadas antes de esta versión) |
+| `nombre` | El nombre del bloque elegido, no el que leyó la IA |
+
+- **Tipo sugerido:** lo propone la IA según los valores y el backend lo valida como el resto de la lectura (cada valor
+  tiene que cumplir el tipo; `OPCION` necesita sus opciones). Nunca es `RELACION` ni `FORMULA`: una columna que la IA
+  marque como conexión que el bloque no tiene se lee como `TEXTO`.
+- **Columnas sin datos:** una columna nueva sin ningún valor en la foto no se propone (nada que guardar); se avisa en
+  `advertencias` y se sacan sus celdas de las filas.
+- **Foto de otro bloque:** si ninguna columna coincide con un campo del bloque se rechaza con «La estructura leída no
+  es compatible con el bloque de destino» (lote en `ERROR`), igual que antes.
+- **Qué no cambia:** la lectura no escribe nada. Los campos nuevos se crean recién al confirmar (`POST …/confirmar`,
+  columna sin `campoId`), en la misma transacción que los registros (ENS-189).
 
 ## Revisión y confirmación (ENS-121 / H-30)
 
@@ -82,6 +119,14 @@ se agregó a mano, y `valores` por clave **ya tipados**: número, sí/no o texto
   sentencia condicional, así dos confirmaciones simultáneas no duplican datos (la segunda responde 400).
 - Cada registro guarda `foto_origen_id` según su página; las filas agregadas a mano quedan sin foto.
 - Máximo 500 filas por confirmación.
+- **Columnas nuevas en una tabla existente (ENS-189):** con `bloqueId`, una columna sin `campoId` se crea como campo
+  del bloque (no obligatorio, al final) con el `nombre`, `tipo` y `opciones` finales que dejó la persona, y recién
+  después se crean los registros con esos valores. Todo en la misma transacción: si falla una columna o una fila
+  no queda ningún campo ni registro, y el lote sigue `LISTO`. Los registros que ya tenía la tabla no se modifican (los
+  nuevos campos quedan vacíos en ellos). Una columna descartada en la revisión simplemente no se envía.
+- Reglas de columnas: dos columnas no pueden apuntar al mismo `campoId` (400), una columna sin `campoId` no puede ser
+  `RELACION`, y un nombre que ya usa otro campo (o otra columna nueva), sin importar mayúsculas ni espacios de los
+  bordes, vuelve **400** ubicado en su columna: `errors["campos[2].nombre"]`.
 - Las fotos son privadas: se sirven con la sesión y sólo al negocio dueño (otro negocio recibe 404). Reemplazan a
   la «URL firmada» de Jira porque el almacenamiento es local; si se pasa a un almacenamiento externo, este es
   el único punto que cambia.
@@ -129,8 +174,10 @@ Si `consumoCompleto=false`, el total de tokens/costo puede ser parcial; no repre
 | `ensambla.ia.procesamiento.precio-entrada-millon` | desconocido | USD por millón de tokens de entrada |
 | `ensambla.ia.procesamiento.precio-salida-millon` | desconocido | USD por millón de tokens de salida |
 
-Con `proveedor=simulado`, los resultados son datos de demostración del JSON del proyecto.
-Activar el proveedor real requiere implementar/registrar su cliente después de la decisión del equipo.
+Con `proveedor=simulado`, los resultados son datos de demostración del JSON del proyecto. Con `anthropic` (API key
+en `ENSAMBLA_IA_API_KEY`) o `bedrock` (perfil de AWS en `ENSAMBLA_IA_BEDROCK_PERFIL_AWS`) la lectura usa Claude con
+visión; el proveedor se elige en un solo lugar para toda la IA de la app (ver «Proveedor de IA intercambiable» en
+[sami-asistente.md](sami-asistente.md)).
 
 ## API privada
 
@@ -147,8 +194,29 @@ El negocio nunca se toma de la URL, body o query.
 Los errores de regla (estado incorrecto o límite) responden 400 con mensaje claro.
 
 La propuesta HTTP contiene tipoRegistro, nombre, bloqueExistenteId, campos, filas, advertencias,
-mapeoCampos y consumo. Cada dato conserva `valor` nullable y `confianza`.
+mapeoCampos, camposNuevos y consumo. Cada dato conserva `valor` nullable y `confianza`.
 La consulta no entrega claves de archivos, bytes ni credenciales.
+
+## Lectura de una foto desde la pantalla de importar
+
+`POST /api/importaciones/lectura` (multipart, con sesión y CSRF) lee **una** foto contra un bloque y devuelve lo
+leído **sin guardar nada**: la persona revisa y recién ahí incorpora los registros desde la pantalla. Usa el mismo
+lector y las mismas reglas de cruce que el lote (el bloque es el destino; nombre y sinónimos; sin duplicar).
+
+| Parte | Contenido |
+|---|---|
+| `imagen` | JPG, PNG o WEBP de hasta 10 MB, igual que las fotos del lote. El tipo se reconoce por los bytes, no por el `Content-Type` (la pantalla la achica y la guarda como JPG antes de enviarla) |
+| `pedido` | JSON con `nombre` del bloque, `destinoExistente` y `campos` (`key`, `label`, `type`, `options`) con los tipos de la pantalla |
+
+Respuesta 200: `filas` (un mapa por registro, por la clave del campo; las columnas nuevas también), `camposNuevos`
+(sólo si `destinoExistente`), `dudas` (`fila` desde 0, `campo`, `motivo`: los datos con confianza menor al umbral) y
+`descripcion` (vacía: la lectura no interpreta el negocio). Los campos que apuntan a otro bloque (`relation`) no se
+mandan a leer y vuelven vacíos. Errores: 400 si la imagen o el pedido no sirven o la foto no es de ese bloque
+(«La estructura leída no es compatible…»), 502 si la IA no pudo leerla, 401 sin sesión.
+
+No pasa por la cola ni por el límite diario del lote: cada pedido llama a la IA, así que con un proveedor real
+consume saldo de la API. Para probar con un modelo de Anthropic: `scripts/levantar-backend-ia.ps1` (pide la API key
+por pantalla, sólo vive en esa ventana) y el front en modo `parcial` (`VITE_API_MOCKS=parcial`).
 
 ## Evaluación
 
@@ -171,6 +239,11 @@ La carpeta real preparada para el usuario permanece vacía.
 
 Reporte por tipo de registro: clasificación, campos/tipos, datos, errores, latencia, tokens y costo
 cuando hay tarifas. Filas/celdas adicionales se penalizan; `null` se compara sin inventar valores.
+
+**Columnas nuevas (ENS-192):** un caso del manifest puede declarar el bloque `destino` y las `camposNuevos` que la
+foto trae y el bloque no tiene; el reporte suma `columnasNuevas` con precisión, recall, tipo correcto y casos
+exactos. Cómo armar los casos, la muestra sintética y la corrida real con Anthropic están en la
+[carpeta de carga](../datos/ia/cuadernos/README.md#columnas-nuevas-y-casos-borde-ens-192--t-130).
 Se guardan hashes de fotos, anotaciones y manifest para reproducibilidad.
 Opcionales: `--meta porcentaje`, `--precio-entrada-millon tarifa`, `--precio-salida-millon tarifa`
 y `--reporte ruta.json`. La meta evalúa clasificación, campos y datos de cada categoría presente.
@@ -196,6 +269,9 @@ un reporte distinto; el adaptador OCR todavía depende de la decisión del spike
 | ENS-133 | Reserva, límites y consulta implementados; tarifas reales pendientes |
 | ENS-134 | Herramienta/pruebas preparadas; precisión real y meta acordada pendientes |
 | ENS-121 | Revisión, edición, confirmación y foto de origen implementadas; falta probarlo con fotos reales |
+| ENS-188 | Detección de columnas ausentes en el bloque destino (`camposNuevos`) con prompt v3; falta medir el acierto con fotos reales (ENS-192) |
+| ENS-192 | Casos con `destino` y `camposNuevos`, métrica `columnasNuevas` y muestra sintética (`scripts/muestras/columnas-nuevas`) listas; falta correrlo con fotos reales y un modelo real |
+| ENS-189 | Confirmación con columnas nuevas y registros en una transacción, probada contra PostgreSQL (rollback, nombre repetido, registros previos intactos) |
 
 Estos pendientes fueron acordados explícitamente con el usuario. Esta entrega no demuestra la
 precisión real del producto ni declara completos los criterios que requieren ese material.

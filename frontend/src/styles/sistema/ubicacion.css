@@ -1,0 +1,318 @@
+.ubicacion-page {
+  display: grid;
+  gap: 24px;
+}
+.ubicacion-page {
+  max-width: 1180px;
+}
+.ubicacion-page > .page-title {
+  margin: 0;
+}
+.ubicacion-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: 'direccion ajuste' 'rubro ajuste';
+  gap: 24px;
+  align-items: start;
+}
+.ubicacion-direccion {
+  grid-area: direccion;
+}
+.ubicacion-ajuste {
+  grid-area: ajuste;
+}
+.ubicacion-rubro {
+  grid-area: rubro;
+}
+.ubicacion-panel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+.ubicacion-panel h2,
+.ubicacion-revision h2 {
+  margin: 0;
+  font-size: 22px;
+}
+.ubicacion-panel p,
+.ubicacion-aviso p,
+.ubicacion-revision p {
+  margin: 0;
+}
+.ubicacion-panel .field {
+  margin: 0;
+}
+.ubicacion-panel .field > p {
+  margin: 6px 0;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+.ubicacion-buscador {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.ubicacion-buscador .input {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.ubicacion-ayuda {
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.ubicacion-aviso {
+  border: 1px solid var(--color-sand);
+  border-radius: var(--radius-lg);
+  padding: 18px 22px;
+  background: var(--color-cream);
+}
+.ubicacion-aviso strong {
+  color: var(--color-accent-800);
+}
+.ubicacion-aviso p {
+  font-size: 15px;
+  margin-top: 6px;
+}
+.ubicacion-resultados {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.ubicacion-resultados legend {
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.ubicacion-opcion {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.ubicacion-opcion:has(input:checked) {
+  background: var(--color-petrol-100);
+  border-color: var(--color-petrol);
+}
+.ubicacion-opcion input {
+  accent-color: var(--color-petrol);
+  margin-top: 4px;
+  flex: none;
+}
+.ubicacion-mapa {
+  height: 320px;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  isolation: isolate;
+  z-index: 0;
+}
+.ubicacion-mapa .leaflet-control-attribution {
+  font-size: 11px;
+}
+.ubicacion-pin {
+  box-sizing: border-box;
+  background: var(--color-petrol);
+  border: 3px solid var(--color-surface);
+  border-radius: 50%;
+  box-shadow: var(--shadow-lg);
+}
+.ubicacion-pin span {
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin: 7px;
+  border-radius: 50%;
+  background: var(--color-surface);
+}
+.ubicacion-sin-mapa {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--color-line);
+  background: var(--color-soft-surface);
+  padding: 24px;
+  text-align: center;
+  color: var(--color-muted);
+}
+.ubicacion-coordenadas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.ubicacion-coordenadas .input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.ubicacion-coordenadas > p {
+  grid-column: 1 / -1;
+}
+.ubicacion-acciones {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+.ubicacion-formulario {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+.ubicacion-formulario .input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.ubicacion-revision {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--color-petrol);
+  border-radius: var(--radius-xl);
+  background: var(--color-petrol-100);
+  padding: 24px;
+  overflow-wrap: anywhere;
+}
+.ubicacion-revision dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+.ubicacion-revision dt {
+  font-weight: 700;
+}
+.ubicacion-revision dd {
+  margin: 2px 0 0;
+}
+@media (max-width: 760px) {
+  .ubicacion-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'direccion' 'ajuste' 'rubro';
+  }
+  .ubicacion-panel {
+    padding: 18px;
+  }
+  .ubicacion-mapa {
+    height: 280px;
+  }
+  .ubicacion-buscador > .btn {
+    width: 100%;
+  }
+}
+
+/* Ubicación y rubro con la paleta: fondo blanco, cada paso con su color y sin pasteles. */
+body:has(.ubicacion-page) {
+  background: white;
+}
+.ubicacion-page > .page-title .eyebrow {
+  color: var(--orange);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.ubicacion-page > .page-title h1 {
+  color: var(--petrol);
+}
+.ubicacion-panel {
+  --paso: var(--petrol);
+  background: white;
+  border: 2px solid var(--paso);
+  border-top-width: 6px;
+  box-shadow: 0 6px 22px rgb(0 80 106 / 0.1);
+}
+.ubicacion-direccion {
+  --paso: var(--orange);
+}
+.ubicacion-ajuste {
+  --paso: var(--blue);
+}
+.ubicacion-rubro {
+  --paso: var(--coral);
+}
+.ubicacion-panel .eyebrow {
+  justify-self: start;
+  background: var(--paso);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+.ubicacion-panel h2,
+.ubicacion-revision h2 {
+  color: var(--petrol);
+}
+.ubicacion-panel label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.ubicacion-panel .input {
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  font-size: 15px;
+}
+.ubicacion-panel .input:focus {
+  outline: none;
+  border-color: var(--paso);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--paso) 25%, transparent);
+}
+.ubicacion-ayuda {
+  font-size: 15px;
+  color: var(--muted);
+}
+.ubicacion-aviso {
+  background: white;
+  border: 2px solid var(--yellow);
+  border-left-width: 8px;
+}
+.ubicacion-aviso strong {
+  color: var(--petrol);
+}
+.ubicacion-opcion {
+  border: 2px solid var(--line);
+  background: white;
+}
+.ubicacion-opcion:hover {
+  border-color: var(--orange);
+}
+.ubicacion-opcion:has(input:checked) {
+  background: var(--petrol);
+  border-color: var(--petrol);
+  color: white;
+}
+.ubicacion-opcion input {
+  accent-color: var(--orange);
+}
+.ubicacion-pin {
+  background: var(--coral);
+}
+.ubicacion-sin-mapa {
+  background: white;
+  border: 2px dashed var(--blue);
+  color: var(--petrol);
+}
+.ubicacion-revision {
+  background: white;
+  border: 2px solid var(--petrol);
+  border-left-width: 8px;
+}
+.ubicacion-revision dt {
+  color: var(--petrol);
+}
+.ubicacion-page .check-row input {
+  accent-color: var(--petrol);
+}

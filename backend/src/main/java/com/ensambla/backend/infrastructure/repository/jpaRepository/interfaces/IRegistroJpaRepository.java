@@ -100,6 +100,13 @@ public interface IRegistroJpaRepository extends JpaRepository<RegistroEntity, UU
 
     Optional<RegistroEntity> findByIdAndNegocioId(UUID id, UUID negocioId);
 
+    /** Filas de todos los bloques del negocio, en el orden que la persona les dio dentro de cada bloque. */
+    List<RegistroEntity> findAllByNegocioIdOrderByOrdenAscCreadoEnAscIdAsc(UUID negocioId);
+
+    List<RegistroEntity> findAllByBloqueIdInAndNegocioId(Collection<UUID> bloqueIds, UUID negocioId);
+
+    List<RegistroEntity> findAllByBloqueIdAndNegocioIdOrderByCreadoEnAscIdAsc(UUID bloqueId, UUID negocioId);
+
     List<RegistroEntity> findAllByIdInAndBloqueIdAndNegocioIdOrderByCreadoEnDescIdDesc(
             Collection<UUID> ids, UUID bloqueId, UUID negocioId);
 

@@ -34,8 +34,8 @@ describe('registro y sesión del cliente', () => {
 
     await completarRegistro();
 
-    await verifyPathAsync(router, '/proyectos');
-    await verifyHeadingPresentAsync('¿Por dónde querés empezar?');
+    await verifyPathAsync(router, '/inicio');
+    await verifyHeadingPresentAsync(/En qué puedo/);
     expect(estado.usuarios.get(EMAIL)?.nombre).toBe('Brian');
     expect(localStorage.length).toBe(0);
   });
@@ -77,42 +77,15 @@ describe('registro y sesión del cliente', () => {
     expect(screen.getByLabelText('Nombre del negocio')).toHaveAttribute('aria-invalid', 'true');
   });
 
-  it('logout invalida la sesión y vuelve a login; una URL privada vuelve a rechazar el acceso', async () => {
-    const user = userEvent.setup();
-    setupUsuarioConSesion();
-    const router = renderApp('/proyectos');
-    await verifyHeadingPresentAsync('¿Por dónde querés empezar?');
-
-    await clickButton(user, 'Cerrar sesión');
-
-    await verifyPathAsync(router, '/login');
-    await verifyHeadingPresentAsync('Ingresá a tu cuenta');
-    expect(estado.sesionUsuarioId).toBeNull();
-    await router.navigate({ to: '/proyectos/$proyectoId/construir', params: { proyectoId: 'abc' } });
-    await verifyPathAsync(router, '/login');
-  });
-
-  it('si falla el logout informa el error y mantiene visible la sesión activa', async () => {
-    const user = userEvent.setup();
-    setupUsuarioConSesion();
-    setupServerError('post', '/auth/logout', 500, 'No se pudo cerrar la sesión');
-    const router = renderApp('/proyectos');
-    await verifyHeadingPresentAsync('¿Por dónde querés empezar?');
-
-    await clickButton(user, 'Cerrar sesión');
-
-    await verifyAlertPresentAsync('No pudimos cerrar sesión. Volvé a intentarlo.');
-    expect(router.state.location.pathname).toBe('/proyectos');
-    expect(estado.sesionUsuarioId).not.toBeNull();
-  });
+  // El cierre de sesión vive en el perfil del encabezado: sus pruebas se suman cuando esa pantalla esté.
 
   it('verifica la sesión en el servidor aunque el cliente hubiera cacheado un usuario', async () => {
     setupUsuarioConSesion();
-    const router = renderApp('/proyectos');
-    await verifyHeadingPresentAsync('¿Por dónde querés empezar?');
+    const router = renderApp('/inicio');
+    await verifyHeadingPresentAsync(/En qué puedo/);
     estado.sesionUsuarioId = null;
 
-    await router.navigate({ to: '/proyectos/$proyectoId/usar', params: { proyectoId: 'abc' } });
+    await router.navigate({ to: '/inicio' });
 
     await verifyPathAsync(router, '/login');
     await verifyHeadingPresentAsync('Ingresá a tu cuenta');
@@ -129,4 +102,3 @@ describe('registro y sesión del cliente', () => {
     expect(response).toEqual({ id: 'id', nombre: 'Brian', email: EMAIL });
   });
 });
-

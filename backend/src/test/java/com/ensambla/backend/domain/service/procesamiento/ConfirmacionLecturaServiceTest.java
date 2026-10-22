@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.service.procesamiento;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
+import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
@@ -11,9 +12,9 @@ import com.ensambla.backend.domain.model.enums.EstadoLote;
 import com.ensambla.backend.domain.model.enums.TipoCampo;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionGuardada;
-import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura.CampoConfirmado;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura.FilaConfirmada;
+import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
@@ -180,6 +181,26 @@ class ConfirmacionLecturaServiceTest {
     }
 
     @Test
+    @DisplayName("Ubica en su columna el nombre repetido de un campo nuevo y no guarda registros")
+    void confirmarShouldLocateDuplicatedFieldName() {
+        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
+        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(
+                campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false)));
+        when(campoService.crear(any(Bloque.class), any(ConfiguracionCampo.class), eq(AHORA)))
+                .thenThrow(new DuplicateResourceException("Ya hay un campo llamado \"Monto\" en este bloque"));
+        ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID,
+                List.of(new CampoConfirmado("monto", MONTO_ID, "Monto", "NUMERO", List.of()),
+                        new CampoConfirmado("importe", null, "Monto", "NUMERO", List.of())),
+                List.of(new FilaConfirmada(1, Map.of("monto", 1, "importe", 2))));
+        LoteSubida lote = loteListo();
+
+        assertThatThrownBy(() -> confirmar(lote, confirmacion))
+                .isInstanceOfSatisfying(CampoInvalidoException.class, e -> assertThat(e.getErrores()).containsOnly(
+                        Map.entry("campos[1].nombre", "Ya hay un campo llamado \"Monto\" en este bloque")));
+        verifyNoInteractions(registroDatosService, loteSubidaService);
+    }
+
+    @Test
     @DisplayName("Ubica el valor inválido de una fila por su posición y su columna y no guarda nada")
     void confirmarShouldLocateInvalidValueAndSaveNothing() {
         givenProyectoYBloqueNuevos();
@@ -193,7 +214,7 @@ class ConfirmacionLecturaServiceTest {
         assertThatThrownBy(() -> confirmar(lote, confirmacion))
                 .isInstanceOfSatisfying(RegistroInvalidoException.class,
                         e -> assertThat(e.getErrores()).containsOnly(Map.entry("filas[1].monto", "Tiene que ser un número")));
-        verify(registroDatosService, never()).crearVarios(any());
+        verify(registroDatosService, never()).crearVarios(any(), any(), any());
         verifyNoInteractions(loteSubidaService);
     }
 
@@ -212,7 +233,7 @@ class ConfirmacionLecturaServiceTest {
                 .isInstanceOfSatisfying(RegistroInvalidoException.class,
                         e -> assertThat(e.getErrores())
                                 .containsOnly(Map.entry("filas[0].pagina", "Esta página no está en el cuaderno")));
-        verify(registroDatosService, never()).crearVarios(any());
+        verify(registroDatosService, never()).crearVarios(any(), any(), any());
     }
 
     @Test
@@ -251,7 +272,7 @@ class ConfirmacionLecturaServiceTest {
                 .isInstanceOfSatisfying(RegistroInvalidoException.class,
                         e -> assertThat(e.getErrores())
                                 .containsOnly(Map.entry("filas[0].cliente", "Esa fila ya no existe")));
-        verify(registroDatosService, never()).crearVarios(any());
+        verify(registroDatosService, never()).crearVarios(any(), any(), any());
     }
 
     @Test
@@ -323,13 +344,14 @@ class ConfirmacionLecturaServiceTest {
     private List<Registro> thenRegistrosGuardados() {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<Registro>> registros = ArgumentCaptor.forClass(List.class);
-        verify(registroDatosService).crearVarios(registros.capture());
+        verify(registroDatosService).crearVarios(eq(NEGOCIO_ID), registros.capture(),
+                eq(AHORA));
         return registros.getValue();
     }
 
     private void thenLoteConfirmedAfterSavingRegistros(LoteSubida lote, Bloque bloque) {
         InOrder orden = inOrder(registroDatosService, loteSubidaService);
-        orden.verify(registroDatosService).crearVarios(any());
+        orden.verify(registroDatosService).crearVarios(any(), any(), any());
         orden.verify(loteSubidaService).confirmar(lote, bloque.getId(), AHORA);
     }
 

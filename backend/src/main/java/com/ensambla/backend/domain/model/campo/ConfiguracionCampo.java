@@ -108,9 +108,9 @@ public record ConfiguracionCampo(
             return Optional.empty();
         }
         return switch (tipo) {
-            case TEXTO -> errorSi(valor.length() > Campo.MAX_CARACTERES_TEXTO,
+            case TEXTO, TEXTO_LARGO, EMAIL, TELEFONO, HORA -> errorSi(valor.length() > Campo.MAX_CARACTERES_TEXTO,
                     "Máximo " + Campo.MAX_CARACTERES_TEXTO + " caracteres");
-            case NUMERO -> errorSi(!NUMERO.matcher(valor).matches(), "Tiene que ser un número, por ejemplo 12.5");
+            case NUMERO, MONEDA -> errorSi(!NUMERO.matcher(valor).matches(), "Tiene que ser un número, por ejemplo 12.5");
             case FECHA -> errorSi(!esFecha(valor), "Tiene que ser una fecha con el formato AAAA-MM-DD");
             case OPCION -> errorSi(!opciones.contains(valor), "Tiene que ser una de las opciones");
             case SI_NO -> errorSi(!"true".equals(valor) && !"false".equals(valor),

@@ -8,13 +8,15 @@ export function RegistroPage() {
     <AuthCard
       title="Creá tu cuenta"
       lead="Empezá a armar el sistema de tu negocio."
+      saludoSami="¡Hola, soy Sami!"
+      conEslogan
       footer={
         <>
           ¿Ya tenés cuenta? <EnlaceAuth to="/login">Ingresá</EnlaceAuth>
         </>
       }
     >
-      <RegistroForm onExito={() => void router.navigate({ to: '/proyectos' })} />
+      <RegistroForm onExito={() => void router.navigate({ to: '/inicio' })} />
     </AuthCard>
   );
 }

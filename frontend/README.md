@@ -23,7 +23,7 @@ npm run dev        # http://localhost:5173 (proxy /api → http://localhost:8080
 
 | Valor | Comportamiento |
 |---|---|
-| `parcial` | Backend real salvo lo pendiente: hoy no queda nada simulado |
+| `parcial` | Backend real (sesión, planes, prueba, pagos, fotos, avisos, configuración del negocio y ubicación) salvo sistemas, preferencias, Sami y zona |
 | `completo` | Todo simulado con MSW; no hace falta backend |
 | `ninguno` (default) | Todo contra el backend real, incluidos registro, login y logout |
 
@@ -32,96 +32,60 @@ en memoria; los guards revalidan la sesión al navegar a rutas privadas. Logout 
 El formulario de registro incluye nombre del negocio y muestra errores del cliente y del servidor.
 Los tests usan MSW completo y un entorno jsdom que conserva los AbortSignal nativos de Node para fetch.
 
-### Probar proyectos (ENS-4)
+### Recorrer la aplicación
 
-El CRUD de proyectos y las plantillas ya tienen backend. Mientras falten T-005/T-006, usá el modo `completo`
-para recorrer la interfaz: la sesión simulada del modo `parcial` no autentica contra el servidor real.
+Con `VITE_API_MOCKS=completo` ingresá en `/login` con `demo@ensambla.local` / `EnsamblaDemo2026!` (la cuenta sólo
+existe en la simulación). La primera vez aparece la bienvenida con la guía interactiva. Después: inicio,
+plantillas, taller con Sami, editor (Construir y Usar), avisos de Sami con la campana, y «Mi zona». La base
+simulada persiste en `localStorage`. Detalle en [../docs/ui-mockup.md](../docs/ui-mockup.md).
 
-```powershell
-$env:VITE_API_MOCKS = 'completo'
-npm.cmd run dev -- --host 127.0.0.1
-```
+## Planes y prueba premium (ENS-97)
 
-Ingresá en `/login` con `demo@ensambla.local` / `EnsamblaDemo2026!`. Esta cuenta sólo existe en la simulación.
-Podés crear en blanco o desde Inventario, Pedidos y Clientes; abrir, renombrar y eliminar proyectos.
-Cada tarjeta muestra sus bloques y cuántos datos tiene cada uno (se leen de `GET /api/proyectos/{id}`, porque
-`GET /api/proyectos` todavía no trae la estructura); «Usar» es la acción principal y renombrar/eliminar están en «Más opciones».
-Los datos simulados viven en memoria y se reinician al recargar la página.
+La opción «Planes» abre `/planes`, con sesión obligatoria. Muestra catálogo y precio configurado,
+plan efectivo, consumo y estado de prueba desde `GET /api/planes`. Mientras no se defina precio/moneda,
+Premium muestra «Precio por definir». ENS-98 configura ARS 14.900 cada treinta días y agrega
+contratación y cancelación; los botones de cobro se habilitan sólo si el backend tiene configurado el proveedor.
 
-La carga efectiva de fotos corresponde a otra historia.
+La confirmación explica siete días, diez páginas totales, una única prueba por negocio y conservación
+de datos; `POST /api/planes/prueba` usa sesión y CSRF. El botón evita doble envío. Se vuelve a consultar
+tras éxito o error, al recuperar el foco y periódicamente; cerca del vencimiento se usa la hora del
+servidor para actualizar el estado. Un 403 con código comercial se conserva sin repetir la escritura.
 
-### Probar el constructor (ENS-5 · H-04)
+`completo` simula planes y conserva el historial de prueba en la base local de demostración;
+`parcial` y `ninguno` usan el backend real para este contrato. En `parcial`, los contadores de planes
+son reales y los sistemas del editor siguen siendo simulados; no deben usarse para validar cuotas.
+Detalle de pruebas y entorno local aislado en [plan-ENS-97.md](../docs/plan-ENS-97.md).
 
-En `/proyectos/<id>/construir` (botón «Cambiar estructura» de la tarjeta, o «Armar bloques» si está vacío): lista de bloques a la izquierda y el bloque elegido
-a la derecha; en el celular, primero la lista y al tocar un bloque su detalle («Ver todos los bloques» o el
-botón atrás vuelven). El bloque abierto queda en la URL (`?bloque=<id>`). Se agregan, renombran y eliminan
-bloques (con confirmación) y sus datos (campos) de los cinco tipos, con obligatorio, valor inicial y opciones.
-En la interfaz los campos se llaman «datos» (cada uno es una columna de la tabla).
+### Renovación automática (ENS-98)
 
-- Contrato: `src/api/bloques.ts` (T-017) y `src/api/campos.ts` (T-018), los dos ya en el backend.
-- `completo`: bloques y campos simulados sobre el proyecto en memoria, con las validaciones del backend
-  (409 por nombre repetido, 400 con `errors`).
-- `ninguno` o `parcial`: todo contra el backend real.
+La tarjeta Premium consulta `/api/planes/renovacion`. La confirmación presenta precio, frecuencia,
+fecha del primer cobro y condiciones; luego permite continuar en el checkout alojado de Mercado Pago.
+Una autorización se muestra separada del acceso pago. Sólo `GET /api/planes`, con la sesión actual,
+decide el plan mostrado; parámetros de retorno como `status=approved` no habilitan Premium.
 
-### Cargar registros (ENS-6 · ENS-52/T-024 y ENS-53/T-025)
+«Actualizar pagos» solicita conciliación y refresca ambas consultas. La cancelación requiere
+confirmación; si falla, se conserva el mensaje de baja pendiente y el tiempo pagado. Se muestra
+el fin del período pago. Las mutaciones no se reintentan automáticamente y bloquean doble envío.
+Las respuestas se reconsultan usando la sesión actual para no trasladar datos entre cuentas.
 
-En modo `completo`, creá un proyecto desde una plantilla: se abre directo en Usar (con un aviso para cambiar la estructura en Construir); elegí la pestaña **Cargar** o «Cargar el primer registro».
-El modo usar permite elegir un bloque y genera sus controles de texto, número, fecha, opción y sí/no,
-respetando el orden y los valores iniciales. Los borradores se conservan al cambiar de bloque dentro
-de la pantalla; se pierden al salir o recargar. Después de confirmar el guardado se vuelven a aplicar
-los valores iniciales para cargar el próximo registro.
+MSW completo informa contratación deshabilitada por defecto; los tests de pagos configuran handlers
+locales explícitos. MSW parcial y ninguno usan los endpoints reales del backend para este módulo.
+No hay credenciales de Mercado Pago ni datos de tarjetas en el frontend.
+[Guía de configuración](../docs/mercado-pago-configuracion-local.md).
 
-- Probá guardar Inventario sin Nombre: aparece el error junto al campo y recibe el foco.
-- Completá Nombre y guardá: Stock `0` es válido; aparece el aviso de éxito.
-- En Pedidos, Entrega usa un control de fecha y Entregado permite Sí/No, inicialmente No.
-- Durante el guardado quedan deshabilitados el formulario y el selector de bloque. Los errores
-  del servidor aparecen por campo y en un aviso; conservan lo escrito. No hay reintento automático
-  ante fallas de red.
-- Un proyecto sin bloques o un bloque sin campos muestra una orientación y no permite enviar.
-
-El cliente usa `POST /api/bloques/{bloqueId}/registros` con `{ valores: { [idCampo]: valor } }`,
-sesión y CSRF. Envía números y booleanos JSON, fechas `YYYY-MM-DD` y omite opcionales vacíos.
-El contrato sigue la rama de Facundo `feat/ens-7-registros-backend`. El backend de ENS-50/T-022 y
-ENS-51/T-023 y la autenticación real deben integrarse en `dev` antes de probar con `ninguno`.
-La simulación y los tests no verifican persistencia real en PostgreSQL. El listado/edición de registros
-corresponde a ENS-7 y no se incluye aquí. Ver [plan y contrato](../docs/plan-ENS-6.md).
-
-### Probar la tabla de registros (H-06)
-
-En el modo `completo`, abrí un proyecto y entrá a `/proyectos/<id>/usar`. La tabla lista los registros de cada
-bloque con búsqueda, orden por columna (un segundo click invierte el sentido), paginación y una ficha lateral
-con todos los datos y la eliminación con confirmación.
-
-- En `npm run dev`, los proyectos creados desde una plantilla traen 30 registros de ejemplo por bloque
-  (`src/mocks/db/registros.ts`); en los tests arrancan vacíos.
-- El contrato es el de `GET /api/bloques/{id}/registros` y `DELETE /api/registros/{id}` del backend
-  (`src/api/registros.ts`). Los handlers simulan el mismo orden, búsqueda y paginación.
-- Falta la edición desde la ficha: reutiliza el `FormRenderer` de T-024. La carga de registros llega con T-025
-  y T-031.
-
-### Subir foto del cuaderno (T-091)
-
-`/cuaderno` (botón «Subir foto de mi cuaderno» en Mis proyectos): sacar foto con la cámara o elegir de la galería,
-miniaturas con girar y quitar, consejos para una buena foto y «Leer mi cuaderno», que manda hasta 10 páginas a
-`POST /api/lotes` (multipart, campo `fotos`). Antes de subir, `lib/imagen.ts` prepara cada foto en el navegador
-(T-092): la endereza según la orientación EXIF, aplica el giro elegido, achica el lado mayor a 2000px y la comprime
-en JPEG bajando la calidad hasta quedar por debajo de 1,5 MB. Si no puede decodificarla (HEIC fuera de Safari) manda
-el archivo original. En modo `completo` el lote se
-simula sin guardar los archivos.
-
-## Estructura
+## Estructura de carpetas
 
 ```
 src/
 ├── routes/        rutas file-based de TanStack Router: finas (guard + loader + <Page/>)
 ├── pages/         una carpeta por pantalla
 ├── layouts/       PublicLayout, AppLayout
-├── components/    ui/ (átomos), AuthForm/, Navbar/, Landing/ … componentes por feature
+├── components/    ui/ (átomos), AuthForm/, Navbar/, Landing/ y sistema/ (el mockup)
 ├── hooks/<dominio>/  queries.ts (queryOptions + keys + useSuspenseQuery), mutations.ts
 ├── api/           cliente fetch (CSRF, errores) + un archivo por recurso con schemas zod
-├── stores/        estado de cliente con zustand (vacío por ahora)
+├── stores/        estado de cliente con zustand (sistemas, taller, avisos, tutorial)
 ├── types/         schemas zod y tipos inferidos
-├── lib/           utilidades puras (cn, formErrors, destino)
+├── lib/           utilidades puras (cn, formErrors, destino) y lib/sistema (motor del mockup)
 ├── config/        env, queryClient, router, providers, guards
 ├── mocks/         MSW: handlers y base en memoria
 ├── styles/        index.css con los tokens de marca (@theme)
@@ -141,8 +105,16 @@ La UI **no** llama a `api/` ni a `mocks/`: los datos llegan por hooks.
 4. Ruta en `routes/` (el árbol `routeTree.gen.ts` se regenera solo con `npm run dev` o `npm run build`).
 5. Handler MSW en `mocks/handlers/` si el backend todavía no existe, y un test en `test/`.
 
-Pantallas pendientes del MVP 2 están marcadas con `<PendingTask tarea="T-0XX" />`.
-
 ## Marca
 
 Tokens de color y tipografía en `src/styles/index.css`; guía en [../docs/marca.md](../docs/marca.md).
+
+Las pantallas de la aplicación son un port calcado de `Ensambla_Mockup`, con su CSS acotado bajo `.mk-root`.
+Ver [cómo se mapea y cómo se verifica](../docs/ui-mockup.md).
+
+## Validación de planes y suscripciones (21/10/2026)
+
+Tras integrar los cambios remotos de configuración del negocio y ubicación, el frontend pasó
+lint, tipos, **344 pruebas en 32 archivos** y build de producción. Incluye la consulta de planes,
+activación de prueba, contratación, cancelación y restricciones comerciales con sesión y CSRF.
+Las verificaciones externas pendientes de Mercado Pago se detallan en [ENS-98](../docs/plan-ENS-98.md).

@@ -1,0 +1,398 @@
+/* Taller de Sami con la paleta: fondo blanco, sin pasteles, texto más grande y los mensajes de Sami en naranja. */
+body:has(.creation-studio) {
+  background: #fff;
+}
+.studio-top > span:nth-child(2) {
+  font-size: 12px;
+  color: var(--petrol);
+}
+.studio-top .tag {
+  font-size: 11px;
+  border: 2px solid var(--orange);
+  color: var(--ink);
+}
+
+/* Conversación */
+.sami-conversation {
+  background: #fff;
+  border: 2px solid var(--line);
+  border-top: 6px solid var(--orange);
+  box-shadow: 0 8px 22px #00506a14;
+}
+.conversation-sami {
+  display: block;
+  flex-shrink: 0;
+  width: 72px;
+  height: auto;
+}
+.conversation-head h1 {
+  font-size: 22px;
+}
+.conversation-head p {
+  font-size: 13px;
+  color: var(--muted);
+}
+.conversation-head .live-dot {
+  width: 8px;
+  height: 8px;
+}
+.conversation-bubble,
+.conversation-examples > span {
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 13px 15px;
+  border-radius: 16px 16px 16px 4px;
+  background: var(--orange);
+  border: 0;
+  color: #fff;
+}
+.conversation-bubble.you {
+  background: var(--petrol);
+  border-radius: 16px 16px 4px 16px;
+}
+.conversation-examples button {
+  gap: 10px;
+  padding: 12px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.conversation-examples button > .icon {
+  width: 18px;
+  height: 18px;
+  color: var(--orange);
+}
+.conversation-examples button:nth-of-type(2) > .icon {
+  color: var(--coral);
+}
+.conversation-examples button:nth-of-type(3) > .icon {
+  color: var(--blue);
+}
+.conversation-examples button > .icon:last-child {
+  color: var(--petrol);
+}
+.conversation-examples button:hover {
+  border-color: var(--orange);
+}
+.feedback-chips button {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--petrol);
+  border: 2px solid var(--yellow);
+  background: #fff;
+  padding: 7px 11px;
+  border-radius: 999px;
+}
+.thinking-bubble strong {
+  font-size: 13px;
+}
+
+/* Donde escribís */
+.guide-composer {
+  border: 2px solid var(--petrol);
+  border-radius: 16px;
+}
+.guide-composer:focus-within {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--orange) 20%, transparent);
+}
+.guide-composer > label {
+  font-size: 13px;
+  color: var(--petrol);
+}
+.guide-composer textarea {
+  font-size: 14px;
+}
+.guide-composer .btn.primary {
+  font-size: 13px;
+  min-height: 40px;
+}
+.guide-composer .btn.ghost .icon {
+  color: var(--petrol);
+}
+.conversation-foot {
+  font-size: 12px;
+}
+
+/* Lienzo vacío: blanco con puntitos suaves y piezas de colores llenos */
+.studio-canvas {
+  border: 2px solid var(--line);
+  background-color: #fff;
+  background-image: radial-gradient(#dfe3db 0.8px, transparent 0.8px);
+}
+.empty-studio-label {
+  font-size: 12px;
+  color: var(--orange);
+}
+.ghost-piece {
+  border: 0;
+  color: #fff;
+  box-shadow: 0 10px 22px #00000024;
+}
+.ghost-piece strong {
+  font-size: 16px;
+}
+.ghost-clients {
+  background: var(--blue);
+  color: #fff;
+}
+.ghost-orders {
+  background: var(--coral);
+  color: #fff;
+}
+.ghost-stock {
+  background: var(--yellow);
+  color: var(--petrol);
+}
+.ghost-stock i {
+  background: var(--petrol);
+  opacity: 0.35;
+}
+.studio-empty h2 {
+  font-size: 36px;
+  color: var(--petrol);
+}
+.studio-empty > p {
+  font-size: 16px;
+  max-width: 460px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.empty-studio-note {
+  font-size: 13px;
+  color: var(--ink);
+}
+
+/* Propuesta del Taller: sin pasteles, colores sólidos de la paleta y letra más grande. */
+.studio-canvas .draft-heading .eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--orange);
+}
+.studio-canvas .draft-heading > .tag {
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--yellow);
+  color: var(--petrol);
+  border: 0;
+}
+.studio-canvas .draft-name-input {
+  font-size: 32px;
+  color: var(--petrol);
+  border-bottom-color: var(--petrol);
+}
+.studio-canvas .draft-intro {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.studio-canvas .layout-toolbar,
+.studio-canvas .layout-toolbar button {
+  font-size: 14px;
+}
+.studio-canvas .draft-palette > span {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--petrol);
+}
+.studio-canvas .draft-palette button {
+  background: white;
+  border: 2px solid var(--accent);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.studio-canvas .draft-palette button > .icon {
+  width: 17px;
+  height: 17px;
+  color: var(--accent);
+}
+.studio-canvas .draft-palette button:hover {
+  background: var(--accent);
+  color: white;
+}
+.studio-canvas .draft-palette button:hover > .icon {
+  color: white;
+}
+.studio-canvas .draft-section-tabs {
+  border-bottom: 2px solid var(--line);
+}
+.studio-canvas .draft-section-tabs > button {
+  font-size: 15px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 2px solid var(--petrol);
+  color: var(--petrol);
+}
+.studio-canvas .draft-section-tabs > button.active {
+  background: var(--petrol);
+  color: white;
+}
+.studio-canvas .draft-section-tabs button > span {
+  font-size: 13px;
+}
+.studio-canvas .draft-section-tabs > .preview-example-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Piezas de la vista previa (Taller y vista de una plantilla) */
+:is(.studio-canvas, .template-preview-stage) .preview-block {
+  border: 2px solid var(--accent);
+  background: white;
+}
+:is(.studio-canvas, .template-preview-stage) .preview-block-head {
+  background: var(--accent);
+  color: white;
+  padding: 12px 14px;
+}
+:is(.studio-canvas, .template-preview-stage)
+  .preview-block[data-color='yellow']
+  .preview-block-head {
+  color: var(--petrol);
+}
+:is(.studio-canvas, .template-preview-stage) .preview-block-head > strong,
+:is(.studio-canvas, .template-preview-stage) .preview-name {
+  font-size: 16px;
+  color: inherit;
+}
+:is(.studio-canvas, .template-preview-stage) .preview-name .icon,
+:is(.studio-canvas, .template-preview-stage) .preview-controls .icon-btn {
+  color: inherit;
+}
+:is(.studio-canvas, .template-preview-stage) .preview-block-icon {
+  border-radius: 50%;
+  padding: 6px;
+}
+:is(.studio-canvas, .template-preview-stage) .preview-block-icon .icon {
+  width: 18px;
+  height: 18px;
+}
+:is(.studio-canvas, .template-preview-stage) .preview-sizing > span {
+  font-size: 13px;
+  color: var(--muted);
+}
+:is(.studio-canvas, .template-preview-stage) .preview-table {
+  font-size: 14px;
+}
+:is(.studio-canvas, .template-preview-stage) .preview-table th {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--petrol);
+  border-bottom: 2px solid var(--line);
+}
+:is(.studio-canvas, .template-preview-stage) .preview-table .status-badge {
+  font-size: 12px;
+}
+:is(.studio-canvas, .template-preview-stage) .preview-table tr.example-row td {
+  background: white;
+  color: var(--muted);
+}
+:is(.studio-canvas, .template-preview-stage) .example-badge {
+  background: var(--yellow);
+  color: var(--petrol);
+  font-size: 11px;
+  padding: 1px 7px;
+}
+:is(.studio-canvas, .template-preview-stage) .example-notice,
+:is(.studio-canvas, .template-preview-stage) .preview-more {
+  font-size: 13px;
+}
+:is(.studio-canvas, .template-preview-stage) .preview-field-tags {
+  gap: 7px;
+  padding: 10px 14px;
+}
+:is(.studio-canvas, .template-preview-stage) .preview-field-tags span {
+  font-size: 13px;
+  font-weight: 600;
+  background: white;
+  color: var(--petrol);
+  border: 1.5px solid var(--accent);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+/* Pie: ¿Se parece a tu manera de trabajar? */
+.studio-canvas .draft-footer {
+  background: white;
+  border: 0;
+  border-top: 5px solid var(--orange);
+  box-shadow: 0 6px 26px rgb(0 80 106 / 0.16);
+  padding: 18px 22px;
+}
+.studio-canvas .draft-footer > div > .icon {
+  width: 30px;
+  height: 30px;
+  color: var(--orange);
+}
+.studio-canvas .draft-footer strong {
+  font-size: 17px;
+  color: var(--petrol);
+}
+.studio-canvas .draft-footer small {
+  font-size: 14px;
+  color: var(--muted);
+}
+.studio-canvas .draft-footer .btn {
+  font-size: 15px;
+  padding: 11px 18px;
+}
+
+/* Vista de una plantilla (Plantillas → Ver el sistema) con la paleta. */
+.template-preview-header .eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--orange);
+}
+.template-preview-header h2 {
+  color: var(--petrol);
+}
+.template-preview-header p {
+  font-size: 16px;
+  color: var(--ink);
+}
+.template-preview-header .icon-tile[style] {
+  background: var(--accent);
+  color: white;
+}
+.template-preview-options > label {
+  border: 2px solid var(--line);
+  border-radius: 14px;
+}
+.template-preview-options > label:hover {
+  border-color: var(--orange);
+}
+.template-preview-options > label:has(input:checked) {
+  border-color: var(--petrol);
+  background: var(--petrol);
+  color: white;
+}
+.template-preview-options > label:has(input:checked) small {
+  color: white;
+}
+.template-preview-options input {
+  accent-color: var(--orange);
+}
+.template-preview-options strong {
+  font-size: 15px;
+}
+.template-preview-options small {
+  font-size: 13px;
+  color: var(--muted);
+}
+.template-preview-stage {
+  background: white;
+  border: 2px dashed var(--blue);
+}
+.modal .preview-example-label {
+  font-size: 14px;
+  color: var(--muted);
+}

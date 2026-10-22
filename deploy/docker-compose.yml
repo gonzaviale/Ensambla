@@ -1,0 +1,114 @@
+name: ensambla-prod
+
+# Despliegue en un VPS: Caddy (HTTPS + frontend + proxy /api), backend, Postgres.
+# Evolution API (WhatsApp) queda apagada hasta activarla con: docker compose --profile whatsapp up -d
+# Sólo Caddy publica puertos (80 y 443); lo demás vive en la red interna de Docker.
+
+services:
+  web:
+    build:
+      context: ../frontend
+      dockerfile: ../deploy/web.Dockerfile
+    container_name: ensambla-web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      DOMINIO: ${DOMINIO:?Falta DOMINIO en .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+  backend:
+    build:
+      context: ../backend
+    container_name: ensambla-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      PORT: 8080
+      JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=50}
+      FRONTEND_URL: https://${DOMINIO}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ensambla}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-ensambla_user}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD en .env}
+      ENSAMBLA_IA_PROVEEDOR: ${ENSAMBLA_IA_PROVEEDOR:-simulado}
+      ENSAMBLA_IA_API_KEY: ${ENSAMBLA_IA_API_KEY:-}
+      ENSAMBLA_MP_HABILITADO: ${ENSAMBLA_MP_HABILITADO:-false}
+      ENSAMBLA_MP_PRODUCCION: ${ENSAMBLA_MP_PRODUCCION:-false}
+      ENSAMBLA_MP_ACCESS_TOKEN: ${ENSAMBLA_MP_ACCESS_TOKEN:-}
+      ENSAMBLA_MP_COLLECTOR_ID: ${ENSAMBLA_MP_COLLECTOR_ID:-}
+      ENSAMBLA_MP_APPLICATION_ID: ${ENSAMBLA_MP_APPLICATION_ID:-}
+      ENSAMBLA_MP_WEBHOOK_SECRET: ${ENSAMBLA_MP_WEBHOOK_SECRET:-}
+      ENSAMBLA_MP_NOTIFICATION_URL: ${ENSAMBLA_MP_NOTIFICATION_URL:-}
+      ENSAMBLA_MP_RETURN_URL: ${ENSAMBLA_MP_RETURN_URL:-}
+    volumes:
+      - backend-datos:/app/datos
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: ensambla-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ensambla}
+      POSTGRES_USER: ${POSTGRES_USER:-ensambla_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD en .env}
+    # Sólo en el loopback del VPS: se entra con un túnel SSH (DBeaver, Beekeeper, psql), nunca desde internet.
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ensambla_user} -d ${POSTGRES_DB:-ensambla}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: ensambla-redis
+    profiles: ["whatsapp"]
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+
+  evolution-api:
+    image: ${EVOLUTION_IMAGE:-atendai/evolution-api:v2.2.3}
+    container_name: ensambla-evolution
+    profiles: ["whatsapp"]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      SERVER_URL: http://evolution-api:8080
+      # Compose interpola también los servicios de perfiles apagados: no puede ser obligatoria.
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-}
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://${POSTGRES_USER:-ensambla_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ensambla}?schema=evolution
+      DATABASE_CONNECTION_CLIENT_NAME: ensambla
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379/6
+      CACHE_LOCAL_ENABLED: "false"
+    volumes:
+      - evolution-instances:/evolution/instances
+    # Sólo en el loopback del VPS: se entra con un túnel SSH (ssh -L 8081:localhost:8081 ...).
+    ports:
+      - "127.0.0.1:8081:8080"
+
+volumes:
+  pgdata:
+  backend-datos:
+  caddy-data:
+  caddy-config:
+  evolution-instances:

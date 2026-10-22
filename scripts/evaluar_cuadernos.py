@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""ENS-134: evalúa anotaciones humanas usando el extractor Java configurado."""
+"""ENS-134 / ENS-192: evalúa anotaciones humanas usando el extractor Java configurado.
+
+Además de la precisión de la lectura, mide la detección de columnas nuevas: un caso con `destino` (el bloque
+existente al que van las filas) y `camposNuevos` en su anotación (las columnas que la foto trae y el bloque no
+tiene) reporta aciertos, omisiones y falsos positivos."""
 from __future__ import annotations
 
 import argparse
@@ -9,8 +13,10 @@ import mimetypes
 import math
 import os
 from pathlib import Path
+import re
 import subprocess
 import tempfile
+import unicodedata
 import zipfile
 from decimal import Decimal
 
@@ -24,6 +30,33 @@ def ruta_privada(raiz: Path, relativa: str) -> Path:
     if not ruta.is_relative_to(raiz.resolve()):
         raise ValueError("El manifest incluye una ruta fuera del set")
     return ruta
+
+
+def normalizar_nombre(nombre: str) -> str:
+    """Compara nombres de columnas sin tildes, mayúsculas ni puntuación: «¿Pagó?» y «pago» son lo mismo."""
+    sin_tildes = "".join(c for c in unicodedata.normalize("NFD", nombre) if not unicodedata.combining(c))
+    return re.sub(r"[^a-z0-9]+", " ", sin_tildes.lower()).strip()
+
+
+def validar_destino(destino: dict) -> None:
+    if not isinstance(destino, dict) or not str(destino.get("nombre", "")).strip():
+        raise ValueError("El destino del caso necesita el nombre del bloque")
+    campos = destino.get("campos")
+    if not campos:
+        raise ValueError("El destino del caso necesita al menos un campo")
+    nombres = [normalizar_nombre(campo["nombre"]) for campo in campos]
+    if "" in nombres or len(nombres) != len(set(nombres)):
+        raise ValueError("El destino tiene campos repetidos o sin nombre")
+    if any(campo["tipo"] not in CAMPOS for campo in campos):
+        raise ValueError("El destino tiene un tipo de campo inválido")
+
+
+def validar_columnas_nuevas(nuevas: list[dict]) -> None:
+    nombres = [normalizar_nombre(columna["nombre"]) for columna in nuevas]
+    if "" in nombres or len(nombres) != len(set(nombres)):
+        raise ValueError("La anotación tiene columnas nuevas repetidas o sin nombre")
+    if any(columna.get("tipo") is not None and columna["tipo"] not in CAMPOS for columna in nuevas):
+        raise ValueError("La anotación tiene una columna nueva con tipo inválido")
 
 
 def validar_esperado(esperado: dict) -> None:
@@ -78,8 +111,17 @@ def cargar_set(raiz: Path, permitir_muestra: bool = False) -> tuple[dict, list[d
             raise ValueError("La evaluación de precisión requiere archivos de imagen admitidos")
         esperado = json.loads(anotacion.read_text(encoding="utf-8-sig"))
         validar_esperado(esperado)
+        destino = caso.get("destino")
+        if destino is not None:
+            validar_destino(destino)
+            if "camposNuevos" not in esperado:
+                raise ValueError("Un caso con destino necesita «camposNuevos» en su anotación (puede ir vacío)")
+        elif "camposNuevos" in esperado:
+            raise ValueError("«camposNuevos» sólo tiene sentido en un caso con destino")
+        if "camposNuevos" in esperado:
+            validar_columnas_nuevas(esperado["camposNuevos"])
         resultados.append({
-            "id": caso["id"], "archivo": str(foto), "tipoContenido": tipo,
+            "id": caso["id"], "archivo": str(foto), "tipoContenido": tipo, "destino": destino,
             "esperado": esperado, "sha256Foto": hashlib.sha256(foto.read_bytes()).hexdigest(),
             "sha256Esperado": hashlib.sha256(anotacion.read_bytes()).hexdigest(),
         })
@@ -111,6 +153,36 @@ def medir(esperado: dict, lectura: dict | None) -> dict:
     }
 
 
+def medir_columnas_nuevas(esperado: dict, respuesta: dict) -> dict:
+    """Columnas nuevas esperadas contra las detectadas, por nombre normalizado (la clave la elige el modelo)."""
+    esperadas = {normalizar_nombre(columna["nombre"]): columna.get("tipo") for columna in esperado["camposNuevos"]}
+    leyo = respuesta["lectura"] is not None
+    detectadas = {normalizar_nombre(columna["nombre"]): columna["tipo"]
+                  for columna in respuesta.get("camposNuevos") or []}
+    aciertos = esperadas.keys() & detectadas.keys()
+    return {
+        "esperadas": len(esperadas), "detectadas": len(detectadas), "aciertos": len(aciertos),
+        "tiposCorrectos": sum(1 for nombre in aciertos if esperadas[nombre] in (None, detectadas[nombre])),
+        "falsosPositivos": len(detectadas.keys() - esperadas.keys()),
+        "omitidas": len(esperadas.keys() - detectadas.keys()),
+        "exacto": leyo and esperadas.keys() == detectadas.keys(),
+    }
+
+
+def resumir_columnas_nuevas(mediciones: list[dict]) -> dict | None:
+    if not mediciones:
+        return None
+    total = {clave: sum(medicion[clave] for medicion in mediciones)
+             for clave in ("esperadas", "detectadas", "aciertos", "tiposCorrectos", "falsosPositivos", "omitidas")}
+    total["casos"] = len(mediciones)
+    total["casosExactos"] = sum(1 for medicion in mediciones if medicion["exacto"])
+    total["precisionPct"] = porcentaje(total["aciertos"], total["detectadas"])
+    total["recallPct"] = porcentaje(total["aciertos"], total["esperadas"])
+    total["tipoCorrectoPct"] = porcentaje(total["tiposCorrectos"], total["aciertos"])
+    total["casosExactosPct"] = porcentaje(total["casosExactos"], total["casos"])
+    return total
+
+
 def porcentaje(correctos: int, total: int) -> float | None:
     return round(100 * correctos / total, 4) if total else None
 
@@ -122,6 +194,7 @@ def informe(manifest: dict, casos: list[dict], respuestas: list[dict], meta: flo
         raise ValueError("El extractor devolvió casos faltantes, repetidos o inesperados")
     categorias = {}
     detalles = []
+    columnas_nuevas = []
     simulacion = False
     for caso in casos:
         respuesta = por_id[caso["id"]]
@@ -139,20 +212,29 @@ def informe(manifest: dict, casos: list[dict], respuestas: list[dict], meta: flo
         categoria["erroresExtraccion"] += int(respuesta["error"] is not None)
         for clave in ("datosCorrectos", "datosEvaluados", "camposCorrectos", "camposEvaluados"):
             categoria[clave] += medicion[clave]
-        detalles.append({
+        detalle = {
             "id": caso["id"], "tipo": tipo, **medicion, "error": respuesta["error"], "consumo": consumo,
             "sha256Foto": caso["sha256Foto"], "sha256Esperado": caso["sha256Esperado"],
-        })
+        }
+        if caso.get("destino") is not None:
+            detalle["columnasNuevas"] = medir_columnas_nuevas(caso["esperado"], respuesta)
+            columnas_nuevas.append(detalle["columnasNuevas"])
+        detalles.append(detalle)
     for categoria in categorias.values():
         categoria["precisionDatosPct"] = porcentaje(categoria["datosCorrectos"], categoria["datosEvaluados"])
         categoria["precisionCamposPct"] = porcentaje(categoria["camposCorrectos"], categoria["camposEvaluados"])
         categoria["precisionClasificacionPct"] = porcentaje(categoria["clasificacionesCorrectas"], categoria["casos"])
+    columnas = resumir_columnas_nuevas(columnas_nuevas)
     validacion_real = not simulacion and len(casos) >= 30
     cumple_meta = None
     if meta is not None and validacion_real:
         cumple_meta = all(categoria[metrica] is not None and categoria[metrica] >= meta
                           for categoria in categorias.values()
                           for metrica in ("precisionDatosPct", "precisionCamposPct", "precisionClasificacionPct"))
+        if columnas is not None:
+            # Una métrica sin base (por ejemplo, sin columnas nuevas esperadas) no se exige.
+            cumple_meta &= all(columnas[metrica] >= meta for metrica in ("precisionPct", "recallPct", "casosExactosPct")
+                               if columnas[metrica] is not None)
     consumos = [detalle["consumo"] for detalle in detalles if detalle["consumo"]]
     latencias = sorted(consumo["duracionMs"] for consumo in consumos)
     costo = None
@@ -164,7 +246,7 @@ def informe(manifest: dict, casos: list[dict], respuestas: list[dict], meta: flo
     return {
         "versionSet": manifest["version"], "simulado": simulacion,
         "evidenciaReal": validacion_real, "metaPrecisionPct": meta, "cumpleMeta": cumple_meta,
-        "porTipo": categorias, "casos": detalles,
+        "porTipo": categorias, "columnasNuevas": columnas, "casos": detalles,
         "costoEstimadoUsd": costo,
         "costoPorPaginaUsd": str(Decimal(costo) / len(casos)) if costo is not None else None,
         "latenciaPromedioMs": sum(latencias) / len(latencias) if latencias else None,
@@ -203,8 +285,10 @@ def ejecutar(args: argparse.Namespace) -> Path:
             raise ValueError("El jar no contiene la herramienta de evaluación; recompilá esta rama")
     with tempfile.TemporaryDirectory(prefix="ensambla-evaluacion-") as carpeta:
         entrada, salida = Path(carpeta) / "entrada.json", Path(carpeta) / "salida.json"
-        entrada.write_text(json.dumps({"casos": [{clave: caso[clave] for clave in
-                                                  ("id", "archivo", "tipoContenido")} for caso in casos]}), encoding="utf-8")
+        entrada.write_text(json.dumps({"casos": [
+            {**{clave: caso[clave] for clave in ("id", "archivo", "tipoContenido")},
+             **({"destino": caso["destino"]} if caso.get("destino") is not None else {})}
+            for caso in casos]}), encoding="utf-8")
         comando = [
             "java", "-Dloader.main=com.ensambla.evaluacion.EvaluacionIaApplication",
             "-cp", str(jar), "org.springframework.boot.loader.launch.PropertiesLauncher",

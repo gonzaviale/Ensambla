@@ -2,7 +2,11 @@ package com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces;
 
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -10,4 +14,13 @@ public interface INegocioJpaRepository extends JpaRepository<NegocioEntity, UUID
 
     /** MVP2: negocio del dueño autenticado; el selector de negocio se implementa en T-061. */
     Optional<NegocioEntity> findFirstByDuenioIdOrderByCreadoEnAscIdAsc(UUID duenioId);
+
+    /** Serializa los PATCH del mismo dueño para conservar los campos que no se envían. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<NegocioEntity> findTopByDuenioIdOrderByCreadoEnAscIdAsc(UUID duenioId);
+
+    long countByZonaIdAndComparteDatosZonaTrue(UUID zonaId);
+
+    @Query("select n.id from NegocioEntity n order by n.creadoEn, n.id")
+    List<UUID> findAllIds();
 }

@@ -1,33 +1,35 @@
-import { ArmadorBloques } from '@/components/Landing/ArmadorBloques';
-import { CintaRubros } from '@/components/Landing/CintaRubros';
-import { Comentarios } from '@/components/Landing/Comentarios';
-import { ComoFunciona } from '@/components/Landing/ComoFunciona';
-import { DeLaFoto } from '@/components/Landing/DeLaFoto';
+import { BotonSubir } from '@/components/Landing/BotonSubir';
+import { EntradaDatos } from '@/components/Landing/EntradaDatos';
+import { FranjaCotidiana } from '@/components/Landing/FranjaCotidiana';
 import { Hero } from '@/components/Landing/Hero';
 import { LandingFooter } from '@/components/Landing/LandingFooter';
 import { LlamadaFinal } from '@/components/Landing/LlamadaFinal';
 import { Pilares } from '@/components/Landing/Pilares';
-import { Plantillas } from '@/components/Landing/Plantillas';
-import { useRevelado } from '@/hooks/landing/useRevelado';
+import { Preguntas } from '@/components/Landing/Preguntas';
+import { Problema } from '@/components/Landing/Problema';
+import { SamiAgente } from '@/components/Landing/SamiAgente';
+import { useDesplazamientoSuave } from '@/hooks/landing/useDesplazamientoSuave';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import './landing.css';
+import './landing-ejemplo.css';
+import './landing-recorrido.css';
 
 export function LandingPage() {
-  useTituloPagina('Tu sistema, un bloque a la vez');
-  const raiz = useRevelado<HTMLDivElement>();
+  useTituloPagina('Tu cuaderno digital, tus cuentas más claras');
+  useDesplazamientoSuave();
 
   return (
-    <div className="landing" ref={raiz}>
+    <div className="landing">
       <Hero />
-      <CintaRubros />
-      <DeLaFoto />
-      <ComoFunciona />
-      <ArmadorBloques />
-      <Plantillas />
+      <FranjaCotidiana />
+      <Problema />
+      <EntradaDatos />
       <Pilares />
-      <Comentarios />
+      <SamiAgente />
+      <Preguntas />
       <LlamadaFinal />
       <LandingFooter />
+      <BotonSubir />
     </div>
   );
 }
