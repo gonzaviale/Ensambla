@@ -11,7 +11,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +30,8 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class MotorAvisosService {
 
+    private static final ZoneId ZONA_NEGOCIO = ZoneId.of("America/Argentina/Buenos_Aires");
+
     private final List<ReglaAviso> reglas;
 
     private final ContextoNegocioService contextoNegocioService;
@@ -36,8 +40,13 @@ public class MotorAvisosService {
 
     @Transactional
     public void ejecutar(UUID negocioId, OffsetDateTime ahora) {
-        ContextoNegocio contexto = contextoNegocioService.armar(negocioId);
+        ContextoNegocio contexto = contextoNegocioService.armar(negocioId, hoyEn(ahora));
         reglas.forEach(regla -> sincronizar(negocioId, regla.tipo(), regla.evaluar(contexto), ahora));
+    }
+
+    /** El día de hoy según el reloj del negocio: las ventas se anotan con fecha argentina. */
+    private static LocalDate hoyEn(OffsetDateTime ahora) {
+        return ahora.atZoneSameInstant(ZONA_NEGOCIO).toLocalDate();
     }
 
     private void sincronizar(UUID negocioId, TipoAviso tipo, List<ResultadoRegla> resultados, OffsetDateTime ahora) {

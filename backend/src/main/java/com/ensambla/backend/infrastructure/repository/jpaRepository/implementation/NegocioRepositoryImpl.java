@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.repository.jpaRepository.implementat
 
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.INegocioJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.NegocioRepositoryMapper;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,11 @@ public class NegocioRepositoryImpl implements NegocioRepository {
     public Optional<Negocio> findByDuenioIdParaActualizar(UUID usuarioId) {
         return negocioJpaRepository.findTopByDuenioIdOrderByCreadoEnAscIdAsc(usuarioId)
                 .map(negocioRepositoryMapper::toDomain);
+    }
+
+    @Override
+    public Optional<UUID> findZonaIdById(UUID negocioId) {
+        return negocioJpaRepository.findById(negocioId).map(NegocioEntity::getZonaId);
     }
 
     @Override

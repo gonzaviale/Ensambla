@@ -7,8 +7,13 @@ import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.enums.TipoBloque;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.zona.AnalisisZona;
+import com.ensambla.backend.domain.model.zona.Zona;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
+import com.ensambla.backend.domain.service.zona.AgregadoZonaService;
+import com.ensambla.backend.domain.service.zona.ZonaService;
 import com.ensambla.backend.support.AvisoTestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,6 +22,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,12 +36,22 @@ class ContextoNegocioServiceTest {
 
     private static final UUID NEGOCIO_ID = AvisoTestData.NEGOCIO_ID;
     private static final UUID PROYECTO_ID = AvisoTestData.PROYECTO_ID;
+    private static final LocalDate HOY = LocalDate.of(2026, 10, 19);
 
     @Mock
     private ProyectoRepository proyectoRepository;
 
     @Mock
     private RegistroRepository registroRepository;
+
+    @Mock
+    private NegocioRepository negocioRepository;
+
+    @Mock
+    private ZonaService zonaService;
+
+    @Mock
+    private AgregadoZonaService agregadoZonaService;
 
     @InjectMocks
     private ContextoNegocioService contextoNegocioService;
@@ -48,7 +64,7 @@ class ContextoNegocioServiceTest {
         when(registroRepository.findAllByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID))
                 .thenReturn(List.of(registro));
 
-        ContextoNegocio contexto = contextoNegocioService.armar(NEGOCIO_ID);
+        ContextoNegocio contexto = contextoNegocioService.armar(NEGOCIO_ID, HOY);
 
         assertThat(contexto.negocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(contexto.inventarios()).singleElement().satisfies(inventario -> {
@@ -68,7 +84,7 @@ class ContextoNegocioServiceTest {
         when(registroRepository.findAllByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID))
                 .thenReturn(List.of());
 
-        ContextoNegocio contexto = contextoNegocioService.armar(NEGOCIO_ID);
+        ContextoNegocio contexto = contextoNegocioService.armar(NEGOCIO_ID, HOY);
 
         assertThat(contexto.inventarios()).extracting(BloqueInventario::entradasId)
                 .containsExactly(AvisoTestData.ENTRADAS_ID);
@@ -84,7 +100,7 @@ class ContextoNegocioServiceTest {
         when(registroRepository.findAllByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID))
                 .thenReturn(List.of());
 
-        ContextoNegocio contexto = contextoNegocioService.armar(NEGOCIO_ID);
+        ContextoNegocio contexto = contextoNegocioService.armar(NEGOCIO_ID, HOY);
 
         assertThat(contexto.inventarios().get(0).camposPorClave()).containsOnlyKeys("name");
     }
@@ -94,7 +110,7 @@ class ContextoNegocioServiceTest {
     void armarShouldReturnNoInventariosWhenNegocioHasNoProyectos() {
         when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
 
-        assertThat(contextoNegocioService.armar(NEGOCIO_ID).inventarios()).isEmpty();
+        assertThat(contextoNegocioService.armar(NEGOCIO_ID, HOY).inventarios()).isEmpty();
         verify(proyectoRepository).findAllByNegocioId(NEGOCIO_ID);
     }
 
@@ -105,7 +121,54 @@ class ContextoNegocioServiceTest {
                 .thenReturn(List.of(Proyecto.builder().id(PROYECTO_ID).negocioId(NEGOCIO_ID).build()));
         when(proyectoRepository.findByIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
 
-        assertThat(contextoNegocioService.armar(NEGOCIO_ID).inventarios()).isEmpty();
+        assertThat(contextoNegocioService.armar(NEGOCIO_ID, HOY).inventarios()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Arma las tablas de ventas con sus campos por clave y sus registros, y deja el día de hoy")
+    void armarShouldBuildVentasAndKeepHoy() {
+        Registro venta = AvisoTestData.venta(UUID.randomUUID().toString(), 2, 100, "2026-10-18", null);
+        givenProyecto(AvisoTestData.bloqueInventario(), AvisoTestData.bloqueVentas());
+        when(registroRepository.findAllByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID))
+                .thenReturn(List.of());
+        when(registroRepository.findAllByBloqueIdAndNegocioId(AvisoTestData.VENTAS_ID, NEGOCIO_ID))
+                .thenReturn(List.of(venta));
+
+        ContextoNegocio contexto = contextoNegocioService.armar(NEGOCIO_ID, HOY);
+
+        assertThat(contexto.hoy()).isEqualTo(HOY);
+        assertThat(contexto.ventas()).singleElement().satisfies(ventas -> {
+            assertThat(ventas.bloque().getId()).isEqualTo(AvisoTestData.VENTAS_ID);
+            assertThat(ventas.camposPorClave()).containsOnlyKeys("product", "quantity", "price", "date", "customer");
+            assertThat(ventas.registros()).containsExactly(venta);
+        });
+    }
+
+    @Test
+    @DisplayName("Trae los agregados de la zona del negocio")
+    void armarShouldLoadZonaOfNegocio() {
+        UUID zonaId = UUID.randomUUID();
+        Zona zona = Zona.builder().id(zonaId).nombre("San Justo").build();
+        AnalisisZona analisis = new AnalisisZona("San Justo", 10, List.of());
+        when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+        when(negocioRepository.findZonaIdById(NEGOCIO_ID)).thenReturn(Optional.of(zonaId));
+        when(zonaService.obtener(zonaId)).thenReturn(Optional.of(zona));
+        when(agregadoZonaService.analizar(zona)).thenReturn(analisis);
+
+        ContextoNegocio contexto = contextoNegocioService.armar(NEGOCIO_ID, HOY);
+
+        assertThat(contexto.zona()).isEqualTo(analisis);
+    }
+
+    @Test
+    @DisplayName("Un negocio sin zona queda con una zona vacía")
+    void armarShouldUseEmptyZonaWhenNegocioHasNoZona() {
+        when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+        when(negocioRepository.findZonaIdById(NEGOCIO_ID)).thenReturn(Optional.empty());
+
+        ContextoNegocio contexto = contextoNegocioService.armar(NEGOCIO_ID, HOY);
+
+        assertThat(contexto.zona()).isEqualTo(AnalisisZona.sinZona());
     }
 
     private void givenProyecto(Bloque... bloques) {

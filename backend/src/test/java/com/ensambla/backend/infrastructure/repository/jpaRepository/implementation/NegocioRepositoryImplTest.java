@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.UsuarioTestData.USUARIO_ID;
@@ -58,5 +59,32 @@ class NegocioRepositoryImplTest {
         when(negocioJpaRepository.findAllIds()).thenReturn(List.of(NEGOCIO_ID));
 
         assertThat(negocioRepository.findAllIds()).containsExactly(NEGOCIO_ID);
+    }
+
+    @Test
+    @DisplayName("Resuelve la zona del negocio")
+    void findZonaIdByIdShouldMapZonaId() {
+        UUID zonaId = UUID.randomUUID();
+        when(negocioJpaRepository.findById(NEGOCIO_ID))
+                .thenReturn(Optional.of(NegocioEntity.builder().id(NEGOCIO_ID).zonaId(zonaId).build()));
+
+        assertThat(negocioRepository.findZonaIdById(NEGOCIO_ID)).contains(zonaId);
+    }
+
+    @Test
+    @DisplayName("Un negocio sin zona no tiene id de zona")
+    void findZonaIdByIdShouldReturnEmptyWhenNegocioHasNoZona() {
+        when(negocioJpaRepository.findById(NEGOCIO_ID))
+                .thenReturn(Optional.of(NegocioEntity.builder().id(NEGOCIO_ID).build()));
+
+        assertThat(negocioRepository.findZonaIdById(NEGOCIO_ID)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Un negocio inexistente no tiene id de zona")
+    void findZonaIdByIdShouldReturnEmptyWhenNegocioDoesNotExist() {
+        when(negocioJpaRepository.findById(NEGOCIO_ID)).thenReturn(Optional.empty());
+
+        assertThat(negocioRepository.findZonaIdById(NEGOCIO_ID)).isEmpty();
     }
 }

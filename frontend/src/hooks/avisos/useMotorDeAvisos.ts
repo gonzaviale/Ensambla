@@ -9,7 +9,8 @@ import { useSistemaStore } from '@/stores/sistemaStore';
 
 // El motor de avisos de Sami: reúne los que calcula en el navegador (a partir de los sistemas y la zona) con los
 // que el motor del servidor dejó pendientes, los deja en el store y, si apareció alguno nuevo, lo muestra un rato.
-// Cada aviso del servidor lleva el id de su cuenta, así que no se pisa con los del navegador.
+// Cada aviso del servidor lleva el id de su cuenta, así que no se pisa con los del navegador; si el servidor trae
+// avisos de un tipo, los del navegador de ese tipo se dejan de mostrar.
 export function useMotorDeAvisos() {
   const sistemas = useSistemaStore((estado) => estado.sistemas);
   const zona = useZona();
@@ -19,12 +20,15 @@ export function useMotorDeAvisos() {
 
   const avisos = useMemo(() => {
     const nombres = new Map(sistemas.map((sistema) => [sistema.id, sistema.name]));
-    const locales = analizar({ sistemas, zona, hoy: hoy(), grupos }).filter(
-      (aviso) => !descartadas.includes(aviso.id),
-    );
     const remotos = delServidor
       .map((aviso) => aAvisoDeSami(aviso, nombres))
       .filter((aviso) => grupos[aviso.grupo] !== false);
+    // Si el servidor ya trae avisos de un tipo (producto estancado, combos…), los que Sami calcula en el navegador
+    // para ese mismo tipo se omiten: serían los mismos avisos duplicados.
+    const tiposDelServidor = new Set(remotos.map((aviso) => aviso.tipo));
+    const locales = analizar({ sistemas, zona, hoy: hoy(), grupos }).filter(
+      (aviso) => !descartadas.includes(aviso.id) && !tiposDelServidor.has(aviso.tipo),
+    );
     return [...remotos, ...locales].sort((a, b) => b.prioridad - a.prioridad);
   }, [sistemas, zona, grupos, descartadas, delServidor]);
 

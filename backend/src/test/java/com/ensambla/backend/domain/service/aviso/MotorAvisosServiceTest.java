@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.aviso.ContextoNegocio;
 import com.ensambla.backend.domain.model.aviso.ResultadoRegla;
 import com.ensambla.backend.domain.model.enums.EstadoAviso;
 import com.ensambla.backend.domain.model.enums.TipoAviso;
+import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.service.aviso.regla.ReglaAviso;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +16,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +36,7 @@ class MotorAvisosServiceTest {
 
     private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-19T12:00:00Z");
+    private static final LocalDate HOY = LocalDate.of(2026, 10, 19);
     private static final OffsetDateTime ANTES = OffsetDateTime.parse("2026-10-19T11:00:00Z");
 
     @Mock
@@ -47,12 +50,12 @@ class MotorAvisosServiceTest {
 
     private MotorAvisosService motorAvisosService;
 
-    private final ContextoNegocio contexto = new ContextoNegocio(NEGOCIO_ID, List.of());
+    private final ContextoNegocio contexto = new ContextoNegocio(NEGOCIO_ID, HOY, List.of(), List.of(), AnalisisZona.sinZona());
 
     @BeforeEach
     void setUp() {
         motorAvisosService = new MotorAvisosService(List.of(regla), contextoNegocioService, avisoRepository);
-        when(contextoNegocioService.armar(NEGOCIO_ID)).thenReturn(contexto);
+        lenient().when(contextoNegocioService.armar(NEGOCIO_ID, HOY)).thenReturn(contexto);
         when(regla.tipo()).thenReturn(TipoAviso.STOCK);
         lenient().when(avisoRepository.save(any(Aviso.class))).thenAnswer(invocacion -> {
             Aviso aviso = invocacion.getArgument(0);
@@ -233,6 +236,19 @@ class MotorAvisosServiceTest {
         verify(otra).evaluar(contexto);
         verify(avisoRepository).findByNegocioIdAndTipoAndEstado(NEGOCIO_ID, TipoAviso.PRECIO_ZONA,
                 EstadoAviso.PENDIENTE);
+    }
+
+    @Test
+    @DisplayName("Le pasa al contexto el día de hoy en hora argentina, aunque en UTC ya sea el día siguiente")
+    void ejecutarShouldUseArgentinaDateForHoy() {
+        OffsetDateTime madrugadaUtc = OffsetDateTime.parse("2026-10-20T01:00:00Z");
+        when(contextoNegocioService.armar(NEGOCIO_ID, HOY)).thenReturn(contexto);
+        givenRegla();
+        givenSinAvisos();
+
+        motorAvisosService.ejecutar(NEGOCIO_ID, madrugadaUtc);
+
+        verify(contextoNegocioService).armar(NEGOCIO_ID, HOY);
     }
 
     private void givenRegla(ResultadoRegla... resultados) {

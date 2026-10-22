@@ -14,6 +14,9 @@ public interface NegocioRepository {
 
     Optional<Negocio> findByDuenioIdParaActualizar(UUID usuarioId);
 
+    /** Zona a la que pertenece el negocio; vacío si el negocio no existe o todavía no tiene zona. */
+    Optional<UUID> findZonaIdById(UUID negocioId);
+
     Negocio save(Negocio negocio);
 
     /** Ids de todos los negocios; los usa el motor de monitoreo para recorrerlos. */
