@@ -118,3 +118,5 @@ Tras integrar los cambios remotos de configuración del negocio y ubicación, el
 lint, tipos, **344 pruebas en 32 archivos** y build de producción. Incluye la consulta de planes,
 activación de prueba, contratación, cancelación y restricciones comerciales con sesión y CSRF.
 Las verificaciones externas pendientes de Mercado Pago se detallan en [ENS-98](../docs/plan-ENS-98.md).
+
+<!-- prueba: dispara ci-frontend sin Vercel -->
