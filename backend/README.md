@@ -218,3 +218,5 @@ Configuración, integración con ENS-124 y evaluación:
 [lectura-cuaderno-ia.md](../docs/lectura-cuaderno-ia.md).
 
 `./mvnw verify` corre los tests y exige **100 % de líneas y ramas por clase** (JaCoCo). Detalle en [TESTING.md](TESTING.md).
+
+<!-- prueba: dispara ci-backend sin Vercel -->
