@@ -1,3 +1,5 @@
+import { ApiError } from '@/api/apiError';
+import { guardarBorradorSesion } from '@/lib/borradorSesion';
 import { useEffect } from 'react';
 import { eliminarSistema, guardarSistema } from '@/api/sistemas';
 import { useSistemaStore } from '@/stores/sistemaStore';
@@ -12,6 +14,7 @@ export function useSincronizarSistemas() {
     let temporizador: ReturnType<typeof setTimeout> | undefined;
     let volcando = false;
     let avisoDeErrorDado = false;
+    let detenido = false;
 
     const programar = (ms: number) => {
       clearTimeout(temporizador);
@@ -22,7 +25,7 @@ export function useSincronizarSistemas() {
     };
 
     async function volcar() {
-      if (volcando) return;
+      if (volcando || detenido) return;
       const { pendientes, eliminados, sistemas, marcarGuardados, avisar } =
         useSistemaStore.getState();
       const aGuardar = sistemas.filter((sistema) => pendientes.includes(sistema.id));
@@ -43,24 +46,42 @@ export function useSincronizarSistemas() {
           .map((sistema) => sistema.id);
         marcarGuardados(sinCambios, eliminados);
         avisoDeErrorDado = false;
-      } catch {
+      } catch (error) {
+        guardarBorradorSesion(useSistemaStore.getState());
+        detenido =
+          error instanceof ApiError &&
+          (error.status === 401 || (error.status === 403 && Boolean(error.codigo)));
         if (!avisoDeErrorDado) {
-          avisar('No pudimos guardar tus cambios. Lo vamos a intentar de nuevo.');
+          avisar(
+            detenido && error instanceof ApiError
+              ? `${error.message} Tus cambios pendientes se conservan en esta pestaña. Revisá Planes.`
+              : 'No pudimos guardar tus cambios. Lo vamos a intentar de nuevo.',
+          );
           avisoDeErrorDado = true;
         }
-        programar(REINTENTO_MS);
+        if (!detenido) programar(REINTENTO_MS);
       } finally {
         volcando = false;
         const { pendientes: quedan, eliminados: porBorrar } = useSistemaStore.getState();
-        if ((quedan.length > 0 || porBorrar.length > 0) && temporizador === undefined) {
+        if (
+          !detenido &&
+          (quedan.length > 0 || porBorrar.length > 0) &&
+          temporizador === undefined
+        ) {
           programar(ESPERA_MS);
         }
       }
     }
 
     const desuscribir = useSistemaStore.subscribe((estado, anterior) => {
-      if (estado.pendientes === anterior.pendientes && estado.eliminados === anterior.eliminados)
+      if (
+        estado.pendientes === anterior.pendientes &&
+        estado.eliminados === anterior.eliminados &&
+        estado.sistemas === anterior.sistemas
+      )
         return;
+      guardarBorradorSesion(estado);
+      detenido = false;
       if (estado.pendientes.length > 0 || estado.eliminados.length > 0) programar(ESPERA_MS);
     });
     // Al salir de la pantalla o cerrar la pestaña no se queda nada sin mandar.

@@ -1,3 +1,4 @@
+import { recuperarBorradorSesion } from '@/lib/borradorSesion';
 import { create } from 'zustand';
 import { clone } from '@/lib/sistema/core';
 import type { Aviso, Respuesta } from '@/lib/sistema/alertas';
@@ -190,7 +191,24 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
 
   hidratar: (usuarioId, sistemas) => {
     if (get().usuarioId === usuarioId) return;
-    set({ ...ESTADO_INICIAL, usuarioId, sistemas });
+    const borrador = recuperarBorradorSesion(usuarioId);
+    const recuperados = borrador
+      ? [
+          ...sistemas.filter(
+            (sistema) =>
+              !borrador.pendientes.includes(sistema.id) &&
+              !borrador.eliminados.includes(sistema.id),
+          ),
+          ...borrador.sistemas,
+        ]
+      : sistemas;
+    set({
+      ...ESTADO_INICIAL,
+      usuarioId,
+      sistemas: recuperados,
+      pendientes: borrador?.pendientes ?? [],
+      eliminados: borrador?.eliminados ?? [],
+    });
   },
 
   reiniciar: () => set({ ...ESTADO_INICIAL }),
