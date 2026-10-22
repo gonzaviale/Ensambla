@@ -88,7 +88,8 @@ services:
         condition: service_started
     environment:
       SERVER_URL: http://evolution-api:8080
-      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:?Falta EVOLUTION_API_KEY en .env}
+      # Compose interpola también los servicios de perfiles apagados: no puede ser obligatoria.
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-}
       DATABASE_ENABLED: "true"
       DATABASE_PROVIDER: postgresql
       DATABASE_CONNECTION_URI: postgresql://${POSTGRES_USER:-ensambla_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ensambla}?schema=evolution
