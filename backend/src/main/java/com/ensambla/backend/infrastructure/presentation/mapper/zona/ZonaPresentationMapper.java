@@ -21,7 +21,7 @@ public class ZonaPresentationMapper {
     }
 
     public AnalizarZonaRequest toAnalizarRequest(AnalizarZonaWebRequest request) {
-        return new AnalizarZonaRequest(request.lugar());
+        return new AnalizarZonaRequest(request.lugar(), request.latitud(), request.longitud());
     }
 
     public ZonaWebResponse toResponse(ZonaItem zona) {

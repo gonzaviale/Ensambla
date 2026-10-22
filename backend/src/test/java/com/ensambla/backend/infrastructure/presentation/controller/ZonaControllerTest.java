@@ -76,7 +76,59 @@ class ZonaControllerTest {
                         .content("{\"lugar\":\"San Justo\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("San Justo - UNLaM"));
-        verify(analizarZonaUseCase).execute(new AnalizarZonaRequest("San Justo"));
+        verify(analizarZonaUseCase).execute(new AnalizarZonaRequest("San Justo", null, null));
+    }
+
+    @Test
+    @DisplayName("POST análisis delega el punto del mapa")
+    void analizarShouldDelegatePoint() throws Exception {
+        when(analizarZonaUseCase.execute(any())).thenReturn(givenZona());
+
+        mockMvc.perform(post("/api/zona/analisis").principal(principal).contentType("application/json")
+                        .content("{\"latitud\":-34.6703,\"longitud\":-58.5628}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value("San Justo - UNLaM"));
+        verify(analizarZonaUseCase).execute(new AnalizarZonaRequest(null, new BigDecimal("-34.6703"),
+                new BigDecimal("-58.5628")));
+    }
+
+    @Test
+    @DisplayName("POST análisis devuelve la zona sin productos cuando no hay datos suficientes")
+    void analizarShouldReturnEmptyProducts() throws Exception {
+        when(analizarZonaUseCase.execute(any())).thenReturn(new ZonaItem("Villa Crespo", 2, List.of()));
+
+        mockMvc.perform(post("/api/zona/analisis").principal(principal).contentType("application/json")
+                        .content("{\"lugar\":\"Villa Crespo\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.comercios").value(2))
+                .andExpect(jsonPath("$.productos").isEmpty());
+    }
+
+    @Test
+    @DisplayName("POST análisis rechaza un pedido sin lugar ni punto sin tocar el caso de uso")
+    void analizarShouldRejectWhenNothingIsIndicated() throws Exception {
+        mockMvc.perform(post("/api/zona/analisis").principal(principal).contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(analizarZonaUseCase);
+    }
+
+    @Test
+    @DisplayName("POST análisis rechaza una latitud fuera de rango sin tocar el caso de uso")
+    void analizarShouldRejectLatitudeOutOfRange() throws Exception {
+        mockMvc.perform(post("/api/zona/analisis").principal(principal).contentType("application/json")
+                        .content("{\"latitud\":95,\"longitud\":-58.5628}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(analizarZonaUseCase);
+    }
+
+    @Test
+    @DisplayName("POST análisis rechaza una longitud fuera de rango sin tocar el caso de uso")
+    void analizarShouldRejectLongitudeOutOfRange() throws Exception {
+        mockMvc.perform(post("/api/zona/analisis").principal(principal).contentType("application/json")
+                        .content("{\"latitud\":-34.6703,\"longitud\":-200}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(analizarZonaUseCase);
     }
 
     @Test

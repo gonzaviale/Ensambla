@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.dto.zona.ZonaItem;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.mapper.zona.ZonaItemMapper;
 import com.ensambla.backend.domain.model.ubicacion.DireccionEncontrada;
+import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.model.zona.Zona;
 import com.ensambla.backend.domain.service.ubicacion.UbicacionService;
 import com.ensambla.backend.domain.service.zona.AgregadoZonaService;
@@ -17,6 +18,9 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AnalizarZonaUseCase {
 
+    /** Menos comercios que esto y los agregados no son anónimos: no se muestran productos. */
+    static final int MINIMO_COMERCIOS = 3;
+
     private final ZonaService zonaService;
 
     private final UbicacionService ubicacionService;
@@ -27,12 +31,25 @@ public class AnalizarZonaUseCase {
 
     private final Clock clock;
 
-    /** Primero busca un barrio por nombre; si no es uno conocido, lo trata como una dirección. */
+    /**
+     * Con un punto del mapa busca la zona precargada que lo contiene; si no, busca un barrio por nombre y, si
+     * no es uno conocido, lo trata como una dirección. No filtra por rubro: usa los agregados de la zona.
+     */
     public ZonaItem execute(AnalizarZonaRequest request) {
-        Zona zona = zonaService.buscarPorTexto(request.lugar())
-                .or(() -> zonaDeLaDireccion(request.lugar()))
+        Zona zona = zonaDe(request)
                 .orElseThrow(() -> new ResourceNotFoundException("Todavía no tenemos datos de esa zona"));
-        return zonaItemMapper.toResponse(agregadoZonaService.analizar(zona));
+        AnalisisZona analisis = agregadoZonaService.analizar(zona)
+                .sinProductosSiHayMenosDe(MINIMO_COMERCIOS)
+                .ordenadoPorVentas();
+        return zonaItemMapper.toResponse(analisis);
+    }
+
+    private Optional<Zona> zonaDe(AnalizarZonaRequest request) {
+        if (request.tienePunto()) {
+            return zonaService.resolver(request.latitud(), request.longitud());
+        }
+        return zonaService.buscarPorTexto(request.lugar())
+                .or(() -> zonaDeLaDireccion(request.lugar()));
     }
 
     private Optional<Zona> zonaDeLaDireccion(String lugar) {
