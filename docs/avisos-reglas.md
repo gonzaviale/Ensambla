@@ -54,3 +54,25 @@ El precio sugerido es la referencia redondeada a la decena; si no queda por deba
 anotó ninguna venta, no avisa (no se puede saber qué se mueve). La entidad es `registro:<id>` y los datos son `{precio, sugerido}`.
 La acción «Rebajar a $X» es un `EDITAR_REGISTRO` que cambia `price`; al aplicarla el precio baja, la regla deja de detectar el
 producto y el aviso vence solo.
+
+## «Misma venta»: mismo cliente y mismo día
+
+Como las ventas no tienen ticket, una **canasta** (lo que se llevó una persona en una compra) es el conjunto de productos vendidos al
+mismo `customer` el mismo `date`. Las ventas sin cliente no forman canasta. Es la misma definición que usa el frontend para calcular
+combos en el navegador (`lib/sistema/alertas.ts`). Un producto anotado varias veces en la misma canasta cuenta una vez.
+
+## COMBO · Combos de productos de baja rotación (`ReglaCombo`)
+
+Avisa de dos productos de la misma tabla de inventario que estuvieron juntos en una canasta al menos
+`ensambla.avisos.combo-minimo-veces` veces (3 por defecto) dentro del período, y de los que **al menos uno rota poco**.
+
+- **Precio del combo**: la suma de los dos precios por 0,9 (10 % menos), redondeada a la decena; si no queda por debajo de la suma, no hay
+  aviso. El costo es la suma de los costos cargados (se omite si no hay ninguno).
+- **No avisa** si el inventario ya tiene un producto «combo» que nombra a los dos (por la primera palabra significativa de cada nombre).
+- La entidad es `combo:<idA>:<idB>` (ids ordenados) y los datos son `{precioA, precioB, sugerido}`: las veces que salieron juntos no
+  entran en la huella.
+- La acción «Crear el combo» es un `CREAR_REGISTRO`: `AccionAvisoService` toma la primera acción `EDITAR_REGISTRO` o `CREAR_REGISTRO` y,
+  para crear, traduce los valores por clave de campo (`name`, `quantity`, `price`, `cost`) y crea la fila en la tabla de la acción. Una
+  tabla de otro negocio no devuelve campos y se rechaza. Al correr de nuevo el motor, el combo ya existe y el aviso vence.
+- En el demo (V10) alfajor y galletitas salen 4 veces juntos; con el factor 0,5 ambos quedan justo en el borde de baja rotación (4
+  unidades contra una mediana de 8 del resto), por eso el factor no se tocó.

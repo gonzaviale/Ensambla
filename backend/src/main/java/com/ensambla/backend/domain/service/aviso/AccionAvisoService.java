@@ -14,11 +14,13 @@ import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
- * Ejecuta la acción sugerida de un aviso. Sólo {@code EDITAR_REGISTRO} cambia datos (por ejemplo, el precio de un
- * producto); las demás ({@code REGISTRAR}, {@code ABRIR}) son atajos de pantalla y no tocan nada.
+ * Ejecuta la acción sugerida de un aviso. Sólo cambian datos {@code EDITAR_REGISTRO} (por ejemplo, el precio de un
+ * producto) y {@code CREAR_REGISTRO} (por ejemplo, el combo de dos productos); las demás ({@code REGISTRAR},
+ * {@code ABRIR}) son atajos de pantalla y no tocan nada. Los valores de la acción vienen por clave semántica.
  */
 @Service
 @RequiredArgsConstructor
@@ -26,6 +28,9 @@ import java.util.UUID;
 public class AccionAvisoService {
 
     static final String EDITAR_REGISTRO = "EDITAR_REGISTRO";
+    static final String CREAR_REGISTRO = "CREAR_REGISTRO";
+
+    private static final Set<String> ACCIONES_CON_DATOS = Set.of(EDITAR_REGISTRO, CREAR_REGISTRO);
 
     private final RegistroDatosService registroDatosService;
 
@@ -37,22 +42,41 @@ public class AccionAvisoService {
         aviso.getAcciones().stream()
                 .filter(Map.class::isInstance)
                 .map(accion -> (Map<?, ?>) accion)
-                .filter(accion -> EDITAR_REGISTRO.equals(accion.get("tipo")))
+                .filter(accion -> accion.get("tipo") instanceof String tipo && ACCIONES_CON_DATOS.contains(tipo))
                 .findFirst()
-                .ifPresent(accion -> editarRegistro(aviso.getNegocioId(), accion, ahora));
+                .ifPresent(accion -> ejecutarAccion(aviso.getNegocioId(), accion, ahora));
+    }
+
+    private void ejecutarAccion(UUID negocioId, Map<?, ?> accion, OffsetDateTime ahora) {
+        if (EDITAR_REGISTRO.equals(accion.get("tipo"))) {
+            editarRegistro(negocioId, accion, ahora);
+        } else {
+            crearRegistro(negocioId, accion, ahora);
+        }
     }
 
     private void editarRegistro(UUID negocioId, Map<?, ?> accion, OffsetDateTime ahora) {
-        Registro registro = registroDatosService.obtener(registroIdDe(accion), negocioId);
+        Registro registro = registroDatosService.obtener(
+                idDe(accion, "registroId", "La acción del aviso no indica qué registro cambiar"), negocioId);
         List<Campo> campos = campoService.listarDeBloque(registro.getBloqueId(), negocioId);
         registroDatosService.editar(registro, campos, cambiosPorCampo(accion, campos), ahora);
     }
 
-    private static UUID registroIdDe(Map<?, ?> accion) {
+    /** Una tabla de otro negocio no devuelve campos, así que se rechaza igual que una tabla que ya no existe. */
+    private void crearRegistro(UUID negocioId, Map<?, ?> accion, OffsetDateTime ahora) {
+        UUID bloqueId = idDe(accion, "bloqueId", "La acción del aviso no indica en qué tabla crear");
+        List<Campo> campos = campoService.listarDeBloque(bloqueId, negocioId);
+        if (campos.isEmpty()) {
+            throw new BusinessRuleException("La tabla del aviso ya no existe");
+        }
+        registroDatosService.crear(negocioId, bloqueId, campos, cambiosPorCampo(accion, campos), ahora);
+    }
+
+    private static UUID idDe(Map<?, ?> accion, String clave, String mensaje) {
         try {
-            return UUID.fromString(String.valueOf(accion.get("registroId")));
+            return UUID.fromString(String.valueOf(accion.get(clave)));
         } catch (IllegalArgumentException e) {
-            throw new BusinessRuleException("La acción del aviso no indica qué registro cambiar");
+            throw new BusinessRuleException(mensaje);
         }
     }
 
