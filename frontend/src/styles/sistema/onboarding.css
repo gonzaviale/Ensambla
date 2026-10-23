@@ -51,7 +51,7 @@ svg.sami {
   overflow: auto;
 }
 .welcome-modal::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0 0 auto;
   height: 5px;
@@ -503,5 +503,80 @@ body.tutorial-running {
   }
   body.tutorial-modal .modal {
     max-height: calc(100dvh - var(--tour-space, 245px) - 28px);
+  }
+}
+
+/* El cartel de la guía con la paleta, Sami saludando y letra más grande. */
+.tour-coach {
+  background: white;
+  border: 2px solid var(--orange);
+  border-top-width: 6px;
+  padding: 18px 20px 16px;
+}
+.tour-coach-top > span {
+  font-size: 12px;
+  color: var(--orange);
+}
+.tour-coach-top > button {
+  color: var(--petrol);
+}
+.tour-coach-top .icon {
+  width: 18px;
+  height: 18px;
+}
+.tour-progress > i {
+  height: 6px;
+  background: var(--line);
+}
+.tour-message {
+  gap: 14px;
+  align-items: center;
+}
+.tour-sami {
+  width: 84px;
+  height: auto;
+  flex-shrink: 0;
+}
+.tour-coach h2 {
+  font-size: 20px;
+  color: var(--petrol);
+}
+.tour-coach p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.tour-hint {
+  background: var(--orange);
+  color: white;
+  border-radius: 12px;
+  padding: 11px 13px;
+  font-size: 14px;
+}
+.tour-hint > .icon {
+  width: 18px;
+  height: 18px;
+}
+.tour-footer > span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.tour-footer .text-link {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--petrol);
+}
+.tour-footer .btn {
+  font-size: 14px;
+}
+@media (max-width: 680px) {
+  .tour-sami {
+    width: 60px;
+  }
+  .tour-coach h2 {
+    font-size: 17px;
+  }
+  .tour-coach p {
+    font-size: 14px;
   }
 }

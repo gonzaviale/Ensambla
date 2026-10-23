@@ -15,6 +15,10 @@ export async function obtenerUsuarioActual(signal?: AbortSignal): Promise<Usuari
   }
 }
 
+export async function sesionExpiradaConfirmada(): Promise<boolean> {
+  return (await obtenerUsuarioActual()) === null;
+}
+
 export async function iniciarSesion(datos: Login): Promise<Usuario> {
   const usuario = await http.post('/auth/login', datos, usuarioSchema);
   invalidarCsrf();

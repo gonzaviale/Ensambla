@@ -5,14 +5,18 @@ import com.ensambla.backend.domain.dto.reporte.GenerarReporteResponse;
 import com.ensambla.backend.domain.mapper.reporte.GenerarReporteMapper;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.enums.FuncionPlan;
 import com.ensambla.backend.domain.model.reporte.FiltroReporte;
 import com.ensambla.backend.domain.model.reporte.ReporteRegistros;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.reporte.ReporteService;
 import lombok.RequiredArgsConstructor;
 
+import java.time.Clock;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,6 +24,10 @@ import java.util.UUID;
 public class GenerarReporteUseCase {
 
     private final NegocioService negocioService;
+
+    private final ControlPlanService controlPlanService;
+
+    private final Clock clock;
 
     private final BloqueService bloqueService;
 
@@ -32,6 +40,7 @@ public class GenerarReporteUseCase {
     public GenerarReporteResponse execute(GenerarReporteRequest request) {
         UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         Bloque bloque = bloqueService.obtener(request.bloqueId(), negocioId);
+        controlPlanService.validarFuncion(negocioId, FuncionPlan.REPORTES_FILTRADOS, OffsetDateTime.now(clock));
         List<Campo> campos = campoService.listarDeBloque(bloque.getId(), negocioId);
         FiltroReporte filtro = FiltroReporte.armar(
                 negocioId,

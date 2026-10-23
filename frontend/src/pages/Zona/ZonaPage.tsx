@@ -1,4 +1,7 @@
+import { ContenidoPremium } from '@/components/planes/ContenidoPremium';
+import { env } from '@/config/env';
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { Link } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
@@ -95,6 +98,9 @@ export function ZonaPage() {
     <>
       <CabeceraComun active="zone" />
       <main id="main" tabIndex={-1} className="page-wrap zona-page reveal">
+        <Link className="text-link" to="/ubicacion">
+          Probar ubicación y rubro de mi comercio
+        </Link>
         <div className="zona-cabeza">
           <div className="page-title">
             <div className="eyebrow">
@@ -118,6 +124,7 @@ export function ZonaPage() {
             ))}
           </div>
         </div>
+        {vista !== 'otra' && <ContenidoPremium acceso={zona.acceso} recurso="recomendaciones" />}
         {vista === 'precios' && (
           <VistaDePrecios zona={zona} propios={propios} titulo={`Precios en ${zona.nombre}`} />
         )}
@@ -343,6 +350,7 @@ function VistaDeOtraZona() {
           <SinDatosSuficientes zona={resultado} />
         ) : (
           <div className="zona-grid">
+            <ContenidoPremium acceso={resultado.acceso} recurso="recomendaciones" />
             <section className="zona-panel">
               <div className="row between">
                 <h2>Precios en {resultado.nombre}</h2>
@@ -367,13 +375,13 @@ function VistaDeOtraZona() {
             </aside>
           </div>
         )
-      ) : (
+      ) : env.mocks === 'completo' ? (
         <div className="simulation-label">
           <strong>Análisis simulado</strong>
           Los datos de otra zona son de ejemplo. Cuando exista el servicio real, vas a ver los
           precios y ventas agregados de los comercios de ese lugar.
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

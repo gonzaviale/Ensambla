@@ -1,80 +1,129 @@
-import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+  type FormEvent,
+} from 'react';
+import { getRouteApi } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
+import { BotoneraDeDudas } from '@/components/sistema/BotoneraDeDudas';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
 import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
 import { PreviewBoard } from '@/components/sistema/PreviewBoard';
 import { Sami } from '@/components/sistema/Sami';
+import { VisorDeFoto } from '@/components/sistema/VisorDeFoto';
 import { varsDeColor } from '@/components/sistema/colores';
-import { CATALOG, TEMPLATES } from '@/lib/sistema/catalogo';
+import { ajusteParaGuardar, mismoSistema, sistemaParaCrear } from '@/lib/sistema/acciones';
+import { CATALOG } from '@/lib/sistema/catalogo';
 import {
   allBlocks,
   applyLayout,
-  clone,
   findBlock,
   makeBlock,
   moveBlock,
   wireSystem,
 } from '@/lib/sistema/core';
-import type { ClavePlantilla, Distribucion, TipoBloque } from '@/lib/sistema/tipos';
-import { saludoDeSami, useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
-import { useTaller } from '@/hooks/sistemas/useTaller';
+import type { NombreDeIcono } from '@/lib/sistema/iconos';
+import type { Distribucion, TipoBloque } from '@/lib/sistema/tipos';
+import {
+  saludoDeSami,
+  saludoParaAjustar,
+  useNavegacion,
+  useNombre,
+} from '@/hooks/sistemas/useNavegacion';
+import { useDictado } from '@/hooks/sistemas/useDictado';
+import { useTaller, vistaDeFoto } from '@/hooks/sistemas/useTaller';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
-const EJEMPLOS: { clave: ClavePlantilla; etiqueta: string; nombre: string; texto: string }[] = [
+// Para arrancar sin escribir: el texto va a Sami igual que si la persona lo hubiera escrito.
+const EJEMPLOS: {
+  clave: string;
+  icono: NombreDeIcono;
+  etiqueta: string;
+  nombre: string;
+  texto: string;
+}[] = [
   {
-    clave: 'shop',
+    clave: 'almacen',
+    icono: 'check-circle',
     etiqueta: 'Almacén o kiosco',
     nombre: 'Mi almacén',
     texto:
       'Tengo un almacén de barrio. Vendo productos de almacén y kiosco, anoto lo que me fían y quiero saber qué stock me queda y a qué precio vender.',
   },
   {
-    clave: 'warehouse',
-    etiqueta: 'Un depósito',
-    nombre: 'Mi depósito',
+    clave: 'velas',
+    icono: 'spark',
+    etiqueta: 'Velas artesanales',
+    nombre: 'Mis velas',
     texto:
-      'Tengo un depósito de productos. Necesito cargar productos, registrar entradas y salidas y saber cuánto stock queda.',
+      'Hago velas artesanales y las vendo por Instagram y en ferias. Compro cera, mechas y esencias, y anoto los pedidos de mis clientas.',
   },
   {
-    clave: 'business',
-    etiqueta: 'Un local de ropa',
-    nombre: 'Mi tienda de ropa',
+    clave: 'peluqueria',
+    icono: 'clock',
+    etiqueta: 'Una peluquería',
+    nombre: 'Mi peluquería',
     texto:
-      'Tengo un local de indumentaria. Vendo ropa y accesorios, manejo productos con precios y stock y anoto pedidos de mis clientes.',
+      'Tengo una peluquería. Doy turnos para corte y color, quiero tener a mis clientes con su teléfono y saber qué productos me quedan.',
   },
-];
-
-const AJUSTES: { mensaje: string; etiqueta: string }[] = [
-  { mensaje: 'Me falta controlar gastos', etiqueta: 'Sumar gastos' },
-  { mensaje: 'Prefiero dos columnas y el stock de todo el ancho', etiqueta: 'Otra distribución' },
-  { mensaje: 'Separar clientes en otra sección', etiqueta: 'Separar clientes' },
 ];
 
 const PIEZAS_PARA_SUMAR: TipoBloque[] = ['clients', 'sales', 'inventory', 'orders', 'expenses'];
 
-// El taller de Sami: una conversación a la izquierda y la propuesta, editable, a la derecha.
+const ruta = getRouteApi('/_app/taller');
+
+// El taller de Sami: una conversación a la izquierda y la propuesta, editable, a la derecha. Con `?sistema=<id>`,
+// la propuesta arranca como una copia de ese sistema y «Guardar cambios» lo reemplaza.
 export function TallerPage() {
   useTituloPagina('La guía de Sami');
   const nombre = useNombre();
+  const { sistema: sistemaDeLaUrl } = ruta.useSearch();
   const taller = useSistemaStore((estado) => estado.taller);
+  const original = useSistemaStore((estado) =>
+    estado.taller?.sistemaId
+      ? estado.sistemas.find((item) => item.id === estado.taller?.sistemaId)
+      : undefined,
+  );
   const actualizarTaller = useSistemaStore((estado) => estado.actualizarTaller);
   const editarBorrador = useSistemaStore((estado) => estado.editarBorrador);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const navegacion = useNavegacion();
-  const { enviar } = useTaller();
+  const { enviar, responderDuda, deshacer, adjuntarFoto, quitarFoto } = useTaller();
+  const avisar = useSistemaStore((estado) => estado.avisar);
+  // La voz se transcribe en el navegador y queda en el campo para revisarla antes de enviar.
+  const dictado = useDictado({
+    obtenerBase: () => useSistemaStore.getState().taller?.entrada ?? '',
+    alTexto: (entrada) => actualizarTaller({ entrada }),
+    alAvisar: avisar,
+  });
   const mensajes = useRef<HTMLDivElement>(null);
   const campo = useRef<HTMLTextAreaElement>(null);
+  const selectorDeFoto = useRef<HTMLInputElement>(null);
+  const [preparandoFoto, setPreparandoFoto] = useState(false);
   const [arrastrando, setArrastrando] = useState<string | null>(null);
   const [sobre, setSobre] = useState<string | null>(null);
+  const [fotoAmpliada, setFotoAmpliada] = useState(false);
 
-  // Si se entra por la dirección, sin pasar por un botón, la conversación empieza igual.
+  // Si se entra por la dirección, sin pasar por un botón, la conversación empieza igual: sobre el sistema que diga
+  // la dirección o, si no hay (o ya no existe), una nueva.
   useEffect(() => {
-    if (!useSistemaStore.getState().taller) {
-      useSistemaStore.getState().iniciarTaller(saludoDeSami(nombre));
+    const estado = useSistemaStore.getState();
+    const sistema = sistemaDeLaUrl
+      ? estado.sistemas.find((item) => item.id === sistemaDeLaUrl)
+      : undefined;
+    if (sistema) {
+      if (estado.taller?.sistemaId !== sistema.id) {
+        estado.iniciarTaller(saludoParaAjustar(sistema.name), sistema);
+      }
+    } else if (!estado.taller || estado.taller.sistemaId) {
+      estado.iniciarTaller(saludoDeSami(nombre));
     }
-  }, [nombre]);
+  }, [nombre, sistemaDeLaUrl]);
 
   const cantidadDeMensajes = taller?.mensajes.length ?? 0;
   const pensando = taller?.pensando ?? false;
@@ -87,10 +136,20 @@ export function TallerPage() {
   if (!taller) return null;
   const { borrador } = taller;
   const seccionId = taller.seccionId ?? borrador?.sections[0]?.id ?? null;
+  const ajustando = Boolean(original);
+  const hayCambios =
+    !original || !borrador || !mismoSistema(ajusteParaGuardar(original, borrador), original);
 
   const alEnviar = (evento: FormEvent) => {
     evento.preventDefault();
+    dictado.detener();
     void enviar();
+  };
+
+  // Como en Claude: siempre se puede dejar las opciones y escribir lo que uno quiera.
+  const escribirOtraCosa = () => {
+    actualizarTaller({ dudas: [], respuestasDeDudas: [] });
+    campo.current?.focus();
   };
 
   const usarEjemplo = (ejemplo: (typeof EJEMPLOS)[number]) => {
@@ -134,13 +193,55 @@ export function TallerPage() {
     });
   };
 
+  // La foto va con el próximo mensaje: se achica al elegirla y se ve en miniatura hasta mandarla.
+  const elegirFoto = async (evento: ChangeEvent<HTMLInputElement>) => {
+    const archivo = evento.target.files?.[0];
+    evento.target.value = '';
+    if (!archivo) return;
+    setPreparandoFoto(true);
+    try {
+      await adjuntarFoto(archivo);
+    } finally {
+      setPreparandoFoto(false);
+    }
+    campo.current?.focus();
+  };
+
+  const sacarFoto = () => {
+    setFotoAmpliada(false);
+    quitarFoto();
+    campo.current?.focus();
+  };
+
+  // La propuesta se imaginó con datos de ejemplo, que no pasan al sistema; los registros reales que cargó Sami, sí.
   const crearSistema = () => {
     if (!borrador) return;
-    const sistema = clone(borrador);
-    sistema.name = sistema.name.trim() || 'Mi sistema';
-    // La propuesta se imaginó con datos de ejemplo; el sistema nuevo arranca vacío.
-    for (const bloque of allBlocks(sistema)) bloque.rows = [];
-    void navegacion.crearYAbrir(sistema);
+    void navegacion.crearYAbrir(sistemaParaCrear(borrador));
+  };
+
+  // Reemplaza el sistema con la propuesta (así se guarda en el servidor) y vuelve a él, en el modo en que estaba.
+  const guardarCambios = () => {
+    if (!borrador || !original) return;
+    const estado = useSistemaStore.getState();
+    const modo = estado.activeId === original.id ? estado.modo : 'use';
+    if (hayCambios) {
+      const ajustado = ajusteParaGuardar(original, borrador);
+      estado.actualizarSistema(original.id, (sistema) => {
+        for (const clave of Object.keys(sistema)) {
+          if (!(clave in ajustado)) Reflect.deleteProperty(sistema, clave);
+        }
+        Object.assign(sistema, ajustado);
+      });
+      avisar(`Guardé los cambios en «${ajustado.name}».`);
+    } else {
+      avisar('No había cambios para guardar.');
+    }
+    void navegacion.abrirSistema(original.id, modo);
+  };
+
+  const volver = () => {
+    if (original) void navegacion.abrirSistema(original.id);
+    else void navegacion.irAInicio();
   };
 
   return (
@@ -148,76 +249,97 @@ export function TallerPage() {
       <CabeceraComun />
       <main id="main" tabIndex={-1} className="creation-studio reveal">
         <div className="studio-top">
-          <Btn cls="ghost small" onClick={() => void navegacion.irAInicio()}>
-            <Icon name="back" /> Inicio
+          <Btn cls="ghost small" onClick={volver}>
+            <Icon name="back" /> {original ? `Volver a ${original.name}` : 'Inicio'}
           </Btn>
-          <span>EL TALLER DE TU PRIMER SISTEMA</span>
+          <span>
+            {ajustando ? 'AJUSTANDO TU SISTEMA CON SAMI' : 'EL TALLER DE TU PRIMER SISTEMA'}
+          </span>
           <span className="tag outline">
-            {borrador ? 'Propuesta sin guardar' : 'Tu idea es el punto de partida'}
+            {ajustando
+              ? hayCambios
+                ? 'Cambios sin guardar'
+                : 'Sin cambios todavía'
+              : borrador
+                ? 'Propuesta sin guardar'
+                : 'Tu idea es el punto de partida'}
           </span>
         </div>
         <div className="studio-layout">
           <aside className="sami-conversation">
             <header className="conversation-head">
-              <Sami pose={taller.pensando ? 'think' : 'hello'} />
+              <img className="conversation-sami" src="/mockup/sami-constructora.webp" alt="" />
               <div>
-                <h1>Lo armamos juntos.</h1>
+                <h1>{ajustando ? 'Lo ajustamos juntos.' : 'Lo armamos juntos.'}</h1>
                 <p>
                   <span className="live-dot" />
                   Sami · Tu guía
                 </p>
               </div>
             </header>
-            <div className="conversation-messages" aria-live="polite" ref={mensajes}>
-              {taller.mensajes.map((mensaje, indice) => (
-                <div key={indice} className={`conversation-bubble ${mensaje.quien}`}>
-                  {mensaje.texto}
-                </div>
-              ))}
-              {taller.pensando && (
-                <div className="thinking-bubble" data-tour="describe-pensando">
-                  <Sami pose="think" />
-                  <div>
-                    <strong>Estoy buscando qué piezas encajan…</strong>
-                    <span>
-                      <i />
-                      <i />
-                      <i />
-                    </span>
+            <div className="conversation-scroll" ref={mensajes}>
+              <div className="conversation-messages" aria-live="polite">
+                {taller.mensajes.map((mensaje, indice) => (
+                  <div key={indice} className={`conversation-bubble ${mensaje.quien}`}>
+                    {mensaje.foto && (
+                      <img
+                        className="conversation-photo"
+                        src={mensaje.foto}
+                        alt={
+                          mensaje.quien === 'you' ? 'La foto que le mandaste a Sami' : 'Una foto'
+                        }
+                      />
+                    )}
+                    {mensaje.texto}
                   </div>
+                ))}
+                {taller.pensando && (
+                  <div className="thinking-bubble" data-tour="describe-pensando">
+                    <Sami pose="think" />
+                    <div>
+                      <strong>Estoy buscando qué piezas encajan…</strong>
+                      <span>
+                        <i />
+                        <i />
+                        <i />
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {taller.dudas[taller.respuestasDeDudas.length] ? (
+                <BotoneraDeDudas
+                  dudas={taller.dudas}
+                  respondidas={taller.respuestasDeDudas.length}
+                  pensando={taller.pensando}
+                  onResponder={responderDuda}
+                  onEscribirOtraCosa={escribirOtraCosa}
+                />
+              ) : borrador ? null : (
+                <div className="conversation-examples">
+                  <span>O probá con un ejemplo:</span>
+                  {EJEMPLOS.map((ejemplo) => (
+                    <button
+                      key={ejemplo.clave}
+                      type="button"
+                      disabled={taller.pensando}
+                      onClick={() => usarEjemplo(ejemplo)}
+                    >
+                      <Icon name={ejemplo.icono} />
+                      {ejemplo.etiqueta}
+                      <Icon name="arrow" />
+                    </button>
+                  ))}
+                </div>
+              )}
+              {taller.anterior && (
+                <div className="feedback-chips">
+                  <button type="button" disabled={taller.pensando} onClick={deshacer}>
+                    <Icon name="undo" /> Deshacer lo último
+                  </button>
                 </div>
               )}
             </div>
-            {borrador ? (
-              <div className="feedback-chips">
-                {AJUSTES.map(({ mensaje, etiqueta }) => (
-                  <button
-                    key={etiqueta}
-                    type="button"
-                    disabled={taller.pensando}
-                    onClick={() => void enviar(mensaje)}
-                  >
-                    {etiqueta}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="conversation-examples">
-                <span>O probá con un ejemplo:</span>
-                {EJEMPLOS.map((ejemplo) => (
-                  <button
-                    key={ejemplo.clave}
-                    type="button"
-                    disabled={taller.pensando}
-                    onClick={() => usarEjemplo(ejemplo)}
-                  >
-                    <Icon name={TEMPLATES[ejemplo.clave].icon} />
-                    {ejemplo.etiqueta}
-                    <Icon name="arrow" />
-                  </button>
-                ))}
-              </div>
-            )}
             <form className="guide-composer" data-tour="describe" onSubmit={alEnviar}>
               <label htmlFor="guide-message">
                 {borrador ? '¿Qué le falta? ¿Qué cambiarías?' : 'Contame un poco de tu negocio'}
@@ -235,28 +357,75 @@ export function TallerPage() {
                 value={taller.entrada}
                 onChange={(evento) => actualizarTaller({ entrada: evento.target.value })}
               />
+              {taller.foto && (
+                <div className="guide-photo-preview">
+                  <button
+                    type="button"
+                    className="guide-photo-thumb"
+                    aria-label="Ver la foto en grande"
+                    onClick={() => setFotoAmpliada(true)}
+                  >
+                    <img src={vistaDeFoto(taller.foto)} alt="La foto que vas a mandar a Sami" />
+                  </button>
+                  <button
+                    type="button"
+                    className="guide-photo-remove"
+                    data-accion="guide-photo-remove"
+                    aria-label="Quitar foto"
+                    disabled={taller.pensando}
+                    onClick={sacarFoto}
+                  >
+                    <Icon name="close" />
+                  </button>
+                </div>
+              )}
+              {/* Con `image/*` el celular ofrece sacar la foto en el momento o elegir una de la galería. */}
+              <input
+                ref={selectorDeFoto}
+                id="guide-photo-file"
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(evento) => void elegirFoto(evento)}
+              />
               <div className="row between">
-                <Btn
-                  cls="ghost small"
-                  data-accion="guide-photo"
-                  aria-label="Aportar una foto o captura"
-                  onClick={() =>
-                    abrirModal({
-                      tipo: 'importar',
-                      sistemaId: null,
-                      bloqueId: null,
-                      contexto: 'negocio',
-                    })
-                  }
+                <div className="row">
+                  <Btn
+                    cls="ghost small"
+                    data-accion="guide-photo"
+                    aria-label={
+                      taller.foto ? 'Cambiar la foto para Sami' : 'Mandarle una foto a Sami'
+                    }
+                    disabled={taller.pensando || preparandoFoto}
+                    onClick={() => selectorDeFoto.current?.click()}
+                  >
+                    <Icon name="camera" />
+                  </Btn>
+                  <Btn
+                    cls={dictado.escuchando ? 'soft small' : 'ghost small'}
+                    data-accion="guide-voice"
+                    aria-label={dictado.escuchando ? 'Dejar de dictar' : 'Dictar con la voz'}
+                    aria-pressed={dictado.escuchando}
+                    disabled={taller.pensando}
+                    onClick={dictado.alternar}
+                  >
+                    <Icon name="mic" />
+                  </Btn>
+                </div>
+                <button
+                  className="btn primary"
+                  type="submit"
+                  disabled={taller.pensando || preparandoFoto}
                 >
-                  <Icon name="camera" />
-                </Btn>
-                <button className="btn primary" type="submit" disabled={taller.pensando}>
                   {borrador ? 'Ajustalo conmigo' : 'Pensalo conmigo'} <Icon name="arrow" />
                 </button>
               </div>
             </form>
-            <p className="conversation-foot">Vos decidís qué queda y cuándo está listo.</p>
+            <p className="conversation-foot">
+              {ajustando
+                ? 'Nada cambia en tu sistema hasta que guardes.'
+                : 'Vos decidís qué queda y cuándo está listo.'}
+            </p>
           </aside>
 
           <section className="studio-canvas">
@@ -264,7 +433,9 @@ export function TallerPage() {
               <>
                 <div className="draft-heading">
                   <div>
-                    <span className="eyebrow">TU PROPUESTA, A LA VISTA</span>
+                    <span className="eyebrow">
+                      {ajustando ? 'TU SISTEMA, CON LOS CAMBIOS' : 'TU PROPUESTA, A LA VISTA'}
+                    </span>
                     <input
                       className="draft-name-input"
                       id="guide-system-name"
@@ -281,8 +452,9 @@ export function TallerPage() {
                   <span className="tag">{allBlocks(borrador).length} piezas conectadas</span>
                 </div>
                 <p className="draft-intro">
-                  Esto ya tiene forma. Cambiá nombres, anchos y posiciones, o pedile un ajuste a
-                  Sami.
+                  {ajustando
+                    ? 'Pedile a Sami lo que quieras cambiar, o cambiá nombres, anchos y posiciones acá. Tus registros se conservan.'
+                    : 'Esto ya tiene forma. Cambiá nombres, anchos y posiciones, o pedile un ajuste a Sami.'}
                 </p>
                 <LayoutToolbar
                   distribucion={borrador.layout}
@@ -319,7 +491,11 @@ export function TallerPage() {
                       <span>{seccion.blocks.length}</span>
                     </button>
                   ))}
-                  <span className="preview-example-label">Datos de ejemplo para imaginarlo</span>
+                  <span className="preview-example-label">
+                    {ajustando
+                      ? 'Las filas de ejemplo no se guardan ni son reales'
+                      : 'Las filas marcadas «Ejemplo» no son reales: están para imaginarlo'}
+                  </span>
                 </div>
                 <PreviewBoard
                   sistema={borrador}
@@ -343,14 +519,27 @@ export function TallerPage() {
                 <div className="draft-footer" data-tour="create">
                   <div>
                     <Icon name="check-circle" />
-                    <span>
-                      <strong>¿Se parece a tu manera de trabajar?</strong>
-                      <small>Podés seguir ajustándolo después de crearlo.</small>
-                    </span>
+                    {ajustando ? (
+                      <span>
+                        <strong>¿Te sirve así?</strong>
+                        <small>Se guarda sobre tu sistema, con tus registros.</small>
+                      </span>
+                    ) : (
+                      <span>
+                        <strong>¿Se parece a tu manera de trabajar?</strong>
+                        <small>Podés seguir ajustándolo después de crearlo.</small>
+                      </span>
+                    )}
                   </div>
-                  <Btn cls="primary" data-accion="guide-create" onClick={crearSistema}>
-                    Sí, crear mi sistema <Icon name="arrow" />
-                  </Btn>
+                  {ajustando ? (
+                    <Btn cls="primary" data-accion="guide-save" onClick={guardarCambios}>
+                      Guardar cambios <Icon name="arrow" />
+                    </Btn>
+                  ) : (
+                    <Btn cls="primary" data-accion="guide-create" onClick={crearSistema}>
+                      Sí, crear mi sistema <Icon name="arrow" />
+                    </Btn>
+                  )}
                 </div>
               </>
             ) : (
@@ -390,14 +579,21 @@ export function TallerPage() {
                   Una propuesta de bloques que podés mover, combinar y cambiar. Sin tener que
                   imaginar el sistema a ciegas.
                 </p>
-                <span className="empty-studio-note">
+                {/* <span className="empty-studio-note">
                   <Icon name="spark" />
                   No hay una única forma de hacerlo.
-                </span>
+                </span> */}
               </div>
             )}
           </section>
         </div>
+        {fotoAmpliada && taller.foto && (
+          <VisorDeFoto
+            src={vistaDeFoto(taller.foto)}
+            alt="La foto que vas a mandar a Sami, en grande"
+            alCerrar={() => setFotoAmpliada(false)}
+          />
+        )}
       </main>
     </>
   );

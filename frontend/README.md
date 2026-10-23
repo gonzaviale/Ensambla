@@ -23,11 +23,12 @@ npm run dev        # http://localhost:5173 (proxy /api → http://localhost:8080
 
 | Valor | Comportamiento |
 |---|---|
-| `parcial` | Backend real (sesión y lectura de fotos con IA) salvo lo que todavía no tiene: sistemas, preferencias, Sami y zona |
+| `parcial` | Todas las rutas actuales usan el backend real; se mantiene el valor por compatibilidad |
 | `completo` | Todo simulado con MSW; no hace falta backend |
 | `ninguno` (default) | Todo contra el backend real, incluidos registro, login y logout |
 
-La sesión se guarda en una cookie HttpOnly del servidor. TanStack Query mantiene la identidad del usuario
+La sesión se guarda en la cookie HttpOnly `ENSAMBLA_SESSION`, con dos horas de inactividad por defecto.
+TanStack Query mantiene la identidad del usuario
 en memoria; los guards revalidan la sesión al navegar a rutas privadas. Logout vuelve a `/login`.
 El formulario de registro incluye nombre del negocio y muestra errores del cliente y del servidor.
 Los tests usan MSW completo y un entorno jsdom que conserva los AbortSignal nativos de Node para fetch.
@@ -39,7 +40,43 @@ existe en la simulación). La primera vez aparece la bienvenida con la guía int
 plantillas, taller con Sami, editor (Construir y Usar), avisos de Sami con la campana, y «Mi zona». La base
 simulada persiste en `localStorage`. Detalle en [../docs/ui-mockup.md](../docs/ui-mockup.md).
 
-## Estructura
+## Planes y prueba premium (ENS-97)
+
+La opción «Planes» abre `/planes`, con sesión obligatoria. Muestra catálogo y precio configurado,
+plan efectivo, consumo y estado de prueba desde `GET /api/planes`. Mientras no se defina precio/moneda,
+Premium muestra «Precio por definir». ENS-98 configura ARS 14.900 cada treinta días y agrega
+contratación y cancelación; los botones de cobro se habilitan sólo si el backend tiene configurado el proveedor.
+
+La confirmación explica siete días, diez páginas totales, una única prueba por negocio y conservación
+de datos; `POST /api/planes/prueba` usa sesión y CSRF. El botón evita doble envío. Se vuelve a consultar
+tras éxito o error, al recuperar el foco y periódicamente; cerca del vencimiento se usa la hora del
+servidor para actualizar el estado. Un 403 con código comercial se conserva sin repetir la escritura.
+
+`completo` simula planes y conserva el historial de prueba en la base local de demostración;
+`parcial` y `ninguno` usan el backend real, incluidos sistemas, preferencias, Sami y zona. Para validar
+los límites comerciales usá el backend y PostgreSQL reales; `completo` sigue siendo una simulación.
+Gratuito incluye tres avisos mensuales y tres recomendaciones mensuales compartidas entre Mi zona y
+Otra zona. Los cupos se guardan por negocio en el servidor y el contenido adicional invita a Planes.
+Detalle de pruebas y entorno local aislado en [plan-ENS-97.md](../docs/plan-ENS-97.md).
+
+### Renovación automática (ENS-98)
+
+La tarjeta Premium consulta `/api/planes/renovacion`. La confirmación presenta precio, frecuencia,
+fecha del primer cobro y condiciones; luego permite continuar en el checkout alojado de Mercado Pago.
+Una autorización se muestra separada del acceso pago. Sólo `GET /api/planes`, con la sesión actual,
+decide el plan mostrado; parámetros de retorno como `status=approved` no habilitan Premium.
+
+«Actualizar pagos» solicita conciliación y refresca ambas consultas. La cancelación requiere
+confirmación; si falla, se conserva el mensaje de baja pendiente y el tiempo pagado. Se muestra
+el fin del período pago. Las mutaciones no se reintentan automáticamente y bloquean doble envío.
+Las respuestas se reconsultan usando la sesión actual para no trasladar datos entre cuentas.
+
+MSW completo informa contratación deshabilitada por defecto; los tests de pagos configuran handlers
+locales explícitos. MSW parcial y ninguno usan los endpoints reales del backend para este módulo.
+No hay credenciales de Mercado Pago ni datos de tarjetas en el frontend.
+[Guía de configuración](../docs/mercado-pago-configuracion-local.md).
+
+## Estructura de carpetas
 
 ```
 src/
@@ -77,3 +114,12 @@ Tokens de color y tipografía en `src/styles/index.css`; guía en [../docs/marca
 
 Las pantallas de la aplicación son un port calcado de `Ensambla_Mockup`, con su CSS acotado bajo `.mk-root`.
 Ver [cómo se mapea y cómo se verifica](../docs/ui-mockup.md).
+
+## Validación de planes y suscripciones (21/10/2026)
+
+Tras integrar los cambios remotos de configuración del negocio y ubicación, el frontend pasó
+lint, tipos, **344 pruebas en 32 archivos** y build de producción. Incluye la consulta de planes,
+activación de prueba, contratación, cancelación y restricciones comerciales con sesión y CSRF.
+Las verificaciones externas pendientes de Mercado Pago se detallan en [ENS-98](../docs/plan-ENS-98.md).
+
+<!-- prueba: dispara ci-frontend sin Vercel -->

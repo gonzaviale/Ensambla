@@ -30,6 +30,26 @@ describe('store del taller', () => {
     expect(seleccionarSistemaActivo(store())?.name).toBe('Editado');
   });
 
+  it('suma los sistemas que creó el servidor sin repetir ni pisar los que ya estaban', () => {
+    const sistema = conUnSistema();
+    const nuevo = { ...makeTemplate('business', {}, true), id: 'creado-por-sami' };
+
+    store().incorporarSistemas([{ ...sistema, name: 'Viejo' }, nuevo]);
+
+    expect(store().sistemas.map((item) => item.id)).toEqual([sistema.id, 'creado-por-sami']);
+    expect(store().sistemas[0]?.name).not.toBe('Viejo');
+    expect(store().pendientes).toEqual([]);
+  });
+
+  it('no vuelve a sumar un sistema que la persona acaba de eliminar', () => {
+    const sistema = conUnSistema();
+    store().eliminarSistema(sistema.id);
+
+    store().incorporarSistemas([sistema]);
+
+    expect(store().sistemas).toEqual([]);
+  });
+
   it('cambiar de cuenta reemplaza todo lo que había', () => {
     conUnSistema();
 

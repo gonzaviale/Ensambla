@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
+import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.Filter;
@@ -25,6 +26,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +70,9 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
+    private SuscripcionService suscripcionService;
+
+    @Autowired
     private ArchivoCuadernoPort archivoCuadernoPort;
 
     private MockMvc mockMvc;
@@ -88,6 +93,7 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
                 usuarioId, usuarioId + "@example.test");
         jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Negocio', ?)",
                 negocioId, usuarioId);
+        suscripcionService.asignarGratuito(negocioId, OffsetDateTime.now().minusDays(1));
         fotoId = UUID.randomUUID();
         loteId = givenLote("LISTO", fotoId);
         sesion = givenSesion(usuarioId);
@@ -133,6 +139,32 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT confirmado_en IS NOT NULL AND bloque_destino_id IS NOT NULL FROM lote_subida WHERE id = ?",
                 Boolean.class, loteId)).isTrue();
+    }
+
+    @Test
+    @DisplayName("Rechaza por cuota todas las filas de una foto y revierte la estructura recién creada")
+    void confirmarShouldRollbackNewStructureWhenRecordQuotaIsExceeded() throws Exception {
+        UUID proyectoId = UUID.randomUUID();
+        UUID bloqueId = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO proyecto (id, negocio_id, nombre) VALUES (?, ?, 'Sistema existente')",
+                proyectoId, negocioId);
+        jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre) VALUES (?, ?, ?, 'Inicial')",
+                bloqueId, negocioId, proyectoId);
+        jdbcTemplate.update("""
+                INSERT INTO registro (negocio_id, bloque_id, valores)
+                SELECT ?, ?, '{}'::jsonb FROM generate_series(1, 999)
+                """, negocioId, bloqueId);
+        String cuerpo = CUERPO_NUEVO.replace("\"nombreProyecto\": \"Ventas\"",
+                "\"proyectoId\": \"" + proyectoId + "\"");
+
+        confirmar(loteId, cuerpo).andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.codigo").value("LIMITE_REGISTROS"));
+
+        assertThat(contar("proyecto")).isEqualTo(1);
+        assertThat(contar("bloque")).isEqualTo(1);
+        assertThat(contar("campo")).isZero();
+        assertThat(contar("registro")).isEqualTo(999);
+        assertThat(estadoDelLote(loteId)).isEqualTo("LISTO");
     }
 
     @Test

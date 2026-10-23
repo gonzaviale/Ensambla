@@ -75,7 +75,7 @@ describe('la lectura de una foto con IA', () => {
 
     await subirFoto(user);
 
-    await screen.findByRole('heading', { name: 'Vos tenés la última palabra.' }, ESPERA);
+    await screen.findByRole('heading', { name: 'Confirmar registros' }, ESPERA);
     expect(imagenEnviada).toBe('cuaderno.jpg');
     expect(screen.getByText('2 registros leídos de tu foto')).toBeVisible();
     expect(screen.queryByText(/lectura simulada/)).toBeNull();
@@ -87,7 +87,7 @@ describe('la lectura de una foto con IA', () => {
 
     await user.click(screen.getByRole('button', { name: /Probar con un ejemplo/ }));
 
-    await screen.findByRole('heading', { name: 'Vos tenés la última palabra.' }, ESPERA);
+    await screen.findByRole('heading', { name: 'Confirmar registros' }, ESPERA);
     expect(screen.getByText('3 registros de ejemplo · lectura simulada')).toBeVisible();
   });
 

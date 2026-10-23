@@ -53,9 +53,11 @@ export function objetivosDelPaso(paso: PasoDeTutorial, bloqueId: string | null, 
       break;
     case 'addBlock':
     case 'addSecond': {
-      const celularConBibliotecaCerrada =
-        window.innerWidth <= 760 && !document.querySelector('.block-library.mobile-open');
-      marcas = celularConBibliotecaCerrada
+      // «Tus piezas» se ve abierta o, fuera del celular, fijada al costado; si no, se señala «Bloques».
+      const bibliotecaVisible =
+        !!document.querySelector('.block-library.mobile-open') ||
+        (window.innerWidth > 680 && !!document.querySelector('.block-library.fijada'));
+      marcas = !bibliotecaVisible
         ? [
             ['agregar-pieza-movil', null],
             ['agregar-pieza-vacio', null],

@@ -6,6 +6,7 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.mapper.reporte.ExportarReporteMapper;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.enums.FuncionPlan;
 import com.ensambla.backend.domain.model.reporte.FiltroReporte;
 import com.ensambla.backend.domain.model.reporte.ReporteRegistros;
 import com.ensambla.backend.domain.model.reporte.TablaReporte;
@@ -13,11 +14,13 @@ import com.ensambla.backend.domain.port.ExportadorReportePort;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.reporte.ReporteService;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,6 +29,8 @@ import java.util.UUID;
 public class ExportarReporteUseCase {
 
     private final NegocioService negocioService;
+
+    private final ControlPlanService controlPlanService;
 
     private final BloqueService bloqueService;
 
@@ -48,6 +53,7 @@ public class ExportarReporteUseCase {
     public ExportarReporteResponse execute(GenerarReporteRequest request) {
         UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         Bloque bloque = bloqueService.obtener(request.bloqueId(), negocioId);
+        controlPlanService.validarFuncion(negocioId, FuncionPlan.EXPORTAR_EXCEL, OffsetDateTime.now(clock));
         List<Campo> campos = campoService.listarDeBloque(bloque.getId(), negocioId);
         FiltroReporte filtro = FiltroReporte.armar(
                 negocioId,

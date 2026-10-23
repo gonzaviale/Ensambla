@@ -52,6 +52,7 @@ public class SecurityConfig {
                 paths.matcher("/swagger-ui/**"),
                 paths.matcher("/v3/api-docs/**"),
                 paths.matcher(HttpMethod.GET, "/api/auth/csrf"),
+                paths.matcher(HttpMethod.POST, "/api/pagos/mercadopago"),
                 paths.matcher(HttpMethod.POST, "/api/auth/register"),
                 paths.matcher(HttpMethod.POST, "/api/auth/login"),
                 paths.matcher(HttpMethod.POST, "/api/auth/logout"),
@@ -59,7 +60,9 @@ public class SecurityConfig {
         http.authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(rutasPublicas).permitAll()
                 .anyRequest().authenticated())
-                .csrf(csrf -> csrf.ignoringRequestMatchers(paths.matcher(HttpMethod.POST, "/api/whatsapp/webhook")))
+                .csrf(csrf -> csrf.ignoringRequestMatchers(
+                        paths.matcher(HttpMethod.POST, "/api/pagos/mercadopago"),
+                        paths.matcher(HttpMethod.POST, "/api/whatsapp/webhook")))
                 .requestCache(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)

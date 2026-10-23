@@ -11,5 +11,8 @@ public interface PlantillaRepository {
 
     List<Plantilla> findAllActivas();
 
+    /** Las plantillas activas con su estructura ya interpretada, para copiarlas a un proyecto. */
+    List<PlantillaProyecto> findAllParaProyectoActivas();
+
     Optional<PlantillaProyecto> findParaProyectoByIdAndActivaTrue(UUID plantillaId);
 }

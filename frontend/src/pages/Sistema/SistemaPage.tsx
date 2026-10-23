@@ -11,10 +11,10 @@ import { Icon } from '@/components/sistema/Icon';
 import { IconBtn } from '@/components/sistema/IconBtn';
 import { IconTile } from '@/components/sistema/IconTile';
 import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
-import { Sami } from '@/components/sistema/Sami';
 import { CATALOG } from '@/lib/sistema/catalogo';
-import { allBlocks } from '@/lib/sistema/core';
-import type { Distribucion, TipoBloque } from '@/lib/sistema/tipos';
+import { varsDeColor } from '@/components/sistema/colores';
+import { allBlocks, totals } from '@/lib/sistema/core';
+import type { Color, Distribucion, TipoBloque } from '@/lib/sistema/tipos';
 import {
   agregarBloque,
   aplicarDistribucion,
@@ -34,10 +34,30 @@ import {
 
 const ruta = getRouteApi('/_app/sistemas/$sistemaId');
 
+// Cada sección lleva un color de la paleta, en orden, para distinguirlas de un vistazo.
+const COLORES_DE_SECCION: Color[] = ['orange', 'blue', 'coral', 'petrol', 'yellow'];
+
 const MODO_DE_LA_URL: Record<'construir' | 'usar', ModoDelEditor> = {
   construir: 'build',
   usar: 'use',
 };
+
+// Si «Tus piezas» quedó fijada al costado se recuerda en este navegador; si no se puede leer, flota.
+const CLAVE_PIEZAS_FIJAS = 'ensambla.piezasFijas';
+function leerPiezasFijas() {
+  try {
+    return localStorage.getItem(CLAVE_PIEZAS_FIJAS) === 'si';
+  } catch {
+    return false;
+  }
+}
+function guardarPiezasFijas(fijada: boolean) {
+  try {
+    localStorage.setItem(CLAVE_PIEZAS_FIJAS, fijada ? 'si' : 'no');
+  } catch {
+    // Sin almacenamiento el panel igual se fija mientras la página siga abierta.
+  }
+}
 
 // Construir y Usar un sistema: biblioteca de piezas, lienzo con bloques, secciones e inspector.
 export function SistemaPage() {
@@ -60,6 +80,7 @@ export function SistemaPage() {
   const seleccionar = useSistemaStore((estado) => estado.seleccionar);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const [bibliotecaAbierta, setBibliotecaAbierta] = useState(false);
+  const [bibliotecaFijada, setBibliotecaFijada] = useState(leerPiezasFijas);
   const arrastre = useArrastreDelEditor(seccion?.id);
 
   useTituloPagina(sistema?.name ?? 'Mi sistema');
@@ -132,17 +153,24 @@ export function SistemaPage() {
         onInicio={() => void navegacion.irAInicio()}
         onModo={cambiarModo}
         onDeshacer={deshacerCambio}
-        onAyuda={() => abrirModal({ tipo: 'ayuda' })}
       />
       <main
         id="main"
         tabIndex={-1}
-        className={`editor-layout ${modo === 'use' ? 'using' : ''}`.trim()}
+        className={`editor-layout ${modo === 'use' ? 'using' : ''} ${construyendo && bibliotecaFijada ? 'con-piezas-fijas' : ''}`
+          .replace(/\s+/g, ' ')
+          .trim()}
       >
         {construyendo && (
           <BibliotecaDeBloques
-            abiertaEnCelular={bibliotecaAbierta}
+            abierta={bibliotecaAbierta}
+            fijada={bibliotecaFijada}
             onCerrar={() => setBibliotecaAbierta(false)}
+            onFijar={(fijada) => {
+              setBibliotecaFijada(fijada);
+              guardarPiezasFijas(fijada);
+              setBibliotecaAbierta(false);
+            }}
             onArrastrar={arrastre.alArrastrar}
             onFinArrastre={arrastre.limpiar}
           />
@@ -166,17 +194,36 @@ export function SistemaPage() {
             </div>
           )}
           <div className="canvas-heading">
-            <div>
-              <h1>
-                <button type="button" onClick={() => abrirModal({ tipo: 'renombrar' })}>
-                  {sistema.name} <Icon name="edit" />
-                </button>
-              </h1>
-              <p>
-                {construyendo
-                  ? 'Cada bloque tiene un propósito. Acomodalos a tu manera.'
-                  : 'Tu día a día, un poco más organizado.'}
-              </p>
+            <div className="canvas-titulo">
+              <span className={`canvas-titulo-icono ${construyendo ? '' : 'usando'}`.trim()}>
+                <Icon name={construyendo ? 'tools' : 'grid'} />
+              </span>
+              <div>
+                <span className="canvas-etiqueta">
+                  {construyendo ? 'Gestión de tablas · Armado' : 'Gestión de tablas · Uso diario'}
+                </span>
+                <h1>
+                  <button type="button" onClick={() => abrirModal({ tipo: 'renombrar' })}>
+                    {sistema.name} <Icon name="edit" />
+                  </button>
+                </h1>
+                <p>
+                  {construyendo
+                    ? 'Sumá tablas, movelas entre secciones y elegí qué datos guarda cada una.'
+                    : 'Cargá registros, buscá lo que necesitás y revisá cómo viene tu negocio.'}
+                </p>
+                <div className="canvas-cifras">
+                  <span data-color="orange">
+                    <strong>{allBlocks(sistema).length}</strong> tablas
+                  </span>
+                  <span data-color="blue">
+                    <strong>{sistema.sections.length}</strong> secciones
+                  </span>
+                  <span data-color="coral">
+                    <strong>{totals(sistema).records}</strong> registros
+                  </span>
+                </div>
+              </div>
             </div>
             <div className="canvas-heading-actions">
               {construyendo && (
@@ -184,13 +231,21 @@ export function SistemaPage() {
                   cls="secondary mobile-blocks"
                   data-accion="mobile-library"
                   data-tour="agregar-pieza-movil"
-                  onClick={() => setBibliotecaAbierta(true)}
+                  onClick={() => setBibliotecaAbierta((abierta) => !abierta)}
                 >
                   <Icon name="plus" /> Bloques
                 </Btn>
               )}
-              <Btn
-                cls="secondary"
+              {construyendo && (
+                <Btn cls="secondary" onClick={() => abrirModal({ tipo: 'secciones' })}>
+                  <Icon name="folder" /> Secciones
+                </Btn>
+              )}
+              <button
+                type="button"
+                className="foto-redonda"
+                aria-label="Traer datos de una foto"
+                title="Traer datos de una foto"
                 onClick={() =>
                   abrirModal({
                     tipo: 'importar',
@@ -200,48 +255,60 @@ export function SistemaPage() {
                   })
                 }
               >
-                <Icon name="camera" /> <span className="upload-label">Traer datos de una foto</span>
+                <Icon name="camera" />
+              </button>
+              <Btn
+                cls="secondary"
+                data-accion="ajustar-con-sami"
+                onClick={() => void navegacion.ajustarConSami(sistema.id)}
+              >
+                <Icon name="spark" /> Ajustar con Sami
               </Btn>
-              {construyendo && (
-                <Btn cls="secondary" onClick={() => abrirModal({ tipo: 'secciones' })}>
-                  <Icon name="folder" /> Secciones
-                </Btn>
-              )}
             </div>
           </div>
-          <nav className="section-tabs" aria-label="Secciones del sistema">
-            {sistema.sections.map((otra) => (
-              <div
-                key={otra.id}
-                className={`section-tab ${otra.id === seccion.id ? 'active' : ''} ${arrastre.sobre?.destino === otra.id ? 'drop-active' : ''}`
-                  .replace(/\s+/g, ' ')
-                  .trim()}
-                data-drop-section={otra.id}
-              >
-                <button
-                  type="button"
-                  aria-current={otra.id === seccion.id ? 'page' : 'false'}
-                  onClick={() => elegirSeccion(otra.id)}
+          <div className="tabs-y-distribucion">
+            <nav className="section-tabs" aria-label="Secciones del sistema">
+              {/* <span className="section-tabs-label">Secciones</span> */}
+              {sistema.sections.map((otra, indice) => (
+                <div
+                  key={otra.id}
+                  style={varsDeColor(
+                    COLORES_DE_SECCION[indice % COLORES_DE_SECCION.length] ?? 'orange',
+                  )}
+                  data-color={COLORES_DE_SECCION[indice % COLORES_DE_SECCION.length]}
+                  className={`section-tab ${otra.id === seccion.id ? 'active' : ''} ${arrastre.sobre?.destino === otra.id ? 'drop-active' : ''}`
+                    .replace(/\s+/g, ' ')
+                    .trim()}
+                  data-drop-section={otra.id}
                 >
-                  {otra.name}
-                </button>
-                {construyendo && (
-                  <IconBtn
-                    name="edit"
-                    label="Administrar secciones"
-                    onClick={() => abrirModal({ tipo: 'secciones' })}
-                  />
-                )}
-              </div>
-            ))}
+                  <button
+                    type="button"
+                    aria-current={otra.id === seccion.id ? 'page' : 'false'}
+                    onClick={() => elegirSeccion(otra.id)}
+                  >
+                    {otra.name}
+                    <span className="section-tab-cuenta" aria-hidden="true">
+                      {otra.blocks.length}
+                    </span>
+                  </button>
+                </div>
+              ))}
+              {construyendo && (
+                <IconBtn
+                  name="plus"
+                  label="Agregar una sección"
+                  onClick={() => abrirModal({ tipo: 'agregarSeccion' })}
+                />
+              )}
+            </nav>
             {construyendo && (
-              <IconBtn
-                name="plus"
-                label="Agregar una sección"
-                onClick={() => abrirModal({ tipo: 'agregarSeccion' })}
+              <LayoutToolbar
+                compacta
+                distribucion={sistema.layout}
+                onElegir={(distribucion: Distribucion) => aplicarDistribucion(distribucion)}
               />
             )}
-          </nav>
+          </div>
           {hayEjemplos && (
             <div className="sample-data-banner">
               <Icon name="help" />
@@ -251,14 +318,7 @@ export function SistemaPage() {
               </button>
             </div>
           )}
-          {construyendo ? (
-            <LayoutToolbar
-              distribucion={sistema.layout}
-              onElegir={(distribucion: Distribucion) => aplicarDistribucion(distribucion)}
-            />
-          ) : (
-            <FranjaDeSami sistemaId={sistema.id} />
-          )}
+          {!construyendo && <FranjaDeSami sistemaId={sistema.id} />}
           <div
             className={`canvas-grid ${arrastre.sobre?.destino === '#canvas-drop' ? 'drop-active' : ''}`.trim()}
             id="canvas-drop"
@@ -279,6 +339,9 @@ export function SistemaPage() {
                     arrastre.carga?.tipo === 'bloque' && arrastre.carga.valor === bloque.id
                   }
                   sobre={arrastre.sobre?.bloque === bloque.id}
+                  ladoDelCambio={
+                    arrastre.sobre?.bloque === bloque.id ? arrastre.sobre.lado : undefined
+                  }
                   anchoProvisorio={
                     arrastre.ajuste?.id === bloque.id ? arrastre.ajuste.span : undefined
                   }
@@ -334,16 +397,22 @@ export function SistemaPage() {
               </button>
               <p className="builder-note">
                 <Icon name="grip" />
-                Arrastrá para ordenar. También podés usar las flechas de cada bloque.
+                Arrastrá una tabla sobre otra para cambiarlas de lugar. También podés usar las
+                flechas.
               </p>
             </>
           )}
         </div>
-        {construyendo && <Inspector bloque={bloqueElegido} sistema={sistema} />}
+        {construyendo && bloqueElegido && <Inspector bloque={bloqueElegido} sistema={sistema} />}
       </main>
-      <button type="button" className="sami-float" onClick={() => abrirModal({ tipo: 'ayuda' })}>
-        <Sami />
-        ¿Una mano con esto?
+      <button
+        type="button"
+        className="sami-float"
+        aria-label="¿Una mano con esto?"
+        title="¿Una mano con esto?"
+        onClick={() => abrirModal({ tipo: 'ayuda' })}
+      >
+        <img className="sami-float-img" src="/mockup/sami-boton.webp" alt="" />
       </button>
     </>
   );

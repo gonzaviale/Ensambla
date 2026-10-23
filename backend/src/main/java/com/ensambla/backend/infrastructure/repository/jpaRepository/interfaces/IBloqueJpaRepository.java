@@ -15,6 +15,8 @@ public interface IBloqueJpaRepository extends JpaRepository<BloqueEntity, UUID> 
 
     List<BloqueEntity> findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(UUID proyectoId, UUID negocioId);
 
+    List<BloqueEntity> findAllByNegocioIdOrderByPosicionAscIdAsc(UUID negocioId);
+
     /** Borrado directo: las FK de PostgreSQL eliminan campos y registros en cascada. */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("delete from BloqueEntity b where b.id = :id and b.negocioId = :negocioId")

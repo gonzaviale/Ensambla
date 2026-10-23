@@ -4,12 +4,13 @@ import com.ensambla.backend.domain.dto.reporte.ExportarReporteResponse;
 import com.ensambla.backend.domain.dto.reporte.GenerarReporteRequest;
 import com.ensambla.backend.domain.dto.reporte.GenerarReporteResponse;
 import com.ensambla.backend.domain.model.bloque.Bloque;
-import com.ensambla.backend.domain.model.reporte.ReporteRegistros;
 import com.ensambla.backend.domain.model.registro.TotalesRegistros;
+import com.ensambla.backend.domain.model.reporte.ReporteRegistros;
 import com.ensambla.backend.domain.port.ExportadorReportePort;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.reporte.ReporteService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -57,7 +58,8 @@ class ReporteUseCaseConfigTest {
     @DisplayName("El wiring de generar conecta los servicios y el mapper")
     void generarReporteUseCaseShouldWireCollaborators() {
         GenerarReporteResponse response = config.generarReporteUseCase(
-                        negocioService, bloqueService, campoService, reporteService, config.generarReporteMapper())
+                        negocioService, mock(ControlPlanService.class), Clock.systemUTC(),
+                        bloqueService, campoService, reporteService, config.generarReporteMapper())
                 .execute(new GenerarReporteRequest(USUARIO_ID, BLOQUE_ID, null, null, null, null, null));
 
         assertThat(response.filas()).isEmpty();
@@ -70,7 +72,7 @@ class ReporteUseCaseConfigTest {
         ExportadorReportePort exportador = tabla -> new byte[] {1, 2};
 
         ExportarReporteResponse response = config.exportarReporteUseCase(
-                        negocioService, bloqueService, campoService, reporteService, exportador,
+                        negocioService, mock(ControlPlanService.class), bloqueService, campoService, reporteService, exportador,
                         config.exportarReporteMapper(), Clock.systemUTC())
                 .execute(new GenerarReporteRequest(USUARIO_ID, BLOQUE_ID, null, null, null, null, null));
 

@@ -1,7 +1,6 @@
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { Btn } from '../Btn';
 import { Icon } from '../Icon';
-import { Sami } from '../Sami';
 import { ICONO_DE_AVISO } from './presentacion';
 
 // La franja de Sami arriba de los bloques cuando se usa un sistema: lo más importante, a un toque.
@@ -14,7 +13,7 @@ export function FranjaDeSami({ sistemaId }: { sistemaId: string }) {
   if (!avisos.length) {
     return (
       <section className="sami-franja ok" aria-label="Avisos de Sami">
-        <Sami />
+        <img className="sami-franja-img" src="/mockup/sami-guino.webp" alt="" />
         <p>
           <strong>Todo en orden.</strong> Sigo mirando tu stock, tus ventas y los precios de tu
           zona.
@@ -24,7 +23,7 @@ export function FranjaDeSami({ sistemaId }: { sistemaId: string }) {
   }
   return (
     <section className="sami-franja" aria-label="Avisos de Sami">
-      <Sami pose="think" />
+      <img className="sami-franja-img" src="/mockup/sami-detective.webp" alt="" />
       <div className="sami-franja-txt">
         <strong>
           {avisos.length === 1

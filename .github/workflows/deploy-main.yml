@@ -1,16 +1,17 @@
-name: Deploy main (build y despliegue)
+name: Deploy main (build y despliegue en el VPS)
 
 on:
   push:
     branches: [main]
-    paths: ["backend/**", ".github/workflows/deploy-main.yml"]
+    paths: ["backend/**", "frontend/**", "deploy/**", ".github/workflows/deploy-main.yml"]
+  workflow_dispatch:
 
 concurrency:
   group: deploy-main
   cancel-in-progress: false
 
 jobs:
-  build-test:
+  build-test-backend:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -30,14 +31,53 @@ jobs:
       - name: Validar imagen Docker
         run: docker build -t ensambla-backend .
 
-  # Render tiene el Auto-Deploy apagado: sólo despliega cuando este job
-  # dispara el deploy hook, después de que build-test pasó.
+  build-test-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  # El VPS (Contabo) clona el repo y reconstruye con Docker Compose. La clave SSH sólo puede ejecutar
+  # deploy/deploy.sh (restricción command= en authorized_keys) y recibe el SHA exacto a desplegar.
   deploy:
-    needs: build-test
+    needs: [build-test-backend, build-test-frontend]
     runs-on: ubuntu-latest
     environment: production
+    env:
+      SITIO_URL: https://ensambla.com.ar
     steps:
-      - name: Disparar deploy en Render
+      - name: Preparar SSH
         env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
-        run: curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Desplegar en el VPS
+        env:
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$VPS_USER@$VPS_HOST" "${{ github.sha }}" | tee salida-deploy.txt
+          grep -qx "DEPLOY_OK commit=${{ github.sha }}" salida-deploy.txt
+
+      - name: Verificar el sitio
+        run: curl -fsS --retry 6 --retry-delay 10 --retry-all-errors "$SITIO_URL/api/auth/csrf" > /dev/null

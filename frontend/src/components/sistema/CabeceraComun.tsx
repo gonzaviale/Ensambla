@@ -20,6 +20,7 @@ export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
       onSistemas={() => void navegacion.irAMisSistemas()}
       onPlantillas={() => void navegacion.irAPlantillas()}
       onZona={() => void navegacion.irAZona()}
+      onPlanes={() => void navegacion.irAPlanes()}
       onAyuda={() => abrirModal({ tipo: 'ayuda' })}
       onPerfil={() => abrirModal({ tipo: 'perfil' })}
     />

@@ -55,6 +55,12 @@
 			<artifactId>anthropic-java</artifactId>
 			<version>2.71.0</version>
 		</dependency>
+		<!-- Sami (T-117): Claude en Amazon Bedrock con la API Converse -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>bedrockruntime</artifactId>
+			<version>2.56.0</version>
+		</dependency>
 		<!-- Reportes descargables en XLSX (T-076): escribe el archivo sin cargar todo Apache POI -->
 		<dependency>
 			<groupId>org.dhatim</groupId>

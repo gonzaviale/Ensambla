@@ -2,8 +2,10 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
+import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import com.ensambla.backend.support.ProcesamientoTestData;
+import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.Filter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,7 +27,6 @@ import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
-import com.jayway.jsonpath.JsonPath;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -53,6 +54,9 @@ class LecturaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
+    private SuscripcionService suscripcionService;
+
+    @Autowired
     private ProcesamientoRepository procesamientoRepository;
 
     private MockMvc mockMvc;
@@ -72,6 +76,7 @@ class LecturaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 usuarioId, usuarioId + "@example.test");
         jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Negocio', ?)",
                 negocioId, usuarioId);
+        suscripcionService.asignarGratuito(negocioId, AHORA.minusDays(1));
         jdbcTemplate.update("INSERT INTO lote_subida (id, negocio_id) VALUES (?, ?)", loteId, negocioId);
         sesion = givenSesion();
     }

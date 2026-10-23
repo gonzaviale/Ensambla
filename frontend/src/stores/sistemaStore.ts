@@ -1,8 +1,11 @@
+import { recuperarBorradorSesion } from '@/lib/borradorSesion';
 import { create } from 'zustand';
+import type { AccesoContenido } from '@/types/contenidoPlan';
 import { clone } from '@/lib/sistema/core';
 import type { Aviso, Respuesta } from '@/lib/sistema/alertas';
 import type { Bloque, ClavePlantilla, Seccion, Sistema } from '@/lib/sistema/tipos';
 import { TUTORIAL_INICIAL, type EstadoDelTutorial } from '@/lib/sistema/tutorial';
+import type { ImagenParaSami, OpcionesDeSami } from '@/types/samiTaller';
 
 // El estado del taller y del editor: los sistemas de la persona y lo que está haciendo con ellos. Es el
 // equivalente a las variables de módulo de app.js del mockup; ahora los componentes lo leen del store y
@@ -15,6 +18,9 @@ export type Modal =
   | { tipo: 'plantilla'; clave: ClavePlantilla }
   | { tipo: 'ayuda'; respuesta?: string }
   | { tipo: 'perfil' }
+  | { tipo: 'pruebaPremium' }
+  | { tipo: 'contratarPremium' }
+  | { tipo: 'cancelarRenovacion' }
   | { tipo: 'renombrar' }
   | { tipo: 'renombrarPieza'; bloqueId: string }
   | { tipo: 'registro'; bloqueId: string; filaId?: string | null }
@@ -39,7 +45,12 @@ export type Modal =
       onConfirmar: () => void;
     };
 
-export type MensajeDelTaller = { quien: 'sami' | 'you'; texto: string };
+export type MensajeDelTaller = {
+  quien: 'sami' | 'you';
+  texto: string;
+  /** La miniatura de la foto que la persona mandó con el mensaje (una dirección `data:`). */
+  foto?: string;
+};
 
 /** La conversación con Sami y la propuesta que va tomando forma (el `wizard` del mockup). */
 export type Taller = {
@@ -48,11 +59,20 @@ export type Taller = {
   /** El nombre que se eligió con un ejemplo, si se eligió alguno. */
   nombre: string;
   entrada: string;
-  actividad: '' | 'warehouse' | 'orders' | 'shop';
+  /** La foto que se va a mandar con el próximo mensaje, ya achicada. */
+  foto: ImagenParaSami | null;
   borrador: Sistema | null;
   seccionId: string | null;
   pensando: boolean;
   mensajes: MensajeDelTaller[];
+  /** Las dudas con respuestas rápidas que Sami dejó; se muestran de a una y siempre se puede saltear o escribir otra cosa. */
+  dudas: OpcionesDeSami[];
+  /** Lo que la persona fue respondiendo, en orden; `null` es una duda salteada. La duda a la vista es `dudas[respuestasDeDudas.length]`. */
+  respuestasDeDudas: (string | null)[];
+  /** La propuesta como estaba antes del último cambio de Sami, para «Deshacer lo último». */
+  anterior: Sistema | null;
+  /** El sistema que se está ajustando con Sami; `null` si se está armando uno nuevo. */
+  sistemaId: string | null;
 };
 
 /** El panel de avisos de Sami y lo que se ve de él. */
@@ -94,6 +114,7 @@ type EstadoDelStore = {
   taller: Taller | null;
   /** Los avisos de Sami que la persona todavía no descartó. Los calcula el motor de avisos. */
   avisos: Aviso[];
+  accesoAvisos: Pick<AccesoContenido, 'usadas' | 'limite' | 'bloqueadas' | 'finPeriodo'> | null;
   panel: PanelDeAvisos;
   /** «Sami vio un cambio»: el aviso nuevo que se muestra un rato arriba a la derecha. */
   avisoNuevo: { aviso: Aviso; cantidad: number } | null;
@@ -107,6 +128,8 @@ type Acciones = {
   reiniciar: () => void;
   abrirSistema: (id: string, modo?: ModoDelEditor, esNuevo?: boolean) => void;
   agregarSistema: (sistema: Sistema) => void;
+  /** Suma los sistemas que el servidor creó por su cuenta (por ejemplo con Sami) y que la copia local no tiene. */
+  incorporarSistemas: (sistemas: Sistema[]) => void;
   eliminarSistema: (id: string) => void;
   /** Aplica un cambio sobre una copia del sistema activo y lo marca para guardar. */
   commit: <T>(cambio: (sistema: Sistema) => T) => T | undefined;
@@ -122,7 +145,8 @@ type Acciones = {
   cerrarAviso: () => void;
   abrirModal: (modal: Modal) => void;
   cerrarModal: () => void;
-  iniciarTaller: (saludo: string) => void;
+  /** Empieza una conversación nueva; con un sistema, para ajustarlo (la propuesta arranca como una copia de él). */
+  iniciarTaller: (saludo: string, sistema?: Sistema) => void;
   /** Cambia la conversación actual; si no hay, no hace nada. */
   actualizarTaller: (cambio: Partial<Taller> | ((taller: Taller) => Partial<Taller>)) => void;
   /** Aplica un cambio sobre una copia de la propuesta de Sami. */
@@ -154,6 +178,7 @@ const ESTADO_INICIAL: EstadoDelStore = {
   modal: null,
   taller: null,
   avisos: [],
+  accesoAvisos: null,
   panel: PANEL_CERRADO,
   avisoNuevo: null,
   tutorial: TUTORIAL_INICIAL,
@@ -169,7 +194,24 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
 
   hidratar: (usuarioId, sistemas) => {
     if (get().usuarioId === usuarioId) return;
-    set({ ...ESTADO_INICIAL, usuarioId, sistemas });
+    const borrador = recuperarBorradorSesion(usuarioId);
+    const recuperados = borrador
+      ? [
+          ...sistemas.filter(
+            (sistema) =>
+              !borrador.pendientes.includes(sistema.id) &&
+              !borrador.eliminados.includes(sistema.id),
+          ),
+          ...borrador.sistemas,
+        ]
+      : sistemas;
+    set({
+      ...ESTADO_INICIAL,
+      usuarioId,
+      sistemas: recuperados,
+      pendientes: borrador?.pendientes ?? [],
+      eliminados: borrador?.eliminados ?? [],
+    });
   },
 
   reiniciar: () => set({ ...ESTADO_INICIAL }),
@@ -191,6 +233,16 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
       sistemas: [...estado.sistemas, sistema],
       pendientes: sinRepetir(estado.pendientes, sistema.id),
     })),
+
+  incorporarSistemas: (sistemas) =>
+    set((estado) => {
+      const nuevos = sistemas.filter(
+        (sistema) =>
+          !estado.eliminados.includes(sistema.id) &&
+          !estado.sistemas.some((actual) => actual.id === sistema.id),
+      );
+      return nuevos.length > 0 ? { sistemas: [...estado.sistemas, ...nuevos] } : estado;
+    }),
 
   eliminarSistema: (id) =>
     set((estado) => ({
@@ -264,17 +316,21 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
   abrirModal: (modal) => set({ modal }),
   cerrarModal: () => set({ modal: null }),
 
-  iniciarTaller: (saludo) =>
+  iniciarTaller: (saludo, sistema) =>
     set({
       taller: {
         id: ++contadorDeTalleres,
-        nombre: '',
+        nombre: sistema?.name ?? '',
         entrada: '',
-        actividad: '',
-        borrador: null,
-        seccionId: null,
+        foto: null,
+        borrador: sistema ? clone(sistema) : null,
+        seccionId: sistema?.sections[0]?.id ?? null,
         pensando: false,
         mensajes: [{ quien: 'sami', texto: saludo }],
+        dudas: [],
+        respuestasDeDudas: [],
+        anterior: null,
+        sistemaId: sistema?.id ?? null,
       },
     }),
 

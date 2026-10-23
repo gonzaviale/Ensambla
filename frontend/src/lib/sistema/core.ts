@@ -7,13 +7,12 @@ import type {
   ErroresFila,
   Fila,
   OpcionesPlantilla,
-  Seccion,
   Sistema,
   TipoBloque,
   Valor,
 } from './tipos';
 
-// Motor local de Ensambla: define bloques, campos, registros y recomendaciones. Es independiente de la
+// Motor local de Ensambla: define bloques, campos y registros. Es independiente de la
 // interfaz. Igual que en el mockup, muchas funciones modifican el sistema que reciben (los tests y la
 // pantalla dependen de eso): se pasa una copia cuando hace falta ensayar.
 
@@ -92,46 +91,6 @@ export const allBlocks = (sistema: Sistema | undefined): Bloque[] =>
 
 export const findBlock = (sistema: Sistema | undefined, bloqueId: string | undefined) =>
   allBlocks(sistema).find((bloque) => bloque.id === bloqueId);
-
-export type Recomendacion = {
-  kind: 'shop' | 'orders' | 'warehouse';
-  types: TipoBloque[];
-  label: string;
-  message: string;
-};
-
-// Lo que Sami entiende de lo que cuenta la persona. Sin IA: reglas por palabras clave.
-export function recommend(
-  description: string,
-  activity: Recomendacion['kind'] | '' = '',
-): Recomendacion {
-  const texto = normalize(description);
-  const pedidos = /pedido|encargo|delivery|reparto|mayorista|a domicilio/.test(texto);
-  const deposito = /deposito|bodega|mercaderia|reponer|entradas|salidas/.test(texto);
-  const kind: Recomendacion['kind'] =
-    activity || (pedidos ? 'orders' : deposito ? 'warehouse' : 'shop');
-  const types: TipoBloque[] =
-    kind === 'orders'
-      ? ['orders', 'clients', 'inventory']
-      : kind === 'warehouse'
-        ? ['inventory', 'entries', 'exits']
-        : ['inventory', 'sales', 'clients'];
-  if (/gasto|costo|alquiler|proveedor|compro|insumo/.test(texto)) types.push('expenses');
-  return {
-    kind,
-    types,
-    label: {
-      shop: 'Venta en el local',
-      orders: 'Venta por pedido',
-      warehouse: 'Control de mercadería',
-    }[kind],
-    message: {
-      shop: 'Vendés en el mostrador. Te propongo reunir productos, ventas y clientes para llevar el fiado y ver qué se mueve.',
-      orders: 'Trabajás con pedidos. Te propongo seguir cada pedido, tus clientes y el stock.',
-      warehouse: 'Lo tuyo es la mercadería. Te propongo llevar productos, entradas y salidas.',
-    }[kind],
-  };
-}
 
 export function moveBlock(
   sistema: Sistema,
@@ -412,109 +371,6 @@ export function splitBlocks(
   delete moviendo.startRow;
   (lado === 'left' ? moviendo : destino).startRow = true;
   return true;
-}
-
-export function createGuided(
-  descripcion: string,
-  nombre = '',
-  actividad: Recomendacion['kind'] | '' = '',
-) {
-  const texto = normalize(descripcion);
-  const recomendacion = recommend(descripcion, actividad);
-  const sistema =
-    recomendacion.kind === 'warehouse'
-      ? makeTemplate('warehouse', {}, true)
-      : recomendacion.kind === 'orders'
-        ? makeTemplate('business', {}, true)
-        : makeTemplate('shop', {}, true);
-  if (
-    /gastos|insumos|alquiler|proveedor/.test(texto) &&
-    !allBlocks(sistema).some((bloque) => bloque.type === 'expenses')
-  ) {
-    sistema.sections[0]?.blocks.push(makeBlock('expenses', true));
-  }
-  sistema.name = (
-    nombre ||
-    (/kiosc/.test(texto)
-      ? 'Mi kiosco'
-      : /almacen|despensa/.test(texto)
-        ? 'Mi almacén'
-        : /minimercado|autoservicio|supermercado/.test(texto)
-          ? 'Mi minimercado'
-          : sistema.name)
-  )
-    .trim()
-    .slice(0, 100);
-  wireSystem(sistema);
-  applyLayout(sistema, 'mosaic');
-  return { system: sistema, recommendation: recomendacion };
-}
-
-const PALABRAS: Partial<Record<TipoBloque, RegExp>> = {
-  expenses: /gastos|costos|alquiler|proveedores?/,
-  clients: /clientes|fiado/,
-  orders: /pedidos|encargos/,
-  sales: /ventas/,
-  inventory: /stock|productos|inventario/,
-  entries: /entradas|compras|reposicion/,
-  exits: /salidas|mermas/,
-};
-
-// Ajusta el borrador de Sami con lo que la persona pide. Devuelve lo que Sami contesta.
-export function refineDraft(sistema: Sistema, instruccion: string) {
-  const texto = normalize(instruccion);
-  const cambios: string[] = [];
-  const quitar = /\b(saca|quita|sin|no necesito|no quiero)\b/.test(texto);
-  const separar = /seccion|separar|otra pagina/.test(texto);
-  if (!separar) {
-    for (const [tipo, patron] of Object.entries(PALABRAS) as [TipoBloque, RegExp][]) {
-      if (!patron.test(texto)) continue;
-      const existente = allBlocks(sistema).find((bloque) => bloque.type === tipo);
-      if (quitar && existente) {
-        for (const seccion of sistema.sections) {
-          seccion.blocks = seccion.blocks.filter((bloque) => bloque.id !== existente.id);
-        }
-        cambios.push(`Quité ${existente.name.toLowerCase()}.`);
-      } else if (!existente) {
-        sistema.sections[0]?.blocks.push(makeBlock(tipo, true));
-        cambios.push(`Sumé ${CATALOG[tipo].name.toLowerCase()}.`);
-      }
-    }
-  }
-  if (separar) {
-    const clientes = allBlocks(sistema).find((bloque) => bloque.type === 'clients');
-    if (clientes) {
-      let destino: Seccion | undefined = sistema.sections.find(
-        (seccion) => seccion.name === 'Clientes',
-      );
-      if (!destino) {
-        destino = { id: id(), name: 'Clientes', blocks: [] };
-        sistema.sections.push(destino);
-      }
-      moveBlock(sistema, clientes.id, destino.id);
-      cambios.push('Separé los clientes en su propia sección.');
-    }
-  }
-  if (/dos columnas|lado a lado|mitad/.test(texto)) {
-    applyLayout(sistema, 'mosaic');
-    cambios.push('Los bloques chicos van de a dos y el stock ocupa toda la fila.');
-  }
-  if (/tres columnas/.test(texto)) {
-    applyLayout(sistema, 'three');
-    cambios.push('Repartí los bloques en tres columnas.');
-  }
-  if (/una columna|todos.*ancho/.test(texto)) {
-    applyLayout(sistema, 'single');
-    cambios.push('Cada bloque ocupa una fila completa.');
-  }
-  if (/stock.*(ancho|completo)/.test(texto)) {
-    const inventario = allBlocks(sistema).find((bloque) => bloque.type === 'inventory');
-    if (inventario) inventario.width = 'full';
-  }
-  wireSystem(sistema);
-  return cambios.length
-    ? `${cambios.join(' ')} Mirá cómo queda. ¿Qué más ajustarías?`
-    : 'Podés tocar los nombres, cambiar el ancho o arrastrar las piezas. También puedo sumar gastos, ventas o separar los clientes en otra sección. ¿Qué te serviría?';
 }
 
 type CambioDeStock = { product: Fila; delta: number };

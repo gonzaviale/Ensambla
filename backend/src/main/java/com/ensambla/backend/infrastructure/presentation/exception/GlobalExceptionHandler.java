@@ -1,19 +1,23 @@
 package com.ensambla.backend.infrastructure.presentation.exception;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.exception.PasarelaPagoException;
+import com.ensambla.backend.domain.exception.NotificacionPagoInvalidaException;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.exception.CredencialesInvalidasException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.exception.RestriccionPlanException;
+import com.ensambla.backend.domain.exception.ServicioUbicacionException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.CacheControl;
-import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -31,6 +35,23 @@ import java.util.UUID;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(ServicioUbicacionException.class)
+    public ResponseEntity<ErrorResponse> handleUbicacion(ServicioUbicacionException e, HttpServletRequest request) {
+        return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(NotificacionPagoInvalidaException.class)
+    public ResponseEntity<ErrorResponse> handleNotificacionPago(NotificacionPagoInvalidaException e,
+                                                              HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).cacheControl(CacheControl.noStore())
+                .body(buildResponse(HttpStatus.UNAUTHORIZED, e.getMessage(), request, null).getBody());
+    }
+
+    @ExceptionHandler(PasarelaPagoException.class)
+    public ResponseEntity<ErrorResponse> handlePasarelaPago(PasarelaPagoException e, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_GATEWAY, e.getMessage(), request, null);
+    }
 
     @ExceptionHandler(CredencialesInvalidasException.class)
     public ResponseEntity<ErrorResponse> handleCredentials(CredencialesInvalidasException e,
@@ -59,6 +80,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessRuleException.class)
     public ResponseEntity<ErrorResponse> handleBusinessRule(BusinessRuleException e, HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST, e.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(RestriccionPlanException.class)
+    public ResponseEntity<ErrorResponse> handleRestriccionPlan(RestriccionPlanException e, HttpServletRequest request) {
+        ErrorResponse error = buildResponse(HttpStatus.FORBIDDEN, e.getMessage(), request, null).getBody();
+        error.setCodigo(e.getCodigo());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).cacheControl(CacheControl.noStore()).body(error);
     }
 
     @ExceptionHandler(RegistroInvalidoException.class)

@@ -1,7 +1,5 @@
 package com.ensambla.backend.domain.service.registro;
 
-import com.ensambla.backend.domain.model.registro.TotalesRegistros;
-import java.math.BigDecimal;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.campo.Campo;
@@ -10,7 +8,9 @@ import com.ensambla.backend.domain.model.enums.DireccionOrden;
 import com.ensambla.backend.domain.model.enums.TipoCampo;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.TotalesRegistros;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -26,9 +27,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -53,6 +54,9 @@ class RegistroDatosServiceTest {
 
     @Mock
     private RegistroRepository registroRepository;
+
+    @Mock
+    private ControlPlanService controlPlanService;
 
     @InjectMocks
     private RegistroDatosService registroDatosService;
@@ -80,7 +84,7 @@ class RegistroDatosServiceTest {
         List<Registro> registros = List.of(registro());
         when(registroRepository.saveAll(registros)).thenReturn(registros);
 
-        List<Registro> result = registroDatosService.crearVarios(registros);
+        List<Registro> result = registroDatosService.crearVarios(NEGOCIO_ID, registros, AHORA);
 
         assertThat(result).isSameAs(registros);
     }

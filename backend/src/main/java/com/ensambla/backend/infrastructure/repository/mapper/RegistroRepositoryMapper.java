@@ -16,6 +16,7 @@ public class RegistroRepositoryMapper {
                 .fotoOrigenId(entity.getFotoOrigenId())
                 .esEjemplo(entity.getEsEjemplo())
                 .origen(entity.getOrigen())
+                .orden(entity.getOrden())
                 .creadoEn(entity.getCreadoEn())
                 .actualizadoEn(entity.getActualizadoEn())
                 .build();
@@ -30,6 +31,7 @@ public class RegistroRepositoryMapper {
                 .fotoOrigenId(registro.getFotoOrigenId())
                 .esEjemplo(registro.getEsEjemplo())
                 .origen(registro.getOrigen())
+                .orden(registro.getOrden())
                 .creadoEn(registro.getCreadoEn())
                 .actualizadoEn(registro.getActualizadoEn())
                 .build();

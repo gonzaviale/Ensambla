@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.usuario.Usuario;
 import com.ensambla.backend.domain.port.ContraseniaPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.usuario.UsuarioRepository;
+import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
+import static com.ensambla.backend.support.PlanTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.UsuarioTestData.CONTRASENIA;
 import static com.ensambla.backend.support.UsuarioTestData.EMAIL;
 import static com.ensambla.backend.support.UsuarioTestData.FECHA;
@@ -39,6 +41,8 @@ class RegistroServiceTest {
     private NegocioRepository negocioRepository;
     @Mock
     private ContraseniaPort contraseniaPort;
+    @Mock
+    private SuscripcionService suscripcionService;
     @InjectMocks
     private RegistroService registroService;
     @Captor
@@ -64,7 +68,7 @@ class RegistroServiceTest {
         assertThatThrownBy(this::registrar).isInstanceOf(DuplicateResourceException.class)
                 .hasMessage("Ya existe una cuenta con ese email");
 
-        verifyNoInteractions(negocioRepository, contraseniaPort);
+        verifyNoInteractions(negocioRepository, contraseniaPort, suscripcionService);
     }
 
     // --- arrange ---
@@ -72,6 +76,7 @@ class RegistroServiceTest {
         when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.empty());
         when(contraseniaPort.hashear(CONTRASENIA)).thenReturn(HASH);
         when(usuarioRepository.save(any())).thenReturn(usuario());
+        when(negocioRepository.save(any())).thenReturn(Negocio.builder().id(NEGOCIO_ID).build());
     }
 
     // --- act ---
@@ -98,6 +103,7 @@ class RegistroServiceTest {
         assertThat(negocio.getDuenioId()).isEqualTo(result.getId());
         assertThat(negocio.getCreadoEn()).isEqualTo(FECHA);
         assertThat(negocio.getActualizadoEn()).isEqualTo(FECHA);
+        verify(suscripcionService).asignarGratuito(NEGOCIO_ID, FECHA);
     }
 }
 

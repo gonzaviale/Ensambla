@@ -1,7 +1,7 @@
 package com.ensambla.backend.infrastructure.config;
 
-import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -49,7 +49,7 @@ class SwaggerConfigTest {
         SecurityScheme session = components.getSecuritySchemes().get("sesion");
         assertThat(session.getType()).isEqualTo(SecurityScheme.Type.APIKEY);
         assertThat(session.getIn()).isEqualTo(SecurityScheme.In.COOKIE);
-        assertThat(session.getName()).isEqualTo("SESSION");
+        assertThat(session.getName()).isEqualTo("ENSAMBLA_SESSION");
     }
 
     private void thenInfoIdentifiesEnsambla(Info info) {

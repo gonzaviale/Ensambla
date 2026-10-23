@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.mapper.receta.GuardarRecetaMapper;
 import com.ensambla.backend.domain.mapper.receta.ObtenerRecetaMapper;
 import com.ensambla.backend.domain.mapper.receta.RecetaItemMapper;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.receta.RecetaService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.receta.GuardarRecetaUseCase;
@@ -33,19 +34,23 @@ public class RecetaUseCaseConfig {
 
     @Bean
     public ObtenerRecetaUseCase obtenerRecetaUseCase(NegocioService negocioService,
+                                                     ControlPlanService controlPlanService,
+                                                     Clock clock,
                                                      RegistroDatosService registroDatosService,
                                                      RecetaService recetaService,
                                                      ObtenerRecetaMapper obtenerRecetaMapper) {
-        return new ObtenerRecetaUseCase(negocioService, registroDatosService, recetaService, obtenerRecetaMapper);
+        return new ObtenerRecetaUseCase(
+                negocioService, controlPlanService, clock, registroDatosService, recetaService, obtenerRecetaMapper);
     }
 
     @Bean
     public GuardarRecetaUseCase guardarRecetaUseCase(NegocioService negocioService,
+                                                     ControlPlanService controlPlanService,
                                                      RegistroDatosService registroDatosService,
                                                      RecetaService recetaService,
                                                      GuardarRecetaMapper guardarRecetaMapper,
                                                      Clock clock) {
         return new GuardarRecetaUseCase(
-                negocioService, registroDatosService, recetaService, guardarRecetaMapper, clock);
+                negocioService, controlPlanService, registroDatosService, recetaService, guardarRecetaMapper, clock);
     }
 }

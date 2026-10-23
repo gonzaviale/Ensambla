@@ -1,134 +1,187 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { axe } from 'vitest-axe';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderApp } from '@/test/renderApp';
-import { verifyHeadingPresentAsync } from '@/test/testHelpers';
+import { ESPERA, verifyHeadingPresentAsync } from '@/test/testHelpers';
 
 async function abrirLanding() {
-  renderApp('/');
-  await verifyHeadingPresentAsync('Tu sistema, un bloque a la vez.');
-  return userEvent.setup();
+  const router = renderApp('/');
+  await verifyHeadingPresentAsync('Tu cuaderno de siempre. Tus cuentas, más claras.');
+  return { router, user: userEvent.setup() };
 }
 
-describe('landing', () => {
-  it('tiene un único h1 y lleva a registro y a login', async () => {
-    await abrirLanding();
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+describe('landing del cuaderno digital', () => {
+  it('presenta un solo h1 y sus llamadas principales abren el registro real', async () => {
+    const { router, user } = await abrirLanding();
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-    expect(screen.getByRole('link', { name: /Crear mi sistema gratis/ })).toHaveAttribute(
-      'href',
-      '/registro',
+    const enlaces = screen.getAllByRole('link', { name: /Empezar mi cuaderno/ });
+    for (const enlace of enlaces) expect(enlace).toHaveAttribute('href', '/registro');
+
+    await user.click(enlaces[0] as HTMLElement);
+    await screen.findByRole('heading', { name: 'Creá tu cuenta' }, ESPERA);
+    expect(router.state.location.pathname).toBe('/registro');
+    expect(screen.getByText('Empezá a armar el sistema de tu negocio.')).toBeVisible();
+  });
+
+  it('lleva al ingreso existente desde el cierre', async () => {
+    const { router, user } = await abrirLanding();
+
+    await user.click(screen.getByRole('link', { name: 'Ya tengo cuenta' }));
+    await screen.findByRole('heading', { name: 'Ingresá a tu cuenta' }, ESPERA);
+    expect(router.state.location.pathname).toBe('/login');
+  });
+
+  it('permite corregir un importe y encontrar el resultado confirmado', async () => {
+    const { user } = await abrirLanding();
+    await user.click(screen.getByRole('button', { name: 'Revisás lo leído' }));
+    const importe = screen.getByLabelText('Importe del fiado');
+    await user.clear(importe);
+    await user.type(importe, '4500.5');
+    await user.click(screen.getByRole('button', { name: /Confirmar y buscar/ }));
+    const resultados = screen.getByRole('list', { name: 'Fiados encontrados' });
+    expect(within(resultados).getByText('Ana López')).toBeVisible();
+    expect(resultados).toHaveTextContent(/4\.500,5/);
+    expect(within(resultados).getAllByRole('listitem')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Lo encontrás' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
-    expect(screen.getByRole('link', { name: 'Ya tengo cuenta' })).toHaveAttribute('href', '/login');
+    expect(localStorage.length).toBe(0);
   });
 
-  describe('armador de bloques', () => {
-    it('suma y quita bloques y cuenta los activos', async () => {
-      const user = await abrirLanding();
-      const grupo = screen.getByRole('group', { name: 'Bloques disponibles' });
-      const inventario = within(grupo).getByRole('button', { name: 'Inventario' });
-
-      expect(screen.getByText('0 bloques')).toBeInTheDocument();
-      expect(inventario).toHaveAttribute('aria-pressed', 'false');
-
-      await user.click(inventario);
-      expect(screen.getByText('1 bloque')).toBeInTheDocument();
-      expect(inventario).toHaveAttribute('aria-pressed', 'true');
-
-      await user.click(within(grupo).getByRole('button', { name: 'Ventas' }));
-      expect(screen.getByText('2 bloques')).toBeInTheDocument();
-
-      await user.click(inventario);
-      expect(screen.getByText('1 bloque')).toBeInTheDocument();
-      expect(inventario).toHaveAttribute('aria-pressed', 'false');
-    });
-
-    it('vuelve a empezar', async () => {
-      const user = await abrirLanding();
-      const grupo = screen.getByRole('group', { name: 'Bloques disponibles' });
-
-      await user.click(within(grupo).getByRole('button', { name: 'Pedidos' }));
-      await user.click(within(grupo).getByRole('button', { name: 'Clientes' }));
-      await user.click(screen.getByRole('button', { name: 'Empezar de nuevo' }));
-
-      expect(screen.getByText('0 bloques')).toBeInTheDocument();
-      expect(within(grupo).getByRole('button', { name: 'Pedidos' })).toHaveAttribute(
-        'aria-pressed',
-        'false',
-      );
-    });
+  it('la búsqueda encuentra por nombre sin depender de mayúsculas o tildes y resuelve el vacío', async () => {
+    const { user } = await abrirLanding();
+    await user.click(screen.getByRole('button', { name: 'Lo encontrás' }));
+    const buscar = screen.getByRole('searchbox', { name: 'Buscá un nombre en este ejemplo' });
+    const lista = screen.getByRole('list', { name: 'Fiados encontrados' });
+    await user.clear(buscar);
+    expect(within(lista).getAllByRole('listitem')).toHaveLength(3);
+    await user.type(buscar, 'LOPEZ');
+    expect(lista).toHaveTextContent('Ana López');
+    expect(within(lista).getAllByRole('listitem')).toHaveLength(1);
+    await user.clear(buscar);
+    await user.type(buscar, 'nadie');
+    expect(within(lista).queryByRole('listitem')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('No hay coincidencias');
+    await user.clear(buscar);
+    await user.type(buscar, 'luci');
+    expect(lista).toHaveTextContent('Lucía Pérez');
   });
 
-  describe('comentarios', () => {
-    it('pide el nombre y un comentario de al menos 5 caracteres', async () => {
-      const user = await abrirLanding();
-
-      await user.click(screen.getByRole('button', { name: 'Publicar comentario' }));
-      expect(screen.getByRole('status')).toHaveTextContent('Contanos tu nombre.');
-      expect(screen.getByRole('textbox', { name: 'Nombre' })).toHaveAttribute(
-        'aria-invalid',
-        'true',
-      );
-
-      await user.type(screen.getByRole('textbox', { name: 'Nombre' }), 'Ana');
-      await user.type(screen.getByRole('textbox', { name: 'Comentario' }), 'Ok');
-      await user.click(screen.getByRole('button', { name: 'Publicar comentario' }));
-      expect(screen.getByRole('status')).toHaveTextContent('al menos 5 caracteres');
-    });
-
-    it('publica el comentario, lo muestra primero y lo guarda en el navegador', async () => {
-      const user = await abrirLanding();
-
-      await user.type(screen.getByRole('textbox', { name: 'Nombre' }), 'Ana');
-      await user.type(screen.getByRole('textbox', { name: /Negocio/ }), 'Panadería Ana');
-      await user.type(screen.getByRole('textbox', { name: 'Comentario' }), 'Muy simple de usar');
-      await user.click(screen.getByRole('radio', { name: '4 bloques' }));
-      await user.click(screen.getByRole('button', { name: 'Publicar comentario' }));
-
-      expect(screen.getByRole('status')).toHaveTextContent('Tu comentario ya es parte del sistema');
-      const tarjetas = screen.getAllByRole('article').filter((a) => a.classList.contains('comentario'));
-      expect(tarjetas[0]).toHaveTextContent('Muy simple de usar');
-      expect(within(tarjetas[0] as HTMLElement).getByRole('img')).toHaveAccessibleName(
-        'Puntaje: 4 de 5',
-      );
-      expect(screen.getByRole('textbox', { name: 'Nombre' })).toHaveValue('');
-
-      const guardados = JSON.parse(localStorage.getItem('ensambla-comentarios') ?? '[]') as unknown[];
-      expect(guardados).toEqual([
-        { nombre: 'Ana', negocio: 'Panadería Ana', puntaje: 4, texto: 'Muy simple de usar' },
-      ]);
-    });
-
-    it('recupera los comentarios guardados', async () => {
-      localStorage.setItem(
-        'ensambla-comentarios',
-        JSON.stringify([{ nombre: 'Beto', negocio: '', puntaje: 5, texto: 'Me ordenó el día' }]),
-      );
-      await abrirLanding();
-
-      expect(screen.getByText('“Me ordenó el día”')).toBeInTheDocument();
-      expect(screen.getByText('Comunidad Ensambla')).toBeInTheDocument();
-    });
+  it('rechaza un importe vacío o no positivo sin pasar a la confirmación', async () => {
+    const { user } = await abrirLanding();
+    await user.click(screen.getByRole('button', { name: 'Revisás lo leído' }));
+    const importe = screen.getByLabelText('Importe del fiado');
+    await user.clear(importe);
+    await user.type(importe, '0');
+    await user.click(screen.getByRole('button', { name: /Confirmar y buscar/ }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Ingresá un importe mayor a cero.');
+    expect(importe).toHaveFocus();
+    expect(importe).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
   });
 
-  describe('menú del encabezado', () => {
-    it('abre y cierra el menú de secciones', async () => {
-      const user = await abrirLanding();
-      const boton = screen.getByRole('button', { name: 'Abrir menú' });
+  it('permite recorrer los pasos del ejemplo con el teclado', async () => {
+    const { user } = await abrirLanding();
+    screen.getByRole('button', { name: 'Lo tenés en papel' }).focus();
+    await user.keyboard('{Tab}{Enter}');
+    expect(screen.getByRole('button', { name: 'Revisás lo leído' })).toHaveFocus();
+    expect(screen.getByLabelText('Importe del fiado')).toBeVisible();
+  });
 
-      expect(boton).toHaveAttribute('aria-expanded', 'false');
-      await user.click(boton);
-      expect(screen.getByRole('button', { name: 'Cerrar menú' })).toHaveAttribute(
-        'aria-expanded',
-        'true',
-      );
-      expect(screen.getByRole('navigation', { name: 'Menú de secciones' })).toBeVisible();
+  it('cada enlace interno tiene un destino y el ejemplo se alcanza desde la primera pantalla', async () => {
+    await abrirLanding();
 
-      await user.keyboard('{Escape}');
-      expect(screen.getByRole('button', { name: 'Abrir menú' })).toHaveAttribute(
-        'aria-expanded',
-        'false',
-      );
+    expect(screen.getByRole('link', { name: /Ver un ejemplo/ })).toHaveAttribute(
+      'href',
+      '#como-funciona',
+    );
+    const inicio = document.getElementById('inicio') as HTMLElement;
+    expect(within(inicio).getByRole('link', { name: /Ana López/ })).toHaveAttribute(
+      'href',
+      '#como-funciona',
+    );
+    for (const enlace of document.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')) {
+      expect(
+        document.getElementById(decodeURIComponent(enlace.hash.slice(1))),
+        enlace.hash,
+      ).not.toBeNull();
+    }
+  });
+
+  it('identifica la descarga como pendiente sin ofrecer una acción falsa', async () => {
+    const { user } = await abrirLanding();
+    await user.click(screen.getByText('¿Puedo descargar una copia de mis datos?'));
+    const seccion = document.getElementById('tus-datos') as HTMLElement;
+
+    expect(within(seccion).getByText(/Todavía no/)).toBeVisible();
+    expect(within(seccion).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(seccion).queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Publicar comentario' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Voz' })).not.toBeInTheDocument();
+  });
+
+  it('guía el ejemplo con acciones de avance y lleva el foco al campo del nuevo paso', async () => {
+    const { user } = await abrirLanding();
+    await user.click(screen.getByRole('button', { name: 'Comenzar el ejemplo' }));
+    expect(screen.getByLabelText('Importe del fiado')).toHaveFocus();
+    expect(screen.getByText('Paso 2 de 3')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: /Confirmar y buscar/ }));
+    expect(screen.getByRole('searchbox')).toHaveFocus();
+    expect(screen.getByText('Paso 3 de 3')).toBeVisible();
+  });
+
+  it('abre y cierra las preguntas sin salir de la página', async () => {
+    const { user, router } = await abrirLanding();
+    const pregunta = screen.getByText('¿Tengo que dejar de usar mi cuaderno?');
+    const detalle = pregunta.closest('details');
+
+    expect(detalle).not.toHaveAttribute('open');
+    await user.click(pregunta);
+    expect(detalle).toHaveAttribute('open');
+    expect(screen.getByText(/Podés seguir anotando como hasta ahora/)).toBeVisible();
+    await user.click(pregunta);
+    expect(detalle).not.toHaveAttribute('open');
+    expect(router.state.location.pathname).toBe('/');
+  });
+
+  it('abre el menú de secciones y lo cierra con Escape', async () => {
+    const { user } = await abrirLanding();
+    const boton = screen.getByRole('button', { name: 'Abrir menú' });
+
+    await user.click(boton);
+    expect(screen.getByRole('navigation', { name: 'Menú de secciones' })).toBeVisible();
+    await user.keyboard('{Escape}');
+    expect(boton).toHaveAttribute('aria-expanded', 'false');
+    expect(boton).toHaveFocus();
+  });
+
+  it('el botón de volver arriba y el logo conservan su navegación local', async () => {
+    const irA = vi.fn();
+    vi.stubGlobal('scrollTo', irA);
+    const { user } = await abrirLanding();
+    irA.mockClear();
+
+    await user.click(screen.getByRole('link', { name: 'Ensambla, ir al inicio' }));
+    expect(irA).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+    irA.mockClear();
+
+    await user.click(screen.getByRole('button', { name: 'Volver arriba', hidden: true }));
+    expect(irA).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+  });
+
+  it('no tiene problemas de accesibilidad detectables sin layout', async () => {
+    await abrirLanding();
+    const resultado = await axe(document.body, {
+      rules: { 'color-contrast': { enabled: false } },
     });
+    expect(resultado.violations.map((v) => v.id)).toEqual([]);
   });
 });

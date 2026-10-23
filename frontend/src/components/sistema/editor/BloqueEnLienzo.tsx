@@ -6,7 +6,7 @@ import {
   type FormEvent,
   type PointerEvent,
 } from 'react';
-import type { CargaDeArrastre } from '@/hooks/sistemas/useArrastreDelEditor';
+import type { CargaDeArrastre, LadoDelCambio } from '@/hooks/sistemas/useArrastreDelEditor';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import { normalize, totals } from '@/lib/sistema/core';
 import { textoPlano } from '@/lib/sistema/formato';
@@ -38,6 +38,8 @@ type BloqueEnLienzoProps = {
   ultimo: boolean;
   arrastrando: boolean;
   sobre: boolean;
+  /** Si otro bloque se suelta encima, este se corre hacia ese lado: ahí se dibuja la barra. */
+  ladoDelCambio?: LadoDelCambio;
   /** Ancho que se está probando con el tirador, antes de soltarlo. */
   anchoProvisorio?: number;
   onArrastrar: (evento: DragEvent<HTMLElement>, carga: CargaDeArrastre) => void;
@@ -206,6 +208,7 @@ export function BloqueEnLienzo({
   ultimo,
   arrastrando,
   sobre,
+  ladoDelCambio,
   anchoProvisorio,
   onArrastrar,
   onFinArrastre,
@@ -219,14 +222,13 @@ export function BloqueEnLienzo({
 
   const estilo: CSSProperties = {
     ...varsDeColor(bloque.color),
-    ...(bloque.startRow ? { gridColumnStart: 1 } : {}),
     ...(anchoProvisorio ? { gridColumn: `span ${anchoProvisorio}` } : {}),
   };
 
   return (
     <section
       ref={nodo}
-      className={`block ${seleccionado ? 'selected' : ''} ${arrastrando ? 'dragging' : ''} ${sobre ? 'drag-over' : ''}`
+      className={`block ${seleccionado ? 'selected' : ''} ${arrastrando ? 'dragging' : ''} ${sobre && !ladoDelCambio ? 'drag-over' : ''} ${ladoDelCambio ? `cambio-${ladoDelCambio}` : ''}`
         .replace(/\s+/g, ' ')
         .trim()}
       style={estilo}
@@ -234,6 +236,7 @@ export function BloqueEnLienzo({
       data-tour="done"
       data-tour-id={bloque.id}
       data-width={bloque.width}
+      data-color={bloque.color}
       aria-label={bloque.name}
     >
       <header className="block-head">
@@ -356,18 +359,6 @@ export function BloqueEnLienzo({
           >
             ↔
           </button>
-          <div className="block-drop-zone left" data-drop-side="left" data-target-block={bloque.id}>
-            <Icon name="plus" />
-            Al lado
-          </div>
-          <div
-            className="block-drop-zone right"
-            data-drop-side="right"
-            data-target-block={bloque.id}
-          >
-            <Icon name="plus" />
-            Al lado
-          </div>
         </>
       )}
     </section>

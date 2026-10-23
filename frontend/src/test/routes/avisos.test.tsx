@@ -1,3 +1,4 @@
+import type { QueryClient } from '@tanstack/react-query';
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -13,19 +14,49 @@ import {
   ESPERA,
   clickButton,
   setupServerError,
-  setupUsuarioConSesion,
+  setupUsuarioConSesion as setupUsuarioBase,
   verifyHeadingPresentAsync,
   verifyToastAsync,
 } from '@/test/testHelpers';
 
-const abrirConDemo = async (ruta: 'usar' | 'construir' = 'usar') => {
+// Estos casos revisan todas las herramientas; los límites gratuitos tienen pruebas propias.
+const setupUsuarioConSesion = (...args: Parameters<typeof setupUsuarioBase>) => {
+  const usuario = setupUsuarioBase(...args);
+  estado.pruebasPremium.set(usuario.email, {
+    inicioEn: new Date(Date.now() - 1000).toISOString(),
+    finEn: new Date(Date.now() + 7 * 86400000).toISOString(),
+    paginasIaUtilizadas: 0,
+    limitePaginasIa: 10,
+  });
+  return usuario;
+};
+
+const abrirConDemo = async (ruta: 'usar' | 'construir' = 'usar', configurado = false) => {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+  if (configurado)
+    estado.negocios.set(usuario.email, {
+      nombre: 'Mi almacén',
+      rubro: 'ALMACEN',
+      comparteDatosZona: true,
+      zona: null,
+      ubicacion: {
+        direccion: 'Calle 123',
+        localidad: 'San Justo',
+        latitud: -34.67,
+        longitud: -58.56,
+      },
+    });
   const sistema = crearAlmacenDeEjemplo(hoy());
   estado.sistemas.set(usuario.email, [sistema]);
-  renderApp(`/sistemas/${sistema.id}?modo=${ruta}`);
+  const router = renderApp(`/sistemas/${sistema.id}?modo=${ruta}`);
   await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
   await waitFor(() => expect(useSistemaStore.getState().avisos.length).toBeGreaterThan(0), ESPERA);
-  return { user: userEvent.setup(), sistema, usuario };
+  return {
+    user: userEvent.setup(),
+    sistema,
+    usuario,
+    cliente: router.options.context.queryClient as QueryClient,
+  };
 };
 
 const productoDe = (sistema: Sistema | undefined, nombre: string) =>
@@ -45,6 +76,19 @@ const tarjeta = (titulo: RegExp | string) => {
 };
 
 describe('la campana y el panel de avisos', () => {
+  it('invita a completar el comercio y lleva a la pantalla de configuración', async () => {
+    const { user } = await abrirConDemo();
+    await abrirPanel(user);
+    await user.click(await screen.findByRole('link', { name: 'Configurar mi comercio' }, ESPERA));
+    expect(await screen.findByRole('heading', { name: 'Ubicación y rubro' }, ESPERA)).toBeVisible();
+  });
+
+  it('no invita a completar una ubicación que ya está guardada', async () => {
+    const { user } = await abrirConDemo('usar', true);
+    const panel = await abrirPanel(user);
+    expect(within(panel).queryByRole('link', { name: 'Configurar mi comercio' })).toBeNull();
+  });
+
   it('la campana cuenta los avisos y se pone urgente si hay algo para hoy', async () => {
     await abrirConDemo();
 
@@ -256,14 +300,27 @@ describe('sin datos y con el almacén de ejemplo', () => {
     await abrirConDemo('construir');
 
     expect(screen.queryByLabelText('Avisos de Sami', { selector: 'section' })).toBeNull();
-    expect(screen.getByText('Distribuí tus piezas')).toBeVisible();
+    expect(screen.getByRole('group', { name: 'Distribuí tus piezas' })).toBeVisible();
   });
 });
 
 describe('«Sami vio un cambio»', () => {
   it('no avisa al abrir, pero sí cuando un cambio genera un aviso nuevo', async () => {
-    await abrirConDemo();
+    const { cliente } = await abrirConDemo();
     expect(document.getElementById('sami-aviso')).toBeNull();
+    // Mientras cargan los avisos del servidor el motor todavía no tomó su línea base: sin esperarlos, el cambio
+    // de abajo quedaría incluido en ella y no se avisaría.
+    await waitFor(
+      () => expect(cliente.isFetching({ queryKey: ['avisos', 'pendientes'] })).toBe(0),
+      ESPERA,
+    );
+    await waitFor(
+      () => expect(cliente.getQueryState(['avisos', 'pendientes'])?.status).toBe('success'),
+      ESPERA,
+    );
+    await act(async () => {
+      await new Promise((resolver) => setTimeout(resolver, 50));
+    });
 
     // Bajar la gaseosa por debajo de su mínimo: aparece un aviso de stock nuevo.
     act(() => {
@@ -311,8 +368,11 @@ describe('los avisos del motor del servidor', () => {
   it('aparecen en la campana y en el panel junto con los del navegador', async () => {
     const { user } = await abrirConAvisosDelServidor(avisoDelServidor());
 
+    await waitFor(
+      () => expect(useSistemaStore.getState().avisos.length).toBeGreaterThan(1),
+      ESPERA,
+    );
     const total = useSistemaStore.getState().avisos.length;
-    expect(total).toBeGreaterThan(1);
     expect(screen.getByRole('button', { name: `Avisos de Sami: ${total}` })).toHaveClass('urgente');
     await abrirPanel(user);
     expect(

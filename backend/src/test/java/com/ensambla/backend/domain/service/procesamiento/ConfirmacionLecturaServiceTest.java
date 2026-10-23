@@ -12,9 +12,9 @@ import com.ensambla.backend.domain.model.enums.EstadoLote;
 import com.ensambla.backend.domain.model.enums.TipoCampo;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionGuardada;
-import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura.CampoConfirmado;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura.FilaConfirmada;
+import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
@@ -214,7 +214,7 @@ class ConfirmacionLecturaServiceTest {
         assertThatThrownBy(() -> confirmar(lote, confirmacion))
                 .isInstanceOfSatisfying(RegistroInvalidoException.class,
                         e -> assertThat(e.getErrores()).containsOnly(Map.entry("filas[1].monto", "Tiene que ser un número")));
-        verify(registroDatosService, never()).crearVarios(any());
+        verify(registroDatosService, never()).crearVarios(any(), any(), any());
         verifyNoInteractions(loteSubidaService);
     }
 
@@ -233,7 +233,7 @@ class ConfirmacionLecturaServiceTest {
                 .isInstanceOfSatisfying(RegistroInvalidoException.class,
                         e -> assertThat(e.getErrores())
                                 .containsOnly(Map.entry("filas[0].pagina", "Esta página no está en el cuaderno")));
-        verify(registroDatosService, never()).crearVarios(any());
+        verify(registroDatosService, never()).crearVarios(any(), any(), any());
     }
 
     @Test
@@ -272,7 +272,7 @@ class ConfirmacionLecturaServiceTest {
                 .isInstanceOfSatisfying(RegistroInvalidoException.class,
                         e -> assertThat(e.getErrores())
                                 .containsOnly(Map.entry("filas[0].cliente", "Esa fila ya no existe")));
-        verify(registroDatosService, never()).crearVarios(any());
+        verify(registroDatosService, never()).crearVarios(any(), any(), any());
     }
 
     @Test
@@ -344,13 +344,14 @@ class ConfirmacionLecturaServiceTest {
     private List<Registro> thenRegistrosGuardados() {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<Registro>> registros = ArgumentCaptor.forClass(List.class);
-        verify(registroDatosService).crearVarios(registros.capture());
+        verify(registroDatosService).crearVarios(eq(NEGOCIO_ID), registros.capture(),
+                eq(AHORA));
         return registros.getValue();
     }
 
     private void thenLoteConfirmedAfterSavingRegistros(LoteSubida lote, Bloque bloque) {
         InOrder orden = inOrder(registroDatosService, loteSubidaService);
-        orden.verify(registroDatosService).crearVarios(any());
+        orden.verify(registroDatosService).crearVarios(any(), any(), any());
         orden.verify(loteSubidaService).confirmar(lote, bloque.getId(), AHORA);
     }
 

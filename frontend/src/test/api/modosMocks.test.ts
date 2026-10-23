@@ -8,6 +8,12 @@ const rutas = (modo: Parameters<typeof handlersPara>[0]) =>
   });
 
 describe('API simulada según VITE_API_MOCKS', () => {
+  it('los planes y la prueba sólo se simulan en el modo completo', () => {
+    expect(rutas('completo')).toEqual(
+      expect.arrayContaining(['GET /planes', 'POST /planes/prueba']),
+    );
+    expect(rutas('parcial').filter((ruta) => ruta.includes('/planes'))).toEqual([]);
+  });
   it('en modo completo simula la sesión y los sistemas', () => {
     expect(rutas('completo')).toEqual(
       expect.arrayContaining([
@@ -21,10 +27,10 @@ describe('API simulada según VITE_API_MOCKS', () => {
     );
   });
 
-  it('en modo parcial simula lo que el backend no tiene y deja la sesión al real', () => {
+  it('en modo parcial deja todas las rutas implementadas al backend real', () => {
     const parcial = rutas('parcial');
 
-    expect(parcial).toEqual(expect.arrayContaining(['GET /sistemas', 'PUT /preferencias']));
+    expect(parcial).toEqual([]);
     expect(parcial.filter((ruta) => ruta.includes('/auth/'))).toEqual([]);
   });
 
@@ -46,5 +52,12 @@ describe('API simulada según VITE_API_MOCKS', () => {
 
   it('en modo ninguno no simula nada', () => {
     expect(rutas('ninguno')).toEqual([]);
+  });
+
+  it('la ubicación y los rubros sólo se simulan en modo completo', () => {
+    expect(rutas('completo')).toEqual(
+      expect.arrayContaining(['POST /ubicacion/direcciones', 'GET /ubicacion/rubros']),
+    );
+    expect(rutas('parcial').filter((ruta) => ruta.includes('/ubicacion/'))).toEqual([]);
   });
 });

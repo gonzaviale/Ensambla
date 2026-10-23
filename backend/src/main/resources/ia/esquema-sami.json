@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["plantilla", "columnas", "confianza"],
+  "properties": {
+    "plantilla": {"type": "string"},
+    "confianza": {"type": "number"},
+    "columnas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["nombre", "tipo", "opciones"],
+        "properties": {
+          "nombre": {"type": "string"},
+          "tipo": {"type": "string", "enum": ["TEXTO", "NUMERO", "FECHA", "OPCION", "SI_NO"]},
+          "opciones": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    }
+  }
+}
