@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import com.ensambla.backend.domain.model.enums.EstadoUsuario;
 import com.ensambla.backend.domain.model.enums.TipoCampo;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
@@ -19,7 +20,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
@@ -28,7 +28,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,10 +46,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@ActiveProfiles("h2-test")
 @Transactional
-class BloqueSeguridadIntegrationTest {
+class BloqueSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Autowired
     private WebApplicationContext context;
