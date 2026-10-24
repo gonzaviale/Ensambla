@@ -5,6 +5,7 @@ import { Campana } from '@/components/sistema/avisos/Campana';
 import { FranjaDeSami } from '@/components/sistema/avisos/FranjaDeSami';
 import { BibliotecaDeBloques } from '@/components/sistema/editor/BibliotecaDeBloques';
 import { BloqueEnLienzo } from '@/components/sistema/editor/BloqueEnLienzo';
+import { CierreDeCreacion } from '@/components/sistema/CierreDeCreacion';
 import { EncabezadoDelEditor } from '@/components/sistema/editor/EncabezadoDelEditor';
 import { Inspector } from '@/components/sistema/editor/Inspector';
 import { Icon } from '@/components/sistema/Icon';
@@ -177,21 +178,13 @@ export function SistemaPage() {
         )}
         <div className="canvas-area" onDragOver={arrastre.alPasarPor} onDrop={arrastre.alSoltar}>
           {listo && modo === 'use' && (
-            <div className="system-ready">
-              <Icon name="check-circle" />
-              <div>
-                <strong>Tu sistema está listo. Ya podés usarlo.</strong>
-                <p>Registrá tu primer dato o personalizá las piezas antes de empezar.</p>
-              </div>
-              <Btn cls="secondary small" onClick={() => cambiarModo('build')}>
-                Personalizar <Icon name="edit" />
-              </Btn>
-              <IconBtn
-                name="close"
-                label="Cerrar bienvenida"
-                onClick={() => useSistemaStore.getState().descartarCartelListo()}
-              />
-            </div>
+            <CierreDeCreacion
+              sistema={sistema}
+              onRegistrar={(bloqueId) => abrirModal({ tipo: 'registro', bloqueId })}
+              onPersonalizar={() => cambiarModo('build')}
+              onAjustarConSami={() => void navegacion.ajustarConSami(sistema.id)}
+              onCerrar={() => useSistemaStore.getState().descartarCartelListo()}
+            />
           )}
           <div className="canvas-heading">
             <div className="canvas-titulo">

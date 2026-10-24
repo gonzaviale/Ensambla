@@ -616,20 +616,52 @@ body:has(.editor-layout) {
   font-size: 12px;
   color: var(--petrol);
 }
+/* El cierre de la creación, con el mismo fondo petróleo que «Todo en orden» para que no pase desapercibido. */
 .system-ready {
-  background: #fff;
-  border: 1.5px solid var(--petrol);
+  background: var(--petrol);
+  border: 0;
+  border-left: 6px solid var(--yellow);
+  box-shadow: 0 6px 18px #00506a26;
 }
-.system-ready > .icon,
+.system-ready-head > .icon,
 .system-ready strong {
-  color: var(--petrol);
+  color: var(--yellow);
 }
 .system-ready strong {
-  font-size: 14px;
+  font-size: 16px;
 }
 .system-ready p {
-  font-size: 12px;
-  color: var(--muted);
+  font-size: 14px;
+  color: #fff;
+}
+.system-ready-head > .icon-btn {
+  color: #fff;
+}
+.system-ready-head > .icon-btn:hover {
+  background: #ffffff26;
+  color: #fff;
+}
+.system-ready .btn.primary {
+  background: var(--yellow);
+  color: var(--petrol);
+  box-shadow: 0 3px 0 #b89d1c;
+}
+.system-ready .btn.primary:hover {
+  background: #f3d94f;
+}
+.system-ready .btn.secondary {
+  background: #fff;
+  color: var(--petrol);
+  border-color: #fff;
+}
+.system-ready .btn.secondary:hover {
+  background: #eaf3f6;
+}
+.system-ready .btn.ghost {
+  color: #fff;
+}
+.system-ready .btn.ghost:hover:not(:disabled) {
+  background: #ffffff26;
 }
 .sami-franja,
 .sami-franja.ok {

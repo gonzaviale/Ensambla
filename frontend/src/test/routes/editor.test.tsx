@@ -62,17 +62,70 @@ describe('el editor: construir y usar', () => {
     expect(screen.getByText(/Estás viendo datos de ejemplo/)).toBeVisible();
   });
 
-  it('en modo usar muestra el cartel de «listo» y Personalizar pasa a Construir', async () => {
-    const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+  it('en modo usar cierra la creación: qué quedó armado y qué hacer ahora', async () => {
+    const sistema = makeTemplate('shop', {}, true);
+    const { user } = await abrirEditor(sistema, 'usar');
     useSistemaStore.setState({ listo: true });
 
-    expect(await screen.findByText('Tu sistema está listo. Ya podés usarlo.')).toBeVisible();
+    const cierre = await screen.findByRole('region', { name: /ya está armado/ });
+    expect(within(cierre).getByText(`¡Listo! «${sistema.name}» ya está armado.`)).toBeVisible();
+    expect(
+      within(cierre).getByText(/Quedaron 3 tablas: .+ Ya podés empezar a usarlo\./),
+    ).toBeVisible();
     expect(screen.queryByText('Tus piezas')).toBeNull();
-    await clickButton(user, /Personalizar/);
+
+    await user.click(within(cierre).getByRole('button', { name: 'Cerrar aviso' }));
+    expect(screen.queryByRole('region', { name: /ya está armado/ })).toBeNull();
+    expect(useSistemaStore.getState().listo).toBe(false);
+  });
+
+  it('desde el cierre se registra el primer dato en la primera tabla con registros', async () => {
+    const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+    useSistemaStore.setState({ listo: true });
+    await screen.findByRole('region', { name: /ya está armado/ });
+
+    await clickButton(user, 'Registrar mi primer dato');
+
+    expect(await screen.findByRole('heading', { name: 'Registrar producto' })).toBeVisible();
+  });
+
+  it('desde el cierre, Personalizar pasa a Construir y se va el cierre', async () => {
+    const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+    useSistemaStore.setState({ listo: true });
+    await screen.findByRole('region', { name: /ya está armado/ });
+
+    await clickButton(user, /Personalizar las tablas/);
 
     expect(await screen.findByText('Tus piezas')).toBeVisible();
-    expect(screen.queryByText('Tu sistema está listo. Ya podés usarlo.')).toBeNull();
+    expect(screen.queryByRole('region', { name: /ya está armado/ })).toBeNull();
     expect(useSistemaStore.getState().modo).toBe('build');
+  });
+
+  it('desde el cierre se le pide un ajuste a Sami', async () => {
+    const { user, router, sistema } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+    useSistemaStore.setState({ listo: true });
+    await screen.findByRole('region', { name: /ya está armado/ });
+
+    await clickButton(user, /Pedirle un ajuste a Sami/);
+
+    await verifyPathAsync(router, '/taller');
+    expect(router.state.location.search).toMatchObject({ sistema: sistema.id });
+  });
+
+  it('con muchas tablas el cierre nombra las primeras y cuenta las demás', async () => {
+    const sistema = makeTemplate('shop', {}, true);
+    const bloques = sistema.sections[0]?.blocks ?? [];
+    bloques.push(
+      ...['Extra uno', 'Extra dos'].map((nombre) => ({
+        ...(bloques[0] as (typeof bloques)[0]),
+        id: nombre,
+        name: nombre,
+      })),
+    );
+    await abrirEditor(sistema, 'usar');
+    useSistemaStore.setState({ listo: true });
+
+    expect(await screen.findByText(/Quedaron 5 tablas: .+, .+, .+ y 2 más\./)).toBeVisible();
   });
 
   it('un sistema que no existe lleva al inicio', async () => {
@@ -527,11 +580,7 @@ describe('traer datos de una foto', () => {
     );
     await user.click(within(modal).getByRole('button', { name: /Probar con un ejemplo/ }));
 
-    const revision = await screen.findByRole(
-      'heading',
-      { name: 'Confirmar registros' },
-      ESPERA,
-    );
+    const revision = await screen.findByRole('heading', { name: 'Confirmar registros' }, ESPERA);
     expect(revision).toBeVisible();
     const nombres = screen.getAllByLabelText(/Producto, registro/);
     expect(nombres).toHaveLength(3);

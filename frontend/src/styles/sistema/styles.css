@@ -2190,11 +2190,25 @@ textarea {
   border-radius: 12px;
   padding: 16px 20px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
   margin-bottom: 24px;
 }
-.system-ready > .icon {
+.system-ready-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.system-ready-head > .icon-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.system-ready-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.system-ready-head > .icon {
   color: #528465;
 }
 .system-ready strong {
@@ -2204,9 +2218,6 @@ textarea {
 .system-ready p {
   font-size: 10px;
   color: #78927c;
-}
-.system-ready .btn {
-  margin-left: auto;
 }
 .mobile-blocks {
   display: none;
