@@ -122,14 +122,7 @@ export function UbicacionPage() {
                 onElegir={estado.elegirDireccion}
                 error={estado.errorBusqueda}
               />
-              <AjusteUbicacion
-                elegida={!!estado.direccion}
-                punto={estado.punto}
-                latitud={estado.latitud}
-                longitud={estado.longitud}
-                onCoordenada={estado.cambiarCoordenada}
-                onMover={estado.moverPunto}
-              />
+              <AjusteUbicacion punto={estado.punto} onMover={estado.moverPunto} />
             </div>
           )}
           {paso === 2 && (

@@ -146,19 +146,6 @@
   text-align: center;
   color: var(--color-muted);
 }
-.ubicacion-coordenadas {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 12px;
-}
-.ubicacion-coordenadas .input {
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-.ubicacion-coordenadas > p {
-  grid-column: 1 / -1;
-}
 .ubicacion-acciones {
   display: flex;
   flex-wrap: wrap;

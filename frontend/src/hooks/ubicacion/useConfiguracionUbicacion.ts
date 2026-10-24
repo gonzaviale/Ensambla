@@ -202,14 +202,6 @@ export function useConfiguracionUbicacion() {
     setErrorRevision('');
   };
 
-  const cambiarCoordenada = (eje: 'latitud' | 'longitud', valor: string) => {
-    cambio();
-    seguirAlMapa.current = true;
-    (eje === 'latitud' ? setLatitud : setLongitud)(valor);
-    setRevision(null);
-    setErrorRevision('');
-  };
-
   const cambiarRubro = (valor: string) => {
     cambio();
     setRubro(valor);
@@ -327,7 +319,6 @@ export function useConfiguracionUbicacion() {
     elegirDireccion,
     latitud,
     longitud,
-    cambiarCoordenada,
     moverPunto,
     punto,
     rubro,

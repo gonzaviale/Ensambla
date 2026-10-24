@@ -7,7 +7,6 @@ export type SeccionActiva = 'home' | 'templates' | 'zone' | 'avisos' | 'plans' |
 type TopBarProps = {
   active?: SeccionActiva;
   nombre: string;
-  sistemas: number;
   /** La campana de avisos, que vive en el encabezado. */
   campana?: ReactNode;
   onInicio: () => void;
@@ -24,7 +23,6 @@ type TopBarProps = {
 export function TopBar({
   active = 'home',
   nombre,
-  sistemas,
   campana,
   onInicio,
   onSistemas,
@@ -48,7 +46,7 @@ export function TopBar({
           Inicio
         </button>
         <button type="button" onClick={onSistemas}>
-          Mi Negocio{sistemas ? ` · ${sistemas}` : ''}
+          Mis cuadernos
         </button>
         <button
           type="button"

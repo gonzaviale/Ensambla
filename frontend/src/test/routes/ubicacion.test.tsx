@@ -177,7 +177,7 @@ describe('Ubicación y rubro del negocio', () => {
     const { user } = await abrirUbicacion();
     await elegirDireccion(user);
     expect(screen.getByRole('region', { name: 'Mapa de tu comercio' })).toBeVisible();
-    expect(screen.getByLabelText('Latitud')).toHaveValue('-34.6701');
+    expect(screen.queryByLabelText('Latitud')).toBeNull();
     await esperarLocalidad('San Justo');
     await elegirRubro(user, 'ALMACEN');
     await user.click(screen.getByRole('button', { name: 'Revisar configuración' }));
@@ -188,24 +188,19 @@ describe('Ubicación y rubro del negocio', () => {
     expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeEnabled();
   });
 
-  it('corrige coordenadas con teclado y descarta la revisión cuando cambia un dato', async () => {
+  it('descarta la revisión cuando cambia un dato', async () => {
     const { user } = await abrirUbicacion();
     await elegirDireccion(user);
-    await user.clear(screen.getByLabelText('Latitud'));
-    await user.type(screen.getByLabelText('Latitud'), '-34,68');
     await elegirRubro(user, 'KIOSCO');
     await user.click(screen.getByRole('button', { name: 'Revisar configuración' }));
     expect(screen.getByRole('status', { name: 'Configuración revisada' })).toHaveTextContent(
-      'ajustado manualmente',
-    );
-    expect(screen.getByRole('status', { name: 'Configuración revisada' })).toHaveTextContent(
-      '-34.68, -58.5625',
+      '-34.6701, -58.5625',
     );
     await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'OTRO');
     expect(screen.queryByRole('status', { name: 'Configuración revisada' })).toBeNull();
   });
 
-  it('exige dirección, rubro y coordenadas válidas', async () => {
+  it('exige dirección y rubro', async () => {
     const { user } = await abrirUbicacion();
     await irAlPaso(user, 'Ubicación');
     expect(screen.getByRole('button', { name: /Siguiente/ })).toBeDisabled();
@@ -216,19 +211,14 @@ describe('Ubicación y rubro del negocio', () => {
     await user.click(screen.getByRole('button', { name: 'Revisar configuración' }));
     expect(screen.getByText('Elegí el rubro de tu comercio.')).toBeVisible();
     await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'ALMACEN');
-    await irAlPaso(user, 'Ubicación');
-    await user.clear(screen.getByLabelText('Latitud'));
-    await user.type(screen.getByLabelText('Latitud'), '91');
-    expect(botonDelPaso('Rubro')).toBeDisabled();
-    expect(screen.getByRole('button', { name: /Siguiente/ })).toBeDisabled();
-    expect(screen.queryByRole('status', { name: 'Configuración revisada' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Revisar configuración' }));
+    expect(screen.getByRole('status', { name: 'Configuración revisada' })).toBeVisible();
   });
 
   it('descarta el punto anterior cuando se edita el texto buscado', async () => {
     const { user } = await abrirUbicacion();
     await elegirDireccion(user);
     await user.type(screen.getByLabelText('Calle'), ' otra');
-    expect(screen.queryByLabelText('Latitud')).toBeNull();
     expect(screen.queryByRole('radio')).toBeNull();
     expect(screen.queryByRole('region', { name: 'Mapa de tu comercio' })).toBeNull();
   });
@@ -347,7 +337,7 @@ describe('Ubicación y rubro del negocio', () => {
     expect(screen.getByText('Dirección elegida: Dirección guardada')).toBeVisible();
     expect(screen.getByLabelText('Calle')).toHaveValue('');
     expect(screen.getByLabelText('Localidad')).toHaveValue('San Justo');
-    expect(screen.getByLabelText('Latitud')).toHaveValue('-34.68');
+    expect(screen.getByRole('region', { name: 'Mapa de tu comercio' })).toBeVisible();
     expect(screen.queryByRole('radio')).toBeNull();
     await irAlPaso(user, 'Rubro');
     expect(screen.getByLabelText('Rubro del comercio')).toHaveValue('KIOSCO');
@@ -395,7 +385,10 @@ describe('Ubicación y rubro del negocio', () => {
     expect(await screen.findByText('Tu zona: San Justo - UNLaM', {}, ESPERA)).toBeVisible();
     expect(screen.getByRole('checkbox', { name: /Compartir datos agregados/ })).not.toBeChecked();
     await irAlPaso(user, 'Ubicación');
-    await waitFor(() => expect(screen.getByLabelText('Latitud')).toHaveValue('-34.6701'), ESPERA);
+    await waitFor(
+      () => expect(screen.getByRole('region', { name: 'Mapa de tu comercio' })).toBeVisible(),
+      ESPERA,
+    );
     expect(screen.getByLabelText('Localidad')).toHaveValue('San Justo');
     await irAlPaso(user, 'Rubro');
     expect(screen.getByLabelText('Rubro del comercio')).toHaveValue('ALMACEN');
@@ -411,7 +404,7 @@ describe('Ubicación y rubro del negocio', () => {
     expect(await screen.findByText('No pudimos guardar tu comercio.', {}, ESPERA)).toBeVisible();
     expect(screen.queryByText(/se guardó correctamente/)).toBeNull();
     await irAlPaso(user, 'Ubicación');
-    expect(screen.getByLabelText('Latitud')).toHaveValue('-34.6701');
+    expect(screen.getByRole('region', { name: 'Mapa de tu comercio' })).toBeVisible();
     server.resetHandlers();
     await irAlPaso(user, 'Rubro');
     await user.click(screen.getByRole('button', { name: 'Guardar configuración' }));
@@ -440,17 +433,6 @@ describe('Ubicación y rubro del negocio', () => {
     await user.click(screen.getByRole('radio', { name: DIRECCIONES_DE_PRUEBA[0].direccion }));
     await esperarLocalidad('San Justo');
     expect(screen.queryByText(/no coincide con la del mapa/)).toBeNull();
-  });
-
-  it('actualiza la localidad cuando se mueve el punto a otra localidad', async () => {
-    const { user } = await abrirUbicacion();
-    await elegirDireccion(user);
-    await esperarLocalidad('San Justo');
-    await user.clear(screen.getByLabelText('Latitud'));
-    await user.type(screen.getByLabelText('Latitud'), '-34.6037');
-    await user.clear(screen.getByLabelText('Longitud'));
-    await user.type(screen.getByLabelText('Longitud'), '-58.3816');
-    await esperarLocalidad('Otra localidad');
   });
 
   it('permite escribir la localidad pero no guardar una que no coincide con el mapa', async () => {

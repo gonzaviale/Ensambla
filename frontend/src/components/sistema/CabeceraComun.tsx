@@ -7,7 +7,6 @@ import { TopBar, type SeccionActiva } from './TopBar';
 // El `commonHeader()` del mockup: la barra de arriba conectada al router, al store y a la sesión.
 export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
   const nombre = useNombre();
-  const sistemas = useSistemaStore((estado) => estado.sistemas.length);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const navegacion = useNavegacion();
   const abrirAvisos = useAbrirAvisos();
@@ -16,7 +15,6 @@ export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
     <TopBar
       active={active}
       nombre={nombre}
-      sistemas={sistemas}
       campana={<Campana />}
       onInicio={() => void navegacion.irAInicio()}
       onSistemas={() => void navegacion.irAMisSistemas()}
