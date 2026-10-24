@@ -10,7 +10,6 @@ import com.ensambla.backend.domain.model.registro.DireccionOrden;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -54,25 +53,11 @@ class RegistroDatosServiceTest {
     @Mock
     private RegistroRepository registroRepository;
 
-    @Mock
-    private ControlPlanService controlPlanService;
-
     @Spy
     private TransaccionPort transaccionPort = new TransaccionDirecta();
 
     @InjectMocks
     private RegistroDatosService registroDatosService;
-
-    @Test
-    @DisplayName("Guarda de una vez los registros ya validados")
-    void crearVariosShouldSaveAll() {
-        List<Registro> registros = List.of(registro());
-        when(registroRepository.saveAll(registros)).thenReturn(registros);
-
-        List<Registro> result = registroDatosService.crearVarios(NEGOCIO_ID, registros, AHORA);
-
-        assertThat(result).isSameAs(registros);
-    }
 
     @Test
     @DisplayName("Devuelve el registro del negocio")

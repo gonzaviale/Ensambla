@@ -6,7 +6,6 @@ import com.ensambla.backend.domain.model.lectura.ConsumoIa;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
 import com.ensambla.backend.domain.model.lectura.PaginaCuaderno;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
-import com.ensambla.backend.domain.service.procesamiento.ValidacionLecturaService;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.StreamReadFeature;
@@ -55,7 +54,7 @@ public class LectorCuadernoIaAdapter implements LectorCuadernoPort {
                 paginas.size(), respuesta.tokensEntrada(), respuesta.tokensSalida(), duracionMs);
         LecturaCuaderno lectura = mapper.toDomain(
                 parsear(respuesta.json()), bloquesExistentes, paginas.size(), consumo);
-        new ValidacionLecturaService().validar(lectura);
+        lectura.validar();
         return lectura;
     }
 

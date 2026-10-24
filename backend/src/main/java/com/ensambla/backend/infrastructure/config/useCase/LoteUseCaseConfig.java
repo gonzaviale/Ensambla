@@ -50,8 +50,7 @@ public class LoteUseCaseConfig {
     @Bean
     public LoteSubidaService loteSubidaService(
             LoteSubidaRepository loteSubidaRepository,
-            ArchivoCuadernoPort archivoCuadernoPort,
-            TransaccionPort transaccionPort) {
-        return new LoteSubidaService(loteSubidaRepository, archivoCuadernoPort, transaccionPort);
+            ArchivoCuadernoPort archivoCuadernoPort) {
+        return new LoteSubidaService(loteSubidaRepository, archivoCuadernoPort);
     }
 }

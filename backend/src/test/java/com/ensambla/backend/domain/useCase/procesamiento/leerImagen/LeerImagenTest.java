@@ -21,7 +21,6 @@ import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService
 import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem.CampoItem;
 import com.ensambla.backend.support.ImagenTestData;
 import com.ensambla.backend.support.ProcesamientoTestData;
-import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,12 +33,14 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -62,7 +63,7 @@ class LeerImagenTest {
     private final UsoPlanRepository usoPlanRepository = mock(UsoPlanRepository.class);
     private final LeerImagen leerImagen = new LeerImagen(lectorCuadernoPort, new PropuestaLecturaService(),
             UMBRAL_CONFIANZA, negocioService, controlPlanService, usoPlanRepository, ProcesamientoTestData.politica(),
-            new TransaccionDirecta(), Clock.fixed(AHORA.toInstant(), AHORA.getOffset()));
+            Clock.fixed(AHORA.toInstant(), AHORA.getOffset()));
 
     private final LeerImagenRequest request = new LeerImagenRequest(USUARIO_ID, ImagenTestData.jpeg(), "Ventas",
             List.of(new LeerImagenRequest.CampoItem("importe", "Monto", "NUMERO", null)), true);
@@ -70,6 +71,8 @@ class LeerImagenTest {
     @BeforeEach
     void givenNegocioConCupo() {
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(controlPlanService.reservarPaginasIa(eq(NEGOCIO_ID), eq(1), eq(AHORA), any()))
+                .thenAnswer(invocacion -> invocacion.<BooleanSupplier>getArgument(3).getAsBoolean());
         when(usoPlanRepository.registrarPaginaInmediata(NEGOCIO_ID, DIA_UTC, 100, AHORA)).thenReturn(true);
     }
 
@@ -121,9 +124,8 @@ class LeerImagenTest {
         leerImagen.execute(request);
 
         InOrder orden = inOrder(controlPlanService, usoPlanRepository, lectorCuadernoPort);
-        orden.verify(controlPlanService).validarPaginasIa(NEGOCIO_ID, 1, AHORA);
+        orden.verify(controlPlanService).reservarPaginasIa(eq(NEGOCIO_ID), eq(1), eq(AHORA), any());
         orden.verify(usoPlanRepository).registrarPaginaInmediata(NEGOCIO_ID, DIA_UTC, 100, AHORA);
-        orden.verify(controlPlanService).registrarPaginasPrueba(NEGOCIO_ID, 1, AHORA);
         orden.verify(lectorCuadernoPort).leer(any(), any(), any());
     }
 

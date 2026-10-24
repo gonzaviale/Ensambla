@@ -11,7 +11,6 @@ import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.procesamiento.ReservaIaService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.support.LecturasInmediatasDePrueba;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
@@ -61,9 +60,6 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
 
     @Autowired
     private LecturasInmediatasDePrueba consumoIaInmediatoService;
-
-    @Autowired
-    private ReservaIaService reservaIaService;
 
     @Autowired
     private ProcesamientoRepository procesamientoRepository;
@@ -140,7 +136,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
         givenPaginasPrueba(8);
         LoteTrabajo lote = givenLote();
 
-        List<Boolean> result = concurrently(() -> reservaIaService.reservar(lote, 2, 100, INICIO),
+        List<Boolean> result = concurrently(() -> reservar(lote, 2, 100, INICIO),
                 () -> registrar(INICIO));
 
         assertThat(result).containsExactlyInAnyOrder(true, false);
@@ -164,7 +160,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     void reservarShouldNotChargeRejectedReservation() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
 
-        boolean result = reservaIaService.reservar(givenLote(), 2, 1, INICIO);
+        boolean result = reservar(givenLote(), 2, 1, INICIO);
 
         assertThat(result).isFalse();
         assertThat(prueba().paginasIa()).isZero();
@@ -175,9 +171,9 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     void reservarShouldNotChargeSameClaimTwice() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
         LoteTrabajo lote = givenLote();
-        assertThat(reservaIaService.reservar(lote, 2, 100, INICIO)).isTrue();
+        assertThat(reservar(lote, 2, 100, INICIO)).isTrue();
 
-        boolean result = reservaIaService.reservar(lote, 2, 100, INICIO);
+        boolean result = reservar(lote, 2, 100, INICIO);
 
         assertThat(result).isFalse();
         assertThat(prueba().paginasIa()).isEqualTo(2);
@@ -188,7 +184,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     void finalizarShouldKeepChargeAfterTrialExpiry() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
         LoteTrabajo lote = givenLote();
-        assertThat(reservaIaService.reservar(lote, 2, 100, INICIO.plusDays(6))).isTrue();
+        assertThat(reservar(lote, 2, 100, INICIO.plusDays(6))).isTrue();
         pruebaPremiumService.vencer(negocioId, INICIO.plusDays(7));
 
         procesamientoRepository.finalizar(lote, new ResultadoIntento(null, "Timeout", false),
@@ -370,6 +366,11 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     }
 
     // --- act ---
+    private boolean reservar(LoteTrabajo lote, int paginas, int limiteDiario, OffsetDateTime ahora) {
+        return controlPlanService.reservarPaginasIa(lote.negocioId(), paginas, ahora,
+                () -> procesamientoRepository.reservar(lote, paginas, limiteDiario, ahora));
+    }
+
     private boolean iniciar(OffsetDateTime ahora) {
         pruebaPremiumService.iniciar(negocioId, ahora);
         return true;

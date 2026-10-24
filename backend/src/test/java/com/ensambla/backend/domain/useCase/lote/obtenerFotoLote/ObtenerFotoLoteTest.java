@@ -7,7 +7,6 @@ import com.ensambla.backend.domain.service.lote.LoteSubidaService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.useCase.lote.FotoArchivoResponse;
 import com.ensambla.backend.support.LoteTestData;
-import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,7 +34,7 @@ class ObtenerFotoLoteTest {
     private final LoteSubidaRepository loteSubidaRepository = mock(LoteSubidaRepository.class);
     private final ArchivoCuadernoPort archivoCuadernoPort = mock(ArchivoCuadernoPort.class);
     private final ObtenerFotoLote obtenerFotoLote = new ObtenerFotoLote(negocioService,
-            new LoteSubidaService(loteSubidaRepository, archivoCuadernoPort, new TransaccionDirecta()));
+            new LoteSubidaService(loteSubidaRepository, archivoCuadernoPort));
 
     @BeforeEach
     void givenNegocio() {

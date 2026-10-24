@@ -1,6 +1,5 @@
 package com.ensambla.backend.infrastructure.repository;
 
-import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.plan.FuncionPlan;
@@ -13,9 +12,10 @@ import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.procesamiento.ReservaIaService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
+import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistro;
+import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistroRequest;
 import com.ensambla.backend.support.LecturasInmediatasDePrueba;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import com.ensambla.backend.support.SuscripcionesDePrueba;
@@ -57,6 +57,9 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     private RegistroDatosService registroDatosService;
 
     @Autowired
+    private CrearRegistro crearRegistro;
+
+    @Autowired
     private SuscripcionesDePrueba suscripcionService;
 
     @Autowired
@@ -64,9 +67,6 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Autowired
     private LecturasInmediatasDePrueba consumoIaInmediatoService;
-
-    @Autowired
-    private ReservaIaService reservaIaService;
 
     @Autowired
     private UsoPlanRepository usoPlanRepository;
@@ -123,29 +123,14 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Un lote de filas que supera la cuota se rechaza completo")
-    void crearVariosShouldRejectWithoutPartialInserts() {
+    void validarAltaRegistrosShouldRejectBatchOverQuota() {
         UUID bloqueId = givenBloque("Productos");
         givenRegistros(bloqueId, 999);
-        List<Registro> nuevos = List.of(
-                Registro.nuevo(negocioId, bloqueId, Map.of(), AHORA),
-                Registro.nuevo(negocioId, bloqueId, Map.of(), AHORA));
 
-        assertThatThrownBy(() -> registroDatosService.crearVarios(negocioId, nuevos, AHORA))
+        assertThatThrownBy(() -> controlPlanService.validarAltaRegistros(negocioId, 2, AHORA))
                 .isInstanceOf(RestriccionPlanException.class);
 
         assertThat(usoPlanRepository.contarRegistros(negocioId)).isEqualTo(999);
-    }
-
-    @Test
-    @DisplayName("No acepta un lote interno que mezcle registros de otro negocio")
-    void crearVariosShouldRejectMixedNegocios() {
-        UUID bloqueId = givenBloque("Productos");
-        Registro ajeno = Registro.nuevo(UUID.randomUUID(), bloqueId, Map.of(), AHORA);
-
-        assertThatThrownBy(() -> registroDatosService.crearVarios(negocioId, List.of(ajeno), AHORA))
-                .isInstanceOf(BusinessRuleException.class);
-
-        assertThat(usoPlanRepository.contarRegistros(negocioId)).isZero();
     }
 
     @Test
@@ -174,7 +159,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         LoteTrabajo lote = givenLoteReclamado();
 
         List<Boolean> result = concurrently(
-                () -> reservaIaService.reservar(lote, 2, 100, AHORA),
+                () -> reservar(lote, 2, 100, AHORA),
                 this::registrarPaginaInmediata);
 
         assertThat(result).containsExactlyInAnyOrder(true, false);
@@ -224,7 +209,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     void finalizarShouldKeepOriginalReservationMonth() {
         LoteTrabajo lote = givenLoteReclamado();
         OffsetDateTime octubre = OffsetDateTime.parse("2026-10-31T23:59:00Z");
-        assertThat(reservaIaService.reservar(lote, 2, 100, octubre)).isTrue();
+        assertThat(reservar(lote, 2, 100, octubre)).isTrue();
 
         procesamientoRepository.finalizar(lote, new ResultadoIntento(null, "Timeout", false),
                 null, octubre.plusMinutes(2), null);
@@ -240,7 +225,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     void reservarShouldNotChargeWhenDailyReservationFails() {
         LoteTrabajo lote = givenLoteReclamado();
 
-        boolean result = reservaIaService.reservar(lote, 2, 1, AHORA);
+        boolean result = reservar(lote, 2, 1, AHORA);
 
         assertThat(result).isFalse();
         assertThat(usoPlanRepository.paginasEnPeriodo(negocioId,
@@ -363,9 +348,13 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     private boolean crearRegistro(UUID bloqueId) {
-        registroDatosService.crearVarios(
-                negocioId, List.of(Registro.nuevo(negocioId, bloqueId, Map.of(), AHORA)), AHORA);
+        crearRegistro.execute(new CrearRegistroRequest(usuarioId, bloqueId, Map.of()));
         return true;
+    }
+
+    private boolean reservar(LoteTrabajo lote, int paginas, int limiteDiario, OffsetDateTime ahora) {
+        return controlPlanService.reservarPaginasIa(lote.negocioId(), paginas, ahora,
+                () -> procesamientoRepository.reservar(lote, paginas, limiteDiario, ahora));
     }
 
     private boolean registrarPaginaInmediata() {

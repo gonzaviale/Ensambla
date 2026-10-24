@@ -1,12 +1,7 @@
-package com.ensambla.backend.domain.service.procesamiento;
+package com.ensambla.backend.domain.model.lectura;
 
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
-import com.ensambla.backend.domain.model.lectura.BloquePropuesto;
-import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
-import com.ensambla.backend.domain.model.lectura.DatoLeido;
-import com.ensambla.backend.domain.model.lectura.FilaLeida;
-import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
 import com.ensambla.backend.support.ProcesamientoTestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,9 +14,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class ValidacionLecturaServiceTest {
-
-    private final ValidacionLecturaService validacionLecturaService = new ValidacionLecturaService();
+class LecturaCuadernoValidacionTest {
 
     @ParameterizedTest
     @CsvSource({"NUMERO,10.25", "FECHA,2026-10-10", "SI_NO,true", "SI_NO,false", "OPCION,A", "TEXTO,algo"})
@@ -29,7 +22,7 @@ class ValidacionLecturaServiceTest {
     void validarShouldAcceptTypedValues(TipoCampo tipo, String valor) {
         LecturaCuaderno lectura = ProcesamientoTestData.lectura(tipo, valor, List.of("A"));
 
-        assertThatCode(() -> validacionLecturaService.validar(lectura)).doesNotThrowAnyException();
+        assertThatCode(lectura::validar).doesNotThrowAnyException();
     }
 
     @ParameterizedTest
@@ -38,7 +31,7 @@ class ValidacionLecturaServiceTest {
     void validarShouldRejectInvalidTypedValues(TipoCampo tipo, String valor) {
         LecturaCuaderno lectura = ProcesamientoTestData.lectura(tipo, valor, List.of("A"));
 
-        assertThatThrownBy(() -> validacionLecturaService.validar(lectura))
+        assertThatThrownBy(lectura::validar)
                 .isInstanceOf(LecturaCuadernoException.class).hasMessageContaining("no coincide");
     }
 
@@ -47,7 +40,7 @@ class ValidacionLecturaServiceTest {
     void validarShouldAcceptTextInRelacionCampo() {
         LecturaCuaderno lectura = ProcesamientoTestData.lectura(TipoCampo.RELACION, "Juan Pérez", List.of());
 
-        assertThatCode(() -> validacionLecturaService.validar(lectura)).doesNotThrowAnyException();
+        assertThatCode(lectura::validar).doesNotThrowAnyException();
     }
 
     @Test
@@ -55,7 +48,7 @@ class ValidacionLecturaServiceTest {
     void validarShouldAcceptNullValue() {
         LecturaCuaderno lectura = ProcesamientoTestData.lectura(TipoCampo.NUMERO, null, List.of());
 
-        assertThatCode(() -> validacionLecturaService.validar(lectura)).doesNotThrowAnyException();
+        assertThatCode(lectura::validar).doesNotThrowAnyException();
     }
 
     @Test
@@ -65,7 +58,7 @@ class ValidacionLecturaServiceTest {
         LecturaCuaderno lectura = givenLectura(
                 base.bloque(), List.of(base.filas().getFirst(), base.filas().getFirst()));
 
-        assertThatThrownBy(() -> validacionLecturaService.validar(lectura)).hasMessageContaining("repetido");
+        assertThatThrownBy(lectura::validar).hasMessageContaining("repetido");
     }
 
     @Test
@@ -74,7 +67,7 @@ class ValidacionLecturaServiceTest {
         LecturaCuaderno lectura = givenLectura(ProcesamientoTestData.lectura().bloque(),
                 List.of(new FilaLeida(1, 1, Map.of("monto", new DatoLeido("1", Double.NaN)))));
 
-        assertThatThrownBy(() -> validacionLecturaService.validar(lectura)).hasMessageContaining("finito");
+        assertThatThrownBy(lectura::validar).hasMessageContaining("finito");
     }
 
     @Test
@@ -83,7 +76,7 @@ class ValidacionLecturaServiceTest {
         BloquePropuesto bloque = new BloquePropuesto(
                 "a".repeat(121), null, ProcesamientoTestData.lectura().bloque().campos());
 
-        assertThatThrownBy(() -> validacionLecturaService.validar(givenLectura(bloque, List.of())))
+        assertThatThrownBy(() -> givenLectura(bloque, List.of()).validar())
                 .hasMessageContaining("120");
     }
 
@@ -93,7 +86,7 @@ class ValidacionLecturaServiceTest {
         BloquePropuesto bloque = new BloquePropuesto("Ventas", null,
                 List.of(new CampoPropuesto("No-valida", "Monto", TipoCampo.NUMERO, List.of())));
 
-        assertThatThrownBy(() -> validacionLecturaService.validar(givenLectura(bloque, List.of())))
+        assertThatThrownBy(() -> givenLectura(bloque, List.of()).validar())
                 .hasMessageContaining("clave");
     }
 
@@ -102,7 +95,7 @@ class ValidacionLecturaServiceTest {
     void validarShouldRejectBlankOptions() {
         LecturaCuaderno lectura = ProcesamientoTestData.lectura(TipoCampo.OPCION, "A", List.of("A", " "));
 
-        assertThatThrownBy(() -> validacionLecturaService.validar(lectura)).hasMessageContaining("opciones");
+        assertThatThrownBy(lectura::validar).hasMessageContaining("opciones");
     }
 
     @Test
@@ -110,7 +103,7 @@ class ValidacionLecturaServiceTest {
     void validarShouldRejectDuplicateOptions() {
         LecturaCuaderno lectura = ProcesamientoTestData.lectura(TipoCampo.OPCION, "A", List.of("A", "A"));
 
-        assertThatThrownBy(() -> validacionLecturaService.validar(lectura)).hasMessageContaining("opciones");
+        assertThatThrownBy(lectura::validar).hasMessageContaining("opciones");
     }
 
     private LecturaCuaderno givenLectura(BloquePropuesto bloque, List<FilaLeida> filas) {
@@ -123,7 +116,7 @@ class ValidacionLecturaServiceTest {
     void validarShouldRejectFormulaValues() {
         LecturaCuaderno lectura = ProcesamientoTestData.lectura(TipoCampo.FORMULA, "10", List.of());
 
-        assertThatThrownBy(() -> validacionLecturaService.validar(lectura))
+        assertThatThrownBy(lectura::validar)
                 .isInstanceOf(LecturaCuadernoException.class).hasMessageContaining("no coincide");
     }
 }

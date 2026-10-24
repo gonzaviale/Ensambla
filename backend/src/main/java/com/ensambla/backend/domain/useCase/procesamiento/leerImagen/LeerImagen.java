@@ -8,7 +8,6 @@ import com.ensambla.backend.domain.model.procesamiento.LecturaImagen;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
-import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
@@ -45,28 +44,24 @@ public class LeerImagen {
 
     private final PoliticaProcesamiento politicaProcesamiento;
 
-    private final TransaccionPort transaccionPort;
-
     private final Clock clock;
 
     public LeerImagenItem execute(LeerImagenRequest request) {
         ImagenCuaderno imagen = request.aImagenCuaderno();
         BloqueDeImagen bloque = request.aBloqueDeImagen();
         UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-        transaccionPort.ejecutar(() -> registrarConsumo(negocioId, OffsetDateTime.now(clock)));
+        registrarConsumo(negocioId, OffsetDateTime.now(clock));
         LecturaImagen lectura = leer(imagen, bloque, request.destinoExistente());
         return LeerImagenItem.de(lectura, umbralConfianza);
     }
 
     /** Registra el intento antes de salir al proveedor; un fallo o timeout también puede tener costo. */
     private void registrarConsumo(UUID negocioId, OffsetDateTime ahora) {
-        controlPlanService.validarPaginasIa(negocioId, 1, ahora);
         LocalDate dia = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate();
-        if (!usoPlanRepository.registrarPaginaInmediata(negocioId, dia, politicaProcesamiento.limiteDiario(), ahora)) {
-            throw new RestriccionPlanException("LIMITE_IA_DIARIO",
-                    "Se alcanzó el límite diario de páginas de IA. Probá mañana.");
+        if (!controlPlanService.reservarPaginasIa(negocioId, 1, ahora, () -> usoPlanRepository
+                .registrarPaginaInmediata(negocioId, dia, politicaProcesamiento.limiteDiario(), ahora))) {
+            throw new RestriccionPlanException("LIMITE_IA_DIARIO", PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO);
         }
-        controlPlanService.registrarPaginasPrueba(negocioId, 1, ahora);
     }
 
     private LecturaImagen leer(ImagenCuaderno imagen, BloqueDeImagen bloque, boolean destinoExistente) {

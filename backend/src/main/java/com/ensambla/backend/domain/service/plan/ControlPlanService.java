@@ -19,6 +19,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 
 @RequiredArgsConstructor
 public class ControlPlanService {
@@ -69,6 +70,23 @@ public class ControlPlanService {
 
     public boolean esPremium(UUID negocioId, OffsetDateTime ahora) {
         return vigente(negocioId, ahora).getCodigo() == CodigoPlan.PREMIUM;
+    }
+
+    /**
+     * Admite un intento de lectura con IA: valida la cuota mensual o de la prueba, hace la {@code reserva} diaria y, si
+     * entró, la descuenta de la prueba. Todo en una transacción con el negocio bloqueado.
+     *
+     * @return si la reserva diaria entró
+     */
+    public boolean reservarPaginasIa(UUID negocioId, int cantidad, OffsetDateTime ahora, BooleanSupplier reserva) {
+        return transaccionPort.ejecutar(() -> {
+            validarPaginasIa(negocioId, cantidad, ahora);
+            boolean reservada = reserva.getAsBoolean();
+            if (reservada) {
+                registrarPaginasPrueba(negocioId, cantidad, ahora);
+            }
+            return reservada;
+        });
     }
 
     /** Se cobra al admitir un intento. También cuentan errores y timeouts, sin duplicar al finalizar el lote. */

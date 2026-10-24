@@ -74,7 +74,7 @@ class CrearRegistroTest {
     @BeforeEach
     void setUp() {
         RegistroDatosService registroDatosService =
-                new RegistroDatosService(registroRepository, controlPlanService, new TransaccionDirecta());
+                new RegistroDatosService(registroRepository, new TransaccionDirecta());
         crearRegistro = new CrearRegistro(negocioService, bloqueService, campoService, registroDatosService,
                 controlPlanService, registroRepository, new TransaccionDirecta(),
                 Clock.fixed(INSTANTE, ZoneOffset.UTC));

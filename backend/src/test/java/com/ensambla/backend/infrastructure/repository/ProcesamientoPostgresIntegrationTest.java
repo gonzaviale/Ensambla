@@ -8,10 +8,8 @@ import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
-import com.ensambla.backend.domain.service.procesamiento.ConexionesLecturaService;
-import com.ensambla.backend.domain.service.procesamiento.ProcesamientoService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
-import com.ensambla.backend.domain.service.procesamiento.ReservaIaService;
 import com.ensambla.backend.domain.useCase.procesamiento.procesarLote.ProcesarLote;
 import com.ensambla.backend.infrastructure.ia.ArchivoCuadernoLocalAdapter;
 import com.ensambla.backend.infrastructure.ia.IaProperties;
@@ -65,7 +63,7 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
     private ProcesamientoRepository procesamientoRepository;
 
     @Autowired
-    private ReservaIaService reservaIaService;
+    private ControlPlanService controlPlanService;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -96,11 +94,9 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
         Files.createDirectory(archivos.resolve(negocioId.toString()));
         Files.write(archivos.resolve(negocioId + "/primera.jpg"), new byte[]{1, 2, 3});
         Files.write(archivos.resolve(negocioId + "/segunda.jpg"), new byte[]{4, 5, 6});
-        var procesamientoService = new ProcesamientoService(procesamientoRepository,
-                new ArchivoCuadernoLocalAdapter(archivos, 10), lectorCuadernoPort,
-                new PropuestaLecturaService(), new ConexionesLecturaService(null, null),
-                ProcesamientoTestData.politica(), reservaIaService);
-        var useCase = new ProcesarLote(procesamientoService, Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
+        var useCase = new ProcesarLote(procesamientoRepository, new ArchivoCuadernoLocalAdapter(archivos, 10),
+                lectorCuadernoPort, new PropuestaLecturaService(), null, null, controlPlanService,
+                ProcesamientoTestData.politica(), Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
 
         useCase.execute();
         useCase.execute();

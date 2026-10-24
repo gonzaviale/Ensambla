@@ -1,4 +1,4 @@
-package com.ensambla.backend.domain.service.procesamiento;
+package com.ensambla.backend.domain.useCase.procesamiento.procesarLote;
 
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
@@ -11,19 +11,33 @@ import com.ensambla.backend.domain.model.lectura.FilaLeida;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
 import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
 import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
+import com.ensambla.backend.domain.model.procesamiento.FotoLectura;
+import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
+import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
+import com.ensambla.backend.domain.port.LectorCuadernoPort;
+import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.domain.service.campo.CampoService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
+import com.ensambla.backend.support.ProcesamientoTestData;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,7 +49,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class ConexionesLecturaServiceTest {
+/** Cómo el worker convierte el texto leído en columnas de conexión en la fila a la que apunta. */
+class ProcesarLoteConexionesTest {
 
     private static final UUID NEGOCIO_ID = UUID.fromString("10000000-0000-0000-0000-000000000001");
     private static final UUID VENTAS_ID = UUID.fromString("30000000-0000-0000-0000-000000000001");
@@ -46,6 +61,9 @@ class ConexionesLecturaServiceTest {
     private static final UUID JUAN_ID = UUID.fromString("50000000-0000-0000-0000-000000000001");
     private static final UUID OTRO_JUAN_ID = UUID.fromString("50000000-0000-0000-0000-000000000002");
     private static final ConsumoIa CONSUMO = new ConsumoIa("simulado", "demo", "v2", 1, 10, 20, 30);
+    private static final LoteTrabajo LOTE = new LoteTrabajo(UUID.randomUUID(), NEGOCIO_ID, null, UUID.randomUUID(), 1);
+    private static final FotoLectura FOTO = new FotoLectura("foto.jpg", "image/jpeg");
+    private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
 
     @Mock
     private CampoService campoService;
@@ -53,12 +71,33 @@ class ConexionesLecturaServiceTest {
     @Mock
     private RegistroDatosService registroDatosService;
 
-    @InjectMocks
-    private ConexionesLecturaService conexionesLecturaService;
+    @Mock
+    private ProcesamientoRepository procesamientoRepository;
+
+    @Mock
+    private ArchivoCuadernoPort archivoCuadernoPort;
+
+    @Mock
+    private LectorCuadernoPort lectorCuadernoPort;
+
+    @Mock
+    private PropuestaLecturaService propuestaLecturaService;
+
+    @Mock
+    private ControlPlanService controlPlanService;
+
+    private ProcesarLote procesarLote;
+
+    @BeforeEach
+    void setUp() {
+        procesarLote = new ProcesarLote(procesamientoRepository, archivoCuadernoPort, lectorCuadernoPort,
+                propuestaLecturaService, campoService, registroDatosService, controlPlanService,
+                ProcesamientoTestData.politica(), Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
+    }
 
     @Test
     @DisplayName("Reemplaza el texto leído por el id de la única fila de la tabla conectada que se llama igual")
-    void resolverShouldReplaceTextWithRowId() {
+    void executeShouldReplaceTextWithRowId() {
         givenClientes(registro(JUAN_ID, "Juan Pérez"));
         PropuestaLectura propuesta = propuesta(fila(1, dato("juan perez", 0.8)));
 
@@ -73,7 +112,7 @@ class ConexionesLecturaServiceTest {
 
     @Test
     @DisplayName("Al resolver las conexiones conserva los campos nuevos detectados")
-    void resolverShouldKeepNewFields() {
+    void executeShouldKeepNewFields() {
         givenClientes(registro(JUAN_ID, "Juan Pérez"));
         PropuestaLectura base = propuesta(fila(1, dato("juan perez", 0.8)));
         CampoPropuesto telefono = new CampoPropuesto("telefono", "Teléfono", TipoCampo.TEXTO, List.of());
@@ -85,7 +124,7 @@ class ConexionesLecturaServiceTest {
 
     @Test
     @DisplayName("Si no hay ninguna fila con ese nombre deja la celda vacía, sin confianza, y avisa")
-    void resolverShouldLeaveEmptyWhenNothingMatches() {
+    void executeShouldLeaveEmptyWhenNothingMatches() {
         givenClientes(registro(JUAN_ID, "Juan Pérez"));
 
         PropuestaLectura result = resolver(propuesta(fila(1, dato("Mariana", 0.9))));
@@ -97,7 +136,7 @@ class ConexionesLecturaServiceTest {
 
     @Test
     @DisplayName("Si hay más de una fila con ese nombre no adivina: deja la celda vacía y avisa")
-    void resolverShouldLeaveEmptyWhenSeveralMatch() {
+    void executeShouldLeaveEmptyWhenSeveralMatch() {
         givenClientes(registro(JUAN_ID, "Juan"), registro(OTRO_JUAN_ID, "juan"));
 
         PropuestaLectura result = resolver(propuesta(fila(1, dato("Juan", 0.9))));
@@ -108,7 +147,7 @@ class ConexionesLecturaServiceTest {
 
     @Test
     @DisplayName("No cuenta como coincidencia una fila que sólo contiene el texto buscado")
-    void resolverShouldRequireTheWholeNameToMatch() {
+    void executeShouldRequireTheWholeNameToMatch() {
         givenClientes(registro(JUAN_ID, "Juan Pérez"));
 
         PropuestaLectura result = resolver(propuesta(fila(1, dato("Juan", 0.9))));
@@ -118,7 +157,7 @@ class ConexionesLecturaServiceTest {
 
     @Test
     @DisplayName("Consulta una sola vez cada nombre repetido y avisa una sola vez")
-    void resolverShouldLookUpEachDistinctTextOnce() {
+    void executeShouldLookUpEachDistinctTextOnce() {
         givenClientes(registro(JUAN_ID, "Juan Pérez"));
         PropuestaLectura propuesta = propuesta(
                 fila(1, dato("Juan Pérez", 0.9)), fila(2, dato("JUAN PEREZ", 0.7)),
@@ -136,7 +175,7 @@ class ConexionesLecturaServiceTest {
 
     @Test
     @DisplayName("Deja como están las celdas de conexión vacías o en blanco")
-    void resolverShouldIgnoreBlankValues() {
+    void executeShouldIgnoreBlankValues() {
         PropuestaLectura propuesta = propuesta(fila(1, new DatoLeido(null, 0.9)), fila(2, dato("  ", 0.9)));
 
         PropuestaLectura result = resolver(propuesta);
@@ -147,7 +186,7 @@ class ConexionesLecturaServiceTest {
 
     @Test
     @DisplayName("Una fila que no cargó la columna de conexión queda igual")
-    void resolverShouldIgnoreRowsWithoutTheColumn() {
+    void executeShouldIgnoreRowsWithoutTheColumn() {
         FilaLeida sinCliente = new FilaLeida(1, 1, Map.of("monto", new DatoLeido("100", 0.9)));
 
         PropuestaLectura result = resolver(propuesta(sinCliente));
@@ -157,7 +196,7 @@ class ConexionesLecturaServiceTest {
 
     @Test
     @DisplayName("Sin columnas de conexión devuelve la misma propuesta sin consultar nada")
-    void resolverShouldReturnSamePropuestaWithoutConexiones() {
+    void executeShouldReturnSamePropuestaWithoutConexiones() {
         LecturaCuaderno lectura = lectura(null, List.of(new CampoPropuesto("monto", "Monto", TipoCampo.NUMERO, List.of())),
                 List.of(fila(1, dato("Juan", 0.9))));
         PropuestaLectura propuesta = new PropuestaLectura(lectura, Map.of());
@@ -170,7 +209,7 @@ class ConexionesLecturaServiceTest {
 
     @Test
     @DisplayName("Una columna de conexión sin campo mapeado en el bloque queda como la leyó la IA")
-    void resolverShouldIgnoreConexionWithoutMappedCampo() {
+    void executeShouldIgnoreConexionWithoutMappedCampo() {
         PropuestaLectura propuesta = new PropuestaLectura(
                 lectura(VENTAS_ID, campos(), List.of(fila(1, dato("Juan", 0.9)))), Map.of());
 
@@ -180,7 +219,7 @@ class ConexionesLecturaServiceTest {
 
     @Test
     @DisplayName("Un campo mapeado que no es una conexión no se resuelve")
-    void resolverShouldIgnoreMappedCampoThatIsNotAConexion() {
+    void executeShouldIgnoreMappedCampoThatIsNotAConexion() {
         PropuestaLectura propuesta = new PropuestaLectura(
                 lectura(VENTAS_ID, campos(), List.of(fila(1, dato("Juan", 0.9)))),
                 Map.of("cliente", CAMPO_MONTO_ID));
@@ -191,7 +230,7 @@ class ConexionesLecturaServiceTest {
 
     @Test
     @DisplayName("Una propuesta para un bloque nuevo no tiene conexiones que resolver")
-    void resolverShouldIgnorePropuestaForNewBloque() {
+    void executeShouldIgnorePropuestaForNewBloque() {
         PropuestaLectura propuesta = new PropuestaLectura(
                 lectura(null, campos(), List.of(fila(1, dato("Juan", 0.9)))), Map.of());
 
@@ -243,7 +282,20 @@ class ConexionesLecturaServiceTest {
     }
 
     // --- act ---
+    /** Procesa un lote cuya lectura propone {@code propuesta} y devuelve la propuesta con la que finalizó. */
     private PropuestaLectura resolver(PropuestaLectura propuesta) {
-        return conexionesLecturaService.resolver(NEGOCIO_ID, propuesta, bloques());
+        when(procesamientoRepository.reclamar(eq(AHORA), any())).thenReturn(Optional.of(LOTE));
+        when(procesamientoRepository.fotos(LOTE)).thenReturn(List.of(FOTO));
+        when(archivoCuadernoPort.leer(NEGOCIO_ID, FOTO.clave())).thenReturn(new byte[]{1});
+        when(procesamientoRepository.bloques(NEGOCIO_ID)).thenReturn(bloques());
+        when(controlPlanService.reservarPaginasIa(eq(NEGOCIO_ID), eq(1), eq(AHORA), any())).thenReturn(true);
+        when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(propuesta.lectura());
+        when(propuestaLecturaService.proponer(propuesta.lectura(), bloques(), null)).thenReturn(propuesta);
+
+        procesarLote.execute();
+
+        ArgumentCaptor<ResultadoIntento> resultado = ArgumentCaptor.forClass(ResultadoIntento.class);
+        verify(procesamientoRepository).finalizar(eq(LOTE), resultado.capture(), any(), eq(AHORA), any());
+        return resultado.getValue().propuesta();
     }
 }

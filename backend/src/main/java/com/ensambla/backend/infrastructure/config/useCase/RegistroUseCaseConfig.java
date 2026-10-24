@@ -96,8 +96,7 @@ public class RegistroUseCaseConfig {
     @Bean
     public RegistroDatosService registroDatosService(
             RegistroRepository registroRepository,
-            ControlPlanService controlPlanService,
             TransaccionPort transaccionPort) {
-        return new RegistroDatosService(registroRepository, controlPlanService, transaccionPort);
+        return new RegistroDatosService(registroRepository, transaccionPort);
     }
 }

@@ -1,6 +1,5 @@
 package com.ensambla.backend.domain.service.registro;
 
-import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.campo.Campo;
@@ -9,7 +8,6 @@ import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import lombok.RequiredArgsConstructor;
 
 import java.time.OffsetDateTime;
@@ -29,21 +27,9 @@ public class RegistroDatosService {
 
     private final RegistroRepository registroRepository;
 
-    private final ControlPlanService controlPlanService;
-
     private final TransaccionPort transaccionPort;
 
     /** Guarda registros ya validados (por ejemplo, los que salen de una lectura del cuaderno). */
-    public List<Registro> crearVarios(UUID negocioId, List<Registro> registros, OffsetDateTime ahora) {
-        return transaccionPort.ejecutar(() -> {
-            if (registros.stream().anyMatch(registro -> !negocioId.equals(registro.getNegocioId()))) {
-                throw new BusinessRuleException("Los registros deben pertenecer al negocio de la sesión");
-            }
-            controlPlanService.validarAltaRegistros(negocioId, registros.size(), ahora);
-            return registroRepository.saveAll(registros);
-        });
-    }
-
     public Registro obtener(UUID registroId, UUID negocioId) {
         return registroRepository.findByIdAndNegocioId(registroId, negocioId)
                 .orElseThrow(() -> new ResourceNotFoundException("El registro no existe"));
