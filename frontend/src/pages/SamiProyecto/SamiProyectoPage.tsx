@@ -85,7 +85,11 @@ export function SamiProyectoPage() {
             <div className="conversation-scroll" ref={mensajes}>
               <div className="conversation-messages" aria-live="polite">
                 {sami.mensajes.map((mensaje, indice) => (
-                  <BurbujasDeConversacion key={indice} quien={mensaje.quien} texto={mensaje.texto} />
+                  <BurbujasDeConversacion
+                    key={indice}
+                    quien={mensaje.quien}
+                    texto={mensaje.texto}
+                  />
                 ))}
                 {sami.pensando && (
                   <div className="thinking-bubble">
