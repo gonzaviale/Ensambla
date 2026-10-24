@@ -49,7 +49,8 @@ describe('el taller de Sami', () => {
   it('empieza con el saludo, los ejemplos y el lienzo vacío', async () => {
     await abrirTaller();
 
-    expect(screen.getByText(/Hola, Ana Pérez\. Contame qué hacés/)).toBeVisible();
+    expect(screen.getByText('Hola, Ana Pérez.')).toBeVisible();
+    expect(screen.getByText('Contame qué hacés y cómo te organizás hoy.')).toBeVisible();
     expect(screen.getByText('O probá con un ejemplo:')).toBeVisible();
     expect(screen.getByText('TU IDEA VA A APARECER ACÁ')).toBeVisible();
     expect(screen.getByText('Tu idea es el punto de partida')).toBeVisible();
@@ -70,7 +71,8 @@ describe('el taller de Sami', () => {
 
     expect(screen.getByLabelText('Nombre de tu sistema')).toHaveValue('Mi almacén');
     expect(screen.getByText('Propuesta sin guardar')).toBeVisible();
-    expect(screen.getByText(/Te armé los productos .+ Ya lo podés ver a la derecha/)).toBeVisible();
+    expect(screen.getByText(/^Te armé los productos/)).toBeVisible();
+    expect(screen.getByText('Ya lo podés ver a la derecha.')).toBeVisible();
     expect(screen.getByText('3 piezas conectadas')).toBeVisible();
     expect(screen.getByLabelText('¿Qué le falta? ¿Qué cambiarías?')).toBeVisible();
   });

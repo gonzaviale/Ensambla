@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Btn } from '@/components/sistema/Btn';
+import { BurbujasDeConversacion } from '@/components/sistema/BurbujasDeConversacion';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
 import { Sami } from '@/components/sistema/Sami';
@@ -81,25 +82,25 @@ export function SamiProyectoPage() {
                 </p>
               </div>
             </header>
-            <div className="conversation-messages" aria-live="polite" ref={mensajes}>
-              {sami.mensajes.map((mensaje, indice) => (
-                <div key={indice} className={`conversation-bubble ${mensaje.quien}`}>
-                  {mensaje.texto}
-                </div>
-              ))}
-              {sami.pensando && (
-                <div className="thinking-bubble">
-                  <Sami pose="think" />
-                  <div>
-                    <strong>Estoy pensando qué te conviene…</strong>
-                    <span>
-                      <i />
-                      <i />
-                      <i />
-                    </span>
+            <div className="conversation-scroll" ref={mensajes}>
+              <div className="conversation-messages" aria-live="polite">
+                {sami.mensajes.map((mensaje, indice) => (
+                  <BurbujasDeConversacion key={indice} quien={mensaje.quien} texto={mensaje.texto} />
+                ))}
+                {sami.pensando && (
+                  <div className="thinking-bubble">
+                    <Sami pose="think" />
+                    <div>
+                      <strong>Estoy pensando qué te conviene…</strong>
+                      <span>
+                        <i />
+                        <i />
+                        <i />
+                      </span>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
             {sami.pregunta && (
               <div className="feedback-chips" role="group" aria-label="Respuestas rápidas">

@@ -9,6 +9,7 @@ import {
 import { getRouteApi } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
 import { BotoneraDeDudas } from '@/components/sistema/BotoneraDeDudas';
+import { BurbujasDeConversacion } from '@/components/sistema/BurbujasDeConversacion';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
 import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
@@ -280,18 +281,12 @@ export function TallerPage() {
             <div className="conversation-scroll" ref={mensajes}>
               <div className="conversation-messages" aria-live="polite">
                 {taller.mensajes.map((mensaje, indice) => (
-                  <div key={indice} className={`conversation-bubble ${mensaje.quien}`}>
-                    {mensaje.foto && (
-                      <img
-                        className="conversation-photo"
-                        src={mensaje.foto}
-                        alt={
-                          mensaje.quien === 'you' ? 'La foto que le mandaste a Sami' : 'Una foto'
-                        }
-                      />
-                    )}
-                    {mensaje.texto}
-                  </div>
+                  <BurbujasDeConversacion
+                    key={indice}
+                    quien={mensaje.quien}
+                    texto={mensaje.texto}
+                    foto={mensaje.foto}
+                  />
                 ))}
                 {taller.pensando && (
                   <div className="thinking-bubble" data-tour="describe-pensando">
