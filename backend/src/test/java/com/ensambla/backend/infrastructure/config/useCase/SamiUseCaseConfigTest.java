@@ -1,8 +1,10 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.sami.ConsumoIaSami;
 import com.ensambla.backend.domain.model.sami.PropuestaIaSami;
 import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.SamiIaPort;
 import com.ensambla.backend.domain.port.TallerIaPort;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
@@ -26,7 +28,6 @@ import org.junit.jupiter.api.Test;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,7 +37,7 @@ import static org.mockito.Mockito.when;
 
 class SamiUseCaseConfigTest {
 
-    private static final UUID USUARIO_ID = UUID.randomUUID();
+    private static final UsuarioId USUARIO_ID = UsuarioId.nuevo();
     private static final ConsumoIaSami CONSUMO = new ConsumoIaSami("simulado", "rapido", 1, 1);
 
     private final SamiUseCaseConfig config = new SamiUseCaseConfig();
@@ -86,7 +87,7 @@ class SamiUseCaseConfigTest {
     @DisplayName("El wiring del taller usa el límite diario propio del taller")
     void conversarEnTallerUseCaseShouldWireTallerLimit() {
         TallerIaPort tallerIaPort = mock(TallerIaPort.class);
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(UUID.randomUUID());
+        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NegocioId.nuevo());
         when(consumoSamiRepository.reservar(any(), any(), eq(11), any())).thenReturn(true);
         when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa("Hola", List.of(), CONSUMO));
 
@@ -109,6 +110,6 @@ class SamiUseCaseConfigTest {
         when(plantillaRepository.findAllParaProyectoActivas()).thenReturn(SamiPruebas.plantillas());
         return config.conversarConSami(negocioService, plantillaRepository, SamiPruebas.diccionarioReal(), samiIaPort,
                         consumoSamiRepository, Clock.systemUTC(), properties)
-                .execute(new ConversarConSamiRequest(UUID.randomUUID(), "vendo velas", List.of()));
+                .execute(new ConversarConSamiRequest(UsuarioId.nuevo(), "vendo velas", List.of()));
     }
 }

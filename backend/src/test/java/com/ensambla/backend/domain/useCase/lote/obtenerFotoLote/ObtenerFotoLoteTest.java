@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.lote.obtenerFotoLote;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.lote.FotoId;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
 import com.ensambla.backend.domain.service.lote.LoteSubidaService;
@@ -13,7 +14,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static com.ensambla.backend.support.LoteTestData.FOTO_ID;
 import static com.ensambla.backend.support.LoteTestData.JPEG;
@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
 
 class ObtenerFotoLoteTest {
 
-    private static final UUID FOTO_AJENA_ID = UUID.fromString("00000000-0000-4000-8000-000000000099");
+    private static final FotoId FOTO_AJENA_ID = FotoId.de("00000000-0000-4000-8000-000000000099");
 
     private final NegocioService negocioService = mock(NegocioService.class);
     private final LoteSubidaRepository loteSubidaRepository = mock(LoteSubidaRepository.class);
@@ -82,7 +82,7 @@ class ObtenerFotoLoteTest {
     }
 
     // --- helpers ---
-    private static ObtenerFotoLoteRequest request(UUID fotoId) {
+    private static ObtenerFotoLoteRequest request(FotoId fotoId) {
         return new ObtenerFotoLoteRequest(USUARIO_ID, LOTE_ID, fotoId);
     }
 }

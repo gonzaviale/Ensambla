@@ -1,13 +1,13 @@
 package com.ensambla.backend.domain.service.zona;
 
 import com.ensambla.backend.domain.model.zona.Zona;
+import com.ensambla.backend.domain.model.zona.ZonaId;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.Optional;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class ZonaService {
@@ -21,7 +21,7 @@ public class ZonaService {
                 .min(Comparator.comparingDouble(zona -> zona.distanciaMetros(latitud, longitud)));
     }
 
-    public Optional<Zona> obtener(UUID zonaId) {
+    public Optional<Zona> obtener(ZonaId zonaId) {
         if (zonaId == null) {
             return Optional.empty();
         }

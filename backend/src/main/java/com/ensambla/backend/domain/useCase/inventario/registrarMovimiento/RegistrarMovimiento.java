@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.inventario.MovimientoStock;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Referencia;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.port.TransaccionPort;
@@ -21,7 +22,6 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class RegistrarMovimiento {
@@ -43,7 +43,7 @@ public class RegistrarMovimiento {
     private final Clock clock;
 
     public RegistrarMovimientoResponse execute(RegistrarMovimientoRequest request) {
-        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         MovimientoStock nuevo = MovimientoStock.nuevo(
                 negocioId,
                 request.registroId(),

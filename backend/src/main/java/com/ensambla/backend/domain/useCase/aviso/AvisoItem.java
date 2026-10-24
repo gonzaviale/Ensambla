@@ -1,18 +1,19 @@
 package com.ensambla.backend.domain.useCase.aviso;
 
 import com.ensambla.backend.domain.model.aviso.Aviso;
+import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.aviso.GrupoAviso;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public record AvisoItem(
-        UUID id,
-        UUID proyectoId,
+        AvisoId id,
+        ProyectoId proyectoId,
         TipoAviso tipo,
         GrupoAviso grupo,
         short prioridad,

@@ -1,6 +1,8 @@
 package com.ensambla.backend.infrastructure.repository;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.sami.ConsumoIaSami;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import org.junit.jupiter.api.AfterEach;
@@ -15,7 +17,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -35,23 +36,23 @@ class ConsumoSamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private UUID usuarioId;
-    private UUID negocioId;
+    private UsuarioId usuarioId;
+    private NegocioId negocioId;
 
     @BeforeEach
     void setUp() {
-        usuarioId = UUID.randomUUID();
-        negocioId = UUID.randomUUID();
+        usuarioId = UsuarioId.nuevo();
+        negocioId = NegocioId.nuevo();
         jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Prueba Sami')",
-                usuarioId, usuarioId + "@example.test");
+                usuarioId.valor(), usuarioId.valor() + "@example.test");
         jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Prueba Sami', ?)",
-                negocioId, usuarioId);
+                negocioId.valor(), usuarioId.valor());
     }
 
     @AfterEach
     void tearDown() {
-        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId);
-        jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId);
+        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId.valor());
+        jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId.valor());
     }
 
     @Test
@@ -70,7 +71,8 @@ class ConsumoSamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(consumoSamiRepository.reservar(negocioId, HOY, 0, AHORA)).isFalse();
 
         assertThat(jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM consumo_sami_diario WHERE negocio_id = ?", Integer.class, negocioId)).isZero();
+                "SELECT count(*) FROM consumo_sami_diario WHERE negocio_id = ?", Integer.class, negocioId.valor()))
+                        .isZero();
     }
 
     @Test
@@ -119,7 +121,7 @@ class ConsumoSamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
         Map<String, Object> fila = jdbcTemplate.queryForMap(
                 "SELECT consultas, tokens_entrada, tokens_salida, modelo FROM consumo_sami_diario"
-                        + " WHERE negocio_id = ? AND fecha = ?", negocioId, HOY);
+                        + " WHERE negocio_id = ? AND fecha = ?", negocioId.valor(), HOY);
         assertThat(fila.get("consultas")).isEqualTo(2);
         assertThat(fila.get("tokens_entrada")).isEqualTo(350L);
         assertThat(fila.get("tokens_salida")).isEqualTo(70L);
@@ -129,6 +131,6 @@ class ConsumoSamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     private int consultas(LocalDate fecha) {
         return jdbcTemplate.queryForObject(
                 "SELECT consultas FROM consumo_sami_diario WHERE negocio_id = ? AND fecha = ?",
-                Integer.class, negocioId, fecha);
+                Integer.class, negocioId.valor(), fecha);
     }
 }

@@ -16,13 +16,13 @@ import com.ensambla.backend.domain.useCase.proyecto.renombrarProyecto.RenombrarP
 import com.ensambla.backend.domain.useCase.proyecto.renombrarProyecto.RenombrarProyectoRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.proyecto.ProyectoPresentationMapper;
+import com.ensambla.backend.support.MockMvcDePrueba;
 import com.ensambla.backend.support.ProyectoTestData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 
@@ -64,7 +64,7 @@ class ProyectoControllerTest {
                 crearProyectoDesdePlantilla,
                 eliminarProyecto,
                 new ProyectoPresentationMapper());
-        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+        mockMvc = MockMvcDePrueba.standalone(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }

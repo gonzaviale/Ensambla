@@ -4,9 +4,13 @@ import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
@@ -36,13 +40,13 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class CampoServiceTest {
 
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID CAMPO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID OTRO_CAMPO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
-    private static final UUID PROYECTO_ID = UUID.fromString("e0000000-0000-4000-8000-000000000001");
-    private static final UUID OTRO_PROYECTO_ID = UUID.fromString("e0000000-0000-4000-8000-000000000002");
-    private static final UUID RELACIONADO_ID = UUID.fromString("b0000000-0000-4000-8000-000000000002");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final CampoId CAMPO_ID = CampoId.de("d0000000-0000-4000-8000-000000000001");
+    private static final CampoId OTRO_CAMPO_ID = CampoId.de("d0000000-0000-4000-8000-000000000002");
+    private static final ProyectoId PROYECTO_ID = ProyectoId.de("e0000000-0000-4000-8000-000000000001");
+    private static final ProyectoId OTRO_PROYECTO_ID = ProyectoId.de("e0000000-0000-4000-8000-000000000002");
+    private static final BloqueId RELACIONADO_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T15:00:00Z");
 
     @Mock
@@ -71,7 +75,7 @@ class CampoServiceTest {
     @Test
     @DisplayName("Devuelve el campo del negocio")
     void obtenerShouldReturnCampoOfNegocio() {
-        Campo campo = givenCampo(CAMPO_ID, "Precio", 0);
+        Campo campo = givenCampo(CAMPO_ID.valor(), "Precio", 0);
         when(campoRepository.findByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID)).thenReturn(Optional.of(campo));
 
         Campo result = campoService.obtener(CAMPO_ID, NEGOCIO_ID);
@@ -92,7 +96,7 @@ class CampoServiceTest {
     @Test
     @DisplayName("Crear carga los campos del bloque y guarda el nuevo al final")
     void crearShouldSaveCampoAfterTheLastOne() {
-        givenCamposDelBloque(givenCampo(OTRO_CAMPO_ID, "Producto", 1));
+        givenCamposDelBloque(givenCampo(OTRO_CAMPO_ID.valor(), "Producto", 1));
         givenSaveReturnsArgument();
 
         Campo result = campoService.crear(givenBloque(), configuracion(" Precio "), AHORA);
@@ -107,7 +111,7 @@ class CampoServiceTest {
     @Test
     @DisplayName("Crear con un nombre repetido en el bloque no guarda nada")
     void crearShouldNotSaveWhenNameIsTaken() {
-        givenCamposDelBloque(givenCampo(OTRO_CAMPO_ID, "Producto", 0));
+        givenCamposDelBloque(givenCampo(OTRO_CAMPO_ID.valor(), "Producto", 0));
         Bloque bloque = givenBloque();
 
         assertThatThrownBy(() -> campoService.crear(bloque, configuracion("producto"), AHORA))
@@ -180,7 +184,7 @@ class CampoServiceTest {
     @Test
     @DisplayName("Crear guarda una fórmula que usa campos numéricos del bloque")
     void crearShouldSaveFormulaThatUsesNumericFields() {
-        givenCamposDelBloque(givenCampo(OTRO_CAMPO_ID, "Cantidad", 0));
+        givenCamposDelBloque(givenCampo(OTRO_CAMPO_ID.valor(), "Cantidad", 0));
         givenSaveReturnsArgument();
 
         Campo result = campoService.crear(givenBloque(), formula("{" + OTRO_CAMPO_ID + "} * 2"), AHORA);
@@ -192,7 +196,7 @@ class CampoServiceTest {
     @Test
     @DisplayName("Crear rechaza una fórmula que cita un campo que no es del bloque")
     void crearShouldRejectFormulaWithUnknownField() {
-        givenCamposDelBloque(givenCampo(OTRO_CAMPO_ID, "Cantidad", 0));
+        givenCamposDelBloque(givenCampo(OTRO_CAMPO_ID.valor(), "Cantidad", 0));
         Bloque bloque = givenBloque();
         ConfiguracionCampo ajena = formula("{" + CAMPO_ID + "} * 2");
 
@@ -205,7 +209,7 @@ class CampoServiceTest {
     @Test
     @DisplayName("Crear rechaza una fórmula que cita un campo que no es numérico")
     void crearShouldRejectFormulaWithNonNumericField() {
-        Campo texto = givenCampo(OTRO_CAMPO_ID, "Nombre", 0);
+        Campo texto = givenCampo(OTRO_CAMPO_ID.valor(), "Nombre", 0);
         texto.setTipo(TipoCampo.TEXTO);
         givenCamposDelBloque(texto);
         Bloque bloque = givenBloque();
@@ -224,7 +228,7 @@ class CampoServiceTest {
         when(campoRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
-    private void givenBloqueRelacionado(UUID proyectoId) {
+    private void givenBloqueRelacionado(ProyectoId proyectoId) {
         Bloque relacionado = Bloque.builder().id(RELACIONADO_ID).negocioId(NEGOCIO_ID).proyectoId(proyectoId).build();
         when(bloqueRepository.findByIdAndNegocioId(RELACIONADO_ID, NEGOCIO_ID)).thenReturn(Optional.of(relacionado));
     }
@@ -236,7 +240,7 @@ class CampoServiceTest {
 
     private Campo givenCampo(UUID id, String nombre, int posicion) {
         return Campo.builder()
-                .id(id)
+                .id(CampoId.de(id))
                 .negocioId(NEGOCIO_ID)
                 .bloqueId(BLOQUE_ID)
                 .nombre(nombre)
@@ -258,7 +262,7 @@ class CampoServiceTest {
     }
 
     private Campo givenFormula(UUID id, String nombre, String expresion) {
-        return Campo.builder().id(id).negocioId(NEGOCIO_ID).bloqueId(BLOQUE_ID).nombre(nombre)
+        return Campo.builder().id(CampoId.de(id)).negocioId(NEGOCIO_ID).bloqueId(BLOQUE_ID).nombre(nombre)
                 .tipo(TipoCampo.FORMULA).formula(expresion).posicion((short) 1).build();
     }
 }

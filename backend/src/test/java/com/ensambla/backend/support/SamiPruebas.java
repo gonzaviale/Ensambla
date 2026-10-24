@@ -5,12 +5,14 @@ import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.BloquePlantilla;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.CampoPlantilla;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
 import com.ensambla.backend.domain.model.sami.DiccionarioSami;
 import com.ensambla.backend.domain.model.sami.RespuestaSami;
 import com.ensambla.backend.domain.model.sami.taller.CatalogoComponentes;
 import com.ensambla.backend.domain.model.sami.taller.KitRubro;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.SamiIaPort;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
@@ -27,7 +29,6 @@ import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockingDetails;
@@ -78,7 +79,7 @@ public final class SamiPruebas {
     }
 
     public static PlantillaProyecto plantilla(String nombre, CampoPlantilla... campos) {
-        return new PlantillaProyecto(UUID.randomUUID(), nombre, "",
+        return new PlantillaProyecto(PlantillaId.nuevo(), nombre, "",
                 new EstructuraPlantilla(List.of(new BloquePlantilla(nombre, List.of(campos)))));
     }
 
@@ -102,7 +103,7 @@ public final class SamiPruebas {
                 .map(respuesta -> new RespuestaSamiItem(respuesta.preguntaId(), respuesta.opcionId()))
                 .toList();
         try {
-            return Optional.of(conversacion.execute(new ConversarConSamiRequest(UUID.randomUUID(), texto, items))
+            return Optional.of(conversacion.execute(new ConversarConSamiRequest(UsuarioId.nuevo(), texto, items))
                     .propuesta());
         } catch (BusinessRuleException e) {
             if (mockingDetails(consumoSamiRepository).getInvocations().isEmpty()) {

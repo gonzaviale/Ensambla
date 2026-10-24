@@ -1,20 +1,20 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.domain.useCase.plantilla.listarPlantillas.ListarPlantillas;
 import com.ensambla.backend.domain.useCase.plantilla.listarPlantillas.ListarPlantillasResponse;
 import com.ensambla.backend.domain.useCase.plantilla.listarPlantillas.PlantillaItem;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.plantilla.PlantillaPresentationMapper;
+import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -24,7 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class PlantillaControllerTest {
 
-    private static final UUID PLANTILLA_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
+    private static final PlantillaId PLANTILLA_ID = PlantillaId.de("c0000000-0000-4000-8000-000000000001");
 
     private ListarPlantillas listarPlantillas;
 
@@ -33,7 +33,7 @@ class PlantillaControllerTest {
     @BeforeEach
     void setUp() {
         listarPlantillas = mock(ListarPlantillas.class);
-        mockMvc = MockMvcBuilders.standaloneSetup(
+        mockMvc = MockMvcDePrueba.standalone(
                         new PlantillaController(listarPlantillas, new PlantillaPresentationMapper()))
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
     }

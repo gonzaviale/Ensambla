@@ -1,5 +1,7 @@
 package com.ensambla.backend.domain.useCase.procesamiento.obtenerLectura;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
 import com.ensambla.backend.domain.model.lectura.ConsumoIa;
 import com.ensambla.backend.domain.model.lectura.FilaLeida;
@@ -10,10 +12,9 @@ import com.ensambla.backend.domain.useCase.procesamiento.ConsumoItem;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
-public record PropuestaItem(String tipoRegistro, String nombre, UUID bloqueExistenteId, List<CampoItem> campos,
-                           List<FilaItem> filas, List<String> advertencias, Map<String, UUID> mapeoCampos,
+public record PropuestaItem(String tipoRegistro, String nombre, BloqueId bloqueExistenteId, List<CampoItem> campos,
+                           List<FilaItem> filas, List<String> advertencias, Map<String, CampoId> mapeoCampos,
                            List<CampoItem> camposNuevos, ConsumoItem consumo) {
 
     /** {@code null} si la lectura todavía no tiene propuesta. */

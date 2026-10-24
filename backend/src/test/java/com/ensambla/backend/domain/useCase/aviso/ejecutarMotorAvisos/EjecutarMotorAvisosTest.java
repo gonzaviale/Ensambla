@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.aviso.ejecutarMotorAvisos;
 
 import com.ensambla.backend.domain.model.aviso.Aviso;
+import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.BloqueInventario;
 import com.ensambla.backend.domain.model.aviso.ContextoNegocio;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
@@ -10,6 +11,8 @@ import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
@@ -49,8 +52,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class EjecutarMotorAvisosTest {
 
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID OTRO_NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000002");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final NegocioId OTRO_NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000002");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-19T12:00:00Z");
     private static final OffsetDateTime ANTES = OffsetDateTime.parse("2026-10-19T11:00:00Z");
 
@@ -82,7 +85,7 @@ class EjecutarMotorAvisosTest {
         lenient().when(avisoRepository.save(any(Aviso.class))).thenAnswer(invocacion -> {
             Aviso aviso = invocacion.getArgument(0);
             if (aviso.getId() == null) {
-                aviso.setId(UUID.randomUUID());
+                aviso.setId(AvisoId.nuevo());
             }
             return aviso;
         });
@@ -329,8 +332,8 @@ class EjecutarMotorAvisosTest {
     @DisplayName("Ignora los campos sin clave semántica")
     void executeShouldIgnoreCamposWithoutClave() {
         Bloque bloque = AvisoTestData.bloqueInventario();
-        bloque.setCampos(List.of(AvisoTestData.campo(AvisoTestData.CAMPO_NOMBRE_ID, "name"),
-                Campo.builder().id(UUID.randomUUID()).clave(null).build()));
+        bloque.setCampos(List.of(AvisoTestData.campo(AvisoTestData.CAMPO_NOMBRE_ID.valor(), "name"),
+                Campo.builder().id(CampoId.nuevo()).clave(null).build()));
         givenProyecto(bloque);
         when(registroRepository.findAllByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID))
                 .thenReturn(List.of());
@@ -411,7 +414,7 @@ class EjecutarMotorAvisosTest {
 
     private static Aviso givenAvisoDe(ResultadoRegla resultado, EstadoAviso estado) {
         Aviso aviso = Aviso.nuevo(NEGOCIO_ID, TipoAviso.STOCK, resultado, ANTES);
-        aviso.setId(UUID.randomUUID());
+        aviso.setId(AvisoId.nuevo());
         aviso.setEstado(estado);
         if (estado == EstadoAviso.DESCARTADO || estado == EstadoAviso.APLICADO) {
             aviso.setResueltoEn(ANTES);

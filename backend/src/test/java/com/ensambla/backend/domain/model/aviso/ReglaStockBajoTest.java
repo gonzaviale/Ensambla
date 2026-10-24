@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.model.aviso;
 
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.support.AvisoTestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -7,13 +8,12 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ReglaStockBajoTest {
 
-    private static final UUID REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
+    private static final RegistroId REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
 
     private final ReglaStockBajo regla = new ReglaStockBajo();
 
@@ -26,7 +26,7 @@ class ReglaStockBajoTest {
     @Test
     @DisplayName("Un producto agotado genera un aviso urgente")
     void evaluarShouldReturnUrgentAvisoWhenProductIsSoldOut() {
-        List<ResultadoRegla> resultados = whenEvaluar(AvisoTestData.registro(REGISTRO_ID, "Yerba", 0, 5));
+        List<ResultadoRegla> resultados = whenEvaluar(AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 0, 5));
 
         assertThat(resultados).singleElement().satisfies(resultado -> {
             assertThat(resultado.prioridad()).isEqualTo((short) 3);
@@ -40,7 +40,7 @@ class ReglaStockBajoTest {
     @Test
     @DisplayName("Un producto por debajo del mínimo genera un aviso para hoy")
     void evaluarShouldReturnAvisoForTodayWhenProductIsBelowMinimum() {
-        List<ResultadoRegla> resultados = whenEvaluar(AvisoTestData.registro(REGISTRO_ID, "Yerba", 3, 5));
+        List<ResultadoRegla> resultados = whenEvaluar(AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 3, 5));
 
         assertThat(resultados).singleElement().satisfies(resultado -> {
             assertThat(resultado.prioridad()).isEqualTo((short) 2);
@@ -57,7 +57,7 @@ class ReglaStockBajoTest {
     @Test
     @DisplayName("Un producto agotado sin mínimo avisa que se agotó y sugiere pedir diez")
     void evaluarShouldSuggestTenWhenProductHasNoMinimum() {
-        List<ResultadoRegla> resultados = whenEvaluar(AvisoTestData.registro(REGISTRO_ID, "Azúcar", 0, null));
+        List<ResultadoRegla> resultados = whenEvaluar(AvisoTestData.registro(REGISTRO_ID.valor(), "Azúcar", 0, null));
 
         assertThat(resultados).singleElement().satisfies(resultado -> {
             assertThat(resultado.detalle()).isEqualTo("No te quedan unidades. Para no quedarte corto, pedí 10.");
@@ -70,7 +70,7 @@ class ReglaStockBajoTest {
     @Test
     @DisplayName("Pide al menos una unidad y escribe los decimales con coma")
     void evaluarShouldAskForAtLeastOneUnitAndUseCommaDecimals() {
-        List<ResultadoRegla> resultados = whenEvaluar(AvisoTestData.registro(REGISTRO_ID, "Harina", 1.5, 1.5));
+        List<ResultadoRegla> resultados = whenEvaluar(AvisoTestData.registro(REGISTRO_ID.valor(), "Harina", 1.5, 1.5));
 
         assertThat(resultados).singleElement().satisfies(resultado ->
                 assertThat(resultado.detalle())
@@ -80,31 +80,31 @@ class ReglaStockBajoTest {
     @Test
     @DisplayName("Un producto con stock por encima del mínimo no genera aviso")
     void evaluarShouldReturnNothingWhenStockIsAboveMinimum() {
-        assertThat(whenEvaluar(AvisoTestData.registro(REGISTRO_ID, "Yerba", 6, 5))).isEmpty();
+        assertThat(whenEvaluar(AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 6, 5))).isEmpty();
     }
 
     @Test
     @DisplayName("Un producto con stock y sin mínimo no genera aviso")
     void evaluarShouldReturnNothingWhenThereIsStockAndNoMinimum() {
-        assertThat(whenEvaluar(AvisoTestData.registro(REGISTRO_ID, "Yerba", 1, null))).isEmpty();
+        assertThat(whenEvaluar(AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 1, null))).isEmpty();
     }
 
     @Test
     @DisplayName("Un mínimo en cero es lo mismo que no tener mínimo")
     void evaluarShouldTreatZeroMinimumAsNoMinimum() {
-        assertThat(whenEvaluar(AvisoTestData.registro(REGISTRO_ID, "Yerba", 3, 0))).isEmpty();
+        assertThat(whenEvaluar(AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 3, 0))).isEmpty();
     }
 
     @Test
     @DisplayName("Un producto que no cargó la cantidad no genera aviso")
     void evaluarShouldReturnNothingWhenQuantityIsMissing() {
-        assertThat(whenEvaluar(AvisoTestData.registro(REGISTRO_ID, "Yerba", null, 5))).isEmpty();
+        assertThat(whenEvaluar(AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", null, 5))).isEmpty();
     }
 
     @Test
     @DisplayName("Un producto sin nombre se nombra como un producto sin nombre")
     void evaluarShouldUseGenericNameWhenProductHasNoName() {
-        List<ResultadoRegla> resultados = whenEvaluar(AvisoTestData.registro(REGISTRO_ID, "  ", 0, null));
+        List<ResultadoRegla> resultados = whenEvaluar(AvisoTestData.registro(REGISTRO_ID.valor(), "  ", 0, null));
 
         assertThat(resultados).singleElement().satisfies(resultado ->
                 assertThat(resultado.titulo()).isEqualTo("Te quedaste sin Un producto sin nombre"));
@@ -113,7 +113,7 @@ class ReglaStockBajoTest {
     @Test
     @DisplayName("Un producto que no cargó el nombre se nombra como un producto sin nombre")
     void evaluarShouldUseGenericNameWhenNameIsMissing() {
-        List<ResultadoRegla> resultados = whenEvaluar(AvisoTestData.registro(REGISTRO_ID, null, 0, null));
+        List<ResultadoRegla> resultados = whenEvaluar(AvisoTestData.registro(REGISTRO_ID.valor(), null, 0, null));
 
         assertThat(resultados.get(0).titulo()).isEqualTo("Te quedaste sin Un producto sin nombre");
     }
@@ -122,7 +122,7 @@ class ReglaStockBajoTest {
     @DisplayName("Con tabla de entradas la acción es registrar una entrada")
     void evaluarShouldSuggestRegisteringEntryWhenProjectHasEntradas() {
         ContextoNegocio contexto = new ContextoNegocio(AvisoTestData.NEGOCIO_ID, List.of(AvisoTestData.inventario(
-                AvisoTestData.ENTRADAS_ID, AvisoTestData.registro(REGISTRO_ID, "Yerba", 0, null))));
+                AvisoTestData.ENTRADAS_ID, AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 0, null))));
 
         List<ResultadoRegla> resultados = regla.evaluar(contexto);
 
@@ -135,7 +135,7 @@ class ReglaStockBajoTest {
     @Test
     @DisplayName("Sin tabla de entradas la acción es abrir el producto")
     void evaluarShouldSuggestOpeningProductWhenProjectHasNoEntradas() {
-        List<ResultadoRegla> resultados = whenEvaluar(AvisoTestData.registro(REGISTRO_ID, "Yerba", 0, null));
+        List<ResultadoRegla> resultados = whenEvaluar(AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 0, null));
 
         assertThat(resultados.get(0).acciones()).containsExactly(Map.of(
                 "tipo", "ABRIR", "texto", "Ver producto",

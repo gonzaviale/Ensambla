@@ -1,7 +1,8 @@
 package com.ensambla.backend.domain.useCase.proyecto.renombrarProyecto;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record RenombrarProyectoRequest(UUID usuarioId, UUID proyectoId, String nombre) {
+public record RenombrarProyectoRequest(UsuarioId usuarioId, ProyectoId proyectoId, String nombre) {
 }
 

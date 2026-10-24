@@ -1,6 +1,6 @@
 package com.ensambla.backend.domain.useCase.plan.iniciarPrueba;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record IniciarPruebaRequest(UUID usuarioId) {
+public record IniciarPruebaRequest(UsuarioId usuarioId) {
 }

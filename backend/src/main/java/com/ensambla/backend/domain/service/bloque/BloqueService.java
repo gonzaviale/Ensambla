@@ -2,13 +2,14 @@ package com.ensambla.backend.domain.service.bloque;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import lombok.RequiredArgsConstructor;
 
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class BloqueService {
@@ -17,7 +18,7 @@ public class BloqueService {
 
     private final TransaccionPort transaccionPort;
 
-    public Bloque obtener(UUID bloqueId, UUID negocioId) {
+    public Bloque obtener(BloqueId bloqueId, NegocioId negocioId) {
         return bloqueRepository.findByIdAndNegocioId(bloqueId, negocioId)
                 .orElseThrow(() -> new ResourceNotFoundException("El bloque no existe"));
     }

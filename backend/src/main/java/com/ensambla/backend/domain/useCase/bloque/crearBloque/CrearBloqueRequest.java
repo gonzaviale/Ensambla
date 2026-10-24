@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.bloque.crearBloque;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record CrearBloqueRequest(UUID usuarioId, UUID proyectoId, String nombre) {
+public record CrearBloqueRequest(UsuarioId usuarioId, ProyectoId proyectoId, String nombre) {
 }

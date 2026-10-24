@@ -10,7 +10,6 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -19,7 +18,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Plan {
 
-    private UUID id;
+    private PlanId id;
 
     private CodigoPlan codigo;
 

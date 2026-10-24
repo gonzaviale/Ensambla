@@ -1,12 +1,15 @@
 package com.ensambla.backend.domain.useCase.pago.contratarPremium;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pago.ContratoRemoto;
 import com.ensambla.backend.domain.model.pago.PreparacionRenovacion;
+import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.Plan;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
@@ -23,7 +26,6 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class ContratarPremium {
@@ -48,10 +50,10 @@ public class ContratarPremium {
 
     private final Clock clock;
 
-    public ConsultarRenovacionResponse execute(UUID usuarioId) {
+    public ConsultarRenovacionResponse execute(UsuarioId usuarioId) {
         pasarelaSuscripcionesPort.exigirDisponible();
         String email = usuarioService.obtenerActivo(usuarioId).getEmail();
-        UUID negocioId = negocioService.obtenerDelUsuario(usuarioId);
+        NegocioId negocioId = negocioService.obtenerDelUsuario(usuarioId);
         PreparacionRenovacion preparacion = preparar(negocioId, OffsetDateTime.now(clock));
         if (preparacion.nueva()) {
             ContratoRemoto remoto = pasarelaSuscripcionesPort.crear(preparacion.renovacion(), email);
@@ -65,7 +67,7 @@ public class ContratarPremium {
     }
 
     /** Reutiliza la renovación en curso; si no hay o la anterior se canceló, prepara una nueva para la pasarela. */
-    private PreparacionRenovacion preparar(UUID negocioId, OffsetDateTime ahora) {
+    private PreparacionRenovacion preparar(NegocioId negocioId, OffsetDateTime ahora) {
         return transaccionPort.ejecutar(() -> {
             usoPlanRepository.bloquearNegocio(negocioId);
             Optional<RenovacionPremium> anterior = renovacionPremiumService.consultar(negocioId);
@@ -89,7 +91,7 @@ public class ContratarPremium {
             // Mercado Pago conserva segundos: redondear hacia arriba evita anticipar el fin de la prueba.
             primerCobro = primerCobro.plusNanos(999_999_999).truncatedTo(ChronoUnit.SECONDS);
             RenovacionPremium renovacion = RenovacionPremium.builder()
-                    .id(UUID.randomUUID())
+                    .id(RenovacionId.nuevo())
                     .negocioId(negocioId)
                     .estado("PREPARANDO")
                     .importe(premium.getPrecioMensual())

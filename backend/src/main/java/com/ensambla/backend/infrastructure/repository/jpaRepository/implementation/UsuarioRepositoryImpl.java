@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.repository.jpaRepository.implementat
 
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.usuario.Usuario;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.usuario.UsuarioRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IUsuarioJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.UsuarioRepositoryMapper;
@@ -10,7 +11,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -37,7 +37,7 @@ public class UsuarioRepositoryImpl implements UsuarioRepository {
     }
 
     @Override
-    public Optional<Usuario> findById(UUID id) {
-        return jpa.findById(id).map(mapper::toDomain);
+    public Optional<Usuario> findById(UsuarioId id) {
+        return jpa.findById(id.valor()).map(mapper::toDomain);
     }
 }

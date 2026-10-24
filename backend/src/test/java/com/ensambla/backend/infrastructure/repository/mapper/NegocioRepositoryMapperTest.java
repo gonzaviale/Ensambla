@@ -1,7 +1,9 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
 import com.ensambla.backend.domain.model.negocio.Negocio;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
+import com.ensambla.backend.support.IdsDePrueba;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +22,9 @@ class NegocioRepositoryMapperTest {
 
         NegocioEntity result = negocioRepositoryMapper.toEntity(negocio);
 
-        assertThat(result).usingRecursiveComparison().isEqualTo(negocio);
+        assertThat(result).usingRecursiveComparison()
+                .withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor, IdsDePrueba.CAMPOS_DE_ID)
+                .isEqualTo(negocio);
     }
 
     @Test
@@ -30,7 +34,8 @@ class NegocioRepositoryMapperTest {
 
         Negocio result = negocioRepositoryMapper.toDomain(entity);
 
-        assertThat(result).usingRecursiveComparison().isEqualTo(entity);
+        assertThat(result).usingRecursiveComparison().withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor,
+                        IdsDePrueba.CAMPOS_DE_ID).isEqualTo(entity);
     }
 
     @Test
@@ -40,13 +45,14 @@ class NegocioRepositoryMapperTest {
 
         Negocio result = negocioRepositoryMapper.toDomain(entity);
 
-        assertThat(result).usingRecursiveComparison().isEqualTo(entity);
+        assertThat(result).usingRecursiveComparison().withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor,
+                        IdsDePrueba.CAMPOS_DE_ID).isEqualTo(entity);
     }
 
     // --- arrange ---
     private Negocio givenNegocio() {
         return Negocio.builder()
-                .id(USUARIO_ID)
+                .id(NegocioId.de(USUARIO_ID.valor()))
                 .nombre("Mi negocio")
                 .duenioId(USUARIO_ID)
                 .creadoEn(FECHA)

@@ -1,19 +1,19 @@
 package com.ensambla.backend.domain.useCase.plantilla.listarPlantillas;
 
 import com.ensambla.backend.domain.model.plantilla.Plantilla;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ListarPlantillasResponseTest {
 
-    private static final UUID PRIMER_ID = UUID.randomUUID();
-    private static final UUID SEGUNDO_ID = UUID.randomUUID();
+    private static final PlantillaId PRIMER_ID = PlantillaId.nuevo();
+    private static final PlantillaId SEGUNDO_ID = PlantillaId.nuevo();
     private static final String NOMBRE = "Inventario";
     private static final String DESCRIPCION = "Controlá tu stock";
     private static final String ICONO = "box";
@@ -45,7 +45,7 @@ class ListarPlantillasResponseTest {
     }
 
     // --- helpers ---
-    private Plantilla plantilla(UUID id) {
+    private Plantilla plantilla(PlantillaId id) {
         return Plantilla.builder()
                 .id(id)
                 .nombre(NOMBRE)

@@ -1,8 +1,10 @@
 package com.ensambla.backend.domain.useCase.reporte;
 
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.registro.TotalesRegistros;
 import com.ensambla.backend.domain.model.reporte.ReporteRegistros;
 import com.ensambla.backend.domain.model.reporte.TablaReporte;
@@ -23,15 +25,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ReporteDtosTest {
 
-    private static final UUID NOMBRE_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
-    private static final UUID CANTIDAD_ID = UUID.fromString("c0000000-0000-4000-8000-000000000002");
-    private static final UUID FECHA_ID = UUID.fromString("c0000000-0000-4000-8000-000000000003");
-    private static final UUID PAGADO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000004");
-    private static final UUID CLIENTE_ID = UUID.fromString("c0000000-0000-4000-8000-000000000005");
-    private static final UUID TOTAL_ID = UUID.fromString("c0000000-0000-4000-8000-000000000006");
-    private static final UUID ESTADO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000007");
-    private static final UUID BETO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID FILA_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
+    private static final CampoId NOMBRE_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
+    private static final CampoId CANTIDAD_ID = CampoId.de("c0000000-0000-4000-8000-000000000002");
+    private static final CampoId FECHA_ID = CampoId.de("c0000000-0000-4000-8000-000000000003");
+    private static final CampoId PAGADO_ID = CampoId.de("c0000000-0000-4000-8000-000000000004");
+    private static final CampoId CLIENTE_ID = CampoId.de("c0000000-0000-4000-8000-000000000005");
+    private static final CampoId TOTAL_ID = CampoId.de("c0000000-0000-4000-8000-000000000006");
+    private static final CampoId ESTADO_ID = CampoId.de("c0000000-0000-4000-8000-000000000007");
+    private static final RegistroId BETO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final RegistroId FILA_ID = RegistroId.de("d0000000-0000-4000-8000-000000000002");
     private static final OffsetDateTime CREADO = OffsetDateTime.parse("2026-10-13T01:30:00Z");
 
     @Test
@@ -61,7 +63,7 @@ class ReporteDtosTest {
                 CLIENTE_ID.toString(), BETO_ID.toString(),
                 TOTAL_ID.toString(), new BigDecimal("5"),
                 ESTADO_ID.toString(), "Entregado")).build();
-        Registro vacia = Registro.builder().id(UUID.randomUUID()).creadoEn(CREADO).valores(Map.of(
+        Registro vacia = Registro.builder().id(RegistroId.nuevo()).creadoEn(CREADO).valores(Map.of(
                 PAGADO_ID.toString(), false,
                 CLIENTE_ID.toString(), UUID.randomUUID().toString())).build();
         ReporteRegistros reporte = new ReporteRegistros(
@@ -121,16 +123,16 @@ class ReporteDtosTest {
 
     private static List<Campo> givenCampos() {
         return List.of(
-                campo(NOMBRE_ID, "Nombre", TipoCampo.TEXTO),
-                campo(CANTIDAD_ID, "Cantidad", TipoCampo.NUMERO),
-                campo(FECHA_ID, "Fecha", TipoCampo.FECHA),
-                campo(PAGADO_ID, "Pagado", TipoCampo.SI_NO),
-                campo(CLIENTE_ID, "Cliente", TipoCampo.RELACION),
-                campo(TOTAL_ID, "Total", TipoCampo.FORMULA),
-                campo(ESTADO_ID, "Estado", TipoCampo.OPCION));
+                campo(NOMBRE_ID.valor(), "Nombre", TipoCampo.TEXTO),
+                campo(CANTIDAD_ID.valor(), "Cantidad", TipoCampo.NUMERO),
+                campo(FECHA_ID.valor(), "Fecha", TipoCampo.FECHA),
+                campo(PAGADO_ID.valor(), "Pagado", TipoCampo.SI_NO),
+                campo(CLIENTE_ID.valor(), "Cliente", TipoCampo.RELACION),
+                campo(TOTAL_ID.valor(), "Total", TipoCampo.FORMULA),
+                campo(ESTADO_ID.valor(), "Estado", TipoCampo.OPCION));
     }
 
     private static Campo campo(UUID id, String nombre, TipoCampo tipo) {
-        return Campo.builder().id(id).nombre(nombre).tipo(tipo).build();
+        return Campo.builder().id(CampoId.de(id)).nombre(nombre).tipo(tipo).build();
     }
 }

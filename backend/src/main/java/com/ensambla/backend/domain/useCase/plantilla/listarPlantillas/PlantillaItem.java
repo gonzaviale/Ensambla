@@ -1,12 +1,12 @@
 package com.ensambla.backend.domain.useCase.plantilla.listarPlantillas;
 
 import com.ensambla.backend.domain.model.plantilla.Plantilla;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 
 import java.util.Map;
-import java.util.UUID;
 
 public record PlantillaItem(
-        UUID id,
+        PlantillaId id,
         String nombre,
         String descripcion,
         String icono,

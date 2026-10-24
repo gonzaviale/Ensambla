@@ -1,6 +1,10 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.registro.RegistroItem;
 import com.ensambla.backend.domain.useCase.registro.TotalesItem;
 import com.ensambla.backend.domain.useCase.reporte.GenerarReporteRequest;
@@ -10,12 +14,12 @@ import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporte
 import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporteResponse;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.reporte.ReportePresentationMapper;
+import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.security.Principal;
@@ -23,7 +27,6 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -37,10 +40,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class ReporteControllerTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID CAMPO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
-    private static final UUID REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final CampoId CAMPO_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
+    private static final RegistroId REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-13T12:00:00Z");
 
     private final Principal sesion = new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
@@ -53,7 +56,7 @@ class ReporteControllerTest {
     void setUp() {
         generarReporte = mock(GenerarReporte.class);
         exportarReporte = mock(ExportarReporte.class);
-        mockMvc = MockMvcBuilders.standaloneSetup(new ReporteController(
+        mockMvc = MockMvcDePrueba.standalone(new ReporteController(
                         generarReporte, exportarReporte, new ReportePresentationMapper()))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();

@@ -1,16 +1,18 @@
 package com.ensambla.backend.domain.useCase.registro;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.lote.FotoId;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
-import java.util.UUID;
 
 public record RegistroItem(
-        UUID id,
-        UUID bloqueId,
+        RegistroId id,
+        BloqueId bloqueId,
         Map<String, Object> valores,
-        UUID fotoOrigenId,
+        FotoId fotoOrigenId,
         OffsetDateTime creadoEn,
         OffsetDateTime actualizadoEn) {
 

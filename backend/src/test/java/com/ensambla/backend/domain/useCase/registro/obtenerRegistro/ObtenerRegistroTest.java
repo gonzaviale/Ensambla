@@ -1,9 +1,14 @@
 package com.ensambla.backend.domain.useCase.registro.obtenerRegistro;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
@@ -26,10 +31,10 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ObtenerRegistroTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID BLOQUE_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
-    private static final UUID REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("c0000000-0000-4000-8000-000000000001");
+    private static final RegistroId REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
 
     @Mock
     private NegocioService negocioService;
@@ -68,7 +73,8 @@ class ObtenerRegistroTest {
     void executeShouldIncludeCalculatedFormulaValues() {
         UUID cantidadId = UUID.fromString("e0000000-0000-4000-8000-000000000001");
         UUID dobleId = UUID.fromString("e0000000-0000-4000-8000-000000000002");
-        Campo doble = Campo.builder().id(dobleId).tipo(TipoCampo.FORMULA).formula("{" + cantidadId + "} * 2").build();
+        Campo doble = Campo.builder().id(CampoId.de(dobleId)).tipo(TipoCampo.FORMULA)
+                .formula("{" + cantidadId + "} * 2").build();
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(Registro.builder()
                 .id(REGISTRO_ID).bloqueId(BLOQUE_ID).valores(Map.of(cantidadId.toString(), 4)).build());

@@ -2,9 +2,11 @@ package com.ensambla.backend.domain.useCase.pago;
 
 import com.ensambla.backend.domain.exception.NotificacionPagoInvalidaException;
 import com.ensambla.backend.domain.exception.PasarelaPagoException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pago.ContratoRemoto;
 import com.ensambla.backend.domain.model.pago.PagoRemoto;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.service.pago.RenovacionPremiumService;
 import com.ensambla.backend.domain.useCase.pago.conciliarPagos.ConciliarPagos;
@@ -112,8 +114,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     private MockMvc mockMvc;
     private MockHttpSession sesion;
-    private UUID usuarioId;
-    private UUID negocioId;
+    private UsuarioId usuarioId;
+    private NegocioId negocioId;
     private String csrf;
 
     @BeforeEach
@@ -140,12 +142,12 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
             remotos.put(id, contrato(renovacion, "cancelled", AHORA.plusSeconds(1)));
             return null;
         }).when(pasarelaSuscripcionesPort).cancelar(anyString());
-        usuarioId = UUID.randomUUID();
-        negocioId = UUID.randomUUID();
+        usuarioId = UsuarioId.nuevo();
+        negocioId = NegocioId.nuevo();
         jdbcTemplate.update("INSERT INTO usuario (id,email,nombre) VALUES (?,?,'Pagos HTTP')",
-                usuarioId, usuarioId + "@example.test");
+                usuarioId.valor(), usuarioId.valor() + "@example.test");
         jdbcTemplate.update("INSERT INTO negocio (id,nombre,duenio_id) VALUES (?,'Pagos HTTP',?)",
-                negocioId, usuarioId);
+                negocioId.valor(), usuarioId.valor());
         suscripcionService.asignarGratuito(negocioId, AHORA);
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
         sesion = new MockHttpSession();
@@ -175,9 +177,9 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         RenovacionPremium renovacion = renovacion();
         assertThat(renovacion.getPrimerCobroEn()).isEqualTo(prueba.finEn());
         assertThat(jdbcTemplate.queryForObject("SELECT estado FROM suscripcion WHERE negocio_id=?",
-                String.class, negocioId)).isEqualTo("PRUEBA");
+                String.class, negocioId.valor())).isEqualTo("PRUEBA");
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM pago_premium WHERE negocio_id=?",
-                Integer.class, negocioId)).isZero();
+                Integer.class, negocioId.valor())).isZero();
     }
 
     @Test
@@ -207,7 +209,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(planActual()).isEqualTo("PREMIUM");
         assertThat(finPagado()).isEqualTo(AHORA.plusDays(30));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM pago_premium WHERE negocio_id=?",
-                Integer.class, negocioId)).isOne();
+                Integer.class, negocioId.valor())).isOne();
     }
 
     @ParameterizedTest
@@ -239,7 +241,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(planActual()).isEqualTo("PREMIUM");
         assertThat(finPagado()).isEqualTo(AHORA.plusDays(30));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM pago_premium WHERE negocio_id=?",
-                Integer.class, negocioId)).isEqualTo(2);
+                Integer.class, negocioId.valor())).isEqualTo(2);
     }
 
     @Test
@@ -249,7 +251,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         RenovacionPremium renovacion = renovacion();
         aplicarPago(renovacion,
                 pago(renovacion, facturaId("primera"), "approved", AHORA, AHORA), AHORA);
-        jdbcTemplate.update("INSERT INTO proyecto(negocio_id,nombre) VALUES (?,'Conservado tras rechazo')", negocioId);
+        jdbcTemplate.update("INSERT INTO proyecto(negocio_id,nombre) VALUES (?,'Conservado tras rechazo')",
+                negocioId.valor());
         givenPago(pago(renovacion, facturaId("segunda"), "rejected", AHORA.plusDays(30), AHORA.plusDays(30)));
         when(clock.instant()).thenReturn(AHORA.plusDays(30).toInstant());
 
@@ -257,7 +260,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
         assertThat(planActual()).isEqualTo("GRATUITO");
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM proyecto WHERE negocio_id=?",
-                Integer.class, negocioId)).isOne();
+                Integer.class, negocioId.valor())).isOne();
         assertThat(jdbcTemplate.queryForObject("SELECT estado FROM pago_premium WHERE factura_id=?",
                 String.class, facturaId("primera"))).isEqualTo("approved");
     }
@@ -347,7 +350,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(status().isOk());
 
         assertThat(jdbcTemplate.queryForObject("SELECT estado FROM suscripcion WHERE negocio_id=?",
-                String.class, negocioId)).isEqualTo("PRUEBA");
+                String.class, negocioId.valor())).isEqualTo("PRUEBA");
     }
 
     @Test
@@ -398,7 +401,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
             verify(pasarelaSuscripcionesPort, times(1)).crear(any(), anyString());
             assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM renovacion_premium WHERE negocio_id=?",
-                    Integer.class, negocioId)).isOne();
+                    Integer.class, negocioId.valor())).isOne();
         }
     }
 
@@ -455,13 +458,13 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         RenovacionPremium renovacion = renovacion();
         aplicarPago(renovacion,
                 pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA), AHORA);
-        jdbcTemplate.update("INSERT INTO proyecto(negocio_id,nombre) VALUES (?,'Conservado')", negocioId);
+        jdbcTemplate.update("INSERT INTO proyecto(negocio_id,nombre) VALUES (?,'Conservado')", negocioId.valor());
 
         recalcular(renovacion, AHORA.plusDays(30));
 
         assertThat(planActual()).isEqualTo("GRATUITO");
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM proyecto WHERE negocio_id=?",
-                Integer.class, negocioId)).isOne();
+                Integer.class, negocioId.valor())).isOne();
     }
 
     private void givenContrato() throws Exception {
@@ -480,7 +483,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("RENOVACION_EN_CURSO"));
 
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id=?",
-                Integer.class, negocioId)).isZero();
+                Integer.class, negocioId.valor())).isZero();
     }
 
     @Test
@@ -496,14 +499,14 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(status().isOk());
 
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id=?",
-                Integer.class, negocioId)).isOne();
+                Integer.class, negocioId.valor())).isOne();
     }
 
     @Test
     @DisplayName("Una contratación nueva se elige antes que el historial cancelado aunque compartan hora")
     void consultarShouldPreferOpenContractWithEqualCreationTimestamp() throws Exception {
         givenContrato();
-        UUID anterior = renovacion().getId();
+        UUID anterior = renovacion().getId().valor();
         mockMvc.perform(post("/api/planes/renovacion/cancelar").session(sesion).header("X-CSRF-TOKEN", csrf))
                 .andExpect(status().isOk());
 
@@ -598,7 +601,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(planActual()).isEqualTo("PREMIUM");
         assertThat(finPagado()).isEqualTo(AHORA.plusDays(60));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM pago_premium WHERE negocio_id=?",
-                Integer.class, negocioId)).isEqualTo(2);
+                Integer.class, negocioId.valor())).isEqualTo(2);
         assertThat(jdbcTemplate.queryForObject("SELECT estado FROM pago_premium WHERE factura_id=?",
                 String.class, facturaId("segunda-firmada"))).isEqualTo("approved");
     }
@@ -686,11 +689,11 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     private String planActual() {
         return jdbcTemplate.queryForObject("SELECT p.codigo FROM suscripcion s JOIN plan p ON p.id=s.plan_id "
-                + "WHERE s.negocio_id=?", String.class, negocioId);
+                + "WHERE s.negocio_id=?", String.class, negocioId.valor());
     }
 
     private OffsetDateTime finPagado() {
         return jdbcTemplate.queryForObject("SELECT fin_en FROM suscripcion WHERE negocio_id=?",
-                OffsetDateTime.class, negocioId);
+                OffsetDateTime.class, negocioId.valor());
     }
 }

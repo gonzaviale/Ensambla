@@ -1,7 +1,10 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.model.lote.EstadoLote;
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
 import com.ensambla.backend.infrastructure.repository.entity.FotoCuadernoEntity;
@@ -91,7 +94,7 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
     private ArchivoCuadernoPort archivoCuadernoPort;
 
     private MockMvc mockMvc;
-    private UUID negocioId;
+    private NegocioId negocioId;
     private MockHttpSession sesion;
     private String csrfToken;
 
@@ -103,8 +106,8 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        UUID usuarioId = givenUsuario();
-        negocioId = givenNegocio(usuarioId);
+        UsuarioId usuarioId = UsuarioId.de(givenUsuario());
+        negocioId = NegocioId.de(givenNegocio(usuarioId));
         sesion = givenSesion(usuarioId);
     }
 
@@ -115,15 +118,15 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
 
         result.andExpect(status().isCreated())
                 .andExpect(jsonPath("$.estado").value("PENDIENTE"));
-        LoteSubidaEntity lote = lotes.findById(loteId(result)).orElseThrow();
-        assertThat(lote.getNegocioId()).isEqualTo(negocioId);
+        LoteSubidaEntity lote = lotes.findById(loteId(result).valor()).orElseThrow();
+        assertThat(lote.getNegocioId()).isEqualTo(negocioId.valor());
         assertThat(lote.getEstado()).isEqualTo(EstadoLote.PENDIENTE);
     }
 
     @Test
     @DisplayName("La foto queda en la carpeta del negocio y la lectura de IA la encuentra con los mismos bytes")
     void subirShouldStoreFotoReadableByProcesamiento() throws Exception {
-        UUID loteId = loteId(subir(sesion, foto(JPEG)));
+        LoteId loteId = loteId(subir(sesion, foto(JPEG)));
 
         FotoCuadernoEntity foto = fotoDe(loteId);
         assertThat(foto.getClaveAlmacenamiento()).startsWith(negocioId + "/fotos/");
@@ -146,8 +149,8 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Otro negocio no puede consultar el lote: responde 404")
     void obtenerShouldHideLoteFromOtherNegocio() throws Exception {
-        UUID loteId = loteId(subir(sesion, foto(JPEG)));
-        MockHttpSession otraSesion = givenSesion(givenUsuarioConNegocio());
+        LoteId loteId = loteId(subir(sesion, foto(JPEG)));
+        MockHttpSession otraSesion = givenSesion(UsuarioId.de(givenUsuarioConNegocio()));
 
         ResultActions result = mockMvc.perform(get("/api/lotes/{id}", loteId).session(otraSesion));
 
@@ -157,7 +160,7 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("El dueño consulta su lote y ve sus fotos")
     void obtenerShouldReturnOwnLote() throws Exception {
-        UUID loteId = loteId(subir(sesion, foto(JPEG)));
+        LoteId loteId = loteId(subir(sesion, foto(JPEG)));
 
         ResultActions result = mockMvc.perform(get("/api/lotes/{id}", loteId).session(sesion));
 
@@ -184,24 +187,24 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenNegocio(UUID usuarioId) {
+    private UUID givenNegocio(UsuarioId usuarioId) {
         UUID creadoId = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
-                .duenioId(usuarioId)
+                .duenioId(usuarioId.valor())
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
-        suscripcionService.asignarGratuito(creadoId, AHORA.minusDays(1));
+        suscripcionService.asignarGratuito(NegocioId.de(creadoId), AHORA.minusDays(1));
         return creadoId;
     }
 
     private UUID givenUsuarioConNegocio() {
-        UUID usuarioId = givenUsuario();
+        UsuarioId usuarioId = UsuarioId.de(givenUsuario());
         givenNegocio(usuarioId);
-        return usuarioId;
+        return usuarioId.valor();
     }
 
-    private MockHttpSession givenSesion(UUID usuarioId) throws Exception {
+    private MockHttpSession givenSesion(UsuarioId usuarioId) throws Exception {
         MockHttpSession session = new MockHttpSession();
         var securityContext = SecurityContextHolder.createEmptyContext();
         securityContext.setAuthentication(
@@ -230,12 +233,12 @@ class LoteIntegrationTest extends PostgresRepositoryTestSupport {
         return new MockMultipartFile("fotos", "pagina.jpg", "image/jpeg", contenido);
     }
 
-    private UUID loteId(ResultActions result) throws Exception {
+    private LoteId loteId(ResultActions result) throws Exception {
         JsonNode body = json.readTree(result.andReturn().getResponse().getContentAsString());
-        return UUID.fromString(body.path("id").asString());
+        return LoteId.de(UUID.fromString(body.path("id").asString()));
     }
 
-    private FotoCuadernoEntity fotoDe(UUID loteId) {
-        return fotos.findAllByLoteIdAndNegocioIdOrderByPosicionAsc(loteId, negocioId).getFirst();
+    private FotoCuadernoEntity fotoDe(LoteId loteId) {
+        return fotos.findAllByLoteIdAndNegocioIdOrderByPosicionAsc(loteId.valor(), negocioId.valor()).getFirst();
     }
 }

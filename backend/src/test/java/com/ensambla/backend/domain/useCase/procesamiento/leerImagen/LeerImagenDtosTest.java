@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.lectura.DatoLeido;
 import com.ensambla.backend.domain.model.lectura.ImagenCuaderno;
 import com.ensambla.backend.domain.model.procesamiento.BloqueDeImagen;
 import com.ensambla.backend.domain.model.procesamiento.LecturaImagen;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenRequest.CampoItem;
 import com.ensambla.backend.support.ImagenTestData;
 import org.junit.jupiter.api.DisplayName;
@@ -14,7 +15,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -88,7 +88,7 @@ class LeerImagenDtosTest {
 
     // --- arrange ---
     private LeerImagenRequest request(byte[] contenido, CampoItem... campos) {
-        return new LeerImagenRequest(UUID.randomUUID(), contenido, "Ventas", List.of(campos), true);
+        return new LeerImagenRequest(UsuarioId.nuevo(), contenido, "Ventas", List.of(campos), true);
     }
 
     private CampoItem campo(String clave, String nombre, String tipo) {

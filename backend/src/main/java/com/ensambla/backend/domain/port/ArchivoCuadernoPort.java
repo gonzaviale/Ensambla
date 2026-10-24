@@ -1,6 +1,6 @@
 package com.ensambla.backend.domain.port;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 
 /**
  * Archivos privados del cuaderno, por negocio. Los bytes que se leen deben estar comprimidos y rotados por la subida.
@@ -8,9 +8,9 @@ import java.util.UUID;
  */
 public interface ArchivoCuadernoPort {
 
-    byte[] leer(UUID negocioId, String clave);
+    byte[] leer(NegocioId negocioId, String clave);
 
-    void guardar(UUID negocioId, String clave, byte[] contenido);
+    void guardar(NegocioId negocioId, String clave, byte[] contenido);
 
-    void eliminar(UUID negocioId, String clave);
+    void eliminar(NegocioId negocioId, String clave);
 }

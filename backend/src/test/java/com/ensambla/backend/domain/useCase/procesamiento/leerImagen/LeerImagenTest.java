@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.useCase.procesamiento.leerImagen;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
 import com.ensambla.backend.domain.model.lectura.BloquePropuesto;
@@ -13,6 +14,8 @@ import com.ensambla.backend.domain.model.lectura.FilaLeida;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
 import com.ensambla.backend.domain.model.lectura.PaginaCuaderno;
 import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
@@ -32,7 +35,6 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.BooleanSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,8 +52,8 @@ import static org.mockito.Mockito.when;
 
 class LeerImagenTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
-    private static final UUID NEGOCIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000002");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("b9000000-0000-4000-8000-000000000002");
     private static final double UMBRAL_CONFIANZA = 0.7;
     /** 23:30 en Argentina ya es el 1 de octubre en UTC: el límite diario se cuenta por día UTC. */
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-09-30T23:30:00-03:00");
@@ -103,7 +105,7 @@ class LeerImagenTest {
 
         ArgumentCaptor<List<PaginaCuaderno>> paginas = ArgumentCaptor.forClass(List.class);
         ArgumentCaptor<List<BloqueConocido>> bloques = ArgumentCaptor.forClass(List.class);
-        ArgumentCaptor<UUID> destino = ArgumentCaptor.forClass(UUID.class);
+        ArgumentCaptor<BloqueId> destino = ArgumentCaptor.forClass(BloqueId.class);
         verify(lectorCuadernoPort).leer(paginas.capture(), bloques.capture(), destino.capture());
         assertThat(paginas.getValue()).singleElement().satisfies(pagina -> {
             assertThat(pagina.contenido()).isEqualTo(request.contenido());

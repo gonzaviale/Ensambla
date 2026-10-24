@@ -2,10 +2,13 @@ package com.ensambla.backend.domain.useCase.reporte.exportarReporte;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.registro.Referencia;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.reporte.FiltroReporte;
 import com.ensambla.backend.domain.model.reporte.ReporteRegistros;
 import com.ensambla.backend.domain.model.reporte.TablaReporte;
@@ -28,7 +31,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Function;
 
 @RequiredArgsConstructor
@@ -62,7 +64,7 @@ public class ExportarReporte {
      *                               archivo incompleto, hay que acotar los filtros
      */
     public ExportarReporteResponse execute(GenerarReporteRequest request) {
-        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         Bloque bloque = bloqueService.obtener(request.bloqueId(), negocioId);
         controlPlanService.validarFuncion(negocioId, FuncionPlan.EXPORTAR_EXCEL, OffsetDateTime.now(clock));
         List<Campo> campos = campoService.listarDeBloque(bloque.getId(), negocioId);
@@ -80,7 +82,7 @@ public class ExportarReporte {
             throw new BusinessRuleException("El reporte tiene más de " + MAXIMO_EXPORTACION
                     + " filas: acotá los filtros para poder descargarlo");
         }
-        Map<UUID, String> etiquetas = etiquetasDeConexiones(negocioId, campos, reporte.filas());
+        Map<RegistroId, String> etiquetas = etiquetasDeConexiones(negocioId, campos, reporte.filas());
         TablaReporte tabla = TablaReporte.de(bloque.getNombre(), campos, reporte, etiquetas);
         return ExportarReporteResponse.de(
                 exportadorReportePort.exportar(tabla), bloque.getNombre(), LocalDate.now(clock));
@@ -90,17 +92,18 @@ public class ExportarReporte {
      * El nombre de cada fila a la que apuntan las columnas de conexión de las filas del reporte (una consulta por
      * tabla conectada), indexado por el id de la fila.
      */
-    private Map<UUID, String> etiquetasDeConexiones(UUID negocioId, List<Campo> campos, List<Registro> filas) {
-        Map<UUID, Set<UUID>> idsPorTabla = new HashMap<>();
+    private Map<RegistroId, String> etiquetasDeConexiones(NegocioId negocioId, List<Campo> campos,
+            List<Registro> filas) {
+        Map<BloqueId, Set<RegistroId>> idsPorTabla = new HashMap<>();
         for (Campo campo : campos.stream().filter(Campo::esRelacion).toList()) {
             for (Registro fila : filas) {
                 if (fila.getValores().get(campo.getId().toString()) instanceof String id) {
                     idsPorTabla.computeIfAbsent(campo.getBloqueRelacionadoId(), tabla -> new HashSet<>())
-                            .add(UUID.fromString(id));
+                            .add(RegistroId.de(id));
                 }
             }
         }
-        Map<UUID, String> etiquetas = new HashMap<>();
+        Map<RegistroId, String> etiquetas = new HashMap<>();
         idsPorTabla.forEach((tablaId, ids) -> {
             Function<Registro, Referencia> etiquetador = Referencia.etiquetador(
                     campoRepository.findByBloqueIdAndNegocioId(tablaId, negocioId));

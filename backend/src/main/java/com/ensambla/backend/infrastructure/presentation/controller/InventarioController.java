@@ -1,5 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.inventario.consultarStock.ConsultarStock;
 import com.ensambla.backend.domain.useCase.inventario.listarMovimientos.ListarMovimientos;
 import com.ensambla.backend.domain.useCase.inventario.registrarMovimiento.RegistrarMovimiento;
@@ -23,7 +26,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/bloques/{bloqueId}")
@@ -42,7 +44,7 @@ public class InventarioController {
     @PostMapping("/movimientos")
     @Operation(summary = "Registrar una entrada o una salida de un producto del bloque; el stock es la suma")
     public ResponseEntity<MovimientoRegistradoResponse> registrar(Authentication authentication,
-                                                                  @PathVariable UUID bloqueId,
+                                                                  @PathVariable BloqueId bloqueId,
                                                                   @RequestBody MovimientoRequest request) {
         MovimientoRegistradoResponse response = presentationMapper.toResponse(registrarMovimiento.execute(
                 presentationMapper.toRegistrarRequest(usuarioDe(authentication), bloqueId, request)));
@@ -52,8 +54,8 @@ public class InventarioController {
     @GetMapping("/movimientos")
     @Operation(summary = "Últimos movimientos (hasta 100) de los productos del bloque, o de uno solo")
     public ResponseEntity<List<MovimientoResponse>> movimientos(Authentication authentication,
-                                                                @PathVariable UUID bloqueId,
-                                                                @RequestParam(required = false) UUID registroId) {
+                                                                @PathVariable BloqueId bloqueId,
+                                                                @RequestParam(required = false) RegistroId registroId) {
         List<MovimientoResponse> response = presentationMapper.toResponse(listarMovimientos.execute(
                 presentationMapper.toListarMovimientosRequest(usuarioDe(authentication), bloqueId, registroId)));
         return ResponseEntity.ok(response);
@@ -62,7 +64,7 @@ public class InventarioController {
     @GetMapping("/stock")
     @Operation(summary = "Stock actual de los productos del bloque, con búsqueda de texto y paginación")
     public ResponseEntity<PaginaStockResponse> stock(Authentication authentication,
-                                                     @PathVariable UUID bloqueId,
+                                                     @PathVariable BloqueId bloqueId,
                                                      @RequestParam(required = false) String q,
                                                      @RequestParam(required = false) Integer pagina,
                                                      @RequestParam(required = false) Integer tamanio) {
@@ -71,7 +73,7 @@ public class InventarioController {
         return ResponseEntity.ok(response);
     }
 
-    private static UUID usuarioDe(Authentication authentication) {
-        return UUID.fromString(authentication.getName());
+    private static UsuarioId usuarioDe(Authentication authentication) {
+        return UsuarioId.de(authentication.getName());
     }
 }

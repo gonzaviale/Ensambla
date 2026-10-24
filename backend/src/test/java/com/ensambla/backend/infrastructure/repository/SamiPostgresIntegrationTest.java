@@ -1,6 +1,9 @@
 package com.ensambla.backend.infrastructure.repository;
 
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.sami.ColumnaSamiItem;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSami;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiRequest;
@@ -24,7 +27,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -32,7 +34,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /** Sami contra la base real: las plantillas que nombra el diccionario existen y el proyecto se crea entero o no se crea. */
 class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
-    private static final UUID VENTAS_ID = UUID.fromString("00000000-0000-4000-8000-0000000000a4");
+    private static final PlantillaId VENTAS_ID = PlantillaId.de("00000000-0000-4000-8000-0000000000a4");
 
     @Autowired
     private SuscripcionesDePrueba suscripcionService;
@@ -49,24 +51,24 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private UUID usuarioId;
-    private UUID negocioId;
+    private UsuarioId usuarioId;
+    private NegocioId negocioId;
 
     @BeforeEach
     void setUp() {
-        usuarioId = UUID.randomUUID();
-        negocioId = UUID.randomUUID();
+        usuarioId = UsuarioId.nuevo();
+        negocioId = NegocioId.nuevo();
         jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Prueba Sami')",
-                usuarioId, usuarioId + "@example.test");
+                usuarioId.valor(), usuarioId.valor() + "@example.test");
         jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Prueba Sami', ?)",
-                negocioId, usuarioId);
+                negocioId.valor(), usuarioId.valor());
         suscripcionService.asignarGratuito(negocioId, OffsetDateTime.parse("2026-01-01T00:00:00Z"));
     }
 
     @AfterEach
     void tearDown() {
-        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId);
-        jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId);
+        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId.valor());
+        jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId.valor());
     }
 
     @Test
@@ -111,7 +113,7 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
         assertThat(response.propuesta().origen()).isEqualTo("IA");
         assertThat(jdbcTemplate.queryForObject(
-                "SELECT consultas FROM consumo_sami_diario WHERE negocio_id = ?", Integer.class, negocioId))
+                "SELECT consultas FROM consumo_sami_diario WHERE negocio_id = ?", Integer.class, negocioId.valor()))
                 .isEqualTo(1);
     }
 
@@ -126,7 +128,7 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(response.acciones()).extracting("herramienta").containsExactly("agregar_pieza");
         assertThat(response.acciones().getFirst().argumentos()).containsEntry("tipo", "expenses");
         assertThat(jdbcTemplate.queryForObject(
-                "SELECT consultas FROM consumo_sami_diario WHERE negocio_id = ?", Integer.class, negocioId))
+                "SELECT consultas FROM consumo_sami_diario WHERE negocio_id = ?", Integer.class, negocioId.valor()))
                 .isEqualTo(1);
     }
 
@@ -152,7 +154,7 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         List<String> campos = jdbcTemplate.queryForList("""
                 SELECT c.nombre FROM campo c JOIN bloque b ON b.id = c.bloque_id
                 WHERE b.proyecto_id = ? ORDER BY c.posicion
-                """, String.class, proyecto.id());
+                """, String.class, proyecto.id().valor());
         assertThat(campos).containsExactly(
                 "Fecha", "Producto", "Cantidad", "Monto", "Cliente", "Saldo pendiente", "Forma de pago");
     }
@@ -167,6 +169,6 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                 .isInstanceOf(CampoInvalidoException.class);
 
         assertThat(jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM proyecto WHERE negocio_id = ?", Integer.class, negocioId)).isZero();
+                "SELECT count(*) FROM proyecto WHERE negocio_id = ?", Integer.class, negocioId.valor())).isZero();
     }
 }

@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.useCase.lote.subirLote;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
@@ -19,7 +20,6 @@ import org.mockito.ArgumentCaptor;
 import java.time.Clock;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.UUID;
 
 import static com.ensambla.backend.support.LoteTestData.AHORA;
 import static com.ensambla.backend.support.LoteTestData.BLOQUE_ID;
@@ -157,7 +157,7 @@ class SubirLoteTest {
     }
 
     // --- act ---
-    private LoteItem subir(List<byte[]> fotos, UUID bloqueDestinoId) {
+    private LoteItem subir(List<byte[]> fotos, BloqueId bloqueDestinoId) {
         return subirLote.execute(new SubirLoteRequest(USUARIO_ID, fotos, bloqueDestinoId));
     }
 

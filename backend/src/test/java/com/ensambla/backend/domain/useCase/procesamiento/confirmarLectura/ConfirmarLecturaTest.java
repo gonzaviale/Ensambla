@@ -6,7 +6,9 @@ import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.lote.EstadoLote;
@@ -15,6 +17,7 @@ import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura.Campo
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura.FilaConfirmada;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
@@ -65,8 +68,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ConfirmarLecturaTest {
 
-    private static final UUID PROYECTO_ID = UUID.fromString("00000000-0000-4000-8000-000000000021");
-    private static final UUID BLOQUE_ID = UUID.fromString("00000000-0000-4000-8000-000000000022");
+    private static final ProyectoId PROYECTO_ID = ProyectoId.de("00000000-0000-4000-8000-000000000021");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("00000000-0000-4000-8000-000000000022");
     private static final UUID MONTO_ID = UUID.fromString("00000000-0000-4000-8000-000000000023");
     private static final UUID FECHA_ID = UUID.fromString("00000000-0000-4000-8000-000000000024");
     private static final UUID EXTRA_ID = UUID.fromString("00000000-0000-4000-8000-000000000025");
@@ -165,7 +168,7 @@ class ConfirmarLecturaTest {
         givenCampoNuevoDe("Nota", nota);
         givenCamposDelBloque(List.of(monto), List.of(monto, nota));
         List<CampoConfirmado> columnas = List.of(
-                new CampoConfirmado("monto", MONTO_ID, "Monto", "NUMERO", List.of()),
+                new CampoConfirmado("monto", CampoId.de(MONTO_ID), "Monto", "NUMERO", List.of()),
                 columnaNueva("nota", "Nota", "TEXTO"));
         Map<String, Object> valores = Map.of("monto", 20, "nota", "  fiado ");
 
@@ -186,7 +189,7 @@ class ConfirmarLecturaTest {
         when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
         when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
         ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID,
-                List.of(new CampoConfirmado("monto", MONTO_ID, "Monto", "NUMERO", List.of())), List.of());
+                List.of(new CampoConfirmado("monto", CampoId.de(MONTO_ID), "Monto", "NUMERO", List.of())), List.of());
         LoteSubida lote = loteListo();
 
         assertThatThrownBy(() -> confirmar(lote, confirmacion))
@@ -220,7 +223,7 @@ class ConfirmarLecturaTest {
         when(campoService.crear(any(Bloque.class), any(ConfiguracionCampo.class), eq(AHORA)))
                 .thenThrow(new DuplicateResourceException("Ya hay un campo llamado \"Monto\" en este bloque"));
         ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID,
-                List.of(new CampoConfirmado("monto", MONTO_ID, "Monto", "NUMERO", List.of()),
+                List.of(new CampoConfirmado("monto", CampoId.de(MONTO_ID), "Monto", "NUMERO", List.of()),
                         new CampoConfirmado("importe", null, "Monto", "NUMERO", List.of())),
                 List.of(new FilaConfirmada(1, Map.of("monto", 1, "importe", 2))));
         LoteSubida lote = loteListo();
@@ -274,7 +277,8 @@ class ConfirmarLecturaTest {
         Campo monto = campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false);
         Campo extra = campo(EXTRA_ID, "Extra", TipoCampo.TEXTO, true);
         givenCamposDelBloque(List.of(monto, extra), List.of(monto, extra));
-        List<CampoConfirmado> columnas = List.of(new CampoConfirmado("monto", MONTO_ID, "Monto", "NUMERO", List.of()));
+        List<CampoConfirmado> columnas = List
+                .of(new CampoConfirmado("monto", CampoId.de(MONTO_ID), "Monto", "NUMERO", List.of()));
         ConfirmacionLectura confirmacion = confirmacion(
                 null, null, BLOQUE_ID, columnas, List.of(new FilaConfirmada(1, Map.of("monto", 3))));
         LoteSubida lote = loteListo();
@@ -294,7 +298,8 @@ class ConfirmarLecturaTest {
         UUID fila = UUID.fromString("00000000-0000-4000-8000-000000000099");
         doThrow(new RegistroInvalidoException(Map.of(EXTRA_ID.toString(), "Esa fila ya no existe")))
                 .when(registroDatosService).validarConexiones(eq(NEGOCIO_ID), any(), any());
-        List<CampoConfirmado> columnas = List.of(new CampoConfirmado("cliente", EXTRA_ID, "Cliente", "RELACION", List.of()));
+        List<CampoConfirmado> columnas = List
+                .of(new CampoConfirmado("cliente", CampoId.de(EXTRA_ID), "Cliente", "RELACION", List.of()));
         ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID, columnas,
                 List.of(new FilaConfirmada(1, Map.of("cliente", fila.toString()))));
         LoteSubida lote = loteListo();
@@ -314,7 +319,8 @@ class ConfirmarLecturaTest {
         Campo cliente = campo(EXTRA_ID, "Cliente", TipoCampo.RELACION, false);
         givenCamposDelBloque(List.of(cliente), List.of(cliente));
         UUID fila = UUID.fromString("00000000-0000-4000-8000-000000000099");
-        List<CampoConfirmado> columnas = List.of(new CampoConfirmado("cliente", EXTRA_ID, "Cliente", "RELACION", List.of()));
+        List<CampoConfirmado> columnas = List
+                .of(new CampoConfirmado("cliente", CampoId.de(EXTRA_ID), "Cliente", "RELACION", List.of()));
 
         confirmar(loteListo(), confirmacion(null, null, BLOQUE_ID, columnas,
                 List.of(new FilaConfirmada(1, Map.of("cliente", fila.toString())))));
@@ -359,7 +365,7 @@ class ConfirmarLecturaTest {
         givenCamposDelBloque(List.of(monto), List.of(monto));
         when(loteSubidaRepository.confirmar(LOTE_ID, NEGOCIO_ID, BLOQUE_ID, AHORA)).thenReturn(false);
         ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID,
-                List.of(new CampoConfirmado("monto", MONTO_ID, "Monto", "NUMERO", List.of())),
+                List.of(new CampoConfirmado("monto", CampoId.de(MONTO_ID), "Monto", "NUMERO", List.of())),
                 List.of(new FilaConfirmada(1, Map.of("monto", 3))));
         LoteSubida lote = loteListo();
 
@@ -444,7 +450,7 @@ class ConfirmarLecturaTest {
     }
 
     private Campo campo(UUID id, String nombre, TipoCampo tipo, boolean obligatorio) {
-        return Campo.builder().id(id).nombre(nombre).tipo(tipo).obligatorio(obligatorio).build();
+        return Campo.builder().id(CampoId.de(id)).nombre(nombre).tipo(tipo).obligatorio(obligatorio).build();
     }
 
     private CampoConfirmado columnaNueva(String clave, String nombre, String tipo) {
@@ -456,7 +462,7 @@ class ConfirmarLecturaTest {
                 columnaNueva("monto", "Monto", "NUMERO"), columnaNueva("fecha", "Fecha", "FECHA")), List.of(filas));
     }
 
-    private ConfirmacionLectura confirmacion(UUID proyectoId, String nombreProyecto, UUID bloqueId,
+    private ConfirmacionLectura confirmacion(ProyectoId proyectoId, String nombreProyecto, BloqueId bloqueId,
                                              List<CampoConfirmado> campos, List<FilaConfirmada> filas) {
         return new ConfirmacionLectura(proyectoId, nombreProyecto, bloqueId, NOMBRE_BLOQUE, campos, filas);
     }

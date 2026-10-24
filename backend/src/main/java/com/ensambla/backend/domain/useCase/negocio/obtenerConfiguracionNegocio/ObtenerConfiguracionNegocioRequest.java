@@ -1,6 +1,6 @@
 package com.ensambla.backend.domain.useCase.negocio.obtenerConfiguracionNegocio;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record ObtenerConfiguracionNegocioRequest(UUID usuarioId) {
+public record ObtenerConfiguracionNegocioRequest(UsuarioId usuarioId) {
 }

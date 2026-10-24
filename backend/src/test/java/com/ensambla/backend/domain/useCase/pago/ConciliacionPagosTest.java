@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.pago;
 
 import com.ensambla.backend.domain.exception.PasarelaPagoException;
+import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
@@ -18,7 +19,6 @@ import java.time.Clock;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static com.ensambla.backend.support.PagoTestData.AHORA;
 import static com.ensambla.backend.support.PagoTestData.NEGOCIO_ID;
@@ -44,7 +44,7 @@ class ConciliacionPagosTest {
     @Test
     @DisplayName("La conciliación continúa con otros negocios cuando un proveedor falla y rota los intentos")
     void executeShouldContinueAfterProviderFailure() {
-        UUID segundo = UUID.randomUUID();
+        RenovacionId segundo = RenovacionId.nuevo();
         RenovacionPremium primera = givenRenovacion(RENOVACION_ID);
         RenovacionPremium otra = givenRenovacion(segundo);
         when(renovacionPremiumRepository.listarParaSincronizar()).thenReturn(List.of(RENOVACION_ID, segundo));
@@ -76,7 +76,7 @@ class ConciliacionPagosTest {
     }
 
     // --- arrange ---
-    private RenovacionPremium givenRenovacion(UUID id) {
+    private RenovacionPremium givenRenovacion(RenovacionId id) {
         RenovacionPremium renovacion = renovacion();
         renovacion.setId(id);
         renovacion.setSincronizadoEn(null);

@@ -5,13 +5,13 @@ import com.ensambla.backend.domain.useCase.auth.obtenerSesion.ObtenerSesion;
 import com.ensambla.backend.domain.useCase.auth.registrarUsuario.RegistrarUsuario;
 import com.ensambla.backend.infrastructure.presentation.mapper.auth.AuthPresentationMapper;
 import com.ensambla.backend.infrastructure.security.SesionAdapter;
+import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -25,7 +25,7 @@ class AuthControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(
+        mockMvc = MockMvcDePrueba.standalone(new AuthController(
                 mock(RegistrarUsuario.class),
                 mock(IniciarSesion.class),
                 mock(ObtenerSesion.class),

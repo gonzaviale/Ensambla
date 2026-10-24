@@ -5,8 +5,10 @@ import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Plan;
+import com.ensambla.backend.domain.model.plan.PlanId;
 import com.ensambla.backend.domain.model.plan.PruebaPremium;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
@@ -23,7 +25,6 @@ import org.junit.jupiter.api.Test;
 import java.time.Clock;
 import java.time.ZoneOffset;
 import java.util.Optional;
-import java.util.UUID;
 
 import static com.ensambla.backend.support.PlanTestData.INSTANTE;
 import static com.ensambla.backend.support.PlanTestData.NEGOCIO_ID;
@@ -41,7 +42,7 @@ import static org.mockito.Mockito.when;
 
 class IniciarPruebaTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("bb000000-0000-4000-8000-000000000009");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("bb000000-0000-4000-8000-000000000009");
 
     private final NegocioService negocioService = mock(NegocioService.class);
     private final PlanRepository planRepository = mock(PlanRepository.class);
@@ -162,7 +163,7 @@ class IniciarPruebaTest {
 
     private Plan givenPremium() {
         Plan premium = plan();
-        premium.setId(UUID.randomUUID());
+        premium.setId(PlanId.nuevo());
         premium.setCodigo(CodigoPlan.PREMIUM);
         when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.of(premium));
         return premium;

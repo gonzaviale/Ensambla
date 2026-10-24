@@ -1,8 +1,11 @@
 package com.ensambla.backend.domain.model.registro;
 
-import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -14,9 +17,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ConsultaRegistrosTest {
 
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID CAMPO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final CampoId CAMPO_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
     private static final List<Campo> CAMPOS = List.of(Campo.builder().id(CAMPO_ID).build());
 
     @Test
@@ -97,7 +100,7 @@ class ConsultaRegistrosTest {
     @DisplayName("Rechaza ordenar por un campo fórmula, que no se guarda")
     void armarShouldRejectOrderingByFormulaField() {
         UUID formulaId = UUID.fromString("c0000000-0000-4000-8000-000000000002");
-        List<Campo> campos = List.of(Campo.builder().id(formulaId).tipo(TipoCampo.FORMULA).build());
+        List<Campo> campos = List.of(Campo.builder().id(CampoId.de(formulaId)).tipo(TipoCampo.FORMULA).build());
 
         assertThatThrownBy(() -> ConsultaRegistros.armar(
                 NEGOCIO_ID, BLOQUE_ID, campos, null, formulaId.toString(), null, null, null))

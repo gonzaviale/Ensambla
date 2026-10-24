@@ -1,6 +1,8 @@
 package com.ensambla.backend.domain.useCase.procesamiento.procesarLote;
 
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
 import com.ensambla.backend.domain.model.lectura.CampoContexto;
@@ -153,10 +155,10 @@ class ProcesarLoteTest {
         when(procesamientoRepository.bloques(NEGOCIO_ID)).thenReturn(List.of(
                 new BloqueLectura(ProcesamientoTestData.BLOQUE_ID, "Ventas", List.of(
                         new CampoConocido(ProcesamientoTestData.CAMPO_ID, "Cliente", TipoCampo.RELACION,
-                                List.of(), clientesId),
-                        new CampoConocido(UUID.randomUUID(), "Fiado", TipoCampo.RELACION, List.of(),
-                                UUID.randomUUID()))),
-                new BloqueLectura(clientesId, "Clientes", List.of())));
+                                List.of(), BloqueId.de(clientesId)),
+                        new CampoConocido(CampoId.nuevo(), "Fiado", TipoCampo.RELACION, List.of(),
+                                BloqueId.nuevo()))),
+                new BloqueLectura(BloqueId.de(clientesId), "Clientes", List.of())));
         givenReserva(true);
         when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Corte"));
 
@@ -307,7 +309,7 @@ class ProcesarLoteTest {
         when(procesamientoRepository.bloques(NEGOCIO_ID)).thenReturn(List.of(
                 new BloqueLectura(ProcesamientoTestData.BLOQUE_ID, "Ventas", List.of(new CampoConocido(
                         ProcesamientoTestData.CAMPO_ID, "Monto", TipoCampo.NUMERO, List.of()))),
-                new BloqueLectura(UUID.randomUUID(), "Gastos", List.of())));
+                new BloqueLectura(BloqueId.nuevo(), "Gastos", List.of())));
     }
 
     private void givenReservedLote() {

@@ -3,8 +3,10 @@ package com.ensambla.backend.infrastructure.pago;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.NotificacionPagoInvalidaException;
 import com.ensambla.backend.domain.exception.PasarelaPagoException;
+import com.ensambla.backend.domain.model.common.Identificador;
 import com.ensambla.backend.domain.model.pago.ContratoRemoto;
 import com.ensambla.backend.domain.model.pago.PagoRemoto;
+import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import tools.jackson.databind.JsonNode;
@@ -29,7 +31,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -79,7 +80,7 @@ public class MercadoPagoSuscripcionesAdapter implements PasarelaSuscripcionesPor
     }
 
     @Override
-    public Optional<ContratoRemoto> buscar(UUID referencia) {
+    public Optional<ContratoRemoto> buscar(RenovacionId referencia) {
         JsonNode resultados = peticion("GET", "/preapproval/search?q=" + referencia + "&limit=2", null)
                 .path("results");
         if (resultados.size() == 0) {
@@ -329,9 +330,9 @@ public class MercadoPagoSuscripcionesAdapter implements PasarelaSuscripcionesPor
         return valor;
     }
 
-    private UUID referencia(JsonNode nodo) {
+    private RenovacionId referencia(JsonNode nodo) {
         try {
-            return UUID.fromString(texto(nodo, "external_reference"));
+            return RenovacionId.de(texto(nodo, "external_reference"));
         } catch (IllegalArgumentException exception) {
             throw new PasarelaPagoException();
         }

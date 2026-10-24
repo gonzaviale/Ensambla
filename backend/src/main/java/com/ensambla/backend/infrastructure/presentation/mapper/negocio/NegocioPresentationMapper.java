@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.negocio;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.negocio.ConfiguracionNegocioResponse;
 import com.ensambla.backend.domain.useCase.negocio.UbicacionNegocioItem;
 import com.ensambla.backend.domain.useCase.negocio.actualizarNegocio.ActualizarNegocioRequest;
@@ -9,16 +10,14 @@ import com.ensambla.backend.infrastructure.presentation.dto.negocio.Configuracio
 import com.ensambla.backend.infrastructure.presentation.dto.negocio.UbicacionNegocioWeb;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
-
 @Component
 public class NegocioPresentationMapper {
 
-    public ObtenerConfiguracionNegocioRequest toObtenerRequest(UUID usuarioId) {
+    public ObtenerConfiguracionNegocioRequest toObtenerRequest(UsuarioId usuarioId) {
         return new ObtenerConfiguracionNegocioRequest(usuarioId);
     }
 
-    public ActualizarNegocioRequest toActualizarRequest(UUID usuarioId, ActualizarNegocioWebRequest request) {
+    public ActualizarNegocioRequest toActualizarRequest(UsuarioId usuarioId, ActualizarNegocioWebRequest request) {
         UbicacionNegocioWeb punto = request.ubicacion();
         UbicacionNegocioItem ubicacion = punto == null ? null : new UbicacionNegocioItem(
                 punto.direccion(), punto.localidad(), punto.latitud(), punto.longitud());

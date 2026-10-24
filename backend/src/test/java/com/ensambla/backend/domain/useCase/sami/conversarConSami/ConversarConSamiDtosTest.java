@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.sami.conversarConSami;
 
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.domain.model.sami.ColumnaSugerida;
 import com.ensambla.backend.domain.model.sami.InterpretacionSami;
 import com.ensambla.backend.domain.model.sami.OpcionSami;
@@ -12,13 +13,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ConversarConSamiDtosTest {
 
-    private static final UUID PLANTILLA_ID = UUID.randomUUID();
+    private static final PlantillaId PLANTILLA_ID = PlantillaId.nuevo();
 
     @Test
     @DisplayName("Convierte las respuestas del DTO a las del dominio")

@@ -1,7 +1,8 @@
 package com.ensambla.backend.domain.useCase.receta.guardarReceta;
 
-import java.math.BigDecimal;
-import java.util.UUID;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 
-public record LineaRecetaRequest(UUID insumoId, BigDecimal cantidad, String unidad) {
+import java.math.BigDecimal;
+
+public record LineaRecetaRequest(RegistroId insumoId, BigDecimal cantidad, String unidad) {
 }

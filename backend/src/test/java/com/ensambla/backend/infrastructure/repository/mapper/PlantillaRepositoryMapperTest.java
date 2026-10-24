@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
 import com.ensambla.backend.domain.model.plantilla.Plantilla;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.infrastructure.repository.entity.PlantillaEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -43,7 +44,7 @@ class PlantillaRepositoryMapperTest {
 
         Plantilla result = mapper.toDomain(entity);
 
-        assertThat(result.getId()).isEqualTo(ID);
+        assertThat(result.getId()).isEqualTo(PlantillaId.de(ID));
         assertThat(result.getNombre()).isEqualTo("Clientes");
         assertThat(result.getDescripcion()).isEqualTo("Tu agenda de clientes");
         assertThat(result.getIcono()).isEqualTo("users");

@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.useCase.auth.registrarUsuario;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.negocio.Negocio;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Plan;
@@ -20,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 /** Crea la cuenta, su negocio y la suscripción gratuita en una sola transacción: si algo falla no queda nada. */
 @RequiredArgsConstructor
@@ -80,7 +80,7 @@ public class RegistrarUsuario {
                 .build());
     }
 
-    private void asignarPlanGratuito(UUID negocioId, OffsetDateTime ahora) {
+    private void asignarPlanGratuito(NegocioId negocioId, OffsetDateTime ahora) {
         Plan plan = planRepository.findByCodigo(CodigoPlan.GRATUITO)
                 .orElseThrow(() -> new ResourceNotFoundException("Plan gratuito no encontrado"));
         suscripcionRepository.save(Suscripcion.builder()

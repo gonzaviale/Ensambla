@@ -1,5 +1,7 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.receta;
 
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.receta.RecetaItem;
 import com.ensambla.backend.domain.useCase.receta.guardarReceta.GuardarRecetaRequest;
 import com.ensambla.backend.domain.useCase.receta.guardarReceta.LineaRecetaRequest;
@@ -9,17 +11,16 @@ import com.ensambla.backend.infrastructure.presentation.dto.receta.RecetaRespons
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.UUID;
 
 @Component
 public class RecetaPresentationMapper {
 
-    public ObtenerRecetaRequest toObtenerRequest(UUID usuarioId, UUID registroId) {
+    public ObtenerRecetaRequest toObtenerRequest(UsuarioId usuarioId, RegistroId registroId) {
         return new ObtenerRecetaRequest(usuarioId, registroId);
     }
 
     /** Sin {@code lineas} (clave ausente) se quita la receta. */
-    public GuardarRecetaRequest toGuardarRequest(UUID usuarioId, UUID registroId, RecetaRequest request) {
+    public GuardarRecetaRequest toGuardarRequest(UsuarioId usuarioId, RegistroId registroId, RecetaRequest request) {
         List<RecetaRequest.Linea> lineas = request.lineas() == null ? List.of() : request.lineas();
         return new GuardarRecetaRequest(
                 usuarioId,

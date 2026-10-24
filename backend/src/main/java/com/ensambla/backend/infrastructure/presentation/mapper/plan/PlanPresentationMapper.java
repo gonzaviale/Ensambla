@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.plan;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.plan.PruebaPremiumResponse;
 import com.ensambla.backend.domain.useCase.plan.consultarPlanes.ConsultarPlanesResponse;
 import com.ensambla.backend.domain.useCase.plan.consultarPlanes.PlanItem;
@@ -8,12 +9,10 @@ import com.ensambla.backend.infrastructure.presentation.dto.plan.PlanesResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.plan.PruebaResponse;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
-
 @Component
 public class PlanPresentationMapper {
 
-    public IniciarPruebaRequest toRequest(UUID usuarioId) {
+    public IniciarPruebaRequest toRequest(UsuarioId usuarioId) {
         return new IniciarPruebaRequest(usuarioId);
     }
 

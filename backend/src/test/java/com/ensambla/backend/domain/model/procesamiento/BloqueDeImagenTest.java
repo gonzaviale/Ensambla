@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.model.procesamiento;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
 import com.ensambla.backend.domain.model.procesamiento.BloqueDeImagen.CampoDeImagen;
@@ -9,7 +10,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -68,7 +68,7 @@ class BloqueDeImagenTest {
     void clavesPorCampoShouldMapEachIdToItsKey() {
         BloqueDeImagen bloque = bloque();
 
-        Map<UUID, String> claves = bloque.clavesPorCampo();
+        Map<CampoId, String> claves = bloque.clavesPorCampo();
 
         assertThat(claves).containsEntry(bloque.campos().get(0).id(), "importe")
                 .containsEntry(bloque.campos().get(1).id(), "estado").hasSize(2);

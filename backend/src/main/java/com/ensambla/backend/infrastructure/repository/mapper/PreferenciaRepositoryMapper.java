@@ -1,6 +1,8 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
+import com.ensambla.backend.domain.model.common.Identificador;
 import com.ensambla.backend.domain.model.preferencia.PreferenciaUsuario;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.infrastructure.repository.entity.PreferenciaUsuarioEntity;
 import org.springframework.stereotype.Component;
 
@@ -9,7 +11,7 @@ public class PreferenciaRepositoryMapper {
 
     public PreferenciaUsuario toDomain(PreferenciaUsuarioEntity entity) {
         return PreferenciaUsuario.builder()
-                .usuarioId(entity.getUsuarioId())
+                .usuarioId(Identificador.opcional(entity.getUsuarioId(), UsuarioId::de))
                 .descartadas(entity.getAvisosDescartados())
                 .grupos(entity.getGruposAvisos())
                 .bienvenidaVista(entity.getBienvenidaVista())
@@ -21,7 +23,7 @@ public class PreferenciaRepositoryMapper {
 
     public PreferenciaUsuarioEntity toEntity(PreferenciaUsuario preferencia) {
         return PreferenciaUsuarioEntity.builder()
-                .usuarioId(preferencia.getUsuarioId())
+                .usuarioId(Identificador.valorDe(preferencia.getUsuarioId()))
                 .avisosDescartados(preferencia.getDescartadas())
                 .gruposAvisos(preferencia.getGrupos())
                 .bienvenidaVista(preferencia.isBienvenidaVista())

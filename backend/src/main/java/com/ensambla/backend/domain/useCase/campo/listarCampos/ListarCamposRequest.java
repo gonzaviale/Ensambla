@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.campo.listarCampos;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record ListarCamposRequest(UUID usuarioId, UUID bloqueId) {
+public record ListarCamposRequest(UsuarioId usuarioId, BloqueId bloqueId) {
 }

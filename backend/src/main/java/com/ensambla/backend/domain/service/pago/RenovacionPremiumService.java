@@ -2,7 +2,9 @@ package com.ensambla.backend.domain.service.pago;
 
 import com.ensambla.backend.domain.exception.PasarelaPagoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pago.ContratoRemoto;
+import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
@@ -11,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class RenovacionPremiumService {
@@ -22,16 +23,16 @@ public class RenovacionPremiumService {
 
     private final TransaccionPort transaccionPort;
 
-    public Optional<RenovacionPremium> consultar(UUID negocioId) {
+    public Optional<RenovacionPremium> consultar(NegocioId negocioId) {
         return renovacionPremiumRepository.findUltimaByNegocioId(negocioId);
     }
 
-    public RenovacionPremium obtener(UUID id) {
+    public RenovacionPremium obtener(RenovacionId id) {
         return renovacionPremiumRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Renovación no encontrada"));
     }
 
-    public RenovacionPremium actualizarContrato(UUID id, ContratoRemoto remoto, OffsetDateTime ahora) {
+    public RenovacionPremium actualizarContrato(RenovacionId id, ContratoRemoto remoto, OffsetDateTime ahora) {
         return transaccionPort.ejecutar(() -> {
             bloquear(id);
             RenovacionPremium renovacion = obtener(id);
@@ -54,8 +55,8 @@ public class RenovacionPremiumService {
     }
 
     /** Bloquea el negocio dueño de la renovación; se llama dentro de la transacción que la modifica. */
-    public void bloquear(UUID id) {
-        UUID negocioId = renovacionPremiumRepository.findNegocioIdById(id)
+    public void bloquear(RenovacionId id) {
+        NegocioId negocioId = renovacionPremiumRepository.findNegocioIdById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Renovación no encontrada"));
         usoPlanRepository.bloquearNegocio(negocioId);
     }

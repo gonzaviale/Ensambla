@@ -2,8 +2,10 @@ package com.ensambla.backend.domain.useCase.registro.listarRegistros;
 
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.common.Pagina;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.TotalesRegistros;
@@ -15,7 +17,6 @@ import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class ListarRegistros {
@@ -27,7 +28,7 @@ public class ListarRegistros {
     private final RegistroRepository registroRepository;
 
     public ListarRegistrosResponse execute(ListarRegistrosRequest request) {
-        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         Bloque bloque = bloqueService.obtener(request.bloqueId(), negocioId);
         List<Campo> campos = campoService.listarDeBloque(bloque.getId(), negocioId);
         ConsultaRegistros consulta = ConsultaRegistros.armar(
@@ -46,7 +47,7 @@ public class ListarRegistros {
 
     /** Cantidad y suma de cada campo numérico de los registros que cumplen la consulta, sin importar la página. */
     private TotalesRegistros totales(ConsultaRegistros consulta, List<Campo> campos, long cantidad) {
-        List<UUID> numericos = campos.stream()
+        List<CampoId> numericos = campos.stream()
                 .filter(campo -> campo.getTipo() == TipoCampo.NUMERO)
                 .map(Campo::getId)
                 .toList();

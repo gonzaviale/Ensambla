@@ -1,9 +1,11 @@
 package com.ensambla.backend.domain.useCase.registro.obtenerFotoOrigen;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.lote.ArchivoFoto;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
 import com.ensambla.backend.domain.service.lote.LoteSubidaService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
@@ -18,7 +20,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 import static com.ensambla.backend.support.LoteTestData.AHORA;
 import static com.ensambla.backend.support.LoteTestData.FOTO_ID;
@@ -33,8 +34,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ObtenerFotoOrigenTest {
 
-    private static final UUID REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
+    private static final RegistroId REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
 
     @Mock
     private NegocioService negocioService;

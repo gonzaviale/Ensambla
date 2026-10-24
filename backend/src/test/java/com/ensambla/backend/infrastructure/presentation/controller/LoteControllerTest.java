@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.useCase.lote.FotoArchivoResponse;
 import com.ensambla.backend.domain.useCase.lote.LoteItem.FotoItem;
 import com.ensambla.backend.domain.useCase.lote.LoteItem;
@@ -13,6 +14,7 @@ import com.ensambla.backend.domain.useCase.lote.subirLote.SubirLote;
 import com.ensambla.backend.domain.useCase.lote.subirLote.SubirLoteRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.lote.LotePresentationMapper;
+import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,7 +23,6 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 import java.util.UUID;
@@ -63,7 +64,7 @@ class LoteControllerTest {
                 obtenerLote,
                 obtenerFotoLote,
                 new LotePresentationMapper());
-        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+        mockMvc = MockMvcDePrueba.standalone(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -219,7 +220,7 @@ class LoteControllerTest {
         return subir(null, fotos);
     }
 
-    private ResultActions subir(UUID bloqueDestinoId, MockMultipartFile... fotos) throws Exception {
+    private ResultActions subir(BloqueId bloqueDestinoId, MockMultipartFile... fotos) throws Exception {
         var request = multipart("/api/lotes");
         if (bloqueDestinoId != null) {
             request.param("bloqueDestinoId", bloqueDestinoId.toString());

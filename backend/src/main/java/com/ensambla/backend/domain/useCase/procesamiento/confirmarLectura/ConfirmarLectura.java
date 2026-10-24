@@ -6,14 +6,18 @@ import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
+import com.ensambla.backend.domain.model.lote.FotoId;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionGuardada;
-import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura.CampoConfirmado;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura.FilaConfirmada;
+import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.port.TransaccionPort;
@@ -35,7 +39,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -59,14 +62,14 @@ public class ConfirmarLectura {
     private final Clock clock;
 
     public ConfirmarLecturaResponse execute(ConfirmarLecturaRequest request) {
-        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         LoteSubida lote = loteSubidaService.obtener(negocioId, request.loteId());
         ConfirmacionGuardada guardada = confirmar(
                 negocioId, lote, request.aConfirmacionLectura(), OffsetDateTime.now(clock));
         return ConfirmarLecturaResponse.de(guardada);
     }
 
-    private ConfirmacionGuardada confirmar(UUID negocioId, LoteSubida lote, ConfirmacionLectura confirmacion,
+    private ConfirmacionGuardada confirmar(NegocioId negocioId, LoteSubida lote, ConfirmacionLectura confirmacion,
                                            OffsetDateTime ahora) {
         return transaccionPort.ejecutar(() -> {
             lote.validarConfirmable();
@@ -81,7 +84,7 @@ public class ConfirmarLectura {
         });
     }
 
-    private Bloque destino(UUID negocioId, ConfirmacionLectura confirmacion, OffsetDateTime ahora) {
+    private Bloque destino(NegocioId negocioId, ConfirmacionLectura confirmacion, OffsetDateTime ahora) {
         if (confirmacion.bloqueId() != null) {
             return bloqueService.obtener(confirmacion.bloqueId(), negocioId);
         }
@@ -95,9 +98,9 @@ public class ConfirmarLectura {
      * Las columnas con campo existente se reutilizan; las demás se crean al final del bloque, con el nombre y el tipo
      * que la persona dejó al revisar. Si una falla no se crea ninguna: todo corre en la transacción de {@link #confirmar}.
      */
-    private Map<String, Campo> prepararCampos(UUID negocioId, Bloque bloque, ConfirmacionLectura confirmacion,
+    private Map<String, Campo> prepararCampos(NegocioId negocioId, Bloque bloque, ConfirmacionLectura confirmacion,
                                               OffsetDateTime ahora) {
-        Map<UUID, Campo> existentes = campoService.listarDeBloque(bloque.getId(), negocioId).stream()
+        Map<CampoId, Campo> existentes = campoService.listarDeBloque(bloque.getId(), negocioId).stream()
                 .collect(Collectors.toMap(Campo::getId, Function.identity()));
         Map<String, Campo> porClave = new LinkedHashMap<>();
         for (int i = 0; i < confirmacion.campos().size(); i++) {
@@ -122,7 +125,7 @@ public class ConfirmarLectura {
         }
     }
 
-    private Campo campoExistente(Map<UUID, Campo> existentes, UUID campoId) {
+    private Campo campoExistente(Map<CampoId, Campo> existentes, CampoId campoId) {
         Campo campo = existentes.get(campoId);
         if (campo == null) {
             throw new ResourceNotFoundException("El campo no existe");
@@ -130,7 +133,8 @@ public class ConfirmarLectura {
         return campo;
     }
 
-    private List<Registro> armarRegistros(UUID negocioId, Bloque bloque, Map<String, Campo> campos, LoteSubida lote,
+    private List<Registro> armarRegistros(NegocioId negocioId, Bloque bloque, Map<String, Campo> campos,
+            LoteSubida lote,
                                           ConfirmacionLectura confirmacion, OffsetDateTime ahora) {
         List<Campo> delBloque = campoService.listarDeBloque(bloque.getId(), negocioId);
         Map<String, String> clavePorCampoId = new HashMap<>();
@@ -139,7 +143,7 @@ public class ConfirmarLectura {
         List<Registro> registros = new ArrayList<>();
         for (int i = 0; i < confirmacion.filas().size(); i++) {
             FilaConfirmada fila = confirmacion.filas().get(i);
-            UUID fotoOrigenId = fotoOrigen(lote, fila, "filas[" + i + "].pagina", errores);
+            FotoId fotoOrigenId = fotoOrigen(lote, fila, "filas[" + i + "].pagina", errores);
             try {
                 Map<String, Object> validos = Registro.validar(delBloque, valoresPorCampo(campos, fila));
                 registroDatosService.validarConexiones(negocioId, delBloque, validos);
@@ -154,7 +158,7 @@ public class ConfirmarLectura {
         return registros;
     }
 
-    private UUID fotoOrigen(LoteSubida lote, FilaConfirmada fila, String ubicacion, Map<String, String> errores) {
+    private FotoId fotoOrigen(LoteSubida lote, FilaConfirmada fila, String ubicacion, Map<String, String> errores) {
         if (fila.pagina() == null) {
             return null;
         }
@@ -178,7 +182,7 @@ public class ConfirmarLectura {
     }
 
     /** Si otra confirmación se adelantó, o el lote ya no estaba listo, no se guarda nada. */
-    private void marcarConfirmado(LoteSubida lote, UUID bloqueId, OffsetDateTime ahora) {
+    private void marcarConfirmado(LoteSubida lote, BloqueId bloqueId, OffsetDateTime ahora) {
         if (!loteSubidaRepository.confirmar(lote.getId(), lote.getNegocioId(), bloqueId, ahora)) {
             throw new BusinessRuleException("Este cuaderno ya se guardó");
         }

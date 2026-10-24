@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.registro.obtenerRegistro;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record ObtenerRegistroRequest(UUID usuarioId, UUID registroId) {
+public record ObtenerRegistroRequest(UsuarioId usuarioId, RegistroId registroId) {
 }

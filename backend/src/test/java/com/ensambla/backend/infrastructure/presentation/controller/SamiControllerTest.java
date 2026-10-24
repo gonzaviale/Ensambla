@@ -2,7 +2,10 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.proyecto.ProyectoItem;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSami;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiRequest;
@@ -18,6 +21,7 @@ import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptio
 import com.ensambla.backend.infrastructure.presentation.mapper.proyecto.ProyectoPresentationMapper;
 import com.ensambla.backend.infrastructure.presentation.mapper.sami.SamiPresentationMapper;
 import com.ensambla.backend.infrastructure.presentation.mapper.sami.TallerPresentationMapper;
+import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,13 +30,11 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -48,9 +50,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class SamiControllerTest {
 
-    private static final UUID USUARIO_ID = UUID.randomUUID();
-    private static final UUID PLANTILLA_ID = UUID.randomUUID();
-    private static final UUID PROYECTO_ID = UUID.randomUUID();
+    private static final UsuarioId USUARIO_ID = UsuarioId.nuevo();
+    private static final PlantillaId PLANTILLA_ID = PlantillaId.nuevo();
+    private static final ProyectoId PROYECTO_ID = ProyectoId.nuevo();
 
     private ConversarConSami conversarConSami;
     private CrearProyectoDesdeSami crearProyectoDesdeSami;
@@ -63,7 +65,7 @@ class SamiControllerTest {
         conversarConSami = mock(ConversarConSami.class);
         crearProyectoDesdeSami = mock(CrearProyectoDesdeSami.class);
         conversarEnTaller = mock(ConversarEnTaller.class);
-        mockMvc = MockMvcBuilders.standaloneSetup(new SamiController(
+        mockMvc = MockMvcDePrueba.standalone(new SamiController(
                         conversarConSami,
                         crearProyectoDesdeSami,
                         conversarEnTaller,

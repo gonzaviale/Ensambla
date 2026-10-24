@@ -1,11 +1,14 @@
 package com.ensambla.backend.domain.useCase.inventario;
 
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.inventario.MovimientoStock;
+import com.ensambla.backend.domain.model.inventario.MovimientoStockId;
 import com.ensambla.backend.domain.model.inventario.TipoMovimiento;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.useCase.inventario.consultarStock.ConsultarStockResponse;
 import com.ensambla.backend.domain.useCase.inventario.registrarMovimiento.RegistrarMovimientoResponse;
 import org.junit.jupiter.api.DisplayName;
@@ -16,16 +19,15 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class InventarioDtosTest {
 
-    private static final UUID MOVIMIENTO_ID = UUID.fromString("e0000000-0000-4000-8000-000000000001");
-    private static final UUID HARINA_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID AZUCAR_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
-    private static final UUID CAMPO_NOMBRE_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
+    private static final MovimientoStockId MOVIMIENTO_ID = MovimientoStockId.de("e0000000-0000-4000-8000-000000000001");
+    private static final RegistroId HARINA_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final RegistroId AZUCAR_ID = RegistroId.de("d0000000-0000-4000-8000-000000000002");
+    private static final CampoId CAMPO_NOMBRE_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-13T12:00:00Z");
     private static final LocalDate FECHA = LocalDate.parse("2026-10-12");
 
@@ -83,7 +85,7 @@ class InventarioDtosTest {
         return List.of(Campo.builder().id(CAMPO_NOMBRE_ID).tipo(TipoCampo.TEXTO).posicion((short) 0).build());
     }
 
-    private static MovimientoStock givenMovimiento(UUID registroId) {
+    private static MovimientoStock givenMovimiento(RegistroId registroId) {
         return MovimientoStock.builder()
                 .id(MOVIMIENTO_ID)
                 .registroId(registroId)

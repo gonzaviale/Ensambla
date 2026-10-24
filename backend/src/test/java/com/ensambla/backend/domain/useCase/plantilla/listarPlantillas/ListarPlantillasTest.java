@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.plantilla.listarPlantillas;
 
 import com.ensambla.backend.domain.model.plantilla.Plantilla;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -10,7 +11,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -18,7 +18,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ListarPlantillasTest {
 
-    private static final UUID PLANTILLA_ID = UUID.randomUUID();
+    private static final PlantillaId PLANTILLA_ID = PlantillaId.nuevo();
     private static final String NOMBRE = "Pedidos";
 
     @Mock

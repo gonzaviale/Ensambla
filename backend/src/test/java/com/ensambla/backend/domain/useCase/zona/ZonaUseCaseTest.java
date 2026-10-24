@@ -4,9 +4,11 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.ubicacion.DireccionEncontrada;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.zona.AgregadoZonaProducto;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.model.zona.Zona;
+import com.ensambla.backend.domain.model.zona.ZonaId;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.ubicacion.UbicacionService;
@@ -27,7 +29,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,8 +38,8 @@ import static org.mockito.Mockito.when;
 
 class ZonaUseCaseTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID ZONA_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b0000000-0000-4000-8000-000000000001");
+    private static final ZonaId ZONA_ID = ZonaId.de("c0000000-0000-4000-8000-000000000001");
     private static final Instant AHORA = Instant.parse("2026-10-21T10:00:00Z");
     private static final Clock CLOCK = Clock.fixed(AHORA, ZoneOffset.UTC);
     private static final BigDecimal LATITUD = new BigDecimal("-34.670300");
@@ -161,7 +162,7 @@ class ZonaUseCaseTest {
     }
 
     private static Zona otraZona() {
-        return Zona.builder().id(UUID.randomUUID()).nombre("Villa Crespo").localidad("CABA").build();
+        return Zona.builder().id(ZonaId.nuevo()).nombre("Villa Crespo").localidad("CABA").build();
     }
 
     private AnalisisZona givenAnalisis() {

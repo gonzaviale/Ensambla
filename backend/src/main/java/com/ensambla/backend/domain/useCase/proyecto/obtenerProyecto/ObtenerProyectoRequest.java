@@ -1,7 +1,8 @@
 package com.ensambla.backend.domain.useCase.proyecto.obtenerProyecto;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record ObtenerProyectoRequest(UUID usuarioId, UUID proyectoId) {
+public record ObtenerProyectoRequest(UsuarioId usuarioId, ProyectoId proyectoId) {
 }
 

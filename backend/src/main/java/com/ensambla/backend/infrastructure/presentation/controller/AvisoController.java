@@ -1,6 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.aviso.aplicarAviso.AplicarAviso;
 import com.ensambla.backend.domain.useCase.aviso.contarAvisos.ContarAvisos;
 import com.ensambla.backend.domain.useCase.aviso.descartarAviso.DescartarAviso;
@@ -21,7 +23,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/avisos")
@@ -52,19 +53,19 @@ public class AvisoController {
 
     @PostMapping("/{avisoId}/aplicar")
     @Operation(summary = "Ejecutar la acción sugerida del aviso y cerrarlo, en una sola operación")
-    public ResponseEntity<AvisoResponse> aplicar(Authentication authentication, @PathVariable UUID avisoId) {
+    public ResponseEntity<AvisoResponse> aplicar(Authentication authentication, @PathVariable AvisoId avisoId) {
         return ResponseEntity.ok(avisoPresentationMapper.toResponse(aplicarAviso.execute(
                 avisoPresentationMapper.toResolverRequest(usuarioDe(authentication), avisoId))));
     }
 
     @PostMapping("/{avisoId}/descartar")
     @Operation(summary = "Descartar el aviso; no vuelve a aparecer mientras no cambien los datos que lo originaron")
-    public ResponseEntity<AvisoResponse> descartar(Authentication authentication, @PathVariable UUID avisoId) {
+    public ResponseEntity<AvisoResponse> descartar(Authentication authentication, @PathVariable AvisoId avisoId) {
         return ResponseEntity.ok(avisoPresentationMapper.toResponse(descartarAviso.execute(
                 avisoPresentationMapper.toResolverRequest(usuarioDe(authentication), avisoId))));
     }
 
-    private static UUID usuarioDe(Authentication authentication) {
-        return UUID.fromString(authentication.getName());
+    private static UsuarioId usuarioDe(Authentication authentication) {
+        return UsuarioId.de(authentication.getName());
     }
 }

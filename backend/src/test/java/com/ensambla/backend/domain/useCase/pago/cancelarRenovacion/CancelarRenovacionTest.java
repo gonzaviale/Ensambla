@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.useCase.pago.cancelarRenovacion;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
@@ -20,7 +21,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Clock;
 import java.time.ZoneOffset;
 import java.util.Optional;
-import java.util.UUID;
 
 import static com.ensambla.backend.support.PagoTestData.AHORA;
 import static com.ensambla.backend.support.PagoTestData.NEGOCIO_ID;
@@ -35,7 +35,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class CancelarRenovacionTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b0000000-0000-0000-0000-000000000009");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b0000000-0000-0000-0000-000000000009");
 
     @Mock
     private NegocioService negocioService;

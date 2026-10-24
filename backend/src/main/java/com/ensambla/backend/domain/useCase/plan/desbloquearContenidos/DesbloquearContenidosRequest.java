@@ -1,7 +1,8 @@
 package com.ensambla.backend.domain.useCase.plan.desbloquearContenidos;
 
-import java.util.List;
-import java.util.UUID;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record DesbloquearContenidosRequest(UUID usuarioId, String tipo, List<String> claves) {
+import java.util.List;
+
+public record DesbloquearContenidosRequest(UsuarioId usuarioId, String tipo, List<String> claves) {
 }

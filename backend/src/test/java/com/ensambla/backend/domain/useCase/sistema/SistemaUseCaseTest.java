@@ -1,8 +1,11 @@
 package com.ensambla.backend.domain.useCase.sistema;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.sistema.Sistema;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
@@ -44,10 +47,10 @@ import static org.mockito.Mockito.when;
 
 class SistemaUseCaseTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID OTRO_NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000002");
-    private static final UUID SISTEMA_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b0000000-0000-4000-8000-000000000001");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final NegocioId OTRO_NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000002");
+    private static final ProyectoId SISTEMA_ID = ProyectoId.de("d0000000-0000-4000-8000-000000000001");
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-21T10:00:00Z"), ZoneOffset.UTC);
     private static final OffsetDateTime AHORA = OffsetDateTime.now(CLOCK);
 

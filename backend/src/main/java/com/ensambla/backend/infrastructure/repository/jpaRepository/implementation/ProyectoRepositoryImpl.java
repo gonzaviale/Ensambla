@@ -1,8 +1,12 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.common.Identificador;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
@@ -16,7 +20,6 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -32,15 +35,15 @@ public class ProyectoRepositoryImpl implements ProyectoRepository {
     private final ProyectoRepositoryMapper proyectoRepositoryMapper;
 
     @Override
-    public List<Proyecto> findAllByNegocioId(UUID negocioId) {
-        return proyectoJpaRepository.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId).stream()
+    public List<Proyecto> findAllByNegocioId(NegocioId negocioId) {
+        return proyectoJpaRepository.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId.valor()).stream()
                 .map(proyectoRepositoryMapper::toDomain)
                 .toList();
     }
 
     @Override
-    public Optional<Proyecto> findByIdAndNegocioId(UUID proyectoId, UUID negocioId) {
-        return proyectoJpaRepository.findByIdAndNegocioId(proyectoId, negocioId)
+    public Optional<Proyecto> findByIdAndNegocioId(ProyectoId proyectoId, NegocioId negocioId) {
+        return proyectoJpaRepository.findByIdAndNegocioId(proyectoId.valor(), negocioId.valor())
                 .map(proyectoRepositoryMapper::toDomain)
                 .map(this::cargarEstructura);
     }
@@ -63,19 +66,21 @@ public class ProyectoRepositoryImpl implements ProyectoRepository {
     }
 
     @Override
-    public void deleteByIdAndNegocioId(UUID proyectoId, UUID negocioId) {
-        proyectoJpaRepository.deleteByIdAndNegocioId(proyectoId, negocioId);
+    public void deleteByIdAndNegocioId(ProyectoId proyectoId, NegocioId negocioId) {
+        proyectoJpaRepository.deleteByIdAndNegocioId(proyectoId.valor(), negocioId.valor());
     }
 
     private Proyecto cargarEstructura(Proyecto proyecto) {
         List<Bloque> bloques = bloqueJpaRepository
-                .findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(proyecto.getId(), proyecto.getNegocioId())
+                .findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(proyecto.getId().valor(), proyecto
+                .getNegocioId().valor())
                 .stream()
                 .map(proyectoRepositoryMapper::toDomain)
                 .toList();
-        List<UUID> bloqueIds = bloques.stream().map(Bloque::getId).toList();
-        Map<UUID, List<Campo>> campos = campoJpaRepository
-                .findAllByBloqueIdInAndNegocioIdOrderByPosicionAscIdAsc(bloqueIds, proyecto.getNegocioId())
+        List<BloqueId> bloqueIds = bloques.stream().map(Bloque::getId).toList();
+        Map<BloqueId, List<Campo>> campos = campoJpaRepository
+                .findAllByBloqueIdInAndNegocioIdOrderByPosicionAscIdAsc(Identificador.valores(bloqueIds), proyecto
+                .getNegocioId().valor())
                 .stream()
                 .map(proyectoRepositoryMapper::toDomain)
                 .collect(Collectors.groupingBy(Campo::getBloqueId));
@@ -84,9 +89,9 @@ public class ProyectoRepositoryImpl implements ProyectoRepository {
         return proyecto;
     }
 
-    private Bloque guardarBloque(Bloque bloque, UUID proyectoId) {
+    private Bloque guardarBloque(Bloque bloque, ProyectoId proyectoId) {
         BloqueEntity entity = proyectoRepositoryMapper.toEntity(bloque);
-        entity.setProyectoId(proyectoId);
+        entity.setProyectoId(proyectoId.valor());
         Bloque guardado = proyectoRepositoryMapper.toDomain(bloqueJpaRepository.save(entity));
         guardado.setCampos(bloque.getCampos().stream()
                 .map(campo -> guardarCampo(campo, guardado.getId()))
@@ -94,9 +99,9 @@ public class ProyectoRepositoryImpl implements ProyectoRepository {
         return guardado;
     }
 
-    private Campo guardarCampo(Campo campo, UUID bloqueId) {
+    private Campo guardarCampo(Campo campo, BloqueId bloqueId) {
         CampoEntity entity = proyectoRepositoryMapper.toEntity(campo);
-        entity.setBloqueId(bloqueId);
+        entity.setBloqueId(bloqueId.valor());
         return proyectoRepositoryMapper.toDomain(campoJpaRepository.save(entity));
     }
 }

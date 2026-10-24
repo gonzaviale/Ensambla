@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.useCase.campo.listarCampos;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
@@ -13,7 +14,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.UUID;
 
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ProyectoTestData.USUARIO_ID;
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 
 class ListarCamposTest {
 
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
     private static final ListarCamposRequest REQUEST = new ListarCamposRequest(USUARIO_ID, BLOQUE_ID);
 
     private final NegocioService negocioService = mock(NegocioService.class);

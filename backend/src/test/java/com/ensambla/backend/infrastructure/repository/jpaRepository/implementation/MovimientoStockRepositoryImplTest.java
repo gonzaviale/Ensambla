@@ -1,7 +1,11 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
-import com.ensambla.backend.domain.model.inventario.TipoMovimiento;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.inventario.MovimientoStock;
+import com.ensambla.backend.domain.model.inventario.MovimientoStockId;
+import com.ensambla.backend.domain.model.inventario.TipoMovimiento;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.infrastructure.repository.entity.MovimientoStockEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IMovimientoStockJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.MovimientoStockRepositoryMapper;
@@ -27,10 +31,10 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class MovimientoStockRepositoryImplTest {
 
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID PRODUCTO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID MOVIMIENTO_ID = UUID.fromString("e0000000-0000-4000-8000-000000000001");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final RegistroId PRODUCTO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final MovimientoStockId MOVIMIENTO_ID = MovimientoStockId.de("e0000000-0000-4000-8000-000000000001");
 
     @Mock
     private IMovimientoStockJpaRepository jpa;
@@ -65,7 +69,7 @@ class MovimientoStockRepositoryImplTest {
         IMovimientoStockJpaRepository.StockPorRegistro fila = new IMovimientoStockJpaRepository.StockPorRegistro() {
             @Override
             public UUID getRegistro() {
-                return PRODUCTO_ID;
+                return PRODUCTO_ID.valor();
             }
 
             @Override
@@ -73,9 +77,9 @@ class MovimientoStockRepositoryImplTest {
                 return new BigDecimal("6");
             }
         };
-        when(jpa.stockDe(NEGOCIO_ID, List.of(PRODUCTO_ID))).thenReturn(List.of(fila));
+        when(jpa.stockDe(NEGOCIO_ID.valor(), List.of(PRODUCTO_ID.valor()))).thenReturn(List.of(fila));
 
-        Map<UUID, BigDecimal> result = repository.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID);
+        Map<RegistroId, BigDecimal> result = repository.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID);
 
         assertThat(result).containsOnlyKeys(PRODUCTO_ID);
         assertThat(result.get(PRODUCTO_ID)).isEqualByComparingTo("6");
@@ -84,7 +88,7 @@ class MovimientoStockRepositoryImplTest {
     @Test
     @DisplayName("Sin productos no consulta el stock")
     void stockDeShouldNotQueryWithoutProducts() {
-        Map<UUID, BigDecimal> result = repository.stockDe(List.of(), NEGOCIO_ID);
+        Map<RegistroId, BigDecimal> result = repository.stockDe(List.of(), NEGOCIO_ID);
 
         assertThat(result).isEmpty();
         verifyNoInteractions(jpa);
@@ -93,7 +97,8 @@ class MovimientoStockRepositoryImplTest {
     @Test
     @DisplayName("Los movimientos recientes pasan el producto como texto y el límite")
     void findRecientesShouldPassProductAsText() {
-        when(jpa.findRecientes(NEGOCIO_ID, BLOQUE_ID, PRODUCTO_ID.toString(), 100)).thenReturn(List.of(entity()));
+        when(jpa.findRecientes(NEGOCIO_ID.valor(), BLOQUE_ID.valor(), PRODUCTO_ID.toString(), 100))
+                .thenReturn(List.of(entity()));
 
         List<MovimientoStock> result = repository.findRecientes(BLOQUE_ID, NEGOCIO_ID, PRODUCTO_ID, 100);
 
@@ -106,19 +111,19 @@ class MovimientoStockRepositoryImplTest {
     @Test
     @DisplayName("Sin producto, los movimientos recientes son los de todo el bloque")
     void findRecientesShouldNotFilterWithoutProduct() {
-        when(jpa.findRecientes(NEGOCIO_ID, BLOQUE_ID, null, 100)).thenReturn(List.of());
+        when(jpa.findRecientes(NEGOCIO_ID.valor(), BLOQUE_ID.valor(), null, 100)).thenReturn(List.of());
 
         List<MovimientoStock> result = repository.findRecientes(BLOQUE_ID, NEGOCIO_ID, null, 100);
 
         assertThat(result).isEmpty();
-        verify(jpa).findRecientes(NEGOCIO_ID, BLOQUE_ID, null, 100);
+        verify(jpa).findRecientes(NEGOCIO_ID.valor(), BLOQUE_ID.valor(), null, 100);
     }
 
     private static MovimientoStockEntity entity() {
         return MovimientoStockEntity.builder()
-                .id(MOVIMIENTO_ID)
-                .negocioId(NEGOCIO_ID)
-                .registroId(PRODUCTO_ID)
+                .id(MOVIMIENTO_ID.valor())
+                .negocioId(NEGOCIO_ID.valor())
+                .registroId(PRODUCTO_ID.valor())
                 .tipo(TipoMovimiento.ENTRADA)
                 .cantidad(BigDecimal.ONE)
                 .fecha(LocalDate.parse("2026-10-12"))

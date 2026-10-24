@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
 import com.ensambla.backend.domain.useCase.plan.desbloquearContenidos.DesbloquearContenidos;
 import com.ensambla.backend.domain.useCase.plan.desbloquearContenidos.DesbloquearContenidosRequest;
@@ -19,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -34,7 +34,7 @@ public class ContenidoPlanController {
             Authentication authentication, @Valid @RequestBody Pedido pedido) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(desbloquearContenidos.execute(new DesbloquearContenidosRequest(
-                        UUID.fromString(authentication.getName()), pedido.tipo(), pedido.claves())));
+                        UsuarioId.de(authentication.getName()), pedido.tipo(), pedido.claves())));
     }
 
     public record Pedido(@NotBlank @Pattern(regexp = "AVISOS|ZONA") String tipo,

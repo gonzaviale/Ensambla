@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.lote.EstadoLote;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
@@ -15,8 +16,6 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
-
 import static com.ensambla.backend.support.LoteTestData.AHORA;
 import static com.ensambla.backend.support.LoteTestData.FOTO_ID;
 import static com.ensambla.backend.support.LoteTestData.LOTE_ID;
@@ -31,7 +30,7 @@ import static org.mockito.Mockito.when;
 
 class LoteSubidaRepositoryImplTest {
 
-    private static final UUID BLOQUE_ID = UUID.fromString("00000000-0000-4000-8000-000000000015");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("00000000-0000-4000-8000-000000000015");
 
     private final ILoteSubidaJpaRepository loteSubidaJpaRepository = mock(ILoteSubidaJpaRepository.class);
     private final IFotoCuadernoJpaRepository fotoCuadernoJpaRepository = mock(IFotoCuadernoJpaRepository.class);
@@ -49,7 +48,7 @@ class LoteSubidaRepositoryImplTest {
 
         assertThat(result.getId()).isEqualTo(LOTE_ID);
         assertThat(result.getFotos()).extracting("id").containsExactly(FOTO_ID);
-        assertThat(thenSavedFotos()).extracting(FotoCuadernoEntity::getLoteId).containsExactly(LOTE_ID);
+        assertThat(thenSavedFotos()).extracting(FotoCuadernoEntity::getLoteId).containsExactly(LOTE_ID.valor());
     }
 
     @Test
@@ -61,7 +60,8 @@ class LoteSubidaRepositoryImplTest {
 
         assertThat(result).isTrue();
         verify(loteSubidaJpaRepository)
-                .cambiarEstado(LOTE_ID, NEGOCIO_ID, EstadoLote.LISTO, EstadoLote.CONFIRMADO, BLOQUE_ID, AHORA);
+                .cambiarEstado(LOTE_ID.valor(), NEGOCIO_ID.valor(), EstadoLote.LISTO, EstadoLote.CONFIRMADO,
+                BLOQUE_ID.valor(), AHORA);
     }
 
     @Test
@@ -77,7 +77,7 @@ class LoteSubidaRepositoryImplTest {
     @Test
     @DisplayName("Trae una foto del negocio por su id")
     void findFotoByIdAndNegocioIdShouldMapFoto() {
-        when(fotoCuadernoJpaRepository.findByIdAndNegocioId(FOTO_ID, NEGOCIO_ID))
+        when(fotoCuadernoJpaRepository.findByIdAndNegocioId(FOTO_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(Optional.of(loteSubidaRepositoryMapper.toEntity(LoteTestData.foto())));
 
         Optional<FotoCuaderno> result = loteSubidaRepositoryImpl.findFotoByIdAndNegocioId(FOTO_ID, NEGOCIO_ID);
@@ -88,7 +88,8 @@ class LoteSubidaRepositoryImplTest {
     @Test
     @DisplayName("Una foto de otro negocio no se encuentra")
     void findFotoByIdAndNegocioIdShouldReturnEmptyWhenFotoIsForeign() {
-        when(fotoCuadernoJpaRepository.findByIdAndNegocioId(FOTO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+        when(fotoCuadernoJpaRepository.findByIdAndNegocioId(FOTO_ID.valor(), NEGOCIO_ID.valor()))
+                .thenReturn(Optional.empty());
 
         assertThat(loteSubidaRepositoryImpl.findFotoByIdAndNegocioId(FOTO_ID, NEGOCIO_ID)).isEmpty();
     }
@@ -131,16 +132,19 @@ class LoteSubidaRepositoryImplTest {
     }
 
     private void givenLoteFound() {
-        when(loteSubidaJpaRepository.findByIdAndNegocioId(LOTE_ID, NEGOCIO_ID)).thenReturn(Optional.of(loteEntity()));
+        when(loteSubidaJpaRepository.findByIdAndNegocioId(LOTE_ID.valor(), NEGOCIO_ID.valor()))
+                .thenReturn(Optional.of(loteEntity()));
     }
 
     private void givenFotosFound() {
-        when(fotoCuadernoJpaRepository.findAllByLoteIdAndNegocioIdOrderByPosicionAsc(LOTE_ID, NEGOCIO_ID))
+        when(fotoCuadernoJpaRepository
+                .findAllByLoteIdAndNegocioIdOrderByPosicionAsc(LOTE_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(List.of(loteSubidaRepositoryMapper.toEntity(LoteTestData.foto())));
     }
 
     private void givenLoteMissing() {
-        when(loteSubidaJpaRepository.findByIdAndNegocioId(LOTE_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+        when(loteSubidaJpaRepository.findByIdAndNegocioId(LOTE_ID.valor(), NEGOCIO_ID.valor()))
+                .thenReturn(Optional.empty());
     }
 
     // --- assert ---

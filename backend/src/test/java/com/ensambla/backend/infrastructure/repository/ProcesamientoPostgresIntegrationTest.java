@@ -1,11 +1,18 @@
 package com.ensambla.backend.infrastructure.repository;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.lote.EstadoLote;
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
 import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.ConsumoDiario;
 import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
+import com.ensambla.backend.domain.model.procesamiento.ReclamoId;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
@@ -80,17 +87,17 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
     @Autowired
     private PlatformTransactionManager transactionManager;
 
-    private UUID usuarioId;
-    private UUID negocioId;
+    private UsuarioId usuarioId;
+    private NegocioId negocioId;
 
     @Test
     @DisplayName("Dos lotes del mismo cuaderno recorren el worker real y reutilizan el bloque propio")
     void executeShouldProcessBothLotsIntoSameExistingBlock() throws Exception {
         UUID primero = givenLote();
         UUID segundo = givenLote();
-        UUID bloqueId = givenBloqueSimulado();
-        givenFoto(primero, 0, "primera.jpg");
-        givenFoto(segundo, 0, "segunda.jpg");
+        BloqueId bloqueId = BloqueId.de(givenBloqueSimulado());
+        givenFoto(LoteId.de(primero), 0, "primera.jpg");
+        givenFoto(LoteId.de(segundo), 0, "segunda.jpg");
         Files.createDirectory(archivos.resolve(negocioId.toString()));
         Files.write(archivos.resolve(negocioId + "/primera.jpg"), new byte[]{1, 2, 3});
         Files.write(archivos.resolve(negocioId + "/segunda.jpg"), new byte[]{4, 5, 6});
@@ -101,8 +108,8 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
         useCase.execute();
         useCase.execute();
 
-        var lecturaPrimera = procesamientoRepository.obtener(negocioId, primero).orElseThrow();
-        var lecturaSegunda = procesamientoRepository.obtener(negocioId, segundo).orElseThrow();
+        var lecturaPrimera = procesamientoRepository.obtener(negocioId, LoteId.de(primero)).orElseThrow();
+        var lecturaSegunda = procesamientoRepository.obtener(negocioId, LoteId.de(segundo)).orElseThrow();
         assertThat(lecturaPrimera.estado()).isEqualTo(EstadoLote.LISTO);
         assertThat(lecturaSegunda.estado()).isEqualTo(EstadoLote.LISTO);
         assertThat(lecturaPrimera.propuesta().lectura().bloque().bloqueExistenteId()).isEqualTo(bloqueId);
@@ -111,24 +118,24 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
         assertThat(lecturaSegunda.propuesta().mapeoCampos()).isEqualTo(lecturaPrimera.propuesta().mapeoCampos());
         assertThat(procesamientoRepository.consumo(negocioId, AHORA.toLocalDate()).paginas()).isEqualTo(2);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM registro WHERE negocio_id = ?",
-                Integer.class, negocioId)).isZero();
+                Integer.class, negocioId.valor())).isZero();
     }
 
     @BeforeEach
     void setUp() {
-        usuarioId = UUID.randomUUID();
-        negocioId = UUID.randomUUID();
+        usuarioId = UsuarioId.nuevo();
+        negocioId = NegocioId.nuevo();
         jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Prueba IA')",
-                usuarioId, usuarioId + "@example.test");
+                usuarioId.valor(), usuarioId.valor() + "@example.test");
         jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Prueba IA', ?)",
-                negocioId, usuarioId);
+                negocioId.valor(), usuarioId.valor());
         suscripcionService.asignarGratuito(negocioId, AHORA.minusDays(1));
     }
 
     @AfterEach
     void tearDown() {
-        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId);
-        jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId);
+        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId.valor());
+        jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId.valor());
     }
 
     @Test
@@ -179,7 +186,7 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
     void reservarShouldRejectForeignToken() {
         givenLote();
         LoteTrabajo real = claim();
-        LoteTrabajo falso = new LoteTrabajo(real.id(), negocioId, null, UUID.randomUUID(), 1);
+        LoteTrabajo falso = new LoteTrabajo(real.id(), negocioId, null, ReclamoId.nuevo(), 1);
 
         boolean reservado = procesamientoRepository.reservar(falso, 1, 10, AHORA);
 
@@ -202,7 +209,7 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
     @Test
     @DisplayName("Persiste propuesta y consumo una sola vez aunque se repita la finalización")
     void finalizarShouldPersistExactlyOnce() {
-        UUID loteId = givenLote();
+        LoteId loteId = LoteId.de(givenLote());
         LoteTrabajo lote = claim();
         procesamientoRepository.reservar(lote, 1, 100, AHORA);
         ResultadoIntento exito = new ResultadoIntento(ProcesamientoTestData.propuesta(), null, false);
@@ -223,7 +230,7 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
         assertThat(consumo.costoEstimadoUsd()).isEqualByComparingTo("0");
         assertThat(consumo.consumoCompleto()).isTrue();
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM lectura_ia WHERE lote_id = ?",
-                Integer.class, loteId)).isEqualTo(1);
+                Integer.class, loteId.valor())).isEqualTo(1);
     }
 
     @Test
@@ -243,7 +250,7 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
     @Test
     @DisplayName("Recupera reclamo vencido y descarta un resultado tardío")
     void finalizarShouldFenceLateResultsAfterRecovery() {
-        UUID loteId = givenLote();
+        LoteId loteId = LoteId.de(givenLote());
         LoteTrabajo viejo = claim();
         procesamientoRepository.reservar(viejo, 1, 100, AHORA);
         assertThat(procesamientoRepository.vencidos(AHORA.plusMinutes(2))).contains(viejo);
@@ -265,7 +272,7 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
     @Test
     @DisplayName("Los errores anteriores al proveedor no consumen páginas")
     void finalizarShouldNotBillUnreservedWork() {
-        UUID loteId = givenLote();
+        LoteId loteId = LoteId.de(givenLote());
         LoteTrabajo lote = claim();
 
         procesamientoRepository.finalizar(lote, new ResultadoIntento(null, "Foto inválida", false),
@@ -300,43 +307,44 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
         assertThat(consumo.costoEstimadoUsd()).isNull();
         assertThat(consumo.consumoCompleto()).isFalse();
         assertThat(jdbcTemplate.queryForObject("SELECT proveedor FROM lectura_ia WHERE lote_id = ?",
-                String.class, lote.id())).isEqualTo("prueba");
+                String.class, lote.id().valor())).isEqualTo("prueba");
     }
 
     @Test
     @DisplayName("Reencola sólo ERROR del negocio propio y reinicia el contador")
     void reencolarShouldOnlyRequeueOwnErrors() {
-        UUID loteId = givenLote();
+        LoteId loteId = LoteId.de(givenLote());
         LoteTrabajo lote = claim();
         procesamientoRepository.finalizar(lote, new ResultadoIntento(null, "Error", false), null, AHORA, null);
-        assertThat(procesamientoRepository.reencolar(UUID.randomUUID(), loteId, AHORA)).isFalse();
+        assertThat(procesamientoRepository.reencolar(NegocioId.nuevo(), loteId, AHORA)).isFalse();
 
         boolean modificado = procesamientoRepository.reencolar(negocioId, loteId, AHORA);
 
         assertThat(modificado).isTrue();
         assertThat(procesamientoRepository.obtener(negocioId, loteId).orElseThrow().intentos()).isZero();
         assertThat(procesamientoRepository.reencolar(negocioId, loteId, AHORA)).isFalse();
-        assertThat(procesamientoRepository.obtener(UUID.randomUUID(), loteId)).isEmpty();
+        assertThat(procesamientoRepository.obtener(NegocioId.nuevo(), loteId)).isEmpty();
     }
 
     @Test
     @DisplayName("Carga fotos ordenadas y contexto tipado del negocio sin mezclar datos")
     void fotosAndBloquesShouldIsolateAndOrderContext() {
-        UUID loteId = givenLote();
-        UUID proyectoId = UUID.randomUUID();
-        UUID bloqueId = UUID.randomUUID();
-        UUID campoId = UUID.randomUUID();
+        LoteId loteId = LoteId.de(givenLote());
+        ProyectoId proyectoId = ProyectoId.nuevo();
+        BloqueId bloqueId = BloqueId.nuevo();
+        CampoId campoId = CampoId.nuevo();
         jdbcTemplate.update("INSERT INTO proyecto (id, negocio_id, nombre) VALUES (?, ?, 'Proyecto')",
-                proyectoId, negocioId);
+                proyectoId.valor(), negocioId.valor());
         jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre) VALUES (?, ?, ?, 'Ventas')",
-                bloqueId, negocioId, proyectoId);
+                bloqueId.valor(), negocioId.valor(), proyectoId.valor());
         jdbcTemplate.update("""
                 INSERT INTO campo (id, negocio_id, bloque_id, nombre, tipo, opciones)
                 VALUES (?, ?, ?, 'Producto', 'OPCION', '["A", "B"]')
-                """, campoId, negocioId, bloqueId);
+                """, campoId.valor(), negocioId.valor(), bloqueId.valor());
         givenFoto(loteId, 1, "segunda.jpg");
         givenFoto(loteId, 0, "primera.jpg");
-        jdbcTemplate.update("UPDATE lote_subida SET bloque_destino_id = ? WHERE id = ?", bloqueId, loteId);
+        jdbcTemplate.update("UPDATE lote_subida SET bloque_destino_id = ? WHERE id = ?", bloqueId.valor(),
+                loteId.valor());
 
         LoteTrabajo lote = claim();
         List<BloqueLectura> bloques = procesamientoRepository.bloques(negocioId);
@@ -347,67 +355,68 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
         assertThat(bloques).hasSize(1);
         assertThat(bloques.getFirst().campos().getFirst().id()).isEqualTo(campoId);
         assertThat(bloques.getFirst().campos().getFirst().opciones()).containsExactly("A", "B");
-        assertThat(procesamientoRepository.bloques(UUID.randomUUID())).isEmpty();
+        assertThat(procesamientoRepository.bloques(NegocioId.nuevo())).isEmpty();
     }
 
     @Test
     @DisplayName("Lee a qué tabla apunta cada campo de conexión")
     void bloquesShouldReadRelatedBloqueOfConexionCampo() {
-        UUID proyectoId = UUID.randomUUID();
+        ProyectoId proyectoId = ProyectoId.nuevo();
         UUID ventasId = UUID.randomUUID();
         UUID clientesId = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO proyecto (id, negocio_id, nombre) VALUES (?, ?, 'Proyecto')",
-                proyectoId, negocioId);
+                proyectoId.valor(), negocioId.valor());
         jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre) VALUES (?, ?, ?, 'Clientes')",
-                clientesId, negocioId, proyectoId);
+                clientesId, negocioId.valor(), proyectoId.valor());
         jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre) VALUES (?, ?, ?, 'Ventas')",
-                ventasId, negocioId, proyectoId);
+                ventasId, negocioId.valor(), proyectoId.valor());
         jdbcTemplate.update("""
                 INSERT INTO campo (negocio_id, bloque_id, nombre, tipo, opciones, bloque_relacionado_id)
                 VALUES (?, ?, 'Cliente', 'RELACION', '[]', ?)
-                """, negocioId, ventasId, clientesId);
+                """, negocioId.valor(), ventasId, clientesId);
         jdbcTemplate.update("""
                 INSERT INTO campo (negocio_id, bloque_id, nombre, tipo, opciones) VALUES (?, ?, 'Monto', 'NUMERO', '[]')
-                """, negocioId, ventasId);
+                """, negocioId.valor(), ventasId);
 
         List<CampoConocido> campos = procesamientoRepository.bloques(negocioId).stream()
-                .filter(bloque -> bloque.id().equals(ventasId))
+                .filter(bloque -> bloque.id().valor().equals(ventasId))
                 .findFirst().orElseThrow().campos();
 
         assertThat(campos).extracting(CampoConocido::nombre, CampoConocido::bloqueRelacionadoId)
-                .containsExactlyInAnyOrder(org.assertj.core.groups.Tuple.tuple("Cliente", clientesId),
+                .containsExactlyInAnyOrder(org.assertj.core.groups.Tuple.tuple("Cliente", BloqueId.de(clientesId)),
                         org.assertj.core.groups.Tuple.tuple("Monto", null));
     }
 
     private UUID givenLote() {
         UUID id = UUID.randomUUID();
-        jdbcTemplate.update("INSERT INTO lote_subida (id, negocio_id) VALUES (?, ?)", id, negocioId);
+        jdbcTemplate.update("INSERT INTO lote_subida (id, negocio_id) VALUES (?, ?)", id, negocioId.valor());
         return id;
     }
 
     private UUID givenBloqueSimulado() throws Exception {
-        UUID proyectoId = UUID.randomUUID();
-        UUID bloqueId = UUID.randomUUID();
+        ProyectoId proyectoId = ProyectoId.nuevo();
+        BloqueId bloqueId = BloqueId.nuevo();
         jdbcTemplate.update("INSERT INTO proyecto (id, negocio_id, nombre) VALUES (?, ?, 'Proyecto')",
-                proyectoId, negocioId);
+                proyectoId.valor(), negocioId.valor());
         jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre) VALUES (?, ?, ?, 'Ventas')",
-                bloqueId, negocioId, proyectoId);
+                bloqueId.valor(), negocioId.valor(), proyectoId.valor());
         try (var stream = new ClassPathResource("ia/lectura-simulada.json").getInputStream()) {
             for (var campo : objectMapper.readTree(stream).path("bloque").path("campos")) {
                 jdbcTemplate.update("""
                         INSERT INTO campo (negocio_id, bloque_id, nombre, tipo, opciones) VALUES (?, ?, ?, ?, ?::jsonb)
-                        """, negocioId, bloqueId, campo.path("nombre").asString(), campo.path("tipo").asString(),
+                        """, negocioId.valor(), bloqueId.valor(), campo.path("nombre").asString(),
+                        campo.path("tipo").asString(),
                         objectMapper.writeValueAsString(campo.path("opciones")));
             }
         }
-        return bloqueId;
+        return bloqueId.valor();
     }
 
-    private void givenFoto(UUID loteId, int posicion, String clave) {
+    private void givenFoto(LoteId loteId, int posicion, String clave) {
         jdbcTemplate.update("""
                 INSERT INTO foto_cuaderno (negocio_id, lote_id, clave_almacenamiento, tipo_contenido,
                     tamanio_bytes, posicion) VALUES (?, ?, ?, 'image/jpeg', 3, ?)
-                """, negocioId, loteId, negocioId + "/" + clave, posicion);
+                """, negocioId.valor(), loteId.valor(), negocioId.valor() + "/" + clave, posicion);
     }
 
     private LoteTrabajo claim() {

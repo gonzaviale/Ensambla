@@ -1,7 +1,9 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
 import com.ensambla.backend.infrastructure.repository.entity.PlanEntity;
@@ -71,7 +73,7 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     private IProyectoJpaRepository proyectos;
 
     private MockMvc mockMvc;
-    private UUID negocioId;
+    private NegocioId negocioId;
     private MockHttpSession sesion;
 
     private String csrfToken;
@@ -80,8 +82,8 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
         givenPlanGratuito();
-        UUID usuarioId = givenUsuario();
-        negocioId = givenNegocio(usuarioId);
+        UsuarioId usuarioId = UsuarioId.de(givenUsuario());
+        negocioId = NegocioId.de(givenNegocio(usuarioId));
         sesion = givenSesion(usuarioId);
     }
 
@@ -89,7 +91,7 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @DisplayName("La lista HTTP contiene sólo proyectos del usuario autenticado")
     void listarShouldIsolateNegocios() throws Exception {
         givenProyecto(negocioId, "Propio");
-        givenProyecto(givenNegocio(givenUsuario()), "Ajeno");
+        givenProyecto(NegocioId.de(givenNegocio(UsuarioId.de(givenUsuario()))), "Ajeno");
 
         mockMvc.perform(get("/api/proyectos").session(sesion))
                 .andExpect(status().isOk())
@@ -100,7 +102,7 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Consultar un proyecto ajeno devuelve 404")
     void obtenerShouldHideForeignProyecto() throws Exception {
-        UUID ajenoId = givenProyecto(givenNegocio(givenUsuario()), "Ajeno");
+        UUID ajenoId = givenProyecto(NegocioId.de(givenNegocio(UsuarioId.de(givenUsuario()))), "Ajeno");
 
         mockMvc.perform(get("/api/proyectos/{id}", ajenoId).session(sesion))
                 .andExpect(status().isNotFound());
@@ -109,7 +111,7 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Crear ignora negocioId del body y persiste en el negocio de la sesión")
     void crearShouldUseSessionNegocio() throws Exception {
-        UUID ajenoId = givenNegocio(givenUsuario());
+        UUID ajenoId = givenNegocio(UsuarioId.de(givenUsuario()));
 
         mockMvc.perform(post("/api/proyectos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
                         .contentType("application/json")
@@ -117,15 +119,15 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.nombre").value("Nuevo"));
 
-        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId)).hasSize(1);
+        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId.valor())).hasSize(1);
         assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(ajenoId)).isEmpty();
     }
 
     @Test
     @DisplayName("Un PATCH ajeno responde 404 y conserva el nombre original")
     void renombrarShouldNotModifyForeignProyecto() throws Exception {
-        UUID ajenoNegocioId = givenNegocio(givenUsuario());
-        UUID ajenoId = givenProyecto(ajenoNegocioId, "Ajeno");
+        UUID ajenoNegocioId = givenNegocio(UsuarioId.de(givenUsuario()));
+        UUID ajenoId = givenProyecto(NegocioId.de(ajenoNegocioId), "Ajeno");
 
         mockMvc.perform(patch("/api/proyectos/{id}", ajenoId).session(sesion).header("X-CSRF-TOKEN", csrfToken)
                         .contentType("application/json").content("{\"nombre\":\"Cambio\"}"))
@@ -138,8 +140,8 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Un DELETE ajeno responde 404 y conserva el proyecto")
     void eliminarShouldNotDeleteForeignProyecto() throws Exception {
-        UUID ajenoNegocioId = givenNegocio(givenUsuario());
-        UUID ajenoId = givenProyecto(ajenoNegocioId, "Ajeno");
+        UUID ajenoNegocioId = givenNegocio(UsuarioId.de(givenUsuario()));
+        UUID ajenoId = givenProyecto(NegocioId.de(ajenoNegocioId), "Ajeno");
 
         mockMvc.perform(delete("/api/proyectos/{id}", ajenoId).session(sesion).header("X-CSRF-TOKEN", csrfToken))
                 .andExpect(status().isNotFound());
@@ -154,7 +156,7 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                         .contentType("application/json").content("{\"nombre\":\"Nuevo\"}"))
                 .andExpect(status().isForbidden());
 
-        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId)).isEmpty();
+        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId.valor())).isEmpty();
     }
 
     @Test
@@ -176,20 +178,20 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenNegocio(UUID usuarioId) {
+    private UUID givenNegocio(UsuarioId usuarioId) {
         UUID creadoId = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
-                .duenioId(usuarioId)
+                .duenioId(usuarioId.valor())
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
-        suscripcionService.asignarGratuito(creadoId, AHORA.minusDays(1));
+        suscripcionService.asignarGratuito(NegocioId.de(creadoId), AHORA.minusDays(1));
         return creadoId;
     }
 
-    private UUID givenProyecto(UUID negocioId, String nombre) {
+    private UUID givenProyecto(NegocioId negocioId, String nombre) {
         return proyectos.saveAndFlush(ProyectoEntity.builder()
-                .negocioId(negocioId)
+                .negocioId(negocioId.valor())
                 .nombre(nombre)
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
@@ -206,7 +208,7 @@ class ProyectoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         }
     }
 
-    private MockHttpSession givenSesion(UUID usuarioId) throws Exception {
+    private MockHttpSession givenSesion(UsuarioId usuarioId) throws Exception {
         MockHttpSession session = givenSesionSinUsuario();
         var securityContext = SecurityContextHolder.createEmptyContext();
         securityContext.setAuthentication(

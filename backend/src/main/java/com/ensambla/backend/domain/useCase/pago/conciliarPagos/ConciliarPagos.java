@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.pago.conciliarPagos;
 
 import com.ensambla.backend.domain.exception.PasarelaPagoException;
+import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
@@ -11,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -28,7 +28,7 @@ public class ConciliarPagos {
     private final Clock clock;
 
     public void execute() {
-        for (UUID id : renovacionPremiumRepository.listarParaSincronizar()) {
+        for (RenovacionId id : renovacionPremiumRepository.listarParaSincronizar()) {
             try {
                 sincronizarRenovacion.execute(id);
             } catch (PasarelaPagoException exception) {
@@ -40,7 +40,7 @@ public class ConciliarPagos {
     }
 
     /** Aunque la sincronización falle, la renovación queda consultada y no se reintenta enseguida. */
-    private void marcarConsulta(UUID id, OffsetDateTime ahora) {
+    private void marcarConsulta(RenovacionId id, OffsetDateTime ahora) {
         transaccionPort.ejecutar(() -> {
             renovacionPremiumService.bloquear(id);
             RenovacionPremium renovacion = renovacionPremiumService.obtener(id);

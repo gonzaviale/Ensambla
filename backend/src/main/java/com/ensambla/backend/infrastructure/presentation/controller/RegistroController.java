@@ -1,5 +1,9 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.common.Identificador;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistro;
 import com.ensambla.backend.domain.useCase.registro.editarRegistro.EditarRegistro;
 import com.ensambla.backend.domain.useCase.registro.eliminarRegistro.EliminarRegistro;
@@ -50,7 +54,7 @@ public class RegistroController {
     @PostMapping("/bloques/{bloqueId}/registros")
     @Operation(summary = "Cargar un registro en un bloque; los valores se indexan por id de campo")
     public ResponseEntity<RegistroResponse> crear(Authentication authentication,
-                                                  @PathVariable UUID bloqueId,
+                                                  @PathVariable BloqueId bloqueId,
                                                   @Valid @RequestBody RegistroRequest request) {
         RegistroResponse response = presentationMapper.toResponse(crearRegistro.execute(
                 presentationMapper.toCrearRequest(usuarioDe(authentication), bloqueId, request)));
@@ -60,7 +64,7 @@ public class RegistroController {
     @GetMapping("/bloques/{bloqueId}/registros")
     @Operation(summary = "Listar los registros de un bloque con búsqueda de texto, orden y paginación")
     public ResponseEntity<PaginaRegistrosResponse> listar(Authentication authentication,
-                                                          @PathVariable UUID bloqueId,
+                                                          @PathVariable BloqueId bloqueId,
                                                           @RequestParam(required = false) String q,
                                                           @RequestParam(required = false) String orden,
                                                           @RequestParam(required = false) String direccion,
@@ -75,9 +79,9 @@ public class RegistroController {
     @GetMapping("/bloques/{bloqueId}/referencias")
     @Operation(summary = "Filas de un bloque para elegir en un campo de conexión: por texto (hasta 20) o por ids")
     public ResponseEntity<List<ReferenciaResponse>> referencias(Authentication authentication,
-                                                                @PathVariable UUID bloqueId,
+                                                                @PathVariable BloqueId bloqueId,
                                                                 @RequestParam(required = false) String q,
-                                                                @RequestParam(required = false) List<UUID> ids) {
+                                                                @RequestParam(required = false) List<RegistroId> ids) {
         List<ReferenciaResponse> response = presentationMapper.toResponse(listarReferencias.execute(
                 presentationMapper.toReferenciasRequest(usuarioDe(authentication), bloqueId, q, ids)));
         return ResponseEntity.ok(response);
@@ -87,7 +91,8 @@ public class RegistroController {
     @Operation(summary = "Ver un registro")
     public ResponseEntity<RegistroResponse> obtener(Authentication authentication, @PathVariable UUID id) {
         RegistroResponse response = presentationMapper.toResponse(obtenerRegistro.execute(
-                presentationMapper.toObtenerRequest(usuarioDe(authentication), id)));
+                presentationMapper.toObtenerRequest(usuarioDe(authentication), Identificador
+                        .opcional(id, RegistroId::de))));
         return ResponseEntity.ok(response);
     }
 
@@ -95,7 +100,8 @@ public class RegistroController {
     @Operation(summary = "Ver la foto del cuaderno de la que salió el registro")
     public ResponseEntity<byte[]> fotoOrigen(Authentication authentication, @PathVariable UUID id) {
         return RespuestaFoto.de(obtenerFotoOrigen.execute(
-                presentationMapper.toFotoOrigenRequest(usuarioDe(authentication), id)));
+                presentationMapper.toFotoOrigenRequest(usuarioDe(authentication), Identificador.opcional(id,
+                        RegistroId::de))));
     }
 
     @PatchMapping("/registros/{id}")
@@ -104,18 +110,20 @@ public class RegistroController {
                                                    @PathVariable UUID id,
                                                    @Valid @RequestBody RegistroRequest request) {
         RegistroResponse response = presentationMapper.toResponse(editarRegistro.execute(
-                presentationMapper.toEditarRequest(usuarioDe(authentication), id, request)));
+                presentationMapper.toEditarRequest(usuarioDe(authentication), Identificador.opcional(id,
+                        RegistroId::de), request)));
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/registros/{id}")
     @Operation(summary = "Eliminar un registro")
     public ResponseEntity<Void> eliminar(Authentication authentication, @PathVariable UUID id) {
-        eliminarRegistro.execute(presentationMapper.toEliminarRequest(usuarioDe(authentication), id));
+        eliminarRegistro.execute(presentationMapper.toEliminarRequest(usuarioDe(authentication),
+                Identificador.opcional(id, RegistroId::de)));
         return ResponseEntity.noContent().build();
     }
 
-    private static UUID usuarioDe(Authentication authentication) {
-        return UUID.fromString(authentication.getName());
+    private static UsuarioId usuarioDe(Authentication authentication) {
+        return UsuarioId.de(authentication.getName());
     }
 }

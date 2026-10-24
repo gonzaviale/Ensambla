@@ -22,6 +22,7 @@ import java.util.Optional;
 import static com.ensambla.backend.support.ConsultaPlanesTestData.premium;
 import static com.ensambla.backend.support.PlanTestData.INSTANTE;
 import static com.ensambla.backend.support.PlanTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.PlanTestData.USUARIO_ID;
 import static com.ensambla.backend.support.PlanTestData.plan;
 import static com.ensambla.backend.support.PlanTestData.suscripcion;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,7 +56,7 @@ class PlanUseCaseConfigTest {
         var result = planUseCaseConfig.consultarPlanes(negocioService, suscripcionService, planRepository,
                         pruebaPremiumRepository, usoPlanRepository, renovacionPremiumRepository,
                         new TransaccionDirecta(), clock)
-                .execute(NEGOCIO_ID);
+                .execute(USUARIO_ID);
 
         assertThat(result.consultadoEn()).isEqualTo(INSTANTE);
         assertThat(result.planes()).hasSize(2);
@@ -72,7 +73,7 @@ class PlanUseCaseConfigTest {
         var result = planUseCaseConfig.iniciarPrueba(negocioService, suscripcionService, pruebaPremiumRepository,
                         suscripcionRepository, usoPlanRepository, renovacionPremiumRepository,
                         new TransaccionDirecta(), clock)
-                .execute(new IniciarPruebaRequest(NEGOCIO_ID));
+                .execute(new IniciarPruebaRequest(USUARIO_ID));
 
         assertThat(result.finEn()).isEqualTo(INSTANTE.plusDays(7));
         assertThat(result.limitePaginasIa()).isEqualTo(10);
@@ -92,7 +93,7 @@ class PlanUseCaseConfigTest {
 
     // --- arrange ---
     private void givenNegocio() {
-        when(negocioService.obtenerDelUsuario(NEGOCIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     private void givenCatalogo() {

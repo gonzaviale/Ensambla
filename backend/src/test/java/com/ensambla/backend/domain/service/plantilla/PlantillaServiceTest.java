@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.service.plantilla;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -11,7 +12,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class PlantillaServiceTest {
 
-    private static final UUID PLANTILLA_ID = UUID.fromString("e0000000-0000-4000-8000-000000000001");
+    private static final PlantillaId PLANTILLA_ID = PlantillaId.de("e0000000-0000-4000-8000-000000000001");
 
     @Mock
     private PlantillaRepository plantillaRepository;

@@ -2,6 +2,10 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.lote.FotoArchivoResponse;
 import com.ensambla.backend.domain.useCase.registro.RegistroItem;
 import com.ensambla.backend.domain.useCase.registro.TotalesItem;
@@ -26,6 +30,7 @@ import com.ensambla.backend.domain.useCase.registro.obtenerRegistro.ObtenerRegis
 import com.ensambla.backend.domain.useCase.registro.obtenerRegistro.ObtenerRegistroResponse;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.registro.RegistroPresentationMapper;
+import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,7 +39,6 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.security.Principal;
@@ -60,14 +64,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class RegistroControllerTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final RegistroId REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
     private static final RegistroItem ITEM = new RegistroItem(
             REGISTRO_ID, BLOQUE_ID, Map.of("campo", "dato"), null, AHORA, AHORA);
-    private static final UUID CAMPO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
-    private static final UUID OTRO_REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
+    private static final CampoId CAMPO_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
+    private static final RegistroId OTRO_REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000002");
     private static final String CUERPO = "{\"valores\":{\"campo\":\"dato\"}}";
 
     private final Principal sesion = new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
@@ -90,7 +94,7 @@ class RegistroControllerTest {
         editarRegistro = mock(EditarRegistro.class);
         eliminarRegistro = mock(EliminarRegistro.class);
         obtenerFotoOrigen = mock(ObtenerFotoOrigen.class);
-        mockMvc = MockMvcBuilders.standaloneSetup(new RegistroController(
+        mockMvc = MockMvcDePrueba.standalone(new RegistroController(
                         crearRegistro,
                         listarRegistros,
                         listarReferencias,

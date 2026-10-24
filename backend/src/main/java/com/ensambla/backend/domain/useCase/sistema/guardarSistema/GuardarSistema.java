@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.sistema.guardarSistema;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
@@ -14,7 +15,6 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class GuardarSistema {
@@ -32,15 +32,15 @@ public class GuardarSistema {
     private final Clock clock;
 
     public SistemaItem execute(GuardarSistemaRequest request) {
-        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         Sistema sistema = request.sistema().aSistema(negocioId, request.id(), OffsetDateTime.now(clock));
         return SistemaItem.de(transaccionPort.ejecutar(() -> guardar(negocioId, sistema)));
     }
 
     /** Crea el sistema o lo reemplaza; si el id es de un proyecto de otro negocio responde como si no existiera. */
-    private Sistema guardar(UUID negocioId, Sistema sistema) {
+    private Sistema guardar(NegocioId negocioId, Sistema sistema) {
         usoPlanRepository.bloquearNegocio(negocioId);
-        Optional<UUID> duenioActual = sistemaRepository.findNegocioIdByProyectoId(sistema.id());
+        Optional<NegocioId> duenioActual = sistemaRepository.findNegocioIdByProyectoId(sistema.id());
         validarDuenio(negocioId, duenioActual);
         if (duenioActual.isEmpty()) {
             controlPlanService.validarAltaProyecto(negocioId, sistema.proyecto().getActualizadoEn());
@@ -50,7 +50,7 @@ public class GuardarSistema {
         return sistema;
     }
 
-    private void validarDuenio(UUID negocioId, Optional<UUID> duenioActual) {
+    private void validarDuenio(NegocioId negocioId, Optional<NegocioId> duenioActual) {
         duenioActual
                 .filter(duenio -> !duenio.equals(negocioId))
                 .ifPresent(duenio -> {
@@ -59,7 +59,7 @@ public class GuardarSistema {
     }
 
     /** Sólo cuenta contra el plan lo que el reemplazo suma respecto de lo que ya había. */
-    private void validarRegistrosNuevos(UUID negocioId, Sistema sistema) {
+    private void validarRegistrosNuevos(NegocioId negocioId, Sistema sistema) {
         long cantidad = sistema.registrosPorBloque().values().stream().mapToLong(List::size).sum();
         long anteriores = usoPlanRepository.contarRegistrosProyecto(negocioId, sistema.id());
         if (cantidad > anteriores) {

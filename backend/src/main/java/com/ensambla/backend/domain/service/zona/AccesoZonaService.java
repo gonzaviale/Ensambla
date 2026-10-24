@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.service.zona;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.service.plan.AccesoContenidoService;
 import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
@@ -16,7 +17,7 @@ public class AccesoZonaService {
 
     private final AccesoContenidoService accesoContenidoService;
 
-    public ZonaItem filtrar(UUID negocioId, ZonaItem zona, OffsetDateTime ahora) {
+    public ZonaItem filtrar(NegocioId negocioId, ZonaItem zona, OffsetDateTime ahora) {
         List<String> claves = zona.productos().stream().map(producto -> clave(zona, producto)).toList();
         AccesoContenidoItem acceso = accesoContenidoService.seleccionar(negocioId, TipoContenidoPlan.ZONA, claves, ahora);
         return new ZonaItem(zona.nombre(), zona.comercios(), zona.productos().stream()

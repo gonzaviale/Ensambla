@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.PruebaPremium;
 import com.ensambla.backend.infrastructure.repository.entity.PruebaPremiumEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IPruebaPremiumJpaRepository;
@@ -9,7 +10,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static com.ensambla.backend.support.PlanTestData.INSTANTE;
 import static com.ensambla.backend.support.PlanTestData.NEGOCIO_ID;
@@ -28,18 +28,18 @@ class PruebaPremiumRepositoryImplTest {
     @Test
     @DisplayName("Recupera la prueba exclusivamente por el negocio solicitado")
     void findByNegocioIdShouldMapStoredTrial() {
-        when(pruebaPremiumJpaRepository.findById(NEGOCIO_ID)).thenReturn(Optional.of(givenEntity()));
+        when(pruebaPremiumJpaRepository.findById(NEGOCIO_ID.valor())).thenReturn(Optional.of(givenEntity()));
 
         Optional<PruebaPremium> result = pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID);
 
         assertThat(result).contains(new PruebaPremium(NEGOCIO_ID, INSTANTE, INSTANTE.plusDays(7), 4));
-        verify(pruebaPremiumJpaRepository).findById(NEGOCIO_ID);
+        verify(pruebaPremiumJpaRepository).findById(NEGOCIO_ID.valor());
     }
 
     @Test
     @DisplayName("Un negocio sin historial devuelve un resultado vacío")
     void findByNegocioIdShouldReturnEmptyWhenMissing() {
-        when(pruebaPremiumJpaRepository.findById(NEGOCIO_ID)).thenReturn(Optional.empty());
+        when(pruebaPremiumJpaRepository.findById(NEGOCIO_ID.valor())).thenReturn(Optional.empty());
 
         Optional<PruebaPremium> result = pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID);
 
@@ -63,9 +63,9 @@ class PruebaPremiumRepositoryImplTest {
     @Test
     @DisplayName("Delega la búsqueda de candidatos vencidos al instante solicitado")
     void findNegociosVencidosShouldDelegateInstant() {
-        when(pruebaPremiumJpaRepository.findNegociosVencidos(INSTANTE)).thenReturn(List.of(NEGOCIO_ID));
+        when(pruebaPremiumJpaRepository.findNegociosVencidos(INSTANTE)).thenReturn(List.of(NEGOCIO_ID.valor()));
 
-        List<UUID> result = pruebaPremiumRepository.findNegociosVencidos(INSTANTE);
+        List<NegocioId> result = pruebaPremiumRepository.findNegociosVencidos(INSTANTE);
 
         assertThat(result).containsExactly(NEGOCIO_ID);
     }
@@ -73,7 +73,7 @@ class PruebaPremiumRepositoryImplTest {
     // --- arrange ---
     private PruebaPremiumEntity givenEntity() {
         return PruebaPremiumEntity.builder()
-                .negocioId(NEGOCIO_ID)
+                .negocioId(NEGOCIO_ID.valor())
                 .inicioEn(INSTANTE)
                 .finEn(INSTANTE.plusDays(7))
                 .paginasIa(4)

@@ -1,5 +1,7 @@
 package com.ensambla.backend.support;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
@@ -44,14 +46,14 @@ public class PruebasPremiumDePrueba {
 
     private final TransaccionPort transaccionPort;
 
-    public PruebaPremiumResponse iniciar(UUID negocioId, OffsetDateTime ahora) {
+    public PruebaPremiumResponse iniciar(NegocioId negocioId, OffsetDateTime ahora) {
         return new IniciarPrueba(negocioPropio(negocioId), suscripcionService, pruebaPremiumRepository,
                 suscripcionRepository, usoPlanRepository, renovacionPremiumRepository, transaccionPort,
                 Clock.fixed(ahora.toInstant(), ahora.getOffset()))
-                .execute(new IniciarPruebaRequest(negocioId));
+                .execute(new IniciarPruebaRequest(usuarioDe(negocioId)));
     }
 
-    public void vencer(UUID negocioId, OffsetDateTime ahora) {
+    public void vencer(NegocioId negocioId, OffsetDateTime ahora) {
         PruebaPremiumRepository soloEsteNegocio = mock(PruebaPremiumRepository.class);
         when(soloEsteNegocio.findNegociosVencidos(any())).thenReturn(List.of(negocioId));
         new VencerPruebas(suscripcionService, soloEsteNegocio, suscripcionRepository, usoPlanRepository,
@@ -59,9 +61,14 @@ public class PruebasPremiumDePrueba {
                 .execute();
     }
 
-    private static NegocioService negocioPropio(UUID negocioId) {
+    /** El usuario de prueba comparte el UUID con su negocio. */
+    private static UsuarioId usuarioDe(NegocioId negocioId) {
+        return UsuarioId.de(negocioId.valor());
+    }
+
+    private static NegocioService negocioPropio(NegocioId negocioId) {
         NegocioService negocioService = mock(NegocioService.class);
-        when(negocioService.obtenerDelUsuario(negocioId)).thenReturn(negocioId);
+        when(negocioService.obtenerDelUsuario(usuarioDe(negocioId))).thenReturn(negocioId);
         return negocioService;
     }
 }

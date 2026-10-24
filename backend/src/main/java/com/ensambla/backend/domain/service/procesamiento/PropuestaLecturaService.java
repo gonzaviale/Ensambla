@@ -1,6 +1,8 @@
 package com.ensambla.backend.domain.service.procesamiento;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import com.ensambla.backend.domain.model.lectura.BloquePropuesto;
 import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
@@ -19,22 +21,21 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.BiPredicate;
 
 public class PropuestaLecturaService {
 
     static final String INCOMPATIBLE = "La estructura leída no es compatible con el bloque de destino";
 
-    public PropuestaLectura proponer(LecturaCuaderno lectura, List<BloqueLectura> bloques, UUID destino) {
+    public PropuestaLectura proponer(LecturaCuaderno lectura, List<BloqueLectura> bloques, BloqueId destino) {
         if (destino != null) {
             return proponerEnDestino(lectura, bloques, destino);
         }
         List<BloqueLectura> compatibles = bloques.stream()
                 .filter(bloque -> compatible(lectura.bloque(), bloque))
                 .toList();
-        UUID bloqueId = null;
-        Map<String, UUID> mapeo = new LinkedHashMap<>();
+        BloqueId bloqueId = null;
+        Map<String, CampoId> mapeo = new LinkedHashMap<>();
         if (compatibles.size() == 1) {
             BloqueLectura bloque = compatibles.getFirst();
             bloqueId = bloque.id();
@@ -55,7 +56,7 @@ public class PropuestaLecturaService {
      * bloque no tiene se proponen como campos nuevos con el tipo que sugiere lo leído. Hace falta que al menos una
      * columna coincida: si ninguna lo hace, la foto no es de este bloque.
      */
-    private PropuestaLectura proponerEnDestino(LecturaCuaderno lectura, List<BloqueLectura> bloques, UUID destino) {
+    private PropuestaLectura proponerEnDestino(LecturaCuaderno lectura, List<BloqueLectura> bloques, BloqueId destino) {
         BloqueLectura bloque = bloques.stream()
                 .filter(candidato -> candidato.id().equals(destino))
                 .findFirst()
@@ -63,7 +64,7 @@ public class PropuestaLecturaService {
         List<CampoPropuesto> leidos = lectura.bloque().campos();
         Map<String, CampoConocido> asignados = new LinkedHashMap<>();
         Set<String> ambiguas = new LinkedHashSet<>();
-        Set<UUID> usados = new HashSet<>();
+        Set<CampoId> usados = new HashSet<>();
         cruzar(leidos, bloque, SinonimosCampo::mismoNombre, asignados, usados, ambiguas);
         cruzar(leidos, bloque, SinonimosCampo::equivalentes, asignados, usados, ambiguas);
         if (asignados.isEmpty()) {
@@ -72,7 +73,7 @@ public class PropuestaLecturaService {
 
         List<CampoPropuesto> campos = new ArrayList<>();
         List<CampoPropuesto> nuevos = new ArrayList<>();
-        Map<String, UUID> mapeo = new LinkedHashMap<>();
+        Map<String, CampoId> mapeo = new LinkedHashMap<>();
         Set<String> sinDatos = new HashSet<>();
         List<String> advertencias = new ArrayList<>(lectura.advertencias());
         for (CampoPropuesto leido : leidos) {
@@ -102,7 +103,7 @@ public class PropuestaLecturaService {
 
     /** Asigna a cada columna sin asignar el único campo libre del bloque que cumpla el criterio. */
     private void cruzar(List<CampoPropuesto> leidos, BloqueLectura bloque, BiPredicate<String, String> criterio,
-                        Map<String, CampoConocido> asignados, Set<UUID> usados, Set<String> ambiguas) {
+                        Map<String, CampoConocido> asignados, Set<CampoId> usados, Set<String> ambiguas) {
         for (CampoPropuesto leido : leidos) {
             if (asignados.containsKey(leido.clave())) {
                 continue;

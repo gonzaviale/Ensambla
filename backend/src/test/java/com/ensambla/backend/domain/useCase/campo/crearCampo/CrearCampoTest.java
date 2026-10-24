@@ -3,7 +3,9 @@ package com.ensambla.backend.domain.useCase.campo.crearCampo;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
@@ -18,7 +20,6 @@ import java.time.Clock;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static com.ensambla.backend.support.ProyectoTestData.AHORA;
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
@@ -31,8 +32,8 @@ import static org.mockito.Mockito.when;
 
 class CrearCampoTest {
 
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID CAMPO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final CampoId CAMPO_ID = CampoId.de("d0000000-0000-4000-8000-000000000001");
     private static final List<String> TALLES = List.of("Chico", "Grande");
     private static final CrearCampoRequest REQUEST =
             new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES, null, null);

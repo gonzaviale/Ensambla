@@ -1,11 +1,12 @@
 package com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public record GuardarPreferenciasRequest(
-        UUID usuarioId,
+        UsuarioId usuarioId,
         List<String> descartadas,
         Map<String, Boolean> grupos,
         boolean bienvenidaVista,

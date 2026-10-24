@@ -1,26 +1,28 @@
 package com.ensambla.backend.domain.model.reporte;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FiltroReporteTest {
 
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID ESTADO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
-    private static final UUID PAGADO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000002");
-    private static final UUID NOMBRE_ID = UUID.fromString("c0000000-0000-4000-8000-000000000003");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final CampoId ESTADO_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
+    private static final CampoId PAGADO_ID = CampoId.de("c0000000-0000-4000-8000-000000000002");
+    private static final CampoId NOMBRE_ID = CampoId.de("c0000000-0000-4000-8000-000000000003");
 
     @Test
     @DisplayName("Sin filtros no acota nada")
@@ -90,7 +92,7 @@ class FiltroReporteTest {
         assertThatThrownBy(() -> armar(null, null, null, NOMBRE_ID, "x"))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("No se puede filtrar por ese campo");
-        assertThatThrownBy(() -> armar(null, null, null, UUID.randomUUID(), "x"))
+        assertThatThrownBy(() -> armar(null, null, null, CampoId.nuevo(), "x"))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("No se puede filtrar por ese campo");
     }
@@ -110,7 +112,7 @@ class FiltroReporteTest {
                 .isInstanceOf(BusinessRuleException.class);
     }
 
-    private static FiltroReporte armar(String texto, LocalDate desde, LocalDate hasta, UUID campoId, String valor) {
+    private static FiltroReporte armar(String texto, LocalDate desde, LocalDate hasta, CampoId campoId, String valor) {
         List<Campo> campos = List.of(
                 Campo.builder().id(ESTADO_ID).nombre("Estado").tipo(TipoCampo.OPCION)
                         .opciones(List.of("Pendiente", "Entregado")).build(),

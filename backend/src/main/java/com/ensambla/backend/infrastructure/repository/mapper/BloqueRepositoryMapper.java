@@ -1,6 +1,11 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.common.Identificador;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.seccion.SeccionId;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
 import org.springframework.stereotype.Component;
 
@@ -9,10 +14,10 @@ public class BloqueRepositoryMapper {
 
     public Bloque toDomain(BloqueEntity entity) {
         return Bloque.builder()
-                .id(entity.getId())
-                .negocioId(entity.getNegocioId())
-                .proyectoId(entity.getProyectoId())
-                .seccionId(entity.getSeccionId())
+                .id(Identificador.opcional(entity.getId(), BloqueId::de))
+                .negocioId(Identificador.opcional(entity.getNegocioId(), NegocioId::de))
+                .proyectoId(Identificador.opcional(entity.getProyectoId(), ProyectoId::de))
+                .seccionId(Identificador.opcional(entity.getSeccionId(), SeccionId::de))
                 .tipo(entity.getTipo())
                 .descripcion(entity.getDescripcion())
                 .color(entity.getColor())
@@ -29,10 +34,10 @@ public class BloqueRepositoryMapper {
 
     public BloqueEntity toEntity(Bloque bloque) {
         return BloqueEntity.builder()
-                .id(bloque.getId())
-                .negocioId(bloque.getNegocioId())
-                .proyectoId(bloque.getProyectoId())
-                .seccionId(bloque.getSeccionId())
+                .id(Identificador.valorDe(bloque.getId()))
+                .negocioId(Identificador.valorDe(bloque.getNegocioId()))
+                .proyectoId(Identificador.valorDe(bloque.getProyectoId()))
+                .seccionId(Identificador.valorDe(bloque.getSeccionId()))
                 .tipo(bloque.getTipo())
                 .descripcion(bloque.getDescripcion())
                 .color(bloque.getColor())

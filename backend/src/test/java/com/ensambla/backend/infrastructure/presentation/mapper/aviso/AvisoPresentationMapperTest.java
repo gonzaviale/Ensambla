@@ -1,8 +1,10 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.aviso;
 
+import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.aviso.GrupoAviso;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.aviso.AvisoItem;
 import com.ensambla.backend.domain.useCase.aviso.ResolverAvisoRequest;
 import com.ensambla.backend.domain.useCase.aviso.contarAvisos.ContadorAvisos;
@@ -15,14 +17,13 @@ import org.junit.jupiter.api.Test;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class AvisoPresentationMapperTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("00000000-0000-4000-8000-000000000001");
-    private static final UUID AVISO_ID = UUID.fromString("e0000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("00000000-0000-4000-8000-000000000001");
+    private static final AvisoId AVISO_ID = AvisoId.de("e0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-19T12:00:00Z");
 
     private final AvisoPresentationMapper mapper = new AvisoPresentationMapper();

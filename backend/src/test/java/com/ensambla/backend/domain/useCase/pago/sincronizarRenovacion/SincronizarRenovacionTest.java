@@ -3,10 +3,12 @@ package com.ensambla.backend.domain.useCase.pago.sincronizarRenovacion;
 import com.ensambla.backend.domain.exception.PasarelaPagoException;
 import com.ensambla.backend.domain.model.pago.PagoPremium;
 import com.ensambla.backend.domain.model.pago.PagoRemoto;
+import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Plan;
+import com.ensambla.backend.domain.model.plan.PlanId;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.repository.pago.PagoPremiumRepository;
@@ -30,7 +32,6 @@ import java.time.Clock;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static com.ensambla.backend.support.PagoTestData.AHORA;
 import static com.ensambla.backend.support.PagoTestData.IMPORTE;
@@ -51,7 +52,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class SincronizarRenovacionTest {
 
-    private static final UUID PREMIUM_ID = UUID.fromString("b0000000-0000-0000-0000-000000000001");
+    private static final PlanId PREMIUM_ID = PlanId.de("b0000000-0000-0000-0000-000000000001");
 
     @Mock
     private RenovacionPremiumService renovacionPremiumService;
@@ -102,7 +103,7 @@ class SincronizarRenovacionTest {
         RenovacionPremium renovacion = givenRenovacionSincronizada();
         PagoRemoto base = pago(renovacion, "factura", "approved", AHORA, AHORA);
         givenPagos(new PagoRemoto(base.facturaId(), base.pagoId(), caso == 1 ? "otro" : base.contratoId(),
-                caso == 0 ? UUID.randomUUID() : base.referencia(), caso == 2 ? BigDecimal.ONE : base.importe(),
+                caso == 0 ? RenovacionId.nuevo() : base.referencia(), caso == 2 ? BigDecimal.ONE : base.importe(),
                 caso == 3 ? "USD" : base.moneda(), base.estado(), caso == 4 ? AHORA.minusSeconds(1) : AHORA, AHORA));
 
         assertThatThrownBy(() -> sincronizarRenovacion.execute(RENOVACION_ID))
@@ -118,7 +119,7 @@ class SincronizarRenovacionTest {
         RenovacionPremium renovacion = givenRenovacionSincronizada();
         givenPagos(pago(renovacion, "factura", "approved", AHORA, AHORA));
         when(pagoPremiumRepository.findByFacturaId("factura")).thenReturn(Optional.of(PagoPremium.builder()
-                .renovacionId(otroContrato ? UUID.randomUUID() : RENOVACION_ID)
+                .renovacionId(otroContrato ? RenovacionId.nuevo() : RENOVACION_ID)
                 .inicioEn(otroContrato ? AHORA : AHORA.minusDays(1)).build()));
 
         assertThatThrownBy(() -> sincronizarRenovacion.execute(RENOVACION_ID))

@@ -1,6 +1,9 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import com.ensambla.backend.support.ProcesamientoTestData;
@@ -60,31 +63,32 @@ class LecturaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     private ProcesamientoRepository procesamientoRepository;
 
     private MockMvc mockMvc;
-    private UUID usuarioId;
-    private UUID negocioId;
-    private UUID loteId;
+    private UsuarioId usuarioId;
+    private NegocioId negocioId;
+    private LoteId loteId;
     private MockHttpSession sesion;
     private String csrfToken;
 
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        usuarioId = UUID.randomUUID();
-        negocioId = UUID.randomUUID();
-        loteId = UUID.randomUUID();
+        usuarioId = UsuarioId.nuevo();
+        negocioId = NegocioId.nuevo();
+        loteId = LoteId.nuevo();
         jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Persona')",
-                usuarioId, usuarioId + "@example.test");
+                usuarioId.valor(), usuarioId.valor() + "@example.test");
         jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Negocio', ?)",
-                negocioId, usuarioId);
+                negocioId.valor(), usuarioId.valor());
         suscripcionService.asignarGratuito(negocioId, AHORA.minusDays(1));
-        jdbcTemplate.update("INSERT INTO lote_subida (id, negocio_id) VALUES (?, ?)", loteId, negocioId);
+        jdbcTemplate.update("INSERT INTO lote_subida (id, negocio_id) VALUES (?, ?)", loteId.valor(),
+                negocioId.valor());
         sesion = givenSesion();
     }
 
     @AfterEach
     void tearDown() {
-        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId);
-        jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId);
+        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId.valor());
+        jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId.valor());
     }
 
     @ParameterizedTest
@@ -118,7 +122,7 @@ class LecturaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(jsonPath("$.propuesta").doesNotExist());
 
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM lectura_ia WHERE lote_id = ?",
-                Integer.class, loteId)).isZero();
+                Integer.class, loteId.valor())).isZero();
     }
 
     @Test
@@ -207,7 +211,7 @@ class LecturaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         jdbcTemplate.update("""
                 INSERT INTO consumo_ia_diario (negocio_id, fecha, paginas, reservadas) VALUES (?, ?, 5, 2)
                 """,
-                negocioId, ahora.toLocalDate());
+                negocioId.valor(), ahora.toLocalDate());
 
         mockMvc.perform(get("/api/ia/consumo").session(sesion).param("negocioId", UUID.randomUUID().toString()))
                 .andExpect(status().isOk())

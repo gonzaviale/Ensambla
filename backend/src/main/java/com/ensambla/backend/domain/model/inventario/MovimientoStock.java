@@ -1,6 +1,8 @@
 package com.ensambla.backend.domain.model.inventario;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,7 +16,6 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 /** Una entrada o una salida de un producto (un registro); el stock es la suma de sus movimientos. */
 @Getter
@@ -31,12 +32,12 @@ public class MovimientoStock {
     /** Lo que entra en numeric(14, 3). */
     static final BigDecimal CANTIDAD_MAXIMA = new BigDecimal("99999999999.999");
 
-    private UUID id;
+    private MovimientoStockId id;
 
-    private UUID negocioId;
+    private NegocioId negocioId;
 
     /** Producto: el registro del que se mueve el stock. */
-    private UUID registroId;
+    private RegistroId registroId;
 
     private TipoMovimiento tipo;
 
@@ -54,8 +55,8 @@ public class MovimientoStock {
      * @throws RegistroInvalidoException con un mensaje por cada dato inválido, indexado por nombre
      */
     public static MovimientoStock nuevo(
-            UUID negocioId,
-            UUID registroId,
+            NegocioId negocioId,
+            RegistroId registroId,
             String tipo,
             BigDecimal cantidad,
             LocalDate fecha,

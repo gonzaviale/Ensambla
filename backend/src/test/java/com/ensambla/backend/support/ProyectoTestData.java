@@ -1,22 +1,27 @@
 package com.ensambla.backend.support;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
-import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.BloquePlantilla;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.CampoPlantilla;
+import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
 
 public final class ProyectoTestData {
 
-    public static final UUID USUARIO_ID = UUID.fromString("00000000-0000-4000-8000-000000000001");
-    public static final UUID NEGOCIO_ID = UUID.fromString("00000000-0000-4000-8000-000000000002");
-    public static final UUID PROYECTO_ID = UUID.fromString("00000000-0000-4000-8000-000000000003");
-    public static final UUID PLANTILLA_ID = UUID.fromString("00000000-0000-4000-8000-000000000004");
+    public static final UsuarioId USUARIO_ID = UsuarioId.de("00000000-0000-4000-8000-000000000001");
+    public static final NegocioId NEGOCIO_ID = NegocioId.de("00000000-0000-4000-8000-000000000002");
+    public static final ProyectoId PROYECTO_ID = ProyectoId.de("00000000-0000-4000-8000-000000000003");
+    public static final PlantillaId PLANTILLA_ID = PlantillaId.de("00000000-0000-4000-8000-000000000004");
     public static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
 
     private ProyectoTestData() {
@@ -34,10 +39,10 @@ public final class ProyectoTestData {
         Proyecto proyecto = Proyecto.desdePlantilla(NEGOCIO_ID, plantilla(), AHORA);
         proyecto.setId(PROYECTO_ID);
         proyecto.getBloques().forEach(bloque -> {
-            bloque.setId(UUID.randomUUID());
+            bloque.setId(BloqueId.nuevo());
             bloque.setProyectoId(PROYECTO_ID);
             bloque.getCampos().forEach(campo -> {
-                campo.setId(UUID.randomUUID());
+                campo.setId(CampoId.nuevo());
                 campo.setBloqueId(bloque.getId());
             });
         });

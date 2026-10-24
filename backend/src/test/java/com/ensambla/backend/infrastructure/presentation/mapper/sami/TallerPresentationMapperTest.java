@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.presentation.mapper.sami;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTallerRequest;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTallerResponse;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ImagenTallerItem;
@@ -12,14 +13,13 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class TallerPresentationMapperTest {
 
-    private static final UUID USUARIO_ID = UUID.randomUUID();
+    private static final UsuarioId USUARIO_ID = UsuarioId.nuevo();
 
     private final TallerPresentationMapper mapper = new TallerPresentationMapper();
 

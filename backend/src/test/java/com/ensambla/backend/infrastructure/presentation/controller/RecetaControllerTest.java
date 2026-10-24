@@ -2,6 +2,10 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.receta.RecetaItem;
 import com.ensambla.backend.domain.useCase.receta.guardarReceta.GuardarReceta;
 import com.ensambla.backend.domain.useCase.receta.guardarReceta.GuardarRecetaRequest;
@@ -10,19 +14,18 @@ import com.ensambla.backend.domain.useCase.receta.obtenerReceta.ObtenerReceta;
 import com.ensambla.backend.domain.useCase.receta.obtenerReceta.ObtenerRecetaRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.receta.RecetaPresentationMapper;
+import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -35,11 +38,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class RecetaControllerTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
-    private static final UUID PRODUCTO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID HARINA_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
-    private static final UUID PRECIO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000002");
-    private static final UUID BLOQUE_INSUMOS_ID = UUID.fromString("b0000000-0000-4000-8000-000000000002");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
+    private static final RegistroId PRODUCTO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final RegistroId HARINA_ID = RegistroId.de("d0000000-0000-4000-8000-000000000002");
+    private static final CampoId PRECIO_ID = CampoId.de("c0000000-0000-4000-8000-000000000002");
+    private static final BloqueId BLOQUE_INSUMOS_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
     private static final RecetaItem ITEM = new RecetaItem(
             BLOQUE_INSUMOS_ID,
             PRECIO_ID,
@@ -58,7 +61,7 @@ class RecetaControllerTest {
     void setUp() {
         obtenerReceta = mock(ObtenerReceta.class);
         guardarReceta = mock(GuardarReceta.class);
-        mockMvc = MockMvcBuilders.standaloneSetup(new RecetaController(
+        mockMvc = MockMvcDePrueba.standalone(new RecetaController(
                         obtenerReceta, guardarReceta, new RecetaPresentationMapper()))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();

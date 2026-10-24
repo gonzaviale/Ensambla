@@ -4,10 +4,13 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.BloquePlantilla;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.CampoPlantilla;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,7 +25,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Getter
@@ -36,16 +38,16 @@ public class Proyecto {
     private static final String TIPO_NO_SUGERIBLE =
             "Sami sólo agrega columnas de texto, número, fecha, opción o sí/no";
 
-    private UUID id;
+    private ProyectoId id;
 
-    private UUID negocioId;
+    private NegocioId negocioId;
 
     private String nombre;
 
     private String descripcion;
 
     /** Plantilla de origen; null si se creó en blanco o si la plantilla ya no existe. */
-    private UUID plantillaId;
+    private PlantillaId plantillaId;
 
     /** Plantilla de sistema del frontend (almacén, depósito, pedidos y clientes); null si se armó a medida. */
     private PlantillaSistema plantillaClave;
@@ -70,7 +72,7 @@ public class Proyecto {
     @Builder.Default
     private List<Bloque> bloques = List.of();
 
-    public static Proyecto enBlanco(UUID negocioId, String nombre, String descripcion, OffsetDateTime ahora) {
+    public static Proyecto enBlanco(NegocioId negocioId, String nombre, String descripcion, OffsetDateTime ahora) {
         return Proyecto.builder()
                 .negocioId(negocioId)
                 .nombre(nombre.strip())
@@ -80,7 +82,7 @@ public class Proyecto {
                 .build();
     }
 
-    public static Proyecto desdePlantilla(UUID negocioId, PlantillaProyecto plantilla, OffsetDateTime ahora) {
+    public static Proyecto desdePlantilla(NegocioId negocioId, PlantillaProyecto plantilla, OffsetDateTime ahora) {
         Proyecto proyecto = enBlanco(negocioId, plantilla.nombre(), plantilla.descripcion(), ahora);
         proyecto.setPlantillaId(plantilla.id());
         List<Bloque> bloques = new ArrayList<>();
@@ -168,7 +170,7 @@ public class Proyecto {
      * El nombre de un bloque es único dentro del proyecto sin distinguir mayúsculas ni espacios de los extremos.
      * {@code bloqueId} es el bloque que se está renombrando (puede conservar su propio nombre); null al crear.
      */
-    public void validarNombreDeBloqueLibre(String nombre, UUID bloqueId) {
+    public void validarNombreDeBloqueLibre(String nombre, BloqueId bloqueId) {
         String buscado = nombre.strip();
         boolean ocupado = bloques.stream()
                 .filter(bloque -> !bloque.getId().equals(bloqueId))

@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.useCase.bloque.eliminarBloque;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
@@ -11,7 +12,6 @@ import com.ensambla.backend.domain.service.negocio.NegocioService;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
-import java.util.UUID;
 
 /** No se puede borrar una tabla que otra tabla usa en una conexión; la autorreferencia no cuenta. */
 @RequiredArgsConstructor
@@ -28,7 +28,7 @@ public class EliminarBloque {
     private final TransaccionPort transaccionPort;
 
     public void execute(EliminarBloqueRequest request) {
-        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         Bloque bloque = bloqueService.obtener(request.bloqueId(), negocioId);
         transaccionPort.ejecutar(() -> eliminar(bloque));
     }

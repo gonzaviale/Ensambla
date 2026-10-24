@@ -11,7 +11,7 @@ public class PagoPresentationMapper {
     public RenovacionResponse toResponse(ConsultarRenovacionResponse origen) {
         RenovacionItem contrato = origen.contrato();
         return new RenovacionResponse(origen.habilitada(), origen.periodoDias(), contrato == null ? null
-                : new RenovacionResponse.ContratoResponse(contrato.id(), contrato.estado(), contrato.importe(),
+                : new RenovacionResponse.ContratoResponse(contrato.id().valor(), contrato.estado(), contrato.importe(),
                         contrato.moneda(), contrato.primerCobroEn(), contrato.proximoCobroEn(),
                         contrato.cancelacionSolicitada(), contrato.enlace()));
     }

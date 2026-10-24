@@ -1,5 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.campo.crearCampo.CrearCampo;
 import com.ensambla.backend.domain.useCase.campo.editarCampo.EditarCampo;
 import com.ensambla.backend.domain.useCase.campo.eliminarCampo.EliminarCampo;
@@ -24,7 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api")
@@ -44,7 +46,7 @@ public class CampoController {
 
     @GetMapping("/bloques/{bloqueId}/campos")
     @Operation(summary = "Listar los campos de un bloque en el orden del constructor")
-    public ResponseEntity<List<CampoResponse>> listar(Authentication authentication, @PathVariable UUID bloqueId) {
+    public ResponseEntity<List<CampoResponse>> listar(Authentication authentication, @PathVariable BloqueId bloqueId) {
         return ResponseEntity.ok(campoPresentationMapper.toResponse(listarCampos.execute(
                 campoPresentationMapper.toListarRequest(usuarioDe(authentication), bloqueId))));
     }
@@ -53,7 +55,7 @@ public class CampoController {
     @Operation(summary = "Agregar un campo al final del bloque")
     public ResponseEntity<CampoResponse> crear(
             Authentication authentication,
-            @PathVariable UUID bloqueId,
+            @PathVariable BloqueId bloqueId,
             @Valid @RequestBody CampoWebRequest request) {
         CampoResponse response = campoPresentationMapper.toResponse(crearCampo.execute(
                 campoPresentationMapper.toCrearRequest(usuarioDe(authentication), bloqueId, request)));
@@ -64,7 +66,7 @@ public class CampoController {
     @Operation(summary = "Reemplazar la configuración de un campo; el nombre no puede repetirse dentro del bloque")
     public ResponseEntity<CampoResponse> editar(
             Authentication authentication,
-            @PathVariable UUID campoId,
+            @PathVariable CampoId campoId,
             @Valid @RequestBody CampoWebRequest request) {
         return ResponseEntity.ok(campoPresentationMapper.toResponse(editarCampo.execute(
                 campoPresentationMapper.toEditarRequest(usuarioDe(authentication), campoId, request))));
@@ -72,12 +74,12 @@ public class CampoController {
 
     @DeleteMapping("/campos/{campoId}")
     @Operation(summary = "Eliminar un campo; los registros del bloque se conservan")
-    public ResponseEntity<Void> eliminar(Authentication authentication, @PathVariable UUID campoId) {
+    public ResponseEntity<Void> eliminar(Authentication authentication, @PathVariable CampoId campoId) {
         eliminarCampo.execute(campoPresentationMapper.toEliminarRequest(usuarioDe(authentication), campoId));
         return ResponseEntity.noContent().build();
     }
 
-    private static UUID usuarioDe(Authentication authentication) {
-        return UUID.fromString(authentication.getName());
+    private static UsuarioId usuarioDe(Authentication authentication) {
+        return UsuarioId.de(authentication.getName());
     }
 }

@@ -1,5 +1,8 @@
 package com.ensambla.backend.domain.model.campo;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,7 +15,6 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.function.Function;
 
 @Getter
@@ -24,11 +26,11 @@ public class Campo {
 
     static final int MAX_CARACTERES_TEXTO = 1000;
 
-    private UUID id;
+    private CampoId id;
 
-    private UUID negocioId;
+    private NegocioId negocioId;
 
-    private UUID bloqueId;
+    private BloqueId bloqueId;
 
     private String nombre;
 
@@ -43,7 +45,7 @@ public class Campo {
     private List<String> opciones;
 
     /** Bloque al que apunta; sólo aplica a campos de tipo RELACION. */
-    private UUID bloqueRelacionadoId;
+    private BloqueId bloqueRelacionadoId;
 
     /** Expresión con los campos referenciados por id ({id}); sólo aplica a campos de tipo FORMULA. */
     private String formula;
@@ -62,8 +64,8 @@ public class Campo {
 
     /** Campo nuevo del bloque, todavía sin guardar; {@code configuracion} ya viene validada. */
     public static Campo nuevo(
-            UUID negocioId,
-            UUID bloqueId,
+            NegocioId negocioId,
+            BloqueId bloqueId,
             short posicion,
             ConfiguracionCampo.Validada configuracion,
             OffsetDateTime ahora) {
@@ -102,7 +104,7 @@ public class Campo {
     }
 
     /** Valor de un campo FORMULA con los datos de un registro; {@code null} si falta algún dato. */
-    public BigDecimal calcular(Function<UUID, BigDecimal> valorDe) {
+    public BigDecimal calcular(Function<CampoId, BigDecimal> valorDe) {
         return Formula.parsear(formula).evaluar(valorDe);
     }
 
@@ -152,7 +154,7 @@ public class Campo {
             return false;
         }
         try {
-            return UUID.fromString(texto).toString().equalsIgnoreCase(texto);
+            return RegistroId.de(texto).toString().equalsIgnoreCase(texto);
         } catch (IllegalArgumentException e) {
             return false;
         }

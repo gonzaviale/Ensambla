@@ -1,6 +1,8 @@
 package com.ensambla.backend.domain.model.aviso;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,7 +12,6 @@ import lombok.Setter;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /** Recomendación del motor de monitoreo sobre una entidad del negocio, con su motivo y las acciones sugeridas. */
 @Getter
@@ -23,11 +24,11 @@ public class Aviso {
     /** Desde esta prioridad el aviso se considera urgente (3 urgente, 2 para hoy, 1 para mirar). */
     public static final short PRIORIDAD_URGENTE = 2;
 
-    private UUID id;
+    private AvisoId id;
 
-    private UUID negocioId;
+    private NegocioId negocioId;
 
-    private UUID proyectoId;
+    private ProyectoId proyectoId;
 
     private TipoAviso tipo;
 
@@ -60,7 +61,7 @@ public class Aviso {
 
     private OffsetDateTime actualizadoEn;
 
-    public static Aviso nuevo(UUID negocioId, TipoAviso tipo, ResultadoRegla resultado, OffsetDateTime ahora) {
+    public static Aviso nuevo(NegocioId negocioId, TipoAviso tipo, ResultadoRegla resultado, OffsetDateTime ahora) {
         Aviso aviso = Aviso.builder()
                 .negocioId(negocioId)
                 .tipo(tipo)

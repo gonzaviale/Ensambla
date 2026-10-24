@@ -1,14 +1,15 @@
 package com.ensambla.backend.domain.useCase.lote;
 
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
+import com.ensambla.backend.domain.model.lote.FotoId;
+import com.ensambla.backend.domain.model.lote.LoteId;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
 
 public record LoteItem(
-        UUID id,
+        LoteId id,
         String estado,
         OffsetDateTime creadoEn,
         List<FotoItem> fotos
@@ -22,7 +23,7 @@ public record LoteItem(
                 lote.getFotos().stream().map(FotoItem::de).toList());
     }
 
-    public record FotoItem(UUID id, Short posicion, String tipoContenido, Long tamanioBytes) {
+    public record FotoItem(FotoId id, Short posicion, String tipoContenido, Long tamanioBytes) {
 
         static FotoItem de(FotoCuaderno foto) {
             return new FotoItem(

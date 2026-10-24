@@ -3,13 +3,13 @@ package com.ensambla.backend.domain.model.reporte;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Un reporte listo para descargar: una hoja con encabezados, filas y una fila final de totales. Cada valor es un
@@ -27,7 +27,7 @@ public record TablaReporte(String hoja, List<String> encabezados, List<List<Obje
      * {@code etiquetas} da el nombre de las filas a las que apuntan las conexiones.
      */
     public static TablaReporte de(String nombreBloque, List<Campo> campos, ReporteRegistros reporte,
-                                  Map<UUID, String> etiquetas) {
+                                  Map<RegistroId, String> etiquetas) {
         List<String> encabezados = new ArrayList<>(campos.stream().map(Campo::getNombre).toList());
         encabezados.add(ENCABEZADO_CARGA);
         List<List<Object>> filas = reporte.filas().stream()
@@ -36,7 +36,7 @@ public record TablaReporte(String hoja, List<String> encabezados, List<List<Obje
         return new TablaReporte(nombreBloque, encabezados, filas, totales(campos, reporte));
     }
 
-    private static List<Object> fila(Registro fila, List<Campo> campos, Map<UUID, String> etiquetas) {
+    private static List<Object> fila(Registro fila, List<Campo> campos, Map<RegistroId, String> etiquetas) {
         List<Object> celdas = new ArrayList<>();
         for (Campo campo : campos) {
             celdas.add(celda(campo, fila.getValores().get(campo.getId().toString()), etiquetas));
@@ -45,7 +45,7 @@ public record TablaReporte(String hoja, List<String> encabezados, List<List<Obje
         return celdas;
     }
 
-    private static Object celda(Campo campo, Object valor, Map<UUID, String> etiquetas) {
+    private static Object celda(Campo campo, Object valor, Map<RegistroId, String> etiquetas) {
         if (valor == null) {
             return null;
         }
@@ -53,7 +53,7 @@ public record TablaReporte(String hoja, List<String> encabezados, List<List<Obje
             case NUMERO, MONEDA, FORMULA -> new BigDecimal(valor.toString());
             case FECHA -> LocalDate.parse(valor.toString());
             case SI_NO -> Boolean.TRUE.equals(valor) ? "Sí" : "No";
-            case RELACION -> etiquetas.getOrDefault(UUID.fromString(valor.toString()), FILA_ELIMINADA);
+            case RELACION -> etiquetas.getOrDefault(RegistroId.de(valor.toString()), FILA_ELIMINADA);
             case TEXTO, OPCION, TEXTO_LARGO, EMAIL, TELEFONO, HORA -> valor.toString();
         };
     }

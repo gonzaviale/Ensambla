@@ -1,8 +1,12 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
 import org.junit.jupiter.api.DisplayName;
@@ -16,8 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class BloqueCampoRepositoryMapperTest {
 
-    private static final UUID ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
+    private static final BloqueId ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
     private static final UUID PADRE_ID = UUID.fromString("e0000000-0000-4000-8000-000000000001");
     private static final UUID RELACIONADO_ID = UUID.fromString("e0000000-0000-4000-8000-000000000002");
     private static final OffsetDateTime CREADO = OffsetDateTime.parse("2026-10-09T12:00:00Z");
@@ -27,8 +31,8 @@ class BloqueCampoRepositoryMapperTest {
     @DisplayName("Pasa todos los campos del bloque al modelo")
     void bloqueToDomainShouldMapEveryField() {
         BloqueEntity entity = BloqueEntity.builder()
-                .id(ID)
-                .negocioId(NEGOCIO_ID)
+                .id(ID.valor())
+                .negocioId(NEGOCIO_ID.valor())
                 .proyectoId(PADRE_ID)
                 .nombre("Productos")
                 .posicion((short) 2)
@@ -40,7 +44,7 @@ class BloqueCampoRepositoryMapperTest {
 
         assertThat(result.getId()).isEqualTo(ID);
         assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.getProyectoId()).isEqualTo(PADRE_ID);
+        assertThat(result.getProyectoId()).isEqualTo(ProyectoId.de(PADRE_ID));
         assertThat(result.getNombre()).isEqualTo("Productos");
         assertThat(result.getPosicion()).isEqualTo((short) 2);
         assertThat(result.getCreadoEn()).isEqualTo(CREADO);
@@ -53,7 +57,7 @@ class BloqueCampoRepositoryMapperTest {
         Bloque bloque = Bloque.builder()
                 .id(ID)
                 .negocioId(NEGOCIO_ID)
-                .proyectoId(PADRE_ID)
+                .proyectoId(ProyectoId.de(PADRE_ID))
                 .nombre("Clientes")
                 .posicion((short) 3)
                 .creadoEn(CREADO)
@@ -62,8 +66,8 @@ class BloqueCampoRepositoryMapperTest {
 
         BloqueEntity result = new BloqueRepositoryMapper().toEntity(bloque);
 
-        assertThat(result.getId()).isEqualTo(ID);
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(result.getId()).isEqualTo(ID.valor());
+        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
         assertThat(result.getProyectoId()).isEqualTo(PADRE_ID);
         assertThat(result.getNombre()).isEqualTo("Clientes");
         assertThat(result.getPosicion()).isEqualTo((short) 3);
@@ -75,8 +79,8 @@ class BloqueCampoRepositoryMapperTest {
     @DisplayName("Pasa todos los campos del campo al modelo")
     void campoToDomainShouldMapEveryField() {
         CampoEntity entity = CampoEntity.builder()
-                .id(ID)
-                .negocioId(NEGOCIO_ID)
+                .id(ID.valor())
+                .negocioId(NEGOCIO_ID.valor())
                 .bloqueId(PADRE_ID)
                 .nombre("Rubro")
                 .tipo(TipoCampo.OPCION)
@@ -91,15 +95,15 @@ class BloqueCampoRepositoryMapperTest {
 
         Campo result = new CampoRepositoryMapper().toDomain(entity);
 
-        assertThat(result.getId()).isEqualTo(ID);
+        assertThat(result.getId()).isEqualTo(CampoId.de(ID.valor()));
         assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.getBloqueId()).isEqualTo(PADRE_ID);
+        assertThat(result.getBloqueId()).isEqualTo(BloqueId.de(PADRE_ID));
         assertThat(result.getNombre()).isEqualTo("Rubro");
         assertThat(result.getTipo()).isEqualTo(TipoCampo.OPCION);
         assertThat(result.getObligatorio()).isTrue();
         assertThat(result.getValorInicial()).isEqualTo("Velas");
         assertThat(result.getOpciones()).containsExactly("Velas", "Moldes");
-        assertThat(result.getBloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
+        assertThat(result.getBloqueRelacionadoId()).isEqualTo(BloqueId.de(RELACIONADO_ID));
         assertThat(result.getPosicion()).isEqualTo((short) 1);
         assertThat(result.getCreadoEn()).isEqualTo(CREADO);
         assertThat(result.getActualizadoEn()).isEqualTo(ACTUALIZADO);
@@ -109,15 +113,15 @@ class BloqueCampoRepositoryMapperTest {
     @DisplayName("Pasa todos los datos del modelo del campo a la entidad")
     void campoToEntityShouldMapEveryField() {
         Campo campo = Campo.builder()
-                .id(ID)
+                .id(CampoId.de(ID.valor()))
                 .negocioId(NEGOCIO_ID)
-                .bloqueId(PADRE_ID)
+                .bloqueId(BloqueId.de(PADRE_ID))
                 .nombre("Pagado")
                 .tipo(TipoCampo.SI_NO)
                 .obligatorio(false)
                 .valorInicial("true")
                 .opciones(List.of())
-                .bloqueRelacionadoId(RELACIONADO_ID)
+                .bloqueRelacionadoId(BloqueId.de(RELACIONADO_ID))
                 .posicion((short) 4)
                 .creadoEn(CREADO)
                 .actualizadoEn(ACTUALIZADO)
@@ -125,8 +129,8 @@ class BloqueCampoRepositoryMapperTest {
 
         CampoEntity result = new CampoRepositoryMapper().toEntity(campo);
 
-        assertThat(result.getId()).isEqualTo(ID);
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(result.getId()).isEqualTo(ID.valor());
+        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
         assertThat(result.getBloqueId()).isEqualTo(PADRE_ID);
         assertThat(result.getNombre()).isEqualTo("Pagado");
         assertThat(result.getTipo()).isEqualTo(TipoCampo.SI_NO);

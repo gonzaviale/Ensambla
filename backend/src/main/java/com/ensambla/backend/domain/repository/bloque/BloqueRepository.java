@@ -1,16 +1,17 @@
 package com.ensambla.backend.domain.repository.bloque;
 
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 
 import java.util.Optional;
-import java.util.UUID;
 
 public interface BloqueRepository {
 
-    Optional<Bloque> findByIdAndNegocioId(UUID id, UUID negocioId);
+    Optional<Bloque> findByIdAndNegocioId(BloqueId id, NegocioId negocioId);
 
     Bloque save(Bloque bloque);
 
     /** Borra el bloque; la base elimina en cascada sus campos y registros. */
-    void deleteByIdAndNegocioId(UUID id, UUID negocioId);
+    void deleteByIdAndNegocioId(BloqueId id, NegocioId negocioId);
 }

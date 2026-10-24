@@ -35,9 +35,9 @@ class LoteSubidaRepositoryMapperTest {
     void toEntityShouldMapLote() {
         LoteSubidaEntity result = loteSubidaRepositoryMapper.toEntity(LoteTestData.lote(List.of()));
 
-        assertThat(result.getId()).isEqualTo(LOTE_ID);
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.getBloqueDestinoId()).isEqualTo(BLOQUE_ID);
+        assertThat(result.getId()).isEqualTo(LOTE_ID.valor());
+        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
+        assertThat(result.getBloqueDestinoId()).isEqualTo(BLOQUE_ID.valor());
         assertThat(result.getEstado()).isEqualTo(EstadoLote.PENDIENTE);
         assertThat(result.getIntentos()).isZero();
         assertThat(result.getCreadoEn()).isEqualTo(AHORA);
@@ -66,9 +66,9 @@ class LoteSubidaRepositoryMapperTest {
     void toEntityShouldMapFoto() {
         FotoCuadernoEntity result = loteSubidaRepositoryMapper.toEntity(LoteTestData.foto());
 
-        assertThat(result.getId()).isEqualTo(FOTO_ID);
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.getLoteId()).isEqualTo(LOTE_ID);
+        assertThat(result.getId()).isEqualTo(FOTO_ID.valor());
+        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
+        assertThat(result.getLoteId()).isEqualTo(LOTE_ID.valor());
         assertThat(result.getClaveAlmacenamiento()).isEqualTo(CLAVE);
         assertThat(result.getTipoContenido()).isEqualTo("image/jpeg");
         assertThat(result.getTamanioBytes()).isEqualTo(JPEG.length);

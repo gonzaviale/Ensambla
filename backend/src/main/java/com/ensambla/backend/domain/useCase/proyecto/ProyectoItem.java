@@ -1,18 +1,21 @@
 package com.ensambla.backend.domain.useCase.proyecto;
 
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
 
 public record ProyectoItem(
-        UUID id,
+        ProyectoId id,
         String nombre,
         String descripcion,
-        UUID plantillaId,
+        PlantillaId plantillaId,
         OffsetDateTime creadoEn,
         OffsetDateTime actualizadoEn,
         List<BloqueItem> bloques
@@ -29,7 +32,7 @@ public record ProyectoItem(
                 proyecto.getBloques().stream().map(BloqueItem::de).toList());
     }
 
-    public record BloqueItem(UUID id, String nombre, Short posicion, List<CampoItem> campos) {
+    public record BloqueItem(BloqueId id, String nombre, Short posicion, List<CampoItem> campos) {
 
         static BloqueItem de(Bloque bloque) {
             return new BloqueItem(
@@ -41,13 +44,13 @@ public record ProyectoItem(
     }
 
     public record CampoItem(
-            UUID id,
+            CampoId id,
             String nombre,
             String tipo,
             Boolean obligatorio,
             String valorInicial,
             List<String> opciones,
-            UUID bloqueRelacionadoId,
+            BloqueId bloqueRelacionadoId,
             String formula,
             Short posicion
     ) {

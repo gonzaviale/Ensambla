@@ -1,12 +1,14 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
-import java.time.Instant;
-import com.ensambla.backend.domain.model.reporte.FiltroReporte;
-import java.math.BigDecimal;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.common.Pagina;
-import com.ensambla.backend.domain.model.registro.DireccionOrden;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
+import com.ensambla.backend.domain.model.registro.DireccionOrden;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.reporte.FiltroReporte;
 import com.ensambla.backend.infrastructure.repository.entity.RegistroEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IRegistroJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.RegistroRepositoryMapper;
@@ -21,27 +23,27 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
-
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class RegistroRepositoryImplTest {
 
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID CAMPO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final RegistroId REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final CampoId CAMPO_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
 
     @Mock
     private IRegistroJpaRepository jpa;
@@ -77,7 +79,7 @@ class RegistroRepositoryImplTest {
     @Test
     @DisplayName("Busca por id dentro del negocio y mapea el resultado")
     void findByIdAndNegocioIdShouldMapResult() {
-        when(jpa.findByIdAndNegocioId(REGISTRO_ID, NEGOCIO_ID)).thenReturn(Optional.of(entity()));
+        when(jpa.findByIdAndNegocioId(REGISTRO_ID.valor(), NEGOCIO_ID.valor())).thenReturn(Optional.of(entity()));
 
         Optional<Registro> result = repository.findByIdAndNegocioId(REGISTRO_ID, NEGOCIO_ID);
 
@@ -87,7 +89,7 @@ class RegistroRepositoryImplTest {
     @Test
     @DisplayName("Devuelve vacío cuando el registro no es del negocio")
     void findByIdAndNegocioIdShouldReturnEmptyWhenMissing() {
-        when(jpa.findByIdAndNegocioId(REGISTRO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+        when(jpa.findByIdAndNegocioId(REGISTRO_ID.valor(), NEGOCIO_ID.valor())).thenReturn(Optional.empty());
 
         assertThat(repository.findByIdAndNegocioId(REGISTRO_ID, NEGOCIO_ID)).isEmpty();
     }
@@ -97,14 +99,14 @@ class RegistroRepositoryImplTest {
     void deleteByIdShouldDelegateToJpa() {
         repository.deleteById(REGISTRO_ID);
 
-        verify(jpa).deleteById(REGISTRO_ID);
+        verify(jpa).deleteById(REGISTRO_ID.valor());
     }
 
     @Test
     @DisplayName("Sin texto ni campo consulta en descendente sin patrón y devuelve la página mapeada")
     void buscarShouldQueryDescendingWithoutPatternAndMapPage() {
         Pageable pageable = PageRequest.of(1, 10);
-        when(jpa.buscarDescendente(eq(NEGOCIO_ID), eq(BLOQUE_ID), eq(null), eq(null), eq(pageable)))
+        when(jpa.buscarDescendente(eq(NEGOCIO_ID.valor()), eq(BLOQUE_ID.valor()), eq(null), eq(null), eq(pageable)))
                 .thenReturn(new PageImpl<>(List.of(entity()), pageable, 11));
 
         Pagina<Registro> result = repository.buscar(consulta(null, null, DireccionOrden.DESC, 1, 10));
@@ -126,7 +128,8 @@ class RegistroRepositoryImplTest {
 
         ArgumentCaptor<String> patron = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> campoOrden = ArgumentCaptor.forClass(String.class);
-        verify(jpa).buscarAscendente(eq(NEGOCIO_ID), eq(BLOQUE_ID), patron.capture(), campoOrden.capture(),
+        verify(jpa).buscarAscendente(eq(NEGOCIO_ID.valor()), eq(BLOQUE_ID.valor()), patron.capture(), campoOrden
+                .capture(),
                 eq(pageable));
         assertThat(patron.getValue()).isEqualTo("%50\\%\\_a\\\\b%");
         assertThat(campoOrden.getValue()).isEqualTo(CAMPO_ID.toString());
@@ -135,10 +138,11 @@ class RegistroRepositoryImplTest {
     @Test
     @DisplayName("Suma con el mismo patrón escapado del listado y devuelve las sumas por campo")
     void sumarNumericosShouldQueryWithEscapedPatternAndMapSums() {
-        when(jpa.sumarNumericos(eq(NEGOCIO_ID), eq(BLOQUE_ID), eq("%50\\%%"), eq(List.of(CAMPO_ID.toString()))))
+        when(jpa.sumarNumericos(eq(NEGOCIO_ID.valor()), eq(BLOQUE_ID.valor()), eq("%50\\%%"),
+                eq(List.of(CAMPO_ID.toString()))))
                 .thenReturn(List.of(suma(CAMPO_ID, "1500.50")));
 
-        Map<UUID, BigDecimal> result = repository.sumarNumericos(
+        Map<CampoId, BigDecimal> result = repository.sumarNumericos(
                 consulta("50%", null, DireccionOrden.DESC, 0, 20), List.of(CAMPO_ID));
 
         assertThat(result).containsOnly(entry(CAMPO_ID, new BigDecimal("1500.50")));
@@ -147,7 +151,7 @@ class RegistroRepositoryImplTest {
     @Test
     @DisplayName("Sin campos numéricos no consulta la base")
     void sumarNumericosShouldNotQueryWhenThereAreNoCampos() {
-        Map<UUID, BigDecimal> result = repository.sumarNumericos(
+        Map<CampoId, BigDecimal> result = repository.sumarNumericos(
                 consulta(null, null, DireccionOrden.DESC, 0, 20), List.of());
 
         assertThat(result).isEmpty();
@@ -158,7 +162,7 @@ class RegistroRepositoryImplTest {
     @DisplayName("Busca los registros pedidos por id dentro del bloque y del negocio")
     void findAllByIdsAndBloqueShouldQueryAndMap() {
         when(jpa.findAllByIdInAndBloqueIdAndNegocioIdOrderByCreadoEnDescIdDesc(
-                List.of(REGISTRO_ID), BLOQUE_ID, NEGOCIO_ID))
+                List.of(REGISTRO_ID.valor()), BLOQUE_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(List.of(entity()));
 
         List<Registro> result = repository.findAllByIdsAndBloque(List.of(REGISTRO_ID), BLOQUE_ID, NEGOCIO_ID);
@@ -169,7 +173,7 @@ class RegistroRepositoryImplTest {
     @Test
     @DisplayName("Lista todos los registros del bloque y del negocio")
     void findAllByBloqueIdAndNegocioIdShouldQueryAndMap() {
-        when(jpa.findAllByBloqueIdAndNegocioIdOrderByCreadoEnAscIdAsc(BLOQUE_ID, NEGOCIO_ID))
+        when(jpa.findAllByBloqueIdAndNegocioIdOrderByCreadoEnAscIdAsc(BLOQUE_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(List.of(entity()));
 
         List<Registro> result = repository.findAllByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID);
@@ -187,7 +191,7 @@ class RegistroRepositoryImplTest {
     }
 
     // --- helpers ---
-    private IRegistroJpaRepository.SumaPorCampo suma(UUID campoId, String valor) {
+    private IRegistroJpaRepository.SumaPorCampo suma(CampoId campoId, String valor) {
         return new IRegistroJpaRepository.SumaPorCampo() {
             @Override
             public String getCampo() {
@@ -201,16 +205,16 @@ class RegistroRepositoryImplTest {
         };
     }
 
-    private ConsultaRegistros consulta(String texto, UUID campoOrdenId, DireccionOrden direccion, int pagina,
+    private ConsultaRegistros consulta(String texto, CampoId campoOrdenId, DireccionOrden direccion, int pagina,
                                        int tamanio) {
         return new ConsultaRegistros(NEGOCIO_ID, BLOQUE_ID, texto, campoOrdenId, direccion, pagina, tamanio);
     }
 
     private RegistroEntity entity() {
         return RegistroEntity.builder()
-                .id(REGISTRO_ID)
-                .negocioId(NEGOCIO_ID)
-                .bloqueId(BLOQUE_ID)
+                .id(REGISTRO_ID.valor())
+                .negocioId(NEGOCIO_ID.valor())
+                .bloqueId(BLOQUE_ID.valor())
                 .valores(Map.of("k", "v"))
                 .build();
     }
@@ -221,7 +225,7 @@ class RegistroRepositoryImplTest {
         Instant desde = Instant.parse("2026-10-01T03:00:00Z");
         Instant hasta = Instant.parse("2026-11-01T03:00:00Z");
         FiltroReporte filtro = new FiltroReporte(NEGOCIO_ID, BLOQUE_ID, "50%", desde, hasta, CAMPO_ID, "true");
-        when(jpa.buscarParaReporte(NEGOCIO_ID, BLOQUE_ID, "%50\\%%", desde.toString(), hasta.toString(),
+        when(jpa.buscarParaReporte(NEGOCIO_ID.valor(), BLOQUE_ID.valor(), "%50\\%%", desde.toString(), hasta.toString(),
                 CAMPO_ID.toString(), "true", 10)).thenReturn(List.of(entity()));
 
         List<Registro> result = repository.buscarFiltrados(filtro, 10);
@@ -233,7 +237,8 @@ class RegistroRepositoryImplTest {
     @DisplayName("El reporte sin filtros pasa todo nulo")
     void buscarFiltradosShouldPassNullsWithoutFilters() {
         FiltroReporte sinFiltros = new FiltroReporte(NEGOCIO_ID, BLOQUE_ID, null, null, null, null, null);
-        when(jpa.buscarParaReporte(NEGOCIO_ID, BLOQUE_ID, null, null, null, null, null, 5)).thenReturn(List.of());
+        when(jpa.buscarParaReporte(NEGOCIO_ID.valor(), BLOQUE_ID.valor(), null, null, null, null, null, 5))
+                .thenReturn(List.of());
 
         assertThat(repository.buscarFiltrados(sinFiltros, 5)).isEmpty();
     }
@@ -242,7 +247,8 @@ class RegistroRepositoryImplTest {
     @DisplayName("Cuenta las filas del reporte con el mismo filtro")
     void contarFiltradosShouldCountWithTheSameFilter() {
         FiltroReporte filtro = new FiltroReporte(NEGOCIO_ID, BLOQUE_ID, null, null, null, CAMPO_ID, "x");
-        when(jpa.contarParaReporte(NEGOCIO_ID, BLOQUE_ID, null, null, null, CAMPO_ID.toString(), "x")).thenReturn(7L);
+        when(jpa.contarParaReporte(NEGOCIO_ID.valor(), BLOQUE_ID.valor(), null, null, null, CAMPO_ID.toString(), "x"))
+                .thenReturn(7L);
 
         assertThat(repository.contarFiltrados(filtro)).isEqualTo(7L);
     }
@@ -251,10 +257,10 @@ class RegistroRepositoryImplTest {
     @DisplayName("Suma las columnas numéricas del reporte y no consulta si no hay ninguna")
     void sumarNumericosOfReporteShouldMapSumsAndSkipWithoutColumns() {
         FiltroReporte filtro = new FiltroReporte(NEGOCIO_ID, BLOQUE_ID, "a", null, null, null, null);
-        when(jpa.sumarNumericosParaReporte(NEGOCIO_ID, BLOQUE_ID, "%a%", null, null, null, null,
+        when(jpa.sumarNumericosParaReporte(NEGOCIO_ID.valor(), BLOQUE_ID.valor(), "%a%", null, null, null, null,
                 List.of(CAMPO_ID.toString()))).thenReturn(List.of(suma(CAMPO_ID, "12.5")));
 
-        Map<UUID, BigDecimal> result = repository.sumarNumericos(filtro, List.of(CAMPO_ID));
+        Map<CampoId, BigDecimal> result = repository.sumarNumericos(filtro, List.of(CAMPO_ID));
 
         assertThat(result).containsOnly(entry(CAMPO_ID, new BigDecimal("12.5")));
         assertThat(repository.sumarNumericos(filtro, List.of())).isEmpty();

@@ -4,9 +4,9 @@ import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.lectura.ImagenCuaderno;
 import com.ensambla.backend.domain.model.procesamiento.BloqueDeImagen.CampoDeImagen;
 import com.ensambla.backend.domain.model.procesamiento.BloqueDeImagen;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Una foto suelta para leer contra un bloque. Se cuenta el consumo, pero las filas se incorporan luego de revisarlas.
@@ -16,7 +16,7 @@ import java.util.UUID;
  * @param campos           campos del bloque que la IA puede leer
  * @param destinoExistente {@code true} si el bloque ya existe y por eso tiene sentido proponer las columnas que le faltan
  */
-public record LeerImagenRequest(UUID usuarioId, byte[] contenido, String nombreBloque, List<CampoItem> campos,
+public record LeerImagenRequest(UsuarioId usuarioId, byte[] contenido, String nombreBloque, List<CampoItem> campos,
                                 boolean destinoExistente) {
 
     /**

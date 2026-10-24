@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import com.ensambla.backend.support.SuscripcionesDePrueba;
@@ -93,7 +94,7 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
                 usuarioId, usuarioId + "@example.test");
         jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Negocio', ?)",
                 negocioId, usuarioId);
-        suscripcionService.asignarGratuito(negocioId, OffsetDateTime.now().minusDays(1));
+        suscripcionService.asignarGratuito(NegocioId.de(negocioId), OffsetDateTime.now().minusDays(1));
         fotoId = UUID.randomUUID();
         loteId = givenLote("LISTO", fotoId);
         sesion = givenSesion(usuarioId);
@@ -101,7 +102,7 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
 
     @AfterEach
     void tearDown() {
-        clavesGuardadas.forEach(clave -> archivoCuadernoPort.eliminar(negocioId, clave));
+        clavesGuardadas.forEach(clave -> archivoCuadernoPort.eliminar(NegocioId.de(negocioId), clave));
         jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId);
         jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId);
     }
@@ -511,7 +512,7 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
                                            tamanio_bytes, posicion)
                 VALUES (?, ?, ?, ?, 'image/jpeg', ?, 0)
                 """, foto, negocioId, id, clave, JPEG.length);
-        archivoCuadernoPort.guardar(negocioId, clave, JPEG);
+        archivoCuadernoPort.guardar(NegocioId.de(negocioId), clave, JPEG);
         clavesGuardadas.add(clave);
         return id;
     }

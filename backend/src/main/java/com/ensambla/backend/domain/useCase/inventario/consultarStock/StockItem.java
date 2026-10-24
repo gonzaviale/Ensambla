@@ -1,7 +1,8 @@
 package com.ensambla.backend.domain.useCase.inventario.consultarStock;
 
-import java.math.BigDecimal;
-import java.util.UUID;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 
-public record StockItem(UUID registroId, String producto, BigDecimal stock) {
+import java.math.BigDecimal;
+
+public record StockItem(RegistroId registroId, String producto, BigDecimal stock) {
 }

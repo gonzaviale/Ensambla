@@ -1,9 +1,9 @@
 package com.ensambla.backend.infrastructure.ia;
 
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
-import com.ensambla.backend.domain.model.common.TextoNormalizado;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
-import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
+import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
 import com.ensambla.backend.domain.model.lectura.BloquePropuesto;
 import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
@@ -11,6 +11,7 @@ import com.ensambla.backend.domain.model.lectura.ConsumoIa;
 import com.ensambla.backend.domain.model.lectura.DatoLeido;
 import com.ensambla.backend.domain.model.lectura.FilaLeida;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
+import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
 import com.ensambla.backend.infrastructure.ia.LecturaIaJson.BloqueJson;
 import com.ensambla.backend.infrastructure.ia.LecturaIaJson.CampoJson;
 import com.ensambla.backend.infrastructure.ia.LecturaIaJson.DatoJson;
@@ -22,7 +23,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -49,7 +49,7 @@ class LecturaIaJsonMapper {
         if (json == null) {
             throw invalida("falta el bloque propuesto");
         }
-        UUID existente = bloqueExistente(json.bloqueExistenteId(), bloquesExistentes);
+        BloqueId existente = bloqueExistente(json.bloqueExistenteId(), bloquesExistentes);
         Set<String> conexiones = conexionesDe(existente, bloquesExistentes);
         List<CampoPropuesto> campos = listaOVacia(json.campos()).stream()
                 .map(campo -> campo(campo, conexiones))
@@ -61,7 +61,7 @@ class LecturaIaJsonMapper {
     }
 
     /** Nombres de los campos RELACION del bloque existente elegido: son los únicos que la IA puede leer como conexión. */
-    private Set<String> conexionesDe(UUID bloqueId, List<BloqueConocido> bloquesExistentes) {
+    private Set<String> conexionesDe(BloqueId bloqueId, List<BloqueConocido> bloquesExistentes) {
         return bloquesExistentes.stream()
                 .filter(bloque -> bloque.id().equals(bloqueId))
                 .flatMap(bloque -> bloque.campos().stream())
@@ -71,7 +71,7 @@ class LecturaIaJsonMapper {
     }
 
     /** Sólo se acepta un id que esté entre los bloques del negocio; cualquier otro se descarta (propone uno nuevo). */
-    private UUID bloqueExistente(String id, List<BloqueConocido> bloquesExistentes) {
+    private BloqueId bloqueExistente(String id, List<BloqueConocido> bloquesExistentes) {
         return bloquesExistentes.stream()
                 .map(BloqueConocido::id)
                 .filter(conocido -> conocido.toString().equalsIgnoreCase(id))

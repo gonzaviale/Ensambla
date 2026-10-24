@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.useCase.sami.conversarConSami;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.common.TextoNormalizado;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.BloquePlantilla;
 import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
 import com.ensambla.backend.domain.model.sami.ColumnaDiccionario;
@@ -39,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -106,7 +106,7 @@ public class ConversarConSami {
         if (paso.tipo() != TipoPaso.RESPALDO_IA) {
             return ConversarConSamiResponse.de(paso);
         }
-        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         InterpretacionSami propuesta = proponerConIa(
                 negocioId, request.texto(), respuestas, disponibles, OffsetDateTime.now(clock));
         return ConversarConSamiResponse.de(propuesta, PropuestaSamiItem.ORIGEN_IA, paso.preguntasHechas());
@@ -318,7 +318,7 @@ public class ConversarConSami {
     // --- tercera etapa: respaldo con IA ---
 
     /** @throws BusinessRuleException si se agotó el límite, la IA falló o su respuesta no es utilizable */
-    private InterpretacionSami proponerConIa(UUID negocioId, String texto, List<RespuestaSami> respuestas,
+    private InterpretacionSami proponerConIa(NegocioId negocioId, String texto, List<RespuestaSami> respuestas,
                                              List<PlantillaProyecto> disponibles, OffsetDateTime ahora) {
         LocalDate fecha = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate();
         if (!consumoSamiRepository.reservar(negocioId, fecha, limiteDiarioIa, ahora)) {

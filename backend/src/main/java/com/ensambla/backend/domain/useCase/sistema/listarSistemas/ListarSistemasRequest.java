@@ -1,6 +1,6 @@
 package com.ensambla.backend.domain.useCase.sistema.listarSistemas;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record ListarSistemasRequest(UUID usuarioId) {
+public record ListarSistemasRequest(UsuarioId usuarioId) {
 }

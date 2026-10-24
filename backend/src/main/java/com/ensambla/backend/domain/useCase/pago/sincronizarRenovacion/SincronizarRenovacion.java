@@ -1,9 +1,11 @@
 package com.ensambla.backend.domain.useCase.pago.sincronizarRenovacion;
 
 import com.ensambla.backend.domain.exception.PasarelaPagoException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pago.ContratoRemoto;
 import com.ensambla.backend.domain.model.pago.PagoPremium;
 import com.ensambla.backend.domain.model.pago.PagoRemoto;
+import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
@@ -20,7 +22,6 @@ import lombok.RequiredArgsConstructor;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Optional;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class SincronizarRenovacion {
@@ -41,7 +42,7 @@ public class SincronizarRenovacion {
 
     private final Clock clock;
 
-    public void execute(UUID id) {
+    public void execute(RenovacionId id) {
         RenovacionPremium renovacion = renovacionPremiumService.obtener(id);
         Optional<ContratoRemoto> remoto = renovacion.getProveedorId() == null
                 ? pasarelaSuscripcionesPort.buscar(renovacion.getId())
@@ -61,7 +62,7 @@ public class SincronizarRenovacion {
         recalcular(renovacion.getNegocioId(), OffsetDateTime.now(clock));
     }
 
-    private void aplicarPago(UUID renovacionId, PagoRemoto remoto, OffsetDateTime ahora) {
+    private void aplicarPago(RenovacionId renovacionId, PagoRemoto remoto, OffsetDateTime ahora) {
         transaccionPort.ejecutar(() -> {
             renovacionPremiumService.bloquear(renovacionId);
             RenovacionPremium renovacion = renovacionPremiumService.obtener(renovacionId);
@@ -98,7 +99,7 @@ public class SincronizarRenovacion {
     }
 
     /** Premium mientras haya un pago vigente; cuando ya no queda ninguno, el negocio vuelve al plan gratuito. */
-    private void recalcular(UUID negocioId, OffsetDateTime ahora) {
+    private void recalcular(NegocioId negocioId, OffsetDateTime ahora) {
         transaccionPort.ejecutar(() -> {
             usoPlanRepository.bloquearNegocio(negocioId);
             Optional<PagoPremium> vigente = pagoPremiumRepository.findVigente(negocioId, ahora);

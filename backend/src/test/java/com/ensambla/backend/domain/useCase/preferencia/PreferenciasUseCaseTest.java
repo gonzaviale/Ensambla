@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.preferencia;
 
 import com.ensambla.backend.domain.model.preferencia.PreferenciaUsuario;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.preferencia.PreferenciaRepository;
 import com.ensambla.backend.domain.service.preferencia.PreferenciaService;
 import com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias.GuardarPreferencias;
@@ -19,7 +20,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
 
 class PreferenciasUseCaseTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b0000000-0000-4000-8000-000000000001");
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-21T10:00:00Z"), ZoneOffset.UTC);
     private static final OffsetDateTime AHORA = OffsetDateTime.now(CLOCK);
 

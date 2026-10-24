@@ -6,7 +6,6 @@ import com.ensambla.backend.domain.model.campo.TipoCampo;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.function.Function;
 
 /**
@@ -14,12 +13,12 @@ import java.util.function.Function;
  * La etiqueta es el valor del primer campo de texto u opción del bloque (por posición); si el bloque no tiene campos
  * de esos tipos, el del primer campo; si la fila no cargó ese dato, "Sin nombre".
  */
-public record Referencia(UUID id, String etiqueta) {
+public record Referencia(RegistroId id, String etiqueta) {
 
     public static final String SIN_NOMBRE = "Sin nombre";
 
     private static final Comparator<Campo> POR_POSICION = Comparator.comparing(Campo::getPosicion)
-            .thenComparing(Campo::getId);
+            .thenComparing(campo -> campo.getId().valor());
 
     public static Referencia de(Registro registro, List<Campo> campos) {
         return etiquetador(campos).apply(registro);

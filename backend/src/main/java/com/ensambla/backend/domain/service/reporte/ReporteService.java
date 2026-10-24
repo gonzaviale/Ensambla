@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.service.reporte;
 
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.TotalesRegistros;
@@ -12,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class ReporteService {
@@ -28,11 +28,11 @@ public class ReporteService {
                 .map(fila -> fila.conFormulas(campos))
                 .toList();
         long cantidad = registroRepository.contarFiltrados(filtro);
-        List<UUID> numericos = campos.stream()
+        List<CampoId> numericos = campos.stream()
                 .filter(campo -> campo.getTipo() == TipoCampo.NUMERO)
                 .map(Campo::getId)
                 .toList();
-        Map<UUID, BigDecimal> sumas = registroRepository.sumarNumericos(filtro, numericos);
+        Map<CampoId, BigDecimal> sumas = registroRepository.sumarNumericos(filtro, numericos);
         return new ReporteRegistros(filas, TotalesRegistros.armar(cantidad, numericos, sumas), cantidad > limite);
     }
 }

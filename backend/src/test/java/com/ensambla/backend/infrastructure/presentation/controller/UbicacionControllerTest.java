@@ -13,6 +13,7 @@ import com.ensambla.backend.domain.useCase.ubicacion.resolverLocalidad.ResolverL
 import com.ensambla.backend.domain.useCase.ubicacion.resolverLocalidad.ResolverLocalidadResponse;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.ubicacion.UbicacionPresentationMapper;
+import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,7 +21,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -51,7 +51,7 @@ class UbicacionControllerTest {
         buscarDirecciones = mock(BuscarDirecciones.class);
         resolverLocalidad = mock(ResolverLocalidad.class);
         listarRubros = mock(ListarRubros.class);
-        mockMvc = MockMvcBuilders.standaloneSetup(new UbicacionController(
+        mockMvc = MockMvcDePrueba.standalone(new UbicacionController(
                         buscarDirecciones, resolverLocalidad, listarRubros,
                         new UbicacionPresentationMapper()))
                 .setControllerAdvice(new GlobalExceptionHandler()).build();

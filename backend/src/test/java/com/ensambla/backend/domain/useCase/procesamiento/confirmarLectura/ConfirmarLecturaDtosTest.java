@@ -1,7 +1,12 @@
 package com.ensambla.backend.domain.useCase.procesamiento.confirmarLectura;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.lote.LoteId;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionGuardada;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.procesamiento.confirmarLectura.ConfirmarLecturaRequest.CampoItem;
 import com.ensambla.backend.domain.useCase.procesamiento.confirmarLectura.ConfirmarLecturaRequest.FilaItem;
 import org.junit.jupiter.api.DisplayName;
@@ -9,17 +14,16 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ConfirmarLecturaDtosTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("00000000-0000-4000-8000-000000000011");
-    private static final UUID LOTE_ID = UUID.fromString("00000000-0000-4000-8000-000000000013");
-    private static final UUID PROYECTO_ID = UUID.fromString("00000000-0000-4000-8000-000000000021");
-    private static final UUID BLOQUE_ID = UUID.fromString("00000000-0000-4000-8000-000000000022");
-    private static final UUID CAMPO_ID = UUID.fromString("00000000-0000-4000-8000-000000000023");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("00000000-0000-4000-8000-000000000011");
+    private static final LoteId LOTE_ID = LoteId.de("00000000-0000-4000-8000-000000000013");
+    private static final ProyectoId PROYECTO_ID = ProyectoId.de("00000000-0000-4000-8000-000000000021");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("00000000-0000-4000-8000-000000000022");
+    private static final CampoId CAMPO_ID = CampoId.de("00000000-0000-4000-8000-000000000023");
 
     @Test
     @DisplayName("Pasa el pedido a la confirmación del dominio conservando destino, columnas y filas")

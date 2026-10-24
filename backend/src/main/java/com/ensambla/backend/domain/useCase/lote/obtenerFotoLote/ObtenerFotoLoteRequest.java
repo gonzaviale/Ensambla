@@ -1,6 +1,8 @@
 package com.ensambla.backend.domain.useCase.lote.obtenerFotoLote;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.lote.FotoId;
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record ObtenerFotoLoteRequest(UUID usuarioId, UUID loteId, UUID fotoId) {
+public record ObtenerFotoLoteRequest(UsuarioId usuarioId, LoteId loteId, FotoId fotoId) {
 }

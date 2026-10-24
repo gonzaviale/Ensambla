@@ -3,18 +3,18 @@ package com.ensambla.backend.support;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.ConsultaPlanes;
 import com.ensambla.backend.domain.model.plan.Plan;
+import com.ensambla.backend.domain.model.plan.PlanId;
 import com.ensambla.backend.domain.model.plan.PruebaPremium;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
 
 public final class ConsultaPlanesTestData {
 
     public static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-11-01T02:30:00Z");
 
-    public static final UUID PREMIUM_ID = UUID.fromString("bb000000-0000-4000-8000-000000000004");
+    public static final PlanId PREMIUM_ID = PlanId.de("bb000000-0000-4000-8000-000000000004");
 
     private ConsultaPlanesTestData() {
     }

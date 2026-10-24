@@ -2,7 +2,9 @@ package com.ensambla.backend.domain.useCase.campo.eliminarCampo;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
@@ -16,7 +18,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ProyectoTestData.USUARIO_ID;
@@ -29,9 +30,9 @@ import static org.mockito.Mockito.when;
 
 class EliminarCampoTest {
 
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID CAMPO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID FORMULA_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final CampoId CAMPO_ID = CampoId.de("d0000000-0000-4000-8000-000000000001");
+    private static final CampoId FORMULA_ID = CampoId.de("d0000000-0000-4000-8000-000000000002");
     private static final EliminarCampoRequest REQUEST = new EliminarCampoRequest(USUARIO_ID, CAMPO_ID);
 
     private final NegocioService negocioService = mock(NegocioService.class);

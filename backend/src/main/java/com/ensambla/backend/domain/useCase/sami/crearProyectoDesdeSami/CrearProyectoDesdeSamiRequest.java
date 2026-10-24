@@ -1,10 +1,11 @@
 package com.ensambla.backend.domain.useCase.sami.crearProyectoDesdeSami;
 
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.sami.ColumnaSamiItem;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * La propuesta final de Sami con los ajustes de la persona.
@@ -13,8 +14,8 @@ import java.util.UUID;
  * @param columnas las columnas extra que la persona dejó
  */
 public record CrearProyectoDesdeSamiRequest(
-        UUID usuarioId,
-        UUID plantillaId,
+        UsuarioId usuarioId,
+        PlantillaId plantillaId,
         String nombre,
         List<ColumnaSamiItem> columnas
 ) {

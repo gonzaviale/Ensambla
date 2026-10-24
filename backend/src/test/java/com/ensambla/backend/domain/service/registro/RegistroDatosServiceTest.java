@@ -2,12 +2,16 @@ package com.ensambla.backend.domain.service.registro;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.common.Pagina;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.DireccionOrden;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.support.TransaccionDirecta;
@@ -24,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,16 +40,16 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class RegistroDatosServiceTest {
 
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID NOMBRE_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
-    private static final UUID CANTIDAD_ID = UUID.fromString("c0000000-0000-4000-8000-000000000002");
-    private static final UUID CLIENTES_ID = UUID.fromString("b0000000-0000-4000-8000-000000000002");
-    private static final UUID CLIENTE_ID = UUID.fromString("c0000000-0000-4000-8000-000000000003");
-    private static final UUID GARANTE_ID = UUID.fromString("c0000000-0000-4000-8000-000000000004");
-    private static final UUID ANA_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
-    private static final UUID BETO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000003");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final RegistroId REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final CampoId NOMBRE_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
+    private static final CampoId CANTIDAD_ID = CampoId.de("c0000000-0000-4000-8000-000000000002");
+    private static final BloqueId CLIENTES_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
+    private static final CampoId CLIENTE_ID = CampoId.de("c0000000-0000-4000-8000-000000000003");
+    private static final CampoId GARANTE_ID = CampoId.de("c0000000-0000-4000-8000-000000000004");
+    private static final RegistroId ANA_ID = RegistroId.de("d0000000-0000-4000-8000-000000000002");
+    private static final RegistroId BETO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000003");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
     private static final OffsetDateTime ANTES = OffsetDateTime.parse("2026-10-09T12:00:00Z");
 
@@ -161,7 +164,7 @@ class RegistroDatosServiceTest {
     }
 
     // --- arrange ---
-    private void givenFilasExistentes(Set<UUID> buscados, UUID... existentes) {
+    private void givenFilasExistentes(Set<RegistroId> buscados, RegistroId... existentes) {
         List<Registro> filas = List.of(existentes).stream()
                 .map(id -> Registro.builder().id(id).bloqueId(CLIENTES_ID).build())
                 .toList();
@@ -176,7 +179,7 @@ class RegistroDatosServiceTest {
                 Campo.builder().id(NOMBRE_ID).tipo(TipoCampo.TEXTO).build());
     }
 
-    private Map<String, Object> valoresCliente(UUID filaId) {
+    private Map<String, Object> valoresCliente(RegistroId filaId) {
         return Map.of(CLIENTE_ID.toString(), filaId.toString());
     }
 

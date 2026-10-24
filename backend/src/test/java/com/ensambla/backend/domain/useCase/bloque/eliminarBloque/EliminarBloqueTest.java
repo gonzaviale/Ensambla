@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.useCase.bloque.eliminarBloque;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
@@ -16,7 +17,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ProyectoTestData.USUARIO_ID;
@@ -29,8 +29,8 @@ import static org.mockito.Mockito.when;
 
 class EliminarBloqueTest {
 
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID OTRO_BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000002");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final BloqueId OTRO_BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
     private static final EliminarBloqueRequest REQUEST = new EliminarBloqueRequest(USUARIO_ID, BLOQUE_ID);
 
     private final NegocioService negocioService = mock(NegocioService.class);
@@ -81,7 +81,7 @@ class EliminarBloqueTest {
     }
 
     // --- arrange ---
-    private void givenBloque(UUID bloqueId, String nombre) {
+    private void givenBloque(BloqueId bloqueId, String nombre) {
         when(bloqueRepository.findByIdAndNegocioId(bloqueId, NEGOCIO_ID)).thenReturn(Optional.of(
                 Bloque.builder().id(bloqueId).negocioId(NEGOCIO_ID).nombre(nombre).build()));
     }

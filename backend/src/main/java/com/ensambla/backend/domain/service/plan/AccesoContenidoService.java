@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.service.plan;
 
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.plan.AccesoContenidoRepository;
@@ -14,7 +15,6 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class AccesoContenidoService {
@@ -29,7 +29,7 @@ public class AccesoContenidoService {
 
     private final TransaccionPort transaccionPort;
 
-    public AccesoContenidoItem seleccionar(UUID negocioId, TipoContenidoPlan tipo, List<String> claves,
+    public AccesoContenidoItem seleccionar(NegocioId negocioId, TipoContenidoPlan tipo, List<String> claves,
                                            OffsetDateTime ahora) {
         return transaccionPort.ejecutar(() -> {
             usoPlanRepository.bloquearNegocio(negocioId);
@@ -55,7 +55,7 @@ public class AccesoContenidoService {
         });
     }
 
-    public void exigir(UUID negocioId, TipoContenidoPlan tipo, String clave, OffsetDateTime ahora) {
+    public void exigir(NegocioId negocioId, TipoContenidoPlan tipo, String clave, OffsetDateTime ahora) {
         transaccionPort.ejecutar(() -> {
             if (!seleccionar(negocioId, tipo, List.of(clave), ahora).autorizadas().contains(clave)) {
                 throw new RestriccionPlanException("LIMITE_CONTENIDO_" + tipo.name(),

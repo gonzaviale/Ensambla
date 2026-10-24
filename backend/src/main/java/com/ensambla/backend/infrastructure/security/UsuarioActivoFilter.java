@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.security;
 
 import com.ensambla.backend.domain.exception.CredencialesInvalidasException;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.service.usuario.UsuarioService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -15,7 +16,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -33,7 +33,7 @@ public class UsuarioActivoFilter extends OncePerRequestFilter {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication instanceof UsernamePasswordAuthenticationToken) {
             try {
-                usuarioService.obtenerActivo(UUID.fromString(authentication.getName()));
+                usuarioService.obtenerActivo(UsuarioId.de(authentication.getName()));
             } catch (CredencialesInvalidasException exception) {
                 sesionAdapter.cerrar(request, response);
                 securityErrorHandler.commence(

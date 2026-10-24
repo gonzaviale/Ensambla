@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.sistema;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.sistema.SistemaItem.BloqueItem;
 import com.ensambla.backend.domain.useCase.sistema.SistemaItem.CampoItem;
 import com.ensambla.backend.domain.useCase.sistema.SistemaItem.OpcionesItem;
@@ -20,20 +21,19 @@ import com.ensambla.backend.infrastructure.presentation.dto.sistema.SistemaWebRe
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.UUID;
 
 @Component
 public class SistemaPresentationMapper {
 
-    public ListarSistemasRequest toListarRequest(UUID usuarioId) {
+    public ListarSistemasRequest toListarRequest(UsuarioId usuarioId) {
         return new ListarSistemasRequest(usuarioId);
     }
 
-    public GuardarSistemaRequest toGuardarRequest(UUID usuarioId, String id, SistemaWebRequest request) {
+    public GuardarSistemaRequest toGuardarRequest(UsuarioId usuarioId, String id, SistemaWebRequest request) {
         return new GuardarSistemaRequest(usuarioId, id, toItem(request));
     }
 
-    public EliminarSistemaRequest toEliminarRequest(UUID usuarioId, String id) {
+    public EliminarSistemaRequest toEliminarRequest(UsuarioId usuarioId, String id) {
         return new EliminarSistemaRequest(usuarioId, id);
     }
 

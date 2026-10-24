@@ -1,7 +1,8 @@
 package com.ensambla.backend.domain.useCase.proyecto.crearProyectoDesdePlantilla;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record CrearProyectoDesdePlantillaRequest(UUID usuarioId, UUID plantillaId) {
+public record CrearProyectoDesdePlantillaRequest(UsuarioId usuarioId, PlantillaId plantillaId) {
 }
 

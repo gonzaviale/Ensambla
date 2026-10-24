@@ -6,6 +6,7 @@ import com.ensambla.backend.domain.model.lote.EstadoLote;
 import com.ensambla.backend.domain.model.procesamiento.ConsumoDiario;
 import com.ensambla.backend.domain.model.procesamiento.EstadoLectura;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
@@ -22,7 +23,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Clock;
 import java.time.ZoneOffset;
 import java.util.Optional;
-import java.util.UUID;
 
 import static com.ensambla.backend.support.ProcesamientoTestData.AHORA;
 import static com.ensambla.backend.support.ProcesamientoTestData.LOTE_ID;
@@ -37,7 +37,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ReintentarLecturaTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("90000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("90000000-0000-4000-8000-000000000001");
 
     @Mock
     private NegocioService negocioService;

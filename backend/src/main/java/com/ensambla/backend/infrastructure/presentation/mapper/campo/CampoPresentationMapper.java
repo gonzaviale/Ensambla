@@ -1,5 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.campo;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.campo.CampoItem;
 import com.ensambla.backend.domain.useCase.campo.crearCampo.CrearCampoRequest;
 import com.ensambla.backend.domain.useCase.campo.editarCampo.EditarCampoRequest;
@@ -10,16 +13,15 @@ import com.ensambla.backend.infrastructure.presentation.dto.campo.CampoWebReques
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.UUID;
 
 @Component
 public class CampoPresentationMapper {
 
-    public ListarCamposRequest toListarRequest(UUID usuarioId, UUID bloqueId) {
+    public ListarCamposRequest toListarRequest(UsuarioId usuarioId, BloqueId bloqueId) {
         return new ListarCamposRequest(usuarioId, bloqueId);
     }
 
-    public CrearCampoRequest toCrearRequest(UUID usuarioId, UUID bloqueId, CampoWebRequest request) {
+    public CrearCampoRequest toCrearRequest(UsuarioId usuarioId, BloqueId bloqueId, CampoWebRequest request) {
         return new CrearCampoRequest(
                 usuarioId,
                 bloqueId,
@@ -32,7 +34,7 @@ public class CampoPresentationMapper {
                 request.formula());
     }
 
-    public EditarCampoRequest toEditarRequest(UUID usuarioId, UUID campoId, CampoWebRequest request) {
+    public EditarCampoRequest toEditarRequest(UsuarioId usuarioId, CampoId campoId, CampoWebRequest request) {
         return new EditarCampoRequest(
                 usuarioId,
                 campoId,
@@ -45,7 +47,7 @@ public class CampoPresentationMapper {
                 request.formula());
     }
 
-    public EliminarCampoRequest toEliminarRequest(UUID usuarioId, UUID campoId) {
+    public EliminarCampoRequest toEliminarRequest(UsuarioId usuarioId, CampoId campoId) {
         return new EliminarCampoRequest(usuarioId, campoId);
     }
 

@@ -81,7 +81,7 @@ class UsuarioRepositoryImplTest {
     @Test
     @DisplayName("Busca por id y mapea el resultado")
     void findByIdShouldMapResult() {
-        when(jpa.findById(USUARIO_ID)).thenReturn(Optional.of(entity()));
+        when(jpa.findById(USUARIO_ID.valor())).thenReturn(Optional.of(entity()));
 
         Optional<Usuario> result = repository.findById(USUARIO_ID);
 
@@ -91,7 +91,7 @@ class UsuarioRepositoryImplTest {
     @Test
     @DisplayName("Devuelve vacío cuando el usuario no existe")
     void findByIdShouldReturnEmptyWhenMissing() {
-        when(jpa.findById(USUARIO_ID)).thenReturn(Optional.empty());
+        when(jpa.findById(USUARIO_ID.valor())).thenReturn(Optional.empty());
 
         assertThat(repository.findById(USUARIO_ID)).isEmpty();
     }

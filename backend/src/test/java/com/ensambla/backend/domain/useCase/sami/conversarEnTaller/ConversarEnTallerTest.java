@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.useCase.sami.conversarEnTaller;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.sami.ConsumoIaSami;
 import com.ensambla.backend.domain.model.sami.taller.AccionTaller;
 import com.ensambla.backend.domain.model.sami.taller.CampoTaller;
@@ -13,6 +14,7 @@ import com.ensambla.backend.domain.model.sami.taller.MensajeTaller;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
 import com.ensambla.backend.domain.model.sami.taller.RespuestaTaller;
 import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TallerIaPort;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
@@ -47,7 +49,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ConversarEnTallerTest {
 
-    private static final UUID NEGOCIO_ID = TallerDePrueba.NEGOCIO_ID;
+    private static final UUID NEGOCIO_ID = TallerDePrueba.NEGOCIO_ID.valor();
     private static final int LIMITE = 60;
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-19T12:00:00Z");
     private static final LocalDate HOY = LocalDate.of(2026, 10, 19);
@@ -89,7 +91,7 @@ class ConversarEnTallerTest {
         assertThat(result.acciones()).hasSize(1);
         assertThat(result.acciones().getFirst().herramienta()).isEqualTo("agregar_pieza");
         assertThat(result.preguntas()).isEmpty();
-        verify(consumoSamiRepository).registrar(NEGOCIO_ID, HOY, CONSUMO, AHORA);
+        verify(consumoSamiRepository).registrar(NegocioId.de(NEGOCIO_ID), HOY, CONSUMO, AHORA);
     }
 
     @Test
@@ -197,8 +199,8 @@ class ConversarEnTallerTest {
         ArgumentCaptor<ConsultaTaller> captor = ArgumentCaptor.forClass(ConsultaTaller.class);
         verify(tallerIaPort, times(4)).conversar(captor.capture());
         assertThat(captor.getAllValues()).extracting(ConsultaTaller::imagen).containsExactly(FOTO, FOTO, FOTO, FOTO);
-        verify(consumoSamiRepository, times(1)).reservar(NEGOCIO_ID, HOY, LIMITE, AHORA);
-        verify(consumoSamiRepository, times(4)).registrar(NEGOCIO_ID, HOY, CONSUMO, AHORA);
+        verify(consumoSamiRepository, times(1)).reservar(NegocioId.de(NEGOCIO_ID), HOY, LIMITE, AHORA);
+        verify(consumoSamiRepository, times(4)).registrar(NegocioId.de(NEGOCIO_ID), HOY, CONSUMO, AHORA);
     }
 
     @Test
@@ -225,7 +227,7 @@ class ConversarEnTallerTest {
         assertThat(segunda.estado().piezas()).extracting(PiezaTaller::nombre).containsExactly("Inventario", "Ventas");
         assertThat(segunda.kit()).isNull();
         assertThat(captor.getAllValues().get(2).mensaje()).isEqualTo(ConversarEnTaller.PEDIDO_DUDAS);
-        verify(consumoSamiRepository, times(3)).registrar(NEGOCIO_ID, HOY, CONSUMO, AHORA);
+        verify(consumoSamiRepository, times(3)).registrar(NegocioId.de(NEGOCIO_ID), HOY, CONSUMO, AHORA);
     }
 
     @Test
@@ -447,7 +449,7 @@ class ConversarEnTallerTest {
     @Test
     @DisplayName("Con el límite diario agotado no llama a la IA")
     void executeShouldNotCallAiWhenLimitIsReached() {
-        when(consumoSamiRepository.reservar(NEGOCIO_ID, HOY, LIMITE, AHORA)).thenReturn(false);
+        when(consumoSamiRepository.reservar(NegocioId.de(NEGOCIO_ID), HOY, LIMITE, AHORA)).thenReturn(false);
 
         assertThatThrownBy(() -> conversar("hola", null, ESTADO, HISTORIAL))
                 .isInstanceOf(BusinessRuleException.class)
@@ -582,8 +584,8 @@ class ConversarEnTallerTest {
         ArgumentCaptor<ConsultaTaller> captor = ArgumentCaptor.forClass(ConsultaTaller.class);
         verify(tallerIaPort, times(2)).conversar(captor.capture());
         assertThat(captor.getAllValues().get(1).mensaje()).isEqualTo("llevo arreglos" + ConversarEnTaller.RECORDATORIO);
-        verify(consumoSamiRepository, times(1)).reservar(NEGOCIO_ID, HOY, LIMITE, AHORA);
-        verify(consumoSamiRepository, times(2)).registrar(NEGOCIO_ID, HOY, CONSUMO, AHORA);
+        verify(consumoSamiRepository, times(1)).reservar(NegocioId.de(NEGOCIO_ID), HOY, LIMITE, AHORA);
+        verify(consumoSamiRepository, times(2)).registrar(NegocioId.de(NEGOCIO_ID), HOY, CONSUMO, AHORA);
     }
 
     @Test
@@ -618,10 +620,11 @@ class ConversarEnTallerTest {
     void executeShouldNotCallAiWhenBusinessIsMissing() {
         UUID usuarioSinNegocio = UUID.randomUUID();
         NegocioService negocioService = mock(NegocioService.class);
-        when(negocioService.obtenerDelUsuario(usuarioSinNegocio)).thenThrow(new ResourceNotFoundException("Sin negocio"));
+        when(negocioService.obtenerDelUsuario(UsuarioId.de(usuarioSinNegocio)))
+                .thenThrow(new ResourceNotFoundException("Sin negocio"));
         ConversarEnTaller sinNegocio = new ConversarEnTaller(negocioService, tallerIaPort, consumoSamiRepository,
                 SamiPruebas.catalogoReal(), SamiPruebas.kitsReales(), Clock.systemUTC(), LIMITE);
-        ConversarEnTallerRequest request = new ConversarEnTallerRequest(usuarioSinNegocio, "hola",
+        ConversarEnTallerRequest request = new ConversarEnTallerRequest(UsuarioId.de(usuarioSinNegocio), "hola",
                 new EstadoTallerItem("", "mosaic", List.of()), List.of(), null);
 
         assertThatThrownBy(() -> sinNegocio.execute(request)).isInstanceOf(ResourceNotFoundException.class);
@@ -630,7 +633,7 @@ class ConversarEnTallerTest {
 
     // --- arrange ---
     private void givenQuotaAvailable() {
-        when(consumoSamiRepository.reservar(NEGOCIO_ID, HOY, LIMITE, AHORA)).thenReturn(true);
+        when(consumoSamiRepository.reservar(NegocioId.de(NEGOCIO_ID), HOY, LIMITE, AHORA)).thenReturn(true);
     }
 
     // --- act ---

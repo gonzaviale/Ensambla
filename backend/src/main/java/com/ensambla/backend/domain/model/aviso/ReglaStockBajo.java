@@ -1,12 +1,12 @@
 package com.ensambla.backend.domain.model.aviso;
 
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /** Productos agotados o por debajo del mínimo que definió el negocio. */
 public class ReglaStockBajo implements ReglaAviso {
@@ -79,7 +79,7 @@ public class ReglaStockBajo implements ReglaAviso {
     }
 
     /** Registrar la entrada si el proyecto tiene tabla de entradas; si no, abrir el producto. */
-    private static Map<String, Object> accion(BloqueInventario inventario, UUID registroId) {
+    private static Map<String, Object> accion(BloqueInventario inventario, RegistroId registroId) {
         Map<String, Object> accion = new LinkedHashMap<>();
         accion.put("proyectoId", inventario.bloque().getProyectoId().toString());
         if (inventario.entradasId() != null) {

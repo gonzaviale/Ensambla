@@ -1,7 +1,9 @@
 package com.ensambla.backend.infrastructure.repository;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
+import com.ensambla.backend.domain.model.plan.PlanId;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.useCase.auth.UsuarioResponse;
@@ -87,12 +89,13 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
 
         UsuarioResponse result = registrarUsuario.execute(request);
 
-        UUID negocioId = negocios.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(result.id()).orElseThrow().getId();
+        UUID negocioId = negocios.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(result.id().valor()).orElseThrow().getId();
         entityManager.clear();
-        Suscripcion suscripcion = suscripcionRepository.findByNegocioId(negocioId).orElseThrow();
+        Suscripcion suscripcion = suscripcionRepository.findByNegocioId(NegocioId.de(negocioId)).orElseThrow();
         assertThat(suscripcion.getId()).isNotNull();
-        assertThat(suscripcion.getNegocioId()).isEqualTo(negocioId);
-        assertThat(suscripcion.getPlanId()).isEqualTo(planes.findByCodigo(CodigoPlan.GRATUITO).orElseThrow().getId());
+        assertThat(suscripcion.getNegocioId()).isEqualTo(NegocioId.de(negocioId));
+        assertThat(suscripcion.getPlanId())
+                .isEqualTo(PlanId.de(planes.findByCodigo(CodigoPlan.GRATUITO).orElseThrow().getId()));
         assertThat(suscripcion.getEstado()).isEqualTo(EstadoSuscripcion.ACTIVA);
         assertThat(suscripcion.getInicioEn()).isNotNull();
         assertThat(suscripcion.getFinEn()).isNull();
@@ -105,7 +108,7 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
     void findByNegocioIdShouldIsolateSubscriptions() {
         UUID negocioA = givenNegocio("planes-a@example.com").getId();
         UUID negocioB = givenNegocio("planes-b@example.com").getId();
-        suscripcionService.asignarGratuito(negocioA, AHORA);
+        suscripcionService.asignarGratuito(NegocioId.de(negocioA), AHORA);
         entityManager.clear();
 
         Optional<SuscripcionEntity> result = suscripciones.findByNegocioId(negocioB);
@@ -118,9 +121,9 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
     @DisplayName("La base rechaza una segunda suscripción actual para el mismo negocio")
     void saveShouldRejectDuplicateSubscription() {
         UUID negocioId = givenNegocio("planes-duplicado@example.com").getId();
-        suscripcionService.asignarGratuito(negocioId, AHORA);
+        suscripcionService.asignarGratuito(NegocioId.de(negocioId), AHORA);
 
-        assertThatThrownBy(() -> suscripcionService.asignarGratuito(negocioId, AHORA))
+        assertThatThrownBy(() -> suscripcionService.asignarGratuito(NegocioId.de(negocioId), AHORA))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -128,7 +131,7 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
     @DisplayName("Borrar un negocio elimina su suscripción sin borrar el catálogo")
     void deleteNegocioShouldCascadeSubscriptionOnly() {
         UUID negocioId = givenNegocio("planes-borrar@example.com").getId();
-        UUID suscripcionId = suscripcionService.asignarGratuito(negocioId, AHORA).getId();
+        UUID suscripcionId = suscripcionService.asignarGratuito(NegocioId.de(negocioId), AHORA).getId().valor();
 
         negocios.deleteById(negocioId);
         negocios.flush();

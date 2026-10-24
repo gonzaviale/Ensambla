@@ -1,5 +1,11 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.support.ImagenTestData;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import com.ensambla.backend.support.SuscripcionesDePrueba;
@@ -75,33 +81,33 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     private MockMvc mockMvc;
     private MockHttpSession sesion;
     private String csrfToken;
-    private UUID usuarioId;
-    private UUID negocioId;
-    private UUID proyectoId;
-    private UUID bloqueId;
-    private UUID registroId;
+    private UsuarioId usuarioId;
+    private NegocioId negocioId;
+    private ProyectoId proyectoId;
+    private BloqueId bloqueId;
+    private RegistroId registroId;
     private OffsetDateTime ahora;
 
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
         ahora = OffsetDateTime.now(clock);
-        usuarioId = UUID.randomUUID();
-        negocioId = UUID.randomUUID();
-        proyectoId = UUID.randomUUID();
-        bloqueId = UUID.randomUUID();
-        registroId = UUID.randomUUID();
+        usuarioId = UsuarioId.nuevo();
+        negocioId = NegocioId.nuevo();
+        proyectoId = ProyectoId.nuevo();
+        bloqueId = BloqueId.nuevo();
+        registroId = RegistroId.nuevo();
         jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Planes HTTP')",
-                usuarioId, usuarioId + "@example.test");
+                usuarioId.valor(), usuarioId.valor() + "@example.test");
         jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Planes HTTP', ?)",
-                negocioId, usuarioId);
+                negocioId.valor(), usuarioId.valor());
         suscripcionService.asignarGratuito(negocioId, ahora.minusDays(2));
         jdbcTemplate.update("INSERT INTO proyecto (id, negocio_id, nombre) VALUES (?, ?, 'Sistema')",
-                proyectoId, negocioId);
+                proyectoId.valor(), negocioId.valor());
         jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre) VALUES (?, ?, ?, 'Productos')",
-                bloqueId, negocioId, proyectoId);
+                bloqueId.valor(), negocioId.valor(), proyectoId.valor());
         jdbcTemplate.update("INSERT INTO registro (id, negocio_id, bloque_id, valores) VALUES (?, ?, ?, '{}')",
-                registroId, negocioId, bloqueId);
+                registroId.valor(), negocioId.valor(), bloqueId.valor());
         sesion = givenSesion();
     }
 
@@ -120,7 +126,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.autorizadas.length()").value(0))
                 .andExpect(jsonPath("$.usadas").value(3));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM contenido_plan_desbloqueado WHERE negocio_id=?",
-                Long.class, negocioId)).isEqualTo(3);
+                Long.class, negocioId.valor())).isEqualTo(3);
     }
 
     @Test
@@ -190,7 +196,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         jdbcTemplate.update("""
                 INSERT INTO registro (negocio_id, bloque_id, valores)
                 SELECT ?, ?, '{}'::jsonb FROM generate_series(1, 999)
-                """, negocioId, bloqueId);
+                """, negocioId.valor(), bloqueId.valor());
 
         mockMvc.perform(post("/api/bloques/{id}/registros", bloqueId).session(sesion)
                         .header("X-CSRF-TOKEN", csrfToken).contentType(MediaType.APPLICATION_JSON)
@@ -202,7 +208,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                         .content("{\"valores\":{}}"))
                 .andExpect(status().isOk());
         assertThat(jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM registro WHERE negocio_id = ?", Long.class, negocioId)).isEqualTo(1000);
+                "SELECT count(*) FROM registro WHERE negocio_id = ?", Long.class, negocioId.valor())).isEqualTo(1000);
     }
 
     @Test
@@ -218,7 +224,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("LIMITE_IA_MENSUAL"));
 
         assertThat(jdbcTemplate.queryForObject(
-                "SELECT sum(paginas) FROM consumo_ia_diario WHERE negocio_id = ?", Long.class, negocioId))
+                "SELECT sum(paginas) FROM consumo_ia_diario WHERE negocio_id = ?", Long.class, negocioId.valor()))
                 .isEqualTo(10);
     }
 
@@ -233,17 +239,17 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("LIMITE_IA_MENSUAL"));
 
         assertThat(jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM lote_subida WHERE negocio_id = ?", Long.class, negocioId)).isZero();
+                "SELECT count(*) FROM lote_subida WHERE negocio_id = ?", Long.class, negocioId.valor())).isZero();
     }
 
     @Test
     @DisplayName("Un reintento de IA también respeta la cuota mensual agotada")
     void reintentarShouldRejectMonthlyQuota() throws Exception {
         givenMonthlyQuotaFull();
-        UUID loteId = UUID.randomUUID();
+        LoteId loteId = LoteId.nuevo();
         jdbcTemplate.update("""
                 INSERT INTO lote_subida (id, negocio_id, estado, motivo_error) VALUES (?, ?, 'ERROR', 'Fallo')
-                """, loteId, negocioId);
+                """, loteId.valor(), negocioId.valor());
 
         mockMvc.perform(post("/api/lotes/{id}/reintentar", loteId).session(sesion)
                         .header("X-CSRF-TOKEN", csrfToken))
@@ -272,7 +278,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(status().isForbidden());
 
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
-                Long.class, negocioId)).isZero();
+                Long.class, negocioId.valor())).isZero();
     }
 
     @Test
@@ -291,7 +297,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(header().string("Cache-Control", "no-store"));
 
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
-                Long.class, negocioId)).isEqualTo(1);
+                Long.class, negocioId.valor())).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
                 Long.class, ajenoId)).isZero();
     }
@@ -312,7 +318,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     void leerImagenShouldRejectExhaustedTrialQuota() throws Exception {
         mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
                 .andExpect(status().isOk());
-        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 10 WHERE negocio_id = ?", negocioId);
+        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 10 WHERE negocio_id = ?", negocioId.valor());
         entityManager.clear();
         MockMultipartFile imagen = new MockMultipartFile("imagen", "foto.jpg", "image/jpeg", ImagenTestData.jpeg());
         MockMultipartFile pedido = new MockMultipartFile(
@@ -349,7 +355,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(jsonPath("$.prueba").doesNotExist());
 
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
-                Long.class, negocioId)).isZero();
+                Long.class, negocioId.valor())).isZero();
     }
 
     @Test
@@ -357,7 +363,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     void consultarPlanesShouldReflectTrialActivation() throws Exception {
         mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
                 .andExpect(status().isOk());
-        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 8 WHERE negocio_id = ?", negocioId);
+        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 8 WHERE negocio_id = ?", negocioId.valor());
         entityManager.clear();
 
         mockMvc.perform(get("/api/planes").session(sesion))
@@ -377,7 +383,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     void consultarPlanesShouldKeepPremiumWhenTrialPagesAreExhausted() throws Exception {
         mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
                 .andExpect(status().isOk());
-        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 10 WHERE negocio_id = ?", negocioId);
+        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 10 WHERE negocio_id = ?", negocioId.valor());
         entityManager.clear();
 
         mockMvc.perform(get("/api/planes").session(sesion))
@@ -393,9 +399,9 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
                 .andExpect(status().isOk());
         jdbcTemplate.update("UPDATE suscripcion SET inicio_en = ?, fin_en = ? WHERE negocio_id = ?",
-                ahora.minusDays(8), ahora.minusDays(1), negocioId);
+                ahora.minusDays(8), ahora.minusDays(1), negocioId.valor());
         jdbcTemplate.update("UPDATE prueba_premium SET inicio_en = ?, fin_en = ? WHERE negocio_id = ?",
-                ahora.minusDays(8), ahora.minusDays(1), negocioId);
+                ahora.minusDays(8), ahora.minusDays(1), negocioId.valor());
         entityManager.clear();
 
         mockMvc.perform(get("/api/planes").session(sesion))
@@ -426,14 +432,14 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         jdbcTemplate.update("""
                 UPDATE suscripcion SET plan_id = (SELECT id FROM plan WHERE codigo = 'PREMIUM'),
                     inicio_en = ?, fin_en = ? WHERE negocio_id = ?
-                """, ahora.minusDays(1), fin, negocioId);
+                """, ahora.minusDays(1), fin, negocioId.valor());
         entityManager.clear();
     }
 
     private void givenMonthlyQuotaFull() {
         jdbcTemplate.update("""
                 INSERT INTO consumo_ia_diario (negocio_id, fecha, paginas, reservadas) VALUES (?, ?, 10, 0)
-                """, negocioId, ahora.toLocalDate());
+                """, negocioId.valor(), ahora.toLocalDate());
     }
 
     private MockHttpSession givenSesion() throws Exception {

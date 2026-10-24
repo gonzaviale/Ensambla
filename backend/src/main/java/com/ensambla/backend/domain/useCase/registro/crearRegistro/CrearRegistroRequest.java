@@ -1,7 +1,9 @@
 package com.ensambla.backend.domain.useCase.registro.crearRegistro;
 
-import java.util.Map;
-import java.util.UUID;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record CrearRegistroRequest(UUID usuarioId, UUID bloqueId, Map<String, Object> valores) {
+import java.util.Map;
+
+public record CrearRegistroRequest(UsuarioId usuarioId, BloqueId bloqueId, Map<String, Object> valores) {
 }

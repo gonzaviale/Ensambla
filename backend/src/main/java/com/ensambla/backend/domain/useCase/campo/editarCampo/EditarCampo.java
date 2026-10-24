@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
@@ -14,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class EditarCampo {
@@ -32,7 +32,7 @@ public class EditarCampo {
     private final Clock clock;
 
     public CampoItem execute(EditarCampoRequest request) {
-        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         Campo campo = campoService.obtener(request.campoId(), negocioId);
         Bloque bloque = bloqueService.obtener(campo.getBloqueId(), negocioId);
         ConfiguracionCampo configuracion = request.aConfiguracionCampo();

@@ -4,10 +4,13 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
 import com.ensambla.backend.domain.model.campo.Formula;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
@@ -17,7 +20,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -29,11 +31,11 @@ public class CampoService {
 
     private final TransaccionPort transaccionPort;
 
-    public List<Campo> listarDeBloque(UUID bloqueId, UUID negocioId) {
+    public List<Campo> listarDeBloque(BloqueId bloqueId, NegocioId negocioId) {
         return campoRepository.findByBloqueIdAndNegocioId(bloqueId, negocioId);
     }
 
-    public Campo obtener(UUID campoId, UUID negocioId) {
+    public Campo obtener(CampoId campoId, NegocioId negocioId) {
         return campoRepository.findByIdAndNegocioId(campoId, negocioId)
                 .orElseThrow(() -> new ResourceNotFoundException("El campo no existe"));
     }
@@ -79,7 +81,7 @@ public class CampoService {
         if (!campo.esFormula()) {
             return;
         }
-        Set<UUID> numericos = bloque.getCampos().stream()
+        Set<CampoId> numericos = bloque.getCampos().stream()
                 .filter(otro -> otro.getTipo() == TipoCampo.NUMERO && !otro.getId().equals(campo.getId()))
                 .map(Campo::getId)
                 .collect(Collectors.toSet());

@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.model.campo;
 
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -9,7 +10,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
 class ConfiguracionCampoTest {
 
     private static final List<String> TALLES = List.of("Chico", "Grande");
-    private static final UUID RELACIONADO_ID = UUID.fromString("b0000000-0000-4000-8000-000000000002");
+    private static final BloqueId RELACIONADO_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
 
     @Test
     @DisplayName("Normaliza un campo de texto: nombre sin espacios, no obligatorio por defecto y sin valor inicial")

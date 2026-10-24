@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.aviso.GrupoAviso;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
 import com.ensambla.backend.infrastructure.repository.entity.AvisoEntity;
@@ -232,7 +233,7 @@ class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
-        suscripcionService.asignarGratuito(creado, AHORA.minusDays(1));
+        suscripcionService.asignarGratuito(NegocioId.de(creado), AHORA.minusDays(1));
         return creado;
     }
 

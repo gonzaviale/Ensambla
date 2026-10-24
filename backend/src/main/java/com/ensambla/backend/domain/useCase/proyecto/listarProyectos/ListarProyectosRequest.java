@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.useCase.proyecto.listarProyectos;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record ListarProyectosRequest(UUID usuarioId) {
+public record ListarProyectosRequest(UsuarioId usuarioId) {
 }
 

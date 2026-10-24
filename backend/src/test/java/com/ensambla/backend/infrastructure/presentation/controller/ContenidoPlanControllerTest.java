@@ -1,18 +1,18 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
 import com.ensambla.backend.domain.useCase.plan.desbloquearContenidos.DesbloquearContenidos;
 import com.ensambla.backend.domain.useCase.plan.desbloquearContenidos.DesbloquearContenidosRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
+import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -24,9 +24,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class ContenidoPlanControllerTest {
 
-    private static final UUID USUARIO = UUID.randomUUID();
+    private static final UsuarioId USUARIO = UsuarioId.nuevo();
     private final DesbloquearContenidos caso = mock(DesbloquearContenidos.class);
-    private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new ContenidoPlanController(caso))
+    private final MockMvc mvc = MockMvcDePrueba.standalone(new ContenidoPlanController(caso))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
 
     @Test

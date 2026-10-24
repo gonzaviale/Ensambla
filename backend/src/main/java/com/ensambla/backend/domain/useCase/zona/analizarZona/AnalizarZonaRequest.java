@@ -1,6 +1,6 @@
 package com.ensambla.backend.domain.useCase.zona.analizarZona;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record AnalizarZonaRequest(String lugar, UUID usuarioId) {
+public record AnalizarZonaRequest(String lugar, UsuarioId usuarioId) {
 }

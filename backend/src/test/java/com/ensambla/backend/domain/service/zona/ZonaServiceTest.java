@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.service.zona;
 
 import com.ensambla.backend.domain.model.zona.Zona;
+import com.ensambla.backend.domain.model.zona.ZonaId;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -8,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -74,7 +74,7 @@ class ZonaServiceTest {
 
     // --- arrange ---
     private Zona givenZona(String nombre, String latitud, String longitud, int radioMetros) {
-        return Zona.builder().id(UUID.randomUUID()).nombre(nombre).latitud(new BigDecimal(latitud))
+        return Zona.builder().id(ZonaId.nuevo()).nombre(nombre).latitud(new BigDecimal(latitud))
                 .longitud(new BigDecimal(longitud)).radioMetros(radioMetros).build();
     }
 }

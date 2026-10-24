@@ -3,13 +3,18 @@ package com.ensambla.backend.domain.useCase.inventario;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.inventario.MovimientoStock;
 import com.ensambla.backend.domain.model.inventario.TipoMovimiento;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
@@ -42,7 +47,6 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -56,12 +60,12 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class InventarioUseCasesTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID OTRO_BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000002");
-    private static final UUID PRODUCTO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID CAMPO_NOMBRE_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final BloqueId OTRO_BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
+    private static final RegistroId PRODUCTO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final CampoId CAMPO_NOMBRE_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
     private static final Clock RELOJ = Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC);
 
     @Mock
@@ -251,7 +255,7 @@ class InventarioUseCasesTest {
         when(registroDatosService.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(givenProducto(BLOQUE_ID));
     }
 
-    private void givenBloqueConProducto(UUID bloqueDelProducto) {
+    private void givenBloqueConProducto(BloqueId bloqueDelProducto) {
         when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
         when(registroDatosService.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(givenProducto(bloqueDelProducto));
         if (bloqueDelProducto.equals(BLOQUE_ID)) {
@@ -259,7 +263,7 @@ class InventarioUseCasesTest {
         }
     }
 
-    private static Registro givenProducto(UUID bloqueId) {
+    private static Registro givenProducto(BloqueId bloqueId) {
         return Registro.builder()
                 .id(PRODUCTO_ID)
                 .bloqueId(bloqueId)

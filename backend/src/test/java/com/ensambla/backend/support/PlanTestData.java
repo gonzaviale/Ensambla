@@ -1,9 +1,13 @@
 package com.ensambla.backend.support;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Plan;
+import com.ensambla.backend.domain.model.plan.PlanId;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
+import com.ensambla.backend.domain.model.plan.SuscripcionId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.infrastructure.repository.entity.PlanEntity;
 import com.ensambla.backend.infrastructure.repository.entity.SuscripcionEntity;
 
@@ -15,9 +19,11 @@ import java.util.UUID;
 /** Valores exclusivos de pruebas: no definen el catálogo comercial. */
 public final class PlanTestData {
 
-    public static final UUID PLAN_ID = UUID.fromString("bb000000-0000-4000-8000-000000000001");
-    public static final UUID NEGOCIO_ID = UUID.fromString("bb000000-0000-4000-8000-000000000002");
-    public static final UUID SUSCRIPCION_ID = UUID.fromString("bb000000-0000-4000-8000-000000000003");
+    public static final PlanId PLAN_ID = PlanId.de("bb000000-0000-4000-8000-000000000001");
+    public static final NegocioId NEGOCIO_ID = NegocioId.de("bb000000-0000-4000-8000-000000000002");
+    /** En los tests de plan el usuario dueño comparte el UUID con su negocio. */
+    public static final UsuarioId USUARIO_ID = UsuarioId.de("bb000000-0000-4000-8000-000000000002");
+    public static final SuscripcionId SUSCRIPCION_ID = SuscripcionId.de("bb000000-0000-4000-8000-000000000003");
     public static final OffsetDateTime INSTANTE = OffsetDateTime.parse("2026-10-19T12:00:00Z");
 
     private PlanTestData() {
@@ -43,7 +49,7 @@ public final class PlanTestData {
 
     public static PlanEntity planEntity() {
         return PlanEntity.builder()
-                .id(PLAN_ID)
+                .id(PLAN_ID.valor())
                 .codigo(CodigoPlan.GRATUITO)
                 .nombre("Gratuito de prueba")
                 .configurado(true)
@@ -74,9 +80,9 @@ public final class PlanTestData {
 
     public static SuscripcionEntity suscripcionEntity() {
         return SuscripcionEntity.builder()
-                .id(SUSCRIPCION_ID)
-                .negocioId(NEGOCIO_ID)
-                .planId(PLAN_ID)
+                .id(SUSCRIPCION_ID.valor())
+                .negocioId(NEGOCIO_ID.valor())
+                .planId(PLAN_ID.valor())
                 .estado(EstadoSuscripcion.ACTIVA)
                 .inicioEn(INSTANTE)
                 .finEn(INSTANTE.plusMonths(1))

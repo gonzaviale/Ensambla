@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
 import com.ensambla.backend.domain.model.zona.Zona;
+import com.ensambla.backend.domain.model.zona.ZonaId;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IZonaJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.ZonaRepositoryMapper;
@@ -9,7 +10,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -24,7 +24,7 @@ public class ZonaRepositoryImpl implements ZonaRepository {
     }
 
     @Override
-    public Optional<Zona> findById(UUID id) {
-        return zonaJpaRepository.findById(id).map(zonaRepositoryMapper::toDomain);
+    public Optional<Zona> findById(ZonaId id) {
+        return zonaJpaRepository.findById(id.valor()).map(zonaRepositoryMapper::toDomain);
     }
 }

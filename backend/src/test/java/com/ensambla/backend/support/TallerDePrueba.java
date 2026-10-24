@@ -1,5 +1,6 @@
 package com.ensambla.backend.support;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.sami.ConsumoIaSami;
 import com.ensambla.backend.domain.model.sami.taller.AccionTaller;
 import com.ensambla.backend.domain.model.sami.taller.ConsultaTaller;
@@ -13,6 +14,7 @@ import com.ensambla.backend.domain.model.sami.taller.OpcionesTaller;
 import com.ensambla.backend.domain.model.sami.taller.RespuestaTaller;
 import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
 import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TallerIaPort;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
@@ -29,7 +31,6 @@ import org.mockito.ArgumentCaptor;
 import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,8 +49,8 @@ import static org.mockito.Mockito.when;
  */
 public final class TallerDePrueba {
 
-    public static final UUID USUARIO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    public static final UUID NEGOCIO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
+    public static final UsuarioId USUARIO_ID = UsuarioId.de("d0000000-0000-4000-8000-000000000001");
+    public static final NegocioId NEGOCIO_ID = NegocioId.de("d0000000-0000-4000-8000-000000000002");
 
     private static final String TEXTO_DEL_MODELO = "Listo.";
     private static final ConsumoIaSami CONSUMO = new ConsumoIaSami("bedrock", "haiku", 1, 1);

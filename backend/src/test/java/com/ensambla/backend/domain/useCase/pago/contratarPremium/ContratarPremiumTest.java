@@ -6,8 +6,10 @@ import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Plan;
+import com.ensambla.backend.domain.model.plan.PlanId;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.model.usuario.Usuario;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
@@ -33,7 +35,6 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.ZoneOffset;
 import java.util.Optional;
-import java.util.UUID;
 
 import static com.ensambla.backend.support.PagoTestData.AHORA;
 import static com.ensambla.backend.support.PagoTestData.IMPORTE;
@@ -51,9 +52,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ContratarPremiumTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b0000000-0000-0000-0000-000000000009");
-    private static final UUID PREMIUM_ID = UUID.fromString("b0000000-0000-0000-0000-000000000001");
-    private static final UUID GRATUITO_ID = UUID.fromString("b0000000-0000-0000-0000-000000000002");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b0000000-0000-0000-0000-000000000009");
+    private static final PlanId PREMIUM_ID = PlanId.de("b0000000-0000-0000-0000-000000000001");
+    private static final PlanId GRATUITO_ID = PlanId.de("b0000000-0000-0000-0000-000000000002");
 
     @Mock
     private NegocioService negocioService;
@@ -219,7 +220,7 @@ class ContratarPremiumTest {
                 .limitesConfigurados(true).precioMensual(IMPORTE).moneda("ARS").build();
     }
 
-    private static Suscripcion suscripcion(UUID planId) {
+    private static Suscripcion suscripcion(PlanId planId) {
         return Suscripcion.builder().negocioId(NEGOCIO_ID).planId(planId).estado(EstadoSuscripcion.ACTIVA)
                 .inicioEn(AHORA.minusDays(1)).build();
     }

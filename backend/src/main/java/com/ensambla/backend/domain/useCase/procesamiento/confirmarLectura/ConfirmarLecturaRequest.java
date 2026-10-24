@@ -1,25 +1,29 @@
 package com.ensambla.backend.domain.useCase.procesamiento.confirmarLectura;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.lote.LoteId;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura.CampoConfirmado;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura.FilaConfirmada;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public record ConfirmarLecturaRequest(
-        UUID usuarioId,
-        UUID loteId,
-        UUID proyectoId,
+        UsuarioId usuarioId,
+        LoteId loteId,
+        ProyectoId proyectoId,
         String nombreProyecto,
-        UUID bloqueId,
+        BloqueId bloqueId,
         String nombreBloque,
         List<CampoItem> campos,
         List<FilaItem> filas
 ) {
 
-    public record CampoItem(String clave, UUID campoId, String nombre, String tipo, List<String> opciones) {
+    public record CampoItem(String clave, CampoId campoId, String nombre, String tipo, List<String> opciones) {
     }
 
     public record FilaItem(Integer pagina, Map<String, Object> valores) {

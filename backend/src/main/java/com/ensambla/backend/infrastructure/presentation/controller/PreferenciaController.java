@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias.GuardarPreferencias;
 import com.ensambla.backend.domain.useCase.preferencia.obtenerPreferencias.ObtenerPreferencias;
 import com.ensambla.backend.infrastructure.presentation.dto.preferencia.PreferenciasResponse;
@@ -17,8 +18,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/preferencias")
 @Tag(name = "Preferencias")
@@ -35,7 +34,7 @@ public class PreferenciaController {
     @Operation(summary = "Consultar las preferencias de la cuenta de la sesión")
     public ResponseEntity<PreferenciasResponse> obtener(Authentication authentication) {
         return ResponseEntity.ok(preferenciaPresentationMapper.toResponse(obtenerPreferencias.execute(
-                preferenciaPresentationMapper.toObtenerRequest(UUID.fromString(authentication.getName())))));
+                preferenciaPresentationMapper.toObtenerRequest(UsuarioId.de(authentication.getName())))));
     }
 
     @PutMapping
@@ -43,6 +42,6 @@ public class PreferenciaController {
     public ResponseEntity<PreferenciasResponse> guardar(
             Authentication authentication, @Valid @RequestBody PreferenciasWebRequest request) {
         return ResponseEntity.ok(preferenciaPresentationMapper.toResponse(guardarPreferencias.execute(
-                preferenciaPresentationMapper.toGuardarRequest(UUID.fromString(authentication.getName()), request))));
+                preferenciaPresentationMapper.toGuardarRequest(UsuarioId.de(authentication.getName()), request))));
     }
 }

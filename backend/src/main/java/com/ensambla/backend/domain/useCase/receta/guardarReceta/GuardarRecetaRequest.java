@@ -1,15 +1,17 @@
 package com.ensambla.backend.domain.useCase.receta.guardarReceta;
 
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.receta.LineaReceta;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
 import java.util.List;
-import java.util.UUID;
 
 /** Reemplaza la receta del producto (un registro); sin líneas, la quita. */
 public record GuardarRecetaRequest(
-        UUID usuarioId,
-        UUID registroId,
-        UUID campoPrecioId,
+        UsuarioId usuarioId,
+        RegistroId registroId,
+        CampoId campoPrecioId,
         List<LineaRecetaRequest> lineas) {
 
     public List<LineaReceta> aLineasReceta() {

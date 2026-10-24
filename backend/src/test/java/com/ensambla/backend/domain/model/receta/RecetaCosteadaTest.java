@@ -1,8 +1,11 @@
 package com.ensambla.backend.domain.model.receta;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -15,13 +18,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class RecetaCosteadaTest {
 
-    private static final UUID HARINA_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
-    private static final UUID AZUCAR_ID = UUID.fromString("d0000000-0000-4000-8000-000000000003");
-    private static final UUID LEVADURA_ID = UUID.fromString("d0000000-0000-4000-8000-000000000004");
-    private static final UUID BORRADO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000005");
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000002");
-    private static final UUID NOMBRE_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
-    private static final UUID PRECIO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000002");
+    private static final RegistroId HARINA_ID = RegistroId.de("d0000000-0000-4000-8000-000000000002");
+    private static final RegistroId AZUCAR_ID = RegistroId.de("d0000000-0000-4000-8000-000000000003");
+    private static final RegistroId LEVADURA_ID = RegistroId.de("d0000000-0000-4000-8000-000000000004");
+    private static final RegistroId BORRADO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000005");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
+    private static final CampoId NOMBRE_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
+    private static final CampoId PRECIO_ID = CampoId.de("c0000000-0000-4000-8000-000000000002");
 
     @Test
     @DisplayName("El costo es la suma de cantidad por precio de cada insumo, sin redondear")
@@ -31,7 +34,8 @@ class RecetaCosteadaTest {
                 new LineaReceta(AZUCAR_ID, new BigDecimal("2"), null));
 
         RecetaCosteada result = RecetaCosteada.de(receta, BLOQUE_ID, List.of(
-                givenInsumo(HARINA_ID, "Harina", 1200), givenInsumo(AZUCAR_ID, "Azúcar", 850.5)), givenCampos());
+                givenInsumo(HARINA_ID.valor(), "Harina", 1200), givenInsumo(AZUCAR_ID.valor(), "Azúcar", 850.5)),
+                        givenCampos());
 
         assertThat(result.costo()).isEqualByComparingTo("2301");
         assertThat(result.incompleta()).isFalse();
@@ -55,7 +59,7 @@ class RecetaCosteadaTest {
                 new LineaReceta(HARINA_ID, BigDecimal.ONE, null), new LineaReceta(LEVADURA_ID, BigDecimal.ONE, null));
 
         RecetaCosteada result = RecetaCosteada.de(
-                receta, BLOQUE_ID, List.of(givenInsumo(HARINA_ID, "Harina", 100), sinPrecio), givenCampos());
+                receta, BLOQUE_ID, List.of(givenInsumo(HARINA_ID.valor(), "Harina", 100), sinPrecio), givenCampos());
 
         assertThat(result.costo()).isEqualByComparingTo("100");
         assertThat(result.incompleta()).isTrue();
@@ -97,7 +101,7 @@ class RecetaCosteadaTest {
 
     private static Registro givenInsumo(UUID id, String nombre, Number precio) {
         return Registro.builder()
-                .id(id)
+                .id(RegistroId.de(id))
                 .valores(Map.of(NOMBRE_ID.toString(), nombre, PRECIO_ID.toString(), precio))
                 .build();
     }

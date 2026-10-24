@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.sistema.SistemaItem.BloqueItem;
 import com.ensambla.backend.domain.useCase.sistema.SistemaItem.CampoItem;
 import com.ensambla.backend.domain.useCase.sistema.SistemaItem.OpcionesItem;
@@ -14,18 +15,17 @@ import com.ensambla.backend.domain.useCase.sistema.listarSistemas.ListarSistemas
 import com.ensambla.backend.domain.useCase.sistema.listarSistemas.ListarSistemasRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.sistema.SistemaPresentationMapper;
+import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,7 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class SistemaControllerTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b0000000-0000-4000-8000-000000000001");
     private static final String SISTEMA_ID = "d0000000-0000-4000-8000-000000000001";
 
     private final ListarSistemas listarSistemas = mock(ListarSistemas.class);
@@ -55,7 +55,7 @@ class SistemaControllerTest {
     void setUp() {
         var controller = new SistemaController(listarSistemas, guardarSistema,
                 eliminarSistema, new SistemaPresentationMapper());
-        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+        mockMvc = MockMvcDePrueba.standalone(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }

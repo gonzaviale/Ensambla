@@ -1,14 +1,16 @@
 package com.ensambla.backend.domain.service.procesamiento;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
-import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
 import com.ensambla.backend.domain.model.lectura.BloquePropuesto;
 import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
 import com.ensambla.backend.domain.model.lectura.ConsumoIa;
 import com.ensambla.backend.domain.model.lectura.DatoLeido;
 import com.ensambla.backend.domain.model.lectura.FilaLeida;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
+import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
 import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
 import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
@@ -122,7 +124,7 @@ class PropuestaLecturaServiceTest {
     @DisplayName("Rechaza un destino inexistente o incompatible")
     void proponerShouldFailWhenDestinationMissing() {
         assertThatThrownBy(() -> propuestaLecturaService.proponer(
-                ProcesamientoTestData.lectura(), List.of(), UUID.randomUUID()))
+                ProcesamientoTestData.lectura(), List.of(), BloqueId.nuevo()))
                 .isInstanceOf(BusinessRuleException.class).hasMessageContaining("compatible");
     }
 
@@ -190,26 +192,27 @@ class PropuestaLecturaServiceTest {
     void proponerShouldPreferExactNameOverSynonym() {
         UUID telefonoId = UUID.randomUUID();
         UUID celularId = UUID.randomUUID();
-        BloqueLectura bloque = new BloqueLectura(UUID.randomUUID(), "Clientes", List.of(
-                new CampoConocido(celularId, "Celular", TipoCampo.TEXTO, List.of()),
-                new CampoConocido(telefonoId, "Teléfono", TipoCampo.TEXTO, List.of())));
+        BloqueLectura bloque = new BloqueLectura(BloqueId.nuevo(), "Clientes", List.of(
+                new CampoConocido(CampoId.de(celularId), "Celular", TipoCampo.TEXTO, List.of()),
+                new CampoConocido(CampoId.de(telefonoId), "Teléfono", TipoCampo.TEXTO, List.of())));
         LecturaCuaderno lectura = givenLectura(
                 List.of(columna("cel", "Cel", TipoCampo.TEXTO), columna("tel", "Teléfono", TipoCampo.TEXTO)),
                 givenFila(1, "cel", "1", "tel", "2"));
 
         PropuestaLectura propuesta = propuestaLecturaService.proponer(lectura, List.of(bloque), bloque.id());
 
-        assertThat(propuesta.mapeoCampos()).containsEntry("tel", telefonoId).containsEntry("cel", celularId);
+        assertThat(propuesta.mapeoCampos()).containsEntry("tel", CampoId.de(telefonoId))
+                .containsEntry("cel", CampoId.de(celularId));
         assertThat(propuesta.camposNuevos()).isEmpty();
     }
 
     @Test
     @DisplayName("Con destino, una columna que podría ser dos campos se propone como nueva y se avisa")
     void proponerShouldWarnWhenSynonymIsAmbiguous() {
-        BloqueLectura bloque = new BloqueLectura(UUID.randomUUID(), "Clientes", List.of(
-                new CampoConocido(UUID.randomUUID(), "Celular", TipoCampo.TEXTO, List.of()),
+        BloqueLectura bloque = new BloqueLectura(BloqueId.nuevo(), "Clientes", List.of(
+                new CampoConocido(CampoId.nuevo(), "Celular", TipoCampo.TEXTO, List.of()),
                 new CampoConocido(ProcesamientoTestData.CAMPO_ID, "Teléfono", TipoCampo.TEXTO, List.of()),
-                new CampoConocido(UUID.randomUUID(), "Nombre", TipoCampo.TEXTO, List.of())));
+                new CampoConocido(CampoId.nuevo(), "Nombre", TipoCampo.TEXTO, List.of())));
         LecturaCuaderno lectura = givenLectura(
                 List.of(columna("nombre", "Nombre", TipoCampo.TEXTO), columna("tel", "Tel", TipoCampo.TEXTO)),
                 givenFila(1, "nombre", "Ana", "tel", "11 4444-5555"));
@@ -277,7 +280,7 @@ class PropuestaLecturaServiceTest {
     }
 
     private BloqueLectura givenBlock(String nombre, String campo, TipoCampo tipo, List<String> opciones) {
-        return new BloqueLectura(UUID.randomUUID(), nombre,
+        return new BloqueLectura(BloqueId.nuevo(), nombre,
                 List.of(new CampoConocido(ProcesamientoTestData.CAMPO_ID, campo, tipo, opciones)));
     }
 }

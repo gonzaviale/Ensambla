@@ -1,10 +1,10 @@
 package com.ensambla.backend.infrastructure.presentation.dto.campo;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Body de crear y de editar un campo. Editar reemplaza toda la configuración. El tipo, las opciones, el valor
@@ -17,7 +17,7 @@ public record CampoWebRequest(
         Boolean obligatorio,
         String valorInicial,
         List<String> opciones,
-        UUID bloqueRelacionadoId,
+        BloqueId bloqueRelacionadoId,
         String formula
 ) {
 }

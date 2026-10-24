@@ -27,8 +27,8 @@ class PlantillaParaProyectoRepositoryTest {
     @Test
     @DisplayName("Convierte una plantilla activa a estructura tipada con valores opcionales por defecto")
     void obtenerParaProyectoShouldReadTypedStructure() {
-        when(jpa.findByIdAndActivaTrue(PLANTILLA_ID)).thenReturn(Optional.of(PlantillaEntity.builder()
-                .id(PLANTILLA_ID)
+        when(jpa.findByIdAndActivaTrue(PLANTILLA_ID.valor())).thenReturn(Optional.of(PlantillaEntity.builder()
+                .id(PLANTILLA_ID.valor())
                 .nombre("Inventario")
                 .descripcion("Mis productos")
                 .estructura(Map.of("bloques", List.of(Map.of("nombre", "Productos", "campos", List.of(
@@ -48,7 +48,7 @@ class PlantillaParaProyectoRepositoryTest {
     @Test
     @DisplayName("Una plantilla inactiva o inexistente responde no encontrada")
     void obtenerParaProyectoShouldRejectInactiveOrMissing() {
-        when(jpa.findByIdAndActivaTrue(PLANTILLA_ID)).thenReturn(Optional.empty());
+        when(jpa.findByIdAndActivaTrue(PLANTILLA_ID.valor())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> plantillaService.obtenerParaProyecto(PLANTILLA_ID))
                 .isInstanceOf(ResourceNotFoundException.class);

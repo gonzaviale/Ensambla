@@ -1,6 +1,8 @@
 package com.ensambla.backend.domain.useCase.procesamiento.reintentarLectura;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.procesamiento.ConsumoDiario;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
@@ -12,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class ReintentarLectura {
@@ -25,7 +26,7 @@ public class ReintentarLectura {
     private final Clock clock;
 
     public void execute(UsuarioLoteRequest request) {
-        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         OffsetDateTime ahora = OffsetDateTime.now(clock);
         procesamientoService.obtener(negocioId, request.loteId());
         controlPlanService.validarPaginasIa(negocioId, 1, ahora);
@@ -33,14 +34,14 @@ public class ReintentarLectura {
         reencolar(negocioId, request.loteId(), ahora);
     }
 
-    private void validarCupoDiario(UUID negocioId, OffsetDateTime ahora) {
+    private void validarCupoDiario(NegocioId negocioId, OffsetDateTime ahora) {
         ConsumoDiario consumo = procesamientoService.consumo(negocioId, ahora);
         if (consumo.paginas() + consumo.reservadas() >= politicaProcesamiento.limiteDiario()) {
             throw new BusinessRuleException(PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO);
         }
     }
 
-    private void reencolar(UUID negocioId, UUID loteId, OffsetDateTime ahora) {
+    private void reencolar(NegocioId negocioId, LoteId loteId, OffsetDateTime ahora) {
         if (!procesamientoRepository.reencolar(negocioId, loteId, ahora)) {
             throw new BusinessRuleException("Sólo se puede reintentar un lote en estado ERROR");
         }

@@ -3,10 +3,12 @@ package com.ensambla.backend.domain.useCase.receta.guardarReceta;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.receta.Receta;
 import com.ensambla.backend.domain.model.receta.RecetaCosteada;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.receta.RecetaRepository;
@@ -23,7 +25,6 @@ import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -50,7 +51,7 @@ public class GuardarReceta {
     private final Clock clock;
 
     public RecetaItem execute(GuardarRecetaRequest request) {
-        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         Registro producto = registroDatosService.obtener(request.registroId(), negocioId);
         controlPlanService.validarFuncion(negocioId, FuncionPlan.RECETAS_COSTOS, OffsetDateTime.now(clock));
         Receta nueva = Receta.nueva(
@@ -86,7 +87,7 @@ public class GuardarReceta {
     }
 
     private void validarInsumos(Receta receta, Campo precio) {
-        Set<UUID> existentes = registroRepository.findAllByIdsAndBloque(
+        Set<RegistroId> existentes = registroRepository.findAllByIdsAndBloque(
                         receta.insumoIds(), precio.getBloqueId(), receta.getNegocioId()).stream()
                 .map(Registro::getId)
                 .collect(Collectors.toSet());

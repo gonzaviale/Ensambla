@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.service.receta;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.receta.Receta;
 import com.ensambla.backend.domain.model.receta.RecetaCosteada;
 import com.ensambla.backend.domain.model.registro.Registro;
@@ -10,7 +11,6 @@ import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class RecetaService {
@@ -20,7 +20,7 @@ public class RecetaService {
     private final RegistroRepository registroRepository;
 
     /** Calcula el costo con el precio actual de cada insumo; una receta vacía cuesta cero. */
-    public RecetaCosteada costear(Receta receta, UUID negocioId) {
+    public RecetaCosteada costear(Receta receta, NegocioId negocioId) {
         if (receta.esVacia()) {
             return RecetaCosteada.vacia();
         }

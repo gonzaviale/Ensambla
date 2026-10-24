@@ -1,12 +1,12 @@
 package com.ensambla.backend.domain.useCase.pago;
 
+import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
-public record RenovacionItem(UUID id, String estado, BigDecimal importe, String moneda,
+public record RenovacionItem(RenovacionId id, String estado, BigDecimal importe, String moneda,
                              OffsetDateTime primerCobroEn, OffsetDateTime proximoCobroEn,
                              boolean cancelacionSolicitada, String enlace) {
 

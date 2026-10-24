@@ -1,5 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.reporte.exportarReporte.ExportarReporte;
 import com.ensambla.backend.domain.useCase.reporte.exportarReporte.ExportarReporteResponse;
 import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporte;
@@ -21,7 +24,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/bloques/{bloqueId}/reporte")
@@ -42,11 +44,11 @@ public class ReporteController {
     @Operation(summary = "Reporte de las filas de un bloque con filtros: las primeras filas y los totales de todas")
     public ResponseEntity<ReporteResponse> generar(
             Authentication authentication,
-            @PathVariable UUID bloqueId,
+            @PathVariable BloqueId bloqueId,
             @RequestParam(required = false) String q,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
-            @RequestParam(required = false) UUID campoId,
+            @RequestParam(required = false) CampoId campoId,
             @RequestParam(required = false) String valor) {
         ReporteResponse response = presentationMapper.toResponse(generarReporte.execute(
                 presentationMapper.toRequest(usuarioDe(authentication), bloqueId, q, desde, hasta, campoId, valor)));
@@ -57,11 +59,11 @@ public class ReporteController {
     @Operation(summary = "Descargar el reporte en XLSX: todas las filas que cumplen los filtros y sus totales")
     public ResponseEntity<byte[]> descargar(
             Authentication authentication,
-            @PathVariable UUID bloqueId,
+            @PathVariable BloqueId bloqueId,
             @RequestParam(required = false) String q,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
-            @RequestParam(required = false) UUID campoId,
+            @RequestParam(required = false) CampoId campoId,
             @RequestParam(required = false) String valor) {
         ExportarReporteResponse archivo = exportarReporte.execute(
                 presentationMapper.toRequest(usuarioDe(authentication), bloqueId, q, desde, hasta, campoId, valor));
@@ -72,7 +74,7 @@ public class ReporteController {
                 .body(archivo.contenido());
     }
 
-    private static UUID usuarioDe(Authentication authentication) {
-        return UUID.fromString(authentication.getName());
+    private static UsuarioId usuarioDe(Authentication authentication) {
+        return UsuarioId.de(authentication.getName());
     }
 }

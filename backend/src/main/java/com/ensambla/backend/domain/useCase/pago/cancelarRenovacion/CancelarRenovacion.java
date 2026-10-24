@@ -1,7 +1,9 @@
 package com.ensambla.backend.domain.useCase.pago.cancelarRenovacion;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
@@ -14,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class CancelarRenovacion {
@@ -35,8 +36,8 @@ public class CancelarRenovacion {
 
     private final Clock clock;
 
-    public ConsultarRenovacionResponse execute(UUID usuarioId) {
-        UUID negocioId = negocioService.obtenerDelUsuario(usuarioId);
+    public ConsultarRenovacionResponse execute(UsuarioId usuarioId) {
+        NegocioId negocioId = negocioService.obtenerDelUsuario(usuarioId);
         RenovacionPremium renovacion = solicitarCancelacion(negocioId, OffsetDateTime.now(clock));
         sincronizarRenovacion.execute(renovacion.getId());
         return ConsultarRenovacionResponse.de(pasarelaSuscripcionesPort.disponible(),
@@ -44,7 +45,7 @@ public class CancelarRenovacion {
     }
 
     /** La cancelación se pide acá y se aplica en la pasarela al sincronizar. */
-    private RenovacionPremium solicitarCancelacion(UUID negocioId, OffsetDateTime ahora) {
+    private RenovacionPremium solicitarCancelacion(NegocioId negocioId, OffsetDateTime ahora) {
         return transaccionPort.ejecutar(() -> {
             usoPlanRepository.bloquearNegocio(negocioId);
             RenovacionPremium renovacion = renovacionPremiumService.consultar(negocioId)

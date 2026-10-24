@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.procesamiento.confirmarLectura.ConfirmarLectura;
 import com.ensambla.backend.domain.useCase.procesamiento.consultarConsumo.ConsultarConsumo;
 import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagen;
@@ -13,6 +14,7 @@ import com.ensambla.backend.domain.useCase.procesamiento.obtenerLectura.ObtenerL
 import com.ensambla.backend.domain.useCase.procesamiento.reintentarLectura.ReintentarLectura;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.procesamiento.LecturaPresentationMapper;
+import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,11 +23,9 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -45,7 +45,7 @@ class LecturaControllerTest {
              "campos":[{"key":"monto","label":"Monto","type":"currency","required":true},
                        {"key":"cliente","label":"Cliente","type":"text","required":false}]}""";
 
-    private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
 
     private final LeerImagen leerImagen = mock(LeerImagen.class);
 
@@ -57,7 +57,7 @@ class LecturaControllerTest {
                 mock(ObtenerLectura.class), mock(ReintentarLectura.class),
                 mock(ConfirmarLectura.class), mock(ConsultarConsumo.class), leerImagen,
                 new LecturaPresentationMapper());
-        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+        mockMvc = MockMvcDePrueba.standalone(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .defaultRequest(multipart("/api/importaciones/lectura").principal(
                         new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null, List.of())))

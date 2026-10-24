@@ -7,15 +7,14 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FormulaTest {
 
-    private static final UUID CANTIDAD_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
-    private static final UUID PRECIO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000002");
+    private static final CampoId CANTIDAD_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
+    private static final CampoId PRECIO_ID = CampoId.de("c0000000-0000-4000-8000-000000000002");
 
     @Test
     @DisplayName("Multiplica dos campos del registro")
@@ -96,11 +95,11 @@ class FormulaTest {
         return Formula.parsear(texto).evaluar(id -> null);
     }
 
-    private static String ref(UUID id) {
+    private static String ref(CampoId id) {
         return "{" + id + "}";
     }
 
-    private static java.util.function.Function<UUID, BigDecimal> valores(Map<UUID, String> valores) {
+    private static java.util.function.Function<CampoId, BigDecimal> valores(Map<CampoId, String> valores) {
         return id -> new BigDecimal(valores.get(id));
     }
 }

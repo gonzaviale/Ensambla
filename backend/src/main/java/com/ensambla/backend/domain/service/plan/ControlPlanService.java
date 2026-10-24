@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.service.plan;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.FuncionPlan;
@@ -18,7 +19,6 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.function.BooleanSupplier;
 
 @RequiredArgsConstructor
@@ -34,7 +34,7 @@ public class ControlPlanService {
 
     private final TransaccionPort transaccionPort;
 
-    public void validarAltaProyecto(UUID negocioId, OffsetDateTime ahora) {
+    public void validarAltaProyecto(NegocioId negocioId, OffsetDateTime ahora) {
         transaccionPort.ejecutar(() -> {
             usoPlanRepository.bloquearNegocio(negocioId);
             Plan plan = vigente(negocioId, ahora);
@@ -42,7 +42,7 @@ public class ControlPlanService {
         });
     }
 
-    public void validarAltaRegistros(UUID negocioId, long cantidad, OffsetDateTime ahora) {
+    public void validarAltaRegistros(NegocioId negocioId, long cantidad, OffsetDateTime ahora) {
         transaccionPort.ejecutar(() -> {
             usoPlanRepository.bloquearNegocio(negocioId);
             Plan plan = vigente(negocioId, ahora);
@@ -50,7 +50,7 @@ public class ControlPlanService {
         });
     }
 
-    public void validarPaginasIa(UUID negocioId, int cantidad, OffsetDateTime ahora) {
+    public void validarPaginasIa(NegocioId negocioId, int cantidad, OffsetDateTime ahora) {
         transaccionPort.ejecutar(() -> {
             usoPlanRepository.bloquearNegocio(negocioId);
             Plan plan = vigente(negocioId, ahora);
@@ -64,11 +64,11 @@ public class ControlPlanService {
         });
     }
 
-    public void validarFuncion(UUID negocioId, FuncionPlan funcion, OffsetDateTime ahora) {
+    public void validarFuncion(NegocioId negocioId, FuncionPlan funcion, OffsetDateTime ahora) {
         vigente(negocioId, ahora).validarFuncion(funcion);
     }
 
-    public boolean esPremium(UUID negocioId, OffsetDateTime ahora) {
+    public boolean esPremium(NegocioId negocioId, OffsetDateTime ahora) {
         return vigente(negocioId, ahora).getCodigo() == CodigoPlan.PREMIUM;
     }
 
@@ -78,7 +78,7 @@ public class ControlPlanService {
      *
      * @return si la reserva diaria entró
      */
-    public boolean reservarPaginasIa(UUID negocioId, int cantidad, OffsetDateTime ahora, BooleanSupplier reserva) {
+    public boolean reservarPaginasIa(NegocioId negocioId, int cantidad, OffsetDateTime ahora, BooleanSupplier reserva) {
         return transaccionPort.ejecutar(() -> {
             validarPaginasIa(negocioId, cantidad, ahora);
             boolean reservada = reserva.getAsBoolean();
@@ -90,7 +90,7 @@ public class ControlPlanService {
     }
 
     /** Se cobra al admitir un intento. También cuentan errores y timeouts, sin duplicar al finalizar el lote. */
-    private void registrarPaginasPrueba(UUID negocioId, int cantidad, OffsetDateTime ahora) {
+    private void registrarPaginasPrueba(NegocioId negocioId, int cantidad, OffsetDateTime ahora) {
         transaccionPort.ejecutar(() -> {
             usoPlanRepository.bloquearNegocio(negocioId);
             pruebaVigente(negocioId, ahora)
@@ -98,7 +98,7 @@ public class ControlPlanService {
         });
     }
 
-    private Optional<PruebaPremium> pruebaVigente(UUID negocioId, OffsetDateTime ahora) {
+    private Optional<PruebaPremium> pruebaVigente(NegocioId negocioId, OffsetDateTime ahora) {
         Suscripcion suscripcion = suscripcionRepository.findByNegocioId(negocioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Suscripción no encontrada"));
         if (suscripcion.getEstado() == EstadoSuscripcion.PRUEBA && suscripcion.estaVigente(ahora)) {
@@ -108,7 +108,7 @@ public class ControlPlanService {
         return Optional.empty();
     }
 
-    private Plan vigente(UUID negocioId, OffsetDateTime ahora) {
+    private Plan vigente(NegocioId negocioId, OffsetDateTime ahora) {
         Suscripcion suscripcion = suscripcionRepository.findByNegocioId(negocioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Suscripción no encontrada"));
         Plan plan = suscripcion.estaVigente(ahora)

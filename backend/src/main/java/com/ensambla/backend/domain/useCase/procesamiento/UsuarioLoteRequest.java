@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.procesamiento;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record UsuarioLoteRequest(UUID usuarioId, UUID loteId) {
+public record UsuarioLoteRequest(UsuarioId usuarioId, LoteId loteId) {
 }

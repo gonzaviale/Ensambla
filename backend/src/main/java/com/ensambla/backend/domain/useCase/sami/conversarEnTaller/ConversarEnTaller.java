@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.useCase.sami.conversarEnTaller;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.common.TextoNormalizado;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.sami.taller.AccionTaller;
 import com.ensambla.backend.domain.model.sami.taller.CampoNuevo;
 import com.ensambla.backend.domain.model.sami.taller.CampoTaller;
@@ -42,7 +43,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -117,7 +117,7 @@ public class ConversarEnTaller {
      *                     plantillas)
      * @throws BusinessRuleException si se agotó el límite o la IA falló
      */
-    private RespuestaTaller conversar(UUID negocioId, String mensaje, ImagenTaller imagen, EstadoTaller estado,
+    private RespuestaTaller conversar(NegocioId negocioId, String mensaje, ImagenTaller imagen, EstadoTaller estado,
                                      List<MensajeTaller> historial, OffsetDateTime ahora, int limiteDiario) {
         LocalDate fecha = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate();
         if (!consumoSamiRepository.reservar(negocioId, fecha, limiteDiario, ahora)) {
@@ -204,7 +204,7 @@ public class ConversarEnTaller {
                 .noneMatch(accion -> HerramientaTaller.CARGAR_REGISTROS.nombre().equals(accion.herramienta()));
     }
 
-    private ValidacionTaller registrosDeLaFoto(UUID negocioId, LocalDate fecha, OffsetDateTime ahora,
+    private ValidacionTaller registrosDeLaFoto(NegocioId negocioId, LocalDate fecha, OffsetDateTime ahora,
                                                ImagenTaller imagen, EstadoTaller estado,
                                                List<MensajeTaller> historial, List<PiezaTaller> piezas) {
         EstadoTaller armado = new EstadoTaller(estado.nombre(), estado.distribucion(), piezas);
@@ -213,7 +213,7 @@ public class ConversarEnTaller {
         return validar(resultado.llamadas(), armado);
     }
 
-    private List<OpcionesTaller> dudasDeLaFoto(UUID negocioId, LocalDate fecha, OffsetDateTime ahora,
+    private List<OpcionesTaller> dudasDeLaFoto(NegocioId negocioId, LocalDate fecha, OffsetDateTime ahora,
                                                 ImagenTaller imagen, EstadoTaller estado,
                                                 List<MensajeTaller> historial, List<PiezaTaller> piezas) {
         EstadoTaller armado = new EstadoTaller(estado.nombre(), estado.distribucion(), piezas);
@@ -227,7 +227,7 @@ public class ConversarEnTaller {
                 && sinRegistros(acciones) && PIDE_CARGAR.matcher(mensaje).find();
     }
 
-    private List<AccionTaller> recarga(UUID negocioId, LocalDate fecha, OffsetDateTime ahora, ImagenTaller imagen,
+    private List<AccionTaller> recarga(NegocioId negocioId, LocalDate fecha, OffsetDateTime ahora, ImagenTaller imagen,
                                        EstadoTaller estado, List<MensajeTaller> historial, String mensaje,
                                        List<PiezaTaller> piezas) {
         EstadoTaller armado = new EstadoTaller(estado.nombre(), estado.distribucion(), piezas);
@@ -405,7 +405,7 @@ public class ConversarEnTaller {
     }
 
     public ConversarEnTallerResponse execute(ConversarEnTallerRequest request) {
-        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         RespuestaTaller respuesta = conversar(
                 negocioId,
                 request.mensaje(),

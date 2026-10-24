@@ -2,9 +2,11 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.aviso.GrupoAviso;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.aviso.AvisoItem;
 import com.ensambla.backend.domain.useCase.aviso.ResolverAvisoRequest;
 import com.ensambla.backend.domain.useCase.aviso.aplicarAviso.AplicarAviso;
@@ -15,17 +17,16 @@ import com.ensambla.backend.domain.useCase.aviso.listarAvisos.ListarAvisos;
 import com.ensambla.backend.domain.useCase.aviso.listarAvisos.ListarAvisosRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.aviso.AvisoPresentationMapper;
+import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -37,8 +38,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class AvisoControllerTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("00000000-0000-4000-8000-000000000001");
-    private static final UUID AVISO_ID = UUID.fromString("e0000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("00000000-0000-4000-8000-000000000001");
+    private static final AvisoId AVISO_ID = AvisoId.de("e0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-19T12:00:00Z");
 
     private final ListarAvisos listarAvisos = mock(ListarAvisos.class);
@@ -53,7 +54,7 @@ class AvisoControllerTest {
     void setUp() {
         var controller = new AvisoController(listarAvisos, contarAvisos, aplicarAviso,
                 descartarAviso, new AvisoPresentationMapper());
-        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+        mockMvc = MockMvcDePrueba.standalone(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }

@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSami;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTaller;
 import com.ensambla.backend.domain.useCase.sami.crearProyectoDesdeSami.CrearProyectoDesdeSami;
@@ -24,7 +25,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/sami")
@@ -44,7 +44,7 @@ public class SamiController {
     public ResponseEntity<ConversarSamiResponse> conversar(Authentication authentication,
                                                            @Valid @RequestBody ConversarSamiRequest body) {
         ConversarSamiResponse response = samiPresentationMapper.toResponse(conversarConSami.execute(
-                samiPresentationMapper.toRequest(UUID.fromString(authentication.getName()), body)));
+                samiPresentationMapper.toRequest(UsuarioId.de(authentication.getName()), body)));
         return ResponseEntity.ok(response);
     }
 
@@ -53,7 +53,7 @@ public class SamiController {
     public ResponseEntity<ConversarTallerResponse> taller(Authentication authentication,
                                                           @Valid @RequestBody ConversarTallerRequest body) {
         ConversarTallerResponse response = tallerPresentationMapper.toResponse(conversarEnTaller.execute(
-                tallerPresentationMapper.toRequest(UUID.fromString(authentication.getName()), body)));
+                tallerPresentationMapper.toRequest(UsuarioId.de(authentication.getName()), body)));
         return ResponseEntity.ok(response);
     }
 
@@ -62,7 +62,7 @@ public class SamiController {
     public ResponseEntity<ProyectoResponse> crearProyecto(Authentication authentication,
                                                           @Valid @RequestBody CrearProyectoSamiRequest body) {
         ProyectoResponse response = proyectoPresentationMapper.toResponse(crearProyectoDesdeSami.execute(
-                samiPresentationMapper.toCrearProyectoRequest(UUID.fromString(authentication.getName()), body)));
+                samiPresentationMapper.toCrearProyectoRequest(UsuarioId.de(authentication.getName()), body)));
         return ResponseEntity.created(URI.create("/api/proyectos/" + response.id())).body(response);
     }
 }

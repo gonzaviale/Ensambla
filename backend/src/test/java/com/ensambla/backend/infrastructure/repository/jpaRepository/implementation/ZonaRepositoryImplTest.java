@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
 import com.ensambla.backend.domain.model.zona.Zona;
+import com.ensambla.backend.domain.model.zona.ZonaId;
 import com.ensambla.backend.infrastructure.repository.entity.ZonaEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IZonaJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.ZonaRepositoryMapper;
@@ -29,7 +30,7 @@ class ZonaRepositoryImplTest {
 
         List<Zona> result = zonaRepository.findAll();
 
-        assertThat(result).extracting(Zona::getId).containsExactly(id);
+        assertThat(result).extracting(Zona::getId).containsExactly(ZonaId.de(id));
     }
 
     @Test
@@ -38,7 +39,7 @@ class ZonaRepositoryImplTest {
         UUID id = UUID.randomUUID();
         when(zonaJpaRepository.findById(id)).thenReturn(Optional.of(ZonaEntity.builder().id(id).nombre("San Justo").build()));
 
-        Optional<Zona> result = zonaRepository.findById(id);
+        Optional<Zona> result = zonaRepository.findById(ZonaId.de(id));
 
         assertThat(result).map(Zona::getNombre).contains("San Justo");
     }

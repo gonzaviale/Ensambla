@@ -1,6 +1,6 @@
 package com.ensambla.backend.domain.useCase.zona.obtenerZona;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record ObtenerZonaRequest(UUID usuarioId) {
+public record ObtenerZonaRequest(UsuarioId usuarioId) {
 }

@@ -1,7 +1,10 @@
 package com.ensambla.backend.domain.useCase.registro;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.registro.TotalesRegistros;
 import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistroResponse;
 import com.ensambla.backend.domain.useCase.registro.editarRegistro.EditarRegistroResponse;
@@ -14,16 +17,15 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 
 class RegistroDtosTest {
 
-    private static final UUID REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID CAMPO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
+    private static final RegistroId REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final CampoId CAMPO_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime CREADO = OffsetDateTime.parse("2026-10-09T12:00:00Z");
     private static final OffsetDateTime ACTUALIZADO = OffsetDateTime.parse("2026-10-10T12:00:00Z");
 
@@ -54,7 +56,7 @@ class RegistroDtosTest {
     @Test
     @DisplayName("Listar devuelve los registros en orden con los datos de la página")
     void listarToResponseShouldMapContentAndPageData() {
-        Registro segundo = Registro.builder().id(UUID.randomUUID()).bloqueId(BLOQUE_ID).build();
+        Registro segundo = Registro.builder().id(RegistroId.nuevo()).bloqueId(BLOQUE_ID).build();
         Pagina<Registro> pagina = new Pagina<>(List.of(registro(), segundo), 2, 20, 45);
 
         TotalesRegistros totales = new TotalesRegistros(45, Map.of(CAMPO_ID, new BigDecimal("1500.50")));

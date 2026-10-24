@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.negocio.actualizarNegocio.ActualizarNegocio;
 import com.ensambla.backend.domain.useCase.negocio.obtenerConfiguracionNegocio.ObtenerConfiguracionNegocio;
 import com.ensambla.backend.infrastructure.presentation.dto.negocio.ActualizarNegocioWebRequest;
@@ -18,8 +19,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/business")
 @Tag(name = "Configuración del negocio")
@@ -35,7 +34,7 @@ public class NegocioController {
     public ResponseEntity<ConfiguracionNegocioWebResponse> obtener(Authentication authentication) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(negocioPresentationMapper.toResponse(
                 obtenerConfiguracionNegocio.execute(negocioPresentationMapper.toObtenerRequest(
-                        UUID.fromString(authentication.getName())))));
+                        UsuarioId.de(authentication.getName())))));
     }
 
     @PatchMapping
@@ -44,6 +43,6 @@ public class NegocioController {
             @Valid @RequestBody ActualizarNegocioWebRequest request) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(negocioPresentationMapper.toResponse(
                 actualizarNegocio.execute(negocioPresentationMapper.toActualizarRequest(
-                        UUID.fromString(authentication.getName()), request))));
+                        UsuarioId.de(authentication.getName()), request))));
     }
 }

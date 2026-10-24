@@ -1,7 +1,9 @@
 package com.ensambla.backend.domain.useCase.registro.crearRegistro;
 
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
@@ -16,7 +18,6 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class CrearRegistro {
@@ -31,7 +32,7 @@ public class CrearRegistro {
     private final Clock clock;
 
     public CrearRegistroResponse execute(CrearRegistroRequest request) {
-        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         Bloque bloque = bloqueService.obtener(request.bloqueId(), negocioId);
         List<Campo> campos = campoService.listarDeBloque(bloque.getId(), negocioId);
         OffsetDateTime ahora = OffsetDateTime.now(clock);
@@ -40,7 +41,7 @@ public class CrearRegistro {
         return CrearRegistroResponse.de(creado.conFormulas(campos));
     }
 
-    private Registro crear(UUID negocioId, UUID bloqueId, List<Campo> campos, Map<String, Object> valores,
+    private Registro crear(NegocioId negocioId, BloqueId bloqueId, List<Campo> campos, Map<String, Object> valores,
                            OffsetDateTime ahora) {
         Map<String, Object> validos = Registro.validar(campos, valores);
         registroDatosService.validarConexiones(negocioId, campos, validos);

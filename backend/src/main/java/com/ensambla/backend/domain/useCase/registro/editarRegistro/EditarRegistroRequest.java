@@ -1,7 +1,9 @@
 package com.ensambla.backend.domain.useCase.registro.editarRegistro;
 
-import java.util.Map;
-import java.util.UUID;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record EditarRegistroRequest(UUID usuarioId, UUID registroId, Map<String, Object> valores) {
+import java.util.Map;
+
+public record EditarRegistroRequest(UsuarioId usuarioId, RegistroId registroId, Map<String, Object> valores) {
 }

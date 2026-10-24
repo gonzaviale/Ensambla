@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.useCase.procesamiento.leerImagen;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.lectura.ImagenCuaderno;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.procesamiento.BloqueDeImagen;
 import com.ensambla.backend.domain.model.procesamiento.LecturaImagen;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
@@ -19,7 +20,6 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Lee una foto contra un bloque y devuelve los registros y las columnas nuevas para revisar. Es la misma lectura que
@@ -49,14 +49,14 @@ public class LeerImagen {
     public LeerImagenItem execute(LeerImagenRequest request) {
         ImagenCuaderno imagen = request.aImagenCuaderno();
         BloqueDeImagen bloque = request.aBloqueDeImagen();
-        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         registrarConsumo(negocioId, OffsetDateTime.now(clock));
         LecturaImagen lectura = leer(imagen, bloque, request.destinoExistente());
         return LeerImagenItem.de(lectura, umbralConfianza);
     }
 
     /** Registra el intento antes de salir al proveedor; un fallo o timeout también puede tener costo. */
-    private void registrarConsumo(UUID negocioId, OffsetDateTime ahora) {
+    private void registrarConsumo(NegocioId negocioId, OffsetDateTime ahora) {
         LocalDate dia = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate();
         if (!controlPlanService.reservarPaginasIa(negocioId, 1, ahora, () -> usoPlanRepository
                 .registrarPaginaInmediata(negocioId, dia, politicaProcesamiento.limiteDiario(), ahora))) {

@@ -1,7 +1,10 @@
 package com.ensambla.backend.support;
 
-import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
@@ -58,24 +61,24 @@ public abstract class PostgresDatosTestSupport extends PostgresRepositoryTestSup
     }
 
     protected NegocioEntity givenNegocio(String emailDuenio) {
-        UUID duenioId = givenUsuario(emailDuenio);
+        UsuarioId duenioId = UsuarioId.de(givenUsuario(emailDuenio));
         return negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio de " + emailDuenio)
-                .duenioId(duenioId)
+                .duenioId(duenioId.valor())
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build());
     }
 
-    protected UUID givenBloque(UUID negocioId, String nombre) {
+    protected UUID givenBloque(NegocioId negocioId, String nombre) {
         UUID proyectoId = proyectos.saveAndFlush(ProyectoEntity.builder()
-                .negocioId(negocioId)
+                .negocioId(negocioId.valor())
                 .nombre("Proyecto " + nombre)
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
         return bloques.saveAndFlush(BloqueEntity.builder()
-                .negocioId(negocioId)
+                .negocioId(negocioId.valor())
                 .proyectoId(proyectoId)
                 .nombre(nombre)
                 .posicion((short) 0)
@@ -84,10 +87,10 @@ public abstract class PostgresDatosTestSupport extends PostgresRepositoryTestSup
                 .build()).getId();
     }
 
-    protected UUID givenCampo(UUID negocioId, UUID bloqueId, String nombre, TipoCampo tipo, int posicion) {
+    protected UUID givenCampo(NegocioId negocioId, BloqueId bloqueId, String nombre, TipoCampo tipo, int posicion) {
         return campos.saveAndFlush(CampoEntity.builder()
-                .negocioId(negocioId)
-                .bloqueId(bloqueId)
+                .negocioId(negocioId.valor())
+                .bloqueId(bloqueId.valor())
                 .nombre(nombre)
                 .tipo(tipo)
                 .obligatorio(false)
@@ -98,10 +101,11 @@ public abstract class PostgresDatosTestSupport extends PostgresRepositoryTestSup
                 .build()).getId();
     }
 
-    protected UUID givenRegistro(UUID negocioId, UUID bloqueId, Map<String, Object> valores, OffsetDateTime creadoEn) {
+    protected UUID givenRegistro(NegocioId negocioId, BloqueId bloqueId, Map<String, Object> valores,
+            OffsetDateTime creadoEn) {
         return registros.saveAndFlush(RegistroEntity.builder()
-                .negocioId(negocioId)
-                .bloqueId(bloqueId)
+                .negocioId(negocioId.valor())
+                .bloqueId(bloqueId.valor())
                 .valores(valores)
                 .creadoEn(creadoEn)
                 .actualizadoEn(creadoEn)

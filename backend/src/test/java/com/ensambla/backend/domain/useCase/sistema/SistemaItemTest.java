@@ -2,15 +2,21 @@ package com.ensambla.backend.domain.useCase.sistema;
 
 import com.ensambla.backend.domain.model.bloque.AnchoBloque;
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.bloque.ColorBloque;
 import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.DistribucionProyecto;
 import com.ensambla.backend.domain.model.proyecto.PlantillaSistema;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.seccion.Seccion;
+import com.ensambla.backend.domain.model.seccion.SeccionId;
 import com.ensambla.backend.domain.model.sistema.IdSistema;
 import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.useCase.sistema.SistemaItem.BloqueItem;
@@ -33,15 +39,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class SistemaItemTest {
 
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID SISTEMA_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID SECCION_ID = UUID.fromString("d1000000-0000-4000-8000-000000000001");
-    private static final UUID OTRA_SECCION_ID = UUID.fromString("d1000000-0000-4000-8000-000000000002");
-    private static final UUID INVENTARIO_ID = UUID.fromString("d2000000-0000-4000-8000-000000000001");
-    private static final UUID CLIENTES_ID = UUID.fromString("d2000000-0000-4000-8000-000000000002");
-    private static final UUID NOTA_ID = UUID.fromString("d2000000-0000-4000-8000-000000000003");
-    private static final UUID FILA_ID = UUID.fromString("d3000000-0000-4000-8000-000000000001");
-    private static final UUID CLIENTE_FILA_ID = UUID.fromString("d3000000-0000-4000-8000-000000000002");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final ProyectoId SISTEMA_ID = ProyectoId.de("d0000000-0000-4000-8000-000000000001");
+    private static final SeccionId SECCION_ID = SeccionId.de("d1000000-0000-4000-8000-000000000001");
+    private static final SeccionId OTRA_SECCION_ID = SeccionId.de("d1000000-0000-4000-8000-000000000002");
+    private static final BloqueId INVENTARIO_ID = BloqueId.de("d2000000-0000-4000-8000-000000000001");
+    private static final BloqueId CLIENTES_ID = BloqueId.de("d2000000-0000-4000-8000-000000000002");
+    private static final BloqueId NOTA_ID = BloqueId.de("d2000000-0000-4000-8000-000000000003");
+    private static final RegistroId FILA_ID = RegistroId.de("d3000000-0000-4000-8000-000000000001");
+    private static final RegistroId CLIENTE_FILA_ID = RegistroId.de("d3000000-0000-4000-8000-000000000002");
     private static final OffsetDateTime CREADO = OffsetDateTime.parse("2026-01-10T09:00:00Z");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-21T10:00:00Z");
 
@@ -193,7 +199,7 @@ class SistemaItemTest {
         assertThat(resultado.getFirst().getOpciones()).isEmpty();
         assertThat(resultado.get(3).getBloqueRelacionadoId()).isEqualTo(CLIENTES_ID);
         assertThat(resultado.getFirst().getBloqueRelacionadoId()).isNull();
-        assertThat(resultado.getFirst().getId()).isEqualTo(IdSistema.aUuid(INVENTARIO_ID, "name"));
+        assertThat(resultado.getFirst().getId()).isEqualTo(IdSistema.aId(INVENTARIO_ID, "name", CampoId::de));
     }
 
     @Test
@@ -224,7 +230,7 @@ class SistemaItemTest {
         assertThat(resultado.get(3).getTipo()).isEqualTo(TipoCampo.TEXTO);
         assertThat(resultado.get(4).getClave()).isEqualTo("repetida");
         assertThat(resultado.get(5).getClave()).isNull();
-        assertThat(resultado.get(6).getId()).isEqualTo(campoConUuid);
+        assertThat(resultado.get(6).getId()).isEqualTo(CampoId.de(campoConUuid));
         assertThat(resultado.get(7).getClave()).isNull();
         assertThat(resultado.get(8).getTipo()).isEqualTo(TipoCampo.TEXTO);
     }
@@ -255,9 +261,9 @@ class SistemaItemTest {
         Sistema sistema = item.aSistema(NEGOCIO_ID, SISTEMA_ID.toString(), AHORA);
 
         List<Registro> filas = sistema.registrosPorBloque().get(INVENTARIO_ID);
-        UUID nombreId = IdSistema.aUuid(INVENTARIO_ID, "name");
-        UUID precioId = IdSistema.aUuid(INVENTARIO_ID, "price");
-        UUID clienteId = IdSistema.aUuid(INVENTARIO_ID, "client");
+        CampoId nombreId = IdSistema.aId(INVENTARIO_ID, "name", CampoId::de);
+        CampoId precioId = IdSistema.aId(INVENTARIO_ID, "price", CampoId::de);
+        CampoId clienteId = IdSistema.aId(INVENTARIO_ID, "client", CampoId::de);
         assertThat(filas).extracting(Registro::getOrden).containsExactly(0, 1, 2);
         Registro harina = filas.getFirst();
         assertThat(harina.getId()).isEqualTo(FILA_ID);
@@ -381,10 +387,12 @@ class SistemaItemTest {
     void deShouldFallBackToCampoIdAndFormulaAsNumber() {
         UUID sinClaveId = UUID.fromString("d4000000-0000-4000-8000-000000000001");
         UUID formulaId = UUID.fromString("d4000000-0000-4000-8000-000000000002");
-        Bloque bloque = givenBloque(INVENTARIO_ID, SECCION_ID, 0, TipoBloque.GASTOS, List.of(
-                Campo.builder().id(formulaId).bloqueId(INVENTARIO_ID).nombre("Total").tipo(TipoCampo.FORMULA)
+        Bloque bloque = givenBloque(INVENTARIO_ID.valor(), SECCION_ID, 0, TipoBloque.GASTOS, List.of(
+                Campo.builder().id(CampoId.de(formulaId)).bloqueId(INVENTARIO_ID).nombre("Total")
+                        .tipo(TipoCampo.FORMULA)
                         .obligatorio(false).posicion((short) 1).build(),
-                Campo.builder().id(sinClaveId).bloqueId(INVENTARIO_ID).nombre("Monto").tipo(TipoCampo.MONEDA)
+                Campo.builder().id(CampoId.de(sinClaveId))
+                        .bloqueId(INVENTARIO_ID).nombre("Monto").tipo(TipoCampo.MONEDA)
                         .obligatorio(true).posicion((short) 0).build()));
         Registro fila = Registro.builder().id(FILA_ID).bloqueId(INVENTARIO_ID).esEjemplo(false)
                 .valores(Map.of(sinClaveId.toString(), 50)).build();
@@ -403,14 +411,14 @@ class SistemaItemTest {
     @Test
     @DisplayName("Un proyecto sin secciones se muestra con una sección Vista general que contiene sus bloques")
     void deShouldCreateGeneralSectionWhenThereAreNone() {
-        Bloque bloque = givenBloque(INVENTARIO_ID, null, 0, TipoBloque.FORMULARIO, List.of());
+        Bloque bloque = givenBloque(INVENTARIO_ID.valor(), null, 0, TipoBloque.FORMULARIO, List.of());
         Sistema sistema = new Sistema(givenProyecto(List.of(bloque)), List.of(), Map.of());
 
         SistemaItem item = SistemaItem.de(sistema);
 
         assertThat(item.sections()).singleElement().satisfies(seccion -> {
             assertThat(seccion.name()).isEqualTo("Vista general");
-            assertThat(seccion.id()).isEqualTo(IdSistema.aFront(IdSistema.aUuid(SISTEMA_ID, "general")));
+            assertThat(seccion.id()).isEqualTo(IdSistema.aFront(IdSistema.aId(SISTEMA_ID, "general", SeccionId::de)));
             assertThat(seccion.blocks()).extracting(BloqueItem::id).containsExactly(INVENTARIO_ID.toString());
         });
         assertThat(item.template()).isNull();
@@ -419,9 +427,9 @@ class SistemaItemTest {
     @Test
     @DisplayName("Los bloques sin sección van a la primera y los demás a la suya, ordenados por posición")
     void deShouldPlaceOrphanBlocksInFirstSection() {
-        Bloque huerfano = givenBloque(NOTA_ID, null, 5, TipoBloque.NOTA, List.of());
-        Bloque ajeno = givenBloque(CLIENTES_ID, UUID.randomUUID(), 3, TipoBloque.CLIENTES, List.of());
-        Bloque propio = givenBloque(INVENTARIO_ID, SECCION_ID, 1, TipoBloque.INVENTARIO, List.of());
+        Bloque huerfano = givenBloque(NOTA_ID.valor(), null, 5, TipoBloque.NOTA, List.of());
+        Bloque ajeno = givenBloque(CLIENTES_ID.valor(), SeccionId.nuevo(), 3, TipoBloque.CLIENTES, List.of());
+        Bloque propio = givenBloque(INVENTARIO_ID.valor(), SECCION_ID, 1, TipoBloque.INVENTARIO, List.of());
         Bloque deLaOtra = givenBloque(UUID.fromString("d2000000-0000-4000-8000-000000000009"), OTRA_SECCION_ID, 0,
                 TipoBloque.VENTAS, List.of());
         Sistema sistema = new Sistema(givenProyecto(List.of(huerfano, ajeno, propio, deLaOtra)),
@@ -486,19 +494,20 @@ class SistemaItemTest {
     }
 
     private Sistema givenSistema() {
-        UUID nombreId = UUID.fromString("d4000000-0000-4000-8000-000000000001");
+        CampoId nombreId = CampoId.de("d4000000-0000-4000-8000-000000000001");
         UUID categoriaId = UUID.fromString("d4000000-0000-4000-8000-000000000002");
-        UUID clienteId = UUID.fromString("d4000000-0000-4000-8000-000000000003");
-        Bloque inventario = givenBloque(INVENTARIO_ID, SECCION_ID, 0, TipoBloque.INVENTARIO, List.of(
+        CampoId clienteId = CampoId.de("d4000000-0000-4000-8000-000000000003");
+        Bloque inventario = givenBloque(INVENTARIO_ID.valor(), SECCION_ID, 0, TipoBloque.INVENTARIO, List.of(
                 Campo.builder().id(clienteId).bloqueId(INVENTARIO_ID).nombre("Cliente").tipo(TipoCampo.RELACION)
                         .obligatorio(false).clave("cliente").bloqueRelacionadoId(CLIENTES_ID).posicion((short) 2).build(),
                 Campo.builder().id(nombreId).bloqueId(INVENTARIO_ID).nombre("Producto").tipo(TipoCampo.TEXTO)
                         .obligatorio(true).clave("name").minimo(new BigDecimal("1")).posicion((short) 0).build(),
-                Campo.builder().id(categoriaId).bloqueId(INVENTARIO_ID).nombre("Categoría").tipo(TipoCampo.OPCION)
+                Campo.builder().id(CampoId.de(categoriaId)).bloqueId(INVENTARIO_ID).nombre("Categoría")
+                        .tipo(TipoCampo.OPCION)
                         .obligatorio(false).clave("categoria").opciones(List.of("Insumos")).posicion((short) 1).build()));
         inventario.setColor(ColorBloque.NARANJA);
         inventario.setDireccionStock((short) 1);
-        Bloque clientes = givenBloque(CLIENTES_ID, SECCION_ID, 1, TipoBloque.CLIENTES, List.of());
+        Bloque clientes = givenBloque(CLIENTES_ID.valor(), SECCION_ID, 1, TipoBloque.CLIENTES, List.of());
         Registro harina = Registro.builder().id(FILA_ID).bloqueId(INVENTARIO_ID).esEjemplo(true)
                 .origen("Aviso de Sami").orden(0)
                 .valores(Map.of(nombreId.toString(), "Harina", clienteId.toString(), CLIENTE_FILA_ID.toString()))
@@ -522,13 +531,13 @@ class SistemaItemTest {
                 .creadoEn(CREADO).actualizadoEn(AHORA).bloques(bloques).build();
     }
 
-    private Seccion givenSeccion(UUID id, int posicion) {
+    private Seccion givenSeccion(SeccionId id, int posicion) {
         return Seccion.builder().id(id).proyectoId(SISTEMA_ID).nombre(id.equals(SECCION_ID) ? "Vista general" : "Ventas")
                 .posicion((short) posicion).build();
     }
 
-    private Bloque givenBloque(UUID id, UUID seccionId, int posicion, TipoBloque tipo, List<Campo> campos) {
-        return Bloque.builder().id(id).proyectoId(SISTEMA_ID).seccionId(seccionId).nombre("Bloque")
+    private Bloque givenBloque(UUID id, SeccionId seccionId, int posicion, TipoBloque tipo, List<Campo> campos) {
+        return Bloque.builder().id(BloqueId.de(id)).proyectoId(SISTEMA_ID).seccionId(seccionId).nombre("Bloque")
                 .posicion((short) posicion).tipo(tipo).descripcion(tipo == TipoBloque.INVENTARIO ? "Lo que vendo" : "")
                 .campos(campos).build();
     }

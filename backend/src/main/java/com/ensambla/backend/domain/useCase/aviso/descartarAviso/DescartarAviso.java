@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.aviso.descartarAviso;
 
 import com.ensambla.backend.domain.model.aviso.Aviso;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
@@ -13,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class DescartarAviso {
@@ -26,7 +26,7 @@ public class DescartarAviso {
     private final Clock clock;
 
     public AvisoItem execute(ResolverAvisoRequest request) {
-        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         Aviso aviso = avisoService.obtener(request.avisoId(), negocioId);
         OffsetDateTime ahora = OffsetDateTime.now(clock);
         accesoContenidoService.exigir(negocioId, TipoContenidoPlan.AVISOS, "servidor:" + aviso.getId(), ahora);

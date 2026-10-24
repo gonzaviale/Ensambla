@@ -1,5 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.proyecto.crearProyecto.CrearProyecto;
 import com.ensambla.backend.domain.useCase.proyecto.crearProyectoDesdePlantilla.CrearProyectoDesdePlantilla;
 import com.ensambla.backend.domain.useCase.proyecto.eliminarProyecto.EliminarProyecto;
@@ -27,7 +30,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/proyectos")
@@ -53,14 +55,15 @@ public class ProyectoController {
     @Operation(summary = "Listar proyectos del negocio de la sesión")
     public ResponseEntity<List<ProyectoResponse>> listar(Authentication authentication) {
         return ResponseEntity.ok(proyectoPresentationMapper.toResponse(listarProyectos.execute(
-                proyectoPresentationMapper.toListarRequest(UUID.fromString(authentication.getName())))));
+                proyectoPresentationMapper.toListarRequest(UsuarioId.de(authentication.getName())))));
     }
 
     @GetMapping("/{proyectoId}")
     @Operation(summary = "Consultar un proyecto y sus bloques y campos")
-    public ResponseEntity<ProyectoResponse> obtener(Authentication authentication, @PathVariable UUID proyectoId) {
+    public ResponseEntity<ProyectoResponse> obtener(Authentication authentication,
+            @PathVariable ProyectoId proyectoId) {
         return ResponseEntity.ok(proyectoPresentationMapper.toResponse(obtenerProyecto.execute(
-                proyectoPresentationMapper.toObtenerRequest(UUID.fromString(authentication.getName()), proyectoId))));
+                proyectoPresentationMapper.toObtenerRequest(UsuarioId.de(authentication.getName()), proyectoId))));
     }
 
     @PostMapping
@@ -68,17 +71,17 @@ public class ProyectoController {
     public ResponseEntity<ProyectoResponse> crear(
             Authentication authentication, @Valid @RequestBody CrearProyectoWebRequest request) {
         ProyectoResponse response = proyectoPresentationMapper.toResponse(crearProyecto.execute(
-                proyectoPresentationMapper.toCrearRequest(UUID.fromString(authentication.getName()), request)));
+                proyectoPresentationMapper.toCrearRequest(UsuarioId.de(authentication.getName()), request)));
         return ResponseEntity.created(URI.create("/api/proyectos/" + response.id())).body(response);
     }
 
     @PostMapping("/desde-plantilla/{plantillaId}")
     @Operation(summary = "Copiar una plantilla al negocio de la sesión")
     public ResponseEntity<ProyectoResponse> desdePlantilla(
-            Authentication authentication, @PathVariable UUID plantillaId) {
+            Authentication authentication, @PathVariable PlantillaId plantillaId) {
         ProyectoResponse response = proyectoPresentationMapper.toResponse(crearProyectoDesdePlantilla.execute(
                 proyectoPresentationMapper.toDesdePlantillaRequest(
-                        UUID.fromString(authentication.getName()), plantillaId)));
+                        UsuarioId.de(authentication.getName()), plantillaId)));
         return ResponseEntity.created(URI.create("/api/proyectos/" + response.id())).body(response);
     }
 
@@ -86,18 +89,18 @@ public class ProyectoController {
     @Operation(summary = "Renombrar un proyecto del negocio de la sesión")
     public ResponseEntity<ProyectoResponse> renombrar(
             Authentication authentication,
-            @PathVariable UUID proyectoId,
+            @PathVariable ProyectoId proyectoId,
             @Valid @RequestBody RenombrarProyectoWebRequest request) {
         return ResponseEntity.ok(proyectoPresentationMapper.toResponse(renombrarProyecto.execute(
                 proyectoPresentationMapper.toRenombrarRequest(
-                        UUID.fromString(authentication.getName()), proyectoId, request))));
+                        UsuarioId.de(authentication.getName()), proyectoId, request))));
     }
 
     @DeleteMapping("/{proyectoId}")
     @Operation(summary = "Eliminar un proyecto y sus bloques, campos y registros")
-    public ResponseEntity<Void> eliminar(Authentication authentication, @PathVariable UUID proyectoId) {
+    public ResponseEntity<Void> eliminar(Authentication authentication, @PathVariable ProyectoId proyectoId) {
         eliminarProyecto.execute(proyectoPresentationMapper.toEliminarRequest(
-                UUID.fromString(authentication.getName()), proyectoId));
+                UsuarioId.de(authentication.getName()), proyectoId));
         return ResponseEntity.noContent().build();
     }
 }

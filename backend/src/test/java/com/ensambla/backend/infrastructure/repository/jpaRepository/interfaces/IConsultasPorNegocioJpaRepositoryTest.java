@@ -1,6 +1,8 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
@@ -55,7 +57,7 @@ class IConsultasPorNegocioJpaRepositoryTest extends PostgresDatosTestSupport {
     void findByIdAndNegocioIdShouldRespectNegocioForBloques() {
         UUID negocioA = givenNegocio("a@example.com").getId();
         UUID negocioB = givenNegocio("b@example.com").getId();
-        UUID bloqueId = givenBloque(negocioA, "Productos");
+        UUID bloqueId = givenBloque(NegocioId.de(negocioA), "Productos");
 
         Optional<BloqueEntity> propio = bloques.findByIdAndNegocioId(bloqueId, negocioA);
         Optional<BloqueEntity> ajeno = bloques.findByIdAndNegocioId(bloqueId, negocioB);
@@ -69,9 +71,9 @@ class IConsultasPorNegocioJpaRepositoryTest extends PostgresDatosTestSupport {
     void findByBloqueIdAndNegocioIdShouldListCamposByPosicionScopedToNegocio() {
         UUID negocioA = givenNegocio("a@example.com").getId();
         UUID negocioB = givenNegocio("b@example.com").getId();
-        UUID bloqueId = givenBloque(negocioA, "Productos");
-        givenCampo(negocioA, bloqueId, "Segundo", TipoCampo.NUMERO, 1);
-        givenCampo(negocioA, bloqueId, "Primero", TipoCampo.TEXTO, 0);
+        UUID bloqueId = givenBloque(NegocioId.de(negocioA), "Productos");
+        givenCampo(NegocioId.de(negocioA), BloqueId.de(bloqueId), "Segundo", TipoCampo.NUMERO, 1);
+        givenCampo(NegocioId.de(negocioA), BloqueId.de(bloqueId), "Primero", TipoCampo.TEXTO, 0);
 
         List<CampoEntity> propios = campos.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioA);
         List<CampoEntity> ajenos = campos.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioB);

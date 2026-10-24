@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.plan.iniciarPrueba;
 
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Plan;
@@ -18,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class IniciarPrueba {
@@ -40,12 +40,12 @@ public class IniciarPrueba {
     private final Clock clock;
 
     public PruebaPremiumResponse execute(IniciarPruebaRequest request) {
-        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         OffsetDateTime ahora = OffsetDateTime.now(clock);
         return PruebaPremiumResponse.de(transaccionPort.ejecutar(() -> iniciar(negocioId, ahora)));
     }
 
-    private PruebaPremium iniciar(UUID negocioId, OffsetDateTime ahora) {
+    private PruebaPremium iniciar(NegocioId negocioId, OffsetDateTime ahora) {
         usoPlanRepository.bloquearNegocio(negocioId);
         Suscripcion suscripcion = suscripcionService.obtener(negocioId);
         validarSinPruebaNiContratacion(negocioId);
@@ -59,7 +59,7 @@ public class IniciarPrueba {
         return prueba;
     }
 
-    private void validarSinPruebaNiContratacion(UUID negocioId) {
+    private void validarSinPruebaNiContratacion(NegocioId negocioId) {
         if (pruebaPremiumRepository.findByNegocioId(negocioId).isPresent()) {
             throw new RestriccionPlanException("PRUEBA_UTILIZADA", "Este negocio ya utilizó su prueba premium.");
         }

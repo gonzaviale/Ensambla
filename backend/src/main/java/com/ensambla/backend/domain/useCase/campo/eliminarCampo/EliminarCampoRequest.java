@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.campo.eliminarCampo;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record EliminarCampoRequest(UUID usuarioId, UUID campoId) {
+public record EliminarCampoRequest(UsuarioId usuarioId, CampoId campoId) {
 }

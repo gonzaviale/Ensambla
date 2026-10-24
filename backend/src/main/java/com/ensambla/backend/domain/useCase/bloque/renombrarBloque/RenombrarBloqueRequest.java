@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.bloque.renombrarBloque;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record RenombrarBloqueRequest(UUID usuarioId, UUID bloqueId, String nombre) {
+public record RenombrarBloqueRequest(UsuarioId usuarioId, BloqueId bloqueId, String nombre) {
 }

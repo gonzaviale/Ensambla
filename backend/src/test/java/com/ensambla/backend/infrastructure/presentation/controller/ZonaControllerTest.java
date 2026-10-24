@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem.ProductoItem;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem;
 import com.ensambla.backend.domain.useCase.zona.analizarZona.AnalizarZona;
@@ -9,16 +10,15 @@ import com.ensambla.backend.domain.useCase.zona.obtenerZona.ObtenerZona;
 import com.ensambla.backend.domain.useCase.zona.obtenerZona.ObtenerZonaRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.zona.ZonaPresentationMapper;
+import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class ZonaControllerTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b0000000-0000-4000-8000-000000000001");
 
     private final ObtenerZona obtenerZona = mock(ObtenerZona.class);
     private final AnalizarZona analizarZona = mock(AnalizarZona.class);
@@ -43,7 +43,7 @@ class ZonaControllerTest {
     @BeforeEach
     void setUp() {
         var controller = new ZonaController(obtenerZona, analizarZona, new ZonaPresentationMapper());
-        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+        mockMvc = MockMvcDePrueba.standalone(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }

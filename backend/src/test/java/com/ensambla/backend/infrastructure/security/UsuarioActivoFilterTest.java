@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.security;
 
 import com.ensambla.backend.domain.exception.CredencialesInvalidasException;
 import com.ensambla.backend.domain.service.usuario.UsuarioService;
+import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -10,8 +11,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-
-import jakarta.servlet.FilterChain;
 
 import static com.ensambla.backend.support.UsuarioTestData.USUARIO_ID;
 import static com.ensambla.backend.support.UsuarioTestData.usuario;

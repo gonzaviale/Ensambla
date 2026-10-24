@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.plan.PruebaPremiumResponse;
 import com.ensambla.backend.domain.useCase.plan.consultarPlanes.ConsultarPlanes;
 import com.ensambla.backend.domain.useCase.plan.consultarPlanes.ConsultarPlanesResponse;
@@ -18,8 +19,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/planes")
@@ -36,7 +35,7 @@ public class PlanController {
     @Operation(summary = "Consultar planes, suscripción y uso del negocio de la sesión")
     public ResponseEntity<PlanesResponse> consultar(Authentication authentication) {
         ConsultarPlanesResponse response = consultarPlanes.execute(
-                UUID.fromString(authentication.getName()));
+                UsuarioId.de(authentication.getName()));
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(planPresentationMapper.toResponse(response));
     }
@@ -45,7 +44,7 @@ public class PlanController {
     @Operation(summary = "Iniciar la única prueba premium del negocio de la sesión")
     public ResponseEntity<PruebaResponse> iniciarPrueba(Authentication authentication) {
         PruebaPremiumResponse response = iniciarPrueba.execute(
-                planPresentationMapper.toRequest(UUID.fromString(authentication.getName())));
+                planPresentationMapper.toRequest(UsuarioId.de(authentication.getName())));
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(planPresentationMapper.toResponse(response));
     }

@@ -1,13 +1,15 @@
 package com.ensambla.backend.domain.model.procesamiento;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * Lo que la persona dejó después de revisar la lectura: adónde guardar, la estructura final y las filas. Los valores
@@ -19,9 +21,9 @@ import java.util.UUID;
  * @param nombreBloque   nombre del bloque nuevo (cuando no hay bloque existente)
  */
 public record ConfirmacionLectura(
-        UUID proyectoId,
+        ProyectoId proyectoId,
         String nombreProyecto,
-        UUID bloqueId,
+        BloqueId bloqueId,
         String nombreBloque,
         List<CampoConfirmado> campos,
         List<FilaConfirmada> filas
@@ -33,7 +35,7 @@ public record ConfirmacionLectura(
      * @param clave   identifica la columna dentro de la confirmación; las filas indexan sus valores por ella
      * @param campoId campo existente del bloque destino; null si la columna es nueva
      */
-    public record CampoConfirmado(String clave, UUID campoId, String nombre, String tipo, List<String> opciones) {
+    public record CampoConfirmado(String clave, CampoId campoId, String nombre, String tipo, List<String> opciones) {
     }
 
     /**
@@ -71,7 +73,7 @@ public record ConfirmacionLectura(
             throw new BusinessRuleException("Dejá al menos una columna");
         }
         Set<String> vistas = new HashSet<>();
-        Set<UUID> camposUsados = new HashSet<>();
+        Set<CampoId> camposUsados = new HashSet<>();
         for (CampoConfirmado campo : campos) {
             if (esVacio(campo.clave()) || !vistas.add(campo.clave())) {
                 throw new BusinessRuleException("Las columnas necesitan una clave distinta cada una");

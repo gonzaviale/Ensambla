@@ -3,15 +3,15 @@ package com.ensambla.backend.domain.useCase.sami.conversarEnTaller;
 import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
 import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
 import com.ensambla.backend.domain.model.sami.taller.MensajeTaller;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * @param imagen la foto que adjuntó la persona en este turno; {@code null} si no adjuntó ninguna
  */
 public record ConversarEnTallerRequest(
-        UUID usuarioId,
+        UsuarioId usuarioId,
         String mensaje,
         EstadoTallerItem estado,
         List<MensajeTallerItem> historial,

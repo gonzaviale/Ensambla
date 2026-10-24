@@ -8,7 +8,6 @@ import lombok.Setter;
 
 import java.time.OffsetDateTime;
 import java.util.Locale;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -17,7 +16,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Usuario {
 
-    private UUID id;
+    private UsuarioId id;
 
     private String nombre;
 

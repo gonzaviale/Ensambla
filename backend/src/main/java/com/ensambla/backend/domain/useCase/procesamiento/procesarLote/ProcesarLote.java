@@ -2,7 +2,9 @@ package com.ensambla.backend.domain.useCase.procesamiento.procesarLote;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
@@ -13,6 +15,7 @@ import com.ensambla.backend.domain.model.lectura.DatoLeido;
 import com.ensambla.backend.domain.model.lectura.FilaLeida;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
 import com.ensambla.backend.domain.model.lectura.PaginaCuaderno;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
 import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.FotoLectura;
@@ -21,6 +24,7 @@ import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
 import com.ensambla.backend.domain.model.registro.Referencia;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
@@ -42,7 +46,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * Worker de la cola de cuadernos: libera los reclamos vencidos, toma un lote, lo lee con la IA y guarda el resultado.
@@ -157,7 +160,7 @@ public class ProcesarLote {
         return paginas;
     }
 
-    private PropuestaLectura resolverConexiones(UUID negocioId, PropuestaLectura propuesta,
+    private PropuestaLectura resolverConexiones(NegocioId negocioId, PropuestaLectura propuesta,
                                                 List<BloqueLectura> bloques) {
         Map<String, BloqueLectura> conectadas = tablasConectadas(propuesta, bloques);
         if (conectadas.isEmpty()) {
@@ -192,7 +195,7 @@ public class ProcesarLote {
         return conectadas;
     }
 
-    private Optional<CampoConocido> conocido(BloqueLectura bloque, UUID campoId) {
+    private Optional<CampoConocido> conocido(BloqueLectura bloque, CampoId campoId) {
         return bloque.campos().stream().filter(campo -> campo.id().equals(campoId)).findFirst();
     }
 
@@ -210,19 +213,20 @@ public class ProcesarLote {
     /** Una pasada por lectura: cada tabla conectada se consulta una vez por texto distinto. */
     private final class Resolucion {
 
-        private final UUID negocioId;
-        private final Map<UUID, List<Campo>> camposPorTabla = new HashMap<>();
-        private final Map<String, Optional<UUID>> encontradas = new HashMap<>();
+        private final NegocioId negocioId;
+        private final Map<BloqueId, List<Campo>> camposPorTabla = new HashMap<>();
+        private final Map<String, Optional<RegistroId>> encontradas = new HashMap<>();
         private final Set<String> avisadas = new HashSet<>();
         private final Set<String> advertencias = new LinkedHashSet<>();
 
-        private Resolucion(UUID negocioId) {
+        private Resolucion(NegocioId negocioId) {
             this.negocioId = negocioId;
         }
 
         private DatoLeido resolver(BloqueLectura tabla, DatoLeido dato) {
             String clave = tabla.id() + ":" + TextoNormalizado.de(dato.valor());
-            Optional<UUID> fila = encontradas.computeIfAbsent(clave, ignorada -> buscar(tabla.id(), dato.valor()));
+            Optional<RegistroId> fila = encontradas
+                    .computeIfAbsent(clave, ignorada -> buscar(tabla.id(), dato.valor()));
             if (fila.isPresent()) {
                 return new DatoLeido(fila.get().toString(), dato.confianza());
             }
@@ -233,7 +237,7 @@ public class ProcesarLote {
             return new DatoLeido(null, SIN_CONFIANZA);
         }
 
-        private Optional<UUID> buscar(UUID tablaId, String texto) {
+        private Optional<RegistroId> buscar(BloqueId tablaId, String texto) {
             List<Campo> campos = camposPorTabla.computeIfAbsent(tablaId,
                     id -> campoService.listarDeBloque(id, negocioId));
             var etiquetar = Referencia.etiquetador(campos);

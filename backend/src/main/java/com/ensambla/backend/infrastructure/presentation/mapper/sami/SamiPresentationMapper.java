@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.sami;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.sami.ColumnaSamiItem;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiRequest;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiResponse;
@@ -14,12 +15,11 @@ import com.ensambla.backend.infrastructure.presentation.dto.sami.CrearProyectoSa
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.UUID;
 
 @Component
 public class SamiPresentationMapper {
 
-    public ConversarConSamiRequest toRequest(UUID usuarioId, ConversarSamiRequest body) {
+    public ConversarConSamiRequest toRequest(UsuarioId usuarioId, ConversarSamiRequest body) {
         List<RespuestaSamiItem> respuestas = body.respuestas() == null
                 ? List.of()
                 : body.respuestas().stream()
@@ -28,7 +28,7 @@ public class SamiPresentationMapper {
         return new ConversarConSamiRequest(usuarioId, body.texto().trim(), respuestas);
     }
 
-    public CrearProyectoDesdeSamiRequest toCrearProyectoRequest(UUID usuarioId, CrearProyectoSamiRequest body) {
+    public CrearProyectoDesdeSamiRequest toCrearProyectoRequest(UsuarioId usuarioId, CrearProyectoSamiRequest body) {
         List<ColumnaSamiItem> columnas = body.columnas().stream()
                 .map(columna -> new ColumnaSamiItem(columna.nombre(), columna.tipo(), columna.opciones()))
                 .toList();

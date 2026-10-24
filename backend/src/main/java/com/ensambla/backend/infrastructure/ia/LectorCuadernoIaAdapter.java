@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.ia;
 
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
 import com.ensambla.backend.domain.model.lectura.ConsumoIa;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
@@ -13,7 +14,6 @@ import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -44,7 +44,7 @@ public class LectorCuadernoIaAdapter implements LectorCuadernoPort {
 
     @Override
     public LecturaCuaderno leer(List<PaginaCuaderno> paginas, List<BloqueConocido> bloquesExistentes,
-                                UUID bloqueDestinoId) {
+                                BloqueId bloqueDestinoId) {
         validarCantidad(paginas);
         PeticionModeloVision peticion = prompt.peticion(paginas, bloquesExistentes, bloqueDestinoId);
         long inicio = System.nanoTime();

@@ -1,6 +1,6 @@
 package com.ensambla.backend.domain.useCase.sistema.eliminarSistema;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record EliminarSistemaRequest(UUID usuarioId, String id) {
+public record EliminarSistemaRequest(UsuarioId usuarioId, String id) {
 }

@@ -1,15 +1,17 @@
 package com.ensambla.backend.domain.useCase.receta;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.receta.RecetaCosteada;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 /** La receta con su costo (la tabla de los insumos y la columna del precio de la que sale); {@code incompleta} avisa que a algún insumo le falta el precio o ya no existe. */
 public record RecetaItem(
-        UUID bloqueInsumosId,
-        UUID campoPrecioId,
+        BloqueId bloqueInsumosId,
+        CampoId campoPrecioId,
         List<LineaItem> lineas,
         BigDecimal costo,
         boolean incompleta) {
@@ -24,7 +26,7 @@ public record RecetaItem(
     }
 
     public record LineaItem(
-            UUID insumoId,
+            RegistroId insumoId,
             String insumo,
             BigDecimal cantidad,
             String unidad,

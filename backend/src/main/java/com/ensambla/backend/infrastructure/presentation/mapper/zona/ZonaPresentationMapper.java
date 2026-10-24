@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.zona;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem.ProductoItem;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem;
 import com.ensambla.backend.domain.useCase.zona.analizarZona.AnalizarZonaRequest;
@@ -11,16 +12,14 @@ import com.ensambla.backend.infrastructure.presentation.dto.zona.ZonaWebResponse
 import com.ensambla.backend.infrastructure.presentation.dto.zona.ZonaWebResponse;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
-
 @Component
 public class ZonaPresentationMapper {
 
-    public ObtenerZonaRequest toObtenerRequest(UUID usuarioId) {
+    public ObtenerZonaRequest toObtenerRequest(UsuarioId usuarioId) {
         return new ObtenerZonaRequest(usuarioId);
     }
 
-    public AnalizarZonaRequest toAnalizarRequest(AnalizarZonaWebRequest request, UUID usuarioId) {
+    public AnalizarZonaRequest toAnalizarRequest(AnalizarZonaWebRequest request, UsuarioId usuarioId) {
         return new AnalizarZonaRequest(request.lugar(), usuarioId);
     }
 

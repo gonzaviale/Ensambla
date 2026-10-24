@@ -3,10 +3,15 @@ package com.ensambla.backend.domain.useCase.reporte;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.reporte.FiltroReporte;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
@@ -54,17 +59,17 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ReporteUseCasesTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID NOMBRE_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
-    private static final UUID CANTIDAD_ID = UUID.fromString("c0000000-0000-4000-8000-000000000002");
-    private static final UUID PAGADO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000003");
-    private static final UUID CLIENTE_CAMPO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000004");
-    private static final UUID CLIENTES_ID = UUID.fromString("b0000000-0000-4000-8000-000000000002");
-    private static final UUID NOMBRE_CLIENTE_ID = UUID.fromString("c0000000-0000-4000-8000-000000000005");
-    private static final UUID BETO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID ANA_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final CampoId NOMBRE_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
+    private static final CampoId CANTIDAD_ID = CampoId.de("c0000000-0000-4000-8000-000000000002");
+    private static final CampoId PAGADO_ID = CampoId.de("c0000000-0000-4000-8000-000000000003");
+    private static final CampoId CLIENTE_CAMPO_ID = CampoId.de("c0000000-0000-4000-8000-000000000004");
+    private static final BloqueId CLIENTES_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
+    private static final CampoId NOMBRE_CLIENTE_ID = CampoId.de("c0000000-0000-4000-8000-000000000005");
+    private static final RegistroId BETO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final RegistroId ANA_ID = RegistroId.de("d0000000-0000-4000-8000-000000000002");
     private static final Clock RELOJ = Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC);
 
     @Mock
@@ -176,8 +181,8 @@ class ReporteUseCasesTest {
                 .bloqueRelacionadoId(CLIENTES_ID).posicion((short) 3).build();
         when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(givenCampos().get(0), cliente));
         when(registroRepository.buscarFiltrados(any(), anyInt())).thenReturn(List.of(
-                givenFilaDe(BETO_ID), givenFilaDe(ANA_ID),
-                Registro.builder().id(UUID.randomUUID()).creadoEn(OffsetDateTime.parse("2026-10-12T12:00:00Z"))
+                givenFilaDe(BETO_ID.valor()), givenFilaDe(ANA_ID.valor()),
+                Registro.builder().id(RegistroId.nuevo()).creadoEn(OffsetDateTime.parse("2026-10-12T12:00:00Z"))
                         .valores(Map.of()).build()));
         when(registroRepository.contarFiltrados(any())).thenReturn(3L);
         when(registroRepository.sumarNumericos(any(FiltroReporte.class), any())).thenReturn(Map.of());
@@ -207,16 +212,16 @@ class ReporteUseCasesTest {
     }
 
     private static Registro givenFilaDe(UUID clienteId) {
-        return Registro.builder().id(UUID.randomUUID()).creadoEn(OffsetDateTime.parse("2026-10-12T12:00:00Z"))
+        return Registro.builder().id(RegistroId.nuevo()).creadoEn(OffsetDateTime.parse("2026-10-12T12:00:00Z"))
                 .valores(Map.of(CLIENTE_CAMPO_ID.toString(), clienteId.toString())).build();
     }
 
     private void givenReporte(long cantidad, BigDecimal suma) {
         List<Registro> filas = List.of(
-                Registro.builder().id(UUID.randomUUID()).creadoEn(OffsetDateTime.parse("2026-10-12T12:00:00Z"))
+                Registro.builder().id(RegistroId.nuevo()).creadoEn(OffsetDateTime.parse("2026-10-12T12:00:00Z"))
                         .valores(Map.of(NOMBRE_ID.toString(), "Pan", CANTIDAD_ID.toString(), 2.5,
                                 PAGADO_ID.toString(), true)).build(),
-                Registro.builder().id(UUID.randomUUID()).creadoEn(OffsetDateTime.parse("2026-10-11T12:00:00Z"))
+                Registro.builder().id(RegistroId.nuevo()).creadoEn(OffsetDateTime.parse("2026-10-11T12:00:00Z"))
                         .valores(Map.of(NOMBRE_ID.toString(), "Torta", CANTIDAD_ID.toString(), 123,
                                 PAGADO_ID.toString(), false)).build());
         when(registroRepository.buscarFiltrados(any(), anyInt())).thenReturn(filas);
@@ -225,7 +230,7 @@ class ReporteUseCasesTest {
                 .thenReturn(Map.of(CANTIDAD_ID, suma));
     }
 
-    private static GenerarReporteRequest request(UUID campoId) {
+    private static GenerarReporteRequest request(CampoId campoId) {
         return new GenerarReporteRequest(
                 USUARIO_ID, BLOQUE_ID, "pan", LocalDate.parse("2026-10-01"), null, campoId, null);
     }

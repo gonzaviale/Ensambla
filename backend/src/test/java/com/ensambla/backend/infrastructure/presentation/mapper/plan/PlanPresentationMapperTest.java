@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import static com.ensambla.backend.support.ConsultaPlanesTestData.AHORA;
 import static com.ensambla.backend.support.ConsultaPlanesTestData.consulta;
 import static com.ensambla.backend.support.PlanTestData.INSTANTE;
-import static com.ensambla.backend.support.PlanTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.PlanTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 class PlanPresentationMapperTest {
 
@@ -70,9 +70,9 @@ class PlanPresentationMapperTest {
     @Test
     @DisplayName("El pedido recibe exclusivamente el identificador del usuario autenticado")
     void toRequestShouldMapAuthenticatedUser() {
-        IniciarPruebaRequest result = planPresentationMapper.toRequest(NEGOCIO_ID);
+        IniciarPruebaRequest result = planPresentationMapper.toRequest(USUARIO_ID);
 
-        assertThat(result.usuarioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
     }
 
     @Test

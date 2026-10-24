@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
 import com.ensambla.backend.domain.model.preferencia.PreferenciaUsuario;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.infrastructure.repository.entity.PreferenciaUsuarioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IPreferenciaUsuarioJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.PreferenciaRepositoryMapper;
@@ -9,7 +10,6 @@ import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -18,7 +18,7 @@ import static org.mockito.Mockito.when;
 
 class PreferenciaRepositoryImplTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-21T10:00:00Z");
 
     private final IPreferenciaUsuarioJpaRepository jpa = mock(IPreferenciaUsuarioJpaRepository.class);
@@ -28,7 +28,7 @@ class PreferenciaRepositoryImplTest {
     @Test
     @DisplayName("Busca las preferencias por usuario y las mapea al dominio")
     void findByUsuarioIdShouldMap() {
-        when(jpa.findById(USUARIO_ID)).thenReturn(Optional.of(entity()));
+        when(jpa.findById(USUARIO_ID.valor())).thenReturn(Optional.of(entity()));
 
         assertThat(repository.findByUsuarioId(USUARIO_ID)).map(PreferenciaUsuario::getUsuarioId).contains(USUARIO_ID);
     }
@@ -44,7 +44,7 @@ class PreferenciaRepositoryImplTest {
     }
 
     private PreferenciaUsuarioEntity entity() {
-        return PreferenciaUsuarioEntity.builder().usuarioId(USUARIO_ID).bienvenidaVista(false)
+        return PreferenciaUsuarioEntity.builder().usuarioId(USUARIO_ID.valor()).bienvenidaVista(false)
                 .creadoEn(AHORA).actualizadoEn(AHORA).build();
     }
 }

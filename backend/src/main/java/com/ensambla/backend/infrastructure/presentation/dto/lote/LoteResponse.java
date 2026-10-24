@@ -1,16 +1,18 @@
 package com.ensambla.backend.infrastructure.presentation.dto.lote;
 
+import com.ensambla.backend.domain.model.lote.FotoId;
+import com.ensambla.backend.domain.model.lote.LoteId;
+
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
 
 public record LoteResponse(
-        UUID id,
+        LoteId id,
         String estado,
         OffsetDateTime creadoEn,
         List<FotoResponse> fotos
 ) {
 
-    public record FotoResponse(UUID id, Short posicion, String tipoContenido, Long tamanioBytes) {
+    public record FotoResponse(FotoId id, Short posicion, String tipoContenido, Long tamanioBytes) {
     }
 }

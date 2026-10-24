@@ -1,36 +1,40 @@
 package com.ensambla.backend.support;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
-import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
 import com.ensambla.backend.domain.model.lectura.BloquePropuesto;
 import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
 import com.ensambla.backend.domain.model.lectura.ConsumoIa;
 import com.ensambla.backend.domain.model.lectura.DatoLeido;
 import com.ensambla.backend.domain.model.lectura.FilaLeida;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
+import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
+import com.ensambla.backend.domain.model.procesamiento.ReclamoId;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public final class ProcesamientoTestData {
 
-    public static final UUID NEGOCIO_ID = UUID.fromString("10000000-0000-0000-0000-000000000001");
-    public static final UUID LOTE_ID = UUID.fromString("20000000-0000-0000-0000-000000000001");
-    public static final UUID BLOQUE_ID = UUID.fromString("30000000-0000-0000-0000-000000000001");
-    public static final UUID CAMPO_ID = UUID.fromString("40000000-0000-0000-0000-000000000001");
+    public static final NegocioId NEGOCIO_ID = NegocioId.de("10000000-0000-0000-0000-000000000001");
+    public static final LoteId LOTE_ID = LoteId.de("20000000-0000-0000-0000-000000000001");
+    public static final BloqueId BLOQUE_ID = BloqueId.de("30000000-0000-0000-0000-000000000001");
+    public static final CampoId CAMPO_ID = CampoId.de("40000000-0000-0000-0000-000000000001");
     public static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
 
     private ProcesamientoTestData() {
     }
 
     public static LoteTrabajo lote(int intentos) {
-        return new LoteTrabajo(LOTE_ID, NEGOCIO_ID, null, UUID.randomUUID(), intentos);
+        return new LoteTrabajo(LOTE_ID, NEGOCIO_ID, null, ReclamoId.nuevo(), intentos);
     }
 
     public static PoliticaProcesamiento politica() {

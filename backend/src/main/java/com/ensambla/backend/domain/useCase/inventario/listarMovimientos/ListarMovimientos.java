@@ -3,7 +3,9 @@ package com.ensambla.backend.domain.useCase.inventario.listarMovimientos;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.inventario.MovimientoStock;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
@@ -13,7 +15,6 @@ import com.ensambla.backend.domain.useCase.inventario.MovimientoItem;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
-import java.util.UUID;
 
 /** Los últimos {@value #MAXIMO_MOVIMIENTOS} movimientos de los productos de un bloque, los más nuevos primero. */
 @RequiredArgsConstructor
@@ -32,12 +33,12 @@ public class ListarMovimientos {
     private final MovimientoStockRepository movimientoStockRepository;
 
     public List<MovimientoItem> execute(ListarMovimientosRequest request) {
-        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         Bloque bloque = bloqueService.obtener(request.bloqueId(), negocioId);
         List<Campo> campos = campoService.listarDeBloque(bloque.getId(), negocioId);
         List<MovimientoStock> movimientos = movimientoStockRepository.findRecientes(
                 bloque.getId(), negocioId, request.registroId(), MAXIMO_MOVIMIENTOS);
-        List<UUID> productoIds = movimientos.stream().map(MovimientoStock::getRegistroId).distinct().toList();
+        List<RegistroId> productoIds = movimientos.stream().map(MovimientoStock::getRegistroId).distinct().toList();
         List<Registro> productos = registroRepository.findAllByIdsAndBloque(productoIds, bloque.getId(), negocioId);
         return MovimientoItem.de(movimientos, productos, campos);
     }

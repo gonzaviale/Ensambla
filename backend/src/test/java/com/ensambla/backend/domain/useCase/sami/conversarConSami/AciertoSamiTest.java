@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.BloquePlantilla;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.CampoPlantilla;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
 import com.ensambla.backend.domain.model.sami.DiccionarioSami;
 import com.ensambla.backend.domain.useCase.sami.ColumnaSamiItem;
@@ -22,7 +23,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -139,7 +139,7 @@ class AciertoSamiTest {
                 .map(campo -> campo.split(":"))
                 .map(partes -> new CampoPlantilla(partes[0], TipoCampo.valueOf(partes[1]), false, null, null))
                 .toList();
-        return new PlantillaProyecto(UUID.randomUUID(), nombre, "",
+        return new PlantillaProyecto(PlantillaId.nuevo(), nombre, "",
                 new EstructuraPlantilla(List.of(new BloquePlantilla(nombre, lista))));
     }
 

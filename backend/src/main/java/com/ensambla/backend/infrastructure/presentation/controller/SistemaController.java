@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.sistema.eliminarSistema.EliminarSistema;
 import com.ensambla.backend.domain.useCase.sistema.guardarSistema.GuardarSistema;
 import com.ensambla.backend.domain.useCase.sistema.listarSistemas.ListarSistemas;
@@ -21,7 +22,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/sistemas")
@@ -41,7 +41,7 @@ public class SistemaController {
     @Operation(summary = "Listar los sistemas del negocio de la sesión")
     public ResponseEntity<List<SistemaWebResponse>> listar(Authentication authentication) {
         return ResponseEntity.ok(sistemaPresentationMapper.toResponse(listarSistemas.execute(
-                sistemaPresentationMapper.toListarRequest(UUID.fromString(authentication.getName())))));
+                sistemaPresentationMapper.toListarRequest(UsuarioId.de(authentication.getName())))));
     }
 
     @PutMapping("/{id}")
@@ -49,14 +49,14 @@ public class SistemaController {
     public ResponseEntity<SistemaWebResponse> guardar(
             Authentication authentication, @PathVariable String id, @Valid @RequestBody SistemaWebRequest request) {
         return ResponseEntity.ok(sistemaPresentationMapper.toResponse(guardarSistema.execute(
-                sistemaPresentationMapper.toGuardarRequest(UUID.fromString(authentication.getName()), id, request))));
+                sistemaPresentationMapper.toGuardarRequest(UsuarioId.de(authentication.getName()), id, request))));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar un sistema; si ya no existe no falla")
     public ResponseEntity<Void> eliminar(Authentication authentication, @PathVariable String id) {
         eliminarSistema.execute(
-                sistemaPresentationMapper.toEliminarRequest(UUID.fromString(authentication.getName()), id));
+                sistemaPresentationMapper.toEliminarRequest(UsuarioId.de(authentication.getName()), id));
         return ResponseEntity.noContent().build();
     }
 }

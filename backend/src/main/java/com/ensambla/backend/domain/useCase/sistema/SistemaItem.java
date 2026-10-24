@@ -2,15 +2,21 @@ package com.ensambla.backend.domain.useCase.sistema;
 
 import com.ensambla.backend.domain.model.bloque.AnchoBloque;
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.bloque.ColorBloque;
 import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.DistribucionProyecto;
 import com.ensambla.backend.domain.model.proyecto.PlantillaSistema;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.seccion.Seccion;
+import com.ensambla.backend.domain.model.seccion.SeccionId;
 import com.ensambla.backend.domain.model.sistema.IdSistema;
 import com.ensambla.backend.domain.model.sistema.Sistema;
 
@@ -26,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -154,15 +159,15 @@ public record SistemaItem(
 
     private static List<SeccionItem> secciones(Sistema sistema) {
         List<Seccion> secciones = sistema.secciones().stream()
-                .sorted(Comparator.comparing(Seccion::getPosicion).thenComparing(Seccion::getId))
+                .sorted(Comparator.comparing(Seccion::getPosicion).thenComparing(seccion -> seccion.getId().valor()))
                 .toList();
         if (secciones.isEmpty()) {
             return List.of(new SeccionItem(
-                    IdSistema.aFront(IdSistema.aUuid(sistema.id(), "general")),
+                    IdSistema.aFront(IdSistema.aId(sistema.id(), "general", SeccionId::de)),
                     SECCION_GENERAL,
                     bloques(sistema, sistema.proyecto().getBloques())));
         }
-        Set<UUID> conocidas = secciones.stream().map(Seccion::getId).collect(Collectors.toSet());
+        Set<SeccionId> conocidas = secciones.stream().map(Seccion::getId).collect(Collectors.toSet());
         List<SeccionItem> items = new ArrayList<>();
         for (int i = 0; i < secciones.size(); i++) {
             Seccion seccion = secciones.get(i);
@@ -178,14 +183,14 @@ public record SistemaItem(
 
     private static List<BloqueItem> bloques(Sistema sistema, List<Bloque> bloques) {
         return bloques.stream()
-                .sorted(Comparator.comparing(Bloque::getPosicion).thenComparing(Bloque::getId))
+                .sorted(Comparator.comparing(Bloque::getPosicion).thenComparing(bloque -> bloque.getId().valor()))
                 .map(bloque -> bloque(sistema, bloque))
                 .toList();
     }
 
     private static BloqueItem bloque(Sistema sistema, Bloque bloque) {
         List<Campo> campos = bloque.getCampos().stream()
-                .sorted(Comparator.comparing(Campo::getPosicion).thenComparing(Campo::getId))
+                .sorted(Comparator.comparing(Campo::getPosicion).thenComparing(campo -> campo.getId().valor()))
                 .toList();
         List<Registro> filas = sistema.registrosPorBloque().getOrDefault(bloque.getId(), List.of());
         return new BloqueItem(
@@ -261,18 +266,18 @@ public record SistemaItem(
      * de rechazar el guardado (la pantalla reintenta sin parar si falla): nombres vacíos o largos, columnas de opción
      * sin opciones, conexiones a un bloque que no está, claves repetidas.
      */
-    public Sistema aSistema(UUID negocioId, String idDelFront, OffsetDateTime ahora) {
-        UUID proyectoId = IdSistema.aUuid(negocioId, idDelFront);
-        Set<UUID> bloquesDelSistema = sections().stream()
+    public Sistema aSistema(NegocioId negocioId, String idDelFront, OffsetDateTime ahora) {
+        ProyectoId proyectoId = IdSistema.aId(negocioId, idDelFront, ProyectoId::de);
+        Set<BloqueId> bloquesDelSistema = sections().stream()
                 .flatMap(seccion -> seccion.blocks().stream())
-                .map(bloque -> IdSistema.aUuid(negocioId, bloque.id()))
+                .map(bloque -> IdSistema.aId(negocioId, bloque.id(), BloqueId::de))
                 .collect(Collectors.toSet());
         List<Seccion> secciones = new ArrayList<>();
         List<Bloque> bloques = new ArrayList<>();
-        Map<UUID, List<Registro>> registros = new LinkedHashMap<>();
+        Map<BloqueId, List<Registro>> registros = new LinkedHashMap<>();
         for (int i = 0; i < sections().size(); i++) {
             SeccionItem seccionItem = sections().get(i);
-            UUID seccionId = IdSistema.aUuid(negocioId, seccionItem.id());
+            SeccionId seccionId = IdSistema.aId(negocioId, seccionItem.id(), SeccionId::de);
             secciones.add(Seccion.builder()
                     .id(seccionId)
                     .negocioId(negocioId)
@@ -307,9 +312,10 @@ public record SistemaItem(
         return new Sistema(proyecto, secciones, registros);
     }
 
-    private static Bloque bloque(UUID negocioId, UUID proyectoId, UUID seccionId, short posicion, BloqueItem item,
-                                 Set<UUID> bloquesDelSistema, OffsetDateTime ahora) {
-        UUID bloqueId = IdSistema.aUuid(negocioId, item.id());
+    private static Bloque bloque(NegocioId negocioId, ProyectoId proyectoId, SeccionId seccionId, short posicion,
+            BloqueItem item,
+                                 Set<BloqueId> bloquesDelSistema, OffsetDateTime ahora) {
+        BloqueId bloqueId = IdSistema.aId(negocioId, item.id(), BloqueId::de);
         return Bloque.builder()
                 .id(bloqueId)
                 .negocioId(negocioId)
@@ -330,12 +336,13 @@ public record SistemaItem(
                 .build();
     }
 
-    private static List<Campo> campos(UUID negocioId, UUID bloqueId, List<CampoItem> items, Set<UUID> bloquesDelSistema,
+    private static List<Campo> campos(NegocioId negocioId, BloqueId bloqueId, List<CampoItem> items,
+            Set<BloqueId> bloquesDelSistema,
                                       OffsetDateTime ahora) {
         List<Campo> campos = new ArrayList<>();
         Set<String> clavesUsadas = new HashSet<>();
         for (CampoItem item : items) {
-            UUID campoId = campoId(bloqueId, item.key());
+            CampoId campoId = campoId(bloqueId, item.key());
             String clave = CLAVE_VALIDA.matcher(item.key()).matches() && clavesUsadas.add(item.key())
                     ? item.key()
                     : null;
@@ -345,10 +352,11 @@ public record SistemaItem(
         return campos;
     }
 
-    private static Campo campo(UUID negocioId, UUID bloqueId, UUID campoId, String clave, short posicion, CampoItem item,
-                               Set<UUID> bloquesDelSistema, OffsetDateTime ahora) {
+    private static Campo campo(NegocioId negocioId, BloqueId bloqueId, CampoId campoId, String clave, short posicion,
+            CampoItem item,
+                               Set<BloqueId> bloquesDelSistema, OffsetDateTime ahora) {
         TipoCampo tipo = TIPOS_DE_CAMPO.getOrDefault(item.type(), TipoCampo.TEXTO);
-        UUID destino = item.target() == null ? null : IdSistema.aUuid(negocioId, item.target());
+        BloqueId destino = item.target() == null ? null : IdSistema.aId(negocioId, item.target(), BloqueId::de);
         List<String> opciones = item.options() == null ? List.of() : item.options();
         if (tipo == TipoCampo.RELACION && !bloquesDelSistema.contains(destino)) {
             tipo = TipoCampo.TEXTO;
@@ -373,7 +381,7 @@ public record SistemaItem(
                 .build();
     }
 
-    private static List<Registro> filas(UUID negocioId, Bloque bloque, BloqueItem item, OffsetDateTime ahora) {
+    private static List<Registro> filas(NegocioId negocioId, Bloque bloque, BloqueItem item, OffsetDateTime ahora) {
         Map<String, Campo> porClave = new LinkedHashMap<>();
         for (int i = 0; i < item.fields().size(); i++) {
             porClave.putIfAbsent(item.fields().get(i).key(), bloque.getCampos().get(i));
@@ -385,7 +393,7 @@ public record SistemaItem(
         return registros;
     }
 
-    private static Registro registro(UUID negocioId, UUID bloqueId, int orden, Map<String, Object> fila,
+    private static Registro registro(NegocioId negocioId, BloqueId bloqueId, int orden, Map<String, Object> fila,
                                      Map<String, Campo> porClave, OffsetDateTime ahora) {
         Map<String, Object> valores = new LinkedHashMap<>();
         porClave.forEach((clave, campo) -> {
@@ -395,7 +403,7 @@ public record SistemaItem(
         });
         Object id = fila.get(CLAVE_ID);
         return Registro.builder()
-                .id(id == null ? UUID.randomUUID() : IdSistema.aUuid(negocioId, id.toString()))
+                .id(id == null ? RegistroId.nuevo() : IdSistema.aId(negocioId, id.toString(), RegistroId::de))
                 .negocioId(negocioId)
                 .bloqueId(bloqueId)
                 .valores(valores)
@@ -408,15 +416,15 @@ public record SistemaItem(
     }
 
     /** Una conexión guarda el id de la fila a la que apunta, igual que las filas del backend. */
-    private static Object valorDeColumna(UUID negocioId, Campo campo, Object valor) {
+    private static Object valorDeColumna(NegocioId negocioId, Campo campo, Object valor) {
         if (campo.esRelacion() && valor instanceof String fila && !fila.isBlank()) {
-            return IdSistema.aUuid(negocioId, fila).toString();
+            return IdSistema.aId(negocioId, fila, RegistroId::de).toString();
         }
         return valor;
     }
 
-    private static UUID campoId(UUID bloqueId, String clave) {
-        return IdSistema.aUuid(bloqueId, clave);
+    private static CampoId campoId(BloqueId bloqueId, String clave) {
+        return IdSistema.aId(bloqueId, clave, CampoId::de);
     }
 
     private static Short direccionDeStock(Integer direccion) {

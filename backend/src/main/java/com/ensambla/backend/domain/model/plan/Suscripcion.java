@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.model.plan;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -7,7 +8,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -16,11 +16,11 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Suscripcion {
 
-    private UUID id;
+    private SuscripcionId id;
 
-    private UUID negocioId;
+    private NegocioId negocioId;
 
-    private UUID planId;
+    private PlanId planId;
 
     private EstadoSuscripcion estado;
 

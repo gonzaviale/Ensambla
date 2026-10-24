@@ -1,6 +1,8 @@
 package com.ensambla.backend.infrastructure.ia;
 
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.common.Identificador;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
 import com.ensambla.backend.domain.model.lectura.PaginaCuaderno;
@@ -9,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -24,9 +25,10 @@ public class LectorCuadernoTimeoutAdapter implements LectorCuadernoPort {
     private final Duration timeout;
 
     @Override
-    public LecturaCuaderno leer(List<PaginaCuaderno> paginas, List<BloqueConocido> bloques, UUID bloqueDestinoId) {
+    public LecturaCuaderno leer(List<PaginaCuaderno> paginas, List<BloqueConocido> bloques, BloqueId bloqueDestinoId) {
         Future<LecturaCuaderno> futuro = executorService.submit(
-                () -> lectorCuadernoPort.leer(paginas, bloques, bloqueDestinoId));
+                () -> lectorCuadernoPort.leer(paginas, bloques, Identificador
+                        .opcional(Identificador.valorDe(bloqueDestinoId), BloqueId::de)));
         try {
             return futuro.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {

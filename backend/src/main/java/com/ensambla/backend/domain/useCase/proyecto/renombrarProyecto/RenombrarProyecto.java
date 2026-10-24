@@ -1,6 +1,8 @@
 package com.ensambla.backend.domain.useCase.proyecto.renombrarProyecto;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
@@ -10,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class RenombrarProyecto {
@@ -26,13 +27,13 @@ public class RenombrarProyecto {
     private final Clock clock;
 
     public ProyectoItem execute(RenombrarProyectoRequest request) {
-        UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
         OffsetDateTime ahora = OffsetDateTime.now(clock);
         return ProyectoItem.de(transaccionPort.ejecutar(
                 () -> renombrar(negocioId, request.proyectoId(), request.nombre(), ahora)));
     }
 
-    private Proyecto renombrar(UUID negocioId, UUID proyectoId, String nombre, OffsetDateTime ahora) {
+    private Proyecto renombrar(NegocioId negocioId, ProyectoId proyectoId, String nombre, OffsetDateTime ahora) {
         Proyecto proyecto = proyectoService.obtener(negocioId, proyectoId);
         proyecto.renombrar(nombre, ahora);
         return proyectoRepository.save(proyecto);

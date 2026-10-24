@@ -1,10 +1,10 @@
 package com.ensambla.backend.domain.useCase.sami.conversarConSami;
 
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.domain.model.sami.InterpretacionSami;
 import com.ensambla.backend.domain.useCase.sami.ColumnaSamiItem;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Estructura que Sami propone: la plantilla base y las columnas que le suma.
@@ -12,7 +12,7 @@ import java.util.UUID;
  * @param origen ALGORITMO (diccionario y preguntas, sin costo) o IA
  */
 public record PropuestaSamiItem(
-        UUID plantillaId,
+        PlantillaId plantillaId,
         String plantilla,
         List<ColumnaSamiItem> columnas,
         double confianza,

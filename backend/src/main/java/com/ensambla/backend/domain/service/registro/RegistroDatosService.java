@@ -2,10 +2,13 @@ package com.ensambla.backend.domain.service.registro;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.common.Pagina;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +18,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -30,7 +32,7 @@ public class RegistroDatosService {
     private final TransaccionPort transaccionPort;
 
     /** Guarda registros ya validados (por ejemplo, los que salen de una lectura del cuaderno). */
-    public Registro obtener(UUID registroId, UUID negocioId) {
+    public Registro obtener(RegistroId registroId, NegocioId negocioId) {
         return registroRepository.findByIdAndNegocioId(registroId, negocioId)
                 .orElseThrow(() -> new ResourceNotFoundException("El registro no existe"));
     }
@@ -39,8 +41,8 @@ public class RegistroDatosService {
      * Filas del bloque que se ofrecen en un campo RELACION, las más nuevas primero: con {@code ids}, sólo esas (las que
      * existen); sin ids, hasta {@value #MAXIMO_REFERENCIAS} que coinciden con el texto como en el listado.
      */
-    public List<Registro> buscarReferenciables(UUID negocioId, UUID bloqueId, List<Campo> campos, String texto,
-                                               List<UUID> ids) {
+    public List<Registro> buscarReferenciables(NegocioId negocioId, BloqueId bloqueId, List<Campo> campos, String texto,
+                                               List<RegistroId> ids) {
         if (!ids.isEmpty()) {
             return registroRepository.findAllByIdsAndBloque(ids, bloqueId, negocioId);
         }
@@ -69,17 +71,18 @@ public class RegistroDatosService {
      *
      * @throws RegistroInvalidoException con "Esa fila ya no existe" en cada campo que apunta a una fila inexistente
      */
-    public void validarConexiones(UUID negocioId, List<Campo> campos, Map<String, Object> valores) {
-        Map<UUID, List<Campo>> porBloque = campos.stream()
+    public void validarConexiones(NegocioId negocioId, List<Campo> campos, Map<String, Object> valores) {
+        Map<BloqueId, List<Campo>> porBloque = campos.stream()
                 .filter(Campo::esRelacion)
                 .filter(campo -> valores.containsKey(campo.getId().toString()))
                 .collect(Collectors.groupingBy(Campo::getBloqueRelacionadoId));
         Map<String, String> errores = new LinkedHashMap<>();
         porBloque.forEach((bloqueId, conexiones) -> {
-            Set<UUID> buscados = conexiones.stream()
+            Set<RegistroId> buscados = conexiones.stream()
                     .map(campo -> referenciaDe(campo, valores))
                     .collect(Collectors.toSet());
-            Set<UUID> existentes = registroRepository.findAllByIdsAndBloque(buscados, bloqueId, negocioId).stream()
+            Set<RegistroId> existentes = registroRepository.findAllByIdsAndBloque(buscados, bloqueId, negocioId)
+                    .stream()
                     .map(Registro::getId)
                     .collect(Collectors.toSet());
             conexiones.stream()
@@ -91,7 +94,7 @@ public class RegistroDatosService {
         }
     }
 
-    private static UUID referenciaDe(Campo campo, Map<String, Object> valores) {
-        return UUID.fromString((String) valores.get(campo.getId().toString()));
+    private static RegistroId referenciaDe(Campo campo, Map<String, Object> valores) {
+        return RegistroId.de((String) valores.get(campo.getId().toString()));
     }
 }

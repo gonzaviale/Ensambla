@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.service.plan;
 
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.repository.plan.AccesoContenidoRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
@@ -14,7 +15,6 @@ import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 
 class AccesoContenidoServiceTest {
 
-    private static final UUID NEGOCIO = UUID.randomUUID();
+    private static final NegocioId NEGOCIO = NegocioId.nuevo();
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-11-01T00:05:00Z");
     private static final LocalDate PERIODO = LocalDate.of(2026, 11, 1);
 

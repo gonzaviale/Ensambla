@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.negocio.RubroNegocio;
 import com.ensambla.backend.domain.model.ubicacion.LocalidadesDelPunto;
 import com.ensambla.backend.domain.model.zona.Zona;
+import com.ensambla.backend.domain.model.zona.ZonaId;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.service.ubicacion.UbicacionService;
 import com.ensambla.backend.domain.service.zona.ZonaService;
@@ -23,7 +24,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ProyectoTestData.USUARIO_ID;
@@ -68,7 +68,7 @@ class ActualizarNegocioTest {
     @Test
     @DisplayName("Deja el negocio sin zona si ninguna contiene el punto")
     void executeShouldLeaveZoneEmptyWhenNoneMatches() {
-        givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).zonaId(UUID.randomUUID()).build());
+        givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).zonaId(ZonaId.nuevo()).build());
         givenLocalidadDelMapa("San Justo");
         when(zonaService.resolver(LATITUD, LONGITUD)).thenReturn(Optional.empty());
 
@@ -94,7 +94,7 @@ class ActualizarNegocioTest {
     @Test
     @DisplayName("Conserva la zona y no la vuelve a resolver si el punto no cambió")
     void executeShouldKeepZoneForSamePoint() {
-        UUID zonaId = UUID.randomUUID();
+        ZonaId zonaId = ZonaId.nuevo();
         givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).latitud(LATITUD).longitud(LONGITUD)
                 .localidad("San Justo").zonaId(zonaId).build());
 
@@ -146,7 +146,7 @@ class ActualizarNegocioTest {
     @DisplayName("No consulta al mapa si la ubicación enviada es la ya guardada")
     void executeShouldSkipLocalityCheckForSameLocation() {
         givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).latitud(LATITUD).longitud(LONGITUD)
-                .localidad("San Justo").zonaId(UUID.randomUUID()).build());
+                .localidad("San Justo").zonaId(ZonaId.nuevo()).build());
 
         whenActualizaUbicacion();
 
@@ -180,7 +180,7 @@ class ActualizarNegocioTest {
 
     // --- arrange ---
     private Zona givenZona() {
-        return Zona.builder().id(UUID.randomUUID()).nombre("San Justo - UNLaM").build();
+        return Zona.builder().id(ZonaId.nuevo()).nombre("San Justo - UNLaM").build();
     }
 
     private void givenNegocioParaActualizar(Negocio negocio) {

@@ -1,20 +1,22 @@
 package com.ensambla.backend.domain.useCase.campo.editarCampo;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
 import java.util.List;
-import java.util.UUID;
 
 /** Reemplaza toda la configuración del campo: lo que no viene vuelve a su valor por defecto. */
 public record EditarCampoRequest(
-        UUID usuarioId,
-        UUID campoId,
+        UsuarioId usuarioId,
+        CampoId campoId,
         String nombre,
         String tipo,
         Boolean obligatorio,
         String valorInicial,
         List<String> opciones,
-        UUID bloqueRelacionadoId,
+        BloqueId bloqueRelacionadoId,
         String formula
 ) {
 

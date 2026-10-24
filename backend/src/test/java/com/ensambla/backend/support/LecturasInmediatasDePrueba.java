@@ -7,7 +7,9 @@ import com.ensambla.backend.domain.model.lectura.ConsumoIa;
 import com.ensambla.backend.domain.model.lectura.FilaLeida;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
 import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
@@ -44,11 +46,11 @@ public class LecturasInmediatasDePrueba {
 
     private final PoliticaProcesamiento politicaProcesamiento;
 
-    public void registrar(UUID negocioId, OffsetDateTime ahora) {
+    public void registrar(NegocioId negocioId, OffsetDateTime ahora) {
         new LeerImagen(lectorCompatible(), new PropuestaLecturaService(), UMBRAL_CONFIANZA, negocioPropio(negocioId),
                 controlPlanService, usoPlanRepository, politicaProcesamiento,
                 Clock.fixed(ahora.toInstant(), ahora.getOffset()))
-                .execute(new LeerImagenRequest(negocioId, ImagenTestData.jpeg(), "Ventas",
+                .execute(new LeerImagenRequest(usuarioDe(negocioId), ImagenTestData.jpeg(), "Ventas",
                         List.of(new LeerImagenRequest.CampoItem("importe", "Monto", "NUMERO", null)), true));
     }
 
@@ -61,9 +63,14 @@ public class LecturasInmediatasDePrueba {
         return lector;
     }
 
-    private static NegocioService negocioPropio(UUID negocioId) {
+    /** El usuario de prueba comparte el UUID con su negocio. */
+    private static UsuarioId usuarioDe(NegocioId negocioId) {
+        return UsuarioId.de(negocioId.valor());
+    }
+
+    private static NegocioService negocioPropio(NegocioId negocioId) {
         NegocioService negocioService = mock(NegocioService.class);
-        when(negocioService.obtenerDelUsuario(negocioId)).thenReturn(negocioId);
+        when(negocioService.obtenerDelUsuario(usuarioDe(negocioId))).thenReturn(negocioId);
         return negocioService;
     }
 }

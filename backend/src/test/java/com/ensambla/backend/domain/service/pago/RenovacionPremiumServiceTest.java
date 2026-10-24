@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.service.pago;
 import com.ensambla.backend.domain.exception.PasarelaPagoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.pago.ContratoRemoto;
+import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
@@ -20,7 +21,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.Optional;
-import java.util.UUID;
 
 import static com.ensambla.backend.support.PagoTestData.AHORA;
 import static com.ensambla.backend.support.PagoTestData.NEGOCIO_ID;
@@ -79,7 +79,7 @@ class RenovacionPremiumServiceTest {
         ContratoRemoto base = contrato(renovacion, "pending", AHORA);
         renovacion.setProveedorId(base.id());
         ContratoRemoto remoto = new ContratoRemoto(caso == 6 ? "otro" : base.id(),
-                caso == 0 ? UUID.randomUUID() : base.referencia(), base.enlace(),
+                caso == 0 ? RenovacionId.nuevo() : base.referencia(), base.enlace(),
                 caso == 7 ? "desconocido" : base.estado(), caso == 1 ? BigDecimal.ONE : base.importe(),
                 caso == 2 ? "USD" : base.moneda(), caso == 3 ? 1 : 30, caso == 4 ? "months" : "days",
                 caso == 5 ? AHORA.minusSeconds(1) : AHORA, base.proximoCobroEn(), base.modificadoEn());

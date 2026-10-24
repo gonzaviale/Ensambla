@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.auth.iniciarSesion.IniciarSesion;
 import com.ensambla.backend.domain.useCase.auth.obtenerSesion.ObtenerSesion;
 import com.ensambla.backend.domain.useCase.auth.registrarUsuario.RegistrarUsuario;
@@ -26,8 +27,6 @@ import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -70,7 +69,7 @@ public class AuthController {
     @Operation(summary = "Obtener el usuario activo de la sesión")
     public ResponseEntity<UsuarioResponse> actual(Authentication authentication) {
         UsuarioResponse response = authPresentationMapper.toResponse(
-                obtenerSesion.execute(UUID.fromString(authentication.getName())));
+                obtenerSesion.execute(UsuarioId.de(authentication.getName())));
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(response);
     }
 

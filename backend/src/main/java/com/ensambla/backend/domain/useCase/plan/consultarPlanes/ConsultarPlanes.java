@@ -1,12 +1,14 @@
 package com.ensambla.backend.domain.useCase.plan.consultarPlanes;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.ConsultaPlanes;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Plan;
 import com.ensambla.backend.domain.model.plan.PruebaPremium;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
@@ -20,7 +22,6 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 public class ConsultarPlanes {
@@ -41,15 +42,15 @@ public class ConsultarPlanes {
 
     private final Clock clock;
 
-    public ConsultarPlanesResponse execute(UUID usuarioId) {
-        UUID negocioId = negocioService.obtenerDelUsuario(usuarioId);
+    public ConsultarPlanesResponse execute(UsuarioId usuarioId) {
+        NegocioId negocioId = negocioService.obtenerDelUsuario(usuarioId);
         OffsetDateTime ahora = OffsetDateTime.now(clock);
         ConsultaPlanes consulta = transaccionPort.ejecutar(() -> consultar(negocioId, ahora));
         return ConsultarPlanesResponse.de(consulta, ahora);
     }
 
     /** Una única vista del negocio frente a activaciones, consumo y vencimientos concurrentes. */
-    private ConsultaPlanes consultar(UUID negocioId, OffsetDateTime ahora) {
+    private ConsultaPlanes consultar(NegocioId negocioId, OffsetDateTime ahora) {
         usoPlanRepository.bloquearNegocio(negocioId);
         Plan gratuito = suscripcionService.obtenerPlan(CodigoPlan.GRATUITO);
         Plan premium = suscripcionService.obtenerPlan(CodigoPlan.PREMIUM);

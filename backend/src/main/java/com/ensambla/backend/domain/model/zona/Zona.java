@@ -8,7 +8,6 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.text.Normalizer;
-import java.util.UUID;
 
 /** Barrio global donde se agrupan los comercios: un centro y un radio. */
 @Getter
@@ -20,7 +19,7 @@ public class Zona {
 
     private static final double RADIO_TERRESTRE_METROS = 6_371_000d;
 
-    private UUID id;
+    private ZonaId id;
 
     private String nombre;
 

@@ -1,5 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.inventario;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.inventario.MovimientoItem;
 import com.ensambla.backend.domain.useCase.inventario.consultarStock.ConsultarStockRequest;
 import com.ensambla.backend.domain.useCase.inventario.consultarStock.ConsultarStockResponse;
@@ -14,12 +17,12 @@ import com.ensambla.backend.infrastructure.presentation.dto.inventario.StockResp
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.UUID;
 
 @Component
 public class InventarioPresentationMapper {
 
-    public RegistrarMovimientoRequest toRegistrarRequest(UUID usuarioId, UUID bloqueId, MovimientoRequest request) {
+    public RegistrarMovimientoRequest toRegistrarRequest(UsuarioId usuarioId, BloqueId bloqueId,
+            MovimientoRequest request) {
         return new RegistrarMovimientoRequest(
                 usuarioId,
                 bloqueId,
@@ -30,11 +33,12 @@ public class InventarioPresentationMapper {
                 request.nota());
     }
 
-    public ListarMovimientosRequest toListarMovimientosRequest(UUID usuarioId, UUID bloqueId, UUID registroId) {
+    public ListarMovimientosRequest toListarMovimientosRequest(UsuarioId usuarioId, BloqueId bloqueId,
+            RegistroId registroId) {
         return new ListarMovimientosRequest(usuarioId, bloqueId, registroId);
     }
 
-    public ConsultarStockRequest toStockRequest(UUID usuarioId, UUID bloqueId, String texto, Integer pagina,
+    public ConsultarStockRequest toStockRequest(UsuarioId usuarioId, BloqueId bloqueId, String texto, Integer pagina,
                                                 Integer tamanio) {
         return new ConsultarStockRequest(usuarioId, bloqueId, texto, pagina, tamanio);
     }

@@ -1,21 +1,27 @@
 package com.ensambla.backend.domain.useCase.procesamiento.procesarLote;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
-import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
 import com.ensambla.backend.domain.model.lectura.BloquePropuesto;
 import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
 import com.ensambla.backend.domain.model.lectura.ConsumoIa;
 import com.ensambla.backend.domain.model.lectura.DatoLeido;
 import com.ensambla.backend.domain.model.lectura.FilaLeida;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
+import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
 import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.FotoLectura;
 import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
+import com.ensambla.backend.domain.model.procesamiento.ReclamoId;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
@@ -52,16 +58,16 @@ import static org.mockito.Mockito.when;
 /** Cómo el worker convierte el texto leído en columnas de conexión en la fila a la que apunta. */
 class ProcesarLoteConexionesTest {
 
-    private static final UUID NEGOCIO_ID = UUID.fromString("10000000-0000-0000-0000-000000000001");
-    private static final UUID VENTAS_ID = UUID.fromString("30000000-0000-0000-0000-000000000001");
-    private static final UUID CLIENTES_ID = UUID.fromString("30000000-0000-0000-0000-000000000002");
-    private static final UUID CAMPO_CLIENTE_ID = UUID.fromString("40000000-0000-0000-0000-000000000001");
-    private static final UUID CAMPO_MONTO_ID = UUID.fromString("40000000-0000-0000-0000-000000000002");
-    private static final UUID CAMPO_NOMBRE_ID = UUID.fromString("40000000-0000-0000-0000-000000000003");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("10000000-0000-0000-0000-000000000001");
+    private static final BloqueId VENTAS_ID = BloqueId.de("30000000-0000-0000-0000-000000000001");
+    private static final BloqueId CLIENTES_ID = BloqueId.de("30000000-0000-0000-0000-000000000002");
+    private static final CampoId CAMPO_CLIENTE_ID = CampoId.de("40000000-0000-0000-0000-000000000001");
+    private static final CampoId CAMPO_MONTO_ID = CampoId.de("40000000-0000-0000-0000-000000000002");
+    private static final CampoId CAMPO_NOMBRE_ID = CampoId.de("40000000-0000-0000-0000-000000000003");
     private static final UUID JUAN_ID = UUID.fromString("50000000-0000-0000-0000-000000000001");
     private static final UUID OTRO_JUAN_ID = UUID.fromString("50000000-0000-0000-0000-000000000002");
     private static final ConsumoIa CONSUMO = new ConsumoIa("simulado", "demo", "v2", 1, 10, 20, 30);
-    private static final LoteTrabajo LOTE = new LoteTrabajo(UUID.randomUUID(), NEGOCIO_ID, null, UUID.randomUUID(), 1);
+    private static final LoteTrabajo LOTE = new LoteTrabajo(LoteId.nuevo(), NEGOCIO_ID, null, ReclamoId.nuevo(), 1);
     private static final FotoLectura FOTO = new FotoLectura("foto.jpg", "image/jpeg");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
 
@@ -247,7 +253,7 @@ class ProcesarLoteConexionesTest {
     }
 
     private Registro registro(UUID id, String nombre) {
-        return Registro.builder().id(id).valores(Map.of(CAMPO_NOMBRE_ID.toString(), nombre)).build();
+        return Registro.builder().id(RegistroId.de(id)).valores(Map.of(CAMPO_NOMBRE_ID.toString(), nombre)).build();
     }
 
     private PropuestaLectura propuesta(FilaLeida... filas) {
@@ -260,7 +266,7 @@ class ProcesarLoteConexionesTest {
                 new CampoPropuesto("monto", "Monto", TipoCampo.NUMERO, List.of()));
     }
 
-    private LecturaCuaderno lectura(UUID bloqueId, List<CampoPropuesto> campos, List<FilaLeida> filas) {
+    private LecturaCuaderno lectura(BloqueId bloqueId, List<CampoPropuesto> campos, List<FilaLeida> filas) {
         return new LecturaCuaderno(TipoRegistroCuaderno.VENTAS, new BloquePropuesto("Ventas", bloqueId, campos),
                 filas, List.of("Aviso"), CONSUMO);
     }

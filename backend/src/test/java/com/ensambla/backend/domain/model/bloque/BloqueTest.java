@@ -3,8 +3,12 @@ package com.ensambla.backend.domain.model.bloque;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -17,11 +21,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class BloqueTest {
 
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID PROYECTO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID PRODUCTO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID PRECIO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final ProyectoId PROYECTO_ID = ProyectoId.de("c0000000-0000-4000-8000-000000000001");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final RegistroId PRODUCTO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final RegistroId PRECIO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000002");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
 
     @Test
@@ -99,7 +103,7 @@ class BloqueTest {
     @DisplayName("Editar permite que el campo conserve su propio nombre con otras mayúsculas")
     void editarCampoShouldAllowTheSameCampo() {
         Bloque bloque = givenBloqueConCampos();
-        Campo precio = givenCampo(PRECIO_ID, "Precio", 3);
+        Campo precio = givenCampo(PRECIO_ID.valor(), "Precio", 3);
 
         bloque.editarCampo(precio, configuracion("precio"), AHORA.plusHours(1));
 
@@ -111,7 +115,7 @@ class BloqueTest {
     @DisplayName("Editar con el nombre de otro campo no modifica el campo")
     void editarCampoShouldRejectNameOfAnotherCampo() {
         Bloque bloque = givenBloqueConCampos();
-        Campo precio = givenCampo(PRECIO_ID, "Precio", 3);
+        Campo precio = givenCampo(PRECIO_ID.valor(), "Precio", 3);
 
         assertThatThrownBy(() -> bloque.editarCampo(precio, configuracion("Producto"), AHORA))
                 .isInstanceOf(DuplicateResourceException.class);
@@ -122,7 +126,7 @@ class BloqueTest {
     @DisplayName("Editar con una configuración inválida no modifica el campo")
     void editarCampoShouldNotModifyWhenConfiguracionIsInvalid() {
         Bloque bloque = givenBloqueConCampos();
-        Campo precio = givenCampo(PRECIO_ID, "Precio", 3);
+        Campo precio = givenCampo(PRECIO_ID.valor(), "Precio", 3);
         ConfiguracionCampo invalida = new ConfiguracionCampo("Costo", "OPCION", null, null, List.of(), null, null);
 
         assertThatThrownBy(() -> bloque.editarCampo(precio, invalida, AHORA))
@@ -136,13 +140,14 @@ class BloqueTest {
         return Bloque.builder()
                 .id(BLOQUE_ID)
                 .negocioId(NEGOCIO_ID)
-                .campos(List.of(givenCampo(PRODUCTO_ID, "Producto", 0), givenCampo(PRECIO_ID, " Precio", 3)))
+                .campos(List.of(givenCampo(PRODUCTO_ID.valor(), "Producto", 0),
+                givenCampo(PRECIO_ID.valor(), " Precio", 3)))
                 .build();
     }
 
     private Campo givenCampo(UUID id, String nombre, int posicion) {
         return Campo.builder()
-                .id(id)
+                .id(CampoId.de(id))
                 .bloqueId(BLOQUE_ID)
                 .nombre(nombre)
                 .tipo(TipoCampo.NUMERO)

@@ -1,6 +1,6 @@
 package com.ensambla.backend.domain.useCase.preferencia.obtenerPreferencias;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
-public record ObtenerPreferenciasRequest(UUID usuarioId) {
+public record ObtenerPreferenciasRequest(UsuarioId usuarioId) {
 }

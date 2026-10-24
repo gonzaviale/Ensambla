@@ -3,9 +3,14 @@ package com.ensambla.backend.domain.useCase.aviso;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.aviso.Aviso;
+import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.service.aviso.AvisoService;
 import com.ensambla.backend.domain.service.campo.CampoService;
@@ -34,7 +39,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -48,11 +52,11 @@ import static org.mockito.Mockito.when;
 
 class AvisoUseCasesTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("00000000-0000-4000-8000-000000000001");
-    private static final UUID NEGOCIO_ID = AvisoTestData.NEGOCIO_ID;
-    private static final UUID AVISO_ID = UUID.fromString("e0000000-0000-4000-8000-000000000001");
-    private static final UUID REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID CAMPO_PRECIO_ID = UUID.fromString("f0000000-0000-4000-8000-000000000009");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("00000000-0000-4000-8000-000000000001");
+    private static final NegocioId NEGOCIO_ID = AvisoTestData.NEGOCIO_ID;
+    private static final AvisoId AVISO_ID = AvisoId.de("e0000000-0000-4000-8000-000000000001");
+    private static final RegistroId REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final CampoId CAMPO_PRECIO_ID = CampoId.de("f0000000-0000-4000-8000-000000000009");
     private static final Instant INSTANTE = Instant.parse("2026-10-19T12:00:00Z");
     private static final OffsetDateTime AHORA = OffsetDateTime.ofInstant(INSTANTE, ZoneOffset.UTC);
     private static final Clock CLOCK = Clock.fixed(INSTANTE, ZoneOffset.UTC);
@@ -169,9 +173,9 @@ class AvisoUseCasesTest {
     @DisplayName("Editar registro cambia los valores del registro usando la clave del campo antes de guardar el aviso")
     void aplicarShouldEditRegistroByCampoClave() {
         Aviso aviso = givenGuardado(givenAvisoConAcciones(editarPrecio(Map.of("price", 4200))));
-        Registro registro = AvisoTestData.registro(REGISTRO_ID, "Yerba", 2, 5);
-        List<Campo> campos = List.of(AvisoTestData.campo(CAMPO_PRECIO_ID, "price"),
-                AvisoTestData.campo(AvisoTestData.CAMPO_NOMBRE_ID, "name"));
+        Registro registro = AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 2, 5);
+        List<Campo> campos = List.of(AvisoTestData.campo(CAMPO_PRECIO_ID.valor(), "price"),
+                AvisoTestData.campo(AvisoTestData.CAMPO_NOMBRE_ID.valor(), "name"));
         when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(registro);
         when(campoService.listarDeBloque(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID)).thenReturn(campos);
 
@@ -258,9 +262,9 @@ class AvisoUseCasesTest {
 
     private void givenRegistroYCampos() {
         when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID))
-                .thenReturn(AvisoTestData.registro(REGISTRO_ID, "Yerba", 2, 5));
+                .thenReturn(AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 2, 5));
         when(campoService.listarDeBloque(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID))
-                .thenReturn(List.of(AvisoTestData.campo(CAMPO_PRECIO_ID, "price")));
+                .thenReturn(List.of(AvisoTestData.campo(CAMPO_PRECIO_ID.valor(), "price")));
     }
 
     private static Map<String, Object> editarPrecio(Map<String, Object> valores) {
@@ -274,7 +278,7 @@ class AvisoUseCasesTest {
 
     private static Aviso givenAviso(String titulo, int prioridad, EstadoAviso estado, int hora) {
         return Aviso.builder()
-                .id(UUID.randomUUID()).negocioId(NEGOCIO_ID).titulo(titulo).prioridad((short) prioridad)
+                .id(AvisoId.nuevo()).negocioId(NEGOCIO_ID).titulo(titulo).prioridad((short) prioridad)
                 .estado(estado).creadoEn(AHORA.withHour(hora)).acciones(List.of())
                 .build();
     }

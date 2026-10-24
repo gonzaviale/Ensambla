@@ -1,5 +1,9 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.lote;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.lote.FotoId;
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.lote.LoteItem.FotoItem;
 import com.ensambla.backend.domain.useCase.lote.LoteItem;
 import com.ensambla.backend.domain.useCase.lote.obtenerFotoLote.ObtenerFotoLoteRequest;
@@ -13,20 +17,19 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
-import java.util.UUID;
 
 @Component
 public class LotePresentationMapper {
 
-    public SubirLoteRequest toSubirRequest(UUID usuarioId, List<MultipartFile> fotos, UUID bloqueDestinoId) {
+    public SubirLoteRequest toSubirRequest(UsuarioId usuarioId, List<MultipartFile> fotos, BloqueId bloqueDestinoId) {
         return new SubirLoteRequest(usuarioId, fotos.stream().map(this::contenido).toList(), bloqueDestinoId);
     }
 
-    public ObtenerLoteRequest toObtenerRequest(UUID usuarioId, UUID loteId) {
+    public ObtenerLoteRequest toObtenerRequest(UsuarioId usuarioId, LoteId loteId) {
         return new ObtenerLoteRequest(usuarioId, loteId);
     }
 
-    public ObtenerFotoLoteRequest toFotoRequest(UUID usuarioId, UUID loteId, UUID fotoId) {
+    public ObtenerFotoLoteRequest toFotoRequest(UsuarioId usuarioId, LoteId loteId, FotoId fotoId) {
         return new ObtenerFotoLoteRequest(usuarioId, loteId, fotoId);
     }
 

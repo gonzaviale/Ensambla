@@ -1,6 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
 import com.ensambla.backend.infrastructure.repository.entity.UsuarioEntity;
@@ -68,15 +70,15 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     private IProyectoJpaRepository proyectos;
 
     private MockMvc mockMvc;
-    private UUID negocioId;
+    private NegocioId negocioId;
     private MockHttpSession sesion;
     private String csrfToken;
 
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        UUID usuarioId = givenUsuario();
-        negocioId = givenNegocio(usuarioId);
+        UsuarioId usuarioId = UsuarioId.de(givenUsuario());
+        negocioId = NegocioId.de(givenNegocio(usuarioId));
         sesion = givenSesion(usuarioId);
     }
 
@@ -122,7 +124,7 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     void getShouldIsolateNegocios() throws Exception {
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
                 .contentType("application/json").content(givenBody("Propio"))).andExpect(status().isOk());
-        MockHttpSession ajena = givenSesion(givenUsuarioConNegocio());
+        MockHttpSession ajena = givenSesion(UsuarioId.de(givenUsuarioConNegocio()));
 
         mockMvc.perform(get("/api/sistemas").session(ajena))
                 .andExpect(status().isOk())
@@ -134,14 +136,14 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     void putShouldNotModifyForeignSistema() throws Exception {
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
                 .contentType("application/json").content(givenBody("Propio"))).andExpect(status().isOk());
-        MockHttpSession ajena = givenSesion(givenUsuarioConNegocio());
+        MockHttpSession ajena = givenSesion(UsuarioId.de(givenUsuarioConNegocio()));
 
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(ajena).header("X-CSRF-TOKEN", csrfToken)
                         .contentType("application/json").content(givenBody("Robado")))
                 .andExpect(status().isNotFound());
 
         assertThat(proyectos.findById(SISTEMA_UUID).orElseThrow().getNombre()).isEqualTo("Propio");
-        assertThat(proyectos.findById(SISTEMA_UUID).orElseThrow().getNegocioId()).isEqualTo(negocioId);
+        assertThat(proyectos.findById(SISTEMA_UUID).orElseThrow().getNegocioId()).isEqualTo(negocioId.valor());
     }
 
     @Test
@@ -151,7 +153,7 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                         .contentType("application/json").content("{\"name\":\"Sin secciones\",\"sections\":[]}"))
                 .andExpect(status().isBadRequest());
 
-        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId)).isEmpty();
+        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId.valor())).isEmpty();
     }
 
     @Test
@@ -162,7 +164,7 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/sistemas")).andExpect(status().isUnauthorized());
 
-        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId)).isEmpty();
+        assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId.valor())).isEmpty();
     }
 
     @Test
@@ -170,7 +172,7 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     void deleteShouldBeIdempotentAndScoped() throws Exception {
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).session(sesion).header("X-CSRF-TOKEN", csrfToken)
                 .contentType("application/json").content(givenBody("Propio"))).andExpect(status().isOk());
-        MockHttpSession ajena = givenSesion(givenUsuarioConNegocio());
+        MockHttpSession ajena = givenSesion(UsuarioId.de(givenUsuarioConNegocio()));
 
         mockMvc.perform(delete("/api/sistemas/{id}", SISTEMA_ID).session(ajena).header("X-CSRF-TOKEN", csrfToken))
                 .andExpect(status().isNoContent());
@@ -247,24 +249,24 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .build()).getId();
     }
 
-    private UUID givenNegocio(UUID usuarioId) {
+    private UUID givenNegocio(UsuarioId usuarioId) {
         UUID creado = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
-                .duenioId(usuarioId)
+                .duenioId(usuarioId.valor())
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
-        suscripcionService.asignarGratuito(creado, AHORA.minusDays(1));
+        suscripcionService.asignarGratuito(NegocioId.de(creado), AHORA.minusDays(1));
         return creado;
     }
 
     private UUID givenUsuarioConNegocio() {
-        UUID usuarioId = givenUsuario();
+        UsuarioId usuarioId = UsuarioId.de(givenUsuario());
         givenNegocio(usuarioId);
-        return usuarioId;
+        return usuarioId.valor();
     }
 
-    private MockHttpSession givenSesion(UUID usuarioId) throws Exception {
+    private MockHttpSession givenSesion(UsuarioId usuarioId) throws Exception {
         MockHttpSession session = new MockHttpSession();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setSession(session);

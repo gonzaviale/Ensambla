@@ -1,19 +1,20 @@
 package com.ensambla.backend.domain.useCase.campo.crearCampo;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
 import java.util.List;
-import java.util.UUID;
 
 public record CrearCampoRequest(
-        UUID usuarioId,
-        UUID bloqueId,
+        UsuarioId usuarioId,
+        BloqueId bloqueId,
         String nombre,
         String tipo,
         Boolean obligatorio,
         String valorInicial,
         List<String> opciones,
-        UUID bloqueRelacionadoId,
+        BloqueId bloqueRelacionadoId,
         String formula
 ) {
 

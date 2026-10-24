@@ -2,12 +2,18 @@ package com.ensambla.backend.domain.useCase.receta;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.receta.LineaReceta;
 import com.ensambla.backend.domain.model.receta.Receta;
 import com.ensambla.backend.domain.model.receta.RecetaCosteada;
+import com.ensambla.backend.domain.model.receta.RecetaId;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.receta.RecetaRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
@@ -38,7 +44,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -52,13 +57,13 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class RecetaUseCasesTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID PRODUCTO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID HARINA_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
-    private static final UUID AZUCAR_ID = UUID.fromString("d0000000-0000-4000-8000-000000000003");
-    private static final UUID BLOQUE_INSUMOS_ID = UUID.fromString("b0000000-0000-4000-8000-000000000002");
-    private static final UUID PRECIO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000002");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final RegistroId PRODUCTO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final RegistroId HARINA_ID = RegistroId.de("d0000000-0000-4000-8000-000000000002");
+    private static final RegistroId AZUCAR_ID = RegistroId.de("d0000000-0000-4000-8000-000000000003");
+    private static final BloqueId BLOQUE_INSUMOS_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
+    private static final CampoId PRECIO_ID = CampoId.de("c0000000-0000-4000-8000-000000000002");
     private static final Clock RELOJ = Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC);
     private static final OffsetDateTime AHORA = OffsetDateTime.now(RELOJ);
 
@@ -170,7 +175,7 @@ class RecetaUseCasesTest {
     @Test
     @DisplayName("Guardar reemplaza la receta anterior del producto conservando su identidad")
     void guardarShouldKeepTheIdentityOfThePreviousOne() {
-        Receta anterior = Receta.builder().id(UUID.randomUUID()).creadoEn(AHORA.minusDays(1)).build();
+        Receta anterior = Receta.builder().id(RecetaId.nuevo()).creadoEn(AHORA.minusDays(1)).build();
         givenProducto();
         givenColumnaDelPrecio(TipoCampo.NUMERO);
         givenInsumosExistentes(HARINA_ID, AZUCAR_ID);
@@ -253,7 +258,7 @@ class RecetaUseCasesTest {
                 Campo.builder().id(PRECIO_ID).bloqueId(BLOQUE_INSUMOS_ID).tipo(tipo).build()));
     }
 
-    private void givenInsumosExistentes(UUID... insumos) {
+    private void givenInsumosExistentes(RegistroId... insumos) {
         when(registroRepository.findAllByIdsAndBloque(List.of(insumos), BLOQUE_INSUMOS_ID, NEGOCIO_ID))
                 .thenReturn(Arrays.stream(insumos).map(RecetaUseCasesTest::givenInsumo).toList());
     }
@@ -262,11 +267,11 @@ class RecetaUseCasesTest {
         when(recetaRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
-    private static Registro givenInsumo(UUID id) {
+    private static Registro givenInsumo(RegistroId id) {
         return Registro.builder().id(id).valores(Map.of()).build();
     }
 
-    private static GuardarRecetaRequest givenGuardar(UUID... insumos) {
+    private static GuardarRecetaRequest givenGuardar(RegistroId... insumos) {
         return new GuardarRecetaRequest(USUARIO_ID, PRODUCTO_ID, PRECIO_ID, Arrays.stream(insumos)
                 .map(insumo -> new LineaRecetaRequest(insumo, new BigDecimal("2"), "kg"))
                 .toList());

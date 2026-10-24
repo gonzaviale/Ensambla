@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.model.preferencia;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -9,7 +10,6 @@ import lombok.Setter;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /** Lo que la persona decidió sobre los avisos y la bienvenida; viaja con la cuenta. */
 @Getter
@@ -19,7 +19,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class PreferenciaUsuario {
 
-    private UUID usuarioId;
+    private UsuarioId usuarioId;
 
     /** Avisos que descartó. */
     @Builder.Default
@@ -39,7 +39,7 @@ public class PreferenciaUsuario {
 
     private OffsetDateTime actualizadoEn;
 
-    public static PreferenciaUsuario inicial(UUID usuarioId, OffsetDateTime ahora) {
+    public static PreferenciaUsuario inicial(UsuarioId usuarioId, OffsetDateTime ahora) {
         return PreferenciaUsuario.builder()
                 .usuarioId(usuarioId)
                 .creadoEn(ahora)

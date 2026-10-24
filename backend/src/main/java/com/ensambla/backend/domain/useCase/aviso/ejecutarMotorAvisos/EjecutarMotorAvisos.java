@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.aviso.ejecutarMotorAvisos;
 
 import com.ensambla.backend.domain.model.aviso.Aviso;
+import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.BloqueInventario;
 import com.ensambla.backend.domain.model.aviso.ContextoNegocio;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
@@ -8,8 +9,10 @@ import com.ensambla.backend.domain.model.aviso.ReglaAviso;
 import com.ensambla.backend.domain.model.aviso.ResultadoRegla;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
@@ -28,7 +31,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * Corre todas las reglas registradas sobre cada negocio y deja sus avisos al día: crea los nuevos, actualiza los que
@@ -55,12 +57,12 @@ public class EjecutarMotorAvisos {
     private final Clock clock;
 
     public void execute() {
-        for (UUID negocioId : negocioRepository.findAllIds()) {
+        for (NegocioId negocioId : negocioRepository.findAllIds()) {
             ejecutarNegocio(negocioId);
         }
     }
 
-    private void ejecutarNegocio(UUID negocioId) {
+    private void ejecutarNegocio(NegocioId negocioId) {
         try {
             OffsetDateTime ahora = OffsetDateTime.now(clock);
             transaccionPort.ejecutar(() -> {
@@ -74,7 +76,7 @@ public class EjecutarMotorAvisos {
 
     // --- contexto: las tablas de inventario del negocio con sus campos y registros ---
 
-    private ContextoNegocio armarContexto(UUID negocioId) {
+    private ContextoNegocio armarContexto(NegocioId negocioId) {
         List<BloqueInventario> inventarios = proyectoRepository.findAllByNegocioId(negocioId).stream()
                 .map(proyecto -> proyectoRepository.findByIdAndNegocioId(proyecto.getId(), negocioId))
                 .flatMap(Optional::stream)
@@ -83,8 +85,8 @@ public class EjecutarMotorAvisos {
         return new ContextoNegocio(negocioId, inventarios);
     }
 
-    private List<BloqueInventario> inventariosDe(Proyecto proyecto, UUID negocioId) {
-        UUID entradasId = proyecto.getBloques().stream()
+    private List<BloqueInventario> inventariosDe(Proyecto proyecto, NegocioId negocioId) {
+        BloqueId entradasId = proyecto.getBloques().stream()
                 .filter(bloque -> bloque.getTipo() == TipoBloque.ENTRADAS)
                 .map(Bloque::getId)
                 .findFirst()
@@ -109,10 +111,11 @@ public class EjecutarMotorAvisos {
 
     // --- sincronización de los avisos de una regla ---
 
-    private void sincronizar(UUID negocioId, TipoAviso tipo, List<ResultadoRegla> resultados, OffsetDateTime ahora) {
+    private void sincronizar(NegocioId negocioId, TipoAviso tipo, List<ResultadoRegla> resultados,
+            OffsetDateTime ahora) {
         List<Aviso> pendientes = avisoRepository.findByNegocioIdAndTipoAndEstado(
                 negocioId, tipo, EstadoAviso.PENDIENTE);
-        Set<UUID> vigentes = new HashSet<>();
+        Set<AvisoId> vigentes = new HashSet<>();
         for (ResultadoRegla resultado : resultados) {
             Optional<Aviso> existente = avisoRepository.findByNegocioIdAndHuella(
                     negocioId, resultado.huellaPara(tipo));
