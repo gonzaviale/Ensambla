@@ -24,6 +24,8 @@ export type Modal =
   | { tipo: 'renombrar' }
   | { tipo: 'renombrarPieza'; bloqueId: string }
   | { tipo: 'registro'; bloqueId: string; filaId?: string | null }
+  /** Un registro de la propuesta de Sami, que todavía no es un sistema creado. */
+  | { tipo: 'registroDelBorrador'; bloqueId: string; filaId?: string | null }
   | { tipo: 'campo'; bloqueId: string; clave?: string | null }
   | { tipo: 'bienvenida' }
   | { tipo: 'secciones' }

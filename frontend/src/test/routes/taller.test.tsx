@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import { sistemaParaCrear } from '@/lib/sistema/acciones';
 import { allBlocks } from '@/lib/sistema/core';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { renderApp } from '@/test/renderApp';
@@ -107,6 +108,63 @@ describe('el taller de Sami', () => {
     await user.click(within(bloque).getByRole('button', { name: 'Quitar de la propuesta' }));
     expect(screen.queryByRole('button', { name: /Los de la cuadra/ })).toBeNull();
     expect(screen.getByText('2 piezas conectadas')).toBeVisible();
+  });
+
+  it('se puede editar un registro de ejemplo y agregar uno propio, y al crear el sistema pasan', async () => {
+    const { user } = await conPropuesta();
+    const bloque = screen
+      .getByRole('button', { name: /^Productos/ })
+      .closest<HTMLElement>('.preview-block');
+    if (!bloque) throw new Error('Falta la pieza');
+    expect(within(bloque).getAllByText('Ejemplo').length).toBeGreaterThan(0);
+
+    const [primerLapiz] = within(bloque).getAllByRole('button', { name: 'Editar registro' });
+    if (!primerLapiz) throw new Error('Falta el lápiz del primer registro');
+    await user.click(primerLapiz);
+    expect(await screen.findByRole('heading', { name: 'Editar producto' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: /Eliminar/ })).toBeNull();
+    const nombre = screen.getByLabelText(/^Producto/);
+    await user.clear(nombre);
+    await user.type(nombre, 'Yerba Taragüí 1 kg');
+    await clickButton(user, 'Guardar');
+    await verifyToastAsync('Registro actualizado.');
+
+    const editada = within(bloque).getByText('Yerba Taragüí 1 kg').closest('tr');
+    expect(editada).not.toHaveClass('example-row');
+
+    await user.click(within(bloque).getByRole('button', { name: '+ Agregar registro' }));
+    expect(await screen.findByRole('heading', { name: 'Registrar producto' })).toBeVisible();
+    await user.type(screen.getByLabelText(/^Producto/), 'Mate de calabaza');
+    await user.type(screen.getByLabelText(/^Cantidad/), '8');
+    await clickButton(user, 'Guardar');
+    await verifyToastAsync('Registro guardado.');
+    expect(within(bloque).getByText('Mate de calabaza')).toBeVisible();
+
+    const borrador = useSistemaStore.getState().taller?.borrador;
+    if (!borrador) throw new Error('Falta la propuesta');
+    const creado = sistemaParaCrear(borrador);
+    const productos = allBlocks(creado).find((pieza) => pieza.type === 'inventory');
+    expect(productos?.rows.map((fila) => fila.name)).toEqual([
+      'Yerba Taragüí 1 kg',
+      'Mate de calabaza',
+    ]);
+  });
+
+  it('un registro sin los datos obligatorios no se guarda y el formulario sigue abierto', async () => {
+    const { user } = await conPropuesta();
+    const bloque = screen
+      .getByRole('button', { name: /^Productos/ })
+      .closest<HTMLElement>('.preview-block');
+    if (!bloque) throw new Error('Falta la pieza');
+    const antes = within(bloque).getAllByRole('row').length;
+
+    await user.click(within(bloque).getByRole('button', { name: '+ Agregar registro' }));
+    await screen.findByRole('heading', { name: 'Registrar producto' });
+    await clickButton(user, 'Guardar');
+
+    expect((await screen.findAllByText('Completá este campo.')).length).toBeGreaterThan(0);
+    expect(screen.getByRole('heading', { name: 'Registrar producto' })).toBeVisible();
+    expect(within(bloque).getAllByRole('row')).toHaveLength(antes);
   });
 
   it('suma una pieza de la paleta y cambia la distribución', async () => {

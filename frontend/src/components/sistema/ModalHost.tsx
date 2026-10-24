@@ -48,6 +48,8 @@ function ContenidoDelModal() {
       return <ModalRenombrarPieza bloqueId={modal.bloqueId} />;
     case 'registro':
       return <ModalRegistro bloqueId={modal.bloqueId} filaId={modal.filaId} />;
+    case 'registroDelBorrador':
+      return <ModalRegistro bloqueId={modal.bloqueId} filaId={modal.filaId} enBorrador />;
     case 'campo':
       return <ModalCampo bloqueId={modal.bloqueId} clave={modal.clave} />;
     case 'secciones':

@@ -17,6 +17,8 @@ type PreviewBoardProps = {
   /** La propuesta de Sami: se puede renombrar, quitar, ensanchar y arrastrar cada pieza. */
   editable?: boolean;
   onRenombrar?: (bloqueId: string) => void;
+  /** Editar un registro de ejemplo (o agregar uno, con `filaId` en `null`) antes de crear el sistema. */
+  onRegistro?: (bloqueId: string, filaId: string | null) => void;
   onQuitar?: (bloqueId: string) => void;
   onAncho?: (bloqueId: string, ancho: Ancho) => void;
   /** Arrastrar y soltar las piezas de la propuesta. */
@@ -55,10 +57,13 @@ function Contenido({
   bloque,
   sistema,
   compacto,
+  onRegistro,
 }: {
   bloque: Bloque;
   sistema: Sistema;
   compacto: boolean;
+  /** Con esto la tabla deja editar y agregar registros. */
+  onRegistro?: (bloqueId: string, filaId: string | null) => void;
 }) {
   const [verTodas, setVerTodas] = useState(false);
   if (bloque.type === 'summary') {
@@ -86,6 +91,11 @@ function Contenido({
             {campos.map((campo) => (
               <th key={campo.key}>{campo.label}</th>
             ))}
+            {onRegistro && (
+              <th className="preview-row-actions">
+                <span className="sr-only">Acciones</span>
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -98,11 +108,20 @@ function Contenido({
                     {valorDeVista(sistema, campo, fila[campo.key])}
                   </td>
                 ))}
+                {onRegistro && (
+                  <td className="preview-row-actions">
+                    <IconBtn
+                      name="edit"
+                      label="Editar registro"
+                      onClick={() => onRegistro(bloque.id, fila.id)}
+                    />
+                  </td>
+                )}
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={campos.length}>
+              <td colSpan={campos.length + (onRegistro ? 1 : 0)}>
                 <span className="empty-preview">
                   {VACIO_POR_TIPO[bloque.type] ?? 'Un lugar listo para tus registros.'}
                 </span>
@@ -120,6 +139,11 @@ function Contenido({
           {verTodas ? 'Ver menos' : `Ver todas (${bloque.rows.length})`}
         </button>
       )}
+      {onRegistro && (
+        <button type="button" className="preview-more" onClick={() => onRegistro(bloque.id, null)}>
+          + Agregar registro
+        </button>
+      )}
     </div>
   );
 }
@@ -131,6 +155,7 @@ export function PreviewBoard({
   seccionId = null,
   editable = false,
   onRenombrar,
+  onRegistro,
   onQuitar,
   onAncho,
   arrastrando = null,
@@ -235,7 +260,12 @@ export function PreviewBoard({
                 />
               </div>
             )}
-            <Contenido bloque={bloque} sistema={sistema} compacto={compacto} />
+            <Contenido
+              bloque={bloque}
+              sistema={sistema}
+              compacto={compacto}
+              onRegistro={editable ? onRegistro : undefined}
+            />
           </section>
         );
       })}

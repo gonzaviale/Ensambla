@@ -499,6 +499,9 @@ export function TallerPage() {
                   arrastrando={arrastrando}
                   sobre={sobre}
                   onRenombrar={(bloqueId) => abrirModal({ tipo: 'renombrarPieza', bloqueId })}
+                  onRegistro={(bloqueId, filaId) =>
+                    abrirModal({ tipo: 'registroDelBorrador', bloqueId, filaId })
+                  }
                   onQuitar={quitarPieza}
                   onAncho={(bloqueId, ancho) =>
                     editarBorrador((copia) => {

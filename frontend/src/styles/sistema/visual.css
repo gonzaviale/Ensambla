@@ -2864,6 +2864,16 @@ button.sami-float:focus-visible {
 .preview-more:hover {
   opacity: 0.75;
 }
+/* El lápiz de cada fila queda a la vista aunque la tabla se desplace hacia los costados. */
+.preview-table .preview-row-actions {
+  position: sticky;
+  right: 0;
+  width: 1%;
+  padding: 0 6px;
+  background: white;
+  box-shadow: -6px 0 6px -6px rgb(0 0 0 / 0.15);
+  text-align: right;
+}
 .preview-table-expandida {
   max-height: 320px;
   overflow-y: auto;
