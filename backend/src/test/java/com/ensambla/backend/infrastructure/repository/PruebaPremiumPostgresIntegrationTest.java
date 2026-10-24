@@ -9,6 +9,7 @@ import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.procesamiento.ReservaIaService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
@@ -69,6 +70,9 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
 
     @Autowired
     private ProyectoService proyectoService;
+
+    @Autowired
+    private ProyectoRepository proyectoRepository;
 
     private UUID usuarioId;
     private UUID negocioId;
@@ -237,7 +241,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
 
         assertThat(suscripcionRepository.findByNegocioId(negocioId).orElseThrow().getEstado())
                 .isEqualTo(EstadoSuscripcion.ACTIVA);
-        assertThat(proyectoService.listar(negocioId)).hasSize(2);
+        assertThat(proyectoRepository.findAllByNegocioId(negocioId)).hasSize(2);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM registro WHERE negocio_id = ?",
                 Long.class, negocioId)).isEqualTo(1001);
         assertThatThrownBy(() -> proyectoService.crear(negocioId, "Tercero", null, INICIO.plusDays(7)))

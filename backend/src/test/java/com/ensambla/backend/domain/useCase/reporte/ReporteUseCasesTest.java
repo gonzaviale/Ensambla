@@ -39,6 +39,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,6 +47,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -58,6 +60,11 @@ class ReporteUseCasesTest {
     private static final UUID NOMBRE_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
     private static final UUID CANTIDAD_ID = UUID.fromString("c0000000-0000-4000-8000-000000000002");
     private static final UUID PAGADO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000003");
+    private static final UUID CLIENTE_CAMPO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000004");
+    private static final UUID CLIENTES_ID = UUID.fromString("b0000000-0000-4000-8000-000000000002");
+    private static final UUID NOMBRE_CLIENTE_ID = UUID.fromString("c0000000-0000-4000-8000-000000000005");
+    private static final UUID BETO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
+    private static final UUID ANA_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
     private static final Clock RELOJ = Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC);
 
     @Mock
@@ -82,12 +89,12 @@ class ReporteUseCasesTest {
 
     @BeforeEach
     void setUp() {
-        ReporteService reporteService = new ReporteService(registroRepository, campoRepository);
+        ReporteService reporteService = new ReporteService(registroRepository);
         generarReporte = new GenerarReporte(
                 negocioService, controlPlanService, RELOJ, bloqueService, campoService, reporteService);
         exportarReporte = new ExportarReporte(
-                negocioService, controlPlanService, bloqueService, campoService, reporteService,
-                new ExportadorReporteXlsxAdapter(), RELOJ);
+                negocioService, controlPlanService, bloqueService, campoService, reporteService, registroRepository,
+                campoRepository, new ExportadorReporteXlsxAdapter(), RELOJ);
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID))
                 .thenReturn(Bloque.builder().id(BLOQUE_ID).nombre("Pedidos").build());
@@ -160,6 +167,48 @@ class ReporteUseCasesTest {
         assertThatThrownBy(() -> exportarReporte.execute(request(null)))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("10000 filas");
+    }
+
+    @Test
+    @DisplayName("El archivo nombra las filas conectadas pidiendo una vez cada tabla conectada")
+    void exportarShouldNameConnectedRowsQueryingOncePerTable() throws IOException {
+        Campo cliente = Campo.builder().id(CLIENTE_CAMPO_ID).nombre("Cliente").tipo(TipoCampo.RELACION)
+                .bloqueRelacionadoId(CLIENTES_ID).posicion((short) 3).build();
+        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(givenCampos().get(0), cliente));
+        when(registroRepository.buscarFiltrados(any(), anyInt())).thenReturn(List.of(
+                givenFilaDe(BETO_ID), givenFilaDe(ANA_ID),
+                Registro.builder().id(UUID.randomUUID()).creadoEn(OffsetDateTime.parse("2026-10-12T12:00:00Z"))
+                        .valores(Map.of()).build()));
+        when(registroRepository.contarFiltrados(any())).thenReturn(3L);
+        when(registroRepository.sumarNumericos(any(FiltroReporte.class), any())).thenReturn(Map.of());
+        when(campoRepository.findByBloqueIdAndNegocioId(CLIENTES_ID, NEGOCIO_ID)).thenReturn(List.of(
+                Campo.builder().id(NOMBRE_CLIENTE_ID).tipo(TipoCampo.TEXTO).posicion((short) 0).build()));
+        when(registroRepository.findAllByIdsAndBloque(Set.of(BETO_ID, ANA_ID), CLIENTES_ID, NEGOCIO_ID))
+                .thenReturn(List.of(
+                        Registro.builder().id(BETO_ID).valores(Map.of(NOMBRE_CLIENTE_ID.toString(), "Beto")).build(),
+                        Registro.builder().id(ANA_ID).valores(Map.of(NOMBRE_CLIENTE_ID.toString(), "Ana")).build()));
+
+        ExportarReporteResponse archivo = exportarReporte.execute(request(null));
+
+        List<Row> filas = leer(archivo.contenido());
+        assertThat(filas.get(1).getCellText(1)).isEqualTo("Beto");
+        assertThat(filas.get(2).getCellText(1)).isEqualTo("Ana");
+        verify(registroRepository).findAllByIdsAndBloque(Set.of(BETO_ID, ANA_ID), CLIENTES_ID, NEGOCIO_ID);
+    }
+
+    @Test
+    @DisplayName("Sin columnas de conexión el archivo no consulta otras tablas")
+    void exportarShouldNotQueryOtherTablesWithoutConnections() {
+        givenReporte(2, new BigDecimal("125.5"));
+
+        exportarReporte.execute(request(null));
+
+        verify(registroRepository, never()).findAllByIdsAndBloque(any(), any(), any());
+    }
+
+    private static Registro givenFilaDe(UUID clienteId) {
+        return Registro.builder().id(UUID.randomUUID()).creadoEn(OffsetDateTime.parse("2026-10-12T12:00:00Z"))
+                .valores(Map.of(CLIENTE_CAMPO_ID.toString(), clienteId.toString())).build();
     }
 
     private void givenReporte(long cantidad, BigDecimal suma) {

@@ -1,6 +1,5 @@
 package com.ensambla.backend.domain.service.campo;
 
-import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
@@ -129,33 +128,6 @@ class CampoServiceTest {
     }
 
     @Test
-    @DisplayName("Editar reemplaza la configuración del campo y lo guarda")
-    void editarShouldReconfigureAndSave() {
-        Campo campo = givenCampo(CAMPO_ID, "Precio", 0);
-        givenCamposDelBloque(givenCampo(CAMPO_ID, "Precio", 0));
-        givenSaveReturnsArgument();
-
-        Campo result = campoService.editar(givenBloque(), campo, configuracion("Costo"), AHORA);
-
-        assertThat(result.getNombre()).isEqualTo("Costo");
-        assertThat(result.getTipo()).isEqualTo(TipoCampo.TEXTO);
-        assertThat(result.getActualizadoEn()).isEqualTo(AHORA);
-        verify(campoRepository).save(campo);
-    }
-
-    @Test
-    @DisplayName("Editar con el nombre de otro campo del bloque no guarda nada")
-    void editarShouldNotSaveWhenNameIsTaken() {
-        Campo campo = givenCampo(CAMPO_ID, "Precio", 0);
-        givenCamposDelBloque(campo, givenCampo(OTRO_CAMPO_ID, "Producto", 1));
-        Bloque bloque = givenBloque();
-
-        assertThatThrownBy(() -> campoService.editar(bloque, campo, configuracion("Producto"), AHORA))
-                .isInstanceOf(DuplicateResourceException.class);
-        verify(campoRepository, never()).save(any());
-    }
-
-    @Test
     @DisplayName("Crear un campo que no es de conexión no consulta otras tablas")
     void crearShouldNotLookUpBloqueWhenCampoIsNotRelacion() {
         givenCamposDelBloque();
@@ -206,42 +178,6 @@ class CampoServiceTest {
     }
 
     @Test
-    @DisplayName("Editar rechaza convertir el campo en una conexión con una tabla de otro sistema")
-    void editarShouldRejectRelacionWhenBloqueIsOfOtherProyecto() {
-        Campo campo = givenCampo(CAMPO_ID, "Precio", 0);
-        givenCamposDelBloque(campo);
-        givenBloqueRelacionado(OTRO_PROYECTO_ID);
-        Bloque bloque = givenBloque();
-
-        assertThatThrownBy(() -> campoService.editar(bloque, campo, relacion(), AHORA))
-                .isInstanceOf(CampoInvalidoException.class);
-        verify(campoRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("Editar guarda una conexión con una tabla del mismo sistema")
-    void editarShouldSaveRelacionWhenBloqueIsOfSameProyecto() {
-        Campo campo = givenCampo(CAMPO_ID, "Precio", 0);
-        givenCamposDelBloque(campo);
-        givenBloqueRelacionado(PROYECTO_ID);
-        givenSaveReturnsArgument();
-
-        Campo result = campoService.editar(givenBloque(), campo, relacion(), AHORA);
-
-        assertThat(result.getBloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
-    }
-
-    @Test
-    @DisplayName("Eliminar borra el campo filtrando por su negocio")
-    void eliminarShouldDeleteFilteringByNegocio() {
-        Campo campo = givenCampo(CAMPO_ID, "Precio", 0);
-
-        campoService.eliminar(campo);
-
-        verify(campoRepository).deleteByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID);
-    }
-
-    @Test
     @DisplayName("Crear guarda una fórmula que usa campos numéricos del bloque")
     void crearShouldSaveFormulaThatUsesNumericFields() {
         givenCamposDelBloque(givenCampo(OTRO_CAMPO_ID, "Cantidad", 0));
@@ -277,69 +213,6 @@ class CampoServiceTest {
 
         assertThatThrownBy(() -> campoService.crear(bloque, conTexto, AHORA))
                 .isInstanceOf(CampoInvalidoException.class);
-    }
-
-    @Test
-    @DisplayName("Editar un campo para que sea una fórmula que se cita a sí misma no guarda nada")
-    void editarShouldRejectFormulaThatUsesItself() {
-        Campo campo = givenCampo(CAMPO_ID, "Total", 0);
-        givenCamposDelBloque(givenCampo(CAMPO_ID, "Total", 0));
-        Bloque bloque = givenBloque();
-        ConfiguracionCampo propia = formula("{" + CAMPO_ID + "} * 2");
-
-        assertThatThrownBy(() -> campoService.editar(bloque, campo, propia, AHORA))
-                .isInstanceOf(CampoInvalidoException.class);
-        verify(campoRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("Editar no deja cambiar el tipo de un campo que usa una fórmula")
-    void editarShouldRejectChangingTypeOfFieldUsedByFormula() {
-        Campo cantidad = givenCampo(CAMPO_ID, "Cantidad", 0);
-        givenCamposDelBloque(cantidad, givenFormula(OTRO_CAMPO_ID, "Doble", "{" + CAMPO_ID + "} * 2"));
-        Bloque bloque = givenBloque();
-        ConfiguracionCampo texto = configuracion("Cantidad");
-
-        assertThatThrownBy(() -> campoService.editar(bloque, cantidad, texto, AHORA))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("No se puede cambiar el tipo de «Cantidad»: la fórmula «Doble» lo usa");
-        verify(campoRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("Editar deja cambiar el tipo de un campo que ninguna fórmula usa")
-    void editarShouldAllowChangingTypeOfFieldNotUsedByFormula() {
-        Campo cantidad = givenCampo(CAMPO_ID, "Cantidad", 0);
-        givenCamposDelBloque(cantidad, givenFormula(OTRO_CAMPO_ID, "Doble", "2 * 2"));
-        givenSaveReturnsArgument();
-
-        Campo result = campoService.editar(givenBloque(), cantidad, configuracion("Cantidad"), AHORA);
-
-        assertThat(result.getTipo()).isEqualTo(TipoCampo.TEXTO);
-    }
-
-    @Test
-    @DisplayName("Editar un campo numérico que usa una fórmula no revisa las fórmulas")
-    void editarShouldKeepNumericFieldUsedByFormula() {
-        Campo cantidad = givenCampo(CAMPO_ID, "Cantidad", 0);
-        givenCamposDelBloque(cantidad, givenFormula(OTRO_CAMPO_ID, "Doble", "{" + CAMPO_ID + "} * 2"));
-        givenSaveReturnsArgument();
-
-        Campo result = campoService.editar(givenBloque(), cantidad, numero("Cantidad"), AHORA);
-
-        assertThat(result.getTipo()).isEqualTo(TipoCampo.NUMERO);
-    }
-
-    @Test
-    @DisplayName("Eliminar rechaza borrar un campo que usa una fórmula")
-    void eliminarShouldRejectFieldUsedByFormula() {
-        Campo cantidad = givenCampo(CAMPO_ID, "Cantidad", 0);
-        givenCamposDelBloque(cantidad, givenFormula(OTRO_CAMPO_ID, "Doble", "{" + CAMPO_ID + "} * 2"));
-
-        assertThatThrownBy(() -> campoService.eliminar(cantidad))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("No se puede eliminar «Cantidad»: la fórmula «Doble» lo usa");
-        verify(campoRepository, never()).deleteByIdAndNegocioId(any(), any());
     }
 
     // --- arrange ---
@@ -382,10 +255,6 @@ class CampoServiceTest {
 
     private ConfiguracionCampo formula(String expresion) {
         return new ConfiguracionCampo("Total", "FORMULA", null, null, null, null, expresion);
-    }
-
-    private ConfiguracionCampo numero(String nombre) {
-        return new ConfiguracionCampo(nombre, "NUMERO", null, null, null, null, null);
     }
 
     private Campo givenFormula(UUID id, String nombre, String expresion) {

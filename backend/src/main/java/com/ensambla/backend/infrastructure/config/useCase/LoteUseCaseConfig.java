@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
+
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
@@ -19,25 +20,22 @@ import java.time.Clock;
 public class LoteUseCaseConfig {
 
     @Bean
-    public ObtenerFotoLote obtenerFotoLote(
-            NegocioService negocioService,
-            LoteSubidaService loteSubidaService) {
-        return new ObtenerFotoLote(
-                negocioService,
-                loteSubidaService);
+    public ObtenerFotoLote obtenerFotoLote(NegocioService negocioService, LoteSubidaService loteSubidaService) {
+        return new ObtenerFotoLote(negocioService, loteSubidaService);
     }
 
     @Bean
     public SubirLote subirLote(
             NegocioService negocioService,
-            LoteSubidaService loteSubidaService,
+            LoteSubidaRepository loteSubidaRepository,
+            ArchivoCuadernoPort archivoCuadernoPort,
+            ControlPlanService controlPlanService,
+            TransaccionPort transaccionPort,
             BloqueService bloqueService,
             Clock clock) {
         return new SubirLote(
-                negocioService,
-                loteSubidaService,
-                bloqueService,
-                clock);
+                negocioService, loteSubidaRepository, archivoCuadernoPort, controlPlanService, transaccionPort,
+                bloqueService, clock);
     }
 
     @Bean
@@ -53,8 +51,7 @@ public class LoteUseCaseConfig {
     public LoteSubidaService loteSubidaService(
             LoteSubidaRepository loteSubidaRepository,
             ArchivoCuadernoPort archivoCuadernoPort,
-            ControlPlanService controlPlanService,
             TransaccionPort transaccionPort) {
-        return new LoteSubidaService(loteSubidaRepository, archivoCuadernoPort, controlPlanService, transaccionPort);
+        return new LoteSubidaService(loteSubidaRepository, archivoCuadernoPort, transaccionPort);
     }
 }

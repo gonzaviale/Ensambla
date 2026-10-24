@@ -2,8 +2,10 @@ package com.ensambla.backend.domain.useCase.registro.eliminarRegistro;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,6 +17,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -31,11 +34,15 @@ class EliminarRegistroTest {
     @Mock
     private RegistroDatosService registroDatosService;
 
+    @Mock
+    private RegistroRepository registroRepository;
+
     private EliminarRegistro eliminarRegistro;
 
     @BeforeEach
     void setUp() {
-        eliminarRegistro = new EliminarRegistro(negocioService, registroDatosService);
+        eliminarRegistro = new EliminarRegistro(
+                negocioService, registroDatosService, registroRepository, new TransaccionDirecta());
     }
 
     @Test
@@ -47,7 +54,7 @@ class EliminarRegistroTest {
 
         eliminarRegistro.execute(new EliminarRegistroRequest(USUARIO_ID, REGISTRO_ID));
 
-        verify(registroDatosService).eliminar(registro);
+        verify(registroRepository).deleteById(REGISTRO_ID);
     }
 
     @Test
@@ -63,5 +70,6 @@ class EliminarRegistroTest {
 
         verify(registroDatosService).obtener(REGISTRO_ID, NEGOCIO_ID);
         verifyNoMoreInteractions(registroDatosService);
+        verifyNoInteractions(registroRepository);
     }
 }

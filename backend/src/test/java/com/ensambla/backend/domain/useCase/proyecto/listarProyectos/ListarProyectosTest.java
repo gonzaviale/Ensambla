@@ -1,9 +1,8 @@
 package com.ensambla.backend.domain.useCase.proyecto.listarProyectos;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.plantilla.PlantillaService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.infrastructure.config.useCase.ProyectoUseCaseConfig;
 import com.ensambla.backend.support.ProyectoTestData;
 import org.junit.jupiter.api.DisplayName;
@@ -24,23 +23,22 @@ import static org.mockito.Mockito.when;
 class ListarProyectosTest {
 
     private final NegocioService negocioService = mock(NegocioService.class);
-    private final ProyectoService proyectoService = mock(ProyectoService.class);
-    private final PlantillaService plantillaService = mock(PlantillaService.class);
+    private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
     private final ProyectoUseCaseConfig config = new ProyectoUseCaseConfig();
     private final ListarProyectos listarProyectos = config.listarProyectos(
             negocioService,
-            proyectoService);
+            proyectoRepository);
 
     @Test
-    @DisplayName("Resuelve el negocio de sesión, delega y mapea la respuesta")
+    @DisplayName("Resuelve el negocio de sesión y mapea sus proyectos")
     void executeShouldResolveNegocioAndMapResponse() {
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(proyectoService.listar(NEGOCIO_ID)).thenReturn(List.of(ProyectoTestData.proyecto()));
+        when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(ProyectoTestData.proyecto()));
 
         var result = listarProyectos.execute(new ListarProyectosRequest(USUARIO_ID));
 
         assertThat(result.getFirst().id()).isEqualTo(PROYECTO_ID);
-        verify(proyectoService).listar(NEGOCIO_ID);
+        verify(proyectoRepository).findAllByNegocioId(NEGOCIO_ID);
     }
 
     @Test
@@ -50,7 +48,7 @@ class ListarProyectosTest {
 
         assertThatThrownBy(() -> listarProyectos.execute(new ListarProyectosRequest(USUARIO_ID)))
                 .isInstanceOf(ResourceNotFoundException.class);
-        verifyNoInteractions(proyectoService, plantillaService);
+        verifyNoInteractions(proyectoRepository);
     }
 }
 

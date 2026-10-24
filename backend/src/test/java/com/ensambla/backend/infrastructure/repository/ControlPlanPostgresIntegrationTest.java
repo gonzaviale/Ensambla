@@ -6,10 +6,12 @@ import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
+import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.procesamiento.ReservaIaService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
@@ -47,6 +49,9 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Autowired
     private ProyectoService proyectoService;
+
+    @Autowired
+    private ProyectoRepository proyectoRepository;
 
     @Autowired
     private RegistroDatosService registroDatosService;
@@ -155,10 +160,10 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         registroDatosService.editar(registro, List.of(), Map.of(), AHORA.plusHours(1));
 
         assertThat(usoPlanRepository.contarRegistros(negocioId)).isEqualTo(1001);
-        assertThat(proyectoService.listar(negocioId)).hasSize(1);
+        assertThat(proyectoRepository.findAllByNegocioId(negocioId)).hasSize(1);
         assertThatThrownBy(() -> crearRegistro(bloqueId)).isInstanceOf(RestriccionPlanException.class);
-        UUID proyectoId = proyectoService.listar(negocioId).getFirst().getId();
-        assertThatCode(() -> proyectoService.renombrar(negocioId, proyectoId, "Conservado", AHORA))
+        UUID proyectoId = proyectoRepository.findAllByNegocioId(negocioId).getFirst().getId();
+        assertThatCode(() -> renombrar(negocioId, proyectoId, "Conservado"))
                 .doesNotThrowAnyException();
     }
 
@@ -358,7 +363,8 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     private boolean crearRegistro(UUID bloqueId) {
-        registroDatosService.crear(negocioId, bloqueId, List.of(), Map.of(), AHORA);
+        registroDatosService.crearVarios(
+                negocioId, List.of(Registro.nuevo(negocioId, bloqueId, Map.of(), AHORA)), AHORA);
         return true;
     }
 
@@ -389,5 +395,11 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         } catch (RestriccionPlanException e) {
             return false;
         }
+    }
+    /** Editar lo que ya existe no consume cupo del plan. */
+    private void renombrar(UUID negocioId, UUID proyectoId, String nombre) {
+        Proyecto proyecto = proyectoService.obtener(negocioId, proyectoId);
+        proyecto.renombrar(nombre, AHORA);
+        proyectoRepository.save(proyecto);
     }
 }

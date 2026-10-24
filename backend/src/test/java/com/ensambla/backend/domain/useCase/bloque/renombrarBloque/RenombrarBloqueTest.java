@@ -1,20 +1,24 @@
 package com.ensambla.backend.domain.useCase.bloque.renombrarBloque;
 
+import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.domain.useCase.bloque.BloqueItem;
 import com.ensambla.backend.infrastructure.config.useCase.BloqueUseCaseConfig;
 import com.ensambla.backend.support.ProyectoTestData;
+import com.ensambla.backend.support.TransaccionDirecta;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
 import java.time.ZoneOffset;
-import java.util.UUID;
+import java.util.Optional;
 
 import static com.ensambla.backend.support.ProyectoTestData.AHORA;
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
@@ -31,60 +35,68 @@ import static org.mockito.Mockito.when;
 
 class RenombrarBloqueTest {
 
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final RenombrarBloqueRequest REQUEST =
-            new RenombrarBloqueRequest(USUARIO_ID, BLOQUE_ID, "Compradores");
-
     private final NegocioService negocioService = mock(NegocioService.class);
-    private final BloqueService bloqueService = mock(BloqueService.class);
+    private final BloqueRepository bloqueRepository = mock(BloqueRepository.class);
     private final ProyectoService proyectoService = mock(ProyectoService.class);
-    private final BloqueUseCaseConfig config = new BloqueUseCaseConfig();
-    private final RenombrarBloque renombrarBloque = config.renombrarBloque(
+    private final RenombrarBloque renombrarBloque = new BloqueUseCaseConfig().renombrarBloque(
             negocioService,
-            bloqueService,
+            new BloqueService(bloqueRepository, new TransaccionDirecta()),
             proyectoService,
+            bloqueRepository,
+            new TransaccionDirecta(),
             Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
 
+    private final Proyecto proyecto = ProyectoTestData.proyecto();
+
+    @BeforeEach
+    void givenNegocio() {
+        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+    }
+
     @Test
-    @DisplayName("Renombra validando contra los bloques del proyecto dueño y con la hora del reloj")
+    @DisplayName("Renombra validando contra los bloques del proyecto dueño y guarda con la hora del reloj")
     void executeShouldRenameAgainstOwnerProyecto() {
-        Bloque bloque = givenBloque("Clientes");
-        Proyecto proyecto = ProyectoTestData.proyecto();
-        givenNegocio();
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque);
-        when(proyectoService.obtener(NEGOCIO_ID, PROYECTO_ID)).thenReturn(proyecto);
-        when(bloqueService.renombrar(proyecto, bloque, "Compradores", AHORA)).thenReturn(givenBloque("Compradores"));
+        Bloque bloque = givenBloqueDelProyecto(0);
+        when(bloqueRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        BloqueItem result = renombrarBloque.execute(REQUEST);
+        BloqueItem result = renombrarBloque.execute(new RenombrarBloqueRequest(USUARIO_ID, bloque.getId(), " Mercadería "));
 
-        assertThat(result.id()).isEqualTo(BLOQUE_ID);
-        assertThat(result.nombre()).isEqualTo("Compradores");
+        assertThat(result.id()).isEqualTo(bloque.getId());
+        assertThat(result.nombre()).isEqualTo("Mercadería");
+        assertThat(result.actualizadoEn()).isEqualTo(AHORA);
+        verify(bloqueRepository).save(bloque);
+    }
+
+    @Test
+    @DisplayName("Renombrar con el nombre de otro bloque no modifica ni guarda el bloque")
+    void executeShouldNotSaveWhenNameIsTaken() {
+        Bloque bloque = givenBloqueDelProyecto(1);
+
+        assertThatThrownBy(() -> renombrarBloque.execute(
+                new RenombrarBloqueRequest(USUARIO_ID, bloque.getId(), "Productos")))
+                .isInstanceOf(DuplicateResourceException.class);
+        assertThat(bloque.getNombre()).isEqualTo("Vacío");
+        verify(bloqueRepository, never()).save(any());
     }
 
     @Test
     @DisplayName("Un bloque ajeno propaga el 404 sin consultar el proyecto ni renombrar")
     void executeShouldStopWhenBloqueIsForeign() {
-        givenNegocio();
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenThrow(new ResourceNotFoundException("El bloque no existe"));
+        Bloque bloque = proyecto.getBloques().getFirst();
+        when(bloqueRepository.findByIdAndNegocioId(bloque.getId(), NEGOCIO_ID)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> renombrarBloque.execute(REQUEST))
+        assertThatThrownBy(() -> renombrarBloque.execute(
+                new RenombrarBloqueRequest(USUARIO_ID, bloque.getId(), "Compradores")))
                 .isInstanceOf(ResourceNotFoundException.class);
         verifyNoInteractions(proyectoService);
-        verify(bloqueService, never()).renombrar(any(), any(), any(), any());
+        verify(bloqueRepository, never()).save(any());
     }
 
     // --- arrange ---
-    private void givenNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-    }
-
-    private Bloque givenBloque(String nombre) {
-        return Bloque.builder()
-                .id(BLOQUE_ID)
-                .negocioId(NEGOCIO_ID)
-                .proyectoId(PROYECTO_ID)
-                .nombre(nombre)
-                .posicion((short) 0)
-                .build();
+    private Bloque givenBloqueDelProyecto(int indice) {
+        Bloque bloque = proyecto.getBloques().get(indice);
+        when(bloqueRepository.findByIdAndNegocioId(bloque.getId(), NEGOCIO_ID)).thenReturn(Optional.of(bloque));
+        when(proyectoService.obtener(NEGOCIO_ID, PROYECTO_ID)).thenReturn(proyecto);
+        return bloque;
     }
 }

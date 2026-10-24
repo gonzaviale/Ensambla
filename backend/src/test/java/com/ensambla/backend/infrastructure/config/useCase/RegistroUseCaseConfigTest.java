@@ -2,11 +2,13 @@ package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.common.Pagina;
+import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
-import com.ensambla.backend.domain.model.registro.TotalesRegistros;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistroRequest;
 import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistroResponse;
@@ -19,6 +21,7 @@ import com.ensambla.backend.domain.useCase.registro.listarRegistros.ListarRegist
 import com.ensambla.backend.domain.useCase.registro.listarRegistros.ListarRegistrosResponse;
 import com.ensambla.backend.domain.useCase.registro.obtenerRegistro.ObtenerRegistroRequest;
 import com.ensambla.backend.domain.useCase.registro.obtenerRegistro.ObtenerRegistroResponse;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,7 +33,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -49,6 +51,7 @@ class RegistroUseCaseConfigTest {
     private BloqueService bloqueService;
     private CampoService campoService;
     private RegistroDatosService registroDatosService;
+    private RegistroRepository registroRepository;
 
     @BeforeEach
     void setUp() {
@@ -56,6 +59,7 @@ class RegistroUseCaseConfigTest {
         bloqueService = mock(BloqueService.class);
         campoService = mock(CampoService.class);
         registroDatosService = mock(RegistroDatosService.class);
+        registroRepository = mock(RegistroRepository.class);
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
@@ -64,10 +68,11 @@ class RegistroUseCaseConfigTest {
     void crearRegistroUseCaseShouldWireCollaborators() {
         when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
         when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
-        when(registroDatosService.crear(any(), any(), any(), any(), any())).thenReturn(registro());
+        when(registroRepository.save(any())).thenReturn(registro());
 
         CrearRegistroResponse response = config.crearRegistro(
-                negocioService, bloqueService, campoService, registroDatosService, clock)
+                negocioService, bloqueService, campoService, registroDatosService, mock(ControlPlanService.class),
+                registroRepository, new TransaccionDirecta(), clock)
                 .execute(new CrearRegistroRequest(USUARIO_ID, BLOQUE_ID, Map.of()));
 
         assertThat(response.registro().id()).isEqualTo(REGISTRO_ID);
@@ -79,11 +84,10 @@ class RegistroUseCaseConfigTest {
         when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
         when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
         when(registroDatosService.listar(any())).thenReturn(new Pagina<>(List.of(registro()), 0, 20, 1));
-        when(registroDatosService.totales(any(), any(), anyLong()))
-                .thenReturn(new TotalesRegistros(1, Map.of()));
+        when(registroRepository.sumarNumericos(any(ConsultaRegistros.class), any())).thenReturn(Map.of());
 
         ListarRegistrosResponse response = config.listarRegistros(
-                negocioService, bloqueService, campoService, registroDatosService)
+                negocioService, bloqueService, campoService, registroDatosService, registroRepository)
                 .execute(new ListarRegistrosRequest(USUARIO_ID, BLOQUE_ID, null, null, null, null, null));
 
         assertThat(response.contenido()).hasSize(1);
@@ -139,10 +143,10 @@ class RegistroUseCaseConfigTest {
         Registro actual = registro();
         when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(actual);
 
-        config.eliminarRegistro(negocioService, registroDatosService)
+        config.eliminarRegistro(negocioService, registroDatosService, registroRepository, new TransaccionDirecta())
                 .execute(new EliminarRegistroRequest(USUARIO_ID, REGISTRO_ID));
 
-        verify(registroDatosService).eliminar(actual);
+        verify(registroRepository).deleteById(REGISTRO_ID);
     }
 
     // --- helpers ---

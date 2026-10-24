@@ -2,96 +2,101 @@ package com.ensambla.backend.domain.useCase.lote.subirLote;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.lote.FotoCuaderno;
+import com.ensambla.backend.domain.model.lote.LoteSubida;
+import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
+import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.lote.LoteSubidaService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.lote.LoteItem;
 import com.ensambla.backend.support.LoteTestData;
-import org.junit.jupiter.api.BeforeEach;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.time.Clock;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.UUID;
 
 import static com.ensambla.backend.support.LoteTestData.AHORA;
 import static com.ensambla.backend.support.LoteTestData.BLOQUE_ID;
 import static com.ensambla.backend.support.LoteTestData.JPEG;
 import static com.ensambla.backend.support.LoteTestData.LOTE_ID;
 import static com.ensambla.backend.support.LoteTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.LoteTestData.PNG;
 import static com.ensambla.backend.support.LoteTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class SubirLoteTest {
 
-    private static final List<byte[]> FOTOS = List.of(JPEG);
-    private static final SubirLoteRequest REQUEST = new SubirLoteRequest(USUARIO_ID, FOTOS, null);
-    private static final SubirLoteRequest REQUEST_CON_DESTINO = new SubirLoteRequest(USUARIO_ID, FOTOS, BLOQUE_ID);
-
     private final NegocioService negocioService = mock(NegocioService.class);
-    private final LoteSubidaService loteSubidaService = mock(LoteSubidaService.class);
     private final BloqueService bloqueService = mock(BloqueService.class);
-
-    private SubirLote subirLote;
-
-    @BeforeEach
-    void setUp() {
-        subirLote = new SubirLote(
-                negocioService,
-                loteSubidaService,
-                bloqueService,
-                Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
-    }
+    private final LoteSubidaRepository loteSubidaRepository = mock(LoteSubidaRepository.class);
+    private final ArchivoCuadernoPort archivoCuadernoPort = mock(ArchivoCuadernoPort.class);
+    private final ControlPlanService controlPlanService = mock(ControlPlanService.class);
+    private final SubirLote subirLote = new SubirLote(negocioService, loteSubidaRepository, archivoCuadernoPort,
+            controlPlanService, new TransaccionDirecta(), bloqueService,
+            Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
 
     @Test
-    @DisplayName("Sube las fotos al negocio de la sesión con la hora actual y devuelve el lote creado")
-    void executeShouldUploadToSessionNegocio() {
+    @DisplayName("Guarda cada foto en la carpeta del negocio de la sesión y después guarda el lote pendiente")
+    void executeShouldStoreFotosAndSaveLote() {
         givenNegocio();
-        givenLoteSubido();
+        givenRepositorySaves();
 
-        LoteItem result = subirLote.execute(REQUEST);
+        LoteItem result = subir(List.of(JPEG, PNG), null);
 
         assertThat(result.id()).isEqualTo(LOTE_ID);
         assertThat(result.estado()).isEqualTo("PENDIENTE");
+        verify(archivoCuadernoPort).guardar(eq(NEGOCIO_ID), startsWith(NEGOCIO_ID + "/fotos/"), eq(JPEG));
+        verify(archivoCuadernoPort).guardar(eq(NEGOCIO_ID), startsWith(NEGOCIO_ID + "/fotos/"), eq(PNG));
+        verify(controlPlanService).validarPaginasIa(NEGOCIO_ID, 2, AHORA);
+        thenSavedLoteHasFotos(2);
     }
 
     @Test
     @DisplayName("Con un bloque destino del negocio lo valida y lo guarda en el lote")
-    void executeShouldPassValidatedBloqueDestino() {
+    void executeShouldSaveValidatedBloqueDestino() {
         givenNegocio();
-        when(loteSubidaService.subir(NEGOCIO_ID, FOTOS, BLOQUE_ID, AHORA))
-                .thenReturn(LoteTestData.lote(List.of(LoteTestData.foto())));
+        givenRepositorySaves();
 
-        LoteItem result = subirLote.execute(REQUEST_CON_DESTINO);
+        subir(List.of(JPEG), BLOQUE_ID);
 
-        assertThat(result.id()).isEqualTo(LOTE_ID);
         verify(bloqueService).obtener(BLOQUE_ID, NEGOCIO_ID);
+        thenSavedLoteHasBloqueDestino();
     }
 
     @Test
     @DisplayName("Un bloque destino de otro negocio responde como inexistente y no sube nada")
     void executeShouldRejectBloqueDestinoOfOtherNegocio() {
         givenNegocio();
-        givenBloqueAjeno();
+        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID))
+                .thenThrow(new ResourceNotFoundException("Bloque no encontrado"));
 
-        assertThatThrownBy(() -> subirLote.execute(REQUEST_CON_DESTINO))
-                .isInstanceOf(ResourceNotFoundException.class);
-        verifyNoInteractions(loteSubidaService);
+        assertThatThrownBy(() -> subir(List.of(JPEG), BLOQUE_ID)).isInstanceOf(ResourceNotFoundException.class);
+        verifyNoInteractions(archivoCuadernoPort, loteSubidaRepository);
     }
 
     @Test
     @DisplayName("Sin bloque destino no consulta bloques")
     void executeShouldNotLookUpBloqueWhenNoDestino() {
         givenNegocio();
-        givenLoteSubido();
+        givenRepositorySaves();
 
-        subirLote.execute(REQUEST);
+        subir(List.of(JPEG), null);
 
         verifyNoInteractions(bloqueService);
     }
@@ -99,21 +104,47 @@ class SubirLoteTest {
     @Test
     @DisplayName("Si el usuario no tiene negocio no sube nada")
     void executeShouldStopWhenNegocioMissing() {
-        givenNoNegocio();
+        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenThrow(new ResourceNotFoundException("Sin negocio"));
 
-        assertThatThrownBy(() -> subirLote.execute(REQUEST)).isInstanceOf(ResourceNotFoundException.class);
-        verifyNoInteractions(loteSubidaService);
+        assertThatThrownBy(() -> subir(List.of(JPEG), null)).isInstanceOf(ResourceNotFoundException.class);
+        verifyNoInteractions(archivoCuadernoPort, loteSubidaRepository);
     }
 
     @Test
-    @DisplayName("Propaga sin cambios el rechazo de una foto inválida")
-    void executeShouldPropagateBusinessRule() {
+    @DisplayName("Si una foto es inválida no guarda nada ni el lote")
+    void executeShouldNotStoreWhenFotoIsInvalid() {
         givenNegocio();
-        givenFotoInvalida();
 
-        assertThatThrownBy(() -> subirLote.execute(REQUEST))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("La foto 1 está vacía");
+        assertThatThrownBy(() -> subir(List.of(JPEG, new byte[0]), null))
+                .isInstanceOf(BusinessRuleException.class);
+        verifyNoInteractions(archivoCuadernoPort, loteSubidaRepository);
+    }
+
+    @Test
+    @DisplayName("Si falla el guardado de una foto borra la que ya había guardado y no guarda el lote")
+    void executeShouldDeleteStoredFotosWhenStorageFails() {
+        givenNegocio();
+        doThrow(new IllegalStateException("disco lleno")).when(archivoCuadernoPort).guardar(any(), any(), eq(PNG));
+
+        assertThatThrownBy(() -> subir(List.of(JPEG, PNG), null)).isInstanceOf(IllegalStateException.class);
+
+        String guardadaJpeg = thenStoredClave(JPEG);
+        String fallidaPng = thenStoredClave(PNG);
+        verify(archivoCuadernoPort).eliminar(NEGOCIO_ID, guardadaJpeg);
+        verify(archivoCuadernoPort, never()).eliminar(NEGOCIO_ID, fallidaPng);
+        verifyNoInteractions(loteSubidaRepository);
+    }
+
+    @Test
+    @DisplayName("Si falla el guardado del lote borra del disco todas las fotos guardadas")
+    void executeShouldDeleteStoredFotosWhenSaveFails() {
+        givenNegocio();
+        when(loteSubidaRepository.saveConFotos(any())).thenThrow(new IllegalStateException("base caída"));
+
+        assertThatThrownBy(() -> subir(List.of(JPEG), null)).isInstanceOf(IllegalStateException.class);
+
+        String guardada = thenStoredClave(JPEG);
+        verify(archivoCuadernoPort).eliminar(NEGOCIO_ID, guardada);
     }
 
     // --- arrange ---
@@ -121,22 +152,32 @@ class SubirLoteTest {
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
-    private void givenNoNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenThrow(new ResourceNotFoundException("Sin negocio"));
+    private void givenRepositorySaves() {
+        when(loteSubidaRepository.saveConFotos(any())).thenReturn(LoteTestData.lote(List.of(LoteTestData.foto())));
     }
 
-    private void givenBloqueAjeno() {
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID))
-                .thenThrow(new ResourceNotFoundException("Bloque no encontrado"));
+    // --- act ---
+    private LoteItem subir(List<byte[]> fotos, UUID bloqueDestinoId) {
+        return subirLote.execute(new SubirLoteRequest(USUARIO_ID, fotos, bloqueDestinoId));
     }
 
-    private void givenLoteSubido() {
-        when(loteSubidaService.subir(NEGOCIO_ID, FOTOS, null, AHORA))
-                .thenReturn(LoteTestData.lote(List.of(LoteTestData.foto())));
+    // --- assert ---
+    private String thenStoredClave(byte[] contenido) {
+        ArgumentCaptor<String> clave = ArgumentCaptor.forClass(String.class);
+        verify(archivoCuadernoPort).guardar(eq(NEGOCIO_ID), clave.capture(), eq(contenido));
+        return clave.getValue();
     }
 
-    private void givenFotoInvalida() {
-        when(loteSubidaService.subir(NEGOCIO_ID, FOTOS, null, AHORA))
-                .thenThrow(new BusinessRuleException("La foto 1 está vacía"));
+    private void thenSavedLoteHasBloqueDestino() {
+        ArgumentCaptor<LoteSubida> lote = ArgumentCaptor.forClass(LoteSubida.class);
+        verify(loteSubidaRepository).saveConFotos(lote.capture());
+        assertThat(lote.getValue().getBloqueDestinoId()).isEqualTo(BLOQUE_ID);
+    }
+
+    private void thenSavedLoteHasFotos(int cantidad) {
+        ArgumentCaptor<LoteSubida> lote = ArgumentCaptor.forClass(LoteSubida.class);
+        verify(loteSubidaRepository).saveConFotos(lote.capture());
+        assertThat(lote.getValue().getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(lote.getValue().getFotos()).extracting(FotoCuaderno::getPosicion).hasSize(cantidad);
     }
 }

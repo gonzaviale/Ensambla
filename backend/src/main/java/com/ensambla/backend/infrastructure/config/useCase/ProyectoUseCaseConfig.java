@@ -23,10 +23,10 @@ public class ProyectoUseCaseConfig {
     @Bean
     public ListarProyectos listarProyectos(
             NegocioService negocioService,
-            ProyectoService proyectoService) {
+            ProyectoRepository proyectoRepository) {
         return new ListarProyectos(
                 negocioService,
-                proyectoService);
+                proyectoRepository);
     }
 
     @Bean
@@ -53,10 +53,14 @@ public class ProyectoUseCaseConfig {
     public RenombrarProyecto renombrarProyecto(
             NegocioService negocioService,
             ProyectoService proyectoService,
+            ProyectoRepository proyectoRepository,
+            TransaccionPort transaccionPort,
             Clock clock) {
         return new RenombrarProyecto(
                 negocioService,
                 proyectoService,
+                proyectoRepository,
+                transaccionPort,
                 clock);
     }
 
@@ -75,8 +79,11 @@ public class ProyectoUseCaseConfig {
 
     @Bean
     public EliminarProyecto eliminarProyecto(
-            NegocioService negocioService, ProyectoService proyectoService) {
-        return new EliminarProyecto(negocioService, proyectoService);
+            NegocioService negocioService,
+            ProyectoService proyectoService,
+            ProyectoRepository proyectoRepository,
+            TransaccionPort transaccionPort) {
+        return new EliminarProyecto(negocioService, proyectoService, proyectoRepository, transaccionPort);
     }
 
     @Bean

@@ -1,12 +1,16 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
+import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
+import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.lote.LoteSubidaService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.lote.LoteItem;
 import com.ensambla.backend.domain.useCase.lote.obtenerLote.ObtenerLoteRequest;
 import com.ensambla.backend.domain.useCase.lote.subirLote.SubirLoteRequest;
 import com.ensambla.backend.support.LoteTestData;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -20,6 +24,7 @@ import static com.ensambla.backend.support.LoteTestData.LOTE_ID;
 import static com.ensambla.backend.support.LoteTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.LoteTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -31,14 +36,16 @@ class LoteUseCaseConfigTest {
     private final NegocioService negocioService = mock(NegocioService.class);
     private final LoteSubidaService loteSubidaService = mock(LoteSubidaService.class);
     private final BloqueService bloqueService = mock(BloqueService.class);
+    private final LoteSubidaRepository loteSubidaRepository = mock(LoteSubidaRepository.class);
 
     @Test
-    @DisplayName("El wiring de la subida conecta negocio, servicio y reloj")
+    @DisplayName("El wiring de la subida conecta negocio, repositorio, almacenamiento y reloj")
     void subirLoteUseCaseShouldWireDependencies() {
         givenNegocio();
-        when(loteSubidaService.subir(NEGOCIO_ID, FOTOS, null, AHORA)).thenReturn(LoteTestData.lote(List.of()));
+        when(loteSubidaRepository.saveConFotos(any())).thenReturn(LoteTestData.lote(List.of()));
 
-        LoteItem result = config.subirLote(negocioService, loteSubidaService, bloqueService,
+        LoteItem result = config.subirLote(negocioService, loteSubidaRepository, mock(ArchivoCuadernoPort.class),
+                mock(ControlPlanService.class), new TransaccionDirecta(), bloqueService,
                 Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC))
                 .execute(new SubirLoteRequest(USUARIO_ID, FOTOS, null));
 

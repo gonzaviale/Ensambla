@@ -45,28 +45,37 @@ public class BloqueUseCaseConfig {
             NegocioService negocioService,
             BloqueService bloqueService,
             ProyectoService proyectoService,
+            BloqueRepository bloqueRepository,
+            TransaccionPort transaccionPort,
             Clock clock) {
         return new RenombrarBloque(
                 negocioService,
                 bloqueService,
                 proyectoService,
+                bloqueRepository,
+                transaccionPort,
                 clock);
     }
 
     @Bean
     public EliminarBloque eliminarBloque(
             NegocioService negocioService,
-            BloqueService bloqueService) {
+            BloqueService bloqueService,
+            BloqueRepository bloqueRepository,
+            CampoRepository campoRepository,
+            TransaccionPort transaccionPort) {
         return new EliminarBloque(
                 negocioService,
-                bloqueService);
+                bloqueService,
+                bloqueRepository,
+                campoRepository,
+                transaccionPort);
     }
 
     @Bean
     public BloqueService bloqueService(
             BloqueRepository bloqueRepository,
-            CampoRepository campoRepository,
             TransaccionPort transaccionPort) {
-        return new BloqueService(bloqueRepository, campoRepository, transaccionPort);
+        return new BloqueService(bloqueRepository, transaccionPort);
     }
 }

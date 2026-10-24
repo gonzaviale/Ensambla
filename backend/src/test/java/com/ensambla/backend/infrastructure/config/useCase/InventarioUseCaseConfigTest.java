@@ -5,6 +5,8 @@ import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.inventario.MovimientoStock;
 import com.ensambla.backend.domain.model.inventario.TipoMovimiento;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.inventario.InventarioService;
@@ -13,6 +15,7 @@ import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.inventario.consultarStock.ConsultarStockRequest;
 import com.ensambla.backend.domain.useCase.inventario.listarMovimientos.ListarMovimientosRequest;
 import com.ensambla.backend.domain.useCase.inventario.registrarMovimiento.RegistrarMovimientoRequest;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,6 +45,8 @@ class InventarioUseCaseConfigTest {
     private CampoService campoService;
     private RegistroDatosService registroDatosService;
     private InventarioService inventarioService;
+    private MovimientoStockRepository movimientoStockRepository;
+    private RegistroRepository registroRepository;
 
     @BeforeEach
     void setUp() {
@@ -49,7 +54,9 @@ class InventarioUseCaseConfigTest {
         bloqueService = mock(BloqueService.class);
         campoService = mock(CampoService.class);
         registroDatosService = mock(RegistroDatosService.class);
-        inventarioService = mock(InventarioService.class);
+        movimientoStockRepository = mock(MovimientoStockRepository.class);
+        registroRepository = mock(RegistroRepository.class);
+        inventarioService = new InventarioService(movimientoStockRepository);
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
         when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
@@ -59,13 +66,13 @@ class InventarioUseCaseConfigTest {
     @DisplayName("El wiring de registrar conecta los servicios y el reloj")
     void registrarMovimientoUseCaseShouldWireCollaborators() {
         when(registroDatosService.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(givenProducto());
-        when(inventarioService.registrar(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(inventarioService.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID))
+        when(movimientoStockRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(movimientoStockRepository.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID))
                 .thenReturn(Map.of(PRODUCTO_ID, BigDecimal.TEN));
 
         var response = config.registrarMovimiento(
                         negocioService, bloqueService, campoService, registroDatosService, inventarioService,
-                        Clock.systemUTC())
+                        movimientoStockRepository, new TransaccionDirecta(), Clock.systemUTC())
                 .execute(new RegistrarMovimientoRequest(
                         USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, "ENTRADA", BigDecimal.ONE, null, null));
 
@@ -76,14 +83,14 @@ class InventarioUseCaseConfigTest {
     @Test
     @DisplayName("El wiring de listar conecta los servicios")
     void listarMovimientosUseCaseShouldWireCollaborators() {
-        when(inventarioService.listarRecientes(BLOQUE_ID, NEGOCIO_ID, null)).thenReturn(List.of(
+        when(movimientoStockRepository.findRecientes(BLOQUE_ID, NEGOCIO_ID, null, 100)).thenReturn(List.of(
                 MovimientoStock.builder().registroId(PRODUCTO_ID).tipo(TipoMovimiento.SALIDA)
                         .cantidad(BigDecimal.ONE).build()));
-        when(registroDatosService.obtenerVarios(List.of(PRODUCTO_ID), BLOQUE_ID, NEGOCIO_ID))
+        when(registroRepository.findAllByIdsAndBloque(List.of(PRODUCTO_ID), BLOQUE_ID, NEGOCIO_ID))
                 .thenReturn(List.of(givenProducto()));
 
         var response = config.listarMovimientos(
-                        negocioService, bloqueService, campoService, registroDatosService, inventarioService)
+                        negocioService, bloqueService, campoService, registroRepository, movimientoStockRepository)
                 .execute(new ListarMovimientosRequest(USUARIO_ID, BLOQUE_ID, null));
 
         assertThat(response).singleElement().satisfies(item -> assertThat(item.tipo()).isEqualTo("SALIDA"));
@@ -93,7 +100,7 @@ class InventarioUseCaseConfigTest {
     @DisplayName("El wiring de stock conecta los servicios")
     void consultarStockUseCaseShouldWireCollaborators() {
         when(registroDatosService.listar(any())).thenReturn(new Pagina<>(List.of(givenProducto()), 0, 20, 1));
-        when(inventarioService.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID))
+        when(movimientoStockRepository.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID))
                 .thenReturn(Map.of(PRODUCTO_ID, BigDecimal.TWO));
 
         var response = config.consultarStock(

@@ -47,21 +47,29 @@ public class CampoUseCaseConfig {
             NegocioService negocioService,
             CampoService campoService,
             BloqueService bloqueService,
+            CampoRepository campoRepository,
+            TransaccionPort transaccionPort,
             Clock clock) {
         return new EditarCampo(
                 negocioService,
                 campoService,
                 bloqueService,
+                campoRepository,
+                transaccionPort,
                 clock);
     }
 
     @Bean
     public EliminarCampo eliminarCampo(
             NegocioService negocioService,
-            CampoService campoService) {
+            CampoService campoService,
+            CampoRepository campoRepository,
+            TransaccionPort transaccionPort) {
         return new EliminarCampo(
                 negocioService,
-                campoService);
+                campoService,
+                campoRepository,
+                transaccionPort);
     }
 
     @Bean

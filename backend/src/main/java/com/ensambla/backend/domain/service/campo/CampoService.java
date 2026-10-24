@@ -43,32 +43,15 @@ public class CampoService {
         return transaccionPort.ejecutar(() -> {
             cargarCampos(bloque);
             Campo campo = bloque.agregarCampo(configuracion, ahora);
-            validarBloqueRelacionado(bloque, campo);
-            validarReferenciasDeFormula(bloque, campo);
+            validarConfiguracion(bloque, campo);
             return campoRepository.save(campo);
         });
     }
 
-    /** {@code bloque} es el dueño del campo; acá se cargan sus campos para validar el nombre. */
-    public Campo editar(Bloque bloque, Campo campo, ConfiguracionCampo configuracion, OffsetDateTime ahora) {
-        return transaccionPort.ejecutar(() -> {
-            cargarCampos(bloque);
-            bloque.editarCampo(campo, configuracion, ahora);
-            validarBloqueRelacionado(bloque, campo);
-            validarReferenciasDeFormula(bloque, campo);
-            if (campo.getTipo() != TipoCampo.NUMERO) {
-                validarSinFormulasQueLoUsen(bloque.getCampos(), campo, "cambiar el tipo de");
-            }
-            return campoRepository.save(campo);
-        });
-    }
-
-    public void eliminar(Campo campo) {
-        transaccionPort.ejecutar(() -> {
-            validarSinFormulasQueLoUsen(
-                    campoRepository.findByBloqueIdAndNegocioId(campo.getBloqueId(), campo.getNegocioId()), campo, "eliminar");
-            campoRepository.deleteByIdAndNegocioId(campo.getId(), campo.getNegocioId());
-        });
+    /** Valida la conexión y la fórmula del campo contra su bloque, que ya tiene sus campos cargados. */
+    public void validarConfiguracion(Bloque bloque, Campo campo) {
+        validarBloqueRelacionado(bloque, campo);
+        validarReferenciasDeFormula(bloque, campo);
     }
 
     /**
@@ -107,7 +90,7 @@ public class CampoService {
     }
 
     /** No se puede dejar sin uso o cambiar un campo numérico del que depende una fórmula. */
-    private void validarSinFormulasQueLoUsen(List<Campo> camposDelBloque, Campo campo, String accion) {
+    public void validarSinFormulasQueLoUsen(List<Campo> camposDelBloque, Campo campo, String accion) {
         camposDelBloque.stream()
                 .filter(Campo::esFormula)
                 .filter(formula -> Formula.parsear(formula.getFormula()).referencias().contains(campo.getId()))
@@ -118,7 +101,7 @@ public class CampoService {
                 });
     }
 
-    private void cargarCampos(Bloque bloque) {
+    public void cargarCampos(Bloque bloque) {
         bloque.setCampos(campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), bloque.getNegocioId()));
     }
 }

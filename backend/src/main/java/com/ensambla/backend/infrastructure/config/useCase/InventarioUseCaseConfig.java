@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.inventario.InventarioService;
@@ -19,24 +20,29 @@ import java.time.Clock;
 public class InventarioUseCaseConfig {
 
     @Bean
-    public RegistrarMovimiento registrarMovimiento(NegocioService negocioService,
-                                                   BloqueService bloqueService,
-                                                   CampoService campoService,
-                                                   RegistroDatosService registroDatosService,
-                                                   InventarioService inventarioService,
-                                                   Clock clock) {
-        return new RegistrarMovimiento(negocioService, bloqueService, campoService, registroDatosService,
-                inventarioService, clock);
+    public RegistrarMovimiento registrarMovimiento(
+            NegocioService negocioService,
+            BloqueService bloqueService,
+            CampoService campoService,
+            RegistroDatosService registroDatosService,
+            InventarioService inventarioService,
+            MovimientoStockRepository movimientoStockRepository,
+            TransaccionPort transaccionPort,
+            Clock clock) {
+        return new RegistrarMovimiento(
+                negocioService, bloqueService, campoService, registroDatosService, inventarioService,
+                movimientoStockRepository, transaccionPort, clock);
     }
 
     @Bean
-    public ListarMovimientos listarMovimientos(NegocioService negocioService,
-                                               BloqueService bloqueService,
-                                               CampoService campoService,
-                                               RegistroDatosService registroDatosService,
-                                               InventarioService inventarioService) {
-        return new ListarMovimientos(negocioService, bloqueService, campoService, registroDatosService,
-                inventarioService);
+    public ListarMovimientos listarMovimientos(
+            NegocioService negocioService,
+            BloqueService bloqueService,
+            CampoService campoService,
+            RegistroRepository registroRepository,
+            MovimientoStockRepository movimientoStockRepository) {
+        return new ListarMovimientos(
+                negocioService, bloqueService, campoService, registroRepository, movimientoStockRepository);
     }
 
     @Bean
@@ -50,9 +56,7 @@ public class InventarioUseCaseConfig {
     }
 
     @Bean
-    public InventarioService inventarioService(
-            MovimientoStockRepository movimientoStockRepository,
-            TransaccionPort transaccionPort) {
-        return new InventarioService(movimientoStockRepository, transaccionPort);
+    public InventarioService inventarioService(MovimientoStockRepository movimientoStockRepository) {
+        return new InventarioService(movimientoStockRepository);
     }
 }

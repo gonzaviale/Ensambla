@@ -21,6 +21,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class GenerarReporte {
 
+    /** Filas que se muestran en pantalla antes de descargar. */
+    static final int MAXIMO_VISTA = 50;
+
     private final NegocioService negocioService;
 
     private final ControlPlanService controlPlanService;
@@ -47,7 +50,7 @@ public class GenerarReporte {
                 request.hasta(),
                 request.campoId(),
                 request.valor());
-        ReporteRegistros reporte = reporteService.generar(filtro, campos, ReporteService.MAXIMO_VISTA);
-        return GenerarReporteResponse.de(reporte, ReporteService.MAXIMO_VISTA);
+        ReporteRegistros reporte = reporteService.generar(filtro, campos, MAXIMO_VISTA);
+        return GenerarReporteResponse.de(reporte, MAXIMO_VISTA);
     }
 }

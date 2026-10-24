@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
@@ -24,21 +25,29 @@ import java.time.Clock;
 public class RegistroUseCaseConfig {
 
     @Bean
-    public CrearRegistro crearRegistro(NegocioService negocioService,
-                                       BloqueService bloqueService,
-                                       CampoService campoService,
-                                       RegistroDatosService registroDatosService,
-                                       Clock clock) {
-        return new CrearRegistro(negocioService, bloqueService, campoService, registroDatosService, clock);
+    public CrearRegistro crearRegistro(
+            NegocioService negocioService,
+            BloqueService bloqueService,
+            CampoService campoService,
+            RegistroDatosService registroDatosService,
+            ControlPlanService controlPlanService,
+            RegistroRepository registroRepository,
+            TransaccionPort transaccionPort,
+            Clock clock) {
+        return new CrearRegistro(
+                negocioService, bloqueService, campoService, registroDatosService, controlPlanService,
+                registroRepository, transaccionPort, clock);
     }
 
     @Bean
-    public ListarRegistros listarRegistros(NegocioService negocioService,
-                                           BloqueService bloqueService,
-                                           CampoService campoService,
-                                           RegistroDatosService registroDatosService) {
+    public ListarRegistros listarRegistros(
+            NegocioService negocioService,
+            BloqueService bloqueService,
+            CampoService campoService,
+            RegistroDatosService registroDatosService,
+            RegistroRepository registroRepository) {
         return new ListarRegistros(
-                negocioService, bloqueService, campoService, registroDatosService);
+                negocioService, bloqueService, campoService, registroDatosService, registroRepository);
     }
 
     @Bean
@@ -67,17 +76,21 @@ public class RegistroUseCaseConfig {
     }
 
     @Bean
-    public ObtenerFotoOrigen obtenerFotoOrigen(NegocioService negocioService,
-                                               RegistroDatosService registroDatosService,
-                                               LoteSubidaService loteSubidaService) {
-        return new ObtenerFotoOrigen(
-                negocioService, registroDatosService, loteSubidaService);
+    public ObtenerFotoOrigen obtenerFotoOrigen(
+            NegocioService negocioService,
+            RegistroDatosService registroDatosService,
+            LoteSubidaService loteSubidaService,
+            LoteSubidaRepository loteSubidaRepository) {
+        return new ObtenerFotoOrigen(negocioService, registroDatosService, loteSubidaService, loteSubidaRepository);
     }
 
     @Bean
-    public EliminarRegistro eliminarRegistro(NegocioService negocioService,
-                                             RegistroDatosService registroDatosService) {
-        return new EliminarRegistro(negocioService, registroDatosService);
+    public EliminarRegistro eliminarRegistro(
+            NegocioService negocioService,
+            RegistroDatosService registroDatosService,
+            RegistroRepository registroRepository,
+            TransaccionPort transaccionPort) {
+        return new EliminarRegistro(negocioService, registroDatosService, registroRepository, transaccionPort);
     }
 
     @Bean

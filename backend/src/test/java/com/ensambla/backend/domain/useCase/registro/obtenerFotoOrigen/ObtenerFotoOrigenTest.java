@@ -2,7 +2,9 @@ package com.ensambla.backend.domain.useCase.registro.obtenerFotoOrigen;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.lote.ArchivoFoto;
+import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
 import com.ensambla.backend.domain.service.lote.LoteSubidaService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
@@ -15,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static com.ensambla.backend.support.LoteTestData.AHORA;
@@ -42,12 +45,15 @@ class ObtenerFotoOrigenTest {
     @Mock
     private LoteSubidaService loteSubidaService;
 
+    @Mock
+    private LoteSubidaRepository loteSubidaRepository;
+
     private ObtenerFotoOrigen obtenerFotoOrigen;
 
     @BeforeEach
     void setUp() {
         obtenerFotoOrigen = new ObtenerFotoOrigen(
-                negocioService, registroDatosService, loteSubidaService);
+                negocioService, registroDatosService, loteSubidaService, loteSubidaRepository);
     }
 
     @Test
@@ -56,7 +62,9 @@ class ObtenerFotoOrigenTest {
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID))
                 .thenReturn(Registro.desdeCuaderno(NEGOCIO_ID, BLOQUE_ID, Map.of(), FOTO_ID, AHORA));
-        when(loteSubidaService.leerFoto(NEGOCIO_ID, FOTO_ID)).thenReturn(new ArchivoFoto(JPEG, "image/jpeg"));
+        FotoCuaderno foto = FotoCuaderno.builder().id(FOTO_ID).build();
+        when(loteSubidaRepository.findFotoByIdAndNegocioId(FOTO_ID, NEGOCIO_ID)).thenReturn(Optional.of(foto));
+        when(loteSubidaService.leer(NEGOCIO_ID, foto)).thenReturn(new ArchivoFoto(JPEG, "image/jpeg"));
 
         FotoArchivoResponse result = obtenerFotoOrigen.execute(request());
 
@@ -74,6 +82,20 @@ class ObtenerFotoOrigenTest {
 
         assertThatThrownBy(() -> obtenerFotoOrigen.execute(request))
                 .isInstanceOf(ResourceNotFoundException.class);
+        verifyNoInteractions(loteSubidaService, loteSubidaRepository);
+    }
+
+    @Test
+    @DisplayName("Una foto que no es del negocio responde como inexistente sin leer ningún archivo")
+    void executeShouldThrowWhenFotoIsNotOfTheNegocio() {
+        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID))
+                .thenReturn(Registro.desdeCuaderno(NEGOCIO_ID, BLOQUE_ID, Map.of(), FOTO_ID, AHORA));
+        when(loteSubidaRepository.findFotoByIdAndNegocioId(FOTO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+        ObtenerFotoOrigenRequest request = request();
+
+        assertThatThrownBy(() -> obtenerFotoOrigen.execute(request))
+                .isInstanceOf(ResourceNotFoundException.class).hasMessage("Foto no encontrada");
         verifyNoInteractions(loteSubidaService);
     }
 

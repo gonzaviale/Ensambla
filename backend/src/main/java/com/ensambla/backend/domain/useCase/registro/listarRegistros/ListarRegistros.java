@@ -2,10 +2,12 @@ package com.ensambla.backend.domain.useCase.registro.listarRegistros;
 
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.TotalesRegistros;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
@@ -22,6 +24,7 @@ public class ListarRegistros {
     private final BloqueService bloqueService;
     private final CampoService campoService;
     private final RegistroDatosService registroDatosService;
+    private final RegistroRepository registroRepository;
 
     public ListarRegistrosResponse execute(ListarRegistrosRequest request) {
         UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
@@ -37,7 +40,16 @@ public class ListarRegistros {
                 request.pagina(),
                 request.tamanio());
         Pagina<Registro> pagina = registroDatosService.listar(consulta);
-        TotalesRegistros totales = registroDatosService.totales(consulta, campos, pagina.totalElementos());
+        TotalesRegistros totales = totales(consulta, campos, pagina.totalElementos());
         return ListarRegistrosResponse.de(pagina.map(registro -> registro.conFormulas(campos)), totales);
+    }
+
+    /** Cantidad y suma de cada campo numérico de los registros que cumplen la consulta, sin importar la página. */
+    private TotalesRegistros totales(ConsultaRegistros consulta, List<Campo> campos, long cantidad) {
+        List<UUID> numericos = campos.stream()
+                .filter(campo -> campo.getTipo() == TipoCampo.NUMERO)
+                .map(Campo::getId)
+                .toList();
+        return TotalesRegistros.armar(cantidad, numericos, registroRepository.sumarNumericos(consulta, numericos));
     }
 }

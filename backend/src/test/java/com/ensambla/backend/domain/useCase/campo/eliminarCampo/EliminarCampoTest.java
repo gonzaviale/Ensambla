@@ -1,13 +1,21 @@
 package com.ensambla.backend.domain.useCase.campo.eliminarCampo;
 
+import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.infrastructure.config.useCase.CampoUseCaseConfig;
+import com.ensambla.backend.support.TransaccionDirecta;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
@@ -21,39 +29,65 @@ import static org.mockito.Mockito.when;
 
 class EliminarCampoTest {
 
+    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
     private static final UUID CAMPO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
+    private static final UUID FORMULA_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
     private static final EliminarCampoRequest REQUEST = new EliminarCampoRequest(USUARIO_ID, CAMPO_ID);
 
     private final NegocioService negocioService = mock(NegocioService.class);
-    private final CampoService campoService = mock(CampoService.class);
-    private final EliminarCampo eliminarCampo =
-            new CampoUseCaseConfig().eliminarCampo(negocioService, campoService);
+    private final CampoRepository campoRepository = mock(CampoRepository.class);
+    private final EliminarCampo eliminarCampo = new CampoUseCaseConfig().eliminarCampo(negocioService,
+            new CampoService(campoRepository, mock(BloqueRepository.class), new TransaccionDirecta()),
+            campoRepository, new TransaccionDirecta());
+
+    private final Campo cantidad = Campo.builder().id(CAMPO_ID).negocioId(NEGOCIO_ID).bloqueId(BLOQUE_ID)
+            .nombre("Cantidad").tipo(TipoCampo.NUMERO).build();
+
+    @BeforeEach
+    void givenNegocio() {
+        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+    }
 
     @Test
-    @DisplayName("Elimina el campo del negocio de la sesión")
+    @DisplayName("Elimina el campo del negocio de la sesión filtrando por su negocio")
     void executeShouldDeleteCampoOfSessionNegocio() {
-        Campo campo = Campo.builder().id(CAMPO_ID).negocioId(NEGOCIO_ID).build();
-        givenNegocio();
-        when(campoService.obtener(CAMPO_ID, NEGOCIO_ID)).thenReturn(campo);
+        givenCampo();
+        givenCamposDelBloque(cantidad);
 
         eliminarCampo.execute(REQUEST);
 
-        verify(campoService).eliminar(campo);
+        verify(campoRepository).deleteByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID);
+    }
+
+    @Test
+    @DisplayName("Rechaza borrar un campo que usa una fórmula")
+    void executeShouldRejectFieldUsedByFormula() {
+        givenCampo();
+        givenCamposDelBloque(cantidad, Campo.builder().id(FORMULA_ID).negocioId(NEGOCIO_ID).bloqueId(BLOQUE_ID)
+                .nombre("Doble").tipo(TipoCampo.FORMULA).formula("{" + CAMPO_ID + "} * 2").build());
+
+        assertThatThrownBy(() -> eliminarCampo.execute(REQUEST))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("No se puede eliminar «Cantidad»: la fórmula «Doble» lo usa");
+        verify(campoRepository, never()).deleteByIdAndNegocioId(any(), any());
     }
 
     @Test
     @DisplayName("Un campo ajeno propaga el 404 y no borra nada")
     void executeShouldNotDeleteWhenCampoIsForeign() {
-        givenNegocio();
-        when(campoService.obtener(CAMPO_ID, NEGOCIO_ID)).thenThrow(new ResourceNotFoundException("El campo no existe"));
+        when(campoRepository.findByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> eliminarCampo.execute(REQUEST))
                 .isInstanceOf(ResourceNotFoundException.class);
-        verify(campoService, never()).eliminar(any());
+        verify(campoRepository, never()).deleteByIdAndNegocioId(any(), any());
     }
 
     // --- arrange ---
-    private void givenNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+    private void givenCampo() {
+        when(campoRepository.findByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID)).thenReturn(Optional.of(cantidad));
+    }
+
+    private void givenCamposDelBloque(Campo... campos) {
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(campos));
     }
 }

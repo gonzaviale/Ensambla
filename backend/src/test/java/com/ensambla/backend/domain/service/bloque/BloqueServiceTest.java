@@ -1,14 +1,11 @@
 package com.ensambla.backend.domain.service.bloque;
 
-import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
-import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
-import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.support.ProyectoTestData;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
@@ -20,7 +17,6 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -36,14 +32,10 @@ class BloqueServiceTest {
 
     private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
     private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID OTRO_BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000002");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T15:00:00Z");
 
     @Mock
     private BloqueRepository bloqueRepository;
-
-    @Mock
-    private CampoRepository campoRepository;
 
     @Spy
     private TransaccionPort transaccionPort = new TransaccionDirecta();
@@ -95,72 +87,7 @@ class BloqueServiceTest {
         verify(bloqueRepository, never()).save(any());
     }
 
-    @Test
-    @DisplayName("Renombrar actualiza el nombre y la fecha de modificación y guarda")
-    void renombrarShouldUpdateAndSave() {
-        Proyecto proyecto = ProyectoTestData.proyecto();
-        Bloque bloque = proyecto.getBloques().getFirst();
-        givenSaveReturnsArgument();
-
-        Bloque result = bloqueService.renombrar(proyecto, bloque, " Mercadería ", AHORA);
-
-        assertThat(result.getNombre()).isEqualTo("Mercadería");
-        assertThat(result.getActualizadoEn()).isEqualTo(AHORA);
-        verify(bloqueRepository).save(bloque);
-    }
-
-    @Test
-    @DisplayName("Renombrar con el nombre de otro bloque no modifica ni guarda el bloque")
-    void renombrarShouldNotSaveWhenNameIsTaken() {
-        Proyecto proyecto = ProyectoTestData.proyecto();
-        Bloque bloque = proyecto.getBloques().get(1);
-
-        assertThatThrownBy(() -> bloqueService.renombrar(proyecto, bloque, "Productos", AHORA))
-                .isInstanceOf(DuplicateResourceException.class);
-        assertThat(bloque.getNombre()).isEqualTo("Vacío");
-        verify(bloqueRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("Eliminar borra el bloque filtrando por su negocio")
-    void eliminarShouldDeleteFilteringByNegocio() {
-        Bloque bloque = Bloque.builder().id(BLOQUE_ID).negocioId(NEGOCIO_ID).build();
-
-        bloqueService.eliminar(bloque);
-
-        verify(bloqueRepository).deleteByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID);
-    }
-
-    @Test
-    @DisplayName("Eliminar rechaza borrar una tabla que otra tabla usa en una conexión")
-    void eliminarShouldRejectWhenOtherBloqueReferencesIt() {
-        Bloque bloque = Bloque.builder().id(BLOQUE_ID).negocioId(NEGOCIO_ID).nombre("Clientes").build();
-        givenConexionDesde(OTRO_BLOQUE_ID, "Cliente");
-        when(bloqueRepository.findByIdAndNegocioId(OTRO_BLOQUE_ID, NEGOCIO_ID)).thenReturn(Optional.of(
-                Bloque.builder().id(OTRO_BLOQUE_ID).negocioId(NEGOCIO_ID).nombre("Pedidos").build()));
-
-        assertThatThrownBy(() -> bloqueService.eliminar(bloque))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("La tabla «Clientes» se usa en la columna «Cliente» de «Pedidos»");
-        verify(bloqueRepository, never()).deleteByIdAndNegocioId(any(), any());
-    }
-
-    @Test
-    @DisplayName("Eliminar consulta las conexiones hacia el bloque en su negocio antes de borrar")
-    void eliminarShouldCheckConexionesOfNegocio() {
-        Bloque bloque = Bloque.builder().id(BLOQUE_ID).negocioId(NEGOCIO_ID).build();
-
-        bloqueService.eliminar(bloque);
-
-        verify(campoRepository).findRelacionesHacia(BLOQUE_ID, NEGOCIO_ID);
-    }
-
     // --- arrange ---
-    private void givenConexionDesde(UUID bloqueId, String nombreCampo) {
-        Campo campo = Campo.builder().bloqueId(bloqueId).negocioId(NEGOCIO_ID).nombre(nombreCampo).build();
-        when(campoRepository.findRelacionesHacia(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(campo));
-    }
-
     private void givenSaveReturnsArgument() {
         when(bloqueRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
     }

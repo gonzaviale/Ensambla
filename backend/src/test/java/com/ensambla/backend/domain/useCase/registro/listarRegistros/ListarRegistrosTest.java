@@ -3,11 +3,12 @@ package com.ensambla.backend.domain.useCase.registro.listarRegistros;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.DireccionOrden;
 import com.ensambla.backend.domain.model.registro.Registro;
-import com.ensambla.backend.domain.model.registro.TotalesRegistros;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
@@ -29,7 +30,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -56,12 +56,15 @@ class ListarRegistrosTest {
     @Mock
     private RegistroDatosService registroDatosService;
 
+    @Mock
+    private RegistroRepository registroRepository;
+
     private ListarRegistros listarRegistros;
 
     @BeforeEach
     void setUp() {
         listarRegistros = new ListarRegistros(
-                negocioService, bloqueService, campoService, registroDatosService);
+                negocioService, bloqueService, campoService, registroDatosService, registroRepository);
     }
 
     @Test
@@ -70,8 +73,8 @@ class ListarRegistrosTest {
         givenBloqueOfNegocioWithCampo();
         when(registroDatosService.listar(any(ConsultaRegistros.class)))
                 .thenReturn(new Pagina<>(List.of(Registro.builder().id(REGISTRO_ID).valores(Map.of()).build()), 1, 5, 6));
-        when(registroDatosService.totales(any(ConsultaRegistros.class), anyList(), eq(6L)))
-                .thenReturn(new TotalesRegistros(6, Map.of(CAMPO_ID, new BigDecimal("30"))));
+        when(registroRepository.sumarNumericos(any(ConsultaRegistros.class), eq(List.of(CAMPO_ID))))
+                .thenReturn(Map.of(CAMPO_ID, new BigDecimal("30")));
 
         ListarRegistrosResponse response = listarRegistros.execute(new ListarRegistrosRequest(
                 USUARIO_ID, BLOQUE_ID, " harina ", CAMPO_ID.toString(), "asc", 1, 5));
@@ -104,7 +107,24 @@ class ListarRegistrosTest {
         assertThatThrownBy(() -> listarRegistros.execute(request))
                 .isInstanceOf(ResourceNotFoundException.class);
 
-        verifyNoInteractions(campoService, registroDatosService);
+        verifyNoInteractions(campoService, registroDatosService, registroRepository);
+    }
+
+    @Test
+    @DisplayName("Sin campos numéricos los totales traen sólo la cantidad")
+    void executeShouldTotalOnlyTheCountWhenThereAreNoNumericCampos() {
+        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
+        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID))
+                .thenReturn(List.of(Campo.builder().id(CAMPO_ID).tipo(TipoCampo.TEXTO).build()));
+        when(registroDatosService.listar(any(ConsultaRegistros.class))).thenReturn(new Pagina<>(List.of(), 0, 20, 3));
+        when(registroRepository.sumarNumericos(any(ConsultaRegistros.class), eq(List.of()))).thenReturn(Map.of());
+
+        ListarRegistrosResponse response = listarRegistros.execute(new ListarRegistrosRequest(
+                USUARIO_ID, BLOQUE_ID, null, null, null, null, null));
+
+        assertThat(response.totales().cantidad()).isEqualTo(3);
+        assertThat(response.totales().sumas()).isEmpty();
     }
 
     // --- arrange ---
@@ -112,6 +132,6 @@ class ListarRegistrosTest {
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
         when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID))
-                .thenReturn(List.of(Campo.builder().id(CAMPO_ID).build()));
+                .thenReturn(List.of(Campo.builder().id(CAMPO_ID).tipo(TipoCampo.NUMERO).build()));
     }
 }

@@ -10,6 +10,8 @@ import com.ensambla.backend.domain.model.inventario.MovimientoStock;
 import com.ensambla.backend.domain.model.inventario.TipoMovimiento;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.inventario.InventarioService;
@@ -23,11 +25,13 @@ import com.ensambla.backend.domain.useCase.inventario.listarMovimientos.ListarMo
 import com.ensambla.backend.domain.useCase.inventario.registrarMovimiento.RegistrarMovimiento;
 import com.ensambla.backend.domain.useCase.inventario.registrarMovimiento.RegistrarMovimientoRequest;
 import com.ensambla.backend.domain.useCase.inventario.registrarMovimiento.RegistrarMovimientoResponse;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -43,6 +47,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -72,7 +77,10 @@ class InventarioUseCasesTest {
     private RegistroDatosService registroDatosService;
 
     @Mock
-    private InventarioService inventarioService;
+    private MovimientoStockRepository movimientoStockRepository;
+
+    @Mock
+    private RegistroRepository registroRepository;
 
     private RegistrarMovimiento registrarMovimiento;
     private ListarMovimientos listarMovimientos;
@@ -80,10 +88,11 @@ class InventarioUseCasesTest {
 
     @BeforeEach
     void setUp() {
-        registrarMovimiento = new RegistrarMovimiento(
-                negocioService, bloqueService, campoService, registroDatosService, inventarioService, RELOJ);
+        InventarioService inventarioService = new InventarioService(movimientoStockRepository);
+        registrarMovimiento = new RegistrarMovimiento(negocioService, bloqueService, campoService,
+                registroDatosService, inventarioService, movimientoStockRepository, new TransaccionDirecta(), RELOJ);
         listarMovimientos = new ListarMovimientos(
-                negocioService, bloqueService, campoService, registroDatosService, inventarioService);
+                negocioService, bloqueService, campoService, registroRepository, movimientoStockRepository);
         consultarStock = new ConsultarStock(
                 negocioService, bloqueService, campoService, registroDatosService, inventarioService);
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
@@ -93,15 +102,14 @@ class InventarioUseCasesTest {
     @DisplayName("Registrar guarda el movimiento del producto del bloque y devuelve el stock resultante")
     void registrarShouldSaveMovimientoAndReturnResultingStock() {
         givenBloqueConProducto(BLOQUE_ID);
-        when(inventarioService.registrar(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(inventarioService.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID))
-                .thenReturn(Map.of(PRODUCTO_ID, new BigDecimal("12")));
+        givenSaveReturnsArgument();
+        givenStock("12");
 
         RegistrarMovimientoResponse response = registrarMovimiento.execute(new RegistrarMovimientoRequest(
                 USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, "ENTRADA", new BigDecimal("2"), null, " Compra "));
 
         ArgumentCaptor<MovimientoStock> guardado = ArgumentCaptor.forClass(MovimientoStock.class);
-        verify(inventarioService).registrar(guardado.capture());
+        verify(movimientoStockRepository).save(guardado.capture());
         assertThat(guardado.getValue().getNegocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(guardado.getValue().getFecha()).isEqualTo(LocalDate.parse("2026-10-13"));
         assertThat(guardado.getValue().getNota()).isEqualTo("Compra");
@@ -118,7 +126,7 @@ class InventarioUseCasesTest {
 
         assertThatThrownBy(() -> registrarMovimiento.execute(invalido))
                 .isInstanceOf(RegistroInvalidoException.class);
-        verifyNoInteractions(bloqueService, registroDatosService, inventarioService);
+        verifyNoInteractions(bloqueService, registroDatosService, movimientoStockRepository);
     }
 
     @Test
@@ -130,7 +138,7 @@ class InventarioUseCasesTest {
 
         assertThatThrownBy(() -> registrarMovimiento.execute(request))
                 .isInstanceOf(ResourceNotFoundException.class);
-        verify(inventarioService, never()).registrar(any());
+        verify(movimientoStockRepository, never()).save(any());
     }
 
     @Test
@@ -139,10 +147,10 @@ class InventarioUseCasesTest {
         Bloque bloque = Bloque.builder().id(BLOQUE_ID).build();
         when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque);
         when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(givenCampos());
-        when(inventarioService.listarRecientes(BLOQUE_ID, NEGOCIO_ID, PRODUCTO_ID)).thenReturn(List.of(
+        when(movimientoStockRepository.findRecientes(BLOQUE_ID, NEGOCIO_ID, PRODUCTO_ID, 100)).thenReturn(List.of(
                 MovimientoStock.builder().registroId(PRODUCTO_ID).tipo(TipoMovimiento.SALIDA)
                         .cantidad(BigDecimal.ONE).build()));
-        when(registroDatosService.obtenerVarios(List.of(PRODUCTO_ID), BLOQUE_ID, NEGOCIO_ID))
+        when(registroRepository.findAllByIdsAndBloque(List.of(PRODUCTO_ID), BLOQUE_ID, NEGOCIO_ID))
                 .thenReturn(List.of(givenProducto(BLOQUE_ID)));
 
         List<MovimientoItem> response = listarMovimientos.execute(
@@ -161,8 +169,7 @@ class InventarioUseCasesTest {
         when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque);
         when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(givenCampos());
         when(registroDatosService.listar(any())).thenReturn(new Pagina<>(List.of(givenProducto(BLOQUE_ID)), 0, 20, 1));
-        when(inventarioService.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID))
-                .thenReturn(Map.of(PRODUCTO_ID, new BigDecimal("4")));
+        givenStock("4");
 
         ConsultarStockResponse response = consultarStock.execute(
                 new ConsultarStockRequest(USUARIO_ID, BLOQUE_ID, "har", 0, 20));
@@ -175,6 +182,73 @@ class InventarioUseCasesTest {
             assertThat(item.producto()).isEqualTo("Harina");
             assertThat(item.stock()).isEqualByComparingTo("4");
         });
+    }
+
+    @Test
+    @DisplayName("Registrar una entrada la guarda sin consultar el stock antes")
+    void registrarShouldSaveEntradaWithoutCheckingStockFirst() {
+        givenBloqueConProducto(BLOQUE_ID);
+        givenSaveReturnsArgument();
+        givenStock("7");
+
+        registrarMovimiento.execute(new RegistrarMovimientoRequest(
+                USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, "ENTRADA", new BigDecimal("5"), null, null));
+
+        InOrder orden = inOrder(movimientoStockRepository);
+        orden.verify(movimientoStockRepository).save(any());
+        orden.verify(movimientoStockRepository).stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID);
+    }
+
+    @Test
+    @DisplayName("Registrar una salida menor o igual al stock la guarda")
+    void registrarShouldSaveSalidaWhenStockIsEnough() {
+        givenBloqueConProducto(BLOQUE_ID);
+        givenSaveReturnsArgument();
+        givenStock("5");
+
+        RegistrarMovimientoResponse response = registrarMovimiento.execute(new RegistrarMovimientoRequest(
+                USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, "SALIDA", new BigDecimal("5"), null, null));
+
+        assertThat(response.movimiento().tipo()).isEqualTo("SALIDA");
+    }
+
+    @Test
+    @DisplayName("Registrar una salida mayor al stock la rechaza y avisa cuánto queda")
+    void registrarShouldRejectSalidaThatLeavesNegativeStock() {
+        givenProductoDelBloque();
+        givenStock("2.500");
+
+        assertThatThrownBy(() -> registrarMovimiento.execute(new RegistrarMovimientoRequest(
+                USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, "SALIDA", new BigDecimal("3"), null, null)))
+                .isInstanceOfSatisfying(RegistroInvalidoException.class, e -> assertThat(e.getErrores())
+                        .containsEntry("cantidad", "No hay stock suficiente: quedan 2.5"));
+        verify(movimientoStockRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Registrar la salida de un producto sin movimientos la rechaza: no hay stock")
+    void registrarShouldRejectSalidaOfProductWithoutMovements() {
+        givenProductoDelBloque();
+        when(movimientoStockRepository.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID)).thenReturn(Map.of());
+
+        assertThatThrownBy(() -> registrarMovimiento.execute(new RegistrarMovimientoRequest(
+                USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, "SALIDA", BigDecimal.ONE, null, null)))
+                .isInstanceOfSatisfying(RegistroInvalidoException.class, e -> assertThat(e.getErrores())
+                        .containsEntry("cantidad", "No hay stock suficiente: quedan 0"));
+    }
+
+    private void givenStock(String stock) {
+        when(movimientoStockRepository.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID))
+                .thenReturn(Map.of(PRODUCTO_ID, new BigDecimal(stock)));
+    }
+
+    private void givenSaveReturnsArgument() {
+        when(movimientoStockRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    private void givenProductoDelBloque() {
+        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
+        when(registroDatosService.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(givenProducto(BLOQUE_ID));
     }
 
     private void givenBloqueConProducto(UUID bloqueDelProducto) {

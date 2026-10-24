@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
+
 import com.ensambla.backend.domain.port.ExportadorReportePort;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
@@ -30,20 +31,23 @@ public class ReporteUseCaseConfig {
     }
 
     @Bean
-    public ExportarReporte exportarReporte(NegocioService negocioService,
-                                           ControlPlanService controlPlanService,
-                                           BloqueService bloqueService,
-                                           CampoService campoService,
-                                           ReporteService reporteService,
-                                           ExportadorReportePort exportadorReportePort,
-                                           Clock clock) {
+    public ExportarReporte exportarReporte(
+            NegocioService negocioService,
+            ControlPlanService controlPlanService,
+            BloqueService bloqueService,
+            CampoService campoService,
+            ReporteService reporteService,
+            RegistroRepository registroRepository,
+            CampoRepository campoRepository,
+            ExportadorReportePort exportadorReportePort,
+            Clock clock) {
         return new ExportarReporte(
-                negocioService, controlPlanService, bloqueService, campoService, reporteService,
-                exportadorReportePort, clock);
+                negocioService, controlPlanService, bloqueService, campoService, reporteService, registroRepository,
+                campoRepository, exportadorReportePort, clock);
     }
 
     @Bean
-    public ReporteService reporteService(RegistroRepository registroRepository, CampoRepository campoRepository) {
-        return new ReporteService(registroRepository, campoRepository);
+    public ReporteService reporteService(RegistroRepository registroRepository) {
+        return new ReporteService(registroRepository);
     }
 }

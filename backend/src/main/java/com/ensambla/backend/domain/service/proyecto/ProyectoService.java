@@ -22,10 +22,6 @@ public class ProyectoService {
 
     private final TransaccionPort transaccionPort;
 
-    public List<Proyecto> listar(UUID negocioId) {
-        return proyectoRepository.findAllByNegocioId(negocioId);
-    }
-
     public Proyecto obtener(UUID negocioId, UUID proyectoId) {
         return proyectoRepository.findByIdAndNegocioId(proyectoId, negocioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Proyecto no encontrado"));
@@ -59,21 +55,6 @@ public class ProyectoService {
                 proyecto.renombrar(nombre, ahora);
             }
             return proyectoRepository.saveConEstructura(proyecto);
-        });
-    }
-
-    public Proyecto renombrar(UUID negocioId, UUID proyectoId, String nombre, OffsetDateTime ahora) {
-        return transaccionPort.ejecutar(() -> {
-            Proyecto proyecto = obtener(negocioId, proyectoId);
-            proyecto.renombrar(nombre, ahora);
-            return proyectoRepository.save(proyecto);
-        });
-    }
-
-    public void eliminar(UUID negocioId, UUID proyectoId) {
-        transaccionPort.ejecutar(() -> {
-            obtener(negocioId, proyectoId);
-            proyectoRepository.deleteByIdAndNegocioId(proyectoId, negocioId);
         });
     }
 }

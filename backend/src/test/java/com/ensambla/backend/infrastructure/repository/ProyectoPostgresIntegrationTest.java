@@ -3,6 +3,7 @@ package com.ensambla.backend.infrastructure.repository;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.plantilla.PlantillaService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
@@ -43,6 +44,9 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Autowired
     private ProyectoService proyectoService;
+
+    @Autowired
+    private ProyectoRepository proyectoRepository;
 
     @Autowired
     private PlantillaService plantillaService;
@@ -129,7 +133,7 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                 .actualizadoEn(AHORA)
                 .build()).getId();
 
-        proyectoService.eliminar(negocioId, proyecto.getId());
+        proyectoRepository.deleteByIdAndNegocioId(proyecto.getId(), negocioId);
         entityManager.flush();
         entityManager.clear();
 
@@ -151,7 +155,7 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         proyectos.deleteByIdAndNegocioId(ajeno.getId(), propioId);
 
         assertThat(proyectos.findByIdAndNegocioId(ajeno.getId(), propioId)).isEmpty();
-        assertThat(proyectoService.listar(propioId)).isEmpty();
+        assertThat(proyectoRepository.findAllByNegocioId(propioId)).isEmpty();
         assertThat(proyectos.findByIdAndNegocioId(ajeno.getId(), ajenoId)).isPresent();
         assertThat(bloques.findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(ajeno.getId(), propioId)).isEmpty();
         assertThat(campos.findAllByBloqueIdInAndNegocioIdOrderByPosicionAscIdAsc(

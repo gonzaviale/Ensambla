@@ -4,6 +4,8 @@ import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.registro.TotalesRegistros;
 import com.ensambla.backend.domain.model.reporte.ReporteRegistros;
 import com.ensambla.backend.domain.port.ExportadorReportePort;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
@@ -73,7 +75,7 @@ class ReporteUseCaseConfigTest {
 
         ExportarReporteResponse response = config.exportarReporte(
                         negocioService, mock(ControlPlanService.class), bloqueService, campoService, reporteService,
-                        exportador, Clock.systemUTC())
+                        mock(RegistroRepository.class), mock(CampoRepository.class), exportador, Clock.systemUTC())
                 .execute(new GenerarReporteRequest(USUARIO_ID, BLOQUE_ID, null, null, null, null, null));
 
         assertThat(response.contenido()).containsExactly(1, 2);

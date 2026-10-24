@@ -9,7 +9,6 @@ import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
 import java.util.Optional;
 
 import static com.ensambla.backend.support.ProyectoTestData.AHORA;
@@ -29,17 +28,6 @@ class ProyectoServiceTest {
     private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
     private final ProyectoService proyectoService = new ProyectoService(
             proyectoRepository, mock(ControlPlanService.class), new TransaccionDirecta());
-
-    @Test
-    @DisplayName("Lista sólo los proyectos del negocio recibido")
-    void listarShouldFilterByNegocio() {
-        when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(ProyectoTestData.proyecto()));
-
-        var result = proyectoService.listar(NEGOCIO_ID);
-
-        assertThat(result).hasSize(1);
-        verify(proyectoRepository).findAllByNegocioId(NEGOCIO_ID);
-    }
 
     @Test
     @DisplayName("Obtiene un proyecto que pertenece al negocio")
@@ -84,48 +72,6 @@ class ProyectoServiceTest {
         assertThat(result.getBloques()).hasSize(2);
         assertThat(result.getPlantillaId()).isEqualTo(PLANTILLA_ID);
         verify(proyectoRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("Renombrar valida la pertenencia antes de guardar")
-    void renombrarShouldValidateBeforeSaving() {
-        givenProyecto();
-        when(proyectoRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        var result = proyectoService.renombrar(NEGOCIO_ID, PROYECTO_ID, " Otro ", AHORA.plusHours(1));
-
-        assertThat(result.getNombre()).isEqualTo("Otro");
-        assertThat(result.getActualizadoEn()).isEqualTo(AHORA.plusHours(1));
-    }
-
-    @Test
-    @DisplayName("Renombrar un proyecto ajeno no escribe datos")
-    void renombrarShouldNotWriteForeignProyecto() {
-        givenMissingProyecto();
-
-        assertThatThrownBy(() -> proyectoService.renombrar(NEGOCIO_ID, PROYECTO_ID, "Otro", AHORA))
-                .isInstanceOf(ResourceNotFoundException.class);
-        verify(proyectoRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("Eliminar valida pertenencia y conserva el filtro de negocio en el borrado")
-    void eliminarShouldFilterDeleteByNegocio() {
-        givenProyecto();
-
-        proyectoService.eliminar(NEGOCIO_ID, PROYECTO_ID);
-
-        verify(proyectoRepository).deleteByIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID);
-    }
-
-    @Test
-    @DisplayName("Eliminar un proyecto ajeno no ejecuta el borrado")
-    void eliminarShouldNotDeleteForeignProyecto() {
-        givenMissingProyecto();
-
-        assertThatThrownBy(() -> proyectoService.eliminar(NEGOCIO_ID, PROYECTO_ID))
-                .isInstanceOf(ResourceNotFoundException.class);
-        verify(proyectoRepository, never()).deleteByIdAndNegocioId(any(), any());
     }
 
     // --- arrange ---
