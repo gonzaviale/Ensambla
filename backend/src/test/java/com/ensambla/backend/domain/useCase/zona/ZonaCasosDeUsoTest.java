@@ -36,7 +36,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-class ZonaUseCaseTest {
+class ZonaCasosDeUsoTest {
 
     private static final UsuarioId USUARIO_ID = UsuarioId.de("b0000000-0000-4000-8000-000000000001");
     private static final ZonaId ZONA_ID = ZonaId.de("c0000000-0000-4000-8000-000000000001");

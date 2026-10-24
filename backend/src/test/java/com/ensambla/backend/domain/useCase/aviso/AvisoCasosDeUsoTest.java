@@ -50,7 +50,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-class AvisoUseCasesTest {
+class AvisoCasosDeUsoTest {
 
     private static final UsuarioId USUARIO_ID = UsuarioId.de("00000000-0000-4000-8000-000000000001");
     private static final NegocioId NEGOCIO_ID = AvisoTestData.NEGOCIO_ID;

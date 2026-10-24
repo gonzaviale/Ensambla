@@ -55,7 +55,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class RecetaUseCasesTest {
+class RecetaCasosDeUsoTest {
 
     private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
     private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
@@ -260,7 +260,7 @@ class RecetaUseCasesTest {
 
     private void givenInsumosExistentes(RegistroId... insumos) {
         when(registroRepository.findAllByIdsAndBloque(List.of(insumos), BLOQUE_INSUMOS_ID, NEGOCIO_ID))
-                .thenReturn(Arrays.stream(insumos).map(RecetaUseCasesTest::givenInsumo).toList());
+                .thenReturn(Arrays.stream(insumos).map(RecetaCasosDeUsoTest::givenInsumo).toList());
     }
 
     private void givenSaveReturnsArgument() {
