@@ -40,7 +40,9 @@ export function useConfiguracionUbicacion() {
     staleTime: Infinity,
     retry: false,
   });
-  const [consulta, setConsulta] = useState('');
+  // La dirección se escribe en dos partes; la localidad es la del comercio, que también se usa para buscar.
+  const [calle, setCalle] = useState('');
+  const [altura, setAltura] = useState('');
   const [resultados, setResultados] = useState<Direccion[] | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [errorBusqueda, setErrorBusqueda] = useState('');
@@ -71,7 +73,10 @@ export function useConfiguracionUbicacion() {
       try {
         const respuesta = await resolverLocalidad(punto, actual.signal);
         if (actual.signal.aborted) return;
-        setDelMapa({ clave: `${punto.latitud},${punto.longitud}`, localidades: respuesta.localidades });
+        setDelMapa({
+          clave: `${punto.latitud},${punto.longitud}`,
+          localidades: respuesta.localidades,
+        });
         if (seguirAlMapa.current && respuesta.localidad) setLocalidad(respuesta.localidad);
         seguirAlMapa.current = false;
       } catch (error) {
@@ -111,7 +116,6 @@ export function useConfiguracionUbicacion() {
     setRubro(datos.ubicacion || datos.rubro !== 'OTRO' ? datos.rubro : '');
     const ubicacion = datos.ubicacion;
     if (ubicacion?.direccion) {
-      setConsulta(ubicacion.direccion);
       setDireccion({
         direccion: ubicacion.direccion,
         latitud: ubicacion.latitud,
@@ -132,11 +136,12 @@ export function useConfiguracionUbicacion() {
 
   useEffect(() => () => pedido.current?.abort(), []);
 
-  const cambiarConsulta = (valor: string) => {
+  // Cambiar la calle o la altura descarta la búsqueda y el punto anteriores.
+  const cambiarDireccion = (parte: 'calle' | 'altura', valor: string) => {
     cambio();
     pedido.current?.abort();
     setBuscando(false);
-    setConsulta(valor);
+    (parte === 'calle' ? setCalle : setAltura)(valor);
     setResultados(null);
     setDireccion(null);
     setLatitud('');
@@ -148,7 +153,13 @@ export function useConfiguracionUbicacion() {
 
   const buscar = async (evento: FormEvent) => {
     evento.preventDefault();
-    const error = errorDeConsulta(consulta);
+    const consulta = [`${calle.trim()} ${altura.trim()}`.trim(), localidad.trim()]
+      .filter(Boolean)
+      .join(', ');
+    const error =
+      !calle.trim() || !altura.trim() || !localidad.trim()
+        ? 'Escribí calle, altura y localidad.'
+        : errorDeConsulta(consulta);
     setErrorBusqueda(error);
     if (error) return;
     cambio();
@@ -304,8 +315,10 @@ export function useConfiguracionUbicacion() {
     guardado,
     errorGuardado,
     busquedaSimulada: env.mocks === 'completo',
-    consulta,
-    cambiarConsulta,
+    calle,
+    altura,
+    cambiarCalle: (valor: string) => cambiarDireccion('calle', valor),
+    cambiarAltura: (valor: string) => cambiarDireccion('altura', valor),
     buscar,
     buscando,
     resultados,

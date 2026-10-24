@@ -11,7 +11,7 @@
 .ubicacion-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-areas: 'direccion ajuste' 'rubro ajuste';
+  grid-template-areas: 'direccion ajuste';
   gap: 24px;
   align-items: start;
 }
@@ -21,8 +21,8 @@
 .ubicacion-ajuste {
   grid-area: ajuste;
 }
-.ubicacion-rubro {
-  grid-area: rubro;
+.ubicacion-localidad {
+  grid-area: localidad;
 }
 .ubicacion-panel {
   display: grid;
@@ -160,9 +160,9 @@
   grid-column: 1 / -1;
 }
 .ubicacion-acciones {
-  display: grid;
-  justify-items: start;
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 .ubicacion-formulario {
   display: grid;
@@ -200,7 +200,7 @@
 @media (max-width: 760px) {
   .ubicacion-grid {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: 'direccion' 'ajuste' 'rubro';
+    grid-template-areas: 'direccion' 'ajuste';
   }
   .ubicacion-panel {
     padding: 18px;
@@ -240,6 +240,9 @@ body:has(.ubicacion-page) {
 }
 .ubicacion-rubro {
   --paso: var(--coral);
+}
+.ubicacion-localidad {
+  --paso: var(--blue);
 }
 .ubicacion-panel .eyebrow {
   justify-self: start;
@@ -315,4 +318,132 @@ body:has(.ubicacion-page) {
 }
 .ubicacion-page .check-row input {
   accent-color: var(--petrol);
+}
+
+/* El camino de pasos: arriba, para saber por dónde vas. Se puede tocar cualquier paso. */
+/* Verde de paso hecho: sólido y del mismo tono saturado que el resto de la paleta. */
+.ubicacion-page {
+  --verde-paso: #2e9e6a;
+}
+.ubicacion-camino ol {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ubicacion-camino li {
+  flex: 1;
+  position: relative;
+}
+.ubicacion-camino li + li::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 1px);
+  width: 8px;
+  height: 2px;
+  background: var(--line);
+}
+.ubicacion-camino button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--muted);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ubicacion-camino-punto {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--line);
+  color: var(--ink);
+  font-size: 13px;
+}
+.ubicacion-camino-punto .icon {
+  width: 15px;
+  height: 15px;
+}
+.ubicacion-camino li.hecho button {
+  border-color: var(--verde-paso);
+  color: var(--verde-paso);
+}
+.ubicacion-camino li.hecho .ubicacion-camino-punto {
+  background: var(--verde-paso);
+  color: #fff;
+}
+.ubicacion-camino li.actual button {
+  border-color: var(--orange);
+  background: var(--orange);
+  color: #fff;
+}
+.ubicacion-camino li.actual .ubicacion-camino-punto {
+  background: #fff;
+  color: var(--orange);
+}
+.ubicacion-camino button:hover:not(:disabled) {
+  border-color: var(--orange);
+}
+.ubicacion-camino button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.ubicacion-page > .ubicacion-aviso {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.ubicacion-page .ubicacion-panel {
+  max-width: 760px;
+}
+.ubicacion-page .ubicacion-grid .ubicacion-panel {
+  max-width: none;
+}
+@media (max-width: 600px) {
+  .ubicacion-camino button {
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 6px;
+    border-radius: 16px;
+    font-size: 12px;
+  }
+}
+/* Calle y altura en una fila; la localidad va debajo, en el mismo bloque. */
+.ubicacion-calle-altura {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px;
+  gap: 12px;
+}
+.ubicacion-elegida {
+  margin: 0;
+  font-weight: 700;
+  color: var(--verde-paso);
+}
+.ubicacion-falta {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.ubicacion-direccion form {
+  display: grid;
+  gap: 12px;
+}
+.ubicacion-direccion form > .btn {
+  justify-self: start;
+}
+.ubicacion-direccion .field {
+  margin: 0;
 }

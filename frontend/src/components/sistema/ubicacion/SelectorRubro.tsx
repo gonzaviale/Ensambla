@@ -13,7 +13,6 @@ type Props = {
 export function SelectorRubro({ rubros, valor, onCambiar, cargando, error, onReintentar }: Props) {
   return (
     <section className="ubicacion-panel ubicacion-rubro" aria-labelledby="titulo-rubro">
-      <div className="eyebrow">PASO 3</div>
       <h2 id="titulo-rubro">Elegí tu rubro</h2>
       <div className="field">
         <label htmlFor="rubro-comercio">Rubro del comercio</label>
@@ -32,9 +31,6 @@ export function SelectorRubro({ rubros, valor, onCambiar, cargando, error, onRei
           ))}
         </select>
       </div>
-      <p className="ubicacion-ayuda">
-        El rubro permite comparar comercios que trabajan con productos similares.
-      </p>
       {error && (
         <div role="alert">
           <p>{error}</p>

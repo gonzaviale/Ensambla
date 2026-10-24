@@ -13,12 +13,8 @@ type Props = {
 export function AjusteUbicacion(props: Props) {
   return (
     <section className="ubicacion-panel ubicacion-ajuste" aria-labelledby="titulo-punto">
-      <div className="eyebrow">PASO 2</div>
       <h2 id="titulo-punto">Revisá el punto en el mapa</h2>
-      <p>
-        Arrastrá el marcador o tocá el lugar exacto. También podés editar las coordenadas con el
-        teclado.
-      </p>
+      <p>Si hace falta, arrastrá el marcador al lugar exacto.</p>
       {props.punto ? (
         <MapaUbicacion punto={props.punto} onMover={props.onMover} />
       ) : (
@@ -53,8 +49,7 @@ export function AjusteUbicacion(props: Props) {
             />
           </div>
           <p id="limites-coordenadas" className="ubicacion-ayuda">
-            Latitud: -90 a 90. Longitud: -180 a 180. Al mover el punto, la dirección elegida se
-            conserva como referencia.
+            Latitud de -90 a 90 y longitud de -180 a 180.
           </p>
         </div>
       )}
