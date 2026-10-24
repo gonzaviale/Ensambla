@@ -1,16 +1,16 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.ubicacion.BuscarDireccionesRequest;
-import com.ensambla.backend.domain.dto.ubicacion.BuscarDireccionesResponse;
-import com.ensambla.backend.domain.dto.ubicacion.BuscarDireccionesResponse.DireccionItem;
-import com.ensambla.backend.domain.dto.ubicacion.ListarRubrosResponse;
-import com.ensambla.backend.domain.dto.ubicacion.ListarRubrosResponse.RubroItem;
-import com.ensambla.backend.domain.dto.ubicacion.ResolverLocalidadRequest;
-import com.ensambla.backend.domain.dto.ubicacion.ResolverLocalidadResponse;
 import com.ensambla.backend.domain.exception.ServicioUbicacionException;
-import com.ensambla.backend.domain.useCase.ubicacion.BuscarDireccionesUseCase;
-import com.ensambla.backend.domain.useCase.ubicacion.ListarRubrosUseCase;
-import com.ensambla.backend.domain.useCase.ubicacion.ResolverLocalidadUseCase;
+import com.ensambla.backend.domain.useCase.ubicacion.buscarDirecciones.BuscarDirecciones;
+import com.ensambla.backend.domain.useCase.ubicacion.buscarDirecciones.BuscarDireccionesRequest;
+import com.ensambla.backend.domain.useCase.ubicacion.buscarDirecciones.BuscarDireccionesResponse.DireccionItem;
+import com.ensambla.backend.domain.useCase.ubicacion.buscarDirecciones.BuscarDireccionesResponse;
+import com.ensambla.backend.domain.useCase.ubicacion.listarRubros.ListarRubros;
+import com.ensambla.backend.domain.useCase.ubicacion.listarRubros.ListarRubrosResponse.RubroItem;
+import com.ensambla.backend.domain.useCase.ubicacion.listarRubros.ListarRubrosResponse;
+import com.ensambla.backend.domain.useCase.ubicacion.resolverLocalidad.ResolverLocalidad;
+import com.ensambla.backend.domain.useCase.ubicacion.resolverLocalidad.ResolverLocalidadRequest;
+import com.ensambla.backend.domain.useCase.ubicacion.resolverLocalidad.ResolverLocalidadResponse;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.ubicacion.UbicacionPresentationMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,18 +41,18 @@ class UbicacionControllerTest {
     private static final BuscarDireccionesRequest REQUEST = new BuscarDireccionesRequest(CONSULTA);
     private static final ResolverLocalidadRequest PUNTO = new ResolverLocalidadRequest(
             new BigDecimal("-34.6701"), new BigDecimal("-58.5625"));
-    private BuscarDireccionesUseCase buscarDireccionesUseCase;
-    private ResolverLocalidadUseCase resolverLocalidadUseCase;
-    private ListarRubrosUseCase listarRubrosUseCase;
+    private BuscarDirecciones buscarDirecciones;
+    private ResolverLocalidad resolverLocalidad;
+    private ListarRubros listarRubros;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        buscarDireccionesUseCase = mock(BuscarDireccionesUseCase.class);
-        resolverLocalidadUseCase = mock(ResolverLocalidadUseCase.class);
-        listarRubrosUseCase = mock(ListarRubrosUseCase.class);
+        buscarDirecciones = mock(BuscarDirecciones.class);
+        resolverLocalidad = mock(ResolverLocalidad.class);
+        listarRubros = mock(ListarRubros.class);
         mockMvc = MockMvcBuilders.standaloneSetup(new UbicacionController(
-                        buscarDireccionesUseCase, resolverLocalidadUseCase, listarRubrosUseCase,
+                        buscarDirecciones, resolverLocalidad, listarRubros,
                         new UbicacionPresentationMapper()))
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
@@ -60,7 +60,7 @@ class UbicacionControllerTest {
     @Test
     @DisplayName("La búsqueda devuelve opciones completas y prohíbe la caché del navegador")
     void buscarShouldReturnDirectionsWithoutBrowserCache() throws Exception {
-        when(buscarDireccionesUseCase.execute(REQUEST)).thenReturn(new BuscarDireccionesResponse(List.of(
+        when(buscarDirecciones.execute(REQUEST)).thenReturn(new BuscarDireccionesResponse(List.of(
                 new DireccionItem(CONSULTA, new BigDecimal("-34.67"), new BigDecimal("-58.56"), "San Justo"))));
 
         mockMvc.perform(post("/api/ubicacion/direcciones").contentType(MediaType.APPLICATION_JSON)
@@ -72,13 +72,13 @@ class UbicacionControllerTest {
                 .andExpect(jsonPath("$.resultados[0].longitud").value(-58.56))
                 .andExpect(jsonPath("$.resultados[0].localidad").value("San Justo"));
 
-        verify(buscarDireccionesUseCase).execute(REQUEST);
+        verify(buscarDirecciones).execute(REQUEST);
     }
 
     @Test
     @DisplayName("La localidad del punto se devuelve sin caché del navegador")
     void resolverLocalidadShouldReturnLocalitiesWithoutBrowserCache() throws Exception {
-        when(resolverLocalidadUseCase.execute(PUNTO)).thenReturn(
+        when(resolverLocalidad.execute(PUNTO)).thenReturn(
                 new ResolverLocalidadResponse("San Justo", List.of("San Justo", "Villa Luzuriaga")));
 
         mockMvc.perform(post("/api/ubicacion/localidad").contentType(MediaType.APPLICATION_JSON)
@@ -92,7 +92,7 @@ class UbicacionControllerTest {
     @Test
     @DisplayName("Un punto sin localidad reconocida responde localidad nula y lista vacía")
     void resolverLocalidadShouldReturnEmptyLocalities() throws Exception {
-        when(resolverLocalidadUseCase.execute(PUNTO)).thenReturn(new ResolverLocalidadResponse(null, List.of()));
+        when(resolverLocalidad.execute(PUNTO)).thenReturn(new ResolverLocalidadResponse(null, List.of()));
 
         mockMvc.perform(post("/api/ubicacion/localidad").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"latitud\":-34.6701,\"longitud\":-58.5625}"))
@@ -112,13 +112,13 @@ class UbicacionControllerTest {
         mockMvc.perform(post("/api/ubicacion/localidad").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest());
 
-        verifyNoInteractions(resolverLocalidadUseCase);
+        verifyNoInteractions(resolverLocalidad);
     }
 
     @Test
     @DisplayName("El proveedor caído al resolver la localidad responde 503")
     void resolverLocalidadShouldReturn503WhenProviderUnavailable() throws Exception {
-        when(resolverLocalidadUseCase.execute(PUNTO)).thenThrow(new ServicioUbicacionException("Sin servicio"));
+        when(resolverLocalidad.execute(PUNTO)).thenThrow(new ServicioUbicacionException("Sin servicio"));
 
         mockMvc.perform(post("/api/ubicacion/localidad").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"latitud\":-34.6701,\"longitud\":-58.5625}"))
@@ -129,7 +129,7 @@ class UbicacionControllerTest {
     @Test
     @DisplayName("La búsqueda sin coincidencias responde con una lista vacía")
     void buscarShouldReturnEmptyResults() throws Exception {
-        when(buscarDireccionesUseCase.execute(REQUEST)).thenReturn(new BuscarDireccionesResponse(List.of()));
+        when(buscarDirecciones.execute(REQUEST)).thenReturn(new BuscarDireccionesResponse(List.of()));
 
         mockMvc.perform(post("/api/ubicacion/direcciones").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"consulta\":\"" + CONSULTA + "\"}"))
@@ -143,13 +143,13 @@ class UbicacionControllerTest {
         mockMvc.perform(post("/api/ubicacion/direcciones").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.consulta").exists());
 
-        verifyNoInteractions(buscarDireccionesUseCase);
+        verifyNoInteractions(buscarDirecciones);
     }
 
     @Test
     @DisplayName("El proveedor caído responde 503 con el formato de error de la aplicación")
     void buscarShouldReturn503WhenProviderUnavailable() throws Exception {
-        when(buscarDireccionesUseCase.execute(REQUEST)).thenThrow(new ServicioUbicacionException("Sin servicio"));
+        when(buscarDirecciones.execute(REQUEST)).thenThrow(new ServicioUbicacionException("Sin servicio"));
 
         mockMvc.perform(post("/api/ubicacion/direcciones").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"consulta\":\"" + CONSULTA + "\"}"))
@@ -161,7 +161,7 @@ class UbicacionControllerTest {
     @Test
     @DisplayName("El catálogo devuelve código estable y nombre legible")
     void listarRubrosShouldReturnCatalog() throws Exception {
-        when(listarRubrosUseCase.execute()).thenReturn(new ListarRubrosResponse(List.of(
+        when(listarRubros.execute()).thenReturn(new ListarRubrosResponse(List.of(
                 new RubroItem("ALMACEN", "Almacén"), new RubroItem("OTRO", "Otro"))));
 
         mockMvc.perform(get("/api/ubicacion/rubros"))
@@ -174,7 +174,7 @@ class UbicacionControllerTest {
     @Test
     @DisplayName("El listado respeta un catálogo vacío")
     void listarRubrosShouldReturnEmptyCatalog() throws Exception {
-        when(listarRubrosUseCase.execute()).thenReturn(new ListarRubrosResponse(List.of()));
+        when(listarRubros.execute()).thenReturn(new ListarRubrosResponse(List.of()));
 
         mockMvc.perform(get("/api/ubicacion/rubros"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.rubros").isEmpty());

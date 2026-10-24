@@ -1,17 +1,17 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.campo.CampoItem;
-import com.ensambla.backend.domain.dto.campo.CrearCampoRequest;
-import com.ensambla.backend.domain.dto.campo.EditarCampoRequest;
-import com.ensambla.backend.domain.dto.campo.EliminarCampoRequest;
-import com.ensambla.backend.domain.dto.campo.ListarCamposRequest;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.useCase.campo.CrearCampoUseCase;
-import com.ensambla.backend.domain.useCase.campo.EditarCampoUseCase;
-import com.ensambla.backend.domain.useCase.campo.EliminarCampoUseCase;
-import com.ensambla.backend.domain.useCase.campo.ListarCamposUseCase;
+import com.ensambla.backend.domain.useCase.campo.CampoItem;
+import com.ensambla.backend.domain.useCase.campo.crearCampo.CrearCampo;
+import com.ensambla.backend.domain.useCase.campo.crearCampo.CrearCampoRequest;
+import com.ensambla.backend.domain.useCase.campo.editarCampo.EditarCampo;
+import com.ensambla.backend.domain.useCase.campo.editarCampo.EditarCampoRequest;
+import com.ensambla.backend.domain.useCase.campo.eliminarCampo.EliminarCampo;
+import com.ensambla.backend.domain.useCase.campo.eliminarCampo.EliminarCampoRequest;
+import com.ensambla.backend.domain.useCase.campo.listarCampos.ListarCampos;
+import com.ensambla.backend.domain.useCase.campo.listarCampos.ListarCamposRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.campo.CampoPresentationMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,10 +54,10 @@ class CampoControllerTest {
             {"nombre":"Talle","tipo":"OPCION","obligatorio":true,"valorInicial":"Chico","opciones":["Chico","Grande"]}
             """;
 
-    private final ListarCamposUseCase listarCamposUseCase = mock(ListarCamposUseCase.class);
-    private final CrearCampoUseCase crearCampoUseCase = mock(CrearCampoUseCase.class);
-    private final EditarCampoUseCase editarCampoUseCase = mock(EditarCampoUseCase.class);
-    private final EliminarCampoUseCase eliminarCampoUseCase = mock(EliminarCampoUseCase.class);
+    private final ListarCampos listarCampos = mock(ListarCampos.class);
+    private final CrearCampo crearCampo = mock(CrearCampo.class);
+    private final EditarCampo editarCampo = mock(EditarCampo.class);
+    private final EliminarCampo eliminarCampo = mock(EliminarCampo.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private MockMvc mockMvc;
@@ -65,10 +65,10 @@ class CampoControllerTest {
     @BeforeEach
     void setUp() {
         var controller = new CampoController(
-                listarCamposUseCase,
-                crearCampoUseCase,
-                editarCampoUseCase,
-                eliminarCampoUseCase,
+                listarCampos,
+                crearCampo,
+                editarCampo,
+                eliminarCampo,
                 new CampoPresentationMapper());
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
@@ -78,7 +78,7 @@ class CampoControllerTest {
     @Test
     @DisplayName("GET lista los campos del bloque con todos sus datos")
     void listarShouldReturnMappedCampos() throws Exception {
-        when(listarCamposUseCase.execute(any())).thenReturn(List.of(givenItem("Talle")));
+        when(listarCampos.execute(any())).thenReturn(List.of(givenItem("Talle")));
 
         mockMvc.perform(get("/api/bloques/{id}/campos", BLOQUE_ID).principal(principal))
                 .andExpect(status().isOk())
@@ -92,13 +92,13 @@ class CampoControllerTest {
                 .andExpect(jsonPath("$[0].posicion").value(0))
                 .andExpect(jsonPath("$[0].creadoEn").exists())
                 .andExpect(jsonPath("$[0].actualizadoEn").exists());
-        verify(listarCamposUseCase).execute(new ListarCamposRequest(USUARIO_ID, BLOQUE_ID));
+        verify(listarCampos).execute(new ListarCamposRequest(USUARIO_ID, BLOQUE_ID));
     }
 
     @Test
     @DisplayName("GET devuelve una lista vacía cuando el bloque no tiene campos")
     void listarShouldReturnEmptyList() throws Exception {
-        when(listarCamposUseCase.execute(any())).thenReturn(List.of());
+        when(listarCampos.execute(any())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/bloques/{id}/campos", BLOQUE_ID).principal(principal))
                 .andExpect(status().isOk())
@@ -108,7 +108,7 @@ class CampoControllerTest {
     @Test
     @DisplayName("GET de un bloque ajeno devuelve 404 estándar")
     void listarShouldReturn404WhenBloqueIsForeign() throws Exception {
-        when(listarCamposUseCase.execute(any())).thenThrow(new ResourceNotFoundException("El bloque no existe"));
+        when(listarCampos.execute(any())).thenThrow(new ResourceNotFoundException("El bloque no existe"));
 
         mockMvc.perform(get("/api/bloques/{id}/campos", BLOQUE_ID).principal(principal))
                 .andExpect(status().isNotFound())
@@ -121,43 +121,43 @@ class CampoControllerTest {
         mockMvc.perform(get("/api/bloques/invalido/campos").principal(principal))
                 .andExpect(status().isBadRequest());
 
-        verifyNoInteractions(listarCamposUseCase);
+        verifyNoInteractions(listarCampos);
     }
 
     @Test
     @DisplayName("POST crea el campo y devuelve 201 con su ubicación")
     void crearShouldReturnCreatedWithLocation() throws Exception {
-        when(crearCampoUseCase.execute(any())).thenReturn(givenItem("Talle"));
+        when(crearCampo.execute(any())).thenReturn(givenItem("Talle"));
 
         crear(BODY_TALLE)
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "/api/campos/" + CAMPO_ID))
                 .andExpect(jsonPath("$.nombre").value("Talle"));
-        verify(crearCampoUseCase).execute(
+        verify(crearCampo).execute(
                 new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Talle", "OPCION", true, "Chico", TALLES, null, null));
     }
 
     @Test
     @DisplayName("POST deja en null lo que el body no manda para que el dominio aplique los valores por defecto")
     void crearShouldPassMissingOptionalsAsNull() throws Exception {
-        when(crearCampoUseCase.execute(any())).thenReturn(givenItem("Producto"));
+        when(crearCampo.execute(any())).thenReturn(givenItem("Producto"));
 
         crear("{\"nombre\":\"Producto\",\"tipo\":\"TEXTO\"}")
                 .andExpect(status().isCreated());
-        verify(crearCampoUseCase).execute(
+        verify(crearCampo).execute(
                 new CrearCampoRequest(USUARIO_ID, BLOQUE_ID, "Producto", "TEXTO", null, null, null, null, null));
     }
 
     @Test
     @DisplayName("POST pasa al caso de uso la tabla de un campo de conexión y la devuelve en el JSON")
     void crearShouldPassBloqueRelacionado() throws Exception {
-        when(crearCampoUseCase.execute(any())).thenReturn(givenRelacion());
+        when(crearCampo.execute(any())).thenReturn(givenRelacion());
 
         crear("{\"nombre\":\"Cliente\",\"tipo\":\"RELACION\",\"bloqueRelacionadoId\":\"" + RELACIONADO_ID + "\"}")
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.tipo").value("RELACION"))
                 .andExpect(jsonPath("$.bloqueRelacionadoId").value(RELACIONADO_ID.toString()));
-        verify(crearCampoUseCase).execute(new CrearCampoRequest(
+        verify(crearCampo).execute(new CrearCampoRequest(
                 USUARIO_ID, BLOQUE_ID, "Cliente", "RELACION", null, null, null, RELACIONADO_ID, null));
     }
 
@@ -168,7 +168,7 @@ class CampoControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.nombre").exists());
 
-        verifyNoInteractions(crearCampoUseCase);
+        verifyNoInteractions(crearCampo);
     }
 
     @Test
@@ -178,7 +178,7 @@ class CampoControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.nombre").exists());
 
-        verifyNoInteractions(crearCampoUseCase);
+        verifyNoInteractions(crearCampo);
     }
 
     @Test
@@ -215,7 +215,7 @@ class CampoControllerTest {
     @Test
     @DisplayName("POST con un nombre repetido en el bloque devuelve 409")
     void crearShouldReturn409WhenNameIsTaken() throws Exception {
-        when(crearCampoUseCase.execute(any()))
+        when(crearCampo.execute(any()))
                 .thenThrow(new DuplicateResourceException("Ya hay un campo llamado \"Talle\" en este bloque"));
 
         crear(BODY_TALLE)
@@ -226,7 +226,7 @@ class CampoControllerTest {
     @Test
     @DisplayName("POST en un bloque ajeno devuelve 404")
     void crearShouldReturn404WhenBloqueIsForeign() throws Exception {
-        when(crearCampoUseCase.execute(any())).thenThrow(new ResourceNotFoundException("El bloque no existe"));
+        when(crearCampo.execute(any())).thenThrow(new ResourceNotFoundException("El bloque no existe"));
 
         crear(BODY_TALLE)
                 .andExpect(status().isNotFound());
@@ -235,12 +235,12 @@ class CampoControllerTest {
     @Test
     @DisplayName("PATCH delega la configuración completa con el campo y el usuario de la sesión")
     void editarShouldPassRequest() throws Exception {
-        when(editarCampoUseCase.execute(any())).thenReturn(givenItem("Talle"));
+        when(editarCampo.execute(any())).thenReturn(givenItem("Talle"));
 
         editar(BODY_TALLE)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("Talle"));
-        verify(editarCampoUseCase).execute(
+        verify(editarCampo).execute(
                 new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Talle", "OPCION", true, "Chico", TALLES, null, null));
     }
 
@@ -251,13 +251,13 @@ class CampoControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.nombre").exists());
 
-        verifyNoInteractions(editarCampoUseCase);
+        verifyNoInteractions(editarCampo);
     }
 
     @Test
     @DisplayName("PATCH con una configuración inválida devuelve 400 con el error por dato")
     void editarShouldReturn400WhenConfiguracionIsInvalid() throws Exception {
-        when(editarCampoUseCase.execute(any()))
+        when(editarCampo.execute(any()))
                 .thenThrow(new CampoInvalidoException(Map.of("opciones", "Hay opciones repetidas")));
 
         editar("{\"nombre\":\"Talle\",\"tipo\":\"OPCION\",\"opciones\":[\"A\",\"a\"]}")
@@ -268,7 +268,7 @@ class CampoControllerTest {
     @Test
     @DisplayName("PATCH con el nombre de otro campo devuelve 409")
     void editarShouldReturn409WhenNameIsTaken() throws Exception {
-        when(editarCampoUseCase.execute(any()))
+        when(editarCampo.execute(any()))
                 .thenThrow(new DuplicateResourceException("Ya hay un campo llamado \"Talle\" en este bloque"));
 
         editar(BODY_TALLE)
@@ -278,7 +278,7 @@ class CampoControllerTest {
     @Test
     @DisplayName("PATCH de un campo ajeno devuelve 404")
     void editarShouldReturn404WhenCampoIsForeign() throws Exception {
-        when(editarCampoUseCase.execute(any())).thenThrow(new ResourceNotFoundException("El campo no existe"));
+        when(editarCampo.execute(any())).thenThrow(new ResourceNotFoundException("El campo no existe"));
 
         editar(BODY_TALLE)
                 .andExpect(status().isNotFound());
@@ -291,7 +291,7 @@ class CampoControllerTest {
                         .contentType("application/json").content(BODY_TALLE))
                 .andExpect(status().isBadRequest());
 
-        verifyNoInteractions(editarCampoUseCase);
+        verifyNoInteractions(editarCampo);
     }
 
     @Test
@@ -300,7 +300,7 @@ class CampoControllerTest {
         mockMvc.perform(delete("/api/campos/{id}", CAMPO_ID).principal(principal))
                 .andExpect(status().isNoContent());
 
-        verify(eliminarCampoUseCase).execute(new EliminarCampoRequest(USUARIO_ID, CAMPO_ID));
+        verify(eliminarCampo).execute(new EliminarCampoRequest(USUARIO_ID, CAMPO_ID));
     }
 
     @Test
@@ -318,17 +318,17 @@ class CampoControllerTest {
         mockMvc.perform(delete("/api/campos/invalido").principal(principal))
                 .andExpect(status().isBadRequest());
 
-        verifyNoInteractions(eliminarCampoUseCase);
+        verifyNoInteractions(eliminarCampo);
     }
 
     // --- arrange ---
     private void givenCrearRechaza(String dato, String mensaje) {
-        when(crearCampoUseCase.execute(any())).thenThrow(new CampoInvalidoException(Map.of(dato, mensaje)));
+        when(crearCampo.execute(any())).thenThrow(new CampoInvalidoException(Map.of(dato, mensaje)));
     }
 
     private void givenEliminarNoEncuentra() {
         doThrow(new ResourceNotFoundException("El campo no existe"))
-                .when(eliminarCampoUseCase).execute(any());
+                .when(eliminarCampo).execute(any());
     }
 
     private CampoItem givenItem(String nombre) {

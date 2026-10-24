@@ -1,9 +1,9 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.useCase.campo.CrearCampoUseCase;
-import com.ensambla.backend.domain.useCase.campo.EditarCampoUseCase;
-import com.ensambla.backend.domain.useCase.campo.EliminarCampoUseCase;
-import com.ensambla.backend.domain.useCase.campo.ListarCamposUseCase;
+import com.ensambla.backend.domain.useCase.campo.crearCampo.CrearCampo;
+import com.ensambla.backend.domain.useCase.campo.editarCampo.EditarCampo;
+import com.ensambla.backend.domain.useCase.campo.eliminarCampo.EliminarCampo;
+import com.ensambla.backend.domain.useCase.campo.listarCampos.ListarCampos;
 import com.ensambla.backend.infrastructure.presentation.dto.campo.CampoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.campo.CampoWebRequest;
 import com.ensambla.backend.infrastructure.presentation.mapper.campo.CampoPresentationMapper;
@@ -32,20 +32,20 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CampoController {
 
-    private final ListarCamposUseCase listarCamposUseCase;
+    private final ListarCampos listarCampos;
 
-    private final CrearCampoUseCase crearCampoUseCase;
+    private final CrearCampo crearCampo;
 
-    private final EditarCampoUseCase editarCampoUseCase;
+    private final EditarCampo editarCampo;
 
-    private final EliminarCampoUseCase eliminarCampoUseCase;
+    private final EliminarCampo eliminarCampo;
 
     private final CampoPresentationMapper campoPresentationMapper;
 
     @GetMapping("/bloques/{bloqueId}/campos")
     @Operation(summary = "Listar los campos de un bloque en el orden del constructor")
     public ResponseEntity<List<CampoResponse>> listar(Authentication authentication, @PathVariable UUID bloqueId) {
-        return ResponseEntity.ok(campoPresentationMapper.toResponse(listarCamposUseCase.execute(
+        return ResponseEntity.ok(campoPresentationMapper.toResponse(listarCampos.execute(
                 campoPresentationMapper.toListarRequest(usuarioDe(authentication), bloqueId))));
     }
 
@@ -55,7 +55,7 @@ public class CampoController {
             Authentication authentication,
             @PathVariable UUID bloqueId,
             @Valid @RequestBody CampoWebRequest request) {
-        CampoResponse response = campoPresentationMapper.toResponse(crearCampoUseCase.execute(
+        CampoResponse response = campoPresentationMapper.toResponse(crearCampo.execute(
                 campoPresentationMapper.toCrearRequest(usuarioDe(authentication), bloqueId, request)));
         return ResponseEntity.created(URI.create("/api/campos/" + response.id())).body(response);
     }
@@ -66,14 +66,14 @@ public class CampoController {
             Authentication authentication,
             @PathVariable UUID campoId,
             @Valid @RequestBody CampoWebRequest request) {
-        return ResponseEntity.ok(campoPresentationMapper.toResponse(editarCampoUseCase.execute(
+        return ResponseEntity.ok(campoPresentationMapper.toResponse(editarCampo.execute(
                 campoPresentationMapper.toEditarRequest(usuarioDe(authentication), campoId, request))));
     }
 
     @DeleteMapping("/campos/{campoId}")
     @Operation(summary = "Eliminar un campo; los registros del bloque se conservan")
     public ResponseEntity<Void> eliminar(Authentication authentication, @PathVariable UUID campoId) {
-        eliminarCampoUseCase.execute(campoPresentationMapper.toEliminarRequest(usuarioDe(authentication), campoId));
+        eliminarCampo.execute(campoPresentationMapper.toEliminarRequest(usuarioDe(authentication), campoId));
         return ResponseEntity.noContent().build();
     }
 

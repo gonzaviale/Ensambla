@@ -1,12 +1,12 @@
 package com.ensambla.backend.infrastructure.repository;
 
-import com.ensambla.backend.domain.dto.auth.RegistrarUsuarioRequest;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.model.usuario.Usuario;
 import com.ensambla.backend.domain.service.auth.RegistroService;
 import com.ensambla.backend.domain.service.plan.SuscripcionService;
+import com.ensambla.backend.domain.useCase.auth.registrarUsuario.RegistrarUsuarioRequest;
 import com.ensambla.backend.infrastructure.repository.entity.PlanEntity;
 import com.ensambla.backend.infrastructure.repository.entity.SuscripcionEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IPlanJpaRepository;

@@ -1,7 +1,7 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.useCase.receta.GuardarRecetaUseCase;
-import com.ensambla.backend.domain.useCase.receta.ObtenerRecetaUseCase;
+import com.ensambla.backend.domain.useCase.receta.guardarReceta.GuardarReceta;
+import com.ensambla.backend.domain.useCase.receta.obtenerReceta.ObtenerReceta;
 import com.ensambla.backend.infrastructure.presentation.dto.receta.RecetaRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.receta.RecetaResponse;
 import com.ensambla.backend.infrastructure.presentation.mapper.receta.RecetaPresentationMapper;
@@ -25,16 +25,16 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class RecetaController {
 
-    private final ObtenerRecetaUseCase obtenerRecetaUseCase;
+    private final ObtenerReceta obtenerReceta;
 
-    private final GuardarRecetaUseCase guardarRecetaUseCase;
+    private final GuardarReceta guardarReceta;
 
     private final RecetaPresentationMapper presentationMapper;
 
     @GetMapping
     @Operation(summary = "Ver la receta de un producto con su costo calculado con el precio actual de los insumos")
     public ResponseEntity<RecetaResponse> obtener(Authentication authentication, @PathVariable UUID registroId) {
-        RecetaResponse response = presentationMapper.toResponse(obtenerRecetaUseCase.execute(
+        RecetaResponse response = presentationMapper.toResponse(obtenerReceta.execute(
                 presentationMapper.toObtenerRequest(usuarioDe(authentication), registroId)));
         return ResponseEntity.ok(response);
     }
@@ -44,7 +44,7 @@ public class RecetaController {
     public ResponseEntity<RecetaResponse> guardar(Authentication authentication,
                                                   @PathVariable UUID registroId,
                                                   @RequestBody RecetaRequest request) {
-        RecetaResponse response = presentationMapper.toResponse(guardarRecetaUseCase.execute(
+        RecetaResponse response = presentationMapper.toResponse(guardarReceta.execute(
                 presentationMapper.toGuardarRequest(usuarioDe(authentication), registroId, request)));
         return ResponseEntity.ok(response);
     }

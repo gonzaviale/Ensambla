@@ -1,14 +1,7 @@
 package com.ensambla.backend.domain.useCase.receta;
 
-import com.ensambla.backend.domain.dto.receta.GuardarRecetaRequest;
-import com.ensambla.backend.domain.dto.receta.LineaRecetaRequest;
-import com.ensambla.backend.domain.dto.receta.ObtenerRecetaRequest;
-import com.ensambla.backend.domain.dto.receta.RecetaItem;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.mapper.receta.GuardarRecetaMapper;
-import com.ensambla.backend.domain.mapper.receta.ObtenerRecetaMapper;
-import com.ensambla.backend.domain.mapper.receta.RecetaItemMapper;
 import com.ensambla.backend.domain.model.receta.LineaReceta;
 import com.ensambla.backend.domain.model.receta.Receta;
 import com.ensambla.backend.domain.model.receta.RecetaCosteada;
@@ -17,6 +10,11 @@ import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.receta.RecetaService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
+import com.ensambla.backend.domain.useCase.receta.guardarReceta.GuardarReceta;
+import com.ensambla.backend.domain.useCase.receta.guardarReceta.GuardarRecetaRequest;
+import com.ensambla.backend.domain.useCase.receta.guardarReceta.LineaRecetaRequest;
+import com.ensambla.backend.domain.useCase.receta.obtenerReceta.ObtenerReceta;
+import com.ensambla.backend.domain.useCase.receta.obtenerReceta.ObtenerRecetaRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -62,18 +60,15 @@ class RecetaUseCasesTest {
     @Mock
     private RecetaService recetaService;
 
-    private ObtenerRecetaUseCase obtenerRecetaUseCase;
-    private GuardarRecetaUseCase guardarRecetaUseCase;
+    private ObtenerReceta obtenerReceta;
+    private GuardarReceta guardarReceta;
 
     @BeforeEach
     void setUp() {
-        RecetaItemMapper itemMapper = new RecetaItemMapper();
-        obtenerRecetaUseCase = new ObtenerRecetaUseCase(
-                negocioService, controlPlanService, RELOJ, registroDatosService, recetaService,
-                new ObtenerRecetaMapper(itemMapper));
-        guardarRecetaUseCase = new GuardarRecetaUseCase(
-                negocioService, controlPlanService, registroDatosService, recetaService,
-                new GuardarRecetaMapper(itemMapper), RELOJ);
+        obtenerReceta = new ObtenerReceta(
+                negocioService, controlPlanService, RELOJ, registroDatosService, recetaService);
+        guardarReceta = new GuardarReceta(
+                negocioService, controlPlanService, registroDatosService, recetaService, RELOJ);
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
@@ -85,7 +80,7 @@ class RecetaUseCasesTest {
         when(recetaService.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(receta);
         when(recetaService.costear(receta, NEGOCIO_ID)).thenReturn(givenCosteada());
 
-        RecetaItem response = obtenerRecetaUseCase.execute(new ObtenerRecetaRequest(USUARIO_ID, PRODUCTO_ID));
+        RecetaItem response = obtenerReceta.execute(new ObtenerRecetaRequest(USUARIO_ID, PRODUCTO_ID));
 
         assertThat(response.campoPrecioId()).isEqualTo(PRECIO_ID);
         assertThat(response.bloqueInsumosId()).isEqualTo(BLOQUE_INSUMOS_ID);
@@ -103,7 +98,7 @@ class RecetaUseCasesTest {
         when(registroDatosService.obtener(PRODUCTO_ID, NEGOCIO_ID))
                 .thenThrow(new ResourceNotFoundException("El registro no existe"));
 
-        assertThatThrownBy(() -> obtenerRecetaUseCase.execute(new ObtenerRecetaRequest(USUARIO_ID, PRODUCTO_ID)))
+        assertThatThrownBy(() -> obtenerReceta.execute(new ObtenerRecetaRequest(USUARIO_ID, PRODUCTO_ID)))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -114,7 +109,7 @@ class RecetaUseCasesTest {
         when(recetaService.guardar(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(recetaService.costear(any(), eq(NEGOCIO_ID))).thenReturn(givenCosteada());
 
-        RecetaItem response = guardarRecetaUseCase.execute(new GuardarRecetaRequest(
+        RecetaItem response = guardarReceta.execute(new GuardarRecetaRequest(
                 USUARIO_ID, PRODUCTO_ID, PRECIO_ID, List.of(new LineaRecetaRequest(HARINA_ID, new BigDecimal("3"), "kg"))));
 
         ArgumentCaptor<Receta> guardada = ArgumentCaptor.forClass(Receta.class);
@@ -135,7 +130,7 @@ class RecetaUseCasesTest {
         GuardarRecetaRequest invalida = new GuardarRecetaRequest(
                 USUARIO_ID, PRODUCTO_ID, null, List.of(new LineaRecetaRequest(HARINA_ID, BigDecimal.ONE, null)));
 
-        assertThatThrownBy(() -> guardarRecetaUseCase.execute(invalida)).isInstanceOf(RegistroInvalidoException.class);
+        assertThatThrownBy(() -> guardarReceta.execute(invalida)).isInstanceOf(RegistroInvalidoException.class);
         verify(recetaService, never()).guardar(any());
     }
 

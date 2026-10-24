@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.plan.AccesoContenidoItem;
-import com.ensambla.backend.domain.dto.plan.DesbloquearContenidosRequest;
-import com.ensambla.backend.domain.useCase.plan.DesbloquearContenidosUseCase;
+import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
+import com.ensambla.backend.domain.useCase.plan.desbloquearContenidos.DesbloquearContenidos;
+import com.ensambla.backend.domain.useCase.plan.desbloquearContenidos.DesbloquearContenidosRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ContenidoPlanControllerTest {
 
     private static final UUID USUARIO = UUID.randomUUID();
-    private final DesbloquearContenidosUseCase caso = mock(DesbloquearContenidosUseCase.class);
+    private final DesbloquearContenidos caso = mock(DesbloquearContenidos.class);
     private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new ContenidoPlanController(caso))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
 

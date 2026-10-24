@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.preferencia;
 
-import com.ensambla.backend.domain.dto.preferencia.GuardarPreferenciasRequest;
-import com.ensambla.backend.domain.dto.preferencia.ObtenerPreferenciasRequest;
-import com.ensambla.backend.domain.dto.preferencia.PreferenciasItem;
+import com.ensambla.backend.domain.useCase.preferencia.PreferenciasItem;
+import com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias.GuardarPreferenciasRequest;
+import com.ensambla.backend.domain.useCase.preferencia.obtenerPreferencias.ObtenerPreferenciasRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.preferencia.PreferenciasResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.preferencia.PreferenciasWebRequest;
 import org.springframework.stereotype.Component;

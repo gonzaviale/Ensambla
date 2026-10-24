@@ -1,18 +1,18 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.aviso.AvisoItem;
-import com.ensambla.backend.domain.dto.aviso.ContadorAvisos;
-import com.ensambla.backend.domain.dto.aviso.ListarAvisosRequest;
-import com.ensambla.backend.domain.dto.aviso.ResolverAvisoRequest;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.aviso.GrupoAviso;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
-import com.ensambla.backend.domain.useCase.aviso.AplicarAvisoUseCase;
-import com.ensambla.backend.domain.useCase.aviso.ContarAvisosUseCase;
-import com.ensambla.backend.domain.useCase.aviso.DescartarAvisoUseCase;
-import com.ensambla.backend.domain.useCase.aviso.ListarAvisosUseCase;
+import com.ensambla.backend.domain.useCase.aviso.AvisoItem;
+import com.ensambla.backend.domain.useCase.aviso.ResolverAvisoRequest;
+import com.ensambla.backend.domain.useCase.aviso.aplicarAviso.AplicarAviso;
+import com.ensambla.backend.domain.useCase.aviso.contarAvisos.ContadorAvisos;
+import com.ensambla.backend.domain.useCase.aviso.contarAvisos.ContarAvisos;
+import com.ensambla.backend.domain.useCase.aviso.descartarAviso.DescartarAviso;
+import com.ensambla.backend.domain.useCase.aviso.listarAvisos.ListarAvisos;
+import com.ensambla.backend.domain.useCase.aviso.listarAvisos.ListarAvisosRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.aviso.AvisoPresentationMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,18 +41,18 @@ class AvisoControllerTest {
     private static final UUID AVISO_ID = UUID.fromString("e0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-19T12:00:00Z");
 
-    private final ListarAvisosUseCase listarAvisosUseCase = mock(ListarAvisosUseCase.class);
-    private final ContarAvisosUseCase contarAvisosUseCase = mock(ContarAvisosUseCase.class);
-    private final AplicarAvisoUseCase aplicarAvisoUseCase = mock(AplicarAvisoUseCase.class);
-    private final DescartarAvisoUseCase descartarAvisoUseCase = mock(DescartarAvisoUseCase.class);
+    private final ListarAvisos listarAvisos = mock(ListarAvisos.class);
+    private final ContarAvisos contarAvisos = mock(ContarAvisos.class);
+    private final AplicarAviso aplicarAviso = mock(AplicarAviso.class);
+    private final DescartarAviso descartarAviso = mock(DescartarAviso.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        var controller = new AvisoController(listarAvisosUseCase, contarAvisosUseCase, aplicarAvisoUseCase,
-                descartarAvisoUseCase, new AvisoPresentationMapper());
+        var controller = new AvisoController(listarAvisos, contarAvisos, aplicarAviso,
+                descartarAviso, new AvisoPresentationMapper());
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -61,7 +61,7 @@ class AvisoControllerTest {
     @Test
     @DisplayName("GET lista los avisos del negocio con todos sus datos")
     void listarShouldReturnMappedAvisos() throws Exception {
-        when(listarAvisosUseCase.execute(new ListarAvisosRequest(USUARIO_ID, null)))
+        when(listarAvisos.execute(new ListarAvisosRequest(USUARIO_ID, null)))
                 .thenReturn(List.of(givenItem(EstadoAviso.PENDIENTE)));
 
         mockMvc.perform(get("/api/avisos").principal(principal))
@@ -80,7 +80,7 @@ class AvisoControllerTest {
     @Test
     @DisplayName("GET con estado lista sólo los avisos de ese estado")
     void listarShouldPassEstadoFilter() throws Exception {
-        when(listarAvisosUseCase.execute(new ListarAvisosRequest(USUARIO_ID, EstadoAviso.DESCARTADO)))
+        when(listarAvisos.execute(new ListarAvisosRequest(USUARIO_ID, EstadoAviso.DESCARTADO)))
                 .thenReturn(List.of(givenItem(EstadoAviso.DESCARTADO)));
 
         mockMvc.perform(get("/api/avisos").param("estado", "DESCARTADO").principal(principal))
@@ -98,7 +98,7 @@ class AvisoControllerTest {
     @Test
     @DisplayName("GET contador devuelve los pendientes y los urgentes")
     void contarShouldReturnCounter() throws Exception {
-        when(contarAvisosUseCase.execute(USUARIO_ID)).thenReturn(new ContadorAvisos(4, 1));
+        when(contarAvisos.execute(USUARIO_ID)).thenReturn(new ContadorAvisos(4, 1));
 
         mockMvc.perform(get("/api/avisos/contador").principal(principal))
                 .andExpect(status().isOk())
@@ -109,7 +109,7 @@ class AvisoControllerTest {
     @Test
     @DisplayName("POST aplicar devuelve el aviso aplicado")
     void aplicarShouldReturnAppliedAviso() throws Exception {
-        when(aplicarAvisoUseCase.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID)))
+        when(aplicarAviso.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID)))
                 .thenReturn(givenItem(EstadoAviso.APLICADO));
 
         mockMvc.perform(post("/api/avisos/{id}/aplicar", AVISO_ID).principal(principal))
@@ -120,7 +120,7 @@ class AvisoControllerTest {
     @Test
     @DisplayName("POST aplicar un aviso ya resuelto devuelve 400")
     void aplicarShouldReturnBadRequestWhenAvisoWasResolved() throws Exception {
-        when(aplicarAvisoUseCase.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID)))
+        when(aplicarAviso.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID)))
                 .thenThrow(new BusinessRuleException("El aviso ya fue resuelto"));
 
         mockMvc.perform(post("/api/avisos/{id}/aplicar", AVISO_ID).principal(principal))
@@ -131,19 +131,19 @@ class AvisoControllerTest {
     @Test
     @DisplayName("POST descartar devuelve el aviso descartado")
     void descartarShouldReturnDiscardedAviso() throws Exception {
-        when(descartarAvisoUseCase.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID)))
+        when(descartarAviso.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID)))
                 .thenReturn(givenItem(EstadoAviso.DESCARTADO));
 
         mockMvc.perform(post("/api/avisos/{id}/descartar", AVISO_ID).principal(principal))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("DESCARTADO"));
-        verify(descartarAvisoUseCase).execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID));
+        verify(descartarAviso).execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID));
     }
 
     @Test
     @DisplayName("POST descartar un aviso ajeno devuelve 404")
     void descartarShouldReturnNotFoundForForeignAviso() throws Exception {
-        when(descartarAvisoUseCase.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID)))
+        when(descartarAviso.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID)))
                 .thenThrow(new ResourceNotFoundException("El aviso no existe"));
 
         mockMvc.perform(post("/api/avisos/{id}/descartar", AVISO_ID).principal(principal))

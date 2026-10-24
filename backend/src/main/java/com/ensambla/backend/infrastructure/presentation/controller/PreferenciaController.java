@@ -1,7 +1,7 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.useCase.preferencia.GuardarPreferenciasUseCase;
-import com.ensambla.backend.domain.useCase.preferencia.ObtenerPreferenciasUseCase;
+import com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias.GuardarPreferencias;
+import com.ensambla.backend.domain.useCase.preferencia.obtenerPreferencias.ObtenerPreferencias;
 import com.ensambla.backend.infrastructure.presentation.dto.preferencia.PreferenciasResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.preferencia.PreferenciasWebRequest;
 import com.ensambla.backend.infrastructure.presentation.mapper.preferencia.PreferenciaPresentationMapper;
@@ -25,16 +25,16 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PreferenciaController {
 
-    private final ObtenerPreferenciasUseCase obtenerPreferenciasUseCase;
+    private final ObtenerPreferencias obtenerPreferencias;
 
-    private final GuardarPreferenciasUseCase guardarPreferenciasUseCase;
+    private final GuardarPreferencias guardarPreferencias;
 
     private final PreferenciaPresentationMapper preferenciaPresentationMapper;
 
     @GetMapping
     @Operation(summary = "Consultar las preferencias de la cuenta de la sesión")
     public ResponseEntity<PreferenciasResponse> obtener(Authentication authentication) {
-        return ResponseEntity.ok(preferenciaPresentationMapper.toResponse(obtenerPreferenciasUseCase.execute(
+        return ResponseEntity.ok(preferenciaPresentationMapper.toResponse(obtenerPreferencias.execute(
                 preferenciaPresentationMapper.toObtenerRequest(UUID.fromString(authentication.getName())))));
     }
 
@@ -42,7 +42,7 @@ public class PreferenciaController {
     @Operation(summary = "Guardar las preferencias de la cuenta de la sesión")
     public ResponseEntity<PreferenciasResponse> guardar(
             Authentication authentication, @Valid @RequestBody PreferenciasWebRequest request) {
-        return ResponseEntity.ok(preferenciaPresentationMapper.toResponse(guardarPreferenciasUseCase.execute(
+        return ResponseEntity.ok(preferenciaPresentationMapper.toResponse(guardarPreferencias.execute(
                 preferenciaPresentationMapper.toGuardarRequest(UUID.fromString(authentication.getName()), request))));
     }
 }

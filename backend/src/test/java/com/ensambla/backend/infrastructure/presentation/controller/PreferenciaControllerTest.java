@@ -1,10 +1,10 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.preferencia.GuardarPreferenciasRequest;
-import com.ensambla.backend.domain.dto.preferencia.ObtenerPreferenciasRequest;
-import com.ensambla.backend.domain.dto.preferencia.PreferenciasItem;
-import com.ensambla.backend.domain.useCase.preferencia.GuardarPreferenciasUseCase;
-import com.ensambla.backend.domain.useCase.preferencia.ObtenerPreferenciasUseCase;
+import com.ensambla.backend.domain.useCase.preferencia.PreferenciasItem;
+import com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias.GuardarPreferencias;
+import com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias.GuardarPreferenciasRequest;
+import com.ensambla.backend.domain.useCase.preferencia.obtenerPreferencias.ObtenerPreferencias;
+import com.ensambla.backend.domain.useCase.preferencia.obtenerPreferencias.ObtenerPreferenciasRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.preferencia.PreferenciaPresentationMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,8 +32,8 @@ class PreferenciaControllerTest {
 
     private static final UUID USUARIO_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
 
-    private final ObtenerPreferenciasUseCase obtenerPreferenciasUseCase = mock(ObtenerPreferenciasUseCase.class);
-    private final GuardarPreferenciasUseCase guardarPreferenciasUseCase = mock(GuardarPreferenciasUseCase.class);
+    private final ObtenerPreferencias obtenerPreferencias = mock(ObtenerPreferencias.class);
+    private final GuardarPreferencias guardarPreferencias = mock(GuardarPreferencias.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private MockMvc mockMvc;
@@ -41,7 +41,7 @@ class PreferenciaControllerTest {
     @BeforeEach
     void setUp() {
         var controller = new PreferenciaController(
-                obtenerPreferenciasUseCase, guardarPreferenciasUseCase, new PreferenciaPresentationMapper());
+                obtenerPreferencias, guardarPreferencias, new PreferenciaPresentationMapper());
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -50,7 +50,7 @@ class PreferenciaControllerTest {
     @Test
     @DisplayName("GET devuelve las preferencias del usuario de sesión")
     void obtenerShouldReturnPreferencias() throws Exception {
-        when(obtenerPreferenciasUseCase.execute(any())).thenReturn(
+        when(obtenerPreferencias.execute(any())).thenReturn(
                 new PreferenciasItem(List.of("a1"), Map.of("STOCK", false), true, "Gonza"));
 
         mockMvc.perform(get("/api/preferencias").principal(principal))
@@ -59,13 +59,13 @@ class PreferenciaControllerTest {
                 .andExpect(jsonPath("$.grupos.STOCK").value(false))
                 .andExpect(jsonPath("$.bienvenidaVista").value(true))
                 .andExpect(jsonPath("$.nombre").value("Gonza"));
-        verify(obtenerPreferenciasUseCase).execute(new ObtenerPreferenciasRequest(USUARIO_ID));
+        verify(obtenerPreferencias).execute(new ObtenerPreferenciasRequest(USUARIO_ID));
     }
 
     @Test
     @DisplayName("GET omite el nombre cuando no hay uno elegido")
     void obtenerShouldOmitMissingNombre() throws Exception {
-        when(obtenerPreferenciasUseCase.execute(any())).thenReturn(
+        when(obtenerPreferencias.execute(any())).thenReturn(
                 new PreferenciasItem(List.of(), Map.of(), false, null));
 
         mockMvc.perform(get("/api/preferencias").principal(principal))
@@ -76,14 +76,14 @@ class PreferenciaControllerTest {
     @Test
     @DisplayName("PUT guarda las preferencias con el usuario de sesión")
     void guardarShouldSaveForSessionUsuario() throws Exception {
-        when(guardarPreferenciasUseCase.execute(any())).thenReturn(
+        when(guardarPreferencias.execute(any())).thenReturn(
                 new PreferenciasItem(List.of("a1"), Map.of(), true, "Gonza"));
 
         mockMvc.perform(put("/api/preferencias").principal(principal).contentType("application/json")
                         .content("{\"descartadas\":[\"a1\"],\"grupos\":{},\"bienvenidaVista\":true,\"nombre\":\"Gonza\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("Gonza"));
-        verify(guardarPreferenciasUseCase)
+        verify(guardarPreferencias)
                 .execute(new GuardarPreferenciasRequest(USUARIO_ID, List.of("a1"), Map.of(), true, "Gonza"));
     }
 
@@ -94,6 +94,6 @@ class PreferenciaControllerTest {
                         .content("{\"descartadas\":[],\"grupos\":{},\"bienvenidaVista\":true,"
                                 + "\"nombre\":\"un nombre que supera por mucho los cuarenta caracteres\"}"))
                 .andExpect(status().isBadRequest());
-        verifyNoInteractions(guardarPreferenciasUseCase);
+        verifyNoInteractions(guardarPreferencias);
     }
 }

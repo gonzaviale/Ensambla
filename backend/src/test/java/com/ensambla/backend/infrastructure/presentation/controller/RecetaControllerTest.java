@@ -1,13 +1,13 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.receta.GuardarRecetaRequest;
-import com.ensambla.backend.domain.dto.receta.LineaRecetaRequest;
-import com.ensambla.backend.domain.dto.receta.ObtenerRecetaRequest;
-import com.ensambla.backend.domain.dto.receta.RecetaItem;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.useCase.receta.GuardarRecetaUseCase;
-import com.ensambla.backend.domain.useCase.receta.ObtenerRecetaUseCase;
+import com.ensambla.backend.domain.useCase.receta.RecetaItem;
+import com.ensambla.backend.domain.useCase.receta.guardarReceta.GuardarReceta;
+import com.ensambla.backend.domain.useCase.receta.guardarReceta.GuardarRecetaRequest;
+import com.ensambla.backend.domain.useCase.receta.guardarReceta.LineaRecetaRequest;
+import com.ensambla.backend.domain.useCase.receta.obtenerReceta.ObtenerReceta;
+import com.ensambla.backend.domain.useCase.receta.obtenerReceta.ObtenerRecetaRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.receta.RecetaPresentationMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,16 +50,16 @@ class RecetaControllerTest {
 
     private final Principal sesion = new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
 
-    private ObtenerRecetaUseCase obtenerRecetaUseCase;
-    private GuardarRecetaUseCase guardarRecetaUseCase;
+    private ObtenerReceta obtenerReceta;
+    private GuardarReceta guardarReceta;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        obtenerRecetaUseCase = mock(ObtenerRecetaUseCase.class);
-        guardarRecetaUseCase = mock(GuardarRecetaUseCase.class);
+        obtenerReceta = mock(ObtenerReceta.class);
+        guardarReceta = mock(GuardarReceta.class);
         mockMvc = MockMvcBuilders.standaloneSetup(new RecetaController(
-                        obtenerRecetaUseCase, guardarRecetaUseCase, new RecetaPresentationMapper()))
+                        obtenerReceta, guardarReceta, new RecetaPresentationMapper()))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -67,7 +67,7 @@ class RecetaControllerTest {
     @Test
     @DisplayName("GET devuelve la receta con el costo y pasa el usuario de la sesión")
     void obtenerShouldReturnRecetaAndPassSessionUser() throws Exception {
-        when(obtenerRecetaUseCase.execute(any(ObtenerRecetaRequest.class))).thenReturn(ITEM);
+        when(obtenerReceta.execute(any(ObtenerRecetaRequest.class))).thenReturn(ITEM);
 
         mockMvc.perform(get("/api/registros/{id}/receta", PRODUCTO_ID).principal(sesion))
                 .andExpect(status().isOk())
@@ -79,13 +79,13 @@ class RecetaControllerTest {
                 .andExpect(jsonPath("$.lineas[0].cantidad").value(0.5))
                 .andExpect(jsonPath("$.lineas[0].precioUnitario").value(1200))
                 .andExpect(jsonPath("$.lineas[0].subtotal").value(600));
-        verify(obtenerRecetaUseCase).execute(new ObtenerRecetaRequest(USUARIO_ID, PRODUCTO_ID));
+        verify(obtenerReceta).execute(new ObtenerRecetaRequest(USUARIO_ID, PRODUCTO_ID));
     }
 
     @Test
     @DisplayName("GET de un producto ajeno responde 404")
     void obtenerShouldReturn404ForForeignProduct() throws Exception {
-        when(obtenerRecetaUseCase.execute(any(ObtenerRecetaRequest.class)))
+        when(obtenerReceta.execute(any(ObtenerRecetaRequest.class)))
                 .thenThrow(new ResourceNotFoundException("El registro no existe"));
 
         mockMvc.perform(get("/api/registros/{id}/receta", PRODUCTO_ID).principal(sesion))
@@ -95,7 +95,7 @@ class RecetaControllerTest {
     @Test
     @DisplayName("PUT guarda la receta con las líneas y devuelve el costo")
     void guardarShouldPassLinesAndReturnCost() throws Exception {
-        when(guardarRecetaUseCase.execute(any(GuardarRecetaRequest.class))).thenReturn(ITEM);
+        when(guardarReceta.execute(any(GuardarRecetaRequest.class))).thenReturn(ITEM);
         String cuerpo = "{\"campoPrecioId\":\"" + PRECIO_ID + "\",\"lineas\":[{\"insumoId\":\"" + HARINA_ID
                 + "\",\"cantidad\":0.5,\"unidad\":\"kg\"}]}";
 
@@ -103,7 +103,7 @@ class RecetaControllerTest {
                         .principal(sesion).contentType(MediaType.APPLICATION_JSON).content(cuerpo))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.costo").value(600));
-        verify(guardarRecetaUseCase).execute(new GuardarRecetaRequest(
+        verify(guardarReceta).execute(new GuardarRecetaRequest(
                 USUARIO_ID, PRODUCTO_ID, PRECIO_ID,
                 List.of(new LineaRecetaRequest(HARINA_ID, new BigDecimal("0.5"), "kg"))));
     }
@@ -111,18 +111,18 @@ class RecetaControllerTest {
     @Test
     @DisplayName("PUT sin líneas quita la receta")
     void guardarWithoutLinesShouldRemoveTheReceta() throws Exception {
-        when(guardarRecetaUseCase.execute(any(GuardarRecetaRequest.class))).thenReturn(ITEM);
+        when(guardarReceta.execute(any(GuardarRecetaRequest.class))).thenReturn(ITEM);
 
         mockMvc.perform(put("/api/registros/{id}/receta", PRODUCTO_ID)
                         .principal(sesion).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isOk());
-        verify(guardarRecetaUseCase).execute(new GuardarRecetaRequest(USUARIO_ID, PRODUCTO_ID, null, List.of()));
+        verify(guardarReceta).execute(new GuardarRecetaRequest(USUARIO_ID, PRODUCTO_ID, null, List.of()));
     }
 
     @Test
     @DisplayName("PUT con datos inválidos responde 400 con el mensaje de cada línea")
     void guardarShouldReturn400WithLineErrors() throws Exception {
-        when(guardarRecetaUseCase.execute(any(GuardarRecetaRequest.class)))
+        when(guardarReceta.execute(any(GuardarRecetaRequest.class)))
                 .thenThrow(new RegistroInvalidoException(Map.of("lineas[0]", "Escribí la cantidad")));
 
         mockMvc.perform(put("/api/registros/{id}/receta", PRODUCTO_ID)

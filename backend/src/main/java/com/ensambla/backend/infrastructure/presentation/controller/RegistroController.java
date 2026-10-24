@@ -1,12 +1,12 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.useCase.registro.CrearRegistroUseCase;
-import com.ensambla.backend.domain.useCase.registro.EditarRegistroUseCase;
-import com.ensambla.backend.domain.useCase.registro.EliminarRegistroUseCase;
-import com.ensambla.backend.domain.useCase.registro.ListarReferenciasUseCase;
-import com.ensambla.backend.domain.useCase.registro.ListarRegistrosUseCase;
-import com.ensambla.backend.domain.useCase.registro.ObtenerFotoOrigenUseCase;
-import com.ensambla.backend.domain.useCase.registro.ObtenerRegistroUseCase;
+import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistro;
+import com.ensambla.backend.domain.useCase.registro.editarRegistro.EditarRegistro;
+import com.ensambla.backend.domain.useCase.registro.eliminarRegistro.EliminarRegistro;
+import com.ensambla.backend.domain.useCase.registro.listarReferencias.ListarReferencias;
+import com.ensambla.backend.domain.useCase.registro.listarRegistros.ListarRegistros;
+import com.ensambla.backend.domain.useCase.registro.obtenerFotoOrigen.ObtenerFotoOrigen;
+import com.ensambla.backend.domain.useCase.registro.obtenerRegistro.ObtenerRegistro;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.PaginaRegistrosResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.ReferenciaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.RegistroRequest;
@@ -38,13 +38,13 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class RegistroController {
 
-    private final CrearRegistroUseCase crearRegistroUseCase;
-    private final ListarRegistrosUseCase listarRegistrosUseCase;
-    private final ListarReferenciasUseCase listarReferenciasUseCase;
-    private final ObtenerRegistroUseCase obtenerRegistroUseCase;
-    private final EditarRegistroUseCase editarRegistroUseCase;
-    private final EliminarRegistroUseCase eliminarRegistroUseCase;
-    private final ObtenerFotoOrigenUseCase obtenerFotoOrigenUseCase;
+    private final CrearRegistro crearRegistro;
+    private final ListarRegistros listarRegistros;
+    private final ListarReferencias listarReferencias;
+    private final ObtenerRegistro obtenerRegistro;
+    private final EditarRegistro editarRegistro;
+    private final EliminarRegistro eliminarRegistro;
+    private final ObtenerFotoOrigen obtenerFotoOrigen;
     private final RegistroPresentationMapper presentationMapper;
 
     @PostMapping("/bloques/{bloqueId}/registros")
@@ -52,7 +52,7 @@ public class RegistroController {
     public ResponseEntity<RegistroResponse> crear(Authentication authentication,
                                                   @PathVariable UUID bloqueId,
                                                   @Valid @RequestBody RegistroRequest request) {
-        RegistroResponse response = presentationMapper.toResponse(crearRegistroUseCase.execute(
+        RegistroResponse response = presentationMapper.toResponse(crearRegistro.execute(
                 presentationMapper.toCrearRequest(usuarioDe(authentication), bloqueId, request)));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -66,7 +66,7 @@ public class RegistroController {
                                                           @RequestParam(required = false) String direccion,
                                                           @RequestParam(required = false) Integer pagina,
                                                           @RequestParam(required = false) Integer tamanio) {
-        PaginaRegistrosResponse response = presentationMapper.toResponse(listarRegistrosUseCase.execute(
+        PaginaRegistrosResponse response = presentationMapper.toResponse(listarRegistros.execute(
                 presentationMapper.toListarRequest(
                         usuarioDe(authentication), bloqueId, q, orden, direccion, pagina, tamanio)));
         return ResponseEntity.ok(response);
@@ -78,7 +78,7 @@ public class RegistroController {
                                                                 @PathVariable UUID bloqueId,
                                                                 @RequestParam(required = false) String q,
                                                                 @RequestParam(required = false) List<UUID> ids) {
-        List<ReferenciaResponse> response = presentationMapper.toResponse(listarReferenciasUseCase.execute(
+        List<ReferenciaResponse> response = presentationMapper.toResponse(listarReferencias.execute(
                 presentationMapper.toReferenciasRequest(usuarioDe(authentication), bloqueId, q, ids)));
         return ResponseEntity.ok(response);
     }
@@ -86,7 +86,7 @@ public class RegistroController {
     @GetMapping("/registros/{id}")
     @Operation(summary = "Ver un registro")
     public ResponseEntity<RegistroResponse> obtener(Authentication authentication, @PathVariable UUID id) {
-        RegistroResponse response = presentationMapper.toResponse(obtenerRegistroUseCase.execute(
+        RegistroResponse response = presentationMapper.toResponse(obtenerRegistro.execute(
                 presentationMapper.toObtenerRequest(usuarioDe(authentication), id)));
         return ResponseEntity.ok(response);
     }
@@ -94,7 +94,7 @@ public class RegistroController {
     @GetMapping("/registros/{id}/foto-origen")
     @Operation(summary = "Ver la foto del cuaderno de la que salió el registro")
     public ResponseEntity<byte[]> fotoOrigen(Authentication authentication, @PathVariable UUID id) {
-        return RespuestaFoto.de(obtenerFotoOrigenUseCase.execute(
+        return RespuestaFoto.de(obtenerFotoOrigen.execute(
                 presentationMapper.toFotoOrigenRequest(usuarioDe(authentication), id)));
     }
 
@@ -103,7 +103,7 @@ public class RegistroController {
     public ResponseEntity<RegistroResponse> editar(Authentication authentication,
                                                    @PathVariable UUID id,
                                                    @Valid @RequestBody RegistroRequest request) {
-        RegistroResponse response = presentationMapper.toResponse(editarRegistroUseCase.execute(
+        RegistroResponse response = presentationMapper.toResponse(editarRegistro.execute(
                 presentationMapper.toEditarRequest(usuarioDe(authentication), id, request)));
         return ResponseEntity.ok(response);
     }
@@ -111,7 +111,7 @@ public class RegistroController {
     @DeleteMapping("/registros/{id}")
     @Operation(summary = "Eliminar un registro")
     public ResponseEntity<Void> eliminar(Authentication authentication, @PathVariable UUID id) {
-        eliminarRegistroUseCase.execute(presentationMapper.toEliminarRequest(usuarioDe(authentication), id));
+        eliminarRegistro.execute(presentationMapper.toEliminarRequest(usuarioDe(authentication), id));
         return ResponseEntity.noContent().build();
     }
 

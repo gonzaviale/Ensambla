@@ -1,9 +1,5 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.dto.receta.GuardarRecetaRequest;
-import com.ensambla.backend.domain.dto.receta.ObtenerRecetaRequest;
-import com.ensambla.backend.domain.dto.receta.RecetaItem;
-import com.ensambla.backend.domain.mapper.receta.RecetaItemMapper;
 import com.ensambla.backend.domain.model.receta.Receta;
 import com.ensambla.backend.domain.model.receta.RecetaCosteada;
 import com.ensambla.backend.domain.model.registro.Registro;
@@ -11,6 +7,9 @@ import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.receta.RecetaService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
+import com.ensambla.backend.domain.useCase.receta.RecetaItem;
+import com.ensambla.backend.domain.useCase.receta.guardarReceta.GuardarRecetaRequest;
+import com.ensambla.backend.domain.useCase.receta.obtenerReceta.ObtenerRecetaRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,7 +30,6 @@ class RecetaUseCaseConfigTest {
     private static final UUID PRODUCTO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
 
     private final RecetaUseCaseConfig config = new RecetaUseCaseConfig();
-    private final RecetaItemMapper recetaItemMapper = config.recetaItemMapper();
 
     private NegocioService negocioService;
     private RegistroDatosService registroDatosService;
@@ -49,13 +47,13 @@ class RecetaUseCaseConfigTest {
     }
 
     @Test
-    @DisplayName("El wiring de obtener conecta los servicios y el mapper")
+    @DisplayName("El wiring de obtener conecta los servicios")
     void obtenerRecetaUseCaseShouldWireCollaborators() {
         when(recetaService.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(Receta.builder().lineas(List.of()).build());
 
-        RecetaItem response = config.obtenerRecetaUseCase(
+        RecetaItem response = config.obtenerReceta(
                         negocioService, mock(ControlPlanService.class), Clock.systemUTC(),
-                        registroDatosService, recetaService, config.obtenerRecetaMapper(recetaItemMapper))
+                        registroDatosService, recetaService)
                 .execute(new ObtenerRecetaRequest(USUARIO_ID, PRODUCTO_ID));
 
         assertThat(response.lineas()).isEmpty();
@@ -63,13 +61,13 @@ class RecetaUseCaseConfigTest {
     }
 
     @Test
-    @DisplayName("El wiring de guardar conecta los servicios, el mapper y el reloj")
+    @DisplayName("El wiring de guardar conecta los servicios y el reloj")
     void guardarRecetaUseCaseShouldWireCollaborators() {
         when(recetaService.guardar(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        RecetaItem response = config.guardarRecetaUseCase(
+        RecetaItem response = config.guardarReceta(
                         negocioService, mock(ControlPlanService.class), registroDatosService, recetaService,
-                        config.guardarRecetaMapper(recetaItemMapper), Clock.systemUTC())
+                        Clock.systemUTC())
                 .execute(new GuardarRecetaRequest(USUARIO_ID, PRODUCTO_ID, null, List.of()));
 
         assertThat(response.lineas()).isEmpty();

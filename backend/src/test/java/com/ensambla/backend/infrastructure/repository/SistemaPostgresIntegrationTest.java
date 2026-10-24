@@ -1,16 +1,15 @@
 package com.ensambla.backend.infrastructure.repository;
 
-import com.ensambla.backend.domain.dto.sistema.SistemaItem;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem.BloqueItem;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem.CampoItem;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem.OpcionesItem;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem.SeccionItem;
-import com.ensambla.backend.domain.mapper.sistema.SistemaItemMapper;
-import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.sistema.IdSistema;
 import com.ensambla.backend.domain.model.sistema.Sistema;
+import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.BloqueItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.CampoItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.OpcionesItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.SeccionItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
 import com.ensambla.backend.infrastructure.repository.entity.UsuarioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IBloqueJpaRepository;
@@ -52,9 +51,6 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Autowired
     private SistemaRepository sistemaRepository;
-
-    @Autowired
-    private SistemaItemMapper sistemaItemMapper;
 
     @Autowired
     private IUsuarioJpaRepository usuarios;
@@ -173,7 +169,7 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     // --- act ---
     private void guardar(UUID negocioId, SistemaItem item) {
-        sistemaRepository.guardar(sistemaItemMapper.toSistema(negocioId, SISTEMA_ID.toString(), item, OffsetDateTime.now()));
+        sistemaRepository.guardar(item.aSistema(negocioId, SISTEMA_ID.toString(), OffsetDateTime.now()));
         entityManager.flush();
         entityManager.clear();
     }

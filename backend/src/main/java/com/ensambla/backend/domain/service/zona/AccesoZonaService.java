@@ -1,9 +1,9 @@
 package com.ensambla.backend.domain.service.zona;
 
-import com.ensambla.backend.domain.dto.plan.AccesoContenidoItem;
-import com.ensambla.backend.domain.dto.zona.ZonaItem;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.service.plan.AccesoContenidoService;
+import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
+import com.ensambla.backend.domain.useCase.zona.ZonaItem;
 import lombok.RequiredArgsConstructor;
 
 import java.nio.charset.StandardCharsets;

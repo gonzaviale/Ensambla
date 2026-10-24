@@ -1,18 +1,18 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.proyecto;
 
-import com.ensambla.backend.domain.dto.proyecto.CrearProyectoDesdePlantillaRequest;
-import com.ensambla.backend.domain.dto.proyecto.CrearProyectoRequest;
-import com.ensambla.backend.domain.dto.proyecto.EliminarProyectoRequest;
-import com.ensambla.backend.domain.dto.proyecto.ListarProyectosRequest;
-import com.ensambla.backend.domain.dto.proyecto.ObtenerProyectoRequest;
-import com.ensambla.backend.domain.dto.proyecto.ProyectoItem;
-import com.ensambla.backend.domain.dto.proyecto.ProyectoItem.BloqueItem;
-import com.ensambla.backend.domain.dto.proyecto.ProyectoItem.CampoItem;
-import com.ensambla.backend.domain.dto.proyecto.RenombrarProyectoRequest;
+import com.ensambla.backend.domain.useCase.proyecto.ProyectoItem.BloqueItem;
+import com.ensambla.backend.domain.useCase.proyecto.ProyectoItem.CampoItem;
+import com.ensambla.backend.domain.useCase.proyecto.ProyectoItem;
+import com.ensambla.backend.domain.useCase.proyecto.crearProyecto.CrearProyectoRequest;
+import com.ensambla.backend.domain.useCase.proyecto.crearProyectoDesdePlantilla.CrearProyectoDesdePlantillaRequest;
+import com.ensambla.backend.domain.useCase.proyecto.eliminarProyecto.EliminarProyectoRequest;
+import com.ensambla.backend.domain.useCase.proyecto.listarProyectos.ListarProyectosRequest;
+import com.ensambla.backend.domain.useCase.proyecto.obtenerProyecto.ObtenerProyectoRequest;
+import com.ensambla.backend.domain.useCase.proyecto.renombrarProyecto.RenombrarProyectoRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.proyecto.CrearProyectoWebRequest;
-import com.ensambla.backend.infrastructure.presentation.dto.proyecto.ProyectoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.proyecto.ProyectoResponse.BloqueResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.proyecto.ProyectoResponse.CampoResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.proyecto.ProyectoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.proyecto.RenombrarProyectoWebRequest;
 import org.springframework.stereotype.Component;
 

@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.service.pago;
 
-import com.ensambla.backend.domain.exception.PasarelaPagoException;
 import com.ensambla.backend.domain.exception.NotificacionPagoInvalidaException;
+import com.ensambla.backend.domain.exception.PasarelaPagoException;
 import com.ensambla.backend.domain.model.pago.ContratoRemoto;
 import com.ensambla.backend.domain.model.pago.PagoRemoto;
 import com.ensambla.backend.domain.model.pago.PreparacionRenovacion;
@@ -9,7 +9,7 @@ import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.service.plan.PruebaPremiumService;
 import com.ensambla.backend.domain.service.plan.SuscripcionService;
-import com.ensambla.backend.domain.useCase.pago.SincronizarRenovacionUseCase;
+import com.ensambla.backend.domain.useCase.pago.sincronizarRenovacion.SincronizarRenovacion;
 import com.ensambla.backend.infrastructure.pago.MercadoPagoProperties;
 import com.ensambla.backend.infrastructure.pago.MercadoPagoSuscripcionesAdapter;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
@@ -33,19 +33,19 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.List;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 import static com.ensambla.backend.support.PagoTestData.AHORA;
 import static com.ensambla.backend.support.PagoTestData.contrato;
@@ -91,7 +91,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     private RenovacionPremiumService renovacionPremiumService;
 
     @Autowired
-    private SincronizarRenovacionUseCase sincronizarRenovacionUseCase;
+    private SincronizarRenovacion sincronizarRenovacion;
 
     @MockitoBean
     private PasarelaSuscripcionesPort pasarelaSuscripcionesPort;
@@ -192,8 +192,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         RenovacionPremium renovacion = renovacion();
         givenPago(pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA));
 
-        sincronizarRenovacionUseCase.execute(renovacion.getId());
-        sincronizarRenovacionUseCase.execute(renovacion.getId());
+        sincronizarRenovacion.execute(renovacion.getId());
+        sincronizarRenovacion.execute(renovacion.getId());
 
         assertThat(planActual()).isEqualTo("PREMIUM");
         assertThat(finPagado()).isEqualTo(AHORA.plusDays(30));
@@ -209,7 +209,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         RenovacionPremium renovacion = renovacion();
         givenPago(pago(renovacion, UUID.randomUUID().toString(), estado, AHORA, AHORA));
 
-        sincronizarRenovacionUseCase.execute(renovacion.getId());
+        sincronizarRenovacion.execute(renovacion.getId());
 
         assertThat(planActual()).isEqualTo("GRATUITO");
     }
@@ -225,7 +225,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         givenPago(pago(renovacion, facturaId("segunda"), estado, AHORA.plusDays(30), AHORA.plusDays(29)));
         when(clock.instant()).thenReturn(AHORA.plusDays(29).toInstant());
 
-        sincronizarRenovacionUseCase.execute(renovacion.getId());
+        sincronizarRenovacion.execute(renovacion.getId());
 
         assertThat(planActual()).isEqualTo("PREMIUM");
         assertThat(finPagado()).isEqualTo(AHORA.plusDays(30));
@@ -244,7 +244,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         givenPago(pago(renovacion, facturaId("segunda"), "rejected", AHORA.plusDays(30), AHORA.plusDays(30)));
         when(clock.instant()).thenReturn(AHORA.plusDays(30).toInstant());
 
-        sincronizarRenovacionUseCase.execute(renovacion.getId());
+        sincronizarRenovacion.execute(renovacion.getId());
 
         assertThat(planActual()).isEqualTo("GRATUITO");
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM proyecto WHERE negocio_id=?",
@@ -353,7 +353,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
         mockMvc.perform(post("/api/planes/renovacion/cancelar").session(sesion).header("X-CSRF-TOKEN", csrf))
                 .andExpect(status().isBadGateway());
-        sincronizarRenovacionUseCase.execute(renovacion().getId());
+        sincronizarRenovacion.execute(renovacion().getId());
 
         assertThat(renovacion().isCancelacionSolicitada()).isTrue();
         assertThat(renovacion().getEstado()).isEqualTo("CANCELADA");
@@ -609,7 +609,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     // --- arrange ---
 
     private String givenSecondInvoiceWithRealSignatureValidation(String tipo, String estado,
-                                                               OffsetDateTime instante) throws Exception {
+                                                                 OffsetDateTime instante) throws Exception {
         givenContrato();
         RenovacionPremium renovacion = renovacion();
         renovacionPremiumService.aplicarPago(renovacion.getId(),

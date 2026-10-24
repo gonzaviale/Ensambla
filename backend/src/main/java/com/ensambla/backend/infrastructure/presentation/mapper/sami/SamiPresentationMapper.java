@@ -1,13 +1,13 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.sami;
 
-import com.ensambla.backend.domain.dto.sami.ColumnaSamiItem;
-import com.ensambla.backend.domain.dto.sami.ConversarConSamiRequest;
-import com.ensambla.backend.domain.dto.sami.ConversarConSamiResponse;
-import com.ensambla.backend.domain.dto.sami.CrearProyectoDesdeSamiRequest;
-import com.ensambla.backend.domain.dto.sami.OpcionSamiItem;
-import com.ensambla.backend.domain.dto.sami.PreguntaSamiItem;
-import com.ensambla.backend.domain.dto.sami.PropuestaSamiItem;
-import com.ensambla.backend.domain.dto.sami.RespuestaSamiItem;
+import com.ensambla.backend.domain.useCase.sami.ColumnaSamiItem;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiRequest;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiResponse;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.OpcionSamiItem;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.PreguntaSamiItem;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.PropuestaSamiItem;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.RespuestaSamiItem;
+import com.ensambla.backend.domain.useCase.sami.crearProyectoDesdeSami.CrearProyectoDesdeSamiRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.sami.ConversarSamiRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.sami.ConversarSamiResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.sami.CrearProyectoSamiRequest;

@@ -5,7 +5,6 @@ import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
 import com.ensambla.backend.domain.model.lectura.DatoLeido;
 import com.ensambla.backend.domain.model.lectura.FilaLeida;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -58,8 +57,8 @@ public record LecturaImagen(List<Map<String, DatoLeido>> filas, List<CampoPropue
     }
 
     private static Map<String, DatoLeido> datosPorClave(FilaLeida fila, Map<String, UUID> mapeoCampos,
-                                                         Map<UUID, String> clavesPorCampo,
-                                                         Map<String, CampoPropuesto> nuevas) {
+                                                        Map<UUID, String> clavesPorCampo,
+                                                        Map<String, CampoPropuesto> nuevas) {
         Map<String, DatoLeido> datos = new LinkedHashMap<>();
         fila.datos().forEach((claveLeida, dato) -> {
             String clave = claveDefinitiva(claveLeida, mapeoCampos, clavesPorCampo, nuevas);

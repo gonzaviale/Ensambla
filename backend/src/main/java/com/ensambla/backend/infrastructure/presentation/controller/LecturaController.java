@@ -1,10 +1,10 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.useCase.procesamiento.ConfirmarLecturaUseCase;
-import com.ensambla.backend.domain.useCase.procesamiento.ConsultarConsumoUseCase;
-import com.ensambla.backend.domain.useCase.procesamiento.LeerImagenUseCase;
-import com.ensambla.backend.domain.useCase.procesamiento.ObtenerLecturaUseCase;
-import com.ensambla.backend.domain.useCase.procesamiento.ReintentarLecturaUseCase;
+import com.ensambla.backend.domain.useCase.procesamiento.confirmarLectura.ConfirmarLectura;
+import com.ensambla.backend.domain.useCase.procesamiento.consultarConsumo.ConsultarConsumo;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagen;
+import com.ensambla.backend.domain.useCase.procesamiento.obtenerLectura.ObtenerLectura;
+import com.ensambla.backend.domain.useCase.procesamiento.reintentarLectura.ReintentarLectura;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.ConfirmacionRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.ConfirmacionResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.ConsumoResponse;
@@ -35,24 +35,24 @@ import java.util.UUID;
 @Tag(name = "Lecturas de cuadernos")
 public class LecturaController {
 
-    private final ObtenerLecturaUseCase obtenerLecturaUseCase;
-    private final ReintentarLecturaUseCase reintentarLecturaUseCase;
-    private final ConfirmarLecturaUseCase confirmarLecturaUseCase;
-    private final ConsultarConsumoUseCase consultarConsumoUseCase;
-    private final LeerImagenUseCase leerImagenUseCase;
+    private final ObtenerLectura obtenerLectura;
+    private final ReintentarLectura reintentarLectura;
+    private final ConfirmarLectura confirmarLectura;
+    private final ConsultarConsumo consultarConsumo;
+    private final LeerImagen leerImagen;
     private final LecturaPresentationMapper lecturaPresentationMapper;
 
     @GetMapping("/api/lotes/{loteId}/lectura")
     @Operation(summary = "Consultar el procesamiento y la propuesta del lote del negocio actual")
     public ResponseEntity<LecturaResponse> obtener(Authentication authentication, @PathVariable UUID loteId) {
-        return ResponseEntity.ok(lecturaPresentationMapper.toResponse(obtenerLecturaUseCase.execute(
+        return ResponseEntity.ok(lecturaPresentationMapper.toResponse(obtenerLectura.execute(
                 lecturaPresentationMapper.toRequest(UUID.fromString(authentication.getName()), loteId))));
     }
 
     @PostMapping("/api/lotes/{loteId}/reintentar")
     @Operation(summary = "Reencolar una lectura fallida del negocio actual")
     public ResponseEntity<Void> reintentar(Authentication authentication, @PathVariable UUID loteId) {
-        reintentarLecturaUseCase.execute(
+        reintentarLectura.execute(
                 lecturaPresentationMapper.toRequest(UUID.fromString(authentication.getName()), loteId));
         return ResponseEntity.accepted().build();
     }
@@ -62,7 +62,7 @@ public class LecturaController {
     public ResponseEntity<ConfirmacionResponse> confirmar(Authentication authentication,
                                                           @PathVariable UUID loteId,
                                                           @Valid @RequestBody ConfirmacionRequest body) {
-        ConfirmacionResponse response = lecturaPresentationMapper.toResponse(confirmarLecturaUseCase.execute(
+        ConfirmacionResponse response = lecturaPresentationMapper.toResponse(confirmarLectura.execute(
                 lecturaPresentationMapper.toConfirmarRequest(UUID.fromString(authentication.getName()), loteId, body)));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -72,7 +72,7 @@ public class LecturaController {
     public ResponseEntity<LecturaImagenResponse> leerImagen(Authentication authentication,
                                                             @RequestPart("imagen") MultipartFile imagen,
                                                             @RequestPart("pedido") @Valid PedidoLecturaRequest pedido) {
-        return ResponseEntity.ok(lecturaPresentationMapper.toResponse(leerImagenUseCase.execute(
+        return ResponseEntity.ok(lecturaPresentationMapper.toResponse(leerImagen.execute(
                 lecturaPresentationMapper.toRequest(UUID.fromString(authentication.getName()), imagen, pedido)), pedido));
     }
 
@@ -80,6 +80,6 @@ public class LecturaController {
     @Operation(summary = "Consultar el consumo de IA y las páginas disponibles del día UTC")
     public ResponseEntity<ConsumoResponse> consumo(Authentication authentication) {
         return ResponseEntity.ok(lecturaPresentationMapper.toResponse(
-                consultarConsumoUseCase.execute(UUID.fromString(authentication.getName()))));
+                consultarConsumo.execute(UUID.fromString(authentication.getName()))));
     }
 }

@@ -1,8 +1,5 @@
 package com.ensambla.backend.infrastructure.repository;
 
-import com.ensambla.backend.domain.dto.plan.AccesoContenidoItem;
-import com.ensambla.backend.domain.dto.plan.DesbloquearContenidosRequest;
-import com.ensambla.backend.domain.dto.zona.ZonaItem;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
@@ -15,7 +12,10 @@ import com.ensambla.backend.domain.service.plan.PruebaPremiumService;
 import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.domain.service.sistema.SistemaService;
 import com.ensambla.backend.domain.service.zona.AccesoZonaService;
-import com.ensambla.backend.domain.useCase.plan.DesbloquearContenidosUseCase;
+import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
+import com.ensambla.backend.domain.useCase.plan.desbloquearContenidos.DesbloquearContenidos;
+import com.ensambla.backend.domain.useCase.plan.desbloquearContenidos.DesbloquearContenidosRequest;
+import com.ensambla.backend.domain.useCase.zona.ZonaItem;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,7 +58,7 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
     @Autowired
     private UsoPlanRepository uso;
     @Autowired
-    private DesbloquearContenidosUseCase desbloquear;
+    private DesbloquearContenidos desbloquear;
 
     private UUID negocio;
     private UUID usuario;

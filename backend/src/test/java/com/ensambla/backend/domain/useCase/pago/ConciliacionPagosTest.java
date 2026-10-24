@@ -4,6 +4,9 @@ import com.ensambla.backend.domain.exception.PasarelaPagoException;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.service.pago.RenovacionPremiumService;
+import com.ensambla.backend.domain.useCase.pago.conciliarPagos.ConciliarPagos;
+import com.ensambla.backend.domain.useCase.pago.recibirNotificacionPago.RecibirNotificacionPago;
+import com.ensambla.backend.domain.useCase.pago.sincronizarRenovacion.SincronizarRenovacion;
 import com.ensambla.backend.infrastructure.pago.ConciliacionPagosWorker;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,7 +30,7 @@ class ConciliacionPagosTest {
 
     private final RenovacionPremiumService renovacionPremiumService = mock(RenovacionPremiumService.class);
     private final PasarelaSuscripcionesPort pasarelaSuscripcionesPort = mock(PasarelaSuscripcionesPort.class);
-    private final SincronizarRenovacionUseCase sincronizarRenovacionUseCase = mock(SincronizarRenovacionUseCase.class);
+    private final SincronizarRenovacion sincronizarRenovacion = mock(SincronizarRenovacion.class);
     private final Clock clock = Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC);
 
     @Test
@@ -35,13 +38,13 @@ class ConciliacionPagosTest {
     void executeShouldContinueAfterProviderFailure() {
         UUID segundo = UUID.randomUUID();
         when(renovacionPremiumService.listarParaSincronizar()).thenReturn(List.of(RENOVACION_ID, segundo));
-        doThrow(new PasarelaPagoException()).when(sincronizarRenovacionUseCase).execute(RENOVACION_ID);
-        ConciliarPagosUseCase useCase = new ConciliarPagosUseCase(renovacionPremiumService,
-                sincronizarRenovacionUseCase, clock);
+        doThrow(new PasarelaPagoException()).when(sincronizarRenovacion).execute(RENOVACION_ID);
+        ConciliarPagos useCase = new ConciliarPagos(renovacionPremiumService,
+                sincronizarRenovacion, clock);
 
         new ConciliacionPagosWorker(useCase).conciliar();
 
-        verify(sincronizarRenovacionUseCase).execute(segundo);
+        verify(sincronizarRenovacion).execute(segundo);
         verify(renovacionPremiumService).marcarConsulta(RENOVACION_ID, AHORA);
         verify(renovacionPremiumService).marcarConsulta(segundo, AHORA);
     }
@@ -53,13 +56,13 @@ class ConciliacionPagosTest {
         renovacion.setProveedorId(null);
         when(renovacionPremiumService.obtener(RENOVACION_ID)).thenReturn(renovacion);
         when(pasarelaSuscripcionesPort.buscar(RENOVACION_ID)).thenReturn(Optional.empty());
-        SincronizarRenovacionUseCase useCase = new SincronizarRenovacionUseCase(renovacionPremiumService,
+        SincronizarRenovacion useCase = new SincronizarRenovacion(renovacionPremiumService,
                 pasarelaSuscripcionesPort, clock);
 
         useCase.execute(RENOVACION_ID);
 
         verify(pasarelaSuscripcionesPort).buscar(RENOVACION_ID);
-        verifyNoInteractions(sincronizarRenovacionUseCase);
+        verifyNoInteractions(sincronizarRenovacion);
     }
 
     @Test
@@ -67,12 +70,12 @@ class ConciliacionPagosTest {
     void executeShouldIgnoreUnknownNotification() {
         when(pasarelaSuscripcionesPort.identificarContrato("payment", "123")).thenReturn("otro");
         when(renovacionPremiumService.buscarPorProveedor("otro")).thenReturn(Optional.empty());
-        RecibirNotificacionPagoUseCase useCase = new RecibirNotificacionPagoUseCase(pasarelaSuscripcionesPort,
-                renovacionPremiumService, sincronizarRenovacionUseCase);
+        RecibirNotificacionPago useCase = new RecibirNotificacionPago(pasarelaSuscripcionesPort,
+                renovacionPremiumService, sincronizarRenovacion);
 
         useCase.execute("payment", "123", "firma", "solicitud");
 
         verify(pasarelaSuscripcionesPort).validarNotificacion("firma", "solicitud", "123");
-        verifyNoInteractions(sincronizarRenovacionUseCase);
+        verifyNoInteractions(sincronizarRenovacion);
     }
 }

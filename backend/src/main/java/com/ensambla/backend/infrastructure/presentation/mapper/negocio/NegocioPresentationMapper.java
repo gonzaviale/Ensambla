@@ -1,9 +1,9 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.negocio;
 
-import com.ensambla.backend.domain.dto.negocio.ActualizarNegocioRequest;
-import com.ensambla.backend.domain.dto.negocio.ConfiguracionNegocioResponse;
-import com.ensambla.backend.domain.dto.negocio.ObtenerConfiguracionNegocioRequest;
-import com.ensambla.backend.domain.dto.negocio.UbicacionNegocioItem;
+import com.ensambla.backend.domain.useCase.negocio.ConfiguracionNegocioResponse;
+import com.ensambla.backend.domain.useCase.negocio.UbicacionNegocioItem;
+import com.ensambla.backend.domain.useCase.negocio.actualizarNegocio.ActualizarNegocioRequest;
+import com.ensambla.backend.domain.useCase.negocio.obtenerConfiguracionNegocio.ObtenerConfiguracionNegocioRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.negocio.ActualizarNegocioWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.negocio.ConfiguracionNegocioWebResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.negocio.UbicacionNegocioWeb;

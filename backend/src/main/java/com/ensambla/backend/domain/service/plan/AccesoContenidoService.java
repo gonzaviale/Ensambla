@@ -1,11 +1,11 @@
 package com.ensambla.backend.domain.service.plan;
 
-import com.ensambla.backend.domain.dto.plan.AccesoContenidoItem;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.plan.AccesoContenidoRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
+import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
 import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDate;
@@ -30,7 +30,7 @@ public class AccesoContenidoService {
     private final TransaccionPort transaccionPort;
 
     public AccesoContenidoItem seleccionar(UUID negocioId, TipoContenidoPlan tipo, List<String> claves,
-                                          OffsetDateTime ahora) {
+                                           OffsetDateTime ahora) {
         return transaccionPort.ejecutar(() -> {
             usoPlanRepository.bloquearNegocio(negocioId);
             LocalDate periodo = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate().withDayOfMonth(1);

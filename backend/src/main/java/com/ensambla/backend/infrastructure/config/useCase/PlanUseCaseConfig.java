@@ -1,7 +1,5 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.mapper.plan.ConsultarPlanesMapper;
-import com.ensambla.backend.domain.mapper.plan.IniciarPruebaMapper;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
@@ -17,10 +15,10 @@ import com.ensambla.backend.domain.service.plan.ConsumoIaInmediatoService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.plan.PruebaPremiumService;
 import com.ensambla.backend.domain.service.plan.SuscripcionService;
-import com.ensambla.backend.domain.useCase.plan.ConsultarPlanesUseCase;
-import com.ensambla.backend.domain.useCase.plan.DesbloquearContenidosUseCase;
-import com.ensambla.backend.domain.useCase.plan.IniciarPruebaUseCase;
-import com.ensambla.backend.domain.useCase.plan.VencerPruebasUseCase;
+import com.ensambla.backend.domain.useCase.plan.consultarPlanes.ConsultarPlanes;
+import com.ensambla.backend.domain.useCase.plan.desbloquearContenidos.DesbloquearContenidos;
+import com.ensambla.backend.domain.useCase.plan.iniciarPrueba.IniciarPrueba;
+import com.ensambla.backend.domain.useCase.plan.vencerPruebas.VencerPruebas;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -30,40 +28,28 @@ import java.time.Clock;
 public class PlanUseCaseConfig {
 
     @Bean
-    public DesbloquearContenidosUseCase desbloquearContenidosUseCase(
+    public DesbloquearContenidos desbloquearContenidos(
             NegocioService negocioService, AccesoContenidoService accesoContenidoService, Clock clock) {
-        return new DesbloquearContenidosUseCase(negocioService, accesoContenidoService, clock);
+        return new DesbloquearContenidos(negocioService, accesoContenidoService, clock);
     }
 
     @Bean
-    public ConsultarPlanesMapper consultarPlanesMapper() {
-        return new ConsultarPlanesMapper();
+    public ConsultarPlanes consultarPlanes(NegocioService negocioService,
+                                           ConsultaPlanesService consultaPlanesService,
+                                           Clock clock) {
+        return new ConsultarPlanes(negocioService, consultaPlanesService, clock);
     }
 
     @Bean
-    public ConsultarPlanesUseCase consultarPlanesUseCase(NegocioService negocioService,
-                                                       ConsultaPlanesService consultaPlanesService,
-                                                       ConsultarPlanesMapper consultarPlanesMapper,
-                                                       Clock clock) {
-        return new ConsultarPlanesUseCase(negocioService, consultaPlanesService, consultarPlanesMapper, clock);
+    public IniciarPrueba iniciarPrueba(NegocioService negocioService,
+                                       PruebaPremiumService pruebaPremiumService,
+                                       Clock clock) {
+        return new IniciarPrueba(negocioService, pruebaPremiumService, clock);
     }
 
     @Bean
-    public IniciarPruebaMapper iniciarPruebaMapper() {
-        return new IniciarPruebaMapper();
-    }
-
-    @Bean
-    public IniciarPruebaUseCase iniciarPruebaUseCase(NegocioService negocioService,
-                                                   PruebaPremiumService pruebaPremiumService,
-                                                   IniciarPruebaMapper iniciarPruebaMapper,
-                                                   Clock clock) {
-        return new IniciarPruebaUseCase(negocioService, pruebaPremiumService, iniciarPruebaMapper, clock);
-    }
-
-    @Bean
-    public VencerPruebasUseCase vencerPruebasUseCase(PruebaPremiumService pruebaPremiumService, Clock clock) {
-        return new VencerPruebasUseCase(pruebaPremiumService, clock);
+    public VencerPruebas vencerPruebas(PruebaPremiumService pruebaPremiumService, Clock clock) {
+        return new VencerPruebas(pruebaPremiumService, clock);
     }
 
     @Bean

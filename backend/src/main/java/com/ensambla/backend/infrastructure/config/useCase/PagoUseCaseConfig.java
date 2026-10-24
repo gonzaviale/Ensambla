@@ -1,6 +1,5 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.mapper.pago.ConsultarRenovacionMapper;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.pago.PagoPremiumRepository;
@@ -11,13 +10,13 @@ import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.pago.RenovacionPremiumService;
 import com.ensambla.backend.domain.service.usuario.UsuarioService;
-import com.ensambla.backend.domain.useCase.pago.ActualizarRenovacionUseCase;
-import com.ensambla.backend.domain.useCase.pago.CancelarRenovacionUseCase;
-import com.ensambla.backend.domain.useCase.pago.ConciliarPagosUseCase;
-import com.ensambla.backend.domain.useCase.pago.ConsultarRenovacionUseCase;
-import com.ensambla.backend.domain.useCase.pago.ContratarPremiumUseCase;
-import com.ensambla.backend.domain.useCase.pago.RecibirNotificacionPagoUseCase;
-import com.ensambla.backend.domain.useCase.pago.SincronizarRenovacionUseCase;
+import com.ensambla.backend.domain.useCase.pago.actualizarRenovacion.ActualizarRenovacion;
+import com.ensambla.backend.domain.useCase.pago.cancelarRenovacion.CancelarRenovacion;
+import com.ensambla.backend.domain.useCase.pago.conciliarPagos.ConciliarPagos;
+import com.ensambla.backend.domain.useCase.pago.consultarRenovacion.ConsultarRenovacion;
+import com.ensambla.backend.domain.useCase.pago.contratarPremium.ContratarPremium;
+import com.ensambla.backend.domain.useCase.pago.recibirNotificacionPago.RecibirNotificacionPago;
+import com.ensambla.backend.domain.useCase.pago.sincronizarRenovacion.SincronizarRenovacion;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -27,59 +26,52 @@ import java.time.Clock;
 public class PagoUseCaseConfig {
 
     @Bean
-    public ConsultarRenovacionMapper consultarRenovacionMapper() {
-        return new ConsultarRenovacionMapper();
-    }
-
-    @Bean
-    public SincronizarRenovacionUseCase sincronizarRenovacionUseCase(RenovacionPremiumService renovacionPremiumService,
+    public SincronizarRenovacion sincronizarRenovacion(RenovacionPremiumService renovacionPremiumService,
             PasarelaSuscripcionesPort pasarelaSuscripcionesPort, Clock clock) {
-        return new SincronizarRenovacionUseCase(renovacionPremiumService, pasarelaSuscripcionesPort, clock);
+        return new SincronizarRenovacion(renovacionPremiumService, pasarelaSuscripcionesPort, clock);
     }
 
     @Bean
-    public ConsultarRenovacionUseCase consultarRenovacionUseCase(NegocioService negocioService,
-            RenovacionPremiumService renovacionPremiumService, PasarelaSuscripcionesPort pasarelaSuscripcionesPort,
-            ConsultarRenovacionMapper consultarRenovacionMapper) {
-        return new ConsultarRenovacionUseCase(negocioService, renovacionPremiumService, pasarelaSuscripcionesPort,
-                consultarRenovacionMapper);
+    public ConsultarRenovacion consultarRenovacion(NegocioService negocioService,
+            RenovacionPremiumService renovacionPremiumService, PasarelaSuscripcionesPort pasarelaSuscripcionesPort) {
+        return new ConsultarRenovacion(negocioService, renovacionPremiumService, pasarelaSuscripcionesPort);
     }
 
     @Bean
-    public ContratarPremiumUseCase contratarPremiumUseCase(NegocioService negocioService, UsuarioService usuarioService,
+    public ContratarPremium contratarPremium(NegocioService negocioService, UsuarioService usuarioService,
             RenovacionPremiumService renovacionPremiumService, PasarelaSuscripcionesPort pasarelaSuscripcionesPort,
-            ConsultarRenovacionMapper consultarRenovacionMapper, SincronizarRenovacionUseCase sincronizarRenovacionUseCase,
+            SincronizarRenovacion sincronizarRenovacion,
             Clock clock) {
-        return new ContratarPremiumUseCase(negocioService, usuarioService, renovacionPremiumService,
-                pasarelaSuscripcionesPort, consultarRenovacionMapper, sincronizarRenovacionUseCase, clock);
+        return new ContratarPremium(negocioService, usuarioService, renovacionPremiumService,
+                pasarelaSuscripcionesPort, sincronizarRenovacion, clock);
     }
 
     @Bean
-    public CancelarRenovacionUseCase cancelarRenovacionUseCase(NegocioService negocioService,
+    public CancelarRenovacion cancelarRenovacion(NegocioService negocioService,
             RenovacionPremiumService renovacionPremiumService, PasarelaSuscripcionesPort pasarelaSuscripcionesPort,
-            ConsultarRenovacionMapper consultarRenovacionMapper, SincronizarRenovacionUseCase sincronizarRenovacionUseCase,
+            SincronizarRenovacion sincronizarRenovacion,
             Clock clock) {
-        return new CancelarRenovacionUseCase(negocioService, renovacionPremiumService, pasarelaSuscripcionesPort,
-                consultarRenovacionMapper, sincronizarRenovacionUseCase, clock);
+        return new CancelarRenovacion(
+                negocioService, renovacionPremiumService, pasarelaSuscripcionesPort, sincronizarRenovacion, clock);
     }
 
     @Bean
-    public ActualizarRenovacionUseCase actualizarRenovacionUseCase(NegocioService negocioService,
-            RenovacionPremiumService renovacionPremiumService, SincronizarRenovacionUseCase sincronizarRenovacionUseCase) {
-        return new ActualizarRenovacionUseCase(negocioService, renovacionPremiumService, sincronizarRenovacionUseCase);
+    public ActualizarRenovacion actualizarRenovacion(NegocioService negocioService,
+            RenovacionPremiumService renovacionPremiumService, SincronizarRenovacion sincronizarRenovacion) {
+        return new ActualizarRenovacion(negocioService, renovacionPremiumService, sincronizarRenovacion);
     }
 
     @Bean
-    public RecibirNotificacionPagoUseCase recibirNotificacionPagoUseCase(PasarelaSuscripcionesPort pasarelaSuscripcionesPort,
-            RenovacionPremiumService renovacionPremiumService, SincronizarRenovacionUseCase sincronizarRenovacionUseCase) {
-        return new RecibirNotificacionPagoUseCase(pasarelaSuscripcionesPort, renovacionPremiumService,
-                sincronizarRenovacionUseCase);
+    public RecibirNotificacionPago recibirNotificacionPago(PasarelaSuscripcionesPort pasarelaSuscripcionesPort,
+            RenovacionPremiumService renovacionPremiumService, SincronizarRenovacion sincronizarRenovacion) {
+        return new RecibirNotificacionPago(pasarelaSuscripcionesPort, renovacionPremiumService,
+                sincronizarRenovacion);
     }
 
     @Bean
-    public ConciliarPagosUseCase conciliarPagosUseCase(RenovacionPremiumService renovacionPremiumService,
-            SincronizarRenovacionUseCase sincronizarRenovacionUseCase, Clock clock) {
-        return new ConciliarPagosUseCase(renovacionPremiumService, sincronizarRenovacionUseCase, clock);
+    public ConciliarPagos conciliarPagos(RenovacionPremiumService renovacionPremiumService,
+            SincronizarRenovacion sincronizarRenovacion, Clock clock) {
+        return new ConciliarPagos(renovacionPremiumService, sincronizarRenovacion, clock);
     }
 
     @Bean

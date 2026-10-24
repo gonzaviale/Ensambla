@@ -1,6 +1,5 @@
 package com.ensambla.backend.domain.service.auth;
 
-import com.ensambla.backend.domain.dto.auth.RegistrarUsuarioRequest;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
@@ -10,6 +9,7 @@ import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.usuario.UsuarioRepository;
 import com.ensambla.backend.domain.service.plan.SuscripcionService;
+import com.ensambla.backend.domain.useCase.auth.registrarUsuario.RegistrarUsuarioRequest;
 import lombok.RequiredArgsConstructor;
 
 import java.time.OffsetDateTime;

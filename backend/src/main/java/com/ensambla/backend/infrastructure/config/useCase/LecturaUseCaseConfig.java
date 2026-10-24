@@ -1,9 +1,5 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.mapper.procesamiento.ConfirmarLecturaMapper;
-import com.ensambla.backend.domain.mapper.procesamiento.ConsultarConsumoMapper;
-import com.ensambla.backend.domain.mapper.procesamiento.LeerImagenMapper;
-import com.ensambla.backend.domain.mapper.procesamiento.ObtenerLecturaMapper;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
@@ -23,12 +19,12 @@ import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService
 import com.ensambla.backend.domain.service.procesamiento.ReservaIaService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
-import com.ensambla.backend.domain.useCase.procesamiento.ConfirmarLecturaUseCase;
-import com.ensambla.backend.domain.useCase.procesamiento.ConsultarConsumoUseCase;
-import com.ensambla.backend.domain.useCase.procesamiento.LeerImagenUseCase;
-import com.ensambla.backend.domain.useCase.procesamiento.ObtenerLecturaUseCase;
-import com.ensambla.backend.domain.useCase.procesamiento.ProcesarLoteUseCase;
-import com.ensambla.backend.domain.useCase.procesamiento.ReintentarLecturaUseCase;
+import com.ensambla.backend.domain.useCase.procesamiento.confirmarLectura.ConfirmarLectura;
+import com.ensambla.backend.domain.useCase.procesamiento.consultarConsumo.ConsultarConsumo;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagen;
+import com.ensambla.backend.domain.useCase.procesamiento.obtenerLectura.ObtenerLectura;
+import com.ensambla.backend.domain.useCase.procesamiento.procesarLote.ProcesarLote;
+import com.ensambla.backend.domain.useCase.procesamiento.reintentarLectura.ReintentarLectura;
 import com.ensambla.backend.infrastructure.ia.ArchivoCuadernoLocalAdapter;
 import com.ensambla.backend.infrastructure.ia.IaProperties;
 import com.ensambla.backend.infrastructure.ia.LectorCuadernoTimeoutAdapter;
@@ -86,17 +82,12 @@ public class LecturaUseCaseConfig {
     }
 
     @Bean
-    public LeerImagenMapper leerImagenMapper(IaProperties iaProperties) {
-        return new LeerImagenMapper(iaProperties.umbralConfianza());
-    }
-
-    @Bean
-    public LeerImagenUseCase leerImagenUseCase(LecturaImagenService lecturaImagenService,
-                                               LeerImagenMapper leerImagenMapper,
-                                               NegocioService negocioService,
-                                               ConsumoIaInmediatoService consumoIaInmediatoService, Clock clock) {
-        return new LeerImagenUseCase(
-                lecturaImagenService, leerImagenMapper, negocioService, consumoIaInmediatoService, clock);
+    public LeerImagen leerImagen(LecturaImagenService lecturaImagenService,
+                                 IaProperties iaProperties,
+                                 NegocioService negocioService,
+                                 ConsumoIaInmediatoService consumoIaInmediatoService, Clock clock) {
+        return new LeerImagen(
+                lecturaImagenService, iaProperties.umbralConfianza(), negocioService, consumoIaInmediatoService, clock);
     }
 
     @Bean
@@ -121,54 +112,36 @@ public class LecturaUseCaseConfig {
     }
 
     @Bean
-    public ProcesarLoteUseCase procesarLoteUseCase(ProcesamientoService procesamientoService, Clock clock) {
-        return new ProcesarLoteUseCase(procesamientoService, clock);
+    public ProcesarLote procesarLote(ProcesamientoService procesamientoService, Clock clock) {
+        return new ProcesarLote(procesamientoService, clock);
     }
 
     @Bean
-    public ObtenerLecturaMapper obtenerLecturaMapper() {
-        return new ObtenerLecturaMapper();
+    public ObtenerLectura obtenerLectura(NegocioService negocioService,
+                                         ProcesamientoService procesamientoService) {
+        return new ObtenerLectura(negocioService, procesamientoService);
     }
 
     @Bean
-    public ConsultarConsumoMapper consultarConsumoMapper() {
-        return new ConsultarConsumoMapper();
+    public ReintentarLectura reintentarLectura(NegocioService negocioService,
+                                               ProcesamientoService procesamientoService, Clock clock) {
+        return new ReintentarLectura(negocioService, procesamientoService, clock);
     }
 
     @Bean
-    public ObtenerLecturaUseCase obtenerLecturaUseCase(NegocioService negocioService,
-                                                       ProcesamientoService procesamientoService,
-                                                       ObtenerLecturaMapper obtenerLecturaMapper) {
-        return new ObtenerLecturaUseCase(negocioService, procesamientoService, obtenerLecturaMapper);
+    public ConfirmarLectura confirmarLectura(NegocioService negocioService,
+                                             LoteSubidaService loteSubidaService,
+                                             ConfirmacionLecturaService confirmacionLecturaService,
+                                             Clock clock) {
+        return new ConfirmarLectura(
+                negocioService, loteSubidaService, confirmacionLecturaService, clock);
     }
 
     @Bean
-    public ReintentarLecturaUseCase reintentarLecturaUseCase(NegocioService negocioService,
-                                                           ProcesamientoService procesamientoService, Clock clock) {
-        return new ReintentarLecturaUseCase(negocioService, procesamientoService, clock);
-    }
-
-    @Bean
-    public ConfirmarLecturaMapper confirmarLecturaMapper() {
-        return new ConfirmarLecturaMapper();
-    }
-
-    @Bean
-    public ConfirmarLecturaUseCase confirmarLecturaUseCase(NegocioService negocioService,
-                                                         LoteSubidaService loteSubidaService,
-                                                         ConfirmacionLecturaService confirmacionLecturaService,
-                                                         ConfirmarLecturaMapper confirmarLecturaMapper,
-                                                         Clock clock) {
-        return new ConfirmarLecturaUseCase(
-                negocioService, loteSubidaService, confirmacionLecturaService, confirmarLecturaMapper, clock);
-    }
-
-    @Bean
-    public ConsultarConsumoUseCase consultarConsumoUseCase(NegocioService negocioService,
-                                                         ProcesamientoService procesamientoService,
-                                                         ConsultarConsumoMapper consultarConsumoMapper,
-                                                         PoliticaProcesamiento politicaProcesamiento, Clock clock) {
-        return new ConsultarConsumoUseCase(negocioService, procesamientoService, consultarConsumoMapper,
+    public ConsultarConsumo consultarConsumo(NegocioService negocioService,
+                                             ProcesamientoService procesamientoService,
+                                             PoliticaProcesamiento politicaProcesamiento, Clock clock) {
+        return new ConsultarConsumo(negocioService, procesamientoService,
                 politicaProcesamiento, clock);
     }
 

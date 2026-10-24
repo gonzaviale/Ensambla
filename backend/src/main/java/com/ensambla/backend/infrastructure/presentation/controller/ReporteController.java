@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.reporte.ExportarReporteResponse;
-import com.ensambla.backend.domain.useCase.reporte.ExportarReporteUseCase;
-import com.ensambla.backend.domain.useCase.reporte.GenerarReporteUseCase;
+import com.ensambla.backend.domain.useCase.reporte.exportarReporte.ExportarReporte;
+import com.ensambla.backend.domain.useCase.reporte.exportarReporte.ExportarReporteResponse;
+import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporte;
 import com.ensambla.backend.infrastructure.presentation.dto.reporte.ReporteResponse;
 import com.ensambla.backend.infrastructure.presentation.mapper.reporte.ReportePresentationMapper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,9 +32,9 @@ public class ReporteController {
     static final MediaType TIPO_XLSX =
             MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
-    private final GenerarReporteUseCase generarReporteUseCase;
+    private final GenerarReporte generarReporte;
 
-    private final ExportarReporteUseCase exportarReporteUseCase;
+    private final ExportarReporte exportarReporte;
 
     private final ReportePresentationMapper presentationMapper;
 
@@ -48,7 +48,7 @@ public class ReporteController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
             @RequestParam(required = false) UUID campoId,
             @RequestParam(required = false) String valor) {
-        ReporteResponse response = presentationMapper.toResponse(generarReporteUseCase.execute(
+        ReporteResponse response = presentationMapper.toResponse(generarReporte.execute(
                 presentationMapper.toRequest(usuarioDe(authentication), bloqueId, q, desde, hasta, campoId, valor)));
         return ResponseEntity.ok(response);
     }
@@ -63,7 +63,7 @@ public class ReporteController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
             @RequestParam(required = false) UUID campoId,
             @RequestParam(required = false) String valor) {
-        ExportarReporteResponse archivo = exportarReporteUseCase.execute(
+        ExportarReporteResponse archivo = exportarReporte.execute(
                 presentationMapper.toRequest(usuarioDe(authentication), bloqueId, q, desde, hasta, campoId, valor));
         return ResponseEntity.ok()
                 .contentType(TIPO_XLSX)

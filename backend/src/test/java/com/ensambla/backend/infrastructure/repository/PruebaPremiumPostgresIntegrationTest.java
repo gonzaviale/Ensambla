@@ -15,7 +15,7 @@ import com.ensambla.backend.domain.service.plan.PruebaPremiumService;
 import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.domain.service.procesamiento.ReservaIaService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
-import com.ensambla.backend.domain.useCase.plan.VencerPruebasUseCase;
+import com.ensambla.backend.domain.useCase.plan.vencerPruebas.VencerPruebas;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -235,7 +235,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
                 INSERT INTO registro (negocio_id, bloque_id, valores)
                 SELECT ?, ?, '{}'::jsonb FROM generate_series(1, 1001)
                 """, negocioId, bloqueId);
-        VencerPruebasUseCase job = new VencerPruebasUseCase(pruebaPremiumService,
+        VencerPruebas job = new VencerPruebas(pruebaPremiumService,
                 Clock.fixed(INICIO.plusDays(7).toInstant(), ZoneOffset.UTC));
 
         job.execute();

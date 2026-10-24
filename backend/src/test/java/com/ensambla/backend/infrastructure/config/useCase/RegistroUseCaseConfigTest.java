@@ -1,16 +1,5 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.dto.registro.CrearRegistroRequest;
-import com.ensambla.backend.domain.dto.registro.CrearRegistroResponse;
-import com.ensambla.backend.domain.dto.registro.EditarRegistroRequest;
-import com.ensambla.backend.domain.dto.registro.EditarRegistroResponse;
-import com.ensambla.backend.domain.dto.registro.EliminarRegistroRequest;
-import com.ensambla.backend.domain.dto.registro.ListarReferenciasRequest;
-import com.ensambla.backend.domain.dto.registro.ListarRegistrosRequest;
-import com.ensambla.backend.domain.dto.registro.ListarRegistrosResponse;
-import com.ensambla.backend.domain.dto.registro.ObtenerRegistroRequest;
-import com.ensambla.backend.domain.dto.registro.ObtenerRegistroResponse;
-import com.ensambla.backend.domain.dto.registro.ReferenciaItem;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.registro.Registro;
@@ -19,6 +8,17 @@ import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
+import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistroRequest;
+import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistroResponse;
+import com.ensambla.backend.domain.useCase.registro.editarRegistro.EditarRegistroRequest;
+import com.ensambla.backend.domain.useCase.registro.editarRegistro.EditarRegistroResponse;
+import com.ensambla.backend.domain.useCase.registro.eliminarRegistro.EliminarRegistroRequest;
+import com.ensambla.backend.domain.useCase.registro.listarReferencias.ListarReferenciasRequest;
+import com.ensambla.backend.domain.useCase.registro.listarReferencias.ReferenciaItem;
+import com.ensambla.backend.domain.useCase.registro.listarRegistros.ListarRegistrosRequest;
+import com.ensambla.backend.domain.useCase.registro.listarRegistros.ListarRegistrosResponse;
+import com.ensambla.backend.domain.useCase.registro.obtenerRegistro.ObtenerRegistroRequest;
+import com.ensambla.backend.domain.useCase.registro.obtenerRegistro.ObtenerRegistroResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -66,9 +66,8 @@ class RegistroUseCaseConfigTest {
         when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
         when(registroDatosService.crear(any(), any(), any(), any(), any())).thenReturn(registro());
 
-        CrearRegistroResponse response = config.crearRegistroUseCase(
-                negocioService, bloqueService, campoService, registroDatosService,
-                config.crearRegistroMapper(), clock)
+        CrearRegistroResponse response = config.crearRegistro(
+                negocioService, bloqueService, campoService, registroDatosService, clock)
                 .execute(new CrearRegistroRequest(USUARIO_ID, BLOQUE_ID, Map.of()));
 
         assertThat(response.registro().id()).isEqualTo(REGISTRO_ID);
@@ -83,9 +82,8 @@ class RegistroUseCaseConfigTest {
         when(registroDatosService.totales(any(), any(), anyLong()))
                 .thenReturn(new TotalesRegistros(1, Map.of()));
 
-        ListarRegistrosResponse response = config.listarRegistrosUseCase(
-                negocioService, bloqueService, campoService, registroDatosService,
-                config.listarRegistrosMapper())
+        ListarRegistrosResponse response = config.listarRegistros(
+                negocioService, bloqueService, campoService, registroDatosService)
                 .execute(new ListarRegistrosRequest(USUARIO_ID, BLOQUE_ID, null, null, null, null, null));
 
         assertThat(response.contenido()).hasSize(1);
@@ -100,9 +98,8 @@ class RegistroUseCaseConfigTest {
         when(registroDatosService.buscarReferenciables(NEGOCIO_ID, BLOQUE_ID, List.of(), null, List.of()))
                 .thenReturn(List.of(registro()));
 
-        List<ReferenciaItem> response = config.listarReferenciasUseCase(
-                negocioService, bloqueService, campoService, registroDatosService,
-                config.listarReferenciasMapper())
+        List<ReferenciaItem> response = config.listarReferencias(
+                negocioService, bloqueService, campoService, registroDatosService)
                 .execute(new ListarReferenciasRequest(USUARIO_ID, BLOQUE_ID, null, List.of()));
 
         assertThat(response).containsExactly(new ReferenciaItem(REGISTRO_ID, "Sin nombre"));
@@ -114,8 +111,8 @@ class RegistroUseCaseConfigTest {
         when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(registro());
         when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
 
-        ObtenerRegistroResponse response = config.obtenerRegistroUseCase(
-                negocioService, campoService, registroDatosService, config.obtenerRegistroMapper())
+        ObtenerRegistroResponse response = config.obtenerRegistro(
+                negocioService, campoService, registroDatosService)
                 .execute(new ObtenerRegistroRequest(USUARIO_ID, REGISTRO_ID));
 
         assertThat(response.registro().id()).isEqualTo(REGISTRO_ID);
@@ -129,9 +126,8 @@ class RegistroUseCaseConfigTest {
         when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
         when(registroDatosService.editar(any(), any(), any(), any())).thenReturn(actual);
 
-        EditarRegistroResponse response = config.editarRegistroUseCase(
-                negocioService, campoService, registroDatosService,
-                config.editarRegistroMapper(), clock)
+        EditarRegistroResponse response = config.editarRegistro(
+                negocioService, campoService, registroDatosService, clock)
                 .execute(new EditarRegistroRequest(USUARIO_ID, REGISTRO_ID, Map.of()));
 
         assertThat(response.registro().id()).isEqualTo(REGISTRO_ID);
@@ -143,7 +139,7 @@ class RegistroUseCaseConfigTest {
         Registro actual = registro();
         when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(actual);
 
-        config.eliminarRegistroUseCase(negocioService, registroDatosService)
+        config.eliminarRegistro(negocioService, registroDatosService)
                 .execute(new EliminarRegistroRequest(USUARIO_ID, REGISTRO_ID));
 
         verify(registroDatosService).eliminar(actual);

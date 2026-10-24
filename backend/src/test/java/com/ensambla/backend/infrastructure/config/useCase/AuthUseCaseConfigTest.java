@@ -19,7 +19,7 @@ class AuthUseCaseConfigTest {
     void registrarUsuarioUseCaseShouldWireDependencies() {
         RegistroService service = mock(RegistroService.class);
 
-        var result = config.registrarUsuarioUseCase(service, config.registrarUsuarioMapper(), config.clock());
+        var result = config.registrarUsuario(service, config.clock());
 
         assertThat(result).isNotNull();
         assertThat(config.clock().getZone()).isEqualTo(ZoneOffset.UTC);
@@ -30,7 +30,7 @@ class AuthUseCaseConfigTest {
     void iniciarSesionUseCaseShouldWireDependencies() {
         UsuarioService service = mock(UsuarioService.class);
 
-        var result = config.iniciarSesionUseCase(service, config.iniciarSesionMapper());
+        var result = config.iniciarSesion(service);
 
         assertThat(result).isNotNull();
     }
@@ -40,7 +40,7 @@ class AuthUseCaseConfigTest {
     void obtenerSesionUseCaseShouldWireDependencies() {
         UsuarioService service = mock(UsuarioService.class);
 
-        var result = config.obtenerSesionUseCase(service, config.obtenerSesionMapper());
+        var result = config.obtenerSesion(service);
 
         assertThat(result).isNotNull();
     }

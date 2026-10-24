@@ -10,8 +10,8 @@ import com.ensambla.backend.domain.service.procesamiento.ValidacionLecturaServic
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.StreamReadFeature;
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.UUID;

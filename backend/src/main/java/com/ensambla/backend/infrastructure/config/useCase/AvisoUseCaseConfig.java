@@ -1,6 +1,5 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.mapper.aviso.AvisoItemMapper;
 import com.ensambla.backend.domain.model.aviso.ReglaAviso;
 import com.ensambla.backend.domain.model.aviso.ReglaStockBajo;
 import com.ensambla.backend.domain.port.TransaccionPort;
@@ -15,11 +14,11 @@ import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.AccesoContenidoService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
-import com.ensambla.backend.domain.useCase.aviso.AplicarAvisoUseCase;
-import com.ensambla.backend.domain.useCase.aviso.ContarAvisosUseCase;
-import com.ensambla.backend.domain.useCase.aviso.DescartarAvisoUseCase;
-import com.ensambla.backend.domain.useCase.aviso.EjecutarMotorAvisosUseCase;
-import com.ensambla.backend.domain.useCase.aviso.ListarAvisosUseCase;
+import com.ensambla.backend.domain.useCase.aviso.aplicarAviso.AplicarAviso;
+import com.ensambla.backend.domain.useCase.aviso.contarAvisos.ContarAvisos;
+import com.ensambla.backend.domain.useCase.aviso.descartarAviso.DescartarAviso;
+import com.ensambla.backend.domain.useCase.aviso.ejecutarMotorAvisos.EjecutarMotorAvisos;
+import com.ensambla.backend.domain.useCase.aviso.listarAvisos.ListarAvisos;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -30,47 +29,40 @@ import java.util.List;
 public class AvisoUseCaseConfig {
 
     @Bean
-    public AvisoItemMapper avisoItemMapper() {
-        return new AvisoItemMapper();
-    }
-
-    @Bean
-    public EjecutarMotorAvisosUseCase ejecutarMotorAvisosUseCase(
+    public EjecutarMotorAvisos ejecutarMotorAvisos(
             NegocioService negocioService,
             MotorAvisosService motorAvisosService,
             Clock clock) {
-        return new EjecutarMotorAvisosUseCase(negocioService, motorAvisosService, clock);
+        return new EjecutarMotorAvisos(negocioService, motorAvisosService, clock);
     }
 
     @Bean
-    public ListarAvisosUseCase listarAvisosUseCase(
+    public ListarAvisos listarAvisos(
             NegocioService negocioService,
             AvisoService avisoService,
-            AvisoItemMapper avisoItemMapper, AccesoContenidoService accesoContenidoService, Clock clock) {
-        return new ListarAvisosUseCase(negocioService, avisoService, avisoItemMapper, accesoContenidoService, clock);
+            AccesoContenidoService accesoContenidoService, Clock clock) {
+        return new ListarAvisos(negocioService, avisoService, accesoContenidoService, clock);
     }
 
     @Bean
-    public ContarAvisosUseCase contarAvisosUseCase(NegocioService negocioService, AvisoService avisoService) {
-        return new ContarAvisosUseCase(negocioService, avisoService);
+    public ContarAvisos contarAvisos(NegocioService negocioService, AvisoService avisoService) {
+        return new ContarAvisos(negocioService, avisoService);
     }
 
     @Bean
-    public AplicarAvisoUseCase aplicarAvisoUseCase(
+    public AplicarAviso aplicarAviso(
             NegocioService negocioService,
             AvisoService avisoService,
-            AvisoItemMapper avisoItemMapper,
             Clock clock, AccesoContenidoService accesoContenidoService) {
-        return new AplicarAvisoUseCase(negocioService, avisoService, avisoItemMapper, clock, accesoContenidoService);
+        return new AplicarAviso(negocioService, avisoService, clock, accesoContenidoService);
     }
 
     @Bean
-    public DescartarAvisoUseCase descartarAvisoUseCase(
+    public DescartarAviso descartarAviso(
             NegocioService negocioService,
             AvisoService avisoService,
-            AvisoItemMapper avisoItemMapper,
             Clock clock, AccesoContenidoService accesoContenidoService) {
-        return new DescartarAvisoUseCase(negocioService, avisoService, avisoItemMapper, clock, accesoContenidoService);
+        return new DescartarAviso(negocioService, avisoService, clock, accesoContenidoService);
     }
 
     @Bean

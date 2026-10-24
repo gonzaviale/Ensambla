@@ -1,7 +1,7 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.reporte;
 
-import com.ensambla.backend.domain.dto.reporte.GenerarReporteRequest;
-import com.ensambla.backend.domain.dto.reporte.GenerarReporteResponse;
+import com.ensambla.backend.domain.useCase.reporte.GenerarReporteRequest;
+import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporteResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.RegistroResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.TotalesRegistrosResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.reporte.ReporteResponse;

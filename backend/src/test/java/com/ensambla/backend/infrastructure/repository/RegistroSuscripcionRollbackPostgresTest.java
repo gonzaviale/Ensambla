@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.repository;
 
-import com.ensambla.backend.domain.dto.auth.RegistrarUsuarioRequest;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.service.auth.RegistroService;
+import com.ensambla.backend.domain.useCase.auth.registrarUsuario.RegistrarUsuarioRequest;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IUsuarioJpaRepository;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import org.junit.jupiter.api.DisplayName;

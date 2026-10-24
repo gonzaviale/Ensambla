@@ -1,12 +1,12 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.aviso;
 
-import com.ensambla.backend.domain.dto.aviso.AvisoItem;
-import com.ensambla.backend.domain.dto.aviso.ContadorAvisos;
-import com.ensambla.backend.domain.dto.aviso.ListarAvisosRequest;
-import com.ensambla.backend.domain.dto.aviso.ResolverAvisoRequest;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.aviso.GrupoAviso;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
+import com.ensambla.backend.domain.useCase.aviso.AvisoItem;
+import com.ensambla.backend.domain.useCase.aviso.ResolverAvisoRequest;
+import com.ensambla.backend.domain.useCase.aviso.contarAvisos.ContadorAvisos;
+import com.ensambla.backend.domain.useCase.aviso.listarAvisos.ListarAvisosRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.aviso.AvisoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.aviso.ContadorAvisosResponse;
 import org.junit.jupiter.api.DisplayName;

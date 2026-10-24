@@ -1,18 +1,18 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.dto.inventario.ConsultarStockRequest;
-import com.ensambla.backend.domain.dto.inventario.ListarMovimientosRequest;
-import com.ensambla.backend.domain.dto.inventario.RegistrarMovimientoRequest;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.common.Pagina;
-import com.ensambla.backend.domain.model.inventario.TipoMovimiento;
 import com.ensambla.backend.domain.model.inventario.MovimientoStock;
+import com.ensambla.backend.domain.model.inventario.TipoMovimiento;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.inventario.InventarioService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
+import com.ensambla.backend.domain.useCase.inventario.consultarStock.ConsultarStockRequest;
+import com.ensambla.backend.domain.useCase.inventario.listarMovimientos.ListarMovimientosRequest;
+import com.ensambla.backend.domain.useCase.inventario.registrarMovimiento.RegistrarMovimientoRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -56,17 +56,16 @@ class InventarioUseCaseConfigTest {
     }
 
     @Test
-    @DisplayName("El wiring de registrar conecta los servicios, el mapper y el reloj")
+    @DisplayName("El wiring de registrar conecta los servicios y el reloj")
     void registrarMovimientoUseCaseShouldWireCollaborators() {
         when(registroDatosService.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(givenProducto());
         when(inventarioService.registrar(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(inventarioService.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID))
                 .thenReturn(Map.of(PRODUCTO_ID, BigDecimal.TEN));
-        MovimientoItemMapperHolder mappers = new MovimientoItemMapperHolder(config);
 
-        var response = config.registrarMovimientoUseCase(
+        var response = config.registrarMovimiento(
                         negocioService, bloqueService, campoService, registroDatosService, inventarioService,
-                        mappers.registrar, Clock.systemUTC())
+                        Clock.systemUTC())
                 .execute(new RegistrarMovimientoRequest(
                         USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, "ENTRADA", BigDecimal.ONE, null, null));
 
@@ -75,33 +74,30 @@ class InventarioUseCaseConfigTest {
     }
 
     @Test
-    @DisplayName("El wiring de listar conecta los servicios y el mapper")
+    @DisplayName("El wiring de listar conecta los servicios")
     void listarMovimientosUseCaseShouldWireCollaborators() {
         when(inventarioService.listarRecientes(BLOQUE_ID, NEGOCIO_ID, null)).thenReturn(List.of(
                 MovimientoStock.builder().registroId(PRODUCTO_ID).tipo(TipoMovimiento.SALIDA)
                         .cantidad(BigDecimal.ONE).build()));
         when(registroDatosService.obtenerVarios(List.of(PRODUCTO_ID), BLOQUE_ID, NEGOCIO_ID))
                 .thenReturn(List.of(givenProducto()));
-        MovimientoItemMapperHolder mappers = new MovimientoItemMapperHolder(config);
 
-        var response = config.listarMovimientosUseCase(
-                        negocioService, bloqueService, campoService, registroDatosService, inventarioService,
-                        mappers.listar)
+        var response = config.listarMovimientos(
+                        negocioService, bloqueService, campoService, registroDatosService, inventarioService)
                 .execute(new ListarMovimientosRequest(USUARIO_ID, BLOQUE_ID, null));
 
         assertThat(response).singleElement().satisfies(item -> assertThat(item.tipo()).isEqualTo("SALIDA"));
     }
 
     @Test
-    @DisplayName("El wiring de stock conecta los servicios y el mapper")
+    @DisplayName("El wiring de stock conecta los servicios")
     void consultarStockUseCaseShouldWireCollaborators() {
         when(registroDatosService.listar(any())).thenReturn(new Pagina<>(List.of(givenProducto()), 0, 20, 1));
         when(inventarioService.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID))
                 .thenReturn(Map.of(PRODUCTO_ID, BigDecimal.TWO));
 
-        var response = config.consultarStockUseCase(
-                        negocioService, bloqueService, campoService, registroDatosService, inventarioService,
-                        config.consultarStockMapper())
+        var response = config.consultarStock(
+                        negocioService, bloqueService, campoService, registroDatosService, inventarioService)
                 .execute(new ConsultarStockRequest(USUARIO_ID, BLOQUE_ID, null, null, null));
 
         assertThat(response.contenido()).singleElement()
@@ -110,18 +106,5 @@ class InventarioUseCaseConfigTest {
 
     private static Registro givenProducto() {
         return Registro.builder().id(PRODUCTO_ID).bloqueId(BLOQUE_ID).valores(Map.of()).build();
-    }
-
-    /** Arma los mappers del wiring como lo hace Spring: el item mapper compartido por los otros dos. */
-    private static final class MovimientoItemMapperHolder {
-
-        private final com.ensambla.backend.domain.mapper.inventario.RegistrarMovimientoMapper registrar;
-        private final com.ensambla.backend.domain.mapper.inventario.ListarMovimientosMapper listar;
-
-        private MovimientoItemMapperHolder(InventarioUseCaseConfig config) {
-            var item = config.movimientoItemMapper();
-            this.registrar = config.registrarMovimientoMapper(item);
-            this.listar = config.listarMovimientosMapper(item);
-        }
     }
 }

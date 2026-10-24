@@ -1,16 +1,16 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.bloque.BloqueItem;
-import com.ensambla.backend.domain.dto.bloque.CrearBloqueRequest;
-import com.ensambla.backend.domain.dto.bloque.EliminarBloqueRequest;
-import com.ensambla.backend.domain.dto.bloque.ListarBloquesRequest;
-import com.ensambla.backend.domain.dto.bloque.RenombrarBloqueRequest;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.useCase.bloque.CrearBloqueUseCase;
-import com.ensambla.backend.domain.useCase.bloque.EliminarBloqueUseCase;
-import com.ensambla.backend.domain.useCase.bloque.ListarBloquesUseCase;
-import com.ensambla.backend.domain.useCase.bloque.RenombrarBloqueUseCase;
+import com.ensambla.backend.domain.useCase.bloque.BloqueItem;
+import com.ensambla.backend.domain.useCase.bloque.crearBloque.CrearBloque;
+import com.ensambla.backend.domain.useCase.bloque.crearBloque.CrearBloqueRequest;
+import com.ensambla.backend.domain.useCase.bloque.eliminarBloque.EliminarBloque;
+import com.ensambla.backend.domain.useCase.bloque.eliminarBloque.EliminarBloqueRequest;
+import com.ensambla.backend.domain.useCase.bloque.listarBloques.ListarBloques;
+import com.ensambla.backend.domain.useCase.bloque.listarBloques.ListarBloquesRequest;
+import com.ensambla.backend.domain.useCase.bloque.renombrarBloque.RenombrarBloque;
+import com.ensambla.backend.domain.useCase.bloque.renombrarBloque.RenombrarBloqueRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.bloque.BloquePresentationMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,10 +44,10 @@ class BloqueControllerTest {
     private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
 
-    private final ListarBloquesUseCase listarBloquesUseCase = mock(ListarBloquesUseCase.class);
-    private final CrearBloqueUseCase crearBloqueUseCase = mock(CrearBloqueUseCase.class);
-    private final RenombrarBloqueUseCase renombrarBloqueUseCase = mock(RenombrarBloqueUseCase.class);
-    private final EliminarBloqueUseCase eliminarBloqueUseCase = mock(EliminarBloqueUseCase.class);
+    private final ListarBloques listarBloques = mock(ListarBloques.class);
+    private final CrearBloque crearBloque = mock(CrearBloque.class);
+    private final RenombrarBloque renombrarBloque = mock(RenombrarBloque.class);
+    private final EliminarBloque eliminarBloque = mock(EliminarBloque.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private MockMvc mockMvc;
@@ -55,10 +55,10 @@ class BloqueControllerTest {
     @BeforeEach
     void setUp() {
         var controller = new BloqueController(
-                listarBloquesUseCase,
-                crearBloqueUseCase,
-                renombrarBloqueUseCase,
-                eliminarBloqueUseCase,
+                listarBloques,
+                crearBloque,
+                renombrarBloque,
+                eliminarBloque,
                 new BloquePresentationMapper());
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
@@ -68,7 +68,7 @@ class BloqueControllerTest {
     @Test
     @DisplayName("GET lista los bloques del proyecto con todos sus datos")
     void listarShouldReturnMappedBloques() throws Exception {
-        when(listarBloquesUseCase.execute(any())).thenReturn(List.of(givenItem("Productos")));
+        when(listarBloques.execute(any())).thenReturn(List.of(givenItem("Productos")));
 
         mockMvc.perform(get("/api/proyectos/{id}/bloques", PROYECTO_ID).principal(principal))
                 .andExpect(status().isOk())
@@ -78,13 +78,13 @@ class BloqueControllerTest {
                 .andExpect(jsonPath("$[0].posicion").value(0))
                 .andExpect(jsonPath("$[0].creadoEn").exists())
                 .andExpect(jsonPath("$[0].actualizadoEn").exists());
-        verify(listarBloquesUseCase).execute(new ListarBloquesRequest(USUARIO_ID, PROYECTO_ID));
+        verify(listarBloques).execute(new ListarBloquesRequest(USUARIO_ID, PROYECTO_ID));
     }
 
     @Test
     @DisplayName("GET devuelve una lista vacía cuando el proyecto no tiene bloques")
     void listarShouldReturnEmptyList() throws Exception {
-        when(listarBloquesUseCase.execute(any())).thenReturn(List.of());
+        when(listarBloques.execute(any())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/proyectos/{id}/bloques", PROYECTO_ID).principal(principal))
                 .andExpect(status().isOk())
@@ -94,7 +94,7 @@ class BloqueControllerTest {
     @Test
     @DisplayName("GET de un proyecto ajeno devuelve 404 estándar")
     void listarShouldReturn404WhenProyectoIsForeign() throws Exception {
-        when(listarBloquesUseCase.execute(any())).thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
+        when(listarBloques.execute(any())).thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
 
         mockMvc.perform(get("/api/proyectos/{id}/bloques", PROYECTO_ID).principal(principal))
                 .andExpect(status().isNotFound())
@@ -107,20 +107,20 @@ class BloqueControllerTest {
         mockMvc.perform(get("/api/proyectos/invalido/bloques").principal(principal))
                 .andExpect(status().isBadRequest());
 
-        verifyNoInteractions(listarBloquesUseCase);
+        verifyNoInteractions(listarBloques);
     }
 
     @Test
     @DisplayName("POST crea el bloque y devuelve 201 con su ubicación")
     void crearShouldReturnCreatedWithLocation() throws Exception {
-        when(crearBloqueUseCase.execute(any())).thenReturn(givenItem("Clientes"));
+        when(crearBloque.execute(any())).thenReturn(givenItem("Clientes"));
 
         mockMvc.perform(post("/api/proyectos/{id}/bloques", PROYECTO_ID).principal(principal)
                         .contentType("application/json").content("{\"nombre\":\"Clientes\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "/api/bloques/" + BLOQUE_ID))
                 .andExpect(jsonPath("$.nombre").value("Clientes"));
-        verify(crearBloqueUseCase).execute(new CrearBloqueRequest(USUARIO_ID, PROYECTO_ID, "Clientes"));
+        verify(crearBloque).execute(new CrearBloqueRequest(USUARIO_ID, PROYECTO_ID, "Clientes"));
     }
 
     @Test
@@ -131,7 +131,7 @@ class BloqueControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.nombre").exists());
 
-        verifyNoInteractions(crearBloqueUseCase);
+        verifyNoInteractions(crearBloque);
     }
 
     @Test
@@ -142,13 +142,13 @@ class BloqueControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.nombre").exists());
 
-        verifyNoInteractions(crearBloqueUseCase);
+        verifyNoInteractions(crearBloque);
     }
 
     @Test
     @DisplayName("POST con un nombre repetido en el proyecto devuelve 409")
     void crearShouldReturn409WhenNameIsTaken() throws Exception {
-        when(crearBloqueUseCase.execute(any()))
+        when(crearBloque.execute(any()))
                 .thenThrow(new DuplicateResourceException("Ya hay un bloque llamado \"Clientes\" en este proyecto"));
 
         mockMvc.perform(post("/api/proyectos/{id}/bloques", PROYECTO_ID).principal(principal)
@@ -160,13 +160,13 @@ class BloqueControllerTest {
     @Test
     @DisplayName("PATCH delega el nuevo nombre con el bloque y el usuario de la sesión")
     void renombrarShouldPassRequest() throws Exception {
-        when(renombrarBloqueUseCase.execute(any())).thenReturn(givenItem("Compradores"));
+        when(renombrarBloque.execute(any())).thenReturn(givenItem("Compradores"));
 
         mockMvc.perform(patch("/api/bloques/{id}", BLOQUE_ID).principal(principal)
                         .contentType("application/json").content("{\"nombre\":\"Compradores\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("Compradores"));
-        verify(renombrarBloqueUseCase).execute(new RenombrarBloqueRequest(USUARIO_ID, BLOQUE_ID, "Compradores"));
+        verify(renombrarBloque).execute(new RenombrarBloqueRequest(USUARIO_ID, BLOQUE_ID, "Compradores"));
     }
 
     @Test
@@ -176,7 +176,7 @@ class BloqueControllerTest {
                         .contentType("application/json").content("{\"nombre\":\"\"}"))
                 .andExpect(status().isBadRequest());
 
-        verifyNoInteractions(renombrarBloqueUseCase);
+        verifyNoInteractions(renombrarBloque);
     }
 
     @Test
@@ -185,7 +185,7 @@ class BloqueControllerTest {
         mockMvc.perform(delete("/api/bloques/{id}", BLOQUE_ID).principal(principal))
                 .andExpect(status().isNoContent());
 
-        verify(eliminarBloqueUseCase).execute(new EliminarBloqueRequest(USUARIO_ID, BLOQUE_ID));
+        verify(eliminarBloque).execute(new EliminarBloqueRequest(USUARIO_ID, BLOQUE_ID));
     }
 
     // --- arrange ---

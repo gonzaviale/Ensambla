@@ -1,20 +1,19 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.proyecto.CrearProyectoDesdePlantillaRequest;
-import com.ensambla.backend.domain.dto.proyecto.CrearProyectoRequest;
-import com.ensambla.backend.domain.dto.proyecto.EliminarProyectoRequest;
-import com.ensambla.backend.domain.dto.proyecto.ListarProyectosRequest;
-import com.ensambla.backend.domain.dto.proyecto.ObtenerProyectoRequest;
-import com.ensambla.backend.domain.dto.proyecto.ProyectoItem;
-import com.ensambla.backend.domain.dto.proyecto.RenombrarProyectoRequest;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.mapper.proyecto.ProyectoItemMapper;
-import com.ensambla.backend.domain.useCase.proyecto.CrearProyectoDesdePlantillaUseCase;
-import com.ensambla.backend.domain.useCase.proyecto.CrearProyectoUseCase;
-import com.ensambla.backend.domain.useCase.proyecto.EliminarProyectoUseCase;
-import com.ensambla.backend.domain.useCase.proyecto.ListarProyectosUseCase;
-import com.ensambla.backend.domain.useCase.proyecto.ObtenerProyectoUseCase;
-import com.ensambla.backend.domain.useCase.proyecto.RenombrarProyectoUseCase;
+import com.ensambla.backend.domain.useCase.proyecto.ProyectoItem;
+import com.ensambla.backend.domain.useCase.proyecto.crearProyecto.CrearProyecto;
+import com.ensambla.backend.domain.useCase.proyecto.crearProyecto.CrearProyectoRequest;
+import com.ensambla.backend.domain.useCase.proyecto.crearProyectoDesdePlantilla.CrearProyectoDesdePlantilla;
+import com.ensambla.backend.domain.useCase.proyecto.crearProyectoDesdePlantilla.CrearProyectoDesdePlantillaRequest;
+import com.ensambla.backend.domain.useCase.proyecto.eliminarProyecto.EliminarProyecto;
+import com.ensambla.backend.domain.useCase.proyecto.eliminarProyecto.EliminarProyectoRequest;
+import com.ensambla.backend.domain.useCase.proyecto.listarProyectos.ListarProyectos;
+import com.ensambla.backend.domain.useCase.proyecto.listarProyectos.ListarProyectosRequest;
+import com.ensambla.backend.domain.useCase.proyecto.obtenerProyecto.ObtenerProyecto;
+import com.ensambla.backend.domain.useCase.proyecto.obtenerProyecto.ObtenerProyectoRequest;
+import com.ensambla.backend.domain.useCase.proyecto.renombrarProyecto.RenombrarProyecto;
+import com.ensambla.backend.domain.useCase.proyecto.renombrarProyecto.RenombrarProyectoRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.proyecto.ProyectoPresentationMapper;
 import com.ensambla.backend.support.ProyectoTestData;
@@ -45,12 +44,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class ProyectoControllerTest {
 
-    private final ListarProyectosUseCase listarProyectosUseCase = mock(ListarProyectosUseCase.class);
-    private final ObtenerProyectoUseCase obtenerProyectoUseCase = mock(ObtenerProyectoUseCase.class);
-    private final CrearProyectoUseCase crearProyectoUseCase = mock(CrearProyectoUseCase.class);
-    private final RenombrarProyectoUseCase renombrarProyectoUseCase = mock(RenombrarProyectoUseCase.class);
-    private final CrearProyectoDesdePlantillaUseCase crearProyectoDesdePlantillaUseCase = mock(CrearProyectoDesdePlantillaUseCase.class);
-    private final EliminarProyectoUseCase eliminarProyectoUseCase = mock(EliminarProyectoUseCase.class);
+    private final ListarProyectos listarProyectos = mock(ListarProyectos.class);
+    private final ObtenerProyecto obtenerProyecto = mock(ObtenerProyecto.class);
+    private final CrearProyecto crearProyecto = mock(CrearProyecto.class);
+    private final RenombrarProyecto renombrarProyecto = mock(RenombrarProyecto.class);
+    private final CrearProyectoDesdePlantilla crearProyectoDesdePlantilla = mock(CrearProyectoDesdePlantilla.class);
+    private final EliminarProyecto eliminarProyecto = mock(EliminarProyecto.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private MockMvc mockMvc;
@@ -58,12 +57,12 @@ class ProyectoControllerTest {
     @BeforeEach
     void setUp() {
         var controller = new ProyectoController(
-                listarProyectosUseCase,
-                obtenerProyectoUseCase,
-                crearProyectoUseCase,
-                renombrarProyectoUseCase,
-                crearProyectoDesdePlantillaUseCase,
-                eliminarProyectoUseCase,
+                listarProyectos,
+                obtenerProyecto,
+                crearProyecto,
+                renombrarProyecto,
+                crearProyectoDesdePlantilla,
+                eliminarProyecto,
                 new ProyectoPresentationMapper());
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
@@ -73,7 +72,7 @@ class ProyectoControllerTest {
     @Test
     @DisplayName("GET lista proyectos y mapea todos los datos del árbol a JSON")
     void listarShouldReturnMappedTree() throws Exception {
-        when(listarProyectosUseCase.execute(any())).thenReturn(List.of(givenResponse()));
+        when(listarProyectos.execute(any())).thenReturn(List.of(givenResponse()));
 
         mockMvc.perform(get("/api/proyectos").principal(principal))
                 .andExpect(status().isOk())
@@ -92,13 +91,13 @@ class ProyectoControllerTest {
                 .andExpect(jsonPath("$[0].bloques[0].campos[0].obligatorio").value(true))
                 .andExpect(jsonPath("$[0].bloques[0].campos[0].opciones").isEmpty())
                 .andExpect(jsonPath("$[0].bloques[0].campos[0].posicion").value(0));
-        verify(listarProyectosUseCase).execute(new ListarProyectosRequest(USUARIO_ID));
+        verify(listarProyectos).execute(new ListarProyectosRequest(USUARIO_ID));
     }
 
     @Test
     @DisplayName("GET devuelve una lista vacía cuando no hay proyectos")
     void listarShouldReturnEmptyList() throws Exception {
-        when(listarProyectosUseCase.execute(any())).thenReturn(List.of());
+        when(listarProyectos.execute(any())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/proyectos").principal(principal))
                 .andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
@@ -107,45 +106,45 @@ class ProyectoControllerTest {
     @Test
     @DisplayName("GET por id delega usando el usuario de sesión")
     void obtenerShouldPassSessionUsuario() throws Exception {
-        when(obtenerProyectoUseCase.execute(any())).thenReturn(givenResponse());
+        when(obtenerProyecto.execute(any())).thenReturn(givenResponse());
 
         mockMvc.perform(get("/api/proyectos/{id}", PROYECTO_ID).principal(principal))
                 .andExpect(status().isOk());
-        verify(obtenerProyectoUseCase).execute(new ObtenerProyectoRequest(USUARIO_ID, PROYECTO_ID));
+        verify(obtenerProyecto).execute(new ObtenerProyectoRequest(USUARIO_ID, PROYECTO_ID));
     }
 
     @Test
     @DisplayName("POST crea en blanco sin aceptar el negocio indicado por el navegador")
     void crearShouldIgnoreClientNegocio() throws Exception {
-        when(crearProyectoUseCase.execute(any())).thenReturn(givenResponse());
+        when(crearProyecto.execute(any())).thenReturn(givenResponse());
 
         mockMvc.perform(post("/api/proyectos").principal(principal).contentType("application/json")
                         .content("{\"nombre\":\"Nuevo\",\"descripcion\":null,\"negocioId\":\"otro\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "/api/proyectos/" + PROYECTO_ID));
-        verify(crearProyectoUseCase).execute(new CrearProyectoRequest(USUARIO_ID, "Nuevo", null));
+        verify(crearProyecto).execute(new CrearProyectoRequest(USUARIO_ID, "Nuevo", null));
     }
 
     @Test
     @DisplayName("POST desde plantilla usa el id de plantilla y devuelve la ubicación creada")
     void desdePlantillaShouldCreateProyecto() throws Exception {
-        when(crearProyectoDesdePlantillaUseCase.execute(any())).thenReturn(givenResponse());
+        when(crearProyectoDesdePlantilla.execute(any())).thenReturn(givenResponse());
 
         mockMvc.perform(post("/api/proyectos/desde-plantilla/{id}", PLANTILLA_ID).principal(principal))
                 .andExpect(status().isCreated());
-        verify(crearProyectoDesdePlantillaUseCase)
+        verify(crearProyectoDesdePlantilla)
                 .execute(new CrearProyectoDesdePlantillaRequest(USUARIO_ID, PLANTILLA_ID));
     }
 
     @Test
     @DisplayName("PATCH delega el nuevo nombre junto con el id y el usuario")
     void renombrarShouldPassRequest() throws Exception {
-        when(renombrarProyectoUseCase.execute(any())).thenReturn(givenResponse());
+        when(renombrarProyecto.execute(any())).thenReturn(givenResponse());
 
         mockMvc.perform(patch("/api/proyectos/{id}", PROYECTO_ID).principal(principal)
                         .contentType("application/json").content("{\"nombre\":\"Otro\"}"))
                 .andExpect(status().isOk());
-        verify(renombrarProyectoUseCase).execute(new RenombrarProyectoRequest(USUARIO_ID, PROYECTO_ID, "Otro"));
+        verify(renombrarProyecto).execute(new RenombrarProyectoRequest(USUARIO_ID, PROYECTO_ID, "Otro"));
     }
 
     @Test
@@ -154,7 +153,7 @@ class ProyectoControllerTest {
         mockMvc.perform(delete("/api/proyectos/{id}", PROYECTO_ID).principal(principal))
                 .andExpect(status().isNoContent());
 
-        verify(eliminarProyectoUseCase).execute(new EliminarProyectoRequest(USUARIO_ID, PROYECTO_ID));
+        verify(eliminarProyecto).execute(new EliminarProyectoRequest(USUARIO_ID, PROYECTO_ID));
     }
 
     @Test
@@ -162,7 +161,7 @@ class ProyectoControllerTest {
     void obtenerShouldRejectInvalidUuid() throws Exception {
         mockMvc.perform(get("/api/proyectos/invalido").principal(principal)).andExpect(status().isBadRequest());
 
-        verifyNoInteractions(obtenerProyectoUseCase);
+        verifyNoInteractions(obtenerProyecto);
     }
 
     @Test
@@ -172,7 +171,7 @@ class ProyectoControllerTest {
                         .contentType("application/json").content("{\"nombre\":\"  \"}"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.nombre").exists());
 
-        verifyNoInteractions(crearProyectoUseCase);
+        verifyNoInteractions(crearProyecto);
     }
 
     @Test
@@ -182,13 +181,13 @@ class ProyectoControllerTest {
                         .contentType("application/json").content("{\"nombre\":\"\"}"))
                 .andExpect(status().isBadRequest());
 
-        verifyNoInteractions(renombrarProyectoUseCase);
+        verifyNoInteractions(renombrarProyecto);
     }
 
     @Test
     @DisplayName("Un proyecto ajeno devuelve 404 estándar")
     void obtenerShouldReturn404() throws Exception {
-        when(obtenerProyectoUseCase.execute(any())).thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
+        when(obtenerProyecto.execute(any())).thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
 
         mockMvc.perform(get("/api/proyectos/{id}", PROYECTO_ID).principal(principal))
                 .andExpect(status().isNotFound()).andExpect(jsonPath("$.status").value(404));
@@ -196,7 +195,7 @@ class ProyectoControllerTest {
 
     // --- arrange ---
     private ProyectoItem givenResponse() {
-        return new ProyectoItemMapper().toResponse(ProyectoTestData.proyecto());
+        return ProyectoItem.de(ProyectoTestData.proyecto());
     }
 }
 

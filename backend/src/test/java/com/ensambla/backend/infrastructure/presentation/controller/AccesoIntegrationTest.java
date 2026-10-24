@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.auth.RegistrarUsuarioRequest;
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
 import com.ensambla.backend.domain.service.auth.RegistroService;
+import com.ensambla.backend.domain.useCase.auth.registrarUsuario.RegistrarUsuarioRequest;
 import com.ensambla.backend.infrastructure.repository.entity.UsuarioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.INegocioJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IUsuarioJpaRepository;

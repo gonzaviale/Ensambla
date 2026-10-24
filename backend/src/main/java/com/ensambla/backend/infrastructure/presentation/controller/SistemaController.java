@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.useCase.sistema.EliminarSistemaUseCase;
-import com.ensambla.backend.domain.useCase.sistema.GuardarSistemaUseCase;
-import com.ensambla.backend.domain.useCase.sistema.ListarSistemasUseCase;
+import com.ensambla.backend.domain.useCase.sistema.eliminarSistema.EliminarSistema;
+import com.ensambla.backend.domain.useCase.sistema.guardarSistema.GuardarSistema;
+import com.ensambla.backend.domain.useCase.sistema.listarSistemas.ListarSistemas;
 import com.ensambla.backend.infrastructure.presentation.dto.sistema.SistemaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.sistema.SistemaWebResponse;
 import com.ensambla.backend.infrastructure.presentation.mapper.sistema.SistemaPresentationMapper;
@@ -29,18 +29,18 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class SistemaController {
 
-    private final ListarSistemasUseCase listarSistemasUseCase;
+    private final ListarSistemas listarSistemas;
 
-    private final GuardarSistemaUseCase guardarSistemaUseCase;
+    private final GuardarSistema guardarSistema;
 
-    private final EliminarSistemaUseCase eliminarSistemaUseCase;
+    private final EliminarSistema eliminarSistema;
 
     private final SistemaPresentationMapper sistemaPresentationMapper;
 
     @GetMapping
     @Operation(summary = "Listar los sistemas del negocio de la sesión")
     public ResponseEntity<List<SistemaWebResponse>> listar(Authentication authentication) {
-        return ResponseEntity.ok(sistemaPresentationMapper.toResponse(listarSistemasUseCase.execute(
+        return ResponseEntity.ok(sistemaPresentationMapper.toResponse(listarSistemas.execute(
                 sistemaPresentationMapper.toListarRequest(UUID.fromString(authentication.getName())))));
     }
 
@@ -48,14 +48,14 @@ public class SistemaController {
     @Operation(summary = "Crear o reemplazar un sistema entero; se puede repetir sin duplicar nada")
     public ResponseEntity<SistemaWebResponse> guardar(
             Authentication authentication, @PathVariable String id, @Valid @RequestBody SistemaWebRequest request) {
-        return ResponseEntity.ok(sistemaPresentationMapper.toResponse(guardarSistemaUseCase.execute(
+        return ResponseEntity.ok(sistemaPresentationMapper.toResponse(guardarSistema.execute(
                 sistemaPresentationMapper.toGuardarRequest(UUID.fromString(authentication.getName()), id, request))));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar un sistema; si ya no existe no falla")
     public ResponseEntity<Void> eliminar(Authentication authentication, @PathVariable String id) {
-        eliminarSistemaUseCase.execute(
+        eliminarSistema.execute(
                 sistemaPresentationMapper.toEliminarRequest(UUID.fromString(authentication.getName()), id));
         return ResponseEntity.noContent().build();
     }

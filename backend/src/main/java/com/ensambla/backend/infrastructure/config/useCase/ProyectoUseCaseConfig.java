@@ -1,23 +1,17 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.mapper.proyecto.CrearProyectoDesdePlantillaMapper;
-import com.ensambla.backend.domain.mapper.proyecto.CrearProyectoMapper;
-import com.ensambla.backend.domain.mapper.proyecto.ListarProyectosMapper;
-import com.ensambla.backend.domain.mapper.proyecto.ObtenerProyectoMapper;
-import com.ensambla.backend.domain.mapper.proyecto.ProyectoItemMapper;
-import com.ensambla.backend.domain.mapper.proyecto.RenombrarProyectoMapper;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.plantilla.PlantillaService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
-import com.ensambla.backend.domain.useCase.proyecto.CrearProyectoDesdePlantillaUseCase;
-import com.ensambla.backend.domain.useCase.proyecto.CrearProyectoUseCase;
-import com.ensambla.backend.domain.useCase.proyecto.EliminarProyectoUseCase;
-import com.ensambla.backend.domain.useCase.proyecto.ListarProyectosUseCase;
-import com.ensambla.backend.domain.useCase.proyecto.ObtenerProyectoUseCase;
-import com.ensambla.backend.domain.useCase.proyecto.RenombrarProyectoUseCase;
+import com.ensambla.backend.domain.useCase.proyecto.crearProyecto.CrearProyecto;
+import com.ensambla.backend.domain.useCase.proyecto.crearProyectoDesdePlantilla.CrearProyectoDesdePlantilla;
+import com.ensambla.backend.domain.useCase.proyecto.eliminarProyecto.EliminarProyecto;
+import com.ensambla.backend.domain.useCase.proyecto.listarProyectos.ListarProyectos;
+import com.ensambla.backend.domain.useCase.proyecto.obtenerProyecto.ObtenerProyecto;
+import com.ensambla.backend.domain.useCase.proyecto.renombrarProyecto.RenombrarProyecto;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -27,102 +21,62 @@ import java.time.Clock;
 public class ProyectoUseCaseConfig {
 
     @Bean
-    public ProyectoItemMapper proyectoItemMapper() {
-        return new ProyectoItemMapper();
-    }
-
-    @Bean
-    public ListarProyectosMapper listarProyectosMapper(ProyectoItemMapper proyectoItemMapper) {
-        return new ListarProyectosMapper(proyectoItemMapper);
-    }
-
-    @Bean
-    public ListarProyectosUseCase listarProyectosUseCase(
+    public ListarProyectos listarProyectos(
             NegocioService negocioService,
-            ProyectoService proyectoService,
-            ListarProyectosMapper listarProyectosMapper) {
-        return new ListarProyectosUseCase(
+            ProyectoService proyectoService) {
+        return new ListarProyectos(
                 negocioService,
-                proyectoService,
-                listarProyectosMapper);
+                proyectoService);
     }
 
     @Bean
-    public ObtenerProyectoMapper obtenerProyectoMapper(ProyectoItemMapper proyectoItemMapper) {
-        return new ObtenerProyectoMapper(proyectoItemMapper);
-    }
-
-    @Bean
-    public ObtenerProyectoUseCase obtenerProyectoUseCase(
+    public ObtenerProyecto obtenerProyecto(
             NegocioService negocioService,
-            ProyectoService proyectoService,
-            ObtenerProyectoMapper obtenerProyectoMapper) {
-        return new ObtenerProyectoUseCase(
+            ProyectoService proyectoService) {
+        return new ObtenerProyecto(
                 negocioService,
-                proyectoService,
-                obtenerProyectoMapper);
+                proyectoService);
     }
 
     @Bean
-    public CrearProyectoMapper crearProyectoMapper(ProyectoItemMapper proyectoItemMapper) {
-        return new CrearProyectoMapper(proyectoItemMapper);
-    }
-
-    @Bean
-    public CrearProyectoUseCase crearProyectoUseCase(
+    public CrearProyecto crearProyecto(
             NegocioService negocioService,
             ProyectoService proyectoService,
-            CrearProyectoMapper crearProyectoMapper,
             Clock clock) {
-        return new CrearProyectoUseCase(
+        return new CrearProyecto(
                 negocioService,
                 proyectoService,
-                crearProyectoMapper,
                 clock);
     }
 
     @Bean
-    public RenombrarProyectoMapper renombrarProyectoMapper(ProyectoItemMapper proyectoItemMapper) {
-        return new RenombrarProyectoMapper(proyectoItemMapper);
-    }
-
-    @Bean
-    public RenombrarProyectoUseCase renombrarProyectoUseCase(
+    public RenombrarProyecto renombrarProyecto(
             NegocioService negocioService,
             ProyectoService proyectoService,
-            RenombrarProyectoMapper renombrarProyectoMapper,
             Clock clock) {
-        return new RenombrarProyectoUseCase(
+        return new RenombrarProyecto(
                 negocioService,
                 proyectoService,
-                renombrarProyectoMapper,
                 clock);
     }
 
     @Bean
-    public CrearProyectoDesdePlantillaMapper crearProyectoDesdePlantillaMapper(ProyectoItemMapper proyectoItemMapper) {
-        return new CrearProyectoDesdePlantillaMapper(proyectoItemMapper);
-    }
-
-    @Bean
-    public CrearProyectoDesdePlantillaUseCase crearProyectoDesdePlantillaUseCase(
+    public CrearProyectoDesdePlantilla crearProyectoDesdePlantilla(
             NegocioService negocioService,
             ProyectoService proyectoService,
             PlantillaService plantillaService,
-            CrearProyectoDesdePlantillaMapper crearProyectoDesdePlantillaMapper,
             Clock clock) {
-        return new CrearProyectoDesdePlantillaUseCase(
+        return new CrearProyectoDesdePlantilla(
                 negocioService,
                 proyectoService,
                 plantillaService,
-                crearProyectoDesdePlantillaMapper,
                 clock);
     }
 
     @Bean
-    public EliminarProyectoUseCase eliminarProyectoUseCase(
+    public EliminarProyecto eliminarProyecto(
             NegocioService negocioService, ProyectoService proyectoService) {
-        return new EliminarProyectoUseCase(negocioService, proyectoService);
+        return new EliminarProyecto(negocioService, proyectoService);
     }
 
     @Bean

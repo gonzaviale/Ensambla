@@ -1,13 +1,13 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.procesamiento;
 
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenItem;
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenItem.CampoItem;
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenItem.DatoItem;
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenRequest;
-import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.LecturaImagenResponse;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem.CampoItem;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem.DatoItem;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.LecturaImagenResponse.CampoResponse;
-import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.PedidoLecturaRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.LecturaImagenResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.PedidoLecturaRequest.CampoPedido;
+import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.PedidoLecturaRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

@@ -1,8 +1,5 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.dto.reporte.ExportarReporteResponse;
-import com.ensambla.backend.domain.dto.reporte.GenerarReporteRequest;
-import com.ensambla.backend.domain.dto.reporte.GenerarReporteResponse;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.registro.TotalesRegistros;
 import com.ensambla.backend.domain.model.reporte.ReporteRegistros;
@@ -12,6 +9,9 @@ import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.reporte.ReporteService;
+import com.ensambla.backend.domain.useCase.reporte.GenerarReporteRequest;
+import com.ensambla.backend.domain.useCase.reporte.exportarReporte.ExportarReporteResponse;
+import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporteResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -57,9 +57,9 @@ class ReporteUseCaseConfigTest {
     @Test
     @DisplayName("El wiring de generar conecta los servicios y el mapper")
     void generarReporteUseCaseShouldWireCollaborators() {
-        GenerarReporteResponse response = config.generarReporteUseCase(
+        GenerarReporteResponse response = config.generarReporte(
                         negocioService, mock(ControlPlanService.class), Clock.systemUTC(),
-                        bloqueService, campoService, reporteService, config.generarReporteMapper())
+                        bloqueService, campoService, reporteService)
                 .execute(new GenerarReporteRequest(USUARIO_ID, BLOQUE_ID, null, null, null, null, null));
 
         assertThat(response.filas()).isEmpty();
@@ -71,9 +71,9 @@ class ReporteUseCaseConfigTest {
     void exportarReporteUseCaseShouldWireCollaborators() {
         ExportadorReportePort exportador = tabla -> new byte[] {1, 2};
 
-        ExportarReporteResponse response = config.exportarReporteUseCase(
-                        negocioService, mock(ControlPlanService.class), bloqueService, campoService, reporteService, exportador,
-                        config.exportarReporteMapper(), Clock.systemUTC())
+        ExportarReporteResponse response = config.exportarReporte(
+                        negocioService, mock(ControlPlanService.class), bloqueService, campoService, reporteService,
+                        exportador, Clock.systemUTC())
                 .execute(new GenerarReporteRequest(USUARIO_ID, BLOQUE_ID, null, null, null, null, null));
 
         assertThat(response.contenido()).containsExactly(1, 2);

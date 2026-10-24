@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.plantilla.ListarPlantillasResponse;
-import com.ensambla.backend.domain.dto.plantilla.PlantillaItem;
-import com.ensambla.backend.domain.useCase.plantilla.ListarPlantillasUseCase;
+import com.ensambla.backend.domain.useCase.plantilla.listarPlantillas.ListarPlantillas;
+import com.ensambla.backend.domain.useCase.plantilla.listarPlantillas.ListarPlantillasResponse;
+import com.ensambla.backend.domain.useCase.plantilla.listarPlantillas.PlantillaItem;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.plantilla.PlantillaPresentationMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,22 +26,22 @@ class PlantillaControllerTest {
 
     private static final UUID PLANTILLA_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
 
-    private ListarPlantillasUseCase listarPlantillasUseCase;
+    private ListarPlantillas listarPlantillas;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        listarPlantillasUseCase = mock(ListarPlantillasUseCase.class);
+        listarPlantillas = mock(ListarPlantillas.class);
         mockMvc = MockMvcBuilders.standaloneSetup(
-                        new PlantillaController(listarPlantillasUseCase, new PlantillaPresentationMapper()))
+                        new PlantillaController(listarPlantillas, new PlantillaPresentationMapper()))
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
     @Test
     @DisplayName("Lista las plantillas activas con su estructura")
     void listarShouldReturnPlantillas() throws Exception {
-        when(listarPlantillasUseCase.execute()).thenReturn(new ListarPlantillasResponse(List.of(
+        when(listarPlantillas.execute()).thenReturn(new ListarPlantillasResponse(List.of(
                 new PlantillaItem(PLANTILLA_ID, "Inventario", "Controlá tu stock", "box",
                         Map.of("bloques", List.of())))));
 
@@ -57,7 +57,7 @@ class PlantillaControllerTest {
     @Test
     @DisplayName("Devuelve una lista vacía cuando no hay plantillas")
     void listarShouldReturnEmptyArrayWhenThereAreNoPlantillas() throws Exception {
-        when(listarPlantillasUseCase.execute()).thenReturn(new ListarPlantillasResponse(List.of()));
+        when(listarPlantillas.execute()).thenReturn(new ListarPlantillasResponse(List.of()));
 
         ResultActions result = mockMvc.perform(get("/api/plantillas"));
 

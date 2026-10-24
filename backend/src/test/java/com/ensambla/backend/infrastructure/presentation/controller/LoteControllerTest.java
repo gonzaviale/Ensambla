@@ -1,16 +1,16 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.lote.FotoArchivoResponse;
-import com.ensambla.backend.domain.dto.lote.LoteItem;
-import com.ensambla.backend.domain.dto.lote.LoteItem.FotoItem;
-import com.ensambla.backend.domain.dto.lote.ObtenerFotoLoteRequest;
-import com.ensambla.backend.domain.dto.lote.ObtenerLoteRequest;
-import com.ensambla.backend.domain.dto.lote.SubirLoteRequest;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.useCase.lote.ObtenerFotoLoteUseCase;
-import com.ensambla.backend.domain.useCase.lote.ObtenerLoteUseCase;
-import com.ensambla.backend.domain.useCase.lote.SubirLoteUseCase;
+import com.ensambla.backend.domain.useCase.lote.FotoArchivoResponse;
+import com.ensambla.backend.domain.useCase.lote.LoteItem.FotoItem;
+import com.ensambla.backend.domain.useCase.lote.LoteItem;
+import com.ensambla.backend.domain.useCase.lote.obtenerFotoLote.ObtenerFotoLote;
+import com.ensambla.backend.domain.useCase.lote.obtenerFotoLote.ObtenerFotoLoteRequest;
+import com.ensambla.backend.domain.useCase.lote.obtenerLote.ObtenerLote;
+import com.ensambla.backend.domain.useCase.lote.obtenerLote.ObtenerLoteRequest;
+import com.ensambla.backend.domain.useCase.lote.subirLote.SubirLote;
+import com.ensambla.backend.domain.useCase.lote.subirLote.SubirLoteRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.lote.LotePresentationMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,9 +48,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class LoteControllerTest {
 
-    private final SubirLoteUseCase subirLoteUseCase = mock(SubirLoteUseCase.class);
-    private final ObtenerLoteUseCase obtenerLoteUseCase = mock(ObtenerLoteUseCase.class);
-    private final ObtenerFotoLoteUseCase obtenerFotoLoteUseCase = mock(ObtenerFotoLoteUseCase.class);
+    private final SubirLote subirLote = mock(SubirLote.class);
+    private final ObtenerLote obtenerLote = mock(ObtenerLote.class);
+    private final ObtenerFotoLote obtenerFotoLote = mock(ObtenerFotoLote.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
 
@@ -59,9 +59,9 @@ class LoteControllerTest {
     @BeforeEach
     void setUp() {
         LoteController controller = new LoteController(
-                subirLoteUseCase,
-                obtenerLoteUseCase,
-                obtenerFotoLoteUseCase,
+                subirLote,
+                obtenerLote,
+                obtenerFotoLote,
                 new LotePresentationMapper());
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
@@ -125,7 +125,7 @@ class LoteControllerTest {
 
         result.andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Falta el parámetro: fotos"));
-        verifyNoInteractions(subirLoteUseCase);
+        verifyNoInteractions(subirLote);
     }
 
     @Test
@@ -148,7 +148,7 @@ class LoteControllerTest {
 
         result.andExpect(status().isOk())
                 .andExpect(jsonPath("$.fotos[0].id").value(FOTO_ID.toString()));
-        verify(obtenerLoteUseCase).execute(new ObtenerLoteRequest(USUARIO_ID, LOTE_ID));
+        verify(obtenerLote).execute(new ObtenerLoteRequest(USUARIO_ID, LOTE_ID));
     }
 
     @Test
@@ -167,13 +167,13 @@ class LoteControllerTest {
         ResultActions result = mockMvc.perform(get("/api/lotes/id-invalido").principal(principal));
 
         result.andExpect(status().isBadRequest());
-        verifyNoInteractions(obtenerLoteUseCase);
+        verifyNoInteractions(obtenerLote);
     }
 
     @Test
     @DisplayName("GET de una foto devuelve sus bytes con su tipo y caché privada")
     void fotoShouldReturnBytesWithTypeAndPrivateCache() throws Exception {
-        when(obtenerFotoLoteUseCase.execute(any())).thenReturn(new FotoArchivoResponse(JPEG, "image/jpeg"));
+        when(obtenerFotoLote.execute(any())).thenReturn(new FotoArchivoResponse(JPEG, "image/jpeg"));
 
         ResultActions result = mockMvc.perform(
                 get("/api/lotes/{id}/fotos/{fotoId}", LOTE_ID, FOTO_ID).principal(principal));
@@ -182,13 +182,13 @@ class LoteControllerTest {
                 .andExpect(content().contentType("image/jpeg"))
                 .andExpect(content().bytes(JPEG))
                 .andExpect(header().string("Cache-Control", "max-age=300, private"));
-        verify(obtenerFotoLoteUseCase).execute(new ObtenerFotoLoteRequest(USUARIO_ID, LOTE_ID, FOTO_ID));
+        verify(obtenerFotoLote).execute(new ObtenerFotoLoteRequest(USUARIO_ID, LOTE_ID, FOTO_ID));
     }
 
     @Test
     @DisplayName("GET de una foto de otro negocio devuelve 404")
     void fotoShouldReturn404WhenFotoIsForeign() throws Exception {
-        when(obtenerFotoLoteUseCase.execute(any())).thenThrow(new ResourceNotFoundException("Foto no encontrada"));
+        when(obtenerFotoLote.execute(any())).thenThrow(new ResourceNotFoundException("Foto no encontrada"));
 
         ResultActions result = mockMvc.perform(
                 get("/api/lotes/{id}/fotos/{fotoId}", LOTE_ID, FOTO_ID).principal(principal));
@@ -198,20 +198,20 @@ class LoteControllerTest {
 
     // --- arrange ---
     private void givenLoteSubido() {
-        when(subirLoteUseCase.execute(any())).thenReturn(lote());
+        when(subirLote.execute(any())).thenReturn(lote());
     }
 
     private void givenFotoInvalida() {
-        when(subirLoteUseCase.execute(any())).thenThrow(
+        when(subirLote.execute(any())).thenThrow(
                 new BusinessRuleException("La foto 1 no es una imagen JPEG, PNG, WEBP o HEIC ni un PDF"));
     }
 
     private void givenLote() {
-        when(obtenerLoteUseCase.execute(any())).thenReturn(lote());
+        when(obtenerLote.execute(any())).thenReturn(lote());
     }
 
     private void givenLoteAjeno() {
-        when(obtenerLoteUseCase.execute(any())).thenThrow(new ResourceNotFoundException("Lote no encontrado"));
+        when(obtenerLote.execute(any())).thenThrow(new ResourceNotFoundException("Lote no encontrado"));
     }
 
     // --- act ---
@@ -233,7 +233,7 @@ class LoteControllerTest {
     // --- assert ---
     private SubirLoteRequest thenSubirRequest() {
         ArgumentCaptor<SubirLoteRequest> request = ArgumentCaptor.forClass(SubirLoteRequest.class);
-        verify(subirLoteUseCase).execute(request.capture());
+        verify(subirLote).execute(request.capture());
         return request.getValue();
     }
 

@@ -1,7 +1,7 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.pago;
 
-import com.ensambla.backend.domain.dto.pago.ConsultarRenovacionResponse;
-import com.ensambla.backend.domain.dto.pago.RenovacionItem;
+import com.ensambla.backend.domain.useCase.pago.ConsultarRenovacionResponse;
+import com.ensambla.backend.domain.useCase.pago.RenovacionItem;
 import com.ensambla.backend.infrastructure.presentation.dto.pago.RenovacionResponse;
 import org.springframework.stereotype.Component;
 

@@ -1,19 +1,19 @@
 package com.ensambla.backend.infrastructure.repository;
 
-import com.ensambla.backend.domain.dto.sami.ColumnaSamiItem;
-import com.ensambla.backend.domain.dto.sami.ConversarConSamiRequest;
-import com.ensambla.backend.domain.dto.sami.ConversarConSamiResponse;
-import com.ensambla.backend.domain.dto.sami.ConversarEnTallerRequest;
-import com.ensambla.backend.domain.dto.sami.ConversarEnTallerResponse;
-import com.ensambla.backend.domain.dto.sami.CrearProyectoDesdeSamiRequest;
-import com.ensambla.backend.domain.dto.sami.EstadoTallerItem;
-import com.ensambla.backend.domain.dto.sami.MensajeTallerItem;
-import com.ensambla.backend.domain.dto.sami.RespuestaSamiItem;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.service.plan.SuscripcionService;
-import com.ensambla.backend.domain.useCase.sami.ConversarConSamiUseCase;
-import com.ensambla.backend.domain.useCase.sami.ConversarEnTallerUseCase;
-import com.ensambla.backend.domain.useCase.sami.CrearProyectoDesdeSamiUseCase;
+import com.ensambla.backend.domain.useCase.sami.ColumnaSamiItem;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSami;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiRequest;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiResponse;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.RespuestaSamiItem;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTaller;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTallerRequest;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTallerResponse;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.EstadoTallerItem;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.MensajeTallerItem;
+import com.ensambla.backend.domain.useCase.sami.crearProyectoDesdeSami.CrearProyectoDesdeSami;
+import com.ensambla.backend.domain.useCase.sami.crearProyectoDesdeSami.CrearProyectoDesdeSamiRequest;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,13 +38,13 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     private SuscripcionService suscripcionService;
 
     @Autowired
-    private ConversarConSamiUseCase conversarConSamiUseCase;
+    private ConversarConSami conversarConSami;
 
     @Autowired
-    private CrearProyectoDesdeSamiUseCase crearProyectoDesdeSamiUseCase;
+    private CrearProyectoDesdeSami crearProyectoDesdeSami;
 
     @Autowired
-    private ConversarEnTallerUseCase conversarEnTallerUseCase;
+    private ConversarEnTaller conversarEnTaller;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -72,7 +72,7 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("«Vendo velas y anoto quién me debe» propone la plantilla Ventas de la base con saldo pendiente")
     void conversarShouldProposeSeededVentasTemplate() {
-        ConversarConSamiResponse response = conversarConSamiUseCase.execute(
+        ConversarConSamiResponse response = conversarConSami.execute(
                 new ConversarConSamiRequest(usuarioId, "Vendo velas y anoto quién me debe", List.of()));
 
         assertThat(response.tipo()).isEqualTo("PROPUESTA");
@@ -93,9 +93,9 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     void conversarShouldAskThenProposeAfterAnswer() {
         String texto = "quiero un stock y llevar los pedidos";
 
-        ConversarConSamiResponse pregunta = conversarConSamiUseCase.execute(
+        ConversarConSamiResponse pregunta = conversarConSami.execute(
                 new ConversarConSamiRequest(usuarioId, texto, List.of()));
-        ConversarConSamiResponse propuesta = conversarConSamiUseCase.execute(new ConversarConSamiRequest(
+        ConversarConSamiResponse propuesta = conversarConSami.execute(new ConversarConSamiRequest(
                 usuarioId, texto, List.of(new RespuestaSamiItem(pregunta.pregunta().id(), "pedidos"))));
 
         assertThat(pregunta.tipo()).isEqualTo("PREGUNTA");
@@ -106,7 +106,7 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Con «otra cosa» consulta a la IA, que reserva y registra el consumo del negocio")
     void conversarShouldFallBackToAiAndRecordConsumption() {
-        ConversarConSamiResponse response = conversarConSamiUseCase.execute(new ConversarConSamiRequest(
+        ConversarConSamiResponse response = conversarConSami.execute(new ConversarConSamiRequest(
                 usuarioId, "quiero ordenar mi negocio", List.of(new RespuestaSamiItem("principal", "otra"))));
 
         assertThat(response.propuesta().origen()).isEqualTo("IA");
@@ -118,7 +118,7 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Un turno del taller pasa por la IA simulada, valida las herramientas y registra la consulta")
     void tallerShouldRunATurnAndRecordTheConsultation() {
-        ConversarEnTallerResponse response = conversarEnTallerUseCase.execute(new ConversarEnTallerRequest(
+        ConversarEnTallerResponse response = conversarEnTaller.execute(new ConversarEnTallerRequest(
                 usuarioId, "sumá los gastos",
                 new EstadoTallerItem("Mi almacén", "mosaic", List.of()),
                 List.of(new MensajeTallerItem("sami", "Hola")), null));
@@ -133,7 +133,7 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Un turno del taller que no se entiende devuelve una botonera para elegir")
     void tallerShouldAskWithOptionsWhenItDoesNotUnderstand() {
-        ConversarEnTallerResponse response = conversarEnTallerUseCase.execute(new ConversarEnTallerRequest(
+        ConversarEnTallerResponse response = conversarEnTaller.execute(new ConversarEnTallerRequest(
                 usuarioId, "ayuda", new EstadoTallerItem("", "mosaic", List.of()), List.of(), null));
 
         assertThat(response.preguntas().getFirst().opciones()).hasSizeBetween(2, 6);
@@ -143,7 +143,7 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Crea el proyecto con los bloques de la plantilla más las columnas aceptadas")
     void crearProyectoShouldPersistTemplateAndExtraColumns() {
-        var proyecto = crearProyectoDesdeSamiUseCase.execute(new CrearProyectoDesdeSamiRequest(
+        var proyecto = crearProyectoDesdeSami.execute(new CrearProyectoDesdeSamiRequest(
                 usuarioId, VENTAS_ID, "Velas de Ana", List.of(
                 new ColumnaSamiItem("Saldo pendiente", "NUMERO", null),
                 new ColumnaSamiItem("Forma de pago", "OPCION", List.of("Efectivo", "Tarjeta")))));
@@ -160,7 +160,7 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Si una columna falla no queda ningún proyecto del negocio")
     void crearProyectoShouldCreateNothingWhenAColumnFails() {
-        assertThatThrownBy(() -> crearProyectoDesdeSamiUseCase.execute(new CrearProyectoDesdeSamiRequest(
+        assertThatThrownBy(() -> crearProyectoDesdeSami.execute(new CrearProyectoDesdeSamiRequest(
                 usuarioId, VENTAS_ID, null, List.of(
                 new ColumnaSamiItem("Saldo pendiente", "NUMERO", null),
                 new ColumnaSamiItem(" ", "TEXTO", null)))))

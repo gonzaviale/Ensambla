@@ -1,19 +1,15 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.mapper.bloque.BloqueItemMapper;
-import com.ensambla.backend.domain.mapper.bloque.CrearBloqueMapper;
-import com.ensambla.backend.domain.mapper.bloque.ListarBloquesMapper;
-import com.ensambla.backend.domain.mapper.bloque.RenombrarBloqueMapper;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
-import com.ensambla.backend.domain.useCase.bloque.CrearBloqueUseCase;
-import com.ensambla.backend.domain.useCase.bloque.EliminarBloqueUseCase;
-import com.ensambla.backend.domain.useCase.bloque.ListarBloquesUseCase;
-import com.ensambla.backend.domain.useCase.bloque.RenombrarBloqueUseCase;
+import com.ensambla.backend.domain.useCase.bloque.crearBloque.CrearBloque;
+import com.ensambla.backend.domain.useCase.bloque.eliminarBloque.EliminarBloque;
+import com.ensambla.backend.domain.useCase.bloque.listarBloques.ListarBloques;
+import com.ensambla.backend.domain.useCase.bloque.renombrarBloque.RenombrarBloque;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -23,71 +19,45 @@ import java.time.Clock;
 public class BloqueUseCaseConfig {
 
     @Bean
-    public BloqueItemMapper bloqueItemMapper() {
-        return new BloqueItemMapper();
-    }
-
-    @Bean
-    public ListarBloquesMapper listarBloquesMapper(BloqueItemMapper bloqueItemMapper) {
-        return new ListarBloquesMapper(bloqueItemMapper);
-    }
-
-    @Bean
-    public ListarBloquesUseCase listarBloquesUseCase(
+    public ListarBloques listarBloques(
             NegocioService negocioService,
-            ProyectoService proyectoService,
-            ListarBloquesMapper listarBloquesMapper) {
-        return new ListarBloquesUseCase(
+            ProyectoService proyectoService) {
+        return new ListarBloques(
                 negocioService,
-                proyectoService,
-                listarBloquesMapper);
+                proyectoService);
     }
 
     @Bean
-    public CrearBloqueMapper crearBloqueMapper(BloqueItemMapper bloqueItemMapper) {
-        return new CrearBloqueMapper(bloqueItemMapper);
-    }
-
-    @Bean
-    public CrearBloqueUseCase crearBloqueUseCase(
+    public CrearBloque crearBloque(
             NegocioService negocioService,
             ProyectoService proyectoService,
             BloqueService bloqueService,
-            CrearBloqueMapper crearBloqueMapper,
             Clock clock) {
-        return new CrearBloqueUseCase(
+        return new CrearBloque(
                 negocioService,
                 proyectoService,
                 bloqueService,
-                crearBloqueMapper,
                 clock);
     }
 
     @Bean
-    public RenombrarBloqueMapper renombrarBloqueMapper(BloqueItemMapper bloqueItemMapper) {
-        return new RenombrarBloqueMapper(bloqueItemMapper);
-    }
-
-    @Bean
-    public RenombrarBloqueUseCase renombrarBloqueUseCase(
+    public RenombrarBloque renombrarBloque(
             NegocioService negocioService,
             BloqueService bloqueService,
             ProyectoService proyectoService,
-            RenombrarBloqueMapper renombrarBloqueMapper,
             Clock clock) {
-        return new RenombrarBloqueUseCase(
+        return new RenombrarBloque(
                 negocioService,
                 bloqueService,
                 proyectoService,
-                renombrarBloqueMapper,
                 clock);
     }
 
     @Bean
-    public EliminarBloqueUseCase eliminarBloqueUseCase(
+    public EliminarBloque eliminarBloque(
             NegocioService negocioService,
             BloqueService bloqueService) {
-        return new EliminarBloqueUseCase(
+        return new EliminarBloque(
                 negocioService,
                 bloqueService);
     }

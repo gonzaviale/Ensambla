@@ -1,10 +1,10 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.useCase.pago.ActualizarRenovacionUseCase;
-import com.ensambla.backend.domain.useCase.pago.CancelarRenovacionUseCase;
-import com.ensambla.backend.domain.useCase.pago.ConsultarRenovacionUseCase;
-import com.ensambla.backend.domain.useCase.pago.ContratarPremiumUseCase;
-import com.ensambla.backend.domain.useCase.pago.RecibirNotificacionPagoUseCase;
+import com.ensambla.backend.domain.useCase.pago.actualizarRenovacion.ActualizarRenovacion;
+import com.ensambla.backend.domain.useCase.pago.cancelarRenovacion.CancelarRenovacion;
+import com.ensambla.backend.domain.useCase.pago.consultarRenovacion.ConsultarRenovacion;
+import com.ensambla.backend.domain.useCase.pago.contratarPremium.ContratarPremium;
+import com.ensambla.backend.domain.useCase.pago.recibirNotificacionPago.RecibirNotificacionPago;
 import com.ensambla.backend.infrastructure.presentation.dto.pago.RenovacionResponse;
 import com.ensambla.backend.infrastructure.presentation.mapper.pago.PagoPresentationMapper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,15 +26,15 @@ import java.util.UUID;
 @Tag(name = "Pagos Premium")
 public class PagoController {
 
-    private final ConsultarRenovacionUseCase consultarRenovacionUseCase;
+    private final ConsultarRenovacion consultarRenovacion;
 
-    private final ContratarPremiumUseCase contratarPremiumUseCase;
+    private final ContratarPremium contratarPremium;
 
-    private final CancelarRenovacionUseCase cancelarRenovacionUseCase;
+    private final CancelarRenovacion cancelarRenovacion;
 
-    private final ActualizarRenovacionUseCase actualizarRenovacionUseCase;
+    private final ActualizarRenovacion actualizarRenovacion;
 
-    private final RecibirNotificacionPagoUseCase recibirNotificacionPagoUseCase;
+    private final RecibirNotificacionPago recibirNotificacionPago;
 
     private final PagoPresentationMapper pagoPresentationMapper;
 
@@ -42,27 +42,27 @@ public class PagoController {
     @Operation(summary = "Consultar la renovación del negocio de la sesión")
     public ResponseEntity<RenovacionResponse> consultar(Authentication authentication) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(pagoPresentationMapper.toResponse(
-                consultarRenovacionUseCase.execute(UUID.fromString(authentication.getName()))));
+                consultarRenovacion.execute(UUID.fromString(authentication.getName()))));
     }
 
     @PostMapping("/api/planes/renovacion")
     @Operation(summary = "Preparar o recuperar el checkout de renovación automática")
     public ResponseEntity<RenovacionResponse> contratar(Authentication authentication) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(pagoPresentationMapper.toResponse(
-                contratarPremiumUseCase.execute(UUID.fromString(authentication.getName()))));
+                contratarPremium.execute(UUID.fromString(authentication.getName()))));
     }
 
     @PostMapping("/api/planes/renovacion/cancelar")
     @Operation(summary = "Cancelar la renovación conservando el tiempo pagado y de prueba")
     public ResponseEntity<RenovacionResponse> cancelar(Authentication authentication) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(pagoPresentationMapper.toResponse(
-                cancelarRenovacionUseCase.execute(UUID.fromString(authentication.getName()))));
+                cancelarRenovacion.execute(UUID.fromString(authentication.getName()))));
     }
 
     @PostMapping("/api/planes/renovacion/actualizar")
     @Operation(summary = "Conciliar la renovación con Mercado Pago sin conceder acceso desde la redirección")
     public ResponseEntity<Void> actualizar(Authentication authentication) {
-        actualizarRenovacionUseCase.execute(UUID.fromString(authentication.getName()));
+        actualizarRenovacion.execute(UUID.fromString(authentication.getName()));
         return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
     }
 
@@ -71,7 +71,7 @@ public class PagoController {
     public ResponseEntity<Void> notificar(@RequestParam String type, @RequestParam("data.id") String recursoId,
             @RequestHeader(value = "x-signature", required = false) String firma,
             @RequestHeader(value = "x-request-id", required = false) String solicitudId) {
-        recibirNotificacionPagoUseCase.execute(type, recursoId, firma, solicitudId);
+        recibirNotificacionPago.execute(type, recursoId, firma, solicitudId);
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).build();
     }
 }

@@ -1,10 +1,10 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.campo;
 
-import com.ensambla.backend.domain.dto.campo.CampoItem;
-import com.ensambla.backend.domain.dto.campo.CrearCampoRequest;
-import com.ensambla.backend.domain.dto.campo.EditarCampoRequest;
-import com.ensambla.backend.domain.dto.campo.EliminarCampoRequest;
-import com.ensambla.backend.domain.dto.campo.ListarCamposRequest;
+import com.ensambla.backend.domain.useCase.campo.CampoItem;
+import com.ensambla.backend.domain.useCase.campo.crearCampo.CrearCampoRequest;
+import com.ensambla.backend.domain.useCase.campo.editarCampo.EditarCampoRequest;
+import com.ensambla.backend.domain.useCase.campo.eliminarCampo.EliminarCampoRequest;
+import com.ensambla.backend.domain.useCase.campo.listarCampos.ListarCamposRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.campo.CampoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.campo.CampoWebRequest;
 import org.springframework.stereotype.Component;

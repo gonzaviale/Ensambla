@@ -1,11 +1,11 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.inventario;
 
-import com.ensambla.backend.domain.dto.inventario.ConsultarStockRequest;
-import com.ensambla.backend.domain.dto.inventario.ConsultarStockResponse;
-import com.ensambla.backend.domain.dto.inventario.ListarMovimientosRequest;
-import com.ensambla.backend.domain.dto.inventario.MovimientoItem;
-import com.ensambla.backend.domain.dto.inventario.RegistrarMovimientoRequest;
-import com.ensambla.backend.domain.dto.inventario.RegistrarMovimientoResponse;
+import com.ensambla.backend.domain.useCase.inventario.MovimientoItem;
+import com.ensambla.backend.domain.useCase.inventario.consultarStock.ConsultarStockRequest;
+import com.ensambla.backend.domain.useCase.inventario.consultarStock.ConsultarStockResponse;
+import com.ensambla.backend.domain.useCase.inventario.listarMovimientos.ListarMovimientosRequest;
+import com.ensambla.backend.domain.useCase.inventario.registrarMovimiento.RegistrarMovimientoRequest;
+import com.ensambla.backend.domain.useCase.inventario.registrarMovimiento.RegistrarMovimientoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.inventario.MovimientoRegistradoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.inventario.MovimientoRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.inventario.MovimientoResponse;

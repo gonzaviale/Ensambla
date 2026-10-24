@@ -1,7 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
-import com.ensambla.backend.domain.model.usuario.Usuario;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
+import com.ensambla.backend.domain.model.usuario.Usuario;
 import com.ensambla.backend.infrastructure.repository.entity.UsuarioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IUsuarioJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.UsuarioRepositoryMapper;

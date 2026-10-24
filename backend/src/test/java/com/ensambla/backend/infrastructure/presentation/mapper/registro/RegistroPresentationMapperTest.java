@@ -1,20 +1,19 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.registro;
 
-import com.ensambla.backend.domain.dto.registro.TotalesItem;
-import java.math.BigDecimal;
-import com.ensambla.backend.domain.dto.registro.CrearRegistroRequest;
-import com.ensambla.backend.domain.dto.registro.CrearRegistroResponse;
-import com.ensambla.backend.domain.dto.registro.EditarRegistroRequest;
-import com.ensambla.backend.domain.dto.registro.EditarRegistroResponse;
-import com.ensambla.backend.domain.dto.registro.EliminarRegistroRequest;
-import com.ensambla.backend.domain.dto.registro.ListarReferenciasRequest;
-import com.ensambla.backend.domain.dto.registro.ListarRegistrosRequest;
-import com.ensambla.backend.domain.dto.registro.ListarRegistrosResponse;
-import com.ensambla.backend.domain.dto.registro.ObtenerFotoOrigenRequest;
-import com.ensambla.backend.domain.dto.registro.ObtenerRegistroRequest;
-import com.ensambla.backend.domain.dto.registro.ObtenerRegistroResponse;
-import com.ensambla.backend.domain.dto.registro.ReferenciaItem;
-import com.ensambla.backend.domain.dto.registro.RegistroItem;
+import com.ensambla.backend.domain.useCase.registro.RegistroItem;
+import com.ensambla.backend.domain.useCase.registro.TotalesItem;
+import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistroRequest;
+import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistroResponse;
+import com.ensambla.backend.domain.useCase.registro.editarRegistro.EditarRegistroRequest;
+import com.ensambla.backend.domain.useCase.registro.editarRegistro.EditarRegistroResponse;
+import com.ensambla.backend.domain.useCase.registro.eliminarRegistro.EliminarRegistroRequest;
+import com.ensambla.backend.domain.useCase.registro.listarReferencias.ListarReferenciasRequest;
+import com.ensambla.backend.domain.useCase.registro.listarReferencias.ReferenciaItem;
+import com.ensambla.backend.domain.useCase.registro.listarRegistros.ListarRegistrosRequest;
+import com.ensambla.backend.domain.useCase.registro.listarRegistros.ListarRegistrosResponse;
+import com.ensambla.backend.domain.useCase.registro.obtenerFotoOrigen.ObtenerFotoOrigenRequest;
+import com.ensambla.backend.domain.useCase.registro.obtenerRegistro.ObtenerRegistroRequest;
+import com.ensambla.backend.domain.useCase.registro.obtenerRegistro.ObtenerRegistroResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.PaginaRegistrosResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.ReferenciaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.RegistroRequest;
@@ -22,13 +21,14 @@ import com.ensambla.backend.infrastructure.presentation.dto.registro.RegistroRes
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 
 class RegistroPresentationMapperTest {
 

@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.useCase.sami.ConversarConSamiUseCase;
-import com.ensambla.backend.domain.useCase.sami.ConversarEnTallerUseCase;
-import com.ensambla.backend.domain.useCase.sami.CrearProyectoDesdeSamiUseCase;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSami;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTaller;
+import com.ensambla.backend.domain.useCase.sami.crearProyectoDesdeSami.CrearProyectoDesdeSami;
 import com.ensambla.backend.infrastructure.presentation.dto.proyecto.ProyectoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.sami.ConversarSamiRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.sami.ConversarSamiResponse;
@@ -32,9 +32,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class SamiController {
 
-    private final ConversarConSamiUseCase conversarConSamiUseCase;
-    private final CrearProyectoDesdeSamiUseCase crearProyectoDesdeSamiUseCase;
-    private final ConversarEnTallerUseCase conversarEnTallerUseCase;
+    private final ConversarConSami conversarConSami;
+    private final CrearProyectoDesdeSami crearProyectoDesdeSami;
+    private final ConversarEnTaller conversarEnTaller;
     private final SamiPresentationMapper samiPresentationMapper;
     private final ProyectoPresentationMapper proyectoPresentationMapper;
     private final TallerPresentationMapper tallerPresentationMapper;
@@ -43,7 +43,7 @@ public class SamiController {
     @Operation(summary = "Describir el negocio y recibir la siguiente pregunta de Sami o la estructura propuesta")
     public ResponseEntity<ConversarSamiResponse> conversar(Authentication authentication,
                                                            @Valid @RequestBody ConversarSamiRequest body) {
-        ConversarSamiResponse response = samiPresentationMapper.toResponse(conversarConSamiUseCase.execute(
+        ConversarSamiResponse response = samiPresentationMapper.toResponse(conversarConSami.execute(
                 samiPresentationMapper.toRequest(UUID.fromString(authentication.getName()), body)));
         return ResponseEntity.ok(response);
     }
@@ -52,7 +52,7 @@ public class SamiController {
     @Operation(summary = "Un turno de la charla con Sami en el taller: respuesta, acciones a aplicar y opciones")
     public ResponseEntity<ConversarTallerResponse> taller(Authentication authentication,
                                                           @Valid @RequestBody ConversarTallerRequest body) {
-        ConversarTallerResponse response = tallerPresentationMapper.toResponse(conversarEnTallerUseCase.execute(
+        ConversarTallerResponse response = tallerPresentationMapper.toResponse(conversarEnTaller.execute(
                 tallerPresentationMapper.toRequest(UUID.fromString(authentication.getName()), body)));
         return ResponseEntity.ok(response);
     }
@@ -61,7 +61,7 @@ public class SamiController {
     @Operation(summary = "Crear el proyecto con la plantilla y las columnas que la persona confirmó de la propuesta")
     public ResponseEntity<ProyectoResponse> crearProyecto(Authentication authentication,
                                                           @Valid @RequestBody CrearProyectoSamiRequest body) {
-        ProyectoResponse response = proyectoPresentationMapper.toResponse(crearProyectoDesdeSamiUseCase.execute(
+        ProyectoResponse response = proyectoPresentationMapper.toResponse(crearProyectoDesdeSami.execute(
                 samiPresentationMapper.toCrearProyectoRequest(UUID.fromString(authentication.getName()), body)));
         return ResponseEntity.created(URI.create("/api/proyectos/" + response.id())).body(response);
     }

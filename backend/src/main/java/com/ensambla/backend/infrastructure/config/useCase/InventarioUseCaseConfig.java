@@ -1,9 +1,5 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.mapper.inventario.ConsultarStockMapper;
-import com.ensambla.backend.domain.mapper.inventario.ListarMovimientosMapper;
-import com.ensambla.backend.domain.mapper.inventario.MovimientoItemMapper;
-import com.ensambla.backend.domain.mapper.inventario.RegistrarMovimientoMapper;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
@@ -11,9 +7,9 @@ import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.inventario.InventarioService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
-import com.ensambla.backend.domain.useCase.inventario.ConsultarStockUseCase;
-import com.ensambla.backend.domain.useCase.inventario.ListarMovimientosUseCase;
-import com.ensambla.backend.domain.useCase.inventario.RegistrarMovimientoUseCase;
+import com.ensambla.backend.domain.useCase.inventario.consultarStock.ConsultarStock;
+import com.ensambla.backend.domain.useCase.inventario.listarMovimientos.ListarMovimientos;
+import com.ensambla.backend.domain.useCase.inventario.registrarMovimiento.RegistrarMovimiento;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -23,57 +19,34 @@ import java.time.Clock;
 public class InventarioUseCaseConfig {
 
     @Bean
-    public MovimientoItemMapper movimientoItemMapper() {
-        return new MovimientoItemMapper();
+    public RegistrarMovimiento registrarMovimiento(NegocioService negocioService,
+                                                   BloqueService bloqueService,
+                                                   CampoService campoService,
+                                                   RegistroDatosService registroDatosService,
+                                                   InventarioService inventarioService,
+                                                   Clock clock) {
+        return new RegistrarMovimiento(negocioService, bloqueService, campoService, registroDatosService,
+                inventarioService, clock);
     }
 
     @Bean
-    public RegistrarMovimientoMapper registrarMovimientoMapper(MovimientoItemMapper movimientoItemMapper) {
-        return new RegistrarMovimientoMapper(movimientoItemMapper);
+    public ListarMovimientos listarMovimientos(NegocioService negocioService,
+                                               BloqueService bloqueService,
+                                               CampoService campoService,
+                                               RegistroDatosService registroDatosService,
+                                               InventarioService inventarioService) {
+        return new ListarMovimientos(negocioService, bloqueService, campoService, registroDatosService,
+                inventarioService);
     }
 
     @Bean
-    public ListarMovimientosMapper listarMovimientosMapper(MovimientoItemMapper movimientoItemMapper) {
-        return new ListarMovimientosMapper(movimientoItemMapper);
-    }
-
-    @Bean
-    public ConsultarStockMapper consultarStockMapper() {
-        return new ConsultarStockMapper();
-    }
-
-    @Bean
-    public RegistrarMovimientoUseCase registrarMovimientoUseCase(NegocioService negocioService,
-                                                                 BloqueService bloqueService,
-                                                                 CampoService campoService,
-                                                                 RegistroDatosService registroDatosService,
-                                                                 InventarioService inventarioService,
-                                                                 RegistrarMovimientoMapper registrarMovimientoMapper,
-                                                                 Clock clock) {
-        return new RegistrarMovimientoUseCase(negocioService, bloqueService, campoService, registroDatosService,
-                inventarioService, registrarMovimientoMapper, clock);
-    }
-
-    @Bean
-    public ListarMovimientosUseCase listarMovimientosUseCase(NegocioService negocioService,
-                                                             BloqueService bloqueService,
-                                                             CampoService campoService,
-                                                             RegistroDatosService registroDatosService,
-                                                             InventarioService inventarioService,
-                                                             ListarMovimientosMapper listarMovimientosMapper) {
-        return new ListarMovimientosUseCase(negocioService, bloqueService, campoService, registroDatosService,
-                inventarioService, listarMovimientosMapper);
-    }
-
-    @Bean
-    public ConsultarStockUseCase consultarStockUseCase(NegocioService negocioService,
-                                                       BloqueService bloqueService,
-                                                       CampoService campoService,
-                                                       RegistroDatosService registroDatosService,
-                                                       InventarioService inventarioService,
-                                                       ConsultarStockMapper consultarStockMapper) {
-        return new ConsultarStockUseCase(negocioService, bloqueService, campoService, registroDatosService,
-                inventarioService, consultarStockMapper);
+    public ConsultarStock consultarStock(NegocioService negocioService,
+                                         BloqueService bloqueService,
+                                         CampoService campoService,
+                                         RegistroDatosService registroDatosService,
+                                         InventarioService inventarioService) {
+        return new ConsultarStock(negocioService, bloqueService, campoService, registroDatosService,
+                inventarioService);
     }
 
     @Bean

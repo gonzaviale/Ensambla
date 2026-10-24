@@ -1,23 +1,23 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.plan;
 
-import com.ensambla.backend.domain.dto.plan.IniciarPruebaRequest;
-import com.ensambla.backend.domain.dto.plan.PruebaPremiumResponse;
-import com.ensambla.backend.domain.mapper.plan.ConsultarPlanesMapper;
+import com.ensambla.backend.domain.useCase.plan.PruebaPremiumResponse;
+import com.ensambla.backend.domain.useCase.plan.consultarPlanes.ConsultarPlanesResponse;
+import com.ensambla.backend.domain.useCase.plan.iniciarPrueba.IniciarPruebaRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.plan.PruebaResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static com.ensambla.backend.support.ConsultaPlanesTestData.AHORA;
+import static com.ensambla.backend.support.ConsultaPlanesTestData.consulta;
 import static com.ensambla.backend.support.PlanTestData.INSTANTE;
 import static com.ensambla.backend.support.PlanTestData.NEGOCIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
-import static com.ensambla.backend.support.ConsultaPlanesTestData.AHORA;
-import static com.ensambla.backend.support.ConsultaPlanesTestData.consulta;
 class PlanPresentationMapperTest {
 
     @Test
     @DisplayName("El contrato HTTP de planes conserva todos los campos e historial")
     void toResponseShouldMapPlansWithHistory() {
-        var origen = new ConsultarPlanesMapper().toResponse(consulta(true), AHORA);
+        var origen = ConsultarPlanesResponse.de(consulta(true), AHORA);
 
         var result = planPresentationMapper.toResponse(origen);
 
@@ -58,7 +58,7 @@ class PlanPresentationMapperTest {
     @Test
     @DisplayName("El contrato HTTP no inventa una prueba si no existe historial")
     void toResponseShouldKeepMissingTrialHistory() {
-        var origen = new ConsultarPlanesMapper().toResponse(consulta(false), AHORA);
+        var origen = ConsultarPlanesResponse.de(consulta(false), AHORA);
 
         var result = planPresentationMapper.toResponse(origen);
 

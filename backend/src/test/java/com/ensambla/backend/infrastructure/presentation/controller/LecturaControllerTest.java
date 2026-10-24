@@ -1,24 +1,24 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenItem;
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenItem.CampoItem;
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenItem.DatoItem;
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenRequest;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
-import com.ensambla.backend.domain.useCase.procesamiento.ConfirmarLecturaUseCase;
-import com.ensambla.backend.domain.useCase.procesamiento.ConsultarConsumoUseCase;
-import com.ensambla.backend.domain.useCase.procesamiento.LeerImagenUseCase;
-import com.ensambla.backend.domain.useCase.procesamiento.ObtenerLecturaUseCase;
-import com.ensambla.backend.domain.useCase.procesamiento.ReintentarLecturaUseCase;
+import com.ensambla.backend.domain.useCase.procesamiento.confirmarLectura.ConfirmarLectura;
+import com.ensambla.backend.domain.useCase.procesamiento.consultarConsumo.ConsultarConsumo;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagen;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem.CampoItem;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem.DatoItem;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenRequest;
+import com.ensambla.backend.domain.useCase.procesamiento.obtenerLectura.ObtenerLectura;
+import com.ensambla.backend.domain.useCase.procesamiento.reintentarLectura.ReintentarLectura;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.procesamiento.LecturaPresentationMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -47,15 +47,15 @@ class LecturaControllerTest {
 
     private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
 
-    private final LeerImagenUseCase leerImagenUseCase = mock(LeerImagenUseCase.class);
+    private final LeerImagen leerImagen = mock(LeerImagen.class);
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         LecturaController controller = new LecturaController(
-                mock(ObtenerLecturaUseCase.class), mock(ReintentarLecturaUseCase.class),
-                mock(ConfirmarLecturaUseCase.class), mock(ConsultarConsumoUseCase.class), leerImagenUseCase,
+                mock(ObtenerLectura.class), mock(ReintentarLectura.class),
+                mock(ConfirmarLectura.class), mock(ConsultarConsumo.class), leerImagen,
                 new LecturaPresentationMapper());
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
@@ -77,7 +77,7 @@ class LecturaControllerTest {
     @Test
     @DisplayName("POST manda al use case la imagen y el bloque de destino")
     void leerImagenShouldSendTheImageAndTheBlockToTheUseCase() throws Exception {
-        when(leerImagenUseCase.execute(any())).thenReturn(new LeerImagenItem(List.of(), List.of(), List.of()));
+        when(leerImagen.execute(any())).thenReturn(new LeerImagenItem(List.of(), List.of(), List.of()));
 
         leer(foto(), pedido(PEDIDO)).andExpect(status().isOk());
 
@@ -87,7 +87,7 @@ class LecturaControllerTest {
     @Test
     @DisplayName("POST responde 400 con el mensaje cuando la foto no es del bloque o no es válida")
     void leerImagenShouldReturnBadRequestWhenTheBusinessRuleFails() throws Exception {
-        when(leerImagenUseCase.execute(any()))
+        when(leerImagen.execute(any()))
                 .thenThrow(new BusinessRuleException("La estructura leída no es compatible con el bloque de destino"));
 
         leer(foto(), pedido(PEDIDO)).andExpect(status().isBadRequest())
@@ -97,7 +97,7 @@ class LecturaControllerTest {
     @Test
     @DisplayName("POST responde 502 con el mensaje cuando la IA no puede leer la foto")
     void leerImagenShouldReturnBadGatewayWhenTheReaderFails() throws Exception {
-        when(leerImagenUseCase.execute(any())).thenThrow(new LecturaCuadernoException("No pudimos leer el cuaderno"));
+        when(leerImagen.execute(any())).thenThrow(new LecturaCuadernoException("No pudimos leer el cuaderno"));
 
         leer(foto(), pedido(PEDIDO)).andExpect(status().isBadGateway())
                 .andExpect(jsonPath("$.message").value("No pudimos leer el cuaderno"));
@@ -111,7 +111,7 @@ class LecturaControllerTest {
         leer(foto(), pedido(sinCampos)).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors['campos']").exists());
 
-        verifyNoInteractions(leerImagenUseCase);
+        verifyNoInteractions(leerImagen);
     }
 
     @Test
@@ -120,7 +120,7 @@ class LecturaControllerTest {
         mockMvc.perform(multipart("/api/importaciones/lectura").file(pedido(PEDIDO)))
                 .andExpect(status().isBadRequest());
 
-        verifyNoInteractions(leerImagenUseCase);
+        verifyNoInteractions(leerImagen);
     }
 
     // --- arrange ---
@@ -128,7 +128,7 @@ class LecturaControllerTest {
         Map<String, DatoItem> fila = Map.of(
                 "monto", new DatoItem("1500", false), "cliente", new DatoItem("Ana", true),
                 "direccion", new DatoItem("Belgrano 1", false));
-        when(leerImagenUseCase.execute(any())).thenReturn(new LeerImagenItem(List.of(fila),
+        when(leerImagen.execute(any())).thenReturn(new LeerImagenItem(List.of(fila),
                 List.of(new CampoItem("direccion", "Dirección", "TEXTO", List.of())), List.of()));
     }
 
@@ -163,7 +163,7 @@ class LecturaControllerTest {
 
     private void thenElUseCaseRecibioElBloqueVentas() {
         ArgumentCaptor<LeerImagenRequest> captor = ArgumentCaptor.forClass(LeerImagenRequest.class);
-        verify(leerImagenUseCase).execute(captor.capture());
+        verify(leerImagen).execute(captor.capture());
         assertThat(captor.getValue().usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(captor.getValue().contenido()).containsExactly(7, 8, 9);
         assertThat(captor.getValue().nombreBloque()).isEqualTo("Ventas");

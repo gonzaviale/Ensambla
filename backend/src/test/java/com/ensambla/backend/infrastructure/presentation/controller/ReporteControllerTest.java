@@ -1,13 +1,13 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.registro.RegistroItem;
-import com.ensambla.backend.domain.dto.registro.TotalesItem;
-import com.ensambla.backend.domain.dto.reporte.ExportarReporteResponse;
-import com.ensambla.backend.domain.dto.reporte.GenerarReporteRequest;
-import com.ensambla.backend.domain.dto.reporte.GenerarReporteResponse;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
-import com.ensambla.backend.domain.useCase.reporte.ExportarReporteUseCase;
-import com.ensambla.backend.domain.useCase.reporte.GenerarReporteUseCase;
+import com.ensambla.backend.domain.useCase.registro.RegistroItem;
+import com.ensambla.backend.domain.useCase.registro.TotalesItem;
+import com.ensambla.backend.domain.useCase.reporte.GenerarReporteRequest;
+import com.ensambla.backend.domain.useCase.reporte.exportarReporte.ExportarReporte;
+import com.ensambla.backend.domain.useCase.reporte.exportarReporte.ExportarReporteResponse;
+import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporte;
+import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporteResponse;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.reporte.ReportePresentationMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,16 +45,16 @@ class ReporteControllerTest {
 
     private final Principal sesion = new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
 
-    private GenerarReporteUseCase generarReporteUseCase;
-    private ExportarReporteUseCase exportarReporteUseCase;
+    private GenerarReporte generarReporte;
+    private ExportarReporte exportarReporte;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        generarReporteUseCase = mock(GenerarReporteUseCase.class);
-        exportarReporteUseCase = mock(ExportarReporteUseCase.class);
+        generarReporte = mock(GenerarReporte.class);
+        exportarReporte = mock(ExportarReporte.class);
         mockMvc = MockMvcBuilders.standaloneSetup(new ReporteController(
-                        generarReporteUseCase, exportarReporteUseCase, new ReportePresentationMapper()))
+                        generarReporte, exportarReporte, new ReportePresentationMapper()))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -62,7 +62,7 @@ class ReporteControllerTest {
     @Test
     @DisplayName("GET devuelve las filas, los totales y pasa los filtros con el usuario de la sesión")
     void generarShouldReturnRowsAndPassFilters() throws Exception {
-        when(generarReporteUseCase.execute(any(GenerarReporteRequest.class))).thenReturn(new GenerarReporteResponse(
+        when(generarReporte.execute(any(GenerarReporteRequest.class))).thenReturn(new GenerarReporteResponse(
                 List.of(new RegistroItem(REGISTRO_ID, BLOQUE_ID, Map.of("k", "v"), null, AHORA, AHORA)),
                 new TotalesItem(7, Map.of(CAMPO_ID, new BigDecimal("12.5"))),
                 true,
@@ -79,7 +79,7 @@ class ReporteControllerTest {
                 .andExpect(jsonPath("$.totales.sumas['" + CAMPO_ID + "']").value(12.5))
                 .andExpect(jsonPath("$.truncado").value(true))
                 .andExpect(jsonPath("$.maximoFilas").value(50));
-        verify(generarReporteUseCase).execute(new GenerarReporteRequest(
+        verify(generarReporte).execute(new GenerarReporteRequest(
                 USUARIO_ID, BLOQUE_ID, "pan", LocalDate.parse("2026-10-01"), LocalDate.parse("2026-10-31"),
                 CAMPO_ID, "true"));
     }
@@ -87,20 +87,20 @@ class ReporteControllerTest {
     @Test
     @DisplayName("GET sin filtros pasa todo vacío")
     void generarShouldPassNullFiltersWhenThereAreNone() throws Exception {
-        when(generarReporteUseCase.execute(any(GenerarReporteRequest.class))).thenReturn(
+        when(generarReporte.execute(any(GenerarReporteRequest.class))).thenReturn(
                 new GenerarReporteResponse(List.of(), new TotalesItem(0, Map.of()), false, 50));
 
         mockMvc.perform(get("/api/bloques/{id}/reporte", BLOQUE_ID).principal(sesion))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.filas").isEmpty());
-        verify(generarReporteUseCase).execute(
+        verify(generarReporte).execute(
                 new GenerarReporteRequest(USUARIO_ID, BLOQUE_ID, null, null, null, null, null));
     }
 
     @Test
     @DisplayName("GET con un filtro inválido responde 400 y una fecha mal escrita también")
     void generarShouldReturn400ForInvalidFilters() throws Exception {
-        when(generarReporteUseCase.execute(any(GenerarReporteRequest.class)))
+        when(generarReporte.execute(any(GenerarReporteRequest.class)))
                 .thenThrow(new BusinessRuleException("No se puede filtrar por ese campo"));
 
         mockMvc.perform(get("/api/bloques/{id}/reporte", BLOQUE_ID).principal(sesion))
@@ -113,7 +113,7 @@ class ReporteControllerTest {
     @DisplayName("GET de la descarga devuelve el XLSX con su nombre y pasa los mismos filtros")
     void descargarShouldReturnTheSpreadsheetAsAttachment() throws Exception {
         byte[] contenido = {1, 2, 3};
-        when(exportarReporteUseCase.execute(any(GenerarReporteRequest.class)))
+        when(exportarReporte.execute(any(GenerarReporteRequest.class)))
                 .thenReturn(new ExportarReporteResponse(contenido, "reporte-pedidos-20261013.xlsx"));
 
         mockMvc.perform(get("/api/bloques/{id}/reporte/descarga", BLOQUE_ID)
@@ -124,7 +124,7 @@ class ReporteControllerTest {
                 .andExpect(header().string("Content-Disposition",
                         "attachment; filename=\"reporte-pedidos-20261013.xlsx\""))
                 .andExpect(content().bytes(contenido));
-        verify(exportarReporteUseCase).execute(new GenerarReporteRequest(
+        verify(exportarReporte).execute(new GenerarReporteRequest(
                 USUARIO_ID, BLOQUE_ID, null, LocalDate.parse("2026-10-01"), null, null, null));
     }
 }

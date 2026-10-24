@@ -13,7 +13,7 @@ import com.ensambla.backend.domain.service.procesamiento.ConexionesLecturaServic
 import com.ensambla.backend.domain.service.procesamiento.ProcesamientoService;
 import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
 import com.ensambla.backend.domain.service.procesamiento.ReservaIaService;
-import com.ensambla.backend.domain.useCase.procesamiento.ProcesarLoteUseCase;
+import com.ensambla.backend.domain.useCase.procesamiento.procesarLote.ProcesarLote;
 import com.ensambla.backend.infrastructure.ia.ArchivoCuadernoLocalAdapter;
 import com.ensambla.backend.infrastructure.ia.IaProperties;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.implementation.ProcesamientoRepositoryImpl;
@@ -40,7 +40,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
-import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -101,7 +100,7 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
                 new ArchivoCuadernoLocalAdapter(archivos, 10), lectorCuadernoPort,
                 new PropuestaLecturaService(), new ConexionesLecturaService(null, null),
                 ProcesamientoTestData.politica(), reservaIaService);
-        var useCase = new ProcesarLoteUseCase(procesamientoService, Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
+        var useCase = new ProcesarLote(procesamientoService, Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
 
         useCase.execute();
         useCase.execute();

@@ -1,23 +1,13 @@
 package com.ensambla.backend.domain.useCase.inventario;
 
-import com.ensambla.backend.domain.dto.inventario.ConsultarStockRequest;
-import com.ensambla.backend.domain.dto.inventario.ConsultarStockResponse;
-import com.ensambla.backend.domain.dto.inventario.ListarMovimientosRequest;
-import com.ensambla.backend.domain.dto.inventario.MovimientoItem;
-import com.ensambla.backend.domain.dto.inventario.RegistrarMovimientoRequest;
-import com.ensambla.backend.domain.dto.inventario.RegistrarMovimientoResponse;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.mapper.inventario.ConsultarStockMapper;
-import com.ensambla.backend.domain.mapper.inventario.ListarMovimientosMapper;
-import com.ensambla.backend.domain.mapper.inventario.MovimientoItemMapper;
-import com.ensambla.backend.domain.mapper.inventario.RegistrarMovimientoMapper;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
-import com.ensambla.backend.domain.model.inventario.TipoMovimiento;
+import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.inventario.MovimientoStock;
+import com.ensambla.backend.domain.model.inventario.TipoMovimiento;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
@@ -25,6 +15,14 @@ import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.inventario.InventarioService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
+import com.ensambla.backend.domain.useCase.inventario.consultarStock.ConsultarStock;
+import com.ensambla.backend.domain.useCase.inventario.consultarStock.ConsultarStockRequest;
+import com.ensambla.backend.domain.useCase.inventario.consultarStock.ConsultarStockResponse;
+import com.ensambla.backend.domain.useCase.inventario.listarMovimientos.ListarMovimientos;
+import com.ensambla.backend.domain.useCase.inventario.listarMovimientos.ListarMovimientosRequest;
+import com.ensambla.backend.domain.useCase.inventario.registrarMovimiento.RegistrarMovimiento;
+import com.ensambla.backend.domain.useCase.inventario.registrarMovimiento.RegistrarMovimientoRequest;
+import com.ensambla.backend.domain.useCase.inventario.registrarMovimiento.RegistrarMovimientoResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -76,23 +74,18 @@ class InventarioUseCasesTest {
     @Mock
     private InventarioService inventarioService;
 
-    private final MovimientoItemMapper movimientoItemMapper = new MovimientoItemMapper();
-
-    private RegistrarMovimientoUseCase registrarMovimientoUseCase;
-    private ListarMovimientosUseCase listarMovimientosUseCase;
-    private ConsultarStockUseCase consultarStockUseCase;
+    private RegistrarMovimiento registrarMovimiento;
+    private ListarMovimientos listarMovimientos;
+    private ConsultarStock consultarStock;
 
     @BeforeEach
     void setUp() {
-        registrarMovimientoUseCase = new RegistrarMovimientoUseCase(
-                negocioService, bloqueService, campoService, registroDatosService, inventarioService,
-                new RegistrarMovimientoMapper(movimientoItemMapper), RELOJ);
-        listarMovimientosUseCase = new ListarMovimientosUseCase(
-                negocioService, bloqueService, campoService, registroDatosService, inventarioService,
-                new ListarMovimientosMapper(movimientoItemMapper));
-        consultarStockUseCase = new ConsultarStockUseCase(
-                negocioService, bloqueService, campoService, registroDatosService, inventarioService,
-                new ConsultarStockMapper());
+        registrarMovimiento = new RegistrarMovimiento(
+                negocioService, bloqueService, campoService, registroDatosService, inventarioService, RELOJ);
+        listarMovimientos = new ListarMovimientos(
+                negocioService, bloqueService, campoService, registroDatosService, inventarioService);
+        consultarStock = new ConsultarStock(
+                negocioService, bloqueService, campoService, registroDatosService, inventarioService);
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
@@ -104,7 +97,7 @@ class InventarioUseCasesTest {
         when(inventarioService.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID))
                 .thenReturn(Map.of(PRODUCTO_ID, new BigDecimal("12")));
 
-        RegistrarMovimientoResponse response = registrarMovimientoUseCase.execute(new RegistrarMovimientoRequest(
+        RegistrarMovimientoResponse response = registrarMovimiento.execute(new RegistrarMovimientoRequest(
                 USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, "ENTRADA", new BigDecimal("2"), null, " Compra "));
 
         ArgumentCaptor<MovimientoStock> guardado = ArgumentCaptor.forClass(MovimientoStock.class);
@@ -123,7 +116,7 @@ class InventarioUseCasesTest {
         RegistrarMovimientoRequest invalido = new RegistrarMovimientoRequest(
                 USUARIO_ID, BLOQUE_ID, null, "ENTRADA", BigDecimal.ONE, null, null);
 
-        assertThatThrownBy(() -> registrarMovimientoUseCase.execute(invalido))
+        assertThatThrownBy(() -> registrarMovimiento.execute(invalido))
                 .isInstanceOf(RegistroInvalidoException.class);
         verifyNoInteractions(bloqueService, registroDatosService, inventarioService);
     }
@@ -135,7 +128,7 @@ class InventarioUseCasesTest {
         RegistrarMovimientoRequest request = new RegistrarMovimientoRequest(
                 USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, "ENTRADA", BigDecimal.ONE, null, null);
 
-        assertThatThrownBy(() -> registrarMovimientoUseCase.execute(request))
+        assertThatThrownBy(() -> registrarMovimiento.execute(request))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(inventarioService, never()).registrar(any());
     }
@@ -152,7 +145,7 @@ class InventarioUseCasesTest {
         when(registroDatosService.obtenerVarios(List.of(PRODUCTO_ID), BLOQUE_ID, NEGOCIO_ID))
                 .thenReturn(List.of(givenProducto(BLOQUE_ID)));
 
-        List<MovimientoItem> response = listarMovimientosUseCase.execute(
+        List<MovimientoItem> response = listarMovimientos.execute(
                 new ListarMovimientosRequest(USUARIO_ID, BLOQUE_ID, PRODUCTO_ID));
 
         assertThat(response).singleElement().satisfies(item -> {
@@ -171,7 +164,7 @@ class InventarioUseCasesTest {
         when(inventarioService.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID))
                 .thenReturn(Map.of(PRODUCTO_ID, new BigDecimal("4")));
 
-        ConsultarStockResponse response = consultarStockUseCase.execute(
+        ConsultarStockResponse response = consultarStock.execute(
                 new ConsultarStockRequest(USUARIO_ID, BLOQUE_ID, "har", 0, 20));
 
         ArgumentCaptor<ConsultaRegistros> consulta = ArgumentCaptor.forClass(ConsultaRegistros.class);

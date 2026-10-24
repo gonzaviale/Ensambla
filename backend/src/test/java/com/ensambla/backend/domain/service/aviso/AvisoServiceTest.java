@@ -1,12 +1,12 @@
 package com.ensambla.backend.domain.service.aviso;
 
-import com.ensambla.backend.domain.dto.aviso.ContadorAvisos;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
+import com.ensambla.backend.domain.useCase.aviso.contarAvisos.ContadorAvisos;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.useCase.inventario.ConsultarStockUseCase;
-import com.ensambla.backend.domain.useCase.inventario.ListarMovimientosUseCase;
-import com.ensambla.backend.domain.useCase.inventario.RegistrarMovimientoUseCase;
+import com.ensambla.backend.domain.useCase.inventario.consultarStock.ConsultarStock;
+import com.ensambla.backend.domain.useCase.inventario.listarMovimientos.ListarMovimientos;
+import com.ensambla.backend.domain.useCase.inventario.registrarMovimiento.RegistrarMovimiento;
 import com.ensambla.backend.infrastructure.presentation.dto.inventario.MovimientoRegistradoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.inventario.MovimientoRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.inventario.MovimientoResponse;
@@ -31,11 +31,11 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class InventarioController {
 
-    private final RegistrarMovimientoUseCase registrarMovimientoUseCase;
+    private final RegistrarMovimiento registrarMovimiento;
 
-    private final ListarMovimientosUseCase listarMovimientosUseCase;
+    private final ListarMovimientos listarMovimientos;
 
-    private final ConsultarStockUseCase consultarStockUseCase;
+    private final ConsultarStock consultarStock;
 
     private final InventarioPresentationMapper presentationMapper;
 
@@ -44,7 +44,7 @@ public class InventarioController {
     public ResponseEntity<MovimientoRegistradoResponse> registrar(Authentication authentication,
                                                                   @PathVariable UUID bloqueId,
                                                                   @RequestBody MovimientoRequest request) {
-        MovimientoRegistradoResponse response = presentationMapper.toResponse(registrarMovimientoUseCase.execute(
+        MovimientoRegistradoResponse response = presentationMapper.toResponse(registrarMovimiento.execute(
                 presentationMapper.toRegistrarRequest(usuarioDe(authentication), bloqueId, request)));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -54,7 +54,7 @@ public class InventarioController {
     public ResponseEntity<List<MovimientoResponse>> movimientos(Authentication authentication,
                                                                 @PathVariable UUID bloqueId,
                                                                 @RequestParam(required = false) UUID registroId) {
-        List<MovimientoResponse> response = presentationMapper.toResponse(listarMovimientosUseCase.execute(
+        List<MovimientoResponse> response = presentationMapper.toResponse(listarMovimientos.execute(
                 presentationMapper.toListarMovimientosRequest(usuarioDe(authentication), bloqueId, registroId)));
         return ResponseEntity.ok(response);
     }
@@ -66,7 +66,7 @@ public class InventarioController {
                                                      @RequestParam(required = false) String q,
                                                      @RequestParam(required = false) Integer pagina,
                                                      @RequestParam(required = false) Integer tamanio) {
-        PaginaStockResponse response = presentationMapper.toResponse(consultarStockUseCase.execute(
+        PaginaStockResponse response = presentationMapper.toResponse(consultarStock.execute(
                 presentationMapper.toStockRequest(usuarioDe(authentication), bloqueId, q, pagina, tamanio)));
         return ResponseEntity.ok(response);
     }

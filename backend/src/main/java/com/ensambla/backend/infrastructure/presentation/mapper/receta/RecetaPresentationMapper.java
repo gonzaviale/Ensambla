@@ -1,9 +1,9 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.receta;
 
-import com.ensambla.backend.domain.dto.receta.GuardarRecetaRequest;
-import com.ensambla.backend.domain.dto.receta.LineaRecetaRequest;
-import com.ensambla.backend.domain.dto.receta.ObtenerRecetaRequest;
-import com.ensambla.backend.domain.dto.receta.RecetaItem;
+import com.ensambla.backend.domain.useCase.receta.RecetaItem;
+import com.ensambla.backend.domain.useCase.receta.guardarReceta.GuardarRecetaRequest;
+import com.ensambla.backend.domain.useCase.receta.guardarReceta.LineaRecetaRequest;
+import com.ensambla.backend.domain.useCase.receta.obtenerReceta.ObtenerRecetaRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.receta.RecetaRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.receta.RecetaResponse;
 import org.springframework.stereotype.Component;

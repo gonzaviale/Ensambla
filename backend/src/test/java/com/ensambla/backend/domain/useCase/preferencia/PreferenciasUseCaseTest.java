@@ -1,10 +1,11 @@
 package com.ensambla.backend.domain.useCase.preferencia;
 
-import com.ensambla.backend.domain.dto.preferencia.GuardarPreferenciasRequest;
-import com.ensambla.backend.domain.dto.preferencia.ObtenerPreferenciasRequest;
-import com.ensambla.backend.domain.dto.preferencia.PreferenciasItem;
 import com.ensambla.backend.domain.model.preferencia.PreferenciaUsuario;
 import com.ensambla.backend.domain.service.preferencia.PreferenciaService;
+import com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias.GuardarPreferencias;
+import com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias.GuardarPreferenciasRequest;
+import com.ensambla.backend.domain.useCase.preferencia.obtenerPreferencias.ObtenerPreferencias;
+import com.ensambla.backend.domain.useCase.preferencia.obtenerPreferencias.ObtenerPreferenciasRequest;
 import com.ensambla.backend.infrastructure.config.useCase.PreferenciaUseCaseConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,10 +31,10 @@ class PreferenciasUseCaseTest {
 
     private final PreferenciaService preferenciaService = mock(PreferenciaService.class);
     private final PreferenciaUseCaseConfig config = new PreferenciaUseCaseConfig();
-    private final ObtenerPreferenciasUseCase obtenerPreferenciasUseCase =
-            config.obtenerPreferenciasUseCase(preferenciaService, config.preferenciasItemMapper(), CLOCK);
-    private final GuardarPreferenciasUseCase guardarPreferenciasUseCase =
-            config.guardarPreferenciasUseCase(preferenciaService, config.preferenciasItemMapper(), CLOCK);
+    private final ObtenerPreferencias obtenerPreferencias =
+            config.obtenerPreferencias(preferenciaService, CLOCK);
+    private final GuardarPreferencias guardarPreferencias =
+            config.guardarPreferencias(preferenciaService, CLOCK);
 
     @Test
     @DisplayName("Obtener mapea las preferencias del usuario de sesión")
@@ -42,7 +43,7 @@ class PreferenciasUseCaseTest {
         preferencia.actualizar(List.of("a1"), Map.of("STOCK", false), true, "Gonza", AHORA);
         when(preferenciaService.obtener(USUARIO_ID, AHORA)).thenReturn(preferencia);
 
-        PreferenciasItem result = obtenerPreferenciasUseCase.execute(new ObtenerPreferenciasRequest(USUARIO_ID));
+        PreferenciasItem result = obtenerPreferencias.execute(new ObtenerPreferenciasRequest(USUARIO_ID));
 
         assertThat(result).isEqualTo(
                 new PreferenciasItem(List.of("a1"), Map.of("STOCK", false), true, "Gonza"));
@@ -55,7 +56,7 @@ class PreferenciasUseCaseTest {
         when(preferenciaService.guardar(USUARIO_ID, List.of("a1"), Map.of(), true, "Gonza", AHORA))
                 .thenReturn(guardada);
 
-        PreferenciasItem result = guardarPreferenciasUseCase.execute(
+        PreferenciasItem result = guardarPreferencias.execute(
                 new GuardarPreferenciasRequest(USUARIO_ID, List.of("a1"), Map.of(), true, "Gonza"));
 
         assertThat(result.descartadas()).isEmpty();

@@ -1,13 +1,5 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.dto.sami.ConversarConSamiRequest;
-import com.ensambla.backend.domain.dto.proyecto.ProyectoItem;
-import com.ensambla.backend.domain.dto.sami.ConversarConSamiResponse;
-import com.ensambla.backend.domain.dto.sami.ConversarEnTallerRequest;
-import com.ensambla.backend.domain.dto.sami.ConversarEnTallerResponse;
-import com.ensambla.backend.domain.dto.sami.CrearProyectoDesdeSamiRequest;
-import com.ensambla.backend.domain.dto.sami.EstadoTallerItem;
-import com.ensambla.backend.domain.mapper.proyecto.ProyectoItemMapper;
 import com.ensambla.backend.domain.model.sami.DiccionarioSami;
 import com.ensambla.backend.domain.model.sami.taller.RespuestaTaller;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
@@ -18,6 +10,13 @@ import com.ensambla.backend.domain.service.sami.InterpretacionSamiService;
 import com.ensambla.backend.domain.service.sami.RespaldoIaSamiService;
 import com.ensambla.backend.domain.service.sami.SamiPruebas;
 import com.ensambla.backend.domain.service.sami.TallerSamiService;
+import com.ensambla.backend.domain.useCase.proyecto.ProyectoItem;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiRequest;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiResponse;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTallerRequest;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTallerResponse;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.EstadoTallerItem;
+import com.ensambla.backend.domain.useCase.sami.crearProyectoDesdeSami.CrearProyectoDesdeSamiRequest;
 import com.ensambla.backend.infrastructure.ia.SamiProperties;
 import com.ensambla.backend.support.ProyectoTestData;
 import org.junit.jupiter.api.DisplayName;
@@ -75,9 +74,8 @@ class SamiUseCaseConfigTest {
         when(proyectoService.crearDesdePlantilla(any(), any(), any(), any(), any()))
                 .thenReturn(ProyectoTestData.proyecto());
 
-        ProyectoItem result = config.crearProyectoDesdeSamiUseCase(
-                        negocioService, plantillaService, proyectoService,
-                        config.crearProyectoDesdeSamiMapper(new ProyectoItemMapper()), Clock.systemUTC())
+        ProyectoItem result = config.crearProyectoDesdeSami(
+                        negocioService, plantillaService, proyectoService, Clock.systemUTC())
                 .execute(new CrearProyectoDesdeSamiRequest(
                         USUARIO_ID, ProyectoTestData.PLANTILLA_ID, null, List.of()));
 
@@ -93,8 +91,8 @@ class SamiUseCaseConfigTest {
         when(tallerSamiService.conversar(any(), eq("hola"), any(), any(), any(), any(), eq(11)))
                 .thenReturn(new RespuestaTaller("Hola", List.of(), List.of()));
 
-        ConversarEnTallerResponse response = config.conversarEnTallerUseCase(
-                        negocioService, tallerSamiService, config.conversarEnTallerMapper(), Clock.systemUTC(),
+        ConversarEnTallerResponse response = config.conversarEnTaller(
+                        negocioService, tallerSamiService, Clock.systemUTC(),
                         propiedades(3))
                 .execute(new ConversarEnTallerRequest(
                         USUARIO_ID, "hola", new EstadoTallerItem("", "mosaic", List.of()), List.of(), null));
@@ -119,8 +117,8 @@ class SamiUseCaseConfigTest {
         DiccionarioSami diccionario = SamiPruebas.diccionarioReal();
         ConversacionSamiService conversacion =
                 new ConversacionSamiService(new InterpretacionSamiService(diccionario), diccionario);
-        return config.conversarConSamiUseCase(negocioService, plantillaService, conversacion, respaldo,
-                        config.conversarConSamiMapper(), Clock.systemUTC(), properties)
+        return config.conversarConSami(
+                        negocioService, plantillaService, conversacion, respaldo, Clock.systemUTC(), properties)
                 .execute(new ConversarConSamiRequest(UUID.randomUUID(), texto, List.of()));
     }
 }

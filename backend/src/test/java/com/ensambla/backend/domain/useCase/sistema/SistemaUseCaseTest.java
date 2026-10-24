@@ -1,16 +1,18 @@
 package com.ensambla.backend.domain.useCase.sistema;
 
-import com.ensambla.backend.domain.dto.sistema.EliminarSistemaRequest;
-import com.ensambla.backend.domain.dto.sistema.GuardarSistemaRequest;
-import com.ensambla.backend.domain.dto.sistema.ListarSistemasRequest;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem.BloqueItem;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem.SeccionItem;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.sistema.SistemaService;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.BloqueItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.SeccionItem;
+import com.ensambla.backend.domain.useCase.sistema.eliminarSistema.EliminarSistema;
+import com.ensambla.backend.domain.useCase.sistema.eliminarSistema.EliminarSistemaRequest;
+import com.ensambla.backend.domain.useCase.sistema.guardarSistema.GuardarSistema;
+import com.ensambla.backend.domain.useCase.sistema.guardarSistema.GuardarSistemaRequest;
+import com.ensambla.backend.domain.useCase.sistema.listarSistemas.ListarSistemas;
+import com.ensambla.backend.domain.useCase.sistema.listarSistemas.ListarSistemasRequest;
 import com.ensambla.backend.infrastructure.config.useCase.SistemaUseCaseConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,12 +44,12 @@ class SistemaUseCaseTest {
     private final NegocioService negocioService = mock(NegocioService.class);
     private final SistemaService sistemaService = mock(SistemaService.class);
     private final SistemaUseCaseConfig config = new SistemaUseCaseConfig();
-    private final ListarSistemasUseCase listarSistemasUseCase =
-            config.listarSistemasUseCase(negocioService, sistemaService, config.sistemaItemMapper());
-    private final GuardarSistemaUseCase guardarSistemaUseCase =
-            config.guardarSistemaUseCase(negocioService, sistemaService, config.sistemaItemMapper(), CLOCK);
-    private final EliminarSistemaUseCase eliminarSistemaUseCase =
-            config.eliminarSistemaUseCase(negocioService, sistemaService);
+    private final ListarSistemas listarSistemas =
+            config.listarSistemas(negocioService, sistemaService);
+    private final GuardarSistema guardarSistema =
+            config.guardarSistema(negocioService, sistemaService, CLOCK);
+    private final EliminarSistema eliminarSistema =
+            config.eliminarSistema(negocioService, sistemaService);
 
     @Test
     @DisplayName("Listar resuelve el negocio de la sesión y mapea los sistemas")
@@ -55,7 +57,7 @@ class SistemaUseCaseTest {
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(sistemaService.listar(NEGOCIO_ID)).thenReturn(List.of(givenSistema()));
 
-        List<SistemaItem> result = listarSistemasUseCase.execute(new ListarSistemasRequest(USUARIO_ID));
+        List<SistemaItem> result = listarSistemas.execute(new ListarSistemasRequest(USUARIO_ID));
 
         assertThat(result).singleElement().satisfies(item -> {
             assertThat(item.id()).isEqualTo(SISTEMA_ID.toString());
@@ -68,7 +70,7 @@ class SistemaUseCaseTest {
     void listarShouldStopWhenNegocioMissing() {
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenThrow(new ResourceNotFoundException("Sin negocio"));
 
-        assertThatThrownBy(() -> listarSistemasUseCase.execute(new ListarSistemasRequest(USUARIO_ID)))
+        assertThatThrownBy(() -> listarSistemas.execute(new ListarSistemasRequest(USUARIO_ID)))
                 .isInstanceOf(ResourceNotFoundException.class);
         verifyNoInteractions(sistemaService);
     }
@@ -79,7 +81,7 @@ class SistemaUseCaseTest {
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(sistemaService.guardar(any(), any())).thenAnswer(call -> call.getArgument(1));
 
-        SistemaItem result = guardarSistemaUseCase.execute(
+        SistemaItem result = guardarSistema.execute(
                 new GuardarSistemaRequest(USUARIO_ID, SISTEMA_ID.toString(), givenItem()));
 
         ArgumentCaptor<Sistema> captor = ArgumentCaptor.forClass(Sistema.class);
@@ -96,7 +98,7 @@ class SistemaUseCaseTest {
     void eliminarShouldDeleteInSessionNegocio() {
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
 
-        eliminarSistemaUseCase.execute(new EliminarSistemaRequest(USUARIO_ID, "e" + SISTEMA_ID));
+        eliminarSistema.execute(new EliminarSistemaRequest(USUARIO_ID, "e" + SISTEMA_ID));
 
         verify(sistemaService).eliminar(NEGOCIO_ID, SISTEMA_ID);
     }

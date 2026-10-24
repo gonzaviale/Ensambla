@@ -1,10 +1,10 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.bloque;
 
-import com.ensambla.backend.domain.dto.bloque.BloqueItem;
-import com.ensambla.backend.domain.dto.bloque.CrearBloqueRequest;
-import com.ensambla.backend.domain.dto.bloque.EliminarBloqueRequest;
-import com.ensambla.backend.domain.dto.bloque.ListarBloquesRequest;
-import com.ensambla.backend.domain.dto.bloque.RenombrarBloqueRequest;
+import com.ensambla.backend.domain.useCase.bloque.BloqueItem;
+import com.ensambla.backend.domain.useCase.bloque.crearBloque.CrearBloqueRequest;
+import com.ensambla.backend.domain.useCase.bloque.eliminarBloque.EliminarBloqueRequest;
+import com.ensambla.backend.domain.useCase.bloque.listarBloques.ListarBloquesRequest;
+import com.ensambla.backend.domain.useCase.bloque.renombrarBloque.RenombrarBloqueRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.bloque.BloqueResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.bloque.BloqueWebRequest;
 import org.junit.jupiter.api.DisplayName;

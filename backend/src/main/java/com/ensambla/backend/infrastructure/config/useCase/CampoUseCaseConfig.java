@@ -1,19 +1,15 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.mapper.campo.CampoItemMapper;
-import com.ensambla.backend.domain.mapper.campo.CrearCampoMapper;
-import com.ensambla.backend.domain.mapper.campo.EditarCampoMapper;
-import com.ensambla.backend.domain.mapper.campo.ListarCamposMapper;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.useCase.campo.CrearCampoUseCase;
-import com.ensambla.backend.domain.useCase.campo.EditarCampoUseCase;
-import com.ensambla.backend.domain.useCase.campo.EliminarCampoUseCase;
-import com.ensambla.backend.domain.useCase.campo.ListarCamposUseCase;
+import com.ensambla.backend.domain.useCase.campo.crearCampo.CrearCampo;
+import com.ensambla.backend.domain.useCase.campo.editarCampo.EditarCampo;
+import com.ensambla.backend.domain.useCase.campo.eliminarCampo.EliminarCampo;
+import com.ensambla.backend.domain.useCase.campo.listarCampos.ListarCampos;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -23,73 +19,47 @@ import java.time.Clock;
 public class CampoUseCaseConfig {
 
     @Bean
-    public CampoItemMapper campoItemMapper() {
-        return new CampoItemMapper();
-    }
-
-    @Bean
-    public ListarCamposMapper listarCamposMapper(CampoItemMapper campoItemMapper) {
-        return new ListarCamposMapper(campoItemMapper);
-    }
-
-    @Bean
-    public ListarCamposUseCase listarCamposUseCase(
+    public ListarCampos listarCampos(
             NegocioService negocioService,
             BloqueService bloqueService,
-            CampoService campoService,
-            ListarCamposMapper listarCamposMapper) {
-        return new ListarCamposUseCase(
+            CampoService campoService) {
+        return new ListarCampos(
                 negocioService,
                 bloqueService,
-                campoService,
-                listarCamposMapper);
+                campoService);
     }
 
     @Bean
-    public CrearCampoMapper crearCampoMapper(CampoItemMapper campoItemMapper) {
-        return new CrearCampoMapper(campoItemMapper);
-    }
-
-    @Bean
-    public CrearCampoUseCase crearCampoUseCase(
+    public CrearCampo crearCampo(
             NegocioService negocioService,
             BloqueService bloqueService,
             CampoService campoService,
-            CrearCampoMapper crearCampoMapper,
             Clock clock) {
-        return new CrearCampoUseCase(
+        return new CrearCampo(
                 negocioService,
                 bloqueService,
                 campoService,
-                crearCampoMapper,
                 clock);
     }
 
     @Bean
-    public EditarCampoMapper editarCampoMapper(CampoItemMapper campoItemMapper) {
-        return new EditarCampoMapper(campoItemMapper);
-    }
-
-    @Bean
-    public EditarCampoUseCase editarCampoUseCase(
+    public EditarCampo editarCampo(
             NegocioService negocioService,
             CampoService campoService,
             BloqueService bloqueService,
-            EditarCampoMapper editarCampoMapper,
             Clock clock) {
-        return new EditarCampoUseCase(
+        return new EditarCampo(
                 negocioService,
                 campoService,
                 bloqueService,
-                editarCampoMapper,
                 clock);
     }
 
     @Bean
-    public EliminarCampoUseCase eliminarCampoUseCase(
+    public EliminarCampo eliminarCampo(
             NegocioService negocioService,
             CampoService campoService) {
-        return new EliminarCampoUseCase(
+        return new EliminarCampo(
                 negocioService,
                 campoService);
     }

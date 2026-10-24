@@ -1,9 +1,5 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.mapper.proyecto.ProyectoItemMapper;
-import com.ensambla.backend.domain.mapper.sami.ConversarConSamiMapper;
-import com.ensambla.backend.domain.mapper.sami.ConversarEnTallerMapper;
-import com.ensambla.backend.domain.mapper.sami.CrearProyectoDesdeSamiMapper;
 import com.ensambla.backend.domain.model.sami.DiccionarioSami;
 import com.ensambla.backend.domain.model.sami.taller.CatalogoComponentes;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
@@ -19,9 +15,9 @@ import com.ensambla.backend.domain.service.sami.InterpretacionSamiService;
 import com.ensambla.backend.domain.service.sami.RespaldoIaSamiService;
 import com.ensambla.backend.domain.service.sami.RubroTallerService;
 import com.ensambla.backend.domain.service.sami.TallerSamiService;
-import com.ensambla.backend.domain.useCase.sami.ConversarConSamiUseCase;
-import com.ensambla.backend.domain.useCase.sami.ConversarEnTallerUseCase;
-import com.ensambla.backend.domain.useCase.sami.CrearProyectoDesdeSamiUseCase;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSami;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTaller;
+import com.ensambla.backend.domain.useCase.sami.crearProyectoDesdeSami.CrearProyectoDesdeSami;
 import com.ensambla.backend.infrastructure.ia.SamiProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,59 +28,39 @@ import java.time.Clock;
 public class SamiUseCaseConfig {
 
     @Bean
-    public ConversarConSamiMapper conversarConSamiMapper() {
-        return new ConversarConSamiMapper();
-    }
-
-    @Bean
-    public CrearProyectoDesdeSamiMapper crearProyectoDesdeSamiMapper(ProyectoItemMapper proyectoItemMapper) {
-        return new CrearProyectoDesdeSamiMapper(proyectoItemMapper);
-    }
-
-    @Bean
-    public CrearProyectoDesdeSamiUseCase crearProyectoDesdeSamiUseCase(
+    public CrearProyectoDesdeSami crearProyectoDesdeSami(
             NegocioService negocioService,
             PlantillaService plantillaService,
             ProyectoService proyectoService,
-            CrearProyectoDesdeSamiMapper crearProyectoDesdeSamiMapper,
             Clock clock) {
-        return new CrearProyectoDesdeSamiUseCase(
-                negocioService, plantillaService, proyectoService, crearProyectoDesdeSamiMapper, clock);
+        return new CrearProyectoDesdeSami(
+                negocioService, plantillaService, proyectoService, clock);
     }
 
     @Bean
-    public ConversarEnTallerMapper conversarEnTallerMapper() {
-        return new ConversarEnTallerMapper();
-    }
-
-    @Bean
-    public ConversarEnTallerUseCase conversarEnTallerUseCase(NegocioService negocioService,
-                                                             TallerSamiService tallerSamiService,
-                                                             ConversarEnTallerMapper conversarEnTallerMapper,
-                                                             Clock clock,
-                                                             SamiProperties samiProperties) {
-        return new ConversarEnTallerUseCase(
+    public ConversarEnTaller conversarEnTaller(NegocioService negocioService,
+                                               TallerSamiService tallerSamiService,
+                                               Clock clock,
+                                               SamiProperties samiProperties) {
+        return new ConversarEnTaller(
                 negocioService,
                 tallerSamiService,
-                conversarEnTallerMapper,
                 clock,
                 samiProperties.limiteDiarioTaller());
     }
 
     @Bean
-    public ConversarConSamiUseCase conversarConSamiUseCase(NegocioService negocioService,
-                                                           PlantillaService plantillaService,
-                                                           ConversacionSamiService conversacionSamiService,
-                                                           RespaldoIaSamiService respaldoIaSamiService,
-                                                           ConversarConSamiMapper conversarConSamiMapper,
-                                                           Clock clock,
-                                                           SamiProperties samiProperties) {
-        return new ConversarConSamiUseCase(
+    public ConversarConSami conversarConSami(NegocioService negocioService,
+                                             PlantillaService plantillaService,
+                                             ConversacionSamiService conversacionSamiService,
+                                             RespaldoIaSamiService respaldoIaSamiService,
+                                             Clock clock,
+                                             SamiProperties samiProperties) {
+        return new ConversarConSami(
                 negocioService,
                 plantillaService,
                 conversacionSamiService,
                 respaldoIaSamiService,
-                conversarConSamiMapper,
                 clock,
                 samiProperties.umbralConfianza(),
                 samiProperties.maxPreguntas(),

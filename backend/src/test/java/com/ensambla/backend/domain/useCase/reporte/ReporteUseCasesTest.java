@@ -1,12 +1,7 @@
 package com.ensambla.backend.domain.useCase.reporte;
 
-import com.ensambla.backend.domain.dto.reporte.ExportarReporteResponse;
-import com.ensambla.backend.domain.dto.reporte.GenerarReporteRequest;
-import com.ensambla.backend.domain.dto.reporte.GenerarReporteResponse;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.mapper.reporte.ExportarReporteMapper;
-import com.ensambla.backend.domain.mapper.reporte.GenerarReporteMapper;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
@@ -19,6 +14,10 @@ import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.reporte.ReporteService;
+import com.ensambla.backend.domain.useCase.reporte.exportarReporte.ExportarReporte;
+import com.ensambla.backend.domain.useCase.reporte.exportarReporte.ExportarReporteResponse;
+import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporte;
+import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporteResponse;
 import com.ensambla.backend.infrastructure.reporte.ExportadorReporteXlsxAdapter;
 import org.dhatim.fastexcel.reader.ReadableWorkbook;
 import org.dhatim.fastexcel.reader.Row;
@@ -78,19 +77,17 @@ class ReporteUseCasesTest {
     @Mock
     private CampoRepository campoRepository;
 
-    private GenerarReporteUseCase generarReporteUseCase;
-    private ExportarReporteUseCase exportarReporteUseCase;
+    private GenerarReporte generarReporte;
+    private ExportarReporte exportarReporte;
 
     @BeforeEach
     void setUp() {
         ReporteService reporteService = new ReporteService(registroRepository, campoRepository);
-        generarReporteUseCase = new GenerarReporteUseCase(
-                negocioService, controlPlanService, RELOJ, bloqueService, campoService, reporteService,
-                new GenerarReporteMapper());
-        exportarReporteUseCase = new ExportarReporteUseCase(
+        generarReporte = new GenerarReporte(
+                negocioService, controlPlanService, RELOJ, bloqueService, campoService, reporteService);
+        exportarReporte = new ExportarReporte(
                 negocioService, controlPlanService, bloqueService, campoService, reporteService,
-                new ExportadorReporteXlsxAdapter(),
-                new ExportarReporteMapper(), RELOJ);
+                new ExportadorReporteXlsxAdapter(), RELOJ);
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID))
                 .thenReturn(Bloque.builder().id(BLOQUE_ID).nombre("Pedidos").build());
@@ -102,7 +99,7 @@ class ReporteUseCasesTest {
     void generarShouldReturnFirstRowsAndTotalsOfTheFilter() {
         givenReporte(60, new BigDecimal("125.5"));
 
-        GenerarReporteResponse response = generarReporteUseCase.execute(request(null));
+        GenerarReporteResponse response = generarReporte.execute(request(null));
 
         ArgumentCaptor<FiltroReporte> filtro = ArgumentCaptor.forClass(FiltroReporte.class);
         verify(registroRepository).buscarFiltrados(filtro.capture(), anyInt());
@@ -122,7 +119,7 @@ class ReporteUseCasesTest {
         GenerarReporteRequest alReves = new GenerarReporteRequest(
                 USUARIO_ID, BLOQUE_ID, null, LocalDate.parse("2026-10-02"), LocalDate.parse("2026-10-01"), null, null);
 
-        assertThatThrownBy(() -> generarReporteUseCase.execute(alReves)).isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> generarReporte.execute(alReves)).isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -130,7 +127,7 @@ class ReporteUseCasesTest {
     void generarShouldPropagateNotFound() {
         when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenThrow(new ResourceNotFoundException("no existe"));
 
-        assertThatThrownBy(() -> generarReporteUseCase.execute(request(null)))
+        assertThatThrownBy(() -> generarReporte.execute(request(null)))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -139,8 +136,8 @@ class ReporteUseCasesTest {
     void exportedTotalsShouldMatchTheScreenTotals() throws IOException {
         givenReporte(2, new BigDecimal("125.5"));
 
-        GenerarReporteResponse enPantalla = generarReporteUseCase.execute(request(null));
-        ExportarReporteResponse archivo = exportarReporteUseCase.execute(request(null));
+        GenerarReporteResponse enPantalla = generarReporte.execute(request(null));
+        ExportarReporteResponse archivo = exportarReporte.execute(request(null));
 
         List<Row> filas = leer(archivo.contenido());
         Row totales = filas.get(filas.size() - 1);
@@ -160,7 +157,7 @@ class ReporteUseCasesTest {
         when(registroRepository.contarFiltrados(any())).thenReturn(10_001L);
         when(registroRepository.sumarNumericos(any(FiltroReporte.class), any())).thenReturn(Map.of());
 
-        assertThatThrownBy(() -> exportarReporteUseCase.execute(request(null)))
+        assertThatThrownBy(() -> exportarReporte.execute(request(null)))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("10000 filas");
     }

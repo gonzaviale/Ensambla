@@ -1,7 +1,7 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.plantilla;
 
-import com.ensambla.backend.domain.dto.plantilla.ListarPlantillasResponse;
-import com.ensambla.backend.domain.dto.plantilla.PlantillaItem;
+import com.ensambla.backend.domain.useCase.plantilla.listarPlantillas.ListarPlantillasResponse;
+import com.ensambla.backend.domain.useCase.plantilla.listarPlantillas.PlantillaItem;
 import com.ensambla.backend.infrastructure.presentation.dto.plantilla.PlantillaResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
