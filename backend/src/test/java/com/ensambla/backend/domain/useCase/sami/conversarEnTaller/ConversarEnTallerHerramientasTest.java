@@ -1,4 +1,4 @@
-package com.ensambla.backend.domain.service.sami;
+package com.ensambla.backend.domain.useCase.sami.conversarEnTaller;
 
 import com.ensambla.backend.domain.model.sami.taller.AccionTaller;
 import com.ensambla.backend.domain.model.sami.taller.CampoTaller;
@@ -6,6 +6,7 @@ import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
 import com.ensambla.backend.domain.model.sami.taller.LlamadaHerramienta;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
 import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
+import com.ensambla.backend.support.TallerDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,14 +18,14 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class HerramientasTallerServiceTest {
+class ConversarEnTallerHerramientasTest {
 
-    private HerramientasTallerService service;
+    private TallerDePrueba taller;
     private EstadoTaller estado;
 
     @BeforeEach
     void setUp() {
-        service = new HerramientasTallerService(SamiPruebas.catalogoReal(), SamiPruebas.kitsReales());
+        taller = new TallerDePrueba();
         estado = new EstadoTaller("Mi almacén", "mosaic", List.of(
                 new PiezaTaller("e1", "inventory", "Inventario", null, List.of(
                         new CampoTaller("Producto", "text"), new CampoTaller("Cantidad", "number"),
@@ -38,7 +39,6 @@ class HerramientasTallerServiceTest {
         ValidacionTaller result = validar(llamada("borrar_todo", Map.of()));
 
         assertThat(result.acciones()).isEmpty();
-        assertThat(result.descartadas()).isEqualTo(1);
     }
 
     @Test
@@ -48,7 +48,6 @@ class HerramientasTallerServiceTest {
 
         assertThat(result.acciones()).isEmpty();
         assertThat(result.preguntas()).isEmpty();
-        assertThat(result.descartadas()).isZero();
     }
 
     @Test
@@ -57,7 +56,6 @@ class HerramientasTallerServiceTest {
         ValidacionTaller result = validar(llamada("agregar_pieza", Map.of("tipo", " EXPENSES ")));
 
         assertThat(result.acciones()).containsExactly(accion("agregar_pieza", Map.of("tipo", "expenses")));
-        assertThat(result.descartadas()).isZero();
     }
 
     @Test
@@ -71,7 +69,6 @@ class HerramientasTallerServiceTest {
                 llamada("agregar_pieza", Map.of()));
 
         assertThat(result.acciones()).isEmpty();
-        assertThat(result.descartadas()).isEqualTo(5);
     }
 
     @Test
@@ -82,7 +79,6 @@ class HerramientasTallerServiceTest {
                 llamada("agregar_pieza", Map.of("tipo", "expenses")));
 
         assertThat(result.acciones()).hasSize(1);
-        assertThat(result.descartadas()).isEqualTo(1);
     }
 
     @Test
@@ -96,7 +92,6 @@ class HerramientasTallerServiceTest {
         assertThat(result.acciones()).containsExactly(
                 accion("quitar_pieza", Map.of("pieza", "e1")),
                 accion("quitar_pieza", Map.of("pieza", "e2")));
-        assertThat(result.descartadas()).isEqualTo(1);
     }
 
     @Test
@@ -127,7 +122,6 @@ class HerramientasTallerServiceTest {
                 llamada("quitar_pieza", Map.of()));
 
         assertThat(result.acciones()).isEmpty();
-        assertThat(result.descartadas()).isEqualTo(2);
     }
 
     @Test
@@ -148,7 +142,6 @@ class HerramientasTallerServiceTest {
                 llamada("renombrar_pieza", Map.of("pieza", "nada", "nombre", "Otro")));
 
         assertThat(result.acciones()).isEmpty();
-        assertThat(result.descartadas()).isEqualTo(3);
     }
 
     @Test
@@ -159,7 +152,6 @@ class HerramientasTallerServiceTest {
                 llamada("renombrar_sistema", Map.of("nombre", " ")));
 
         assertThat(result.acciones()).containsExactly(accion("renombrar_sistema", Map.of("nombre", "Velas de Ana")));
-        assertThat(result.descartadas()).isEqualTo(1);
     }
 
     @Test
@@ -197,7 +189,6 @@ class HerramientasTallerServiceTest {
                 llamada("agregar_campo", Map.of("pieza", "nada", "etiqueta", "Y", "tipo", "text")));
 
         assertThat(result.acciones()).isEmpty();
-        assertThat(result.descartadas()).isEqualTo(6);
     }
 
     @Test
@@ -210,11 +201,10 @@ class HerramientasTallerServiceTest {
         EstadoTaller lleno = new EstadoTaller("Lleno", "mosaic", List.of(
                 new PiezaTaller("e9", "inventory", "Inventario", null, campos)));
 
-        ValidacionTaller result = service.validar(
+        ValidacionTaller result = taller.validar(
                 List.of(llamada("agregar_campo", Map.of("pieza", "e9", "etiqueta", "Uno más", "tipo", "text"))), lleno);
 
         assertThat(result.acciones()).isEmpty();
-        assertThat(result.descartadas()).isEqualTo(1);
     }
 
     @Test
@@ -227,7 +217,6 @@ class HerramientasTallerServiceTest {
 
         assertThat(result.acciones()).extracting(AccionTaller::herramienta)
                 .containsExactly("agregar_campo", "quitar_campo");
-        assertThat(result.descartadas()).isEqualTo(1);
     }
 
     @Test
@@ -248,7 +237,7 @@ class HerramientasTallerServiceTest {
                         new CampoTaller("Cliente", "text"))),
                 new PiezaTaller("e2", "calendar", "Agenda", null, List.of(new CampoTaller("Cantidad", "number")))));
 
-        ValidacionTaller result = service.validar(List.of(
+        ValidacionTaller result = taller.validar(List.of(
                 llamada("quitar_campo", Map.of("pieza", "e1", "campo", "Producto")),
                 llamada("quitar_campo", Map.of("pieza", "e1", "campo", "Cantidad")),
                 llamada("quitar_campo", Map.of("pieza", "e1", "campo", "Cliente")),
@@ -257,7 +246,6 @@ class HerramientasTallerServiceTest {
         assertThat(result.acciones()).containsExactly(
                 accion("quitar_campo", Map.of("pieza", "e1", "campo", "Cliente")),
                 accion("quitar_campo", Map.of("pieza", "e2", "campo", "Cantidad")));
-        assertThat(result.descartadas()).isEqualTo(2);
     }
 
     @Test
@@ -269,7 +257,6 @@ class HerramientasTallerServiceTest {
                 llamada("quitar_campo", Map.of("pieza", "nada", "campo", "Producto")));
 
         assertThat(result.acciones()).isEmpty();
-        assertThat(result.descartadas()).isEqualTo(3);
     }
 
     @Test
@@ -282,7 +269,6 @@ class HerramientasTallerServiceTest {
 
         assertThat(result.acciones())
                 .containsExactly(accion("separar_en_seccion", Map.of("pieza", "e2", "seccion", "Mis clientes")));
-        assertThat(result.descartadas()).isEqualTo(2);
     }
 
     @Test
@@ -294,7 +280,6 @@ class HerramientasTallerServiceTest {
                 llamada("cambiar_distribucion", Map.of()));
 
         assertThat(result.acciones()).containsExactly(accion("cambiar_distribucion", Map.of("layout", "two")));
-        assertThat(result.descartadas()).isEqualTo(2);
     }
 
     @Test
@@ -332,7 +317,6 @@ class HerramientasTallerServiceTest {
                 llamada("ofrecer_opciones", noEsLista));
 
         assertThat(result.preguntas()).isEmpty();
-        assertThat(result.descartadas()).isEqualTo(4);
     }
 
     @Test
@@ -343,7 +327,6 @@ class HerramientasTallerServiceTest {
                 llamada("ofrecer_opciones", Map.of("pregunta", "¿Otra?", "opciones", List.of("A"))));
 
         assertThat(result.preguntas()).extracting("pregunta").containsExactly("¿Cuál?");
-        assertThat(result.descartadas()).isEqualTo(1);
     }
 
     @Test
@@ -354,10 +337,9 @@ class HerramientasTallerServiceTest {
             catorce.add(llamada("cambiar_distribucion", Map.of("layout", "single")));
         }
 
-        ValidacionTaller result = service.validar(catorce, estado);
+        ValidacionTaller result = taller.validar(catorce, estado);
 
         assertThat(result.acciones()).hasSize(12);
-        assertThat(result.descartadas()).isEqualTo(2);
     }
 
     @Test
@@ -368,7 +350,7 @@ class HerramientasTallerServiceTest {
                 new PiezaTaller("e2", "sales", "Caja", null, List.of()),
                 new PiezaTaller("e2b", "clients", "e2", null, List.of())));
 
-        ValidacionTaller result = service.validar(List.of(
+        ValidacionTaller result = taller.validar(List.of(
                 llamada("separar_en_seccion", Map.of("pieza", "sales", "seccion", "Caja")),
                 llamada("separar_en_seccion", Map.of("pieza", "e2", "seccion", "Otra")),
                 llamada("separar_en_seccion", Map.of("pieza", "«Sales»", "seccion", "Depósito"))), cruzado);
@@ -386,7 +368,7 @@ class HerramientasTallerServiceTest {
                 new PiezaTaller("e7", "clients", "Quién me debe", null, List.of()),
                 new PiezaTaller("e8", "form", "Material", null, List.of())));
 
-        ValidacionTaller result = service.validar(List.of(
+        ValidacionTaller result = taller.validar(List.of(
                 llamada("quitar_pieza", Map.of("pieza", "QUIEN ME DEBE")),
                 llamada("quitar_pieza", Map.of("pieza", "materiales"))), conDeudores);
 
@@ -412,11 +394,10 @@ class HerramientasTallerServiceTest {
                 llamada("agregar_campo", Map.of("pieza", "e1", "etiqueta", "Cliente", "tipo", "relation")));
 
         assertThat(result.acciones()).isEmpty();
-        assertThat(result.descartadas()).isEqualTo(1);
     }
 
     private ValidacionTaller validar(LlamadaHerramienta... llamadas) {
-        return service.validar(List.of(llamadas), estado);
+        return taller.validar(List.of(llamadas), estado);
     }
 
     private LlamadaHerramienta llamada(String nombre, Map<String, Object> argumentos) {

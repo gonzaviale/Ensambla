@@ -1,9 +1,11 @@
-package com.ensambla.backend.domain.service.sami;
+package com.ensambla.backend.domain.useCase.sami.conversarEnTaller;
 
 import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
 import com.ensambla.backend.domain.model.sami.taller.KitRubro;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
 import com.ensambla.backend.domain.model.sami.taller.MensajeTaller;
+import com.ensambla.backend.support.SamiPruebas;
+import com.ensambla.backend.support.TallerDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,20 +15,20 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class RubroTallerServiceTest {
+class ConversarEnTallerRubroTest {
 
     private static final EstadoTaller SIN_NOMBRE = new EstadoTaller(null, "mosaic", List.of());
 
-    private RubroTallerService rubroTallerService;
+    private TallerDePrueba taller;
 
     @BeforeEach
     void setUp() {
-        rubroTallerService = new RubroTallerService(SamiPruebas.kitsReales());
+        taller = new TallerDePrueba(SamiPruebas.kitsReales());
     }
 
     @Test
     @DisplayName("Reconoce el rubro en el mensaje aunque venga en plural, con mayúsculas o con tildes")
-    void detectarShouldFindKitInMessage() {
+    void executeShouldFindKitInMessage() {
         Optional<KitRubro> kit = detectar("Vendo VELAS y anoto quién me debe");
 
         thenKitIs(kit, "velas");
@@ -34,7 +36,7 @@ class RubroTallerServiceTest {
 
     @Test
     @DisplayName("Reconoce términos de varias palabras")
-    void detectarShouldFindMultiWordTerms() {
+    void executeShouldFindMultiWordTerms() {
         Optional<KitRubro> kit = detectar("tengo un taller mecánico");
 
         thenKitIs(kit, "taller-mecanico");
@@ -42,7 +44,7 @@ class RubroTallerServiceTest {
 
     @Test
     @DisplayName("Sin términos de ningún rubro no elige kit")
-    void detectarShouldReturnEmptyWithoutTerms() {
+    void executeShouldReturnEmptyWithoutTerms() {
         Optional<KitRubro> kit = detectar("llevo los arreglos de bicis");
 
         assertThat(kit).isEmpty();
@@ -50,10 +52,10 @@ class RubroTallerServiceTest {
 
     @Test
     @DisplayName("Si el mensaje no lo dice, usa la charla reciente y el nombre del sistema")
-    void detectarShouldUseHistoryAndSystemName() {
-        Optional<KitRubro> porCharla = rubroTallerService.detectar("sí, dale", SIN_NOMBRE,
+    void executeShouldUseHistoryAndSystemName() {
+        Optional<KitRubro> porCharla = taller.rubro("sí, dale", SIN_NOMBRE,
                 List.of(new MensajeTaller("you", "tengo una peluquería")));
-        Optional<KitRubro> porNombre = rubroTallerService.detectar("sumá gastos",
+        Optional<KitRubro> porNombre = taller.rubro("sumá gastos",
                 new EstadoTaller("Ferretería Don Luis", "mosaic", List.of()), List.of());
 
         thenKitIs(porCharla, "peluqueria");
@@ -62,8 +64,8 @@ class RubroTallerServiceTest {
 
     @Test
     @DisplayName("Lo que dice el mensaje pesa más que la charla anterior")
-    void detectarShouldPreferTheMessageOverHistory() {
-        Optional<KitRubro> kit = rubroTallerService.detectar("en realidad tengo una panadería", SIN_NOMBRE,
+    void executeShouldPreferTheMessageOverHistory() {
+        Optional<KitRubro> kit = taller.rubro("en realidad tengo una panadería", SIN_NOMBRE,
                 List.of(new MensajeTaller("you", "vendo velas")));
 
         thenKitIs(kit, "panaderia");
@@ -71,7 +73,7 @@ class RubroTallerServiceTest {
 
     @Test
     @DisplayName("Un término de varias palabras le gana a uno suelto de otro rubro")
-    void detectarShouldPreferLongerTerms() {
+    void executeShouldPreferLongerTerms() {
         Optional<KitRubro> kit = detectar("vendo frutos secos en mi almacén");
 
         thenKitIs(kit, "dietetica");
@@ -79,7 +81,7 @@ class RubroTallerServiceTest {
 
     @Test
     @DisplayName("Ante un empate gana el kit que figura primero")
-    void detectarShouldBreakTiesByOrder() {
+    void executeShouldBreakTiesByOrder() {
         Optional<KitRubro> kit = detectar("kiosco y ferretería");
 
         thenKitIs(kit, "almacen");
@@ -87,10 +89,10 @@ class RubroTallerServiceTest {
 
     @Test
     @DisplayName("Sin kits o con un mensaje vacío no elige nada")
-    void detectarShouldReturnEmptyWithoutKitsOrMessage() {
-        Optional<KitRubro> sinKits = new RubroTallerService(new KitsRubro(List.of()))
-                .detectar("vendo velas", SIN_NOMBRE, List.of());
-        Optional<KitRubro> sinMensaje = rubroTallerService.detectar(null, SIN_NOMBRE, List.of());
+    void executeShouldReturnEmptyWithoutKitsOrMessage() {
+        Optional<KitRubro> sinKits = new TallerDePrueba(new KitsRubro(List.of()))
+                .rubro("vendo velas", SIN_NOMBRE, List.of());
+        Optional<KitRubro> sinMensaje = taller.rubro(null, SIN_NOMBRE, List.of());
 
         assertThat(sinKits).isEmpty();
         assertThat(sinMensaje).isEmpty();
@@ -98,7 +100,7 @@ class RubroTallerServiceTest {
 
     // --- act ---
     private Optional<KitRubro> detectar(String mensaje) {
-        return rubroTallerService.detectar(mensaje, SIN_NOMBRE, List.of());
+        return taller.rubro(mensaje, SIN_NOMBRE, List.of());
     }
 
     // --- assert ---

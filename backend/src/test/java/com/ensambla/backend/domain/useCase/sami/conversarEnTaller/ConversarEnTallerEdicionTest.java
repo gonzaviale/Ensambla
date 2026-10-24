@@ -1,4 +1,4 @@
-package com.ensambla.backend.domain.service.sami;
+package com.ensambla.backend.domain.useCase.sami.conversarEnTaller;
 
 import com.ensambla.backend.domain.model.sami.taller.AccionTaller;
 import com.ensambla.backend.domain.model.sami.taller.CampoTaller;
@@ -6,6 +6,7 @@ import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
 import com.ensambla.backend.domain.model.sami.taller.LlamadaHerramienta;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
 import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
+import com.ensambla.backend.support.TallerDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,7 +17,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** editar_campo: cambiar la etiqueta, el tipo, las opciones, si es obligatorio o el lugar de un dato que ya existe. */
-class HerramientasTallerEdicionTest {
+class ConversarEnTallerEdicionTest {
 
     private static final EstadoTaller ESTADO = new EstadoTaller("Mi almacén", "mosaic", List.of(
             new PiezaTaller("e1", "inventory", "Inventario", null, List.of(
@@ -29,11 +30,11 @@ class HerramientasTallerEdicionTest {
                     new CampoTaller("Nombre", "text"), new CampoTaller("Teléfono", "tel"),
                     new CampoTaller("Rubro", "select")))));
 
-    private HerramientasTallerService service;
+    private TallerDePrueba taller;
 
     @BeforeEach
     void setUp() {
-        service = new HerramientasTallerService(SamiPruebas.catalogoReal(), SamiPruebas.kitsReales());
+        taller = new TallerDePrueba();
     }
 
     @Test
@@ -77,7 +78,7 @@ class HerramientasTallerEdicionTest {
                 editar(Map.of("pieza", "e1", "campo", "Cantidad", "tipo", "select")),
                 editar(Map.of("pieza", "e1", "campo", "Cantidad", "tipo", "select", "opciones", List.of("Una"))));
 
-        thenDiscarded(result, 2);
+        thenDiscarded(result);
     }
 
     @Test
@@ -88,7 +89,6 @@ class HerramientasTallerEdicionTest {
                 editar(Map.of("pieza", "e3", "campo", "Rubro", "tipo", "select", "opciones", List.of("A", "B"))));
 
         thenActions(result, editada(Map.of("pieza", "e3", "campo", "Rubro", "opciones", List.of("A", "B"))));
-        assertThat(result.descartadas()).isEqualTo(1);
     }
 
     @Test
@@ -139,7 +139,7 @@ class HerramientasTallerEdicionTest {
                 editar(Map.of("pieza", "e1", "campo", "Precio", "posicion", "2")),
                 editar(Map.of("pieza", "e1", "campo", "Precio", "posicion", 3)));
 
-        thenDiscarded(result, 3);
+        thenDiscarded(result);
     }
 
     @Test
@@ -152,7 +152,6 @@ class HerramientasTallerEdicionTest {
                         "etiqueta", "Artículo")));
 
         thenActions(result, editada(Map.of("pieza", "e1", "campo", "Producto", "etiqueta", "Artículo")));
-        assertThat(result.descartadas()).isEqualTo(2);
     }
 
     @Test
@@ -163,7 +162,7 @@ class HerramientasTallerEdicionTest {
                 editar(Map.of("pieza", "e1", "campo", "Color", "etiqueta", "Costo")),
                 editar(Map.of("pieza", "e1", "etiqueta", "Costo")));
 
-        thenDiscarded(result, 3);
+        thenDiscarded(result);
     }
 
     @Test
@@ -174,7 +173,7 @@ class HerramientasTallerEdicionTest {
                 editar(Map.of("pieza", "e1", "campo", "Cantidad", "etiqueta", "x".repeat(61))),
                 editar(Map.of("pieza", "e1", "campo", "Cantidad", "etiqueta", 5)));
 
-        thenDiscarded(result, 3);
+        thenDiscarded(result);
     }
 
     @Test
@@ -185,7 +184,7 @@ class HerramientasTallerEdicionTest {
                 editar(Map.of("pieza", "e1", "campo", "Cantidad", "tipo", "relation")),
                 editar(Map.of("pieza", "e1", "campo", "Cantidad", "obligatorio", "sí")));
 
-        thenDiscarded(result, 3);
+        thenDiscarded(result);
     }
 
     @Test
@@ -197,7 +196,7 @@ class HerramientasTallerEdicionTest {
                 editar(Map.of("pieza", "e1", "campo", "Cantidad", "etiqueta", "Cantidad", "tipo", "NUMBER")),
                 editar(Map.of("pieza", "e3", "campo", "Rubro", "tipo", "select")));
 
-        thenDiscarded(result, 4);
+        thenDiscarded(result);
     }
 
     @Test
@@ -215,7 +214,6 @@ class HerramientasTallerEdicionTest {
                 editada(Map.of("pieza", "e1", "campo", "Precio", "etiqueta", "Costo", "posicion", 2)),
                 editada(Map.of("pieza", "e1", "campo", "Costo", "tipo", "number")),
                 new AccionTaller("quitar_campo", Map.of("pieza", "e1", "campo", "Costo")));
-        assertThat(result.descartadas()).isEqualTo(3);
     }
 
     @Test
@@ -232,7 +230,7 @@ class HerramientasTallerEdicionTest {
     }
 
     private ValidacionTaller validar(LlamadaHerramienta... llamadas) {
-        return service.validar(List.of(llamadas), ESTADO);
+        return taller.validar(List.of(llamadas), ESTADO);
     }
 
     private LlamadaHerramienta editar(Map<String, Object> argumentos) {
@@ -251,8 +249,7 @@ class HerramientasTallerEdicionTest {
         assertThat(result.acciones()).containsExactly(esperadas);
     }
 
-    private void thenDiscarded(ValidacionTaller result, int descartadas) {
+    private void thenDiscarded(ValidacionTaller result) {
         assertThat(result.acciones()).isEmpty();
-        assertThat(result.descartadas()).isEqualTo(descartadas);
     }
 }

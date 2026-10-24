@@ -5,7 +5,7 @@ import com.ensambla.backend.domain.model.sami.ColumnaSugerida;
 import com.ensambla.backend.domain.model.sami.ConsultaIaSami;
 import com.ensambla.backend.domain.model.sami.ConsumoIaSami;
 import com.ensambla.backend.domain.model.sami.PropuestaIaSami;
-import com.ensambla.backend.domain.service.sami.SamiPruebas;
+import com.ensambla.backend.support.SamiPruebas;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

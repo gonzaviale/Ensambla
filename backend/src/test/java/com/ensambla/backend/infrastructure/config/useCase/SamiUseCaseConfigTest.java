@@ -1,15 +1,15 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.model.sami.DiccionarioSami;
-import com.ensambla.backend.domain.model.sami.taller.RespuestaTaller;
+import com.ensambla.backend.domain.model.sami.ConsumoIaSami;
+import com.ensambla.backend.domain.model.sami.PropuestaIaSami;
+import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
+import com.ensambla.backend.domain.port.SamiIaPort;
+import com.ensambla.backend.domain.port.TallerIaPort;
+import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
+import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plantilla.PlantillaService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
-import com.ensambla.backend.domain.service.sami.ConversacionSamiService;
-import com.ensambla.backend.domain.service.sami.InterpretacionSamiService;
-import com.ensambla.backend.domain.service.sami.RespaldoIaSamiService;
-import com.ensambla.backend.domain.service.sami.SamiPruebas;
-import com.ensambla.backend.domain.service.sami.TallerSamiService;
 import com.ensambla.backend.domain.useCase.proyecto.ProyectoItem;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiRequest;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiResponse;
@@ -19,6 +19,7 @@ import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.EstadoTallerIt
 import com.ensambla.backend.domain.useCase.sami.crearProyectoDesdeSami.CrearProyectoDesdeSamiRequest;
 import com.ensambla.backend.infrastructure.ia.SamiProperties;
 import com.ensambla.backend.support.ProyectoTestData;
+import com.ensambla.backend.support.SamiPruebas;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -36,28 +37,28 @@ import static org.mockito.Mockito.when;
 class SamiUseCaseConfigTest {
 
     private static final UUID USUARIO_ID = UUID.randomUUID();
+    private static final ConsumoIaSami CONSUMO = new ConsumoIaSami("simulado", "rapido", 1, 1);
 
     private final SamiUseCaseConfig config = new SamiUseCaseConfig();
+    private final NegocioService negocioService = mock(NegocioService.class);
+    private final ConsumoSamiRepository consumoSamiRepository = mock(ConsumoSamiRepository.class);
 
     @Test
     @DisplayName("El wiring de la conversación usa el umbral y el máximo de preguntas configurados")
-    void conversarConSamiUseCaseShouldWireServicesAndProperties() {
-        ConversarConSamiResponse response = whenConversing(propiedades(3), "vendo velas");
+    void conversarConSamiUseCaseShouldWireDictionaryAndProperties() {
+        ConversarConSamiResponse response = whenConversing(propiedades(3), mock(SamiIaPort.class));
 
         assertThat(response.tipo()).isEqualTo("PREGUNTA");
     }
 
     @Test
-    @DisplayName("Con el máximo de preguntas en cero consulta a la IA sin preguntar")
-    void conversarConSamiUseCaseShouldUseConfiguredMaxQuestions() {
-        RespaldoIaSamiService respaldo = mock(RespaldoIaSamiService.class);
-        when(respaldo.proponer(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(7)))
-                .thenReturn(new com.ensambla.backend.domain.model.sami.InterpretacionSami(
-                        null, "Ventas", List.of(), 0.9, List.of()));
+    @DisplayName("Con el máximo de preguntas en cero consulta a la IA con el límite diario configurado")
+    void conversarConSamiUseCaseShouldUseConfiguredMaxQuestionsAndLimit() {
+        SamiIaPort samiIaPort = mock(SamiIaPort.class);
+        when(samiIaPort.proponer(any())).thenReturn(new PropuestaIaSami("Ventas", List.of(), 0.9, CONSUMO));
+        when(consumoSamiRepository.reservar(any(), any(), eq(7), any())).thenReturn(true);
 
-        ConversarConSamiResponse response = whenConversing(propiedades(0), "vendo velas", respaldo);
+        ConversarConSamiResponse response = whenConversing(propiedades(0), samiIaPort);
 
         assertThat(response.propuesta().origen()).isEqualTo("IA");
     }
@@ -65,7 +66,6 @@ class SamiUseCaseConfigTest {
     @Test
     @DisplayName("El wiring de crear proyecto conecta negocio, plantilla y proyecto con el mapper")
     void crearProyectoDesdeSamiUseCaseShouldWireServicesAndMapper() {
-        NegocioService negocioService = mock(NegocioService.class);
         PlantillaService plantillaService = mock(PlantillaService.class);
         ProyectoService proyectoService = mock(ProyectoService.class);
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(ProyectoTestData.NEGOCIO_ID);
@@ -84,16 +84,15 @@ class SamiUseCaseConfigTest {
 
     @Test
     @DisplayName("El wiring del taller usa el límite diario propio del taller")
-    void conversarEnTallerUseCaseShouldWireServiceAndTallerLimit() {
-        NegocioService negocioService = mock(NegocioService.class);
-        TallerSamiService tallerSamiService = mock(TallerSamiService.class);
+    void conversarEnTallerUseCaseShouldWireTallerLimit() {
+        TallerIaPort tallerIaPort = mock(TallerIaPort.class);
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(UUID.randomUUID());
-        when(tallerSamiService.conversar(any(), eq("hola"), any(), any(), any(), any(), eq(11)))
-                .thenReturn(new RespuestaTaller("Hola", List.of(), List.of()));
+        when(consumoSamiRepository.reservar(any(), any(), eq(11), any())).thenReturn(true);
+        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa("Hola", List.of(), CONSUMO));
 
-        ConversarEnTallerResponse response = config.conversarEnTaller(
-                        negocioService, tallerSamiService, Clock.systemUTC(),
-                        propiedades(3))
+        ConversarEnTallerResponse response = config.conversarEnTaller(negocioService, tallerIaPort,
+                        consumoSamiRepository, SamiPruebas.catalogoReal(), SamiPruebas.kitsReales(),
+                        Clock.systemUTC(), propiedades(3))
                 .execute(new ConversarEnTallerRequest(
                         USUARIO_ID, "hola", new EstadoTallerItem("", "mosaic", List.of()), List.of(), null));
 
@@ -105,20 +104,11 @@ class SamiUseCaseConfigTest {
                 "simulado", "us-east-1", null, "rapido", "avanzado", Duration.ofSeconds(30), 700, 0.6, 400));
     }
 
-    private ConversarConSamiResponse whenConversing(SamiProperties properties, String texto) {
-        return whenConversing(properties, texto, mock(RespaldoIaSamiService.class));
-    }
-
-    private ConversarConSamiResponse whenConversing(SamiProperties properties, String texto,
-                                                    RespaldoIaSamiService respaldo) {
-        PlantillaService plantillaService = mock(PlantillaService.class);
-        when(plantillaService.listarParaProyecto()).thenReturn(SamiPruebas.plantillas());
-        NegocioService negocioService = mock(NegocioService.class);
-        DiccionarioSami diccionario = SamiPruebas.diccionarioReal();
-        ConversacionSamiService conversacion =
-                new ConversacionSamiService(new InterpretacionSamiService(diccionario), diccionario);
-        return config.conversarConSami(
-                        negocioService, plantillaService, conversacion, respaldo, Clock.systemUTC(), properties)
-                .execute(new ConversarConSamiRequest(UUID.randomUUID(), texto, List.of()));
+    private ConversarConSamiResponse whenConversing(SamiProperties properties, SamiIaPort samiIaPort) {
+        PlantillaRepository plantillaRepository = mock(PlantillaRepository.class);
+        when(plantillaRepository.findAllParaProyectoActivas()).thenReturn(SamiPruebas.plantillas());
+        return config.conversarConSami(negocioService, plantillaRepository, SamiPruebas.diccionarioReal(), samiIaPort,
+                        consumoSamiRepository, Clock.systemUTC(), properties)
+                .execute(new ConversarConSamiRequest(UUID.randomUUID(), "vendo velas", List.of()));
     }
 }

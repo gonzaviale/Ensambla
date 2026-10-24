@@ -1,13 +1,13 @@
-package com.ensambla.backend.domain.service.sami;
+package com.ensambla.backend.domain.useCase.sami.conversarConSami;
 
 import com.ensambla.backend.domain.model.campo.TipoCampo;
-import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.BloquePlantilla;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.CampoPlantilla;
+import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla;
 import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
-import com.ensambla.backend.domain.model.sami.ColumnaSugerida;
 import com.ensambla.backend.domain.model.sami.DiccionarioSami;
-import com.ensambla.backend.domain.model.sami.InterpretacionSami;
+import com.ensambla.backend.domain.useCase.sami.ColumnaSamiItem;
+import com.ensambla.backend.support.SamiPruebas;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -36,12 +37,12 @@ class AciertoSamiTest {
     private static final double META_PRECISION_DE_LAS_DECIDIDAS = 0.90;
     private static final int MINIMO_DE_FRASES = 40;
 
-    private InterpretacionSamiService service;
+    private DiccionarioSami diccionario;
     private List<PlantillaProyecto> plantillas;
 
     @BeforeEach
     void setUp() throws IOException {
-        service = new InterpretacionSamiService(leer("/ia/sami-diccionario.json", DiccionarioSami.class));
+        diccionario = leer("/ia/sami-diccionario.json", DiccionarioSami.class);
         plantillas = List.of(
                 plantilla("Inventario", "Nombre:TEXTO", "Stock:NUMERO", "Rubro:OPCION"),
                 plantilla("Pedidos", "Cliente:TEXTO", "Entrega:FECHA", "Entregado:SI_NO"),
@@ -52,7 +53,7 @@ class AciertoSamiTest {
 
     @Test
     @DisplayName("El algoritmo propio acierta la plantilla en al menos el 80 % de las frases de prueba")
-    void interpretarShouldGuessTemplateInAtLeastEightyPercentOfPhrases() throws IOException {
+    void executeShouldGuessTemplateInAtLeastEightyPercentOfPhrases() throws IOException {
         List<FraseDePrueba> frases = frases();
 
         Resultado resultado = medir(frases);
@@ -64,7 +65,7 @@ class AciertoSamiTest {
 
     @Test
     @DisplayName("Lo que el algoritmo da por resuelto casi siempre es correcto y lo vago no se da por resuelto")
-    void interpretarShouldOnlyDecideWhenSure() throws IOException {
+    void executeShouldOnlyDecideWhenSure() throws IOException {
         Resultado resultado = medir(frases());
 
         assertThat(resultado.precisionDeLasDecididas()).as(resultado.reporte())
@@ -83,15 +84,17 @@ class AciertoSamiTest {
         int columnasSugeridas = 0;
         List<String> errores = new ArrayList<>();
         for (FraseDePrueba frase : frases) {
-            InterpretacionSami resultado = service.interpretar(frase.texto(), plantillas, List.of());
-            boolean decidida = resultado.alcanza(UMBRAL);
-            boolean correcta = Objects.equals(resultado.plantilla(), frase.plantilla());
+            Optional<PropuestaSamiItem> resultado = SamiPruebas.interpretar(diccionario, frase.texto(), plantillas);
+            String plantilla = resultado.map(PropuestaSamiItem::plantilla).orElse(null);
+            double confianza = resultado.map(PropuestaSamiItem::confianza).orElse(0.0);
+            boolean decidida = plantilla != null && confianza >= UMBRAL;
+            boolean correcta = Objects.equals(plantilla, frase.plantilla());
             if (frase.plantilla() == null) {
                 vagasDecididas += decidida ? 1 : 0;
             } else {
                 conPlantilla++;
                 aciertos += correcta ? 1 : 0;
-                Set<String> sugeridas = nombres(resultado.columnasExtra());
+                Set<String> sugeridas = nombres(resultado.map(PropuestaSamiItem::columnas).orElse(List.of()));
                 columnasEsperadas += frase.columnas().size();
                 columnasSugeridas += sugeridas.size();
                 columnasAcertadas += (int) frase.columnas().stream().filter(sugeridas::contains).count();
@@ -102,14 +105,14 @@ class AciertoSamiTest {
             }
             if (!correcta) {
                 errores.add("  - «%s»: esperaba %s, dio %s (%.2f)"
-                        .formatted(frase.texto(), frase.plantilla(), resultado.plantilla(), resultado.confianza()));
+                        .formatted(frase.texto(), frase.plantilla(), plantilla, confianza));
             }
         }
         return new Resultado(frases.size(), conPlantilla, aciertos, decididas, decididasCorrectas, vagasDecididas,
                 columnasEsperadas, columnasAcertadas, columnasSugeridas, errores);
     }
 
-    private Set<String> nombres(List<ColumnaSugerida> columnas) {
+    private Set<String> nombres(List<ColumnaSamiItem> columnas) {
         Set<String> nombres = new HashSet<>();
         columnas.forEach(columna -> nombres.add(columna.nombre()));
         return nombres;

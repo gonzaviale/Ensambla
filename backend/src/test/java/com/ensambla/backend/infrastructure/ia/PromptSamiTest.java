@@ -1,7 +1,7 @@
 package com.ensambla.backend.infrastructure.ia;
 
 import com.ensambla.backend.domain.model.sami.ConsultaIaSami;
-import com.ensambla.backend.domain.service.sami.SamiPruebas;
+import com.ensambla.backend.support.SamiPruebas;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ByteArrayResource;
