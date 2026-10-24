@@ -1,3 +1,4 @@
+import { useAbrirAvisos } from '@/hooks/avisos/useAbrirAvisos';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { Btn } from '../Btn';
 import { Icon } from '../Icon';
@@ -8,7 +9,7 @@ export function FranjaDeSami({ sistemaId }: { sistemaId: string }) {
   const avisos = useSistemaStore((estado) => estado.avisos).filter(
     (aviso) => aviso.sistemaId === sistemaId,
   );
-  const abrirPanel = useSistemaStore((estado) => estado.abrirPanel);
+  const abrirAvisos = useAbrirAvisos();
 
   if (!avisos.length) {
     return (
@@ -36,7 +37,7 @@ export function FranjaDeSami({ sistemaId }: { sistemaId: string }) {
               key={aviso.id}
               type="button"
               className={`sami-chip p${aviso.prioridad}`}
-              onClick={() => abrirPanel(aviso.id)}
+              onClick={() => void abrirAvisos(aviso.id)}
             >
               <Icon name={ICONO_DE_AVISO[aviso.tipo]} />
               <span>{aviso.titulo}</span>
@@ -44,7 +45,7 @@ export function FranjaDeSami({ sistemaId }: { sistemaId: string }) {
           ))}
         </div>
       </div>
-      <Btn cls="soft small" onClick={() => abrirPanel()}>
+      <Btn cls="soft small" onClick={() => void abrirAvisos()}>
         Ver {avisos.length > 3 ? `los ${avisos.length}` : 'todo'} <Icon name="arrow" />
       </Btn>
     </section>

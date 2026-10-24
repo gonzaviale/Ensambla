@@ -10,9 +10,9 @@ export const ICONO_DE_AVISO: Record<TipoDeAviso, NombreDeIcono> = {
   consumo_zona: 'users',
 };
 
-/** Lo que dice el botón: lo que modifica los datos arranca con «Aplicar». */
+/** Lo que dice el botón: lo que modifica los datos arranca con «Aplicar», salvo sumar algo nuevo, que ya se entiende solo. */
 export function textoDeAccion(accion: AccionDeAviso) {
-  if (accion.tipo === 'aplicar' || accion.tipo === 'crear' || accion.tipo === 'servidor') {
+  if (accion.tipo === 'aplicar' || accion.tipo === 'servidor') {
     return `Aplicar: ${accion.texto.charAt(0).toLowerCase()}${accion.texto.slice(1)}`;
   }
   return accion.texto;

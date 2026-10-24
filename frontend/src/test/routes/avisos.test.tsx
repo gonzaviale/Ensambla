@@ -66,7 +66,7 @@ const sistemaActual = () => useSistemaStore.getState().sistemas[0];
 
 const abrirPanel = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(screen.getByRole('button', { name: /Avisos de Sami/ }));
-  return screen.findByRole('dialog', { name: /Lo que encontré en tus datos/ });
+  return screen.findByRole('region', { name: /Lo que encontré en tus datos/ }, ESPERA);
 };
 
 const tarjeta = (titulo: RegExp | string) => {
@@ -75,7 +75,7 @@ const tarjeta = (titulo: RegExp | string) => {
   return nodo;
 };
 
-describe('la campana y el panel de avisos', () => {
+describe('la campana y la pantalla de avisos', () => {
   it('invita a completar el comercio y lleva a la pantalla de configuración', async () => {
     const { user } = await abrirConDemo();
     await abrirPanel(user);
@@ -97,23 +97,34 @@ describe('la campana y el panel de avisos', () => {
     expect(within(campana).getByText('9')).toBeVisible();
   });
 
-  it('el panel agrupa, filtra y cierra con Esc devolviendo el foco a la campana', async () => {
+  it('la campana lleva a la pantalla de avisos, que agrupa y filtra', async () => {
     const { user } = await abrirConDemo();
 
     const panel = await abrirPanel(user);
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Lo que encontré en tus datos' }),
+    ).toBeVisible();
     expect(within(panel).getByText(/9 en total/)).toBeVisible();
     expect(within(panel).getByText(/12 comercios, sin nombres/)).toBeVisible();
     await user.click(within(panel).getByRole('button', { name: /Tu zona/ }));
     expect(panel.querySelectorAll('.alerta')).toHaveLength(2);
     await user.click(within(panel).getByRole('button', { name: /Urgentes/ }));
     expect(panel.querySelectorAll('.alerta.p1')).toHaveLength(0);
+  });
 
-    await user.keyboard('{Escape}');
-    await waitFor(
-      () => expect(screen.queryByRole('dialog', { name: /Lo que encontré/ })).toBeNull(),
-      ESPERA,
+  it('la pestaña «Avisos» de arriba abre la misma pantalla', async () => {
+    setupUsuarioConSesion();
+    renderApp('/inicio');
+    await verifyHeadingPresentAsync(/En qué puedo/);
+    const user = userEvent.setup();
+
+    await user.click(
+      within(screen.getByRole('navigation', { name: 'Principal' })).getByRole('button', {
+        name: 'Avisos',
+      }),
     );
-    expect(screen.getByRole('button', { name: /Avisos de Sami/ })).toHaveFocus();
+
+    expect(await screen.findByRole('region', { name: /Tus avisos/ }, ESPERA)).toBeVisible();
   });
 
   it('cada aviso dice por qué y ofrece Aplicar y Descartar', async () => {
@@ -155,7 +166,7 @@ describe('la campana y el panel de avisos', () => {
     );
   });
 
-  it('descartar oculta el aviso, se guarda en las preferencias y se puede restaurar', async () => {
+  it('descartar oculta el aviso y se guarda en las preferencias', async () => {
     const { user, usuario } = await abrirConDemo();
     const panel = await abrirPanel(user);
     const antes = useSistemaStore.getState().avisos.length;
@@ -214,7 +225,7 @@ describe('la campana y el panel de avisos', () => {
 
     await user.click(
       within(tarjeta(/Leche La Serenísima 1 L y no lo tenés/)).getByRole('button', {
-        name: /Aplicar: sumar a mi inventario/,
+        name: 'Sumar a mi inventario',
       }),
     );
 
@@ -237,7 +248,7 @@ describe('la campana y el panel de avisos', () => {
       within(tarjeta(/Alfajor Jorgito y Galletitas Criollitas 3 U se venden juntos/)).getByRole(
         'button',
         {
-          name: /Aplicar: crear el combo/,
+          name: 'Crear el combo',
         },
       ),
     );
@@ -247,35 +258,27 @@ describe('la campana y el panel de avisos', () => {
     ).toMatchObject({ price: 1850 });
   });
 
-  it('se le pueden hacer preguntas a Sami', async () => {
+  it('«Preguntale a Sami» lleva al taller de Sami', async () => {
     const { user } = await abrirConDemo();
     const panel = await abrirPanel(user);
 
-    await user.type(
-      within(panel).getByLabelText('Preguntale a Sami'),
-      '¿Cuánto cobran la yerba en mi zona?',
-    );
-    await user.click(within(panel).getByRole('button', { name: 'Preguntar' }));
+    await user.click(within(panel).getByRole('button', { name: /Preguntale a Sami/ }));
 
-    expect(await within(panel).findByText(/va de \$ 3\.500 a \$ 4\.300/)).toBeVisible();
-    expect(within(panel).getByText('11 comercios · de $ 3.500 a $ 4.300')).toBeVisible();
-    await user.click(within(panel).getByRole('button', { name: 'Volver a todos los avisos' }));
-    expect(panel.querySelectorAll('.alerta').length).toBeGreaterThan(0);
-
-    await user.click(within(panel).getByRole('button', { name: '¿Qué tengo que reponer?' }));
-    expect(await within(panel).findByText(/Tenés 3 productos para reponer/)).toBeVisible();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Lo armamos juntos.' }, ESPERA),
+    ).toBeVisible();
   });
 });
 
 describe('sin datos y con el almacén de ejemplo', () => {
-  it('sin sistemas, el panel lo dice y ofrece probar con un almacén de ejemplo', async () => {
+  it('sin sistemas, la pantalla lo dice y ofrece probar con un almacén de ejemplo', async () => {
     setupUsuarioConSesion();
     renderApp('/inicio');
     await verifyHeadingPresentAsync(/En qué puedo/);
     const user = userEvent.setup();
 
     await user.click(screen.getByRole('button', { name: /Avisos de Sami/ }));
-    const panel = await screen.findByRole('dialog', { name: /Tus avisos/ });
+    const panel = await screen.findByRole('region', { name: /Tus avisos/ }, ESPERA);
     expect(within(panel).getByText('Todavía no tengo datos para mirar.')).toBeVisible();
     await user.click(
       within(panel).getByRole('button', { name: 'Probar con un almacén de ejemplo' }),
@@ -293,7 +296,7 @@ describe('sin datos y con el almacén de ejemplo', () => {
     expect(within(franja).getByText('Encontré 9 cosas para mirar.')).toBeVisible();
     expect(franja.querySelectorAll('.sami-chip')).toHaveLength(3);
     await user.click(within(franja).getAllByRole('button')[0] as HTMLElement);
-    expect(await screen.findByRole('dialog', { name: /Lo que encontré/ })).toBeVisible();
+    expect(await screen.findByRole('region', { name: /Lo que encontré/ }, ESPERA)).toBeVisible();
   });
 
   it('en construir no hay franja: sigue la barra de distribución', async () => {
@@ -341,7 +344,7 @@ describe('«Sami vio un cambio»', () => {
     expect(within(aviso).getByText('Coca-Cola 2,25 L está por debajo del mínimo')).toBeVisible();
 
     await clickButton(userEvent.setup(), 'Ver el aviso');
-    expect(await screen.findByRole('dialog', { name: /Lo que encontré/ })).toBeVisible();
+    expect(await screen.findByRole('region', { name: /Lo que encontré/ }, ESPERA)).toBeVisible();
     expect(document.querySelector('.alerta.foco')).toHaveTextContent(
       'Coca-Cola 2,25 L está por debajo del mínimo',
     );
@@ -365,7 +368,7 @@ describe('los avisos del motor del servidor', () => {
     return { user: userEvent.setup(), usuario };
   };
 
-  it('aparecen en la campana y en el panel junto con los del navegador', async () => {
+  it('aparecen en la campana y en la pantalla junto con los del navegador', async () => {
     const { user } = await abrirConAvisosDelServidor(avisoDelServidor());
 
     await waitFor(

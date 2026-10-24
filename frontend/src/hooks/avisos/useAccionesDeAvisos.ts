@@ -1,4 +1,4 @@
-import { responder, type AccionDeAviso, type Aviso } from '@/lib/sistema/alertas';
+import type { AccionDeAviso, Aviso } from '@/lib/sistema/alertas';
 import { findBlock, id as nuevoId } from '@/lib/sistema/core';
 import { crearAlmacenDeEjemplo } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
@@ -6,18 +6,16 @@ import { useAplicarAviso, useDescartarAviso } from '@/hooks/avisos/mutations';
 import { useGuardarPreferencias } from '@/hooks/preferencias/mutations';
 import { usePreferencias } from '@/hooks/preferencias/queries';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
-import { useZona } from '@/hooks/zona/queries';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
 const MAXIMO_DE_DESCARTADOS = 200;
 
-// Lo que se puede hacer con un aviso: aplicarlo, abrirlo, descartarlo, preguntarle a Sami o apagar un grupo.
+// Lo que se puede hacer con un aviso: aplicarlo, abrirlo, descartarlo o apagar un grupo.
 export function useAccionesDeAvisos() {
   const preferencias = usePreferencias();
   const guardarPreferencias = useGuardarPreferencias();
   const aplicarEnServidor = useAplicarAviso();
   const descartarEnServidor = useDescartarAviso();
-  const zona = useZona();
   const navegacion = useNavegacion();
 
   // Abre el sistema, va a la sección del bloque, lo resalta y, si hace falta, abre el formulario.
@@ -68,17 +66,14 @@ export function useAccionesDeAvisos() {
         store.avisar(accion.confirmacion);
         break;
       case 'registrar':
-        store.cerrarPanel();
         store.ocultarAvisoNuevo();
         void irAlBloque(accion.sistemaId, accion.bloqueId, { nuevoRegistro: true });
         break;
       case 'abrir':
-        store.cerrarPanel();
         store.ocultarAvisoNuevo();
         void irAlBloque(accion.sistemaId, accion.bloqueId, { filaId: accion.filaId });
         break;
       case 'zona':
-        store.cerrarPanel();
         store.ocultarAvisoNuevo();
         void navegacion.irAZona();
         break;
@@ -105,13 +100,7 @@ export function useAccionesDeAvisos() {
     });
   };
 
-  const preguntar = (pregunta: string) => {
-    const store = useSistemaStore.getState();
-    store.actualizarPanel({ respuesta: responder(pregunta, { zona, avisos: store.avisos }) });
-  };
-
   const crearDemo = () => {
-    useSistemaStore.getState().cerrarPanel();
     void navegacion.crearYAbrir(crearAlmacenDeEjemplo(hoy()), 'use');
     useSistemaStore.getState().avisar('Creamos un almacén de ejemplo. Sami ya lo está mirando.');
   };
@@ -119,7 +108,6 @@ export function useAccionesDeAvisos() {
   return {
     ejecutar,
     descartar,
-    preguntar,
     crearDemo,
   };
 }

@@ -1,3 +1,4 @@
+import { useAbrirAvisos } from '@/hooks/avisos/useAbrirAvisos';
 import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { Campana } from './avisos/Campana';
@@ -9,6 +10,7 @@ export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
   const sistemas = useSistemaStore((estado) => estado.sistemas.length);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const navegacion = useNavegacion();
+  const abrirAvisos = useAbrirAvisos();
 
   return (
     <TopBar
@@ -20,6 +22,7 @@ export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
       onSistemas={() => void navegacion.irAMisSistemas()}
       onPlantillas={() => void navegacion.irAPlantillas()}
       onZona={() => void navegacion.irAZona()}
+      onAvisos={() => void abrirAvisos()}
       onPlanes={() => void navegacion.irAPlanes()}
       onAyuda={() => abrirModal({ tipo: 'ayuda' })}
       onCuenta={() => void navegacion.irACuenta()}

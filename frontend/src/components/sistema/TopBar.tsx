@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Icon } from './Icon';
 import { Logo } from './Logo';
 
-export type SeccionActiva = 'home' | 'templates' | 'zone' | 'plans' | 'account';
+export type SeccionActiva = 'home' | 'templates' | 'zone' | 'avisos' | 'plans' | 'account';
 
 type TopBarProps = {
   active?: SeccionActiva;
@@ -14,6 +14,7 @@ type TopBarProps = {
   onSistemas: () => void;
   onPlantillas: () => void;
   onZona: () => void;
+  onAvisos: () => void;
   onPlanes: () => void;
   onAyuda: () => void;
   onCuenta: () => void;
@@ -29,6 +30,7 @@ export function TopBar({
   onSistemas,
   onPlantillas,
   onZona,
+  onAvisos,
   onPlanes,
   onAyuda,
   onCuenta,
@@ -47,6 +49,14 @@ export function TopBar({
         </button>
         <button type="button" onClick={onSistemas}>
           Mi Negocio{sistemas ? ` · ${sistemas}` : ''}
+        </button>
+        <button
+          type="button"
+          className={active === 'avisos' ? 'active' : ''}
+          aria-current={active === 'avisos' ? 'page' : undefined}
+          onClick={onAvisos}
+        >
+          Avisos
         </button>
         <button
           type="button"

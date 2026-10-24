@@ -1,3 +1,4 @@
+import { useAbrirAvisos } from '@/hooks/avisos/useAbrirAvisos';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { Icon } from '../Icon';
 
@@ -6,7 +7,7 @@ export function Campana() {
   const avisos = useSistemaStore((estado) => estado.avisos);
   const bloqueados = useSistemaStore((estado) => estado.accesoAvisos?.bloqueadas ?? 0);
   const total = avisos.length + bloqueados;
-  const abrirPanel = useSistemaStore((estado) => estado.abrirPanel);
+  const abrirAvisos = useAbrirAvisos();
   const urgente = avisos.some((aviso) => aviso.prioridad >= 2);
 
   return (
@@ -15,7 +16,7 @@ export function Campana() {
       className={`alert-bell ${urgente ? 'urgente' : ''}`.trim()}
       aria-label={`Avisos de Sami: ${total}${bloqueados ? `, ${bloqueados} disponibles con Premium` : ''}`}
       title="Avisos de Sami"
-      onClick={() => abrirPanel()}
+      onClick={() => void abrirAvisos()}
     >
       <Icon name="bell" />
       {total > 0 && <span className="alert-badge">{total > 9 ? '9+' : total}</span>}
