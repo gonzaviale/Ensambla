@@ -120,9 +120,6 @@ function Contenido({
           {verTodas ? 'Ver menos' : `Ver todas (${bloque.rows.length})`}
         </button>
       )}
-      {filas.some((fila) => fila.__example) && (
-        <p className="example-notice">Datos de ejemplo, no son reales</p>
-      )}
     </div>
   );
 }
@@ -239,13 +236,6 @@ export function PreviewBoard({
               </div>
             )}
             <Contenido bloque={bloque} sistema={sistema} compacto={compacto} />
-            {!compacto && (
-              <div className="preview-field-tags">
-                {bloque.fields.slice(0, 5).map((campo) => (
-                  <span key={campo.key}>{campo.label}</span>
-                ))}
-              </div>
-            )}
           </section>
         );
       })}
