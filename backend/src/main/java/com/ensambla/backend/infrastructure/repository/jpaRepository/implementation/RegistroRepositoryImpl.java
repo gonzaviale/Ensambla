@@ -1,7 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
 import com.ensambla.backend.domain.model.common.Pagina;
-import com.ensambla.backend.domain.model.enums.DireccionOrden;
+import com.ensambla.backend.domain.model.registro.DireccionOrden;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.reporte.FiltroReporte;

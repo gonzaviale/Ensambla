@@ -1,6 +1,5 @@
 package com.ensambla.backend.domain.model.campo;
 
-import com.ensambla.backend.domain.model.enums.TipoCampo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

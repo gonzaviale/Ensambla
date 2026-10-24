@@ -2,8 +2,8 @@ package com.ensambla.backend.infrastructure.repository.jpaRepository.implementat
 
 import java.math.BigDecimal;
 import com.ensambla.backend.domain.model.common.Pagina;
-import com.ensambla.backend.domain.model.enums.DireccionOrden;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.registro.DireccionOrden;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.support.PostgresDatosTestSupport;

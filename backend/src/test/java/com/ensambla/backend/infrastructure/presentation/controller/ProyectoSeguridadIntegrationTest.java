@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
-import com.ensambla.backend.domain.model.enums.CodigoPlan;
-import com.ensambla.backend.domain.model.enums.EstadoUsuario;
+import com.ensambla.backend.domain.model.plan.CodigoPlan;
+import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
 import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;

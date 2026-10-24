@@ -1,11 +1,11 @@
 package com.ensambla.backend.infrastructure.repository;
 
-import com.ensambla.backend.domain.model.enums.EstadoAviso;
-import com.ensambla.backend.domain.model.enums.EstadoLote;
-import com.ensambla.backend.domain.model.enums.EstadoUsuario;
-import com.ensambla.backend.domain.model.enums.GrupoAviso;
-import com.ensambla.backend.domain.model.enums.TipoAviso;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.model.lote.EstadoLote;
+import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
+import com.ensambla.backend.domain.model.aviso.GrupoAviso;
+import com.ensambla.backend.domain.model.aviso.TipoAviso;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.infrastructure.repository.entity.AgregadoZonaProductoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.AvisoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;

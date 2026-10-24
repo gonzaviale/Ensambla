@@ -4,7 +4,7 @@ import com.ensambla.backend.domain.dto.aviso.AvisoItem;
 import com.ensambla.backend.domain.dto.aviso.ContadorAvisos;
 import com.ensambla.backend.domain.dto.aviso.ListarAvisosRequest;
 import com.ensambla.backend.domain.dto.aviso.ResolverAvisoRequest;
-import com.ensambla.backend.domain.model.enums.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.infrastructure.presentation.dto.aviso.AvisoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.aviso.ContadorAvisosResponse;
 import org.springframework.stereotype.Component;

@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.model.registro;
 
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 
 import java.util.Comparator;
 import java.util.List;

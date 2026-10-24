@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.service.inventario;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
-import com.ensambla.backend.domain.model.enums.TipoMovimiento;
+import com.ensambla.backend.domain.model.inventario.TipoMovimiento;
 import com.ensambla.backend.domain.model.inventario.MovimientoStock;
 import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
 import org.junit.jupiter.api.DisplayName;

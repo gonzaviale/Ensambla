@@ -3,7 +3,7 @@ package com.ensambla.backend.domain.service.aviso.regla;
 import com.ensambla.backend.domain.model.aviso.BloqueInventario;
 import com.ensambla.backend.domain.model.aviso.ContextoNegocio;
 import com.ensambla.backend.domain.model.aviso.ResultadoRegla;
-import com.ensambla.backend.domain.model.enums.TipoAviso;
+import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import com.ensambla.backend.domain.model.registro.Registro;
 import org.springframework.stereotype.Component;
 

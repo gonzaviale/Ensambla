@@ -3,7 +3,7 @@ package com.ensambla.backend.domain.useCase.aviso;
 import com.ensambla.backend.domain.dto.aviso.AvisoItem;
 import com.ensambla.backend.domain.dto.aviso.ListarAvisosRequest;
 import com.ensambla.backend.domain.mapper.aviso.AvisoItemMapper;
-import com.ensambla.backend.domain.model.enums.TipoContenidoPlan;
+import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.service.aviso.AvisoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.AccesoContenidoService;

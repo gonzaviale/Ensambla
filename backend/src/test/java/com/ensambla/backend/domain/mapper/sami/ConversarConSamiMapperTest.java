@@ -2,7 +2,7 @@ package com.ensambla.backend.domain.mapper.sami;
 
 import com.ensambla.backend.domain.dto.sami.ConversarConSamiResponse;
 import com.ensambla.backend.domain.dto.sami.RespuestaSamiItem;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.sami.ColumnaSugerida;
 import com.ensambla.backend.domain.model.sami.InterpretacionSami;
 import com.ensambla.backend.domain.model.sami.OpcionSami;

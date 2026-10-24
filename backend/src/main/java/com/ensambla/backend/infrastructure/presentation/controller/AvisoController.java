@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.model.enums.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.useCase.aviso.AplicarAvisoUseCase;
 import com.ensambla.backend.domain.useCase.aviso.ContarAvisosUseCase;
 import com.ensambla.backend.domain.useCase.aviso.DescartarAvisoUseCase;

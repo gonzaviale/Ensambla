@@ -2,8 +2,6 @@ package com.ensambla.backend.domain.model.proyecto;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
-import com.ensambla.backend.domain.model.enums.DistribucionProyecto;
-import com.ensambla.backend.domain.model.enums.PlantillaSistema;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;

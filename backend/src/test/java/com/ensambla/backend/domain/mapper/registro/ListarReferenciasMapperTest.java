@@ -2,7 +2,7 @@ package com.ensambla.backend.domain.mapper.registro;
 
 import com.ensambla.backend.domain.dto.registro.ReferenciaItem;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.registro.Registro;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

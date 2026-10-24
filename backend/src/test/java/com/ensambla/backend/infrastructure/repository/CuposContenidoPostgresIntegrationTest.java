@@ -4,7 +4,7 @@ import com.ensambla.backend.domain.dto.plan.AccesoContenidoItem;
 import com.ensambla.backend.domain.dto.plan.DesbloquearContenidosRequest;
 import com.ensambla.backend.domain.dto.zona.ZonaItem;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
-import com.ensambla.backend.domain.model.enums.TipoContenidoPlan;
+import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.sistema.Sistema;

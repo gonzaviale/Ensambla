@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.repository;
 
 import com.ensambla.backend.domain.dto.auth.RegistrarUsuarioRequest;
-import com.ensambla.backend.domain.model.enums.CodigoPlan;
-import com.ensambla.backend.domain.model.enums.EstadoSuscripcion;
+import com.ensambla.backend.domain.model.plan.CodigoPlan;
+import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.model.usuario.Usuario;
 import com.ensambla.backend.domain.service.auth.RegistroService;

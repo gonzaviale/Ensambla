@@ -1,7 +1,7 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.model.enums.EstadoLote;
-import com.ensambla.backend.domain.model.enums.EstadoUsuario;
+import com.ensambla.backend.domain.model.lote.EstadoLote;
+import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;

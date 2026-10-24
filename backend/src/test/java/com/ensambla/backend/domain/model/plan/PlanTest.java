@@ -1,7 +1,6 @@
 package com.ensambla.backend.domain.model.plan;
 
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
-import com.ensambla.backend.domain.model.enums.FuncionPlan;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

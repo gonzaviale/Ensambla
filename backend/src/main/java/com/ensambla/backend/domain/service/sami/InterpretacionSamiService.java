@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.service.sami;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.BloquePlantilla;
 import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
 import com.ensambla.backend.domain.model.sami.ColumnaDiccionario;

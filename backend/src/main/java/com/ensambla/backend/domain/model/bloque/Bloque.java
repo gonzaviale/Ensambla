@@ -1,8 +1,5 @@
 package com.ensambla.backend.domain.model.bloque;
 
-import com.ensambla.backend.domain.model.enums.AnchoBloque;
-import com.ensambla.backend.domain.model.enums.ColorBloque;
-import com.ensambla.backend.domain.model.enums.TipoBloque;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;

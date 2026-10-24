@@ -1,6 +1,5 @@
 package com.ensambla.backend.domain.model.lectura;
 
-import com.ensambla.backend.domain.model.enums.TipoRegistroCuaderno;
 
 import java.util.List;
 

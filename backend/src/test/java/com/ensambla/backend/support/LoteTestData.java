@@ -1,6 +1,6 @@
 package com.ensambla.backend.support;
 
-import com.ensambla.backend.domain.model.enums.EstadoLote;
+import com.ensambla.backend.domain.model.lote.EstadoLote;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
 

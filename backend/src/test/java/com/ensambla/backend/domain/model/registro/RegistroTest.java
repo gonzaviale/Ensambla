@@ -3,7 +3,7 @@ package com.ensambla.backend.domain.model.registro;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.model.procesamiento;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 
 import java.util.HashSet;
 import java.util.List;

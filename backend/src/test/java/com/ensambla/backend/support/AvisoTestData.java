@@ -3,7 +3,7 @@ package com.ensambla.backend.support;
 import com.ensambla.backend.domain.model.aviso.BloqueInventario;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.TipoBloque;
+import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.registro.Registro;
 
 import java.util.LinkedHashMap;

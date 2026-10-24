@@ -1,4 +1,4 @@
-package com.ensambla.backend.domain.model.enums;
+package com.ensambla.backend.domain.model.bloque;
 
 public enum ColorBloque {
     NARANJA,

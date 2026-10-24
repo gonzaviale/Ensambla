@@ -4,7 +4,7 @@ import com.ensambla.backend.domain.dto.procesamiento.LeerImagenItem;
 import com.ensambla.backend.domain.dto.procesamiento.LeerImagenItem.CampoItem;
 import com.ensambla.backend.domain.dto.procesamiento.LeerImagenItem.DatoItem;
 import com.ensambla.backend.domain.dto.procesamiento.LeerImagenRequest;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
 import com.ensambla.backend.domain.model.lectura.DatoLeido;
 import com.ensambla.backend.domain.model.lectura.ImagenCuaderno;

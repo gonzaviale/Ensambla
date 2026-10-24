@@ -4,7 +4,7 @@ import com.ensambla.backend.domain.dto.aviso.ContadorAvisos;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.aviso.Aviso;
-import com.ensambla.backend.domain.model.enums.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

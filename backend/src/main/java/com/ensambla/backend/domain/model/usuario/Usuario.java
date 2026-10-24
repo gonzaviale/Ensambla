@@ -1,6 +1,5 @@
 package com.ensambla.backend.domain.model.usuario;
 
-import com.ensambla.backend.domain.model.enums.EstadoUsuario;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

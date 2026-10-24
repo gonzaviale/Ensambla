@@ -1,8 +1,8 @@
 package com.ensambla.backend.domain.dto.aviso;
 
-import com.ensambla.backend.domain.model.enums.EstadoAviso;
-import com.ensambla.backend.domain.model.enums.GrupoAviso;
-import com.ensambla.backend.domain.model.enums.TipoAviso;
+import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.GrupoAviso;
+import com.ensambla.backend.domain.model.aviso.TipoAviso;
 
 import java.time.OffsetDateTime;
 import java.util.List;

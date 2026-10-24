@@ -1,7 +1,6 @@
 package com.ensambla.backend.domain.model.inventario;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
-import com.ensambla.backend.domain.model.enums.TipoMovimiento;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

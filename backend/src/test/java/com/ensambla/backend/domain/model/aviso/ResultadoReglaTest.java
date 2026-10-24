@@ -1,6 +1,5 @@
 package com.ensambla.backend.domain.model.aviso;
 
-import com.ensambla.backend.domain.model.enums.TipoAviso;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

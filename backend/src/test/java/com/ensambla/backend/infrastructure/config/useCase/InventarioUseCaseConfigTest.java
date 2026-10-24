@@ -5,7 +5,7 @@ import com.ensambla.backend.domain.dto.inventario.ListarMovimientosRequest;
 import com.ensambla.backend.domain.dto.inventario.RegistrarMovimientoRequest;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.common.Pagina;
-import com.ensambla.backend.domain.model.enums.TipoMovimiento;
+import com.ensambla.backend.domain.model.inventario.TipoMovimiento;
 import com.ensambla.backend.domain.model.inventario.MovimientoStock;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.service.bloque.BloqueService;

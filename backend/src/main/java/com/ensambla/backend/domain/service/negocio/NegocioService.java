@@ -4,7 +4,7 @@ import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.negocio.UbicacionNegocio;
-import com.ensambla.backend.domain.model.enums.RubroNegocio;
+import com.ensambla.backend.domain.model.negocio.RubroNegocio;
 import com.ensambla.backend.domain.service.ubicacion.UbicacionService;
 import com.ensambla.backend.domain.service.zona.ZonaService;
 import lombok.RequiredArgsConstructor;

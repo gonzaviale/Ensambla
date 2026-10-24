@@ -1,7 +1,6 @@
 package com.ensambla.backend.domain.model.inventario;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
-import com.ensambla.backend.domain.model.enums.TipoMovimiento;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

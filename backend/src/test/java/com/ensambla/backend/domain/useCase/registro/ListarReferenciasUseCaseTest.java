@@ -6,7 +6,7 @@ import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.mapper.registro.ListarReferenciasMapper;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;

@@ -7,7 +7,7 @@ import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import org.junit.jupiter.api.DisplayName;

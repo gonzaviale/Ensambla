@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
-import com.ensambla.backend.domain.model.enums.TipoMovimiento;
+import com.ensambla.backend.domain.model.inventario.TipoMovimiento;
 import com.ensambla.backend.domain.model.inventario.MovimientoStock;
 import com.ensambla.backend.infrastructure.repository.entity.MovimientoStockEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IMovimientoStockJpaRepository;

@@ -1,8 +1,8 @@
 package com.ensambla.backend.domain.service.procesamiento;
 
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
-import com.ensambla.backend.domain.model.enums.TipoRegistroCuaderno;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
 import com.ensambla.backend.domain.model.lectura.BloquePropuesto;
 import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
 import com.ensambla.backend.domain.model.lectura.ConsumoIa;

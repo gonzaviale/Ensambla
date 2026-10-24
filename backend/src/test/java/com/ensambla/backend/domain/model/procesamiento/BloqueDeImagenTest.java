@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.model.procesamiento;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
 import com.ensambla.backend.domain.model.procesamiento.BloqueDeImagen.CampoDeImagen;
 import org.junit.jupiter.api.DisplayName;

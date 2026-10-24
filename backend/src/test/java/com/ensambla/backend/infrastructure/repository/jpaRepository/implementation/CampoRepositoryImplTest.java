@@ -1,7 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.ICampoJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.CampoRepositoryMapper;

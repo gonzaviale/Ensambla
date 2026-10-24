@@ -5,7 +5,7 @@ import com.ensambla.backend.domain.dto.campo.CrearCampoRequest;
 import com.ensambla.backend.domain.dto.campo.EditarCampoRequest;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

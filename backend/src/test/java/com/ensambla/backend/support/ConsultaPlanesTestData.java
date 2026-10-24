@@ -1,6 +1,6 @@
 package com.ensambla.backend.support;
 
-import com.ensambla.backend.domain.model.enums.CodigoPlan;
+import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.ConsultaPlanes;
 import com.ensambla.backend.domain.model.plan.Plan;
 import com.ensambla.backend.domain.model.plan.PruebaPremium;

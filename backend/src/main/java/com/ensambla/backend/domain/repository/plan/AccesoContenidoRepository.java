@@ -1,6 +1,6 @@
 package com.ensambla.backend.domain.repository.plan;
 
-import com.ensambla.backend.domain.model.enums.TipoContenidoPlan;
+import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;

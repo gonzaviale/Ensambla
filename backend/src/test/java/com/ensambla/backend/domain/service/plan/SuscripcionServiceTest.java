@@ -1,8 +1,8 @@
 package com.ensambla.backend.domain.service.plan;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.model.enums.CodigoPlan;
-import com.ensambla.backend.domain.model.enums.EstadoSuscripcion;
+import com.ensambla.backend.domain.model.plan.CodigoPlan;
+import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;

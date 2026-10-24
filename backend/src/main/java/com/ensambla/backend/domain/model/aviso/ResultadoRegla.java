@@ -1,6 +1,5 @@
 package com.ensambla.backend.domain.model.aviso;
 
-import com.ensambla.backend.domain.model.enums.TipoAviso;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;

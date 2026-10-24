@@ -1,6 +1,5 @@
 package com.ensambla.backend.domain.model.plan;
 
-import com.ensambla.backend.domain.model.enums.EstadoSuscripcion;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

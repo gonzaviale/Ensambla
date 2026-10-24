@@ -2,8 +2,8 @@ package com.ensambla.backend.domain.mapper.procesamiento;
 
 import com.ensambla.backend.domain.dto.procesamiento.LecturaItem;
 import com.ensambla.backend.domain.dto.procesamiento.PropuestaItem;
-import com.ensambla.backend.domain.model.enums.EstadoLote;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.lote.EstadoLote;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
 import com.ensambla.backend.domain.model.procesamiento.EstadoLectura;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;

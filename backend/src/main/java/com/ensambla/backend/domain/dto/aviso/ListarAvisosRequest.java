@@ -1,6 +1,6 @@
 package com.ensambla.backend.domain.dto.aviso;
 
-import com.ensambla.backend.domain.model.enums.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 
 import java.util.UUID;
 

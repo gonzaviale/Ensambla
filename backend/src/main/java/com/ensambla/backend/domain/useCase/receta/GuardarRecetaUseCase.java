@@ -3,7 +3,7 @@ package com.ensambla.backend.domain.useCase.receta;
 import com.ensambla.backend.domain.dto.receta.GuardarRecetaRequest;
 import com.ensambla.backend.domain.dto.receta.RecetaItem;
 import com.ensambla.backend.domain.mapper.receta.GuardarRecetaMapper;
-import com.ensambla.backend.domain.model.enums.FuncionPlan;
+import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.receta.Receta;
 import com.ensambla.backend.domain.model.receta.RecetaCosteada;
 import com.ensambla.backend.domain.model.registro.Registro;

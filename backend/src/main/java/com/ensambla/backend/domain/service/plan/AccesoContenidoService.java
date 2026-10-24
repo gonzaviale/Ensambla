@@ -2,7 +2,7 @@ package com.ensambla.backend.domain.service.plan;
 
 import com.ensambla.backend.domain.dto.plan.AccesoContenidoItem;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
-import com.ensambla.backend.domain.model.enums.TipoContenidoPlan;
+import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.repository.plan.AccesoContenidoRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import lombok.RequiredArgsConstructor;

@@ -2,7 +2,7 @@ package com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces;
 
 import java.util.stream.Collectors;
 import java.math.BigDecimal;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.infrastructure.repository.entity.RegistroEntity;
 import com.ensambla.backend.support.PostgresDatosTestSupport;
 import org.junit.jupiter.api.BeforeEach;

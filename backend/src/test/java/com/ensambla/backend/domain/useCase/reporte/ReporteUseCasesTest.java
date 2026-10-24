@@ -9,7 +9,7 @@ import com.ensambla.backend.domain.mapper.reporte.ExportarReporteMapper;
 import com.ensambla.backend.domain.mapper.reporte.GenerarReporteMapper;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.reporte.FiltroReporte;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;

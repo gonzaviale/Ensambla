@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
-import com.ensambla.backend.domain.model.enums.TipoMovimiento;
+import com.ensambla.backend.domain.model.inventario.TipoMovimiento;
 import com.ensambla.backend.domain.model.inventario.MovimientoStock;
 import com.ensambla.backend.infrastructure.repository.entity.MovimientoStockEntity;
 import org.junit.jupiter.api.DisplayName;

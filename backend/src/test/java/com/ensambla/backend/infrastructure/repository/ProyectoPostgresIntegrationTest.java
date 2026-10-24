@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.repository;
 
-import com.ensambla.backend.domain.model.enums.EstadoUsuario;
+import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.domain.service.plantilla.PlantillaService;

@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces;
 
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.RegistroEntity;
 import com.ensambla.backend.support.PostgresDatosTestSupport;

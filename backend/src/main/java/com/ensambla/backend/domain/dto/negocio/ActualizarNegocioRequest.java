@@ -1,6 +1,6 @@
 package com.ensambla.backend.domain.dto.negocio;
 
-import com.ensambla.backend.domain.model.enums.RubroNegocio;
+import com.ensambla.backend.domain.model.negocio.RubroNegocio;
 
 import java.util.UUID;
 

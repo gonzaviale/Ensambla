@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.ia;
 
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
-import com.ensambla.backend.domain.model.enums.TipoRegistroCuaderno;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
 import com.ensambla.backend.domain.model.lectura.CampoContexto;
 import com.ensambla.backend.domain.model.lectura.ConsumoIa;

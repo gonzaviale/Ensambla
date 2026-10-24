@@ -3,7 +3,7 @@ package com.ensambla.backend.domain.mapper.reporte;
 import com.ensambla.backend.domain.dto.reporte.ExportarReporteResponse;
 import com.ensambla.backend.domain.dto.reporte.GenerarReporteResponse;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.TotalesRegistros;
 import com.ensambla.backend.domain.model.reporte.ReporteRegistros;

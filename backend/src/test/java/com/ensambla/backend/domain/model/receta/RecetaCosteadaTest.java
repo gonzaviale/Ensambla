@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.model.receta;
 
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.registro.Registro;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

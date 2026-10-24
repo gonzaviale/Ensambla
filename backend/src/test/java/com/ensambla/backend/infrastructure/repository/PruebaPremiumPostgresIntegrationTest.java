@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.repository;
 
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
-import com.ensambla.backend.domain.model.enums.EstadoSuscripcion;
-import com.ensambla.backend.domain.model.enums.FuncionPlan;
+import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
+import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.plan.PruebaPremium;
 import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;

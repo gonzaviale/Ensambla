@@ -1,6 +1,5 @@
 package com.ensambla.backend.domain.model.negocio;
 
-import com.ensambla.backend.domain.model.enums.RubroNegocio;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.zona.Zona;
 import lombok.AllArgsConstructor;

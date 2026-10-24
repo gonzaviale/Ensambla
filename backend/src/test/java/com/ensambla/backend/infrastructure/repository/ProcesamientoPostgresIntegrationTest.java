@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.repository;
 
-import com.ensambla.backend.domain.model.enums.EstadoLote;
+import com.ensambla.backend.domain.model.lote.EstadoLote;
 import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
 import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.ConsumoDiario;

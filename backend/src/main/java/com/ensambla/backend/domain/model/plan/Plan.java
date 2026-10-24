@@ -1,8 +1,6 @@
 package com.ensambla.backend.domain.model.plan;
 
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
-import com.ensambla.backend.domain.model.enums.CodigoPlan;
-import com.ensambla.backend.domain.model.enums.FuncionPlan;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

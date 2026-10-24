@@ -2,7 +2,7 @@ package com.ensambla.backend.domain.model.reporte;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 
 import java.time.Instant;
 import java.time.LocalDate;

@@ -1,7 +1,6 @@
 package com.ensambla.backend.domain.model.lote;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
-import com.ensambla.backend.domain.model.enums.EstadoLote;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

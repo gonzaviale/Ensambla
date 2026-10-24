@@ -2,8 +2,8 @@ package com.ensambla.backend.domain.service.procesamiento;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
-import com.ensambla.backend.domain.model.enums.TipoRegistroCuaderno;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
 import com.ensambla.backend.domain.model.lectura.BloquePropuesto;
 import com.ensambla.backend.domain.model.lectura.CampoPropuesto;

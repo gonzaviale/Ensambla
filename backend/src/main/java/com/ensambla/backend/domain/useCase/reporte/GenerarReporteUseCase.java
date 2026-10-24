@@ -5,7 +5,7 @@ import com.ensambla.backend.domain.dto.reporte.GenerarReporteResponse;
 import com.ensambla.backend.domain.mapper.reporte.GenerarReporteMapper;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.FuncionPlan;
+import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.reporte.FiltroReporte;
 import com.ensambla.backend.domain.model.reporte.ReporteRegistros;
 import com.ensambla.backend.domain.service.bloque.BloqueService;

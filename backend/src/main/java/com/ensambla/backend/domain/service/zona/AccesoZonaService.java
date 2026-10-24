@@ -2,7 +2,7 @@ package com.ensambla.backend.domain.service.zona;
 
 import com.ensambla.backend.domain.dto.plan.AccesoContenidoItem;
 import com.ensambla.backend.domain.dto.zona.ZonaItem;
-import com.ensambla.backend.domain.model.enums.TipoContenidoPlan;
+import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.service.plan.AccesoContenidoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

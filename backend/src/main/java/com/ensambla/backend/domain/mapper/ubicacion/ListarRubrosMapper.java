@@ -2,7 +2,7 @@ package com.ensambla.backend.domain.mapper.ubicacion;
 
 import com.ensambla.backend.domain.dto.ubicacion.ListarRubrosResponse;
 import com.ensambla.backend.domain.dto.ubicacion.ListarRubrosResponse.RubroItem;
-import com.ensambla.backend.domain.model.enums.RubroNegocio;
+import com.ensambla.backend.domain.model.negocio.RubroNegocio;
 
 import java.util.List;
 

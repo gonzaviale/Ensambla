@@ -8,7 +8,7 @@ import com.ensambla.backend.domain.dto.plan.AccesoContenidoItem;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.mapper.aviso.AvisoItemMapper;
 import com.ensambla.backend.domain.model.aviso.Aviso;
-import com.ensambla.backend.domain.model.enums.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.service.aviso.AvisoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.AccesoContenidoService;

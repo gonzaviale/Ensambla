@@ -1,6 +1,6 @@
 package com.ensambla.backend.support;
 
-import com.ensambla.backend.domain.model.enums.EstadoUsuario;
+import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
 import com.ensambla.backend.domain.model.usuario.Usuario;
 import com.ensambla.backend.infrastructure.repository.entity.UsuarioEntity;
 

@@ -1,6 +1,6 @@
 package com.ensambla.backend.support;
 
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.BloquePlantilla;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.CampoPlantilla;

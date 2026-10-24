@@ -1,6 +1,6 @@
 package com.ensambla.backend.domain.model.procesamiento;
 
-import com.ensambla.backend.domain.model.enums.EstadoLote;
+import com.ensambla.backend.domain.model.lote.EstadoLote;
 
 import java.util.UUID;
 

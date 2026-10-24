@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
-import com.ensambla.backend.domain.model.enums.CodigoPlan;
+import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.Plan;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IPlanJpaRepository;

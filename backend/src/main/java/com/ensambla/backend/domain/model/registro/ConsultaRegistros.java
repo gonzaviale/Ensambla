@@ -2,7 +2,6 @@ package com.ensambla.backend.domain.model.registro;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.DireccionOrden;
 
 import java.util.List;
 import java.util.UUID;

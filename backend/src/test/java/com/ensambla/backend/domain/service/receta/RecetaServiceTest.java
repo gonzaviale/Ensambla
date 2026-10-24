@@ -3,7 +3,7 @@ package com.ensambla.backend.domain.service.receta;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.receta.LineaReceta;
 import com.ensambla.backend.domain.model.receta.Receta;
 import com.ensambla.backend.domain.model.receta.RecetaCosteada;

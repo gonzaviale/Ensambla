@@ -1,4 +1,4 @@
-package com.ensambla.backend.domain.model.enums;
+package com.ensambla.backend.domain.model.negocio;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

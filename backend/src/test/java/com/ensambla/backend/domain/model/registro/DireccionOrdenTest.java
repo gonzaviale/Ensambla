@@ -1,4 +1,4 @@
-package com.ensambla.backend.domain.model.enums;
+package com.ensambla.backend.domain.model.registro;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import org.junit.jupiter.api.DisplayName;

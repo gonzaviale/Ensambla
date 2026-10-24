@@ -2,9 +2,9 @@ package com.ensambla.backend.domain.mapper.aviso;
 
 import com.ensambla.backend.domain.dto.aviso.AvisoItem;
 import com.ensambla.backend.domain.model.aviso.Aviso;
-import com.ensambla.backend.domain.model.enums.EstadoAviso;
-import com.ensambla.backend.domain.model.enums.GrupoAviso;
-import com.ensambla.backend.domain.model.enums.TipoAviso;
+import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.GrupoAviso;
+import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

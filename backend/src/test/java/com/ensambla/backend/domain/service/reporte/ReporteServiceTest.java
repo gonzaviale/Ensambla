@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.service.reporte;
 
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.reporte.FiltroReporte;
 import com.ensambla.backend.domain.model.reporte.ReporteRegistros;

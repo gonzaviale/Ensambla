@@ -1,7 +1,6 @@
 package com.ensambla.backend.domain.model.campo;
 
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;

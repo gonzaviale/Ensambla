@@ -2,7 +2,7 @@ package com.ensambla.backend.infrastructure.repository.mapper;
 
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
 import org.junit.jupiter.api.DisplayName;

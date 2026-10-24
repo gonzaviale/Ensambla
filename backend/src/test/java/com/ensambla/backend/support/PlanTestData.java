@@ -1,7 +1,7 @@
 package com.ensambla.backend.support;
 
-import com.ensambla.backend.domain.model.enums.CodigoPlan;
-import com.ensambla.backend.domain.model.enums.EstadoSuscripcion;
+import com.ensambla.backend.domain.model.plan.CodigoPlan;
+import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Plan;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.infrastructure.repository.entity.PlanEntity;

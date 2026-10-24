@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
-import com.ensambla.backend.domain.model.enums.EstadoLote;
+import com.ensambla.backend.domain.model.lote.EstadoLote;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
 import com.ensambla.backend.infrastructure.repository.entity.FotoCuadernoEntity;

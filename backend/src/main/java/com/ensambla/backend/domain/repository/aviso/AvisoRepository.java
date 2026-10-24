@@ -1,8 +1,8 @@
 package com.ensambla.backend.domain.repository.aviso;
 
 import com.ensambla.backend.domain.model.aviso.Aviso;
-import com.ensambla.backend.domain.model.enums.EstadoAviso;
-import com.ensambla.backend.domain.model.enums.TipoAviso;
+import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.TipoAviso;
 
 import java.util.List;
 import java.util.Optional;

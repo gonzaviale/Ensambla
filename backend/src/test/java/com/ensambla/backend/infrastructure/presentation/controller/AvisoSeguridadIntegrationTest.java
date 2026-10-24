@@ -1,11 +1,11 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.model.enums.EstadoAviso;
-import com.ensambla.backend.domain.model.enums.EstadoUsuario;
-import com.ensambla.backend.domain.model.enums.GrupoAviso;
-import com.ensambla.backend.domain.model.enums.TipoAviso;
-import com.ensambla.backend.domain.model.enums.TipoBloque;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
+import com.ensambla.backend.domain.model.aviso.GrupoAviso;
+import com.ensambla.backend.domain.model.aviso.TipoAviso;
+import com.ensambla.backend.domain.model.bloque.TipoBloque;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
 import com.ensambla.backend.infrastructure.repository.entity.AvisoEntity;

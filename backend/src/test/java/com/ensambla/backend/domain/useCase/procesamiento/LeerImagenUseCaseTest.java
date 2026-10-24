@@ -5,7 +5,7 @@ import com.ensambla.backend.domain.dto.procesamiento.LeerImagenRequest;
 import com.ensambla.backend.domain.dto.procesamiento.LeerImagenRequest.CampoItem;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.mapper.procesamiento.LeerImagenMapper;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.lectura.ImagenCuaderno;
 import com.ensambla.backend.domain.model.procesamiento.BloqueDeImagen;
 import com.ensambla.backend.domain.model.procesamiento.BloqueDeImagen.CampoDeImagen;

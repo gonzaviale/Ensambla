@@ -1,6 +1,5 @@
 package com.ensambla.backend.domain.model.campo;
 
-import com.ensambla.backend.domain.model.enums.TipoCampo;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

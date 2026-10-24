@@ -2,7 +2,7 @@ package com.ensambla.backend.domain.service.auth;
 
 import com.ensambla.backend.domain.dto.auth.RegistrarUsuarioRequest;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
-import com.ensambla.backend.domain.model.enums.EstadoUsuario;
+import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.usuario.Usuario;
 import com.ensambla.backend.domain.port.ContraseniaPort;

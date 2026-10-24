@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.service.usuario;
 
 import com.ensambla.backend.domain.exception.CredencialesInvalidasException;
-import com.ensambla.backend.domain.model.enums.EstadoUsuario;
+import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
 import com.ensambla.backend.domain.model.usuario.Usuario;
 import com.ensambla.backend.domain.port.ContraseniaPort;
 import com.ensambla.backend.domain.repository.usuario.UsuarioRepository;

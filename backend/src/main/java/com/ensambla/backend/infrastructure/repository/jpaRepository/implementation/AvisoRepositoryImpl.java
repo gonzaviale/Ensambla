@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
 import com.ensambla.backend.domain.model.aviso.Aviso;
-import com.ensambla.backend.domain.model.enums.EstadoAviso;
-import com.ensambla.backend.domain.model.enums.TipoAviso;
+import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IAvisoJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.AvisoRepositoryMapper;
