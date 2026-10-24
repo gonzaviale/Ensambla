@@ -225,7 +225,7 @@ export function PanelDeAvisos() {
           </button>
         )}
       </div>
-      <ContenidoPremium acceso={acceso} recurso="avisos" />
+      <ContenidoPremium acceso={acceso} recurso="avisos" compacto />
     </section>
   );
 }

@@ -4,13 +4,19 @@ import type { AccesoContenido } from '@/types/contenidoPlan';
 export function ContenidoPremium({
   acceso,
   recurso,
+  compacto = false,
 }: {
   acceso?: Pick<AccesoContenido, 'usadas' | 'limite' | 'bloqueadas' | 'finPeriodo'> | null;
   recurso: 'avisos' | 'recomendaciones';
+  /** Más chico, para ir al pie de una lista sin quitarle lugar. */
+  compacto?: boolean;
 }) {
   if (!acceso || acceso.limite === null) return null;
   return (
-    <section className="contenido-premium" aria-label={`Tu acceso a ${recurso}`}>
+    <section
+      className={`contenido-premium ${compacto ? 'compacto' : ''}`.trim()}
+      aria-label={`Tu acceso a ${recurso}`}
+    >
       <div>
         <span className="tag outline">Tu plan Gratuito</span>
         <p>

@@ -40,8 +40,7 @@ const TITULOS: Record<Vista, { titulo: ReactNode; texto: string }> = {
         Sin saber quién cobra qué.
       </>
     ),
-    texto:
-      'Son precios de varios comercios juntos. Nadie ve qué cobra cada uno, y un dato sólo aparece si lo aportan al menos 3.',
+    texto: 'Promedios de al menos 3 comercios. Nadie ve qué cobra cada uno.',
   },
   cerca: {
     titulo: (
@@ -50,8 +49,7 @@ const TITULOS: Record<Vista, { titulo: ReactNode; texto: string }> = {
         <br />Y qué todavía no tenés.
       </>
     ),
-    texto:
-      'Lo que más sale en los comercios de tu zona, en porcentajes y unidades. Podés sumar a tu inventario lo que te falte.',
+    texto: 'Lo que más sale cerca. Sumá lo que te falte.',
   },
   otra: {
     titulo: (
@@ -61,8 +59,7 @@ const TITULOS: Record<Vista, { titulo: ReactNode; texto: string }> = {
         Para decidir dónde abrir o a quién mirar.
       </>
     ),
-    texto:
-      'Escribí un barrio o una dirección y te mostramos el mismo análisis agregado. Si hay pocos comercios, no mostramos nada.',
+    texto: 'Escribí un barrio o una dirección para ver el mismo análisis.',
   },
 };
 
@@ -124,12 +121,14 @@ export function ZonaPage() {
             ))}
           </div>
         </div>
-        {vista !== 'otra' && <ContenidoPremium acceso={zona.acceso} recurso="recomendaciones" />}
         {vista === 'precios' && (
           <VistaDePrecios zona={zona} propios={propios} titulo={`Precios en ${zona.nombre}`} />
         )}
         {vista === 'cerca' && <VistaDeLoQueSeVende zona={zona} />}
         {vista === 'otra' && <VistaDeOtraZona />}
+        {vista !== 'otra' && (
+          <ContenidoPremium acceso={zona.acceso} recurso="recomendaciones" compacto />
+        )}
         <PageFooter />
       </main>
     </>
@@ -350,7 +349,6 @@ function VistaDeOtraZona() {
           <SinDatosSuficientes zona={resultado} />
         ) : (
           <div className="zona-grid">
-            <ContenidoPremium acceso={resultado.acceso} recurso="recomendaciones" />
             <section className="zona-panel">
               <div className="row between">
                 <h2>Precios en {resultado.nombre}</h2>
@@ -373,6 +371,7 @@ function VistaDeOtraZona() {
                 zona={resultado.nombre}
               />
             </aside>
+            <ContenidoPremium acceso={resultado.acceso} recurso="recomendaciones" compacto />
           </div>
         )
       ) : env.mocks === 'completo' ? (

@@ -845,33 +845,3 @@ button.alertas-preguntar:focus-visible small,
 button.alertas-preguntar:focus-visible > .icon {
   color: #fff;
 }
-
-/* El cartel del plan, más chico y debajo de los avisos */
-.alertas-panel > .contenido-premium {
-  margin: 6px 0 0;
-  padding: 14px 18px;
-  gap: 8px;
-  font-size: 13px;
-}
-.alertas-panel > .contenido-premium p {
-  margin: 6px 0 0;
-  line-height: 1.45;
-}
-.alertas-panel .contenido-premium-extra {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 14px;
-  padding-top: 0;
-}
-.alertas-panel .contenido-premium-extra p {
-  flex: 1 1 100%;
-  margin: 0;
-}
-.alertas-panel .contenido-premium-muestra {
-  display: none;
-}
-.alertas-panel .contenido-premium .btn {
-  padding: 8px 14px;
-  font-size: 13px;
-}
