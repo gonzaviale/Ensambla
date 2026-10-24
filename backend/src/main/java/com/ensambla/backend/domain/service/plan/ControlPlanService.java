@@ -90,7 +90,7 @@ public class ControlPlanService {
     }
 
     /** Se cobra al admitir un intento. También cuentan errores y timeouts, sin duplicar al finalizar el lote. */
-    public void registrarPaginasPrueba(UUID negocioId, int cantidad, OffsetDateTime ahora) {
+    private void registrarPaginasPrueba(UUID negocioId, int cantidad, OffsetDateTime ahora) {
         transaccionPort.ejecutar(() -> {
             usoPlanRepository.bloquearNegocio(negocioId);
             pruebaVigente(negocioId, ahora)

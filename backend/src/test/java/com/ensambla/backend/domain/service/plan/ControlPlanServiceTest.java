@@ -189,21 +189,23 @@ class ControlPlanServiceTest {
     }
 
     @Test
-    @DisplayName("El registro de consumo tampoco admite un negocio sin suscripción")
-    void registrarPaginasPruebaShouldRejectMissingSubscription() {
-        assertThatThrownBy(() -> controlPlanService.registrarPaginasPrueba(NEGOCIO_ID, 1, INSTANTE))
+    @DisplayName("La reserva de páginas tampoco admite un negocio sin suscripción")
+    void reservarPaginasIaShouldRejectMissingSubscription() {
+        assertThatThrownBy(() -> controlPlanService.reservarPaginasIa(NEGOCIO_ID, 1, INSTANTE, () -> true))
                 .isInstanceOf(ResourceNotFoundException.class).hasMessage("Suscripción no encontrada");
     }
 
     @Test
     @DisplayName("Una prueba vencida usa la cuota mensual gratuita y no incrementa el historial de prueba")
-    void registrarPaginasPruebaShouldIgnoreExpiredTrial() {
+    void reservarPaginasIaShouldIgnoreExpiredTrial() {
         Suscripcion prueba = suscripcion();
         prueba.setEstado(EstadoSuscripcion.PRUEBA);
         prueba.setFinEn(INSTANTE);
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(prueba));
+        givenFallback(prueba);
 
-        controlPlanService.registrarPaginasPrueba(NEGOCIO_ID, 1, INSTANTE);
+        boolean result = controlPlanService.reservarPaginasIa(NEGOCIO_ID, 1, INSTANTE, () -> true);
+
+        assertThat(result).isTrue();
 
         verifyNoInteractions(pruebaPremiumRepository);
     }
