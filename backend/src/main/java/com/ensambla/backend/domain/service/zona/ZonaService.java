@@ -21,13 +21,6 @@ public class ZonaService {
                 .min(Comparator.comparingDouble(zona -> zona.distanciaMetros(latitud, longitud)));
     }
 
-    /** Zona cuyo nombre o localidad coincide con lo escrito ("San Justo", "villa crespo"). */
-    public Optional<Zona> buscarPorTexto(String texto) {
-        return zonaRepository.findAll().stream()
-                .filter(zona -> zona.coincideCon(texto))
-                .findFirst();
-    }
-
     public Optional<Zona> obtener(UUID zonaId) {
         if (zonaId == null) {
             return Optional.empty();

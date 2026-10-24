@@ -7,12 +7,12 @@ import com.ensambla.backend.domain.model.pago.PagoRemoto;
 import com.ensambla.backend.domain.model.pago.PreparacionRenovacion;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
-import com.ensambla.backend.domain.service.plan.PruebaPremiumService;
-import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.domain.useCase.pago.sincronizarRenovacion.SincronizarRenovacion;
 import com.ensambla.backend.infrastructure.pago.MercadoPagoProperties;
 import com.ensambla.backend.infrastructure.pago.MercadoPagoSuscripcionesAdapter;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.PruebasPremiumDePrueba;
+import com.ensambla.backend.support.SuscripcionesDePrueba;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.Filter;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,10 +82,10 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    private SuscripcionService suscripcionService;
+    private SuscripcionesDePrueba suscripcionService;
 
     @Autowired
-    private PruebaPremiumService pruebaPremiumService;
+    private PruebasPremiumDePrueba pruebaPremiumService;
 
     @Autowired
     private RenovacionPremiumService renovacionPremiumService;

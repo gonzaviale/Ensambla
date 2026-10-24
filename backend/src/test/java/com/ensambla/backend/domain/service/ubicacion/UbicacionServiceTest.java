@@ -18,7 +18,6 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -73,37 +72,6 @@ class UbicacionServiceTest {
         when(geocodificadorPort.resolverLocalidades(LATITUD, LONGITUD, AHORA)).thenReturn(localidades);
 
         assertThat(ubicacionService.resolverLocalidades(LATITUD, LONGITUD, AHORA)).isSameAs(localidades);
-    }
-
-    @Test
-    @DisplayName("Acepta la localidad que coincide con la del mapa")
-    void exigirLocalidadDelPuntoShouldAcceptMatchingLocality() {
-        when(geocodificadorPort.resolverLocalidades(LATITUD, LONGITUD, AHORA))
-                .thenReturn(new LocalidadesDelPunto(List.of("San Justo")));
-
-        assertThatCode(() -> ubicacionService.exigirLocalidadDelPunto("san justo", LATITUD, LONGITUD, AHORA))
-                .doesNotThrowAnyException();
-    }
-
-    @Test
-    @DisplayName("Rechaza una localidad distinta a la del mapa y dice cuál es")
-    void exigirLocalidadDelPuntoShouldRejectOtherLocality() {
-        when(geocodificadorPort.resolverLocalidades(LATITUD, LONGITUD, AHORA))
-                .thenReturn(new LocalidadesDelPunto(List.of("San Justo")));
-
-        assertThatThrownBy(() -> ubicacionService.exigirLocalidadDelPunto("Ramos Mejía", LATITUD, LONGITUD, AHORA))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("La localidad no coincide con la del mapa (San Justo)");
-    }
-
-    @Test
-    @DisplayName("Propaga la indisponibilidad del proveedor al verificar la localidad")
-    void exigirLocalidadDelPuntoShouldPropagateProviderFailure() {
-        when(geocodificadorPort.resolverLocalidades(LATITUD, LONGITUD, AHORA))
-                .thenThrow(new ServicioUbicacionException("Sin servicio"));
-
-        assertThatThrownBy(() -> ubicacionService.exigirLocalidadDelPunto("San Justo", LATITUD, LONGITUD, AHORA))
-                .isInstanceOf(ServicioUbicacionException.class);
     }
 
     @Test

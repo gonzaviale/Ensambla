@@ -23,14 +23,14 @@ public class PreferenciaUseCaseConfig {
     @Bean
     public GuardarPreferencias guardarPreferencias(
             PreferenciaService preferenciaService,
+            PreferenciaRepository preferenciaRepository,
+            TransaccionPort transaccionPort,
             Clock clock) {
-        return new GuardarPreferencias(preferenciaService, clock);
+        return new GuardarPreferencias(preferenciaService, preferenciaRepository, transaccionPort, clock);
     }
 
     @Bean
-    public PreferenciaService preferenciaService(
-            PreferenciaRepository preferenciaRepository,
-            TransaccionPort transaccionPort) {
-        return new PreferenciaService(preferenciaRepository, transaccionPort);
+    public PreferenciaService preferenciaService(PreferenciaRepository preferenciaRepository) {
+        return new PreferenciaService(preferenciaRepository);
     }
 }

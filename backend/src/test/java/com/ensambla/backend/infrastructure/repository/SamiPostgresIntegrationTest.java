@@ -1,7 +1,6 @@
 package com.ensambla.backend.infrastructure.repository;
 
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
-import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.domain.useCase.sami.ColumnaSamiItem;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSami;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiRequest;
@@ -15,6 +14,7 @@ import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.MensajeTallerI
 import com.ensambla.backend.domain.useCase.sami.crearProyectoDesdeSami.CrearProyectoDesdeSami;
 import com.ensambla.backend.domain.useCase.sami.crearProyectoDesdeSami.CrearProyectoDesdeSamiRequest;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.SuscripcionesDePrueba;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,7 +35,7 @@ class SamiPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     private static final UUID VENTAS_ID = UUID.fromString("00000000-0000-4000-8000-0000000000a4");
 
     @Autowired
-    private SuscripcionService suscripcionService;
+    private SuscripcionesDePrueba suscripcionService;
 
     @Autowired
     private ConversarConSami conversarConSami;

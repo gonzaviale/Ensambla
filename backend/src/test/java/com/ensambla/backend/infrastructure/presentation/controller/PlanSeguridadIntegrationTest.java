@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.support.ImagenTestData;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.SuscripcionesDePrueba;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.persistence.EntityManager;
 import jakarta.servlet.Filter;
@@ -67,7 +67,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     private EntityManager entityManager;
 
     @Autowired
-    private SuscripcionService suscripcionService;
+    private SuscripcionesDePrueba suscripcionService;
 
     @Autowired
     private Clock clock;

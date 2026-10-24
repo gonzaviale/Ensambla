@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.useCase.sistema.listarSistemas;
 
+import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.sistema.SistemaService;
 import com.ensambla.backend.domain.useCase.sistema.SistemaItem;
 import lombok.RequiredArgsConstructor;
 
@@ -13,10 +13,10 @@ public class ListarSistemas {
 
     private final NegocioService negocioService;
 
-    private final SistemaService sistemaService;
+    private final SistemaRepository sistemaRepository;
 
     public List<SistemaItem> execute(ListarSistemasRequest request) {
         UUID negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-        return sistemaService.listar(negocioId).stream().map(SistemaItem::de).toList();
+        return sistemaRepository.findAllByNegocioId(negocioId).stream().map(SistemaItem::de).toList();
     }
 }

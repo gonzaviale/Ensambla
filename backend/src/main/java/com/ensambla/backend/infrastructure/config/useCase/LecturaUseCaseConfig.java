@@ -4,16 +4,15 @@ import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.lote.LoteSubidaService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.plan.ConsumoIaInmediatoService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.procesamiento.ConexionesLecturaService;
 import com.ensambla.backend.domain.service.procesamiento.ConfirmacionLecturaService;
-import com.ensambla.backend.domain.service.procesamiento.LecturaImagenService;
 import com.ensambla.backend.domain.service.procesamiento.ProcesamientoService;
 import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
 import com.ensambla.backend.domain.service.procesamiento.ReservaIaService;
@@ -72,22 +71,20 @@ public class LecturaUseCaseConfig {
     }
 
     @Bean
-    public LecturaImagenService lecturaImagenService(LectorCuadernoPort lectorCuadernoPort,
-                                                     PropuestaLecturaService propuestaLecturaService,
-                                                     ExecutorService executorLecturaImagen,
-                                                     IaProperties iaProperties) {
-        return new LecturaImagenService(
-                new LectorCuadernoTimeoutAdapter(lectorCuadernoPort, executorLecturaImagen, iaProperties.timeout()),
-                propuestaLecturaService);
-    }
-
-    @Bean
-    public LeerImagen leerImagen(LecturaImagenService lecturaImagenService,
+    public LeerImagen leerImagen(LectorCuadernoPort lectorCuadernoPort,
+                                 PropuestaLecturaService propuestaLecturaService,
+                                 ExecutorService executorLecturaImagen,
                                  IaProperties iaProperties,
                                  NegocioService negocioService,
-                                 ConsumoIaInmediatoService consumoIaInmediatoService, Clock clock) {
+                                 ControlPlanService controlPlanService,
+                                 UsoPlanRepository usoPlanRepository,
+                                 PoliticaProcesamiento politicaProcesamiento,
+                                 TransaccionPort transaccionPort,
+                                 Clock clock) {
         return new LeerImagen(
-                lecturaImagenService, iaProperties.umbralConfianza(), negocioService, consumoIaInmediatoService, clock);
+                new LectorCuadernoTimeoutAdapter(lectorCuadernoPort, executorLecturaImagen, iaProperties.timeout()),
+                propuestaLecturaService, iaProperties.umbralConfianza(), negocioService, controlPlanService,
+                usoPlanRepository, politicaProcesamiento, transaccionPort, clock);
     }
 
     @Bean

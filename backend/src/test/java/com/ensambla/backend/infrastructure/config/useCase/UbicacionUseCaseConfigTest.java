@@ -2,7 +2,6 @@ package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.model.ubicacion.DireccionEncontrada;
 import com.ensambla.backend.domain.model.ubicacion.LocalidadesDelPunto;
-import com.ensambla.backend.domain.service.ubicacion.RubroService;
 import com.ensambla.backend.domain.service.ubicacion.UbicacionService;
 import com.ensambla.backend.domain.useCase.ubicacion.buscarDirecciones.BuscarDireccionesRequest;
 import com.ensambla.backend.domain.useCase.ubicacion.buscarDirecciones.BuscarDireccionesResponse;
@@ -73,11 +72,14 @@ class UbicacionUseCaseConfigTest {
     @Test
     @DisplayName("El listado conecta el catálogo de dominio con la respuesta de rubros")
     void listarRubrosUseCaseShouldWireCatalogAndMapper() {
-        var useCase = config.listarRubros(new RubroService());
+        var useCase = config.listarRubros();
 
         var response = useCase.execute();
 
-        assertThat(response.rubros()).hasSize(5);
+        assertThat(response.rubros()).extracting(ListarRubrosResponse.RubroItem::codigo)
+                .containsExactly("ALMACEN", "KIOSCO", "MINIMERCADO", "DIETETICA", "OTRO");
+        assertThat(response.rubros()).extracting(ListarRubrosResponse.RubroItem::nombre)
+                .containsExactly("Almacén", "Kiosco", "Minimercado", "Dietética", "Otro");
         assertThat(response.rubros().getFirst().codigo()).isEqualTo("ALMACEN");
         assertThat(response.rubros().getFirst().nombre()).isEqualTo("Almacén");
     }

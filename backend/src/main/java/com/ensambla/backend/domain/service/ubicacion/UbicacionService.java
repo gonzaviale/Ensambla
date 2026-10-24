@@ -26,13 +26,4 @@ public class UbicacionService {
     public LocalidadesDelPunto resolverLocalidades(BigDecimal latitud, BigDecimal longitud, Instant instante) {
         return geocodificadorPort.resolverLocalidades(latitud, longitud, instante);
     }
-
-    /** La localidad escrita tiene que ser una de las que el mapa reconoce en el punto. */
-    public void exigirLocalidadDelPunto(String localidad, BigDecimal latitud, BigDecimal longitud, Instant instante) {
-        LocalidadesDelPunto localidades = resolverLocalidades(latitud, longitud, instante);
-        if (!localidades.admite(localidad)) {
-            throw new BusinessRuleException(
-                    "La localidad no coincide con la del mapa (" + localidades.nombres().getFirst() + ")");
-        }
-    }
 }

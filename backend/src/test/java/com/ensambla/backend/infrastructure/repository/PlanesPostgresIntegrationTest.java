@@ -3,15 +3,16 @@ package com.ensambla.backend.infrastructure.repository;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
-import com.ensambla.backend.domain.model.usuario.Usuario;
-import com.ensambla.backend.domain.service.auth.RegistroService;
-import com.ensambla.backend.domain.service.plan.SuscripcionService;
+import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
+import com.ensambla.backend.domain.useCase.auth.UsuarioResponse;
+import com.ensambla.backend.domain.useCase.auth.registrarUsuario.RegistrarUsuario;
 import com.ensambla.backend.domain.useCase.auth.registrarUsuario.RegistrarUsuarioRequest;
 import com.ensambla.backend.infrastructure.repository.entity.PlanEntity;
 import com.ensambla.backend.infrastructure.repository.entity.SuscripcionEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IPlanJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.ISuscripcionJpaRepository;
 import com.ensambla.backend.support.PostgresDatosTestSupport;
+import com.ensambla.backend.support.SuscripcionesDePrueba;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,10 +39,13 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
     private ISuscripcionJpaRepository suscripciones;
 
     @Autowired
-    private SuscripcionService suscripcionService;
+    private SuscripcionesDePrueba suscripcionService;
 
     @Autowired
-    private RegistroService registroService;
+    private RegistrarUsuario registrarUsuario;
+
+    @Autowired
+    private SuscripcionRepository suscripcionRepository;
 
     @Autowired
     private EntityManager entityManager;
@@ -81,19 +85,19 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
         RegistrarUsuarioRequest request = new RegistrarUsuarioRequest(
                 "Persona", "Nuevo negocio", "planes-registro@example.com", "ClaveSegura123!");
 
-        Usuario result = registroService.registrar(request, AHORA);
+        UsuarioResponse result = registrarUsuario.execute(request);
 
-        UUID negocioId = negocios.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(result.getId()).orElseThrow().getId();
+        UUID negocioId = negocios.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(result.id()).orElseThrow().getId();
         entityManager.clear();
-        Suscripcion suscripcion = suscripcionService.obtener(negocioId);
+        Suscripcion suscripcion = suscripcionRepository.findByNegocioId(negocioId).orElseThrow();
         assertThat(suscripcion.getId()).isNotNull();
         assertThat(suscripcion.getNegocioId()).isEqualTo(negocioId);
         assertThat(suscripcion.getPlanId()).isEqualTo(planes.findByCodigo(CodigoPlan.GRATUITO).orElseThrow().getId());
         assertThat(suscripcion.getEstado()).isEqualTo(EstadoSuscripcion.ACTIVA);
-        assertThat(suscripcion.getInicioEn()).isEqualTo(AHORA);
+        assertThat(suscripcion.getInicioEn()).isNotNull();
         assertThat(suscripcion.getFinEn()).isNull();
-        assertThat(suscripcion.getCreadoEn()).isEqualTo(AHORA);
-        assertThat(suscripcion.getActualizadoEn()).isEqualTo(AHORA);
+        assertThat(suscripcion.getCreadoEn()).isEqualTo(suscripcion.getInicioEn());
+        assertThat(suscripcion.getActualizadoEn()).isEqualTo(suscripcion.getInicioEn());
     }
 
     @Test

@@ -1,6 +1,5 @@
 package com.ensambla.backend.domain.service.plantilla;
 
-import com.ensambla.backend.domain.model.plantilla.Plantilla;
 import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -31,17 +30,6 @@ class PlantillaServiceTest {
         when(plantillaRepository.findAllParaProyectoActivas()).thenReturn(plantillas);
 
         List<PlantillaProyecto> result = plantillaService.listarParaProyecto();
-
-        assertThat(result).isSameAs(plantillas);
-    }
-
-    @Test
-    @DisplayName("Devuelve las plantillas activas que entrega el repositorio")
-    void listarActivasShouldReturnPlantillasFromRepository() {
-        List<Plantilla> plantillas = List.of(new Plantilla());
-        when(plantillaRepository.findAllActivas()).thenReturn(plantillas);
-
-        List<Plantilla> result = plantillaService.listarActivas();
 
         assertThat(result).isSameAs(plantillas);
     }

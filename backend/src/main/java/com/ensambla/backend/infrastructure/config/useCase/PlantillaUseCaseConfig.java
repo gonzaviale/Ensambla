@@ -10,8 +10,8 @@ import org.springframework.context.annotation.Configuration;
 public class PlantillaUseCaseConfig {
 
     @Bean
-    public ListarPlantillas listarPlantillas(PlantillaService plantillaService) {
-        return new ListarPlantillas(plantillaService);
+    public ListarPlantillas listarPlantillas(PlantillaRepository plantillaRepository) {
+        return new ListarPlantillas(plantillaRepository);
     }
 
     @Bean

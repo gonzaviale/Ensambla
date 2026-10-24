@@ -1,5 +1,8 @@
 package com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias;
 
+import com.ensambla.backend.domain.model.preferencia.PreferenciaUsuario;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.preferencia.PreferenciaRepository;
 import com.ensambla.backend.domain.service.preferencia.PreferenciaService;
 import com.ensambla.backend.domain.useCase.preferencia.PreferenciasItem;
 import lombok.RequiredArgsConstructor;
@@ -12,15 +15,21 @@ public class GuardarPreferencias {
 
     private final PreferenciaService preferenciaService;
 
+    private final PreferenciaRepository preferenciaRepository;
+
+    private final TransaccionPort transaccionPort;
+
     private final Clock clock;
 
     public PreferenciasItem execute(GuardarPreferenciasRequest request) {
-        return PreferenciasItem.de(preferenciaService.guardar(
-                request.usuarioId(),
-                request.descartadas(),
-                request.grupos(),
-                request.bienvenidaVista(),
-                request.nombre(),
-                OffsetDateTime.now(clock)));
+        OffsetDateTime ahora = OffsetDateTime.now(clock);
+        return PreferenciasItem.de(transaccionPort.ejecutar(() -> guardar(request, ahora)));
+    }
+
+    private PreferenciaUsuario guardar(GuardarPreferenciasRequest request, OffsetDateTime ahora) {
+        PreferenciaUsuario preferencia = preferenciaService.obtener(request.usuarioId(), ahora);
+        preferencia.actualizar(
+                request.descartadas(), request.grupos(), request.bienvenidaVista(), request.nombre(), ahora);
+        return preferenciaRepository.save(preferencia);
     }
 }

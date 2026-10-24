@@ -2,13 +2,10 @@ package com.ensambla.backend.domain.service.preferencia;
 
 import com.ensambla.backend.domain.model.preferencia.PreferenciaUsuario;
 import com.ensambla.backend.domain.repository.preferencia.PreferenciaRepository;
-import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,7 +22,7 @@ class PreferenciaServiceTest {
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-21T10:00:00Z");
 
     private final PreferenciaRepository preferenciaRepository = mock(PreferenciaRepository.class);
-    private final PreferenciaService preferenciaService = new PreferenciaService(preferenciaRepository, new TransaccionDirecta());
+    private final PreferenciaService preferenciaService = new PreferenciaService(preferenciaRepository);
 
     @Test
     @DisplayName("Obtener devuelve lo guardado")
@@ -46,35 +43,5 @@ class PreferenciaServiceTest {
         assertThat(result.getUsuarioId()).isEqualTo(USUARIO_ID);
         assertThat(result.getDescartadas()).isEmpty();
         verify(preferenciaRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("Guardar actualiza las preferencias existentes y las persiste")
-    void guardarShouldUpdateAndSave() {
-        when(preferenciaRepository.findByUsuarioId(USUARIO_ID))
-                .thenReturn(Optional.of(PreferenciaUsuario.inicial(USUARIO_ID, AHORA)));
-        when(preferenciaRepository.save(any(PreferenciaUsuario.class))).thenAnswer(call -> call.getArgument(0));
-
-        PreferenciaUsuario result = preferenciaService.guardar(
-                USUARIO_ID, List.of("a1"), Map.of("ZONA", false), true, "Gonza", AHORA.plusMinutes(5));
-
-        assertThat(result.getDescartadas()).containsExactly("a1");
-        assertThat(result.getGrupos()).containsEntry("ZONA", false);
-        assertThat(result.isBienvenidaVista()).isTrue();
-        assertThat(result.getNombre()).isEqualTo("Gonza");
-        assertThat(result.getCreadoEn()).isEqualTo(AHORA);
-    }
-
-    @Test
-    @DisplayName("Guardar crea las preferencias cuando todavía no existían")
-    void guardarShouldCreateWhenMissing() {
-        when(preferenciaRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
-        when(preferenciaRepository.save(any(PreferenciaUsuario.class))).thenAnswer(call -> call.getArgument(0));
-
-        PreferenciaUsuario result = preferenciaService.guardar(
-                USUARIO_ID, List.of(), Map.of(), false, null, AHORA);
-
-        assertThat(result.getUsuarioId()).isEqualTo(USUARIO_ID);
-        verify(preferenciaRepository).save(result);
     }
 }

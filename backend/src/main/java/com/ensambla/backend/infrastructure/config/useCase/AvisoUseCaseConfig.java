@@ -4,12 +4,10 @@ import com.ensambla.backend.domain.model.aviso.ReglaAviso;
 import com.ensambla.backend.domain.model.aviso.ReglaStockBajo;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.aviso.AccionAvisoService;
 import com.ensambla.backend.domain.service.aviso.AvisoService;
-import com.ensambla.backend.domain.service.aviso.ContextoNegocioService;
-import com.ensambla.backend.domain.service.aviso.MotorAvisosService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.AccesoContenidoService;
@@ -30,75 +28,63 @@ public class AvisoUseCaseConfig {
 
     @Bean
     public EjecutarMotorAvisos ejecutarMotorAvisos(
-            NegocioService negocioService,
-            MotorAvisosService motorAvisosService,
+            NegocioRepository negocioRepository,
+            List<ReglaAviso> reglas,
+            ProyectoRepository proyectoRepository,
+            RegistroRepository registroRepository,
+            AvisoRepository avisoRepository,
+            TransaccionPort transaccionPort,
             Clock clock) {
-        return new EjecutarMotorAvisos(negocioService, motorAvisosService, clock);
+        return new EjecutarMotorAvisos(negocioRepository, reglas, proyectoRepository, registroRepository,
+                avisoRepository, transaccionPort, clock);
     }
 
     @Bean
     public ListarAvisos listarAvisos(
             NegocioService negocioService,
-            AvisoService avisoService,
+            AvisoRepository avisoRepository,
             AccesoContenidoService accesoContenidoService, Clock clock) {
-        return new ListarAvisos(negocioService, avisoService, accesoContenidoService, clock);
+        return new ListarAvisos(negocioService, avisoRepository, accesoContenidoService, clock);
     }
 
     @Bean
-    public ContarAvisos contarAvisos(NegocioService negocioService, AvisoService avisoService) {
-        return new ContarAvisos(negocioService, avisoService);
+    public ContarAvisos contarAvisos(NegocioService negocioService, AvisoRepository avisoRepository) {
+        return new ContarAvisos(negocioService, avisoRepository);
     }
 
     @Bean
     public AplicarAviso aplicarAviso(
             NegocioService negocioService,
             AvisoService avisoService,
-            Clock clock, AccesoContenidoService accesoContenidoService) {
-        return new AplicarAviso(negocioService, avisoService, clock, accesoContenidoService);
+            AccesoContenidoService accesoContenidoService,
+            RegistroDatosService registroDatosService,
+            CampoService campoService,
+            AvisoRepository avisoRepository,
+            TransaccionPort transaccionPort,
+            Clock clock) {
+        return new AplicarAviso(negocioService, avisoService, accesoContenidoService, registroDatosService,
+                campoService, avisoRepository, transaccionPort, clock);
     }
 
     @Bean
     public DescartarAviso descartarAviso(
             NegocioService negocioService,
             AvisoService avisoService,
-            Clock clock, AccesoContenidoService accesoContenidoService) {
-        return new DescartarAviso(negocioService, avisoService, clock, accesoContenidoService);
-    }
-
-    @Bean
-    public AccionAvisoService accionAvisoService(
-            RegistroDatosService registroDatosService,
-            CampoService campoService,
-            TransaccionPort transaccionPort) {
-        return new AccionAvisoService(registroDatosService, campoService, transaccionPort);
-    }
-
-    @Bean
-    public AvisoService avisoService(
+            AccesoContenidoService accesoContenidoService,
             AvisoRepository avisoRepository,
-            AccionAvisoService accionAvisoService,
-            TransaccionPort transaccionPort) {
-        return new AvisoService(avisoRepository, accionAvisoService, transaccionPort);
+            TransaccionPort transaccionPort,
+            Clock clock) {
+        return new DescartarAviso(
+                negocioService, avisoService, accesoContenidoService, avisoRepository, transaccionPort, clock);
     }
 
     @Bean
-    public ContextoNegocioService contextoNegocioService(
-            ProyectoRepository proyectoRepository,
-            RegistroRepository registroRepository) {
-        return new ContextoNegocioService(proyectoRepository, registroRepository);
+    public AvisoService avisoService(AvisoRepository avisoRepository) {
+        return new AvisoService(avisoRepository);
     }
 
     @Bean
     public ReglaStockBajo reglaStockBajo() {
         return new ReglaStockBajo();
-    }
-
-    @Bean
-    public MotorAvisosService motorAvisosService(
-            List<ReglaAviso> reglas,
-            ContextoNegocioService contextoNegocioService,
-            AvisoRepository avisoRepository,
-            TransaccionPort transaccionPort) {
-        return new MotorAvisosService(reglas, contextoNegocioService, avisoRepository, transaccionPort);
     }
 }

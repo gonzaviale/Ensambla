@@ -72,17 +72,6 @@ class ZonaServiceTest {
         verifyNoInteractions(zonaRepository);
     }
 
-    @Test
-    @DisplayName("Busca por texto la primera zona cuyo nombre o localidad coincide")
-    void buscarPorTextoShouldReturnFirstMatch() {
-        Zona sanJusto = Zona.builder().id(UUID.randomUUID()).nombre("San Justo - UNLaM").localidad("San Justo").build();
-        Zona caba = Zona.builder().id(UUID.randomUUID()).nombre("Villa Crespo").localidad("CABA").build();
-        when(zonaRepository.findAll()).thenReturn(List.of(caba, sanJusto));
-
-        assertThat(zonaService.buscarPorTexto("san justo")).containsSame(sanJusto);
-        assertThat(zonaService.buscarPorTexto("Palermo")).isEmpty();
-    }
-
     // --- arrange ---
     private Zona givenZona(String nombre, String latitud, String longitud, int radioMetros) {
         return Zona.builder().id(UUID.randomUUID()).nombre(nombre).latitud(new BigDecimal(latitud))

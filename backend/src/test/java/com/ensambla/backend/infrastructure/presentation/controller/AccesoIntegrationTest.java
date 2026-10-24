@@ -1,7 +1,7 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
-import com.ensambla.backend.domain.service.auth.RegistroService;
+import com.ensambla.backend.domain.useCase.auth.registrarUsuario.RegistrarUsuario;
 import com.ensambla.backend.domain.useCase.auth.registrarUsuario.RegistrarUsuarioRequest;
 import com.ensambla.backend.infrastructure.repository.entity.UsuarioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.INegocioJpaRepository;
@@ -28,7 +28,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.nio.charset.StandardCharsets;
-import java.time.OffsetDateTime;
 import java.util.Base64;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -61,7 +60,7 @@ class AccesoIntegrationTest extends PostgresRepositoryTestSupport {
     @Autowired
     private INegocioJpaRepository negocioJpaRepository;
     @Autowired
-    private RegistroService registroService;
+    private RegistrarUsuario registrarUsuario;
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
@@ -105,7 +104,7 @@ class AccesoIntegrationTest extends PostgresRepositoryTestSupport {
     void registrarShouldRollbackUsuarioWhenNegocioFails() {
         RegistrarUsuarioRequest invalid = new RegistrarUsuarioRequest("Brian", "", EMAIL, CONTRASENIA);
 
-        assertThatThrownBy(() -> registroService.registrar(invalid, OffsetDateTime.now()))
+        assertThatThrownBy(() -> registrarUsuario.execute(invalid))
                 .isInstanceOf(DataIntegrityViolationException.class);
 
         assertThat(usuarioJpaRepository.findByEmail(EMAIL)).isEmpty();

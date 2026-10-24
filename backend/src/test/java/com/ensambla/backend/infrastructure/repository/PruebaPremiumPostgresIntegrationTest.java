@@ -9,14 +9,13 @@ import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
-import com.ensambla.backend.domain.service.plan.ConsumoIaInmediatoService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.plan.PruebaPremiumService;
-import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.domain.service.procesamiento.ReservaIaService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
-import com.ensambla.backend.domain.useCase.plan.vencerPruebas.VencerPruebas;
+import com.ensambla.backend.support.LecturasInmediatasDePrueba;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.PruebasPremiumDePrueba;
+import com.ensambla.backend.support.SuscripcionesDePrueba;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,9 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -47,7 +44,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    private PruebaPremiumService pruebaPremiumService;
+    private PruebasPremiumDePrueba pruebaPremiumService;
 
     @Autowired
     private PruebaPremiumRepository pruebaPremiumRepository;
@@ -56,13 +53,13 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     private SuscripcionRepository suscripcionRepository;
 
     @Autowired
-    private SuscripcionService suscripcionService;
+    private SuscripcionesDePrueba suscripcionService;
 
     @Autowired
     private ControlPlanService controlPlanService;
 
     @Autowired
-    private ConsumoIaInmediatoService consumoIaInmediatoService;
+    private LecturasInmediatasDePrueba consumoIaInmediatoService;
 
     @Autowired
     private ReservaIaService reservaIaService;
@@ -235,11 +232,8 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
                 INSERT INTO registro (negocio_id, bloque_id, valores)
                 SELECT ?, ?, '{}'::jsonb FROM generate_series(1, 1001)
                 """, negocioId, bloqueId);
-        VencerPruebas job = new VencerPruebas(pruebaPremiumService,
-                Clock.fixed(INICIO.plusDays(7).toInstant(), ZoneOffset.UTC));
-
-        job.execute();
-        job.execute();
+        pruebaPremiumService.vencer(negocioId, INICIO.plusDays(7));
+        pruebaPremiumService.vencer(negocioId, INICIO.plusDays(7));
 
         assertThat(suscripcionRepository.findByNegocioId(negocioId).orElseThrow().getEstado())
                 .isEqualTo(EstadoSuscripcion.ACTIVA);
@@ -257,7 +251,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     @DisplayName("Un premium activado después de seleccionar el vencimiento se conserva")
     void vencerShouldPreservePaidPremiumAfterTrial() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
-        assertThat(pruebaPremiumService.listarVencidas(INICIO.plusDays(7))).contains(negocioId);
+        assertThat(pruebaPremiumRepository.findNegociosVencidos(INICIO.plusDays(7))).contains(negocioId);
         jdbcTemplate.update("UPDATE suscripcion SET estado = 'ACTIVA', fin_en = ? WHERE negocio_id = ?",
                 INICIO.plusMonths(1), negocioId);
 
@@ -265,7 +259,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
 
         assertThatCode(() -> controlPlanService.validarFuncion(
                 negocioId, FuncionPlan.RECETAS_COSTOS, INICIO.plusDays(8))).doesNotThrowAnyException();
-        assertThat(pruebaPremiumService.listarVencidas(INICIO.plusDays(7))).doesNotContain(negocioId);
+        assertThat(pruebaPremiumRepository.findNegociosVencidos(INICIO.plusDays(7))).doesNotContain(negocioId);
     }
 
     @Test

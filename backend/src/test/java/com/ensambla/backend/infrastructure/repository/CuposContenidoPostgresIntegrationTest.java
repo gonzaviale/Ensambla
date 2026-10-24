@@ -2,21 +2,26 @@ package com.ensambla.backend.infrastructure.repository;
 
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
-import com.ensambla.backend.domain.model.proyecto.Proyecto;
-import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.sistema.IdSistema;
 import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.service.plan.AccesoContenidoService;
-import com.ensambla.backend.domain.service.plan.ConsumoIaInmediatoService;
-import com.ensambla.backend.domain.service.plan.PruebaPremiumService;
-import com.ensambla.backend.domain.service.plan.SuscripcionService;
-import com.ensambla.backend.domain.service.sistema.SistemaService;
 import com.ensambla.backend.domain.service.zona.AccesoZonaService;
 import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
 import com.ensambla.backend.domain.useCase.plan.desbloquearContenidos.DesbloquearContenidos;
 import com.ensambla.backend.domain.useCase.plan.desbloquearContenidos.DesbloquearContenidosRequest;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.BloqueItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.SeccionItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem;
+import com.ensambla.backend.domain.useCase.sistema.guardarSistema.GuardarSistema;
+import com.ensambla.backend.domain.useCase.sistema.guardarSistema.GuardarSistemaRequest;
+import com.ensambla.backend.domain.useCase.sistema.listarSistemas.ListarSistemas;
+import com.ensambla.backend.domain.useCase.sistema.listarSistemas.ListarSistemasRequest;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem;
+import com.ensambla.backend.support.LecturasInmediatasDePrueba;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.PruebasPremiumDePrueba;
+import com.ensambla.backend.support.SuscripcionesDePrueba;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -48,13 +53,15 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
     @Autowired
     private AccesoZonaService zona;
     @Autowired
-    private SuscripcionService suscripcion;
+    private SuscripcionesDePrueba suscripcion;
     @Autowired
-    private PruebaPremiumService prueba;
+    private PruebasPremiumDePrueba prueba;
     @Autowired
-    private ConsumoIaInmediatoService consumo;
+    private LecturasInmediatasDePrueba consumo;
     @Autowired
-    private SistemaService sistemas;
+    private GuardarSistema guardarSistema;
+    @Autowired
+    private ListarSistemas listarSistemas;
     @Autowired
     private UsoPlanRepository uso;
     @Autowired
@@ -140,17 +147,15 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
     @Test
     @DisplayName("El guardado completo bloquea el segundo sistema y permite editar el primero")
     void guardarShouldEnforceFreeSystemLimit() {
-        Sistema primero = givenSistema();
-        sistemas.guardar(negocio, primero);
+        guardar(givenSistema("primero", "Sistema local", 0));
 
-        assertThatThrownBy(() -> sistemas.guardar(negocio, givenSistema()))
+        assertThatThrownBy(() -> guardar(givenSistema("segundo", "Sistema local", 0)))
                 .isInstanceOf(RestriccionPlanException.class).extracting("codigo").isEqualTo("LIMITE_SISTEMAS");
 
-        primero.proyecto().renombrar("Nombre corregido", AHORA);
-        sistemas.guardar(negocio, primero);
-        assertThat(sistemas.listar(negocio)).singleElement()
-                .satisfies(sistema -> assertThat(sistema.proyecto().getNombre()).isEqualTo("Nombre corregido"));
-        assertThat(uso.contarRegistrosProyecto(negocio, primero.id())).isZero();
+        guardar(givenSistema("primero", "Nombre corregido", 0));
+        assertThat(listarSistemas.execute(new ListarSistemasRequest(usuario))).singleElement()
+                .satisfies(sistema -> assertThat(sistema.name()).isEqualTo("Nombre corregido"));
+        assertThat(uso.contarRegistrosProyecto(negocio, IdSistema.aUuid(negocio, "primero"))).isZero();
     }
 
     @Test
@@ -172,25 +177,30 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
         assertThat(resultado.bloqueadas()).isEqualTo(1);
     }
 
-    private Sistema givenSistema() {
-        return new Sistema(Proyecto.builder().id(UUID.randomUUID()).negocioId(negocio).nombre("Sistema local")
-                .bloques(List.of()).creadoEn(AHORA).actualizadoEn(AHORA).build(), List.of(), Map.of());
+    private void guardar(SistemaItem sistema) {
+        guardarSistema.execute(new GuardarSistemaRequest(usuario, sistema.id(), sistema));
+    }
+
+    private SistemaItem givenSistema(String id, String nombre, int filas) {
+        List<Map<String, Object>> filasDelBloque = IntStream.range(0, filas)
+                .<Map<String, Object>>mapToObj(i -> Map.of("id", id + "-fila-" + i))
+                .toList();
+        BloqueItem bloque = new BloqueItem(id + "-tabla", "table", "Productos", null, "blue", "half", List.of(),
+                filasDelBloque, null, null, null);
+        return new SistemaItem(id, nombre, AHORA.toString(), AHORA.toString(),
+                List.of(new SeccionItem(id + "-general", "Vista general", List.of(bloque))), null, null, null, false);
     }
 
     @Test
     @DisplayName("El guardado completo rechaza 1.001 filas y conserva el sistema previo sin cambios parciales")
     void guardarShouldRejectOversizedReplacementAtomically() {
-        Sistema original = givenSistema();
-        sistemas.guardar(negocio, original);
-        List<Registro> filas = IntStream.range(0, 1001).mapToObj(i -> Registro.builder()
-                .id(UUID.randomUUID()).negocioId(negocio).valores(Map.of()).build()).toList();
-        Sistema excesivo = new Sistema(original.proyecto(), List.of(), Map.of(UUID.randomUUID(), filas));
+        guardar(givenSistema("original", "Sistema local", 0));
 
-        assertThatThrownBy(() -> sistemas.guardar(negocio, excesivo))
+        assertThatThrownBy(() -> guardar(givenSistema("original", "Sistema local", 1001)))
                 .isInstanceOf(RestriccionPlanException.class).extracting("codigo").isEqualTo("LIMITE_REGISTROS");
 
         assertThat(uso.contarRegistros(negocio)).isZero();
-        assertThat(sistemas.listar(negocio)).hasSize(1);
+        assertThat(listarSistemas.execute(new ListarSistemasRequest(usuario))).hasSize(1);
     }
 
     private ZonaItem givenZona(String nombre, String primero, String segundo) {

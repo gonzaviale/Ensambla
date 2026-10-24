@@ -1,7 +1,6 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.port.GeocodificadorPort;
-import com.ensambla.backend.domain.service.ubicacion.RubroService;
 import com.ensambla.backend.domain.service.ubicacion.UbicacionService;
 import com.ensambla.backend.domain.useCase.ubicacion.buscarDirecciones.BuscarDirecciones;
 import com.ensambla.backend.domain.useCase.ubicacion.listarRubros.ListarRubros;
@@ -29,13 +28,8 @@ public class UbicacionUseCaseConfig {
     }
 
     @Bean
-    public ListarRubros listarRubros(RubroService rubroService) {
-        return new ListarRubros(rubroService);
-    }
-
-    @Bean
-    public RubroService rubroService() {
-        return new RubroService();
+    public ListarRubros listarRubros() {
+        return new ListarRubros();
     }
 
     @Bean

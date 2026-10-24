@@ -2,17 +2,15 @@ package com.ensambla.backend.domain.service.plan;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
-import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Plan;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
-import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import lombok.RequiredArgsConstructor;
 
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
+/** Las lecturas de suscripción y catálogo que comparten los casos de uso de planes y pagos. */
 @RequiredArgsConstructor
 public class SuscripcionService {
 
@@ -20,25 +18,13 @@ public class SuscripcionService {
 
     private final SuscripcionRepository suscripcionRepository;
 
-    private final TransaccionPort transaccionPort;
-
-    public Suscripcion asignarGratuito(UUID negocioId, OffsetDateTime instante) {
-        return transaccionPort.ejecutar(() -> {
-            Plan plan = planRepository.findByCodigo(CodigoPlan.GRATUITO)
-                    .orElseThrow(() -> new ResourceNotFoundException("Plan gratuito no encontrado"));
-            return suscripcionRepository.save(Suscripcion.builder()
-                    .negocioId(negocioId)
-                    .planId(plan.getId())
-                    .estado(EstadoSuscripcion.ACTIVA)
-                    .inicioEn(instante)
-                    .creadoEn(instante)
-                    .actualizadoEn(instante)
-                    .build());
-        });
-    }
-
     public Suscripcion obtener(UUID negocioId) {
         return suscripcionRepository.findByNegocioId(negocioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Suscripción no encontrada"));
+    }
+
+    public Plan obtenerPlan(CodigoPlan codigo) {
+        return planRepository.findByCodigo(codigo)
+                .orElseThrow(() -> new ResourceNotFoundException("Plan no encontrado"));
     }
 }

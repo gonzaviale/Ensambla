@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.repository;
 
-import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
-import com.ensambla.backend.domain.service.plan.SuscripcionService;
+import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
+import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import com.ensambla.backend.domain.service.plantilla.PlantillaService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
@@ -17,6 +17,7 @@ import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.I
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IRegistroJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IUsuarioJpaRepository;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.SuscripcionesDePrueba;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,13 +48,16 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     private PlantillaService plantillaService;
 
     @Autowired
+    private PlantillaRepository plantillaRepository;
+
+    @Autowired
     private IUsuarioJpaRepository usuarios;
 
     @Autowired
     private INegocioJpaRepository negocios;
 
     @Autowired
-    private SuscripcionService suscripcionService;
+    private SuscripcionesDePrueba suscripcionService;
 
     @Autowired
     private IProyectoJpaRepository proyectos;
@@ -79,7 +83,7 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("V3 carga las tres plantillas con descripción y estructura")
     void migrationShouldSeedTemplates() {
-        var result = plantillaService.listarActivas();
+        var result = plantillaRepository.findAllActivas();
 
         assertThat(result).extracting("nombre").contains("Clientes", "Inventario", "Pedidos");
         assertThat(plantillaService.obtenerParaProyecto(INVENTARIO_ID).estructura().bloques()).hasSize(1);

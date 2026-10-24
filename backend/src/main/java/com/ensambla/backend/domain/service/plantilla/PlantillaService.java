@@ -14,10 +14,6 @@ public class PlantillaService {
 
     private final PlantillaRepository plantillaRepository;
 
-    public List<Plantilla> listarActivas() {
-        return plantillaRepository.findAllActivas();
-    }
-
     public List<PlantillaProyecto> listarParaProyecto() {
         return plantillaRepository.findAllParaProyectoActivas();
     }

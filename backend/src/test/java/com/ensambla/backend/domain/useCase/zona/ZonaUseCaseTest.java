@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.ubicacion.DireccionEncontrada;
 import com.ensambla.backend.domain.model.zona.AgregadoZonaProducto;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.model.zona.Zona;
+import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.ubicacion.UbicacionService;
 import com.ensambla.backend.domain.service.zona.AccesoZonaService;
@@ -45,6 +46,7 @@ class ZonaUseCaseTest {
 
     private final NegocioService negocioService = mock(NegocioService.class);
     private final ZonaService zonaService = mock(ZonaService.class);
+    private final ZonaRepository zonaRepository = mock(ZonaRepository.class);
     private final UbicacionService ubicacionService = mock(UbicacionService.class);
     private final AgregadoZonaService agregadoZonaService = mock(AgregadoZonaService.class);
     private final AccesoZonaService accesoZonaService = mock(AccesoZonaService.class,
@@ -53,7 +55,7 @@ class ZonaUseCaseTest {
     private final ObtenerZona obtenerZona = config.obtenerZona(
             negocioService, zonaService, agregadoZonaService, accesoZonaService, CLOCK);
     private final AnalizarZona analizarZona = config.analizarZona(
-            zonaService, ubicacionService, agregadoZonaService, CLOCK, negocioService, accesoZonaService);
+            zonaService, zonaRepository, ubicacionService, agregadoZonaService, CLOCK, negocioService, accesoZonaService);
 
     @Test
     @DisplayName("Obtener devuelve los agregados de la zona del negocio de la sesión")
@@ -92,13 +94,13 @@ class ZonaUseCaseTest {
     }
 
     @Test
-    @DisplayName("Analizar encuentra un barrio por su nombre sin consultar el mapa")
+    @DisplayName("Analizar encuentra el primer barrio cuyo nombre o localidad coincide, sin consultar el mapa")
     void analizarShouldFindBarrioByName() {
         Zona zona = givenZona();
-        when(zonaService.buscarPorTexto("San Justo")).thenReturn(Optional.of(zona));
+        when(zonaRepository.findAll()).thenReturn(List.of(otraZona(), zona));
         when(agregadoZonaService.analizar(zona)).thenReturn(givenAnalisis());
 
-        ZonaItem result = analizarZona.execute(new AnalizarZonaRequest("San Justo", USUARIO_ID));
+        ZonaItem result = analizarZona.execute(new AnalizarZonaRequest("san justo", USUARIO_ID));
 
         assertThat(result.nombre()).isEqualTo("San Justo - UNLaM");
         verifyNoInteractions(ubicacionService);
@@ -108,7 +110,7 @@ class ZonaUseCaseTest {
     @DisplayName("Analizar resuelve la zona de una dirección cuando no es un barrio conocido")
     void analizarShouldResolveZoneFromAddress() {
         Zona zona = givenZona();
-        when(zonaService.buscarPorTexto("Arieta 3120, San Justo")).thenReturn(Optional.empty());
+        when(zonaRepository.findAll()).thenReturn(List.of(otraZona()));
         when(ubicacionService.buscar("Arieta 3120, San Justo", AHORA)).thenReturn(
                 List.of(new DireccionEncontrada("Arieta 3120", LATITUD, LONGITUD, "San Justo")));
         when(zonaService.resolver(LATITUD, LONGITUD)).thenReturn(Optional.of(zona));
@@ -122,7 +124,7 @@ class ZonaUseCaseTest {
     @Test
     @DisplayName("Analizar falla con 404 si la dirección no se encuentra")
     void analizarShouldFailWhenAddressNotFound() {
-        when(zonaService.buscarPorTexto("Calle inexistente 1")).thenReturn(Optional.empty());
+        when(zonaRepository.findAll()).thenReturn(List.of(otraZona()));
         when(ubicacionService.buscar("Calle inexistente 1", AHORA)).thenReturn(List.of());
 
         assertThatThrownBy(() -> analizarZona.execute(new AnalizarZonaRequest("Calle inexistente 1", USUARIO_ID)))
@@ -134,7 +136,7 @@ class ZonaUseCaseTest {
     @Test
     @DisplayName("Analizar falla con 404 si la dirección cae fuera de toda zona")
     void analizarShouldFailWhenAddressOutsideEveryZone() {
-        when(zonaService.buscarPorTexto("Av. Corrientes 1234")).thenReturn(Optional.empty());
+        when(zonaRepository.findAll()).thenReturn(List.of(otraZona()));
         when(ubicacionService.buscar("Av. Corrientes 1234", AHORA)).thenReturn(
                 List.of(new DireccionEncontrada("Av. Corrientes 1234", LATITUD, LONGITUD, "CABA")));
         when(zonaService.resolver(LATITUD, LONGITUD)).thenReturn(Optional.empty());
@@ -146,7 +148,7 @@ class ZonaUseCaseTest {
     @Test
     @DisplayName("Analizar deja pasar el error del buscador de direcciones")
     void analizarShouldPropagateAddressSearchError() {
-        when(zonaService.buscarPorTexto("ab")).thenReturn(Optional.empty());
+        when(zonaRepository.findAll()).thenReturn(List.of());
         when(ubicacionService.buscar("ab", AHORA)).thenThrow(new BusinessRuleException("Escribí una dirección"));
 
         assertThatThrownBy(() -> analizarZona.execute(new AnalizarZonaRequest("ab", USUARIO_ID)))
@@ -156,6 +158,10 @@ class ZonaUseCaseTest {
     // --- arrange ---
     private Zona givenZona() {
         return Zona.builder().id(ZONA_ID).nombre("San Justo - UNLaM").localidad("San Justo").build();
+    }
+
+    private static Zona otraZona() {
+        return Zona.builder().id(UUID.randomUUID()).nombre("Villa Crespo").localidad("CABA").build();
     }
 
     private AnalisisZona givenAnalisis() {

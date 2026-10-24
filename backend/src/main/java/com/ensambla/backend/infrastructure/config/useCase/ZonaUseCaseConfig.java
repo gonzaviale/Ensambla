@@ -31,10 +31,11 @@ public class ZonaUseCaseConfig {
     @Bean
     public AnalizarZona analizarZona(
             ZonaService zonaService,
+            ZonaRepository zonaRepository,
             UbicacionService ubicacionService,
             AgregadoZonaService agregadoZonaService,
             Clock clock, NegocioService negocioService, AccesoZonaService accesoZonaService) {
-        return new AnalizarZona(zonaService, ubicacionService, agregadoZonaService, clock,
+        return new AnalizarZona(zonaService, zonaRepository, ubicacionService, agregadoZonaService, clock,
                 negocioService, accesoZonaService);
     }
 

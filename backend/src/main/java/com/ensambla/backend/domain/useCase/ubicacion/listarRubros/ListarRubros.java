@@ -1,14 +1,12 @@
 package com.ensambla.backend.domain.useCase.ubicacion.listarRubros;
 
-import com.ensambla.backend.domain.service.ubicacion.RubroService;
-import lombok.RequiredArgsConstructor;
+import com.ensambla.backend.domain.model.negocio.RubroNegocio;
 
-@RequiredArgsConstructor
+import java.util.List;
+
 public class ListarRubros {
 
-    private final RubroService rubroService;
-
     public ListarRubrosResponse execute() {
-        return ListarRubrosResponse.de(rubroService.listar());
+        return ListarRubrosResponse.de(List.of(RubroNegocio.values()));
     }
 }

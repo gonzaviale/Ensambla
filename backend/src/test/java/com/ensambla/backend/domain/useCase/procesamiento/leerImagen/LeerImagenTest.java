@@ -1,32 +1,45 @@
 package com.ensambla.backend.domain.useCase.procesamiento.leerImagen;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.exception.LecturaCuadernoException;
+import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
-import com.ensambla.backend.domain.model.lectura.ImagenCuaderno;
-import com.ensambla.backend.domain.model.procesamiento.BloqueDeImagen;
-import com.ensambla.backend.domain.model.procesamiento.LecturaImagen;
+import com.ensambla.backend.domain.model.lectura.BloqueConocido;
+import com.ensambla.backend.domain.model.lectura.BloquePropuesto;
+import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
+import com.ensambla.backend.domain.model.lectura.ConsumoIa;
+import com.ensambla.backend.domain.model.lectura.DatoLeido;
+import com.ensambla.backend.domain.model.lectura.FilaLeida;
+import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
+import com.ensambla.backend.domain.model.lectura.PaginaCuaderno;
+import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
+import com.ensambla.backend.domain.port.LectorCuadernoPort;
+import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.plan.ConsumoIaInmediatoService;
-import com.ensambla.backend.domain.service.procesamiento.LecturaImagenService;
-import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenRequest.CampoItem;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem.CampoItem;
 import com.ensambla.backend.support.ImagenTestData;
+import com.ensambla.backend.support.ProcesamientoTestData;
+import com.ensambla.backend.support.TransaccionDirecta;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import java.time.Clock;
-import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -39,80 +52,143 @@ class LeerImagenTest {
     private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
     private static final UUID NEGOCIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000002");
     private static final double UMBRAL_CONFIANZA = 0.7;
+    /** 23:30 en Argentina ya es el 1 de octubre en UTC: el límite diario se cuenta por día UTC. */
+    private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-09-30T23:30:00-03:00");
+    private static final LocalDate DIA_UTC = LocalDate.parse("2026-10-01");
 
-    private final LecturaImagenService lecturaImagenService = mock(LecturaImagenService.class);
+    private final LectorCuadernoPort lectorCuadernoPort = mock(LectorCuadernoPort.class);
     private final NegocioService negocioService = mock(NegocioService.class);
-    private final ConsumoIaInmediatoService consumoIaInmediatoService = mock(ConsumoIaInmediatoService.class);
-    private final Clock clock = Clock.fixed(Instant.parse("2026-05-01T12:00:00Z"), ZoneOffset.UTC);
-    private final LeerImagen useCase = new LeerImagen(
-            lecturaImagenService, UMBRAL_CONFIANZA, negocioService, consumoIaInmediatoService, clock);
+    private final ControlPlanService controlPlanService = mock(ControlPlanService.class);
+    private final UsoPlanRepository usoPlanRepository = mock(UsoPlanRepository.class);
+    private final LeerImagen leerImagen = new LeerImagen(lectorCuadernoPort, new PropuestaLecturaService(),
+            UMBRAL_CONFIANZA, negocioService, controlPlanService, usoPlanRepository, ProcesamientoTestData.politica(),
+            new TransaccionDirecta(), Clock.fixed(AHORA.toInstant(), AHORA.getOffset()));
 
     private final LeerImagenRequest request = new LeerImagenRequest(USUARIO_ID, ImagenTestData.jpeg(), "Ventas",
-            List.of(new CampoItem("importe", "Monto", "NUMERO", null)), true);
+            List.of(new LeerImagenRequest.CampoItem("importe", "Monto", "NUMERO", null)), true);
 
-    @Test
-    @DisplayName("Lee la imagen contra el bloque pedido y devuelve lo leído")
-    void executeShouldReadTheImageAgainstTheRequestedBlock() {
-        givenLectura(new LecturaImagen(List.of(), List.of(), List.of("Renglón ilegible")));
-
-        LeerImagenItem item = useCase.execute(request);
-
-        assertThat(item).isEqualTo(new LeerImagenItem(List.of(), List.of(), List.of("Renglón ilegible")));
-        thenLeyoContraElBloquePedido();
-    }
-
-    @Test
-    @DisplayName("Registra el consumo del negocio del usuario antes de leer")
-    void executeShouldRegisterTheBusinessConsumptionBeforeReading() {
+    @BeforeEach
+    void givenNegocioConCupo() {
         when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        givenLectura(new LecturaImagen(List.of(), List.of(), List.of()));
-
-        useCase.execute(request);
-
-        InOrder orden = inOrder(consumoIaInmediatoService, lecturaImagenService);
-        orden.verify(consumoIaInmediatoService).registrar(NEGOCIO_ID, OffsetDateTime.now(clock));
-        orden.verify(lecturaImagenService).leer(any(ImagenCuaderno.class), any(BloqueDeImagen.class), eq(true));
+        when(usoPlanRepository.registrarPaginaInmediata(NEGOCIO_ID, DIA_UTC, 100, AHORA)).thenReturn(true);
     }
 
     @Test
-    @DisplayName("Con una imagen inválida no llega a leer")
+    @DisplayName("Devuelve lo leído con las claves del bloque y la columna que falta como nueva")
+    void executeShouldReturnTheReadingWithTheBlockKeys() {
+        givenLectura(List.of(columna("monto", "Monto"), columna("telefono", "Teléfono")),
+                new FilaLeida(1, 1, Map.of("monto", new DatoLeido("1500", 0.95),
+                        "telefono", new DatoLeido("1155", 0.5))));
+
+        LeerImagenItem item = leerImagen.execute(request);
+
+        assertThat(item.camposNuevos()).extracting(CampoItem::clave, CampoItem::nombre)
+                .containsExactly(tuple("telefono", "Teléfono"));
+        assertThat(item.filas().getFirst().keySet()).containsExactlyInAnyOrder("importe", "telefono");
+        assertThat(item.filas().getFirst().get("importe").valor()).isEqualTo("1500");
+        assertThat(item.filas().getFirst().get("importe").dudoso()).isFalse();
+        assertThat(item.filas().getFirst().get("telefono").dudoso()).isTrue();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    @DisplayName("La IA ve sólo el bloque elegido: una página y el bloque como destino")
+    void executeShouldAskTheReaderForOnlyTheChosenBlock() {
+        givenLectura(List.of(columna("monto", "Monto")), new FilaLeida(1, 1, Map.of()));
+
+        leerImagen.execute(request);
+
+        ArgumentCaptor<List<PaginaCuaderno>> paginas = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<BloqueConocido>> bloques = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<UUID> destino = ArgumentCaptor.forClass(UUID.class);
+        verify(lectorCuadernoPort).leer(paginas.capture(), bloques.capture(), destino.capture());
+        assertThat(paginas.getValue()).singleElement().satisfies(pagina -> {
+            assertThat(pagina.contenido()).isEqualTo(request.contenido());
+            assertThat(pagina.tipoContenido()).isEqualTo("image/jpeg");
+        });
+        assertThat(bloques.getValue()).singleElement().satisfies(bloque -> {
+            assertThat(bloque.id()).isEqualTo(destino.getValue());
+            assertThat(bloque.nombre()).isEqualTo("Ventas");
+            assertThat(bloque.campos()).extracting("nombre").containsExactly("Monto");
+        });
+    }
+
+    @Test
+    @DisplayName("Valida el mes y registra una página en el día UTC antes de invocar la IA")
+    void executeShouldChargeTheUtcDayBeforeReading() {
+        givenLectura(List.of(columna("monto", "Monto")), new FilaLeida(1, 1, Map.of()));
+
+        leerImagen.execute(request);
+
+        InOrder orden = inOrder(controlPlanService, usoPlanRepository, lectorCuadernoPort);
+        orden.verify(controlPlanService).validarPaginasIa(NEGOCIO_ID, 1, AHORA);
+        orden.verify(usoPlanRepository).registrarPaginaInmediata(NEGOCIO_ID, DIA_UTC, 100, AHORA);
+        orden.verify(controlPlanService).registrarPaginasPrueba(NEGOCIO_ID, 1, AHORA);
+        orden.verify(lectorCuadernoPort).leer(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Con el límite diario agotado responde una restricción clara y no llama a la IA")
+    void executeShouldRejectDailyLimit() {
+        when(usoPlanRepository.registrarPaginaInmediata(NEGOCIO_ID, DIA_UTC, 100, AHORA)).thenReturn(false);
+
+        assertThatThrownBy(() -> leerImagen.execute(request))
+                .isInstanceOf(RestriccionPlanException.class)
+                .hasMessage("Se alcanzó el límite diario de páginas de IA. Probá mañana.");
+
+        verifyNoInteractions(lectorCuadernoPort);
+    }
+
+    @Test
+    @DisplayName("Rechaza la foto cuando ninguna columna leída es del bloque")
+    void executeShouldRejectAPhotoThatIsNotFromTheBlock() {
+        givenLectura(List.of(columna("color", "Color")),
+                new FilaLeida(1, 1, Map.of("color", new DatoLeido("Rojo", 0.9))));
+
+        assertThatThrownBy(() -> leerImagen.execute(request))
+                .isInstanceOf(BusinessRuleException.class).hasMessageContaining("compatible");
+    }
+
+    @Test
+    @DisplayName("Propaga el error de la IA")
+    void executeShouldPropagateTheReaderFailure() {
+        when(lectorCuadernoPort.leer(any(), any(), any())).thenThrow(new LecturaCuadernoException("Falla de la IA"));
+
+        assertThatThrownBy(() -> leerImagen.execute(request))
+                .isInstanceOf(LecturaCuadernoException.class).hasMessage("Falla de la IA");
+    }
+
+    @Test
+    @DisplayName("Con una imagen inválida no cobra ni llega a leer")
     void executeShouldNotReadAnInvalidImage() {
         LeerImagenRequest vacia = new LeerImagenRequest(USUARIO_ID, new byte[0], "Ventas", request.campos(), true);
 
-        assertThatThrownBy(() -> useCase.execute(vacia))
+        assertThatThrownBy(() -> leerImagen.execute(vacia))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("La imagen está vacía");
 
-        verifyNoInteractions(lecturaImagenService, consumoIaInmediatoService);
+        verifyNoInteractions(lectorCuadernoPort, controlPlanService);
     }
 
     @Test
-    @DisplayName("Con un bloque sin datos no llega a leer")
+    @DisplayName("Con un bloque sin datos no cobra ni llega a leer")
     void executeShouldNotReadABlockWithoutFields() {
         LeerImagenRequest sinCampos = new LeerImagenRequest(USUARIO_ID, request.contenido(), "Ventas", List.of(), true);
 
-        assertThatThrownBy(() -> useCase.execute(sinCampos)).isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> leerImagen.execute(sinCampos)).isInstanceOf(BusinessRuleException.class);
 
-        verify(lecturaImagenService, never()).leer(any(), any(), anyBoolean());
-        verifyNoInteractions(consumoIaInmediatoService);
+        verifyNoInteractions(lectorCuadernoPort, controlPlanService);
+        verify(usoPlanRepository, never()).registrarPaginaInmediata(any(), any(), anyInt(), any());
     }
 
     // --- arrange ---
-    private void givenLectura(LecturaImagen lectura) {
-        when(lecturaImagenService.leer(any(ImagenCuaderno.class), any(BloqueDeImagen.class), eq(true)))
-                .thenReturn(lectura);
+    private void givenLectura(List<CampoPropuesto> campos, FilaLeida... filas) {
+        when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(new LecturaCuaderno(
+                TipoRegistroCuaderno.OTRO, new BloquePropuesto("Hoja", null, campos), List.of(filas), List.of(),
+                new ConsumoIa("simulado", "demo", "v3", 1, 0, 0, 1)));
     }
 
-    // --- assert ---
-    private void thenLeyoContraElBloquePedido() {
-        ArgumentCaptor<ImagenCuaderno> imagen = ArgumentCaptor.forClass(ImagenCuaderno.class);
-        ArgumentCaptor<BloqueDeImagen> bloque = ArgumentCaptor.forClass(BloqueDeImagen.class);
-        verify(lecturaImagenService).leer(imagen.capture(), bloque.capture(), eq(true));
-        assertThat(imagen.getValue().contenido()).isSameAs(request.contenido());
-        assertThat(bloque.getValue().nombre()).isEqualTo("Ventas");
-        assertThat(bloque.getValue().campos()).singleElement().satisfies(campo -> {
-            assertThat(campo.clave()).isEqualTo("importe");
-            assertThat(campo.tipo()).isEqualTo(TipoCampo.NUMERO);
-        });
+    private CampoPropuesto columna(String clave, String nombre) {
+        return new CampoPropuesto(clave, nombre, nombre.equals("Monto") ? TipoCampo.NUMERO : TipoCampo.TEXTO, List.of());
     }
 }

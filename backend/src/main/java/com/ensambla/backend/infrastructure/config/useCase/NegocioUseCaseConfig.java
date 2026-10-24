@@ -23,16 +23,16 @@ public class NegocioUseCaseConfig {
 
     @Bean
     public ActualizarNegocio actualizarNegocio(
-            NegocioService negocioService, ZonaService zonaService, Clock clock) {
-        return new ActualizarNegocio(negocioService, zonaService, clock);
-    }
-
-    @Bean
-    public NegocioService negocioService(
             NegocioRepository negocioRepository,
             ZonaService zonaService,
             UbicacionService ubicacionService,
-            TransaccionPort transaccionPort) {
-        return new NegocioService(negocioRepository, zonaService, ubicacionService, transaccionPort);
+            TransaccionPort transaccionPort,
+            Clock clock) {
+        return new ActualizarNegocio(negocioRepository, zonaService, ubicacionService, transaccionPort, clock);
+    }
+
+    @Bean
+    public NegocioService negocioService(NegocioRepository negocioRepository) {
+        return new NegocioService(negocioRepository);
     }
 }

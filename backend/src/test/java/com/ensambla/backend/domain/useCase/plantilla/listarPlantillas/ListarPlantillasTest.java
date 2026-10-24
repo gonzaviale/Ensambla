@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.useCase.plantilla.listarPlantillas;
 
 import com.ensambla.backend.domain.model.plantilla.Plantilla;
-import com.ensambla.backend.domain.service.plantilla.PlantillaService;
+import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,19 +22,19 @@ class ListarPlantillasTest {
     private static final String NOMBRE = "Pedidos";
 
     @Mock
-    private PlantillaService plantillaService;
+    private PlantillaRepository plantillaRepository;
 
     private ListarPlantillas listarPlantillas;
 
     @BeforeEach
     void setUp() {
-        listarPlantillas = new ListarPlantillas(plantillaService);
+        listarPlantillas = new ListarPlantillas(plantillaRepository);
     }
 
     @Test
     @DisplayName("Lista las plantillas activas y las devuelve mapeadas")
     void executeShouldReturnMappedPlantillas() {
-        givenServiceListsPlantillas(List.of(Plantilla.builder().id(PLANTILLA_ID).nombre(NOMBRE).build()));
+        givenRepositoryListsPlantillas(List.of(Plantilla.builder().id(PLANTILLA_ID).nombre(NOMBRE).build()));
 
         ListarPlantillasResponse response = listarPlantillas.execute();
 
@@ -44,7 +44,7 @@ class ListarPlantillasTest {
     }
 
     // --- arrange ---
-    private void givenServiceListsPlantillas(List<Plantilla> plantillas) {
-        when(plantillaService.listarActivas()).thenReturn(plantillas);
+    private void givenRepositoryListsPlantillas(List<Plantilla> plantillas) {
+        when(plantillaRepository.findAllActivas()).thenReturn(plantillas);
     }
 }
