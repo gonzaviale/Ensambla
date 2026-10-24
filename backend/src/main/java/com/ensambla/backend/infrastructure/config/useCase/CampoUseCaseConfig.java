@@ -4,6 +4,9 @@ import com.ensambla.backend.domain.mapper.campo.CampoItemMapper;
 import com.ensambla.backend.domain.mapper.campo.CrearCampoMapper;
 import com.ensambla.backend.domain.mapper.campo.EditarCampoMapper;
 import com.ensambla.backend.domain.mapper.campo.ListarCamposMapper;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
@@ -89,5 +92,13 @@ public class CampoUseCaseConfig {
         return new EliminarCampoUseCase(
                 negocioService,
                 campoService);
+    }
+
+    @Bean
+    public CampoService campoService(
+            CampoRepository campoRepository,
+            BloqueRepository bloqueRepository,
+            TransaccionPort transaccionPort) {
+        return new CampoService(campoRepository, bloqueRepository, transaccionPort);
     }
 }

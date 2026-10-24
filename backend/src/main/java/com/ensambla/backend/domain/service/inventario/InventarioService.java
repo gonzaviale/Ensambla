@@ -2,10 +2,9 @@ package com.ensambla.backend.domain.service.inventario;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.model.inventario.MovimientoStock;
+import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Collection;
@@ -14,26 +13,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class InventarioService {
 
     static final int MAXIMO_MOVIMIENTOS = 100;
 
     private final MovimientoStockRepository movimientoStockRepository;
 
+    private final TransaccionPort transaccionPort;
+
     /**
      * Guarda el movimiento. Una salida no puede dejar el stock en negativo.
      *
      * @throws RegistroInvalidoException si la salida es mayor que el stock actual del producto
      */
-    @Transactional
     public MovimientoStock registrar(MovimientoStock movimiento) {
-        if (movimiento.esSalida()) {
-            validarStockSuficiente(movimiento);
-        }
-        return movimientoStockRepository.save(movimiento);
+        return transaccionPort.ejecutar(() -> {
+            if (movimiento.esSalida()) {
+                validarStockSuficiente(movimiento);
+            }
+            return movimientoStockRepository.save(movimiento);
+        });
     }
 
     /** Stock de cada producto pedido, en el orden pedido; sin movimientos es cero. */

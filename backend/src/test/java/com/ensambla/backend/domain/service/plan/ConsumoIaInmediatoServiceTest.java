@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.service.plan;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.support.ProcesamientoTestData;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +24,7 @@ class ConsumoIaInmediatoServiceTest {
     private final ControlPlanService controlPlanService = mock(ControlPlanService.class);
     private final UsoPlanRepository usoPlanRepository = mock(UsoPlanRepository.class);
     private final ConsumoIaInmediatoService consumoIaInmediatoService = new ConsumoIaInmediatoService(
-            controlPlanService, usoPlanRepository, ProcesamientoTestData.politica());
+            controlPlanService, usoPlanRepository, ProcesamientoTestData.politica(), new TransaccionDirecta());
 
     @Test
     @DisplayName("Valida el mes y registra una página en el día UTC antes de invocar IA")

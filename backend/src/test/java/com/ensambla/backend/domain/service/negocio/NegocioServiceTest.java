@@ -8,6 +8,7 @@ import com.ensambla.backend.domain.model.zona.Zona;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.service.ubicacion.UbicacionService;
 import com.ensambla.backend.domain.service.zona.ZonaService;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +39,7 @@ class NegocioServiceTest {
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final ZonaService zonaService = mock(ZonaService.class);
     private final UbicacionService ubicacionService = mock(UbicacionService.class);
-    private final NegocioService negocioService = new NegocioService(negocioRepository, zonaService, ubicacionService);
+    private final NegocioService negocioService = new NegocioService(negocioRepository, zonaService, ubicacionService, new TransaccionDirecta());
 
     @Test
     @DisplayName("Resuelve el negocio usando el usuario autenticado")

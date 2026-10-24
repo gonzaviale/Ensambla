@@ -1,7 +1,12 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.mapper.sistema.SistemaItemMapper;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
+import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.sistema.SistemaService;
 import com.ensambla.backend.domain.useCase.sistema.EliminarSistemaUseCase;
 import com.ensambla.backend.domain.useCase.sistema.GuardarSistemaUseCase;
@@ -38,5 +43,16 @@ public class SistemaUseCaseConfig {
     public EliminarSistemaUseCase eliminarSistemaUseCase(
             NegocioService negocioService, SistemaService sistemaService) {
         return new EliminarSistemaUseCase(negocioService, sistemaService);
+    }
+
+    @Bean
+    public SistemaService sistemaService(
+            SistemaRepository sistemaRepository,
+            ProyectoRepository proyectoRepository,
+            ControlPlanService controlPlanService,
+            UsoPlanRepository usoPlanRepository,
+            TransaccionPort transaccionPort) {
+        return new SistemaService(
+                sistemaRepository, proyectoRepository, controlPlanService, usoPlanRepository, transaccionPort);
     }
 }

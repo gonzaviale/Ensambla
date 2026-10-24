@@ -10,8 +10,6 @@ import com.ensambla.backend.domain.model.reporte.ReporteRegistros;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -22,9 +20,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 
-@Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class ReporteService {
 
     /** Filas que se muestran en pantalla antes de descargar. */

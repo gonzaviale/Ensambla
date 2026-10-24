@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.service.preferencia;
 
 import com.ensambla.backend.domain.model.preferencia.PreferenciaUsuario;
 import com.ensambla.backend.domain.repository.preferencia.PreferenciaRepository;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -24,7 +25,7 @@ class PreferenciaServiceTest {
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-21T10:00:00Z");
 
     private final PreferenciaRepository preferenciaRepository = mock(PreferenciaRepository.class);
-    private final PreferenciaService preferenciaService = new PreferenciaService(preferenciaRepository);
+    private final PreferenciaService preferenciaService = new PreferenciaService(preferenciaRepository, new TransaccionDirecta());
 
     @Test
     @DisplayName("Obtener devuelve lo guardado")

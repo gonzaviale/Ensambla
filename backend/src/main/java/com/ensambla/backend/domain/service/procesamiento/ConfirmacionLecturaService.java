@@ -15,14 +15,13 @@ import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura.FilaC
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.lote.LoteSubidaService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -38,9 +37,7 @@ import java.util.stream.Collectors;
  * Guarda de una sola vez lo que la persona revisó de una lectura: el bloque y sus campos (o los de un bloque existente)
  * y los registros, cada uno vinculado a su foto. Corre en una transacción: si algo falla no queda nada a medias.
  */
-@Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class ConfirmacionLecturaService {
 
     private final ProyectoService proyectoService;
@@ -53,18 +50,21 @@ public class ConfirmacionLecturaService {
 
     private final LoteSubidaService loteSubidaService;
 
+    private final TransaccionPort transaccionPort;
+
     /** {@code lote} ya viene validado contra el negocio de la sesión y con sus fotos cargadas. */
-    @Transactional
     public ConfirmacionGuardada confirmar(UUID negocioId, LoteSubida lote, ConfirmacionLectura confirmacion,
                                           OffsetDateTime ahora) {
-        lote.validarConfirmable();
-        confirmacion.validar();
-        Bloque bloque = destino(negocioId, confirmacion, ahora);
-        Map<String, Campo> campos = prepararCampos(negocioId, bloque, confirmacion, ahora);
-        List<Registro> registros = armarRegistros(negocioId, bloque, campos, lote, confirmacion, ahora);
-        registroDatosService.crearVarios(negocioId, registros, ahora);
-        loteSubidaService.confirmar(lote, bloque.getId(), ahora);
-        return new ConfirmacionGuardada(bloque.getProyectoId(), bloque.getId(), registros.size());
+        return transaccionPort.ejecutar(() -> {
+            lote.validarConfirmable();
+            confirmacion.validar();
+            Bloque bloque = destino(negocioId, confirmacion, ahora);
+            Map<String, Campo> campos = prepararCampos(negocioId, bloque, confirmacion, ahora);
+            List<Registro> registros = armarRegistros(negocioId, bloque, campos, lote, confirmacion, ahora);
+            registroDatosService.crearVarios(negocioId, registros, ahora);
+            loteSubidaService.confirmar(lote, bloque.getId(), ahora);
+            return new ConfirmacionGuardada(bloque.getProyectoId(), bloque.getId(), registros.size());
+        });
     }
 
     private Bloque destino(UUID negocioId, ConfirmacionLectura confirmacion, OffsetDateTime ahora) {

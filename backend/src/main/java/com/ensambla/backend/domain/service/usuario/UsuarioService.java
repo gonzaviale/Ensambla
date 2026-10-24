@@ -5,14 +5,10 @@ import com.ensambla.backend.domain.model.usuario.Usuario;
 import com.ensambla.backend.domain.port.ContraseniaPort;
 import com.ensambla.backend.domain.repository.usuario.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
-@Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;

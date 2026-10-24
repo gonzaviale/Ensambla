@@ -2,11 +2,12 @@ package com.ensambla.backend.domain.service.aviso;
 
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.ContextoNegocio;
-import com.ensambla.backend.domain.model.aviso.ResultadoRegla;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.ReglaAviso;
+import com.ensambla.backend.domain.model.aviso.ResultadoRegla;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
-import com.ensambla.backend.domain.service.aviso.regla.ReglaAviso;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,7 +52,7 @@ class MotorAvisosServiceTest {
 
     @BeforeEach
     void setUp() {
-        motorAvisosService = new MotorAvisosService(List.of(regla), contextoNegocioService, avisoRepository);
+        motorAvisosService = new MotorAvisosService(List.of(regla), contextoNegocioService, avisoRepository, new TransaccionDirecta());
         when(contextoNegocioService.armar(NEGOCIO_ID)).thenReturn(contexto);
         when(regla.tipo()).thenReturn(TipoAviso.STOCK);
         lenient().when(avisoRepository.save(any(Aviso.class))).thenAnswer(invocacion -> {
@@ -224,7 +225,7 @@ class MotorAvisosServiceTest {
         ReglaAviso otra = org.mockito.Mockito.mock(ReglaAviso.class);
         when(otra.tipo()).thenReturn(TipoAviso.PRECIO_ZONA);
         when(otra.evaluar(contexto)).thenReturn(List.of());
-        motorAvisosService = new MotorAvisosService(List.of(regla, otra), contextoNegocioService, avisoRepository);
+        motorAvisosService = new MotorAvisosService(List.of(regla, otra), contextoNegocioService, avisoRepository, new TransaccionDirecta());
         givenRegla();
         givenSinAvisos();
 

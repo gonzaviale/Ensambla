@@ -6,7 +6,10 @@ import com.ensambla.backend.domain.mapper.proyecto.ListarProyectosMapper;
 import com.ensambla.backend.domain.mapper.proyecto.ObtenerProyectoMapper;
 import com.ensambla.backend.domain.mapper.proyecto.ProyectoItemMapper;
 import com.ensambla.backend.domain.mapper.proyecto.RenombrarProyectoMapper;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.plantilla.PlantillaService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.domain.useCase.proyecto.CrearProyectoDesdePlantillaUseCase;
@@ -120,6 +123,14 @@ public class ProyectoUseCaseConfig {
     public EliminarProyectoUseCase eliminarProyectoUseCase(
             NegocioService negocioService, ProyectoService proyectoService) {
         return new EliminarProyectoUseCase(negocioService, proyectoService);
+    }
+
+    @Bean
+    public ProyectoService proyectoService(
+            ProyectoRepository proyectoRepository,
+            ControlPlanService controlPlanService,
+            TransaccionPort transaccionPort) {
+        return new ProyectoService(proyectoRepository, controlPlanService, transaccionPort);
     }
 }
 

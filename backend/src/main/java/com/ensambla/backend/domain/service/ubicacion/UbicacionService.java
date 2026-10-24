@@ -5,13 +5,11 @@ import com.ensambla.backend.domain.model.ubicacion.DireccionEncontrada;
 import com.ensambla.backend.domain.model.ubicacion.LocalidadesDelPunto;
 import com.ensambla.backend.domain.port.GeocodificadorPort;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
-@Service
 @RequiredArgsConstructor
 public class UbicacionService {
 

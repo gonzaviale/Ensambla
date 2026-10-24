@@ -7,12 +7,11 @@ import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.receta.Receta;
 import com.ensambla.backend.domain.model.receta.RecetaCosteada;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.receta.RecetaRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,9 +20,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class RecetaService {
 
     private static final String MENSAJE_INSUMO_INEXISTENTE = "Ese insumo ya no existe";
@@ -33,6 +30,8 @@ public class RecetaService {
     private final CampoRepository campoRepository;
 
     private final RegistroRepository registroRepository;
+
+    private final TransaccionPort transaccionPort;
 
     /** La receta del producto; si todavía no tiene, una receta vacía. */
     public Receta obtener(UUID productoId, UUID negocioId) {
@@ -50,20 +49,21 @@ public class RecetaService {
      *
      * @throws RegistroInvalidoException si la columna del precio no sirve o algún insumo no existe en su tabla
      */
-    @Transactional
     public Receta guardar(Receta receta) {
-        if (receta.esVacia()) {
-            recetaRepository.deleteByProductoIdAndNegocioId(receta.getProductoId(), receta.getNegocioId());
-            return receta;
-        }
-        Campo precio = campoRepository.findByIdAndNegocioId(receta.getCampoPrecioId(), receta.getNegocioId())
-                .filter(campo -> campo.getTipo() == TipoCampo.NUMERO)
-                .orElseThrow(() -> new RegistroInvalidoException(
-                        Map.of("campoPrecioId", "Elegí una columna numérica con el precio de los insumos")));
-        validarInsumos(receta, precio);
-        recetaRepository.findByProductoIdAndNegocioId(receta.getProductoId(), receta.getNegocioId())
-                .ifPresent(receta::reemplazar);
-        return recetaRepository.save(receta);
+        return transaccionPort.ejecutar(() -> {
+            if (receta.esVacia()) {
+                recetaRepository.deleteByProductoIdAndNegocioId(receta.getProductoId(), receta.getNegocioId());
+                return receta;
+            }
+            Campo precio = campoRepository.findByIdAndNegocioId(receta.getCampoPrecioId(), receta.getNegocioId())
+                    .filter(campo -> campo.getTipo() == TipoCampo.NUMERO)
+                    .orElseThrow(() -> new RegistroInvalidoException(
+                            Map.of("campoPrecioId", "Elegí una columna numérica con el precio de los insumos")));
+            validarInsumos(receta, precio);
+            recetaRepository.findByProductoIdAndNegocioId(receta.getProductoId(), receta.getNegocioId())
+                    .ifPresent(receta::reemplazar);
+            return recetaRepository.save(receta);
+        });
     }
 
     /** Calcula el costo con el precio actual de cada insumo; una receta vacía cuesta cero. */

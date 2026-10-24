@@ -1,11 +1,6 @@
-package com.ensambla.backend.domain.service.aviso.regla;
+package com.ensambla.backend.domain.model.aviso;
 
-import com.ensambla.backend.domain.model.aviso.BloqueInventario;
-import com.ensambla.backend.domain.model.aviso.ContextoNegocio;
-import com.ensambla.backend.domain.model.aviso.ResultadoRegla;
-import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import com.ensambla.backend.domain.model.registro.Registro;
-import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
@@ -14,7 +9,6 @@ import java.util.Map;
 import java.util.UUID;
 
 /** Productos agotados o por debajo del mínimo que definió el negocio. */
-@Component
 public class ReglaStockBajo implements ReglaAviso {
 
     static final String CLAVE_NOMBRE = "name";

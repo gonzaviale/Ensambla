@@ -5,36 +5,36 @@ import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Plan;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
+import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-@Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class SuscripcionService {
 
     private final PlanRepository planRepository;
 
     private final SuscripcionRepository suscripcionRepository;
 
-    @Transactional
+    private final TransaccionPort transaccionPort;
+
     public Suscripcion asignarGratuito(UUID negocioId, OffsetDateTime instante) {
-        Plan plan = planRepository.findByCodigo(CodigoPlan.GRATUITO)
-                .orElseThrow(() -> new ResourceNotFoundException("Plan gratuito no encontrado"));
-        return suscripcionRepository.save(Suscripcion.builder()
-                .negocioId(negocioId)
-                .planId(plan.getId())
-                .estado(EstadoSuscripcion.ACTIVA)
-                .inicioEn(instante)
-                .creadoEn(instante)
-                .actualizadoEn(instante)
-                .build());
+        return transaccionPort.ejecutar(() -> {
+            Plan plan = planRepository.findByCodigo(CodigoPlan.GRATUITO)
+                    .orElseThrow(() -> new ResourceNotFoundException("Plan gratuito no encontrado"));
+            return suscripcionRepository.save(Suscripcion.builder()
+                    .negocioId(negocioId)
+                    .planId(plan.getId())
+                    .estado(EstadoSuscripcion.ACTIVA)
+                    .inicioEn(instante)
+                    .creadoEn(instante)
+                    .actualizadoEn(instante)
+                    .build());
+        });
     }
 
     public Suscripcion obtener(UUID negocioId) {

@@ -1,8 +1,4 @@
-package com.ensambla.backend.domain.service.aviso.regla;
-
-import com.ensambla.backend.domain.model.aviso.ContextoNegocio;
-import com.ensambla.backend.domain.model.aviso.ResultadoRegla;
-import com.ensambla.backend.domain.model.aviso.TipoAviso;
+package com.ensambla.backend.domain.model.aviso;
 
 import java.util.List;
 

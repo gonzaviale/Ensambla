@@ -3,6 +3,8 @@ package com.ensambla.backend.infrastructure.config.useCase;
 import com.ensambla.backend.domain.mapper.reporte.ExportarReporteMapper;
 import com.ensambla.backend.domain.mapper.reporte.GenerarReporteMapper;
 import com.ensambla.backend.domain.port.ExportadorReportePort;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
@@ -53,5 +55,10 @@ public class ReporteUseCaseConfig {
         return new ExportarReporteUseCase(
                 negocioService, controlPlanService, bloqueService, campoService, reporteService,
                 exportadorReportePort, exportarReporteMapper, clock);
+    }
+
+    @Bean
+    public ReporteService reporteService(RegistroRepository registroRepository, CampoRepository campoRepository) {
+        return new ReporteService(registroRepository, campoRepository);
     }
 }

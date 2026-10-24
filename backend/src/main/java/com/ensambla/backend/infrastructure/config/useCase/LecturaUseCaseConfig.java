@@ -7,16 +7,22 @@ import com.ensambla.backend.domain.mapper.procesamiento.ObtenerLecturaMapper;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
+import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
+import com.ensambla.backend.domain.service.bloque.BloqueService;
+import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.lote.LoteSubidaService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ConsumoIaInmediatoService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.procesamiento.ConexionesLecturaService;
 import com.ensambla.backend.domain.service.procesamiento.ConfirmacionLecturaService;
 import com.ensambla.backend.domain.service.procesamiento.LecturaImagenService;
 import com.ensambla.backend.domain.service.procesamiento.ProcesamientoService;
 import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
 import com.ensambla.backend.domain.service.procesamiento.ReservaIaService;
+import com.ensambla.backend.domain.service.proyecto.ProyectoService;
+import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.procesamiento.ConfirmarLecturaUseCase;
 import com.ensambla.backend.domain.useCase.procesamiento.ConsultarConsumoUseCase;
 import com.ensambla.backend.domain.useCase.procesamiento.LeerImagenUseCase;
@@ -164,5 +170,37 @@ public class LecturaUseCaseConfig {
                                                          PoliticaProcesamiento politicaProcesamiento, Clock clock) {
         return new ConsultarConsumoUseCase(negocioService, procesamientoService, consultarConsumoMapper,
                 politicaProcesamiento, clock);
+    }
+
+    @Bean
+    public ConexionesLecturaService conexionesLecturaService(
+            CampoService campoService,
+            RegistroDatosService registroDatosService) {
+        return new ConexionesLecturaService(campoService, registroDatosService);
+    }
+
+    @Bean
+    public ConfirmacionLecturaService confirmacionLecturaService(
+            ProyectoService proyectoService,
+            BloqueService bloqueService,
+            CampoService campoService,
+            RegistroDatosService registroDatosService,
+            LoteSubidaService loteSubidaService,
+            TransaccionPort transaccionPort) {
+        return new ConfirmacionLecturaService(
+                proyectoService, bloqueService, campoService, registroDatosService, loteSubidaService, transaccionPort);
+    }
+
+    @Bean
+    public PropuestaLecturaService propuestaLecturaService() {
+        return new PropuestaLecturaService();
+    }
+
+    @Bean
+    public ReservaIaService reservaIaService(
+            ControlPlanService controlPlanService,
+            ProcesamientoRepository procesamientoRepository,
+            TransaccionPort transaccionPort) {
+        return new ReservaIaService(controlPlanService, procesamientoRepository, transaccionPort);
     }
 }

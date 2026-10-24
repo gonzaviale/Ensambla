@@ -8,11 +8,10 @@ import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
 import com.ensambla.backend.domain.model.campo.Formula;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -21,14 +20,14 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class CampoService {
 
     private final CampoRepository campoRepository;
 
     private final BloqueRepository bloqueRepository;
+
+    private final TransaccionPort transaccionPort;
 
     public List<Campo> listarDeBloque(UUID bloqueId, UUID negocioId) {
         return campoRepository.findByBloqueIdAndNegocioId(bloqueId, negocioId);
@@ -40,33 +39,36 @@ public class CampoService {
     }
 
     /** {@code bloque} ya viene validado contra el negocio de la sesión; acá se cargan sus campos para validar. */
-    @Transactional
     public Campo crear(Bloque bloque, ConfiguracionCampo configuracion, OffsetDateTime ahora) {
-        cargarCampos(bloque);
-        Campo campo = bloque.agregarCampo(configuracion, ahora);
-        validarBloqueRelacionado(bloque, campo);
-        validarReferenciasDeFormula(bloque, campo);
-        return campoRepository.save(campo);
+        return transaccionPort.ejecutar(() -> {
+            cargarCampos(bloque);
+            Campo campo = bloque.agregarCampo(configuracion, ahora);
+            validarBloqueRelacionado(bloque, campo);
+            validarReferenciasDeFormula(bloque, campo);
+            return campoRepository.save(campo);
+        });
     }
 
     /** {@code bloque} es el dueño del campo; acá se cargan sus campos para validar el nombre. */
-    @Transactional
     public Campo editar(Bloque bloque, Campo campo, ConfiguracionCampo configuracion, OffsetDateTime ahora) {
-        cargarCampos(bloque);
-        bloque.editarCampo(campo, configuracion, ahora);
-        validarBloqueRelacionado(bloque, campo);
-        validarReferenciasDeFormula(bloque, campo);
-        if (campo.getTipo() != TipoCampo.NUMERO) {
-            validarSinFormulasQueLoUsen(bloque.getCampos(), campo, "cambiar el tipo de");
-        }
-        return campoRepository.save(campo);
+        return transaccionPort.ejecutar(() -> {
+            cargarCampos(bloque);
+            bloque.editarCampo(campo, configuracion, ahora);
+            validarBloqueRelacionado(bloque, campo);
+            validarReferenciasDeFormula(bloque, campo);
+            if (campo.getTipo() != TipoCampo.NUMERO) {
+                validarSinFormulasQueLoUsen(bloque.getCampos(), campo, "cambiar el tipo de");
+            }
+            return campoRepository.save(campo);
+        });
     }
 
-    @Transactional
     public void eliminar(Campo campo) {
-        validarSinFormulasQueLoUsen(
-                campoRepository.findByBloqueIdAndNegocioId(campo.getBloqueId(), campo.getNegocioId()), campo, "eliminar");
-        campoRepository.deleteByIdAndNegocioId(campo.getId(), campo.getNegocioId());
+        transaccionPort.ejecutar(() -> {
+            validarSinFormulasQueLoUsen(
+                    campoRepository.findByBloqueIdAndNegocioId(campo.getBloqueId(), campo.getNegocioId()), campo, "eliminar");
+            campoRepository.deleteByIdAndNegocioId(campo.getId(), campo.getNegocioId());
+        });
     }
 
     /**

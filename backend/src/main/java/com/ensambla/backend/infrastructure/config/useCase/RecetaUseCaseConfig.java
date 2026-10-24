@@ -3,6 +3,10 @@ package com.ensambla.backend.infrastructure.config.useCase;
 import com.ensambla.backend.domain.mapper.receta.GuardarRecetaMapper;
 import com.ensambla.backend.domain.mapper.receta.ObtenerRecetaMapper;
 import com.ensambla.backend.domain.mapper.receta.RecetaItemMapper;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.receta.RecetaRepository;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.receta.RecetaService;
@@ -52,5 +56,14 @@ public class RecetaUseCaseConfig {
                                                      Clock clock) {
         return new GuardarRecetaUseCase(
                 negocioService, controlPlanService, registroDatosService, recetaService, guardarRecetaMapper, clock);
+    }
+
+    @Bean
+    public RecetaService recetaService(
+            RecetaRepository recetaRepository,
+            CampoRepository campoRepository,
+            RegistroRepository registroRepository,
+            TransaccionPort transaccionPort) {
+        return new RecetaService(recetaRepository, campoRepository, registroRepository, transaccionPort);
     }
 }

@@ -3,14 +3,12 @@ package com.ensambla.backend.domain.service.aviso;
 import com.ensambla.backend.domain.model.aviso.BloqueInventario;
 import com.ensambla.backend.domain.model.aviso.ContextoNegocio;
 import com.ensambla.backend.domain.model.bloque.Bloque;
-import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.bloque.TipoBloque;
+import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -19,9 +17,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /** Arma los datos del negocio que las reglas de aviso necesitan: sus tablas de inventario con campos y registros. */
-@Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class ContextoNegocioService {
 
     private final ProyectoRepository proyectoRepository;

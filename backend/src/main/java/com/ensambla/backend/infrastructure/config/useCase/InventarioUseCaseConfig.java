@@ -4,6 +4,8 @@ import com.ensambla.backend.domain.mapper.inventario.ConsultarStockMapper;
 import com.ensambla.backend.domain.mapper.inventario.ListarMovimientosMapper;
 import com.ensambla.backend.domain.mapper.inventario.MovimientoItemMapper;
 import com.ensambla.backend.domain.mapper.inventario.RegistrarMovimientoMapper;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.inventario.InventarioService;
@@ -72,5 +74,12 @@ public class InventarioUseCaseConfig {
                                                        ConsultarStockMapper consultarStockMapper) {
         return new ConsultarStockUseCase(negocioService, bloqueService, campoService, registroDatosService,
                 inventarioService, consultarStockMapper);
+    }
+
+    @Bean
+    public InventarioService inventarioService(
+            MovimientoStockRepository movimientoStockRepository,
+            TransaccionPort transaccionPort) {
+        return new InventarioService(movimientoStockRepository, transaccionPort);
     }
 }

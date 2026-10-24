@@ -7,13 +7,12 @@ import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.plan.Plan;
 import com.ensambla.backend.domain.model.plan.PruebaPremium;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
+import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -21,9 +20,7 @@ import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 
-@Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class ControlPlanService {
 
     private final PlanRepository planRepository;
@@ -34,31 +31,36 @@ public class ControlPlanService {
 
     private final PruebaPremiumRepository pruebaPremiumRepository;
 
-    @Transactional
+    private final TransaccionPort transaccionPort;
+
     public void validarAltaProyecto(UUID negocioId, OffsetDateTime ahora) {
-        usoPlanRepository.bloquearNegocio(negocioId);
-        Plan plan = vigente(negocioId, ahora);
-        plan.validarProyectos(usoPlanRepository.contarProyectos(negocioId));
+        transaccionPort.ejecutar(() -> {
+            usoPlanRepository.bloquearNegocio(negocioId);
+            Plan plan = vigente(negocioId, ahora);
+            plan.validarProyectos(usoPlanRepository.contarProyectos(negocioId));
+        });
     }
 
-    @Transactional
     public void validarAltaRegistros(UUID negocioId, long cantidad, OffsetDateTime ahora) {
-        usoPlanRepository.bloquearNegocio(negocioId);
-        Plan plan = vigente(negocioId, ahora);
-        plan.validarRegistros(usoPlanRepository.contarRegistros(negocioId), cantidad);
+        transaccionPort.ejecutar(() -> {
+            usoPlanRepository.bloquearNegocio(negocioId);
+            Plan plan = vigente(negocioId, ahora);
+            plan.validarRegistros(usoPlanRepository.contarRegistros(negocioId), cantidad);
+        });
     }
 
-    @Transactional
     public void validarPaginasIa(UUID negocioId, int cantidad, OffsetDateTime ahora) {
-        usoPlanRepository.bloquearNegocio(negocioId);
-        Plan plan = vigente(negocioId, ahora);
-        Optional<PruebaPremium> prueba = pruebaVigente(negocioId, ahora);
-        if (prueba.isPresent()) {
-            prueba.get().validarPaginas(cantidad);
-            return;
-        }
-        LocalDate mes = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate().withDayOfMonth(1);
-        plan.validarPaginasIa(usoPlanRepository.paginasEnPeriodo(negocioId, mes, mes.plusMonths(1)), cantidad);
+        transaccionPort.ejecutar(() -> {
+            usoPlanRepository.bloquearNegocio(negocioId);
+            Plan plan = vigente(negocioId, ahora);
+            Optional<PruebaPremium> prueba = pruebaVigente(negocioId, ahora);
+            if (prueba.isPresent()) {
+                prueba.get().validarPaginas(cantidad);
+                return;
+            }
+            LocalDate mes = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate().withDayOfMonth(1);
+            plan.validarPaginasIa(usoPlanRepository.paginasEnPeriodo(negocioId, mes, mes.plusMonths(1)), cantidad);
+        });
     }
 
     public void validarFuncion(UUID negocioId, FuncionPlan funcion, OffsetDateTime ahora) {
@@ -70,11 +72,12 @@ public class ControlPlanService {
     }
 
     /** Se cobra al admitir un intento. También cuentan errores y timeouts, sin duplicar al finalizar el lote. */
-    @Transactional
     public void registrarPaginasPrueba(UUID negocioId, int cantidad, OffsetDateTime ahora) {
-        usoPlanRepository.bloquearNegocio(negocioId);
-        pruebaVigente(negocioId, ahora)
-                .ifPresent(prueba -> pruebaPremiumRepository.save(prueba.consumir(cantidad)));
+        transaccionPort.ejecutar(() -> {
+            usoPlanRepository.bloquearNegocio(negocioId);
+            pruebaVigente(negocioId, ahora)
+                    .ifPresent(prueba -> pruebaPremiumRepository.save(prueba.consumir(cantidad)));
+        });
     }
 
     private Optional<PruebaPremium> pruebaVigente(UUID negocioId, OffsetDateTime ahora) {

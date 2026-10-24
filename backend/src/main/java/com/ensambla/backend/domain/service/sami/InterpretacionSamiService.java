@@ -14,7 +14,6 @@ import com.ensambla.backend.domain.model.sami.PreguntaDiccionario;
 import com.ensambla.backend.domain.model.sami.PuntajePlantilla;
 import com.ensambla.backend.domain.model.sami.RespuestaSami;
 import com.ensambla.backend.domain.model.sami.TerminoDiccionario;
-import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -34,7 +33,6 @@ import java.util.stream.Collectors;
  * Elegir una opción de una pregunta suma {@link #PUNTAJE_SUFICIENTE} a su plantilla y descarta a las demás
  * plantillas que esa pregunta separaba.
  */
-@Service
 public class InterpretacionSamiService {
 
     static final int PUNTAJE_SUFICIENTE = 5;

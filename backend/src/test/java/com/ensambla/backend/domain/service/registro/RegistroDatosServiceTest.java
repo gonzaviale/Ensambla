@@ -3,20 +3,23 @@ package com.ensambla.backend.domain.service.registro;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.common.Pagina;
-import com.ensambla.backend.domain.model.registro.DireccionOrden;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
+import com.ensambla.backend.domain.model.registro.DireccionOrden;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.TotalesRegistros;
+import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -57,6 +60,9 @@ class RegistroDatosServiceTest {
 
     @Mock
     private ControlPlanService controlPlanService;
+
+    @Spy
+    private TransaccionPort transaccionPort = new TransaccionDirecta();
 
     @InjectMocks
     private RegistroDatosService registroDatosService;

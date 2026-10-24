@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.support.ProyectoTestData;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,7 @@ class ProyectoServiceSamiTest {
 
     @BeforeEach
     void setUp() {
-        proyectoService = new ProyectoService(proyectoRepository, controlPlanService);
+        proyectoService = new ProyectoService(proyectoRepository, controlPlanService, new TransaccionDirecta());
     }
 
     @Test

@@ -4,6 +4,9 @@ import com.ensambla.backend.domain.mapper.bloque.BloqueItemMapper;
 import com.ensambla.backend.domain.mapper.bloque.CrearBloqueMapper;
 import com.ensambla.backend.domain.mapper.bloque.ListarBloquesMapper;
 import com.ensambla.backend.domain.mapper.bloque.RenombrarBloqueMapper;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
@@ -87,5 +90,13 @@ public class BloqueUseCaseConfig {
         return new EliminarBloqueUseCase(
                 negocioService,
                 bloqueService);
+    }
+
+    @Bean
+    public BloqueService bloqueService(
+            BloqueRepository bloqueRepository,
+            CampoRepository campoRepository,
+            TransaccionPort transaccionPort) {
+        return new BloqueService(bloqueRepository, campoRepository, transaccionPort);
     }
 }

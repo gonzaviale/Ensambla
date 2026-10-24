@@ -2,14 +2,13 @@ package com.ensambla.backend.domain.service.aviso;
 
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.ContextoNegocio;
-import com.ensambla.backend.domain.model.aviso.ResultadoRegla;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.ReglaAviso;
+import com.ensambla.backend.domain.model.aviso.ResultadoRegla;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
+import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
-import com.ensambla.backend.domain.service.aviso.regla.ReglaAviso;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.HashSet;
@@ -23,9 +22,7 @@ import java.util.UUID;
  * cambiaron, vence los que ya no aplican y no vuelve a crear uno descartado o aplicado mientras sus datos de origen
  * (su huella) sigan iguales. Una regla nueva se suma registrándola como bean, sin tocar el motor.
  */
-@Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class MotorAvisosService {
 
     private final List<ReglaAviso> reglas;
@@ -34,10 +31,13 @@ public class MotorAvisosService {
 
     private final AvisoRepository avisoRepository;
 
-    @Transactional
+    private final TransaccionPort transaccionPort;
+
     public void ejecutar(UUID negocioId, OffsetDateTime ahora) {
-        ContextoNegocio contexto = contextoNegocioService.armar(negocioId);
-        reglas.forEach(regla -> sincronizar(negocioId, regla.tipo(), regla.evaluar(contexto), ahora));
+        transaccionPort.ejecutar(() -> {
+            ContextoNegocio contexto = contextoNegocioService.armar(negocioId);
+            reglas.forEach(regla -> sincronizar(negocioId, regla.tipo(), regla.evaluar(contexto), ahora));
+        });
     }
 
     private void sincronizar(UUID negocioId, TipoAviso tipo, List<ResultadoRegla> resultados, OffsetDateTime ahora) {

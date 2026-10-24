@@ -11,7 +11,6 @@ import com.ensambla.backend.domain.model.sami.PreguntaSami;
 import com.ensambla.backend.domain.model.sami.PuntajePlantilla;
 import com.ensambla.backend.domain.model.sami.RespuestaSami;
 import com.ensambla.backend.domain.model.sami.TipoPaso;
-import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
@@ -26,7 +25,6 @@ import java.util.stream.Collectors;
  * <p>
  * No guarda estado: el texto y las respuestas dadas hasta ahora alcanzan para reconstruirlo.
  */
-@Service
 public class ConversacionSamiService {
 
     private final InterpretacionSamiService interpretacionSamiService;

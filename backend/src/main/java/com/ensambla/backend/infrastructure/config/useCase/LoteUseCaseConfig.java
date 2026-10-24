@@ -4,9 +4,13 @@ import com.ensambla.backend.domain.mapper.lote.FotoArchivoMapper;
 import com.ensambla.backend.domain.mapper.lote.LoteItemMapper;
 import com.ensambla.backend.domain.mapper.lote.ObtenerLoteMapper;
 import com.ensambla.backend.domain.mapper.lote.SubirLoteMapper;
+import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.lote.LoteSubidaService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.lote.ObtenerFotoLoteUseCase;
 import com.ensambla.backend.domain.useCase.lote.ObtenerLoteUseCase;
 import com.ensambla.backend.domain.useCase.lote.SubirLoteUseCase;
@@ -73,5 +77,14 @@ public class LoteUseCaseConfig {
                 negocioService,
                 loteSubidaService,
                 obtenerLoteMapper);
+    }
+
+    @Bean
+    public LoteSubidaService loteSubidaService(
+            LoteSubidaRepository loteSubidaRepository,
+            ArchivoCuadernoPort archivoCuadernoPort,
+            ControlPlanService controlPlanService,
+            TransaccionPort transaccionPort) {
+        return new LoteSubidaService(loteSubidaRepository, archivoCuadernoPort, controlPlanService, transaccionPort);
     }
 }

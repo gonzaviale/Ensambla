@@ -4,19 +4,16 @@ import com.ensambla.backend.domain.dto.aviso.ContadorAvisos;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
-@Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class AvisoService {
 
     private static final Comparator<Aviso> PENDIENTES_PRIMERO_Y_MAS_URGENTES = Comparator
@@ -27,6 +24,8 @@ public class AvisoService {
     private final AvisoRepository avisoRepository;
 
     private final AccionAvisoService accionAvisoService;
+
+    private final TransaccionPort transaccionPort;
 
     /** Sin estado, todos los avisos del negocio; los pendientes van primero, del más urgente al menos urgente. */
     public List<Aviso> listar(UUID negocioId, EstadoAviso estado) {
@@ -47,16 +46,18 @@ public class AvisoService {
     }
 
     /** Ejecuta la acción sugerida y marca el aviso como aplicado en una sola operación. */
-    @Transactional
     public Aviso aplicar(Aviso aviso, OffsetDateTime ahora) {
-        aviso.aplicar(ahora);
-        accionAvisoService.ejecutar(aviso, ahora);
-        return avisoRepository.save(aviso);
+        return transaccionPort.ejecutar(() -> {
+            aviso.aplicar(ahora);
+            accionAvisoService.ejecutar(aviso, ahora);
+            return avisoRepository.save(aviso);
+        });
     }
 
-    @Transactional
     public Aviso descartar(Aviso aviso, OffsetDateTime ahora) {
-        aviso.descartar(ahora);
-        return avisoRepository.save(aviso);
+        return transaccionPort.ejecutar(() -> {
+            aviso.descartar(ahora);
+            return avisoRepository.save(aviso);
+        });
     }
 }

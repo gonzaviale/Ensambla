@@ -5,9 +5,11 @@ import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.usuario.Usuario;
 import com.ensambla.backend.domain.port.ContraseniaPort;
+import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.usuario.UsuarioRepository;
 import com.ensambla.backend.domain.service.plan.SuscripcionService;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +17,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
@@ -43,6 +46,9 @@ class RegistroServiceTest {
     private ContraseniaPort contraseniaPort;
     @Mock
     private SuscripcionService suscripcionService;
+    @Spy
+    private TransaccionPort transaccionPort = new TransaccionDirecta();
+
     @InjectMocks
     private RegistroService registroService;
     @Captor

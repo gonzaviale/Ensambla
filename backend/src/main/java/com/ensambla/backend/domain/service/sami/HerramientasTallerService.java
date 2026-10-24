@@ -18,7 +18,6 @@ import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
 import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -45,7 +44,6 @@ import java.util.stream.Stream;
  * sumó en este turno, por su tipo (la tabla a medida, que se repite, por su nombre). {@code usar_kit} no llega nunca
  * al taller: se expande acá en {@code agregar_pieza} y {@code conectar}.
  */
-@Service
 public class HerramientasTallerService {
 
     private static final Logger log = LoggerFactory.getLogger(HerramientasTallerService.class);

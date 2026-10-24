@@ -4,12 +4,8 @@ import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.model.zona.Zona;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-@Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class AgregadoZonaService {
 
     private final AgregadoZonaRepository agregadoZonaRepository;

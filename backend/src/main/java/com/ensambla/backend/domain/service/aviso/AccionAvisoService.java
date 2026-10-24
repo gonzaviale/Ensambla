@@ -4,11 +4,10 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
@@ -20,9 +19,7 @@ import java.util.UUID;
  * Ejecuta la acción sugerida de un aviso. Sólo {@code EDITAR_REGISTRO} cambia datos (por ejemplo, el precio de un
  * producto); las demás ({@code REGISTRAR}, {@code ABRIR}) son atajos de pantalla y no tocan nada.
  */
-@Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class AccionAvisoService {
 
     static final String EDITAR_REGISTRO = "EDITAR_REGISTRO";
@@ -31,15 +28,18 @@ public class AccionAvisoService {
 
     private final CampoService campoService;
 
+    private final TransaccionPort transaccionPort;
+
     /** Debe correr dentro de la transacción que marca el aviso como aplicado, para que sea una sola operación. */
-    @Transactional
     public void ejecutar(Aviso aviso, OffsetDateTime ahora) {
-        aviso.getAcciones().stream()
-                .filter(Map.class::isInstance)
-                .map(accion -> (Map<?, ?>) accion)
-                .filter(accion -> EDITAR_REGISTRO.equals(accion.get("tipo")))
-                .findFirst()
-                .ifPresent(accion -> editarRegistro(aviso.getNegocioId(), accion, ahora));
+        transaccionPort.ejecutar(() -> {
+            aviso.getAcciones().stream()
+                    .filter(Map.class::isInstance)
+                    .map(accion -> (Map<?, ?>) accion)
+                    .filter(accion -> EDITAR_REGISTRO.equals(accion.get("tipo")))
+                    .findFirst()
+                    .ifPresent(accion -> editarRegistro(aviso.getNegocioId(), accion, ahora));
+        });
     }
 
     private void editarRegistro(UUID negocioId, Map<?, ?> accion, OffsetDateTime ahora) {

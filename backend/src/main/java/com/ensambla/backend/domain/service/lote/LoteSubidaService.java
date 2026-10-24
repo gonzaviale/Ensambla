@@ -7,20 +7,17 @@ import com.ensambla.backend.domain.model.lote.ArchivoFoto;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
+import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-@Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class LoteSubidaService {
 
     private final LoteSubidaRepository loteSubidaRepository;
@@ -29,25 +26,28 @@ public class LoteSubidaService {
 
     private final ControlPlanService controlPlanService;
 
+    private final TransaccionPort transaccionPort;
+
     /**
      * Valida las fotos, las guarda en la carpeta privada del negocio y guarda el lote pendiente. Si algo falla a mitad
      * de camino borra lo que ya se había guardado, así no quedan archivos sin lote.
      */
-    @Transactional
     public LoteSubida subir(UUID negocioId, List<byte[]> contenidos, UUID bloqueDestinoId, OffsetDateTime ahora) {
-        LoteSubida lote = LoteSubida.nuevo(negocioId, contenidos, bloqueDestinoId, ahora);
-        controlPlanService.validarPaginasIa(negocioId, lote.getFotos().size(), ahora);
-        List<String> subidas = new ArrayList<>();
-        try {
-            for (FotoCuaderno foto : lote.getFotos()) {
-                archivoCuadernoPort.guardar(negocioId, foto.getClaveAlmacenamiento(), foto.getContenido());
-                subidas.add(foto.getClaveAlmacenamiento());
+        return transaccionPort.ejecutar(() -> {
+            LoteSubida lote = LoteSubida.nuevo(negocioId, contenidos, bloqueDestinoId, ahora);
+            controlPlanService.validarPaginasIa(negocioId, lote.getFotos().size(), ahora);
+            List<String> subidas = new ArrayList<>();
+            try {
+                for (FotoCuaderno foto : lote.getFotos()) {
+                    archivoCuadernoPort.guardar(negocioId, foto.getClaveAlmacenamiento(), foto.getContenido());
+                    subidas.add(foto.getClaveAlmacenamiento());
+                }
+                return loteSubidaRepository.saveConFotos(lote);
+            } catch (RuntimeException e) {
+                subidas.forEach(clave -> archivoCuadernoPort.eliminar(negocioId, clave));
+                throw e;
             }
-            return loteSubidaRepository.saveConFotos(lote);
-        } catch (RuntimeException e) {
-            subidas.forEach(clave -> archivoCuadernoPort.eliminar(negocioId, clave));
-            throw e;
-        }
+        });
     }
 
     /**
@@ -55,11 +55,12 @@ public class LoteSubidaService {
      *
      * @throws BusinessRuleException si otra confirmación se adelantó o el lote ya no estaba listo
      */
-    @Transactional
     public void confirmar(LoteSubida lote, UUID bloqueDestinoId, OffsetDateTime ahora) {
-        if (!loteSubidaRepository.confirmar(lote.getId(), lote.getNegocioId(), bloqueDestinoId, ahora)) {
-            throw new BusinessRuleException("Este cuaderno ya se guardó");
-        }
+        transaccionPort.ejecutar(() -> {
+            if (!loteSubidaRepository.confirmar(lote.getId(), lote.getNegocioId(), bloqueDestinoId, ahora)) {
+                throw new BusinessRuleException("Este cuaderno ya se guardó");
+            }
+        });
     }
 
     /** La foto de un lote del negocio; si el lote o la foto no son del negocio responde como inexistente. */

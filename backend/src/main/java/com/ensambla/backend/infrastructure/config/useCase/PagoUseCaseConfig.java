@@ -2,6 +2,12 @@ package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.mapper.pago.ConsultarRenovacionMapper;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.pago.PagoPremiumRepository;
+import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
+import com.ensambla.backend.domain.repository.plan.PlanRepository;
+import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
+import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.pago.RenovacionPremiumService;
 import com.ensambla.backend.domain.service.usuario.UsuarioService;
@@ -74,5 +80,17 @@ public class PagoUseCaseConfig {
     public ConciliarPagosUseCase conciliarPagosUseCase(RenovacionPremiumService renovacionPremiumService,
             SincronizarRenovacionUseCase sincronizarRenovacionUseCase, Clock clock) {
         return new ConciliarPagosUseCase(renovacionPremiumService, sincronizarRenovacionUseCase, clock);
+    }
+
+    @Bean
+    public RenovacionPremiumService renovacionPremiumService(
+            RenovacionPremiumRepository renovacionPremiumRepository,
+            PagoPremiumRepository pagoPremiumRepository,
+            UsoPlanRepository usoPlanRepository,
+            SuscripcionRepository suscripcionRepository,
+            PlanRepository planRepository,
+            TransaccionPort transaccionPort) {
+        return new RenovacionPremiumService(
+                renovacionPremiumRepository, pagoPremiumRepository, usoPlanRepository, suscripcionRepository, planRepository, transaccionPort);
     }
 }

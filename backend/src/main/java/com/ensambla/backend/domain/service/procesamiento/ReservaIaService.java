@@ -1,17 +1,15 @@
 package com.ensambla.backend.domain.service.procesamiento;
 
 import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
+import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /** Las cuotas mensual/de prueba y la reserva diaria comparten transacción y bloqueo por negocio. */
-@Service
 @RequiredArgsConstructor
 public class ReservaIaService {
 
@@ -19,14 +17,17 @@ public class ReservaIaService {
 
     private final ProcesamientoRepository procesamientoRepository;
 
-    @Transactional
+    private final TransaccionPort transaccionPort;
+
     public boolean reservar(LoteTrabajo lote, int paginas, int limiteDiario, OffsetDateTime ahora) {
-        controlPlanService.validarPaginasIa(lote.negocioId(), paginas, ahora);
-        boolean reservada = procesamientoRepository.reservar(lote, paginas, limiteDiario, ahora);
-        if (reservada) {
-            controlPlanService.registrarPaginasPrueba(lote.negocioId(), paginas, ahora);
-        }
-        return reservada;
+        return transaccionPort.ejecutar(() -> {
+            controlPlanService.validarPaginasIa(lote.negocioId(), paginas, ahora);
+            boolean reservada = procesamientoRepository.reservar(lote, paginas, limiteDiario, ahora);
+            if (reservada) {
+                controlPlanService.registrarPaginasPrueba(lote.negocioId(), paginas, ahora);
+            }
+            return reservada;
+        });
     }
 
     public void validarDisponibilidad(UUID negocioId, OffsetDateTime ahora) {

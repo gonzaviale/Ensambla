@@ -17,7 +17,6 @@ import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
 import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
 import com.ensambla.backend.domain.port.TallerIaPort;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
-import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -39,7 +38,6 @@ import java.util.stream.Collectors;
  * taller las aplique. Reserva la consulta del día del negocio antes de llamar (un rechazo por límite no cuesta nada)
  * y registra los tokens gastados. El día del límite es UTC.
  */
-@Service
 public class TallerSamiService {
 
     static final String LIMITE_ALCANZADO =

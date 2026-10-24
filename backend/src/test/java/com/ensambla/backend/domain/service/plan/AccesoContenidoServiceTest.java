@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.repository.plan.AccesoContenidoRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -32,7 +33,7 @@ class AccesoContenidoServiceTest {
     private final ControlPlanService control = mock(ControlPlanService.class);
     private final UsoPlanRepository uso = mock(UsoPlanRepository.class);
     private final AccesoContenidoRepository acceso = mock(AccesoContenidoRepository.class);
-    private final AccesoContenidoService servicio = new AccesoContenidoService(control, uso, acceso);
+    private final AccesoContenidoService servicio = new AccesoContenidoService(control, uso, acceso, new TransaccionDirecta());
 
     @Test
     @DisplayName("Gratuito admite tres claves distintas y conserva el orden sin cobrar duplicados")

@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.service.procesamiento;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -24,7 +25,7 @@ class ReservaIaServiceTest {
     private final ControlPlanService controlPlanService = mock(ControlPlanService.class);
     private final ProcesamientoRepository procesamientoRepository = mock(ProcesamientoRepository.class);
     private final ReservaIaService reservaIaService = new ReservaIaService(
-            controlPlanService, procesamientoRepository);
+            controlPlanService, procesamientoRepository, new TransaccionDirecta());
 
     @Test
     @DisplayName("La cuota mensual se valida antes de reservar páginas en el día")

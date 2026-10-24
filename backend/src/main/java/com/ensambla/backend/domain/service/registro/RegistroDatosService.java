@@ -4,16 +4,15 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.TotalesRegistros;
+import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.Collection;
@@ -24,9 +23,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class RegistroDatosService {
 
     static final int MAXIMO_REFERENCIAS = 20;
@@ -37,23 +34,27 @@ public class RegistroDatosService {
 
     private final ControlPlanService controlPlanService;
 
-    @Transactional
+    private final TransaccionPort transaccionPort;
+
     public Registro crear(UUID negocioId, UUID bloqueId, List<Campo> campos, Map<String, Object> valores,
                           OffsetDateTime ahora) {
-        Map<String, Object> validos = Registro.validar(campos, valores);
-        validarConexiones(negocioId, campos, validos);
-        controlPlanService.validarAltaRegistros(negocioId, 1, ahora);
-        return registroRepository.save(Registro.nuevo(negocioId, bloqueId, validos, ahora));
+        return transaccionPort.ejecutar(() -> {
+            Map<String, Object> validos = Registro.validar(campos, valores);
+            validarConexiones(negocioId, campos, validos);
+            controlPlanService.validarAltaRegistros(negocioId, 1, ahora);
+            return registroRepository.save(Registro.nuevo(negocioId, bloqueId, validos, ahora));
+        });
     }
 
     /** Guarda registros ya validados (por ejemplo, los que salen de una lectura del cuaderno). */
-    @Transactional
     public List<Registro> crearVarios(UUID negocioId, List<Registro> registros, OffsetDateTime ahora) {
-        if (registros.stream().anyMatch(registro -> !negocioId.equals(registro.getNegocioId()))) {
-            throw new BusinessRuleException("Los registros deben pertenecer al negocio de la sesión");
-        }
-        controlPlanService.validarAltaRegistros(negocioId, registros.size(), ahora);
-        return registroRepository.saveAll(registros);
+        return transaccionPort.ejecutar(() -> {
+            if (registros.stream().anyMatch(registro -> !negocioId.equals(registro.getNegocioId()))) {
+                throw new BusinessRuleException("Los registros deben pertenecer al negocio de la sesión");
+            }
+            controlPlanService.validarAltaRegistros(negocioId, registros.size(), ahora);
+            return registroRepository.saveAll(registros);
+        });
     }
 
     public Registro obtener(UUID registroId, UUID negocioId) {
@@ -93,18 +94,20 @@ public class RegistroDatosService {
         return TotalesRegistros.armar(cantidad, numericos, registroRepository.sumarNumericos(consulta, numericos));
     }
 
-    @Transactional
     public Registro editar(Registro registro, List<Campo> campos, Map<String, Object> cambios,
                            OffsetDateTime ahora) {
-        Map<String, Object> validos = Registro.validar(campos, registro.combinarCon(cambios));
-        validarConexiones(registro.getNegocioId(), campos, validos);
-        registro.reemplazarValores(validos, ahora);
-        return registroRepository.save(registro);
+        return transaccionPort.ejecutar(() -> {
+            Map<String, Object> validos = Registro.validar(campos, registro.combinarCon(cambios));
+            validarConexiones(registro.getNegocioId(), campos, validos);
+            registro.reemplazarValores(validos, ahora);
+            return registroRepository.save(registro);
+        });
     }
 
-    @Transactional
     public void eliminar(Registro registro) {
-        registroRepository.deleteById(registro.getId());
+        transaccionPort.ejecutar(() -> {
+            registroRepository.deleteById(registro.getId());
+        });
     }
 
     /**

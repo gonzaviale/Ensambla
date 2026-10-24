@@ -4,7 +4,6 @@ import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
 import com.ensambla.backend.domain.model.sami.taller.KitRubro;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
 import com.ensambla.backend.domain.model.sami.taller.MensajeTaller;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
@@ -17,7 +16,6 @@ import java.util.stream.Collectors;
  * pesa más que uno suelto y lo que dice el mensaje pesa el doble que el resto; ante un empate gana el kit que figura
  * primero. Así a la IA sólo le llega el kit que importa.
  */
-@Service
 public class RubroTallerService {
 
     static final int PESO_DEL_MENSAJE = 2;

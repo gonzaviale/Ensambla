@@ -8,6 +8,7 @@ import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +34,7 @@ class SistemaServiceTest {
     private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
     private final ControlPlanService controlPlanService = mock(ControlPlanService.class);
     private final UsoPlanRepository usoPlanRepository = mock(UsoPlanRepository.class);
-    private final SistemaService sistemaService = new SistemaService(sistemaRepository, proyectoRepository, controlPlanService, usoPlanRepository);
+    private final SistemaService sistemaService = new SistemaService(sistemaRepository, proyectoRepository, controlPlanService, usoPlanRepository, new TransaccionDirecta());
 
     @Test
     @DisplayName("Listar devuelve los sistemas del negocio")

@@ -4,11 +4,20 @@ import com.ensambla.backend.domain.mapper.proyecto.ProyectoItemMapper;
 import com.ensambla.backend.domain.mapper.sami.ConversarConSamiMapper;
 import com.ensambla.backend.domain.mapper.sami.ConversarEnTallerMapper;
 import com.ensambla.backend.domain.mapper.sami.CrearProyectoDesdeSamiMapper;
+import com.ensambla.backend.domain.model.sami.DiccionarioSami;
+import com.ensambla.backend.domain.model.sami.taller.CatalogoComponentes;
+import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
+import com.ensambla.backend.domain.port.SamiIaPort;
+import com.ensambla.backend.domain.port.TallerIaPort;
+import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plantilla.PlantillaService;
 import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.domain.service.sami.ConversacionSamiService;
+import com.ensambla.backend.domain.service.sami.HerramientasTallerService;
+import com.ensambla.backend.domain.service.sami.InterpretacionSamiService;
 import com.ensambla.backend.domain.service.sami.RespaldoIaSamiService;
+import com.ensambla.backend.domain.service.sami.RubroTallerService;
 import com.ensambla.backend.domain.service.sami.TallerSamiService;
 import com.ensambla.backend.domain.useCase.sami.ConversarConSamiUseCase;
 import com.ensambla.backend.domain.useCase.sami.ConversarEnTallerUseCase;
@@ -80,5 +89,48 @@ public class SamiUseCaseConfig {
                 samiProperties.umbralConfianza(),
                 samiProperties.maxPreguntas(),
                 samiProperties.limiteDiarioIa());
+    }
+
+    @Bean
+    public ConversacionSamiService conversacionSamiService(
+            InterpretacionSamiService interpretacionSamiService,
+            DiccionarioSami diccionario) {
+        return new ConversacionSamiService(interpretacionSamiService, diccionario);
+    }
+
+    @Bean
+    public HerramientasTallerService herramientasTallerService(
+            CatalogoComponentes catalogoComponentes,
+            KitsRubro kitsRubro) {
+        return new HerramientasTallerService(catalogoComponentes, kitsRubro);
+    }
+
+    @Bean
+    public InterpretacionSamiService interpretacionSamiService(DiccionarioSami diccionario) {
+        return new InterpretacionSamiService(diccionario);
+    }
+
+    @Bean
+    public RespaldoIaSamiService respaldoIaSamiService(
+            SamiIaPort samiIaPort,
+            ConsumoSamiRepository consumoSamiRepository,
+            DiccionarioSami diccionario) {
+        return new RespaldoIaSamiService(samiIaPort, consumoSamiRepository, diccionario);
+    }
+
+    @Bean
+    public RubroTallerService rubroTallerService(KitsRubro kitsRubro) {
+        return new RubroTallerService(kitsRubro);
+    }
+
+    @Bean
+    public TallerSamiService tallerSamiService(
+            TallerIaPort tallerIaPort,
+            ConsumoSamiRepository consumoSamiRepository,
+            HerramientasTallerService herramientasTallerService,
+            RubroTallerService rubroTallerService,
+            CatalogoComponentes catalogoComponentes) {
+        return new TallerSamiService(
+                tallerIaPort, consumoSamiRepository, herramientasTallerService, rubroTallerService, catalogoComponentes);
     }
 }

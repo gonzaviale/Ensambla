@@ -6,10 +6,13 @@ import com.ensambla.backend.domain.mapper.registro.EditarRegistroMapper;
 import com.ensambla.backend.domain.mapper.registro.ListarReferenciasMapper;
 import com.ensambla.backend.domain.mapper.registro.ListarRegistrosMapper;
 import com.ensambla.backend.domain.mapper.registro.ObtenerRegistroMapper;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.bloque.BloqueService;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.lote.LoteSubidaService;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.registro.CrearRegistroUseCase;
 import com.ensambla.backend.domain.useCase.registro.EditarRegistroUseCase;
@@ -113,5 +116,13 @@ public class RegistroUseCaseConfig {
     public EliminarRegistroUseCase eliminarRegistroUseCase(NegocioService negocioService,
                                                            RegistroDatosService registroDatosService) {
         return new EliminarRegistroUseCase(negocioService, registroDatosService);
+    }
+
+    @Bean
+    public RegistroDatosService registroDatosService(
+            RegistroRepository registroRepository,
+            ControlPlanService controlPlanService,
+            TransaccionPort transaccionPort) {
+        return new RegistroDatosService(registroRepository, controlPlanService, transaccionPort);
     }
 }

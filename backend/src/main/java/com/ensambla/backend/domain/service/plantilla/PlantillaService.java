@@ -5,15 +5,11 @@ import com.ensambla.backend.domain.model.plantilla.Plantilla;
 import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
 
-@Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class PlantillaService {
 
     private final PlantillaRepository plantillaRepository;

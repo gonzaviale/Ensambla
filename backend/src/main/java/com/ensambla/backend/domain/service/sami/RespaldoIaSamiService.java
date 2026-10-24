@@ -11,7 +11,6 @@ import com.ensambla.backend.domain.model.sami.PropuestaIaSami;
 import com.ensambla.backend.domain.model.sami.RespuestaSami;
 import com.ensambla.backend.domain.port.SamiIaPort;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
-import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -29,7 +28,6 @@ import java.util.stream.Collectors;
  * <p>
  * El día del límite es UTC, igual que el de la lectura de cuadernos.
  */
-@Service
 public class RespaldoIaSamiService {
 
     static final String LIMITE_ALCANZADO =

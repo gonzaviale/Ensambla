@@ -11,7 +11,6 @@ import com.ensambla.backend.domain.model.lectura.SinonimosCampo;
 import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
 import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
-import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -23,7 +22,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiPredicate;
 
-@Service
 public class PropuestaLecturaService {
 
     static final String INCOMPATIBLE = "La estructura leída no es compatible con el bloque de destino";

@@ -1,8 +1,8 @@
 package com.ensambla.backend.domain.service.procesamiento;
 
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import com.ensambla.backend.domain.model.lectura.BloquePropuesto;
 import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
 import com.ensambla.backend.domain.model.lectura.DatoLeido;
@@ -15,7 +15,6 @@ import com.ensambla.backend.domain.model.registro.Referencia;
 import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,7 +32,6 @@ import java.util.UUID;
  * tabla conectada una fila cuya etiqueta sea igual (sin importar tildes ni mayúsculas). Si no hay ninguna, o hay más
  * de una, deja la celda vacía con confianza 0 y avisa, para que la persona la elija en la revisión.
  */
-@Service
 @RequiredArgsConstructor
 public class ConexionesLecturaService {
 
