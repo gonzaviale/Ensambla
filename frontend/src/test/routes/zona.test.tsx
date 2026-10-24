@@ -56,7 +56,7 @@ describe('Mi zona', () => {
     expect(document.querySelectorAll('.zona-tarjeta')).toHaveLength(12);
     expect(screen.queryByText(/Fernet/)).toBeNull();
     expect(screen.getByText(/Datos agregados y anónimos/)).toBeVisible();
-    expect(screen.getByText(/nunca se muestra uno solo ni dónde queda/)).toBeVisible();
+    expect(screen.getByText(/Nunca se muestra un comercio solo ni dónde queda/)).toBeVisible();
   });
 
   it('el rango de cada producto es accesible y no nombra comercios', async () => {
