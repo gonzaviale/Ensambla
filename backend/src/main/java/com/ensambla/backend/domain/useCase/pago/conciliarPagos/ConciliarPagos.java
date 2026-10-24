@@ -1,6 +1,9 @@
 package com.ensambla.backend.domain.useCase.pago.conciliarPagos;
 
 import com.ensambla.backend.domain.exception.PasarelaPagoException;
+import com.ensambla.backend.domain.model.pago.RenovacionPremium;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.service.pago.RenovacionPremiumService;
 import com.ensambla.backend.domain.useCase.pago.sincronizarRenovacion.SincronizarRenovacion;
 import lombok.RequiredArgsConstructor;
@@ -18,17 +21,31 @@ public class ConciliarPagos {
 
     private final SincronizarRenovacion sincronizarRenovacion;
 
+    private final RenovacionPremiumRepository renovacionPremiumRepository;
+
+    private final TransaccionPort transaccionPort;
+
     private final Clock clock;
 
     public void execute() {
-        for (UUID id : renovacionPremiumService.listarParaSincronizar()) {
+        for (UUID id : renovacionPremiumRepository.listarParaSincronizar()) {
             try {
                 sincronizarRenovacion.execute(id);
             } catch (PasarelaPagoException exception) {
                 log.warn("Conciliación de renovación pendiente: {}", id);
             } finally {
-                renovacionPremiumService.marcarConsulta(id, OffsetDateTime.now(clock));
+                marcarConsulta(id, OffsetDateTime.now(clock));
             }
         }
+    }
+
+    /** Aunque la sincronización falle, la renovación queda consultada y no se reintenta enseguida. */
+    private void marcarConsulta(UUID id, OffsetDateTime ahora) {
+        transaccionPort.ejecutar(() -> {
+            renovacionPremiumService.bloquear(id);
+            RenovacionPremium renovacion = renovacionPremiumService.obtener(id);
+            renovacion.setSincronizadoEn(ahora);
+            renovacionPremiumRepository.save(renovacion);
+        });
     }
 }

@@ -1,12 +1,14 @@
-package com.ensambla.backend.domain.service.pago;
+package com.ensambla.backend.domain.useCase.pago;
 
 import com.ensambla.backend.domain.exception.NotificacionPagoInvalidaException;
 import com.ensambla.backend.domain.exception.PasarelaPagoException;
 import com.ensambla.backend.domain.model.pago.ContratoRemoto;
 import com.ensambla.backend.domain.model.pago.PagoRemoto;
-import com.ensambla.backend.domain.model.pago.PreparacionRenovacion;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
+import com.ensambla.backend.domain.service.pago.RenovacionPremiumService;
+import com.ensambla.backend.domain.useCase.pago.conciliarPagos.ConciliarPagos;
+import com.ensambla.backend.domain.useCase.pago.contratarPremium.ContratarPremium;
 import com.ensambla.backend.domain.useCase.pago.sincronizarRenovacion.SincronizarRenovacion;
 import com.ensambla.backend.infrastructure.pago.MercadoPagoProperties;
 import com.ensambla.backend.infrastructure.pago.MercadoPagoSuscripcionesAdapter;
@@ -41,6 +43,7 @@ import java.time.ZoneOffset;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -92,6 +95,12 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Autowired
     private SincronizarRenovacion sincronizarRenovacion;
+
+    @Autowired
+    private ContratarPremium contratarPremium;
+
+    @Autowired
+    private ConciliarPagos conciliarPagos;
 
     @MockitoBean
     private PasarelaSuscripcionesPort pasarelaSuscripcionesPort;
@@ -220,7 +229,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     void actualizarShouldPreservePaidPeriodWhenRenewalIsUnpaid(String estado) throws Exception {
         givenContrato();
         RenovacionPremium renovacion = renovacion();
-        renovacionPremiumService.aplicarPago(renovacion.getId(),
+        aplicarPago(renovacion,
                 pago(renovacion, facturaId("primera"), "approved", AHORA, AHORA), AHORA);
         givenPago(pago(renovacion, facturaId("segunda"), estado, AHORA.plusDays(30), AHORA.plusDays(29)));
         when(clock.instant()).thenReturn(AHORA.plusDays(29).toInstant());
@@ -238,7 +247,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     void actualizarShouldExpireAccessWhenNextInvoiceIsRejected() throws Exception {
         givenContrato();
         RenovacionPremium renovacion = renovacion();
-        renovacionPremiumService.aplicarPago(renovacion.getId(),
+        aplicarPago(renovacion,
                 pago(renovacion, facturaId("primera"), "approved", AHORA, AHORA), AHORA);
         jdbcTemplate.update("INSERT INTO proyecto(negocio_id,nombre) VALUES (?,'Conservado tras rechazo')", negocioId);
         givenPago(pago(renovacion, facturaId("segunda"), "rejected", AHORA.plusDays(30), AHORA.plusDays(30)));
@@ -258,12 +267,12 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     void aplicarPagoShouldKeepCurrentPeriodWhenFutureInvoiceIsRefunded() throws Exception {
         givenContrato();
         RenovacionPremium renovacion = renovacion();
-        renovacionPremiumService.aplicarPago(renovacion.getId(),
+        aplicarPago(renovacion,
                 pago(renovacion, facturaId("primera"), "approved", AHORA, AHORA), AHORA);
-        renovacionPremiumService.aplicarPago(renovacion.getId(),
+        aplicarPago(renovacion,
                 pago(renovacion, facturaId("segunda"), "approved", AHORA.plusDays(30), AHORA), AHORA);
 
-        renovacionPremiumService.aplicarPago(renovacion.getId(),
+        aplicarPago(renovacion,
                 pago(renovacion, facturaId("segunda"), "refunded", AHORA.plusDays(30), AHORA.plusMinutes(1)),
                 AHORA.plusMinutes(1));
 
@@ -280,13 +289,13 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     void aplicarPagoShouldKeepRenewedPeriodWhenEarlierInvoiceIsRefunded() throws Exception {
         givenContrato();
         RenovacionPremium renovacion = renovacion();
-        renovacionPremiumService.aplicarPago(renovacion.getId(),
+        aplicarPago(renovacion,
                 pago(renovacion, facturaId("primera"), "approved", AHORA, AHORA), AHORA);
-        renovacionPremiumService.aplicarPago(renovacion.getId(),
+        aplicarPago(renovacion,
                 pago(renovacion, facturaId("segunda"), "approved", AHORA.plusDays(30), AHORA.plusDays(30)),
                 AHORA.plusDays(30));
 
-        renovacionPremiumService.aplicarPago(renovacion.getId(),
+        aplicarPago(renovacion,
                 pago(renovacion, facturaId("primera"), "refunded", AHORA, AHORA.plusDays(31)), AHORA.plusDays(31));
 
         assertThat(planActual()).isEqualTo("PREMIUM");
@@ -301,12 +310,12 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         givenContrato();
         RenovacionPremium renovacion = renovacion();
         String factura = UUID.randomUUID().toString();
-        renovacionPremiumService.aplicarPago(renovacion.getId(),
+        aplicarPago(renovacion,
                 pago(renovacion, factura, "approved", AHORA, AHORA), AHORA);
 
-        renovacionPremiumService.aplicarPago(renovacion.getId(),
+        aplicarPago(renovacion,
                 pago(renovacion, factura, "refunded", AHORA, AHORA.plusMinutes(1)), AHORA.plusMinutes(1));
-        renovacionPremiumService.aplicarPago(renovacion.getId(),
+        aplicarPago(renovacion,
                 pago(renovacion, factura, "approved", AHORA, AHORA), AHORA);
 
         assertThat(planActual()).isEqualTo("GRATUITO");
@@ -317,7 +326,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     void cancelarShouldPreservePaidPeriod() throws Exception {
         givenContrato();
         RenovacionPremium renovacion = renovacion();
-        renovacionPremiumService.aplicarPago(renovacion.getId(),
+        aplicarPago(renovacion,
                 pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA), AHORA);
 
         mockMvc.perform(post("/api/planes/renovacion/cancelar").session(sesion).header("X-CSRF-TOKEN", csrf))
@@ -379,16 +388,17 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("Dos preparaciones concurrentes comparten un único contrato abierto")
-    void prepararShouldSerializeConcurrentRequests() throws Exception {
+    void contratarShouldSerializeConcurrentRequests() throws Exception {
         try (var executor = Executors.newFixedThreadPool(2)) {
-            var primera = executor.submit(() -> renovacionPremiumService.preparar(negocioId, AHORA));
-            var segunda = executor.submit(() -> renovacionPremiumService.preparar(negocioId, AHORA));
+            var primera = executor.submit(() -> contratarPremium.execute(usuarioId));
+            var segunda = executor.submit(() -> contratarPremium.execute(usuarioId));
 
-            PreparacionRenovacion uno = primera.get();
-            PreparacionRenovacion dos = segunda.get();
+            primera.get();
+            segunda.get();
 
-            assertThat(uno.renovacion().getId()).isEqualTo(dos.renovacion().getId());
-            assertThat(uno.nueva()).isNotEqualTo(dos.nueva());
+            verify(pasarelaSuscripcionesPort, times(1)).crear(any(), anyString());
+            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM renovacion_premium WHERE negocio_id=?",
+                    Integer.class, negocioId)).isOne();
         }
     }
 
@@ -443,11 +453,11 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     void recalcularShouldExpirePaidPeriodWithoutDataLoss() throws Exception {
         givenContrato();
         RenovacionPremium renovacion = renovacion();
-        renovacionPremiumService.aplicarPago(renovacion.getId(),
+        aplicarPago(renovacion,
                 pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA), AHORA);
         jdbcTemplate.update("INSERT INTO proyecto(negocio_id,nombre) VALUES (?,'Conservado')", negocioId);
 
-        renovacionPremiumService.recalcular(negocioId, AHORA.plusDays(30));
+        recalcular(renovacion, AHORA.plusDays(30));
 
         assertThat(planActual()).isEqualTo("GRATUITO");
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM proyecto WHERE negocio_id=?",
@@ -505,12 +515,15 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Test
     @DisplayName("La conciliación rota los contratos consultados incluso si no recibieron eventos")
-    void marcarConsultaShouldPersistFairReconciliationOrder() throws Exception {
+    void conciliarShouldPersistFairReconciliationOrder() throws Exception {
         givenContrato();
         RenovacionPremium renovacion = renovacion();
 
-        assertThat(renovacionPremiumService.listarParaSincronizar()).contains(renovacion.getId());
-        renovacionPremiumService.marcarConsulta(renovacion.getId(), AHORA.plusMinutes(1));
+        when(pasarelaSuscripcionesPort.consultar(anyString())).thenAnswer(invocacion -> Optional
+                .ofNullable(remotos.get(invocacion.<String>getArgument(0))).orElseThrow(PasarelaPagoException::new));
+        when(clock.instant()).thenReturn(AHORA.plusMinutes(1).toInstant());
+
+        conciliarPagos.execute();
 
         assertThat(renovacion().getSincronizadoEn()).isEqualTo(AHORA.plusMinutes(1));
     }
@@ -533,13 +546,13 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     void aplicarPagoShouldKeepInvoicePeriodsIndependent() throws Exception {
         givenContrato();
         RenovacionPremium renovacion = renovacion();
-        renovacionPremiumService.aplicarPago(renovacion.getId(),
+        aplicarPago(renovacion,
                 pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA), AHORA);
 
-        renovacionPremiumService.aplicarPago(renovacion.getId(),
+        aplicarPago(renovacion,
                 pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA.plusDays(30), AHORA), AHORA);
         assertThat(finPagado()).isEqualTo(AHORA.plusDays(30));
-        renovacionPremiumService.recalcular(negocioId, AHORA.plusDays(30));
+        recalcular(renovacion, AHORA.plusDays(30));
 
         assertThat(finPagado()).isEqualTo(AHORA.plusDays(60));
     }
@@ -612,7 +625,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
                                                                  OffsetDateTime instante) throws Exception {
         givenContrato();
         RenovacionPremium renovacion = renovacion();
-        renovacionPremiumService.aplicarPago(renovacion.getId(),
+        aplicarPago(renovacion,
                 pago(renovacion, facturaId("primera-firmada"), "approved", AHORA, AHORA), AHORA);
         remotos.put(renovacion.getProveedorId(), contrato(renovacion, "authorized", AHORA.plusDays(30)));
         givenPago(pago(renovacion, facturaId("segunda-firmada"), estado, AHORA.plusDays(30), AHORA.plusDays(30)));
@@ -643,6 +656,20 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
                         .header("x-signature", "ts=" + tiempo + ",v1=" + firma)
                         .header("x-request-id", SOLICITUD_SEGUNDA_FACTURA))
                 .andExpect(status().isOk());
+    }
+
+    /** Aplica el pago como lo hace la sincronización: la pasarela lo informa y se recalcula en {@code ahora}. */
+    private void aplicarPago(RenovacionPremium renovacion, PagoRemoto pago, OffsetDateTime ahora) {
+        givenPago(pago);
+        when(clock.instant()).thenReturn(ahora.toInstant());
+        sincronizarRenovacion.execute(renovacion.getId());
+    }
+
+    /** Sincroniza sin pagos nuevos: sólo recalcula el plan en {@code ahora}. */
+    private void recalcular(RenovacionPremium renovacion, OffsetDateTime ahora) {
+        when(pasarelaSuscripcionesPort.listarPagos(renovacion.getProveedorId())).thenReturn(List.of());
+        when(clock.instant()).thenReturn(ahora.toInstant());
+        sincronizarRenovacion.execute(renovacion.getId());
     }
 
     private RenovacionPremium renovacion() {
