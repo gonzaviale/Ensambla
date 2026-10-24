@@ -40,6 +40,7 @@ export const NOMBRES_DE_ICONO = [
   'menu',
   'pin',
   'mic',
+  'bulb',
 ] as const;
 
 export type NombreDeIcono = (typeof NOMBRES_DE_ICONO)[number];

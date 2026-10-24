@@ -6,6 +6,7 @@ import { ModalBienvenida } from './modales/ModalBienvenida';
 import { ModalBlanco } from './modales/ModalBlanco';
 import { ModalCampo } from './modales/ModalCampo';
 import { ModalConfirmar } from './modales/ModalConfirmar';
+import { ModalConsejosDeFoto } from './modales/ModalConsejosDeFoto';
 import { ModalElegirBloque } from './modales/ModalElegirBloque';
 import { ModalImportar } from './modales/ModalImportar';
 import { ModalPerfil } from './modales/ModalPerfil';
@@ -48,6 +49,8 @@ function ContenidoDelModal() {
       return <ModalRenombrarPieza bloqueId={modal.bloqueId} />;
     case 'registro':
       return <ModalRegistro bloqueId={modal.bloqueId} filaId={modal.filaId} />;
+    case 'consejosDeFoto':
+      return <ModalConsejosDeFoto onTomarFoto={modal.onTomarFoto} />;
     case 'registroDelBorrador':
       return <ModalRegistro bloqueId={modal.bloqueId} filaId={modal.filaId} enBorrador />;
     case 'campo':

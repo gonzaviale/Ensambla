@@ -26,6 +26,8 @@ export type Modal =
   | { tipo: 'registro'; bloqueId: string; filaId?: string | null }
   /** Un registro de la propuesta de Sami, que todavía no es un sistema creado. */
   | { tipo: 'registroDelBorrador'; bloqueId: string; filaId?: string | null }
+  /** Los consejos para sacar una buena foto; «Tomar foto» llama a `onTomarFoto` (abre el selector). */
+  | { tipo: 'consejosDeFoto'; onTomarFoto: () => void }
   | { tipo: 'campo'; bloqueId: string; clave?: string | null }
   | { tipo: 'bienvenida' }
   | { tipo: 'secciones' }

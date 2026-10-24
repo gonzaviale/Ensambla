@@ -1,7 +1,9 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { sistemaParaCrear } from '@/lib/sistema/acciones';
+import type * as ConsejosDeFoto from '@/lib/sistema/consejosDeFoto';
+import { debeMostrarConsejosDeFoto } from '@/lib/sistema/consejosDeFoto';
 import { allBlocks } from '@/lib/sistema/core';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { renderApp } from '@/test/renderApp';
@@ -13,6 +15,12 @@ import {
   verifyHeadingPresentAsync,
   verifyPathAsync,
 } from '@/test/testHelpers';
+
+// Por defecto vale lo real (siempre mostrar); un test lo cambia para probar el otro camino.
+vi.mock('@/lib/sistema/consejosDeFoto', async (original) => {
+  const real = await original<typeof ConsejosDeFoto>();
+  return { ...real, debeMostrarConsejosDeFoto: vi.fn(real.debeMostrarConsejosDeFoto) };
+});
 
 const abrirTaller = async () => {
   setupUsuarioConSesion({ nombre: 'Ana Pérez' });
@@ -55,6 +63,48 @@ describe('el taller de Sami', () => {
     expect(screen.getByText('O probá con un ejemplo:')).toBeVisible();
     expect(screen.getByText('TU IDEA VA A APARECER ACÁ')).toBeVisible();
     expect(screen.getByText('Tu idea es el punto de partida')).toBeVisible();
+  });
+
+  it('la cámara abre un pop up con los consejos y «Tomar foto» abre el selector', async () => {
+    const { user } = await abrirTaller();
+    const selector = document.getElementById('guide-photo-file') as HTMLInputElement;
+    const abrirSelector = vi.spyOn(selector, 'click');
+
+    await user.click(screen.getByRole('button', { name: 'Mandarle una foto a Sami' }));
+
+    const dialogo = await screen.findByRole('dialog', { name: 'Para que Sami lea bien tu foto' });
+    expect(within(dialogo).getAllByRole('listitem').length).toBeGreaterThanOrEqual(4);
+    expect(abrirSelector).not.toHaveBeenCalled();
+
+    await user.click(within(dialogo).getByRole('button', { name: 'Tomar foto' }));
+
+    expect(abrirSelector).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('el pop up de la foto se cierra con Escape sin abrir el selector', async () => {
+    const { user } = await abrirTaller();
+    const selector = document.getElementById('guide-photo-file') as HTMLInputElement;
+    const abrirSelector = vi.spyOn(selector, 'click');
+    await user.click(screen.getByRole('button', { name: 'Mandarle una foto a Sami' }));
+    await screen.findByRole('dialog', { name: 'Para que Sami lea bien tu foto' });
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(abrirSelector).not.toHaveBeenCalled();
+  });
+
+  it('si se decide no mostrar los consejos, la cámara abre el selector directo', async () => {
+    const { user } = await abrirTaller();
+    const selector = document.getElementById('guide-photo-file') as HTMLInputElement;
+    const abrirSelector = vi.spyOn(selector, 'click');
+    vi.mocked(debeMostrarConsejosDeFoto).mockReturnValueOnce(false);
+
+    await user.click(screen.getByRole('button', { name: 'Mandarle una foto a Sami' }));
+
+    expect(abrirSelector).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('pide un poco más cuando lo escrito es muy corto', async () => {

@@ -18,6 +18,7 @@ import { Sami } from '@/components/sistema/Sami';
 import { VisorDeFoto } from '@/components/sistema/VisorDeFoto';
 import { varsDeColor } from '@/components/sistema/colores';
 import { ajusteParaGuardar, mismoSistema, sistemaParaCrear } from '@/lib/sistema/acciones';
+import { debeMostrarConsejosDeFoto } from '@/lib/sistema/consejosDeFoto';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import {
   allBlocks,
@@ -208,6 +209,14 @@ export function TallerPage() {
     campo.current?.focus();
   };
 
+  // La cámara primero explica cómo sacar una buena foto; «Tomar foto» abre el selector.
+  const elegirDondeSacarLaFoto = () => {
+    const abrirSelector = () => selectorDeFoto.current?.click();
+    if (debeMostrarConsejosDeFoto())
+      abrirModal({ tipo: 'consejosDeFoto', onTomarFoto: abrirSelector });
+    else abrirSelector();
+  };
+
   const sacarFoto = () => {
     setFotoAmpliada(false);
     quitarFoto();
@@ -392,7 +401,7 @@ export function TallerPage() {
                       taller.foto ? 'Cambiar la foto para Sami' : 'Mandarle una foto a Sami'
                     }
                     disabled={taller.pensando || preparandoFoto}
-                    onClick={() => selectorDeFoto.current?.click()}
+                    onClick={elegirDondeSacarLaFoto}
                   >
                     <Icon name="camera" />
                   </Btn>
