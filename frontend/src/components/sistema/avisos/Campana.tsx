@@ -67,7 +67,7 @@ export function Campana() {
         createPortal(
           <>
             <div className="campana-fondo" aria-hidden="true" onClick={cerrar} />
-            <aside
+            <div
               id="menu-de-la-campana"
               className="campana-menu"
               role="dialog"
@@ -118,7 +118,7 @@ export function Campana() {
                   </button>
                 </div>
               </div>
-            </aside>
+            </div>
           </>,
           boton.current?.closest('.mk-root') ?? document.body,
         )}
