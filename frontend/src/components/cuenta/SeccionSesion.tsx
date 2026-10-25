@@ -7,7 +7,7 @@ export function SeccionSesion() {
 
   return (
     <section className="cuenta-tarjeta" aria-labelledby="cuenta-sesion-titulo">
-      <h2 id="cuenta-sesion-titulo">Tu sesión</h2>
+      <h2 id="cuenta-sesion-titulo">Cerrar sesión</h2>
       <p className="cuenta-ayuda">
         Al cerrar la sesión salís de tu cuenta en este dispositivo. Tus sistemas y tus datos quedan
         guardados para cuando vuelvas a entrar.

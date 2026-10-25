@@ -7,7 +7,7 @@ import {
   type Filtros,
 } from '@/lib/sistema/filtros';
 import { textoPlano } from '@/lib/sistema/formato';
-import type { Bloque, Sistema } from '@/lib/sistema/tipos';
+import type { Bloque, Fila, Sistema } from '@/lib/sistema/tipos';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { Btn } from '../Btn';
 import { Icon } from '../Icon';
@@ -34,6 +34,13 @@ export function TablaCompleta({ bloque, sistema }: { bloque: Bloque; sistema: Si
     [sistema, bloque, consulta, filtros],
   );
   const filtrando = hayFiltros(consulta, filtros);
+
+  // Cada lápiz dice a qué registro corresponde (por su primera columna), para distinguirlos con el lector de pantalla.
+  const [primerCampo] = bloque.fields;
+  const rotuloDeEdicion = (fila: Fila) => {
+    const nombre = primerCampo ? textoPlano(sistema, primerCampo, fila[primerCampo.key]) : '';
+    return nombre ? `Editar registro: ${nombre}` : 'Editar registro';
+  };
 
   const cambiarFiltro = (clave: string, cambio: Partial<Filtro>) =>
     setFiltros((actuales) => ({ ...actuales, [clave]: { ...actuales[clave], ...cambio } }));
@@ -181,7 +188,7 @@ export function TablaCompleta({ bloque, sistema }: { bloque: Bloque; sistema: Si
                   <td className="row-actions">
                     <IconBtn
                       name="edit"
-                      label="Editar registro"
+                      label={rotuloDeEdicion(fila)}
                       onClick={() =>
                         abrirModal({ tipo: 'registro', bloqueId: bloque.id, filaId: fila.id })
                       }

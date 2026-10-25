@@ -3,7 +3,7 @@ import { Icon } from './Icon';
 
 type MenuDePerfilProps = {
   nombre: string;
-  /** Si se está en «Tu cuenta», para marcar el avatar. */
+  /** Si se está en «Tu cuenta», para marcar «Configuración» como la página actual. */
   enCuenta: boolean;
   cerrando: boolean;
   onConfiguracion: () => void;
@@ -74,7 +74,6 @@ export function MenuDePerfil({
         aria-haspopup="menu"
         aria-expanded={abierto}
         aria-controls={abierto ? idDelMenu : undefined}
-        aria-current={enCuenta ? 'page' : undefined}
         onClick={() => setAbierto((actual) => !actual)}
       >
         <span>
@@ -85,7 +84,12 @@ export function MenuDePerfil({
       </button>
       {abierto && (
         <div id={idDelMenu} className="perfil-menu-lista" role="menu" onKeyDown={moverFoco}>
-          <button type="button" role="menuitem" onClick={elegir(onConfiguracion)}>
+          <button
+            type="button"
+            role="menuitem"
+            aria-current={enCuenta ? 'page' : undefined}
+            onClick={elegir(onConfiguracion)}
+          >
             <Icon name="settings" /> Configuración
           </button>
           <button
@@ -94,7 +98,7 @@ export function MenuDePerfil({
             disabled={cerrando}
             onClick={elegir(onCerrarSesion)}
           >
-            <Icon name="back" /> Cerrar sesión
+            <Icon name="arrow" /> Cerrar sesión
           </button>
         </div>
       )}
