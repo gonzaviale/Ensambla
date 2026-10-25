@@ -616,20 +616,52 @@ body:has(.editor-layout) {
   font-size: 12px;
   color: var(--petrol);
 }
+/* El cierre de la creación, con el mismo fondo petróleo que «Todo en orden» para que no pase desapercibido. */
 .system-ready {
-  background: #fff;
-  border: 1.5px solid var(--petrol);
+  background: var(--petrol);
+  border: 0;
+  border-left: 6px solid var(--yellow);
+  box-shadow: 0 6px 18px #00506a26;
 }
-.system-ready > .icon,
+.system-ready-head > .icon,
 .system-ready strong {
-  color: var(--petrol);
+  color: var(--yellow);
 }
 .system-ready strong {
-  font-size: 14px;
+  font-size: 16px;
 }
 .system-ready p {
-  font-size: 12px;
-  color: var(--muted);
+  font-size: 14px;
+  color: #fff;
+}
+.system-ready-head > .icon-btn {
+  color: #fff;
+}
+.system-ready-head > .icon-btn:hover {
+  background: #ffffff26;
+  color: #fff;
+}
+.system-ready .btn.primary {
+  background: var(--yellow);
+  color: var(--petrol);
+  box-shadow: 0 3px 0 #b89d1c;
+}
+.system-ready .btn.primary:hover {
+  background: #f3d94f;
+}
+.system-ready .btn.secondary {
+  background: #fff;
+  color: var(--petrol);
+  border-color: #fff;
+}
+.system-ready .btn.secondary:hover {
+  background: #eaf3f6;
+}
+.system-ready .btn.ghost {
+  color: #fff;
+}
+.system-ready .btn.ghost:hover:not(:disabled) {
+  background: #ffffff26;
 }
 .sami-franja,
 .sami-franja.ok {
@@ -1180,4 +1212,117 @@ body:has(.editor-layout) {
 .topnav button.active {
   background: var(--petrol);
   color: white;
+}
+
+/* La tabla de un bloque a pantalla completa, con búsqueda y filtros por columna. */
+.tabla-completa {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  background: #fff;
+}
+.tabla-completa-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 20px 28px 16px;
+}
+.tabla-completa-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.tabla-completa-titulo {
+  margin-right: auto;
+  min-width: 0;
+}
+.tabla-completa-titulo h2 {
+  font-size: 22px;
+  color: var(--petrol);
+}
+.tabla-completa-titulo p {
+  font-size: 13px;
+  color: var(--muted);
+}
+.tabla-completa-barra {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.tabla-completa-barra .searchbox {
+  flex: 1;
+  max-width: 380px;
+}
+.tabla-completa-barra .input {
+  min-height: 38px;
+  font-size: 14px;
+}
+.tabla-completa-tabla {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  scrollbar-width: thin;
+}
+.tabla-completa .data-table {
+  font-size: 14px;
+}
+.tabla-completa .data-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.tabla-completa .data-table th {
+  position: static;
+  color: var(--petrol);
+  font-weight: 700;
+}
+.tabla-completa .filtros-fila th {
+  padding: 6px 12px 10px;
+  background: #fff;
+  border-top: 0;
+  font-weight: 400;
+}
+.tabla-completa .filtros-fila .input {
+  width: 100%;
+  min-width: 110px;
+  min-height: 32px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+/* La columna del lápiz queda a la vista aunque la tabla se desplace hacia los costados. */
+.tabla-completa .data-table th:last-child,
+.tabla-completa .data-table td:last-child {
+  position: sticky;
+  right: 0;
+  background: #fff;
+  box-shadow: -6px 0 6px -6px rgb(0 0 0 / 0.15);
+}
+.filtro-rango {
+  display: flex;
+  gap: 4px;
+}
+.filtro-rango .input {
+  min-width: 96px;
+}
+.tabla-completa-vacia {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 15px;
+}
+@media (max-width: 640px) {
+  .tabla-completa-panel {
+    padding: 14px 14px 12px;
+  }
+  .tabla-completa-cabecera {
+    flex-wrap: wrap;
+  }
 }

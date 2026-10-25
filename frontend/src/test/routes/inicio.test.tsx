@@ -143,26 +143,29 @@ describe('modales', () => {
     expect(useSistemaStore.getState().modo).toBe('build');
   });
 
-  it('el perfil cambia el nombre que se muestra y guarda la preferencia', async () => {
-    const { user, usuario } = await abrirInicio();
+  it('el avatar lleva a la cuenta, donde se cambia el nombre que se muestra y se guarda la preferencia', async () => {
+    const { user, usuario, router } = await abrirInicio();
 
-    await clickButton(user, /Cambiar tu nombre/);
-    const campo = await screen.findByLabelText('Tu nombre');
+    await clickButton(user, /Tu cuenta y configuración/);
+    await verifyPathAsync(router, '/cuenta');
+    const campo = await screen.findByLabelText('¿Cómo querés que te llame Sami?');
     await user.clear(campo);
     await user.type(campo, 'Marta');
-    await clickButton(user, 'Guardar');
+    await clickButton(user, 'Guardar nombre');
 
-    expect(await screen.findByText('Hola, Marta.')).toBeVisible();
+    await verifyToastAsync('Guardamos tu nombre.');
+    expect(await screen.findByText('Marta')).toBeVisible();
     await waitFor(
       () => expect(estado.preferencias.get(usuario.email)?.nombre).toBe('Marta'),
       ESPERA,
     );
   });
 
-  it('el perfil permite cerrar la sesión', async () => {
+  it('desde la cuenta se puede cerrar la sesión', async () => {
     const { user, router } = await abrirInicio();
 
-    await clickButton(user, /Cambiar tu nombre/);
+    await clickButton(user, /Tu cuenta y configuración/);
+    await user.click(await screen.findByRole('link', { name: 'Sesión' }));
     await user.click(await screen.findByRole('button', { name: 'Cerrar sesión' }));
 
     await verifyPathAsync(router, '/login');

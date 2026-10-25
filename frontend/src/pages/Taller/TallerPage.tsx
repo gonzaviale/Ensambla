@@ -9,6 +9,7 @@ import {
 import { getRouteApi } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
 import { BotoneraDeDudas } from '@/components/sistema/BotoneraDeDudas';
+import { BurbujasDeConversacion } from '@/components/sistema/BurbujasDeConversacion';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
 import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
@@ -17,6 +18,7 @@ import { Sami } from '@/components/sistema/Sami';
 import { VisorDeFoto } from '@/components/sistema/VisorDeFoto';
 import { varsDeColor } from '@/components/sistema/colores';
 import { ajusteParaGuardar, mismoSistema, sistemaParaCrear } from '@/lib/sistema/acciones';
+import { debeMostrarConsejosDeFoto } from '@/lib/sistema/consejosDeFoto';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import {
   allBlocks,
@@ -207,6 +209,14 @@ export function TallerPage() {
     campo.current?.focus();
   };
 
+  // La cámara primero explica cómo sacar una buena foto; «Tomar foto» abre el selector.
+  const elegirDondeSacarLaFoto = () => {
+    const abrirSelector = () => selectorDeFoto.current?.click();
+    if (debeMostrarConsejosDeFoto())
+      abrirModal({ tipo: 'consejosDeFoto', onTomarFoto: abrirSelector });
+    else abrirSelector();
+  };
+
   const sacarFoto = () => {
     setFotoAmpliada(false);
     quitarFoto();
@@ -280,18 +290,12 @@ export function TallerPage() {
             <div className="conversation-scroll" ref={mensajes}>
               <div className="conversation-messages" aria-live="polite">
                 {taller.mensajes.map((mensaje, indice) => (
-                  <div key={indice} className={`conversation-bubble ${mensaje.quien}`}>
-                    {mensaje.foto && (
-                      <img
-                        className="conversation-photo"
-                        src={mensaje.foto}
-                        alt={
-                          mensaje.quien === 'you' ? 'La foto que le mandaste a Sami' : 'Una foto'
-                        }
-                      />
-                    )}
-                    {mensaje.texto}
-                  </div>
+                  <BurbujasDeConversacion
+                    key={indice}
+                    quien={mensaje.quien}
+                    texto={mensaje.texto}
+                    foto={mensaje.foto}
+                  />
                 ))}
                 {taller.pensando && (
                   <div className="thinking-bubble" data-tour="describe-pensando">
@@ -397,7 +401,7 @@ export function TallerPage() {
                       taller.foto ? 'Cambiar la foto para Sami' : 'Mandarle una foto a Sami'
                     }
                     disabled={taller.pensando || preparandoFoto}
-                    onClick={() => selectorDeFoto.current?.click()}
+                    onClick={elegirDondeSacarLaFoto}
                   >
                     <Icon name="camera" />
                   </Btn>
@@ -504,6 +508,9 @@ export function TallerPage() {
                   arrastrando={arrastrando}
                   sobre={sobre}
                   onRenombrar={(bloqueId) => abrirModal({ tipo: 'renombrarPieza', bloqueId })}
+                  onRegistro={(bloqueId, filaId) =>
+                    abrirModal({ tipo: 'registroDelBorrador', bloqueId, filaId })
+                  }
                   onQuitar={quitarPieza}
                   onAncho={(bloqueId, ancho) =>
                     editarBorrador((copia) => {

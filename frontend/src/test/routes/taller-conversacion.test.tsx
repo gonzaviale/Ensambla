@@ -217,13 +217,9 @@ describe('la conversación de Sami en el taller', () => {
 
     await escribir(user, 'Doy turnos para cortes');
 
-    expect(
-      await screen.findByText(
-        'Sumé turnos. Ya podés verlo a la derecha. ¿Qué cambiarías?',
-        {},
-        ESPERA,
-      ),
-    ).toBeVisible();
+    expect(await screen.findByText('Sumé turnos.', {}, ESPERA)).toBeVisible();
+    expect(screen.getByText('Ya podés verlo a la derecha.')).toBeVisible();
+    expect(screen.getByText('¿Qué cambiarías?')).toBeVisible();
   });
 
   it('si Sami no armó nada ni dijo nada, lo cuenta y sigue sin propuesta', async () => {

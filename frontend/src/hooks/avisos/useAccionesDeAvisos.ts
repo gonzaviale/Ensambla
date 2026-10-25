@@ -105,14 +105,6 @@ export function useAccionesDeAvisos() {
     });
   };
 
-  const restaurar = () => guardarPreferencias.mutate({ ...preferencias, descartadas: [] });
-
-  const alternarGrupo = (grupo: string, activo: boolean) =>
-    guardarPreferencias.mutate({
-      ...preferencias,
-      grupos: { ...preferencias.grupos, [grupo]: activo },
-    });
-
   const preguntar = (pregunta: string) => {
     const store = useSistemaStore.getState();
     store.actualizarPanel({ respuesta: responder(pregunta, { zona, avisos: store.avisos }) });
@@ -127,11 +119,7 @@ export function useAccionesDeAvisos() {
   return {
     ejecutar,
     descartar,
-    restaurar,
-    alternarGrupo,
     preguntar,
     crearDemo,
-    descartadas: preferencias.descartadas.length,
-    grupos: preferencias.grupos,
   };
 }
