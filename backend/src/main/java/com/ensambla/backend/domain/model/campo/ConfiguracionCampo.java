@@ -124,7 +124,7 @@ public record ConfiguracionCampo(
                 "Elegí la tabla con la que se conecta");
     }
 
-    /** La sintaxis se valida acá; que los campos citados existan y sean numéricos lo controla CampoService. */
+    /** La sintaxis se valida acá; que los campos existan y sean numéricos lo controla Campo. */
     private static Optional<String> errorDeFormula(TipoCampo tipo, String formula) {
         if (tipo != TipoCampo.FORMULA) {
             return Optional.empty();

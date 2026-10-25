@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.repository.lote;
 
+import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.lote.FotoId;
@@ -26,4 +27,10 @@ public interface LoteSubidaRepository {
 
     /** El lote con sus fotos ordenadas por posición, sólo si es del negocio. */
     Optional<LoteSubida> findByIdAndNegocioId(LoteId loteId, NegocioId negocioId);
+
+    /** El lote del negocio con sus fotos; un lote ajeno responde como inexistente. */
+    default LoteSubida obtener(NegocioId negocioId, LoteId loteId) {
+        return findByIdAndNegocioId(loteId, negocioId)
+                .orElseThrow(() -> new ResourceNotFoundException("Lote no encontrado"));
+    }
 }

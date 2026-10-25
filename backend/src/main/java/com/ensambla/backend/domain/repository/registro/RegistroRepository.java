@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.repository.registro;
 
+import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.common.Pagina;
@@ -47,4 +48,9 @@ public interface RegistroRepository {
 
     /** Suma de cada campo numérico entre todas las filas que cumplen el filtro del reporte. */
     Map<CampoId, BigDecimal> sumarNumericos(FiltroReporte filtro, List<CampoId> campoIds);
+
+    default Registro obtener(RegistroId registroId, NegocioId negocioId) {
+        return findByIdAndNegocioId(registroId, negocioId)
+                .orElseThrow(() -> new ResourceNotFoundException("El registro no existe"));
+    }
 }

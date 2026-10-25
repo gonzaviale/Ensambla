@@ -1,5 +1,7 @@
 package com.ensambla.backend.domain.model.campo;
 
+import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.RegistroId;
@@ -14,8 +16,11 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -101,6 +106,35 @@ public class Campo {
 
     public boolean esFormula() {
         return tipo == TipoCampo.FORMULA;
+    }
+
+    /**
+     * Una fórmula sólo puede usar campos NUMERO del mismo bloque; como no puede citar a otra fórmula, tampoco puede
+     * haber referencias circulares. {@code camposDelBloque} son los campos del bloque, ya cargados.
+     */
+    public void validarReferenciasDeFormula(List<Campo> camposDelBloque) {
+        if (!esFormula()) {
+            return;
+        }
+        Set<CampoId> numericos = camposDelBloque.stream()
+                .filter(otro -> otro.getTipo() == TipoCampo.NUMERO && !otro.getId().equals(id))
+                .map(Campo::getId)
+                .collect(Collectors.toSet());
+        if (!numericos.containsAll(Formula.parsear(formula).referencias())) {
+            throw new CampoInvalidoException(Map.of("formula", "Usá sólo campos numéricos de esta tabla"));
+        }
+    }
+
+    /** No se puede dejar sin uso o cambiar un campo numérico del que depende una fórmula. */
+    public void validarSinFormulasQueLoUsen(List<Campo> camposDelBloque, String accion) {
+        camposDelBloque.stream()
+                .filter(Campo::esFormula)
+                .filter(otro -> Formula.parsear(otro.getFormula()).referencias().contains(id))
+                .findFirst()
+                .ifPresent(otro -> {
+                    throw new BusinessRuleException("No se puede " + accion + " «" + nombre
+                            + "»: la fórmula «" + otro.getNombre() + "» lo usa");
+                });
     }
 
     /** Valor de un campo FORMULA con los datos de un registro; {@code null} si falta algún dato. */

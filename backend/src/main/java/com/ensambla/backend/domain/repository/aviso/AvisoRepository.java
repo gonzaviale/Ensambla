@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.repository.aviso;
 
+import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
@@ -22,4 +23,10 @@ public interface AvisoRepository {
     List<Aviso> findByNegocioId(NegocioId negocioId);
 
     List<Aviso> findByNegocioIdAndEstado(NegocioId negocioId, EstadoAviso estado);
+
+    /** El aviso del negocio; uno ajeno responde como inexistente. */
+    default Aviso obtener(AvisoId avisoId, NegocioId negocioId) {
+        return findByIdAndNegocioId(avisoId, negocioId)
+                .orElseThrow(() -> new ResourceNotFoundException("El aviso no existe"));
+    }
 }

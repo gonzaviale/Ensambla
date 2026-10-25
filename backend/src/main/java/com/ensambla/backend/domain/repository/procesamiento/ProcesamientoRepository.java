@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.repository.procesamiento;
 
+import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.lote.LoteId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
@@ -35,4 +36,9 @@ public interface ProcesamientoRepository {
     boolean reencolar(NegocioId negocioId, LoteId loteId, OffsetDateTime ahora);
 
     ConsumoDiario consumo(NegocioId negocioId, LocalDate fecha);
+
+    /** El estado de lectura del lote del negocio; uno ajeno responde como inexistente. */
+    default EstadoLectura obtenerEstado(NegocioId negocioId, LoteId loteId) {
+        return obtener(negocioId, loteId).orElseThrow(() -> new ResourceNotFoundException("Lote no encontrado"));
+    }
 }

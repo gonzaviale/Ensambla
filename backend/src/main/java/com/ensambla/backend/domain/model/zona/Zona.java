@@ -8,6 +8,9 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.text.Normalizer;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 
 /** Barrio global donde se agrupan los comercios: un centro y un radio. */
 @Getter
@@ -44,6 +47,13 @@ public class Zona {
 
     public boolean contiene(BigDecimal latitudPunto, BigDecimal longitudPunto) {
         return distanciaMetros(latitudPunto, longitudPunto) <= radioMetros;
+    }
+
+    /** Zona cuyo radio contiene el punto; si hay varias, la de centro más cercano. */
+    public static Optional<Zona> masCercana(List<Zona> zonas, BigDecimal latitudPunto, BigDecimal longitudPunto) {
+        return zonas.stream()
+                .filter(zona -> zona.contiene(latitudPunto, longitudPunto))
+                .min(Comparator.comparingDouble(zona -> zona.distanciaMetros(latitudPunto, longitudPunto)));
     }
 
     /** El texto escrito nombra a la zona o a su localidad, sin importar mayúsculas ni tildes. */

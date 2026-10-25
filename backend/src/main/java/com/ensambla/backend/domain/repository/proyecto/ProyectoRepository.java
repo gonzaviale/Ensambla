@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.repository.proyecto;
 
+import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
@@ -18,5 +19,9 @@ public interface ProyectoRepository {
     Proyecto saveConEstructura(Proyecto proyecto);
 
     void deleteByIdAndNegocioId(ProyectoId proyectoId, NegocioId negocioId);
-}
 
+    default Proyecto obtener(NegocioId negocioId, ProyectoId proyectoId) {
+        return findByIdAndNegocioId(proyectoId, negocioId)
+                .orElseThrow(() -> new ResourceNotFoundException("Proyecto no encontrado"));
+    }
+}

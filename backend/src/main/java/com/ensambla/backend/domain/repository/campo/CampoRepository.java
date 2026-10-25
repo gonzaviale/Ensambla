@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.repository.campo;
 
+import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.CampoId;
@@ -25,4 +26,9 @@ public interface CampoRepository {
 
     /** Borra sólo el campo; los valores que tenía en los registros quedan en el JSON sin usarse. */
     void deleteByIdAndNegocioId(CampoId id, NegocioId negocioId);
+
+    default Campo obtener(CampoId campoId, NegocioId negocioId) {
+        return findByIdAndNegocioId(campoId, negocioId)
+                .orElseThrow(() -> new ResourceNotFoundException("El campo no existe"));
+    }
 }

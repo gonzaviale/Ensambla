@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.registro.RegistroId;
 
 import java.math.BigDecimal;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,4 +23,12 @@ public interface MovimientoStockRepository {
      * ese producto.
      */
     List<MovimientoStock> findRecientes(BloqueId bloqueId, NegocioId negocioId, RegistroId registroId, int limite);
+
+    /** Stock de cada producto pedido, en el orden pedido; sin movimientos es cero. */
+    default Map<RegistroId, BigDecimal> stockCompletoDe(Collection<RegistroId> registroIds, NegocioId negocioId) {
+        Map<RegistroId, BigDecimal> existentes = stockDe(registroIds, negocioId);
+        Map<RegistroId, BigDecimal> stock = new LinkedHashMap<>();
+        registroIds.forEach(id -> stock.put(id, existentes.getOrDefault(id, BigDecimal.ZERO)));
+        return stock;
+    }
 }
