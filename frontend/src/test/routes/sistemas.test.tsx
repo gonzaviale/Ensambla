@@ -18,7 +18,7 @@ describe('los sistemas llegan del servidor y vuelven a él', () => {
 
     renderApp('/inicio');
 
-    await verifyHeadingPresentAsync(/En qué puedo/);
+    await verifyHeadingPresentAsync(/Cómo viene tu negocio/);
     expect(await screen.findByRole('button', { name: 'Mi Negocio · 1' }, ESPERA)).toBeVisible();
     expect(useSistemaStore.getState().sistemas).toHaveLength(1);
   });
@@ -28,7 +28,7 @@ describe('los sistemas llegan del servidor y vuelven a él', () => {
     const sistema = makeTemplate('shop', {}, true);
     estado.sistemas.set(usuario.email, [sistema]);
     renderApp('/inicio');
-    await verifyHeadingPresentAsync(/En qué puedo/);
+    await verifyHeadingPresentAsync(/Cómo viene tu negocio/);
     useSistemaStore.getState().abrirSistema(sistema.id, 'build');
 
     for (const nombre of ['Uno', 'Dos', 'Mi almacén de barrio']) {
@@ -49,7 +49,7 @@ describe('los sistemas llegan del servidor y vuelven a él', () => {
     const sistema = makeTemplate('shop', {}, false);
     estado.sistemas.set(usuario.email, [sistema]);
     renderApp('/inicio');
-    await verifyHeadingPresentAsync(/En qué puedo/);
+    await verifyHeadingPresentAsync(/Cómo viene tu negocio/);
     useSistemaStore.getState().abrirSistema(sistema.id, 'build');
     setupServerError('put', `/sistemas/${sistema.id}`, 500, 'No se pudo guardar');
 
@@ -69,7 +69,7 @@ describe('los sistemas llegan del servidor y vuelven a él', () => {
     const usuario = setupUsuarioConSesion();
     estado.sistemas.set(usuario.email, [makeTemplate('shop', {}, false)]);
     renderApp('/inicio');
-    await verifyHeadingPresentAsync(/En qué puedo/);
+    await verifyHeadingPresentAsync(/Cómo viene tu negocio/);
 
     useSistemaStore.getState().reiniciar();
 

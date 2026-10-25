@@ -3,6 +3,202 @@
 body:has(.inicio) {
   background: #fff;
 }
+
+/* ENS-244: el resumen tiene prioridad cuando ya hay tablas. */
+.inicio-resumen {
+  margin: 12px 0 48px;
+}
+.inicio-resumen-cabecera {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.inicio-resumen h1 {
+  font-size: clamp(28px, 4vw, 42px);
+  letter-spacing: -1.2px;
+  color: var(--petrol);
+  margin: 8px 0;
+}
+.inicio-resumen-cabecera p {
+  margin: 6px 0;
+}
+.inicio-resumen-control {
+  display: grid;
+  gap: 8px;
+  min-width: 220px;
+  max-width: 100%;
+}
+.inicio-resumen-control label {
+  font-size: 16px;
+  font-weight: 700;
+}
+.inicio-resumen-control select {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--petrol);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+}
+.inicio-metricas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.inicio-metrica {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  border: 2px solid color-mix(in srgb, var(--petrol) 22%, white);
+  border-radius: 20px;
+  background: var(--cream);
+  min-width: 0;
+}
+.inicio-metrica:first-child {
+  background: var(--petrol);
+  color: white;
+}
+.inicio-metrica:first-child p,
+.inicio-metrica:first-child h3,
+.inicio-metrica:first-child .text-link {
+  color: inherit;
+}
+.inicio-metrica-cabecera {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.inicio-metrica-cabecera .icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+}
+.inicio-metrica h3 {
+  font-size: 18px;
+  margin: 0;
+}
+.inicio-metrica .inicio-metrica-valor {
+  font-size: clamp(26px, 3vw, 36px);
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin: 18px 0 12px;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+.inicio-metrica-detalle {
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0 0 20px;
+}
+.inicio-metrica-meta {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid currentColor;
+}
+.inicio-metrica-meta p {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.inicio-meta-estado {
+  font-weight: 800;
+}
+.inicio-metrica-lograda {
+  border-color: var(--petrol);
+  box-shadow: inset 0 4px 0 var(--petrol);
+}
+.inicio-metrica progress {
+  width: 100%;
+  height: 10px;
+  accent-color: var(--petrol);
+}
+.inicio-metrica:first-child progress {
+  accent-color: var(--yellow);
+}
+.inicio-meta-acciones {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.inicio-meta-acciones button {
+  min-height: 44px;
+}
+.inicio-metrica-meta label {
+  display: block;
+  font-size: 14px;
+  margin: 12px 0 8px;
+  font-weight: 700;
+}
+.inicio-metrica-meta input {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  color: #263443;
+  background: white;
+  border: 2px solid #526268;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font: inherit;
+  margin-bottom: 10px;
+}
+.inicio-metrica:first-child .btn.primary {
+  background: var(--yellow);
+  color: var(--petrol);
+}
+.inicio-metrica:first-child .btn.ghost {
+  color: white;
+}
+.inicio-metas-nota {
+  font-size: 14px;
+  color: var(--muted);
+  margin-top: 18px;
+}
+.inicio-datos-nota {
+  background: var(--sage);
+  padding: 18px;
+  border-left: 4px solid var(--petrol);
+  border-radius: 8px;
+}
+.inicio-con-resumen .inicio-portada {
+  border-top: 1px solid var(--line);
+  padding-top: 32px;
+}
+.inicio-con-resumen .inicio-saludo h2 {
+  font-size: 28px;
+  letter-spacing: -0.8px;
+}
+.inicio-con-resumen .inicio-guia {
+  margin-top: 16px;
+}
+.inicio-con-resumen .inicio-ficha {
+  padding: 14px 18px;
+}
+@media (max-width: 1000px) {
+  .inicio-metricas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .inicio-resumen-cabecera {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .inicio-resumen-control {
+    min-width: 0;
+  }
+  .inicio-metricas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .inicio-metrica {
+    padding: 22px;
+  }
+  .inicio-con-resumen .inicio-portada {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .inicio {
   max-width: 1180px;
   padding-top: 44px;
