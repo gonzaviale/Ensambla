@@ -17,7 +17,7 @@ const SECCIONES: { clave: SeccionDeCuenta; titulo: string; icono: NombreDeIcono 
   { clave: 'perfil', titulo: 'Perfil', icono: 'users' },
   { clave: 'notificaciones', titulo: 'Notificaciones', icono: 'bell' },
   { clave: 'suscripcion', titulo: 'Suscripción', icono: 'wallet' },
-  { clave: 'sesion', titulo: 'Sesión', icono: 'arrow' },
+  { clave: 'sesion', titulo: 'Cerrar sesión', icono: 'arrow' },
 ];
 
 const CONTENIDO: Record<SeccionDeCuenta, ComponentType> = {
@@ -27,7 +27,7 @@ const CONTENIDO: Record<SeccionDeCuenta, ComponentType> = {
   sesion: SeccionSesion,
 };
 
-// Tu cuenta: lo personal que no es de un sistema en particular. Se llega desde el avatar de la cabecera.
+// Tu cuenta: lo personal que no es de un sistema en particular. Se llega desde «Configuración», en el menú del avatar.
 export function CuentaPage() {
   useTituloPagina('Tu cuenta');
   const { seccion = SECCION_DE_CUENTA_POR_DEFECTO } = ruta.useSearch();
@@ -61,8 +61,8 @@ export function CuentaPage() {
             <Contenido />
           </div>
         </div>
+        <PageFooter />
       </main>
-      <PageFooter />
     </>
   );
 }

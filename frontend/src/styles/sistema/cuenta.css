@@ -1,3 +1,44 @@
+/* El avatar de la cabecera despliega un menú: configuración de la cuenta y cerrar sesión. */
+.perfil-menu {
+  position: relative;
+}
+.perfil-menu-lista {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 60;
+  display: grid;
+  min-width: 190px;
+  padding: 6px;
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.12);
+}
+.perfil-menu-lista button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: left;
+}
+.perfil-menu-lista button .icon {
+  width: 17px;
+  height: 17px;
+  color: var(--petrol);
+}
+.perfil-menu-lista button:hover,
+.perfil-menu-lista button:focus-visible {
+  background: #f4f6f2;
+}
+.perfil-menu-lista button:disabled {
+  opacity: 0.6;
+}
+
 /* Tu cuenta: perfil, notificaciones, suscripción y sesión, con el menú a un costado. */
 .cuenta-layout {
   display: grid;

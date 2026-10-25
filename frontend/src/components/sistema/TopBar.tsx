@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Icon } from './Icon';
 import { Logo } from './Logo';
+import { MenuDePerfil } from './MenuDePerfil';
 
 export type SeccionActiva = 'home' | 'templates' | 'zone' | 'avisos' | 'plans' | 'account';
 
@@ -16,7 +17,10 @@ type TopBarProps = {
   onAvisos: () => void;
   onPlanes: () => void;
   onAyuda: () => void;
+  /** «Configuración», en el menú del avatar. */
   onCuenta: () => void;
+  onCerrarSesion: () => void;
+  cerrandoSesion?: boolean;
 };
 
 // Cabecera común de inicio, plantillas, taller y zona. Igual al mockup; «Proveedores cerca» pasa a «Mi zona».
@@ -32,6 +36,8 @@ export function TopBar({
   onPlanes,
   onAyuda,
   onCuenta,
+  onCerrarSesion,
+  cerrandoSesion = false,
 }: TopBarProps) {
   return (
     <header className="topbar">
@@ -81,19 +87,13 @@ export function TopBar({
           <Icon name="help" />
           <span>¿Necesitás una mano?</span>
         </button>
-        <button
-          type="button"
-          className="row profile"
-          aria-label="Tu cuenta y configuración"
-          aria-current={active === 'account' ? 'page' : undefined}
-          onClick={onCuenta}
-        >
-          <span>
-            <span className="profile-name">{nombre}</span>
-            <span className="profile-label">Tu espacio personal</span>
-          </span>
-          <span className="avatar">{nombre.slice(0, 2).toUpperCase()}</span>
-        </button>
+        <MenuDePerfil
+          nombre={nombre}
+          enCuenta={active === 'account'}
+          cerrando={cerrandoSesion}
+          onConfiguracion={onCuenta}
+          onCerrarSesion={onCerrarSesion}
+        />
       </div>
     </header>
   );
