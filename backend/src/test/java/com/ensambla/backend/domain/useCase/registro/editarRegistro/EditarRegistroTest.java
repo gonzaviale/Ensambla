@@ -7,8 +7,9 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -41,20 +42,24 @@ class EditarRegistroTest {
     private static final Map<String, Object> CAMBIOS = Map.of("campo", "nuevo");
 
     @Mock
-    private NegocioService negocioService;
+    private NegocioRepository negocioRepository;
 
     @Mock
-    private CampoService campoService;
+    private CampoRepository campoRepository;
 
     @Mock
     private RegistroDatosService registroDatosService;
+
+    @Mock
+    private RegistroRepository registroRepository;
 
     private EditarRegistro editarRegistro;
 
     @BeforeEach
     void setUp() {
         editarRegistro = new EditarRegistro(
-                negocioService, campoService, registroDatosService, Clock.fixed(INSTANTE, ZoneOffset.UTC));
+                negocioRepository, campoRepository, registroDatosService, registroRepository, Clock
+                        .fixed(INSTANTE, ZoneOffset.UTC));
     }
 
     @Test
@@ -63,9 +68,9 @@ class EditarRegistroTest {
         Registro actual = Registro.builder().id(REGISTRO_ID).bloqueId(BLOQUE_ID).build();
         Registro editado = Registro.builder().id(REGISTRO_ID).bloqueId(BLOQUE_ID).valores(CAMBIOS).build();
         List<Campo> campos = List.of(Campo.builder().nombre("Producto").build());
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(actual);
-        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(campos);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(actual);
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(campos);
         when(registroDatosService.editar(actual, campos, CAMBIOS, AHORA)).thenReturn(editado);
 
         EditarRegistroResponse response = editarRegistro.execute(
@@ -78,14 +83,14 @@ class EditarRegistroTest {
     @Test
     @DisplayName("No edita nada cuando el registro es de otro negocio")
     void executeShouldPropagateNotFoundWhenRegistroIsNotOfTheNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID))
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID))
                 .thenThrow(new ResourceNotFoundException("El registro no existe"));
 
         assertThatThrownBy(() -> editarRegistro.execute(
                 new EditarRegistroRequest(USUARIO_ID, REGISTRO_ID, CAMBIOS)))
                 .isInstanceOf(ResourceNotFoundException.class);
 
-        verifyNoInteractions(campoService);
+        verifyNoInteractions(campoRepository);
     }
 }

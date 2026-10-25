@@ -7,16 +7,16 @@ import com.ensambla.backend.domain.model.procesamiento.ConsumoDiario;
 import com.ensambla.backend.domain.model.procesamiento.EstadoLectura;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.procesamiento.ProcesamientoService;
 import com.ensambla.backend.domain.useCase.procesamiento.UsuarioLoteRequest;
 import com.ensambla.backend.support.ProcesamientoTestData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -29,6 +29,7 @@ import static com.ensambla.backend.support.ProcesamientoTestData.LOTE_ID;
 import static com.ensambla.backend.support.ProcesamientoTestData.NEGOCIO_ID;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -40,9 +41,9 @@ class ReintentarLecturaTest {
     private static final UsuarioId USUARIO_ID = UsuarioId.de("90000000-0000-4000-8000-000000000001");
 
     @Mock
-    private NegocioService negocioService;
+    private NegocioRepository negocioRepository;
 
-    @Mock
+    @Mock(answer = Answers.CALLS_REAL_METHODS)
     private ProcesamientoRepository procesamientoRepository;
 
     @Mock
@@ -52,10 +53,10 @@ class ReintentarLecturaTest {
 
     @BeforeEach
     void setUp() {
-        reintentarLectura = new ReintentarLectura(negocioService, new ProcesamientoService(procesamientoRepository),
-                controlPlanService, procesamientoRepository, ProcesamientoTestData.politica(),
+        reintentarLectura = new ReintentarLectura(negocioRepository, controlPlanService, procesamientoRepository,
+                ProcesamientoTestData.politica(),
                 Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test

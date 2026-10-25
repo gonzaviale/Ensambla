@@ -1,10 +1,9 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.lote.LoteSubidaService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.lote.LoteItem;
 import com.ensambla.backend.domain.useCase.lote.obtenerLote.ObtenerLoteRequest;
@@ -33,9 +32,8 @@ class LoteUseCaseConfigTest {
     private static final List<byte[]> FOTOS = List.of(JPEG);
 
     private final LoteUseCaseConfig config = new LoteUseCaseConfig();
-    private final NegocioService negocioService = mock(NegocioService.class);
-    private final LoteSubidaService loteSubidaService = mock(LoteSubidaService.class);
-    private final BloqueService bloqueService = mock(BloqueService.class);
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final BloqueRepository bloqueRepository = mock(BloqueRepository.class);
     private final LoteSubidaRepository loteSubidaRepository = mock(LoteSubidaRepository.class);
 
     @Test
@@ -44,8 +42,8 @@ class LoteUseCaseConfigTest {
         givenNegocio();
         when(loteSubidaRepository.saveConFotos(any())).thenReturn(LoteTestData.lote(List.of()));
 
-        LoteItem result = config.subirLote(negocioService, loteSubidaRepository, mock(ArchivoCuadernoPort.class),
-                mock(ControlPlanService.class), new TransaccionDirecta(), bloqueService,
+        LoteItem result = config.subirLote(negocioRepository, loteSubidaRepository, mock(ArchivoCuadernoPort.class),
+                mock(ControlPlanService.class), new TransaccionDirecta(), bloqueRepository,
                 Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC))
                 .execute(new SubirLoteRequest(USUARIO_ID, FOTOS, null));
 
@@ -56,9 +54,9 @@ class LoteUseCaseConfigTest {
     @DisplayName("El wiring de la consulta conecta negocio y servicio")
     void obtenerLoteUseCaseShouldWireDependencies() {
         givenNegocio();
-        when(loteSubidaService.obtener(NEGOCIO_ID, LOTE_ID)).thenReturn(LoteTestData.lote(List.of()));
+        when(loteSubidaRepository.obtener(NEGOCIO_ID, LOTE_ID)).thenReturn(LoteTestData.lote(List.of()));
 
-        LoteItem result = config.obtenerLote(negocioService, loteSubidaService)
+        LoteItem result = config.obtenerLote(negocioRepository, loteSubidaRepository)
                 .execute(new ObtenerLoteRequest(USUARIO_ID, LOTE_ID));
 
         assertThat(result.id()).isEqualTo(LOTE_ID);
@@ -66,6 +64,6 @@ class LoteUseCaseConfigTest {
 
     // --- arrange ---
     private void givenNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 }

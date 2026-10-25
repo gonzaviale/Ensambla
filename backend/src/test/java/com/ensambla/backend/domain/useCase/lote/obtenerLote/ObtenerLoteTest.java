@@ -1,8 +1,8 @@
 package com.ensambla.backend.domain.useCase.lote.obtenerLote;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.service.lote.LoteSubidaService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.useCase.lote.LoteItem;
 import com.ensambla.backend.support.LoteTestData;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,16 +23,15 @@ class ObtenerLoteTest {
 
     private static final ObtenerLoteRequest REQUEST = new ObtenerLoteRequest(USUARIO_ID, LOTE_ID);
 
-    private final NegocioService negocioService = mock(NegocioService.class);
-    private final LoteSubidaService loteSubidaService = mock(LoteSubidaService.class);
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final LoteSubidaRepository loteSubidaRepository = mock(LoteSubidaRepository.class);
 
     private ObtenerLote obtenerLote;
 
     @BeforeEach
     void setUp() {
-        obtenerLote = new ObtenerLote(
-                negocioService,
-                loteSubidaService);
+        obtenerLote = new ObtenerLote(negocioRepository,
+                loteSubidaRepository);
     }
 
     @Test
@@ -58,16 +57,16 @@ class ObtenerLoteTest {
 
     // --- arrange ---
     private void givenNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     private void givenLote() {
-        when(loteSubidaService.obtener(NEGOCIO_ID, LOTE_ID))
+        when(loteSubidaRepository.obtener(NEGOCIO_ID, LOTE_ID))
                 .thenReturn(LoteTestData.lote(List.of(LoteTestData.foto())));
     }
 
     private void givenLoteAjeno() {
-        when(loteSubidaService.obtener(NEGOCIO_ID, LOTE_ID))
+        when(loteSubidaRepository.obtener(NEGOCIO_ID, LOTE_ID))
                 .thenThrow(new ResourceNotFoundException("Lote no encontrado"));
     }
 }

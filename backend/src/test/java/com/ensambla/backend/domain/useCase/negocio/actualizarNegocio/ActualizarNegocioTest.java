@@ -8,9 +8,9 @@ import com.ensambla.backend.domain.model.negocio.RubroNegocio;
 import com.ensambla.backend.domain.model.ubicacion.LocalidadesDelPunto;
 import com.ensambla.backend.domain.model.zona.Zona;
 import com.ensambla.backend.domain.model.zona.ZonaId;
+import com.ensambla.backend.domain.port.GeocodificadorPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
-import com.ensambla.backend.domain.service.ubicacion.UbicacionService;
-import com.ensambla.backend.domain.service.zona.ZonaService;
+import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.useCase.negocio.ConfiguracionNegocioResponse;
 import com.ensambla.backend.domain.useCase.negocio.UbicacionNegocioItem;
 import com.ensambla.backend.support.TransaccionDirecta;
@@ -45,10 +45,10 @@ class ActualizarNegocioTest {
             new UbicacionNegocioItem("Calle 123", "San Justo", LATITUD, LONGITUD);
 
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
-    private final ZonaService zonaService = mock(ZonaService.class);
-    private final UbicacionService ubicacionService = mock(UbicacionService.class);
-    private final ActualizarNegocio actualizarNegocio = new ActualizarNegocio(negocioRepository, zonaService,
-            ubicacionService, new TransaccionDirecta(), Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
+    private final ZonaRepository zonaRepository = mock(ZonaRepository.class);
+    private final GeocodificadorPort geocodificadorPort = mock(GeocodificadorPort.class);
+    private final ActualizarNegocio actualizarNegocio = new ActualizarNegocio(negocioRepository, zonaRepository,
+            geocodificadorPort, new TransaccionDirecta(), Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
 
     @Test
     @DisplayName("Asigna la zona que contiene el punto al guardar la ubicación y la devuelve en la configuración")
@@ -56,8 +56,8 @@ class ActualizarNegocioTest {
         Zona zona = givenZona();
         givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).build());
         givenLocalidadDelMapa("San Justo");
-        when(zonaService.resolver(LATITUD, LONGITUD)).thenReturn(Optional.of(zona));
-        when(zonaService.obtener(zona.getId())).thenReturn(Optional.of(zona));
+        when(zonaRepository.resolver(LATITUD, LONGITUD)).thenReturn(Optional.of(zona));
+        when(zonaRepository.findByIdSiTiene(zona.getId())).thenReturn(Optional.of(zona));
 
         ConfiguracionNegocioResponse result = whenActualizaUbicacion();
 
@@ -70,7 +70,7 @@ class ActualizarNegocioTest {
     void executeShouldLeaveZoneEmptyWhenNoneMatches() {
         givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).zonaId(ZonaId.nuevo()).build());
         givenLocalidadDelMapa("San Justo");
-        when(zonaService.resolver(LATITUD, LONGITUD)).thenReturn(Optional.empty());
+        when(zonaRepository.resolver(LATITUD, LONGITUD)).thenReturn(Optional.empty());
 
         ConfiguracionNegocioResponse result = whenActualizaUbicacion();
 
@@ -84,7 +84,7 @@ class ActualizarNegocioTest {
         Zona zona = givenZona();
         givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).latitud(LATITUD).longitud(LONGITUD).build());
         givenLocalidadDelMapa("San Justo");
-        when(zonaService.resolver(LATITUD, LONGITUD)).thenReturn(Optional.of(zona));
+        when(zonaRepository.resolver(LATITUD, LONGITUD)).thenReturn(Optional.of(zona));
 
         whenActualizaUbicacion();
 
@@ -101,7 +101,7 @@ class ActualizarNegocioTest {
         whenActualizaUbicacion();
 
         assertThat(negocioGuardado().getZonaId()).isEqualTo(zonaId);
-        verify(zonaService, never()).resolver(any(), any());
+        verify(zonaRepository, never()).resolver(any(), any());
     }
 
     @Test
@@ -113,7 +113,7 @@ class ActualizarNegocioTest {
         actualizarNegocio.execute(new ActualizarNegocioRequest(USUARIO_ID, null, null,
                 new UbicacionNegocioItem("Calle 123", "san justo", LATITUD, LONGITUD), null));
 
-        verify(ubicacionService).resolverLocalidades(LATITUD, LONGITUD, AHORA.toInstant());
+        verify(geocodificadorPort).resolverLocalidades(LATITUD, LONGITUD, AHORA.toInstant());
         verify(negocioRepository).save(any());
     }
 
@@ -136,7 +136,7 @@ class ActualizarNegocioTest {
     @DisplayName("Propaga la indisponibilidad del mapa al verificar la localidad")
     void executeShouldPropagateMapFailure() {
         givenNegocioParaActualizar(Negocio.builder().id(NEGOCIO_ID).build());
-        when(ubicacionService.resolverLocalidades(LATITUD, LONGITUD, AHORA.toInstant()))
+        when(geocodificadorPort.resolverLocalidades(LATITUD, LONGITUD, AHORA.toInstant()))
                 .thenThrow(new ServicioUbicacionException("Sin servicio"));
 
         assertThatThrownBy(this::whenActualizaUbicacion).isInstanceOf(ServicioUbicacionException.class);
@@ -150,7 +150,7 @@ class ActualizarNegocioTest {
 
         whenActualizaUbicacion();
 
-        verifyNoInteractions(ubicacionService);
+        verifyNoInteractions(geocodificadorPort);
     }
 
     @Test
@@ -164,8 +164,8 @@ class ActualizarNegocioTest {
         assertThat(result.nombre()).isEqualTo("Nuevo nombre");
         assertThat(result.rubro()).isEqualTo(RubroNegocio.KIOSCO);
         assertThat(negocioGuardado().getZonaId()).isNull();
-        verifyNoInteractions(ubicacionService);
-        verify(zonaService, never()).resolver(any(), any());
+        verifyNoInteractions(geocodificadorPort);
+        verify(zonaRepository, never()).resolver(any(), any());
     }
 
     @Test
@@ -186,11 +186,11 @@ class ActualizarNegocioTest {
     private void givenNegocioParaActualizar(Negocio negocio) {
         when(negocioRepository.findByDuenioIdParaActualizar(USUARIO_ID)).thenReturn(Optional.of(negocio));
         when(negocioRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(zonaService.obtener(any())).thenReturn(Optional.empty());
+        when(zonaRepository.findByIdSiTiene(any())).thenReturn(Optional.empty());
     }
 
     private void givenLocalidadDelMapa(String localidad) {
-        when(ubicacionService.resolverLocalidades(LATITUD, LONGITUD, AHORA.toInstant()))
+        when(geocodificadorPort.resolverLocalidades(LATITUD, LONGITUD, AHORA.toInstant()))
                 .thenReturn(new LocalidadesDelPunto(List.of(localidad)));
     }
 

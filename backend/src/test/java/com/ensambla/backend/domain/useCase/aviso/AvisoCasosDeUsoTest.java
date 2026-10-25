@@ -12,10 +12,10 @@ import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
-import com.ensambla.backend.domain.service.aviso.AvisoService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.plan.AccesoContenidoService;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.aviso.aplicarAviso.AplicarAviso;
 import com.ensambla.backend.domain.useCase.aviso.contarAvisos.ContadorAvisos;
@@ -43,6 +43,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -61,29 +62,30 @@ class AvisoCasosDeUsoTest {
     private static final OffsetDateTime AHORA = OffsetDateTime.ofInstant(INSTANTE, ZoneOffset.UTC);
     private static final Clock CLOCK = Clock.fixed(INSTANTE, ZoneOffset.UTC);
 
-    private final NegocioService negocioService = mock(NegocioService.class);
-    private final AvisoRepository avisoRepository = mock(AvisoRepository.class);
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final AvisoRepository avisoRepository = mock(AvisoRepository.class, CALLS_REAL_METHODS);
     private final RegistroDatosService registroDatosService = mock(RegistroDatosService.class);
-    private final CampoService campoService = mock(CampoService.class);
-    private final AccesoContenidoService accesoContenidoService = mock(AccesoContenidoService.class, invocation -> {
+    private final RegistroRepository registroRepository = mock(RegistroRepository.class);
+    private final CampoRepository campoRepository = mock(CampoRepository.class);
+    private final ControlPlanService controlPlanService = mock(ControlPlanService.class, invocation -> {
         if (invocation.getMethod().getName().equals("seleccionar")) {
             List<String> claves = invocation.getArgument(2);
             return new AccesoContenidoItem(claves, 0, null, claves.size(), 0, AHORA.plusMonths(1));
         }
         return Answers.RETURNS_DEFAULTS.answer(invocation);
     });
-    private final AvisoService avisoService = new AvisoService(avisoRepository);
     private final ListarAvisos listarAvisos =
-            new ListarAvisos(negocioService, avisoRepository, accesoContenidoService, CLOCK);
-    private final ContarAvisos contarAvisos = new ContarAvisos(negocioService, avisoRepository);
-    private final AplicarAviso aplicarAviso = new AplicarAviso(negocioService, avisoService, accesoContenidoService,
-            registroDatosService, campoService, avisoRepository, new TransaccionDirecta(), CLOCK);
-    private final DescartarAviso descartarAviso = new DescartarAviso(negocioService, avisoService,
-            accesoContenidoService, avisoRepository, new TransaccionDirecta(), CLOCK);
+            new ListarAvisos(negocioRepository, avisoRepository, controlPlanService, CLOCK);
+    private final ContarAvisos contarAvisos = new ContarAvisos(negocioRepository, avisoRepository);
+    private final AplicarAviso aplicarAviso = new AplicarAviso(negocioRepository, controlPlanService,
+            registroDatosService,
+            registroRepository, campoRepository, avisoRepository, new TransaccionDirecta(), CLOCK);
+    private final DescartarAviso descartarAviso = new DescartarAviso(negocioRepository,
+            controlPlanService, avisoRepository, new TransaccionDirecta(), CLOCK);
 
     @BeforeEach
     void givenNegocioDelUsuario() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(avisoRepository.save(any(Aviso.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
@@ -176,8 +178,8 @@ class AvisoCasosDeUsoTest {
         Registro registro = AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 2, 5);
         List<Campo> campos = List.of(AvisoTestData.campo(CAMPO_PRECIO_ID.valor(), "price"),
                 AvisoTestData.campo(AvisoTestData.CAMPO_NOMBRE_ID.valor(), "name"));
-        when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(registro);
-        when(campoService.listarDeBloque(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID)).thenReturn(campos);
+        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(registro);
+        when(campoRepository.findByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID)).thenReturn(campos);
 
         aplicar();
 
@@ -193,7 +195,7 @@ class AvisoCasosDeUsoTest {
 
         aplicar();
 
-        verifyNoInteractions(registroDatosService, campoService);
+        verifyNoInteractions(registroDatosService, campoRepository);
     }
 
     @Test
@@ -261,9 +263,9 @@ class AvisoCasosDeUsoTest {
     }
 
     private void givenRegistroYCampos() {
-        when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID))
+        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID))
                 .thenReturn(AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 2, 5));
-        when(campoService.listarDeBloque(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID))
+        when(campoRepository.findByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID))
                 .thenReturn(List.of(AvisoTestData.campo(CAMPO_PRECIO_ID.valor(), "price")));
     }
 

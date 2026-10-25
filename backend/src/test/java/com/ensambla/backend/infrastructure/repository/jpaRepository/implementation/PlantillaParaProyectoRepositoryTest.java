@@ -1,7 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.service.plantilla.PlantillaService;
+import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import com.ensambla.backend.infrastructure.repository.entity.PlantillaEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IPlantillaJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.PlantillaRepositoryMapper;
@@ -22,7 +22,7 @@ class PlantillaParaProyectoRepositoryTest {
 
     private final IPlantillaJpaRepository jpa = mock(IPlantillaJpaRepository.class);
     private final PlantillaRepositoryImpl repository = new PlantillaRepositoryImpl(jpa, new PlantillaRepositoryMapper());
-    private final PlantillaService plantillaService = new PlantillaService(repository);
+    private final PlantillaRepository plantillaRepository = repository;
 
     @Test
     @DisplayName("Convierte una plantilla activa a estructura tipada con valores opcionales por defecto")
@@ -35,7 +35,7 @@ class PlantillaParaProyectoRepositoryTest {
                         Map.of("nombre", "Nombre", "tipo", "TEXTO"))))))
                 .build()));
 
-        var result = plantillaService.obtenerParaProyecto(PLANTILLA_ID);
+        var result = plantillaRepository.obtenerParaProyecto(PLANTILLA_ID);
 
         assertThat(result.id()).isEqualTo(PLANTILLA_ID);
         assertThat(result.nombre()).isEqualTo("Inventario");
@@ -50,7 +50,7 @@ class PlantillaParaProyectoRepositoryTest {
     void obtenerParaProyectoShouldRejectInactiveOrMissing() {
         when(jpa.findByIdAndActivaTrue(PLANTILLA_ID.valor())).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> plantillaService.obtenerParaProyecto(PLANTILLA_ID))
+        assertThatThrownBy(() -> plantillaRepository.obtenerParaProyecto(PLANTILLA_ID))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 }

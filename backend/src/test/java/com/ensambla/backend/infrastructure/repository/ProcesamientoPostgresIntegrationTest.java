@@ -16,7 +16,6 @@ import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
 import com.ensambla.backend.domain.useCase.procesamiento.procesarLote.ProcesarLote;
 import com.ensambla.backend.infrastructure.ia.ArchivoCuadernoLocalAdapter;
 import com.ensambla.backend.infrastructure.ia.IaProperties;
@@ -102,7 +101,7 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
         Files.write(archivos.resolve(negocioId + "/primera.jpg"), new byte[]{1, 2, 3});
         Files.write(archivos.resolve(negocioId + "/segunda.jpg"), new byte[]{4, 5, 6});
         var useCase = new ProcesarLote(procesamientoRepository, new ArchivoCuadernoLocalAdapter(archivos, 10),
-                lectorCuadernoPort, new PropuestaLecturaService(), null, null, controlPlanService,
+                lectorCuadernoPort, null, null, controlPlanService,
                 ProcesamientoTestData.politica(), Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
 
         useCase.execute();

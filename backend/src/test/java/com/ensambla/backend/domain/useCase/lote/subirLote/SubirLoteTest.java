@@ -6,9 +6,9 @@ import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.lote.LoteItem;
 import com.ensambla.backend.support.LoteTestData;
@@ -42,13 +42,13 @@ import static org.mockito.Mockito.when;
 
 class SubirLoteTest {
 
-    private final NegocioService negocioService = mock(NegocioService.class);
-    private final BloqueService bloqueService = mock(BloqueService.class);
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final BloqueRepository bloqueRepository = mock(BloqueRepository.class);
     private final LoteSubidaRepository loteSubidaRepository = mock(LoteSubidaRepository.class);
     private final ArchivoCuadernoPort archivoCuadernoPort = mock(ArchivoCuadernoPort.class);
     private final ControlPlanService controlPlanService = mock(ControlPlanService.class);
-    private final SubirLote subirLote = new SubirLote(negocioService, loteSubidaRepository, archivoCuadernoPort,
-            controlPlanService, new TransaccionDirecta(), bloqueService,
+    private final SubirLote subirLote = new SubirLote(negocioRepository, loteSubidaRepository, archivoCuadernoPort,
+            controlPlanService, new TransaccionDirecta(), bloqueRepository,
             Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
 
     @Test
@@ -75,7 +75,7 @@ class SubirLoteTest {
 
         subir(List.of(JPEG), BLOQUE_ID);
 
-        verify(bloqueService).obtener(BLOQUE_ID, NEGOCIO_ID);
+        verify(bloqueRepository).obtener(BLOQUE_ID, NEGOCIO_ID);
         thenSavedLoteHasBloqueDestino();
     }
 
@@ -83,7 +83,7 @@ class SubirLoteTest {
     @DisplayName("Un bloque destino de otro negocio responde como inexistente y no sube nada")
     void executeShouldRejectBloqueDestinoOfOtherNegocio() {
         givenNegocio();
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID))
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID))
                 .thenThrow(new ResourceNotFoundException("Bloque no encontrado"));
 
         assertThatThrownBy(() -> subir(List.of(JPEG), BLOQUE_ID)).isInstanceOf(ResourceNotFoundException.class);
@@ -98,13 +98,13 @@ class SubirLoteTest {
 
         subir(List.of(JPEG), null);
 
-        verifyNoInteractions(bloqueService);
+        verifyNoInteractions(bloqueRepository);
     }
 
     @Test
     @DisplayName("Si el usuario no tiene negocio no sube nada")
     void executeShouldStopWhenNegocioMissing() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenThrow(new ResourceNotFoundException("Sin negocio"));
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenThrow(new ResourceNotFoundException("Sin negocio"));
 
         assertThatThrownBy(() -> subir(List.of(JPEG), null)).isInstanceOf(ResourceNotFoundException.class);
         verifyNoInteractions(archivoCuadernoPort, loteSubidaRepository);
@@ -149,7 +149,7 @@ class SubirLoteTest {
 
     // --- arrange ---
     private void givenNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     private void givenRepositorySaves() {

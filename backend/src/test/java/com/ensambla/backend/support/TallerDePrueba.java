@@ -16,8 +16,8 @@ import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
 import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TallerIaPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTaller;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTallerRequest;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTallerResponse;
@@ -72,9 +72,9 @@ public final class TallerDePrueba {
     /** El caso de uso con el catálogo real, para el negocio {@link #NEGOCIO_ID} del usuario {@link #USUARIO_ID}. */
     public static ConversarEnTaller conversacion(TallerIaPort tallerIaPort, ConsumoSamiRepository consumoSamiRepository,
                                                  KitsRubro kitsRubro, Clock clock, int limiteDiario) {
-        NegocioService negocioService = mock(NegocioService.class);
-        lenient().when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        return new ConversarEnTaller(negocioService, tallerIaPort, consumoSamiRepository, SamiPruebas.catalogoReal(),
+        NegocioRepository negocioRepository = mock(NegocioRepository.class);
+        lenient().when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        return new ConversarEnTaller(negocioRepository, tallerIaPort, consumoSamiRepository, SamiPruebas.catalogoReal(),
                 kitsRubro, clock, limiteDiario);
     }
 

@@ -1,10 +1,8 @@
 package com.ensambla.backend.domain.useCase.proyecto.renombrarProyecto;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.domain.useCase.proyecto.ProyectoItem;
 import com.ensambla.backend.infrastructure.config.useCase.ProyectoUseCaseConfig;
 import com.ensambla.backend.support.ProyectoTestData;
@@ -23,6 +21,7 @@ import static com.ensambla.backend.support.ProyectoTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -31,11 +30,10 @@ import static org.mockito.Mockito.when;
 
 class RenombrarProyectoTest {
 
-    private final NegocioService negocioService = mock(NegocioService.class);
-    private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class, CALLS_REAL_METHODS);
     private final RenombrarProyecto renombrarProyecto = new ProyectoUseCaseConfig().renombrarProyecto(
-            negocioService,
-            new ProyectoService(proyectoRepository, mock(ControlPlanService.class), new TransaccionDirecta()),
+            negocioRepository,
             proyectoRepository,
             new TransaccionDirecta(),
             Clock.fixed(AHORA.plusHours(1).toInstant(), ZoneOffset.UTC));
@@ -68,7 +66,7 @@ class RenombrarProyectoTest {
     @Test
     @DisplayName("Si no existe el negocio no consulta ni escribe proyectos")
     void executeShouldStopWhenNegocioMissing() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenThrow(new ResourceNotFoundException("Sin negocio"));
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenThrow(new ResourceNotFoundException("Sin negocio"));
 
         assertThatThrownBy(() -> renombrar("Nuevo")).isInstanceOf(ResourceNotFoundException.class);
         verifyNoInteractions(proyectoRepository);
@@ -76,7 +74,7 @@ class RenombrarProyectoTest {
 
     // --- arrange ---
     private void givenNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     // --- act ---

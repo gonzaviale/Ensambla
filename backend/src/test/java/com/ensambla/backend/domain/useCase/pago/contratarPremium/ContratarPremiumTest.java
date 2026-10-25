@@ -11,15 +11,13 @@ import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.model.usuario.Usuario;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.usuario.UsuarioRepository;
 import com.ensambla.backend.domain.service.pago.RenovacionPremiumService;
-import com.ensambla.backend.domain.service.plan.SuscripcionService;
-import com.ensambla.backend.domain.service.usuario.UsuarioService;
-import com.ensambla.backend.domain.useCase.pago.sincronizarRenovacion.SincronizarRenovacion;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -44,6 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -57,10 +57,10 @@ class ContratarPremiumTest {
     private static final PlanId GRATUITO_ID = PlanId.de("b0000000-0000-0000-0000-000000000002");
 
     @Mock
-    private NegocioService negocioService;
+    private NegocioRepository negocioRepository;
 
     @Mock
-    private UsuarioService usuarioService;
+    private UsuarioRepository usuarioRepository;
 
     @Mock
     private RenovacionPremiumService renovacionPremiumService;
@@ -68,13 +68,10 @@ class ContratarPremiumTest {
     @Mock
     private PasarelaSuscripcionesPort pasarelaSuscripcionesPort;
 
-    @Mock
-    private SincronizarRenovacion sincronizarRenovacion;
-
-    @Mock
+    @Mock(answer = Answers.CALLS_REAL_METHODS)
     private PlanRepository planRepository;
 
-    @Mock
+    @Mock(answer = Answers.CALLS_REAL_METHODS)
     private SuscripcionRepository suscripcionRepository;
 
     @Mock
@@ -87,12 +84,13 @@ class ContratarPremiumTest {
 
     @BeforeEach
     void setUp() {
-        contratarPremium = new ContratarPremium(negocioService, usuarioService, renovacionPremiumService,
-                pasarelaSuscripcionesPort, sincronizarRenovacion,
-                new SuscripcionService(planRepository, suscripcionRepository), renovacionPremiumRepository,
+        contratarPremium = new ContratarPremium(negocioRepository, usuarioRepository, renovacionPremiumService,
+                pasarelaSuscripcionesPort,
+                suscripcionRepository, planRepository, renovacionPremiumRepository,
                 usoPlanRepository, new TransaccionDirecta(), Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
-        when(usuarioService.obtenerActivo(USUARIO_ID)).thenReturn(Usuario.builder().email("ana@example.test").build());
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(usuarioRepository.obtenerActivo(USUARIO_ID))
+                .thenReturn(Usuario.builder().email("ana@example.test").build());
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @ParameterizedTest
@@ -182,7 +180,7 @@ class ContratarPremiumTest {
 
         contratarPremium.execute(USUARIO_ID);
 
-        verify(sincronizarRenovacion).execute(abierta.getId());
+        verify(renovacionPremiumService).sincronizar(abierta.getId(), AHORA);
         verify(pasarelaSuscripcionesPort, never()).crear(any(), anyString());
         verifyNoInteractions(renovacionPremiumRepository);
     }

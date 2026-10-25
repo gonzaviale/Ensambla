@@ -19,13 +19,14 @@ import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistro;
 import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistroRequest;
 import com.ensambla.backend.support.LecturasInmediatasDePrueba;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.ProyectosDePrueba;
 import com.ensambla.backend.support.SuscripcionesDePrueba;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,13 +57,16 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    private ProyectoService proyectoService;
+    private ProyectosDePrueba proyectosDePrueba;
 
     @Autowired
     private ProyectoRepository proyectoRepository;
 
     @Autowired
     private RegistroDatosService registroDatosService;
+
+    @Autowired
+    private RegistroRepository registroRepository;
 
     @Autowired
     private CrearRegistro crearRegistro;
@@ -148,7 +152,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         givenRegistros(bloqueId, 1001);
         UUID registroId = jdbcTemplate.queryForObject(
                 "SELECT id FROM registro WHERE negocio_id = ? ORDER BY id LIMIT 1", UUID.class, negocioId);
-        Registro registro = registroDatosService.obtener(RegistroId.de(registroId), NegocioId.de(negocioId));
+        Registro registro = registroRepository.obtener(RegistroId.de(registroId), NegocioId.de(negocioId));
 
         registroDatosService.editar(registro, List.of(), Map.of(), AHORA.plusHours(1));
 
@@ -269,8 +273,8 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     void premiumShouldEnableFeaturesAndUnlimitedSystems() {
         givenPremium(AHORA.plusMonths(1));
 
-        proyectoService.crear(NegocioId.de(negocioId), "Primero", null, AHORA);
-        proyectoService.crear(NegocioId.de(negocioId), "Segundo", null, AHORA);
+        proyectosDePrueba.crear(NegocioId.de(negocioId), "Primero", null, AHORA);
+        proyectosDePrueba.crear(NegocioId.de(negocioId), "Segundo", null, AHORA);
 
         assertThat(usoPlanRepository.contarProyectos(NegocioId.de(negocioId))).isEqualTo(2);
         for (FuncionPlan funcion : FuncionPlan.values()) {
@@ -304,7 +308,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     // --- arrange ---
     private UUID givenBloque(String nombre) {
-        UUID proyectoId = proyectoService.crear(NegocioId.de(negocioId), "Sistema", null, AHORA).getId().valor();
+        UUID proyectoId = proyectosDePrueba.crear(NegocioId.de(negocioId), "Sistema", null, AHORA).getId().valor();
         UUID bloqueId = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre) VALUES (?, ?, ?, ?)",
                 bloqueId, negocioId, proyectoId, nombre);
@@ -352,7 +356,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     // --- act ---
     private boolean crearProyecto(String nombre) {
-        proyectoService.crear(NegocioId.de(negocioId), nombre, null, AHORA);
+        proyectosDePrueba.crear(NegocioId.de(negocioId), nombre, null, AHORA);
         return true;
     }
 
@@ -396,7 +400,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     }
     /** Editar lo que ya existe no consume cupo del plan. */
     private void renombrar(UUID negocioId, UUID proyectoId, String nombre) {
-        Proyecto proyecto = proyectoService.obtener(NegocioId.de(negocioId), ProyectoId.de(proyectoId));
+        Proyecto proyecto = proyectoRepository.obtener(NegocioId.de(negocioId), ProyectoId.de(proyectoId));
         proyecto.renombrar(nombre, AHORA);
         proyectoRepository.save(proyecto);
     }

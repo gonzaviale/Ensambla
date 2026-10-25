@@ -1,8 +1,8 @@
 package com.ensambla.backend.domain.useCase.bloque.listarBloques;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.useCase.bloque.BloqueItem;
 import com.ensambla.backend.infrastructure.config.useCase.BloqueUseCaseConfig;
 import com.ensambla.backend.support.ProyectoTestData;
@@ -23,18 +23,18 @@ class ListarBloquesTest {
 
     private static final ListarBloquesRequest REQUEST = new ListarBloquesRequest(USUARIO_ID, PROYECTO_ID);
 
-    private final NegocioService negocioService = mock(NegocioService.class);
-    private final ProyectoService proyectoService = mock(ProyectoService.class);
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
     private final BloqueUseCaseConfig config = new BloqueUseCaseConfig();
     private final ListarBloques listarBloques = config.listarBloques(
-            negocioService,
-            proyectoService);
+            negocioRepository,
+            proyectoRepository);
 
     @Test
     @DisplayName("Lista los bloques del proyecto del negocio de la sesión en su orden")
     void executeShouldListBloquesOfSessionProyecto() {
         givenNegocio();
-        when(proyectoService.obtener(NEGOCIO_ID, PROYECTO_ID)).thenReturn(ProyectoTestData.proyecto());
+        when(proyectoRepository.obtener(NEGOCIO_ID, PROYECTO_ID)).thenReturn(ProyectoTestData.proyecto());
 
         List<BloqueItem> result = listarBloques.execute(REQUEST);
 
@@ -46,7 +46,7 @@ class ListarBloquesTest {
     @DisplayName("Un proyecto ajeno propaga el 404 sin convertirlo")
     void executeShouldPropagateNotFoundWhenProyectoIsForeign() {
         givenNegocio();
-        when(proyectoService.obtener(NEGOCIO_ID, PROYECTO_ID))
+        when(proyectoRepository.obtener(NEGOCIO_ID, PROYECTO_ID))
                 .thenThrow(new ResourceNotFoundException("Proyecto no encontrado"));
 
         assertThatThrownBy(() -> listarBloques.execute(REQUEST))
@@ -55,6 +55,6 @@ class ListarBloquesTest {
 
     // --- arrange ---
     private void givenNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 }

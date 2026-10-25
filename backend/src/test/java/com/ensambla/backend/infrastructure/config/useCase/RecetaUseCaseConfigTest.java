@@ -7,12 +7,11 @@ import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.receta.RecetaRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.receta.RecetaService;
-import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.receta.RecetaItem;
 import com.ensambla.backend.domain.useCase.receta.guardarReceta.GuardarRecetaRequest;
 import com.ensambla.backend.domain.useCase.receta.obtenerReceta.ObtenerRecetaRequest;
@@ -38,19 +37,19 @@ class RecetaUseCaseConfigTest {
 
     private final RecetaUseCaseConfig config = new RecetaUseCaseConfig();
 
-    private NegocioService negocioService;
-    private RegistroDatosService registroDatosService;
+    private NegocioRepository negocioRepository;
+    private RegistroRepository registroRepository;
     private RecetaService recetaService;
     private RecetaRepository recetaRepository;
 
     @BeforeEach
     void setUp() {
-        negocioService = mock(NegocioService.class);
-        registroDatosService = mock(RegistroDatosService.class);
+        negocioRepository = mock(NegocioRepository.class);
+        registroRepository = mock(RegistroRepository.class);
         recetaService = mock(RecetaService.class);
         recetaRepository = mock(RecetaRepository.class);
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(registroDatosService.obtener(PRODUCTO_ID, NEGOCIO_ID))
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(registroRepository.obtener(PRODUCTO_ID, NEGOCIO_ID))
                 .thenReturn(Registro.builder().id(PRODUCTO_ID).build());
         when(recetaService.costear(any(), any())).thenReturn(RecetaCosteada.vacia());
     }
@@ -62,8 +61,8 @@ class RecetaUseCaseConfigTest {
                 .thenReturn(Optional.of(Receta.builder().lineas(List.of()).build()));
 
         RecetaItem response = config.obtenerReceta(
-                        negocioService, mock(ControlPlanService.class), Clock.systemUTC(),
-                        registroDatosService, recetaService, recetaRepository)
+                        negocioRepository, mock(ControlPlanService.class), Clock.systemUTC(),
+                        registroRepository, recetaService, recetaRepository)
                 .execute(new ObtenerRecetaRequest(USUARIO_ID, PRODUCTO_ID));
 
         assertThat(response.lineas()).isEmpty();
@@ -74,8 +73,8 @@ class RecetaUseCaseConfigTest {
     @DisplayName("El wiring de guardar conecta los servicios y el reloj")
     void guardarRecetaUseCaseShouldWireCollaborators() {
         RecetaItem response = config.guardarReceta(
-                        negocioService, mock(ControlPlanService.class), registroDatosService, recetaService,
-                        recetaRepository, mock(CampoRepository.class), mock(RegistroRepository.class),
+                        negocioRepository, mock(ControlPlanService.class), recetaService,
+                        recetaRepository, mock(CampoRepository.class), registroRepository,
                         new TransaccionDirecta(), Clock.systemUTC())
                 .execute(new GuardarRecetaRequest(USUARIO_ID, PRODUCTO_ID, null, List.of()));
 

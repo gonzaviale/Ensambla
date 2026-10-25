@@ -14,10 +14,9 @@ import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
-import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.support.ProcesamientoTestData;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,7 +64,7 @@ class ProcesarLoteTest {
     private LectorCuadernoPort lectorCuadernoPort;
 
     @Mock
-    private CampoService campoService;
+    private CampoRepository campoRepository;
 
     @Mock
     private RegistroDatosService registroDatosService;
@@ -80,7 +79,7 @@ class ProcesarLoteTest {
     void setUp() {
         lote = ProcesamientoTestData.lote(1);
         procesarLote = new ProcesarLote(procesamientoRepository, archivoCuadernoPort, lectorCuadernoPort,
-                new PropuestaLecturaService(), campoService, registroDatosService, controlPlanService,
+                campoRepository, registroDatosService, controlPlanService,
                 ProcesamientoTestData.politica(), Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
     }
 

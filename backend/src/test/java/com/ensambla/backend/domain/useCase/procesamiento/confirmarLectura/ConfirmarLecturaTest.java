@@ -2,14 +2,12 @@ package com.ensambla.backend.domain.useCase.procesamiento.confirmarLectura;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
-import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.CampoId;
-import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.lote.EstadoLote;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
@@ -19,14 +17,13 @@ import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.lote.LoteSubidaService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.procesamiento.confirmarLectura.ConfirmarLecturaRequest.CampoItem;
 import com.ensambla.backend.domain.useCase.procesamiento.confirmarLectura.ConfirmarLecturaRequest.FilaItem;
@@ -40,6 +37,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.OngoingStubbing;
 
 import java.time.Clock;
 import java.time.ZoneOffset;
@@ -77,22 +75,19 @@ class ConfirmarLecturaTest {
     private static final String NOMBRE_BLOQUE = "Hoja 1";
 
     @Mock
-    private NegocioService negocioService;
+    private NegocioRepository negocioRepository;
 
     @Mock
-    private ProyectoService proyectoService;
+    private ProyectoRepository proyectoRepository;
 
     @Mock
-    private BloqueService bloqueService;
+    private BloqueRepository bloqueRepository;
 
     @Mock
-    private CampoService campoService;
+    private CampoRepository campoRepository;
 
     @Mock
     private RegistroDatosService registroDatosService;
-
-    @Mock
-    private LoteSubidaService loteSubidaService;
 
     @Mock
     private ControlPlanService controlPlanService;
@@ -107,8 +102,9 @@ class ConfirmarLecturaTest {
 
     @BeforeEach
     void setUp() {
-        confirmarLectura = new ConfirmarLectura(negocioService, loteSubidaService, proyectoService, bloqueService,
-                campoService, registroDatosService, controlPlanService, registroRepository, loteSubidaRepository,
+        confirmarLectura = new ConfirmarLectura(negocioRepository, proyectoRepository, bloqueRepository,
+                campoRepository,
+                registroDatosService, controlPlanService, registroRepository, loteSubidaRepository,
                 new TransaccionDirecta(), Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
     }
 
@@ -120,7 +116,8 @@ class ConfirmarLecturaTest {
         givenCampoNuevoDe("Monto", campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false));
         givenCampoNuevoDe("Fecha", campo(FECHA_ID, "Fecha", TipoCampo.FECHA, false));
         givenCamposDelBloque(List.of(), List.of(
-                campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false), campo(FECHA_ID, "Fecha", TipoCampo.FECHA, false)));
+                campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false), campo(FECHA_ID, "Fecha", TipoCampo.FECHA, false)),
+                        2);
         LoteSubida lote = loteListo();
 
         ConfirmarLecturaResponse result = confirmar(lote, confirmacionNueva(
@@ -146,27 +143,27 @@ class ConfirmarLecturaTest {
     void executeShouldCreateBloqueInExistingProyecto() {
         givenLoteConfirmable();
         Proyecto proyecto = Proyecto.builder().id(PROYECTO_ID).negocioId(NEGOCIO_ID).build();
-        when(proyectoService.obtener(NEGOCIO_ID, PROYECTO_ID)).thenReturn(proyecto);
-        when(bloqueService.crear(proyecto, NOMBRE_BLOQUE, AHORA)).thenReturn(bloque());
+        when(proyectoRepository.obtener(NEGOCIO_ID, PROYECTO_ID)).thenReturn(proyecto);
+        when(bloqueRepository.save(any(Bloque.class))).thenReturn(bloque());
         givenCampoNuevoDe("Monto", campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false));
-        givenCamposDelBloque(List.of(), List.of(campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false)));
+        givenCamposDelBloque(List.of(), List.of(campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false)), 1);
 
         ConfirmarLecturaResponse result = confirmar(loteListo(), confirmacion(
                 PROYECTO_ID, null, null, List.of(columnaNueva("monto", "Monto", "NUMERO")), List.of(filaSinPagina(5))));
 
         assertThat(result.proyectoId()).isEqualTo(PROYECTO_ID);
-        verify(proyectoService, never()).crear(any(), any(), any(), any());
+        verify(proyectoRepository, never()).save(any());
     }
 
     @Test
     @DisplayName("Suma las filas a un bloque existente, reutiliza sus campos y agrega los nuevos")
     void executeShouldAddRowsToExistingBloque() {
         givenLoteConfirmable();
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
         Campo monto = campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false);
         Campo nota = campo(FECHA_ID, "Nota", TipoCampo.TEXTO, false);
         givenCampoNuevoDe("Nota", nota);
-        givenCamposDelBloque(List.of(monto), List.of(monto, nota));
+        givenCamposDelBloque(List.of(monto), List.of(monto, nota), 1);
         List<CampoConfirmado> columnas = List.of(
                 new CampoConfirmado("monto", CampoId.de(MONTO_ID), "Monto", "NUMERO", List.of()),
                 columnaNueva("nota", "Nota", "TEXTO"));
@@ -179,15 +176,15 @@ class ConfirmarLecturaTest {
         assertThat(thenRegistrosGuardados().get(0).getValores())
                 .containsEntry(MONTO_ID.toString(), 20)
                 .containsEntry(FECHA_ID.toString(), "fiado");
-        verifyNoInteractions(proyectoService);
-        verify(bloqueService, never()).crear(any(), any(), any());
+        verifyNoInteractions(proyectoRepository);
+        verify(bloqueRepository, never()).save(any());
     }
 
     @Test
     @DisplayName("Rechaza una columna que apunta a un campo que no es del bloque")
     void executeShouldThrowWhenCampoDoesNotBelongToBloque() {
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
-        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
         ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID,
                 List.of(new CampoConfirmado("monto", CampoId.de(MONTO_ID), "Monto", "NUMERO", List.of())), List.of());
         LoteSubida lote = loteListo();
@@ -202,10 +199,9 @@ class ConfirmarLecturaTest {
     @DisplayName("Ubica el error de una columna nueva por su posición")
     void executeShouldLocateInvalidColumnError() {
         givenProyectoYBloqueNuevos();
-        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
-        when(campoService.crear(any(Bloque.class), any(ConfiguracionCampo.class), eq(AHORA)))
-                .thenThrow(new CampoInvalidoException(Map.of("nombre", "Escribí un nombre")));
-        ConfirmacionLectura confirmacion = confirmacionNueva(filaSinPagina(1));
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
+        ConfirmacionLectura confirmacion = confirmacion(null, NOMBRE_PROYECTO, null,
+                List.of(columnaNueva("monto", "  ", "NUMERO")), List.of(filaSinPagina(1)));
         LoteSubida lote = loteListo();
 
         assertThatThrownBy(() -> confirmar(lote, confirmacion))
@@ -217,11 +213,9 @@ class ConfirmarLecturaTest {
     @Test
     @DisplayName("Ubica en su columna el nombre repetido de un campo nuevo y no guarda registros")
     void executeShouldLocateDuplicatedFieldName() {
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
-        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(
                 campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false)));
-        when(campoService.crear(any(Bloque.class), any(ConfiguracionCampo.class), eq(AHORA)))
-                .thenThrow(new DuplicateResourceException("Ya hay un campo llamado \"Monto\" en este bloque"));
         ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID,
                 List.of(new CampoConfirmado("monto", CampoId.de(MONTO_ID), "Monto", "NUMERO", List.of()),
                         new CampoConfirmado("importe", null, "Monto", "NUMERO", List.of())),
@@ -231,7 +225,8 @@ class ConfirmarLecturaTest {
         assertThatThrownBy(() -> confirmar(lote, confirmacion))
                 .isInstanceOfSatisfying(CampoInvalidoException.class, e -> assertThat(e.getErrores()).containsOnly(
                         Map.entry("campos[1].nombre", "Ya hay un campo llamado \"Monto\" en este bloque")));
-        verifyNoInteractions(registroDatosService, registroRepository, loteSubidaRepository);
+        verifyNoInteractions(registroDatosService, registroRepository);
+        verify(loteSubidaRepository, never()).confirmar(any(), any(), any(), any());
     }
 
     @Test
@@ -241,7 +236,8 @@ class ConfirmarLecturaTest {
         givenCampoNuevoDe("Monto", campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false));
         givenCampoNuevoDe("Fecha", campo(FECHA_ID, "Fecha", TipoCampo.FECHA, false));
         givenCamposDelBloque(List.of(), List.of(
-                campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false), campo(FECHA_ID, "Fecha", TipoCampo.FECHA, false)));
+                campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false), campo(FECHA_ID, "Fecha", TipoCampo.FECHA, false)),
+                        2);
         ConfirmacionLectura confirmacion = confirmacionNueva(filaConPagina(1, 850, "2026-10-03"), filaSinPagina("abc"));
         LoteSubida lote = loteListo();
 
@@ -249,7 +245,7 @@ class ConfirmarLecturaTest {
                 .isInstanceOfSatisfying(RegistroInvalidoException.class,
                         e -> assertThat(e.getErrores()).containsOnly(Map.entry("filas[1].monto", "Tiene que ser un número")));
         verifyNoInteractions(registroRepository);
-        verifyNoInteractions(loteSubidaRepository);
+        verify(loteSubidaRepository, never()).confirmar(any(), any(), any(), any());
     }
 
     @Test
@@ -259,7 +255,8 @@ class ConfirmarLecturaTest {
         givenCampoNuevoDe("Monto", campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false));
         givenCampoNuevoDe("Fecha", campo(FECHA_ID, "Fecha", TipoCampo.FECHA, false));
         givenCamposDelBloque(List.of(), List.of(
-                campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false), campo(FECHA_ID, "Fecha", TipoCampo.FECHA, false)));
+                campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false), campo(FECHA_ID, "Fecha", TipoCampo.FECHA, false)),
+                        2);
         ConfirmacionLectura confirmacion = confirmacionNueva(filaConPagina(4, 850, "2026-10-03"));
         LoteSubida lote = loteListo();
 
@@ -273,7 +270,7 @@ class ConfirmarLecturaTest {
     @Test
     @DisplayName("Ubica por id el error de un campo obligatorio del bloque que la revisión no incluyó")
     void executeShouldReportMissingRequiredCampoOfExistingBloque() {
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
         Campo monto = campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false);
         Campo extra = campo(EXTRA_ID, "Extra", TipoCampo.TEXTO, true);
         givenCamposDelBloque(List.of(monto, extra), List.of(monto, extra));
@@ -292,7 +289,7 @@ class ConfirmarLecturaTest {
     @Test
     @DisplayName("Ubica por columna el error de una conexión que apunta a una fila que no existe")
     void executeShouldLocateMissingConexionRow() {
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
         Campo cliente = campo(EXTRA_ID, "Cliente", TipoCampo.RELACION, false);
         givenCamposDelBloque(List.of(cliente), List.of(cliente));
         UUID fila = UUID.fromString("00000000-0000-4000-8000-000000000099");
@@ -315,7 +312,7 @@ class ConfirmarLecturaTest {
     @DisplayName("Guarda las filas con la conexión elegida cuando la fila existe")
     void executeShouldSaveRowsWithValidConexion() {
         givenLoteConfirmable();
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
         Campo cliente = campo(EXTRA_ID, "Cliente", TipoCampo.RELACION, false);
         givenCamposDelBloque(List.of(cliente), List.of(cliente));
         UUID fila = UUID.fromString("00000000-0000-4000-8000-000000000099");
@@ -340,8 +337,9 @@ class ConfirmarLecturaTest {
         assertThatThrownBy(() -> confirmar(lote, confirmacion))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Este cuaderno ya se guardó");
-        verifyNoInteractions(proyectoService, bloqueService, campoService, registroDatosService, registroRepository,
-                loteSubidaRepository);
+        verifyNoInteractions(proyectoRepository, bloqueRepository, campoRepository, registroDatosService,
+                registroRepository);
+        verify(loteSubidaRepository, never()).confirmar(any(), any(), any(), any());
     }
 
     @Test
@@ -353,14 +351,15 @@ class ConfirmarLecturaTest {
         assertThatThrownBy(() -> confirmar(lote, confirmacion))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Dejá al menos una columna");
-        verifyNoInteractions(proyectoService, bloqueService, campoService, registroDatosService, registroRepository,
-                loteSubidaRepository);
+        verifyNoInteractions(proyectoRepository, bloqueRepository, campoRepository, registroDatosService,
+                registroRepository);
+        verify(loteSubidaRepository, never()).confirmar(any(), any(), any(), any());
     }
 
     @Test
     @DisplayName("Si otra confirmación se adelantó no deja nada guardado")
     void executeShouldThrowWhenLoteWasAlreadyConfirmed() {
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque());
         Campo monto = campo(MONTO_ID, "Monto", TipoCampo.NUMERO, false);
         givenCamposDelBloque(List.of(monto), List.of(monto));
         when(loteSubidaRepository.confirmar(LOTE_ID, NEGOCIO_ID, BLOQUE_ID, AHORA)).thenReturn(false);
@@ -377,29 +376,39 @@ class ConfirmarLecturaTest {
     @Test
     @DisplayName("No busca el lote cuando el usuario no tiene negocio")
     void executeShouldStopWhenUsuarioHasNoNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenThrow(new BusinessRuleException("Sin negocio"));
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenThrow(new BusinessRuleException("Sin negocio"));
         ConfirmarLecturaRequest request = request(confirmacionNueva(filaSinPagina(1)));
 
         assertThatThrownBy(() -> confirmarLectura.execute(request)).isInstanceOf(BusinessRuleException.class);
-        verifyNoInteractions(loteSubidaService, proyectoService, bloqueService, registroRepository);
+        verifyNoInteractions(loteSubidaRepository, proyectoRepository, bloqueRepository, registroRepository);
     }
 
     // --- arrange ---
     private Bloque givenProyectoYBloqueNuevos() {
         Proyecto proyecto = Proyecto.builder().id(PROYECTO_ID).negocioId(NEGOCIO_ID).build();
         Bloque bloque = bloque();
-        when(proyectoService.crear(NEGOCIO_ID, NOMBRE_PROYECTO, null, AHORA)).thenReturn(proyecto);
-        when(bloqueService.crear(proyecto, NOMBRE_BLOQUE, AHORA)).thenReturn(bloque);
+        when(proyectoRepository.save(any(Proyecto.class))).thenReturn(proyecto);
+        when(bloqueRepository.save(any(Bloque.class))).thenReturn(bloque);
         return bloque;
     }
 
     private void givenCampoNuevoDe(String nombre, Campo campo) {
-        when(campoService.crear(any(Bloque.class), argThat(configuracion -> nombre.equals(configuracion.nombre())),
-                eq(AHORA))).thenReturn(campo);
+        when(campoRepository.save(argThat(nuevo -> nuevo != null && nombre.equals(nuevo.getNombre()))))
+                .thenReturn(campo);
     }
 
     private void givenCamposDelBloque(List<Campo> antes, List<Campo> despues) {
-        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(antes, despues);
+        givenCamposDelBloque(antes, despues, 0);
+    }
+
+    /** Se leen los campos del bloque al empezar, antes de crear cada columna nueva y al armar los registros. */
+    private void givenCamposDelBloque(List<Campo> antes, List<Campo> despues, int columnasNuevas) {
+        OngoingStubbing<List<Campo>> lecturas =
+                when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(antes);
+        for (int i = 0; i < columnasNuevas; i++) {
+            lecturas = lecturas.thenReturn(antes);
+        }
+        lecturas.thenReturn(despues);
     }
 
     private void givenLoteConfirmable() {
@@ -408,8 +417,8 @@ class ConfirmarLecturaTest {
 
     // --- act ---
     private ConfirmarLecturaResponse confirmar(LoteSubida lote, ConfirmacionLectura confirmacion) {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(loteSubidaService.obtener(NEGOCIO_ID, LOTE_ID)).thenReturn(lote);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(loteSubidaRepository.obtener(NEGOCIO_ID, LOTE_ID)).thenReturn(lote);
         return confirmarLectura.execute(request(confirmacion));
     }
 
@@ -450,7 +459,8 @@ class ConfirmarLecturaTest {
     }
 
     private Campo campo(UUID id, String nombre, TipoCampo tipo, boolean obligatorio) {
-        return Campo.builder().id(CampoId.de(id)).nombre(nombre).tipo(tipo).obligatorio(obligatorio).build();
+        return Campo.builder().id(CampoId.de(id)).nombre(nombre).tipo(tipo).obligatorio(obligatorio)
+                .posicion((short) 0).build();
     }
 
     private CampoConfirmado columnaNueva(String clave, String nombre, String tipo) {

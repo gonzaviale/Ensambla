@@ -60,6 +60,14 @@ class ArchitectureTest {
     }
 
     @Test
+    @DisplayName("Un caso de uso no depende de otro caso de uso")
+    void useCasesShouldNotDependOnOtherUseCases() throws IOException {
+        List<Path> casos = useCases();
+
+        thenNoUseCaseReferencesAnother(casos);
+    }
+
+    @Test
     @DisplayName("No existen los paquetes de DTOs, mappers ni enums del dominio")
     void domainShouldNotHaveDtoMapperOrEnumsPackages() {
         assertThat(DOMAIN_CLASSES.resolve("dto")).doesNotExist();
@@ -91,12 +99,41 @@ class ArchitectureTest {
         return files(DOMAIN_SOURCES, ".java");
     }
 
+    /**
+     * Los casos de uso son las clases de {@code useCase/<area>/<accion>/} que se llaman como la acción en PascalCase;
+     * el resto de ese paquete son sus DTOs.
+     */
+    private List<Path> useCases() throws IOException {
+        return domainClasses().stream()
+                .map(DOMAIN_CLASSES::relativize)
+                .filter(relativa -> relativa.getNameCount() == 4 && relativa.getName(0).toString().equals("useCase"))
+                .filter(relativa -> relativa.getFileName().toString()
+                        .equals(capitalized(relativa.getName(2).toString()) + ".class"))
+                .map(DOMAIN_CLASSES::resolve)
+                .toList();
+    }
+
     // --- assert ---
     private void thenNoClassReferences(List<Path> classes, String forbiddenPackage) throws IOException {
         assertThat(classes).isNotEmpty();
         for (Path type : classes) {
             assertThat(bytecodeOf(type)).as("dependencias de %s", type)
                     .doesNotContain(forbiddenPackage);
+        }
+    }
+
+    private void thenNoUseCaseReferencesAnother(List<Path> casos) throws IOException {
+        assertThat(casos).isNotEmpty();
+        for (Path caso : casos) {
+            String bytecode = bytecodeDelCaso(caso);
+            for (Path otro : casos) {
+                if (otro.equals(caso)) {
+                    continue;
+                }
+                Pattern referencia = Pattern.compile(Pattern.quote(nombreInterno(otro)) + "(?![A-Za-z0-9_$])");
+                assertThat(referencia.matcher(bytecode).find())
+                        .as("%s depende del caso de uso %s", nombreInterno(caso), nombreInterno(otro)).isFalse();
+            }
         }
     }
 
@@ -121,6 +158,28 @@ class ArchitectureTest {
     // La tabla de constantes de una clase conserva las referencias de tipos JVM.
     private String bytecodeOf(Path type) throws IOException {
         return new String(Files.readAllBytes(type), StandardCharsets.ISO_8859_1);
+    }
+
+    // El caso de uso y sus clases anidadas, sin sus DTOs: son las que pueden llamar a otro caso.
+    private String bytecodeDelCaso(Path caso) throws IOException {
+        String simple = simpleName(caso);
+        StringBuilder bytecode = new StringBuilder();
+        try (Stream<Path> hermanas = Files.list(caso.getParent())) {
+            for (Path clase : hermanas.filter(path -> simpleName(path).equals(simple)).toList()) {
+                bytecode.append(bytecodeOf(clase));
+            }
+        }
+        return bytecode.toString();
+    }
+
+    // Nombre interno JVM de la clase, como aparece en la tabla de constantes: paquete/Clase.
+    private String nombreInterno(Path clase) {
+        String relativa = CLASSES.relativize(clase).toString().replace('\\', '/');
+        return relativa.substring(0, relativa.length() - ".class".length());
+    }
+
+    private String capitalized(String texto) {
+        return Character.toUpperCase(texto.charAt(0)) + texto.substring(1);
     }
 
     // Nombre de la clase de nivel superior: sin la extensión ni las clases anidadas ($).

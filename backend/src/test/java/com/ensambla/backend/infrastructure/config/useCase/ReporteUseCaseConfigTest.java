@@ -7,11 +7,10 @@ import com.ensambla.backend.domain.model.registro.TotalesRegistros;
 import com.ensambla.backend.domain.model.reporte.ReporteRegistros;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.ExportadorReportePort;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.reporte.ReporteService;
 import com.ensambla.backend.domain.useCase.reporte.GenerarReporteRequest;
@@ -39,21 +38,21 @@ class ReporteUseCaseConfigTest {
 
     private final ReporteUseCaseConfig config = new ReporteUseCaseConfig();
 
-    private NegocioService negocioService;
-    private BloqueService bloqueService;
-    private CampoService campoService;
+    private NegocioRepository negocioRepository;
+    private BloqueRepository bloqueRepository;
+    private CampoRepository campoRepository;
     private ReporteService reporteService;
 
     @BeforeEach
     void setUp() {
-        negocioService = mock(NegocioService.class);
-        bloqueService = mock(BloqueService.class);
-        campoService = mock(CampoService.class);
+        negocioRepository = mock(NegocioRepository.class);
+        bloqueRepository = mock(BloqueRepository.class);
+        campoRepository = mock(CampoRepository.class);
         reporteService = mock(ReporteService.class);
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID))
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID))
                 .thenReturn(Bloque.builder().id(BLOQUE_ID).nombre("Pedidos").build());
-        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
         when(reporteService.generar(any(), any(), anyInt()))
                 .thenReturn(new ReporteRegistros(List.of(), new TotalesRegistros(0, Map.of()), false));
     }
@@ -62,8 +61,8 @@ class ReporteUseCaseConfigTest {
     @DisplayName("El wiring de generar conecta los servicios y el mapper")
     void generarReporteUseCaseShouldWireCollaborators() {
         GenerarReporteResponse response = config.generarReporte(
-                        negocioService, mock(ControlPlanService.class), Clock.systemUTC(),
-                        bloqueService, campoService, reporteService)
+                        negocioRepository, mock(ControlPlanService.class), Clock.systemUTC(),
+                        bloqueRepository, campoRepository, reporteService)
                 .execute(new GenerarReporteRequest(USUARIO_ID, BLOQUE_ID, null, null, null, null, null));
 
         assertThat(response.filas()).isEmpty();
@@ -76,7 +75,7 @@ class ReporteUseCaseConfigTest {
         ExportadorReportePort exportador = tabla -> new byte[] {1, 2};
 
         ExportarReporteResponse response = config.exportarReporte(
-                        negocioService, mock(ControlPlanService.class), bloqueService, campoService, reporteService,
+                        negocioRepository, mock(ControlPlanService.class), bloqueRepository, reporteService,
                         mock(RegistroRepository.class), mock(CampoRepository.class), exportador, Clock.systemUTC())
                 .execute(new GenerarReporteRequest(USUARIO_ID, BLOQUE_ID, null, null, null, null, null));
 

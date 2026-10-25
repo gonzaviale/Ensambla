@@ -16,8 +16,8 @@ import com.ensambla.backend.domain.model.sami.taller.RespuestaTaller;
 import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TallerIaPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.support.SamiPruebas;
 import com.ensambla.backend.support.TallerDePrueba;
 import org.junit.jupiter.api.BeforeEach;
@@ -619,10 +619,10 @@ class ConversarEnTallerTest {
     @DisplayName("Si el usuario no tiene negocio no consulta a la IA")
     void executeShouldNotCallAiWhenBusinessIsMissing() {
         UUID usuarioSinNegocio = UUID.randomUUID();
-        NegocioService negocioService = mock(NegocioService.class);
-        when(negocioService.obtenerDelUsuario(UsuarioId.de(usuarioSinNegocio)))
+        NegocioRepository negocioRepository = mock(NegocioRepository.class);
+        when(negocioRepository.obtenerIdDelUsuario(UsuarioId.de(usuarioSinNegocio)))
                 .thenThrow(new ResourceNotFoundException("Sin negocio"));
-        ConversarEnTaller sinNegocio = new ConversarEnTaller(negocioService, tallerIaPort, consumoSamiRepository,
+        ConversarEnTaller sinNegocio = new ConversarEnTaller(negocioRepository, tallerIaPort, consumoSamiRepository,
                 SamiPruebas.catalogoReal(), SamiPruebas.kitsReales(), Clock.systemUTC(), LIMITE);
         ConversarEnTallerRequest request = new ConversarEnTallerRequest(UsuarioId.de(usuarioSinNegocio), "hola",
                 new EstadoTallerItem("", "mosaic", List.of()), List.of(), null);

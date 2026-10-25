@@ -9,12 +9,12 @@ import com.ensambla.backend.domain.model.zona.AgregadoZonaProducto;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.model.zona.Zona;
 import com.ensambla.backend.domain.model.zona.ZonaId;
+import com.ensambla.backend.domain.port.GeocodificadorPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.ubicacion.UbicacionService;
-import com.ensambla.backend.domain.service.zona.AccesoZonaService;
-import com.ensambla.backend.domain.service.zona.AgregadoZonaService;
-import com.ensambla.backend.domain.service.zona.ZonaService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
 import com.ensambla.backend.domain.useCase.zona.analizarZona.AnalizarZona;
 import com.ensambla.backend.domain.useCase.zona.analizarZona.AnalizarZonaRequest;
 import com.ensambla.backend.domain.useCase.zona.obtenerZona.ObtenerZona;
@@ -45,27 +45,27 @@ class ZonaCasosDeUsoTest {
     private static final BigDecimal LATITUD = new BigDecimal("-34.670300");
     private static final BigDecimal LONGITUD = new BigDecimal("-58.562800");
 
-    private final NegocioService negocioService = mock(NegocioService.class);
-    private final ZonaService zonaService = mock(ZonaService.class);
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final ZonaRepository zonaRepository = mock(ZonaRepository.class);
-    private final UbicacionService ubicacionService = mock(UbicacionService.class);
-    private final AgregadoZonaService agregadoZonaService = mock(AgregadoZonaService.class);
-    private final AccesoZonaService accesoZonaService = mock(AccesoZonaService.class,
-            invocation -> invocation.getArgument(1));
+    private final GeocodificadorPort geocodificadorPort = mock(GeocodificadorPort.class);
+    private final AgregadoZonaRepository agregadoZonaRepository = mock(AgregadoZonaRepository.class);
+    private final ControlPlanService controlPlanService = mock(ControlPlanService.class,
+            invocation -> autorizaTodo(invocation.getArgument(2)));
     private final ZonaUseCaseConfig config = new ZonaUseCaseConfig();
     private final ObtenerZona obtenerZona = config.obtenerZona(
-            negocioService, zonaService, agregadoZonaService, accesoZonaService, CLOCK);
+            negocioRepository, zonaRepository, agregadoZonaRepository, controlPlanService, CLOCK);
     private final AnalizarZona analizarZona = config.analizarZona(
-            zonaService, zonaRepository, ubicacionService, agregadoZonaService, CLOCK, negocioService, accesoZonaService);
+            zonaRepository, geocodificadorPort, agregadoZonaRepository, CLOCK, negocioRepository,
+            controlPlanService);
 
     @Test
     @DisplayName("Obtener devuelve los agregados de la zona del negocio de la sesión")
     void obtenerShouldReturnZoneOfNegocio() {
         Zona zona = givenZona();
-        when(negocioService.obtenerConfiguracion(USUARIO_ID))
+        when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID))
                 .thenReturn(Negocio.builder().zonaId(ZONA_ID).build());
-        when(zonaService.obtener(ZONA_ID)).thenReturn(Optional.of(zona));
-        when(agregadoZonaService.analizar(zona)).thenReturn(givenAnalisis());
+        when(zonaRepository.findByIdSiTiene(ZONA_ID)).thenReturn(Optional.of(zona));
+        when(agregadoZonaRepository.analizar(zona)).thenReturn(givenAnalisis());
 
         ZonaItem result = obtenerZona.execute(new ObtenerZonaRequest(USUARIO_ID));
 
@@ -85,13 +85,15 @@ class ZonaCasosDeUsoTest {
     @Test
     @DisplayName("Obtener devuelve una zona vacía cuando el negocio todavía no tiene zona")
     void obtenerShouldReturnEmptyZoneWhenNegocioHasNone() {
-        when(negocioService.obtenerConfiguracion(USUARIO_ID)).thenReturn(Negocio.builder().build());
-        when(zonaService.obtener(null)).thenReturn(Optional.empty());
+        when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID)).thenReturn(Negocio.builder().build());
+        when(zonaRepository.findByIdSiTiene(null)).thenReturn(Optional.empty());
 
         ZonaItem result = obtenerZona.execute(new ObtenerZonaRequest(USUARIO_ID));
 
-        assertThat(result).isEqualTo(new ZonaItem("", 0, List.of()));
-        verifyNoInteractions(agregadoZonaService);
+        assertThat(result.nombre()).isEmpty();
+        assertThat(result.comercios()).isZero();
+        assertThat(result.productos()).isEmpty();
+        verifyNoInteractions(agregadoZonaRepository);
     }
 
     @Test
@@ -99,12 +101,12 @@ class ZonaCasosDeUsoTest {
     void analizarShouldFindBarrioByName() {
         Zona zona = givenZona();
         when(zonaRepository.findAll()).thenReturn(List.of(otraZona(), zona));
-        when(agregadoZonaService.analizar(zona)).thenReturn(givenAnalisis());
+        when(agregadoZonaRepository.analizar(zona)).thenReturn(givenAnalisis());
 
         ZonaItem result = analizarZona.execute(new AnalizarZonaRequest("san justo", USUARIO_ID));
 
         assertThat(result.nombre()).isEqualTo("San Justo - UNLaM");
-        verifyNoInteractions(ubicacionService);
+        verifyNoInteractions(geocodificadorPort);
     }
 
     @Test
@@ -112,10 +114,10 @@ class ZonaCasosDeUsoTest {
     void analizarShouldResolveZoneFromAddress() {
         Zona zona = givenZona();
         when(zonaRepository.findAll()).thenReturn(List.of(otraZona()));
-        when(ubicacionService.buscar("Arieta 3120, San Justo", AHORA)).thenReturn(
+        when(geocodificadorPort.buscar("Arieta 3120, San Justo", AHORA)).thenReturn(
                 List.of(new DireccionEncontrada("Arieta 3120", LATITUD, LONGITUD, "San Justo")));
-        when(zonaService.resolver(LATITUD, LONGITUD)).thenReturn(Optional.of(zona));
-        when(agregadoZonaService.analizar(zona)).thenReturn(givenAnalisis());
+        when(zonaRepository.resolver(LATITUD, LONGITUD)).thenReturn(Optional.of(zona));
+        when(agregadoZonaRepository.analizar(zona)).thenReturn(givenAnalisis());
 
         ZonaItem result = analizarZona.execute(new AnalizarZonaRequest("Arieta 3120, San Justo", USUARIO_ID));
 
@@ -126,37 +128,41 @@ class ZonaCasosDeUsoTest {
     @DisplayName("Analizar falla con 404 si la dirección no se encuentra")
     void analizarShouldFailWhenAddressNotFound() {
         when(zonaRepository.findAll()).thenReturn(List.of(otraZona()));
-        when(ubicacionService.buscar("Calle inexistente 1", AHORA)).thenReturn(List.of());
+        when(geocodificadorPort.buscar("Calle inexistente 1", AHORA)).thenReturn(List.of());
 
         assertThatThrownBy(() -> analizarZona.execute(new AnalizarZonaRequest("Calle inexistente 1", USUARIO_ID)))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Todavía no tenemos datos de esa zona");
-        verifyNoInteractions(agregadoZonaService);
+        verifyNoInteractions(agregadoZonaRepository);
     }
 
     @Test
     @DisplayName("Analizar falla con 404 si la dirección cae fuera de toda zona")
     void analizarShouldFailWhenAddressOutsideEveryZone() {
         when(zonaRepository.findAll()).thenReturn(List.of(otraZona()));
-        when(ubicacionService.buscar("Av. Corrientes 1234", AHORA)).thenReturn(
+        when(geocodificadorPort.buscar("Av. Corrientes 1234", AHORA)).thenReturn(
                 List.of(new DireccionEncontrada("Av. Corrientes 1234", LATITUD, LONGITUD, "CABA")));
-        when(zonaService.resolver(LATITUD, LONGITUD)).thenReturn(Optional.empty());
+        when(zonaRepository.resolver(LATITUD, LONGITUD)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> analizarZona.execute(new AnalizarZonaRequest("Av. Corrientes 1234", USUARIO_ID)))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("Analizar deja pasar el error del buscador de direcciones")
+    @DisplayName("Analizar rechaza una dirección demasiado corta sin consultar el mapa")
     void analizarShouldPropagateAddressSearchError() {
         when(zonaRepository.findAll()).thenReturn(List.of());
-        when(ubicacionService.buscar("ab", AHORA)).thenThrow(new BusinessRuleException("Escribí una dirección"));
 
         assertThatThrownBy(() -> analizarZona.execute(new AnalizarZonaRequest("ab", USUARIO_ID)))
                 .isInstanceOf(BusinessRuleException.class);
+        verifyNoInteractions(geocodificadorPort);
     }
 
     // --- arrange ---
+    private static AccesoContenidoItem autorizaTodo(List<String> claves) {
+        return new AccesoContenidoItem(claves, 0, null, claves.size(), 0, null);
+    }
+
     private Zona givenZona() {
         return Zona.builder().id(ZONA_ID).nombre("San Justo - UNLaM").localidad("San Justo").build();
     }

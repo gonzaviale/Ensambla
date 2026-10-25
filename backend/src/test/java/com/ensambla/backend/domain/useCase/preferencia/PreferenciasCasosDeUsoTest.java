@@ -3,7 +3,6 @@ package com.ensambla.backend.domain.useCase.preferencia;
 import com.ensambla.backend.domain.model.preferencia.PreferenciaUsuario;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.preferencia.PreferenciaRepository;
-import com.ensambla.backend.domain.service.preferencia.PreferenciaService;
 import com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias.GuardarPreferencias;
 import com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias.GuardarPreferenciasRequest;
 import com.ensambla.backend.domain.useCase.preferencia.obtenerPreferencias.ObtenerPreferencias;
@@ -23,6 +22,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,13 +33,12 @@ class PreferenciasCasosDeUsoTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-21T10:00:00Z"), ZoneOffset.UTC);
     private static final OffsetDateTime AHORA = OffsetDateTime.now(CLOCK);
 
-    private final PreferenciaRepository preferenciaRepository = mock(PreferenciaRepository.class);
-    private final PreferenciaService preferenciaService = new PreferenciaService(preferenciaRepository);
+    private final PreferenciaRepository preferenciaRepository = mock(PreferenciaRepository.class, CALLS_REAL_METHODS);
     private final PreferenciaUseCaseConfig config = new PreferenciaUseCaseConfig();
     private final ObtenerPreferencias obtenerPreferencias =
-            config.obtenerPreferencias(preferenciaService, CLOCK);
+            config.obtenerPreferencias(preferenciaRepository, CLOCK);
     private final GuardarPreferencias guardarPreferencias = config.guardarPreferencias(
-            preferenciaService, preferenciaRepository, new TransaccionDirecta(), CLOCK);
+            preferenciaRepository, new TransaccionDirecta(), CLOCK);
 
     @Test
     @DisplayName("Obtener mapea las preferencias del usuario de sesión")

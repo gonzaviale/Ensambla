@@ -8,7 +8,6 @@ import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
-import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,6 +24,7 @@ import static com.ensambla.backend.support.PlanTestData.plan;
 import static com.ensambla.backend.support.PlanTestData.suscripcion;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -33,8 +33,8 @@ import static org.mockito.Mockito.when;
 
 class VencerPruebasTest {
 
-    private final PlanRepository planRepository = mock(PlanRepository.class);
-    private final SuscripcionRepository suscripcionRepository = mock(SuscripcionRepository.class);
+    private final PlanRepository planRepository = mock(PlanRepository.class, CALLS_REAL_METHODS);
+    private final SuscripcionRepository suscripcionRepository = mock(SuscripcionRepository.class, CALLS_REAL_METHODS);
     private final PruebaPremiumRepository pruebaPremiumRepository = mock(PruebaPremiumRepository.class);
     private final UsoPlanRepository usoPlanRepository = mock(UsoPlanRepository.class);
 
@@ -106,7 +106,7 @@ class VencerPruebasTest {
 
     // --- act ---
     private void vencerA(OffsetDateTime ahora) {
-        new VencerPruebas(new SuscripcionService(planRepository, suscripcionRepository), pruebaPremiumRepository,
+        new VencerPruebas(planRepository, pruebaPremiumRepository,
                 suscripcionRepository, usoPlanRepository, new TransaccionDirecta(),
                 Clock.fixed(ahora.toInstant(), ZoneOffset.UTC))
                 .execute();

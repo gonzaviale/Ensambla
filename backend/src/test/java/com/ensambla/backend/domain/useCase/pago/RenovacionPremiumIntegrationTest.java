@@ -5,13 +5,13 @@ import com.ensambla.backend.domain.exception.PasarelaPagoException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pago.ContratoRemoto;
 import com.ensambla.backend.domain.model.pago.PagoRemoto;
+import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.service.pago.RenovacionPremiumService;
 import com.ensambla.backend.domain.useCase.pago.conciliarPagos.ConciliarPagos;
 import com.ensambla.backend.domain.useCase.pago.contratarPremium.ContratarPremium;
-import com.ensambla.backend.domain.useCase.pago.sincronizarRenovacion.SincronizarRenovacion;
 import com.ensambla.backend.infrastructure.pago.MercadoPagoProperties;
 import com.ensambla.backend.infrastructure.pago.MercadoPagoSuscripcionesAdapter;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
@@ -94,9 +94,6 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Autowired
     private RenovacionPremiumService renovacionPremiumService;
-
-    @Autowired
-    private SincronizarRenovacion sincronizarRenovacion;
 
     @Autowired
     private ContratarPremium contratarPremium;
@@ -203,8 +200,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         RenovacionPremium renovacion = renovacion();
         givenPago(pago(renovacion, UUID.randomUUID().toString(), "approved", AHORA, AHORA));
 
-        sincronizarRenovacion.execute(renovacion.getId());
-        sincronizarRenovacion.execute(renovacion.getId());
+        sincronizar(renovacion.getId());
+        sincronizar(renovacion.getId());
 
         assertThat(planActual()).isEqualTo("PREMIUM");
         assertThat(finPagado()).isEqualTo(AHORA.plusDays(30));
@@ -220,7 +217,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         RenovacionPremium renovacion = renovacion();
         givenPago(pago(renovacion, UUID.randomUUID().toString(), estado, AHORA, AHORA));
 
-        sincronizarRenovacion.execute(renovacion.getId());
+        sincronizar(renovacion.getId());
 
         assertThat(planActual()).isEqualTo("GRATUITO");
     }
@@ -236,7 +233,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         givenPago(pago(renovacion, facturaId("segunda"), estado, AHORA.plusDays(30), AHORA.plusDays(29)));
         when(clock.instant()).thenReturn(AHORA.plusDays(29).toInstant());
 
-        sincronizarRenovacion.execute(renovacion.getId());
+        sincronizar(renovacion.getId());
 
         assertThat(planActual()).isEqualTo("PREMIUM");
         assertThat(finPagado()).isEqualTo(AHORA.plusDays(30));
@@ -256,7 +253,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         givenPago(pago(renovacion, facturaId("segunda"), "rejected", AHORA.plusDays(30), AHORA.plusDays(30)));
         when(clock.instant()).thenReturn(AHORA.plusDays(30).toInstant());
 
-        sincronizarRenovacion.execute(renovacion.getId());
+        sincronizar(renovacion.getId());
 
         assertThat(planActual()).isEqualTo("GRATUITO");
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM proyecto WHERE negocio_id=?",
@@ -365,7 +362,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
         mockMvc.perform(post("/api/planes/renovacion/cancelar").session(sesion).header("X-CSRF-TOKEN", csrf))
                 .andExpect(status().isBadGateway());
-        sincronizarRenovacion.execute(renovacion().getId());
+        sincronizar(renovacion().getId());
 
         assertThat(renovacion().isCancelacionSolicitada()).isTrue();
         assertThat(renovacion().getEstado()).isEqualTo("CANCELADA");
@@ -622,6 +619,11 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
                 String.class, facturaId("segunda-firmada"))).isEqualTo(estado);
     }
 
+    // --- act ---
+    private void sincronizar(RenovacionId id) {
+        renovacionPremiumService.sincronizar(id, OffsetDateTime.now(clock));
+    }
+
     // --- arrange ---
 
     private String givenSecondInvoiceWithRealSignatureValidation(String tipo, String estado,
@@ -665,14 +667,14 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     private void aplicarPago(RenovacionPremium renovacion, PagoRemoto pago, OffsetDateTime ahora) {
         givenPago(pago);
         when(clock.instant()).thenReturn(ahora.toInstant());
-        sincronizarRenovacion.execute(renovacion.getId());
+        sincronizar(renovacion.getId());
     }
 
     /** Sincroniza sin pagos nuevos: sólo recalcula el plan en {@code ahora}. */
     private void recalcular(RenovacionPremium renovacion, OffsetDateTime ahora) {
         when(pasarelaSuscripcionesPort.listarPagos(renovacion.getProveedorId())).thenReturn(List.of());
         when(clock.instant()).thenReturn(ahora.toInstant());
-        sincronizarRenovacion.execute(renovacion.getId());
+        sincronizar(renovacion.getId());
     }
 
     private RenovacionPremium renovacion() {

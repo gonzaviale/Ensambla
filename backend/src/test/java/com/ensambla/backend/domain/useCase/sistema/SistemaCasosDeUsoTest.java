@@ -6,10 +6,10 @@ import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.sistema.SistemaItem.BloqueItem;
 import com.ensambla.backend.domain.useCase.sistema.SistemaItem.SeccionItem;
@@ -54,17 +54,17 @@ class SistemaCasosDeUsoTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-21T10:00:00Z"), ZoneOffset.UTC);
     private static final OffsetDateTime AHORA = OffsetDateTime.now(CLOCK);
 
-    private final NegocioService negocioService = mock(NegocioService.class);
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final SistemaRepository sistemaRepository = mock(SistemaRepository.class);
     private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
     private final UsoPlanRepository usoPlanRepository = mock(UsoPlanRepository.class);
     private final ControlPlanService controlPlanService = mock(ControlPlanService.class);
     private final SistemaUseCaseConfig config = new SistemaUseCaseConfig();
-    private final ListarSistemas listarSistemas = config.listarSistemas(negocioService, sistemaRepository);
-    private final GuardarSistema guardarSistema = config.guardarSistema(negocioService, sistemaRepository,
+    private final ListarSistemas listarSistemas = config.listarSistemas(negocioRepository, sistemaRepository);
+    private final GuardarSistema guardarSistema = config.guardarSistema(negocioRepository, sistemaRepository,
             usoPlanRepository, controlPlanService, new TransaccionDirecta(), CLOCK);
     private final EliminarSistema eliminarSistema =
-            config.eliminarSistema(negocioService, proyectoRepository, new TransaccionDirecta());
+            config.eliminarSistema(negocioRepository, proyectoRepository, new TransaccionDirecta());
 
     @Test
     @DisplayName("Listar resuelve el negocio de la sesión y mapea los sistemas")
@@ -83,7 +83,7 @@ class SistemaCasosDeUsoTest {
     @Test
     @DisplayName("Listar no consulta sistemas si el usuario no tiene negocio")
     void listarShouldStopWhenNegocioMissing() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenThrow(new ResourceNotFoundException("Sin negocio"));
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenThrow(new ResourceNotFoundException("Sin negocio"));
 
         assertThatThrownBy(() -> listarSistemas.execute(new ListarSistemasRequest(USUARIO_ID)))
                 .isInstanceOf(ResourceNotFoundException.class);
@@ -167,7 +167,7 @@ class SistemaCasosDeUsoTest {
 
     // --- arrange ---
     private void givenNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     private Sistema givenSistema() {

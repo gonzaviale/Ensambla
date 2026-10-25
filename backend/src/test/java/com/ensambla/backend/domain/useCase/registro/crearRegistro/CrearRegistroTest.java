@@ -11,10 +11,10 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.support.TransaccionDirecta;
@@ -59,13 +59,13 @@ class CrearRegistroTest {
     private static final OffsetDateTime AHORA = OffsetDateTime.ofInstant(INSTANTE, ZoneOffset.UTC);
 
     @Mock
-    private NegocioService negocioService;
+    private NegocioRepository negocioRepository;
 
     @Mock
-    private BloqueService bloqueService;
+    private BloqueRepository bloqueRepository;
 
     @Mock
-    private CampoService campoService;
+    private CampoRepository campoRepository;
 
     @Mock
     private ControlPlanService controlPlanService;
@@ -79,10 +79,10 @@ class CrearRegistroTest {
     void setUp() {
         RegistroDatosService registroDatosService =
                 new RegistroDatosService(registroRepository, new TransaccionDirecta());
-        crearRegistro = new CrearRegistro(negocioService, bloqueService, campoService, registroDatosService,
+        crearRegistro = new CrearRegistro(negocioRepository, bloqueRepository, campoRepository, registroDatosService,
                 controlPlanService, registroRepository, new TransaccionDirecta(),
                 Clock.fixed(INSTANTE, ZoneOffset.UTC));
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test
@@ -165,18 +165,18 @@ class CrearRegistroTest {
     @Test
     @DisplayName("No valida ni guarda cuando el bloque no es del negocio")
     void executeShouldPropagateNotFoundWhenBloqueIsNotOfTheNegocio() {
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID))
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID))
                 .thenThrow(new ResourceNotFoundException("El bloque no existe"));
 
         assertThatThrownBy(() -> crear(Map.of())).isInstanceOf(ResourceNotFoundException.class);
 
-        verifyNoInteractions(campoService, registroRepository);
+        verifyNoInteractions(campoRepository, registroRepository);
     }
 
     // --- arrange ---
     private void givenBloqueConCampos(List<Campo> campos) {
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
-        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(campos);
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(campos);
     }
 
     private void givenFilasExistentes(Set<RegistroId> buscados, RegistroId... existentes) {

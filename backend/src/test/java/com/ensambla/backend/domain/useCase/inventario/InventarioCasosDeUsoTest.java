@@ -15,13 +15,11 @@ import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.inventario.InventarioService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.inventario.consultarStock.ConsultarStock;
 import com.ensambla.backend.domain.useCase.inventario.consultarStock.ConsultarStockRequest;
 import com.ensambla.backend.domain.useCase.inventario.consultarStock.ConsultarStockResponse;
@@ -35,6 +33,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -51,6 +50,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -69,22 +69,19 @@ class InventarioCasosDeUsoTest {
     private static final Clock RELOJ = Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC);
 
     @Mock
-    private NegocioService negocioService;
+    private NegocioRepository negocioRepository;
 
     @Mock
-    private BloqueService bloqueService;
+    private BloqueRepository bloqueRepository;
 
     @Mock
-    private CampoService campoService;
-
-    @Mock
-    private RegistroDatosService registroDatosService;
-
-    @Mock
-    private MovimientoStockRepository movimientoStockRepository;
+    private CampoRepository campoRepository;
 
     @Mock
     private RegistroRepository registroRepository;
+
+    @Mock(answer = Answers.CALLS_REAL_METHODS)
+    private MovimientoStockRepository movimientoStockRepository;
 
     private RegistrarMovimiento registrarMovimiento;
     private ListarMovimientos listarMovimientos;
@@ -92,14 +89,13 @@ class InventarioCasosDeUsoTest {
 
     @BeforeEach
     void setUp() {
-        InventarioService inventarioService = new InventarioService(movimientoStockRepository);
-        registrarMovimiento = new RegistrarMovimiento(negocioService, bloqueService, campoService,
-                registroDatosService, inventarioService, movimientoStockRepository, new TransaccionDirecta(), RELOJ);
+        registrarMovimiento = new RegistrarMovimiento(negocioRepository, bloqueRepository, campoRepository,
+                registroRepository, movimientoStockRepository, new TransaccionDirecta(), RELOJ);
         listarMovimientos = new ListarMovimientos(
-                negocioService, bloqueService, campoService, registroRepository, movimientoStockRepository);
-        consultarStock = new ConsultarStock(
-                negocioService, bloqueService, campoService, registroDatosService, inventarioService);
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+                negocioRepository, bloqueRepository, campoRepository, registroRepository, movimientoStockRepository);
+        consultarStock = new ConsultarStock(negocioRepository, bloqueRepository, campoRepository, registroRepository,
+                movimientoStockRepository);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test
@@ -130,7 +126,7 @@ class InventarioCasosDeUsoTest {
 
         assertThatThrownBy(() -> registrarMovimiento.execute(invalido))
                 .isInstanceOf(RegistroInvalidoException.class);
-        verifyNoInteractions(bloqueService, registroDatosService, movimientoStockRepository);
+        verifyNoInteractions(bloqueRepository, registroRepository, movimientoStockRepository);
     }
 
     @Test
@@ -149,8 +145,8 @@ class InventarioCasosDeUsoTest {
     @DisplayName("Listar devuelve los movimientos con el nombre de su producto")
     void listarShouldReturnMovimientosNamedAfterTheirProduct() {
         Bloque bloque = Bloque.builder().id(BLOQUE_ID).build();
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque);
-        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(givenCampos());
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque);
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(givenCampos());
         when(movimientoStockRepository.findRecientes(BLOQUE_ID, NEGOCIO_ID, PRODUCTO_ID, 100)).thenReturn(List.of(
                 MovimientoStock.builder().registroId(PRODUCTO_ID).tipo(TipoMovimiento.SALIDA)
                         .cantidad(BigDecimal.ONE).build()));
@@ -170,16 +166,16 @@ class InventarioCasosDeUsoTest {
     @DisplayName("Stock consulta una página de productos con la misma búsqueda que el listado y su stock")
     void stockShouldPairThePageOfProductsWithTheirStock() {
         Bloque bloque = Bloque.builder().id(BLOQUE_ID).build();
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque);
-        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(givenCampos());
-        when(registroDatosService.listar(any())).thenReturn(new Pagina<>(List.of(givenProducto(BLOQUE_ID)), 0, 20, 1));
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(bloque);
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(givenCampos());
+        when(registroRepository.buscar(any())).thenReturn(new Pagina<>(List.of(givenProducto(BLOQUE_ID)), 0, 20, 1));
         givenStock("4");
 
         ConsultarStockResponse response = consultarStock.execute(
                 new ConsultarStockRequest(USUARIO_ID, BLOQUE_ID, "har", 0, 20));
 
         ArgumentCaptor<ConsultaRegistros> consulta = ArgumentCaptor.forClass(ConsultaRegistros.class);
-        verify(registroDatosService).listar(consulta.capture());
+        verify(registroRepository).buscar(consulta.capture());
         assertThat(consulta.getValue().texto()).isEqualTo("har");
         assertThat(consulta.getValue().negocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(response.contenido()).singleElement().satisfies(item -> {
@@ -251,15 +247,15 @@ class InventarioCasosDeUsoTest {
     }
 
     private void givenProductoDelBloque() {
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
-        when(registroDatosService.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(givenProducto(BLOQUE_ID));
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
+        when(registroRepository.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(givenProducto(BLOQUE_ID));
     }
 
     private void givenBloqueConProducto(BloqueId bloqueDelProducto) {
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
-        when(registroDatosService.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(givenProducto(bloqueDelProducto));
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
+        when(registroRepository.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(givenProducto(bloqueDelProducto));
         if (bloqueDelProducto.equals(BLOQUE_ID)) {
-            when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(givenCampos());
+            when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(givenCampos());
         }
     }
 

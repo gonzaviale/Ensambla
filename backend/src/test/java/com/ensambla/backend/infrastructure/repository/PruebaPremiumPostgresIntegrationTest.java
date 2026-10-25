@@ -17,9 +17,9 @@ import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.support.LecturasInmediatasDePrueba;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.ProyectosDePrueba;
 import com.ensambla.backend.support.PruebasPremiumDePrueba;
 import com.ensambla.backend.support.SuscripcionesDePrueba;
 import org.junit.jupiter.api.AfterEach;
@@ -71,7 +71,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     private ProcesamientoRepository procesamientoRepository;
 
     @Autowired
-    private ProyectoService proyectoService;
+    private ProyectosDePrueba proyectosDePrueba;
 
     @Autowired
     private ProyectoRepository proyectoRepository;
@@ -229,8 +229,8 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     @DisplayName("El job vence pruebas de forma repetible y conserva sistemas y filas por encima del gratuito")
     void executeShouldExpireTrialAndPreserveData() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
-        ProyectoId proyectoId = proyectoService.crear(negocioId, "Primero", null, INICIO).getId();
-        proyectoService.crear(negocioId, "Segundo", null, INICIO);
+        ProyectoId proyectoId = proyectosDePrueba.crear(negocioId, "Primero", null, INICIO).getId();
+        proyectosDePrueba.crear(negocioId, "Segundo", null, INICIO);
         BloqueId bloqueId = BloqueId.nuevo();
         jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre) VALUES (?, ?, ?, 'Datos')",
                 bloqueId.valor(), negocioId.valor(), proyectoId.valor());
@@ -246,7 +246,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
         assertThat(proyectoRepository.findAllByNegocioId(negocioId)).hasSize(2);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM registro WHERE negocio_id = ?",
                 Long.class, negocioId.valor())).isEqualTo(1001);
-        assertThatThrownBy(() -> proyectoService.crear(negocioId, "Tercero", null, INICIO.plusDays(7)))
+        assertThatThrownBy(() -> proyectosDePrueba.crear(negocioId, "Tercero", null, INICIO.plusDays(7)))
                 .isInstanceOf(RestriccionPlanException.class);
         assertThatThrownBy(() -> pruebaPremiumService.iniciar(negocioId, INICIO.plusDays(8)))
                 .isInstanceOf(RestriccionPlanException.class).extracting("codigo").isEqualTo("PRUEBA_UTILIZADA");

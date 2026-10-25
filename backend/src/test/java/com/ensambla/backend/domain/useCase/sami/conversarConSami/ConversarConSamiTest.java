@@ -9,9 +9,9 @@ import com.ensambla.backend.domain.model.sami.ConsumoIaSami;
 import com.ensambla.backend.domain.model.sami.PropuestaIaSami;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.SamiIaPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.support.SamiPruebas;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -48,7 +48,7 @@ class ConversarConSamiTest {
     private static final ConsumoIaSami CONSUMO = new ConsumoIaSami("bedrock", "haiku", 300, 40);
 
     @Mock
-    private NegocioService negocioService;
+    private NegocioRepository negocioRepository;
 
     @Mock
     private PlantillaRepository plantillaRepository;
@@ -78,7 +78,7 @@ class ConversarConSamiTest {
         assertThat(response.propuesta().columnas()).extracting("nombre").containsExactly("Saldo pendiente");
         assertThat(response.propuesta().origen()).isEqualTo("ALGORITMO");
         assertThat(response.preguntasHechas()).isZero();
-        verifyNoInteractions(samiIaPort, consumoSamiRepository, negocioService);
+        verifyNoInteractions(samiIaPort, consumoSamiRepository, negocioRepository);
     }
 
     @Test
@@ -214,7 +214,7 @@ class ConversarConSamiTest {
         givenNegocio();
         when(consumoSamiRepository.reservar(NEGOCIO_ID, LocalDate.of(2026, 10, 20), LIMITE_IA,
                 tardeEnArgentina.withOffsetSameInstant(ZoneOffset.UTC))).thenReturn(false);
-        ConversarConSami conversacion = new ConversarConSami(negocioService, plantillaRepository,
+        ConversarConSami conversacion = new ConversarConSami(negocioRepository, plantillaRepository,
                 SamiPruebas.diccionarioReal(), samiIaPort, consumoSamiRepository,
                 Clock.fixed(tardeEnArgentina.toInstant(), ZoneOffset.UTC), 0.7, 0, LIMITE_IA);
         ConversarConSamiRequest request = new ConversarConSamiRequest(USUARIO_ID, "texto", List.of());
@@ -267,13 +267,13 @@ class ConversarConSamiTest {
 
     // --- arrange ---
     private ConversarConSami conversacion(int maxPreguntas) {
-        return new ConversarConSami(negocioService, plantillaRepository, SamiPruebas.diccionarioReal(), samiIaPort,
+        return new ConversarConSami(negocioRepository, plantillaRepository, SamiPruebas.diccionarioReal(), samiIaPort,
                 consumoSamiRepository, Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC), 0.7, maxPreguntas,
                 LIMITE_IA);
     }
 
     private void givenNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     private void givenReserva() {

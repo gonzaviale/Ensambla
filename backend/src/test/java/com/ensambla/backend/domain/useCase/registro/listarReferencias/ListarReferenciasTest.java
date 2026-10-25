@@ -10,9 +10,9 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -42,13 +42,13 @@ class ListarReferenciasTest {
             Campo.builder().id(NOMBRE_ID).tipo(TipoCampo.TEXTO).posicion((short) 0).build());
 
     @Mock
-    private NegocioService negocioService;
+    private NegocioRepository negocioRepository;
 
     @Mock
-    private BloqueService bloqueService;
+    private BloqueRepository bloqueRepository;
 
     @Mock
-    private CampoService campoService;
+    private CampoRepository campoRepository;
 
     @Mock
     private RegistroDatosService registroDatosService;
@@ -58,7 +58,7 @@ class ListarReferenciasTest {
     @BeforeEach
     void setUp() {
         listarReferencias = new ListarReferencias(
-                negocioService, bloqueService, campoService, registroDatosService);
+                negocioRepository, bloqueRepository, campoRepository, registroDatosService);
     }
 
     @Test
@@ -86,20 +86,20 @@ class ListarReferenciasTest {
     @Test
     @DisplayName("No busca filas cuando el bloque no es del negocio")
     void executeShouldPropagateNotFoundWhenBloqueIsNotOfTheNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID))
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID))
                 .thenThrow(new ResourceNotFoundException("El bloque no existe"));
 
         assertThatThrownBy(() -> execute("ana", List.of()))
                 .isInstanceOf(ResourceNotFoundException.class);
-        verifyNoInteractions(campoService, registroDatosService);
+        verifyNoInteractions(campoRepository, registroDatosService);
     }
 
     // --- arrange ---
     private void givenBloqueOfNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
-        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(CAMPOS);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(CAMPOS);
     }
 
     private void givenReferenciables(String texto, List<RegistroId> ids) {

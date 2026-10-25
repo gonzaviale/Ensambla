@@ -24,10 +24,9 @@ import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
-import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.support.ProcesamientoTestData;
 import org.junit.jupiter.api.BeforeEach;
@@ -72,7 +71,7 @@ class ProcesarLoteConexionesTest {
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
 
     @Mock
-    private CampoService campoService;
+    private CampoRepository campoRepository;
 
     @Mock
     private RegistroDatosService registroDatosService;
@@ -86,8 +85,6 @@ class ProcesarLoteConexionesTest {
     @Mock
     private LectorCuadernoPort lectorCuadernoPort;
 
-    @Mock
-    private PropuestaLecturaService propuestaLecturaService;
 
     @Mock
     private ControlPlanService controlPlanService;
@@ -97,7 +94,7 @@ class ProcesarLoteConexionesTest {
     @BeforeEach
     void setUp() {
         procesarLote = new ProcesarLote(procesamientoRepository, archivoCuadernoPort, lectorCuadernoPort,
-                propuestaLecturaService, campoService, registroDatosService, controlPlanService,
+                campoRepository, registroDatosService, controlPlanService,
                 ProcesamientoTestData.politica(), Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
     }
 
@@ -120,10 +117,12 @@ class ProcesarLoteConexionesTest {
     @DisplayName("Al resolver las conexiones conserva los campos nuevos detectados")
     void executeShouldKeepNewFields() {
         givenClientes(registro(JUAN_ID, "Juan Pérez"));
-        PropuestaLectura base = propuesta(fila(1, dato("juan perez", 0.8)));
         CampoPropuesto telefono = new CampoPropuesto("telefono", "Teléfono", TipoCampo.TEXTO, List.of());
+        FilaLeida fila = new FilaLeida(1, 1, Map.of("cliente", dato("juan perez", 0.8), "monto", dato("100", 0.9),
+                "telefono", dato("1155", 0.9)));
+        List<CampoPropuesto> columnas = List.of(campos().get(0), campos().get(1), telefono);
 
-        PropuestaLectura result = resolver(new PropuestaLectura(base.lectura(), base.mapeoCampos(), List.of(telefono)));
+        PropuestaLectura result = resolver(lectura("Ventas", VENTAS_ID, columnas, List.of(fila)), VENTAS_ID, bloques());
 
         assertThat(result.camposNuevos()).containsExactly(telefono);
     }
@@ -174,7 +173,7 @@ class ProcesarLoteConexionesTest {
         assertThat(result.lectura().filas()).extracting(fila -> fila.datos().get("cliente").valor())
                 .containsExactly(JUAN_ID.toString(), JUAN_ID.toString(), null, null);
         assertThat(result.lectura().advertencias()).hasSize(2);
-        verify(campoService, times(1)).listarDeBloque(CLIENTES_ID, NEGOCIO_ID);
+        verify(campoRepository, times(1)).findByBloqueIdAndNegocioId(CLIENTES_ID, NEGOCIO_ID);
         verify(registroDatosService, times(2)).buscarReferenciables(
                 eq(NEGOCIO_ID), eq(CLIENTES_ID), any(), any(), eq(List.of()));
     }
@@ -203,51 +202,62 @@ class ProcesarLoteConexionesTest {
     @Test
     @DisplayName("Sin columnas de conexión devuelve la misma propuesta sin consultar nada")
     void executeShouldReturnSamePropuestaWithoutConexiones() {
-        LecturaCuaderno lectura = lectura(null, List.of(new CampoPropuesto("monto", "Monto", TipoCampo.NUMERO, List.of())),
+        LecturaCuaderno lectura = lectura("Ventas", null,
+                List.of(new CampoPropuesto("monto", "Monto", TipoCampo.NUMERO, List.of())),
                 List.of(fila(1, dato("Juan", 0.9))));
-        PropuestaLectura propuesta = new PropuestaLectura(lectura, Map.of());
 
-        PropuestaLectura result = resolver(propuesta);
+        PropuestaLectura result = resolver(lectura, null, bloques());
 
-        assertThat(result).isSameAs(propuesta);
-        verifyNoInteractions(campoService, registroDatosService);
+        assertThat(result).isEqualTo(PropuestaLectura.proponer(lectura, bloques(), null));
+        verifyNoInteractions(campoRepository, registroDatosService);
+
     }
 
     @Test
     @DisplayName("Una columna de conexión sin campo mapeado en el bloque queda como la leyó la IA")
     void executeShouldIgnoreConexionWithoutMappedCampo() {
-        PropuestaLectura propuesta = new PropuestaLectura(
-                lectura(VENTAS_ID, campos(), List.of(fila(1, dato("Juan", 0.9)))), Map.of());
+        LecturaCuaderno lectura = lectura("Ventas", VENTAS_ID, campos(), List.of(fila(1, dato("Juan", 0.9))));
+        List<BloqueLectura> sinCliente = List.of(new BloqueLectura(VENTAS_ID, "Ventas", List.of(
+                new CampoConocido(CAMPO_MONTO_ID, "Monto", TipoCampo.NUMERO, List.of()))));
 
-        assertThat(resolver(propuesta)).isSameAs(propuesta);
-        verifyNoInteractions(campoService, registroDatosService);
+        PropuestaLectura result = resolver(lectura, VENTAS_ID, sinCliente);
+
+        assertThat(result).isEqualTo(PropuestaLectura.proponer(lectura, sinCliente, VENTAS_ID));
+        verifyNoInteractions(campoRepository, registroDatosService);
+
     }
 
     @Test
     @DisplayName("Un campo mapeado que no es una conexión no se resuelve")
     void executeShouldIgnoreMappedCampoThatIsNotAConexion() {
-        PropuestaLectura propuesta = new PropuestaLectura(
-                lectura(VENTAS_ID, campos(), List.of(fila(1, dato("Juan", 0.9)))),
-                Map.of("cliente", CAMPO_MONTO_ID));
+        LecturaCuaderno lectura = lectura("Ventas", VENTAS_ID,
+                List.of(new CampoPropuesto("cliente", "Monto", TipoCampo.RELACION, List.of())),
+                List.of(fila(1, dato("Juan", 0.9))));
 
-        assertThat(resolver(propuesta)).isSameAs(propuesta);
-        verifyNoInteractions(campoService, registroDatosService);
+        PropuestaLectura result = resolver(lectura, VENTAS_ID, bloques());
+
+        assertThat(result).isEqualTo(PropuestaLectura.proponer(lectura, bloques(), VENTAS_ID));
+        verifyNoInteractions(campoRepository, registroDatosService);
+
     }
 
     @Test
     @DisplayName("Una propuesta para un bloque nuevo no tiene conexiones que resolver")
     void executeShouldIgnorePropuestaForNewBloque() {
-        PropuestaLectura propuesta = new PropuestaLectura(
-                lectura(null, campos(), List.of(fila(1, dato("Juan", 0.9)))), Map.of());
+        LecturaCuaderno lectura = lectura("Otra tabla", null, campos(), List.of(fila(1, dato("Juan", 0.9))));
 
-        assertThat(resolver(propuesta)).isSameAs(propuesta);
-        verifyNoInteractions(campoService, registroDatosService);
+        PropuestaLectura result = resolver(lectura, null, bloques());
+
+        assertThat(result).isEqualTo(PropuestaLectura.proponer(lectura, bloques(), null));
+        assertThat(result.lectura().bloque().bloqueExistenteId()).isNull();
+        verifyNoInteractions(campoRepository, registroDatosService);
+
     }
 
     // --- arrange ---
     private void givenClientes(Registro... registros) {
         Campo nombre = Campo.builder().id(CAMPO_NOMBRE_ID).tipo(TipoCampo.TEXTO).posicion((short) 0).build();
-        when(campoService.listarDeBloque(CLIENTES_ID, NEGOCIO_ID)).thenReturn(List.of(nombre));
+        when(campoRepository.findByBloqueIdAndNegocioId(CLIENTES_ID, NEGOCIO_ID)).thenReturn(List.of(nombre));
         when(registroDatosService.buscarReferenciables(eq(NEGOCIO_ID), eq(CLIENTES_ID), any(), any(), eq(List.of())))
                 .thenReturn(List.of(registros));
     }
@@ -257,7 +267,7 @@ class ProcesarLoteConexionesTest {
     }
 
     private PropuestaLectura propuesta(FilaLeida... filas) {
-        return new PropuestaLectura(lectura(VENTAS_ID, campos(), List.of(filas)),
+        return new PropuestaLectura(lectura("Ventas", VENTAS_ID, campos(), List.of(filas)),
                 Map.of("cliente", CAMPO_CLIENTE_ID, "monto", CAMPO_MONTO_ID));
     }
 
@@ -266,8 +276,9 @@ class ProcesarLoteConexionesTest {
                 new CampoPropuesto("monto", "Monto", TipoCampo.NUMERO, List.of()));
     }
 
-    private LecturaCuaderno lectura(BloqueId bloqueId, List<CampoPropuesto> campos, List<FilaLeida> filas) {
-        return new LecturaCuaderno(TipoRegistroCuaderno.VENTAS, new BloquePropuesto("Ventas", bloqueId, campos),
+    private LecturaCuaderno lectura(String nombre, BloqueId bloqueId, List<CampoPropuesto> campos,
+                                    List<FilaLeida> filas) {
+        return new LecturaCuaderno(TipoRegistroCuaderno.VENTAS, new BloquePropuesto(nombre, bloqueId, campos),
                 filas, List.of("Aviso"), CONSUMO);
     }
 
@@ -290,18 +301,22 @@ class ProcesarLoteConexionesTest {
     // --- act ---
     /** Procesa un lote cuya lectura propone {@code propuesta} y devuelve la propuesta con la que finalizó. */
     private PropuestaLectura resolver(PropuestaLectura propuesta) {
-        when(procesamientoRepository.reclamar(eq(AHORA), any())).thenReturn(Optional.of(LOTE));
-        when(procesamientoRepository.fotos(LOTE)).thenReturn(List.of(FOTO));
+        return resolver(propuesta.lectura(), null, bloques());
+    }
+
+    private PropuestaLectura resolver(LecturaCuaderno lectura, BloqueId destino, List<BloqueLectura> bloques) {
+        LoteTrabajo lote = new LoteTrabajo(LOTE.id(), NEGOCIO_ID, destino, LOTE.reclamoId(), 1);
+        when(procesamientoRepository.reclamar(eq(AHORA), any())).thenReturn(Optional.of(lote));
+        when(procesamientoRepository.fotos(lote)).thenReturn(List.of(FOTO));
         when(archivoCuadernoPort.leer(NEGOCIO_ID, FOTO.clave())).thenReturn(new byte[]{1});
-        when(procesamientoRepository.bloques(NEGOCIO_ID)).thenReturn(bloques());
+        when(procesamientoRepository.bloques(NEGOCIO_ID)).thenReturn(bloques);
         when(controlPlanService.reservarPaginasIa(eq(NEGOCIO_ID), eq(1), eq(AHORA), any())).thenReturn(true);
-        when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(propuesta.lectura());
-        when(propuestaLecturaService.proponer(propuesta.lectura(), bloques(), null)).thenReturn(propuesta);
+        when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(lectura);
 
         procesarLote.execute();
 
         ArgumentCaptor<ResultadoIntento> resultado = ArgumentCaptor.forClass(ResultadoIntento.class);
-        verify(procesamientoRepository).finalizar(eq(LOTE), resultado.capture(), any(), eq(AHORA), any());
+        verify(procesamientoRepository).finalizar(eq(lote), resultado.capture(), any(), eq(AHORA), any());
         return resultado.getValue().propuesta();
     }
 }

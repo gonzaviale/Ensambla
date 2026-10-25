@@ -15,12 +15,11 @@ import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.receta.RecetaRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.receta.RecetaService;
-import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.receta.guardarReceta.GuardarReceta;
 import com.ensambla.backend.domain.useCase.receta.guardarReceta.GuardarRecetaRequest;
 import com.ensambla.backend.domain.useCase.receta.guardarReceta.LineaRecetaRequest;
@@ -68,13 +67,13 @@ class RecetaCasosDeUsoTest {
     private static final OffsetDateTime AHORA = OffsetDateTime.now(RELOJ);
 
     @Mock
-    private NegocioService negocioService;
+    private NegocioRepository negocioRepository;
 
     @Mock
     private ControlPlanService controlPlanService;
 
     @Mock
-    private RegistroDatosService registroDatosService;
+    private RegistroRepository registroRepository;
 
     @Mock
     private RecetaService recetaService;
@@ -85,20 +84,17 @@ class RecetaCasosDeUsoTest {
     @Mock
     private CampoRepository campoRepository;
 
-    @Mock
-    private RegistroRepository registroRepository;
-
     private ObtenerReceta obtenerReceta;
     private GuardarReceta guardarReceta;
 
     @BeforeEach
     void setUp() {
         obtenerReceta = new ObtenerReceta(
-                negocioService, controlPlanService, RELOJ, registroDatosService, recetaService, recetaRepository);
-        guardarReceta = new GuardarReceta(negocioService, controlPlanService, registroDatosService, recetaService,
+                negocioRepository, controlPlanService, RELOJ, registroRepository, recetaService, recetaRepository);
+        guardarReceta = new GuardarReceta(negocioRepository, controlPlanService, recetaService,
                 recetaRepository, campoRepository, registroRepository, new TransaccionDirecta(), RELOJ);
         lenient().when(recetaService.costear(any(), eq(NEGOCIO_ID))).thenReturn(RecetaCosteada.vacia());
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     // --- obtener ---
@@ -142,7 +138,7 @@ class RecetaCasosDeUsoTest {
     @Test
     @DisplayName("Obtener responde 'no existe' si el producto es de otro negocio")
     void obtenerShouldPropagateNotFound() {
-        when(registroDatosService.obtener(PRODUCTO_ID, NEGOCIO_ID))
+        when(registroRepository.obtener(PRODUCTO_ID, NEGOCIO_ID))
                 .thenThrow(new ResourceNotFoundException("El registro no existe"));
 
         assertThatThrownBy(() -> obtenerReceta.execute(new ObtenerRecetaRequest(USUARIO_ID, PRODUCTO_ID)))
@@ -250,7 +246,8 @@ class RecetaCasosDeUsoTest {
 
     // --- arrange ---
     private void givenProducto() {
-        when(registroDatosService.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(Registro.builder().id(PRODUCTO_ID).build());
+        when(registroRepository.obtener(PRODUCTO_ID, NEGOCIO_ID))
+                .thenReturn(Registro.builder().id(PRODUCTO_ID).build());
     }
 
     private void givenColumnaDelPrecio(TipoCampo tipo) {

@@ -12,11 +12,10 @@ import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.reporte.FiltroReporte;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.reporte.ReporteService;
 import com.ensambla.backend.domain.useCase.reporte.exportarReporte.ExportarReporte;
@@ -73,21 +72,18 @@ class ReporteCasosDeUsoTest {
     private static final Clock RELOJ = Clock.fixed(Instant.parse("2026-10-13T12:00:00Z"), ZoneOffset.UTC);
 
     @Mock
-    private NegocioService negocioService;
+    private NegocioRepository negocioRepository;
     @Mock
     private ControlPlanService controlPlanService;
 
     @Mock
-    private BloqueService bloqueService;
-
-    @Mock
-    private CampoService campoService;
-
-    @Mock
-    private RegistroRepository registroRepository;
+    private BloqueRepository bloqueRepository;
 
     @Mock
     private CampoRepository campoRepository;
+
+    @Mock
+    private RegistroRepository registroRepository;
 
     private GenerarReporte generarReporte;
     private ExportarReporte exportarReporte;
@@ -96,14 +92,14 @@ class ReporteCasosDeUsoTest {
     void setUp() {
         ReporteService reporteService = new ReporteService(registroRepository);
         generarReporte = new GenerarReporte(
-                negocioService, controlPlanService, RELOJ, bloqueService, campoService, reporteService);
+                negocioRepository, controlPlanService, RELOJ, bloqueRepository, campoRepository, reporteService);
         exportarReporte = new ExportarReporte(
-                negocioService, controlPlanService, bloqueService, campoService, reporteService, registroRepository,
+                negocioRepository, controlPlanService, bloqueRepository, reporteService, registroRepository,
                 campoRepository, new ExportadorReporteXlsxAdapter(), RELOJ);
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID))
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID))
                 .thenReturn(Bloque.builder().id(BLOQUE_ID).nombre("Pedidos").build());
-        lenient().when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(givenCampos());
+        lenient().when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(givenCampos());
     }
 
     @Test
@@ -137,7 +133,7 @@ class ReporteCasosDeUsoTest {
     @Test
     @DisplayName("Generar responde 'no existe' si el bloque es de otro negocio")
     void generarShouldPropagateNotFound() {
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenThrow(new ResourceNotFoundException("no existe"));
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenThrow(new ResourceNotFoundException("no existe"));
 
         assertThatThrownBy(() -> generarReporte.execute(request(null)))
                 .isInstanceOf(ResourceNotFoundException.class);
@@ -179,7 +175,8 @@ class ReporteCasosDeUsoTest {
     void exportarShouldNameConnectedRowsQueryingOncePerTable() throws IOException {
         Campo cliente = Campo.builder().id(CLIENTE_CAMPO_ID).nombre("Cliente").tipo(TipoCampo.RELACION)
                 .bloqueRelacionadoId(CLIENTES_ID).posicion((short) 3).build();
-        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(givenCampos().get(0), cliente));
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID))
+                .thenReturn(List.of(givenCampos().get(0), cliente));
         when(registroRepository.buscarFiltrados(any(), anyInt())).thenReturn(List.of(
                 givenFilaDe(BETO_ID.valor()), givenFilaDe(ANA_ID.valor()),
                 Registro.builder().id(RegistroId.nuevo()).creadoEn(OffsetDateTime.parse("2026-10-12T12:00:00Z"))

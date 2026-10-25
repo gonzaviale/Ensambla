@@ -2,13 +2,12 @@ package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.domain.useCase.plan.iniciarPrueba.IniciarPruebaRequest;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +26,7 @@ import static com.ensambla.backend.support.PlanTestData.plan;
 import static com.ensambla.backend.support.PlanTestData.suscripcion;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,15 +35,12 @@ class PlanUseCaseConfigTest {
 
     private final PlanUseCaseConfig planUseCaseConfig = new PlanUseCaseConfig();
     private final Clock clock = Clock.fixed(INSTANTE.toInstant(), ZoneOffset.UTC);
-    private final NegocioService negocioService = mock(NegocioService.class);
-    private final PlanRepository planRepository = mock(PlanRepository.class);
-    private final SuscripcionRepository suscripcionRepository = mock(SuscripcionRepository.class);
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final PlanRepository planRepository = mock(PlanRepository.class, CALLS_REAL_METHODS);
+    private final SuscripcionRepository suscripcionRepository = mock(SuscripcionRepository.class, CALLS_REAL_METHODS);
     private final PruebaPremiumRepository pruebaPremiumRepository = mock(PruebaPremiumRepository.class);
     private final UsoPlanRepository usoPlanRepository = mock(UsoPlanRepository.class);
     private final RenovacionPremiumRepository renovacionPremiumRepository = mock(RenovacionPremiumRepository.class);
-    private final SuscripcionService suscripcionService =
-            planUseCaseConfig.suscripcionService(planRepository, suscripcionRepository);
-
     @Test
     @DisplayName("El wiring conecta la consulta con usuario, catálogo, uso y reloj")
     void consultarPlanesUseCaseShouldWireDependencies() {
@@ -53,7 +50,7 @@ class PlanUseCaseConfigTest {
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
         when(planRepository.findById(suscripcion.getPlanId())).thenReturn(Optional.of(plan()));
 
-        var result = planUseCaseConfig.consultarPlanes(negocioService, suscripcionService, planRepository,
+        var result = planUseCaseConfig.consultarPlanes(negocioRepository, suscripcionRepository, planRepository,
                         pruebaPremiumRepository, usoPlanRepository, renovacionPremiumRepository,
                         new TransaccionDirecta(), clock)
                 .execute(USUARIO_ID);
@@ -70,7 +67,7 @@ class PlanUseCaseConfigTest {
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
         when(pruebaPremiumRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var result = planUseCaseConfig.iniciarPrueba(negocioService, suscripcionService, pruebaPremiumRepository,
+        var result = planUseCaseConfig.iniciarPrueba(negocioRepository, planRepository, pruebaPremiumRepository,
                         suscripcionRepository, usoPlanRepository, renovacionPremiumRepository,
                         new TransaccionDirecta(), clock)
                 .execute(new IniciarPruebaRequest(USUARIO_ID));
@@ -85,7 +82,7 @@ class PlanUseCaseConfigTest {
         when(pruebaPremiumRepository.findNegociosVencidos(INSTANTE)).thenReturn(List.of(NEGOCIO_ID));
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
 
-        planUseCaseConfig.vencerPruebas(suscripcionService, pruebaPremiumRepository, suscripcionRepository,
+        planUseCaseConfig.vencerPruebas(planRepository, pruebaPremiumRepository, suscripcionRepository,
                 usoPlanRepository, new TransaccionDirecta(), clock).execute();
 
         verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
@@ -93,7 +90,7 @@ class PlanUseCaseConfigTest {
 
     // --- arrange ---
     private void givenNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     private void givenCatalogo() {

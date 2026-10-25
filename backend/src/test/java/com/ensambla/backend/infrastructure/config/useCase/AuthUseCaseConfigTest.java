@@ -5,7 +5,6 @@ import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.usuario.UsuarioRepository;
-import com.ensambla.backend.domain.service.usuario.UsuarioService;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -41,9 +40,9 @@ class AuthUseCaseConfigTest {
     @Test
     @DisplayName("Configura el caso de consulta de sesión")
     void obtenerSesionUseCaseShouldWireDependencies() {
-        UsuarioService service = mock(UsuarioService.class);
+        UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
 
-        var result = config.obtenerSesion(service);
+        var result = config.obtenerSesion(usuarioRepository);
 
         assertThat(result).isNotNull();
     }

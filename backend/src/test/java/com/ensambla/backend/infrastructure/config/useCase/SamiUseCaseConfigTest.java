@@ -7,11 +7,11 @@ import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.SamiIaPort;
 import com.ensambla.backend.domain.port.TallerIaPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.plantilla.PlantillaService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.proyecto.ProyectoItem;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiRequest;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiResponse;
@@ -22,6 +22,7 @@ import com.ensambla.backend.domain.useCase.sami.crearProyectoDesdeSami.CrearProy
 import com.ensambla.backend.infrastructure.ia.SamiProperties;
 import com.ensambla.backend.support.ProyectoTestData;
 import com.ensambla.backend.support.SamiPruebas;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -41,7 +42,7 @@ class SamiUseCaseConfigTest {
     private static final ConsumoIaSami CONSUMO = new ConsumoIaSami("simulado", "rapido", 1, 1);
 
     private final SamiUseCaseConfig config = new SamiUseCaseConfig();
-    private final NegocioService negocioService = mock(NegocioService.class);
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final ConsumoSamiRepository consumoSamiRepository = mock(ConsumoSamiRepository.class);
 
     @Test
@@ -67,16 +68,17 @@ class SamiUseCaseConfigTest {
     @Test
     @DisplayName("El wiring de crear proyecto conecta negocio, plantilla y proyecto con el mapper")
     void crearProyectoDesdeSamiUseCaseShouldWireServicesAndMapper() {
-        PlantillaService plantillaService = mock(PlantillaService.class);
-        ProyectoService proyectoService = mock(ProyectoService.class);
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(ProyectoTestData.NEGOCIO_ID);
-        when(plantillaService.obtenerParaProyecto(ProyectoTestData.PLANTILLA_ID))
+        PlantillaRepository plantillaRepository = mock(PlantillaRepository.class);
+        ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(ProyectoTestData.NEGOCIO_ID);
+        when(plantillaRepository.obtenerParaProyecto(ProyectoTestData.PLANTILLA_ID))
                 .thenReturn(ProyectoTestData.plantilla());
-        when(proyectoService.crearDesdePlantilla(any(), any(), any(), any(), any()))
+        when(proyectoRepository.saveConEstructura(any()))
                 .thenReturn(ProyectoTestData.proyecto());
 
         ProyectoItem result = config.crearProyectoDesdeSami(
-                        negocioService, plantillaService, proyectoService, Clock.systemUTC())
+                        negocioRepository, plantillaRepository, proyectoRepository, mock(ControlPlanService.class),
+                        new TransaccionDirecta(), Clock.systemUTC())
                 .execute(new CrearProyectoDesdeSamiRequest(
                         USUARIO_ID, ProyectoTestData.PLANTILLA_ID, null, List.of()));
 
@@ -87,11 +89,11 @@ class SamiUseCaseConfigTest {
     @DisplayName("El wiring del taller usa el límite diario propio del taller")
     void conversarEnTallerUseCaseShouldWireTallerLimit() {
         TallerIaPort tallerIaPort = mock(TallerIaPort.class);
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NegocioId.nuevo());
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NegocioId.nuevo());
         when(consumoSamiRepository.reservar(any(), any(), eq(11), any())).thenReturn(true);
         when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa("Hola", List.of(), CONSUMO));
 
-        ConversarEnTallerResponse response = config.conversarEnTaller(negocioService, tallerIaPort,
+        ConversarEnTallerResponse response = config.conversarEnTaller(negocioRepository, tallerIaPort,
                         consumoSamiRepository, SamiPruebas.catalogoReal(), SamiPruebas.kitsReales(),
                         Clock.systemUTC(), propiedades(3))
                 .execute(new ConversarEnTallerRequest(
@@ -108,7 +110,8 @@ class SamiUseCaseConfigTest {
     private ConversarConSamiResponse whenConversing(SamiProperties properties, SamiIaPort samiIaPort) {
         PlantillaRepository plantillaRepository = mock(PlantillaRepository.class);
         when(plantillaRepository.findAllParaProyectoActivas()).thenReturn(SamiPruebas.plantillas());
-        return config.conversarConSami(negocioService, plantillaRepository, SamiPruebas.diccionarioReal(), samiIaPort,
+        return config.conversarConSami(negocioRepository, plantillaRepository, SamiPruebas.diccionarioReal(),
+                samiIaPort,
                         consumoSamiRepository, Clock.systemUTC(), properties)
                 .execute(new ConversarConSamiRequest(UsuarioId.nuevo(), "vendo velas", List.of()));
     }

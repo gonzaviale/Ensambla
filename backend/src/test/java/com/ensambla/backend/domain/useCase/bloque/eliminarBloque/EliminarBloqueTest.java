@@ -7,8 +7,7 @@ import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.infrastructure.config.useCase.BloqueUseCaseConfig;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +21,7 @@ import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ProyectoTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -33,16 +33,15 @@ class EliminarBloqueTest {
     private static final BloqueId OTRO_BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
     private static final EliminarBloqueRequest REQUEST = new EliminarBloqueRequest(USUARIO_ID, BLOQUE_ID);
 
-    private final NegocioService negocioService = mock(NegocioService.class);
-    private final BloqueRepository bloqueRepository = mock(BloqueRepository.class);
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final BloqueRepository bloqueRepository = mock(BloqueRepository.class, CALLS_REAL_METHODS);
     private final CampoRepository campoRepository = mock(CampoRepository.class);
-    private final BloqueService bloqueService = new BloqueService(bloqueRepository, new TransaccionDirecta());
     private final EliminarBloque eliminarBloque = new BloqueUseCaseConfig().eliminarBloque(
-            negocioService, bloqueService, bloqueRepository, campoRepository, new TransaccionDirecta());
+            negocioRepository, bloqueRepository, campoRepository, new TransaccionDirecta());
 
     @BeforeEach
     void givenNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test

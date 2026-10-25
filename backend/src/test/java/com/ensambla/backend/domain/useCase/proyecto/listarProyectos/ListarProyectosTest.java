@@ -1,8 +1,8 @@
 package com.ensambla.backend.domain.useCase.proyecto.listarProyectos;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.infrastructure.config.useCase.ProyectoUseCaseConfig;
 import com.ensambla.backend.support.ProyectoTestData;
 import org.junit.jupiter.api.DisplayName;
@@ -22,17 +22,17 @@ import static org.mockito.Mockito.when;
 
 class ListarProyectosTest {
 
-    private final NegocioService negocioService = mock(NegocioService.class);
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
     private final ProyectoUseCaseConfig config = new ProyectoUseCaseConfig();
     private final ListarProyectos listarProyectos = config.listarProyectos(
-            negocioService,
+            negocioRepository,
             proyectoRepository);
 
     @Test
     @DisplayName("Resuelve el negocio de sesión y mapea sus proyectos")
     void executeShouldResolveNegocioAndMapResponse() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(ProyectoTestData.proyecto()));
 
         var result = listarProyectos.execute(new ListarProyectosRequest(USUARIO_ID));
@@ -44,7 +44,7 @@ class ListarProyectosTest {
     @Test
     @DisplayName("Si no existe el negocio no consulta ni escribe proyectos")
     void executeShouldStopWhenNegocioMissing() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenThrow(new ResourceNotFoundException("Sin negocio"));
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenThrow(new ResourceNotFoundException("Sin negocio"));
 
         assertThatThrownBy(() -> listarProyectos.execute(new ListarProyectosRequest(USUARIO_ID)))
                 .isInstanceOf(ResourceNotFoundException.class);

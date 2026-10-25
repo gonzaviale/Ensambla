@@ -2,7 +2,7 @@ package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.model.ubicacion.DireccionEncontrada;
 import com.ensambla.backend.domain.model.ubicacion.LocalidadesDelPunto;
-import com.ensambla.backend.domain.service.ubicacion.UbicacionService;
+import com.ensambla.backend.domain.port.GeocodificadorPort;
 import com.ensambla.backend.domain.useCase.ubicacion.buscarDirecciones.BuscarDireccionesRequest;
 import com.ensambla.backend.domain.useCase.ubicacion.buscarDirecciones.BuscarDireccionesResponse;
 import com.ensambla.backend.domain.useCase.ubicacion.listarRubros.ListarRubrosResponse;
@@ -32,11 +32,11 @@ class UbicacionUseCaseConfigTest {
     @Test
     @DisplayName("La búsqueda usa el reloj del caso de uso y mapea las coordenadas sin perder precisión")
     void buscarDireccionesUseCaseShouldWireClockAndMapper() {
-        UbicacionService ubicacionService = mock(UbicacionService.class);
-        when(ubicacionService.buscar(DIRECCION, AHORA))
+        GeocodificadorPort geocodificadorPort = mock(GeocodificadorPort.class);
+        when(geocodificadorPort.buscar(DIRECCION, AHORA))
                 .thenReturn(List.of(new DireccionEncontrada(DIRECCION, LATITUD, LONGITUD, "San Justo")));
 
-        var response = config.buscarDirecciones(ubicacionService,
+        var response = config.buscarDirecciones(geocodificadorPort,
                 Clock.fixed(AHORA, ZoneOffset.UTC)).execute(new BuscarDireccionesRequest(DIRECCION));
 
         assertThat(response.resultados()).hasSize(1);
@@ -49,11 +49,11 @@ class UbicacionUseCaseConfigTest {
     @Test
     @DisplayName("Resolver la localidad usa el reloj del caso de uso y devuelve la principal y todas las válidas")
     void resolverLocalidadUseCaseShouldWireClockAndMapper() {
-        UbicacionService ubicacionService = mock(UbicacionService.class);
-        when(ubicacionService.resolverLocalidades(LATITUD, LONGITUD, AHORA))
+        GeocodificadorPort geocodificadorPort = mock(GeocodificadorPort.class);
+        when(geocodificadorPort.resolverLocalidades(LATITUD, LONGITUD, AHORA))
                 .thenReturn(new LocalidadesDelPunto(List.of("San Justo", "Villa Luzuriaga")));
 
-        var response = config.resolverLocalidad(ubicacionService,
+        var response = config.resolverLocalidad(geocodificadorPort,
                 Clock.fixed(AHORA, ZoneOffset.UTC)).execute(new ResolverLocalidadRequest(LATITUD, LONGITUD));
 
         assertThat(response.localidad()).isEqualTo("San Justo");

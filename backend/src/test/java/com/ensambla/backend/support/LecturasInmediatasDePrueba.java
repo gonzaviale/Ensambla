@@ -11,10 +11,9 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
 import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagen;
 import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenRequest;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +46,7 @@ public class LecturasInmediatasDePrueba {
     private final PoliticaProcesamiento politicaProcesamiento;
 
     public void registrar(NegocioId negocioId, OffsetDateTime ahora) {
-        new LeerImagen(lectorCompatible(), new PropuestaLecturaService(), UMBRAL_CONFIANZA, negocioPropio(negocioId),
+        new LeerImagen(lectorCompatible(), UMBRAL_CONFIANZA, negocioPropio(negocioId),
                 controlPlanService, usoPlanRepository, politicaProcesamiento,
                 Clock.fixed(ahora.toInstant(), ahora.getOffset()))
                 .execute(new LeerImagenRequest(usuarioDe(negocioId), ImagenTestData.jpeg(), "Ventas",
@@ -68,9 +67,9 @@ public class LecturasInmediatasDePrueba {
         return UsuarioId.de(negocioId.valor());
     }
 
-    private static NegocioService negocioPropio(NegocioId negocioId) {
-        NegocioService negocioService = mock(NegocioService.class);
-        when(negocioService.obtenerDelUsuario(usuarioDe(negocioId))).thenReturn(negocioId);
-        return negocioService;
+    private static NegocioRepository negocioPropio(NegocioId negocioId) {
+        NegocioRepository negocioRepository = mock(NegocioRepository.class);
+        when(negocioRepository.obtenerIdDelUsuario(usuarioDe(negocioId))).thenReturn(negocioId);
+        return negocioRepository;
     }
 }

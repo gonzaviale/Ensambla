@@ -9,9 +9,9 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.registro.RegistroDatosService;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,29 +37,29 @@ class ObtenerRegistroTest {
     private static final RegistroId REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
 
     @Mock
-    private NegocioService negocioService;
+    private NegocioRepository negocioRepository;
 
     @Mock
-    private CampoService campoService;
+    private CampoRepository campoRepository;
 
     @Mock
-    private RegistroDatosService registroDatosService;
+    private RegistroRepository registroRepository;
 
     private ObtenerRegistro obtenerRegistro;
 
     @BeforeEach
     void setUp() {
         obtenerRegistro = new ObtenerRegistro(
-                negocioService, campoService, registroDatosService);
+                negocioRepository, campoRepository, registroRepository);
     }
 
     @Test
     @DisplayName("Devuelve el registro del negocio de la sesión mapeado")
     void executeShouldReturnMappedRegistroOfTheSessionNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(
                 Registro.builder().id(REGISTRO_ID).bloqueId(BLOQUE_ID).valores(Map.of("campo", "dato")).build());
-        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
 
         ObtenerRegistroResponse response = obtenerRegistro.execute(
                 new ObtenerRegistroRequest(USUARIO_ID, REGISTRO_ID));
@@ -75,10 +75,10 @@ class ObtenerRegistroTest {
         UUID dobleId = UUID.fromString("e0000000-0000-4000-8000-000000000002");
         Campo doble = Campo.builder().id(CampoId.de(dobleId)).tipo(TipoCampo.FORMULA)
                 .formula("{" + cantidadId + "} * 2").build();
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(Registro.builder()
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(Registro.builder()
                 .id(REGISTRO_ID).bloqueId(BLOQUE_ID).valores(Map.of(cantidadId.toString(), 4)).build());
-        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(doble));
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of(doble));
 
         ObtenerRegistroResponse response = obtenerRegistro.execute(
                 new ObtenerRegistroRequest(USUARIO_ID, REGISTRO_ID));
@@ -89,8 +89,8 @@ class ObtenerRegistroTest {
     @Test
     @DisplayName("Propaga 'no existe' cuando el registro es de otro negocio")
     void executeShouldPropagateNotFound() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID))
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID))
                 .thenThrow(new ResourceNotFoundException("El registro no existe"));
 
         assertThatThrownBy(() -> obtenerRegistro.execute(new ObtenerRegistroRequest(USUARIO_ID, REGISTRO_ID)))

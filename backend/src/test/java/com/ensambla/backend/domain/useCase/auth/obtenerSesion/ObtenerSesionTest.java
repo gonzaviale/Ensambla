@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.useCase.auth.obtenerSesion;
 
 import com.ensambla.backend.domain.exception.CredencialesInvalidasException;
-import com.ensambla.backend.domain.service.usuario.UsuarioService;
+import com.ensambla.backend.domain.repository.usuario.UsuarioRepository;
 import com.ensambla.backend.domain.useCase.auth.UsuarioResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,27 +18,26 @@ import static org.mockito.Mockito.when;
 
 class ObtenerSesionTest {
 
-    private final UsuarioService service = mock(UsuarioService.class);
-    private final ObtenerSesion useCase = new ObtenerSesion(
-            service);
+    private final UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
+    private final ObtenerSesion useCase = new ObtenerSesion(usuarioRepository);
 
     @Test
-    @DisplayName("Delega al servicio y devuelve la identidad mapeada")
+    @DisplayName("Delega al repositorio y devuelve la identidad mapeada")
     void executeShouldDelegateAndMapResponse() {
-        when(service.obtenerActivo(USUARIO_ID)).thenReturn(usuario());
+        when(usuarioRepository.obtenerActivo(USUARIO_ID)).thenReturn(usuario());
 
         UsuarioResponse result = ejecutar();
 
         assertThat(result.id()).isEqualTo(usuario().getId());
         assertThat(result.nombre()).isEqualTo(NOMBRE);
         assertThat(result.email()).isEqualTo(EMAIL);
-        verify(service).obtenerActivo(USUARIO_ID);
+        verify(usuarioRepository).obtenerActivo(USUARIO_ID);
     }
 
     @Test
-    @DisplayName("Propaga el error del servicio sin convertirlo")
-    void executeShouldPropagateServiceError() {
-        when(service.obtenerActivo(USUARIO_ID)).thenThrow(new CredencialesInvalidasException());
+    @DisplayName("Propaga el error del repositorio sin convertirlo")
+    void executeShouldPropagateRepositoryError() {
+        when(usuarioRepository.obtenerActivo(USUARIO_ID)).thenThrow(new CredencialesInvalidasException());
 
         assertThatThrownBy(this::ejecutar).isInstanceOf(CredencialesInvalidasException.class);
     }

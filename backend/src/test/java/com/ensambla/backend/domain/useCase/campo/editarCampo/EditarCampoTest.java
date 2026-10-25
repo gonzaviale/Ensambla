@@ -12,9 +12,7 @@ import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.useCase.campo.CampoItem;
 import com.ensambla.backend.infrastructure.config.useCase.CampoUseCaseConfig;
 import com.ensambla.backend.support.TransaccionDirecta;
@@ -34,6 +32,7 @@ import static com.ensambla.backend.support.ProyectoTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -48,20 +47,19 @@ class EditarCampoTest {
     private static final ProyectoId OTRO_PROYECTO_ID = ProyectoId.de("e0000000-0000-4000-8000-000000000002");
     private static final BloqueId RELACIONADO_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
 
-    private final NegocioService negocioService = mock(NegocioService.class);
-    private final CampoRepository campoRepository = mock(CampoRepository.class);
-    private final BloqueRepository bloqueRepository = mock(BloqueRepository.class);
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final CampoRepository campoRepository = mock(CampoRepository.class, CALLS_REAL_METHODS);
+    private final BloqueRepository bloqueRepository = mock(BloqueRepository.class, CALLS_REAL_METHODS);
     private final EditarCampo editarCampo = new CampoUseCaseConfig().editarCampo(
-            negocioService,
-            new CampoService(campoRepository, bloqueRepository, new TransaccionDirecta()),
-            new BloqueService(bloqueRepository, new TransaccionDirecta()),
+            negocioRepository,
+            bloqueRepository,
             campoRepository,
             new TransaccionDirecta(),
             Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
 
     @BeforeEach
     void givenNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(bloqueRepository.findByIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Optional.of(
                 Bloque.builder().id(BLOQUE_ID).negocioId(NEGOCIO_ID).proyectoId(PROYECTO_ID).build()));
     }

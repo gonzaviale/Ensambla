@@ -13,11 +13,10 @@ import com.ensambla.backend.domain.model.registro.DireccionOrden;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,16 +48,13 @@ class ListarRegistrosTest {
     private static final RegistroId REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
 
     @Mock
-    private NegocioService negocioService;
+    private NegocioRepository negocioRepository;
 
     @Mock
-    private BloqueService bloqueService;
+    private BloqueRepository bloqueRepository;
 
     @Mock
-    private CampoService campoService;
-
-    @Mock
-    private RegistroDatosService registroDatosService;
+    private CampoRepository campoRepository;
 
     @Mock
     private RegistroRepository registroRepository;
@@ -68,14 +64,14 @@ class ListarRegistrosTest {
     @BeforeEach
     void setUp() {
         listarRegistros = new ListarRegistros(
-                negocioService, bloqueService, campoService, registroDatosService, registroRepository);
+                negocioRepository, bloqueRepository, campoRepository, registroRepository);
     }
 
     @Test
     @DisplayName("Arma la consulta con el negocio de la sesión y devuelve la página mapeada")
     void executeShouldQueryWithSessionNegocioAndReturnMappedPage() {
         givenBloqueOfNegocioWithCampo();
-        when(registroDatosService.listar(any(ConsultaRegistros.class)))
+        when(registroRepository.buscar(any(ConsultaRegistros.class)))
                 .thenReturn(new Pagina<>(List.of(Registro.builder().id(REGISTRO_ID).valores(Map.of()).build()), 1, 5, 6));
         when(registroRepository.sumarNumericos(any(ConsultaRegistros.class), eq(List.of(CAMPO_ID))))
                 .thenReturn(Map.of(CAMPO_ID, new BigDecimal("30")));
@@ -84,7 +80,7 @@ class ListarRegistrosTest {
                 USUARIO_ID, BLOQUE_ID, " harina ", CAMPO_ID.toString(), "asc", 1, 5));
 
         ArgumentCaptor<ConsultaRegistros> consulta = ArgumentCaptor.forClass(ConsultaRegistros.class);
-        verify(registroDatosService).listar(consulta.capture());
+        verify(registroRepository).buscar(consulta.capture());
         assertThat(consulta.getValue().negocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(consulta.getValue().bloqueId()).isEqualTo(BLOQUE_ID);
         assertThat(consulta.getValue().texto()).isEqualTo("harina");
@@ -102,8 +98,8 @@ class ListarRegistrosTest {
     @Test
     @DisplayName("No consulta registros cuando el bloque no es del negocio")
     void executeShouldPropagateNotFoundWhenBloqueIsNotOfTheNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID))
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID))
                 .thenThrow(new ResourceNotFoundException("El bloque no existe"));
         ListarRegistrosRequest request = new ListarRegistrosRequest(
                 USUARIO_ID, BLOQUE_ID, null, null, null, null, null);
@@ -111,17 +107,17 @@ class ListarRegistrosTest {
         assertThatThrownBy(() -> listarRegistros.execute(request))
                 .isInstanceOf(ResourceNotFoundException.class);
 
-        verifyNoInteractions(campoService, registroDatosService, registroRepository);
+        verifyNoInteractions(campoRepository, registroRepository, registroRepository);
     }
 
     @Test
     @DisplayName("Sin campos numéricos los totales traen sólo la cantidad")
     void executeShouldTotalOnlyTheCountWhenThereAreNoNumericCampos() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
-        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID))
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID))
                 .thenReturn(List.of(Campo.builder().id(CAMPO_ID).tipo(TipoCampo.TEXTO).build()));
-        when(registroDatosService.listar(any(ConsultaRegistros.class))).thenReturn(new Pagina<>(List.of(), 0, 20, 3));
+        when(registroRepository.buscar(any(ConsultaRegistros.class))).thenReturn(new Pagina<>(List.of(), 0, 20, 3));
         when(registroRepository.sumarNumericos(any(ConsultaRegistros.class), eq(List.of()))).thenReturn(Map.of());
 
         ListarRegistrosResponse response = listarRegistros.execute(new ListarRegistrosRequest(
@@ -133,9 +129,9 @@ class ListarRegistrosTest {
 
     // --- arrange ---
     private void givenBloqueOfNegocioWithCampo() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
-        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID))
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID))
                 .thenReturn(List.of(Campo.builder().id(CAMPO_ID).tipo(TipoCampo.NUMERO).build()));
     }
 }

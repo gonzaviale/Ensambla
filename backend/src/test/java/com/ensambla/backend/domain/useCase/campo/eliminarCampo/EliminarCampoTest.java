@@ -6,10 +6,8 @@ import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
-import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.infrastructure.config.useCase.CampoUseCaseConfig;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +21,7 @@ import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ProyectoTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -35,10 +34,9 @@ class EliminarCampoTest {
     private static final CampoId FORMULA_ID = CampoId.de("d0000000-0000-4000-8000-000000000002");
     private static final EliminarCampoRequest REQUEST = new EliminarCampoRequest(USUARIO_ID, CAMPO_ID);
 
-    private final NegocioService negocioService = mock(NegocioService.class);
-    private final CampoRepository campoRepository = mock(CampoRepository.class);
-    private final EliminarCampo eliminarCampo = new CampoUseCaseConfig().eliminarCampo(negocioService,
-            new CampoService(campoRepository, mock(BloqueRepository.class), new TransaccionDirecta()),
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final CampoRepository campoRepository = mock(CampoRepository.class, CALLS_REAL_METHODS);
+    private final EliminarCampo eliminarCampo = new CampoUseCaseConfig().eliminarCampo(negocioRepository,
             campoRepository, new TransaccionDirecta());
 
     private final Campo cantidad = Campo.builder().id(CAMPO_ID).negocioId(NEGOCIO_ID).bloqueId(BLOQUE_ID)
@@ -46,7 +44,7 @@ class EliminarCampoTest {
 
     @BeforeEach
     void givenNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test

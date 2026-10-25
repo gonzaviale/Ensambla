@@ -3,12 +3,12 @@ package com.ensambla.backend.support;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
+import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.domain.useCase.plan.PruebaPremiumResponse;
 import com.ensambla.backend.domain.useCase.plan.iniciarPrueba.IniciarPrueba;
 import com.ensambla.backend.domain.useCase.plan.iniciarPrueba.IniciarPruebaRequest;
@@ -34,7 +34,7 @@ import static org.mockito.Mockito.when;
 @RequiredArgsConstructor
 public class PruebasPremiumDePrueba {
 
-    private final SuscripcionService suscripcionService;
+    private final PlanRepository planRepository;
 
     private final PruebaPremiumRepository pruebaPremiumRepository;
 
@@ -47,7 +47,7 @@ public class PruebasPremiumDePrueba {
     private final TransaccionPort transaccionPort;
 
     public PruebaPremiumResponse iniciar(NegocioId negocioId, OffsetDateTime ahora) {
-        return new IniciarPrueba(negocioPropio(negocioId), suscripcionService, pruebaPremiumRepository,
+        return new IniciarPrueba(negocioPropio(negocioId), planRepository, pruebaPremiumRepository,
                 suscripcionRepository, usoPlanRepository, renovacionPremiumRepository, transaccionPort,
                 Clock.fixed(ahora.toInstant(), ahora.getOffset()))
                 .execute(new IniciarPruebaRequest(usuarioDe(negocioId)));
@@ -56,7 +56,7 @@ public class PruebasPremiumDePrueba {
     public void vencer(NegocioId negocioId, OffsetDateTime ahora) {
         PruebaPremiumRepository soloEsteNegocio = mock(PruebaPremiumRepository.class);
         when(soloEsteNegocio.findNegociosVencidos(any())).thenReturn(List.of(negocioId));
-        new VencerPruebas(suscripcionService, soloEsteNegocio, suscripcionRepository, usoPlanRepository,
+        new VencerPruebas(planRepository, soloEsteNegocio, suscripcionRepository, usoPlanRepository,
                 transaccionPort, Clock.fixed(ahora.toInstant(), ahora.getOffset()))
                 .execute();
     }
@@ -66,9 +66,9 @@ public class PruebasPremiumDePrueba {
         return UsuarioId.de(negocioId.valor());
     }
 
-    private static NegocioService negocioPropio(NegocioId negocioId) {
-        NegocioService negocioService = mock(NegocioService.class);
-        when(negocioService.obtenerDelUsuario(usuarioDe(negocioId))).thenReturn(negocioId);
-        return negocioService;
+    private static NegocioRepository negocioPropio(NegocioId negocioId) {
+        NegocioRepository negocioRepository = mock(NegocioRepository.class);
+        when(negocioRepository.obtenerIdDelUsuario(usuarioDe(negocioId))).thenReturn(negocioId);
+        return negocioRepository;
     }
 }

@@ -17,10 +17,9 @@ import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
 import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem.CampoItem;
 import com.ensambla.backend.support.ImagenTestData;
 import com.ensambla.backend.support.ProcesamientoTestData;
@@ -60,11 +59,11 @@ class LeerImagenTest {
     private static final LocalDate DIA_UTC = LocalDate.parse("2026-10-01");
 
     private final LectorCuadernoPort lectorCuadernoPort = mock(LectorCuadernoPort.class);
-    private final NegocioService negocioService = mock(NegocioService.class);
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final ControlPlanService controlPlanService = mock(ControlPlanService.class);
     private final UsoPlanRepository usoPlanRepository = mock(UsoPlanRepository.class);
-    private final LeerImagen leerImagen = new LeerImagen(lectorCuadernoPort, new PropuestaLecturaService(),
-            UMBRAL_CONFIANZA, negocioService, controlPlanService, usoPlanRepository, ProcesamientoTestData.politica(),
+    private final LeerImagen leerImagen = new LeerImagen(lectorCuadernoPort, UMBRAL_CONFIANZA, negocioRepository,
+            controlPlanService, usoPlanRepository, ProcesamientoTestData.politica(),
             Clock.fixed(AHORA.toInstant(), AHORA.getOffset()));
 
     private final LeerImagenRequest request = new LeerImagenRequest(USUARIO_ID, ImagenTestData.jpeg(), "Ventas",
@@ -72,7 +71,7 @@ class LeerImagenTest {
 
     @BeforeEach
     void givenNegocioConCupo() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(controlPlanService.reservarPaginasIa(eq(NEGOCIO_ID), eq(1), eq(AHORA), any()))
                 .thenAnswer(invocacion -> invocacion.<BooleanSupplier>getArgument(3).getAsBoolean());
         when(usoPlanRepository.registrarPaginaInmediata(NEGOCIO_ID, DIA_UTC, 100, AHORA)).thenReturn(true);

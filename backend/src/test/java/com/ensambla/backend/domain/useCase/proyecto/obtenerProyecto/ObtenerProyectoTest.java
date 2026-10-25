@@ -1,9 +1,9 @@
 package com.ensambla.backend.domain.useCase.proyecto.obtenerProyecto;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.plantilla.PlantillaService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.infrastructure.config.useCase.ProyectoUseCaseConfig;
 import com.ensambla.backend.support.ProyectoTestData;
 import org.junit.jupiter.api.DisplayName;
@@ -21,34 +21,34 @@ import static org.mockito.Mockito.when;
 
 class ObtenerProyectoTest {
 
-    private final NegocioService negocioService = mock(NegocioService.class);
-    private final ProyectoService proyectoService = mock(ProyectoService.class);
-    private final PlantillaService plantillaService = mock(PlantillaService.class);
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
+    private final PlantillaRepository plantillaRepository = mock(PlantillaRepository.class);
     private final ProyectoUseCaseConfig config = new ProyectoUseCaseConfig();
     private final ObtenerProyecto obtenerProyecto = config.obtenerProyecto(
-            negocioService,
-            proyectoService);
+            negocioRepository,
+            proyectoRepository);
 
     @Test
     @DisplayName("Resuelve el negocio de sesión, delega y mapea la respuesta")
     void executeShouldResolveNegocioAndMapResponse() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(proyectoService.obtener(NEGOCIO_ID, PROYECTO_ID)).thenReturn(ProyectoTestData.proyecto());
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(proyectoRepository.obtener(NEGOCIO_ID, PROYECTO_ID)).thenReturn(ProyectoTestData.proyecto());
 
         var result = obtenerProyecto.execute(new ObtenerProyectoRequest(USUARIO_ID, PROYECTO_ID));
 
         assertThat(result.id()).isEqualTo(PROYECTO_ID);
-        verify(proyectoService).obtener(NEGOCIO_ID, PROYECTO_ID);
+        verify(proyectoRepository).obtener(NEGOCIO_ID, PROYECTO_ID);
     }
 
     @Test
     @DisplayName("Si no existe el negocio no consulta ni escribe proyectos")
     void executeShouldStopWhenNegocioMissing() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenThrow(new ResourceNotFoundException("Sin negocio"));
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenThrow(new ResourceNotFoundException("Sin negocio"));
 
         assertThatThrownBy(() -> obtenerProyecto.execute(new ObtenerProyectoRequest(USUARIO_ID, PROYECTO_ID)))
                 .isInstanceOf(ResourceNotFoundException.class);
-        verifyNoInteractions(proyectoService, plantillaService);
+        verifyNoInteractions(proyectoRepository, plantillaRepository);
     }
 }
 

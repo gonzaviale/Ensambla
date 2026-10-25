@@ -8,8 +8,7 @@ import com.ensambla.backend.domain.model.sistema.IdSistema;
 import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
-import com.ensambla.backend.domain.service.plan.AccesoContenidoService;
-import com.ensambla.backend.domain.service.zona.AccesoZonaService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
 import com.ensambla.backend.domain.useCase.plan.desbloquearContenidos.DesbloquearContenidos;
 import com.ensambla.backend.domain.useCase.plan.desbloquearContenidos.DesbloquearContenidosRequest;
@@ -52,9 +51,7 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
     @Autowired
     private JdbcTemplate jdbc;
     @Autowired
-    private AccesoContenidoService acceso;
-    @Autowired
-    private AccesoZonaService zona;
+    private ControlPlanService acceso;
     @Autowired
     private SuscripcionesDePrueba suscripcion;
     @Autowired
@@ -107,9 +104,9 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
     @Test
     @DisplayName("Mi zona y Otra zona comparten tres productos; el cuarto no sale en el resultado")
     void filtrarShouldShareQuotaBetweenZonesWithoutLeakingProducts() {
-        ZonaItem primera = zona.filtrar(NegocioId.de(negocio), givenZona("Mi zona", "A", "B"), AHORA);
+        ZonaItem primera = filtrarZona(NegocioId.de(negocio), givenZona("Mi zona", "A", "B"));
 
-        ZonaItem otra = zona.filtrar(NegocioId.de(negocio), givenZona("Otra zona", "C", "D"), AHORA);
+        ZonaItem otra = filtrarZona(NegocioId.de(negocio), givenZona("Otra zona", "C", "D"));
 
         assertThat(primera.productos()).hasSize(2);
         assertThat(otra.productos()).extracting(ZonaItem.ProductoItem::nombre).containsExactly("C");
@@ -208,6 +205,10 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
 
         assertThat(uso.contarRegistros(NegocioId.de(negocio))).isZero();
         assertThat(listarSistemas.execute(new ListarSistemasRequest(UsuarioId.de(usuario)))).hasSize(1);
+    }
+
+    private ZonaItem filtrarZona(NegocioId negocioId, ZonaItem item) {
+        return item.filtrada(acceso.seleccionar(negocioId, TipoContenidoPlan.ZONA, item.clavesDeAcceso(), AHORA));
     }
 
     private ZonaItem givenZona(String nombre, String primero, String segundo) {

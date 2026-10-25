@@ -9,13 +9,11 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.inventario.InventarioService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.inventario.consultarStock.ConsultarStockRequest;
 import com.ensambla.backend.domain.useCase.inventario.listarMovimientos.ListarMovimientosRequest;
 import com.ensambla.backend.domain.useCase.inventario.registrarMovimiento.RegistrarMovimientoRequest;
@@ -31,6 +29,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -43,38 +42,34 @@ class InventarioUseCaseConfigTest {
 
     private final InventarioUseCaseConfig config = new InventarioUseCaseConfig();
 
-    private NegocioService negocioService;
-    private BloqueService bloqueService;
-    private CampoService campoService;
-    private RegistroDatosService registroDatosService;
-    private InventarioService inventarioService;
-    private MovimientoStockRepository movimientoStockRepository;
+    private NegocioRepository negocioRepository;
+    private BloqueRepository bloqueRepository;
+    private CampoRepository campoRepository;
     private RegistroRepository registroRepository;
-
+    private MovimientoStockRepository movimientoStockRepository;
     @BeforeEach
     void setUp() {
-        negocioService = mock(NegocioService.class);
-        bloqueService = mock(BloqueService.class);
-        campoService = mock(CampoService.class);
-        registroDatosService = mock(RegistroDatosService.class);
-        movimientoStockRepository = mock(MovimientoStockRepository.class);
+        negocioRepository = mock(NegocioRepository.class);
+        bloqueRepository = mock(BloqueRepository.class);
+        campoRepository = mock(CampoRepository.class);
         registroRepository = mock(RegistroRepository.class);
-        inventarioService = new InventarioService(movimientoStockRepository);
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(bloqueService.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
-        when(campoService.listarDeBloque(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
+        movimientoStockRepository = mock(MovimientoStockRepository.class, CALLS_REAL_METHODS);
+        registroRepository = mock(RegistroRepository.class);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(bloqueRepository.obtener(BLOQUE_ID, NEGOCIO_ID)).thenReturn(Bloque.builder().id(BLOQUE_ID).build());
+        when(campoRepository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID)).thenReturn(List.of());
     }
 
     @Test
     @DisplayName("El wiring de registrar conecta los servicios y el reloj")
     void registrarMovimientoUseCaseShouldWireCollaborators() {
-        when(registroDatosService.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(givenProducto());
+        when(registroRepository.obtener(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(givenProducto());
         when(movimientoStockRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(movimientoStockRepository.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID))
                 .thenReturn(Map.of(PRODUCTO_ID, BigDecimal.TEN));
 
         var response = config.registrarMovimiento(
-                        negocioService, bloqueService, campoService, registroDatosService, inventarioService,
+                        negocioRepository, bloqueRepository, campoRepository, registroRepository,
                         movimientoStockRepository, new TransaccionDirecta(), Clock.systemUTC())
                 .execute(new RegistrarMovimientoRequest(
                         USUARIO_ID, BLOQUE_ID, PRODUCTO_ID, "ENTRADA", BigDecimal.ONE, null, null));
@@ -93,7 +88,8 @@ class InventarioUseCaseConfigTest {
                 .thenReturn(List.of(givenProducto()));
 
         var response = config.listarMovimientos(
-                        negocioService, bloqueService, campoService, registroRepository, movimientoStockRepository)
+                        negocioRepository, bloqueRepository, campoRepository, registroRepository,
+                                movimientoStockRepository)
                 .execute(new ListarMovimientosRequest(USUARIO_ID, BLOQUE_ID, null));
 
         assertThat(response).singleElement().satisfies(item -> assertThat(item.tipo()).isEqualTo("SALIDA"));
@@ -102,12 +98,13 @@ class InventarioUseCaseConfigTest {
     @Test
     @DisplayName("El wiring de stock conecta los servicios")
     void consultarStockUseCaseShouldWireCollaborators() {
-        when(registroDatosService.listar(any())).thenReturn(new Pagina<>(List.of(givenProducto()), 0, 20, 1));
+        when(registroRepository.buscar(any())).thenReturn(new Pagina<>(List.of(givenProducto()), 0, 20, 1));
         when(movimientoStockRepository.stockDe(List.of(PRODUCTO_ID), NEGOCIO_ID))
                 .thenReturn(Map.of(PRODUCTO_ID, BigDecimal.TWO));
 
         var response = config.consultarStock(
-                        negocioService, bloqueService, campoService, registroDatosService, inventarioService)
+                        negocioRepository, bloqueRepository, campoRepository, registroRepository,
+                                movimientoStockRepository)
                 .execute(new ConsultarStockRequest(USUARIO_ID, BLOQUE_ID, null, null, null));
 
         assertThat(response.contenido()).singleElement()

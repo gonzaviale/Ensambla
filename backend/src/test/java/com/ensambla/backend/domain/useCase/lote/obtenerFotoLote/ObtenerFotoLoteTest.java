@@ -4,8 +4,7 @@ import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.lote.FotoId;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
-import com.ensambla.backend.domain.service.lote.LoteSubidaService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.useCase.lote.FotoArchivoResponse;
 import com.ensambla.backend.support.LoteTestData;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +21,7 @@ import static com.ensambla.backend.support.LoteTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.LoteTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -30,15 +30,16 @@ class ObtenerFotoLoteTest {
 
     private static final FotoId FOTO_AJENA_ID = FotoId.de("00000000-0000-4000-8000-000000000099");
 
-    private final NegocioService negocioService = mock(NegocioService.class);
-    private final LoteSubidaRepository loteSubidaRepository = mock(LoteSubidaRepository.class);
-    private final ArchivoCuadernoPort archivoCuadernoPort = mock(ArchivoCuadernoPort.class);
-    private final ObtenerFotoLote obtenerFotoLote = new ObtenerFotoLote(negocioService,
-            new LoteSubidaService(loteSubidaRepository, archivoCuadernoPort));
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final LoteSubidaRepository loteSubidaRepository = mock(LoteSubidaRepository.class, CALLS_REAL_METHODS);
+    private final ArchivoCuadernoPort archivoCuadernoPort = mock(ArchivoCuadernoPort.class, CALLS_REAL_METHODS);
+    private final ObtenerFotoLote obtenerFotoLote = new ObtenerFotoLote(negocioRepository,
+            archivoCuadernoPort,
+            loteSubidaRepository);
 
     @BeforeEach
     void givenNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test

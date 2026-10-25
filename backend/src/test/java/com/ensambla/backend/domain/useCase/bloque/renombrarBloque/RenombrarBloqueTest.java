@@ -5,9 +5,8 @@ import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.useCase.bloque.BloqueItem;
 import com.ensambla.backend.infrastructure.config.useCase.BloqueUseCaseConfig;
 import com.ensambla.backend.support.ProyectoTestData;
@@ -27,6 +26,7 @@ import static com.ensambla.backend.support.ProyectoTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -35,13 +35,12 @@ import static org.mockito.Mockito.when;
 
 class RenombrarBloqueTest {
 
-    private final NegocioService negocioService = mock(NegocioService.class);
-    private final BloqueRepository bloqueRepository = mock(BloqueRepository.class);
-    private final ProyectoService proyectoService = mock(ProyectoService.class);
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final BloqueRepository bloqueRepository = mock(BloqueRepository.class, CALLS_REAL_METHODS);
+    private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
     private final RenombrarBloque renombrarBloque = new BloqueUseCaseConfig().renombrarBloque(
-            negocioService,
-            new BloqueService(bloqueRepository, new TransaccionDirecta()),
-            proyectoService,
+            negocioRepository,
+            proyectoRepository,
             bloqueRepository,
             new TransaccionDirecta(),
             Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
@@ -50,7 +49,7 @@ class RenombrarBloqueTest {
 
     @BeforeEach
     void givenNegocio() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test
@@ -88,7 +87,7 @@ class RenombrarBloqueTest {
         assertThatThrownBy(() -> renombrarBloque.execute(
                 new RenombrarBloqueRequest(USUARIO_ID, bloque.getId(), "Compradores")))
                 .isInstanceOf(ResourceNotFoundException.class);
-        verifyNoInteractions(proyectoService);
+        verifyNoInteractions(proyectoRepository);
         verify(bloqueRepository, never()).save(any());
     }
 
@@ -96,7 +95,7 @@ class RenombrarBloqueTest {
     private Bloque givenBloqueDelProyecto(int indice) {
         Bloque bloque = proyecto.getBloques().get(indice);
         when(bloqueRepository.findByIdAndNegocioId(bloque.getId(), NEGOCIO_ID)).thenReturn(Optional.of(bloque));
-        when(proyectoService.obtener(NEGOCIO_ID, PROYECTO_ID)).thenReturn(proyecto);
+        when(proyectoRepository.obtener(NEGOCIO_ID, PROYECTO_ID)).thenReturn(proyecto);
         return bloque;
     }
 }

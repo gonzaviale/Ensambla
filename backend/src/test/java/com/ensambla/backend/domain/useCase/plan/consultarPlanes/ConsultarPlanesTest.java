@@ -7,13 +7,12 @@ import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Plan;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.domain.useCase.plan.PruebaPremiumResponse;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +33,7 @@ import static com.ensambla.backend.support.PlanTestData.plan;
 import static com.ensambla.backend.support.PlanTestData.suscripcion;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -45,16 +45,16 @@ class ConsultarPlanesTest {
 
     private static final UsuarioId USUARIO_ID = UsuarioId.de("bb000000-0000-4000-8000-000000000009");
 
-    private final NegocioService negocioService = mock(NegocioService.class);
-    private final PlanRepository planRepository = mock(PlanRepository.class);
-    private final SuscripcionRepository suscripcionRepository = mock(SuscripcionRepository.class);
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final PlanRepository planRepository = mock(PlanRepository.class, CALLS_REAL_METHODS);
+    private final SuscripcionRepository suscripcionRepository = mock(SuscripcionRepository.class, CALLS_REAL_METHODS);
     private final PruebaPremiumRepository pruebaPremiumRepository = mock(PruebaPremiumRepository.class);
     private final UsoPlanRepository usoPlanRepository = mock(UsoPlanRepository.class);
     private final RenovacionPremiumRepository renovacionPremiumRepository = mock(RenovacionPremiumRepository.class);
 
     @BeforeEach
     void givenNegocioDelUsuario() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test
@@ -213,7 +213,7 @@ class ConsultarPlanesTest {
     @Test
     @DisplayName("Un usuario sin negocio no consulta planes de otro usuario")
     void executeShouldPropagateMissingBusiness() {
-        when(negocioService.obtenerDelUsuario(USUARIO_ID))
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID))
                 .thenThrow(new ResourceNotFoundException("Negocio no encontrado"));
 
         assertThatThrownBy(() -> consultar(AHORA))
@@ -245,7 +245,7 @@ class ConsultarPlanesTest {
 
     // --- act ---
     private ConsultarPlanesResponse consultar(OffsetDateTime ahora) {
-        return new ConsultarPlanes(negocioService, new SuscripcionService(planRepository, suscripcionRepository),
+        return new ConsultarPlanes(negocioRepository, suscripcionRepository,
                 planRepository, pruebaPremiumRepository,
                 usoPlanRepository, renovacionPremiumRepository, new TransaccionDirecta(),
                 Clock.fixed(ahora.toInstant(), ahora.getOffset()))

@@ -1,7 +1,6 @@
 package com.ensambla.backend.domain.service.registro;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
-import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.CampoId;
@@ -26,7 +25,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -61,40 +59,6 @@ class RegistroDatosServiceTest {
 
     @InjectMocks
     private RegistroDatosService registroDatosService;
-
-    @Test
-    @DisplayName("Devuelve el registro del negocio")
-    void obtenerShouldReturnRegistroOfNegocio() {
-        Registro registro = registro();
-        when(registroRepository.findByIdAndNegocioId(REGISTRO_ID, NEGOCIO_ID)).thenReturn(Optional.of(registro));
-
-        Registro result = registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID);
-
-        assertThat(result).isSameAs(registro);
-    }
-
-    @Test
-    @DisplayName("Responde 'no existe' cuando el registro es de otro negocio o no existe")
-    void obtenerShouldThrowWhenRegistroIsNotFound() {
-        when(registroRepository.findByIdAndNegocioId(REGISTRO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> registroDatosService.obtener(REGISTRO_ID, NEGOCIO_ID))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("El registro no existe");
-    }
-
-    @Test
-    @DisplayName("Lista los registros que entrega el repositorio para la consulta")
-    void listarShouldReturnPaginaFromRepository() {
-        ConsultaRegistros consulta = new ConsultaRegistros(
-                NEGOCIO_ID, BLOQUE_ID, null, null, DireccionOrden.DESC, 0, 20);
-        Pagina<Registro> pagina = new Pagina<>(List.of(registro()), 0, 20, 1);
-        when(registroRepository.buscar(consulta)).thenReturn(pagina);
-
-        Pagina<Registro> result = registroDatosService.listar(consulta);
-
-        assertThat(result).isSameAs(pagina);
-    }
 
     @Test
     @DisplayName("Edita sólo lo enviado, conserva el resto y actualiza la fecha de modificación")
