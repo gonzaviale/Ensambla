@@ -1326,3 +1326,51 @@ body:has(.editor-layout) {
     flex-wrap: wrap;
   }
 }
+
+/* En el celular: los botones van abajo de la descripción y la distribución de tablas no se muestra (es una sola columna). */
+@media (max-width: 680px) {
+  .canvas-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .canvas-heading p {
+    max-width: none;
+  }
+  .canvas-heading-actions {
+    max-width: none;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+  .canvas-heading-actions .btn {
+    flex: 0 1 auto;
+    min-width: 0;
+    gap: 5px;
+    font-size: 12px;
+    padding: 6px 9px;
+    min-height: 38px;
+    white-space: nowrap;
+  }
+  .canvas-heading-actions .foto-redonda {
+    width: 40px;
+    height: 40px;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--coral) 16%, transparent);
+  }
+  .canvas-heading-actions .foto-redonda .icon {
+    width: 19px;
+    height: 19px;
+  }
+  /* El ancho de cada tabla y la distribución no aplican: en el celular va todo en una columna. */
+  .layout-toolbar.compacta,
+  .block-width-row,
+  .preview-sizing,
+  .studio-canvas .layout-toolbar {
+    display: none;
+  }
+}
+/* En los celulares más angostos, los botones del encabezado sin ícono para que entren en una fila. */
+@media (max-width: 400px) {
+  .canvas-heading-actions .btn .icon {
+    display: none;
+  }
+}
