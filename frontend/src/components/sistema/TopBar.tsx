@@ -88,7 +88,13 @@ export function TopBar({
       </nav>
       <div className="row topbar-right">
         {campana}
-        <button type="button" className="help-trigger" onClick={onAyuda}>
+        <button
+          type="button"
+          className="help-trigger"
+          aria-label="¿Necesitás una mano?"
+          title="¿Necesitás una mano?"
+          onClick={onAyuda}
+        >
           <Icon name="help" />
         </button>
         <MenuDePerfil

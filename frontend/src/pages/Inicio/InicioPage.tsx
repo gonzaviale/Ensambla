@@ -1,9 +1,9 @@
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
+import { FichasParaEmpezar } from '@/components/sistema/FichasParaEmpezar';
 import { Icon } from '@/components/sistema/Icon';
 import { PageFooter } from '@/components/sistema/PageFooter';
 import { varsDeColor } from '@/components/sistema/colores';
 import { CATALOG, TEMPLATES } from '@/lib/sistema/catalogo';
-import { allBlocks, totals } from '@/lib/sistema/core';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
 import type { ClavePlantilla, Color } from '@/lib/sistema/tipos';
 import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
@@ -11,14 +11,11 @@ import { useAccionesDelTutorial } from '@/hooks/tutorial/useAccionesDelTutorial'
 import { useSistemaStore } from '@/stores/sistemaStore';
 
 const CLAVES = Object.keys(TEMPLATES) as ClavePlantilla[];
-// Los cuadernos guardados van rotando los cinco colores de la marca.
-const COLORES_DE_CUADERNOS: Color[] = ['coral', 'blue', 'orange', 'petrol', 'yellow'];
 
-// Inicio: un saludo, las tres maneras de empezar como fichas de color, las otras herramientas, los
-// cuadernos guardados y las plantillas. Fondo blanco; el color va lleno en cada ficha, con íconos blancos.
+// Inicio: un saludo, las tres maneras de empezar como fichas de color, las otras herramientas y las
+// plantillas (los cuadernos guardados tienen su propia pantalla, «Mis cuadernos»). Fondo blanco; el color va lleno en cada ficha, con íconos blancos.
 export function InicioPage() {
   const nombre = useNombre();
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const tutorial = useAccionesDelTutorial();
   const navegacion = useNavegacion();
@@ -29,9 +26,7 @@ export function InicioPage() {
         <section className="inicio-portada">
           <div className="inicio-saludo">
             <p className="inicio-hola">Hola, {nombre}.</p>
-            <h1>
-              ¿En qué puedo ayudarte hoy?
-            </h1>
+            <h1>¿En qué puedo ayudarte hoy?</h1>
             <p className="inicio-bajada">
               Tocá una ficha para arrancar. Lo que armes, después lo podés cambiar.
             </p>
@@ -43,33 +38,7 @@ export function InicioPage() {
             </button>
           </div>
 
-          <div className="inicio-fichas" data-tour="choose">
-            <Ficha
-              color="orange"
-              icono="spark"
-              titulo="Crear con Sami"
-              texto="Contale cómo trabajás y te propone una base."
-              accion="guide"
-              imagen="/mockup/sami-constructora.webp"
-              onClick={() => void navegacion.irATaller()}
-            />
-            <Ficha
-              color="blue"
-              icono="grid"
-              titulo="Elegir una plantilla"
-              texto="Almacén, depósito o pedidos, listos para usar."
-              accion="templates"
-              onClick={() => void navegacion.irAPlantillas()}
-            />
-            <Ficha
-              color="yellow"
-              icono="plus"
-              titulo="Empezar de cero"
-              texto="Armá tus columnas y tus secciones a tu manera."
-              accion="blank"
-              onClick={() => abrirModal({ tipo: 'blanco' })}
-            />
-          </div>
+          <FichasParaEmpezar guia />
         </section>
 
         <section className="inicio-atajos" aria-label="Más para tu negocio">
@@ -95,37 +64,6 @@ export function InicioPage() {
             onClick={() => void navegacion.irAZona()}
           />
         </section>
-
-        {sistemas.length > 0 && (
-          <section id="my-systems" className="inicio-bloque">
-            <Titulo titulo="Seguí donde lo dejaste" />
-            <div className="inicio-cuadernos">
-              {sistemas.map((sistema, indice) => {
-                const color = COLORES_DE_CUADERNOS[indice % COLORES_DE_CUADERNOS.length] ?? 'coral';
-                const primero = allBlocks(sistema)[0];
-                return (
-                  <button
-                    key={sistema.id}
-                    type="button"
-                    className="inicio-cuaderno"
-                    style={varsDeColor(color)}
-                    data-color={color}
-                    onClick={() => void navegacion.abrirSistema(sistema.id)}
-                  >
-                    <span className="inicio-cuaderno-lomo" aria-hidden="true" />
-                    <span className="inicio-cuaderno-tapa">
-                      <Icon name={primero ? CATALOG[primero.type].icon : 'note'} />
-                      <strong>{sistema.name}</strong>
-                      <span>
-                        {allBlocks(sistema).length} bloques · {totals(sistema).records} registros
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        )}
 
         <section className="inicio-bloque">
           <Titulo
@@ -226,48 +164,6 @@ type PropsDeAccion = {
   texto: string;
   onClick: () => void;
 };
-
-// Una de las tres maneras de empezar: ficha de color lleno con el ícono en blanco (o una imagen de Sami).
-function Ficha({
-  color,
-  icono,
-  titulo,
-  texto,
-  accion,
-  imagen,
-  onClick,
-}: PropsDeAccion & {
-  /** Marca que usa la guía para saber qué camino eligió la persona. */
-  accion: string;
-  /** Imagen que reemplaza al ícono. */
-  imagen?: string;
-}) {
-  return (
-    <button
-      type="button"
-      className="inicio-ficha"
-      style={varsDeColor(color)}
-      data-color={color}
-      data-accion={accion}
-      onClick={onClick}
-    >
-      {imagen ? (
-        <img className="inicio-ficha-imagen" src={imagen} alt="" />
-      ) : (
-        <span className="inicio-ficha-icono">
-          <Icon name={icono} />
-        </span>
-      )}
-      <span className="inicio-ficha-texto">
-        <strong>{titulo}</strong>
-        <span>{texto}</span>
-      </span>
-      <span className="inicio-ficha-flecha">
-        <Icon name="arrow" />
-      </span>
-    </button>
-  );
-}
 
 // Otra herramienta: un botón redondo de color con el ícono en blanco y su explicación al lado.
 function Atajo({ color, icono, titulo, texto, onClick }: PropsDeAccion) {

@@ -48,21 +48,16 @@ describe('inicio', () => {
     );
   });
 
-  it('lista los sistemas guardados y abre uno', async () => {
+  it('«Mis cuadernos» lleva a su propia pantalla', async () => {
     const { user, router } = await abrirInicio(true);
-
-    await user.click(await screen.findByRole('button', { name: /Mi almacén/ }, ESPERA));
-
-    await verifyPathAsync(router, `/sistemas/${useSistemaStore.getState().activeId}`);
-    expect(useSistemaStore.getState().modo).toBe('use');
-  });
-
-  it('«Mis cuadernos» sin sistemas explica por dónde empezar', async () => {
-    const { user } = await abrirInicio();
+    expect(screen.queryByRole('button', { name: /Mi almacén/ })).toBeNull();
 
     await clickButton(user, 'Mis cuadernos');
 
-    await verifyToastAsync(/tres caminos/);
+    await verifyPathAsync(router, '/cuadernos');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Mis cuadernos' }, ESPERA),
+    ).toBeVisible();
   });
 
   it('muestra la zona sin mapa y lleva a «Mi zona»', async () => {
