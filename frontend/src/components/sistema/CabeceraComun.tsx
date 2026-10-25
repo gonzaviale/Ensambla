@@ -22,7 +22,7 @@ export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
       onZona={() => void navegacion.irAZona()}
       onPlanes={() => void navegacion.irAPlanes()}
       onAyuda={() => abrirModal({ tipo: 'ayuda' })}
-      onPerfil={() => abrirModal({ tipo: 'perfil' })}
+      onCuenta={() => void navegacion.irACuenta()}
     />
   );
 }

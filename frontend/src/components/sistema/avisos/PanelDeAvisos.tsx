@@ -44,7 +44,6 @@ export function PanelDeAvisos() {
   const [montado, setMontado] = useState(false);
   const [visible, setVisible] = useState(false);
   const [pregunta, setPregunta] = useState('');
-  const ajustes = useRef<HTMLDetailsElement>(null);
   const abierto = panel.abierto;
 
   // Entrar y salir con animación; el foco va al botón de cerrar y vuelve a la campana.
@@ -355,50 +354,23 @@ export function PanelDeAvisos() {
             </div>
           </>
         )}
-        <details className="alertas-ajustes" ref={ajustes}>
-          <summary>
-            <span className="ajustes-icono">
-              <Icon name="settings" />
-            </span>
-            <span className="ajustes-titulo">
-              <strong>Qué me avisa Sami</strong>
-              <small>Elegí de qué temas querés recibir avisos</small>
-            </span>
-            <Icon name="down" />
-          </summary>
-          {GRUPOS_EN_ORDEN.map(([clave, nombre]) => (
-            <label className="check-row ajuste-tema" key={clave}>
-              <input
-                type="checkbox"
-                checked={acciones.grupos[clave] !== false}
-                onChange={(evento) => acciones.alternarGrupo(clave, evento.target.checked)}
-              />
-              {nombre}
-            </label>
-          ))}
-          {acciones.descartadas > 0 && (
-            <button type="button" className="text-link" onClick={acciones.restaurar}>
-              Volver a mostrar{' '}
-              {acciones.descartadas === 1
-                ? '1 aviso oculto'
-                : `${acciones.descartadas} avisos ocultos`}
-            </button>
-          )}
+        <div className="alertas-pie">
+          <button
+            type="button"
+            className="text-link"
+            onClick={() => {
+              cerrarPanel();
+              void navegacion.irACuenta('notificaciones');
+            }}
+          >
+            <Icon name="settings" /> Elegir qué avisos recibo
+          </button>
           {!hayDemo && !sinDatos && (
             <button type="button" className="text-link" onClick={acciones.crearDemo}>
               Crear un almacén de ejemplo para probar
             </button>
           )}
-          <p className="alertas-nota">
-            <Icon name="help" />
-            Sami arma los avisos con reglas sobre tus datos y sobre datos agregados de tu zona:
-            nunca se muestra un comercio puntual y hace falta un mínimo de {
-              MINIMO_DE_COMERCIOS
-            }{' '}
-            para que un dato cuente. Cada aviso muestra de dónde sale. No cambia nada sin que vos lo
-            apliques.
-          </p>
-        </details>
+        </div>
       </div>
     </div>
   );

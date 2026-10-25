@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Icon } from './Icon';
 import { Logo } from './Logo';
 
-export type SeccionActiva = 'home' | 'templates' | 'zone' | 'plans';
+export type SeccionActiva = 'home' | 'templates' | 'zone' | 'plans' | 'account';
 
 type TopBarProps = {
   active?: SeccionActiva;
@@ -16,7 +16,7 @@ type TopBarProps = {
   onZona: () => void;
   onPlanes: () => void;
   onAyuda: () => void;
-  onPerfil: () => void;
+  onCuenta: () => void;
 };
 
 // Cabecera común de inicio, plantillas, taller y zona. Igual al mockup; «Proveedores cerca» pasa a «Mi zona».
@@ -31,7 +31,7 @@ export function TopBar({
   onZona,
   onPlanes,
   onAyuda,
-  onPerfil,
+  onCuenta,
 }: TopBarProps) {
   return (
     <header className="topbar">
@@ -76,8 +76,9 @@ export function TopBar({
         <button
           type="button"
           className="row profile"
-          aria-label="Cambiar tu nombre"
-          onClick={onPerfil}
+          aria-label="Tu cuenta y configuración"
+          aria-current={active === 'account' ? 'page' : undefined}
+          onClick={onCuenta}
         >
           <span>
             <span className="profile-name">{nombre}</span>

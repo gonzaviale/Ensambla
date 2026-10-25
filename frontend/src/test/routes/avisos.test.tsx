@@ -172,10 +172,9 @@ describe('la campana y el panel de avisos', () => {
       ESPERA,
     );
 
-    await user.click(within(panel).getByText('Qué me avisa Sami'));
-    await user.click(
-      within(panel).getByRole('button', { name: 'Volver a mostrar 1 aviso oculto' }),
-    );
+    await user.click(within(panel).getByRole('button', { name: /Elegir qué avisos recibo/ }));
+    await screen.findByRole('heading', { name: 'Qué me avisa Sami' });
+    await user.click(screen.getByRole('button', { name: 'Volver a mostrar 1 aviso oculto' }));
     await waitFor(() => expect(useSistemaStore.getState().avisos).toHaveLength(antes));
   });
 
@@ -183,15 +182,16 @@ describe('la campana y el panel de avisos', () => {
     const { user } = await abrirConDemo();
     const panel = await abrirPanel(user);
 
-    await user.click(within(panel).getByText('Qué me avisa Sami'));
-    await user.click(within(panel).getByRole('checkbox', { name: 'Tu stock' }));
+    await user.click(within(panel).getByRole('button', { name: /Elegir qué avisos recibo/ }));
+    await screen.findByRole('heading', { name: 'Qué me avisa Sami' });
+    await user.click(screen.getByRole('checkbox', { name: 'Tu stock' }));
 
     await waitFor(() =>
       expect(useSistemaStore.getState().avisos.some((aviso) => aviso.grupo === 'stock')).toBe(
         false,
       ),
     );
-    expect(within(panel).getByRole('checkbox', { name: 'Tu stock' })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Tu stock' })).not.toBeChecked();
   });
 
   it('registrar entrada abre el formulario del bloque de entradas', async () => {

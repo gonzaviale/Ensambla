@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicaRouteImport } from './routes/_publica'
+import { Route as AppCuentaRouteImport } from './routes/_app/cuenta'
 import { Route as AppInicioRouteImport } from './routes/_app/inicio'
 import { Route as AppPlanesRouteImport } from './routes/_app/planes'
 import { Route as AppPlantillasRouteImport } from './routes/_app/plantillas'
@@ -30,6 +31,11 @@ const AppRoute = AppRouteImport.update({
 const PublicaRoute = PublicaRouteImport.update({
   id: '/_publica',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppCuentaRoute = AppCuentaRouteImport.update({
+  id: '/cuenta',
+  path: '/cuenta',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppInicioRoute = AppInicioRouteImport.update({
   id: '/inicio',
@@ -89,6 +95,7 @@ const AppSistemasSistemaIdRoute = AppSistemasSistemaIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicaIndexRoute
+  '/cuenta': typeof AppCuentaRoute
   '/inicio': typeof AppInicioRoute
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof PublicaIndexRoute
+  '/cuenta': typeof AppCuentaRoute
   '/inicio': typeof AppInicioRoute
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_publica': typeof PublicaRouteWithChildren
+  '/_app/cuenta': typeof AppCuentaRoute
   '/_app/inicio': typeof AppInicioRoute
   '/_app/planes': typeof AppPlanesRoute
   '/_app/plantillas': typeof AppPlantillasRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/cuenta'
     | '/inicio'
     | '/planes'
     | '/plantillas'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/cuenta'
     | '/inicio'
     | '/planes'
     | '/plantillas'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/_publica'
+    | '/_app/cuenta'
     | '/_app/inicio'
     | '/_app/planes'
     | '/_app/plantillas'
@@ -193,6 +205,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof PublicaRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/cuenta': {
+      id: '/_app/cuenta'
+      path: '/cuenta'
+      fullPath: '/cuenta'
+      preLoaderRoute: typeof AppCuentaRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/inicio': {
       id: '/_app/inicio'
@@ -275,6 +294,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppCuentaRoute: typeof AppCuentaRoute
   AppInicioRoute: typeof AppInicioRoute
   AppPlanesRoute: typeof AppPlanesRoute
   AppPlantillasRoute: typeof AppPlantillasRoute
@@ -286,6 +306,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppCuentaRoute: AppCuentaRoute,
   AppInicioRoute: AppInicioRoute,
   AppPlanesRoute: AppPlanesRoute,
   AppPlantillasRoute: AppPlantillasRoute,

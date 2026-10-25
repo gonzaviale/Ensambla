@@ -3,6 +3,7 @@ import { ApiError } from '@/api/apiError';
 import { useNavigate } from '@tanstack/react-router';
 import { useUsuario } from '@/hooks/auth/queries';
 import { usePreferencias } from '@/hooks/preferencias/queries';
+import type { SeccionDeCuenta } from '@/lib/cuenta';
 import type { Sistema } from '@/lib/sistema/tipos';
 import { useSistemaStore, type ModoDelEditor } from '@/stores/sistemaStore';
 
@@ -66,6 +67,11 @@ export function useNavegacion() {
       return navigate({ to: '/taller', search: { sistema: id } });
     },
     irAZona: () => irA('/zona'),
+    /** El avatar: la configuración de la cuenta, en la sección que se pida (el perfil, si no). */
+    irACuenta: (seccion?: SeccionDeCuenta) => {
+      limpiar();
+      return navigate({ to: '/cuenta', search: { seccion } });
+    },
     irAPlanes: () => irA('/planes'),
     /** «Armalo con Sami»: la conversación que crea un proyecto real en el backend. */
     irASami: () => irA('/sami'),

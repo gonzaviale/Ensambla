@@ -9,7 +9,6 @@ import { ModalConfirmar } from './modales/ModalConfirmar';
 import { ModalConsejosDeFoto } from './modales/ModalConsejosDeFoto';
 import { ModalElegirBloque } from './modales/ModalElegirBloque';
 import { ModalImportar } from './modales/ModalImportar';
-import { ModalPerfil } from './modales/ModalPerfil';
 import { ModalPlantilla } from './modales/ModalPlantilla';
 import { ModalRenombrar } from './modales/ModalRenombrar';
 import { ModalRegistro } from './modales/ModalRegistro';
@@ -35,8 +34,6 @@ function ContenidoDelModal() {
       return <ModalPlantilla clave={modal.clave} />;
     case 'ayuda':
       return <ModalAyuda respuesta={modal.respuesta} />;
-    case 'perfil':
-      return <ModalPerfil />;
     case 'pruebaPremium':
       return <ModalPruebaPremium />;
     case 'contratarPremium':

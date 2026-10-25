@@ -17,7 +17,6 @@ export type Modal =
   | { tipo: 'blanco' }
   | { tipo: 'plantilla'; clave: ClavePlantilla }
   | { tipo: 'ayuda'; respuesta?: string }
-  | { tipo: 'perfil' }
   | { tipo: 'pruebaPremium' }
   | { tipo: 'contratarPremium' }
   | { tipo: 'cancelarRenovacion' }
