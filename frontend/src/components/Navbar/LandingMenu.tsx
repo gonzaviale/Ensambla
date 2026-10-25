@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ListIcon, XIcon } from '@phosphor-icons/react';
+import { Link } from '@tanstack/react-router';
 import { cn } from '@/lib/cn';
 
 const SECCIONES = [
@@ -76,6 +77,9 @@ export function LandingMenu() {
             {nombre}
           </a>
         ))}
+        <Link to="/planes" className={enlace} onClick={() => setAbierto(false)}>
+          Planes
+        </Link>
       </nav>
     </div>
   );

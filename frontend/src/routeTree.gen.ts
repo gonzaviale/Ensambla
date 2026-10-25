@@ -10,15 +10,16 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as PlanesRouteImport } from './routes/_planes'
 import { Route as PublicaRouteImport } from './routes/_publica'
 import { Route as AppCuentaRouteImport } from './routes/_app/cuenta'
 import { Route as AppInicioRouteImport } from './routes/_app/inicio'
-import { Route as AppPlanesRouteImport } from './routes/_app/planes'
 import { Route as AppPlantillasRouteImport } from './routes/_app/plantillas'
 import { Route as AppSamiRouteImport } from './routes/_app/sami'
 import { Route as AppTallerRouteImport } from './routes/_app/taller'
 import { Route as AppUbicacionRouteImport } from './routes/_app/ubicacion'
 import { Route as AppZonaRouteImport } from './routes/_app/zona'
+import { Route as PlanesPlanesRouteImport } from './routes/_planes/planes'
 import { Route as PublicaIndexRouteImport } from './routes/_publica/index'
 import { Route as PublicaLoginRouteImport } from './routes/_publica/login'
 import { Route as PublicaRegistroRouteImport } from './routes/_publica/registro'
@@ -26,6 +27,10 @@ import { Route as AppSistemasSistemaIdRouteImport } from './routes/_app/sistemas
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanesRoute = PlanesRouteImport.update({
+  id: '/_planes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PublicaRoute = PublicaRouteImport.update({
@@ -40,11 +45,6 @@ const AppCuentaRoute = AppCuentaRouteImport.update({
 const AppInicioRoute = AppInicioRouteImport.update({
   id: '/inicio',
   path: '/inicio',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppPlanesRoute = AppPlanesRouteImport.update({
-  id: '/planes',
-  path: '/planes',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPlantillasRoute = AppPlantillasRouteImport.update({
@@ -72,6 +72,11 @@ const AppZonaRoute = AppZonaRouteImport.update({
   path: '/zona',
   getParentRoute: () => AppRoute,
 } as any)
+const PlanesPlanesRoute = PlanesPlanesRouteImport.update({
+  id: '/planes',
+  path: '/planes',
+  getParentRoute: () => PlanesRoute,
+} as any)
 const PublicaIndexRoute = PublicaIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -97,12 +102,12 @@ export interface FileRoutesByFullPath {
   '/': typeof PublicaIndexRoute
   '/cuenta': typeof AppCuentaRoute
   '/inicio': typeof AppInicioRoute
-  '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
   '/sami': typeof AppSamiRoute
   '/taller': typeof AppTallerRoute
   '/ubicacion': typeof AppUbicacionRoute
   '/zona': typeof AppZonaRoute
+  '/planes': typeof PlanesPlanesRoute
   '/login': typeof PublicaLoginRoute
   '/registro': typeof PublicaRegistroRoute
   '/sistemas/$sistemaId': typeof AppSistemasSistemaIdRoute
@@ -111,12 +116,12 @@ export interface FileRoutesByTo {
   '/': typeof PublicaIndexRoute
   '/cuenta': typeof AppCuentaRoute
   '/inicio': typeof AppInicioRoute
-  '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
   '/sami': typeof AppSamiRoute
   '/taller': typeof AppTallerRoute
   '/ubicacion': typeof AppUbicacionRoute
   '/zona': typeof AppZonaRoute
+  '/planes': typeof PlanesPlanesRoute
   '/login': typeof PublicaLoginRoute
   '/registro': typeof PublicaRegistroRoute
   '/sistemas/$sistemaId': typeof AppSistemasSistemaIdRoute
@@ -124,15 +129,16 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
+  '/_planes': typeof PlanesRouteWithChildren
   '/_publica': typeof PublicaRouteWithChildren
   '/_app/cuenta': typeof AppCuentaRoute
   '/_app/inicio': typeof AppInicioRoute
-  '/_app/planes': typeof AppPlanesRoute
   '/_app/plantillas': typeof AppPlantillasRoute
   '/_app/sami': typeof AppSamiRoute
   '/_app/taller': typeof AppTallerRoute
   '/_app/ubicacion': typeof AppUbicacionRoute
   '/_app/zona': typeof AppZonaRoute
+  '/_planes/planes': typeof PlanesPlanesRoute
   '/_publica/login': typeof PublicaLoginRoute
   '/_publica/registro': typeof PublicaRegistroRoute
   '/_publica/': typeof PublicaIndexRoute
@@ -144,12 +150,12 @@ export interface FileRouteTypes {
     | '/'
     | '/cuenta'
     | '/inicio'
-    | '/planes'
     | '/plantillas'
     | '/sami'
     | '/taller'
     | '/ubicacion'
     | '/zona'
+    | '/planes'
     | '/login'
     | '/registro'
     | '/sistemas/$sistemaId'
@@ -158,27 +164,28 @@ export interface FileRouteTypes {
     | '/'
     | '/cuenta'
     | '/inicio'
-    | '/planes'
     | '/plantillas'
     | '/sami'
     | '/taller'
     | '/ubicacion'
     | '/zona'
+    | '/planes'
     | '/login'
     | '/registro'
     | '/sistemas/$sistemaId'
   id:
     | '__root__'
     | '/_app'
+    | '/_planes'
     | '/_publica'
     | '/_app/cuenta'
     | '/_app/inicio'
-    | '/_app/planes'
     | '/_app/plantillas'
     | '/_app/sami'
     | '/_app/taller'
     | '/_app/ubicacion'
     | '/_app/zona'
+    | '/_planes/planes'
     | '/_publica/login'
     | '/_publica/registro'
     | '/_publica/'
@@ -187,6 +194,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
+  PlanesRoute: typeof PlanesRouteWithChildren
   PublicaRoute: typeof PublicaRouteWithChildren
 }
 
@@ -197,6 +205,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_planes': {
+      id: '/_planes'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof PlanesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_publica': {
@@ -218,13 +233,6 @@ declare module '@tanstack/react-router' {
       path: '/inicio'
       fullPath: '/inicio'
       preLoaderRoute: typeof AppInicioRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/planes': {
-      id: '/_app/planes'
-      path: '/planes'
-      fullPath: '/planes'
-      preLoaderRoute: typeof AppPlanesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/plantillas': {
@@ -262,6 +270,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppZonaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_planes/planes': {
+      id: '/_planes/planes'
+      path: '/planes'
+      fullPath: '/planes'
+      preLoaderRoute: typeof PlanesPlanesRouteImport
+      parentRoute: typeof PlanesRoute
+    }
     '/_publica/': {
       id: '/_publica/'
       path: '/'
@@ -296,7 +311,6 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppCuentaRoute: typeof AppCuentaRoute
   AppInicioRoute: typeof AppInicioRoute
-  AppPlanesRoute: typeof AppPlanesRoute
   AppPlantillasRoute: typeof AppPlantillasRoute
   AppSamiRoute: typeof AppSamiRoute
   AppTallerRoute: typeof AppTallerRoute
@@ -308,7 +322,6 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppCuentaRoute: AppCuentaRoute,
   AppInicioRoute: AppInicioRoute,
-  AppPlanesRoute: AppPlanesRoute,
   AppPlantillasRoute: AppPlantillasRoute,
   AppSamiRoute: AppSamiRoute,
   AppTallerRoute: AppTallerRoute,
@@ -318,6 +331,17 @@ const AppRouteChildren: AppRouteChildren = {
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
+interface PlanesRouteChildren {
+  PlanesPlanesRoute: typeof PlanesPlanesRoute
+}
+
+const PlanesRouteChildren: PlanesRouteChildren = {
+  PlanesPlanesRoute: PlanesPlanesRoute,
+}
+
+const PlanesRouteWithChildren =
+  PlanesRoute._addFileChildren(PlanesRouteChildren)
 
 interface PublicaRouteChildren {
   PublicaLoginRoute: typeof PublicaLoginRoute
@@ -336,6 +360,7 @@ const PublicaRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
+  PlanesRoute: PlanesRouteWithChildren,
   PublicaRoute: PublicaRouteWithChildren,
 }
 export const routeTree = rootRouteImport

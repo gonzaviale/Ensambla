@@ -33,28 +33,17 @@ export function ContenidoPremium({
       </div>
       {acceso.bloqueadas > 0 ? (
         <div className="contenido-premium-extra">
-          <div className="contenido-premium-muestra" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-          </div>
           <strong>
             Hay {acceso.bloqueadas}{' '}
             {acceso.bloqueadas === 1 ? (recurso === 'avisos' ? 'aviso' : 'recomendación') : recurso}{' '}
             más para explorar
           </strong>
-          <p>
-            Con Premium podés ver todos los detalles y encontrar más oportunidades para tu negocio.
-          </p>
-          <Link to="/planes" className="btn primary">
-            Conocer Premium
+          <p>Alcanzaste el cupo de este mes. Podés seguir usando tus tablas y datos.</p>
+          <Link to="/planes" className="text-link">
+            Ver opciones del plan
           </Link>
         </div>
-      ) : (
-        <Link to="/planes" className="text-link">
-          Descubrí todo lo que incluye Premium
-        </Link>
-      )}
+      ) : null}
     </section>
   );
 }
