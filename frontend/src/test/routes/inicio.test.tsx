@@ -180,13 +180,31 @@ describe('modales', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('desde el menú del avatar se puede cerrar la sesión', async () => {
+  it('desde el menú del avatar se cierra la sesión recién al confirmar', async () => {
     const { user, router } = await abrirInicio();
 
     await clickButton(user, 'Menú de tu cuenta');
     await user.click(await screen.findByRole('menuitem', { name: 'Cerrar sesión' }));
+    const dialogo = await screen.findByRole('dialog', { name: '¿Cerrar la sesión?' });
+    expect(router.state.location.pathname).not.toBe('/login');
+
+    await user.click(within(dialogo).getByRole('button', { name: 'Cerrar sesión' }));
 
     await verifyPathAsync(router, '/login');
+  });
+
+  it('cancelar la confirmación mantiene la sesión y devuelve el foco al avatar', async () => {
+    const { user, router } = await abrirInicio();
+    const avatar = await screen.findByRole('button', { name: 'Menú de tu cuenta' });
+
+    await user.click(avatar);
+    await user.click(await screen.findByRole('menuitem', { name: 'Cerrar sesión' }));
+    const dialogo = await screen.findByRole('dialog', { name: '¿Cerrar la sesión?' });
+    await user.click(within(dialogo).getByRole('button', { name: 'Cancelar' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(router.state.location.pathname).not.toBe('/login');
+    expect(avatar).toHaveFocus();
   });
 
   it('desde la cuenta también se puede cerrar la sesión', async () => {

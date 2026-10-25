@@ -59,8 +59,10 @@ export function MenuDePerfil({
     opciones.at((actual + sentido) % opciones.length)?.focus();
   };
 
+  // El foco vuelve al avatar antes de la acción: si abre un modal, al cerrarlo el foco regresa ahí.
   const elegir = (accion: () => void) => () => {
     setAbierto(false);
+    disparador.current?.focus();
     accion();
   };
 

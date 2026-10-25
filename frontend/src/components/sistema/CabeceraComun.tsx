@@ -26,7 +26,16 @@ export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
       onPlanes={() => void navegacion.irAPlanes()}
       onAyuda={() => abrirModal({ tipo: 'ayuda' })}
       onCuenta={() => void navegacion.irACuenta()}
-      onCerrarSesion={() => void cerrarSesion()}
+      onCerrarSesion={() =>
+        abrirModal({
+          tipo: 'confirmar',
+          titulo: '¿Cerrar la sesión?',
+          mensaje:
+            'Salís de tu cuenta en este dispositivo. Tus sistemas y tus datos quedan guardados para cuando vuelvas a entrar.',
+          etiqueta: 'Cerrar sesión',
+          onConfirmar: () => void cerrarSesion(),
+        })
+      }
       cerrandoSesion={cerrando}
     />
   );

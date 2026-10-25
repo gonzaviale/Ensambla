@@ -44,7 +44,7 @@ describe('el menú del avatar', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('elegir una opción llama a su acción y cierra el menú', async () => {
+  it('elegir una opción llama a su acción, cierra el menú y deja el foco en el avatar', async () => {
     const { user, onCerrarSesion, onConfiguracion } = await abrir();
 
     await user.click(cerrarSesion());
@@ -52,6 +52,7 @@ describe('el menú del avatar', () => {
     expect(onCerrarSesion).toHaveBeenCalledOnce();
     expect(onConfiguracion).not.toHaveBeenCalled();
     expect(screen.queryByRole('menu')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Menú de tu cuenta' })).toHaveFocus();
   });
 
   it('mientras se cierra la sesión «Cerrar sesión» no se puede volver a elegir', async () => {
