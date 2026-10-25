@@ -424,6 +424,34 @@ class TallerSamiServiceTest {
     }
 
     @Test
+    @DisplayName("Si dice que borró un registro pero sólo hizo otra cosa, se le pide una vez que lo haga")
+    void conversarShouldRetryWhenItClaimsADeletionItDidNotMake() {
+        givenQuotaAvailable();
+        when(tallerIaPort.conversar(any()))
+                .thenReturn(new ResultadoTallerIa("Borré la venta de Lucía.", List.of(
+                        new LlamadaHerramienta("agregar_pieza", Map.of("tipo", "expenses"))), CONSUMO))
+                .thenReturn(new ResultadoTallerIa("Listo, la saqué.", List.of(
+                        new LlamadaHerramienta("quitar_pieza", Map.of("pieza", "e1"))), CONSUMO));
+
+        RespuestaTaller result = service.conversar(NEGOCIO_ID, "borrá la venta de Lucía", null, ESTADO, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(result.texto()).isEqualTo("Listo, la saqué.");
+        verify(tallerIaPort, times(2)).conversar(any());
+    }
+
+    @Test
+    @DisplayName("Si cuenta que corrigió algo sin editar nada y sigue igual tras el reintento, contesta con honestidad")
+    void conversarShouldNotClaimEditsItDidNotMake() {
+        givenQuotaAvailable();
+        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa("Corregí el precio.", List.of(), CONSUMO));
+
+        RespuestaTaller result = service.conversar(NEGOCIO_ID, "corregí el precio", null, ESTADO, HISTORIAL, AHORA, LIMITE);
+
+        assertThat(result.texto()).isEqualTo(TallerSamiService.SIN_CAMBIOS);
+        verify(tallerIaPort, times(2)).conversar(any());
+    }
+
+    @Test
     @DisplayName("Una explicación sin cambios no se reintenta")
     void conversarShouldNotRetryAnExplanation() {
         givenQuotaAvailable();

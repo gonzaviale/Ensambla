@@ -122,6 +122,15 @@ export function TallerPage() {
     }
   }, [nombre, sistemaDeLaUrl]);
 
+  // Si la persona llegó con una foto (desde cualquier «traer datos de una foto»), Sami la mira apenas se abre.
+  const mensajeAlAbrir = taller?.enviarAlAbrir;
+  const fotoAdjunta = Boolean(taller?.foto);
+  useEffect(() => {
+    if (!mensajeAlAbrir || !fotoAdjunta) return;
+    actualizarTaller({ enviarAlAbrir: null });
+    void enviar(mensajeAlAbrir);
+  }, [mensajeAlAbrir, fotoAdjunta, actualizarTaller, enviar]);
+
   const cantidadDeMensajes = taller?.mensajes.length ?? 0;
   const pensando = taller?.pensando ?? false;
   useEffect(() => {

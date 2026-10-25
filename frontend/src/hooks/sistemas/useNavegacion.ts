@@ -3,6 +3,10 @@ import { useUsuario } from '@/hooks/auth/queries';
 import { usePreferencias } from '@/hooks/preferencias/queries';
 import type { Sistema } from '@/lib/sistema/tipos';
 import { useSistemaStore, type ModoDelEditor } from '@/stores/sistemaStore';
+import type { ImagenParaSami } from '@/types/samiTaller';
+
+/** Lo que se le dice a Sami cuando la persona llega con una foto. */
+export const MENSAJE_DE_LA_FOTO = 'Te paso una foto de cómo anoto hoy.';
 
 export const MODO_EN_LA_URL = { build: 'construir', use: 'usar' } as const;
 
@@ -62,6 +66,21 @@ export function useNavegacion() {
       if (sistema) estado.iniciarTaller(saludoParaAjustar(sistema.name), sistema);
       limpiar();
       return navigate({ to: '/taller', search: { sistema: id } });
+    },
+    /**
+     * Toda foto va a Sami: abre una charla con la foto ya adjunta y se la manda sola. Sami cuenta qué leyó y
+     * pregunta si está bien. Con `sistemaId`, la charla es sobre ese sistema.
+     */
+    irATallerConFoto: (foto: ImagenParaSami, sistemaId?: string | null) => {
+      const estado = useSistemaStore.getState();
+      const sistema = sistemaId ? estado.sistemas.find((item) => item.id === sistemaId) : undefined;
+      estado.iniciarTaller(
+        sistema ? saludoParaAjustar(sistema.name) : saludoDeSami(nombre),
+        sistema,
+      );
+      estado.actualizarTaller({ foto, enviarAlAbrir: MENSAJE_DE_LA_FOTO });
+      limpiar();
+      return sistema ? navigate({ to: '/taller', search: { sistema: sistema.id } }) : navigate({ to: '/taller' });
     },
     irAZona: () => irA('/zona'),
     /** «Armalo con Sami»: la conversación que crea un proyecto real en el backend. */

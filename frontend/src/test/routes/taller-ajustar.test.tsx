@@ -22,7 +22,12 @@ type PedidoAlTaller = {
   mensaje: string;
   estado: {
     nombre: string;
-    piezas: { id: string; tipo: string; campos: { etiqueta: string }[] }[];
+    piezas: {
+      id: string;
+      tipo: string;
+      campos: { etiqueta: string }[];
+      filas?: { id: string; valores: string[] }[];
+    }[];
   };
 };
 
@@ -69,6 +74,37 @@ const sinViolaciones = async () => {
 };
 
 describe('ajustar con Sami un sistema que ya existe', () => {
+  it('le muestra a Sami los registros y quita el que pide; el cambio se ve en la propuesta', async () => {
+    const pedidos: PedidoAlTaller[] = [];
+    server.events.on('request:start', async ({ request }) => {
+      if (request.url.endsWith('/api/sami/taller')) {
+        pedidos.push((await request.clone().json()) as PedidoAlTaller);
+      }
+    });
+    const { user, sistema } = await abrirSistema();
+    const productos = deTipo(sistema, 'inventory');
+    const principal = productos.fields[0]?.key ?? '';
+    const cantidad = productos.rows.length;
+    await user.click(screen.getByRole('button', { name: /Ajustar con Sami/ }));
+    await verifyHeadingPresentAsync('Lo ajustamos juntos.');
+
+    await pedirASami(user, 'Borrá Yerba Playadito 1 kg');
+
+    await waitFor(() => {
+      const borrador = useSistemaStore.getState().taller?.borrador;
+      expect(deTipo(borrador ?? undefined, 'inventory').rows).toHaveLength(cantidad - 1);
+    }, ESPERA);
+    const borrador = useSistemaStore.getState().taller?.borrador;
+    expect(
+      deTipo(borrador ?? undefined, 'inventory').rows.map((fila) => fila[principal]),
+    ).not.toContain('Yerba Playadito 1 kg');
+    const filas = pedidos[0]?.estado.piezas.find((pieza) => pieza.tipo === 'inventory')?.filas;
+    expect(filas?.[0]?.valores[0]).toBe('Yerba Playadito 1 kg');
+    expect(enElStore(sistema.id) && deTipo(enElStore(sistema.id), 'inventory').rows).toHaveLength(
+      cantidad,
+    );
+  });
+
   it('abre el taller con el sistema, aplica lo que pide Sami y al guardar lo reemplaza y vuelve a él', async () => {
     const pedidos: PedidoAlTaller[] = [];
     server.use(

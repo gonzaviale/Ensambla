@@ -314,7 +314,12 @@ describe('la conversación de Sami en el taller', () => {
       'sales',
       'clients',
     ]);
-    expect(JSON.stringify(pedido.estado)).not.toContain('Yerba');
+    // Sami ve las primeras filas (id y primeros datos) para poder cambiar o quitar un registro, pero no todo el sistema.
+    const inventario = pedido.estado.piezas.find((item) => item.tipo === 'inventory') as unknown as {
+      filas: { valores: string[] }[];
+    };
+    expect(inventario.filas.map((fila) => fila.valores[0])).toContain('Yerba Playadito 1 kg');
+    expect(JSON.stringify(pedido.estado)).not.toContain('Correo electrónico');
     expect(pedido.historial.length).toBeLessThanOrEqual(6);
     expect(pedido.historial.at(-1)?.quien).toBe('sami');
   });

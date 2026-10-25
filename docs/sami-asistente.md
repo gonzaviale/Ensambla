@@ -189,6 +189,7 @@ comparte contador con el asistente de plantillas.
 | `quitar_pieza(pieza)` | quita una pieza |
 | `cargar_ejemplos(pieza, filas)` | reemplaza las filas de ejemplo (las reales quedan) |
 | `cargar_registros(pieza, filas)` | suma **registros reales** (por ejemplo, lo que se lee de una foto), hasta 30; se guardan al crear el sistema |
+| `editar_registro(pieza, registro, cambios)` / `quitar_registro(pieza, registro)` | cambia datos de un registro que ya está (`cambios` = `{etiqueta: valor}`; un valor vacío borra el dato, menos el principal) o lo saca. `registro` es su nombre o su id; en la apertura de cada pieza Sami ve sus primeras 15 filas con 3 datos. Si el nombre se repite, el contexto le da el id |
 | `conectar(desde, hacia, etiqueta?)` | suma en `desde` un dato vínculo a `hacia` (o convierte en vínculo un dato con esa etiqueta) |
 | `renombrar_pieza(pieza, nombre)` / `renombrar_sistema(nombre)` | cambia nombres |
 | `agregar_campo(pieza, etiqueta, tipo, opciones?)` / `quitar_campo(pieza, campo)` | suma o quita un dato; `select` necesita 2 opciones |
@@ -205,6 +206,11 @@ con `cargar_registros`. Si el modelo arma las piezas y se olvida de cargar lo qu
 un segundo pedido sólo para los registros, mostrándole las piezas ya armadas para que use sus etiquetas; los registros
 se suman a la respuesta. Al crear el sistema se descartan sólo las filas de ejemplo: los registros reales quedan. La
 foto no se guarda ni viaja en el historial.
+
+**Toda foto lleva a Sami.** «Traer datos de una foto» (inicio, editor, ayuda) ya no tiene pantalla de revisión propia: elige
+la imagen, abre el taller (sobre el sistema, si venía de uno) con la foto adjunta y se la manda sola. Sami cuenta qué leyó,
+nombra las dudas y cierra con una botonera: ¿está bien?, ¿hay algo mal?, ¿es de otro cuaderno?, ¿sumamos otra tabla?
+(prompt v4, `CON_FOTO`).
 
 **Ajustar con Sami un sistema ya creado.** En la pantalla de un sistema, «Ajustar con Sami» abre el taller con ese
 sistema (`/taller?sistema=<id>`): Sami lo ve con sus piezas y datos y lo cambia con las mismas herramientas. La

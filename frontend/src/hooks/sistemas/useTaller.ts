@@ -29,7 +29,7 @@ const esTipoParaSami = (tipo: string): tipo is ImagenParaSami['tipo'] =>
   (TIPOS_DE_IMAGEN_PARA_SAMI as readonly string[]).includes(tipo);
 
 /** La foto achicada y en base64, lista para viajar a Sami; si no se puede mandar, el motivo. */
-async function prepararFoto(archivo: File): Promise<ImagenParaSami | string> {
+export async function prepararFoto(archivo: File): Promise<ImagenParaSami | string> {
   try {
     const reducida = await reducirImagen(archivo, LADO_DE_LA_FOTO);
     const tipo = reducida.type || archivo.type;

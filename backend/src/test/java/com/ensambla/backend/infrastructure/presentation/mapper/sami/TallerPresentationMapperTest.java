@@ -30,7 +30,8 @@ class TallerPresentationMapperTest {
                 "  sumá gastos  ",
                 new ConversarTallerRequest.Estado("Mi almacén", "mosaic", List.of(new ConversarTallerRequest.Pieza(
                         "e1", "inventory", "Inventario", "General",
-                        List.of(new ConversarTallerRequest.Campo("Producto", "text"))))),
+                        List.of(new ConversarTallerRequest.Campo("Producto", "text")),
+                        List.of(new ConversarTallerRequest.Fila("f1", List.of("Yerba")))))),
                 List.of(new ConversarTallerRequest.Mensaje("sami", "Hola")), null);
 
         ConversarEnTallerRequest result = mapper.toRequest(USUARIO_ID, body);
@@ -39,6 +40,7 @@ class TallerPresentationMapperTest {
         assertThat(result.mensaje()).isEqualTo("sumá gastos");
         assertThat(result.estado().nombre()).isEqualTo("Mi almacén");
         assertThat(result.estado().piezas().getFirst().campos()).extracting("etiqueta").containsExactly("Producto");
+        assertThat(result.estado().piezas().getFirst().filas()).extracting("id").containsExactly("f1");
         assertThat(result.historial()).extracting("texto").containsExactly("Hola");
         assertThat(result.imagen()).isNull();
     }

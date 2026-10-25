@@ -31,7 +31,12 @@ import type {
 
 export type AccionDeSami = { herramienta: string; argumentos: Record<string, unknown> };
 
-/** El sistema resumido que se manda en cada turno: sin filas ni datos de ejemplo, para gastar pocos tokens. */
+/** Cuántas filas de cada pieza ve Sami y cuántos datos de cada una: lo justo para reconocerla y pedir un cambio. */
+export const MAXIMO_DE_FILAS_VISIBLES = 15;
+const DATOS_POR_FILA_VISIBLE = 3;
+const LARGO_DE_DATO_VISIBLE = 40;
+
+/** El sistema resumido que se manda en cada turno: con las primeras filas de cada pieza (id y primeros datos). */
 export type EstadoCompacto = {
   nombre: string;
   distribucion: string;
@@ -41,6 +46,8 @@ export type EstadoCompacto = {
     nombre: string;
     seccion: string;
     campos: { etiqueta: string; tipo: string }[];
+    /** Las primeras filas, para que Sami pueda cambiar o quitar un registro; `valores` sigue el orden de `campos`. */
+    filas: { id: string; valores: string[] }[];
   }[];
 };
 
@@ -62,9 +69,28 @@ export function resumirSistema(sistema: Sistema): EstadoCompacto {
         nombre: bloque.name,
         seccion: seccion.name,
         campos: bloque.fields.map((campo) => ({ etiqueta: campo.label, tipo: campo.type })),
+        filas: bloque.rows.slice(0, MAXIMO_DE_FILAS_VISIBLES).map((fila) => ({
+          id: fila.id,
+          valores: bloque.fields
+            .slice(0, DATOS_POR_FILA_VISIBLE)
+            .map((campo) => valorVisible(sistema, campo, fila[campo.key])),
+        })),
       })),
     ),
   };
+}
+
+/** Lo que se ve en la celda: un vínculo, con el nombre del registro al que apunta (no su id). */
+function valorVisible(sistema: Sistema, campo: Campo, valor: Valor): string {
+  if (valor === undefined || valor === null || valor === '') return '';
+  if (campo.type === 'checkbox') return valor ? 'sí' : 'no';
+  if (campo.type === 'relation') {
+    const destino = findBlock(sistema, campo.target);
+    const principal = destino?.fields[0]?.key;
+    const otra = destino?.rows.find((fila) => fila.id === valor);
+    return principal && otra ? String(otra[principal] ?? '').slice(0, LARGO_DE_DATO_VISIBLE) : '';
+  }
+  return String(valor).slice(0, LARGO_DE_DATO_VISIBLE);
 }
 
 const TIPOS_DE_PIEZA = new Set<string>(Object.keys(CATALOG));
@@ -193,6 +219,10 @@ function aplicarUna(
       const cuantos = filas.length === 1 ? 'un registro' : `${filas.length} registros`;
       return hecho(`Cargué ${cuantos} en ${pieza.name.toLowerCase()}.`);
     }
+    case 'editar_registro':
+      return editarRegistro(sistema, args, hecho, registrosNuevos);
+    case 'quitar_registro':
+      return quitarRegistro(sistema, args, hecho);
     case 'conectar':
       return conectar(sistema, args, hecho);
     case 'quitar_pieza': {
@@ -439,6 +469,85 @@ function editarCampo(
     hecho(`Moví ${campo.label} al lugar ${lugar} en ${enLaPieza}.`);
   }
   return undefined;
+}
+
+/**
+ * El registro que Sami nombra: por su id o, si no, por su dato principal (sin importar mayúsculas ni tildes) cuando
+ * hay uno solo con ese nombre. Con dos iguales no se adivina.
+ */
+function buscarRegistro(pieza: Bloque, referencia: unknown): Fila | undefined {
+  const buscada = texto(referencia);
+  if (!buscada) return undefined;
+  const porId = pieza.rows.find((fila) => fila.id === buscada);
+  if (porId) return porId;
+  const principal = pieza.fields[0]?.key;
+  const iguales = principal
+    ? pieza.rows.filter((fila) => normalize(fila[principal]) === normalize(buscada))
+    : [];
+  return iguales.length === 1 ? iguales[0] : undefined;
+}
+
+const nombreDelRegistro = (pieza: Bloque, fila: Fila) => {
+  const principal = pieza.fields[0]?.key;
+  const nombre = principal ? String(fila[principal] ?? '').trim() : '';
+  return nombre ? `«${nombre}»` : 'un registro';
+};
+
+/** Cambia datos de un registro que ya está: cada valor bajo la etiqueta de su dato; un valor vacío lo borra. */
+function editarRegistro(
+  sistema: Sistema,
+  args: Record<string, unknown>,
+  hecho: (descripcion: string) => undefined,
+  registrosNuevos: Set<string>,
+): string | undefined {
+  wireSystem(sistema);
+  const pieza = resolverPieza(sistema, args.pieza);
+  if (!pieza) return 'No encontré esa pieza.';
+  const fila = buscarRegistro(pieza, args.registro);
+  if (!fila) return 'No encontré ese registro.';
+  if (!esObjeto(args.cambios)) return 'No entendí qué cambiar en ese registro.';
+  const antes = nombreDelRegistro(pieza, fila);
+  const principal = pieza.fields[0]?.key;
+  let cambios = 0;
+  for (const [etiqueta, valor] of Object.entries(args.cambios)) {
+    const campo = buscarCampo(pieza, etiqueta) ?? pieza.fields.find((item) => item.key === etiqueta);
+    if (!campo) continue;
+    if (valor === null || (typeof valor === 'string' && !valor.trim())) {
+      // El dato principal es el que nombra al registro: no se deja vacío.
+      if (campo.key === principal || !(campo.key in fila)) continue;
+      Reflect.deleteProperty(fila, campo.key);
+      cambios++;
+      continue;
+    }
+    const convertido = valorDeEjemplo(campo, valor);
+    if (convertido === undefined || fila[campo.key] === convertido) continue;
+    fila[campo.key] = convertido;
+    cambios++;
+  }
+  if (!cambios) return `No pude cambiar ${antes} en ${pieza.name.toLowerCase()}.`;
+  // Un vínculo cambiado llega con el nombre del registro: se busca (o se suma) al final del turno.
+  registrosNuevos.add(fila.id);
+  return hecho(`Cambié ${antes} en ${pieza.name.toLowerCase()}.`);
+}
+
+/** Quita un registro y deja vacíos los vínculos de otras piezas que apuntaban a él. */
+function quitarRegistro(
+  sistema: Sistema,
+  args: Record<string, unknown>,
+  hecho: (descripcion: string) => undefined,
+): string | undefined {
+  const pieza = resolverPieza(sistema, args.pieza);
+  if (!pieza) return 'No encontré esa pieza.';
+  const fila = buscarRegistro(pieza, args.registro);
+  if (!fila) return 'No encontré ese registro.';
+  const nombre = nombreDelRegistro(pieza, fila);
+  pieza.rows = pieza.rows.filter((otra) => otra.id !== fila.id);
+  for (const bloque of allBlocks(sistema)) {
+    for (const campo of bloque.fields.filter((item) => item.type === 'relation' && item.target === pieza.id)) {
+      for (const otra of bloque.rows) if (otra[campo.key] === fila.id) otra[campo.key] = '';
+    }
+  }
+  return hecho(`Quité ${nombre} de ${pieza.name.toLowerCase()}.`);
 }
 
 /** Si llegó un argumento optativo: un nulo, un texto en blanco o una lista vacía no cuentan (como en el backend). */

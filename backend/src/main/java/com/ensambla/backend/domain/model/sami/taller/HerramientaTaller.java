@@ -18,6 +18,9 @@ public enum HerramientaTaller {
     CARGAR_EJEMPLOS("cargar_ejemplos"),
     /** Registros reales (por ejemplo, leídos de una foto): se suman a los que haya y se guardan al crear el sistema. */
     CARGAR_REGISTROS("cargar_registros"),
+    /** Cambia datos de un registro que ya está en una pieza (se nombra por su id o por su dato principal). */
+    EDITAR_REGISTRO("editar_registro"),
+    QUITAR_REGISTRO("quitar_registro"),
     CONECTAR("conectar"),
     SEPARAR_EN_SECCION("separar_en_seccion"),
     CAMBIAR_DISTRIBUCION("cambiar_distribucion"),

@@ -43,6 +43,9 @@ public final class CatalogoTaller {
     public static final int MAX_FILAS_EJEMPLO = 5;
     /** Registros reales que se pueden cargar con un {@code cargar_registros}. */
     public static final int MAX_REGISTROS = 30;
+    /** Filas de cada pieza que Sami ve en un turno, y datos de cada una. */
+    public static final int MAX_FILAS_VISIBLES = 15;
+    public static final int MAX_DATOS_VISIBLES = 3;
     public static final int MAX_LARGO_NOMBRE = 60;
     public static final int MAX_LARGO_VALOR = 80;
     public static final int MIN_OPCIONES = 2;

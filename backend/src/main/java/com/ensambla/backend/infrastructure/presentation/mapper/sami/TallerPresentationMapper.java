@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.dto.sami.ConversarEnTallerRequest;
 import com.ensambla.backend.domain.dto.sami.ConversarEnTallerResponse;
 import com.ensambla.backend.domain.dto.sami.EstadoTallerItem;
 import com.ensambla.backend.domain.dto.sami.EstadoTallerItem.CampoTallerItem;
+import com.ensambla.backend.domain.dto.sami.EstadoTallerItem.FilaTallerItem;
 import com.ensambla.backend.domain.dto.sami.EstadoTallerItem.PiezaTallerItem;
 import com.ensambla.backend.domain.dto.sami.ImagenTallerItem;
 import com.ensambla.backend.domain.dto.sami.MensajeTallerItem;
@@ -27,7 +28,12 @@ public class TallerPresentationMapper {
                         pieza.seccion(),
                         pieza.campos().stream()
                                 .map(campo -> new CampoTallerItem(campo.etiqueta(), campo.tipo()))
-                                .toList()))
+                                .toList(),
+                        pieza.filas() == null
+                                ? List.of()
+                                : pieza.filas().stream()
+                                        .map(fila -> new FilaTallerItem(fila.id(), fila.valores()))
+                                        .toList()))
                 .toList();
         List<MensajeTallerItem> historial = body.historial() == null
                 ? List.of()

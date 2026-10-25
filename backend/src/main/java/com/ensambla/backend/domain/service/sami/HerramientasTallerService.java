@@ -8,6 +8,7 @@ import com.ensambla.backend.domain.model.sami.taller.CatalogoTaller;
 import com.ensambla.backend.domain.model.sami.taller.ComponenteCatalogo;
 import com.ensambla.backend.domain.model.sami.taller.ConexionKit;
 import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
+import com.ensambla.backend.domain.model.sami.taller.FilaTaller;
 import com.ensambla.backend.domain.model.sami.taller.HerramientaTaller;
 import com.ensambla.backend.domain.model.sami.taller.KitRubro;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
@@ -125,6 +126,8 @@ public class HerramientasTallerService {
                 HerramientaTaller.CARGAR_EJEMPLOS, CatalogoTaller.MAX_FILAS_EJEMPLO, args, piezas));
         manejadores.put(HerramientaTaller.CARGAR_REGISTROS, (args, piezas) -> cargarFilas(
                 HerramientaTaller.CARGAR_REGISTROS, CatalogoTaller.MAX_REGISTROS, args, piezas));
+        manejadores.put(HerramientaTaller.EDITAR_REGISTRO, this::editarRegistro);
+        manejadores.put(HerramientaTaller.QUITAR_REGISTRO, this::quitarRegistro);
         manejadores.put(HerramientaTaller.CONECTAR, this::conectar);
         manejadores.put(HerramientaTaller.SEPARAR_EN_SECCION, this::separarEnSeccion);
         manejadores.put(HerramientaTaller.CAMBIAR_DISTRIBUCION, this::cambiarDistribucion);
@@ -284,7 +287,8 @@ public class HerramientasTallerService {
             PiezaTaller pieza = piezas.get(indice);
             // Renombrar al mismo nombre no es un cambio: el modelo a veces lo pide de paso.
             return nombre.filter(nuevo -> !nuevo.equals(pieza.nombre())).map(nuevo -> {
-                piezas.set(indice, new PiezaTaller(pieza.id(), pieza.tipo(), nuevo, pieza.seccion(), pieza.campos()));
+                piezas.set(indice, new PiezaTaller(
+                        pieza.id(), pieza.tipo(), nuevo, pieza.seccion(), pieza.campos(), pieza.filas()));
                 return accionConPieza(HerramientaTaller.RENOMBRAR_PIEZA, pieza, "nombre", nuevo);
             });
         });
@@ -458,6 +462,99 @@ public class HerramientasTallerService {
     }
 
     /**
+     * Cambia datos de un registro que Sami ve en la pieza. {@code registro} es su id o, si no, su dato principal cuando
+     * es el único con ese nombre. En {@code cambios} cada valor va bajo la etiqueta de su dato; un valor vacío borra el
+     * dato (menos el principal, que nombra al registro). Lo que no vale se cae y, si no queda nada, se descarta.
+     */
+    private Optional<AccionTaller> editarRegistro(Map<String, Object> args, List<PiezaTaller> piezas) {
+        return indiceDe(args.get("pieza"), piezas).flatMap(indice -> {
+            PiezaTaller pieza = piezas.get(indice);
+            return registroDe(args.get("registro"), pieza).flatMap(registro -> {
+                Map<String, Object> cambios = cambiosDeRegistro(args.get("cambios"), pieza.campos());
+                if (cambios.isEmpty()) {
+                    return Optional.empty();
+                }
+                piezas.set(indice, conFila(pieza, registro, valoresCambiados(pieza, registro, cambios)));
+                Map<String, Object> argumentos = new LinkedHashMap<>();
+                argumentos.put("pieza", referencia(pieza));
+                argumentos.put("registro", registro.id());
+                argumentos.put("cambios", cambios);
+                return Optional.of(new AccionTaller(HerramientaTaller.EDITAR_REGISTRO.nombre(), argumentos));
+            });
+        });
+    }
+
+    private Optional<AccionTaller> quitarRegistro(Map<String, Object> args, List<PiezaTaller> piezas) {
+        return indiceDe(args.get("pieza"), piezas).flatMap(indice -> {
+            PiezaTaller pieza = piezas.get(indice);
+            return registroDe(args.get("registro"), pieza).map(registro -> {
+                piezas.set(indice, conFila(pieza, registro, null));
+                Map<String, Object> argumentos = new LinkedHashMap<>();
+                argumentos.put("pieza", referencia(pieza));
+                argumentos.put("registro", registro.id());
+                return new AccionTaller(HerramientaTaller.QUITAR_REGISTRO.nombre(), argumentos);
+            });
+        });
+    }
+
+    /** Un registro de los que Sami ve: por su id o por su dato principal, si hay uno solo con ese nombre. */
+    private Optional<FilaTaller> registroDe(Object referencia, PiezaTaller pieza) {
+        return texto(referencia, CatalogoTaller.MAX_LARGO_VALOR).flatMap(buscado -> {
+            Optional<FilaTaller> porId = pieza.filas().stream().filter(fila -> buscado.equals(fila.id())).findFirst();
+            if (porId.isPresent()) {
+                return porId;
+            }
+            List<FilaTaller> iguales = pieza.filas().stream()
+                    .filter(fila -> !fila.valores().isEmpty() && mismoNombre(fila.valores().getFirst(), buscado))
+                    .toList();
+            return iguales.size() == 1 ? Optional.of(iguales.getFirst()) : Optional.empty();
+        });
+    }
+
+    private Map<String, Object> cambiosDeRegistro(Object valor, List<CampoTaller> campos) {
+        Map<String, Object> cambios = new LinkedHashMap<>();
+        if (!(valor instanceof Map<?, ?> pedidos)) {
+            return cambios;
+        }
+        pedidos.forEach((etiqueta, nuevo) -> etiquetaDe(String.valueOf(etiqueta), campos).ifPresent(existente -> {
+            boolean vacio = nuevo == null || nuevo instanceof String texto && texto.isBlank();
+            boolean esElPrincipal = existente.equals(campos.getFirst().etiqueta());
+            if (vacio) {
+                if (!esElPrincipal) {
+                    cambios.put(existente, "");
+                }
+            } else {
+                valorDeEjemplo(nuevo).ifPresent(dato -> cambios.put(existente, dato));
+            }
+        }));
+        return cambios;
+    }
+
+    /** Los datos que Sami ve del registro (los primeros) con los cambios; para las llamadas siguientes del turno. */
+    private List<String> valoresCambiados(PiezaTaller pieza, FilaTaller registro, Map<String, Object> cambios) {
+        List<String> valores = new ArrayList<>(registro.valores());
+        for (int lugar = 0; lugar < valores.size() && lugar < pieza.campos().size(); lugar++) {
+            Object nuevo = cambios.get(pieza.campos().get(lugar).etiqueta());
+            if (nuevo != null) {
+                valores.set(lugar, String.valueOf(nuevo));
+            }
+        }
+        return valores;
+    }
+
+    /** La pieza con el registro cambiado por sus nuevos valores o, con {@code null}, sin ese registro. */
+    private PiezaTaller conFila(PiezaTaller pieza, FilaTaller registro, List<String> valores) {
+        List<FilaTaller> filas = new ArrayList<>(pieza.filas());
+        int lugar = filas.indexOf(registro);
+        if (valores == null) {
+            filas.remove(lugar);
+        } else {
+            filas.set(lugar, new FilaTaller(registro.id(), valores));
+        }
+        return new PiezaTaller(pieza.id(), pieza.tipo(), pieza.nombre(), pieza.seccion(), pieza.campos(), filas);
+    }
+
+    /**
      * Suma en {@code desde} un dato vínculo que apunta a {@code hacia}. Sin etiqueta usa el singular del componente
      * ({@code Cliente}) o, si {@code hacia} es una tabla a medida, su nombre. Como en el taller, si {@code desde} ya
      * tiene un dato común con esa etiqueta (que no sea el primero) ese dato pasa a ser el vínculo, y las piezas sin
@@ -510,7 +607,8 @@ public class HerramientasTallerService {
         Optional<String> seccion = texto(args.get("seccion"), CatalogoTaller.MAX_LARGO_NOMBRE);
         return indiceDe(args.get("pieza"), piezas).flatMap(indice -> seccion.map(nueva -> {
             PiezaTaller pieza = piezas.get(indice);
-            piezas.set(indice, new PiezaTaller(pieza.id(), pieza.tipo(), pieza.nombre(), nueva, pieza.campos()));
+            piezas.set(indice, new PiezaTaller(
+                    pieza.id(), pieza.tipo(), pieza.nombre(), nueva, pieza.campos(), pieza.filas()));
             return accionConPieza(HerramientaTaller.SEPARAR_EN_SECCION, pieza, "seccion", nueva);
         }));
     }
@@ -623,7 +721,7 @@ public class HerramientasTallerService {
     }
 
     private PiezaTaller conCampos(PiezaTaller pieza, List<CampoTaller> campos) {
-        return new PiezaTaller(pieza.id(), pieza.tipo(), pieza.nombre(), pieza.seccion(), campos);
+        return new PiezaTaller(pieza.id(), pieza.tipo(), pieza.nombre(), pieza.seccion(), campos, pieza.filas());
     }
 
     private String referencia(PiezaTaller pieza) {

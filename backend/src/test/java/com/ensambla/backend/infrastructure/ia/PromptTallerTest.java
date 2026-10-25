@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.model.sami.taller.CampoTaller;
 import com.ensambla.backend.domain.model.sami.taller.ConsultaTaller;
 import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
 import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
+import com.ensambla.backend.domain.model.sami.taller.FilaTaller;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
 import com.ensambla.backend.domain.model.sami.taller.MensajeTaller;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
@@ -93,6 +94,21 @@ class PromptTallerTest {
     }
 
     @Test
+    @DisplayName("Muestra los registros de cada pieza y sólo da el id de los que repiten su nombre")
+    void peticionShouldShowRowsAndIdsOnlyForRepeatedNames() {
+        EstadoTaller conFilas = new EstadoTaller("S", "mosaic", List.of(new PiezaTaller("e1", "inventory", "Inventario",
+                null, List.of(new CampoTaller("Producto", "text"), new CampoTaller("Cantidad", "number")), List.of(
+                new FilaTaller("f1", List.of("Yerba", "24")),
+                new FilaTaller("f2", List.of("Arroz", "5")),
+                new FilaTaller("f3", List.of("arroz ", "8"))))));
+
+        PeticionConHerramientas peticion = prompt.peticion(new ConsultaTaller("borrá el arroz", conFilas, List.of()));
+
+        assertThat(peticion.contexto()).contains(
+                "  Registros: Yerba | 24; Arroz | 5 [id f2]; arroz  | 8 [id f3]\n");
+    }
+
+    @Test
     @DisplayName("Un sistema sin piezas lo dice")
     void peticionShouldSayWhenThereAreNoPieces() {
         PeticionConHerramientas peticion = prompt.peticion(new ConsultaTaller("hola", VACIO, List.of()));
@@ -171,6 +187,6 @@ class PromptTallerTest {
     @Test
     @DisplayName("La versión del prompt es la del taller con fotos y registros")
     void versionShouldBeV3() {
-        assertThat(PromptTaller.VERSION).isEqualTo("v3");
+        assertThat(PromptTaller.VERSION).isEqualTo("v5");
     }
 }

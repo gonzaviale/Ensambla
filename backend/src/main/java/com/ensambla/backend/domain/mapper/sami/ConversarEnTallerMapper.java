@@ -8,6 +8,7 @@ import com.ensambla.backend.domain.dto.sami.ImagenTallerItem;
 import com.ensambla.backend.domain.dto.sami.MensajeTallerItem;
 import com.ensambla.backend.domain.model.sami.taller.CampoTaller;
 import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
+import com.ensambla.backend.domain.model.sami.taller.FilaTaller;
 import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
 import com.ensambla.backend.domain.model.sami.taller.MensajeTaller;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
@@ -31,7 +32,12 @@ public class ConversarEnTallerMapper {
                         pieza.seccion(),
                         pieza.campos().stream()
                                 .map(campo -> new CampoTaller(campo.etiqueta(), campo.tipo()))
-                                .toList()))
+                                .toList(),
+                        pieza.filas() == null
+                                ? List.of()
+                                : pieza.filas().stream()
+                                        .map(fila -> new FilaTaller(fila.id(), fila.valores()))
+                                        .toList()))
                 .toList();
         return new EstadoTaller(estado.nombre(), estado.distribucion(), piezas);
     }

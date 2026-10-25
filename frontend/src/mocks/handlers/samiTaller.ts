@@ -16,6 +16,7 @@ type Pieza = {
   tipo: string;
   nombre: string;
   campos?: { etiqueta: string; tipo: string }[];
+  filas?: { id: string; valores: string[] }[];
 };
 type Pedido = {
   mensaje?: string;
@@ -340,14 +341,36 @@ const respuestaALaFoto = (piezas: Pieza[]) => {
   const productos = piezas.some((pieza) => pieza.tipo === 'inventory');
   return {
     respuesta:
-      'Miré tu foto: anotaste tres ventas. Las cargué en tus ventas, con el producto y la clienta de cada una. Fijate si están bien.',
+      'Miré tu foto: anotaste tres ventas. Las cargué en tus ventas, con el producto y la clienta de cada una. La fecha de la última no se lee bien y no sé si el precio es por unidad o por el total.',
     acciones: [
       ...(productos ? [] : [accion('agregar_pieza', { tipo: 'inventory', nombre: 'Productos' })]),
       ...(ventas ? [] : [accion('agregar_pieza', { tipo: 'sales', nombre: 'Ventas' })]),
       accion('cargar_registros', { pieza: ventas?.id ?? 'Ventas', filas: VENTAS_DE_LA_FOTO }),
     ],
-    opciones: null,
+    opciones: {
+      pregunta: '¿Está bien lo que leí?',
+      opciones: ['Está bien así', 'Hay algo mal', 'Es de otro cuaderno', 'Quiero sumar otra tabla'],
+    },
   };
+};
+
+// «Borrá/sacá el registro X»: busca X entre las filas que la pieza le muestra a Sami (`quitar_registro`).
+const quitarRegistro = (mensaje: string, piezas: Pieza[]) => {
+  const [, pedido = ''] =
+    /^\s*(?:borr|elimin|sac|quit)\S*\s+(?:el\s+|la\s+)?(?:registro\s+(?:de\s+)?)?(.+?)[.!]*$/i.exec(mensaje) ?? [];
+  const buscado = sinTildes(sinComillas(pedido));
+  if (!buscado) return undefined;
+  for (const pieza of piezas) {
+    const fila = pieza.filas?.find((item) => sinTildes(item.valores[0] ?? '') === buscado);
+    if (fila) {
+      return {
+        respuesta: `Listo, quité «${fila.valores[0]}» de ${pieza.nombre.toLowerCase()}.`,
+        acciones: [accion('quitar_registro', { pieza: pieza.id, registro: fila.id })],
+        opciones: null,
+      };
+    }
+  }
+  return undefined;
 };
 
 const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
@@ -369,6 +392,9 @@ const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
       opciones: kit.opciones,
     };
   }
+
+  const baja = piezas.length ? quitarRegistro(mensaje, piezas) : undefined;
+  if (baja) return baja;
 
   const ajuste = piezas.length ? ajusteDeDato(mensaje, piezas) : undefined;
   if (ajuste) return ajuste;

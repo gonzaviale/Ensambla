@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.regex.Pattern;
@@ -54,7 +55,18 @@ public class TallerSamiService {
             + " nada más.";
     /** Verbos con los que Sami cuenta un cambio hecho («Armé tu sistema…»). */
     private static final Pattern AFIRMA_CAMBIOS = Pattern.compile(
-            "(?iU)\\b(armé|sumé|agregué|renombré|moví|conecté|quité|cambié|cargué|creé|separé)\\b");
+            "(?iU)\\b(armé|sumé|agregué|renombré|moví|conecté|quité|cambié|cargué|creé|separé|borré|eliminé"
+                    + "|modifiqué|actualicé|edité|corregí|saqué|reemplacé)\\b");
+    /** Verbos de borrar: si Sami los usa tiene que haber quitado algo. */
+    private static final Pattern AFIRMA_BORRADOS = Pattern.compile("(?iU)\\b(borré|eliminé|saqué)\\b");
+    /** Verbos de corregir: si Sami los usa tiene que haber editado algo. */
+    private static final Pattern AFIRMA_EDICIONES =
+            Pattern.compile("(?iU)\\b(modifiqué|actualicé|edité|corregí)\\b");
+    private static final Set<String> QUITAN = Set.of(HerramientaTaller.QUITAR_PIEZA.nombre(),
+            HerramientaTaller.QUITAR_CAMPO.nombre(), HerramientaTaller.QUITAR_REGISTRO.nombre());
+    private static final Set<String> EDITAN = Set.of(HerramientaTaller.EDITAR_CAMPO.nombre(),
+            HerramientaTaller.EDITAR_REGISTRO.nombre(), HerramientaTaller.RENOMBRAR_PIEZA.nombre(),
+            HerramientaTaller.RENOMBRAR_SISTEMA.nombre());
 
     /** Describe una acción; recibe sus argumentos y el nombre de cada pieza según cómo la nombran las acciones. */
     private interface Descripcion extends BiFunction<Map<String, Object>, Map<String, String>, String> {
@@ -94,6 +106,10 @@ public class TallerSamiService {
         descripciones.put(HerramientaTaller.CARGAR_REGISTROS,
                 (args, nombres) -> registros(((List<?>) args.get("filas")).size())
                         + " en " + pieza(args.get("pieza"), nombres));
+        descripciones.put(HerramientaTaller.EDITAR_REGISTRO,
+                (args, nombres) -> "Cambié un registro de " + pieza(args.get("pieza"), nombres));
+        descripciones.put(HerramientaTaller.QUITAR_REGISTRO,
+                (args, nombres) -> "Quité un registro de " + pieza(args.get("pieza"), nombres));
         descripciones.put(HerramientaTaller.CONECTAR,
                 (args, nombres) -> "Conecté " + pieza(args.get("desde"), nombres)
                         + " con " + pieza(args.get("hacia"), nombres));
@@ -164,8 +180,20 @@ public class TallerSamiService {
     }
 
     private boolean afirmaCambiosSinHacerlos(ResultadoTallerIa resultado, ValidacionTaller validacion) {
-        return validacion.acciones().isEmpty() && resultado.texto() != null
-                && AFIRMA_CAMBIOS.matcher(resultado.texto()).find();
+        String texto = resultado.texto();
+        if (texto == null) {
+            return false;
+        }
+        if (validacion.acciones().isEmpty()) {
+            return AFIRMA_CAMBIOS.matcher(texto).find();
+        }
+        // Que haya hecho otra cosa no alcanza: si cuenta que borró o corrigió, tiene que haberlo hecho.
+        return AFIRMA_BORRADOS.matcher(texto).find() && !hizoAlguna(validacion, QUITAN)
+                || AFIRMA_EDICIONES.matcher(texto).find() && !hizoAlguna(validacion, EDITAN);
+    }
+
+    private boolean hizoAlguna(ValidacionTaller validacion, Set<String> herramientas) {
+        return validacion.acciones().stream().anyMatch(accion -> herramientas.contains(accion.herramienta()));
     }
 
     /**

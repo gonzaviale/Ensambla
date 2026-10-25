@@ -167,7 +167,7 @@ class SamiConfigTest {
         verify(bedrock).converse(captor.capture());
         assertThat(captor.getValue().inferenceConfig().maxTokens()).isEqualTo(400);
         assertThat(captor.getValue().toolConfig().tools())
-                .hasSize(14)
+                .hasSize(16)
                 .extracting(herramienta -> herramienta.toolSpec().name())
                 .containsExactly(HERRAMIENTAS);
     }
@@ -307,7 +307,7 @@ class SamiConfigTest {
 
     // --- helpers ---
     private static final String[] HERRAMIENTAS = {"agregar_pieza", "usar_kit", "quitar_pieza", "renombrar_pieza",
-            "renombrar_sistema", "agregar_campo", "quitar_campo", "editar_campo", "cargar_ejemplos", "cargar_registros",
+            "renombrar_sistema", "agregar_campo", "quitar_campo", "editar_campo", "cargar_ejemplos", "cargar_registros", "editar_registro", "quitar_registro",
             "conectar", "separar_en_seccion", "cambiar_distribucion", "ofrecer_opciones"};
 
     private ConsultaTaller consultaDeTaller(String mensaje) {

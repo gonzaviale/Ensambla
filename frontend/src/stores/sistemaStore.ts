@@ -66,6 +66,8 @@ export type Taller = {
   anterior: Sistema | null;
   /** El sistema que se está ajustando con Sami; `null` si se está armando uno nuevo. */
   sistemaId: string | null;
+  /** Un mensaje que Sami manda solo al abrirse el taller (con la foto que venía adjunta); después queda en `null`. */
+  enviarAlAbrir: string | null;
 };
 
 /** El panel de avisos de Sami y lo que se ve de él. */
@@ -292,6 +294,7 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
         opciones: null,
         anterior: null,
         sistemaId: sistema?.id ?? null,
+        enviarAlAbrir: null,
       },
     }),
 

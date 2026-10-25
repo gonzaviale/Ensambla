@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.sami.taller.CatalogoComponentes;
 import com.ensambla.backend.domain.model.sami.taller.CatalogoTaller;
 import com.ensambla.backend.domain.model.sami.taller.ComponenteCatalogo;
 import com.ensambla.backend.domain.model.sami.taller.ConsultaTaller;
+import com.ensambla.backend.domain.model.sami.taller.FilaTaller;
 import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
 import com.ensambla.backend.domain.model.sami.taller.KitRubro;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
@@ -15,6 +16,8 @@ import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
 import org.springframework.core.io.Resource;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -28,14 +31,16 @@ import java.util.stream.Collectors;
  */
 public class PromptTaller {
 
-    /** v3: fotos en el turno y {@code cargar_registros}. */
-    public static final String VERSION = "v3";
+    /** v5: editar_registro y quitar_registro, con las primeras filas en el contexto. v4: tras leer la foto, Sami cuenta qué leyó, nombra dudas y pregunta. v3: fotos y {@code cargar_registros}. */
+    public static final String VERSION = "v5";
     static final String MARCA_MENSAJE = "Mensaje de la persona:";
     static final String CON_FOTO = "La persona adjuntó una foto. Leé sus columnas y filas: armá o ajustá las piezas con"
             + " esas columnas (si hay kit, usalo y sumá lo que falte) y SIEMPRE invocá cargar_registros con todas las"
             + " filas que se leen: son datos reales, no ejemplos. Cada fila va con las etiquetas de los datos de la pieza"
             + " («Vela» de la foto va en «Producto», «Clienta» en «Cliente») o renombrá antes el dato con editar_campo."
-            + " Lo que no se lee bien, no lo inventes.";
+            + " Lo que no se lee bien, no lo inventes: contalo. Después de cargar, decí qué leíste (cuántas filas y de"
+            + " qué), nombrá las dudas concretas (una letra, un monto, una fecha) y cerrá con ofrecer_opciones"
+            + " preguntando si está bien, si hay algo mal, si es de otro cuaderno o si quiere sumar otra tabla.";
     static final String MARCA_KIT = "Kit del rubro:";
     static final String SIN_PIEZAS = "Todavía no tiene piezas.";
 
@@ -105,7 +110,29 @@ public class PromptTaller {
         String seccion = pieza.seccion() == null ? "" : " sección «%s»".formatted(pieza.seccion());
         // Una pieza recién armada en el turno todavía no tiene id: se la nombra por su nombre.
         String id = pieza.id() == null ? "" : "id %s, ".formatted(pieza.id());
-        return "- %stipo %s, «%s»%s: %s\n".formatted(id, pieza.tipo(), pieza.nombre(), seccion, campos);
+        return "- %stipo %s, «%s»%s: %s\n%s".formatted(id, pieza.tipo(), pieza.nombre(), seccion, campos, filas(pieza));
+    }
+
+    /**
+     * Las primeras filas, con sus primeros datos separados por «|». El id sólo se muestra en las que repiten su dato
+     * principal, para poder distinguirlas; las demás se nombran por ese dato.
+     */
+    private String filas(PiezaTaller pieza) {
+        if (pieza.filas().isEmpty()) {
+            return "";
+        }
+        Map<String, Long> repetidas = pieza.filas().stream()
+                .collect(Collectors.groupingBy(this::principal, Collectors.counting()));
+        String filas = pieza.filas().stream()
+                .map(fila -> repetidas.get(principal(fila)) > 1
+                        ? "%s [id %s]".formatted(String.join(" | ", fila.valores()), fila.id())
+                        : String.join(" | ", fila.valores()))
+                .collect(Collectors.joining("; "));
+        return "  Registros: %s\n".formatted(filas);
+    }
+
+    private String principal(FilaTaller fila) {
+        return fila.valores().isEmpty() ? fila.id() : fila.valores().getFirst().strip().toLowerCase(Locale.ROOT);
     }
 
     private String campo(CampoTaller campo) {

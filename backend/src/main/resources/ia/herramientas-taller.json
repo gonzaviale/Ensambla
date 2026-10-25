@@ -106,6 +106,24 @@
     }
   },
   {
+    "name": "editar_registro",
+    "description": "Cambia datos de un registro que ya está. registro: su nombre (o id si se repite).",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"pieza": {"type": "string"}, "registro": {"type": "string"}, "cambios": {"type": "object"}},
+      "required": ["pieza", "registro", "cambios"]
+    }
+  },
+  {
+    "name": "quitar_registro",
+    "description": "Quita un registro que ya está. registro: su nombre (o id si se repite).",
+    "inputSchema": {
+      "type": "object",
+      "properties": {"pieza": {"type": "string"}, "registro": {"type": "string"}},
+      "required": ["pieza", "registro"]
+    }
+  },
+  {
     "name": "conectar",
     "description": "Suma en desde un vínculo a hacia.",
     "inputSchema": {
