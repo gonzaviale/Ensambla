@@ -21,6 +21,8 @@ type PreviewBoardProps = {
   onRegistro?: (bloqueId: string, filaId: string | null) => void;
   onQuitar?: (bloqueId: string) => void;
   onAncho?: (bloqueId: string, ancho: Ancho) => void;
+  /** Ver la tabla de una pieza a pantalla completa, como en el sistema. */
+  onTablaCompleta?: (bloqueId: string) => void;
   /** Arrastrar y soltar las piezas de la propuesta. */
   arrastrando?: string | null;
   /** La pieza (o `#canvas`, el lienzo vacío) sobre la que está pasando lo que se arrastra. */
@@ -158,6 +160,7 @@ export function PreviewBoard({
   onRegistro,
   onQuitar,
   onAncho,
+  onTablaCompleta,
   arrastrando = null,
   sobre = null,
   onArrastrar,
@@ -229,6 +232,14 @@ export function PreviewBoard({
               )}
               {editable && (
                 <div className="preview-controls">
+                  {onTablaCompleta && bloque.type !== 'summary' && bloque.type !== 'note' && (
+                    <IconBtn
+                      name="expand"
+                      label={`Ver ${bloque.name} a pantalla completa`}
+                      data-accion="table-fullscreen"
+                      onClick={() => onTablaCompleta(bloque.id)}
+                    />
+                  )}
                   <button
                     type="button"
                     className="icon-btn"

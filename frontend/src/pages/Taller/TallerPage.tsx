@@ -14,6 +14,7 @@ import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
 import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
 import { PreviewBoard } from '@/components/sistema/PreviewBoard';
+import { TablaCompleta } from '@/components/sistema/editor/TablaCompleta';
 import { Sami } from '@/components/sistema/Sami';
 import { VisorDeFoto } from '@/components/sistema/VisorDeFoto';
 import { varsDeColor } from '@/components/sistema/colores';
@@ -94,6 +95,8 @@ export function TallerPage() {
   const actualizarTaller = useSistemaStore((estado) => estado.actualizarTaller);
   const editarBorrador = useSistemaStore((estado) => estado.editarBorrador);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
+  const tablaCompletaId = useSistemaStore((estado) => estado.tablaCompletaId);
+  const verTablaCompleta = useSistemaStore((estado) => estado.verTablaCompleta);
   const navegacion = useNavegacion();
   const { enviar, responderDuda, deshacer, adjuntarFoto, quitarFoto } = useTaller();
   const avisar = useSistemaStore((estado) => estado.avisar);
@@ -130,6 +133,9 @@ export function TallerPage() {
     }
   }, [nombre, sistemaDeLaUrl]);
 
+  // La tabla a pantalla completa no queda abierta al salir del taller.
+  useEffect(() => () => useSistemaStore.getState().verTablaCompleta(null), []);
+
   const cantidadDeMensajes = taller?.mensajes.length ?? 0;
   const pensando = taller?.pensando ?? false;
   useEffect(() => {
@@ -141,6 +147,7 @@ export function TallerPage() {
   if (!taller) return null;
   const { borrador } = taller;
   const seccionId = taller.seccionId ?? borrador?.sections[0]?.id ?? null;
+  const tablaCompleta = borrador ? findBlock(borrador, tablaCompletaId ?? undefined) : undefined;
   const ajustando = Boolean(original);
   const hayCambios =
     !original || !borrador || !mismoSistema(ajusteParaGuardar(original, borrador), original);
@@ -369,6 +376,7 @@ export function TallerPage() {
                     abrirModal({ tipo: 'registroDelBorrador', bloqueId, filaId })
                   }
                   onQuitar={quitarPieza}
+                  onTablaCompleta={verTablaCompleta}
                   onAncho={(bloqueId, ancho) =>
                     editarBorrador((copia) => {
                       const bloque = findBlock(copia, bloqueId);
@@ -638,6 +646,17 @@ export function TallerPage() {
         >
           <img src="/mockup/sami-boton.webp" alt="" />
         </button>
+      )}
+      {borrador && tablaCompleta && (
+        <TablaCompleta
+          key={tablaCompleta.id}
+          bloque={tablaCompleta}
+          sistema={borrador}
+          textoVolver="Volver a la propuesta"
+          onRegistro={(filaId) =>
+            abrirModal({ tipo: 'registroDelBorrador', bloqueId: tablaCompleta.id, filaId })
+          }
+        />
       )}
     </>
   );

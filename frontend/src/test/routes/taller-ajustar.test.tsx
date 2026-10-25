@@ -172,6 +172,22 @@ describe('ajustar con Sami un sistema que ya existe', () => {
     expect(etiquetas(borrador, 'clients')).toContain('Celular');
   });
 
+  it('deja ver la tabla de una pieza de la propuesta a pantalla completa, como en el sistema', async () => {
+    const { user } = await abrirSistema();
+    await clickButton(user, /Ajustar con Sami/);
+    await verifyHeadingPresentAsync('Lo ajustamos juntos.');
+    const clientes = deTipo(useSistemaStore.getState().taller?.borrador ?? undefined, 'clients');
+
+    await clickButton(user, `Ver ${clientes.name} a pantalla completa`);
+
+    const tabla = await screen.findByRole('dialog', { name: clientes.name }, ESPERA);
+    expect(tabla).toBeVisible();
+    expect(screen.getByLabelText(`Buscar en ${clientes.name}`)).toBeVisible();
+    await clickButton(user, /Volver a la propuesta/);
+    expect(screen.queryByRole('dialog', { name: clientes.name })).toBeNull();
+    expect(useSistemaStore.getState().tablaCompletaId).toBeNull();
+  });
+
   it('un sistema que no existe abre el taller para armar uno nuevo', async () => {
     setupUsuarioConSesion({ nombre: 'Ana Pérez' });
 
