@@ -1,0 +1,15 @@
+{
+  "resultado": "OK",
+  "entorno": "backend y PostgreSQL locales reales",
+  "usuarioPrueba": "c8aa72b3-785a-4fd8-b4b1-90b6be790f7f",
+  "sistemaPrueba": "e5d86b2d9-3cb4-41ce-97d7-dc97ad9ea8ee",
+  "solicitudesPublicas": [
+    "auth/me",
+    "planes/catalogo"
+  ],
+  "ventas": 10000,
+  "pedidosPendientes": 1,
+  "stockBajo": 1,
+  "metas": "persistencia, progreso, foco y máximo alcanzado",
+  "erroresJS": []
+}

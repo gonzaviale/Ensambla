@@ -42,8 +42,9 @@ simulada persiste en `localStorage`. Detalle en [../docs/ui-mockup.md](../docs/u
 
 ## Planes y prueba premium (ENS-97)
 
-La opción «Planes» abre `/planes`, con sesión obligatoria. Muestra catálogo y precio configurado,
-plan efectivo, consumo y estado de prueba desde `GET /api/planes`. Mientras no se defina precio/moneda,
+La opción «Planes» abre `/planes` sin exigir sesión. Visitantes consultan solo
+`GET /api/planes/catalogo`, con precios y capacidades globales; no se consultan sistemas, zona,
+consumo ni pagos. Con sesión se conserva el plan efectivo, consumo y prueba desde `GET /api/planes`. Mientras no se defina precio/moneda,
 Premium muestra «Precio por definir». ENS-98 configura ARS 14.900 cada treinta días y agrega
 contratación y cancelación; los botones de cobro se habilitan sólo si el backend tiene configurado el proveedor.
 
@@ -123,3 +124,21 @@ activación de prueba, contratación, cancelación y restricciones comerciales c
 Las verificaciones externas pendientes de Mercado Pago se detallan en [ENS-98](../docs/plan-ENS-98.md).
 
 <!-- prueba: dispara ci-frontend sin Vercel -->
+
+## Home con métricas y metas (ENS-244)
+
+Cuando hay tablas, Inicio muestra primero el resumen del sistema elegido: ventas registradas,
+pedidos pendientes, productos con stock bajo, clientes y filas, según las tablas disponibles.
+Las filas de ejemplo no se cuentan. Ventas usa cantidad por precio y no se suma con Pedidos;
+no se presenta como ganancia o cobros. El resumen usa el estado actual y el acumulado registrado.
+
+Cada indicador admite una meta local, con mínimo a alcanzar o máximo a reducir. Se separan por
+cuenta y UUID de sistema (que identifica su negocio); no se guardan con nombres o correos.
+No se sincronizan entre dispositivos ni envían notificaciones con la aplicación cerrada.
+Si el navegador impide guardar, se avisa y la meta sigue disponible durante esa visita.
+
+Planes muestra solo modalidad mensual; la anual espera una definición comercial. Las tarjetas
+comparten estructura entre visitantes y cuentas, y la renovación se gestiona en una sección aparte.
+Los reportes filtrados conservan el control Premium del servidor. Los mensajes de acceso gratuito
+informan cupo y renovación; el enlace a opciones de plan aparece cuando hay contenido bloqueado.
+La tarjeta de sugerencias para la home depende de ENS-245.
