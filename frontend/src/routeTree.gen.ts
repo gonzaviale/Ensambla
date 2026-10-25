@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicaRouteImport } from './routes/_publica'
 import { Route as AppAvisosRouteImport } from './routes/_app/avisos'
+import { Route as AppCuadernosRouteImport } from './routes/_app/cuadernos'
 import { Route as AppCuentaRouteImport } from './routes/_app/cuenta'
 import { Route as AppInicioRouteImport } from './routes/_app/inicio'
 import { Route as AppPlanesRouteImport } from './routes/_app/planes'
@@ -36,6 +37,11 @@ const PublicaRoute = PublicaRouteImport.update({
 const AppAvisosRoute = AppAvisosRouteImport.update({
   id: '/avisos',
   path: '/avisos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCuadernosRoute = AppCuadernosRouteImport.update({
+  id: '/cuadernos',
+  path: '/cuadernos',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCuentaRoute = AppCuentaRouteImport.update({
@@ -102,6 +108,7 @@ const AppSistemasSistemaIdRoute = AppSistemasSistemaIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof PublicaIndexRoute
   '/avisos': typeof AppAvisosRoute
+  '/cuadernos': typeof AppCuadernosRoute
   '/cuenta': typeof AppCuentaRoute
   '/inicio': typeof AppInicioRoute
   '/planes': typeof AppPlanesRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof PublicaIndexRoute
   '/avisos': typeof AppAvisosRoute
+  '/cuadernos': typeof AppCuadernosRoute
   '/cuenta': typeof AppCuentaRoute
   '/inicio': typeof AppInicioRoute
   '/planes': typeof AppPlanesRoute
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_publica': typeof PublicaRouteWithChildren
   '/_app/avisos': typeof AppAvisosRoute
+  '/_app/cuadernos': typeof AppCuadernosRoute
   '/_app/cuenta': typeof AppCuentaRoute
   '/_app/inicio': typeof AppInicioRoute
   '/_app/planes': typeof AppPlanesRoute
@@ -152,6 +161,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/avisos'
+    | '/cuadernos'
     | '/cuenta'
     | '/inicio'
     | '/planes'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/avisos'
+    | '/cuadernos'
     | '/cuenta'
     | '/inicio'
     | '/planes'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/_publica'
     | '/_app/avisos'
+    | '/_app/cuadernos'
     | '/_app/cuenta'
     | '/_app/inicio'
     | '/_app/planes'
@@ -223,6 +235,13 @@ declare module '@tanstack/react-router' {
       path: '/avisos'
       fullPath: '/avisos'
       preLoaderRoute: typeof AppAvisosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/cuadernos': {
+      id: '/_app/cuadernos'
+      path: '/cuadernos'
+      fullPath: '/cuadernos'
+      preLoaderRoute: typeof AppCuadernosRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/cuenta': {
@@ -314,6 +333,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAvisosRoute: typeof AppAvisosRoute
+  AppCuadernosRoute: typeof AppCuadernosRoute
   AppCuentaRoute: typeof AppCuentaRoute
   AppInicioRoute: typeof AppInicioRoute
   AppPlanesRoute: typeof AppPlanesRoute
@@ -327,6 +347,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAvisosRoute: AppAvisosRoute,
+  AppCuadernosRoute: AppCuadernosRoute,
   AppCuentaRoute: AppCuentaRoute,
   AppInicioRoute: AppInicioRoute,
   AppPlanesRoute: AppPlanesRoute,

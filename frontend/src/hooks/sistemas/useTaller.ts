@@ -96,7 +96,7 @@ export function useTaller() {
     imagen: ImagenParaSami | null,
   ): Promise<Turno> => {
     const { borrador } = taller;
-    const base = borrador ?? makeSystem(taller.nombre || 'Mi sistema', [], false);
+    const base = borrador ?? makeSystem(taller.nombre || 'Mi cuaderno', [], false);
     const charla = taller.mensajes.map((mensaje) => ({
       quien: mensaje.quien,
       texto: mensaje.texto.slice(0, LARGO_MAXIMO_DE_MENSAJE),

@@ -14,6 +14,7 @@ import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
 import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
 import { PreviewBoard } from '@/components/sistema/PreviewBoard';
+import { TablaCompleta } from '@/components/sistema/editor/TablaCompleta';
 import { Sami } from '@/components/sistema/Sami';
 import { VisorDeFoto } from '@/components/sistema/VisorDeFoto';
 import { varsDeColor } from '@/components/sistema/colores';
@@ -94,6 +95,8 @@ export function TallerPage() {
   const actualizarTaller = useSistemaStore((estado) => estado.actualizarTaller);
   const editarBorrador = useSistemaStore((estado) => estado.editarBorrador);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
+  const tablaCompletaId = useSistemaStore((estado) => estado.tablaCompletaId);
+  const verTablaCompleta = useSistemaStore((estado) => estado.verTablaCompleta);
   const navegacion = useNavegacion();
   const { enviar, responderDuda, deshacer, adjuntarFoto, quitarFoto } = useTaller();
   const avisar = useSistemaStore((estado) => estado.avisar);
@@ -113,6 +116,17 @@ export function TallerPage() {
   // El chat flota sobre la propuesta; se minimiza a un botón redondo para ver todo el lienzo.
   const [chatAbierto, setChatAbierto] = useState(true);
   const botonDelChat = useRef<HTMLButtonElement>(null);
+  const pasoDelTutorial = useSistemaStore((estado) =>
+    estado.tutorial.activo ? estado.tutorial.paso : null,
+  );
+
+  // En el celular el chat tapa la propuesta: cuando la guía pide crear el cuaderno, se minimiza para
+  // que se vea el botón «Sí, crear mi cuaderno».
+  useEffect(() => {
+    if (pasoDelTutorial === 'create' && window.matchMedia?.('(max-width: 760px)').matches) {
+      setChatAbierto(false);
+    }
+  }, [pasoDelTutorial]);
 
   // Si se entra por la dirección, sin pasar por un botón, la conversación empieza igual: sobre el sistema que diga
   // la dirección o, si no hay (o ya no existe), una nueva.
@@ -130,6 +144,9 @@ export function TallerPage() {
     }
   }, [nombre, sistemaDeLaUrl]);
 
+  // La tabla a pantalla completa no queda abierta al salir del taller.
+  useEffect(() => () => useSistemaStore.getState().verTablaCompleta(null), []);
+
   const cantidadDeMensajes = taller?.mensajes.length ?? 0;
   const pensando = taller?.pensando ?? false;
   useEffect(() => {
@@ -141,6 +158,7 @@ export function TallerPage() {
   if (!taller) return null;
   const { borrador } = taller;
   const seccionId = taller.seccionId ?? borrador?.sections[0]?.id ?? null;
+  const tablaCompleta = borrador ? findBlock(borrador, tablaCompletaId ?? undefined) : undefined;
   const ajustando = Boolean(original);
   const hayCambios =
     !original || !borrador || !mismoSistema(ajusteParaGuardar(original, borrador), original);
@@ -276,7 +294,7 @@ export function TallerPage() {
             <Icon name="back" /> {original ? `Volver a ${original.name}` : 'Inicio'}
           </Btn>
           <span>
-            {ajustando ? 'AJUSTANDO TU SISTEMA CON SAMI' : 'EL TALLER DE TU PRIMER SISTEMA'}
+            {ajustando ? 'AJUSTANDO TU CUADERNO CON SAMI' : 'EL TALLER DE TU PRIMER CUADERNO'}
           </span>
           <span className="tag outline">
             {ajustando
@@ -295,12 +313,12 @@ export function TallerPage() {
                 <div className="draft-heading">
                   <div>
                     <span className="eyebrow">
-                      {ajustando ? 'TU SISTEMA, CON LOS CAMBIOS' : 'TU PROPUESTA, A LA VISTA'}
+                      {ajustando ? 'TU CUADERNO, CON LOS CAMBIOS' : 'TU PROPUESTA, A LA VISTA'}
                     </span>
                     <input
                       className="draft-name-input"
                       id="guide-system-name"
-                      aria-label="Nombre de tu sistema"
+                      aria-label="Nombre de tu cuaderno"
                       maxLength={100}
                       value={borrador.name}
                       onChange={(evento) =>
@@ -369,6 +387,7 @@ export function TallerPage() {
                     abrirModal({ tipo: 'registroDelBorrador', bloqueId, filaId })
                   }
                   onQuitar={quitarPieza}
+                  onTablaCompleta={verTablaCompleta}
                   onAncho={(bloqueId, ancho) =>
                     editarBorrador((copia) => {
                       const bloque = findBlock(copia, bloqueId);
@@ -386,7 +405,7 @@ export function TallerPage() {
                     {ajustando ? (
                       <span>
                         <strong>¿Te sirve así?</strong>
-                        <small>Se guarda sobre tu sistema, con tus registros.</small>
+                        <small>Se guarda sobre tu cuaderno, con tus registros.</small>
                       </span>
                     ) : (
                       <span>
@@ -401,7 +420,7 @@ export function TallerPage() {
                     </Btn>
                   ) : (
                     <Btn cls="primary" data-accion="guide-create" onClick={crearSistema}>
-                      Sí, crear mi sistema <Icon name="arrow" />
+                      Sí, crear mi cuaderno <Icon name="arrow" />
                     </Btn>
                   )}
                 </div>
@@ -441,7 +460,7 @@ export function TallerPage() {
                 </h2>
                 <p>
                   Una propuesta de bloques que podés mover, combinar y cambiar. Sin tener que
-                  imaginar el sistema a ciegas.
+                  imaginar el cuaderno a ciegas.
                 </p>
                 {/* <span className="empty-studio-note">
                   <Icon name="spark" />
@@ -622,7 +641,7 @@ export function TallerPage() {
         </form>
         <p className="conversation-foot">
           {ajustando
-            ? 'Nada cambia en tu sistema hasta que guardes.'
+            ? 'Nada cambia en tu cuaderno hasta que guardes.'
             : 'Vos decidís qué queda y cuándo está listo.'}
         </p>
       </aside>
@@ -638,6 +657,17 @@ export function TallerPage() {
         >
           <img src="/mockup/sami-boton.webp" alt="" />
         </button>
+      )}
+      {borrador && tablaCompleta && (
+        <TablaCompleta
+          key={tablaCompleta.id}
+          bloque={tablaCompleta}
+          sistema={borrador}
+          textoVolver="Volver a la propuesta"
+          onRegistro={(filaId) =>
+            abrirModal({ tipo: 'registroDelBorrador', bloqueId: tablaCompleta.id, filaId })
+          }
+        />
       )}
     </>
   );

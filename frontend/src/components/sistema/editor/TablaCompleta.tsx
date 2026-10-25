@@ -20,10 +20,33 @@ const BAJO_STOCK = 'low-stock';
 
 const ENFOCABLES = 'button:not(:disabled),input:not([hidden]),select,textarea,[tabindex="0"]';
 
+type Props = {
+  bloque: Bloque;
+  sistema: Sistema;
+  /** Registrar o editar (con `filaId`) un registro. Sin esto, abre el formulario del sistema guardado. */
+  onRegistro?: (filaId: string | null) => void;
+  /** Lo que dice el botón para salir: en el taller se vuelve a la propuesta, no al sistema. */
+  textoVolver?: string;
+};
+
 // La tabla de un bloque a toda la pantalla: más lugar para leerla, y filtros por columna además de la búsqueda.
-export function TablaCompleta({ bloque, sistema }: { bloque: Bloque; sistema: Sistema }) {
+// Se usa en el sistema y en la propuesta del taller de Sami.
+export function TablaCompleta({
+  bloque,
+  sistema,
+  onRegistro,
+  textoVolver = 'Volver al cuaderno',
+}: Props) {
   const verTablaCompleta = useSistemaStore((estado) => estado.verTablaCompleta);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
+  const registrar = (filaId: string | null) =>
+    onRegistro
+      ? onRegistro(filaId)
+      : abrirModal(
+          filaId
+            ? { tipo: 'registro', bloqueId: bloque.id, filaId }
+            : { tipo: 'registro', bloqueId: bloque.id },
+        );
   const [consulta, setConsulta] = useState('');
   const [filtros, setFiltros] = useState<Filtros>({});
   const raiz = useRef<HTMLDivElement>(null);
@@ -113,14 +136,11 @@ export function TablaCompleta({ bloque, sistema }: { bloque: Bloque; sistema: Si
                 : `${bloque.rows.length} registros`}
             </p>
           </div>
-          <Btn
-            cls="soft small"
-            onClick={() => abrirModal({ tipo: 'registro', bloqueId: bloque.id })}
-          >
+          <Btn cls="soft small" onClick={() => registrar(null)}>
             <Icon name="plus" /> Registrar
           </Btn>
           <Btn cls="secondary small" data-tabla-completa-volver="true" onClick={cerrar}>
-            <Icon name="back" /> Volver al sistema
+            <Icon name="back" /> {textoVolver}
           </Btn>
         </header>
 
@@ -189,9 +209,7 @@ export function TablaCompleta({ bloque, sistema }: { bloque: Bloque; sistema: Si
                     <IconBtn
                       name="edit"
                       label={rotuloDeEdicion(fila)}
-                      onClick={() =>
-                        abrirModal({ tipo: 'registro', bloqueId: bloque.id, filaId: fila.id })
-                      }
+                      onClick={() => registrar(fila.id)}
                     />
                   </td>
                 </tr>

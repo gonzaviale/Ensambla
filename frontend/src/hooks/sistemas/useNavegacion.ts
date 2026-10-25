@@ -36,7 +36,15 @@ export function useNavegacion() {
   };
 
   const irA = (
-    to: '/inicio' | '/plantillas' | '/taller' | '/zona' | '/planes' | '/sami' | '/avisos',
+    to:
+      | '/inicio'
+      | '/cuadernos'
+      | '/plantillas'
+      | '/taller'
+      | '/zona'
+      | '/planes'
+      | '/sami'
+      | '/avisos',
   ) => {
     limpiar();
     return navigate({ to });
@@ -93,21 +101,11 @@ export function useNavegacion() {
           .avisar(
             error instanceof ApiError
               ? `${error.message}${error.status === 403 && error.codigo ? ' Revisá los beneficios de Premium en Planes.' : ''}`
-              : 'No pudimos crear tu sistema. Tus datos todavía no se guardaron. Probá de nuevo.',
+              : 'No pudimos crear tu cuaderno. Tus datos todavía no se guardaron. Probá de nuevo.',
           );
       }
     },
-    /** «Mis sistemas»: vuelve al inicio y baja a la lista, o explica por dónde empezar. */
-    irAMisSistemas: async () => {
-      await irA('/inicio');
-      const estado = useSistemaStore.getState();
-      if (estado.sistemas.length) {
-        document
-          .getElementById('my-systems')
-          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        estado.avisar('Tu primer sistema puede empezar con cualquiera de estos tres caminos.');
-      }
-    },
+    /** «Mis cuadernos»: la pantalla con todos los cuadernos y las maneras de crear uno. */
+    irAMisSistemas: () => irA('/cuadernos'),
   };
 }

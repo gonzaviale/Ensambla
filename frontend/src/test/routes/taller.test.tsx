@@ -35,7 +35,7 @@ const abrirTaller = async () => {
 const conPropuesta = async () => {
   const taller = await abrirTaller();
   await clickButton(taller.user, /Almacén o kiosco/);
-  await screen.findByLabelText('Nombre de tu sistema', {}, ESPERA);
+  await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
   return taller;
 };
 
@@ -137,7 +137,7 @@ describe('el taller de Sami', () => {
   it('con un ejemplo Sami arma una base que se ve a la derecha', async () => {
     await conPropuesta();
 
-    expect(screen.getByLabelText('Nombre de tu sistema')).toHaveValue('Mi almacén');
+    expect(screen.getByLabelText('Nombre de tu cuaderno')).toHaveValue('Mi almacén');
     expect(screen.getByText('Propuesta sin guardar')).toBeVisible();
     expect(screen.getByText(/^Te armé los productos/)).toBeVisible();
     expect(screen.getByText('Ya lo podés ver a la derecha.')).toBeVisible();
@@ -163,17 +163,17 @@ describe('el taller de Sami', () => {
     await user.clear(campo);
     await user.type(campo, 'Los de la cuadra');
     await clickButton(user, 'Guardar nombre');
-    expect(await screen.findByRole('button', { name: /Los de la cuadra/ })).toBeVisible();
+    expect(await screen.findByRole('button', { name: /^Los de la cuadra/ })).toBeVisible();
 
     const bloque = screen
-      .getByRole('button', { name: /Los de la cuadra/ })
+      .getByRole('button', { name: /^Los de la cuadra/ })
       .closest<HTMLElement>('.preview-block');
     if (!bloque) throw new Error('Falta la pieza');
     await user.click(within(bloque).getByRole('button', { name: 'Fila completa' }));
     expect(bloque).toHaveAttribute('data-width', 'full');
 
     await user.click(within(bloque).getByRole('button', { name: 'Quitar de la propuesta' }));
-    expect(screen.queryByRole('button', { name: /Los de la cuadra/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Los de la cuadra/ })).toBeNull();
     expect(screen.getByText('2 piezas conectadas')).toBeVisible();
   });
 
@@ -265,11 +265,11 @@ describe('el taller de Sami', () => {
 
   it('crear el sistema lo guarda sin los ejemplos y lo abre listo para usar', async () => {
     const { user, router } = await conPropuesta();
-    const nombre = screen.getByLabelText('Nombre de tu sistema');
+    const nombre = screen.getByLabelText('Nombre de tu cuaderno');
     await user.clear(nombre);
     await user.type(nombre, 'Almacén Don Luis');
 
-    await clickButton(user, /Sí, crear mi sistema/);
+    await clickButton(user, /Sí, crear mi cuaderno/);
 
     await waitFor(() => expect(useSistemaStore.getState().sistemas).toHaveLength(1), ESPERA);
     const [sistema] = useSistemaStore.getState().sistemas;

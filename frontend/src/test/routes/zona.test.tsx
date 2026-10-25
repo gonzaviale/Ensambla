@@ -169,7 +169,7 @@ describe('Qué se vende cerca', () => {
     const { user } = await abrirZona();
     await user.click(screen.getByRole('tab', { name: /Qué se vende cerca/ }));
 
-    expect(screen.getByText(/necesitás un sistema con un bloque de Inventario/)).toBeVisible();
+    expect(screen.getByText(/necesitás un cuaderno con un bloque de Inventario/)).toBeVisible();
     expect(
       within(tarjetaDe('Leche La Serenísima 1 L')).getByRole('button', {
         name: /Sumar a mis productos/,

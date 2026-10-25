@@ -23,7 +23,7 @@ export function ModalBienvenida() {
           <Sami />
           <span className="welcome-bubble">Lo armamos juntos.</span>
         </div>
-        <span className="eyebrow">TU SISTEMA, UN BLOQUE A LA VEZ.</span>
+        <span className="eyebrow">TU CUADERNO, UN BLOQUE A LA VEZ.</span>
         <h2 id="modal-title">
           ¡Hola, {nombre}!
           <br />
@@ -40,7 +40,7 @@ export function ModalBienvenida() {
               <Icon name="spark" />
             </span>
             <span>
-              <strong>Hacer mi primer sistema con guía</strong>
+              <strong>Hacer mi primer cuaderno con guía</strong>
               <small>Lo probamos paso a paso, haciendo de verdad.</small>
             </span>
             <Icon name="arrow" />

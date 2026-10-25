@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { Rubro } from '@/types/ubicacion';
 import { Btn } from '../Btn';
 
@@ -8,9 +9,19 @@ type Props = {
   cargando: boolean;
   error: string;
   onReintentar: () => void;
+  /** El botón de guardar de la solapa, al final del recuadro. */
+  pie?: ReactNode;
 };
 
-export function SelectorRubro({ rubros, valor, onCambiar, cargando, error, onReintentar }: Props) {
+export function SelectorRubro({
+  rubros,
+  valor,
+  onCambiar,
+  cargando,
+  error,
+  onReintentar,
+  pie,
+}: Props) {
   return (
     <section className="ubicacion-panel ubicacion-rubro" aria-labelledby="titulo-rubro">
       <h2 id="titulo-rubro">Elegí tu rubro</h2>
@@ -37,6 +48,7 @@ export function SelectorRubro({ rubros, valor, onCambiar, cargando, error, onRei
           <Btn onClick={onReintentar}>Reintentar rubros</Btn>
         </div>
       )}
+      {pie}
     </section>
   );
 }

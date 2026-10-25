@@ -1,7 +1,7 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { findBlock, makeSystem, makeTemplate } from '@/lib/sistema/core';
+import { allBlocks, findBlock, makeSystem, makeTemplate } from '@/lib/sistema/core';
 import type { Sistema } from '@/lib/sistema/tipos';
 import { estado } from '@/mocks/db/estado';
 import { seleccionarSistemaActivo, useSistemaStore } from '@/stores/sistemaStore';
@@ -155,7 +155,7 @@ describe('el editor: construir y usar', () => {
       expect(within(vista).getByLabelText('Cantidad: mín.')).toBeVisible();
       expect(within(vista).getByLabelText('Buscar en Inventario')).toBeVisible();
 
-      await user.click(within(vista).getByRole('button', { name: /Volver al sistema/ }));
+      await user.click(within(vista).getByRole('button', { name: /Volver al cuaderno/ }));
 
       expect(screen.queryByRole('dialog', { name: 'Inventario' })).toBeNull();
       expect(abrir).toHaveFocus();
@@ -192,7 +192,7 @@ describe('el editor: construir y usar', () => {
       await user.keyboard('{Escape}');
       expect(document.documentElement.style.overflow).toBe('hidden');
 
-      await user.click(within(vista).getByRole('button', { name: /Volver al sistema/ }));
+      await user.click(within(vista).getByRole('button', { name: /Volver al cuaderno/ }));
       expect(document.documentElement.style.overflow).toBe('');
     });
 
@@ -276,6 +276,34 @@ describe('el editor: construir y usar', () => {
       await screen.findByRole('heading', { level: 1, name: /Almacén Don Luis/ }),
     ).toBeVisible();
     expect(activo().name).toBe('Almacén Don Luis');
+  });
+
+  it('el lápiz deja eliminar el cuaderno escribiendo su nombre', async () => {
+    const { user, usuario, router, sistema } = await abrirEditor();
+
+    await user.click(
+      screen.getByRole('heading', { level: 1 }).querySelector('button') as HTMLElement,
+    );
+    expect(await screen.findByRole('heading', { name: 'Configurar cuaderno' })).toBeVisible();
+    await clickButton(user, 'Eliminar cuaderno');
+
+    const tablas = await screen.findByRole('list', { name: 'Tablas que se eliminan' });
+    expect(within(tablas).getAllByRole('listitem')).toHaveLength(allBlocks(sistema).length);
+    const eliminar = screen.getByRole('button', { name: 'Eliminar para siempre' });
+    expect(eliminar).toBeDisabled();
+
+    const campo = screen.getByLabelText(/Para confirmar/);
+    await user.type(campo, 'otro nombre');
+    expect(eliminar).toBeDisabled();
+    await user.clear(campo);
+    await user.type(campo, sistema.name);
+    expect(eliminar).toBeEnabled();
+    await user.click(eliminar);
+
+    await verifyPathAsync(router, '/cuadernos');
+    await verifyToastAsync(`Eliminamos «${sistema.name}».`);
+    expect(useSistemaStore.getState().sistemas).toHaveLength(0);
+    await waitFor(() => expect(estado.sistemas.get(usuario.email)).toHaveLength(0), ESPERA);
   });
 
   it('el guardado llega al servidor y la barra lo cuenta', async () => {

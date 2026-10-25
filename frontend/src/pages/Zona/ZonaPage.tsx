@@ -244,7 +244,7 @@ function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
       <section className="zona-panel">
         {!destino && (
           <div className="info-box">
-            Para sumar productos a tu inventario necesitás un sistema con un bloque de Inventario.
+            Para sumar productos a tu inventario necesitás un cuaderno con un bloque de Inventario.
           </div>
         )}
         <div className="row between">

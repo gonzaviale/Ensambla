@@ -40,7 +40,7 @@ export function ModalRenovacion({ cancelar = false }: { cancelar?: boolean }) {
             proveedor la acepte.
           </p>
           <p>
-            Conservás los días de prueba o el período ya pagado. Tus sistemas y registros se
+            Conservás los días de prueba o el período ya pagado. Tus cuadernos y registros se
             mantienen.
           </p>
           <p>Cancelar futuras renovaciones no solicita un reembolso del período actual.</p>

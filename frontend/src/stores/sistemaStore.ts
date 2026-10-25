@@ -20,7 +20,9 @@ export type Modal =
   | { tipo: 'pruebaPremium' }
   | { tipo: 'contratarPremium' }
   | { tipo: 'cancelarRenovacion' }
+  /** Configurar el cuaderno: cambiarle el nombre o, desde ahí, eliminarlo. */
   | { tipo: 'renombrar' }
+  | { tipo: 'eliminarCuaderno' }
   | { tipo: 'renombrarPieza'; bloqueId: string }
   | { tipo: 'registro'; bloqueId: string; filaId?: string | null }
   /** Un registro de la propuesta de Sami, que todavía no es un sistema creado. */
@@ -122,6 +124,8 @@ type EstadoDelStore = {
   panel: PanelDeAvisos;
   /** «Sami vio un cambio»: el aviso nuevo que se muestra un rato arriba a la derecha. */
   avisoNuevo: { aviso: Aviso; cantidad: number } | null;
+  /** Avisos que la persona sacó del menú de la campana. Siguen en la pantalla de avisos. */
+  ocultosDeCampana: string[];
   /** El tutorial interactivo: en qué paso va y con qué está practicando la persona. */
   tutorial: EstadoDelTutorial;
 };
@@ -163,6 +167,8 @@ type Acciones = {
   actualizarPanel: (cambio: Partial<PanelDeAvisos>) => void;
   mostrarAvisoNuevo: (aviso: Aviso, cantidad: number) => void;
   ocultarAvisoNuevo: () => void;
+  /** Saca un aviso del menú de la campana sin descartarlo. */
+  ocultarDeCampana: (id: string) => void;
   /** Cambia lo que el tutorial recuerda (el paso, el bloque, etc.). */
   ponerTutorial: (cambio: Partial<EstadoDelTutorial>) => void;
 };
@@ -188,6 +194,7 @@ const ESTADO_INICIAL: EstadoDelStore = {
   accesoAvisos: null,
   panel: PANEL_CERRADO,
   avisoNuevo: null,
+  ocultosDeCampana: [],
   tutorial: TUTORIAL_INICIAL,
 };
 
@@ -365,6 +372,8 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
   actualizarPanel: (cambio) => set((estado) => ({ panel: { ...estado.panel, ...cambio } })),
   mostrarAvisoNuevo: (aviso, cantidad) => set({ avisoNuevo: { aviso, cantidad } }),
   ocultarAvisoNuevo: () => set({ avisoNuevo: null }),
+  ocultarDeCampana: (id) =>
+    set((estado) => ({ ocultosDeCampana: sinRepetir(estado.ocultosDeCampana, id) })),
   ponerTutorial: (cambio) => set((estado) => ({ tutorial: { ...estado.tutorial, ...cambio } })),
 
   editarBorrador: (cambio) =>

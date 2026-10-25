@@ -64,8 +64,15 @@ const productoDe = (sistema: Sistema | undefined, nombre: string) =>
 
 const sistemaActual = () => useSistemaStore.getState().sistemas[0];
 
-const abrirPanel = async (user: ReturnType<typeof userEvent.setup>) => {
+// La campana despliega un resumen; «Ver todos los avisos» lleva a la pantalla completa.
+const verTodosDesdeLaCampana = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(screen.getByRole('button', { name: /Avisos de Sami/ }));
+  const menu = await screen.findByRole('dialog', { name: 'Avisos recientes' }, ESPERA);
+  await user.click(within(menu).getByRole('button', { name: /Ver todos los avisos/ }));
+};
+
+const abrirPanel = async (user: ReturnType<typeof userEvent.setup>) => {
+  await verTodosDesdeLaCampana(user);
   return screen.findByRole('region', { name: /Lo que encontré en tus datos/ }, ESPERA);
 };
 
@@ -95,6 +102,67 @@ describe('la campana y la pantalla de avisos', () => {
     const campana = screen.getByRole('button', { name: 'Avisos de Sami: 9' });
     expect(campana).toHaveClass('urgente');
     expect(within(campana).getByText('9')).toBeVisible();
+  });
+
+  it('la campana abre a la derecha un resumen de los avisos y se cierra con Escape o la ✕', async () => {
+    const { user } = await abrirConDemo();
+    const campana = screen.getByRole('button', { name: 'Avisos de Sami: 9' });
+    expect(campana).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(campana);
+    const menu = screen.getByRole('dialog', { name: 'Avisos recientes' });
+    expect(campana).toHaveAttribute('aria-expanded', 'true');
+    expect(within(menu).getAllByRole('listitem')).toHaveLength(9);
+    expect(within(menu).getByText(/Deslizá un aviso/)).toBeVisible();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: 'Avisos recientes' })).toBeNull();
+    expect(campana).toHaveFocus();
+
+    await user.click(campana);
+    await user.click(screen.getByRole('button', { name: 'Cerrar los avisos' }));
+    expect(screen.queryByRole('dialog', { name: 'Avisos recientes' })).toBeNull();
+  });
+
+  it('sacar un aviso de la campana no lo borra de la pantalla de avisos', async () => {
+    const { user } = await abrirConDemo();
+    await user.click(screen.getByRole('button', { name: 'Avisos de Sami: 9' }));
+    const menu = screen.getByRole('dialog', { name: 'Avisos recientes' });
+    const primero = within(menu).getAllByRole('listitem')[0];
+    if (!primero) throw new Error('Falta un aviso en la campana');
+    const titulo = primero.querySelector('strong')?.textContent ?? '';
+
+    await user.click(within(primero).getByRole('button', { name: /Sacar de acá/ }));
+    expect(within(menu).getAllByRole('listitem')).toHaveLength(8);
+    expect(within(menu).queryByText(titulo)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Avisos de Sami: 8' })).toBeVisible();
+
+    await user.click(within(menu).getByRole('button', { name: /Ver todos los avisos/ }));
+    const panel = await screen.findByRole(
+      'region',
+      { name: /Lo que encontré en tus datos/ },
+      ESPERA,
+    );
+    expect(within(panel).getByText(/9 en total/)).toBeVisible();
+    expect(within(panel).getByRole('heading', { level: 3, name: titulo })).toBeVisible();
+  });
+
+  it('tocar un aviso de la campana lo abre resaltado en la pantalla de avisos', async () => {
+    const { user } = await abrirConDemo();
+    await user.click(screen.getByRole('button', { name: 'Avisos de Sami: 9' }));
+    const menu = screen.getByRole('dialog', { name: 'Avisos recientes' });
+    const primero = within(menu).getAllByRole('listitem')[0];
+    if (!primero) throw new Error('Falta un aviso en la campana');
+    const nombre = primero.querySelector('strong')?.textContent ?? '';
+
+    await user.click(
+      within(primero).getByRole('button', {
+        name: (texto) => !texto.startsWith('Sacar') && texto.includes(nombre),
+      }),
+    );
+    await screen.findByRole('region', { name: /Lo que encontré en tus datos/ }, ESPERA);
+    expect(screen.queryByRole('dialog', { name: 'Avisos recientes' })).toBeNull();
+    expect(tarjeta(nombre)).toHaveClass('foco');
   });
 
   it('la campana lleva a la pantalla de avisos, que agrupa y filtra', async () => {
@@ -277,7 +345,7 @@ describe('sin datos y con el almacén de ejemplo', () => {
     await verifyHeadingPresentAsync(/En qué puedo/);
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole('button', { name: /Avisos de Sami/ }));
+    await verTodosDesdeLaCampana(user);
     const panel = await screen.findByRole('region', { name: /Tus avisos/ }, ESPERA);
     expect(within(panel).getByText('Todavía no tengo datos para mirar.')).toBeVisible();
     await user.click(

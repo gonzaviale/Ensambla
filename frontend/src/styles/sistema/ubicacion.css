@@ -307,84 +307,84 @@ body:has(.ubicacion-page) {
   accent-color: var(--petrol);
 }
 
-/* El camino de pasos: arriba, para saber por dónde vas. Se puede tocar cualquier paso. */
-/* Verde de paso hecho: sólido y del mismo tono saturado que el resto de la paleta. */
+/* Las solapas: se entra a cualquiera en cualquier orden y cada una se guarda sola. */
+/* Verde de guardado: sólido y del mismo tono saturado que el resto de la paleta. */
 .ubicacion-page {
   --verde-paso: #2e9e6a;
 }
-.ubicacion-camino ol {
-  display: flex;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.ubicacion-camino li {
-  flex: 1;
+.ubicacion-solapas {
   position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
 }
-.ubicacion-camino li + li::before {
+/* La línea de abajo se dibuja encima de las solapas: así no queda ningún hueco entre ellas y la línea. */
+.ubicacion-solapas::after {
   content: '';
   position: absolute;
-  top: 50%;
-  right: calc(100% + 1px);
-  width: 8px;
-  height: 2px;
-  background: var(--line);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--petrol);
+  pointer-events: none;
 }
-.ubicacion-camino button {
+.ubicacion-solapas button {
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 14px;
+  gap: 8px;
+  padding: 12px 20px 15px;
   border: 2px solid var(--line);
-  border-radius: 999px;
+  border-bottom: 0;
+  border-radius: 14px 14px 0 0;
   background: #fff;
-  color: var(--muted);
+  color: var(--ink);
   font: inherit;
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
-.ubicacion-camino-punto {
-  display: grid;
+.ubicacion-solapas button:not(.activa):hover {
+  border-color: var(--orange);
+}
+.ubicacion-solapas button.activa {
+  border-color: var(--petrol);
+  background: var(--petrol);
+  color: #fff;
+}
+.ubicacion-solapa-estado {
+  display: inline-grid;
   place-items: center;
-  flex: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--line);
+  font-size: 12px;
+}
+.ubicacion-solapa-estado.pendiente {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--yellow);
   color: var(--ink);
-  font-size: 13px;
 }
-.ubicacion-camino-punto .icon {
-  width: 15px;
-  height: 15px;
-}
-.ubicacion-camino li.hecho button {
-  border-color: var(--verde-paso);
-  color: var(--verde-paso);
-}
-.ubicacion-camino li.hecho .ubicacion-camino-punto {
+.ubicacion-solapa-estado.guardada {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
   background: var(--verde-paso);
   color: #fff;
 }
-.ubicacion-camino li.actual button {
-  border-color: var(--orange);
-  background: var(--orange);
-  color: #fff;
+.ubicacion-solapa-estado .icon {
+  width: 13px;
+  height: 13px;
 }
-.ubicacion-camino li.actual .ubicacion-camino-punto {
-  background: #fff;
-  color: var(--orange);
+.ubicacion-solapa-panel {
+  display: grid;
+  gap: 16px;
 }
-.ubicacion-camino button:hover:not(:disabled) {
-  border-color: var(--orange);
-}
-.ubicacion-camino button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
+.ubicacion-guardado {
+  margin: 0;
+  font-weight: 700;
+  color: var(--verde-paso);
 }
 .ubicacion-page > .ubicacion-aviso {
   margin: 0;
@@ -400,29 +400,26 @@ body:has(.ubicacion-page) {
   max-width: none;
 }
 @media (max-width: 600px) {
-  .ubicacion-camino button {
+  .ubicacion-solapas button {
+    flex: 1;
     flex-direction: column;
     gap: 4px;
-    padding: 8px 6px;
-    border-radius: 16px;
-    font-size: 12px;
+    padding: 10px 6px;
+    font-size: 13px;
   }
 }
-/* Calle y altura en una fila; la localidad va debajo, en el mismo bloque. */
-.ubicacion-calle-altura {
+.ubicacion-localidad-elegida {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 120px;
-  gap: 12px;
+  gap: 6px;
+  justify-items: start;
+}
+.ubicacion-localidad-elegida p {
+  margin: 0;
 }
 .ubicacion-elegida {
   margin: 0;
   font-weight: 700;
   color: var(--verde-paso);
-}
-.ubicacion-falta {
-  margin: 0;
-  font-size: 14px;
-  color: var(--muted);
 }
 .ubicacion-direccion form {
   display: grid;
@@ -432,5 +429,15 @@ body:has(.ubicacion-page) {
   justify-self: start;
 }
 .ubicacion-direccion .field {
+  margin: 0;
+}
+/* El pie de cada recuadro: el botón de guardar y sus mensajes. */
+.ubicacion-pie {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin-top: 8px;
+}
+.ubicacion-pie .form-error {
   margin: 0;
 }

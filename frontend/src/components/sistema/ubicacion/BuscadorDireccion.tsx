@@ -2,11 +2,9 @@ import type { FormEvent, ReactNode } from 'react';
 import type { Direccion } from '@/types/ubicacion';
 
 type Props = {
-  calle: string;
-  altura: string;
-  onCalle: (valor: string) => void;
-  onAltura: (valor: string) => void;
-  /** El campo de la localidad: va en el mismo bloque y también se usa para buscar. */
+  consulta: string;
+  onConsulta: (valor: string) => void;
+  /** La localidad que quedó para la dirección elegida: se completa sola con el mapa. */
   localidad: ReactNode;
   onBuscar: (evento: FormEvent) => void;
   buscando: boolean;
@@ -14,6 +12,8 @@ type Props = {
   elegida: Direccion | null;
   onElegir: (direccion: Direccion) => void;
   error: string;
+  /** El botón de guardar de la solapa, al final del recuadro. */
+  pie?: ReactNode;
 };
 
 export function BuscadorDireccion(props: Props) {
@@ -21,44 +21,27 @@ export function BuscadorDireccion(props: Props) {
     <section className="ubicacion-panel ubicacion-direccion" aria-labelledby="titulo-direccion">
       <h2 id="titulo-direccion">Encontrá tu comercio</h2>
       <form onSubmit={props.onBuscar} noValidate>
-        <div className="ubicacion-calle-altura">
-          <div className="field">
-            <label htmlFor="direccion-calle">Calle</label>
-            <input
-              id="direccion-calle"
-              className="input"
-              type="text"
-              autoComplete="off"
-              maxLength={150}
-              placeholder="Ej.: Florencio Varela"
-              aria-describedby="error-direccion"
-              aria-invalid={!!props.error}
-              value={props.calle}
-              onChange={(evento) => props.onCalle(evento.target.value)}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="direccion-altura">Altura</label>
-            <input
-              id="direccion-altura"
-              className="input"
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              maxLength={10}
-              placeholder="Ej.: 1903"
-              aria-describedby="error-direccion"
-              aria-invalid={!!props.error}
-              value={props.altura}
-              onChange={(evento) => props.onAltura(evento.target.value)}
-            />
-          </div>
+        <div className="field">
+          <label htmlFor="direccion-completa">Dirección</label>
+          <input
+            id="direccion-completa"
+            className="input"
+            type="text"
+            autoComplete="off"
+            maxLength={200}
+            placeholder="Ej.: Florencio Varela 1903, San Justo"
+            aria-describedby="ayuda-direccion error-direccion"
+            aria-invalid={!!props.error}
+            value={props.consulta}
+            onChange={(evento) => props.onConsulta(evento.target.value)}
+          />
+          <p id="ayuda-direccion" className="ubicacion-ayuda">
+            Calle, altura y localidad, todo junto.
+          </p>
         </div>
-        {props.localidad}
         <button type="submit" className="btn primary" disabled={props.buscando}>
           {props.buscando ? 'Buscando…' : 'Buscar dirección'}
         </button>
-        <p className="ubicacion-ayuda">Se busca en OpenStreetMap. No pongas datos personales.</p>
         <div id="error-direccion" className="form-error" role="alert">
           {props.error}
         </div>
@@ -91,6 +74,8 @@ export function BuscadorDireccion(props: Props) {
       {props.elegida && !props.resultados?.length && (
         <p className="ubicacion-elegida">Dirección elegida: {props.elegida.direccion}</p>
       )}
+      {props.elegida && props.localidad}
+      {props.pie}
     </section>
   );
 }
