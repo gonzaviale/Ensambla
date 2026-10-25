@@ -111,13 +111,13 @@ describe('el taller de Sami', () => {
     const { user } = await abrirTaller();
 
     await clickButton(user, 'Minimizar el chat');
-    expect(screen.getByText(/Hola, Ana Pérez\. Contame qué hacés/)).not.toBeVisible();
+    expect(screen.getByText('Hola, Ana Pérez.')).not.toBeVisible();
     expect(screen.getByText('TU IDEA VA A APARECER ACÁ')).toBeVisible();
     const abrir = screen.getByRole('button', { name: 'Abrir el chat con Sami' });
     await waitFor(() => expect(abrir).toHaveFocus());
 
     await user.click(abrir);
-    expect(screen.getByText(/Hola, Ana Pérez\. Contame qué hacés/)).toBeVisible();
+    expect(screen.getByText('Hola, Ana Pérez.')).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Abrir el chat con Sami' })).toBeNull();
     await waitFor(() =>
       expect(screen.getByLabelText('Contame un poco de tu negocio')).toHaveFocus(),
