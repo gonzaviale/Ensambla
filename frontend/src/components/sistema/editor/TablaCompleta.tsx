@@ -42,6 +42,17 @@ export function TablaCompleta({ bloque, sistema }: { bloque: Bloque; sistema: Si
     setFiltros({});
   };
 
+  // La pantalla de atrás no se desplaza (ni deja su barra a la vista) mientras la tabla está abierta. Se bloquea
+  // `html` y no `body`, que es lo que toca `ModalHost` al abrir el formulario de un registro encima.
+  useEffect(() => {
+    const documento = document.documentElement;
+    const previo = documento.style.overflow;
+    documento.style.overflow = 'hidden';
+    return () => {
+      documento.style.overflow = previo;
+    };
+  }, []);
+
   // Esc cierra y Tab no sale de la vista; mientras hay un formulario abierto encima, eso le toca a él. Al cerrar, el foco
   // vuelve al botón que la abrió.
   const cierre = useRef(cerrar);
