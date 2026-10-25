@@ -143,10 +143,11 @@ describe('modales', () => {
     expect(useSistemaStore.getState().modo).toBe('build');
   });
 
-  it('el avatar lleva a la cuenta, donde se cambia el nombre que se muestra y se guarda la preferencia', async () => {
+  it('el avatar despliega un menú que lleva a la configuración, donde se cambia el nombre que se muestra y se guarda la preferencia', async () => {
     const { user, usuario, router } = await abrirInicio();
 
-    await clickButton(user, /Tu cuenta y configuración/);
+    await clickButton(user, 'Menú de tu cuenta');
+    await user.click(await screen.findByRole('menuitem', { name: 'Configuración' }));
     await verifyPathAsync(router, '/cuenta');
     const campo = await screen.findByLabelText('¿Cómo querés que te llame Sami?');
     await user.clear(campo);
@@ -161,11 +162,57 @@ describe('modales', () => {
     );
   });
 
-  it('desde la cuenta se puede cerrar la sesión', async () => {
+  it('el menú del avatar se cierra con Escape devolviendo el foco, o al tocar afuera', async () => {
+    const { user } = await abrirInicio();
+    const avatar = await screen.findByRole('button', { name: 'Menú de tu cuenta' });
+
+    await user.click(avatar);
+    expect(avatar).toHaveAttribute('aria-expanded', 'true');
+    expect(await screen.findByRole('menuitem', { name: 'Configuración' })).toHaveFocus();
+    expect(screen.getByRole('menuitem', { name: 'Cerrar sesión' })).toBeVisible();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(avatar).toHaveFocus();
+
+    await user.click(avatar);
+    await user.click(document.body);
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('desde el menú del avatar se cierra la sesión recién al confirmar', async () => {
     const { user, router } = await abrirInicio();
 
-    await clickButton(user, /Tu cuenta y configuración/);
-    await user.click(await screen.findByRole('link', { name: 'Sesión' }));
+    await clickButton(user, 'Menú de tu cuenta');
+    await user.click(await screen.findByRole('menuitem', { name: 'Cerrar sesión' }));
+    const dialogo = await screen.findByRole('dialog', { name: '¿Cerrar la sesión?' });
+    expect(router.state.location.pathname).not.toBe('/login');
+
+    await user.click(within(dialogo).getByRole('button', { name: 'Cerrar sesión' }));
+
+    await verifyPathAsync(router, '/login');
+  });
+
+  it('cancelar la confirmación mantiene la sesión y devuelve el foco al avatar', async () => {
+    const { user, router } = await abrirInicio();
+    const avatar = await screen.findByRole('button', { name: 'Menú de tu cuenta' });
+
+    await user.click(avatar);
+    await user.click(await screen.findByRole('menuitem', { name: 'Cerrar sesión' }));
+    const dialogo = await screen.findByRole('dialog', { name: '¿Cerrar la sesión?' });
+    await user.click(within(dialogo).getByRole('button', { name: 'Cancelar' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(router.state.location.pathname).not.toBe('/login');
+    expect(avatar).toHaveFocus();
+  });
+
+  it('desde la cuenta también se puede cerrar la sesión', async () => {
+    const { user, router } = await abrirInicio();
+
+    await clickButton(user, 'Menú de tu cuenta');
+    await user.click(await screen.findByRole('menuitem', { name: 'Configuración' }));
+    await user.click(await screen.findByRole('link', { name: 'Cerrar sesión' }));
     await user.click(await screen.findByRole('button', { name: 'Cerrar sesión' }));
 
     await verifyPathAsync(router, '/login');

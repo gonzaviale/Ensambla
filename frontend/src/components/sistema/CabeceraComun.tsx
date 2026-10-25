@@ -1,3 +1,4 @@
+import { useCerrarSesion } from '@/hooks/auth/mutations';
 import { useAbrirAvisos } from '@/hooks/avisos/useAbrirAvisos';
 import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
 import { useSistemaStore } from '@/stores/sistemaStore';
@@ -10,6 +11,7 @@ export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const navegacion = useNavegacion();
   const abrirAvisos = useAbrirAvisos();
+  const { cerrarSesion, cerrando } = useCerrarSesion();
 
   return (
     <TopBar
@@ -24,6 +26,17 @@ export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
       onPlanes={() => void navegacion.irAPlanes()}
       onAyuda={() => abrirModal({ tipo: 'ayuda' })}
       onCuenta={() => void navegacion.irACuenta()}
+      onCerrarSesion={() =>
+        abrirModal({
+          tipo: 'confirmar',
+          titulo: '¿Cerrar la sesión?',
+          mensaje:
+            'Salís de tu cuenta en este dispositivo. Tus sistemas y tus datos quedan guardados para cuando vuelvas a entrar.',
+          etiqueta: 'Cerrar sesión',
+          onConfirmar: () => void cerrarSesion(),
+        })
+      }
+      cerrandoSesion={cerrando}
     />
   );
 }

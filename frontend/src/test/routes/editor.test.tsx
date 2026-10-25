@@ -161,6 +161,41 @@ describe('el editor: construir y usar', () => {
       expect(abrir).toHaveFocus();
     });
 
+    it('cada lápiz dice a qué registro corresponde, por su primera columna', async () => {
+      const sistema = makeTemplate('shop', {}, true);
+      const filas = tipoDeBloqueDe(sistema, 'inventory').rows;
+      const { user } = await abrirEditor(sistema, 'usar');
+      const { vista } = await abrirTabla(user);
+
+      const lapices = within(vista).getAllByRole('button', { name: /^Editar registro/ });
+
+      expect(lapices).toHaveLength(filas.length);
+      expect(
+        within(vista).getByRole('button', { name: 'Editar registro: Coca-Cola 2,25 L' }),
+      ).toBeVisible();
+      expect(new Set(lapices.map((lapiz) => lapiz.getAttribute('aria-label'))).size).toBe(
+        filas.length,
+      );
+    });
+
+    it('bloquea el desplazamiento de la pantalla de atrás, también con un formulario encima, y lo devuelve al cerrar', async () => {
+      const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+      expect(document.documentElement.style.overflow).toBe('');
+
+      const { vista } = await abrirTabla(user);
+      expect(document.documentElement.style.overflow).toBe('hidden');
+
+      await user.click(
+        within(vista).getAllByRole('button', { name: /^Editar registro/ })[0] as HTMLElement,
+      );
+      await screen.findByRole('heading', { name: 'Editar producto' });
+      await user.keyboard('{Escape}');
+      expect(document.documentElement.style.overflow).toBe('hidden');
+
+      await user.click(within(vista).getByRole('button', { name: /Volver al sistema/ }));
+      expect(document.documentElement.style.overflow).toBe('');
+    });
+
     it('filtra por columna y por búsqueda, cuenta lo que muestra y se limpia con un botón', async () => {
       const sistema = makeTemplate('shop', {}, true);
       const total = tipoDeBloqueDe(sistema, 'inventory').rows.length;
@@ -191,7 +226,7 @@ describe('el editor: construir y usar', () => {
       const { vista } = await abrirTabla(user);
 
       await user.click(
-        within(vista).getAllByRole('button', { name: 'Editar registro' })[0] as HTMLElement,
+        within(vista).getAllByRole('button', { name: /^Editar registro/ })[0] as HTMLElement,
       );
       expect(await screen.findByRole('heading', { name: 'Editar producto' })).toBeVisible();
 

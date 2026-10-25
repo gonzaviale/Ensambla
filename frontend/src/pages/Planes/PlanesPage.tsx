@@ -187,8 +187,8 @@ export function PlanesPage() {
             </section>
           </>
         ) : null}
+        <PageFooter />
       </main>
-      <PageFooter />
     </>
   );
 }
