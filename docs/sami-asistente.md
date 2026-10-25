@@ -268,6 +268,8 @@ foto. La meta es ≥ 85 % y < 2800 tokens sin foto. La evaluación mide al model
 `TallerSamiService` (si dice que hizo algo sin hacerlo, o si con una foto no cargó registros), que en la app corrigen
 justamente los casos que más fallan (bicicletas y el cuaderno de velas).
 
+Resultado con prompt v5 (16 herramientas, filas visibles, 2026-10-25, 53 casos con 8 de registros): **96 %** (51/53), ≈ **3060 tokens de entrada sin foto y ≈ 3980 con foto**, ≈ 2,2 s. La meta de tokens pasó a < 3200. Los dos casos que fallan (asociar ventas con clientes, que el modelo contesta sin invocar `editar_campo`, y el cuaderno de velas, que arma piezas sin `cargar_registros`) son los que corrige el reintento de `TallerSamiService`.
+
 La primera versión del ensamblado dio 80 %: conectaba de más, hacía más de lo pedido y preguntaba el rubro en vez de
 armar; lo corrigieron reglas concretas en el prompt y reglas fijas en la validación. La meta de tokens empezó en 2000 y
 subió con cada herramienta (2300, 2600 con `editar_campo`, 2800 con `cargar_registros`): cerca de la mitad del turno son

@@ -121,5 +121,21 @@
   {"id": "foto-lista-stock", "estado": "almacen", "imagen": "lista-stock-almacen.png",
    "mensaje": "cargá lo que tengo en esta lista de stock",
    "esperadas": [{"herramienta": "cargar_registros", "args": {"pieza": "inventory", "filas": "yerba"}}],
-   "permiteExtras": true}
+   "permiteExtras": true},
+  {"id": "registro-borrar", "estado": "almacen", "mensaje": "borrá la yerba del inventario",
+   "esperadas": [{"herramienta": "quitar_registro", "args": {"pieza": "inventory", "registro": "f11"}}]},
+  {"id": "registro-borrar-cliente", "estado": "almacen", "mensaje": "sacá a Marta de los clientes",
+   "esperadas": [{"herramienta": "quitar_registro", "args": {"pieza": "clients", "registro": "f22"}}]},
+  {"id": "registro-editar-precio", "estado": "almacen", "mensaje": "el precio de los fideos es 1800",
+   "esperadas": [{"herramienta": "editar_registro", "args": {"pieza": "inventory", "registro": "f12", "cambios": "1800"}}]},
+  {"id": "registro-editar-telefono", "estado": "almacen", "mensaje": "el teléfono de Lucía es 11 5555-9999",
+   "esperadas": [{"herramienta": "editar_registro", "args": {"pieza": "clients", "registro": "f21", "cambios": "5555-9999"}}]},
+  {"id": "registro-editar-nombre", "estado": "almacen", "mensaje": "la yerba en realidad se llama Yerba Taragüí",
+   "esperadas": [{"herramienta": "editar_registro", "args": {"pieza": "inventory", "registro": "f11", "cambios": "taragui"}}]},
+  {"id": "registro-borrar-repetido", "estado": "repetidos", "mensaje": "borrá el arroz que tiene 8 unidades",
+   "esperadas": [{"herramienta": "quitar_registro", "args": {"pieza": "inventory", "registro": "f32"}}]},
+  {"id": "registro-no-existe", "estado": "almacen", "mensaje": "borrá la harina del inventario",
+   "esperadas": []},
+  {"id": "registro-borrar-no-es-pieza", "estado": "almacen", "mensaje": "sacá a Lucía",
+   "esperadas": [{"herramienta": "quitar_registro", "args": {"pieza": "clients", "registro": "f21"}}]}
 ]
