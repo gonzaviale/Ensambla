@@ -20,7 +20,9 @@ export type Modal =
   | { tipo: 'pruebaPremium' }
   | { tipo: 'contratarPremium' }
   | { tipo: 'cancelarRenovacion' }
+  /** Configurar el cuaderno: cambiarle el nombre o, desde ahí, eliminarlo. */
   | { tipo: 'renombrar' }
+  | { tipo: 'eliminarCuaderno' }
   | { tipo: 'renombrarPieza'; bloqueId: string }
   | { tipo: 'registro'; bloqueId: string; filaId?: string | null }
   /** Un registro de la propuesta de Sami, que todavía no es un sistema creado. */

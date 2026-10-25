@@ -112,3 +112,85 @@
     height: 18px;
   }
 }
+
+/* Configurar y eliminar un cuaderno (lápiz al lado del nombre). Colores sólidos, sin pasteles. */
+.btn.peligro {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  background: var(--coral);
+  border: 0;
+}
+.btn.peligro:hover:not(:disabled) {
+  background: #d9443f;
+}
+.btn.peligro:disabled {
+  color: #fff;
+  background: #b9b9b9;
+  cursor: not-allowed;
+}
+.btn.peligro svg {
+  width: 16px;
+  height: 16px;
+}
+.zona-peligro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 22px;
+  padding: 16px;
+  border: 2px solid var(--coral);
+  border-radius: 12px;
+}
+.zona-peligro h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  color: var(--coral);
+}
+.zona-peligro p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.modal-eliminar-cuaderno .eliminar-cuaderno-subtitulo {
+  margin: 14px 0 6px;
+  font-weight: 700;
+}
+.eliminar-cuaderno-tablas {
+  display: grid;
+  gap: 6px;
+  max-height: 210px;
+  margin: 0 0 16px;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.eliminar-cuaderno-tablas li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--line, #e5e5e5);
+  border-radius: 10px;
+}
+.eliminar-cuaderno-punto {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.eliminar-cuaderno-nombre {
+  flex: 1;
+  font-weight: 600;
+}
+.eliminar-cuaderno-cantidad {
+  font-size: 13px;
+  color: var(--muted);
+}
+.modal-configurar-cuaderno form .modal-footer {
+  justify-content: flex-start;
+}

@@ -199,7 +199,11 @@ export function SistemaPage() {
                   {construyendo ? 'Gestión de tablas · Armado' : 'Gestión de tablas · Uso diario'}
                 </span>
                 <h1>
-                  <button type="button" onClick={() => abrirModal({ tipo: 'renombrar' })}>
+                  <button
+                    type="button"
+                    title="Configurar cuaderno"
+                    onClick={() => abrirModal({ tipo: 'renombrar' })}
+                  >
                     {sistema.name} <Icon name="edit" />
                   </button>
                 </h1>
