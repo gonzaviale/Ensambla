@@ -2,21 +2,21 @@ package com.ensambla.backend.domain.useCase.proyecto.obtenerProyecto;
 
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.useCase.proyecto.ProyectoItem;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class ObtenerProyecto {
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
-    private final ProyectoService proyectoService;
+    private final ProyectoRepository proyectoRepository;
 
     public ProyectoItem execute(ObtenerProyectoRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-        Proyecto proyecto = proyectoService.obtener(negocioId, request.proyectoId());
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        Proyecto proyecto = proyectoRepository.obtener(negocioId, request.proyectoId());
         return ProyectoItem.de(proyecto);
     }
 }

@@ -6,11 +6,11 @@ import com.ensambla.backend.domain.model.inventario.MovimientoStock;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.useCase.inventario.MovimientoItem;
 import lombok.RequiredArgsConstructor;
 
@@ -22,20 +22,20 @@ public class ListarMovimientos {
 
     static final int MAXIMO_MOVIMIENTOS = 100;
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
-    private final BloqueService bloqueService;
+    private final BloqueRepository bloqueRepository;
 
-    private final CampoService campoService;
+    private final CampoRepository campoRepository;
 
     private final RegistroRepository registroRepository;
 
     private final MovimientoStockRepository movimientoStockRepository;
 
     public List<MovimientoItem> execute(ListarMovimientosRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-        Bloque bloque = bloqueService.obtener(request.bloqueId(), negocioId);
-        List<Campo> campos = campoService.listarDeBloque(bloque.getId(), negocioId);
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        Bloque bloque = bloqueRepository.obtener(request.bloqueId(), negocioId);
+        List<Campo> campos = campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), negocioId);
         List<MovimientoStock> movimientos = movimientoStockRepository.findRecientes(
                 bloque.getId(), negocioId, request.registroId(), MAXIMO_MOVIMIENTOS);
         List<RegistroId> productoIds = movimientos.stream().map(MovimientoStock::getRegistroId).distinct().toList();

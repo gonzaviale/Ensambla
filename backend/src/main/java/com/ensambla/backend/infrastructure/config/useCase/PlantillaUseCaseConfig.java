@@ -1,7 +1,6 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
-import com.ensambla.backend.domain.service.plantilla.PlantillaService;
 import com.ensambla.backend.domain.useCase.plantilla.listarPlantillas.ListarPlantillas;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,10 +11,5 @@ public class PlantillaUseCaseConfig {
     @Bean
     public ListarPlantillas listarPlantillas(PlantillaRepository plantillaRepository) {
         return new ListarPlantillas(plantillaRepository);
-    }
-
-    @Bean
-    public PlantillaService plantillaService(PlantillaRepository plantillaRepository) {
-        return new PlantillaService(plantillaRepository);
     }
 }

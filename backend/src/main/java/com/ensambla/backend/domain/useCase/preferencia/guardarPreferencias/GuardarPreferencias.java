@@ -3,7 +3,6 @@ package com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias;
 import com.ensambla.backend.domain.model.preferencia.PreferenciaUsuario;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.preferencia.PreferenciaRepository;
-import com.ensambla.backend.domain.service.preferencia.PreferenciaService;
 import com.ensambla.backend.domain.useCase.preferencia.PreferenciasItem;
 import lombok.RequiredArgsConstructor;
 
@@ -12,8 +11,6 @@ import java.time.OffsetDateTime;
 
 @RequiredArgsConstructor
 public class GuardarPreferencias {
-
-    private final PreferenciaService preferenciaService;
 
     private final PreferenciaRepository preferenciaRepository;
 
@@ -27,7 +24,7 @@ public class GuardarPreferencias {
     }
 
     private PreferenciaUsuario guardar(GuardarPreferenciasRequest request, OffsetDateTime ahora) {
-        PreferenciaUsuario preferencia = preferenciaService.obtener(request.usuarioId(), ahora);
+        PreferenciaUsuario preferencia = preferenciaRepository.obtenerOInicial(request.usuarioId(), ahora);
         preferencia.actualizar(
                 request.descartadas(), request.grupos(), request.bienvenidaVista(), request.nombre(), ahora);
         return preferenciaRepository.save(preferencia);

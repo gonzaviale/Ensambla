@@ -1,16 +1,14 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.AccesoContenidoRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.plan.AccesoContenidoService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import com.ensambla.backend.domain.useCase.plan.consultarPlanes.ConsultarPlanes;
 import com.ensambla.backend.domain.useCase.plan.desbloquearContenidos.DesbloquearContenidos;
 import com.ensambla.backend.domain.useCase.plan.iniciarPrueba.IniciarPrueba;
@@ -25,55 +23,45 @@ public class PlanUseCaseConfig {
 
     @Bean
     public DesbloquearContenidos desbloquearContenidos(
-            NegocioService negocioService, AccesoContenidoService accesoContenidoService, Clock clock) {
-        return new DesbloquearContenidos(negocioService, accesoContenidoService, clock);
+            NegocioRepository negocioRepository, ControlPlanService controlPlanService, Clock clock) {
+        return new DesbloquearContenidos(negocioRepository, controlPlanService, clock);
     }
 
     @Bean
-    public ConsultarPlanes consultarPlanes(NegocioService negocioService,
-                                           SuscripcionService suscripcionService,
+    public ConsultarPlanes consultarPlanes(NegocioRepository negocioRepository,
+                                           SuscripcionRepository suscripcionRepository,
                                            PlanRepository planRepository,
                                            PruebaPremiumRepository pruebaPremiumRepository,
                                            UsoPlanRepository usoPlanRepository,
                                            RenovacionPremiumRepository renovacionPremiumRepository,
                                            TransaccionPort transaccionPort,
                                            Clock clock) {
-        return new ConsultarPlanes(negocioService, suscripcionService, planRepository, pruebaPremiumRepository,
+        return new ConsultarPlanes(negocioRepository, suscripcionRepository, planRepository, pruebaPremiumRepository,
                 usoPlanRepository, renovacionPremiumRepository, transaccionPort, clock);
     }
 
     @Bean
-    public IniciarPrueba iniciarPrueba(NegocioService negocioService,
-                                       SuscripcionService suscripcionService,
+    public IniciarPrueba iniciarPrueba(NegocioRepository negocioRepository,
+                                       PlanRepository planRepository,
                                        PruebaPremiumRepository pruebaPremiumRepository,
                                        SuscripcionRepository suscripcionRepository,
                                        UsoPlanRepository usoPlanRepository,
                                        RenovacionPremiumRepository renovacionPremiumRepository,
                                        TransaccionPort transaccionPort,
                                        Clock clock) {
-        return new IniciarPrueba(negocioService, suscripcionService, pruebaPremiumRepository, suscripcionRepository,
+        return new IniciarPrueba(negocioRepository, planRepository, pruebaPremiumRepository, suscripcionRepository,
                 usoPlanRepository, renovacionPremiumRepository, transaccionPort, clock);
     }
 
     @Bean
-    public VencerPruebas vencerPruebas(SuscripcionService suscripcionService,
+    public VencerPruebas vencerPruebas(PlanRepository planRepository,
                                        PruebaPremiumRepository pruebaPremiumRepository,
                                        SuscripcionRepository suscripcionRepository,
                                        UsoPlanRepository usoPlanRepository,
                                        TransaccionPort transaccionPort,
                                        Clock clock) {
-        return new VencerPruebas(suscripcionService, pruebaPremiumRepository, suscripcionRepository,
+        return new VencerPruebas(planRepository, pruebaPremiumRepository, suscripcionRepository,
                 usoPlanRepository, transaccionPort, clock);
-    }
-
-    @Bean
-    public AccesoContenidoService accesoContenidoService(
-            ControlPlanService controlPlanService,
-            UsoPlanRepository usoPlanRepository,
-            AccesoContenidoRepository accesoContenidoRepository,
-            TransaccionPort transaccionPort) {
-        return new AccesoContenidoService(
-                controlPlanService, usoPlanRepository, accesoContenidoRepository, transaccionPort);
     }
 
     @Bean
@@ -82,14 +70,10 @@ public class PlanUseCaseConfig {
             SuscripcionRepository suscripcionRepository,
             UsoPlanRepository usoPlanRepository,
             PruebaPremiumRepository pruebaPremiumRepository,
+            AccesoContenidoRepository accesoContenidoRepository,
             TransaccionPort transaccionPort) {
-        return new ControlPlanService(
-                planRepository, suscripcionRepository, usoPlanRepository, pruebaPremiumRepository, transaccionPort);
+        return new ControlPlanService(planRepository, suscripcionRepository, usoPlanRepository,
+                accesoContenidoRepository, pruebaPremiumRepository, transaccionPort);
     }
 
-    @Bean
-    public SuscripcionService suscripcionService(
-            PlanRepository planRepository, SuscripcionRepository suscripcionRepository) {
-        return new SuscripcionService(planRepository, suscripcionRepository);
-    }
 }

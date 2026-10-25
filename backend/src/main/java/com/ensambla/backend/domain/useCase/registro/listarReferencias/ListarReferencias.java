@@ -4,9 +4,9 @@ import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Registro;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import lombok.RequiredArgsConstructor;
 
@@ -15,18 +15,18 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ListarReferencias {
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
-    private final BloqueService bloqueService;
+    private final BloqueRepository bloqueRepository;
 
-    private final CampoService campoService;
+    private final CampoRepository campoRepository;
 
     private final RegistroDatosService registroDatosService;
 
     public List<ReferenciaItem> execute(ListarReferenciasRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-        Bloque bloque = bloqueService.obtener(request.bloqueId(), negocioId);
-        List<Campo> campos = campoService.listarDeBloque(bloque.getId(), negocioId);
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        Bloque bloque = bloqueRepository.obtener(request.bloqueId(), negocioId);
+        List<Campo> campos = campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), negocioId);
         List<Registro> registros = registroDatosService.buscarReferenciables(
                 negocioId, bloque.getId(), campos, request.texto(), request.ids());
         return ReferenciaItem.de(registros, campos);

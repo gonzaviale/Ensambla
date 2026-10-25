@@ -6,12 +6,11 @@ import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.pago.RenovacionPremiumService;
 import com.ensambla.backend.domain.useCase.pago.ConsultarRenovacionResponse;
-import com.ensambla.backend.domain.useCase.pago.sincronizarRenovacion.SincronizarRenovacion;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
@@ -20,13 +19,11 @@ import java.time.OffsetDateTime;
 @RequiredArgsConstructor
 public class CancelarRenovacion {
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
     private final RenovacionPremiumService renovacionPremiumService;
 
     private final PasarelaSuscripcionesPort pasarelaSuscripcionesPort;
-
-    private final SincronizarRenovacion sincronizarRenovacion;
 
     private final RenovacionPremiumRepository renovacionPremiumRepository;
 
@@ -37,9 +34,9 @@ public class CancelarRenovacion {
     private final Clock clock;
 
     public ConsultarRenovacionResponse execute(UsuarioId usuarioId) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(usuarioId);
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(usuarioId);
         RenovacionPremium renovacion = solicitarCancelacion(negocioId, OffsetDateTime.now(clock));
-        sincronizarRenovacion.execute(renovacion.getId());
+        renovacionPremiumService.sincronizar(renovacion.getId(), OffsetDateTime.now(clock));
         return ConsultarRenovacionResponse.de(pasarelaSuscripcionesPort.disponible(),
                 renovacionPremiumService.consultar(negocioId).orElseThrow());
     }

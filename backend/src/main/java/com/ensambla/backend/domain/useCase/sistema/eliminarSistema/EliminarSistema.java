@@ -4,8 +4,8 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.sistema.IdSistema;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -15,14 +15,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class EliminarSistema {
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
     private final ProyectoRepository proyectoRepository;
 
     private final TransaccionPort transaccionPort;
 
     public void execute(EliminarSistemaRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
         ProyectoId proyectoId = IdSistema.aId(negocioId, request.id(), ProyectoId::de);
         transaccionPort.ejecutar(() -> proyectoRepository.deleteByIdAndNegocioId(proyectoId, negocioId));
     }

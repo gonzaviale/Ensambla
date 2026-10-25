@@ -10,12 +10,12 @@ import com.ensambla.backend.domain.model.plan.PruebaPremium;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
+import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.plan.SuscripcionService;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
@@ -26,9 +26,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ConsultarPlanes {
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
-    private final SuscripcionService suscripcionService;
+    private final SuscripcionRepository suscripcionRepository;
 
     private final PlanRepository planRepository;
 
@@ -43,7 +43,7 @@ public class ConsultarPlanes {
     private final Clock clock;
 
     public ConsultarPlanesResponse execute(UsuarioId usuarioId) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(usuarioId);
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(usuarioId);
         OffsetDateTime ahora = OffsetDateTime.now(clock);
         ConsultaPlanes consulta = transaccionPort.ejecutar(() -> consultar(negocioId, ahora));
         return ConsultarPlanesResponse.de(consulta, ahora);
@@ -52,9 +52,9 @@ public class ConsultarPlanes {
     /** Una única vista del negocio frente a activaciones, consumo y vencimientos concurrentes. */
     private ConsultaPlanes consultar(NegocioId negocioId, OffsetDateTime ahora) {
         usoPlanRepository.bloquearNegocio(negocioId);
-        Plan gratuito = suscripcionService.obtenerPlan(CodigoPlan.GRATUITO);
-        Plan premium = suscripcionService.obtenerPlan(CodigoPlan.PREMIUM);
-        Suscripcion suscripcion = suscripcionService.obtener(negocioId);
+        Plan gratuito = planRepository.obtener(CodigoPlan.GRATUITO);
+        Plan premium = planRepository.obtener(CodigoPlan.PREMIUM);
+        Suscripcion suscripcion = suscripcionRepository.obtener(negocioId);
         boolean vigente = suscripcion.estaVigente(ahora);
         Plan actual = vigente ? planRepository.findById(suscripcion.getPlanId())
                 .orElseThrow(() -> new ResourceNotFoundException("Plan no encontrado")) : gratuito;

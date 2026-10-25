@@ -7,11 +7,11 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.inventario.InventarioService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.registro.RegistroDatosService;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
@@ -21,25 +21,25 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ConsultarStock {
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
-    private final BloqueService bloqueService;
+    private final BloqueRepository bloqueRepository;
 
-    private final CampoService campoService;
+    private final CampoRepository campoRepository;
 
-    private final RegistroDatosService registroDatosService;
+    private final RegistroRepository registroRepository;
 
-    private final InventarioService inventarioService;
+    private final MovimientoStockRepository movimientoStockRepository;
 
     public ConsultarStockResponse execute(ConsultarStockRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-        Bloque bloque = bloqueService.obtener(request.bloqueId(), negocioId);
-        List<Campo> campos = campoService.listarDeBloque(bloque.getId(), negocioId);
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        Bloque bloque = bloqueRepository.obtener(request.bloqueId(), negocioId);
+        List<Campo> campos = campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), negocioId);
         ConsultaRegistros consulta = ConsultaRegistros.armar(
                 negocioId, bloque.getId(), campos, request.texto(), null, null, request.pagina(), request.tamanio());
-        Pagina<Registro> productos = registroDatosService.listar(consulta);
+        Pagina<Registro> productos = registroRepository.buscar(consulta);
         List<RegistroId> productoIds = productos.contenido().stream().map(Registro::getId).toList();
-        Map<RegistroId, BigDecimal> stock = inventarioService.stockDe(productoIds, negocioId);
+        Map<RegistroId, BigDecimal> stock = movimientoStockRepository.stockCompletoDe(productoIds, negocioId);
         return ConsultarStockResponse.de(productos, stock, campos);
     }
 }

@@ -3,9 +3,7 @@ package com.ensambla.backend.infrastructure.config.useCase;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.useCase.campo.crearCampo.CrearCampo;
 import com.ensambla.backend.domain.useCase.campo.editarCampo.EditarCampo;
 import com.ensambla.backend.domain.useCase.campo.eliminarCampo.EliminarCampo;
@@ -20,40 +18,40 @@ public class CampoUseCaseConfig {
 
     @Bean
     public ListarCampos listarCampos(
-            NegocioService negocioService,
-            BloqueService bloqueService,
-            CampoService campoService) {
+            NegocioRepository negocioRepository,
+            BloqueRepository bloqueRepository,
+            CampoRepository campoRepository) {
         return new ListarCampos(
-                negocioService,
-                bloqueService,
-                campoService);
+                negocioRepository,
+                bloqueRepository,
+                campoRepository);
     }
 
     @Bean
     public CrearCampo crearCampo(
-            NegocioService negocioService,
-            BloqueService bloqueService,
-            CampoService campoService,
+            NegocioRepository negocioRepository,
+            BloqueRepository bloqueRepository,
+            CampoRepository campoRepository,
+            TransaccionPort transaccionPort,
             Clock clock) {
         return new CrearCampo(
-                negocioService,
-                bloqueService,
-                campoService,
+                negocioRepository,
+                bloqueRepository,
+                campoRepository,
+                transaccionPort,
                 clock);
     }
 
     @Bean
     public EditarCampo editarCampo(
-            NegocioService negocioService,
-            CampoService campoService,
-            BloqueService bloqueService,
+            NegocioRepository negocioRepository,
+            BloqueRepository bloqueRepository,
             CampoRepository campoRepository,
             TransaccionPort transaccionPort,
             Clock clock) {
         return new EditarCampo(
-                negocioService,
-                campoService,
-                bloqueService,
+                negocioRepository,
+                bloqueRepository,
                 campoRepository,
                 transaccionPort,
                 clock);
@@ -61,22 +59,13 @@ public class CampoUseCaseConfig {
 
     @Bean
     public EliminarCampo eliminarCampo(
-            NegocioService negocioService,
-            CampoService campoService,
+            NegocioRepository negocioRepository,
             CampoRepository campoRepository,
             TransaccionPort transaccionPort) {
         return new EliminarCampo(
-                negocioService,
-                campoService,
+                negocioRepository,
                 campoRepository,
                 transaccionPort);
     }
 
-    @Bean
-    public CampoService campoService(
-            CampoRepository campoRepository,
-            BloqueRepository bloqueRepository,
-            TransaccionPort transaccionPort) {
-        return new CampoService(campoRepository, bloqueRepository, transaccionPort);
-    }
 }

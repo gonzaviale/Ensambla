@@ -21,14 +21,13 @@ import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.lote.LoteSubidaService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import lombok.RequiredArgsConstructor;
 
@@ -49,11 +48,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ConfirmarLectura {
 
-    private final NegocioService negocioService;
-    private final LoteSubidaService loteSubidaService;
-    private final ProyectoService proyectoService;
-    private final BloqueService bloqueService;
-    private final CampoService campoService;
+    private final NegocioRepository negocioRepository;
+    private final ProyectoRepository proyectoRepository;
+    private final BloqueRepository bloqueRepository;
+    private final CampoRepository campoRepository;
     private final RegistroDatosService registroDatosService;
     private final ControlPlanService controlPlanService;
     private final RegistroRepository registroRepository;
@@ -62,8 +60,8 @@ public class ConfirmarLectura {
     private final Clock clock;
 
     public ConfirmarLecturaResponse execute(ConfirmarLecturaRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-        LoteSubida lote = loteSubidaService.obtener(negocioId, request.loteId());
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        LoteSubida lote = loteSubidaRepository.obtener(negocioId, request.loteId());
         ConfirmacionGuardada guardada = confirmar(
                 negocioId, lote, request.aConfirmacionLectura(), OffsetDateTime.now(clock));
         return ConfirmarLecturaResponse.de(guardada);
@@ -86,12 +84,17 @@ public class ConfirmarLectura {
 
     private Bloque destino(NegocioId negocioId, ConfirmacionLectura confirmacion, OffsetDateTime ahora) {
         if (confirmacion.bloqueId() != null) {
-            return bloqueService.obtener(confirmacion.bloqueId(), negocioId);
+            return bloqueRepository.obtener(confirmacion.bloqueId(), negocioId);
         }
         Proyecto proyecto = confirmacion.proyectoId() != null
-                ? proyectoService.obtener(negocioId, confirmacion.proyectoId())
-                : proyectoService.crear(negocioId, confirmacion.nombreProyecto(), null, ahora);
-        return bloqueService.crear(proyecto, confirmacion.nombreBloque(), ahora);
+                ? proyectoRepository.obtener(negocioId, confirmacion.proyectoId())
+                : crearProyecto(negocioId, confirmacion.nombreProyecto(), ahora);
+        return bloqueRepository.save(proyecto.agregarBloque(confirmacion.nombreBloque(), ahora));
+    }
+
+    private Proyecto crearProyecto(NegocioId negocioId, String nombre, OffsetDateTime ahora) {
+        controlPlanService.validarAltaProyecto(negocioId, ahora);
+        return proyectoRepository.save(Proyecto.enBlanco(negocioId, nombre, null, ahora));
     }
 
     /**
@@ -100,7 +103,7 @@ public class ConfirmarLectura {
      */
     private Map<String, Campo> prepararCampos(NegocioId negocioId, Bloque bloque, ConfirmacionLectura confirmacion,
                                               OffsetDateTime ahora) {
-        Map<CampoId, Campo> existentes = campoService.listarDeBloque(bloque.getId(), negocioId).stream()
+        Map<CampoId, Campo> existentes = campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), negocioId).stream()
                 .collect(Collectors.toMap(Campo::getId, Function.identity()));
         Map<String, Campo> porClave = new LinkedHashMap<>();
         for (int i = 0; i < confirmacion.campos().size(); i++) {
@@ -116,7 +119,8 @@ public class ConfirmarLectura {
         ConfiguracionCampo configuracion = new ConfiguracionCampo(
                 campo.nombre(), campo.tipo(), false, null, campo.opciones(), null, null);
         try {
-            return campoService.crear(bloque, configuracion, ahora);
+            bloque.setCampos(campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), bloque.getNegocioId()));
+            return campoRepository.save(bloque.agregarCampo(configuracion, ahora));
         } catch (CampoInvalidoException e) {
             throw new CampoInvalidoException(ubicar("campos[" + indice + "].", e.getErrores()));
         } catch (DuplicateResourceException e) {
@@ -136,7 +140,7 @@ public class ConfirmarLectura {
     private List<Registro> armarRegistros(NegocioId negocioId, Bloque bloque, Map<String, Campo> campos,
             LoteSubida lote,
                                           ConfirmacionLectura confirmacion, OffsetDateTime ahora) {
-        List<Campo> delBloque = campoService.listarDeBloque(bloque.getId(), negocioId);
+        List<Campo> delBloque = campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), negocioId);
         Map<String, String> clavePorCampoId = new HashMap<>();
         campos.forEach((clave, campo) -> clavePorCampoId.put(campo.getId().toString(), clave));
         Map<String, String> errores = new LinkedHashMap<>();

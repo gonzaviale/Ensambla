@@ -6,9 +6,9 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.reporte.FiltroReporte;
 import com.ensambla.backend.domain.model.reporte.ReporteRegistros;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.reporte.ReporteService;
 import com.ensambla.backend.domain.useCase.reporte.GenerarReporteRequest;
@@ -24,23 +24,23 @@ public class GenerarReporte {
     /** Filas que se muestran en pantalla antes de descargar. */
     static final int MAXIMO_VISTA = 50;
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
     private final ControlPlanService controlPlanService;
 
     private final Clock clock;
 
-    private final BloqueService bloqueService;
+    private final BloqueRepository bloqueRepository;
 
-    private final CampoService campoService;
+    private final CampoRepository campoRepository;
 
     private final ReporteService reporteService;
 
     public GenerarReporteResponse execute(GenerarReporteRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-        Bloque bloque = bloqueService.obtener(request.bloqueId(), negocioId);
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        Bloque bloque = bloqueRepository.obtener(request.bloqueId(), negocioId);
         controlPlanService.validarFuncion(negocioId, FuncionPlan.REPORTES_FILTRADOS, OffsetDateTime.now(clock));
-        List<Campo> campos = campoService.listarDeBloque(bloque.getId(), negocioId);
+        List<Campo> campos = campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), negocioId);
         FiltroReporte filtro = FiltroReporte.armar(
                 negocioId,
                 bloque.getId(),

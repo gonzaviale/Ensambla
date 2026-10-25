@@ -6,9 +6,9 @@ import com.ensambla.backend.domain.model.lote.LoteSubida;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.lote.LoteItem;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SubirLote {
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
     private final LoteSubidaRepository loteSubidaRepository;
 
@@ -31,12 +31,12 @@ public class SubirLote {
 
     private final TransaccionPort transaccionPort;
 
-    private final BloqueService bloqueService;
+    private final BloqueRepository bloqueRepository;
 
     private final Clock clock;
 
     public LoteItem execute(SubirLoteRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
         validarDestino(negocioId, request.bloqueDestinoId());
         OffsetDateTime ahora = OffsetDateTime.now(clock);
         LoteSubida lote = transaccionPort.ejecutar(
@@ -47,7 +47,7 @@ public class SubirLote {
     /** Un bloque de otro negocio responde como inexistente. */
     private void validarDestino(NegocioId negocioId, BloqueId bloqueDestinoId) {
         if (bloqueDestinoId != null) {
-            bloqueService.obtener(bloqueDestinoId, negocioId);
+            bloqueRepository.obtener(bloqueDestinoId, negocioId);
         }
     }
 

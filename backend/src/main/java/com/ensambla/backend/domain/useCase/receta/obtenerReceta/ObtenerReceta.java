@@ -6,11 +6,11 @@ import com.ensambla.backend.domain.model.receta.Receta;
 import com.ensambla.backend.domain.model.receta.RecetaCosteada;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.receta.RecetaRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.receta.RecetaService;
-import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.receta.RecetaItem;
 import lombok.RequiredArgsConstructor;
 
@@ -21,21 +21,21 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ObtenerReceta {
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
     private final ControlPlanService controlPlanService;
 
     private final Clock clock;
 
-    private final RegistroDatosService registroDatosService;
+    private final RegistroRepository registroRepository;
 
     private final RecetaService recetaService;
 
     private final RecetaRepository recetaRepository;
 
     public RecetaItem execute(ObtenerRecetaRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-        Registro producto = registroDatosService.obtener(request.registroId(), negocioId);
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        Registro producto = registroRepository.obtener(request.registroId(), negocioId);
         controlPlanService.validarFuncion(negocioId, FuncionPlan.RECETAS_COSTOS, OffsetDateTime.now(clock));
         Receta receta = obtener(producto.getId(), negocioId);
         RecetaCosteada costeada = recetaService.costear(receta, negocioId);

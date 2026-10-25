@@ -25,8 +25,8 @@ import com.ensambla.backend.domain.model.sami.taller.RespuestaTaller;
 import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
 import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
 import com.ensambla.backend.domain.port.TallerIaPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -340,7 +340,7 @@ public class ConversarEnTaller {
         return nombres.getOrDefault(String.valueOf(referencia), String.valueOf(referencia)).toLowerCase(Locale.ROOT);
     }
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
     private final TallerIaPort tallerIaPort;
     private final ConsumoSamiRepository consumoSamiRepository;
     private final CatalogoComponentes catalogoComponentes;
@@ -349,10 +349,10 @@ public class ConversarEnTaller {
     private final Clock clock;
     private final int limiteDiario;
 
-    public ConversarEnTaller(NegocioService negocioService, TallerIaPort tallerIaPort,
+    public ConversarEnTaller(NegocioRepository negocioRepository, TallerIaPort tallerIaPort,
                              ConsumoSamiRepository consumoSamiRepository, CatalogoComponentes catalogoComponentes,
                              KitsRubro kitsRubro, Clock clock, int limiteDiario) {
-        this.negocioService = negocioService;
+        this.negocioRepository = negocioRepository;
         this.tallerIaPort = tallerIaPort;
         this.consumoSamiRepository = consumoSamiRepository;
         this.catalogoComponentes = catalogoComponentes;
@@ -405,7 +405,7 @@ public class ConversarEnTaller {
     }
 
     public ConversarEnTallerResponse execute(ConversarEnTallerRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
         RespuestaTaller respuesta = conversar(
                 negocioId,
                 request.mensaje(),

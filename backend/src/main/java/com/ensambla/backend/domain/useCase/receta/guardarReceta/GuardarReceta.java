@@ -11,12 +11,11 @@ import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.receta.RecetaRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.receta.RecetaService;
-import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.receta.RecetaItem;
 import lombok.RequiredArgsConstructor;
 
@@ -32,11 +31,9 @@ public class GuardarReceta {
 
     private static final String MENSAJE_INSUMO_INEXISTENTE = "Ese insumo ya no existe";
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
     private final ControlPlanService controlPlanService;
-
-    private final RegistroDatosService registroDatosService;
 
     private final RecetaService recetaService;
 
@@ -51,8 +48,8 @@ public class GuardarReceta {
     private final Clock clock;
 
     public RecetaItem execute(GuardarRecetaRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-        Registro producto = registroDatosService.obtener(request.registroId(), negocioId);
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        Registro producto = registroRepository.obtener(request.registroId(), negocioId);
         controlPlanService.validarFuncion(negocioId, FuncionPlan.RECETAS_COSTOS, OffsetDateTime.now(clock));
         Receta nueva = Receta.nueva(
                 negocioId,

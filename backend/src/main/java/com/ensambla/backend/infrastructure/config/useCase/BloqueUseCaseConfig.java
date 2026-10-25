@@ -3,9 +3,8 @@ package com.ensambla.backend.infrastructure.config.useCase;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.useCase.bloque.crearBloque.CrearBloque;
 import com.ensambla.backend.domain.useCase.bloque.eliminarBloque.EliminarBloque;
 import com.ensambla.backend.domain.useCase.bloque.listarBloques.ListarBloques;
@@ -20,38 +19,36 @@ public class BloqueUseCaseConfig {
 
     @Bean
     public ListarBloques listarBloques(
-            NegocioService negocioService,
-            ProyectoService proyectoService) {
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository) {
         return new ListarBloques(
-                negocioService,
-                proyectoService);
+                negocioRepository,
+                proyectoRepository);
     }
 
     @Bean
     public CrearBloque crearBloque(
-            NegocioService negocioService,
-            ProyectoService proyectoService,
-            BloqueService bloqueService,
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository,
+            BloqueRepository bloqueRepository,
             Clock clock) {
         return new CrearBloque(
-                negocioService,
-                proyectoService,
-                bloqueService,
+                negocioRepository,
+                proyectoRepository,
+                bloqueRepository,
                 clock);
     }
 
     @Bean
     public RenombrarBloque renombrarBloque(
-            NegocioService negocioService,
-            BloqueService bloqueService,
-            ProyectoService proyectoService,
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository,
             BloqueRepository bloqueRepository,
             TransaccionPort transaccionPort,
             Clock clock) {
         return new RenombrarBloque(
-                negocioService,
-                bloqueService,
-                proyectoService,
+                negocioRepository,
+                proyectoRepository,
                 bloqueRepository,
                 transaccionPort,
                 clock);
@@ -59,23 +56,15 @@ public class BloqueUseCaseConfig {
 
     @Bean
     public EliminarBloque eliminarBloque(
-            NegocioService negocioService,
-            BloqueService bloqueService,
+            NegocioRepository negocioRepository,
             BloqueRepository bloqueRepository,
             CampoRepository campoRepository,
             TransaccionPort transaccionPort) {
         return new EliminarBloque(
-                negocioService,
-                bloqueService,
+                negocioRepository,
                 bloqueRepository,
                 campoRepository,
                 transaccionPort);
     }
 
-    @Bean
-    public BloqueService bloqueService(
-            BloqueRepository bloqueRepository,
-            TransaccionPort transaccionPort) {
-        return new BloqueService(bloqueRepository, transaccionPort);
-    }
 }

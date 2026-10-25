@@ -4,13 +4,11 @@ import com.ensambla.backend.domain.model.aviso.ReglaAviso;
 import com.ensambla.backend.domain.model.aviso.ReglaStockBajo;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.aviso.AvisoService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.plan.AccesoContenidoService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.aviso.aplicarAviso.AplicarAviso;
 import com.ensambla.backend.domain.useCase.aviso.contarAvisos.ContarAvisos;
@@ -41,47 +39,42 @@ public class AvisoUseCaseConfig {
 
     @Bean
     public ListarAvisos listarAvisos(
-            NegocioService negocioService,
+            NegocioRepository negocioRepository,
             AvisoRepository avisoRepository,
-            AccesoContenidoService accesoContenidoService, Clock clock) {
-        return new ListarAvisos(negocioService, avisoRepository, accesoContenidoService, clock);
+            ControlPlanService controlPlanService, Clock clock) {
+        return new ListarAvisos(negocioRepository, avisoRepository, controlPlanService, clock);
     }
 
     @Bean
-    public ContarAvisos contarAvisos(NegocioService negocioService, AvisoRepository avisoRepository) {
-        return new ContarAvisos(negocioService, avisoRepository);
+    public ContarAvisos contarAvisos(NegocioRepository negocioRepository, AvisoRepository avisoRepository) {
+        return new ContarAvisos(negocioRepository, avisoRepository);
     }
 
     @Bean
     public AplicarAviso aplicarAviso(
-            NegocioService negocioService,
-            AvisoService avisoService,
-            AccesoContenidoService accesoContenidoService,
+            NegocioRepository negocioRepository,
+            ControlPlanService controlPlanService,
             RegistroDatosService registroDatosService,
-            CampoService campoService,
+            RegistroRepository registroRepository,
+            CampoRepository campoRepository,
             AvisoRepository avisoRepository,
             TransaccionPort transaccionPort,
             Clock clock) {
-        return new AplicarAviso(negocioService, avisoService, accesoContenidoService, registroDatosService,
-                campoService, avisoRepository, transaccionPort, clock);
+        return new AplicarAviso(negocioRepository, controlPlanService, registroDatosService, registroRepository,
+                campoRepository, avisoRepository, transaccionPort, clock);
     }
 
     @Bean
     public DescartarAviso descartarAviso(
-            NegocioService negocioService,
-            AvisoService avisoService,
-            AccesoContenidoService accesoContenidoService,
+            NegocioRepository negocioRepository,
+            ControlPlanService controlPlanService,
             AvisoRepository avisoRepository,
             TransaccionPort transaccionPort,
             Clock clock) {
         return new DescartarAviso(
-                negocioService, avisoService, accesoContenidoService, avisoRepository, transaccionPort, clock);
+                negocioRepository, controlPlanService, avisoRepository, transaccionPort, clock);
     }
 
-    @Bean
-    public AvisoService avisoService(AvisoRepository avisoRepository) {
-        return new AvisoService(avisoRepository);
-    }
 
     @Bean
     public ReglaStockBajo reglaStockBajo() {

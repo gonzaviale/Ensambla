@@ -24,9 +24,9 @@ import com.ensambla.backend.domain.model.sami.RespuestaSami;
 import com.ensambla.backend.domain.model.sami.TerminoDiccionario;
 import com.ensambla.backend.domain.model.sami.TipoPaso;
 import com.ensambla.backend.domain.port.SamiIaPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 
 import java.time.Clock;
 import java.time.LocalDate;
@@ -67,7 +67,7 @@ public class ConversarConSami {
     static final String RESPUESTA_INVALIDA =
             "Sami no pudo armar una propuesta con lo que contaste. Sumá más detalle o armá tu sistema a mano.";
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
     private final PlantillaRepository plantillaRepository;
     private final SamiIaPort samiIaPort;
     private final ConsumoSamiRepository consumoSamiRepository;
@@ -80,11 +80,11 @@ public class ConversarConSami {
     private final List<PreguntaDiccionario> preguntas;
     private final Map<String, PreguntaDiccionario> preguntasPorId;
 
-    public ConversarConSami(NegocioService negocioService, PlantillaRepository plantillaRepository,
+    public ConversarConSami(NegocioRepository negocioRepository, PlantillaRepository plantillaRepository,
                             DiccionarioSami diccionario, SamiIaPort samiIaPort,
                             ConsumoSamiRepository consumoSamiRepository, Clock clock, double umbralConfianza,
                             int maxPreguntas, int limiteDiarioIa) {
-        this.negocioService = negocioService;
+        this.negocioRepository = negocioRepository;
         this.plantillaRepository = plantillaRepository;
         this.samiIaPort = samiIaPort;
         this.consumoSamiRepository = consumoSamiRepository;
@@ -106,7 +106,7 @@ public class ConversarConSami {
         if (paso.tipo() != TipoPaso.RESPALDO_IA) {
             return ConversarConSamiResponse.de(paso);
         }
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
         InterpretacionSami propuesta = proponerConIa(
                 negocioId, request.texto(), respuestas, disponibles, OffsetDateTime.now(clock));
         return ConversarConSamiResponse.de(propuesta, PropuestaSamiItem.ORIGEN_IA, paso.preguntasHechas());

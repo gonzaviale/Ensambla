@@ -12,14 +12,14 @@ import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
+import com.ensambla.backend.domain.repository.plan.PlanRepository;
+import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.usuario.UsuarioRepository;
 import com.ensambla.backend.domain.service.pago.RenovacionPremiumService;
-import com.ensambla.backend.domain.service.plan.SuscripcionService;
-import com.ensambla.backend.domain.service.usuario.UsuarioService;
 import com.ensambla.backend.domain.useCase.pago.ConsultarRenovacionResponse;
-import com.ensambla.backend.domain.useCase.pago.sincronizarRenovacion.SincronizarRenovacion;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
@@ -30,17 +30,17 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ContratarPremium {
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
-    private final UsuarioService usuarioService;
+    private final UsuarioRepository usuarioRepository;
 
     private final RenovacionPremiumService renovacionPremiumService;
 
     private final PasarelaSuscripcionesPort pasarelaSuscripcionesPort;
 
-    private final SincronizarRenovacion sincronizarRenovacion;
+    private final SuscripcionRepository suscripcionRepository;
 
-    private final SuscripcionService suscripcionService;
+    private final PlanRepository planRepository;
 
     private final RenovacionPremiumRepository renovacionPremiumRepository;
 
@@ -52,15 +52,15 @@ public class ContratarPremium {
 
     public ConsultarRenovacionResponse execute(UsuarioId usuarioId) {
         pasarelaSuscripcionesPort.exigirDisponible();
-        String email = usuarioService.obtenerActivo(usuarioId).getEmail();
-        NegocioId negocioId = negocioService.obtenerDelUsuario(usuarioId);
+        String email = usuarioRepository.obtenerActivo(usuarioId).getEmail();
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(usuarioId);
         PreparacionRenovacion preparacion = preparar(negocioId, OffsetDateTime.now(clock));
         if (preparacion.nueva()) {
             ContratoRemoto remoto = pasarelaSuscripcionesPort.crear(preparacion.renovacion(), email);
             renovacionPremiumService.actualizarContrato(preparacion.renovacion().getId(), remoto,
                     OffsetDateTime.now(clock));
         } else {
-            sincronizarRenovacion.execute(preparacion.renovacion().getId());
+            renovacionPremiumService.sincronizar(preparacion.renovacion().getId(), OffsetDateTime.now(clock));
         }
         return ConsultarRenovacionResponse.de(pasarelaSuscripcionesPort.disponible(),
                 renovacionPremiumService.consultar(negocioId).orElseThrow());
@@ -74,13 +74,13 @@ public class ContratarPremium {
             if (anterior.isPresent() && !"CANCELADA".equals(anterior.get().getEstado())) {
                 return new PreparacionRenovacion(anterior.get(), false);
             }
-            Plan premium = suscripcionService.obtenerPlan(CodigoPlan.PREMIUM);
+            Plan premium = planRepository.obtener(CodigoPlan.PREMIUM);
             premium.validarLimitesConfigurados();
             if (!Boolean.TRUE.equals(premium.getConfigurado()) || premium.getPrecioMensual() == null
                     || premium.getPrecioMensual().signum() <= 0 || !"ARS".equals(premium.getMoneda())) {
                 throw new BusinessRuleException("El precio de Premium todavía no está configurado.");
             }
-            Suscripcion suscripcion = suscripcionService.obtener(negocioId);
+            Suscripcion suscripcion = suscripcionRepository.obtener(negocioId);
             OffsetDateTime primerCobro = ahora;
             if (suscripcion.estaVigente(ahora) && premium.getId().equals(suscripcion.getPlanId())) {
                 if (suscripcion.getFinEn() == null) {

@@ -9,10 +9,10 @@ import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
-import com.ensambla.backend.domain.service.aviso.AvisoService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.plan.AccesoContenidoService;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.aviso.AvisoItem;
 import com.ensambla.backend.domain.useCase.aviso.ResolverAvisoRequest;
@@ -34,15 +34,15 @@ public class AplicarAviso {
 
     static final String EDITAR_REGISTRO = "EDITAR_REGISTRO";
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
-    private final AvisoService avisoService;
-
-    private final AccesoContenidoService accesoContenidoService;
+    private final ControlPlanService controlPlanService;
 
     private final RegistroDatosService registroDatosService;
 
-    private final CampoService campoService;
+    private final RegistroRepository registroRepository;
+
+    private final CampoRepository campoRepository;
 
     private final AvisoRepository avisoRepository;
 
@@ -51,10 +51,10 @@ public class AplicarAviso {
     private final Clock clock;
 
     public AvisoItem execute(ResolverAvisoRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-        Aviso aviso = avisoService.obtener(request.avisoId(), negocioId);
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        Aviso aviso = avisoRepository.obtener(request.avisoId(), negocioId);
         OffsetDateTime ahora = OffsetDateTime.now(clock);
-        accesoContenidoService.exigir(negocioId, TipoContenidoPlan.AVISOS, "servidor:" + aviso.getId(), ahora);
+        controlPlanService.exigir(negocioId, TipoContenidoPlan.AVISOS, "servidor:" + aviso.getId(), ahora);
         return AvisoItem.de(transaccionPort.ejecutar(() -> aplicar(aviso, ahora)));
     }
 
@@ -74,8 +74,8 @@ public class AplicarAviso {
     }
 
     private void editarRegistro(NegocioId negocioId, Map<?, ?> accion, OffsetDateTime ahora) {
-        Registro registro = registroDatosService.obtener(registroIdDe(accion), negocioId);
-        List<Campo> campos = campoService.listarDeBloque(registro.getBloqueId(), negocioId);
+        Registro registro = registroRepository.obtener(registroIdDe(accion), negocioId);
+        List<Campo> campos = campoRepository.findByBloqueIdAndNegocioId(registro.getBloqueId(), negocioId);
         registroDatosService.editar(registro, campos, cambiosPorCampo(accion, campos), ahora);
     }
 

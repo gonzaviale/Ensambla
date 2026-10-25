@@ -5,8 +5,8 @@ import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.plan.AccesoContenidoService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.aviso.AvisoItem;
 import lombok.RequiredArgsConstructor;
 
@@ -23,15 +23,15 @@ public class ListarAvisos {
             .thenComparing(Comparator.comparing(Aviso::getPrioridad).reversed())
             .thenComparing(Comparator.comparing(Aviso::getCreadoEn).reversed());
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
     private final AvisoRepository avisoRepository;
-    private final AccesoContenidoService accesoContenidoService;
+    private final ControlPlanService controlPlanService;
     private final Clock clock;
 
     public List<AvisoItem> execute(ListarAvisosRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
         List<Aviso> avisos = listar(negocioId, request.estado());
-        var acceso = accesoContenidoService.seleccionar(negocioId, TipoContenidoPlan.AVISOS,
+        var acceso = controlPlanService.seleccionar(negocioId, TipoContenidoPlan.AVISOS,
                 avisos.stream().map(aviso -> "servidor:" + aviso.getId()).toList(), OffsetDateTime.now(clock));
         return avisos.stream()
                 .filter(aviso -> acceso.autorizadas().contains("servidor:" + aviso.getId()))

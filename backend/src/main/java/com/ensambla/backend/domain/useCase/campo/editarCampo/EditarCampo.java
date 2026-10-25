@@ -6,10 +6,9 @@ import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.useCase.campo.CampoItem;
 import lombok.RequiredArgsConstructor;
 
@@ -19,11 +18,9 @@ import java.time.OffsetDateTime;
 @RequiredArgsConstructor
 public class EditarCampo {
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
-    private final CampoService campoService;
-
-    private final BloqueService bloqueService;
+    private final BloqueRepository bloqueRepository;
 
     private final CampoRepository campoRepository;
 
@@ -32,9 +29,9 @@ public class EditarCampo {
     private final Clock clock;
 
     public CampoItem execute(EditarCampoRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-        Campo campo = campoService.obtener(request.campoId(), negocioId);
-        Bloque bloque = bloqueService.obtener(campo.getBloqueId(), negocioId);
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        Campo campo = campoRepository.obtener(request.campoId(), negocioId);
+        Bloque bloque = bloqueRepository.obtener(campo.getBloqueId(), negocioId);
         ConfiguracionCampo configuracion = request.aConfiguracionCampo();
         OffsetDateTime ahora = OffsetDateTime.now(clock);
         return CampoItem.de(transaccionPort.ejecutar(() -> editar(bloque, campo, configuracion, ahora)));
@@ -42,11 +39,12 @@ public class EditarCampo {
 
     /** {@code bloque} es el dueño del campo; acá se cargan sus campos para validar el nombre. */
     private Campo editar(Bloque bloque, Campo campo, ConfiguracionCampo configuracion, OffsetDateTime ahora) {
-        campoService.cargarCampos(bloque);
+        bloque.setCampos(campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), bloque.getNegocioId()));
         bloque.editarCampo(campo, configuracion, ahora);
-        campoService.validarConfiguracion(bloque, campo);
+        bloqueRepository.validarBloqueRelacionado(bloque, campo);
+        campo.validarReferenciasDeFormula(bloque.getCampos());
         if (campo.getTipo() != TipoCampo.NUMERO) {
-            campoService.validarSinFormulasQueLoUsen(bloque.getCampos(), campo, "cambiar el tipo de");
+            campo.validarSinFormulasQueLoUsen(bloque.getCampos(), "cambiar el tipo de");
         }
         return campoRepository.save(campo);
     }

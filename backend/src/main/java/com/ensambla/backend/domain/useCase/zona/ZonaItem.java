@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.zona;
 
+import com.ensambla.backend.domain.model.common.Huella;
 import com.ensambla.backend.domain.model.zona.AgregadoZonaProducto;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
@@ -18,6 +19,21 @@ public record ZonaItem(String nombre, long comercios, List<ProductoItem> product
                 analisis.nombre(),
                 analisis.comercios(),
                 analisis.productos().stream().map(ProductoItem::de).toList());
+    }
+
+    /** Una clave estable por producto: es lo que se cuenta contra el cupo del plan gratuito. */
+    public List<String> clavesDeAcceso() {
+        return productos.stream().map(this::clave).toList();
+    }
+
+    /** La zona con sólo los productos que el plan deja ver, junto con el detalle del acceso. */
+    public ZonaItem filtrada(AccesoContenidoItem acceso) {
+        return new ZonaItem(nombre, comercios,
+                productos.stream().filter(producto -> acceso.autorizadas().contains(clave(producto))).toList(), acceso);
+    }
+
+    private String clave(ProductoItem producto) {
+        return "zona:" + Huella.de(nombre + "|" + producto.nombre());
     }
 
     public record ProductoItem(

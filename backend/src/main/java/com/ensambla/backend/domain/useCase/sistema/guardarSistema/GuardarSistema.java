@@ -4,9 +4,9 @@ import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.sistema.SistemaItem;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +19,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class GuardarSistema {
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
     private final SistemaRepository sistemaRepository;
 
@@ -32,7 +32,7 @@ public class GuardarSistema {
     private final Clock clock;
 
     public SistemaItem execute(GuardarSistemaRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
         Sistema sistema = request.sistema().aSistema(negocioId, request.id(), OffsetDateTime.now(clock));
         return SistemaItem.de(transaccionPort.ejecutar(() -> guardar(negocioId, sistema)));
     }

@@ -3,22 +3,20 @@ package com.ensambla.backend.domain.useCase.registro.eliminarRegistro;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class EliminarRegistro {
 
-    private final NegocioService negocioService;
-    private final RegistroDatosService registroDatosService;
+    private final NegocioRepository negocioRepository;
     private final RegistroRepository registroRepository;
     private final TransaccionPort transaccionPort;
 
     public void execute(EliminarRegistroRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-        Registro registro = registroDatosService.obtener(request.registroId(), negocioId);
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        Registro registro = registroRepository.obtener(request.registroId(), negocioId);
         transaccionPort.ejecutar(() -> registroRepository.deleteById(registro.getId()));
     }
 }

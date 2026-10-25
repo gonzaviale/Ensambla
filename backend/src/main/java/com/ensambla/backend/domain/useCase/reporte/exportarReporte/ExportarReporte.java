@@ -13,11 +13,10 @@ import com.ensambla.backend.domain.model.reporte.FiltroReporte;
 import com.ensambla.backend.domain.model.reporte.ReporteRegistros;
 import com.ensambla.backend.domain.model.reporte.TablaReporte;
 import com.ensambla.backend.domain.port.ExportadorReportePort;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.reporte.ReporteService;
 import com.ensambla.backend.domain.useCase.reporte.GenerarReporteRequest;
@@ -39,13 +38,11 @@ public class ExportarReporte {
     /** Filas que entran en un archivo descargado. */
     static final int MAXIMO_EXPORTACION = 10_000;
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
     private final ControlPlanService controlPlanService;
 
-    private final BloqueService bloqueService;
-
-    private final CampoService campoService;
+    private final BloqueRepository bloqueRepository;
 
     private final ReporteService reporteService;
 
@@ -64,10 +61,10 @@ public class ExportarReporte {
      *                               archivo incompleto, hay que acotar los filtros
      */
     public ExportarReporteResponse execute(GenerarReporteRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-        Bloque bloque = bloqueService.obtener(request.bloqueId(), negocioId);
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        Bloque bloque = bloqueRepository.obtener(request.bloqueId(), negocioId);
         controlPlanService.validarFuncion(negocioId, FuncionPlan.EXPORTAR_EXCEL, OffsetDateTime.now(clock));
-        List<Campo> campos = campoService.listarDeBloque(bloque.getId(), negocioId);
+        List<Campo> campos = campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), negocioId);
         FiltroReporte filtro = FiltroReporte.armar(
                 negocioId,
                 bloque.getId(),

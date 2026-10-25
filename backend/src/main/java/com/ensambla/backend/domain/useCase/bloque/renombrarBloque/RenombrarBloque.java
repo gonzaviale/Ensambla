@@ -5,9 +5,8 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.useCase.bloque.BloqueItem;
 import lombok.RequiredArgsConstructor;
 
@@ -17,11 +16,9 @@ import java.time.OffsetDateTime;
 @RequiredArgsConstructor
 public class RenombrarBloque {
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
-    private final BloqueService bloqueService;
-
-    private final ProyectoService proyectoService;
+    private final ProyectoRepository proyectoRepository;
 
     private final BloqueRepository bloqueRepository;
 
@@ -30,9 +27,9 @@ public class RenombrarBloque {
     private final Clock clock;
 
     public BloqueItem execute(RenombrarBloqueRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-        Bloque bloque = bloqueService.obtener(request.bloqueId(), negocioId);
-        Proyecto proyecto = proyectoService.obtener(negocioId, bloque.getProyectoId());
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        Bloque bloque = bloqueRepository.obtener(request.bloqueId(), negocioId);
+        Proyecto proyecto = proyectoRepository.obtener(negocioId, bloque.getProyectoId());
         OffsetDateTime ahora = OffsetDateTime.now(clock);
         return BloqueItem.de(transaccionPort.ejecutar(() -> renombrar(proyecto, bloque, request.nombre(), ahora)));
     }

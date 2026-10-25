@@ -6,7 +6,6 @@ import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.service.pago.RenovacionPremiumService;
-import com.ensambla.backend.domain.useCase.pago.sincronizarRenovacion.SincronizarRenovacion;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -19,8 +18,6 @@ public class ConciliarPagos {
 
     private final RenovacionPremiumService renovacionPremiumService;
 
-    private final SincronizarRenovacion sincronizarRenovacion;
-
     private final RenovacionPremiumRepository renovacionPremiumRepository;
 
     private final TransaccionPort transaccionPort;
@@ -30,7 +27,7 @@ public class ConciliarPagos {
     public void execute() {
         for (RenovacionId id : renovacionPremiumRepository.listarParaSincronizar()) {
             try {
-                sincronizarRenovacion.execute(id);
+                renovacionPremiumService.sincronizar(id, OffsetDateTime.now(clock));
             } catch (PasarelaPagoException exception) {
                 log.warn("Conciliación de renovación pendiente: {}", id);
             } finally {

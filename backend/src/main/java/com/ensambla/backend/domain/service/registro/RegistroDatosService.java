@@ -1,10 +1,8 @@
 package com.ensambla.backend.domain.service.registro;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
-import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.common.Pagina;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
@@ -31,12 +29,6 @@ public class RegistroDatosService {
 
     private final TransaccionPort transaccionPort;
 
-    /** Guarda registros ya validados (por ejemplo, los que salen de una lectura del cuaderno). */
-    public Registro obtener(RegistroId registroId, NegocioId negocioId) {
-        return registroRepository.findByIdAndNegocioId(registroId, negocioId)
-                .orElseThrow(() -> new ResourceNotFoundException("El registro no existe"));
-    }
-
     /**
      * Filas del bloque que se ofrecen en un campo RELACION, las más nuevas primero: con {@code ids}, sólo esas (las que
      * existen); sin ids, hasta {@value #MAXIMO_REFERENCIAS} que coinciden con el texto como en el listado.
@@ -49,10 +41,6 @@ public class RegistroDatosService {
         ConsultaRegistros consulta = ConsultaRegistros.armar(
                 negocioId, bloqueId, campos, texto, null, null, 0, MAXIMO_REFERENCIAS);
         return registroRepository.buscar(consulta).contenido();
-    }
-
-    public Pagina<Registro> listar(ConsultaRegistros consulta) {
-        return registroRepository.buscar(consulta);
     }
 
     public Registro editar(Registro registro, List<Campo> campos, Map<String, Object> cambios,

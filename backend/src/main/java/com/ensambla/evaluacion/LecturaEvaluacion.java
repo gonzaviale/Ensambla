@@ -15,7 +15,6 @@ import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
 import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
-import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
 import com.ensambla.backend.infrastructure.ia.LectorCuadernoTimeoutAdapter;
 import lombok.RequiredArgsConstructor;
 import tools.jackson.databind.ObjectMapper;
@@ -35,8 +34,6 @@ public class LecturaEvaluacion {
 
     private final LectorCuadernoPort lectorCuadernoPort;
     private final ObjectMapper objectMapper;
-    private final PropuestaLecturaService propuestaLecturaService = new PropuestaLecturaService();
-
     public void ejecutar(Path entrada, Path salida, Duration timeout) throws IOException {
         List<ResultadoEvaluacion> resultados = new ArrayList<>();
         SolicitudEvaluacion solicitud = objectMapper.readValue(Files.readString(entrada), SolicitudEvaluacion.class);
@@ -84,7 +81,7 @@ public class LecturaEvaluacion {
         LecturaCuaderno lectura = lector.leer(
                 paginas, List.of(new BloqueConocido(Identificador.opcional(destinoId, BloqueId::de), destino.nombre(),
                         contexto)), Identificador.opcional(destinoId, BloqueId::de));
-        PropuestaLectura propuesta = propuestaLecturaService.proponer(
+        PropuestaLectura propuesta = PropuestaLectura.proponer(
                 lectura, List.of(new BloqueLectura(Identificador.opcional(destinoId, BloqueId::de), destino.nombre(),
                         conocidos)), Identificador.opcional(destinoId, BloqueId::de));
         return new ResultadoEvaluacion(caso.id(), propuesta.lectura(), null, propuesta.camposNuevos());

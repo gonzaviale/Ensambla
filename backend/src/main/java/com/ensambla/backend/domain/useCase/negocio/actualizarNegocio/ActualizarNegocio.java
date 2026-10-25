@@ -5,10 +5,10 @@ import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.negocio.UbicacionNegocio;
 import com.ensambla.backend.domain.model.ubicacion.LocalidadesDelPunto;
+import com.ensambla.backend.domain.port.GeocodificadorPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
-import com.ensambla.backend.domain.service.ubicacion.UbicacionService;
-import com.ensambla.backend.domain.service.zona.ZonaService;
+import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.useCase.negocio.ConfiguracionNegocioResponse;
 import lombok.RequiredArgsConstructor;
 
@@ -20,9 +20,9 @@ public class ActualizarNegocio {
 
     private final NegocioRepository negocioRepository;
 
-    private final ZonaService zonaService;
+    private final ZonaRepository zonaRepository;
 
-    private final UbicacionService ubicacionService;
+    private final GeocodificadorPort geocodificadorPort;
 
     private final TransaccionPort transaccionPort;
 
@@ -31,7 +31,8 @@ public class ActualizarNegocio {
     public ConfiguracionNegocioResponse execute(ActualizarNegocioRequest request) {
         OffsetDateTime ahora = OffsetDateTime.now(clock);
         Negocio negocio = transaccionPort.ejecutar(() -> actualizar(request, ahora));
-        return ConfiguracionNegocioResponse.de(negocio, zonaService.obtener(negocio.getZonaId()).orElse(null));
+        return ConfiguracionNegocioResponse
+                .de(negocio, zonaRepository.findByIdSiTiene(negocio.getZonaId()).orElse(null));
     }
 
     private Negocio actualizar(ActualizarNegocioRequest request, OffsetDateTime ahora) {
@@ -43,14 +44,14 @@ public class ActualizarNegocio {
         }
         negocio.configurar(request.nombre(), request.rubro(), ubicacion, request.comparteDatosZona(), ahora);
         if (negocio.necesitaZona()) {
-            negocio.asignarZona(zonaService.resolver(negocio.getLatitud(), negocio.getLongitud()).orElse(null));
+            negocio.asignarZona(zonaRepository.resolver(negocio.getLatitud(), negocio.getLongitud()).orElse(null));
         }
         return negocioRepository.save(negocio);
     }
 
     /** La localidad escrita tiene que ser una de las que el mapa reconoce en el punto. */
     private void exigirLocalidadDelPunto(UbicacionNegocio ubicacion, OffsetDateTime ahora) {
-        LocalidadesDelPunto localidades = ubicacionService.resolverLocalidades(
+        LocalidadesDelPunto localidades = geocodificadorPort.resolverLocalidades(
                 ubicacion.latitud(), ubicacion.longitud(), ahora.toInstant());
         if (!localidades.admite(ubicacion.localidad())) {
             throw new BusinessRuleException(

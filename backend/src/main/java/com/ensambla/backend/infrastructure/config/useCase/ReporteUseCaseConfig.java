@@ -1,12 +1,10 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-
 import com.ensambla.backend.domain.port.ExportadorReportePort;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.reporte.ReporteService;
 import com.ensambla.backend.domain.useCase.reporte.exportarReporte.ExportarReporte;
@@ -20,29 +18,28 @@ import java.time.Clock;
 public class ReporteUseCaseConfig {
 
     @Bean
-    public GenerarReporte generarReporte(NegocioService negocioService,
+    public GenerarReporte generarReporte(NegocioRepository negocioRepository,
                                          ControlPlanService controlPlanService,
                                          Clock clock,
-                                         BloqueService bloqueService,
-                                         CampoService campoService,
+                                         BloqueRepository bloqueRepository,
+                                         CampoRepository campoRepository,
                                          ReporteService reporteService) {
         return new GenerarReporte(
-                negocioService, controlPlanService, clock, bloqueService, campoService, reporteService);
+                negocioRepository, controlPlanService, clock, bloqueRepository, campoRepository, reporteService);
     }
 
     @Bean
     public ExportarReporte exportarReporte(
-            NegocioService negocioService,
+            NegocioRepository negocioRepository,
             ControlPlanService controlPlanService,
-            BloqueService bloqueService,
-            CampoService campoService,
+            BloqueRepository bloqueRepository,
             ReporteService reporteService,
             RegistroRepository registroRepository,
             CampoRepository campoRepository,
             ExportadorReportePort exportadorReportePort,
             Clock clock) {
         return new ExportarReporte(
-                negocioService, controlPlanService, bloqueService, campoService, reporteService, registroRepository,
+                negocioRepository, controlPlanService, bloqueRepository, reporteService, registroRepository,
                 campoRepository, exportadorReportePort, clock);
     }
 

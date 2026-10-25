@@ -5,27 +5,27 @@ import com.ensambla.backend.domain.model.lote.ArchivoFoto;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
-import com.ensambla.backend.domain.service.lote.LoteSubidaService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.registro.RegistroDatosService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.useCase.lote.FotoArchivoResponse;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class ObtenerFotoOrigen {
 
-    private final NegocioService negocioService;
-    private final RegistroDatosService registroDatosService;
-    private final LoteSubidaService loteSubidaService;
+    private final NegocioRepository negocioRepository;
+    private final RegistroRepository registroRepository;
+    private final ArchivoCuadernoPort archivoCuadernoPort;
     private final LoteSubidaRepository loteSubidaRepository;
 
     public FotoArchivoResponse execute(ObtenerFotoOrigenRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-        Registro registro = registroDatosService.obtener(request.registroId(), negocioId);
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        Registro registro = registroRepository.obtener(request.registroId(), negocioId);
         FotoCuaderno foto = loteSubidaRepository.findFotoByIdAndNegocioId(registro.exigirFotoOrigen(), negocioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Foto no encontrada"));
-        ArchivoFoto archivo = loteSubidaService.leer(negocioId, foto);
+        ArchivoFoto archivo = archivoCuadernoPort.leerFoto(negocioId, foto);
         return FotoArchivoResponse.de(archivo);
     }
 }

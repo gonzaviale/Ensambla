@@ -5,11 +5,12 @@ import com.ensambla.backend.domain.model.sami.taller.CatalogoComponentes;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
 import com.ensambla.backend.domain.port.SamiIaPort;
 import com.ensambla.backend.domain.port.TallerIaPort;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.plantilla.PlantillaService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSami;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTaller;
 import com.ensambla.backend.domain.useCase.sami.crearProyectoDesdeSami.CrearProyectoDesdeSami;
@@ -24,35 +25,38 @@ public class SamiUseCaseConfig {
 
     @Bean
     public CrearProyectoDesdeSami crearProyectoDesdeSami(
-            NegocioService negocioService,
-            PlantillaService plantillaService,
-            ProyectoService proyectoService,
+            NegocioRepository negocioRepository,
+            PlantillaRepository plantillaRepository,
+            ProyectoRepository proyectoRepository,
+            ControlPlanService controlPlanService,
+            TransaccionPort transaccionPort,
             Clock clock) {
         return new CrearProyectoDesdeSami(
-                negocioService, plantillaService, proyectoService, clock);
+                negocioRepository, plantillaRepository, proyectoRepository, controlPlanService, transaccionPort,
+                clock);
     }
 
     @Bean
-    public ConversarEnTaller conversarEnTaller(NegocioService negocioService,
+    public ConversarEnTaller conversarEnTaller(NegocioRepository negocioRepository,
                                                TallerIaPort tallerIaPort,
                                                ConsumoSamiRepository consumoSamiRepository,
                                                CatalogoComponentes catalogoComponentes,
                                                KitsRubro kitsRubro,
                                                Clock clock,
                                                SamiProperties samiProperties) {
-        return new ConversarEnTaller(negocioService, tallerIaPort, consumoSamiRepository, catalogoComponentes,
+        return new ConversarEnTaller(negocioRepository, tallerIaPort, consumoSamiRepository, catalogoComponentes,
                 kitsRubro, clock, samiProperties.limiteDiarioTaller());
     }
 
     @Bean
-    public ConversarConSami conversarConSami(NegocioService negocioService,
+    public ConversarConSami conversarConSami(NegocioRepository negocioRepository,
                                              PlantillaRepository plantillaRepository,
                                              DiccionarioSami diccionario,
                                              SamiIaPort samiIaPort,
                                              ConsumoSamiRepository consumoSamiRepository,
                                              Clock clock,
                                              SamiProperties samiProperties) {
-        return new ConversarConSami(negocioService, plantillaRepository, diccionario, samiIaPort,
+        return new ConversarConSami(negocioRepository, plantillaRepository, diccionario, samiIaPort,
                 consumoSamiRepository, clock, samiProperties.umbralConfianza(), samiProperties.maxPreguntas(),
                 samiProperties.limiteDiarioIa());
     }

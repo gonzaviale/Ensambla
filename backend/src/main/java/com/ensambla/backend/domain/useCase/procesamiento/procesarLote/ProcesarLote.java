@@ -27,10 +27,9 @@ import com.ensambla.backend.domain.model.registro.Referencia;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
-import com.ensambla.backend.domain.service.campo.CampoService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import lombok.RequiredArgsConstructor;
 
@@ -64,8 +63,7 @@ public class ProcesarLote {
     private final ProcesamientoRepository procesamientoRepository;
     private final ArchivoCuadernoPort archivoCuadernoPort;
     private final LectorCuadernoPort lectorCuadernoPort;
-    private final PropuestaLecturaService propuestaLecturaService;
-    private final CampoService campoService;
+    private final CampoRepository campoRepository;
     private final RegistroDatosService registroDatosService;
     private final ControlPlanService controlPlanService;
     private final PoliticaProcesamiento politicaProcesamiento;
@@ -100,7 +98,7 @@ public class ProcesarLote {
                     .map(bloque -> conocido(bloque, bloques))
                     .toList();
             LecturaCuaderno lectura = lectorCuadernoPort.leer(paginas, contexto, lote.bloqueDestinoId());
-            PropuestaLectura propuesta = propuestaLecturaService.proponer(lectura, bloques, lote.bloqueDestinoId());
+            PropuestaLectura propuesta = PropuestaLectura.proponer(lectura, bloques, lote.bloqueDestinoId());
             return new ResultadoIntento(resolverConexiones(lote.negocioId(), propuesta, bloques), null, false);
         } catch (BusinessRuleException e) {
             return new ResultadoIntento(null, e.getMessage(), false);
@@ -239,7 +237,7 @@ public class ProcesarLote {
 
         private Optional<RegistroId> buscar(BloqueId tablaId, String texto) {
             List<Campo> campos = camposPorTabla.computeIfAbsent(tablaId,
-                    id -> campoService.listarDeBloque(id, negocioId));
+                    id -> campoRepository.findByBloqueIdAndNegocioId(id, negocioId));
             var etiquetar = Referencia.etiquetador(campos);
             List<Referencia> iguales = registroDatosService
                     .buscarReferenciables(negocioId, tablaId, campos, texto, List.of()).stream()

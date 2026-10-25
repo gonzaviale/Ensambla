@@ -9,10 +9,9 @@ import com.ensambla.backend.domain.model.procesamiento.LecturaImagen;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
@@ -31,12 +30,10 @@ public class LeerImagen {
 
     private final LectorCuadernoPort lectorCuadernoPort;
 
-    private final PropuestaLecturaService propuestaLecturaService;
-
     /** Debajo de este valor de confianza un dato se marca como dudoso. */
     private final double umbralConfianza;
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
     private final ControlPlanService controlPlanService;
 
@@ -49,7 +46,7 @@ public class LeerImagen {
     public LeerImagenItem execute(LeerImagenRequest request) {
         ImagenCuaderno imagen = request.aImagenCuaderno();
         BloqueDeImagen bloque = request.aBloqueDeImagen();
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
         registrarConsumo(negocioId, OffsetDateTime.now(clock));
         LecturaImagen lectura = leer(imagen, bloque, request.destinoExistente());
         return LeerImagenItem.de(lectura, umbralConfianza);
@@ -67,7 +64,7 @@ public class LeerImagen {
     private LecturaImagen leer(ImagenCuaderno imagen, BloqueDeImagen bloque, boolean destinoExistente) {
         LecturaCuaderno lectura = lectorCuadernoPort.leer(
                 List.of(imagen.comoPagina()), List.of(bloque.paraElLector()), bloque.id());
-        PropuestaLectura propuesta = propuestaLecturaService.proponer(
+        PropuestaLectura propuesta = PropuestaLectura.proponer(
                 lectura, List.of(bloque.paraLaPropuesta()), bloque.id());
         return LecturaImagen.desde(propuesta, bloque, destinoExistente);
     }

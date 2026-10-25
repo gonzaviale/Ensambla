@@ -1,11 +1,10 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.plantilla.PlantillaService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.domain.useCase.proyecto.crearProyecto.CrearProyecto;
 import com.ensambla.backend.domain.useCase.proyecto.crearProyectoDesdePlantilla.CrearProyectoDesdePlantilla;
 import com.ensambla.backend.domain.useCase.proyecto.eliminarProyecto.EliminarProyecto;
@@ -22,43 +21,45 @@ public class ProyectoUseCaseConfig {
 
     @Bean
     public ListarProyectos listarProyectos(
-            NegocioService negocioService,
+            NegocioRepository negocioRepository,
             ProyectoRepository proyectoRepository) {
         return new ListarProyectos(
-                negocioService,
+                negocioRepository,
                 proyectoRepository);
     }
 
     @Bean
     public ObtenerProyecto obtenerProyecto(
-            NegocioService negocioService,
-            ProyectoService proyectoService) {
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository) {
         return new ObtenerProyecto(
-                negocioService,
-                proyectoService);
+                negocioRepository,
+                proyectoRepository);
     }
 
     @Bean
     public CrearProyecto crearProyecto(
-            NegocioService negocioService,
-            ProyectoService proyectoService,
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository,
+            ControlPlanService controlPlanService,
+            TransaccionPort transaccionPort,
             Clock clock) {
         return new CrearProyecto(
-                negocioService,
-                proyectoService,
+                negocioRepository,
+                proyectoRepository,
+                controlPlanService,
+                transaccionPort,
                 clock);
     }
 
     @Bean
     public RenombrarProyecto renombrarProyecto(
-            NegocioService negocioService,
-            ProyectoService proyectoService,
+            NegocioRepository negocioRepository,
             ProyectoRepository proyectoRepository,
             TransaccionPort transaccionPort,
             Clock clock) {
         return new RenombrarProyecto(
-                negocioService,
-                proyectoService,
+                negocioRepository,
                 proyectoRepository,
                 transaccionPort,
                 clock);
@@ -66,32 +67,28 @@ public class ProyectoUseCaseConfig {
 
     @Bean
     public CrearProyectoDesdePlantilla crearProyectoDesdePlantilla(
-            NegocioService negocioService,
-            ProyectoService proyectoService,
-            PlantillaService plantillaService,
+            NegocioRepository negocioRepository,
+            PlantillaRepository plantillaRepository,
+            ProyectoRepository proyectoRepository,
+            ControlPlanService controlPlanService,
+            TransaccionPort transaccionPort,
             Clock clock) {
         return new CrearProyectoDesdePlantilla(
-                negocioService,
-                proyectoService,
-                plantillaService,
+                negocioRepository,
+                plantillaRepository,
+                proyectoRepository,
+                controlPlanService,
+                transaccionPort,
                 clock);
     }
 
     @Bean
     public EliminarProyecto eliminarProyecto(
-            NegocioService negocioService,
-            ProyectoService proyectoService,
+            NegocioRepository negocioRepository,
             ProyectoRepository proyectoRepository,
             TransaccionPort transaccionPort) {
-        return new EliminarProyecto(negocioService, proyectoService, proyectoRepository, transaccionPort);
+        return new EliminarProyecto(negocioRepository, proyectoRepository, transaccionPort);
     }
 
-    @Bean
-    public ProyectoService proyectoService(
-            ProyectoRepository proyectoRepository,
-            ControlPlanService controlPlanService,
-            TransaccionPort transaccionPort) {
-        return new ProyectoService(proyectoRepository, controlPlanService, transaccionPort);
-    }
 }
 

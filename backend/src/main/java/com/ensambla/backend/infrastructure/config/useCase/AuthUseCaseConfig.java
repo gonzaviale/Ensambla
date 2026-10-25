@@ -6,7 +6,6 @@ import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.usuario.UsuarioRepository;
-import com.ensambla.backend.domain.service.usuario.UsuarioService;
 import com.ensambla.backend.domain.useCase.auth.iniciarSesion.IniciarSesion;
 import com.ensambla.backend.domain.useCase.auth.obtenerSesion.ObtenerSesion;
 import com.ensambla.backend.domain.useCase.auth.registrarUsuario.RegistrarUsuario;
@@ -42,14 +41,8 @@ public class AuthUseCaseConfig {
     }
 
     @Bean
-    public ObtenerSesion obtenerSesion(
-            UsuarioService usuarioService) {
-        return new ObtenerSesion(usuarioService);
-    }
-
-    @Bean
-    public UsuarioService usuarioService(UsuarioRepository usuarioRepository) {
-        return new UsuarioService(usuarioRepository);
+    public ObtenerSesion obtenerSesion(UsuarioRepository usuarioRepository) {
+        return new ObtenerSesion(usuarioRepository);
     }
 }
 

@@ -7,8 +7,7 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
@@ -17,9 +16,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EliminarBloque {
 
-    private final NegocioService negocioService;
-
-    private final BloqueService bloqueService;
+    private final NegocioRepository negocioRepository;
 
     private final BloqueRepository bloqueRepository;
 
@@ -28,8 +25,8 @@ public class EliminarBloque {
     private final TransaccionPort transaccionPort;
 
     public void execute(EliminarBloqueRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-        Bloque bloque = bloqueService.obtener(request.bloqueId(), negocioId);
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        Bloque bloque = bloqueRepository.obtener(request.bloqueId(), negocioId);
         transaccionPort.ejecutar(() -> eliminar(bloque));
     }
 
@@ -44,7 +41,7 @@ public class EliminarBloque {
             return;
         }
         Campo campo = conexiones.getFirst();
-        Bloque otro = bloqueService.obtener(campo.getBloqueId(), bloque.getNegocioId());
+        Bloque otro = bloqueRepository.obtener(campo.getBloqueId(), bloque.getNegocioId());
         throw new BusinessRuleException("La tabla «" + bloque.getNombre() + "» se usa en la columna «"
                 + campo.getNombre() + "» de «" + otro.getNombre() + "»");
     }

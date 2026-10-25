@@ -1,11 +1,13 @@
 package com.ensambla.backend.domain.useCase.zona.obtenerZona;
 
 import com.ensambla.backend.domain.model.negocio.Negocio;
+import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.zona.AccesoZonaService;
-import com.ensambla.backend.domain.service.zona.AgregadoZonaService;
-import com.ensambla.backend.domain.service.zona.ZonaService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
+import com.ensambla.backend.domain.repository.zona.ZonaRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem;
 import lombok.RequiredArgsConstructor;
 
@@ -15,21 +17,24 @@ import java.time.OffsetDateTime;
 @RequiredArgsConstructor
 public class ObtenerZona {
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
-    private final ZonaService zonaService;
+    private final ZonaRepository zonaRepository;
 
-    private final AgregadoZonaService agregadoZonaService;
+    private final AgregadoZonaRepository agregadoZonaRepository;
 
-    private final AccesoZonaService accesoZonaService;
+    private final ControlPlanService controlPlanService;
 
     private final Clock clock;
 
     public ZonaItem execute(ObtenerZonaRequest request) {
-        Negocio negocio = negocioService.obtenerConfiguracion(request.usuarioId());
-        AnalisisZona analisis = zonaService.obtener(negocio.getZonaId())
-                .map(agregadoZonaService::analizar)
+        Negocio negocio = negocioRepository.obtenerNegocioDelUsuario(request.usuarioId());
+        AnalisisZona analisis = zonaRepository.findByIdSiTiene(negocio.getZonaId())
+                .map(agregadoZonaRepository::analizar)
                 .orElseGet(AnalisisZona::sinZona);
-        return accesoZonaService.filtrar(negocio.getId(), ZonaItem.de(analisis), OffsetDateTime.now(clock));
+        ZonaItem zonaItem = ZonaItem.de(analisis);
+        AccesoContenidoItem acceso = controlPlanService.seleccionar(
+                negocio.getId(), TipoContenidoPlan.ZONA, zonaItem.clavesDeAcceso(), OffsetDateTime.now(clock));
+        return zonaItem.filtrada(acceso);
     }
 }

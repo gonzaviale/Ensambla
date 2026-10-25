@@ -1,12 +1,10 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.lote.LoteSubidaService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.lote.obtenerFotoLote.ObtenerFotoLote;
 import com.ensambla.backend.domain.useCase.lote.obtenerLote.ObtenerLote;
@@ -20,37 +18,31 @@ import java.time.Clock;
 public class LoteUseCaseConfig {
 
     @Bean
-    public ObtenerFotoLote obtenerFotoLote(NegocioService negocioService, LoteSubidaService loteSubidaService) {
-        return new ObtenerFotoLote(negocioService, loteSubidaService);
+    public ObtenerFotoLote obtenerFotoLote(NegocioRepository negocioRepository, ArchivoCuadernoPort archivoCuadernoPort,
+            LoteSubidaRepository loteSubidaRepository) {
+        return new ObtenerFotoLote(negocioRepository, archivoCuadernoPort, loteSubidaRepository);
     }
 
     @Bean
     public SubirLote subirLote(
-            NegocioService negocioService,
+            NegocioRepository negocioRepository,
             LoteSubidaRepository loteSubidaRepository,
             ArchivoCuadernoPort archivoCuadernoPort,
             ControlPlanService controlPlanService,
             TransaccionPort transaccionPort,
-            BloqueService bloqueService,
+            BloqueRepository bloqueRepository,
             Clock clock) {
         return new SubirLote(
-                negocioService, loteSubidaRepository, archivoCuadernoPort, controlPlanService, transaccionPort,
-                bloqueService, clock);
+                negocioRepository, loteSubidaRepository, archivoCuadernoPort, controlPlanService, transaccionPort,
+                bloqueRepository, clock);
     }
 
     @Bean
     public ObtenerLote obtenerLote(
-            NegocioService negocioService,
-            LoteSubidaService loteSubidaService) {
-        return new ObtenerLote(
-                negocioService,
-                loteSubidaService);
+            NegocioRepository negocioRepository,
+            LoteSubidaRepository loteSubidaRepository) {
+        return new ObtenerLote(negocioRepository,
+                loteSubidaRepository);
     }
 
-    @Bean
-    public LoteSubidaService loteSubidaService(
-            LoteSubidaRepository loteSubidaRepository,
-            ArchivoCuadernoPort archivoCuadernoPort) {
-        return new LoteSubidaService(loteSubidaRepository, archivoCuadernoPort);
-    }
 }

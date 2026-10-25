@@ -1,13 +1,11 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.inventario.InventarioService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.inventario.consultarStock.ConsultarStock;
 import com.ensambla.backend.domain.useCase.inventario.listarMovimientos.ListarMovimientos;
 import com.ensambla.backend.domain.useCase.inventario.registrarMovimiento.RegistrarMovimiento;
@@ -21,42 +19,36 @@ public class InventarioUseCaseConfig {
 
     @Bean
     public RegistrarMovimiento registrarMovimiento(
-            NegocioService negocioService,
-            BloqueService bloqueService,
-            CampoService campoService,
-            RegistroDatosService registroDatosService,
-            InventarioService inventarioService,
+            NegocioRepository negocioRepository,
+            BloqueRepository bloqueRepository,
+            CampoRepository campoRepository,
+            RegistroRepository registroRepository,
             MovimientoStockRepository movimientoStockRepository,
             TransaccionPort transaccionPort,
             Clock clock) {
-        return new RegistrarMovimiento(
-                negocioService, bloqueService, campoService, registroDatosService, inventarioService,
+        return new RegistrarMovimiento(negocioRepository, bloqueRepository, campoRepository, registroRepository,
                 movimientoStockRepository, transaccionPort, clock);
     }
 
     @Bean
     public ListarMovimientos listarMovimientos(
-            NegocioService negocioService,
-            BloqueService bloqueService,
-            CampoService campoService,
+            NegocioRepository negocioRepository,
+            BloqueRepository bloqueRepository,
+            CampoRepository campoRepository,
             RegistroRepository registroRepository,
             MovimientoStockRepository movimientoStockRepository) {
         return new ListarMovimientos(
-                negocioService, bloqueService, campoService, registroRepository, movimientoStockRepository);
+                negocioRepository, bloqueRepository, campoRepository, registroRepository, movimientoStockRepository);
     }
 
     @Bean
-    public ConsultarStock consultarStock(NegocioService negocioService,
-                                         BloqueService bloqueService,
-                                         CampoService campoService,
-                                         RegistroDatosService registroDatosService,
-                                         InventarioService inventarioService) {
-        return new ConsultarStock(negocioService, bloqueService, campoService, registroDatosService,
-                inventarioService);
+    public ConsultarStock consultarStock(NegocioRepository negocioRepository,
+                                         BloqueRepository bloqueRepository,
+                                         CampoRepository campoRepository,
+                                         RegistroRepository registroRepository,
+                                         MovimientoStockRepository movimientoStockRepository) {
+        return new ConsultarStock(negocioRepository, bloqueRepository, campoRepository, registroRepository,
+                movimientoStockRepository);
     }
 
-    @Bean
-    public InventarioService inventarioService(MovimientoStockRepository movimientoStockRepository) {
-        return new InventarioService(movimientoStockRepository);
-    }
 }
