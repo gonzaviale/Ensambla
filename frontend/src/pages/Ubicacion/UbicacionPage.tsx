@@ -198,8 +198,8 @@ export function UbicacionPage() {
           </p>
         )}
         {estado.revision && <RevisionUbicacion configuracion={estado.revision} />}
+        <PageFooter />
       </main>
-      <PageFooter />
     </>
   );
 }
