@@ -181,7 +181,7 @@ describe('una foto para Sami en el taller', () => {
   it('con el Sami simulado, lo leído de la foto queda como registros reales al crear el sistema', async () => {
     const { user, router } = await abrirTaller();
     await clickButton(user, /Almacén o kiosco/);
-    await screen.findByLabelText('Nombre de tu sistema', {}, ESPERA);
+    await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
 
     await adjuntar(user);
     await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });

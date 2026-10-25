@@ -132,7 +132,7 @@ describe('planes y activación de prueba', () => {
 
     expect(screen.getByText(/Tu prueba terminó/)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Prueba ya utilizada' })).toBeDisabled();
-    expect(screen.getByText(/conservás tus sistemas, registros y recetas/)).toBeVisible();
+    expect(screen.getByText(/conservás tus cuadernos, registros y recetas/)).toBeVisible();
   });
 
   it('muestra premium vigente con cien páginas y sin ofrecer otra prueba', async () => {

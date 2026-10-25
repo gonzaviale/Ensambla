@@ -14,7 +14,9 @@ export function ModalBlanco() {
         <Icon name="grid" />
       </div>
       <h2 id="modal-title">Un lienzo en blanco, todo tuyo.</h2>
-      <p>Vas a poder arrastrar piezas, modificar sus campos y organizar tu sistema en secciones.</p>
+      <p>
+        Vas a poder arrastrar piezas, modificar sus campos y organizar tu cuaderno en secciones.
+      </p>
       <div className="blank-warning">
         <strong>¿Es tu primera vez?</strong>
         Te recomendamos empezar con la guía de Sami o una plantilla. Después podés personalizar todo

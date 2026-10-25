@@ -137,7 +137,7 @@ describe('tu cuenta', () => {
 
     expect(await screen.findByText('Gratuito', {}, ESPERA)).toBeVisible();
     expect(screen.getByText('Sin costo')).toBeVisible();
-    expect(screen.getByText('Sistemas')).toBeVisible();
+    expect(screen.getByText('Cuadernos')).toBeVisible();
     expect(screen.getByText('Registros')).toBeVisible();
 
     await user.click(screen.getByRole('link', { name: 'Ver planes y beneficios' }));

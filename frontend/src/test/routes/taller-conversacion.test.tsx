@@ -28,7 +28,7 @@ const abrirTaller = async () => {
 const conPropuesta = async () => {
   const user = await abrirTaller();
   await clickButton(user, /Almacén o kiosco/);
-  await screen.findByLabelText('Nombre de tu sistema', {}, ESPERA);
+  await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
   return user;
 };
 
@@ -99,7 +99,7 @@ describe('la conversación de Sami en el taller', () => {
     await escribir(user, 'Tengo un almacén y vendo productos');
 
     expect(await screen.findByText('Te armé las ventas y los clientes.', {}, ESPERA)).toBeVisible();
-    expect(screen.getByLabelText('Nombre de tu sistema')).toHaveValue('Mi cuaderno');
+    expect(screen.getByLabelText('Nombre de tu cuaderno')).toHaveValue('Mi cuaderno');
     expect(screen.getByText('2 piezas conectadas')).toBeVisible();
     const [pedido] = pedidos as PedidoAlTaller[];
     expect(pedido?.mensaje).toBe('Tengo un almacén y vendo productos');
@@ -122,7 +122,7 @@ describe('la conversación de Sami en el taller', () => {
     expect(opciones.getByText('¿De qué es tu negocio?')).toBeVisible();
     expect(opciones.getByRole('button', { name: /Hago velas artesanales/ })).toBeVisible();
     expect(opciones.getByRole('button', { name: /Escribir otra cosa/ })).toBeVisible();
-    expect(screen.queryByLabelText('Nombre de tu sistema')).toBeNull();
+    expect(screen.queryByLabelText('Nombre de tu cuaderno')).toBeNull();
     expect(borrador()).toBeNull();
   });
 
@@ -134,7 +134,7 @@ describe('la conversación de Sami en el taller', () => {
       within(await botonera()).getByRole('button', { name: /Hago velas artesanales/ }),
     );
 
-    expect(await screen.findByLabelText('Nombre de tu sistema', {}, ESPERA)).toHaveValue(
+    expect(await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA)).toHaveValue(
       'Mis velas',
     );
     expect(screen.getByText(/Armé tus velas/)).toBeVisible();
@@ -151,7 +151,7 @@ describe('la conversación de Sami en el taller', () => {
 
     await clickButton(user, /Velas artesanales/);
 
-    await screen.findByLabelText('Nombre de tu sistema', {}, ESPERA);
+    await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
     const velas = pieza('Velas');
     expect(velas.fields.map((dato) => dato.label)).toContain('Aroma');
     expect(velas.rows.map((fila) => fila.name)).toContain('Vela de soja lavanda');
@@ -170,7 +170,7 @@ describe('la conversación de Sami en el taller', () => {
 
     await clickButton(user, /Una peluquería/);
 
-    await screen.findByLabelText('Nombre de tu sistema', {}, ESPERA);
+    await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
     const turnos = pieza('Turnos');
     expect(turnos.type).toBe('form');
     expect(turnos.fields.map((dato) => dato.label)).toEqual([
@@ -202,7 +202,7 @@ describe('la conversación de Sami en el taller', () => {
     expect(
       await screen.findByText('Empecemos por tus ventas y tus clientes.', {}, ESPERA),
     ).toBeVisible();
-    expect(await screen.findByLabelText('Nombre de tu sistema', {}, ESPERA)).toBeVisible();
+    expect(await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA)).toBeVisible();
     expect(screen.getByText('2 piezas conectadas')).toBeVisible();
     expect(within(await botonera()).getByText('¿Llevás stock?')).toBeVisible();
   });
@@ -343,7 +343,7 @@ describe('la conversación de Sami en el taller', () => {
     expect(
       await screen.findByText('Listo, ahora se llama Almacén Don Luis.', {}, ESPERA),
     ).toBeVisible();
-    expect(screen.getByLabelText('Nombre de tu sistema')).toHaveValue('Almacén Don Luis');
+    expect(screen.getByLabelText('Nombre de tu cuaderno')).toHaveValue('Almacén Don Luis');
   });
 
   it('lo que Sami pide con herramientas se aplica a la propuesta y se puede deshacer', async () => {
@@ -406,7 +406,7 @@ describe('la conversación de Sami en el taller', () => {
     await escribir(user, 'ponele un nombre lindo');
 
     expect(await screen.findByText('Listo, lo llamé Velas de Ana.', {}, ESPERA)).toBeVisible();
-    expect(screen.getByLabelText('Nombre de tu sistema')).toHaveValue('Velas de Ana');
+    expect(screen.getByLabelText('Nombre de tu cuaderno')).toHaveValue('Velas de Ana');
   });
 
   it('un mensaje de una sola letra sigue pidiendo más detalle', async () => {

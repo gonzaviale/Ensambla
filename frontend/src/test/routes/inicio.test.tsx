@@ -95,7 +95,7 @@ describe('plantillas', () => {
     const tarjeta = document.querySelector<HTMLElement>('[data-template="business"]');
     if (!tarjeta) throw new Error('Falta la tarjeta de la plantilla');
 
-    await user.click(within(tarjeta).getByRole('button', { name: /Ver el sistema/ }));
+    await user.click(within(tarjeta).getByRole('button', { name: /Ver el cuaderno/ }));
     const modal = await screen.findByRole('dialog');
     expect(
       within(modal).getByRole('heading', { name: /Pedidos y clientes, a tu manera/ }),

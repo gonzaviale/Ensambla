@@ -294,7 +294,7 @@ export function TallerPage() {
             <Icon name="back" /> {original ? `Volver a ${original.name}` : 'Inicio'}
           </Btn>
           <span>
-            {ajustando ? 'AJUSTANDO TU SISTEMA CON SAMI' : 'EL TALLER DE TU PRIMER SISTEMA'}
+            {ajustando ? 'AJUSTANDO TU CUADERNO CON SAMI' : 'EL TALLER DE TU PRIMER CUADERNO'}
           </span>
           <span className="tag outline">
             {ajustando
@@ -313,12 +313,12 @@ export function TallerPage() {
                 <div className="draft-heading">
                   <div>
                     <span className="eyebrow">
-                      {ajustando ? 'TU SISTEMA, CON LOS CAMBIOS' : 'TU PROPUESTA, A LA VISTA'}
+                      {ajustando ? 'TU CUADERNO, CON LOS CAMBIOS' : 'TU PROPUESTA, A LA VISTA'}
                     </span>
                     <input
                       className="draft-name-input"
                       id="guide-system-name"
-                      aria-label="Nombre de tu sistema"
+                      aria-label="Nombre de tu cuaderno"
                       maxLength={100}
                       value={borrador.name}
                       onChange={(evento) =>
@@ -405,7 +405,7 @@ export function TallerPage() {
                     {ajustando ? (
                       <span>
                         <strong>¿Te sirve así?</strong>
-                        <small>Se guarda sobre tu sistema, con tus registros.</small>
+                        <small>Se guarda sobre tu cuaderno, con tus registros.</small>
                       </span>
                     ) : (
                       <span>
@@ -460,7 +460,7 @@ export function TallerPage() {
                 </h2>
                 <p>
                   Una propuesta de bloques que podés mover, combinar y cambiar. Sin tener que
-                  imaginar el sistema a ciegas.
+                  imaginar el cuaderno a ciegas.
                 </p>
                 {/* <span className="empty-studio-note">
                   <Icon name="spark" />
@@ -641,7 +641,7 @@ export function TallerPage() {
         </form>
         <p className="conversation-foot">
           {ajustando
-            ? 'Nada cambia en tu sistema hasta que guardes.'
+            ? 'Nada cambia en tu cuaderno hasta que guardes.'
             : 'Vos decidís qué queda y cuándo está listo.'}
         </p>
       </aside>

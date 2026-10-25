@@ -217,7 +217,7 @@ function aplicarUna(
       const nombre = texto(args.nombre).slice(0, 100);
       if (!nombre) return 'Falta el nombre.';
       sistema.name = nombre;
-      return hecho(`Llamé al sistema ${nombre}.`);
+      return hecho(`Llamé al cuaderno ${nombre}.`);
     }
     case 'agregar_campo':
       return agregarCampo(sistema, args, hecho);
@@ -305,7 +305,8 @@ function borrarRegistros(
     const validos = datos.flatMap(([campo, valor]) => (campo ? [{ campo, valor }] : []));
     return datos.length && validos.length === datos.length ? [validos] : [];
   });
-  if (!criterios.length) return `Para borrar registros de ${pieza.name.toLowerCase()} necesito saber cuáles.`;
+  if (!criterios.length)
+    return `Para borrar registros de ${pieza.name.toLowerCase()} necesito saber cuáles.`;
   const sobran = pieza.rows.filter((fila) =>
     criterios.some((criterio) =>
       criterio.every(({ campo, valor }) => coincide(sistema, campo, fila[campo.key], valor)),
@@ -315,7 +316,9 @@ function borrarRegistros(
   const ids = new Set(sobran.map((fila) => fila.id));
   pieza.rows = pieza.rows.filter((fila) => !ids.has(fila.id));
   for (const bloque of allBlocks(sistema)) {
-    for (const campo of bloque.fields.filter((item) => item.type === 'relation' && item.target === pieza.id)) {
+    for (const campo of bloque.fields.filter(
+      (item) => item.type === 'relation' && item.target === pieza.id,
+    )) {
       for (const fila of bloque.rows) {
         if (ids.has(String(fila[campo.key]))) fila[campo.key] = '';
       }
@@ -607,7 +610,8 @@ function fechaDeCuaderno(texto: string): string | undefined {
       ? 2000 + Number(anio)
       : Number(anio);
   const fecha = new Date(Date.UTC(completo, Number(mes) - 1, Number(dia)));
-  if (fecha.getUTCMonth() !== Number(mes) - 1 || fecha.getUTCDate() !== Number(dia)) return undefined;
+  if (fecha.getUTCMonth() !== Number(mes) - 1 || fecha.getUTCDate() !== Number(dia))
+    return undefined;
   return fecha.toISOString().slice(0, 10);
 }
 

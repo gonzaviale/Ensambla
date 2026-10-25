@@ -267,7 +267,7 @@ export function SistemaPage() {
             </div>
           </div>
           <div className="tabs-y-distribucion">
-            <nav className="section-tabs" aria-label="Secciones del sistema">
+            <nav className="section-tabs" aria-label="Secciones del cuaderno">
               {/* <span className="section-tabs-label">Secciones</span> */}
               {sistema.sections.map((otra, indice) => (
                 <div

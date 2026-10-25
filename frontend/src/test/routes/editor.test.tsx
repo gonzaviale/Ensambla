@@ -155,7 +155,7 @@ describe('el editor: construir y usar', () => {
       expect(within(vista).getByLabelText('Cantidad: mín.')).toBeVisible();
       expect(within(vista).getByLabelText('Buscar en Inventario')).toBeVisible();
 
-      await user.click(within(vista).getByRole('button', { name: /Volver al sistema/ }));
+      await user.click(within(vista).getByRole('button', { name: /Volver al cuaderno/ }));
 
       expect(screen.queryByRole('dialog', { name: 'Inventario' })).toBeNull();
       expect(abrir).toHaveFocus();
@@ -192,7 +192,7 @@ describe('el editor: construir y usar', () => {
       await user.keyboard('{Escape}');
       expect(document.documentElement.style.overflow).toBe('hidden');
 
-      await user.click(within(vista).getByRole('button', { name: /Volver al sistema/ }));
+      await user.click(within(vista).getByRole('button', { name: /Volver al cuaderno/ }));
       expect(document.documentElement.style.overflow).toBe('');
     });
 

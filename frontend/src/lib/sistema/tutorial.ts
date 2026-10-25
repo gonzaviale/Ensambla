@@ -53,7 +53,7 @@ export const PASOS: Record<PasoDeTutorial, DetalleDePaso> = {
   create: {
     grupo: 1,
     title: 'Cuando te cierre, la creamos.',
-    text: 'Esta propuesta todavía no es un sistema guardado. Podés seguir ajustándola o confirmar para empezar a usarla.',
+    text: 'Esta propuesta todavía no es un cuaderno guardado. Podés seguir ajustándola o confirmar para empezar a usarla.',
     hint: 'Tocá “Sí, crear mi cuaderno”.',
   },
   pickTemplate: {
@@ -66,7 +66,7 @@ export const PASOS: Record<PasoDeTutorial, DetalleDePaso> = {
     grupo: 1,
     title: 'Mirá las piezas antes de empezar.',
     text: 'Revisá los bloques y sus opciones. Cuando te sirva esta base, elegí empezar con este conjunto.',
-    hint: 'Confirmá la plantilla para crear tu sistema.',
+    hint: 'Confirmá la plantilla para crear tu cuaderno.',
   },
   blankConfirm: {
     grupo: 1,
@@ -130,7 +130,7 @@ export const PASOS: Record<PasoDeTutorial, DetalleDePaso> = {
   },
   done: {
     grupo: 4,
-    title: 'Tu primer sistema ya es tuyo.',
+    title: 'Tu primer cuaderno ya es tuyo.',
     text: 'Elegiste una base, personalizaste una pieza, la moviste y cargaste un registro. Podés seguir explorando, sumar bloques o probar otro camino.',
     hint: 'Todo lo que hiciste quedó en esta demo.',
   },

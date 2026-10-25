@@ -101,7 +101,7 @@ export function useNavegacion() {
           .avisar(
             error instanceof ApiError
               ? `${error.message}${error.status === 403 && error.codigo ? ' Revisá los beneficios de Premium en Planes.' : ''}`
-              : 'No pudimos crear tu sistema. Tus datos todavía no se guardaron. Probá de nuevo.',
+              : 'No pudimos crear tu cuaderno. Tus datos todavía no se guardaron. Probá de nuevo.',
           );
       }
     },

@@ -22,7 +22,7 @@ const abrirConBienvenida = async () => {
 };
 
 const empezarLaGuia = async (user: Usuario) => {
-  await user.click(screen.getByRole('button', { name: /Hacer mi primer sistema con guía/ }));
+  await user.click(screen.getByRole('button', { name: /Hacer mi primer cuaderno con guía/ }));
   await esperarPaso('Tres maneras de empezar.');
 };
 
@@ -48,7 +48,7 @@ describe('la bienvenida', () => {
   it('aparece la primera vez con el nombre y no vuelve una vez vista', async () => {
     const { user, usuario } = await abrirConBienvenida();
 
-    expect(screen.getByRole('button', { name: /Hacer mi primer sistema con guía/ })).toHaveFocus();
+    expect(screen.getByRole('button', { name: /Hacer mi primer cuaderno con guía/ })).toHaveFocus();
     await user.click(screen.getByRole('button', { name: /Explorar por mi cuenta/ }));
 
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -149,7 +149,7 @@ describe('el tutorial', () => {
     await esperarPaso('Ahora, a usarlo.');
 
     await user.click(screen.getByRole('button', { name: /Usar cuaderno/ }));
-    await esperarPaso('Tu primer sistema ya es tuyo.');
+    await esperarPaso('Tu primer cuaderno ya es tuyo.');
     expect(within(cartel()).getByLabelText('Etapa 5 de 5')).toBeVisible();
 
     await user.click(within(cartel()).getByRole('button', { name: 'Salir del tutorial' }));
@@ -184,13 +184,13 @@ describe('el tutorial', () => {
     const tarjeta = document.querySelector<HTMLElement>(
       '.template-page [data-template="shop"]',
     ) as HTMLElement;
-    await user.click(within(tarjeta).getByRole('button', { name: /Ver el sistema/ }));
+    await user.click(within(tarjeta).getByRole('button', { name: /Ver el cuaderno/ }));
     await esperarPaso('Mirá las piezas antes de empezar.');
 
     await user.click(screen.getByRole('button', { name: 'Seguir mirando' }));
     await esperarPaso('Una plantilla es un conjunto.');
 
-    await user.click(within(tarjeta).getByRole('button', { name: /Ver el sistema/ }));
+    await user.click(within(tarjeta).getByRole('button', { name: /Ver el cuaderno/ }));
     await esperarPaso('Mirá las piezas antes de empezar.');
     await user.click(screen.getByRole('button', { name: /Empezar con este conjunto/ }));
     await esperarPaso('Usar y construir, en el mismo lugar.');

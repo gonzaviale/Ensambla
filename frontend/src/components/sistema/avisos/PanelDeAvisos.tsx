@@ -101,7 +101,7 @@ export function PanelDeAvisos() {
             {avisos.length > 0 &&
               `${urgentes ? `${urgentes} para resolver pronto · ` : ''}${avisos.length} ${acceso?.bloqueadas ? 'visibles' : 'en total'}. `}
             {acceso?.bloqueadas ? `${acceso.bloqueadas} más con Premium. ` : ''}
-            Miré {sistemas.length === 1 ? '1 sistema' : `${sistemas.length} sistemas`}{' '}
+            Miré {sistemas.length === 1 ? '1 cuaderno' : `${sistemas.length} cuadernos`}{' '}
             {zonaSuficiente
               ? `y los datos de tu zona (${zona.comercios} comercios, sin nombres).`
               : 'pero todavía no hay comercios suficientes en tu zona para usar sus datos.'}

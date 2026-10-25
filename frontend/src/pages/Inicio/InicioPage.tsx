@@ -100,7 +100,7 @@ export function InicioPage() {
                     data-accion="preview-template"
                     onClick={() => abrirModal({ tipo: 'plantilla', clave })}
                   >
-                    Ver el sistema <Icon name="arrow" />
+                    Ver el cuaderno <Icon name="arrow" />
                   </button>
                 </article>
               );
@@ -110,13 +110,13 @@ export function InicioPage() {
 
         {/* <section className="inicio-bloque inicio-ejemplo">
           <Titulo
-            titulo="Así se ve un sistema"
+            titulo="Así se ve un cuaderno"
             detalle="Un ejemplo para mirar. Probá cambiar cómo se reparten las piezas."
           />
           <div className="hero-system">
             <div className="hero-system-top">
               <span className="live-dot" />
-              <strong>Un sistema. Tu forma de organizarlo.</strong>
+              <strong>Un cuaderno. Tu forma de organizarlo.</strong>
               <span className="tag outline">Ejemplo</span>
             </div>
             <PreviewBoard sistema={ejemplo} compacto />

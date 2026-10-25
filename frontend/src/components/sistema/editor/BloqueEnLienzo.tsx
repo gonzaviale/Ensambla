@@ -52,7 +52,7 @@ const ENCABEZADOS_BAJOS_STOCK = 'low-stock';
 function Resumen({ sistema }: { sistema: Sistema }) {
   const total = totals(sistema);
   const indicadores: [number, string][] = [
-    [total.records, 'Registros en tu sistema'],
+    [total.records, 'Registros en tu cuaderno'],
     [total.pending, 'Pedidos pendientes'],
     [total.stock, 'Unidades en inventario'],
     [total.clients, 'Clientes registrados'],

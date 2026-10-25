@@ -262,7 +262,7 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
                   ))
                 : TIPOS_SIN_SISTEMA.map((opcion) => (
                     <option key={opcion} value={opcion}>
-                      {sistema ? 'Crear bloque: ' : 'Crear sistema de '}
+                      {sistema ? 'Crear bloque: ' : 'Crear cuaderno de '}
                       {CATALOG[opcion].name.toLowerCase()}
                     </option>
                   ))}

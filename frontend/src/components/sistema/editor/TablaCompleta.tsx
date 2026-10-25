@@ -35,7 +35,7 @@ export function TablaCompleta({
   bloque,
   sistema,
   onRegistro,
-  textoVolver = 'Volver al sistema',
+  textoVolver = 'Volver al cuaderno',
 }: Props) {
   const verTablaCompleta = useSistemaStore((estado) => estado.verTablaCompleta);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);

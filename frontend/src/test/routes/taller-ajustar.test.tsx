@@ -96,10 +96,10 @@ describe('ajustar con Sami un sistema que ya existe', () => {
     await verifyHeadingPresentAsync('Lo ajustamos juntos.');
     expect(router.state.location.search).toEqual({ sistema: sistema.id });
     expect(screen.getByText(/Estoy mirando «Almacén de Ana»/)).toBeVisible();
-    expect(screen.getByLabelText('Nombre de tu sistema')).toHaveValue('Almacén de Ana');
+    expect(screen.getByLabelText('Nombre de tu cuaderno')).toHaveValue('Almacén de Ana');
     expect(screen.getByRole('button', { name: /Guardar cambios/ })).toBeVisible();
     expect(screen.queryByRole('button', { name: /Sí, crear mi cuaderno/ })).toBeNull();
-    expect(screen.queryByText(/TU PRIMER SISTEMA/)).toBeNull();
+    expect(screen.queryByText(/TU PRIMER CUADERNO/)).toBeNull();
     await sinViolaciones();
 
     await pedirASami(user, 'cambiale el nombre a Cliente por Clienta y ponelo primero');
