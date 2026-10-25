@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 type PropsDatos = {
   nombre: string;
   comparteDatosZona: boolean;
@@ -5,9 +7,11 @@ type PropsDatos = {
   ubicacionGuardada: boolean;
   onNombre: (valor: string) => void;
   onCompartir: (valor: boolean) => void;
+  /** El botón de guardar de la solapa, al final del recuadro. */
+  pie?: ReactNode;
 };
 
-// El primer paso: cómo se llama el comercio y si aporta sus datos a la zona.
+// La solapa "Tu comercio": cómo se llama el comercio y si aporta sus datos a la zona.
 export function DatosDelComercio(props: PropsDatos) {
   return (
     <section className="ubicacion-panel" aria-labelledby="titulo-datos-comercio">
@@ -37,6 +41,7 @@ export function DatosDelComercio(props: PropsDatos) {
         />
         Compartir datos agregados y anónimos de mi comercio con la zona
       </label>
+      {props.pie}
     </section>
   );
 }
@@ -46,35 +51,20 @@ type PropsLocalidad = {
   localidadDelMapa: string | null;
   errorLocalidad: string;
   verificandoLocalidad: boolean;
-  onLocalidad: (valor: string) => void;
   onUsarLocalidadDelMapa: () => void;
   onReintentarLocalidad: () => void;
 };
 
-// La localidad va en el bloque de la dirección: sirve para buscar y se completa sola con el punto del mapa.
+// La localidad sale de la dirección elegida y se verifica con el mapa; no se escribe a mano.
 export function LocalidadDelComercio(props: PropsLocalidad) {
-  const ayuda = props.verificandoLocalidad
-    ? 'Verificando la localidad con el mapa…'
-    : props.localidadDelMapa
-      ? `Según el mapa: ${props.localidadDelMapa}.`
-      : 'Se completa sola con el punto del mapa.';
+  const ayuda = props.verificandoLocalidad ? 'Verificando la localidad con el mapa…' : '';
   return (
-    <div className="field">
-      <label htmlFor="negocio-localidad">Localidad</label>
-      <input
-        id="negocio-localidad"
-        className="input"
-        maxLength={120}
-        placeholder="Ej.: San Justo"
-        value={props.localidad}
-        aria-invalid={props.errorLocalidad ? true : undefined}
-        aria-describedby="ayuda-localidad error-localidad"
-        onChange={(evento) => props.onLocalidad(evento.target.value)}
-      />
-      <p id="ayuda-localidad" className="ubicacion-ayuda">
-        {ayuda}
+    <div className="ubicacion-localidad-elegida">
+      <p>
+        Localidad: <strong>{props.localidad || 'sin definir'}</strong>
       </p>
-      <p id="error-localidad" className="form-error" role="alert">
+      <p className="ubicacion-ayuda">{ayuda}</p>
+      <p className="form-error" role="alert">
         {props.errorLocalidad}
       </p>
       {props.errorLocalidad && props.localidadDelMapa && (
