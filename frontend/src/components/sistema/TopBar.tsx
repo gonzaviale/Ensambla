@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Icon } from './Icon';
 import { Logo } from './Logo';
 import { MenuDePerfil } from './MenuDePerfil';
@@ -40,10 +40,26 @@ export function TopBar({
   onCerrarSesion,
   cerrandoSesion = false,
 }: TopBarProps) {
+  // En celular las secciones van en un menú hamburguesa al lado del usuario.
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  useEffect(() => {
+    if (!menuAbierto) return;
+    const alTeclear = (evento: KeyboardEvent) => {
+      if (evento.key === 'Escape') setMenuAbierto(false);
+    };
+    document.addEventListener('keydown', alTeclear);
+    return () => document.removeEventListener('keydown', alTeclear);
+  }, [menuAbierto]);
+  // Elegir una sección cierra el menú.
+  const ir = (accion: () => void) => () => {
+    setMenuAbierto(false);
+    accion();
+  };
+
   return (
-    <header className="topbar">
-      <Logo onClick={onInicio} />
-      <nav className="topnav" aria-label="Principal">
+    <header className={`topbar ${menuAbierto ? 'menu-abierto' : ''}`.trim()}>
+      <Logo onClick={ir(onInicio)} />
+      <nav id="nav-principal" className="topnav" aria-label="Principal">
         <button
           type="button"
           className={active === 'home' ? 'active' : ''}
@@ -55,7 +71,7 @@ export function TopBar({
         <button
           type="button"
           className={active === 'sistemas' ? 'active' : ''}
-          onClick={onSistemas}
+          onClick={ir(onSistemas)}
         >
           Mis cuadernos
         </button>
@@ -63,27 +79,30 @@ export function TopBar({
           type="button"
           className={active === 'avisos' ? 'active' : ''}
           aria-current={active === 'avisos' ? 'page' : undefined}
-          onClick={onAvisos}
+          onClick={ir(onAvisos)}
         >
           Avisos
         </button>
         <button
           type="button"
           className={active === 'templates' ? 'active' : ''}
-          onClick={onPlantillas}
+          onClick={ir(onPlantillas)}
         >
           Plantillas
         </button>
-        <button type="button" className={active === 'zone' ? 'active' : ''} onClick={onZona}>
+        <button type="button" className={active === 'zone' ? 'active' : ''} onClick={ir(onZona)}>
           Mi zona
         </button>
         <button
           type="button"
           className={active === 'plans' ? 'active' : ''}
           aria-current={active === 'plans' ? 'page' : undefined}
-          onClick={onPlanes}
+          onClick={ir(onPlanes)}
         >
           Planes
+        </button>
+        <button type="button" className="topnav-ayuda" onClick={ir(onAyuda)}>
+          <Icon name="help" /> Ayuda
         </button>
       </nav>
       <div className="row topbar-right">
@@ -104,6 +123,16 @@ export function TopBar({
           onConfiguracion={onCuenta}
           onCerrarSesion={onCerrarSesion}
         />
+        <button
+          type="button"
+          className="menu-movil-boton"
+          aria-label={menuAbierto ? 'Cerrar el menú' : 'Abrir el menú'}
+          aria-expanded={menuAbierto}
+          aria-controls="nav-principal"
+          onClick={() => setMenuAbierto((abierto) => !abierto)}
+        >
+          <Icon name={menuAbierto ? 'close' : 'menu'} />
+        </button>
       </div>
     </header>
   );

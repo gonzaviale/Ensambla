@@ -60,6 +60,25 @@ describe('inicio', () => {
     ).toBeVisible();
   });
 
+  it('el menú hamburguesa (celular) abre las secciones y se cierra al elegir una', async () => {
+    const { user, router } = await abrirInicio();
+    const boton = screen.getByRole('button', { name: 'Abrir el menú' });
+    expect(boton).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(boton);
+    expect(screen.getByRole('button', { name: 'Cerrar el menú' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    await clickButton(user, 'Mis cuadernos');
+
+    await verifyPathAsync(router, '/cuadernos');
+    expect(screen.getByRole('button', { name: 'Abrir el menú' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+  });
+
   it('muestra la zona sin mapa y lleva a «Mi zona»', async () => {
     const { user, router } = await abrirInicio();
 
