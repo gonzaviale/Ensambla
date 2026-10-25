@@ -1,7 +1,6 @@
 import { PASOS } from '@/lib/sistema/tutorial';
 import { salirDelTutorial } from '@/hooks/tutorial/useAccionesDelTutorial';
 import { useTutorialEnPantalla } from '@/hooks/tutorial/useTutorialEnPantalla';
-import { Btn } from '../Btn';
 import { Icon } from '../Icon';
 
 // La guía interactiva: un reflector que deja iluminado sólo lo que toca y un cartel de Sami que explica el

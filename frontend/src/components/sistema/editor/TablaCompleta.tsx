@@ -112,13 +112,7 @@ export function TablaCompleta({
     };
     raiz.current?.querySelector<HTMLElement>('[data-tabla-completa-volver]')?.focus();
     document.addEventListener('keydown', alTeclear, true);
-    // La página de atrás no se desplaza mientras la tabla ocupa la pantalla (así no aparece su barra de
-    // desplazamiento). Va en <html> y no en <body>, que es lo que tocan los formularios que se abren encima.
-    const html = document.documentElement;
-    const desborde = html.style.overflow;
-    html.style.overflow = 'hidden';
     return () => {
-      html.style.overflow = desborde;
       document.removeEventListener('keydown', alTeclear, true);
       if (previo?.isConnected) previo.focus();
     };
