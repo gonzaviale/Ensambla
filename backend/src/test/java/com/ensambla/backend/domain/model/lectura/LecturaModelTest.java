@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.model.lectura;
 
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -63,7 +64,7 @@ class LecturaModelTest {
     void bloqueExistenteShouldContainIdWhenPresent() {
         UUID id = UUID.randomUUID();
 
-        assertThat(new BloquePropuesto("Ventas", id, CAMPOS).bloqueExistente()).contains(id);
+        assertThat(new BloquePropuesto("Ventas", BloqueId.de(id), CAMPOS).bloqueExistente()).contains(BloqueId.de(id));
     }
 
     @Test
@@ -77,7 +78,7 @@ class LecturaModelTest {
     void bloqueConocidoShouldCopyCampos() {
         CampoContexto fecha = new CampoContexto("Fecha", TipoCampo.FECHA, List.of());
         List<CampoContexto> campos = new ArrayList<>(List.of(fecha));
-        BloqueConocido bloque = new BloqueConocido(UUID.randomUUID(), "Ventas", campos);
+        BloqueConocido bloque = new BloqueConocido(BloqueId.nuevo(), "Ventas", campos);
 
         campos.add(new CampoContexto("Monto", TipoCampo.NUMERO, List.of()));
 

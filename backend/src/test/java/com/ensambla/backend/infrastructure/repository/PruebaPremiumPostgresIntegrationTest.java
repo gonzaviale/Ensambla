@@ -1,22 +1,27 @@
 package com.ensambla.backend.infrastructure.repository;
 
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
-import com.ensambla.backend.domain.model.enums.EstadoSuscripcion;
-import com.ensambla.backend.domain.model.enums.FuncionPlan;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
+import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.plan.PruebaPremium;
 import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
+import com.ensambla.backend.domain.model.procesamiento.ReclamoId;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
-import com.ensambla.backend.domain.service.plan.ConsumoIaInmediatoService;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.plan.PruebaPremiumService;
-import com.ensambla.backend.domain.service.plan.SuscripcionService;
-import com.ensambla.backend.domain.service.procesamiento.ReservaIaService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
-import com.ensambla.backend.domain.useCase.plan.VencerPruebasUseCase;
+import com.ensambla.backend.support.LecturasInmediatasDePrueba;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.ProyectosDePrueba;
+import com.ensambla.backend.support.PruebasPremiumDePrueba;
+import com.ensambla.backend.support.SuscripcionesDePrueba;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,9 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -47,7 +50,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    private PruebaPremiumService pruebaPremiumService;
+    private PruebasPremiumDePrueba pruebaPremiumService;
 
     @Autowired
     private PruebaPremiumRepository pruebaPremiumRepository;
@@ -56,41 +59,41 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     private SuscripcionRepository suscripcionRepository;
 
     @Autowired
-    private SuscripcionService suscripcionService;
+    private SuscripcionesDePrueba suscripcionService;
 
     @Autowired
     private ControlPlanService controlPlanService;
 
     @Autowired
-    private ConsumoIaInmediatoService consumoIaInmediatoService;
-
-    @Autowired
-    private ReservaIaService reservaIaService;
+    private LecturasInmediatasDePrueba consumoIaInmediatoService;
 
     @Autowired
     private ProcesamientoRepository procesamientoRepository;
 
     @Autowired
-    private ProyectoService proyectoService;
+    private ProyectosDePrueba proyectosDePrueba;
 
-    private UUID usuarioId;
-    private UUID negocioId;
+    @Autowired
+    private ProyectoRepository proyectoRepository;
+
+    private UsuarioId usuarioId;
+    private NegocioId negocioId;
 
     @BeforeEach
     void setUp() {
-        usuarioId = UUID.randomUUID();
-        negocioId = UUID.randomUUID();
+        usuarioId = UsuarioId.nuevo();
+        negocioId = NegocioId.nuevo();
         jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Prueba premium')",
-                usuarioId, usuarioId + "@example.test");
+                usuarioId.valor(), usuarioId.valor() + "@example.test");
         jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Prueba premium', ?)",
-                negocioId, usuarioId);
+                negocioId.valor(), usuarioId.valor());
         suscripcionService.asignarGratuito(negocioId, INICIO.minusMonths(1));
     }
 
     @AfterEach
     void tearDown() {
-        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId);
-        jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId);
+        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId.valor());
+        jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId.valor());
     }
 
     @Test
@@ -116,7 +119,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
 
         assertThat(prueba().paginasIa()).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject("SELECT sum(paginas) FROM consumo_ia_diario WHERE negocio_id = ?",
-                Long.class, negocioId)).isEqualTo(11);
+                Long.class, negocioId.valor())).isEqualTo(11);
     }
 
     @Test
@@ -139,7 +142,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
         givenPaginasPrueba(8);
         LoteTrabajo lote = givenLote();
 
-        List<Boolean> result = concurrently(() -> reservaIaService.reservar(lote, 2, 100, INICIO),
+        List<Boolean> result = concurrently(() -> reservar(lote, 2, 100, INICIO),
                 () -> registrar(INICIO));
 
         assertThat(result).containsExactlyInAnyOrder(true, false);
@@ -163,7 +166,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     void reservarShouldNotChargeRejectedReservation() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
 
-        boolean result = reservaIaService.reservar(givenLote(), 2, 1, INICIO);
+        boolean result = reservar(givenLote(), 2, 1, INICIO);
 
         assertThat(result).isFalse();
         assertThat(prueba().paginasIa()).isZero();
@@ -174,9 +177,9 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     void reservarShouldNotChargeSameClaimTwice() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
         LoteTrabajo lote = givenLote();
-        assertThat(reservaIaService.reservar(lote, 2, 100, INICIO)).isTrue();
+        assertThat(reservar(lote, 2, 100, INICIO)).isTrue();
 
-        boolean result = reservaIaService.reservar(lote, 2, 100, INICIO);
+        boolean result = reservar(lote, 2, 100, INICIO);
 
         assertThat(result).isFalse();
         assertThat(prueba().paginasIa()).isEqualTo(2);
@@ -187,7 +190,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     void finalizarShouldKeepChargeAfterTrialExpiry() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
         LoteTrabajo lote = givenLote();
-        assertThat(reservaIaService.reservar(lote, 2, 100, INICIO.plusDays(6))).isTrue();
+        assertThat(reservar(lote, 2, 100, INICIO.plusDays(6))).isTrue();
         pruebaPremiumService.vencer(negocioId, INICIO.plusDays(7));
 
         procesamientoRepository.finalizar(lote, new ResultadoIntento(null, "Timeout", false),
@@ -226,27 +229,24 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     @DisplayName("El job vence pruebas de forma repetible y conserva sistemas y filas por encima del gratuito")
     void executeShouldExpireTrialAndPreserveData() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
-        UUID proyectoId = proyectoService.crear(negocioId, "Primero", null, INICIO).getId();
-        proyectoService.crear(negocioId, "Segundo", null, INICIO);
-        UUID bloqueId = UUID.randomUUID();
+        ProyectoId proyectoId = proyectosDePrueba.crear(negocioId, "Primero", null, INICIO).getId();
+        proyectosDePrueba.crear(negocioId, "Segundo", null, INICIO);
+        BloqueId bloqueId = BloqueId.nuevo();
         jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre) VALUES (?, ?, ?, 'Datos')",
-                bloqueId, negocioId, proyectoId);
+                bloqueId.valor(), negocioId.valor(), proyectoId.valor());
         jdbcTemplate.update("""
                 INSERT INTO registro (negocio_id, bloque_id, valores)
                 SELECT ?, ?, '{}'::jsonb FROM generate_series(1, 1001)
-                """, negocioId, bloqueId);
-        VencerPruebasUseCase job = new VencerPruebasUseCase(pruebaPremiumService,
-                Clock.fixed(INICIO.plusDays(7).toInstant(), ZoneOffset.UTC));
-
-        job.execute();
-        job.execute();
+                """, negocioId.valor(), bloqueId.valor());
+        pruebaPremiumService.vencer(negocioId, INICIO.plusDays(7));
+        pruebaPremiumService.vencer(negocioId, INICIO.plusDays(7));
 
         assertThat(suscripcionRepository.findByNegocioId(negocioId).orElseThrow().getEstado())
                 .isEqualTo(EstadoSuscripcion.ACTIVA);
-        assertThat(proyectoService.listar(negocioId)).hasSize(2);
+        assertThat(proyectoRepository.findAllByNegocioId(negocioId)).hasSize(2);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM registro WHERE negocio_id = ?",
-                Long.class, negocioId)).isEqualTo(1001);
-        assertThatThrownBy(() -> proyectoService.crear(negocioId, "Tercero", null, INICIO.plusDays(7)))
+                Long.class, negocioId.valor())).isEqualTo(1001);
+        assertThatThrownBy(() -> proyectosDePrueba.crear(negocioId, "Tercero", null, INICIO.plusDays(7)))
                 .isInstanceOf(RestriccionPlanException.class);
         assertThatThrownBy(() -> pruebaPremiumService.iniciar(negocioId, INICIO.plusDays(8)))
                 .isInstanceOf(RestriccionPlanException.class).extracting("codigo").isEqualTo("PRUEBA_UTILIZADA");
@@ -257,15 +257,15 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     @DisplayName("Un premium activado después de seleccionar el vencimiento se conserva")
     void vencerShouldPreservePaidPremiumAfterTrial() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
-        assertThat(pruebaPremiumService.listarVencidas(INICIO.plusDays(7))).contains(negocioId);
+        assertThat(pruebaPremiumRepository.findNegociosVencidos(INICIO.plusDays(7))).contains(negocioId);
         jdbcTemplate.update("UPDATE suscripcion SET estado = 'ACTIVA', fin_en = ? WHERE negocio_id = ?",
-                INICIO.plusMonths(1), negocioId);
+                INICIO.plusMonths(1), negocioId.valor());
 
         pruebaPremiumService.vencer(negocioId, INICIO.plusDays(7));
 
         assertThatCode(() -> controlPlanService.validarFuncion(
                 negocioId, FuncionPlan.RECETAS_COSTOS, INICIO.plusDays(8))).doesNotThrowAnyException();
-        assertThat(pruebaPremiumService.listarVencidas(INICIO.plusDays(7))).doesNotContain(negocioId);
+        assertThat(pruebaPremiumRepository.findNegociosVencidos(INICIO.plusDays(7))).doesNotContain(negocioId);
     }
 
     @Test
@@ -273,7 +273,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     void findByNegocioIdShouldIsolateTrialHistory() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
 
-        assertThat(pruebaPremiumRepository.findByNegocioId(UUID.randomUUID())).isEmpty();
+        assertThat(pruebaPremiumRepository.findByNegocioId(NegocioId.nuevo())).isEmpty();
     }
 
     @Test
@@ -291,7 +291,8 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
 
         assertThatThrownBy(() -> jdbcTemplate.update("""
                 INSERT INTO prueba_premium (negocio_id, inicio_en, fin_en) VALUES (?, ?, ?)
-                """, negocioId, INICIO, INICIO.plusDays(7))).isInstanceOf(DataIntegrityViolationException.class);
+                """, negocioId.valor(), INICIO, INICIO.plusDays(7)))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
@@ -300,7 +301,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
         pruebaPremiumService.iniciar(negocioId, INICIO);
 
         assertThatThrownBy(() -> jdbcTemplate.update("UPDATE prueba_premium SET fin_en = ? WHERE negocio_id = ?",
-                INICIO.plusDays(8), negocioId)).isInstanceOf(DataIntegrityViolationException.class);
+                INICIO.plusDays(8), negocioId.valor())).isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
@@ -309,7 +310,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
         pruebaPremiumService.iniciar(negocioId, INICIO);
 
         assertThatThrownBy(() -> jdbcTemplate.update("UPDATE suscripcion SET fin_en = NULL WHERE negocio_id = ?",
-                negocioId)).isInstanceOf(DataIntegrityViolationException.class);
+                negocioId.valor())).isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
@@ -317,7 +318,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     void deleteShouldCascadeTrialHistory() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
 
-        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId);
+        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId.valor());
 
         assertThat(pruebaPremiumRepository.findByNegocioId(negocioId)).isEmpty();
     }
@@ -326,7 +327,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     @DisplayName("Si falla la activación se revierte también el historial que permitiría perder la prueba")
     void iniciarShouldRollbackHistoryWhenSubscriptionUpdateFails() {
         jdbcTemplate.execute("ALTER TABLE suscripcion ADD CONSTRAINT ck_ens96_rollback "
-                + "CHECK (negocio_id <> '" + negocioId + "'::uuid OR estado <> 'PRUEBA')");
+                + "CHECK (negocio_id <> '" + negocioId.valor() + "'::uuid OR estado <> 'PRUEBA')");
         try {
             assertThatThrownBy(() -> pruebaPremiumService.iniciar(negocioId, INICIO))
                     .isInstanceOf(DataIntegrityViolationException.class);
@@ -354,24 +355,30 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     // --- arrange ---
     private void givenConsumoAnterior(int paginas) {
         jdbcTemplate.update("INSERT INTO consumo_ia_diario (negocio_id, fecha, paginas) VALUES (?, ?, ?)",
-                negocioId, INICIO.toLocalDate(), paginas);
+                negocioId.valor(), INICIO.toLocalDate(), paginas);
     }
 
     private void givenPaginasPrueba(int paginas) {
-        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = ? WHERE negocio_id = ?", paginas, negocioId);
+        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = ? WHERE negocio_id = ?", paginas,
+                negocioId.valor());
     }
 
     private LoteTrabajo givenLote() {
-        UUID loteId = UUID.randomUUID();
+        LoteId loteId = LoteId.nuevo();
         UUID token = UUID.randomUUID();
         jdbcTemplate.update("""
                 INSERT INTO lote_subida (id, negocio_id, estado, intentos, reclamo_id, reclamo_hasta)
                 VALUES (?, ?, 'PROCESANDO', 1, ?, ?)
-                """, loteId, negocioId, token, INICIO.plusDays(7));
-        return new LoteTrabajo(loteId, negocioId, null, token, 1);
+                """, loteId.valor(), negocioId.valor(), token, INICIO.plusDays(7));
+        return new LoteTrabajo(loteId, negocioId, null, ReclamoId.de(token), 1);
     }
 
     // --- act ---
+    private boolean reservar(LoteTrabajo lote, int paginas, int limiteDiario, OffsetDateTime ahora) {
+        return controlPlanService.reservarPaginasIa(lote.negocioId(), paginas, ahora,
+                () -> procesamientoRepository.reservar(lote, paginas, limiteDiario, ahora));
+    }
+
     private boolean iniciar(OffsetDateTime ahora) {
         pruebaPremiumService.iniciar(negocioId, ahora);
         return true;

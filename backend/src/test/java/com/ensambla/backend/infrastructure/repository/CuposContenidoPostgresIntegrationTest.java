@@ -1,22 +1,29 @@
 package com.ensambla.backend.infrastructure.repository;
 
-import com.ensambla.backend.domain.dto.plan.AccesoContenidoItem;
-import com.ensambla.backend.domain.dto.plan.DesbloquearContenidosRequest;
-import com.ensambla.backend.domain.dto.zona.ZonaItem;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
-import com.ensambla.backend.domain.model.enums.TipoContenidoPlan;
-import com.ensambla.backend.domain.model.proyecto.Proyecto;
-import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.sistema.IdSistema;
 import com.ensambla.backend.domain.model.sistema.Sistema;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
-import com.ensambla.backend.domain.service.plan.AccesoContenidoService;
-import com.ensambla.backend.domain.service.plan.ConsumoIaInmediatoService;
-import com.ensambla.backend.domain.service.plan.PruebaPremiumService;
-import com.ensambla.backend.domain.service.plan.SuscripcionService;
-import com.ensambla.backend.domain.service.sistema.SistemaService;
-import com.ensambla.backend.domain.service.zona.AccesoZonaService;
-import com.ensambla.backend.domain.useCase.plan.DesbloquearContenidosUseCase;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
+import com.ensambla.backend.domain.useCase.plan.desbloquearContenidos.DesbloquearContenidos;
+import com.ensambla.backend.domain.useCase.plan.desbloquearContenidos.DesbloquearContenidosRequest;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.BloqueItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.SeccionItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem;
+import com.ensambla.backend.domain.useCase.sistema.guardarSistema.GuardarSistema;
+import com.ensambla.backend.domain.useCase.sistema.guardarSistema.GuardarSistemaRequest;
+import com.ensambla.backend.domain.useCase.sistema.listarSistemas.ListarSistemas;
+import com.ensambla.backend.domain.useCase.sistema.listarSistemas.ListarSistemasRequest;
+import com.ensambla.backend.domain.useCase.zona.ZonaItem;
+import com.ensambla.backend.support.LecturasInmediatasDePrueba;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.PruebasPremiumDePrueba;
+import com.ensambla.backend.support.SuscripcionesDePrueba;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,21 +51,21 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
     @Autowired
     private JdbcTemplate jdbc;
     @Autowired
-    private AccesoContenidoService acceso;
+    private ControlPlanService acceso;
     @Autowired
-    private AccesoZonaService zona;
+    private SuscripcionesDePrueba suscripcion;
     @Autowired
-    private SuscripcionService suscripcion;
+    private PruebasPremiumDePrueba prueba;
     @Autowired
-    private PruebaPremiumService prueba;
+    private LecturasInmediatasDePrueba consumo;
     @Autowired
-    private ConsumoIaInmediatoService consumo;
+    private GuardarSistema guardarSistema;
     @Autowired
-    private SistemaService sistemas;
+    private ListarSistemas listarSistemas;
     @Autowired
     private UsoPlanRepository uso;
     @Autowired
-    private DesbloquearContenidosUseCase desbloquear;
+    private DesbloquearContenidos desbloquear;
 
     private UUID negocio;
     private UUID usuario;
@@ -69,7 +76,7 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
         negocio = UUID.randomUUID();
         jdbc.update("INSERT INTO usuario(id,email,nombre) VALUES (?,?,'Cupos locales')", usuario, usuario + "@example.test");
         jdbc.update("INSERT INTO negocio(id,nombre,duenio_id) VALUES (?,'Cupos locales',?)", negocio, usuario);
-        suscripcion.asignarGratuito(negocio, AHORA.minusDays(1));
+        suscripcion.asignarGratuito(NegocioId.de(negocio), AHORA.minusDays(1));
     }
 
     @AfterEach
@@ -81,23 +88,25 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
     @Test
     @DisplayName("El cupo persiste, es separado por función y se renueva al cambiar el mes UTC")
     void seleccionarShouldPersistAndRenewQuota() {
-        acceso.seleccionar(negocio, TipoContenidoPlan.AVISOS, List.of("a", "b", "c", "d"), AHORA);
+        acceso.seleccionar(NegocioId.de(negocio), TipoContenidoPlan.AVISOS, List.of("a", "b", "c", "d"), AHORA);
 
-        AccesoContenidoItem repetido = acceso.seleccionar(negocio, TipoContenidoPlan.AVISOS, List.of("d"), AHORA);
+        AccesoContenidoItem repetido = acceso
+                .seleccionar(NegocioId.de(negocio), TipoContenidoPlan.AVISOS, List.of("d"), AHORA);
 
         assertThat(repetido.autorizadas()).isEmpty();
-        assertThat(acceso.seleccionar(negocio, TipoContenidoPlan.ZONA, List.of("a"), AHORA).autorizadas())
+        assertThat(acceso.seleccionar(NegocioId.de(negocio), TipoContenidoPlan.ZONA, List.of("a"), AHORA).autorizadas())
                 .containsExactly("a");
-        assertThat(acceso.seleccionar(negocio, TipoContenidoPlan.AVISOS, List.of("d"), AHORA.plusMonths(1))
+        assertThat(acceso.seleccionar(NegocioId.de(negocio), TipoContenidoPlan.AVISOS, List.of("d"), AHORA
+                .plusMonths(1))
                 .autorizadas()).containsExactly("d");
     }
 
     @Test
     @DisplayName("Mi zona y Otra zona comparten tres productos; el cuarto no sale en el resultado")
     void filtrarShouldShareQuotaBetweenZonesWithoutLeakingProducts() {
-        ZonaItem primera = zona.filtrar(negocio, givenZona("Mi zona", "A", "B"), AHORA);
+        ZonaItem primera = filtrarZona(NegocioId.de(negocio), givenZona("Mi zona", "A", "B"));
 
-        ZonaItem otra = zona.filtrar(negocio, givenZona("Otra zona", "C", "D"), AHORA);
+        ZonaItem otra = filtrarZona(NegocioId.de(negocio), givenZona("Otra zona", "C", "D"));
 
         assertThat(primera.productos()).hasSize(2);
         assertThat(otra.productos()).extracting(ZonaItem.ProductoItem::nombre).containsExactly("C");
@@ -111,9 +120,9 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
         CountDownLatch salida = new CountDownLatch(1);
         try (var ejecutor = Executors.newFixedThreadPool(2)) {
             var primero = ejecutor.submit(() -> { salida.await(); return acceso.seleccionar(
-                    negocio, TipoContenidoPlan.AVISOS, List.of("a", "b", "c"), AHORA); });
+                    NegocioId.de(negocio), TipoContenidoPlan.AVISOS, List.of("a", "b", "c"), AHORA); });
             var segundo = ejecutor.submit(() -> { salida.await(); return acceso.seleccionar(
-                    negocio, TipoContenidoPlan.AVISOS, List.of("d", "e", "f"), AHORA); });
+                    NegocioId.de(negocio), TipoContenidoPlan.AVISOS, List.of("d", "e", "f"), AHORA); });
             salida.countDown();
 
             int admitidos = primero.get(15, TimeUnit.SECONDS).autorizadas().size()
@@ -126,11 +135,12 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
     @Test
     @DisplayName("La prueba vigente permite todos los avisos y al vencer aplica el cupo gratuito")
     void seleccionarShouldRespectTrialExpiry() {
-        prueba.iniciar(negocio, AHORA);
-        assertThat(acceso.seleccionar(negocio, TipoContenidoPlan.AVISOS, List.of("a", "b", "c", "d"), AHORA)
+        prueba.iniciar(NegocioId.de(negocio), AHORA);
+        assertThat(acceso.seleccionar(NegocioId.de(negocio), TipoContenidoPlan.AVISOS, List.of("a", "b", "c", "d"),
+                AHORA)
                 .autorizadas()).hasSize(4);
 
-        AccesoContenidoItem vencido = acceso.seleccionar(negocio, TipoContenidoPlan.AVISOS,
+        AccesoContenidoItem vencido = acceso.seleccionar(NegocioId.de(negocio), TipoContenidoPlan.AVISOS,
                 List.of("a", "b", "c", "d"), AHORA.plusDays(7));
 
         assertThat(vencido.autorizadas()).hasSize(3);
@@ -140,25 +150,24 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
     @Test
     @DisplayName("El guardado completo bloquea el segundo sistema y permite editar el primero")
     void guardarShouldEnforceFreeSystemLimit() {
-        Sistema primero = givenSistema();
-        sistemas.guardar(negocio, primero);
+        guardar(givenSistema("primero", "Sistema local", 0));
 
-        assertThatThrownBy(() -> sistemas.guardar(negocio, givenSistema()))
+        assertThatThrownBy(() -> guardar(givenSistema("segundo", "Sistema local", 0)))
                 .isInstanceOf(RestriccionPlanException.class).extracting("codigo").isEqualTo("LIMITE_SISTEMAS");
 
-        primero.proyecto().renombrar("Nombre corregido", AHORA);
-        sistemas.guardar(negocio, primero);
-        assertThat(sistemas.listar(negocio)).singleElement()
-                .satisfies(sistema -> assertThat(sistema.proyecto().getNombre()).isEqualTo("Nombre corregido"));
-        assertThat(uso.contarRegistrosProyecto(negocio, primero.id())).isZero();
+        guardar(givenSistema("primero", "Nombre corregido", 0));
+        assertThat(listarSistemas.execute(new ListarSistemasRequest(UsuarioId.de(usuario)))).singleElement()
+                .satisfies(sistema -> assertThat(sistema.name()).isEqualTo("Nombre corregido"));
+        assertThat(uso.contarRegistrosProyecto(NegocioId.de(negocio), IdSistema.aId(NegocioId.de(negocio), "primero",
+                ProyectoId::de))).isZero();
     }
 
     @Test
     @DisplayName("La undécima página real del gratuito se rechaza antes de llamar al proveedor")
     void registrarShouldRejectEleventhPage() {
-        for (int i = 0; i < 10; i++) consumo.registrar(negocio, AHORA);
+        for (int i = 0; i < 10; i++) consumo.registrar(NegocioId.de(negocio), AHORA);
 
-        assertThatThrownBy(() -> consumo.registrar(negocio, AHORA))
+        assertThatThrownBy(() -> consumo.registrar(NegocioId.de(negocio), AHORA))
                 .isInstanceOf(RestriccionPlanException.class).extracting("codigo").isEqualTo("LIMITE_IA_MENSUAL");
     }
 
@@ -166,31 +175,40 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
     @DisplayName("El desbloqueo identifica el negocio exclusivamente desde el usuario de la sesión")
     void executeShouldUseSessionNegocio() {
         AccesoContenidoItem resultado = desbloquear.execute(new DesbloquearContenidosRequest(
-                usuario, "AVISOS", List.of("uno", "dos", "tres", "cuatro")));
+                UsuarioId.de(usuario), "AVISOS", List.of("uno", "dos", "tres", "cuatro")));
 
         assertThat(resultado.autorizadas()).hasSize(3);
         assertThat(resultado.bloqueadas()).isEqualTo(1);
     }
 
-    private Sistema givenSistema() {
-        return new Sistema(Proyecto.builder().id(UUID.randomUUID()).negocioId(negocio).nombre("Sistema local")
-                .bloques(List.of()).creadoEn(AHORA).actualizadoEn(AHORA).build(), List.of(), Map.of());
+    private void guardar(SistemaItem sistema) {
+        guardarSistema.execute(new GuardarSistemaRequest(UsuarioId.de(usuario), sistema.id(), sistema));
+    }
+
+    private SistemaItem givenSistema(String id, String nombre, int filas) {
+        List<Map<String, Object>> filasDelBloque = IntStream.range(0, filas)
+                .<Map<String, Object>>mapToObj(i -> Map.of("id", id + "-fila-" + i))
+                .toList();
+        BloqueItem bloque = new BloqueItem(id + "-tabla", "table", "Productos", null, "blue", "half", List.of(),
+                filasDelBloque, null, null, null);
+        return new SistemaItem(id, nombre, AHORA.toString(), AHORA.toString(),
+                List.of(new SeccionItem(id + "-general", "Vista general", List.of(bloque))), null, null, null, false);
     }
 
     @Test
     @DisplayName("El guardado completo rechaza 1.001 filas y conserva el sistema previo sin cambios parciales")
     void guardarShouldRejectOversizedReplacementAtomically() {
-        Sistema original = givenSistema();
-        sistemas.guardar(negocio, original);
-        List<Registro> filas = IntStream.range(0, 1001).mapToObj(i -> Registro.builder()
-                .id(UUID.randomUUID()).negocioId(negocio).valores(Map.of()).build()).toList();
-        Sistema excesivo = new Sistema(original.proyecto(), List.of(), Map.of(UUID.randomUUID(), filas));
+        guardar(givenSistema("original", "Sistema local", 0));
 
-        assertThatThrownBy(() -> sistemas.guardar(negocio, excesivo))
+        assertThatThrownBy(() -> guardar(givenSistema("original", "Sistema local", 1001)))
                 .isInstanceOf(RestriccionPlanException.class).extracting("codigo").isEqualTo("LIMITE_REGISTROS");
 
-        assertThat(uso.contarRegistros(negocio)).isZero();
-        assertThat(sistemas.listar(negocio)).hasSize(1);
+        assertThat(uso.contarRegistros(NegocioId.de(negocio))).isZero();
+        assertThat(listarSistemas.execute(new ListarSistemasRequest(UsuarioId.de(usuario)))).hasSize(1);
+    }
+
+    private ZonaItem filtrarZona(NegocioId negocioId, ZonaItem item) {
+        return item.filtrada(acceso.seleccionar(negocioId, TipoContenidoPlan.ZONA, item.clavesDeAcceso(), AHORA));
     }
 
     private ZonaItem givenZona(String nombre, String primero, String segundo) {

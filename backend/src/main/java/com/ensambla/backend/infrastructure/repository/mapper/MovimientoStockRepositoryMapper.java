@@ -1,6 +1,10 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
+import com.ensambla.backend.domain.model.common.Identificador;
 import com.ensambla.backend.domain.model.inventario.MovimientoStock;
+import com.ensambla.backend.domain.model.inventario.MovimientoStockId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.infrastructure.repository.entity.MovimientoStockEntity;
 import org.springframework.stereotype.Component;
 
@@ -9,9 +13,9 @@ public class MovimientoStockRepositoryMapper {
 
     public MovimientoStock toDomain(MovimientoStockEntity entity) {
         return MovimientoStock.builder()
-                .id(entity.getId())
-                .negocioId(entity.getNegocioId())
-                .registroId(entity.getRegistroId())
+                .id(Identificador.opcional(entity.getId(), MovimientoStockId::de))
+                .negocioId(Identificador.opcional(entity.getNegocioId(), NegocioId::de))
+                .registroId(Identificador.opcional(entity.getRegistroId(), RegistroId::de))
                 .tipo(entity.getTipo())
                 .cantidad(entity.getCantidad())
                 .fecha(entity.getFecha())
@@ -22,9 +26,9 @@ public class MovimientoStockRepositoryMapper {
 
     public MovimientoStockEntity toEntity(MovimientoStock movimiento) {
         return MovimientoStockEntity.builder()
-                .id(movimiento.getId())
-                .negocioId(movimiento.getNegocioId())
-                .registroId(movimiento.getRegistroId())
+                .id(Identificador.valorDe(movimiento.getId()))
+                .negocioId(Identificador.valorDe(movimiento.getNegocioId()))
+                .registroId(Identificador.valorDe(movimiento.getRegistroId()))
                 .tipo(movimiento.getTipo())
                 .cantidad(movimiento.getCantidad())
                 .fecha(movimiento.getFecha())

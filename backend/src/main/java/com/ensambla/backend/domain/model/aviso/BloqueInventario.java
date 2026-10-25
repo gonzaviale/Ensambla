@@ -1,12 +1,12 @@
 package com.ensambla.backend.domain.model.aviso;
 
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.registro.Registro;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Tabla de inventario del negocio lista para evaluar reglas: sus campos indexados por clave semántica ({@code name},
@@ -15,7 +15,7 @@ import java.util.UUID;
  */
 public record BloqueInventario(
         Bloque bloque,
-        UUID entradasId,
+        BloqueId entradasId,
         Map<String, Campo> camposPorClave,
         List<Registro> registros) {
 

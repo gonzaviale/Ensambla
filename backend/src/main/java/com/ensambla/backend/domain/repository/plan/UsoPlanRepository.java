@@ -1,22 +1,24 @@
 package com.ensambla.backend.domain.repository.plan;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 public interface UsoPlanRepository {
 
     /** Mantiene el bloqueo hasta el fin de la transacción que valida y realiza el alta o la reserva. */
-    void bloquearNegocio(UUID negocioId);
+    void bloquearNegocio(NegocioId negocioId);
 
-    long contarProyectos(UUID negocioId);
+    long contarProyectos(NegocioId negocioId);
 
-    long contarRegistros(UUID negocioId);
+    long contarRegistros(NegocioId negocioId);
 
-    long contarRegistrosProyecto(UUID negocioId, UUID proyectoId);
+    long contarRegistrosProyecto(NegocioId negocioId, ProyectoId proyectoId);
 
     /** Páginas procesadas y reservadas, desde inclusive y hasta exclusive, en días UTC. */
-    long paginasEnPeriodo(UUID negocioId, LocalDate desde, LocalDate hasta);
+    long paginasEnPeriodo(NegocioId negocioId, LocalDate desde, LocalDate hasta);
 
-    boolean registrarPaginaInmediata(UUID negocioId, LocalDate fecha, int limiteDiario, OffsetDateTime ahora);
+    boolean registrarPaginaInmediata(NegocioId negocioId, LocalDate fecha, int limiteDiario, OffsetDateTime ahora);
 }

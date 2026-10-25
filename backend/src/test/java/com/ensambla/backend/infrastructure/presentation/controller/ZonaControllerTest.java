@@ -1,24 +1,24 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.zona.AnalizarZonaRequest;
-import com.ensambla.backend.domain.dto.zona.ObtenerZonaRequest;
-import com.ensambla.backend.domain.dto.zona.ZonaItem;
-import com.ensambla.backend.domain.dto.zona.ZonaItem.ProductoItem;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.useCase.zona.AnalizarZonaUseCase;
-import com.ensambla.backend.domain.useCase.zona.ObtenerZonaUseCase;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.zona.ZonaItem.ProductoItem;
+import com.ensambla.backend.domain.useCase.zona.ZonaItem;
+import com.ensambla.backend.domain.useCase.zona.analizarZona.AnalizarZona;
+import com.ensambla.backend.domain.useCase.zona.analizarZona.AnalizarZonaRequest;
+import com.ensambla.backend.domain.useCase.zona.obtenerZona.ObtenerZona;
+import com.ensambla.backend.domain.useCase.zona.obtenerZona.ObtenerZonaRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.zona.ZonaPresentationMapper;
+import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -32,18 +32,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class ZonaControllerTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b0000000-0000-4000-8000-000000000001");
 
-    private final ObtenerZonaUseCase obtenerZonaUseCase = mock(ObtenerZonaUseCase.class);
-    private final AnalizarZonaUseCase analizarZonaUseCase = mock(AnalizarZonaUseCase.class);
+    private final ObtenerZona obtenerZona = mock(ObtenerZona.class);
+    private final AnalizarZona analizarZona = mock(AnalizarZona.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        var controller = new ZonaController(obtenerZonaUseCase, analizarZonaUseCase, new ZonaPresentationMapper());
-        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+        var controller = new ZonaController(obtenerZona, analizarZona, new ZonaPresentationMapper());
+        mockMvc = MockMvcDePrueba.standalone(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -51,7 +51,7 @@ class ZonaControllerTest {
     @Test
     @DisplayName("GET agregados devuelve la zona con la forma que espera el front")
     void agregadosShouldReturnZoneShape() throws Exception {
-        when(obtenerZonaUseCase.execute(any())).thenReturn(givenZona());
+        when(obtenerZona.execute(any())).thenReturn(givenZona());
 
         mockMvc.perform(get("/api/zona/agregados").principal(principal))
                 .andExpect(status().isOk())
@@ -64,25 +64,25 @@ class ZonaControllerTest {
                 .andExpect(jsonPath("$.productos[0].precio.maximo").value(3400.0))
                 .andExpect(jsonPath("$.productos[0].ventas.comercios").value(6))
                 .andExpect(jsonPath("$.productos[0].ventas.unidadesPorSemana").value(12.5));
-        verify(obtenerZonaUseCase).execute(new ObtenerZonaRequest(USUARIO_ID));
+        verify(obtenerZona).execute(new ObtenerZonaRequest(USUARIO_ID));
     }
 
     @Test
     @DisplayName("POST análisis delega el lugar escrito")
     void analizarShouldDelegatePlace() throws Exception {
-        when(analizarZonaUseCase.execute(any())).thenReturn(givenZona());
+        when(analizarZona.execute(any())).thenReturn(givenZona());
 
         mockMvc.perform(post("/api/zona/analisis").principal(principal).contentType("application/json")
                         .content("{\"lugar\":\"San Justo\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("San Justo - UNLaM"));
-        verify(analizarZonaUseCase).execute(new AnalizarZonaRequest("San Justo", USUARIO_ID));
+        verify(analizarZona).execute(new AnalizarZonaRequest("San Justo", USUARIO_ID));
     }
 
     @Test
     @DisplayName("POST análisis responde 404 cuando no hay datos de esa zona")
     void analizarShouldReturnNotFoundWithoutData() throws Exception {
-        when(analizarZonaUseCase.execute(any()))
+        when(analizarZona.execute(any()))
                 .thenThrow(new ResourceNotFoundException("Todavía no tenemos datos de esa zona"));
 
         mockMvc.perform(post("/api/zona/analisis").principal(principal).contentType("application/json")
@@ -96,7 +96,7 @@ class ZonaControllerTest {
         mockMvc.perform(post("/api/zona/analisis").principal(principal).contentType("application/json")
                         .content("{\"lugar\":\"a\"}"))
                 .andExpect(status().isBadRequest());
-        verifyNoInteractions(analizarZonaUseCase);
+        verifyNoInteractions(analizarZona);
     }
 
     // --- arrange ---

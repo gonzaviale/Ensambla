@@ -1,9 +1,10 @@
 package com.ensambla.backend.domain.model.procesamiento;
 
-import java.util.List;
-import java.util.UUID;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 
-public record BloqueLectura(UUID id, String nombre, List<CampoConocido> campos) {
+import java.util.List;
+
+public record BloqueLectura(BloqueId id, String nombre, List<CampoConocido> campos) {
 
     public BloqueLectura {
         campos = List.copyOf(campos);

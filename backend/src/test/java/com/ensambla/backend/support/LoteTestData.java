@@ -1,20 +1,24 @@
 package com.ensambla.backend.support;
 
-import com.ensambla.backend.domain.model.enums.EstadoLote;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.lote.EstadoLote;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
+import com.ensambla.backend.domain.model.lote.FotoId;
+import com.ensambla.backend.domain.model.lote.LoteId;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
 
 public final class LoteTestData {
 
-    public static final UUID USUARIO_ID = UUID.fromString("00000000-0000-4000-8000-000000000011");
-    public static final UUID NEGOCIO_ID = UUID.fromString("00000000-0000-4000-8000-000000000012");
-    public static final UUID LOTE_ID = UUID.fromString("00000000-0000-4000-8000-000000000013");
-    public static final UUID FOTO_ID = UUID.fromString("00000000-0000-4000-8000-000000000014");
-    public static final UUID BLOQUE_ID = UUID.fromString("00000000-0000-4000-8000-000000000015");
+    public static final UsuarioId USUARIO_ID = UsuarioId.de("00000000-0000-4000-8000-000000000011");
+    public static final NegocioId NEGOCIO_ID = NegocioId.de("00000000-0000-4000-8000-000000000012");
+    public static final LoteId LOTE_ID = LoteId.de("00000000-0000-4000-8000-000000000013");
+    public static final FotoId FOTO_ID = FotoId.de("00000000-0000-4000-8000-000000000014");
+    public static final BloqueId BLOQUE_ID = BloqueId.de("00000000-0000-4000-8000-000000000015");
     public static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
     public static final String CLAVE = NEGOCIO_ID + "/fotos/pagina.jpg";
     public static final byte[] JPEG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 1, 2, 3};

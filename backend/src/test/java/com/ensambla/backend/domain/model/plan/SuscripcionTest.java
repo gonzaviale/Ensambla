@@ -1,6 +1,5 @@
 package com.ensambla.backend.domain.model.plan;
 
-import com.ensambla.backend.domain.model.enums.EstadoSuscripcion;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

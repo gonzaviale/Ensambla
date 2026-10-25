@@ -1,39 +1,39 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.sistema;
 
-import com.ensambla.backend.domain.dto.sistema.EliminarSistemaRequest;
-import com.ensambla.backend.domain.dto.sistema.GuardarSistemaRequest;
-import com.ensambla.backend.domain.dto.sistema.ListarSistemasRequest;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem.BloqueItem;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem.CampoItem;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem.OpcionesItem;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem.SeccionItem;
-import com.ensambla.backend.infrastructure.presentation.dto.sistema.SistemaWebRequest;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.BloqueItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.CampoItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.OpcionesItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.SeccionItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem;
+import com.ensambla.backend.domain.useCase.sistema.eliminarSistema.EliminarSistemaRequest;
+import com.ensambla.backend.domain.useCase.sistema.guardarSistema.GuardarSistemaRequest;
+import com.ensambla.backend.domain.useCase.sistema.listarSistemas.ListarSistemasRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.sistema.SistemaWebRequest.BloqueWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.sistema.SistemaWebRequest.CampoWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.sistema.SistemaWebRequest.SeccionWebRequest;
-import com.ensambla.backend.infrastructure.presentation.dto.sistema.SistemaWebResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.sistema.SistemaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.sistema.SistemaWebResponse.BloqueWebResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.sistema.SistemaWebResponse.CampoWebResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.sistema.SistemaWebResponse.OpcionesWebResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.sistema.SistemaWebResponse.SeccionWebResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.sistema.SistemaWebResponse;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.UUID;
 
 @Component
 public class SistemaPresentationMapper {
 
-    public ListarSistemasRequest toListarRequest(UUID usuarioId) {
+    public ListarSistemasRequest toListarRequest(UsuarioId usuarioId) {
         return new ListarSistemasRequest(usuarioId);
     }
 
-    public GuardarSistemaRequest toGuardarRequest(UUID usuarioId, String id, SistemaWebRequest request) {
+    public GuardarSistemaRequest toGuardarRequest(UsuarioId usuarioId, String id, SistemaWebRequest request) {
         return new GuardarSistemaRequest(usuarioId, id, toItem(request));
     }
 
-    public EliminarSistemaRequest toEliminarRequest(UUID usuarioId, String id) {
+    public EliminarSistemaRequest toEliminarRequest(UsuarioId usuarioId, String id) {
         return new EliminarSistemaRequest(usuarioId, id);
     }
 

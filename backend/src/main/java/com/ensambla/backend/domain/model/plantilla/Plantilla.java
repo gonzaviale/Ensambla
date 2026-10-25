@@ -8,7 +8,6 @@ import lombok.Setter;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
-import java.util.UUID;
 
 /** Plantilla global (no pertenece a ningún negocio): estructura de bloques y campos copiable. */
 @Getter
@@ -18,7 +17,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Plantilla {
 
-    private UUID id;
+    private PlantillaId id;
 
     private String nombre;
 

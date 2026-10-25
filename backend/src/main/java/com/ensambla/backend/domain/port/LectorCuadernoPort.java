@@ -1,11 +1,11 @@
 package com.ensambla.backend.domain.port;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
 import com.ensambla.backend.domain.model.lectura.PaginaCuaderno;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Lee páginas de un cuaderno con IA y propone cómo guardarlas. El dominio no sabe qué proveedor ni qué modelo
@@ -20,5 +20,6 @@ public interface LectorCuadernoPort {
      *                          proponer la estructura; si viene, tiene que estar entre {@code bloquesExistentes}
      * @throws com.ensambla.backend.domain.exception.LecturaCuadernoException si la lectura falla o no es válida
      */
-    LecturaCuaderno leer(List<PaginaCuaderno> paginas, List<BloqueConocido> bloquesExistentes, UUID bloqueDestinoId);
+    LecturaCuaderno leer(List<PaginaCuaderno> paginas, List<BloqueConocido> bloquesExistentes,
+            BloqueId bloqueDestinoId);
 }

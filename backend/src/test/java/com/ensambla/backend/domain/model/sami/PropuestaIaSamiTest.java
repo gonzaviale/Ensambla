@@ -1,9 +1,10 @@
 package com.ensambla.backend.domain.model.sami;
 
-import com.ensambla.backend.domain.model.enums.TipoCampo;
-import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.BloquePlantilla;
 import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla.CampoPlantilla;
+import com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,19 +13,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PropuestaIaSamiTest {
 
     private static final ConsumoIaSami CONSUMO = new ConsumoIaSami("bedrock", "haiku", 100, 20);
-    private static final UUID VENTAS_ID = UUID.randomUUID();
+    private static final PlantillaId VENTAS_ID = PlantillaId.nuevo();
     private static final PlantillaProyecto VENTAS = new PlantillaProyecto(VENTAS_ID, "Ventas", "",
             new EstructuraPlantilla(List.of(new BloquePlantilla("Ventas", List.of(
                     new CampoPlantilla("Fecha", TipoCampo.FECHA, false, null, null),
                     new CampoPlantilla("Monto", TipoCampo.NUMERO, false, null, null))))));
-    private static final PlantillaProyecto GASTOS = new PlantillaProyecto(UUID.randomUUID(), "Gastos", "",
+    private static final PlantillaProyecto GASTOS = new PlantillaProyecto(PlantillaId.nuevo(), "Gastos", "",
             new EstructuraPlantilla(List.of()));
 
     @Test

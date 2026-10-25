@@ -1,19 +1,21 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.procesamiento;
 
-import com.ensambla.backend.domain.dto.procesamiento.ConfirmarLecturaRequest;
-import com.ensambla.backend.domain.dto.procesamiento.ConfirmarLecturaResponse;
-import com.ensambla.backend.domain.dto.procesamiento.ConsumoItem;
-import com.ensambla.backend.domain.dto.procesamiento.LecturaItem;
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenItem;
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenItem.DatoItem;
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenRequest;
-import com.ensambla.backend.domain.dto.procesamiento.UsuarioLoteRequest;
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.procesamiento.ConsumoItem;
+import com.ensambla.backend.domain.useCase.procesamiento.UsuarioLoteRequest;
+import com.ensambla.backend.domain.useCase.procesamiento.confirmarLectura.ConfirmarLecturaRequest;
+import com.ensambla.backend.domain.useCase.procesamiento.confirmarLectura.ConfirmarLecturaResponse;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem.DatoItem;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenRequest;
+import com.ensambla.backend.domain.useCase.procesamiento.obtenerLectura.LecturaItem;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.ConfirmacionRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.ConfirmacionResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.ConsumoResponse;
-import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.LecturaImagenResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.LecturaImagenResponse.CampoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.LecturaImagenResponse.DudaResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.LecturaImagenResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.LecturaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.PedidoLecturaRequest;
 import org.springframework.stereotype.Component;
@@ -26,7 +28,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Component
 public class LecturaPresentationMapper {
@@ -47,11 +48,11 @@ public class LecturaPresentationMapper {
             Map.entry("RELACION", "relation"), Map.entry("TEXTO_LARGO", "textarea"), Map.entry("MONEDA", "currency"),
             Map.entry("EMAIL", "email"), Map.entry("TELEFONO", "tel"), Map.entry("HORA", "time"));
 
-    public UsuarioLoteRequest toRequest(UUID usuarioId, UUID loteId) {
+    public UsuarioLoteRequest toRequest(UsuarioId usuarioId, LoteId loteId) {
         return new UsuarioLoteRequest(usuarioId, loteId);
     }
 
-    public ConfirmarLecturaRequest toConfirmarRequest(UUID usuarioId, UUID loteId, ConfirmacionRequest body) {
+    public ConfirmarLecturaRequest toConfirmarRequest(UsuarioId usuarioId, LoteId loteId, ConfirmacionRequest body) {
         return new ConfirmarLecturaRequest(
                 usuarioId,
                 loteId,
@@ -82,7 +83,7 @@ public class LecturaPresentationMapper {
     }
 
     /** Sólo se leen los tipos que la IA sabe leer; un campo que apunta a otro bloque ({@code relation}) lo completa la persona. */
-    public LeerImagenRequest toRequest(UUID usuarioId, MultipartFile imagen, PedidoLecturaRequest pedido) {
+    public LeerImagenRequest toRequest(UsuarioId usuarioId, MultipartFile imagen, PedidoLecturaRequest pedido) {
         List<LeerImagenRequest.CampoItem> campos = pedido.campos().stream()
                 .filter(campo -> TIPOS_DE_DOMINIO.containsKey(campo.type()))
                 .map(campo -> new LeerImagenRequest.CampoItem(

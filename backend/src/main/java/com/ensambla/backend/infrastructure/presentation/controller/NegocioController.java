@@ -1,7 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.useCase.negocio.ActualizarNegocioUseCase;
-import com.ensambla.backend.domain.useCase.negocio.ObtenerConfiguracionNegocioUseCase;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.negocio.actualizarNegocio.ActualizarNegocio;
+import com.ensambla.backend.domain.useCase.negocio.obtenerConfiguracionNegocio.ObtenerConfiguracionNegocio;
 import com.ensambla.backend.infrastructure.presentation.dto.negocio.ActualizarNegocioWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.negocio.ConfiguracionNegocioWebResponse;
 import com.ensambla.backend.infrastructure.presentation.mapper.negocio.NegocioPresentationMapper;
@@ -18,24 +19,22 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/business")
 @Tag(name = "Configuración del negocio")
 @RequiredArgsConstructor
 public class NegocioController {
 
-    private final ObtenerConfiguracionNegocioUseCase obtenerConfiguracionNegocioUseCase;
-    private final ActualizarNegocioUseCase actualizarNegocioUseCase;
+    private final ObtenerConfiguracionNegocio obtenerConfiguracionNegocio;
+    private final ActualizarNegocio actualizarNegocio;
     private final NegocioPresentationMapper negocioPresentationMapper;
 
     @GetMapping
     @Operation(summary = "Consultar la configuración del negocio del dueño autenticado")
     public ResponseEntity<ConfiguracionNegocioWebResponse> obtener(Authentication authentication) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(negocioPresentationMapper.toResponse(
-                obtenerConfiguracionNegocioUseCase.execute(negocioPresentationMapper.toObtenerRequest(
-                        UUID.fromString(authentication.getName())))));
+                obtenerConfiguracionNegocio.execute(negocioPresentationMapper.toObtenerRequest(
+                        UsuarioId.de(authentication.getName())))));
     }
 
     @PatchMapping
@@ -43,7 +42,7 @@ public class NegocioController {
     public ResponseEntity<ConfiguracionNegocioWebResponse> actualizar(Authentication authentication,
             @Valid @RequestBody ActualizarNegocioWebRequest request) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(negocioPresentationMapper.toResponse(
-                actualizarNegocioUseCase.execute(negocioPresentationMapper.toActualizarRequest(
-                        UUID.fromString(authentication.getName()), request))));
+                actualizarNegocio.execute(negocioPresentationMapper.toActualizarRequest(
+                        UsuarioId.de(authentication.getName()), request))));
     }
 }

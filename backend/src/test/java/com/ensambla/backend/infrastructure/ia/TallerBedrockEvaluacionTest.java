@@ -13,9 +13,8 @@ import com.ensambla.backend.domain.model.sami.taller.MensajeTaller;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
 import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
 import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
-import com.ensambla.backend.domain.service.sami.HerramientasTallerService;
-import com.ensambla.backend.domain.service.sami.RubroTallerService;
-import com.ensambla.backend.domain.service.sami.SamiPruebas;
+import com.ensambla.backend.support.SamiPruebas;
+import com.ensambla.backend.support.TallerDePrueba;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -118,12 +117,11 @@ class TallerBedrockEvaluacionTest {
             TallerIaAdapter adapter = new TallerIaAdapter(
                     new ClienteModeloConHerramientasBedrock(bedrock, MODELO, 900, List.of(herramientas)),
                     new PromptTaller(new ClassPathResource("ia/prompt-taller.md"), catalogo, kits));
-            HerramientasTallerService validador = new HerramientasTallerService(catalogo, kits);
-            RubroTallerService rubros = new RubroTallerService(kits);
+            TallerDePrueba taller = new TallerDePrueba(kits);
             for (Caso caso : casos) {
                 EstadoTaller estado = estado(caso.estado());
                 List<MensajeTaller> historial = Objects.requireNonNullElse(caso.historial(), List.of());
-                KitRubro kit = rubros.detectar(caso.mensaje(), estado, historial).orElse(null);
+                KitRubro kit = taller.rubro(caso.mensaje(), estado, historial).orElse(null);
                 long inicio = System.nanoTime();
                 ImagenTaller imagen = imagen(caso.imagen());
                 ResultadoTallerIa resultado = conversar(adapter, new ConsultaTaller(
@@ -139,15 +137,15 @@ class TallerBedrockEvaluacionTest {
                     conFoto++;
                 }
                 tokensSalida += resultado.consumo().tokensSalida();
-                ValidacionTaller validacion = validador.validar(resultado.llamadas(), estado);
+                ValidacionTaller validacion = taller.validar(resultado.llamadas(), estado);
                 String problema = problema(caso, validacion, resultado.llamadas(), estado, kits);
                 if (problema == null) {
                     aciertos++;
                 } else {
                     // Las llamadas crudas (antes de validar) muestran si el modelo no la pidió o la validación la descartó.
-                    fallos.add("  - %s «%s»: %s | texto: %s | crudas: %s | descartadas: %d".formatted(
+                    fallos.add("  - %s «%s»: %s | texto: %s | crudas: %s".formatted(
                             caso.id(), caso.mensaje(), problema, resultado.texto().replace('\n', ' '),
-                            resultado.llamadas(), validacion.descartadas()));
+                            resultado.llamadas()));
                 }
             }
         }

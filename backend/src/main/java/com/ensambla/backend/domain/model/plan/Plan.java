@@ -1,8 +1,6 @@
 package com.ensambla.backend.domain.model.plan;
 
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
-import com.ensambla.backend.domain.model.enums.CodigoPlan;
-import com.ensambla.backend.domain.model.enums.FuncionPlan;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,7 +10,6 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -21,7 +18,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Plan {
 
-    private UUID id;
+    private PlanId id;
 
     private CodigoPlan codigo;
 

@@ -1,5 +1,8 @@
 package com.ensambla.backend.domain.repository.procesamiento;
 
+import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
 import com.ensambla.backend.domain.model.procesamiento.ConsumoDiario;
 import com.ensambla.backend.domain.model.procesamiento.EstadoLectura;
@@ -12,7 +15,6 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 public interface ProcesamientoRepository {
 
@@ -22,16 +24,21 @@ public interface ProcesamientoRepository {
 
     List<FotoLectura> fotos(LoteTrabajo lote);
 
-    List<BloqueLectura> bloques(UUID negocioId);
+    List<BloqueLectura> bloques(NegocioId negocioId);
 
     boolean reservar(LoteTrabajo lote, int paginas, int limite, OffsetDateTime ahora);
 
     void finalizar(LoteTrabajo lote, ResultadoIntento resultado, BigDecimal costo,
                    OffsetDateTime ahora, OffsetDateTime reintentarEn);
 
-    Optional<EstadoLectura> obtener(UUID negocioId, UUID loteId);
+    Optional<EstadoLectura> obtener(NegocioId negocioId, LoteId loteId);
 
-    boolean reencolar(UUID negocioId, UUID loteId, OffsetDateTime ahora);
+    boolean reencolar(NegocioId negocioId, LoteId loteId, OffsetDateTime ahora);
 
-    ConsumoDiario consumo(UUID negocioId, LocalDate fecha);
+    ConsumoDiario consumo(NegocioId negocioId, LocalDate fecha);
+
+    /** El estado de lectura del lote del negocio; uno ajeno responde como inexistente. */
+    default EstadoLectura obtenerEstado(NegocioId negocioId, LoteId loteId) {
+        return obtener(negocioId, loteId).orElseThrow(() -> new ResourceNotFoundException("Lote no encontrado"));
+    }
 }

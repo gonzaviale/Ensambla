@@ -1,5 +1,8 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
+import com.ensambla.backend.domain.model.common.Identificador;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.infrastructure.repository.entity.RenovacionPremiumEntity;
 import org.springframework.stereotype.Component;
@@ -9,8 +12,8 @@ public class RenovacionPremiumRepositoryMapper {
 
     public RenovacionPremium toDomain(RenovacionPremiumEntity origen) {
         return RenovacionPremium.builder()
-                .id(origen.getId())
-                .negocioId(origen.getNegocioId())
+                .id(Identificador.opcional(origen.getId(), RenovacionId::de))
+                .negocioId(Identificador.opcional(origen.getNegocioId(), NegocioId::de))
                 .proveedorId(origen.getProveedorId())
                 .enlace(origen.getEnlace())
                 .estado(origen.getEstado())
@@ -28,8 +31,8 @@ public class RenovacionPremiumRepositoryMapper {
 
     public RenovacionPremiumEntity toEntity(RenovacionPremium origen) {
         return RenovacionPremiumEntity.builder()
-                .id(origen.getId())
-                .negocioId(origen.getNegocioId())
+                .id(Identificador.valorDe(origen.getId()))
+                .negocioId(Identificador.valorDe(origen.getNegocioId()))
                 .proveedorId(origen.getProveedorId())
                 .enlace(origen.getEnlace())
                 .estado(origen.getEstado())

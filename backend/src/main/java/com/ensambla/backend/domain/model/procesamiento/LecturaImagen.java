@@ -1,17 +1,16 @@
 package com.ensambla.backend.domain.model.procesamiento;
 
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
 import com.ensambla.backend.domain.model.lectura.DatoLeido;
 import com.ensambla.backend.domain.model.lectura.FilaLeida;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * Lo que se leyó de una foto suelta, con las claves de quien llama.
@@ -35,7 +34,7 @@ public record LecturaImagen(List<Map<String, DatoLeido>> filas, List<CampoPropue
      * como quiera.
      */
     public static LecturaImagen desde(PropuestaLectura propuesta, BloqueDeImagen bloque, boolean destinoExistente) {
-        Map<UUID, String> clavesPorCampo = bloque.clavesPorCampo();
+        Map<CampoId, String> clavesPorCampo = bloque.clavesPorCampo();
         Map<String, CampoPropuesto> nuevas = destinoExistente
                 ? clavesLibres(propuesta.camposNuevos(), new HashSet<>(clavesPorCampo.values()))
                 : Map.of();
@@ -57,9 +56,9 @@ public record LecturaImagen(List<Map<String, DatoLeido>> filas, List<CampoPropue
         return nuevas;
     }
 
-    private static Map<String, DatoLeido> datosPorClave(FilaLeida fila, Map<String, UUID> mapeoCampos,
-                                                         Map<UUID, String> clavesPorCampo,
-                                                         Map<String, CampoPropuesto> nuevas) {
+    private static Map<String, DatoLeido> datosPorClave(FilaLeida fila, Map<String, CampoId> mapeoCampos,
+                                                        Map<CampoId, String> clavesPorCampo,
+                                                        Map<String, CampoPropuesto> nuevas) {
         Map<String, DatoLeido> datos = new LinkedHashMap<>();
         fila.datos().forEach((claveLeida, dato) -> {
             String clave = claveDefinitiva(claveLeida, mapeoCampos, clavesPorCampo, nuevas);
@@ -71,9 +70,9 @@ public record LecturaImagen(List<Map<String, DatoLeido>> filas, List<CampoPropue
     }
 
     /** {@code null} si la columna no es del bloque ni se propuso como nueva: ese dato se descarta. */
-    private static String claveDefinitiva(String claveLeida, Map<String, UUID> mapeoCampos,
-                                          Map<UUID, String> clavesPorCampo, Map<String, CampoPropuesto> nuevas) {
-        UUID campoId = mapeoCampos.get(claveLeida);
+    private static String claveDefinitiva(String claveLeida, Map<String, CampoId> mapeoCampos,
+                                          Map<CampoId, String> clavesPorCampo, Map<String, CampoPropuesto> nuevas) {
+        CampoId campoId = mapeoCampos.get(claveLeida);
         if (campoId != null) {
             return clavesPorCampo.get(campoId);
         }

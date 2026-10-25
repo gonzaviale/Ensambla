@@ -1,7 +1,11 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.receta.LineaReceta;
 import com.ensambla.backend.domain.model.receta.Receta;
+import com.ensambla.backend.domain.model.receta.RecetaId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.infrastructure.repository.entity.RecetaEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IRecetaJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.RecetaRepositoryMapper;
@@ -27,9 +31,9 @@ import static org.mockito.Mockito.when;
 class RecetaRepositoryImplTest {
 
     private static final UUID ID = UUID.fromString("f0000000-0000-4000-8000-000000000001");
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID PRODUCTO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID HARINA_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final RegistroId PRODUCTO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final RegistroId HARINA_ID = RegistroId.de("d0000000-0000-4000-8000-000000000002");
 
     @Mock
     private IRecetaJpaRepository jpa;
@@ -49,22 +53,23 @@ class RecetaRepositoryImplTest {
         Receta result = repository.save(Receta.builder()
                 .negocioId(NEGOCIO_ID)
                 .productoId(PRODUCTO_ID)
-                .campoPrecioId(HARINA_ID)
+                .campoPrecioId(CampoId.de(HARINA_ID.valor()))
                 .lineas(List.of(new LineaReceta(HARINA_ID, BigDecimal.ONE, null)))
                 .build());
 
-        assertThat(result.getId()).isEqualTo(ID);
+        assertThat(result.getId()).isEqualTo(RecetaId.de(ID));
         assertThat(result.getLineas()).containsExactly(new LineaReceta(HARINA_ID, new BigDecimal("1.5"), "kg"));
     }
 
     @Test
     @DisplayName("Busca la receta por producto y negocio")
     void findShouldMapTheEntityOfTheProduct() {
-        when(jpa.findByProductoIdAndNegocioId(PRODUCTO_ID, NEGOCIO_ID)).thenReturn(Optional.of(entity()));
-        when(jpa.findByProductoIdAndNegocioId(HARINA_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+        when(jpa.findByProductoIdAndNegocioId(PRODUCTO_ID.valor(), NEGOCIO_ID.valor()))
+                .thenReturn(Optional.of(entity()));
+        when(jpa.findByProductoIdAndNegocioId(HARINA_ID.valor(), NEGOCIO_ID.valor())).thenReturn(Optional.empty());
 
         assertThat(repository.findByProductoIdAndNegocioId(PRODUCTO_ID, NEGOCIO_ID)).get()
-                .extracting(Receta::getId).isEqualTo(ID);
+                .extracting(Receta::getId).isEqualTo(RecetaId.de(ID));
         assertThat(repository.findByProductoIdAndNegocioId(HARINA_ID, NEGOCIO_ID)).isEmpty();
     }
 
@@ -73,15 +78,15 @@ class RecetaRepositoryImplTest {
     void deleteShouldDelegateToJpa() {
         repository.deleteByProductoIdAndNegocioId(PRODUCTO_ID, NEGOCIO_ID);
 
-        verify(jpa).deleteByProductoIdAndNegocioId(PRODUCTO_ID, NEGOCIO_ID);
+        verify(jpa).deleteByProductoIdAndNegocioId(PRODUCTO_ID.valor(), NEGOCIO_ID.valor());
     }
 
     private static RecetaEntity entity() {
         return RecetaEntity.builder()
                 .id(ID)
-                .negocioId(NEGOCIO_ID)
-                .productoId(PRODUCTO_ID)
-                .campoPrecioId(HARINA_ID)
+                .negocioId(NEGOCIO_ID.valor())
+                .productoId(PRODUCTO_ID.valor())
+                .campoPrecioId(HARINA_ID.valor())
                 .lineas(List.of(Map.of("insumoId", HARINA_ID.toString(), "cantidad", "1.5", "unidad", "kg")))
                 .build();
     }

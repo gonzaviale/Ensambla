@@ -1,8 +1,7 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.auth;
 
-import com.ensambla.backend.domain.dto.auth.IniciarSesionRequest;
-import com.ensambla.backend.domain.mapper.auth.RegistrarUsuarioMapper;
-import com.ensambla.backend.domain.dto.auth.RegistrarUsuarioRequest;
+import com.ensambla.backend.domain.useCase.auth.iniciarSesion.IniciarSesionRequest;
+import com.ensambla.backend.domain.useCase.auth.registrarUsuario.RegistrarUsuarioRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.LoginRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.RegistroRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.UsuarioResponse;
@@ -47,7 +46,7 @@ class AuthPresentationMapperTest {
     @Test
     @DisplayName("Mapea únicamente los datos públicos del usuario")
     void toResponseShouldMapIdentity() {
-        var input = new RegistrarUsuarioMapper().toResponse(usuario());
+        var input = com.ensambla.backend.domain.useCase.auth.UsuarioResponse.de(usuario());
 
         UsuarioResponse result = mapper.toResponse(input);
 

@@ -10,6 +10,9 @@ public record PoliticaProcesamiento(int maxIntentos, int maxPaginas, int limiteD
                                      Duration vigenciaReclamo, Duration demoraReintento,
                                      BigDecimal precioEntradaMillon, BigDecimal precioSalidaMillon) {
 
+    public static final String LIMITE_DIARIO_AGOTADO =
+            "Se alcanzó el límite diario de páginas de IA. Probá mañana.";
+
     public BigDecimal costo(ConsumoIa consumo) {
         if ("simulado".equals(consumo.proveedor())) {
             return BigDecimal.ZERO;

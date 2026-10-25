@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,6 +45,37 @@ class ZonaTest {
         Zona zona = givenZona(110);
 
         assertThat(zona.contiene(LATITUD_A_111_METROS, LONGITUD_CENTRO)).isFalse();
+    }
+
+    @Test
+    @DisplayName("Resuelve la zona cuyo radio contiene el punto")
+    void masCercanaShouldReturnZoneContainingPoint() {
+        Zona sanJusto = givenZona(1500);
+        Zona caba = Zona.builder().latitud(new BigDecimal("-34.603700")).longitud(new BigDecimal("-58.381600"))
+                .radioMetros(1500).build();
+
+        assertThat(Zona.masCercana(List.of(caba, sanJusto), LATITUD_A_111_METROS, LONGITUD_CENTRO))
+                .containsSame(sanJusto);
+    }
+
+    @Test
+    @DisplayName("Elige la zona de centro más cercano cuando se superponen")
+    void masCercanaShouldPickNearestWhenZonesOverlap() {
+        Zona lejana = Zona.builder().latitud(new BigDecimal("-34.675000")).longitud(LONGITUD_CENTRO)
+                .radioMetros(2000).build();
+        Zona cercana = givenZona(2000);
+
+        assertThat(Zona.masCercana(List.of(lejana, cercana), LATITUD_A_111_METROS, LONGITUD_CENTRO))
+                .containsSame(cercana);
+    }
+
+    @Test
+    @DisplayName("No resuelve zona si ninguna contiene el punto")
+    void masCercanaShouldReturnEmptyWhenNoZoneContainsPoint() {
+        Zona caba = Zona.builder().latitud(new BigDecimal("-34.603700")).longitud(new BigDecimal("-58.381600"))
+                .radioMetros(1500).build();
+
+        assertThat(Zona.masCercana(List.of(caba), LATITUD_A_111_METROS, LONGITUD_CENTRO)).isEmpty();
     }
 
     @Test

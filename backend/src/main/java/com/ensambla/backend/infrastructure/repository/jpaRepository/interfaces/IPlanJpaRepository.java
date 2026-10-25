@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces;
 
-import com.ensambla.backend.domain.model.enums.CodigoPlan;
+import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.infrastructure.repository.entity.PlanEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 

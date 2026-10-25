@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.dto.zona;
 
-import com.ensambla.backend.domain.dto.plan.AccesoContenidoItem;
+import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
 
 import java.math.BigDecimal;
 import java.util.List;

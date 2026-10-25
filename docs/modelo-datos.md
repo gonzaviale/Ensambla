@@ -199,7 +199,7 @@ V11 suma `entidad` (sobre qué habla el aviso, con la forma `registro:<uuid>`) y
 pasa a ser `tipo:entidad:hash(datos)`: si los datos de origen no cambian, la huella tampoco, y un aviso descartado o aplicado no
 se vuelve a crear.
 
-**Motor de monitoreo.** `MonitoreoAvisosWorker` corre `EjecutarMotorAvisosUseCase` cada `ensambla.avisos.motor.intervalo` ms
+**Motor de monitoreo.** `MonitoreoAvisosWorker` corre `EjecutarMotorAvisos` cada `ensambla.avisos.motor.intervalo` ms
 (5 minutos por defecto; se apaga con `ensambla.avisos.motor.habilitado=false`). `MotorAvisosService` recibe todas las `ReglaAviso`
 registradas como bean, así que una regla nueva no toca el motor. Por cada negocio crea los avisos nuevos, actualiza los que
 cambiaron, reactiva los vencidos y vence los pendientes que la regla ya no detecta. Hoy hay una regla, `ReglaStockBajo`.

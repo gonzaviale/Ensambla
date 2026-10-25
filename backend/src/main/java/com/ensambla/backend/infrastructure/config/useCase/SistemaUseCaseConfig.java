@@ -1,11 +1,14 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.mapper.sistema.SistemaItemMapper;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.sistema.SistemaService;
-import com.ensambla.backend.domain.useCase.sistema.EliminarSistemaUseCase;
-import com.ensambla.backend.domain.useCase.sistema.GuardarSistemaUseCase;
-import com.ensambla.backend.domain.useCase.sistema.ListarSistemasUseCase;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
+import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.useCase.sistema.eliminarSistema.EliminarSistema;
+import com.ensambla.backend.domain.useCase.sistema.guardarSistema.GuardarSistema;
+import com.ensambla.backend.domain.useCase.sistema.listarSistemas.ListarSistemas;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,28 +18,26 @@ import java.time.Clock;
 public class SistemaUseCaseConfig {
 
     @Bean
-    public SistemaItemMapper sistemaItemMapper() {
-        return new SistemaItemMapper();
+    public ListarSistemas listarSistemas(NegocioRepository negocioRepository, SistemaRepository sistemaRepository) {
+        return new ListarSistemas(negocioRepository, sistemaRepository);
     }
 
     @Bean
-    public ListarSistemasUseCase listarSistemasUseCase(
-            NegocioService negocioService, SistemaService sistemaService, SistemaItemMapper sistemaItemMapper) {
-        return new ListarSistemasUseCase(negocioService, sistemaService, sistemaItemMapper);
-    }
-
-    @Bean
-    public GuardarSistemaUseCase guardarSistemaUseCase(
-            NegocioService negocioService,
-            SistemaService sistemaService,
-            SistemaItemMapper sistemaItemMapper,
+    public GuardarSistema guardarSistema(
+            NegocioRepository negocioRepository,
+            SistemaRepository sistemaRepository,
+            UsoPlanRepository usoPlanRepository,
+            ControlPlanService controlPlanService,
+            TransaccionPort transaccionPort,
             Clock clock) {
-        return new GuardarSistemaUseCase(negocioService, sistemaService, sistemaItemMapper, clock);
+        return new GuardarSistema(
+                negocioRepository, sistemaRepository, usoPlanRepository, controlPlanService, transaccionPort, clock);
     }
 
     @Bean
-    public EliminarSistemaUseCase eliminarSistemaUseCase(
-            NegocioService negocioService, SistemaService sistemaService) {
-        return new EliminarSistemaUseCase(negocioService, sistemaService);
+    public EliminarSistema eliminarSistema(
+            NegocioRepository negocioRepository, ProyectoRepository proyectoRepository,
+                    TransaccionPort transaccionPort) {
+        return new EliminarSistema(negocioRepository, proyectoRepository, transaccionPort);
     }
 }

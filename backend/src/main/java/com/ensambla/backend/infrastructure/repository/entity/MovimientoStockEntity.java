@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.entity;
 
-import com.ensambla.backend.domain.model.enums.TipoMovimiento;
+import com.ensambla.backend.domain.model.inventario.TipoMovimiento;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

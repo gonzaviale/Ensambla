@@ -1,12 +1,12 @@
 package com.ensambla.backend.infrastructure.presentation.exception;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
-import com.ensambla.backend.domain.exception.PasarelaPagoException;
-import com.ensambla.backend.domain.exception.NotificacionPagoInvalidaException;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.exception.CredencialesInvalidasException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
+import com.ensambla.backend.domain.exception.NotificacionPagoInvalidaException;
+import com.ensambla.backend.domain.exception.PasarelaPagoException;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
@@ -43,7 +43,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(NotificacionPagoInvalidaException.class)
     public ResponseEntity<ErrorResponse> handleNotificacionPago(NotificacionPagoInvalidaException e,
-                                                              HttpServletRequest request) {
+                                                                HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).cacheControl(CacheControl.noStore())
                 .body(buildResponse(HttpStatus.UNAUTHORIZED, e.getMessage(), request, null).getBody());
     }
@@ -55,7 +55,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(CredencialesInvalidasException.class)
     public ResponseEntity<ErrorResponse> handleCredentials(CredencialesInvalidasException e,
-                                                         HttpServletRequest request) {
+                                                           HttpServletRequest request) {
         ResponseEntity<ErrorResponse> error = buildResponse(HttpStatus.UNAUTHORIZED, e.getMessage(), request, null);
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).cacheControl(CacheControl.noStore())
                 .body(error.getBody());
@@ -63,7 +63,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleUnreadable(HttpMessageNotReadableException e,
-                                                        HttpServletRequest request) {
+                                                          HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST, "El cuerpo JSON no es válido", request, null);
     }
 
@@ -91,7 +91,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RegistroInvalidoException.class)
     public ResponseEntity<ErrorResponse> handleRegistroInvalido(RegistroInvalidoException e,
-                                                               HttpServletRequest request) {
+                                                                HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST, e.getMessage(), request, e.getErrores());
     }
 
@@ -119,21 +119,21 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException e,
-                                                           HttpServletRequest request) {
+                                                            HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST, "Parámetro inválido: " + e.getName(), request,
                 Map.of(e.getName(), "El valor no tiene el formato esperado"));
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ErrorResponse> handleMissingParameter(MissingServletRequestParameterException e,
-                                                               HttpServletRequest request) {
+                                                                HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST, "Falta el parámetro: " + e.getParameterName(), request,
                 Map.of(e.getParameterName(), "El parámetro es obligatorio"));
     }
 
     @ExceptionHandler(MissingServletRequestPartException.class)
     public ResponseEntity<ErrorResponse> handleMissingPart(MissingServletRequestPartException e,
-                                                          HttpServletRequest request) {
+                                                           HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST, "Falta el parámetro: " + e.getRequestPartName(), request,
                 Map.of(e.getRequestPartName(), "El parámetro es obligatorio"));
     }
@@ -141,7 +141,7 @@ public class GlobalExceptionHandler {
     /** El archivo o el pedido superan {@code spring.servlet.multipart.*}; se corta antes de llegar al dominio. */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ErrorResponse> handleMaxUploadSize(MaxUploadSizeExceededException e,
-                                                            HttpServletRequest request) {
+                                                             HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST,
                 "Cada foto puede pesar hasta 10 MB y el lote hasta 100 MB", request, null);
     }
@@ -149,7 +149,7 @@ public class GlobalExceptionHandler {
     /** La IA no pudo leer la foto o devolvió algo inválido: el mensaje ya está pensado para la persona. */
     @ExceptionHandler(LecturaCuadernoException.class)
     public ResponseEntity<ErrorResponse> handleLecturaCuaderno(LecturaCuadernoException e,
-                                                              HttpServletRequest request) {
+                                                               HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_GATEWAY, e.getMessage(), request, null);
     }
 

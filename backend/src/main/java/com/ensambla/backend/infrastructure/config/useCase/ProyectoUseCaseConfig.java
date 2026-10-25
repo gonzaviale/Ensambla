@@ -1,20 +1,16 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.mapper.proyecto.CrearProyectoDesdePlantillaMapper;
-import com.ensambla.backend.domain.mapper.proyecto.CrearProyectoMapper;
-import com.ensambla.backend.domain.mapper.proyecto.ListarProyectosMapper;
-import com.ensambla.backend.domain.mapper.proyecto.ObtenerProyectoMapper;
-import com.ensambla.backend.domain.mapper.proyecto.ProyectoItemMapper;
-import com.ensambla.backend.domain.mapper.proyecto.RenombrarProyectoMapper;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.plantilla.PlantillaService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
-import com.ensambla.backend.domain.useCase.proyecto.CrearProyectoDesdePlantillaUseCase;
-import com.ensambla.backend.domain.useCase.proyecto.CrearProyectoUseCase;
-import com.ensambla.backend.domain.useCase.proyecto.EliminarProyectoUseCase;
-import com.ensambla.backend.domain.useCase.proyecto.ListarProyectosUseCase;
-import com.ensambla.backend.domain.useCase.proyecto.ObtenerProyectoUseCase;
-import com.ensambla.backend.domain.useCase.proyecto.RenombrarProyectoUseCase;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.useCase.proyecto.crearProyecto.CrearProyecto;
+import com.ensambla.backend.domain.useCase.proyecto.crearProyectoDesdePlantilla.CrearProyectoDesdePlantilla;
+import com.ensambla.backend.domain.useCase.proyecto.eliminarProyecto.EliminarProyecto;
+import com.ensambla.backend.domain.useCase.proyecto.listarProyectos.ListarProyectos;
+import com.ensambla.backend.domain.useCase.proyecto.obtenerProyecto.ObtenerProyecto;
+import com.ensambla.backend.domain.useCase.proyecto.renombrarProyecto.RenombrarProyecto;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -24,102 +20,75 @@ import java.time.Clock;
 public class ProyectoUseCaseConfig {
 
     @Bean
-    public ProyectoItemMapper proyectoItemMapper() {
-        return new ProyectoItemMapper();
+    public ListarProyectos listarProyectos(
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository) {
+        return new ListarProyectos(
+                negocioRepository,
+                proyectoRepository);
     }
 
     @Bean
-    public ListarProyectosMapper listarProyectosMapper(ProyectoItemMapper proyectoItemMapper) {
-        return new ListarProyectosMapper(proyectoItemMapper);
+    public ObtenerProyecto obtenerProyecto(
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository) {
+        return new ObtenerProyecto(
+                negocioRepository,
+                proyectoRepository);
     }
 
     @Bean
-    public ListarProyectosUseCase listarProyectosUseCase(
-            NegocioService negocioService,
-            ProyectoService proyectoService,
-            ListarProyectosMapper listarProyectosMapper) {
-        return new ListarProyectosUseCase(
-                negocioService,
-                proyectoService,
-                listarProyectosMapper);
-    }
-
-    @Bean
-    public ObtenerProyectoMapper obtenerProyectoMapper(ProyectoItemMapper proyectoItemMapper) {
-        return new ObtenerProyectoMapper(proyectoItemMapper);
-    }
-
-    @Bean
-    public ObtenerProyectoUseCase obtenerProyectoUseCase(
-            NegocioService negocioService,
-            ProyectoService proyectoService,
-            ObtenerProyectoMapper obtenerProyectoMapper) {
-        return new ObtenerProyectoUseCase(
-                negocioService,
-                proyectoService,
-                obtenerProyectoMapper);
-    }
-
-    @Bean
-    public CrearProyectoMapper crearProyectoMapper(ProyectoItemMapper proyectoItemMapper) {
-        return new CrearProyectoMapper(proyectoItemMapper);
-    }
-
-    @Bean
-    public CrearProyectoUseCase crearProyectoUseCase(
-            NegocioService negocioService,
-            ProyectoService proyectoService,
-            CrearProyectoMapper crearProyectoMapper,
+    public CrearProyecto crearProyecto(
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository,
+            ControlPlanService controlPlanService,
+            TransaccionPort transaccionPort,
             Clock clock) {
-        return new CrearProyectoUseCase(
-                negocioService,
-                proyectoService,
-                crearProyectoMapper,
+        return new CrearProyecto(
+                negocioRepository,
+                proyectoRepository,
+                controlPlanService,
+                transaccionPort,
                 clock);
     }
 
     @Bean
-    public RenombrarProyectoMapper renombrarProyectoMapper(ProyectoItemMapper proyectoItemMapper) {
-        return new RenombrarProyectoMapper(proyectoItemMapper);
-    }
-
-    @Bean
-    public RenombrarProyectoUseCase renombrarProyectoUseCase(
-            NegocioService negocioService,
-            ProyectoService proyectoService,
-            RenombrarProyectoMapper renombrarProyectoMapper,
+    public RenombrarProyecto renombrarProyecto(
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository,
+            TransaccionPort transaccionPort,
             Clock clock) {
-        return new RenombrarProyectoUseCase(
-                negocioService,
-                proyectoService,
-                renombrarProyectoMapper,
+        return new RenombrarProyecto(
+                negocioRepository,
+                proyectoRepository,
+                transaccionPort,
                 clock);
     }
 
     @Bean
-    public CrearProyectoDesdePlantillaMapper crearProyectoDesdePlantillaMapper(ProyectoItemMapper proyectoItemMapper) {
-        return new CrearProyectoDesdePlantillaMapper(proyectoItemMapper);
-    }
-
-    @Bean
-    public CrearProyectoDesdePlantillaUseCase crearProyectoDesdePlantillaUseCase(
-            NegocioService negocioService,
-            ProyectoService proyectoService,
-            PlantillaService plantillaService,
-            CrearProyectoDesdePlantillaMapper crearProyectoDesdePlantillaMapper,
+    public CrearProyectoDesdePlantilla crearProyectoDesdePlantilla(
+            NegocioRepository negocioRepository,
+            PlantillaRepository plantillaRepository,
+            ProyectoRepository proyectoRepository,
+            ControlPlanService controlPlanService,
+            TransaccionPort transaccionPort,
             Clock clock) {
-        return new CrearProyectoDesdePlantillaUseCase(
-                negocioService,
-                proyectoService,
-                plantillaService,
-                crearProyectoDesdePlantillaMapper,
+        return new CrearProyectoDesdePlantilla(
+                negocioRepository,
+                plantillaRepository,
+                proyectoRepository,
+                controlPlanService,
+                transaccionPort,
                 clock);
     }
 
     @Bean
-    public EliminarProyectoUseCase eliminarProyectoUseCase(
-            NegocioService negocioService, ProyectoService proyectoService) {
-        return new EliminarProyectoUseCase(negocioService, proyectoService);
+    public EliminarProyecto eliminarProyecto(
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository,
+            TransaccionPort transaccionPort) {
+        return new EliminarProyecto(negocioRepository, proyectoRepository, transaccionPort);
     }
+
 }
 

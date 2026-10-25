@@ -3,15 +3,15 @@ package com.ensambla.backend.infrastructure.pago;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.NotificacionPagoInvalidaException;
 import com.ensambla.backend.domain.exception.PasarelaPagoException;
+import com.ensambla.backend.domain.model.common.Identificador;
 import com.ensambla.backend.domain.model.pago.ContratoRemoto;
 import com.ensambla.backend.domain.model.pago.PagoRemoto;
+import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
@@ -21,8 +21,8 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
-import java.time.Duration;
 import java.time.DateTimeException;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -31,7 +31,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 /** No registra cuerpos, tokens ni datos del medio de pago. Nunca sigue redirecciones de la API. */
 public class MercadoPagoSuscripcionesAdapter implements PasarelaSuscripcionesPort {
@@ -79,7 +80,7 @@ public class MercadoPagoSuscripcionesAdapter implements PasarelaSuscripcionesPor
     }
 
     @Override
-    public Optional<ContratoRemoto> buscar(UUID referencia) {
+    public Optional<ContratoRemoto> buscar(RenovacionId referencia) {
         JsonNode resultados = peticion("GET", "/preapproval/search?q=" + referencia + "&limit=2", null)
                 .path("results");
         if (resultados.size() == 0) {
@@ -329,9 +330,9 @@ public class MercadoPagoSuscripcionesAdapter implements PasarelaSuscripcionesPor
         return valor;
     }
 
-    private UUID referencia(JsonNode nodo) {
+    private RenovacionId referencia(JsonNode nodo) {
         try {
-            return UUID.fromString(texto(nodo, "external_reference"));
+            return RenovacionId.de(texto(nodo, "external_reference"));
         } catch (IllegalArgumentException exception) {
             throw new PasarelaPagoException();
         }

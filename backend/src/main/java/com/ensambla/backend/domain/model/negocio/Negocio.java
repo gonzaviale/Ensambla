@@ -1,8 +1,9 @@
 package com.ensambla.backend.domain.model.negocio;
 
-import com.ensambla.backend.domain.model.enums.RubroNegocio;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.zona.Zona;
+import com.ensambla.backend.domain.model.zona.ZonaId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -11,7 +12,6 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 import java.util.Objects;
 
 /** Espacio del negocio: todo lo que construye el usuario cuelga de él (aislamiento de datos). */
@@ -22,11 +22,11 @@ import java.util.Objects;
 @AllArgsConstructor
 public class Negocio {
 
-    private UUID id;
+    private NegocioId id;
 
     private String nombre;
 
-    private UUID duenioId;
+    private UsuarioId duenioId;
 
     @Builder.Default
     private RubroNegocio rubro = RubroNegocio.OTRO;
@@ -39,7 +39,7 @@ public class Negocio {
 
     private BigDecimal longitud;
 
-    private UUID zonaId;
+    private ZonaId zonaId;
 
     /** Si es false, el negocio no aporta a los datos agregados de su zona. */
     @Builder.Default
