@@ -1,6 +1,9 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.mapper.plan.ConsultarPlanesMapper;
+import com.ensambla.backend.domain.mapper.plan.CatalogoPlanesMapper;
+import com.ensambla.backend.domain.service.plan.CatalogoPlanesService;
+import com.ensambla.backend.domain.useCase.plan.ListarCatalogoPlanesUseCase;
 import com.ensambla.backend.domain.mapper.plan.IniciarPruebaMapper;
 import com.ensambla.backend.domain.service.negocio.NegocioService;
 import com.ensambla.backend.domain.service.plan.AccesoContenidoService;
@@ -17,6 +20,17 @@ import java.time.Clock;
 
 @Configuration
 public class PlanUseCaseConfig {
+
+    @Bean
+    public CatalogoPlanesMapper catalogoPlanesMapper() {
+        return new CatalogoPlanesMapper();
+    }
+
+    @Bean
+    public ListarCatalogoPlanesUseCase listarCatalogoPlanesUseCase(
+            CatalogoPlanesService catalogoPlanesService, CatalogoPlanesMapper catalogoPlanesMapper) {
+        return new ListarCatalogoPlanesUseCase(catalogoPlanesService, catalogoPlanesMapper);
+    }
 
     @Bean
     public DesbloquearContenidosUseCase desbloquearContenidosUseCase(

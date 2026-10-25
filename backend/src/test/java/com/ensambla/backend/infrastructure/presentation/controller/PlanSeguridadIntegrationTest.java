@@ -106,6 +106,36 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     @Test
+    @DisplayName("El catálogo es público y no incluye suscripción, uso, negocio ni historial")
+    void catalogoShouldBePublicWithoutBusinessData() throws Exception {
+        mockMvc.perform(get("/api/planes/catalogo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].codigo").value("GRATUITO"))
+                .andExpect(jsonPath("$[1].codigo").value("PREMIUM"))
+                .andExpect(jsonPath("$[0].id").doesNotExist())
+                .andExpect(jsonPath("$[0].negocioId").doesNotExist())
+                .andExpect(jsonPath("$[0].suscripcion").doesNotExist())
+                .andExpect(jsonPath("$[0].uso").doesNotExist())
+                .andExpect(jsonPath("$[0].prueba").doesNotExist());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/api/planes", "/api/planes/renovacion", "/api/planes/catalogo/privado"})
+    @DisplayName("Publicar el catálogo no abre consultas privadas ni rutas vecinas")
+    void privatePlansShouldRequireSession(String ruta) throws Exception {
+        mockMvc.perform(get(ruta))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("El catálogo no admite escrituras anónimas")
+    void catalogoShouldRejectAnonymousWrite() throws Exception {
+        mockMvc.perform(post("/api/planes/catalogo"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @DisplayName("El receptor real de contenidos admite tres claves y rechaza la cuarta sin reiniciar el cupo")
     void contenidosShouldEnforceMonthlyQuotaOverHttp() throws Exception {
         mockMvc.perform(post("/api/planes/contenidos").session(sesion).header("X-CSRF-TOKEN", csrfToken)

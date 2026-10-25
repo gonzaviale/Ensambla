@@ -1,6 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.dto.plan.IniciarPruebaRequest;
+import com.ensambla.backend.domain.useCase.plan.ListarCatalogoPlanesUseCase;
+import com.ensambla.backend.infrastructure.presentation.mapper.plan.CatalogoPlanesPresentationMapper;
 import com.ensambla.backend.domain.dto.plan.PruebaPremiumResponse;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.useCase.plan.IniciarPruebaUseCase;
@@ -29,7 +31,8 @@ class PlanControllerTest {
 
     private final IniciarPruebaUseCase iniciarPruebaUseCase = mock(IniciarPruebaUseCase.class);
     private final MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-            new PlanController(iniciarPruebaUseCase, new PlanPresentationMapper(), mock(ConsultarPlanesUseCase.class)))
+            new PlanController(iniciarPruebaUseCase, new PlanPresentationMapper(), mock(ConsultarPlanesUseCase.class),
+                    mock(ListarCatalogoPlanesUseCase.class), new CatalogoPlanesPresentationMapper()))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
 
     @Test
