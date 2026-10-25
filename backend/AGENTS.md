@@ -16,7 +16,8 @@ Antes de tocar código leé [ARQUITECTURA.md](ARQUITECTURA.md), [README.md](READ
   `*UseCaseConfig` y la transacción la abre el caso de uso con `TransaccionPort`.
 - Las 7 reglas de [ARQUITECTURA.md](ARQUITECTURA.md): Testcontainers (sin H2), ids tipados (`ProyectoId`…), enums junto
   a su modelo, DTOs en el subpaquete del caso de uso, sin sufijo `UseCase`, DTOs con fábrica `de()` (sin mappers de
-  dominio) y servicios sólo para lo que comparten dos o más casos de uso.
+  dominio), servicios sólo para la lógica de varios pasos que repiten dos o más casos de uso (las búsquedas de una
+  línea son métodos `default` del puerto) y ningún caso de uso llama a otro.
 - El `Clock` sólo vive en los use cases; los servicios reciben el instante por parámetro.
 - Antes de cerrar una tarea: `./mvnw clean verify` en verde (100 % de cobertura por clase).
 

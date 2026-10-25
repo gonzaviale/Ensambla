@@ -18,8 +18,9 @@ Vocabulario y tablas: `docs/modelo-datos.md`. Tareas: `docs/backlog.md`.
 2. **Verificá que la tabla y la entidad existan** (`db/migration`, `infrastructure/repository/entity`). Si hay tablas o
    columnas nuevas van en una **migración Flyway nueva**: nunca se edita una ya aplicada.
 3. **Definí la regla de aislamiento** (ver más abajo) antes de escribir la consulta: es lo que más se olvida.
-4. **Decidí si hace falta un servicio:** solo si la lógica ya la usa otro caso de uso (buscala con grep). Si no, va
-   como método privado del caso de uso.
+4. **Decidí dónde va cada cosa:** traer una entidad o responder 404 es un método `default` del puerto; una regla pura va
+   al modelo; lo que usa solo este caso de uso es un método privado. Un servicio solo si es lógica de varios pasos que ya
+   repite otro caso de uso (buscala con grep); nunca llames a otro caso de uso.
 
 ## Estructura: qué archivo va en cada capa
 
@@ -33,7 +34,7 @@ Todo bajo `backend/src/main/java/com/ensambla/backend/`. Ejemplo con la feature 
 | 4 | `domain/useCase/proyecto/crearProyecto/CrearProyectoRequest.java` | Record de entrada con ids tipados. |
 | 5 | `domain/useCase/proyecto/ProyectoItem.java` o `crearProyecto/CrearProyectoResponse.java` | Record de salida con `static … de(Proyecto)`. **Nunca modelos de dominio dentro de un DTO.** Si lo comparten varios casos del área, va en `domain/useCase/proyecto/`. |
 | 6 | `domain/useCase/proyecto/crearProyecto/CrearProyecto.java` | Sin anotaciones de Spring ni sufijo. `@RequiredArgsConstructor`, un único `execute(...)`. Recibe puertos, servicios compartidos, `TransaccionPort` y `Clock` si los usa. |
-| 7 | `domain/service/proyecto/ProyectoService.java` | **Solo si la lógica la usan dos o más casos de uso.** Java plano, `@RequiredArgsConstructor`, sin `@Service`/`@Transactional`. |
+| 7 | `domain/service/<area>/<Area>Service.java` | **Casi nunca.** Solo si hay lógica de varios pasos que ya repite otro caso de uso. Java plano, `@RequiredArgsConstructor`, sin `@Service`/`@Transactional`. La búsqueda de una línea va como método `default` del puerto del paso 3. |
 | 8 | `infrastructure/config/useCase/ProyectoUseCaseConfig.java` | `@Bean crearProyecto(...)` (y del servicio, si es nuevo). El orden de los argumentos es el de los campos. |
 | 9 | `infrastructure/repository/entity/ProyectoEntity.java` | Entidad JPA con `UUID` (`@Entity @Table`, enums con `@Enumerated(EnumType.STRING)` + `columnDefinition = "text"`, JSON con `@JdbcTypeCode(SqlTypes.JSON)`). |
 | 10 | `infrastructure/repository/jpaRepository/interfaces/IProyectoJpaRepository.java` | Spring Data con `UUID`. Consultas derivadas o `@Query` con javadoc de la regla. |
@@ -53,7 +54,7 @@ Caso de uso: orquesta; la lógica que solo él usa va en métodos privados, y la
 @RequiredArgsConstructor
 public class CrearProyecto {
 
-    private final NegocioService negocioService;
+    private final NegocioRepository negocioRepository;
 
     private final ProyectoRepository proyectoRepository;
 
@@ -62,7 +63,7 @@ public class CrearProyecto {
     private final Clock clock;
 
     public ProyectoItem execute(CrearProyectoRequest request) {
-        NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
         Proyecto proyecto = transaccionPort.ejecutar(() -> crear(negocioId, request, OffsetDateTime.now(clock)));
         return ProyectoItem.de(proyecto);
     }
@@ -91,9 +92,9 @@ Bean manual:
 
 ```java
 @Bean
-public CrearProyecto crearProyecto(NegocioService negocioService, ProyectoRepository proyectoRepository,
+public CrearProyecto crearProyecto(NegocioRepository negocioRepository, ProyectoRepository proyectoRepository,
         TransaccionPort transaccionPort, Clock clock) {
-    return new CrearProyecto(negocioService, proyectoRepository, transaccionPort, clock);
+    return new CrearProyecto(negocioRepository, proyectoRepository, transaccionPort, clock);
 }
 ```
 
@@ -157,7 +158,7 @@ Después abrí Swagger (`/swagger-ui.html`, solo con el perfil `dev`) y probá e
 - [ ] Aislamiento por negocio definido y cubierto con test (recurso ajeno → 404).
 - [ ] Ids tipados en todas las capas; `UUID` solo en entidades y JPA.
 - [ ] Caso de uso sin sufijo, con sus DTOs en su subpaquete y fábricas `de()`; sin mapper de dominio.
-- [ ] Servicio nuevo solo si lo usan dos o más casos de uso; nada de Spring en `domain`.
+- [ ] Servicio nuevo solo si es lógica de varios pasos que repiten dos o más casos de uso; búsquedas `findX().orElseThrow` como `default` del puerto; ningún caso de uso llama a otro; nada de Spring en `domain`.
 - [ ] `execute()` es una lista de pasos; las escrituras dentro de `transaccionPort.ejecutar(...)`.
 - [ ] Bean agregado al `*UseCaseConfig` con el orden correcto de argumentos.
 - [ ] `@Tag`/`@Operation` en el controller y ruta agregada a `SecurityConfig` solo si es pública.

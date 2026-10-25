@@ -26,10 +26,13 @@ Este skill es el checklist para aplicarlas. Si una regla choca con lo que pide l
 5. **Sin sufijo `UseCase`.** `CrearProyecto`, su test `CrearProyectoTest`, su bean `crearProyecto()`.
 6. **Sin mappers de dominio.** Dominio → DTO con una fábrica estática del record (`ProyectoItem.de(proyecto)`); DTO →
    dominio con un método del request. Los `*PresentationMapper` y `*RepositoryMapper` de infraestructura sí existen.
-7. **Servicio solo si se comparte; dominio sin Spring.**
-   - Un método va a `domain/service/<area>` solo si lo usan **dos o más** casos de uso u otro servicio (comprobalo con
-     grep). Si lo usa uno solo, es un método privado del caso de uso que llama directo al puerto. Una regla pura va al
-     modelo.
+7. **Servicio solo para lógica compartida; dominio sin Spring; ningún caso de uso llama a otro.**
+   - Traer una entidad o responder 404 va como método `default` del puerto (`negocioRepository.obtenerIdDelUsuario`), con
+     su test. Una llamada que sólo pasa al puerto se hace directo desde el caso de uso. Una regla pura va al modelo.
+   - Un servicio de `domain/service/<area>` existe sólo si su lógica es de varios pasos y la repiten **dos o más** casos de
+     uso (comprobalo con grep). Hoy son cinco: `ControlPlanService`, `RenovacionPremiumService`, `RegistroDatosService`,
+     `ReporteService` y `RecetaService`. Si la usa uno solo, es un método privado de ese caso de uso.
+   - Un caso de uso nunca llama a otro caso de uso (`ArchitectureTest` lo verifica).
    - En `domain` no hay `@Service`, `@Component`, `@Transactional` ni imports de `org.springframework`. Casos de uso,
      servicios y reglas se registran a mano como `@Bean` en `infrastructure/config/useCase/<Area>UseCaseConfig`, con
      los argumentos en el orden de los campos.
@@ -44,8 +47,9 @@ migración aplicada no se edita, nombres de dominio en español y 100 % de cober
 | Tengo… | Va en… |
 |---|---|
 | Una regla sin I/O | el modelo (`domain/model/<area>`) |
+| Traer o responder 404 (`find…orElseThrow`) | método `default` del puerto, con su test |
 | Lógica con I/O que usa un solo caso de uso | método privado del caso de uso |
-| Lógica con I/O que usan dos o más casos de uso | `domain/service/<area>/<Area>Service`, bean en el `*UseCaseConfig` |
+| Lógica de varios pasos que repiten dos o más casos de uso | `domain/service/<area>/<Area>Service`, bean en el `*UseCaseConfig` |
 | Entrada / salida de un caso de uso | records en `domain/useCase/<area>/<accion>/` |
 | Un id nuevo | `domain/model/<area>/<Modelo>Id` |
 | Un enum | el paquete de su modelo |
@@ -53,8 +57,9 @@ migración aplicada no se edita, nombres de dominio en español y 100 % de cober
 
 ## Verificación
 
-`ArchitectureTest` controla las reglas 1, 2, 3, 4, 5, 6 y la parte de Spring de la 7. La regla de servicios
-compartidos no se puede verificar automáticamente: revisala a mano con grep. Desde `backend/`, estos controles deberían
+`ArchitectureTest` controla las reglas 1, 2, 3, 4, 5, 6 y de la 7 que el dominio no use Spring y que un caso de uso no
+dependa de otro. Que un servicio sea realmente compartido no se puede verificar automáticamente: revisalo a mano con
+grep. Desde `backend/`, estos controles deberían
 salir vacíos:
 
 ```bash

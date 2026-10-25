@@ -7,7 +7,7 @@ description: Escribe o reescribe los tests del backend de Ensambla al estilo del
 
 Un test se lee como una frase: **given → acción → then**. La mecánica (stubs, ejecución, asserts, verifies) va en
 **métodos privados al final de la clase**. Plantillas vivas: el módulo `plantilla` completo (`ListarPlantillasTest`,
-`ListarPlantillasResponseTest`, `PlantillaServiceTest`, `PlantillaPresentationMapperTest`, `PlantillaRepositoryImplTest`,
+`ListarPlantillasResponseTest`, `PlantillaPresentationMapperTest`, `PlantillaRepositoryImplTest`,
 `PlantillaRepositoryMapperTest`, `PlantillaControllerTest`, `PlantillaUseCaseConfigTest`), `RegistrarUsuarioTest` (caso
 de uso con transacción) e `IdentificadorTest`.
 
@@ -40,6 +40,7 @@ estructura que se prueban están en [`backend/ARQUITECTURA.md`](../../../backend
 |---|---|---|---|
 | Caso de uso (`CrearProyecto`) | `CrearProyectoTest` | `@ExtendWith(MockitoExtension.class)`, `@Mock` de puertos y servicios compartidos, `new TransaccionDirecta()` si abre transacción, caso de uso en `@BeforeEach` | respuesta armada · delega con los argumentos correctos · cada rama de sus métodos privados · propaga la excepción sin convertirla |
 | DTO con `de()` | `*ResponseTest`, `*ItemTest` | sin mocks | **todos** los campos · orden conservado · nulos · lista vacía |
+| Método `default` de un puerto | `<Puerto>Test` en `domain/repository/<area>` | `mock(Puerto.class, CALLS_REAL_METHODS)`; los `when` van sobre los métodos abstractos (`findByIdAndNegocioId`), nunca sobre el `default` | camino feliz · el 404 con su mensaje |
 | `*Service` (compartido) | `*ServiceTest` | `@Mock` de repositorios/otros servicios + `@InjectMocks` | camino feliz · cada rama de error · **orden** de validaciones (`InOrder`) · que no consulta si la validación falla (`verifyNoInteractions`) |
 | Model con reglas, ids | `*Test` | sin mocks | cada regla, casos borde; un id nuevo ya lo cubre `IdentificadorTest` si se suma a su lista |
 | `*PresentationMapper` | `*PresentationMapperTest` | sin mocks | un test por método · lista vacía |
@@ -55,17 +56,12 @@ estructura que se prueban están en [`backend/ARQUITECTURA.md`](../../../backend
 
 ## Plantillas
 
-Servicio:
+Método `default` de un puerto (los `when` van sobre el método abstracto):
 
 ```java
-@ExtendWith(MockitoExtension.class)
-class UsuarioServiceTest {
+class UsuarioRepositoryTest {
 
-    @Mock
-    private UsuarioRepository usuarioRepository;
-
-    @InjectMocks
-    private UsuarioService usuarioService;
+    private final UsuarioRepository usuarioRepository = mock(UsuarioRepository.class, CALLS_REAL_METHODS);
 
     @Test
     @DisplayName("Rechaza al usuario inexistente con credenciales inválidas")
@@ -82,7 +78,7 @@ class UsuarioServiceTest {
 
     // --- act ---
     private Usuario obtenerActivo() {
-        return usuarioService.obtenerActivo(USUARIO_ID);
+        return usuarioRepository.obtenerActivo(USUARIO_ID);
     }
 }
 ```
@@ -160,7 +156,7 @@ class IProyectoJpaRepositoryTest extends PostgresRepositoryTestSupport {
 Desde `backend/`, con JDK 21 y Docker corriendo:
 
 ```powershell
-.\mvnw.cmd test "-Dtest=ListarPlantillasTest,PlantillaServiceTest,ArchitectureTest"
+.\mvnw.cmd test "-Dtest=ListarPlantillasTest,PlantillaRepositoryTest,ArchitectureTest"
 .\mvnw.cmd clean verify
 ```
 

@@ -13,7 +13,7 @@ fuente; si cambiás uno, cambiá los dos):
 |---|---|
 | `reglas-arquitectura` | al escribir, mover o revisar cualquier clase del backend |
 | `crear-use-case` | un endpoint o una feature nueva del backend |
-| `refactor-use-case` | ordenar un caso de uso existente o disolver un servicio/mapper |
+| `refactor-use-case` | ordenar un caso de uso existente o disolver un servicio o un mapper |
 | `escribir-tests` | tests del backend |
 
 ## Reglas del backend (resumen de ARQUITECTURA.md)
@@ -24,8 +24,10 @@ fuente; si cambiás uno, cambiá los dos):
 4. Los DTOs están en el subpaquete de su caso de uso (`domain/useCase/<area>/<accion>/`).
 5. Los casos de uso no llevan el sufijo `UseCase` (`CrearProyecto`).
 6. Los DTOs se mapean con su fábrica `de()`; no hay mappers de dominio.
-7. En `domain/service` solo va lo que comparten dos o más casos de uso; el dominio no usa Spring: beans manuales en
-   `*UseCaseConfig` y transacciones con `TransaccionPort`.
+7. En `domain/service` solo va la lógica de varios pasos que repiten dos o más casos de uso (hoy son cinco servicios);
+   las búsquedas de una línea son métodos `default` del puerto y las reglas puras van al modelo. Un caso de uso nunca
+   llama a otro caso de uso. El dominio no usa Spring: beans manuales en `*UseCaseConfig` y transacciones con
+   `TransaccionPort`.
 
 `ArchitectureTest` verifica las reglas que se pueden comprobar automáticamente. Siguen valiendo el aislamiento por
 negocio (el `NegocioId` sale de la sesión; recurso ajeno → 404), que una migración Flyway aplicada no se edita, los

@@ -20,6 +20,7 @@ cobertura en `target/site/jacoco/index.html`.
 |---|---|---|
 | Caso de uso (`CrearProyecto`) | `CrearProyectoTest` | `@Mock` de puertos y servicios compartidos, `TransaccionDirecta` |
 | DTO con fábrica `de()` | `*ResponseTest`, `*ItemTest` | sin mocks, todos los campos y nulos |
+| Método `default` de un puerto | `<Puerto>Test` en `domain/repository` | `mock(Puerto.class, CALLS_REAL_METHODS)`; los `when` van sobre los métodos abstractos |
 | `*Service` (compartido) | `*ServiceTest` | `@Mock` de repositorios + `@InjectMocks` |
 | Model con reglas, ids | `*Test`, `IdentificadorTest` | sin mocks |
 | `*PresentationMapper` | `*PresentationMapperTest` | sin mocks |

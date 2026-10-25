@@ -56,7 +56,8 @@ tipo(scope): descripcion
 - Clean Architecture: `domain` no depende de `infrastructure` ni de Spring (`ArchitectureTest` lo verifica)
 - Reglas de estructura en [backend/ARQUITECTURA.md](../backend/ARQUITECTURA.md); en resumen:
   - Lógica de negocio en el dominio, nunca en los controllers: las reglas puras en el modelo, la orquestación en el
-    caso de uso y en `domain/service` sólo lo que comparten dos o más casos de uso
+    caso de uso, en `domain/service` sólo la lógica de varios pasos que repiten dos o más casos de uso y en el puerto
+    (método `default`) las búsquedas de una línea; un caso de uso nunca llama a otro
   - Un caso de uso por clase, con `execute()`, sin sufijo `UseCase` y con sus DTOs en el mismo subpaquete
   - Los DTOs se mapean con su fábrica `de()`; no hay mappers de dominio
   - Ids tipados (`ProyectoId`, `NegocioId`…) en todas las capas salvo las entidades JPA

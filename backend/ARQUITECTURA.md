@@ -19,7 +19,7 @@ com.ensambla.backend
 │   │   └── common/                          Identificador, Pagina, TextoNormalizado, Huella
 │   ├── repository/<area>/                   puertos de persistencia
 │   ├── port/                                puertos de salida: TransaccionPort, LectorCuadernoPort, SamiIaPort…
-│   ├── service/<area>/                      solo lógica que comparten dos o más casos de uso
+│   ├── service/<area>/                      solo lógica de varios pasos que repiten dos o más casos de uso
 │   ├── useCase/<area>/
 │   │   ├── <Area>Item.java                  DTOs que comparten varios casos de uso del área
 │   │   └── <accion>/                        un subpaquete por caso de uso
@@ -141,40 +141,54 @@ public record ListarPlantillasResponse(List<PlantillaItem> content) {
 public class ListarPlantillasMapper { public ListarPlantillasResponse toResponse(List<Plantilla> plantillas) { … } }
 ```
 
-### 7. Servicio solo si se comparte, y el dominio sin Spring
+### 7. Servicios solo para lógica compartida, sin Spring y sin saltos entre casos de uso
 
-**Por qué:** un servicio que usa un único caso de uso es una indirección: obliga a abrir dos archivos para leer un
-flujo y a mockear una capa más. Y un dominio con `@Service`/`@Transactional` depende del framework.
+**Por qué:** un servicio que envuelve una línea (un `find…orElseThrow`, una llamada que pasa directo al puerto) es una
+indirección: obliga a abrir dos archivos para leer un flujo y a mockear una capa más. Un caso de uso que llama a otro
+caso de uso mezcla los flujos y esconde las dependencias reales. Y un dominio con `@Service`/`@Transactional` depende
+del framework.
 
-**Cómo:**
+**Cómo:** cada pieza de lógica tiene un lugar, según qué es:
 
-- Un método va a un servicio de `domain/service/<area>` solo si lo usan dos o más casos de uso (o otro servicio).
-  Si lo usa uno solo, es un método privado de ese caso de uso, que llama directo al puerto. Comprobalo con grep.
-- Una regla pura, sin I/O, va al modelo (método, función estática o value object).
-- Sin `@Service`, `@Component`, `@Transactional` ni ningún import de `org.springframework` en `domain`. Casos de uso,
-  servicios y reglas se registran a mano como `@Bean` en el `<Area>UseCaseConfig`; el orden de los argumentos es el
-  orden de los campos (`@RequiredArgsConstructor`).
+| Qué es | Dónde va |
+|---|---|
+| Traer una entidad o responder 404 (`findX().orElseThrow(...)`) | un método `default` del puerto, escrito una sola vez: `NegocioRepository.obtenerIdDelUsuario`, `BloqueRepository.obtener`… |
+| Una llamada que sólo pasa al puerto | el caso de uso llama directo al puerto |
+| Una regla pura, sin I/O | el modelo (método, función estática o value object): `PropuestaLectura.proponer`, `Zona.masCercana`, `ConsultaDireccion.de` |
+| Lógica de varios pasos que usa un solo caso de uso | método privado de ese caso de uso |
+| Lógica de varios pasos que repiten dos o más casos de uso | un servicio en `domain/service/<area>` |
+
+- Los servicios que quedan son cinco, y existen porque su lógica se repite en varios casos de uso: `ControlPlanService`
+  (cupos del plan con bloqueo del negocio y acceso a contenidos), `RenovacionPremiumService` (sincronización con el
+  proveedor de pagos), `RegistroDatosService` (edición y validación de conexiones entre registros),
+  `ReporteService` y `RecetaService`. Antes de sumar uno, comprobá con grep que lo usan dos o más casos de uso y que
+  no son una o dos líneas.
+- **Un caso de uso nunca llama a otro caso de uso.** Lo compartido se baja a un servicio, a un método `default` del
+  puerto o al modelo.
+- Un método `default` de un puerto lleva su test, con `mock(Puerto.class, CALLS_REAL_METHODS)`.
+- Sin `@Service`, `@Component`, `@Transactional` ni ningún import de `org.springframework` en `domain`. Casos de uso y
+  servicios se registran a mano como `@Bean` en el `<Area>UseCaseConfig`; el orden de los argumentos es el orden de los
+  campos (`@RequiredArgsConstructor`).
 - La frontera de la transacción la pone el caso de uso con `TransaccionPort` (lo implementa `TransaccionAdapter` con un
   `TransactionTemplate`, propagación REQUIRED). En los tests unitarios se usa `support/TransaccionDirecta`.
 
 ```java
-// ✅
-@RequiredArgsConstructor
-public class RegistrarUsuario {
+// ✅ el puerto resuelve la búsqueda y el caso de uso sólo orquesta
+NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+Proyecto proyecto = proyectoRepository.obtener(negocioId, request.proyectoId());
 
-    private final UsuarioRepository usuarioRepository;
-
-    private final TransaccionPort transaccionPort;
-
-    public UsuarioResponse execute(RegistrarUsuarioRequest request) {
-        return UsuarioResponse.de(transaccionPort.ejecutar(() -> registrar(request)));
+// ❌ un servicio por una línea
+@Service
+public class NegocioService {
+    public NegocioId obtenerDelUsuario(UsuarioId id) {
+        return negocioRepository.findIdByDuenioId(id).orElseThrow(...);
     }
 }
 
-// ❌
-@Service
-@Transactional
-public class RegistroService { … }   // un solo caso de uso lo llama
+// ❌ un caso de uso que llama a otro
+public class ActualizarRenovacion {
+    private final SincronizarRenovacion sincronizarRenovacion;
+}
 ```
 
 ## Otras reglas que siguen vigentes
@@ -192,6 +206,7 @@ public class RegistroService { … }   // un solo caso de uso lo llama
 |---|---|
 | `domain` no depende de `infrastructure` ni de Spring | bytecode de `domain` sin `com/ensambla/backend/infrastructure` ni `org/springframework` |
 | Sin sufijo `UseCase` | ninguna clase de `domain/useCase` termina en `UseCase` |
+| Casos de uso independientes | el bytecode de un caso de uso no referencia a otro caso de uso |
 | Sin `domain/dto`, `domain/mapper` ni `domain/model/enums` | los paquetes no existen |
 | Ids tipados | en los fuentes de `domain`, solo los `*Id`, `Identificador`, `IdSistema` y `Huella` nombran `UUID` |
 | Sin H2 | no hay `application-h2-test.properties` ni `org.h2.Driver` en el classpath |

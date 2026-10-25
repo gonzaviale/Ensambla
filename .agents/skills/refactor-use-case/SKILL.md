@@ -52,9 +52,9 @@ Caso con más pasos — `CrearProyectoDesdePlantilla`:
 
 ```java
 public ProyectoItem execute(CrearProyectoDesdePlantillaRequest request) {
-    NegocioId negocioId = negocioService.obtenerDelUsuario(request.usuarioId());
-    PlantillaProyecto plantilla = plantillaService.obtenerParaProyecto(request.plantillaId());
-    Proyecto proyecto = proyectoService.crearDesdePlantilla(negocioId, plantilla, OffsetDateTime.now(clock));
+    NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+    PlantillaProyecto plantilla = plantillaRepository.obtenerActiva(request.plantillaId());
+    Proyecto proyecto = crearDesdePlantilla(negocioId, plantilla, OffsetDateTime.now(clock));
     return ProyectoItem.de(proyecto);
 }
 ```
@@ -65,10 +65,16 @@ public ProyectoItem execute(CrearProyectoDesdePlantillaRequest request) {
   función estática si no tiene estado (`Usuario.normalizarEmail`), o un value object (record) si deriva varios valores.
 - **Toca un puerto y la usa solo este caso de uso** → **método privado** del caso de uso, que llama directo al puerto.
   Si arma varios valores, devolvé un **record privado**.
-- **La usan dos o más casos de uso** (comprobalo con grep antes de decidir), o otro servicio → **servicio** en
-  `domain/service/<area>`, Java plano, registrado como `@Bean` en el `*UseCaseConfig`.
-- **Un servicio que queda con un único llamador** → se disuelve en ese caso de uso, y se borran el servicio, su bean y
-  su test (las pruebas pasan al test del caso de uso).
+- **Traer una entidad o responder 404 (`findX().orElseThrow(...)`)** → método `default` del puerto (`bloqueRepository.obtener`),
+  con su test (`mock(Puerto.class, CALLS_REAL_METHODS)`); nunca un servicio ni la misma línea copiada en cada caso.
+- **Una llamada que sólo pasa al puerto** → el caso de uso llama directo al puerto.
+- **Lógica de varios pasos que repiten dos o más casos de uso** (comprobalo con grep antes de decidir) → **servicio** en
+  `domain/service/<area>`, Java plano, registrado como `@Bean` en el `*UseCaseConfig`. Hoy son cinco; no sumes uno
+  por una o dos líneas.
+- **Un servicio que queda con un único llamador, o con líneas sueltas** → se disuelve: la búsqueda va al puerto, la
+  regla pura al modelo y lo demás al caso de uso; se borran el servicio, su bean y su test.
+- **Un caso de uso que llama a otro caso de uso** → está prohibido: lo compartido se baja a un servicio, a un método
+  `default` del puerto o al modelo.
 - **Un mapper de dominio** → se reemplaza por la fábrica `de()` del DTO; su test pasa a ser el test del DTO.
 - **Un `UUID` en una firma** → el id tipado de esa entidad.
 
@@ -112,15 +118,15 @@ asserts y verifies) se extrae a **métodos privados** agrupados al final de la c
 Convenciones obligatorias: nombres en **camelCase** sin guiones bajos (`executeShouldReturnPlantillasActivas`),
 `@DisplayName` en **español**, comentarios solo en los casos no obvios y cuidado con el **strict stubbing** de Mockito.
 
-Plantillas ya hechas: `ListarPlantillasTest`, `ListarPlantillasResponseTest`, `PlantillaServiceTest`.
+Plantillas ya hechas: `ListarPlantillasTest`, `ListarPlantillasResponseTest`, `PlantillaRepositoryTest`.
 
 ## Build & test
 
 Desde `backend/` (JDK 21 en `JAVA_HOME` y Docker corriendo: los tests con base usan Testcontainers, nunca H2):
 
 ```bash
-./mvnw test -Dtest=ListarPlantillasTest,PlantillaServiceTest,ArchitectureTest
+./mvnw test -Dtest=ListarPlantillasTest,PlantillaRepositoryTest,ArchitectureTest
 ./mvnw clean verify
 ```
 
-En Windows/PowerShell: `.\mvnw.cmd test "-Dtest=ListarPlantillasTest,PlantillaServiceTest,ArchitectureTest"`.
+En Windows/PowerShell: `.\mvnw.cmd test "-Dtest=ListarPlantillasTest,PlantillaRepositoryTest,ArchitectureTest"`.
