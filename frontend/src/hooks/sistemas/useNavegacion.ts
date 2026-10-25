@@ -35,7 +35,9 @@ export function useNavegacion() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
-  const irA = (to: '/inicio' | '/plantillas' | '/taller' | '/zona' | '/planes' | '/sami') => {
+  const irA = (
+    to: '/inicio' | '/plantillas' | '/taller' | '/zona' | '/planes' | '/sami' | '/avisos',
+  ) => {
     limpiar();
     return navigate({ to });
   };
@@ -72,6 +74,8 @@ export function useNavegacion() {
       limpiar();
       return navigate({ to: '/cuenta', search: { seccion } });
     },
+    /** La pantalla de avisos de Sami. */
+    irAAvisos: () => irA('/avisos'),
     irAPlanes: () => irA('/planes'),
     /** «Armalo con Sami»: la conversación que crea un proyecto real en el backend. */
     irASami: () => irA('/sami'),

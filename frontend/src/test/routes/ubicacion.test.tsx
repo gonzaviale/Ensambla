@@ -15,52 +15,129 @@ import {
   setupUsuarioConSesion,
 } from '@/test/testHelpers';
 
+type Usuario = ReturnType<typeof userEvent.setup>;
+
 async function abrirUbicacion() {
   setupUsuarioConSesion();
   const router = renderApp('/ubicacion');
   await screen.findByRole('heading', { level: 1, name: 'Ubicación y rubro' }, ESPERA);
-  await screen.findByRole('option', { name: 'Almacén' }, ESPERA);
   await waitFor(() => expect(screen.getByLabelText('Nombre del comercio')).toBeEnabled(), ESPERA);
   return { user: userEvent.setup(), router };
 }
 
-async function buscarDireccion(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(
-    screen.getByLabelText('Dirección del comercio'),
-    'Florencio Varela 1903, San Justo',
+// Va a un paso tocándolo en el camino de arriba.
+async function irAlPaso(user: Usuario, nombre: 'Tu comercio' | 'Ubicación' | 'Rubro') {
+  const camino = await screen.findByRole(
+    'navigation',
+    { name: 'Pasos de la configuración' },
+    ESPERA,
   );
+  const boton = () => within(camino).getByRole('button', { name: new RegExp(nombre) });
+  // No se puede saltar a un paso si los anteriores no están completos: espera a que se habilite.
+  await waitFor(() => expect(boton()).toBeEnabled(), ESPERA);
+  await user.click(boton());
+}
+
+function botonDelPaso(nombre: 'Tu comercio' | 'Ubicación' | 'Rubro') {
+  const camino = screen.getByRole('navigation', { name: 'Pasos de la configuración' });
+  return within(camino).getByRole('button', { name: new RegExp(nombre) });
+}
+
+// Escribe calle, altura y localidad (borrando lo que hubiera) sin buscar todavía.
+async function escribirDireccion(user: Usuario, calle: string, altura: string, localidad: string) {
+  for (const [etiqueta, valor] of [
+    ['Calle', calle],
+    ['Altura', altura],
+    ['Localidad', localidad],
+  ] as const) {
+    await user.clear(screen.getByLabelText(etiqueta));
+    if (valor) await user.type(screen.getByLabelText(etiqueta), valor);
+  }
+}
+
+async function irARubro(user: Usuario) {
+  await irAlPaso(user, 'Rubro');
+  await screen.findByRole('option', { name: 'Almacén' }, ESPERA);
+}
+
+async function elegirRubro(user: Usuario, codigo: string) {
+  await irARubro(user);
+  await user.selectOptions(screen.getByLabelText('Rubro del comercio'), codigo);
+}
+
+async function buscarDireccion(user: Usuario, localidad = 'San Justo') {
+  await irAlPaso(user, 'Ubicación');
+  await escribirDireccion(user, 'Florencio Varela', '1903', localidad);
   await user.click(screen.getByRole('button', { name: 'Buscar dirección' }));
   await screen.findByRole('radio', { name: DIRECCIONES_DE_PRUEBA[0].direccion }, ESPERA);
 }
 
-async function elegirDireccion(user: ReturnType<typeof userEvent.setup>) {
+async function elegirDireccion(user: Usuario) {
   await buscarDireccion(user);
   await user.click(screen.getByRole('radio', { name: DIRECCIONES_DE_PRUEBA[0].direccion }));
 }
 
 // La localidad queda verificada cuando el mapa respondió y el campo muestra la del mapa.
 async function esperarLocalidad(localidad: string) {
+  await waitFor(() => expect(screen.getByLabelText('Localidad')).toHaveValue(localidad), ESPERA);
   await waitFor(
-    () => expect(screen.getByLabelText('Localidad del comercio')).toHaveValue(localidad),
-    ESPERA,
-  );
-  await waitFor(
-    () => expect(screen.getByText(/Según el mapa:/)).toHaveTextContent(`Según el mapa: ${localidad}`),
+    () =>
+      expect(screen.getByText(/Según el mapa:/)).toHaveTextContent(`Según el mapa: ${localidad}`),
     ESPERA,
   );
 }
 
 describe('Ubicación y rubro del negocio', () => {
+  it('muestra un paso por vez y el camino de arriba marca dónde estás', async () => {
+    const { user } = await abrirUbicacion();
+    const camino = screen.getByRole('navigation', { name: 'Pasos de la configuración' });
+    expect(within(camino).getByRole('button', { name: /Tu comercio/ })).toHaveAttribute(
+      'aria-current',
+      'step',
+    );
+    expect(screen.queryByLabelText('Calle')).toBeNull();
+    expect(screen.queryByText(/^PASO 1$/i)).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: /Siguiente/ }));
+    expect(screen.getByLabelText('Calle')).toBeVisible();
+    expect(screen.getByLabelText('Altura')).toBeVisible();
+    expect(screen.getByLabelText('Localidad')).toBeVisible();
+    expect(screen.queryByLabelText('Nombre del comercio')).toBeNull();
+    expect(within(camino).getByRole('button', { name: /Ubicación/ })).toHaveAttribute(
+      'aria-current',
+      'step',
+    );
+    expect(
+      within(camino)
+        .getByRole('button', { name: /Tu comercio/ })
+        .closest('li'),
+    ).toHaveClass('hecho');
+    expect(screen.getByRole('button', { name: /Siguiente/ })).toBeDisabled();
+    expect(within(camino).getByRole('button', { name: /Rubro/ })).toBeDisabled();
+
+    await elegirDireccion(user);
+    await esperarLocalidad('San Justo');
+    await user.click(screen.getByRole('button', { name: /Siguiente/ }));
+    expect(screen.getByLabelText('Rubro del comercio')).toBeVisible();
+    expect(screen.queryByRole('button', { name: /Siguiente/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: /Atrás/ }));
+    await user.click(screen.getByRole('button', { name: /Atrás/ }));
+    expect(screen.getByLabelText('Nombre del comercio')).toBeVisible();
+  });
+
   it('conserva etiquetas y nombres accesibles con dirección, mapa y revisión', async () => {
     const { user } = await abrirUbicacion();
     await elegirDireccion(user);
-    await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'ALMACEN');
+    await elegirRubro(user, 'ALMACEN');
     await user.click(screen.getByRole('button', { name: 'Revisar configuración' }));
     const resultado = await axe(document.body, {
       rules: { 'color-contrast': { enabled: false }, region: { enabled: false } },
     });
     expect(resultado.violations.map((violacion) => violacion.id)).toEqual([]);
   });
+
   it('protege la pantalla con el guard de sesión', async () => {
     const router = renderApp('/ubicacion');
     await screen.findByRole('heading', { name: 'Ingresá a tu cuenta' }, ESPERA);
@@ -79,10 +156,8 @@ describe('Ubicación y rubro del negocio', () => {
       }),
     );
     const { user } = await abrirUbicacion();
-    await user.type(
-      screen.getByLabelText('Dirección del comercio'),
-      '  Florencio  Varela 1903, San Justo  ',
-    );
+    await irAlPaso(user, 'Ubicación');
+    await escribirDireccion(user, '  Florencio  Varela ', ' 1903', ' San Justo ');
     expect(consultas).toBe(0);
     await user.click(screen.getByRole('button', { name: 'Buscar dirección' }));
     await screen.findAllByRole('radio', {}, ESPERA);
@@ -92,6 +167,7 @@ describe('Ubicación y rubro del negocio', () => {
 
   it('rechaza una consulta vacía sin llamar al geocodificador', async () => {
     const { user } = await abrirUbicacion();
+    await irAlPaso(user, 'Ubicación');
     await user.click(screen.getByRole('button', { name: 'Buscar dirección' }));
     expect(screen.getByText(/Escribí calle, altura y localidad/)).toBeVisible();
     expect(screen.queryByRole('radio')).toBeNull();
@@ -101,64 +177,58 @@ describe('Ubicación y rubro del negocio', () => {
     const { user } = await abrirUbicacion();
     await elegirDireccion(user);
     expect(screen.getByRole('region', { name: 'Mapa de tu comercio' })).toBeVisible();
-    expect(screen.getByLabelText('Latitud')).toHaveValue('-34.6701');
-    await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'ALMACEN');
+    expect(screen.queryByLabelText('Latitud')).toBeNull();
+    await esperarLocalidad('San Justo');
+    await elegirRubro(user, 'ALMACEN');
     await user.click(screen.getByRole('button', { name: 'Revisar configuración' }));
     const resumen = screen.getByRole('status', { name: 'Configuración revisada' });
     expect(within(resumen).getByText('Almacén')).toBeVisible();
     expect(resumen).toHaveTextContent('-34.6701, -58.5625');
     expect(resumen).toHaveTextContent('todavía no se guardaron');
-    await esperarLocalidad('San Justo');
     expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeEnabled();
   });
 
-  it('corrige coordenadas con teclado y descarta la revisión cuando cambia un dato', async () => {
+  it('descarta la revisión cuando cambia un dato', async () => {
     const { user } = await abrirUbicacion();
     await elegirDireccion(user);
-    await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'KIOSCO');
-    await user.clear(screen.getByLabelText('Latitud'));
-    await user.type(screen.getByLabelText('Latitud'), '-34,68');
+    await elegirRubro(user, 'KIOSCO');
     await user.click(screen.getByRole('button', { name: 'Revisar configuración' }));
     expect(screen.getByRole('status', { name: 'Configuración revisada' })).toHaveTextContent(
-      'ajustado manualmente',
-    );
-    expect(screen.getByRole('status', { name: 'Configuración revisada' })).toHaveTextContent(
-      '-34.68, -58.5625',
+      '-34.6701, -58.5625',
     );
     await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'OTRO');
     expect(screen.queryByRole('status', { name: 'Configuración revisada' })).toBeNull();
   });
 
-  it('exige dirección, rubro y coordenadas válidas', async () => {
+  it('exige dirección y rubro', async () => {
     const { user } = await abrirUbicacion();
-    await user.click(screen.getByRole('button', { name: 'Revisar configuración' }));
-    expect(screen.getByText('Buscá y elegí la dirección de tu comercio.')).toBeVisible();
+    await irAlPaso(user, 'Ubicación');
+    expect(screen.getByRole('button', { name: /Siguiente/ })).toBeDisabled();
+    expect(botonDelPaso('Rubro')).toBeDisabled();
+    expect(screen.getByText(/Buscá y elegí tu dirección/)).toBeVisible();
     await elegirDireccion(user);
+    await irARubro(user);
     await user.click(screen.getByRole('button', { name: 'Revisar configuración' }));
     expect(screen.getByText('Elegí el rubro de tu comercio.')).toBeVisible();
     await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'ALMACEN');
-    await user.clear(screen.getByLabelText('Latitud'));
-    await user.type(screen.getByLabelText('Latitud'), '91');
     await user.click(screen.getByRole('button', { name: 'Revisar configuración' }));
-    expect(screen.getByText(/Revisá las coordenadas: latitud entre/)).toBeVisible();
-    expect(screen.queryByRole('status', { name: 'Configuración revisada' })).toBeNull();
+    expect(screen.getByRole('status', { name: 'Configuración revisada' })).toBeVisible();
   });
 
   it('descarta el punto anterior cuando se edita el texto buscado', async () => {
     const { user } = await abrirUbicacion();
     await elegirDireccion(user);
-    await user.type(screen.getByLabelText('Dirección del comercio'), ' otra');
-    expect(screen.queryByLabelText('Latitud')).toBeNull();
+    await user.type(screen.getByLabelText('Calle'), ' otra');
     expect(screen.queryByRole('radio')).toBeNull();
     expect(screen.queryByRole('region', { name: 'Mapa de tu comercio' })).toBeNull();
   });
 
   it('explica una búsqueda sin resultados y permite volver a buscar', async () => {
     const { user } = await abrirUbicacion();
-    await user.type(screen.getByLabelText('Dirección del comercio'), 'Sin coincidencias');
+    await irAlPaso(user, 'Ubicación');
+    await escribirDireccion(user, 'Sin coincidencias', '1', 'Ninguna');
     await user.click(screen.getByRole('button', { name: 'Buscar dirección' }));
     expect(await screen.findByText(/No encontramos esa dirección/, {}, ESPERA)).toBeVisible();
-    await user.clear(screen.getByLabelText('Dirección del comercio'));
     await buscarDireccion(user);
   });
 
@@ -170,7 +240,8 @@ describe('Ubicación y rubro del negocio', () => {
       'Esperá un segundo antes de buscar otra dirección.',
     );
     const { user } = await abrirUbicacion();
-    await user.type(screen.getByLabelText('Dirección del comercio'), 'Varela 1903, San Justo');
+    await irAlPaso(user, 'Ubicación');
+    await escribirDireccion(user, 'Varela', '1903', 'San Justo');
     await user.click(screen.getByRole('button', { name: 'Buscar dirección' }));
     expect(await screen.findByText(/Esperá un segundo antes de buscar/, {}, ESPERA)).toBeVisible();
     expect(screen.queryByRole('region', { name: 'Mapa de tu comercio' })).toBeNull();
@@ -183,9 +254,9 @@ describe('Ubicación y rubro del negocio', () => {
 
   it('permite recuperar el catálogo de rubros después de un error', async () => {
     setupServerError('get', '/ubicacion/rubros', 503, 'Sin servicio');
-    setupUsuarioConSesion();
-    renderApp('/ubicacion');
-    const user = userEvent.setup();
+    const { user } = await abrirUbicacion();
+    await elegirDireccion(user);
+    await irAlPaso(user, 'Rubro');
     expect(await screen.findByText('No pudimos cargar los rubros.', {}, ESPERA)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Revisar configuración' })).toBeDisabled();
     server.resetHandlers();
@@ -202,11 +273,12 @@ describe('Ubicación y rubro del negocio', () => {
       }),
     );
     const { user } = await abrirUbicacion();
-    await user.type(screen.getByLabelText('Dirección del comercio'), 'Varela 1903, San Justo');
+    await irAlPaso(user, 'Ubicación');
+    await escribirDireccion(user, 'Varela', '1903', 'San Justo');
     await user.click(screen.getByRole('button', { name: 'Buscar dirección' }));
     expect(screen.getByRole('button', { name: 'Buscando…' })).toBeDisabled();
-    await user.clear(screen.getByLabelText('Dirección del comercio'));
-    await user.type(screen.getByLabelText('Dirección del comercio'), 'otra dirección');
+    await user.clear(screen.getByLabelText('Calle'));
+    await user.type(screen.getByLabelText('Calle'), 'otra calle');
     await delay(550);
     expect(screen.queryByRole('radio')).toBeNull();
     expect(screen.getByRole('button', { name: 'Buscar dirección' })).toBeEnabled();
@@ -215,14 +287,15 @@ describe('Ubicación y rubro del negocio', () => {
   it('borra el borrador al salir y no lo recupera al volver', async () => {
     const { user, router } = await abrirUbicacion();
     await elegirDireccion(user);
-    await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'ALMACEN');
+    await elegirRubro(user, 'ALMACEN');
     await user.click(screen.getByRole('link', { name: /Volver a Mi zona/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/zona'), ESPERA);
     await user.click(await screen.findByRole('link', { name: /Probar ubicación y rubro/ }, ESPERA));
     await screen.findByRole('heading', { name: 'Ubicación y rubro' }, ESPERA);
-    expect(screen.getByLabelText('Dirección del comercio')).toHaveValue('');
-    expect(screen.getByLabelText('Rubro del comercio')).toHaveValue('');
+    await irAlPaso(user, 'Ubicación');
+    expect(screen.getByLabelText('Calle')).toHaveValue('');
     expect(screen.queryByRole('region', { name: 'Mapa de tu comercio' })).toBeNull();
+    expect(botonDelPaso('Rubro')).toBeDisabled();
   });
 
   it('deja el geocodificador y el catálogo fuera de los mocks parciales', () => {
@@ -253,17 +326,21 @@ describe('Ubicación y rubro del negocio', () => {
       },
     });
     renderApp('/ubicacion');
+    const user = userEvent.setup();
     await waitFor(
       () => expect(screen.getByLabelText('Nombre del comercio')).toHaveValue('Almacén guardado'),
       ESPERA,
     );
-    expect(screen.getByLabelText('Dirección del comercio')).toHaveValue('Dirección guardada');
-    expect(screen.getByLabelText('Localidad del comercio')).toHaveValue('San Justo');
-    expect(screen.getByLabelText('Rubro del comercio')).toHaveValue('KIOSCO');
-    expect(screen.getByLabelText('Latitud')).toHaveValue('-34.68');
     expect(screen.getByRole('checkbox', { name: /Compartir datos agregados/ })).not.toBeChecked();
     expect(screen.getByText('Tu zona: San Justo - UNLaM')).toBeVisible();
+    await irAlPaso(user, 'Ubicación');
+    expect(screen.getByText('Dirección elegida: Dirección guardada')).toBeVisible();
+    expect(screen.getByLabelText('Calle')).toHaveValue('');
+    expect(screen.getByLabelText('Localidad')).toHaveValue('San Justo');
+    expect(screen.getByRole('region', { name: 'Mapa de tu comercio' })).toBeVisible();
     expect(screen.queryByRole('radio')).toBeNull();
+    await irAlPaso(user, 'Rubro');
+    expect(screen.getByLabelText('Rubro del comercio')).toHaveValue('KIOSCO');
   });
 
   it('avisa que ninguna zona cubre la ubicación guardada', async () => {
@@ -281,35 +358,40 @@ describe('Ubicación y rubro del negocio', () => {
       },
     });
     renderApp('/ubicacion');
-    expect(
-      await screen.findByText(/Todavía no hay una zona que cubra/, {}, ESPERA),
-    ).toBeVisible();
+    expect(await screen.findByText(/Todavía no hay una zona que cubra/, {}, ESPERA)).toBeVisible();
   });
 
   it('no muestra zona mientras el comercio no tiene ubicación guardada', async () => {
     const { user } = await abrirUbicacion();
     await elegirDireccion(user);
+    await irAlPaso(user, 'Tu comercio');
     expect(screen.queryByText(/Tu zona:/)).toBeNull();
     expect(screen.queryByText(/Todavía no hay una zona/)).toBeNull();
   });
 
   it('guarda los datos y los recupera al salir y volver a entrar', async () => {
     const { user, router } = await abrirUbicacion();
+    await user.click(screen.getByRole('checkbox', { name: /Compartir datos agregados/ }));
     await elegirDireccion(user);
     await esperarLocalidad('San Justo');
-    await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'ALMACEN');
-    await user.click(screen.getByRole('checkbox', { name: /Compartir datos agregados/ }));
+    await elegirRubro(user, 'ALMACEN');
     await user.click(screen.getByRole('button', { name: 'Guardar configuración' }));
     expect(await screen.findByText(/se guardó correctamente/, {}, ESPERA)).toBeVisible();
+    await irAlPaso(user, 'Tu comercio');
     expect(screen.getByText('Tu zona: San Justo - UNLaM')).toBeVisible();
     await user.click(screen.getByRole('link', { name: /Volver a Mi zona/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/zona'), ESPERA);
     await user.click(await screen.findByRole('link', { name: /Probar ubicación y rubro/ }, ESPERA));
-    await waitFor(() => expect(screen.getByLabelText('Latitud')).toHaveValue('-34.6701'), ESPERA);
-    expect(screen.getByText('Tu zona: San Justo - UNLaM')).toBeVisible();
-    expect(screen.getByLabelText('Localidad del comercio')).toHaveValue('San Justo');
-    expect(screen.getByLabelText('Rubro del comercio')).toHaveValue('ALMACEN');
+    expect(await screen.findByText('Tu zona: San Justo - UNLaM', {}, ESPERA)).toBeVisible();
     expect(screen.getByRole('checkbox', { name: /Compartir datos agregados/ })).not.toBeChecked();
+    await irAlPaso(user, 'Ubicación');
+    await waitFor(
+      () => expect(screen.getByRole('region', { name: 'Mapa de tu comercio' })).toBeVisible(),
+      ESPERA,
+    );
+    expect(screen.getByLabelText('Localidad')).toHaveValue('San Justo');
+    await irAlPaso(user, 'Rubro');
+    expect(screen.getByLabelText('Rubro del comercio')).toHaveValue('ALMACEN');
   });
 
   it('conserva el borrador si falla el guardado y permite reintentar', async () => {
@@ -317,12 +399,14 @@ describe('Ubicación y rubro del negocio', () => {
     const { user } = await abrirUbicacion();
     await elegirDireccion(user);
     await esperarLocalidad('San Justo');
-    await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'ALMACEN');
+    await elegirRubro(user, 'ALMACEN');
     await user.click(screen.getByRole('button', { name: 'Guardar configuración' }));
     expect(await screen.findByText('No pudimos guardar tu comercio.', {}, ESPERA)).toBeVisible();
     expect(screen.queryByText(/se guardó correctamente/)).toBeNull();
-    expect(screen.getByLabelText('Latitud')).toHaveValue('-34.6701');
+    await irAlPaso(user, 'Ubicación');
+    expect(screen.getByRole('region', { name: 'Mapa de tu comercio' })).toBeVisible();
     server.resetHandlers();
+    await irAlPaso(user, 'Rubro');
     await user.click(screen.getByRole('button', { name: 'Guardar configuración' }));
     expect(await screen.findByText(/se guardó correctamente/, {}, ESPERA)).toBeVisible();
   });
@@ -331,47 +415,40 @@ describe('Ubicación y rubro del negocio', () => {
     const { user } = await abrirUbicacion();
     await elegirDireccion(user);
     await esperarLocalidad('San Justo');
-    await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'ALMACEN');
+    await elegirRubro(user, 'ALMACEN');
+    await irAlPaso(user, 'Tu comercio');
     await user.clear(screen.getByLabelText('Nombre del comercio'));
-    await user.click(screen.getByRole('button', { name: 'Guardar configuración' }));
-    expect(screen.getByText(/Completá el nombre y la localidad/)).toBeVisible();
+    expect(screen.getByText('Escribí el nombre del comercio para seguir.')).toBeVisible();
+    expect(screen.getByRole('button', { name: /Siguiente/ })).toBeDisabled();
+    expect(botonDelPaso('Ubicación')).toBeDisabled();
+    expect(botonDelPaso('Rubro')).toBeDisabled();
     expect(estado.negocios.size).toBe(0);
   });
 
-  it('completa la localidad sola con la que el mapa reconoce al elegir la dirección', async () => {
+  it('completa la localidad con la que el mapa reconoce al elegir la dirección', async () => {
     const { user } = await abrirUbicacion();
-    expect(screen.getByLabelText('Localidad del comercio')).toHaveValue('');
-    await elegirDireccion(user);
+    await irAlPaso(user, 'Ubicación');
+    expect(screen.getByLabelText('Localidad')).toHaveValue('');
+    await buscarDireccion(user, 'san justo');
+    await user.click(screen.getByRole('radio', { name: DIRECCIONES_DE_PRUEBA[0].direccion }));
     await esperarLocalidad('San Justo');
     expect(screen.queryByText(/no coincide con la del mapa/)).toBeNull();
-  });
-
-  it('actualiza la localidad cuando se mueve el punto a otra localidad', async () => {
-    const { user } = await abrirUbicacion();
-    await elegirDireccion(user);
-    await esperarLocalidad('San Justo');
-    await user.clear(screen.getByLabelText('Latitud'));
-    await user.type(screen.getByLabelText('Latitud'), '-34.6037');
-    await user.clear(screen.getByLabelText('Longitud'));
-    await user.type(screen.getByLabelText('Longitud'), '-58.3816');
-    await esperarLocalidad('Otra localidad');
   });
 
   it('permite escribir la localidad pero no guardar una que no coincide con el mapa', async () => {
     const { user } = await abrirUbicacion();
     await elegirDireccion(user);
     await esperarLocalidad('San Justo');
-    await user.selectOptions(screen.getByLabelText('Rubro del comercio'), 'ALMACEN');
-    await user.clear(screen.getByLabelText('Localidad del comercio'));
-    await user.type(screen.getByLabelText('Localidad del comercio'), 'Ramos Mejía');
-    expect(
-      screen.getByText('La localidad no coincide con la del mapa (San Justo).'),
-    ).toBeVisible();
-    expect(screen.getByLabelText('Localidad del comercio')).toBeInvalid();
-    expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeDisabled();
+    await user.clear(screen.getByLabelText('Localidad'));
+    await user.type(screen.getByLabelText('Localidad'), 'Ramos Mejía');
+    expect(screen.getByText('La localidad no coincide con la del mapa (San Justo).')).toBeVisible();
+    expect(screen.getByLabelText('Localidad')).toBeInvalid();
+    expect(screen.getByRole('button', { name: /Siguiente/ })).toBeDisabled();
+    expect(botonDelPaso('Rubro')).toBeDisabled();
     await user.click(screen.getByRole('button', { name: 'Usar San Justo' }));
-    expect(screen.getByLabelText('Localidad del comercio')).toHaveValue('San Justo');
+    expect(screen.getByLabelText('Localidad')).toHaveValue('San Justo');
     expect(screen.queryByText(/no coincide con la del mapa/)).toBeNull();
+    await elegirRubro(user, 'ALMACEN');
     expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeEnabled();
   });
 
@@ -379,9 +456,10 @@ describe('Ubicación y rubro del negocio', () => {
     const { user } = await abrirUbicacion();
     await elegirDireccion(user);
     await esperarLocalidad('San Justo');
-    await user.clear(screen.getByLabelText('Localidad del comercio'));
-    await user.type(screen.getByLabelText('Localidad del comercio'), '  sAn   jústo ');
+    await user.clear(screen.getByLabelText('Localidad'));
+    await user.type(screen.getByLabelText('Localidad'), '  sAn   jústo ');
     expect(screen.queryByText(/no coincide con la del mapa/)).toBeNull();
+    await irARubro(user);
     expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeEnabled();
   });
 
@@ -390,11 +468,12 @@ describe('Ubicación y rubro del negocio', () => {
     const { user } = await abrirUbicacion();
     await elegirDireccion(user);
     expect(await screen.findByText('No pudimos verificar la localidad.', {}, ESPERA)).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeDisabled();
+    expect(botonDelPaso('Rubro')).toBeDisabled();
     server.resetHandlers();
     await user.click(screen.getByRole('button', { name: 'Reintentar verificación' }));
     await esperarLocalidad('San Justo');
     expect(screen.queryByText('No pudimos verificar la localidad.')).toBeNull();
+    await irAlPaso(user, 'Rubro');
     expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeEnabled();
   });
 
@@ -413,23 +492,31 @@ describe('Ubicación y rubro del negocio', () => {
       },
     });
     renderApp('/ubicacion');
+    const user = userEvent.setup();
+    await waitFor(
+      () => expect(screen.getByLabelText('Nombre del comercio')).toHaveValue('Almacén viejo'),
+      ESPERA,
+    );
+    await irAlPaso(user, 'Ubicación');
     expect(
       await screen.findByText('La localidad no coincide con la del mapa (San Justo).', {}, ESPERA),
     ).toBeVisible();
-    expect(screen.getByLabelText('Localidad del comercio')).toHaveValue('Ciudad Vieja');
-    expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeDisabled();
+    expect(screen.getByLabelText('Localidad')).toHaveValue('Ciudad Vieja');
+    expect(botonDelPaso('Rubro')).toBeDisabled();
   });
 
   it('no permite guardar una configuración que no pudo cargar y ofrece reintentar', async () => {
     setupServerError('get', '/business', 503, 'Sin servicio');
     setupUsuarioConSesion();
     renderApp('/ubicacion');
+    const user = userEvent.setup();
     expect(
       await screen.findByText('No pudimos cargar la configuración de tu comercio.', {}, ESPERA),
     ).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Guardar configuración' })).toBeDisabled();
+    expect(botonDelPaso('Rubro')).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Siguiente/ })).toBeDisabled();
     server.resetHandlers();
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Reintentar configuración' }));
+    await user.click(screen.getByRole('button', { name: 'Reintentar configuración' }));
     await waitFor(() => expect(screen.getByLabelText('Nombre del comercio')).toBeEnabled(), ESPERA);
     expect(screen.getByLabelText('Nombre del comercio')).not.toHaveValue('');
   });

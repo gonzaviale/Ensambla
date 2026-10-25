@@ -57,10 +57,10 @@ describe('inicio', () => {
     expect(useSistemaStore.getState().modo).toBe('use');
   });
 
-  it('«Mi Negocio» sin sistemas explica por dónde empezar', async () => {
+  it('«Mis cuadernos» sin sistemas explica por dónde empezar', async () => {
     const { user } = await abrirInicio();
 
-    await clickButton(user, 'Mi Negocio');
+    await clickButton(user, 'Mis cuadernos');
 
     await verifyToastAsync(/tres caminos/);
   });

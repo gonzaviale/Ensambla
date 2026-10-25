@@ -62,50 +62,11 @@
   background: var(--coral);
 }
 
-/* Panel lateral */
-.alertas-capa {
-  position: fixed;
-  inset: 0;
-  z-index: 190;
-}
-.alertas-capa[hidden] {
-  display: none;
-}
-.alertas-fondo {
-  position: absolute;
-  inset: 0;
-  background: #26344333;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
+/* La pantalla de avisos: una columna centrada */
 .alertas-panel {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(480px, 100%);
-  background: var(--paper);
-  box-shadow: -20px 0 60px #26344322;
-  overflow-y: auto;
-  padding: 22px 22px 28px;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  transform: translateX(30px);
-  opacity: 0;
-  transition:
-    transform 0.2s,
-    opacity 0.2s;
-}
-.alertas-capa.visible .alertas-fondo {
-  opacity: 1;
-}
-.alertas-capa.visible .alertas-panel {
-  transform: none;
-  opacity: 1;
-}
-body.alertas-abiertas {
-  overflow: hidden;
 }
 .alertas-head {
   display: grid;
@@ -122,7 +83,7 @@ body.alertas-abiertas {
   height: 58px;
   mix-blend-mode: multiply;
 }
-.alertas-head h2 {
+.alertas-head h1 {
   font-size: 17px;
   margin: 2px 0 3px;
 }
@@ -130,128 +91,6 @@ body.alertas-abiertas {
   margin: 0;
   font-size: 12px;
   color: var(--muted);
-}
-
-/* Preguntale a Sami */
-.alertas-pregunta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 6px 6px 12px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: white;
-}
-.alertas-pregunta:focus-within {
-  border-color: var(--orange);
-  box-shadow: 0 0 0 3px #ee800022;
-}
-.alertas-pregunta > .icon {
-  width: 17px;
-  height: 17px;
-  color: var(--muted);
-  flex: none;
-}
-.alertas-pregunta .input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  box-shadow: none;
-  padding: 6px 0;
-  background: transparent;
-  font-size: 13px;
-}
-.alertas-pregunta .input:focus {
-  outline: none;
-  box-shadow: none;
-}
-.alertas-sugeridas {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: -4px;
-}
-.alertas-sugeridas button {
-  border: 1px solid var(--line);
-  background: var(--soft);
-  border-radius: 999px;
-  padding: 5px 10px;
-  font: inherit;
-  font-size: 11px;
-  color: var(--ink);
-  cursor: pointer;
-}
-.alertas-sugeridas button:hover {
-  border-color: var(--orange);
-  background: #fff0da;
-}
-.alertas-respuesta {
-  display: grid;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 16px;
-  background: #e8f5fa;
-  border: 1px solid #cfe8f1;
-}
-.alertas-respuesta-txt {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-}
-.alertas-respuesta-txt .sami {
-  width: 44px;
-  height: 40px;
-  flex: none;
-  mix-blend-mode: multiply;
-}
-.alertas-respuesta-txt p {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.5;
-}
-.alertas-respuesta > .text-link {
-  justify-self: start;
-  font-size: 12px;
-}
-.alertas-ofertas {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 6px;
-}
-.alertas-ofertas button {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  text-align: left;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid #cfe8f1;
-  background: white;
-  font: inherit;
-  color: var(--ink);
-  cursor: pointer;
-}
-.alertas-ofertas button:hover {
-  border-color: var(--blue);
-}
-.alertas-ofertas li:first-child button {
-  border-color: var(--petrol);
-}
-.alertas-ofertas strong {
-  display: block;
-  font-size: 13px;
-}
-.alertas-ofertas small {
-  color: var(--muted);
-  font-size: 11px;
-}
-.alertas-ofertas b {
-  font-size: 14px;
-  white-space: nowrap;
 }
 
 /* Filtros */
@@ -654,78 +493,13 @@ body.alertas-abiertas {
 .alertas-head .eyebrow {
   color: var(--yellow);
 }
-.alertas-head h2 {
+.alertas-head h1 {
   font-size: 19px;
   color: #fff;
 }
 .alertas-head p {
   color: #ffffffcc;
 }
-.alertas-cerrar {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: #fff;
-  color: var(--petrol);
-  box-shadow: 0 3px 0 #00000033;
-  transition:
-    background 0.15s,
-    color 0.15s,
-    transform 0.15s;
-}
-.alertas-cerrar .icon {
-  width: 18px;
-  height: 18px;
-}
-.alertas-cerrar:hover,
-.alertas-cerrar:focus-visible {
-  background: var(--coral);
-  color: #fff;
-  transform: rotate(90deg);
-}
-
-/* Preguntale a Sami */
-.alertas-pregunta {
-  border: 2px solid #dfe3db;
-  border-radius: 14px;
-  background: #fff;
-}
-.alertas-pregunta:focus-within {
-  border-color: var(--orange);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--orange) 18%, transparent);
-}
-.alertas-pregunta .btn.primary {
-  background: var(--orange);
-  box-shadow: 0 3px 0 #c76b00;
-}
-.alertas-sugeridas button {
-  --chip: var(--orange);
-  background: #fff;
-  border: 2px solid var(--chip);
-  color: var(--ink);
-  font-weight: 600;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-.alertas-sugeridas button:nth-child(2) {
-  --chip: var(--blue);
-}
-.alertas-sugeridas button:nth-child(3) {
-  --chip: var(--coral);
-}
-.alertas-sugeridas button:nth-child(4) {
-  --chip: var(--petrol);
-}
-.alertas-sugeridas button:hover {
-  background: var(--chip);
-  color: #fff;
-}
-
 /* Cinta de filtros: la marca petróleo se desliza hasta el filtro elegido */
 .alertas-cinta {
   display: flex;
@@ -835,7 +609,8 @@ body.alertas-abiertas {
   background: #fff;
   border: 2px dashed #e4e6df;
 }
-.alertas-respuesta {
+.alertas-respuesta,
+.alertas-ajustes {
   background: #fff;
 }
 
@@ -848,15 +623,6 @@ body.alertas-abiertas {
   }
 }
 
-/* Barra de arriba: la X para cerrar, a la izquierda y fuera del bloque de Sami */
-.alertas-barra {
-  display: flex;
-  margin-bottom: -6px;
-}
-.alertas-barra .alertas-cerrar {
-  border: 2px solid var(--petrol);
-  box-shadow: none;
-}
 .alertas-head {
   grid-template-columns: 92px 1fr;
 }
@@ -993,4 +759,89 @@ body.alertas-abiertas {
   height: auto;
   margin: 0 auto;
   filter: drop-shadow(0 6px 8px #0003);
+}
+
+/* Pestaña «Avisos»: los avisos con su propia pantalla */
+.avisos-page {
+  max-width: 820px;
+  padding-top: 32px;
+}
+.avisos-page .alertas-head h1 {
+  font-size: 26px;
+  margin: 2px 0 6px;
+}
+.avisos-page .alertas-head p {
+  font-size: 14px;
+}
+
+/* Un solo color para todos los avisos: la prioridad la dice la palabra, no el color */
+.alerta.p1,
+.alerta.p2,
+.alerta.p3 {
+  --nivel: var(--petrol);
+}
+.sami-chip.p2 .icon,
+.sami-chip.p3 .icon {
+  color: var(--petrol);
+}
+.sami-chip.p3 {
+  border-color: var(--line);
+}
+.sami-aviso.p2,
+.sami-aviso.p3 {
+  border-left-color: var(--petrol);
+}
+.alertas-cinta .alertas-filtros button span {
+  background: var(--petrol);
+}
+
+/* El botón que lleva al taller de Sami: líneas naranjas para que resalte */
+button.alertas-preguntar {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  padding: 12px 18px 12px 12px;
+  border: 2px solid var(--orange);
+  border-radius: 18px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.alertas-preguntar img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+.alertas-preguntar strong {
+  display: block;
+  font-size: 16px;
+  color: var(--petrol);
+}
+.alertas-preguntar small {
+  font-size: 13px;
+  color: var(--muted);
+}
+.alertas-preguntar > .icon {
+  width: 20px;
+  height: 20px;
+  color: var(--orange);
+}
+button.alertas-preguntar:hover,
+button.alertas-preguntar:focus-visible {
+  background: var(--orange);
+}
+button.alertas-preguntar:hover strong,
+button.alertas-preguntar:hover small,
+button.alertas-preguntar:hover > .icon,
+button.alertas-preguntar:focus-visible strong,
+button.alertas-preguntar:focus-visible small,
+button.alertas-preguntar:focus-visible > .icon {
+  color: #fff;
 }

@@ -2,7 +2,7 @@ import { recuperarBorradorSesion } from '@/lib/borradorSesion';
 import { create } from 'zustand';
 import type { AccesoContenido } from '@/types/contenidoPlan';
 import { clone } from '@/lib/sistema/core';
-import type { Aviso, Respuesta } from '@/lib/sistema/alertas';
+import type { Aviso } from '@/lib/sistema/alertas';
 import type { Bloque, ClavePlantilla, Seccion, Sistema } from '@/lib/sistema/tipos';
 import { TUTORIAL_INICIAL, type EstadoDelTutorial } from '@/lib/sistema/tutorial';
 import type { ImagenParaSami, OpcionesDeSami } from '@/types/samiTaller';
@@ -78,19 +78,18 @@ export type Taller = {
   sistemaId: string | null;
 };
 
-/** El panel de avisos de Sami y lo que se ve de él. */
+/** La pantalla de avisos de Sami y lo que se ve de ella. */
 export type PanelDeAvisos = {
+  /** La pantalla de avisos está a la vista: mientras tanto no salta «Sami vio un cambio». */
   abierto: boolean;
   filtro: string;
-  respuesta: Respuesta | null;
-  /** El aviso que se abrió desde el toast o la franja: el panel lo muestra resaltado. */
+  /** El aviso que se abrió desde el toast o la franja: la pantalla lo muestra resaltado. */
   foco: string | null;
 };
 
 const PANEL_CERRADO: PanelDeAvisos = {
   abierto: false,
   filtro: 'todas',
-  respuesta: null,
   foco: null,
 };
 
@@ -159,8 +158,8 @@ type Acciones = {
   /** Aplica un cambio sobre una copia de la propuesta de Sami. */
   editarBorrador: (cambio: (borrador: Sistema) => void) => void;
   ponerAvisos: (avisos: Aviso[]) => void;
+  /** Prepara la pantalla de avisos; con un aviso, lo resalta. La navegación la hace `useAbrirAvisos`. */
   abrirPanel: (foco?: string | null) => void;
-  cerrarPanel: () => void;
   actualizarPanel: (cambio: Partial<PanelDeAvisos>) => void;
   mostrarAvisoNuevo: (aviso: Aviso, cantidad: number) => void;
   ocultarAvisoNuevo: () => void;
@@ -360,15 +359,9 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
   ponerAvisos: (avisos) => set({ avisos }),
   abrirPanel: (foco = null) =>
     set((estado) => ({
-      panel: {
-        abierto: true,
-        filtro: foco ? 'todas' : estado.panel.filtro,
-        respuesta: null,
-        foco,
-      },
+      panel: { ...estado.panel, filtro: foco ? 'todas' : estado.panel.filtro, foco },
       avisoNuevo: null,
     })),
-  cerrarPanel: () => set((estado) => ({ panel: { ...estado.panel, abierto: false } })),
   actualizarPanel: (cambio) => set((estado) => ({ panel: { ...estado.panel, ...cambio } })),
   mostrarAvisoNuevo: (aviso, cantidad) => set({ avisoNuevo: { aviso, cantidad } }),
   ocultarAvisoNuevo: () => set({ avisoNuevo: null }),

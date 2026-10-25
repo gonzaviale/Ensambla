@@ -1,25 +1,14 @@
-type Props = {
+type PropsDatos = {
   nombre: string;
-  localidad: string;
   comparteDatosZona: boolean;
   zona: string | null;
   ubicacionGuardada: boolean;
-  localidadDelMapa: string | null;
-  errorLocalidad: string;
-  verificandoLocalidad: boolean;
   onNombre: (valor: string) => void;
-  onLocalidad: (valor: string) => void;
-  onUsarLocalidadDelMapa: () => void;
-  onReintentarLocalidad: () => void;
   onCompartir: (valor: boolean) => void;
 };
 
-export function DatosDelComercio(props: Props) {
-  const ayuda = props.verificandoLocalidad
-    ? 'Verificando la localidad con el mapa…'
-    : props.localidadDelMapa
-      ? `Según el mapa: ${props.localidadDelMapa}. Se completa sola al elegir o mover el punto.`
-      : 'Se completa sola al elegir o mover el punto en el mapa.';
+// El primer paso: cómo se llama el comercio y si aporta sus datos a la zona.
+export function DatosDelComercio(props: PropsDatos) {
   return (
     <section className="ubicacion-panel" aria-labelledby="titulo-datos-comercio">
       <h2 id="titulo-datos-comercio">Datos de tu comercio</h2>
@@ -32,34 +21,6 @@ export function DatosDelComercio(props: Props) {
           value={props.nombre}
           onChange={(evento) => props.onNombre(evento.target.value)}
         />
-      </div>
-      <div className="field">
-        <label htmlFor="negocio-localidad">Localidad del comercio</label>
-        <input
-          id="negocio-localidad"
-          className="input"
-          maxLength={120}
-          value={props.localidad}
-          aria-invalid={props.errorLocalidad ? true : undefined}
-          aria-describedby="ayuda-localidad error-localidad"
-          onChange={(evento) => props.onLocalidad(evento.target.value)}
-        />
-        <p id="ayuda-localidad" className="ubicacion-ayuda">
-          {ayuda}
-        </p>
-        <p id="error-localidad" className="form-error" role="alert">
-          {props.errorLocalidad}
-        </p>
-        {props.errorLocalidad && props.localidadDelMapa && (
-          <button type="button" className="btn secondary" onClick={props.onUsarLocalidadDelMapa}>
-            Usar {props.localidadDelMapa}
-          </button>
-        )}
-        {props.errorLocalidad && !props.localidadDelMapa && !props.verificandoLocalidad && (
-          <button type="button" className="btn secondary" onClick={props.onReintentarLocalidad}>
-            Reintentar verificación
-          </button>
-        )}
       </div>
       {props.ubicacionGuardada && (
         <p className="ubicacion-ayuda" role="status">
@@ -76,10 +37,56 @@ export function DatosDelComercio(props: Props) {
         />
         Compartir datos agregados y anónimos de mi comercio con la zona
       </label>
-      <p className="ubicacion-ayuda">
-        Podés desactivar tu aporte a la zona. La configuración y la ubicación de tu comercio son
-        privadas.
-      </p>
     </section>
+  );
+}
+
+type PropsLocalidad = {
+  localidad: string;
+  localidadDelMapa: string | null;
+  errorLocalidad: string;
+  verificandoLocalidad: boolean;
+  onLocalidad: (valor: string) => void;
+  onUsarLocalidadDelMapa: () => void;
+  onReintentarLocalidad: () => void;
+};
+
+// La localidad va en el bloque de la dirección: sirve para buscar y se completa sola con el punto del mapa.
+export function LocalidadDelComercio(props: PropsLocalidad) {
+  const ayuda = props.verificandoLocalidad
+    ? 'Verificando la localidad con el mapa…'
+    : props.localidadDelMapa
+      ? `Según el mapa: ${props.localidadDelMapa}.`
+      : 'Se completa sola con el punto del mapa.';
+  return (
+    <div className="field">
+      <label htmlFor="negocio-localidad">Localidad</label>
+      <input
+        id="negocio-localidad"
+        className="input"
+        maxLength={120}
+        placeholder="Ej.: San Justo"
+        value={props.localidad}
+        aria-invalid={props.errorLocalidad ? true : undefined}
+        aria-describedby="ayuda-localidad error-localidad"
+        onChange={(evento) => props.onLocalidad(evento.target.value)}
+      />
+      <p id="ayuda-localidad" className="ubicacion-ayuda">
+        {ayuda}
+      </p>
+      <p id="error-localidad" className="form-error" role="alert">
+        {props.errorLocalidad}
+      </p>
+      {props.errorLocalidad && props.localidadDelMapa && (
+        <button type="button" className="btn secondary" onClick={props.onUsarLocalidadDelMapa}>
+          Usar {props.localidadDelMapa}
+        </button>
+      )}
+      {props.errorLocalidad && !props.localidadDelMapa && !props.verificandoLocalidad && (
+        <button type="button" className="btn secondary" onClick={props.onReintentarLocalidad}>
+          Reintentar verificación
+        </button>
+      )}
+    </div>
   );
 }

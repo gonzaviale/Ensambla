@@ -2,18 +2,18 @@ import type { ReactNode } from 'react';
 import { Icon } from './Icon';
 import { Logo } from './Logo';
 
-export type SeccionActiva = 'home' | 'templates' | 'zone' | 'plans' | 'account';
+export type SeccionActiva = 'home' | 'templates' | 'zone' | 'avisos' | 'plans' | 'account';
 
 type TopBarProps = {
   active?: SeccionActiva;
   nombre: string;
-  sistemas: number;
   /** La campana de avisos, que vive en el encabezado. */
   campana?: ReactNode;
   onInicio: () => void;
   onSistemas: () => void;
   onPlantillas: () => void;
   onZona: () => void;
+  onAvisos: () => void;
   onPlanes: () => void;
   onAyuda: () => void;
   onCuenta: () => void;
@@ -23,12 +23,12 @@ type TopBarProps = {
 export function TopBar({
   active = 'home',
   nombre,
-  sistemas,
   campana,
   onInicio,
   onSistemas,
   onPlantillas,
   onZona,
+  onAvisos,
   onPlanes,
   onAyuda,
   onCuenta,
@@ -46,7 +46,15 @@ export function TopBar({
           Inicio
         </button>
         <button type="button" onClick={onSistemas}>
-          Mi Negocio{sistemas ? ` · ${sistemas}` : ''}
+          Mis cuadernos
+        </button>
+        <button
+          type="button"
+          className={active === 'avisos' ? 'active' : ''}
+          aria-current={active === 'avisos' ? 'page' : undefined}
+          onClick={onAvisos}
+        >
+          Avisos
         </button>
         <button
           type="button"
