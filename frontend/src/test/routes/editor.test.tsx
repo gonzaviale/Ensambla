@@ -47,6 +47,14 @@ const tipoDeBloque = (tipo: string) => {
   return bloque;
 };
 
+const tipoDeBloqueDe = (sistema: Sistema, tipo: string) => {
+  const bloque = sistema.sections
+    .flatMap((seccion) => seccion.blocks)
+    .find((item) => item.type === tipo);
+  if (!bloque) throw new Error(`Falta el bloque de tipo ${tipo}`);
+  return bloque;
+};
+
 describe('el editor: construir y usar', () => {
   it('abre el sistema de la dirección con la biblioteca y el lienzo, sin el panel de ajustes', async () => {
     await abrirEditor();
@@ -126,6 +134,89 @@ describe('el editor: construir y usar', () => {
     useSistemaStore.setState({ listo: true });
 
     expect(await screen.findByText(/Quedaron 5 tablas: .+, .+, .+ y 2 más\./)).toBeVisible();
+  });
+
+  describe('la tabla a pantalla completa', () => {
+    const abrirTabla = async (user: ReturnType<typeof userEvent.setup>) => {
+      const abrir = await screen.findByRole('button', {
+        name: 'Ver Inventario a pantalla completa',
+      });
+      await user.click(abrir);
+      return { abrir, vista: await screen.findByRole('dialog', { name: 'Inventario' }) };
+    };
+
+    it('se abre desde la tabla, muestra los filtros por columna y se cierra devolviendo el foco', async () => {
+      const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+
+      const { abrir, vista } = await abrirTabla(user);
+
+      expect(within(vista).getByText(/^\d+ registros$/)).toBeVisible();
+      expect(within(vista).getByLabelText('Filtrar Producto')).toBeVisible();
+      expect(within(vista).getByLabelText('Cantidad: mín.')).toBeVisible();
+      expect(within(vista).getByLabelText('Buscar en Inventario')).toBeVisible();
+
+      await user.click(within(vista).getByRole('button', { name: /Volver al sistema/ }));
+
+      expect(screen.queryByRole('dialog', { name: 'Inventario' })).toBeNull();
+      expect(abrir).toHaveFocus();
+    });
+
+    it('filtra por columna y por búsqueda, cuenta lo que muestra y se limpia con un botón', async () => {
+      const sistema = makeTemplate('shop', {}, true);
+      const total = tipoDeBloqueDe(sistema, 'inventory').rows.length;
+      const { user } = await abrirEditor(sistema, 'usar');
+      const { vista } = await abrirTabla(user);
+      expect(within(vista).getByRole('button', { name: /Limpiar filtros/ })).toBeDisabled();
+
+      await user.type(within(vista).getByLabelText('Filtrar Producto'), 'coca');
+
+      expect(within(vista).getByText(`Mostrando 1 de ${total} registros`)).toBeVisible();
+      expect(within(vista).getByText('Coca-Cola 2,25 L')).toBeVisible();
+      expect(within(vista).queryByText(/Yerba Playadito/)).toBeNull();
+
+      await user.type(within(vista).getByLabelText('Buscar en Inventario'), 'zzz');
+      expect(
+        within(vista).getByText('Ningún registro coincide con la búsqueda y los filtros.'),
+      ).toBeVisible();
+
+      await user.click(within(vista).getByRole('button', { name: /Limpiar filtros/ }));
+
+      expect(within(vista).getByText(`${total} registros`)).toBeVisible();
+      expect(within(vista).getByLabelText('Filtrar Producto')).toHaveValue('');
+      expect(within(vista).getByLabelText('Buscar en Inventario')).toHaveValue('');
+    });
+
+    it('Escape cierra la vista, pero con un formulario encima cierra solo el formulario', async () => {
+      const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+      const { vista } = await abrirTabla(user);
+
+      await user.click(
+        within(vista).getAllByRole('button', { name: 'Editar registro' })[0] as HTMLElement,
+      );
+      expect(await screen.findByRole('heading', { name: 'Editar producto' })).toBeVisible();
+
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('heading', { name: 'Editar producto' })).toBeNull();
+      expect(screen.getByRole('dialog', { name: 'Inventario' })).toBeVisible();
+
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('dialog', { name: 'Inventario' })).toBeNull();
+    });
+
+    it('desde la vista se registra un dato nuevo y aparece en la tabla', async () => {
+      const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+      const { vista } = await abrirTabla(user);
+
+      await user.click(within(vista).getByRole('button', { name: /Registrar/ }));
+      await screen.findByRole('heading', { name: 'Registrar producto' });
+      const formulario = within(screen.getByRole('dialog', { name: 'Registrar producto' }));
+      await user.type(formulario.getByLabelText(/^Producto/), 'Mate de calabaza');
+      await user.type(formulario.getByLabelText(/^Cantidad/), '8');
+      await clickButton(user, 'Guardar');
+
+      expect(await within(vista).findByText('Mate de calabaza')).toBeVisible();
+      expect(screen.getByRole('dialog', { name: 'Inventario' })).toBeVisible();
+    });
   });
 
   it('un sistema que no existe lleva al inicio', async () => {

@@ -8,13 +8,14 @@ import { BloqueEnLienzo } from '@/components/sistema/editor/BloqueEnLienzo';
 import { CierreDeCreacion } from '@/components/sistema/CierreDeCreacion';
 import { EncabezadoDelEditor } from '@/components/sistema/editor/EncabezadoDelEditor';
 import { Inspector } from '@/components/sistema/editor/Inspector';
+import { TablaCompleta } from '@/components/sistema/editor/TablaCompleta';
 import { Icon } from '@/components/sistema/Icon';
 import { IconBtn } from '@/components/sistema/IconBtn';
 import { IconTile } from '@/components/sistema/IconTile';
 import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import { varsDeColor } from '@/components/sistema/colores';
-import { allBlocks, totals } from '@/lib/sistema/core';
+import { allBlocks, findBlock, totals } from '@/lib/sistema/core';
 import type { Color, Distribucion, TipoBloque } from '@/lib/sistema/tipos';
 import {
   agregarBloque,
@@ -74,6 +75,7 @@ export function SistemaPage() {
   const bloqueElegido = useSistemaStore(seleccionarBloqueElegido);
   const modo = useSistemaStore((estado) => estado.modo);
   const listo = useSistemaStore((estado) => estado.listo);
+  const tablaCompletaId = useSistemaStore((estado) => estado.tablaCompletaId);
   const seleccionadoId = useSistemaStore((estado) => estado.selectedId);
   const hayHistorial = useSistemaStore((estado) => estado.historial.length > 0);
   const guardando = useSistemaStore((estado) => estado.pendientes.length > 0);
@@ -140,6 +142,7 @@ export function SistemaPage() {
   const hayEjemplos = allBlocks(sistema).some((bloque) =>
     bloque.rows.some((fila) => fila.__example),
   );
+  const tablaCompleta = findBlock(sistema, tablaCompletaId ?? undefined);
   const bloques = seccion.blocks;
   const construyendo = modo === 'build';
 
@@ -407,6 +410,9 @@ export function SistemaPage() {
       >
         <img className="sami-float-img" src="/mockup/sami-boton.webp" alt="" />
       </button>
+      {tablaCompleta && (
+        <TablaCompleta key={tablaCompleta.id} bloque={tablaCompleta} sistema={sistema} />
+      )}
     </>
   );
 }

@@ -217,6 +217,7 @@ export function BloqueEnLienzo({
   const definicion = CATALOG[bloque.type];
   const seleccionar = useSistemaStore((estado) => estado.seleccionar);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
+  const verTablaCompleta = useSistemaStore((estado) => estado.verTablaCompleta);
   const [consulta, setConsulta] = useState('');
   const nodo = useRef<HTMLElement>(null);
 
@@ -334,6 +335,12 @@ export function BloqueEnLienzo({
               />
             </label>
             <span className="record-count">{bloque.rows.length} registros</span>
+            <IconBtn
+              name="expand"
+              label={`Ver ${bloque.name} a pantalla completa`}
+              data-accion="table-fullscreen"
+              onClick={() => verTablaCompleta(bloque.id)}
+            />
             <Btn
               cls="soft small"
               data-accion="add-record"

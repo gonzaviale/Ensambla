@@ -108,6 +108,8 @@ type EstadoDelStore = {
   activeId: string | null;
   sectionId: string | null;
   selectedId: string | null;
+  /** La tabla (id del bloque) que se ve a pantalla completa, si hay alguna. */
+  tablaCompletaId: string | null;
   modo: ModoDelEditor;
   /** Copias anteriores del sistema activo, para deshacer. */
   historial: Sistema[];
@@ -141,6 +143,8 @@ type Acciones = {
   actualizarSistema: (id: string, cambio: (sistema: Sistema) => void) => void;
   deshacer: () => boolean;
   seleccionar: (bloqueId: string | null) => void;
+  /** Abre (o, con `null`, cierra) la tabla de un bloque a pantalla completa. */
+  verTablaCompleta: (bloqueId: string | null) => void;
   elegirSeccion: (seccionId: string) => void;
   cambiarModo: (modo: ModoDelEditor) => void;
   descartarCartelListo: () => void;
@@ -175,6 +179,7 @@ const ESTADO_INICIAL: EstadoDelStore = {
   activeId: null,
   sectionId: null,
   selectedId: null,
+  tablaCompletaId: null,
   modo: 'build',
   historial: [],
   listo: false,
@@ -226,6 +231,7 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
       activeId: id,
       sectionId: sistema?.sections[0]?.id ?? null,
       selectedId: null,
+      tablaCompletaId: null,
       modo,
       historial: [],
       listo: esNuevo,
@@ -254,7 +260,13 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
       pendientes: estado.pendientes.filter((pendiente) => pendiente !== id),
       eliminados: sinRepetir(estado.eliminados, id),
       ...(estado.activeId === id
-        ? { activeId: null, sectionId: null, selectedId: null, historial: [] }
+        ? {
+            activeId: null,
+            sectionId: null,
+            selectedId: null,
+            tablaCompletaId: null,
+            historial: [],
+          }
         : {}),
     })),
 
@@ -305,6 +317,7 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
   },
 
   seleccionar: (bloqueId) => set({ selectedId: bloqueId }),
+  verTablaCompleta: (bloqueId) => set({ tablaCompletaId: bloqueId }),
   elegirSeccion: (seccionId) => set({ sectionId: seccionId, selectedId: null }),
   cambiarModo: (modo) => set({ modo, selectedId: null }),
   descartarCartelListo: () => set({ listo: false }),
