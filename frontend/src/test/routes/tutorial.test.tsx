@@ -152,7 +152,7 @@ describe('el tutorial', () => {
     await esperarPaso('Tu primer sistema ya es tuyo.');
     expect(within(cartel()).getByLabelText('Etapa 5 de 5')).toBeVisible();
 
-    await user.click(within(cartel()).getByRole('button', { name: 'Listo, sigo explorando' }));
+    await user.click(within(cartel()).getByRole('button', { name: 'Salir del tutorial' }));
     expect(screen.queryByLabelText('Guía interactiva de Sami')).toBeNull();
     await verifyToastAsync('Podés retomar la guía desde Sami en el inicio.');
     expect(document.querySelector('.mk-root')).not.toHaveClass('tutorial-running');
@@ -235,11 +235,11 @@ describe('el tutorial', () => {
     await verifyToastAsync('Podés retomar la guía desde Sami en el inicio.');
   });
 
-  it('«Explorar sin guía» la cierra y desde el inicio se retoma', async () => {
+  it('la ✕ la cierra y desde el inicio se retoma', async () => {
     const { user } = await abrirConBienvenida();
     await empezarLaGuia(user);
 
-    await user.click(within(cartel()).getByRole('button', { name: 'Explorar sin guía' }));
+    await user.click(within(cartel()).getByRole('button', { name: 'Salir del tutorial' }));
     expect(screen.queryByLabelText('Guía interactiva de Sami')).toBeNull();
 
     await user.click(screen.getByRole('button', { name: /Mostrarme cómo empezar/ }));

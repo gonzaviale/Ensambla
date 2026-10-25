@@ -1409,3 +1409,37 @@ body:has(.editor-layout) {
 .editor-layout .block-library {
   height: calc(100vh - 84px);
 }
+
+/* Franja con varios avisos: los textos largos se cortan con «…» en vez de estirar la franja fuera de
+   la pantalla, y en el celular cada aviso va en su propia fila. */
+.sami-franja-txt {
+  min-width: 0;
+}
+.sami-franja:not(.ok) {
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+}
+.sami-franja:not(.ok) .sami-chip {
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .sami-franja:not(.ok) {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+  .sami-franja:not(.ok) > .btn {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+@media (max-width: 640px) {
+  .sami-franja:not(.ok) {
+    grid-template-columns: 56px minmax(0, 1fr);
+    align-items: start;
+  }
+  .sami-franja:not(.ok) .sami-franja-items {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sami-franja:not(.ok) .sami-chip {
+    width: 100%;
+  }
+}

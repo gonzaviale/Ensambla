@@ -116,6 +116,17 @@ export function TallerPage() {
   // El chat flota sobre la propuesta; se minimiza a un botón redondo para ver todo el lienzo.
   const [chatAbierto, setChatAbierto] = useState(true);
   const botonDelChat = useRef<HTMLButtonElement>(null);
+  const pasoDelTutorial = useSistemaStore((estado) =>
+    estado.tutorial.activo ? estado.tutorial.paso : null,
+  );
+
+  // En el celular el chat tapa la propuesta: cuando la guía pide crear el cuaderno, se minimiza para
+  // que se vea el botón «Sí, crear mi cuaderno».
+  useEffect(() => {
+    if (pasoDelTutorial === 'create' && window.matchMedia?.('(max-width: 760px)').matches) {
+      setChatAbierto(false);
+    }
+  }, [pasoDelTutorial]);
 
   // Si se entra por la dirección, sin pasar por un botón, la conversación empieza igual: sobre el sistema que diga
   // la dirección o, si no hay (o ya no existe), una nueva.

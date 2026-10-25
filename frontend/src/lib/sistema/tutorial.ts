@@ -198,6 +198,8 @@ export type ContextoDelTutorial = {
   taller: { borrador: Sistema | null; pensando: boolean; hayMensajeDePersona: boolean } | null;
   /** El tipo del modal abierto, si hay uno. */
   modal: string | null;
+  /** Pantalla de celular: las piezas van en una columna y no hay anchos para elegir. */
+  celular?: boolean;
 };
 
 // Un bloque con el que se puede practicar: tiene campos y no es un movimiento de stock.
@@ -307,11 +309,15 @@ export function avanzar(
         contexto.taller?.borrador &&
         !contexto.taller.pensando &&
         contexto.taller.hayMensajeDePersona
-        ? entrarEn('review', estado, contexto)
+        ? entrarEn(contexto.celular ? 'create' : 'review', estado, contexto)
         : null;
     case 'review':
+      // En el celular no hay anchos: se pasa directo a crear.
       return contexto.taller?.borrador &&
-        allBlocks(contexto.taller.borrador).some((item) => estado.anchos?.[item.id] !== item.width)
+        (contexto.celular ||
+          allBlocks(contexto.taller.borrador).some(
+            (item) => estado.anchos?.[item.id] !== item.width,
+          ))
         ? entrarEn('create', estado, contexto)
         : null;
     case 'create':

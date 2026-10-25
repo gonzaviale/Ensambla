@@ -514,3 +514,34 @@ button.chat-abrir img {
     height: 50px;
   }
 }
+
+/* Celular: en la propuesta de Sami cada tabla ocupa todo el ancho. De a dos quedaban tan angostas que
+   el nombre se partía letra por letra. */
+@media (max-width: 680px) {
+  .preview-grid .preview-block[data-width] {
+    grid-column: span 12;
+  }
+  .preview-block-head {
+    flex-wrap: nowrap;
+  }
+  .preview-name {
+    overflow-wrap: normal;
+  }
+}
+
+/* Botones de cada tabla de la propuesta (pantalla completa y quitar): más grandes y fáciles de tocar. */
+:is(.studio-canvas, .template-preview-stage) .preview-controls {
+  gap: 4px;
+}
+:is(.studio-canvas, .template-preview-stage) .preview-controls .icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+:is(.studio-canvas, .template-preview-stage) .preview-controls .icon-btn:hover {
+  background: rgb(255 255 255 / 25%);
+}
+:is(.studio-canvas, .template-preview-stage) .preview-controls .icon-btn .icon {
+  width: 20px;
+  height: 20px;
+}

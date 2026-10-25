@@ -91,18 +91,6 @@ export function Tutorial() {
           <Icon name={terminado ? 'check-circle' : 'arrow'} />
           <span>{pensandoAhora ? 'Preparando las piezas…' : detalle.hint}</span>
         </div>
-        <div className="tour-footer">
-          {terminado ? (
-            <Btn cls="primary small" onClick={salirDelTutorial}>
-              Listo, sigo explorando
-            </Btn>
-          ) : (
-            <span>Se avanza haciendo, a tu ritmo.</span>
-          )}
-          <button type="button" className="text-link" onClick={salirDelTutorial}>
-            {terminado ? 'Cerrar guía' : 'Explorar sin guía'}
-          </button>
-        </div>
       </section>
     </div>
   );
