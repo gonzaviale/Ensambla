@@ -54,7 +54,7 @@ export const PASOS: Record<PasoDeTutorial, DetalleDePaso> = {
     grupo: 1,
     title: 'Cuando te cierre, la creamos.',
     text: 'Esta propuesta todavía no es un sistema guardado. Podés seguir ajustándola o confirmar para empezar a usarla.',
-    hint: 'Tocá “Sí, crear mi sistema”.',
+    hint: 'Tocá “Sí, crear mi cuaderno”.',
   },
   pickTemplate: {
     grupo: 1,
@@ -125,8 +125,8 @@ export const PASOS: Record<PasoDeTutorial, DetalleDePaso> = {
   useMode: {
     grupo: 3,
     title: 'Ahora, a usarlo.',
-    text: 'Pasá a Usar sistema para trabajar con tus datos. Después podés volver a Construir cuando quieras cambiar algo.',
-    hint: 'Tocá “Usar sistema”.',
+    text: 'Pasá a Usar cuaderno para trabajar con tus datos. Después podés volver a Construir cuando quieras cambiar algo.',
+    hint: 'Tocá “Usar cuaderno”.',
   },
   done: {
     grupo: 4,

@@ -98,7 +98,7 @@ describe('ajustar con Sami un sistema que ya existe', () => {
     expect(screen.getByText(/Estoy mirando «Almacén de Ana»/)).toBeVisible();
     expect(screen.getByLabelText('Nombre de tu sistema')).toHaveValue('Almacén de Ana');
     expect(screen.getByRole('button', { name: /Guardar cambios/ })).toBeVisible();
-    expect(screen.queryByRole('button', { name: /Sí, crear mi sistema/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Sí, crear mi cuaderno/ })).toBeNull();
     expect(screen.queryByText(/TU PRIMER SISTEMA/)).toBeNull();
     await sinViolaciones();
 

@@ -37,7 +37,7 @@ export function ModalBlanco() {
         <Icon name="arrow" />
       </button>
       <div className="modal-footer">
-        <Btn cls="primary" onClick={() => void crearYAbrir(makeSystem('Mi sistema'), 'build')}>
+        <Btn cls="primary" onClick={() => void crearYAbrir(makeSystem('Mi cuaderno'), 'build')}>
           Seguir desde cero <Icon name="arrow" />
         </Btn>
       </div>

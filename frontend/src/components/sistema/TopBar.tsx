@@ -3,7 +3,8 @@ import { Icon } from './Icon';
 import { Logo } from './Logo';
 import { MenuDePerfil } from './MenuDePerfil';
 
-export type SeccionActiva = 'home' | 'templates' | 'zone' | 'avisos' | 'plans' | 'account';
+export type SeccionActiva =
+  'home' | 'sistemas' | 'templates' | 'zone' | 'avisos' | 'plans' | 'account';
 
 type TopBarProps = {
   active?: SeccionActiva;
@@ -51,7 +52,11 @@ export function TopBar({
         >
           Inicio
         </button>
-        <button type="button" onClick={onSistemas}>
+        <button
+          type="button"
+          className={active === 'sistemas' ? 'active' : ''}
+          onClick={onSistemas}
+        >
           Mis cuadernos
         </button>
         <button
@@ -85,7 +90,6 @@ export function TopBar({
         {campana}
         <button type="button" className="help-trigger" onClick={onAyuda}>
           <Icon name="help" />
-          <span>¿Necesitás una mano?</span>
         </button>
         <MenuDePerfil
           nombre={nombre}

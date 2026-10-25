@@ -119,7 +119,7 @@ describe('el tutorial', () => {
 
     await user.click(screen.getAllByRole('button', { name: 'Fila completa' })[1] as HTMLElement);
     await esperarPaso('Cuando te cierre, la creamos.');
-    await user.click(screen.getByRole('button', { name: /Sí, crear mi sistema/ }));
+    await user.click(screen.getByRole('button', { name: /Sí, crear mi cuaderno/ }));
     await esperarPaso('Usar y construir, en el mismo lugar.');
     expect(router.state.location.pathname).toMatch(/^\/sistemas\//);
 
@@ -148,7 +148,7 @@ describe('el tutorial', () => {
     await user.click(within(modal).getByRole('button', { name: 'Guardar' }));
     await esperarPaso('Ahora, a usarlo.');
 
-    await user.click(screen.getByRole('button', { name: /Usar sistema/ }));
+    await user.click(screen.getByRole('button', { name: /Usar cuaderno/ }));
     await esperarPaso('Tu primer sistema ya es tuyo.');
     expect(within(cartel()).getByLabelText('Etapa 5 de 5')).toBeVisible();
 

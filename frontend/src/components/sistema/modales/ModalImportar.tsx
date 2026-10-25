@@ -196,7 +196,7 @@ export function ModalImportar({ sistemaId, bloqueId, contexto }: Props) {
       avisarResultado(resultado, camposNuevos);
       return;
     }
-    const nuevo = makeSystem(NOMBRE_DEL_SISTEMA_NUEVO[tipo] ?? 'Mi sistema', [tipo]);
+    const nuevo = makeSystem(NOMBRE_DEL_SISTEMA_NUEVO[tipo] ?? 'Mi cuaderno', [tipo]);
     const bloqueNuevo = nuevo.sections[0]?.blocks[0];
     const resultado = bloqueNuevo
       ? importRows(bloqueNuevo, filas, nuevo, omitirDuplicados)

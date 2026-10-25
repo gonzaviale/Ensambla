@@ -136,7 +136,7 @@ export function useSamiProyecto(saludo: string) {
     (columna) => !quitadas.includes(columna.nombre),
   );
 
-  /** El proyecto se creó en el servidor: se trae y se suma a la copia local para que aparezca en «Mis sistemas». */
+  /** El proyecto se creó en el servidor: se trae y se suma a la copia local para que aparezca en «Mis cuadernos». */
   const sumarAMisSistemas = async () => {
     try {
       incorporarSistemas(await queryClient.fetchQuery({ ...sistemasQuery(), staleTime: 0 }));

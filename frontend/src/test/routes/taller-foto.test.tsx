@@ -188,7 +188,7 @@ describe('una foto para Sami en el taller', () => {
     await clickButton(user, /Ajustalo conmigo/);
     expect(await screen.findByText(/Miré tu foto: anotaste tres ventas/, {}, ESPERA)).toBeVisible();
 
-    await clickButton(user, /Sí, crear mi sistema/);
+    await clickButton(user, /Sí, crear mi cuaderno/);
 
     await waitFor(() => expect(useSistemaStore.getState().sistemas).toHaveLength(1), ESPERA);
     const [sistema] = useSistemaStore.getState().sistemas;

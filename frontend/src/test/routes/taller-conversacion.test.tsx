@@ -99,11 +99,11 @@ describe('la conversación de Sami en el taller', () => {
     await escribir(user, 'Tengo un almacén y vendo productos');
 
     expect(await screen.findByText('Te armé las ventas y los clientes.', {}, ESPERA)).toBeVisible();
-    expect(screen.getByLabelText('Nombre de tu sistema')).toHaveValue('Mi sistema');
+    expect(screen.getByLabelText('Nombre de tu sistema')).toHaveValue('Mi cuaderno');
     expect(screen.getByText('2 piezas conectadas')).toBeVisible();
     const [pedido] = pedidos as PedidoAlTaller[];
     expect(pedido?.mensaje).toBe('Tengo un almacén y vendo productos');
-    expect(pedido?.estado).toMatchObject({ nombre: 'Mi sistema', piezas: [] });
+    expect(pedido?.estado).toMatchObject({ nombre: 'Mi cuaderno', piezas: [] });
     expect(pedido?.historial.map((mensaje) => mensaje.quien)).toEqual(['sami']);
     expect(pieza('Encargos').fields.find((dato) => dato.label === 'Clienta')).toMatchObject({
       type: 'relation',

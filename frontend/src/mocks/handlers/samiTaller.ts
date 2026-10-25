@@ -373,7 +373,7 @@ const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
   const kit = piezas.length ? undefined : KITS.find((candidato) => candidato.palabras.test(texto));
   if (kit) {
     const renombrar =
-      !estado?.nombre || estado.nombre === 'Mi sistema'
+      !estado?.nombre || estado.nombre === 'Mi cuaderno' || estado.nombre === 'Mi sistema'
         ? [accion('renombrar_sistema', { nombre: kit.nombre })]
         : [];
     return {
@@ -437,7 +437,11 @@ const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
     preguntas: [
       {
         pregunta: '¿Qué querés hacer con tu sistema?',
-        opciones: ['Sumar gastos', 'Agregar un proveedor al inventario', 'Poner todo en una columna'],
+        opciones: [
+          'Sumar gastos',
+          'Agregar un proveedor al inventario',
+          'Poner todo en una columna',
+        ],
       },
     ],
   };

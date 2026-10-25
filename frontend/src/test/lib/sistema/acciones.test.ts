@@ -1398,7 +1398,7 @@ describe('sistemaParaCrear: el sistema que sale del taller', () => {
 
     const sistema = sistemaParaCrear(borrador);
 
-    expect(sistema.name).toBe('Mi sistema');
+    expect(sistema.name).toBe('Mi cuaderno');
     expect(sistema.id).toBe(borrador.id);
     const filas = allBlocks(sistema).flatMap((bloque) => bloque.rows);
     expect(filas.some((fila) => fila.__example)).toBe(false);

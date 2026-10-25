@@ -409,7 +409,7 @@ export function TallerPage() {
                     </Btn>
                   ) : (
                     <Btn cls="primary" data-accion="guide-create" onClick={crearSistema}>
-                      Sí, crear mi sistema <Icon name="arrow" />
+                      Sí, crear mi cuaderno <Icon name="arrow" />
                     </Btn>
                   )}
                 </div>

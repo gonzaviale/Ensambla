@@ -704,7 +704,7 @@ export function ajusteParaGuardar(original: Sistema, borrador: Sistema): Sistema
  */
 export function sistemaParaCrear(borrador: Sistema): Sistema {
   const sistema = clone(borrador);
-  sistema.name = sistema.name.trim() || 'Mi sistema';
+  sistema.name = sistema.name.trim() || 'Mi cuaderno';
   descartarEjemplos(sistema, new Set());
   return sistema;
 }

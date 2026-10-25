@@ -97,7 +97,7 @@ export function useNavegacion() {
           );
       }
     },
-    /** «Mis sistemas»: vuelve al inicio y baja a la lista, o explica por dónde empezar. */
+    /** «Mis cuadernos»: vuelve al inicio y baja a la lista, o explica por dónde empezar. */
     irAMisSistemas: async () => {
       await irA('/inicio');
       const estado = useSistemaStore.getState();

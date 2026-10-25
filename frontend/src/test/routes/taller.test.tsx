@@ -163,17 +163,17 @@ describe('el taller de Sami', () => {
     await user.clear(campo);
     await user.type(campo, 'Los de la cuadra');
     await clickButton(user, 'Guardar nombre');
-    expect(await screen.findByRole('button', { name: /Los de la cuadra/ })).toBeVisible();
+    expect(await screen.findByRole('button', { name: /^Los de la cuadra/ })).toBeVisible();
 
     const bloque = screen
-      .getByRole('button', { name: /Los de la cuadra/ })
+      .getByRole('button', { name: /^Los de la cuadra/ })
       .closest<HTMLElement>('.preview-block');
     if (!bloque) throw new Error('Falta la pieza');
     await user.click(within(bloque).getByRole('button', { name: 'Fila completa' }));
     expect(bloque).toHaveAttribute('data-width', 'full');
 
     await user.click(within(bloque).getByRole('button', { name: 'Quitar de la propuesta' }));
-    expect(screen.queryByRole('button', { name: /Los de la cuadra/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Los de la cuadra/ })).toBeNull();
     expect(screen.getByText('2 piezas conectadas')).toBeVisible();
   });
 
@@ -269,7 +269,7 @@ describe('el taller de Sami', () => {
     await user.clear(nombre);
     await user.type(nombre, 'Almacén Don Luis');
 
-    await clickButton(user, /Sí, crear mi sistema/);
+    await clickButton(user, /Sí, crear mi cuaderno/);
 
     await waitFor(() => expect(useSistemaStore.getState().sistemas).toHaveLength(1), ESPERA);
     const [sistema] = useSistemaStore.getState().sistemas;

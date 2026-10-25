@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getRouteApi, useNavigate } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
-import { Campana } from '@/components/sistema/avisos/Campana';
+import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { FranjaDeSami } from '@/components/sistema/avisos/FranjaDeSami';
 import { BibliotecaDeBloques } from '@/components/sistema/editor/BibliotecaDeBloques';
 import { BloqueEnLienzo } from '@/components/sistema/editor/BloqueEnLienzo';
@@ -86,7 +86,7 @@ export function SistemaPage() {
   const [bibliotecaFijada, setBibliotecaFijada] = useState(leerPiezasFijas);
   const arrastre = useArrastreDelEditor(seccion?.id);
 
-  useTituloPagina(sistema?.name ?? 'Mi sistema');
+  useTituloPagina(sistema?.name ?? 'Mi cuaderno');
 
   // La dirección manda: abrir el sistema de la URL y seguir el modo que ella diga.
   useEffect(() => {
@@ -148,16 +148,7 @@ export function SistemaPage() {
 
   return (
     <>
-      <EncabezadoDelEditor
-        nombre={sistema.name}
-        modo={modo}
-        guardando={guardando}
-        puedeDeshacer={hayHistorial}
-        campana={<Campana />}
-        onInicio={() => void navegacion.irAInicio()}
-        onModo={cambiarModo}
-        onDeshacer={deshacerCambio}
-      />
+      <CabeceraComun active="sistemas" />
       <main
         id="main"
         tabIndex={-1}
@@ -180,6 +171,15 @@ export function SistemaPage() {
           />
         )}
         <div className="canvas-area" onDragOver={arrastre.alPasarPor} onDrop={arrastre.alSoltar}>
+          <EncabezadoDelEditor
+            nombre={sistema.name}
+            modo={modo}
+            guardando={guardando}
+            puedeDeshacer={hayHistorial}
+            onCuadernos={() => void navegacion.irAMisSistemas()}
+            onModo={cambiarModo}
+            onDeshacer={deshacerCambio}
+          />
           {listo && modo === 'use' && (
             <CierreDeCreacion
               sistema={sistema}
