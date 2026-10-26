@@ -1,8 +1,14 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
+import com.ensambla.backend.domain.model.common.Identificador;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.whatsapp.CodigoVinculacion;
+import com.ensambla.backend.domain.model.whatsapp.CodigoVinculacionId;
 import com.ensambla.backend.domain.model.whatsapp.MensajeWhatsapp;
+import com.ensambla.backend.domain.model.whatsapp.MensajeWhatsappId;
 import com.ensambla.backend.domain.model.whatsapp.VinculoWhatsapp;
+import com.ensambla.backend.domain.model.whatsapp.VinculoWhatsappId;
 import com.ensambla.backend.infrastructure.repository.entity.CodigoVinculacionEntity;
 import com.ensambla.backend.infrastructure.repository.entity.MensajeWhatsappEntity;
 import com.ensambla.backend.infrastructure.repository.entity.VinculoWhatsappEntity;
@@ -13,9 +19,9 @@ public class WhatsappRepositoryMapper {
 
     public VinculoWhatsapp toDomain(VinculoWhatsappEntity entity) {
         return VinculoWhatsapp.builder()
-                .id(entity.getId())
-                .usuarioId(entity.getUsuarioId())
-                .negocioId(entity.getNegocioId())
+                .id(Identificador.opcional(entity.getId(), VinculoWhatsappId::de))
+                .usuarioId(UsuarioId.de(entity.getUsuarioId()))
+                .negocioId(NegocioId.de(entity.getNegocioId()))
                 .telefono(entity.getTelefono())
                 .vinculadoEn(entity.getVinculadoEn())
                 .build();
@@ -23,9 +29,9 @@ public class WhatsappRepositoryMapper {
 
     public VinculoWhatsappEntity toEntity(VinculoWhatsapp vinculo) {
         return VinculoWhatsappEntity.builder()
-                .id(vinculo.getId())
-                .usuarioId(vinculo.getUsuarioId())
-                .negocioId(vinculo.getNegocioId())
+                .id(Identificador.valorDe(vinculo.getId()))
+                .usuarioId(vinculo.getUsuarioId().valor())
+                .negocioId(vinculo.getNegocioId().valor())
                 .telefono(vinculo.getTelefono())
                 .vinculadoEn(vinculo.getVinculadoEn())
                 .build();
@@ -33,8 +39,8 @@ public class WhatsappRepositoryMapper {
 
     public CodigoVinculacion toDomain(CodigoVinculacionEntity entity) {
         return CodigoVinculacion.builder()
-                .id(entity.getId())
-                .usuarioId(entity.getUsuarioId())
+                .id(Identificador.opcional(entity.getId(), CodigoVinculacionId::de))
+                .usuarioId(UsuarioId.de(entity.getUsuarioId()))
                 .codigo(entity.getCodigo())
                 .expiraEn(entity.getExpiraEn())
                 .usadoEn(entity.getUsadoEn())
@@ -43,8 +49,8 @@ public class WhatsappRepositoryMapper {
 
     public CodigoVinculacionEntity toEntity(CodigoVinculacion codigo) {
         return CodigoVinculacionEntity.builder()
-                .id(codigo.getId())
-                .usuarioId(codigo.getUsuarioId())
+                .id(Identificador.valorDe(codigo.getId()))
+                .usuarioId(codigo.getUsuarioId().valor())
                 .codigo(codigo.getCodigo())
                 .expiraEn(codigo.getExpiraEn())
                 .usadoEn(codigo.getUsadoEn())
@@ -53,8 +59,8 @@ public class WhatsappRepositoryMapper {
 
     public MensajeWhatsapp toDomain(MensajeWhatsappEntity entity) {
         return MensajeWhatsapp.builder()
-                .id(entity.getId())
-                .negocioId(entity.getNegocioId())
+                .id(Identificador.opcional(entity.getId(), MensajeWhatsappId::de))
+                .negocioId(NegocioId.de(entity.getNegocioId()))
                 .telefono(entity.getTelefono())
                 .idExterno(entity.getIdExterno())
                 .tipo(entity.getTipo())
@@ -68,8 +74,8 @@ public class WhatsappRepositoryMapper {
 
     public MensajeWhatsappEntity toEntity(MensajeWhatsapp mensaje) {
         return MensajeWhatsappEntity.builder()
-                .id(mensaje.getId())
-                .negocioId(mensaje.getNegocioId())
+                .id(Identificador.valorDe(mensaje.getId()))
+                .negocioId(mensaje.getNegocioId().valor())
                 .telefono(mensaje.getTelefono())
                 .idExterno(mensaje.getIdExterno())
                 .tipo(mensaje.getTipo())

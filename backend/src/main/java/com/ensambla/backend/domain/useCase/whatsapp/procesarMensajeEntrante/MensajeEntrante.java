@@ -1,6 +1,6 @@
-package com.ensambla.backend.domain.dto.whatsapp;
+package com.ensambla.backend.domain.useCase.whatsapp.procesarMensajeEntrante;
 
-import com.ensambla.backend.domain.model.enums.TipoMensajeWhatsapp;
+import com.ensambla.backend.domain.model.whatsapp.TipoMensajeWhatsapp;
 
 import java.time.OffsetDateTime;
 

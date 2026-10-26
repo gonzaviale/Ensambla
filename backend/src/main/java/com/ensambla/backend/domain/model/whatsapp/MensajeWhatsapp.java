@@ -1,8 +1,7 @@
 package com.ensambla.backend.domain.model.whatsapp;
 
-import com.ensambla.backend.domain.dto.whatsapp.MensajeEntrante;
-import com.ensambla.backend.domain.model.enums.EstadoMensajeWhatsapp;
-import com.ensambla.backend.domain.model.enums.TipoMensajeWhatsapp;
+import com.ensambla.backend.domain.useCase.whatsapp.procesarMensajeEntrante.MensajeEntrante;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,7 +9,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 /** Texto o nota de voz recibido de un número vinculado, a la espera de transcribirse e interpretarse. */
 @Getter
@@ -20,9 +18,9 @@ import java.util.UUID;
 @AllArgsConstructor
 public class MensajeWhatsapp {
 
-    private UUID id;
+    private MensajeWhatsappId id;
 
-    private UUID negocioId;
+    private NegocioId negocioId;
 
     private String telefono;
 
@@ -42,7 +40,7 @@ public class MensajeWhatsapp {
 
     private OffsetDateTime recibidoEn;
 
-    public static MensajeWhatsapp recibido(UUID negocioId, MensajeEntrante entrante) {
+    public static MensajeWhatsapp recibido(NegocioId negocioId, MensajeEntrante entrante) {
         return MensajeWhatsapp.builder()
                 .negocioId(negocioId)
                 .telefono(entrante.telefono())

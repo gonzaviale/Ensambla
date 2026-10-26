@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.useCase.whatsapp.ProcesarMensajeEntranteUseCase;
+import com.ensambla.backend.domain.useCase.whatsapp.procesarMensajeEntrante.ProcesarMensajeEntrante;
 import com.ensambla.backend.infrastructure.whatsapp.EvolutionWebhookParser;
 import com.ensambla.backend.infrastructure.whatsapp.WhatsappProperties;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,7 +26,7 @@ public class WhatsappWebhookController {
     public static final String HEADER_TOKEN = "X-Ensambla-Webhook-Token";
 
     private final EvolutionWebhookParser parser;
-    private final ProcesarMensajeEntranteUseCase procesarMensajeEntranteUseCase;
+    private final ProcesarMensajeEntrante procesarMensajeEntrante;
     private final WhatsappProperties properties;
 
     @PostMapping
@@ -36,7 +36,7 @@ public class WhatsappWebhookController {
         if (!tokenValido(token)) {
             return ResponseEntity.status(401).build();
         }
-        parser.parsear(cuerpo).ifPresent(procesarMensajeEntranteUseCase::execute);
+        parser.parsear(cuerpo).ifPresent(procesarMensajeEntrante::execute);
         return ResponseEntity.ok().build();
     }
 

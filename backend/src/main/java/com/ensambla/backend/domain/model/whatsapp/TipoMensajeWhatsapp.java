@@ -1,4 +1,4 @@
-package com.ensambla.backend.domain.model.enums;
+package com.ensambla.backend.domain.model.whatsapp;
 
 public enum TipoMensajeWhatsapp {
     TEXTO,

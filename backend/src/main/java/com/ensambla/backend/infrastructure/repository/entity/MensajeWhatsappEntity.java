@@ -1,7 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.entity;
 
-import com.ensambla.backend.domain.model.enums.EstadoMensajeWhatsapp;
-import com.ensambla.backend.domain.model.enums.TipoMensajeWhatsapp;
+import com.ensambla.backend.domain.model.whatsapp.EstadoMensajeWhatsapp;
+import com.ensambla.backend.domain.model.whatsapp.TipoMensajeWhatsapp;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

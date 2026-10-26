@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.whatsapp;
 
-import com.ensambla.backend.domain.dto.whatsapp.MensajeEntrante;
+import com.ensambla.backend.domain.useCase.whatsapp.procesarMensajeEntrante.MensajeEntrante;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
-import com.ensambla.backend.domain.model.enums.TipoMensajeWhatsapp;
+import com.ensambla.backend.domain.model.whatsapp.TipoMensajeWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.TelefonoWhatsapp;
 import tools.jackson.databind.JsonNode;
 

@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.whatsapp.CodigoVinculacion;
 import com.ensambla.backend.domain.repository.whatsapp.CodigoVinculacionRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.ICodigoVinculacionJpaRepository;
@@ -8,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
-import java.util.UUID;
+
 
 @Component
 @RequiredArgsConstructor
@@ -33,7 +34,7 @@ public class CodigoVinculacionRepositoryImpl implements CodigoVinculacionReposit
     }
 
     @Override
-    public void deleteSinUsarByUsuarioId(UUID usuarioId) {
-        jpa.deleteSinUsarByUsuarioId(usuarioId);
+    public void deleteSinUsarByUsuarioId(UsuarioId usuarioId) {
+        jpa.deleteSinUsarByUsuarioId(usuarioId.valor());
     }
 }
