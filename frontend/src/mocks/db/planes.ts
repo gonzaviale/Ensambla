@@ -2,7 +2,7 @@ import { totals } from '@/lib/sistema/core';
 import type { Plan, Planes } from '@/types/planes';
 import { estado, sistemasDe } from './estado';
 
-const CATALOGO: Plan[] = [
+export const CATALOGO: Plan[] = [
   {
     codigo: 'GRATUITO',
     nombre: 'Gratuito',

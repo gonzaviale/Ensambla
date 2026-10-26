@@ -52,3 +52,5 @@ export const planesSchema = z.object({
 export type Plan = z.infer<typeof planSchema>;
 export type Planes = z.infer<typeof planesSchema>;
 export type PruebaPremium = z.infer<typeof pruebaPremiumSchema>;
+
+export const catalogoPlanesSchema = z.array(planSchema).min(2);
