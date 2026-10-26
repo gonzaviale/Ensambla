@@ -1,8 +1,9 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.model.enums.EstadoUsuario;
-import com.ensambla.backend.domain.model.enums.TipoMensajeWhatsapp;
+import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
+import com.ensambla.backend.domain.model.whatsapp.TipoMensajeWhatsapp;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
+import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
 import com.ensambla.backend.infrastructure.repository.entity.UsuarioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.ICodigoVinculacionJpaRepository;
@@ -18,7 +19,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -28,7 +28,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -47,10 +46,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@ActiveProfiles("h2-test")
 @Transactional
-class WhatsappSeguridadIntegrationTest {
+class WhatsappSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     private static final String TOKEN = "secreto-de-test";
     private static final String TELEFONO = "5491122334455";

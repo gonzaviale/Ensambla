@@ -1,13 +1,17 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.whatsapp.CodigoVinculacionItem;
-import com.ensambla.backend.domain.dto.whatsapp.MensajeEntrante;
-import com.ensambla.backend.domain.dto.whatsapp.VinculoWhatsappItem;
+import com.ensambla.backend.domain.useCase.whatsapp.procesarMensajeEntrante.MensajeEntrante;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.useCase.whatsapp.ConsultarVinculacionWhatsappUseCase;
-import com.ensambla.backend.domain.useCase.whatsapp.DesvincularWhatsappUseCase;
-import com.ensambla.backend.domain.useCase.whatsapp.GenerarCodigoVinculacionUseCase;
-import com.ensambla.backend.domain.useCase.whatsapp.ProcesarMensajeEntranteUseCase;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.whatsapp.consultarVinculacionWhatsapp.ConsultarVinculacionWhatsapp;
+import com.ensambla.backend.domain.useCase.whatsapp.consultarVinculacionWhatsapp.ConsultarVinculacionWhatsappRequest;
+import com.ensambla.backend.domain.useCase.whatsapp.consultarVinculacionWhatsapp.ConsultarVinculacionWhatsappResponse;
+import com.ensambla.backend.domain.useCase.whatsapp.desvincularWhatsapp.DesvincularWhatsapp;
+import com.ensambla.backend.domain.useCase.whatsapp.desvincularWhatsapp.DesvincularWhatsappRequest;
+import com.ensambla.backend.domain.useCase.whatsapp.generarCodigoVinculacion.GenerarCodigoVinculacion;
+import com.ensambla.backend.domain.useCase.whatsapp.generarCodigoVinculacion.GenerarCodigoVinculacionRequest;
+import com.ensambla.backend.domain.useCase.whatsapp.generarCodigoVinculacion.GenerarCodigoVinculacionResponse;
+import com.ensambla.backend.domain.useCase.whatsapp.procesarMensajeEntrante.ProcesarMensajeEntrante;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.whatsapp.WhatsappPresentationMapper;
 import com.ensambla.backend.infrastructure.whatsapp.EvolutionWebhookParser;
@@ -21,7 +25,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -36,24 +39,25 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class WhatsappControllersTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("00000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("00000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-19T12:00:00Z");
     private static final String TOKEN = "secreto-de-test";
     private static final String MENSAJE = "{\"event\":\"messages.upsert\",\"data\":{\"key\":{\"remoteJid\":"
             + "\"5491122334455@s.whatsapp.net\",\"fromMe\":false,\"id\":\"ID1\"},"
             + "\"message\":{\"conversation\":\"gasté 5000 en harina\"}}}";
 
-    private final GenerarCodigoVinculacionUseCase generarCodigo = mock(GenerarCodigoVinculacionUseCase.class);
-    private final ConsultarVinculacionWhatsappUseCase consultar = mock(ConsultarVinculacionWhatsappUseCase.class);
-    private final DesvincularWhatsappUseCase desvincular = mock(DesvincularWhatsappUseCase.class);
-    private final ProcesarMensajeEntranteUseCase procesar = mock(ProcesarMensajeEntranteUseCase.class);
+    private final GenerarCodigoVinculacion generarCodigo = mock(GenerarCodigoVinculacion.class);
+    private final ConsultarVinculacionWhatsapp consultar = mock(ConsultarVinculacionWhatsapp.class);
+    private final DesvincularWhatsapp desvincular = mock(DesvincularWhatsapp.class);
+    private final ProcesarMensajeEntrante procesar = mock(ProcesarMensajeEntrante.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
 
     @Test
     @DisplayName("POST codigo devuelve el código, cuándo vence y el número del bot")
     void generarCodigoShouldReturnCode() throws Exception {
-        when(generarCodigo.execute(USUARIO_ID)).thenReturn(new CodigoVinculacionItem("ABC234", AHORA, "5491100000000"));
+        when(generarCodigo.execute(new GenerarCodigoVinculacionRequest(USUARIO_ID)))
+                .thenReturn(new GenerarCodigoVinculacionResponse("ABC234", AHORA, "5491100000000"));
 
         vinculacion().perform(post("/api/whatsapp/vinculacion/codigo").principal(principal))
                 .andExpect(status().isOk())
@@ -64,7 +68,8 @@ class WhatsappControllersTest {
     @Test
     @DisplayName("GET devuelve el número vinculado")
     void consultarShouldReturnLink() throws Exception {
-        when(consultar.execute(USUARIO_ID)).thenReturn(new VinculoWhatsappItem("5491122334455", AHORA));
+        when(consultar.execute(new ConsultarVinculacionWhatsappRequest(USUARIO_ID)))
+                .thenReturn(new ConsultarVinculacionWhatsappResponse("5491122334455", AHORA));
 
         vinculacion().perform(get("/api/whatsapp/vinculacion").principal(principal))
                 .andExpect(status().isOk())
@@ -74,7 +79,7 @@ class WhatsappControllersTest {
     @Test
     @DisplayName("GET responde 404 si no hay número vinculado")
     void consultarShouldReturnNotFoundWithoutLink() throws Exception {
-        when(consultar.execute(USUARIO_ID)).thenThrow(new ResourceNotFoundException("No hay un número vinculado"));
+        when(consultar.execute(new ConsultarVinculacionWhatsappRequest(USUARIO_ID))).thenThrow(new ResourceNotFoundException("No hay un número vinculado"));
 
         vinculacion().perform(get("/api/whatsapp/vinculacion").principal(principal))
                 .andExpect(status().isNotFound());
@@ -86,7 +91,7 @@ class WhatsappControllersTest {
         vinculacion().perform(delete("/api/whatsapp/vinculacion").principal(principal))
                 .andExpect(status().isNoContent());
 
-        verify(desvincular).execute(USUARIO_ID);
+        verify(desvincular).execute(new DesvincularWhatsappRequest(USUARIO_ID));
     }
 
     @Test

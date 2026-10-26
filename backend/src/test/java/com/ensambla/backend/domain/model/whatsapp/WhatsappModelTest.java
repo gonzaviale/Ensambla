@@ -1,22 +1,21 @@
 package com.ensambla.backend.domain.model.whatsapp;
 
-import com.ensambla.backend.domain.dto.whatsapp.MensajeEntrante;
+import com.ensambla.backend.domain.useCase.whatsapp.procesarMensajeEntrante.MensajeEntrante;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
-import com.ensambla.backend.domain.model.enums.EstadoMensajeWhatsapp;
-import com.ensambla.backend.domain.model.enums.TipoMensajeWhatsapp;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class WhatsappModelTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("00000000-0000-4000-8000-000000000001");
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("00000000-0000-4000-8000-000000000001");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-19T12:00:00Z");
 
     @Test
