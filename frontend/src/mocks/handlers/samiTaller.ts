@@ -292,7 +292,7 @@ const ajusteDeDato = (mensaje: string, piezas: Pieza[]) => {
     // «Renombrá …» también puede ser otra cosa (el sistema, una pieza): si no es un dato, sigue de largo.
     if ((!encontrado || !nuevo.texto) && patron !== RENOMBRAR_DATO[0]) continue;
     if (!encontrado || !nuevo.texto) {
-      return sinAcciones(`No encontré el dato «${actual}». ¿Cómo se llama en tu sistema?`);
+      return sinAcciones(`No encontré el dato «${actual}». ¿Cómo se llama en tu cuaderno?`);
     }
     return {
       respuesta: `Listo, «${encontrado.campo.etiqueta}» ahora se llama «${nuevo.texto}» en ${encontrado.pieza.nombre.toLowerCase()}.`,
@@ -312,7 +312,7 @@ const ajusteDeDato = (mensaje: string, piezas: Pieza[]) => {
     const enPieza = separarPieza(`x${cola}`).pieza;
     const encontrado = buscarDato(piezas, actual, enPieza);
     if (!encontrado) {
-      return sinAcciones(`No encontré el dato «${actual}». ¿Cómo se llama en tu sistema?`);
+      return sinAcciones(`No encontré el dato «${actual}». ¿Cómo se llama en tu cuaderno?`);
     }
     return {
       respuesta: `Listo, puse «${encontrado.campo.etiqueta}» primero en ${encontrado.pieza.nombre.toLowerCase()}.`,
@@ -373,7 +373,7 @@ const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
   const kit = piezas.length ? undefined : KITS.find((candidato) => candidato.palabras.test(texto));
   if (kit) {
     const renombrar =
-      !estado?.nombre || estado.nombre === 'Mi sistema'
+      !estado?.nombre || estado.nombre === 'Mi cuaderno' || estado.nombre === 'Mi sistema'
         ? [accion('renombrar_sistema', { nombre: kit.nombre })]
         : [];
     return {
@@ -436,8 +436,12 @@ const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
     acciones: [],
     preguntas: [
       {
-        pregunta: '¿Qué querés hacer con tu sistema?',
-        opciones: ['Sumar gastos', 'Agregar un proveedor al inventario', 'Poner todo en una columna'],
+        pregunta: '¿Qué querés hacer con tu cuaderno?',
+        opciones: [
+          'Sumar gastos',
+          'Agregar un proveedor al inventario',
+          'Poner todo en una columna',
+        ],
       },
     ],
   };

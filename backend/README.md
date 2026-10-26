@@ -21,28 +21,27 @@ docker compose up -d               # PostgreSQL 17 en localhost:5435
 
 ## Arquitectura
 
-Clean Architecture en dos capas; `domain` **no** depende de `infrastructure` (lo verifica `ArchitectureTest`).
+Clean Architecture en dos capas; `domain` **no** depende de `infrastructure` ni de Spring (lo verifica
+`ArchitectureTest`). Las reglas, con su porqué y ejemplos, están en [ARQUITECTURA.md](ARQUITECTURA.md).
 
 ```
 com.ensambla.backend
 ├── domain
-│   ├── model/<area>/        modelos (Lombok) y model/enums
+│   ├── model/<area>/        modelos, reglas puras, ids tipados (<Modelo>Id) y enums del área
 │   ├── repository/<area>/   puertos de persistencia
-│   ├── service/<area>/      reglas que tocan repositorio
-│   ├── useCase/<area>/      un caso de uso por clase, execute()
-│   ├── dto/<area>/          request/response de los use cases (records)
-│   ├── mapper/<area>/       un mapper por use case
-│   ├── port/                puertos de salida (LectorCuadernoPort…)
+│   ├── service/<area>/      sólo lógica que comparten dos o más casos de uso
+│   ├── useCase/<area>/      un subpaquete por caso de uso: la clase (sin sufijo, un execute()) y sus DTOs
+│   ├── port/                puertos de salida (TransaccionPort, LectorCuadernoPort…)
 │   └── exception/           ResourceNotFound, DuplicateResource, BusinessRule, CredencialesInvalidas
 └── infrastructure
-    ├── config/              SecurityConfig, CorsFilter, SwaggerConfig, useCase/<Area>UseCaseConfig
+    ├── config/              SecurityConfig, CorsFilter, SwaggerConfig, IdentificadoresConfig, useCase/<Area>UseCaseConfig
     ├── ia/                  adapter de lectura con IA (LectorCuadernoIaAdapter, IaConfig)
     ├── security/            SesionAdapter, UsuarioActivoFilter, SecurityErrorHandler
     ├── presentation/        controller, dto web, mapper, exception (GlobalExceptionHandler)
-    └── repository/          entity, jpaRepository/{interfaces,implementation}, mapper
+    └── repository/          entity, jpaRepository/{interfaces,implementation}, mapper, TransaccionAdapter
 ```
 
-Flujo: `Controller → PresentationMapper → UseCase → Service → Repository (puerto) → RepositoryImpl → JPA`.
+Flujo: `Controller → PresentationMapper → Caso de uso → (Servicio compartido) → Puerto → RepositoryImpl → JPA`.
 Para sumar un endpoint seguí el skill `crear-use-case` (`../.claude/skills`); el módulo `plantilla` es la referencia.
 
 ## Modelo de datos

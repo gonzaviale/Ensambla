@@ -346,20 +346,52 @@ export function guardarCampo(bloqueId: string, clave: string | null, datos: Dato
 }
 
 /** Guarda un registro (nuevo o editado). Devuelve los errores por campo, o `null` si quedó guardado. */
+/** Los valores listos para guardar, o los errores de cada campo si el registro no es válido. */
+function revisarRegistro(
+  sistema: Sistema | undefined,
+  bloqueId: string,
+  crudos: Record<string, Valor>,
+  filaId: string | null,
+) {
+  const bloque = findBlock(sistema, bloqueId);
+  if (!sistema || !bloque) return { errores: { _form: 'Este bloque ya no existe.' } };
+  const valores = resolveValues(bloque, crudos, sistema);
+  const errores = validateRow(bloque, valores, sistema, filaId);
+  return Object.keys(errores).length ? { errores } : { valores };
+}
+
 export function guardarRegistro(
   bloqueId: string,
   crudos: Record<string, Valor>,
   filaId: string | null,
 ) {
-  const sistema = sistemaActivo();
-  const bloque = findBlock(sistema, bloqueId);
-  if (!sistema || !bloque) return { _form: 'Este bloque ya no existe.' };
-  const valores = resolveValues(bloque, crudos, sistema);
-  const errores = validateRow(bloque, valores, sistema, filaId);
-  if (Object.keys(errores).length) return errores;
+  const revision = revisarRegistro(sistemaActivo(), bloqueId, crudos, filaId);
+  if ('errores' in revision) return revision.errores;
+  const { valores } = revision;
   store().commit((s) => {
     const objetivo = findBlock(s, bloqueId);
     if (objetivo) upsertRow(objetivo, valores, filaId, s);
+  });
+  store().cerrarModal();
+  store().avisar(filaId ? 'Registro actualizado.' : 'Registro guardado.');
+  return null;
+}
+
+/**
+ * Lo mismo sobre la propuesta de Sami, antes de crear el sistema. Un ejemplo que se edita deja de serlo, así que
+ * pasa al sistema al crearlo.
+ */
+export function guardarRegistroDelBorrador(
+  bloqueId: string,
+  crudos: Record<string, Valor>,
+  filaId: string | null,
+) {
+  const revision = revisarRegistro(store().taller?.borrador ?? undefined, bloqueId, crudos, filaId);
+  if ('errores' in revision) return revision.errores;
+  const { valores } = revision;
+  store().editarBorrador((copia) => {
+    const objetivo = findBlock(copia, bloqueId);
+    if (objetivo) upsertRow(objetivo, valores, filaId, copia);
   });
   store().cerrarModal();
   store().avisar(filaId ? 'Registro actualizado.' : 'Registro guardado.');

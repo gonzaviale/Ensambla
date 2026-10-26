@@ -446,3 +446,33 @@
   grid-column: 1 / -1;
   margin: 0;
 }
+
+/* La versión chica, al pie de una lista (avisos, Mi zona) */
+.contenido-premium.compacto {
+  margin: 6px 0 0;
+  padding: 14px 18px;
+  gap: 8px;
+  font-size: 13px;
+}
+.contenido-premium.compacto p {
+  margin: 6px 0 0;
+  line-height: 1.45;
+}
+.contenido-premium.compacto .contenido-premium-extra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  padding-top: 0;
+}
+.contenido-premium.compacto .contenido-premium-extra p {
+  flex: 1 1 100%;
+  margin: 0;
+}
+.contenido-premium.compacto .contenido-premium-muestra {
+  display: none;
+}
+.contenido-premium.compacto .btn {
+  padding: 8px 14px;
+  font-size: 13px;
+}

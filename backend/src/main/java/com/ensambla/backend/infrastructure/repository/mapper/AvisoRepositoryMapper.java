@@ -1,6 +1,10 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
 import com.ensambla.backend.domain.model.aviso.Aviso;
+import com.ensambla.backend.domain.model.aviso.AvisoId;
+import com.ensambla.backend.domain.model.common.Identificador;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.infrastructure.repository.entity.AvisoEntity;
 import org.springframework.stereotype.Component;
 
@@ -9,9 +13,9 @@ public class AvisoRepositoryMapper {
 
     public Aviso toDomain(AvisoEntity entity) {
         return Aviso.builder()
-                .id(entity.getId())
-                .negocioId(entity.getNegocioId())
-                .proyectoId(entity.getProyectoId())
+                .id(Identificador.opcional(entity.getId(), AvisoId::de))
+                .negocioId(Identificador.opcional(entity.getNegocioId(), NegocioId::de))
+                .proyectoId(Identificador.opcional(entity.getProyectoId(), ProyectoId::de))
                 .tipo(entity.getTipo())
                 .grupo(entity.getGrupo())
                 .prioridad(entity.getPrioridad())
@@ -31,9 +35,9 @@ public class AvisoRepositoryMapper {
 
     public AvisoEntity toEntity(Aviso aviso) {
         return AvisoEntity.builder()
-                .id(aviso.getId())
-                .negocioId(aviso.getNegocioId())
-                .proyectoId(aviso.getProyectoId())
+                .id(Identificador.valorDe(aviso.getId()))
+                .negocioId(Identificador.valorDe(aviso.getNegocioId()))
+                .proyectoId(Identificador.valorDe(aviso.getProyectoId()))
                 .tipo(aviso.getTipo())
                 .grupo(aviso.getGrupo())
                 .prioridad(aviso.getPrioridad())

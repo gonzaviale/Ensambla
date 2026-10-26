@@ -181,14 +181,14 @@ describe('una foto para Sami en el taller', () => {
   it('con el Sami simulado, lo leído de la foto queda como registros reales al crear el sistema', async () => {
     const { user, router } = await abrirTaller();
     await clickButton(user, /Almacén o kiosco/);
-    await screen.findByLabelText('Nombre de tu sistema', {}, ESPERA);
+    await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
 
     await adjuntar(user);
     await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });
     await clickButton(user, /Ajustalo conmigo/);
     expect(await screen.findByText(/Miré tu foto: anotaste tres ventas/, {}, ESPERA)).toBeVisible();
 
-    await clickButton(user, /Sí, crear mi sistema/);
+    await clickButton(user, /Sí, crear mi cuaderno/);
 
     await waitFor(() => expect(useSistemaStore.getState().sistemas).toHaveLength(1), ESPERA);
     const [sistema] = useSistemaStore.getState().sistemas;

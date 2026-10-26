@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.model.campo;
 
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -12,7 +12,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
@@ -25,7 +24,7 @@ public record ConfiguracionCampo(
         Boolean obligatorio,
         String valorInicial,
         List<String> opciones,
-        UUID bloqueRelacionadoId,
+        BloqueId bloqueRelacionadoId,
         String formula
 ) {
 
@@ -44,7 +43,7 @@ public record ConfiguracionCampo(
             boolean obligatorio,
             String valorInicial,
             List<String> opciones,
-            UUID bloqueRelacionadoId,
+            BloqueId bloqueRelacionadoId,
             String formula
     ) {
     }
@@ -69,7 +68,7 @@ public record ConfiguracionCampo(
         if (!errores.isEmpty()) {
             throw new CampoInvalidoException(errores);
         }
-        UUID relacionado = tipoCampo == TipoCampo.RELACION ? bloqueRelacionadoId : null;
+        BloqueId relacionado = tipoCampo == TipoCampo.RELACION ? bloqueRelacionadoId : null;
         String formulaFinal = tipoCampo == TipoCampo.FORMULA ? formulaLimpia : null;
         return new Validada(nombreLimpio, tipoCampo, Boolean.TRUE.equals(obligatorio), valorLimpio, opcionesLimpias,
                 relacionado, formulaFinal);
@@ -125,7 +124,7 @@ public record ConfiguracionCampo(
                 "Elegí la tabla con la que se conecta");
     }
 
-    /** La sintaxis se valida acá; que los campos citados existan y sean numéricos lo controla CampoService. */
+    /** La sintaxis se valida acá; que los campos existan y sean numéricos lo controla Campo. */
     private static Optional<String> errorDeFormula(TipoCampo tipo, String formula) {
         if (tipo != TipoCampo.FORMULA) {
             return Optional.empty();

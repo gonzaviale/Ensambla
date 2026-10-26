@@ -19,9 +19,8 @@ import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
 import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
 import com.ensambla.backend.domain.port.SamiIaPort;
 import com.ensambla.backend.domain.port.TallerIaPort;
-import com.ensambla.backend.domain.service.sami.HerramientasTallerService;
-import com.ensambla.backend.domain.service.sami.RubroTallerService;
-import com.ensambla.backend.domain.service.sami.SamiPruebas;
+import com.ensambla.backend.support.SamiPruebas;
+import com.ensambla.backend.support.TallerDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -258,11 +257,10 @@ class SamiConfigTest {
     @Test
     @DisplayName("Cada kit se arma entero, sin descartes, sobre un sistema vacío")
     void kitsRubroShouldExpandWithoutDiscards() {
-        HerramientasTallerService herramientas =
-                new HerramientasTallerService(config.catalogoComponentes(JsonMapper.builder().build()), kits());
+        TallerDePrueba taller = new TallerDePrueba(kits());
 
         for (KitRubro kit : kits().kits()) {
-            ValidacionTaller result = herramientas.validar(
+            ValidacionTaller result = taller.validar(
                     List.of(new LlamadaHerramienta("usar_kit", Map.of("rubro", kit.id()))),
                     new EstadoTaller("Mi sistema", "mosaic", List.of()));
 
@@ -284,10 +282,10 @@ class SamiConfigTest {
     @Test
     @DisplayName("Cada kit se reconoce por su propio nombre, que es lo que ofrece la botonera")
     void kitsRubroShouldBeDetectedByTheirOwnName() {
-        RubroTallerService rubros = new RubroTallerService(kits());
+        TallerDePrueba taller = new TallerDePrueba(kits());
 
         for (KitRubro kit : kits().kits()) {
-            assertThat(rubros.detectar(kit.nombre(), new EstadoTaller(null, "mosaic", List.of()), List.of()))
+            assertThat(taller.rubro(kit.nombre(), new EstadoTaller(null, "mosaic", List.of()), List.of()))
                     .as("rubro de «%s»", kit.nombre())
                     .map(KitRubro::id)
                     .contains(kit.id());

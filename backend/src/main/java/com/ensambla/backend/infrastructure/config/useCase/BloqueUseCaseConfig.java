@@ -1,16 +1,14 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.mapper.bloque.BloqueItemMapper;
-import com.ensambla.backend.domain.mapper.bloque.CrearBloqueMapper;
-import com.ensambla.backend.domain.mapper.bloque.ListarBloquesMapper;
-import com.ensambla.backend.domain.mapper.bloque.RenombrarBloqueMapper;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
-import com.ensambla.backend.domain.useCase.bloque.CrearBloqueUseCase;
-import com.ensambla.backend.domain.useCase.bloque.EliminarBloqueUseCase;
-import com.ensambla.backend.domain.useCase.bloque.ListarBloquesUseCase;
-import com.ensambla.backend.domain.useCase.bloque.RenombrarBloqueUseCase;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
+import com.ensambla.backend.domain.useCase.bloque.crearBloque.CrearBloque;
+import com.ensambla.backend.domain.useCase.bloque.eliminarBloque.EliminarBloque;
+import com.ensambla.backend.domain.useCase.bloque.listarBloques.ListarBloques;
+import com.ensambla.backend.domain.useCase.bloque.renombrarBloque.RenombrarBloque;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,72 +18,53 @@ import java.time.Clock;
 public class BloqueUseCaseConfig {
 
     @Bean
-    public BloqueItemMapper bloqueItemMapper() {
-        return new BloqueItemMapper();
+    public ListarBloques listarBloques(
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository) {
+        return new ListarBloques(
+                negocioRepository,
+                proyectoRepository);
     }
 
     @Bean
-    public ListarBloquesMapper listarBloquesMapper(BloqueItemMapper bloqueItemMapper) {
-        return new ListarBloquesMapper(bloqueItemMapper);
-    }
-
-    @Bean
-    public ListarBloquesUseCase listarBloquesUseCase(
-            NegocioService negocioService,
-            ProyectoService proyectoService,
-            ListarBloquesMapper listarBloquesMapper) {
-        return new ListarBloquesUseCase(
-                negocioService,
-                proyectoService,
-                listarBloquesMapper);
-    }
-
-    @Bean
-    public CrearBloqueMapper crearBloqueMapper(BloqueItemMapper bloqueItemMapper) {
-        return new CrearBloqueMapper(bloqueItemMapper);
-    }
-
-    @Bean
-    public CrearBloqueUseCase crearBloqueUseCase(
-            NegocioService negocioService,
-            ProyectoService proyectoService,
-            BloqueService bloqueService,
-            CrearBloqueMapper crearBloqueMapper,
+    public CrearBloque crearBloque(
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository,
+            BloqueRepository bloqueRepository,
             Clock clock) {
-        return new CrearBloqueUseCase(
-                negocioService,
-                proyectoService,
-                bloqueService,
-                crearBloqueMapper,
+        return new CrearBloque(
+                negocioRepository,
+                proyectoRepository,
+                bloqueRepository,
                 clock);
     }
 
     @Bean
-    public RenombrarBloqueMapper renombrarBloqueMapper(BloqueItemMapper bloqueItemMapper) {
-        return new RenombrarBloqueMapper(bloqueItemMapper);
-    }
-
-    @Bean
-    public RenombrarBloqueUseCase renombrarBloqueUseCase(
-            NegocioService negocioService,
-            BloqueService bloqueService,
-            ProyectoService proyectoService,
-            RenombrarBloqueMapper renombrarBloqueMapper,
+    public RenombrarBloque renombrarBloque(
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository,
+            BloqueRepository bloqueRepository,
+            TransaccionPort transaccionPort,
             Clock clock) {
-        return new RenombrarBloqueUseCase(
-                negocioService,
-                bloqueService,
-                proyectoService,
-                renombrarBloqueMapper,
+        return new RenombrarBloque(
+                negocioRepository,
+                proyectoRepository,
+                bloqueRepository,
+                transaccionPort,
                 clock);
     }
 
     @Bean
-    public EliminarBloqueUseCase eliminarBloqueUseCase(
-            NegocioService negocioService,
-            BloqueService bloqueService) {
-        return new EliminarBloqueUseCase(
-                negocioService,
-                bloqueService);
+    public EliminarBloque eliminarBloque(
+            NegocioRepository negocioRepository,
+            BloqueRepository bloqueRepository,
+            CampoRepository campoRepository,
+            TransaccionPort transaccionPort) {
+        return new EliminarBloque(
+                negocioRepository,
+                bloqueRepository,
+                campoRepository,
+                transaccionPort);
     }
+
 }

@@ -1,8 +1,12 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.useCase.lote.ObtenerFotoLoteUseCase;
-import com.ensambla.backend.domain.useCase.lote.ObtenerLoteUseCase;
-import com.ensambla.backend.domain.useCase.lote.SubirLoteUseCase;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.lote.FotoId;
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.lote.obtenerFotoLote.ObtenerFotoLote;
+import com.ensambla.backend.domain.useCase.lote.obtenerLote.ObtenerLote;
+import com.ensambla.backend.domain.useCase.lote.subirLote.SubirLote;
 import com.ensambla.backend.infrastructure.presentation.dto.lote.LoteResponse;
 import com.ensambla.backend.infrastructure.presentation.mapper.lote.LotePresentationMapper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,7 +26,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URI;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/lotes")
@@ -30,11 +33,11 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class LoteController {
 
-    private final SubirLoteUseCase subirLoteUseCase;
+    private final SubirLote subirLote;
 
-    private final ObtenerLoteUseCase obtenerLoteUseCase;
+    private final ObtenerLote obtenerLote;
 
-    private final ObtenerFotoLoteUseCase obtenerFotoLoteUseCase;
+    private final ObtenerFotoLote obtenerFotoLote;
 
     private final LotePresentationMapper lotePresentationMapper;
 
@@ -42,24 +45,24 @@ public class LoteController {
     @Operation(summary = "Subir fotos del cuaderno: guarda las fotos y crea un lote pendiente de lectura; bloqueDestinoId (opcional) indica a qué bloque van las filas")
     public ResponseEntity<LoteResponse> subir(
             Authentication authentication, @RequestPart("fotos") List<MultipartFile> fotos,
-            @RequestParam(value = "bloqueDestinoId", required = false) UUID bloqueDestinoId) {
-        LoteResponse response = lotePresentationMapper.toResponse(subirLoteUseCase.execute(
-                lotePresentationMapper.toSubirRequest(UUID.fromString(authentication.getName()), fotos, bloqueDestinoId)));
+            @RequestParam(value = "bloqueDestinoId", required = false) BloqueId bloqueDestinoId) {
+        LoteResponse response = lotePresentationMapper.toResponse(subirLote.execute(
+                lotePresentationMapper.toSubirRequest(UsuarioId.de(authentication.getName()), fotos, bloqueDestinoId)));
         return ResponseEntity.created(URI.create("/api/lotes/" + response.id())).body(response);
     }
 
     @GetMapping("/{loteId}/fotos/{fotoId}")
     @Operation(summary = "Ver una página subida del lote; sólo la ve el negocio dueño")
     public ResponseEntity<byte[]> foto(
-            Authentication authentication, @PathVariable UUID loteId, @PathVariable UUID fotoId) {
-        return RespuestaFoto.de(obtenerFotoLoteUseCase.execute(lotePresentationMapper.toFotoRequest(
-                UUID.fromString(authentication.getName()), loteId, fotoId)));
+            Authentication authentication, @PathVariable LoteId loteId, @PathVariable FotoId fotoId) {
+        return RespuestaFoto.de(obtenerFotoLote.execute(lotePresentationMapper.toFotoRequest(
+                UsuarioId.de(authentication.getName()), loteId, fotoId)));
     }
 
     @GetMapping("/{loteId}")
     @Operation(summary = "Consultar un lote y sus fotos")
-    public ResponseEntity<LoteResponse> obtener(Authentication authentication, @PathVariable UUID loteId) {
-        return ResponseEntity.ok(lotePresentationMapper.toResponse(obtenerLoteUseCase.execute(
-                lotePresentationMapper.toObtenerRequest(UUID.fromString(authentication.getName()), loteId))));
+    public ResponseEntity<LoteResponse> obtener(Authentication authentication, @PathVariable LoteId loteId) {
+        return ResponseEntity.ok(lotePresentationMapper.toResponse(obtenerLote.execute(
+                lotePresentationMapper.toObtenerRequest(UsuarioId.de(authentication.getName()), loteId))));
     }
 }

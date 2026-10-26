@@ -1,22 +1,33 @@
 package com.ensambla.backend.infrastructure.repository;
 
-import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
-import com.ensambla.backend.domain.model.enums.FuncionPlan;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.plan.FuncionPlan;
+import com.ensambla.backend.domain.model.plan.PlanId;
 import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
+import com.ensambla.backend.domain.model.procesamiento.ReclamoId;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
+import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
-import com.ensambla.backend.domain.service.plan.ConsumoIaInmediatoService;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.plan.SuscripcionService;
-import com.ensambla.backend.domain.service.procesamiento.ReservaIaService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
+import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistro;
+import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistroRequest;
+import com.ensambla.backend.support.LecturasInmediatasDePrueba;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.ProyectosDePrueba;
+import com.ensambla.backend.support.SuscripcionesDePrueba;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,22 +57,28 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    private ProyectoService proyectoService;
+    private ProyectosDePrueba proyectosDePrueba;
+
+    @Autowired
+    private ProyectoRepository proyectoRepository;
 
     @Autowired
     private RegistroDatosService registroDatosService;
 
     @Autowired
-    private SuscripcionService suscripcionService;
+    private RegistroRepository registroRepository;
+
+    @Autowired
+    private CrearRegistro crearRegistro;
+
+    @Autowired
+    private SuscripcionesDePrueba suscripcionService;
 
     @Autowired
     private ControlPlanService controlPlanService;
 
     @Autowired
-    private ConsumoIaInmediatoService consumoIaInmediatoService;
-
-    @Autowired
-    private ReservaIaService reservaIaService;
+    private LecturasInmediatasDePrueba consumoIaInmediatoService;
 
     @Autowired
     private UsoPlanRepository usoPlanRepository;
@@ -83,7 +100,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                 usuarioId, usuarioId + "@example.test");
         jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Cuotas', ?)",
                 negocioId, usuarioId);
-        suscripcionService.asignarGratuito(negocioId, AHORA.minusDays(30));
+        suscripcionService.asignarGratuito(NegocioId.de(negocioId), AHORA.minusDays(30));
     }
 
     @AfterEach
@@ -99,7 +116,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                 () -> crearProyecto("Primero"), () -> crearProyecto("Segundo"));
 
         assertThat(result).containsExactlyInAnyOrder(true, false);
-        assertThat(usoPlanRepository.contarProyectos(negocioId)).isEqualTo(1);
+        assertThat(usoPlanRepository.contarProyectos(NegocioId.de(negocioId))).isEqualTo(1);
     }
 
     @Test
@@ -113,34 +130,19 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                 () -> crearRegistro(bloqueA), () -> crearRegistro(bloqueB));
 
         assertThat(result).containsExactlyInAnyOrder(true, false);
-        assertThat(usoPlanRepository.contarRegistros(negocioId)).isEqualTo(1000);
+        assertThat(usoPlanRepository.contarRegistros(NegocioId.de(negocioId))).isEqualTo(1000);
     }
 
     @Test
     @DisplayName("Un lote de filas que supera la cuota se rechaza completo")
-    void crearVariosShouldRejectWithoutPartialInserts() {
+    void validarAltaRegistrosShouldRejectBatchOverQuota() {
         UUID bloqueId = givenBloque("Productos");
         givenRegistros(bloqueId, 999);
-        List<Registro> nuevos = List.of(
-                Registro.nuevo(negocioId, bloqueId, Map.of(), AHORA),
-                Registro.nuevo(negocioId, bloqueId, Map.of(), AHORA));
 
-        assertThatThrownBy(() -> registroDatosService.crearVarios(negocioId, nuevos, AHORA))
+        assertThatThrownBy(() -> controlPlanService.validarAltaRegistros(NegocioId.de(negocioId), 2, AHORA))
                 .isInstanceOf(RestriccionPlanException.class);
 
-        assertThat(usoPlanRepository.contarRegistros(negocioId)).isEqualTo(999);
-    }
-
-    @Test
-    @DisplayName("No acepta un lote interno que mezcle registros de otro negocio")
-    void crearVariosShouldRejectMixedNegocios() {
-        UUID bloqueId = givenBloque("Productos");
-        Registro ajeno = Registro.nuevo(UUID.randomUUID(), bloqueId, Map.of(), AHORA);
-
-        assertThatThrownBy(() -> registroDatosService.crearVarios(negocioId, List.of(ajeno), AHORA))
-                .isInstanceOf(BusinessRuleException.class);
-
-        assertThat(usoPlanRepository.contarRegistros(negocioId)).isZero();
+        assertThat(usoPlanRepository.contarRegistros(NegocioId.de(negocioId))).isEqualTo(999);
     }
 
     @Test
@@ -150,15 +152,15 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         givenRegistros(bloqueId, 1001);
         UUID registroId = jdbcTemplate.queryForObject(
                 "SELECT id FROM registro WHERE negocio_id = ? ORDER BY id LIMIT 1", UUID.class, negocioId);
-        Registro registro = registroDatosService.obtener(registroId, negocioId);
+        Registro registro = registroRepository.obtener(RegistroId.de(registroId), NegocioId.de(negocioId));
 
         registroDatosService.editar(registro, List.of(), Map.of(), AHORA.plusHours(1));
 
-        assertThat(usoPlanRepository.contarRegistros(negocioId)).isEqualTo(1001);
-        assertThat(proyectoService.listar(negocioId)).hasSize(1);
+        assertThat(usoPlanRepository.contarRegistros(NegocioId.de(negocioId))).isEqualTo(1001);
+        assertThat(proyectoRepository.findAllByNegocioId(NegocioId.de(negocioId))).hasSize(1);
         assertThatThrownBy(() -> crearRegistro(bloqueId)).isInstanceOf(RestriccionPlanException.class);
-        UUID proyectoId = proyectoService.listar(negocioId).getFirst().getId();
-        assertThatCode(() -> proyectoService.renombrar(negocioId, proyectoId, "Conservado", AHORA))
+        UUID proyectoId = proyectoRepository.findAllByNegocioId(NegocioId.de(negocioId)).getFirst().getId().valor();
+        assertThatCode(() -> renombrar(negocioId, proyectoId, "Conservado"))
                 .doesNotThrowAnyException();
     }
 
@@ -169,11 +171,11 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         LoteTrabajo lote = givenLoteReclamado();
 
         List<Boolean> result = concurrently(
-                () -> reservaIaService.reservar(lote, 2, 100, AHORA),
+                () -> reservar(lote, 2, 100, AHORA),
                 this::registrarPaginaInmediata);
 
         assertThat(result).containsExactlyInAnyOrder(true, false);
-        long total = usoPlanRepository.paginasEnPeriodo(negocioId,
+        long total = usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
                 LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"));
         assertThat(total).isBetween(9L, 10L);
     }
@@ -186,7 +188,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         List<Boolean> result = concurrently(this::registrarPaginaInmediata, this::registrarPaginaInmediata);
 
         assertThat(result).containsExactlyInAnyOrder(true, false);
-        assertThat(usoPlanRepository.paginasEnPeriodo(negocioId,
+        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
                 LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isEqualTo(10);
     }
 
@@ -197,7 +199,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
         assertThatThrownBy(this::registrarPaginaInmediata).isInstanceOf(RestriccionPlanException.class);
 
-        assertThat(usoPlanRepository.paginasEnPeriodo(negocioId,
+        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
                 LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isEqualTo(10);
     }
 
@@ -206,11 +208,11 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     void registrarInmediataShouldResetAllowanceAtUtcMonthBoundary() {
         givenConsumo(LocalDate.parse("2026-10-31"), 10, 0);
 
-        consumoIaInmediatoService.registrar(negocioId, OffsetDateTime.parse("2026-10-31T23:30:00-03:00"));
+        consumoIaInmediatoService.registrar(NegocioId.de(negocioId), OffsetDateTime.parse("2026-10-31T23:30:00-03:00"));
 
-        assertThat(usoPlanRepository.paginasEnPeriodo(negocioId,
+        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
                 LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isEqualTo(10);
-        assertThat(usoPlanRepository.paginasEnPeriodo(negocioId,
+        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
                 LocalDate.parse("2026-11-01"), LocalDate.parse("2026-12-01"))).isEqualTo(1);
     }
 
@@ -219,14 +221,14 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     void finalizarShouldKeepOriginalReservationMonth() {
         LoteTrabajo lote = givenLoteReclamado();
         OffsetDateTime octubre = OffsetDateTime.parse("2026-10-31T23:59:00Z");
-        assertThat(reservaIaService.reservar(lote, 2, 100, octubre)).isTrue();
+        assertThat(reservar(lote, 2, 100, octubre)).isTrue();
 
         procesamientoRepository.finalizar(lote, new ResultadoIntento(null, "Timeout", false),
                 null, octubre.plusMinutes(2), null);
 
-        assertThat(usoPlanRepository.paginasEnPeriodo(negocioId,
+        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
                 LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isEqualTo(2);
-        assertThat(usoPlanRepository.paginasEnPeriodo(negocioId,
+        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
                 LocalDate.parse("2026-11-01"), LocalDate.parse("2026-12-01"))).isZero();
     }
 
@@ -235,19 +237,19 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     void reservarShouldNotChargeWhenDailyReservationFails() {
         LoteTrabajo lote = givenLoteReclamado();
 
-        boolean result = reservaIaService.reservar(lote, 2, 1, AHORA);
+        boolean result = reservar(lote, 2, 1, AHORA);
 
         assertThat(result).isFalse();
-        assertThat(usoPlanRepository.paginasEnPeriodo(negocioId,
+        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
                 LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isZero();
     }
 
     @Test
     @DisplayName("El consumo inmediato cuenta páginas sin presentar un costo desconocido como cero")
     void registrarInmediataShouldExposeIncompleteTokenAccounting() {
-        consumoIaInmediatoService.registrar(negocioId, AHORA);
+        consumoIaInmediatoService.registrar(NegocioId.de(negocioId), AHORA);
 
-        var consumo = procesamientoRepository.consumo(negocioId, AHORA.toLocalDate());
+        var consumo = procesamientoRepository.consumo(NegocioId.de(negocioId), AHORA.toLocalDate());
 
         assertThat(consumo.paginas()).isEqualTo(1);
         assertThat(consumo.reservadas()).isZero();
@@ -258,10 +260,11 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Una capacidad diaria agotada no registra una página inmediata")
     void registrarPaginaInmediataShouldRejectZeroDailyAllowance() {
-        boolean result = usoPlanRepository.registrarPaginaInmediata(negocioId, AHORA.toLocalDate(), 0, AHORA);
+        boolean result = usoPlanRepository
+                .registrarPaginaInmediata(NegocioId.de(negocioId), AHORA.toLocalDate(), 0, AHORA);
 
         assertThat(result).isFalse();
-        assertThat(usoPlanRepository.paginasEnPeriodo(negocioId,
+        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
                 LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isZero();
     }
 
@@ -270,12 +273,12 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     void premiumShouldEnableFeaturesAndUnlimitedSystems() {
         givenPremium(AHORA.plusMonths(1));
 
-        proyectoService.crear(negocioId, "Primero", null, AHORA);
-        proyectoService.crear(negocioId, "Segundo", null, AHORA);
+        proyectosDePrueba.crear(NegocioId.de(negocioId), "Primero", null, AHORA);
+        proyectosDePrueba.crear(NegocioId.de(negocioId), "Segundo", null, AHORA);
 
-        assertThat(usoPlanRepository.contarProyectos(negocioId)).isEqualTo(2);
+        assertThat(usoPlanRepository.contarProyectos(NegocioId.de(negocioId))).isEqualTo(2);
         for (FuncionPlan funcion : FuncionPlan.values()) {
-            assertThatCode(() -> controlPlanService.validarFuncion(negocioId, funcion, AHORA))
+            assertThatCode(() -> controlPlanService.validarFuncion(NegocioId.de(negocioId), funcion, AHORA))
                     .doesNotThrowAnyException();
         }
     }
@@ -285,27 +288,27 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     void premiumShouldEnforceQuotaAndExpiry() {
         givenPremium(AHORA.plusDays(1));
         givenConsumo(LocalDate.parse("2026-10-18"), 99, 0);
-        consumoIaInmediatoService.registrar(negocioId, AHORA);
+        consumoIaInmediatoService.registrar(NegocioId.de(negocioId), AHORA);
 
         assertThatThrownBy(this::registrarPaginaInmediata).isInstanceOf(RestriccionPlanException.class);
 
         assertThatThrownBy(() -> controlPlanService.validarFuncion(
-                negocioId, FuncionPlan.RECETAS_COSTOS, AHORA.plusDays(1)))
+                NegocioId.de(negocioId), FuncionPlan.RECETAS_COSTOS, AHORA.plusDays(1)))
                 .isInstanceOf(RestriccionPlanException.class);
     }
 
     @Test
     @DisplayName("Un negocio inexistente no puede bloquear ni consultar cuotas ajenas")
     void validarAltaProyectoShouldRejectMissingNegocio() {
-        assertThatThrownBy(() -> controlPlanService.validarAltaProyecto(UUID.randomUUID(), AHORA))
+        assertThatThrownBy(() -> controlPlanService.validarAltaProyecto(NegocioId.nuevo(), AHORA))
                 .isInstanceOf(ResourceNotFoundException.class).hasMessage("Negocio no encontrado");
 
-        assertThat(planRepository.findById(UUID.randomUUID())).isEmpty();
+        assertThat(planRepository.findById(PlanId.nuevo())).isEmpty();
     }
 
     // --- arrange ---
     private UUID givenBloque(String nombre) {
-        UUID proyectoId = proyectoService.crear(negocioId, "Sistema", null, AHORA).getId();
+        UUID proyectoId = proyectosDePrueba.crear(NegocioId.de(negocioId), "Sistema", null, AHORA).getId().valor();
         UUID bloqueId = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre) VALUES (?, ?, ?, ?)",
                 bloqueId, negocioId, proyectoId, nombre);
@@ -348,22 +351,27 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                 INSERT INTO lote_subida (id, negocio_id, estado, intentos, reclamo_id, reclamo_hasta)
                 VALUES (?, ?, 'PROCESANDO', 1, ?, ?)
                 """, loteId, negocioId, token, AHORA.plusMinutes(5));
-        return new LoteTrabajo(loteId, negocioId, null, token, 1);
+        return new LoteTrabajo(LoteId.de(loteId), NegocioId.de(negocioId), null, ReclamoId.de(token), 1);
     }
 
     // --- act ---
     private boolean crearProyecto(String nombre) {
-        proyectoService.crear(negocioId, nombre, null, AHORA);
+        proyectosDePrueba.crear(NegocioId.de(negocioId), nombre, null, AHORA);
         return true;
     }
 
     private boolean crearRegistro(UUID bloqueId) {
-        registroDatosService.crear(negocioId, bloqueId, List.of(), Map.of(), AHORA);
+        crearRegistro.execute(new CrearRegistroRequest(UsuarioId.de(usuarioId), BloqueId.de(bloqueId), Map.of()));
         return true;
     }
 
+    private boolean reservar(LoteTrabajo lote, int paginas, int limiteDiario, OffsetDateTime ahora) {
+        return controlPlanService.reservarPaginasIa(lote.negocioId(), paginas, ahora,
+                () -> procesamientoRepository.reservar(lote, paginas, limiteDiario, ahora));
+    }
+
     private boolean registrarPaginaInmediata() {
-        consumoIaInmediatoService.registrar(negocioId, AHORA);
+        consumoIaInmediatoService.registrar(NegocioId.de(negocioId), AHORA);
         return true;
     }
 
@@ -389,5 +397,11 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         } catch (RestriccionPlanException e) {
             return false;
         }
+    }
+    /** Editar lo que ya existe no consume cupo del plan. */
+    private void renombrar(UUID negocioId, UUID proyectoId, String nombre) {
+        Proyecto proyecto = proyectoRepository.obtener(NegocioId.de(negocioId), ProyectoId.de(proyectoId));
+        proyecto.renombrar(nombre, AHORA);
+        proyectoRepository.save(proyecto);
     }
 }

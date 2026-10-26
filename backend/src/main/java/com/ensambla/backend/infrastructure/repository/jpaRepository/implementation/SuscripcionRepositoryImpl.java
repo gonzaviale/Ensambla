@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.ISuscripcionJpaRepository;
@@ -8,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -25,7 +25,7 @@ public class SuscripcionRepositoryImpl implements SuscripcionRepository {
     }
 
     @Override
-    public Optional<Suscripcion> findByNegocioId(UUID negocioId) {
-        return suscripcionJpaRepository.findByNegocioId(negocioId).map(suscripcionRepositoryMapper::toDomain);
+    public Optional<Suscripcion> findByNegocioId(NegocioId negocioId) {
+        return suscripcionJpaRepository.findByNegocioId(negocioId.valor()).map(suscripcionRepositoryMapper::toDomain);
     }
 }

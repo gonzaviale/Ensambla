@@ -68,7 +68,9 @@ describe('accesibilidad de las pantallas', () => {
     renderApp(`/sistemas/${sistema.id}?modo=usar`);
     const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: /Avisos de Sami/ }, ESPERA));
-    await screen.findByRole('dialog', { name: /Lo que encontré/ });
+    await sinViolaciones();
+    await user.click(screen.getByRole('button', { name: /Ver todos los avisos/ }));
+    await screen.findByRole('region', { name: /Lo que encontré/ }, ESPERA);
     await sinViolaciones();
   });
 

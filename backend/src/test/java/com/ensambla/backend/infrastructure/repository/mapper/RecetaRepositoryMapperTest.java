@@ -1,26 +1,29 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.receta.LineaReceta;
 import com.ensambla.backend.domain.model.receta.Receta;
+import com.ensambla.backend.domain.model.receta.RecetaId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.infrastructure.repository.entity.RecetaEntity;
+import com.ensambla.backend.support.IdsDePrueba;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RecetaRepositoryMapperTest {
 
-    private static final UUID ID = UUID.fromString("f0000000-0000-4000-8000-000000000001");
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID PRODUCTO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID HARINA_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
-    private static final UUID AZUCAR_ID = UUID.fromString("d0000000-0000-4000-8000-000000000003");
-    private static final UUID PRECIO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000002");
+    private static final RecetaId ID = RecetaId.de("f0000000-0000-4000-8000-000000000001");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final RegistroId PRODUCTO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final RegistroId HARINA_ID = RegistroId.de("d0000000-0000-4000-8000-000000000002");
+    private static final RegistroId AZUCAR_ID = RegistroId.de("d0000000-0000-4000-8000-000000000003");
+    private static final CampoId PRECIO_ID = CampoId.de("c0000000-0000-4000-8000-000000000002");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-13T12:00:00Z");
 
     private final RecetaRepositoryMapper mapper = new RecetaRepositoryMapper();
@@ -45,6 +48,8 @@ class RecetaRepositoryMapperTest {
 
         assertThat(entity.getLineas().get(0)).containsEntry("cantidad", "0.125").containsEntry("unidad", "kg");
         assertThat(entity.getLineas().get(1)).containsEntry("unidad", null);
-        assertThat(result).usingRecursiveComparison().isEqualTo(receta);
+        assertThat(result).usingRecursiveComparison()
+                .withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor, IdsDePrueba.CAMPOS_DE_ID)
+                .isEqualTo(receta);
     }
 }

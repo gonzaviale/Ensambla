@@ -1,6 +1,8 @@
 package com.ensambla.backend.domain.model.procesamiento;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 
-public record LoteTrabajo(UUID id, UUID negocioId, UUID bloqueDestinoId, UUID reclamoId, int intentos) {
+public record LoteTrabajo(LoteId id, NegocioId negocioId, BloqueId bloqueDestinoId, ReclamoId reclamoId, int intentos) {
 }

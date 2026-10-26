@@ -2,7 +2,7 @@ import { recuperarBorradorSesion } from '@/lib/borradorSesion';
 import { create } from 'zustand';
 import type { AccesoContenido } from '@/types/contenidoPlan';
 import { clone } from '@/lib/sistema/core';
-import type { Aviso, Respuesta } from '@/lib/sistema/alertas';
+import type { Aviso } from '@/lib/sistema/alertas';
 import type { Bloque, ClavePlantilla, Seccion, Sistema } from '@/lib/sistema/tipos';
 import { TUTORIAL_INICIAL, type EstadoDelTutorial } from '@/lib/sistema/tutorial';
 import type { ImagenParaSami, OpcionesDeSami } from '@/types/samiTaller';
@@ -17,13 +17,18 @@ export type Modal =
   | { tipo: 'blanco' }
   | { tipo: 'plantilla'; clave: ClavePlantilla }
   | { tipo: 'ayuda'; respuesta?: string }
-  | { tipo: 'perfil' }
   | { tipo: 'pruebaPremium' }
   | { tipo: 'contratarPremium' }
   | { tipo: 'cancelarRenovacion' }
+  /** Configurar el cuaderno: cambiarle el nombre o, desde ahí, eliminarlo. */
   | { tipo: 'renombrar' }
+  | { tipo: 'eliminarCuaderno' }
   | { tipo: 'renombrarPieza'; bloqueId: string }
   | { tipo: 'registro'; bloqueId: string; filaId?: string | null }
+  /** Un registro de la propuesta de Sami, que todavía no es un sistema creado. */
+  | { tipo: 'registroDelBorrador'; bloqueId: string; filaId?: string | null }
+  /** Los consejos para sacar una buena foto; «Tomar foto» llama a `onTomarFoto` (abre el selector). */
+  | { tipo: 'consejosDeFoto'; onTomarFoto: () => void }
   | { tipo: 'campo'; bloqueId: string; clave?: string | null }
   | { tipo: 'bienvenida' }
   | { tipo: 'secciones' }
@@ -75,19 +80,18 @@ export type Taller = {
   sistemaId: string | null;
 };
 
-/** El panel de avisos de Sami y lo que se ve de él. */
+/** La pantalla de avisos de Sami y lo que se ve de ella. */
 export type PanelDeAvisos = {
+  /** La pantalla de avisos está a la vista: mientras tanto no salta «Sami vio un cambio». */
   abierto: boolean;
   filtro: string;
-  respuesta: Respuesta | null;
-  /** El aviso que se abrió desde el toast o la franja: el panel lo muestra resaltado. */
+  /** El aviso que se abrió desde el toast o la franja: la pantalla lo muestra resaltado. */
   foco: string | null;
 };
 
 const PANEL_CERRADO: PanelDeAvisos = {
   abierto: false,
   filtro: 'todas',
-  respuesta: null,
   foco: null,
 };
 
@@ -104,6 +108,8 @@ type EstadoDelStore = {
   activeId: string | null;
   sectionId: string | null;
   selectedId: string | null;
+  /** La tabla (id del bloque) que se ve a pantalla completa, si hay alguna. */
+  tablaCompletaId: string | null;
   modo: ModoDelEditor;
   /** Copias anteriores del sistema activo, para deshacer. */
   historial: Sistema[];
@@ -118,6 +124,8 @@ type EstadoDelStore = {
   panel: PanelDeAvisos;
   /** «Sami vio un cambio»: el aviso nuevo que se muestra un rato arriba a la derecha. */
   avisoNuevo: { aviso: Aviso; cantidad: number } | null;
+  /** Avisos que la persona sacó del menú de la campana. Siguen en la pantalla de avisos. */
+  ocultosDeCampana: string[];
   /** El tutorial interactivo: en qué paso va y con qué está practicando la persona. */
   tutorial: EstadoDelTutorial;
 };
@@ -137,6 +145,8 @@ type Acciones = {
   actualizarSistema: (id: string, cambio: (sistema: Sistema) => void) => void;
   deshacer: () => boolean;
   seleccionar: (bloqueId: string | null) => void;
+  /** Abre (o, con `null`, cierra) la tabla de un bloque a pantalla completa. */
+  verTablaCompleta: (bloqueId: string | null) => void;
   elegirSeccion: (seccionId: string) => void;
   cambiarModo: (modo: ModoDelEditor) => void;
   descartarCartelListo: () => void;
@@ -152,11 +162,13 @@ type Acciones = {
   /** Aplica un cambio sobre una copia de la propuesta de Sami. */
   editarBorrador: (cambio: (borrador: Sistema) => void) => void;
   ponerAvisos: (avisos: Aviso[]) => void;
+  /** Prepara la pantalla de avisos; con un aviso, lo resalta. La navegación la hace `useAbrirAvisos`. */
   abrirPanel: (foco?: string | null) => void;
-  cerrarPanel: () => void;
   actualizarPanel: (cambio: Partial<PanelDeAvisos>) => void;
   mostrarAvisoNuevo: (aviso: Aviso, cantidad: number) => void;
   ocultarAvisoNuevo: () => void;
+  /** Saca un aviso del menú de la campana sin descartarlo. */
+  ocultarDeCampana: (id: string) => void;
   /** Cambia lo que el tutorial recuerda (el paso, el bloque, etc.). */
   ponerTutorial: (cambio: Partial<EstadoDelTutorial>) => void;
 };
@@ -171,6 +183,7 @@ const ESTADO_INICIAL: EstadoDelStore = {
   activeId: null,
   sectionId: null,
   selectedId: null,
+  tablaCompletaId: null,
   modo: 'build',
   historial: [],
   listo: false,
@@ -181,6 +194,7 @@ const ESTADO_INICIAL: EstadoDelStore = {
   accesoAvisos: null,
   panel: PANEL_CERRADO,
   avisoNuevo: null,
+  ocultosDeCampana: [],
   tutorial: TUTORIAL_INICIAL,
 };
 
@@ -222,6 +236,7 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
       activeId: id,
       sectionId: sistema?.sections[0]?.id ?? null,
       selectedId: null,
+      tablaCompletaId: null,
       modo,
       historial: [],
       listo: esNuevo,
@@ -250,7 +265,13 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
       pendientes: estado.pendientes.filter((pendiente) => pendiente !== id),
       eliminados: sinRepetir(estado.eliminados, id),
       ...(estado.activeId === id
-        ? { activeId: null, sectionId: null, selectedId: null, historial: [] }
+        ? {
+            activeId: null,
+            sectionId: null,
+            selectedId: null,
+            tablaCompletaId: null,
+            historial: [],
+          }
         : {}),
     })),
 
@@ -301,6 +322,7 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
   },
 
   seleccionar: (bloqueId) => set({ selectedId: bloqueId }),
+  verTablaCompleta: (bloqueId) => set({ tablaCompletaId: bloqueId }),
   elegirSeccion: (seccionId) => set({ sectionId: seccionId, selectedId: null }),
   cambiarModo: (modo) => set({ modo, selectedId: null }),
   descartarCartelListo: () => set({ listo: false }),
@@ -344,18 +366,14 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
   ponerAvisos: (avisos) => set({ avisos }),
   abrirPanel: (foco = null) =>
     set((estado) => ({
-      panel: {
-        abierto: true,
-        filtro: foco ? 'todas' : estado.panel.filtro,
-        respuesta: null,
-        foco,
-      },
+      panel: { ...estado.panel, filtro: foco ? 'todas' : estado.panel.filtro, foco },
       avisoNuevo: null,
     })),
-  cerrarPanel: () => set((estado) => ({ panel: { ...estado.panel, abierto: false } })),
   actualizarPanel: (cambio) => set((estado) => ({ panel: { ...estado.panel, ...cambio } })),
   mostrarAvisoNuevo: (aviso, cantidad) => set({ avisoNuevo: { aviso, cantidad } }),
   ocultarAvisoNuevo: () => set({ avisoNuevo: null }),
+  ocultarDeCampana: (id) =>
+    set((estado) => ({ ocultosDeCampana: sinRepetir(estado.ocultosDeCampana, id) })),
   ponerTutorial: (cambio) => set((estado) => ({ tutorial: { ...estado.tutorial, ...cambio } })),
 
   editarBorrador: (cambio) =>

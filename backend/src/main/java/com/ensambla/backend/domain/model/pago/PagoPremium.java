@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.model.pago;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -7,7 +8,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -18,9 +18,9 @@ public class PagoPremium {
 
     private String facturaId;
 
-    private UUID negocioId;
+    private NegocioId negocioId;
 
-    private UUID renovacionId;
+    private RenovacionId renovacionId;
 
     private String pagoId;
 

@@ -53,8 +53,8 @@ export const PASOS: Record<PasoDeTutorial, DetalleDePaso> = {
   create: {
     grupo: 1,
     title: 'Cuando te cierre, la creamos.',
-    text: 'Esta propuesta todavía no es un sistema guardado. Podés seguir ajustándola o confirmar para empezar a usarla.',
-    hint: 'Tocá “Sí, crear mi sistema”.',
+    text: 'Esta propuesta todavía no es un cuaderno guardado. Podés seguir ajustándola o confirmar para empezar a usarla.',
+    hint: 'Tocá “Sí, crear mi cuaderno”.',
   },
   pickTemplate: {
     grupo: 1,
@@ -66,7 +66,7 @@ export const PASOS: Record<PasoDeTutorial, DetalleDePaso> = {
     grupo: 1,
     title: 'Mirá las piezas antes de empezar.',
     text: 'Revisá los bloques y sus opciones. Cuando te sirva esta base, elegí empezar con este conjunto.',
-    hint: 'Confirmá la plantilla para crear tu sistema.',
+    hint: 'Confirmá la plantilla para crear tu cuaderno.',
   },
   blankConfirm: {
     grupo: 1,
@@ -125,12 +125,12 @@ export const PASOS: Record<PasoDeTutorial, DetalleDePaso> = {
   useMode: {
     grupo: 3,
     title: 'Ahora, a usarlo.',
-    text: 'Pasá a Usar sistema para trabajar con tus datos. Después podés volver a Construir cuando quieras cambiar algo.',
-    hint: 'Tocá “Usar sistema”.',
+    text: 'Pasá a Usar cuaderno para trabajar con tus datos. Después podés volver a Construir cuando quieras cambiar algo.',
+    hint: 'Tocá “Usar cuaderno”.',
   },
   done: {
     grupo: 4,
-    title: 'Tu primer sistema ya es tuyo.',
+    title: 'Tu primer cuaderno ya es tuyo.',
     text: 'Elegiste una base, personalizaste una pieza, la moviste y cargaste un registro. Podés seguir explorando, sumar bloques o probar otro camino.',
     hint: 'Todo lo que hiciste quedó en esta demo.',
   },
@@ -198,6 +198,8 @@ export type ContextoDelTutorial = {
   taller: { borrador: Sistema | null; pensando: boolean; hayMensajeDePersona: boolean } | null;
   /** El tipo del modal abierto, si hay uno. */
   modal: string | null;
+  /** Pantalla de celular: las piezas van en una columna y no hay anchos para elegir. */
+  celular?: boolean;
 };
 
 // Un bloque con el que se puede practicar: tiene campos y no es un movimiento de stock.
@@ -307,11 +309,15 @@ export function avanzar(
         contexto.taller?.borrador &&
         !contexto.taller.pensando &&
         contexto.taller.hayMensajeDePersona
-        ? entrarEn('review', estado, contexto)
+        ? entrarEn(contexto.celular ? 'create' : 'review', estado, contexto)
         : null;
     case 'review':
+      // En el celular no hay anchos: se pasa directo a crear.
       return contexto.taller?.borrador &&
-        allBlocks(contexto.taller.borrador).some((item) => estado.anchos?.[item.id] !== item.width)
+        (contexto.celular ||
+          allBlocks(contexto.taller.borrador).some(
+            (item) => estado.anchos?.[item.id] !== item.width,
+          ))
         ? entrarEn('create', estado, contexto)
         : null;
     case 'create':

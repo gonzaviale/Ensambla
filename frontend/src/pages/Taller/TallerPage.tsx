@@ -9,14 +9,17 @@ import {
 import { getRouteApi } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
 import { BotoneraDeDudas } from '@/components/sistema/BotoneraDeDudas';
+import { BurbujasDeConversacion } from '@/components/sistema/BurbujasDeConversacion';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
 import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
 import { PreviewBoard } from '@/components/sistema/PreviewBoard';
+import { TablaCompleta } from '@/components/sistema/editor/TablaCompleta';
 import { Sami } from '@/components/sistema/Sami';
 import { VisorDeFoto } from '@/components/sistema/VisorDeFoto';
 import { varsDeColor } from '@/components/sistema/colores';
 import { ajusteParaGuardar, mismoSistema, sistemaParaCrear } from '@/lib/sistema/acciones';
+import { debeMostrarConsejosDeFoto } from '@/lib/sistema/consejosDeFoto';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import {
   allBlocks,
@@ -92,6 +95,8 @@ export function TallerPage() {
   const actualizarTaller = useSistemaStore((estado) => estado.actualizarTaller);
   const editarBorrador = useSistemaStore((estado) => estado.editarBorrador);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
+  const tablaCompletaId = useSistemaStore((estado) => estado.tablaCompletaId);
+  const verTablaCompleta = useSistemaStore((estado) => estado.verTablaCompleta);
   const navegacion = useNavegacion();
   const { enviar, responderDuda, deshacer, adjuntarFoto, quitarFoto } = useTaller();
   const avisar = useSistemaStore((estado) => estado.avisar);
@@ -108,6 +113,20 @@ export function TallerPage() {
   const [arrastrando, setArrastrando] = useState<string | null>(null);
   const [sobre, setSobre] = useState<string | null>(null);
   const [fotoAmpliada, setFotoAmpliada] = useState(false);
+  // El chat flota sobre la propuesta; se minimiza a un botón redondo para ver todo el lienzo.
+  const [chatAbierto, setChatAbierto] = useState(true);
+  const botonDelChat = useRef<HTMLButtonElement>(null);
+  const pasoDelTutorial = useSistemaStore((estado) =>
+    estado.tutorial.activo ? estado.tutorial.paso : null,
+  );
+
+  // En el celular el chat tapa la propuesta: cuando la guía pide crear el cuaderno, se minimiza para
+  // que se vea el botón «Sí, crear mi cuaderno».
+  useEffect(() => {
+    if (pasoDelTutorial === 'create' && window.matchMedia?.('(max-width: 760px)').matches) {
+      setChatAbierto(false);
+    }
+  }, [pasoDelTutorial]);
 
   // Si se entra por la dirección, sin pasar por un botón, la conversación empieza igual: sobre el sistema que diga
   // la dirección o, si no hay (o ya no existe), una nueva.
@@ -125,6 +144,9 @@ export function TallerPage() {
     }
   }, [nombre, sistemaDeLaUrl]);
 
+  // La tabla a pantalla completa no queda abierta al salir del taller.
+  useEffect(() => () => useSistemaStore.getState().verTablaCompleta(null), []);
+
   const cantidadDeMensajes = taller?.mensajes.length ?? 0;
   const pensando = taller?.pensando ?? false;
   useEffect(() => {
@@ -136,6 +158,7 @@ export function TallerPage() {
   if (!taller) return null;
   const { borrador } = taller;
   const seccionId = taller.seccionId ?? borrador?.sections[0]?.id ?? null;
+  const tablaCompleta = borrador ? findBlock(borrador, tablaCompletaId ?? undefined) : undefined;
   const ajustando = Boolean(original);
   const hayCambios =
     !original || !borrador || !mismoSistema(ajusteParaGuardar(original, borrador), original);
@@ -207,6 +230,14 @@ export function TallerPage() {
     campo.current?.focus();
   };
 
+  // La cámara primero explica cómo sacar una buena foto; «Tomar foto» abre el selector.
+  const elegirDondeSacarLaFoto = () => {
+    const abrirSelector = () => selectorDeFoto.current?.click();
+    if (debeMostrarConsejosDeFoto())
+      abrirModal({ tipo: 'consejosDeFoto', onTomarFoto: abrirSelector });
+    else abrirSelector();
+  };
+
   const sacarFoto = () => {
     setFotoAmpliada(false);
     quitarFoto();
@@ -239,6 +270,16 @@ export function TallerPage() {
     void navegacion.abrirSistema(original.id, modo);
   };
 
+  const abrirChat = () => {
+    setChatAbierto(true);
+    requestAnimationFrame(() => campo.current?.focus());
+  };
+
+  const minimizarChat = () => {
+    setChatAbierto(false);
+    requestAnimationFrame(() => botonDelChat.current?.focus());
+  };
+
   const volver = () => {
     if (original) void navegacion.abrirSistema(original.id);
     else void navegacion.irAInicio();
@@ -253,7 +294,7 @@ export function TallerPage() {
             <Icon name="back" /> {original ? `Volver a ${original.name}` : 'Inicio'}
           </Btn>
           <span>
-            {ajustando ? 'AJUSTANDO TU SISTEMA CON SAMI' : 'EL TALLER DE TU PRIMER SISTEMA'}
+            {ajustando ? 'AJUSTANDO TU CUADERNO CON SAMI' : 'EL TALLER DE TU PRIMER CUADERNO'}
           </span>
           <span className="tag outline">
             {ajustando
@@ -265,181 +306,19 @@ export function TallerPage() {
                 : 'Tu idea es el punto de partida'}
           </span>
         </div>
-        <div className="studio-layout">
-          <aside className="sami-conversation">
-            <header className="conversation-head">
-              <img className="conversation-sami" src="/mockup/sami-constructora.webp" alt="" />
-              <div>
-                <h1>{ajustando ? 'Lo ajustamos juntos.' : 'Lo armamos juntos.'}</h1>
-                <p>
-                  <span className="live-dot" />
-                  Sami · Tu guía
-                </p>
-              </div>
-            </header>
-            <div className="conversation-scroll" ref={mensajes}>
-              <div className="conversation-messages" aria-live="polite">
-                {taller.mensajes.map((mensaje, indice) => (
-                  <div key={indice} className={`conversation-bubble ${mensaje.quien}`}>
-                    {mensaje.foto && (
-                      <img
-                        className="conversation-photo"
-                        src={mensaje.foto}
-                        alt={
-                          mensaje.quien === 'you' ? 'La foto que le mandaste a Sami' : 'Una foto'
-                        }
-                      />
-                    )}
-                    {mensaje.texto}
-                  </div>
-                ))}
-                {taller.pensando && (
-                  <div className="thinking-bubble" data-tour="describe-pensando">
-                    <Sami pose="think" />
-                    <div>
-                      <strong>Estoy buscando qué piezas encajan…</strong>
-                      <span>
-                        <i />
-                        <i />
-                        <i />
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-              {taller.dudas[taller.respuestasDeDudas.length] ? (
-                <BotoneraDeDudas
-                  dudas={taller.dudas}
-                  respondidas={taller.respuestasDeDudas.length}
-                  pensando={taller.pensando}
-                  onResponder={responderDuda}
-                  onEscribirOtraCosa={escribirOtraCosa}
-                />
-              ) : borrador ? null : (
-                <div className="conversation-examples">
-                  <span>O probá con un ejemplo:</span>
-                  {EJEMPLOS.map((ejemplo) => (
-                    <button
-                      key={ejemplo.clave}
-                      type="button"
-                      disabled={taller.pensando}
-                      onClick={() => usarEjemplo(ejemplo)}
-                    >
-                      <Icon name={ejemplo.icono} />
-                      {ejemplo.etiqueta}
-                      <Icon name="arrow" />
-                    </button>
-                  ))}
-                </div>
-              )}
-              {taller.anterior && (
-                <div className="feedback-chips">
-                  <button type="button" disabled={taller.pensando} onClick={deshacer}>
-                    <Icon name="undo" /> Deshacer lo último
-                  </button>
-                </div>
-              )}
-            </div>
-            <form className="guide-composer" data-tour="describe" onSubmit={alEnviar}>
-              <label htmlFor="guide-message">
-                {borrador ? '¿Qué le falta? ¿Qué cambiarías?' : 'Contame un poco de tu negocio'}
-              </label>
-              <textarea
-                id="guide-message"
-                ref={campo}
-                placeholder={
-                  borrador
-                    ? 'Por ejemplo: quiero los clientes en otra sección…'
-                    : 'Tengo un almacén, vendo productos y anoto lo que me fían…'
-                }
-                maxLength={2500}
-                disabled={taller.pensando}
-                value={taller.entrada}
-                onChange={(evento) => actualizarTaller({ entrada: evento.target.value })}
-              />
-              {taller.foto && (
-                <div className="guide-photo-preview">
-                  <button
-                    type="button"
-                    className="guide-photo-thumb"
-                    aria-label="Ver la foto en grande"
-                    onClick={() => setFotoAmpliada(true)}
-                  >
-                    <img src={vistaDeFoto(taller.foto)} alt="La foto que vas a mandar a Sami" />
-                  </button>
-                  <button
-                    type="button"
-                    className="guide-photo-remove"
-                    data-accion="guide-photo-remove"
-                    aria-label="Quitar foto"
-                    disabled={taller.pensando}
-                    onClick={sacarFoto}
-                  >
-                    <Icon name="close" />
-                  </button>
-                </div>
-              )}
-              {/* Con `image/*` el celular ofrece sacar la foto en el momento o elegir una de la galería. */}
-              <input
-                ref={selectorDeFoto}
-                id="guide-photo-file"
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={(evento) => void elegirFoto(evento)}
-              />
-              <div className="row between">
-                <div className="row">
-                  <Btn
-                    cls="ghost small"
-                    data-accion="guide-photo"
-                    aria-label={
-                      taller.foto ? 'Cambiar la foto para Sami' : 'Mandarle una foto a Sami'
-                    }
-                    disabled={taller.pensando || preparandoFoto}
-                    onClick={() => selectorDeFoto.current?.click()}
-                  >
-                    <Icon name="camera" />
-                  </Btn>
-                  <Btn
-                    cls={dictado.escuchando ? 'soft small' : 'ghost small'}
-                    data-accion="guide-voice"
-                    aria-label={dictado.escuchando ? 'Dejar de dictar' : 'Dictar con la voz'}
-                    aria-pressed={dictado.escuchando}
-                    disabled={taller.pensando}
-                    onClick={dictado.alternar}
-                  >
-                    <Icon name="mic" />
-                  </Btn>
-                </div>
-                <button
-                  className="btn primary"
-                  type="submit"
-                  disabled={taller.pensando || preparandoFoto}
-                >
-                  {borrador ? 'Ajustalo conmigo' : 'Pensalo conmigo'} <Icon name="arrow" />
-                </button>
-              </div>
-            </form>
-            <p className="conversation-foot">
-              {ajustando
-                ? 'Nada cambia en tu sistema hasta que guardes.'
-                : 'Vos decidís qué queda y cuándo está listo.'}
-            </p>
-          </aside>
-
+        <div className="studio-layout chat-flotante">
           <section className="studio-canvas">
             {borrador ? (
               <>
                 <div className="draft-heading">
                   <div>
                     <span className="eyebrow">
-                      {ajustando ? 'TU SISTEMA, CON LOS CAMBIOS' : 'TU PROPUESTA, A LA VISTA'}
+                      {ajustando ? 'TU CUADERNO, CON LOS CAMBIOS' : 'TU PROPUESTA, A LA VISTA'}
                     </span>
                     <input
                       className="draft-name-input"
                       id="guide-system-name"
-                      aria-label="Nombre de tu sistema"
+                      aria-label="Nombre de tu cuaderno"
                       maxLength={100}
                       value={borrador.name}
                       onChange={(evento) =>
@@ -504,7 +383,11 @@ export function TallerPage() {
                   arrastrando={arrastrando}
                   sobre={sobre}
                   onRenombrar={(bloqueId) => abrirModal({ tipo: 'renombrarPieza', bloqueId })}
+                  onRegistro={(bloqueId, filaId) =>
+                    abrirModal({ tipo: 'registroDelBorrador', bloqueId, filaId })
+                  }
                   onQuitar={quitarPieza}
+                  onTablaCompleta={verTablaCompleta}
                   onAncho={(bloqueId, ancho) =>
                     editarBorrador((copia) => {
                       const bloque = findBlock(copia, bloqueId);
@@ -522,7 +405,7 @@ export function TallerPage() {
                     {ajustando ? (
                       <span>
                         <strong>¿Te sirve así?</strong>
-                        <small>Se guarda sobre tu sistema, con tus registros.</small>
+                        <small>Se guarda sobre tu cuaderno, con tus registros.</small>
                       </span>
                     ) : (
                       <span>
@@ -537,7 +420,7 @@ export function TallerPage() {
                     </Btn>
                   ) : (
                     <Btn cls="primary" data-accion="guide-create" onClick={crearSistema}>
-                      Sí, crear mi sistema <Icon name="arrow" />
+                      Sí, crear mi cuaderno <Icon name="arrow" />
                     </Btn>
                   )}
                 </div>
@@ -577,7 +460,7 @@ export function TallerPage() {
                 </h2>
                 <p>
                   Una propuesta de bloques que podés mover, combinar y cambiar. Sin tener que
-                  imaginar el sistema a ciegas.
+                  imaginar el cuaderno a ciegas.
                 </p>
                 {/* <span className="empty-studio-note">
                   <Icon name="spark" />
@@ -595,6 +478,197 @@ export function TallerPage() {
           />
         )}
       </main>
+      {/* Fuera del <main>: su animación de entrada haría que «fixed» se mueva con la página. */}
+      <aside
+        id="chat-de-sami"
+        className="sami-conversation flotante"
+        aria-label="Chat con Sami"
+        hidden={!chatAbierto}
+      >
+        <header className="conversation-head">
+          <img className="conversation-sami" src="/mockup/sami-constructora.webp" alt="" />
+          <div>
+            <h1>{ajustando ? 'Lo ajustamos juntos.' : 'Lo armamos juntos.'}</h1>
+            <p>
+              <span className="live-dot" />
+              Sami · Tu guía
+            </p>
+          </div>
+          <button
+            type="button"
+            className="chat-minimizar"
+            aria-label="Minimizar el chat"
+            onClick={minimizarChat}
+          >
+            <Icon name="close" />
+          </button>
+        </header>
+        <div className="conversation-scroll" ref={mensajes}>
+          <div className="conversation-messages" aria-live="polite">
+            {taller.mensajes.map((mensaje, indice) => (
+              <BurbujasDeConversacion
+                key={indice}
+                quien={mensaje.quien}
+                texto={mensaje.texto}
+                foto={mensaje.foto}
+              />
+            ))}
+            {taller.pensando && (
+              <div className="thinking-bubble" data-tour="describe-pensando">
+                <Sami pose="think" />
+                <div>
+                  <strong>Estoy buscando qué piezas encajan…</strong>
+                  <span>
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+          {taller.dudas[taller.respuestasDeDudas.length] ? (
+            <BotoneraDeDudas
+              dudas={taller.dudas}
+              respondidas={taller.respuestasDeDudas.length}
+              pensando={taller.pensando}
+              onResponder={responderDuda}
+              onEscribirOtraCosa={escribirOtraCosa}
+            />
+          ) : borrador ? null : (
+            <div className="conversation-examples">
+              <span>O probá con un ejemplo:</span>
+              {EJEMPLOS.map((ejemplo) => (
+                <button
+                  key={ejemplo.clave}
+                  type="button"
+                  disabled={taller.pensando}
+                  onClick={() => usarEjemplo(ejemplo)}
+                >
+                  <Icon name={ejemplo.icono} />
+                  {ejemplo.etiqueta}
+                  <Icon name="arrow" />
+                </button>
+              ))}
+            </div>
+          )}
+          {taller.anterior && (
+            <div className="feedback-chips">
+              <button type="button" disabled={taller.pensando} onClick={deshacer}>
+                <Icon name="undo" /> Deshacer lo último
+              </button>
+            </div>
+          )}
+        </div>
+        <form className="guide-composer" data-tour="describe" onSubmit={alEnviar}>
+          <label htmlFor="guide-message">
+            {borrador ? '¿Qué le falta? ¿Qué cambiarías?' : 'Contame un poco de tu negocio'}
+          </label>
+          <textarea
+            id="guide-message"
+            ref={campo}
+            placeholder={
+              borrador
+                ? 'Por ejemplo: quiero los clientes en otra sección…'
+                : 'Tengo un almacén, vendo productos y anoto lo que me fían…'
+            }
+            maxLength={2500}
+            disabled={taller.pensando}
+            value={taller.entrada}
+            onChange={(evento) => actualizarTaller({ entrada: evento.target.value })}
+          />
+          {taller.foto && (
+            <div className="guide-photo-preview">
+              <button
+                type="button"
+                className="guide-photo-thumb"
+                aria-label="Ver la foto en grande"
+                onClick={() => setFotoAmpliada(true)}
+              >
+                <img src={vistaDeFoto(taller.foto)} alt="La foto que vas a mandar a Sami" />
+              </button>
+              <button
+                type="button"
+                className="guide-photo-remove"
+                data-accion="guide-photo-remove"
+                aria-label="Quitar foto"
+                disabled={taller.pensando}
+                onClick={sacarFoto}
+              >
+                <Icon name="close" />
+              </button>
+            </div>
+          )}
+          {/* Con `image/*` el celular ofrece sacar la foto en el momento o elegir una de la galería. */}
+          <input
+            ref={selectorDeFoto}
+            id="guide-photo-file"
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(evento) => void elegirFoto(evento)}
+          />
+          <div className="row between">
+            <div className="row">
+              <Btn
+                cls="ghost small"
+                data-accion="guide-photo"
+                aria-label={taller.foto ? 'Cambiar la foto para Sami' : 'Mandarle una foto a Sami'}
+                disabled={taller.pensando || preparandoFoto}
+                onClick={elegirDondeSacarLaFoto}
+              >
+                <Icon name="camera" />
+              </Btn>
+              <Btn
+                cls={dictado.escuchando ? 'soft small' : 'ghost small'}
+                data-accion="guide-voice"
+                aria-label={dictado.escuchando ? 'Dejar de dictar' : 'Dictar con la voz'}
+                aria-pressed={dictado.escuchando}
+                disabled={taller.pensando}
+                onClick={dictado.alternar}
+              >
+                <Icon name="mic" />
+              </Btn>
+            </div>
+            <button
+              className="btn primary"
+              type="submit"
+              disabled={taller.pensando || preparandoFoto}
+            >
+              {borrador ? 'Ajustalo conmigo' : 'Pensalo conmigo'} <Icon name="arrow" />
+            </button>
+          </div>
+        </form>
+        <p className="conversation-foot">
+          {ajustando
+            ? 'Nada cambia en tu cuaderno hasta que guardes.'
+            : 'Vos decidís qué queda y cuándo está listo.'}
+        </p>
+      </aside>
+      {!chatAbierto && (
+        <button
+          ref={botonDelChat}
+          type="button"
+          className="chat-abrir"
+          aria-label="Abrir el chat con Sami"
+          aria-controls="chat-de-sami"
+          aria-expanded={false}
+          onClick={abrirChat}
+        >
+          <img src="/mockup/sami-boton.webp" alt="" />
+        </button>
+      )}
+      {borrador && tablaCompleta && (
+        <TablaCompleta
+          key={tablaCompleta.id}
+          bloque={tablaCompleta}
+          sistema={borrador}
+          textoVolver="Volver a la propuesta"
+          onRegistro={(filaId) =>
+            abrirModal({ tipo: 'registroDelBorrador', bloqueId: tablaCompleta.id, filaId })
+          }
+        />
+      )}
     </>
   );
 }

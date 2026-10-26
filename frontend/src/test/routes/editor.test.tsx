@@ -1,7 +1,7 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { findBlock, makeSystem, makeTemplate } from '@/lib/sistema/core';
+import { allBlocks, findBlock, makeSystem, makeTemplate } from '@/lib/sistema/core';
 import type { Sistema } from '@/lib/sistema/tipos';
 import { estado } from '@/mocks/db/estado';
 import { seleccionarSistemaActivo, useSistemaStore } from '@/stores/sistemaStore';
@@ -47,6 +47,14 @@ const tipoDeBloque = (tipo: string) => {
   return bloque;
 };
 
+const tipoDeBloqueDe = (sistema: Sistema, tipo: string) => {
+  const bloque = sistema.sections
+    .flatMap((seccion) => seccion.blocks)
+    .find((item) => item.type === tipo);
+  if (!bloque) throw new Error(`Falta el bloque de tipo ${tipo}`);
+  return bloque;
+};
+
 describe('el editor: construir y usar', () => {
   it('abre el sistema de la dirección con la biblioteca y el lienzo, sin el panel de ajustes', async () => {
     await abrirEditor();
@@ -62,17 +70,188 @@ describe('el editor: construir y usar', () => {
     expect(screen.getByText(/Estás viendo datos de ejemplo/)).toBeVisible();
   });
 
-  it('en modo usar muestra el cartel de «listo» y Personalizar pasa a Construir', async () => {
-    const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+  it('en modo usar cierra la creación: qué quedó armado y qué hacer ahora', async () => {
+    const sistema = makeTemplate('shop', {}, true);
+    const { user } = await abrirEditor(sistema, 'usar');
     useSistemaStore.setState({ listo: true });
 
-    expect(await screen.findByText('Tu sistema está listo. Ya podés usarlo.')).toBeVisible();
+    const cierre = await screen.findByRole('region', { name: /ya está armado/ });
+    expect(within(cierre).getByText(`¡Listo! «${sistema.name}» ya está armado.`)).toBeVisible();
+    expect(
+      within(cierre).getByText(/Quedaron 3 tablas: .+ Ya podés empezar a usarlo\./),
+    ).toBeVisible();
     expect(screen.queryByText('Tus piezas')).toBeNull();
-    await clickButton(user, /Personalizar/);
+
+    await user.click(within(cierre).getByRole('button', { name: 'Cerrar aviso' }));
+    expect(screen.queryByRole('region', { name: /ya está armado/ })).toBeNull();
+    expect(useSistemaStore.getState().listo).toBe(false);
+  });
+
+  it('desde el cierre se registra el primer dato en la primera tabla con registros', async () => {
+    const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+    useSistemaStore.setState({ listo: true });
+    await screen.findByRole('region', { name: /ya está armado/ });
+
+    await clickButton(user, 'Registrar mi primer dato');
+
+    expect(await screen.findByRole('heading', { name: 'Registrar producto' })).toBeVisible();
+  });
+
+  it('desde el cierre, Personalizar pasa a Construir y se va el cierre', async () => {
+    const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+    useSistemaStore.setState({ listo: true });
+    await screen.findByRole('region', { name: /ya está armado/ });
+
+    await clickButton(user, /Personalizar las tablas/);
 
     expect(await screen.findByText('Tus piezas')).toBeVisible();
-    expect(screen.queryByText('Tu sistema está listo. Ya podés usarlo.')).toBeNull();
+    expect(screen.queryByRole('region', { name: /ya está armado/ })).toBeNull();
     expect(useSistemaStore.getState().modo).toBe('build');
+  });
+
+  it('desde el cierre se le pide un ajuste a Sami', async () => {
+    const { user, router, sistema } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+    useSistemaStore.setState({ listo: true });
+    await screen.findByRole('region', { name: /ya está armado/ });
+
+    await clickButton(user, /Pedirle un ajuste a Sami/);
+
+    await verifyPathAsync(router, '/taller');
+    expect(router.state.location.search).toMatchObject({ sistema: sistema.id });
+  });
+
+  it('con muchas tablas el cierre nombra las primeras y cuenta las demás', async () => {
+    const sistema = makeTemplate('shop', {}, true);
+    const bloques = sistema.sections[0]?.blocks ?? [];
+    bloques.push(
+      ...['Extra uno', 'Extra dos'].map((nombre) => ({
+        ...(bloques[0] as (typeof bloques)[0]),
+        id: nombre,
+        name: nombre,
+      })),
+    );
+    await abrirEditor(sistema, 'usar');
+    useSistemaStore.setState({ listo: true });
+
+    expect(await screen.findByText(/Quedaron 5 tablas: .+, .+, .+ y 2 más\./)).toBeVisible();
+  });
+
+  describe('la tabla a pantalla completa', () => {
+    const abrirTabla = async (user: ReturnType<typeof userEvent.setup>) => {
+      const abrir = await screen.findByRole('button', {
+        name: 'Ver Inventario a pantalla completa',
+      });
+      await user.click(abrir);
+      return { abrir, vista: await screen.findByRole('dialog', { name: 'Inventario' }) };
+    };
+
+    it('se abre desde la tabla, muestra los filtros por columna y se cierra devolviendo el foco', async () => {
+      const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+
+      const { abrir, vista } = await abrirTabla(user);
+
+      expect(within(vista).getByText(/^\d+ registros$/)).toBeVisible();
+      expect(within(vista).getByLabelText('Filtrar Producto')).toBeVisible();
+      expect(within(vista).getByLabelText('Cantidad: mín.')).toBeVisible();
+      expect(within(vista).getByLabelText('Buscar en Inventario')).toBeVisible();
+
+      await user.click(within(vista).getByRole('button', { name: /Volver al cuaderno/ }));
+
+      expect(screen.queryByRole('dialog', { name: 'Inventario' })).toBeNull();
+      expect(abrir).toHaveFocus();
+    });
+
+    it('cada lápiz dice a qué registro corresponde, por su primera columna', async () => {
+      const sistema = makeTemplate('shop', {}, true);
+      const filas = tipoDeBloqueDe(sistema, 'inventory').rows;
+      const { user } = await abrirEditor(sistema, 'usar');
+      const { vista } = await abrirTabla(user);
+
+      const lapices = within(vista).getAllByRole('button', { name: /^Editar registro/ });
+
+      expect(lapices).toHaveLength(filas.length);
+      expect(
+        within(vista).getByRole('button', { name: 'Editar registro: Coca-Cola 2,25 L' }),
+      ).toBeVisible();
+      expect(new Set(lapices.map((lapiz) => lapiz.getAttribute('aria-label'))).size).toBe(
+        filas.length,
+      );
+    });
+
+    it('bloquea el desplazamiento de la pantalla de atrás, también con un formulario encima, y lo devuelve al cerrar', async () => {
+      const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+      expect(document.documentElement.style.overflow).toBe('');
+
+      const { vista } = await abrirTabla(user);
+      expect(document.documentElement.style.overflow).toBe('hidden');
+
+      await user.click(
+        within(vista).getAllByRole('button', { name: /^Editar registro/ })[0] as HTMLElement,
+      );
+      await screen.findByRole('heading', { name: 'Editar producto' });
+      await user.keyboard('{Escape}');
+      expect(document.documentElement.style.overflow).toBe('hidden');
+
+      await user.click(within(vista).getByRole('button', { name: /Volver al cuaderno/ }));
+      expect(document.documentElement.style.overflow).toBe('');
+    });
+
+    it('filtra por columna y por búsqueda, cuenta lo que muestra y se limpia con un botón', async () => {
+      const sistema = makeTemplate('shop', {}, true);
+      const total = tipoDeBloqueDe(sistema, 'inventory').rows.length;
+      const { user } = await abrirEditor(sistema, 'usar');
+      const { vista } = await abrirTabla(user);
+      expect(within(vista).getByRole('button', { name: /Limpiar filtros/ })).toBeDisabled();
+
+      await user.type(within(vista).getByLabelText('Filtrar Producto'), 'coca');
+
+      expect(within(vista).getByText(`Mostrando 1 de ${total} registros`)).toBeVisible();
+      expect(within(vista).getByText('Coca-Cola 2,25 L')).toBeVisible();
+      expect(within(vista).queryByText(/Yerba Playadito/)).toBeNull();
+
+      await user.type(within(vista).getByLabelText('Buscar en Inventario'), 'zzz');
+      expect(
+        within(vista).getByText('Ningún registro coincide con la búsqueda y los filtros.'),
+      ).toBeVisible();
+
+      await user.click(within(vista).getByRole('button', { name: /Limpiar filtros/ }));
+
+      expect(within(vista).getByText(`${total} registros`)).toBeVisible();
+      expect(within(vista).getByLabelText('Filtrar Producto')).toHaveValue('');
+      expect(within(vista).getByLabelText('Buscar en Inventario')).toHaveValue('');
+    });
+
+    it('Escape cierra la vista, pero con un formulario encima cierra solo el formulario', async () => {
+      const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+      const { vista } = await abrirTabla(user);
+
+      await user.click(
+        within(vista).getAllByRole('button', { name: /^Editar registro/ })[0] as HTMLElement,
+      );
+      expect(await screen.findByRole('heading', { name: 'Editar producto' })).toBeVisible();
+
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('heading', { name: 'Editar producto' })).toBeNull();
+      expect(screen.getByRole('dialog', { name: 'Inventario' })).toBeVisible();
+
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('dialog', { name: 'Inventario' })).toBeNull();
+    });
+
+    it('desde la vista se registra un dato nuevo y aparece en la tabla', async () => {
+      const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+      const { vista } = await abrirTabla(user);
+
+      await user.click(within(vista).getByRole('button', { name: /Registrar/ }));
+      await screen.findByRole('heading', { name: 'Registrar producto' });
+      const formulario = within(screen.getByRole('dialog', { name: 'Registrar producto' }));
+      await user.type(formulario.getByLabelText(/^Producto/), 'Mate de calabaza');
+      await user.type(formulario.getByLabelText(/^Cantidad/), '8');
+      await clickButton(user, 'Guardar');
+
+      expect(await within(vista).findByText('Mate de calabaza')).toBeVisible();
+      expect(screen.getByRole('dialog', { name: 'Inventario' })).toBeVisible();
+    });
   });
 
   it('un sistema que no existe lleva al inicio', async () => {
@@ -97,6 +276,34 @@ describe('el editor: construir y usar', () => {
       await screen.findByRole('heading', { level: 1, name: /Almacén Don Luis/ }),
     ).toBeVisible();
     expect(activo().name).toBe('Almacén Don Luis');
+  });
+
+  it('el lápiz deja eliminar el cuaderno escribiendo su nombre', async () => {
+    const { user, usuario, router, sistema } = await abrirEditor();
+
+    await user.click(
+      screen.getByRole('heading', { level: 1 }).querySelector('button') as HTMLElement,
+    );
+    expect(await screen.findByRole('heading', { name: 'Configurar cuaderno' })).toBeVisible();
+    await clickButton(user, 'Eliminar cuaderno');
+
+    const tablas = await screen.findByRole('list', { name: 'Tablas que se eliminan' });
+    expect(within(tablas).getAllByRole('listitem')).toHaveLength(allBlocks(sistema).length);
+    const eliminar = screen.getByRole('button', { name: 'Eliminar para siempre' });
+    expect(eliminar).toBeDisabled();
+
+    const campo = screen.getByLabelText(/Para confirmar/);
+    await user.type(campo, 'otro nombre');
+    expect(eliminar).toBeDisabled();
+    await user.clear(campo);
+    await user.type(campo, sistema.name);
+    expect(eliminar).toBeEnabled();
+    await user.click(eliminar);
+
+    await verifyPathAsync(router, '/cuadernos');
+    await verifyToastAsync(`Eliminamos «${sistema.name}».`);
+    expect(useSistemaStore.getState().sistemas).toHaveLength(0);
+    await waitFor(() => expect(estado.sistemas.get(usuario.email)).toHaveLength(0), ESPERA);
   });
 
   it('el guardado llega al servidor y la barra lo cuenta', async () => {
@@ -527,11 +734,7 @@ describe('traer datos de una foto', () => {
     );
     await user.click(within(modal).getByRole('button', { name: /Probar con un ejemplo/ }));
 
-    const revision = await screen.findByRole(
-      'heading',
-      { name: 'Confirmar registros' },
-      ESPERA,
-    );
+    const revision = await screen.findByRole('heading', { name: 'Confirmar registros' }, ESPERA);
     expect(revision).toBeVisible();
     const nombres = screen.getAllByLabelText(/Producto, registro/);
     expect(nombres).toHaveLength(3);

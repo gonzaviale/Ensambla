@@ -1,5 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IRenovacionPremiumJpaRepository;
@@ -9,7 +11,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -26,13 +27,13 @@ public class RenovacionPremiumRepositoryImpl implements RenovacionPremiumReposit
     }
 
     @Override
-    public Optional<RenovacionPremium> findById(UUID id) {
-        return renovacionPremiumJpaRepository.findById(id).map(renovacionPremiumRepositoryMapper::toDomain);
+    public Optional<RenovacionPremium> findById(RenovacionId id) {
+        return renovacionPremiumJpaRepository.findById(id.valor()).map(renovacionPremiumRepositoryMapper::toDomain);
     }
 
     @Override
-    public Optional<UUID> findNegocioIdById(UUID id) {
-        return renovacionPremiumJpaRepository.findNegocioIdById(id);
+    public Optional<NegocioId> findNegocioIdById(RenovacionId id) {
+        return renovacionPremiumJpaRepository.findNegocioIdById(id.valor()).map(NegocioId::de);
     }
 
     @Override
@@ -42,18 +43,18 @@ public class RenovacionPremiumRepositoryImpl implements RenovacionPremiumReposit
     }
 
     @Override
-    public Optional<RenovacionPremium> findUltimaByNegocioId(UUID negocioId) {
-        return renovacionPremiumJpaRepository.findActualByNegocioId(negocioId)
+    public Optional<RenovacionPremium> findUltimaByNegocioId(NegocioId negocioId) {
+        return renovacionPremiumJpaRepository.findActualByNegocioId(negocioId.valor())
                 .map(renovacionPremiumRepositoryMapper::toDomain);
     }
 
     @Override
-    public List<UUID> listarParaSincronizar() {
-        return renovacionPremiumJpaRepository.listarParaSincronizar();
+    public List<RenovacionId> listarParaSincronizar() {
+        return renovacionPremiumJpaRepository.listarParaSincronizar().stream().map(RenovacionId::de).toList();
     }
 
     @Override
-    public boolean existeAbierta(UUID negocioId) {
-        return renovacionPremiumJpaRepository.existsByNegocioIdAndEstadoNot(negocioId, "CANCELADA");
+    public boolean existeAbierta(NegocioId negocioId) {
+        return renovacionPremiumJpaRepository.existsByNegocioIdAndEstadoNot(negocioId.valor(), "CANCELADA");
     }
 }

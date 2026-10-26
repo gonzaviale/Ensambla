@@ -175,7 +175,7 @@ export function Inspector({ bloque, sistema }: { bloque: Bloque; sistema: Sistem
         </div>
       ) : bloque.type === 'summary' ? (
         <p className="inspector-hint">
-          Estos indicadores toman los registros de todos los bloques del sistema y se actualizan
+          Estos indicadores toman los registros de todos los bloques del cuaderno y se actualizan
           cuando cargás datos.
         </p>
       ) : (

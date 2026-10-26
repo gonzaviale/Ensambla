@@ -2,35 +2,44 @@ package com.ensambla.backend.domain.service.plan;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
-import com.ensambla.backend.domain.model.enums.CodigoPlan;
-import com.ensambla.backend.domain.model.enums.EstadoSuscripcion;
-import com.ensambla.backend.domain.model.enums.FuncionPlan;
+import com.ensambla.backend.domain.model.plan.CodigoPlan;
+import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
+import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.plan.Plan;
+import com.ensambla.backend.domain.model.plan.PruebaPremium;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
+import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BooleanSupplier;
 
 import static com.ensambla.backend.support.PlanTestData.INSTANTE;
 import static com.ensambla.backend.support.PlanTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.PlanTestData.PLAN_ID;
 import static com.ensambla.backend.support.PlanTestData.plan;
 import static com.ensambla.backend.support.PlanTestData.suscripcion;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -49,6 +58,9 @@ class ControlPlanServiceTest {
 
     @Mock
     private PruebaPremiumRepository pruebaPremiumRepository;
+
+    @Spy
+    private TransaccionPort transaccionPort = new TransaccionDirecta();
 
     @InjectMocks
     private ControlPlanService controlPlanService;
@@ -177,23 +189,64 @@ class ControlPlanServiceTest {
     }
 
     @Test
-    @DisplayName("El registro de consumo tampoco admite un negocio sin suscripción")
-    void registrarPaginasPruebaShouldRejectMissingSubscription() {
-        assertThatThrownBy(() -> controlPlanService.registrarPaginasPrueba(NEGOCIO_ID, 1, INSTANTE))
+    @DisplayName("La reserva de páginas tampoco admite un negocio sin suscripción")
+    void reservarPaginasIaShouldRejectMissingSubscription() {
+        assertThatThrownBy(() -> controlPlanService.reservarPaginasIa(NEGOCIO_ID, 1, INSTANTE, () -> true))
                 .isInstanceOf(ResourceNotFoundException.class).hasMessage("Suscripción no encontrada");
     }
 
     @Test
     @DisplayName("Una prueba vencida usa la cuota mensual gratuita y no incrementa el historial de prueba")
-    void registrarPaginasPruebaShouldIgnoreExpiredTrial() {
+    void reservarPaginasIaShouldIgnoreExpiredTrial() {
         Suscripcion prueba = suscripcion();
         prueba.setEstado(EstadoSuscripcion.PRUEBA);
         prueba.setFinEn(INSTANTE);
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(prueba));
+        givenFallback(prueba);
 
-        controlPlanService.registrarPaginasPrueba(NEGOCIO_ID, 1, INSTANTE);
+        boolean result = controlPlanService.reservarPaginasIa(NEGOCIO_ID, 1, INSTANTE, () -> true);
+
+        assertThat(result).isTrue();
 
         verifyNoInteractions(pruebaPremiumRepository);
+    }
+
+    @Test
+    @DisplayName("Valida la cuota de la prueba antes de la reserva diaria y, si entra, la descuenta de la prueba")
+    void reservarPaginasIaShouldValidateReserveAndChargeTrialInOrder() {
+        PruebaPremium prueba = givenPruebaVigente();
+        BooleanSupplier reserva = mock(BooleanSupplier.class);
+        when(reserva.getAsBoolean()).thenReturn(true);
+
+        boolean result = controlPlanService.reservarPaginasIa(NEGOCIO_ID, 2, INSTANTE, reserva);
+
+        assertThat(result).isTrue();
+        var orden = inOrder(usoPlanRepository, reserva, pruebaPremiumRepository);
+        orden.verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
+        orden.verify(reserva).getAsBoolean();
+        orden.verify(pruebaPremiumRepository).save(prueba.consumir(2));
+    }
+
+    @Test
+    @DisplayName("Una reserva diaria que no entra no descuenta páginas de la prueba")
+    void reservarPaginasIaShouldNotChargeTrialWhenReservationFails() {
+        givenPruebaVigente();
+
+        boolean result = controlPlanService.reservarPaginasIa(NEGOCIO_ID, 2, INSTANTE, () -> false);
+
+        assertThat(result).isFalse();
+        verify(pruebaPremiumRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Un rechazo de la cuota mensual no llega a hacer la reserva diaria")
+    void reservarPaginasIaShouldNotReserveWhenMonthlyQuotaIsFull() {
+        givenActivePlan();
+        when(usoPlanRepository.paginasEnPeriodo(any(), any(), any())).thenReturn(10L);
+        BooleanSupplier reserva = mock(BooleanSupplier.class);
+
+        assertThatThrownBy(() -> controlPlanService.reservarPaginasIa(NEGOCIO_ID, 1, INSTANTE, reserva))
+                .isInstanceOf(RestriccionPlanException.class);
+        verifyNoInteractions(reserva);
     }
 
     // --- arrange ---
@@ -202,6 +255,16 @@ class ControlPlanServiceTest {
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
         when(planRepository.findById(PLAN_ID)).thenReturn(Optional.of(plan));
         return plan;
+    }
+
+    private PruebaPremium givenPruebaVigente() {
+        Suscripcion suscripcion = suscripcion();
+        suscripcion.setEstado(EstadoSuscripcion.PRUEBA);
+        PruebaPremium prueba = PruebaPremium.nueva(NEGOCIO_ID, INSTANTE);
+        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
+        when(planRepository.findById(PLAN_ID)).thenReturn(Optional.of(plan()));
+        when(pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(prueba));
+        return prueba;
     }
 
     private void givenFallback(Suscripcion suscripcion) {

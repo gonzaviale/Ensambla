@@ -1,31 +1,31 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.sistema.EliminarSistemaRequest;
-import com.ensambla.backend.domain.dto.sistema.GuardarSistemaRequest;
-import com.ensambla.backend.domain.dto.sistema.ListarSistemasRequest;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem.BloqueItem;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem.CampoItem;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem.OpcionesItem;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem.SeccionItem;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.useCase.sistema.EliminarSistemaUseCase;
-import com.ensambla.backend.domain.useCase.sistema.GuardarSistemaUseCase;
-import com.ensambla.backend.domain.useCase.sistema.ListarSistemasUseCase;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.BloqueItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.CampoItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.OpcionesItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.SeccionItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem;
+import com.ensambla.backend.domain.useCase.sistema.eliminarSistema.EliminarSistema;
+import com.ensambla.backend.domain.useCase.sistema.eliminarSistema.EliminarSistemaRequest;
+import com.ensambla.backend.domain.useCase.sistema.guardarSistema.GuardarSistema;
+import com.ensambla.backend.domain.useCase.sistema.guardarSistema.GuardarSistemaRequest;
+import com.ensambla.backend.domain.useCase.sistema.listarSistemas.ListarSistemas;
+import com.ensambla.backend.domain.useCase.sistema.listarSistemas.ListarSistemasRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.sistema.SistemaPresentationMapper;
+import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,21 +41,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class SistemaControllerTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b0000000-0000-4000-8000-000000000001");
     private static final String SISTEMA_ID = "d0000000-0000-4000-8000-000000000001";
 
-    private final ListarSistemasUseCase listarSistemasUseCase = mock(ListarSistemasUseCase.class);
-    private final GuardarSistemaUseCase guardarSistemaUseCase = mock(GuardarSistemaUseCase.class);
-    private final EliminarSistemaUseCase eliminarSistemaUseCase = mock(EliminarSistemaUseCase.class);
+    private final ListarSistemas listarSistemas = mock(ListarSistemas.class);
+    private final GuardarSistema guardarSistema = mock(GuardarSistema.class);
+    private final EliminarSistema eliminarSistema = mock(EliminarSistema.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        var controller = new SistemaController(listarSistemasUseCase, guardarSistemaUseCase,
-                eliminarSistemaUseCase, new SistemaPresentationMapper());
-        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+        var controller = new SistemaController(listarSistemas, guardarSistema,
+                eliminarSistema, new SistemaPresentationMapper());
+        mockMvc = MockMvcDePrueba.standalone(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -63,7 +63,7 @@ class SistemaControllerTest {
     @Test
     @DisplayName("GET lista los sistemas con la forma que valida el front y omite lo que falta")
     void listarShouldReturnDocumentShape() throws Exception {
-        when(listarSistemasUseCase.execute(any())).thenReturn(List.of(givenItem()));
+        when(listarSistemas.execute(any())).thenReturn(List.of(givenItem()));
 
         mockMvc.perform(get("/api/sistemas").principal(principal))
                 .andExpect(status().isOk())
@@ -83,13 +83,13 @@ class SistemaControllerTest {
                 .andExpect(jsonPath("$[0].sections[0].blocks[0].fields[1].min").value(0))
                 .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].name").value("Harina"))
                 .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].price").doesNotExist());
-        verify(listarSistemasUseCase).execute(new ListarSistemasRequest(USUARIO_ID));
+        verify(listarSistemas).execute(new ListarSistemasRequest(USUARIO_ID));
     }
 
     @Test
     @DisplayName("PUT guarda el sistema entero con el id de la URL y el usuario de la sesión")
     void guardarShouldPassDocumentAndPathId() throws Exception {
-        when(guardarSistemaUseCase.execute(any())).thenReturn(givenItem());
+        when(guardarSistema.execute(any())).thenReturn(givenItem());
 
         mockMvc.perform(put("/api/sistemas/{id}", "e" + SISTEMA_ID).principal(principal)
                         .contentType("application/json").content(givenBody()))
@@ -97,7 +97,7 @@ class SistemaControllerTest {
                 .andExpect(jsonPath("$.id").value(SISTEMA_ID));
 
         ArgumentCaptor<GuardarSistemaRequest> captor = ArgumentCaptor.forClass(GuardarSistemaRequest.class);
-        verify(guardarSistemaUseCase).execute(captor.capture());
+        verify(guardarSistema).execute(captor.capture());
         GuardarSistemaRequest request = captor.getValue();
         assertThat(request.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(request.id()).isEqualTo("e" + SISTEMA_ID);
@@ -119,7 +119,7 @@ class SistemaControllerTest {
     @Test
     @DisplayName("PUT acepta un sistema sin opciones ni demo")
     void guardarShouldAcceptMissingOptionalData() throws Exception {
-        when(guardarSistemaUseCase.execute(any())).thenReturn(givenItem());
+        when(guardarSistema.execute(any())).thenReturn(givenItem());
 
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
                         .contentType("application/json")
@@ -128,7 +128,7 @@ class SistemaControllerTest {
                 .andExpect(status().isOk());
 
         ArgumentCaptor<GuardarSistemaRequest> captor = ArgumentCaptor.forClass(GuardarSistemaRequest.class);
-        verify(guardarSistemaUseCase).execute(captor.capture());
+        verify(guardarSistema).execute(captor.capture());
         assertThat(captor.getValue().sistema().options()).isNull();
         assertThat(captor.getValue().sistema().demoAlmacen()).isFalse();
     }
@@ -140,13 +140,13 @@ class SistemaControllerTest {
                         .contentType("application/json")
                         .content("{\"id\":\"" + SISTEMA_ID + "\",\"name\":\"Solo\",\"sections\":[]}"))
                 .andExpect(status().isBadRequest());
-        verifyNoInteractions(guardarSistemaUseCase);
+        verifyNoInteractions(guardarSistema);
     }
 
     @Test
     @DisplayName("PUT de un sistema ajeno responde 404")
     void guardarShouldReturnNotFoundForForeignSistema() throws Exception {
-        when(guardarSistemaUseCase.execute(any())).thenThrow(new ResourceNotFoundException("Sistema no encontrado"));
+        when(guardarSistema.execute(any())).thenThrow(new ResourceNotFoundException("Sistema no encontrado"));
 
         mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
                         .contentType("application/json").content(givenBody()))
@@ -159,7 +159,7 @@ class SistemaControllerTest {
         mockMvc.perform(delete("/api/sistemas/{id}", "e" + SISTEMA_ID).principal(principal))
                 .andExpect(status().isNoContent());
 
-        verify(eliminarSistemaUseCase).execute(new EliminarSistemaRequest(USUARIO_ID, "e" + SISTEMA_ID));
+        verify(eliminarSistema).execute(new EliminarSistemaRequest(USUARIO_ID, "e" + SISTEMA_ID));
     }
 
     // --- arrange ---

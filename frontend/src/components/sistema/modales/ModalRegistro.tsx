@@ -3,7 +3,11 @@ import { CATALOG } from '@/lib/sistema/catalogo';
 import { findBlock } from '@/lib/sistema/core';
 import { hoy } from '@/lib/sistema/formato';
 import type { Fila } from '@/lib/sistema/tipos';
-import { guardarRegistro, pedirQuitarRegistro } from '@/stores/accionesDelEditor';
+import {
+  guardarRegistro,
+  guardarRegistroDelBorrador,
+  pedirQuitarRegistro,
+} from '@/stores/accionesDelEditor';
 import { seleccionarSistemaActivo, useSistemaStore } from '@/stores/sistemaStore';
 import { Btn } from '../Btn';
 import { CampoDeFormulario } from '../editor/CampoDeFormulario';
@@ -18,9 +22,18 @@ const AYUDA: Record<string, string> = {
   sales: 'La cantidad se descuenta del stock del producto.',
 };
 
+type Props = {
+  bloqueId: string;
+  filaId?: string | null;
+  /** El registro es de la propuesta de Sami (todavía no es un sistema creado), no del sistema abierto. */
+  enBorrador?: boolean;
+};
+
 // «Registrar» y «Editar» un registro de un bloque.
-export function ModalRegistro({ bloqueId, filaId }: { bloqueId: string; filaId?: string | null }) {
-  const sistema = useSistemaStore(seleccionarSistemaActivo);
+export function ModalRegistro({ bloqueId, filaId, enBorrador = false }: Props) {
+  const sistema = useSistemaStore((estado) =>
+    enBorrador ? (estado.taller?.borrador ?? undefined) : seleccionarSistemaActivo(estado),
+  );
   const cerrarModal = useSistemaStore((estado) => estado.cerrarModal);
   const bloque = findBlock(sistema, bloqueId);
   const formulario = useRef<HTMLFormElement>(null);
@@ -43,7 +56,7 @@ export function ModalRegistro({ bloqueId, filaId }: { bloqueId: string; filaId?:
 
   const guardar = (evento: FormEvent<HTMLFormElement>) => {
     evento.preventDefault();
-    const resultado = guardarRegistro(
+    const resultado = (enBorrador ? guardarRegistroDelBorrador : guardarRegistro)(
       bloque.id,
       leerValores(evento.currentTarget, bloque),
       filaId ?? null,
@@ -81,7 +94,7 @@ export function ModalRegistro({ bloqueId, filaId }: { bloqueId: string; filaId?:
           {errores._form}
         </div>
         <div className="modal-footer spread">
-          {filaId ? (
+          {filaId && !enBorrador ? (
             <Btn cls="danger small" onClick={() => pedirQuitarRegistro(bloque.id, filaId)}>
               <Icon name="trash" /> Eliminar
             </Btn>

@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
@@ -21,9 +20,9 @@ public final class Formula {
 
     private final Nodo raiz;
 
-    private final Set<UUID> referencias;
+    private final Set<CampoId> referencias;
 
-    private Formula(Nodo raiz, Set<UUID> referencias) {
+    private Formula(Nodo raiz, Set<CampoId> referencias) {
         this.raiz = raiz;
         this.referencias = referencias;
     }
@@ -31,7 +30,7 @@ public final class Formula {
     /** Resultado de evaluar con los valores ya conocidos; {@code null} si falta un dato o se divide por cero. */
     @FunctionalInterface
     private interface Nodo {
-        BigDecimal evaluar(Function<UUID, BigDecimal> valorDe);
+        BigDecimal evaluar(Function<CampoId, BigDecimal> valorDe);
     }
 
     /**
@@ -54,12 +53,12 @@ public final class Formula {
     }
 
     /** Ids de los campos que usa la fórmula, en orden de aparición. */
-    public Set<UUID> referencias() {
+    public Set<CampoId> referencias() {
         return referencias;
     }
 
     /** Valor de la fórmula; {@code valorDe} devuelve {@code null} si el registro no tiene ese dato. */
-    public BigDecimal evaluar(Function<UUID, BigDecimal> valorDe) {
+    public BigDecimal evaluar(Function<CampoId, BigDecimal> valorDe) {
         BigDecimal resultado = raiz.evaluar(valorDe);
         if (resultado == null) {
             return null;
@@ -72,7 +71,7 @@ public final class Formula {
 
         private final String texto;
 
-        private final Set<UUID> referencias = new LinkedHashSet<>();
+        private final Set<CampoId> referencias = new LinkedHashSet<>();
 
         private int posicion;
 
@@ -138,9 +137,9 @@ public final class Formula {
             if (fin >= texto.length() || texto.charAt(fin) != '}') {
                 throw error("Hay una referencia a un campo que no es válida");
             }
-            UUID id;
+            CampoId id;
             try {
-                id = UUID.fromString(texto.substring(inicio, fin));
+                id = CampoId.de(texto.substring(inicio, fin));
             } catch (IllegalArgumentException e) {
                 throw error("Hay una referencia a un campo que no es válida");
             }

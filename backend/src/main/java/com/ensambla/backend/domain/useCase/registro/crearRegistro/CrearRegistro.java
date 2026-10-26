@@ -1,0 +1,51 @@
+package com.ensambla.backend.domain.useCase.registro.crearRegistro;
+
+import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.service.registro.RegistroDatosService;
+import lombok.RequiredArgsConstructor;
+
+import java.time.Clock;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
+
+@RequiredArgsConstructor
+public class CrearRegistro {
+
+    private final NegocioRepository negocioRepository;
+    private final BloqueRepository bloqueRepository;
+    private final CampoRepository campoRepository;
+    private final RegistroDatosService registroDatosService;
+    private final ControlPlanService controlPlanService;
+    private final RegistroRepository registroRepository;
+    private final TransaccionPort transaccionPort;
+    private final Clock clock;
+
+    public CrearRegistroResponse execute(CrearRegistroRequest request) {
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        Bloque bloque = bloqueRepository.obtener(request.bloqueId(), negocioId);
+        List<Campo> campos = campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), negocioId);
+        OffsetDateTime ahora = OffsetDateTime.now(clock);
+        Registro creado = transaccionPort.ejecutar(
+                () -> crear(negocioId, bloque.getId(), campos, request.valores(), ahora));
+        return CrearRegistroResponse.de(creado.conFormulas(campos));
+    }
+
+    private Registro crear(NegocioId negocioId, BloqueId bloqueId, List<Campo> campos, Map<String, Object> valores,
+                           OffsetDateTime ahora) {
+        Map<String, Object> validos = Registro.validar(campos, valores);
+        registroDatosService.validarConexiones(negocioId, campos, validos);
+        controlPlanService.validarAltaRegistros(negocioId, 1, ahora);
+        return registroRepository.save(Registro.nuevo(negocioId, bloqueId, validos, ahora));
+    }
+}

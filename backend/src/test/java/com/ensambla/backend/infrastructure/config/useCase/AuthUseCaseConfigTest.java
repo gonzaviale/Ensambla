@@ -1,7 +1,11 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.service.auth.RegistroService;
-import com.ensambla.backend.domain.service.usuario.UsuarioService;
+import com.ensambla.backend.domain.port.ContraseniaPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.plan.PlanRepository;
+import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
+import com.ensambla.backend.domain.repository.usuario.UsuarioRepository;
+import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -17,9 +21,9 @@ class AuthUseCaseConfigTest {
     @Test
     @DisplayName("Configura un reloj UTC y el caso de registro")
     void registrarUsuarioUseCaseShouldWireDependencies() {
-        RegistroService service = mock(RegistroService.class);
-
-        var result = config.registrarUsuarioUseCase(service, config.registrarUsuarioMapper(), config.clock());
+        var result = config.registrarUsuario(mock(UsuarioRepository.class), mock(NegocioRepository.class),
+                mock(PlanRepository.class), mock(SuscripcionRepository.class), mock(ContraseniaPort.class),
+                new TransaccionDirecta(), config.clock());
 
         assertThat(result).isNotNull();
         assertThat(config.clock().getZone()).isEqualTo(ZoneOffset.UTC);
@@ -28,9 +32,7 @@ class AuthUseCaseConfigTest {
     @Test
     @DisplayName("Configura el caso de inicio de sesión")
     void iniciarSesionUseCaseShouldWireDependencies() {
-        UsuarioService service = mock(UsuarioService.class);
-
-        var result = config.iniciarSesionUseCase(service, config.iniciarSesionMapper());
+        var result = config.iniciarSesion(mock(UsuarioRepository.class), mock(ContraseniaPort.class));
 
         assertThat(result).isNotNull();
     }
@@ -38,9 +40,9 @@ class AuthUseCaseConfigTest {
     @Test
     @DisplayName("Configura el caso de consulta de sesión")
     void obtenerSesionUseCaseShouldWireDependencies() {
-        UsuarioService service = mock(UsuarioService.class);
+        UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
 
-        var result = config.obtenerSesionUseCase(service, config.obtenerSesionMapper());
+        var result = config.obtenerSesion(usuarioRepository);
 
         assertThat(result).isNotNull();
     }

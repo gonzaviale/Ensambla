@@ -73,7 +73,7 @@ export function TarjetaPlan({
       </p>
       <dl className="plan-limits">
         <div>
-          <dt>Sistemas</dt>
+          <dt>Cuadernos</dt>
           <dd>{limite(plan.limiteProyectos, plan.limitesConfigurados)}</dd>
         </div>
         <div>

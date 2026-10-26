@@ -22,7 +22,7 @@ const abrirConBienvenida = async () => {
 };
 
 const empezarLaGuia = async (user: Usuario) => {
-  await user.click(screen.getByRole('button', { name: /Hacer mi primer sistema con guía/ }));
+  await user.click(screen.getByRole('button', { name: /Hacer mi primer cuaderno con guía/ }));
   await esperarPaso('Tres maneras de empezar.');
 };
 
@@ -48,7 +48,7 @@ describe('la bienvenida', () => {
   it('aparece la primera vez con el nombre y no vuelve una vez vista', async () => {
     const { user, usuario } = await abrirConBienvenida();
 
-    expect(screen.getByRole('button', { name: /Hacer mi primer sistema con guía/ })).toHaveFocus();
+    expect(screen.getByRole('button', { name: /Hacer mi primer cuaderno con guía/ })).toHaveFocus();
     await user.click(screen.getByRole('button', { name: /Explorar por mi cuenta/ }));
 
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -119,7 +119,7 @@ describe('el tutorial', () => {
 
     await user.click(screen.getAllByRole('button', { name: 'Fila completa' })[1] as HTMLElement);
     await esperarPaso('Cuando te cierre, la creamos.');
-    await user.click(screen.getByRole('button', { name: /Sí, crear mi sistema/ }));
+    await user.click(screen.getByRole('button', { name: /Sí, crear mi cuaderno/ }));
     await esperarPaso('Usar y construir, en el mismo lugar.');
     expect(router.state.location.pathname).toMatch(/^\/sistemas\//);
 
@@ -148,11 +148,11 @@ describe('el tutorial', () => {
     await user.click(within(modal).getByRole('button', { name: 'Guardar' }));
     await esperarPaso('Ahora, a usarlo.');
 
-    await user.click(screen.getByRole('button', { name: /Usar sistema/ }));
-    await esperarPaso('Tu primer sistema ya es tuyo.');
+    await user.click(screen.getByRole('button', { name: /Usar cuaderno/ }));
+    await esperarPaso('Tu primer cuaderno ya es tuyo.');
     expect(within(cartel()).getByLabelText('Etapa 5 de 5')).toBeVisible();
 
-    await user.click(within(cartel()).getByRole('button', { name: 'Listo, sigo explorando' }));
+    await user.click(within(cartel()).getByRole('button', { name: 'Salir del tutorial' }));
     expect(screen.queryByLabelText('Guía interactiva de Sami')).toBeNull();
     await verifyToastAsync('Podés retomar la guía desde Sami en el inicio.');
     expect(document.querySelector('.mk-root')).not.toHaveClass('tutorial-running');
@@ -184,13 +184,13 @@ describe('el tutorial', () => {
     const tarjeta = document.querySelector<HTMLElement>(
       '.template-page [data-template="shop"]',
     ) as HTMLElement;
-    await user.click(within(tarjeta).getByRole('button', { name: /Ver el sistema/ }));
+    await user.click(within(tarjeta).getByRole('button', { name: /Ver el cuaderno/ }));
     await esperarPaso('Mirá las piezas antes de empezar.');
 
     await user.click(screen.getByRole('button', { name: 'Seguir mirando' }));
     await esperarPaso('Una plantilla es un conjunto.');
 
-    await user.click(within(tarjeta).getByRole('button', { name: /Ver el sistema/ }));
+    await user.click(within(tarjeta).getByRole('button', { name: /Ver el cuaderno/ }));
     await esperarPaso('Mirá las piezas antes de empezar.');
     await user.click(screen.getByRole('button', { name: /Empezar con este conjunto/ }));
     await esperarPaso('Usar y construir, en el mismo lugar.');
@@ -235,11 +235,11 @@ describe('el tutorial', () => {
     await verifyToastAsync('Podés retomar la guía desde Sami en el inicio.');
   });
 
-  it('«Explorar sin guía» la cierra y desde el inicio se retoma', async () => {
+  it('la ✕ la cierra y desde el inicio se retoma', async () => {
     const { user } = await abrirConBienvenida();
     await empezarLaGuia(user);
 
-    await user.click(within(cartel()).getByRole('button', { name: 'Explorar sin guía' }));
+    await user.click(within(cartel()).getByRole('button', { name: 'Salir del tutorial' }));
     expect(screen.queryByLabelText('Guía interactiva de Sami')).toBeNull();
 
     await user.click(screen.getByRole('button', { name: /Mostrarme cómo empezar/ }));
