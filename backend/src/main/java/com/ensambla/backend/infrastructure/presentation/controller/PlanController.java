@@ -1,6 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.plan.listarCatalogoPlanes.ListarCatalogoPlanes;
+import com.ensambla.backend.infrastructure.presentation.dto.plan.PlanesResponse.PlanResponse;
 import com.ensambla.backend.domain.useCase.plan.PruebaPremiumResponse;
 import com.ensambla.backend.domain.useCase.plan.consultarPlanes.ConsultarPlanes;
 import com.ensambla.backend.domain.useCase.plan.consultarPlanes.ConsultarPlanesResponse;
@@ -19,6 +21,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/planes")
@@ -30,6 +34,15 @@ public class PlanController {
     private final PlanPresentationMapper planPresentationMapper;
 
     private final ConsultarPlanes consultarPlanes;
+
+    private final ListarCatalogoPlanes listarCatalogoPlanes;
+
+    @GetMapping("/catalogo")
+    @Operation(summary = "Consultar el catálogo público, sin suscripción ni datos de negocios")
+    public ResponseEntity<List<PlanResponse>> listarCatalogo() {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(planPresentationMapper.toResponse(listarCatalogoPlanes.execute()));
+    }
 
     @GetMapping
     @Operation(summary = "Consultar planes, suscripción y uso del negocio de la sesión")

@@ -135,7 +135,7 @@ y [modelo de datos](../docs/modelo-datos.md).
 - La excepción exacta es `POST /api/pagos/mercadopago`: no usa sesión ni CSRF; valida firma HMAC
   y consulta la API del proveedor. Las demás escrituras de pago conservan sesión y CSRF.
 - CORS: sólo el origen de `frontend.url`, con credenciales.
-- Rutas públicas (ver `SecurityConfig`): `GET /api/plantillas`, `GET /api/auth/csrf`, `POST /api/auth/{register,login,logout}`
+- Rutas públicas (ver `SecurityConfig`): `GET /api/planes/catalogo`, `GET /api/plantillas`, `GET /api/auth/csrf`, `POST /api/auth/{register,login,logout}`
   y Swagger, además de `POST /api/pagos/mercadopago` con firma. Todo lo demás exige sesión
   (401 con el cuerpo `ErrorResponse` estándar).
 
@@ -153,6 +153,7 @@ La búsqueda privada de direcciones y el catálogo de rubros se documentan en
 | `GET /api/auth/me` | sesión | Identidad actual sin contraseña ni hash; 200 o 401 |
 | `GET /api/business` | sesión del dueño | Configuración de su negocio, incluida ubicación y rubro; sin identificadores ajenos |
 | `PATCH /api/business` | sesión del dueño + CSRF | Editar nombre, ubicación completa, rubro y participación en agregados; campos omitidos conservan su valor |
+| `GET /api/planes/catalogo` | público | Catálogo global sin suscripción, consumo ni identificadores de negocio (ENS-244) |
 | `GET /api/planes` | sesión | Catálogo, plan efectivo, prueba y uso del negocio |
 | `POST /api/planes/prueba` | sesión + CSRF | Una prueba por negocio, siete días y diez páginas totales |
 | `GET /api/planes/renovacion` | sesión | Disponibilidad de contratación y último contrato del negocio |

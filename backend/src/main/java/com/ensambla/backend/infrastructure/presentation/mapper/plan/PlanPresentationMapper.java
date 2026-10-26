@@ -7,7 +7,10 @@ import com.ensambla.backend.domain.useCase.plan.consultarPlanes.PlanItem;
 import com.ensambla.backend.domain.useCase.plan.iniciarPrueba.IniciarPruebaRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.plan.PlanesResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.plan.PruebaResponse;
+import com.ensambla.backend.domain.useCase.plan.listarCatalogoPlanes.ListarCatalogoPlanesResponse;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 public class PlanPresentationMapper {
@@ -30,6 +33,13 @@ public class PlanPresentationMapper {
                 new PlanesResponse.UsoResponse(uso.proyectos(), uso.registros(), uso.paginasIa(),
                         uso.limitePaginasIa(), uso.periodoIa(), uso.inicioPeriodoIa(), uso.finPeriodoIa()),
                 response.prueba() == null ? null : toResponse(response.prueba()));
+    }
+
+    public List<PlanesResponse.PlanResponse> toResponse(ListarCatalogoPlanesResponse response) {
+        return response.planes().stream().map(plan -> new PlanesResponse.PlanResponse(plan.codigo(), plan.nombre(),
+                plan.precioConfigurado(), plan.limitesConfigurados(), plan.precioMensual(), plan.moneda(),
+                plan.limiteProyectos(), plan.limiteRegistros(), plan.limitePaginasIaMensuales(), plan.funciones()))
+                .toList();
     }
 
     private PlanesResponse.PlanResponse toPlan(PlanItem plan) {

@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.useCase.plan.listarCatalogoPlanes.ListarCatalogoPlanes;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.AccesoContenidoRepository;
@@ -20,6 +21,11 @@ import java.time.Clock;
 
 @Configuration
 public class PlanUseCaseConfig {
+
+    @Bean
+    public ListarCatalogoPlanes listarCatalogoPlanes(PlanRepository planRepository, TransaccionPort transaccionPort) {
+        return new ListarCatalogoPlanes(planRepository, transaccionPort);
+    }
 
     @Bean
     public DesbloquearContenidos desbloquearContenidos(
