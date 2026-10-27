@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
 import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.common.Identificador;
@@ -117,13 +118,13 @@ public class ProcesamientoRepositoryImpl implements ProcesamientoRepository {
                 .forEach(bloque -> porId.put(bloque.id(), bloque));
         List<TablaDisponible> tablas = new ArrayList<>();
         jdbcTemplate.query("""
-                SELECT b.id, p.nombre AS proyecto FROM bloque b
+                SELECT b.id, p.nombre AS proyecto, b.tipo FROM bloque b
                 JOIN proyecto p ON p.negocio_id = b.negocio_id AND p.id = b.proyecto_id
                 WHERE b.negocio_id = :negocio ORDER BY p.nombre, b.posicion, b.id
                 """, Map.of("negocio", negocioId.valor()), fila -> {
             BloqueLectura bloque = porId.get(BloqueId.de(fila.getObject("id", UUID.class)));
             if (bloque != null) {
-                tablas.add(new TablaDisponible(bloque, fila.getString("proyecto")));
+                tablas.add(new TablaDisponible(bloque, fila.getString("proyecto"), TipoBloque.valueOf(fila.getString("tipo"))));
             }
         });
         return tablas;

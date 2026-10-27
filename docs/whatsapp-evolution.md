@@ -37,7 +37,12 @@ uno y en orden, así el webhook contesta enseguida y nada se pierde si el servid
 
 Después muestra el resumen («Para *Gastos* entendí: 1) Concepto: harina · Monto: 5000 …») con `(?)` en lo que no pudo leer bien:
 
-- **SÍ** guarda las filas al final de la tabla, con origen «WhatsApp». Valida el límite de registros del plan.
+- **SÍ** guarda las filas, con origen «WhatsApp». Valida el límite de registros del plan.
+- **Productos que ya existen.** En las tablas de cosas (inventario, clientes y formularios propios) Sami busca el producto
+  entre las filas que ya hay, aunque la persona lo escriba como pueda (sin tildes, en plural, con una letra mal o con
+  sólo parte del nombre). Si lo encuentra, el resumen dice «Actualizo *Harina 000*: Monto: 5000» y al confirmar le cambia
+  sólo los datos que vinieron, sin tocar el nombre. Si no hay un producto parecido, o hay dos igual de parecidos, agrega
+  una fila nueva («Agrego: …»). En las tablas de movimientos (ventas, gastos, pedidos) cada mensaje es una fila nueva.
 - **NO** descarta. Para corregir, se responde NO y se manda de nuevo.
 - Si no está segura de la tabla (o la foto no se parece a ninguna) manda una lista numerada; se responde con el número y no se
   vuelve a leer la foto ni se cobra otra página.

@@ -18,6 +18,7 @@ import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
 import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.TablaDisponible;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.sami.ConsumoIaSami;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.whatsapp.ArchivoWhatsapp;
@@ -86,6 +87,7 @@ class AtenderMensajeWhatsappTest {
     private static final CampoId MONTO_ID = CampoId.de("c0000000-0000-4000-8000-000000000002");
     private static final CampoId PRODUCTO_ID = CampoId.de("c0000000-0000-4000-8000-000000000003");
     private static final CampoId PRODUCTO_AJENO_ID = CampoId.de("c0000000-0000-4000-8000-000000000009");
+    private static final RegistroId REGISTRO_ID = RegistroId.de("e0000000-0000-4000-8000-000000000001");
     private static final String TELEFONO = "5491122334455";
 
     private final MensajeWhatsappRepository mensajeRepository = mock(MensajeWhatsappRepository.class);
@@ -106,6 +108,7 @@ class AtenderMensajeWhatsappTest {
             new TransaccionDirecta(), Clock.fixed(INSTANTE, ZoneOffset.UTC),
             new PoliticaAtencionWhatsapp(60, 100, 0.6, Duration.ofMinutes(2)));
 
+    private final List<Registro> existentes = new java.util.ArrayList<>();
     private final TablaDisponible gastos = new TablaDisponible(new BloqueLectura(GASTOS_ID, "Gastos", List.of(
             new CampoConocido(CONCEPTO_ID, "Concepto", TipoCampo.TEXTO, List.of()),
             new CampoConocido(MONTO_ID, "Monto", TipoCampo.MONEDA, List.of()))), "Mi panadería");
@@ -698,6 +701,210 @@ class AtenderMensajeWhatsappTest {
         atender.execute();
 
         assertThat(thenPropuestaGuardada().getFilas().getFirst().valores()).containsOnlyKeys(CONCEPTO_ID.toString());
+    }
+
+    // --- actualizar filas existentes ---
+
+    @Test
+    @DisplayName("Si el producto ya existe, aunque lo escriban a medias, propone actualizarlo sin tocar su nombre")
+    void executeShouldProposeUpdatingTheExistingRow() {
+        givenFilaExistente("Harina 000", "1000");
+        givenReclamado(givenTexto("harina 5000"));
+        when(interpreteIa.interpretar(any())).thenReturn(new InterpretacionRegistros(GASTOS_ID,
+                List.of(Map.of(CONCEPTO_ID, "harina", MONTO_ID, "5000")), 0.9, consumo()));
+
+        atender.execute();
+
+        FilaPropuesta fila = thenPropuestaGuardada().getFilas().getFirst();
+        assertThat(fila.actualizaUnaFila()).isTrue();
+        assertThat(fila.registroId()).isEqualTo(REGISTRO_ID.toString());
+        assertThat(fila.nombreExistente()).isEqualTo("Harina 000");
+        assertThat(thenRespuesta()).contains("1) Actualizo *Harina 000*: Monto: 5000").doesNotContain("Concepto");
+    }
+
+    @Test
+    @DisplayName("Confirmar una actualización cambia sólo los datos que vinieron y no agrega una fila nueva")
+    void executeShouldUpdateTheExistingRowOnConfirm() {
+        givenReclamado(givenTexto("sí"));
+        Registro existente = givenFilaExistente("Harina 000", "1000");
+        givenPendiente(List.of(new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "harina",
+                MONTO_ID.toString(), "5000"), Set.of()).actualizando(REGISTRO_ID.toString(), "Harina 000",
+                CONCEPTO_ID.toString())));
+        givenTablaGuardable(3);
+        when(registroRepository.findByIdAndNegocioId(any(), eq(NEGOCIO_ID))).thenReturn(Optional.of(existente));
+
+        atender.execute();
+
+        assertThat(existente.getValores()).containsEntry(CONCEPTO_ID.toString(), "Harina 000")
+                .containsEntry(MONTO_ID.toString(), new java.math.BigDecimal("5000"));
+        assertThat(existente.getActualizadoEn()).isEqualTo(AHORA);
+        verify(registroRepository).saveAll(List.of(existente));
+        verify(controlPlanService, never()).validarAltaRegistros(any(), org.mockito.ArgumentMatchers.anyLong(), any());
+        assertThat(thenRespuesta()).contains("actualicé 1 fila en *Gastos*");
+    }
+
+    @Test
+    @DisplayName("Una confirmación con filas nuevas y actualizadas hace las dos cosas y descuenta sólo las nuevas")
+    void executeShouldMixUpdatesAndAdditions() {
+        givenReclamado(givenTexto("sí"));
+        Registro existente = givenFilaExistente("Harina 000", "1000");
+        givenPendiente(List.of(new FilaPropuesta(Map.of(MONTO_ID.toString(), "5000"), Set.of())
+                        .actualizando(REGISTRO_ID.toString(), "Harina 000", CONCEPTO_ID.toString()),
+                new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "azúcar", MONTO_ID.toString(), "800"), Set.of())));
+        givenTablaGuardable(3);
+        when(registroRepository.findByIdAndNegocioId(any(), eq(NEGOCIO_ID))).thenReturn(Optional.of(existente));
+
+        atender.execute();
+
+        verify(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 1, AHORA);
+        assertThat(thenRespuesta()).contains("actualicé 1 y agregué 1 filas en *Gastos*");
+    }
+
+    @Test
+    @DisplayName("Si la fila a actualizar se borró o es de otra tabla, el dato se agrega como fila nueva")
+    void executeShouldAddAsNewWhenTheExistingRowIsGone() {
+        givenReclamado(givenTexto("sí"));
+        Registro deOtraTabla = Registro.nuevo(NEGOCIO_ID, VENTAS_ID, Map.of(), AHORA);
+        givenPendiente(List.of(new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "harina", MONTO_ID.toString(), "5000"),
+                Set.of()).actualizando(REGISTRO_ID.toString(), "Harina 000", CONCEPTO_ID.toString())));
+        givenTablaGuardable(0);
+        when(registroRepository.findByIdAndNegocioId(any(), eq(NEGOCIO_ID))).thenReturn(Optional.empty(),
+                Optional.of(deOtraTabla));
+
+        atender.execute();
+
+        verify(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 1, AHORA);
+        assertThat(thenRespuesta()).contains("guardé 1 fila en *Gastos*");
+    }
+
+    @Test
+    @DisplayName("Una actualización cuyo resultado no cumple las reglas del campo no guarda nada")
+    void executeShouldValidateTheMergedRow() {
+        givenReclamado(givenTexto("sí"));
+        Registro existente = givenFilaExistente("Harina 000", "1000");
+        givenPendiente(List.of(new FilaPropuesta(Map.of(MONTO_ID.toString(), "mucho"), Set.of())
+                .actualizando(REGISTRO_ID.toString(), "Harina 000", CONCEPTO_ID.toString())));
+        givenTablaGuardable(0);
+        when(registroRepository.findByIdAndNegocioId(any(), eq(NEGOCIO_ID))).thenReturn(Optional.of(existente));
+
+        atender.execute();
+
+        verify(registroRepository, never()).saveAll(any());
+        assertThat(thenRespuesta()).contains("No guardé nada", "Monto");
+    }
+
+    @Test
+    @DisplayName("Una tabla de movimientos (gastos) suma una fila nueva aunque ya haya otra con el mismo nombre")
+    void executeShouldNotUpdateInMovementTables() {
+        TablaDisponible movimientos = new TablaDisponible(gastos.bloque(), "Mi panadería",
+                com.ensambla.backend.domain.model.bloque.TipoBloque.GASTOS);
+        when(procesamientoRepository.tablas(NEGOCIO_ID)).thenReturn(List.of(movimientos));
+        givenFilaExistente("harina", "1000");
+        givenReclamado(givenTexto("gasté 5000 en harina"));
+        givenInterpretacion(GASTOS_ID, 0.9);
+
+        atender.execute();
+
+        assertThat(thenPropuestaGuardada().getFilas().getFirst().actualizaUnaFila()).isFalse();
+        assertThat(thenRespuesta()).contains("1) Agrego:");
+    }
+
+    @Test
+    @DisplayName("Si no hay un producto parecido, o hay dos igual de parecidos, se agrega una fila nueva")
+    void executeShouldAddWhenNoClearMatch() {
+        givenFilaExistente("Harina 000", "1000");
+        givenFilaExistente("Harina 0000", "1200");
+        givenReclamado(givenTexto("harina 5000"));
+        when(interpreteIa.interpretar(any())).thenReturn(new InterpretacionRegistros(GASTOS_ID,
+                List.of(Map.of(CONCEPTO_ID, "harina", MONTO_ID, "5000"), Map.of(CONCEPTO_ID, "manteca",
+                        MONTO_ID, "900")), 0.9, consumo()));
+
+        atender.execute();
+
+        assertThat(thenPropuestaGuardada().getFilas()).noneMatch(FilaPropuesta::actualizaUnaFila);
+    }
+
+    @Test
+    @DisplayName("Un dato sin nombre de producto, o sólo con el nombre, queda como fila nueva")
+    void executeShouldKeepRowsWithoutNameOrWithOnlyTheName() {
+        givenFilaExistente("Harina 000", "1000");
+        givenReclamado(givenTexto("cosas"));
+        when(interpreteIa.interpretar(any())).thenReturn(new InterpretacionRegistros(GASTOS_ID,
+                List.of(Map.of(MONTO_ID, "700"), Map.of(CONCEPTO_ID, "harina")), 0.9, consumo()));
+
+        atender.execute();
+
+        assertThat(thenPropuestaGuardada().getFilas()).noneMatch(FilaPropuesta::actualizaUnaFila);
+    }
+
+    @Test
+    @DisplayName("Una tabla sin columna de texto no tiene cómo nombrar sus filas y siempre agrega")
+    void executeShouldAddWhenTheTableHasNoTextColumn() {
+        TablaDisponible sinTexto = new TablaDisponible(new BloqueLectura(GASTOS_ID, "Solo montos", List.of(
+                new CampoConocido(MONTO_ID, "Monto", TipoCampo.MONEDA, List.of()))), "Mi panadería");
+        when(procesamientoRepository.tablas(NEGOCIO_ID)).thenReturn(List.of(sinTexto));
+        givenReclamado(givenTexto("5000"));
+        givenInterpretacion(GASTOS_ID, 0.9);
+
+        atender.execute();
+
+        assertThat(thenPropuestaGuardada().getFilas().getFirst().actualizaUnaFila()).isFalse();
+    }
+
+    @Test
+    @DisplayName("En una foto también actualiza el producto existente en lugar de sumar uno nuevo")
+    void executeShouldUpdateExistingRowsFromPhotos() {
+        givenFilaExistente("Harina 000", "1000");
+        givenReclamado(givenFoto("gastos"));
+        when(mensajeria.descargarMedia("F1")).thenReturn(new ArchivoWhatsapp(ImagenTestData.jpeg(), "image/jpeg"));
+        when(lectorCuadernoPort.leer(any(), any(), any())).thenReturn(lectura("Gastos",
+                new FilaLeida(1, 1, Map.of("concepto", new DatoLeido("harina", 0.9),
+                        "monto", new DatoLeido("5000", 0.9)))));
+
+        atender.execute();
+
+        assertThat(thenPropuestaGuardada().getFilas().getFirst().nombreExistente()).isEqualTo("Harina 000");
+    }
+
+    @Test
+    @DisplayName("Al elegir la tabla de un texto también empareja con las filas existentes")
+    void executeShouldMatchExistingRowsWhenChoosingTheTable() {
+        givenFilaExistente("Harina 000", "1000");
+        givenReclamado(givenTexto("1"));
+        PropuestaWhatsapp eligiendo = PropuestaWhatsapp.eligiendoTabla(NEGOCIO_ID, TELEFONO,
+                OrigenPropuestaWhatsapp.TEXTO, "harina 5000", null, List.of(GASTOS_ID), AHORA);
+        when(propuestaRepository.findAbiertaByTelefono(TELEFONO)).thenReturn(Optional.of(eligiendo));
+        when(interpreteIa.interpretar(any())).thenReturn(new InterpretacionRegistros(GASTOS_ID,
+                List.of(Map.of(CONCEPTO_ID, "harina", MONTO_ID, "5000")), 0.9, consumo()));
+
+        atender.execute();
+
+        assertThat(eligiendo.getFilas().getFirst().actualizaUnaFila()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Las filas existentes sin nombre se ignoran al buscar el producto")
+    void executeShouldIgnoreExistingRowsWithoutAName() {
+        Registro sinNombre = Registro.nuevo(NEGOCIO_ID, GASTOS_ID, Map.of(MONTO_ID.toString(), 10), AHORA);
+        sinNombre.setId(RegistroId.nuevo());
+        existentes.add(sinNombre);
+        givenFilaExistente("Harina 000", "1000");
+        givenReclamado(givenTexto("harina 5000"));
+        when(interpreteIa.interpretar(any())).thenReturn(new InterpretacionRegistros(GASTOS_ID,
+                List.of(Map.of(CONCEPTO_ID, "harina", MONTO_ID, "5000")), 0.9, consumo()));
+
+        atender.execute();
+
+        assertThat(thenPropuestaGuardada().getFilas().getFirst().nombreExistente()).isEqualTo("Harina 000");
+    }
+
+    private Registro givenFilaExistente(String nombre, String monto) {
+        Registro registro = Registro.nuevo(NEGOCIO_ID, GASTOS_ID, new java.util.HashMap<>(Map.of(
+                CONCEPTO_ID.toString(), nombre, MONTO_ID.toString(), new java.math.BigDecimal(monto))), AHORA);
+        registro.setId(existentes.isEmpty() ? REGISTRO_ID : RegistroId.nuevo());
+        existentes.add(registro);
+        when(registroRepository.findAllByBloqueIdAndNegocioId(GASTOS_ID, NEGOCIO_ID)).thenReturn(existentes);
+        return registro;
     }
 
     // --- arrange / assert ---

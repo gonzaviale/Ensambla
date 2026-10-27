@@ -33,7 +33,7 @@ class TextosWhatsappTest {
         String resumen = TextosWhatsapp.resumen(givenPropuesta(1, Set.of()), GASTOS);
 
         assertThat(resumen).startsWith("Para *Gastos* (Mi panadería) entendí:")
-                .contains("1) Concepto: harina")
+                .contains("1) Agrego: Concepto: harina")
                 .contains("Monto: 5000")
                 .contains("¿Lo guardo? Respondé *SÍ* para guardar o *NO* para descartar.")
                 .doesNotContain("(?)");
@@ -52,7 +52,7 @@ class TextosWhatsappTest {
     void resumenShouldTruncateAtTenRows() {
         String resumen = TextosWhatsapp.resumen(givenPropuesta(13, Set.of()), GASTOS);
 
-        assertThat(resumen).contains("10) Concepto").doesNotContain("11) Concepto").contains("y 3 filas más.");
+        assertThat(resumen).contains("10) Agrego: Concepto").doesNotContain("11) Agrego").contains("y 3 filas más.");
     }
 
     @Test
@@ -63,10 +63,27 @@ class TextosWhatsappTest {
     }
 
     @Test
-    @DisplayName("El aviso de guardado concuerda en singular y plural")
-    void guardadoShouldAgreeInNumber() {
-        assertThat(TextosWhatsapp.guardado(1, "Gastos")).contains("guardé 1 fila en *Gastos*");
-        assertThat(TextosWhatsapp.guardado(3, "Gastos")).contains("guardé 3 filas en *Gastos*");
+    @DisplayName("El aviso de guardado concuerda en singular y plural y distingue lo agregado de lo actualizado")
+    void guardadoShouldAgreeInNumberAndDistinguishUpdates() {
+        assertThat(TextosWhatsapp.guardado(1, 0, "Gastos")).contains("guardé 1 fila en *Gastos*");
+        assertThat(TextosWhatsapp.guardado(3, 0, "Gastos")).contains("guardé 3 filas en *Gastos*");
+        assertThat(TextosWhatsapp.guardado(0, 1, "Productos")).contains("actualicé 1 fila en *Productos*");
+        assertThat(TextosWhatsapp.guardado(0, 2, "Productos")).contains("actualicé 2 filas en *Productos*");
+        assertThat(TextosWhatsapp.guardado(2, 3, "Productos")).contains("actualicé 3 y agregué 2 filas en *Productos*");
+    }
+
+    @Test
+    @DisplayName("El resumen dice qué fila existente se actualiza y cuáles se agregan")
+    void resumenShouldTellUpdatesFromAdditions() {
+        FilaPropuesta actualiza = new FilaPropuesta(Map.of(MONTO_ID.toString(), "3000"), Set.of())
+                .actualizando("r-1", "Harina 000", CONCEPTO_ID.toString());
+        FilaPropuesta agrega = new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "azúcar"), Set.of());
+        PropuestaWhatsapp propuesta = PropuestaWhatsapp.pendiente(NegocioId.de("a0000000-0000-4000-8000-000000000001"),
+                "5491122334455", OrigenPropuestaWhatsapp.TEXTO, "x", GASTOS_ID, List.of(actualiza, agrega),
+                OffsetDateTime.parse("2026-10-27T12:00:00Z"));
+
+        assertThat(TextosWhatsapp.resumen(propuesta, GASTOS))
+                .contains("1) Actualizo *Harina 000*: Monto: 3000").contains("2) Agrego: Concepto: azúcar");
     }
 
     @Test

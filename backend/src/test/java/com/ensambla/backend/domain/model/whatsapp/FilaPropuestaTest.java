@@ -47,6 +47,31 @@ class FilaPropuestaTest {
                 .get(MONTO_ID.toString())).isEqualTo("mucho");
     }
 
+    @Test
+    @DisplayName("Actualizar una fila existente guarda su id y su nombre, y volverla nueva los olvida")
+    void actualizandoShouldLinkTheExistingRow() {
+        FilaPropuesta nueva = new FilaPropuesta(Map.of(MONTO_ID.toString(), "3000"), Set.of());
+
+        FilaPropuesta actualiza = nueva.actualizando("r-1", "Harina 000", CONCEPTO_ID.toString());
+
+        assertThat(nueva.actualizaUnaFila()).isFalse();
+        assertThat(actualiza.actualizaUnaFila()).isTrue();
+        assertThat(actualiza.registroId()).isEqualTo("r-1");
+        assertThat(actualiza.nombreExistente()).isEqualTo("Harina 000");
+    }
+
+    @Test
+    @DisplayName("Al actualizar se cambia todo menos el nombre con el que se encontró la fila")
+    void cambiosShouldLeaveTheNameOut() {
+        FilaPropuesta fila = new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "harina", MONTO_ID.toString(), "3000"),
+                Set.of()).actualizando("r-1", "Harina 000", CONCEPTO_ID.toString());
+
+        assertThat(fila.cambiosTipados(CAMPOS)).containsOnlyKeys(MONTO_ID.toString());
+        assertThat(fila.cambiaAlgoAdemasDelNombre(CONCEPTO_ID.toString())).isTrue();
+        assertThat(new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "harina"), Set.of())
+                .cambiaAlgoAdemasDelNombre(CONCEPTO_ID.toString())).isFalse();
+    }
+
     private static Map<String, Object> conPagado(String valor) {
         return new FilaPropuesta(Map.of(PAGADO_ID.toString(), valor), Set.of()).tipados(CAMPOS);
     }

@@ -56,9 +56,16 @@ public final class TextosWhatsapp {
         return "No guardé nada porque falta o está mal: " + detalle + ". Mandame los datos de nuevo.";
     }
 
-    public static String guardado(int filas, String tabla) {
-        return "Listo, guardé %d fila%s en *%s*. Si tenés la app abierta, actualizá la página para verlas."
-                .formatted(filas, filas == 1 ? "" : "s", tabla);
+    public static String guardado(int nuevas, int actualizadas, String tabla) {
+        String cambios = actualizadas == 0 ? "guardé %d %s".formatted(nuevas, filas(nuevas))
+                : nuevas == 0 ? "actualicé %d %s".formatted(actualizadas, filas(actualizadas))
+                : "actualicé %d y agregué %d filas".formatted(actualizadas, nuevas);
+        return "Listo, %s en *%s*. Si tenés la app abierta, actualizá la página para verlas."
+                .formatted(cambios, tabla);
+    }
+
+    private static String filas(int cantidad) {
+        return cantidad == 1 ? "fila" : "filas";
     }
 
     /** La carga tal como quedaría, con hasta {@value #MAX_FILAS_EN_RESUMEN} filas, para que la persona confirme. */
@@ -67,7 +74,7 @@ public final class TextosWhatsapp {
         lineas.add("Para *%s* (%s) entendí:".formatted(tabla.bloque().nombre(), tabla.proyecto()));
         List<FilaPropuesta> filas = propuesta.getFilas();
         IntStream.range(0, Math.min(filas.size(), MAX_FILAS_EN_RESUMEN))
-                .forEach(i -> lineas.add("%d) %s".formatted(i + 1, fila(filas.get(i), tabla))));
+                .forEach(i -> lineas.add("%d) %s".formatted(i + 1, accion(filas.get(i)) + fila(filas.get(i), tabla))));
         if (filas.size() > MAX_FILAS_EN_RESUMEN) {
             lineas.add("…y %d filas más.".formatted(filas.size() - MAX_FILAS_EN_RESUMEN));
         }
@@ -88,10 +95,16 @@ public final class TextosWhatsapp {
         return String.join("\n", lineas);
     }
 
+    /** Si la fila actualiza una que ya existe lo dice con su nombre; si no, avisa que se agrega. */
+    private static String accion(FilaPropuesta fila) {
+        return fila.actualizaUnaFila() ? "Actualizo *%s*: ".formatted(fila.nombreExistente()) : "Agrego: ";
+    }
+
     private static String fila(FilaPropuesta fila, TablaDisponible tabla) {
         Map<String, String> valores = fila.valores();
         return tabla.bloque().campos().stream()
                 .filter(campo -> valores.containsKey(campo.id().toString()))
+                .filter(campo -> !(fila.actualizaUnaFila() && campo.id().toString().equals(fila.campoNombre())))
                 .map(campo -> celda(campo, valores, fila))
                 .collect(Collectors.joining(" · "));
     }

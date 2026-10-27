@@ -397,7 +397,7 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
         jdbcTemplate.update("INSERT INTO proyecto (id, negocio_id, nombre) VALUES (?, ?, 'Mi panadería')",
                 proyectoId, negocioId.valor());
         for (UUID bloque : List.of(ventasId, soloFormulasId, vaciaId)) {
-            jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre) VALUES (?, ?, ?, ?)",
+            jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre, tipo) VALUES (?, ?, ?, ?, 'INVENTARIO')",
                     bloque, negocioId.valor(), proyectoId, "Tabla " + bloque.toString().substring(0, 4));
         }
         jdbcTemplate.update("""
@@ -413,6 +413,7 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
         assertThat(tablas).hasSize(1);
         assertThat(tablas.getFirst().bloque().id().valor()).isEqualTo(ventasId);
         assertThat(tablas.getFirst().proyecto()).isEqualTo("Mi panadería");
+        assertThat(tablas.getFirst().tipo()).isEqualTo(com.ensambla.backend.domain.model.bloque.TipoBloque.INVENTARIO);
         assertThat(procesamientoRepository.tablas(NegocioId.nuevo())).isEmpty();
     }
 

@@ -17,7 +17,9 @@ import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
 import com.ensambla.backend.domain.model.procesamiento.TablaDisponible;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.whatsapp.ArchivoWhatsapp;
+import com.ensambla.backend.domain.model.whatsapp.CoincidenciaDeFilas;
 import com.ensambla.backend.domain.model.whatsapp.ConsultaInterpretacion;
 import com.ensambla.backend.domain.model.whatsapp.EstadoPropuestaWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.FilaPropuesta;
@@ -49,6 +51,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -184,7 +187,7 @@ public class AtenderMensajeWhatsapp {
             return;
         }
         TablaDisponible tabla = tablaDe(tablas, interpretacion.bloqueId());
-        List<FilaPropuesta> filas = filasDeTexto(interpretacion, tabla);
+        List<FilaPropuesta> filas = conExistentes(filasDeTexto(interpretacion, tabla), tabla, negocioId);
         if (filas.isEmpty()) {
             responder(mensaje, TextosWhatsapp.NO_ENTENDI);
         } else if (interpretacion.entendida(politica.umbralConfianza())) {
@@ -245,7 +248,7 @@ public class AtenderMensajeWhatsapp {
 
     private void proponerDeFoto(MensajeWhatsapp mensaje, NegocioId negocioId, TablaDisponible tabla,
                                 PropuestaLectura propuesta, OffsetDateTime ahora) {
-        List<FilaPropuesta> filas = filasDeFoto(propuesta, tabla);
+        List<FilaPropuesta> filas = conExistentes(filasDeFoto(propuesta, tabla), tabla, negocioId);
         if (filas.isEmpty()) {
             responder(mensaje, TextosWhatsapp.NO_ENTENDI);
             return;
@@ -287,10 +290,11 @@ public class AtenderMensajeWhatsapp {
         BloqueId destino = propuesta.elegir(RespuestaChat.numero(mensaje.getTexto()));
         List<TablaDisponible> tablas = tablas(negocioId);
         TablaDisponible tabla = tablaDe(tablas, destino);
-        List<FilaPropuesta> filas = propuesta.getOrigen() == OrigenPropuestaWhatsapp.FOTO
+        List<FilaPropuesta> nuevas = propuesta.getOrigen() == OrigenPropuestaWhatsapp.FOTO
                 ? filasDeFoto(PropuestaLectura.proponer(propuesta.getLectura(),
                         tablas.stream().map(TablaDisponible::bloque).toList(), destino), tabla)
                 : filasDeTexto(interpretar(negocioId, propuesta.getTexto(), tablas, destino, ahora), tabla);
+        List<FilaPropuesta> filas = conExistentes(nuevas, tabla, negocioId);
         if (filas.isEmpty()) {
             propuesta.descartar(ahora);
             propuestaRepository.save(propuesta);
@@ -305,31 +309,58 @@ public class AtenderMensajeWhatsapp {
 
     private void confirmar(PropuestaWhatsapp propuesta, MensajeWhatsapp mensaje, NegocioId negocioId,
                            OffsetDateTime ahora) {
-        Bloque bloque = transaccionPort.ejecutar(() -> guardar(propuesta, negocioId, ahora));
-        responder(mensaje, TextosWhatsapp.guardado(propuesta.getFilas().size(), bloque.getNombre()));
+        Guardado guardado = transaccionPort.ejecutar(() -> guardar(propuesta, negocioId, ahora));
+        responder(mensaje, TextosWhatsapp.guardado(guardado.nuevas(), guardado.actualizadas(), guardado.tabla()));
     }
 
-    private Bloque guardar(PropuestaWhatsapp propuesta, NegocioId negocioId, OffsetDateTime ahora) {
+    private record Guardado(String tabla, int nuevas, int actualizadas) {
+    }
+
+    /** Las filas que nombran algo que ya existía lo actualizan; el resto se suma al final de la tabla. */
+    private Guardado guardar(PropuestaWhatsapp propuesta, NegocioId negocioId, OffsetDateTime ahora) {
         propuesta.exigirPendiente();
         Bloque bloque = bloqueRepository.findByIdAndNegocioId(propuesta.getBloqueId(), negocioId)
                 .orElseThrow(() -> new BusinessRuleException(TextosWhatsapp.TABLA_INEXISTENTE));
         List<Campo> campos = campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), negocioId);
-        List<Map<String, Object>> validas = propuesta.getFilas().stream()
-                .map(fila -> validar(campos, fila))
-                .toList();
-        controlPlanService.validarAltaRegistros(negocioId, validas.size(), ahora);
-        int primero = registroRepository.siguienteOrden(bloque.getId(), negocioId);
-        registroRepository.saveAll(IntStream.range(0, validas.size())
-                .mapToObj(i -> Registro.deWhatsapp(negocioId, bloque.getId(), validas.get(i), primero + i, ahora))
-                .toList());
+        List<Map<String, Object>> nuevas = new ArrayList<>();
+        List<Registro> actualizados = new ArrayList<>();
+        for (FilaPropuesta fila : propuesta.getFilas()) {
+            Optional<Registro> existente = existente(fila, bloque.getId(), negocioId);
+            if (existente.isPresent()) {
+                Registro registro = existente.get();
+                registro.reemplazarValores(validar(campos, registro.combinarCon(fila.cambiosTipados(campos))), ahora);
+                actualizados.add(registro);
+            } else {
+                nuevas.add(validar(campos, fila.tipados(campos)));
+            }
+        }
+        if (!nuevas.isEmpty()) {
+            controlPlanService.validarAltaRegistros(negocioId, nuevas.size(), ahora);
+            int primero = registroRepository.siguienteOrden(bloque.getId(), negocioId);
+            registroRepository.saveAll(IntStream.range(0, nuevas.size())
+                    .mapToObj(i -> Registro.deWhatsapp(negocioId, bloque.getId(), nuevas.get(i), primero + i, ahora))
+                    .toList());
+        }
+        if (!actualizados.isEmpty()) {
+            registroRepository.saveAll(actualizados);
+        }
         propuesta.confirmar(ahora);
         propuestaRepository.save(propuesta);
-        return bloque;
+        return new Guardado(bloque.getNombre(), nuevas.size(), actualizados.size());
     }
 
-    private static Map<String, Object> validar(List<Campo> campos, FilaPropuesta fila) {
+    /** La fila que la propuesta iba a actualizar, si todavía está en esa tabla; si se borró, se agrega como nueva. */
+    private Optional<Registro> existente(FilaPropuesta fila, BloqueId bloqueId, NegocioId negocioId) {
+        if (!fila.actualizaUnaFila()) {
+            return Optional.empty();
+        }
+        return registroRepository.findByIdAndNegocioId(RegistroId.de(fila.registroId()), negocioId)
+                .filter(registro -> registro.getBloqueId().equals(bloqueId));
+    }
+
+    private static Map<String, Object> validar(List<Campo> campos, Map<String, Object> valores) {
         try {
-            return Registro.validar(campos, fila.tipados(campos));
+            return Registro.validar(campos, valores);
         } catch (RegistroInvalidoException e) {
             Map<String, String> nombres = new LinkedHashMap<>();
             campos.forEach(campo -> nombres.put(campo.getId().toString(), campo.getNombre()));
@@ -375,6 +406,34 @@ public class AtenderMensajeWhatsapp {
             }
         }
         return ids;
+    }
+
+    /**
+     * En las tablas de cosas (productos, clientes) una fila que nombra algo que ya existe lo actualiza, aunque la
+     * persona no lo haya escrito tal cual. Si no encuentra una fila clara, queda como fila nueva.
+     */
+    private List<FilaPropuesta> conExistentes(List<FilaPropuesta> filas, TablaDisponible tabla, NegocioId negocioId) {
+        Optional<CampoConocido> identificador = tabla.campoIdentificador();
+        if (!tabla.actualizaFilasExistentes() || identificador.isEmpty()) {
+            return filas;
+        }
+        String clave = identificador.get().id().toString();
+        List<Registro> existentes = registroRepository.findAllByBloqueIdAndNegocioId(tabla.bloque().id(), negocioId)
+                .stream().filter(registro -> registro.getValores().get(clave) != null).toList();
+        List<String> nombres = existentes.stream().map(registro -> registro.getValores().get(clave).toString()).toList();
+        return filas.stream().map(fila -> emparejar(fila, clave, existentes, nombres)).toList();
+    }
+
+    private static FilaPropuesta emparejar(FilaPropuesta fila, String clave, List<Registro> existentes,
+                                           List<String> nombres) {
+        String nombre = fila.valores().get(clave);
+        if (nombre == null || !fila.cambiaAlgoAdemasDelNombre(clave)) {
+            return fila;
+        }
+        return CoincidenciaDeFilas.buscar(nombre, nombres)
+                .map(posicion -> fila.actualizando(
+                        existentes.get(posicion).getId().toString(), nombres.get(posicion), clave))
+                .orElse(fila);
     }
 
     private static List<FilaPropuesta> filasDeTexto(InterpretacionRegistros interpretacion, TablaDisponible tabla) {
