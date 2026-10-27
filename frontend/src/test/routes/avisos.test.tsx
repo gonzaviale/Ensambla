@@ -507,6 +507,36 @@ describe('los avisos del motor del servidor', () => {
     await waitFor(() => expect(delServidor()).toHaveLength(1), ESPERA);
   });
 
+  it('si el servidor trae un tipo de aviso, no se duplica con el que Sami calcula en el navegador', async () => {
+    const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+    const sistema = crearAlmacenDeEjemplo(hoy());
+    estado.sistemas.set(usuario.email, [sistema]);
+    estado.avisosDelServidor.set(usuario.email, [
+      avisoDelServidor({
+        tipo: 'ESTANCADO',
+        grupo: 'VENTAS',
+        prioridad: 2,
+        entidad: 'registro:azucar',
+        titulo: 'Azúcar Ledesma 1 kg está caro y no se mueve',
+        detalle: 'No vendiste ninguno en los últimos 30 días y lo tenés a $1.500.',
+        motivos: ['En tu zona, 8 comercios lo venden entre $1.000 y $1.300.'],
+        acciones: [{ tipo: 'EDITAR_REGISTRO', texto: 'Rebajar a $1.150', registroId: 'fila-1' }],
+      }),
+    ]);
+    renderApp(`/sistemas/${sistema.id}?modo=usar`);
+    await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
+    await waitFor(() => expect(delServidor()).toHaveLength(1), ESPERA);
+    // Los del navegador se muestran cuando el plan los habilita: hay que esperar a que lleguen.
+    const locales = (tipo: string) =>
+      useSistemaStore.getState().avisos.some((aviso) => aviso.tipo === tipo && !aviso.servidorId);
+    await waitFor(() => expect(locales('combo')).toBe(true), ESPERA);
+
+    expect(useSistemaStore.getState().avisos.filter((aviso) => aviso.tipo === 'estancado')).toEqual([
+      expect.objectContaining({ servidorId: expect.any(String) }),
+    ]);
+    expect(locales('stock')).toBe(true);
+  });
+
   it('si el servidor no responde, siguen los avisos que Sami calcula en el navegador', async () => {
     setupServerError('get', '/avisos', 500, 'Error interno');
     await abrirConDemo();
