@@ -1,7 +1,7 @@
 # Despliegue (VPS Contabo)
 
 Todo corre con Docker Compose en el VPS: Caddy (HTTPS, frontend y proxy `/api`), backend y Postgres. Evolution API
-queda apagada hasta activar el perfil `whatsapp`.
+queda apagada hasta activar el perfil (`COMPOSE_PROFILES=whatsapp` en el `.env`; ver `docs/whatsapp-evolution.md`).
 
 ## CI/CD
 

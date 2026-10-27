@@ -25,7 +25,6 @@ services:
     image: evoapicloud/evolution-api:v2.3.7
     container_name: ensambla-evolution
     restart: unless-stopped
-    profiles: ["whatsapp"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,9 +42,12 @@ services:
       CACHE_REDIS_ENABLED: "false"
       CACHE_LOCAL_ENABLED: "true"
       WEBHOOK_GLOBAL_ENABLED: "true"
-      WEBHOOK_GLOBAL_URL: ${ENSAMBLA_WEBHOOK_URL:-http://host.docker.internal:8080/api/whatsapp/webhook}
+      # Evolution no manda headers en el webhook global: el secreto viaja como parámetro (lo valida el backend).
+      WEBHOOK_GLOBAL_URL: ${ENSAMBLA_WEBHOOK_URL:-http://host.docker.internal:8080/api/whatsapp/webhook}?token=${ENSAMBLA_WHATSAPP_WEBHOOK_SECRETO:-cambiar-este-secreto}
       WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS: "false"
       WEBHOOK_EVENTS_MESSAGES_UPSERT: "true"
+      # Hace falta para poder bajar las fotos de los mensajes (el backend las pide por id de mensaje).
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
     volumes:
       - ensambla-evolution:/evolution/instances
 

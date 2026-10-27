@@ -55,6 +55,13 @@ services:
       ENSAMBLA_MP_WEBHOOK_SECRET: ${ENSAMBLA_MP_WEBHOOK_SECRET:-}
       ENSAMBLA_MP_NOTIFICATION_URL: ${ENSAMBLA_MP_NOTIFICATION_URL:-}
       ENSAMBLA_MP_RETURN_URL: ${ENSAMBLA_MP_RETURN_URL:-}
+      # WhatsApp: con ENSAMBLA_WHATSAPP_PROVEEDOR=evolution y COMPOSE_PROFILES=whatsapp (ver .env.example).
+      ENSAMBLA_WHATSAPP_PROVEEDOR: ${ENSAMBLA_WHATSAPP_PROVEEDOR:-simulado}
+      ENSAMBLA_WHATSAPP_NUMERO_BOT: ${ENSAMBLA_WHATSAPP_NUMERO_BOT:-}
+      ENSAMBLA_WHATSAPP_WEBHOOK_SECRETO: ${ENSAMBLA_WHATSAPP_WEBHOOK_SECRETO:-}
+      ENSAMBLA_WHATSAPP_EVOLUTION_URL: http://evolution-api:8080
+      ENSAMBLA_WHATSAPP_EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-}
+      ENSAMBLA_WHATSAPP_EVOLUTION_INSTANCIA: ${ENSAMBLA_WHATSAPP_EVOLUTION_INSTANCIA:-ensambla}
     volumes:
       - backend-datos:/app/datos
 
@@ -85,7 +92,7 @@ services:
     command: ["redis-server", "--save", "", "--appendonly", "no"]
 
   evolution-api:
-    image: ${EVOLUTION_IMAGE:-atendai/evolution-api:v2.2.3}
+    image: ${EVOLUTION_IMAGE:-evoapicloud/evolution-api:v2.3.7}
     container_name: ensambla-evolution
     profiles: ["whatsapp"]
     restart: unless-stopped
@@ -105,6 +112,14 @@ services:
       CACHE_REDIS_ENABLED: "true"
       CACHE_REDIS_URI: redis://redis:6379/6
       CACHE_LOCAL_ENABLED: "false"
+      # El backend recibe los mensajes por la red interna; Evolution no manda headers en el webhook global,
+      # así que el secreto viaja como parámetro.
+      WEBHOOK_GLOBAL_ENABLED: "true"
+      WEBHOOK_GLOBAL_URL: http://backend:8080/api/whatsapp/webhook?token=${ENSAMBLA_WHATSAPP_WEBHOOK_SECRETO:-}
+      WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS: "false"
+      WEBHOOK_EVENTS_MESSAGES_UPSERT: "true"
+      # Hace falta para poder bajar las fotos de los mensajes.
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
     volumes:
       - evolution-instances:/evolution/instances
     # Sólo en el loopback del VPS: se entra con un túnel SSH (ssh -L 8081:localhost:8081 ...).
