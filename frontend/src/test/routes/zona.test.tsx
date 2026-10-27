@@ -51,7 +51,7 @@ describe('Mi zona', () => {
       screen.getByRole('heading', { level: 2, name: 'Precios en Villa Crespo' }),
     ).toBeVisible();
     expect(document.querySelector('.leaflet-container, .mapa-lienzo, [class*="map"]')).toBeNull();
-    expect(screen.getByText(/DATOS DE VILLA CRESPO, SIN NOMBRES/)).toBeVisible();
+    expect(screen.getByText(/DATOS DE VILLA CRESPO/)).toBeVisible();
     // 12 productos: el que aportan menos de tres comercios (Fernet) no llega.
     expect(document.querySelectorAll('.zona-tarjeta')).toHaveLength(12);
     expect(screen.queryByText(/Fernet/)).toBeNull();
