@@ -2,8 +2,12 @@ package com.ensambla.backend.domain.model.registro;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.lote.FotoId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -18,10 +22,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RegistroTest {
 
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID NOMBRE_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
-    private static final UUID CANTIDAD_ID = UUID.fromString("c0000000-0000-4000-8000-000000000002");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final CampoId NOMBRE_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
+    private static final CampoId CANTIDAD_ID = CampoId.de("c0000000-0000-4000-8000-000000000002");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
     private static final OffsetDateTime ANTES = OffsetDateTime.parse("2026-10-09T12:00:00Z");
 
@@ -42,7 +46,7 @@ class RegistroTest {
     @Test
     @DisplayName("Un registro del cuaderno guarda la foto de la que salió")
     void desdeCuadernoShouldKeepFotoOrigen() {
-        UUID fotoId = UUID.fromString("f0000000-0000-4000-8000-000000000001");
+        FotoId fotoId = FotoId.de("f0000000-0000-4000-8000-000000000001");
 
         Registro registro = Registro.desdeCuaderno(NEGOCIO_ID, BLOQUE_ID, Map.of("k", "v"), fotoId, AHORA);
 
@@ -57,7 +61,7 @@ class RegistroTest {
     @Test
     @DisplayName("Devuelve la foto de origen del registro del cuaderno")
     void exigirFotoOrigenShouldReturnFotoId() {
-        UUID fotoId = UUID.fromString("f0000000-0000-4000-8000-000000000001");
+        FotoId fotoId = FotoId.de("f0000000-0000-4000-8000-000000000001");
         Registro registro = Registro.desdeCuaderno(NEGOCIO_ID, BLOQUE_ID, Map.of(), fotoId, AHORA);
 
         assertThat(registro.exigirFotoOrigen()).isEqualTo(fotoId);
@@ -190,7 +194,7 @@ class RegistroTest {
 
     private Registro registroConValores(Map<String, Object> valores) {
         return Registro.builder()
-                .id(UUID.randomUUID())
+                .id(RegistroId.nuevo())
                 .valores(valores)
                 .creadoEn(ANTES)
                 .actualizadoEn(ANTES)
@@ -201,7 +205,7 @@ class RegistroTest {
     @DisplayName("Calcula el valor de los campos fórmula sin tocar los valores guardados")
     void conFormulasShouldAddCalculatedValuesToACopy() {
         UUID totalId = UUID.fromString("c0000000-0000-4000-8000-000000000003");
-        Campo total = Campo.builder().id(totalId).tipo(TipoCampo.FORMULA)
+        Campo total = Campo.builder().id(CampoId.de(totalId)).tipo(TipoCampo.FORMULA)
                 .formula("{" + CANTIDAD_ID + "} * 1.5").build();
         Registro registro = registroConValores(Map.of(CANTIDAD_ID.toString(), 4));
 
@@ -216,7 +220,7 @@ class RegistroTest {
     @DisplayName("Una fórmula a la que le falta un dato queda sin valor")
     void conFormulasShouldSkipFormulaWithMissingData() {
         UUID totalId = UUID.fromString("c0000000-0000-4000-8000-000000000003");
-        Campo total = Campo.builder().id(totalId).tipo(TipoCampo.FORMULA)
+        Campo total = Campo.builder().id(CampoId.de(totalId)).tipo(TipoCampo.FORMULA)
                 .formula("{" + CANTIDAD_ID + "} * 2").build();
         Registro registro = registroConValores(Map.of(CANTIDAD_ID.toString(), "no es número"));
 
@@ -228,7 +232,7 @@ class RegistroTest {
     @Test
     @DisplayName("Ignora lo que se mande en un campo fórmula al validar")
     void validarShouldIgnoreValuesOfFormulaFields() {
-        Campo total = Campo.builder().id(UUID.randomUUID()).tipo(TipoCampo.FORMULA).obligatorio(true)
+        Campo total = Campo.builder().id(CampoId.nuevo()).tipo(TipoCampo.FORMULA).obligatorio(true)
                 .formula("1 + 1").build();
 
         Map<String, Object> result = Registro.validar(List.of(total), Map.of(total.getId().toString(), 99));
@@ -252,7 +256,7 @@ class RegistroTest {
         Registro registro = Registro.nuevo(NEGOCIO_ID, BLOQUE_ID, Map.of(), AHORA);
         UUID otroBloque = UUID.fromString("b0000000-0000-4000-8000-000000000002");
 
-        assertThatThrownBy(() -> registro.exigirDelBloque(otroBloque))
+        assertThatThrownBy(() -> registro.exigirDelBloque(BloqueId.de(otroBloque)))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("El registro no existe");
     }

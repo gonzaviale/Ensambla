@@ -1,9 +1,14 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.common.Identificador;
 import com.ensambla.backend.domain.model.common.Pagina;
-import com.ensambla.backend.domain.model.enums.DireccionOrden;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
+import com.ensambla.backend.domain.model.registro.DireccionOrden;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.reporte.FiltroReporte;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.infrastructure.repository.entity.RegistroEntity;
@@ -19,7 +24,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -42,30 +46,36 @@ public class RegistroRepositoryImpl implements RegistroRepository {
     }
 
     @Override
-    public Optional<Registro> findByIdAndNegocioId(UUID id, UUID negocioId) {
-        return jpa.findByIdAndNegocioId(id, negocioId).map(mapper::toDomain);
+    public Optional<Registro> findByIdAndNegocioId(RegistroId id, NegocioId negocioId) {
+        return jpa.findByIdAndNegocioId(id.valor(), negocioId.valor()).map(mapper::toDomain);
     }
 
     @Override
-    public List<Registro> findAllByBloqueIdAndNegocioId(UUID bloqueId, UUID negocioId) {
-        return jpa.findAllByBloqueIdAndNegocioIdOrderByCreadoEnAscIdAsc(bloqueId, negocioId).stream()
+    public int siguienteOrden(BloqueId bloqueId, NegocioId negocioId) {
+        return jpa.siguienteOrden(bloqueId.valor(), negocioId.valor());
+    }
+
+    @Override
+    public List<Registro> findAllByBloqueIdAndNegocioId(BloqueId bloqueId, NegocioId negocioId) {
+        return jpa.findAllByBloqueIdAndNegocioIdOrderByCreadoEnAscIdAsc(bloqueId.valor(), negocioId.valor()).stream()
                 .map(mapper::toDomain)
                 .toList();
     }
 
     @Override
-    public List<Registro> findAllByIdsAndBloque(Collection<UUID> ids, UUID bloqueId, UUID negocioId) {
+    public List<Registro> findAllByIdsAndBloque(Collection<RegistroId> ids, BloqueId bloqueId, NegocioId negocioId) {
         if (ids.isEmpty()) {
             return List.of();
         }
-        return jpa.findAllByIdInAndBloqueIdAndNegocioIdOrderByCreadoEnDescIdDesc(ids, bloqueId, negocioId).stream()
+        return jpa.findAllByIdInAndBloqueIdAndNegocioIdOrderByCreadoEnDescIdDesc(Identificador.valores(ids),
+                bloqueId.valor(), negocioId.valor()).stream()
                 .map(mapper::toDomain)
                 .toList();
     }
 
     @Override
-    public void deleteById(UUID id) {
-        jpa.deleteById(id);
+    public void deleteById(RegistroId id) {
+        jpa.deleteById(id.valor());
     }
 
     @Override
@@ -79,26 +89,26 @@ public class RegistroRepositoryImpl implements RegistroRepository {
     }
 
     @Override
-    public Map<UUID, BigDecimal> sumarNumericos(ConsultaRegistros consulta, List<UUID> campoIds) {
+    public Map<CampoId, BigDecimal> sumarNumericos(ConsultaRegistros consulta, List<CampoId> campoIds) {
         if (campoIds.isEmpty()) {
             return Map.of();
         }
         return jpa.sumarNumericos(
-                        consulta.negocioId(),
-                        consulta.bloqueId(),
+                        consulta.negocioId().valor(),
+                        consulta.bloqueId().valor(),
                         patronDe(consulta.texto()),
-                        campoIds.stream().map(UUID::toString).toList())
+                        campoIds.stream().map(CampoId::toString).toList())
                 .stream()
                 .collect(Collectors.toMap(
-                        fila -> UUID.fromString(fila.getCampo()),
+                        fila -> CampoId.de(fila.getCampo()),
                         IRegistroJpaRepository.SumaPorCampo::getSuma));
     }
 
     @Override
     public List<Registro> buscarFiltrados(FiltroReporte filtro, int limite) {
         return jpa.buscarParaReporte(
-                        filtro.negocioId(),
-                        filtro.bloqueId(),
+                        filtro.negocioId().valor(),
+                        filtro.bloqueId().valor(),
                         patronDe(filtro.texto()),
                         textoDe(filtro.desde()),
                         textoDe(filtro.hasta()),
@@ -113,8 +123,8 @@ public class RegistroRepositoryImpl implements RegistroRepository {
     @Override
     public long contarFiltrados(FiltroReporte filtro) {
         return jpa.contarParaReporte(
-                filtro.negocioId(),
-                filtro.bloqueId(),
+                filtro.negocioId().valor(),
+                filtro.bloqueId().valor(),
                 patronDe(filtro.texto()),
                 textoDe(filtro.desde()),
                 textoDe(filtro.hasta()),
@@ -123,22 +133,22 @@ public class RegistroRepositoryImpl implements RegistroRepository {
     }
 
     @Override
-    public Map<UUID, BigDecimal> sumarNumericos(FiltroReporte filtro, List<UUID> campoIds) {
+    public Map<CampoId, BigDecimal> sumarNumericos(FiltroReporte filtro, List<CampoId> campoIds) {
         if (campoIds.isEmpty()) {
             return Map.of();
         }
         return jpa.sumarNumericosParaReporte(
-                        filtro.negocioId(),
-                        filtro.bloqueId(),
+                        filtro.negocioId().valor(),
+                        filtro.bloqueId().valor(),
                         patronDe(filtro.texto()),
                         textoDe(filtro.desde()),
                         textoDe(filtro.hasta()),
                         textoDe(filtro.campoId()),
                         filtro.valor(),
-                        campoIds.stream().map(UUID::toString).toList())
+                        campoIds.stream().map(CampoId::toString).toList())
                 .stream()
                 .collect(Collectors.toMap(
-                        fila -> UUID.fromString(fila.getCampo()),
+                        fila -> CampoId.de(fila.getCampo()),
                         IRegistroJpaRepository.SumaPorCampo::getSuma));
     }
 
@@ -147,9 +157,11 @@ public class RegistroRepositoryImpl implements RegistroRepository {
         String patron = patronDe(consulta.texto());
         String campoOrden = consulta.campoOrdenId() == null ? null : consulta.campoOrdenId().toString();
         if (consulta.direccion() == DireccionOrden.ASC) {
-            return jpa.buscarAscendente(consulta.negocioId(), consulta.bloqueId(), patron, campoOrden, pageable);
+            return jpa.buscarAscendente(consulta.negocioId().valor(), consulta.bloqueId().valor(), patron, campoOrden,
+                    pageable);
         }
-        return jpa.buscarDescendente(consulta.negocioId(), consulta.bloqueId(), patron, campoOrden, pageable);
+        return jpa.buscarDescendente(consulta.negocioId().valor(), consulta.bloqueId().valor(), patron, campoOrden,
+                pageable);
     }
 
     private static String textoDe(Object valor) {

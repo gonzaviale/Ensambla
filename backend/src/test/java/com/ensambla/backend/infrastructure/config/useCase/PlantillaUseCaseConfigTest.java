@@ -1,9 +1,8 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.dto.plantilla.ListarPlantillasResponse;
-import com.ensambla.backend.domain.mapper.plantilla.ListarPlantillasMapper;
 import com.ensambla.backend.domain.model.plantilla.Plantilla;
-import com.ensambla.backend.domain.service.plantilla.PlantillaService;
+import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
+import com.ensambla.backend.domain.useCase.plantilla.listarPlantillas.ListarPlantillasResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -18,13 +17,12 @@ class PlantillaUseCaseConfigTest {
     private final PlantillaUseCaseConfig config = new PlantillaUseCaseConfig();
 
     @Test
-    @DisplayName("El wiring del listado conecta el servicio con el mapper")
-    void listarPlantillasUseCaseShouldWireServiceAndMapper() {
-        PlantillaService service = mock(PlantillaService.class);
-        when(service.listarActivas()).thenReturn(List.of(Plantilla.builder().nombre("Clientes").build()));
-        ListarPlantillasMapper mapper = config.listarPlantillasMapper();
+    @DisplayName("El wiring del listado conecta el repositorio")
+    void listarPlantillasUseCaseShouldWireRepository() {
+        PlantillaRepository repository = mock(PlantillaRepository.class);
+        when(repository.findAllActivas()).thenReturn(List.of(Plantilla.builder().nombre("Clientes").build()));
 
-        ListarPlantillasResponse response = config.listarPlantillasUseCase(service, mapper).execute();
+        ListarPlantillasResponse response = config.listarPlantillas(repository).execute();
 
         assertThat(response.content()).extracting("nombre").containsExactly("Clientes");
     }

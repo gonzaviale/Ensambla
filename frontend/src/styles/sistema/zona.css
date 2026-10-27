@@ -309,3 +309,172 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Mi zona con la paleta: fondo blanco, pestañas que se ven elegibles, buscador marcado y sin pasteles. */
+body:has(.zona-page) {
+  background: #fff;
+}
+.zona-page .page-title .eyebrow {
+  color: var(--orange);
+  font-size: 13px;
+}
+.zona-page .page-title h1 {
+  font-size: 40px;
+}
+.zona-page .page-title p {
+  font-size: 16px;
+}
+
+/* Pestañas: cada una con su color */
+.zona-vistas {
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.zona-vistas button {
+  --tab: var(--orange);
+  padding: 11px 18px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    transform 0.15s;
+}
+.zona-vistas button:nth-child(2) {
+  --tab: var(--blue);
+}
+.zona-vistas button:nth-child(3) {
+  --tab: var(--coral);
+}
+.zona-vistas button .icon {
+  color: var(--tab);
+}
+.zona-vistas button:not(.active):hover {
+  border-color: var(--tab);
+  transform: translateY(-2px);
+}
+.zona-vistas button.active {
+  border-color: var(--tab);
+  background: var(--tab);
+  color: #fff;
+  box-shadow: none;
+}
+.zona-vistas button.active .icon {
+  color: #fff;
+}
+
+/* Buscadores */
+.zona-page .searchbox input {
+  min-height: 50px;
+  border: 2px solid var(--petrol);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 15px;
+  padding-left: 44px !important;
+  box-shadow: 0 6px 16px #00506a1a;
+}
+.zona-page .searchbox input:focus {
+  outline: none;
+  border-color: var(--orange);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--orange) 20%, transparent);
+}
+.zona-page .searchbox > .icon {
+  top: 16px;
+  left: 16px;
+  width: 18px;
+  height: 18px;
+  color: var(--petrol);
+}
+
+/* Resumen lateral y aviso de privacidad, llenos de color */
+.zona-ref {
+  background: var(--petrol);
+  border: 0;
+  color: #fff;
+}
+.zona-ref h2 {
+  color: #fff;
+  font-size: 20px;
+}
+.zona-ref p {
+  color: #ffffffd9;
+  font-size: 13px;
+}
+.zona-ref-nums div {
+  border-top: 4px solid var(--yellow);
+}
+.zona-ref-nums div:nth-child(2) {
+  border-top-color: var(--blue);
+}
+.zona-ref .eyebrow {
+  color: var(--yellow);
+}
+.zona-ref-nums div:nth-child(3) {
+  border-top-color: var(--coral);
+}
+.zona-ref-nums strong {
+  color: var(--ink);
+  font-size: 19px;
+}
+.zona-ref-nums span {
+  font-size: 13px;
+}
+.zona-privado {
+  background: #fff;
+  border: 2px solid var(--blue);
+  font-size: 14px;
+}
+.zona-privado .icon {
+  color: var(--blue);
+}
+
+/* Tarjetas de producto */
+.zona-tarjeta {
+  border: 2px solid var(--line);
+}
+.zona-tarjeta.mio {
+  background: #fff;
+  border-color: var(--orange);
+  border-left-width: 6px;
+}
+.zona-tarjeta-cabeza strong {
+  font-size: 17px;
+}
+.zona-meta {
+  font-size: 13px;
+}
+.zona-etiqueta {
+  font-size: 13px;
+  color: #fff;
+  background: var(--petrol);
+}
+.zona-etiqueta.bajo {
+  background: var(--yellow);
+  color: var(--petrol);
+}
+.zona-etiqueta.alto {
+  background: var(--coral);
+  color: #fff;
+}
+.zona-etiqueta.justo {
+  background: var(--blue);
+  color: #fff;
+}
+.zona-rango {
+  background: #eef0ea;
+}
+.zona-barra {
+  background: #eef0ea;
+}
+
+@media (max-width: 640px) {
+  .zona-page .page-title h1 {
+    font-size: 30px;
+  }
+}

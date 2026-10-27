@@ -1,7 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.plantilla;
 
-import com.ensambla.backend.domain.dto.plantilla.ListarPlantillasResponse;
-import com.ensambla.backend.domain.dto.plantilla.PlantillaItem;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
+import com.ensambla.backend.domain.useCase.plantilla.listarPlantillas.ListarPlantillasResponse;
+import com.ensambla.backend.domain.useCase.plantilla.listarPlantillas.PlantillaItem;
 import com.ensambla.backend.infrastructure.presentation.dto.plantilla.PlantillaResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -9,13 +10,12 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PlantillaPresentationMapperTest {
 
-    private static final UUID PLANTILLA_ID = UUID.randomUUID();
+    private static final PlantillaId PLANTILLA_ID = PlantillaId.nuevo();
     private static final Map<String, Object> ESTRUCTURA = Map.of("bloques", List.of());
 
     private PlantillaPresentationMapper mapper;

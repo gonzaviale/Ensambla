@@ -10,5 +10,16 @@
 @import './sami-proyecto.css';
 /* La revisión de lo que leyó una foto en tarjetas y los campos nuevos detectados. */
 @import './revision.css';
+/* El inicio rearmado: acciones a mano, fondo blanco y la paleta completa. */
+@import './inicio.css';
+/* La pantalla del sistema: fondo blanco, piezas y cabeceras de color. */
+@import './sistema-editor.css';
 @import './ubicacion.css';
+@import './planes.css';
+/* Plantillas con la paleta completa. */
+@import './plantillas.css';
+/* Taller de Sami con la paleta completa. */
+@import './taller.css';
+/* Tu cuenta: la configuración del usuario, a la que lleva el avatar. */
+@import './cuenta.css';
 @import './overrides.css';

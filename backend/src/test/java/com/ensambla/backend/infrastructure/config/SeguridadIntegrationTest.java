@@ -1,11 +1,10 @@
 package com.ensambla.backend.infrastructure.config;
 
+import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -13,11 +12,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Contexto real con la cadena de filtros de Spring Security (H2 en memoria). */
-@SpringBootTest
+/** Contexto real con la cadena de filtros de Spring Security (PostgreSQL en Testcontainers). */
 @AutoConfigureMockMvc
-@ActiveProfiles("h2-test")
-class SeguridadIntegrationTest {
+class SeguridadIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Autowired
     private MockMvc mockMvc;

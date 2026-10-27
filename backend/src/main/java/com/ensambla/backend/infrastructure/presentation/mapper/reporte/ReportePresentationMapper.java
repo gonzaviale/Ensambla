@@ -1,20 +1,22 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.reporte;
 
-import com.ensambla.backend.domain.dto.reporte.GenerarReporteRequest;
-import com.ensambla.backend.domain.dto.reporte.GenerarReporteResponse;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.reporte.GenerarReporteRequest;
+import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporteResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.RegistroResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.TotalesRegistrosResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.reporte.ReporteResponse;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.util.UUID;
 
 @Component
 public class ReportePresentationMapper {
 
-    public GenerarReporteRequest toRequest(UUID usuarioId, UUID bloqueId, String texto, LocalDate desde,
-                                           LocalDate hasta, UUID campoId, String valor) {
+    public GenerarReporteRequest toRequest(UsuarioId usuarioId, BloqueId bloqueId, String texto, LocalDate desde,
+                                           LocalDate hasta, CampoId campoId, String valor) {
         return new GenerarReporteRequest(usuarioId, bloqueId, texto, desde, hasta, campoId, valor);
     }
 

@@ -12,7 +12,7 @@ import java.util.List;
  * Un turno de la charla con Sami en el taller.
  *
  * @param mensaje   lo que la persona escribió o eligió en la botonera
- * @param estado    el sistema que se está armando, resumido (con las primeras filas de cada pieza)
+ * @param estado    el sistema que se está armando, resumido (sin filas ni datos de ejemplo)
  * @param historial los últimos mensajes de la charla, del más viejo al más nuevo
  * @param imagen    una foto opcional (cuaderno, lista, planilla) para que Sami arme las piezas y cargue lo que lee
  */
@@ -45,13 +45,8 @@ public record ConversarTallerRequest(
             @NotBlank @Size(max = 20) String tipo,
             @NotBlank @Size(max = 120) String nombre,
             @Size(max = 120) String seccion,
-            @NotNull @Size(max = 40) List<@Valid Campo> campos,
-            @Size(max = 15) List<@Valid Fila> filas
+            @NotNull @Size(max = 40) List<@Valid Campo> campos
     ) {
-    }
-
-    /** Un registro de la pieza: su id y los primeros datos como texto. */
-    public record Fila(@NotBlank @Size(max = 80) String id, @Size(max = 3) List<@Size(max = 100) String> valores) {
     }
 
     public record Campo(@NotBlank @Size(max = 120) String etiqueta, @NotBlank @Size(max = 20) String tipo) {

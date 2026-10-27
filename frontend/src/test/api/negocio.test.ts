@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { actualizarNegocio, obtenerConfiguracionNegocio } from '@/api/negocio';
+import { resolverLocalidad } from '@/api/ubicacion';
+import { LOCALIDAD_FUERA_DE_LA_ZONA } from '@/mocks/db/ubicacion';
 import { handlersPara } from '@/mocks/handlers';
 import { setupUsuarioConSesion } from '@/test/testHelpers';
 
@@ -26,10 +28,36 @@ describe('Configuración del negocio', () => {
     });
     expect(dentro.zona).toBe('San Justo - UNLaM');
     const fuera = await actualizarNegocio({
-      ubicacion: { ...ubicacion, latitud: -34.6037, longitud: -58.3816 },
+      ubicacion: {
+        ...ubicacion,
+        localidad: LOCALIDAD_FUERA_DE_LA_ZONA,
+        latitud: -34.6037,
+        longitud: -58.3816,
+      },
     });
     expect(fuera.zona).toBeNull();
     expect((await obtenerConfiguracionNegocio()).zona).toBeNull();
+  });
+
+  it('rechaza una localidad que no coincide con la del mapa y conserva lo guardado', async () => {
+    setupUsuarioConSesion();
+    const ubicacion = { direccion: 'Calle 123', latitud: -34.6701, longitud: -58.5625 };
+    await actualizarNegocio({ ubicacion: { ...ubicacion, localidad: ' san JUSTO ' } });
+    await expect(
+      actualizarNegocio({ ubicacion: { ...ubicacion, localidad: 'Ramos Mejía' } }),
+    ).rejects.toMatchObject({ status: 400 });
+    expect((await obtenerConfiguracionNegocio()).ubicacion?.localidad).toBe('san JUSTO');
+  });
+
+  it('resuelve la localidad que el mapa reconoce en un punto', async () => {
+    setupUsuarioConSesion();
+    expect(await resolverLocalidad({ latitud: -34.6701, longitud: -58.5625 })).toEqual({
+      localidad: 'San Justo',
+      localidades: ['San Justo'],
+    });
+    expect((await resolverLocalidad({ latitud: -34.6037, longitud: -58.3816 })).localidad).toBe(
+      LOCALIDAD_FUERA_DE_LA_ZONA,
+    );
   });
 
   it('no mezcla la configuración entre dos cuentas', async () => {

@@ -11,7 +11,7 @@
 .ubicacion-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-areas: 'direccion ajuste' 'rubro ajuste';
+  grid-template-areas: 'direccion ajuste';
   gap: 24px;
   align-items: start;
 }
@@ -21,8 +21,8 @@
 .ubicacion-ajuste {
   grid-area: ajuste;
 }
-.ubicacion-rubro {
-  grid-area: rubro;
+.ubicacion-localidad {
+  grid-area: localidad;
 }
 .ubicacion-panel {
   display: grid;
@@ -146,23 +146,10 @@
   text-align: center;
   color: var(--color-muted);
 }
-.ubicacion-coordenadas {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 12px;
-}
-.ubicacion-coordenadas .input {
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-.ubicacion-coordenadas > p {
-  grid-column: 1 / -1;
-}
 .ubicacion-acciones {
-  display: grid;
-  justify-items: start;
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 .ubicacion-formulario {
   display: grid;
@@ -200,7 +187,7 @@
 @media (max-width: 760px) {
   .ubicacion-grid {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: 'direccion' 'ajuste' 'rubro';
+    grid-template-areas: 'direccion' 'ajuste';
   }
   .ubicacion-panel {
     padding: 18px;
@@ -211,4 +198,246 @@
   .ubicacion-buscador > .btn {
     width: 100%;
   }
+}
+
+/* Ubicación y rubro con la paleta: fondo blanco, cada paso con su color y sin pasteles. */
+body:has(.ubicacion-page) {
+  background: white;
+}
+.ubicacion-page > .page-title .eyebrow {
+  color: var(--orange);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.ubicacion-page > .page-title h1 {
+  color: var(--petrol);
+}
+.ubicacion-panel {
+  --paso: var(--petrol);
+  background: white;
+  border: 2px solid var(--paso);
+  border-top-width: 6px;
+  box-shadow: 0 6px 22px rgb(0 80 106 / 0.1);
+}
+.ubicacion-direccion {
+  --paso: var(--orange);
+}
+.ubicacion-ajuste {
+  --paso: var(--blue);
+}
+.ubicacion-rubro {
+  --paso: var(--coral);
+}
+.ubicacion-localidad {
+  --paso: var(--blue);
+}
+.ubicacion-panel .eyebrow {
+  justify-self: start;
+  background: var(--paso);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+.ubicacion-panel h2,
+.ubicacion-revision h2 {
+  color: var(--petrol);
+}
+.ubicacion-panel label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.ubicacion-panel .input {
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  font-size: 15px;
+}
+.ubicacion-panel .input:focus {
+  outline: none;
+  border-color: var(--paso);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--paso) 25%, transparent);
+}
+.ubicacion-ayuda {
+  font-size: 15px;
+  color: var(--muted);
+}
+.ubicacion-aviso {
+  background: white;
+  border: 2px solid var(--yellow);
+  border-left-width: 8px;
+}
+.ubicacion-aviso strong {
+  color: var(--petrol);
+}
+.ubicacion-opcion {
+  border: 2px solid var(--line);
+  background: white;
+}
+.ubicacion-opcion:hover {
+  border-color: var(--orange);
+}
+.ubicacion-opcion:has(input:checked) {
+  background: var(--petrol);
+  border-color: var(--petrol);
+  color: white;
+}
+.ubicacion-opcion input {
+  accent-color: var(--orange);
+}
+.ubicacion-pin {
+  background: var(--coral);
+}
+.ubicacion-sin-mapa {
+  background: white;
+  border: 2px dashed var(--blue);
+  color: var(--petrol);
+}
+.ubicacion-revision {
+  background: white;
+  border: 2px solid var(--petrol);
+  border-left-width: 8px;
+}
+.ubicacion-revision dt {
+  color: var(--petrol);
+}
+.ubicacion-page .check-row input {
+  accent-color: var(--petrol);
+}
+
+/* Las solapas: se entra a cualquiera en cualquier orden y cada una se guarda sola. */
+/* Verde de guardado: sólido y del mismo tono saturado que el resto de la paleta. */
+.ubicacion-page {
+  --verde-paso: #2e9e6a;
+}
+.ubicacion-solapas {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+/* La línea de abajo se dibuja encima de las solapas: así no queda ningún hueco entre ellas y la línea. */
+.ubicacion-solapas::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--petrol);
+  pointer-events: none;
+}
+.ubicacion-solapas button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px 15px;
+  border: 2px solid var(--line);
+  border-bottom: 0;
+  border-radius: 14px 14px 0 0;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.ubicacion-solapas button:not(.activa):hover {
+  border-color: var(--orange);
+}
+.ubicacion-solapas button.activa {
+  border-color: var(--petrol);
+  background: var(--petrol);
+  color: #fff;
+}
+.ubicacion-solapa-estado {
+  display: inline-grid;
+  place-items: center;
+  font-size: 12px;
+}
+.ubicacion-solapa-estado.pendiente {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--yellow);
+  color: var(--ink);
+}
+.ubicacion-solapa-estado.guardada {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--verde-paso);
+  color: #fff;
+}
+.ubicacion-solapa-estado .icon {
+  width: 13px;
+  height: 13px;
+}
+.ubicacion-solapa-panel {
+  display: grid;
+  gap: 16px;
+}
+.ubicacion-guardado {
+  margin: 0;
+  font-weight: 700;
+  color: var(--verde-paso);
+}
+.ubicacion-page > .ubicacion-aviso {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.ubicacion-page .ubicacion-panel {
+  max-width: 760px;
+}
+.ubicacion-page .ubicacion-grid .ubicacion-panel {
+  max-width: none;
+}
+@media (max-width: 600px) {
+  .ubicacion-solapas button {
+    flex: 1;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 6px;
+    font-size: 13px;
+  }
+}
+.ubicacion-localidad-elegida {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+.ubicacion-localidad-elegida p {
+  margin: 0;
+}
+.ubicacion-elegida {
+  margin: 0;
+  font-weight: 700;
+  color: var(--verde-paso);
+}
+.ubicacion-direccion form {
+  display: grid;
+  gap: 12px;
+}
+.ubicacion-direccion form > .btn {
+  justify-self: start;
+}
+.ubicacion-direccion .field {
+  margin: 0;
+}
+/* El pie de cada recuadro: el botón de guardar y sus mensajes. */
+.ubicacion-pie {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin-top: 8px;
+}
+.ubicacion-pie .form-error {
+  margin: 0;
 }

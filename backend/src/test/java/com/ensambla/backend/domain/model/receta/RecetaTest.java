@@ -1,6 +1,9 @@
 package com.ensambla.backend.domain.model.receta;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -16,11 +19,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RecetaTest {
 
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID PRODUCTO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
-    private static final UUID HARINA_ID = UUID.fromString("d0000000-0000-4000-8000-000000000002");
-    private static final UUID AZUCAR_ID = UUID.fromString("d0000000-0000-4000-8000-000000000003");
-    private static final UUID PRECIO_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final RegistroId PRODUCTO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
+    private static final RegistroId HARINA_ID = RegistroId.de("d0000000-0000-4000-8000-000000000002");
+    private static final RegistroId AZUCAR_ID = RegistroId.de("d0000000-0000-4000-8000-000000000003");
+    private static final CampoId PRECIO_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-13T12:00:00Z");
 
     @Test
@@ -106,7 +109,7 @@ class RecetaTest {
     @DisplayName("Rechaza una receta con demasiados insumos")
     void nuevaShouldRejectTooManyLines() {
         List<LineaReceta> lineas = IntStream.range(0, 51)
-                .mapToObj(n -> new LineaReceta(UUID.randomUUID(), BigDecimal.ONE, null))
+                .mapToObj(n -> new LineaReceta(RegistroId.nuevo(), BigDecimal.ONE, null))
                 .toList();
 
         assertThat(erroresDe(PRECIO_ID, lineas)).containsEntry("lineas", "Una receta puede tener hasta 50 insumos");
@@ -119,9 +122,9 @@ class RecetaTest {
         UUID id = UUID.fromString("f0000000-0000-4000-8000-000000000001");
         OffsetDateTime antes = AHORA.minusDays(3);
 
-        nueva.reemplazar(Receta.builder().id(id).creadoEn(antes).build());
+        nueva.reemplazar(Receta.builder().id(RecetaId.de(id)).creadoEn(antes).build());
 
-        assertThat(nueva.getId()).isEqualTo(id);
+        assertThat(nueva.getId()).isEqualTo(RecetaId.de(id));
         assertThat(nueva.getCreadoEn()).isEqualTo(antes);
         assertThat(nueva.getActualizadoEn()).isEqualTo(AHORA);
     }
@@ -130,7 +133,7 @@ class RecetaTest {
         return erroresDe(PRECIO_ID, List.of(linea)).get("lineas[0]");
     }
 
-    private static Map<String, String> erroresDe(UUID campoPrecioId, List<LineaReceta> lineas) {
+    private static Map<String, String> erroresDe(CampoId campoPrecioId, List<LineaReceta> lineas) {
         try {
             Receta.nueva(NEGOCIO_ID, PRODUCTO_ID, campoPrecioId, lineas, AHORA);
             return Map.of();

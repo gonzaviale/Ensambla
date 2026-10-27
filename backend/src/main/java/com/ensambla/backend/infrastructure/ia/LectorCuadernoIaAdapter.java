@@ -1,20 +1,19 @@
 package com.ensambla.backend.infrastructure.ia;
 
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
 import com.ensambla.backend.domain.model.lectura.ConsumoIa;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
 import com.ensambla.backend.domain.model.lectura.PaginaCuaderno;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
-import com.ensambla.backend.domain.service.procesamiento.ValidacionLecturaService;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.StreamReadFeature;
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -45,7 +44,7 @@ public class LectorCuadernoIaAdapter implements LectorCuadernoPort {
 
     @Override
     public LecturaCuaderno leer(List<PaginaCuaderno> paginas, List<BloqueConocido> bloquesExistentes,
-                                UUID bloqueDestinoId) {
+                                BloqueId bloqueDestinoId) {
         validarCantidad(paginas);
         PeticionModeloVision peticion = prompt.peticion(paginas, bloquesExistentes, bloqueDestinoId);
         long inicio = System.nanoTime();
@@ -55,7 +54,7 @@ public class LectorCuadernoIaAdapter implements LectorCuadernoPort {
                 paginas.size(), respuesta.tokensEntrada(), respuesta.tokensSalida(), duracionMs);
         LecturaCuaderno lectura = mapper.toDomain(
                 parsear(respuesta.json()), bloquesExistentes, paginas.size(), consumo);
-        new ValidacionLecturaService().validar(lectura);
+        lectura.validar();
         return lectura;
     }
 

@@ -1,3 +1,5 @@
+import { ContenidoPremium } from '@/components/planes/ContenidoPremium';
+import { env } from '@/config/env';
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
@@ -38,8 +40,7 @@ const TITULOS: Record<Vista, { titulo: ReactNode; texto: string }> = {
         Sin saber quién cobra qué.
       </>
     ),
-    texto:
-      'Son precios de varios comercios juntos. Nadie ve qué cobra cada uno, y un dato sólo aparece si lo aportan al menos 3.',
+    texto: 'Promedios de al menos 3 comercios. Nadie ve qué cobra cada uno.',
   },
   cerca: {
     titulo: (
@@ -48,8 +49,7 @@ const TITULOS: Record<Vista, { titulo: ReactNode; texto: string }> = {
         <br />Y qué todavía no tenés.
       </>
     ),
-    texto:
-      'Lo que más sale en los comercios de tu zona, en porcentajes y unidades. Podés sumar a tu inventario lo que te falte.',
+    texto: 'Lo que más sale cerca. Sumá lo que te falte.',
   },
   otra: {
     titulo: (
@@ -59,8 +59,7 @@ const TITULOS: Record<Vista, { titulo: ReactNode; texto: string }> = {
         Para decidir dónde abrir o a quién mirar.
       </>
     ),
-    texto:
-      'Escribí un barrio o una dirección y te mostramos el mismo análisis agregado. Si hay pocos comercios, no mostramos nada.',
+    texto: 'Escribí un barrio o una dirección para ver el mismo análisis.',
   },
 };
 
@@ -96,11 +95,13 @@ export function ZonaPage() {
     <>
       <CabeceraComun active="zone" />
       <main id="main" tabIndex={-1} className="page-wrap zona-page reveal">
-        <Link className="text-link" to="/ubicacion">Probar ubicación y rubro de mi comercio</Link>
+        <Link className="text-link" to="/ubicacion">
+          Probar ubicación y rubro de mi comercio
+        </Link>
         <div className="zona-cabeza">
           <div className="page-title">
             <div className="eyebrow">
-              DATOS DE {zona.nombre ? zona.nombre.toUpperCase() : 'TU ZONA'}, SIN NOMBRES
+              DATOS DE {zona.nombre ? zona.nombre.toUpperCase() : 'TU ZONA'}
             </div>
             <h1>{titulo}</h1>
             <p>{texto}</p>
@@ -125,6 +126,9 @@ export function ZonaPage() {
         )}
         {vista === 'cerca' && <VistaDeLoQueSeVende zona={zona} />}
         {vista === 'otra' && <VistaDeOtraZona />}
+        {vista !== 'otra' && (
+          <ContenidoPremium acceso={zona.acceso} recurso="recomendaciones" compacto />
+        )}
         <PageFooter />
       </main>
     </>
@@ -240,7 +244,7 @@ function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
       <section className="zona-panel">
         {!destino && (
           <div className="info-box">
-            Para sumar productos a tu inventario necesitás un sistema con un bloque de Inventario.
+            Para sumar productos a tu inventario necesitás un cuaderno con un bloque de Inventario.
           </div>
         )}
         <div className="row between">
@@ -367,15 +371,16 @@ function VistaDeOtraZona() {
                 zona={resultado.nombre}
               />
             </aside>
+            <ContenidoPremium acceso={resultado.acceso} recurso="recomendaciones" compacto />
           </div>
         )
-      ) : (
+      ) : env.mocks === 'completo' ? (
         <div className="simulation-label">
           <strong>Análisis simulado</strong>
           Los datos de otra zona son de ejemplo. Cuando exista el servicio real, vas a ver los
           precios y ventas agregados de los comercios de ese lugar.
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

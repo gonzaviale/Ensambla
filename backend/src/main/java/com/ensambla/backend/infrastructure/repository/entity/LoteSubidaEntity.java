@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.entity;
 
-import com.ensambla.backend.domain.model.enums.EstadoLote;
+import com.ensambla.backend.domain.model.lote.EstadoLote;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

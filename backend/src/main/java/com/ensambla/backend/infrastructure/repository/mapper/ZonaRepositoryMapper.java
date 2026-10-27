@@ -1,6 +1,8 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
+import com.ensambla.backend.domain.model.common.Identificador;
 import com.ensambla.backend.domain.model.zona.Zona;
+import com.ensambla.backend.domain.model.zona.ZonaId;
 import com.ensambla.backend.infrastructure.repository.entity.ZonaEntity;
 import org.springframework.stereotype.Component;
 
@@ -9,8 +11,9 @@ public class ZonaRepositoryMapper {
 
     public Zona toDomain(ZonaEntity entity) {
         return Zona.builder()
-                .id(entity.getId())
+                .id(Identificador.opcional(entity.getId(), ZonaId::de))
                 .nombre(entity.getNombre())
+                .localidad(entity.getLocalidad())
                 .latitud(entity.getLatitud())
                 .longitud(entity.getLongitud())
                 .radioMetros(entity.getRadioMetros())

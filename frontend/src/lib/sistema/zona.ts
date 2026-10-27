@@ -1,6 +1,7 @@
 import { parecido } from './alertas';
 import { allBlocks } from './core';
 import type { Sistema } from './tipos';
+import type { AccesoContenido } from '@/types/contenidoPlan';
 
 // Los datos de la zona son AGREGADOS y ANÓNIMOS: nunca se sabe qué comercio cobra qué ni dónde queda. Un
 // dato sólo existe si lo aportan al menos tres comercios; con menos, no se muestra ni se usa.
@@ -25,6 +26,7 @@ export type Zona = {
   /** Cuántos comercios de la zona entran en el análisis. */
   comercios: number;
   productos: ProductoDeZona[];
+  acceso?: AccesoContenido | null;
 };
 
 /** Sin datos: lo que se usa mientras la zona carga o cuando no hay suficientes comercios. */
@@ -45,9 +47,16 @@ export function sinDatosInsuficientes(zona: Zona): Zona {
 
 export type PosicionDelPrecio = 'bajo' | 'justo' | 'alto';
 
-/** Tu precio frente al promedio de la zona: más de 8 % abajo o 12 % arriba ya se considera distinto. */
+/** Hasta dónde un precio sigue «en línea» con el promedio: más de 8 % abajo o 12 % arriba ya es distinto. */
+export const EN_LINEA = { desde: 0.92, hasta: 1.12 } as const;
+
+/** Tu precio frente al promedio de la zona. */
 export const posicionDelPrecio = (precio: number, promedio: number): PosicionDelPrecio =>
-  precio < promedio * 0.92 ? 'bajo' : precio > promedio * 1.12 ? 'alto' : 'justo';
+  precio < promedio * EN_LINEA.desde
+    ? 'bajo'
+    : precio > promedio * EN_LINEA.hasta
+      ? 'alto'
+      : 'justo';
 
 export type ProductoPropio = {
   nombre: string;

@@ -19,7 +19,7 @@ const abrirTaller = async () => {
   renderApp('/inicio');
   await verifyHeadingPresentAsync(/En qué puedo/);
   const user = userEvent.setup();
-  await clickButton(user, /Armémoslo con Sami/);
+  await clickButton(user, /Crear con Sami/);
   await verifyHeadingPresentAsync('Lo armamos juntos.');
   return user;
 };
@@ -28,7 +28,7 @@ const abrirTaller = async () => {
 const conPropuesta = async () => {
   const user = await abrirTaller();
   await clickButton(user, /Almacén o kiosco/);
-  await screen.findByLabelText('Nombre de tu sistema', {}, ESPERA);
+  await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
   return user;
 };
 
@@ -99,11 +99,11 @@ describe('la conversación de Sami en el taller', () => {
     await escribir(user, 'Tengo un almacén y vendo productos');
 
     expect(await screen.findByText('Te armé las ventas y los clientes.', {}, ESPERA)).toBeVisible();
-    expect(screen.getByLabelText('Nombre de tu sistema')).toHaveValue('Mi sistema');
+    expect(screen.getByLabelText('Nombre de tu cuaderno')).toHaveValue('Mi cuaderno');
     expect(screen.getByText('2 piezas conectadas')).toBeVisible();
     const [pedido] = pedidos as PedidoAlTaller[];
     expect(pedido?.mensaje).toBe('Tengo un almacén y vendo productos');
-    expect(pedido?.estado).toMatchObject({ nombre: 'Mi sistema', piezas: [] });
+    expect(pedido?.estado).toMatchObject({ nombre: 'Mi cuaderno', piezas: [] });
     expect(pedido?.historial.map((mensaje) => mensaje.quien)).toEqual(['sami']);
     expect(pieza('Encargos').fields.find((dato) => dato.label === 'Clienta')).toMatchObject({
       type: 'relation',
@@ -122,7 +122,7 @@ describe('la conversación de Sami en el taller', () => {
     expect(opciones.getByText('¿De qué es tu negocio?')).toBeVisible();
     expect(opciones.getByRole('button', { name: /Hago velas artesanales/ })).toBeVisible();
     expect(opciones.getByRole('button', { name: /Escribir otra cosa/ })).toBeVisible();
-    expect(screen.queryByLabelText('Nombre de tu sistema')).toBeNull();
+    expect(screen.queryByLabelText('Nombre de tu cuaderno')).toBeNull();
     expect(borrador()).toBeNull();
   });
 
@@ -134,7 +134,7 @@ describe('la conversación de Sami en el taller', () => {
       within(await botonera()).getByRole('button', { name: /Hago velas artesanales/ }),
     );
 
-    expect(await screen.findByLabelText('Nombre de tu sistema', {}, ESPERA)).toHaveValue(
+    expect(await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA)).toHaveValue(
       'Mis velas',
     );
     expect(screen.getByText(/Armé tus velas/)).toBeVisible();
@@ -151,7 +151,7 @@ describe('la conversación de Sami en el taller', () => {
 
     await clickButton(user, /Velas artesanales/);
 
-    await screen.findByLabelText('Nombre de tu sistema', {}, ESPERA);
+    await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
     const velas = pieza('Velas');
     expect(velas.fields.map((dato) => dato.label)).toContain('Aroma');
     expect(velas.rows.map((fila) => fila.name)).toContain('Vela de soja lavanda');
@@ -170,7 +170,7 @@ describe('la conversación de Sami en el taller', () => {
 
     await clickButton(user, /Una peluquería/);
 
-    await screen.findByLabelText('Nombre de tu sistema', {}, ESPERA);
+    await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
     const turnos = pieza('Turnos');
     expect(turnos.type).toBe('form');
     expect(turnos.fields.map((dato) => dato.label)).toEqual([
@@ -193,7 +193,7 @@ describe('la conversación de Sami en el taller', () => {
         { herramienta: 'agregar_pieza', argumentos: { tipo: 'sales' } },
         { herramienta: 'agregar_pieza', argumentos: { tipo: 'clients' } },
       ],
-      opciones: { pregunta: '¿Llevás stock?', opciones: ['Sí', 'No'] },
+      preguntas: [{ pregunta: '¿Llevás stock?', opciones: ['Sí', 'No'] }],
     }));
     const user = await abrirTaller();
 
@@ -202,7 +202,7 @@ describe('la conversación de Sami en el taller', () => {
     expect(
       await screen.findByText('Empecemos por tus ventas y tus clientes.', {}, ESPERA),
     ).toBeVisible();
-    expect(await screen.findByLabelText('Nombre de tu sistema', {}, ESPERA)).toBeVisible();
+    expect(await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA)).toBeVisible();
     expect(screen.getByText('2 piezas conectadas')).toBeVisible();
     expect(within(await botonera()).getByText('¿Llevás stock?')).toBeVisible();
   });
@@ -217,13 +217,9 @@ describe('la conversación de Sami en el taller', () => {
 
     await escribir(user, 'Doy turnos para cortes');
 
-    expect(
-      await screen.findByText(
-        'Sumé turnos. Ya podés verlo a la derecha. ¿Qué cambiarías?',
-        {},
-        ESPERA,
-      ),
-    ).toBeVisible();
+    expect(await screen.findByText('Sumé turnos.', {}, ESPERA)).toBeVisible();
+    expect(screen.getByText('Ya podés verlo a la derecha.')).toBeVisible();
+    expect(screen.getByText('¿Qué cambiarías?')).toBeVisible();
   });
 
   it('si Sami no armó nada ni dijo nada, lo cuenta y sigue sin propuesta', async () => {
@@ -257,7 +253,7 @@ describe('la conversación de Sami en el taller', () => {
         : {
             respuesta: '¿Sumamos gastos?',
             acciones: [],
-            opciones: { pregunta: '¿Sumamos gastos?', opciones: ['Sí', 'No'] },
+            preguntas: [{ pregunta: '¿Sumamos gastos?', opciones: ['Sí', 'No'] }],
           },
     );
     const user = await abrirTaller();
@@ -276,10 +272,12 @@ describe('la conversación de Sami en el taller', () => {
         : {
             respuesta: 'Te armé turnos y servicios.',
             acciones: [],
-            opciones: {
-              pregunta: '¿Vendés productos o sólo servicios?',
-              opciones: ['Productos', 'Sólo servicios'],
-            },
+            preguntas: [
+              {
+                pregunta: '¿Vendés productos o sólo servicios?',
+                opciones: ['Productos', 'Sólo servicios'],
+              },
+            ],
           },
     );
     const user = await abrirTaller();
@@ -314,12 +312,7 @@ describe('la conversación de Sami en el taller', () => {
       'sales',
       'clients',
     ]);
-    // Sami ve las primeras filas (id y primeros datos) para poder cambiar o quitar un registro, pero no todo el sistema.
-    const inventario = pedido.estado.piezas.find((item) => item.tipo === 'inventory') as unknown as {
-      filas: { valores: string[] }[];
-    };
-    expect(inventario.filas.map((fila) => fila.valores[0])).toContain('Yerba Playadito 1 kg');
-    expect(JSON.stringify(pedido.estado)).not.toContain('Correo electrónico');
+    expect(JSON.stringify(pedido.estado)).not.toContain('Yerba');
     expect(pedido.historial.length).toBeLessThanOrEqual(6);
     expect(pedido.historial.at(-1)?.quien).toBe('sami');
   });
@@ -350,7 +343,7 @@ describe('la conversación de Sami en el taller', () => {
     expect(
       await screen.findByText('Listo, ahora se llama Almacén Don Luis.', {}, ESPERA),
     ).toBeVisible();
-    expect(screen.getByLabelText('Nombre de tu sistema')).toHaveValue('Almacén Don Luis');
+    expect(screen.getByLabelText('Nombre de tu cuaderno')).toHaveValue('Almacén Don Luis');
   });
 
   it('lo que Sami pide con herramientas se aplica a la propuesta y se puede deshacer', async () => {
@@ -413,7 +406,7 @@ describe('la conversación de Sami en el taller', () => {
     await escribir(user, 'ponele un nombre lindo');
 
     expect(await screen.findByText('Listo, lo llamé Velas de Ana.', {}, ESPERA)).toBeVisible();
-    expect(screen.getByLabelText('Nombre de tu sistema')).toHaveValue('Velas de Ana');
+    expect(screen.getByLabelText('Nombre de tu cuaderno')).toHaveValue('Velas de Ana');
   });
 
   it('un mensaje de una sola letra sigue pidiendo más detalle', async () => {

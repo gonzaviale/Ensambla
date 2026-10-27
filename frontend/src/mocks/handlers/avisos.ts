@@ -1,3 +1,4 @@
+import { contenidoDe } from '../db/contenidoPlan';
 import { delay, http, HttpResponse } from 'msw';
 import type { AvisoDelServidor } from '@/types/avisos';
 import { estado } from '../db/estado';
@@ -15,6 +16,19 @@ function resolver(nuevoEstado: 'APLICADO' | 'DESCARTADO') {
     await delay(LATENCIA_BACKEND_MS);
     const aviso = avisosDe(usuario.email).find((item) => item.id === params.id);
     if (!aviso) return errorResponse(404, 'El aviso no existe', pathDe(request));
+    if (!contenidoDe(usuario.email, 'AVISOS', [`servidor:${aviso.id}`]).autorizadas.length)
+      return HttpResponse.json(
+        {
+          timestamp: new Date().toISOString(),
+          status: 403,
+          error: 'Forbidden',
+          path: pathDe(request),
+          traceId: crypto.randomUUID(),
+          message: 'Usaste los tres avisos incluidos. Conocé Premium en Planes.',
+          codigo: 'LIMITE_CONTENIDO_AVISOS',
+        },
+        { status: 403 },
+      );
     if (aviso.estado !== 'PENDIENTE') {
       return errorResponse(400, 'El aviso ya fue resuelto', pathDe(request));
     }
@@ -32,13 +46,28 @@ function resolver(nuevoEstado: 'APLICADO' | 'DESCARTADO') {
 }
 
 export const handlersAvisos = [
+  http.get(api('/avisos/contador'), ({ request }) => {
+    const { usuario, error } = cuenta(request);
+    if (error) return error;
+    const pendientes = avisosDe(usuario.email).filter((aviso) => aviso.estado === 'PENDIENTE');
+    return HttpResponse.json({
+      pendientes: pendientes.length,
+      urgentes: pendientes.filter((aviso) => aviso.prioridad >= 2).length,
+    });
+  }),
   http.get(api('/avisos'), async ({ request }) => {
     const { usuario, error } = cuenta(request);
     if (error) return error;
     await delay(LATENCIA_BACKEND_MS);
     const pedido = new URL(request.url).searchParams.get('estado');
+    const avisos = avisosDe(usuario.email).filter((aviso) => !pedido || aviso.estado === pedido);
+    const acceso = contenidoDe(
+      usuario.email,
+      'AVISOS',
+      avisos.map((aviso) => `servidor:${aviso.id}`),
+    );
     return HttpResponse.json(
-      avisosDe(usuario.email).filter((aviso) => !pedido || aviso.estado === pedido),
+      avisos.filter((aviso) => acceso.autorizadas.includes(`servidor:${aviso.id}`)),
     );
   }),
   http.post(api('/avisos/:id/aplicar'), resolver('APLICADO')),

@@ -1,0 +1,372 @@
+/* Ejemplo interactivo aprobado; estilos limitados a esta sección. */
+.landing .ens-demo-section .ens-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 14px 19px;
+  border: 1px solid var(--ens-ink);
+  border-radius: 9px;
+  background: var(--ens-ink);
+  color: white;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.landing .ens-demo-section .ens-secondary:hover {
+  background: var(--ens-ink-deep);
+}
+.landing .ens-demo-section input {
+  font-family: inherit;
+}
+.landing .ens-demo-section .ens-demo-intro {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: end;
+  gap: 12px 50px;
+  max-width: none;
+  margin-bottom: 26px;
+}
+.landing .ens-demo-section .ens-demo-intro .ens-eyebrow {
+  grid-column: 1 / -1;
+}
+.landing .ens-demo-section .ens-demo-intro > p:not(.ens-eyebrow) {
+  color: var(--ens-muted);
+  font-size: 18px;
+}
+.landing .ens-demo-section .ens-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0;
+  margin: 0 0 24px;
+  list-style: none;
+}
+.landing .ens-demo-section .ens-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  min-height: 64px;
+  padding: 12px;
+  border: 0;
+  border-bottom: 2px solid #b3cad4;
+  color: var(--ens-ink);
+  background: transparent;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: left;
+  line-height: 1.45;
+  cursor: pointer;
+}
+.landing .ens-demo-section .ens-step[aria-pressed='true'],
+.landing .ens-demo-section .ens-step:hover {
+  background: #d7edf6;
+  border-color: var(--ens-ink);
+  border-radius: 8px 8px 0 0;
+}
+.landing .ens-demo-section .ens-step-number {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--ens-ink);
+  background: white;
+  font-size: 14px;
+  flex: none;
+}
+.landing .ens-demo-section .ens-example {
+  display: grid;
+  grid-template-columns: 0.85fr 28px 1.15fr;
+  align-items: center;
+  gap: 24px;
+  padding: 28px;
+  background: white;
+  border-radius: 22px;
+}
+.landing .ens-demo-section .ens-book {
+  position: relative;
+  padding: 22px 14px 26px 32px;
+  min-height: 255px;
+  border-radius: 3px 11px 11px 3px;
+  background: repeating-linear-gradient(#fff9df 0px, #fff9df 31px, #dcd8bd 32px);
+  box-shadow: 4px 7px 0 #ece5c4;
+  transform: rotate(-3deg);
+}
+.landing .ens-demo-section .ens-book::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 21px;
+  width: 1px;
+  background: #d89c9a;
+}
+.landing .ens-demo-section .ens-hand {
+  font-family: 'Segoe Print', 'Bradley Hand', cursive;
+  font-size: 24px;
+  line-height: 32px;
+  color: #31526a;
+}
+.landing .ens-demo-section .ens-hand-head {
+  font-size: 27px;
+  margin-bottom: 15px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.landing .ens-demo-section .ens-circle {
+  display: inline-block;
+  padding: 0 7px;
+  border: 2px solid var(--ens-coral);
+  border-radius: 50%;
+  line-height: 27px;
+}
+.landing .ens-demo-section .ens-paper-question {
+  font-size: 16px;
+  color: #31526a;
+  margin-top: 22px;
+  font-style: italic;
+}
+.landing .ens-demo-section .ens-example-arrow {
+  color: var(--ens-ink);
+}
+.landing .ens-demo-section .ens-digital {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--ens-line);
+  border-radius: 13px;
+  background: white;
+}
+.landing .ens-demo-section .ens-digital-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 18px;
+  background: var(--ens-ink);
+  color: white;
+  font-size: 17px;
+  font-weight: 800;
+}
+.landing .ens-demo-section .ens-demo-badge {
+  color: var(--ens-ink);
+  background: var(--ens-yellow);
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.landing .ens-demo-section .ens-demo-start,
+.landing .ens-demo-section .ens-review-form,
+.landing .ens-demo-section .ens-demo-search {
+  padding: 23px;
+  min-height: 330px;
+}
+.landing .ens-demo-section .ens-demo-start {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  flex-direction: column;
+  gap: 17px;
+}
+.landing .ens-demo-section .ens-demo-start > p {
+  color: var(--ens-muted);
+  font-size: 17px;
+}
+.landing .ens-demo-section .ens-demo-start .ens-example-question {
+  color: var(--ens-ink);
+  font-size: 22px;
+  line-height: 1.5;
+}
+.landing .ens-demo-section .ens-review-form > p {
+  color: var(--ens-muted);
+  font-size: 16px;
+  margin-bottom: 15px;
+}
+.landing .ens-demo-section .ens-review-form label,
+.landing .ens-demo-section .ens-demo-search label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--ens-ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+.landing .ens-demo-section .ens-example-person {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 12px;
+  margin-bottom: 15px;
+  border-bottom: 1px solid var(--ens-line);
+  font-size: 16px;
+}
+.landing .ens-demo-section .ens-example-person span {
+  color: var(--ens-muted);
+}
+.landing .ens-demo-section .ens-money-input,
+.landing .ens-demo-section .ens-search-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding-inline: 12px;
+  border: 1px solid var(--ens-ink);
+  border-radius: 8px;
+  color: var(--ens-ink);
+  background: white;
+}
+.landing .ens-demo-section .ens-money-input input,
+.landing .ens-demo-section .ens-search-input input {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ens-ink);
+  font-size: 18px;
+}
+.landing .ens-demo-section .ens-money-input:focus-within,
+.landing .ens-demo-section .ens-search-input:focus-within {
+  box-shadow: 0 0 0 2px var(--ens-ink);
+}
+.landing .ens-demo-section .ens-money-input input:focus,
+.landing .ens-demo-section .ens-search-input input:focus {
+  outline: none;
+  box-shadow: none;
+}
+.landing .ens-demo-section .ens-review-form .ens-secondary {
+  margin-top: 16px;
+}
+.landing .ens-demo-section .ens-review-form .ens-example-error {
+  color: #a31b32;
+  margin-top: 8px;
+  font-size: 16px;
+}
+.landing .ens-demo-section .ens-example-results {
+  margin: 15px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.landing .ens-demo-section .ens-example-results li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-block: 15px;
+  border-bottom: 1px solid var(--ens-line);
+  color: var(--ens-ink);
+}
+.landing .ens-demo-section .ens-example-results li div {
+  min-width: 0;
+}
+.landing .ens-demo-section .ens-example-results strong {
+  display: block;
+  font-size: 19px;
+}
+.landing .ens-demo-section .ens-example-results li span {
+  display: block;
+  font-size: 14px;
+  color: var(--ens-muted);
+}
+.landing .ens-demo-section .ens-example-results b {
+  white-space: nowrap;
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+}
+.landing .ens-demo-section .ens-search-status {
+  margin-top: 16px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ens-muted);
+}
+.landing .ens-demo-section .ens-example-disclaimer {
+  margin-top: 14px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--ens-muted);
+}
+@media (max-width: 1000px) {
+  .landing .ens-demo-section .ens-example {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    padding: 24px;
+  }
+  .landing .ens-demo-section .ens-book {
+    max-width: 420px;
+    width: 100%;
+    justify-self: center;
+  }
+  .landing .ens-demo-section .ens-example-arrow {
+    justify-self: center;
+    transform: rotate(90deg);
+  }
+  .landing .ens-demo-section .ens-digital {
+    width: 100%;
+    max-width: 580px;
+    justify-self: center;
+  }
+}
+@media (max-width: 760px) {
+  .landing .ens-demo-section .ens-demo-intro {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+@media (max-width: 480px) {
+  .landing .ens-demo-section .ens-step {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+    min-height: 105px;
+    padding: 10px 6px;
+    font-size: 14px;
+  }
+  .landing .ens-demo-section .ens-steps {
+    gap: 7px;
+    margin-bottom: 20px;
+  }
+  .landing .ens-demo-section .ens-example {
+    padding: 22px 13px;
+    gap: 20px;
+  }
+  .landing .ens-demo-section .ens-book {
+    padding-inline: 29px 10px;
+    min-height: 225px;
+  }
+  .landing .ens-demo-section .ens-hand {
+    font-size: 22px;
+  }
+  .landing .ens-demo-section .ens-digital-head {
+    padding: 13px 12px;
+    font-size: 16px;
+    gap: 7px;
+  }
+  .landing .ens-demo-section .ens-demo-start,
+  .landing .ens-demo-section .ens-review-form,
+  .landing .ens-demo-section .ens-demo-search {
+    padding: 18px 13px;
+  }
+  .landing .ens-demo-section .ens-demo-start .ens-example-question {
+    font-size: 21px;
+  }
+  .landing .ens-demo-section .ens-secondary {
+    font-size: 16px;
+    padding-inline: 14px;
+  }
+  .landing .ens-demo-section .ens-example-results li {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .landing .ens-demo-section .ens-example-results b {
+    font-size: 26px;
+  }
+}

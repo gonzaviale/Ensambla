@@ -1,15 +1,18 @@
-type Props = {
+import type { ReactNode } from 'react';
+
+type PropsDatos = {
   nombre: string;
-  localidad: string;
   comparteDatosZona: boolean;
   zona: string | null;
   ubicacionGuardada: boolean;
   onNombre: (valor: string) => void;
-  onLocalidad: (valor: string) => void;
   onCompartir: (valor: boolean) => void;
+  /** El botón de guardar de la solapa, al final del recuadro. */
+  pie?: ReactNode;
 };
 
-export function DatosDelComercio(props: Props) {
+// La solapa "Tu comercio": cómo se llama el comercio y si aporta sus datos a la zona.
+export function DatosDelComercio(props: PropsDatos) {
   return (
     <section className="ubicacion-panel" aria-labelledby="titulo-datos-comercio">
       <h2 id="titulo-datos-comercio">Datos de tu comercio</h2>
@@ -21,16 +24,6 @@ export function DatosDelComercio(props: Props) {
           maxLength={120}
           value={props.nombre}
           onChange={(evento) => props.onNombre(evento.target.value)}
-        />
-      </div>
-      <div className="field">
-        <label htmlFor="negocio-localidad">Localidad del comercio</label>
-        <input
-          id="negocio-localidad"
-          className="input"
-          maxLength={120}
-          value={props.localidad}
-          onChange={(evento) => props.onLocalidad(evento.target.value)}
         />
       </div>
       {props.ubicacionGuardada && (
@@ -48,10 +41,42 @@ export function DatosDelComercio(props: Props) {
         />
         Compartir datos agregados y anónimos de mi comercio con la zona
       </label>
-      <p className="ubicacion-ayuda">
-        Podés desactivar tu aporte a la zona. La configuración y la ubicación de tu comercio son
-        privadas.
-      </p>
+      {props.pie}
     </section>
+  );
+}
+
+type PropsLocalidad = {
+  localidad: string;
+  localidadDelMapa: string | null;
+  errorLocalidad: string;
+  verificandoLocalidad: boolean;
+  onUsarLocalidadDelMapa: () => void;
+  onReintentarLocalidad: () => void;
+};
+
+// La localidad sale de la dirección elegida y se verifica con el mapa; no se escribe a mano.
+export function LocalidadDelComercio(props: PropsLocalidad) {
+  const ayuda = props.verificandoLocalidad ? 'Verificando la localidad con el mapa…' : '';
+  return (
+    <div className="ubicacion-localidad-elegida">
+      <p>
+        Localidad: <strong>{props.localidad || 'sin definir'}</strong>
+      </p>
+      <p className="ubicacion-ayuda">{ayuda}</p>
+      <p className="form-error" role="alert">
+        {props.errorLocalidad}
+      </p>
+      {props.errorLocalidad && props.localidadDelMapa && (
+        <button type="button" className="btn secondary" onClick={props.onUsarLocalidadDelMapa}>
+          Usar {props.localidadDelMapa}
+        </button>
+      )}
+      {props.errorLocalidad && !props.localidadDelMapa && !props.verificandoLocalidad && (
+        <button type="button" className="btn secondary" onClick={props.onReintentarLocalidad}>
+          Reintentar verificación
+        </button>
+      )}
+    </div>
   );
 }

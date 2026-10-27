@@ -5,6 +5,6 @@ import java.util.List;
 
 public record DireccionesWebResponse(List<DireccionResponse> resultados) {
 
-    public record DireccionResponse(String direccion, BigDecimal latitud, BigDecimal longitud) {
+    public record DireccionResponse(String direccion, BigDecimal latitud, BigDecimal longitud, String localidad) {
     }
 }

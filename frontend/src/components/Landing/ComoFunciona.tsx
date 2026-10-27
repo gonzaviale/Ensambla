@@ -2,65 +2,49 @@ import { variables } from './estilos';
 
 const PASOS = [
   {
-    clave: 'pieza',
-    figura: 1,
-    num: '01',
-    titulo: 'Pieza',
-    sub: 'Unidad modular',
-    texto:
-      'Cada dato, persona, paso o regla funciona como una pieza que se combina con otras. Arrancá con un bloque y sus campos.',
-    retraso: '0s',
+    color: 'celeste',
+    num: '1',
+    titulo: 'Contale tu negocio',
+    texto: 'Decile a Sami qué vendés y cómo trabajás, como si se lo contaras a un amigo.',
   },
   {
-    clave: 'flujo',
-    figura: 3,
-    num: '02',
-    titulo: 'Flujo',
-    sub: 'Proceso conectado',
-    texto:
-      'Las piezas se relacionan con estados, responsables y permisos. Un pedido sabe qué cliente lo hizo y qué productos descuenta.',
-    retraso: '.12s',
+    color: 'coral',
+    num: '2',
+    titulo: 'Mandale lo que anotás',
+    texto: 'Una foto del cuaderno, un audio o un mensaje. Vos revisás y confirmás.',
   },
   {
-    clave: 'sistema',
-    figura: 5,
-    num: '03',
-    titulo: 'Sistema',
-    sub: 'Herramienta propia',
-    texto:
-      'El conjunto se convierte en la aplicación interna de tu negocio, con formularios y tablas listos para usar.',
-    retraso: '.24s',
+    color: 'petroleo',
+    num: '3',
+    titulo: 'Mirá cómo te va',
+    texto: 'Sabés cuánto ganaste, quién te debe y cuándo conviene subir un precio.',
   },
 ] as const;
 
 export function ComoFunciona() {
   return (
-    <section className="seccion" id="como-funciona">
+    <section className="seccion seccion--amarillo como" id="como-funciona">
       <div className="contenedor">
         <header className="seccion__cabecera revelar">
-          <p className="sobretitulo">Cómo funciona</p>
-          <h2>
-            El sistema crece
-            <br />
-            bloque a bloque.
-          </h2>
+          <p className="sobretitulo">Cómo te ayuda</p>
+          <h2>Tres pasos y listo.</h2>
           <p>
-            Cada bloque representa una parte de tu negocio. Cuando se conecta con otros, deja de ser
-            una tarea aislada y pasa a formar parte de un sistema propio.
+            Cada parte de tu negocio es un bloque, y los bloques se encajan entre sí. Sami los arma
+            por vos.
           </p>
         </header>
 
-        <ol className="pasos">
-          {PASOS.map(({ clave, figura, num, titulo, sub, texto, retraso }) => (
-            <li key={clave} className="paso revelar" style={variables({ '--d': retraso })}>
-              <div className={`paso__figura paso__figura--${clave}`} aria-hidden="true">
-                {Array.from({ length: figura }, (_, i) => (
-                  <span key={i} />
-                ))}
-              </div>
-              <span className="paso__num">{num}</span>
+        <ol className="tiempo">
+          {PASOS.map(({ color, num, titulo, texto }, i) => (
+            <li
+              key={num}
+              className="tiempo__paso revelar"
+              style={variables({ '--d': `${i / 8}s` })}
+            >
+              <span className={`tiempo__nodo tiempo__nodo--${color}`} aria-hidden="true">
+                {num}
+              </span>
               <h3>{titulo}</h3>
-              <p className="paso__sub">{sub}</p>
               <p>{texto}</p>
             </li>
           ))}

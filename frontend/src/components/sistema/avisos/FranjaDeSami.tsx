@@ -1,7 +1,7 @@
+import { useAbrirAvisos } from '@/hooks/avisos/useAbrirAvisos';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { Btn } from '../Btn';
 import { Icon } from '../Icon';
-import { Sami } from '../Sami';
 import { ICONO_DE_AVISO } from './presentacion';
 
 // La franja de Sami arriba de los bloques cuando se usa un sistema: lo más importante, a un toque.
@@ -9,12 +9,12 @@ export function FranjaDeSami({ sistemaId }: { sistemaId: string }) {
   const avisos = useSistemaStore((estado) => estado.avisos).filter(
     (aviso) => aviso.sistemaId === sistemaId,
   );
-  const abrirPanel = useSistemaStore((estado) => estado.abrirPanel);
+  const abrirAvisos = useAbrirAvisos();
 
   if (!avisos.length) {
     return (
       <section className="sami-franja ok" aria-label="Avisos de Sami">
-        <Sami />
+        <img className="sami-franja-img" src="/mockup/sami-guino.webp" alt="" />
         <p>
           <strong>Todo en orden.</strong> Sigo mirando tu stock, tus ventas y los precios de tu
           zona.
@@ -24,7 +24,7 @@ export function FranjaDeSami({ sistemaId }: { sistemaId: string }) {
   }
   return (
     <section className="sami-franja" aria-label="Avisos de Sami">
-      <Sami pose="think" />
+      <img className="sami-franja-img" src="/mockup/sami-detective.webp" alt="" />
       <div className="sami-franja-txt">
         <strong>
           {avisos.length === 1
@@ -37,7 +37,7 @@ export function FranjaDeSami({ sistemaId }: { sistemaId: string }) {
               key={aviso.id}
               type="button"
               className={`sami-chip p${aviso.prioridad}`}
-              onClick={() => abrirPanel(aviso.id)}
+              onClick={() => void abrirAvisos(aviso.id)}
             >
               <Icon name={ICONO_DE_AVISO[aviso.tipo]} />
               <span>{aviso.titulo}</span>
@@ -45,7 +45,7 @@ export function FranjaDeSami({ sistemaId }: { sistemaId: string }) {
           ))}
         </div>
       </div>
-      <Btn cls="soft small" onClick={() => abrirPanel()}>
+      <Btn cls="soft small" onClick={() => void abrirAvisos()}>
         Ver {avisos.length > 3 ? `los ${avisos.length}` : 'todo'} <Icon name="arrow" />
       </Btn>
     </section>

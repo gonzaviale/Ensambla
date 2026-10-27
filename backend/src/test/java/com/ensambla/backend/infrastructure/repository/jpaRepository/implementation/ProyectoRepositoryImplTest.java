@@ -39,7 +39,7 @@ class ProyectoRepositoryImplTest {
     @Test
     @DisplayName("Lista sin cargar estructuras ni hacer consultas por proyecto")
     void findAllShouldMapSummaries() {
-        when(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(NEGOCIO_ID))
+        when(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(NEGOCIO_ID.valor()))
                 .thenReturn(List.of(mapper.toEntity(ProyectoTestData.proyecto())));
 
         var result = repository.findAllByNegocioId(NEGOCIO_ID);
@@ -52,11 +52,11 @@ class ProyectoRepositoryImplTest {
     @DisplayName("Carga bloques y todos sus campos en lote filtrando por negocio")
     void findByIdShouldLoadStructureInBatches() {
         Proyecto original = ProyectoTestData.proyecto();
-        when(proyectos.findByIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID))
+        when(proyectos.findByIdAndNegocioId(PROYECTO_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(Optional.of(mapper.toEntity(original)));
-        when(bloques.findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(PROYECTO_ID, NEGOCIO_ID))
+        when(bloques.findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(PROYECTO_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(original.getBloques().stream().map(mapper::toEntity).toList());
-        when(campos.findAllByBloqueIdInAndNegocioIdOrderByPosicionAscIdAsc(any(), eq(NEGOCIO_ID)))
+        when(campos.findAllByBloqueIdInAndNegocioIdOrderByPosicionAscIdAsc(any(), eq(NEGOCIO_ID.valor())))
                 .thenReturn(original.getBloques().getFirst().getCampos().stream().map(mapper::toEntity).toList());
 
         var result = repository.findByIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID).orElseThrow();
@@ -65,13 +65,13 @@ class ProyectoRepositoryImplTest {
         assertThat(result.getBloques().getFirst().getCampos()).hasSize(2);
         assertThat(result.getBloques().get(1).getCampos()).isEmpty();
         verify(campos).findAllByBloqueIdInAndNegocioIdOrderByPosicionAscIdAsc(
-                original.getBloques().stream().map(bloque -> bloque.getId()).toList(), NEGOCIO_ID);
+                original.getBloques().stream().map(bloque -> bloque.getId().valor()).toList(), NEGOCIO_ID.valor());
     }
 
     @Test
     @DisplayName("No carga hijos cuando el proyecto no pertenece al negocio")
     void findByIdShouldNotLoadForeignStructure() {
-        when(proyectos.findByIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+        when(proyectos.findByIdAndNegocioId(PROYECTO_ID.valor(), NEGOCIO_ID.valor())).thenReturn(Optional.empty());
 
         var result = repository.findByIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID);
 
@@ -114,14 +114,14 @@ class ProyectoRepositoryImplTest {
     void deleteShouldKeepNegocioFilter() {
         repository.deleteByIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID);
 
-        verify(proyectos).deleteByIdAndNegocioId(PROYECTO_ID, NEGOCIO_ID);
+        verify(proyectos).deleteByIdAndNegocioId(PROYECTO_ID.valor(), NEGOCIO_ID.valor());
     }
 
     // --- arrange ---
     private void givenGeneratedIds() {
         when(proyectos.save(any())).thenAnswer(invocation -> {
             ProyectoEntity entity = invocation.getArgument(0);
-            entity.setId(PROYECTO_ID);
+            entity.setId(PROYECTO_ID.valor());
             return entity;
         });
         when(bloques.save(any())).thenAnswer(invocation -> {

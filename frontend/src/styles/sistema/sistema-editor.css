@@ -1,0 +1,1445 @@
+/* El sistema por dentro (Construir y Usar). Fondo blanco, sin pasteles: las piezas de la izquierda y la
+   cabecera de cada tabla van del color lleno de la paleta, con íconos y textos en blanco; el cuerpo de
+   la tabla queda blanco. La letra es un poco más grande que en el mockup. */
+body:has(.editor-layout) {
+  background: #fff;
+}
+.editor-layout,
+.editor-layout.using,
+.canvas-area,
+.block-library,
+.inspector {
+  background: #fff;
+}
+.canvas-area {
+  background-image: none;
+}
+
+/* Sin el panel «A tu manera». «Tus piezas» y el panel de ajustes flotan encima del lienzo, así que el
+   lienzo ocupa todo el ancho; solo si se fijan las piezas vuelve la columna de la izquierda. */
+.editor-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+.editor-layout.con-piezas-fijas {
+  grid-template-columns: 235px minmax(0, 1fr);
+}
+@media (min-width: 1600px) {
+  .editor-layout.con-piezas-fijas {
+    grid-template-columns: 255px minmax(0, 1fr);
+  }
+}
+@media (max-width: 1150px) {
+  .editor-layout.con-piezas-fijas {
+    grid-template-columns: 210px minmax(0, 1fr);
+  }
+}
+@media (min-width: 681px) {
+  .block-library:not(.fijada) {
+    display: none;
+    position: fixed;
+    top: 90px;
+    left: 24px;
+    width: 280px;
+    height: auto;
+    max-height: calc(100vh - 110px);
+    overflow: auto;
+    z-index: 35;
+    border: 1.5px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 0 22px 50px -18px rgb(38 52 67 / 0.35);
+    animation: piezas-entran 0.22s ease-out;
+  }
+  .block-library:not(.fijada).mobile-open {
+    display: flex;
+  }
+  .block-library.fijada [data-accion='close-library'] {
+    display: none;
+  }
+  .editor-layout:not(.con-piezas-fijas) .mobile-blocks {
+    display: inline-flex;
+  }
+}
+@keyframes piezas-entran {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+.library-head-acciones {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.fijar-piezas {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--petrol);
+  font-size: 12px;
+  font-weight: 700;
+}
+.fijar-piezas .icon {
+  width: 14px;
+  height: 14px;
+}
+.fijar-piezas:hover {
+  border-color: var(--petrol);
+}
+.fijar-piezas.activo {
+  background: var(--petrol);
+  border-color: var(--petrol);
+  color: #fff;
+}
+@media (max-width: 680px) {
+  .fijar-piezas {
+    display: none;
+  }
+  .canvas-titulo {
+    gap: 10px;
+  }
+  .canvas-titulo-icono {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+  .canvas-titulo-icono .icon {
+    width: 20px;
+    height: 20px;
+  }
+  .section-tabs-label {
+    display: none;
+  }
+}
+@media (min-width: 901px) {
+  .inspector {
+    position: fixed;
+    top: 90px;
+    right: 24px;
+    width: 330px;
+    height: auto;
+    max-height: calc(100vh - 110px);
+    overflow: auto;
+    z-index: 30;
+    border: 1.5px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 0 22px 50px -18px rgb(38 52 67 / 0.35);
+  }
+}
+
+/* El panel de ajustes se despliega desde la derecha y se cierra con su X. */
+.inspector {
+  animation: panel-entra 0.22s ease-out;
+}
+@keyframes panel-entra {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+.inspector .inspector-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.inspector-heading h2 {
+  font-size: 18px;
+}
+.inspector-heading p {
+  font-size: 12px;
+}
+.inspector .inspector-heading .icon-btn {
+  display: flex;
+  flex-shrink: 0;
+}
+.inspector label,
+.inspector .field-label {
+  font-size: 13px;
+}
+.inspector .input,
+.inspector select,
+.inspector textarea {
+  font-size: 13px;
+}
+.field-item strong {
+  font-size: 13px;
+}
+.field-item small,
+.inspector-hint {
+  font-size: 11.5px;
+}
+
+/* Piezas de la izquierda: color lleno, ícono y texto en blanco */
+.library-head h2 {
+  font-size: 18px;
+}
+.library-label {
+  font-size: 11px;
+}
+.library-tabs button {
+  font-size: 13px;
+}
+.library-item {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
+}
+.library-item:hover {
+  background: var(--accent);
+  border-color: transparent;
+  box-shadow: 0 6px 14px -8px var(--accent);
+  transform: translateY(-1px);
+}
+.library-item .icon-tile {
+  background: rgb(255 255 255 / 0.22);
+  color: #fff;
+}
+.library-item strong {
+  font-size: 13px;
+  color: inherit;
+}
+.library-item p {
+  font-size: 11px;
+  color: inherit;
+  opacity: 0.92;
+}
+.library-item > .icon {
+  color: #fff;
+}
+/* Sobre amarillo el blanco no se lee: texto en petróleo y el ícono blanco sobre un cuadrado petróleo. */
+.library-item[data-color='yellow'] {
+  color: var(--petrol);
+}
+.library-item[data-color='yellow'] .icon-tile {
+  background: var(--petrol);
+}
+.library-item[data-color='yellow'] > .icon {
+  color: var(--petrol);
+}
+.block-library .library-tip {
+  background: #fff;
+  border: 1.5px solid var(--line);
+}
+.library-tip p {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Encabezado de la página: ícono de color, etiqueta «Gestión de tablas», nombre y cifras del sistema */
+.canvas-titulo {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+.canvas-titulo-icono {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--orange);
+  color: #fff;
+}
+.canvas-titulo-icono.usando {
+  background: var(--petrol);
+}
+.canvas-titulo-icono .icon {
+  width: 26px;
+  height: 26px;
+}
+.canvas-etiqueta {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--yellow);
+  color: var(--petrol);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.canvas-heading h1 {
+  margin-top: 4px;
+}
+.canvas-heading p {
+  font-size: 13px;
+  color: var(--muted);
+}
+.canvas-cifras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.canvas-cifras > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1.5px solid;
+  background: #fff;
+  font-size: 12px;
+  color: var(--ink);
+}
+.canvas-cifras strong {
+  font-size: 14px;
+}
+.canvas-cifras > [data-color='orange'] {
+  border-color: var(--orange);
+}
+.canvas-cifras > [data-color='orange'] strong {
+  color: var(--orange);
+}
+.canvas-cifras > [data-color='blue'] {
+  border-color: var(--blue);
+}
+.canvas-cifras > [data-color='blue'] strong {
+  color: #2a8db0;
+}
+.canvas-cifras > [data-color='coral'] {
+  border-color: var(--coral);
+}
+.canvas-cifras > [data-color='coral'] strong {
+  color: var(--coral);
+}
+
+/* Secciones como pastillas de color: la elegida va llena, las otras con borde y punto de su color */
+.section-tabs {
+  gap: 8px;
+  padding: 4px 0 12px;
+}
+.section-tabs-label {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 2px;
+}
+.section-tab {
+  gap: 2px;
+  padding-right: 4px;
+  border: 1.5px solid var(--accent);
+  border-radius: 999px;
+  background: #fff;
+}
+.section-tab > button:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 6px 7px 12px;
+  border-bottom: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.section-tab > button:first-child::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.section-tab-cuenta {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+.section-tab.active {
+  background: var(--accent);
+}
+.section-tab.active > button:first-child {
+  color: #fff;
+  font-weight: 700;
+}
+.section-tab.active > button:first-child::before {
+  background: #fff;
+}
+.section-tab.active .section-tab-cuenta {
+  background: #fff;
+  color: var(--accent);
+}
+.section-tab.active .icon-btn {
+  color: #fff;
+}
+.section-tab:not(.active):hover {
+  background: var(--tint);
+}
+.section-tab[data-color='yellow'].active > button:first-child,
+.section-tab[data-color='yellow'].active .icon-btn {
+  color: var(--petrol);
+}
+.section-tab[data-color='yellow'].active > button:first-child::before {
+  background: var(--petrol);
+}
+.section-tab[data-color='yellow'] .section-tab-cuenta {
+  color: var(--petrol);
+}
+.section-tab[data-color='yellow'].active .section-tab-cuenta {
+  background: var(--petrol);
+  color: #fff;
+}
+.section-tabs > .icon-btn {
+  margin-bottom: 0;
+  border: 1.5px dashed var(--line);
+  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+}
+
+/* Bloques: cabecera del color de la paleta, cuerpo blanco */
+.block {
+  border: 2px solid #c9cfc1;
+  border-top: 0;
+}
+.block.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.block .block-head {
+  background: var(--accent);
+  border-radius: 12px 12px 0 0;
+  color: #fff;
+}
+.block-head .icon-tile {
+  width: 34px;
+  height: 34px;
+  background: rgb(255 255 255 / 0.22);
+  color: #fff;
+}
+.block-head .icon-tile .icon {
+  width: 18px;
+  height: 18px;
+}
+.block-title h2 {
+  font-size: 16px;
+  color: inherit;
+}
+.block-title p {
+  font-size: 11.5px;
+  color: inherit;
+  opacity: 0.9;
+}
+.block-tools .icon-btn {
+  color: #fff;
+}
+.block-tools .icon-btn:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.2);
+}
+.block-tools .icon-btn:disabled {
+  opacity: 0.4;
+}
+.block[data-color='yellow'] .block-head,
+.block[data-color='yellow'] .block-tools .icon-btn {
+  color: var(--petrol);
+}
+.block[data-color='yellow'] .block-head .icon-tile {
+  background: var(--petrol);
+  color: #fff;
+}
+.block-width-row {
+  border-bottom-color: var(--line);
+}
+.block-width-row > span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.block-bar {
+  padding-top: 12px;
+}
+.block-bar .input {
+  font-size: 12px;
+  min-height: 34px;
+}
+.block-bar .btn {
+  font-size: 12px;
+  min-height: 34px;
+}
+.record-count {
+  font-size: 11.5px;
+}
+.data-table {
+  font-size: 14px;
+}
+.data-table th {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink);
+  background: #fff;
+  border-top: 1px solid var(--line);
+  border-bottom: 2px solid var(--accent);
+}
+.data-table tbody tr:hover {
+  background: #fafafa;
+}
+.data-empty {
+  font-size: 13px;
+}
+.data-empty .text-link {
+  font-size: 13px;
+}
+.summary-label {
+  font-size: 12px;
+}
+
+.block-width-row {
+  margin-bottom: 0;
+}
+/* «Registrar» del color del bloque */
+.block-bar .btn.soft {
+  background: var(--accent);
+  color: #fff;
+}
+.block[data-color='yellow'] .block-bar .btn.soft {
+  color: var(--petrol);
+}
+
+/* Conjuntos listos: igual que las piezas, color lleno con íconos y texto en blanco */
+.section-preset {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
+}
+.section-preset:hover {
+  box-shadow: 0 6px 14px -8px var(--accent);
+  transform: translateY(-1px);
+}
+.section-preset .icon-tile {
+  width: 28px;
+  height: 28px;
+  background: rgb(255 255 255 / 0.22);
+  color: #fff;
+}
+.section-preset h3 {
+  font-size: 14px;
+  color: inherit;
+}
+.section-preset p {
+  font-size: 11px;
+  color: inherit;
+  opacity: 0.92;
+}
+.section-preset[data-color='yellow'] {
+  color: var(--petrol);
+}
+.section-preset[data-color='yellow'] .icon-tile {
+  background: var(--petrol);
+}
+
+/* «Distribuí tus piezas» va en la misma fila que las secciones, a la derecha */
+.tabs-y-distribucion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 23px;
+}
+.tabs-y-distribucion .section-tabs {
+  flex: 1;
+  min-width: 0;
+  border-bottom: 0;
+  margin-bottom: 0;
+}
+.layout-toolbar.compacta {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  gap: 10px;
+}
+.layout-toolbar.compacta > div:first-child > strong {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Botones y textos chicos del encabezado y la barra de distribución */
+.canvas-heading-actions .btn {
+  font-size: 13px;
+}
+.canvas-heading-actions {
+  align-items: center;
+  gap: 14px;
+}
+.block-library .small-text {
+  font-size: 12px !important;
+}
+.block-library .searchbox .input {
+  font-size: 13px;
+}
+.inspector-section-label,
+.input-hint {
+  font-size: 12px;
+}
+.layout-toolbar > div:first-child > strong {
+  font-size: 13px;
+}
+.layout-toolbar > div:first-child > span {
+  font-size: 11px;
+}
+.layout-choice {
+  font-size: 12px;
+}
+.layout-choice.active {
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--petrol);
+}
+
+/* Carteles sin fondos pasteles: blancos con borde de color */
+.layout-toolbar {
+  background: #fff;
+  border: 1.5px solid var(--line);
+}
+.sample-data-banner {
+  background: #fff;
+  border: 1.5px solid var(--yellow);
+  color: var(--ink);
+  font-size: 12px;
+}
+.sample-data-banner .icon {
+  color: #8a7412;
+}
+.sample-data-banner button {
+  font-size: 12px;
+  color: var(--petrol);
+}
+/* El cierre de la creación, con el mismo fondo petróleo que «Todo en orden» para que no pase desapercibido. */
+.system-ready {
+  background: var(--petrol);
+  border: 0;
+  border-left: 6px solid var(--yellow);
+  box-shadow: 0 6px 18px #00506a26;
+}
+.system-ready-head > .icon,
+.system-ready strong {
+  color: var(--yellow);
+}
+.system-ready strong {
+  font-size: 16px;
+}
+.system-ready p {
+  font-size: 14px;
+  color: #fff;
+}
+.system-ready-head > .icon-btn {
+  color: #fff;
+}
+.system-ready-head > .icon-btn:hover {
+  background: #ffffff26;
+  color: #fff;
+}
+.system-ready .btn.primary {
+  background: var(--yellow);
+  color: var(--petrol);
+  box-shadow: 0 3px 0 #b89d1c;
+}
+.system-ready .btn.primary:hover {
+  background: #f3d94f;
+}
+.system-ready .btn.secondary {
+  background: #fff;
+  color: var(--petrol);
+  border-color: #fff;
+}
+.system-ready .btn.secondary:hover {
+  background: #eaf3f6;
+}
+.system-ready .btn.ghost {
+  color: #fff;
+}
+.system-ready .btn.ghost:hover:not(:disabled) {
+  background: #ffffff26;
+}
+.sami-franja,
+.sami-franja.ok {
+  background: #fff;
+  border: 1.5px solid var(--orange);
+}
+.sami-franja.ok {
+  border-color: var(--petrol);
+}
+.sami-franja .sami {
+  mix-blend-mode: normal;
+}
+.sami-franja-txt > strong {
+  font-size: 15px;
+}
+.sami-chip {
+  font-size: 13px;
+  border-color: var(--line);
+}
+.sami-franja.ok p {
+  font-size: 14px;
+}
+.sami-franja > .btn {
+  background: var(--petrol);
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  .editor-layout.con-piezas-fijas {
+    grid-template-columns: 190px minmax(0, 1fr);
+  }
+  .inspector {
+    animation: none;
+  }
+  .tabs-y-distribucion {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .tabs-y-distribucion .section-tabs {
+    flex-basis: 100%;
+  }
+  .layout-toolbar.compacta {
+    padding-bottom: 10px;
+  }
+}
+@media (max-width: 680px) {
+  .editor-layout,
+  .editor-layout.con-piezas-fijas {
+    display: block;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .inspector,
+  .block-library {
+    animation: none;
+  }
+  .library-item:hover,
+  .section-preset:hover {
+    transform: none;
+  }
+}
+
+/* Mover tablas: al soltar una sobre otra cambian de lugar. Una barra marca hacia qué lado se corre
+   la tabla de destino (el lugar de la que se arrastra). */
+.block.cambio-left::after,
+.block.cambio-right::after,
+.block.cambio-top::after,
+.block.cambio-bottom::after {
+  content: '';
+  position: absolute;
+  z-index: 8;
+  border-radius: 999px;
+  background: var(--petrol);
+  box-shadow: 0 0 0 4px rgb(0 80 106 / 0.18);
+  pointer-events: none;
+}
+.block.cambio-left::after,
+.block.cambio-right::after {
+  top: 10px;
+  bottom: 10px;
+  width: 6px;
+}
+.block.cambio-left::after {
+  left: -11px;
+}
+.block.cambio-right::after {
+  right: -11px;
+}
+.block.cambio-top::after,
+.block.cambio-bottom::after {
+  left: 10px;
+  right: 10px;
+  height: 6px;
+}
+.block.cambio-top::after {
+  top: -11px;
+}
+.block.cambio-bottom::after {
+  bottom: -11px;
+}
+.block.cambio-left,
+.block.cambio-right,
+.block.cambio-top,
+.block.cambio-bottom {
+  border-color: var(--petrol);
+}
+/* Entran tres tablas de un tercio por fila también en pantallas medianas. */
+@media (min-width: 681px) and (max-width: 1150px) {
+  .block[data-width='third'] {
+    grid-column: span 4;
+  }
+}
+
+/* Franja "Todo en orden": color de la paleta y Sami guiñando. */
+.sami-franja.ok {
+  grid-template-columns: 64px 1fr;
+  align-items: center;
+  background: var(--petrol);
+  border: 0;
+  border-left: 6px solid var(--yellow);
+  padding: 10px 20px;
+  box-shadow: 0 6px 18px #00506a26;
+}
+.sami-franja.ok p {
+  color: #fff;
+  font-size: 15px;
+}
+.sami-franja.ok strong {
+  color: var(--yellow);
+}
+.sami-franja-img {
+  display: block;
+  width: 64px;
+  height: auto;
+  filter: drop-shadow(0 4px 6px #0003);
+}
+@media (max-width: 640px) {
+  .sami-franja.ok {
+    grid-template-columns: 52px 1fr;
+    padding: 10px 14px;
+  }
+  .sami-franja-img {
+    width: 52px;
+  }
+}
+
+/* Franja con avisos: naranja, con Sami detective. */
+.sami-franja:not(.ok) {
+  grid-template-columns: 72px 1fr auto;
+  background: var(--orange);
+  border: 0;
+  border-left: 6px solid var(--petrol);
+  box-shadow: 0 6px 18px #ee800033;
+}
+.sami-franja:not(.ok) .sami-franja-img {
+  box-sizing: border-box;
+  width: 72px;
+  height: 72px;
+  padding: 6px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: #fff;
+  filter: none;
+  box-shadow: 0 4px 10px #0002;
+}
+.sami-franja:not(.ok) .sami-franja-txt > strong {
+  color: #fff;
+}
+.sami-franja:not(.ok) .sami-chip {
+  border: 0;
+  background: #fff;
+}
+.sami-franja:not(.ok) .sami-chip:hover {
+  box-shadow: 0 0 0 2px var(--petrol);
+}
+@media (max-width: 640px) {
+  .sami-franja:not(.ok) {
+    grid-template-columns: 56px 1fr;
+  }
+  .sami-franja:not(.ok) .sami-franja-img {
+    width: 56px;
+    height: 56px;
+  }
+  .sami-franja:not(.ok) > .btn {
+    grid-column: 2;
+  }
+}
+
+/* Distribución: símbolo de 3 columnas */
+.layout-symbol.three {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.layout-symbol.three i {
+  height: 18px;
+}
+
+/* Botón redondo de foto, como el del inicio, con su aura */
+.foto-redonda {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--coral);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--coral) 16%, transparent);
+  transition:
+    transform 0.25s cubic-bezier(0.3, 1.4, 0.5, 1),
+    box-shadow 0.25s;
+}
+.foto-redonda .icon {
+  width: 22px;
+  height: 22px;
+}
+.foto-redonda:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 10px color-mix(in srgb, var(--coral) 20%, transparent);
+}
+.foto-redonda:focus-visible {
+  outline: 3px solid var(--petrol);
+  outline-offset: 3px;
+}
+
+/* El + para sumar secciones, bien visible */
+.section-tabs > .icon-btn {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--petrol);
+  color: #fff;
+  transition: transform 0.2s;
+}
+.section-tabs > .icon-btn .icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.6;
+}
+.section-tabs > .icon-btn:hover {
+  background: var(--orange);
+  color: #fff;
+  transform: scale(1.08);
+}
+
+/* Sección vacía: fondo blanco e íconos sólidos de la paleta */
+.canvas-empty {
+  background: #fff;
+  border: 2px dashed var(--line);
+}
+.empty-blocks .icon-tile {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.empty-blocks .icon-tile .icon {
+  width: 24px;
+  height: 24px;
+}
+.canvas-empty p {
+  font-size: 13px;
+}
+.canvas-empty .btn {
+  font-size: 13px;
+}
+
+/* Formularios (ventanas): blancos, franja con toda la paleta, íconos sólidos y la X arriba a la derecha.
+   Las de «Cargar desde una foto» tienen su propio estilo coral en revision.css. */
+.modal:not(.modal-importar) {
+  background: #fff;
+  border-top: 0;
+  padding-top: 34px;
+}
+.modal:not(.modal-importar)::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 7px;
+  background: linear-gradient(
+    90deg,
+    var(--orange) 0 20%,
+    var(--yellow) 20% 40%,
+    var(--coral) 40% 60%,
+    var(--blue) 60% 80%,
+    var(--petrol) 80% 100%
+  );
+}
+.modal > [data-modal-close] {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  margin: 0;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--ink);
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s,
+    transform 0.2s;
+}
+.modal > [data-modal-close]:hover {
+  background: var(--coral);
+  border-color: var(--coral);
+  color: #fff;
+  transform: rotate(90deg);
+}
+.modal:not(.modal-importar) .icon-tile {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--accent, var(--orange));
+  color: #fff;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--accent, var(--orange)) 30%, transparent);
+}
+.modal:not(.modal-importar) .icon-tile .icon {
+  width: 25px;
+  height: 25px;
+}
+.modal:not(.modal-importar) h2 {
+  font-size: 26px;
+  max-width: calc(100% - 50px);
+}
+.modal:not(.modal-importar) > p {
+  font-size: 13px;
+  color: var(--muted);
+}
+.modal:not(.modal-importar) .field > label,
+.modal:not(.modal-importar) label > strong {
+  font-size: 13px;
+  color: var(--ink);
+}
+.modal:not(.modal-importar) .input,
+.modal:not(.modal-importar) input:not([type='checkbox']):not([type='radio']),
+.modal:not(.modal-importar) textarea {
+  min-height: 46px;
+  border: 2px solid #dfe3db;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 14px;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.modal:not(.modal-importar) .input:hover,
+.modal:not(.modal-importar) input:not([type='checkbox']):not([type='radio']):hover,
+.modal:not(.modal-importar) textarea:hover {
+  border-color: #c9cfc1;
+}
+.modal:not(.modal-importar) .input:focus,
+.modal:not(.modal-importar) input:not([type='checkbox']):not([type='radio']):focus,
+.modal:not(.modal-importar) textarea:focus,
+.modal:not(.modal-importar) select:focus {
+  outline: none;
+  border-color: var(--orange);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--orange) 20%, transparent);
+}
+.modal:not(.modal-importar) select {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 46px;
+  padding: 10px 46px 10px 14px;
+  border: 2px solid #dfe3db;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%2300506a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+      no-repeat right 16px center / 13px 9px,
+    #fff;
+}
+.modal:not(.modal-importar) select:hover {
+  border-color: var(--petrol);
+}
+.modal:not(.modal-importar) .modal-footer {
+  border-top: 2px dashed var(--line);
+}
+
+/* Tipo de campo: bloque de color de la paleta con el símbolo en blanco (o petróleo sobre amarillo) */
+.field-type-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 800;
+  background: var(--orange);
+  color: #fff;
+}
+.field-type-badge[data-tipo='textarea'],
+.field-type-badge[data-tipo='select'],
+.field-type-badge[data-tipo='relation'] {
+  background: var(--coral);
+}
+.field-type-badge[data-tipo='number'],
+.field-type-badge[data-tipo='email'] {
+  background: var(--blue);
+}
+.field-type-badge[data-tipo='currency'] {
+  background: var(--yellow);
+  color: var(--petrol);
+}
+.field-type-badge[data-tipo='date'],
+.field-type-badge[data-tipo='time'],
+.field-type-badge[data-tipo='tel'] {
+  background: var(--petrol);
+}
+.field-item {
+  border: 2px solid var(--line);
+  background: #fff;
+}
+.field-item:hover {
+  border-color: var(--orange);
+}
+
+/* Panel «Personalizar bloque»: los mismos campos que los formularios */
+.inspector .input,
+.inspector input:not([type='checkbox']):not([type='radio']),
+.inspector textarea {
+  border: 2px solid #dfe3db;
+  border-radius: 12px;
+  background: #fff;
+}
+.inspector select {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 44px;
+  padding: 8px 44px 8px 12px;
+  border: 2px solid #dfe3db;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%2300506a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+      no-repeat right 14px center / 13px 9px,
+    #fff;
+}
+.inspector .input:focus,
+.inspector input:not([type='checkbox']):not([type='radio']):focus,
+.inspector textarea:focus,
+.inspector select:focus {
+  outline: none;
+  border-color: var(--orange);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--orange) 20%, transparent);
+}
+
+/* Ayuda: Sami pensativo */
+.sami-intro-img {
+  display: block;
+  flex-shrink: 0;
+  width: 96px;
+  height: auto;
+}
+
+/* Selector Construir / Usar sistema: un solo color (petróleo) que se desliza al modo elegido. */
+.mode-switch {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  background: white;
+  border: 2px solid var(--petrol);
+  border-radius: 999px;
+  padding: 4px;
+}
+.mode-switch::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  border-radius: 999px;
+  background: var(--petrol);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.mode-switch:has(button.active:last-child)::before {
+  transform: translateX(100%);
+}
+.mode-switch button {
+  position: relative;
+  z-index: 1;
+  justify-content: center;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 700;
+  transition: color 0.3s;
+}
+.mode-switch button.active {
+  background: transparent;
+  box-shadow: none;
+  color: white;
+}
+@media (max-width: 680px) {
+  .mode-switch button {
+    font-size: 11px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mode-switch::before,
+  .mode-switch button {
+    transition: none;
+  }
+}
+
+/* Menú de arriba con la paleta: la sección actual en petróleo y una rayita celeste al pasar el mouse. */
+.topnav button {
+  position: relative;
+  font-size: 13px;
+  color: var(--petrol);
+  border-radius: 999px;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+.topnav button::after {
+  content: '';
+  position: absolute;
+  left: 15px;
+  right: 15px;
+  bottom: 3px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--blue);
+  transform: scaleX(0);
+  transition: transform 0.2s;
+}
+.topnav button:hover {
+  background: transparent;
+}
+.topnav button:not(.active):hover::after {
+  transform: scaleX(1);
+}
+.topnav button.active {
+  background: var(--petrol);
+  color: white;
+}
+
+/* La tabla de un bloque a pantalla completa, con búsqueda y filtros por columna. */
+.tabla-completa {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  background: #fff;
+}
+.tabla-completa-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 20px 28px 16px;
+}
+.tabla-completa-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.tabla-completa-titulo {
+  margin-right: auto;
+  min-width: 0;
+}
+.tabla-completa-titulo h2 {
+  font-size: 22px;
+  color: var(--petrol);
+}
+.tabla-completa-titulo p {
+  font-size: 13px;
+  color: var(--muted);
+}
+.tabla-completa-barra {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.tabla-completa-barra .searchbox {
+  flex: 1;
+  max-width: 380px;
+}
+.tabla-completa-barra .input {
+  min-height: 38px;
+  font-size: 14px;
+}
+.tabla-completa-tabla {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  scrollbar-width: thin;
+}
+.tabla-completa .data-table {
+  font-size: 14px;
+}
+.tabla-completa .data-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.tabla-completa .data-table th {
+  position: static;
+  color: var(--petrol);
+  font-weight: 700;
+}
+.tabla-completa .filtros-fila th {
+  padding: 6px 12px 10px;
+  background: #fff;
+  border-top: 0;
+  font-weight: 400;
+}
+.tabla-completa .filtros-fila .input {
+  width: 100%;
+  min-width: 110px;
+  min-height: 32px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+/* La columna del lápiz queda a la vista aunque la tabla se desplace hacia los costados. */
+.tabla-completa .data-table th:last-child,
+.tabla-completa .data-table td:last-child {
+  position: sticky;
+  right: 0;
+  background: #fff;
+  box-shadow: -6px 0 6px -6px rgb(0 0 0 / 0.15);
+}
+.filtro-rango {
+  display: flex;
+  gap: 4px;
+}
+.filtro-rango .input {
+  min-width: 96px;
+}
+.tabla-completa-vacia {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 15px;
+}
+@media (max-width: 640px) {
+  .tabla-completa-panel {
+    padding: 14px 14px 12px;
+  }
+  .tabla-completa-cabecera {
+    flex-wrap: wrap;
+  }
+}
+
+/* En el celular: los botones van abajo de la descripción y la distribución de tablas no se muestra (es una sola columna). */
+@media (max-width: 680px) {
+  .canvas-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .canvas-heading p {
+    max-width: none;
+  }
+  .canvas-heading-actions {
+    max-width: none;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+  .canvas-heading-actions .btn {
+    flex: 0 1 auto;
+    min-width: 0;
+    gap: 5px;
+    font-size: 12px;
+    padding: 6px 9px;
+    min-height: 38px;
+    white-space: nowrap;
+  }
+  .canvas-heading-actions .foto-redonda {
+    width: 40px;
+    height: 40px;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--coral) 16%, transparent);
+  }
+  .canvas-heading-actions .foto-redonda .icon {
+    width: 19px;
+    height: 19px;
+  }
+  /* El ancho de cada tabla y la distribución no aplican: en el celular va todo en una columna. */
+  .layout-toolbar.compacta,
+  .block-width-row,
+  .preview-sizing,
+  .studio-canvas .layout-toolbar {
+    display: none;
+  }
+}
+/* En los celulares más angostos, los botones del encabezado sin ícono para que entren en una fila. */
+@media (max-width: 400px) {
+  .canvas-heading-actions .btn .icon {
+    display: none;
+  }
+}
+
+/* Las herramientas del cuaderno arriba del lienzo: el navbar de arriba es el común a todas las pantallas. */
+.editor-herramientas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: white;
+}
+.editor-herramientas .row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.editor-herramientas .editor-crumb {
+  max-width: 320px;
+  font-size: 14px;
+  color: var(--ink);
+}
+.editor-herramientas .save-status {
+  margin-left: 4px;
+  font-size: 12px;
+}
+/* El navbar común mide 84px (el del editor medía 72px). */
+.editor-layout {
+  min-height: calc(100vh - 84px);
+}
+.editor-layout .block-library {
+  height: calc(100vh - 84px);
+}
+
+/* Franja con varios avisos: los textos largos se cortan con «…» en vez de estirar la franja fuera de
+   la pantalla, y en el celular cada aviso va en su propia fila. */
+.sami-franja-txt {
+  min-width: 0;
+}
+.sami-franja:not(.ok) {
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+}
+.sami-franja:not(.ok) .sami-chip {
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .sami-franja:not(.ok) {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+  .sami-franja:not(.ok) > .btn {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+@media (max-width: 640px) {
+  .sami-franja:not(.ok) {
+    grid-template-columns: 56px minmax(0, 1fr);
+    align-items: start;
+  }
+  .sami-franja:not(.ok) .sami-franja-items {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sami-franja:not(.ok) .sami-chip {
+    width: 100%;
+  }
+}

@@ -1,0 +1,61 @@
+package com.ensambla.backend.domain.useCase.procesamiento.leerImagen;
+
+import com.ensambla.backend.domain.model.lectura.ImagenCuaderno;
+import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.procesamiento.BloqueDeImagen;
+import com.ensambla.backend.domain.model.procesamiento.LecturaImagen;
+import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
+import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
+import com.ensambla.backend.domain.port.LectorCuadernoPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import lombok.RequiredArgsConstructor;
+
+import java.time.Clock;
+import java.time.OffsetDateTime;
+import java.util.List;
+
+/**
+ * Lee una foto contra un bloque y devuelve los registros y las columnas nuevas para revisar. Es la misma lectura que
+ * el lote de fotos (el bloque elegido es el destino y se cruzan columnas por nombre y sinónimos), pero sin guardar
+ * nada: la respuesta es inmediata y la persona decide después qué incorporar.
+ */
+@RequiredArgsConstructor
+public class LeerImagen {
+
+    private final LectorCuadernoPort lectorCuadernoPort;
+
+    /** Debajo de este valor de confianza un dato se marca como dudoso. */
+    private final double umbralConfianza;
+
+    private final NegocioRepository negocioRepository;
+
+    private final ControlPlanService controlPlanService;
+
+    private final PoliticaProcesamiento politicaProcesamiento;
+
+    private final Clock clock;
+
+    public LeerImagenItem execute(LeerImagenRequest request) {
+        ImagenCuaderno imagen = request.aImagenCuaderno();
+        BloqueDeImagen bloque = request.aBloqueDeImagen();
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        registrarConsumo(negocioId, OffsetDateTime.now(clock));
+        LecturaImagen lectura = leer(imagen, bloque, request.destinoExistente());
+        return LeerImagenItem.de(lectura, umbralConfianza);
+    }
+
+    /** Registra el intento antes de salir al proveedor; un fallo o timeout también puede tener costo. */
+    private void registrarConsumo(NegocioId negocioId, OffsetDateTime ahora) {
+        controlPlanService.reservarPaginaIaInmediata(negocioId, politicaProcesamiento.limiteDiario(), ahora);
+    }
+
+    private LecturaImagen leer(ImagenCuaderno imagen, BloqueDeImagen bloque, boolean destinoExistente) {
+        LecturaCuaderno lectura = lectorCuadernoPort.leer(
+                List.of(imagen.comoPagina()), List.of(bloque.paraElLector()), bloque.id());
+        PropuestaLectura propuesta = PropuestaLectura.proponer(
+                lectura, List.of(bloque.paraLaPropuesta()), bloque.id());
+        return LecturaImagen.desde(propuesta, bloque, destinoExistente);
+    }
+}

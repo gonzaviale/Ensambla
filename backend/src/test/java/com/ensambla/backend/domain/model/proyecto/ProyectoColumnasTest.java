@@ -5,7 +5,7 @@ import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.support.ProyectoTestData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

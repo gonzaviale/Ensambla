@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.ia;
 
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
 import com.ensambla.backend.domain.model.lectura.CampoContexto;
 import com.ensambla.backend.domain.model.lectura.PaginaCuaderno;
@@ -12,15 +13,14 @@ import org.springframework.core.io.ClassPathResource;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PromptLecturaCuadernoTest {
 
-    private static final UUID VENTAS_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
-    private static final UUID GASTOS_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
+    private static final BloqueId VENTAS_ID = BloqueId.de("00000000-0000-0000-0000-000000000001");
+    private static final BloqueId GASTOS_ID = BloqueId.de("00000000-0000-0000-0000-000000000002");
     private static final PaginaCuaderno PAGINA = new PaginaCuaderno(1, new byte[]{1}, "image/png");
 
     private PromptLecturaCuaderno prompt;

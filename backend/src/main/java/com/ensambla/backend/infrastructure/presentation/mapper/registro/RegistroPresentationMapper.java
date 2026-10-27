@@ -1,18 +1,21 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.registro;
 
-import com.ensambla.backend.domain.dto.registro.CrearRegistroRequest;
-import com.ensambla.backend.domain.dto.registro.CrearRegistroResponse;
-import com.ensambla.backend.domain.dto.registro.EditarRegistroRequest;
-import com.ensambla.backend.domain.dto.registro.EditarRegistroResponse;
-import com.ensambla.backend.domain.dto.registro.EliminarRegistroRequest;
-import com.ensambla.backend.domain.dto.registro.ListarRegistrosRequest;
-import com.ensambla.backend.domain.dto.registro.ListarReferenciasRequest;
-import com.ensambla.backend.domain.dto.registro.ListarRegistrosResponse;
-import com.ensambla.backend.domain.dto.registro.ObtenerFotoOrigenRequest;
-import com.ensambla.backend.domain.dto.registro.ObtenerRegistroRequest;
-import com.ensambla.backend.domain.dto.registro.ObtenerRegistroResponse;
-import com.ensambla.backend.domain.dto.registro.ReferenciaItem;
-import com.ensambla.backend.domain.dto.registro.RegistroItem;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.registro.RegistroItem;
+import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistroRequest;
+import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistroResponse;
+import com.ensambla.backend.domain.useCase.registro.editarRegistro.EditarRegistroRequest;
+import com.ensambla.backend.domain.useCase.registro.editarRegistro.EditarRegistroResponse;
+import com.ensambla.backend.domain.useCase.registro.eliminarRegistro.EliminarRegistroRequest;
+import com.ensambla.backend.domain.useCase.registro.listarReferencias.ListarReferenciasRequest;
+import com.ensambla.backend.domain.useCase.registro.listarReferencias.ReferenciaItem;
+import com.ensambla.backend.domain.useCase.registro.listarRegistros.ListarRegistrosRequest;
+import com.ensambla.backend.domain.useCase.registro.listarRegistros.ListarRegistrosResponse;
+import com.ensambla.backend.domain.useCase.registro.obtenerFotoOrigen.ObtenerFotoOrigenRequest;
+import com.ensambla.backend.domain.useCase.registro.obtenerRegistro.ObtenerRegistroRequest;
+import com.ensambla.backend.domain.useCase.registro.obtenerRegistro.ObtenerRegistroResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.PaginaRegistrosResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.ReferenciaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.registro.RegistroRequest;
@@ -21,38 +24,38 @@ import com.ensambla.backend.infrastructure.presentation.dto.registro.TotalesRegi
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.UUID;
 
 @Component
 public class RegistroPresentationMapper {
 
-    public CrearRegistroRequest toCrearRequest(UUID usuarioId, UUID bloqueId, RegistroRequest request) {
+    public CrearRegistroRequest toCrearRequest(UsuarioId usuarioId, BloqueId bloqueId, RegistroRequest request) {
         return new CrearRegistroRequest(usuarioId, bloqueId, request.valores());
     }
 
-    public ListarRegistrosRequest toListarRequest(UUID usuarioId, UUID bloqueId, String texto, String orden,
+    public ListarRegistrosRequest toListarRequest(UsuarioId usuarioId, BloqueId bloqueId, String texto, String orden,
                                                   String direccion, Integer pagina, Integer tamanio) {
         return new ListarRegistrosRequest(usuarioId, bloqueId, texto, orden, direccion, pagina, tamanio);
     }
 
     /** Sin {@code ids} (parámetro ausente) se busca por texto. */
-    public ListarReferenciasRequest toReferenciasRequest(UUID usuarioId, UUID bloqueId, String texto, List<UUID> ids) {
+    public ListarReferenciasRequest toReferenciasRequest(UsuarioId usuarioId, BloqueId bloqueId, String texto,
+            List<RegistroId> ids) {
         return new ListarReferenciasRequest(usuarioId, bloqueId, texto, ids == null ? List.of() : ids);
     }
 
-    public ObtenerRegistroRequest toObtenerRequest(UUID usuarioId, UUID registroId) {
+    public ObtenerRegistroRequest toObtenerRequest(UsuarioId usuarioId, RegistroId registroId) {
         return new ObtenerRegistroRequest(usuarioId, registroId);
     }
 
-    public EditarRegistroRequest toEditarRequest(UUID usuarioId, UUID registroId, RegistroRequest request) {
+    public EditarRegistroRequest toEditarRequest(UsuarioId usuarioId, RegistroId registroId, RegistroRequest request) {
         return new EditarRegistroRequest(usuarioId, registroId, request.valores());
     }
 
-    public ObtenerFotoOrigenRequest toFotoOrigenRequest(UUID usuarioId, UUID registroId) {
+    public ObtenerFotoOrigenRequest toFotoOrigenRequest(UsuarioId usuarioId, RegistroId registroId) {
         return new ObtenerFotoOrigenRequest(usuarioId, registroId);
     }
 
-    public EliminarRegistroRequest toEliminarRequest(UUID usuarioId, UUID registroId) {
+    public EliminarRegistroRequest toEliminarRequest(UsuarioId usuarioId, RegistroId registroId) {
         return new EliminarRegistroRequest(usuarioId, registroId);
     }
 

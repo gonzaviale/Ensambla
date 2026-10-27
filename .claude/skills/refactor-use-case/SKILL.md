@@ -1,124 +1,130 @@
 ---
 name: refactor-use-case
-description: Refactoriza un use case del backend de Ensambla (com.ensambla.backend.domain.useCase.*) a la estructura SOLID objetivo del proyecto, dejando execute() como una lista de pasos, moviendo reglas/validaciones de dominio al model y la lógica compartida o con I/O a servicios de dominio, y sus tests al estilo Arrange-Act-Assert con helpers privados, nombres camelCase y @DisplayName en español; sin cambiar el comportamiento y manteniendo los tests verdes. Usar cuando se pida "refactorizar este use case", "dejar SOLID", "extraer a private methods/al model/al service", limpiar un execute() con lógica inline, o "refactorizar/limpiar los tests" (extraer when/then y validaciones a métodos privados, camelCase, DisplayName).
+description: Refactoriza un caso de uso del backend de Ensambla (com.ensambla.backend.domain.useCase.*) a la estructura objetivo del proyecto, dejando execute() como una lista de pasos, moviendo las reglas puras al model, la lógica de un solo caso de uso a métodos privados y a servicios de dominio solo lo que comparten dos o más casos de uso; con sus DTOs en el subpaquete del caso, fábricas de() en lugar de mappers, ids tipados, sin sufijo UseCase y sin Spring en el dominio; y sus tests al estilo Arrange-Act-Assert con helpers privados, nombres camelCase y @DisplayName en español; sin cambiar el comportamiento y manteniendo los tests verdes. Usar cuando se pida "refactorizar este caso de uso", "dejar SOLID", "extraer a private methods/al model/al service", "eliminar este servicio/mapper", limpiar un execute() con lógica inline, o "refactorizar/limpiar los tests" (extraer when/then y validaciones a métodos privados, camelCase, DisplayName).
 ---
 
-# Refactor de Use Cases (estilo SOLID de Ensambla)
+# Refactor de casos de uso (estilo Ensambla)
 
-Lleva un use case de `com.ensambla.backend.domain.useCase.*` a la **forma objetivo**:
-`execute()` se lee como los pasos del caso de uso; las reglas de dominio viven en el
-model; la lógica compartida o con I/O vive en servicios de dominio. **El comportamiento
-no cambia y los tests existentes deben seguir pasando sin modificación de sus assertions.**
+Lleva un caso de uso de `com.ensambla.backend.domain.useCase.*` a la **forma objetivo**: `execute()` se lee como los
+pasos del caso de uso; las reglas puras viven en el model; lo que usa solo este caso de uso son métodos privados; y en
+un servicio de dominio queda solo lo que comparten dos o más casos de uso. **El comportamiento no cambia y los tests
+existentes deben seguir pasando sin modificar sus aserciones.**
 
-Recordá la convención del proyecto: **nombres de dominio en español** (clases, campos,
-métodos de servicio, enums, tablas). Ver `docs/modelo-datos.md` para el vocabulario.
+Las reglas de estructura están en [`backend/ARQUITECTURA.md`](../../../backend/ARQUITECTURA.md) (checklist en el skill
+`reglas-arquitectura`). Nombres de dominio **en español**; vocabulario en `docs/modelo-datos.md`.
 
 ## Arquitectura de referencia
 
-Clean Architecture en dos capas (`domain` no depende de `infrastructure`):
-
-- `domain/useCase/<area>/` — use cases planos (sin anotaciones de Spring), con
-  `@RequiredArgsConstructor` y un único `execute(<X>Request)`.
-- `domain/service/<area>/` — servicios `@Service` con las reglas que tocan repositorio
-  (existencia, unicidad, pertenencia al negocio, normalización).
-- `domain/model/<area>/` — modelos de dominio (Lombok `@Builder`/`@Getter`/`@Setter`).
-- `domain/dto/<area>/` y `domain/mapper/<area>/` — request/response del use case y su mapper.
-- `domain/exception/` — `ResourceNotFoundException`, `DuplicateResourceException`,
-  `BusinessRuleException`, `CredencialesInvalidasException`.
-- `infrastructure/config/useCase/<Area>UseCaseConfig` — wiring de mappers y use cases como `@Bean`.
+- `domain/useCase/<area>/<accion>/` — el caso de uso (`CrearProyecto`, sin sufijo, sin anotaciones de Spring,
+  `@RequiredArgsConstructor` y un único `execute(<Accion>Request)`) junto a sus `<Accion>Request`/`<Accion>Response`.
+  Los DTOs que comparten varios casos del área quedan en `domain/useCase/<area>/`.
+- `domain/service/<area>/` — Java plano, solo con lógica compartida por dos o más casos de uso.
+- `domain/model/<area>/` — modelos, reglas puras, ids tipados (`ProyectoId`) y enums del área.
+- `domain/port/` — `TransaccionPort` y los puertos de salida.
+- `domain/exception/` — `ResourceNotFoundException`, `DuplicateResourceException`, `BusinessRuleException`,
+  `CredencialesInvalidasException`.
+- `infrastructure/config/useCase/<Area>UseCaseConfig` — `@Bean` de cada caso de uso, servicio y regla.
 
 ## Forma objetivo de `execute()`
 
-`execute()` solo orquesta. Cada línea es una de estas tres cosas:
+`execute()` solo orquesta. Cada línea es una de estas cosas:
 
-1. Una llamada a un **método privado** del use case (`resolverX`, `cargarX`, `validarX`, `aplicarX`).
-2. Una llamada a un **método del model** (regla de dominio pura).
-3. Una llamada a un **servicio colaborador** (lógica compartida / con I/O) o al **mapper**.
+1. Una llamada a un **método privado** del caso de uso (`resolverX`, `cargarX`, `validarX`, `aplicarX`).
+2. Una llamada a un **método del model** (regla pura).
+3. Una llamada a un **puerto** o a un **servicio compartido**.
+4. `transaccionPort.ejecutar(() -> …)` alrededor de los pasos que tienen que confirmarse juntos.
+5. La fábrica del DTO de salida (`ProyectoItem.de(proyecto)`).
 
-No debe quedar en `execute()`: validaciones inline con `throw`, matemática de dominio,
-cadenas `repository.findX().filter(...).isPresent()`, ni armado de varios valores.
+No debe quedar en `execute()`: validaciones inline con `throw`, matemática de dominio, cadenas
+`repository.findX().filter(...).isPresent()`, ni armado de varios valores.
 
-Caso simple, todo delegado al servicio — `ListarPlantillasUseCase`:
+Caso simple — `ListarPlantillas`:
 
 ```java
 public ListarPlantillasResponse execute() {
-    return mapper.toResponse(plantillaService.listarActivas());
+    return ListarPlantillasResponse.de(plantillaRepository.findAllActivas());
 }
 ```
 
-Para un caso con más pasos, la forma esperada es (ilustrativo, T-014 crear proyecto desde plantilla):
+Caso con más pasos — `CrearProyectoDesdePlantilla`:
 
 ```java
-public CrearProyectoDesdePlantillaResponse execute(CrearProyectoDesdePlantillaRequest request) {
-    Plantilla plantilla = plantillaService.obtenerActiva(request.plantillaId());
-    Proyecto proyecto = Proyecto.desde(plantilla, request.negocioId(), OffsetDateTime.now(clock));
-    Proyecto creado = proyectoService.registrarConEstructura(proyecto, plantilla.getEstructura());
-    return mapper.toResponse(creado);
+public ProyectoItem execute(CrearProyectoDesdePlantillaRequest request) {
+    NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+    PlantillaProyecto plantilla = plantillaRepository.obtenerActiva(request.plantillaId());
+    Proyecto proyecto = crearDesdePlantilla(negocioId, plantilla, OffsetDateTime.now(clock));
+    return ProyectoItem.de(proyecto);
 }
 ```
 
 ## Dónde va cada cosa (regla de decisión)
 
-- **Función pura del estado de dominio, sin I/O** → al **model**: un método o predicado
-  (`usuario.estaActivo()`), una función estática si no tiene estado (`Usuario.normalizarEmail`),
-  o un value object (record propio) si deriva **varios** valores.
-- **Toca un repositorio/servicio, es específico de este use case y se usa una sola vez**
-  → **método privado** del use case. Si arma varios valores para downstream, devolvé un **record privado**.
-- **La misma lógica aparece en ≥2 lugares** (comprobalo con grep antes de decidir), o es
-  una regla de persistencia del agregado (unicidad, existencia, pertenencia al negocio) →
-  **servicio `@Service`** en `com.ensambla.backend.domain.service.<area>`, inyectado en el use case.
+- **Función pura del estado de dominio, sin I/O** → al **model**: un método o predicado (`usuario.estaActivo()`), una
+  función estática si no tiene estado (`Usuario.normalizarEmail`), o un value object (record) si deriva varios valores.
+- **Toca un puerto y la usa solo este caso de uso** → **método privado** del caso de uso, que llama directo al puerto.
+  Si arma varios valores, devolvé un **record privado**.
+- **Traer una entidad o responder 404 (`findX().orElseThrow(...)`)** → método `default` del puerto (`bloqueRepository.obtener`),
+  con su test (`mock(Puerto.class, CALLS_REAL_METHODS)`); nunca un servicio ni la misma línea copiada en cada caso.
+- **Una llamada que sólo pasa al puerto** → el caso de uso llama directo al puerto.
+- **Lógica de varios pasos que repiten dos o más casos de uso** (comprobalo con grep antes de decidir) → **servicio** en
+  `domain/service/<area>`, Java plano, registrado como `@Bean` en el `*UseCaseConfig`. Hoy son cinco; no sumes uno
+  por una o dos líneas.
+- **Un servicio que queda con un único llamador, o con líneas sueltas** → se disuelve: la búsqueda va al puerto, la
+  regla pura al modelo y lo demás al caso de uso; se borran el servicio, su bean y su test.
+- **Un caso de uso que llama a otro caso de uso** → está prohibido: lo compartido se baja a un servicio, a un método
+  `default` del puerto o al modelo.
+- **Un mapper de dominio** → se reemplaza por la fábrica `de()` del DTO; su test pasa a ser el test del DTO.
+- **Un `UUID` en una firma** → el id tipado de esa entidad.
 
-Para mantener los servicios agnósticos del tiempo y los tests deterministas: si el use case
-necesita la fecha/hora, mantiene su `Clock` y le pasa `OffsetDateTime.now(clock)` al servicio
-(no inyectes el `Clock` en el servicio).
+Para mantener los servicios agnósticos del tiempo y los tests deterministas: el caso de uso mantiene su `Clock` y le
+pasa `OffsetDateTime.now(clock)` al servicio o al modelo.
 
 ## Procedimiento
 
-1. **Leer**: el use case, su request/response/mapper, sus clases de model, el servicio que usa y sus tests.
-2. **Buscar duplicación** antes de extraer, para decidir model vs privado vs servicio (Grep sobre `backend/src/main/java`).
-3. **Cambiar en orden de dependencia**: model → servicios → use case → `*UseCaseConfig` → tests.
-4. **Wiring**: si agregaste/quitaste dependencias del use case, actualizá el `@Bean` en
-   `com.ensambla.backend.infrastructure.config.useCase.<Area>UseCaseConfig`. El orden de los
-   argumentos del constructor debe coincidir con el orden de los campos (por `@RequiredArgsConstructor`).
-5. **Tests**: los del use case no cambian sus assertions; solo adaptá la construcción (mocks). Si una
-   dependencia pasó a servicio, mockeá el servicio en lugar del repo. Agregá tests unitarios para
-   **toda** regla movida al model/servicio (un caso por comportamiento) — el build exige 100 % por clase.
-6. **Compilar y correr** los tests afectados y después `clean verify`.
+1. **Leer**: el caso de uso, sus DTOs, sus clases de model, los servicios que usa y sus tests.
+2. **Buscar los llamadores** antes de extraer o disolver (`grep -rln "servicio.metodo(" src/main/java`).
+3. **Cambiar en orden de dependencia**: model → servicios → caso de uso → `*UseCaseConfig` → tests.
+4. **Wiring**: si cambian las dependencias, actualizá el `@Bean` en `<Area>UseCaseConfig`. El orden de los argumentos
+   del constructor coincide con el de los campos (`@RequiredArgsConstructor`).
+5. **Tests**: los del caso de uso no cambian sus aserciones; solo la construcción. Si un servicio se disolvió, mockeá el
+   puerto en lugar del servicio y pasá `new TransaccionDirecta()` si el caso abre una transacción. Agregá tests para
+   **toda** regla movida al model (un caso por comportamiento): el build exige 100 % por clase.
+6. **Compilar y correr** los tests afectados, `ArchitectureTest` y después `clean verify`.
 
 ## Anti-patrones (NO hacer)
 
-- Un método por cada write o por cada línea: eso es fragmentar, no es SOLID.
-- Crear interfaces para los use cases cuando hay una sola implementación (YAGNI).
+- Un método por cada write o por cada línea: eso es fragmentar, no ordenar.
+- Crear un servicio para lógica que usa un solo caso de uso, o un mapper de dominio para lo que es una fábrica.
+- Crear interfaces para los casos de uso cuando hay una sola implementación (YAGNI).
 - Mover I/O (repositorios) dentro del model.
-- Anotar los use cases con `@Service`/`@Component`: se registran en el `*UseCaseConfig`.
-- Cambiar el comportamiento o relajar assertions para que "entre" la extracción.
-- Inyectar `Clock` en los servicios de dominio (pasá el instante por parámetro).
-- Nombres de dominio en inglés (`Project`, `create`): el dominio va en español.
+- Anotar con `@Service`/`@Component`/`@Transactional` cualquier clase de `domain`.
+- Cambiar el comportamiento o relajar aserciones para que "entre" la extracción.
+- Inyectar `Clock` en los servicios de dominio.
+- Nombres de dominio en inglés (`Project`, `create`).
 - Sacar el filtro por `negocio_id` "para simplificar": el aislamiento no se negocia.
 
-## Refactor de los tests del use case (estilo Arrange-Act-Assert)
+## Refactor de los tests del caso de uso (estilo Arrange-Act-Assert)
 
-Cada `@Test` queda en tres bloques (arrange / act / assert) de pocas líneas; toda la mecánica
-(stubs, ejecución, asserts y verifies) se extrae a **métodos privados** agrupados al final de
-la clase, bajo `// --- arrange ---`, `// --- act ---`, `// --- assert ---`.
+Cada `@Test` queda en tres bloques (arrange / act / assert) de pocas líneas; toda la mecánica (stubs, ejecución,
+asserts y verifies) se extrae a **métodos privados** agrupados al final de la clase, bajo `// --- arrange ---`,
+`// --- act ---`, `// --- assert ---`.
 
 - **Arrange** → métodos `givenX(...)` con los `when(...).thenReturn(...)` y builders de fixtures.
-- **Act** → un método que ejecuta el use case con el verbo del caso (`listar()`, `crear()`).
+- **Act** → un método que ejecuta el caso de uso con el verbo del caso (`listar()`, `crear()`).
 - **Assert** → métodos `thenX(...)` que agrupan los `assertThat` y `verify`.
 
-Convenciones obligatorias: nombres en **camelCase** sin guiones bajos (`executeShouldReturnMappedPlantillas`),
-`@DisplayName` en **español**, comentarios solo en los casos no obvios y cuidado con el
-**strict stubbing** de Mockito (cada `givenX()` debe usarse en el camino de ese test).
+Convenciones obligatorias: nombres en **camelCase** sin guiones bajos (`executeShouldReturnPlantillasActivas`),
+`@DisplayName` en **español**, comentarios solo en los casos no obvios y cuidado con el **strict stubbing** de Mockito.
 
-Plantilla ya hecha: `ListarPlantillasUseCaseTest`, `PlantillaServiceTest`.
+Plantillas ya hechas: `ListarPlantillasTest`, `ListarPlantillasResponseTest`, `PlantillaRepositoryTest`.
 
 ## Build & test
 
-Desde `backend/` (JDK 21 en `JAVA_HOME`; los tests de contexto usan H2 con el perfil `h2-test`, sin Flyway):
+Desde `backend/` (JDK 21 en `JAVA_HOME` y Docker corriendo: los tests con base usan Testcontainers, nunca H2):
 
 ```bash
-./mvnw test -Dtest=ListarPlantillasUseCaseTest,PlantillaServiceTest
+./mvnw test -Dtest=ListarPlantillasTest,PlantillaRepositoryTest,ArchitectureTest
 ./mvnw clean verify
 ```
 
-En Windows/PowerShell: `.\mvnw.cmd test "-Dtest=ListarPlantillasUseCaseTest,PlantillaServiceTest"`.
+En Windows/PowerShell: `.\mvnw.cmd test "-Dtest=ListarPlantillasTest,PlantillaRepositoryTest,ArchitectureTest"`.

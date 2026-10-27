@@ -12,10 +12,22 @@ import {
   ESPERA,
   clickButton,
   setupServerResponse,
-  setupUsuarioConSesion,
+  setupUsuarioConSesion as setupUsuarioBase,
   verifyPathAsync,
   verifyToastAsync,
 } from '@/test/testHelpers';
+
+// Estos casos revisan todas las herramientas; los límites gratuitos tienen pruebas propias.
+const setupUsuarioConSesion = (...args: Parameters<typeof setupUsuarioBase>) => {
+  const usuario = setupUsuarioBase(...args);
+  estado.pruebasPremium.set(usuario.email, {
+    inicioEn: new Date(Date.now() - 1000).toISOString(),
+    finEn: new Date(Date.now() + 7 * 86400000).toISOString(),
+    paginasIaUtilizadas: 0,
+    limitePaginasIa: 10,
+  });
+  return usuario;
+};
 
 const abrirZona = async (conDemo = false) => {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
@@ -39,12 +51,12 @@ describe('Mi zona', () => {
       screen.getByRole('heading', { level: 2, name: 'Precios en Villa Crespo' }),
     ).toBeVisible();
     expect(document.querySelector('.leaflet-container, .mapa-lienzo, [class*="map"]')).toBeNull();
-    expect(screen.getByText(/DATOS DE VILLA CRESPO, SIN NOMBRES/)).toBeVisible();
+    expect(screen.getByText(/DATOS DE VILLA CRESPO/)).toBeVisible();
     // 12 productos: el que aportan menos de tres comercios (Fernet) no llega.
     expect(document.querySelectorAll('.zona-tarjeta')).toHaveLength(12);
     expect(screen.queryByText(/Fernet/)).toBeNull();
     expect(screen.getByText(/Datos agregados y anónimos/)).toBeVisible();
-    expect(screen.getByText(/nunca se muestra uno solo ni dónde queda/)).toBeVisible();
+    expect(screen.getByText(/Nunca se muestra un comercio solo ni dónde queda/)).toBeVisible();
   });
 
   it('el rango de cada producto es accesible y no nombra comercios', async () => {
@@ -157,7 +169,7 @@ describe('Qué se vende cerca', () => {
     const { user } = await abrirZona();
     await user.click(screen.getByRole('tab', { name: /Qué se vende cerca/ }));
 
-    expect(screen.getByText(/necesitás un sistema con un bloque de Inventario/)).toBeVisible();
+    expect(screen.getByText(/necesitás un cuaderno con un bloque de Inventario/)).toBeVisible();
     expect(
       within(tarjetaDe('Leche La Serenísima 1 L')).getByRole('button', {
         name: /Sumar a mis productos/,

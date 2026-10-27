@@ -51,7 +51,7 @@ export function ModalImportar({ sistemaId }: Props) {
   };
 
   return (
-    <Modal>
+    <Modal clase="modal-importar">
       <div className="sami-intro">
         <Sami pose="think" />
         <div>
@@ -83,7 +83,9 @@ export function ModalImportar({ sistemaId }: Props) {
         onDragLeave={() => setEncima(false)}
         onDrop={soltarImagen}
       >
-        <Icon name="upload" />
+        <span className="upload-icono">
+          <Icon name="upload" />
+        </span>
         <strong>{preparando ? 'Preparando la foto…' : 'Elegí una foto o arrastrala acá'}</strong>
         <p>
           Una hoja, un cuaderno o una captura de pantalla.

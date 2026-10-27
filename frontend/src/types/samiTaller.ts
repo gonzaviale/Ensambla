@@ -8,8 +8,12 @@ export const accionDeSamiSchema = z.object({
   argumentos: z.record(z.string(), z.unknown()),
 });
 
-/** Una pregunta de Sami con respuestas rápidas. Elegir una equivale a escribir su texto. */
+/**
+ * Una duda de Sami con respuestas rápidas. Elegir una equivale a escribir su texto. `tema` es la palabra corta que la
+ * nombra («Tildes»): con ella se arma la respuesta cuando hay varias dudas.
+ */
 export const opcionesDeSamiSchema = z.object({
+  tema: z.string().nullish(),
   pregunta: z.string(),
   opciones: z.array(z.string()),
 });
@@ -17,7 +21,8 @@ export const opcionesDeSamiSchema = z.object({
 export const respuestaDelTallerSchema = z.object({
   respuesta: z.string(),
   acciones: z.array(accionDeSamiSchema),
-  opciones: opcionesDeSamiSchema.nullish(),
+  /** Las dudas del turno (hasta 3): la pantalla las muestra de a una y manda todas las respuestas juntas. */
+  preguntas: z.array(opcionesDeSamiSchema).default([]),
 });
 
 export type OpcionesDeSami = z.infer<typeof opcionesDeSamiSchema>;

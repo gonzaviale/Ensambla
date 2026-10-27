@@ -5,7 +5,6 @@ import com.ensambla.backend.domain.model.sami.taller.CampoTaller;
 import com.ensambla.backend.domain.model.sami.taller.CatalogoComponentes;
 import com.ensambla.backend.domain.model.sami.taller.ConsultaTaller;
 import com.ensambla.backend.domain.model.sami.taller.EstadoTaller;
-import com.ensambla.backend.domain.model.sami.taller.FilaTaller;
 import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
 import com.ensambla.backend.domain.model.sami.taller.KitRubro;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
@@ -14,9 +13,8 @@ import com.ensambla.backend.domain.model.sami.taller.MensajeTaller;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
 import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
 import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
-import com.ensambla.backend.domain.service.sami.HerramientasTallerService;
-import com.ensambla.backend.domain.service.sami.RubroTallerService;
-import com.ensambla.backend.domain.service.sami.SamiPruebas;
+import com.ensambla.backend.support.SamiPruebas;
+import com.ensambla.backend.support.TallerDePrueba;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -47,7 +45,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * prompt, catálogo, kits, herramientas y validación que producción y mide el acierto de las acciones, los tokens y la
  * latencia.
  * <pre>SAMI_BEDROCK_PERFIL=mi-perfil ./mvnw test -Dtest=TallerBedrockEvaluacionTest</pre>
- * Meta: 85 % de acierto y menos de 3200 tokens de entrada por turno (sin foto). Con
+ * Meta: 85 % de acierto y menos de 2800 tokens de entrada por turno (sin foto). Con
  * {@code SAMI_EVAL_CASOS=foto} corren sólo los casos cuyo id contiene «foto».
  * <p>
  * Cada caso puede pedir: {@code esperadas} (todas tienen que estar), {@code alguna} (alcanza con una), {@code opciones}
@@ -75,10 +73,8 @@ class TallerBedrockEvaluacionTest {
      * 41 casos, 2542 de entrada y 162 de salida, ≈ 0,33 centavos de dólar por turno
      * con Haiku 4.5. v3 suma cargar_registros (14 herramientas) y la meta pasa a 2800: 2026-10-20, 45 casos, 2682 de
      * entrada sin foto y ≈ 3500 con foto (≈ 0,35 centavos por turno con foto).
-     * v5 suma editar_registro y quitar_registro (16 herramientas) y las primeras filas de cada pieza en el contexto, como
-     * en la app: 2026-10-25, 53 casos, 3063 de entrada sin foto y ≈ 3980 con foto; la meta pasa a 3200.
      */
-    private static final int META_TOKENS_DE_ENTRADA = 3200;
+    private static final int META_TOKENS_DE_ENTRADA = 2800;
     private static final String MODELO = System.getenv().getOrDefault(
             "SAMI_BEDROCK_RAPIDO", "us.anthropic.claude-haiku-4-5-20251001-v1:0");
     private static final long PAUSA_ENTRE_CASOS_MS = Long.parseLong(
@@ -121,12 +117,11 @@ class TallerBedrockEvaluacionTest {
             TallerIaAdapter adapter = new TallerIaAdapter(
                     new ClienteModeloConHerramientasBedrock(bedrock, MODELO, 900, List.of(herramientas)),
                     new PromptTaller(new ClassPathResource("ia/prompt-taller.md"), catalogo, kits));
-            HerramientasTallerService validador = new HerramientasTallerService(catalogo, kits);
-            RubroTallerService rubros = new RubroTallerService(kits);
+            TallerDePrueba taller = new TallerDePrueba(kits);
             for (Caso caso : casos) {
                 EstadoTaller estado = estado(caso.estado());
                 List<MensajeTaller> historial = Objects.requireNonNullElse(caso.historial(), List.of());
-                KitRubro kit = rubros.detectar(caso.mensaje(), estado, historial).orElse(null);
+                KitRubro kit = taller.rubro(caso.mensaje(), estado, historial).orElse(null);
                 long inicio = System.nanoTime();
                 ImagenTaller imagen = imagen(caso.imagen());
                 ResultadoTallerIa resultado = conversar(adapter, new ConsultaTaller(
@@ -142,15 +137,15 @@ class TallerBedrockEvaluacionTest {
                     conFoto++;
                 }
                 tokensSalida += resultado.consumo().tokensSalida();
-                ValidacionTaller validacion = validador.validar(resultado.llamadas(), estado);
+                ValidacionTaller validacion = taller.validar(resultado.llamadas(), estado);
                 String problema = problema(caso, validacion, resultado.llamadas(), estado, kits);
                 if (problema == null) {
                     aciertos++;
                 } else {
                     // Las llamadas crudas (antes de validar) muestran si el modelo no la pidió o la validación la descartó.
-                    fallos.add("  - %s «%s»: %s | texto: %s | crudas: %s | descartadas: %d".formatted(
+                    fallos.add("  - %s «%s»: %s | texto: %s | crudas: %s".formatted(
                             caso.id(), caso.mensaje(), problema, resultado.texto().replace('\n', ' '),
-                            resultado.llamadas(), validacion.descartadas()));
+                            resultado.llamadas()));
                 }
             }
         }
@@ -202,7 +197,7 @@ class TallerBedrockEvaluacionTest {
         if (!Boolean.TRUE.equals(caso.permiteExtras()) && acciones.size() > caso.esperadas().size()) {
             return "acciones de más: " + acciones;
         }
-        if (Boolean.TRUE.equals(caso.opciones()) && validacion.opciones() == null) {
+        if (Boolean.TRUE.equals(caso.opciones()) && validacion.preguntas().isEmpty()) {
             return "tenía que ofrecer opciones";
         }
         if (Boolean.TRUE.equals(caso.armado()) && !armo(acciones, llamadas, kits)) {
@@ -295,25 +290,14 @@ class TallerBedrockEvaluacionTest {
     }
 
     private EstadoTaller estado(String nombre) {
-        List<CampoTaller> camposDeInventario = List.of(new CampoTaller("Producto", "text"),
-                new CampoTaller("Cantidad", "number"), new CampoTaller("Precio", "currency"));
-        // Sami ve las primeras filas de cada pieza, como en la app: así el contexto pesa lo que pesa de verdad.
-        PiezaTaller inventario = new PiezaTaller("e1", "inventory", "Inventario", null, camposDeInventario, List.of(
-                new FilaTaller("f11", List.of("Yerba", "24", "3600")),
-                new FilaTaller("f12", List.of("Fideos", "30", "1500")),
-                new FilaTaller("f13", List.of("Arroz", "5", "1000"))));
-        PiezaTaller inventarioConArrozRepetido = new PiezaTaller("e1", "inventory", "Inventario", null,
-                camposDeInventario, List.of(
-                new FilaTaller("f31", List.of("Arroz", "5", "1000")),
-                new FilaTaller("f32", List.of("Arroz", "8", "1100")),
-                new FilaTaller("f33", List.of("Yerba", "24", "3600"))));
+        PiezaTaller inventario = new PiezaTaller("e1", "inventory", "Inventario", null, List.of(
+                new CampoTaller("Producto", "text"), new CampoTaller("Cantidad", "number"),
+                new CampoTaller("Precio", "currency")));
         PiezaTaller ventas = new PiezaTaller("e2", "sales", "Ventas", null, List.of(
                 new CampoTaller("Producto", "relation"), new CampoTaller("Cantidad", "number"),
                 new CampoTaller("Precio", "currency"), new CampoTaller("Cliente", "relation")));
         PiezaTaller clientes = new PiezaTaller("e3", "clients", "Clientes", null, List.of(
-                new CampoTaller("Nombre", "text"), new CampoTaller("Teléfono", "tel")), List.of(
-                new FilaTaller("f21", List.of("Lucía", "11 5555-0101")),
-                new FilaTaller("f22", List.of("Marta", "11 5555-0102"))));
+                new CampoTaller("Nombre", "text"), new CampoTaller("Teléfono", "tel")));
         PiezaTaller gastos = new PiezaTaller("e4", "expenses", "Gastos", null, List.of(
                 new CampoTaller("Concepto", "text"), new CampoTaller("Importe", "currency")));
         PiezaTaller turnos = new PiezaTaller("e5", "form", "Turnos", null, List.of(
@@ -321,8 +305,6 @@ class TallerBedrockEvaluacionTest {
         return switch (nombre) {
             case "vacio" -> new EstadoTaller("Mi sistema", "mosaic", List.of());
             case "completo" -> new EstadoTaller("Mi almacén", "mosaic", List.of(inventario, ventas, clientes, gastos));
-            case "repetidos" -> new EstadoTaller("Mi almacén", "mosaic",
-                    List.of(inventarioConArrozRepetido, ventas, clientes));
             case "peluqueria" -> new EstadoTaller("Mi peluquería", "mosaic", List.of(turnos, clientes));
             default -> new EstadoTaller("Mi almacén", "mosaic", List.of(inventario, ventas, clientes));
         };

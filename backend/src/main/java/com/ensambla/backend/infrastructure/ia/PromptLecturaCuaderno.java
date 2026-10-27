@@ -1,12 +1,12 @@
 package com.ensambla.backend.infrastructure.ia;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
 import com.ensambla.backend.domain.model.lectura.CampoContexto;
 import com.ensambla.backend.domain.model.lectura.PaginaCuaderno;
 import org.springframework.core.io.Resource;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -40,12 +40,12 @@ public class PromptLecturaCuaderno {
      *                        bloque y no tiene que adivinar a cuál sumar las filas
      */
     public PeticionModeloVision peticion(List<PaginaCuaderno> paginas, List<BloqueConocido> bloquesExistentes,
-                                         UUID bloqueDestinoId) {
+                                         BloqueId bloqueDestinoId) {
         return new PeticionModeloVision(
                 instrucciones, contexto(bloquesExistentes, bloqueDestinoId), List.copyOf(paginas), esquemaJson);
     }
 
-    private String contexto(List<BloqueConocido> bloquesExistentes, UUID bloqueDestinoId) {
+    private String contexto(List<BloqueConocido> bloquesExistentes, BloqueId bloqueDestinoId) {
         if (bloqueDestinoId != null) {
             return lista(ENCABEZADO_DESTINO, bloquesExistentes.stream()
                     .filter(bloque -> bloque.id().equals(bloqueDestinoId))

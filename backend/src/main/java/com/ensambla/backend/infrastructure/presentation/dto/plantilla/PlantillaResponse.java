@@ -1,10 +1,11 @@
 package com.ensambla.backend.infrastructure.presentation.dto.plantilla;
 
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
+
 import java.util.Map;
-import java.util.UUID;
 
 public record PlantillaResponse(
-        UUID id,
+        PlantillaId id,
         String nombre,
         String descripcion,
         String icono,

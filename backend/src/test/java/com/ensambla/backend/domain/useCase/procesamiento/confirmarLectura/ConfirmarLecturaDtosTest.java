@@ -1,0 +1,85 @@
+package com.ensambla.backend.domain.useCase.procesamiento.confirmarLectura;
+
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.procesamiento.ConfirmacionGuardada;
+import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.procesamiento.confirmarLectura.ConfirmarLecturaRequest.CampoItem;
+import com.ensambla.backend.domain.useCase.procesamiento.confirmarLectura.ConfirmarLecturaRequest.FilaItem;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class ConfirmarLecturaDtosTest {
+
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("00000000-0000-4000-8000-000000000011");
+    private static final LoteId LOTE_ID = LoteId.de("00000000-0000-4000-8000-000000000013");
+    private static final ProyectoId PROYECTO_ID = ProyectoId.de("00000000-0000-4000-8000-000000000021");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("00000000-0000-4000-8000-000000000022");
+    private static final CampoId CAMPO_ID = CampoId.de("00000000-0000-4000-8000-000000000023");
+
+    @Test
+    @DisplayName("Pasa el pedido a la confirmación del dominio conservando destino, columnas y filas")
+    void aConfirmacionLecturaShouldMapEveryField() {
+        ConfirmarLecturaRequest request = request();
+
+        ConfirmacionLectura result = request.aConfirmacionLectura();
+
+        assertThat(result.proyectoId()).isEqualTo(PROYECTO_ID);
+        assertThat(result.nombreProyecto()).isEqualTo("Ventas");
+        assertThat(result.bloqueId()).isEqualTo(BLOQUE_ID);
+        assertThat(result.nombreBloque()).isEqualTo("Hoja 1");
+        assertThat(result.campos()).hasSize(1);
+        assertThat(result.campos().get(0).clave()).isEqualTo("rubro");
+        assertThat(result.campos().get(0).campoId()).isEqualTo(CAMPO_ID);
+        assertThat(result.campos().get(0).nombre()).isEqualTo("Rubro");
+        assertThat(result.campos().get(0).tipo()).isEqualTo("OPCION");
+        assertThat(result.campos().get(0).opciones()).containsExactly("A", "B");
+        assertThat(result.filas()).hasSize(1);
+        assertThat(result.filas().get(0).pagina()).isEqualTo(2);
+        assertThat(result.filas().get(0).valores()).containsEntry("rubro", "A");
+    }
+
+    @Test
+    @DisplayName("Conserva listas vacías")
+    void aConfirmacionLecturaShouldKeepEmptyLists() {
+        ConfirmarLecturaRequest request = new ConfirmarLecturaRequest(
+                USUARIO_ID, LOTE_ID, null, null, null, null, List.of(), List.of());
+
+        ConfirmacionLectura result = request.aConfirmacionLectura();
+
+        assertThat(result.campos()).isEmpty();
+        assertThat(result.filas()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Arma la respuesta con el proyecto, el bloque y la cantidad de registros")
+    void deShouldMapEveryField() {
+        ConfirmarLecturaResponse result = ConfirmarLecturaResponse.de(
+                new ConfirmacionGuardada(PROYECTO_ID, BLOQUE_ID, 7));
+
+        assertThat(result.proyectoId()).isEqualTo(PROYECTO_ID);
+        assertThat(result.bloqueId()).isEqualTo(BLOQUE_ID);
+        assertThat(result.registros()).isEqualTo(7);
+    }
+
+    // --- helpers ---
+    private ConfirmarLecturaRequest request() {
+        return new ConfirmarLecturaRequest(
+                USUARIO_ID,
+                LOTE_ID,
+                PROYECTO_ID,
+                "Ventas",
+                BLOQUE_ID,
+                "Hoja 1",
+                List.of(new CampoItem("rubro", CAMPO_ID, "Rubro", "OPCION", List.of("A", "B"))),
+                List.of(new FilaItem(2, Map.of("rubro", "A"))));
+    }
+}

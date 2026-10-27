@@ -1,12 +1,15 @@
 package com.ensambla.backend.infrastructure.ia;
 
 import com.ensambla.backend.domain.model.sami.taller.LlamadaHerramienta;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
 import software.amazon.awssdk.services.bedrockruntime.model.Message;
+import software.amazon.awssdk.services.bedrockruntime.model.StopReason;
 import software.amazon.awssdk.services.bedrockruntime.model.SystemContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.Tool;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolConfiguration;
@@ -27,6 +30,7 @@ import java.util.Map;
 public class ClienteModeloConHerramientasBedrock implements ClienteModeloConHerramientas {
 
     static final String PROVEEDOR = "bedrock";
+    private static final Logger log = LoggerFactory.getLogger(ClienteModeloConHerramientasBedrock.class);
 
     private final BedrockRuntimeClient client;
     private final String modelo;
@@ -55,6 +59,10 @@ public class ClienteModeloConHerramientasBedrock implements ClienteModeloConHerr
                 .toolConfig(herramientas)
                 .inferenceConfig(config -> config.maxTokens(maxTokens).temperature(0f))
                 .build());
+        if (respuesta.stopReason() == StopReason.MAX_TOKENS) {
+            log.warn("El modelo del taller se quedó sin tokens ({}): puede haber herramientas cortadas o sin filas",
+                    maxTokens);
+        }
         StringBuilder texto = new StringBuilder();
         List<LlamadaHerramienta> llamadas = new ArrayList<>();
         for (ContentBlock bloque : respuesta.output().message().content()) {

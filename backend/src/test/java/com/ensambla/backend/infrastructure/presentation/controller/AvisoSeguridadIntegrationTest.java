@@ -1,11 +1,12 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.model.enums.EstadoAviso;
-import com.ensambla.backend.domain.model.enums.EstadoUsuario;
-import com.ensambla.backend.domain.model.enums.GrupoAviso;
-import com.ensambla.backend.domain.model.enums.TipoAviso;
-import com.ensambla.backend.domain.model.enums.TipoBloque;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.GrupoAviso;
+import com.ensambla.backend.domain.model.aviso.TipoAviso;
+import com.ensambla.backend.domain.model.bloque.TipoBloque;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
 import com.ensambla.backend.infrastructure.repository.entity.AvisoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
@@ -21,13 +22,14 @@ import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.I
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IProyectoJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IRegistroJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IUsuarioJpaRepository;
+import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.SuscripcionesDePrueba;
 import jakarta.servlet.Filter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
@@ -36,7 +38,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,10 +57,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@ActiveProfiles("h2-test")
 @Transactional
-class AvisoSeguridadIntegrationTest {
+class AvisoSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
+
+    @Autowired
+    private SuscripcionesDePrueba suscripcionService;
 
     @Autowired
     private WebApplicationContext context;
@@ -225,12 +227,14 @@ class AvisoSeguridadIntegrationTest {
     }
 
     private UUID givenNegocio(UUID usuarioId) {
-        return negocios.saveAndFlush(NegocioEntity.builder()
+        UUID creado = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId)
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
+        suscripcionService.asignarGratuito(NegocioId.de(creado), AHORA.minusDays(1));
+        return creado;
     }
 
     private UUID givenBloque() {

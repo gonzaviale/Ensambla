@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,6 +45,74 @@ class ZonaTest {
         Zona zona = givenZona(110);
 
         assertThat(zona.contiene(LATITUD_A_111_METROS, LONGITUD_CENTRO)).isFalse();
+    }
+
+    @Test
+    @DisplayName("Resuelve la zona cuyo radio contiene el punto")
+    void masCercanaShouldReturnZoneContainingPoint() {
+        Zona sanJusto = givenZona(1500);
+        Zona caba = Zona.builder().latitud(new BigDecimal("-34.603700")).longitud(new BigDecimal("-58.381600"))
+                .radioMetros(1500).build();
+
+        assertThat(Zona.masCercana(List.of(caba, sanJusto), LATITUD_A_111_METROS, LONGITUD_CENTRO))
+                .containsSame(sanJusto);
+    }
+
+    @Test
+    @DisplayName("Elige la zona de centro más cercano cuando se superponen")
+    void masCercanaShouldPickNearestWhenZonesOverlap() {
+        Zona lejana = Zona.builder().latitud(new BigDecimal("-34.675000")).longitud(LONGITUD_CENTRO)
+                .radioMetros(2000).build();
+        Zona cercana = givenZona(2000);
+
+        assertThat(Zona.masCercana(List.of(lejana, cercana), LATITUD_A_111_METROS, LONGITUD_CENTRO))
+                .containsSame(cercana);
+    }
+
+    @Test
+    @DisplayName("No resuelve zona si ninguna contiene el punto")
+    void masCercanaShouldReturnEmptyWhenNoZoneContainsPoint() {
+        Zona caba = Zona.builder().latitud(new BigDecimal("-34.603700")).longitud(new BigDecimal("-58.381600"))
+                .radioMetros(1500).build();
+
+        assertThat(Zona.masCercana(List.of(caba), LATITUD_A_111_METROS, LONGITUD_CENTRO)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Coincide con el texto que nombra a la zona, sin importar mayúsculas ni tildes")
+    void coincideConShouldMatchNombreIgnoringCaseAndAccents() {
+        Zona zona = Zona.builder().nombre("San Justo - UNLaM").localidad("San Justo").build();
+
+        assertThat(zona.coincideCon("  UNLAM ")).isTrue();
+        assertThat(zona.coincideCon("san   justo")).isTrue();
+    }
+
+    @Test
+    @DisplayName("Coincide con el texto que nombra a la localidad aunque el nombre sea otro")
+    void coincideConShouldMatchLocalidad() {
+        Zona zona = Zona.builder().nombre("Centro comercial").localidad("Villa Crespo").build();
+
+        assertThat(zona.coincideCon("villa crespo")).isTrue();
+        assertThat(zona.coincideCon("VILLA CRESPÓ")).isTrue();
+    }
+
+    @Test
+    @DisplayName("No coincide con un texto vacío ni con uno que no la nombra")
+    void coincideConShouldRejectBlankOrUnrelatedText() {
+        Zona zona = Zona.builder().nombre("San Justo - UNLaM").localidad("San Justo").build();
+
+        assertThat(zona.coincideCon("   ")).isFalse();
+        assertThat(zona.coincideCon(null)).isFalse();
+        assertThat(zona.coincideCon("Palermo")).isFalse();
+    }
+
+    @Test
+    @DisplayName("Una zona sin localidad igual coincide por nombre")
+    void coincideConShouldTolerateMissingLocalidad() {
+        Zona zona = Zona.builder().nombre("San Justo").build();
+
+        assertThat(zona.coincideCon("justo")).isTrue();
+        assertThat(zona.coincideCon("Palermo")).isFalse();
     }
 
     // --- arrange ---

@@ -2,7 +2,11 @@ package com.ensambla.backend.domain.model.registro;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.lote.FotoId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,7 +18,6 @@ import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -23,19 +26,21 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Registro {
 
+    public static final String ORIGEN_WHATSAPP = "WhatsApp";
+
     private static final String MENSAJE_OBLIGATORIO = "Este dato es obligatorio";
 
-    private UUID id;
+    private RegistroId id;
 
-    private UUID negocioId;
+    private NegocioId negocioId;
 
-    private UUID bloqueId;
+    private BloqueId bloqueId;
 
     /** Valores cargados, indexados por el id del campo (así renombrar un campo no rompe los datos). */
     private Map<String, Object> valores;
 
     /** Foto del cuaderno de la que salió el registro; {@code null} si se cargó a mano. */
-    private UUID fotoOrigenId;
+    private FotoId fotoOrigenId;
 
     /** Marca los registros de ejemplo que trae una plantilla. */
     @Builder.Default
@@ -44,11 +49,16 @@ public class Registro {
     /** Quién lo creó cuando no fue una carga manual ("Aviso de Sami", "Lectura de foto"…). */
     private String origen;
 
+    /** Posición de la fila dentro de su bloque, como la dejó la persona. */
+    @Builder.Default
+    private Integer orden = 0;
+
     private OffsetDateTime creadoEn;
 
     private OffsetDateTime actualizadoEn;
 
-    public static Registro nuevo(UUID negocioId, UUID bloqueId, Map<String, Object> valores, OffsetDateTime ahora) {
+    public static Registro nuevo(NegocioId negocioId, BloqueId bloqueId, Map<String, Object> valores,
+            OffsetDateTime ahora) {
         return Registro.builder()
                 .negocioId(negocioId)
                 .bloqueId(bloqueId)
@@ -58,9 +68,18 @@ public class Registro {
                 .build();
     }
 
+    /** Fila que la persona confirmó por WhatsApp: queda marcada con su origen y al final de la tabla. */
+    public static Registro deWhatsapp(NegocioId negocioId, BloqueId bloqueId, Map<String, Object> valores, int orden,
+                                      OffsetDateTime ahora) {
+        Registro registro = nuevo(negocioId, bloqueId, valores, ahora);
+        registro.setOrigen(ORIGEN_WHATSAPP);
+        registro.setOrden(orden);
+        return registro;
+    }
+
     /** Registro que salió de una página del cuaderno; {@code fotoOrigenId} es null si la fila se agregó a mano. */
-    public static Registro desdeCuaderno(UUID negocioId, UUID bloqueId, Map<String, Object> valores,
-                                         UUID fotoOrigenId, OffsetDateTime ahora) {
+    public static Registro desdeCuaderno(NegocioId negocioId, BloqueId bloqueId, Map<String, Object> valores,
+                                         FotoId fotoOrigenId, OffsetDateTime ahora) {
         Registro registro = nuevo(negocioId, bloqueId, valores, ahora);
         registro.setFotoOrigenId(fotoOrigenId);
         return registro;
@@ -106,14 +125,14 @@ public class Registro {
         return toBuilder().valores(conCalculados).build();
     }
 
-    private BigDecimal numeroDe(UUID campoId) {
+    private BigDecimal numeroDe(CampoId campoId) {
         return valores.get(campoId.toString()) instanceof Number numero ? new BigDecimal(numero.toString()) : null;
     }
 
     /**
      * @throws ResourceNotFoundException si el registro es de otro bloque: responde igual que uno inexistente
      */
-    public void exigirDelBloque(UUID otroBloqueId) {
+    public void exigirDelBloque(BloqueId otroBloqueId) {
         if (!bloqueId.equals(otroBloqueId)) {
             throw new ResourceNotFoundException("El registro no existe");
         }
@@ -124,7 +143,7 @@ public class Registro {
      *
      * @throws ResourceNotFoundException si se cargó a mano y no tiene foto de origen
      */
-    public UUID exigirFotoOrigen() {
+    public FotoId exigirFotoOrigen() {
         if (fotoOrigenId == null) {
             throw new ResourceNotFoundException("El registro no tiene foto de origen");
         }

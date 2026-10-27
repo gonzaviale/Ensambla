@@ -1,8 +1,14 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
-import com.ensambla.backend.domain.model.enums.EstadoLote;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.bloque.TipoBloque;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.common.Identificador;
 import com.ensambla.backend.domain.model.lectura.ConsumoIa;
+import com.ensambla.backend.domain.model.lote.EstadoLote;
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
 import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.ConsumoDiario;
@@ -10,7 +16,9 @@ import com.ensambla.backend.domain.model.procesamiento.EstadoLectura;
 import com.ensambla.backend.domain.model.procesamiento.FotoLectura;
 import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
+import com.ensambla.backend.domain.model.procesamiento.ReclamoId;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
+import com.ensambla.backend.domain.model.procesamiento.TablaDisponible;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.infrastructure.ia.IaProperties;
 import com.ensambla.backend.infrastructure.ia.PromptLecturaCuaderno;
@@ -23,10 +31,10 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.sql.Date;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -59,7 +67,8 @@ public class ProcesamientoRepositoryImpl implements ProcesamientoRepository {
                 FROM siguiente s WHERE l.id = s.id
                 RETURNING l.id, l.negocio_id, l.bloque_destino_id, l.reclamo_id, l.intentos
                 """, new MapSqlParameterSource("ahora", ahora)
-                .addValue("vence", vence).addValue("token", UUID.randomUUID()), this::lote).stream().findFirst();
+                .addValue("vence", vence).addValue("token", ReclamoId.nuevo().valor()), this::lote).stream()
+                .findFirst();
     }
 
     @Override
@@ -81,24 +90,44 @@ public class ProcesamientoRepositoryImpl implements ProcesamientoRepository {
     }
 
     @Override
-    public List<BloqueLectura> bloques(UUID negocioId) {
+    public List<BloqueLectura> bloques(NegocioId negocioId) {
         List<Map<String, Object>> bloques = jdbcTemplate.queryForList("""
                 SELECT id, nombre FROM bloque WHERE negocio_id = :negocio ORDER BY id
-                """, Map.of("negocio", negocioId));
+                """, Map.of("negocio", negocioId.valor()));
         Map<UUID, List<CampoConocido>> campos = new LinkedHashMap<>();
         jdbcTemplate.query("""
                 SELECT id, bloque_id, nombre, tipo, opciones, bloque_relacionado_id FROM campo
                 WHERE negocio_id = :negocio ORDER BY posicion, id
-                """, Map.of("negocio", negocioId), fila -> {
+                """, Map.of("negocio", negocioId.valor()), fila -> {
             UUID bloqueId = fila.getObject("bloque_id", UUID.class);
             List<String> opciones = objectMapper.readValue(fila.getString("opciones"), new TypeReference<>() { });
             campos.computeIfAbsent(bloqueId, id -> new ArrayList<>()).add(new CampoConocido(
-                    fila.getObject("id", UUID.class), fila.getString("nombre"),
+                    CampoId.de(fila.getObject("id", UUID.class)), fila.getString("nombre"),
                     TipoCampo.valueOf(fila.getString("tipo")), opciones,
-                    fila.getObject("bloque_relacionado_id", UUID.class)));
+                    Identificador.opcional(fila.getObject("bloque_relacionado_id", UUID.class), BloqueId::de)));
         });
-        return bloques.stream().map(bloque -> new BloqueLectura((UUID) bloque.get("id"),
+        return bloques.stream().map(bloque -> new BloqueLectura(BloqueId.de((UUID) bloque.get("id")),
                 (String) bloque.get("nombre"), campos.getOrDefault(bloque.get("id"), List.of()))).toList();
+    }
+
+    @Override
+    public List<TablaDisponible> tablas(NegocioId negocioId) {
+        Map<BloqueId, BloqueLectura> porId = new LinkedHashMap<>();
+        bloques(negocioId).stream()
+                .filter(bloque -> bloque.campos().stream().anyMatch(campo -> campo.tipo() != TipoCampo.FORMULA))
+                .forEach(bloque -> porId.put(bloque.id(), bloque));
+        List<TablaDisponible> tablas = new ArrayList<>();
+        jdbcTemplate.query("""
+                SELECT b.id, p.nombre AS proyecto, b.tipo FROM bloque b
+                JOIN proyecto p ON p.negocio_id = b.negocio_id AND p.id = b.proyecto_id
+                WHERE b.negocio_id = :negocio ORDER BY p.nombre, b.posicion, b.id
+                """, Map.of("negocio", negocioId.valor()), fila -> {
+            BloqueLectura bloque = porId.get(BloqueId.de(fila.getObject("id", UUID.class)));
+            if (bloque != null) {
+                tablas.add(new TablaDisponible(bloque, fila.getString("proyecto"), TipoBloque.valueOf(fila.getString("tipo"))));
+            }
+        });
+        return tablas;
     }
 
     @Override
@@ -167,43 +196,46 @@ public class ProcesamientoRepositoryImpl implements ProcesamientoRepository {
     }
 
     @Override
-    public Optional<EstadoLectura> obtener(UUID negocioId, UUID loteId) {
+    public Optional<EstadoLectura> obtener(NegocioId negocioId, LoteId loteId) {
         return jdbcTemplate.query("""
                 SELECT l.id, l.estado, l.motivo_error, l.intentos,
                     (SELECT propuesta::text FROM lectura_ia i
                      WHERE i.negocio_id = l.negocio_id AND i.lote_id = l.id AND i.propuesta IS NOT NULL
                      ORDER BY i.creado_en DESC, i.id DESC LIMIT 1) AS propuesta
                 FROM lote_subida l WHERE l.negocio_id = :negocio AND l.id = :lote
-                """, Map.of("negocio", negocioId, "lote", loteId), (fila, indice) ->
-                new EstadoLectura(fila.getObject("id", UUID.class), EstadoLote.valueOf(fila.getString("estado")),
+                """, Map.of("negocio", negocioId.valor(), "lote", loteId.valor()), (fila, indice) ->
+                new EstadoLectura(LoteId.de(fila.getObject("id", UUID.class)), EstadoLote
+                        .valueOf(fila.getString("estado")),
                         fila.getString("motivo_error"), fila.getInt("intentos"),
                         propuesta(fila.getString("propuesta")))).stream().findFirst();
     }
 
     @Override
     @Transactional
-    public boolean reencolar(UUID negocioId, UUID loteId, OffsetDateTime ahora) {
+    public boolean reencolar(NegocioId negocioId, LoteId loteId, OffsetDateTime ahora) {
         return jdbcTemplate.update("""
                 UPDATE lote_subida SET estado = 'PENDIENTE', motivo_error = NULL, intentos = 0,
                     proximo_intento_en = :ahora, actualizado_en = :ahora
                 WHERE negocio_id = :negocio AND id = :lote AND estado = 'ERROR'
-                """, Map.of("negocio", negocioId, "lote", loteId, "ahora", ahora)) == 1;
+                """, Map.of("negocio", negocioId.valor(), "lote", loteId.valor(), "ahora", ahora)) == 1;
     }
 
     @Override
-    public ConsumoDiario consumo(UUID negocioId, LocalDate fecha) {
+    public ConsumoDiario consumo(NegocioId negocioId, LocalDate fecha) {
         return jdbcTemplate.queryForObject("""
                 SELECT COALESCE(c.paginas, 0) AS paginas, COALESCE(c.reservadas, 0) AS reservadas,
                     COALESCE(SUM(i.tokens_entrada), 0) AS entrada, COALESCE(SUM(i.tokens_salida), 0) AS salida,
-                    CASE WHEN COUNT(i.id) = 0 THEN 0 ELSE SUM(i.costo_estimado_usd) END AS costo,
-                    CASE WHEN COUNT(i.id) = 0 THEN true
+                    CASE WHEN COALESCE(c.paginas_inmediatas, 0) > 0 THEN NULL
+                        WHEN COUNT(i.id) = 0 THEN 0 ELSE SUM(i.costo_estimado_usd) END AS costo,
+                    CASE WHEN COALESCE(c.paginas_inmediatas, 0) > 0 THEN false
+                        WHEN COUNT(i.id) = 0 THEN true
                         ELSE BOOL_AND(i.consumo_completo AND i.costo_estimado_usd IS NOT NULL) END AS completo
                 FROM (VALUES (1)) base(dummy)
                 LEFT JOIN consumo_ia_diario c ON c.negocio_id = :negocio AND c.fecha = :fecha
                 LEFT JOIN lectura_ia i ON i.negocio_id = :negocio
                     AND i.dia_consumo = :fecha
-                GROUP BY c.paginas, c.reservadas
-                """, Map.of("negocio", negocioId, "fecha", fecha), (fila, indice) ->
+                GROUP BY c.paginas, c.reservadas, c.paginas_inmediatas
+                """, Map.of("negocio", negocioId.valor(), "fecha", fecha), (fila, indice) ->
                 new ConsumoDiario(fecha, fila.getInt("paginas"), fila.getInt("reservadas"),
                         fila.getLong("entrada"), fila.getLong("salida"),
                         fila.getBigDecimal("costo"), fila.getBoolean("completo")));
@@ -272,13 +304,15 @@ public class ProcesamientoRepositoryImpl implements ProcesamientoRepository {
     }
 
     private MapSqlParameterSource parametros(LoteTrabajo lote) {
-        return new MapSqlParameterSource("negocio", lote.negocioId())
-                .addValue("lote", lote.id()).addValue("token", lote.reclamoId());
+        return new MapSqlParameterSource("negocio", lote.negocioId().valor())
+                .addValue("lote", lote.id().valor()).addValue("token", lote.reclamoId().valor());
     }
 
     private LoteTrabajo lote(ResultSet fila, int indice) throws SQLException {
-        return new LoteTrabajo(fila.getObject("id", UUID.class), fila.getObject("negocio_id", UUID.class),
-                fila.getObject("bloque_destino_id", UUID.class), fila.getObject("reclamo_id", UUID.class),
+        return new LoteTrabajo(LoteId.de(fila.getObject("id", UUID.class)), NegocioId
+                .de(fila.getObject("negocio_id", UUID.class)),
+                Identificador.opcional(fila.getObject("bloque_destino_id", UUID.class), BloqueId::de),
+                ReclamoId.de(fila.getObject("reclamo_id", UUID.class)),
                 fila.getInt("intentos"));
     }
 }

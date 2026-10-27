@@ -1,6 +1,9 @@
 package com.ensambla.backend.domain.model.receta;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,7 +17,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * Receta de un producto: sus insumos con la cantidad de cada uno y la columna numérica de la que sale el precio de
@@ -35,13 +37,13 @@ public class Receta {
 
     static final BigDecimal CANTIDAD_MAXIMA = new BigDecimal("99999999999.999");
 
-    private UUID id;
+    private RecetaId id;
 
-    private UUID negocioId;
+    private NegocioId negocioId;
 
-    private UUID productoId;
+    private RegistroId productoId;
 
-    private UUID campoPrecioId;
+    private CampoId campoPrecioId;
 
     private List<LineaReceta> lineas;
 
@@ -56,9 +58,9 @@ public class Receta {
      * @throws RegistroInvalidoException con un mensaje por dato inválido: {@code campoPrecioId} o {@code lineas[i]}
      */
     public static Receta nueva(
-            UUID negocioId,
-            UUID productoId,
-            UUID campoPrecioId,
+            NegocioId negocioId,
+            RegistroId productoId,
+            CampoId campoPrecioId,
             List<LineaReceta> lineas,
             OffsetDateTime ahora) {
         Map<String, String> errores = new LinkedHashMap<>();
@@ -69,7 +71,7 @@ public class Receta {
         if (!limpias.isEmpty() && campoPrecioId == null) {
             errores.put("campoPrecioId", "Elegí la columna con el precio de los insumos");
         }
-        Set<UUID> vistos = new HashSet<>();
+        Set<RegistroId> vistos = new HashSet<>();
         for (int indice = 0; indice < limpias.size(); indice++) {
             String error = errorDeLinea(limpias.get(indice), productoId, vistos);
             if (error != null) {
@@ -100,7 +102,7 @@ public class Receta {
         this.creadoEn = guardada.getCreadoEn();
     }
 
-    public List<UUID> insumoIds() {
+    public List<RegistroId> insumoIds() {
         return lineas.stream().map(LineaReceta::insumoId).toList();
     }
 
@@ -109,7 +111,7 @@ public class Receta {
         return new LineaReceta(linea.insumoId(), linea.cantidad(), unidad);
     }
 
-    private static String errorDeLinea(LineaReceta linea, UUID productoId, Set<UUID> vistos) {
+    private static String errorDeLinea(LineaReceta linea, RegistroId productoId, Set<RegistroId> vistos) {
         if (linea.insumoId() == null) {
             return "Elegí el insumo";
         }

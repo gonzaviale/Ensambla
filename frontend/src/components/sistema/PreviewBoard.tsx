@@ -1,4 +1,4 @@
-import type { CSSProperties, DragEvent } from 'react';
+import { useState, type CSSProperties, type DragEvent } from 'react';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import { findBlock, totals } from '@/lib/sistema/core';
 import type { Ancho, Bloque, Campo, Sistema, Valor } from '@/lib/sistema/tipos';
@@ -17,8 +17,12 @@ type PreviewBoardProps = {
   /** La propuesta de Sami: se puede renombrar, quitar, ensanchar y arrastrar cada pieza. */
   editable?: boolean;
   onRenombrar?: (bloqueId: string) => void;
+  /** Editar un registro de ejemplo (o agregar uno, con `filaId` en `null`) antes de crear el sistema. */
+  onRegistro?: (bloqueId: string, filaId: string | null) => void;
   onQuitar?: (bloqueId: string) => void;
   onAncho?: (bloqueId: string, ancho: Ancho) => void;
+  /** Ver la tabla de una pieza a pantalla completa, como en el sistema. */
+  onTablaCompleta?: (bloqueId: string) => void;
   /** Arrastrar y soltar las piezas de la propuesta. */
   arrastrando?: string | null;
   /** La pieza (o `#canvas`, el lienzo vacío) sobre la que está pasando lo que se arrastra. */
@@ -55,11 +59,15 @@ function Contenido({
   bloque,
   sistema,
   compacto,
+  onRegistro,
 }: {
   bloque: Bloque;
   sistema: Sistema;
   compacto: boolean;
+  /** Con esto la tabla deja editar y agregar registros. */
+  onRegistro?: (bloqueId: string, filaId: string | null) => void;
 }) {
+  const [verTodas, setVerTodas] = useState(false);
   if (bloque.type === 'summary') {
     const resumen = totals(sistema);
     return (
@@ -75,29 +83,47 @@ function Contenido({
   const campos = bloque.fields
     .filter((campo) => !CAMPOS_OCULTOS.includes(campo.key))
     .slice(0, compacto ? 3 : 4);
-  const filas = bloque.rows.slice(0, compacto ? 2 : 3);
+  const limite = compacto ? 2 : 3;
+  const filas = verTodas ? bloque.rows : bloque.rows.slice(0, limite);
   return (
-    <div className="preview-table-scroll">
+    <div className={`preview-table-scroll${verTodas ? 'preview-table-expandida' : ''}`}>
       <table className="preview-table">
         <thead>
           <tr>
             {campos.map((campo) => (
               <th key={campo.key}>{campo.label}</th>
             ))}
+            {onRegistro && (
+              <th className="preview-row-actions">
+                <span className="sr-only">Acciones</span>
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
           {filas.length ? (
             filas.map((fila) => (
-              <tr key={fila.id}>
-                {campos.map((campo) => (
-                  <td key={campo.key}>{valorDeVista(sistema, campo, fila[campo.key])}</td>
+              <tr key={fila.id} className={fila.__example ? 'example-row' : undefined}>
+                {campos.map((campo, indice) => (
+                  <td key={campo.key}>
+                    {indice === 0 && fila.__example && <em className="example-badge">Ejemplo</em>}
+                    {valorDeVista(sistema, campo, fila[campo.key])}
+                  </td>
                 ))}
+                {onRegistro && (
+                  <td className="preview-row-actions">
+                    <IconBtn
+                      name="edit"
+                      label="Editar registro"
+                      onClick={() => onRegistro(bloque.id, fila.id)}
+                    />
+                  </td>
+                )}
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={campos.length}>
+              <td colSpan={campos.length + (onRegistro ? 1 : 0)}>
                 <span className="empty-preview">
                   {VACIO_POR_TIPO[bloque.type] ?? 'Un lugar listo para tus registros.'}
                 </span>
@@ -106,6 +132,20 @@ function Contenido({
           )}
         </tbody>
       </table>
+      {bloque.rows.length > limite && (
+        <button
+          type="button"
+          className="preview-more"
+          onClick={() => setVerTodas((valor) => !valor)}
+        >
+          {verTodas ? 'Ver menos' : `Ver todas (${bloque.rows.length})`}
+        </button>
+      )}
+      {onRegistro && (
+        <button type="button" className="preview-more" onClick={() => onRegistro(bloque.id, null)}>
+          + Agregar registro
+        </button>
+      )}
     </div>
   );
 }
@@ -117,8 +157,10 @@ export function PreviewBoard({
   seccionId = null,
   editable = false,
   onRenombrar,
+  onRegistro,
   onQuitar,
   onAncho,
+  onTablaCompleta,
   arrastrando = null,
   sobre = null,
   onArrastrar,
@@ -169,6 +211,7 @@ export function PreviewBoard({
             key={bloque.id}
             className={`preview-block ${arrastrando === bloque.id ? 'dragging' : ''} ${sobre === bloque.id ? 'drag-over' : ''}`.trim()}
             data-width={bloque.width}
+            data-color={bloque.color}
             data-draft-block={editable ? bloque.id : undefined}
             style={estilo}
           >
@@ -189,6 +232,14 @@ export function PreviewBoard({
               )}
               {editable && (
                 <div className="preview-controls">
+                  {onTablaCompleta && bloque.type !== 'summary' && bloque.type !== 'note' && (
+                    <IconBtn
+                      name="expand"
+                      label={`Ver ${bloque.name} a pantalla completa`}
+                      data-accion="table-fullscreen"
+                      onClick={() => onTablaCompleta(bloque.id)}
+                    />
+                  )}
                   <button
                     type="button"
                     className="icon-btn"
@@ -220,14 +271,12 @@ export function PreviewBoard({
                 />
               </div>
             )}
-            <Contenido bloque={bloque} sistema={sistema} compacto={compacto} />
-            {!compacto && (
-              <div className="preview-field-tags">
-                {bloque.fields.slice(0, 5).map((campo) => (
-                  <span key={campo.key}>{campo.label}</span>
-                ))}
-              </div>
-            )}
+            <Contenido
+              bloque={bloque}
+              sistema={sistema}
+              compacto={compacto}
+              onRegistro={editable ? onRegistro : undefined}
+            />
           </section>
         );
       })}

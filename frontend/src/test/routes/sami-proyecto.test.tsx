@@ -32,7 +32,9 @@ describe('«Armalo con Sami» (crear un proyecto real)', () => {
   it('empieza con el saludo de Sami y sin propuesta', async () => {
     await abrirSami();
 
-    expect(screen.getByText(/Hola, Ana Pérez\. Contame qué hacés/)).toBeVisible();
+    expect(screen.getByText('Hola, Ana Pérez.')).toBeVisible();
+    expect(screen.getByText('Contame qué hacés y cómo te organizás hoy.')).toBeVisible();
+    expect(screen.getByText(/Yo pienso una base y vos me decís si te sirve/)).toBeVisible();
     expect(screen.getByText('TU PROPUESTA VA A APARECER ACÁ')).toBeVisible();
     expect(screen.queryByLabelText('Nombre de tu proyecto')).toBeNull();
   });
@@ -181,7 +183,8 @@ describe('«Armalo con Sami» (crear un proyecto real)', () => {
     expect(screen.queryByText('Vendo velas y anoto quién me debe')).toBeNull();
   });
 
-  it('se llega desde el inicio', async () => {
+  // La home ya no enlaza a /sami («Crear con Sami» abre el taller): se retoma si vuelve el acceso.
+  it.skip('se llega desde el inicio', async () => {
     setupUsuarioConSesion({ nombre: 'Ana Pérez' });
     const router = renderApp('/inicio');
     await verifyHeadingPresentAsync(/En qué puedo/);

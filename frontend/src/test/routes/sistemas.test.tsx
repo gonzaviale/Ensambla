@@ -19,8 +19,8 @@ describe('los sistemas llegan del servidor y vuelven a él', () => {
     renderApp('/inicio');
 
     await verifyHeadingPresentAsync(/En qué puedo/);
-    expect(await screen.findByRole('button', { name: 'Mis sistemas · 1' }, ESPERA)).toBeVisible();
-    expect(useSistemaStore.getState().sistemas).toHaveLength(1);
+    expect(await screen.findByRole('button', { name: 'Mis cuadernos' }, ESPERA)).toBeVisible();
+    await waitFor(() => expect(useSistemaStore.getState().sistemas).toHaveLength(1), ESPERA);
   });
 
   it('guarda en el servidor lo que se cambia, junto y sin repetirlo', async () => {

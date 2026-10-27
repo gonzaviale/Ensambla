@@ -1,10 +1,6 @@
-import type { ReactNode } from 'react';
 import type { ModoDelEditor } from '@/stores/sistemaStore';
-import { Btn } from '../Btn';
 import { Icon } from '../Icon';
 import { IconBtn } from '../IconBtn';
-import { Logo } from '../Logo';
-import { Sami } from '../Sami';
 
 type Props = {
   nombre: string;
@@ -12,38 +8,34 @@ type Props = {
   /** Hay cambios que todavía no llegaron al servidor. */
   guardando: boolean;
   puedeDeshacer: boolean;
-  campana?: ReactNode;
-  onInicio: () => void;
+  /** Vuelve a la lista de cuadernos. */
+  onCuadernos: () => void;
   onModo: (modo: ModoDelEditor) => void;
   onDeshacer: () => void;
-  onAyuda: () => void;
 };
 
-// La barra de arriba del editor: migas, estado de guardado, Construir/Usar, deshacer y ayuda de Sami.
+// Las herramientas del cuaderno, arriba del lienzo: migas, estado de guardado, Construir/Usar y deshacer.
+// El navbar de arriba es el mismo de todas las pantallas (CabeceraComun).
 export function EncabezadoDelEditor({
   nombre,
   modo,
   guardando,
   puedeDeshacer,
-  campana,
-  onInicio,
+  onCuadernos,
   onModo,
   onDeshacer,
-  onAyuda,
 }: Props) {
   return (
-    <header className="topbar editor-topbar">
+    <div className="editor-herramientas">
       <div className="row">
-        <Logo onClick={onInicio} />
-        <span className="editor-divider" />
         <button
           type="button"
           className="editor-crumb"
           data-accion="home"
-          title="Volver a mis sistemas"
-          onClick={onInicio}
+          title="Volver a mis cuadernos"
+          onClick={onCuadernos}
         >
-          Mis sistemas / <strong>{nombre}</strong>
+          Mis cuadernos / <strong>{nombre}</strong>
         </button>
         <span className="save-status">
           <Icon name="check-circle" />
@@ -72,7 +64,7 @@ export function EncabezadoDelEditor({
             onClick={() => onModo('use')}
           >
             <Icon name="eye" />
-            Usar sistema
+            Usar cuaderno
           </button>
         </div>
         <IconBtn
@@ -81,11 +73,7 @@ export function EncabezadoDelEditor({
           disabled={!puedeDeshacer}
           onClick={onDeshacer}
         />
-        {campana}
-        <Btn cls="soft small" onClick={onAyuda}>
-          <Sami /> Sami
-        </Btn>
       </div>
-    </header>
+    </div>
   );
 }

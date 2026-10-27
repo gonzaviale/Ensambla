@@ -5,7 +5,7 @@ export function InvitacionConfigurarComercio({
   onIr,
 }: {
   visible: boolean;
-  onIr: () => void;
+  onIr?: () => void;
 }) {
   if (!visible) return null;
   return (

@@ -1,6 +1,8 @@
 import type { Sistema } from '@/lib/sistema/tipos';
 import type { AvisoDelServidor } from '@/types/avisos';
 import type { ConfiguracionNegocio } from '@/types/negocio';
+import type { PruebaPremium } from '@/types/planes';
+import type { VerificacionWhatsapp, VinculoWhatsapp } from '@/types/whatsapp';
 import { PREFERENCIAS_INICIALES, type Preferencias } from '@/types/preferencias';
 
 export type UsuarioMock = {
@@ -8,6 +10,11 @@ export type UsuarioMock = {
   nombre: string;
   email: string;
   contrasenia: string;
+};
+
+export type CuentaWhatsapp = {
+  vinculo: VinculoWhatsapp | null;
+  verificacion: (VerificacionWhatsapp & { intentos: number }) | null;
 };
 
 type Estado = {
@@ -19,6 +26,11 @@ type Estado = {
   negocios: Map<string, ConfiguracionNegocio>;
   /** Los avisos que el motor del servidor dejó a cada cuenta (por email); los tests los siembran. */
   avisosDelServidor: Map<string, AvisoDelServidor[]>;
+  pruebasPremium: Map<string, PruebaPremium>;
+  contenidosDesbloqueados: Map<string, string[]>;
+  paginasIa: Map<string, number>;
+  /** El WhatsApp de cada cuenta (por email): el número vinculado y la verificación en curso. */
+  whatsapp: Map<string, CuentaWhatsapp>;
   /** Se llama después de cada cambio de datos: el navegador lo usa para no perderlos al recargar. */
   alCambiar: (() => void) | null;
 };
@@ -30,6 +42,10 @@ export const estado: Estado = {
   preferencias: new Map(),
   negocios: new Map(),
   avisosDelServidor: new Map(),
+  pruebasPremium: new Map(),
+  contenidosDesbloqueados: new Map(),
+  paginasIa: new Map(),
+  whatsapp: new Map(),
   alCambiar: null,
 };
 
@@ -40,6 +56,10 @@ export function reiniciarEstado() {
   estado.preferencias = new Map();
   estado.negocios = new Map();
   estado.avisosDelServidor = new Map();
+  estado.pruebasPremium = new Map();
+  estado.contenidosDesbloqueados = new Map();
+  estado.paginasIa = new Map();
+  estado.whatsapp = new Map();
   estado.alCambiar = null;
 }
 

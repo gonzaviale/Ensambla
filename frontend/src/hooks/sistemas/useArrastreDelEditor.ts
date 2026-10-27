@@ -8,14 +8,17 @@ import type { Ancho, Bloque, TipoBloque } from '@/lib/sistema/tipos';
 import {
   agregarBloque,
   cambiarAncho,
-  juntarBloques,
+  intercambiarBloques,
   reubicarBloque,
 } from '@/stores/accionesDelEditor';
 
 export type CargaDeArrastre = { tipo: 'catalogo' | 'bloque'; valor: string };
 
+/** Hacia dónde se corre el bloque de destino cuando se le suelta otro encima. */
+export type LadoDelCambio = 'left' | 'right' | 'top' | 'bottom';
+
 /** Lo que está bajo el cursor mientras se arrastra: una pieza, una pestaña de sección o el lienzo. */
-export type SobreElDestino = { bloque?: string; destino?: string } | null;
+export type SobreElDestino = { bloque?: string; lado?: LadoDelCambio; destino?: string } | null;
 
 export type AjusteDeAncho = { id: string; span: number };
 
@@ -26,6 +29,18 @@ const DESTINOS = `${LIENZO},[data-drop-section]`;
 function marcarRaiz(accion: (raiz: HTMLElement) => void) {
   const raiz = document.querySelector<HTMLElement>('.mk-root');
   if (raiz) accion(raiz);
+}
+
+// El bloque de destino se va al lugar del que se arrastra: la barra marca ese lado.
+function ladoHaciaElArrastrado(arrastradoId: string, destino: HTMLElement): LadoDelCambio {
+  const arrastrado = document.querySelector<HTMLElement>(`[data-block="${arrastradoId}"]`);
+  if (!arrastrado) return 'top';
+  const a = arrastrado.getBoundingClientRect();
+  const b = destino.getBoundingClientRect();
+  const dx = a.left + a.width / 2 - (b.left + b.width / 2);
+  const dy = a.top + a.height / 2 - (b.top + b.height / 2);
+  if (Math.abs(dx) > Math.abs(dy)) return dx < 0 ? 'left' : 'right';
+  return dy < 0 ? 'top' : 'bottom';
 }
 
 // Un tamaño por cada ancho posible: qué fracción de la fila ocupa y cuántas de las 12 columnas.
@@ -68,13 +83,21 @@ export function useArrastreDelEditor(seccionId: string | undefined) {
     const objetivo = evento.target as HTMLElement;
     const destino = objetivo.closest<HTMLElement>(DESTINOS);
     if (!destino) return;
+    const nodo = objetivo.closest<HTMLElement>('[data-block]');
+    const bloque = nodo?.dataset.block;
+    if (carga.tipo === 'bloque') {
+      // Un bloque solo cambia de lugar con otro, o se pasa a otra sección desde su pestaña.
+      if (nodo && bloque && bloque !== carga.valor) {
+        evento.preventDefault();
+        setSobre({ bloque, lado: ladoHaciaElArrastrado(carga.valor, nodo) });
+      } else if (destino.dataset.dropSection) {
+        evento.preventDefault();
+        setSobre({ destino: destino.dataset.dropSection });
+      } else setSobre(null);
+      return;
+    }
     evento.preventDefault();
-    const bloque = objetivo.closest<HTMLElement>('[data-block]')?.dataset.block;
-    setSobre(
-      bloque && bloque !== carga.valor
-        ? { bloque }
-        : { destino: destino.dataset.dropSection ?? LIENZO },
-    );
+    setSobre(bloque ? { bloque } : { destino: destino.dataset.dropSection ?? LIENZO });
   };
 
   const alSoltar = (evento: DragEvent<HTMLElement>) => {
@@ -88,20 +111,12 @@ export function useArrastreDelEditor(seccionId: string | undefined) {
     const seccionDestino = destino.dataset.dropSection ?? seccionId;
     if (!seccionDestino) return;
     const antes = objetivo.closest<HTMLElement>('[data-block]')?.dataset.block ?? null;
-    const lado = objetivo.closest<HTMLElement>('[data-drop-side]')?.dataset.dropSide;
-    if ((lado === 'left' || lado === 'right') && antes) {
-      juntarBloques(
-        origen.tipo === 'catalogo'
-          ? { tipo: 'catalogo', valor: origen.valor as TipoBloque }
-          : { tipo: 'bloque', valor: origen.valor },
-        antes,
-        lado,
-        seccionDestino,
-      );
-    } else if (origen.tipo === 'catalogo') {
+    if (origen.tipo === 'catalogo') {
       agregarBloque(origen.valor as TipoBloque, antes, seccionDestino);
-    } else if (origen.valor !== antes) {
-      reubicarBloque(origen.valor, seccionDestino, antes);
+    } else if (destino.dataset.dropSection) {
+      reubicarBloque(origen.valor, seccionDestino, null);
+    } else if (antes && antes !== origen.valor) {
+      intercambiarBloques(origen.valor, antes);
     }
   };
 

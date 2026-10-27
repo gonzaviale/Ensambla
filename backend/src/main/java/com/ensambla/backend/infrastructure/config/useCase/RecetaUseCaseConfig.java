@@ -1,13 +1,15 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.mapper.receta.GuardarRecetaMapper;
-import com.ensambla.backend.domain.mapper.receta.ObtenerRecetaMapper;
-import com.ensambla.backend.domain.mapper.receta.RecetaItemMapper;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.receta.RecetaRepository;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.receta.RecetaService;
-import com.ensambla.backend.domain.service.registro.RegistroDatosService;
-import com.ensambla.backend.domain.useCase.receta.GuardarRecetaUseCase;
-import com.ensambla.backend.domain.useCase.receta.ObtenerRecetaUseCase;
+import com.ensambla.backend.domain.useCase.receta.guardarReceta.GuardarReceta;
+import com.ensambla.backend.domain.useCase.receta.obtenerReceta.ObtenerReceta;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -17,35 +19,34 @@ import java.time.Clock;
 public class RecetaUseCaseConfig {
 
     @Bean
-    public RecetaItemMapper recetaItemMapper() {
-        return new RecetaItemMapper();
+    public ObtenerReceta obtenerReceta(
+            NegocioRepository negocioRepository,
+            ControlPlanService controlPlanService,
+            Clock clock,
+            RegistroRepository registroRepository,
+            RecetaService recetaService,
+            RecetaRepository recetaRepository) {
+        return new ObtenerReceta(
+                negocioRepository, controlPlanService, clock, registroRepository, recetaService, recetaRepository);
     }
 
     @Bean
-    public ObtenerRecetaMapper obtenerRecetaMapper(RecetaItemMapper recetaItemMapper) {
-        return new ObtenerRecetaMapper(recetaItemMapper);
+    public GuardarReceta guardarReceta(
+            NegocioRepository negocioRepository,
+            ControlPlanService controlPlanService,
+            RecetaService recetaService,
+            RecetaRepository recetaRepository,
+            CampoRepository campoRepository,
+            RegistroRepository registroRepository,
+            TransaccionPort transaccionPort,
+            Clock clock) {
+        return new GuardarReceta(
+                negocioRepository, controlPlanService, recetaService, recetaRepository,
+                campoRepository, registroRepository, transaccionPort, clock);
     }
 
     @Bean
-    public GuardarRecetaMapper guardarRecetaMapper(RecetaItemMapper recetaItemMapper) {
-        return new GuardarRecetaMapper(recetaItemMapper);
-    }
-
-    @Bean
-    public ObtenerRecetaUseCase obtenerRecetaUseCase(NegocioService negocioService,
-                                                     RegistroDatosService registroDatosService,
-                                                     RecetaService recetaService,
-                                                     ObtenerRecetaMapper obtenerRecetaMapper) {
-        return new ObtenerRecetaUseCase(negocioService, registroDatosService, recetaService, obtenerRecetaMapper);
-    }
-
-    @Bean
-    public GuardarRecetaUseCase guardarRecetaUseCase(NegocioService negocioService,
-                                                     RegistroDatosService registroDatosService,
-                                                     RecetaService recetaService,
-                                                     GuardarRecetaMapper guardarRecetaMapper,
-                                                     Clock clock) {
-        return new GuardarRecetaUseCase(
-                negocioService, registroDatosService, recetaService, guardarRecetaMapper, clock);
+    public RecetaService recetaService(CampoRepository campoRepository, RegistroRepository registroRepository) {
+        return new RecetaService(campoRepository, registroRepository);
     }
 }

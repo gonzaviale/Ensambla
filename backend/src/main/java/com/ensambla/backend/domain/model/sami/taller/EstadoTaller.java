@@ -4,8 +4,8 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Resumen del sistema que se arma en el taller: nombre, distribución y piezas con sus campos y sus primeras filas
- * (id y primeros datos), para que cada turno con la IA cueste pocos tokens.
+ * Resumen del sistema que se arma en el taller: nombre, distribución y piezas con sus campos. No lleva filas ni datos
+ * de ejemplo, para que cada turno con la IA cueste pocos tokens.
  */
 public record EstadoTaller(String nombre, String distribucion, List<PiezaTaller> piezas) {
 

@@ -17,6 +17,7 @@ const MENSAJE_DESHECHO = 'Listo, volví atrás. ¿Probamos otra cosa?';
 const MENSAJE_SIN_CAMBIOS = 'No pude hacer ese cambio. ¿Me lo contás de otra manera?';
 const MENSAJES_DE_HISTORIAL = 6;
 const LARGO_MAXIMO_DE_MENSAJE = 1000;
+const LARGO_MAXIMO_DE_RESPUESTAS = 2000;
 const MENSAJE_SOLO_FOTO = 'Te mando una foto.';
 const MENSAJE_FOTO_PESADA = 'La foto pesa más de 5 MB aun achicada. Probá con otra más liviana.';
 const MENSAJE_FOTO_TIPO = 'Esa foto no la puedo mirar. Elegí una JPG, PNG o WEBP.';
@@ -47,7 +48,7 @@ export const vistaDeFoto = (foto: ImagenParaSami) => `data:${foto.tipo};base64,$
 type Turno = {
   borrador: Sistema | null;
   respuesta: string;
-  opciones: OpcionesDeSami | null;
+  dudas: OpcionesDeSami[];
   /** La propuesta antes de este cambio, si cambió algo. */
   anterior: Sistema | null;
 };
@@ -56,13 +57,31 @@ type Turno = {
 function textoDeSami(
   respuesta: string,
   aplicadas: string[],
-  opciones: OpcionesDeSami | null,
+  dudas: OpcionesDeSami[],
   primeraVez: boolean,
 ) {
   if (respuesta.trim()) return respuesta.trim();
-  if (!aplicadas.length) return opciones?.pregunta.trim() || MENSAJE_SIN_CAMBIOS;
+  if (!aplicadas.length) return dudas[0]?.pregunta.trim() || MENSAJE_SIN_CAMBIOS;
   const cierre = primeraVez ? 'Ya podés verlo a la derecha.' : 'Mirá cómo queda.';
   return `${aplicadas.join(' ')} ${cierre} ¿Qué cambiarías?`;
+}
+
+const limpiarFinal = (texto: string) => texto.trim().replace(/[.\s]+$/, '');
+
+/**
+ * El mensaje único con lo que la persona fue respondiendo a las dudas de Sami («Tildes: ya entregado y cobrado.
+ * Número de la derecha: lo que me deben»). Una duda saltada (`null`) no se cuenta. Con una sola duda, la respuesta va
+ * tal cual. Sin ninguna respuesta no hay mensaje.
+ */
+export function mensajeDeDudas(dudas: OpcionesDeSami[], respuestas: (string | null)[]): string {
+  if (dudas.length === 1) return respuestas[0]?.trim() ?? '';
+  return dudas
+    .flatMap((duda, indice) => {
+      const respuesta = respuestas[indice]?.trim();
+      return respuesta ? [`${duda.tema?.trim() || duda.pregunta.trim()}: ${limpiarFinal(respuesta)}.`] : [];
+    })
+    .join(' ')
+    .slice(0, LARGO_MAXIMO_DE_RESPUESTAS);
 }
 
 // La charla con Sami en el taller. Cada mensaje (también el primero) va a POST /api/sami/taller: el modelo conversa
@@ -77,16 +96,16 @@ export function useTaller() {
     imagen: ImagenParaSami | null,
   ): Promise<Turno> => {
     const { borrador } = taller;
-    const base = borrador ?? makeSystem(taller.nombre || 'Mi sistema', [], false);
+    const base = borrador ?? makeSystem(taller.nombre || 'Mi cuaderno', [], false);
     const charla = taller.mensajes.map((mensaje) => ({
       quien: mensaje.quien,
       texto: mensaje.texto.slice(0, LARGO_MAXIMO_DE_MENSAJE),
     }));
     // La pregunta de la botonera no siempre está en el texto de Sami; sin ella, «Sólo servicios» se entiende como
     // «dejá sólo la pieza Servicios». Va como lo último que dijo Sami.
-    const pregunta = taller.opciones?.pregunta;
-    if (pregunta && !charla.at(-1)?.texto.includes(pregunta)) {
-      charla.push({ quien: 'sami', texto: pregunta });
+    const primera = taller.dudas[0]?.pregunta;
+    if (primera && !charla.at(-1)?.texto.includes(primera)) {
+      charla.push({ quien: 'sami', texto: taller.dudas.map((duda) => duda.pregunta).join(' ') });
     }
     const historial = charla.slice(-MENSAJES_DE_HISTORIAL);
     const respuesta = await consulta.mutateAsync({
@@ -100,11 +119,11 @@ export function useTaller() {
     const cambio = !mismoSistema(copia, base);
     // Lo primero que arma Sami se acomoda como el resto de las propuestas: el stock a lo ancho, lo demás de a dos.
     if (cambio && !borrador && !copia.layout) applyLayout(copia, 'mosaic');
-    const opciones = respuesta.opciones ?? null;
+    const dudas = respuesta.preguntas;
     return {
       borrador: borrador || cambio ? copia : null,
-      respuesta: textoDeSami(respuesta.respuesta, cambio ? aplicadas : [], opciones, !borrador),
-      opciones,
+      respuesta: textoDeSami(respuesta.respuesta, cambio ? aplicadas : [], dudas, !borrador),
+      dudas,
       anterior: borrador && cambio ? borrador : null,
     };
   };
@@ -127,7 +146,8 @@ export function useTaller() {
       entrada: '',
       foto: null,
       pensando: true,
-      opciones: null,
+      dudas: [],
+      respuestasDeDudas: [],
       mensajes: [
         ...actual.mensajes,
         { quien: 'you', texto, ...(foto && { foto: vistaDeFoto(foto) }) },
@@ -151,7 +171,8 @@ export function useTaller() {
           borrador: sistema,
           seccionId: seccionVigente ? actual.seccionId : (sistema?.sections[0]?.id ?? null),
           pensando: false,
-          opciones: turno.opciones,
+          dudas: turno.dudas,
+          respuestasDeDudas: [],
           anterior: turno.anterior,
           mensajes: [...actual.mensajes, { quien: 'sami', texto: turno.respuesta }],
         };
@@ -161,6 +182,25 @@ export function useTaller() {
       useSistemaStore.getState().actualizarTaller({ pensando: false });
       useSistemaStore.getState().avisar(error instanceof Error ? error.message : MENSAJE_FALLO);
     }
+  };
+
+  /**
+   * Responde la duda que está a la vista (`null` la saltea). Con dudas todavía por responder, pasa a la siguiente; al
+   * responder la última, todas las respuestas viajan juntas a Sami en un solo mensaje. Si se saltearon todas, no se
+   * manda nada.
+   */
+  const responderDuda = (respuesta: string | null) => {
+    const store = useSistemaStore.getState();
+    const taller = store.taller;
+    if (!taller || taller.pensando || !taller.dudas.length) return;
+    const respuestas = [...taller.respuestasDeDudas, respuesta];
+    if (respuestas.length < taller.dudas.length) {
+      store.actualizarTaller({ respuestasDeDudas: respuestas });
+      return;
+    }
+    const mensaje = mensajeDeDudas(taller.dudas, respuestas);
+    if (mensaje) void enviar(mensaje, { esOpcion: true });
+    else store.actualizarTaller({ dudas: [], respuestasDeDudas: [] });
   };
 
   /** Vuelve la propuesta a como estaba antes del último cambio de Sami. */
@@ -173,7 +213,8 @@ export function useTaller() {
         ? actual.seccionId
         : (actual.anterior?.sections[0]?.id ?? null),
       anterior: null,
-      opciones: null,
+      dudas: [],
+      respuestasDeDudas: [],
       mensajes: [...actual.mensajes, { quien: 'sami', texto: MENSAJE_DESHECHO }],
     }));
   };
@@ -192,5 +233,5 @@ export function useTaller() {
 
   const quitarFoto = () => useSistemaStore.getState().actualizarTaller({ foto: null });
 
-  return { enviar, deshacer, adjuntarFoto, quitarFoto };
+  return { enviar, responderDuda, deshacer, adjuntarFoto, quitarFoto };
 }

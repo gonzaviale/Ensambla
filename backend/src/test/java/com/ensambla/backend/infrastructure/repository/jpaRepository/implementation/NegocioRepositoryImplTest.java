@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
 import com.ensambla.backend.domain.model.negocio.Negocio;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.INegocioJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.NegocioRepositoryMapper;
@@ -27,14 +28,14 @@ class NegocioRepositoryImplTest {
     @DisplayName("Devuelve el negocio con el id generado por persistencia")
     void saveShouldReturnPersistedNegocio() {
         when(negocioJpaRepository.saveAndFlush(any())).thenReturn(NegocioEntity.builder()
-                .id(USUARIO_ID)
+                .id(USUARIO_ID.valor())
                 .nombre("Mi negocio")
-                .duenioId(USUARIO_ID)
+                .duenioId(USUARIO_ID.valor())
                 .build());
 
         Negocio result = negocioRepository.save(Negocio.builder().nombre("Mi negocio").build());
 
-        assertThat(result.getId()).isEqualTo(USUARIO_ID);
+        assertThat(result.getId()).isEqualTo(NegocioId.de(USUARIO_ID.valor()));
         assertThat(result.getNombre()).isEqualTo("Mi negocio");
         assertThat(result.getDuenioId()).isEqualTo(USUARIO_ID);
     }
@@ -44,8 +45,8 @@ class NegocioRepositoryImplTest {
     void findIdByDuenioIdShouldMapId() {
         var jpa = mock(INegocioJpaRepository.class);
         var mapper = new NegocioRepositoryMapper();
-        when(jpa.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(USUARIO_ID))
-                .thenReturn(Optional.of(NegocioEntity.builder().id(NEGOCIO_ID).build()));
+        when(jpa.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(USUARIO_ID.valor()))
+                .thenReturn(Optional.of(NegocioEntity.builder().id(NEGOCIO_ID.valor()).build()));
 
         var result = new NegocioRepositoryImpl(jpa, mapper).findIdByDuenioId(USUARIO_ID);
 
@@ -55,7 +56,7 @@ class NegocioRepositoryImplTest {
     @Test
     @DisplayName("Lista los ids de todos los negocios")
     void findAllIdsShouldDelegateToJpa() {
-        when(negocioJpaRepository.findAllIds()).thenReturn(List.of(NEGOCIO_ID));
+        when(negocioJpaRepository.findAllIds()).thenReturn(List.of(NEGOCIO_ID.valor()));
 
         assertThat(negocioRepository.findAllIds()).containsExactly(NEGOCIO_ID);
     }

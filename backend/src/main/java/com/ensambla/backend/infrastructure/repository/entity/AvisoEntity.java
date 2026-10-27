@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.repository.entity;
 
-import com.ensambla.backend.domain.model.enums.EstadoAviso;
-import com.ensambla.backend.domain.model.enums.GrupoAviso;
-import com.ensambla.backend.domain.model.enums.TipoAviso;
+import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.GrupoAviso;
+import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

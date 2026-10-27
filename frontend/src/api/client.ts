@@ -17,6 +17,8 @@ type RequestOptions = {
   method?: Method;
   body?: unknown;
   signal?: AbortSignal;
+  /** Encabezados propios de un pedido (el CSRF y el Content-Type los arma el cliente). */
+  headers?: Record<string, string>;
 };
 
 function buildUrl(path: string) {
@@ -27,8 +29,8 @@ async function toApiError(response: Response) {
   const body: unknown = await response.json().catch(() => null);
   const parsed = errorResponseSchema.safeParse(body);
   if (!parsed.success) return new ApiError(response.status, MENSAJE_INESPERADO);
-  const { status, message, errors, traceId } = parsed.data;
-  return new ApiError(status, message, errors, traceId);
+  const { status, message, errors, traceId, codigo } = parsed.data;
+  return new ApiError(status, message, errors, traceId, codigo);
 }
 
 async function fetchRed(url: URL, init: RequestInit) {
@@ -67,11 +69,11 @@ function obtenerCsrf(): Promise<Csrf> {
 
 async function send(
   path: string,
-  { method = 'GET', body, signal }: RequestOptions,
+  { method = 'GET', body, signal, headers: extra }: RequestOptions,
   puedeReintentar = true,
 ): Promise<Response> {
   const esMutacion = method !== 'GET';
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { ...extra };
   // Con FormData el navegador arma el Content-Type multipart con su boundary.
   const esFormulario = body instanceof FormData;
   if (body !== undefined && !esFormulario) headers['Content-Type'] = 'application/json';
@@ -88,8 +90,16 @@ async function send(
   });
 
   if (response.status === 403 && esMutacion && puedeReintentar) {
+    // Una restricción comercial no es un CSRF vencido: repetir la escritura no la resuelve.
+    const rechazo = errorResponseSchema.safeParse(
+      await response
+        .clone()
+        .json()
+        .catch(() => null),
+    );
+    if (rechazo.success && rechazo.data.codigo) return response;
     invalidarCsrf();
-    return send(path, { method, body, signal }, false);
+    return send(path, { method, body, signal, headers: extra }, false);
   }
   return response;
 }
@@ -112,6 +122,18 @@ async function request<S extends z.ZodTypeAny>(
   await exigirOk(path, response);
   const data: unknown = response.status === 204 ? undefined : await response.json();
   return schema.parse(data);
+}
+
+/** Un GET que además lee un encabezado de la respuesta (null si el servidor no lo manda). */
+async function requestConEncabezado<S extends z.ZodTypeAny>(
+  path: string,
+  schema: S,
+  encabezado: string,
+  signal?: AbortSignal,
+): Promise<{ datos: z.output<S>; encabezado: string | null }> {
+  const response = await send(path, { signal });
+  await exigirOk(path, response);
+  return { datos: schema.parse(await response.json()), encabezado: response.headers.get(encabezado) };
 }
 
 /** Un archivo que el servidor manda para descargar, con el nombre que sugiere. */
@@ -137,14 +159,25 @@ async function requestArchivo(path: string, signal?: AbortSignal): Promise<Archi
 
 export const http = {
   getArchivo: (path: string, signal?: AbortSignal) => requestArchivo(path, signal),
+  getConEncabezado: <S extends z.ZodTypeAny>(
+    path: string,
+    schema: S,
+    encabezado: string,
+    signal?: AbortSignal,
+  ) => requestConEncabezado(path, schema, encabezado, signal),
   get: <S extends z.ZodTypeAny>(path: string, schema: S, signal?: AbortSignal) =>
     request(path, schema, { signal }),
   post: <S extends z.ZodTypeAny>(path: string, body: unknown, schema: S, signal?: AbortSignal) =>
     request(path, schema, { method: 'POST', body, signal }),
   postForm: <S extends z.ZodTypeAny>(path: string, body: FormData, schema: S) =>
     request(path, schema, { method: 'POST', body }),
-  put: <S extends z.ZodTypeAny>(path: string, body: unknown, schema: S) =>
-    request(path, schema, { method: 'PUT', body }),
+  put: <S extends z.ZodTypeAny>(
+    path: string,
+    body: unknown,
+    schema: S,
+    headers?: Record<string, string>,
+  ) =>
+    request(path, schema, { method: 'PUT', body, headers }),
   patch: <S extends z.ZodTypeAny>(path: string, body: unknown, schema: S) =>
     request(path, schema, { method: 'PATCH', body }),
   delete: <S extends z.ZodTypeAny>(path: string, schema: S) =>

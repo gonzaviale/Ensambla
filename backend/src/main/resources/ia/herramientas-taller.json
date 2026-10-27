@@ -1,14 +1,13 @@
 [
   {
     "name": "agregar_pieza",
-    "description": "Suma un componente. campos extra: [{etiqueta,tipo,opciones}]; ejemplos: [{etiqueta: valor}].",
+    "description": "Suma un componente. campos extra: [{etiqueta,tipo,opciones}]. Nunca inventes filas.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "tipo": {"type": "string"},
         "nombre": {"type": "string"},
         "campos": {"type": "array"},
-        "ejemplos": {"type": "array"},
         "seccion": {"type": "string"}
       },
       "required": ["tipo"]
@@ -88,15 +87,6 @@
     }
   },
   {
-    "name": "cargar_ejemplos",
-    "description": "Reemplaza los ejemplos de una pieza.",
-    "inputSchema": {
-      "type": "object",
-      "properties": {"pieza": {"type": "string"}, "filas": {"type": "array"}},
-      "required": ["pieza", "filas"]
-    }
-  },
-  {
     "name": "cargar_registros",
     "description": "Suma registros reales (de una foto) a una pieza; hasta 30 filas.",
     "inputSchema": {
@@ -106,21 +96,15 @@
     }
   },
   {
-    "name": "editar_registro",
-    "description": "Cambia datos de un registro que ya está. registro: su nombre (o id si se repite).",
+    "name": "borrar_registros",
+    "description": "Borra registros ya cargados de una pieza que coinciden con donde: {Etiqueta: valor} o una lista de esos (hasta 10). Usala antes de recargar lo que ya cargaste, para no duplicar: si vas a corregir, invocá borrar_registros Y cargar_registros en la MISMA respuesta (primero una, después la otra), nunca sólo una. Sin donde no borra nada.",
     "inputSchema": {
       "type": "object",
-      "properties": {"pieza": {"type": "string"}, "registro": {"type": "string"}, "cambios": {"type": "object"}},
-      "required": ["pieza", "registro", "cambios"]
-    }
-  },
-  {
-    "name": "quitar_registro",
-    "description": "Quita un registro que ya está. registro: su nombre (o id si se repite).",
-    "inputSchema": {
-      "type": "object",
-      "properties": {"pieza": {"type": "string"}, "registro": {"type": "string"}},
-      "required": ["pieza", "registro"]
+      "properties": {
+        "pieza": {"type": "string"},
+        "donde": {"type": "object", "description": "Datos que tienen que coincidir, por etiqueta; también acepta una lista de objetos."}
+      },
+      "required": ["pieza", "donde"]
     }
   },
   {
@@ -151,11 +135,25 @@
   },
   {
     "name": "ofrecer_opciones",
-    "description": "Pregunta con botonera.",
+    "description": "Pregunta con botonera. Agrupá TODAS tus dudas del turno en UNA llamada con preguntas (hasta 3); con una sola alcanza pregunta y opciones. Se muestran de a una.",
     "inputSchema": {
       "type": "object",
-      "properties": {"pregunta": {"type": "string"}, "opciones": {"type": "array", "items": {"type": "string"}}},
-      "required": ["pregunta", "opciones"]
+      "properties": {
+        "preguntas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "tema": {"type": "string", "description": "Dos o tres palabras que nombran la duda."},
+              "pregunta": {"type": "string"},
+              "opciones": {"type": "array", "items": {"type": "string"}}
+            },
+            "required": ["pregunta", "opciones"]
+          }
+        },
+        "pregunta": {"type": "string"},
+        "opciones": {"type": "array", "items": {"type": "string"}}
+      }
     }
   }
 ]

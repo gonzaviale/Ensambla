@@ -55,9 +55,8 @@ export function ResumenFrenteALaZona({
       <div className="zona-privado">
         <Icon name="users" />
         <span>
-          <strong>Datos agregados y anónimos.</strong> Se mezclan precios y ventas de varios
-          comercios y nunca se muestra uno solo ni dónde queda. Un dato sólo aparece si lo aportan
-          al menos 3.
+          <strong>Datos agregados y anónimos.</strong> Nunca se muestra un comercio solo ni dónde
+          queda.
         </span>
       </div>
     </>

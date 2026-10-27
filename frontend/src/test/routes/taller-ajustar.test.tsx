@@ -22,12 +22,7 @@ type PedidoAlTaller = {
   mensaje: string;
   estado: {
     nombre: string;
-    piezas: {
-      id: string;
-      tipo: string;
-      campos: { etiqueta: string }[];
-      filas?: { id: string; valores: string[] }[];
-    }[];
+    piezas: { id: string; tipo: string; campos: { etiqueta: string }[] }[];
   };
 };
 
@@ -74,37 +69,6 @@ const sinViolaciones = async () => {
 };
 
 describe('ajustar con Sami un sistema que ya existe', () => {
-  it('le muestra a Sami los registros y quita el que pide; el cambio se ve en la propuesta', async () => {
-    const pedidos: PedidoAlTaller[] = [];
-    server.events.on('request:start', async ({ request }) => {
-      if (request.url.endsWith('/api/sami/taller')) {
-        pedidos.push((await request.clone().json()) as PedidoAlTaller);
-      }
-    });
-    const { user, sistema } = await abrirSistema();
-    const productos = deTipo(sistema, 'inventory');
-    const principal = productos.fields[0]?.key ?? '';
-    const cantidad = productos.rows.length;
-    await user.click(screen.getByRole('button', { name: /Ajustar con Sami/ }));
-    await verifyHeadingPresentAsync('Lo ajustamos juntos.');
-
-    await pedirASami(user, 'Borrá Yerba Playadito 1 kg');
-
-    await waitFor(() => {
-      const borrador = useSistemaStore.getState().taller?.borrador;
-      expect(deTipo(borrador ?? undefined, 'inventory').rows).toHaveLength(cantidad - 1);
-    }, ESPERA);
-    const borrador = useSistemaStore.getState().taller?.borrador;
-    expect(
-      deTipo(borrador ?? undefined, 'inventory').rows.map((fila) => fila[principal]),
-    ).not.toContain('Yerba Playadito 1 kg');
-    const filas = pedidos[0]?.estado.piezas.find((pieza) => pieza.tipo === 'inventory')?.filas;
-    expect(filas?.[0]?.valores[0]).toBe('Yerba Playadito 1 kg');
-    expect(enElStore(sistema.id) && deTipo(enElStore(sistema.id), 'inventory').rows).toHaveLength(
-      cantidad,
-    );
-  });
-
   it('abre el taller con el sistema, aplica lo que pide Sami y al guardar lo reemplaza y vuelve a él', async () => {
     const pedidos: PedidoAlTaller[] = [];
     server.use(
@@ -132,10 +96,10 @@ describe('ajustar con Sami un sistema que ya existe', () => {
     await verifyHeadingPresentAsync('Lo ajustamos juntos.');
     expect(router.state.location.search).toEqual({ sistema: sistema.id });
     expect(screen.getByText(/Estoy mirando «Almacén de Ana»/)).toBeVisible();
-    expect(screen.getByLabelText('Nombre de tu sistema')).toHaveValue('Almacén de Ana');
+    expect(screen.getByLabelText('Nombre de tu cuaderno')).toHaveValue('Almacén de Ana');
     expect(screen.getByRole('button', { name: /Guardar cambios/ })).toBeVisible();
-    expect(screen.queryByRole('button', { name: /Sí, crear mi sistema/ })).toBeNull();
-    expect(screen.queryByText(/TU PRIMER SISTEMA/)).toBeNull();
+    expect(screen.queryByRole('button', { name: /Sí, crear mi cuaderno/ })).toBeNull();
+    expect(screen.queryByText(/TU PRIMER CUADERNO/)).toBeNull();
     await sinViolaciones();
 
     await pedirASami(user, 'cambiale el nombre a Cliente por Clienta y ponelo primero');
@@ -206,6 +170,22 @@ describe('ajustar con Sami un sistema que ya existe', () => {
     ).toBeVisible();
     const borrador = useSistemaStore.getState().taller?.borrador ?? undefined;
     expect(etiquetas(borrador, 'clients')).toContain('Celular');
+  });
+
+  it('deja ver la tabla de una pieza de la propuesta a pantalla completa, como en el sistema', async () => {
+    const { user } = await abrirSistema();
+    await clickButton(user, /Ajustar con Sami/);
+    await verifyHeadingPresentAsync('Lo ajustamos juntos.');
+    const clientes = deTipo(useSistemaStore.getState().taller?.borrador ?? undefined, 'clients');
+
+    await clickButton(user, `Ver ${clientes.name} a pantalla completa`);
+
+    const tabla = await screen.findByRole('dialog', { name: clientes.name }, ESPERA);
+    expect(tabla).toBeVisible();
+    expect(screen.getByLabelText(`Buscar en ${clientes.name}`)).toBeVisible();
+    await clickButton(user, /Volver a la propuesta/);
+    expect(screen.queryByRole('dialog', { name: clientes.name })).toBeNull();
+    expect(useSistemaStore.getState().tablaCompletaId).toBeNull();
   });
 
   it('un sistema que no existe abre el taller para armar uno nuevo', async () => {

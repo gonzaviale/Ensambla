@@ -1,11 +1,22 @@
 package com.ensambla.backend.infrastructure.repository;
 
-import com.ensambla.backend.domain.model.enums.EstadoAviso;
-import com.ensambla.backend.domain.model.enums.EstadoLote;
-import com.ensambla.backend.domain.model.enums.EstadoUsuario;
-import com.ensambla.backend.domain.model.enums.GrupoAviso;
-import com.ensambla.backend.domain.model.enums.TipoAviso;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.aviso.AvisoId;
+import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.GrupoAviso;
+import com.ensambla.backend.domain.model.aviso.TipoAviso;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.common.Identificador;
+import com.ensambla.backend.domain.model.lote.EstadoLote;
+import com.ensambla.backend.domain.model.lote.FotoId;
+import com.ensambla.backend.domain.model.lote.LoteId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.model.zona.ZonaId;
 import com.ensambla.backend.infrastructure.repository.entity.AgregadoZonaProductoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.AvisoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
@@ -95,15 +106,16 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Persiste y relee el grafo completo usuario → negocio → proyecto → bloque → campo → registro")
     void shouldPersistAndReloadWholeGraph() {
-        UUID negocioId = givenNegocio("dueña@example.com");
-        UUID proyectoId = givenProyecto(negocioId, "Mi inventario");
-        UUID bloqueId = givenBloque(negocioId, proyectoId, "Productos");
-        UUID campoId = givenCampo(negocioId, bloqueId, "Rubro", TipoCampo.OPCION, List.of("Velas", "Moldes"));
-        UUID registroId = givenRegistro(negocioId, bloqueId, Map.of(campoId.toString(), "Velas"));
+        NegocioId negocioId = NegocioId.de(givenNegocio("dueña@example.com"));
+        ProyectoId proyectoId = ProyectoId.de(givenProyecto(negocioId, "Mi inventario"));
+        BloqueId bloqueId = BloqueId.de(givenBloque(negocioId, proyectoId, "Productos"));
+        CampoId campoId = CampoId.de(givenCampo(negocioId, bloqueId, "Rubro", TipoCampo.OPCION, List
+                .of("Velas", "Moldes")));
+        RegistroId registroId = RegistroId.de(givenRegistro(negocioId, bloqueId, Map.of(campoId.toString(), "Velas")));
         entityManager.clear();
 
-        RegistroEntity registro = registros.findById(registroId).orElseThrow();
-        CampoEntity campo = campos.findById(campoId).orElseThrow();
+        RegistroEntity registro = registros.findById(registroId.valor()).orElseThrow();
+        CampoEntity campo = campos.findById(campoId.valor()).orElseThrow();
 
         assertThat(registro.getValores()).containsEntry(campoId.toString(), "Velas");
         assertThat(campo.getOpciones()).containsExactly("Velas", "Moldes");
@@ -151,9 +163,9 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     void shouldRejectBloqueFromAnotherNegocio() {
         UUID negocioA = givenNegocio("a@example.com");
         UUID negocioB = givenNegocio("b@example.com");
-        UUID proyectoDeA = givenProyecto(negocioA, "Proyecto de A");
+        UUID proyectoDeA = givenProyecto(NegocioId.de(negocioA), "Proyecto de A");
 
-        assertThatThrownBy(() -> givenBloque(negocioB, proyectoDeA, "Intruso"))
+        assertThatThrownBy(() -> givenBloque(NegocioId.de(negocioB), ProyectoId.de(proyectoDeA), "Intruso"))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -162,17 +174,19 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     void shouldRejectRegistroFromAnotherNegocio() {
         UUID negocioA = givenNegocio("a@example.com");
         UUID negocioB = givenNegocio("b@example.com");
-        UUID bloqueDeA = givenBloque(negocioA, givenProyecto(negocioA, "Proyecto de A"), "Productos");
+        UUID bloqueDeA = givenBloque(NegocioId.de(negocioA), ProyectoId
+                .de(givenProyecto(NegocioId.de(negocioA), "Proyecto de A")), "Productos");
 
-        assertThatThrownBy(() -> givenRegistro(negocioB, bloqueDeA, Map.of()))
+        assertThatThrownBy(() -> givenRegistro(NegocioId.de(negocioB), BloqueId.de(bloqueDeA), Map.of()))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     @DisplayName("La base rechaza un campo de tipo OPCION sin opciones")
     void shouldRejectOpcionCampoWithoutOptions() {
-        UUID negocioId = givenNegocio("a@example.com");
-        UUID bloqueId = givenBloque(negocioId, givenProyecto(negocioId, "Proyecto"), "Productos");
+        NegocioId negocioId = NegocioId.de(givenNegocio("a@example.com"));
+        BloqueId bloqueId = BloqueId
+                .de(givenBloque(negocioId, ProyectoId.de(givenProyecto(negocioId, "Proyecto")), "Productos"));
 
         assertThatThrownBy(() -> givenCampo(negocioId, bloqueId, "Rubro", TipoCampo.OPCION, List.of()))
                 .isInstanceOf(DataIntegrityViolationException.class);
@@ -181,35 +195,36 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Borrar un proyecto borra en cascada sus bloques, campos y registros")
     void shouldCascadeDeleteFromProyecto() {
-        UUID negocioId = givenNegocio("a@example.com");
-        UUID proyectoId = givenProyecto(negocioId, "Proyecto");
-        UUID bloqueId = givenBloque(negocioId, proyectoId, "Productos");
-        UUID campoId = givenCampo(negocioId, bloqueId, "Nombre", TipoCampo.TEXTO, List.of());
-        UUID registroId = givenRegistro(negocioId, bloqueId, Map.of(campoId.toString(), "Vela"));
+        NegocioId negocioId = NegocioId.de(givenNegocio("a@example.com"));
+        ProyectoId proyectoId = ProyectoId.de(givenProyecto(negocioId, "Proyecto"));
+        BloqueId bloqueId = BloqueId.de(givenBloque(negocioId, proyectoId, "Productos"));
+        CampoId campoId = CampoId.de(givenCampo(negocioId, bloqueId, "Nombre", TipoCampo.TEXTO, List.of()));
+        RegistroId registroId = RegistroId.de(givenRegistro(negocioId, bloqueId, Map.of(campoId.toString(), "Vela")));
 
-        proyectos.deleteById(proyectoId);
+        proyectos.deleteById(proyectoId.valor());
         entityManager.flush();
         entityManager.clear();
 
-        assertThat(bloques.findById(bloqueId)).isEmpty();
-        assertThat(campos.findById(campoId)).isEmpty();
-        assertThat(registros.findById(registroId)).isEmpty();
+        assertThat(bloques.findById(bloqueId.valor())).isEmpty();
+        assertThat(campos.findById(campoId.valor())).isEmpty();
+        assertThat(registros.findById(registroId.valor())).isEmpty();
     }
 
     @Test
     @DisplayName("Persiste un lote con su foto, su lectura y un registro vinculado a la foto de origen")
     void shouldPersistLoteFotoLecturaAndRegistroConFotoOrigen() {
-        UUID negocioId = givenNegocio("a@example.com");
-        UUID bloqueId = givenBloque(negocioId, givenProyecto(negocioId, "Proyecto"), "Ventas");
-        UUID loteId = givenLote(negocioId, bloqueId);
-        UUID fotoId = givenFoto(negocioId, loteId, "negocios/a/lote/1.jpg");
+        NegocioId negocioId = NegocioId.de(givenNegocio("a@example.com"));
+        BloqueId bloqueId = BloqueId
+                .de(givenBloque(negocioId, ProyectoId.de(givenProyecto(negocioId, "Proyecto")), "Ventas"));
+        LoteId loteId = LoteId.de(givenLote(negocioId, bloqueId));
+        FotoId fotoId = FotoId.de(givenFoto(negocioId, loteId, "negocios/a/lote/1.jpg"));
         UUID lecturaId = givenLectura(negocioId, loteId, Map.of("tipoRegistro", "VENTAS"), null);
-        UUID registroId = givenRegistro(negocioId, bloqueId, Map.of(), fotoId);
+        RegistroId registroId = RegistroId.de(givenRegistro(negocioId, bloqueId, Map.of(), fotoId));
         entityManager.clear();
 
-        assertThat(lotes.findById(loteId).orElseThrow().getEstado()).isEqualTo(EstadoLote.PENDIENTE);
+        assertThat(lotes.findById(loteId.valor()).orElseThrow().getEstado()).isEqualTo(EstadoLote.PENDIENTE);
         assertThat(lecturas.findById(lecturaId).orElseThrow().getResultado()).containsEntry("tipoRegistro", "VENTAS");
-        assertThat(registros.findById(registroId).orElseThrow().getFotoOrigenId()).isEqualTo(fotoId);
+        assertThat(registros.findById(registroId.valor()).orElseThrow().getFotoOrigenId()).isEqualTo(fotoId.valor());
     }
 
     @Test
@@ -217,9 +232,9 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     void shouldRejectFotoFromAnotherNegocio() {
         UUID negocioA = givenNegocio("a@example.com");
         UUID negocioB = givenNegocio("b@example.com");
-        UUID loteDeA = givenLote(negocioA, null);
+        UUID loteDeA = givenLote(NegocioId.de(negocioA), null);
 
-        assertThatThrownBy(() -> givenFoto(negocioB, loteDeA, "negocios/b/intrusa.jpg"))
+        assertThatThrownBy(() -> givenFoto(NegocioId.de(negocioB), LoteId.de(loteDeA), "negocios/b/intrusa.jpg"))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -228,18 +243,21 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     void shouldRejectRegistroWithFotoOrigenFromAnotherNegocio() {
         UUID negocioA = givenNegocio("a@example.com");
         UUID negocioB = givenNegocio("b@example.com");
-        UUID fotoDeA = givenFoto(negocioA, givenLote(negocioA, null), "negocios/a/1.jpg");
-        UUID bloqueDeB = givenBloque(negocioB, givenProyecto(negocioB, "Proyecto de B"), "Ventas");
+        UUID fotoDeA = givenFoto(NegocioId.de(negocioA), LoteId
+                .de(givenLote(NegocioId.de(negocioA), null)), "negocios/a/1.jpg");
+        UUID bloqueDeB = givenBloque(NegocioId.de(negocioB), ProyectoId
+                .de(givenProyecto(NegocioId.de(negocioB), "Proyecto de B")), "Ventas");
 
-        assertThatThrownBy(() -> givenRegistro(negocioB, bloqueDeB, Map.of(), fotoDeA))
+        assertThatThrownBy(() -> givenRegistro(NegocioId.de(negocioB), BloqueId.de(bloqueDeB), Map.of(),
+                FotoId.de(fotoDeA)))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     @DisplayName("La base exige que una lectura tenga resultado o motivo de error, no ambos")
     void shouldRejectLecturaWithResultadoAndError() {
-        UUID negocioId = givenNegocio("a@example.com");
-        UUID loteId = givenLote(negocioId, null);
+        NegocioId negocioId = NegocioId.de(givenNegocio("a@example.com"));
+        LoteId loteId = LoteId.de(givenLote(negocioId, null));
 
         assertThatThrownBy(() -> givenLectura(negocioId, loteId, Map.of("tipoRegistro", "VENTAS"), "falló"))
                 .isInstanceOf(DataIntegrityViolationException.class);
@@ -248,20 +266,21 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Borrar el lote borra sus fotos y deja los registros sin foto de origen")
     void shouldKeepRegistroWithoutFotoOrigenWhenLoteIsDeleted() {
-        UUID negocioId = givenNegocio("a@example.com");
-        UUID bloqueId = givenBloque(negocioId, givenProyecto(negocioId, "Proyecto"), "Ventas");
-        UUID loteId = givenLote(negocioId, bloqueId);
-        UUID fotoId = givenFoto(negocioId, loteId, "negocios/a/1.jpg");
-        UUID registroId = givenRegistro(negocioId, bloqueId, Map.of(), fotoId);
+        NegocioId negocioId = NegocioId.de(givenNegocio("a@example.com"));
+        BloqueId bloqueId = BloqueId
+                .de(givenBloque(negocioId, ProyectoId.de(givenProyecto(negocioId, "Proyecto")), "Ventas"));
+        LoteId loteId = LoteId.de(givenLote(negocioId, bloqueId));
+        FotoId fotoId = FotoId.de(givenFoto(negocioId, loteId, "negocios/a/1.jpg"));
+        RegistroId registroId = RegistroId.de(givenRegistro(negocioId, bloqueId, Map.of(), fotoId));
 
-        lotes.deleteById(loteId);
+        lotes.deleteById(loteId.valor());
         entityManager.flush();
         entityManager.clear();
 
-        assertThat(fotos.findById(fotoId)).isEmpty();
-        RegistroEntity registro = registros.findById(registroId).orElseThrow();
+        assertThat(fotos.findById(fotoId.valor())).isEmpty();
+        RegistroEntity registro = registros.findById(registroId.valor()).orElseThrow();
         assertThat(registro.getFotoOrigenId()).isNull();
-        assertThat(registro.getNegocioId()).isEqualTo(negocioId);
+        assertThat(registro.getNegocioId()).isEqualTo(negocioId.valor());
     }
 
     @Test
@@ -269,20 +288,21 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     void shouldRejectSeccionWhoseNegocioIsNotTheProyectoOne() {
         UUID negocioA = givenNegocio("a@example.com");
         UUID negocioB = givenNegocio("b@example.com");
-        UUID proyectoDeA = givenProyecto(negocioA, "Proyecto de A");
+        UUID proyectoDeA = givenProyecto(NegocioId.de(negocioA), "Proyecto de A");
 
-        assertThatThrownBy(() -> givenSeccion(negocioB, proyectoDeA, "Vista general"))
+        assertThatThrownBy(() -> givenSeccion(NegocioId.de(negocioB), ProyectoId.de(proyectoDeA), "Vista general"))
                 .isInstanceOf(PersistenceException.class);
     }
 
     @Test
     @DisplayName("Un bloque nuevo nace con los valores por defecto del frontend")
     void shouldPersistBloqueWithDefaultAttributes() {
-        UUID negocioId = givenNegocio("a@example.com");
-        UUID bloqueId = givenBloque(negocioId, givenProyecto(negocioId, "Proyecto"), "Notas");
+        NegocioId negocioId = NegocioId.de(givenNegocio("a@example.com"));
+        BloqueId bloqueId = BloqueId
+                .de(givenBloque(negocioId, ProyectoId.de(givenProyecto(negocioId, "Proyecto")), "Notas"));
         entityManager.clear();
 
-        BloqueEntity bloque = bloques.findById(bloqueId).orElseThrow();
+        BloqueEntity bloque = bloques.findById(bloqueId.valor()).orElseThrow();
 
         assertThat(bloque.getTipo().name()).isEqualTo("FORMULARIO");
         assertThat(bloque.getColor().name()).isEqualTo("CELESTE");
@@ -294,10 +314,10 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("La base rechaza un negocio con una sola coordenada")
     void shouldRejectNegocioWithOnlyLatitud() {
-        UUID duenioId = givenUsuario("a@example.com");
+        UsuarioId duenioId = UsuarioId.de(givenUsuario("a@example.com"));
 
         assertThatThrownBy(() -> negocios.saveAndFlush(NegocioEntity.builder()
-                .nombre("Sin longitud").duenioId(duenioId).latitud(new BigDecimal("-34.670300"))
+                .nombre("Sin longitud").duenioId(duenioId.valor()).latitud(new BigDecimal("-34.670300"))
                 .creadoEn(AHORA).actualizadoEn(AHORA).build()))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
@@ -305,7 +325,7 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("La base rechaza un agregado de zona con menos de 3 comercios")
     void shouldRejectAgregadoWithFewerThanThreeComercios() {
-        UUID zonaId = givenZona("Zona de prueba");
+        ZonaId zonaId = ZonaId.de(givenZona("Zona de prueba"));
 
         assertThatThrownBy(() -> givenAgregado(zonaId, "yerba", 2, 2))
                 .isInstanceOf(PersistenceException.class);
@@ -314,7 +334,7 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Guarda un agregado de zona con 3 o más comercios")
     void shouldPersistAgregadoWithThreeComercios() {
-        UUID zonaId = givenZona("Zona de prueba");
+        ZonaId zonaId = ZonaId.de(givenZona("Zona de prueba"));
 
         UUID agregadoId = givenAgregado(zonaId, "yerba", 3, 3);
 
@@ -324,7 +344,7 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("La base exige fecha de resolución sólo en los avisos aplicados o descartados")
     void shouldRequireResueltoEnOnlyForResolvedAvisos() {
-        UUID negocioId = givenNegocio("a@example.com");
+        NegocioId negocioId = NegocioId.de(givenNegocio("a@example.com"));
 
         assertThatThrownBy(() -> givenAviso(negocioId, "stock:1", EstadoAviso.APLICADO, null))
                 .isInstanceOf(PersistenceException.class);
@@ -333,18 +353,19 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Un aviso descartado guarda cuándo se descartó")
     void shouldPersistDescartadoAvisoWithResueltoEn() {
-        UUID negocioId = givenNegocio("a@example.com");
+        NegocioId negocioId = NegocioId.de(givenNegocio("a@example.com"));
 
-        UUID avisoId = givenAviso(negocioId, "stock:1", EstadoAviso.DESCARTADO, AHORA);
+        AvisoId avisoId = AvisoId.de(givenAviso(negocioId, "stock:1", EstadoAviso.DESCARTADO, AHORA));
         entityManager.clear();
 
-        assertThat(entityManager.find(AvisoEntity.class, avisoId).getEstado()).isEqualTo(EstadoAviso.DESCARTADO);
+        assertThat(entityManager.find(AvisoEntity.class, avisoId.valor()).getEstado())
+                .isEqualTo(EstadoAviso.DESCARTADO);
     }
 
     @Test
     @DisplayName("La base no admite dos avisos pendientes del mismo tipo sobre la misma entidad")
     void shouldRejectTwoPendingAvisosOfSameTipoAndEntidad() {
-        UUID negocioId = givenNegocio("a@example.com");
+        NegocioId negocioId = NegocioId.de(givenNegocio("a@example.com"));
         givenAviso(negocioId, "stock:1:a", "registro:1", EstadoAviso.PENDIENTE, null);
 
         assertThatThrownBy(() -> givenAviso(negocioId, "stock:1:b", "registro:1", EstadoAviso.PENDIENTE, null))
@@ -354,18 +375,18 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("Un aviso descartado no impide un pendiente nuevo sobre la misma entidad")
     void shouldAllowPendingAvisoWhenPreviousOneWasDiscarded() {
-        UUID negocioId = givenNegocio("a@example.com");
+        NegocioId negocioId = NegocioId.de(givenNegocio("a@example.com"));
         givenAviso(negocioId, "stock:1:a", "registro:1", EstadoAviso.DESCARTADO, AHORA);
 
-        UUID avisoId = givenAviso(negocioId, "stock:1:b", "registro:1", EstadoAviso.PENDIENTE, null);
+        AvisoId avisoId = AvisoId.de(givenAviso(negocioId, "stock:1:b", "registro:1", EstadoAviso.PENDIENTE, null));
 
         assertThat(avisoId).isNotNull();
     }
 
     // --- arrange (modelo del frontend) ---
-    private UUID givenSeccion(UUID negocioId, UUID proyectoId, String nombre) {
+    private UUID givenSeccion(NegocioId negocioId, ProyectoId proyectoId, String nombre) {
         SeccionEntity seccion = SeccionEntity.builder()
-                .negocioId(negocioId).proyectoId(proyectoId).nombre(nombre).posicion((short) 0)
+                .negocioId(negocioId.valor()).proyectoId(proyectoId.valor()).nombre(nombre).posicion((short) 0)
                 .creadoEn(AHORA).actualizadoEn(AHORA).build();
         return persistirYVaciar(seccion).getId();
     }
@@ -378,9 +399,10 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         return persistirYVaciar(zona).getId();
     }
 
-    private UUID givenAgregado(UUID zonaId, String producto, int comercios, int comerciosVenden) {
+    private UUID givenAgregado(ZonaId zonaId, String producto, int comercios, int comerciosVenden) {
         AgregadoZonaProductoEntity agregado = AgregadoZonaProductoEntity.builder()
-                .zonaId(zonaId).productoNormalizado(producto).nombre(producto).comercios(comercios)
+                .zonaId(Identificador.valorDe(zonaId)).productoNormalizado(producto).nombre(producto)
+                .comercios(comercios)
                 .comerciosVenden(comerciosVenden).precioMinimo(new BigDecimal("3500"))
                 .precioPromedio(new BigDecimal("3900")).precioMaximo(new BigDecimal("4300"))
                 .unidadesSemana(new BigDecimal("30")).periodoDesde(LocalDate.parse("2026-09-21"))
@@ -388,14 +410,14 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         return persistirYVaciar(agregado).getId();
     }
 
-    private UUID givenAviso(UUID negocioId, String huella, EstadoAviso estado, OffsetDateTime resueltoEn) {
+    private UUID givenAviso(NegocioId negocioId, String huella, EstadoAviso estado, OffsetDateTime resueltoEn) {
         return givenAviso(negocioId, huella, "registro:1", estado, resueltoEn);
     }
 
-    private UUID givenAviso(UUID negocioId, String huella, String entidad, EstadoAviso estado,
+    private UUID givenAviso(NegocioId negocioId, String huella, String entidad, EstadoAviso estado,
                             OffsetDateTime resueltoEn) {
         AvisoEntity aviso = AvisoEntity.builder()
-                .negocioId(negocioId).tipo(TipoAviso.STOCK).grupo(GrupoAviso.STOCK).prioridad((short) 2)
+                .negocioId(negocioId.valor()).tipo(TipoAviso.STOCK).grupo(GrupoAviso.STOCK).prioridad((short) 2)
                 .entidad(entidad).huella(huella).titulo("Yerba por debajo del mínimo").detalle("Te quedan 4").estado(estado)
                 .resueltoEn(resueltoEn).creadoEn(AHORA).actualizadoEn(AHORA).build();
         return persistirYVaciar(aviso).getId();
@@ -408,30 +430,34 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     // --- arrange ---
-    private UUID givenLote(UUID negocioId, UUID bloqueDestinoId) {
+    private UUID givenLote(NegocioId negocioId, BloqueId bloqueDestinoId) {
         return lotes.saveAndFlush(LoteSubidaEntity.builder()
-                .negocioId(negocioId).bloqueDestinoId(bloqueDestinoId).estado(EstadoLote.PENDIENTE)
+                .negocioId(negocioId.valor()).bloqueDestinoId(Identificador.valorDe(bloqueDestinoId))
+                        .estado(EstadoLote.PENDIENTE)
                 .intentos((short) 0).creadoEn(AHORA).actualizadoEn(AHORA).build()).getId();
     }
 
-    private UUID givenFoto(UUID negocioId, UUID loteId, String clave) {
+    private UUID givenFoto(NegocioId negocioId, LoteId loteId, String clave) {
         return fotos.saveAndFlush(FotoCuadernoEntity.builder()
-                .negocioId(negocioId).loteId(loteId).claveAlmacenamiento(clave).tipoContenido("image/jpeg")
+                .negocioId(negocioId.valor()).loteId(loteId.valor()).claveAlmacenamiento(clave)
+                .tipoContenido("image/jpeg")
                 .tamanioBytes(1024L).rotacion((short) 0).posicion((short) 0)
                 .creadoEn(AHORA).actualizadoEn(AHORA).build()).getId();
     }
 
-    private UUID givenLectura(UUID negocioId, UUID loteId, Map<String, Object> resultado, String motivoError) {
+    private UUID givenLectura(NegocioId negocioId, LoteId loteId, Map<String, Object> resultado, String motivoError) {
         return lecturas.saveAndFlush(LecturaIaEntity.builder()
-                .negocioId(negocioId).loteId(loteId).proveedor("simulado").modelo("lectura-de-ejemplo")
+                .negocioId(negocioId.valor()).loteId(loteId.valor()).proveedor("simulado").modelo("lectura-de-ejemplo")
                 .versionPrompt("v1").resultado(resultado).motivoError(motivoError).paginas((short) 1)
                 .tokensEntrada(0).tokensSalida(0).costoEstimadoUsd(BigDecimal.ZERO).duracionMs(10)
                 .creadoEn(AHORA).actualizadoEn(AHORA).build()).getId();
     }
 
-    private UUID givenRegistro(UUID negocioId, UUID bloqueId, Map<String, Object> valores, UUID fotoOrigenId) {
+    private UUID givenRegistro(NegocioId negocioId, BloqueId bloqueId, Map<String, Object> valores,
+            FotoId fotoOrigenId) {
         return registros.saveAndFlush(RegistroEntity.builder()
-                .negocioId(negocioId).bloqueId(bloqueId).valores(valores).fotoOrigenId(fotoOrigenId)
+                .negocioId(negocioId.valor()).bloqueId(bloqueId.valor()).valores(valores).fotoOrigenId(Identificador
+                        .valorDe(fotoOrigenId))
                 .creadoEn(AHORA).actualizadoEn(AHORA).build()).getId();
     }
 
@@ -442,9 +468,9 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     private UUID givenNegocio(String emailDuenio) {
-        UUID duenioId = givenUsuario(emailDuenio);
+        UsuarioId duenioId = UsuarioId.de(givenUsuario(emailDuenio));
         return negocios.saveAndFlush(NegocioEntity.builder()
-                .nombre("Negocio de " + emailDuenio).duenioId(duenioId)
+                .nombre("Negocio de " + emailDuenio).duenioId(duenioId.valor())
                 .creadoEn(AHORA).actualizadoEn(AHORA).build()).getId();
     }
 
@@ -454,24 +480,25 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                 .creadoEn(AHORA).actualizadoEn(AHORA).build());
     }
 
-    private UUID givenProyecto(UUID negocioId, String nombre) {
+    private UUID givenProyecto(NegocioId negocioId, String nombre) {
         return proyectos.saveAndFlush(ProyectoEntity.builder()
-                .negocioId(negocioId).nombre(nombre).creadoEn(AHORA).actualizadoEn(AHORA).build()).getId();
+                .negocioId(negocioId.valor()).nombre(nombre).creadoEn(AHORA).actualizadoEn(AHORA).build()).getId();
     }
 
-    private UUID givenBloque(UUID negocioId, UUID proyectoId, String nombre) {
+    private UUID givenBloque(NegocioId negocioId, ProyectoId proyectoId, String nombre) {
         return bloques.saveAndFlush(BloqueEntity.builder()
-                .negocioId(negocioId).proyectoId(proyectoId).nombre(nombre).posicion((short) 0)
+                .negocioId(negocioId.valor()).proyectoId(proyectoId.valor()).nombre(nombre).posicion((short) 0)
                 .creadoEn(AHORA).actualizadoEn(AHORA).build()).getId();
     }
 
-    private UUID givenCampo(UUID negocioId, UUID bloqueId, String nombre, TipoCampo tipo, List<String> opciones) {
+    private UUID givenCampo(NegocioId negocioId, BloqueId bloqueId, String nombre, TipoCampo tipo,
+            List<String> opciones) {
         return campos.saveAndFlush(CampoEntity.builder()
-                .negocioId(negocioId).bloqueId(bloqueId).nombre(nombre).tipo(tipo).obligatorio(false)
+                .negocioId(negocioId.valor()).bloqueId(bloqueId.valor()).nombre(nombre).tipo(tipo).obligatorio(false)
                 .opciones(opciones).posicion((short) 0).creadoEn(AHORA).actualizadoEn(AHORA).build()).getId();
     }
 
-    private UUID givenRegistro(UUID negocioId, UUID bloqueId, Map<String, Object> valores) {
+    private UUID givenRegistro(NegocioId negocioId, BloqueId bloqueId, Map<String, Object> valores) {
         return givenRegistro(negocioId, bloqueId, valores, null);
     }
 }

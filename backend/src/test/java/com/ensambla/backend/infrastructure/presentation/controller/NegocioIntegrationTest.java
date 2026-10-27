@@ -1,5 +1,10 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.exception.ServicioUbicacionException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.ubicacion.LocalidadesDelPunto;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.port.GeocodificadorPort;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.Filter;
@@ -20,6 +25,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -30,6 +36,10 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -56,20 +66,26 @@ class NegocioIntegrationTest extends PostgresRepositoryTestSupport {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    // El proveedor externo nunca se consulta en los tests: el mapa reconoce "San Justo" salvo que el test diga otra cosa.
+    @MockitoBean
+    private GeocodificadorPort geocodificadorPort;
+
     private MockMvc mockMvc;
-    private UUID usuarioId;
-    private UUID negocioId;
+    private UsuarioId usuarioId;
+    private NegocioId negocioId;
     private MockHttpSession sesion;
     private String csrf;
 
     @BeforeEach
     void setUp() throws Exception {
+        when(geocodificadorPort.resolverLocalidades(any(), any(), any()))
+                .thenReturn(new LocalidadesDelPunto(List.of("San Justo")));
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
-        usuarioId = givenUsuario();
-        negocioId = UUID.randomUUID();
+        usuarioId = UsuarioId.de(givenUsuario());
+        negocioId = NegocioId.nuevo();
         jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Mi negocio', ?)",
-                negocioId, usuarioId);
-        sesion = givenSesion(usuarioId);
+                negocioId.valor(), usuarioId.valor());
+        sesion = givenSesion(usuarioId.valor());
     }
 
     @Test
@@ -120,7 +136,8 @@ class NegocioIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(jsonPath("$.ubicacion.latitud").value(-34.670123))
                 .andExpect(jsonPath("$.ubicacion.longitud").value(-58.560789))
                 .andExpect(jsonPath("$.comparteDatosZona").value(false));
-        assertThat(jdbcTemplate.queryForObject("SELECT direccion FROM negocio WHERE id = ?", String.class, negocioId))
+        assertThat(jdbcTemplate.queryForObject("SELECT direccion FROM negocio WHERE id = ?", String.class,
+                negocioId.valor()))
                 .isEqualTo("Calle 123");
     }
 
@@ -130,7 +147,8 @@ class NegocioIntegrationTest extends PostgresRepositoryTestSupport {
         actualizar(CONFIGURACION).andExpect(status().isOk())
                 .andExpect(jsonPath("$.zona").value("San Justo - UNLaM"));
 
-        assertThat(jdbcTemplate.queryForObject("SELECT zona_id FROM negocio WHERE id = ?", UUID.class, negocioId))
+        assertThat(jdbcTemplate.queryForObject("SELECT zona_id FROM negocio WHERE id = ?", UUID.class,
+                negocioId.valor()))
                 .isNotNull();
         mockMvc.perform(get(API).session(sesion)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.zona").value("San Justo - UNLaM"))
@@ -141,14 +159,63 @@ class NegocioIntegrationTest extends PostgresRepositoryTestSupport {
     @DisplayName("Un punto fuera de toda zona deja el negocio sin zona")
     void actualizarShouldLeaveZoneEmptyForFarPoint() throws Exception {
         actualizar(CONFIGURACION).andExpect(status().isOk());
+        when(geocodificadorPort.resolverLocalidades(any(), any(), any()))
+                .thenReturn(new LocalidadesDelPunto(List.of("CABA")));
 
         actualizar("""
                 {"ubicacion":{"direccion":"Av. Corrientes 1000","localidad":"CABA",
                               "latitud":-34.6037,"longitud":-58.3816}}
                 """).andExpect(status().isOk()).andExpect(jsonPath("$.zona").isEmpty());
 
-        assertThat(jdbcTemplate.queryForObject("SELECT zona_id FROM negocio WHERE id = ?", UUID.class, negocioId))
+        assertThat(jdbcTemplate.queryForObject("SELECT zona_id FROM negocio WHERE id = ?", UUID.class,
+                negocioId.valor()))
                 .isNull();
+    }
+
+    @Test
+    @DisplayName("Una localidad distinta a la del mapa responde 400 y no modifica la ubicación guardada")
+    void actualizarShouldRejectLocalityOutsideMap() throws Exception {
+        actualizar(CONFIGURACION.replace("\"localidad\":\"San Justo\"", "\"localidad\":\"Ramos Mejía\""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("La localidad no coincide con la del mapa (San Justo)"));
+
+        assertThat(jdbcTemplate.queryForObject("SELECT localidad FROM negocio WHERE id = ?", String.class,
+                negocioId.valor()))
+                .isNull();
+        assertThat(jdbcTemplate.queryForObject("SELECT nombre FROM negocio WHERE id = ?", String.class,
+                negocioId.valor()))
+                .isEqualTo("Mi negocio");
+    }
+
+    @Test
+    @DisplayName("La localidad escrita se acepta sin importar mayúsculas ni tildes")
+    void actualizarShouldAcceptLocalityWithDifferentCase() throws Exception {
+        actualizar(CONFIGURACION.replace("\"localidad\":\"San Justo\"", "\"localidad\":\"  san JUSTO \""))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.ubicacion.localidad").value("san JUSTO"));
+    }
+
+    @Test
+    @DisplayName("Si el proveedor del mapa no responde, responde 503 y no guarda la ubicación")
+    void actualizarShouldReturn503WhenMapProviderFails() throws Exception {
+        when(geocodificadorPort.resolverLocalidades(any(), any(), any()))
+                .thenThrow(new ServicioUbicacionException("No pudimos verificar la localidad."));
+
+        actualizar(CONFIGURACION).andExpect(status().isServiceUnavailable());
+
+        assertThat(jdbcTemplate.queryForObject("SELECT direccion FROM negocio WHERE id = ?", String.class,
+                negocioId.valor()))
+                .isNull();
+    }
+
+    @Test
+    @DisplayName("Guardar sin tocar la ubicación no consulta al proveedor del mapa")
+    void actualizarShouldNotCallMapProviderForUnchangedLocation() throws Exception {
+        actualizar(CONFIGURACION).andExpect(status().isOk());
+        clearInvocations(geocodificadorPort);
+
+        actualizar(CONFIGURACION.replace("Mi almacén", "Otro nombre")).andExpect(status().isOk());
+
+        verifyNoInteractions(geocodificadorPort);
     }
 
     @Test
@@ -175,8 +242,9 @@ class NegocioIntegrationTest extends PostgresRepositoryTestSupport {
 
         assertThat(jdbcTemplate.queryForObject("SELECT nombre FROM negocio WHERE id = ?", String.class, ajeno))
                 .isEqualTo("Ajeno");
-        assertThat(jdbcTemplate.queryForObject("SELECT duenio_id FROM negocio WHERE id = ?", UUID.class, negocioId))
-                .isEqualTo(usuarioId);
+        assertThat(jdbcTemplate.queryForObject("SELECT duenio_id FROM negocio WHERE id = ?", UUID.class,
+                negocioId.valor()))
+                .isEqualTo(usuarioId.valor());
     }
 
     @Test
@@ -209,7 +277,8 @@ class NegocioIntegrationTest extends PostgresRepositoryTestSupport {
     void actualizarShouldRejectInvalidData(String cuerpo) throws Exception {
         actualizar(cuerpo).andExpect(status().isBadRequest());
 
-        assertThat(jdbcTemplate.queryForObject("SELECT nombre FROM negocio WHERE id = ?", String.class, negocioId))
+        assertThat(jdbcTemplate.queryForObject("SELECT nombre FROM negocio WHERE id = ?", String.class,
+                negocioId.valor()))
                 .isEqualTo("Mi negocio");
     }
 

@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { findBlock, makeSystem, makeTemplate } from '@/lib/sistema/core';
+import { allBlocks, findBlock, makeSystem, makeTemplate } from '@/lib/sistema/core';
 import type { Sistema } from '@/lib/sistema/tipos';
 import { estado } from '@/mocks/db/estado';
 import { seleccionarSistemaActivo, useSistemaStore } from '@/stores/sistemaStore';
@@ -47,8 +47,16 @@ const tipoDeBloque = (tipo: string) => {
   return bloque;
 };
 
+const tipoDeBloqueDe = (sistema: Sistema, tipo: string) => {
+  const bloque = sistema.sections
+    .flatMap((seccion) => seccion.blocks)
+    .find((item) => item.type === tipo);
+  if (!bloque) throw new Error(`Falta el bloque de tipo ${tipo}`);
+  return bloque;
+};
+
 describe('el editor: construir y usar', () => {
-  it('abre el sistema de la dirección con la biblioteca, el lienzo y el inspector', async () => {
+  it('abre el sistema de la dirección con la biblioteca y el lienzo, sin el panel de ajustes', async () => {
     await abrirEditor();
 
     expect(screen.getByRole('button', { name: /Construir/ })).toHaveAttribute(
@@ -56,23 +64,194 @@ describe('el editor: construir y usar', () => {
       'true',
     );
     expect(screen.getByText('Tus piezas')).toBeVisible();
-    expect(screen.getByText('Elegí un bloque.')).toBeVisible();
+    expect(screen.queryByRole('complementary', { name: /Personalizar/ })).toBeNull();
     expect(document.querySelectorAll('.library-item')).toHaveLength(10);
     expect(document.querySelectorAll('.block')).toHaveLength(3);
     expect(screen.getByText(/Estás viendo datos de ejemplo/)).toBeVisible();
   });
 
-  it('en modo usar muestra el cartel de «listo» y Personalizar pasa a Construir', async () => {
-    const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+  it('en modo usar cierra la creación: qué quedó armado y qué hacer ahora', async () => {
+    const sistema = makeTemplate('shop', {}, true);
+    const { user } = await abrirEditor(sistema, 'usar');
     useSistemaStore.setState({ listo: true });
 
-    expect(await screen.findByText('Tu sistema está listo. Ya podés usarlo.')).toBeVisible();
+    const cierre = await screen.findByRole('region', { name: /ya está armado/ });
+    expect(within(cierre).getByText(`¡Listo! «${sistema.name}» ya está armado.`)).toBeVisible();
+    expect(
+      within(cierre).getByText(/Quedaron 3 tablas: .+ Ya podés empezar a usarlo\./),
+    ).toBeVisible();
     expect(screen.queryByText('Tus piezas')).toBeNull();
-    await clickButton(user, /Personalizar/);
+
+    await user.click(within(cierre).getByRole('button', { name: 'Cerrar aviso' }));
+    expect(screen.queryByRole('region', { name: /ya está armado/ })).toBeNull();
+    expect(useSistemaStore.getState().listo).toBe(false);
+  });
+
+  it('desde el cierre se registra el primer dato en la primera tabla con registros', async () => {
+    const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+    useSistemaStore.setState({ listo: true });
+    await screen.findByRole('region', { name: /ya está armado/ });
+
+    await clickButton(user, 'Registrar mi primer dato');
+
+    expect(await screen.findByRole('heading', { name: 'Registrar producto' })).toBeVisible();
+  });
+
+  it('desde el cierre, Personalizar pasa a Construir y se va el cierre', async () => {
+    const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+    useSistemaStore.setState({ listo: true });
+    await screen.findByRole('region', { name: /ya está armado/ });
+
+    await clickButton(user, /Personalizar las tablas/);
 
     expect(await screen.findByText('Tus piezas')).toBeVisible();
-    expect(screen.queryByText('Tu sistema está listo. Ya podés usarlo.')).toBeNull();
+    expect(screen.queryByRole('region', { name: /ya está armado/ })).toBeNull();
     expect(useSistemaStore.getState().modo).toBe('build');
+  });
+
+  it('desde el cierre se le pide un ajuste a Sami', async () => {
+    const { user, router, sistema } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+    useSistemaStore.setState({ listo: true });
+    await screen.findByRole('region', { name: /ya está armado/ });
+
+    await clickButton(user, /Pedirle un ajuste a Sami/);
+
+    await verifyPathAsync(router, '/taller');
+    expect(router.state.location.search).toMatchObject({ sistema: sistema.id });
+  });
+
+  it('con muchas tablas el cierre nombra las primeras y cuenta las demás', async () => {
+    const sistema = makeTemplate('shop', {}, true);
+    const bloques = sistema.sections[0]?.blocks ?? [];
+    bloques.push(
+      ...['Extra uno', 'Extra dos'].map((nombre) => ({
+        ...(bloques[0] as (typeof bloques)[0]),
+        id: nombre,
+        name: nombre,
+      })),
+    );
+    await abrirEditor(sistema, 'usar');
+    useSistemaStore.setState({ listo: true });
+
+    expect(await screen.findByText(/Quedaron 5 tablas: .+, .+, .+ y 2 más\./)).toBeVisible();
+  });
+
+  describe('la tabla a pantalla completa', () => {
+    const abrirTabla = async (user: ReturnType<typeof userEvent.setup>) => {
+      const abrir = await screen.findByRole('button', {
+        name: 'Ver Inventario a pantalla completa',
+      });
+      await user.click(abrir);
+      return { abrir, vista: await screen.findByRole('dialog', { name: 'Inventario' }) };
+    };
+
+    it('se abre desde la tabla, muestra los filtros por columna y se cierra devolviendo el foco', async () => {
+      const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+
+      const { abrir, vista } = await abrirTabla(user);
+
+      expect(within(vista).getByText(/^\d+ registros$/)).toBeVisible();
+      expect(within(vista).getByLabelText('Filtrar Producto')).toBeVisible();
+      expect(within(vista).getByLabelText('Cantidad: mín.')).toBeVisible();
+      expect(within(vista).getByLabelText('Buscar en Inventario')).toBeVisible();
+
+      await user.click(within(vista).getByRole('button', { name: /Volver al cuaderno/ }));
+
+      expect(screen.queryByRole('dialog', { name: 'Inventario' })).toBeNull();
+      expect(abrir).toHaveFocus();
+    });
+
+    it('cada lápiz dice a qué registro corresponde, por su primera columna', async () => {
+      const sistema = makeTemplate('shop', {}, true);
+      const filas = tipoDeBloqueDe(sistema, 'inventory').rows;
+      const { user } = await abrirEditor(sistema, 'usar');
+      const { vista } = await abrirTabla(user);
+
+      const lapices = within(vista).getAllByRole('button', { name: /^Editar registro/ });
+
+      expect(lapices).toHaveLength(filas.length);
+      expect(
+        within(vista).getByRole('button', { name: 'Editar registro: Coca-Cola 2,25 L' }),
+      ).toBeVisible();
+      expect(new Set(lapices.map((lapiz) => lapiz.getAttribute('aria-label'))).size).toBe(
+        filas.length,
+      );
+    });
+
+    it('bloquea el desplazamiento de la pantalla de atrás, también con un formulario encima, y lo devuelve al cerrar', async () => {
+      const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+      expect(document.documentElement.style.overflow).toBe('');
+
+      const { vista } = await abrirTabla(user);
+      expect(document.documentElement.style.overflow).toBe('hidden');
+
+      await user.click(
+        within(vista).getAllByRole('button', { name: /^Editar registro/ })[0] as HTMLElement,
+      );
+      await screen.findByRole('heading', { name: 'Editar producto' });
+      await user.keyboard('{Escape}');
+      expect(document.documentElement.style.overflow).toBe('hidden');
+
+      await user.click(within(vista).getByRole('button', { name: /Volver al cuaderno/ }));
+      expect(document.documentElement.style.overflow).toBe('');
+    });
+
+    it('filtra por columna y por búsqueda, cuenta lo que muestra y se limpia con un botón', async () => {
+      const sistema = makeTemplate('shop', {}, true);
+      const total = tipoDeBloqueDe(sistema, 'inventory').rows.length;
+      const { user } = await abrirEditor(sistema, 'usar');
+      const { vista } = await abrirTabla(user);
+      expect(within(vista).getByRole('button', { name: /Limpiar filtros/ })).toBeDisabled();
+
+      await user.type(within(vista).getByLabelText('Filtrar Producto'), 'coca');
+
+      expect(within(vista).getByText(`Mostrando 1 de ${total} registros`)).toBeVisible();
+      expect(within(vista).getByText('Coca-Cola 2,25 L')).toBeVisible();
+      expect(within(vista).queryByText(/Yerba Playadito/)).toBeNull();
+
+      await user.type(within(vista).getByLabelText('Buscar en Inventario'), 'zzz');
+      expect(
+        within(vista).getByText('Ningún registro coincide con la búsqueda y los filtros.'),
+      ).toBeVisible();
+
+      await user.click(within(vista).getByRole('button', { name: /Limpiar filtros/ }));
+
+      expect(within(vista).getByText(`${total} registros`)).toBeVisible();
+      expect(within(vista).getByLabelText('Filtrar Producto')).toHaveValue('');
+      expect(within(vista).getByLabelText('Buscar en Inventario')).toHaveValue('');
+    });
+
+    it('Escape cierra la vista, pero con un formulario encima cierra solo el formulario', async () => {
+      const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+      const { vista } = await abrirTabla(user);
+
+      await user.click(
+        within(vista).getAllByRole('button', { name: /^Editar registro/ })[0] as HTMLElement,
+      );
+      expect(await screen.findByRole('heading', { name: 'Editar producto' })).toBeVisible();
+
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('heading', { name: 'Editar producto' })).toBeNull();
+      expect(screen.getByRole('dialog', { name: 'Inventario' })).toBeVisible();
+
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('dialog', { name: 'Inventario' })).toBeNull();
+    });
+
+    it('desde la vista se registra un dato nuevo y aparece en la tabla', async () => {
+      const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
+      const { vista } = await abrirTabla(user);
+
+      await user.click(within(vista).getByRole('button', { name: /Registrar/ }));
+      await screen.findByRole('heading', { name: 'Registrar producto' });
+      const formulario = within(screen.getByRole('dialog', { name: 'Registrar producto' }));
+      await user.type(formulario.getByLabelText(/^Producto/), 'Mate de calabaza');
+      await user.type(formulario.getByLabelText(/^Cantidad/), '8');
+      await clickButton(user, 'Guardar');
+
+      expect(await within(vista).findByText('Mate de calabaza')).toBeVisible();
+      expect(screen.getByRole('dialog', { name: 'Inventario' })).toBeVisible();
+    });
   });
 
   it('un sistema que no existe lleva al inicio', async () => {
@@ -97,6 +276,34 @@ describe('el editor: construir y usar', () => {
       await screen.findByRole('heading', { level: 1, name: /Almacén Don Luis/ }),
     ).toBeVisible();
     expect(activo().name).toBe('Almacén Don Luis');
+  });
+
+  it('el lápiz deja eliminar el cuaderno escribiendo su nombre', async () => {
+    const { user, usuario, router, sistema } = await abrirEditor();
+
+    await user.click(
+      screen.getByRole('heading', { level: 1 }).querySelector('button') as HTMLElement,
+    );
+    expect(await screen.findByRole('heading', { name: 'Configurar cuaderno' })).toBeVisible();
+    await clickButton(user, 'Eliminar cuaderno');
+
+    const tablas = await screen.findByRole('list', { name: 'Tablas que se eliminan' });
+    expect(within(tablas).getAllByRole('listitem')).toHaveLength(allBlocks(sistema).length);
+    const eliminar = screen.getByRole('button', { name: 'Eliminar para siempre' });
+    expect(eliminar).toBeDisabled();
+
+    const campo = screen.getByLabelText(/Para confirmar/);
+    await user.type(campo, 'otro nombre');
+    expect(eliminar).toBeDisabled();
+    await user.clear(campo);
+    await user.type(campo, sistema.name);
+    expect(eliminar).toBeEnabled();
+    await user.click(eliminar);
+
+    await verifyPathAsync(router, '/cuadernos');
+    await verifyToastAsync(`Eliminamos «${sistema.name}».`);
+    expect(useSistemaStore.getState().sistemas).toHaveLength(0);
+    await waitFor(() => expect(estado.sistemas.get(usuario.email)).toHaveLength(0), ESPERA);
   });
 
   it('el guardado llega al servidor y la barra lo cuenta', async () => {
@@ -200,6 +407,33 @@ describe('bloques', () => {
     expect(tipoDeBloque('clients').width).toBe('third');
   });
 
+  it('el panel de ajustes se despliega al personalizar un bloque y la X lo cierra', async () => {
+    const { user } = await abrirEditor();
+    await user.click(
+      within(bloquePorNombre('Clientes')).getByRole('button', { name: 'Personalizar bloque' }),
+    );
+    const panel = screen.getByLabelText('Personalizar Clientes');
+
+    await user.click(within(panel).getByRole('button', { name: 'Cerrar personalización' }));
+
+    expect(screen.queryByLabelText('Personalizar Clientes')).toBeNull();
+  });
+
+  it('«Tus piezas» flota y con «Fijar» toma su columna; «Soltar» la vuelve a hacer flotar', async () => {
+    const { user } = await abrirEditor();
+    const piezas = screen.getByRole('complementary', { name: 'Piezas disponibles' });
+    expect(document.querySelector('.editor-layout')).not.toHaveClass('con-piezas-fijas');
+
+    await user.click(within(piezas).getByRole('button', { name: /Fijar/ }));
+
+    expect(document.querySelector('.editor-layout')).toHaveClass('con-piezas-fijas');
+    expect(localStorage.getItem('ensambla.piezasFijas')).toBe('si');
+
+    await user.click(within(piezas).getByRole('button', { name: /Soltar/ }));
+
+    expect(document.querySelector('.editor-layout')).not.toHaveClass('con-piezas-fijas');
+  });
+
   it('un nombre vacío en el inspector no se guarda', async () => {
     const { user } = await abrirEditor();
     await user.click(
@@ -247,22 +481,35 @@ describe('bloques', () => {
     expect(tipos?.indexOf('expenses')).toBe((tipos?.indexOf('sales') ?? 0) - 1);
   });
 
-  it('soltar un bloque al lado de otro hace que compartan la fila', async () => {
+  it('soltar un bloque sobre otro los cambia de lugar y cada uno conserva su ancho', async () => {
     await abrirEditor();
+    const antes = activo().sections[0]?.blocks.map((bloque) => bloque.type) ?? [];
+    const anchoDeClientes = tipoDeBloque('clients').width;
     const tirador = within(bloquePorNombre('Clientes')).getByRole('button', {
       name: 'Arrastrar bloque',
     });
-    const lado = bloquePorNombre('Ventas').querySelector<HTMLElement>('[data-drop-side="left"]');
-    if (!lado) throw new Error('Falta la zona de soltar');
+    const destino = bloquePorNombre('Ventas');
     const dataTransfer = { setData: () => undefined, effectAllowed: '' };
 
     fireEvent.dragStart(tirador, { dataTransfer });
-    fireEvent.dragOver(lado, { dataTransfer });
-    fireEvent.drop(lado, { dataTransfer });
+    fireEvent.dragOver(destino, { dataTransfer });
+    expect(destino.className).toMatch(/cambio-(left|right|top|bottom)/);
+    expect(destino.querySelector('[data-drop-side]')).toBeNull();
+    fireEvent.drop(destino, { dataTransfer });
 
-    expect(tipoDeBloque('clients').width).toBe('half');
-    expect(tipoDeBloque('sales').width).toBe('half');
-    await verifyToastAsync('Las dos piezas comparten la fila.');
+    const despues = activo().sections[0]?.blocks.map((bloque) => bloque.type) ?? [];
+    expect(despues.indexOf('clients')).toBe(antes.indexOf('sales'));
+    expect(despues.indexOf('sales')).toBe(antes.indexOf('clients'));
+    expect(tipoDeBloque('clients').width).toBe(anchoDeClientes);
+    await verifyToastAsync('Las tablas cambiaron de lugar.');
+  });
+
+  it('el ancho de un tercio deja tres tablas por fila', async () => {
+    const { user } = await abrirEditor();
+
+    await user.click(within(bloquePorNombre('Ventas')).getByRole('button', { name: 'Un tercio' }));
+
+    expect(tipoDeBloque('sales').width).toBe('third');
   });
 });
 
@@ -489,9 +736,8 @@ describe('traer datos de una foto', () => {
     await screen.findByRole('heading', { name: 'Lo ajustamos juntos.' }, ESPERA);
     expect(await screen.findByText(/Miré tu foto/, undefined, ESPERA)).toBeVisible();
     expect(screen.getByText(/Te paso una foto de cómo anoto hoy/)).toBeVisible();
-    expect(await screen.findByText('¿Está bien lo que leí?', undefined, ESPERA)).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Es de otro cuaderno' })).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Quiero sumar otra tabla' })).toBeVisible();
+    expect(await screen.findByText('¿Qué significan los tildes?', undefined, ESPERA)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Entregado pero sin cobrar' })).toBeVisible();
   });
 
   it('rechaza un archivo que no es una imagen', async () => {
@@ -512,7 +758,7 @@ describe('traer datos de una foto', () => {
     await screen.findByRole('heading', { name: /En qué puedo/ }, ESPERA);
     const user = userEvent.setup();
 
-    await user.click(screen.getAllByRole('button', { name: /Mostrarme cómo/ })[1] as HTMLElement);
+    await user.click(screen.getByRole('button', { name: /Cargar desde una foto/ }));
     const entrada = document.querySelector<HTMLInputElement>('#photo-file');
     if (!entrada) throw new Error('Falta el selector de archivos');
     await user.upload(entrada, foto());

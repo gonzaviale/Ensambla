@@ -15,6 +15,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.ConverseRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
 import software.amazon.awssdk.services.bedrockruntime.model.ImageFormat;
 import software.amazon.awssdk.services.bedrockruntime.model.Message;
+import software.amazon.awssdk.services.bedrockruntime.model.StopReason;
 import software.amazon.awssdk.services.bedrockruntime.model.TokenUsage;
 import software.amazon.awssdk.services.bedrockruntime.model.ToolUseBlock;
 
@@ -120,6 +121,22 @@ class ClienteModeloConHerramientasBedrockTest {
         assertThat(bloques.getFirst().image().format()).isEqualTo(ImageFormat.WEBP);
         assertThat(bloques.getFirst().image().source().bytes().asByteArray()).containsExactly(4, 5);
         assertThat(bloques.get(1).text()).isEqualTo("contexto");
+    }
+
+    @Test
+    @DisplayName("Si el modelo se queda sin tokens igual devuelve lo que alcanzó a decir")
+    void completarShouldStillAnswerWhenTheModelRunsOutOfTokens() {
+        when(bedrock.converse(any(ConverseRequest.class))).thenReturn(ConverseResponse.builder()
+                .output(ConverseOutput.builder().message(Message.builder()
+                        .role(ConversationRole.ASSISTANT).content(ContentBlock.fromText("Veo un cuaderno")).build()).build())
+                .stopReason(StopReason.MAX_TOKENS)
+                .usage(TokenUsage.builder().inputTokens(850).outputTokens(400).build())
+                .build());
+
+        RespuestaConHerramientas result = cliente.completar(new PeticionConHerramientas("i", "c"));
+
+        assertThat(result.texto()).isEqualTo("Veo un cuaderno");
+        assertThat(result.llamadas()).isEmpty();
     }
 
     private void givenModelAnswers(ContentBlock... bloques) {

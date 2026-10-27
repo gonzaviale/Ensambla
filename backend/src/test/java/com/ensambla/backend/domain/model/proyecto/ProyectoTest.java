@@ -2,12 +2,10 @@ package com.ensambla.backend.domain.model.proyecto;
 
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
-import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.support.ProyectoTestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import java.util.UUID;
 
 import static com.ensambla.backend.support.ProyectoTestData.AHORA;
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
@@ -114,7 +112,7 @@ class ProyectoTest {
     @DisplayName("Un bloque puede quedarse con su propio nombre al renombrarse")
     void validarNombreDeBloqueLibreShouldAllowTheSameBloque() {
         Proyecto proyecto = ProyectoTestData.proyecto();
-        UUID productosId = proyecto.getBloques().getFirst().getId();
+        BloqueId productosId = proyecto.getBloques().getFirst().getId();
 
         assertThatCode(() -> proyecto.validarNombreDeBloqueLibre("productos", productosId))
                 .doesNotThrowAnyException();
@@ -124,7 +122,7 @@ class ProyectoTest {
     @DisplayName("Renombrar con el nombre de otro bloque del proyecto se rechaza")
     void validarNombreDeBloqueLibreShouldRejectNameOfAnotherBloque() {
         Proyecto proyecto = ProyectoTestData.proyecto();
-        UUID vacioId = proyecto.getBloques().get(1).getId();
+        BloqueId vacioId = proyecto.getBloques().get(1).getId();
 
         assertThatThrownBy(() -> proyecto.validarNombreDeBloqueLibre("Productos", vacioId))
                 .isInstanceOf(DuplicateResourceException.class);

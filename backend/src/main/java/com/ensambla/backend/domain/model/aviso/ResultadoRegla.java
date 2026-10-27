@@ -1,13 +1,13 @@
 package com.ensambla.backend.domain.model.aviso;
 
-import com.ensambla.backend.domain.model.enums.TipoAviso;
+import com.ensambla.backend.domain.model.common.Huella;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
  * cambia de huella y un aviso descartado vuelve a aparecer.
  */
 public record ResultadoRegla(
-        UUID proyectoId,
+        ProyectoId proyectoId,
         String entidad,
         short prioridad,
         String titulo,
@@ -26,7 +26,7 @@ public record ResultadoRegla(
 
     private static final String PREFIJO_REGISTRO = "registro:";
 
-    public static String entidadDeRegistro(UUID registroId) {
+    public static String entidadDeRegistro(RegistroId registroId) {
         return PREFIJO_REGISTRO + registroId;
     }
 
@@ -35,12 +35,11 @@ public record ResultadoRegla(
         return tipo + ":" + entidad + ":" + hashDeDatos();
     }
 
-    /** UUID derivado del texto (MD5 de 128 bits): alcanza para distinguir datos distintos y no puede fallar. */
     private String hashDeDatos() {
         String texto = new TreeMap<>(datos).entrySet().stream()
                 .map(dato -> dato.getKey() + "=" + normalizar(dato.getValue()))
                 .collect(Collectors.joining(";"));
-        return UUID.nameUUIDFromBytes(texto.getBytes(StandardCharsets.UTF_8)).toString();
+        return Huella.de(texto);
     }
 
     private static String normalizar(Object valor) {

@@ -1,49 +1,51 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.proyecto;
 
-import com.ensambla.backend.domain.dto.proyecto.CrearProyectoDesdePlantillaRequest;
-import com.ensambla.backend.domain.dto.proyecto.CrearProyectoRequest;
-import com.ensambla.backend.domain.dto.proyecto.EliminarProyectoRequest;
-import com.ensambla.backend.domain.dto.proyecto.ListarProyectosRequest;
-import com.ensambla.backend.domain.dto.proyecto.ObtenerProyectoRequest;
-import com.ensambla.backend.domain.dto.proyecto.ProyectoItem;
-import com.ensambla.backend.domain.dto.proyecto.ProyectoItem.BloqueItem;
-import com.ensambla.backend.domain.dto.proyecto.ProyectoItem.CampoItem;
-import com.ensambla.backend.domain.dto.proyecto.RenombrarProyectoRequest;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.proyecto.ProyectoItem.BloqueItem;
+import com.ensambla.backend.domain.useCase.proyecto.ProyectoItem.CampoItem;
+import com.ensambla.backend.domain.useCase.proyecto.ProyectoItem;
+import com.ensambla.backend.domain.useCase.proyecto.crearProyecto.CrearProyectoRequest;
+import com.ensambla.backend.domain.useCase.proyecto.crearProyectoDesdePlantilla.CrearProyectoDesdePlantillaRequest;
+import com.ensambla.backend.domain.useCase.proyecto.eliminarProyecto.EliminarProyectoRequest;
+import com.ensambla.backend.domain.useCase.proyecto.listarProyectos.ListarProyectosRequest;
+import com.ensambla.backend.domain.useCase.proyecto.obtenerProyecto.ObtenerProyectoRequest;
+import com.ensambla.backend.domain.useCase.proyecto.renombrarProyecto.RenombrarProyectoRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.proyecto.CrearProyectoWebRequest;
-import com.ensambla.backend.infrastructure.presentation.dto.proyecto.ProyectoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.proyecto.ProyectoResponse.BloqueResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.proyecto.ProyectoResponse.CampoResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.proyecto.ProyectoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.proyecto.RenombrarProyectoWebRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.UUID;
 
 @Component
 public class ProyectoPresentationMapper {
 
-    public ListarProyectosRequest toListarRequest(UUID usuarioId) {
+    public ListarProyectosRequest toListarRequest(UsuarioId usuarioId) {
         return new ListarProyectosRequest(usuarioId);
     }
 
-    public ObtenerProyectoRequest toObtenerRequest(UUID usuarioId, UUID proyectoId) {
+    public ObtenerProyectoRequest toObtenerRequest(UsuarioId usuarioId, ProyectoId proyectoId) {
         return new ObtenerProyectoRequest(usuarioId, proyectoId);
     }
 
-    public CrearProyectoRequest toCrearRequest(UUID usuarioId, CrearProyectoWebRequest request) {
+    public CrearProyectoRequest toCrearRequest(UsuarioId usuarioId, CrearProyectoWebRequest request) {
         return new CrearProyectoRequest(usuarioId, request.nombre(), request.descripcion());
     }
 
     public RenombrarProyectoRequest toRenombrarRequest(
-            UUID usuarioId, UUID proyectoId, RenombrarProyectoWebRequest request) {
+            UsuarioId usuarioId, ProyectoId proyectoId, RenombrarProyectoWebRequest request) {
         return new RenombrarProyectoRequest(usuarioId, proyectoId, request.nombre());
     }
 
-    public CrearProyectoDesdePlantillaRequest toDesdePlantillaRequest(UUID usuarioId, UUID plantillaId) {
+    public CrearProyectoDesdePlantillaRequest toDesdePlantillaRequest(UsuarioId usuarioId, PlantillaId plantillaId) {
         return new CrearProyectoDesdePlantillaRequest(usuarioId, plantillaId);
     }
 
-    public EliminarProyectoRequest toEliminarRequest(UUID usuarioId, UUID proyectoId) {
+    public EliminarProyectoRequest toEliminarRequest(UsuarioId usuarioId, ProyectoId proyectoId) {
         return new EliminarProyectoRequest(usuarioId, proyectoId);
     }
 

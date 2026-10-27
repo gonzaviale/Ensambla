@@ -1,7 +1,9 @@
 package com.ensambla.backend.infrastructure.security;
 
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -16,16 +18,18 @@ import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.UUID;
 
 @Component
 public class SesionAdapter {
+
+    @Value("${server.servlet.session.cookie.name:ENSAMBLA_SESSION}")
+    private String nombreCookie = "ENSAMBLA_SESSION";
 
     private final HttpSessionSecurityContextRepository securityContextRepository =
             new HttpSessionSecurityContextRepository();
     private final HttpSessionCsrfTokenRepository csrfTokenRepository = new HttpSessionCsrfTokenRepository();
 
-    public void iniciar(UUID usuarioId, String tipo, HttpServletRequest request, HttpServletResponse response) {
+    public void iniciar(UsuarioId usuarioId, String tipo, HttpServletRequest request, HttpServletResponse response) {
         UsernamePasswordAuthenticationToken authentication = UsernamePasswordAuthenticationToken.authenticated(
                 usuarioId.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_" + tipo)));
         new ChangeSessionIdAuthenticationStrategy().onAuthentication(authentication, request, response);
@@ -41,6 +45,6 @@ public class SesionAdapter {
                 request, response, SecurityContextHolder.getContext().getAuthentication());
         new SecurityContextLogoutHandler().logout(
                 request, response, SecurityContextHolder.getContext().getAuthentication());
-        new CookieClearingLogoutHandler("SESSION").logout(request, response, null);
+        new CookieClearingLogoutHandler(nombreCookie).logout(request, response, null);
     }
 }

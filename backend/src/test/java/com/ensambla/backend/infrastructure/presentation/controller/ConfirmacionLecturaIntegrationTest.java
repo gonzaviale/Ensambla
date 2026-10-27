@@ -1,7 +1,9 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.SuscripcionesDePrueba;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.Filter;
 import org.junit.jupiter.api.AfterEach;
@@ -25,6 +27,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +71,9 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
+    private SuscripcionesDePrueba suscripcionService;
+
+    @Autowired
     private ArchivoCuadernoPort archivoCuadernoPort;
 
     private MockMvc mockMvc;
@@ -88,6 +94,7 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
                 usuarioId, usuarioId + "@example.test");
         jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Negocio', ?)",
                 negocioId, usuarioId);
+        suscripcionService.asignarGratuito(NegocioId.de(negocioId), OffsetDateTime.now().minusDays(1));
         fotoId = UUID.randomUUID();
         loteId = givenLote("LISTO", fotoId);
         sesion = givenSesion(usuarioId);
@@ -95,7 +102,7 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
 
     @AfterEach
     void tearDown() {
-        clavesGuardadas.forEach(clave -> archivoCuadernoPort.eliminar(negocioId, clave));
+        clavesGuardadas.forEach(clave -> archivoCuadernoPort.eliminar(NegocioId.de(negocioId), clave));
         jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId);
         jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId);
     }
@@ -133,6 +140,32 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT confirmado_en IS NOT NULL AND bloque_destino_id IS NOT NULL FROM lote_subida WHERE id = ?",
                 Boolean.class, loteId)).isTrue();
+    }
+
+    @Test
+    @DisplayName("Rechaza por cuota todas las filas de una foto y revierte la estructura recién creada")
+    void confirmarShouldRollbackNewStructureWhenRecordQuotaIsExceeded() throws Exception {
+        UUID proyectoId = UUID.randomUUID();
+        UUID bloqueId = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO proyecto (id, negocio_id, nombre) VALUES (?, ?, 'Sistema existente')",
+                proyectoId, negocioId);
+        jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre) VALUES (?, ?, ?, 'Inicial')",
+                bloqueId, negocioId, proyectoId);
+        jdbcTemplate.update("""
+                INSERT INTO registro (negocio_id, bloque_id, valores)
+                SELECT ?, ?, '{}'::jsonb FROM generate_series(1, 999)
+                """, negocioId, bloqueId);
+        String cuerpo = CUERPO_NUEVO.replace("\"nombreProyecto\": \"Ventas\"",
+                "\"proyectoId\": \"" + proyectoId + "\"");
+
+        confirmar(loteId, cuerpo).andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.codigo").value("LIMITE_REGISTROS"));
+
+        assertThat(contar("proyecto")).isEqualTo(1);
+        assertThat(contar("bloque")).isEqualTo(1);
+        assertThat(contar("campo")).isZero();
+        assertThat(contar("registro")).isEqualTo(999);
+        assertThat(estadoDelLote(loteId)).isEqualTo("LISTO");
     }
 
     @Test
@@ -479,7 +512,7 @@ class ConfirmacionLecturaIntegrationTest extends PostgresRepositoryTestSupport {
                                            tamanio_bytes, posicion)
                 VALUES (?, ?, ?, ?, 'image/jpeg', ?, 0)
                 """, foto, negocioId, id, clave, JPEG.length);
-        archivoCuadernoPort.guardar(negocioId, clave, JPEG);
+        archivoCuadernoPort.guardar(NegocioId.de(negocioId), clave, JPEG);
         clavesGuardadas.add(clave);
         return id;
     }

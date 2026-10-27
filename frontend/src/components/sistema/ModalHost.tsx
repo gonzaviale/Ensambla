@@ -6,14 +6,17 @@ import { ModalBienvenida } from './modales/ModalBienvenida';
 import { ModalBlanco } from './modales/ModalBlanco';
 import { ModalCampo } from './modales/ModalCampo';
 import { ModalConfirmar } from './modales/ModalConfirmar';
+import { ModalConsejosDeFoto } from './modales/ModalConsejosDeFoto';
+import { ModalEliminarCuaderno } from './modales/ModalEliminarCuaderno';
 import { ModalElegirBloque } from './modales/ModalElegirBloque';
 import { ModalImportar } from './modales/ModalImportar';
-import { ModalPerfil } from './modales/ModalPerfil';
 import { ModalPlantilla } from './modales/ModalPlantilla';
 import { ModalRenombrar } from './modales/ModalRenombrar';
 import { ModalRegistro } from './modales/ModalRegistro';
 import { ModalRenombrarPieza } from './modales/ModalRenombrarPieza';
 import { ModalSecciones } from './modales/ModalSecciones';
+import { ModalPruebaPremium } from '@/components/planes/ModalPruebaPremium';
+import { ModalRenovacion } from '@/components/planes/ModalRenovacion';
 
 const ENFOCABLES =
   'button:not(:disabled),a[href],input:not([hidden]),select,textarea,[tabindex="0"]';
@@ -32,14 +35,24 @@ function ContenidoDelModal() {
       return <ModalPlantilla clave={modal.clave} />;
     case 'ayuda':
       return <ModalAyuda respuesta={modal.respuesta} />;
-    case 'perfil':
-      return <ModalPerfil />;
+    case 'pruebaPremium':
+      return <ModalPruebaPremium />;
+    case 'contratarPremium':
+      return <ModalRenovacion />;
+    case 'cancelarRenovacion':
+      return <ModalRenovacion cancelar />;
     case 'renombrar':
       return <ModalRenombrar />;
+    case 'eliminarCuaderno':
+      return <ModalEliminarCuaderno />;
     case 'renombrarPieza':
       return <ModalRenombrarPieza bloqueId={modal.bloqueId} />;
     case 'registro':
       return <ModalRegistro bloqueId={modal.bloqueId} filaId={modal.filaId} />;
+    case 'consejosDeFoto':
+      return <ModalConsejosDeFoto onTomarFoto={modal.onTomarFoto} />;
+    case 'registroDelBorrador':
+      return <ModalRegistro bloqueId={modal.bloqueId} filaId={modal.filaId} enBorrador />;
     case 'campo':
       return <ModalCampo bloqueId={modal.bloqueId} clave={modal.clave} />;
     case 'secciones':
@@ -100,7 +113,7 @@ export function ModalHost() {
     return () => {
       document.removeEventListener('keydown', alTeclear);
       document.body.style.overflow = '';
-      if (anterior?.isConnected) anterior.focus();
+      if (anterior?.isConnected && !anterior.matches(':disabled')) anterior.focus();
       else document.getElementById('main')?.focus({ preventScroll: true });
     };
   }, [hayModal, cerrarModal]);

@@ -1,14 +1,15 @@
 package com.ensambla.backend.infrastructure.ia;
 
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
-import com.ensambla.backend.domain.model.enums.TipoRegistroCuaderno;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
 import com.ensambla.backend.domain.model.lectura.CampoContexto;
 import com.ensambla.backend.domain.model.lectura.ConsumoIa;
 import com.ensambla.backend.domain.model.lectura.DatoLeido;
 import com.ensambla.backend.domain.model.lectura.FilaLeida;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
+import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
 import com.ensambla.backend.infrastructure.ia.LecturaIaJson.BloqueJson;
 import com.ensambla.backend.infrastructure.ia.LecturaIaJson.CampoJson;
 import com.ensambla.backend.infrastructure.ia.LecturaIaJson.DatoJson;
@@ -28,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class LecturaIaJsonMapperTest {
 
     private static final int PAGINAS = 2;
-    private static final UUID BLOQUE_VENTAS_ID = UUID.randomUUID();
+    private static final BloqueId BLOQUE_VENTAS_ID = BloqueId.nuevo();
     private static final List<BloqueConocido> BLOQUES = List.of(
             new BloqueConocido(BLOQUE_VENTAS_ID, "Ventas", List.of(
                     new CampoContexto("Fecha", TipoCampo.FECHA, List.of()),

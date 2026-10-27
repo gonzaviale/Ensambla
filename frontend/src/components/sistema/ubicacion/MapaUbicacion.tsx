@@ -19,7 +19,9 @@ export function MapaUbicacion({
         aria-label="Mapa de tu comercio"
       />
       {error && (
-        <p role="status">No se pudo cargar parte del mapa. Podés ajustar las coordenadas abajo.</p>
+        <p role="status">
+          No se pudo cargar parte del mapa. Igual se usa el punto de la dirección que elegiste.
+        </p>
       )}
     </>
   );

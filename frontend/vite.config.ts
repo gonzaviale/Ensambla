@@ -46,15 +46,18 @@ const renombrarAnimaciones: PluginPostcss = {
 // siguen igual.
 const AFUERA_DEL_SISTEMA = ':not(.mk-root *)';
 const ELEMENTOS_DEL_DOCUMENTO = /^(html|:host|body|:root)(?![\w-])/;
+const PSEUDOELEMENTO = /::|:(?:before|after|first-line|first-letter)(?![\w-])/;
 
 const excluirDelSistema = (selector: string) => {
   const limpio = selector.trim();
   if (ELEMENTOS_DEL_DOCUMENTO.test(limpio)) return limpio;
-  // Los pseudoelementos (`::before`, `::placeholder`) van al final del selector compuesto.
-  const corte = limpio.indexOf('::');
-  return corte === -1
-    ? `${limpio}${AFUERA_DEL_SISTEMA}`
-    : `${limpio.slice(0, corte)}${AFUERA_DEL_SISTEMA}${limpio.slice(corte)}`;
+  // Los pseudoelementos (`::before`, `::placeholder`) van al final del selector compuesto. En el build,
+  // Tailwind los minifica antes de este plugin y `::after` llega como `:after` (un solo `:`): si no se lo
+  // reconoce queda `:after:not(...)`, inválido, y el navegador descarta toda la regla del reset.
+  const corte = limpio.search(PSEUDOELEMENTO);
+  if (corte === -1) return `${limpio}${AFUERA_DEL_SISTEMA}`;
+  const base = limpio.slice(0, corte) || '*';
+  return `${base}${AFUERA_DEL_SISTEMA}${limpio.slice(corte)}`;
 };
 
 const aislarBaseDeTailwind: PluginPostcss = {
@@ -87,6 +90,8 @@ export default defineConfig({
     environment: fileURLToPath(new URL('./src/test/environment.ts', import.meta.url)),
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // Los tests simulan todo el backend: no dependen del VITE_API_MOCKS del .env de cada persona.
+    env: { VITE_API_MOCKS: 'completo' },
     testTimeout: 20_000,
   },
 });

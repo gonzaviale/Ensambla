@@ -1,21 +1,22 @@
 package com.ensambla.backend.domain.model.registro;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.DireccionOrden;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Qué registros de un bloque se piden: texto a buscar entre los valores, campo y dirección del orden, y página.
  * {@code campoOrdenId} nulo significa ordenar por fecha de carga.
  */
 public record ConsultaRegistros(
-        UUID negocioId,
-        UUID bloqueId,
+        NegocioId negocioId,
+        BloqueId bloqueId,
         String texto,
-        UUID campoOrdenId,
+        CampoId campoOrdenId,
         DireccionOrden direccion,
         int pagina,
         int tamanio) {
@@ -25,7 +26,7 @@ public record ConsultaRegistros(
 
     private static final String ORDEN_POR_CARGA = "creadoEn";
 
-    public static ConsultaRegistros armar(UUID negocioId, UUID bloqueId, List<Campo> campos, String texto,
+    public static ConsultaRegistros armar(NegocioId negocioId, BloqueId bloqueId, List<Campo> campos, String texto,
                                           String orden, String direccion, Integer pagina, Integer tamanio) {
         return new ConsultaRegistros(
                 negocioId,
@@ -41,7 +42,7 @@ public record ConsultaRegistros(
         return texto == null || texto.isBlank() ? null : texto.strip();
     }
 
-    private static UUID campoOrdenDe(String orden, List<Campo> campos) {
+    private static CampoId campoOrdenDe(String orden, List<Campo> campos) {
         if (orden == null || orden.isBlank() || ORDEN_POR_CARGA.equals(orden.strip())) {
             return null;
         }

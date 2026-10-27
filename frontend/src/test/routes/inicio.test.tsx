@@ -23,17 +23,18 @@ const abrirInicio = async (sistemas = false) => {
 };
 
 describe('inicio', () => {
-  it('saluda con el nombre de la cuenta y muestra las tres puertas', async () => {
+  it('saluda con el nombre de la cuenta y muestra las tres maneras de empezar', async () => {
     await abrirInicio();
 
     expect(screen.getByText('Hola, Ana Pérez.')).toBeVisible();
-    expect(screen.getByRole('heading', { name: /Contalo\./ })).toBeVisible();
-    expect(screen.getByRole('heading', { name: /Un conjunto/ })).toBeVisible();
-    expect(screen.getByRole('heading', { name: /Tu lienzo\./ })).toBeVisible();
+    expect(screen.getByRole('button', { name: /Crear con Sami/ })).toBeVisible();
+    expect(screen.getByRole('button', { name: /Elegir una plantilla/ })).toBeVisible();
+    expect(screen.getByRole('button', { name: /Empezar de cero/ })).toBeVisible();
     expect(screen.queryByRole('heading', { name: 'Seguí donde lo dejaste' })).toBeNull();
   });
 
-  it('cambia la distribución del ejemplo entre mosaico y una columna', async () => {
+  // La sección «Así se ve un sistema» está comentada en InicioPage: se retoma si vuelve.
+  it.skip('cambia la distribución del ejemplo entre mosaico y una columna', async () => {
     const { user } = await abrirInicio();
     const bloques = () => document.querySelectorAll('.hero-system .preview-block');
 
@@ -47,21 +48,35 @@ describe('inicio', () => {
     );
   });
 
-  it('lista los sistemas guardados y abre uno', async () => {
+  it('«Mis cuadernos» lleva a su propia pantalla', async () => {
     const { user, router } = await abrirInicio(true);
+    expect(screen.queryByRole('button', { name: /Mi almacén/ })).toBeNull();
 
-    await user.click(await screen.findByRole('button', { name: /Mi almacén/ }, ESPERA));
+    await clickButton(user, 'Mis cuadernos');
 
-    await verifyPathAsync(router, `/sistemas/${useSistemaStore.getState().activeId}`);
-    expect(useSistemaStore.getState().modo).toBe('use');
+    await verifyPathAsync(router, '/cuadernos');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Mis cuadernos' }, ESPERA),
+    ).toBeVisible();
   });
 
-  it('«Mis sistemas» sin sistemas explica por dónde empezar', async () => {
-    const { user } = await abrirInicio();
+  it('el menú hamburguesa (celular) abre las secciones y se cierra al elegir una', async () => {
+    const { user, router } = await abrirInicio();
+    const boton = screen.getByRole('button', { name: 'Abrir el menú' });
+    expect(boton).toHaveAttribute('aria-expanded', 'false');
 
-    await clickButton(user, 'Mis sistemas');
+    await user.click(boton);
+    expect(screen.getByRole('button', { name: 'Cerrar el menú' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    await clickButton(user, 'Mis cuadernos');
 
-    await verifyToastAsync(/tres caminos/);
+    await verifyPathAsync(router, '/cuadernos');
+    expect(screen.getByRole('button', { name: 'Abrir el menú' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
   });
 
   it('muestra la zona sin mapa y lleva a «Mi zona»', async () => {
@@ -80,7 +95,7 @@ describe('plantillas', () => {
     const tarjeta = document.querySelector<HTMLElement>('[data-template="business"]');
     if (!tarjeta) throw new Error('Falta la tarjeta de la plantilla');
 
-    await user.click(within(tarjeta).getByRole('button', { name: /Ver el sistema/ }));
+    await user.click(within(tarjeta).getByRole('button', { name: /Ver el cuaderno/ }));
     const modal = await screen.findByRole('dialog');
     expect(
       within(modal).getByRole('heading', { name: /Pedidos y clientes, a tu manera/ }),
@@ -142,26 +157,76 @@ describe('modales', () => {
     expect(useSistemaStore.getState().modo).toBe('build');
   });
 
-  it('el perfil cambia el nombre que se muestra y guarda la preferencia', async () => {
-    const { user, usuario } = await abrirInicio();
+  it('el avatar despliega un menú que lleva a la configuración, donde se cambia el nombre que se muestra y se guarda la preferencia', async () => {
+    const { user, usuario, router } = await abrirInicio();
 
-    await clickButton(user, /Cambiar tu nombre/);
-    const campo = await screen.findByLabelText('Tu nombre');
+    await clickButton(user, 'Menú de tu cuenta');
+    await user.click(await screen.findByRole('menuitem', { name: 'Configuración' }));
+    await verifyPathAsync(router, '/cuenta');
+    const campo = await screen.findByLabelText('¿Cómo querés que te llame Sami?');
     await user.clear(campo);
     await user.type(campo, 'Marta');
-    await clickButton(user, 'Guardar');
+    await clickButton(user, 'Guardar nombre');
 
-    expect(await screen.findByText('Hola, Marta.')).toBeVisible();
+    await verifyToastAsync('Guardamos tu nombre.');
+    expect(await screen.findByText('Marta')).toBeVisible();
     await waitFor(
       () => expect(estado.preferencias.get(usuario.email)?.nombre).toBe('Marta'),
       ESPERA,
     );
   });
 
-  it('el perfil permite cerrar la sesión', async () => {
+  it('el menú del avatar se cierra con Escape devolviendo el foco, o al tocar afuera', async () => {
+    const { user } = await abrirInicio();
+    const avatar = await screen.findByRole('button', { name: 'Menú de tu cuenta' });
+
+    await user.click(avatar);
+    expect(avatar).toHaveAttribute('aria-expanded', 'true');
+    expect(await screen.findByRole('menuitem', { name: 'Configuración' })).toHaveFocus();
+    expect(screen.getByRole('menuitem', { name: 'Cerrar sesión' })).toBeVisible();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(avatar).toHaveFocus();
+
+    await user.click(avatar);
+    await user.click(document.body);
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('desde el menú del avatar se cierra la sesión recién al confirmar', async () => {
     const { user, router } = await abrirInicio();
 
-    await clickButton(user, /Cambiar tu nombre/);
+    await clickButton(user, 'Menú de tu cuenta');
+    await user.click(await screen.findByRole('menuitem', { name: 'Cerrar sesión' }));
+    const dialogo = await screen.findByRole('dialog', { name: '¿Cerrar la sesión?' });
+    expect(router.state.location.pathname).not.toBe('/login');
+
+    await user.click(within(dialogo).getByRole('button', { name: 'Cerrar sesión' }));
+
+    await verifyPathAsync(router, '/login');
+  });
+
+  it('cancelar la confirmación mantiene la sesión y devuelve el foco al avatar', async () => {
+    const { user, router } = await abrirInicio();
+    const avatar = await screen.findByRole('button', { name: 'Menú de tu cuenta' });
+
+    await user.click(avatar);
+    await user.click(await screen.findByRole('menuitem', { name: 'Cerrar sesión' }));
+    const dialogo = await screen.findByRole('dialog', { name: '¿Cerrar la sesión?' });
+    await user.click(within(dialogo).getByRole('button', { name: 'Cancelar' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(router.state.location.pathname).not.toBe('/login');
+    expect(avatar).toHaveFocus();
+  });
+
+  it('desde la cuenta también se puede cerrar la sesión', async () => {
+    const { user, router } = await abrirInicio();
+
+    await clickButton(user, 'Menú de tu cuenta');
+    await user.click(await screen.findByRole('menuitem', { name: 'Configuración' }));
+    await user.click(await screen.findByRole('link', { name: 'Cerrar sesión' }));
     await user.click(await screen.findByRole('button', { name: 'Cerrar sesión' }));
 
     await verifyPathAsync(router, '/login');

@@ -1,13 +1,13 @@
 package com.ensambla.backend.infrastructure.ia;
 
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.UUID;
 
 public class ArchivoCuadernoLocalAdapter implements ArchivoCuadernoPort {
 
@@ -20,7 +20,7 @@ public class ArchivoCuadernoLocalAdapter implements ArchivoCuadernoPort {
     }
 
     @Override
-    public byte[] leer(UUID negocioId, String clave) {
+    public byte[] leer(NegocioId negocioId, String clave) {
         try {
             Path base = raiz.toRealPath().resolve(negocioId.toString());
             Path archivo = raiz.resolve(clave).toRealPath();
@@ -40,7 +40,7 @@ public class ArchivoCuadernoLocalAdapter implements ArchivoCuadernoPort {
     }
 
     @Override
-    public void guardar(UUID negocioId, String clave, byte[] contenido) {
+    public void guardar(NegocioId negocioId, String clave, byte[] contenido) {
         Path destino = aArchivoDelNegocio(negocioId, clave);
         try {
             Files.createDirectories(destino.getParent());
@@ -51,7 +51,7 @@ public class ArchivoCuadernoLocalAdapter implements ArchivoCuadernoPort {
     }
 
     @Override
-    public void eliminar(UUID negocioId, String clave) {
+    public void eliminar(NegocioId negocioId, String clave) {
         try {
             Files.deleteIfExists(aArchivoDelNegocio(negocioId, clave));
         } catch (IOException e) {
@@ -59,7 +59,7 @@ public class ArchivoCuadernoLocalAdapter implements ArchivoCuadernoPort {
         }
     }
 
-    private Path aArchivoDelNegocio(UUID negocioId, String clave) {
+    private Path aArchivoDelNegocio(NegocioId negocioId, String clave) {
         Path base = raiz.resolve(negocioId.toString()).normalize();
         Path archivo = raiz.resolve(clave).normalize();
         if (!archivo.startsWith(base)) {

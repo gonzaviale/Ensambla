@@ -1,9 +1,11 @@
 package com.ensambla.backend.infrastructure.repository;
 
-import com.ensambla.backend.domain.model.enums.EstadoUsuario;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
-import com.ensambla.backend.domain.service.plantilla.PlantillaService;
-import com.ensambla.backend.domain.service.proyecto.ProyectoService;
+import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
+import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
 import com.ensambla.backend.infrastructure.repository.entity.PlantillaEntity;
 import com.ensambla.backend.infrastructure.repository.entity.RegistroEntity;
@@ -16,14 +18,16 @@ import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.I
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IRegistroJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IUsuarioJpaRepository;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.ProyectosDePrueba;
+import com.ensambla.backend.support.SuscripcionesDePrueba;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
@@ -40,16 +44,22 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     private static final UUID INVENTARIO_ID = UUID.fromString("00000000-0000-4000-8000-0000000000a1");
 
     @Autowired
-    private ProyectoService proyectoService;
+    private ProyectosDePrueba proyectosDePrueba;
 
     @Autowired
-    private PlantillaService plantillaService;
+    private ProyectoRepository proyectoRepository;
+
+    @Autowired
+    private PlantillaRepository plantillaRepository;
 
     @Autowired
     private IUsuarioJpaRepository usuarios;
 
     @Autowired
     private INegocioJpaRepository negocios;
+
+    @Autowired
+    private SuscripcionesDePrueba suscripcionService;
 
     @Autowired
     private IProyectoJpaRepository proyectos;
@@ -75,10 +85,11 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Test
     @DisplayName("V3 carga las tres plantillas con descripción y estructura")
     void migrationShouldSeedTemplates() {
-        var result = plantillaService.listarActivas();
+        var result = plantillaRepository.findAllActivas();
 
         assertThat(result).extracting("nombre").contains("Clientes", "Inventario", "Pedidos");
-        assertThat(plantillaService.obtenerParaProyecto(INVENTARIO_ID).estructura().bloques()).hasSize(1);
+        assertThat(plantillaRepository.obtenerParaProyecto(PlantillaId.de(INVENTARIO_ID)).estructura().bloques())
+                .hasSize(1);
         assertThat(plantillas.findById(INVENTARIO_ID).orElseThrow().getDescripcion()).isNotBlank();
     }
 
@@ -86,15 +97,15 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @DisplayName("Copiar dos veces persiste árboles independientes sin alterar la plantilla")
     void crearDesdePlantillaShouldPersistIndependentTrees() {
         UUID negocioId = givenNegocio();
-        var plantilla = plantillaService.obtenerParaProyecto(INVENTARIO_ID);
+        var plantilla = plantillaRepository.obtenerParaProyecto(PlantillaId.de(INVENTARIO_ID));
         Map<String, Object> original = Map.copyOf(plantillas.findById(INVENTARIO_ID).orElseThrow().getEstructura());
 
-        Proyecto primero = proyectoService.crearDesdePlantilla(negocioId, plantilla, AHORA);
-        Proyecto segundo = proyectoService.crearDesdePlantilla(negocioId, plantilla, AHORA);
+        Proyecto primero = proyectosDePrueba.crearDesdePlantilla(NegocioId.de(negocioId), plantilla, AHORA);
+        Proyecto segundo = proyectosDePrueba.crearDesdePlantilla(NegocioId.de(negocioId), plantilla, AHORA);
         entityManager.flush();
         entityManager.clear();
 
-        Proyecto recargado = proyectoService.obtener(negocioId, primero.getId());
+        Proyecto recargado = proyectoRepository.obtener(NegocioId.de(negocioId), primero.getId());
         assertThat(recargado.getBloques()).hasSize(1);
         var bloque = recargado.getBloques().getFirst();
         assertThat(bloque.getId()).isNotEqualTo(segundo.getBloques().getFirst().getId());
@@ -110,24 +121,24 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @DisplayName("Eliminar un proyecto borra sus bloques, campos y registros en cascada")
     void eliminarShouldCascadeThroughWholeGraph() {
         UUID negocioId = givenNegocio();
-        Proyecto proyecto = proyectoService.crearDesdePlantilla(
-                negocioId, plantillaService.obtenerParaProyecto(INVENTARIO_ID), AHORA);
+        Proyecto proyecto = proyectosDePrueba.crearDesdePlantilla(
+                NegocioId.de(negocioId), plantillaRepository.obtenerParaProyecto(PlantillaId.de(INVENTARIO_ID)), AHORA);
         var bloque = proyecto.getBloques().getFirst();
         UUID registroId = registros.saveAndFlush(RegistroEntity.builder()
                 .negocioId(negocioId)
-                .bloqueId(bloque.getId())
+                .bloqueId(bloque.getId().valor())
                 .valores(Map.of(bloque.getCampos().getFirst().getId().toString(), "Producto"))
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
 
-        proyectoService.eliminar(negocioId, proyecto.getId());
+        proyectoRepository.deleteByIdAndNegocioId(proyecto.getId(), NegocioId.de(negocioId));
         entityManager.flush();
         entityManager.clear();
 
-        assertThat(proyectos.existsById(proyecto.getId())).isFalse();
-        assertThat(bloques.existsById(bloque.getId())).isFalse();
-        assertThat(campos.existsById(bloque.getCampos().getFirst().getId())).isFalse();
+        assertThat(proyectos.existsById(proyecto.getId().valor())).isFalse();
+        assertThat(bloques.existsById(bloque.getId().valor())).isFalse();
+        assertThat(campos.existsById(bloque.getCampos().getFirst().getId().valor())).isFalse();
         assertThat(registros.existsById(registroId)).isFalse();
         assertThat(plantillas.existsById(INVENTARIO_ID)).isTrue();
     }
@@ -137,17 +148,18 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     void repositoryShouldIsolateNegocios() {
         UUID propioId = givenNegocio();
         UUID ajenoId = givenNegocio();
-        Proyecto ajeno = proyectoService.crearDesdePlantilla(
-                ajenoId, plantillaService.obtenerParaProyecto(INVENTARIO_ID), AHORA);
+        Proyecto ajeno = proyectosDePrueba.crearDesdePlantilla(
+                NegocioId.de(ajenoId), plantillaRepository.obtenerParaProyecto(PlantillaId.de(INVENTARIO_ID)), AHORA);
 
-        proyectos.deleteByIdAndNegocioId(ajeno.getId(), propioId);
+        proyectos.deleteByIdAndNegocioId(ajeno.getId().valor(), propioId);
 
-        assertThat(proyectos.findByIdAndNegocioId(ajeno.getId(), propioId)).isEmpty();
-        assertThat(proyectoService.listar(propioId)).isEmpty();
-        assertThat(proyectos.findByIdAndNegocioId(ajeno.getId(), ajenoId)).isPresent();
-        assertThat(bloques.findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(ajeno.getId(), propioId)).isEmpty();
+        assertThat(proyectos.findByIdAndNegocioId(ajeno.getId().valor(), propioId)).isEmpty();
+        assertThat(proyectoRepository.findAllByNegocioId(NegocioId.de(propioId))).isEmpty();
+        assertThat(proyectos.findByIdAndNegocioId(ajeno.getId().valor(), ajenoId)).isPresent();
+        assertThat(bloques.findAllByProyectoIdAndNegocioIdOrderByPosicionAscIdAsc(ajeno.getId().valor(), propioId))
+                .isEmpty();
         assertThat(campos.findAllByBloqueIdInAndNegocioIdOrderByPosicionAscIdAsc(
-                List.of(ajeno.getBloques().getFirst().getId()), propioId)).isEmpty();
+                List.of(ajeno.getBloques().getFirst().getId().valor()), propioId)).isEmpty();
     }
 
     @Test
@@ -161,16 +173,17 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                 .descripcion("Para probar rollback")
                 .activa(true)
                 .estructura(Map.of("bloques", List.of(Map.of("nombre", "Productos", "campos", List.of(
-                        Map.of("nombre", "Duplicado", "tipo", "TEXTO"),
-                        Map.of("nombre", "Duplicado", "tipo", "TEXTO"))))))
+                        Map.of("nombre", "Nombre", "tipo", "TEXTO"),
+                        Map.of("nombre", "Estado", "tipo", "OPCION", "opciones", List.of()))))))
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId());
         UUID usuarioId = negocios.findById(negocioId).orElseThrow().getDuenioId();
 
         try {
-            assertThatThrownBy(() -> proyectoService.crearDesdePlantilla(
-                    negocioId, plantillaService.obtenerParaProyecto(plantillaId), AHORA))
+            assertThatThrownBy(() -> proyectosDePrueba.crearDesdePlantilla(
+                    NegocioId.de(negocioId), plantillaRepository.obtenerParaProyecto(PlantillaId.de(plantillaId)),
+                            AHORA))
                     .isInstanceOf(DataIntegrityViolationException.class);
 
             assertThat(proyectos.findAllByNegocioIdOrderByCreadoEnDescIdAsc(negocioId)).isEmpty();
@@ -193,12 +206,14 @@ class ProyectoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
-        return negocios.saveAndFlush(NegocioEntity.builder()
+        UUID creadoId = negocios.saveAndFlush(NegocioEntity.builder()
                 .nombre("Negocio")
                 .duenioId(usuarioId)
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA)
                 .build()).getId();
+        suscripcionService.asignarGratuito(NegocioId.de(creadoId), AHORA.minusDays(1));
+        return creadoId;
     }
 }
 

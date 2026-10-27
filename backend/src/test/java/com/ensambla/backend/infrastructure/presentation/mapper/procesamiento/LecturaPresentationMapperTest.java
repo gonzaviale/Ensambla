@@ -1,13 +1,14 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.procesamiento;
 
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenItem;
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenItem.CampoItem;
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenItem.DatoItem;
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenRequest;
-import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.LecturaImagenResponse;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem.CampoItem;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem.DatoItem;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.LecturaImagenResponse.CampoResponse;
-import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.PedidoLecturaRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.LecturaImagenResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.PedidoLecturaRequest.CampoPedido;
+import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.PedidoLecturaRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -29,6 +30,8 @@ import static org.mockito.Mockito.when;
 
 class LecturaPresentationMapperTest {
 
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
+
     private final LecturaPresentationMapper mapper = new LecturaPresentationMapper();
 
     @Test
@@ -41,9 +44,10 @@ class LecturaPresentationMapperTest {
                 campo("estado", "Estado", "select", "A", "B"), campo("pago", "Pagó", "checkbox"),
                 campo("cliente", "Cliente", "relation"));
 
-        LeerImagenRequest request = mapper.toRequest(
+        LeerImagenRequest request = mapper.toRequest(USUARIO_ID,
                 new MockMultipartFile("imagen", "foto.jpg", "image/jpeg", new byte[]{1, 2}), pedido);
 
+        assertThat(request.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(request.contenido()).containsExactly(1, 2);
         assertThat(request.nombreBloque()).isEqualTo("Ventas");
         assertThat(request.destinoExistente()).isTrue();
@@ -60,7 +64,7 @@ class LecturaPresentationMapperTest {
         MultipartFile imagen = mock(MultipartFile.class);
         when(imagen.getBytes()).thenThrow(new IOException("disco"));
 
-        assertThatThrownBy(() -> mapper.toRequest(imagen, pedido(false, campo("a", "A", "text"))))
+        assertThatThrownBy(() -> mapper.toRequest(USUARIO_ID, imagen, pedido(false, campo("a", "A", "text"))))
                 .isInstanceOf(UncheckedIOException.class).hasMessageContaining("No se pudo leer la imagen");
     }
 

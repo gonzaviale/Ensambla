@@ -1,0 +1,164 @@
+/* ==========================================================================
+   Sami: «Conocé a Sami» y «Sami vigila». Se apoya en los tokens de .landing.
+   Cada sección toma el fondo de su ilustración; el color viene de la paleta de marca.
+   ========================================================================== */
+
+/* ---------- Conocé a Sami (fondo igual al de la ilustración, texto a un lado) ---------- */
+.landing .sami-seccion {
+  padding: clamp(36px, 5vw, 64px) 0;
+  background: #fcf6e6;
+}
+.landing .sami-grilla,
+.landing .vigia-grilla {
+  display: grid;
+  align-items: center;
+  gap: clamp(16px, 3vw, 40px);
+}
+.landing .sami-grilla {
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+}
+.landing .sami-texto h2,
+.landing .vigia-texto h2 {
+  font-size: clamp(28px, 3.6vw, 44px);
+  margin: 8px 0 12px;
+  text-wrap: balance;
+}
+.landing .sami-bajada {
+  font-size: clamp(16px, 1.5vw, 18px);
+  color: var(--texto-suave);
+  text-wrap: pretty;
+}
+.landing .sami-kicker {
+  display: inline-block;
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--petroleo);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.landing .sami-kicker--claro {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+.landing .sami-figura,
+.landing .vigia-figura {
+  margin: 0;
+}
+.landing .sami-figura img,
+.landing .vigia-figura img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.landing .sami-figura,
+.landing .vigia-figura {
+  /* Los bordes de la ilustración se funden con el fondo de la sección. */
+  overflow: hidden;
+  -webkit-mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 62%, transparent 100%);
+  mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 62%, transparent 100%);
+}
+.landing .sami-figura img {
+  /* La ilustración tiene mucho margen: se acerca para que Sami se vea más grande. */
+  transform: scale(1.3);
+  transform-origin: 57% 56%;
+}
+.landing .sami-ayudas {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.landing .sami-ayuda {
+  padding: 10px 16px 12px;
+  border-radius: 16px;
+  background: #fff;
+  border-left: 6px solid var(--celeste);
+  box-shadow: var(--sombra);
+}
+.landing .sami-ayuda--amarillo {
+  border-left-color: var(--amarillo);
+}
+.landing .sami-ayuda--coral {
+  border-left-color: var(--coral);
+}
+.landing .sami-ayuda h3 {
+  font-size: 18px;
+  margin-bottom: 2px;
+}
+.landing .sami-ayuda p {
+  color: var(--texto-suave);
+  font-size: 15px;
+}
+.landing .sami-cierre {
+  margin-top: 20px;
+}
+
+/* ---------- Sami vigila (fondo igual al de la ilustración, imagen a la izquierda) ---------- */
+.landing .vigia {
+  padding: clamp(36px, 5vw, 64px) 0;
+  background: #092a43;
+  color: #fff;
+}
+.landing .vigia-grilla {
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+}
+.landing .vigia-texto h2 {
+  color: #fff;
+}
+.landing .vigia-bajada {
+  font-size: clamp(16px, 1.5vw, 18px);
+  color: #cfe3ec;
+}
+.landing .vigia-avisos {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  margin: 18px 0 20px;
+  padding: 0;
+  list-style: none;
+}
+.landing .vigia-avisos li {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 15px;
+  font-weight: 600;
+}
+.landing .vigia-punto {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--celeste);
+}
+.landing .vigia-punto--amarillo {
+  background: var(--amarillo);
+}
+.landing .vigia-punto--coral {
+  background: var(--coral);
+}
+
+@media (max-width: 860px) {
+  .landing .sami-grilla,
+  .landing .vigia-grilla {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .landing .sami-figura,
+  .landing .vigia-figura {
+    width: 100%;
+    max-width: 520px;
+    margin-inline: auto;
+  }
+  .landing .vigia-figura {
+    order: 2;
+  }
+}

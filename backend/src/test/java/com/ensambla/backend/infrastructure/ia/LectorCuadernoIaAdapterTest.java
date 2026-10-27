@@ -1,10 +1,10 @@
 package com.ensambla.backend.infrastructure.ia;
 
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
-import com.ensambla.backend.domain.model.enums.TipoRegistroCuaderno;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
 import com.ensambla.backend.domain.model.lectura.PaginaCuaderno;
+import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

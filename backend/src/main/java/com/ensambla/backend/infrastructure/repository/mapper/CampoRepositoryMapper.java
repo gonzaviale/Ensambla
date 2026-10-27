@@ -1,6 +1,10 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.common.Identificador;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
 import org.springframework.stereotype.Component;
 
@@ -9,15 +13,15 @@ public class CampoRepositoryMapper {
 
     public Campo toDomain(CampoEntity entity) {
         return Campo.builder()
-                .id(entity.getId())
-                .negocioId(entity.getNegocioId())
-                .bloqueId(entity.getBloqueId())
+                .id(Identificador.opcional(entity.getId(), CampoId::de))
+                .negocioId(Identificador.opcional(entity.getNegocioId(), NegocioId::de))
+                .bloqueId(Identificador.opcional(entity.getBloqueId(), BloqueId::de))
                 .nombre(entity.getNombre())
                 .tipo(entity.getTipo())
                 .obligatorio(entity.getObligatorio())
                 .valorInicial(entity.getValorInicial())
                 .opciones(entity.getOpciones())
-                .bloqueRelacionadoId(entity.getBloqueRelacionadoId())
+                .bloqueRelacionadoId(Identificador.opcional(entity.getBloqueRelacionadoId(), BloqueId::de))
                 .formula(entity.getFormula())
                 .clave(entity.getClave())
                 .minimo(entity.getMinimo())
@@ -29,15 +33,15 @@ public class CampoRepositoryMapper {
 
     public CampoEntity toEntity(Campo campo) {
         return CampoEntity.builder()
-                .id(campo.getId())
-                .negocioId(campo.getNegocioId())
-                .bloqueId(campo.getBloqueId())
+                .id(Identificador.valorDe(campo.getId()))
+                .negocioId(Identificador.valorDe(campo.getNegocioId()))
+                .bloqueId(Identificador.valorDe(campo.getBloqueId()))
                 .nombre(campo.getNombre())
                 .tipo(campo.getTipo())
                 .obligatorio(campo.getObligatorio())
                 .valorInicial(campo.getValorInicial())
                 .opciones(campo.getOpciones())
-                .bloqueRelacionadoId(campo.getBloqueRelacionadoId())
+                .bloqueRelacionadoId(Identificador.valorDe(campo.getBloqueRelacionadoId()))
                 .formula(campo.getFormula())
                 .clave(campo.getClave())
                 .minimo(campo.getMinimo())

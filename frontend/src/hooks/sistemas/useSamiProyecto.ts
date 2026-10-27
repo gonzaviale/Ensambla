@@ -1,10 +1,11 @@
-import { queryOptions, useMutation, useQuery } from '@tanstack/react-query';
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import {
   conversarConSami,
   crearProyectoConSami,
   listarPlantillasDelServidor,
 } from '@/api/samiProyecto';
+import { sistemasQuery } from '@/hooks/sistemas/queries';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import type {
   OpcionDePregunta,
@@ -42,6 +43,8 @@ const textoDeLaPropuesta = (propuesta: PropuestaDeSami) => {
 // cada pedido lleva el texto y las respuestas dadas hasta ahora.
 export function useSamiProyecto(saludo: string) {
   const avisar = useSistemaStore((estado) => estado.avisar);
+  const incorporarSistemas = useSistemaStore((estado) => estado.incorporarSistemas);
+  const queryClient = useQueryClient();
   const conversar = useMutation({ mutationFn: conversarConSami });
   const crear = useMutation({ mutationFn: crearProyectoConSami });
   const plantillas = useQuery(plantillasDelServidorQuery());
@@ -133,6 +136,15 @@ export function useSamiProyecto(saludo: string) {
     (columna) => !quitadas.includes(columna.nombre),
   );
 
+  /** El proyecto se creó en el servidor: se trae y se suma a la copia local para que aparezca en «Mis cuadernos». */
+  const sumarAMisSistemas = async () => {
+    try {
+      incorporarSistemas(await queryClient.fetchQuery({ ...sistemasQuery(), staleTime: 0 }));
+    } catch {
+      // Si no se pudo traer, aparece la próxima vez que la persona entre.
+    }
+  };
+
   /** Crea el proyecto con la plantilla y sólo las columnas que la persona dejó. */
   const crearProyecto = async () => {
     if (!propuesta || crear.isPending) return;
@@ -148,6 +160,7 @@ export function useSamiProyecto(saludo: string) {
           })),
         }),
       );
+      await sumarAMisSistemas();
     } catch (error) {
       avisar(
         error instanceof Error ? error.message : 'No pudimos crear el proyecto. Probá de nuevo.',

@@ -1,15 +1,14 @@
 package com.ensambla.backend.infrastructure.repository.entity;
 
-import com.ensambla.backend.domain.model.enums.AnchoBloque;
-import com.ensambla.backend.domain.model.enums.ColorBloque;
-import com.ensambla.backend.domain.model.enums.TipoBloque;
+import com.ensambla.backend.domain.model.bloque.AnchoBloque;
+import com.ensambla.backend.domain.model.bloque.ColorBloque;
+import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,7 +29,6 @@ import java.util.UUID;
 public class BloqueEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(name = "negocio_id", nullable = false, updatable = false)
@@ -84,4 +82,12 @@ public class BloqueEntity {
 
     @Column(name = "actualizado_en", nullable = false)
     private OffsetDateTime actualizadoEn;
+
+    /** El id puede venir del frontend (el sistema se guarda entero); si no viene, se genera al insertar. */
+    @PrePersist
+    void asignarId() {
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
+    }
 }

@@ -53,9 +53,11 @@ export function objetivosDelPaso(paso: PasoDeTutorial, bloqueId: string | null, 
       break;
     case 'addBlock':
     case 'addSecond': {
-      const celularConBibliotecaCerrada =
-        window.innerWidth <= 760 && !document.querySelector('.block-library.mobile-open');
-      marcas = celularConBibliotecaCerrada
+      // «Tus piezas» se ve abierta o, fuera del celular, fijada al costado; si no, se señala «Bloques».
+      const bibliotecaVisible =
+        !!document.querySelector('.block-library.mobile-open') ||
+        (window.innerWidth > 680 && !!document.querySelector('.block-library.fijada'));
+      marcas = !bibliotecaVisible
         ? [
             ['agregar-pieza-movil', null],
             ['agregar-pieza-vacio', null],
@@ -130,6 +132,7 @@ export function useTutorialEnPantalla() {
             }
           : null,
         modal: estado.modal?.tipo ?? null,
+        celular: window.matchMedia?.('(max-width: 680px)').matches ?? false,
       };
       const cambio = avanzar(estado.tutorial, contexto);
       if (cambio) estado.ponerTutorial(cambio);
@@ -247,6 +250,13 @@ export function useTutorialEnPantalla() {
         left = Math.max(12, Math.min(ancho - anchoDelCartel - 12, primera.left));
         top = primera.bottom + 18;
       }
+    } else if (
+      document.querySelector('.sami-conversation.flotante:not([hidden])') ||
+      (primera && primera.top + primera.height / 2 > alto / 2)
+    ) {
+      // En el celular el cartel va abajo, salvo con el chat de Sami abierto (abajo se escribe) o cuando
+      // lo señalado está abajo: ahí sube arriba para no taparlo.
+      top = 12;
     }
     setCartel({
       width: anchoDelCartel,

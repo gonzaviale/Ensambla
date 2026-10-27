@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.ia;
 
-import com.ensambla.backend.domain.useCase.procesamiento.ProcesarLoteUseCase;
+import com.ensambla.backend.domain.useCase.procesamiento.procesarLote.ProcesarLote;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -13,12 +13,12 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(prefix = "ensambla.ia.procesamiento", name = "habilitado", havingValue = "true")
 public class ProcesamientoIaWorker {
 
-    private final ProcesarLoteUseCase procesarLoteUseCase;
+    private final ProcesarLote procesarLote;
 
     @Scheduled(fixedDelayString = "${ensambla.ia.procesamiento.intervalo:2000}")
     public void procesar() {
         try {
-            procesarLoteUseCase.execute();
+            procesarLote.execute();
         } catch (RuntimeException e) {
             log.warn("El worker de IA no pudo completar un ciclo; recuperará el reclamo al vencer");
         }

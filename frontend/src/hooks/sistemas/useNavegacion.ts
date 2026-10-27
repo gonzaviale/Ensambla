@@ -1,6 +1,9 @@
+import { guardarSistema } from '@/api/sistemas';
+import { ApiError } from '@/api/apiError';
 import { useNavigate } from '@tanstack/react-router';
 import { useUsuario } from '@/hooks/auth/queries';
 import { usePreferencias } from '@/hooks/preferencias/queries';
+import type { SeccionDeCuenta } from '@/lib/cuenta';
 import type { Sistema } from '@/lib/sistema/tipos';
 import { useSistemaStore, type ModoDelEditor } from '@/stores/sistemaStore';
 import type { ImagenParaSami } from '@/types/samiTaller';
@@ -36,7 +39,17 @@ export function useNavegacion() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
-  const irA = (to: '/inicio' | '/plantillas' | '/taller' | '/zona' | '/sami') => {
+  const irA = (
+    to:
+      | '/inicio'
+      | '/cuadernos'
+      | '/plantillas'
+      | '/taller'
+      | '/zona'
+      | '/planes'
+      | '/sami'
+      | '/avisos',
+  ) => {
     limpiar();
     return navigate({ to });
   };
@@ -83,25 +96,35 @@ export function useNavegacion() {
       return sistema ? navigate({ to: '/taller', search: { sistema: sistema.id } }) : navigate({ to: '/taller' });
     },
     irAZona: () => irA('/zona'),
+    /** El avatar: la configuración de la cuenta, en la sección que se pida (el perfil, si no). */
+    irACuenta: (seccion?: SeccionDeCuenta) => {
+      limpiar();
+      return navigate({ to: '/cuenta', search: { seccion } });
+    },
+    /** La pantalla de avisos de Sami. */
+    irAAvisos: () => irA('/avisos'),
+    irAPlanes: () => irA('/planes'),
     /** «Armalo con Sami»: la conversación que crea un proyecto real en el backend. */
     irASami: () => irA('/sami'),
     abrirSistema,
     /** saveNew() del mockup: guarda el sistema nuevo y lo abre. */
-    crearYAbrir: (sistema: Sistema, modo: ModoDelEditor = 'use') => {
-      useSistemaStore.getState().agregarSistema(sistema);
-      return abrirSistema(sistema.id, modo, true);
-    },
-    /** «Mis sistemas»: vuelve al inicio y baja a la lista, o explica por dónde empezar. */
-    irAMisSistemas: async () => {
-      await irA('/inicio');
-      const estado = useSistemaStore.getState();
-      if (estado.sistemas.length) {
-        document
-          .getElementById('my-systems')
-          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        estado.avisar('Tu primer sistema puede empezar con cualquiera de estos tres caminos.');
+    crearYAbrir: async (sistema: Sistema, modo: ModoDelEditor = 'use') => {
+      try {
+        const guardado = await guardarSistema(sistema);
+        useSistemaStore.getState().agregarSistema(guardado);
+        useSistemaStore.getState().marcarGuardados([guardado.id], []);
+        await abrirSistema(guardado.id, modo, true);
+      } catch (error) {
+        useSistemaStore
+          .getState()
+          .avisar(
+            error instanceof ApiError
+              ? `${error.message}${error.status === 403 && error.codigo ? ' Revisá los beneficios de Premium en Planes.' : ''}`
+              : 'No pudimos crear tu cuaderno. Tus datos todavía no se guardaron. Probá de nuevo.',
+          );
       }
     },
+    /** «Mis cuadernos»: la pantalla con todos los cuadernos y las maneras de crear uno. */
+    irAMisSistemas: () => irA('/cuadernos'),
   };
 }

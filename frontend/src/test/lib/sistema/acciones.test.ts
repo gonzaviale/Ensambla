@@ -28,7 +28,7 @@ describe('las acciones de Sami sobre el taller', () => {
   });
 
   describe('resumirSistema', () => {
-    it('resume nombre, distribución, piezas, datos y las primeras filas', () => {
+    it('resume nombre, distribución, piezas y datos sin filas', () => {
       const resumen = resumirSistema(sistema);
 
       expect(resumen.nombre).toBe(sistema.name);
@@ -37,35 +37,7 @@ describe('las acciones de Sami sobre el taller', () => {
       const inventario = resumen.piezas[0];
       expect(inventario?.id).toBe(pieza('inventory').id);
       expect(inventario?.campos[0]).toEqual({ etiqueta: 'Producto', tipo: 'text' });
-      expect(inventario?.filas).toHaveLength(pieza('inventory').rows.length);
-      expect(inventario?.filas[0]).toEqual({
-        id: pieza('inventory').rows[0]?.id,
-        valores: ['Yerba Playadito 1 kg', '24', '3600'],
-      });
-    });
-
-    it('muestra un vínculo con el nombre del registro y no con su id', () => {
-      const cliente = pieza('clients').rows[0];
-      const ventas = pieza('sales');
-      const campo = ventas.fields.find((item) => item.type === 'relation');
-      if (!cliente || !campo) throw new Error('Faltan el cliente o el vínculo');
-      const venta = ventas.rows[0] ?? { id: 'v1' };
-      venta[campo.key] = cliente.id;
-      ventas.rows[0] = venta;
-
-      const resumen = resumirSistema(sistema).piezas.find((item) => item.tipo === 'sales');
-      const lugar = ventas.fields.slice(0, 3).findIndex((item) => item.key === campo.key);
-
-      if (lugar >= 0) expect(resumen?.filas[0]?.valores[lugar]).not.toBe(cliente.id);
-    });
-
-    it('no pasa de 15 filas por pieza', () => {
-      const inventario = pieza('inventory');
-      for (let n = 0; n < 30; n++) inventario.rows.push({ id: `x${n}`, name: `Producto ${n}` });
-
-      const resumen = resumirSistema(sistema).piezas.find((item) => item.tipo === 'inventory');
-
-      expect(resumen?.filas).toHaveLength(15);
+      expect(JSON.stringify(resumen)).not.toContain('Yerba');
     });
 
     it('lleva la distribución elegida y la sección de cada pieza', () => {
@@ -897,7 +869,7 @@ describe('Sami ensambla el sistema desde cero', () => {
       ).toEqual([`${anio}-10-02`, '2025-03-05', '2024-10-09', '2026-01-31', undefined]);
     });
 
-    it('suma registros reales, sin reemplazar ni los ejemplos ni lo que ya había', () => {
+    it('suma registros reales a lo que ya había y reemplaza los ejemplos de esa pieza', () => {
       aplicarAcciones(sistema, [
         accion('agregar_pieza', { tipo: 'clients', ejemplos: [{ Nombre: 'Ejemplo' }] }),
       ]);
@@ -916,15 +888,9 @@ describe('Sami ensambla el sistema desde cero', () => {
       ]);
 
       expect(resultado).toEqual({ aplicadas: ['Cargué 3 registros en clientes.'], omitidas: [] });
-      expect(clientes.rows.map((fila) => fila.name)).toEqual([
-        'Ejemplo',
-        'Rosa',
-        'Lucía',
-        'Marta',
-        'Pedro',
-      ]);
-      expect(clientes.rows[1]).toBe(real);
-      const nuevas = clientes.rows.slice(2);
+      expect(clientes.rows.map((fila) => fila.name)).toEqual(['Rosa', 'Lucía', 'Marta', 'Pedro']);
+      expect(clientes.rows[0]).toBe(real);
+      const nuevas = clientes.rows.slice(1);
       expect(nuevas.every((fila) => !('__example' in fila))).toBe(true);
       expect(sinId(nuevas)[0]).toEqual({ name: 'Lucía', phone: '11 5555-0101' });
     });
@@ -1181,6 +1147,153 @@ describe('Sami ensambla el sistema desde cero', () => {
       expect(llamada('Ventas').rows[0]?.product).toBe('');
     });
   });
+
+  describe('borrar_registros', () => {
+    beforeEach(() => {
+      aplicarAcciones(sistema, [
+        accion('agregar_pieza', {
+          tipo: 'sales',
+          ejemplos: [{ Producto: 'Yerba', Cantidad: 2 }],
+        }),
+        accion('agregar_pieza', { tipo: 'clients', ejemplos: [{ Nombre: 'Lucía' }] }),
+      ]);
+    });
+
+    const cargarVentas = () => {
+      aplicarAcciones(sistema, [
+        accion('cargar_registros', {
+          pieza: 'sales',
+          filas: [
+            { Producto: 'Almohaditas', Cantidad: 0.5, Precio: 3200, Cliente: 'Anto Sdani' },
+            { Producto: 'Bolitas', Cantidad: 1, Precio: 2900, Cliente: 'Anto Sdani' },
+            { Producto: 'Almohaditas', Cantidad: 1, Precio: 3200, Cliente: 'Vero Susy' },
+          ],
+        }),
+      ]);
+      return llamada('Ventas');
+    };
+
+    it('borra las filas cuyos datos coinciden, sin importar mayúsculas ni tildes, y sólo esas', () => {
+      const ventas = cargarVentas();
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('borrar_registros', { pieza: 'sales', donde: { cliente: 'anto sdani' } }),
+      ]);
+
+      expect(resultado).toEqual({ aplicadas: ['Borré 2 registros de ventas.'], omitidas: [] });
+      expect(ventas.rows).toHaveLength(1);
+      expect(ventas.rows[0]?.product).toBeDefined();
+    });
+
+    it('exige que coincidan todos los datos de un criterio y acepta una lista de criterios', () => {
+      const ventas = cargarVentas();
+
+      aplicarAcciones(sistema, [
+        accion('borrar_registros', {
+          pieza: 'sales',
+          donde: { Cliente: 'Anto Sdani', Cantidad: '0,5' },
+        }),
+      ]);
+      expect(ventas.rows).toHaveLength(2);
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('borrar_registros', {
+          pieza: 'Ventas',
+          donde: [{ Cliente: 'Vero Susy' }, { Cliente: 'Anto Sdani' }],
+        }),
+      ]);
+      expect(resultado.aplicadas).toEqual(['Borré 2 registros de ventas.']);
+      expect(ventas.rows).toHaveLength(0);
+    });
+
+    it('un solo registro se cuenta en singular y los vínculos que apuntaban a él quedan vacíos', () => {
+      cargarVentas();
+      const clientes = llamada('Clientes');
+      const anto = clientes.rows.find((fila) => fila.name === 'Anto Sdani');
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('borrar_registros', { pieza: 'clients', donde: { Nombre: 'Anto Sdani' } }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual(['Borré un registro de clientes.']);
+      expect(clientes.rows.some((fila) => fila.id === anto?.id)).toBe(false);
+      expect(
+        llamada('Ventas').rows.filter((fila) => fila.client === anto?.id),
+      ).toHaveLength(0);
+    });
+
+    it('nunca borra de más: sin criterio, con un dato que no existe o sin coincidencias no se borra nada', () => {
+      const ventas = cargarVentas();
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('borrar_registros', { pieza: 'sales' }),
+        accion('borrar_registros', { pieza: 'sales', donde: {} }),
+        accion('borrar_registros', { pieza: 'sales', donde: 'todo' }),
+        accion('borrar_registros', { pieza: 'sales', donde: { Color: 'Rojo' } }),
+        accion('borrar_registros', { pieza: 'sales', donde: { Cliente: 'Anto Sdani', Color: 'Rojo' } }),
+        accion('borrar_registros', { pieza: 'sales', donde: { Cantidad: 'mucho' } }),
+        accion('borrar_registros', { pieza: 'sales', donde: { Cliente: 'Nadie' } }),
+        accion('borrar_registros', { pieza: 'nada', donde: { Cliente: 'Anto Sdani' } }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual([]);
+      expect(resultado.omitidas).toHaveLength(8);
+      expect(ventas.rows).toHaveLength(3);
+    });
+
+    it('usar borrar y cargar en el mismo turno corrige sin duplicar', () => {
+      const ventas = cargarVentas();
+
+      aplicarAcciones(sistema, [
+        accion('borrar_registros', { pieza: 'sales', donde: { Cliente: 'Anto Sdani' } }),
+        accion('cargar_registros', {
+          pieza: 'sales',
+          filas: [{ Producto: 'Almohaditas', Cantidad: 0.5, Precio: 3200, Cliente: 'Anto Solari' }],
+        }),
+      ]);
+
+      expect(ventas.rows).toHaveLength(2);
+      expect(ventas.rows.filter((fila) => fila.__example)).toHaveLength(0);
+    });
+  });
+
+  describe('los ejemplos no se mezclan con lo real', () => {
+    beforeEach(() => {
+      aplicarAcciones(sistema, [
+        accion('agregar_pieza', {
+          tipo: 'sales',
+          ejemplos: [{ Producto: 'Yerba', Cantidad: 2 }],
+        }),
+        accion('agregar_pieza', { tipo: 'clients', ejemplos: [{ Nombre: 'Lucía' }] }),
+      ]);
+    });
+
+    it('al cargar registros reales en una pieza desaparecen sus ejemplos, y los de otras piezas siguen marcados', () => {
+      const ventas = llamada('Ventas');
+      const clientes = llamada('Clientes');
+      expect(ventas.rows.every((fila) => fila.__example)).toBe(true);
+      expect(clientes.rows.every((fila) => fila.__example)).toBe(true);
+
+      aplicarAcciones(sistema, [
+        accion('cargar_registros', { pieza: 'sales', filas: [{ Producto: 'Yerba', Cantidad: 1 }] }),
+      ]);
+
+      expect(ventas.rows.some((fila) => fila.__example)).toBe(false);
+      expect(ventas.rows).toHaveLength(1);
+      expect(clientes.rows.every((fila) => fila.__example)).toBe(true);
+    });
+
+    it('lo que se guarda al crear nunca incluye una fila de ejemplo', () => {
+      aplicarAcciones(sistema, [
+        accion('cargar_registros', { pieza: 'sales', filas: [{ Producto: 'Yerba', Cantidad: 1 }] }),
+      ]);
+
+      const creado = sistemaParaCrear(sistema);
+
+      expect(allBlocks(creado).flatMap((bloque) => bloque.rows).some((fila) => fila.__example)).toBe(false);
+      expect(allBlocks(creado).find((bloque) => bloque.type === 'sales')?.rows).toHaveLength(1);
+    });
+  });
 });
 
 describe('ajusteParaGuardar: el sistema ajustado con Sami', () => {
@@ -1285,7 +1398,7 @@ describe('sistemaParaCrear: el sistema que sale del taller', () => {
 
     const sistema = sistemaParaCrear(borrador);
 
-    expect(sistema.name).toBe('Mi sistema');
+    expect(sistema.name).toBe('Mi cuaderno');
     expect(sistema.id).toBe(borrador.id);
     const filas = allBlocks(sistema).flatMap((bloque) => bloque.rows);
     expect(filas.some((fila) => fila.__example)).toBe(false);
@@ -1307,114 +1420,5 @@ describe('sistemaParaCrear: el sistema que sale del taller', () => {
     const sistema = sistemaParaCrear(makeTemplate('shop', {}, true));
 
     expect(allBlocks(sistema).every((bloque) => bloque.rows.length === 0)).toBe(true);
-  });
-
-  describe('editar_registro y quitar_registro', () => {
-    let sistema: Sistema;
-    beforeEach(() => {
-      sistema = makeTemplate('shop', {}, true);
-    });
-    const pieza = (tipo: string) => {
-      const encontrada = allBlocks(sistema).find((bloque) => bloque.type === tipo);
-      if (!encontrada) throw new Error(`Falta la pieza ${tipo}`);
-      return encontrada;
-    };
-    const primero = () => {
-      const fila = pieza('inventory').rows[0];
-      if (!fila) throw new Error('Falta el primer producto');
-      return fila;
-    };
-
-    it('cambia un dato de un registro nombrado por su id', () => {
-      const fila = primero();
-      const campo = pieza('inventory').fields[1];
-
-      const resultado = aplicarAcciones(sistema, [
-        accion('editar_registro', {
-          pieza: 'inventory',
-          registro: fila.id,
-          cambios: { [campo?.label ?? '']: 99 },
-        }),
-      ]);
-
-      expect(resultado.omitidas).toEqual([]);
-      expect(resultado.aplicadas).toEqual(['Cambié «Yerba Playadito 1 kg» en inventario.']);
-      expect(primero()[campo?.key ?? '']).toBe(99);
-    });
-
-    it('encuentra el registro por su nombre, sin importar mayúsculas ni tildes', () => {
-      const campo = pieza('inventory').fields[0];
-
-      aplicarAcciones(sistema, [
-        accion('editar_registro', {
-          pieza: 'inventory',
-          registro: 'YERBA playadito 1 KG',
-          cambios: { [campo?.label ?? '']: 'Yerba mate' },
-        }),
-      ]);
-
-      expect(primero()[campo?.key ?? '']).toBe('Yerba mate');
-    });
-
-    it('no adivina cuando hay dos registros con el mismo nombre', () => {
-      const inventario = pieza('inventory');
-      const clave = inventario.fields[0]?.key ?? '';
-      inventario.rows.push({ id: 'otra', [clave]: primero()[clave] ?? '' });
-      const antes = clone(sistema);
-
-      const resultado = aplicarAcciones(sistema, [
-        accion('quitar_registro', { pieza: 'inventory', registro: String(primero()[clave]) }),
-      ]);
-
-      expect(resultado.omitidas).toEqual(['No encontré ese registro.']);
-      expect(mismoSistema(sistema, antes)).toBe(true);
-    });
-
-    it('omite un cambio que no entiende o que no cambia nada', () => {
-      const fila = primero();
-
-      const resultado = aplicarAcciones(sistema, [
-        accion('editar_registro', { pieza: 'inventory', registro: fila.id, cambios: { Inventado: 1 } }),
-        accion('editar_registro', { pieza: 'inventory', registro: fila.id, cambios: 'hola' }),
-        accion('editar_registro', { pieza: 'nada', registro: fila.id, cambios: {} }),
-      ]);
-
-      expect(resultado.aplicadas).toEqual([]);
-      expect(resultado.omitidas).toHaveLength(3);
-    });
-
-    it('vacía un dato con un valor vacío pero no deja sin nombre al registro', () => {
-      const [principal, otro] = pieza('inventory').fields;
-
-      aplicarAcciones(sistema, [
-        accion('editar_registro', {
-          pieza: 'inventory',
-          registro: primero().id,
-          cambios: { [principal?.label ?? '']: '', [otro?.label ?? '']: '' },
-        }),
-      ]);
-
-      expect(primero()[principal?.key ?? '']).toBe('Yerba Playadito 1 kg');
-      expect(primero()[otro?.key ?? '']).toBeUndefined();
-    });
-
-    it('quita un registro y deja vacíos los vínculos que apuntaban a él', () => {
-      const cliente = pieza('clients').rows[0];
-      const ventas = pieza('sales');
-      const vinculo = ventas.fields.find((item) => item.type === 'relation' && item.target === pieza('clients').id);
-      if (!cliente || !vinculo) throw new Error('Faltan el cliente o el vínculo');
-      const venta = ventas.rows[0] ?? { id: 'v1' };
-      venta[vinculo.key] = cliente.id;
-      ventas.rows[0] = venta;
-      const cantidad = pieza('clients').rows.length;
-
-      const resultado = aplicarAcciones(sistema, [
-        accion('quitar_registro', { pieza: 'clients', registro: cliente.id }),
-      ]);
-
-      expect(resultado.aplicadas).toHaveLength(1);
-      expect(pieza('clients').rows).toHaveLength(cantidad - 1);
-      expect(pieza('sales').rows[0]?.[vinculo.key]).toBe('');
-    });
   });
 });
