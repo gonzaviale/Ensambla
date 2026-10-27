@@ -260,4 +260,19 @@ class RegistroTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("El registro no existe");
     }
+
+    @Test
+    @DisplayName("Una fila marcada como ejemplo de la plantilla es de ejemplo")
+    void esDeEjemploShouldBeTrueWhenMarkedAsEjemplo() {
+        Registro registro = Registro.builder().esEjemplo(true).build();
+
+        assertThat(registro.esDeEjemplo()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Una fila cargada por el negocio, o sin la marca, no es de ejemplo")
+    void esDeEjemploShouldBeFalseWhenNotMarkedOrNull() {
+        assertThat(Registro.builder().esEjemplo(false).build().esDeEjemplo()).isFalse();
+        assertThat(Registro.builder().esEjemplo(null).build().esDeEjemplo()).isFalse();
+    }
 }

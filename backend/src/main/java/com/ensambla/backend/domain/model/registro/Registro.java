@@ -77,6 +77,11 @@ public class Registro {
         return registro;
     }
 
+    /** {@code true} si es una fila de ejemplo de la plantilla y no un dato real del negocio. */
+    public boolean esDeEjemplo() {
+        return Boolean.TRUE.equals(esEjemplo);
+    }
+
     /** Registro que salió de una página del cuaderno; {@code fotoOrigenId} es null si la fila se agregó a mano. */
     public static Registro desdeCuaderno(NegocioId negocioId, BloqueId bloqueId, Map<String, Object> valores,
                                          FotoId fotoOrigenId, OffsetDateTime ahora) {

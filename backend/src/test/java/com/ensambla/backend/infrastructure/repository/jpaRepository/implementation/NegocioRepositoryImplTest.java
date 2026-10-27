@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.repository.jpaRepository.implementat
 
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.zona.ZonaId;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.INegocioJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.NegocioRepositoryMapper;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.UsuarioTestData.USUARIO_ID;
@@ -59,5 +61,32 @@ class NegocioRepositoryImplTest {
         when(negocioJpaRepository.findAllIds()).thenReturn(List.of(NEGOCIO_ID.valor()));
 
         assertThat(negocioRepository.findAllIds()).containsExactly(NEGOCIO_ID);
+    }
+
+    @Test
+    @DisplayName("Resuelve la zona del negocio")
+    void findZonaIdByIdShouldMapZonaId() {
+        UUID zonaId = UUID.randomUUID();
+        when(negocioJpaRepository.findById(NEGOCIO_ID.valor()))
+                .thenReturn(Optional.of(NegocioEntity.builder().id(NEGOCIO_ID.valor()).zonaId(zonaId).build()));
+
+        assertThat(negocioRepository.findZonaIdById(NEGOCIO_ID)).contains(ZonaId.de(zonaId));
+    }
+
+    @Test
+    @DisplayName("Un negocio sin zona no tiene id de zona")
+    void findZonaIdByIdShouldReturnEmptyWhenNegocioHasNoZona() {
+        when(negocioJpaRepository.findById(NEGOCIO_ID.valor()))
+                .thenReturn(Optional.of(NegocioEntity.builder().id(NEGOCIO_ID.valor()).build()));
+
+        assertThat(negocioRepository.findZonaIdById(NEGOCIO_ID)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Un negocio inexistente no tiene id de zona")
+    void findZonaIdByIdShouldReturnEmptyWhenNegocioDoesNotExist() {
+        when(negocioJpaRepository.findById(NEGOCIO_ID.valor())).thenReturn(Optional.empty());
+
+        assertThat(negocioRepository.findZonaIdById(NEGOCIO_ID)).isEmpty();
     }
 }

@@ -1,6 +1,8 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
+import com.ensambla.backend.domain.model.aviso.MetricasVentas;
 import com.ensambla.backend.domain.model.aviso.ReglaAviso;
+import com.ensambla.backend.domain.model.aviso.ReglaProductoEstancado;
 import com.ensambla.backend.domain.model.aviso.ReglaStockBajo;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
@@ -8,6 +10,8 @@ import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
+import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
+import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.aviso.aplicarAviso.AplicarAviso;
@@ -15,9 +19,11 @@ import com.ensambla.backend.domain.useCase.aviso.contarAvisos.ContarAvisos;
 import com.ensambla.backend.domain.useCase.aviso.descartarAviso.DescartarAviso;
 import com.ensambla.backend.domain.useCase.aviso.ejecutarMotorAvisos.EjecutarMotorAvisos;
 import com.ensambla.backend.domain.useCase.aviso.listarAvisos.ListarAvisos;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.List;
 
@@ -30,11 +36,13 @@ public class AvisoUseCaseConfig {
             List<ReglaAviso> reglas,
             ProyectoRepository proyectoRepository,
             RegistroRepository registroRepository,
+            ZonaRepository zonaRepository,
+            AgregadoZonaRepository agregadoZonaRepository,
             AvisoRepository avisoRepository,
             TransaccionPort transaccionPort,
             Clock clock) {
         return new EjecutarMotorAvisos(negocioRepository, reglas, proyectoRepository, registroRepository,
-                avisoRepository, transaccionPort, clock);
+                zonaRepository, agregadoZonaRepository, avisoRepository, transaccionPort, clock);
     }
 
     @Bean
@@ -75,9 +83,21 @@ public class AvisoUseCaseConfig {
                 negocioRepository, controlPlanService, avisoRepository, transaccionPort, clock);
     }
 
-
     @Bean
     public ReglaStockBajo reglaStockBajo() {
         return new ReglaStockBajo();
+    }
+
+    /** El período y el factor de baja rotación salen de {@code ensambla.avisos.*}. */
+    @Bean
+    public MetricasVentas metricasVentas(
+            @Value("${ensambla.avisos.periodo-dias:30}") int periodoDias,
+            @Value("${ensambla.avisos.baja-rotacion-factor:0.5}") BigDecimal factorBajaRotacion) {
+        return new MetricasVentas(periodoDias, factorBajaRotacion);
+    }
+
+    @Bean
+    public ReglaProductoEstancado reglaProductoEstancado(MetricasVentas metricasVentas) {
+        return new ReglaProductoEstancado(metricasVentas);
     }
 }
