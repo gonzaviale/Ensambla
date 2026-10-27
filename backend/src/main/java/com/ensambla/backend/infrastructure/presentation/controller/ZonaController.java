@@ -38,7 +38,12 @@ public class ZonaController {
     }
 
     @PostMapping("/analisis")
-    @Operation(summary = "Precios y ventas agregados de otra zona, indicada por barrio o dirección")
+    @Operation(
+            summary = "Precios y ventas agregados de otra zona, indicada por un punto del mapa, un barrio o una dirección",
+            description = "Con latitud y longitud resuelve la zona precargada que contiene el punto; si no, busca el "
+                    + "barrio o la dirección escritos. Si en la zona hay menos de 3 comercios devuelve la lista de "
+                    + "productos vacía (no hay datos suficientes). No filtra por rubro. Los productos vienen ordenados "
+                    + "por cuántos comercios los venden y el plan gratuito ve sólo los primeros de su cupo.")
     public ResponseEntity<ZonaWebResponse> analizar(Authentication authentication,
                                                     @Valid @RequestBody AnalizarZonaWebRequest request) {
         return ResponseEntity.ok(zonaPresentationMapper.toResponse(
