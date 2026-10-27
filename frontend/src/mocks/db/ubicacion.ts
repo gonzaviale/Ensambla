@@ -30,16 +30,36 @@ export const DIRECCIONES_DE_PRUEBA = [
   },
 ] as const;
 
+// Direcciones de otras zonas, para probar el análisis de zona: una con pocos comercios y una sin datos.
+export const DIRECCION_EN_ZONA_CHICA_DE_PRUEBA = {
+  direccion: 'Av. de Mayo 500, Ramos Mejía, Buenos Aires, Argentina',
+  latitud: -34.6419,
+  longitud: -58.5666,
+  localidad: 'Ramos Mejía',
+} as const;
+export const DIRECCION_SIN_ZONA_DE_PRUEBA = {
+  direccion: 'Honduras 5000, Palermo, Ciudad Autónoma de Buenos Aires, Argentina',
+  latitud: -34.5889,
+  longitud: -58.4306,
+  localidad: 'Palermo',
+} as const;
+
 const METROS_POR_GRADO = 111_195;
 
-// Aproximación plana: alcanza para decidir si un punto cae en el radio de la zona de prueba.
-export function dentroDeLaZonaDePrueba(punto: { latitud: number; longitud: number }) {
-  const norte = (punto.latitud - ZONA_DE_PRUEBA.latitud) * METROS_POR_GRADO;
+type PuntoPlano = { latitud: number; longitud: number };
+
+// Aproximación plana: alcanza para decidir si un punto cae en el radio de una zona de prueba.
+export function distanciaEnMetros(desde: PuntoPlano, hasta: PuntoPlano) {
+  const norte = (hasta.latitud - desde.latitud) * METROS_POR_GRADO;
   const este =
-    (punto.longitud - ZONA_DE_PRUEBA.longitud) *
+    (hasta.longitud - desde.longitud) *
     METROS_POR_GRADO *
-    Math.cos((ZONA_DE_PRUEBA.latitud * Math.PI) / 180);
-  return Math.hypot(norte, este) <= ZONA_DE_PRUEBA.radioMetros;
+    Math.cos((desde.latitud * Math.PI) / 180);
+  return Math.hypot(norte, este);
+}
+
+export function dentroDeLaZonaDePrueba(punto: PuntoPlano) {
+  return distanciaEnMetros(ZONA_DE_PRUEBA, punto) <= ZONA_DE_PRUEBA.radioMetros;
 }
 
 // Lo que el mapa de prueba reconoce en un punto: San Justo dentro de la zona, otra localidad fuera.
