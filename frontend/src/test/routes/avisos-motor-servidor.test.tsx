@@ -1,9 +1,11 @@
 import { screen, waitFor } from '@testing-library/react';
+import { HttpResponse, http } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 import type * as ConfigEnv from '@/config/env';
 import { crearAlmacenDeEjemplo } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
 import { estado } from '@/mocks/db/estado';
+import { server } from '@/mocks/node';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { avisoDelServidor } from '@/test/avisosData';
 import { renderApp } from '@/test/renderApp';
@@ -44,6 +46,32 @@ describe('avisos con el motor del servidor activo', () => {
     // Los del navegador llegan cuando el plan los habilita: se espera a uno que sí se muestra.
     await waitFor(() => expect(delNavegador('stock')).toBe(true), ESPERA);
 
+    expect(delNavegador('estancado')).toBe(false);
+    expect(delNavegador('combo')).toBe(false);
+  });
+
+  it('mientras el servidor todavía no contestó, tampoco aparecen copias del navegador', async () => {
+    const { sistema } = await abrirAlmacen();
+    // La respuesta del servidor queda retenida hasta que el test la libera.
+    let liberar: () => void = () => {};
+    const retenida = new Promise<void>((resolver) => {
+      liberar = resolver;
+    });
+    server.use(
+      http.get('/api/avisos', async () => {
+        await retenida;
+        return HttpResponse.json([]);
+      }),
+    );
+    renderApp(`/sistemas/${sistema.id}?modo=usar`);
+    await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
+    await waitFor(() => expect(delNavegador('stock')).toBe(true), ESPERA);
+
+    expect(delNavegador('estancado')).toBe(false);
+    expect(delNavegador('combo')).toBe(false);
+
+    liberar();
+    await new Promise((resolver) => setTimeout(resolver, 150));
     expect(delNavegador('estancado')).toBe(false);
     expect(delNavegador('combo')).toBe(false);
   });

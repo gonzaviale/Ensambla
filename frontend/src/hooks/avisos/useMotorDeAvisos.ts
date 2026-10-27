@@ -30,14 +30,18 @@ export function useMotorDeAvisos() {
       .filter((aviso) => grupos[aviso.grupo] !== false);
     // Los avisos de un tipo que el servidor cubre (producto estancado, combos…) no se calculan también en el
     // navegador: serían los mismos avisos duplicados, y uno descartado o aplicado volvería a aparecer. Con el backend
-    // real y el servidor respondiendo, esos tipos son siempre del servidor; en el modo demo (todo simulado) o si el
-    // servidor no responde, el navegador sigue calculándolos.
-    const cubiertos = tiposCubiertosPorElServidor(remotos, env.mocks !== 'completo' && respondio);
+    // real, esos tipos son siempre del servidor, también mientras todavía no contestó (si no, las copias del navegador
+    // aparecerían un momento y desaparecerían); en el modo demo (todo simulado) o si el servidor falla, el navegador
+    // sigue calculándolos.
+    const cubiertos = tiposCubiertosPorElServidor(
+      remotos,
+      env.mocks !== 'completo' && (respondio || avisosCargando),
+    );
     const locales = analizar({ sistemas, zona, hoy: hoy(), grupos }).filter(
       (aviso) => !descartadas.includes(aviso.id) && !cubiertos.has(aviso.tipo),
     );
     return { locales, remotos };
-  }, [sistemas, zona, grupos, descartadas, delServidor, respondio]);
+  }, [sistemas, zona, grupos, descartadas, delServidor, respondio, avisosCargando]);
 
   const claves = candidatos.locales.map((aviso) => `local:${aviso.id}`);
   const acceso = useQuery({

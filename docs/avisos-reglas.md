@@ -67,7 +67,8 @@ producto y el aviso vence solo.
 El frontend (`useMotorDeAvisos`) junta los avisos del servidor con los que Sami calcula en el navegador. Para no duplicar ni resucitar
 avisos descartados:
 
-- Con el **backend real** (`VITE_API_MOCKS` distinto de `completo`) y el servidor respondiendo, los tipos `estancado` y `combo` son
-  **siempre del servidor**: el navegador no los calcula. Así un aviso descartado o aplicado no reaparece como copia local.
+- Con el **backend real** (`VITE_API_MOCKS` distinto de `completo`), los tipos `estancado` y `combo` son **siempre del servidor**, también
+  mientras todavía no contestó: el navegador no los calcula. Así un aviso descartado o aplicado no reaparece como copia local, y no hay un
+  parpadeo de avisos duplicados al abrir la pantalla.
 - Los demás tipos que el servidor trae (por ejemplo `stock`) también se omiten en el navegador mientras haya alguno pendiente.
-- En **modo demo** (todo simulado) o si el servidor **no responde**, el navegador sigue calculándolos él mismo.
+- En **modo demo** (todo simulado) o si el servidor **falla**, el navegador sigue calculándolos él mismo.
