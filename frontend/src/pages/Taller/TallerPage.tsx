@@ -144,6 +144,15 @@ export function TallerPage() {
     }
   }, [nombre, sistemaDeLaUrl]);
 
+  // Si la persona llegó con una foto (desde cualquier «traer datos de una foto»), Sami la mira apenas se abre.
+  const mensajeAlAbrir = taller?.enviarAlAbrir;
+  const fotoAdjunta = Boolean(taller?.foto);
+  useEffect(() => {
+    if (!mensajeAlAbrir || !fotoAdjunta) return;
+    actualizarTaller({ enviarAlAbrir: null });
+    void enviar(mensajeAlAbrir);
+  }, [mensajeAlAbrir, fotoAdjunta, actualizarTaller, enviar]);
+
   // La tabla a pantalla completa no queda abierta al salir del taller.
   useEffect(() => () => useSistemaStore.getState().verTablaCompleta(null), []);
 

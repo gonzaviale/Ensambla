@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { allBlocks, findBlock, makeSystem, makeTemplate } from '@/lib/sistema/core';
@@ -723,31 +723,21 @@ describe('campos y secciones', () => {
 });
 
 describe('traer datos de una foto', () => {
-  it('lee un ejemplo, deja revisarlo y lo incorpora al bloque elegido', async () => {
+  const foto = () => new File(['pixeles'], 'cuaderno.jpg', { type: 'image/jpeg' });
+
+  it('desde el editor lleva la foto a Sami, que la mira y pregunta qué ve mal', async () => {
     const { user } = await abrirEditor(makeTemplate('shop', {}, false));
 
     await clickButton(user, /Traer datos de una foto/);
-    const modal = await screen.findByRole('dialog');
-    await user.selectOptions(
-      within(modal).getByLabelText('¿Dónde querés llevar los datos?'),
-      tipoDeBloque('inventory').id,
-    );
-    await user.click(within(modal).getByRole('button', { name: /Probar con un ejemplo/ }));
+    const entrada = document.querySelector<HTMLInputElement>('#photo-file');
+    if (!entrada) throw new Error('Falta el selector de archivos');
+    await user.upload(entrada, foto());
 
-    const revision = await screen.findByRole('heading', { name: 'Confirmar registros' }, ESPERA);
-    expect(revision).toBeVisible();
-    const nombres = screen.getAllByLabelText(/Producto, registro/);
-    expect(nombres).toHaveLength(3);
-    expect(screen.getAllByRole('article')).toHaveLength(3);
-    await user.clear(nombres[0] as HTMLElement);
-    await user.type(nombres[0] as HTMLElement, 'Mate listo');
-    await user.click(screen.getByRole('button', { name: 'Quitar el registro 3' }));
-    await user.click(screen.getByRole('button', { name: /Descartar/ }));
-    await clickButton(user, /Incorporar registros/);
-
-    await waitFor(() => expect(tipoDeBloque('inventory').rows).toHaveLength(2), ESPERA);
-    expect(tipoDeBloque('inventory').rows[0]?.name).toBe('Mate listo');
-    await verifyToastAsync('2 registros incorporados');
+    await screen.findByRole('heading', { name: 'Lo ajustamos juntos.' }, ESPERA);
+    expect(await screen.findByText(/Miré tu foto/, undefined, ESPERA)).toBeVisible();
+    expect(screen.getByText(/Te paso una foto de cómo anoto hoy/)).toBeVisible();
+    expect(await screen.findByText('¿Qué significan los tildes?', undefined, ESPERA)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Entregado pero sin cobrar' })).toBeVisible();
   });
 
   it('rechaza un archivo que no es una imagen', async () => {
@@ -762,44 +752,18 @@ describe('traer datos de una foto', () => {
     expect(await screen.findByText('Elegí una imagen JPG, PNG o WEBP.')).toBeVisible();
   });
 
-  it('desde el inicio, sin sistema, crea uno nuevo con los registros', async () => {
+  it('desde el inicio, sin sistema, también va a Sami', async () => {
     setupUsuarioConSesion();
     const router = renderApp('/inicio');
     await screen.findByRole('heading', { name: /En qué puedo/ }, ESPERA);
     const user = userEvent.setup();
 
     await user.click(screen.getByRole('button', { name: /Cargar desde una foto/ }));
-    await user.click(await screen.findByRole('button', { name: /Probar con un ejemplo/ }));
-    await user.click(await screen.findByRole('button', { name: /Incorporar registros/ }, ESPERA));
-
-    await waitFor(() => expect(useSistemaStore.getState().sistemas).toHaveLength(1), ESPERA);
-    expect(useSistemaStore.getState().sistemas[0]?.name).toBe('Mi inventario');
-    expect(useSistemaStore.getState().sistemas[0]?.sections[0]?.blocks[0]?.rows).toHaveLength(3);
-    await verifyPathAsync(router, `/sistemas/${useSistemaStore.getState().activeId}`);
-  });
-
-  it('con una foto del negocio lleva la descripción al taller', async () => {
-    setupUsuarioConSesion();
-    const router = renderApp('/taller');
-    await screen.findByRole('heading', { name: 'Lo armamos juntos.' }, ESPERA);
-    const user = userEvent.setup();
-
-    // La cámara del taller ahora le manda la foto a Sami (taller-foto.test.tsx); este importador se abre aparte.
-    act(() =>
-      useSistemaStore.getState().abrirModal({
-        tipo: 'importar',
-        sistemaId: null,
-        bloqueId: null,
-        contexto: 'negocio',
-      }),
-    );
-    await user.click(await screen.findByRole('button', { name: /Probar con un ejemplo/ }));
-    await user.click(await screen.findByRole('button', { name: /Usar esta descripción/ }, ESPERA));
+    const entrada = document.querySelector<HTMLInputElement>('#photo-file');
+    if (!entrada) throw new Error('Falta el selector de archivos');
+    await user.upload(entrada, foto());
 
     await verifyPathAsync(router, '/taller');
-    await waitFor(
-      () => expect(useSistemaStore.getState().taller?.entrada).toMatch(/almacén de barrio/),
-      ESPERA,
-    );
+    expect(await screen.findByText(/Miré tu foto/, undefined, ESPERA)).toBeVisible();
   });
 });
