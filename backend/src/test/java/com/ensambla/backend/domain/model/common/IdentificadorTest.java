@@ -18,6 +18,8 @@ import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.seccion.SeccionId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.whatsapp.CodigoVinculacionId;
+import com.ensambla.backend.domain.model.whatsapp.PropuestaWhatsappId;
+import com.ensambla.backend.domain.model.whatsapp.VerificacionWhatsappId;
 import com.ensambla.backend.domain.model.whatsapp.MensajeWhatsappId;
 import com.ensambla.backend.domain.model.whatsapp.VinculoWhatsappId;
 import com.ensambla.backend.domain.model.zona.ZonaId;
@@ -42,7 +44,8 @@ class IdentificadorTest {
         return Stream.of(AvisoId.class, BloqueId.class, CampoId.class, MovimientoStockId.class, FotoId.class,
                 LoteId.class, NegocioId.class, RenovacionId.class, PlanId.class, SuscripcionId.class,
                 PlantillaId.class, ReclamoId.class, ProyectoId.class, RecetaId.class, RegistroId.class,
-                SeccionId.class, UsuarioId.class, ZonaId.class, VinculoWhatsappId.class, CodigoVinculacionId.class,
+                SeccionId.class, UsuarioId.class, ZonaId.class, VinculoWhatsappId.class, CodigoVinculacionId.class, PropuestaWhatsappId.class,
+                VerificacionWhatsappId.class,
                 MensajeWhatsappId.class);
     }
 

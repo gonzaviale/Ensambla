@@ -1,6 +1,5 @@
 package com.ensambla.backend.domain.model.whatsapp;
 
-import com.ensambla.backend.domain.useCase.whatsapp.procesarMensajeEntrante.MensajeEntrante;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
@@ -109,7 +108,7 @@ class WhatsappModelTest {
         assertThat(result.getTelefono()).isEqualTo("5491122334455");
         assertThat(result.getIdExterno()).isEqualTo("ID1");
         assertThat(result.getTipo()).isEqualTo(TipoMensajeWhatsapp.AUDIO);
-        assertThat(result.getMimeAudio()).isEqualTo("audio/ogg");
+        assertThat(result.getMimeMedia()).isEqualTo("audio/ogg");
         assertThat(result.getDuracionSeg()).isEqualTo(7);
         assertThat(result.getRecibidoEn()).isEqualTo(AHORA);
         assertThat(result.getEstado()).isEqualTo(EstadoMensajeWhatsapp.RECIBIDO);

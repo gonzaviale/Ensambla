@@ -9,7 +9,6 @@ import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
 import com.ensambla.backend.domain.model.lectura.BloquePropuesto;
-import com.ensambla.backend.domain.model.lectura.CampoContexto;
 import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
 import com.ensambla.backend.domain.model.lectura.DatoLeido;
 import com.ensambla.backend.domain.model.lectura.FilaLeida;
@@ -95,7 +94,7 @@ public class ProcesarLote {
             }
             List<BloqueConocido> contexto = bloques.stream()
                     .filter(bloque -> lote.bloqueDestinoId() == null || bloque.id().equals(lote.bloqueDestinoId()))
-                    .map(bloque -> conocido(bloque, bloques))
+                    .map(bloque -> bloque.paraElLector(bloques))
                     .toList();
             LecturaCuaderno lectura = lectorCuadernoPort.leer(paginas, contexto, lote.bloqueDestinoId());
             PropuestaLectura propuesta = PropuestaLectura.proponer(lectura, bloques, lote.bloqueDestinoId());
@@ -125,21 +124,6 @@ public class ProcesarLote {
             costo = politicaProcesamiento.costo(resultado.propuesta().lectura().consumo());
         }
         procesamientoRepository.finalizar(lote, resultado, costo, ahora, reintentarEn);
-    }
-
-    private BloqueConocido conocido(BloqueLectura bloque, List<BloqueLectura> bloques) {
-        return new BloqueConocido(bloque.id(), bloque.nombre(), bloque.campos().stream()
-                .map(campo -> new CampoContexto(campo.nombre(), campo.tipo(), campo.opciones(),
-                        nombreConectado(campo, bloques)))
-                .toList());
-    }
-
-    private String nombreConectado(CampoConocido campo, List<BloqueLectura> bloques) {
-        return bloques.stream()
-                .filter(bloque -> bloque.id().equals(campo.bloqueRelacionadoId()))
-                .map(BloqueLectura::nombre)
-                .findFirst()
-                .orElse(null);
     }
 
     private void validarPaginas(List<FotoLectura> fotos) {

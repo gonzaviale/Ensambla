@@ -8,6 +8,7 @@ import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.sistema.IdSistema;
 import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.useCase.sistema.SistemaItem.BloqueItem;
 import com.ensambla.backend.domain.useCase.sistema.SistemaItem.CampoItem;
@@ -15,6 +16,7 @@ import com.ensambla.backend.domain.useCase.sistema.SistemaItem.OpcionesItem;
 import com.ensambla.backend.domain.useCase.sistema.SistemaItem.SeccionItem;
 import com.ensambla.backend.domain.useCase.sistema.SistemaItem;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
+import com.ensambla.backend.infrastructure.repository.entity.RegistroEntity;
 import com.ensambla.backend.infrastructure.repository.entity.UsuarioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IBloqueJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.ICampoJpaRepository;
@@ -55,6 +57,9 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Autowired
     private SistemaRepository sistemaRepository;
+
+    @Autowired
+    private RegistroRepository registroRepository;
 
     @Autowired
     private IUsuarioJpaRepository usuarios;
@@ -172,11 +177,76 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(proyectos.findById(SISTEMA_ID).orElseThrow().getDescripcion()).isEqualTo("Creado a mano");
     }
 
+    @Test
+    @DisplayName("Guardar con la hora de lectura conserva las filas que Sami cargó por WhatsApp después de esa lectura")
+    void guardarShouldKeepWhatsappRowsLoadedAfterTheRead() {
+        UUID negocioId = givenNegocio();
+        guardar(negocioId, givenItem());
+        UUID deWhatsapp = givenFilaCargadaDespues(negocioId, "WhatsApp");
+
+        guardarLeidoEn(negocioId, givenItem(), OffsetDateTime.now());
+
+        assertThat(registros.findById(deWhatsapp)).isPresent();
+    }
+
+    @Test
+    @DisplayName("Guardar elimina la fila de WhatsApp si el cliente ya la conocía, y las que no son de WhatsApp siempre")
+    void guardarShouldDeleteKnownWhatsappRowsAndAnyOtherRow() {
+        UUID negocioId = givenNegocio();
+        guardar(negocioId, givenItem());
+        UUID conocida = givenFilaCargadaDespues(negocioId, "WhatsApp");
+        UUID manual = givenFilaCargadaDespues(negocioId, null);
+
+        guardarLeidoEn(negocioId, givenItem(), OffsetDateTime.now().plusHours(2));
+
+        assertThat(registros.findById(conocida)).isEmpty();
+        assertThat(registros.findById(manual)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Guardar sin hora de lectura es el reemplazo exacto de siempre, también con filas de WhatsApp")
+    void guardarShouldReplaceExactlyWithoutReadTime() {
+        UUID negocioId = givenNegocio();
+        guardar(negocioId, givenItem());
+        UUID deWhatsapp = givenFilaCargadaDespues(negocioId, "WhatsApp");
+
+        guardar(negocioId, givenItem());
+
+        assertThat(registros.findById(deWhatsapp)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("La posición de la próxima fila es una más que la última del bloque, o 0 si no tiene filas")
+    void siguienteOrdenShouldBeOneAfterTheLast() {
+        UUID negocioId = givenNegocio();
+        guardar(negocioId, givenItem());
+        BloqueId productosId = IdSistema.aId(NegocioId.de(negocioId), PRODUCTOS, BloqueId::de);
+        BloqueId notasId = IdSistema.aId(NegocioId.de(negocioId), NOTAS, BloqueId::de);
+
+        assertThat(registroRepository.siguienteOrden(productosId, NegocioId.de(negocioId))).isEqualTo(2);
+        assertThat(registroRepository.siguienteOrden(notasId, NegocioId.de(negocioId))).isZero();
+    }
+
     // --- act ---
     private void guardar(UUID negocioId, SistemaItem item) {
         sistemaRepository.guardar(item.aSistema(NegocioId.de(negocioId), SISTEMA_ID.toString(), OffsetDateTime.now()));
         entityManager.flush();
         entityManager.clear();
+    }
+
+    private void guardarLeidoEn(UUID negocioId, SistemaItem item, OffsetDateTime leidoEn) {
+        sistemaRepository.guardar(
+                item.aSistema(NegocioId.de(negocioId), SISTEMA_ID.toString(), OffsetDateTime.now()), leidoEn);
+        entityManager.flush();
+        entityManager.clear();
+    }
+
+    /** Una fila de Productos que el cliente no conoce: creada una hora después de la lectura, con ese origen. */
+    private UUID givenFilaCargadaDespues(UUID negocioId, String origen) {
+        UUID bloqueId = IdSistema.aId(NegocioId.de(negocioId), PRODUCTOS, BloqueId::de).valor();
+        return registros.saveAndFlush(RegistroEntity.builder().negocioId(negocioId).bloqueId(bloqueId)
+                .valores(Map.of("x", "y")).origen(origen).orden(5).creadoEn(OffsetDateTime.now().plusHours(1))
+                .actualizadoEn(OffsetDateTime.now()).build()).getId();
     }
 
     private static RegistroId registro(UUID negocioId, String idDelFront) {

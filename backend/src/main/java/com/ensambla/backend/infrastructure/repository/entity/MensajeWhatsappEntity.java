@@ -49,8 +49,8 @@ public class MensajeWhatsappEntity {
     @Column(columnDefinition = "text")
     private String texto;
 
-    @Column(name = "mime_audio", columnDefinition = "text")
-    private String mimeAudio;
+    @Column(name = "mime_media", columnDefinition = "text")
+    private String mimeMedia;
 
     @Column(name = "duracion_seg")
     private Integer duracionSeg;
@@ -62,4 +62,16 @@ public class MensajeWhatsappEntity {
 
     @Column(name = "recibido_en", nullable = false, updatable = false)
     private OffsetDateTime recibidoEn;
+
+    @Column(nullable = false)
+    private int intentos;
+
+    @Column(name = "reclamado_hasta")
+    private OffsetDateTime reclamadoHasta;
+
+    @Column(name = "atendido_en")
+    private OffsetDateTime atendidoEn;
+
+    @Column(columnDefinition = "text")
+    private String error;
 }

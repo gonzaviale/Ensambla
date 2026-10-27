@@ -1,11 +1,14 @@
 package com.ensambla.backend.domain.useCase.whatsapp.procesarMensajeEntrante;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.whatsapp.CodigoVinculacion;
+import com.ensambla.backend.domain.model.whatsapp.MensajeEntrante;
 import com.ensambla.backend.domain.model.whatsapp.MensajeWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.TelefonoWhatsapp;
+import com.ensambla.backend.domain.model.whatsapp.TextosWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.TipoMensajeWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.VinculoWhatsapp;
 import com.ensambla.backend.domain.port.MensajeriaWhatsappPort;
@@ -14,6 +17,7 @@ import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.whatsapp.CodigoVinculacionRepository;
 import com.ensambla.backend.domain.repository.whatsapp.MensajeWhatsappRepository;
 import com.ensambla.backend.domain.repository.whatsapp.VinculoWhatsappRepository;
+import com.ensambla.backend.domain.service.whatsapp.VinculacionWhatsappService;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
@@ -23,13 +27,12 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Atiende un mensaje que llegó por WhatsApp: vincula el número si trae un código, y si no lo guarda o lo rechaza. */
+/**
+ * Atiende al instante lo que llega por WhatsApp: vincula el número si trae un código, rechaza a quien no está
+ * vinculado y deja el resto en la cola para que Sami lo atienda sin hacer esperar al proveedor.
+ */
 @RequiredArgsConstructor
 public class ProcesarMensajeEntrante {
-
-    static final String RESPUESTA_VINCULADO = "Listo, tu número quedó vinculado a tu negocio en Ensambla.";
-    static final String RESPUESTA_NO_VINCULADO = "Este número no está vinculado a ningún negocio de Ensambla. "
-            + "Generá un código desde la app y mandame: VINCULAR <código>";
 
     private static final Pattern COMANDO_VINCULAR = Pattern.compile("^\\s*vincular\\s+(\\S+)\\s*$",
             Pattern.CASE_INSENSITIVE);
@@ -38,6 +41,7 @@ public class ProcesarMensajeEntrante {
     private final CodigoVinculacionRepository codigoRepository;
     private final VinculoWhatsappRepository vinculoRepository;
     private final MensajeWhatsappRepository mensajeRepository;
+    private final VinculacionWhatsappService vinculacionService;
     private final MensajeriaWhatsappPort mensajeria;
     private final TransaccionPort transaccionPort;
     private final Clock clock;
@@ -50,10 +54,10 @@ public class ProcesarMensajeEntrante {
         }
         Optional<VinculoWhatsapp> vinculo = vinculoRepository.findByTelefono(entrante.telefono());
         if (vinculo.isEmpty()) {
-            mensajeria.enviarTexto(entrante.telefono(), RESPUESTA_NO_VINCULADO);
+            mensajeria.enviarTexto(entrante.telefono(), TextosWhatsapp.NO_VINCULADO);
             return;
         }
-        transaccionPort.ejecutar(() -> registrar(vinculo.get(), entrante));
+        transaccionPort.ejecutar(() -> encolar(vinculo.get(), entrante));
     }
 
     private void vincular(MensajeEntrante entrante, String textoCodigo) {
@@ -61,8 +65,8 @@ public class ProcesarMensajeEntrante {
         try {
             TelefonoWhatsapp telefono = new TelefonoWhatsapp(entrante.telefono());
             transaccionPort.ejecutar(() -> canjear(textoCodigo, telefono, OffsetDateTime.now(clock)));
-            respuesta = RESPUESTA_VINCULADO;
-        } catch (BusinessRuleException e) {
+            respuesta = TextosWhatsapp.VINCULADO;
+        } catch (BusinessRuleException | DuplicateResourceException e) {
             respuesta = e.getMessage();
         }
         mensajeria.enviarTexto(entrante.telefono(), respuesta);
@@ -73,24 +77,14 @@ public class ProcesarMensajeEntrante {
         CodigoVinculacion codigo = codigoRepository.findByCodigo(textoCodigo.trim().toUpperCase(Locale.ROOT))
                 .orElseThrow(() -> new BusinessRuleException("El código de vinculación no existe"));
         codigo.usar(ahora);
-        exigirTelefonoLibre(telefono, codigo.getUsuarioId());
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(codigo.getUsuarioId());
+        UsuarioId usuarioId = codigo.getUsuarioId();
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(usuarioId);
+        vinculacionService.vincular(usuarioId, negocioId, telefono, ahora);
         codigoRepository.save(codigo);
-        vinculoRepository.deleteByUsuarioId(codigo.getUsuarioId());
-        vinculoRepository.save(VinculoWhatsapp.nuevo(codigo.getUsuarioId(), negocioId, telefono, ahora));
-    }
-
-    private void exigirTelefonoLibre(TelefonoWhatsapp telefono, UsuarioId usuarioId) {
-        boolean ocupadoPorOtro = vinculoRepository.findByTelefono(telefono.valor())
-                .filter(vinculo -> !vinculo.getUsuarioId().equals(usuarioId))
-                .isPresent();
-        if (ocupadoPorOtro) {
-            throw new BusinessRuleException("Ese número de WhatsApp ya está vinculado a otra cuenta");
-        }
     }
 
     /** Guarda el mensaje en el negocio del vínculo; si ya estaba (el proveedor reintentó el webhook) no hace nada. */
-    private void registrar(VinculoWhatsapp vinculo, MensajeEntrante entrante) {
+    private void encolar(VinculoWhatsapp vinculo, MensajeEntrante entrante) {
         if (mensajeRepository.existsByIdExterno(entrante.idExterno())) {
             return;
         }

@@ -36,6 +36,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -84,6 +85,57 @@ class SistemaControllerTest {
                 .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].name").value("Harina"))
                 .andExpect(jsonPath("$[0].sections[0].blocks[0].rows[0].price").doesNotExist());
         verify(listarSistemas).execute(new ListarSistemasRequest(USUARIO_ID));
+    }
+
+    @Test
+    @DisplayName("GET manda a qué hora se leyeron los sistemas para que el cliente la devuelva al guardar")
+    void listarShouldReturnReadTimeHeader() throws Exception {
+        when(listarSistemas.execute(any())).thenReturn(List.of(givenItem()));
+
+        mockMvc.perform(get("/api/sistemas").principal(principal))
+                .andExpect(status().isOk())
+                .andExpect(header().string(SistemaController.HEADER_LEIDO_EN, org.hamcrest.Matchers.matchesPattern(
+                        "20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z")));
+    }
+
+    @Test
+    @DisplayName("PUT con X-Leido-En pasa la hora de lectura para no borrar lo que Sami cargó después")
+    void guardarShouldPassReadTimeHeader() throws Exception {
+        when(guardarSistema.execute(any())).thenReturn(givenItem());
+
+        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
+                        .header(SistemaController.HEADER_LEIDO_EN, "2026-10-27T15:00:00Z")
+                        .contentType("application/json").content(givenBody()))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<GuardarSistemaRequest> captor = ArgumentCaptor.forClass(GuardarSistemaRequest.class);
+        verify(guardarSistema).execute(captor.capture());
+        assertThat(captor.getValue().leidoEn()).isEqualTo(java.time.OffsetDateTime.parse("2026-10-27T15:00:00Z"));
+    }
+
+    @Test
+    @DisplayName("PUT sin X-Leido-En reemplaza el sistema exacto, como antes")
+    void guardarShouldWorkWithoutReadTimeHeader() throws Exception {
+        when(guardarSistema.execute(any())).thenReturn(givenItem());
+
+        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
+                        .contentType("application/json").content(givenBody()))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<GuardarSistemaRequest> captor = ArgumentCaptor.forClass(GuardarSistemaRequest.class);
+        verify(guardarSistema).execute(captor.capture());
+        assertThat(captor.getValue().leidoEn()).isNull();
+    }
+
+    @Test
+    @DisplayName("PUT con una hora de lectura mal escrita responde 400")
+    void guardarShouldRejectInvalidReadTime() throws Exception {
+        mockMvc.perform(put("/api/sistemas/{id}", SISTEMA_ID).principal(principal)
+                        .header(SistemaController.HEADER_LEIDO_EN, "ayer")
+                        .contentType("application/json").content(givenBody()))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(guardarSistema);
     }
 
     @Test

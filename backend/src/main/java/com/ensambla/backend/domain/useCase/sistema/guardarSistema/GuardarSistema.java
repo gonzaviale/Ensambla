@@ -34,11 +34,11 @@ public class GuardarSistema {
     public SistemaItem execute(GuardarSistemaRequest request) {
         NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
         Sistema sistema = request.sistema().aSistema(negocioId, request.id(), OffsetDateTime.now(clock));
-        return SistemaItem.de(transaccionPort.ejecutar(() -> guardar(negocioId, sistema)));
+        return SistemaItem.de(transaccionPort.ejecutar(() -> guardar(negocioId, sistema, request.leidoEn())));
     }
 
     /** Crea el sistema o lo reemplaza; si el id es de un proyecto de otro negocio responde como si no existiera. */
-    private Sistema guardar(NegocioId negocioId, Sistema sistema) {
+    private Sistema guardar(NegocioId negocioId, Sistema sistema, OffsetDateTime leidoEn) {
         usoPlanRepository.bloquearNegocio(negocioId);
         Optional<NegocioId> duenioActual = sistemaRepository.findNegocioIdByProyectoId(sistema.id());
         validarDuenio(negocioId, duenioActual);
@@ -46,7 +46,7 @@ public class GuardarSistema {
             controlPlanService.validarAltaProyecto(negocioId, sistema.proyecto().getActualizadoEn());
         }
         validarRegistrosNuevos(negocioId, sistema);
-        sistemaRepository.guardar(sistema);
+        sistemaRepository.guardar(sistema, leidoEn);
         return sistema;
     }
 

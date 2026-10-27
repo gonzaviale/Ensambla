@@ -5,8 +5,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
+import java.net.http.HttpClient;
 import java.time.Clock;
 
 /**
@@ -29,9 +31,12 @@ public class WhatsappConfig {
     @ConditionalOnProperty(prefix = "ensambla.whatsapp", name = "proveedor", havingValue = "evolution")
     MensajeriaWhatsappPort mensajeriaWhatsappEvolution(WhatsappProperties properties) {
         WhatsappProperties.Evolution evolution = properties.evolution();
+        JdkClientHttpRequestFactory fabrica = new JdkClientHttpRequestFactory(HttpClient.newHttpClient());
+        fabrica.setReadTimeout(evolution.timeout());
         RestClient restClient = RestClient.builder()
                 .baseUrl(evolution.url())
                 .defaultHeader("apikey", evolution.apiKey())
+                .requestFactory(fabrica)
                 .build();
         return new ClienteEvolutionApi(restClient, evolution.instancia(), properties.numeroBot());
     }

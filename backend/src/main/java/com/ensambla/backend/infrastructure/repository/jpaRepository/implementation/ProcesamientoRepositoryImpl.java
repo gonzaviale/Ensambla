@@ -17,6 +17,7 @@ import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
 import com.ensambla.backend.domain.model.procesamiento.ReclamoId;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
+import com.ensambla.backend.domain.model.procesamiento.TablaDisponible;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.infrastructure.ia.IaProperties;
 import com.ensambla.backend.infrastructure.ia.PromptLecturaCuaderno;
@@ -106,6 +107,26 @@ public class ProcesamientoRepositoryImpl implements ProcesamientoRepository {
         });
         return bloques.stream().map(bloque -> new BloqueLectura(BloqueId.de((UUID) bloque.get("id")),
                 (String) bloque.get("nombre"), campos.getOrDefault(bloque.get("id"), List.of()))).toList();
+    }
+
+    @Override
+    public List<TablaDisponible> tablas(NegocioId negocioId) {
+        Map<BloqueId, BloqueLectura> porId = new LinkedHashMap<>();
+        bloques(negocioId).stream()
+                .filter(bloque -> bloque.campos().stream().anyMatch(campo -> campo.tipo() != TipoCampo.FORMULA))
+                .forEach(bloque -> porId.put(bloque.id(), bloque));
+        List<TablaDisponible> tablas = new ArrayList<>();
+        jdbcTemplate.query("""
+                SELECT b.id, p.nombre AS proyecto FROM bloque b
+                JOIN proyecto p ON p.negocio_id = b.negocio_id AND p.id = b.proyecto_id
+                WHERE b.negocio_id = :negocio ORDER BY p.nombre, b.posicion, b.id
+                """, Map.of("negocio", negocioId.valor()), fila -> {
+            BloqueLectura bloque = porId.get(BloqueId.de(fila.getObject("id", UUID.class)));
+            if (bloque != null) {
+                tablas.add(new TablaDisponible(bloque, fila.getString("proyecto")));
+            }
+        });
+        return tablas;
     }
 
     @Override

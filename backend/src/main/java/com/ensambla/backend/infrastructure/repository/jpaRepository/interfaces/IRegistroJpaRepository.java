@@ -15,6 +15,10 @@ import java.util.UUID;
 
 public interface IRegistroJpaRepository extends JpaRepository<RegistroEntity, UUID> {
 
+    /** Una más que la última posición del bloque; 0 si todavía no tiene filas. */
+    @Query("select coalesce(max(r.orden), -1) + 1 from RegistroEntity r where r.bloqueId = :bloqueId and r.negocioId = :negocioId")
+    int siguienteOrden(@Param("bloqueId") UUID bloqueId, @Param("negocioId") UUID negocioId);
+
     /** Registros del bloque cuyo valor contiene el patrón (LIKE con {@code \} de escape); sin patrón, todos. */
     String FILTRADOS = """
             FROM registro r

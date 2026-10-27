@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.whatsapp.TelefonoWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.VinculoWhatsapp;
+import com.ensambla.backend.domain.port.MensajeriaWhatsappPort;
 import com.ensambla.backend.domain.repository.whatsapp.VinculoWhatsappRepository;
 import com.ensambla.backend.infrastructure.config.useCase.WhatsappUseCaseConfig;
 import org.junit.jupiter.api.DisplayName;
@@ -27,12 +28,14 @@ class ConsultarVinculacionWhatsappTest {
 
     private final VinculoWhatsappRepository vinculoRepository = mock(VinculoWhatsappRepository.class,
             CALLS_REAL_METHODS);
+    private final MensajeriaWhatsappPort mensajeria = mock(MensajeriaWhatsappPort.class);
     private final ConsultarVinculacionWhatsapp consultarVinculacionWhatsapp = new WhatsappUseCaseConfig()
-            .consultarVinculacionWhatsapp(vinculoRepository);
+            .consultarVinculacionWhatsapp(vinculoRepository, mensajeria);
 
     @Test
     @DisplayName("Consultar devuelve el número vinculado y cuándo se vinculó")
     void executeShouldReturnLink() {
+        when(mensajeria.numeroBot()).thenReturn("5491100000000");
         when(vinculoRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(
                 VinculoWhatsapp.nuevo(USUARIO_ID, NEGOCIO_ID, new TelefonoWhatsapp("5491122334455"), AHORA)));
 
@@ -41,6 +44,7 @@ class ConsultarVinculacionWhatsappTest {
 
         assertThat(result.telefono()).isEqualTo("5491122334455");
         assertThat(result.vinculadoEn()).isEqualTo(AHORA);
+        assertThat(result.numeroBot()).isEqualTo("5491100000000");
     }
 
     @Test

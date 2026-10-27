@@ -10,6 +10,7 @@ import com.ensambla.backend.domain.model.plan.Plan;
 import com.ensambla.backend.domain.model.plan.PruebaPremium;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
+import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.plan.AccesoContenidoRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
@@ -98,6 +99,21 @@ public class ControlPlanService {
             }
             return reservada;
         });
+    }
+
+    /**
+     * La reserva de una foto leída en el momento (sin pasar por el lote): además del cupo mensual del plan cuenta
+     * contra el límite diario de fotos. Es la misma regla para la app y para WhatsApp.
+     *
+     * @throws RestriccionPlanException si se agotó el límite diario; el mensual lo informa {@link #validarPaginasIa}
+     */
+    public void reservarPaginaIaInmediata(NegocioId negocioId, int limiteDiario, OffsetDateTime ahora) {
+        LocalDate dia = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate();
+        boolean reservada = reservarPaginasIa(negocioId, 1, ahora,
+                () -> usoPlanRepository.registrarPaginaInmediata(negocioId, dia, limiteDiario, ahora));
+        if (!reservada) {
+            throw new RestriccionPlanException("LIMITE_IA_DIARIO", PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO);
+        }
     }
 
     /** Se cobra al admitir un intento. También cuentan errores y timeouts, sin duplicar al finalizar el lote. */

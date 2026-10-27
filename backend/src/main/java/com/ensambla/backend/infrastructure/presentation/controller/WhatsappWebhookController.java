@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 
@@ -30,10 +31,13 @@ public class WhatsappWebhookController {
     private final WhatsappProperties properties;
 
     @PostMapping
-    @Operation(summary = "Recibe los mensajes de WhatsApp que entrega el proveedor; se autentica con el token compartido")
-    public ResponseEntity<Void> recibir(@RequestHeader(value = HEADER_TOKEN, required = false) String token,
+    @Operation(summary = "Recibe los mensajes de WhatsApp que entrega el proveedor; se autentica con el token compartido,"
+            + " en el header X-Ensambla-Webhook-Token o en el parámetro token (Evolution no puede mandar headers"
+            + " en el webhook global)")
+    public ResponseEntity<Void> recibir(@RequestHeader(value = HEADER_TOKEN, required = false) String tokenHeader,
+            @RequestParam(value = "token", required = false) String tokenQuery,
             @RequestBody JsonNode cuerpo) {
-        if (!tokenValido(token)) {
+        if (!tokenValido(tokenHeader != null ? tokenHeader : tokenQuery)) {
             return ResponseEntity.status(401).build();
         }
         parser.parsear(cuerpo).ifPresent(procesarMensajeEntrante::execute);

@@ -27,6 +27,7 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -106,7 +107,7 @@ public class SistemaRepositoryImpl implements SistemaRepository {
     }
 
     @Override
-    public void guardar(Sistema sistema) {
+    public void guardar(Sistema sistema, OffsetDateTime leidoEn) {
         NegocioId negocioId = sistema.proyecto().getNegocioId();
         ProyectoId proyectoId = sistema.id();
         Map<UUID, SeccionEntity> seccionesActuales = porId(
@@ -135,7 +136,7 @@ public class SistemaRepositoryImpl implements SistemaRepository {
                 .map(registroRepositoryMapper::toEntity).toList();
 
         // Primero salen las filas y columnas que ya no están: una columna nueva puede reusar la clave de una vieja.
-        quitar(registrosActuales, registros, RegistroEntity::getId);
+        quitarRegistros(registrosActuales, registros, leidoEn);
         quitar(camposActuales, campos, CampoEntity::getId);
         entityManager.flush();
 
@@ -177,6 +178,23 @@ public class SistemaRepositoryImpl implements SistemaRepository {
                 entityManager.merge(nuevo);
             }
         }
+    }
+
+    /**
+     * Las filas que el cliente no mandó se eliminan, salvo las que cargó Sami por WhatsApp después de que leyó el sistema
+     * (mientras tenía la pestaña abierta): no las conocía, así que no las borró. Las filas que creó el propio cliente
+     * se eliminan siempre que las quite, aunque sean más nuevas que su lectura.
+     */
+    private void quitarRegistros(Map<UUID, RegistroEntity> actuales, List<RegistroEntity> nuevos,
+                                 OffsetDateTime leidoEn) {
+        Set<UUID> quedan = nuevos.stream().map(RegistroEntity::getId).collect(Collectors.toSet());
+        actuales.forEach((actualId, actual) -> {
+            boolean lasCargoWhatsapp = leidoEn != null && Registro.ORIGEN_WHATSAPP.equals(actual.getOrigen())
+                    && actual.getCreadoEn().isAfter(leidoEn);
+            if (!quedan.contains(actualId) && !lasCargoWhatsapp) {
+                entityManager.remove(actual);
+            }
+        });
     }
 
     private <T> void quitar(Map<UUID, T> actuales, List<T> nuevos, Function<T, UUID> id) {

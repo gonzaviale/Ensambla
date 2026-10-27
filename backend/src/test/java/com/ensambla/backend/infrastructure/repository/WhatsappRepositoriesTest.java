@@ -69,7 +69,7 @@ class WhatsappRepositoriesTest {
     @DisplayName("El mapper pasa el mensaje de la entidad al dominio y de vuelta sin perder datos")
     void mapperShouldRoundTripMensaje() {
         MensajeWhatsapp dominio = MensajeWhatsapp.builder().id(MensajeWhatsappId.de(ID)).negocioId(NEGOCIO_ID).telefono("5491122334455")
-                .idExterno("ID1").tipo(TipoMensajeWhatsapp.AUDIO).mimeAudio("audio/ogg").duracionSeg(7)
+                .idExterno("ID1").tipo(TipoMensajeWhatsapp.AUDIO).mimeMedia("audio/ogg").duracionSeg(7)
                 .estado(EstadoMensajeWhatsapp.RECIBIDO).recibidoEn(AHORA).build();
 
         assertThat(mapper.toDomain(mapper.toEntity(dominio))).usingRecursiveComparison().isEqualTo(dominio);

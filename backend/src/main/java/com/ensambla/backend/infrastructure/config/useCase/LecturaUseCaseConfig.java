@@ -8,7 +8,6 @@ import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
-import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
@@ -72,13 +71,12 @@ public class LecturaUseCaseConfig {
                                  IaProperties iaProperties,
                                  NegocioRepository negocioRepository,
                                  ControlPlanService controlPlanService,
-                                 UsoPlanRepository usoPlanRepository,
                                  PoliticaProcesamiento politicaProcesamiento,
                                  Clock clock) {
         return new LeerImagen(
                 new LectorCuadernoTimeoutAdapter(lectorCuadernoPort, executorLecturaImagen, iaProperties.timeout()),
                 iaProperties.umbralConfianza(), negocioRepository, controlPlanService,
-                usoPlanRepository, politicaProcesamiento, clock);
+                politicaProcesamiento, clock);
     }
 
     @Bean

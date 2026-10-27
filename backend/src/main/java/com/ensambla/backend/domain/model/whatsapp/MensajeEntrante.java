@@ -1,6 +1,4 @@
-package com.ensambla.backend.domain.useCase.whatsapp.procesarMensajeEntrante;
-
-import com.ensambla.backend.domain.model.whatsapp.TipoMensajeWhatsapp;
+package com.ensambla.backend.domain.model.whatsapp;
 
 import java.time.OffsetDateTime;
 
@@ -9,8 +7,8 @@ import java.time.OffsetDateTime;
  *
  * @param telefono    remitente, sólo dígitos con código de país
  * @param idExterno   id del mensaje en WhatsApp
- * @param texto       contenido si es texto; null en una nota de voz
- * @param mimeAudio   tipo del audio si es una nota de voz; null en un texto
+ * @param texto       contenido si es texto, o el pie de una foto; null en una nota de voz o en una foto sin pie
+ * @param mimeMedia   tipo del audio o de la imagen; null en un texto
  * @param duracionSeg duración de la nota de voz; null si no se informó o es texto
  */
 public record MensajeEntrante(
@@ -18,7 +16,7 @@ public record MensajeEntrante(
         String idExterno,
         TipoMensajeWhatsapp tipo,
         String texto,
-        String mimeAudio,
+        String mimeMedia,
         Integer duracionSeg,
         OffsetDateTime recibidoEn
 ) {

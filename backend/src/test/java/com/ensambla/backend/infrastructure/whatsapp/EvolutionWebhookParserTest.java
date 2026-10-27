@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.whatsapp;
 
-import com.ensambla.backend.domain.useCase.whatsapp.procesarMensajeEntrante.MensajeEntrante;
+import com.ensambla.backend.domain.model.whatsapp.MensajeEntrante;
 import com.ensambla.backend.domain.model.whatsapp.TipoMensajeWhatsapp;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -59,13 +59,35 @@ class EvolutionWebhookParserTest {
     }
 
     @Test
+    @DisplayName("Lee una foto con su pie y su tipo de imagen")
+    void parsearShouldReadPhotoWithCaption() {
+        Optional<MensajeEntrante> result = parsear(evento("messages.upsert",
+                key("5491122334455@s.whatsapp.net", false, "ID6"),
+                "\"message\":{\"imageMessage\":{\"mimetype\":\"image/png\",\"caption\":\"ventas de hoy\"}}"));
+
+        assertThat(result).contains(new MensajeEntrante("5491122334455", "ID6", TipoMensajeWhatsapp.IMAGEN,
+                "ventas de hoy", "image/png", null, AHORA));
+    }
+
+    @Test
+    @DisplayName("Una foto sin pie ni tipo se lee como JPEG sin texto")
+    void parsearShouldReadPhotoWithoutCaptionNorMime() {
+        Optional<MensajeEntrante> result = parsear(evento("messages.upsert",
+                key("5491122334455@s.whatsapp.net", false, "ID7"),
+                "\"message\":{\"imageMessage\":{\"caption\":\"  \"}}"));
+
+        assertThat(result).contains(new MensajeEntrante("5491122334455", "ID7", TipoMensajeWhatsapp.IMAGEN,
+                null, "image/jpeg", null, AHORA));
+    }
+
+    @Test
     @DisplayName("Una nota de voz sin tipo ni duración usa audio/ogg y duración vacía")
     void parsearShouldDefaultVoiceNoteMimeAndDuration() {
         Optional<MensajeEntrante> result = parsear(evento("messages.upsert",
                 key("5491122334455@s.whatsapp.net", false, "ID4"), "\"message\":{\"audioMessage\":{}}"));
 
         assertThat(result).get().satisfies(mensaje -> {
-            assertThat(mensaje.mimeAudio()).isEqualTo("audio/ogg");
+            assertThat(mensaje.mimeMedia()).isEqualTo("audio/ogg");
             assertThat(mensaje.duracionSeg()).isNull();
         });
     }
@@ -116,12 +138,12 @@ class EvolutionWebhookParserTest {
     }
 
     @Test
-    @DisplayName("Ignora un chat con un número inválido y los mensajes que no son texto ni audio")
+    @DisplayName("Ignora un chat con un número inválido y los mensajes que no son texto, audio ni foto")
     void parsearShouldIgnoreInvalidPhonesAndOtherMessageTypes() {
         assertThat(parsear(evento("messages.upsert", key("abc@s.whatsapp.net", false, "E"),
                 "\"message\":{\"conversation\":\"hola\"}"))).isEmpty();
         assertThat(parsear(evento("messages.upsert", key("5491122334455@s.whatsapp.net", false, "F"),
-                "\"message\":{\"imageMessage\":{}}"))).isEmpty();
+                "\"message\":{\"stickerMessage\":{}}"))).isEmpty();
         assertThat(parsear(json.readTree("{}"))).isEmpty();
     }
 

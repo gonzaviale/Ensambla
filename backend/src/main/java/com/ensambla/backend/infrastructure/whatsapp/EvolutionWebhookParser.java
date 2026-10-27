@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.whatsapp;
 
-import com.ensambla.backend.domain.useCase.whatsapp.procesarMensajeEntrante.MensajeEntrante;
+import com.ensambla.backend.domain.model.whatsapp.MensajeEntrante;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.whatsapp.TipoMensajeWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.TelefonoWhatsapp;
@@ -19,6 +19,7 @@ public class EvolutionWebhookParser {
 
     private static final String EVENTO_MENSAJE = "messages.upsert";
     private static final String MIME_AUDIO_POR_DEFECTO = "audio/ogg";
+    private static final String MIME_IMAGEN_POR_DEFECTO = "image/jpeg";
     private static final String SUFIJO_GRUPO = "@g.us";
     private static final String SUFIJO_LID = "@lid";
     private static final String ESTADOS = "status@broadcast";
@@ -53,6 +54,13 @@ public class EvolutionWebhookParser {
             Integer duracion = audio.path("seconds").isNumber() ? audio.path("seconds").asInt() : null;
             return Optional.of(new MensajeEntrante(telefono.get(), idExterno, TipoMensajeWhatsapp.AUDIO, null,
                     audio.path("mimetype").asString(MIME_AUDIO_POR_DEFECTO), duracion, recibidoEn));
+        }
+        JsonNode imagen = mensaje.path("imageMessage");
+        if (imagen.isObject()) {
+            String pie = imagen.path("caption").asString("");
+            return Optional.of(new MensajeEntrante(telefono.get(), idExterno, TipoMensajeWhatsapp.IMAGEN,
+                    pie.isBlank() ? null : pie, imagen.path("mimetype").asString(MIME_IMAGEN_POR_DEFECTO), null,
+                    recibidoEn));
         }
         return Optional.empty();
     }

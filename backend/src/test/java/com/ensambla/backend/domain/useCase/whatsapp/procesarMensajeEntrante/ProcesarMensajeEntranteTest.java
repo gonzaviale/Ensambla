@@ -1,17 +1,21 @@
 package com.ensambla.backend.domain.useCase.whatsapp.procesarMensajeEntrante;
 
+import com.ensambla.backend.domain.model.whatsapp.MensajeEntrante;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.whatsapp.CodigoVinculacion;
 import com.ensambla.backend.domain.model.whatsapp.MensajeWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.TelefonoWhatsapp;
+import com.ensambla.backend.domain.model.whatsapp.TextosWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.TipoMensajeWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.VinculoWhatsapp;
 import com.ensambla.backend.domain.port.MensajeriaWhatsappPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.whatsapp.CodigoVinculacionRepository;
 import com.ensambla.backend.domain.repository.whatsapp.MensajeWhatsappRepository;
+import com.ensambla.backend.domain.repository.whatsapp.VerificacionWhatsappRepository;
 import com.ensambla.backend.domain.repository.whatsapp.VinculoWhatsappRepository;
+import com.ensambla.backend.domain.service.whatsapp.VinculacionWhatsappService;
 import com.ensambla.backend.infrastructure.config.useCase.WhatsappUseCaseConfig;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +31,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -43,7 +48,9 @@ class ProcesarMensajeEntranteTest {
 
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final CodigoVinculacionRepository codigoRepository = mock(CodigoVinculacionRepository.class);
-    private final VinculoWhatsappRepository vinculoRepository = mock(VinculoWhatsappRepository.class);
+    private final VinculoWhatsappRepository vinculoRepository = mock(VinculoWhatsappRepository.class,
+            CALLS_REAL_METHODS);
+    private final VerificacionWhatsappRepository verificacionRepository = mock(VerificacionWhatsappRepository.class);
     private final MensajeWhatsappRepository mensajeRepository = mock(MensajeWhatsappRepository.class);
     private final MensajeriaWhatsappPort mensajeria = mock(MensajeriaWhatsappPort.class);
     private final ProcesarMensajeEntrante procesarMensajeEntrante = new WhatsappUseCaseConfig()
@@ -52,6 +59,7 @@ class ProcesarMensajeEntranteTest {
                     codigoRepository,
                     vinculoRepository,
                     mensajeRepository,
+                    new VinculacionWhatsappService(vinculoRepository, verificacionRepository),
                     mensajeria,
                     new TransaccionDirecta(),
                     Clock.fixed(INSTANTE, ZoneOffset.UTC));
@@ -71,7 +79,7 @@ class ProcesarMensajeEntranteTest {
         assertThat(vinculo.getTelefono()).isEqualTo(TELEFONO);
         verify(vinculoRepository).deleteByUsuarioId(USUARIO_ID);
         verify(codigoRepository).save(any(CodigoVinculacion.class));
-        verify(mensajeria).enviarTexto(TELEFONO, ProcesarMensajeEntrante.RESPUESTA_VINCULADO);
+        verify(mensajeria).enviarTexto(TELEFONO, TextosWhatsapp.VINCULADO);
     }
 
     @Test
@@ -83,7 +91,7 @@ class ProcesarMensajeEntranteTest {
 
         procesarMensajeEntrante.execute(texto("ID1", "VINCULAR ABC234"));
 
-        verify(mensajeria).enviarTexto(TELEFONO, ProcesarMensajeEntrante.RESPUESTA_VINCULADO);
+        verify(mensajeria).enviarTexto(TELEFONO, TextosWhatsapp.VINCULADO);
     }
 
     @Test
@@ -150,6 +158,21 @@ class ProcesarMensajeEntranteTest {
     }
 
     @Test
+    @DisplayName("Una foto de un número vinculado se guarda con su pie y su tipo")
+    void executeShouldStorePhotoFromLinkedNumber() {
+        when(vinculoRepository.findByTelefono(TELEFONO)).thenReturn(Optional.of(givenVinculo(USUARIO_ID)));
+
+        procesarMensajeEntrante.execute(new MensajeEntrante(TELEFONO, "ID5", TipoMensajeWhatsapp.IMAGEN, "ventas",
+                "image/jpeg", null, AHORA));
+
+        ArgumentCaptor<MensajeWhatsapp> captor = ArgumentCaptor.forClass(MensajeWhatsapp.class);
+        verify(mensajeRepository).save(captor.capture());
+        assertThat(captor.getValue().getTipo()).isEqualTo(TipoMensajeWhatsapp.IMAGEN);
+        assertThat(captor.getValue().getTexto()).isEqualTo("ventas");
+        assertThat(captor.getValue().getMimeMedia()).isEqualTo("image/jpeg");
+    }
+
+    @Test
     @DisplayName("Un mensaje que el proveedor reintentó no se guarda dos veces")
     void executeShouldIgnoreDuplicatedMessage() {
         when(vinculoRepository.findByTelefono(TELEFONO)).thenReturn(Optional.of(givenVinculo(USUARIO_ID)));
@@ -167,7 +190,7 @@ class ProcesarMensajeEntranteTest {
 
         procesarMensajeEntrante.execute(texto("ID4", "hola"));
 
-        verify(mensajeria).enviarTexto(TELEFONO, ProcesarMensajeEntrante.RESPUESTA_NO_VINCULADO);
+        verify(mensajeria).enviarTexto(TELEFONO, TextosWhatsapp.NO_VINCULADO);
         verify(mensajeRepository, never()).save(any());
     }
 

@@ -7,10 +7,13 @@ import com.ensambla.backend.domain.model.whatsapp.CodigoVinculacion;
 import com.ensambla.backend.domain.model.whatsapp.CodigoVinculacionId;
 import com.ensambla.backend.domain.model.whatsapp.MensajeWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.MensajeWhatsappId;
+import com.ensambla.backend.domain.model.whatsapp.VerificacionWhatsapp;
+import com.ensambla.backend.domain.model.whatsapp.VerificacionWhatsappId;
 import com.ensambla.backend.domain.model.whatsapp.VinculoWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.VinculoWhatsappId;
 import com.ensambla.backend.infrastructure.repository.entity.CodigoVinculacionEntity;
 import com.ensambla.backend.infrastructure.repository.entity.MensajeWhatsappEntity;
+import com.ensambla.backend.infrastructure.repository.entity.VerificacionWhatsappEntity;
 import com.ensambla.backend.infrastructure.repository.entity.VinculoWhatsappEntity;
 import org.springframework.stereotype.Component;
 
@@ -65,10 +68,14 @@ public class WhatsappRepositoryMapper {
                 .idExterno(entity.getIdExterno())
                 .tipo(entity.getTipo())
                 .texto(entity.getTexto())
-                .mimeAudio(entity.getMimeAudio())
+                .mimeMedia(entity.getMimeMedia())
                 .duracionSeg(entity.getDuracionSeg())
                 .estado(entity.getEstado())
                 .recibidoEn(entity.getRecibidoEn())
+                .intentos(entity.getIntentos())
+                .reclamadoHasta(entity.getReclamadoHasta())
+                .atendidoEn(entity.getAtendidoEn())
+                .error(entity.getError())
                 .build();
     }
 
@@ -80,10 +87,42 @@ public class WhatsappRepositoryMapper {
                 .idExterno(mensaje.getIdExterno())
                 .tipo(mensaje.getTipo())
                 .texto(mensaje.getTexto())
-                .mimeAudio(mensaje.getMimeAudio())
+                .mimeMedia(mensaje.getMimeMedia())
                 .duracionSeg(mensaje.getDuracionSeg())
                 .estado(mensaje.getEstado())
                 .recibidoEn(mensaje.getRecibidoEn())
+                .intentos(mensaje.getIntentos())
+                .reclamadoHasta(mensaje.getReclamadoHasta())
+                .atendidoEn(mensaje.getAtendidoEn())
+                .error(mensaje.getError())
+                .build();
+    }
+
+    public VerificacionWhatsapp toDomain(VerificacionWhatsappEntity entity) {
+        return VerificacionWhatsapp.builder()
+                .id(Identificador.opcional(entity.getId(), VerificacionWhatsappId::de))
+                .usuarioId(UsuarioId.de(entity.getUsuarioId()))
+                .telefono(entity.getTelefono())
+                .codigoHash(entity.getCodigoHash())
+                .intentos(entity.getIntentos())
+                .enviadoEn(entity.getEnviadoEn())
+                .expiraEn(entity.getExpiraEn())
+                .enviosVentana(entity.getEnviosVentana())
+                .ventanaDesde(entity.getVentanaDesde())
+                .build();
+    }
+
+    public VerificacionWhatsappEntity toEntity(VerificacionWhatsapp verificacion) {
+        return VerificacionWhatsappEntity.builder()
+                .id(Identificador.valorDe(verificacion.getId()))
+                .usuarioId(verificacion.getUsuarioId().valor())
+                .telefono(verificacion.getTelefono())
+                .codigoHash(verificacion.getCodigoHash())
+                .intentos(verificacion.getIntentos())
+                .enviadoEn(verificacion.getEnviadoEn())
+                .expiraEn(verificacion.getExpiraEn())
+                .enviosVentana(verificacion.getEnviosVentana())
+                .ventanaDesde(verificacion.getVentanaDesde())
                 .build();
     }
 }
