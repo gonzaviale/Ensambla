@@ -488,6 +488,31 @@ describe('los avisos del motor del servidor', () => {
     expect(estado.avisosDelServidor.get(usuario.email)?.[0]?.estado).toBe('APLICADO');
   });
 
+  it('crear el combo lo ejecuta el servidor, que cierra el aviso', async () => {
+    const { user, usuario } = await abrirConAvisosDelServidor(
+      avisoDelServidor({
+        tipo: 'COMBO',
+        grupo: 'VENTAS',
+        prioridad: 1,
+        entidad: 'combo:a:b',
+        titulo: 'Alfajor Jorgito y Galletitas Criollitas 3 U se venden juntos',
+        acciones: [{ tipo: 'CREAR_REGISTRO', texto: 'Crear el combo', bloqueId: 'inventario' }],
+      }),
+    );
+    await abrirPanel(user);
+
+    await user.click(
+      within(tarjeta(/Alfajor Jorgito y Galletitas Criollitas 3 U se venden juntos/)).getByRole(
+        'button',
+        { name: /Aplicar: crear el combo/ },
+      ),
+    );
+
+    await verifyToastAsync('Listo, creamos el combo.');
+    await waitFor(() => expect(delServidor()).toHaveLength(0), ESPERA);
+    expect(estado.avisosDelServidor.get(usuario.email)?.[0]?.estado).toBe('APLICADO');
+  });
+
   it('si el servidor no puede aplicar el cambio, el aviso vuelve y se avisa', async () => {
     const { user } = await abrirConAvisosDelServidor(
       avisoDelServidor({

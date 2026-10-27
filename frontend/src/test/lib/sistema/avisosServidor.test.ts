@@ -44,7 +44,12 @@ describe('aAvisoDeSami', () => {
     );
 
     expect(aviso.acciones).toEqual([
-      { tipo: 'registrar', texto: 'Registrar entrada', sistemaId: PROYECTO_ID, bloqueId: 'entradas' },
+      {
+        tipo: 'registrar',
+        texto: 'Registrar entrada',
+        sistemaId: PROYECTO_ID,
+        bloqueId: 'entradas',
+      },
       {
         tipo: 'abrir',
         texto: 'Ver producto',
@@ -79,6 +84,42 @@ describe('aAvisoDeSami', () => {
         texto: 'Aplicar el cambio',
         avisoId: 'e0000000-0000-4000-8000-000000000001',
         confirmacion: 'Listo, aplicamos el cambio.',
+      },
+    ]);
+  });
+
+  it('crear un registro (el combo) se le pide al servidor, que lo crea y cierra el aviso', () => {
+    const aviso = aAvisoDeSami(
+      avisoDelServidor({
+        tipo: 'COMBO',
+        grupo: 'VENTAS',
+        acciones: [
+          {
+            tipo: 'CREAR_REGISTRO',
+            texto: 'Crear el combo',
+            proyectoId: PROYECTO_ID,
+            bloqueId: 'inventario',
+            valores: { name: 'Combo A + B', quantity: 0, price: 1850 },
+          },
+          { tipo: 'CREAR_REGISTRO' },
+        ],
+      }),
+      new Map(),
+    );
+
+    expect(aviso.tipo).toBe('combo');
+    expect(aviso.acciones).toEqual([
+      {
+        tipo: 'servidor',
+        texto: 'Crear el combo',
+        avisoId: 'e0000000-0000-4000-8000-000000000001',
+        confirmacion: 'Listo, creamos el combo.',
+      },
+      {
+        tipo: 'servidor',
+        texto: 'Crear el combo',
+        avisoId: 'e0000000-0000-4000-8000-000000000001',
+        confirmacion: 'Listo, creamos el combo.',
       },
     ]);
   });
