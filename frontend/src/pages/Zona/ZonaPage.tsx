@@ -101,7 +101,7 @@ export function ZonaPage() {
         <div className="zona-cabeza">
           <div className="page-title">
             <div className="eyebrow">
-              DATOS DE {zona.nombre ? zona.nombre.toUpperCase() : 'TU ZONA'}, SIN NOMBRES
+              DATOS DE {zona.nombre ? zona.nombre.toUpperCase() : 'TU ZONA'}
             </div>
             <h1>{titulo}</h1>
             <p>{texto}</p>
