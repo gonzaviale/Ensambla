@@ -20,6 +20,7 @@ import com.ensambla.backend.infrastructure.presentation.dto.sistema.SistemaWebRe
 import com.ensambla.backend.infrastructure.presentation.dto.sistema.SistemaWebResponse;
 import org.springframework.stereotype.Component;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Component
@@ -29,8 +30,9 @@ public class SistemaPresentationMapper {
         return new ListarSistemasRequest(usuarioId);
     }
 
-    public GuardarSistemaRequest toGuardarRequest(UsuarioId usuarioId, String id, SistemaWebRequest request) {
-        return new GuardarSistemaRequest(usuarioId, id, toItem(request));
+    public GuardarSistemaRequest toGuardarRequest(UsuarioId usuarioId, String id, SistemaWebRequest request,
+                                                  OffsetDateTime leidoEn) {
+        return new GuardarSistemaRequest(usuarioId, id, toItem(request), leidoEn);
     }
 
     public EliminarSistemaRequest toEliminarRequest(UsuarioId usuarioId, String id) {

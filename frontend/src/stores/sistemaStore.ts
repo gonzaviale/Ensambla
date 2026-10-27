@@ -138,6 +138,7 @@ type Acciones = {
   agregarSistema: (sistema: Sistema) => void;
   /** Suma los sistemas que el servidor creó por su cuenta (por ejemplo con Sami) y que la copia local no tiene. */
   incorporarSistemas: (sistemas: Sistema[]) => void;
+  actualizarDesdeServidor: (sistemas: Sistema[]) => void;
   eliminarSistema: (id: string) => void;
   /** Aplica un cambio sobre una copia del sistema activo y lo marca para guardar. */
   commit: <T>(cambio: (sistema: Sistema) => T) => T | undefined;
@@ -257,6 +258,28 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
           !estado.sistemas.some((actual) => actual.id === sistema.id),
       );
       return nuevos.length > 0 ? { sistemas: [...estado.sistemas, ...nuevos] } : estado;
+    }),
+
+  // Trae lo que el servidor tiene de más (por ejemplo, filas que Sami cargó por WhatsApp): reemplaza los sistemas
+  // que esta pestaña no cambió y suma los que no tenía. Nunca pisa un sistema con cambios sin guardar.
+  actualizarDesdeServidor: (sistemas) =>
+    set((estado) => {
+      const delServidor = new Map(sistemas.map((sistema) => [sistema.id, sistema]));
+      let cambio = false;
+      const actualizados = estado.sistemas.map((actual) => {
+        const nuevo = delServidor.get(actual.id);
+        if (!nuevo || estado.pendientes.includes(actual.id) || estado.eliminados.includes(actual.id))
+          return actual;
+        if (JSON.stringify(nuevo) === JSON.stringify(actual)) return actual;
+        cambio = true;
+        return nuevo;
+      });
+      const nuevos = sistemas.filter(
+        (sistema) =>
+          !estado.eliminados.includes(sistema.id) &&
+          !estado.sistemas.some((actual) => actual.id === sistema.id),
+      );
+      return cambio || nuevos.length > 0 ? { sistemas: [...actualizados, ...nuevos] } : estado;
     }),
 
   eliminarSistema: (id) =>

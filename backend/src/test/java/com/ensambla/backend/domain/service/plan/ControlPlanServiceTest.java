@@ -6,6 +6,7 @@ import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.plan.Plan;
+import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.model.plan.PruebaPremium;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.port.TransaccionPort;
@@ -24,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
@@ -37,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -186,6 +189,30 @@ class ControlPlanServiceTest {
 
         assertThatThrownBy(() -> controlPlanService.validarPaginasIa(NEGOCIO_ID, 1, INSTANTE))
                 .isInstanceOf(ResourceNotFoundException.class).hasMessage("Prueba no encontrada");
+    }
+
+    @Test
+    @DisplayName("Una foto inmediata valida el mes, reserva en el día UTC con el límite diario y no lanza si entra")
+    void reservarPaginaIaInmediataShouldReserveInTheUtcDay() {
+        givenActivePlan();
+        OffsetDateTime enArgentina = INSTANTE.withOffsetSameInstant(ZoneOffset.ofHours(-3));
+        LocalDate diaUtc = INSTANTE.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate();
+        when(usoPlanRepository.registrarPaginaInmediata(NEGOCIO_ID, diaUtc, 100, enArgentina)).thenReturn(true);
+
+        controlPlanService.reservarPaginaIaInmediata(NEGOCIO_ID, 100, enArgentina);
+
+        verify(usoPlanRepository).registrarPaginaInmediata(NEGOCIO_ID, diaUtc, 100, enArgentina);
+    }
+
+    @Test
+    @DisplayName("Una foto inmediata con el límite diario agotado responde la restricción del día")
+    void reservarPaginaIaInmediataShouldRejectWhenDailyLimitIsReached() {
+        givenActivePlan();
+        when(usoPlanRepository.registrarPaginaInmediata(any(), any(), anyInt(), any())).thenReturn(false);
+
+        assertThatThrownBy(() -> controlPlanService.reservarPaginaIaInmediata(NEGOCIO_ID, 100, INSTANTE))
+                .isInstanceOf(RestriccionPlanException.class)
+                .hasMessage(PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO);
     }
 
     @Test

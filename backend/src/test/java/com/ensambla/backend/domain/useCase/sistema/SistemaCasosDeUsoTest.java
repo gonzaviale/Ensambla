@@ -38,6 +38,7 @@ import java.util.stream.IntStream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -128,7 +129,7 @@ class SistemaCasosDeUsoTest {
         assertThatThrownBy(() -> guardarSistema.execute(givenGuardar()))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Sistema no encontrado");
-        verify(sistemaRepository, never()).guardar(any());
+        verify(sistemaRepository, never()).guardar(any(), any());
     }
 
     @Test
@@ -199,7 +200,7 @@ class SistemaCasosDeUsoTest {
     // --- assert ---
     private Sistema thenGuardado() {
         ArgumentCaptor<Sistema> captor = ArgumentCaptor.forClass(Sistema.class);
-        verify(sistemaRepository).guardar(captor.capture());
+        verify(sistemaRepository).guardar(captor.capture(), isNull());
         return captor.getValue();
     }
 }

@@ -15,10 +15,10 @@ import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
 import com.ensambla.backend.domain.model.lectura.PaginaCuaderno;
 import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
-import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem.CampoItem;
 import com.ensambla.backend.support.ImagenTestData;
@@ -30,21 +30,17 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import java.time.Clock;
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BooleanSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -56,14 +52,12 @@ class LeerImagenTest {
     private static final double UMBRAL_CONFIANZA = 0.7;
     /** 23:30 en Argentina ya es el 1 de octubre en UTC: el límite diario se cuenta por día UTC. */
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-09-30T23:30:00-03:00");
-    private static final LocalDate DIA_UTC = LocalDate.parse("2026-10-01");
 
     private final LectorCuadernoPort lectorCuadernoPort = mock(LectorCuadernoPort.class);
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final ControlPlanService controlPlanService = mock(ControlPlanService.class);
-    private final UsoPlanRepository usoPlanRepository = mock(UsoPlanRepository.class);
     private final LeerImagen leerImagen = new LeerImagen(lectorCuadernoPort, UMBRAL_CONFIANZA, negocioRepository,
-            controlPlanService, usoPlanRepository, ProcesamientoTestData.politica(),
+            controlPlanService, ProcesamientoTestData.politica(),
             Clock.fixed(AHORA.toInstant(), AHORA.getOffset()));
 
     private final LeerImagenRequest request = new LeerImagenRequest(USUARIO_ID, ImagenTestData.jpeg(), "Ventas",
@@ -72,9 +66,6 @@ class LeerImagenTest {
     @BeforeEach
     void givenNegocioConCupo() {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
-        when(controlPlanService.reservarPaginasIa(eq(NEGOCIO_ID), eq(1), eq(AHORA), any()))
-                .thenAnswer(invocacion -> invocacion.<BooleanSupplier>getArgument(3).getAsBoolean());
-        when(usoPlanRepository.registrarPaginaInmediata(NEGOCIO_ID, DIA_UTC, 100, AHORA)).thenReturn(true);
     }
 
     @Test
@@ -124,16 +115,16 @@ class LeerImagenTest {
 
         leerImagen.execute(request);
 
-        InOrder orden = inOrder(controlPlanService, usoPlanRepository, lectorCuadernoPort);
-        orden.verify(controlPlanService).reservarPaginasIa(eq(NEGOCIO_ID), eq(1), eq(AHORA), any());
-        orden.verify(usoPlanRepository).registrarPaginaInmediata(NEGOCIO_ID, DIA_UTC, 100, AHORA);
+        InOrder orden = inOrder(controlPlanService, lectorCuadernoPort);
+        orden.verify(controlPlanService).reservarPaginaIaInmediata(NEGOCIO_ID, 100, AHORA);
         orden.verify(lectorCuadernoPort).leer(any(), any(), any());
     }
 
     @Test
     @DisplayName("Con el límite diario agotado responde una restricción clara y no llama a la IA")
     void executeShouldRejectDailyLimit() {
-        when(usoPlanRepository.registrarPaginaInmediata(NEGOCIO_ID, DIA_UTC, 100, AHORA)).thenReturn(false);
+        doThrow(new RestriccionPlanException("LIMITE_IA_DIARIO", PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO))
+                .when(controlPlanService).reservarPaginaIaInmediata(NEGOCIO_ID, 100, AHORA);
 
         assertThatThrownBy(() -> leerImagen.execute(request))
                 .isInstanceOf(RestriccionPlanException.class)
@@ -181,7 +172,6 @@ class LeerImagenTest {
         assertThatThrownBy(() -> leerImagen.execute(sinCampos)).isInstanceOf(BusinessRuleException.class);
 
         verifyNoInteractions(lectorCuadernoPort, controlPlanService);
-        verify(usoPlanRepository, never()).registrarPaginaInmediata(any(), any(), anyInt(), any());
     }
 
     // --- arrange ---

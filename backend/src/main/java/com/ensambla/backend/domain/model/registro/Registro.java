@@ -26,6 +26,8 @@ import java.util.Map;
 @AllArgsConstructor
 public class Registro {
 
+    public static final String ORIGEN_WHATSAPP = "WhatsApp";
+
     private static final String MENSAJE_OBLIGATORIO = "Este dato es obligatorio";
 
     private RegistroId id;
@@ -64,6 +66,15 @@ public class Registro {
                 .creadoEn(ahora)
                 .actualizadoEn(ahora)
                 .build();
+    }
+
+    /** Fila que la persona confirmó por WhatsApp: queda marcada con su origen y al final de la tabla. */
+    public static Registro deWhatsapp(NegocioId negocioId, BloqueId bloqueId, Map<String, Object> valores, int orden,
+                                      OffsetDateTime ahora) {
+        Registro registro = nuevo(negocioId, bloqueId, valores, ahora);
+        registro.setOrigen(ORIGEN_WHATSAPP);
+        registro.setOrden(orden);
+        return registro;
     }
 
     /** Registro que salió de una página del cuaderno; {@code fotoOrigenId} es null si la fila se agregó a mano. */

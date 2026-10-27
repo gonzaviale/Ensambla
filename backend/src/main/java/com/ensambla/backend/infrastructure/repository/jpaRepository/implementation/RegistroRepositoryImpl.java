@@ -51,6 +51,11 @@ public class RegistroRepositoryImpl implements RegistroRepository {
     }
 
     @Override
+    public int siguienteOrden(BloqueId bloqueId, NegocioId negocioId) {
+        return jpa.siguienteOrden(bloqueId.valor(), negocioId.valor());
+    }
+
+    @Override
     public List<Registro> findAllByBloqueIdAndNegocioId(BloqueId bloqueId, NegocioId negocioId) {
         return jpa.findAllByBloqueIdAndNegocioIdOrderByCreadoEnAscIdAsc(bloqueId.valor(), negocioId.valor()).stream()
                 .map(mapper::toDomain)

@@ -4,6 +4,7 @@ import { SeccionNotificaciones } from '@/components/cuenta/SeccionNotificaciones
 import { SeccionPerfil } from '@/components/cuenta/SeccionPerfil';
 import { SeccionSesion } from '@/components/cuenta/SeccionSesion';
 import { SeccionSuscripcion } from '@/components/cuenta/SeccionSuscripcion';
+import { SeccionWhatsapp } from '@/components/cuenta/SeccionWhatsapp';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
 import { PageFooter } from '@/components/sistema/PageFooter';
@@ -17,6 +18,7 @@ const SECCIONES: { clave: SeccionDeCuenta; titulo: string; icono: NombreDeIcono 
   { clave: 'perfil', titulo: 'Perfil', icono: 'users' },
   { clave: 'notificaciones', titulo: 'Notificaciones', icono: 'bell' },
   { clave: 'suscripcion', titulo: 'Suscripción', icono: 'wallet' },
+  { clave: 'whatsapp', titulo: 'WhatsApp', icono: 'spark' },
   { clave: 'sesion', titulo: 'Cerrar sesión', icono: 'arrow' },
 ];
 
@@ -24,6 +26,7 @@ const CONTENIDO: Record<SeccionDeCuenta, ComponentType> = {
   perfil: SeccionPerfil,
   notificaciones: SeccionNotificaciones,
   suscripcion: SeccionSuscripcion,
+  whatsapp: SeccionWhatsapp,
   sesion: SeccionSesion,
 };
 

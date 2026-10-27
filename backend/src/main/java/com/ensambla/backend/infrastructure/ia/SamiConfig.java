@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.model.sami.DiccionarioSami;
 import com.ensambla.backend.domain.model.sami.taller.CatalogoComponentes;
 import com.ensambla.backend.domain.model.sami.taller.KitRubro;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
+import com.ensambla.backend.domain.port.InterpreteRegistrosIaPort;
 import com.ensambla.backend.domain.port.SamiIaPort;
 import com.ensambla.backend.domain.port.TallerIaPort;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -50,6 +51,30 @@ public class SamiConfig {
             modelos.add(proveedor.texto(ajustes, ajustes.modeloAvanzado(), ia.maxTokens()));
         }
         return new SamiIaAdapter(modelos, promptSami, objectMapper, ia.umbralEscalar());
+    }
+
+    /**
+     * Interpreta los textos que llegan por WhatsApp. Con el proveedor simulado usa una regla simple que no cuesta
+     * nada; con uno real, el modelo rápido de Sami.
+     */
+    @Bean
+    PromptWhatsappRegistros promptWhatsappRegistros() {
+        return new PromptWhatsappRegistros(new ClassPathResource("ia/prompt-whatsapp-registros.md"),
+                new ClassPathResource("ia/esquema-whatsapp-registros.json"));
+    }
+
+    @Bean
+    InterpreteRegistrosIaPort interpreteRegistrosIaPort(PromptWhatsappRegistros prompt, ObjectMapper objectMapper,
+                                                        SamiProperties properties, IaProperties iaProperties,
+                                                        ProveedoresIa proveedores) {
+        SamiProperties.Ia ia = properties.ia();
+        AjustesIa ajustes = ia.ajustes(iaProperties);
+        if (ClienteModeloTextoSimulado.PROVEEDOR.equals(ajustes.proveedor())) {
+            return new InterpreteRegistrosSimulado();
+        }
+        ClienteModeloTexto modelo = proveedores.elegir(ajustes.proveedor())
+                .texto(ajustes, ajustes.modeloRapido(), ia.maxTokens());
+        return new InterpreteRegistrosIaAdapter(modelo, prompt, objectMapper);
     }
 
     /**

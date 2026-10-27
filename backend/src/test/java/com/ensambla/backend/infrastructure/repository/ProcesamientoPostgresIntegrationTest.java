@@ -9,6 +9,7 @@ import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
 import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.ConsumoDiario;
 import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
+import com.ensambla.backend.domain.model.procesamiento.TablaDisponible;
 import com.ensambla.backend.domain.model.procesamiento.ReclamoId;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
@@ -384,6 +385,36 @@ class ProcesamientoPostgresIntegrationTest extends PostgresRepositoryTestSupport
         assertThat(campos).extracting(CampoConocido::nombre, CampoConocido::bloqueRelacionadoId)
                 .containsExactlyInAnyOrder(org.assertj.core.groups.Tuple.tuple("Cliente", BloqueId.de(clientesId)),
                         org.assertj.core.groups.Tuple.tuple("Monto", null));
+    }
+
+    @Test
+    @DisplayName("Las tablas del negocio salen con el nombre de su proyecto, sin las que sólo tienen fórmulas")
+    void tablasShouldListCargableTablesWithProject() {
+        UUID proyectoId = UUID.randomUUID();
+        UUID ventasId = UUID.randomUUID();
+        UUID soloFormulasId = UUID.randomUUID();
+        UUID vaciaId = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO proyecto (id, negocio_id, nombre) VALUES (?, ?, 'Mi panadería')",
+                proyectoId, negocioId.valor());
+        for (UUID bloque : List.of(ventasId, soloFormulasId, vaciaId)) {
+            jdbcTemplate.update("INSERT INTO bloque (id, negocio_id, proyecto_id, nombre, tipo) VALUES (?, ?, ?, ?, 'INVENTARIO')",
+                    bloque, negocioId.valor(), proyectoId, "Tabla " + bloque.toString().substring(0, 4));
+        }
+        jdbcTemplate.update("""
+                INSERT INTO campo (negocio_id, bloque_id, nombre, tipo, opciones) VALUES (?, ?, 'Monto', 'NUMERO', '[]')
+                """, negocioId.valor(), ventasId);
+        jdbcTemplate.update("""
+                INSERT INTO campo (negocio_id, bloque_id, nombre, tipo, opciones, formula)
+                VALUES (?, ?, 'Total', 'FORMULA', '[]', '{}')
+                """, negocioId.valor(), soloFormulasId);
+
+        List<TablaDisponible> tablas = procesamientoRepository.tablas(negocioId);
+
+        assertThat(tablas).hasSize(1);
+        assertThat(tablas.getFirst().bloque().id().valor()).isEqualTo(ventasId);
+        assertThat(tablas.getFirst().proyecto()).isEqualTo("Mi panadería");
+        assertThat(tablas.getFirst().tipo()).isEqualTo(com.ensambla.backend.domain.model.bloque.TipoBloque.INVENTARIO);
+        assertThat(procesamientoRepository.tablas(NegocioId.nuevo())).isEmpty();
     }
 
     private UUID givenLote() {

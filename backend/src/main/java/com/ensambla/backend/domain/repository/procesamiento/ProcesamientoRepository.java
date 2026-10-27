@@ -9,6 +9,7 @@ import com.ensambla.backend.domain.model.procesamiento.EstadoLectura;
 import com.ensambla.backend.domain.model.procesamiento.FotoLectura;
 import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
 import com.ensambla.backend.domain.model.procesamiento.ResultadoIntento;
+import com.ensambla.backend.domain.model.procesamiento.TablaDisponible;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -25,6 +26,9 @@ public interface ProcesamientoRepository {
     List<FotoLectura> fotos(LoteTrabajo lote);
 
     List<BloqueLectura> bloques(NegocioId negocioId);
+
+    /** Las tablas del negocio donde se puede cargar datos (con al menos una columna que no sea una fórmula). */
+    List<TablaDisponible> tablas(NegocioId negocioId);
 
     boolean reservar(LoteTrabajo lote, int paginas, int limite, OffsetDateTime ahora);
 

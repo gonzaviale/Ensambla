@@ -5,7 +5,8 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V5__campo_relacion.sql`, `V6__campo_formula.sql`, `V7__movimiento_stock.sql`, `V8__receta.sql`,
 `V9__modelo_sistema_y_monitoreo.sql`, `V10__datos_prueba_san_justo.sql`, `V11__avisos_entidad_y_datos.sql`,
 `V12__planes_y_suscripciones.sql`, `V13__limites_y_funciones_por_plan.sql`, `V14__prueba_premium.sql`,
-`V15__renovaciones_y_pagos_premium.sql`).
+`V15__renovaciones_y_pagos_premium.sql`,
+`V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -208,6 +209,37 @@ cambiaron, reactiva los vencidos y vence los pendientes que la regla ya no detec
 `POST /api/avisos/{id}/aplicar` y `POST /api/avisos/{id}/descartar`. Aplicar ejecuta la acción sugerida (`EDITAR_REGISTRO` cambia
 valores de un registro por clave de campo; `REGISTRAR` y `ABRIR` son atajos de pantalla) y marca el aviso como aplicado en la misma
 transacción. Un aviso de otro negocio responde 404.
+
+## Carga por WhatsApp (V20)
+
+`whatsapp_vinculo` une un número con un usuario y su negocio (un número por usuario y un usuario por número, ambos únicos; el
+teléfono va en sólo dígitos con código de país). `whatsapp_codigo_vinculacion` guarda el código de un solo uso que el usuario
+genera en la app (6 caracteres, vigente 10 minutos) y manda por el chat como `VINCULAR <código>`. `whatsapp_mensaje` guarda cada
+texto o nota de voz que llega de un número vinculado: `id_externo` (único) evita duplicados si el proveedor reintenta el webhook,
+y un `CHECK` exige `texto` en los textos y `mime_audio` en los audios. El audio no se guarda: se descarga al transcribirlo.
+
+**API.** `POST /api/whatsapp/vinculacion/codigo`, `GET` y `DELETE /api/whatsapp/vinculacion` (con sesión) y
+`POST /api/whatsapp/webhook` (público, sin CSRF, protegido con el header `X-Ensambla-Webhook-Token`). Ver `docs/whatsapp-evolution.md`.
+
+## Sami por WhatsApp (V21)
+
+`whatsapp_verificacion` guarda, una por usuario, el código de 6 dígitos que se manda por WhatsApp al número cargado en la app:
+sólo la huella SHA-256 (`codigo_hash`), el teléfono, los `intentos`, cuándo vence y la ventana de reenvíos (`envios_ventana`,
+`ventana_desde`). Al confirmar el código se borra y queda el vínculo.
+
+`whatsapp_mensaje` pasa a ser la cola de atención: admite `IMAGEN` (con el pie en `texto`), `mime_audio` se renombra a `mime_media`
+y el `estado` recorre `RECIBIDO → ATENDIENDO → ATENDIDO | FALLIDO` (con `intentos`, `reclamado_hasta`, `atendido_en` y `error`).
+Los mensajes que ya existían se migran como `ATENDIDO`. El índice `(estado, recibido_en)` sirve para tomar el más viejo con
+`FOR UPDATE SKIP LOCKED`.
+
+`whatsapp_propuesta` es la carga que Sami armó y espera confirmación en el chat: `origen` (`TEXTO` o `FOTO`), `estado`
+(`ELIGIENDO_TABLA`, `PENDIENTE`, `CONFIRMADA`, `DESCARTADA`, `VENCIDA`), la tabla destino (`bloque_id`, sin FK a propósito: si se
+borra, se avisa al confirmar), las `filas` y, en las fotos, la `lectura` completa para asignarla a la tabla elegida sin volver a
+leerla. Un índice único parcial permite una sola propuesta abierta por teléfono.
+
+**API nueva.** `POST /api/whatsapp/verificacion` (`{telefono}`: manda el código por WhatsApp) y
+`POST /api/whatsapp/verificacion/confirmar` (`{codigo}`: vincula el número). `GET /api/whatsapp/vinculacion` suma `numeroBot`.
+`POST /api/whatsapp/webhook` acepta el secreto también como `?token=`.
 
 ## Datos de prueba (V10)
 

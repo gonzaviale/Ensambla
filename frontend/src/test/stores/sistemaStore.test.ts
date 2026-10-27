@@ -50,6 +50,49 @@ describe('store del taller', () => {
     expect(store().sistemas).toEqual([]);
   });
 
+  it('trae lo que el servidor tiene de más en un sistema que la pestaña no cambió', () => {
+    const sistema = conUnSistema();
+    const delServidor = { ...sistema, name: 'Con filas de WhatsApp' };
+
+    store().actualizarDesdeServidor([delServidor]);
+
+    expect(store().sistemas[0]?.name).toBe('Con filas de WhatsApp');
+    expect(store().pendientes).toEqual([]);
+  });
+
+  it('no pisa un sistema con cambios sin guardar al traer lo del servidor', () => {
+    const sistema = conUnSistema();
+    store().commit((s) => {
+      s.name = 'Editado acá';
+    });
+
+    store().actualizarDesdeServidor([{ ...sistema, name: 'Del servidor' }]);
+
+    expect(store().sistemas[0]?.name).toBe('Editado acá');
+    expect(store().pendientes).toContain(sistema.id);
+  });
+
+  it('al traer lo del servidor suma los sistemas nuevos y respeta los que se eliminaron', () => {
+    const sistema = conUnSistema();
+    const nuevo = { ...makeTemplate('business', {}, true), id: 'creado-por-sami' };
+    const eliminado = { ...makeTemplate('business', {}, true), id: 'eliminado' };
+    store().agregarSistema(eliminado);
+    store().eliminarSistema(eliminado.id);
+
+    store().actualizarDesdeServidor([sistema, nuevo, eliminado]);
+
+    expect(store().sistemas.map((item) => item.id)).toEqual([sistema.id, 'creado-por-sami']);
+  });
+
+  it('si el servidor no trae nada distinto no toca el estado', () => {
+    const sistema = conUnSistema();
+    const antes = store().sistemas;
+
+    store().actualizarDesdeServidor([structuredClone(sistema)]);
+
+    expect(store().sistemas).toBe(antes);
+  });
+
   it('cambiar de cuenta reemplaza todo lo que había', () => {
     conUnSistema();
 

@@ -49,6 +49,9 @@ public interface RegistroRepository {
     /** Suma de cada campo numérico entre todas las filas que cumplen el filtro del reporte. */
     Map<CampoId, BigDecimal> sumarNumericos(FiltroReporte filtro, List<CampoId> campoIds);
 
+    /** El orden que le toca a la próxima fila del bloque: una más que la última. */
+    int siguienteOrden(BloqueId bloqueId, NegocioId negocioId);
+
     default Registro obtener(RegistroId registroId, NegocioId negocioId) {
         return findByIdAndNegocioId(registroId, negocioId)
                 .orElseThrow(() -> new ResourceNotFoundException("El registro no existe"));

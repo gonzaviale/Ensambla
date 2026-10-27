@@ -12,7 +12,6 @@ import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
-import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagen;
 import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenRequest;
@@ -41,13 +40,11 @@ public class LecturasInmediatasDePrueba {
 
     private final ControlPlanService controlPlanService;
 
-    private final UsoPlanRepository usoPlanRepository;
-
     private final PoliticaProcesamiento politicaProcesamiento;
 
     public void registrar(NegocioId negocioId, OffsetDateTime ahora) {
         new LeerImagen(lectorCompatible(), UMBRAL_CONFIANZA, negocioPropio(negocioId),
-                controlPlanService, usoPlanRepository, politicaProcesamiento,
+                controlPlanService, politicaProcesamiento,
                 Clock.fixed(ahora.toInstant(), ahora.getOffset()))
                 .execute(new LeerImagenRequest(usuarioDe(negocioId), ImagenTestData.jpeg(), "Ventas",
                         List.of(new LeerImagenRequest.CampoItem("importe", "Monto", "NUMERO", null)), true));

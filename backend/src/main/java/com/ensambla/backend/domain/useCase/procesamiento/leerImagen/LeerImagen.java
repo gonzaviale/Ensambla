@@ -1,6 +1,5 @@
 package com.ensambla.backend.domain.useCase.procesamiento.leerImagen;
 
-import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.lectura.ImagenCuaderno;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
@@ -10,14 +9,11 @@ import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
-import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 
 /**
@@ -37,8 +33,6 @@ public class LeerImagen {
 
     private final ControlPlanService controlPlanService;
 
-    private final UsoPlanRepository usoPlanRepository;
-
     private final PoliticaProcesamiento politicaProcesamiento;
 
     private final Clock clock;
@@ -54,11 +48,7 @@ public class LeerImagen {
 
     /** Registra el intento antes de salir al proveedor; un fallo o timeout también puede tener costo. */
     private void registrarConsumo(NegocioId negocioId, OffsetDateTime ahora) {
-        LocalDate dia = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate();
-        if (!controlPlanService.reservarPaginasIa(negocioId, 1, ahora, () -> usoPlanRepository
-                .registrarPaginaInmediata(negocioId, dia, politicaProcesamiento.limiteDiario(), ahora))) {
-            throw new RestriccionPlanException("LIMITE_IA_DIARIO", PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO);
-        }
+        controlPlanService.reservarPaginaIaInmediata(negocioId, politicaProcesamiento.limiteDiario(), ahora);
     }
 
     private LecturaImagen leer(ImagenCuaderno imagen, BloqueDeImagen bloque, boolean destinoExistente) {

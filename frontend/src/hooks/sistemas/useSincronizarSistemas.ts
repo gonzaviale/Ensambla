@@ -1,7 +1,9 @@
 import { ApiError } from '@/api/apiError';
 import { guardarBorradorSesion } from '@/lib/borradorSesion';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { eliminarSistema, guardarSistema } from '@/api/sistemas';
+import { sistemasQuery } from '@/hooks/sistemas/queries';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
 const ESPERA_MS = 500;
@@ -10,6 +12,7 @@ const REINTENTO_MS = 4000;
 // Lleva al servidor lo que la persona va cambiando. Los cambios se juntan medio segundo, así que mover
 // un bloque o escribir un nombre no dispara un pedido por cada tecla; si falla, se reintenta solo.
 export function useSincronizarSistemas() {
+  const queryClient = useQueryClient();
   useEffect(() => {
     let temporizador: ReturnType<typeof setTimeout> | undefined;
     let volcando = false;
@@ -87,12 +90,25 @@ export function useSincronizarSistemas() {
     // Al salir de la pantalla o cerrar la pestaña no se queda nada sin mandar.
     const alSalir = () => void volcar();
     window.addEventListener('pagehide', alSalir);
+    // Al volver a la pestaña se traen los cambios del servidor (por ejemplo, lo que Sami cargó por WhatsApp), siempre
+    // que no haya nada sin guardar: lo que se está editando no se pisa.
+    const alVolver = () => {
+      if (document.visibilityState !== 'visible' || volcando) return;
+      const { pendientes, eliminados } = useSistemaStore.getState();
+      if (pendientes.length > 0 || eliminados.length > 0) return;
+      void queryClient
+        .fetchQuery({ ...sistemasQuery(), staleTime: 0 })
+        .then((sistemas) => useSistemaStore.getState().actualizarDesdeServidor(sistemas))
+        .catch(() => undefined);
+    };
+    document.addEventListener('visibilitychange', alVolver);
 
     return () => {
       desuscribir();
       window.removeEventListener('pagehide', alSalir);
+      document.removeEventListener('visibilitychange', alVolver);
       clearTimeout(temporizador);
       void volcar();
     };
-  }, []);
+  }, [queryClient]);
 }
