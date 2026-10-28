@@ -78,12 +78,15 @@ describe('las acciones de Sami sobre el taller', () => {
       ]);
       expect(resumirSistema(sistema).piezas.find((item) => item.tipo === 'sales')?.registros[0])
         .toEqual({ id: guardada?.id, datos: { Producto: 'Yerba', Cantidad: 2, Cliente: 'Anto' } });
-      // Los productos que se sumaron al vincular las ventas también son registros reales del armado.
+      // Los productos que se sumaron al vincular las ventas también son registros reales del armado (sin stock).
       expect(
         resumen.piezas
           .find((item) => item.tipo === 'inventory')
           ?.registros.map((registro) => registro.datos),
-      ).toEqual([{ Producto: 'Yerba' }, { Producto: 'Fideos' }]);
+      ).toEqual([
+        { Producto: 'Yerba', Cantidad: 0 },
+        { Producto: 'Fideos', Cantidad: 0 },
+      ]);
     });
 
     it('las piezas con las que otra se vincula llevan los nombres que ya tienen, también los guardados', () => {
@@ -401,6 +404,7 @@ describe('las acciones de Sami sobre el taller', () => {
         aplicadas: ['Renombré Teléfono a Celular en clientes.'],
         omitidas: [],
         pendientes: [],
+        sinStock: [],
       });
       expect(campo('clients', 'Celular')).toMatchObject({ key: 'phone', type: 'tel' });
       expect(pieza('clients').rows[0]?.phone).toBe('11 5555-0101');
@@ -676,6 +680,7 @@ describe('las acciones de Sami sobre el taller', () => {
         aplicadas: ['Renombré Nombre a Razón social en clientes.'],
         omitidas: [],
         pendientes: [],
+        sinStock: [],
       });
       expect(campo('clients', 'Razón social')?.type).toBe('text');
     });
@@ -962,6 +967,7 @@ describe('Sami ensambla el sistema desde cero', () => {
         aplicadas: ['Cargué 3 registros en clientes.'],
         omitidas: [],
         pendientes: [],
+        sinStock: [],
       });
       expect(clientes.rows.map((fila) => fila.name)).toEqual(['Rosa', 'Lucía', 'Marta', 'Pedro']);
       expect(clientes.rows[0]).toBe(real);
@@ -1331,6 +1337,7 @@ describe('Sami ensambla el sistema desde cero', () => {
         aplicadas: ['Borré 2 registros de ventas.'],
         omitidas: [],
         pendientes: [],
+        sinStock: [],
       });
       expect(ventas.rows).toHaveLength(1);
       expect(ventas.rows[0]?.product).toBeDefined();
@@ -1471,6 +1478,7 @@ describe('Sami ensambla el sistema desde cero', () => {
         aplicadas: ['Corregí 2 registros en ventas.'],
         omitidas: [],
         pendientes: [],
+        sinStock: [],
       });
       expect(ventas.rows).toHaveLength(2);
       expect(primera?.price).toBe(3500);
@@ -1586,6 +1594,105 @@ describe('Sami ensambla el sistema desde cero', () => {
       expect(allBlocks(creado).flatMap((bloque) => bloque.rows).some((fila) => fila.__example)).toBe(false);
       expect(allBlocks(creado).find((bloque) => bloque.type === 'sales')?.rows).toHaveLength(1);
     });
+  });
+});
+
+describe('el stock de las ventas que carga Sami', () => {
+  let sistema: Sistema;
+  const deTipo = (tipo: string) => {
+    const bloque = allBlocks(sistema).find((item) => item.type === tipo);
+    if (!bloque) throw new Error(`Falta la pieza ${tipo}`);
+    return bloque;
+  };
+  const stock = (nombre: string) =>
+    deTipo('inventory').rows.find((fila) => fila.name === nombre)?.quantity;
+  const vender = (filas: Record<string, unknown>[]) =>
+    aplicarAcciones(sistema, [accion('cargar_registros', { pieza: 'sales', filas })]);
+
+  beforeEach(() => {
+    sistema = makeTemplate('shop', {}, false);
+    deTipo('inventory').rows.push(
+      { id: 'e1111111-yerba', name: 'Yerba', quantity: 5 },
+      { id: 'e2222222-mate', name: 'Mate', quantity: 1 },
+    );
+  });
+
+  it('una venta de un producto que está descuenta su cantidad', () => {
+    const resultado = vender([{ Producto: 'Yerba', Cantidad: 2 }]);
+
+    expect(stock('Yerba')).toBe(3);
+    expect(resultado.sinStock).toEqual([]);
+  });
+
+  it('si no alcanza, descuenta hasta 0 y avisa cuánto se pedía y cuánto había', () => {
+    const resultado = vender([
+      { Producto: 'Mate', Cantidad: 3 },
+      { Producto: 'Yerba', Cantidad: 5 },
+    ]);
+
+    expect(stock('Mate')).toBe(0);
+    expect(stock('Yerba')).toBe(0);
+    expect(resultado.sinStock).toEqual([{ producto: 'Mate', pedido: 3, habia: 1 }]);
+  });
+
+  it('corregir la cantidad o el producto deja el stock como si se hubiera cargado bien', () => {
+    vender([{ Producto: 'Mate', Cantidad: 3 }]);
+    const [venta] = deTipo('sales').rows;
+
+    aplicarAcciones(sistema, [
+      accion('editar_registros', {
+        pieza: 'sales',
+        registros: [{ id: venta?.id, datos: { Producto: 'Yerba', Cantidad: 2 } }],
+      }),
+    ]);
+
+    expect(stock('Mate')).toBe(1);
+    expect(stock('Yerba')).toBe(3);
+  });
+
+  it('borrar una venta de Sami devuelve el stock', () => {
+    vender([{ Producto: 'Yerba', Cantidad: 2 }]);
+    const [venta] = deTipo('sales').rows;
+
+    aplicarAcciones(sistema, [accion('borrar_registros', { pieza: 'sales', ids: [venta?.id] })]);
+
+    expect(stock('Yerba')).toBe(5);
+  });
+
+  it('una entrada suma al stock', () => {
+    aplicarAcciones(sistema, [accion('agregar_pieza', { tipo: 'entries', ejemplos: [] })]);
+    aplicarAcciones(sistema, [
+      accion('cargar_registros', { pieza: 'entries', filas: [{ Producto: 'Mate', Cantidad: 4 }] }),
+    ]);
+
+    expect(stock('Mate')).toBe(5);
+  });
+
+  it('una venta de un producto pendiente descuenta recién al sumarlo, y avisa que no había', () => {
+    const { pendientes } = vender([{ Producto: 'Bombilla', Cantidad: 2 }]);
+    expect(deTipo('inventory').rows).toHaveLength(2);
+
+    const sinStock = sumarPendientes(sistema, pendientes);
+
+    expect(stock('Bombilla')).toBe(0);
+    expect(sinStock).toEqual([{ producto: 'Bombilla', pedido: 2, habia: 0 }]);
+  });
+
+  it('las marcas con las que se sigue el stock no se guardan', () => {
+    const original = clone(sistema);
+    vender([{ Producto: 'Yerba', Cantidad: 2 }]);
+
+    const filas = [
+      ...allBlocks(ajusteParaGuardar(original, sistema)),
+      ...allBlocks(sistemaParaCrear(sistema)),
+    ].flatMap((bloque) => bloque.rows);
+
+    expect(filas.some((fila) => '__stockDe' in fila || '__stockDelta' in fila)).toBe(false);
+    expect(
+      allBlocks(ajusteParaGuardar(original, sistema))
+        .find((bloque) => bloque.type === 'inventory')
+        ?.rows.find((fila) => fila.name === 'Yerba')?.quantity,
+    ).toBe(3);
   });
 });
 

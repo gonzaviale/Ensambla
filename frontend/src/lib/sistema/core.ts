@@ -116,7 +116,7 @@ export function moveBlock(
   return true;
 }
 
-const numero = (valor: Valor) => Number(valor ?? 0) || 0;
+export const numero = (valor: Valor) => Number(valor ?? 0) || 0;
 
 export function validateRow(
   bloque: Bloque,

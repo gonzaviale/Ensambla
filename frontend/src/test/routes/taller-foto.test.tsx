@@ -194,6 +194,10 @@ describe('una foto para Sami en el taller', () => {
     await sinViolaciones();
     await user.click(within(tarjeta).getByRole('button', { name: /Sumarlos/ }));
     expect(screen.queryByRole('group', { name: 'Registros que no encontré' })).toBeNull();
+    // Los productos recién sumados no tenían stock: las ventas los dejan en 0 y se avisa.
+    await verifyToastAsync(
+      'Ojo: no alcanzó el stock de Vela lavanda, Vela vainilla y Vela flotante; quedaron en 0.',
+    );
 
     await clickButton(user, /Sí, crear mi cuaderno/);
 
@@ -244,7 +248,11 @@ describe('una foto para Sami en el taller', () => {
     const sistema = makeTemplate('shop', {}, false);
     sistema.name = 'Almacén de Ana';
     deTipo(sistema, 'clients').rows.push({ id: 'e1111111-cli', name: 'Lucía' });
-    deTipo(sistema, 'inventory').rows.push({ id: 'e2222222-pro', name: 'Vela lavanda' });
+    deTipo(sistema, 'inventory').rows.push({
+      id: 'e2222222-pro',
+      name: 'Vela lavanda',
+      quantity: 1,
+    });
     estado.sistemas.set(usuario.email, [sistema]);
     renderApp(`/sistemas/${sistema.id}?modo=usar`);
     await screen.findByRole('heading', { level: 1, name: /Almacén de Ana/ }, ESPERA);
@@ -276,6 +284,16 @@ describe('una foto para Sami en el taller', () => {
       ['', ''],
       ['', 'e1111111-cli'],
     ]);
+    // La venta descuenta el stock en la propuesta: había 1 y se vendieron 2, así que queda en 0 y Sami avisa.
+    expect(deTipo(borrador, 'inventory').rows[0]?.quantity).toBe(0);
+    expect(
+      screen.getByText(
+        /Ojo: no alcanzó el stock de Vela lavanda \(vendiste 2 y había 1\); quedó en 0\./,
+      ),
+    ).toBeVisible();
+    await clickButton(user, /Deshacer lo último/);
+    const deshecho = useSistemaStore.getState().taller?.borrador ?? undefined;
+    expect(deTipo(deshecho, 'inventory').rows[0]?.quantity).toBe(1);
     server.events.removeAllListeners();
   });
 

@@ -6,6 +6,7 @@ import {
   pendientesVigentes,
   resumirSistema,
   sumarPendientes,
+  type SinStock,
   type VinculoPendiente,
 } from '@/lib/sistema/acciones';
 import { allBlocks, applyLayout, clone, makeSystem } from '@/lib/sistema/core';
@@ -75,6 +76,24 @@ function textoDeSami(
   return `${aplicadas.join(' ')} ${cierre} ¿Qué cambiarías?`;
 }
 
+/**
+ * El aviso de las ventas que pedían más stock del que había: se descontó hasta 0. Vacío si alcanzó para todas.
+ * Con un solo producto cuenta cuánto se vendió y cuánto había.
+ */
+export function avisoDeStock(sinStock: SinStock[]): string {
+  const productos = [...new Set(sinStock.map((item) => item.producto))];
+  if (!productos.length) return '';
+  const [unico] = sinStock;
+  if (sinStock.length === 1 && unico) {
+    return `Ojo: no alcanzó el stock de ${unico.producto} (vendiste ${unico.pedido} y había ${unico.habia}); quedó en 0.`;
+  }
+  const lista =
+    productos.length === 1
+      ? productos[0]
+      : `${productos.slice(0, -1).join(', ')} y ${productos.at(-1)}`;
+  return `Ojo: no alcanzó el stock de ${lista}; ${productos.length === 1 ? 'quedó' : 'quedaron'} en 0.`;
+}
+
 const limpiarFinal = (texto: string) => texto.trim().replace(/[.\s]+$/, '');
 
 /**
@@ -131,7 +150,7 @@ export function useTaller() {
       ...(imagen && { imagen }),
     });
     const copia = clone(base);
-    const { aplicadas, pendientes } = aplicarAcciones(copia, respuesta.acciones);
+    const { aplicadas, pendientes, sinStock } = aplicarAcciones(copia, respuesta.acciones);
     const cambio = !mismoSistema(copia, base);
     // Lo primero que arma Sami se acomoda como el resto de las propuestas: el stock a lo ancho, lo demás de a dos.
     if (cambio && !borrador && !copia.layout) applyLayout(copia, 'mosaic');
@@ -139,7 +158,12 @@ export function useTaller() {
     const nuevoBorrador = borrador || cambio ? copia : null;
     return {
       borrador: nuevoBorrador,
-      respuesta: textoDeSami(respuesta.respuesta, cambio ? aplicadas : [], dudas, !borrador),
+      respuesta: [
+        textoDeSami(respuesta.respuesta, cambio ? aplicadas : [], dudas, !borrador),
+        avisoDeStock(sinStock),
+      ]
+        .filter(Boolean)
+        .join(' '),
       dudas,
       anterior: borrador && cambio ? borrador : null,
       vinculosPendientes: nuevoBorrador
@@ -252,8 +276,15 @@ export function useTaller() {
     const store = useSistemaStore.getState();
     const taller = store.taller;
     if (!taller?.vinculosPendientes.length || taller.pensando) return;
-    if (sumar) store.editarBorrador((borrador) => sumarPendientes(borrador, taller.vinculosPendientes));
+    let sinStock: SinStock[] = [];
+    if (sumar) {
+      store.editarBorrador((borrador) => {
+        sinStock = sumarPendientes(borrador, taller.vinculosPendientes);
+      });
+    }
     store.actualizarTaller({ vinculosPendientes: [] });
+    const aviso = avisoDeStock(sinStock);
+    if (aviso) store.avisar(aviso);
   };
 
   /** Achica la foto elegida y la deja lista para el próximo mensaje; si no sirve, avisa y no la adjunta. */

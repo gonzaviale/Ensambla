@@ -8,6 +8,7 @@ import {
   makeBlock,
   moveBlock,
   normalize,
+  numero,
   removeBlock,
   wireSystem,
 } from './core';
@@ -67,7 +68,12 @@ export type ResultadoDeAcciones = {
   omitidas: string[];
   /** Los nombres de vínculos que no se encontraron y esperan confirmación. */
   pendientes: VinculoPendiente[];
+  /** Los productos a los que no les alcanzó el stock para las ventas que cargó Sami: quedaron en 0. */
+  sinStock: SinStock[];
 };
+
+/** Una venta (o salida) que pedía más de lo que había: se descontó hasta 0. */
+export type SinStock = { producto: string; pedido: number; habia: number };
 
 /**
  * `guardadas`: los ids de las filas que el sistema ya tenía guardadas (al ajustar uno). Esas no viajan: Sami sólo
@@ -203,7 +209,12 @@ const buscarCampo = (bloque: Bloque, etiqueta: string) =>
  * hacer se omite sin romper nada y se cuenta en `omitidas`.
  */
 export function aplicarAcciones(sistema: Sistema, acciones: AccionDeSami[]): ResultadoDeAcciones {
-  const resultado: ResultadoDeAcciones = { aplicadas: [], omitidas: [], pendientes: [] };
+  const resultado: ResultadoDeAcciones = {
+    aplicadas: [],
+    omitidas: [],
+    pendientes: [],
+    sinStock: [],
+  };
   // Los registros reales que cargó Sami en este turno: sus vínculos llegan por nombre y se resuelven al final.
   const registrosNuevos = new Set<string>();
   for (const accion of acciones) {
@@ -213,6 +224,7 @@ export function aplicarAcciones(sistema: Sistema, acciones: AccionDeSami[]): Res
   soltarVinculosSinDestino(sistema);
   wireSystem(sistema);
   resultado.pendientes = resolverVinculosPorNombre(sistema, registrosNuevos);
+  resultado.sinStock = sincronizarStock(sistema, registrosNuevos);
   return resultado;
 }
 
@@ -432,6 +444,8 @@ function borrarRegistros(
       ),
   );
   if (!sobran.length) return `No encontré registros de ${pieza.name.toLowerCase()} que coincidan.`;
+  // Una venta que cargó Sami ya había movido el stock: al borrarla, vuelve.
+  for (const fila of sobran) revertirStock(sistema, pieza, fila);
   const ids = new Set(sobran.map((fila) => fila.id));
   pieza.rows = pieza.rows.filter((fila) => !ids.has(fila.id));
   for (const bloque of allBlocks(sistema)) {
@@ -850,9 +864,10 @@ export function pendientesVigentes(
 
 /**
  * Suma (en el lugar) en cada pieza destino un registro real con el nombre pendiente y lo vincula en las filas que lo
- * nombraban. Si ya hay uno con ese nombre (se cargó a mano mientras tanto), usa ese.
+ * nombraban. Si ya hay uno con ese nombre (se cargó a mano mientras tanto), usa ese. Las ventas que quedan vinculadas
+ * a un producto descuentan su stock; devuelve a cuáles no les alcanzó.
  */
-export function sumarPendientes(sistema: Sistema, pendientes: VinculoPendiente[]) {
+export function sumarPendientes(sistema: Sistema, pendientes: VinculoPendiente[]): SinStock[] {
   for (const pendiente of pendientesVigentes(sistema, pendientes)) {
     const destino = findBlock(sistema, pendiente.destinoId);
     const principal = destino?.fields[0]?.key;
@@ -871,6 +886,67 @@ export function sumarPendientes(sistema: Sistema, pendientes: VinculoPendiente[]
       if (vinculada) vinculada[fila.campoKey] = registro.id;
     }
   }
+  return sincronizarStock(sistema, new Set());
+}
+
+// El stock de las ventas, salidas y entradas que carga Sami. A diferencia del editor (`upsertRow`), Sami carga las
+// filas de una y sus vínculos se resuelven después (o al confirmar un producto nuevo), así que cada movimiento suyo
+// recuerda de qué producto movió el stock (`__stockDe`) y cuánto de verdad (`__stockDelta`, con signo): al cambiar la
+// cantidad o el producto se revierte lo aplicado y se vuelve a aplicar. Una salida nunca deja el stock en negativo: se
+// descuenta hasta 0 y se avisa. Las marcas no se guardan (`descartarEjemplos`).
+const STOCK_DE = '__stockDe';
+const STOCK_DELTA = '__stockDelta';
+
+/** La pieza de productos con la que se vincula un movimiento. */
+const productosDe = (sistema: Sistema, bloque: Bloque) =>
+  findBlock(sistema, bloque.fields.find((item) => item.key === 'product')?.target);
+
+/** El producto vinculado de un movimiento, si el vínculo apunta a uno que existe. */
+const productoDe = (sistema: Sistema, bloque: Bloque, productoId: Valor) =>
+  productosDe(sistema, bloque)?.rows.find((fila) => fila.id === productoId);
+
+/** Devuelve al producto lo que movió una fila y le saca las marcas. */
+function revertirStock(sistema: Sistema, bloque: Bloque, fila: Fila) {
+  if (!(STOCK_DE in fila)) return;
+  const producto = productoDe(sistema, bloque, fila[STOCK_DE]);
+  if (producto) producto.quantity = numero(producto.quantity) - numero(fila[STOCK_DELTA]);
+  Reflect.deleteProperty(fila, STOCK_DE);
+  Reflect.deleteProperty(fila, STOCK_DELTA);
+}
+
+/**
+ * Pone el stock de acuerdo con los movimientos de Sami: los que ya movieron stock y los de `nuevas`. Primero revierte
+ * todo lo aplicado y después aplica lo actual, así una corrección deja el stock como si se hubiera cargado bien. Un
+ * movimiento sin producto vinculado (pendiente) queda marcado sin mover nada, para aplicarse cuando se vincule.
+ */
+export function sincronizarStock(sistema: Sistema, nuevas: ReadonlySet<string>): SinStock[] {
+  const movimientos = allBlocks(sistema).flatMap((bloque) =>
+    bloque.stockDirection
+      ? bloque.rows
+          .filter((fila) => !fila.__example && (STOCK_DE in fila || nuevas.has(fila.id)))
+          .map((fila) => ({ bloque, fila, direccion: bloque.stockDirection ?? -1 }))
+      : [],
+  );
+  for (const { bloque, fila } of movimientos) revertirStock(sistema, bloque, fila);
+  const sinStock: SinStock[] = [];
+  for (const { bloque, fila, direccion } of movimientos) {
+    const producto = productoDe(sistema, bloque, fila.product);
+    const pedido = numero(fila.quantity);
+    let delta = 0;
+    if (producto && pedido > 0) {
+      const habia = numero(producto.quantity);
+      delta = direccion > 0 ? pedido : -Math.min(pedido, Math.max(habia, 0));
+      if (direccion < 0 && pedido > habia) {
+        const principal = productosDe(sistema, bloque)?.fields[0]?.key ?? 'name';
+        sinStock.push({ producto: String(producto[principal] ?? ''), pedido, habia });
+      }
+      producto.quantity = habia + delta;
+      delete producto.__example;
+    }
+    fila[STOCK_DE] = producto ? producto.id : '';
+    fila[STOCK_DELTA] = delta;
+  }
+  return sinStock;
 }
 
 /** Dos sistemas son iguales si se guardarían igual: sirve para saber si un ajuste cambió algo. */
@@ -905,12 +981,17 @@ export function sistemaParaCrear(borrador: Sistema): Sistema {
   return sistema;
 }
 
-/** Quita (en el lugar) las filas de ejemplo que no están en `conservar` y vacía los vínculos que apuntaban a ellas. */
+/**
+ * Quita (en el lugar) las filas de ejemplo que no están en `conservar` y vacía los vínculos que apuntaban a ellas.
+ * También saca las marcas con las que el taller sigue el stock de las ventas de Sami: no se guardan.
+ */
 function descartarEjemplos(sistema: Sistema, conservar: Set<string>) {
   const quitadas = new Set<string>();
   for (const bloque of allBlocks(sistema)) {
     for (const fila of bloque.rows) {
       if (fila.__example && !conservar.has(fila.id)) quitadas.add(fila.id);
+      Reflect.deleteProperty(fila, STOCK_DE);
+      Reflect.deleteProperty(fila, STOCK_DELTA);
     }
     bloque.rows = bloque.rows.filter((fila) => !quitadas.has(fila.id));
   }
