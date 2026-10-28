@@ -8,6 +8,7 @@ import {
   makeBlock,
   moveBlock,
   normalize,
+  numero,
   removeBlock,
   wireSystem,
 } from './core';
@@ -31,7 +32,10 @@ import type {
 
 export type AccionDeSami = { herramienta: string; argumentos: Record<string, unknown> };
 
-/** El sistema resumido que se manda en cada turno: sin filas ni datos de ejemplo, para gastar pocos tokens. */
+/**
+ * El sistema resumido que se manda en cada turno: sin filas de ejemplo, para gastar pocos tokens. De cada pieza van
+ * los registros reales que se cargaron en este armado (con su id), así Sami los puede corregir sin cargarlos de nuevo.
+ */
 export type EstadoCompacto = {
   nombre: string;
   distribucion: string;
@@ -41,7 +45,20 @@ export type EstadoCompacto = {
     nombre: string;
     seccion: string;
     campos: { etiqueta: string; tipo: string }[];
+    registros: { id: string; datos: Record<string, string | number | boolean> }[];
+    /** Si otra pieza se vincula con esta: los nombres que ya tiene, para que Sami use el mismo y no invente otro. */
+    nombres?: string[];
   }[];
+};
+
+/**
+ * Un nombre que Sami usó en un vínculo (el Cliente o el Producto de una venta) y que la pieza destino no tiene. No se
+ * crea solo: la persona confirma si lo suma. Mientras tanto, el vínculo de esas filas queda vacío.
+ */
+export type VinculoPendiente = {
+  destinoId: string;
+  nombre: string;
+  filas: { bloqueId: string; filaId: string; campoKey: string }[];
 };
 
 export type ResultadoDeAcciones = {
@@ -49,9 +66,30 @@ export type ResultadoDeAcciones = {
   aplicadas: string[];
   /** Lo que se pidió y no se pudo hacer, y por qué. */
   omitidas: string[];
+  /** Los nombres de vínculos que no se encontraron y esperan confirmación. */
+  pendientes: VinculoPendiente[];
+  /** Los productos a los que no les alcanzó el stock para las ventas que cargó Sami: quedaron en 0. */
+  sinStock: SinStock[];
 };
 
-export function resumirSistema(sistema: Sistema): EstadoCompacto {
+/** Una venta (o salida) que pedía más de lo que había: se descontó hasta 0. */
+export type SinStock = { producto: string; pedido: number; habia: number };
+
+/**
+ * `guardadas`: los ids de las filas que el sistema ya tenía guardadas (al ajustar uno). Esas no viajan: Sami sólo
+ * corrige lo que propuso en este armado.
+ */
+export function resumirSistema(
+  sistema: Sistema,
+  guardadas: ReadonlySet<string> = new Set(),
+): EstadoCompacto {
+  const destinos = new Set(
+    allBlocks(sistema).flatMap((bloque) =>
+      bloque.fields.flatMap((campo) =>
+        campo.type === 'relation' && campo.target ? [campo.target] : [],
+      ),
+    ),
+  );
   return {
     nombre: sistema.name,
     distribucion: sistema.layout ?? 'mosaic',
@@ -62,9 +100,56 @@ export function resumirSistema(sistema: Sistema): EstadoCompacto {
         nombre: bloque.name,
         seccion: seccion.name,
         campos: bloque.fields.map((campo) => ({ etiqueta: campo.label, tipo: campo.type })),
+        registros: registrosDelArmado(sistema, bloque, guardadas),
+        ...(destinos.has(bloque.id) && { nombres: nombresDe(bloque) }),
       })),
     ),
   };
+}
+
+/** Los nombres (el dato principal) de los registros reales de una pieza, también los guardados, sin repetir. */
+function nombresDe(bloque: Bloque): string[] {
+  const principal = bloque.fields[0]?.key;
+  if (!principal) return [];
+  const nombres = bloque.rows
+    .filter((fila) => !fila.__example)
+    .map((fila) => fila[principal])
+    .filter(
+      (valor): valor is string | number => typeof valor === 'string' || typeof valor === 'number',
+    )
+    .map((valor) => String(valor).trim())
+    .filter(Boolean);
+  return [...new Set(nombres)].slice(0, MAXIMO_DE_NOMBRES);
+}
+
+/** Los registros reales que se cargaron en este armado (los últimos, si son muchos), con sus datos por etiqueta. */
+function registrosDelArmado(sistema: Sistema, bloque: Bloque, guardadas: ReadonlySet<string>) {
+  return bloque.rows
+    .filter((fila) => !fila.__example && !guardadas.has(fila.id))
+    .slice(-MAXIMO_DE_REGISTROS)
+    .map((fila) => {
+      const datos: Record<string, string | number | boolean> = {};
+      for (const campo of bloque.fields) {
+        const valor = valorParaSami(sistema, campo, fila[campo.key]);
+        if (valor !== undefined) datos[campo.label] = valor;
+      }
+      return { id: fila.id, datos };
+    });
+}
+
+/** Un vínculo guarda el id de la fila vinculada: a Sami le llega su nombre. Lo vacío no viaja. */
+function valorParaSami(
+  sistema: Sistema,
+  campo: Campo,
+  valor: Valor,
+): string | number | boolean | undefined {
+  if (valor === undefined || valor === null || valor === '') return undefined;
+  if (campo.type !== 'relation') return valor;
+  const destino = findBlock(sistema, campo.target);
+  const principal = destino?.fields[0]?.key;
+  const vinculada = destino?.rows.find((fila) => fila.id === valor);
+  const nombre = principal && vinculada ? vinculada[principal] : undefined;
+  return nombre === undefined || nombre === null || nombre === '' ? undefined : nombre;
 }
 
 const TIPOS_DE_PIEZA = new Set<string>(Object.keys(CATALOG));
@@ -85,6 +170,7 @@ const TIPOS_DE_CAMPO = new Set<string>([
 const DISTRIBUCIONES = new Set<string>(['mosaic', 'single', 'two', 'three']);
 const MAXIMO_DE_EJEMPLOS = 5;
 const MAXIMO_DE_REGISTROS = 30;
+const MAXIMO_DE_NOMBRES = 100;
 const MAXIMO_DE_OPCIONES = 6;
 const LARGO_DE_NOMBRE = 60;
 const LARGO_DE_VALOR = 200;
@@ -123,7 +209,12 @@ const buscarCampo = (bloque: Bloque, etiqueta: string) =>
  * hacer se omite sin romper nada y se cuenta en `omitidas`.
  */
 export function aplicarAcciones(sistema: Sistema, acciones: AccionDeSami[]): ResultadoDeAcciones {
-  const resultado: ResultadoDeAcciones = { aplicadas: [], omitidas: [] };
+  const resultado: ResultadoDeAcciones = {
+    aplicadas: [],
+    omitidas: [],
+    pendientes: [],
+    sinStock: [],
+  };
   // Los registros reales que cargó Sami en este turno: sus vínculos llegan por nombre y se resuelven al final.
   const registrosNuevos = new Set<string>();
   for (const accion of acciones) {
@@ -132,7 +223,8 @@ export function aplicarAcciones(sistema: Sistema, acciones: AccionDeSami[]): Res
   }
   soltarVinculosSinDestino(sistema);
   wireSystem(sistema);
-  resolverVinculosPorNombre(sistema, registrosNuevos);
+  resultado.pendientes = resolverVinculosPorNombre(sistema, registrosNuevos);
+  resultado.sinStock = sincronizarStock(sistema, registrosNuevos);
   return resultado;
 }
 
@@ -194,6 +286,8 @@ function aplicarUna(
       const cuantos = filas.length === 1 ? 'un registro' : `${filas.length} registros`;
       return hecho(`Cargué ${cuantos} en ${pieza.name.toLowerCase()}.`);
     }
+    case 'editar_registros':
+      return editarRegistros(sistema, args, hecho, registrosNuevos);
     case 'borrar_registros':
       return borrarRegistros(sistema, args, hecho);
     case 'conectar':
@@ -284,11 +378,45 @@ function coincide(sistema: Sistema, campo: Campo, guardado: Valor, pedido: unkno
   return convertido !== undefined && normalize(guardado) === normalize(convertido);
 }
 
+const cantidadDeRegistros = (cantidad: number) =>
+  cantidad === 1 ? 'un registro' : `${cantidad} registros`;
+
 /**
- * Borra de una pieza los registros que coinciden con lo que Sami indica en `donde`: un criterio (`{Cliente: 'Ana'}`,
- * coinciden todos sus datos) o una lista de criterios (basta con que coincida uno). Nunca borra de más: un criterio
- * vacío, o con un dato que la pieza no tiene, no vale y no se usa; si ninguno vale, no se borra nada. No toca otras
- * piezas, salvo para vaciar los vínculos que apuntaban a lo borrado.
+ * Corrige registros reales de una pieza, nombrados por su id: `registros` es una lista de `{id, datos: {Etiqueta:
+ * valor}}`. Sólo se pisan los datos que llegan (pasados al tipo de cada dato); una fila de ejemplo, un id que no está
+ * o un dato que la pieza no tiene se ignoran. Un vínculo llega por nombre y se resuelve al final, como al cargar.
+ */
+function editarRegistros(
+  sistema: Sistema,
+  args: Record<string, unknown>,
+  hecho: (descripcion: string) => undefined,
+  registrosNuevos: Set<string>,
+): string | undefined {
+  const pieza = resolverPieza(sistema, args.pieza);
+  if (!pieza) return 'No encontré esa pieza.';
+  const corregidas = new Set<string>();
+  for (const pedido of lista(args.registros).filter(esObjeto)) {
+    const fila = pieza.rows.find((item) => !item.__example && item.id === texto(pedido.id));
+    if (!fila || !esObjeto(pedido.datos)) continue;
+    for (const [etiqueta, valor] of Object.entries(pedido.datos)) {
+      const campo = campoNombrado(pieza, etiqueta);
+      const convertido = campo ? valorDeEjemplo(campo, valor) : undefined;
+      if (!campo || convertido === undefined) continue;
+      fila[campo.key] = convertido;
+      corregidas.add(fila.id);
+      if (campo.type === 'relation') registrosNuevos.add(fila.id);
+    }
+  }
+  if (!corregidas.size) return `No encontré esos registros en ${pieza.name.toLowerCase()}.`;
+  return hecho(`Corregí ${cantidadDeRegistros(corregidas.size)} en ${pieza.name.toLowerCase()}.`);
+}
+
+/**
+ * Borra de una pieza los registros reales que Sami nombra por su id (`ids`) y los que coinciden con lo que indica en
+ * `donde`: un criterio (`{Cliente: 'Ana'}`, coinciden todos sus datos) o una lista de criterios (basta con que coincida
+ * uno). Nunca borra de más: un criterio vacío, o con un dato que la pieza no tiene, no vale y no se usa; si no queda
+ * ni un id ni un criterio, no se borra nada. No toca otras piezas, salvo para vaciar los vínculos que apuntaban a lo
+ * borrado.
  */
 function borrarRegistros(
   sistema: Sistema,
@@ -305,14 +433,19 @@ function borrarRegistros(
     const validos = datos.flatMap(([campo, valor]) => (campo ? [{ campo, valor }] : []));
     return datos.length && validos.length === datos.length ? [validos] : [];
   });
-  if (!criterios.length)
+  const porId = new Set(lista(args.ids).map(texto).filter(Boolean));
+  if (!criterios.length && !porId.size)
     return `Para borrar registros de ${pieza.name.toLowerCase()} necesito saber cuáles.`;
-  const sobran = pieza.rows.filter((fila) =>
-    criterios.some((criterio) =>
-      criterio.every(({ campo, valor }) => coincide(sistema, campo, fila[campo.key], valor)),
-    ),
+  const sobran = pieza.rows.filter(
+    (fila) =>
+      (!fila.__example && porId.has(fila.id)) ||
+      criterios.some((criterio) =>
+        criterio.every(({ campo, valor }) => coincide(sistema, campo, fila[campo.key], valor)),
+      ),
   );
   if (!sobran.length) return `No encontré registros de ${pieza.name.toLowerCase()} que coincidan.`;
+  // Una venta (o entrada, o salida) ya había movido el stock: al borrarla, vuelve.
+  for (const fila of sobran) devolverStockAlBorrar(sistema, pieza, fila);
   const ids = new Set(sobran.map((fila) => fila.id));
   pieza.rows = pieza.rows.filter((fila) => !ids.has(fila.id));
   for (const bloque of allBlocks(sistema)) {
@@ -324,8 +457,7 @@ function borrarRegistros(
       }
     }
   }
-  const cuantos = sobran.length === 1 ? 'un registro' : `${sobran.length} registros`;
-  return hecho(`Borré ${cuantos} de ${pieza.name.toLowerCase()}.`);
+  return hecho(`Borré ${cantidadDeRegistros(sobran.length)} de ${pieza.name.toLowerCase()}.`);
 }
 
 function agregarPieza(
@@ -644,12 +776,16 @@ function valorDeEjemplo(campo: Campo, valor: unknown): Valor {
 const ES_ID_DE_FILA = /^e[0-9a-f]{8}-/;
 
 // En las filas de ejemplo y en los registros que Sami acaba de cargar, un vínculo llega con el nombre del registro
-// («Lucía Pérez»): se busca en la pieza a la que apunta y se guarda su id. Si esa pieza no lo tiene, se suma ahí, así
-// el vínculo se ve aunque la pieza esté vacía (pasa al ajustar un sistema ya creado, que no tiene ejemplos): como
-// ejemplo si la fila es de ejemplo y como registro real si es real. Un registro real sólo se vincula con otro real (los
-// ejemplos no se guardan). Si lo que hay es el id de un registro que ya no existe, queda vacío. Las demás filas reales
-// no se tocan.
-function resolverVinculosPorNombre(sistema: Sistema, registrosNuevos: Set<string>) {
+// («Lucía Pérez»): se busca en la pieza a la que apunta y se guarda su id. Un registro real sólo se vincula con otro
+// real (los ejemplos no se guardan). Si la pieza no lo tiene, en una fila de ejemplo se suma ahí como ejemplo (sólo
+// sirve para imaginar el sistema); en un registro real NO se crea nada: el vínculo queda vacío y el nombre vuelve como
+// pendiente, para que la persona confirme si lo suma (un cliente o un producto nuevo no se inventa por una foto). Si
+// lo que hay es el id de un registro que ya no existe, queda vacío. Las demás filas reales no se tocan.
+function resolverVinculosPorNombre(
+  sistema: Sistema,
+  registrosNuevos: Set<string>,
+): VinculoPendiente[] {
+  const pendientes = new Map<string, VinculoPendiente>();
   for (const bloque of allBlocks(sistema)) {
     for (const campo of bloque.fields.filter((item) => item.type === 'relation')) {
       const destino = findBlock(sistema, campo.target);
@@ -670,15 +806,165 @@ function resolverVinculosPorNombre(sistema: Sistema, registrosNuevos: Set<string
           (otra) => normalize(otra[principal]) === normalize(nombre),
         );
         if (!encontrada && !ES_ID_DE_FILA.test(nombre)) {
-          encontrada = deEjemplo
-            ? { id: id(), [principal]: nombre, __example: true }
-            : { id: id(), [principal]: nombre };
-          destino.rows.push(encontrada);
+          if (!deEjemplo) {
+            anotarPendiente(pendientes, destino.id, nombre, {
+              bloqueId: bloque.id,
+              filaId: fila.id,
+              campoKey: campo.key,
+            });
+          } else {
+            encontrada = { id: id(), [principal]: nombre, __example: true };
+            destino.rows.push(encontrada);
+          }
         }
         fila[campo.key] = encontrada?.id ?? '';
       }
     }
   }
+  return [...pendientes.values()];
+}
+
+/** Junta por pieza destino y nombre (sin importar mayúsculas ni tildes): dos ventas de «Marta» piden una sola vez. */
+function anotarPendiente(
+  pendientes: Map<string, VinculoPendiente>,
+  destinoId: string,
+  nombre: string,
+  fila: VinculoPendiente['filas'][number],
+) {
+  const clave = `${destinoId}:${normalize(nombre)}`;
+  const pendiente = pendientes.get(clave) ?? { destinoId, nombre, filas: [] };
+  pendiente.filas.push(fila);
+  pendientes.set(clave, pendiente);
+}
+
+/**
+ * Los pendientes que siguen valiendo en `sistema`: las filas que todavía existen y tienen el vínculo vacío, y cuya
+ * pieza destino sigue estando. Los grupos (los de antes y los del turno) se juntan por destino y nombre.
+ */
+export function pendientesVigentes(
+  sistema: Sistema,
+  ...grupos: VinculoPendiente[][]
+): VinculoPendiente[] {
+  const juntos = new Map<string, VinculoPendiente>();
+  for (const pendiente of grupos.flat()) {
+    if (!findBlock(sistema, pendiente.destinoId)) continue;
+    for (const fila of pendiente.filas) {
+      const vinculada = findBlock(sistema, fila.bloqueId)?.rows.find(
+        (item) => item.id === fila.filaId,
+      );
+      if (!vinculada) continue;
+      const valor = vinculada[fila.campoKey];
+      if (valor === undefined || valor === null || valor === '') {
+        anotarPendiente(juntos, pendiente.destinoId, pendiente.nombre, fila);
+      }
+    }
+  }
+  return [...juntos.values()];
+}
+
+/**
+ * Suma (en el lugar) en cada pieza destino un registro real con el nombre pendiente y lo vincula en las filas que lo
+ * nombraban. Si ya hay uno con ese nombre (se cargó a mano mientras tanto), usa ese. Las ventas que quedan vinculadas
+ * a un producto descuentan su stock; devuelve a cuáles no les alcanzó.
+ */
+export function sumarPendientes(sistema: Sistema, pendientes: VinculoPendiente[]): SinStock[] {
+  for (const pendiente of pendientesVigentes(sistema, pendientes)) {
+    const destino = findBlock(sistema, pendiente.destinoId);
+    const principal = destino?.fields[0]?.key;
+    if (!destino || !principal) continue;
+    let registro = destino.rows.find(
+      (fila) => !fila.__example && normalize(fila[principal]) === normalize(pendiente.nombre),
+    );
+    if (!registro) {
+      registro = { id: id(), [principal]: pendiente.nombre };
+      destino.rows.push(registro);
+    }
+    for (const fila of pendiente.filas) {
+      const vinculada = findBlock(sistema, fila.bloqueId)?.rows.find(
+        (item) => item.id === fila.filaId,
+      );
+      if (vinculada) vinculada[fila.campoKey] = registro.id;
+    }
+  }
+  return sincronizarStock(sistema, new Set());
+}
+
+// El stock de las ventas, salidas y entradas que carga Sami. A diferencia del editor (`upsertRow`), Sami carga las
+// filas de una y sus vínculos se resuelven después (o al confirmar un producto nuevo), así que cada movimiento suyo
+// recuerda de qué producto movió el stock (`__stockDe`) y cuánto de verdad (`__stockDelta`, con signo): al cambiar la
+// cantidad o el producto se revierte lo aplicado y se vuelve a aplicar. Una salida nunca deja el stock en negativo: se
+// descuenta hasta 0 y se avisa. Las marcas no se guardan (`descartarEjemplos`).
+const STOCK_DE = '__stockDe';
+const STOCK_DELTA = '__stockDelta';
+
+/** La pieza de productos con la que se vincula un movimiento. */
+const productosDe = (sistema: Sistema, bloque: Bloque) =>
+  findBlock(sistema, bloque.fields.find((item) => item.key === 'product')?.target);
+
+/** El producto vinculado de un movimiento, si el vínculo apunta a uno que existe. */
+const productoDe = (sistema: Sistema, bloque: Bloque, productoId: Valor) =>
+  productosDe(sistema, bloque)?.rows.find((fila) => fila.id === productoId);
+
+/** Devuelve al producto lo que movió una fila y le saca las marcas. */
+function revertirStock(sistema: Sistema, bloque: Bloque, fila: Fila) {
+  if (!(STOCK_DE in fila)) return;
+  const producto = productoDe(sistema, bloque, fila[STOCK_DE]);
+  if (producto) producto.quantity = numero(producto.quantity) - numero(fila[STOCK_DELTA]);
+  Reflect.deleteProperty(fila, STOCK_DE);
+  Reflect.deleteProperty(fila, STOCK_DELTA);
+}
+
+/**
+ * Lo que vuelve al stock al borrar un movimiento. Uno de Sami devuelve exacto lo que movió; uno que ya estaba guardado
+ * movió su cantidad al cargarse en el editor, así que se le devuelve esa cantidad (como `removeRow`). Al borrar una
+ * entrada el stock nunca queda en negativo: baja hasta 0. Los ejemplos no movieron stock.
+ */
+function devolverStockAlBorrar(sistema: Sistema, bloque: Bloque, fila: Fila) {
+  if (STOCK_DE in fila) {
+    revertirStock(sistema, bloque, fila);
+    return;
+  }
+  const producto = productoDe(sistema, bloque, fila.product);
+  if (!bloque.stockDirection || fila.__example || !producto) return;
+  producto.quantity = Math.max(
+    0,
+    numero(producto.quantity) - bloque.stockDirection * numero(fila.quantity),
+  );
+}
+
+/**
+ * Pone el stock de acuerdo con los movimientos de Sami: los que ya movieron stock y los de `nuevas`. Primero revierte
+ * todo lo aplicado y después aplica lo actual, así una corrección deja el stock como si se hubiera cargado bien. Un
+ * movimiento sin producto vinculado (pendiente) queda marcado sin mover nada, para aplicarse cuando se vincule.
+ */
+export function sincronizarStock(sistema: Sistema, nuevas: ReadonlySet<string>): SinStock[] {
+  const movimientos = allBlocks(sistema).flatMap((bloque) =>
+    bloque.stockDirection
+      ? bloque.rows
+          .filter((fila) => !fila.__example && (STOCK_DE in fila || nuevas.has(fila.id)))
+          .map((fila) => ({ bloque, fila, direccion: bloque.stockDirection ?? -1 }))
+      : [],
+  );
+  for (const { bloque, fila } of movimientos) revertirStock(sistema, bloque, fila);
+  const sinStock: SinStock[] = [];
+  for (const { bloque, fila, direccion } of movimientos) {
+    const producto = productoDe(sistema, bloque, fila.product);
+    const pedido = numero(fila.quantity);
+    let delta = 0;
+    if (producto && pedido > 0) {
+      const habia = numero(producto.quantity);
+      delta = direccion > 0 ? pedido : -Math.min(pedido, Math.max(habia, 0));
+      if (direccion < 0 && pedido > habia) {
+        const principal = productosDe(sistema, bloque)?.fields[0]?.key ?? 'name';
+        sinStock.push({ producto: String(producto[principal] ?? ''), pedido, habia });
+      }
+      producto.quantity = habia + delta;
+      delete producto.__example;
+    }
+    fila[STOCK_DE] = producto ? producto.id : '';
+    fila[STOCK_DELTA] = delta;
+  }
+  return sinStock;
 }
 
 /** Dos sistemas son iguales si se guardarían igual: sirve para saber si un ajuste cambió algo. */
@@ -713,12 +999,17 @@ export function sistemaParaCrear(borrador: Sistema): Sistema {
   return sistema;
 }
 
-/** Quita (en el lugar) las filas de ejemplo que no están en `conservar` y vacía los vínculos que apuntaban a ellas. */
+/**
+ * Quita (en el lugar) las filas de ejemplo que no están en `conservar` y vacía los vínculos que apuntaban a ellas.
+ * También saca las marcas con las que el taller sigue el stock de las ventas de Sami: no se guardan.
+ */
 function descartarEjemplos(sistema: Sistema, conservar: Set<string>) {
   const quitadas = new Set<string>();
   for (const bloque of allBlocks(sistema)) {
     for (const fila of bloque.rows) {
       if (fila.__example && !conservar.has(fila.id)) quitadas.add(fila.id);
+      Reflect.deleteProperty(fila, STOCK_DE);
+      Reflect.deleteProperty(fila, STOCK_DELTA);
     }
     bloque.rows = bloque.rows.filter((fila) => !quitadas.has(fila.id));
   }

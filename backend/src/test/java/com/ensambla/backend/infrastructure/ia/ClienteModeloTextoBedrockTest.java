@@ -50,7 +50,7 @@ class ClienteModeloTextoBedrockTest {
         assertThat(pedido.messages().getFirst().role()).isEqualTo(ConversationRole.USER);
         assertThat(pedido.messages().getFirst().content().getFirst().text()).isEqualTo("contexto");
         assertThat(pedido.inferenceConfig().maxTokens()).isEqualTo(700);
-        assertThat(pedido.inferenceConfig().temperature()).isZero();
+        assertThat(pedido.inferenceConfig().temperature()).isNull();
     }
 
     @Test

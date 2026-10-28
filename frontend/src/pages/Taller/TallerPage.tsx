@@ -9,6 +9,7 @@ import {
 import { getRouteApi } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
 import { BotoneraDeDudas } from '@/components/sistema/BotoneraDeDudas';
+import { TarjetaDeVinculosNuevos } from '@/components/sistema/TarjetaDeVinculosNuevos';
 import { BurbujasDeConversacion } from '@/components/sistema/BurbujasDeConversacion';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
@@ -98,7 +99,8 @@ export function TallerPage() {
   const tablaCompletaId = useSistemaStore((estado) => estado.tablaCompletaId);
   const verTablaCompleta = useSistemaStore((estado) => estado.verTablaCompleta);
   const navegacion = useNavegacion();
-  const { enviar, responderDuda, deshacer, adjuntarFoto, quitarFoto } = useTaller();
+  const { enviar, responderDuda, deshacer, resolverPendientes, adjuntarFoto, quitarFoto } =
+    useTaller();
   const avisar = useSistemaStore((estado) => estado.avisar);
   // La voz se transcribe en el navegador y queda en el campo para revisarla antes de enviar.
   const dictado = useDictado({
@@ -536,6 +538,14 @@ export function TallerPage() {
               </div>
             )}
           </div>
+          {borrador && taller.vinculosPendientes.length > 0 && (
+            <TarjetaDeVinculosNuevos
+              pendientes={taller.vinculosPendientes}
+              borrador={borrador}
+              pensando={taller.pensando}
+              onResolver={resolverPendientes}
+            />
+          )}
           {taller.dudas[taller.respuestasDeDudas.length] ? (
             <BotoneraDeDudas
               dudas={taller.dudas}

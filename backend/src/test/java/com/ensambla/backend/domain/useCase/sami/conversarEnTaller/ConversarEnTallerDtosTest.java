@@ -7,9 +7,11 @@ import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
 import com.ensambla.backend.domain.model.sami.taller.MensajeTaller;
 import com.ensambla.backend.domain.model.sami.taller.OpcionesTaller;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
+import com.ensambla.backend.domain.model.sami.taller.RegistroTaller;
 import com.ensambla.backend.domain.model.sami.taller.RespuestaTaller;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.EstadoTallerItem.CampoTallerItem;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.EstadoTallerItem.PiezaTallerItem;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.EstadoTallerItem.RegistroTallerItem;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -30,6 +32,35 @@ class ConversarEnTallerDtosTest {
 
         assertThat(result).isEqualTo(new EstadoTaller("Mi almacén", "mosaic", List.of(new PiezaTaller(
                 "e1", "inventory", "Inventario", "General", List.of(new CampoTaller("Producto", "text"))))));
+    }
+
+    @Test
+    @DisplayName("Convierte los registros de cada pieza; sin lista o sin datos quedan vacíos")
+    void deShouldMapRecordsAndDefaultMissingOnes() {
+        EstadoTallerItem item = new EstadoTallerItem("S", "mosaic", List.of(
+                new PiezaTallerItem("e1", "sales", "Ventas", null, List.of(), List.of(
+                        new RegistroTallerItem("r1", Map.of("Producto", "Vela")),
+                        new RegistroTallerItem("r2", null))),
+                new PiezaTallerItem("e2", "clients", "Clientes", null, List.of(), null)));
+
+        EstadoTaller result = item.aEstadoTaller();
+
+        assertThat(result.piezas().getFirst().registros()).containsExactly(
+                new RegistroTaller("r1", Map.of("Producto", "Vela")), new RegistroTaller("r2", Map.of()));
+        assertThat(result.piezas().getLast().registros()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Convierte los nombres existentes de una pieza; sin lista quedan vacíos")
+    void deShouldMapExistingNames() {
+        EstadoTallerItem item = new EstadoTallerItem("S", "mosaic", List.of(
+                new PiezaTallerItem("e1", "clients", "Clientes", null, List.of(), List.of(), List.of("Ana", "Vero")),
+                new PiezaTallerItem("e2", "inventory", "Stock", null, List.of(), List.of(), null)));
+
+        EstadoTaller result = item.aEstadoTaller();
+
+        assertThat(result.piezas().getFirst().nombres()).containsExactly("Ana", "Vero");
+        assertThat(result.piezas().getLast().nombres()).isEmpty();
     }
 
     @Test

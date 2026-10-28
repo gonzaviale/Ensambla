@@ -27,6 +27,8 @@ import com.ensambla.backend.domain.port.SamiIaPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Clock;
 import java.time.LocalDate;
@@ -59,6 +61,8 @@ import java.util.stream.Collectors;
  * No guarda estado: el texto y las respuestas dadas hasta ahora alcanzan para reconstruirlo.
  */
 public class ConversarConSami {
+
+    private static final Logger log = LoggerFactory.getLogger(ConversarConSami.class);
 
     static final int PUNTAJE_SUFICIENTE = 5;
     static final String LIMITE_ALCANZADO =
@@ -335,6 +339,7 @@ public class ConversarConSami {
         try {
             return samiIaPort.proponer(consulta);
         } catch (RuntimeException e) {
+            log.warn("La IA de Sami falló", e);
             throw new BusinessRuleException(IA_NO_DISPONIBLE);
         }
     }

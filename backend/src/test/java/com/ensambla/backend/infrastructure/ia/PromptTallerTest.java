@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
 import com.ensambla.backend.domain.model.sami.taller.MensajeTaller;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
+import com.ensambla.backend.domain.model.sami.taller.RegistroTaller;
 import com.ensambla.backend.support.SamiPruebas;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -93,6 +95,42 @@ class PromptTallerTest {
     }
 
     @Test
+    @DisplayName("Los nombres existentes de una pieza van bajo ella, antes de sus registros")
+    void peticionShouldListExistingNamesOfLinkedPieces() {
+        EstadoTaller conClientes = new EstadoTaller("S", "mosaic", List.of(new PiezaTaller(
+                "e2", "clients", "Clientes", null, List.of(new CampoTaller("Nombre", "text")),
+                List.of(new RegistroTaller("r1", Map.of("Nombre", "Marta"))), List.of("Lucía", "Marta"))));
+
+        PeticionConHerramientas peticion = prompt.peticion(new ConsultaTaller("cargá", conClientes, List.of()));
+
+        assertThat(peticion.contexto()).contains(
+                "- id e2, tipo clients, «Clientes»: Nombre\n  existentes: Lucía, Marta\n  · r1: Nombre=Marta\n");
+    }
+
+    @Test
+    @DisplayName("Con una foto pide usar los nombres existentes y no cargar productos ni clientes")
+    void conFotoShouldAskToReuseExistingNamesAndNotLoadCatalogs() {
+        assertThat(PromptTaller.CON_FOTO)
+                .contains("existentes")
+                .contains("NO cargues productos ni clientes")
+                .doesNotContain("productos DISTINTOS");
+    }
+
+    @Test
+    @DisplayName("Los registros cargados van bajo su pieza, cada uno con su id y sus datos")
+    void peticionShouldListLoadedRecordsWithTheirId() {
+        EstadoTaller conRegistros = new EstadoTaller("S", "mosaic", List.of(new PiezaTaller(
+                "e1", "sales", "Ventas", null, List.of(new CampoTaller("Producto", "text")),
+                List.of(new RegistroTaller("r1", Map.of("Producto", "Vela")),
+                        new RegistroTaller("r2", Map.of("Producto", "Jabón"))))));
+
+        PeticionConHerramientas peticion = prompt.peticion(new ConsultaTaller("cargá", conRegistros, List.of()));
+
+        assertThat(peticion.contexto())
+                .contains("- id e1, tipo sales, «Ventas»: Producto\n  · r1: Producto=Vela\n  · r2: Producto=Jabón\n");
+    }
+
+    @Test
     @DisplayName("Un sistema sin piezas lo dice")
     void peticionShouldSayWhenThereAreNoPieces() {
         PeticionConHerramientas peticion = prompt.peticion(new ConsultaTaller("hola", VACIO, List.of()));
@@ -169,8 +207,8 @@ class PromptTallerTest {
     }
 
     @Test
-    @DisplayName("La versión del prompt es la de varias dudas, borrado de registros y sin filas inventadas")
-    void versionShouldBeV4() {
-        assertThat(PromptTaller.VERSION).isEqualTo("v4");
+    @DisplayName("La versión del prompt es la que muestra los nombres existentes y no carga catálogos desde la foto")
+    void versionShouldBeV6() {
+        assertThat(PromptTaller.VERSION).isEqualTo("v6");
     }
 }

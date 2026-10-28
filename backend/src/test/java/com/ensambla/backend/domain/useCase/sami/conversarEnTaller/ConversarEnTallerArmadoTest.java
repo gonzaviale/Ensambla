@@ -10,6 +10,7 @@ import com.ensambla.backend.domain.model.sami.taller.LlamadaHerramienta;
 import com.ensambla.backend.domain.model.sami.taller.OpcionesTaller;
 import com.ensambla.backend.domain.model.sami.taller.PiezaKit;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
+import com.ensambla.backend.domain.model.sami.taller.RegistroTaller;
 import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
 import com.ensambla.backend.support.SamiPruebas;
 import com.ensambla.backend.support.TallerDePrueba;
@@ -25,7 +26,7 @@ import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Las herramientas para ensamblar: agregar_pieza completa, usar_kit, cargar_ejemplos, cargar_registros y conectar. */
+/** Las herramientas para ensamblar: agregar_pieza completa, usar_kit, cargar_ejemplos, los registros y conectar. */
 class ConversarEnTallerArmadoTest {
 
     private static final EstadoTaller VACIO = new EstadoTaller("Mi sistema", "mosaic", List.of());
@@ -33,6 +34,11 @@ class ConversarEnTallerArmadoTest {
             new PiezaTaller("e1", "inventory", "Stock", null, List.of(
                     new CampoTaller("Producto", "text"), new CampoTaller("Cantidad", "number"))),
             new PiezaTaller("e2", "clients", "Clientes", null, List.of(new CampoTaller("Nombre", "text")))));
+    private static final EstadoTaller CON_REGISTROS = new EstadoTaller("Mi negocio", "mosaic", List.of(
+            new PiezaTaller("e1", "inventory", "Stock", null, List.of(
+                    new CampoTaller("Producto", "text"), new CampoTaller("Cantidad", "number")), List.of(
+                    new RegistroTaller("r1", Map.of("Producto", "Yerba", "Cantidad", 3)),
+                    new RegistroTaller("r2", Map.of("Producto", "Fideos", "Cantidad", 1))))));
 
     private TallerDePrueba taller;
 
@@ -197,6 +203,72 @@ class ConversarEnTallerArmadoTest {
 
         assertThat(result.acciones()).isEmpty();
         assertThat(result.registrosDescartados()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("Corrige registros cargados por su id, sólo con los datos que cambian y las etiquetas de la pieza")
+    void editarRegistrosShouldKeepOnlyRealChangesOfKnownRecords() {
+        ValidacionTaller result = validar(CON_REGISTROS, llamada("editar_registros", Map.of("pieza", "Stock",
+                "registros", List.of(
+                        Map.of("id", "r1", "datos", Map.of("cantidad", 5, "Producto", "Yerba", "Color", "Rojo")),
+                        Map.of("id", "r2", "datos", Map.of("Cantidad", 1.0)),
+                        Map.of("id", "r9", "datos", Map.of("Cantidad", 7)),
+                        Map.of("datos", Map.of("Cantidad", 7)),
+                        Map.of("id", "r1", "datos", Map.of("Producto", "Yerba mate")),
+                        Map.of("id", "r2", "datos", Map.of("Producto", "Fideos", "Cantidad", "dos")),
+                        "nada"))));
+
+        thenOnlyActionIs(result, accion("editar_registros", Map.of("pieza", "e1", "registros", List.of(
+                Map.of("id", "r1", "datos", Map.of("Cantidad", 5, "Producto", "Yerba mate")),
+                Map.of("id", "r2", "datos", Map.of("Cantidad", "dos"))))));
+    }
+
+    @Test
+    @DisplayName("Sin cambios válidos no corrige nada, y una corrección ya hecha en el turno no se repite")
+    void editarRegistrosShouldDropCallsWithoutChanges() {
+        Map<String, Object> aCinco = Map.of("pieza", "e1", "registros", List.of(
+                Map.of("id", "r1", "datos", Map.of("Cantidad", 5))));
+
+        ValidacionTaller result = validar(CON_REGISTROS,
+                llamada("editar_registros", Map.of("pieza", "e1", "registros", List.of(
+                        Map.of("id", "r1", "datos", "Cantidad 5"),
+                        Map.of("id", "r1", "datos", Map.of("Cantidad", 3))))),
+                llamada("editar_registros", Map.of("pieza", "e1")),
+                llamada("editar_registros", Map.of("pieza", "nada", "registros", List.of(
+                        Map.of("id", "r1", "datos", Map.of("Cantidad", 9))))),
+                llamada("editar_registros", aCinco),
+                llamada("editar_registros", aCinco));
+
+        thenOnlyActionIs(result, accion("editar_registros", aCinco));
+    }
+
+    @Test
+    @DisplayName("Borra registros por su id: sólo los que la pieza tiene, sin repetir, y junto con un criterio")
+    void borrarRegistrosShouldAcceptKnownIds() {
+        ValidacionTaller result = validar(CON_REGISTROS,
+                llamada("borrar_registros", Map.of("pieza", "e1", "ids", List.of("r2", "r9", "r2", 3))),
+                llamada("borrar_registros", Map.of("pieza", "e1", "ids", "r1", "donde", Map.of("Producto", "Té"))),
+                llamada("borrar_registros", Map.of("pieza", "e1", "ids", List.of("r9"))),
+                llamada("editar_registros", Map.of("pieza", "e1", "registros", List.of(
+                        Map.of("id", "r2", "datos", Map.of("Cantidad", 4))))));
+
+        assertThat(result.acciones()).containsExactly(
+                accion("borrar_registros", Map.of("pieza", "e1", "ids", List.of("r2"))),
+                accion("borrar_registros", Map.of("pieza", "e1", "donde", List.of(Map.of("Producto", "Té")))));
+    }
+
+    @Test
+    @DisplayName("Los registros de una pieza siguen ahí después de renombrarla, sumarle un dato o pasarla de sección")
+    void editarRegistrosShouldWorkAfterOtherChangesToThePiece() {
+        ValidacionTaller result = validar(CON_REGISTROS,
+                llamada("renombrar_pieza", Map.of("pieza", "e1", "nombre", "Depósito")),
+                llamada("agregar_campo", Map.of("pieza", "e1", "etiqueta", "Marca", "tipo", "text")),
+                llamada("separar_en_seccion", Map.of("pieza", "e1", "seccion", "Stock")),
+                llamada("editar_registros", Map.of("pieza", "e1", "registros", List.of(
+                        Map.of("id", "r1", "datos", Map.of("Marca", "Playadito"))))));
+
+        assertThat(result.acciones().getLast()).isEqualTo(accion("editar_registros", Map.of("pieza", "e1",
+                "registros", List.of(Map.of("id", "r1", "datos", Map.of("Marca", "Playadito"))))));
     }
 
     @Test

@@ -23,6 +23,7 @@ import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTal
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTallerResponse;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.EstadoTallerItem.CampoTallerItem;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.EstadoTallerItem.PiezaTallerItem;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.EstadoTallerItem.RegistroTallerItem;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.EstadoTallerItem;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ImagenTallerItem;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.MensajeTallerItem;
@@ -123,6 +124,9 @@ public final class TallerDePrueba {
                 .map(pieza -> new PiezaTallerItem(pieza.id(), pieza.tipo(), pieza.nombre(), pieza.seccion(),
                         pieza.campos().stream()
                                 .map(campo -> new CampoTallerItem(campo.etiqueta(), campo.tipo()))
+                                .toList(),
+                        pieza.registros().stream()
+                                .map(registro -> new RegistroTallerItem(registro.id(), registro.datos()))
                                 .toList()))
                 .toList());
     }

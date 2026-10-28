@@ -7,12 +7,13 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Un turno de la charla con Sami en el taller.
  *
  * @param mensaje   lo que la persona escribió o eligió en la botonera
- * @param estado    el sistema que se está armando, resumido (sin filas ni datos de ejemplo)
+ * @param estado    el sistema que se está armando, resumido (sus registros reales, sin las filas de ejemplo)
  * @param historial los últimos mensajes de la charla, del más viejo al más nuevo
  * @param imagen    una foto opcional (cuaderno, lista, planilla) para que Sami arme las piezas y cargue lo que lee
  */
@@ -40,16 +41,30 @@ public record ConversarTallerRequest(
     ) {
     }
 
+    /**
+     * @param registros los registros reales que se cargaron en este armado
+     * @param nombres   si otra pieza se vincula con esta, los nombres que ya tiene (también los guardados)
+     */
     public record Pieza(
             @Size(max = 80) String id,
             @NotBlank @Size(max = 20) String tipo,
             @NotBlank @Size(max = 120) String nombre,
             @Size(max = 120) String seccion,
-            @NotNull @Size(max = 40) List<@Valid Campo> campos
+            @NotNull @Size(max = 40) List<@Valid Campo> campos,
+            @Size(max = 30) List<@Valid Registro> registros,
+            @Size(max = 100) List<@NotBlank @Size(max = 120) String> nombres
     ) {
     }
 
     public record Campo(@NotBlank @Size(max = 120) String etiqueta, @NotBlank @Size(max = 20) String tipo) {
+    }
+
+    /**
+     * Un registro real que ya tiene la pieza (no las filas de ejemplo), para que Sami lo pueda corregir por su id.
+     *
+     * @param datos los valores por etiqueta del dato
+     */
+    public record Registro(@NotBlank @Size(max = 80) String id, @NotNull @Size(max = 40) Map<String, Object> datos) {
     }
 
     public record Mensaje(

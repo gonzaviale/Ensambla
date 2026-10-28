@@ -187,6 +187,17 @@ describe('una foto para Sami en el taller', () => {
     await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });
     await clickButton(user, /Ajustalo conmigo/);
     expect(await screen.findByText(/Miré tu foto: anotaste tres ventas/, {}, ESPERA)).toBeVisible();
+    // Los productos y las clientas de la foto no están: se suman sólo al confirmarlo.
+    const tarjeta = screen.getByRole('group', { name: 'Registros que no encontré' });
+    expect(tarjeta).toHaveTextContent('Lucía, Marta');
+    expect(tarjeta).toHaveTextContent('Vela lavanda, Vela vainilla, Vela flotante');
+    await sinViolaciones();
+    await user.click(within(tarjeta).getByRole('button', { name: /Sumarlos/ }));
+    expect(screen.queryByRole('group', { name: 'Registros que no encontré' })).toBeNull();
+    // Los productos recién sumados no tenían stock: las ventas los dejan en 0 y se avisa.
+    await verifyToastAsync(
+      'Ojo: no alcanzó el stock de Vela lavanda, Vela vainilla y Vela flotante; quedaron en 0.',
+    );
 
     await clickButton(user, /Sí, crear mi cuaderno/);
 
@@ -212,6 +223,98 @@ describe('una foto para Sami en el taller', () => {
     ]);
   });
 
+  it('Sami corrige un registro que leyó de la foto sin volver a cargarlo', async () => {
+    const { user } = await abrirTaller();
+    await clickButton(user, /Almacén o kiosco/);
+    await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
+    await adjuntar(user);
+    await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });
+    await clickButton(user, /Ajustalo conmigo/);
+    await screen.findByText(/Miré tu foto/, {}, ESPERA);
+    // Se saltean las dos dudas de la foto para escribir la corrección.
+    await clickButton(user, 'Saltear esta duda');
+    await clickButton(user, 'Saltear esta duda');
+
+    await user.type(screen.getByRole('textbox', { name: /¿Qué le falta/ }), 'El precio era 9000');
+    await clickButton(user, /Ajustalo conmigo/);
+
+    expect(await screen.findByText(/corregí el precio a 9000/, {}, ESPERA)).toBeVisible();
+    const ventas = deTipo(useSistemaStore.getState().taller?.borrador ?? undefined, 'sales').rows;
+    expect(ventas.map((fila) => fila.price)).toEqual([9000, 8200, 6000]);
+  });
+
+  it('al ajustar un sistema, las ventas usan la clienta y el producto que ya están y sólo pregunta por los demás', async () => {
+    const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+    const sistema = makeTemplate('shop', {}, false);
+    sistema.name = 'Almacén de Ana';
+    deTipo(sistema, 'clients').rows.push({ id: 'e1111111-cli', name: 'Lucía' });
+    deTipo(sistema, 'inventory').rows.push({
+      id: 'e2222222-pro',
+      name: 'Vela lavanda',
+      quantity: 1,
+    });
+    estado.sistemas.set(usuario.email, [sistema]);
+    renderApp(`/sistemas/${sistema.id}?modo=usar`);
+    await screen.findByRole('heading', { level: 1, name: /Almacén de Ana/ }, ESPERA);
+    const user = userEvent.setup();
+    await clickButton(user, /Ajustar con Sami/);
+    await verifyHeadingPresentAsync('Lo ajustamos juntos.');
+    const pedidos: { estado: { piezas: { tipo: string; nombres?: string[] }[] } }[] = [];
+    server.events.on('request:start', async ({ request }) => {
+      if (request.url.endsWith('/api/sami/taller')) pedidos.push(await request.clone().json());
+    });
+
+    await adjuntar(user);
+    await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });
+    await clickButton(user, /Ajustalo conmigo/);
+    await screen.findByText(/Miré tu foto/, {}, ESPERA);
+
+    // Sami recibe los nombres que ya existen, para usarlos tal cual.
+    const piezas = pedidos[0]?.estado.piezas ?? [];
+    expect(piezas.find((pieza) => pieza.tipo === 'clients')?.nombres).toEqual(['Lucía']);
+    expect(piezas.find((pieza) => pieza.tipo === 'inventory')?.nombres).toEqual(['Vela lavanda']);
+    const tarjeta = screen.getByRole('group', { name: 'Registros que no encontré' });
+    expect(tarjeta).toHaveTextContent('Marta');
+    expect(tarjeta).toHaveTextContent('Vela vainilla, Vela flotante');
+    expect(tarjeta).not.toHaveTextContent('Lucía');
+    expect(tarjeta).not.toHaveTextContent('Vela lavanda');
+    const borrador = useSistemaStore.getState().taller?.borrador ?? undefined;
+    expect(deTipo(borrador, 'sales').rows.map((fila) => [fila.product, fila.customer])).toEqual([
+      ['e2222222-pro', 'e1111111-cli'],
+      ['', ''],
+      ['', 'e1111111-cli'],
+    ]);
+    // La venta descuenta el stock en la propuesta: había 1 y se vendieron 2, así que queda en 0 y Sami avisa.
+    expect(deTipo(borrador, 'inventory').rows[0]?.quantity).toBe(0);
+    expect(
+      screen.getByText(
+        /Ojo: no alcanzó el stock de Vela lavanda \(vendiste 2 y había 1\); quedó en 0\./,
+      ),
+    ).toBeVisible();
+    await clickButton(user, /Deshacer lo último/);
+    const deshecho = useSistemaStore.getState().taller?.borrador ?? undefined;
+    expect(deTipo(deshecho, 'inventory').rows[0]?.quantity).toBe(1);
+    server.events.removeAllListeners();
+  });
+
+  it('si la persona no quiere sumarlos, las ventas quedan sin vincular y no se crea nada', async () => {
+    const { user } = await abrirTaller();
+    await clickButton(user, /Almacén o kiosco/);
+    await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
+    await adjuntar(user);
+    await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });
+    await clickButton(user, /Ajustalo conmigo/);
+    await screen.findByText(/Miré tu foto/, {}, ESPERA);
+
+    await clickButton(user, /No, dejalos sin vincular/);
+
+    expect(screen.queryByRole('group', { name: 'Registros que no encontré' })).toBeNull();
+    const borrador = useSistemaStore.getState().taller?.borrador ?? undefined;
+    expect(deTipo(borrador, 'clients').rows.filter((fila) => !fila.__example)).toEqual([]);
+    expect(deTipo(borrador, 'inventory').rows.filter((fila) => !fila.__example)).toEqual([]);
+    expect(deTipo(borrador, 'sales').rows.map((fila) => fila.customer)).toEqual(['', '', '']);
+  });
+
   it('al ajustar un sistema con Sami, la foto también va y los registros leídos se guardan', async () => {
     const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
     const sistema = makeTemplate('shop', {}, false);
@@ -227,6 +330,7 @@ describe('una foto para Sami en el taller', () => {
     await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });
     await clickButton(user, /Ajustalo conmigo/);
     await screen.findByText(/Miré tu foto/, {}, ESPERA);
+    await clickButton(user, /Sumarlos/);
     await clickButton(user, /Guardar cambios/);
 
     await verifyPathAsync(router, `/sistemas/${sistema.id}`);

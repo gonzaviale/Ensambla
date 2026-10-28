@@ -12,6 +12,7 @@ import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
 import com.ensambla.backend.domain.model.sami.taller.LlamadaHerramienta;
 import com.ensambla.backend.domain.model.sami.taller.MensajeTaller;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
+import com.ensambla.backend.domain.model.sami.taller.RegistroTaller;
 import com.ensambla.backend.domain.model.sami.taller.RespuestaTaller;
 import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
@@ -59,6 +60,11 @@ class ConversarEnTallerTest {
     private static final EstadoTaller ESTADO_CON_DATOS = new EstadoTaller("Mi almacén", "mosaic", List.of(
             new PiezaTaller("e1", "inventory", "Inventario", null, List.of(new CampoTaller("Producto", "text"))),
             new PiezaTaller("e2", "clients", "Clientes", null, List.of())));
+    private static final EstadoTaller ESTADO_CON_REGISTROS = new EstadoTaller("Mi almacén", "mosaic", List.of(
+            new PiezaTaller("e1", "inventory", "Inventario", null, List.of(new CampoTaller("Producto", "text")),
+                    List.of(new RegistroTaller("r1", Map.of("Producto", "Yerba")),
+                            new RegistroTaller("r2", Map.of("Producto", "Fideos")),
+                            new RegistroTaller("r3", Map.of("Producto", "Arroz"))))));
     private static final EstadoTaller SIN_PIEZAS = new EstadoTaller("Mi sistema", "mosaic", List.of());
     private static final List<MensajeTaller> HISTORIAL = List.of(new MensajeTaller("sami", "Hola"));
     private static final ImagenTaller FOTO = new ImagenTaller("image/png", new byte[]{1, 2, 3});
@@ -334,6 +340,27 @@ class ConversarEnTallerTest {
 
         assertThat(result.texto())
                 .isEqualTo("Borré los registros de inventario donde Producto es Yerba, o Producto es Fideos. Mirá cómo queda.");
+    }
+
+    @Test
+    @DisplayName("Cuenta cuántos registros corrigió y cuántos borró por id, con o sin criterios")
+    void executeShouldDescribeEditedAndDeletedByIdRecords() {
+        givenQuotaAvailable();
+        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa(null, List.of(
+                new LlamadaHerramienta("editar_registros", Map.of("pieza", "e1", "registros", List.of(
+                        Map.of("id", "r1", "datos", Map.of("Producto", "Yerba mate")),
+                        Map.of("id", "r2", "datos", Map.of("Producto", "Fideos largos"))))),
+                new LlamadaHerramienta("editar_registros", Map.of("pieza", "e1", "registros", List.of(
+                        Map.of("id", "r3", "datos", Map.of("Producto", "Arroz largo"))))),
+                new LlamadaHerramienta("borrar_registros", Map.of("pieza", "e1", "ids", List.of("r1"))),
+                new LlamadaHerramienta("borrar_registros", Map.of("pieza", "e1", "ids", List.of("r2", "r3"),
+                        "donde", Map.of("Producto", "Té")))), CONSUMO));
+
+        RespuestaTaller result = conversar("corregí", null, ESTADO_CON_REGISTROS, HISTORIAL);
+
+        assertThat(result.texto()).isEqualTo("Corregí 2 registros en inventario. Corregí 1 registro en inventario."
+                + " Borré 1 registro de inventario. Borré 2 registros de inventario y los registros de inventario"
+                + " donde Producto es Té. Mirá cómo queda.");
     }
 
     @Test

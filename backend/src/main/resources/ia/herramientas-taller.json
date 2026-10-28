@@ -96,15 +96,28 @@
     }
   },
   {
-    "name": "borrar_registros",
-    "description": "Borra registros ya cargados de una pieza que coinciden con donde: {Etiqueta: valor} o una lista de esos (hasta 10). Usala antes de recargar lo que ya cargaste, para no duplicar: si vas a corregir, invocá borrar_registros Y cargar_registros en la MISMA respuesta (primero una, después la otra), nunca sólo una. Sin donde no borra nada.",
+    "name": "editar_registros",
+    "description": "Corrige registros ya cargados de una pieza (los que figuran con su id en Sistema actual). Mandá sólo los datos que cambian. Para corregir, usá esta y no vuelvas a cargar la fila.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "pieza": {"type": "string"},
+        "registros": {"type": "array", "description": "Lista de {id, datos: {Etiqueta: valor}}."}
+      },
+      "required": ["pieza", "registros"]
+    }
+  },
+  {
+    "name": "borrar_registros",
+    "description": "Borra registros ya cargados de una pieza: por ids (los de Sistema actual) o los que coinciden con donde: {Etiqueta: valor} o una lista de esos (hasta 10). Para corregir un registro usá editar_registros, no borrar y cargar. Sin ids ni donde no borra nada.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "pieza": {"type": "string"},
+        "ids": {"type": "array", "items": {"type": "string"}},
         "donde": {"type": "object", "description": "Datos que tienen que coincidir, por etiqueta; también acepta una lista de objetos."}
       },
-      "required": ["pieza", "donde"]
+      "required": ["pieza"]
     }
   },
   {
