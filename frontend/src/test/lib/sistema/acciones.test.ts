@@ -1659,6 +1659,58 @@ describe('el stock de las ventas que carga Sami', () => {
     expect(stock('Yerba')).toBe(5);
   });
 
+  it('borrar una venta que ya estaba guardada también devuelve su cantidad al stock', () => {
+    deTipo('sales').rows.push({ id: 'e3333333-vta', product: 'e1111111-yerba', quantity: 2 });
+
+    const resultado = aplicarAcciones(sistema, [
+      accion('borrar_registros', { pieza: 'sales', ids: ['e3333333-vta'] }),
+    ]);
+
+    expect(resultado.aplicadas).toEqual(['Borré un registro de ventas.']);
+    expect(stock('Yerba')).toBe(7);
+  });
+
+  it('borrar una entrada guardada le resta su cantidad al stock sin dejarlo en negativo', () => {
+    aplicarAcciones(sistema, [accion('agregar_pieza', { tipo: 'entries', ejemplos: [] })]);
+    deTipo('entries').rows.push(
+      { id: 'e4444444-ent', product: 'e1111111-yerba', quantity: 2 },
+      { id: 'e5555555-ent', product: 'e2222222-mate', quantity: 4 },
+    );
+
+    aplicarAcciones(sistema, [
+      accion('borrar_registros', { pieza: 'entries', ids: ['e4444444-ent', 'e5555555-ent'] }),
+    ]);
+
+    expect(stock('Yerba')).toBe(3);
+    expect(stock('Mate')).toBe(0);
+  });
+
+  it('borrar una fila de ejemplo o una venta sin producto no mueve el stock', () => {
+    deTipo('sales').rows.push(
+      { id: 'e6666666-ej', product: 'e1111111-yerba', quantity: 2, __example: true },
+      { id: 'e7777777-sin', product: '', quantity: 2 },
+    );
+
+    aplicarAcciones(sistema, [
+      accion('borrar_registros', { pieza: 'sales', ids: ['e7777777-sin'] }),
+    ]);
+    aplicarAcciones(sistema, [
+      accion('borrar_registros', { pieza: 'sales', donde: { Cantidad: 2 } }),
+    ]);
+
+    expect(stock('Yerba')).toBe(5);
+    expect(deTipo('sales').rows).toEqual([]);
+  });
+
+  it('borrar un cliente no toca el stock', () => {
+    deTipo('clients').rows.push({ id: 'e8888888-cli', name: 'Ana' });
+
+    aplicarAcciones(sistema, [accion('borrar_registros', { pieza: 'clients', ids: ['e8888888-cli'] })]);
+
+    expect(stock('Yerba')).toBe(5);
+    expect(stock('Mate')).toBe(1);
+  });
+
   it('una entrada suma al stock', () => {
     aplicarAcciones(sistema, [accion('agregar_pieza', { tipo: 'entries', ejemplos: [] })]);
     aplicarAcciones(sistema, [

@@ -444,8 +444,8 @@ function borrarRegistros(
       ),
   );
   if (!sobran.length) return `No encontré registros de ${pieza.name.toLowerCase()} que coincidan.`;
-  // Una venta que cargó Sami ya había movido el stock: al borrarla, vuelve.
-  for (const fila of sobran) revertirStock(sistema, pieza, fila);
+  // Una venta (o entrada, o salida) ya había movido el stock: al borrarla, vuelve.
+  for (const fila of sobran) devolverStockAlBorrar(sistema, pieza, fila);
   const ids = new Set(sobran.map((fila) => fila.id));
   pieza.rows = pieza.rows.filter((fila) => !ids.has(fila.id));
   for (const bloque of allBlocks(sistema)) {
@@ -912,6 +912,24 @@ function revertirStock(sistema: Sistema, bloque: Bloque, fila: Fila) {
   if (producto) producto.quantity = numero(producto.quantity) - numero(fila[STOCK_DELTA]);
   Reflect.deleteProperty(fila, STOCK_DE);
   Reflect.deleteProperty(fila, STOCK_DELTA);
+}
+
+/**
+ * Lo que vuelve al stock al borrar un movimiento. Uno de Sami devuelve exacto lo que movió; uno que ya estaba guardado
+ * movió su cantidad al cargarse en el editor, así que se le devuelve esa cantidad (como `removeRow`). Al borrar una
+ * entrada el stock nunca queda en negativo: baja hasta 0. Los ejemplos no movieron stock.
+ */
+function devolverStockAlBorrar(sistema: Sistema, bloque: Bloque, fila: Fila) {
+  if (STOCK_DE in fila) {
+    revertirStock(sistema, bloque, fila);
+    return;
+  }
+  const producto = productoDe(sistema, bloque, fila.product);
+  if (!bloque.stockDirection || fila.__example || !producto) return;
+  producto.quantity = Math.max(
+    0,
+    numero(producto.quantity) - bloque.stockDirection * numero(fila.quantity),
+  );
 }
 
 /**
