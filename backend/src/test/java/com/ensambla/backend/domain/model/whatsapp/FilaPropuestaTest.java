@@ -52,7 +52,7 @@ class FilaPropuestaTest {
     void actualizandoShouldLinkTheExistingRow() {
         FilaPropuesta nueva = new FilaPropuesta(Map.of(MONTO_ID.toString(), "3000"), Set.of());
 
-        FilaPropuesta actualiza = nueva.actualizando("r-1", "Harina 000", CONCEPTO_ID.toString());
+        FilaPropuesta actualiza = nueva.actualizando("r-1", "Harina 000", CONCEPTO_ID.toString(), Map.of());
 
         assertThat(nueva.actualizaUnaFila()).isFalse();
         assertThat(actualiza.actualizaUnaFila()).isTrue();
@@ -64,12 +64,91 @@ class FilaPropuestaTest {
     @DisplayName("Al actualizar se cambia todo menos el nombre con el que se encontró la fila")
     void cambiosShouldLeaveTheNameOut() {
         FilaPropuesta fila = new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "harina", MONTO_ID.toString(), "3000"),
-                Set.of()).actualizando("r-1", "Harina 000", CONCEPTO_ID.toString());
+                Set.of()).actualizando("r-1", "Harina 000", CONCEPTO_ID.toString(), Map.of());
 
-        assertThat(fila.cambiosTipados(CAMPOS)).containsOnlyKeys(MONTO_ID.toString());
+        assertThat(fila.cambiosTipados(CAMPOS, Map.of())).containsOnlyKeys(MONTO_ID.toString());
         assertThat(fila.cambiaAlgoAdemasDelNombre(CONCEPTO_ID.toString())).isTrue();
         assertThat(new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "harina"), Set.of())
                 .cambiaAlgoAdemasDelNombre(CONCEPTO_ID.toString())).isFalse();
+    }
+
+    @Test
+    @DisplayName("Un número con signo en una fila existente se suma o se resta a lo que tenía, sin bajar de 0")
+    void cambiosShouldAddRelativeNumbersToTheCurrentValue() {
+        Map<String, Object> actuales = Map.of(MONTO_ID.toString(), new BigDecimal("5"), CONCEPTO_ID.toString(), "Leche");
+
+        assertThat(cambios("+10", actuales)).containsEntry(MONTO_ID.toString(), new BigDecimal("15"));
+        assertThat(cambios("- 3", actuales)).containsEntry(MONTO_ID.toString(), new BigDecimal("2"));
+        assertThat(cambios("-8", actuales)).containsEntry(MONTO_ID.toString(), BigDecimal.ZERO);
+        assertThat(cambios("10", actuales)).containsEntry(MONTO_ID.toString(), new BigDecimal("10"));
+        assertThat(cambios("+4", Map.of())).containsEntry(MONTO_ID.toString(), new BigDecimal("4"));
+    }
+
+    @Test
+    @DisplayName("Un signo en un campo que no es número no suma nada: queda como lo escribió")
+    void cambiosShouldNotAddOnNonNumericFields() {
+        FilaPropuesta fila = new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "+2"), Set.of())
+                .actualizando("r-1", "Leche", MONTO_ID.toString(), Map.of(CONCEPTO_ID.toString(), "1"));
+
+        assertThat(fila.cambiosTipados(CAMPOS, Map.of(CONCEPTO_ID.toString(), "1")))
+                .containsEntry(CONCEPTO_ID.toString(), "+2");
+    }
+
+    @Test
+    @DisplayName("Al actualizar recuerda lo que había sólo en los campos que se suman o se restan")
+    void actualizandoShouldRememberThePreviousValueOfRelativeFields() {
+        FilaPropuesta fila = new FilaPropuesta(Map.of(MONTO_ID.toString(), "+10", PAGADO_ID.toString(), "sí",
+                SIN_VALOR_ID.toString(), "+1"), Set.of())
+                .actualizando("r-1", "Leche", CONCEPTO_ID.toString(), Map.of(MONTO_ID.toString(), 5,
+                        PAGADO_ID.toString(), true));
+
+        assertThat(fila.antes()).containsExactly(Map.entry(MONTO_ID.toString(), "5"));
+    }
+
+    @Test
+    @DisplayName("Lo que había se toma como 0 si no es un número")
+    void sumadoShouldTreatNonNumbersAsZero() {
+        assertThat(FilaPropuesta.sumado(null, new BigDecimal("3"))).isEqualTo(new BigDecimal("3"));
+        assertThat(FilaPropuesta.sumado("mucho", new BigDecimal("3"))).isEqualTo(new BigDecimal("3"));
+        assertThat(FilaPropuesta.sumado("2,5", new BigDecimal("1"))).isEqualTo(new BigDecimal("3.5"));
+    }
+
+    @Test
+    @DisplayName("Sólo un número con signo adelante es un cambio relativo")
+    void esRelativoShouldRecognizeSignedNumbers() {
+        assertThat(FilaPropuesta.esRelativo(" +10 ")).isTrue();
+        assertThat(FilaPropuesta.esRelativo("-2,5")).isTrue();
+        assertThat(FilaPropuesta.esRelativo("10")).isFalse();
+        assertThat(FilaPropuesta.esRelativo("+mucho")).isFalse();
+        assertThat(FilaPropuesta.esRelativo(null)).isFalse();
+    }
+
+    @Test
+    @DisplayName("Un vínculo se suma a la fila y un valor se puede quitar sin perder lo demás")
+    void vinculandoAndSinValorShouldKeepTheRestOfTheRow() {
+        VinculoPropuesto vinculo = new VinculoPropuesto("Marta", null, "b-1", "Clientes");
+        FilaPropuesta fila = new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "Marta", MONTO_ID.toString(), "3"),
+                Set.of()).vinculando(CONCEPTO_ID.toString(), vinculo);
+
+        FilaPropuesta sinMonto = fila.sinValor(MONTO_ID.toString());
+
+        assertThat(sinMonto.valores()).containsOnlyKeys(CONCEPTO_ID.toString());
+        assertThat(sinMonto.vinculos()).containsEntry(CONCEPTO_ID.toString(), vinculo);
+        assertThat(vinculo.esNuevo()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Una fila guardada antes de los vínculos, sin esos datos, se lee igual")
+    void constructorShouldAcceptMissingOptionalMaps() {
+        FilaPropuesta fila = new FilaPropuesta(Map.of(), Set.of(), null, null, null, null, null);
+
+        assertThat(fila.antes()).isEmpty();
+        assertThat(fila.vinculos()).isEmpty();
+    }
+
+    private static Map<String, Object> cambios(String monto, Map<String, Object> actuales) {
+        return new FilaPropuesta(Map.of(MONTO_ID.toString(), monto), Set.of())
+                .actualizando("r-1", "Leche", CONCEPTO_ID.toString(), actuales).cambiosTipados(CAMPOS, actuales);
     }
 
     private static Map<String, Object> conPagado(String valor) {

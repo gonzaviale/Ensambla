@@ -729,7 +729,7 @@ class AtenderMensajeWhatsappTest {
         Registro existente = givenFilaExistente("Harina 000", "1000");
         givenPendiente(List.of(new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "harina",
                 MONTO_ID.toString(), "5000"), Set.of()).actualizando(REGISTRO_ID.toString(), "Harina 000",
-                CONCEPTO_ID.toString())));
+                CONCEPTO_ID.toString(), Map.of())));
         givenTablaGuardable(3);
         when(registroRepository.findByIdAndNegocioId(any(), eq(NEGOCIO_ID))).thenReturn(Optional.of(existente));
 
@@ -749,7 +749,7 @@ class AtenderMensajeWhatsappTest {
         givenReclamado(givenTexto("sí"));
         Registro existente = givenFilaExistente("Harina 000", "1000");
         givenPendiente(List.of(new FilaPropuesta(Map.of(MONTO_ID.toString(), "5000"), Set.of())
-                        .actualizando(REGISTRO_ID.toString(), "Harina 000", CONCEPTO_ID.toString()),
+                        .actualizando(REGISTRO_ID.toString(), "Harina 000", CONCEPTO_ID.toString(), Map.of()),
                 new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "azúcar", MONTO_ID.toString(), "800"), Set.of())));
         givenTablaGuardable(3);
         when(registroRepository.findByIdAndNegocioId(any(), eq(NEGOCIO_ID))).thenReturn(Optional.of(existente));
@@ -766,7 +766,7 @@ class AtenderMensajeWhatsappTest {
         givenReclamado(givenTexto("sí"));
         Registro deOtraTabla = Registro.nuevo(NEGOCIO_ID, VENTAS_ID, Map.of(), AHORA);
         givenPendiente(List.of(new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "harina", MONTO_ID.toString(), "5000"),
-                Set.of()).actualizando(REGISTRO_ID.toString(), "Harina 000", CONCEPTO_ID.toString())));
+                Set.of()).actualizando(REGISTRO_ID.toString(), "Harina 000", CONCEPTO_ID.toString(), Map.of())));
         givenTablaGuardable(0);
         when(registroRepository.findByIdAndNegocioId(any(), eq(NEGOCIO_ID))).thenReturn(Optional.empty(),
                 Optional.of(deOtraTabla));
@@ -783,7 +783,7 @@ class AtenderMensajeWhatsappTest {
         givenReclamado(givenTexto("sí"));
         Registro existente = givenFilaExistente("Harina 000", "1000");
         givenPendiente(List.of(new FilaPropuesta(Map.of(MONTO_ID.toString(), "mucho"), Set.of())
-                .actualizando(REGISTRO_ID.toString(), "Harina 000", CONCEPTO_ID.toString())));
+                .actualizando(REGISTRO_ID.toString(), "Harina 000", CONCEPTO_ID.toString(), Map.of())));
         givenTablaGuardable(0);
         when(registroRepository.findByIdAndNegocioId(any(), eq(NEGOCIO_ID))).thenReturn(Optional.of(existente));
 

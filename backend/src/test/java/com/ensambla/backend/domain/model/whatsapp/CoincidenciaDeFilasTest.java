@@ -76,6 +76,39 @@ class CoincidenciaDeFilasTest {
     }
 
     @Test
+    @DisplayName("Encuentra el producto con la medida pegada al número, sin los «de» ni «la» y con letras de más")
+    void buscarShouldMatchTheWayPeopleWriteOnWhatsapp() {
+        List<String> productos = List.of("Leche La Serenísima 1 L", "Yerba Playadito 1 kg");
+
+        assertThat(CoincidenciaDeFilas.buscar("leche la serenisima de 1 L", productos)).contains(0);
+        assertThat(CoincidenciaDeFilas.buscar("leche serenisima 1l", productos)).contains(0);
+        assertThat(CoincidenciaDeFilas.buscar("lechee serenissimaa", productos)).contains(0);
+    }
+
+    @Test
+    @DisplayName("No confunde otra marca ni otra medida aunque compartan casi todo el nombre")
+    void buscarShouldNotMatchAnotherBrandOrSize() {
+        List<String> productos = List.of("Leche La Serenísima 1 L");
+
+        assertThat(CoincidenciaDeFilas.buscar("leche sancor 1 l", productos)).isEmpty();
+        assertThat(CoincidenciaDeFilas.buscar("leche serenisima 2 l", productos)).isEmpty();
+        assertThat(CoincidenciaDeFilas.buscar("harina 500", List.of("Harina 5000"))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Prefiere el nombre completo a uno que comparte sólo una parte")
+    void buscarShouldPreferTheBestCandidate() {
+        assertThat(CoincidenciaDeFilas.buscar("torta chocolate", List.of("Torta de chocolate", "Torta"))).contains(0);
+    }
+
+    @Test
+    @DisplayName("Si sobra más de la mitad de lo que escribió la persona no coincide, aunque sean palabras cortas")
+    void buscarShouldRejectWhenLessThanHalfMatches() {
+        assertThat(CoincidenciaDeFilas.buscar("torta grande rica", List.of("Torta"))).isEmpty();
+        assertThat(CoincidenciaDeFilas.buscar("pan l", List.of("Pan kg cm"))).isEmpty();
+    }
+
+    @Test
     @DisplayName("Con mucho en común pero no todo, coincide si comparten al menos la mitad de las palabras")
     void buscarShouldAcceptHalfOfTheWords() {
         assertThat(CoincidenciaDeFilas.buscar("torta chocolate grande", List.of("Torta chocolate", "Pan"))).contains(0);

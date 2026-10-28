@@ -14,6 +14,7 @@ import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.whatsapp.EstadoMensajeWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.EstadoPropuestaWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.FilaPropuesta;
+import com.ensambla.backend.domain.model.whatsapp.VinculoPropuesto;
 import com.ensambla.backend.domain.model.whatsapp.MensajeEntrante;
 import com.ensambla.backend.domain.model.whatsapp.MensajeWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.OrigenPropuestaWhatsapp;
@@ -99,6 +100,33 @@ class WhatsappRepositoriesSamiTest {
 
         assertThat(entity.getFilas()).contains("5000");
         assertThat(devuelta).usingRecursiveComparison().isEqualTo(propuesta);
+    }
+
+    @Test
+    @DisplayName("Las filas con vínculos y con lo que había antes de sumar vuelven iguales del JSON")
+    void propuestaMapperShouldRoundTripLinksAndPreviousValues() {
+        PropuestaWhatsapp propuesta = PropuestaWhatsapp.pendiente(NEGOCIO_ID, "5491122334455",
+                OrigenPropuestaWhatsapp.TEXTO, "vendí", BLOQUE_ID, List.of(new FilaPropuesta(Map.of("c1", "+10",
+                        "c2", "Marta"), Set.of()).actualizando("r-1", "Leche", "c3", Map.of("c1", 5))
+                        .vinculando("c2", new VinculoPropuesto("Marta", null, "b-2", "Clientes"))), AHORA);
+
+        PropuestaWhatsapp devuelta = propuestaMapper.toDomain(propuestaMapper.toEntity(propuesta));
+
+        assertThat(devuelta).usingRecursiveComparison().isEqualTo(propuesta);
+    }
+
+    @Test
+    @DisplayName("Una fila guardada antes de los vínculos se lee sin ellos")
+    void propuestaMapperShouldReadRowsSavedBeforeLinks() {
+        PropuestaWhatsappEntity entity = propuestaMapper.toEntity(givenPropuestaDeTexto());
+        entity.setFilas("[{\"valores\":{\"c1\":\"5000\"},\"dudosos\":[],\"registroId\":null,"
+                + "\"nombreExistente\":null,\"campoNombre\":null}]");
+
+        FilaPropuesta fila = propuestaMapper.toDomain(entity).getFilas().getFirst();
+
+        assertThat(fila.valores()).containsEntry("c1", "5000");
+        assertThat(fila.antes()).isEmpty();
+        assertThat(fila.vinculos()).isEmpty();
     }
 
     @Test

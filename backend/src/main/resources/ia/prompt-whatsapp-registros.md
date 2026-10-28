@@ -13,4 +13,13 @@ Reglas:
 4. Si el mensaje trae varias cosas para anotar, devolvé una fila por cada una.
 5. "confianza" va de 0 a 1: qué tan segura estás de la tabla y de los valores. Si dudás entre tablas, bajala; no
    inventes certeza.
-6. Respondé únicamente con el JSON que cumple el esquema, sin texto antes ni después.
+6. Debajo de algunas tablas figura "ya cargados": son los nombres de las filas que ya existen. Si la persona nombra
+   una de ellas aunque la escriba distinto (sin tildes, con una letra de más, "1l" por "1 L", sin la marca), escribí
+   el nombre exactamente como figura en esa lista. Si no es ninguna, escribí el nombre como lo dijo la persona.
+7. Una columna "RELACION a X" se completa con el nombre de una fila de la tabla X (por ejemplo el producto o el
+   cliente de una venta), siguiendo la regla 6 con los nombres de X. Una venta es un movimiento: va en la tabla de
+   ventas, no en la de productos.
+8. Cuando la persona quiere sumar o restar a un número que ya está cargado ("agregá 10 unidades", "entraron 5",
+   "sumá 3", "sacá 2", "se rompieron 4"), escribí el número con signo: "+10", "-2". Sólo cuando dice cuánto hay o
+   cuánto tiene que quedar ("quedan 10", "poné el stock en 10", "ahora hay 10") va sin signo.
+9. Respondé únicamente con el JSON que cumple el esquema, sin texto antes ni después.

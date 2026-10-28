@@ -56,14 +56,28 @@ class InterpreteRegistrosIaAdapterTest {
 
 
     @Test
-    @DisplayName("Las columnas conectadas a otra tabla tampoco se le muestran a la IA")
-    void pedidoShouldSkipRelationColumns() {
-        ConsultaInterpretacion conRelacion = new ConsultaInterpretacion("x", List.of(tabla(GASTOS_ID, "Gastos",
-                new CampoConocido(CONCEPTO_ID, "Concepto", TipoCampo.TEXTO, List.of()),
-                new CampoConocido(MONTO_ID, "Cliente", TipoCampo.RELACION, List.of()))),
+    @DisplayName("Las columnas conectadas a otra tabla se muestran con la tabla a la que apuntan")
+    void pedidoShouldShowRelationColumnsWithTheirTable() {
+        ConsultaInterpretacion conRelacion = new ConsultaInterpretacion("x", List.of(
+                tabla(GASTOS_ID, "Productos", new CampoConocido(CONCEPTO_ID, "Nombre", TipoCampo.TEXTO, List.of())),
+                tabla(VENTAS_ID, "Ventas",
+                        new CampoConocido(PRODUCTO_ID, "Producto", TipoCampo.RELACION, List.of(), GASTOS_ID),
+                        new CampoConocido(MONTO_ID, "Cliente", TipoCampo.RELACION, List.of()))),
                 LocalDate.parse("2026-10-27"), null);
 
-        assertThat(prompt.pedido(conRelacion).peticion().contexto()).contains("Concepto").doesNotContain("Cliente");
+        assertThat(prompt.pedido(conRelacion).peticion().contexto())
+                .contains("c2 Producto (RELACION a Productos)", "c3 Cliente (RELACION)");
+    }
+
+    @Test
+    @DisplayName("Debajo de cada tabla van los nombres que ya tiene, para que la IA los copie tal cual")
+    void pedidoShouldListTheExistingNames() {
+        ConsultaInterpretacion conNombres = new ConsultaInterpretacion("x", consulta.tablas(), consulta.hoy(), null,
+                Map.of(GASTOS_ID, List.of("Leche La Serenísima 1 L", "Yerba 1 kg")));
+
+        assertThat(prompt.pedido(conNombres).peticion().contexto())
+                .contains("ya cargados: Leche La Serenísima 1 L; Yerba 1 kg")
+                .containsOnlyOnce("ya cargados");
     }
     @Test
     @DisplayName("Con una tabla ya elegida el pedido lo dice")

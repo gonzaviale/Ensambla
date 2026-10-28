@@ -49,8 +49,12 @@ public class PromptWhatsappRegistros {
                 String codigoCampo = "c" + (campos.size() + 1);
                 campos.put(codigoCampo, campo.id());
                 tablaDeCadaCampo.put(campo.id(), tabla.bloque().id());
-                contexto.append("  %s %s (%s)%s\n".formatted(codigoCampo, campo.nombre(), campo.tipo(),
-                        opciones(campo.opciones())));
+                contexto.append("  %s %s (%s)%s\n".formatted(codigoCampo, campo.nombre(),
+                        tipo(campo, consulta.tablas()), opciones(campo.opciones())));
+            }
+            List<String> nombres = consulta.nombres().getOrDefault(tabla.bloque().id(), List.of());
+            if (!nombres.isEmpty()) {
+                contexto.append("  ya cargados: ").append(String.join("; ", nombres)).append('\n');
             }
         }
         if (elegida != null) {
@@ -61,11 +65,21 @@ public class PromptWhatsappRegistros {
                 tablas, campos, tablaDeCadaCampo);
     }
 
-    /** Las columnas que se pueden cargar a mano: no las calculadas ni las que apuntan a otra tabla. */
+    /** Las columnas que se pueden cargar a mano: no las calculadas. */
     private static List<CampoConocido> cargables(TablaDisponible tabla) {
-        return tabla.bloque().campos().stream()
-                .filter(campo -> campo.tipo() != TipoCampo.FORMULA && campo.tipo() != TipoCampo.RELACION)
-                .toList();
+        return tabla.bloque().campos().stream().filter(campo -> campo.tipo() != TipoCampo.FORMULA).toList();
+    }
+
+    /** Un vínculo dice a qué tabla apunta, así la IA escribe el nombre de una de sus filas. */
+    private static String tipo(CampoConocido campo, List<TablaDisponible> tablas) {
+        if (campo.tipo() != TipoCampo.RELACION) {
+            return campo.tipo().name();
+        }
+        return tablas.stream()
+                .filter(tabla -> tabla.bloque().id().equals(campo.bloqueRelacionadoId()))
+                .findFirst()
+                .map(tabla -> "RELACION a " + tabla.bloque().nombre())
+                .orElse(TipoCampo.RELACION.name());
     }
 
     private static String opciones(List<String> opciones) {

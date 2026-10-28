@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.model.whatsapp;
 
 import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.TablaDisponible;
+import com.ensambla.backend.domain.model.registro.MovimientoDeStock;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,11 +58,34 @@ public final class TextosWhatsapp {
     }
 
     public static String guardado(int nuevas, int actualizadas, String tabla) {
+        return guardado(nuevas, actualizadas, tabla, List.of(), List.of());
+    }
+
+    /**
+     * @param sumados lo que se sumó en otras tablas para vincularlo («Marta en Clientes»)
+     * @param stock   cómo quedó el stock de cada producto que movió la carga
+     */
+    public static String guardado(int nuevas, int actualizadas, String tabla, List<String> sumados,
+                                  List<MovimientoDeStock> stock) {
         String cambios = actualizadas == 0 ? "guardé %d %s".formatted(nuevas, filas(nuevas))
                 : nuevas == 0 ? "actualicé %d %s".formatted(actualizadas, filas(actualizadas))
                 : "actualicé %d y agregué %d filas".formatted(actualizadas, nuevas);
-        return "Listo, %s en *%s*. Si tenés la app abierta, actualizá la página para verlas."
-                .formatted(cambios, tabla);
+        List<String> lineas = new ArrayList<>();
+        lineas.add("Listo, %s en *%s*.".formatted(cambios, tabla));
+        if (!sumados.isEmpty()) {
+            lineas.add("También sumé " + String.join(", ", sumados) + ".");
+        }
+        stock.forEach(movimiento -> lineas.add(stock(movimiento)));
+        lineas.add("Si tenés la app abierta, actualizá la página para verlas.");
+        return String.join("\n", lineas);
+    }
+
+    private static String stock(MovimientoDeStock movimiento) {
+        String linea = "Stock de %s: %s → %s.".formatted(movimiento.producto(), movimiento.antes().toPlainString(),
+                movimiento.despues().toPlainString());
+        return movimiento.noAlcanzo()
+                ? linea + " No alcanzaba para %s: lo dejé en 0.".formatted(movimiento.pedido().toPlainString())
+                : linea;
     }
 
     private static String filas(int cantidad) {
@@ -111,6 +135,23 @@ public final class TextosWhatsapp {
 
     private static String celda(CampoConocido campo, Map<String, String> valores, FilaPropuesta fila) {
         String clave = campo.id().toString();
-        return "%s: %s%s".formatted(campo.nombre(), valores.get(clave), fila.dudosos().contains(clave) ? " (?)" : "");
+        return "%s: %s%s".formatted(campo.nombre(), valor(clave, valores.get(clave), fila),
+                fila.dudosos().contains(clave) ? " (?)" : "");
+    }
+
+    /** Lo que se suma muestra cómo queda («5 → 15 (+10)»); lo que se vincula, la fila que encontró o que suma. */
+    private static String valor(String clave, String valor, FilaPropuesta fila) {
+        VinculoPropuesto vinculo = fila.vinculos().get(clave);
+        if (vinculo != null) {
+            return vinculo.esNuevo()
+                    ? "%s (nuevo, lo sumo a %s)".formatted(vinculo.nombre(), vinculo.tabla())
+                    : vinculo.nombre();
+        }
+        String habia = fila.antes().get(clave);
+        if (habia == null) {
+            return valor;
+        }
+        return "%s → %s (%s)".formatted(habia, FilaPropuesta.sumado(habia, FilaPropuesta.cambio(valor))
+                .toPlainString(), valor.strip());
     }
 }

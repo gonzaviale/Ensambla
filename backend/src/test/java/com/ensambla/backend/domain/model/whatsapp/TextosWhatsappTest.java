@@ -7,9 +7,11 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
 import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.TablaDisponible;
+import com.ensambla.backend.domain.model.registro.MovimientoDeStock;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -76,7 +78,7 @@ class TextosWhatsappTest {
     @DisplayName("El resumen dice qué fila existente se actualiza y cuáles se agregan")
     void resumenShouldTellUpdatesFromAdditions() {
         FilaPropuesta actualiza = new FilaPropuesta(Map.of(MONTO_ID.toString(), "3000"), Set.of())
-                .actualizando("r-1", "Harina 000", CONCEPTO_ID.toString());
+                .actualizando("r-1", "Harina 000", CONCEPTO_ID.toString(), Map.of());
         FilaPropuesta agrega = new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "azúcar"), Set.of());
         PropuestaWhatsapp propuesta = PropuestaWhatsapp.pendiente(NegocioId.de("a0000000-0000-4000-8000-000000000001"),
                 "5491122334455", OrigenPropuestaWhatsapp.TEXTO, "x", GASTOS_ID, List.of(actualiza, agrega),
@@ -84,6 +86,41 @@ class TextosWhatsappTest {
 
         assertThat(TextosWhatsapp.resumen(propuesta, GASTOS))
                 .contains("1) Actualizo *Harina 000*: Monto: 3000").contains("2) Agrego: Concepto: azúcar");
+    }
+
+    @Test
+    @DisplayName("Lo que se suma a una fila existente muestra cuánto había y cómo queda")
+    void resumenShouldShowHowARelativeNumberEnds() {
+        FilaPropuesta suma = new FilaPropuesta(Map.of(MONTO_ID.toString(), "+10"), Set.of())
+                .actualizando("r-1", "Leche", CONCEPTO_ID.toString(), Map.of(MONTO_ID.toString(), 5));
+
+        assertThat(TextosWhatsapp.resumen(givenPropuesta(List.of(suma)), GASTOS))
+                .contains("1) Actualizo *Leche*: Monto: 5 → 15 (+10)");
+    }
+
+    @Test
+    @DisplayName("Un vínculo muestra la fila que encontró, o avisa que la suma si es nueva")
+    void resumenShouldShowLinkedRows() {
+        FilaPropuesta encontrada = new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "leche"), Set.of())
+                .vinculando(CONCEPTO_ID.toString(), new VinculoPropuesto("Leche La Serenísima", "r-1", "b-1",
+                        "Productos"));
+        FilaPropuesta nueva = new FilaPropuesta(Map.of(CONCEPTO_ID.toString(), "Marta"), Set.of())
+                .vinculando(CONCEPTO_ID.toString(), new VinculoPropuesto("Marta", null, "b-2", "Clientes"));
+
+        assertThat(TextosWhatsapp.resumen(givenPropuesta(List.of(encontrada, nueva)), GASTOS))
+                .contains("1) Agrego: Concepto: Leche La Serenísima")
+                .contains("2) Agrego: Concepto: Marta (nuevo, lo sumo a Clientes)");
+    }
+
+    @Test
+    @DisplayName("El aviso de guardado cuenta lo que se sumó para vincular y cómo quedó el stock")
+    void guardadoShouldTellLinkedRowsAndStock() {
+        String texto = TextosWhatsapp.guardado(2, 0, "Ventas", List.of("Marta en Clientes"), List.of(
+                MovimientoDeStock.aplicar("Leche", new BigDecimal("15"), new BigDecimal("2"), -1),
+                MovimientoDeStock.aplicar("Yerba", new BigDecimal("1"), new BigDecimal("3"), -1)));
+
+        assertThat(texto).contains("guardé 2 filas en *Ventas*", "También sumé Marta en Clientes.",
+                "Stock de Leche: 15 → 13.", "Stock de Yerba: 1 → 0. No alcanzaba para 3: lo dejé en 0.");
     }
 
     @Test
@@ -100,6 +137,11 @@ class TextosWhatsappTest {
     @DisplayName("El código de verificación va dentro del mensaje")
     void codigoVerificacionShouldContainTheCode() {
         assertThat(TextosWhatsapp.codigoVerificacion("042917")).contains("042917").contains("10 minutos");
+    }
+
+    private static PropuestaWhatsapp givenPropuesta(List<FilaPropuesta> filas) {
+        return PropuestaWhatsapp.pendiente(NegocioId.de("a0000000-0000-4000-8000-000000000001"), "5491122334455",
+                OrigenPropuestaWhatsapp.TEXTO, "x", GASTOS_ID, filas, OffsetDateTime.parse("2026-10-27T12:00:00Z"));
     }
 
     private static PropuestaWhatsapp givenPropuesta(int filas, Set<String> dudosos) {
