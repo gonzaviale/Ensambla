@@ -33,6 +33,18 @@ en memoria; los guards revalidan la sesión al navegar a rutas privadas. Logout 
 El formulario de registro incluye nombre del negocio y muestra errores del cliente y del servidor.
 Los tests usan MSW completo y un entorno jsdom que conserva los AbortSignal nativos de Node para fetch.
 
+### Interruptor «real / mock» (para presentar)
+
+En el borde superior izquierdo de todas las pantallas, incluido el login, hay un botón diminuto que dice `real` o
+`mock`. Tocarlo guarda la elección en el navegador (`localStorage`, clave `ensambla.modo-api`) y recarga la página en
+el otro modo. Lo elegido manda sobre `VITE_API_MOCKS` (ver `src/lib/modoApi.ts`); para volver a lo compilado, borrá
+esa clave.
+
+- **mock**: toda la API se simula en el navegador con MSW, sin backend. Se entra directo con la cuenta de
+  demostración, que trae el almacén de ejemplo (con avisos de stock, producto estancado y combo), el comercio en
+  San Justo y la prueba de Premium activa (`src/mocks/db/demo.ts`). La sesión simulada sobrevive a recargar.
+- **real**: vuelve al backend y da de baja el service worker de los mocks.
+
 ### Recorrer la aplicación
 
 Con `VITE_API_MOCKS=completo` ingresá en `/login` con `demo@ensambla.local` / `EnsamblaDemo2026!` (la cuenta sólo

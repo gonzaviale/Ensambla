@@ -19,7 +19,7 @@ const producto = (
 // Lo que el backend va a devolver ya agregado. Acá se arma "en crudo", con un producto que aportan muy
 // pocos comercios (Fernet), para comprobar que el mínimo de tres se respeta antes de entregar nada.
 const ZONA_EN_CRUDO: Zona = {
-  nombre: 'Villa Crespo',
+  nombre: ZONA_DE_PRUEBA.nombre,
   comercios: 12,
   productos: [
     producto('Yerba Playadito 1 kg', 11, 3500, 3900, 4300, 11, 30),

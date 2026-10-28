@@ -1,11 +1,13 @@
 import { setupWorker } from 'msw/browser';
 import { env } from '@/config/env';
+import { tomarEntrarComoDemo } from '@/lib/modoApi';
 import type { Sistema } from '@/lib/sistema/tipos';
 import type { Preferencias } from '@/types/preferencias';
 import type { ConfiguracionNegocio } from '@/types/negocio';
 import { pruebaPremiumSchema, type PruebaPremium } from '@/types/planes';
 import { handlersPara } from './handlers';
-import { estado, sembrarUsuario } from './db/estado';
+import { prepararCuentaDemo } from './db/demo';
+import { estado, sembrarUsuario, usuarioActual, type UsuarioMock } from './db/estado';
 import { interceptarFetch } from './interceptarFetch';
 
 const CLAVE = 'ensambla.mock.datos.v1';
@@ -16,7 +18,12 @@ type Guardado = {
   negocios: Record<string, ConfiguracionNegocio>;
   pruebasPremium: Record<string, PruebaPremium>;
   contenidosDesbloqueados?: Record<string, string[]>;
+  /** Las cuentas creadas en la demo y el email de la sesión abierta: así recargar no obliga a volver a entrar. */
+  usuarios?: Record<string, UsuarioMock>;
+  sesion?: string | null;
 };
+
+let sesionGuardada: string | null = null;
 
 // La API simulada vive en memoria: en el navegador se copia a localStorage para que los sistemas y las
 // preferencias sobrevivan a recargar la página, como hacía el mockup.
@@ -25,6 +32,8 @@ function restaurar() {
     const crudo = localStorage.getItem(CLAVE);
     if (!crudo) return;
     const guardado = JSON.parse(crudo) as Partial<Guardado>;
+    estado.usuarios = new Map(Object.entries(guardado.usuarios ?? {}));
+    sesionGuardada = guardado.sesion ?? null;
     estado.sistemas = new Map(Object.entries(guardado.sistemas ?? {}));
     estado.contenidosDesbloqueados = new Map(
       Object.entries(guardado.contenidosDesbloqueados ?? {}),
@@ -50,6 +59,8 @@ function conservar() {
       negocios: Object.fromEntries(estado.negocios),
       pruebasPremium: Object.fromEntries(estado.pruebasPremium),
       contenidosDesbloqueados: Object.fromEntries(estado.contenidosDesbloqueados),
+      usuarios: Object.fromEntries(estado.usuarios),
+      sesion: usuarioActual()?.email ?? null,
     };
     localStorage.setItem(CLAVE, JSON.stringify(guardado));
   } catch {
@@ -60,13 +71,21 @@ function conservar() {
 restaurar();
 estado.alCambiar = conservar;
 
-// Cuenta sólo del modo simulado; no se crea ni autentica ningún usuario en el backend.
+// Cuenta sólo del modo simulado; no se crea ni autentica ningún usuario en el backend. Trae datos listos para
+// mostrar todo, y al pasar a «mock» con el interruptor del header se entra directo con ella.
 if (env.mocks === 'completo') {
-  sembrarUsuario({
-    nombre: 'Demo Ensambla',
-    email: 'demo@ensambla.local',
-    contrasenia: 'EnsamblaDemo2026!',
-  });
+  const demo =
+    estado.usuarios.get('demo@ensambla.local') ??
+    sembrarUsuario({
+      nombre: 'Demo Ensambla',
+      email: 'demo@ensambla.local',
+      contrasenia: 'EnsamblaDemo2026!',
+    });
+  prepararCuentaDemo(demo.email);
+  const email = tomarEntrarComoDemo() ? demo.email : sesionGuardada;
+  const usuario = email ? estado.usuarios.get(email) : undefined;
+  estado.sesionUsuarioId = usuario?.id ?? null;
+  conservar();
 }
 
 const handlers = handlersPara(env.mocks);

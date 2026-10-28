@@ -61,6 +61,7 @@ export const handlersAuth = [
       contrasenia: cuerpo.data.contrasenia,
     };
     estado.usuarios.set(email, usuario);
+    estado.alCambiar?.();
     return HttpResponse.json(aUsuarioResponse(usuario), { status: 201 });
   }),
 
@@ -75,6 +76,7 @@ export const handlersAuth = [
       return errorResponse(401, 'No se pudo autenticar el acceso', pathDe(request));
     }
     estado.sesionUsuarioId = usuario.id;
+    estado.alCambiar?.();
     return HttpResponse.json(aUsuarioResponse(usuario));
   }),
 
@@ -92,6 +94,7 @@ export const handlersAuth = [
     const rechazo = exigirCsrf(request);
     if (rechazo) return rechazo;
     estado.sesionUsuarioId = null;
+    estado.alCambiar?.();
     return new HttpResponse(null, { status: 204 });
   }),
 ];
