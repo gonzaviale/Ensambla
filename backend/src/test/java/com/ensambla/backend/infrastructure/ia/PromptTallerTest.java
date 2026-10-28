@@ -95,6 +95,28 @@ class PromptTallerTest {
     }
 
     @Test
+    @DisplayName("Los nombres existentes de una pieza van bajo ella, antes de sus registros")
+    void peticionShouldListExistingNamesOfLinkedPieces() {
+        EstadoTaller conClientes = new EstadoTaller("S", "mosaic", List.of(new PiezaTaller(
+                "e2", "clients", "Clientes", null, List.of(new CampoTaller("Nombre", "text")),
+                List.of(new RegistroTaller("r1", Map.of("Nombre", "Marta"))), List.of("Lucía", "Marta"))));
+
+        PeticionConHerramientas peticion = prompt.peticion(new ConsultaTaller("cargá", conClientes, List.of()));
+
+        assertThat(peticion.contexto()).contains(
+                "- id e2, tipo clients, «Clientes»: Nombre\n  existentes: Lucía, Marta\n  · r1: Nombre=Marta\n");
+    }
+
+    @Test
+    @DisplayName("Con una foto pide usar los nombres existentes y no cargar productos ni clientes")
+    void conFotoShouldAskToReuseExistingNamesAndNotLoadCatalogs() {
+        assertThat(PromptTaller.CON_FOTO)
+                .contains("existentes")
+                .contains("NO cargues productos ni clientes")
+                .doesNotContain("productos DISTINTOS");
+    }
+
+    @Test
     @DisplayName("Los registros cargados van bajo su pieza, cada uno con su id y sus datos")
     void peticionShouldListLoadedRecordsWithTheirId() {
         EstadoTaller conRegistros = new EstadoTaller("S", "mosaic", List.of(new PiezaTaller(
@@ -185,8 +207,8 @@ class PromptTallerTest {
     }
 
     @Test
-    @DisplayName("La versión del prompt es la que muestra los registros con su id para corregirlos")
-    void versionShouldBeV5() {
-        assertThat(PromptTaller.VERSION).isEqualTo("v5");
+    @DisplayName("La versión del prompt es la que muestra los nombres existentes y no carga catálogos desde la foto")
+    void versionShouldBeV6() {
+        assertThat(PromptTaller.VERSION).isEqualTo("v6");
     }
 }

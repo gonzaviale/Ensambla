@@ -45,7 +45,19 @@ export type EstadoCompacto = {
     seccion: string;
     campos: { etiqueta: string; tipo: string }[];
     registros: { id: string; datos: Record<string, string | number | boolean> }[];
+    /** Si otra pieza se vincula con esta: los nombres que ya tiene, para que Sami use el mismo y no invente otro. */
+    nombres?: string[];
   }[];
+};
+
+/**
+ * Un nombre que Sami usó en un vínculo (el Cliente o el Producto de una venta) y que la pieza destino no tiene. No se
+ * crea solo: la persona confirma si lo suma. Mientras tanto, el vínculo de esas filas queda vacío.
+ */
+export type VinculoPendiente = {
+  destinoId: string;
+  nombre: string;
+  filas: { bloqueId: string; filaId: string; campoKey: string }[];
 };
 
 export type ResultadoDeAcciones = {
@@ -53,6 +65,8 @@ export type ResultadoDeAcciones = {
   aplicadas: string[];
   /** Lo que se pidió y no se pudo hacer, y por qué. */
   omitidas: string[];
+  /** Los nombres de vínculos que no se encontraron y esperan confirmación. */
+  pendientes: VinculoPendiente[];
 };
 
 /**
@@ -63,6 +77,13 @@ export function resumirSistema(
   sistema: Sistema,
   guardadas: ReadonlySet<string> = new Set(),
 ): EstadoCompacto {
+  const destinos = new Set(
+    allBlocks(sistema).flatMap((bloque) =>
+      bloque.fields.flatMap((campo) =>
+        campo.type === 'relation' && campo.target ? [campo.target] : [],
+      ),
+    ),
+  );
   return {
     nombre: sistema.name,
     distribucion: sistema.layout ?? 'mosaic',
@@ -74,9 +95,25 @@ export function resumirSistema(
         seccion: seccion.name,
         campos: bloque.fields.map((campo) => ({ etiqueta: campo.label, tipo: campo.type })),
         registros: registrosDelArmado(sistema, bloque, guardadas),
+        ...(destinos.has(bloque.id) && { nombres: nombresDe(bloque) }),
       })),
     ),
   };
+}
+
+/** Los nombres (el dato principal) de los registros reales de una pieza, también los guardados, sin repetir. */
+function nombresDe(bloque: Bloque): string[] {
+  const principal = bloque.fields[0]?.key;
+  if (!principal) return [];
+  const nombres = bloque.rows
+    .filter((fila) => !fila.__example)
+    .map((fila) => fila[principal])
+    .filter(
+      (valor): valor is string | number => typeof valor === 'string' || typeof valor === 'number',
+    )
+    .map((valor) => String(valor).trim())
+    .filter(Boolean);
+  return [...new Set(nombres)].slice(0, MAXIMO_DE_NOMBRES);
 }
 
 /** Los registros reales que se cargaron en este armado (los últimos, si son muchos), con sus datos por etiqueta. */
@@ -127,6 +164,7 @@ const TIPOS_DE_CAMPO = new Set<string>([
 const DISTRIBUCIONES = new Set<string>(['mosaic', 'single', 'two', 'three']);
 const MAXIMO_DE_EJEMPLOS = 5;
 const MAXIMO_DE_REGISTROS = 30;
+const MAXIMO_DE_NOMBRES = 100;
 const MAXIMO_DE_OPCIONES = 6;
 const LARGO_DE_NOMBRE = 60;
 const LARGO_DE_VALOR = 200;
@@ -165,7 +203,7 @@ const buscarCampo = (bloque: Bloque, etiqueta: string) =>
  * hacer se omite sin romper nada y se cuenta en `omitidas`.
  */
 export function aplicarAcciones(sistema: Sistema, acciones: AccionDeSami[]): ResultadoDeAcciones {
-  const resultado: ResultadoDeAcciones = { aplicadas: [], omitidas: [] };
+  const resultado: ResultadoDeAcciones = { aplicadas: [], omitidas: [], pendientes: [] };
   // Los registros reales que cargó Sami en este turno: sus vínculos llegan por nombre y se resuelven al final.
   const registrosNuevos = new Set<string>();
   for (const accion of acciones) {
@@ -174,7 +212,7 @@ export function aplicarAcciones(sistema: Sistema, acciones: AccionDeSami[]): Res
   }
   soltarVinculosSinDestino(sistema);
   wireSystem(sistema);
-  resolverVinculosPorNombre(sistema, registrosNuevos);
+  resultado.pendientes = resolverVinculosPorNombre(sistema, registrosNuevos);
   return resultado;
 }
 
@@ -724,12 +762,16 @@ function valorDeEjemplo(campo: Campo, valor: unknown): Valor {
 const ES_ID_DE_FILA = /^e[0-9a-f]{8}-/;
 
 // En las filas de ejemplo y en los registros que Sami acaba de cargar, un vínculo llega con el nombre del registro
-// («Lucía Pérez»): se busca en la pieza a la que apunta y se guarda su id. Si esa pieza no lo tiene, se suma ahí, así
-// el vínculo se ve aunque la pieza esté vacía (pasa al ajustar un sistema ya creado, que no tiene ejemplos): como
-// ejemplo si la fila es de ejemplo y como registro real si es real. Un registro real sólo se vincula con otro real (los
-// ejemplos no se guardan). Si lo que hay es el id de un registro que ya no existe, queda vacío. Las demás filas reales
-// no se tocan.
-function resolverVinculosPorNombre(sistema: Sistema, registrosNuevos: Set<string>) {
+// («Lucía Pérez»): se busca en la pieza a la que apunta y se guarda su id. Un registro real sólo se vincula con otro
+// real (los ejemplos no se guardan). Si la pieza no lo tiene, en una fila de ejemplo se suma ahí como ejemplo (sólo
+// sirve para imaginar el sistema); en un registro real NO se crea nada: el vínculo queda vacío y el nombre vuelve como
+// pendiente, para que la persona confirme si lo suma (un cliente o un producto nuevo no se inventa por una foto). Si
+// lo que hay es el id de un registro que ya no existe, queda vacío. Las demás filas reales no se tocan.
+function resolverVinculosPorNombre(
+  sistema: Sistema,
+  registrosNuevos: Set<string>,
+): VinculoPendiente[] {
+  const pendientes = new Map<string, VinculoPendiente>();
   for (const bloque of allBlocks(sistema)) {
     for (const campo of bloque.fields.filter((item) => item.type === 'relation')) {
       const destino = findBlock(sistema, campo.target);
@@ -750,13 +792,83 @@ function resolverVinculosPorNombre(sistema: Sistema, registrosNuevos: Set<string
           (otra) => normalize(otra[principal]) === normalize(nombre),
         );
         if (!encontrada && !ES_ID_DE_FILA.test(nombre)) {
-          encontrada = deEjemplo
-            ? { id: id(), [principal]: nombre, __example: true }
-            : { id: id(), [principal]: nombre };
-          destino.rows.push(encontrada);
+          if (!deEjemplo) {
+            anotarPendiente(pendientes, destino.id, nombre, {
+              bloqueId: bloque.id,
+              filaId: fila.id,
+              campoKey: campo.key,
+            });
+          } else {
+            encontrada = { id: id(), [principal]: nombre, __example: true };
+            destino.rows.push(encontrada);
+          }
         }
         fila[campo.key] = encontrada?.id ?? '';
       }
+    }
+  }
+  return [...pendientes.values()];
+}
+
+/** Junta por pieza destino y nombre (sin importar mayúsculas ni tildes): dos ventas de «Marta» piden una sola vez. */
+function anotarPendiente(
+  pendientes: Map<string, VinculoPendiente>,
+  destinoId: string,
+  nombre: string,
+  fila: VinculoPendiente['filas'][number],
+) {
+  const clave = `${destinoId}:${normalize(nombre)}`;
+  const pendiente = pendientes.get(clave) ?? { destinoId, nombre, filas: [] };
+  pendiente.filas.push(fila);
+  pendientes.set(clave, pendiente);
+}
+
+/**
+ * Los pendientes que siguen valiendo en `sistema`: las filas que todavía existen y tienen el vínculo vacío, y cuya
+ * pieza destino sigue estando. Los grupos (los de antes y los del turno) se juntan por destino y nombre.
+ */
+export function pendientesVigentes(
+  sistema: Sistema,
+  ...grupos: VinculoPendiente[][]
+): VinculoPendiente[] {
+  const juntos = new Map<string, VinculoPendiente>();
+  for (const pendiente of grupos.flat()) {
+    if (!findBlock(sistema, pendiente.destinoId)) continue;
+    for (const fila of pendiente.filas) {
+      const vinculada = findBlock(sistema, fila.bloqueId)?.rows.find(
+        (item) => item.id === fila.filaId,
+      );
+      if (!vinculada) continue;
+      const valor = vinculada[fila.campoKey];
+      if (valor === undefined || valor === null || valor === '') {
+        anotarPendiente(juntos, pendiente.destinoId, pendiente.nombre, fila);
+      }
+    }
+  }
+  return [...juntos.values()];
+}
+
+/**
+ * Suma (en el lugar) en cada pieza destino un registro real con el nombre pendiente y lo vincula en las filas que lo
+ * nombraban. Si ya hay uno con ese nombre (se cargó a mano mientras tanto), usa ese.
+ */
+export function sumarPendientes(sistema: Sistema, pendientes: VinculoPendiente[]) {
+  for (const pendiente of pendientesVigentes(sistema, pendientes)) {
+    const destino = findBlock(sistema, pendiente.destinoId);
+    const principal = destino?.fields[0]?.key;
+    if (!destino || !principal) continue;
+    let registro = destino.rows.find(
+      (fila) => !fila.__example && normalize(fila[principal]) === normalize(pendiente.nombre),
+    );
+    if (!registro) {
+      registro = { id: id(), [principal]: pendiente.nombre };
+      destino.rows.push(registro);
+    }
+    for (const fila of pendiente.filas) {
+      const vinculada = findBlock(sistema, fila.bloqueId)?.rows.find(
+        (item) => item.id === fila.filaId,
+      );
+      if (vinculada) vinculada[fila.campoKey] = registro.id;
     }
   }
 }

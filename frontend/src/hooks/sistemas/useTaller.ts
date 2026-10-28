@@ -1,6 +1,13 @@
 import { useMutation } from '@tanstack/react-query';
 import { conversarEnTaller } from '@/api/samiTaller';
-import { aplicarAcciones, mismoSistema, resumirSistema } from '@/lib/sistema/acciones';
+import {
+  aplicarAcciones,
+  mismoSistema,
+  pendientesVigentes,
+  resumirSistema,
+  sumarPendientes,
+  type VinculoPendiente,
+} from '@/lib/sistema/acciones';
 import { allBlocks, applyLayout, clone, makeSystem } from '@/lib/sistema/core';
 import { aBase64, reducirImagen } from '@/lib/sistema/imagen';
 import type { Sistema } from '@/lib/sistema/tipos';
@@ -51,6 +58,8 @@ type Turno = {
   dudas: OpcionesDeSami[];
   /** La propuesta antes de este cambio, si cambió algo. */
   anterior: Sistema | null;
+  /** Los clientes o productos nombrados que no están, de este turno y de los anteriores sin resolver. */
+  vinculosPendientes: VinculoPendiente[];
 };
 
 /** Lo que Sami dice en la charla. Si no dijo nada, se cuenta lo que armó (o se repite su pregunta). */
@@ -122,16 +131,20 @@ export function useTaller() {
       ...(imagen && { imagen }),
     });
     const copia = clone(base);
-    const { aplicadas } = aplicarAcciones(copia, respuesta.acciones);
+    const { aplicadas, pendientes } = aplicarAcciones(copia, respuesta.acciones);
     const cambio = !mismoSistema(copia, base);
     // Lo primero que arma Sami se acomoda como el resto de las propuestas: el stock a lo ancho, lo demás de a dos.
     if (cambio && !borrador && !copia.layout) applyLayout(copia, 'mosaic');
     const dudas = respuesta.preguntas;
+    const nuevoBorrador = borrador || cambio ? copia : null;
     return {
-      borrador: borrador || cambio ? copia : null,
+      borrador: nuevoBorrador,
       respuesta: textoDeSami(respuesta.respuesta, cambio ? aplicadas : [], dudas, !borrador),
       dudas,
       anterior: borrador && cambio ? borrador : null,
+      vinculosPendientes: nuevoBorrador
+        ? pendientesVigentes(nuevoBorrador, taller.vinculosPendientes, pendientes)
+        : [],
     };
   };
 
@@ -181,6 +194,7 @@ export function useTaller() {
           dudas: turno.dudas,
           respuestasDeDudas: [],
           anterior: turno.anterior,
+          vinculosPendientes: turno.vinculosPendientes,
           mensajes: [...actual.mensajes, { quien: 'sami', texto: turno.respuesta }],
         };
       });
@@ -222,8 +236,24 @@ export function useTaller() {
       anterior: null,
       dudas: [],
       respuestasDeDudas: [],
+      // Lo que se nombró en el cambio deshecho ya no está en la propuesta: sólo quedan los pendientes que siguen.
+      vinculosPendientes: actual.anterior
+        ? pendientesVigentes(actual.anterior, actual.vinculosPendientes)
+        : [],
       mensajes: [...actual.mensajes, { quien: 'sami', texto: MENSAJE_DESHECHO }],
     }));
+  };
+
+  /**
+   * Responde la tarjeta de los clientes y productos que no estaban: con `sumar` se crean y se vinculan en la
+   * propuesta; si no, los vínculos quedan vacíos. En los dos casos la tarjeta se va.
+   */
+  const resolverPendientes = (sumar: boolean) => {
+    const store = useSistemaStore.getState();
+    const taller = store.taller;
+    if (!taller?.vinculosPendientes.length || taller.pensando) return;
+    if (sumar) store.editarBorrador((borrador) => sumarPendientes(borrador, taller.vinculosPendientes));
+    store.actualizarTaller({ vinculosPendientes: [] });
   };
 
   /** Achica la foto elegida y la deja lista para el próximo mensaje; si no sirve, avisa y no la adjunta. */
@@ -240,5 +270,5 @@ export function useTaller() {
 
   const quitarFoto = () => useSistemaStore.getState().actualizarTaller({ foto: null });
 
-  return { enviar, responderDuda, deshacer, adjuntarFoto, quitarFoto };
+  return { enviar, responderDuda, deshacer, resolverPendientes, adjuntarFoto, quitarFoto };
 }

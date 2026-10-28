@@ -51,6 +51,19 @@ class ConversarEnTallerDtosTest {
     }
 
     @Test
+    @DisplayName("Convierte los nombres existentes de una pieza; sin lista quedan vacíos")
+    void deShouldMapExistingNames() {
+        EstadoTallerItem item = new EstadoTallerItem("S", "mosaic", List.of(
+                new PiezaTallerItem("e1", "clients", "Clientes", null, List.of(), List.of(), List.of("Ana", "Vero")),
+                new PiezaTallerItem("e2", "inventory", "Stock", null, List.of(), List.of(), null)));
+
+        EstadoTaller result = item.aEstadoTaller();
+
+        assertThat(result.piezas().getFirst().nombres()).containsExactly("Ana", "Vero");
+        assertThat(result.piezas().getLast().nombres()).isEmpty();
+    }
+
+    @Test
     @DisplayName("Convierte el historial de mensajes")
     void deShouldMapMessages() {
         List<MensajeTaller> result = conHistorial(List.of(new MensajeTallerItem("sami", "Hola"))).historialTaller();

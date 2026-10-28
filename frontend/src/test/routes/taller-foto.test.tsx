@@ -187,6 +187,13 @@ describe('una foto para Sami en el taller', () => {
     await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });
     await clickButton(user, /Ajustalo conmigo/);
     expect(await screen.findByText(/Miré tu foto: anotaste tres ventas/, {}, ESPERA)).toBeVisible();
+    // Los productos y las clientas de la foto no están: se suman sólo al confirmarlo.
+    const tarjeta = screen.getByRole('group', { name: 'Registros que no encontré' });
+    expect(tarjeta).toHaveTextContent('Lucía, Marta');
+    expect(tarjeta).toHaveTextContent('Vela lavanda, Vela vainilla, Vela flotante');
+    await sinViolaciones();
+    await user.click(within(tarjeta).getByRole('button', { name: /Sumarlos/ }));
+    expect(screen.queryByRole('group', { name: 'Registros que no encontré' })).toBeNull();
 
     await clickButton(user, /Sí, crear mi cuaderno/);
 
@@ -232,6 +239,64 @@ describe('una foto para Sami en el taller', () => {
     expect(ventas.map((fila) => fila.price)).toEqual([9000, 8200, 6000]);
   });
 
+  it('al ajustar un sistema, las ventas usan la clienta y el producto que ya están y sólo pregunta por los demás', async () => {
+    const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+    const sistema = makeTemplate('shop', {}, false);
+    sistema.name = 'Almacén de Ana';
+    deTipo(sistema, 'clients').rows.push({ id: 'e1111111-cli', name: 'Lucía' });
+    deTipo(sistema, 'inventory').rows.push({ id: 'e2222222-pro', name: 'Vela lavanda' });
+    estado.sistemas.set(usuario.email, [sistema]);
+    renderApp(`/sistemas/${sistema.id}?modo=usar`);
+    await screen.findByRole('heading', { level: 1, name: /Almacén de Ana/ }, ESPERA);
+    const user = userEvent.setup();
+    await clickButton(user, /Ajustar con Sami/);
+    await verifyHeadingPresentAsync('Lo ajustamos juntos.');
+    const pedidos: { estado: { piezas: { tipo: string; nombres?: string[] }[] } }[] = [];
+    server.events.on('request:start', async ({ request }) => {
+      if (request.url.endsWith('/api/sami/taller')) pedidos.push(await request.clone().json());
+    });
+
+    await adjuntar(user);
+    await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });
+    await clickButton(user, /Ajustalo conmigo/);
+    await screen.findByText(/Miré tu foto/, {}, ESPERA);
+
+    // Sami recibe los nombres que ya existen, para usarlos tal cual.
+    const piezas = pedidos[0]?.estado.piezas ?? [];
+    expect(piezas.find((pieza) => pieza.tipo === 'clients')?.nombres).toEqual(['Lucía']);
+    expect(piezas.find((pieza) => pieza.tipo === 'inventory')?.nombres).toEqual(['Vela lavanda']);
+    const tarjeta = screen.getByRole('group', { name: 'Registros que no encontré' });
+    expect(tarjeta).toHaveTextContent('Marta');
+    expect(tarjeta).toHaveTextContent('Vela vainilla, Vela flotante');
+    expect(tarjeta).not.toHaveTextContent('Lucía');
+    expect(tarjeta).not.toHaveTextContent('Vela lavanda');
+    const borrador = useSistemaStore.getState().taller?.borrador ?? undefined;
+    expect(deTipo(borrador, 'sales').rows.map((fila) => [fila.product, fila.customer])).toEqual([
+      ['e2222222-pro', 'e1111111-cli'],
+      ['', ''],
+      ['', 'e1111111-cli'],
+    ]);
+    server.events.removeAllListeners();
+  });
+
+  it('si la persona no quiere sumarlos, las ventas quedan sin vincular y no se crea nada', async () => {
+    const { user } = await abrirTaller();
+    await clickButton(user, /Almacén o kiosco/);
+    await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
+    await adjuntar(user);
+    await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });
+    await clickButton(user, /Ajustalo conmigo/);
+    await screen.findByText(/Miré tu foto/, {}, ESPERA);
+
+    await clickButton(user, /No, dejalos sin vincular/);
+
+    expect(screen.queryByRole('group', { name: 'Registros que no encontré' })).toBeNull();
+    const borrador = useSistemaStore.getState().taller?.borrador ?? undefined;
+    expect(deTipo(borrador, 'clients').rows.filter((fila) => !fila.__example)).toEqual([]);
+    expect(deTipo(borrador, 'inventory').rows.filter((fila) => !fila.__example)).toEqual([]);
+    expect(deTipo(borrador, 'sales').rows.map((fila) => fila.customer)).toEqual(['', '', '']);
+  });
+
   it('al ajustar un sistema con Sami, la foto también va y los registros leídos se guardan', async () => {
     const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
     const sistema = makeTemplate('shop', {}, false);
@@ -247,6 +312,7 @@ describe('una foto para Sami en el taller', () => {
     await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });
     await clickButton(user, /Ajustalo conmigo/);
     await screen.findByText(/Miré tu foto/, {}, ESPERA);
+    await clickButton(user, /Sumarlos/);
     await clickButton(user, /Guardar cambios/);
 
     await verifyPathAsync(router, `/sistemas/${sistema.id}`);

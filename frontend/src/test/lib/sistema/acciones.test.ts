@@ -3,8 +3,10 @@ import {
   ajusteParaGuardar,
   aplicarAcciones,
   mismoSistema,
+  pendientesVigentes,
   resumirSistema,
   sistemaParaCrear,
+  sumarPendientes,
   type AccionDeSami,
 } from '@/lib/sistema/acciones';
 import { allBlocks, clone, makeSystem, makeTemplate, upsertRow } from '@/lib/sistema/core';
@@ -14,6 +16,13 @@ const accion = (herramienta: string, argumentos: Record<string, unknown>): Accio
   herramienta,
   argumentos,
 });
+
+/** Aplica las acciones y confirma los clientes y productos que no estaban, como al tocar «Sumarlos». */
+const aplicarYSumar = (sistema: Sistema, acciones: AccionDeSami[]) => {
+  const resultado = aplicarAcciones(sistema, acciones);
+  sumarPendientes(sistema, resultado.pendientes);
+  return resultado;
+};
 
 describe('las acciones de Sami sobre el taller', () => {
   let sistema: Sistema;
@@ -50,7 +59,7 @@ describe('las acciones de Sami sobre el taller', () => {
     });
 
     it('lleva los registros reales del armado con su id y sus datos por etiqueta, sin ejemplos ni guardados', () => {
-      aplicarAcciones(sistema, [
+      aplicarYSumar(sistema, [
         accion('cargar_registros', {
           pieza: 'sales',
           filas: [
@@ -75,6 +84,24 @@ describe('las acciones de Sami sobre el taller', () => {
           .find((item) => item.tipo === 'inventory')
           ?.registros.map((registro) => registro.datos),
       ).toEqual([{ Producto: 'Yerba' }, { Producto: 'Fideos' }]);
+    });
+
+    it('las piezas con las que otra se vincula llevan los nombres que ya tienen, también los guardados', () => {
+      aplicarYSumar(sistema, [
+        accion('cargar_registros', {
+          pieza: 'sales',
+          filas: [{ Producto: 'Yerba', Cantidad: 2, Cliente: 'Anto' }],
+        }),
+      ]);
+      const guardadas = new Set(allBlocks(sistema).flatMap((bloque) => bloque.rows.map((fila) => fila.id)));
+
+      const resumen = resumirSistema(sistema, guardadas);
+
+      const deTipo = (tipo: string) => resumen.piezas.find((item) => item.tipo === tipo);
+      expect(deTipo('inventory')?.nombres).toEqual(['Yerba']);
+      expect(deTipo('clients')?.nombres).toEqual(['Anto']);
+      expect(deTipo('clients')?.registros).toEqual([]);
+      expect(deTipo('sales')).not.toHaveProperty('nombres');
     });
 
     it('un vínculo que no apunta a ninguna fila no viaja', () => {
@@ -373,6 +400,7 @@ describe('las acciones de Sami sobre el taller', () => {
       expect(resultado).toEqual({
         aplicadas: ['Renombré Teléfono a Celular en clientes.'],
         omitidas: [],
+        pendientes: [],
       });
       expect(campo('clients', 'Celular')).toMatchObject({ key: 'phone', type: 'tel' });
       expect(pieza('clients').rows[0]?.phone).toBe('11 5555-0101');
@@ -647,6 +675,7 @@ describe('las acciones de Sami sobre el taller', () => {
       expect(resultado).toEqual({
         aplicadas: ['Renombré Nombre a Razón social en clientes.'],
         omitidas: [],
+        pendientes: [],
       });
       expect(campo('clients', 'Razón social')?.type).toBe('text');
     });
@@ -929,7 +958,11 @@ describe('Sami ensambla el sistema desde cero', () => {
         }),
       ]);
 
-      expect(resultado).toEqual({ aplicadas: ['Cargué 3 registros en clientes.'], omitidas: [] });
+      expect(resultado).toEqual({
+        aplicadas: ['Cargué 3 registros en clientes.'],
+        omitidas: [],
+        pendientes: [],
+      });
       expect(clientes.rows.map((fila) => fila.name)).toEqual(['Rosa', 'Lucía', 'Marta', 'Pedro']);
       expect(clientes.rows[0]).toBe(real);
       const nuevas = clientes.rows.slice(1);
@@ -984,7 +1017,7 @@ describe('Sami ensambla el sistema desde cero', () => {
       expect(mismoSistema(sistema, antes)).toBe(true);
     });
 
-    it('los vínculos por nombre usan un registro real que ya está o crean uno real en la otra pieza', () => {
+    it('los vínculos por nombre usan un registro real que ya está y no crean los que faltan: quedan pendientes', () => {
       aplicarAcciones(sistema, [
         accion('agregar_pieza', {
           tipo: 'inventory',
@@ -1009,22 +1042,94 @@ describe('Sami ensambla el sistema desde cero', () => {
       ]);
 
       expect(resultado.aplicadas).toEqual(['Sumé ventas.', 'Cargué 3 registros en ventas.']);
-      const velas = llamada('Velas').rows;
-      // El ejemplo «Vela lavanda» no se guarda al crear el sistema: el registro real tiene su propia vela, real.
-      expect(velas.map((fila) => [fila.name, Boolean(fila.__example)])).toEqual([
-        ['Vela lavanda', true],
-        ['Vela lavanda', false],
-        ['Vela vainilla', false],
+      const ventas = llamada('Ventas').rows;
+      // Rosa ya estaba: se vincula. Nada más se crea: ni la vela (el ejemplo no cuenta) ni Lucía.
+      expect(ventas.map((fila) => [fila.product, fila.customer])).toEqual([
+        ['', rosa?.id],
+        ['', ''],
+        ['', ''],
       ]);
-      const clientas = llamada('Clientas').rows;
-      expect(clientas.map((fila) => [fila.name, Boolean(fila.__example)])).toEqual([
-        ['Rosa', false],
-        ['Lucía', false],
+      expect(llamada('Velas').rows.filter((fila) => !fila.__example)).toEqual([]);
+      expect(llamada('Clientas').rows.map((fila) => fila.name)).toEqual(['Rosa']);
+      // Dos ventas de «Vela vainilla» (con o sin mayúscula) piden una sola vez.
+      expect(
+        resultado.pendientes.map((pendiente) => [pendiente.nombre, pendiente.filas.length]),
+      ).toEqual([
+        ['Vela lavanda', 1],
+        ['Vela vainilla', 2],
+        ['Lucía', 2],
       ]);
-      expect(llamada('Ventas').rows.map((fila) => [fila.product, fila.customer])).toEqual([
-        [velas[1]?.id, rosa?.id],
-        [velas[2]?.id, clientas[1]?.id],
-        [velas[2]?.id, clientas[1]?.id],
+
+      sumarPendientes(sistema, resultado.pendientes);
+
+      const velas = llamada('Velas').rows.filter((fila) => !fila.__example);
+      const lucia = llamada('Clientas').rows.find((fila) => fila.name === 'Lucía');
+      expect(velas.map((fila) => fila.name)).toEqual(['Vela lavanda', 'Vela vainilla']);
+      expect(ventas.map((fila) => [fila.product, fila.customer])).toEqual([
+        [velas[0]?.id, rosa?.id],
+        [velas[1]?.id, lucia?.id],
+        [velas[1]?.id, lucia?.id],
+      ]);
+    });
+
+    it('sumar los pendientes usa un registro que se cargó mientras tanto e ignora las filas que ya no están', () => {
+      aplicarAcciones(sistema, [
+        accion('agregar_pieza', { tipo: 'inventory', ejemplos: [] }),
+        accion('agregar_pieza', { tipo: 'clients', ejemplos: [] }),
+        accion('agregar_pieza', { tipo: 'sales', ejemplos: [] }),
+      ]);
+      const { pendientes } = aplicarAcciones(sistema, [
+        accion('cargar_registros', {
+          pieza: 'sales',
+          filas: [
+            { Producto: 'Yerba', Cliente: 'Marta', Cantidad: 1 },
+            { Producto: 'Yerba', Cliente: 'Nadia', Cantidad: 2 },
+          ],
+        }),
+      ]);
+      const ventas = llamada('Ventas');
+      const [deMarta, deNadia] = ventas.rows;
+      const marta = upsertRow(llamada('Clientes'), { name: 'marta' }, null, sistema).row;
+      ventas.rows = ventas.rows.filter((fila) => fila !== deNadia);
+
+      sumarPendientes(sistema, pendientes);
+
+      expect(deMarta?.customer).toBe(marta?.id);
+      expect(llamada('Clientes').rows.filter((fila) => fila.name === 'Nadia')).toEqual([]);
+    });
+
+    it('los pendientes vigentes descartan las filas ya vinculadas o borradas y las piezas que no están', () => {
+      aplicarAcciones(sistema, [
+        accion('agregar_pieza', { tipo: 'inventory', ejemplos: [] }),
+        accion('agregar_pieza', { tipo: 'clients', ejemplos: [] }),
+        accion('agregar_pieza', { tipo: 'sales', ejemplos: [] }),
+      ]);
+      const primero = aplicarAcciones(sistema, [
+        accion('cargar_registros', {
+          pieza: 'sales',
+          filas: [{ Producto: 'Yerba', Cliente: 'Marta', Cantidad: 1 }],
+        }),
+      ]).pendientes;
+      const segundo = aplicarAcciones(sistema, [
+        accion('cargar_registros', {
+          pieza: 'sales',
+          filas: [
+            { Producto: 'Mate', Cliente: 'marta', Cantidad: 1 },
+            { Producto: 'Mate', Cliente: 'Nadia', Cantidad: 1 },
+          ],
+        }),
+      ]).pendientes;
+      const [, conMate] = llamada('Ventas').rows;
+      if (conMate) conMate.customer = 'e00000000-ya-vinculada';
+      const sinPieza = { destinoId: 'nada', nombre: 'X', filas: [] };
+
+      const vigentes = pendientesVigentes(sistema, primero, segundo, [sinPieza]);
+
+      expect(vigentes.map((pendiente) => [pendiente.nombre, pendiente.filas.length])).toEqual([
+        ['Yerba', 1],
+        ['Marta', 1],
+        ['Mate', 2],
+        ['Nadia', 1],
       ]);
     });
   });
@@ -1202,7 +1307,7 @@ describe('Sami ensambla el sistema desde cero', () => {
     });
 
     const cargarVentas = () => {
-      aplicarAcciones(sistema, [
+      aplicarYSumar(sistema, [
         accion('cargar_registros', {
           pieza: 'sales',
           filas: [
@@ -1222,7 +1327,11 @@ describe('Sami ensambla el sistema desde cero', () => {
         accion('borrar_registros', { pieza: 'sales', donde: { cliente: 'anto sdani' } }),
       ]);
 
-      expect(resultado).toEqual({ aplicadas: ['Borré 2 registros de ventas.'], omitidas: [] });
+      expect(resultado).toEqual({
+        aplicadas: ['Borré 2 registros de ventas.'],
+        omitidas: [],
+        pendientes: [],
+      });
       expect(ventas.rows).toHaveLength(1);
       expect(ventas.rows[0]?.product).toBeDefined();
     });
@@ -1331,7 +1440,7 @@ describe('Sami ensambla el sistema desde cero', () => {
 
   describe('editar_registros', () => {
     beforeEach(() => {
-      aplicarAcciones(sistema, [
+      aplicarYSumar(sistema, [
         accion('agregar_pieza', { tipo: 'sales' }),
         accion('agregar_pieza', { tipo: 'clients' }),
         accion('cargar_registros', {
@@ -1358,7 +1467,11 @@ describe('Sami ensambla el sistema desde cero', () => {
         }),
       ]);
 
-      expect(resultado).toEqual({ aplicadas: ['Corregí 2 registros en ventas.'], omitidas: [] });
+      expect(resultado).toEqual({
+        aplicadas: ['Corregí 2 registros en ventas.'],
+        omitidas: [],
+        pendientes: [],
+      });
       expect(ventas.rows).toHaveLength(2);
       expect(primera?.price).toBe(3500);
       expect(primera?.quantity).toBe(1);
@@ -1378,6 +1491,27 @@ describe('Sami ensambla el sistema desde cero', () => {
       ]);
 
       expect(ventas.rows[0]?.customer).toBe(vero?.id);
+    });
+
+    it('un cliente corregido a un nombre que no está queda pendiente, sin crearlo', () => {
+      const ventas = llamada('Ventas');
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_registros', {
+          pieza: 'sales',
+          registros: [{ id: ventas.rows[0]?.id, datos: { Cliente: 'Nadia' } }],
+        }),
+      ]);
+
+      expect(ventas.rows[0]?.customer).toBe('');
+      expect(resultado.pendientes).toEqual([
+        {
+          destinoId: llamada('Clientes').id,
+          nombre: 'Nadia',
+          filas: [{ bloqueId: ventas.id, filaId: ventas.rows[0]?.id, campoKey: 'customer' }],
+        },
+      ]);
+      expect(llamada('Clientes').rows.some((fila) => fila.name === 'Nadia')).toBe(false);
     });
 
     it('no toca nada si el id no está, es de ejemplo o no llega ningún dato válido', () => {
@@ -1503,7 +1637,7 @@ describe('ajusteParaGuardar: el sistema ajustado con Sami', () => {
   it('guarda los registros reales que Sami cargó de una foto, con sus vínculos', () => {
     const original = makeTemplate('shop', {}, false);
     const borrador = clone(original);
-    aplicarAcciones(borrador, [
+    aplicarYSumar(borrador, [
       accion('cargar_registros', {
         pieza: 'sales',
         filas: [{ Producto: 'Vela lavanda', Cliente: 'Lucía', Cantidad: 2, Precio: 13000 }],
@@ -1542,7 +1676,7 @@ describe('sistemaParaCrear: el sistema que sale del taller', () => {
     const borrador = makeTemplate('shop', {}, true);
     borrador.name = '  ';
     const ejemploDeCliente = deTipo(borrador, 'clients').rows[0] as Fila;
-    aplicarAcciones(borrador, [
+    aplicarYSumar(borrador, [
       accion('cargar_registros', {
         pieza: 'sales',
         filas: [

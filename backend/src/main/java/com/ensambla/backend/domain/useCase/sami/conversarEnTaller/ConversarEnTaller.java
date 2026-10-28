@@ -85,9 +85,9 @@ public class ConversarEnTaller {
     static final String PEDIDO_REGISTROS = "Ya armé las piezas que ves. Tu respuesta tiene que llevar DOS"
             + " invocaciones juntas: (1) cargar_registros con todas las filas que se leen en la foto, en la pieza que"
             + " corresponda (los pedidos de clientes van en Ventas o Pedidos con su Cliente, no en Compras) y con las"
-            + " etiquetas de sus datos, SIN saltearte ningún renglón; además cargá en Productos (inventario) los"
-            + " productos DISTINTOS que se leen, con su nombre y su precio de lista si se ve (sin costos ni cantidades de"
-            + " stock que no estén en la foto); (2) ofrecer_opciones UNA sola vez, con en `preguntas` TODAS las dudas"
+            + " etiquetas de sus datos, SIN saltearte ningún renglón; en Cliente y Producto usá el nombre EXACTO de los"
+            + " existentes si es el mismo y, si no está, como se lee (no cargues productos ni clientes: el taller le"
+            + " pregunta a la persona si los suma); (2) ofrecer_opciones UNA sola vez, con en `preguntas` TODAS las dudas"
             + " importantes de la foto (hasta 3; por ejemplo qué significan los tildes, si un número es costo o lo que"
             + " debe, cuál de dos totales es el correcto), cada una con `tema` corto, `pregunta` y 2 a 4 respuestas"
             + " cortas. No cambies nada más.";
@@ -731,7 +731,7 @@ public class ConversarEnTaller {
             // Renombrar al mismo nombre no es un cambio: el modelo a veces lo pide de paso.
             return nombre.filter(nuevo -> !nuevo.equals(pieza.nombre())).map(nuevo -> {
                 piezas.set(indice, new PiezaTaller(pieza.id(), pieza.tipo(), nuevo, pieza.seccion(), pieza.campos(),
-                        pieza.registros()));
+                        pieza.registros(), pieza.nombres()));
                 return accionConPieza(HerramientaTaller.RENOMBRAR_PIEZA, pieza, "nombre", nuevo);
             });
         });
@@ -1018,7 +1018,8 @@ public class ConversarEnTaller {
     }
 
     private PiezaTaller conRegistros(PiezaTaller pieza, List<RegistroTaller> registros) {
-        return new PiezaTaller(pieza.id(), pieza.tipo(), pieza.nombre(), pieza.seccion(), pieza.campos(), registros);
+        return new PiezaTaller(pieza.id(), pieza.tipo(), pieza.nombre(), pieza.seccion(), pieza.campos(), registros,
+                pieza.nombres());
     }
 
     /** El criterio con las etiquetas de la pieza; si algún dato no vale, el criterio entero no vale. */
@@ -1081,7 +1082,7 @@ public class ConversarEnTaller {
         return indiceDe(args.get("pieza"), piezas).flatMap(indice -> seccion.map(nueva -> {
             PiezaTaller pieza = piezas.get(indice);
             piezas.set(indice, new PiezaTaller(pieza.id(), pieza.tipo(), pieza.nombre(), nueva, pieza.campos(),
-                    pieza.registros()));
+                    pieza.registros(), pieza.nombres()));
             return accionConPieza(HerramientaTaller.SEPARAR_EN_SECCION, pieza, "seccion", nueva);
         }));
     }
@@ -1205,7 +1206,8 @@ public class ConversarEnTaller {
     }
 
     private PiezaTaller conCampos(PiezaTaller pieza, List<CampoTaller> campos) {
-        return new PiezaTaller(pieza.id(), pieza.tipo(), pieza.nombre(), pieza.seccion(), campos, pieza.registros());
+        return new PiezaTaller(pieza.id(), pieza.tipo(), pieza.nombre(), pieza.seccion(), campos, pieza.registros(),
+                pieza.nombres());
     }
 
     private String referencia(PiezaTaller pieza) {

@@ -332,7 +332,8 @@ const ajusteDeDato = (mensaje: string, piezas: Pieza[]) => {
 };
 
 // Lo que Sami «leyó» de la foto: tres ventas del cuaderno, que se cargan como registros reales. Si no hay dónde
-// anotarlas, suma las ventas (y los productos, para que cada venta diga qué se vendió).
+// anotarlas, suma las piezas de ventas y productos, vacías: los productos y las clientas que no están no se cargan, el
+// taller le pregunta a la persona si los suma.
 const VENTAS_DE_LA_FOTO = [
   { Producto: 'Vela lavanda', Cliente: 'Lucía', Cantidad: 2, Precio: 13000, Fecha: '2026-10-18' },
   { Producto: 'Vela vainilla', Cliente: 'Marta', Cantidad: 1, Precio: 8200, Fecha: '2026-10-18' },

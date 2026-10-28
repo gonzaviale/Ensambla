@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import type { AccesoContenido } from '@/types/contenidoPlan';
 import { clone } from '@/lib/sistema/core';
 import type { Aviso } from '@/lib/sistema/alertas';
+import type { VinculoPendiente } from '@/lib/sistema/acciones';
 import type { Bloque, ClavePlantilla, Seccion, Sistema } from '@/lib/sistema/tipos';
 import { TUTORIAL_INICIAL, type EstadoDelTutorial } from '@/lib/sistema/tutorial';
 import type { ImagenParaSami, OpcionesDeSami } from '@/types/samiTaller';
@@ -76,6 +77,8 @@ export type Taller = {
   respuestasDeDudas: (string | null)[];
   /** La propuesta como estaba antes del último cambio de Sami, para «Deshacer lo último». */
   anterior: Sistema | null;
+  /** Los clientes o productos que Sami nombró y no están: esperan que la persona confirme si los suma. */
+  vinculosPendientes: VinculoPendiente[];
   /** El sistema que se está ajustando con Sami; `null` si se está armando uno nuevo. */
   sistemaId: string | null;
   /** Un mensaje que Sami manda solo al abrirse el taller (con la foto que venía adjunta); después queda en `null`. */
@@ -377,6 +380,7 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
         dudas: [],
         respuestasDeDudas: [],
         anterior: null,
+        vinculosPendientes: [],
         sistemaId: sistema?.id ?? null,
         enviarAlAbrir: null,
       },

@@ -22,15 +22,16 @@ import java.util.stream.Collectors;
 /**
  * Arma el pedido a la IA para un turno del taller. Las instrucciones fijas son {@code ia/prompt-taller.md} más una
  * línea con los componentes del editor generada del catálogo (así nunca queda vieja). El contexto es corto: el sistema
- * actual (cada pieza con las etiquetas de sus datos y sus registros reales con su id), el kit del rubro reconocido (o,
+ * actual (cada pieza con las etiquetas de sus datos, los nombres que ya tiene si otra se vincula con ella y sus
+ * registros reales con su id), el kit del rubro reconocido (o,
  * si no hay, la lista de kits), la charla reciente y el mensaje. Sin filas de ejemplo, para que el turno cueste pocos
  * tokens (meta: menos de 2000 de entrada contando las herramientas, más lo que pesen los registros). Si cambia el
  * prompt o las herramientas, subir {@link #VERSION} y volver a medir el acierto.
  */
 public class PromptTaller {
 
-    /** v5: los registros cargados van con su id y se corrigen con {@code editar_registros}. */
-    public static final String VERSION = "v5";
+    /** v6: los clientes y productos existentes van en el contexto y una foto de ventas no carga catálogos. */
+    public static final String VERSION = "v6";
     static final String MARCA_MENSAJE = "Mensaje de la persona:";
     static final String CON_FOTO = "La persona adjuntó una foto. En ESTE turno hacé todo esto: (1) en 1 o 2 frases"
             + " contale lo que ENTENDISTE de la foto («Veo un cuaderno de pedidos por clienta: Ana, Vero y Giz, con lo"
@@ -39,8 +40,9 @@ public class PromptTaller {
             + " cliente es una fila de Ventas; contá los renglones y no dejes ninguno afuera; uno tachado no se carga y"
             + " lo mencionás). En cada fila de Ventas separá los datos: Cliente (la clienta del bloque), Producto SIN la"
             + " cantidad en el nombre («Almohaditas Frutilla», no «Almohaditas Frutilla 1/2»), Cantidad como número (1/2 = 0.5,"
-            + " 1/4 = 0.25, «1» = 1) y Precio; y también con los productos DISTINTOS que aparecen (nombre y precio de"
-            + " lista si se ve) en la pieza de productos/inventario, sin inventar costos ni cantidades de stock;"
+            + " 1/4 = 0.25, «1» = 1) y Precio. En Cliente y Producto usá el nombre EXACTO de los «existentes» de esa"
+            + " pieza si es el mismo; si no está, escribilo como se lee (el taller le pregunta a la persona si lo"
+            + " suma). NO cargues productos ni clientes con cargar_registros: sólo las ventas;"
             + " (3) al FINAL, como última herramienta y SIEMPRE (un turno con foto sin ofrecer_opciones está incompleto), invocá"
             + " ofrecer_opciones UNA sola vez con TODAS tus dudas de"
             + " lo ambiguo en `preguntas` (hasta 3; por ejemplo qué significan los tildes, si el número de la derecha"
@@ -127,7 +129,11 @@ public class PromptTaller {
         String registros = pieza.registros().stream()
                 .map(this::registro)
                 .collect(Collectors.joining());
-        return "- %stipo %s, «%s»%s: %s\n%s".formatted(id, pieza.tipo(), pieza.nombre(), seccion, campos, registros);
+        String existentes = pieza.nombres().isEmpty()
+                ? ""
+                : "  existentes: %s\n".formatted(String.join(", ", pieza.nombres()));
+        return "- %stipo %s, «%s»%s: %s\n%s%s".formatted(id, pieza.tipo(), pieza.nombre(), seccion, campos, existentes,
+                registros);
     }
 
     /** Un registro ya cargado, con su id para corregirlo o borrarlo: {@code   · r1: Producto=Vela, Precio=3000}. */

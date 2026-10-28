@@ -41,13 +41,18 @@ public record ConversarTallerRequest(
     ) {
     }
 
+    /**
+     * @param registros los registros reales que se cargaron en este armado
+     * @param nombres   si otra pieza se vincula con esta, los nombres que ya tiene (también los guardados)
+     */
     public record Pieza(
             @Size(max = 80) String id,
             @NotBlank @Size(max = 20) String tipo,
             @NotBlank @Size(max = 120) String nombre,
             @Size(max = 120) String seccion,
             @NotNull @Size(max = 40) List<@Valid Campo> campos,
-            @Size(max = 30) List<@Valid Registro> registros
+            @Size(max = 30) List<@Valid Registro> registros,
+            @Size(max = 100) List<@NotBlank @Size(max = 120) String> nombres
     ) {
     }
 

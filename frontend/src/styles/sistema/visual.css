@@ -2878,6 +2878,15 @@ button.sami-float:focus-visible {
   max-height: 320px;
   overflow-y: auto;
 }
+/* Los clientes y productos que Sami nombró y no están, agrupados por pieza, antes de confirmar si se suman. */
+.vinculos-nuevos {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--petrol);
+}
 /* Una duda de Sami entre varias: el progreso y la respuesta escrita. */
 .conversation-examples > .duda-progreso {
   font-size: 9px;

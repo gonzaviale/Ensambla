@@ -29,7 +29,8 @@ public class TallerPresentationMapper {
                         pieza.campos().stream()
                                 .map(campo -> new CampoTallerItem(campo.etiqueta(), campo.tipo()))
                                 .toList(),
-                        registros(pieza.registros())))
+                        registros(pieza.registros()),
+                        pieza.nombres() == null ? List.of() : pieza.nombres()))
                 .toList();
         List<MensajeTallerItem> historial = body.historial() == null
                 ? List.of()

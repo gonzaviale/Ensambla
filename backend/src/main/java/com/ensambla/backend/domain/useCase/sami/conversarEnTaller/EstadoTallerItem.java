@@ -16,7 +16,12 @@ import java.util.Objects;
 public record EstadoTallerItem(String nombre, String distribucion, List<PiezaTallerItem> piezas) {
 
     public record PiezaTallerItem(String id, String tipo, String nombre, String seccion, List<CampoTallerItem> campos,
-                                  List<RegistroTallerItem> registros) {
+                                  List<RegistroTallerItem> registros, List<String> nombres) {
+
+        public PiezaTallerItem(String id, String tipo, String nombre, String seccion, List<CampoTallerItem> campos,
+                               List<RegistroTallerItem> registros) {
+            this(id, tipo, nombre, seccion, campos, registros, List.of());
+        }
 
         public PiezaTallerItem(String id, String tipo, String nombre, String seccion, List<CampoTallerItem> campos) {
             this(id, tipo, nombre, seccion, campos, List.of());
@@ -42,7 +47,8 @@ public record EstadoTallerItem(String nombre, String distribucion, List<PiezaTal
                         Objects.requireNonNullElse(pieza.registros(), List.<RegistroTallerItem>of()).stream()
                                 .map(registro -> new RegistroTaller(registro.id(),
                                         Objects.requireNonNullElse(registro.datos(), Map.of())))
-                                .toList()))
+                                .toList(),
+                        pieza.nombres()))
                 .toList();
         return new EstadoTaller(nombre, distribucion, piezasTaller);
     }

@@ -16,6 +16,7 @@ class ModelosTallerTest {
     void constructorsShouldReplaceMissingListsWithEmptyOnes() {
         assertThat(new PiezaTaller("e1", "inventory", "Inventario", null, null).campos()).isEmpty();
         assertThat(new PiezaTaller("e1", "inventory", "Inventario", null, null, null).registros()).isEmpty();
+        assertThat(new PiezaTaller("e1", "inventory", "Inventario", null, null, null, null).nombres()).isEmpty();
         assertThat(new EstadoTaller("Sistema", "mosaic", null).piezas()).isEmpty();
         assertThat(new LlamadaHerramienta("agregar_pieza", null).argumentos()).isEmpty();
     }
