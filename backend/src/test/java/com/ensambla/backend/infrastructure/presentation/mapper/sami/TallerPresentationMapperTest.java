@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTallerRequest;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTallerResponse;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.EstadoTallerItem.RegistroTallerItem;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ImagenTallerItem;
 import com.ensambla.backend.infrastructure.presentation.dto.sami.ConversarTallerRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.sami.ConversarTallerResponse;
@@ -30,7 +31,8 @@ class TallerPresentationMapperTest {
                 "  sumá gastos  ",
                 new ConversarTallerRequest.Estado("Mi almacén", "mosaic", List.of(new ConversarTallerRequest.Pieza(
                         "e1", "inventory", "Inventario", "General",
-                        List.of(new ConversarTallerRequest.Campo("Producto", "text"))))),
+                        List.of(new ConversarTallerRequest.Campo("Producto", "text")),
+                        List.of(new ConversarTallerRequest.Registro("r1", Map.of("Producto", "Yerba")))))),
                 List.of(new ConversarTallerRequest.Mensaje("sami", "Hola")), null);
 
         ConversarEnTallerRequest result = mapper.toRequest(USUARIO_ID, body);
@@ -39,8 +41,20 @@ class TallerPresentationMapperTest {
         assertThat(result.mensaje()).isEqualTo("sumá gastos");
         assertThat(result.estado().nombre()).isEqualTo("Mi almacén");
         assertThat(result.estado().piezas().getFirst().campos()).extracting("etiqueta").containsExactly("Producto");
+        assertThat(result.estado().piezas().getFirst().registros())
+                .containsExactly(new RegistroTallerItem("r1", Map.of("Producto", "Yerba")));
         assertThat(result.historial()).extracting("texto").containsExactly("Hola");
         assertThat(result.imagen()).isNull();
+    }
+
+    @Test
+    @DisplayName("Una pieza sin registros en el body (un frontend viejo) llega con una lista vacía")
+    void toRequestShouldUseEmptyRecordsWhenMissing() {
+        ConversarTallerRequest body = new ConversarTallerRequest(
+                "hola", new ConversarTallerRequest.Estado("", "mosaic", List.of(new ConversarTallerRequest.Pieza(
+                        "e1", "inventory", "Inventario", null, List.of(), null))), null, null);
+
+        assertThat(mapper.toRequest(USUARIO_ID, body).estado().piezas().getFirst().registros()).isEmpty();
     }
 
     @Test

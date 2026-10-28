@@ -21,6 +21,7 @@ import com.ensambla.backend.domain.model.sami.taller.MensajeTaller;
 import com.ensambla.backend.domain.model.sami.taller.OpcionesTaller;
 import com.ensambla.backend.domain.model.sami.taller.PiezaKit;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
+import com.ensambla.backend.domain.model.sami.taller.RegistroTaller;
 import com.ensambla.backend.domain.model.sami.taller.RespuestaTaller;
 import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
 import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
@@ -268,6 +269,7 @@ public class ConversarEnTaller {
         try {
             return tallerIaPort.conversar(consulta);
         } catch (RuntimeException e) {
+            log.warn("La IA del taller falló", e);
             throw new BusinessRuleException(IA_NO_DISPONIBLE);
         }
     }
@@ -333,7 +335,24 @@ public class ConversarEnTaller {
     }
 
     private String registros(int cantidad) {
-        return cantidad == 1 ? "Cargué 1 registro" : "Cargué " + cantidad + " registros";
+        return "Cargué " + cantidadDeRegistros(cantidad);
+    }
+
+    private String cantidadDeRegistros(int cantidad) {
+        return cantidad == 1 ? "1 registro" : cantidad + " registros";
+    }
+
+    /** Un borrado por id, por datos o por las dos cosas a la vez. */
+    private String borrado(Map<String, Object> args, Map<String, String> nombres) {
+        String pieza = pieza(args.get("pieza"), nombres);
+        List<String> partes = new ArrayList<>();
+        if (args.get("ids") instanceof List<?> ids) {
+            partes.add(cantidadDeRegistros(ids.size()) + " de " + pieza);
+        }
+        if (args.containsKey("donde")) {
+            partes.add("los registros de " + pieza + " donde " + criterios(args.get("donde")));
+        }
+        return "Borré " + String.join(" y ", partes);
     }
 
     private String pieza(Object referencia, Map<String, String> nombres) {
@@ -376,9 +395,10 @@ public class ConversarEnTaller {
         descripciones.put(HerramientaTaller.CARGAR_REGISTROS,
                 (args, nombres) -> registros(((List<?>) args.get("filas")).size())
                         + " en " + pieza(args.get("pieza"), nombres));
-        descripciones.put(HerramientaTaller.BORRAR_REGISTROS,
-                (args, nombres) -> "Borré los registros de " + pieza(args.get("pieza"), nombres)
-                        + " donde " + criterios(args.get("donde")));
+        descripciones.put(HerramientaTaller.EDITAR_REGISTROS,
+                (args, nombres) -> "Corregí " + cantidadDeRegistros(((List<?>) args.get("registros")).size())
+                        + " en " + pieza(args.get("pieza"), nombres));
+        descripciones.put(HerramientaTaller.BORRAR_REGISTROS, this::borrado);
         descripciones.put(HerramientaTaller.CONECTAR,
                 (args, nombres) -> "Conecté " + pieza(args.get("desde"), nombres)
                         + " con " + pieza(args.get("hacia"), nombres));
@@ -395,6 +415,7 @@ public class ConversarEnTaller {
         manejadores.put(HerramientaTaller.QUITAR_CAMPO, this::quitarCampo);
         manejadores.put(HerramientaTaller.EDITAR_CAMPO, this::editarCampo);
         manejadores.put(HerramientaTaller.CARGAR_REGISTROS, this::cargarRegistros);
+        manejadores.put(HerramientaTaller.EDITAR_REGISTROS, this::editarRegistros);
         manejadores.put(HerramientaTaller.BORRAR_REGISTROS, this::borrarRegistros);
         manejadores.put(HerramientaTaller.CONECTAR, this::conectar);
         manejadores.put(HerramientaTaller.SEPARAR_EN_SECCION, this::separarEnSeccion);
@@ -709,7 +730,8 @@ public class ConversarEnTaller {
             PiezaTaller pieza = piezas.get(indice);
             // Renombrar al mismo nombre no es un cambio: el modelo a veces lo pide de paso.
             return nombre.filter(nuevo -> !nuevo.equals(pieza.nombre())).map(nuevo -> {
-                piezas.set(indice, new PiezaTaller(pieza.id(), pieza.tipo(), nuevo, pieza.seccion(), pieza.campos()));
+                piezas.set(indice, new PiezaTaller(pieza.id(), pieza.tipo(), nuevo, pieza.seccion(), pieza.campos(),
+                        pieza.registros()));
                 return accionConPieza(HerramientaTaller.RENOMBRAR_PIEZA, pieza, "nombre", nuevo);
             });
         });
@@ -894,13 +916,109 @@ public class ConversarEnTaller {
                     .flatMap(Optional::stream)
                     .limit(CatalogoTaller.MAX_CRITERIOS_BORRADO)
                     .toList();
-            return Optional.of(criterios).filter(validos -> !validos.isEmpty()).map(validos -> {
-                Map<String, Object> argumentos = new LinkedHashMap<>();
-                argumentos.put("pieza", referencia(pieza));
-                argumentos.put("donde", validos);
-                return new AccionTaller(HerramientaTaller.BORRAR_REGISTROS.nombre(), argumentos);
-            });
+            List<String> ids = idsDeRegistros(args.get("ids"), pieza);
+            if (criterios.isEmpty() && ids.isEmpty()) {
+                return Optional.empty();
+            }
+            piezas.set(indice, conRegistros(pieza, pieza.registros().stream()
+                    .filter(registro -> !ids.contains(registro.id()))
+                    .toList()));
+            Map<String, Object> argumentos = new LinkedHashMap<>();
+            argumentos.put("pieza", referencia(pieza));
+            if (!ids.isEmpty()) {
+                argumentos.put("ids", ids);
+            }
+            if (!criterios.isEmpty()) {
+                argumentos.put("donde", criterios);
+            }
+            return Optional.of(new AccionTaller(HerramientaTaller.BORRAR_REGISTROS.nombre(), argumentos));
         });
+    }
+
+    /** Los ids que la pieza tiene de verdad, sin repetir: uno que no está se ignora, nunca amplía lo que se borra. */
+    private List<String> idsDeRegistros(Object valor, PiezaTaller pieza) {
+        if (!(valor instanceof List<?> lista)) {
+            return List.of();
+        }
+        return lista.stream()
+                .flatMap(elemento -> texto(elemento, CatalogoTaller.MAX_LARGO_ID).stream())
+                .filter(id -> registroDe(id, pieza).isPresent())
+                .distinct()
+                .limit(CatalogoTaller.MAX_REGISTROS_POR_PIEZA)
+                .toList();
+    }
+
+    /**
+     * {@code editar_registros} corrige registros que la pieza ya tiene (los que Sami cargó en este armado), nombrados
+     * por su id: {@code registros} es una lista de {@code {id, datos: {Etiqueta: valor}}}. Sólo valen los ids que
+     * mandó el taller y los datos de la pieza con valores simples; lo que no cambia nada se cae, y dos pedidos sobre
+     * el mismo registro se juntan. Así Sami corrige lo que propuso sin volver a cargarlo.
+     */
+    private Optional<AccionTaller> editarRegistros(Map<String, Object> args, List<PiezaTaller> piezas) {
+        return indiceDe(args.get("pieza"), piezas).flatMap(indice -> {
+            PiezaTaller pieza = piezas.get(indice);
+            Map<String, Map<String, Object>> cambios = new LinkedHashMap<>();
+            for (Map<String, Object> pedido : mapas(args.get("registros"))) {
+                texto(pedido.get("id"), CatalogoTaller.MAX_LARGO_ID)
+                        .flatMap(id -> registroDe(id, pieza))
+                        .ifPresent(registro -> cambiosDeRegistro(pedido.get("datos"), registro, pieza.campos())
+                                .forEach((etiqueta, valor) -> cambios
+                                        .computeIfAbsent(registro.id(), id -> new LinkedHashMap<>())
+                                        .put(etiqueta, valor)));
+            }
+            if (cambios.isEmpty()) {
+                return Optional.empty();
+            }
+            piezas.set(indice, conRegistros(pieza, pieza.registros().stream()
+                    .map(registro -> editado(registro, cambios.getOrDefault(registro.id(), Map.of())))
+                    .toList()));
+            List<Map<String, Object>> registros = cambios.entrySet().stream()
+                    .<Map<String, Object>>map(cambio -> {
+                        Map<String, Object> registro = new LinkedHashMap<>();
+                        registro.put("id", cambio.getKey());
+                        registro.put("datos", cambio.getValue());
+                        return registro;
+                    })
+                    .toList();
+            Map<String, Object> argumentos = new LinkedHashMap<>();
+            argumentos.put("pieza", referencia(pieza));
+            argumentos.put("registros", registros);
+            return Optional.of(new AccionTaller(HerramientaTaller.EDITAR_REGISTROS.nombre(), argumentos));
+        });
+    }
+
+    /** Los datos pedidos con las etiquetas de la pieza, salvo los que ya tienen ese valor. */
+    private Map<String, Object> cambiosDeRegistro(Object datos, RegistroTaller registro, List<CampoTaller> campos) {
+        Map<String, Object> cambios = new LinkedHashMap<>();
+        mapas(datos instanceof Map<?, ?> unico ? List.of(unico) : List.of()).forEach(pedido ->
+                fila(pedido, campos).forEach((etiqueta, valor) -> {
+                    if (!mismoValor(registro.datos().get(etiqueta), valor)) {
+                        cambios.put(etiqueta, valor);
+                    }
+                }));
+        return cambios;
+    }
+
+    /** {@code 3} y {@code 3.0} son el mismo número: el modelo y el taller no siempre los escriben igual. */
+    private boolean mismoValor(Object actual, Object nuevo) {
+        if (actual instanceof Number a && nuevo instanceof Number b) {
+            return a.doubleValue() == b.doubleValue();
+        }
+        return Objects.equals(actual, nuevo);
+    }
+
+    private RegistroTaller editado(RegistroTaller registro, Map<String, Object> cambios) {
+        Map<String, Object> datos = new LinkedHashMap<>(registro.datos());
+        datos.putAll(cambios);
+        return new RegistroTaller(registro.id(), datos);
+    }
+
+    private Optional<RegistroTaller> registroDe(String id, PiezaTaller pieza) {
+        return pieza.registros().stream().filter(registro -> id.equals(registro.id())).findFirst();
+    }
+
+    private PiezaTaller conRegistros(PiezaTaller pieza, List<RegistroTaller> registros) {
+        return new PiezaTaller(pieza.id(), pieza.tipo(), pieza.nombre(), pieza.seccion(), pieza.campos(), registros);
     }
 
     /** El criterio con las etiquetas de la pieza; si algún dato no vale, el criterio entero no vale. */
@@ -962,7 +1080,8 @@ public class ConversarEnTaller {
         Optional<String> seccion = texto(args.get("seccion"), CatalogoTaller.MAX_LARGO_NOMBRE);
         return indiceDe(args.get("pieza"), piezas).flatMap(indice -> seccion.map(nueva -> {
             PiezaTaller pieza = piezas.get(indice);
-            piezas.set(indice, new PiezaTaller(pieza.id(), pieza.tipo(), pieza.nombre(), nueva, pieza.campos()));
+            piezas.set(indice, new PiezaTaller(pieza.id(), pieza.tipo(), pieza.nombre(), nueva, pieza.campos(),
+                    pieza.registros()));
             return accionConPieza(HerramientaTaller.SEPARAR_EN_SECCION, pieza, "seccion", nueva);
         }));
     }
@@ -1086,7 +1205,7 @@ public class ConversarEnTaller {
     }
 
     private PiezaTaller conCampos(PiezaTaller pieza, List<CampoTaller> campos) {
-        return new PiezaTaller(pieza.id(), pieza.tipo(), pieza.nombre(), pieza.seccion(), campos);
+        return new PiezaTaller(pieza.id(), pieza.tipo(), pieza.nombre(), pieza.seccion(), campos, pieza.registros());
     }
 
     private String referencia(PiezaTaller pieza) {

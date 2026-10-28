@@ -31,7 +31,10 @@ import type {
 
 export type AccionDeSami = { herramienta: string; argumentos: Record<string, unknown> };
 
-/** El sistema resumido que se manda en cada turno: sin filas ni datos de ejemplo, para gastar pocos tokens. */
+/**
+ * El sistema resumido que se manda en cada turno: sin filas de ejemplo, para gastar pocos tokens. De cada pieza van
+ * los registros reales que se cargaron en este armado (con su id), así Sami los puede corregir sin cargarlos de nuevo.
+ */
 export type EstadoCompacto = {
   nombre: string;
   distribucion: string;
@@ -41,6 +44,7 @@ export type EstadoCompacto = {
     nombre: string;
     seccion: string;
     campos: { etiqueta: string; tipo: string }[];
+    registros: { id: string; datos: Record<string, string | number | boolean> }[];
   }[];
 };
 
@@ -51,7 +55,14 @@ export type ResultadoDeAcciones = {
   omitidas: string[];
 };
 
-export function resumirSistema(sistema: Sistema): EstadoCompacto {
+/**
+ * `guardadas`: los ids de las filas que el sistema ya tenía guardadas (al ajustar uno). Esas no viajan: Sami sólo
+ * corrige lo que propuso en este armado.
+ */
+export function resumirSistema(
+  sistema: Sistema,
+  guardadas: ReadonlySet<string> = new Set(),
+): EstadoCompacto {
   return {
     nombre: sistema.name,
     distribucion: sistema.layout ?? 'mosaic',
@@ -62,9 +73,40 @@ export function resumirSistema(sistema: Sistema): EstadoCompacto {
         nombre: bloque.name,
         seccion: seccion.name,
         campos: bloque.fields.map((campo) => ({ etiqueta: campo.label, tipo: campo.type })),
+        registros: registrosDelArmado(sistema, bloque, guardadas),
       })),
     ),
   };
+}
+
+/** Los registros reales que se cargaron en este armado (los últimos, si son muchos), con sus datos por etiqueta. */
+function registrosDelArmado(sistema: Sistema, bloque: Bloque, guardadas: ReadonlySet<string>) {
+  return bloque.rows
+    .filter((fila) => !fila.__example && !guardadas.has(fila.id))
+    .slice(-MAXIMO_DE_REGISTROS)
+    .map((fila) => {
+      const datos: Record<string, string | number | boolean> = {};
+      for (const campo of bloque.fields) {
+        const valor = valorParaSami(sistema, campo, fila[campo.key]);
+        if (valor !== undefined) datos[campo.label] = valor;
+      }
+      return { id: fila.id, datos };
+    });
+}
+
+/** Un vínculo guarda el id de la fila vinculada: a Sami le llega su nombre. Lo vacío no viaja. */
+function valorParaSami(
+  sistema: Sistema,
+  campo: Campo,
+  valor: Valor,
+): string | number | boolean | undefined {
+  if (valor === undefined || valor === null || valor === '') return undefined;
+  if (campo.type !== 'relation') return valor;
+  const destino = findBlock(sistema, campo.target);
+  const principal = destino?.fields[0]?.key;
+  const vinculada = destino?.rows.find((fila) => fila.id === valor);
+  const nombre = principal && vinculada ? vinculada[principal] : undefined;
+  return nombre === undefined || nombre === null || nombre === '' ? undefined : nombre;
 }
 
 const TIPOS_DE_PIEZA = new Set<string>(Object.keys(CATALOG));
@@ -194,6 +236,8 @@ function aplicarUna(
       const cuantos = filas.length === 1 ? 'un registro' : `${filas.length} registros`;
       return hecho(`Cargué ${cuantos} en ${pieza.name.toLowerCase()}.`);
     }
+    case 'editar_registros':
+      return editarRegistros(sistema, args, hecho, registrosNuevos);
     case 'borrar_registros':
       return borrarRegistros(sistema, args, hecho);
     case 'conectar':
@@ -284,11 +328,45 @@ function coincide(sistema: Sistema, campo: Campo, guardado: Valor, pedido: unkno
   return convertido !== undefined && normalize(guardado) === normalize(convertido);
 }
 
+const cantidadDeRegistros = (cantidad: number) =>
+  cantidad === 1 ? 'un registro' : `${cantidad} registros`;
+
 /**
- * Borra de una pieza los registros que coinciden con lo que Sami indica en `donde`: un criterio (`{Cliente: 'Ana'}`,
- * coinciden todos sus datos) o una lista de criterios (basta con que coincida uno). Nunca borra de más: un criterio
- * vacío, o con un dato que la pieza no tiene, no vale y no se usa; si ninguno vale, no se borra nada. No toca otras
- * piezas, salvo para vaciar los vínculos que apuntaban a lo borrado.
+ * Corrige registros reales de una pieza, nombrados por su id: `registros` es una lista de `{id, datos: {Etiqueta:
+ * valor}}`. Sólo se pisan los datos que llegan (pasados al tipo de cada dato); una fila de ejemplo, un id que no está
+ * o un dato que la pieza no tiene se ignoran. Un vínculo llega por nombre y se resuelve al final, como al cargar.
+ */
+function editarRegistros(
+  sistema: Sistema,
+  args: Record<string, unknown>,
+  hecho: (descripcion: string) => undefined,
+  registrosNuevos: Set<string>,
+): string | undefined {
+  const pieza = resolverPieza(sistema, args.pieza);
+  if (!pieza) return 'No encontré esa pieza.';
+  const corregidas = new Set<string>();
+  for (const pedido of lista(args.registros).filter(esObjeto)) {
+    const fila = pieza.rows.find((item) => !item.__example && item.id === texto(pedido.id));
+    if (!fila || !esObjeto(pedido.datos)) continue;
+    for (const [etiqueta, valor] of Object.entries(pedido.datos)) {
+      const campo = campoNombrado(pieza, etiqueta);
+      const convertido = campo ? valorDeEjemplo(campo, valor) : undefined;
+      if (!campo || convertido === undefined) continue;
+      fila[campo.key] = convertido;
+      corregidas.add(fila.id);
+      if (campo.type === 'relation') registrosNuevos.add(fila.id);
+    }
+  }
+  if (!corregidas.size) return `No encontré esos registros en ${pieza.name.toLowerCase()}.`;
+  return hecho(`Corregí ${cantidadDeRegistros(corregidas.size)} en ${pieza.name.toLowerCase()}.`);
+}
+
+/**
+ * Borra de una pieza los registros reales que Sami nombra por su id (`ids`) y los que coinciden con lo que indica en
+ * `donde`: un criterio (`{Cliente: 'Ana'}`, coinciden todos sus datos) o una lista de criterios (basta con que coincida
+ * uno). Nunca borra de más: un criterio vacío, o con un dato que la pieza no tiene, no vale y no se usa; si no queda
+ * ni un id ni un criterio, no se borra nada. No toca otras piezas, salvo para vaciar los vínculos que apuntaban a lo
+ * borrado.
  */
 function borrarRegistros(
   sistema: Sistema,
@@ -305,12 +383,15 @@ function borrarRegistros(
     const validos = datos.flatMap(([campo, valor]) => (campo ? [{ campo, valor }] : []));
     return datos.length && validos.length === datos.length ? [validos] : [];
   });
-  if (!criterios.length)
+  const porId = new Set(lista(args.ids).map(texto).filter(Boolean));
+  if (!criterios.length && !porId.size)
     return `Para borrar registros de ${pieza.name.toLowerCase()} necesito saber cuáles.`;
-  const sobran = pieza.rows.filter((fila) =>
-    criterios.some((criterio) =>
-      criterio.every(({ campo, valor }) => coincide(sistema, campo, fila[campo.key], valor)),
-    ),
+  const sobran = pieza.rows.filter(
+    (fila) =>
+      (!fila.__example && porId.has(fila.id)) ||
+      criterios.some((criterio) =>
+        criterio.every(({ campo, valor }) => coincide(sistema, campo, fila[campo.key], valor)),
+      ),
   );
   if (!sobran.length) return `No encontré registros de ${pieza.name.toLowerCase()} que coincidan.`;
   const ids = new Set(sobran.map((fila) => fila.id));
@@ -324,8 +405,7 @@ function borrarRegistros(
       }
     }
   }
-  const cuantos = sobran.length === 1 ? 'un registro' : `${sobran.length} registros`;
-  return hecho(`Borré ${cuantos} de ${pieza.name.toLowerCase()}.`);
+  return hecho(`Borré ${cantidadDeRegistros(sobran.length)} de ${pieza.name.toLowerCase()}.`);
 }
 
 function agregarPieza(

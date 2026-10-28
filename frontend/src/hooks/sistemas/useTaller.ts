@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { conversarEnTaller } from '@/api/samiTaller';
 import { aplicarAcciones, mismoSistema, resumirSistema } from '@/lib/sistema/acciones';
-import { applyLayout, clone, makeSystem } from '@/lib/sistema/core';
+import { allBlocks, applyLayout, clone, makeSystem } from '@/lib/sistema/core';
 import { aBase64, reducirImagen } from '@/lib/sistema/imagen';
 import type { Sistema } from '@/lib/sistema/tipos';
 import { useSistemaStore, type Taller } from '@/stores/sistemaStore';
@@ -108,9 +108,16 @@ export function useTaller() {
       charla.push({ quien: 'sami', texto: taller.dudas.map((duda) => duda.pregunta).join(' ') });
     }
     const historial = charla.slice(-MENSAJES_DE_HISTORIAL);
+    // Al ajustar un sistema, sus registros guardados no viajan: Sami sólo corrige los que propuso en este armado.
+    const original = useSistemaStore
+      .getState()
+      .sistemas.find((sistema) => sistema.id === taller.sistemaId);
+    const guardadas = new Set(
+      allBlocks(original).flatMap((bloque) => bloque.rows.map((fila) => fila.id)),
+    );
     const respuesta = await consulta.mutateAsync({
       mensaje: texto,
-      estado: resumirSistema(base),
+      estado: resumirSistema(base, guardadas),
       historial,
       ...(imagen && { imagen }),
     });

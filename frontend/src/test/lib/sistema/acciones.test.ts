@@ -48,6 +48,48 @@ describe('las acciones de Sami sobre el taller', () => {
       expect(resumen.distribucion).toBe('single');
       expect(resumen.piezas.every((item) => item.seccion === sistema.sections[0]?.name)).toBe(true);
     });
+
+    it('lleva los registros reales del armado con su id y sus datos por etiqueta, sin ejemplos ni guardados', () => {
+      aplicarAcciones(sistema, [
+        accion('cargar_registros', {
+          pieza: 'sales',
+          filas: [
+            { Producto: 'Yerba', Cantidad: 2, Cliente: 'Anto' },
+            { Producto: 'Fideos', Cantidad: 1 },
+          ],
+        }),
+      ]);
+      const [guardada, nueva] = pieza('sales').rows;
+
+      const resumen = resumirSistema(sistema, new Set([guardada?.id ?? '']));
+
+      const ventas = resumen.piezas.find((item) => item.tipo === 'sales');
+      expect(ventas?.registros).toEqual([
+        { id: nueva?.id, datos: { Producto: 'Fideos', Cantidad: 1 } },
+      ]);
+      expect(resumirSistema(sistema).piezas.find((item) => item.tipo === 'sales')?.registros[0])
+        .toEqual({ id: guardada?.id, datos: { Producto: 'Yerba', Cantidad: 2, Cliente: 'Anto' } });
+      // Los productos que se sumaron al vincular las ventas también son registros reales del armado.
+      expect(
+        resumen.piezas
+          .find((item) => item.tipo === 'inventory')
+          ?.registros.map((registro) => registro.datos),
+      ).toEqual([{ Producto: 'Yerba' }, { Producto: 'Fideos' }]);
+    });
+
+    it('un vínculo que no apunta a ninguna fila no viaja', () => {
+      aplicarAcciones(sistema, [
+        accion('cargar_registros', { pieza: 'sales', filas: [{ Producto: 'Yerba', Cantidad: 2 }] }),
+      ]);
+      const venta = pieza('sales').rows[0];
+      if (venta) venta.product = 'e0000000-nada';
+
+      const resumen = resumirSistema(sistema);
+
+      expect(resumen.piezas.find((item) => item.tipo === 'sales')?.registros[0]?.datos).toEqual({
+        Cantidad: 2,
+      });
+    });
   });
 
   describe('agregar_pieza y quitar_pieza', () => {
@@ -1254,6 +1296,123 @@ describe('Sami ensambla el sistema desde cero', () => {
 
       expect(ventas.rows).toHaveLength(2);
       expect(ventas.rows.filter((fila) => fila.__example)).toHaveLength(0);
+    });
+
+    it('borra por id sólo los registros reales que nombra, y junto con un criterio', () => {
+      const ventas = cargarVentas();
+      const [primera, segunda] = ventas.rows;
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('borrar_registros', { pieza: 'sales', ids: [primera?.id, 'e-nada', 3] }),
+        accion('borrar_registros', {
+          pieza: 'sales',
+          ids: [segunda?.id],
+          donde: { Cliente: 'Vero Susy' },
+        }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual(['Borré un registro de ventas.', 'Borré 2 registros de ventas.']);
+      expect(ventas.rows).toHaveLength(0);
+    });
+
+    it('nunca borra por id una fila de ejemplo', () => {
+      const clientes = llamada('Clientes');
+      const ejemplo = clientes.rows.find((fila) => fila.__example);
+      expect(ejemplo).toBeDefined();
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('borrar_registros', { pieza: 'clients', ids: [ejemplo?.id] }),
+      ]);
+
+      expect(resultado.omitidas).toEqual(['No encontré registros de clientes que coincidan.']);
+      expect(clientes.rows).toContain(ejemplo);
+    });
+  });
+
+  describe('editar_registros', () => {
+    beforeEach(() => {
+      aplicarAcciones(sistema, [
+        accion('agregar_pieza', { tipo: 'sales' }),
+        accion('agregar_pieza', { tipo: 'clients' }),
+        accion('cargar_registros', {
+          pieza: 'sales',
+          filas: [
+            { Producto: 'Almohaditas', Cantidad: 1, Precio: 3200, Cliente: 'Anto' },
+            { Producto: 'Bolitas', Cantidad: 1, Precio: 2900, Cliente: 'Vero' },
+          ],
+        }),
+      ]);
+    });
+
+    it('corrige sólo los datos que llegan, pasados al tipo de cada dato, sin sumar filas', () => {
+      const ventas = llamada('Ventas');
+      const [primera, segunda] = ventas.rows;
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_registros', {
+          pieza: 'sales',
+          registros: [
+            { id: primera?.id, datos: { precio: '3500', Color: 'Rojo' } },
+            { id: segunda?.id, datos: { Cantidad: '0,5' } },
+          ],
+        }),
+      ]);
+
+      expect(resultado).toEqual({ aplicadas: ['Corregí 2 registros en ventas.'], omitidas: [] });
+      expect(ventas.rows).toHaveLength(2);
+      expect(primera?.price).toBe(3500);
+      expect(primera?.quantity).toBe(1);
+      expect(segunda?.quantity).toBe(0.5);
+    });
+
+    it('un cliente corregido por nombre se vincula con el registro de ese nombre', () => {
+      const ventas = llamada('Ventas');
+      const clientes = llamada('Clientes');
+      const vero = clientes.rows.find((fila) => fila.name === 'Vero');
+
+      aplicarAcciones(sistema, [
+        accion('editar_registros', {
+          pieza: 'sales',
+          registros: [{ id: ventas.rows[0]?.id, datos: { Cliente: 'Vero' } }],
+        }),
+      ]);
+
+      expect(ventas.rows[0]?.customer).toBe(vero?.id);
+    });
+
+    it('no toca nada si el id no está, es de ejemplo o no llega ningún dato válido', () => {
+      const ventas = llamada('Ventas');
+      const antes = clone(sistema);
+      aplicarAcciones(sistema, [
+        accion('agregar_pieza', { tipo: 'expenses', ejemplos: [{ Concepto: 'Luz' }] }),
+      ]);
+      const ejemplo = llamada('Gastos').rows[0];
+
+      const resultado = aplicarAcciones(sistema, [
+        accion('editar_registros', {
+          pieza: 'sales',
+          registros: [
+            { id: 'e-nada', datos: { Precio: 1 } },
+            { id: ventas.rows[0]?.id, datos: { Color: 'Rojo' } },
+            { id: ventas.rows[0]?.id, datos: 'Precio 1' },
+            'nada',
+          ],
+        }),
+        accion('editar_registros', {
+          pieza: 'expenses',
+          registros: [{ id: ejemplo?.id, datos: { Concepto: 'Gas' } }],
+        }),
+        accion('editar_registros', { pieza: 'nada', registros: [] }),
+      ]);
+
+      expect(resultado.aplicadas).toEqual([]);
+      expect(resultado.omitidas).toEqual([
+        'No encontré esos registros en ventas.',
+        'No encontré esos registros en gastos.',
+        'No encontré esa pieza.',
+      ]);
+      expect(ventas.rows).toEqual(allBlocks(antes).find((bloque) => bloque.type === 'sales')?.rows);
+      expect(ejemplo?.name).toBe('Luz');
     });
   });
 

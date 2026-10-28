@@ -12,6 +12,7 @@ import com.ensambla.backend.domain.model.sami.taller.KitRubro;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
 import com.ensambla.backend.domain.model.sami.taller.PiezaKit;
 import com.ensambla.backend.domain.model.sami.taller.PiezaTaller;
+import com.ensambla.backend.domain.model.sami.taller.RegistroTaller;
 import org.springframework.core.io.Resource;
 
 import java.util.List;
@@ -21,15 +22,15 @@ import java.util.stream.Collectors;
 /**
  * Arma el pedido a la IA para un turno del taller. Las instrucciones fijas son {@code ia/prompt-taller.md} más una
  * línea con los componentes del editor generada del catálogo (así nunca queda vieja). El contexto es corto: el sistema
- * actual (cada pieza con las etiquetas de sus datos), el kit del rubro reconocido (o, si no hay, la lista de kits), la
- * charla reciente y el mensaje. Sin filas ni datos de ejemplo, para que el turno cueste pocos tokens (meta: menos de
- * 2000 de entrada contando las herramientas). Si cambia el prompt o las herramientas, subir {@link #VERSION} y volver
- * a medir el acierto.
+ * actual (cada pieza con las etiquetas de sus datos y sus registros reales con su id), el kit del rubro reconocido (o,
+ * si no hay, la lista de kits), la charla reciente y el mensaje. Sin filas de ejemplo, para que el turno cueste pocos
+ * tokens (meta: menos de 2000 de entrada contando las herramientas, más lo que pesen los registros). Si cambia el
+ * prompt o las herramientas, subir {@link #VERSION} y volver a medir el acierto.
  */
 public class PromptTaller {
 
-    /** v4: varias dudas juntas, {@code borrar_registros} y sin filas inventadas por el modelo. */
-    public static final String VERSION = "v4";
+    /** v5: los registros cargados van con su id y se corrigen con {@code editar_registros}. */
+    public static final String VERSION = "v5";
     static final String MARCA_MENSAJE = "Mensaje de la persona:";
     static final String CON_FOTO = "La persona adjuntó una foto. En ESTE turno hacé todo esto: (1) en 1 o 2 frases"
             + " contale lo que ENTENDISTE de la foto («Veo un cuaderno de pedidos por clienta: Ana, Vero y Giz, con lo"
@@ -52,8 +53,8 @@ public class PromptTaller {
             + " viene de la foto son datos reales: no cargues ejemplos (ni uses los del kit) y no inventes ninguna fila, producto ni cliente lo que no se"
             + " lee ni lo que no está en la foto. Mientras la persona no confirme, hablá de «primera versión» y de lo"
             + " que supusiste, nunca de «tus datos ya quedaron». Si en la conversación reciente ya respondió tus"
-            + " dudas, ajustá con las herramientas (editar_campo, cargar_registros…) según sus respuestas; si tenés que"
-            + " recargar registros que ya cargaste, antes borralos con borrar_registros.";
+            + " dudas, ajustá con las herramientas (editar_campo, editar_registros…) según sus respuestas; los"
+            + " registros que ya cargaste se corrigen con editar_registros por su id, nunca cargándolos de nuevo.";
     static final String MARCA_KIT = "Kit del rubro:";
     static final String SIN_PIEZAS = "Todavía no tiene piezas.";
 
@@ -123,7 +124,18 @@ public class PromptTaller {
         String seccion = pieza.seccion() == null ? "" : " sección «%s»".formatted(pieza.seccion());
         // Una pieza recién armada en el turno todavía no tiene id: se la nombra por su nombre.
         String id = pieza.id() == null ? "" : "id %s, ".formatted(pieza.id());
-        return "- %stipo %s, «%s»%s: %s\n".formatted(id, pieza.tipo(), pieza.nombre(), seccion, campos);
+        String registros = pieza.registros().stream()
+                .map(this::registro)
+                .collect(Collectors.joining());
+        return "- %stipo %s, «%s»%s: %s\n%s".formatted(id, pieza.tipo(), pieza.nombre(), seccion, campos, registros);
+    }
+
+    /** Un registro ya cargado, con su id para corregirlo o borrarlo: {@code   · r1: Producto=Vela, Precio=3000}. */
+    private String registro(RegistroTaller registro) {
+        String datos = registro.datos().entrySet().stream()
+                .map(dato -> dato.getKey() + "=" + dato.getValue())
+                .collect(Collectors.joining(", "));
+        return "  · %s: %s\n".formatted(registro.id(), datos);
     }
 
     private String campo(CampoTaller campo) {

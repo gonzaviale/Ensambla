@@ -71,7 +71,7 @@ class ClienteModeloConHerramientasBedrockTest {
         assertThat(pedido.messages().getFirst().role()).isEqualTo(ConversationRole.USER);
         assertThat(pedido.messages().getFirst().content().getFirst().text()).isEqualTo("contexto");
         assertThat(pedido.inferenceConfig().maxTokens()).isEqualTo(400);
-        assertThat(pedido.inferenceConfig().temperature()).isZero();
+        assertThat(pedido.inferenceConfig().temperature()).isNull();
         assertThat(pedido.toolConfig().tools()).hasSize(1);
         assertThat(pedido.toolConfig().tools().getFirst().toolSpec().name()).isEqualTo("agregar_pieza");
         assertThat(pedido.toolConfig().tools().getFirst().toolSpec().inputSchema().json().asMap())

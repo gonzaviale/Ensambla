@@ -15,6 +15,7 @@ class ModelosTallerTest {
     @DisplayName("Las listas ausentes quedan vacías en vez de nulas")
     void constructorsShouldReplaceMissingListsWithEmptyOnes() {
         assertThat(new PiezaTaller("e1", "inventory", "Inventario", null, null).campos()).isEmpty();
+        assertThat(new PiezaTaller("e1", "inventory", "Inventario", null, null, null).registros()).isEmpty();
         assertThat(new EstadoTaller("Sistema", "mosaic", null).piezas()).isEmpty();
         assertThat(new LlamadaHerramienta("agregar_pieza", null).argumentos()).isEmpty();
     }

@@ -212,6 +212,26 @@ describe('una foto para Sami en el taller', () => {
     ]);
   });
 
+  it('Sami corrige un registro que leyó de la foto sin volver a cargarlo', async () => {
+    const { user } = await abrirTaller();
+    await clickButton(user, /Almacén o kiosco/);
+    await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
+    await adjuntar(user);
+    await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });
+    await clickButton(user, /Ajustalo conmigo/);
+    await screen.findByText(/Miré tu foto/, {}, ESPERA);
+    // Se saltean las dos dudas de la foto para escribir la corrección.
+    await clickButton(user, 'Saltear esta duda');
+    await clickButton(user, 'Saltear esta duda');
+
+    await user.type(screen.getByRole('textbox', { name: /¿Qué le falta/ }), 'El precio era 9000');
+    await clickButton(user, /Ajustalo conmigo/);
+
+    expect(await screen.findByText(/corregí el precio a 9000/, {}, ESPERA)).toBeVisible();
+    const ventas = deTipo(useSistemaStore.getState().taller?.borrador ?? undefined, 'sales').rows;
+    expect(ventas.map((fila) => fila.price)).toEqual([9000, 8200, 6000]);
+  });
+
   it('al ajustar un sistema con Sami, la foto también va y los registros leídos se guardan', async () => {
     const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
     const sistema = makeTemplate('shop', {}, false);

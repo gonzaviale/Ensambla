@@ -7,7 +7,8 @@ import { api, cuenta, pathDe } from './comun';
 // detectan por palabras y responden lo mismo que el backend: `agregar_pieza` con nombre, datos y ejemplos, `conectar`,
 // `cargar_ejemplos` y una pregunta con respuestas rápidas. Nunca devuelve `usar_kit`: eso lo expande el backend.
 // Sobre un sistema armado entiende algunos ajustes, entre ellos renombrar un dato o ponerlo primero (`editar_campo`).
-// Con una foto no la mira: responde siempre lo mismo, unas ventas «leídas» de un cuaderno (`cargar_registros`).
+// Con una foto no la mira: responde siempre lo mismo, unas ventas «leídas» de un cuaderno (`cargar_registros`); «el
+// precio era 9000» corrige la primera de esas ventas (`editar_registros`).
 
 const DEMORA_MS = import.meta.env.MODE === 'test' ? 0 : 650;
 
@@ -16,6 +17,7 @@ type Pieza = {
   tipo: string;
   nombre: string;
   campos?: { etiqueta: string; tipo: string }[];
+  registros?: { id: string; datos: Record<string, unknown> }[];
 };
 type Pedido = {
   mensaje?: string;
@@ -363,6 +365,24 @@ const respuestaALaFoto = (piezas: Pieza[]) => {
   };
 };
 
+// «El precio era 9000»: corrige la primera venta cargada (`editar_registros`), sin cargarla de nuevo.
+const correccionDePrecio = (texto: string, piezas: Pieza[]) => {
+  const precio = /precio\D*(\d+)/.exec(texto)?.[1];
+  const pieza = piezas.find((item) => item.tipo === 'sales' && item.registros?.length);
+  const registro = pieza?.registros?.[0];
+  if (!precio || !pieza || !registro) return undefined;
+  return {
+    respuesta: `Listo, corregí el precio a ${precio}.`,
+    acciones: [
+      accion('editar_registros', {
+        pieza: pieza.id,
+        registros: [{ id: registro.id, datos: { Precio: Number(precio) } }],
+      }),
+    ],
+    preguntas: [],
+  };
+};
+
 const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
   if (imagen?.datos) return respuestaALaFoto(estado?.piezas ?? []);
 
@@ -382,6 +402,9 @@ const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
       preguntas: [kit.opciones],
     };
   }
+
+  const correccion = correccionDePrecio(texto, piezas);
+  if (correccion) return correccion;
 
   const ajuste = piezas.length ? ajusteDeDato(mensaje, piezas) : undefined;
   if (ajuste) return ajuste;
