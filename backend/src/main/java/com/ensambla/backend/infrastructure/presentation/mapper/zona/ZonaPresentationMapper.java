@@ -20,7 +20,7 @@ public class ZonaPresentationMapper {
     }
 
     public AnalizarZonaRequest toAnalizarRequest(AnalizarZonaWebRequest request, UsuarioId usuarioId) {
-        return new AnalizarZonaRequest(request.lugar(), usuarioId);
+        return new AnalizarZonaRequest(request.lugar(), request.latitud(), request.longitud(), usuarioId);
     }
 
     public ZonaWebResponse toResponse(ZonaItem zona) {

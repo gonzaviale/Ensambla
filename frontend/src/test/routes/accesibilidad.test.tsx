@@ -52,6 +52,24 @@ describe('accesibilidad de las pantallas', () => {
     await sinViolaciones();
   });
 
+  it('Mi zona, en la vista «Otra zona» con el mapa y un resultado', async () => {
+    setupUsuarioConSesion();
+    renderApp('/zona');
+    await screen.findByRole('heading', { level: 1, name: /Mirá cuánto se cobra/ }, ESPERA);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('tab', { name: /Otra zona/ }));
+    await user.type(
+      screen.getByLabelText('Barrio o dirección'),
+      'Florencio Varela 1903, San Justo',
+    );
+    await user.click(screen.getByRole('button', { name: 'Buscar dirección' }));
+    await user.click(await screen.findByRole('radio', { name: /Florencio Varela 1903/ }, ESPERA));
+    await user.click(screen.getByRole('button', { name: 'Analizar la zona' }));
+    await screen.findByRole('heading', { level: 2, name: 'Precios en San Justo - UNLaM' }, ESPERA);
+    expect(screen.getByRole('region', { name: 'Mapa de la zona a analizar' })).toBeVisible();
+    await sinViolaciones();
+  });
+
   it.each(['construir', 'usar'])('editor en modo %s', async (modo) => {
     const usuario = setupUsuarioConSesion();
     const sistema = crearAlmacenDeEjemplo(hoy());
