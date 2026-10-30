@@ -15,10 +15,15 @@ import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.zona.AnalisisZona;
+import com.ensambla.backend.domain.model.zona.Zona;
+import com.ensambla.backend.domain.model.zona.ZonaId;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
+import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
+import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.support.AvisoTestData;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +35,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -56,6 +62,8 @@ class EjecutarMotorAvisosTest {
     private static final NegocioId OTRO_NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000002");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-19T12:00:00Z");
     private static final OffsetDateTime ANTES = OffsetDateTime.parse("2026-10-19T11:00:00Z");
+    private static final LocalDate HOY = LocalDate.of(2026, 10, 19);
+    private static final ZonaId ZONA_ID = ZonaId.de("e0000000-0000-4000-8000-000000000001");
 
     @Mock
     private NegocioRepository negocioRepository;
@@ -67,6 +75,12 @@ class EjecutarMotorAvisosTest {
     private RegistroRepository registroRepository;
 
     @Mock
+    private ZonaRepository zonaRepository;
+
+    @Mock
+    private AgregadoZonaRepository agregadoZonaRepository;
+
+    @Mock
     private AvisoRepository avisoRepository;
 
     @Mock
@@ -74,7 +88,7 @@ class EjecutarMotorAvisosTest {
 
     private EjecutarMotorAvisos ejecutarMotorAvisos;
 
-    private final ContextoNegocio contexto = new ContextoNegocio(NEGOCIO_ID, List.of());
+    private final ContextoNegocio contexto = contextoVacio(NEGOCIO_ID);
 
     @BeforeEach
     void setUp() {
@@ -276,7 +290,7 @@ class EjecutarMotorAvisosTest {
         ejecutarMotorAvisos.execute();
 
         verify(regla).evaluar(contexto);
-        verify(regla).evaluar(new ContextoNegocio(OTRO_NEGOCIO_ID, List.of()));
+        verify(regla).evaluar(contextoVacio(OTRO_NEGOCIO_ID));
     }
 
     @Test
@@ -291,7 +305,7 @@ class EjecutarMotorAvisosTest {
 
         assertThatCode(ejecutarMotorAvisos::execute).doesNotThrowAnyException();
 
-        verify(regla).evaluar(new ContextoNegocio(OTRO_NEGOCIO_ID, List.of()));
+        verify(regla).evaluar(contextoVacio(OTRO_NEGOCIO_ID));
     }
 
     @Test
@@ -354,10 +368,89 @@ class EjecutarMotorAvisosTest {
         assertThat(thenContextoEvaluado().inventarios()).isEmpty();
     }
 
+    @Test
+    @DisplayName("Arma las tablas de ventas con sus campos por clave y sus registros, y deja afuera las demás")
+    void executeShouldBuildVentasWithCamposAndRegistros() {
+        Registro venta = AvisoTestData.venta("producto", 1, 100, "2026-10-18", null);
+        givenProyecto(AvisoTestData.bloqueInventario(), AvisoTestData.bloqueVentas());
+        when(registroRepository.findAllByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID))
+                .thenReturn(List.of());
+        when(registroRepository.findAllByBloqueIdAndNegocioId(AvisoTestData.VENTAS_ID, NEGOCIO_ID))
+                .thenReturn(List.of(venta));
+
+        ContextoNegocio contextoArmado = thenContextoEvaluado();
+
+        assertThat(contextoArmado.inventarios()).singleElement()
+                .satisfies(inventario -> assertThat(inventario.bloque().getId()).isEqualTo(AvisoTestData.INVENTARIO_ID));
+        assertThat(contextoArmado.ventas()).singleElement().satisfies(ventas -> {
+            assertThat(ventas.bloque().getId()).isEqualTo(AvisoTestData.VENTAS_ID);
+            assertThat(ventas.camposPorClave()).containsOnlyKeys("product", "quantity", "price", "date", "customer");
+            assertThat(ventas.registros()).containsExactly(venta);
+        });
+    }
+
+    @Test
+    @DisplayName("Las filas de ejemplo de la plantilla no llegan a las reglas, ni en el inventario ni en las ventas")
+    void executeShouldLeaveOutEjemploRegistros() {
+        Registro producto = AvisoTestData.registro(UUID.randomUUID(), "Yerba", 2, 5);
+        Registro productoDeEjemplo = AvisoTestData.registro(UUID.randomUUID(), "Fideos", 0, 5);
+        productoDeEjemplo.setEsEjemplo(true);
+        Registro venta = AvisoTestData.venta("producto", 1, 100, "2026-10-18", null);
+        Registro ventaDeEjemplo = AvisoTestData.venta("producto", 9, 100, "2026-10-18", null);
+        ventaDeEjemplo.setEsEjemplo(true);
+        givenProyecto(AvisoTestData.bloqueInventario(), AvisoTestData.bloqueVentas());
+        when(registroRepository.findAllByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID))
+                .thenReturn(List.of(producto, productoDeEjemplo));
+        when(registroRepository.findAllByBloqueIdAndNegocioId(AvisoTestData.VENTAS_ID, NEGOCIO_ID))
+                .thenReturn(List.of(venta, ventaDeEjemplo));
+
+        ContextoNegocio contextoArmado = thenContextoEvaluado();
+
+        assertThat(contextoArmado.inventarios().getFirst().registros()).containsExactly(producto);
+        assertThat(contextoArmado.ventas().getFirst().registros()).containsExactly(venta);
+    }
+
+    @Test
+    @DisplayName("Le pasa a las reglas los agregados de la zona del negocio")
+    void executeShouldBuildZonaOfNegocio() {
+        Zona zona = Zona.builder().id(ZONA_ID).nombre("San Justo").build();
+        AnalisisZona analisis = new AnalisisZona("San Justo", 8, List.of());
+        when(negocioRepository.findZonaIdById(NEGOCIO_ID)).thenReturn(Optional.of(ZONA_ID));
+        when(zonaRepository.findById(ZONA_ID)).thenReturn(Optional.of(zona));
+        when(agregadoZonaRepository.analizar(zona)).thenReturn(analisis);
+
+        assertThat(thenContextoEvaluado().zona()).isEqualTo(analisis);
+    }
+
+    @Test
+    @DisplayName("Sin zona asignada, las reglas reciben una zona vacía")
+    void executeShouldUseEmptyZonaWhenNegocioHasNone() {
+        when(negocioRepository.findZonaIdById(NEGOCIO_ID)).thenReturn(Optional.empty());
+
+        assertThat(thenContextoEvaluado().zona()).isEqualTo(AnalisisZona.sinZona());
+    }
+
+    @Test
+    @DisplayName("El día de hoy es el de la hora argentina, aunque en UTC ya sea el día siguiente")
+    void executeShouldUseArgentinaDateForHoy() {
+        ejecutarMotorAvisos = motor(List.of(regla), OffsetDateTime.parse("2026-10-20T01:00:00Z"));
+
+        assertThat(thenContextoEvaluado().hoy()).isEqualTo(HOY);
+    }
+
     // --- arrange ---
     private EjecutarMotorAvisos motor(List<ReglaAviso> reglas) {
+        return motor(reglas, AHORA);
+    }
+
+    private EjecutarMotorAvisos motor(List<ReglaAviso> reglas, OffsetDateTime ahora) {
         return new EjecutarMotorAvisos(negocioRepository, reglas, proyectoRepository, registroRepository,
-                avisoRepository, new TransaccionDirecta(), Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
+                zonaRepository, agregadoZonaRepository, avisoRepository, new TransaccionDirecta(),
+                Clock.fixed(ahora.toInstant(), ZoneOffset.UTC));
+    }
+
+    private static ContextoNegocio contextoVacio(NegocioId negocioId) {
+        return new ContextoNegocio(negocioId, HOY, List.of(), List.of(), AnalisisZona.sinZona());
     }
 
     private void givenProyecto(Bloque... bloques) {

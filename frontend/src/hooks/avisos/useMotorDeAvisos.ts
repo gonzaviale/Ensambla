@@ -3,8 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import { http } from '@/api/client';
 import { desbloquearAvisos } from '@/api/contenidoPlan';
+import { env } from '@/config/env';
 import { analizar } from '@/lib/sistema/alertas';
-import { aAvisoDeSami } from '@/lib/sistema/avisosServidor';
+import { aAvisoDeSami, tiposCubiertosPorElServidor } from '@/lib/sistema/avisosServidor';
 import { hoy } from '@/lib/sistema/formato';
 import { useAvisosDelServidor } from '@/hooks/avisos/queries';
 import { usePreferencias } from '@/hooks/preferencias/queries';
@@ -13,24 +14,34 @@ import { useSistemaStore } from '@/stores/sistemaStore';
 
 // El motor de avisos de Sami: reúne los que calcula en el navegador (a partir de los sistemas y la zona) con los
 // que el motor del servidor dejó pendientes, los deja en el store y, si apareció alguno nuevo, lo muestra un rato.
-// Cada aviso del servidor lleva el id de su cuenta, así que no se pisa con los del navegador.
+// Cada aviso del servidor lleva el id de su cuenta, así que no se pisa con los del navegador; los tipos que cubre el
+// servidor (ver tiposCubiertosPorElServidor) no se muestran también desde el navegador.
 export function useMotorDeAvisos() {
   const sistemas = useSistemaStore((estado) => estado.sistemas);
   const zona = useZona();
   const { grupos, descartadas } = usePreferencias();
-  const { avisos: delServidor, cargando: avisosCargando } = useAvisosDelServidor();
+  const { avisos: delServidor, cargando: avisosCargando, respondio } = useAvisosDelServidor();
   const vistos = useRef<Set<string> | null>(null);
 
   const candidatos = useMemo(() => {
     const nombres = new Map(sistemas.map((sistema) => [sistema.id, sistema.name]));
-    const locales = analizar({ sistemas, zona, hoy: hoy(), grupos }).filter(
-      (aviso) => !descartadas.includes(aviso.id),
-    );
     const remotos = delServidor
       .map((aviso) => aAvisoDeSami(aviso, nombres))
       .filter((aviso) => grupos[aviso.grupo] !== false);
+    // Los avisos de un tipo que el servidor cubre (producto estancado, combos…) no se calculan también en el
+    // navegador: serían los mismos avisos duplicados, y uno descartado o aplicado volvería a aparecer. Con el backend
+    // real, esos tipos son siempre del servidor, también mientras todavía no contestó (si no, las copias del navegador
+    // aparecerían un momento y desaparecerían); en el modo demo (todo simulado) o si el servidor falla, el navegador
+    // sigue calculándolos.
+    const cubiertos = tiposCubiertosPorElServidor(
+      remotos,
+      env.mocks !== 'completo' && (respondio || avisosCargando),
+    );
+    const locales = analizar({ sistemas, zona, hoy: hoy(), grupos }).filter(
+      (aviso) => !descartadas.includes(aviso.id) && !cubiertos.has(aviso.tipo),
+    );
     return { locales, remotos };
-  }, [sistemas, zona, grupos, descartadas, delServidor]);
+  }, [sistemas, zona, grupos, descartadas, delServidor, respondio, avisosCargando]);
 
   const claves = candidatos.locales.map((aviso) => `local:${aviso.id}`);
   const acceso = useQuery({

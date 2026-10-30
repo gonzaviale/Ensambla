@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.model.zona.ZonaId;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,6 +16,9 @@ public interface NegocioRepository {
     Optional<Negocio> findByDuenioId(UsuarioId usuarioId);
 
     Optional<Negocio> findByDuenioIdParaActualizar(UsuarioId usuarioId);
+
+    /** Zona a la que pertenece el negocio; vacío si el negocio no existe o todavía no tiene zona. */
+    Optional<ZonaId> findZonaIdById(NegocioId negocioId);
 
     Negocio save(Negocio negocio);
 

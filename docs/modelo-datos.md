@@ -203,7 +203,7 @@ se vuelve a crear.
 **Motor de monitoreo.** `MonitoreoAvisosWorker` corre `EjecutarMotorAvisos` cada `ensambla.avisos.motor.intervalo` ms
 (5 minutos por defecto; se apaga con `ensambla.avisos.motor.habilitado=false`). `MotorAvisosService` recibe todas las `ReglaAviso`
 registradas como bean, así que una regla nueva no toca el motor. Por cada negocio crea los avisos nuevos, actualiza los que
-cambiaron, reactiva los vencidos y vence los pendientes que la regla ya no detecta. Hoy hay una regla, `ReglaStockBajo`.
+cambiaron, reactiva los vencidos y vence los pendientes que la regla ya no detecta. Las reglas actuales (`ReglaStockBajo`, `ReglaProductoEstancado`) están descriptas en [`avisos-reglas.md`](avisos-reglas.md).
 
 **API.** `GET /api/avisos[?estado=]` (pendientes primero, del más urgente al menos urgente), `GET /api/avisos/contador`,
 `POST /api/avisos/{id}/aplicar` y `POST /api/avisos/{id}/descartar`. Aplicar ejecuta la acción sugerida (`EDITAR_REGISTRO` cambia

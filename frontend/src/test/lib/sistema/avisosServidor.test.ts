@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aAvisoDeSami } from '@/lib/sistema/avisosServidor';
+import { aAvisoDeSami, tiposCubiertosPorElServidor } from '@/lib/sistema/avisosServidor';
 import { avisoDelServidor } from '@/test/avisosData';
 
 const PROYECTO_ID = 'c0000000-0000-4000-8000-000000000001';
@@ -81,5 +81,27 @@ describe('aAvisoDeSami', () => {
         confirmacion: 'Listo, aplicamos el cambio.',
       },
     ]);
+  });
+});
+
+describe('tiposCubiertosPorElServidor', () => {
+  const delServidor = (...tipos: Array<'STOCK' | 'ESTANCADO'>) =>
+    tipos.map((tipo) => aAvisoDeSami(avisoDelServidor({ tipo }), new Map()));
+
+  it('sin motor activo sólo cubre los tipos que el servidor ya trajo', () => {
+    expect([...tiposCubiertosPorElServidor(delServidor('ESTANCADO'), false)]).toEqual(['estancado']);
+    expect(tiposCubiertosPorElServidor([], false).size).toBe(0);
+  });
+
+  it('con el motor activo cubre siempre estancado y combo, aunque no haya ninguno pendiente', () => {
+    // Un aviso aplicado o descartado ya no está en la lista: la copia del navegador no puede volver a mostrarlo.
+    expect([...tiposCubiertosPorElServidor([], true)].sort()).toEqual(['combo', 'estancado']);
+  });
+
+  it('con el motor activo suma los tipos que trajo el servidor a los que ya cubre', () => {
+    const cubiertos = tiposCubiertosPorElServidor(delServidor('STOCK', 'ESTANCADO'), true);
+
+    expect([...cubiertos].sort()).toEqual(['combo', 'estancado', 'stock']);
+    expect(cubiertos.has('muy_vendido')).toBe(false);
   });
 });
