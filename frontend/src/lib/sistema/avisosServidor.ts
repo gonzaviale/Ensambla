@@ -5,7 +5,7 @@ const PREFIJO = 'servidor:';
 const SISTEMA_SIN_NOMBRE = 'Tu negocio';
 
 // El aviso del servidor llega con ids del backend (proyecto, tabla, registro): el proyecto es el «sistema» de
-// la pantalla. Aplicar un cambio de datos lo hace el servidor; registrar y abrir sólo llevan a la tabla.
+// la pantalla. Aplicar un cambio de datos (editar un precio, crear un combo) lo hace el servidor; registrar y abrir sólo llevan a la tabla.
 function aAccion(accion: AccionDelServidor, avisoId: string): AccionDeAviso {
   const sistemaId = accion.proyectoId ?? '';
   const bloqueId = accion.bloqueId ?? '';
@@ -16,6 +16,13 @@ function aAccion(accion: AccionDelServidor, avisoId: string): AccionDeAviso {
         texto: accion.texto ?? 'Aplicar el cambio',
         avisoId,
         confirmacion: 'Listo, aplicamos el cambio.',
+      };
+    case 'CREAR_REGISTRO':
+      return {
+        tipo: 'servidor',
+        texto: accion.texto ?? 'Crear el combo',
+        avisoId,
+        confirmacion: 'Listo, creamos el combo.',
       };
     case 'REGISTRAR':
       return { tipo: 'registrar', texto: accion.texto ?? 'Registrar entrada', sistemaId, bloqueId };

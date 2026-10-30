@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.aviso.ReglaAviso;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
@@ -12,6 +13,8 @@ import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
+import com.ensambla.backend.domain.useCase.aviso.ResolverAvisoRequest;
+import com.ensambla.backend.domain.useCase.aviso.aplicarAviso.AplicarAviso;
 import com.ensambla.backend.domain.useCase.aviso.ejecutarMotorAvisos.EjecutarMotorAvisos;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
@@ -85,6 +88,9 @@ class MotorAvisosDatosPruebaTest {
 
     @Autowired
     private AvisoRepository avisoRepository;
+
+    @Autowired
+    private AplicarAviso aplicarAviso;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -209,6 +215,45 @@ class MotorAvisosDatosPruebaTest {
         ejecutarMotor(NegocioId.de(demoId), OffsetDateTime.now().plusMinutes(5));
 
         assertThat(pendientesDe(demoId, TipoAviso.ESTANCADO)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("El alfajor y las galletitas del demo, que salen poco pero siempre juntos, reciben el aviso de combo")
+    void executeShouldCreateComboAvisoForAlfajorAndGalletitasOfDemo() {
+        UUID demoId = negocioDemo();
+
+        ejecutarMotor(NegocioId.de(demoId), OffsetDateTime.now());
+
+        assertThat(pendientesDe(demoId, TipoAviso.COMBO)).singleElement().satisfies(aviso -> {
+            assertThat(aviso.getTitulo()).endsWith(" se venden juntos")
+                    .contains("Alfajor Jorgito").contains("Galletitas Criollitas 3 U");
+            assertThat(aviso.getPrioridad()).isEqualTo((short) 1);
+            assertThat(aviso.getDetalle()).contains("4 veces");
+            assertThat(aviso.getAcciones().toString()).contains("CREAR_REGISTRO").contains("Crear el combo");
+        });
+    }
+
+    @Test
+    @DisplayName("Aplicar el combo crea el producto en el inventario y el aviso vence en la corrida siguiente")
+    void aplicarShouldCreateComboProductWhenAvisoIsApplied() {
+        UUID demoId = negocioDemo();
+        jdbc.update("UPDATE suscripcion SET plan_id = (SELECT id FROM plan WHERE codigo = 'PREMIUM')"
+                + " WHERE negocio_id = ?", demoId);
+        ejecutarMotor(NegocioId.de(demoId), OffsetDateTime.now());
+        Aviso combo = pendientesDe(demoId, TipoAviso.COMBO).getFirst();
+        UsuarioId duenio = UsuarioId.de(jdbc.queryForObject(
+                "SELECT duenio_id FROM negocio WHERE id = ?", UUID.class, demoId));
+
+        aplicarAviso.execute(new ResolverAvisoRequest(duenio, combo.getId()));
+        entityManager.flush();
+        entityManager.clear();
+        ejecutarMotor(NegocioId.de(demoId), OffsetDateTime.now().plusMinutes(5));
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM registro WHERE negocio_id = ?"
+                + " AND valores::text LIKE '%\"Combo %'", Integer.class, demoId))
+                .isEqualTo(1);
+        assertThat(pendientesDe(demoId, TipoAviso.COMBO)).isEmpty();
+        assertThat(pendientesDe(demoId, TipoAviso.STOCK)).noneMatch(aviso -> aviso.getTitulo().contains("Combo"));
     }
 
     private UUID negocioDemo() {

@@ -1,7 +1,9 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
+import com.ensambla.backend.domain.model.aviso.CanastasVentas;
 import com.ensambla.backend.domain.model.aviso.MetricasVentas;
 import com.ensambla.backend.domain.model.aviso.ReglaAviso;
+import com.ensambla.backend.domain.model.aviso.ReglaCombo;
 import com.ensambla.backend.domain.model.aviso.ReglaProductoEstancado;
 import com.ensambla.backend.domain.model.aviso.ReglaStockBajo;
 import com.ensambla.backend.domain.port.TransaccionPort;
@@ -99,5 +101,18 @@ public class AvisoUseCaseConfig {
     @Bean
     public ReglaProductoEstancado reglaProductoEstancado(MetricasVentas metricasVentas) {
         return new ReglaProductoEstancado(metricasVentas);
+    }
+
+    /** Un par cuenta como combo si el mismo cliente se llevó los dos el mismo día al menos {@code combo-minimo-veces}. */
+    @Bean
+    public CanastasVentas canastasVentas(
+            @Value("${ensambla.avisos.periodo-dias:30}") int periodoDias,
+            @Value("${ensambla.avisos.combo-minimo-veces:3}") int minimoVeces) {
+        return new CanastasVentas(periodoDias, minimoVeces);
+    }
+
+    @Bean
+    public ReglaCombo reglaCombo(MetricasVentas metricasVentas, CanastasVentas canastasVentas) {
+        return new ReglaCombo(metricasVentas, canastasVentas);
     }
 }

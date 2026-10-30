@@ -62,6 +62,31 @@ anotó ninguna venta, no avisa (no se puede saber qué se mueve). La entidad es 
 La acción «Rebajar a $X» es un `EDITAR_REGISTRO` que cambia `price`; al aplicarla el precio baja, la regla deja de detectar el
 producto y el aviso vence solo.
 
+## «Misma venta»: mismo cliente y mismo día
+
+Como las ventas no tienen ticket, una **canasta** (lo que se llevó una persona en una compra) es el conjunto de productos vendidos al
+mismo `customer` el mismo `date`. Las ventas sin cliente no forman canasta. Es la misma definición que usa el frontend para calcular
+combos en el navegador (`lib/sistema/alertas.ts`). Un producto anotado varias veces en la misma canasta cuenta una vez.
+
+## COMBO · Combos de productos de baja rotación (`ReglaCombo`)
+
+Avisa de dos productos de la misma tabla de inventario que estuvieron juntos en una canasta al menos
+`ensambla.avisos.combo-minimo-veces` veces (3 por defecto) dentro del período, y de los que **al menos uno rota poco**.
+
+- **Precio del combo**: la suma de los dos precios por 0,9 (10 % menos), redondeada a la decena; si no queda por debajo de la suma, no hay
+  aviso. El costo es la suma de los costos cargados (se omite si no hay ninguno).
+- **No avisa** si el inventario ya tiene un producto «combo» que nombra a los dos (por la primera palabra significativa de cada nombre).
+- La entidad es `combo:<idA>:<idB>` (ids ordenados) y los datos son `{precioA, precioB, sugerido}`: las veces que salieron juntos no
+  entran en la huella.
+- La acción «Crear el combo» es un `CREAR_REGISTRO`. El combo nace con **precio** (el sugerido), **costo** (si hay) y **cantidad = el menor
+  stock de los dos productos** (las unidades que se pueden armar hoy; nunca negativa). No nace en cero porque la regla de stock le diría
+  enseguida «Te quedaste sin…» a un producto recién creado. El stock del combo no descuenta el de sus componentes: la persona lo ajusta.
+- `AplicarAviso` toma la primera acción `EDITAR_REGISTRO` o `CREAR_REGISTRO` y, para crear, traduce los valores por clave de campo
+  (`name`, `quantity`, `price`, `cost`) y crea la fila en la tabla de la acción, con las mismas validaciones y límites del plan que una carga
+  manual. Una tabla de otro negocio no devuelve campos y se rechaza. Al correr de nuevo el motor, el combo ya existe y el aviso vence.
+- En el demo (V10) alfajor y galletitas salen 4 veces juntos; con el factor 0,5 ambos quedan justo en el borde de baja rotación (4
+  unidades contra una mediana de 8 del resto), por eso el factor no se tocó.
+
 ## Qué ve la persona: avisos del servidor y del navegador
 
 El frontend (`useMotorDeAvisos`) junta los avisos del servidor con los que Sami calcula en el navegador. Para no duplicar ni resucitar

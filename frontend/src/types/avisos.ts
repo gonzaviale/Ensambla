@@ -4,11 +4,13 @@ import { z } from 'zod';
 // en el servidor: el motor corre solo, y aplicar o descartar se guarda en la cuenta.
 export const accionDelServidorSchema = z
   .object({
-    tipo: z.enum(['EDITAR_REGISTRO', 'REGISTRAR', 'ABRIR']),
+    tipo: z.enum(['EDITAR_REGISTRO', 'CREAR_REGISTRO', 'REGISTRAR', 'ABRIR']),
     texto: z.string().optional(),
     proyectoId: z.string().optional(),
     bloqueId: z.string().optional(),
     registroId: z.string().optional(),
+    // Lo que el servidor cambia o crea, por clave de campo (p. ej. { price: 1850 }).
+    valores: z.record(z.string(), z.unknown()).optional(),
   })
   .passthrough();
 

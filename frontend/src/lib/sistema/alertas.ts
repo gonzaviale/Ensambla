@@ -457,6 +457,8 @@ function avisosDeCombo(
     if (yaExiste) continue;
     const precio = aDiez((numero(a.price) + numero(b.price)) * 0.9);
     const costo = numero(a.cost) + numero(b.cost);
+    // Lo que se puede armar con lo que hay; si naciera en cero, el aviso de stock diría que "te quedaste sin" el combo.
+    const armables = Math.max(0, Math.min(numero(a.quantity), numero(b.quantity)));
     sumar({
       id: `combo:${a.id}:${b.id}`,
       tipo: 'combo',
@@ -467,7 +469,7 @@ function avisosDeCombo(
       detalle: `Los dos salen poco por separado, pero ${veces} veces se los llevó el mismo cliente el mismo día.`,
       porque: [
         `Por separado suman ${pesos(numero(a.price) + numero(b.price))}; como combo, ${pesos(precio)} (10% menos) puede ayudar a que roten.`,
-        'El combo se crea como un producto nuevo del inventario; después cargás cuántos armás.',
+        'El combo se crea como un producto nuevo del inventario, con las unidades que podés armar hoy con tu stock.',
       ],
       acciones: [
         {
@@ -477,7 +479,7 @@ function avisosDeCombo(
           bloqueId: inventario.id,
           valores: {
             name: `Combo ${nombreA} + ${nombreB}`,
-            quantity: 0,
+            quantity: armables,
             price: precio,
             cost: costo || '',
             minimum: '',

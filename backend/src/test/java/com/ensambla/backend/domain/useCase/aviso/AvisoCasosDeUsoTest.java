@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import java.time.Clock;
@@ -44,6 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -58,6 +61,7 @@ class AvisoCasosDeUsoTest {
     private static final AvisoId AVISO_ID = AvisoId.de("e0000000-0000-4000-8000-000000000001");
     private static final RegistroId REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
     private static final CampoId CAMPO_PRECIO_ID = CampoId.de("f0000000-0000-4000-8000-000000000009");
+    private static final CampoId CAMPO_NOMBRE_ID = AvisoTestData.CAMPO_NOMBRE_ID;
     private static final Instant INSTANTE = Instant.parse("2026-10-19T12:00:00Z");
     private static final OffsetDateTime AHORA = OffsetDateTime.ofInstant(INSTANTE, ZoneOffset.UTC);
     private static final Clock CLOCK = Clock.fixed(INSTANTE, ZoneOffset.UTC);
@@ -241,6 +245,89 @@ class AvisoCasosDeUsoTest {
         verify(registroDatosService, never()).editar(any(), any(), any(), any());
     }
 
+    @Test
+    @DisplayName("Una acción sin tipo, o con un tipo que no es texto, no toca ningún dato")
+    void aplicarShouldIgnoreActionsWithoutValidTipo() {
+        givenGuardado(givenAvisoConAcciones(Map.of("registroId", REGISTRO_ID.toString()), Map.of("tipo", 7)));
+
+        aplicar();
+
+        verifyNoInteractions(registroDatosService, campoRepository, registroRepository);
+    }
+
+    @Test
+    @DisplayName("Crear registro crea la fila en la tabla de la acción usando la clave de cada campo y la valida como una carga manual")
+    void aplicarShouldCreateRegistroByCampoClave() {
+        Aviso aviso = givenGuardado(givenAvisoConAcciones(crearCombo(Map.of(
+                "name", "Combo A + B", "price", 1850, "color", "rojo"))));
+        List<Campo> campos = givenCamposDeInventario();
+
+        aplicar();
+
+        InOrder orden = inOrder(registroDatosService, controlPlanService, registroRepository, avisoRepository);
+        Map<String, Object> esperados = Map.of(CAMPO_NOMBRE_ID.toString(), "Combo A + B",
+                CAMPO_PRECIO_ID.toString(), 1850);
+        orden.verify(registroDatosService).validarConexiones(NEGOCIO_ID, campos, esperados);
+        orden.verify(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 1, AHORA);
+        ArgumentCaptor<Registro> creado = ArgumentCaptor.forClass(Registro.class);
+        orden.verify(registroRepository).save(creado.capture());
+        orden.verify(avisoRepository).save(aviso);
+        assertThat(creado.getValue().getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(creado.getValue().getBloqueId()).isEqualTo(AvisoTestData.INVENTARIO_ID);
+        assertThat(creado.getValue().getValores()).isEqualTo(esperados);
+    }
+
+    @Test
+    @DisplayName("Rechaza una acción de creación con una tabla que no es un id")
+    void aplicarShouldThrowWhenBloqueIdIsInvalid() {
+        givenGuardado(givenAvisoConAcciones(Map.of("tipo", "CREAR_REGISTRO", "bloqueId", "no-es-un-id",
+                "valores", Map.of("name", "Combo"))));
+
+        assertThatThrownBy(this::aplicar)
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("La acción del aviso no indica en qué tabla crear");
+        verifyNoInteractions(registroRepository);
+    }
+
+    @Test
+    @DisplayName("Rechaza crear en una tabla ajena o que ya no existe, porque no devuelve campos")
+    void aplicarShouldThrowWhenBloqueHasNoCampos() {
+        when(campoRepository.findByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID))
+                .thenReturn(List.of());
+        givenGuardado(givenAvisoConAcciones(crearCombo(Map.of("name", "Combo"))));
+
+        assertThatThrownBy(this::aplicar)
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("La tabla del aviso ya no existe");
+        verifyNoInteractions(registroRepository);
+    }
+
+    @Test
+    @DisplayName("Rechaza una acción de creación cuyos campos ya no existen en la tabla")
+    void aplicarShouldThrowWhenCreatedCamposNoLongerExist() {
+        givenCamposDeInventario();
+        givenGuardado(givenAvisoConAcciones(crearCombo(Map.of("color", "rojo"))));
+
+        assertThatThrownBy(this::aplicar)
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("La tabla ya no tiene los campos que el aviso quería cambiar");
+        verifyNoInteractions(registroRepository);
+    }
+
+    @Test
+    @DisplayName("Crear el registro respeta el cupo del plan: sin lugar no crea la fila ni guarda el aviso como aplicado")
+    void aplicarShouldNotCreateRegistroWhenPlanQuotaIsExceeded() {
+        givenCamposDeInventario();
+        givenGuardado(givenAvisoConAcciones(crearCombo(Map.of("name", "Combo A + B"))));
+        doThrow(new BusinessRuleException("Llegaste al límite de tu plan"))
+                .when(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 1, AHORA);
+
+        assertThatThrownBy(this::aplicar)
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("Llegaste al límite de tu plan");
+        verifyNoInteractions(registroRepository);
+    }
+
     // --- descartar ---
 
     @Test
@@ -271,6 +358,25 @@ class AvisoCasosDeUsoTest {
 
     private static Map<String, Object> editarPrecio(Map<String, Object> valores) {
         return Map.of("tipo", "EDITAR_REGISTRO", "registroId", REGISTRO_ID.toString(), "valores", valores);
+    }
+
+    /** Nombre (texto) y precio (moneda) del inventario, con tipo, porque la creación valida como una carga manual. */
+    private List<Campo> givenCamposDeInventario() {
+        List<Campo> campos = List.of(
+                campoTipado(CAMPO_NOMBRE_ID, "name", TipoCampo.TEXTO),
+                campoTipado(CAMPO_PRECIO_ID, "price", TipoCampo.MONEDA));
+        when(campoRepository.findByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID)).thenReturn(campos);
+        return campos;
+    }
+
+    private static Campo campoTipado(CampoId id, String clave, TipoCampo tipo) {
+        return Campo.builder().id(id).negocioId(NEGOCIO_ID).bloqueId(AvisoTestData.INVENTARIO_ID).clave(clave)
+                .tipo(tipo).obligatorio(false).build();
+    }
+
+    private static Map<String, Object> crearCombo(Map<String, Object> valores) {
+        return Map.of("tipo", "CREAR_REGISTRO", "bloqueId", AvisoTestData.INVENTARIO_ID.toString(),
+                "valores", valores);
     }
 
     private static Aviso givenAvisoConAcciones(Object... acciones) {
