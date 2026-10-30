@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.useCase.plan.PruebaPremiumResponse;
 import com.ensambla.backend.domain.useCase.plan.consultarPlanes.ConsultarPlanes;
 import com.ensambla.backend.domain.useCase.plan.iniciarPrueba.IniciarPrueba;
+import com.ensambla.backend.domain.useCase.plan.listarCatalogoPlanes.ListarCatalogoPlanes;
 import com.ensambla.backend.domain.useCase.plan.iniciarPrueba.IniciarPruebaRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.plan.PlanPresentationMapper;
@@ -30,7 +31,8 @@ class PlanControllerTest {
 
     private final IniciarPrueba iniciarPrueba = mock(IniciarPrueba.class);
     private final MockMvc mockMvc = MockMvcDePrueba.standalone(
-            new PlanController(iniciarPrueba, new PlanPresentationMapper(), mock(ConsultarPlanes.class)))
+            new PlanController(iniciarPrueba, new PlanPresentationMapper(),
+                    mock(ConsultarPlanes.class), mock(ListarCatalogoPlanes.class)))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
 
     @Test

@@ -46,6 +46,7 @@ public class SecurityConfig {
             throws Exception {
         PathPatternRequestMatcher.Builder paths = PathPatternRequestMatcher.withDefaults();
         RequestMatcher rutasPublicas = new OrRequestMatcher(
+                paths.matcher(HttpMethod.GET, "/api/planes/catalogo"),
                 paths.matcher(HttpMethod.GET, "/api/plantillas"),
                 paths.matcher(HttpMethod.GET, "/api/plantillas/**"),
                 paths.matcher("/swagger-ui.html"),

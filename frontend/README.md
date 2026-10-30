@@ -42,7 +42,8 @@ simulada persiste en `localStorage`. Detalle en [../docs/ui-mockup.md](../docs/u
 
 ## Planes y prueba premium (ENS-97)
 
-La opción «Planes» abre `/planes`, con sesión obligatoria. Muestra catálogo y precio configurado,
+La opción «Planes» abre `/planes` con o sin sesión. Visitantes consultan únicamente
+`GET /api/planes/catalogo`; suscripción, prueba y consumo siguen siendo privados. Muestra catálogo y precio configurado,
 plan efectivo, consumo y estado de prueba desde `GET /api/planes`. Mientras no se defina precio/moneda,
 Premium muestra «Precio por definir». ENS-98 configura ARS 14.900 cada treinta días y agrega
 contratación y cancelación; los botones de cobro se habilitan sólo si el backend tiene configurado el proveedor.
@@ -123,3 +124,20 @@ activación de prueba, contratación, cancelación y restricciones comerciales c
 Las verificaciones externas pendientes de Mercado Pago se detallan en [ENS-98](../docs/plan-ENS-98.md).
 
 <!-- prueba: dispara ci-frontend sin Vercel -->
+
+## Home y planes (ENS-244, 26/10/2026)
+
+Con tablas armadas, Inicio prioriza las métricas del cuaderno elegido y reutiliza la franja de
+sugerencias de Sami de ese cuaderno. Mis cuadernos mantiene su pantalla separada. Los objetivos
+se guardan localmente por usuario y cuaderno y muestran progreso al visitar Inicio; no envían
+notificaciones con la app cerrada ni se sincronizan entre dispositivos.
+
+Las ventas registradas son cantidad por precio, sin mezclar importes de Pedidos ni llamarlas
+ganancia o cobros. Se excluyen filas de ejemplo y almacenes de demostración. Los indicadores de
+stock cuentan productos por debajo o iguales al mínimo configurado, sin sumar unidades distintas.
+
+Planes comparte tarjetas entre visitantes y cuentas, con suscripción y renovación solo con sesión.
+Se muestra únicamente modalidad mensual hasta que exista una tarifa anual aprobada. Reportes
+filtrados permanece Premium. Los mensajes de cupo conservan un enlace discreto cuando hay
+contenido bloqueado, sin invitar a suscribirse en cada acción básica. Las tarjetas siguen siendo
+reutilizables desde Mi Zona.

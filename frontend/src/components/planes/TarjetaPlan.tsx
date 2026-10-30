@@ -1,5 +1,5 @@
+import { Link } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
-import { GestionRenovacion } from './GestionRenovacion';
 import { Icon } from '@/components/sistema/Icon';
 import type { Plan } from '@/types/planes';
 
@@ -11,7 +11,7 @@ const FUNCIONES = [
 
 function limite(valor: number | null, configurado: boolean) {
   if (!configurado) return 'Por definir';
-  return valor === null ? 'Sin límite comercial' : valor.toLocaleString('es-AR');
+  return valor === null ? 'Sin tope' : valor.toLocaleString('es-AR');
 }
 
 function precio(plan: Plan) {
@@ -26,16 +26,18 @@ function precio(plan: Plan) {
 
 type TarjetaPlanProps = {
   plan: Plan;
-  actual: boolean;
-  pruebaActiva: boolean;
-  puedeIniciar: boolean;
-  activando: boolean;
-  pruebaUtilizada: boolean;
-  onIniciar: () => void;
+  publica?: boolean;
+  actual?: boolean;
+  pruebaActiva?: boolean;
+  puedeIniciar?: boolean;
+  activando?: boolean;
+  pruebaUtilizada?: boolean;
+  onIniciar?: () => void;
 };
 
 export function TarjetaPlan({
   plan,
+  publica = false,
   actual,
   pruebaActiva,
   puedeIniciar,
@@ -85,8 +87,8 @@ export function TarjetaPlan({
           <dd>{limite(plan.limitePaginasIaMensuales, plan.limitesConfigurados)}</dd>
         </div>
         <div>
-          <dt>Avisos por mes</dt>
-          <dd>{premium ? 'Todos los disponibles' : '3'}</dd>
+          <dt>Sugerencias</dt>
+          <dd>{premium ? 'Sin tope mensual' : 'Limitadas: 3 por mes'}</dd>
         </div>
         <div>
           <dt>Recomendaciones de Mi zona y Otra zona por mes</dt>
@@ -113,7 +115,18 @@ export function TarjetaPlan({
           );
         })}
       </ul>
-      {premium ? (
+      {publica ? (
+        <div className="plan-card-bottom">
+          <Link to="/registro" className={`btn ${premium ? 'primary' : 'secondary'} full`}>
+            {premium ? 'Crear cuenta y conocer Premium' : 'Empezar gratis'}
+          </Link>
+          <p>
+            {premium
+              ? 'Prueba opcional de 7 días, con 10 páginas de IA en total.'
+              : 'Sin tarjeta y sin vencimiento.'}
+          </p>
+        </div>
+      ) : premium ? (
         <div className="plan-card-bottom">
           <Btn cls="primary full" disabled={!puedeIniciar || activando} onClick={onIniciar}>
             {activando
@@ -131,7 +144,6 @@ export function TarjetaPlan({
           <p>
             La prueba incluye <strong>10 páginas de IA en total</strong>, durante los 7 días.
           </p>
-          <GestionRenovacion />
         </div>
       ) : (
         <p className="plan-card-bottom plan-free-note">

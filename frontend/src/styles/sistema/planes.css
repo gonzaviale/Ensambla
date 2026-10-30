@@ -152,19 +152,20 @@
   flex-direction: column;
   padding: 30px;
   border-radius: 24px;
-  border: 1px solid var(--line);
-  background: var(--cream);
+  border: 2px solid var(--petrol);
+  background: white;
 }
 .plan-card-premium {
-  background: var(--petrol);
-  color: white;
+  background: var(--cream);
+  color: var(--ink);
+  box-shadow: inset 0 6px 0 var(--petrol);
   border-color: var(--petrol);
 }
 .plan-card-premium p {
-  color: #e6f3f7;
+  color: var(--ink);
 }
 .plan-card-premium .plan-price {
-  color: white;
+  color: var(--ink);
 }
 .plan-card-top {
   display: flex;
@@ -227,7 +228,7 @@
   font-size: 13px;
 }
 .plan-card-premium .plan-limits > div {
-  border-color: #ffffff38;
+  border-color: var(--line);
 }
 .plan-limits dd {
   margin: 0;
@@ -256,7 +257,7 @@
   color: #75685f;
 }
 .plan-card-premium .plan-feature-excluded {
-  color: #d9e9ef;
+  color: #75685f;
 }
 .plan-card-bottom {
   margin-top: auto;
@@ -273,9 +274,9 @@
 }
 .plan-card-premium .btn:disabled {
   opacity: 1;
-  background: #ffffff20;
-  border-color: #ffffff38;
-  color: #fff;
+  background: #e6e8e8;
+  border-color: var(--line);
+  color: var(--ink);
 }
 .plans-reassurance {
   display: flex;
@@ -447,7 +448,66 @@
   margin: 0;
 }
 
-/* La versión chica, al pie de una lista (avisos, Mi zona) */
+.plan-label,
+.plan-price-detail,
+.plan-limits > div,
+.plan-features,
+.plan-usage-note,
+.plan-usage dt,
+.plan-usage dd span,
+.plans-section-heading p,
+.plan-card-bottom p,
+.plan-free-note {
+  font-size: 14px;
+}
+.plan-card-top {
+  min-height: 48px;
+}
+.plan-card-description {
+  min-height: 48px;
+}
+.plan-card-bottom .btn {
+  min-height: 48px;
+  white-space: normal;
+  text-align: center;
+}
+.plan-card-premium .plan-card-bottom .btn.primary {
+  background: var(--petrol);
+  color: white;
+  border-color: var(--petrol);
+}
+.plan-card-premium .plan-card-bottom .btn:disabled {
+  background: #e6e8e8;
+  color: #526268;
+  border-color: #b5bfc1;
+}
+.plans-heading p {
+  font-size: 18px;
+}
+.plan-limits dd {
+  overflow-wrap: normal;
+}
+.plans-renovacion {
+  margin-top: 28px;
+}
+@media (max-width: 600px) {
+  .plans-section-heading {
+    align-items: start;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .plan-card {
+    padding: 22px;
+  }
+}
+
+@media (max-width: 600px) {
+  .plan-limits > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(100px, 0.7fr);
+  }
+}
+
 .contenido-premium.compacto {
   margin: 6px 0 0;
   padding: 14px 18px;

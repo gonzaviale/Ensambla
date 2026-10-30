@@ -1,3 +1,5 @@
+import { ResumenInicio } from '@/components/inicio/ResumenInicio';
+import { allBlocks } from '@/lib/sistema/core';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { FichasParaEmpezar } from '@/components/sistema/FichasParaEmpezar';
 import { Icon } from '@/components/sistema/Icon';
@@ -16,17 +18,36 @@ const CLAVES = Object.keys(TEMPLATES) as ClavePlantilla[];
 // plantillas (los cuadernos guardados tienen su propia pantalla, «Mis cuadernos»). Fondo blanco; el color va lleno en cada ficha, con íconos blancos.
 export function InicioPage() {
   const nombre = useNombre();
+  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const conTablas = sistemas.filter((sistema) =>
+    allBlocks(sistema).some((bloque) => !['summary', 'note'].includes(bloque.type)),
+  );
+  const TituloInicio = conTablas.length ? 'h2' : 'h1';
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const tutorial = useAccionesDelTutorial();
   const navegacion = useNavegacion();
   return (
     <>
       <CabeceraComun />
-      <main id="main" tabIndex={-1} className="home inicio reveal">
+      <main
+        id="main"
+        tabIndex={-1}
+        className={`home inicio reveal ${conTablas.length ? 'inicio-con-resumen' : ''}`}
+      >
+        {conTablas.length ? (
+          <>
+            <p className="inicio-hola">Hola, {nombre}.</p>
+            <ResumenInicio sistemas={conTablas} />
+          </>
+        ) : null}
         <section className="inicio-portada">
           <div className="inicio-saludo">
-            <p className="inicio-hola">Hola, {nombre}.</p>
-            <h1>¿En qué puedo ayudarte hoy?</h1>
+            {!conTablas.length ? <p className="inicio-hola">Hola, {nombre}.</p> : null}
+            <TituloInicio>
+              {conTablas.length
+                ? 'Más herramientas para tu negocio'
+                : '¿En qué puedo ayudarte hoy?'}
+            </TituloInicio>
             <p className="inicio-bajada">
               Tocá una ficha para arrancar. Lo que armes, después lo podés cambiar.
             </p>

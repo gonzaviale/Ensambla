@@ -54,14 +54,6 @@ describe('planes y activación de prueba', () => {
     expect(screen.getByRole('button', { name: 'Planes' })).toHaveAttribute('aria-current', 'page');
   });
 
-  it('exige sesión antes de mostrar datos de planes', async () => {
-    const router = renderApp('/planes');
-
-    await screen.findByRole('heading', { name: 'Ingresá a tu cuenta' }, ESPERA);
-
-    expect(router.state.location.pathname).toBe('/login');
-  });
-
   it('permite cancelar con Escape y devuelve el foco sin activar la prueba', async () => {
     setupUsuarioConSesion();
     renderApp('/planes');

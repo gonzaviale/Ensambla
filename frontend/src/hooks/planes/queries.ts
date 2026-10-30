@@ -1,5 +1,5 @@
 import { queryOptions, useQuery } from '@tanstack/react-query';
-import { consultarPlanes } from '@/api/planes';
+import { consultarCatalogoPlanes, consultarPlanes } from '@/api/planes';
 import { ApiError } from '@/api/apiError';
 
 export const planesKeys = {
@@ -38,4 +38,13 @@ export function usePlanes() {
         ? consulta.error.message
         : 'No pudimos consultar tu plan. Probá nuevamente.',
   };
+}
+
+export function useCatalogoPlanes() {
+  return useQuery({
+    queryKey: ['planes', 'catalogo'],
+    queryFn: ({ signal }) => consultarCatalogoPlanes(signal),
+    retry: false,
+    staleTime: 60_000,
+  });
 }

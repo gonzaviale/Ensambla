@@ -29,6 +29,17 @@ export function PublicHeader() {
         </Link>
         {enLanding && <LandingLinks />}
         <nav aria-label="Cuenta" className="ml-auto flex items-center gap-2">
+          {ruta !== '/planes' && (
+            <Link
+              to="/planes"
+              className={buttonClasses({
+                variant: 'ghost',
+                className: 'hidden px-2 sm:inline-flex',
+              })}
+            >
+              Planes
+            </Link>
+          )}
           {enLanding ? (
             <Link
               to="/login"

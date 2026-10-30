@@ -18,7 +18,7 @@ const abrirInicio = async (sistemas = false) => {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
   if (sistemas) estado.sistemas.set(usuario.email, [makeTemplate('shop', {}, true)]);
   const router = renderApp('/inicio');
-  await verifyHeadingPresentAsync(/En qué puedo/);
+  await verifyHeadingPresentAsync(sistemas ? /Más herramientas para tu negocio/ : /En qué puedo/);
   return { usuario, router, user: userEvent.setup() };
 };
 

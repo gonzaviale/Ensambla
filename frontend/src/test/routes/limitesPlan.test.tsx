@@ -18,11 +18,11 @@ describe('vista gratuita y acceso a Premium', () => {
     ).toBeVisible();
     expect(document.querySelectorAll('.zona-tarjeta')).toHaveLength(3);
     expect(screen.getByText(/3 de 3/)).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Conocer Premium' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Ver opciones del plan' })).toHaveAttribute(
       'href',
       '/planes',
     );
-    expect(document.querySelector('.contenido-premium-muestra')?.textContent).toBe('');
+    expect(document.querySelector('.contenido-premium-muestra')).toBeNull();
   });
 
   it('la campana cuenta el aviso bloqueado pero el panel sólo entrega tres detalles', async () => {
@@ -46,6 +46,6 @@ describe('vista gratuita y acceso a Premium', () => {
     expect(screen.getByRole('heading', { name: 'Detalle reservado 0' })).toBeVisible();
     expect(screen.queryByRole('heading', { name: 'Detalle reservado 3' })).toBeNull();
     expect(screen.getByText(/Hay 1 aviso más/)).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Conocer Premium' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Ver opciones del plan' })).toBeVisible();
   });
 });

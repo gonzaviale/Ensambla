@@ -1,10 +1,11 @@
 import { contenidoDe } from '../db/contenidoPlan';
 import { delay, http, HttpResponse } from 'msw';
 import { estado } from '../db/estado';
-import { planesDe } from '../db/planes';
+import { CATALOGO, planesDe } from '../db/planes';
 import { api, cuenta, LATENCIA_BACKEND_MS, pathDe } from './comun';
 
 export const handlersPlanes = [
+  http.get(api('/planes/catalogo'), () => HttpResponse.json(CATALOGO)),
   http.post(api('/planes/contenidos'), async ({ request }) => {
     const sesion = cuenta(request, true);
     if (sesion.error) return sesion.error;
