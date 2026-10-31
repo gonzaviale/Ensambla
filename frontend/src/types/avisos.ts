@@ -24,6 +24,8 @@ export const avisoDelServidorSchema = z.object({
   detalle: z.string(),
   motivos: z.array(z.string()),
   acciones: z.array(accionDelServidorSchema),
+  // Los números con los que el motor armó el aviso (cantidad y mínimo, precio y precio sugerido…).
+  datos: z.record(z.string(), z.unknown()).optional(),
   creadoEn: z.string(),
   resueltoEn: z.string().nullable(),
 });

@@ -67,17 +67,34 @@ export function PanelDeAvisos() {
   const deslizar = (sentido: number) =>
     cinta.current?.scrollBy?.({ left: sentido * 160, behavior: 'smooth' });
 
-  const urgentes = avisos.filter((aviso) => aviso.prioridad >= 2).length;
+  // Los cuadernos que tienen avisos, con cuántos. Si el elegido ya no tiene ninguno, se vuelve a «todos».
+  const cuadernos = new Map<string, { nombre: string; cantidad: number }>();
+  for (const aviso of avisos) {
+    const actual = cuadernos.get(aviso.sistemaId);
+    cuadernos.set(aviso.sistemaId, {
+      nombre: aviso.sistema,
+      cantidad: (actual?.cantidad ?? 0) + 1,
+    });
+  }
+  const opcionesDeCuaderno: [string, { nombre: string; cantidad: number }][] = [
+    ['todos', { nombre: 'Todos', cantidad: avisos.length }],
+    ...cuadernos,
+  ];
+  const cuaderno = cuadernos.has(panel.cuaderno) ? panel.cuaderno : 'todos';
+  const delCuaderno = avisos.filter((aviso) => cuaderno === 'todos' || aviso.sistemaId === cuaderno);
+
+  const urgentes = delCuaderno.filter((aviso) => aviso.prioridad >= 2).length;
+  const muyUrgentes = delCuaderno.filter((aviso) => aviso.prioridad === 3);
   const filtros: [string, string, number][] = [
-    ['todas', 'Todas', avisos.length],
+    ['todas', 'Todas', delCuaderno.length],
     ['urgentes', 'Urgentes', urgentes],
     ...GRUPOS_EN_ORDEN.map(([clave, nombre]): [string, string, number] => [
       clave,
       nombre,
-      avisos.filter((aviso) => aviso.grupo === clave).length,
+      delCuaderno.filter((aviso) => aviso.grupo === clave).length,
     ]),
   ];
-  const lista = avisos.filter(
+  const lista = delCuaderno.filter(
     (aviso) =>
       panel.filtro === 'todas' ||
       (panel.filtro === 'urgentes' ? aviso.prioridad >= 2 : aviso.grupo === panel.filtro),
@@ -168,6 +185,44 @@ export function PanelDeAvisos() {
           <Icon name="arrow" />
         </button>
       </div>
+      {cuadernos.size > 1 && (
+        <div className="alertas-cuadernos" role="group" aria-label="Filtrar por cuaderno">
+          <span>Cuaderno</span>
+          {opcionesDeCuaderno.map(([clave, { nombre, cantidad }]) => (
+            <button
+              key={clave}
+              type="button"
+              className={cuaderno === clave ? 'active' : ''}
+              aria-pressed={cuaderno === clave}
+              onClick={() => actualizarPanel({ cuaderno: clave })}
+            >
+              {nombre} <span>{cantidad}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {muyUrgentes.length > 0 && (
+        <aside className="alertas-urgentes" aria-label="Lo urgente">
+          <strong>
+            {muyUrgentes.length === 1
+              ? 'Hay 1 cosa que no puede esperar'
+              : `Hay ${muyUrgentes.length} cosas que no pueden esperar`}
+          </strong>
+          <ul>
+            {muyUrgentes.map((aviso) => (
+              <li key={aviso.id}>
+                <button
+                  type="button"
+                  data-tipo={aviso.tipo}
+                  onClick={() => actualizarPanel({ foco: aviso.id })}
+                >
+                  {aviso.titulo}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )}
       <div className="alertas-lista">
         {lista.length ? (
           lista.map((aviso) => (

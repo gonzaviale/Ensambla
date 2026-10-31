@@ -279,6 +279,22 @@ describe('el taller de Sami', () => {
     await verifyPathAsync(router, `/sistemas/${sistema?.id}`);
   });
 
+  it('«Borrar ejemplos» pide confirmación, saca las filas de ejemplo y desaparece', async () => {
+    const { user } = await conPropuesta();
+    const filasDeEjemplo = () => document.querySelectorAll('#draft-canvas .example-row').length;
+    expect(filasDeEjemplo()).toBeGreaterThan(0);
+
+    await clickButton(user, /Borrar ejemplos/);
+    expect(filasDeEjemplo()).toBeGreaterThan(0);
+    const dialogo = await screen.findByRole('dialog');
+    await user.click(within(dialogo).getByRole('button', { name: 'Borrar ejemplos' }));
+
+    await waitFor(() => expect(filasDeEjemplo()).toBe(0), ESPERA);
+    expect(screen.queryByRole('button', { name: /Borrar ejemplos/ })).not.toBeInTheDocument();
+    const borrador = useSistemaStore.getState().taller?.borrador;
+    expect(borrador && allBlocks(borrador).every((bloque) => bloque.rows.length === 0)).toBe(true);
+  });
+
   it('volver a entrar empieza una conversación nueva', async () => {
     const { user } = await conPropuesta();
 

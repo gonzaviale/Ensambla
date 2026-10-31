@@ -47,6 +47,8 @@ export function aAvisoDeSami(
     detalle: aviso.detalle,
     porque: aviso.motivos,
     acciones: aviso.acciones.map((accion) => aAccion(accion, aviso.id)),
+    datos: aviso.datos,
+    creadoEn: aviso.creadoEn,
   };
 }
 

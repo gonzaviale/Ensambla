@@ -69,6 +69,10 @@ export type Aviso = {
   acciones: AccionDeAviso[];
   /** Id del aviso en el servidor; falta en los que Sami calcula en el navegador. */
   servidorId?: string;
+  /** Los números de origen del aviso del servidor (cantidad, mínimo, precio, sugerido…). */
+  datos?: Record<string, unknown>;
+  /** Cuándo lo detectó el motor del servidor (ISO). */
+  creadoEn?: string;
 };
 
 const ORDEN: TipoDeAviso[] = [
