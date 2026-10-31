@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { getRouteApi, useNavigate } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
-import { FranjaDeSami } from '@/components/sistema/avisos/FranjaDeSami';
+import { AvisosDelCuaderno } from '@/components/sistema/avisos/AvisosDelCuaderno';
 import { BibliotecaDeBloques } from '@/components/sistema/editor/BibliotecaDeBloques';
 import { BloqueEnLienzo } from '@/components/sistema/editor/BloqueEnLienzo';
 import { CierreDeCreacion } from '@/components/sistema/CierreDeCreacion';
@@ -12,6 +12,7 @@ import { TablaCompleta } from '@/components/sistema/editor/TablaCompleta';
 import { Icon } from '@/components/sistema/Icon';
 import { IconBtn } from '@/components/sistema/IconBtn';
 import { IconTile } from '@/components/sistema/IconTile';
+import { KpisDelComercio } from '@/components/sistema/KpisDelComercio';
 import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import { varsDeColor } from '@/components/sistema/colores';
@@ -189,6 +190,7 @@ export function SistemaPage() {
               onCerrar={() => useSistemaStore.getState().descartarCartelListo()}
             />
           )}
+          {!construyendo && <AvisosDelCuaderno sistemaId={sistema.id} />}
           <div className="canvas-heading">
             <div className="canvas-titulo">
               <span className={`canvas-titulo-icono ${construyendo ? '' : 'usando'}`.trim()}>
@@ -266,6 +268,7 @@ export function SistemaPage() {
               </Btn>
             </div>
           </div>
+          {!construyendo && <KpisDelComercio />}
           <div className="tabs-y-distribucion">
             <nav className="section-tabs" aria-label="Secciones del cuaderno">
               {/* <span className="section-tabs-label">Secciones</span> */}
@@ -318,7 +321,6 @@ export function SistemaPage() {
               </button>
             </div>
           )}
-          {!construyendo && <FranjaDeSami sistemaId={sistema.id} />}
           <div
             className={`canvas-grid ${arrastre.sobre?.destino === '#canvas-drop' ? 'drop-active' : ''}`.trim()}
             id="canvas-drop"

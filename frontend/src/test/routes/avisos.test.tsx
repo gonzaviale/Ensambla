@@ -7,6 +7,7 @@ import { crearAlmacenDeEjemplo } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
 import type { Sistema } from '@/lib/sistema/tipos';
 import { estado } from '@/mocks/db/estado';
+import { destinoDeAviso } from '@/lib/sistema/destinoDeAviso';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { avisoDelServidor } from '@/test/avisosData';
 import { renderApp } from '@/test/renderApp';
@@ -357,20 +358,37 @@ describe('sin datos y con el almacén de ejemplo', () => {
     expect(await screen.findByText(/Encontré 9 cosas para mirar/, {}, ESPERA)).toBeVisible();
   });
 
-  it('la franja de Sami muestra lo principal del sistema en modo usar', async () => {
+  it('los avisos del cuaderno van arriba y «Ver los 9» abre la pantalla de avisos', async () => {
     const { user } = await abrirConDemo();
 
-    const franja = screen.getByLabelText('Avisos de Sami', { selector: 'section' });
-    expect(within(franja).getByText('Encontré 9 cosas para mirar.')).toBeVisible();
-    expect(franja.querySelectorAll('.sami-chip')).toHaveLength(3);
-    await user.click(within(franja).getAllByRole('button')[0] as HTMLElement);
+    const avisos = screen.getByRole('region', { name: /Encontré 9 cosas para mirar/ });
+    expect(avisos.querySelectorAll('.aviso-cuaderno')).toHaveLength(3);
+    await user.click(within(avisos).getByRole('button', { name: /Ver los 9/ }));
     expect(await screen.findByRole('region', { name: /Lo que encontré/ }, ESPERA)).toBeVisible();
+  });
+
+  it('«Ver» lleva a lo que representa el aviso y lo marca con el marco animado', async () => {
+    const { user } = await abrirConDemo();
+
+    const avisos = screen.getByRole('region', { name: /Encontré 9 cosas para mirar/ });
+    const visibles = useSistemaStore
+      .getState()
+      .avisos.filter((aviso) => aviso.sistemaId === sistemaActual()?.id)
+      .sort((a, b) => b.prioridad - a.prioridad)
+      .slice(0, 3);
+    const indice = visibles.findIndex((aviso) => destinoDeAviso(aviso));
+    expect(indice).toBeGreaterThanOrEqual(0);
+
+    await user.click(within(avisos).getAllByRole('button', { name: /^Ver: / })[indice] as HTMLElement);
+
+    await waitFor(() => expect(document.querySelector('.resaltado-marco')).not.toBeNull(), ESPERA);
+    expect(screen.queryByRole('region', { name: /Lo que encontré/ })).toBeNull();
   });
 
   it('en construir no hay franja: sigue la barra de distribución', async () => {
     await abrirConDemo('construir');
 
-    expect(screen.queryByLabelText('Avisos de Sami', { selector: 'section' })).toBeNull();
+    expect(screen.queryByRole('region', { name: /Encontré \d+ cosas para mirar/ })).toBeNull();
     expect(screen.getByRole('group', { name: 'Distribuí tus piezas' })).toBeVisible();
   });
 });

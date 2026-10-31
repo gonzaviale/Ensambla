@@ -1,0 +1,290 @@
+/* Avisos arriba del cuaderno, marco animado de «Ver» y cifras del comercio. */
+
+/* ---------- Avisos del cuaderno ---------- */
+.avisos-cuaderno {
+  margin-bottom: 18px;
+  padding: 4px 18px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+.avisos-cuaderno-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0 6px;
+}
+.avisos-cuaderno-cabeza h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.avisos-cuaderno-cabeza .text-link {
+  font-size: 14px;
+}
+.avisos-cuaderno-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aviso-cuaderno {
+  --nivel: var(--petrol);
+  display: grid;
+  grid-template-columns: 84px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+.aviso-cuaderno:first-child {
+  border-top: 0;
+}
+.aviso-cuaderno.p2 {
+  --nivel: var(--orange);
+}
+.aviso-cuaderno.p3 {
+  --nivel: var(--coral);
+}
+.aviso-cuaderno-nivel {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.aviso-cuaderno-nivel::before {
+  content: '';
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--nivel);
+}
+.aviso-cuaderno-texto {
+  min-width: 0;
+}
+.aviso-cuaderno-texto strong {
+  display: block;
+  font-size: 16px;
+  line-height: 1.3;
+  color: var(--ink);
+}
+.aviso-cuaderno-texto p {
+  margin: 2px 0 0;
+  overflow: hidden;
+  font-size: 14px;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aviso-cuaderno-ver {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--petrol);
+  cursor: pointer;
+}
+.aviso-cuaderno-ver:hover {
+  text-decoration: underline;
+}
+.aviso-cuaderno-ver .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------- Marco animado (resaltar) ---------- */
+@property --resaltado-giro {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 0deg;
+}
+@keyframes resaltado-giro {
+  to {
+    --resaltado-giro: 360deg;
+  }
+}
+@keyframes resaltado-entra {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.resaltado-marco {
+  position: fixed;
+  z-index: 30;
+  pointer-events: none;
+  box-sizing: border-box;
+  animation:
+    resaltado-entra 0.25s ease-out,
+    resaltado-giro 1.8s linear infinite;
+  transition: opacity 0.4s;
+}
+.resaltado-marco > i {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--resaltado-giro),
+    var(--orange),
+    var(--coral),
+    var(--petrol),
+    var(--blue),
+    var(--yellow),
+    var(--orange)
+  );
+}
+/* El borde: la paleta recortada en un anillo. */
+.resaltado-marco > .anillo {
+  padding: 1.5px;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+.resaltado-marco.saliendo {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .resaltado-marco {
+    animation: none;
+  }
+}
+
+/* ---------- Cifras del comercio ---------- */
+.kpis {
+  margin-bottom: 18px;
+}
+.kpis-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.kpis-cabeza h2 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--ink);
+}
+.kpis-ejemplo {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #fff9dc;
+  border: 1px solid var(--yellow);
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b5a00;
+}
+.kpis-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kpi {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px 12px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-top: 5px solid var(--kpi);
+  box-shadow: 0 3px 10px #2634430d;
+}
+.kpi-fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.kpi-icono {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--kpi) 18%, #fff);
+  color: color-mix(in srgb, var(--kpi) 70%, #000);
+}
+.kpi-icono .icon {
+  width: 18px;
+  height: 18px;
+}
+.kpi-etiqueta {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.kpi-valor {
+  margin-top: 4px;
+  font-size: 28px;
+  line-height: 1.1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.kpi-cambio {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.kpi-cambio .icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+.kpi-cambio.bueno {
+  color: var(--petrol);
+}
+.kpi-cambio.malo {
+  color: #c42b2b;
+}
+.kpi-ayuda {
+  font-size: 13px;
+  color: var(--muted);
+}
+.kpi-tendencia {
+  width: 100%;
+  height: 34px;
+  margin-top: 6px;
+  overflow: visible;
+}
+.kpi-tendencia polyline {
+  stroke: var(--kpi);
+}
+.kpi-tendencia circle {
+  fill: var(--kpi);
+}
+
+@media (max-width: 640px) {
+  .aviso-cuaderno {
+    grid-template-columns: 1fr auto;
+  }
+  .aviso-cuaderno-nivel {
+    grid-column: 1 / -1;
+  }
+  .aviso-cuaderno-texto p {
+    white-space: normal;
+  }
+}
