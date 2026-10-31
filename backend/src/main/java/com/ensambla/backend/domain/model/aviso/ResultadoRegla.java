@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.registro.RegistroId;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -28,6 +29,18 @@ public record ResultadoRegla(
 
     public static String entidadDeRegistro(RegistroId registroId) {
         return PREFIJO_REGISTRO + registroId;
+    }
+
+    /** El registro al que apunta una entidad {@code registro:<uuid>}; vacío si la entidad es de otra forma. */
+    public static Optional<RegistroId> registroDe(String entidad) {
+        if (entidad == null || !entidad.startsWith(PREFIJO_REGISTRO)) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(RegistroId.de(entidad.substring(PREFIJO_REGISTRO.length())));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
     }
 
     /** Identificador estable del aviso: {@code tipo:entidad:hash(datos)}. */

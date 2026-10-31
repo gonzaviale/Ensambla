@@ -22,6 +22,20 @@ class ResultadoReglaTest {
     }
 
     @Test
+    @DisplayName("Del texto de una entidad de registro se recupera el registro")
+    void registroDeShouldReadTheRegistroOfAnEntity() {
+        assertThat(ResultadoRegla.registroDe("registro:" + REGISTRO_ID)).contains(REGISTRO_ID);
+    }
+
+    @Test
+    @DisplayName("Una entidad que no es un registro, o con un id inválido, no tiene registro")
+    void registroDeShouldBeEmptyWhenTheEntityIsNotARegistro() {
+        assertThat(ResultadoRegla.registroDe(null)).isEmpty();
+        assertThat(ResultadoRegla.registroDe("zona:yerba")).isEmpty();
+        assertThat(ResultadoRegla.registroDe("registro:no-es-un-uuid")).isEmpty();
+    }
+
+    @Test
     @DisplayName("La huella empieza con el tipo y la entidad")
     void huellaParaShouldStartWithTipoAndEntidad() {
         ResultadoRegla resultado = givenResultado(Map.of("cantidad", BigDecimal.TWO));

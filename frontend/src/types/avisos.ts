@@ -34,3 +34,26 @@ export const avisosDelServidorSchema = z.array(avisoDelServidorSchema);
 
 export type AccionDelServidor = z.infer<typeof accionDelServidorSchema>;
 export type AvisoDelServidor = z.infer<typeof avisoDelServidorSchema>;
+
+// Qué pasó con las ventas después de aplicar un aviso: una comparación entre los días anteriores y los posteriores.
+export const impactoAvisosSchema = z.object({
+  aplicados: z.number().int(),
+  descartados: z.number().int(),
+  ingresoSemanalDelta: z.number(),
+  medidos: z.array(
+    z.object({
+      avisoId: z.string(),
+      tipo: z.enum(['STOCK', 'PRECIO_ZONA', 'ESTANCADO', 'MUY_VENDIDO', 'COMBO', 'CONSUMO_ZONA']),
+      titulo: z.string(),
+      aplicadoEn: z.string().nullable(),
+      ventanaDias: z.number().int(),
+      unidadesPorDiaAntes: z.number(),
+      unidadesPorDiaDespues: z.number(),
+      ingresoPorDiaAntes: z.number(),
+      ingresoPorDiaDespues: z.number(),
+      ingresoSemanalDelta: z.number(),
+    }),
+  ),
+});
+
+export type ImpactoAvisos = z.infer<typeof impactoAvisosSchema>;

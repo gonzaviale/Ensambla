@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.model.aviso;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,8 +11,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /** Recomendación del motor de monitoreo sobre una entidad del negocio, con su motivo y las acciones sugeridas. */
 @Getter
@@ -88,6 +91,35 @@ public class Aviso {
         copiarDe(resultado, ahora);
         estado = EstadoAviso.PENDIENTE;
         resueltoEn = null;
+    }
+
+    /**
+     * Si todavía se puede medir qué pasó después de aplicarlo: lo aplicó la persona sobre un producto, de un tipo cuyo
+     * efecto se ve en las ventas, y aún no se midió.
+     */
+    public boolean esMedible() {
+        return estado == EstadoAviso.APLICADO
+                && resueltoEn != null
+                && (tipo == TipoAviso.ESTANCADO || tipo == TipoAviso.STOCK)
+                && ResultadoRegla.registroDe(entidad).isPresent()
+                && impacto().isEmpty();
+    }
+
+    /** El producto sobre el que avisó, si la entidad es un registro. */
+    public Optional<RegistroId> productoId() {
+        return ResultadoRegla.registroDe(entidad);
+    }
+
+    public Optional<ImpactoAviso> impacto() {
+        return ImpactoAviso.de(datos);
+    }
+
+    /** Guarda el impacto medido junto a los datos del aviso; no cambia su estado ni su huella. */
+    public void registrarImpacto(ImpactoAviso impacto, OffsetDateTime ahora) {
+        Map<String, Object> conImpacto = new LinkedHashMap<>(datos == null ? Map.of() : datos);
+        conImpacto.put(ImpactoAviso.CLAVE, impacto.aMapa());
+        datos = conImpacto;
+        actualizadoEn = ahora;
     }
 
     public void aplicar(OffsetDateTime ahora) {

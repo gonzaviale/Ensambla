@@ -93,15 +93,15 @@ describe('tiposCubiertosPorElServidor', () => {
     expect(tiposCubiertosPorElServidor([], false).size).toBe(0);
   });
 
-  it('con el motor activo cubre siempre estancado y combo, aunque no haya ninguno pendiente', () => {
+  it('con el motor activo cubre siempre estancado, aunque no haya ninguno pendiente', () => {
     // Un aviso aplicado o descartado ya no está en la lista: la copia del navegador no puede volver a mostrarlo.
-    expect([...tiposCubiertosPorElServidor([], true)].sort()).toEqual(['combo', 'estancado']);
+    expect([...tiposCubiertosPorElServidor([], true)]).toEqual(['estancado']);
   });
 
   it('con el motor activo suma los tipos que trajo el servidor a los que ya cubre', () => {
     const cubiertos = tiposCubiertosPorElServidor(delServidor('STOCK', 'ESTANCADO'), true);
 
-    expect([...cubiertos].sort()).toEqual(['combo', 'estancado', 'stock']);
+    expect([...cubiertos].sort()).toEqual(['estancado', 'stock']);
     expect(cubiertos.has('muy_vendido')).toBe(false);
   });
 });

@@ -19,6 +19,8 @@ import com.ensambla.backend.domain.useCase.aviso.contarAvisos.ContarAvisos;
 import com.ensambla.backend.domain.useCase.aviso.descartarAviso.DescartarAviso;
 import com.ensambla.backend.domain.useCase.aviso.ejecutarMotorAvisos.EjecutarMotorAvisos;
 import com.ensambla.backend.domain.useCase.aviso.listarAvisos.ListarAvisos;
+import com.ensambla.backend.domain.useCase.aviso.medirImpactoAvisos.MedirImpactoAvisos;
+import com.ensambla.backend.domain.useCase.aviso.obtenerImpactoAvisos.ObtenerImpactoAvisos;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -81,6 +83,27 @@ public class AvisoUseCaseConfig {
             Clock clock) {
         return new DescartarAviso(
                 negocioRepository, controlPlanService, avisoRepository, transaccionPort, clock);
+    }
+
+    /** La ventana (días antes y días después del aviso) sale de {@code ensambla.avisos.impacto.ventana-dias}. */
+    @Bean
+    public MedirImpactoAvisos medirImpactoAvisos(
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository,
+            RegistroRepository registroRepository,
+            AvisoRepository avisoRepository,
+            MetricasVentas metricasVentas,
+            TransaccionPort transaccionPort,
+            Clock clock,
+            @Value("${ensambla.avisos.impacto.ventana-dias:14}") int ventanaDias) {
+        return new MedirImpactoAvisos(negocioRepository, proyectoRepository, registroRepository, avisoRepository,
+                metricasVentas, transaccionPort, clock, ventanaDias);
+    }
+
+    @Bean
+    public ObtenerImpactoAvisos obtenerImpactoAvisos(
+            NegocioRepository negocioRepository, AvisoRepository avisoRepository) {
+        return new ObtenerImpactoAvisos(negocioRepository, avisoRepository);
     }
 
     @Bean

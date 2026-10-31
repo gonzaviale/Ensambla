@@ -12,7 +12,7 @@ import { renderApp } from '@/test/renderApp';
 import { ESPERA, setupServerError, setupUsuarioConSesion } from '@/test/testHelpers';
 
 // Con el backend real (VITE_API_MOCKS distinto de «completo») el motor del servidor es el dueño de los avisos de
-// estancado y de combo. Los tests corren con todo simulado, así que acá sólo se cambia ese modo.
+// estancado. Los tests corren con todo simulado, así que acá sólo se cambia ese modo.
 vi.mock('@/config/env', async (importOriginal) => {
   const original = await importOriginal<typeof ConfigEnv>();
   return { ...original, env: { ...original.env, mocks: 'ninguno' as const } };
@@ -47,7 +47,6 @@ describe('avisos con el motor del servidor activo', () => {
     await waitFor(() => expect(delNavegador('stock')).toBe(true), ESPERA);
 
     expect(delNavegador('estancado')).toBe(false);
-    expect(delNavegador('combo')).toBe(false);
   });
 
   it('mientras el servidor todavía no contestó, tampoco aparecen copias del navegador', async () => {
@@ -68,21 +67,18 @@ describe('avisos con el motor del servidor activo', () => {
     await waitFor(() => expect(delNavegador('stock')).toBe(true), ESPERA);
 
     expect(delNavegador('estancado')).toBe(false);
-    expect(delNavegador('combo')).toBe(false);
 
     liberar();
     await new Promise((resolver) => setTimeout(resolver, 150));
     expect(delNavegador('estancado')).toBe(false);
-    expect(delNavegador('combo')).toBe(false);
   });
 
-  it('si el servidor no responde, siguen los avisos de estancado y de combo del navegador', async () => {
+  it('si el servidor no responde, siguen los avisos de estancado del navegador', async () => {
     const { sistema } = await abrirAlmacen();
     setupServerError('get', '/avisos', 500, 'Error interno');
     renderApp(`/sistemas/${sistema.id}?modo=usar`);
     await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
 
-    await waitFor(() => expect(delNavegador('combo')).toBe(true), ESPERA);
-    expect(delNavegador('estancado')).toBe(true);
+    await waitFor(() => expect(delNavegador('estancado')).toBe(true), ESPERA);
   });
 });

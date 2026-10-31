@@ -46,6 +46,17 @@ function resolver(nuevoEstado: 'APLICADO' | 'DESCARTADO') {
 }
 
 export const handlersAvisos = [
+  http.get(api('/avisos/impacto'), ({ request }) => {
+    const { usuario, error } = cuenta(request);
+    if (error) return error;
+    const avisos = avisosDe(usuario.email);
+    return HttpResponse.json({
+      aplicados: avisos.filter((aviso) => aviso.estado === 'APLICADO').length,
+      descartados: avisos.filter((aviso) => aviso.estado === 'DESCARTADO').length,
+      ingresoSemanalDelta: 0,
+      medidos: [],
+    });
+  }),
   http.get(api('/avisos/contador'), ({ request }) => {
     const { usuario, error } = cuenta(request);
     if (error) return error;

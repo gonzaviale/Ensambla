@@ -62,13 +62,35 @@ anotó ninguna venta, no avisa (no se puede saber qué se mueve). La entidad es 
 La acción «Rebajar a $X» es un `EDITAR_REGISTRO` que cambia `price`; al aplicarla el precio baja, la regla deja de detectar el
 producto y el aviso vence solo.
 
+## Impacto de los avisos aplicados (`MedirImpactoAvisos`)
+
+Cuando la persona aplica un aviso de `STOCK` o de `ESTANCADO` sobre un producto, el servidor mide después qué pasó con las ventas de
+ese producto. Un worker (`ImpactoAvisosWorker`, cada 6 horas) busca los avisos `APLICADO` que todavía no se midieron y, cuando ya pasó
+la ventana completa, compara:
+
+- **Antes:** los `ventana-dias` días anteriores al día en que se aplicó.
+- **Después:** los `ventana-dias` días que empiezan ese día. El día de hoy no cuenta mientras la ventana siga abierta.
+
+Calcula unidades e ingreso por día en cada lado y guarda el resultado en `datos.impacto` del aviso, sin cambiar su huella ni su estado
+(no hay migración). Las ventas sin precio cuentan en las unidades pero no en el ingreso. `GET /api/avisos/impacto` devuelve los
+aplicados y descartados, el cambio de ingreso semanal total y el detalle de cada aviso medido.
+
+**Es una comparación, no una causa.** Otras cosas también mueven las ventas (la época del año, un feriado, un faltante). Por eso la
+pantalla dice «vendés $X más por semana que antes de aplicar los avisos» y nunca atribuye ese dinero al aviso.
+
+| Propiedad | Por defecto | Qué hace |
+|---|---|---|
+| `ensambla.avisos.impacto.habilitado` | `true` | Prende o apaga el worker (`ENSAMBLA_AVISOS_IMPACTO`) |
+| `ensambla.avisos.impacto.intervalo` | `21600000` | Milisegundos entre mediciones (`ENSAMBLA_AVISOS_IMPACTO_INTERVALO`) |
+| `ensambla.avisos.impacto.ventana-dias` | `14` | Días antes y días después que se comparan (`ENSAMBLA_AVISOS_IMPACTO_VENTANA_DIAS`) |
+
 ## Qué ve la persona: avisos del servidor y del navegador
 
 El frontend (`useMotorDeAvisos`) junta los avisos del servidor con los que Sami calcula en el navegador. Para no duplicar ni resucitar
 avisos descartados:
 
-- Con el **backend real** (`VITE_API_MOCKS` distinto de `completo`), los tipos `estancado` y `combo` son **siempre del servidor**, también
-  mientras todavía no contestó: el navegador no los calcula. Así un aviso descartado o aplicado no reaparece como copia local, y no hay un
+- Con el **backend real** (`VITE_API_MOCKS` distinto de `completo`), el tipo `estancado` es **siempre del servidor**, también
+  mientras todavía no contestó: el navegador no lo calcula. Así un aviso descartado o aplicado no reaparece como copia local, y no hay un
   parpadeo de avisos duplicados al abrir la pantalla.
 - Los demás tipos que el servidor trae (por ejemplo `stock`) también se omiten en el navegador mientras haya alguno pendiente.
 - En **modo demo** (todo simulado) o si el servidor **falla**, el navegador sigue calculándolos él mismo.
