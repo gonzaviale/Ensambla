@@ -252,6 +252,24 @@ body:has(.creation-studio) {
   font-size: 13px;
   color: var(--muted);
 }
+.studio-canvas .draft-section-tabs > .draft-clear-examples {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 2px solid var(--coral);
+  background: transparent;
+  color: var(--coral);
+  cursor: pointer;
+}
+.studio-canvas .draft-section-tabs > .draft-clear-examples:hover {
+  background: var(--coral);
+  color: white;
+}
 
 /* Piezas de la vista previa (Taller y vista de una plantilla) */
 :is(.studio-canvas, .template-preview-stage) .preview-block {

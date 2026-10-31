@@ -446,6 +446,29 @@ export function pedirQuitarEjemplos() {
   });
 }
 
+/** Lo mismo que `pedirQuitarEjemplos`, pero sobre la propuesta de Sami que todavía no se guardó. */
+export function pedirQuitarEjemplosDelBorrador() {
+  store().abrirModal({
+    tipo: 'confirmar',
+    titulo: '¿Borrar los datos de ejemplo?',
+    mensaje:
+      'Se quitan las filas de ejemplo de esta propuesta. Se conservan las piezas, los campos y los registros reales.',
+    etiqueta: 'Borrar ejemplos',
+    onConfirmar: () => {
+      let resultado: ReturnType<typeof clearExamples> | undefined;
+      store().editarBorrador((copia) => {
+        resultado = clearExamples(copia);
+        limpiarVinculos(copia, resultado.removed);
+      });
+      store().avisar(
+        resultado?.retained.length
+          ? 'Borré los ejemplos. Quedaron los movimientos necesarios para el stock.'
+          : 'Listo, borré los ejemplos.',
+      );
+    },
+  });
+}
+
 export function deshacerCambio() {
   if (store().deshacer()) {
     store().cerrarModal();

@@ -80,6 +80,10 @@ export type Aviso = {
   servidorId?: string;
   /** El registro (o la tabla) del que habla el aviso, para llevar ahí con «Ver». */
   objeto?: { sistemaId: string; bloqueId: string; filaId?: string };
+  /** Los números de origen del aviso del servidor (cantidad, mínimo, precio, sugerido…). */
+  datos?: Record<string, unknown>;
+  /** Cuándo lo detectó el motor del servidor (ISO). */
+  creadoEn?: string;
 };
 
 const ORDEN: TipoDeAviso[] = [

@@ -90,6 +90,8 @@ export type PanelDeAvisos = {
   /** La pantalla de avisos está a la vista: mientras tanto no salta «Sami vio un cambio». */
   abierto: boolean;
   filtro: string;
+  /** El cuaderno por el que se filtran los avisos: «todos» o el id del cuaderno. */
+  cuaderno: string;
   /** El aviso que se abrió desde el toast o la franja: la pantalla lo muestra resaltado. */
   foco: string | null;
 };
@@ -97,6 +99,7 @@ export type PanelDeAvisos = {
 const PANEL_CERRADO: PanelDeAvisos = {
   abierto: false,
   filtro: 'todas',
+  cuaderno: 'todos',
   foco: null,
 };
 

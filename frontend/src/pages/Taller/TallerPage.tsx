@@ -41,6 +41,7 @@ import {
 import { useDictado } from '@/hooks/sistemas/useDictado';
 import { useTaller, vistaDeFoto } from '@/hooks/sistemas/useTaller';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
+import { pedirQuitarEjemplosDelBorrador } from '@/stores/accionesDelEditor';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
 // Para arrancar sin escribir: el texto va a Sami igual que si la persona lo hubiera escrito.
@@ -171,6 +172,9 @@ export function TallerPage() {
   const seccionId = taller.seccionId ?? borrador?.sections[0]?.id ?? null;
   const tablaCompleta = borrador ? findBlock(borrador, tablaCompletaId ?? undefined) : undefined;
   const ajustando = Boolean(original);
+  const hayEjemplos = Boolean(
+    borrador && allBlocks(borrador).some((bloque) => bloque.rows.some((fila) => fila.__example)),
+  );
   const hayCambios =
     !original || !borrador || !mismoSistema(ajusteParaGuardar(original, borrador), original);
 
@@ -386,6 +390,16 @@ export function TallerPage() {
                       ? 'Las filas de ejemplo no se guardan ni son reales'
                       : 'Las filas marcadas «Ejemplo» no son reales: están para imaginarlo'}
                   </span>
+                  {hayEjemplos && (
+                    <button
+                      type="button"
+                      className="draft-clear-examples"
+                      onClick={pedirQuitarEjemplosDelBorrador}
+                    >
+                      <Icon name="trash" />
+                      Borrar ejemplos
+                    </button>
+                  )}
                 </div>
                 <PreviewBoard
                   sistema={borrador}

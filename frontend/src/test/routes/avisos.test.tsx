@@ -201,6 +201,8 @@ describe('la campana y la pantalla de avisos', () => {
     await abrirPanel(user);
 
     const aviso = tarjeta('Te quedaste sin Aceite Natura 900 ml');
+    expect(within(aviso).queryByText(/En los últimos 30 días vendiste 10 unidades/)).toBeNull();
+    await user.click(within(aviso).getByRole('button', { name: /Ver por qué/ }));
     expect(within(aviso).getByText(/En los últimos 30 días vendiste 10 unidades/)).toBeVisible();
     expect(within(aviso).getByRole('button', { name: 'Registrar entrada' })).toBeVisible();
     expect(within(aviso).getByRole('button', { name: 'Descartar' })).toBeVisible();
@@ -467,6 +469,64 @@ describe('los avisos del motor del servidor', () => {
     expect(
       screen.getByRole('heading', { level: 3, name: 'Te quedaste sin Yerba Playadito 1 kg' }),
     ).toBeVisible();
+  });
+
+  it('cada tipo tiene su color y el detalle abre los números y el contexto del aviso', async () => {
+    const { user } = await abrirConAvisosDelServidor(
+      avisoDelServidor({ datos: { cantidad: 0, minimo: 10 } }),
+      avisoDelServidor({
+        id: 'e0000000-0000-4000-8000-000000000002',
+        tipo: 'ESTANCADO',
+        grupo: 'VENTAS',
+        prioridad: 2,
+        entidad: 'registro:2',
+        titulo: 'Mermelada está cara y no se mueve',
+        detalle: 'Vendiste 0 en 30 días.',
+        motivos: ['En tu zona, 6 comercios lo venden entre $1.700 y $2.100.'],
+        datos: { precio: 2600, sugerido: 1900 },
+        acciones: [{ tipo: 'EDITAR_REGISTRO', texto: 'Bajar el precio', registroId: 'r2' }],
+      }),
+    );
+    await abrirPanel(user);
+
+    const stock = tarjeta('Te quedaste sin Yerba Playadito 1 kg');
+    const estancado = tarjeta('Mermelada está cara y no se mueve');
+    expect(stock).toHaveAttribute('data-tipo', 'stock');
+    expect(estancado).toHaveAttribute('data-tipo', 'estancado');
+    expect(within(estancado).getByText(/Bajar el precio de \$ 2\.600 a \$ 1\.900/)).toBeVisible();
+
+    expect(within(estancado).queryByText('Precio sugerido')).toBeNull();
+    const ver = within(estancado).getByRole('button', { name: /Ver por qué/ });
+    expect(ver).toHaveAttribute('aria-expanded', 'false');
+    await user.click(ver);
+    expect(ver).toHaveAttribute('aria-expanded', 'true');
+    expect(within(estancado).getByText('Precio sugerido')).toBeVisible();
+    expect(within(estancado).getByText('$ 1.900')).toBeVisible();
+    expect(within(estancado).getByText(/En tu zona, 6 comercios/)).toBeVisible();
+    expect(within(estancado).getByText(/detectado/)).toBeVisible();
+  });
+
+  it('se filtra por cuaderno y la franja resume lo que no puede esperar', async () => {
+    const { user } = await abrirConAvisosDelServidor(
+      avisoDelServidor(),
+      avisoDelServidor({
+        id: 'e0000000-0000-4000-8000-000000000003',
+        proyectoId: 'c0000000-0000-4000-8000-000000000009',
+        titulo: 'Azúcar está por debajo del mínimo',
+        entidad: 'registro:3',
+        prioridad: 2,
+      }),
+    );
+    await abrirPanel(user);
+
+    const franja = screen.getByRole('complementary', { name: 'Lo urgente' });
+    expect(within(franja).getByText(/1 cosa que no puede esperar/)).toBeVisible();
+    const cuadernos = screen.getByRole('group', { name: 'Filtrar por cuaderno' });
+    expect(within(cuadernos).getAllByRole('button').length).toBeGreaterThanOrEqual(3);
+
+    await user.click(within(cuadernos).getAllByRole('button')[2] as HTMLElement);
+    expect(screen.queryByRole('heading', { level: 3, name: /Yerba Playadito/ })).toBeNull();
+    expect(screen.getByRole('heading', { level: 3, name: /Azúcar/ })).toBeVisible();
   });
 
   it('descartar lo descarta en el servidor y el aviso no vuelve', async () => {
