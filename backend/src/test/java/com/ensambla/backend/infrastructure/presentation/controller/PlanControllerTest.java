@@ -1,22 +1,23 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.plan.IniciarPruebaRequest;
-import com.ensambla.backend.domain.dto.plan.PruebaPremiumResponse;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
-import com.ensambla.backend.domain.useCase.plan.IniciarPruebaUseCase;
-import com.ensambla.backend.domain.useCase.plan.ConsultarPlanesUseCase;
+import com.ensambla.backend.domain.useCase.plan.PruebaPremiumResponse;
+import com.ensambla.backend.domain.useCase.plan.consultarPlanes.ConsultarPlanes;
+import com.ensambla.backend.domain.useCase.plan.iniciarPrueba.IniciarPrueba;
+import com.ensambla.backend.domain.useCase.plan.iniciarPrueba.IniciarPruebaRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.plan.PlanPresentationMapper;
+import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 
 import static com.ensambla.backend.support.PlanTestData.INSTANTE;
 import static com.ensambla.backend.support.PlanTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.PlanTestData.USUARIO_ID;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,15 +28,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class PlanControllerTest {
 
-    private final IniciarPruebaUseCase iniciarPruebaUseCase = mock(IniciarPruebaUseCase.class);
-    private final MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-            new PlanController(iniciarPruebaUseCase, new PlanPresentationMapper(), mock(ConsultarPlanesUseCase.class)))
+    private final IniciarPrueba iniciarPrueba = mock(IniciarPrueba.class);
+    private final MockMvc mockMvc = MockMvcDePrueba.standalone(
+            new PlanController(iniciarPrueba, new PlanPresentationMapper(), mock(ConsultarPlanes.class)))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
 
     @Test
     @DisplayName("Devuelve el período premium y envía el usuario autenticado al caso de uso")
     void iniciarPruebaShouldReturnTrialDetails() throws Exception {
-        when(iniciarPruebaUseCase.execute(new IniciarPruebaRequest(NEGOCIO_ID)))
+        when(iniciarPrueba.execute(new IniciarPruebaRequest(USUARIO_ID)))
                 .thenReturn(new PruebaPremiumResponse(INSTANTE, INSTANTE.plusDays(7), 0, 10));
 
         mockMvc.perform(post("/api/planes/prueba").principal(givenAuthentication()))
@@ -44,13 +45,13 @@ class PlanControllerTest {
                 .andExpect(jsonPath("$.paginasIaUtilizadas").value(0))
                 .andExpect(header().string("Cache-Control", "no-store"));
 
-        verify(iniciarPruebaUseCase).execute(new IniciarPruebaRequest(NEGOCIO_ID));
+        verify(iniciarPrueba).execute(new IniciarPruebaRequest(USUARIO_ID));
     }
 
     @Test
     @DisplayName("Una prueba ya utilizada devuelve 403 con un código estable")
     void iniciarPruebaShouldReturnRestrictionCode() throws Exception {
-        when(iniciarPruebaUseCase.execute(new IniciarPruebaRequest(NEGOCIO_ID)))
+        when(iniciarPrueba.execute(new IniciarPruebaRequest(USUARIO_ID)))
                 .thenThrow(new RestriccionPlanException("PRUEBA_UTILIZADA", "Ya utilizada"));
 
         mockMvc.perform(post("/api/planes/prueba").principal(givenAuthentication()))

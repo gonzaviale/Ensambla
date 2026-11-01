@@ -1,24 +1,32 @@
 package com.ensambla.backend.domain.repository.aviso;
 
+import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.aviso.Aviso;
-import com.ensambla.backend.domain.model.enums.EstadoAviso;
-import com.ensambla.backend.domain.model.enums.TipoAviso;
+import com.ensambla.backend.domain.model.aviso.AvisoId;
+import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.TipoAviso;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 public interface AvisoRepository {
 
     Aviso save(Aviso aviso);
 
-    Optional<Aviso> findByIdAndNegocioId(UUID id, UUID negocioId);
+    Optional<Aviso> findByIdAndNegocioId(AvisoId id, NegocioId negocioId);
 
-    Optional<Aviso> findByNegocioIdAndHuella(UUID negocioId, String huella);
+    Optional<Aviso> findByNegocioIdAndHuella(NegocioId negocioId, String huella);
 
-    List<Aviso> findByNegocioIdAndTipoAndEstado(UUID negocioId, TipoAviso tipo, EstadoAviso estado);
+    List<Aviso> findByNegocioIdAndTipoAndEstado(NegocioId negocioId, TipoAviso tipo, EstadoAviso estado);
 
-    List<Aviso> findByNegocioId(UUID negocioId);
+    List<Aviso> findByNegocioId(NegocioId negocioId);
 
-    List<Aviso> findByNegocioIdAndEstado(UUID negocioId, EstadoAviso estado);
+    List<Aviso> findByNegocioIdAndEstado(NegocioId negocioId, EstadoAviso estado);
+
+    /** El aviso del negocio; uno ajeno responde como inexistente. */
+    default Aviso obtener(AvisoId avisoId, NegocioId negocioId) {
+        return findByIdAndNegocioId(avisoId, negocioId)
+                .orElseThrow(() -> new ResourceNotFoundException("El aviso no existe"));
+    }
 }

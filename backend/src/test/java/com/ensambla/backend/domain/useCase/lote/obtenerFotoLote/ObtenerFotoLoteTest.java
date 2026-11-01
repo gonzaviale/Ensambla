@@ -1,0 +1,89 @@
+package com.ensambla.backend.domain.useCase.lote.obtenerFotoLote;
+
+import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.lote.FotoId;
+import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
+import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.useCase.lote.FotoArchivoResponse;
+import com.ensambla.backend.support.LoteTestData;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Optional;
+
+import static com.ensambla.backend.support.LoteTestData.FOTO_ID;
+import static com.ensambla.backend.support.LoteTestData.JPEG;
+import static com.ensambla.backend.support.LoteTestData.LOTE_ID;
+import static com.ensambla.backend.support.LoteTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.LoteTestData.USUARIO_ID;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+class ObtenerFotoLoteTest {
+
+    private static final FotoId FOTO_AJENA_ID = FotoId.de("00000000-0000-4000-8000-000000000099");
+
+    private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
+    private final LoteSubidaRepository loteSubidaRepository = mock(LoteSubidaRepository.class, CALLS_REAL_METHODS);
+    private final ArchivoCuadernoPort archivoCuadernoPort = mock(ArchivoCuadernoPort.class, CALLS_REAL_METHODS);
+    private final ObtenerFotoLote obtenerFotoLote = new ObtenerFotoLote(negocioRepository,
+            archivoCuadernoPort,
+            loteSubidaRepository);
+
+    @BeforeEach
+    void givenNegocio() {
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+    }
+
+    @Test
+    @DisplayName("Devuelve los bytes y el tipo de la foto del lote del negocio de la sesión")
+    void executeShouldReturnFotoOfNegocio() {
+        givenLoteExists();
+        when(archivoCuadernoPort.leer(NEGOCIO_ID, LoteTestData.CLAVE)).thenReturn(JPEG);
+
+        FotoArchivoResponse result = obtenerFotoLote.execute(request(FOTO_ID));
+
+        assertThat(result.contenido()).isEqualTo(JPEG);
+        assertThat(result.tipoContenido()).isEqualTo("image/jpeg");
+    }
+
+    @Test
+    @DisplayName("Una foto que no es del lote responde como inexistente sin leer el archivo")
+    void executeShouldThrowWhenFotoIsNotInLote() {
+        givenLoteExists();
+
+        assertThatThrownBy(() -> obtenerFotoLote.execute(request(FOTO_AJENA_ID)))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Foto no encontrada");
+        verifyNoInteractions(archivoCuadernoPort);
+    }
+
+    @Test
+    @DisplayName("Un lote de otro negocio responde como inexistente sin leer el archivo")
+    void executeShouldThrowWhenLoteIsNotOfTheNegocio() {
+        when(loteSubidaRepository.findByIdAndNegocioId(LOTE_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> obtenerFotoLote.execute(request(FOTO_ID)))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Lote no encontrado");
+        verifyNoInteractions(archivoCuadernoPort);
+    }
+
+    // --- arrange ---
+    private void givenLoteExists() {
+        when(loteSubidaRepository.findByIdAndNegocioId(LOTE_ID, NEGOCIO_ID))
+                .thenReturn(Optional.of(LoteTestData.lote(List.of(LoteTestData.foto()))));
+    }
+
+    // --- helpers ---
+    private static ObtenerFotoLoteRequest request(FotoId fotoId) {
+        return new ObtenerFotoLoteRequest(USUARIO_ID, LOTE_ID, fotoId);
+    }
+}

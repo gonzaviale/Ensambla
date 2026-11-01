@@ -1,10 +1,10 @@
 package com.ensambla.backend.domain.repository.sami;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.sami.ConsumoIaSami;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 public interface ConsumoSamiRepository {
 
@@ -13,8 +13,8 @@ public interface ConsumoSamiRepository {
      *
      * @return {@code false} si ya se usaron las {@code limite} consultas del día
      */
-    boolean reservar(UUID negocioId, LocalDate fecha, int limite, OffsetDateTime ahora);
+    boolean reservar(NegocioId negocioId, LocalDate fecha, int limite, OffsetDateTime ahora);
 
     /** Suma los tokens de una consulta ya reservada. */
-    void registrar(UUID negocioId, LocalDate fecha, ConsumoIaSami consumo, OffsetDateTime ahora);
+    void registrar(NegocioId negocioId, LocalDate fecha, ConsumoIaSami consumo, OffsetDateTime ahora);
 }

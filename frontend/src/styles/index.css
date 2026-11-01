@@ -11,7 +11,7 @@
   --color-transparent: transparent;
 
   /* Marca: naranja = acción, pizarra = estructura y texto, marfil = fondo */
-  --color-canvas: #fffdfa; /* Papel */
+  --color-canvas: #ffffff; /* Papel */
   --color-surface: #ffffff;
   --color-fg: #263443; /* Pizarra */
   --color-accent: #ee8000; /* Naranja */

@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.repository;
 
-import com.ensambla.backend.domain.dto.auth.RegistrarUsuarioRequest;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
-import com.ensambla.backend.domain.service.auth.RegistroService;
+import com.ensambla.backend.domain.useCase.auth.registrarUsuario.RegistrarUsuario;
+import com.ensambla.backend.domain.useCase.auth.registrarUsuario.RegistrarUsuarioRequest;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IUsuarioJpaRepository;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import org.junit.jupiter.api.DisplayName;
@@ -11,8 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-
-import java.time.OffsetDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -23,10 +21,9 @@ class RegistroSuscripcionRollbackPostgresTest extends PostgresRepositoryTestSupp
 
     private static final String EMAIL = "fallo-suscripcion@example.com";
     private static final String NEGOCIO = "Negocio que debe revertirse";
-    private static final OffsetDateTime INSTANTE = OffsetDateTime.parse("2026-10-19T12:00:00Z");
 
     @Autowired
-    private RegistroService registroService;
+    private RegistrarUsuario registrarUsuario;
 
     @Autowired
     private IUsuarioJpaRepository usuarios;
@@ -42,8 +39,8 @@ class RegistroSuscripcionRollbackPostgresTest extends PostgresRepositoryTestSupp
     void registrarShouldRollbackAccountWhenSubscriptionFails() {
         when(suscripcionRepository.save(any())).thenThrow(new DataIntegrityViolationException("Fallo de prueba"));
 
-        assertThatThrownBy(() -> registroService.registrar(
-                new RegistrarUsuarioRequest("Persona", NEGOCIO, EMAIL, "ClaveSegura123!"), INSTANTE))
+        assertThatThrownBy(() -> registrarUsuario.execute(
+                new RegistrarUsuarioRequest("Persona", NEGOCIO, EMAIL, "ClaveSegura123!")))
                 .isInstanceOf(DataIntegrityViolationException.class);
 
         assertThat(usuarios.findByEmail(EMAIL)).isEmpty();

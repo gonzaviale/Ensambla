@@ -1,23 +1,21 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.mapper.lote.FotoArchivoMapper;
-import com.ensambla.backend.domain.mapper.registro.CrearRegistroMapper;
-import com.ensambla.backend.domain.mapper.registro.EditarRegistroMapper;
-import com.ensambla.backend.domain.mapper.registro.ListarReferenciasMapper;
-import com.ensambla.backend.domain.mapper.registro.ListarRegistrosMapper;
-import com.ensambla.backend.domain.mapper.registro.ObtenerRegistroMapper;
-import com.ensambla.backend.domain.service.bloque.BloqueService;
-import com.ensambla.backend.domain.service.campo.CampoService;
-import com.ensambla.backend.domain.service.lote.LoteSubidaService;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
+import com.ensambla.backend.domain.port.ArchivoCuadernoPort;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
-import com.ensambla.backend.domain.useCase.registro.CrearRegistroUseCase;
-import com.ensambla.backend.domain.useCase.registro.EditarRegistroUseCase;
-import com.ensambla.backend.domain.useCase.registro.EliminarRegistroUseCase;
-import com.ensambla.backend.domain.useCase.registro.ListarReferenciasUseCase;
-import com.ensambla.backend.domain.useCase.registro.ListarRegistrosUseCase;
-import com.ensambla.backend.domain.useCase.registro.ObtenerFotoOrigenUseCase;
-import com.ensambla.backend.domain.useCase.registro.ObtenerRegistroUseCase;
+import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistro;
+import com.ensambla.backend.domain.useCase.registro.editarRegistro.EditarRegistro;
+import com.ensambla.backend.domain.useCase.registro.eliminarRegistro.EliminarRegistro;
+import com.ensambla.backend.domain.useCase.registro.listarReferencias.ListarReferencias;
+import com.ensambla.backend.domain.useCase.registro.listarRegistros.ListarRegistros;
+import com.ensambla.backend.domain.useCase.registro.obtenerFotoOrigen.ObtenerFotoOrigen;
+import com.ensambla.backend.domain.useCase.registro.obtenerRegistro.ObtenerRegistro;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -27,91 +25,77 @@ import java.time.Clock;
 public class RegistroUseCaseConfig {
 
     @Bean
-    public CrearRegistroMapper crearRegistroMapper() {
-        return new CrearRegistroMapper();
+    public CrearRegistro crearRegistro(
+            NegocioRepository negocioRepository,
+            BloqueRepository bloqueRepository,
+            CampoRepository campoRepository,
+            RegistroDatosService registroDatosService,
+            ControlPlanService controlPlanService,
+            RegistroRepository registroRepository,
+            TransaccionPort transaccionPort,
+            Clock clock) {
+        return new CrearRegistro(
+                negocioRepository, bloqueRepository, campoRepository, registroDatosService, controlPlanService,
+                registroRepository, transaccionPort, clock);
     }
 
     @Bean
-    public ListarRegistrosMapper listarRegistrosMapper() {
-        return new ListarRegistrosMapper();
+    public ListarRegistros listarRegistros(
+            NegocioRepository negocioRepository,
+            BloqueRepository bloqueRepository,
+            CampoRepository campoRepository,
+            RegistroRepository registroRepository) {
+        return new ListarRegistros(
+                negocioRepository, bloqueRepository, campoRepository, registroRepository);
     }
 
     @Bean
-    public ListarReferenciasMapper listarReferenciasMapper() {
-        return new ListarReferenciasMapper();
+    public ListarReferencias listarReferencias(NegocioRepository negocioRepository,
+                                               BloqueRepository bloqueRepository,
+                                               CampoRepository campoRepository,
+                                               RegistroDatosService registroDatosService) {
+        return new ListarReferencias(
+                negocioRepository, bloqueRepository, campoRepository, registroDatosService);
     }
 
     @Bean
-    public ObtenerRegistroMapper obtenerRegistroMapper() {
-        return new ObtenerRegistroMapper();
+    public ObtenerRegistro obtenerRegistro(NegocioRepository negocioRepository,
+                                           CampoRepository campoRepository,
+                                           RegistroRepository registroRepository) {
+        return new ObtenerRegistro(negocioRepository, campoRepository, registroRepository);
     }
 
     @Bean
-    public EditarRegistroMapper editarRegistroMapper() {
-        return new EditarRegistroMapper();
-    }
-
-    @Bean
-    public CrearRegistroUseCase crearRegistroUseCase(NegocioService negocioService,
-                                                     BloqueService bloqueService,
-                                                     CampoService campoService,
-                                                     RegistroDatosService registroDatosService,
-                                                     CrearRegistroMapper crearRegistroMapper,
-                                                     Clock clock) {
-        return new CrearRegistroUseCase(negocioService, bloqueService, campoService, registroDatosService,
-                crearRegistroMapper, clock);
-    }
-
-    @Bean
-    public ListarRegistrosUseCase listarRegistrosUseCase(NegocioService negocioService,
-                                                         BloqueService bloqueService,
-                                                         CampoService campoService,
-                                                         RegistroDatosService registroDatosService,
-                                                         ListarRegistrosMapper listarRegistrosMapper) {
-        return new ListarRegistrosUseCase(
-                negocioService, bloqueService, campoService, registroDatosService, listarRegistrosMapper);
-    }
-
-    @Bean
-    public ListarReferenciasUseCase listarReferenciasUseCase(NegocioService negocioService,
-                                                             BloqueService bloqueService,
-                                                             CampoService campoService,
-                                                             RegistroDatosService registroDatosService,
-                                                             ListarReferenciasMapper listarReferenciasMapper) {
-        return new ListarReferenciasUseCase(
-                negocioService, bloqueService, campoService, registroDatosService, listarReferenciasMapper);
-    }
-
-    @Bean
-    public ObtenerRegistroUseCase obtenerRegistroUseCase(NegocioService negocioService,
-                                                         CampoService campoService,
-                                                         RegistroDatosService registroDatosService,
-                                                         ObtenerRegistroMapper obtenerRegistroMapper) {
-        return new ObtenerRegistroUseCase(negocioService, campoService, registroDatosService, obtenerRegistroMapper);
-    }
-
-    @Bean
-    public EditarRegistroUseCase editarRegistroUseCase(NegocioService negocioService,
-                                                       CampoService campoService,
-                                                       RegistroDatosService registroDatosService,
-                                                       EditarRegistroMapper editarRegistroMapper,
-                                                       Clock clock) {
-        return new EditarRegistroUseCase(negocioService, campoService, registroDatosService, editarRegistroMapper,
+    public EditarRegistro editarRegistro(NegocioRepository negocioRepository,
+                                         CampoRepository campoRepository,
+                                         RegistroDatosService registroDatosService,
+            RegistroRepository registroRepository,
+                                         Clock clock) {
+        return new EditarRegistro(negocioRepository, campoRepository, registroDatosService, registroRepository,
                 clock);
     }
 
     @Bean
-    public ObtenerFotoOrigenUseCase obtenerFotoOrigenUseCase(NegocioService negocioService,
-                                                             RegistroDatosService registroDatosService,
-                                                             LoteSubidaService loteSubidaService,
-                                                             FotoArchivoMapper fotoArchivoMapper) {
-        return new ObtenerFotoOrigenUseCase(
-                negocioService, registroDatosService, loteSubidaService, fotoArchivoMapper);
+    public ObtenerFotoOrigen obtenerFotoOrigen(
+            NegocioRepository negocioRepository,
+            RegistroRepository registroRepository,
+            ArchivoCuadernoPort archivoCuadernoPort,
+            LoteSubidaRepository loteSubidaRepository) {
+        return new ObtenerFotoOrigen(negocioRepository, registroRepository, archivoCuadernoPort, loteSubidaRepository);
     }
 
     @Bean
-    public EliminarRegistroUseCase eliminarRegistroUseCase(NegocioService negocioService,
-                                                           RegistroDatosService registroDatosService) {
-        return new EliminarRegistroUseCase(negocioService, registroDatosService);
+    public EliminarRegistro eliminarRegistro(
+            NegocioRepository negocioRepository,
+            RegistroRepository registroRepository,
+            TransaccionPort transaccionPort) {
+        return new EliminarRegistro(negocioRepository, registroRepository, transaccionPort);
+    }
+
+    @Bean
+    public RegistroDatosService registroDatosService(
+            RegistroRepository registroRepository,
+            TransaccionPort transaccionPort) {
+        return new RegistroDatosService(registroRepository, transaccionPort);
     }
 }

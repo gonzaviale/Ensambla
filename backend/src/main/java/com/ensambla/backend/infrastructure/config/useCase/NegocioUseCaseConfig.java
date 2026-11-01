@@ -1,11 +1,11 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.mapper.negocio.ActualizarNegocioMapper;
-import com.ensambla.backend.domain.mapper.negocio.ObtenerConfiguracionNegocioMapper;
-import com.ensambla.backend.domain.service.negocio.NegocioService;
-import com.ensambla.backend.domain.service.zona.ZonaService;
-import com.ensambla.backend.domain.useCase.negocio.ActualizarNegocioUseCase;
-import com.ensambla.backend.domain.useCase.negocio.ObtenerConfiguracionNegocioUseCase;
+import com.ensambla.backend.domain.port.GeocodificadorPort;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.zona.ZonaRepository;
+import com.ensambla.backend.domain.useCase.negocio.actualizarNegocio.ActualizarNegocio;
+import com.ensambla.backend.domain.useCase.negocio.obtenerConfiguracionNegocio.ObtenerConfiguracionNegocio;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,24 +15,18 @@ import java.time.Clock;
 public class NegocioUseCaseConfig {
 
     @Bean
-    public ObtenerConfiguracionNegocioMapper obtenerConfiguracionNegocioMapper() {
-        return new ObtenerConfiguracionNegocioMapper();
+    public ObtenerConfiguracionNegocio obtenerConfiguracionNegocio(
+            NegocioRepository negocioRepository, ZonaRepository zonaRepository) {
+        return new ObtenerConfiguracionNegocio(negocioRepository, zonaRepository);
     }
 
     @Bean
-    public ActualizarNegocioMapper actualizarNegocioMapper(ObtenerConfiguracionNegocioMapper mapper) {
-        return new ActualizarNegocioMapper(mapper);
-    }
-
-    @Bean
-    public ObtenerConfiguracionNegocioUseCase obtenerConfiguracionNegocioUseCase(
-            NegocioService negocioService, ZonaService zonaService, ObtenerConfiguracionNegocioMapper mapper) {
-        return new ObtenerConfiguracionNegocioUseCase(negocioService, zonaService, mapper);
-    }
-
-    @Bean
-    public ActualizarNegocioUseCase actualizarNegocioUseCase(
-            NegocioService negocioService, ZonaService zonaService, ActualizarNegocioMapper mapper, Clock clock) {
-        return new ActualizarNegocioUseCase(negocioService, zonaService, mapper, clock);
+    public ActualizarNegocio actualizarNegocio(
+            NegocioRepository negocioRepository,
+            ZonaRepository zonaRepository,
+            GeocodificadorPort geocodificadorPort,
+            TransaccionPort transaccionPort,
+            Clock clock) {
+        return new ActualizarNegocio(negocioRepository, zonaRepository, geocodificadorPort, transaccionPort, clock);
     }
 }

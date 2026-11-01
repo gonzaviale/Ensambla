@@ -1,6 +1,8 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces;
 
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.infrastructure.repository.entity.RecetaEntity;
 import com.ensambla.backend.support.PostgresDatosTestSupport;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,10 +34,10 @@ class IRecetaJpaRepositoryTest extends PostgresDatosTestSupport {
     void setUp() {
         negocioA = givenNegocio("a@example.com").getId();
         negocioB = givenNegocio("b@example.com").getId();
-        bloqueA = givenBloque(negocioA, "Productos");
-        campoPrecio = givenCampo(negocioA, bloqueA, "Precio", TipoCampo.NUMERO, 0);
-        pan = givenRegistro(negocioA, bloqueA, Map.of(), AHORA);
-        harina = givenRegistro(negocioA, bloqueA, Map.of(), AHORA);
+        bloqueA = givenBloque(NegocioId.de(negocioA), "Productos");
+        campoPrecio = givenCampo(NegocioId.de(negocioA), BloqueId.de(bloqueA), "Precio", TipoCampo.NUMERO, 0);
+        pan = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), AHORA);
+        harina = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), AHORA);
     }
 
     @Test
@@ -101,7 +103,7 @@ class IRecetaJpaRepositoryTest extends PostgresDatosTestSupport {
         recetas.flush();
         assertThat(recetas.findByProductoIdAndNegocioId(pan, negocioA)).isEmpty();
 
-        UUID otroPrecio = givenCampo(negocioA, bloqueA, "Costo", TipoCampo.NUMERO, 1);
+        UUID otroPrecio = givenCampo(NegocioId.de(negocioA), BloqueId.de(bloqueA), "Costo", TipoCampo.NUMERO, 1);
         recetas.saveAndFlush(receta(negocioA, pan, otroPrecio));
         registros.deleteById(pan);
         registros.flush();

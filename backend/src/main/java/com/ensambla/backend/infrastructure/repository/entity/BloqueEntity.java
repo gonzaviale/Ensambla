@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.repository.entity;
 
-import com.ensambla.backend.domain.model.enums.AnchoBloque;
-import com.ensambla.backend.domain.model.enums.ColorBloque;
-import com.ensambla.backend.domain.model.enums.TipoBloque;
+import com.ensambla.backend.domain.model.bloque.AnchoBloque;
+import com.ensambla.backend.domain.model.bloque.ColorBloque;
+import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

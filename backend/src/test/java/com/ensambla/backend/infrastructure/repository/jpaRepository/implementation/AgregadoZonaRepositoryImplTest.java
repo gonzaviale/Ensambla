@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
 import com.ensambla.backend.domain.model.zona.AgregadoZonaProducto;
+import com.ensambla.backend.domain.model.zona.ZonaId;
 import com.ensambla.backend.infrastructure.repository.entity.AgregadoZonaProductoEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IAgregadoZonaProductoJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.INegocioJpaRepository;
@@ -10,7 +11,6 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -18,7 +18,7 @@ import static org.mockito.Mockito.when;
 
 class AgregadoZonaRepositoryImplTest {
 
-    private static final UUID ZONA_ID = UUID.fromString("c0000000-0000-4000-8000-000000000001");
+    private static final ZonaId ZONA_ID = ZonaId.de("c0000000-0000-4000-8000-000000000001");
 
     private final IAgregadoZonaProductoJpaRepository agregadoJpa = mock(IAgregadoZonaProductoJpaRepository.class);
     private final INegocioJpaRepository negocioJpa = mock(INegocioJpaRepository.class);
@@ -28,7 +28,7 @@ class AgregadoZonaRepositoryImplTest {
     @Test
     @DisplayName("Lista los productos agregados de la zona mapeados al dominio")
     void findByZonaIdShouldMapEveryField() {
-        when(agregadoJpa.findAllByZonaIdOrderByNombreAscIdAsc(ZONA_ID)).thenReturn(List.of(
+        when(agregadoJpa.findAllByZonaIdOrderByNombreAscIdAsc(ZONA_ID.valor())).thenReturn(List.of(
                 AgregadoZonaProductoEntity.builder().nombre("Yerba 1kg").comercios(8).comerciosVenden(6)
                         .precioMinimo(new BigDecimal("2800.00")).precioPromedio(new BigDecimal("3100.00"))
                         .precioMaximo(new BigDecimal("3400.00")).unidadesSemana(new BigDecimal("12.50")).build()));
@@ -49,7 +49,7 @@ class AgregadoZonaRepositoryImplTest {
     @Test
     @DisplayName("Cuenta solo los comercios de la zona que comparten sus datos")
     void contarComerciosQueComparten() {
-        when(negocioJpa.countByZonaIdAndComparteDatosZonaTrue(ZONA_ID)).thenReturn(10L);
+        when(negocioJpa.countByZonaIdAndComparteDatosZonaTrue(ZONA_ID.valor())).thenReturn(10L);
 
         assertThat(repository.contarComerciosQueComparten(ZONA_ID)).isEqualTo(10L);
     }

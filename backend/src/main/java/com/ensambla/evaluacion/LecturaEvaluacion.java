@@ -2,7 +2,10 @@ package com.ensambla.evaluacion;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.common.Identificador;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
 import com.ensambla.backend.domain.model.lectura.CampoContexto;
 import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
@@ -12,7 +15,6 @@ import com.ensambla.backend.domain.model.procesamiento.BloqueLectura;
 import com.ensambla.backend.domain.model.procesamiento.CampoConocido;
 import com.ensambla.backend.domain.model.procesamiento.PropuestaLectura;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
-import com.ensambla.backend.domain.service.procesamiento.PropuestaLecturaService;
 import com.ensambla.backend.infrastructure.ia.LectorCuadernoTimeoutAdapter;
 import lombok.RequiredArgsConstructor;
 import tools.jackson.databind.ObjectMapper;
@@ -21,8 +23,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -32,8 +34,6 @@ public class LecturaEvaluacion {
 
     private final LectorCuadernoPort lectorCuadernoPort;
     private final ObjectMapper objectMapper;
-    private final PropuestaLecturaService propuestaLecturaService = new PropuestaLecturaService();
-
     public void ejecutar(Path entrada, Path salida, Duration timeout) throws IOException {
         List<ResultadoEvaluacion> resultados = new ArrayList<>();
         SolicitudEvaluacion solicitud = objectMapper.readValue(Files.readString(entrada), SolicitudEvaluacion.class);
@@ -76,12 +76,14 @@ public class LecturaEvaluacion {
             TipoCampo tipo = TipoCampo.valueOf(campo.tipo());
             List<String> opciones = campo.opciones() == null ? List.of() : campo.opciones();
             contexto.add(new CampoContexto(campo.nombre(), tipo, opciones));
-            conocidos.add(new CampoConocido(UUID.randomUUID(), campo.nombre(), tipo, opciones));
+            conocidos.add(new CampoConocido(CampoId.nuevo(), campo.nombre(), tipo, opciones));
         }
         LecturaCuaderno lectura = lector.leer(
-                paginas, List.of(new BloqueConocido(destinoId, destino.nombre(), contexto)), destinoId);
-        PropuestaLectura propuesta = propuestaLecturaService.proponer(
-                lectura, List.of(new BloqueLectura(destinoId, destino.nombre(), conocidos)), destinoId);
+                paginas, List.of(new BloqueConocido(Identificador.opcional(destinoId, BloqueId::de), destino.nombre(),
+                        contexto)), Identificador.opcional(destinoId, BloqueId::de));
+        PropuestaLectura propuesta = PropuestaLectura.proponer(
+                lectura, List.of(new BloqueLectura(Identificador.opcional(destinoId, BloqueId::de), destino.nombre(),
+                        conocidos)), Identificador.opcional(destinoId, BloqueId::de));
         return new ResultadoEvaluacion(caso.id(), propuesta.lectura(), null, propuesta.camposNuevos());
     }
 

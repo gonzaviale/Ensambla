@@ -1,7 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.dto.inventario;
 
-import java.math.BigDecimal;
-import java.util.UUID;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 
-public record StockResponse(UUID registroId, String producto, BigDecimal stock) {
+import java.math.BigDecimal;
+
+public record StockResponse(RegistroId registroId, String producto, BigDecimal stock) {
 }

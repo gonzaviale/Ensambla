@@ -1,14 +1,17 @@
 package com.ensambla.backend.domain.model.reporte;
 
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Qué filas entran en un reporte de un bloque: las que cumplen el texto, se cargaron entre las dos fechas (inclusive)
@@ -17,29 +20,29 @@ import java.util.UUID;
  * última (excluido), en la zona horaria de la persona.
  */
 public record FiltroReporte(
-        UUID negocioId,
-        UUID bloqueId,
+        NegocioId negocioId,
+        BloqueId bloqueId,
         String texto,
         Instant desde,
         Instant hasta,
-        UUID campoId,
+        CampoId campoId,
         String valor) {
 
     /** Las fechas de los reportes son las del día en Argentina, no las del servidor. */
-    public static final ZoneId ZONA = ZoneId.of("America/Argentina/Buenos_Aires");
+    public static final ZoneId ZONA = ZonaNegocio.ZONA;
 
     /**
      * @param campos los del bloque: el filtro por valor sólo admite una columna de opción o de sí/no
      * @throws BusinessRuleException si las fechas están al revés, la columna no se puede filtrar o falta el valor
      */
     public static FiltroReporte armar(
-            UUID negocioId,
-            UUID bloqueId,
+            NegocioId negocioId,
+            BloqueId bloqueId,
             List<Campo> campos,
             String texto,
             LocalDate desde,
             LocalDate hasta,
-            UUID campoId,
+            CampoId campoId,
             String valor) {
         if (desde != null && hasta != null && desde.isAfter(hasta)) {
             throw new BusinessRuleException("La fecha desde no puede ser posterior a la fecha hasta");
@@ -58,7 +61,7 @@ public record FiltroReporte(
         return campoId != null;
     }
 
-    private static String valorDe(List<Campo> campos, UUID campoId, String valor) {
+    private static String valorDe(List<Campo> campos, CampoId campoId, String valor) {
         Campo campo = campos.stream()
                 .filter(candidato -> candidato.getId().equals(campoId))
                 .filter(candidato -> candidato.getTipo() == TipoCampo.OPCION

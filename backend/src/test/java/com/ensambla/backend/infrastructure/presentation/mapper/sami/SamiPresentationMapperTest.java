@@ -1,12 +1,14 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.sami;
 
-import com.ensambla.backend.domain.dto.sami.ColumnaSamiItem;
-import com.ensambla.backend.domain.dto.sami.ConversarConSamiRequest;
-import com.ensambla.backend.domain.dto.sami.ConversarConSamiResponse;
-import com.ensambla.backend.domain.dto.sami.CrearProyectoDesdeSamiRequest;
-import com.ensambla.backend.domain.dto.sami.OpcionSamiItem;
-import com.ensambla.backend.domain.dto.sami.PreguntaSamiItem;
-import com.ensambla.backend.domain.dto.sami.PropuestaSamiItem;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.sami.ColumnaSamiItem;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiRequest;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiResponse;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.OpcionSamiItem;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.PreguntaSamiItem;
+import com.ensambla.backend.domain.useCase.sami.conversarConSami.PropuestaSamiItem;
+import com.ensambla.backend.domain.useCase.sami.crearProyectoDesdeSami.CrearProyectoDesdeSamiRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.sami.ConversarSamiRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.sami.ConversarSamiResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.sami.CrearProyectoSamiRequest;
@@ -15,14 +17,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class SamiPresentationMapperTest {
 
-    private static final UUID USUARIO_ID = UUID.randomUUID();
-    private static final UUID PLANTILLA_ID = UUID.randomUUID();
+    private static final UsuarioId USUARIO_ID = UsuarioId.nuevo();
+    private static final PlantillaId PLANTILLA_ID = PlantillaId.nuevo();
 
     private final SamiPresentationMapper mapper = new SamiPresentationMapper();
 

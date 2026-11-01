@@ -17,7 +17,7 @@ class PruebaPremiumRepositoryMapperTest {
     @DisplayName("Convierte todos los campos de la entidad al dominio")
     void toDomainShouldMapEveryField() {
         PruebaPremiumEntity entity = PruebaPremiumEntity.builder()
-                .negocioId(NEGOCIO_ID)
+                .negocioId(NEGOCIO_ID.valor())
                 .inicioEn(INSTANTE)
                 .finEn(INSTANTE.plusDays(7))
                 .paginasIa(4)
@@ -38,7 +38,7 @@ class PruebaPremiumRepositoryMapperTest {
 
         PruebaPremiumEntity result = pruebaPremiumRepositoryMapper.toEntity(prueba);
 
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
         assertThat(result.getInicioEn()).isEqualTo(INSTANTE);
         assertThat(result.getFinEn()).isEqualTo(INSTANTE.plusDays(7));
         assertThat(result.getPaginasIa()).isEqualTo(5);

@@ -21,28 +21,27 @@ docker compose up -d               # PostgreSQL 17 en localhost:5435
 
 ## Arquitectura
 
-Clean Architecture en dos capas; `domain` **no** depende de `infrastructure` (lo verifica `ArchitectureTest`).
+Clean Architecture en dos capas; `domain` **no** depende de `infrastructure` ni de Spring (lo verifica
+`ArchitectureTest`). Las reglas, con su porqué y ejemplos, están en [ARQUITECTURA.md](ARQUITECTURA.md).
 
 ```
 com.ensambla.backend
 ├── domain
-│   ├── model/<area>/        modelos (Lombok) y model/enums
+│   ├── model/<area>/        modelos, reglas puras, ids tipados (<Modelo>Id) y enums del área
 │   ├── repository/<area>/   puertos de persistencia
-│   ├── service/<area>/      reglas que tocan repositorio
-│   ├── useCase/<area>/      un caso de uso por clase, execute()
-│   ├── dto/<area>/          request/response de los use cases (records)
-│   ├── mapper/<area>/       un mapper por use case
-│   ├── port/                puertos de salida (LectorCuadernoPort…)
+│   ├── service/<area>/      sólo lógica que comparten dos o más casos de uso
+│   ├── useCase/<area>/      un subpaquete por caso de uso: la clase (sin sufijo, un execute()) y sus DTOs
+│   ├── port/                puertos de salida (TransaccionPort, LectorCuadernoPort…)
 │   └── exception/           ResourceNotFound, DuplicateResource, BusinessRule, CredencialesInvalidas
 └── infrastructure
-    ├── config/              SecurityConfig, CorsFilter, SwaggerConfig, useCase/<Area>UseCaseConfig
+    ├── config/              SecurityConfig, CorsFilter, SwaggerConfig, IdentificadoresConfig, useCase/<Area>UseCaseConfig
     ├── ia/                  adapter de lectura con IA (LectorCuadernoIaAdapter, IaConfig)
     ├── security/            SesionAdapter, UsuarioActivoFilter, SecurityErrorHandler
     ├── presentation/        controller, dto web, mapper, exception (GlobalExceptionHandler)
-    └── repository/          entity, jpaRepository/{interfaces,implementation}, mapper
+    └── repository/          entity, jpaRepository/{interfaces,implementation}, mapper, TransaccionAdapter
 ```
 
-Flujo: `Controller → PresentationMapper → UseCase → Service → Repository (puerto) → RepositoryImpl → JPA`.
+Flujo: `Controller → PresentationMapper → Caso de uso → (Servicio compartido) → Puerto → RepositoryImpl → JPA`.
 Para sumar un endpoint seguí el skill `crear-use-case` (`../.claude/skills`); el módulo `plantilla` es la referencia.
 
 ## Modelo de datos
@@ -80,7 +79,7 @@ guardado. Un lote de otro negocio responde 404.
 V12 agrega el catálogo `plan` y la suscripción actual `suscripcion`, asigna el gratuito activo a
 negocios existentes y lo crea junto con cada cuenta nueva en una sola transacción.
 V13 configura los límites aprobados: gratuito de un sistema, 1.000 registros totales y diez páginas
-de IA por mes calendario UTC; premium sin límite comercial de sistemas/registros y cien páginas mensuales.
+de IA por mes calendario argentino; premium sin límite comercial de sistemas/registros y cien páginas mensuales.
 
 `limites_configurados=true` habilita el control de capacidades; `configurado` identifica precio/moneda.
 V15 configura los catálogos Premium pendientes a ARS 14.900 finales cada treinta días, conservando
@@ -94,7 +93,7 @@ Un rechazo de plan devuelve 403 con `message` y `codigo`; un recurso ajeno sigue
 Superar una cuota no borra los datos ni bloquea su lectura/edición básica.
 
 V14 incorpora una única prueba premium por negocio. `POST /api/planes/prueba` requiere sesión y CSRF;
-inicia siete días exactos de capacidades premium y **diez páginas de IA totales**, sin renovación mensual.
+inicia siete días exactos de capacidades premium y **diez análisis de foto totales**, sin renovación mensual.
 Las dos vías de IA comparten el contador persistido, incluidas las reservas admitidas; fallos y timeouts
 conservan el cargo del intento. Una reserva rechazada no lo consume. Repetir el inicio no renueva la prueba.
 Al vencer se usa el gratuito sin borrar datos, incluso antes de ejecutar el job automático de cada minuto.
@@ -103,7 +102,7 @@ El job conserva cualquier premium ya activado por un pago. Puede deshabilitarse 
 la elegibilidad e historial de prueba y los contadores del negocio. Responde con `Cache-Control: no-store`;
 el negocio se resuelve exclusivamente desde la sesión. `consultadoEn` es la hora del servidor.
 `suscripcion` distingue prueba activa y posibilidad de iniciarla; `uso` incluye sistemas, registros,
-páginas, límite y período (`PRUEBA` total o `MENSUAL` UTC). `prueba` es nulo si nunca se usó.
+páginas, límite y período (`PRUEBA` total o `MENSUAL` argentino). `prueba` es nulo si nunca se usó.
 El precio se identifica con `precioConfigurado`, separado de `limitesConfigurados`.
 La consulta respeta el vencimiento exacto aunque el job todavía no haya persistido el gratuito.
 ENS-98 agrega contratación mediante Suscripciones de Mercado Pago, primer cobro al terminar la
@@ -185,7 +184,7 @@ La búsqueda privada de direcciones y el catálogo de rubros se documentan en
 | `DELETE /api/registros/{id}` | sesión + CSRF | Elimina el registro. `204` |
 | `GET /api/lotes/{loteId}/lectura` | sesión | Estado, motivo y propuesta tipada del lote |
 | `POST /api/lotes/{loteId}/reintentar` | sesión + CSRF | Reencolar ERROR del negocio; 202 |
-| `GET /api/ia/consumo` | sesión | Consumo, reservas y disponibilidad diaria UTC |
+| `GET /api/ia/consumo` | sesión | Consumo, reservas y disponibilidad diaria argentina |
 
 V3 carga Inventario, Pedidos y Clientes. La copia de una plantilla se guarda en una única transacción.
 El negocio se resuelve desde el dueño autenticado (primero por creación e id, hasta el selector de T-061);

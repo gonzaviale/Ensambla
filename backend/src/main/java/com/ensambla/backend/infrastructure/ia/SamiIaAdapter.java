@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.ia;
 
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.sami.ColumnaSugerida;
 import com.ensambla.backend.domain.model.sami.ConsultaIaSami;
 import com.ensambla.backend.domain.model.sami.ConsumoIaSami;

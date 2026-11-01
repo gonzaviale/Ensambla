@@ -1,7 +1,6 @@
 import { PASOS } from '@/lib/sistema/tutorial';
 import { salirDelTutorial } from '@/hooks/tutorial/useAccionesDelTutorial';
 import { useTutorialEnPantalla } from '@/hooks/tutorial/useTutorialEnPantalla';
-import { Btn } from '../Btn';
 import { Icon } from '../Icon';
 
 // La guía interactiva: un reflector que deja iluminado sólo lo que toca y un cartel de Sami que explica el
@@ -60,7 +59,7 @@ export function Tutorial() {
         style={{ width: cartel.width, left: cartel.left, top: cartel.top }}
       >
         <div className="tour-coach-top">
-          <span>GUÍA DE TU PRIMER SISTEMA</span>
+          <span>GUÍA DE TU PRIMER CUADERNO</span>
           <button type="button" aria-label="Salir del tutorial" onClick={salirDelTutorial}>
             <Icon name="close" />
           </button>
@@ -90,18 +89,6 @@ export function Tutorial() {
         <div className="tour-hint" role="status">
           <Icon name={terminado ? 'check-circle' : 'arrow'} />
           <span>{pensandoAhora ? 'Preparando las piezas…' : detalle.hint}</span>
-        </div>
-        <div className="tour-footer">
-          {terminado ? (
-            <Btn cls="primary small" onClick={salirDelTutorial}>
-              Listo, sigo explorando
-            </Btn>
-          ) : (
-            <span>Se avanza haciendo, a tu ritmo.</span>
-          )}
-          <button type="button" className="text-link" onClick={salirDelTutorial}>
-            {terminado ? 'Cerrar guía' : 'Explorar sin guía'}
-          </button>
         </div>
       </section>
     </div>

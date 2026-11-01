@@ -26,19 +26,19 @@ class SuscripcionRepositoryImplTest {
     @Test
     @DisplayName("Recupera y mapea suscripcion desde persistencia")
     void findByNegocioIdShouldMapStoredEntity() {
-        when(suscripcionJpaRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcionEntity()));
+        when(suscripcionJpaRepository.findByNegocioId(NEGOCIO_ID.valor())).thenReturn(Optional.of(suscripcionEntity()));
 
         Optional<Suscripcion> result = suscripcionRepository.findByNegocioId(NEGOCIO_ID);
 
         assertThat(result).isPresent();
         thenEveryFieldMatches(result.orElseThrow());
-        verify(suscripcionJpaRepository).findByNegocioId(NEGOCIO_ID);
+        verify(suscripcionJpaRepository).findByNegocioId(NEGOCIO_ID.valor());
     }
 
     @Test
     @DisplayName("Conserva el resultado vacío cuando no existe suscripcion")
     void findByNegocioIdShouldReturnEmptyWhenMissing() {
-        when(suscripcionJpaRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.empty());
+        when(suscripcionJpaRepository.findByNegocioId(NEGOCIO_ID.valor())).thenReturn(Optional.empty());
 
         Optional<Suscripcion> result = suscripcionRepository.findByNegocioId(NEGOCIO_ID);
 

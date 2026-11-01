@@ -1,7 +1,9 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces;
 
-import com.ensambla.backend.domain.model.enums.TipoCampo;
-import com.ensambla.backend.domain.model.enums.TipoMovimiento;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.inventario.TipoMovimiento;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.infrastructure.repository.entity.MovimientoStockEntity;
 import com.ensambla.backend.support.PostgresDatosTestSupport;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,10 +37,10 @@ class IMovimientoStockJpaRepositoryTest extends PostgresDatosTestSupport {
     void setUp() {
         negocioA = givenNegocio("a@example.com").getId();
         negocioB = givenNegocio("b@example.com").getId();
-        bloqueA = givenBloque(negocioA, "Productos");
-        givenCampo(negocioA, bloqueA, "Producto", TipoCampo.TEXTO, 0);
-        harina = givenRegistro(negocioA, bloqueA, Map.of(), AHORA);
-        azucar = givenRegistro(negocioA, bloqueA, Map.of(), AHORA);
+        bloqueA = givenBloque(NegocioId.de(negocioA), "Productos");
+        givenCampo(NegocioId.de(negocioA), BloqueId.de(bloqueA), "Producto", TipoCampo.TEXTO, 0);
+        harina = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), AHORA);
+        azucar = givenRegistro(NegocioId.de(negocioA), BloqueId.de(bloqueA), Map.of(), AHORA);
     }
 
     @Test
@@ -72,8 +74,8 @@ class IMovimientoStockJpaRepositoryTest extends PostgresDatosTestSupport {
         MovimientoStockEntity viejo = givenMovimiento(negocioA, harina, TipoMovimiento.ENTRADA, "1", 3);
         MovimientoStockEntity medio = givenMovimiento(negocioA, azucar, TipoMovimiento.ENTRADA, "1", 2);
         MovimientoStockEntity nuevo = givenMovimiento(negocioA, harina, TipoMovimiento.SALIDA, "1", 1);
-        UUID otroBloque = givenBloque(negocioA, "Clientes");
-        UUID otroProducto = givenRegistro(negocioA, otroBloque, Map.of(), AHORA);
+        UUID otroBloque = givenBloque(NegocioId.de(negocioA), "Clientes");
+        UUID otroProducto = givenRegistro(NegocioId.de(negocioA), BloqueId.de(otroBloque), Map.of(), AHORA);
         givenMovimiento(negocioA, otroProducto, TipoMovimiento.ENTRADA, "1", 0);
 
         List<MovimientoStockEntity> todos = movimientos.findRecientes(negocioA, bloqueA, null, 100);

@@ -1,6 +1,8 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
 import com.ensambla.backend.domain.model.negocio.Negocio;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.zona.ZonaId;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.INegocioJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.NegocioRepositoryMapper;
@@ -9,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.UsuarioTestData.USUARIO_ID;
@@ -27,14 +30,14 @@ class NegocioRepositoryImplTest {
     @DisplayName("Devuelve el negocio con el id generado por persistencia")
     void saveShouldReturnPersistedNegocio() {
         when(negocioJpaRepository.saveAndFlush(any())).thenReturn(NegocioEntity.builder()
-                .id(USUARIO_ID)
+                .id(USUARIO_ID.valor())
                 .nombre("Mi negocio")
-                .duenioId(USUARIO_ID)
+                .duenioId(USUARIO_ID.valor())
                 .build());
 
         Negocio result = negocioRepository.save(Negocio.builder().nombre("Mi negocio").build());
 
-        assertThat(result.getId()).isEqualTo(USUARIO_ID);
+        assertThat(result.getId()).isEqualTo(NegocioId.de(USUARIO_ID.valor()));
         assertThat(result.getNombre()).isEqualTo("Mi negocio");
         assertThat(result.getDuenioId()).isEqualTo(USUARIO_ID);
     }
@@ -44,8 +47,8 @@ class NegocioRepositoryImplTest {
     void findIdByDuenioIdShouldMapId() {
         var jpa = mock(INegocioJpaRepository.class);
         var mapper = new NegocioRepositoryMapper();
-        when(jpa.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(USUARIO_ID))
-                .thenReturn(Optional.of(NegocioEntity.builder().id(NEGOCIO_ID).build()));
+        when(jpa.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(USUARIO_ID.valor()))
+                .thenReturn(Optional.of(NegocioEntity.builder().id(NEGOCIO_ID.valor()).build()));
 
         var result = new NegocioRepositoryImpl(jpa, mapper).findIdByDuenioId(USUARIO_ID);
 
@@ -53,10 +56,45 @@ class NegocioRepositoryImplTest {
     }
 
     @Test
+    @DisplayName("Resuelve el email del dueño del negocio")
+    void findEmailDuenioByIdShouldDelegateToJpa() {
+        when(negocioJpaRepository.findEmailDuenioById(NEGOCIO_ID.valor())).thenReturn(Optional.of("dueño@example.com"));
+
+        assertThat(negocioRepository.findEmailDuenioById(NEGOCIO_ID)).contains("dueño@example.com");
+    }
+
+    @Test
     @DisplayName("Lista los ids de todos los negocios")
     void findAllIdsShouldDelegateToJpa() {
-        when(negocioJpaRepository.findAllIds()).thenReturn(List.of(NEGOCIO_ID));
+        when(negocioJpaRepository.findAllIds()).thenReturn(List.of(NEGOCIO_ID.valor()));
 
         assertThat(negocioRepository.findAllIds()).containsExactly(NEGOCIO_ID);
+    }
+
+    @Test
+    @DisplayName("Resuelve la zona del negocio")
+    void findZonaIdByIdShouldMapZonaId() {
+        UUID zonaId = UUID.randomUUID();
+        when(negocioJpaRepository.findById(NEGOCIO_ID.valor()))
+                .thenReturn(Optional.of(NegocioEntity.builder().id(NEGOCIO_ID.valor()).zonaId(zonaId).build()));
+
+        assertThat(negocioRepository.findZonaIdById(NEGOCIO_ID)).contains(ZonaId.de(zonaId));
+    }
+
+    @Test
+    @DisplayName("Un negocio sin zona no tiene id de zona")
+    void findZonaIdByIdShouldReturnEmptyWhenNegocioHasNoZona() {
+        when(negocioJpaRepository.findById(NEGOCIO_ID.valor()))
+                .thenReturn(Optional.of(NegocioEntity.builder().id(NEGOCIO_ID.valor()).build()));
+
+        assertThat(negocioRepository.findZonaIdById(NEGOCIO_ID)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Un negocio inexistente no tiene id de zona")
+    void findZonaIdByIdShouldReturnEmptyWhenNegocioDoesNotExist() {
+        when(negocioJpaRepository.findById(NEGOCIO_ID.valor())).thenReturn(Optional.empty());
+
+        assertThat(negocioRepository.findZonaIdById(NEGOCIO_ID)).isEmpty();
     }
 }

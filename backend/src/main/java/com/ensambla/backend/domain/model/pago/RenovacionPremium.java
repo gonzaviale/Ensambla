@@ -1,5 +1,7 @@
 package com.ensambla.backend.domain.model.pago;
 
+import com.ensambla.backend.domain.exception.PasarelaPagoException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -8,7 +10,6 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -17,9 +18,9 @@ import java.util.UUID;
 @AllArgsConstructor
 public class RenovacionPremium {
 
-    private UUID id;
+    private RenovacionId id;
 
-    private UUID negocioId;
+    private NegocioId negocioId;
 
     private String proveedorId;
 
@@ -44,4 +45,25 @@ public class RenovacionPremium {
     private OffsetDateTime creadoEn;
 
     private OffsetDateTime actualizadoEn;
+
+    /** El contrato que informa el proveedor tiene que ser el que se creó para esta renovación. */
+    public void validarContrato(ContratoRemoto remoto) {
+        if (!id.equals(remoto.referencia()) || remoto.importe().compareTo(importe) != 0
+                || !moneda.equals(remoto.moneda()) || remoto.frecuencia() != 30
+                || !"days".equals(remoto.unidad()) || !remoto.inicioEn().isEqual(primerCobroEn)
+                || (proveedorId != null && !proveedorId.equals(remoto.id()))) {
+            throw new PasarelaPagoException();
+        }
+    }
+
+    /** El estado propio que corresponde al que informa el proveedor. */
+    public static String estadoLocal(String estadoDelProveedor) {
+        return switch (estadoDelProveedor) {
+            case "pending" -> "PENDIENTE";
+            case "authorized" -> "AUTORIZADA";
+            case "paused" -> "PAUSADA";
+            case "cancelled", "canceled" -> "CANCELADA";
+            default -> throw new PasarelaPagoException();
+        };
+    }
 }

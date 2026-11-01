@@ -73,9 +73,13 @@ describe('varias dudas de Sami en un mismo turno', () => {
 
     expect(within(await botonera()).getByText('Duda 1 de 3')).toBeVisible();
     expect(screen.getByText('¿Qué significan los tildes?')).toBeVisible();
-    expect(screen.queryByText('¿Cuál es el total correcto de Giz. Pilates?')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('¿Cuál es el total correcto de Giz. Pilates?'),
+    ).not.toBeInTheDocument();
 
-    await user.click(within(await botonera()).getByRole('button', { name: /^Ya entregado y cobrado/ }));
+    await user.click(
+      within(await botonera()).getByRole('button', { name: /^Ya entregado y cobrado/ }),
+    );
     expect(within(await botonera()).getByText('Duda 2 de 3')).toBeVisible();
     expect(pedidos).toHaveLength(1);
 
@@ -112,8 +116,13 @@ describe('varias dudas de Sami en un mismo turno', () => {
     const { user, pedidos } = await conTresDudas();
 
     await user.click(within(await botonera()).getByRole('button', { name: 'Saltear esta duda' }));
-    await user.click(within(await botonera()).getByRole('button', { name: /Escribir otra respuesta/ }));
-    await user.type(screen.getByRole('textbox', { name: 'Tu respuesta a esta duda' }), 'Es lo que ya pagaron');
+    await user.click(
+      within(await botonera()).getByRole('button', { name: /Escribir otra respuesta/ }),
+    );
+    await user.type(
+      screen.getByRole('textbox', { name: 'Tu respuesta a esta duda' }),
+      'Es lo que ya pagaron',
+    );
     await user.click(screen.getByRole('button', { name: 'Responder' }));
     expect(within(await botonera()).getByText('Duda 3 de 3')).toBeVisible();
     await user.click(within(await botonera()).getByRole('button', { name: /^28\.800/ }));
@@ -152,7 +161,9 @@ describe('varias dudas de Sami en un mismo turno', () => {
 
     const grupo = await botonera();
     expect(within(grupo).queryByText(/Duda 1 de/)).not.toBeInTheDocument();
-    expect(within(grupo).queryByRole('button', { name: 'Saltear esta duda' })).not.toBeInTheDocument();
+    expect(
+      within(grupo).queryByRole('button', { name: 'Saltear esta duda' }),
+    ).not.toBeInTheDocument();
     await user.click(within(grupo).getByRole('button', { name: /^Sí/ }));
 
     expect(await screen.findByText('Perfecto.', {}, ESPERA)).toBeVisible();

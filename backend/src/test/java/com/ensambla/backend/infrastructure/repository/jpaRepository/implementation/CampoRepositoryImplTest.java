@@ -1,7 +1,10 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.ICampoJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.CampoRepositoryMapper;
@@ -15,8 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,9 +25,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class CampoRepositoryImplTest {
 
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID BLOQUE_ID = UUID.fromString("b0000000-0000-4000-8000-000000000001");
-    private static final UUID CAMPO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final CampoId CAMPO_ID = CampoId.de("d0000000-0000-4000-8000-000000000001");
 
     @Mock
     private ICampoJpaRepository campoJpa;
@@ -41,8 +42,8 @@ class CampoRepositoryImplTest {
     @Test
     @DisplayName("El campo se busca por id dentro del negocio y se mapea")
     void findByIdAndNegocioIdShouldMapResult() {
-        when(campoJpa.findByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID))
-                .thenReturn(Optional.of(CampoEntity.builder().id(CAMPO_ID).nombre("Precio").build()));
+        when(campoJpa.findByIdAndNegocioId(CAMPO_ID.valor(), NEGOCIO_ID.valor()))
+                .thenReturn(Optional.of(CampoEntity.builder().id(CAMPO_ID.valor()).nombre("Precio").build()));
 
         Optional<Campo> result = campoRepositoryImpl.findByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID);
 
@@ -52,7 +53,7 @@ class CampoRepositoryImplTest {
     @Test
     @DisplayName("Un campo de otro negocio o inexistente vuelve vacío")
     void findByIdAndNegocioIdShouldReturnEmptyWhenMissing() {
-        when(campoJpa.findByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+        when(campoJpa.findByIdAndNegocioId(CAMPO_ID.valor(), NEGOCIO_ID.valor())).thenReturn(Optional.empty());
 
         Optional<Campo> result = campoRepositoryImpl.findByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID);
 
@@ -64,22 +65,23 @@ class CampoRepositoryImplTest {
     void saveShouldPersistAndMapSavedEntity() {
         ArgumentCaptor<CampoEntity> guardada = ArgumentCaptor.forClass(CampoEntity.class);
         when(campoJpa.save(guardada.capture()))
-                .thenReturn(CampoEntity.builder().id(CAMPO_ID).nombre("Talle").tipo(TipoCampo.OPCION).build());
+                .thenReturn(CampoEntity.builder().id(CAMPO_ID.valor()).nombre("Talle").tipo(TipoCampo.OPCION).build());
 
         Campo result = campoRepositoryImpl.save(givenCampoNuevo());
 
         assertThat(result.getId()).isEqualTo(CAMPO_ID);
         assertThat(result.getTipo()).isEqualTo(TipoCampo.OPCION);
-        assertThat(guardada.getValue().getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(guardada.getValue().getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
         assertThat(guardada.getValue().getOpciones()).containsExactly("Chico", "Grande");
     }
 
     @Test
     @DisplayName("Las conexiones hacia un bloque se buscan dentro del negocio y se mapean")
     void findRelacionesHaciaShouldMapResult() {
-        when(campoJpa.findRelacionesHacia(BLOQUE_ID, NEGOCIO_ID))
-                .thenReturn(List.of(CampoEntity.builder().id(CAMPO_ID).nombre("Cliente").tipo(TipoCampo.RELACION)
-                        .bloqueRelacionadoId(BLOQUE_ID).build()));
+        when(campoJpa.findRelacionesHacia(BLOQUE_ID.valor(), NEGOCIO_ID.valor()))
+                .thenReturn(List.of(CampoEntity.builder().id(CAMPO_ID.valor()).nombre("Cliente")
+                .tipo(TipoCampo.RELACION)
+                        .bloqueRelacionadoId(BLOQUE_ID.valor()).build()));
 
         List<Campo> result = campoRepositoryImpl.findRelacionesHacia(BLOQUE_ID, NEGOCIO_ID);
 
@@ -92,7 +94,7 @@ class CampoRepositoryImplTest {
     void deleteByIdAndNegocioIdShouldDelegate() {
         campoRepositoryImpl.deleteByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID);
 
-        verify(campoJpa).deleteByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID);
+        verify(campoJpa).deleteByIdAndNegocioId(CAMPO_ID.valor(), NEGOCIO_ID.valor());
     }
 
     // --- helpers ---

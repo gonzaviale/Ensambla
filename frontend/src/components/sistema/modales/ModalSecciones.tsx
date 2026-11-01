@@ -43,8 +43,8 @@ export function ModalSecciones() {
       </div>
       <h2 id="modal-title">Un lugar para cada cosa.</h2>
       <p>
-        Las secciones son páginas de tu sistema. Podés renombrarlas, moverlas y repartir los bloques
-        entre ellas.
+        Las secciones son páginas de tu cuaderno. Podés renombrarlas, moverlas y repartir los
+        bloques entre ellas.
       </p>
       <form onSubmit={guardar}>
         <div className="section-manage">

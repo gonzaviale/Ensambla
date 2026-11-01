@@ -1,5 +1,7 @@
 package com.ensambla.backend.domain.model.seccion;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -7,7 +9,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 /** Agrupa bloques dentro de un sistema ("Vista general", "Ventas"...). */
 @Getter
@@ -17,11 +18,11 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Seccion {
 
-    private UUID id;
+    private SeccionId id;
 
-    private UUID negocioId;
+    private NegocioId negocioId;
 
-    private UUID proyectoId;
+    private ProyectoId proyectoId;
 
     private String nombre;
 

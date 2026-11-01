@@ -1,7 +1,16 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { conversarEnTaller } from '@/api/samiTaller';
-import { aplicarAcciones, mismoSistema, resumirSistema } from '@/lib/sistema/acciones';
-import { applyLayout, clone, makeSystem } from '@/lib/sistema/core';
+import { planesKeys } from '@/hooks/planes/queries';
+import {
+  aplicarAcciones,
+  mismoSistema,
+  pendientesVigentes,
+  resumirSistema,
+  sumarPendientes,
+  type SinStock,
+  type VinculoPendiente,
+} from '@/lib/sistema/acciones';
+import { allBlocks, applyLayout, clone, makeSystem } from '@/lib/sistema/core';
 import { aBase64, reducirImagen } from '@/lib/sistema/imagen';
 import type { Sistema } from '@/lib/sistema/tipos';
 import { useSistemaStore, type Taller } from '@/stores/sistemaStore';
@@ -30,7 +39,7 @@ const esTipoParaSami = (tipo: string): tipo is ImagenParaSami['tipo'] =>
   (TIPOS_DE_IMAGEN_PARA_SAMI as readonly string[]).includes(tipo);
 
 /** La foto achicada y en base64, lista para viajar a Sami; si no se puede mandar, el motivo. */
-async function prepararFoto(archivo: File): Promise<ImagenParaSami | string> {
+export async function prepararFoto(archivo: File): Promise<ImagenParaSami | string> {
   try {
     const reducida = await reducirImagen(archivo, LADO_DE_LA_FOTO);
     const tipo = reducida.type || archivo.type;
@@ -51,6 +60,8 @@ type Turno = {
   dudas: OpcionesDeSami[];
   /** La propuesta antes de este cambio, si cambió algo. */
   anterior: Sistema | null;
+  /** Los clientes o productos nombrados que no están, de este turno y de los anteriores sin resolver. */
+  vinculosPendientes: VinculoPendiente[];
 };
 
 /** Lo que Sami dice en la charla. Si no dijo nada, se cuenta lo que armó (o se repite su pregunta). */
@@ -64,6 +75,24 @@ function textoDeSami(
   if (!aplicadas.length) return dudas[0]?.pregunta.trim() || MENSAJE_SIN_CAMBIOS;
   const cierre = primeraVez ? 'Ya podés verlo a la derecha.' : 'Mirá cómo queda.';
   return `${aplicadas.join(' ')} ${cierre} ¿Qué cambiarías?`;
+}
+
+/**
+ * El aviso de las ventas que pedían más stock del que había: se descontó hasta 0. Vacío si alcanzó para todas.
+ * Con un solo producto cuenta cuánto se vendió y cuánto había.
+ */
+export function avisoDeStock(sinStock: SinStock[]): string {
+  const productos = [...new Set(sinStock.map((item) => item.producto))];
+  if (!productos.length) return '';
+  const [unico] = sinStock;
+  if (sinStock.length === 1 && unico) {
+    return `Ojo: no alcanzó el stock de ${unico.producto} (vendiste ${unico.pedido} y había ${unico.habia}); quedó en 0.`;
+  }
+  const lista =
+    productos.length === 1
+      ? productos[0]
+      : `${productos.slice(0, -1).join(', ')} y ${productos.at(-1)}`;
+  return `Ojo: no alcanzó el stock de ${lista}; ${productos.length === 1 ? 'quedó' : 'quedaron'} en 0.`;
 }
 
 const limpiarFinal = (texto: string) => texto.trim().replace(/[.\s]+$/, '');
@@ -88,7 +117,14 @@ export function mensajeDeDudas(dudas: OpcionesDeSami[], respuestas: (string | nu
 // y pide herramientas para ensamblar componentes del catálogo, el backend las valida y acá se aplican al borrador.
 // Sin borrador, Sami arma sobre un sistema vacío; si no sumó nada, sigue sin borrador. Cada cambio se puede deshacer.
 export function useTaller() {
-  const consulta = useMutation({ mutationFn: conversarEnTaller });
+  const queryClient = useQueryClient();
+  const consulta = useMutation({
+    mutationFn: conversarEnTaller,
+    // Un turno con foto gasta un análisis de foto del plan: se actualiza el contador de Planes.
+    onSettled: (_respuesta, _error, pedido) => {
+      if (pedido.imagen) void queryClient.invalidateQueries({ queryKey: planesKeys.all });
+    },
+  });
 
   const resolverTurno = async (
     texto: string,
@@ -96,7 +132,7 @@ export function useTaller() {
     imagen: ImagenParaSami | null,
   ): Promise<Turno> => {
     const { borrador } = taller;
-    const base = borrador ?? makeSystem(taller.nombre || 'Mi sistema', [], false);
+    const base = borrador ?? makeSystem(taller.nombre || 'Mi cuaderno', [], false);
     const charla = taller.mensajes.map((mensaje) => ({
       quien: mensaje.quien,
       texto: mensaje.texto.slice(0, LARGO_MAXIMO_DE_MENSAJE),
@@ -108,23 +144,39 @@ export function useTaller() {
       charla.push({ quien: 'sami', texto: taller.dudas.map((duda) => duda.pregunta).join(' ') });
     }
     const historial = charla.slice(-MENSAJES_DE_HISTORIAL);
+    // Al ajustar un sistema, sus registros guardados no viajan: Sami sólo corrige los que propuso en este armado.
+    const original = useSistemaStore
+      .getState()
+      .sistemas.find((sistema) => sistema.id === taller.sistemaId);
+    const guardadas = new Set(
+      allBlocks(original).flatMap((bloque) => bloque.rows.map((fila) => fila.id)),
+    );
     const respuesta = await consulta.mutateAsync({
       mensaje: texto,
-      estado: resumirSistema(base),
+      estado: resumirSistema(base, guardadas),
       historial,
       ...(imagen && { imagen }),
     });
     const copia = clone(base);
-    const { aplicadas } = aplicarAcciones(copia, respuesta.acciones);
+    const { aplicadas, pendientes, sinStock } = aplicarAcciones(copia, respuesta.acciones);
     const cambio = !mismoSistema(copia, base);
     // Lo primero que arma Sami se acomoda como el resto de las propuestas: el stock a lo ancho, lo demás de a dos.
     if (cambio && !borrador && !copia.layout) applyLayout(copia, 'mosaic');
     const dudas = respuesta.preguntas;
+    const nuevoBorrador = borrador || cambio ? copia : null;
     return {
-      borrador: borrador || cambio ? copia : null,
-      respuesta: textoDeSami(respuesta.respuesta, cambio ? aplicadas : [], dudas, !borrador),
+      borrador: nuevoBorrador,
+      respuesta: [
+        textoDeSami(respuesta.respuesta, cambio ? aplicadas : [], dudas, !borrador),
+        avisoDeStock(sinStock),
+      ]
+        .filter(Boolean)
+        .join(' '),
       dudas,
       anterior: borrador && cambio ? borrador : null,
+      vinculosPendientes: nuevoBorrador
+        ? pendientesVigentes(nuevoBorrador, taller.vinculosPendientes, pendientes)
+        : [],
     };
   };
 
@@ -174,6 +226,7 @@ export function useTaller() {
           dudas: turno.dudas,
           respuestasDeDudas: [],
           anterior: turno.anterior,
+          vinculosPendientes: turno.vinculosPendientes,
           mensajes: [...actual.mensajes, { quien: 'sami', texto: turno.respuesta }],
         };
       });
@@ -215,8 +268,31 @@ export function useTaller() {
       anterior: null,
       dudas: [],
       respuestasDeDudas: [],
+      // Lo que se nombró en el cambio deshecho ya no está en la propuesta: sólo quedan los pendientes que siguen.
+      vinculosPendientes: actual.anterior
+        ? pendientesVigentes(actual.anterior, actual.vinculosPendientes)
+        : [],
       mensajes: [...actual.mensajes, { quien: 'sami', texto: MENSAJE_DESHECHO }],
     }));
+  };
+
+  /**
+   * Responde la tarjeta de los clientes y productos que no estaban: con `sumar` se crean y se vinculan en la
+   * propuesta; si no, los vínculos quedan vacíos. En los dos casos la tarjeta se va.
+   */
+  const resolverPendientes = (sumar: boolean) => {
+    const store = useSistemaStore.getState();
+    const taller = store.taller;
+    if (!taller?.vinculosPendientes.length || taller.pensando) return;
+    let sinStock: SinStock[] = [];
+    if (sumar) {
+      store.editarBorrador((borrador) => {
+        sinStock = sumarPendientes(borrador, taller.vinculosPendientes);
+      });
+    }
+    store.actualizarTaller({ vinculosPendientes: [] });
+    const aviso = avisoDeStock(sinStock);
+    if (aviso) store.avisar(aviso);
   };
 
   /** Achica la foto elegida y la deja lista para el próximo mensaje; si no sirve, avisa y no la adjunta. */
@@ -233,5 +309,5 @@ export function useTaller() {
 
   const quitarFoto = () => useSistemaStore.getState().actualizarTaller({ foto: null });
 
-  return { enviar, responderDuda, deshacer, adjuntarFoto, quitarFoto };
+  return { enviar, responderDuda, deshacer, resolverPendientes, adjuntarFoto, quitarFoto };
 }

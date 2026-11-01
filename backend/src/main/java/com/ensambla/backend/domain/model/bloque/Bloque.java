@@ -1,11 +1,12 @@
 package com.ensambla.backend.domain.model.bloque;
 
-import com.ensambla.backend.domain.model.enums.AnchoBloque;
-import com.ensambla.backend.domain.model.enums.ColorBloque;
-import com.ensambla.backend.domain.model.enums.TipoBloque;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.ConfiguracionCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.seccion.SeccionId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,7 +15,6 @@ import lombok.Setter;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -23,17 +23,17 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Bloque {
 
-    private UUID id;
+    private BloqueId id;
 
-    private UUID negocioId;
+    private NegocioId negocioId;
 
-    private UUID proyectoId;
+    private ProyectoId proyectoId;
 
     private String nombre;
 
     private Short posicion;
 
-    private UUID seccionId;
+    private SeccionId seccionId;
 
     @Builder.Default
     private TipoBloque tipo = TipoBloque.FORMULARIO;
@@ -65,7 +65,8 @@ public class Bloque {
     @Builder.Default
     private List<Campo> campos = List.of();
 
-    public static Bloque nuevo(UUID negocioId, UUID proyectoId, String nombre, short posicion, OffsetDateTime ahora) {
+    public static Bloque nuevo(NegocioId negocioId, ProyectoId proyectoId, String nombre, short posicion,
+            OffsetDateTime ahora) {
         return Bloque.builder()
                 .negocioId(negocioId)
                 .proyectoId(proyectoId)
@@ -102,7 +103,7 @@ public class Bloque {
      * El nombre de un campo es único dentro del bloque sin distinguir mayúsculas ni espacios de los extremos.
      * {@code campoId} es el campo que se está editando (puede conservar su propio nombre); null al crear.
      */
-    public void validarNombreDeCampoLibre(String nombre, UUID campoId) {
+    public void validarNombreDeCampoLibre(String nombre, CampoId campoId) {
         String buscado = nombre.strip();
         boolean ocupado = campos.stream()
                 .filter(campo -> !campo.getId().equals(campoId))

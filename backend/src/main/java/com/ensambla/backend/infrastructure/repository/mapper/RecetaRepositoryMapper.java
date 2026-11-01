@@ -1,24 +1,28 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.common.Identificador;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.receta.LineaReceta;
 import com.ensambla.backend.domain.model.receta.Receta;
+import com.ensambla.backend.domain.model.receta.RecetaId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.infrastructure.repository.entity.RecetaEntity;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @Component
 public class RecetaRepositoryMapper {
 
     public Receta toDomain(RecetaEntity entity) {
         return Receta.builder()
-                .id(entity.getId())
-                .negocioId(entity.getNegocioId())
-                .productoId(entity.getProductoId())
-                .campoPrecioId(entity.getCampoPrecioId())
+                .id(Identificador.opcional(entity.getId(), RecetaId::de))
+                .negocioId(Identificador.opcional(entity.getNegocioId(), NegocioId::de))
+                .productoId(Identificador.opcional(entity.getProductoId(), RegistroId::de))
+                .campoPrecioId(Identificador.opcional(entity.getCampoPrecioId(), CampoId::de))
                 .lineas(entity.getLineas().stream().map(this::toLinea).toList())
                 .creadoEn(entity.getCreadoEn())
                 .actualizadoEn(entity.getActualizadoEn())
@@ -27,10 +31,10 @@ public class RecetaRepositoryMapper {
 
     public RecetaEntity toEntity(Receta receta) {
         return RecetaEntity.builder()
-                .id(receta.getId())
-                .negocioId(receta.getNegocioId())
-                .productoId(receta.getProductoId())
-                .campoPrecioId(receta.getCampoPrecioId())
+                .id(Identificador.valorDe(receta.getId()))
+                .negocioId(Identificador.valorDe(receta.getNegocioId()))
+                .productoId(Identificador.valorDe(receta.getProductoId()))
+                .campoPrecioId(Identificador.valorDe(receta.getCampoPrecioId()))
                 .lineas(receta.getLineas().stream().map(this::toJson).toList())
                 .creadoEn(receta.getCreadoEn())
                 .actualizadoEn(receta.getActualizadoEn())
@@ -39,7 +43,7 @@ public class RecetaRepositoryMapper {
 
     private LineaReceta toLinea(Map<String, Object> json) {
         return new LineaReceta(
-                UUID.fromString((String) json.get("insumoId")),
+                RegistroId.de((String) json.get("insumoId")),
                 new BigDecimal((String) json.get("cantidad")),
                 (String) json.get("unidad"));
     }

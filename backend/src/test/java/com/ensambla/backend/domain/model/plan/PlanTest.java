@@ -1,7 +1,6 @@
 package com.ensambla.backend.domain.model.plan;
 
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
-import com.ensambla.backend.domain.model.enums.FuncionPlan;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -67,7 +66,7 @@ class PlanTest {
         assertThatCode(() -> plan.validarPaginasIa(9, 1)).doesNotThrowAnyException();
 
         assertThatThrownBy(() -> plan.validarPaginasIa(9, 2))
-                .isInstanceOf(RestriccionPlanException.class).hasMessageContaining("10 páginas de IA por mes");
+                .isInstanceOf(RestriccionPlanException.class).hasMessageContaining("10 análisis de foto por mes");
     }
 
     @Test

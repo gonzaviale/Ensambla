@@ -17,7 +17,9 @@ public enum HerramientaTaller {
     EDITAR_CAMPO("editar_campo"),
     /** Registros reales (por ejemplo, leídos de una foto): se suman a los que haya y se guardan al crear el sistema. */
     CARGAR_REGISTROS("cargar_registros"),
-    /** Quita registros ya cargados de una pieza: los que coinciden con los datos que se indican. */
+    /** Corrige datos de registros ya cargados en una pieza, nombrados por su id. */
+    EDITAR_REGISTROS("editar_registros"),
+    /** Quita registros ya cargados de una pieza: por su id o los que coinciden con los datos que se indican. */
     BORRAR_REGISTROS("borrar_registros"),
     CONECTAR("conectar"),
     SEPARAR_EN_SECCION("separar_en_seccion"),

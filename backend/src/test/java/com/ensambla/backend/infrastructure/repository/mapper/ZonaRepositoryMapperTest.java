@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
 import com.ensambla.backend.domain.model.zona.Zona;
+import com.ensambla.backend.domain.model.zona.ZonaId;
 import com.ensambla.backend.infrastructure.repository.entity.ZonaEntity;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,7 +25,7 @@ class ZonaRepositoryMapperTest {
 
         Zona result = zonaRepositoryMapper.toDomain(entity);
 
-        assertThat(result.getId()).isEqualTo(entity.getId());
+        assertThat(result.getId()).isEqualTo(ZonaId.de(entity.getId()));
         assertThat(result.getNombre()).isEqualTo("San Justo - UNLaM");
         assertThat(result.getLatitud()).isEqualByComparingTo("-34.670300");
         assertThat(result.getLongitud()).isEqualByComparingTo("-58.562800");

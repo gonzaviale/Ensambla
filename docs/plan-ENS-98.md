@@ -11,7 +11,7 @@ importe, moneda, negocio ni fechas elegidas por el navegador. La prueba sigue te
 totales; autorizar la renovación no inicia un período pago ni reinicia la prueba. Si la prueba ya
 terminó o no existe, el primer cobro se solicita desde la contratación. Cada factura corresponde
 a treinta días desde su fecha de débito; un webhook tardío no concede treinta días nuevos.
-La cuota de cien páginas de IA sigue siendo mensual UTC, independiente del ciclo de cobro.
+La cuota de cien análisis de foto sigue siendo mensual (hora argentina), independiente del ciclo de cobro.
 
 Se persiste el contrato antes de llamar a Mercado Pago. Una creación con respuesta perdida queda
 en preparación y se busca por su referencia; no se vuelve a crear a ciegas. Un único contrato abierto

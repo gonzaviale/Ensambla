@@ -73,7 +73,7 @@ export function TarjetaPlan({
       </p>
       <dl className="plan-limits">
         <div>
-          <dt>Sistemas</dt>
+          <dt>Cuadernos</dt>
           <dd>{limite(plan.limiteProyectos, plan.limitesConfigurados)}</dd>
         </div>
         <div>
@@ -81,7 +81,7 @@ export function TarjetaPlan({
           <dd>{limite(plan.limiteRegistros, plan.limitesConfigurados)}</dd>
         </div>
         <div>
-          <dt>Páginas de IA por mes</dt>
+          <dt>Análisis de foto por mes</dt>
           <dd>{limite(plan.limitePaginasIaMensuales, plan.limitesConfigurados)}</dd>
         </div>
         <div>
@@ -96,9 +96,6 @@ export function TarjetaPlan({
       <ul className="plan-features">
         <li>
           <Icon name="check" /> Carga manual, edición y consulta
-        </li>
-        <li>
-          <Icon name="check" /> Stock básico
         </li>
         {FUNCIONES.map(([codigo, nombre]) => {
           const incluida = plan.funciones.includes(codigo);
@@ -129,13 +126,13 @@ export function TarjetaPlan({
                       : 'Prueba no disponible'}
           </Btn>
           <p>
-            La prueba incluye <strong>10 páginas de IA en total</strong>, durante los 7 días.
+            La prueba incluye <strong>10 análisis de foto en total</strong>, durante los 7 días.
           </p>
           <GestionRenovacion />
         </div>
       ) : (
         <p className="plan-card-bottom plan-free-note">
-          Podés seguir usando tus datos al terminar la prueba.
+          Si pasás de Premium a Gratuito, conservás todos tus datos.
         </p>
       )}
     </article>

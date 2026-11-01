@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.useCase.plantilla.ListarPlantillasUseCase;
+import com.ensambla.backend.domain.useCase.plantilla.listarPlantillas.ListarPlantillas;
 import com.ensambla.backend.infrastructure.presentation.dto.plantilla.PlantillaResponse;
 import com.ensambla.backend.infrastructure.presentation.mapper.plantilla.PlantillaPresentationMapper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,12 +19,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PlantillaController {
 
-    private final ListarPlantillasUseCase listarPlantillasUseCase;
+    private final ListarPlantillas listarPlantillas;
     private final PlantillaPresentationMapper presentationMapper;
 
     @GetMapping
     @Operation(summary = "Listar las plantillas activas para crear un proyecto")
     public ResponseEntity<List<PlantillaResponse>> listar() {
-        return ResponseEntity.ok(presentationMapper.toResponse(listarPlantillasUseCase.execute()));
+        return ResponseEntity.ok(presentationMapper.toResponse(listarPlantillas.execute()));
     }
 }

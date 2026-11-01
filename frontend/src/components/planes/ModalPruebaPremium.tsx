@@ -23,7 +23,7 @@ export function ModalPruebaPremium() {
           <strong>7 días exactos</strong> desde que confirmás.
         </li>
         <li>
-          <strong>10 páginas de IA en total</strong> para toda la prueba, sin renovación mensual.
+          <strong>10 análisis de foto en total</strong> para toda la prueba, sin renovación mensual.
         </li>
         <li>Una sola prueba por negocio. Sin tarjeta ni cobro automático.</li>
         <li>Al terminar volvés al gratuito y tus datos se conservan.</li>

@@ -1,12 +1,13 @@
 package com.ensambla.backend.support;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pago.ContratoRemoto;
 import com.ensambla.backend.domain.model.pago.PagoRemoto;
+import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 public final class PagoTestData {
 
@@ -14,9 +15,9 @@ public final class PagoTestData {
 
     public static final BigDecimal IMPORTE = new BigDecimal("14900.00");
 
-    public static final UUID NEGOCIO_ID = UUID.fromString("b444bcba-a316-4817-951e-a4545d7f1590");
+    public static final NegocioId NEGOCIO_ID = NegocioId.de("b444bcba-a316-4817-951e-a4545d7f1590");
 
-    public static final UUID RENOVACION_ID = UUID.fromString("f4f5a7bb-71c8-43cd-b91e-32a0842b64af");
+    public static final RenovacionId RENOVACION_ID = RenovacionId.de("f4f5a7bb-71c8-43cd-b91e-32a0842b64af");
 
     public static final String PROVEEDOR_ID = "mp-contrato";
 

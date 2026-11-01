@@ -1,23 +1,25 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
-import com.ensambla.backend.domain.model.enums.TipoMovimiento;
 import com.ensambla.backend.domain.model.inventario.MovimientoStock;
+import com.ensambla.backend.domain.model.inventario.MovimientoStockId;
+import com.ensambla.backend.domain.model.inventario.TipoMovimiento;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.infrastructure.repository.entity.MovimientoStockEntity;
+import com.ensambla.backend.support.IdsDePrueba;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MovimientoStockRepositoryMapperTest {
 
-    private static final UUID ID = UUID.fromString("e0000000-0000-4000-8000-000000000001");
-    private static final UUID NEGOCIO_ID = UUID.fromString("a0000000-0000-4000-8000-000000000001");
-    private static final UUID PRODUCTO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
+    private static final MovimientoStockId ID = MovimientoStockId.de("e0000000-0000-4000-8000-000000000001");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final RegistroId PRODUCTO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-13T12:00:00Z");
 
     private final MovimientoStockRepositoryMapper mapper = new MovimientoStockRepositoryMapper();
@@ -39,8 +41,10 @@ class MovimientoStockRepositoryMapperTest {
         MovimientoStockEntity entity = mapper.toEntity(movimiento);
         MovimientoStock result = mapper.toDomain(entity);
 
-        assertThat(entity.getRegistroId()).isEqualTo(PRODUCTO_ID);
+        assertThat(entity.getRegistroId()).isEqualTo(PRODUCTO_ID.valor());
         assertThat(entity.getTipo()).isEqualTo(TipoMovimiento.SALIDA);
-        assertThat(result).usingRecursiveComparison().isEqualTo(movimiento);
+        assertThat(result).usingRecursiveComparison()
+                .withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor, IdsDePrueba.CAMPOS_DE_ID)
+                .isEqualTo(movimiento);
     }
 }

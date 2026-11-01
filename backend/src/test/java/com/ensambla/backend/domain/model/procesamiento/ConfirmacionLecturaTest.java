@@ -1,23 +1,25 @@
 package com.ensambla.backend.domain.model.procesamiento;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura.CampoConfirmado;
 import com.ensambla.backend.domain.model.procesamiento.ConfirmacionLectura.FilaConfirmada;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ConfirmacionLecturaTest {
 
-    private static final UUID PROYECTO_ID = UUID.fromString("00000000-0000-4000-8000-000000000021");
-    private static final UUID BLOQUE_ID = UUID.fromString("00000000-0000-4000-8000-000000000022");
+    private static final ProyectoId PROYECTO_ID = ProyectoId.de("00000000-0000-4000-8000-000000000021");
+    private static final BloqueId BLOQUE_ID = BloqueId.de("00000000-0000-4000-8000-000000000022");
 
     @Test
     @DisplayName("Acepta un proyecto y una tabla nuevos con columnas y filas")
@@ -132,7 +134,7 @@ class ConfirmacionLecturaTest {
     @DisplayName("Acepta una columna de conexión que ya existe en la tabla")
     void validarShouldAcceptExistingRelacionColumn() {
         ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID, null,
-                List.of(new CampoConfirmado("cliente", UUID.randomUUID(), "Cliente", "RELACION", List.of())));
+                List.of(new CampoConfirmado("cliente", CampoId.nuevo(), "Cliente", "RELACION", List.of())));
 
         assertThatCode(confirmacion::validar).doesNotThrowAnyException();
     }
@@ -140,7 +142,7 @@ class ConfirmacionLecturaTest {
     @Test
     @DisplayName("Rechaza dos columnas que apuntan al mismo campo del bloque: una pisaría los valores de la otra")
     void validarShouldRejectTwoColumnsOfTheSameCampo() {
-        UUID campoId = UUID.randomUUID();
+        CampoId campoId = CampoId.nuevo();
         ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID, null, List.of(
                 new CampoConfirmado("monto", campoId, "Monto", "NUMERO", List.of()),
                 new CampoConfirmado("importe", campoId, "Monto", "NUMERO", List.of())));
@@ -154,8 +156,8 @@ class ConfirmacionLecturaTest {
     @DisplayName("Acepta columnas de campos distintos junto con columnas nuevas")
     void validarShouldAcceptExistingAndNewColumnsTogether() {
         ConfirmacionLectura confirmacion = confirmacion(null, null, BLOQUE_ID, null, List.of(
-                new CampoConfirmado("monto", UUID.randomUUID(), "Monto", "NUMERO", List.of()),
-                new CampoConfirmado("fecha", UUID.randomUUID(), "Fecha", "FECHA", List.of()),
+                new CampoConfirmado("monto", CampoId.nuevo(), "Monto", "NUMERO", List.of()),
+                new CampoConfirmado("fecha", CampoId.nuevo(), "Fecha", "FECHA", List.of()),
                 new CampoConfirmado("telefono", null, "Teléfono", "TEXTO", List.of()),
                 new CampoConfirmado("direccion", null, "Dirección", "TEXTO", List.of())));
 
@@ -163,7 +165,7 @@ class ConfirmacionLecturaTest {
     }
 
     // --- helpers ---
-    private ConfirmacionLectura confirmacion(UUID proyectoId, String nombreProyecto, UUID bloqueId,
+    private ConfirmacionLectura confirmacion(ProyectoId proyectoId, String nombreProyecto, BloqueId bloqueId,
                                              String nombreBloque, List<CampoConfirmado> campos) {
         return new ConfirmacionLectura(
                 proyectoId, nombreProyecto, bloqueId, nombreBloque, campos, List.of(new FilaConfirmada(1, Map.of())));

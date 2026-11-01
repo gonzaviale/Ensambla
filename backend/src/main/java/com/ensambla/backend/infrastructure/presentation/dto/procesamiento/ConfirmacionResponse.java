@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.presentation.dto.procesamiento;
 
-import java.util.UUID;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 
-public record ConfirmacionResponse(UUID proyectoId, UUID bloqueId, int registros) {
+public record ConfirmacionResponse(ProyectoId proyectoId, BloqueId bloqueId, int registros) {
 }

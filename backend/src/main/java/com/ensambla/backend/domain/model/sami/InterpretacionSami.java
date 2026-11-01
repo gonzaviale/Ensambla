@@ -1,7 +1,8 @@
 package com.ensambla.backend.domain.model.sami;
 
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
+
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Lo que Sami dedujo de un texto.
@@ -13,7 +14,7 @@ import java.util.UUID;
  * @param puntajes      candidatas con puntos, de mayor a menor
  */
 public record InterpretacionSami(
-        UUID plantillaId,
+        PlantillaId plantillaId,
         String plantilla,
         List<ColumnaSugerida> columnasExtra,
         double confianza,

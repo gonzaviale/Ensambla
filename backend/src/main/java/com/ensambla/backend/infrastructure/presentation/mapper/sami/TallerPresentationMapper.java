@@ -1,24 +1,25 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.sami;
 
-import com.ensambla.backend.domain.dto.sami.ConversarEnTallerRequest;
-import com.ensambla.backend.domain.dto.sami.ConversarEnTallerResponse;
-import com.ensambla.backend.domain.dto.sami.EstadoTallerItem;
-import com.ensambla.backend.domain.dto.sami.EstadoTallerItem.CampoTallerItem;
-import com.ensambla.backend.domain.dto.sami.EstadoTallerItem.PiezaTallerItem;
-import com.ensambla.backend.domain.dto.sami.ImagenTallerItem;
-import com.ensambla.backend.domain.dto.sami.MensajeTallerItem;
 import com.ensambla.backend.domain.model.sami.taller.ImagenTaller;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTallerRequest;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTallerResponse;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.EstadoTallerItem.CampoTallerItem;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.EstadoTallerItem.PiezaTallerItem;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.EstadoTallerItem.RegistroTallerItem;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.EstadoTallerItem;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ImagenTallerItem;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.MensajeTallerItem;
 import com.ensambla.backend.infrastructure.presentation.dto.sami.ConversarTallerRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.sami.ConversarTallerResponse;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.UUID;
 
 @Component
 public class TallerPresentationMapper {
 
-    public ConversarEnTallerRequest toRequest(UUID usuarioId, ConversarTallerRequest body) {
+    public ConversarEnTallerRequest toRequest(UsuarioId usuarioId, ConversarTallerRequest body) {
         List<PiezaTallerItem> piezas = body.estado().piezas().stream()
                 .map(pieza -> new PiezaTallerItem(
                         pieza.id(),
@@ -27,7 +28,9 @@ public class TallerPresentationMapper {
                         pieza.seccion(),
                         pieza.campos().stream()
                                 .map(campo -> new CampoTallerItem(campo.etiqueta(), campo.tipo()))
-                                .toList()))
+                                .toList(),
+                        registros(pieza.registros()),
+                        pieza.nombres() == null ? List.of() : pieza.nombres()))
                 .toList();
         List<MensajeTallerItem> historial = body.historial() == null
                 ? List.of()
@@ -40,6 +43,13 @@ public class TallerPresentationMapper {
                 new EstadoTallerItem(body.estado().nombre(), body.estado().distribucion(), piezas),
                 historial,
                 imagen(body.imagen()));
+    }
+
+    /** Un frontend viejo no manda los registros: es como si la pieza no tuviera. */
+    private List<RegistroTallerItem> registros(List<ConversarTallerRequest.Registro> registros) {
+        return registros == null
+                ? List.of()
+                : registros.stream().map(registro -> new RegistroTallerItem(registro.id(), registro.datos())).toList();
     }
 
     /** Decodifica el base64; si la foto no vale (tipo, tamaño o datos), {@link ImagenTaller} la rechaza con un 400. */

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { Zona } from '@/lib/sistema/zona';
+import { puntoSchema } from '@/types/ubicacion';
 import { accesoContenidoSchema } from './contenidoPlan';
 
 const productoDeZonaSchema = z.object({
@@ -17,7 +18,13 @@ export const zonaSchema = z.object({
   acceso: accesoContenidoSchema.nullish(),
 }) satisfies z.ZodType<Zona, z.ZodTypeDef, unknown>;
 
-/** Lo que la persona escribe para ver otra zona: un barrio o una dirección. */
-export const pedidoDeAnalisisSchema = z.object({ lugar: z.string().trim().min(2).max(120) });
+/**
+ * Lo que la persona pide para ver otra zona: un punto del mapa (el servidor busca la zona que lo contiene)
+ * o, si no hay punto, un barrio o una dirección escritos.
+ */
+export const pedidoDeAnalisisSchema = z.union([
+  puntoSchema,
+  z.object({ lugar: z.string().trim().min(2).max(120) }),
+]);
 
 export type PedidoDeAnalisis = z.infer<typeof pedidoDeAnalisisSchema>;

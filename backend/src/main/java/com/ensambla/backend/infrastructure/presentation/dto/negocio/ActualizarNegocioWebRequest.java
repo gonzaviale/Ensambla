@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.dto.negocio;
 
-import com.ensambla.backend.domain.model.enums.RubroNegocio;
+import com.ensambla.backend.domain.model.negocio.RubroNegocio;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;

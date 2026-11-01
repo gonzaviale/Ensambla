@@ -1,7 +1,7 @@
 # ENS-96 · Prueba premium de siete días
 
 Alcance aprobado por Brian el 19 de octubre de 2026: una prueba por negocio,
-siete días exactos y diez páginas de IA **en total durante la prueba**.
+siete días exactos y diez análisis de foto **en total durante la prueba**.
 Desarrollo y validación inicial en local, en `feat/ens-21-planes-suscripciones`.
 Posteriormente el usuario autorizó commits explicativos y publicación de la rama, sin cambios en Jira.
 

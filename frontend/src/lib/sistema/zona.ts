@@ -47,9 +47,16 @@ export function sinDatosInsuficientes(zona: Zona): Zona {
 
 export type PosicionDelPrecio = 'bajo' | 'justo' | 'alto';
 
-/** Tu precio frente al promedio de la zona: más de 8 % abajo o 12 % arriba ya se considera distinto. */
+/** Hasta dónde un precio sigue «en línea» con el promedio: más de 8 % abajo o 12 % arriba ya es distinto. */
+export const EN_LINEA = { desde: 0.92, hasta: 1.12 } as const;
+
+/** Tu precio frente al promedio de la zona. */
 export const posicionDelPrecio = (precio: number, promedio: number): PosicionDelPrecio =>
-  precio < promedio * 0.92 ? 'bajo' : precio > promedio * 1.12 ? 'alto' : 'justo';
+  precio < promedio * EN_LINEA.desde
+    ? 'bajo'
+    : precio > promedio * EN_LINEA.hasta
+      ? 'alto'
+      : 'justo';
 
 export type ProductoPropio = {
   nombre: string;

@@ -45,7 +45,6 @@ public class ClienteModeloConHerramientasAnthropic implements ClienteModeloConHe
         MessageCreateParams.Builder pedido = MessageCreateParams.builder()
                 .model(modelo)
                 .maxTokens(maxTokens)
-                .temperature(0.0)
                 .system(peticion.instrucciones())
                 .addUserMessageOfBlockParams(contenidoUsuario(peticion));
         herramientas.forEach(pedido::addTool);

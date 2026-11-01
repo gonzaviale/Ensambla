@@ -1,6 +1,6 @@
 package com.ensambla.backend.domain.model.lectura;
 
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 
 import java.util.List;
 

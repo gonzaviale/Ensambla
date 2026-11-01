@@ -74,12 +74,31 @@ Cambiar sólo el nombre, rubro o privacidad conserva la ubicación y la zona.
 
 ### Asignación de la zona
 
-Al guardar, `NegocioService` completa `negocio.zona_id` cuando el negocio tiene punto y no tiene zona, que pasa si
-el punto cambió (se invalida la asignación anterior) o si nunca se resolvió. `ZonaService.resolver` busca la zona
-cuyo radio (`radio_metros`, distancia haversine al centro) contiene el punto y, si hay varias, elige la de centro más
-cercano. Si ninguna lo contiene, `zona_id` queda en `null`: las zonas son datos precargados por migración, no se crean
+Al guardar, `ActualizarNegocio` completa `negocio.zona_id` cuando el negocio tiene punto y no tiene zona, que pasa si
+el punto cambió (se invalida la asignación anterior) o si nunca se resolvió. `ZonaRepository.resolver` (sobre la regla
+pura `Zona.masCercana`) busca la zona cuyo radio (`radio_metros`, distancia haversine al centro) contiene el punto y,
+si hay varias, elige la de centro más cercano. Si ninguna lo contiene, `zona_id` queda en `null`: las zonas son datos precargados por migración, no se crean
 a demanda. En ese caso la pantalla avisa que todavía no hay una zona que cubra la ubicación.
 Desactivar `comparteDatosZona` persiste el opt-out; no recalcula los agregados estáticos de la migración de demo V10.
+
+### Análisis de otra zona por punto del mapa (ENS-215 / H-45)
+
+Sirve para decidir dónde abrir una sucursal: en «Mi zona → Otra zona» se busca una dirección, se elige, se ajusta el
+punto en el mapa y se analiza. `POST /api/zona/analisis` acepta `{ "latitud", "longitud" }` (rangos ±90 y ±180) o,
+como antes, `{ "lugar" }` con un barrio o una dirección; hace falta uno de los dos (400 si no viene ninguno). Si vienen
+los dos, manda el punto.
+
+- Con punto, `ZonaRepository.resolver` elige la zona precargada cuyo radio lo contiene (la de centro más cercano si hay
+  varias). Si ninguna lo contiene, 404 «Todavía no tenemos datos de esa zona».
+- Sólo se devuelven los **agregados precalculados** de la zona (`agregado_zona_producto`): precios mínimo, promedio y
+  máximo, cuántos comercios lo venden y unidades por semana. Ningún comercio aparece solo ni con su lugar.
+- Mínimo de 3 comercios: si la zona tiene menos, la respuesta trae el nombre y la cantidad pero `productos` vacío (el
+  front muestra «Hacen falta al menos 3 para mostrar datos»).
+- Los productos salen ordenados por cuántos comercios los venden y, a igualdad, por unidades por semana. El mínimo
+  y el orden son reglas del modelo (`AnalisisZona.sinProductosSiHayMenosDe` y `ordenadoPorVentas`); el cupo del plan
+  gratuito se aplica después de ordenar, así que con cupo se ven primero los más vendidos.
+- **No filtra por rubro**: usa las zonas fijas ya cargadas y sus agregados globales. Filtrar por rubro (y por radio
+  libre alrededor del punto) queda para cuando existan los agregados por rubro de H-38 / H-44.
 
 ## Proveedor y límites
 

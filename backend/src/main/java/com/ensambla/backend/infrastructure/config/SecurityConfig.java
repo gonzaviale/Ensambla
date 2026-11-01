@@ -55,11 +55,14 @@ public class SecurityConfig {
                 paths.matcher(HttpMethod.POST, "/api/pagos/mercadopago"),
                 paths.matcher(HttpMethod.POST, "/api/auth/register"),
                 paths.matcher(HttpMethod.POST, "/api/auth/login"),
-                paths.matcher(HttpMethod.POST, "/api/auth/logout"));
+                paths.matcher(HttpMethod.POST, "/api/auth/logout"),
+                paths.matcher(HttpMethod.POST, "/api/whatsapp/webhook"));
         http.authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(rutasPublicas).permitAll()
                 .anyRequest().authenticated())
-                .csrf(csrf -> csrf.ignoringRequestMatchers(paths.matcher(HttpMethod.POST, "/api/pagos/mercadopago")))
+                .csrf(csrf -> csrf.ignoringRequestMatchers(
+                        paths.matcher(HttpMethod.POST, "/api/pagos/mercadopago"),
+                        paths.matcher(HttpMethod.POST, "/api/whatsapp/webhook")))
                 .requestCache(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)

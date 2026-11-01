@@ -1,48 +1,66 @@
-import type { FormEvent } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import type { Direccion } from '@/types/ubicacion';
+
+const TEXTOS_DEL_COMERCIO = {
+  /** Sin paso, no se muestra la marca de arriba del título. */
+  paso: '',
+  titulo: 'Encontrá tu comercio',
+  etiqueta: 'Dirección',
+  ayuda: 'Calle, altura y localidad, todo junto.',
+  ejemplo: 'Ej.: Florencio Varela 1903, San Justo',
+};
 
 type Props = {
   consulta: string;
   onConsulta: (valor: string) => void;
+  /** La localidad que quedó para la dirección elegida: se completa sola con el mapa. */
+  localidad?: ReactNode;
   onBuscar: (evento: FormEvent) => void;
   buscando: boolean;
   resultados: Direccion[] | null;
   elegida: Direccion | null;
   onElegir: (direccion: Direccion) => void;
   error: string;
+  /** El botón de guardar de la solapa, al final del recuadro. */
+  pie?: ReactNode;
+  /** Textos propios de cada pantalla; sin ellos, los del paso «Encontrá tu comercio». */
+  textos?: Partial<typeof TEXTOS_DEL_COMERCIO>;
+  /** Con otra acción principal en la pantalla, el botón de buscar pasa a secundario. */
+  botonSecundario?: boolean;
 };
 
 export function BuscadorDireccion(props: Props) {
+  const textos = { ...TEXTOS_DEL_COMERCIO, ...props.textos };
   return (
     <section className="ubicacion-panel ubicacion-direccion" aria-labelledby="titulo-direccion">
-      <div className="eyebrow">PASO 1</div>
-      <h2 id="titulo-direccion">Encontrá tu comercio</h2>
+      {textos.paso && <div className="eyebrow">{textos.paso}</div>}
+      <h2 id="titulo-direccion">{textos.titulo}</h2>
       <form onSubmit={props.onBuscar} noValidate>
         <div className="field">
-          <label htmlFor="direccion-comercial">Dirección del comercio</label>
-          <p id="ayuda-direccion">Calle, altura y localidad. Buscamos direcciones de Argentina.</p>
-          <div className="ubicacion-buscador">
-            <input
-              id="direccion-comercial"
-              className="input"
-              type="text"
-              autoComplete="off"
-              maxLength={200}
-              placeholder="Ej.: Florencio Varela 1903, San Justo"
-              aria-describedby="ayuda-direccion error-direccion"
-              aria-invalid={!!props.error}
-              value={props.consulta}
-              onChange={(evento) => props.onConsulta(evento.target.value)}
-            />
-            <button type="submit" className="btn primary" disabled={props.buscando}>
-              {props.buscando ? 'Buscando…' : 'Buscar dirección'}
-            </button>
-          </div>
+          <label htmlFor="direccion-completa">{textos.etiqueta}</label>
+          <input
+            id="direccion-completa"
+            className="input"
+            type="text"
+            autoComplete="off"
+            maxLength={200}
+            placeholder={textos.ejemplo}
+            aria-describedby="ayuda-direccion error-direccion"
+            aria-invalid={!!props.error}
+            value={props.consulta}
+            onChange={(evento) => props.onConsulta(evento.target.value)}
+          />
+          <p id="ayuda-direccion" className="ubicacion-ayuda">
+            {textos.ayuda}
+          </p>
         </div>
-        <p className="ubicacion-ayuda">
-          Al buscar, enviamos esa dirección comercial a Nominatim / OpenStreetMap. No ingreses datos
-          personales.
-        </p>
+        <button
+          type="submit"
+          className={props.botonSecundario ? 'btn secondary' : 'btn primary'}
+          disabled={props.buscando}
+        >
+          {props.buscando ? 'Buscando…' : 'Buscar dirección'}
+        </button>
         <div id="error-direccion" className="form-error" role="alert">
           {props.error}
         </div>
@@ -50,7 +68,7 @@ export function BuscadorDireccion(props: Props) {
       <div aria-live="polite" aria-busy={props.buscando}>
         {props.buscando && <p>Buscando direcciones…</p>}
         {props.resultados?.length === 0 && (
-          <p>No encontramos esa dirección. Probá con otra altura o agregá la localidad.</p>
+          <p>No encontramos esa dirección. Probá con otra altura o revisá la localidad.</p>
         )}
       </div>
       {!!props.resultados?.length && (
@@ -72,6 +90,11 @@ export function BuscadorDireccion(props: Props) {
           ))}
         </fieldset>
       )}
+      {props.elegida && !props.resultados?.length && (
+        <p className="ubicacion-elegida">Dirección elegida: {props.elegida.direccion}</p>
+      )}
+      {props.elegida && props.localidad}
+      {props.pie}
     </section>
   );
 }

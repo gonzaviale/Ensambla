@@ -1,13 +1,14 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.procesamiento;
 
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenItem;
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenItem.CampoItem;
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenItem.DatoItem;
-import com.ensambla.backend.domain.dto.procesamiento.LeerImagenRequest;
-import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.LecturaImagenResponse;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem.CampoItem;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem.DatoItem;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenItem;
+import com.ensambla.backend.domain.useCase.procesamiento.leerImagen.LeerImagenRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.LecturaImagenResponse.CampoResponse;
-import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.PedidoLecturaRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.LecturaImagenResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.PedidoLecturaRequest.CampoPedido;
+import com.ensambla.backend.infrastructure.presentation.dto.procesamiento.PedidoLecturaRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -20,7 +21,6 @@ import java.io.UncheckedIOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 
 class LecturaPresentationMapperTest {
 
-    private static final UUID USUARIO_ID = UUID.fromString("b9000000-0000-4000-8000-000000000001");
+    private static final UsuarioId USUARIO_ID = UsuarioId.de("b9000000-0000-4000-8000-000000000001");
 
     private final LecturaPresentationMapper mapper = new LecturaPresentationMapper();
 

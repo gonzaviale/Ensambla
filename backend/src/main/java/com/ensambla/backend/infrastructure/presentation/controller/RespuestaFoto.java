@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
-import com.ensambla.backend.domain.dto.lote.FotoArchivoResponse;
+import com.ensambla.backend.domain.useCase.lote.FotoArchivoResponse;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

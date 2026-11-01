@@ -1,10 +1,12 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
-import java.math.BigDecimal;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.common.Pagina;
-import com.ensambla.backend.domain.model.enums.DireccionOrden;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
+import com.ensambla.backend.domain.model.registro.DireccionOrden;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.support.PostgresDatosTestSupport;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,9 +14,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -25,17 +27,17 @@ class RegistroRepositoryImplPostgresTest extends PostgresDatosTestSupport {
     @Autowired
     private RegistroRepositoryImpl repository;
 
-    private UUID negocioId;
-    private UUID bloqueId;
-    private UUID campoNombre;
-    private UUID campoCantidad;
+    private NegocioId negocioId;
+    private BloqueId bloqueId;
+    private CampoId campoNombre;
+    private CampoId campoCantidad;
 
     @BeforeEach
     void setUp() {
-        negocioId = givenNegocio("dueña@example.com").getId();
-        bloqueId = givenBloque(negocioId, "Productos");
-        campoNombre = givenCampo(negocioId, bloqueId, "Producto", TipoCampo.TEXTO, 0);
-        campoCantidad = givenCampo(negocioId, bloqueId, "Cantidad", TipoCampo.NUMERO, 1);
+        negocioId = NegocioId.de(givenNegocio("dueña@example.com").getId());
+        bloqueId = BloqueId.de(givenBloque(negocioId, "Productos"));
+        campoNombre = CampoId.de(givenCampo(negocioId, bloqueId, "Producto", TipoCampo.TEXTO, 0));
+        campoCantidad = CampoId.de(givenCampo(negocioId, bloqueId, "Cantidad", TipoCampo.NUMERO, 1));
     }
 
     @Test
@@ -96,7 +98,7 @@ class RegistroRepositoryImplPostgresTest extends PostgresDatosTestSupport {
     void sumarNumericosShouldAddEveryRegistroOverOneHundredTwentyRegistros() {
         givenProductos(REGISTROS);
 
-        Map<UUID, BigDecimal> sumas = sumar(null);
+        Map<CampoId, BigDecimal> sumas = sumar(null);
 
         assertThat(sumas).containsOnlyKeys(campoCantidad);
         assertThat(sumas.get(campoCantidad)).isEqualByComparingTo("7140");
@@ -107,7 +109,7 @@ class RegistroRepositoryImplPostgresTest extends PostgresDatosTestSupport {
     void sumarNumericosShouldAddOnlyRegistrosMatchingTheSearch() {
         givenProductos(REGISTROS);
 
-        Map<UUID, BigDecimal> sumas = sumar("PRODUCTO 11");
+        Map<CampoId, BigDecimal> sumas = sumar("PRODUCTO 11");
 
         assertThat(sumas.get(campoCantidad)).isEqualByComparingTo("1156");
     }
@@ -121,13 +123,13 @@ class RegistroRepositoryImplPostgresTest extends PostgresDatosTestSupport {
     }
 
     // --- act ---
-    private Map<UUID, BigDecimal> sumar(String texto) {
+    private Map<CampoId, BigDecimal> sumar(String texto) {
         return repository.sumarNumericos(
                 new ConsultaRegistros(negocioId, bloqueId, texto, null, DireccionOrden.DESC, 0, 20),
                 List.of(campoCantidad));
     }
 
-    private Pagina<Registro> buscar(String texto, UUID campoOrdenId, DireccionOrden direccion, int pagina,
+    private Pagina<Registro> buscar(String texto, CampoId campoOrdenId, DireccionOrden direccion, int pagina,
                                     int tamanio) {
         return repository.buscar(new ConsultaRegistros(
                 negocioId, bloqueId, texto, campoOrdenId, direccion, pagina, tamanio));

@@ -1,22 +1,21 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.preferencia;
 
-import com.ensambla.backend.domain.dto.preferencia.GuardarPreferenciasRequest;
-import com.ensambla.backend.domain.dto.preferencia.ObtenerPreferenciasRequest;
-import com.ensambla.backend.domain.dto.preferencia.PreferenciasItem;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.preferencia.PreferenciasItem;
+import com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias.GuardarPreferenciasRequest;
+import com.ensambla.backend.domain.useCase.preferencia.obtenerPreferencias.ObtenerPreferenciasRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.preferencia.PreferenciasResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.preferencia.PreferenciasWebRequest;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
-
 @Component
 public class PreferenciaPresentationMapper {
 
-    public ObtenerPreferenciasRequest toObtenerRequest(UUID usuarioId) {
+    public ObtenerPreferenciasRequest toObtenerRequest(UsuarioId usuarioId) {
         return new ObtenerPreferenciasRequest(usuarioId);
     }
 
-    public GuardarPreferenciasRequest toGuardarRequest(UUID usuarioId, PreferenciasWebRequest request) {
+    public GuardarPreferenciasRequest toGuardarRequest(UsuarioId usuarioId, PreferenciasWebRequest request) {
         return new GuardarPreferenciasRequest(
                 usuarioId,
                 request.descartadas(),
