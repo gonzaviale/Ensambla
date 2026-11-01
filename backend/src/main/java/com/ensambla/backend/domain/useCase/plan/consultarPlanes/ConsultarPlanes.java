@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.plan.consultarPlanes;
 
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
@@ -19,8 +20,8 @@ import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -69,10 +70,10 @@ public class ConsultarPlanes {
         if (pruebaActiva) {
             return consultaEnPrueba(gratuito, premium, actual, suscripcion, prueba, proyectos, registros);
         }
-        OffsetDateTime inicioMes = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate()
-                .withDayOfMonth(1).atStartOfDay().atOffset(ZoneOffset.UTC);
-        OffsetDateTime finMes = inicioMes.plusMonths(1);
-        long paginas = usoPlanRepository.paginasEnPeriodo(negocioId, inicioMes.toLocalDate(), finMes.toLocalDate());
+        LocalDate primerDia = ZonaNegocio.primerDiaDelMes(ahora);
+        OffsetDateTime inicioMes = ZonaNegocio.inicioDelDia(primerDia);
+        OffsetDateTime finMes = ZonaNegocio.inicioDelDia(primerDia.plusMonths(1));
+        long paginas = usoPlanRepository.paginasEnPeriodo(negocioId, primerDia, primerDia.plusMonths(1));
         return new ConsultaPlanes(List.of(gratuito, premium), actual, suscripcion, prueba, false, puedeIniciar,
                 proyectos, registros, paginas, actual.getLimitePaginasIaMensuales(), "MENSUAL", inicioMes, finMes);
     }

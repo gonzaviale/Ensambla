@@ -204,11 +204,11 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     @Test
-    @DisplayName("La cuota se renueva al cambiar de mes UTC sin borrar el historial")
-    void registrarInmediataShouldResetAllowanceAtUtcMonthBoundary() {
+    @DisplayName("La cuota se renueva al cambiar de mes argentino sin borrar el historial")
+    void registrarInmediataShouldResetAllowanceAtArgentinaMonthBoundary() {
         givenConsumo(LocalDate.parse("2026-10-31"), 10, 0);
 
-        consumoIaInmediatoService.registrar(NegocioId.de(negocioId), OffsetDateTime.parse("2026-10-31T23:30:00-03:00"));
+        consumoIaInmediatoService.registrar(NegocioId.de(negocioId), OffsetDateTime.parse("2026-11-01T00:30:00-03:00"));
 
         assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
                 LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isEqualTo(10);
@@ -220,7 +220,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @DisplayName("Finalizar después de medianoche conserva el mes en que se reservó la lectura")
     void finalizarShouldKeepOriginalReservationMonth() {
         LoteTrabajo lote = givenLoteReclamado();
-        OffsetDateTime octubre = OffsetDateTime.parse("2026-10-31T23:59:00Z");
+        OffsetDateTime octubre = OffsetDateTime.parse("2026-11-01T02:59:00Z");
         assertThat(reservar(lote, 2, 100, octubre)).isTrue();
 
         procesamientoRepository.finalizar(lote, new ResultadoIntento(null, "Timeout", false),

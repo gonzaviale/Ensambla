@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.aviso.ejecutarMotorAvisos;
 
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.BloqueInventario;
@@ -49,7 +50,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class EjecutarMotorAvisos {
 
-    private static final ZoneId ZONA_NEGOCIO = ZoneId.of("America/Argentina/Buenos_Aires");
+    private static final ZoneId ZONA_NEGOCIO = ZonaNegocio.ZONA;
 
     private final NegocioRepository negocioRepository;
 

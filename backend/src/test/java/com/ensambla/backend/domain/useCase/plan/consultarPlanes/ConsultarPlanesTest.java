@@ -58,8 +58,8 @@ class ConsultarPlanesTest {
     }
 
     @Test
-    @DisplayName("El gratuito muestra catálogo, uso mensual UTC y disponibilidad de prueba bajo el mismo bloqueo")
-    void executeShouldReturnFreePlanAndUtcMonth() {
+    @DisplayName("El gratuito muestra catálogo, uso del mes argentino y disponibilidad de prueba bajo el mismo bloqueo")
+    void executeShouldReturnFreePlanAndArgentinaMonth() {
         Plan gratuito = givenCatalogo();
         givenSuscripcion(gratuito, EstadoSuscripcion.ACTIVA, AHORA.plusDays(30));
         LocalDate inicio = LocalDate.parse("2026-11-01");
@@ -67,7 +67,7 @@ class ConsultarPlanesTest {
         when(usoPlanRepository.contarRegistros(NEGOCIO_ID)).thenReturn(1001L);
         when(usoPlanRepository.paginasEnPeriodo(NEGOCIO_ID, inicio, inicio.plusMonths(1))).thenReturn(7L);
 
-        ConsultarPlanesResponse result = consultar(AHORA.withOffsetSameInstant(ZoneOffset.ofHours(-3)));
+        ConsultarPlanesResponse result = consultar(OffsetDateTime.parse("2026-11-01T00:05:00-03:00"));
 
         assertThat(result.suscripcion().codigoPlanActual()).isEqualTo("GRATUITO");
         assertThat(result.planes()).extracting(PlanItem::codigo).containsExactly("GRATUITO", "PREMIUM");
@@ -75,7 +75,7 @@ class ConsultarPlanesTest {
         assertThat(result.suscripcion().pruebaActiva()).isFalse();
         assertThat(result.prueba()).isNull();
         assertThat(result.uso()).isEqualTo(new UsoPlanItem(2, 1001, 7, 10, "MENSUAL",
-                OffsetDateTime.parse("2026-11-01T00:00:00Z"), OffsetDateTime.parse("2026-12-01T00:00:00Z")));
+                OffsetDateTime.parse("2026-11-01T03:00:00Z"), OffsetDateTime.parse("2026-12-01T03:00:00Z")));
         var orden = inOrder(usoPlanRepository, suscripcionRepository);
         orden.verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
         orden.verify(suscripcionRepository).findByNegocioId(NEGOCIO_ID);

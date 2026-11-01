@@ -79,7 +79,7 @@ guardado. Un lote de otro negocio responde 404.
 V12 agrega el catálogo `plan` y la suscripción actual `suscripcion`, asigna el gratuito activo a
 negocios existentes y lo crea junto con cada cuenta nueva en una sola transacción.
 V13 configura los límites aprobados: gratuito de un sistema, 1.000 registros totales y diez páginas
-de IA por mes calendario UTC; premium sin límite comercial de sistemas/registros y cien páginas mensuales.
+de IA por mes calendario argentino; premium sin límite comercial de sistemas/registros y cien páginas mensuales.
 
 `limites_configurados=true` habilita el control de capacidades; `configurado` identifica precio/moneda.
 V15 configura los catálogos Premium pendientes a ARS 14.900 finales cada treinta días, conservando
@@ -102,7 +102,7 @@ El job conserva cualquier premium ya activado por un pago. Puede deshabilitarse 
 la elegibilidad e historial de prueba y los contadores del negocio. Responde con `Cache-Control: no-store`;
 el negocio se resuelve exclusivamente desde la sesión. `consultadoEn` es la hora del servidor.
 `suscripcion` distingue prueba activa y posibilidad de iniciarla; `uso` incluye sistemas, registros,
-páginas, límite y período (`PRUEBA` total o `MENSUAL` UTC). `prueba` es nulo si nunca se usó.
+páginas, límite y período (`PRUEBA` total o `MENSUAL` argentino). `prueba` es nulo si nunca se usó.
 El precio se identifica con `precioConfigurado`, separado de `limitesConfigurados`.
 La consulta respeta el vencimiento exacto aunque el job todavía no haya persistido el gratuito.
 ENS-98 agrega contratación mediante Suscripciones de Mercado Pago, primer cobro al terminar la
@@ -184,7 +184,7 @@ La búsqueda privada de direcciones y el catálogo de rubros se documentan en
 | `DELETE /api/registros/{id}` | sesión + CSRF | Elimina el registro. `204` |
 | `GET /api/lotes/{loteId}/lectura` | sesión | Estado, motivo y propuesta tipada del lote |
 | `POST /api/lotes/{loteId}/reintentar` | sesión + CSRF | Reencolar ERROR del negocio; 202 |
-| `GET /api/ia/consumo` | sesión | Consumo, reservas y disponibilidad diaria UTC |
+| `GET /api/ia/consumo` | sesión | Consumo, reservas y disponibilidad diaria argentina |
 
 V3 carga Inventario, Pedidos y Clientes. La copia de una plantilla se guarda en una única transacción.
 El negocio se resuelve desde el dueño autenticado (primero por creación e id, hasta el selector de T-061);

@@ -77,7 +77,7 @@ public class LecturaController {
     }
 
     @GetMapping("/api/ia/consumo")
-    @Operation(summary = "Consultar el consumo de IA y las páginas disponibles del día UTC")
+    @Operation(summary = "Consultar el consumo de IA y las páginas disponibles del día argentino")
     public ResponseEntity<ConsumoResponse> consumo(Authentication authentication) {
         return ResponseEntity.ok(lecturaPresentationMapper.toResponse(
                 consultarConsumo.execute(UsuarioId.de(authentication.getName()))));

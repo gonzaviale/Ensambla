@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.sami.conversarEnTaller;
 
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
@@ -35,7 +36,6 @@ import org.slf4j.LoggerFactory;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -57,7 +57,7 @@ import java.util.stream.Stream;
  * Un turno de la charla con Sami en el taller: se reconoce el rubro (sin IA) para mandarle al modelo sólo el kit que
  * importa, el modelo conversa y pide herramientas, el dominio valida lo que pidió y devuelve acciones para que el
  * taller las aplique. Reserva la consulta del día del negocio antes de llamar (un rechazo por límite no cuesta nada)
- * y registra los tokens gastados. El día del límite es UTC.
+ * y registra los tokens gastados. El día del límite es el argentino ({@link ZonaNegocio}).
  * <p>
  * El rubro de la persona se reconoce sin gastar IA: se buscan los términos de cada kit en el mensaje, la charla reciente y el
  * nombre del sistema (con {@link TextoNormalizado}, así «Velas» y «vela» dan lo mismo). Un término de varias palabras
@@ -121,7 +121,7 @@ public class ConversarEnTaller {
      */
     private RespuestaTaller conversar(NegocioId negocioId, String mensaje, ImagenTaller imagen, EstadoTaller estado,
                                      List<MensajeTaller> historial, OffsetDateTime ahora, int limiteDiario) {
-        LocalDate fecha = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate();
+        LocalDate fecha = ZonaNegocio.dia(ahora);
         if (!consumoSamiRepository.reservar(negocioId, fecha, limiteDiario, ahora)) {
             throw new BusinessRuleException(LIMITE_ALCANZADO);
         }

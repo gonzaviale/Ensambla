@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.procesamiento.reintentarLectura;
 
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.lote.LoteId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
@@ -33,7 +34,7 @@ public class ReintentarLectura {
     }
 
     private void validarCupoDiario(NegocioId negocioId, OffsetDateTime ahora) {
-        ConsumoDiario consumo = procesamientoRepository.consumo(negocioId, ahora.toLocalDate());
+        ConsumoDiario consumo = procesamientoRepository.consumo(negocioId, ZonaNegocio.dia(ahora));
         if (consumo.paginas() + consumo.reservadas() >= politicaProcesamiento.limiteDiario()) {
             throw new BusinessRuleException(PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO);
         }

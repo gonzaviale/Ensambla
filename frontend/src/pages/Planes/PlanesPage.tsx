@@ -143,7 +143,7 @@ export function PlanesPage() {
               </dl>
               <p className="plan-usage-note">
                 {esPrueba
-                  ? 'Las diez páginas son para toda la prueba: cambiar de mes no renueva el cupo.'
+                  ? 'Los diez análisis de foto son para toda la prueba: cambiar de mes no renueva el cupo.'
                   : `El cupo mensual de IA se renueva el ${fecha(datos.uso.finPeriodoIa)}.`}{' '}
                 Los intentos admitidos y los reintentos también consumen páginas.
               </p>

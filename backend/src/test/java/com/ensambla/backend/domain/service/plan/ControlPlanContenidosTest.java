@@ -37,7 +37,7 @@ import static org.mockito.Mockito.when;
 class ControlPlanContenidosTest {
 
     private static final NegocioId NEGOCIO = NegocioId.nuevo();
-    private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-11-01T00:05:00Z");
+    private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-11-01T03:05:00Z");
     private static final LocalDate PERIODO = LocalDate.of(2026, 11, 1);
 
     private final PlanRepository planes = mock(PlanRepository.class);
@@ -61,7 +61,7 @@ class ControlPlanContenidosTest {
         assertThat(resultado.limite()).isEqualTo(3);
         assertThat(resultado.total()).isEqualTo(4);
         assertThat(resultado.bloqueadas()).isEqualTo(1);
-        assertThat(resultado.finPeriodo()).isEqualTo(OffsetDateTime.parse("2026-12-01T00:00:00Z"));
+        assertThat(resultado.finPeriodo()).isEqualTo(OffsetDateTime.parse("2026-12-01T03:00:00Z"));
         verify(uso).bloquearNegocio(NEGOCIO);
         verify(acceso).registrar(NEGOCIO, TipoContenidoPlan.AVISOS, PERIODO, "a", AHORA);
     }

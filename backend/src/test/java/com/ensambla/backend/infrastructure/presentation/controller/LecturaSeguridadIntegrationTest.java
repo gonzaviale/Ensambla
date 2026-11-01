@@ -34,6 +34,7 @@ import org.springframework.web.context.WebApplicationContext;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import java.util.List;
 import java.util.UUID;
 
@@ -211,7 +212,7 @@ class LecturaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         jdbcTemplate.update("""
                 INSERT INTO consumo_ia_diario (negocio_id, fecha, paginas, reservadas) VALUES (?, ?, 5, 2)
                 """,
-                negocioId.valor(), ahora.toLocalDate());
+                negocioId.valor(), ZonaNegocio.dia(ahora));
 
         mockMvc.perform(get("/api/ia/consumo").session(sesion).param("negocioId", UUID.randomUUID().toString()))
                 .andExpect(status().isOk())

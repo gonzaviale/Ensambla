@@ -208,11 +208,11 @@ class ConversarConSamiTest {
     }
 
     @Test
-    @DisplayName("El día del límite es UTC aunque la hora local ya sea otro día")
-    void executeShouldUseUtcDayForTheLimit() {
+    @DisplayName("El día del límite es el argentino aunque en UTC ya sea el día siguiente")
+    void executeShouldUseArgentinaDayForTheLimit() {
         OffsetDateTime tardeEnArgentina = OffsetDateTime.parse("2026-10-19T22:30:00-03:00");
         givenNegocio();
-        when(consumoSamiRepository.reservar(NEGOCIO_ID, LocalDate.of(2026, 10, 20), LIMITE_IA,
+        when(consumoSamiRepository.reservar(NEGOCIO_ID, LocalDate.of(2026, 10, 19), LIMITE_IA,
                 tardeEnArgentina.withOffsetSameInstant(ZoneOffset.UTC))).thenReturn(false);
         ConversarConSami conversacion = new ConversarConSami(negocioRepository, plantillaRepository,
                 SamiPruebas.diccionarioReal(), samiIaPort, consumoSamiRepository,

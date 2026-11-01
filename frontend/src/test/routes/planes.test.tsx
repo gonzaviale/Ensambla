@@ -107,7 +107,7 @@ describe('planes y activación de prueba', () => {
     expect(csrf).toBe('csrf-token-de-prueba');
     expect(cuerpo).toBe('');
     expect(screen.getByRole('button', { name: 'Prueba activa' })).toBeDisabled();
-    expect(screen.getByText(/Las diez páginas son para toda la prueba/)).toBeVisible();
+    expect(screen.getByText(/Los diez análisis de foto son para toda la prueba/)).toBeVisible();
     expect(document.getElementById('main')).toHaveFocus();
   });
 

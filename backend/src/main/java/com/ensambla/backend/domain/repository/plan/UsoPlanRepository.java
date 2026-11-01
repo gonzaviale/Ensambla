@@ -17,7 +17,7 @@ public interface UsoPlanRepository {
 
     long contarRegistrosProyecto(NegocioId negocioId, ProyectoId proyectoId);
 
-    /** Páginas procesadas y reservadas, desde inclusive y hasta exclusive, en días UTC. */
+    /** Páginas procesadas y reservadas, desde inclusive y hasta exclusive, en días argentinos. */
     long paginasEnPeriodo(NegocioId negocioId, LocalDate desde, LocalDate hasta);
 
     boolean registrarPaginaInmediata(NegocioId negocioId, LocalDate fecha, int limiteDiario, OffsetDateTime ahora);

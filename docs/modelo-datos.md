@@ -29,7 +29,7 @@ porqué; si cambian, se actualizan juntos.
 - `lote_subida`: reclamo_id/reclamo_hasta identifican el intento activo; proximo_intento_en
   conserva la demora del reintento; paginas_reservadas/dia_reserva identifican su reserva.
   El token se comprueba al finalizar para descartar respuestas tardías.
-- `consumo_ia_diario`: clave primaria (negocio_id, fecha UTC), paginas procesadas y reservadas
+- `consumo_ia_diario`: clave primaria (negocio_id, fecha argentina), paginas procesadas y reservadas
   no negativas. Las reservas se actualizan atómicamente con control del límite.
 - `lectura_ia`: reclamo_id único para cada intento del worker, propuesta tipada/mapeo JSON,
   dia_consumo (día de la reserva, aun si termina después de medianoche) y consumo_completo.
@@ -68,7 +68,7 @@ Detalles y contrato con subida: [lectura-cuaderno-ia.md](lectura-cuaderno-ia.md)
 
 - V12 conserva el catálogo inicial sin condiciones comerciales inventadas. V13 agrega
   `limites_configurados` y establece las capacidades aprobadas: gratuito de un sistema,
-  1.000 registros totales y diez análisis de foto al mes UTC; premium sin límite comercial de
+  1.000 registros totales y diez análisis de foto al mes argentino; premium sin límite comercial de
   sistemas/registros y con cien páginas mensuales.
 - `limites_configurados=true` identifica los límites listos para controlar. Es independiente de
   `configurado`, que sigue identificando precio y moneda. Un límite nulo de sistemas/registros
@@ -81,7 +81,7 @@ Detalles y contrato con subida: [lectura-cuaderno-ia.md](lectura-cuaderno-ia.md)
 - Las altas de sistemas y filas, individuales o múltiples, bloquean la fila del negocio hasta
   terminar la transacción que cuenta y guarda. No se toma el negocio del cuerpo ni de un query param.
 - No se duplica el contador mensual: se suman `paginas + reservadas` de `consumo_ia_diario` entre
-  los límites del mes UTC usando su clave primaria `(negocio_id, fecha)`. Los intentos reservados
+  los límites del mes argentino usando su clave primaria `(negocio_id, fecha)`. Los intentos reservados
   conservan su día/mes original al finalizar, aun después de medianoche.
 - `consumo_ia_diario.paginas_inmediatas` cuenta el subconjunto de `paginas` originado en lectura
   inmediata, con restricciones `0 <= paginas_inmediatas <= paginas`. La consulta del mes incluye
@@ -262,7 +262,7 @@ producción hay que borrarlo antes de publicar.
 
 - `plantilla`: V12 suma **Ventas** y **Gastos** (ids `…0a4` y `…0a5`) junto a las tres de V3. El diccionario de Sami
   nombra las plantillas por su `nombre`, así que renombrarlas o desactivarlas cambia lo que Sami puede proponer.
-- `consumo_sami_diario`: clave primaria (negocio_id, fecha UTC), `consultas` con la IA del día (no negativas),
+- `consumo_sami_diario`: clave primaria (negocio_id, fecha argentina), `consultas` con la IA del día (no negativas),
   `tokens_entrada`/`tokens_salida` acumulados y el último `modelo`. La reserva es una sola sentencia
   `INSERT … ON CONFLICT DO UPDATE … WHERE consultas < límite`, atómica por negocio y día.
 
@@ -491,7 +491,7 @@ erDiagram
 ## Tablas
 
 Desde V19, `contenido_plan_desbloqueado` persiste las claves admitidas por negocio, tipo (`AVISOS`
-o `ZONA`) y mes calendario UTC. La clave primaria compuesta impide cobrar dos veces el mismo
+o `ZONA`) y mes calendario argentino. La clave primaria compuesta impide cobrar dos veces el mismo
 contenido. La validación mantiene bloqueada la fila de `negocio` hasta registrar el desbloqueo:
 dos consultas concurrentes comparten el mismo cupo. Gratuito dispone de tres avisos y, por
 separado, tres recomendaciones compartidas entre Mi zona y Otra zona. Premium vigente, incluida

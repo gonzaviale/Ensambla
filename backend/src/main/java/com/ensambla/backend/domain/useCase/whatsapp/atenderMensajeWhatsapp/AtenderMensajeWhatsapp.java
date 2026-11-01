@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.whatsapp.atenderMensajeWhatsapp;
 
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.model.bloque.Bloque;
@@ -53,7 +54,6 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -206,7 +206,7 @@ public class AtenderMensajeWhatsapp {
 
     private InterpretacionRegistros interpretar(NegocioId negocioId, String texto, List<TablaDisponible> tablas,
                                                 BloqueId destino, OffsetDateTime ahora) {
-        LocalDate dia = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate();
+        LocalDate dia = ZonaNegocio.dia(ahora);
         if (!consumoSamiRepository.reservar(negocioId, dia, politica.limiteDiarioSami(), ahora)) {
             throw new BusinessRuleException(TextosWhatsapp.LIMITE_SAMI);
         }

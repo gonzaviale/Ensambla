@@ -10,7 +10,7 @@ en `feat/ens-21-planes-suscripciones`. Las notas de cada etapa conservan el alca
 Brian aprobó renovación automática con Mercado Pago por ARS 14.900 finales cada treinta días,
 primer cobro al terminar la prueba vigente y cancelación desde Planes. Se implementaron contratos,
 facturas y períodos idempotentes, conciliación, notificaciones firmadas, adaptador del proveedor y UI.
-Se conserva la prueba de diez páginas totales y la cuota Premium mensual UTC de cien páginas.
+Se conserva la prueba de diez páginas totales y la cuota Premium mensual (hora argentina) de cien páginas.
 
 Se trabaja únicamente en local, **sin commits ni push**, sobre los cambios locales de ENS-97.
 La aplicación de Mercado Pago todavía no fue creada por el usuario; la configuración queda preparada,
@@ -124,7 +124,7 @@ No se encontraron módulos de planes, suscripciones ni integración de pagos en 
 Las migraciones llegan a V11; el siguiente cambio de esquema debe ser nuevo, sin editar V1–V11.
 El dominio y las tablas usan español, por lo que se propone `plan` y `suscripcion`.
 
-La IA ya reserva páginas de manera persistente y concurrente por negocio y día UTC;
+La IA ya reserva páginas de manera persistente y concurrente por negocio y día argentino;
 el límite diario configurable tiene valor por defecto de 100. Eso no representa una cuota mensual
 ni un plan comercial. El nuevo control debe integrarse con esa reserva y sus reintentos.
 
@@ -194,7 +194,7 @@ ya pagado y vigente. Cada factura aprobada concede treinta días desde su fecha 
 - Mercado Pago, renovación automática cada treinta días, ARS 14.900 finales.
 - Primer cobro al terminar la prueba vigente. Si no hay prueba o tiempo pagado vigente, desde la contratación.
 - Cancelación desde Planes, conservando prueba y tiempo ya pagado hasta su vencimiento.
-- Las cuotas y funciones siguen siendo las aprobadas; IA mensual UTC no se reinicia al pagar otra vez.
+- Las cuotas y funciones siguen siendo las aprobadas; IA mensual (hora argentina) no se reinicia al pagar otra vez.
 
 La aplicación y las cuentas de prueba están configuradas. Se verificaron externamente autorización,
 retorno, fechas, cancelación, factura aprobada con acceso Premium y factura rechazada conservando

@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.aviso.medirImpactoAvisos;
 
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.BloqueVentas;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
@@ -40,7 +41,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class MedirImpactoAvisos {
 
-    private static final ZoneId ZONA_NEGOCIO = ZoneId.of("America/Argentina/Buenos_Aires");
+    private static final ZoneId ZONA_NEGOCIO = ZonaNegocio.ZONA;
 
     private final NegocioRepository negocioRepository;
 

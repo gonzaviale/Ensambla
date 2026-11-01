@@ -6,7 +6,7 @@ autorizada por Brian, sin merge. Rama desde `origin/dev`: `fix/ens-21-limites-pl
 
 ## Reglas
 
-- Gratuito: un sistema, 1.000 registros, diez análisis de foto por mes calendario UTC.
+- Gratuito: un sistema, 1.000 registros, diez análisis de foto por mes calendario argentino.
 - Avisos: tres contenidos nuevos por mes y negocio. Volver a ver el mismo no consume otra unidad;
   descartar, recargar o cambiar de dispositivo no devuelve cupo.
 - Zona: tres recomendaciones nuevas por mes y negocio, compartidas entre Mi zona y Otra zona.

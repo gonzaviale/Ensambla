@@ -149,7 +149,7 @@ No se agrega otra ruta de subida en esta historia.
 
 ## Consumo y configuración
 
-El día del límite es **UTC**. Antes de la llamada se reservan páginas en una operación atómica por
+El día del límite es el **argentino** (medianoche de Argentina). Antes de la llamada se reservan páginas en una operación atómica por
 negocio y fecha. Una reserva rechazada no llama al proveedor.
 Al finalizar, las páginas reservadas pasan a procesadas. Un intento interrumpido después de reservar
 también cuenta páginas: evita reintentar indefinidamente sin límite.

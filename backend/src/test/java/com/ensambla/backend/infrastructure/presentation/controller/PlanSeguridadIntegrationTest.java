@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.lote.LoteId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
@@ -439,7 +440,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     private void givenMonthlyQuotaFull() {
         jdbcTemplate.update("""
                 INSERT INTO consumo_ia_diario (negocio_id, fecha, paginas, reservadas) VALUES (?, ?, 10, 0)
-                """, negocioId.valor(), ahora.toLocalDate());
+                """, negocioId.valor(), ZonaNegocio.dia(ahora));
     }
 
     private MockHttpSession givenSesion() throws Exception {

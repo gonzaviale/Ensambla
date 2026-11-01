@@ -239,7 +239,7 @@ en una URL fija de la API y se comprueba receptor, aplicación, ambiente, import
    figurando como prueba hasta su fin; una autorización todavía no es un pago aprobado.
 4. Comprobar en Mercado Pago la fecha del primer cobro y las siguientes. El primer pago aprobado
    habilita su período de treinta días; pendientes/rechazados no lo habilitan. La cuota de IA
-   sigue siendo mensual UTC, independiente del ciclo de cobro.
+   sigue siendo mensual (hora argentina), independiente del ciclo de cobro.
 5. Repetir una actualización o notificación: no debe extender el mismo período otra vez.
 6. Cancelar desde Planes antes del primer cobro y comprobar la baja en Mercado Pago. Probar también
    cancelar con un período pagado: conserva acceso hasta vencer. Actualizar luego de la baja.
