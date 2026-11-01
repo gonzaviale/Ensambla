@@ -206,6 +206,7 @@ public class AtenderMensajeWhatsapp {
 
     private InterpretacionRegistros interpretar(NegocioId negocioId, String texto, List<TablaDisponible> tablas,
                                                 BloqueId destino, OffsetDateTime ahora) {
+        controlPlanService.exigirIa(negocioId);
         LocalDate dia = ZonaNegocio.dia(ahora);
         if (!consumoSamiRepository.reservar(negocioId, dia, politica.limiteDiarioSami(), ahora)) {
             throw new BusinessRuleException(TextosWhatsapp.LIMITE_SAMI);

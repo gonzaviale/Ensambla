@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.sami.conversarConSami;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
@@ -12,6 +13,7 @@ import com.ensambla.backend.domain.port.SamiIaPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.support.SamiPruebas;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +32,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -58,6 +61,9 @@ class ConversarConSamiTest {
 
     @Mock
     private ConsumoSamiRepository consumoSamiRepository;
+
+    @Mock
+    private ControlPlanService controlPlanService;
 
     private List<PlantillaProyecto> plantillas;
 
@@ -208,6 +214,20 @@ class ConversarConSamiTest {
     }
 
     @Test
+    @DisplayName("Si la IA no está habilitada para el dueño, no reserva ni consulta")
+    void executeShouldRejectWhenIaIsNotEnabledForTheOwner() {
+        givenNegocio();
+        doThrow(new RestriccionPlanException("IA_NO_HABILITADA", "La IA no está habilitada para tu cuenta."))
+                .when(controlPlanService).exigirIa(NEGOCIO_ID);
+        ConversarConSamiRequest request = new ConversarConSamiRequest(USUARIO_ID, "texto", List.of());
+
+        assertThatThrownBy(() -> conversacion(0).execute(request))
+                .isInstanceOf(RestriccionPlanException.class)
+                .hasMessage("La IA no está habilitada para tu cuenta.");
+        verifyNoInteractions(samiIaPort, consumoSamiRepository);
+    }
+
+    @Test
     @DisplayName("El día del límite es el argentino aunque en UTC ya sea el día siguiente")
     void executeShouldUseArgentinaDayForTheLimit() {
         OffsetDateTime tardeEnArgentina = OffsetDateTime.parse("2026-10-19T22:30:00-03:00");
@@ -215,7 +235,7 @@ class ConversarConSamiTest {
         when(consumoSamiRepository.reservar(NEGOCIO_ID, LocalDate.of(2026, 10, 19), LIMITE_IA,
                 tardeEnArgentina.withOffsetSameInstant(ZoneOffset.UTC))).thenReturn(false);
         ConversarConSami conversacion = new ConversarConSami(negocioRepository, plantillaRepository,
-                SamiPruebas.diccionarioReal(), samiIaPort, consumoSamiRepository,
+                SamiPruebas.diccionarioReal(), samiIaPort, consumoSamiRepository, controlPlanService,
                 Clock.fixed(tardeEnArgentina.toInstant(), ZoneOffset.UTC), 0.7, 0, LIMITE_IA);
         ConversarConSamiRequest request = new ConversarConSamiRequest(USUARIO_ID, "texto", List.of());
 
@@ -268,8 +288,8 @@ class ConversarConSamiTest {
     // --- arrange ---
     private ConversarConSami conversacion(int maxPreguntas) {
         return new ConversarConSami(negocioRepository, plantillaRepository, SamiPruebas.diccionarioReal(), samiIaPort,
-                consumoSamiRepository, Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC), 0.7, maxPreguntas,
-                LIMITE_IA);
+                consumoSamiRepository, controlPlanService, Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC), 0.7,
+                maxPreguntas, LIMITE_IA);
     }
 
     private void givenNegocio() {

@@ -121,6 +121,7 @@ public class ConversarEnTaller {
      */
     private RespuestaTaller conversar(NegocioId negocioId, String mensaje, ImagenTaller imagen, EstadoTaller estado,
                                      List<MensajeTaller> historial, OffsetDateTime ahora, int limiteDiario) {
+        controlPlanService.exigirIa(negocioId);
         LocalDate fecha = ZonaNegocio.dia(ahora);
         if (!consumoSamiRepository.reservar(negocioId, fecha, limiteDiario, ahora)) {
             throw new BusinessRuleException(LIMITE_ALCANZADO);

@@ -58,10 +58,11 @@ public class SamiUseCaseConfig {
                                              DiccionarioSami diccionario,
                                              SamiIaPort samiIaPort,
                                              ConsumoSamiRepository consumoSamiRepository,
+                                             ControlPlanService controlPlanService,
                                              Clock clock,
                                              SamiProperties samiProperties) {
         return new ConversarConSami(negocioRepository, plantillaRepository, diccionario, samiIaPort,
-                consumoSamiRepository, clock, samiProperties.umbralConfianza(), samiProperties.maxPreguntas(),
+                consumoSamiRepository, controlPlanService, clock, samiProperties.umbralConfianza(), samiProperties.maxPreguntas(),
                 samiProperties.limiteDiarioIa());
     }
 }

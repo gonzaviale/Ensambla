@@ -49,6 +49,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -114,7 +115,20 @@ class ConversarEnTallerTest {
 
         conversar("hola", null, ESTADO, HISTORIAL);
 
-        verifyNoInteractions(controlPlanService);
+        verify(controlPlanService).exigirIa(NegocioId.de(NEGOCIO_ID));
+        verifyNoMoreInteractions(controlPlanService);
+    }
+
+    @Test
+    @DisplayName("Si la IA no está habilitada para el dueño, no reserva ni consulta")
+    void executeShouldRejectWhenIaIsNotEnabledForTheOwner() {
+        doThrow(new RestriccionPlanException("IA_NO_HABILITADA", "La IA no está habilitada para tu cuenta."))
+                .when(controlPlanService).exigirIa(NegocioId.de(NEGOCIO_ID));
+
+        assertThatThrownBy(() -> conversar("hola", null, ESTADO, HISTORIAL))
+                .isInstanceOf(RestriccionPlanException.class)
+                .hasMessage("La IA no está habilitada para tu cuenta.");
+        verifyNoInteractions(tallerIaPort, consumoSamiRepository);
     }
 
     @Test

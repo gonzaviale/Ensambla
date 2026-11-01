@@ -2,10 +2,12 @@ package com.ensambla.backend.domain.service.plan;
 
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.plan.AccesoIa;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.Plan;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.AccesoContenidoRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
@@ -45,7 +47,8 @@ class ControlPlanContenidosTest {
     private final UsoPlanRepository uso = mock(UsoPlanRepository.class);
     private final AccesoContenidoRepository acceso = mock(AccesoContenidoRepository.class);
     private final ControlPlanService servicio = new ControlPlanService(planes, suscripciones, uso, acceso,
-            mock(PruebaPremiumRepository.class), new TransaccionDirecta());
+            mock(PruebaPremiumRepository.class), new TransaccionDirecta(), mock(NegocioRepository.class),
+            AccesoIa.LIBRE);
 
     @Test
     @DisplayName("Gratuito admite tres claves distintas y conserva el orden sin cobrar duplicados")

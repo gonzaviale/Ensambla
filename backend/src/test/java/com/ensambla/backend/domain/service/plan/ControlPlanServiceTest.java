@@ -2,6 +2,8 @@ package com.ensambla.backend.domain.service.plan;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
+import com.ensambla.backend.domain.model.plan.AccesoIa;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.FuncionPlan;
@@ -65,6 +67,12 @@ class ControlPlanServiceTest {
 
     @Spy
     private TransaccionPort transaccionPort = new TransaccionDirecta();
+
+    @Mock
+    private NegocioRepository negocioRepository;
+
+    @Spy
+    private AccesoIa accesoIa = AccesoIa.LIBRE;
 
     @InjectMocks
     private ControlPlanService controlPlanService;

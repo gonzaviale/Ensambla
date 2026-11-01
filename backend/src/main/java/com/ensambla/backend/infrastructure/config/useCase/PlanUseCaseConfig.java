@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.model.plan.AccesoIa;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.AccesoContenidoRepository;
@@ -71,9 +72,11 @@ public class PlanUseCaseConfig {
             UsoPlanRepository usoPlanRepository,
             PruebaPremiumRepository pruebaPremiumRepository,
             AccesoContenidoRepository accesoContenidoRepository,
-            TransaccionPort transaccionPort) {
+            TransaccionPort transaccionPort,
+            NegocioRepository negocioRepository,
+            AccesoIa accesoIa) {
         return new ControlPlanService(planRepository, suscripcionRepository, usoPlanRepository,
-                accesoContenidoRepository, pruebaPremiumRepository, transaccionPort);
+                accesoContenidoRepository, pruebaPremiumRepository, transaccionPort, negocioRepository, accesoIa);
     }
 
 }

@@ -28,6 +28,7 @@ import com.ensambla.backend.domain.port.SamiIaPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,6 +76,7 @@ public class ConversarConSami {
     private final PlantillaRepository plantillaRepository;
     private final SamiIaPort samiIaPort;
     private final ConsumoSamiRepository consumoSamiRepository;
+    private final ControlPlanService controlPlanService;
     private final Clock clock;
     private final double umbralConfianza;
     private final int maxPreguntas;
@@ -86,12 +88,13 @@ public class ConversarConSami {
 
     public ConversarConSami(NegocioRepository negocioRepository, PlantillaRepository plantillaRepository,
                             DiccionarioSami diccionario, SamiIaPort samiIaPort,
-                            ConsumoSamiRepository consumoSamiRepository, Clock clock, double umbralConfianza,
-                            int maxPreguntas, int limiteDiarioIa) {
+                            ConsumoSamiRepository consumoSamiRepository, ControlPlanService controlPlanService,
+                            Clock clock, double umbralConfianza, int maxPreguntas, int limiteDiarioIa) {
         this.negocioRepository = negocioRepository;
         this.plantillaRepository = plantillaRepository;
         this.samiIaPort = samiIaPort;
         this.consumoSamiRepository = consumoSamiRepository;
+        this.controlPlanService = controlPlanService;
         this.clock = clock;
         this.umbralConfianza = umbralConfianza;
         this.maxPreguntas = maxPreguntas;
@@ -324,6 +327,7 @@ public class ConversarConSami {
     /** @throws BusinessRuleException si se agotó el límite, la IA falló o su respuesta no es utilizable */
     private InterpretacionSami proponerConIa(NegocioId negocioId, String texto, List<RespuestaSami> respuestas,
                                              List<PlantillaProyecto> disponibles, OffsetDateTime ahora) {
+        controlPlanService.exigirIa(negocioId);
         LocalDate fecha = ZonaNegocio.dia(ahora);
         if (!consumoSamiRepository.reservar(negocioId, fecha, limiteDiarioIa, ahora)) {
             throw new BusinessRuleException(LIMITE_ALCANZADO);

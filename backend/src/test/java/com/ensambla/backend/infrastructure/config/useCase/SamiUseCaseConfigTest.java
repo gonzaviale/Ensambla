@@ -125,7 +125,7 @@ class SamiUseCaseConfigTest {
         when(plantillaRepository.findAllParaProyectoActivas()).thenReturn(SamiPruebas.plantillas());
         return config.conversarConSami(negocioRepository, plantillaRepository, SamiPruebas.diccionarioReal(),
                 samiIaPort,
-                        consumoSamiRepository, Clock.systemUTC(), properties)
+                        consumoSamiRepository, mock(ControlPlanService.class), Clock.systemUTC(), properties)
                 .execute(new ConversarConSamiRequest(UsuarioId.nuevo(), "vendo velas", List.of()));
     }
 }

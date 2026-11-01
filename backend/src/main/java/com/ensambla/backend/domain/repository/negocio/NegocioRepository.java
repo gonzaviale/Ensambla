@@ -20,6 +20,9 @@ public interface NegocioRepository {
     /** Zona a la que pertenece el negocio; vacío si el negocio no existe o todavía no tiene zona. */
     Optional<ZonaId> findZonaIdById(NegocioId negocioId);
 
+    /** Email del dueño del negocio; vacío si el negocio no existe. */
+    Optional<String> findEmailDuenioById(NegocioId negocioId);
+
     Negocio save(Negocio negocio);
 
     /** Ids de todos los negocios; los usa el motor de monitoreo para recorrerlos. */

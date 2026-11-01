@@ -17,6 +17,7 @@ import com.ensambla.backend.domain.port.SamiIaPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSami;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSamiRequest;
 import com.ensambla.backend.domain.useCase.sami.conversarConSami.PropuestaSamiItem;
@@ -98,7 +99,8 @@ public final class SamiPruebas {
         ConsumoSamiRepository consumoSamiRepository = mock(ConsumoSamiRepository.class);
         when(plantillaRepository.findAllParaProyectoActivas()).thenReturn(disponibles);
         ConversarConSami conversacion = new ConversarConSami(mock(NegocioRepository.class), plantillaRepository,
-                diccionario, mock(SamiIaPort.class), consumoSamiRepository, Clock.systemUTC(), 0.0, 0, 0);
+                diccionario, mock(SamiIaPort.class), consumoSamiRepository, mock(ControlPlanService.class),
+                Clock.systemUTC(), 0.0, 0, 0);
         List<RespuestaSamiItem> items = Arrays.stream(respuestas)
                 .map(respuesta -> new RespuestaSamiItem(respuesta.preguntaId(), respuesta.opcionId()))
                 .toList();

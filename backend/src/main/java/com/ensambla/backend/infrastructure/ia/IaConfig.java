@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.ia;
 
+import com.ensambla.backend.domain.model.plan.AccesoIa;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import org.springframework.beans.factory.ObjectProvider;
@@ -19,8 +20,14 @@ import java.util.List;
  * {@link LectorCuadernoIaAdapter}. Un proveedor que no se elige no se conecta a nada.
  */
 @Configuration
-@EnableConfigurationProperties(IaProperties.class)
+@EnableConfigurationProperties({IaProperties.class, AccesoIaProperties.class})
 public class IaConfig {
+
+    /** Quién puede usar la IA con costo; lo consulta {@code ControlPlanService}. */
+    @Bean
+    AccesoIa accesoIa(AccesoIaProperties properties) {
+        return properties.acceso();
+    }
 
     /** Los kits los carga {@link SamiConfig}; se piden recién al armar el taller (la evaluación de lectura no los usa). */
     @Bean

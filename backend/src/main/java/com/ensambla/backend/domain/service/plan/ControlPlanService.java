@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.plan.AccesoIa;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.FuncionPlan;
@@ -13,6 +14,7 @@ import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.AccesoContenidoRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
@@ -44,6 +46,10 @@ public class ControlPlanService {
 
     private final TransaccionPort transaccionPort;
 
+    private final NegocioRepository negocioRepository;
+
+    private final AccesoIa accesoIa;
+
     private static final int LIMITE_GRATUITO = 3;
 
     public void validarAltaProyecto(NegocioId negocioId, OffsetDateTime ahora) {
@@ -62,7 +68,20 @@ public class ControlPlanService {
         });
     }
 
+    /**
+     * Con el acceso a la IA restringido, sólo el dueño de un email habilitado puede usarla (lectura, Sami y taller).
+     *
+     * @throws RestriccionPlanException si el dueño del negocio no está habilitado
+     */
+    public void exigirIa(NegocioId negocioId) {
+        if (accesoIa.restringido()
+                && !accesoIa.permite(negocioRepository.findEmailDuenioById(negocioId).orElse(null))) {
+            throw new RestriccionPlanException("IA_NO_HABILITADA", AccesoIa.MENSAJE);
+        }
+    }
+
     public void validarPaginasIa(NegocioId negocioId, int cantidad, OffsetDateTime ahora) {
+        exigirIa(negocioId);
         transaccionPort.ejecutar(() -> {
             usoPlanRepository.bloquearNegocio(negocioId);
             Plan plan = vigente(negocioId, ahora);
