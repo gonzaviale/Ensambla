@@ -6,12 +6,12 @@ autorizada por Brian, sin merge. Rama desde `origin/dev`: `fix/ens-21-limites-pl
 
 ## Reglas
 
-- Gratuito: un sistema, 1.000 registros, diez páginas de IA por mes calendario UTC.
+- Gratuito: un sistema, 1.000 registros, diez análisis de foto por mes calendario UTC.
 - Avisos: tres contenidos nuevos por mes y negocio. Volver a ver el mismo no consume otra unidad;
   descartar, recargar o cambiar de dispositivo no devuelve cupo.
 - Zona: tres recomendaciones nuevas por mes y negocio, compartidas entre Mi zona y Otra zona.
 - Premium y la prueba vigente habilitan los contenidos completos. La prueba sigue durando siete
-  días con diez páginas de IA totales; Premium conserva ARS 14.900 cada treinta días y cien páginas
+  días con diez análisis de foto totales; Premium conserva ARS 14.900 cada treinta días y cien páginas
   mensuales. No se limita la lectura/edición básica de datos existentes al volver a Gratuito.
 - Los cupos y el acceso se resuelven por negocio en el servidor, dentro de una transacción con
   bloqueo, y se conservan por período y clave estable. No se acepta un negocio indicado por el cliente.

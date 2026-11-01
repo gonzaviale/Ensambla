@@ -93,7 +93,7 @@ Un rechazo de plan devuelve 403 con `message` y `codigo`; un recurso ajeno sigue
 Superar una cuota no borra los datos ni bloquea su lectura/edición básica.
 
 V14 incorpora una única prueba premium por negocio. `POST /api/planes/prueba` requiere sesión y CSRF;
-inicia siete días exactos de capacidades premium y **diez páginas de IA totales**, sin renovación mensual.
+inicia siete días exactos de capacidades premium y **diez análisis de foto totales**, sin renovación mensual.
 Las dos vías de IA comparten el contador persistido, incluidas las reservas admitidas; fallos y timeouts
 conservan el cargo del intento. Una reserva rechazada no lo consume. Repetir el inicio no renueva la prueba.
 Al vencer se usa el gratuito sin borrar datos, incluso antes de ejecutar el job automático de cada minuto.

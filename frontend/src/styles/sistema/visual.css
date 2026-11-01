@@ -1,11 +1,11 @@
 /* Experiencia visual: conjuntos de bloques, taller con Sami y lienzo adaptable. */
 :root {
-  --paper: #fffdfa;
+  --paper: #ffffff;
   --cream: #fff7eb;
 }
 .topbar {
   position: relative;
-  background: #fffdf9;
+  background: var(--paper);
 }
 .topbar::after {
   content: '';

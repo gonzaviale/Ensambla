@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
+import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.model.sami.DiccionarioSami;
 import com.ensambla.backend.domain.model.sami.taller.CatalogoComponentes;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
@@ -42,10 +43,13 @@ public class SamiUseCaseConfig {
                                                ConsumoSamiRepository consumoSamiRepository,
                                                CatalogoComponentes catalogoComponentes,
                                                KitsRubro kitsRubro,
+                                               ControlPlanService controlPlanService,
+                                               PoliticaProcesamiento politicaProcesamiento,
                                                Clock clock,
                                                SamiProperties samiProperties) {
         return new ConversarEnTaller(negocioRepository, tallerIaPort, consumoSamiRepository, catalogoComponentes,
-                kitsRubro, clock, samiProperties.limiteDiarioTaller());
+                kitsRubro, controlPlanService, clock, samiProperties.limiteDiarioTaller(),
+                politicaProcesamiento.limiteDiario());
     }
 
     @Bean

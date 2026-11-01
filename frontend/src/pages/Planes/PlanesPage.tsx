@@ -136,7 +136,7 @@ export function PlanesPage() {
                   limite={actual.limiteRegistros}
                 />
                 <Uso
-                  titulo={esPrueba ? 'Páginas de IA de la prueba' : 'Páginas de IA de este mes'}
+                  titulo={esPrueba ? 'Análisis de foto de la prueba' : 'Análisis de foto de este mes'}
                   cantidad={datos.uso.paginasIa}
                   limite={datos.uso.limitePaginasIa}
                 />
@@ -151,7 +151,7 @@ export function PlanesPage() {
               datos.uso.limitePaginasIa !== null &&
               datos.uso.paginasIa >= datos.uso.limitePaginasIa ? (
                 <p className="plan-quota-notice" role="status">
-                  Usaste las páginas de IA incluidas. Las demás funciones premium siguen disponibles
+                  Usaste los análisis de foto incluidos. Las demás funciones premium siguen disponibles
                   hasta que termine la prueba.
                 </p>
               ) : null}

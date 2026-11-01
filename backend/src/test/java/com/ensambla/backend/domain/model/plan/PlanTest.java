@@ -66,7 +66,7 @@ class PlanTest {
         assertThatCode(() -> plan.validarPaginasIa(9, 1)).doesNotThrowAnyException();
 
         assertThatThrownBy(() -> plan.validarPaginasIa(9, 2))
-                .isInstanceOf(RestriccionPlanException.class).hasMessageContaining("10 páginas de IA por mes");
+                .isInstanceOf(RestriccionPlanException.class).hasMessageContaining("10 análisis de foto por mes");
     }
 
     @Test

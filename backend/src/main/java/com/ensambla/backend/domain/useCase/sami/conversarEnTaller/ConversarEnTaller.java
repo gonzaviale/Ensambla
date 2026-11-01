@@ -28,6 +28,7 @@ import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
 import com.ensambla.backend.domain.port.TallerIaPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,6 +124,10 @@ public class ConversarEnTaller {
         LocalDate fecha = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate();
         if (!consumoSamiRepository.reservar(negocioId, fecha, limiteDiario, ahora)) {
             throw new BusinessRuleException(LIMITE_ALCANZADO);
+        }
+        if (imagen != null) {
+            // Una foto es un análisis de foto del plan, sin importar cuántas veces el modelo se consulte en el turno.
+            controlPlanService.reservarPaginaIaInmediata(negocioId, limiteDiarioFotos, ahora);
         }
         KitRubro kit = detectar(mensaje, estado, historial).orElse(null);
         ResultadoTallerIa resultado = consultar(new ConsultaTaller(mensaje, estado, historial, kit, imagen));
@@ -365,19 +370,24 @@ public class ConversarEnTaller {
     private final CatalogoComponentes catalogoComponentes;
     private final KitsRubro kitsRubro;
     private final List<TerminosDeKit> kits;
+    private final ControlPlanService controlPlanService;
     private final Clock clock;
     private final int limiteDiario;
+    private final int limiteDiarioFotos;
 
     public ConversarEnTaller(NegocioRepository negocioRepository, TallerIaPort tallerIaPort,
                              ConsumoSamiRepository consumoSamiRepository, CatalogoComponentes catalogoComponentes,
-                             KitsRubro kitsRubro, Clock clock, int limiteDiario) {
+                             KitsRubro kitsRubro, ControlPlanService controlPlanService, Clock clock,
+                             int limiteDiario, int limiteDiarioFotos) {
         this.negocioRepository = negocioRepository;
         this.tallerIaPort = tallerIaPort;
         this.consumoSamiRepository = consumoSamiRepository;
         this.catalogoComponentes = catalogoComponentes;
         this.kitsRubro = kitsRubro;
+        this.controlPlanService = controlPlanService;
         this.clock = clock;
         this.limiteDiario = limiteDiario;
+        this.limiteDiarioFotos = limiteDiarioFotos;
         descripciones.put(HerramientaTaller.AGREGAR_PIEZA,
                 (args, nombres) -> "Sumé " + pieza(referenciaNueva(args), nombres));
         descripciones.put(HerramientaTaller.QUITAR_PIEZA,

@@ -11,7 +11,7 @@ public record PoliticaProcesamiento(int maxIntentos, int maxPaginas, int limiteD
                                      BigDecimal precioEntradaMillon, BigDecimal precioSalidaMillon) {
 
     public static final String LIMITE_DIARIO_AGOTADO =
-            "Se alcanzó el límite diario de páginas de IA. Probá mañana.";
+            "Se alcanzó el límite diario de análisis de foto. Probá mañana.";
 
     public BigDecimal costo(ConsumoIa consumo) {
         if ("simulado".equals(consumo.proveedor())) {

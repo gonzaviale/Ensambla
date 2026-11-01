@@ -34,7 +34,7 @@ Validación: 1.512 pruebas del backend, 288 del frontend y 39 del evaluador apro
 ## ENS-96: resultado de la etapa anterior
 
 El usuario aprobó continuar ENS-96 con una única prueba por negocio de siete días exactos y diez
-páginas de IA totales. Se incorporaron V14, el inicio privado desde sesión y CSRF, el contador
+análisis de foto totales. Se incorporaron V14, el inicio privado desde sesión y CSRF, el contador
 persistente compartido por lectura inmediata y cola, y el vencimiento automático sin pérdida de datos.
 El detalle técnico y la validación están en [plan-ENS-96.md](plan-ENS-96.md).
 La publicación autorizada de ENS-94 a ENS-96 corresponde a esta rama de funcionalidad.

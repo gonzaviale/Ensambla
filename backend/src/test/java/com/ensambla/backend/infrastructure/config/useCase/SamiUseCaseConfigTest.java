@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.model.sami.ConsumoIaSami;
 import com.ensambla.backend.domain.model.sami.PropuestaIaSami;
 import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
@@ -18,6 +19,7 @@ import com.ensambla.backend.domain.useCase.sami.conversarConSami.ConversarConSam
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTallerRequest;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTallerResponse;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.EstadoTallerItem;
+import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ImagenTallerItem;
 import com.ensambla.backend.domain.useCase.sami.crearProyectoDesdeSami.CrearProyectoDesdeSamiRequest;
 import com.ensambla.backend.infrastructure.ia.SamiProperties;
 import com.ensambla.backend.support.ProyectoTestData;
@@ -26,6 +28,7 @@ import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
@@ -34,6 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class SamiUseCaseConfigTest {
@@ -86,20 +90,29 @@ class SamiUseCaseConfigTest {
     }
 
     @Test
-    @DisplayName("El wiring del taller usa el límite diario propio del taller")
-    void conversarEnTallerUseCaseShouldWireTallerLimit() {
+    @DisplayName("El wiring del taller usa el límite diario propio del taller y el de análisis de foto del plan")
+    void conversarEnTallerUseCaseShouldWireTallerAndPhotoLimits() {
         TallerIaPort tallerIaPort = mock(TallerIaPort.class);
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NegocioId.nuevo());
+        ControlPlanService controlPlanService = mock(ControlPlanService.class);
+        NegocioId negocioId = NegocioId.nuevo();
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(negocioId);
         when(consumoSamiRepository.reservar(any(), any(), eq(11), any())).thenReturn(true);
-        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa("Hola", List.of(), CONSUMO));
+        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa("Hola, ¿qué querés armar?", List.of(), CONSUMO));
 
         ConversarEnTallerResponse response = config.conversarEnTaller(negocioRepository, tallerIaPort,
                         consumoSamiRepository, SamiPruebas.catalogoReal(), SamiPruebas.kitsReales(),
-                        Clock.systemUTC(), propiedades(3))
+                        controlPlanService, politicaProcesamiento(13), Clock.systemUTC(), propiedades(3))
                 .execute(new ConversarEnTallerRequest(
-                        USUARIO_ID, "hola", new EstadoTallerItem("", "mosaic", List.of()), List.of(), null));
+                        USUARIO_ID, "hola", new EstadoTallerItem("", "mosaic", List.of()), List.of(),
+                        new ImagenTallerItem("image/png", new byte[]{1, 2, 3})));
 
-        assertThat(response.respuesta()).isEqualTo("Hola");
+        assertThat(response.respuesta()).startsWith("Hola");
+        verify(controlPlanService).reservarPaginaIaInmediata(eq(negocioId), eq(13), any());
+    }
+
+    private PoliticaProcesamiento politicaProcesamiento(int limiteDiario) {
+        return new PoliticaProcesamiento(3, 10, limiteDiario, Duration.ofMinutes(5), Duration.ofSeconds(30),
+                BigDecimal.ONE, BigDecimal.ONE);
     }
 
     private SamiProperties propiedades(int maxPreguntas) {

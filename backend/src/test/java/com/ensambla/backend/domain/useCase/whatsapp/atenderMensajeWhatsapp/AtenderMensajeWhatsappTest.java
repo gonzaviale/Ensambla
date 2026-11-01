@@ -498,12 +498,12 @@ class AtenderMensajeWhatsappTest {
     void executeShouldRespectThePhotoQuota() {
         givenReclamado(givenFoto(null));
         when(mensajeria.descargarMedia("F1")).thenReturn(new ArchivoWhatsapp(ImagenTestData.jpeg(), "image/jpeg"));
-        doThrow(new RestriccionPlanException("LIMITE_IA_MENSUAL", "Llegaste al límite de páginas de IA de tu plan"))
+        doThrow(new RestriccionPlanException("LIMITE_IA_MENSUAL", "Llegaste al límite de análisis de foto de tu plan"))
                 .when(controlPlanService).reservarPaginaIaInmediata(NEGOCIO_ID, 100, AHORA);
 
         atender.execute();
 
-        verify(mensajeria).enviarTexto(TELEFONO, "Llegaste al límite de páginas de IA de tu plan");
+        verify(mensajeria).enviarTexto(TELEFONO, "Llegaste al límite de análisis de foto de tu plan");
         verifyNoInteractions(lectorCuadernoPort);
     }
 

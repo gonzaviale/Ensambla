@@ -10,7 +10,7 @@ componentes y adaptación a celular que el resto de Ensambla. Comparar Gratuito 
 los valores del catálogo del servidor. El gratuito se muestra sin costo; el precio premium
 pendiente se presenta como «Precio por definir», sin inventar moneda ni ofrecer un cobro inexistente.
 
-Mostrar plan efectivo, sistemas, registros y páginas de IA admitidas o reservadas. Durante la
+Mostrar plan efectivo, sistemas, registros y análisis de foto admitidos o reservados. Durante la
 prueba, mostrar el contador total de diez páginas y su fecha de fin; fuera de ella, el consumo
 del mes calendario UTC. Conservar el mensaje de prueba finalizada al volver al gratuito.
 

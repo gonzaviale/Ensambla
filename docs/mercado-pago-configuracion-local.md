@@ -90,7 +90,7 @@ No se confía en prefijos de credenciales ni se cambia el plan manualmente para 
 
 Con el adaptador corregido, «Actualizar pagos» activó Premium sin intervención manual en la base.
 El período comienza en `2026-10-21T00:47:59Z` y vence en `2026-11-20T00:47:59Z`: 720 horas exactas,
-con cien páginas de IA mensuales y sin prueba gratuita. En hora argentina vence el 19 de noviembre
+con cien análisis de foto mensuales y sin prueba gratuita. En hora argentina vence el 19 de noviembre
 a las 21:47. Se canceló desde Planes: Mercado Pago confirmó `cancelled`, Ensambla `CANCELADA`,
 y se conservó el período pagado. Otra actualización devolvió HTTP 204 y la tabla de pagos sigue
 teniendo una sola fila, sin duplicar ni extender el período.

@@ -43,7 +43,7 @@ Detalles y contrato con subida: [lectura-cuaderno-ia.md](lectura-cuaderno-ia.md)
 ## Planes y suscripciones (V12 · ENS-94 / T-066)
 
 - `plan` es un catálogo global con códigos únicos `GRATUITO` y `PREMIUM`, nombre, precio mensual,
-  moneda de tres letras, límites de proyectos, registros y páginas de IA mensuales, y una lista JSON de funciones.
+  moneda de tres letras, límites de proyectos, registros y análisis de foto mensuales, y una lista JSON de funciones.
   Las cuotas y el precio no admiten números negativos. Se permiten cero y límites nulos según la configuración.
 - `configurado=false` identifica las condiciones comerciales todavía pendientes. En ese estado, un límite
   nulo **no significa ilimitado**. El catálogo inicial no fija cuotas, moneda, precio premium ni funciones.
@@ -68,7 +68,7 @@ Detalles y contrato con subida: [lectura-cuaderno-ia.md](lectura-cuaderno-ia.md)
 
 - V12 conserva el catálogo inicial sin condiciones comerciales inventadas. V13 agrega
   `limites_configurados` y establece las capacidades aprobadas: gratuito de un sistema,
-  1.000 registros totales y diez páginas de IA al mes UTC; premium sin límite comercial de
+  1.000 registros totales y diez análisis de foto al mes UTC; premium sin límite comercial de
   sistemas/registros y con cien páginas mensuales.
 - `limites_configurados=true` identifica los límites listos para controlar. Es independiente de
   `configurado`, que sigue identificando precio y moneda. Un límite nulo de sistemas/registros
@@ -101,7 +101,7 @@ Detalles y contrato con subida: [lectura-cuaderno-ia.md](lectura-cuaderno-ia.md)
   exige fin no nulo a siete días del inicio. No se activan pruebas al migrar.
 - El inicio serializa por negocio, cambia la suscripción a premium `PRUEBA` y crea su historial en
   la misma transacción. Una segunda solicitud no renueva fechas ni cuota.
-- Durante su vigencia se aplican las funciones premium, con diez páginas de IA totales en lugar
+- Durante su vigencia se aplican las funciones premium, con diez análisis de foto totales en lugar
   de cien mensuales. Se cargan al admitir un intento inmediato o reservar un lote; la finalización
   no vuelve a cobrarlas. Rechazos diarios y reservas duplicadas no gastan prueba. El contador
   es independiente del consumo previo y no se reinicia al cambiar de mes.

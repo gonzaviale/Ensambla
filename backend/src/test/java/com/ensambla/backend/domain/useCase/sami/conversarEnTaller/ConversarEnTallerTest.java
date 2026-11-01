@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.useCase.sami.conversarEnTaller;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.sami.ConsumoIaSami;
 import com.ensambla.backend.domain.model.sami.taller.AccionTaller;
@@ -19,6 +20,7 @@ import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TallerIaPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.support.SamiPruebas;
 import com.ensambla.backend.support.TallerDePrueba;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +42,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -75,12 +79,55 @@ class ConversarEnTallerTest {
     @Mock
     private ConsumoSamiRepository consumoSamiRepository;
 
+    @Mock
+    private ControlPlanService controlPlanService;
+
     private ConversarEnTaller conversacion;
 
     @BeforeEach
     void setUp() {
-        conversacion = TallerDePrueba.conversacion(tallerIaPort, consumoSamiRepository, SamiPruebas.kitsReales(),
-                Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC), LIMITE);
+        conversacion = TallerDePrueba.conversacion(tallerIaPort, consumoSamiRepository, controlPlanService,
+                SamiPruebas.kitsReales(), Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC), LIMITE,
+                TallerDePrueba.LIMITE_DIARIO_FOTOS);
+    }
+
+    @Test
+    @DisplayName("Una foto cuenta como un solo análisis de foto del plan, aunque el modelo se consulte varias veces")
+    void executeShouldReserveOnePhotoAnalysisPerTurnWithPhoto() {
+        givenQuotaAvailable();
+        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa(
+                "Armé el inventario. ¿Qué significan los tildes?", List.of(
+                        new LlamadaHerramienta("agregar_pieza", Map.of("tipo", "inventory"))), CONSUMO));
+
+        conversar("leé esta foto", FOTO, SIN_PIEZAS, HISTORIAL);
+
+        verify(controlPlanService, times(1)).reservarPaginaIaInmediata(NegocioId.de(NEGOCIO_ID),
+                TallerDePrueba.LIMITE_DIARIO_FOTOS, AHORA);
+        verify(tallerIaPort, atLeast(2)).conversar(any());
+    }
+
+    @Test
+    @DisplayName("Un mensaje sin foto no descuenta análisis de foto")
+    void executeShouldNotReservePhotoAnalysisWithoutPhoto() {
+        givenQuotaAvailable();
+        when(tallerIaPort.conversar(any())).thenReturn(new ResultadoTallerIa("Hola", List.of(), CONSUMO));
+
+        conversar("hola", null, ESTADO, HISTORIAL);
+
+        verifyNoInteractions(controlPlanService);
+    }
+
+    @Test
+    @DisplayName("Si se agotaron los análisis de foto del plan, no consulta a la IA")
+    void executeShouldNotCallAiWhenPhotoAnalysisLimitIsReached() {
+        givenQuotaAvailable();
+        doThrow(new RestriccionPlanException("LIMITE_IA_MENSUAL", "Sin análisis de foto"))
+                .when(controlPlanService).reservarPaginaIaInmediata(NegocioId.de(NEGOCIO_ID),
+                        TallerDePrueba.LIMITE_DIARIO_FOTOS, AHORA);
+
+        assertThatThrownBy(() -> conversar("leé esta foto", FOTO, ESTADO, HISTORIAL))
+                .isInstanceOf(RestriccionPlanException.class);
+        verifyNoInteractions(tallerIaPort);
     }
 
     @Test
@@ -650,12 +697,13 @@ class ConversarEnTallerTest {
         when(negocioRepository.obtenerIdDelUsuario(UsuarioId.de(usuarioSinNegocio)))
                 .thenThrow(new ResourceNotFoundException("Sin negocio"));
         ConversarEnTaller sinNegocio = new ConversarEnTaller(negocioRepository, tallerIaPort, consumoSamiRepository,
-                SamiPruebas.catalogoReal(), SamiPruebas.kitsReales(), Clock.systemUTC(), LIMITE);
+                SamiPruebas.catalogoReal(), SamiPruebas.kitsReales(), controlPlanService, Clock.systemUTC(), LIMITE,
+                TallerDePrueba.LIMITE_DIARIO_FOTOS);
         ConversarEnTallerRequest request = new ConversarEnTallerRequest(UsuarioId.de(usuarioSinNegocio), "hola",
                 new EstadoTallerItem("", "mosaic", List.of()), List.of(), null);
 
         assertThatThrownBy(() -> sinNegocio.execute(request)).isInstanceOf(ResourceNotFoundException.class);
-        verifyNoInteractions(tallerIaPort, consumoSamiRepository);
+        verifyNoInteractions(tallerIaPort, consumoSamiRepository, controlPlanService);
     }
 
     // --- arrange ---

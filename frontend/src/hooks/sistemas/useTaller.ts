@@ -1,5 +1,6 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { conversarEnTaller } from '@/api/samiTaller';
+import { planesKeys } from '@/hooks/planes/queries';
 import {
   aplicarAcciones,
   mismoSistema,
@@ -116,7 +117,14 @@ export function mensajeDeDudas(dudas: OpcionesDeSami[], respuestas: (string | nu
 // y pide herramientas para ensamblar componentes del catálogo, el backend las valida y acá se aplican al borrador.
 // Sin borrador, Sami arma sobre un sistema vacío; si no sumó nada, sigue sin borrador. Cada cambio se puede deshacer.
 export function useTaller() {
-  const consulta = useMutation({ mutationFn: conversarEnTaller });
+  const queryClient = useQueryClient();
+  const consulta = useMutation({
+    mutationFn: conversarEnTaller,
+    // Un turno con foto gasta un análisis de foto del plan: se actualiza el contador de Planes.
+    onSettled: (_respuesta, _error, pedido) => {
+      if (pedido.imagen) void queryClient.invalidateQueries({ queryKey: planesKeys.all });
+    },
+  });
 
   const resolverTurno = async (
     texto: string,
