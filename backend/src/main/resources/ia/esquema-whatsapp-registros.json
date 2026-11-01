@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tabla", "filas", "confianza"],
+  "properties": {
+    "tabla": {"type": ["string", "null"]},
+    "confianza": {"type": "number"},
+    "filas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": {"type": "string"}
+      }
+    }
+  }
+}

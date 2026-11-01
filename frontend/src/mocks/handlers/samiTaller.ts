@@ -7,7 +7,8 @@ import { api, cuenta, pathDe } from './comun';
 // detectan por palabras y responden lo mismo que el backend: `agregar_pieza` con nombre, datos y ejemplos, `conectar`,
 // `cargar_ejemplos` y una pregunta con respuestas rápidas. Nunca devuelve `usar_kit`: eso lo expande el backend.
 // Sobre un sistema armado entiende algunos ajustes, entre ellos renombrar un dato o ponerlo primero (`editar_campo`).
-// Con una foto no la mira: responde siempre lo mismo, unas ventas «leídas» de un cuaderno (`cargar_registros`).
+// Con una foto no la mira: responde siempre lo mismo, unas ventas «leídas» de un cuaderno (`cargar_registros`); «el
+// precio era 9000» corrige la primera de esas ventas (`editar_registros`).
 
 const DEMORA_MS = import.meta.env.MODE === 'test' ? 0 : 650;
 
@@ -16,6 +17,7 @@ type Pieza = {
   tipo: string;
   nombre: string;
   campos?: { etiqueta: string; tipo: string }[];
+  registros?: { id: string; datos: Record<string, unknown> }[];
 };
 type Pedido = {
   mensaje?: string;
@@ -292,7 +294,7 @@ const ajusteDeDato = (mensaje: string, piezas: Pieza[]) => {
     // «Renombrá …» también puede ser otra cosa (el sistema, una pieza): si no es un dato, sigue de largo.
     if ((!encontrado || !nuevo.texto) && patron !== RENOMBRAR_DATO[0]) continue;
     if (!encontrado || !nuevo.texto) {
-      return sinAcciones(`No encontré el dato «${actual}». ¿Cómo se llama en tu sistema?`);
+      return sinAcciones(`No encontré el dato «${actual}». ¿Cómo se llama en tu cuaderno?`);
     }
     return {
       respuesta: `Listo, «${encontrado.campo.etiqueta}» ahora se llama «${nuevo.texto}» en ${encontrado.pieza.nombre.toLowerCase()}.`,
@@ -312,7 +314,7 @@ const ajusteDeDato = (mensaje: string, piezas: Pieza[]) => {
     const enPieza = separarPieza(`x${cola}`).pieza;
     const encontrado = buscarDato(piezas, actual, enPieza);
     if (!encontrado) {
-      return sinAcciones(`No encontré el dato «${actual}». ¿Cómo se llama en tu sistema?`);
+      return sinAcciones(`No encontré el dato «${actual}». ¿Cómo se llama en tu cuaderno?`);
     }
     return {
       respuesta: `Listo, puse «${encontrado.campo.etiqueta}» primero en ${encontrado.pieza.nombre.toLowerCase()}.`,
@@ -330,7 +332,8 @@ const ajusteDeDato = (mensaje: string, piezas: Pieza[]) => {
 };
 
 // Lo que Sami «leyó» de la foto: tres ventas del cuaderno, que se cargan como registros reales. Si no hay dónde
-// anotarlas, suma las ventas (y los productos, para que cada venta diga qué se vendió).
+// anotarlas, suma las piezas de ventas y productos, vacías: los productos y las clientas que no están no se cargan, el
+// taller le pregunta a la persona si los suma.
 const VENTAS_DE_LA_FOTO = [
   { Producto: 'Vela lavanda', Cliente: 'Lucía', Cantidad: 2, Precio: 13000, Fecha: '2026-10-18' },
   { Producto: 'Vela vainilla', Cliente: 'Marta', Cantidad: 1, Precio: 8200, Fecha: '2026-10-18' },
@@ -363,6 +366,24 @@ const respuestaALaFoto = (piezas: Pieza[]) => {
   };
 };
 
+// «El precio era 9000»: corrige la primera venta cargada (`editar_registros`), sin cargarla de nuevo.
+const correccionDePrecio = (texto: string, piezas: Pieza[]) => {
+  const precio = /precio\D*(\d+)/.exec(texto)?.[1];
+  const pieza = piezas.find((item) => item.tipo === 'sales' && item.registros?.length);
+  const registro = pieza?.registros?.[0];
+  if (!precio || !pieza || !registro) return undefined;
+  return {
+    respuesta: `Listo, corregí el precio a ${precio}.`,
+    acciones: [
+      accion('editar_registros', {
+        pieza: pieza.id,
+        registros: [{ id: registro.id, datos: { Precio: Number(precio) } }],
+      }),
+    ],
+    preguntas: [],
+  };
+};
+
 const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
   if (imagen?.datos) return respuestaALaFoto(estado?.piezas ?? []);
 
@@ -373,7 +394,7 @@ const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
   const kit = piezas.length ? undefined : KITS.find((candidato) => candidato.palabras.test(texto));
   if (kit) {
     const renombrar =
-      !estado?.nombre || estado.nombre === 'Mi sistema'
+      !estado?.nombre || estado.nombre === 'Mi cuaderno' || estado.nombre === 'Mi sistema'
         ? [accion('renombrar_sistema', { nombre: kit.nombre })]
         : [];
     return {
@@ -382,6 +403,9 @@ const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
       preguntas: [kit.opciones],
     };
   }
+
+  const correccion = correccionDePrecio(texto, piezas);
+  if (correccion) return correccion;
 
   const ajuste = piezas.length ? ajusteDeDato(mensaje, piezas) : undefined;
   if (ajuste) return ajuste;
@@ -436,8 +460,12 @@ const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
     acciones: [],
     preguntas: [
       {
-        pregunta: '¿Qué querés hacer con tu sistema?',
-        opciones: ['Sumar gastos', 'Agregar un proveedor al inventario', 'Poner todo en una columna'],
+        pregunta: '¿Qué querés hacer con tu cuaderno?',
+        opciones: [
+          'Sumar gastos',
+          'Agregar un proveedor al inventario',
+          'Poner todo en una columna',
+        ],
       },
     ],
   };

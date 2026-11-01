@@ -1,6 +1,10 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.common.Identificador;
 import com.ensambla.backend.domain.model.inventario.MovimientoStock;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IMovimientoStockJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.MovimientoStockRepositoryMapper;
@@ -11,7 +15,6 @@ import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -28,20 +31,21 @@ public class MovimientoStockRepositoryImpl implements MovimientoStockRepository 
     }
 
     @Override
-    public Map<UUID, BigDecimal> stockDe(Collection<UUID> registroIds, UUID negocioId) {
+    public Map<RegistroId, BigDecimal> stockDe(Collection<RegistroId> registroIds, NegocioId negocioId) {
         if (registroIds.isEmpty()) {
             return Map.of();
         }
-        return jpa.stockDe(negocioId, registroIds).stream()
+        return jpa.stockDe(negocioId.valor(), Identificador.valores(registroIds)).stream()
                 .collect(Collectors.toMap(
-                        IMovimientoStockJpaRepository.StockPorRegistro::getRegistro,
+                        stock -> RegistroId.de(stock.getRegistro()),
                         IMovimientoStockJpaRepository.StockPorRegistro::getStock));
     }
 
     @Override
-    public List<MovimientoStock> findRecientes(UUID bloqueId, UUID negocioId, UUID registroId, int limite) {
+    public List<MovimientoStock> findRecientes(BloqueId bloqueId, NegocioId negocioId, RegistroId registroId,
+            int limite) {
         String filtro = registroId == null ? null : registroId.toString();
-        return jpa.findRecientes(negocioId, bloqueId, filtro, limite).stream()
+        return jpa.findRecientes(negocioId.valor(), bloqueId.valor(), filtro, limite).stream()
                 .map(mapper::toDomain)
                 .toList();
     }

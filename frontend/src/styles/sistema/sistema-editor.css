@@ -616,20 +616,52 @@ body:has(.editor-layout) {
   font-size: 12px;
   color: var(--petrol);
 }
+/* El cierre de la creación, con el mismo fondo petróleo que «Todo en orden» para que no pase desapercibido. */
 .system-ready {
-  background: #fff;
-  border: 1.5px solid var(--petrol);
+  background: var(--petrol);
+  border: 0;
+  border-left: 6px solid var(--yellow);
+  box-shadow: 0 6px 18px #00506a26;
 }
-.system-ready > .icon,
+.system-ready-head > .icon,
 .system-ready strong {
-  color: var(--petrol);
+  color: var(--yellow);
 }
 .system-ready strong {
-  font-size: 14px;
+  font-size: 16px;
 }
 .system-ready p {
-  font-size: 12px;
-  color: var(--muted);
+  font-size: 14px;
+  color: #fff;
+}
+.system-ready-head > .icon-btn {
+  color: #fff;
+}
+.system-ready-head > .icon-btn:hover {
+  background: #ffffff26;
+  color: #fff;
+}
+.system-ready .btn.primary {
+  background: var(--yellow);
+  color: var(--petrol);
+  box-shadow: 0 3px 0 #b89d1c;
+}
+.system-ready .btn.primary:hover {
+  background: #f3d94f;
+}
+.system-ready .btn.secondary {
+  background: #fff;
+  color: var(--petrol);
+  border-color: #fff;
+}
+.system-ready .btn.secondary:hover {
+  background: #eaf3f6;
+}
+.system-ready .btn.ghost {
+  color: #fff;
+}
+.system-ready .btn.ghost:hover:not(:disabled) {
+  background: #ffffff26;
 }
 .sami-franja,
 .sami-franja.ok {
@@ -1180,4 +1212,234 @@ body:has(.editor-layout) {
 .topnav button.active {
   background: var(--petrol);
   color: white;
+}
+
+/* La tabla de un bloque a pantalla completa, con búsqueda y filtros por columna. */
+.tabla-completa {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  background: #fff;
+}
+.tabla-completa-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 20px 28px 16px;
+}
+.tabla-completa-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.tabla-completa-titulo {
+  margin-right: auto;
+  min-width: 0;
+}
+.tabla-completa-titulo h2 {
+  font-size: 22px;
+  color: var(--petrol);
+}
+.tabla-completa-titulo p {
+  font-size: 13px;
+  color: var(--muted);
+}
+.tabla-completa-barra {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.tabla-completa-barra .searchbox {
+  flex: 1;
+  max-width: 380px;
+}
+.tabla-completa-barra .input {
+  min-height: 38px;
+  font-size: 14px;
+}
+.tabla-completa-tabla {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  scrollbar-width: thin;
+}
+.tabla-completa .data-table {
+  font-size: 14px;
+}
+.tabla-completa .data-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.tabla-completa .data-table th {
+  position: static;
+  color: var(--petrol);
+  font-weight: 700;
+}
+.tabla-completa .filtros-fila th {
+  padding: 6px 12px 10px;
+  background: #fff;
+  border-top: 0;
+  font-weight: 400;
+}
+.tabla-completa .filtros-fila .input {
+  width: 100%;
+  min-width: 110px;
+  min-height: 32px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+/* La columna del lápiz queda a la vista aunque la tabla se desplace hacia los costados. */
+.tabla-completa .data-table th:last-child,
+.tabla-completa .data-table td:last-child {
+  position: sticky;
+  right: 0;
+  background: #fff;
+  box-shadow: -6px 0 6px -6px rgb(0 0 0 / 0.15);
+}
+.filtro-rango {
+  display: flex;
+  gap: 4px;
+}
+.filtro-rango .input {
+  min-width: 96px;
+}
+.tabla-completa-vacia {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 15px;
+}
+@media (max-width: 640px) {
+  .tabla-completa-panel {
+    padding: 14px 14px 12px;
+  }
+  .tabla-completa-cabecera {
+    flex-wrap: wrap;
+  }
+}
+
+/* En el celular: los botones van abajo de la descripción y la distribución de tablas no se muestra (es una sola columna). */
+@media (max-width: 680px) {
+  .canvas-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .canvas-heading p {
+    max-width: none;
+  }
+  .canvas-heading-actions {
+    max-width: none;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+  .canvas-heading-actions .btn {
+    flex: 0 1 auto;
+    min-width: 0;
+    gap: 5px;
+    font-size: 12px;
+    padding: 6px 9px;
+    min-height: 38px;
+    white-space: nowrap;
+  }
+  .canvas-heading-actions .foto-redonda {
+    width: 40px;
+    height: 40px;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--coral) 16%, transparent);
+  }
+  .canvas-heading-actions .foto-redonda .icon {
+    width: 19px;
+    height: 19px;
+  }
+  /* El ancho de cada tabla y la distribución no aplican: en el celular va todo en una columna. */
+  .layout-toolbar.compacta,
+  .block-width-row,
+  .preview-sizing,
+  .studio-canvas .layout-toolbar {
+    display: none;
+  }
+}
+/* En los celulares más angostos, los botones del encabezado sin ícono para que entren en una fila. */
+@media (max-width: 400px) {
+  .canvas-heading-actions .btn .icon {
+    display: none;
+  }
+}
+
+/* Las herramientas del cuaderno arriba del lienzo: el navbar de arriba es el común a todas las pantallas. */
+.editor-herramientas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: white;
+}
+.editor-herramientas .row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.editor-herramientas .editor-crumb {
+  max-width: 320px;
+  font-size: 14px;
+  color: var(--ink);
+}
+.editor-herramientas .save-status {
+  margin-left: 4px;
+  font-size: 12px;
+}
+/* El navbar común mide 84px (el del editor medía 72px). */
+.editor-layout {
+  min-height: calc(100vh - 84px);
+}
+.editor-layout .block-library {
+  height: calc(100vh - 84px);
+}
+
+/* Franja con varios avisos: los textos largos se cortan con «…» en vez de estirar la franja fuera de
+   la pantalla, y en el celular cada aviso va en su propia fila. */
+.sami-franja-txt {
+  min-width: 0;
+}
+.sami-franja:not(.ok) {
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+}
+.sami-franja:not(.ok) .sami-chip {
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .sami-franja:not(.ok) {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+  .sami-franja:not(.ok) > .btn {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+@media (max-width: 640px) {
+  .sami-franja:not(.ok) {
+    grid-template-columns: 56px minmax(0, 1fr);
+    align-items: start;
+  }
+  .sami-franja:not(.ok) .sami-franja-items {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sami-franja:not(.ok) .sami-chip {
+    width: 100%;
+  }
 }

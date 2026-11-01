@@ -47,5 +47,24 @@ export function aAvisoDeSami(
     detalle: aviso.detalle,
     porque: aviso.motivos,
     acciones: aviso.acciones.map((accion) => aAccion(accion, aviso.id)),
+    datos: aviso.datos,
+    creadoEn: aviso.creadoEn,
   };
+}
+
+/** Tipos de aviso que genera el motor del servidor. Con el backend real, el navegador no los calcula por su cuenta. */
+export const TIPOS_DEL_MOTOR: ReadonlySet<TipoDeAviso> = new Set<TipoDeAviso>(['estancado']);
+
+/**
+ * Tipos de aviso cuya copia del navegador no se muestra. Siempre los que el servidor ya trajo; y, si su motor está
+ * activo y respondió, también todos los que él genera aunque hoy no tenga ninguno pendiente: un aviso aplicado o
+ * descartado deja de estar en la lista, y sin esto la copia del navegador lo volvería a mostrar.
+ */
+export function tiposCubiertosPorElServidor(
+  delServidor: readonly Aviso[],
+  motorActivo: boolean,
+): ReadonlySet<TipoDeAviso> {
+  const tipos = new Set<TipoDeAviso>(delServidor.map((aviso) => aviso.tipo));
+  if (motorActivo) TIPOS_DEL_MOTOR.forEach((tipo) => tipos.add(tipo));
+  return tipos;
 }

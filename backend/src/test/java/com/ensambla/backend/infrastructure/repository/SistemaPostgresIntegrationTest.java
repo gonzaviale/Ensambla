@@ -1,17 +1,22 @@
 package com.ensambla.backend.infrastructure.repository;
 
-import com.ensambla.backend.domain.dto.sistema.SistemaItem;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem.BloqueItem;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem.CampoItem;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem.OpcionesItem;
-import com.ensambla.backend.domain.dto.sistema.SistemaItem.SeccionItem;
-import com.ensambla.backend.domain.mapper.sistema.SistemaItemMapper;
-import com.ensambla.backend.domain.model.enums.EstadoUsuario;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.sistema.IdSistema;
 import com.ensambla.backend.domain.model.sistema.Sistema;
+import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.BloqueItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.CampoItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.OpcionesItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem.SeccionItem;
+import com.ensambla.backend.domain.useCase.sistema.SistemaItem;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
+import com.ensambla.backend.infrastructure.repository.entity.RegistroEntity;
 import com.ensambla.backend.infrastructure.repository.entity.UsuarioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IBloqueJpaRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.ICampoJpaRepository;
@@ -54,7 +59,7 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     private SistemaRepository sistemaRepository;
 
     @Autowired
-    private SistemaItemMapper sistemaItemMapper;
+    private RegistroRepository registroRepository;
 
     @Autowired
     private IUsuarioJpaRepository usuarios;
@@ -87,22 +92,23 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
         guardar(negocioId, givenItem());
 
-        Sistema leido = sistemaRepository.findAllByNegocioId(negocioId).getFirst();
-        assertThat(leido.id()).isEqualTo(SISTEMA_ID);
+        Sistema leido = sistemaRepository.findAllByNegocioId(NegocioId.de(negocioId)).getFirst();
+        assertThat(leido.id()).isEqualTo(ProyectoId.de(SISTEMA_ID));
         assertThat(leido.proyecto().getNombre()).isEqualTo("Mi almacén");
         assertThat(leido.proyecto().getConMovimientos()).isTrue();
         assertThat(leido.secciones()).hasSize(2);
         assertThat(leido.proyecto().getBloques()).hasSize(3);
-        UUID productosId = IdSistema.aUuid(negocioId, PRODUCTOS);
-        UUID clientesId = IdSistema.aUuid(negocioId, CLIENTES);
+        BloqueId productosId = IdSistema.aId(NegocioId.de(negocioId), PRODUCTOS, BloqueId::de);
+        BloqueId clientesId = IdSistema.aId(NegocioId.de(negocioId), CLIENTES, BloqueId::de);
         var productos = leido.proyecto().getBloques().stream()
                 .filter(bloque -> bloque.getId().equals(productosId)).findFirst().orElseThrow();
         assertThat(productos.getCampos()).extracting("clave").containsExactly("name", "category", "client");
         assertThat(productos.getCampos().getLast().getTipo()).isEqualTo(TipoCampo.RELACION);
         assertThat(productos.getCampos().getLast().getBloqueRelacionadoId()).isEqualTo(clientesId);
         assertThat(leido.registrosPorBloque().get(productosId)).extracting("id")
-                .containsExactly(IdSistema.aUuid(negocioId, HARINA), IdSistema.aUuid(negocioId, AZUCAR));
-        assertThat(sistemaRepository.findNegocioIdByProyectoId(SISTEMA_ID)).contains(negocioId);
+                .containsExactly(registro(negocioId, HARINA), registro(negocioId, AZUCAR));
+        assertThat(sistemaRepository.findNegocioIdByProyectoId(ProyectoId.de(SISTEMA_ID)))
+                .contains(NegocioId.de(negocioId));
     }
 
     @Test
@@ -125,12 +131,12 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     void guardarShouldApplyChanges() {
         UUID negocioId = givenNegocio();
         guardar(negocioId, givenItem());
-        UUID harinaId = IdSistema.aUuid(negocioId, HARINA);
-        UUID productosId = IdSistema.aUuid(negocioId, PRODUCTOS);
+        RegistroId harinaId = registro(negocioId, HARINA);
+        BloqueId productosId = IdSistema.aId(NegocioId.de(negocioId), PRODUCTOS, BloqueId::de);
 
         guardar(negocioId, givenItemModificado());
 
-        Sistema leido = sistemaRepository.findAllByNegocioId(negocioId).getFirst();
+        Sistema leido = sistemaRepository.findAllByNegocioId(NegocioId.de(negocioId)).getFirst();
         assertThat(leido.proyecto().getNombre()).isEqualTo("Almacén renombrado");
         assertThat(leido.secciones()).hasSize(1);
         assertThat(leido.proyecto().getBloques()).extracting("id").containsExactly(productosId);
@@ -139,7 +145,7 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(columnas.getFirst().getNombre()).isEqualTo("Nombre del producto");
         assertThat(columnas.getLast().getTipo()).isEqualTo(TipoCampo.TEXTO);
         var filas = leido.registrosPorBloque().get(productosId);
-        assertThat(filas).extracting("id").containsExactly(IdSistema.aUuid(negocioId, AZUCAR), harinaId);
+        assertThat(filas).extracting("id").containsExactly(registro(negocioId, AZUCAR), harinaId);
         assertThat(filas.getFirst().getOrden()).isZero();
         assertThat(filas.getLast().getValores().values()).contains("Harina integral");
         assertThat(clientesEnBase(negocioId)).isZero();
@@ -152,8 +158,8 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         UUID ajenoId = givenNegocio();
         guardar(negocioId, givenItem());
 
-        assertThat(sistemaRepository.findAllByNegocioId(ajenoId)).isEmpty();
-        assertThat(sistemaRepository.findNegocioIdByProyectoId(UUID.randomUUID())).isEqualTo(Optional.empty());
+        assertThat(sistemaRepository.findAllByNegocioId(NegocioId.de(ajenoId))).isEmpty();
+        assertThat(sistemaRepository.findNegocioIdByProyectoId(ProyectoId.nuevo())).isEqualTo(Optional.empty());
     }
 
     @Test
@@ -171,16 +177,86 @@ class SistemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(proyectos.findById(SISTEMA_ID).orElseThrow().getDescripcion()).isEqualTo("Creado a mano");
     }
 
+    @Test
+    @DisplayName("Guardar con la hora de lectura conserva las filas que Sami cargó por WhatsApp después de esa lectura")
+    void guardarShouldKeepWhatsappRowsLoadedAfterTheRead() {
+        UUID negocioId = givenNegocio();
+        guardar(negocioId, givenItem());
+        UUID deWhatsapp = givenFilaCargadaDespues(negocioId, "WhatsApp");
+
+        guardarLeidoEn(negocioId, givenItem(), OffsetDateTime.now());
+
+        assertThat(registros.findById(deWhatsapp)).isPresent();
+    }
+
+    @Test
+    @DisplayName("Guardar elimina la fila de WhatsApp si el cliente ya la conocía, y las que no son de WhatsApp siempre")
+    void guardarShouldDeleteKnownWhatsappRowsAndAnyOtherRow() {
+        UUID negocioId = givenNegocio();
+        guardar(negocioId, givenItem());
+        UUID conocida = givenFilaCargadaDespues(negocioId, "WhatsApp");
+        UUID manual = givenFilaCargadaDespues(negocioId, null);
+
+        guardarLeidoEn(negocioId, givenItem(), OffsetDateTime.now().plusHours(2));
+
+        assertThat(registros.findById(conocida)).isEmpty();
+        assertThat(registros.findById(manual)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Guardar sin hora de lectura es el reemplazo exacto de siempre, también con filas de WhatsApp")
+    void guardarShouldReplaceExactlyWithoutReadTime() {
+        UUID negocioId = givenNegocio();
+        guardar(negocioId, givenItem());
+        UUID deWhatsapp = givenFilaCargadaDespues(negocioId, "WhatsApp");
+
+        guardar(negocioId, givenItem());
+
+        assertThat(registros.findById(deWhatsapp)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("La posición de la próxima fila es una más que la última del bloque, o 0 si no tiene filas")
+    void siguienteOrdenShouldBeOneAfterTheLast() {
+        UUID negocioId = givenNegocio();
+        guardar(negocioId, givenItem());
+        BloqueId productosId = IdSistema.aId(NegocioId.de(negocioId), PRODUCTOS, BloqueId::de);
+        BloqueId notasId = IdSistema.aId(NegocioId.de(negocioId), NOTAS, BloqueId::de);
+
+        assertThat(registroRepository.siguienteOrden(productosId, NegocioId.de(negocioId))).isEqualTo(2);
+        assertThat(registroRepository.siguienteOrden(notasId, NegocioId.de(negocioId))).isZero();
+    }
+
     // --- act ---
     private void guardar(UUID negocioId, SistemaItem item) {
-        sistemaRepository.guardar(sistemaItemMapper.toSistema(negocioId, SISTEMA_ID.toString(), item, OffsetDateTime.now()));
+        sistemaRepository.guardar(item.aSistema(NegocioId.de(negocioId), SISTEMA_ID.toString(), OffsetDateTime.now()));
         entityManager.flush();
         entityManager.clear();
     }
 
+    private void guardarLeidoEn(UUID negocioId, SistemaItem item, OffsetDateTime leidoEn) {
+        sistemaRepository.guardar(
+                item.aSistema(NegocioId.de(negocioId), SISTEMA_ID.toString(), OffsetDateTime.now()), leidoEn);
+        entityManager.flush();
+        entityManager.clear();
+    }
+
+    /** Una fila de Productos que el cliente no conoce: creada una hora después de la lectura, con ese origen. */
+    private UUID givenFilaCargadaDespues(UUID negocioId, String origen) {
+        UUID bloqueId = IdSistema.aId(NegocioId.de(negocioId), PRODUCTOS, BloqueId::de).valor();
+        return registros.saveAndFlush(RegistroEntity.builder().negocioId(negocioId).bloqueId(bloqueId)
+                .valores(Map.of("x", "y")).origen(origen).orden(5).creadoEn(OffsetDateTime.now().plusHours(1))
+                .actualizadoEn(OffsetDateTime.now()).build()).getId();
+    }
+
+    private static RegistroId registro(UUID negocioId, String idDelFront) {
+        return IdSistema.aId(NegocioId.de(negocioId), idDelFront, RegistroId::de);
+    }
+
     private long clientesEnBase(UUID negocioId) {
         return bloques.findAllByNegocioIdOrderByPosicionAscIdAsc(negocioId).stream()
-                .filter(bloque -> bloque.getId().equals(IdSistema.aUuid(negocioId, CLIENTES))).count();
+                .filter(bloque -> bloque.getId().equals(IdSistema.aId(NegocioId.de(negocioId), CLIENTES,
+                        BloqueId::de).valor())).count();
     }
 
     // --- arrange ---

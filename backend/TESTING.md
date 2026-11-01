@@ -18,28 +18,31 @@ cobertura en `target/site/jacoco/index.html`.
 
 | Clase | Test | Cómo |
 |---|---|---|
-| `*UseCase` | `*UseCaseTest` | `@Mock` del servicio, mapper real |
-| `*Service` | `*ServiceTest` | `@Mock` de repositorios + `@InjectMocks` |
-| `*Mapper` (dominio) | `*MapperTest` | sin mocks, todos los campos y nulos |
+| Caso de uso (`CrearProyecto`) | `CrearProyectoTest` | `@Mock` de puertos y servicios compartidos, `TransaccionDirecta` |
+| DTO con fábrica `de()` | `*ResponseTest`, `*ItemTest` | sin mocks, todos los campos y nulos |
+| Método `default` de un puerto | `<Puerto>Test` en `domain/repository` | `mock(Puerto.class, CALLS_REAL_METHODS)`; los `when` van sobre los métodos abstractos |
+| `*Service` (compartido) | `*ServiceTest` | `@Mock` de repositorios + `@InjectMocks` |
+| Model con reglas, ids | `*Test`, `IdentificadorTest` | sin mocks |
 | `*PresentationMapper` | `*PresentationMapperTest` | sin mocks |
-| `*Controller` | `*ControllerTest` | `MockMvcBuilders.standaloneSetup` + `GlobalExceptionHandler` |
+| `*Controller` | `*ControllerTest` | `support/MockMvcDePrueba.standalone(...)` (convierte los ids tipados) |
 | `*RepositoryImpl` | `*RepositoryImplTest` | `@Mock` del JPA repo, mapper real |
-| `*RepositoryMapper` | `*RepositoryMapperTest` | sin mocks |
+| `*RepositoryMapper` | `*RepositoryMapperTest` | sin mocks; ids comparados con `support/IdsDePrueba` |
 | Esquema y consultas | `EsquemaPostgresIntegrationTest`, `I*JpaRepositoryTest` | PostgreSQL real, `@Transactional` (rollback) |
-| Seguridad HTTP | `SeguridadIntegrationTest` | contexto completo con H2 (`h2-test`) |
-| Arquitectura | `ArchitectureTest` | `domain` no referencia `infrastructure` |
+| Seguridad HTTP | `SeguridadIntegrationTest`, `*SeguridadIntegrationTest` | contexto completo contra PostgreSQL (`PostgresRepositoryTestSupport`) |
+| Arquitectura | `ArchitectureTest` | las reglas de [ARQUITECTURA.md](ARQUITECTURA.md) |
 
-## Perfiles de test
+## Perfil de test
 
-- `h2-test`: H2 en memoria (`MODE=PostgreSQL`), `ddl-auto=create-drop`, sin Flyway. Para el contexto y la seguridad.
-- `postgres-test`: PostgreSQL real con Flyway y `ddl-auto=validate`; valida V1–V4 y las entidades.
+No se usa H2: todo test que levanta base o contexto extiende `support/PostgresRepositoryTestSupport`, que arranca
+PostgreSQL con Testcontainers y el perfil `postgres-test` (Flyway y `ddl-auto=validate`, valida las migraciones y las
+entidades). Los tests unitarios no levantan nada; para la transacción usan `support/TransaccionDirecta`.
 
 ## Lectura de cuadernos (ENS-120)
 
-El worker está deshabilitado en ambos perfiles de pruebas. Las pruebas llaman explícitamente al
+El worker está deshabilitado en el perfil de pruebas. Las pruebas llaman explícitamente al
 caso de uso o al repositorio y no dependen del reloj del scheduler.
 `ProcesamientoPostgresIntegrationTest` cubre reclamos/reservas concurrentes con dos conexiones,
-finalización idempotente, recuperación con token, cambio de día UTC y aislamiento.
+finalización idempotente, recuperación con token, cambio de día argentino y aislamiento.
 `LecturaSeguridadIntegrationTest` usa la cadena de seguridad real y PostgreSQL para verificar
 401/403/404, reintento y consumo del negocio autenticado.
 
@@ -54,7 +57,7 @@ en backend que sólo cambie `build.directory` a una carpeta dentro de target. No
 
 ## Planes y suscripciones (ENS-94)
 
-- `SuscripcionServiceTest`, `RegistroServiceTest` y los tests de mappers/adaptadores verifican
+- `SuscripcionServiceTest`, `RegistrarUsuarioTest` y los tests de DTOs/adaptadores verifican
   la asignación del gratuito, las fechas recibidas del caso de uso y la consulta por negocio.
 - `PlanesPostgresIntegrationTest` comprueba el catálogo inicial pendiente de configuración,
   persistencia de condiciones, aislamiento, suscripción única, claves foráneas y restricciones.
@@ -72,7 +75,7 @@ temporales de pruebas, sin necesidad de aplicar cambios a la base local habitual
 ## Control por plan (ENS-95)
 
 - `PlanTest`, `SuscripcionTest` y `ControlPlanServiceTest`: cuotas, funciones habilitadas, vigencia
-  con inicio inclusivo y fin exclusivo, fallback al gratuito y mes calculado en UTC.
+  con inicio inclusivo y fin exclusivo, fallback al gratuito y mes calculado en hora argentina.
 - `ControlPlanPostgresIntegrationTest`: dos altas simultáneas de sistemas y registros, lotes completos,
   conservación de datos, concurrencia entre lectura inmediata y cola, reservas pendientes, cambio de mes,
   finalización tardía y consumo inmediato con costo desconocido.
@@ -120,7 +123,7 @@ El evaluador pasó 39 pruebas sin omitidas usando `ENSAMBLA_EVAL_JAR` con el jar
 
 ## Consulta de planes y pantalla (ENS-97)
 
-`ConsultaPlanesServiceTest` verifica catálogo, elegibilidad, prueba total, mes UTC, reservas,
+`ConsultaPlanesServiceTest` verifica catálogo, elegibilidad, prueba total, mes argentino, reservas,
 premium vigente y vencimiento antes del job. Los tests de caso de uso, mappers y configuración
 comprueban el contrato y el reloj por capa. `PlanSeguridadIntegrationTest` agrega la consulta privada
 con PostgreSQL y seguridad reales: sesión, negocio ajeno ignorado, contadores, historial y límites.

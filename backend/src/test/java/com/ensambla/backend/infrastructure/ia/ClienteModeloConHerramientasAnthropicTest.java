@@ -67,7 +67,7 @@ class ClienteModeloConHerramientasAnthropicTest {
     }
 
     @Test
-    @DisplayName("Manda el modelo, las instrucciones, el contexto, los tokens, temperatura 0 y las herramientas")
+    @DisplayName("Manda el modelo, las instrucciones, el contexto, los tokens y las herramientas, sin temperatura")
     void completarShouldSendInstructionsContextAndTools() {
         AnthropicClient anthropic = anthropicQueResponde("Hola");
 
@@ -76,7 +76,7 @@ class ClienteModeloConHerramientasAnthropicTest {
         MessageCreateParams pedido = pedidoEnviado(anthropic);
         assertThat(pedido.model().asString()).isEqualTo(MODELO);
         assertThat(pedido.maxTokens()).isEqualTo(900);
-        assertThat(pedido.temperature()).contains(0.0);
+        assertThat(pedido.temperature()).isEmpty();
         assertThat(pedido.system().orElseThrow().asString()).isEqualTo("Sos Sami");
         assertThat(pedido.messages().getFirst().content().asBlockParams().getFirst().asText().text())
                 .isEqualTo("contexto");

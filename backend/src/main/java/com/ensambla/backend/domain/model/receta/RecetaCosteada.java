@@ -1,13 +1,16 @@
 package com.ensambla.backend.domain.model.receta;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.registro.Referencia;
 import com.ensambla.backend.domain.model.registro.Registro;
+
+import com.ensambla.backend.domain.model.registro.RegistroId;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -16,8 +19,8 @@ import java.util.stream.Collectors;
  * insumo le falta el precio (o ya no existe) su línea queda sin valor, no suma y la receta se marca incompleta.
  */
 public record RecetaCosteada(
-        UUID bloqueInsumosId,
-        UUID campoPrecioId,
+        BloqueId bloqueInsumosId,
+        CampoId campoPrecioId,
         List<Linea> lineas,
         BigDecimal costo,
         boolean incompleta) {
@@ -26,7 +29,7 @@ public record RecetaCosteada(
 
     /** {@code precioUnitario} y {@code subtotal} son nulos si no se pudo calcular. */
     public record Linea(
-            UUID insumoId,
+            RegistroId insumoId,
             String insumo,
             BigDecimal cantidad,
             String unidad,
@@ -43,10 +46,11 @@ public record RecetaCosteada(
      * @param insumos las filas de los insumos que todavía existen
      * @param camposDeInsumos los campos de la tabla de los insumos: de ahí sale el nombre de cada insumo
      */
-    public static RecetaCosteada de(Receta receta, UUID bloqueInsumosId, List<Registro> insumos,
+    public static RecetaCosteada de(Receta receta, BloqueId bloqueInsumosId, List<Registro> insumos,
                                     List<Campo> camposDeInsumos) {
         Function<Registro, Referencia> etiquetador = Referencia.etiquetador(camposDeInsumos);
-        Map<UUID, Registro> porId = insumos.stream().collect(Collectors.toMap(Registro::getId, Function.identity()));
+        Map<RegistroId, Registro> porId = insumos.stream()
+                .collect(Collectors.toMap(Registro::getId, Function.identity()));
         String clavePrecio = receta.getCampoPrecioId().toString();
         List<Linea> lineas = receta.getLineas().stream()
                 .map(linea -> costear(linea, porId.get(linea.insumoId()), clavePrecio, etiquetador))

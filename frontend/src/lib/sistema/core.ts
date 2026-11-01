@@ -77,7 +77,7 @@ export function makeSystem(name: string, types: TipoBloque[] = [], examples = fa
   }
   return {
     id: id(),
-    name: String(name || 'Mi sistema')
+    name: String(name || 'Mi cuaderno')
       .trim()
       .slice(0, 100),
     createdAt: new Date().toISOString(),
@@ -116,7 +116,7 @@ export function moveBlock(
   return true;
 }
 
-const numero = (valor: Valor) => Number(valor ?? 0) || 0;
+export const numero = (valor: Valor) => Number(valor ?? 0) || 0;
 
 export function validateRow(
   bloque: Bloque,
@@ -422,9 +422,11 @@ export function removeRow(
 ): { removed: true; errors?: never } | { errors: ErroresFila; removed?: never } {
   const plan = movementPlan(bloque, {}, filaId, sistema, true);
   if (Object.keys(plan.errors).length) return { errors: plan.errors };
+  // Quitar un movimiento de ejemplo no vuelve real al producto que tocó: sólo adopta el que usó un movimiento real.
+  const esEjemplo = Boolean(bloque.rows.find((fila) => fila.id === filaId)?.__example);
   for (const cambio of plan.changes) {
     cambio.product.quantity = numero(cambio.product.quantity) + cambio.delta;
-    delete cambio.product.__example;
+    if (!esEjemplo) delete cambio.product.__example;
   }
   bloque.rows = bloque.rows.filter((fila) => fila.id !== filaId);
   return { removed: true };

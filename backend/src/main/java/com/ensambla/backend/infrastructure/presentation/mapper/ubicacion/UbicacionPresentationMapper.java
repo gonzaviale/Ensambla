@@ -1,17 +1,17 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.ubicacion;
 
-import com.ensambla.backend.domain.dto.ubicacion.BuscarDireccionesRequest;
-import com.ensambla.backend.domain.dto.ubicacion.BuscarDireccionesResponse;
-import com.ensambla.backend.domain.dto.ubicacion.ListarRubrosResponse;
-import com.ensambla.backend.domain.dto.ubicacion.ResolverLocalidadRequest;
-import com.ensambla.backend.domain.dto.ubicacion.ResolverLocalidadResponse;
+import com.ensambla.backend.domain.useCase.ubicacion.buscarDirecciones.BuscarDireccionesRequest;
+import com.ensambla.backend.domain.useCase.ubicacion.buscarDirecciones.BuscarDireccionesResponse;
+import com.ensambla.backend.domain.useCase.ubicacion.listarRubros.ListarRubrosResponse;
+import com.ensambla.backend.domain.useCase.ubicacion.resolverLocalidad.ResolverLocalidadRequest;
+import com.ensambla.backend.domain.useCase.ubicacion.resolverLocalidad.ResolverLocalidadResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.ubicacion.BuscarDireccionesWebRequest;
-import com.ensambla.backend.infrastructure.presentation.dto.ubicacion.DireccionesWebResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.ubicacion.DireccionesWebResponse.DireccionResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.ubicacion.DireccionesWebResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.ubicacion.LocalidadWebResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.ubicacion.ResolverLocalidadWebRequest;
-import com.ensambla.backend.infrastructure.presentation.dto.ubicacion.RubrosWebResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.ubicacion.RubrosWebResponse.RubroResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.ubicacion.RubrosWebResponse;
 import org.springframework.stereotype.Component;
 
 @Component

@@ -1,7 +1,8 @@
 package com.ensambla.backend.infrastructure.ia;
 
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.domain.model.sami.ConsultaIaSami;
-import com.ensambla.backend.domain.service.sami.SamiPruebas;
+import com.ensambla.backend.support.SamiPruebas;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ByteArrayResource;
@@ -53,7 +54,7 @@ class PromptSamiTest {
     void peticionShouldHandleTemplateWithoutBlocks() {
         PeticionModeloTexto peticion = prompt.peticion(new ConsultaIaSami("hola", List.of(), List.of(
                 new com.ensambla.backend.domain.model.plantilla.PlantillaProyecto(
-                        java.util.UUID.randomUUID(), "Vacía", "",
+                        PlantillaId.de(java.util.UUID.randomUUID()), "Vacía", "",
                         new com.ensambla.backend.domain.model.plantilla.EstructuraPlantilla(List.of())))));
 
         assertThat(peticion.contexto()).contains("- Vacía: columnas \n");

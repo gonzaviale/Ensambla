@@ -1,8 +1,15 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.common.Identificador;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.seccion.SeccionId;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.ProyectoEntity;
@@ -13,11 +20,11 @@ public class ProyectoRepositoryMapper {
 
     public Proyecto toDomain(ProyectoEntity source) {
         return Proyecto.builder()
-                .id(source.getId())
-                .negocioId(source.getNegocioId())
+                .id(Identificador.opcional(source.getId(), ProyectoId::de))
+                .negocioId(Identificador.opcional(source.getNegocioId(), NegocioId::de))
                 .nombre(source.getNombre())
                 .descripcion(source.getDescripcion())
-                .plantillaId(source.getPlantillaId())
+                .plantillaId(Identificador.opcional(source.getPlantillaId(), PlantillaId::de))
                 .plantillaClave(source.getPlantillaClave())
                 .distribucion(source.getDistribucion())
                 .conMovimientos(source.getConMovimientos())
@@ -30,11 +37,11 @@ public class ProyectoRepositoryMapper {
 
     public ProyectoEntity toEntity(Proyecto source) {
         return ProyectoEntity.builder()
-                .id(source.getId())
-                .negocioId(source.getNegocioId())
+                .id(Identificador.valorDe(source.getId()))
+                .negocioId(Identificador.valorDe(source.getNegocioId()))
                 .nombre(source.getNombre())
                 .descripcion(source.getDescripcion())
-                .plantillaId(source.getPlantillaId())
+                .plantillaId(Identificador.valorDe(source.getPlantillaId()))
                 .plantillaClave(source.getPlantillaClave())
                 .distribucion(source.getDistribucion())
                 .conMovimientos(source.getConMovimientos())
@@ -47,10 +54,10 @@ public class ProyectoRepositoryMapper {
 
     public Bloque toDomain(BloqueEntity source) {
         return Bloque.builder()
-                .id(source.getId())
-                .negocioId(source.getNegocioId())
-                .proyectoId(source.getProyectoId())
-                .seccionId(source.getSeccionId())
+                .id(Identificador.opcional(source.getId(), BloqueId::de))
+                .negocioId(Identificador.opcional(source.getNegocioId(), NegocioId::de))
+                .proyectoId(Identificador.opcional(source.getProyectoId(), ProyectoId::de))
+                .seccionId(Identificador.opcional(source.getSeccionId(), SeccionId::de))
                 .tipo(source.getTipo())
                 .descripcion(source.getDescripcion())
                 .color(source.getColor())
@@ -67,10 +74,10 @@ public class ProyectoRepositoryMapper {
 
     public BloqueEntity toEntity(Bloque source) {
         return BloqueEntity.builder()
-                .id(source.getId())
-                .negocioId(source.getNegocioId())
-                .proyectoId(source.getProyectoId())
-                .seccionId(source.getSeccionId())
+                .id(Identificador.valorDe(source.getId()))
+                .negocioId(Identificador.valorDe(source.getNegocioId()))
+                .proyectoId(Identificador.valorDe(source.getProyectoId()))
+                .seccionId(Identificador.valorDe(source.getSeccionId()))
                 .tipo(source.getTipo())
                 .descripcion(source.getDescripcion())
                 .color(source.getColor())
@@ -87,15 +94,15 @@ public class ProyectoRepositoryMapper {
 
     public Campo toDomain(CampoEntity source) {
         return Campo.builder()
-                .id(source.getId())
-                .negocioId(source.getNegocioId())
-                .bloqueId(source.getBloqueId())
+                .id(Identificador.opcional(source.getId(), CampoId::de))
+                .negocioId(Identificador.opcional(source.getNegocioId(), NegocioId::de))
+                .bloqueId(Identificador.opcional(source.getBloqueId(), BloqueId::de))
                 .nombre(source.getNombre())
                 .tipo(source.getTipo())
                 .obligatorio(source.getObligatorio())
                 .valorInicial(source.getValorInicial())
                 .opciones(source.getOpciones())
-                .bloqueRelacionadoId(source.getBloqueRelacionadoId())
+                .bloqueRelacionadoId(Identificador.opcional(source.getBloqueRelacionadoId(), BloqueId::de))
                 .formula(source.getFormula())
                 .clave(source.getClave())
                 .minimo(source.getMinimo())
@@ -107,15 +114,15 @@ public class ProyectoRepositoryMapper {
 
     public CampoEntity toEntity(Campo source) {
         return CampoEntity.builder()
-                .id(source.getId())
-                .negocioId(source.getNegocioId())
-                .bloqueId(source.getBloqueId())
+                .id(Identificador.valorDe(source.getId()))
+                .negocioId(Identificador.valorDe(source.getNegocioId()))
+                .bloqueId(Identificador.valorDe(source.getBloqueId()))
                 .nombre(source.getNombre())
                 .tipo(source.getTipo())
                 .obligatorio(source.getObligatorio())
                 .valorInicial(source.getValorInicial())
                 .opciones(source.getOpciones())
-                .bloqueRelacionadoId(source.getBloqueRelacionadoId())
+                .bloqueRelacionadoId(Identificador.valorDe(source.getBloqueRelacionadoId()))
                 .formula(source.getFormula())
                 .clave(source.getClave())
                 .minimo(source.getMinimo())

@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.plan;
 
-import com.ensambla.backend.domain.useCase.plan.VencerPruebasUseCase;
+import com.ensambla.backend.domain.useCase.plan.vencerPruebas.VencerPruebas;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -12,11 +12,11 @@ import org.springframework.stereotype.Component;
         havingValue = "true", matchIfMissing = true)
 public class VencimientoPruebasWorker {
 
-    private final VencerPruebasUseCase vencerPruebasUseCase;
+    private final VencerPruebas vencerPruebas;
 
     @Scheduled(fixedDelayString = "${ensambla.planes.pruebas.intervalo:60000}",
             initialDelayString = "${ensambla.planes.pruebas.demora-inicial:10000}")
     public void vencer() {
-        vencerPruebasUseCase.execute();
+        vencerPruebas.execute();
     }
 }

@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.avisos;
 
-import com.ensambla.backend.domain.useCase.aviso.EjecutarMotorAvisosUseCase;
+import com.ensambla.backend.domain.useCase.aviso.ejecutarMotorAvisos.EjecutarMotorAvisos;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -12,7 +12,7 @@ class MonitoreoAvisosWorkerTest {
     @Test
     @DisplayName("Cada ciclo corre el motor de avisos")
     void monitorearShouldRunEngine() {
-        EjecutarMotorAvisosUseCase useCase = mock(EjecutarMotorAvisosUseCase.class);
+        EjecutarMotorAvisos useCase = mock(EjecutarMotorAvisos.class);
 
         new MonitoreoAvisosWorker(useCase).monitorear();
 

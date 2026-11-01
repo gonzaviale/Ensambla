@@ -38,8 +38,10 @@ describe('vista gratuita y acceso a Premium', () => {
 
     const campana = await screen.findByRole('button', { name: /Avisos de Sami: 4/ }, ESPERA);
     await user.click(campana);
+    expect(screen.getByText('Hay 1 aviso más con Premium.')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: /Ver todos los avisos/ }));
 
-    await screen.findByRole('dialog', { name: /Lo que encontré en tus datos/ }, ESPERA);
+    await screen.findByRole('region', { name: /Lo que encontré en tus datos/ }, ESPERA);
     await waitFor(() => expect(screen.getByText(/3 de 3/)).toBeVisible(), ESPERA);
     expect(screen.getByRole('heading', { name: 'Detalle reservado 0' })).toBeVisible();
     expect(screen.queryByRole('heading', { name: 'Detalle reservado 3' })).toBeNull();

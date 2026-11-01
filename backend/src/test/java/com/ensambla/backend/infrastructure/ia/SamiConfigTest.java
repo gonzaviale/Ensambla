@@ -19,9 +19,8 @@ import com.ensambla.backend.domain.model.sami.taller.ResultadoTallerIa;
 import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
 import com.ensambla.backend.domain.port.SamiIaPort;
 import com.ensambla.backend.domain.port.TallerIaPort;
-import com.ensambla.backend.domain.service.sami.HerramientasTallerService;
-import com.ensambla.backend.domain.service.sami.RubroTallerService;
-import com.ensambla.backend.domain.service.sami.SamiPruebas;
+import com.ensambla.backend.support.SamiPruebas;
+import com.ensambla.backend.support.TallerDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -154,7 +153,7 @@ class SamiConfigTest {
     }
 
     @Test
-    @DisplayName("Con el proveedor global bedrock, el taller usa el modelo rápido, una sola llamada y las catorce herramientas")
+    @DisplayName("Con el proveedor global bedrock, el taller usa el modelo rápido, una sola llamada y las quince herramientas")
     void tallerIaPortShouldUseFastModelWithAllToolsWhenGlobalIsBedrock() {
         BedrockRuntimeClient bedrock = bedrockQueResponde("Hola");
 
@@ -167,13 +166,13 @@ class SamiConfigTest {
         verify(bedrock).converse(captor.capture());
         assertThat(captor.getValue().inferenceConfig().maxTokens()).isEqualTo(400);
         assertThat(captor.getValue().toolConfig().tools())
-                .hasSize(14)
+                .hasSize(15)
                 .extracting(herramienta -> herramienta.toolSpec().name())
                 .containsExactly(HERRAMIENTAS);
     }
 
     @Test
-    @DisplayName("Con el proveedor global anthropic, el taller manda las catorce herramientas a la API de Anthropic")
+    @DisplayName("Con el proveedor global anthropic, el taller manda las quince herramientas a la API de Anthropic")
     void tallerIaPortShouldSendAllToolsWhenGlobalIsAnthropic() {
         AnthropicClient anthropic = anthropicQueResponde("Hola");
 
@@ -258,11 +257,10 @@ class SamiConfigTest {
     @Test
     @DisplayName("Cada kit se arma entero, sin descartes, sobre un sistema vacío")
     void kitsRubroShouldExpandWithoutDiscards() {
-        HerramientasTallerService herramientas =
-                new HerramientasTallerService(config.catalogoComponentes(JsonMapper.builder().build()), kits());
+        TallerDePrueba taller = new TallerDePrueba(kits());
 
         for (KitRubro kit : kits().kits()) {
-            ValidacionTaller result = herramientas.validar(
+            ValidacionTaller result = taller.validar(
                     List.of(new LlamadaHerramienta("usar_kit", Map.of("rubro", kit.id()))),
                     new EstadoTaller("Mi sistema", "mosaic", List.of()));
 
@@ -284,10 +282,10 @@ class SamiConfigTest {
     @Test
     @DisplayName("Cada kit se reconoce por su propio nombre, que es lo que ofrece la botonera")
     void kitsRubroShouldBeDetectedByTheirOwnName() {
-        RubroTallerService rubros = new RubroTallerService(kits());
+        TallerDePrueba taller = new TallerDePrueba(kits());
 
         for (KitRubro kit : kits().kits()) {
-            assertThat(rubros.detectar(kit.nombre(), new EstadoTaller(null, "mosaic", List.of()), List.of()))
+            assertThat(taller.rubro(kit.nombre(), new EstadoTaller(null, "mosaic", List.of()), List.of()))
                     .as("rubro de «%s»", kit.nombre())
                     .map(KitRubro::id)
                     .contains(kit.id());
@@ -308,7 +306,7 @@ class SamiConfigTest {
     // --- helpers ---
     private static final String[] HERRAMIENTAS = {"agregar_pieza", "usar_kit", "quitar_pieza", "renombrar_pieza",
             "renombrar_sistema", "agregar_campo", "quitar_campo", "editar_campo", "cargar_registros",
-            "borrar_registros", "conectar", "separar_en_seccion", "cambiar_distribucion", "ofrecer_opciones"};
+            "editar_registros", "borrar_registros", "conectar", "separar_en_seccion", "cambiar_distribucion", "ofrecer_opciones"};
 
     private ConsultaTaller consultaDeTaller(String mensaje) {
         return new ConsultaTaller(mensaje, new EstadoTaller("Mi almacén", "mosaic", List.of()), List.of());

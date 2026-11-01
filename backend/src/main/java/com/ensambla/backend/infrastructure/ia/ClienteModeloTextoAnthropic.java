@@ -6,8 +6,8 @@ import com.anthropic.models.messages.MessageCreateParams;
 
 /**
  * Sami con Claude de la API de Anthropic: texto a JSON. Lo arma {@link ProveedorIaAnthropic}. Como
- * {@link ClienteModeloTextoBedrock}: el esquema va en las instrucciones, la validación la hace {@link SamiIaAdapter}
- * y la temperatura es 0 para que la misma descripción dé la misma propuesta.
+ * {@link ClienteModeloTextoBedrock}: el esquema va en las instrucciones, la validación la hace {@link SamiIaAdapter}.
+ * No se manda {@code temperature}: los modelos nuevos (Haiku 5.5) rechazan cualquier valor que no sea el default.
  */
 public class ClienteModeloTextoAnthropic implements ClienteModeloTexto {
 
@@ -28,7 +28,6 @@ public class ClienteModeloTextoAnthropic implements ClienteModeloTexto {
         Message mensaje = client.messages().create(MessageCreateParams.builder()
                 .model(modelo)
                 .maxTokens(maxTokens)
-                .temperature(0.0)
                 .system(TextoJson.instruccionesConEsquema(peticion.instrucciones(), peticion.esquemaJson()))
                 .addUserMessage(peticion.contexto())
                 .build());

@@ -1,8 +1,8 @@
 package com.ensambla.evaluacion;
 
 import com.ensambla.backend.domain.exception.LecturaCuadernoException;
-import com.ensambla.backend.domain.model.enums.TipoCampo;
-import com.ensambla.backend.domain.model.enums.TipoRegistroCuaderno;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.lectura.BloqueConocido;
 import com.ensambla.backend.domain.model.lectura.BloquePropuesto;
 import com.ensambla.backend.domain.model.lectura.CampoPropuesto;
@@ -10,6 +10,7 @@ import com.ensambla.backend.domain.model.lectura.ConsumoIa;
 import com.ensambla.backend.domain.model.lectura.DatoLeido;
 import com.ensambla.backend.domain.model.lectura.FilaLeida;
 import com.ensambla.backend.domain.model.lectura.LecturaCuaderno;
+import com.ensambla.backend.domain.model.lectura.TipoRegistroCuaderno;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,11 +23,9 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -84,7 +83,7 @@ class LecturaEvaluacionTest {
         assertThat(resultado.path("camposNuevos").get(0).path("nombre").asString()).isEqualTo("Teléfono");
         assertThat(resultado.path("camposNuevos").get(0).path("tipo").asString()).isEqualTo("TEXTO");
         ArgumentCaptor<List<BloqueConocido>> bloques = ArgumentCaptor.forClass(List.class);
-        ArgumentCaptor<UUID> destinoId = ArgumentCaptor.forClass(UUID.class);
+        ArgumentCaptor<BloqueId> destinoId = ArgumentCaptor.forClass(BloqueId.class);
         verify(lector).leer(any(), bloques.capture(), destinoId.capture());
         assertThat(bloques.getValue()).hasSize(1);
         assertThat(bloques.getValue().getFirst().id()).isEqualTo(destinoId.getValue());

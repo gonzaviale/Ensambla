@@ -57,7 +57,7 @@ public class ClienteModeloConHerramientasBedrock implements ClienteModeloConHerr
                         .content(contenidoUsuario(peticion))
                         .build())
                 .toolConfig(herramientas)
-                .inferenceConfig(config -> config.maxTokens(maxTokens).temperature(0f))
+                .inferenceConfig(config -> config.maxTokens(maxTokens))
                 .build());
         if (respuesta.stopReason() == StopReason.MAX_TOKENS) {
             log.warn("El modelo del taller se quedó sin tokens ({}): puede haber herramientas cortadas o sin filas",

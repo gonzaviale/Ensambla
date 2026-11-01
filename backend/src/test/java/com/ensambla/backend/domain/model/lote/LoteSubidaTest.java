@@ -1,7 +1,6 @@
 package com.ensambla.backend.domain.model.lote;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
-import com.ensambla.backend.domain.model.enums.EstadoLote;
 import com.ensambla.backend.support.LoteTestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react';
 import { getRouteApi, useNavigate } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
-import { Campana } from '@/components/sistema/avisos/Campana';
+import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { FranjaDeSami } from '@/components/sistema/avisos/FranjaDeSami';
 import { BibliotecaDeBloques } from '@/components/sistema/editor/BibliotecaDeBloques';
 import { BloqueEnLienzo } from '@/components/sistema/editor/BloqueEnLienzo';
+import { CierreDeCreacion } from '@/components/sistema/CierreDeCreacion';
 import { EncabezadoDelEditor } from '@/components/sistema/editor/EncabezadoDelEditor';
 import { Inspector } from '@/components/sistema/editor/Inspector';
+import { TablaCompleta } from '@/components/sistema/editor/TablaCompleta';
 import { Icon } from '@/components/sistema/Icon';
 import { IconBtn } from '@/components/sistema/IconBtn';
 import { IconTile } from '@/components/sistema/IconTile';
 import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import { varsDeColor } from '@/components/sistema/colores';
-import { allBlocks, totals } from '@/lib/sistema/core';
+import { allBlocks, findBlock, totals } from '@/lib/sistema/core';
 import type { Color, Distribucion, TipoBloque } from '@/lib/sistema/tipos';
 import {
   agregarBloque,
@@ -73,6 +75,7 @@ export function SistemaPage() {
   const bloqueElegido = useSistemaStore(seleccionarBloqueElegido);
   const modo = useSistemaStore((estado) => estado.modo);
   const listo = useSistemaStore((estado) => estado.listo);
+  const tablaCompletaId = useSistemaStore((estado) => estado.tablaCompletaId);
   const seleccionadoId = useSistemaStore((estado) => estado.selectedId);
   const hayHistorial = useSistemaStore((estado) => estado.historial.length > 0);
   const guardando = useSistemaStore((estado) => estado.pendientes.length > 0);
@@ -83,7 +86,7 @@ export function SistemaPage() {
   const [bibliotecaFijada, setBibliotecaFijada] = useState(leerPiezasFijas);
   const arrastre = useArrastreDelEditor(seccion?.id);
 
-  useTituloPagina(sistema?.name ?? 'Mi sistema');
+  useTituloPagina(sistema?.name ?? 'Mi cuaderno');
 
   // La dirección manda: abrir el sistema de la URL y seguir el modo que ella diga.
   useEffect(() => {
@@ -139,21 +142,13 @@ export function SistemaPage() {
   const hayEjemplos = allBlocks(sistema).some((bloque) =>
     bloque.rows.some((fila) => fila.__example),
   );
+  const tablaCompleta = findBlock(sistema, tablaCompletaId ?? undefined);
   const bloques = seccion.blocks;
   const construyendo = modo === 'build';
 
   return (
     <>
-      <EncabezadoDelEditor
-        nombre={sistema.name}
-        modo={modo}
-        guardando={guardando}
-        puedeDeshacer={hayHistorial}
-        campana={<Campana />}
-        onInicio={() => void navegacion.irAInicio()}
-        onModo={cambiarModo}
-        onDeshacer={deshacerCambio}
-      />
+      <CabeceraComun active="sistemas" />
       <main
         id="main"
         tabIndex={-1}
@@ -176,22 +171,23 @@ export function SistemaPage() {
           />
         )}
         <div className="canvas-area" onDragOver={arrastre.alPasarPor} onDrop={arrastre.alSoltar}>
+          <EncabezadoDelEditor
+            nombre={sistema.name}
+            modo={modo}
+            guardando={guardando}
+            puedeDeshacer={hayHistorial}
+            onCuadernos={() => void navegacion.irAMisSistemas()}
+            onModo={cambiarModo}
+            onDeshacer={deshacerCambio}
+          />
           {listo && modo === 'use' && (
-            <div className="system-ready">
-              <Icon name="check-circle" />
-              <div>
-                <strong>Tu sistema está listo. Ya podés usarlo.</strong>
-                <p>Registrá tu primer dato o personalizá las piezas antes de empezar.</p>
-              </div>
-              <Btn cls="secondary small" onClick={() => cambiarModo('build')}>
-                Personalizar <Icon name="edit" />
-              </Btn>
-              <IconBtn
-                name="close"
-                label="Cerrar bienvenida"
-                onClick={() => useSistemaStore.getState().descartarCartelListo()}
-              />
-            </div>
+            <CierreDeCreacion
+              sistema={sistema}
+              onRegistrar={(bloqueId) => abrirModal({ tipo: 'registro', bloqueId })}
+              onPersonalizar={() => cambiarModo('build')}
+              onAjustarConSami={() => void navegacion.ajustarConSami(sistema.id)}
+              onCerrar={() => useSistemaStore.getState().descartarCartelListo()}
+            />
           )}
           <div className="canvas-heading">
             <div className="canvas-titulo">
@@ -203,7 +199,11 @@ export function SistemaPage() {
                   {construyendo ? 'Gestión de tablas · Armado' : 'Gestión de tablas · Uso diario'}
                 </span>
                 <h1>
-                  <button type="button" onClick={() => abrirModal({ tipo: 'renombrar' })}>
+                  <button
+                    type="button"
+                    title="Configurar cuaderno"
+                    onClick={() => abrirModal({ tipo: 'renombrar' })}
+                  >
                     {sistema.name} <Icon name="edit" />
                   </button>
                 </h1>
@@ -267,7 +267,7 @@ export function SistemaPage() {
             </div>
           </div>
           <div className="tabs-y-distribucion">
-            <nav className="section-tabs" aria-label="Secciones del sistema">
+            <nav className="section-tabs" aria-label="Secciones del cuaderno">
               {/* <span className="section-tabs-label">Secciones</span> */}
               {sistema.sections.map((otra, indice) => (
                 <div
@@ -414,6 +414,9 @@ export function SistemaPage() {
       >
         <img className="sami-float-img" src="/mockup/sami-boton.webp" alt="" />
       </button>
+      {tablaCompleta && (
+        <TablaCompleta key={tablaCompleta.id} bloque={tablaCompleta} sistema={sistema} />
+      )}
     </>
   );
 }

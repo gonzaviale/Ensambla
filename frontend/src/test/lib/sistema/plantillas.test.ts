@@ -127,6 +127,25 @@ describe('ventas', () => {
     expect(removeRow(ventas, venta.id, sistema).removed).toBe(true);
     expect(producto.quantity).toBe(10);
   });
+
+  it('quitar un movimiento de ejemplo no vuelve real al producto de ejemplo, y uno real sí', () => {
+    const sistema = makeTemplate('shop', {}, false);
+    const inventario = bloque(sistema, 'inventory');
+    const ventas = bloque(sistema, 'sales');
+    const ejemplo = filaNueva(inventario, { name: 'Alfajor', quantity: 10 }, sistema);
+    const real = filaNueva(inventario, { name: 'Galletitas', quantity: 10 }, sistema);
+    const ventaEjemplo = filaNueva(ventas, { product: ejemplo.id, quantity: 2 }, sistema);
+    const ventaReal = filaNueva(ventas, { product: real.id, quantity: 2 }, sistema);
+    ejemplo.__example = true;
+    real.__example = true;
+    ventaEjemplo.__example = true;
+
+    removeRow(ventas, ventaEjemplo.id, sistema);
+    removeRow(ventas, ventaReal.id, sistema);
+
+    expect(ejemplo.__example).toBe(true);
+    expect(real.__example).toBeUndefined();
+  });
 });
 
 describe('entradas y salidas', () => {

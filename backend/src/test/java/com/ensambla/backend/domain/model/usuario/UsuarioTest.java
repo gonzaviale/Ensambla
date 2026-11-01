@@ -1,6 +1,5 @@
 package com.ensambla.backend.domain.model.usuario;
 
-import com.ensambla.backend.domain.model.enums.EstadoUsuario;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

@@ -1,7 +1,7 @@
 import { zonaConAcceso } from '../db/contenidoPlan';
 import { delay, http, HttpResponse } from 'msw';
 import { pedidoDeAnalisisSchema } from '@/types/zona';
-import { zonaDeLaPersona, zonaParaTexto } from '../db/zona';
+import { zonaDeLaPersona, zonaParaPunto, zonaParaTexto } from '../db/zona';
 import { errorResponse } from '../errores';
 import { api, cuenta, LATENCIA_BACKEND_MS, pathDe } from './comun';
 
@@ -22,8 +22,14 @@ export const handlersZona = [
     await delay(DEMORA_DEL_ANALISIS_MS);
     const pedido = pedidoDeAnalisisSchema.safeParse(await request.json());
     if (!pedido.success) {
-      return errorResponse(400, 'Escribí un barrio o una dirección', pathDe(request));
+      return errorResponse(400, 'Indicá un lugar o un punto del mapa', pathDe(request));
     }
-    return HttpResponse.json(zonaConAcceso(usuario.email, zonaParaTexto(pedido.data.lugar)));
+    if ('lugar' in pedido.data) {
+      return HttpResponse.json(zonaConAcceso(usuario.email, zonaParaTexto(pedido.data.lugar)));
+    }
+    const zona = zonaParaPunto(pedido.data);
+    return zona
+      ? HttpResponse.json(zonaConAcceso(usuario.email, zona))
+      : errorResponse(404, 'Todavía no tenemos datos de esa zona', pathDe(request));
   }),
 ];

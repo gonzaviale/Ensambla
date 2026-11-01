@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.ia;
 
-import com.ensambla.backend.domain.useCase.procesamiento.ProcesarLoteUseCase;
+import com.ensambla.backend.domain.useCase.procesamiento.procesarLote.ProcesarLote;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -14,7 +14,7 @@ class ProcesamientoIaWorkerTest {
     @Test
     @DisplayName("Un ciclo delega en el caso de uso del procesamiento")
     void procesarShouldInvokeUseCase() {
-        ProcesarLoteUseCase useCase = mock(ProcesarLoteUseCase.class);
+        ProcesarLote useCase = mock(ProcesarLote.class);
         ProcesamientoIaWorker worker = new ProcesamientoIaWorker(useCase);
 
         worker.procesar();
@@ -25,7 +25,7 @@ class ProcesamientoIaWorkerTest {
     @Test
     @DisplayName("Un fallo no detiene los ciclos futuros del worker")
     void procesarShouldPreserveSchedulerAfterFailure() {
-        ProcesarLoteUseCase useCase = mock(ProcesarLoteUseCase.class);
+        ProcesarLote useCase = mock(ProcesarLote.class);
         doThrow(new IllegalStateException("Base no disponible")).when(useCase).execute();
         ProcesamientoIaWorker worker = new ProcesamientoIaWorker(useCase);
 

@@ -1,7 +1,12 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.common.Identificador;
 import com.ensambla.backend.domain.model.lote.FotoCuaderno;
+import com.ensambla.backend.domain.model.lote.FotoId;
+import com.ensambla.backend.domain.model.lote.LoteId;
 import com.ensambla.backend.domain.model.lote.LoteSubida;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.infrastructure.repository.entity.FotoCuadernoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.LoteSubidaEntity;
 import org.springframework.stereotype.Component;
@@ -11,9 +16,9 @@ public class LoteSubidaRepositoryMapper {
 
     public LoteSubida toDomain(LoteSubidaEntity source) {
         return LoteSubida.builder()
-                .id(source.getId())
-                .negocioId(source.getNegocioId())
-                .bloqueDestinoId(source.getBloqueDestinoId())
+                .id(Identificador.opcional(source.getId(), LoteId::de))
+                .negocioId(Identificador.opcional(source.getNegocioId(), NegocioId::de))
+                .bloqueDestinoId(Identificador.opcional(source.getBloqueDestinoId(), BloqueId::de))
                 .estado(source.getEstado())
                 .intentos(source.getIntentos())
                 .creadoEn(source.getCreadoEn())
@@ -23,9 +28,9 @@ public class LoteSubidaRepositoryMapper {
 
     public LoteSubidaEntity toEntity(LoteSubida source) {
         return LoteSubidaEntity.builder()
-                .id(source.getId())
-                .negocioId(source.getNegocioId())
-                .bloqueDestinoId(source.getBloqueDestinoId())
+                .id(Identificador.valorDe(source.getId()))
+                .negocioId(Identificador.valorDe(source.getNegocioId()))
+                .bloqueDestinoId(Identificador.valorDe(source.getBloqueDestinoId()))
                 .estado(source.getEstado())
                 .intentos(source.getIntentos())
                 .creadoEn(source.getCreadoEn())
@@ -35,9 +40,9 @@ public class LoteSubidaRepositoryMapper {
 
     public FotoCuaderno toDomain(FotoCuadernoEntity source) {
         return FotoCuaderno.builder()
-                .id(source.getId())
-                .negocioId(source.getNegocioId())
-                .loteId(source.getLoteId())
+                .id(Identificador.opcional(source.getId(), FotoId::de))
+                .negocioId(Identificador.opcional(source.getNegocioId(), NegocioId::de))
+                .loteId(Identificador.opcional(source.getLoteId(), LoteId::de))
                 .claveAlmacenamiento(source.getClaveAlmacenamiento())
                 .tipoContenido(source.getTipoContenido())
                 .tamanioBytes(source.getTamanioBytes())
@@ -50,9 +55,9 @@ public class LoteSubidaRepositoryMapper {
 
     public FotoCuadernoEntity toEntity(FotoCuaderno source) {
         return FotoCuadernoEntity.builder()
-                .id(source.getId())
-                .negocioId(source.getNegocioId())
-                .loteId(source.getLoteId())
+                .id(Identificador.valorDe(source.getId()))
+                .negocioId(Identificador.valorDe(source.getNegocioId()))
+                .loteId(Identificador.valorDe(source.getLoteId()))
                 .claveAlmacenamiento(source.getClaveAlmacenamiento())
                 .tipoContenido(source.getTipoContenido())
                 .tamanioBytes(source.getTamanioBytes())

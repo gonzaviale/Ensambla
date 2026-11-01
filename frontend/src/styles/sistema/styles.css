@@ -43,10 +43,13 @@
   --petrol: #00506a;
   --ink: #263443;
   --muted: #69777c;
-  --paper: #fffdfa;
+  --paper: #ffffff;
   --cream: #fff8f1;
   --line: #e9e8e1;
   --soft: #f5f6f3;
+  --ok: #2f7a55;
+  --warn: #9a5b06;
+  --bad: #c42b2b;
   --shadow: 0 16px 50px #2634430a;
   --radius: 20px;
   --font: "Plus Jakarta Sans", Arial, sans-serif;
@@ -202,6 +205,7 @@ select:focus {
 .btn.secondary {
   border-color: var(--line);
   background: white;
+  color: var(--ink);
 }
 .btn.secondary:hover {
   background: var(--soft);
@@ -2190,11 +2194,25 @@ textarea {
   border-radius: 12px;
   padding: 16px 20px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
   margin-bottom: 24px;
 }
-.system-ready > .icon {
+.system-ready-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.system-ready-head > .icon-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.system-ready-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.system-ready-head > .icon {
   color: #528465;
 }
 .system-ready strong {
@@ -2204,9 +2222,6 @@ textarea {
 .system-ready p {
   font-size: 10px;
   color: #78927c;
-}
-.system-ready .btn {
-  margin-left: auto;
 }
 .mobile-blocks {
   display: none;

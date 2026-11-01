@@ -1,6 +1,6 @@
 package com.ensambla.backend.domain.model.aviso;
 
-import com.ensambla.backend.domain.model.enums.TipoAviso;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -8,18 +8,31 @@ import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ResultadoReglaTest {
 
-    private static final UUID REGISTRO_ID = UUID.fromString("d0000000-0000-4000-8000-000000000001");
+    private static final RegistroId REGISTRO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
 
     @Test
     @DisplayName("La entidad de un registro lleva el prefijo registro")
     void entidadDeRegistroShouldUsePrefix() {
         assertThat(ResultadoRegla.entidadDeRegistro(REGISTRO_ID)).isEqualTo("registro:" + REGISTRO_ID);
+    }
+
+    @Test
+    @DisplayName("Del texto de una entidad de registro se recupera el registro")
+    void registroDeShouldReadTheRegistroOfAnEntity() {
+        assertThat(ResultadoRegla.registroDe("registro:" + REGISTRO_ID)).contains(REGISTRO_ID);
+    }
+
+    @Test
+    @DisplayName("Una entidad que no es un registro, o con un id inválido, no tiene registro")
+    void registroDeShouldBeEmptyWhenTheEntityIsNotARegistro() {
+        assertThat(ResultadoRegla.registroDe(null)).isEmpty();
+        assertThat(ResultadoRegla.registroDe("zona:yerba")).isEmpty();
+        assertThat(ResultadoRegla.registroDe("registro:no-es-un-uuid")).isEmpty();
     }
 
     @Test

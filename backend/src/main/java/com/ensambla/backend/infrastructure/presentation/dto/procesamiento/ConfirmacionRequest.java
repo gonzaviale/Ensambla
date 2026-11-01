@@ -1,5 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.dto.procesamiento;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -7,13 +10,12 @@ import jakarta.validation.constraints.Size;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public record ConfirmacionRequest(
-        UUID proyectoId,
+        ProyectoId proyectoId,
         @Size(max = 120, message = "Máximo 120 caracteres")
         String nombreProyecto,
-        UUID bloqueId,
+        BloqueId bloqueId,
         @Size(max = 120, message = "Máximo 120 caracteres")
         String nombreBloque,
         @NotNull(message = "Las columnas son obligatorias")
@@ -27,7 +29,7 @@ public record ConfirmacionRequest(
     public record CampoRequest(
             @NotBlank(message = "La columna necesita una clave")
             String clave,
-            UUID campoId,
+            CampoId campoId,
             String nombre,
             String tipo,
             List<String> opciones

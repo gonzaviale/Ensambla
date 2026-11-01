@@ -1,7 +1,8 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.plantilla.Plantilla;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
 import com.ensambla.backend.domain.model.plantilla.PlantillaProyecto;
 import com.ensambla.backend.infrastructure.repository.entity.PlantillaEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IPlantillaJpaRepository;
@@ -45,7 +46,8 @@ class PlantillaRepositoryImplTest {
 
         List<Plantilla> result = repository.findAllActivas();
 
-        assertThat(result).extracting(Plantilla::getId).containsExactly(PRIMER_ID, SEGUNDO_ID);
+        assertThat(result).extracting(Plantilla::getId)
+                .containsExactly(PlantillaId.de(PRIMER_ID), PlantillaId.de(SEGUNDO_ID));
     }
 
     @Test
@@ -63,7 +65,7 @@ class PlantillaRepositoryImplTest {
         List<PlantillaProyecto> result = repository.findAllParaProyectoActivas();
 
         assertThat(result).extracting(PlantillaProyecto::id, PlantillaProyecto::nombre)
-                .containsExactly(org.assertj.core.groups.Tuple.tuple(PRIMER_ID, "Ventas"));
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(PlantillaId.de(PRIMER_ID), "Ventas"));
         assertThat(result.getFirst().estructura().bloques().getFirst().campos()).extracting("nombre", "tipo")
                 .containsExactly(org.assertj.core.groups.Tuple.tuple("Monto", TipoCampo.NUMERO));
     }

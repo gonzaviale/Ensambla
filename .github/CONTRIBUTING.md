@@ -53,9 +53,15 @@ tipo(scope): descripcion
 
 **Java (backend)**
 - Clases `PascalCase`, métodos y variables `camelCase`, constantes `UPPER_SNAKE_CASE`
-- Clean Architecture: `domain` no depende de `infrastructure` (`ArchitectureTest` lo verifica)
-- Lógica de negocio solo en `domain/service`, nunca en los controllers
-- Un caso de uso por clase, con `execute()`
+- Clean Architecture: `domain` no depende de `infrastructure` ni de Spring (`ArchitectureTest` lo verifica)
+- Reglas de estructura en [backend/ARQUITECTURA.md](../backend/ARQUITECTURA.md); en resumen:
+  - Lógica de negocio en el dominio, nunca en los controllers: las reglas puras en el modelo, la orquestación en el
+    caso de uso, en `domain/service` sólo la lógica de varios pasos que repiten dos o más casos de uso y en el puerto
+    (método `default`) las búsquedas de una línea; un caso de uso nunca llama a otro
+  - Un caso de uso por clase, con `execute()`, sin sufijo `UseCase` y con sus DTOs en el mismo subpaquete
+  - Los DTOs se mapean con su fábrica `de()`; no hay mappers de dominio
+  - Ids tipados (`ProyectoId`, `NegocioId`…) en todas las capas salvo las entidades JPA
+  - Enums junto a su modelo; transacciones con `TransaccionPort`; tests con base sobre Testcontainers, sin H2
 - Migraciones Flyway `V{n}__{descripcion}.sql`: **nunca se edita una ya aplicada**, se crea una nueva
 - **Aislamiento:** el `negocio_id` sale siempre de la sesión, nunca del body ni de la URL
 - Cobertura 100 % de líneas y ramas por clase (JaCoCo en `verify`)

@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.model.lote;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -8,7 +9,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 /** Una página del cuaderno subida en un lote. La imagen vive en el almacenamiento privado; acá sólo la clave. */
 @Getter
@@ -20,11 +20,11 @@ public class FotoCuaderno {
 
     public static final long MAX_BYTES = 10L * 1024 * 1024;
 
-    private UUID id;
+    private FotoId id;
 
-    private UUID negocioId;
+    private NegocioId negocioId;
 
-    private UUID loteId;
+    private LoteId loteId;
 
     private String claveAlmacenamiento;
 
@@ -49,7 +49,7 @@ public class FotoCuaderno {
      *
      * @throws BusinessRuleException si el archivo está vacío, supera {@link #MAX_BYTES} o no es un formato aceptado
      */
-    public static FotoCuaderno nueva(UUID negocioId, byte[] contenido, short posicion, OffsetDateTime ahora) {
+    public static FotoCuaderno nueva(NegocioId negocioId, byte[] contenido, short posicion, OffsetDateTime ahora) {
         TipoFoto tipo = validar(contenido, posicion);
         return FotoCuaderno.builder()
                 .negocioId(negocioId)
@@ -64,8 +64,8 @@ public class FotoCuaderno {
                 .build();
     }
 
-    private static String clave(UUID negocioId, TipoFoto tipo) {
-        return negocioId + "/fotos/" + UUID.randomUUID() + "." + tipo.getExtension();
+    private static String clave(NegocioId negocioId, TipoFoto tipo) {
+        return negocioId + "/fotos/" + FotoId.nuevo() + "." + tipo.getExtension();
     }
 
     private static TipoFoto validar(byte[] contenido, short posicion) {

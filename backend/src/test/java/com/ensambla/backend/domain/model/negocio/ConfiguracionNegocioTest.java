@@ -1,8 +1,8 @@
 package com.ensambla.backend.domain.model.negocio;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
-import com.ensambla.backend.domain.model.enums.RubroNegocio;
 import com.ensambla.backend.domain.model.zona.Zona;
+import com.ensambla.backend.domain.model.zona.ZonaId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ConfiguracionNegocioTest {
 
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-19T12:00:00Z");
-    private static final UUID ZONA_ID = UUID.fromString("00000000-0000-4000-8000-000000000001");
+    private static final ZonaId ZONA_ID = ZonaId.de("00000000-0000-4000-8000-000000000001");
 
     @Test
     @DisplayName("Conserva todos los campos ausentes y la zona al editar sólo el nombre")
@@ -120,9 +120,9 @@ class ConfiguracionNegocioTest {
         Negocio negocio = givenNegocio();
         UUID otraZona = UUID.fromString("00000000-0000-4000-8000-000000000002");
 
-        negocio.asignarZona(Zona.builder().id(otraZona).build());
+        negocio.asignarZona(Zona.builder().id(ZonaId.de(otraZona)).build());
 
-        assertThat(negocio.getZonaId()).isEqualTo(otraZona);
+        assertThat(negocio.getZonaId()).isEqualTo(ZonaId.de(otraZona));
     }
 
     @Test

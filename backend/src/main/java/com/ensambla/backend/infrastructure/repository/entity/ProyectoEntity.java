@@ -1,7 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.entity;
 
-import com.ensambla.backend.domain.model.enums.DistribucionProyecto;
-import com.ensambla.backend.domain.model.enums.PlantillaSistema;
+import com.ensambla.backend.domain.model.proyecto.DistribucionProyecto;
+import com.ensambla.backend.domain.model.proyecto.PlantillaSistema;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

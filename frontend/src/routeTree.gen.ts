@@ -11,6 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicaRouteImport } from './routes/_publica'
+import { Route as AppAvisosRouteImport } from './routes/_app/avisos'
+import { Route as AppCuadernosRouteImport } from './routes/_app/cuadernos'
+import { Route as AppCuentaRouteImport } from './routes/_app/cuenta'
 import { Route as AppInicioRouteImport } from './routes/_app/inicio'
 import { Route as AppPlanesRouteImport } from './routes/_app/planes'
 import { Route as AppPlantillasRouteImport } from './routes/_app/plantillas'
@@ -30,6 +33,21 @@ const AppRoute = AppRouteImport.update({
 const PublicaRoute = PublicaRouteImport.update({
   id: '/_publica',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppAvisosRoute = AppAvisosRouteImport.update({
+  id: '/avisos',
+  path: '/avisos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCuadernosRoute = AppCuadernosRouteImport.update({
+  id: '/cuadernos',
+  path: '/cuadernos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCuentaRoute = AppCuentaRouteImport.update({
+  id: '/cuenta',
+  path: '/cuenta',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppInicioRoute = AppInicioRouteImport.update({
   id: '/inicio',
@@ -89,6 +107,9 @@ const AppSistemasSistemaIdRoute = AppSistemasSistemaIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicaIndexRoute
+  '/avisos': typeof AppAvisosRoute
+  '/cuadernos': typeof AppCuadernosRoute
+  '/cuenta': typeof AppCuentaRoute
   '/inicio': typeof AppInicioRoute
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
@@ -102,6 +123,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof PublicaIndexRoute
+  '/avisos': typeof AppAvisosRoute
+  '/cuadernos': typeof AppCuadernosRoute
+  '/cuenta': typeof AppCuentaRoute
   '/inicio': typeof AppInicioRoute
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
@@ -117,6 +141,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_publica': typeof PublicaRouteWithChildren
+  '/_app/avisos': typeof AppAvisosRoute
+  '/_app/cuadernos': typeof AppCuadernosRoute
+  '/_app/cuenta': typeof AppCuentaRoute
   '/_app/inicio': typeof AppInicioRoute
   '/_app/planes': typeof AppPlanesRoute
   '/_app/plantillas': typeof AppPlantillasRoute
@@ -133,6 +160,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/avisos'
+    | '/cuadernos'
+    | '/cuenta'
     | '/inicio'
     | '/planes'
     | '/plantillas'
@@ -146,6 +176,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/avisos'
+    | '/cuadernos'
+    | '/cuenta'
     | '/inicio'
     | '/planes'
     | '/plantillas'
@@ -160,6 +193,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/_publica'
+    | '/_app/avisos'
+    | '/_app/cuadernos'
+    | '/_app/cuenta'
     | '/_app/inicio'
     | '/_app/planes'
     | '/_app/plantillas'
@@ -193,6 +229,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof PublicaRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/avisos': {
+      id: '/_app/avisos'
+      path: '/avisos'
+      fullPath: '/avisos'
+      preLoaderRoute: typeof AppAvisosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/cuadernos': {
+      id: '/_app/cuadernos'
+      path: '/cuadernos'
+      fullPath: '/cuadernos'
+      preLoaderRoute: typeof AppCuadernosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/cuenta': {
+      id: '/_app/cuenta'
+      path: '/cuenta'
+      fullPath: '/cuenta'
+      preLoaderRoute: typeof AppCuentaRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/inicio': {
       id: '/_app/inicio'
@@ -275,6 +332,9 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppAvisosRoute: typeof AppAvisosRoute
+  AppCuadernosRoute: typeof AppCuadernosRoute
+  AppCuentaRoute: typeof AppCuentaRoute
   AppInicioRoute: typeof AppInicioRoute
   AppPlanesRoute: typeof AppPlanesRoute
   AppPlantillasRoute: typeof AppPlantillasRoute
@@ -286,6 +346,9 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAvisosRoute: AppAvisosRoute,
+  AppCuadernosRoute: AppCuadernosRoute,
+  AppCuentaRoute: AppCuentaRoute,
   AppInicioRoute: AppInicioRoute,
   AppPlanesRoute: AppPlanesRoute,
   AppPlantillasRoute: AppPlantillasRoute,

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useAbrirAvisos } from '@/hooks/avisos/useAbrirAvisos';
 import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { IconBtn } from '../IconBtn';
@@ -12,7 +13,7 @@ const TRAS_SALIR_MS = 5000;
 export function AvisoDeSami() {
   const nuevo = useSistemaStore((estado) => estado.avisoNuevo);
   const ocultar = useSistemaStore((estado) => estado.ocultarAvisoNuevo);
-  const abrirPanel = useSistemaStore((estado) => estado.abrirPanel);
+  const abrirAvisos = useAbrirAvisos();
   const acciones = useAccionesDeAvisos();
   const [visible, setVisible] = useState(false);
   const temporizador = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -64,7 +65,7 @@ export function AvisoDeSami() {
           <button
             type="button"
             className="btn secondary small"
-            onClick={() => abrirPanel(aviso.id)}
+            onClick={() => void abrirAvisos(aviso.id)}
           >
             {cantidad > 1 ? `Ver los ${cantidad} avisos nuevos` : 'Ver el aviso'}
           </button>

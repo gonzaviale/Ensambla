@@ -126,7 +126,7 @@ export function PlanesPage() {
               </div>
               <dl className="plan-usage-grid">
                 <Uso
-                  titulo="Sistemas"
+                  titulo="Cuadernos"
                   cantidad={datos.uso.proyectos}
                   limite={actual.limiteProyectos}
                 />
@@ -136,14 +136,14 @@ export function PlanesPage() {
                   limite={actual.limiteRegistros}
                 />
                 <Uso
-                  titulo={esPrueba ? 'Páginas de IA de la prueba' : 'Páginas de IA de este mes'}
+                  titulo={esPrueba ? 'Análisis de foto de la prueba' : 'Análisis de foto de este mes'}
                   cantidad={datos.uso.paginasIa}
                   limite={datos.uso.limitePaginasIa}
                 />
               </dl>
               <p className="plan-usage-note">
                 {esPrueba
-                  ? 'Las diez páginas son para toda la prueba: cambiar de mes no renueva el cupo.'
+                  ? 'Los diez análisis de foto son para toda la prueba: cambiar de mes no renueva el cupo.'
                   : `El cupo mensual de IA se renueva el ${fecha(datos.uso.finPeriodoIa)}.`}{' '}
                 Los intentos admitidos y los reintentos también consumen páginas.
               </p>
@@ -151,7 +151,7 @@ export function PlanesPage() {
               datos.uso.limitePaginasIa !== null &&
               datos.uso.paginasIa >= datos.uso.limitePaginasIa ? (
                 <p className="plan-quota-notice" role="status">
-                  Usaste las páginas de IA incluidas. Las demás funciones premium siguen disponibles
+                  Usaste los análisis de foto incluidos. Las demás funciones premium siguen disponibles
                   hasta que termine la prueba.
                 </p>
               ) : null}
@@ -179,7 +179,7 @@ export function PlanesPage() {
               <div>
                 <h2 id="plans-data-title">Tus datos tienen su lugar.</h2>
                 <p>
-                  Cuando termina la prueba conservás tus sistemas, registros y recetas. Podés
+                  Cuando termina la prueba conservás tus cuadernos, registros y recetas. Podés
                   consultar y editar tus datos; las nuevas altas y las funciones premium respetan
                   los límites del plan gratuito.
                 </p>
@@ -187,8 +187,8 @@ export function PlanesPage() {
             </section>
           </>
         ) : null}
+        <PageFooter />
       </main>
-      <PageFooter />
     </>
   );
 }

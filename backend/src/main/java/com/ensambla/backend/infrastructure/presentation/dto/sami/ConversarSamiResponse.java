@@ -1,7 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.dto.sami;
 
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
+
 import java.util.List;
-import java.util.UUID;
 
 /**
  * @param tipo PREGUNTA (viene {@code pregunta}), PROPUESTA (viene {@code propuesta}) o RESPALDO_IA
@@ -21,7 +22,7 @@ public record ConversarSamiResponse(
     }
 
     /** @param origen ALGORITMO (sin costo) o IA */
-    public record Propuesta(UUID plantillaId, String plantilla, List<Columna> columnas, double confianza,
+    public record Propuesta(PlantillaId plantillaId, String plantilla, List<Columna> columnas, double confianza,
                             String origen) {
     }
 

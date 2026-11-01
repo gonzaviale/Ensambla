@@ -14,7 +14,9 @@ export function ModalBlanco() {
         <Icon name="grid" />
       </div>
       <h2 id="modal-title">Un lienzo en blanco, todo tuyo.</h2>
-      <p>Vas a poder arrastrar piezas, modificar sus campos y organizar tu sistema en secciones.</p>
+      <p>
+        Vas a poder arrastrar piezas, modificar sus campos y organizar tu cuaderno en secciones.
+      </p>
       <div className="blank-warning">
         <strong>¿Es tu primera vez?</strong>
         Te recomendamos empezar con la guía de Sami o una plantilla. Después podés personalizar todo
@@ -37,7 +39,7 @@ export function ModalBlanco() {
         <Icon name="arrow" />
       </button>
       <div className="modal-footer">
-        <Btn cls="primary" onClick={() => void crearYAbrir(makeSystem('Mi sistema'), 'build')}>
+        <Btn cls="primary" onClick={() => void crearYAbrir(makeSystem('Mi cuaderno'), 'build')}>
           Seguir desde cero <Icon name="arrow" />
         </Btn>
       </div>

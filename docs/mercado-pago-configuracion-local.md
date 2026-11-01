@@ -90,7 +90,7 @@ No se confía en prefijos de credenciales ni se cambia el plan manualmente para 
 
 Con el adaptador corregido, «Actualizar pagos» activó Premium sin intervención manual en la base.
 El período comienza en `2026-10-21T00:47:59Z` y vence en `2026-11-20T00:47:59Z`: 720 horas exactas,
-con cien páginas de IA mensuales y sin prueba gratuita. En hora argentina vence el 19 de noviembre
+con cien análisis de foto mensuales y sin prueba gratuita. En hora argentina vence el 19 de noviembre
 a las 21:47. Se canceló desde Planes: Mercado Pago confirmó `cancelled`, Ensambla `CANCELADA`,
 y se conservó el período pagado. Otra actualización devolvió HTTP 204 y la tabla de pagos sigue
 teniendo una sola fila, sin duplicar ni extender el período.
@@ -239,7 +239,7 @@ en una URL fija de la API y se comprueba receptor, aplicación, ambiente, import
    figurando como prueba hasta su fin; una autorización todavía no es un pago aprobado.
 4. Comprobar en Mercado Pago la fecha del primer cobro y las siguientes. El primer pago aprobado
    habilita su período de treinta días; pendientes/rechazados no lo habilitan. La cuota de IA
-   sigue siendo mensual UTC, independiente del ciclo de cobro.
+   sigue siendo mensual (hora argentina), independiente del ciclo de cobro.
 5. Repetir una actualización o notificación: no debe extender el mismo período otra vez.
 6. Cancelar desde Planes antes del primer cobro y comprobar la baja en Mercado Pago. Probar también
    cancelar con un período pagado: conserva acceso hasta vencer. Actualizar luego de la baja.

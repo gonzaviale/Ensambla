@@ -1,29 +1,37 @@
 package com.ensambla.backend.domain.service.plan;
 
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.model.enums.CodigoPlan;
-import com.ensambla.backend.domain.model.enums.EstadoSuscripcion;
-import com.ensambla.backend.domain.model.enums.FuncionPlan;
+import com.ensambla.backend.domain.exception.RestriccionPlanException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.plan.AccesoIa;
+import com.ensambla.backend.domain.model.plan.CodigoPlan;
+import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
+import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.plan.Plan;
 import com.ensambla.backend.domain.model.plan.PruebaPremium;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
+import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
+import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
+import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.plan.AccesoContenidoRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
+import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
+import java.util.Set;
+import java.util.function.BooleanSupplier;
 
-@Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class ControlPlanService {
 
     private final PlanRepository planRepository;
@@ -32,52 +40,111 @@ public class ControlPlanService {
 
     private final UsoPlanRepository usoPlanRepository;
 
+    private final AccesoContenidoRepository accesoContenidoRepository;
+
     private final PruebaPremiumRepository pruebaPremiumRepository;
 
-    @Transactional
-    public void validarAltaProyecto(UUID negocioId, OffsetDateTime ahora) {
-        usoPlanRepository.bloquearNegocio(negocioId);
-        Plan plan = vigente(negocioId, ahora);
-        plan.validarProyectos(usoPlanRepository.contarProyectos(negocioId));
+    private final TransaccionPort transaccionPort;
+
+    private final NegocioRepository negocioRepository;
+
+    private final AccesoIa accesoIa;
+
+    private static final int LIMITE_GRATUITO = 3;
+
+    public void validarAltaProyecto(NegocioId negocioId, OffsetDateTime ahora) {
+        transaccionPort.ejecutar(() -> {
+            usoPlanRepository.bloquearNegocio(negocioId);
+            Plan plan = vigente(negocioId, ahora);
+            plan.validarProyectos(usoPlanRepository.contarProyectos(negocioId));
+        });
     }
 
-    @Transactional
-    public void validarAltaRegistros(UUID negocioId, long cantidad, OffsetDateTime ahora) {
-        usoPlanRepository.bloquearNegocio(negocioId);
-        Plan plan = vigente(negocioId, ahora);
-        plan.validarRegistros(usoPlanRepository.contarRegistros(negocioId), cantidad);
+    public void validarAltaRegistros(NegocioId negocioId, long cantidad, OffsetDateTime ahora) {
+        transaccionPort.ejecutar(() -> {
+            usoPlanRepository.bloquearNegocio(negocioId);
+            Plan plan = vigente(negocioId, ahora);
+            plan.validarRegistros(usoPlanRepository.contarRegistros(negocioId), cantidad);
+        });
     }
 
-    @Transactional
-    public void validarPaginasIa(UUID negocioId, int cantidad, OffsetDateTime ahora) {
-        usoPlanRepository.bloquearNegocio(negocioId);
-        Plan plan = vigente(negocioId, ahora);
-        Optional<PruebaPremium> prueba = pruebaVigente(negocioId, ahora);
-        if (prueba.isPresent()) {
-            prueba.get().validarPaginas(cantidad);
-            return;
+    /**
+     * Con el acceso a la IA restringido, sólo el dueño de un email habilitado puede usarla (lectura, Sami y taller).
+     *
+     * @throws RestriccionPlanException si el dueño del negocio no está habilitado
+     */
+    public void exigirIa(NegocioId negocioId) {
+        if (accesoIa.restringido()
+                && !accesoIa.permite(negocioRepository.findEmailDuenioById(negocioId).orElse(null))) {
+            throw new RestriccionPlanException("IA_NO_HABILITADA", AccesoIa.MENSAJE);
         }
-        LocalDate mes = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate().withDayOfMonth(1);
-        plan.validarPaginasIa(usoPlanRepository.paginasEnPeriodo(negocioId, mes, mes.plusMonths(1)), cantidad);
     }
 
-    public void validarFuncion(UUID negocioId, FuncionPlan funcion, OffsetDateTime ahora) {
+    public void validarPaginasIa(NegocioId negocioId, int cantidad, OffsetDateTime ahora) {
+        exigirIa(negocioId);
+        transaccionPort.ejecutar(() -> {
+            usoPlanRepository.bloquearNegocio(negocioId);
+            Plan plan = vigente(negocioId, ahora);
+            Optional<PruebaPremium> prueba = pruebaVigente(negocioId, ahora);
+            if (prueba.isPresent()) {
+                prueba.get().validarPaginas(cantidad);
+                return;
+            }
+            LocalDate mes = ZonaNegocio.primerDiaDelMes(ahora);
+            plan.validarPaginasIa(usoPlanRepository.paginasEnPeriodo(negocioId, mes, mes.plusMonths(1)), cantidad);
+        });
+    }
+
+    public void validarFuncion(NegocioId negocioId, FuncionPlan funcion, OffsetDateTime ahora) {
         vigente(negocioId, ahora).validarFuncion(funcion);
     }
 
-    public boolean esPremium(UUID negocioId, OffsetDateTime ahora) {
+    private boolean esPremium(NegocioId negocioId, OffsetDateTime ahora) {
         return vigente(negocioId, ahora).getCodigo() == CodigoPlan.PREMIUM;
     }
 
-    /** Se cobra al admitir un intento. También cuentan errores y timeouts, sin duplicar al finalizar el lote. */
-    @Transactional
-    public void registrarPaginasPrueba(UUID negocioId, int cantidad, OffsetDateTime ahora) {
-        usoPlanRepository.bloquearNegocio(negocioId);
-        pruebaVigente(negocioId, ahora)
-                .ifPresent(prueba -> pruebaPremiumRepository.save(prueba.consumir(cantidad)));
+    /**
+     * Admite un intento de lectura con IA: valida la cuota mensual o de la prueba, hace la {@code reserva} diaria y, si
+     * entró, la descuenta de la prueba. Todo en una transacción con el negocio bloqueado.
+     *
+     * @return si la reserva diaria entró
+     */
+    public boolean reservarPaginasIa(NegocioId negocioId, int cantidad, OffsetDateTime ahora, BooleanSupplier reserva) {
+        return transaccionPort.ejecutar(() -> {
+            validarPaginasIa(negocioId, cantidad, ahora);
+            boolean reservada = reserva.getAsBoolean();
+            if (reservada) {
+                registrarPaginasPrueba(negocioId, cantidad, ahora);
+            }
+            return reservada;
+        });
     }
 
-    private Optional<PruebaPremium> pruebaVigente(UUID negocioId, OffsetDateTime ahora) {
+    /**
+     * La reserva de una foto leída en el momento (sin pasar por el lote): además del cupo mensual del plan cuenta
+     * contra el límite diario de fotos. Es la misma regla para la app y para WhatsApp.
+     *
+     * @throws RestriccionPlanException si se agotó el límite diario; el mensual lo informa {@link #validarPaginasIa}
+     */
+    public void reservarPaginaIaInmediata(NegocioId negocioId, int limiteDiario, OffsetDateTime ahora) {
+        LocalDate dia = ZonaNegocio.dia(ahora);
+        boolean reservada = reservarPaginasIa(negocioId, 1, ahora,
+                () -> usoPlanRepository.registrarPaginaInmediata(negocioId, dia, limiteDiario, ahora));
+        if (!reservada) {
+            throw new RestriccionPlanException("LIMITE_IA_DIARIO", PoliticaProcesamiento.LIMITE_DIARIO_AGOTADO);
+        }
+    }
+
+    /** Se cobra al admitir un intento. También cuentan errores y timeouts, sin duplicar al finalizar el lote. */
+    private void registrarPaginasPrueba(NegocioId negocioId, int cantidad, OffsetDateTime ahora) {
+        transaccionPort.ejecutar(() -> {
+            usoPlanRepository.bloquearNegocio(negocioId);
+            pruebaVigente(negocioId, ahora)
+                    .ifPresent(prueba -> pruebaPremiumRepository.save(prueba.consumir(cantidad)));
+        });
+    }
+
+    private Optional<PruebaPremium> pruebaVigente(NegocioId negocioId, OffsetDateTime ahora) {
         Suscripcion suscripcion = suscripcionRepository.findByNegocioId(negocioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Suscripción no encontrada"));
         if (suscripcion.getEstado() == EstadoSuscripcion.PRUEBA && suscripcion.estaVigente(ahora)) {
@@ -87,7 +154,7 @@ public class ControlPlanService {
         return Optional.empty();
     }
 
-    private Plan vigente(UUID negocioId, OffsetDateTime ahora) {
+    private Plan vigente(NegocioId negocioId, OffsetDateTime ahora) {
         Suscripcion suscripcion = suscripcionRepository.findByNegocioId(negocioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Suscripción no encontrada"));
         Plan plan = suscripcion.estaVigente(ahora)
@@ -97,5 +164,41 @@ public class ControlPlanService {
                     .orElseThrow(() -> new ResourceNotFoundException("Plan gratuito no encontrado"));
         plan.validarLimitesConfigurados();
         return plan;
+    }
+
+    public AccesoContenidoItem seleccionar(NegocioId negocioId, TipoContenidoPlan tipo, List<String> claves,
+                                           OffsetDateTime ahora) {
+        return transaccionPort.ejecutar(() -> {
+            usoPlanRepository.bloquearNegocio(negocioId);
+            LocalDate periodo = ZonaNegocio.primerDiaDelMes(ahora);
+            OffsetDateTime fin = ZonaNegocio.inicioDelDia(periodo.plusMonths(1));
+            List<String> candidatas = claves.stream().distinct().toList();
+            if (esPremium(negocioId, ahora)) {
+                return new AccesoContenidoItem(candidatas, 0, null, candidatas.size(), 0, fin);
+            }
+            Set<String> conocidas = accesoContenidoRepository.autorizadas(negocioId, tipo, periodo);
+            List<String> permitidas = new ArrayList<>();
+            for (String clave : candidatas) {
+                if (conocidas.contains(clave)) {
+                    permitidas.add(clave);
+                } else if (conocidas.size() < LIMITE_GRATUITO) {
+                    accesoContenidoRepository.registrar(negocioId, tipo, periodo, clave, ahora);
+                    conocidas.add(clave);
+                    permitidas.add(clave);
+                }
+            }
+            return new AccesoContenidoItem(List.copyOf(permitidas), conocidas.size(), LIMITE_GRATUITO,
+                    candidatas.size(), candidatas.size() - permitidas.size(), fin);
+        });
+    }
+
+    public void exigir(NegocioId negocioId, TipoContenidoPlan tipo, String clave, OffsetDateTime ahora) {
+        transaccionPort.ejecutar(() -> {
+            if (!seleccionar(negocioId, tipo, List.of(clave), ahora).autorizadas().contains(clave)) {
+                throw new RestriccionPlanException("LIMITE_CONTENIDO_" + tipo.name(),
+                        "Usaste los tres contenidos incluidos este mes. "
+                                + "Con Premium podés acceder a todos desde Planes.");
+            }
+        });
     }
 }

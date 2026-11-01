@@ -1,7 +1,10 @@
 package com.ensambla.backend.domain.model.sistema;
 
+import com.ensambla.backend.domain.model.common.Identificador;
+
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 /**
@@ -17,20 +20,23 @@ public final class IdSistema {
     private IdSistema() {
     }
 
-    /** UUID de un id del front: el propio UUID, el UUID con prefijo {@code e}, o uno derivado del negocio y el id. */
-    public static UUID aUuid(UUID negocioId, String idDelFront) {
+    /**
+     * El id de un id del front: el propio UUID, el UUID con prefijo {@code e}, o uno derivado del {@code ambito} (el
+     * negocio, o el bloque para sus campos) y el id.
+     */
+    public static <T extends Identificador> T aId(Identificador ambito, String idDelFront, Function<UUID, T> tipo) {
         String id = idDelFront.strip();
         if (UUID_ESTRICTO.matcher(id).matches()) {
-            return UUID.fromString(id);
+            return tipo.apply(UUID.fromString(id));
         }
         if (id.startsWith("e") && UUID_ESTRICTO.matcher(id.substring(1)).matches()) {
-            return UUID.fromString(id.substring(1));
+            return tipo.apply(UUID.fromString(id.substring(1)));
         }
-        return UUID.nameUUIDFromBytes((negocioId + ":" + id).getBytes(StandardCharsets.UTF_8));
+        return tipo.apply(UUID.nameUUIDFromBytes((ambito + ":" + id).getBytes(StandardCharsets.UTF_8)));
     }
 
     /** Lo que ve la pantalla: el UUID tal cual. */
-    public static String aFront(UUID id) {
+    public static String aFront(Identificador id) {
         return id.toString();
     }
 }

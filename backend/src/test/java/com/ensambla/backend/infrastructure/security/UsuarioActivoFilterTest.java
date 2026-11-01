@@ -1,7 +1,9 @@
 package com.ensambla.backend.infrastructure.security;
 
 import com.ensambla.backend.domain.exception.CredencialesInvalidasException;
-import com.ensambla.backend.domain.service.usuario.UsuarioService;
+import com.ensambla.backend.domain.useCase.auth.UsuarioResponse;
+import com.ensambla.backend.domain.useCase.auth.obtenerSesion.ObtenerSesion;
+import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -10,8 +12,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-
-import jakarta.servlet.FilterChain;
 
 import static com.ensambla.backend.support.UsuarioTestData.USUARIO_ID;
 import static com.ensambla.backend.support.UsuarioTestData.usuario;
@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 
 class UsuarioActivoFilterTest {
 
-    private UsuarioService usuarioService;
+    private ObtenerSesion obtenerSesion;
 
     private SesionAdapter sesionAdapter;
 
@@ -39,10 +39,10 @@ class UsuarioActivoFilterTest {
 
     @BeforeEach
     void setUp() {
-        usuarioService = mock(UsuarioService.class);
+        obtenerSesion = mock(ObtenerSesion.class);
         sesionAdapter = mock(SesionAdapter.class);
         securityErrorHandler = mock(SecurityErrorHandler.class);
-        usuarioActivoFilter = new UsuarioActivoFilter(usuarioService, sesionAdapter, securityErrorHandler);
+        usuarioActivoFilter = new UsuarioActivoFilter(obtenerSesion, sesionAdapter, securityErrorHandler);
         chain = mock(FilterChain.class);
         request = new MockHttpServletRequest("GET", "/api/auth/actual");
         response = new MockHttpServletResponse();
@@ -87,22 +87,22 @@ class UsuarioActivoFilterTest {
 
     private void givenDoFilterShouldValidateActiveUsuario() throws Exception {
         givenAuthentication();
-        when(usuarioService.obtenerActivo(USUARIO_ID)).thenReturn(usuario());
+        when(obtenerSesion.execute(USUARIO_ID)).thenReturn(UsuarioResponse.de(usuario()));
     }
 
     private void givenDoFilterShouldInvalidateSuspendedUsuario() throws Exception {
         givenAuthentication();
-        when(usuarioService.obtenerActivo(USUARIO_ID)).thenThrow(new CredencialesInvalidasException());
+        when(obtenerSesion.execute(USUARIO_ID)).thenThrow(new CredencialesInvalidasException());
     }
 
     // --- assert ---
     private void thenDoFilterShouldContinueWhenAnonymous() throws Exception {
         verify(chain).doFilter(request, response);
-        verifyNoInteractions(usuarioService, sesionAdapter, securityErrorHandler);
+        verifyNoInteractions(obtenerSesion, sesionAdapter, securityErrorHandler);
     }
 
     private void thenDoFilterShouldValidateActiveUsuario() throws Exception {
-        verify(usuarioService).obtenerActivo(USUARIO_ID);
+        verify(obtenerSesion).execute(USUARIO_ID);
         verify(chain).doFilter(request, response);
     }
 

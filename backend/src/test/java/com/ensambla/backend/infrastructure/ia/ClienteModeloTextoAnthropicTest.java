@@ -30,7 +30,7 @@ class ClienteModeloTextoAnthropicTest {
     }
 
     @Test
-    @DisplayName("Manda el modelo, las instrucciones con el esquema, el contexto, los tokens y temperatura 0")
+    @DisplayName("Manda el modelo, las instrucciones con el esquema, el contexto y los tokens, sin temperatura")
     void completarShouldSendInstructionsWithSchemaAndContext() {
         AnthropicClient anthropic = anthropicQueResponde("{}");
 
@@ -39,7 +39,7 @@ class ClienteModeloTextoAnthropicTest {
         MessageCreateParams pedido = pedidoEnviado(anthropic);
         assertThat(pedido.model().asString()).isEqualTo(MODELO);
         assertThat(pedido.maxTokens()).isEqualTo(700);
-        assertThat(pedido.temperature()).contains(0.0);
+        assertThat(pedido.temperature()).isEmpty();
         assertThat(pedido.system().orElseThrow().asString()).startsWith("Sos Sami").contains("{schema}");
         assertThat(pedido.messages().getFirst().content().asString()).isEqualTo("vendo velas");
     }

@@ -2,6 +2,7 @@ import type { Sistema } from '@/lib/sistema/tipos';
 import type { AvisoDelServidor } from '@/types/avisos';
 import type { ConfiguracionNegocio } from '@/types/negocio';
 import type { PruebaPremium } from '@/types/planes';
+import type { VerificacionWhatsapp, VinculoWhatsapp } from '@/types/whatsapp';
 import { PREFERENCIAS_INICIALES, type Preferencias } from '@/types/preferencias';
 
 export type UsuarioMock = {
@@ -9,6 +10,11 @@ export type UsuarioMock = {
   nombre: string;
   email: string;
   contrasenia: string;
+};
+
+export type CuentaWhatsapp = {
+  vinculo: VinculoWhatsapp | null;
+  verificacion: (VerificacionWhatsapp & { intentos: number }) | null;
 };
 
 type Estado = {
@@ -23,6 +29,8 @@ type Estado = {
   pruebasPremium: Map<string, PruebaPremium>;
   contenidosDesbloqueados: Map<string, string[]>;
   paginasIa: Map<string, number>;
+  /** El WhatsApp de cada cuenta (por email): el número vinculado y la verificación en curso. */
+  whatsapp: Map<string, CuentaWhatsapp>;
   /** Se llama después de cada cambio de datos: el navegador lo usa para no perderlos al recargar. */
   alCambiar: (() => void) | null;
 };
@@ -37,6 +45,7 @@ export const estado: Estado = {
   pruebasPremium: new Map(),
   contenidosDesbloqueados: new Map(),
   paginasIa: new Map(),
+  whatsapp: new Map(),
   alCambiar: null,
 };
 
@@ -50,6 +59,7 @@ export function reiniciarEstado() {
   estado.pruebasPremium = new Map();
   estado.contenidosDesbloqueados = new Map();
   estado.paginasIa = new Map();
+  estado.whatsapp = new Map();
   estado.alCambiar = null;
 }
 

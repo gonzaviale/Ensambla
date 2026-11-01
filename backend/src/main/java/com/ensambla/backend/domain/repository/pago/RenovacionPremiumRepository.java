@@ -1,24 +1,25 @@
 package com.ensambla.backend.domain.repository.pago;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 public interface RenovacionPremiumRepository {
 
     RenovacionPremium save(RenovacionPremium renovacion);
 
-    Optional<RenovacionPremium> findById(UUID id);
+    Optional<RenovacionPremium> findById(RenovacionId id);
 
-    Optional<UUID> findNegocioIdById(UUID id);
+    Optional<NegocioId> findNegocioIdById(RenovacionId id);
 
     Optional<RenovacionPremium> findByProveedorId(String proveedorId);
 
-    Optional<RenovacionPremium> findUltimaByNegocioId(UUID negocioId);
+    Optional<RenovacionPremium> findUltimaByNegocioId(NegocioId negocioId);
 
-    boolean existeAbierta(UUID negocioId);
+    boolean existeAbierta(NegocioId negocioId);
 
-    List<UUID> listarParaSincronizar();
+    List<RenovacionId> listarParaSincronizar();
 }

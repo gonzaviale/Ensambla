@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.repository.mapper;
 
 import com.ensambla.backend.domain.model.usuario.Usuario;
 import com.ensambla.backend.infrastructure.repository.entity.UsuarioEntity;
+import com.ensambla.backend.support.IdsDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,8 @@ class UsuarioRepositoryMapperTest {
     void toEntityShouldMapEveryDomainField() {
         UsuarioEntity result = mapper.toEntity(usuario());
 
-        assertThat(result).usingRecursiveComparison().isEqualTo(entity());
+        assertThat(result).usingRecursiveComparison()
+                .withEqualsForFieldsMatchingRegexes(IdsDePrueba::mismoValor, IdsDePrueba.CAMPOS_DE_ID)
+                .isEqualTo(entity());
     }
 }

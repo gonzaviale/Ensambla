@@ -1,6 +1,8 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces;
 
-import com.ensambla.backend.domain.model.enums.TipoCampo;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.support.PostgresDatosTestSupport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,9 +18,10 @@ class IBloqueJpaRepositoryTest extends PostgresDatosTestSupport {
     @DisplayName("Borrar un bloque elimina en cascada sus campos y registros")
     void deleteByIdAndNegocioIdShouldCascadeToCamposAndRegistros() {
         UUID negocioId = givenNegocio("a@example.com").getId();
-        UUID bloqueId = givenBloque(negocioId, "Productos");
-        UUID campoId = givenCampo(negocioId, bloqueId, "Nombre", TipoCampo.TEXTO, 0);
-        UUID registroId = givenRegistro(negocioId, bloqueId, Map.of(campoId.toString(), "Vela"), AHORA);
+        UUID bloqueId = givenBloque(NegocioId.de(negocioId), "Productos");
+        UUID campoId = givenCampo(NegocioId.de(negocioId), BloqueId.de(bloqueId), "Nombre", TipoCampo.TEXTO, 0);
+        UUID registroId = givenRegistro(NegocioId.de(negocioId), BloqueId.de(bloqueId), Map
+                .of(campoId.toString(), "Vela"), AHORA);
 
         bloques.deleteByIdAndNegocioId(bloqueId, negocioId);
 
@@ -32,7 +35,7 @@ class IBloqueJpaRepositoryTest extends PostgresDatosTestSupport {
     void deleteByIdAndNegocioIdShouldNotDeleteBloqueOfOtherNegocio() {
         UUID negocioA = givenNegocio("a@example.com").getId();
         UUID negocioB = givenNegocio("b@example.com").getId();
-        UUID bloqueDeA = givenBloque(negocioA, "Productos");
+        UUID bloqueDeA = givenBloque(NegocioId.de(negocioA), "Productos");
 
         bloques.deleteByIdAndNegocioId(bloqueDeA, negocioB);
 

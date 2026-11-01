@@ -1,6 +1,9 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.ICampoJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.CampoRepositoryMapper;
@@ -9,7 +12,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -19,20 +21,20 @@ public class CampoRepositoryImpl implements CampoRepository {
     private final CampoRepositoryMapper mapper;
 
     @Override
-    public List<Campo> findByBloqueIdAndNegocioId(UUID bloqueId, UUID negocioId) {
-        return jpa.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId, negocioId).stream()
+    public List<Campo> findByBloqueIdAndNegocioId(BloqueId bloqueId, NegocioId negocioId) {
+        return jpa.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(bloqueId.valor(), negocioId.valor()).stream()
                 .map(mapper::toDomain)
                 .toList();
     }
 
     @Override
-    public Optional<Campo> findByIdAndNegocioId(UUID id, UUID negocioId) {
-        return jpa.findByIdAndNegocioId(id, negocioId).map(mapper::toDomain);
+    public Optional<Campo> findByIdAndNegocioId(CampoId id, NegocioId negocioId) {
+        return jpa.findByIdAndNegocioId(id.valor(), negocioId.valor()).map(mapper::toDomain);
     }
 
     @Override
-    public List<Campo> findRelacionesHacia(UUID bloqueId, UUID negocioId) {
-        return jpa.findRelacionesHacia(bloqueId, negocioId).stream()
+    public List<Campo> findRelacionesHacia(BloqueId bloqueId, NegocioId negocioId) {
+        return jpa.findRelacionesHacia(bloqueId.valor(), negocioId.valor()).stream()
                 .map(mapper::toDomain)
                 .toList();
     }
@@ -43,7 +45,7 @@ public class CampoRepositoryImpl implements CampoRepository {
     }
 
     @Override
-    public void deleteByIdAndNegocioId(UUID id, UUID negocioId) {
-        jpa.deleteByIdAndNegocioId(id, negocioId);
+    public void deleteByIdAndNegocioId(CampoId id, NegocioId negocioId) {
+        jpa.deleteByIdAndNegocioId(id.valor(), negocioId.valor());
     }
 }

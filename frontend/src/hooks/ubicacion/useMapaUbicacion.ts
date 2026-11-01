@@ -11,12 +11,25 @@ import {
 import { cartografia } from '@/config/ubicacion';
 import type { Punto } from '@/types/ubicacion';
 
-export function useMapaUbicacion(punto: Punto, onMover: (punto: Punto) => void) {
+// Lo que lee un lector de pantalla del marcador; cambia según qué se está ubicando.
+export type TextosDelMarcador = { titulo: string; alternativo: string };
+
+const MARCADOR_DEL_COMERCIO: TextosDelMarcador = {
+  titulo: 'Ubicación de tu comercio',
+  alternativo: 'Punto de tu comercio: arrastrá para ajustarlo',
+};
+
+export function useMapaUbicacion(
+  punto: Punto,
+  onMover: (punto: Punto) => void,
+  marcadorTextos: TextosDelMarcador = MARCADOR_DEL_COMERCIO,
+) {
   const contenedor = useRef<HTMLDivElement>(null);
   const mapa = useRef<Map | null>(null);
   const pin = useRef<Marker | null>(null);
   const mover = useRef(onMover);
   const inicio = useRef(punto);
+  const textos = useRef(marcadorTextos);
   const [error, setError] = useState(false);
 
   useEffect(() => {
@@ -41,8 +54,8 @@ export function useMapaUbicacion(punto: Punto, onMover: (punto: Punto) => void) 
     const marcador = marker(centro, {
       draggable: true,
       autoPan: true,
-      title: 'Ubicación de tu comercio',
-      alt: 'Punto de tu comercio: arrastrá para ajustarlo',
+      title: textos.current.titulo,
+      alt: textos.current.alternativo,
       icon: divIcon({
         className: 'ubicacion-pin',
         html: '<span></span>',

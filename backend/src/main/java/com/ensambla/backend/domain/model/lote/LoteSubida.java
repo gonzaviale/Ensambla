@@ -1,7 +1,8 @@
 package com.ensambla.backend.domain.model.lote;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
-import com.ensambla.backend.domain.model.enums.EstadoLote;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,7 +13,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 /** Una tanda de fotos del cuaderno que se sube junta para que la IA la lea. */
 @Getter
@@ -25,12 +25,12 @@ public class LoteSubida {
     /** Coincide con lo que la IA lee de una vez ({@code ensambla.ia.max-paginas-por-lectura}). */
     public static final int MAX_FOTOS = 10;
 
-    private UUID id;
+    private LoteId id;
 
-    private UUID negocioId;
+    private NegocioId negocioId;
 
     /** Bloque al que la persona dijo que van las filas; {@code null} si la IA propone uno. */
-    private UUID bloqueDestinoId;
+    private BloqueId bloqueDestinoId;
 
     private EstadoLote estado;
 
@@ -48,7 +48,7 @@ public class LoteSubida {
      *
      * @throws BusinessRuleException si no hay fotos, hay más de {@link #MAX_FOTOS} o alguna no es válida
      */
-    public static LoteSubida nuevo(UUID negocioId, List<byte[]> contenidos, UUID bloqueDestinoId,
+    public static LoteSubida nuevo(NegocioId negocioId, List<byte[]> contenidos, BloqueId bloqueDestinoId,
                                   OffsetDateTime ahora) {
         validarCantidad(contenidos);
         List<FotoCuaderno> fotos = new ArrayList<>();

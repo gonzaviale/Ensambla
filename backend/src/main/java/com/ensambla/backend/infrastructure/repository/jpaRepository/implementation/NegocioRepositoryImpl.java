@@ -1,7 +1,11 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
 import com.ensambla.backend.domain.model.negocio.Negocio;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.model.zona.ZonaId;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.INegocioJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.NegocioRepositoryMapper;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +13,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -25,26 +28,38 @@ public class NegocioRepositoryImpl implements NegocioRepository {
     }
 
     @Override
-    public Optional<Negocio> findByDuenioId(UUID usuarioId) {
-        return negocioJpaRepository.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(usuarioId)
+    public Optional<Negocio> findByDuenioId(UsuarioId usuarioId) {
+        return negocioJpaRepository.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(usuarioId.valor())
                 .map(negocioRepositoryMapper::toDomain);
     }
 
     @Override
-    public Optional<Negocio> findByDuenioIdParaActualizar(UUID usuarioId) {
-        return negocioJpaRepository.findTopByDuenioIdOrderByCreadoEnAscIdAsc(usuarioId)
+    public Optional<Negocio> findByDuenioIdParaActualizar(UsuarioId usuarioId) {
+        return negocioJpaRepository.findTopByDuenioIdOrderByCreadoEnAscIdAsc(usuarioId.valor())
                 .map(negocioRepositoryMapper::toDomain);
     }
 
     @Override
-    public List<UUID> findAllIds() {
-        return negocioJpaRepository.findAllIds();
+    public Optional<ZonaId> findZonaIdById(NegocioId negocioId) {
+        return negocioJpaRepository.findById(negocioId.valor())
+                .map(NegocioEntity::getZonaId)
+                .map(ZonaId::de);
     }
 
     @Override
-    public Optional<UUID> findIdByDuenioId(UUID usuarioId) {
-        return negocioJpaRepository.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(usuarioId)
-                .map(negocio -> negocio.getId());
+    public Optional<String> findEmailDuenioById(NegocioId negocioId) {
+        return negocioJpaRepository.findEmailDuenioById(negocioId.valor());
+    }
+
+    @Override
+    public List<NegocioId> findAllIds() {
+        return negocioJpaRepository.findAllIds().stream().map(NegocioId::de).toList();
+    }
+
+    @Override
+    public Optional<NegocioId> findIdByDuenioId(UsuarioId usuarioId) {
+        return negocioJpaRepository.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(usuarioId.valor())
+                .map(negocio -> NegocioId.de(negocio.getId()));
     }
 }
 

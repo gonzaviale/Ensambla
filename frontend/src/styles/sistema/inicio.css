@@ -482,3 +482,138 @@ body:has(.inicio) {
     transition: none;
   }
 }
+
+/* «Mis cuadernos»: su propia pantalla, con las tapas de color y las maneras de crear uno nuevo */
+.cuadernos-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 28px;
+}
+.cuadernos-cabeza h1 {
+  margin: 8px 0 6px;
+  color: var(--petrol);
+  font-size: clamp(32px, 5vw, 46px);
+}
+.cuadernos-cabeza p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 16px;
+}
+.cuadernos-etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--yellow);
+  color: var(--petrol);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cuadernos-etiqueta .icon {
+  width: 14px;
+  height: 14px;
+}
+.cuadernos-cifras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.cuadernos-cifras span {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--orange);
+  color: white;
+  font-size: 14px;
+}
+.cuadernos-cifras span[data-color='blue'] {
+  background: var(--blue);
+}
+.cuadernos-cifras strong {
+  font-size: 18px;
+}
+.cuadernos-lista {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 44px;
+}
+.cuadernos-buscar {
+  max-width: 420px;
+}
+.cuadernos-grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 28px 24px;
+  margin: 0;
+  padding: 6px 4px;
+  list-style: none;
+}
+.cuadernos-item {
+  display: grid;
+  gap: 10px;
+}
+.cuadernos-item .inicio-cuaderno {
+  width: 100%;
+  min-height: 170px;
+}
+.cuadernos-ajustar {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 2px solid var(--orange);
+  border-radius: 999px;
+  background: white;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+.cuadernos-ajustar:hover {
+  background: var(--orange);
+  color: white;
+}
+.cuadernos-ajustar .icon {
+  width: 14px;
+  height: 14px;
+}
+.cuadernos-sin-resultados {
+  margin: 0;
+  color: var(--muted);
+}
+.cuadernos-vacio {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 36px;
+  padding: 26px 30px;
+  border-radius: 28px;
+  background: var(--petrol);
+  color: white;
+}
+.cuadernos-vacio img {
+  flex: none;
+  width: 130px;
+  height: auto;
+}
+.cuadernos-vacio h2 {
+  margin: 0 0 6px;
+  color: white;
+  font-size: clamp(24px, 3.5vw, 32px);
+}
+.cuadernos-page .cuadernos-vacio p {
+  margin: 0;
+  color: white;
+  font-size: 17px;
+}
+@media (max-width: 600px) {
+  .cuadernos-vacio {
+    flex-direction: column;
+    text-align: center;
+  }
+}

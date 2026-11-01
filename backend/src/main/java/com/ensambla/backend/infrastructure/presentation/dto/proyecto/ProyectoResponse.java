@@ -1,30 +1,34 @@
 package com.ensambla.backend.infrastructure.presentation.dto.proyecto;
 
+import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.plantilla.PlantillaId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
 
 public record ProyectoResponse(
-        UUID id,
+        ProyectoId id,
         String nombre,
         String descripcion,
-        UUID plantillaId,
+        PlantillaId plantillaId,
         OffsetDateTime creadoEn,
         OffsetDateTime actualizadoEn,
         List<BloqueResponse> bloques
 ) {
 
-    public record BloqueResponse(UUID id, String nombre, Short posicion, List<CampoResponse> campos) {
+    public record BloqueResponse(BloqueId id, String nombre, Short posicion, List<CampoResponse> campos) {
     }
 
     public record CampoResponse(
-            UUID id,
+            CampoId id,
             String nombre,
             String tipo,
             Boolean obligatorio,
             String valorInicial,
             List<String> opciones,
-            UUID bloqueRelacionadoId,
+            BloqueId bloqueRelacionadoId,
             String formula,
             Short posicion
     ) {

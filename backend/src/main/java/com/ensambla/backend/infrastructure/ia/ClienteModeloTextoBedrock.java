@@ -12,7 +12,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.SystemContentBlock;
  * Claude en Amazon Bedrock con la API Converse. Lo arma {@link ProveedorIaBedrock}.
  * <p>
  * El esquema va dentro de las instrucciones (igual que en {@link ClienteModeloVisionAnthropic}); la validación
- * estricta la hace {@link SamiIaAdapter}. La temperatura es 0 para que la misma descripción dé la misma propuesta.
+ * estricta la hace {@link SamiIaAdapter}. No se manda {@code temperature}: los modelos nuevos la rechazan.
  */
 public class ClienteModeloTextoBedrock implements ClienteModeloTexto {
 
@@ -39,7 +39,7 @@ public class ClienteModeloTextoBedrock implements ClienteModeloTexto {
                         .role(ConversationRole.USER)
                         .content(ContentBlock.fromText(peticion.contexto()))
                         .build())
-                .inferenceConfig(config -> config.maxTokens(maxTokens).temperature(0f))
+                .inferenceConfig(config -> config.maxTokens(maxTokens))
                 .build());
         return new RespuestaModeloTexto(
                 TextoJson.extraer(BloquesBedrock.texto(respuesta)),

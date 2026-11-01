@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pago.PagoPremium;
 import com.ensambla.backend.domain.repository.pago.PagoPremiumRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IPagoPremiumJpaRepository;
@@ -9,7 +10,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -31,14 +31,14 @@ public class PagoPremiumRepositoryImpl implements PagoPremiumRepository {
     }
 
     @Override
-    public Optional<PagoPremium> findVigente(UUID negocioId, OffsetDateTime ahora) {
+    public Optional<PagoPremium> findVigente(NegocioId negocioId, OffsetDateTime ahora) {
         return pagoPremiumJpaRepository
                 .findFirstByNegocioIdAndEstadoAndInicioEnLessThanEqualAndFinEnGreaterThanOrderByFinEnDesc(
-                        negocioId, "approved", ahora, ahora).map(pagoPremiumRepositoryMapper::toDomain);
+                        negocioId.valor(), "approved", ahora, ahora).map(pagoPremiumRepositoryMapper::toDomain);
     }
 
     @Override
-    public boolean existeByNegocioId(UUID negocioId) {
-        return pagoPremiumJpaRepository.existsByNegocioId(negocioId);
+    public boolean existeByNegocioId(NegocioId negocioId) {
+        return pagoPremiumJpaRepository.existsByNegocioId(negocioId.valor());
     }
 }

@@ -27,7 +27,7 @@ describe('landing del cuaderno digital', () => {
     await user.click(enlaces[0] as HTMLElement);
     await screen.findByRole('heading', { name: 'Creá tu cuenta' }, ESPERA);
     expect(router.state.location.pathname).toBe('/registro');
-    expect(screen.getByText('Empezá a armar el sistema de tu negocio.')).toBeVisible();
+    expect(screen.getByText('Empezá a armar el cuaderno de tu negocio.')).toBeVisible();
   });
 
   it('lleva al ingreso existente desde el cierre', async () => {
