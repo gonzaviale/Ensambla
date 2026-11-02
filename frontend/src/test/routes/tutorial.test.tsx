@@ -120,11 +120,10 @@ describe('el tutorial', () => {
     await user.click(screen.getAllByRole('button', { name: 'Fila completa' })[1] as HTMLElement);
     await esperarPaso('Cuando te cierre, la creamos.');
     await user.click(screen.getByRole('button', { name: /Sí, crear mi cuaderno/ }));
-    await esperarPaso('Usar y construir, en el mismo lugar.');
+    await esperarPaso('De acá se cambia.');
     expect(router.state.location.pathname).toMatch(/^\/sistemas\//);
 
-    await user.click(await screen.findByRole('button', { name: /Construir/ }, ESPERA));
-    await esperarPaso('De acá se cambia.');
+    await waitFor(() => expect(() => bloqueDelTutorial()).not.toThrow(), ESPERA);
     await user.click(
       within(bloqueDelTutorial()).getByRole('button', { name: 'Personalizar bloque' }),
     );
@@ -146,9 +145,6 @@ describe('el tutorial', () => {
     await user.type(within(modal).getByLabelText(/Producto/), 'Yerba mate');
     await user.type(within(modal).getByLabelText(/Cantidad/), '8');
     await user.click(within(modal).getByRole('button', { name: 'Guardar' }));
-    await esperarPaso('Ahora, a usarlo.');
-
-    await user.click(screen.getByRole('button', { name: /Usar cuaderno/ }));
     await esperarPaso('Tu primer cuaderno ya es tuyo.');
     expect(within(cartel()).getByLabelText('Etapa 5 de 5')).toBeVisible();
 
@@ -193,7 +189,7 @@ describe('el tutorial', () => {
     await user.click(within(tarjeta).getByRole('button', { name: /Ver el cuaderno/ }));
     await esperarPaso('Mirá las piezas antes de empezar.');
     await user.click(screen.getByRole('button', { name: /Empezar con este conjunto/ }));
-    await esperarPaso('Usar y construir, en el mismo lugar.');
+    await esperarPaso('De acá se cambia.');
   });
 
   it('el camino desde cero: confirmar, agregar una pieza y personalizarla', async () => {

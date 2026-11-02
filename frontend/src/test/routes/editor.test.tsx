@@ -55,14 +55,13 @@ const tipoDeBloqueDe = (sistema: Sistema, tipo: string) => {
   return bloque;
 };
 
-describe('el editor: construir y usar', () => {
+describe('el editor: un solo cuaderno con todo a mano', () => {
   it('abre el sistema de la dirección con la biblioteca y el lienzo, sin el panel de ajustes', async () => {
     await abrirEditor();
 
-    expect(screen.getByRole('button', { name: /Construir/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(
+      screen.queryByRole('button', { name: /Editar cuaderno|Usar cuaderno|Construir/ }),
+    ).toBeNull();
     expect(screen.getByText('Tus piezas')).toBeVisible();
     expect(screen.queryByRole('complementary', { name: /Personalizar/ })).toBeNull();
     expect(document.querySelectorAll('.library-item')).toHaveLength(10);
@@ -80,7 +79,6 @@ describe('el editor: construir y usar', () => {
     expect(
       within(cierre).getByText(/Quedaron 3 tablas: .+ Ya podés empezar a usarlo\./),
     ).toBeVisible();
-    expect(screen.queryByText('Tus piezas')).toBeNull();
 
     await user.click(within(cierre).getByRole('button', { name: 'Cerrar aviso' }));
     expect(screen.queryByRole('region', { name: /ya está armado/ })).toBeNull();
@@ -97,7 +95,7 @@ describe('el editor: construir y usar', () => {
     expect(await screen.findByRole('heading', { name: 'Registrar producto' })).toBeVisible();
   });
 
-  it('desde el cierre, Personalizar pasa a Construir y se va el cierre', async () => {
+  it('desde el cierre, Personalizar pasa a editar y se va el cierre', async () => {
     const { user } = await abrirEditor(makeTemplate('shop', {}, true), 'usar');
     useSistemaStore.setState({ listo: true });
     await screen.findByRole('region', { name: /ya está armado/ });

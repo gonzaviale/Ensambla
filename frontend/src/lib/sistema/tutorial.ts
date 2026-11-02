@@ -13,14 +13,12 @@ export type PasoDeTutorial =
   | 'useTemplate'
   | 'blankConfirm'
   | 'addBlock'
-  | 'buildMode'
   | 'customize'
   | 'rename'
   | 'addSecond'
   | 'move'
   | 'openRecord'
   | 'fillRecord'
-  | 'useMode'
   | 'done';
 
 export type DetalleDePaso = {
@@ -80,12 +78,6 @@ export const PASOS: Record<PasoDeTutorial, DetalleDePaso> = {
     text: 'Elegí un bloque del catálogo y arrastralo al lienzo. También podés tocar el +. Para empezar, Clientes o Inventario son buenas opciones.',
     hint: 'Agregá un bloque al lienzo.',
   },
-  buildMode: {
-    grupo: 2,
-    title: 'Usar y construir, en el mismo lugar.',
-    text: 'Entrá en Construir para cambiar las piezas, sus campos y la distribución. Tus datos se conservan al cambiar de modo.',
-    hint: 'Tocá “Construir”.',
-  },
   customize: {
     grupo: 2,
     title: 'De acá se cambia.',
@@ -122,12 +114,6 @@ export const PASOS: Record<PasoDeTutorial, DetalleDePaso> = {
     text: 'Completá los campos obligatorios y guardá el registro. Si falta algo, el formulario te lo marca y podés corregirlo.',
     hint: 'El paso sigue cuando el dato queda guardado.',
   },
-  useMode: {
-    grupo: 3,
-    title: 'Ahora, a usarlo.',
-    text: 'Pasá a Usar cuaderno para trabajar con tus datos. Después podés volver a Construir cuando quieras cambiar algo.',
-    hint: 'Tocá “Usar cuaderno”.',
-  },
   done: {
     grupo: 4,
     title: 'Tu primer cuaderno ya es tuyo.',
@@ -146,14 +132,12 @@ export const ACCIONES_DEL_PASO: Record<PasoDeTutorial, string[]> = {
   useTemplate: ['use-template', 'close-modal'],
   blankConfirm: ['confirm-blank', 'guide', 'templates', 'close-modal'],
   addBlock: ['add-block', 'mobile-library', 'close-library'],
-  buildMode: ['mode'],
   customize: ['select-block'],
   rename: [],
   addSecond: ['add-block', 'mobile-library', 'close-library'],
   move: ['move-up', 'move-down', 'noop'],
   openRecord: ['add-record'],
   fillRecord: ['close-modal'],
-  useMode: ['mode'],
   done: [],
 };
 
@@ -191,7 +175,6 @@ export type VistaDelTutorial = 'inicio' | 'plantillas' | 'zona' | 'taller' | 'ed
 /** Lo que el tutorial necesita saber de la pantalla para decidir si pasó al siguiente paso. */
 export type ContextoDelTutorial = {
   vista: VistaDelTutorial;
-  modo: 'build' | 'use';
   activeId: string | null;
   selectedId: string | null;
   sistemas: Sistema[];
@@ -249,11 +232,7 @@ function entrarAlEditor(
     sistemaId: contexto.activeId,
     bloqueId: usables[0]?.id ?? null,
   };
-  const paso: PasoDeTutorial = !usables.length
-    ? 'addBlock'
-    : contexto.modo === 'build'
-      ? 'customize'
-      : 'buildMode';
+  const paso: PasoDeTutorial = usables.length ? 'customize' : 'addBlock';
   return {
     sistemaId: parcial.sistemaId,
     bloqueId: parcial.bloqueId,
@@ -333,14 +312,8 @@ export function avanzar(
           }
         : null;
     }
-    case 'buildMode':
-      return contexto.modo === 'build' && contexto.vista === 'editor'
-        ? entrarEn('customize', estado, contexto)
-        : null;
     case 'customize':
-      return contexto.selectedId === estado.bloqueId && contexto.modo === 'build'
-        ? entrarEn('rename', estado, contexto)
-        : null;
+      return contexto.selectedId === estado.bloqueId ? entrarEn('rename', estado, contexto) : null;
     case 'rename':
       return bloque?.name && bloque.name !== estado.nombre
         ? entrarEn(bloques.length > 1 ? 'move' : 'addSecond', estado, contexto)
@@ -355,11 +328,9 @@ export function avanzar(
       return contexto.modal === 'registro' ? entrarEn('fillRecord', estado, contexto) : null;
     case 'fillRecord':
       if (bloque?.rows.some((fila) => !estado.filasIds.includes(fila.id) && !fila.__example)) {
-        return entrarEn('useMode', estado, contexto);
+        return entrarEn('done', estado, contexto);
       }
       return contexto.modal !== 'registro' ? entrarEn('openRecord', estado, contexto) : null;
-    case 'useMode':
-      return contexto.modo === 'use' ? entrarEn('done', estado, contexto) : null;
     case 'done':
       return null;
   }

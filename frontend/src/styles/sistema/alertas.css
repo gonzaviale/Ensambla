@@ -298,8 +298,8 @@
   gap: 6px;
   padding: 9px 16px;
   border-radius: 999px;
-  background: var(--yellow);
-  color: var(--ink);
+  background: var(--yellow-dark);
+  color: #fff;
   font-weight: 700;
 }
 .campana-ver-todos:hover {
@@ -808,8 +808,8 @@
   font-size: 11px;
 }
 .alertas-cinta .alertas-filtros button.active span {
-  background: var(--yellow);
-  color: var(--petrol);
+  background: var(--yellow-dark);
+  color: #fff;
 }
 .cinta-flecha {
   display: grid;
@@ -1072,9 +1072,9 @@
   --nivel-tint: #ffe8e4;
 }
 .alerta[data-tipo='estancado'] {
-  --nivel: #e5b800;
+  --nivel: #ba9500;
   --nivel-tint: #fdf4cc;
-  --nivel-texto: #3a2f00;
+  --nivel-texto: #fff;
 }
 .alerta[data-tipo='precio_zona'] {
   --nivel: #1b8bb0;

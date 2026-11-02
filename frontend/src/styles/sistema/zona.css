@@ -455,8 +455,8 @@ body:has(.zona-page) {
   background: var(--petrol);
 }
 .zona-etiqueta.bajo {
-  background: var(--yellow);
-  color: var(--petrol);
+  background: var(--yellow-dark);
+  color: #fff;
 }
 .zona-etiqueta.alto {
   background: var(--coral);

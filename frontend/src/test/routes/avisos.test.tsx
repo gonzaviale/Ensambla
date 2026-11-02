@@ -369,10 +369,10 @@ describe('sin datos y con el almacén de ejemplo', () => {
     expect(await screen.findByRole('region', { name: /Lo que encontré/ }, ESPERA)).toBeVisible();
   });
 
-  it('en construir no hay franja: sigue la barra de distribución', async () => {
+  it('al editar la franja sigue a la vista junto a la barra de distribución', async () => {
     await abrirConDemo('construir');
 
-    expect(screen.queryByLabelText('Avisos de Sami', { selector: 'section' })).toBeNull();
+    expect(screen.getByLabelText('Avisos de Sami', { selector: 'section' })).toBeVisible();
     expect(screen.getByRole('group', { name: 'Distribuí tus piezas' })).toBeVisible();
   });
 });
