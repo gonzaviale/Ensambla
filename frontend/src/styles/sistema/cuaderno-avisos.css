@@ -357,19 +357,25 @@ button.sami-float {
 }
 .sami-chat-form {
   display: flex;
+  align-items: flex-end;
   gap: 6px;
   padding: 8px 12px;
 }
-.sami-chat-form input {
+.sami-chat-form textarea {
   flex: 1;
   min-width: 0;
-  padding: 9px 12px;
+  min-height: 38px;
+  max-height: 120px;
+  padding: 9px 14px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: 20px;
   font: inherit;
   font-size: 14px;
+  line-height: 1.35;
+  resize: none;
+  overflow-y: auto;
 }
-.sami-chat-form input:focus-visible {
+.sami-chat-form textarea:focus-visible {
   outline: 2px solid var(--blue);
   outline-offset: 1px;
 }
@@ -433,4 +439,146 @@ button.sami-float {
   .sami-chat-burbuja.pensando span {
     animation: none;
   }
+}
+
+/* ---- Chat de Sami en naranja: el mismo encabezado, burbujas y detalles que el de «Ajustar con Sami». ---- */
+.sami-chat {
+  border-top: 6px solid var(--orange);
+}
+.sami-chat-cabeza {
+  padding: 10px 12px 6px;
+  border-bottom: 0;
+  background: #fff;
+  color: var(--ink);
+}
+.sami-chat-cabeza img {
+  width: 52px;
+  height: auto;
+  border-radius: 0;
+  background: transparent;
+}
+.sami-chat-estado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+.sami-chat-estado strong {
+  font-size: 17px;
+  color: var(--ink);
+}
+.sami-chat-cabeza .sami-chat-estado > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2f7a55;
+  opacity: 1;
+}
+.sami-chat-cabeza .sami-chat-lema {
+  margin-top: 1px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  opacity: 1;
+}
+.sami-chat-cabeza button {
+  border: 2px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+}
+.sami-chat-cabeza button:hover {
+  border-color: var(--orange);
+  background: var(--color-accent-100, #fff3df);
+  color: var(--orange);
+}
+.sami-chat-mensajes {
+  background: #fff;
+}
+.sami-chat-burbuja.sami {
+  border-color: var(--color-accent-200, #ffd099);
+  background: var(--color-accent-100, #fff3df);
+}
+.sami-chat-items li {
+  background: #fff;
+}
+.sami-chat-items button,
+.sami-chat-todos {
+  color: #a95700;
+}
+.sami-chat-sugerencias button {
+  border-color: var(--color-accent-200, #ffd099);
+  color: #a95700;
+}
+.sami-chat-sugerencias button:hover {
+  border-color: var(--orange);
+  background: var(--color-accent-100, #fff3df);
+}
+.sami-chat-form textarea:focus-visible {
+  outline-color: var(--orange);
+}
+.sami-chat-form button {
+  background: var(--orange);
+}
+
+/* Sin el borde azul de foco: el campo marca su borde en naranja y los botones, un resalte suave. */
+.sami-chat-form textarea:focus-visible {
+  outline: none;
+  border-color: var(--orange);
+}
+.sami-chat button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--orange) 35%, transparent);
+}
+
+/* Alertas del chat más leves y prolijas: una fila clara con un punto del color del nivel en vez de la barra gruesa, y
+   el texto más oscuro para que se lea bien. */
+.sami-chat-burbuja p {
+  color: #1f2c38;
+}
+.sami-chat-items {
+  gap: 5px;
+}
+.sami-chat-items li {
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid color-mix(in srgb, var(--nivel) 30%, var(--line));
+  border-left-width: 1px;
+  border-radius: 10px;
+  background: #fff;
+}
+.sami-chat-items li::before {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--nivel);
+}
+.sami-chat-items li:not(.p1):not(.p2):not(.p3)::before {
+  display: none;
+}
+.sami-chat-items li > div {
+  flex: 1;
+  min-width: 0;
+}
+.sami-chat-items strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2c38;
+}
+.sami-chat-items small {
+  display: -webkit-box;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #44545b;
+  white-space: normal;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.sami-chat-items button {
+  align-self: center;
 }

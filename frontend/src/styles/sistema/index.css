@@ -24,4 +24,6 @@
 @import './cuenta.css';
 /* Avisos arriba del cuaderno, marco animado de «Ver» y cifras del comercio. */
 @import './cuaderno-avisos.css';
+/* Los dos íconos de herramientas del cuaderno. */
+@import './herramientas.css';
 @import './overrides.css';

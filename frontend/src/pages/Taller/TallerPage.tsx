@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ChangeEvent,
@@ -79,6 +80,9 @@ const EJEMPLOS: {
       'Tengo una peluquería. Doy turnos para corte y color, quiero tener a mis clientes con su teléfono y saber qué productos me quedan.',
   },
 ];
+
+// Hasta dónde crece el campo de escribir antes de ponerle scroll.
+const ALTO_MAXIMO_DEL_CAMPO = 160;
 
 const PIEZAS_PARA_SUMAR: TipoBloque[] = ['clients', 'sales', 'inventory', 'orders', 'expenses'];
 
@@ -166,6 +170,15 @@ export function TallerPage() {
 
   // Lo que dice Sami aparece de a una burbuja, con los puntitos de «escribiendo» en el medio: así se lee con calma y
   // el scroll acompaña lo último en vez de saltar al final de una pared de mensajes.
+  // El campo crece con lo que se escribe, hasta un tope.
+  const entrada = taller?.entrada;
+  useLayoutEffect(() => {
+    const area = campo.current;
+    if (!area) return;
+    area.style.height = 'auto';
+    area.style.height = `${Math.min(area.scrollHeight, ALTO_MAXIMO_DEL_CAMPO)}px`;
+  }, [entrada, chatAbierto]);
+
   const ultimoIndice = cantidadDeMensajes - 1;
   const ultimo = taller?.mensajes[ultimoIndice];
   const clave = ultimo ? `${ultimoIndice}|${ultimo.quien}|${ultimo.texto}` : '';
@@ -355,14 +368,10 @@ export function TallerPage() {
           <span>
             {ajustando ? 'AJUSTANDO TU CUADERNO CON SAMI' : 'EL TALLER DE TU PRIMER CUADERNO'}
           </span>
-          {/* Al ajustar, el cartel sólo aparece cuando hay algo para guardar. */}
-          {(!ajustando || hayCambios) && (
+          {/* El cartel sólo aparece cuando hay algo sin guardar. */}
+          {(ajustando ? hayCambios : borrador) && (
             <span className="tag outline">
-              {ajustando
-                ? 'Cambios sin guardar'
-                : borrador
-                  ? 'Propuesta sin guardar'
-                  : 'Tu idea es el punto de partida'}
+              {ajustando ? 'Cambios sin guardar' : 'Propuesta sin guardar'}
             </span>
           )}
         </div>

@@ -1,4 +1,12 @@
-import { useEffect, useRef, useState, type FormEvent, type PointerEvent } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent as EventoDeTecla,
+  type PointerEvent,
+} from 'react';
 import { useAbrirAvisos } from '@/hooks/avisos/useAbrirAvisos';
 import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
 import type { Aviso } from '@/lib/sistema/alertas';
@@ -15,6 +23,7 @@ export type Mensaje = { id: number; rol: 'yo' | 'sami'; texto: string; respuesta
 
 const PENSANDO_MS = 450;
 const MARGEN = 8;
+const ALTO_MAXIMO_DEL_CAMPO = 120;
 const ANCHO_DE_CELULAR = 640;
 const entre = (valor: number, minimo: number, maximo: number) =>
   Math.min(Math.max(valor, minimo), Math.max(minimo, maximo));
@@ -39,7 +48,7 @@ export function ChatDeSami({ contexto, mensajes, onMensajes, onCerrar, onAyuda }
   const [texto, setTexto] = useState('');
   const [pensando, setPensando] = useState(false);
   const lista = useRef<HTMLDivElement>(null);
-  const campo = useRef<HTMLInputElement>(null);
+  const campo = useRef<HTMLTextAreaElement>(null);
   const temporizador = useRef<number | undefined>(undefined);
   const acciones = useAccionesDeAvisos();
   const abrirAvisos = useAbrirAvisos();
@@ -75,6 +84,14 @@ export function ChatDeSami({ contexto, mensajes, onMensajes, onCerrar, onAyuda }
     return () => document.removeEventListener('keydown', alTeclear);
   }, [onCerrar]);
 
+  // El campo crece con lo que se escribe, hasta un tope.
+  useLayoutEffect(() => {
+    const area = campo.current;
+    if (!area) return;
+    area.style.height = 'auto';
+    area.style.height = `${Math.min(area.scrollHeight, ALTO_MAXIMO_DEL_CAMPO)}px`;
+  }, [texto]);
+
   const preguntar = (pregunta: string) => {
     const limpia = pregunta.trim();
     if (!limpia || pensando) return;
@@ -91,6 +108,14 @@ export function ChatDeSami({ contexto, mensajes, onMensajes, onCerrar, onAyuda }
   const enviar = (evento: FormEvent) => {
     evento.preventDefault();
     preguntar(texto);
+  };
+
+  // Enter envía; Shift + Enter hace un renglón nuevo.
+  const alTeclearEnElCampo = (evento: EventoDeTecla<HTMLTextAreaElement>) => {
+    if (evento.key === 'Enter' && !evento.shiftKey) {
+      evento.preventDefault();
+      preguntar(texto);
+    }
   };
 
   // Ir a lo que representa un aviso o un producto: el chat se guarda para que se vea lo marcado.
@@ -147,10 +172,16 @@ export function ChatDeSami({ contexto, mensajes, onMensajes, onCerrar, onAyuda }
           if (!(evento.target as HTMLElement).closest('button')) setExpandido((actual) => !actual);
         }}
       >
-        <img src="/mockup/sami-boton.webp" alt="" />
+        <img src="/mockup/sami-constructora.webp" alt="" />
         <div>
-          <strong>Sami</strong>
-          <span>{contexto.sistema.name}</span>
+          <p className="sami-chat-estado">
+            <strong>Sami</strong>
+            <span>
+              <span className="live-dot" />
+              Conectado
+            </span>
+          </p>
+          <span className="sami-chat-lema">Construyamos juntos</span>
         </div>
         <button
           type="button"
@@ -228,13 +259,15 @@ export function ChatDeSami({ contexto, mensajes, onMensajes, onCerrar, onAyuda }
         </div>
       )}
       <form className="sami-chat-form" onSubmit={enviar}>
-        <input
+        <textarea
           ref={campo}
+          rows={1}
           value={texto}
           onChange={(evento) => setTexto(evento.target.value)}
+          onKeyDown={alTeclearEnElCampo}
           aria-label="Escribile a Sami"
           placeholder="Preguntale por stock, ventas…"
-          autoComplete="off"
+          maxLength={500}
         />
         <button type="submit" aria-label="Enviar" disabled={!texto.trim() || pensando}>
           <Icon name="arrow" />

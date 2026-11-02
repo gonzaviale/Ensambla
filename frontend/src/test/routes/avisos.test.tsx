@@ -328,15 +328,14 @@ describe('la campana y la pantalla de avisos', () => {
     ).toMatchObject({ price: 1850 });
   });
 
-  it('«Preguntale a Sami» lleva al taller de Sami', async () => {
+  it('en lugar de «Preguntale a Sami» está el Sami flotante, que abre el chat', async () => {
     const { user } = await abrirConDemo();
     const panel = await abrirPanel(user);
 
-    await user.click(within(panel).getByRole('button', { name: /Preguntale a Sami/ }));
+    expect(within(panel).queryByRole('button', { name: /Preguntale a Sami/ })).toBeNull();
+    await user.click(screen.getByRole('button', { name: /Hablar con Sami/ }));
 
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Construyamos juntos' }, ESPERA),
-    ).toBeVisible();
+    expect(await screen.findByRole('dialog', { name: 'Chat con Sami' })).toBeVisible();
   });
 });
 
@@ -356,9 +355,12 @@ describe('sin datos y con el almacén de ejemplo', () => {
 
     await waitFor(() => expect(useSistemaStore.getState().sistemas).toHaveLength(1), ESPERA);
     expect(useSistemaStore.getState().sistemas[0]?.demoAlmacen).toBe(true);
-    expect(
-      await screen.findByRole('button', { name: /Hablar con Sami: 9 avisos/ }, ESPERA),
-    ).toBeVisible();
+    // Primero el cuaderno (la pantalla de avisos también tiene su Sami flotante); después el número.
+    await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
+    await waitFor(
+      () => expect(screen.getByRole('button', { name: /Hablar con Sami: 9 avisos/ })).toBeVisible(),
+      ESPERA,
+    );
   });
 
   describe('el chat de Sami', () => {
@@ -453,6 +455,13 @@ describe('sin datos y con el almacén de ejemplo', () => {
     await abrirConDemo('construir');
 
     expect(screen.getByRole('group', { name: 'Distribuí tus piezas' })).toBeVisible();
+  });
+
+  it('con una sola sección no hay barra de secciones (se agrega otra desde los íconos)', async () => {
+    await abrirConDemo();
+
+    expect(screen.queryByRole('navigation', { name: 'Secciones del cuaderno' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Agregar y organizar' })).toBeVisible();
   });
 
   it('el cuaderno ya no muestra los avisos arriba: viven en el chat de Sami', async () => {
