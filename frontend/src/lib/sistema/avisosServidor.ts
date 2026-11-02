@@ -16,6 +16,7 @@ function aAccion(accion: AccionDelServidor, avisoId: string): AccionDeAviso {
         texto: accion.texto ?? 'Aplicar el cambio',
         avisoId,
         confirmacion: 'Listo, aplicamos el cambio.',
+        ...(accion.bloqueId ? { sistemaId, bloqueId, filaId: accion.registroId } : {}),
       };
     case 'CREAR_REGISTRO':
       return {

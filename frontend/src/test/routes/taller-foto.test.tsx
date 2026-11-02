@@ -32,7 +32,7 @@ const abrirTaller = async () => {
   await verifyHeadingPresentAsync(/En qué puedo/);
   const user = userEvent.setup();
   await clickButton(user, /Crear con Sami/);
-  await verifyHeadingPresentAsync('Lo armamos juntos.');
+  await verifyHeadingPresentAsync('Construyamos juntos');
   return { router, user };
 };
 
@@ -258,7 +258,7 @@ describe('una foto para Sami en el taller', () => {
     await screen.findByRole('heading', { level: 1, name: /Almacén de Ana/ }, ESPERA);
     const user = userEvent.setup();
     await clickButton(user, /Ajustar con Sami/);
-    await verifyHeadingPresentAsync('Lo ajustamos juntos.');
+    await verifyHeadingPresentAsync('Construyamos juntos');
     const pedidos: { estado: { piezas: { tipo: string; nombres?: string[] }[] } }[] = [];
     server.events.on('request:start', async ({ request }) => {
       if (request.url.endsWith('/api/sami/taller')) pedidos.push(await request.clone().json());
@@ -324,7 +324,7 @@ describe('una foto para Sami en el taller', () => {
     await screen.findByRole('heading', { level: 1, name: /Almacén de Ana/ }, ESPERA);
     const user = userEvent.setup();
     await clickButton(user, /Ajustar con Sami/);
-    await verifyHeadingPresentAsync('Lo ajustamos juntos.');
+    await verifyHeadingPresentAsync('Construyamos juntos');
 
     await adjuntar(user);
     await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });

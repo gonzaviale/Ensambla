@@ -3,9 +3,13 @@ import { transferableAbortController } from 'node:util';
 import { cleanup } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import { invalidarCsrf } from '@/api/client';
+import { ritmoDeSami } from '@/lib/ritmoDeSami';
 import { reiniciarEstado } from '@/mocks/db/estado';
 import { server } from '@/mocks/node';
 import { useSistemaStore } from '@/stores/sistemaStore';
+
+// Las burbujas de Sami aparecen de una en los tests; el escalonado tiene su propia prueba.
+ritmoDeSami.maxima = 0;
 
 // El fetch nativo de Node requiere sus propias señales, no las de jsdom.
 const controller = transferableAbortController();

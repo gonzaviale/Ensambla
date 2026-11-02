@@ -558,3 +558,227 @@ button.chat-abrir img {
   width: 20px;
   height: 20px;
 }
+
+/* Chat compacto: cabecera chica, burbujas que se ajustan al texto y menos aire, para que entre más información. */
+.sami-conversation .conversation-head {
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.conversation-sami {
+  width: 52px;
+}
+.conversation-estado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+.conversation-estado strong {
+  font-size: 17px;
+  color: var(--ink);
+}
+.conversation-estado > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2f7a55;
+}
+.conversation-head h1 {
+  margin: 1px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+.conversation-head .live-dot {
+  width: 7px;
+  height: 7px;
+}
+.conversation-messages {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-height: 0;
+  padding: 0 0 8px;
+}
+.conversation-bubble,
+.conversation-examples > span {
+  width: fit-content;
+  max-width: 88%;
+  margin: 0;
+  padding: 7px 11px;
+  font-size: 13px;
+  line-height: 1.4;
+  border-radius: 14px 14px 14px 4px;
+}
+.conversation-bubble.you {
+  align-self: flex-end;
+  margin: 0;
+  border-radius: 14px 14px 4px 14px;
+}
+.conversation-bubble.escribiendo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 11px 13px;
+}
+.conversation-bubble.escribiendo i {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.4;
+  animation: sami-chat-punto 1s ease-in-out infinite;
+}
+.conversation-bubble.escribiendo i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.conversation-bubble.escribiendo i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.conversation-examples {
+  gap: 6px;
+}
+.conversation-examples button {
+  gap: 8px;
+  padding: 8px 11px;
+  font-size: 13px;
+}
+.guide-composer > label {
+  font-size: 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .conversation-bubble.escribiendo i {
+    animation: none;
+  }
+}
+.feedback-chips button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  font-size: 12px;
+}
+.feedback-chips button .icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* ---- Burbujas de Sami en naranja suave: fondo claro y texto oscuro (los bordes y detalles siguen en naranja). ---- */
+.conversation-bubble,
+.conversation-examples > span {
+  background: var(--color-accent-100, #fff3df);
+  border: 1px solid var(--color-accent-200, #ffd099);
+  color: var(--ink);
+}
+.conversation-bubble.you {
+  background: var(--petrol);
+  border-color: var(--petrol);
+  color: #fff;
+}
+.conversation-bubble.escribiendo i {
+  background: var(--orange);
+}
+
+/* Campo para escribir chico: una sola fila (cámara, voz, texto y enviar) y sin el cartel de arriba. */
+.guide-composer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'foto foto foto'
+    'acciones campo enviar';
+  align-items: end;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 14px;
+}
+.guide-composer .guide-photo-preview {
+  grid-area: foto;
+}
+.guide-composer textarea {
+  grid-area: campo;
+  min-height: 38px;
+  max-height: 160px;
+  padding: 9px 4px;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.guide-composer .row.between {
+  display: contents;
+}
+.guide-composer .row.between > .row {
+  grid-area: acciones;
+  gap: 0;
+}
+.guide-composer .row.between > .btn.primary {
+  grid-area: enviar;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+}
+.guide-composer .btn.primary .icon {
+  width: 18px;
+  height: 18px;
+}
+.conversation-foot {
+  margin-top: 6px;
+}
+
+/* Campo para escribir: foto, voz, texto y enviar alineados al centro, todo en naranja como el resto del chat. */
+.guide-composer {
+  align-items: center;
+  border: 2px solid var(--orange);
+}
+.guide-composer:focus-within {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--orange) 20%, transparent);
+}
+.guide-composer textarea {
+  align-self: center;
+}
+.guide-composer .row.between > .row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.guide-composer .btn.ghost,
+.guide-composer .btn.soft {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+}
+.guide-composer .btn.ghost .icon,
+.guide-composer .btn.soft .icon {
+  width: 20px;
+  height: 20px;
+  color: var(--orange);
+}
+.guide-composer .btn.ghost:hover:not(:disabled),
+.guide-composer .btn.soft {
+  background: var(--color-accent-100, #fff3df);
+}
+.guide-composer .row.between > .btn.primary {
+  background: var(--orange);
+  border-color: var(--orange);
+  color: #fff;
+}
+
+/* Sin el borde azul de foco en los botones del campo: un resalte naranja suave. */
+.guide-composer .btn:focus-visible,
+.guide-composer button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--orange) 35%, transparent);
+}

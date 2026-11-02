@@ -42,7 +42,7 @@ const abrirTaller = async () => {
   await verifyHeadingPresentAsync(/En qué puedo/);
   const user = userEvent.setup();
   await clickButton(user, /Crear con Sami/);
-  await verifyHeadingPresentAsync('Lo armamos juntos.');
+  await verifyHeadingPresentAsync('Construyamos juntos');
   return user;
 };
 

@@ -59,7 +59,16 @@ export type AccionDeAviso =
   /** Lleva a «Mi zona», filtrando por un producto. */
   | { tipo: 'zona'; texto: string; producto?: string }
   /** Le pide al servidor que ejecute la acción del aviso y lo cierre, todo en una sola operación. */
-  | { tipo: 'servidor'; texto: string; avisoId: string; confirmacion: string };
+  | {
+      tipo: 'servidor';
+      texto: string;
+      avisoId: string;
+      confirmacion: string;
+      /** Dónde está el registro que cambia, para poder mostrarlo. */
+      sistemaId?: string;
+      bloqueId?: string;
+      filaId?: string;
+    };
 
 export type Aviso = {
   /** Depende del estado de los datos: si lo que lo disparó cambia, el id cambia y el aviso desaparece. */
@@ -76,6 +85,8 @@ export type Aviso = {
   acciones: AccionDeAviso[];
   /** Id del aviso en el servidor; falta en los que Sami calcula en el navegador. */
   servidorId?: string;
+  /** El registro (o la tabla) del que habla el aviso, para llevar ahí con «Ver». */
+  objeto?: { sistemaId: string; bloqueId: string; filaId?: string };
   /** Los números de origen del aviso del servidor (cantidad, mínimo, precio, sugerido…). */
   datos?: Record<string, unknown>;
   /** Cuándo lo detectó el motor del servidor (ISO). */
@@ -263,6 +274,7 @@ export function analizar({ sistemas = [], zona, hoy, grupos = {} }: Entrada): Av
           sumar({
             ...base,
             id: `stock:${fila.id}:${cantidad}`,
+            objeto: { sistemaId: sistema.id, bloqueId: inventario.id, filaId: fila.id },
             tipo: 'stock',
             prioridad: cantidad <= 0 ? 3 : 2,
             titulo:

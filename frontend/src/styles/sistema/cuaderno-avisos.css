@@ -1,0 +1,584 @@
+/* Marco animado de «Ver», Sami flotante y su chat. */
+
+/* ---------- Marco animado (resaltar) ---------- */
+@property --resaltado-giro {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 0deg;
+}
+@keyframes resaltado-giro {
+  to {
+    --resaltado-giro: 360deg;
+  }
+}
+@keyframes resaltado-entra {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.resaltado-marco {
+  position: fixed;
+  z-index: 30;
+  pointer-events: none;
+  box-sizing: border-box;
+  animation:
+    resaltado-entra 0.25s ease-out,
+    resaltado-giro 1.8s linear infinite;
+  transition: opacity 0.4s;
+}
+.resaltado-marco > i {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--resaltado-giro),
+    var(--orange),
+    var(--coral),
+    var(--petrol),
+    var(--blue),
+    var(--yellow),
+    var(--orange)
+  );
+}
+/* El borde: la paleta recortada en un anillo. */
+.resaltado-marco > .anillo {
+  padding: 1.5px;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+.resaltado-marco.saliendo {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .resaltado-marco {
+    animation: none;
+  }
+}
+
+/* ---------- Sami flotante con el número de avisos ---------- */
+button.sami-float {
+  cursor: pointer;
+  /* El número asoma por fuera del círculo. */
+  overflow: visible;
+}
+.sami-float-numero {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  background: var(--orange);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+}
+.sami-float-numero.urgente {
+  background: var(--coral);
+  animation: sami-numero 2.2s ease-in-out infinite;
+}
+@keyframes sami-numero {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.14);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sami-float-numero.urgente {
+    animation: none;
+  }
+}
+
+/* ---------- Chat de Sami ---------- */
+.sami-chat {
+  position: fixed;
+  right: 25px;
+  bottom: 84px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: 420px;
+  height: min(600px, calc(100vh - 110px));
+  overflow: hidden;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: 0 16px 40px #2634432e;
+  animation: sami-chat-entra 0.2s ease-out;
+  transition:
+    width 0.2s ease,
+    height 0.2s ease;
+}
+/* Ampliado: ocupa casi toda la pantalla, pegado a la esquina. */
+.sami-chat.expandido {
+  right: 25px;
+  bottom: 25px;
+  width: min(820px, calc(100vw - 50px));
+  height: min(780px, calc(100vh - 50px));
+}
+.sami-chat.expandido .sami-chat-mensajes {
+  padding: 18px 22px;
+}
+.sami-chat.expandido .sami-chat-burbuja {
+  font-size: 15px;
+}
+@keyframes sami-chat-entra {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.sami-chat-cabeza {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--petrol);
+  color: #fff;
+}
+.sami-chat-cabeza img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: #fff;
+}
+.sami-chat-cabeza div {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+}
+.sami-chat-cabeza strong {
+  font-size: 15px;
+}
+.sami-chat-cabeza span {
+  overflow: hidden;
+  font-size: 12px;
+  opacity: 0.85;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sami-chat-cabeza button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+.sami-chat-cabeza button:hover {
+  background: #ffffff26;
+}
+.sami-chat-cabeza .icon {
+  width: 18px;
+  height: 18px;
+}
+.sami-chat-mensajes {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  overflow-y: auto;
+  background: #fbfaf6;
+}
+.sami-chat-burbuja {
+  max-width: 92%;
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+.sami-chat-burbuja p {
+  margin: 0;
+  white-space: pre-line;
+}
+.sami-chat-burbuja.yo {
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+  background: var(--petrol);
+  color: #fff;
+}
+.sami-chat-burbuja.sami {
+  align-self: flex-start;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 4px;
+  background: #fff;
+}
+.sami-chat-items {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.sami-chat-items li {
+  --nivel: var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 8px 7px 10px;
+  border-radius: 10px;
+  border-left: 4px solid var(--nivel);
+  background: #f5f6f3;
+}
+.sami-chat-items li.p1 {
+  --nivel: var(--petrol);
+}
+.sami-chat-items li.p2 {
+  --nivel: var(--orange);
+}
+.sami-chat-items li.p3 {
+  --nivel: var(--coral);
+}
+.sami-chat-items div {
+  display: grid;
+  min-width: 0;
+}
+.sami-chat-items strong {
+  font-size: 13px;
+  line-height: 1.3;
+}
+.sami-chat-items small {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sami-chat-items button,
+.sami-chat-todos {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--petrol);
+  cursor: pointer;
+}
+.sami-chat-items button:hover,
+.sami-chat-todos:hover {
+  text-decoration: underline;
+}
+.sami-chat-items .icon,
+.sami-chat-todos .icon {
+  width: 14px;
+  height: 14px;
+}
+.sami-chat-todos {
+  margin-top: 6px;
+}
+.sami-chat-burbuja.pensando {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: auto;
+}
+.sami-chat-burbuja.pensando span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+  animation: sami-chat-punto 1s ease-in-out infinite;
+}
+.sami-chat-burbuja.pensando span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.sami-chat-burbuja.pensando span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes sami-chat-punto {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+.sami-chat-sugerencias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px 0;
+}
+.sami-chat-sugerencias button {
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--petrol);
+  cursor: pointer;
+}
+.sami-chat-sugerencias button:hover {
+  border-color: var(--petrol);
+}
+.sami-chat-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 8px 12px;
+}
+.sami-chat-form textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 38px;
+  max-height: 120px;
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.35;
+  resize: none;
+  overflow-y: auto;
+}
+.sami-chat-form textarea:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+.sami-chat-form button {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--petrol);
+  color: #fff;
+  cursor: pointer;
+}
+.sami-chat-form button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.sami-chat-form .icon {
+  width: 18px;
+  height: 18px;
+}
+.sami-chat-ayuda {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px 10px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.sami-chat-ayuda:hover {
+  text-decoration: underline;
+}
+.sami-chat-ayuda .icon {
+  width: 15px;
+  height: 15px;
+}
+@media (max-width: 640px) {
+  .sami-chat,
+  .sami-chat.expandido {
+    right: 12px;
+    bottom: 12px;
+    width: calc(100% - 24px);
+    height: min(80vh, calc(100vh - 24px));
+  }
+  .sami-chat-cabeza {
+    cursor: default;
+  }
+  .sami-chat-ampliar {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sami-chat,
+  .sami-chat-burbuja.pensando span {
+    animation: none;
+  }
+}
+
+/* ---- Chat de Sami en naranja: el mismo encabezado, burbujas y detalles que el de «Ajustar con Sami». ---- */
+.sami-chat {
+  border-top: 6px solid var(--orange);
+}
+.sami-chat-cabeza {
+  padding: 10px 12px 6px;
+  border-bottom: 0;
+  background: #fff;
+  color: var(--ink);
+}
+.sami-chat-cabeza img {
+  width: 52px;
+  height: auto;
+  border-radius: 0;
+  background: transparent;
+}
+.sami-chat-estado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+.sami-chat-estado strong {
+  font-size: 17px;
+  color: var(--ink);
+}
+.sami-chat-cabeza .sami-chat-estado > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2f7a55;
+  opacity: 1;
+}
+.sami-chat-cabeza .sami-chat-lema {
+  margin-top: 1px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  opacity: 1;
+}
+.sami-chat-cabeza button {
+  border: 2px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+}
+.sami-chat-cabeza button:hover {
+  border-color: var(--orange);
+  background: var(--color-accent-100, #fff3df);
+  color: var(--orange);
+}
+.sami-chat-mensajes {
+  background: #fff;
+}
+.sami-chat-burbuja.sami {
+  border-color: var(--color-accent-200, #ffd099);
+  background: var(--color-accent-100, #fff3df);
+}
+.sami-chat-items li {
+  background: #fff;
+}
+.sami-chat-items button,
+.sami-chat-todos {
+  color: #a95700;
+}
+.sami-chat-sugerencias button {
+  border-color: var(--color-accent-200, #ffd099);
+  color: #a95700;
+}
+.sami-chat-sugerencias button:hover {
+  border-color: var(--orange);
+  background: var(--color-accent-100, #fff3df);
+}
+.sami-chat-form textarea:focus-visible {
+  outline-color: var(--orange);
+}
+.sami-chat-form button {
+  background: var(--orange);
+}
+
+/* Sin el borde azul de foco: el campo marca su borde en naranja y los botones, un resalte suave. */
+.sami-chat-form textarea:focus-visible {
+  outline: none;
+  border-color: var(--orange);
+}
+.sami-chat button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--orange) 35%, transparent);
+}
+
+/* Alertas del chat más leves y prolijas: una fila clara con un punto del color del nivel en vez de la barra gruesa, y
+   el texto más oscuro para que se lea bien. */
+.sami-chat-burbuja p {
+  color: #1f2c38;
+}
+.sami-chat-items {
+  gap: 5px;
+}
+.sami-chat-items li {
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid color-mix(in srgb, var(--nivel) 30%, var(--line));
+  border-left-width: 1px;
+  border-radius: 10px;
+  background: #fff;
+}
+.sami-chat-items li::before {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--nivel);
+}
+.sami-chat-items li:not(.p1):not(.p2):not(.p3)::before {
+  display: none;
+}
+.sami-chat-items li > div {
+  flex: 1;
+  min-width: 0;
+}
+.sami-chat-items strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2c38;
+}
+.sami-chat-items small {
+  display: -webkit-box;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #44545b;
+  white-space: normal;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.sami-chat-items button {
+  align-self: center;
+}

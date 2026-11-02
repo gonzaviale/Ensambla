@@ -5,6 +5,7 @@ import type { Preferencias } from '@/types/preferencias';
 import type { ConfiguracionNegocio } from '@/types/negocio';
 import { pruebaPremiumSchema, type PruebaPremium } from '@/types/planes';
 import { handlersPara } from './handlers';
+import { sembrarDemoCargada } from './db/demoCargada';
 import { estado, sembrarUsuario } from './db/estado';
 import { interceptarFetch } from './interceptarFetch';
 
@@ -67,6 +68,7 @@ if (env.mocks === 'completo') {
     email: 'demo@ensambla.local',
     contrasenia: 'EnsamblaDemo2026!',
   });
+  if (env.demoCargada) sembrarDemoCargada('demo@ensambla.local');
 }
 
 const handlers = handlersPara(env.mocks);

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { getRouteApi, useNavigate } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
-import { FranjaDeSami } from '@/components/sistema/avisos/FranjaDeSami';
+import { SamiFlotante } from '@/components/sistema/avisos/SamiFlotante';
 import { BibliotecaDeBloques } from '@/components/sistema/editor/BibliotecaDeBloques';
 import { BloqueEnLienzo } from '@/components/sistema/editor/BloqueEnLienzo';
 import { CierreDeCreacion } from '@/components/sistema/CierreDeCreacion';
@@ -10,9 +10,8 @@ import { EncabezadoDelEditor } from '@/components/sistema/editor/EncabezadoDelEd
 import { Inspector } from '@/components/sistema/editor/Inspector';
 import { TablaCompleta } from '@/components/sistema/editor/TablaCompleta';
 import { Icon } from '@/components/sistema/Icon';
-import { IconBtn } from '@/components/sistema/IconBtn';
 import { IconTile } from '@/components/sistema/IconTile';
-import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
+import { HerramientasDelCuaderno } from '@/components/sistema/editor/HerramientasDelCuaderno';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import { varsDeColor } from '@/components/sistema/colores';
 import { allBlocks, findBlock, totals } from '@/lib/sistema/core';
@@ -193,23 +192,13 @@ export function SistemaPage() {
               </div>
             </div>
             <div className="canvas-heading-actions">
-              <Btn
-                cls="secondary mobile-blocks"
-                data-accion="mobile-library"
-                data-tour="agregar-pieza-movil"
-                onClick={() => setBibliotecaAbierta((abierta) => !abierta)}
-              >
-                <Icon name="plus" /> Bloques
-              </Btn>
-              <Btn cls="secondary" onClick={() => abrirModal({ tipo: 'secciones' })}>
-                <Icon name="folder" /> Secciones
-              </Btn>
-              <button
-                type="button"
-                className="foto-redonda"
-                aria-label="Traer datos de una foto"
-                title="Traer datos de una foto"
-                onClick={() =>
+              <HerramientasDelCuaderno
+                distribucion={sistema.layout}
+                onDistribucion={(distribucion: Distribucion) => aplicarDistribucion(distribucion)}
+                onBloques={() => setBibliotecaAbierta((abierta) => !abierta)}
+                onSecciones={() => abrirModal({ tipo: 'secciones' })}
+                onNuevaSeccion={() => abrirModal({ tipo: 'agregarSeccion' })}
+                onFoto={() =>
                   abrirModal({
                     tipo: 'importar',
                     sistemaId: sistema.id,
@@ -217,16 +206,8 @@ export function SistemaPage() {
                     contexto: 'registros',
                   })
                 }
-              >
-                <Icon name="camera" />
-              </button>
-              <Btn
-                cls="secondary"
-                data-accion="resumen-pdf"
-                onClick={() => abrirModal({ tipo: 'resumen' })}
-              >
-                <Icon name="download" /> Resumen en PDF
-              </Btn>
+                onResumen={() => abrirModal({ tipo: 'resumen' })}
+              />
               <Btn
                 cls="secondary"
                 data-accion="ajustar-con-sami"
@@ -236,45 +217,37 @@ export function SistemaPage() {
               </Btn>
             </div>
           </div>
-          <div className="tabs-y-distribucion">
-            <nav className="section-tabs" aria-label="Secciones del cuaderno">
-              {/* <span className="section-tabs-label">Secciones</span> */}
-              {sistema.sections.map((otra, indice) => (
-                <div
-                  key={otra.id}
-                  style={varsDeColor(
-                    COLORES_DE_SECCION[indice % COLORES_DE_SECCION.length] ?? 'orange',
-                  )}
-                  data-color={COLORES_DE_SECCION[indice % COLORES_DE_SECCION.length]}
-                  className={`section-tab ${otra.id === seccion.id ? 'active' : ''} ${arrastre.sobre?.destino === otra.id ? 'drop-active' : ''}`
-                    .replace(/\s+/g, ' ')
-                    .trim()}
-                  data-drop-section={otra.id}
-                >
-                  <button
-                    type="button"
-                    aria-current={otra.id === seccion.id ? 'page' : 'false'}
-                    onClick={() => elegirSeccion(otra.id)}
+          {/* Con una sola sección no hace falta la barra: se agrega otra desde el ícono «Agregar y organizar». */}
+          {sistema.sections.length > 1 && (
+            <div className="tabs-y-distribucion">
+              <nav className="section-tabs" aria-label="Secciones del cuaderno">
+                {sistema.sections.map((otra, indice) => (
+                  <div
+                    key={otra.id}
+                    style={varsDeColor(
+                      COLORES_DE_SECCION[indice % COLORES_DE_SECCION.length] ?? 'orange',
+                    )}
+                    data-color={COLORES_DE_SECCION[indice % COLORES_DE_SECCION.length]}
+                    className={`section-tab ${otra.id === seccion.id ? 'active' : ''} ${arrastre.sobre?.destino === otra.id ? 'drop-active' : ''}`
+                      .replace(/\s+/g, ' ')
+                      .trim()}
+                    data-drop-section={otra.id}
                   >
-                    {otra.name}
-                    <span className="section-tab-cuenta" aria-hidden="true">
-                      {otra.blocks.length}
-                    </span>
-                  </button>
-                </div>
-              ))}
-              <IconBtn
-                name="plus"
-                label="Agregar una sección"
-                onClick={() => abrirModal({ tipo: 'agregarSeccion' })}
-              />
-            </nav>
-            <LayoutToolbar
-              compacta
-              distribucion={sistema.layout}
-              onElegir={(distribucion: Distribucion) => aplicarDistribucion(distribucion)}
-            />
-          </div>
+                    <button
+                      type="button"
+                      aria-current={otra.id === seccion.id ? 'page' : 'false'}
+                      onClick={() => elegirSeccion(otra.id)}
+                    >
+                      {otra.name}
+                      <span className="section-tab-cuenta" aria-hidden="true">
+                        {otra.blocks.length}
+                      </span>
+                    </button>
+                  </div>
+                ))}
+              </nav>
+            </div>
+          )}
           {hayEjemplos && (
             <div className="sample-data-banner">
               <Icon name="help" />
@@ -284,7 +257,6 @@ export function SistemaPage() {
               </button>
             </div>
           )}
-          <FranjaDeSami sistemaId={sistema.id} />
           <div
             className={`canvas-grid ${arrastre.sobre?.destino === '#canvas-drop' ? 'drop-active' : ''}`.trim()}
             id="canvas-drop"
@@ -364,15 +336,7 @@ export function SistemaPage() {
         </div>
         {bloqueElegido && <Inspector bloque={bloqueElegido} sistema={sistema} />}
       </main>
-      <button
-        type="button"
-        className="sami-float"
-        aria-label="¿Una mano con esto?"
-        title="¿Una mano con esto?"
-        onClick={() => abrirModal({ tipo: 'ayuda' })}
-      >
-        <img className="sami-float-img" src="/mockup/sami-boton.webp" alt="" />
-      </button>
+      <SamiFlotante sistemaId={sistema.id} />
       {tablaCompleta && (
         <TablaCompleta key={tablaCompleta.id} bloque={tablaCompleta} sistema={sistema} />
       )}

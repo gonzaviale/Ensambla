@@ -81,7 +81,9 @@ export function PanelDeAvisos() {
     ...cuadernos,
   ];
   const cuaderno = cuadernos.has(panel.cuaderno) ? panel.cuaderno : 'todos';
-  const delCuaderno = avisos.filter((aviso) => cuaderno === 'todos' || aviso.sistemaId === cuaderno);
+  const delCuaderno = avisos.filter(
+    (aviso) => cuaderno === 'todos' || aviso.sistemaId === cuaderno,
+  );
 
   const urgentes = delCuaderno.filter((aviso) => aviso.prioridad >= 2).length;
   const muyUrgentes = delCuaderno.filter((aviso) => aviso.prioridad === 3);
@@ -126,18 +128,6 @@ export function PanelDeAvisos() {
         </div>
       </div>
       <InvitacionConfigurarComercio visible={faltaConfiguracion} />
-      <button
-        type="button"
-        className="alertas-preguntar"
-        onClick={() => void navegacion.irATaller()}
-      >
-        <img src="/mockup/sami-boton.webp" alt="" />
-        <span>
-          <strong>Preguntale a Sami</strong>
-          <small>Armá o ajustá tus tablas charlando con Sami.</small>
-        </span>
-        <Icon name="arrow" />
-      </button>
       <div className="alertas-cinta">
         <button
           type="button"
@@ -279,6 +269,9 @@ export function PanelDeAvisos() {
             Crear un almacén de ejemplo para probar
           </button>
         )}
+        <button type="button" className="text-link" onClick={acciones.crearDemoCargado}>
+          Cargar un almacén con muchos datos
+        </button>
       </div>
       <ContenidoPremium acceso={acceso} recurso="avisos" compacto />
     </section>
