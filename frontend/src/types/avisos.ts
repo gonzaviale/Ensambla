@@ -4,8 +4,10 @@ import { z } from 'zod';
 // en el servidor: el motor corre solo, y aplicar o descartar se guarda en la cuenta.
 export const accionDelServidorSchema = z
   .object({
-    tipo: z.enum(['EDITAR_REGISTRO', 'CREAR_REGISTRO', 'REGISTRAR', 'ABRIR']),
+    tipo: z.enum(['EDITAR_REGISTRO', 'CREAR_REGISTRO', 'REGISTRAR', 'ABRIR', 'VER_ZONA']),
     texto: z.string().optional(),
+    /** El producto de la zona que abre «Ver en Mi zona». */
+    producto: z.string().optional(),
     proyectoId: z.string().optional(),
     bloqueId: z.string().optional(),
     registroId: z.string().optional(),

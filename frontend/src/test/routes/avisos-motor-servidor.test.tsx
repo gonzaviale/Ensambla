@@ -34,9 +34,9 @@ const abrirAlmacen = async () => {
 const delNavegador = (tipo: string) =>
   useSistemaStore.getState().avisos.some((aviso) => aviso.tipo === tipo && !aviso.servidorId);
 
-// Algún aviso calculado en el navegador, de un tipo que el servidor no genera (combo, lo que pide la zona): sirve
-// para saber que los del navegador ya llegaron.
-const hayDelNavegador = () => useSistemaStore.getState().avisos.some((aviso) => !aviso.servidorId);
+// Con el motor activo el servidor genera todos los tipos y el navegador no muestra ninguno propio: se espera a que el
+// plan haya habilitado los avisos (el acceso se resolvió) para saber que los del navegador ya tuvieron su oportunidad.
+const hayDelNavegador = () => useSistemaStore.getState().accesoAvisos !== null;
 
 describe('avisos con el motor del servidor activo', () => {
   it('un aviso de estancado descartado no vuelve como copia del navegador', async () => {

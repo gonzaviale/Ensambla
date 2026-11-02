@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.aviso.ReglaAviso;
 import com.ensambla.backend.domain.model.aviso.ReglaComboBajaRotacion;
 import com.ensambla.backend.domain.model.aviso.ReglaPrecioZona;
 import com.ensambla.backend.domain.model.aviso.ReglaProductoAltaRotacion;
+import com.ensambla.backend.domain.model.aviso.ReglaProductoDeLaZona;
 import com.ensambla.backend.domain.model.aviso.ReglaProductoEstancado;
 import com.ensambla.backend.domain.model.aviso.ReglaRevisarPrecioTrasAumento;
 import com.ensambla.backend.domain.model.aviso.ReglaStockBajo;
@@ -130,6 +131,14 @@ public class AvisoUseCaseConfig {
     @Bean
     public ReglaPrecioZona reglaPrecioZona() {
         return new ReglaPrecioZona();
+    }
+
+    /** La popularidad mínima y el máximo de avisos salen de {@code ensambla.avisos.consumo-zona.*}. */
+    @Bean
+    public ReglaProductoDeLaZona reglaProductoDeLaZona(
+            @Value("${ensambla.avisos.consumo-zona.popularidad-minima:0.6}") BigDecimal popularidadMinima,
+            @Value("${ensambla.avisos.consumo-zona.maximo:2}") int maximo) {
+        return new ReglaProductoDeLaZona(popularidadMinima, maximo);
     }
 
     /** La frecuencia mínima del par y el descuento salen de {@code ensambla.avisos.combo.*}. */

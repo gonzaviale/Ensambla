@@ -24,6 +24,8 @@ function aAccion(accion: AccionDelServidor, avisoId: string): AccionDeAviso {
         avisoId,
         confirmacion: 'Listo, lo creamos.',
       };
+    case 'VER_ZONA':
+      return { tipo: 'zona', texto: accion.texto ?? 'Ver en Mi zona', producto: accion.producto };
     case 'REGISTRAR':
       return { tipo: 'registrar', texto: accion.texto ?? 'Registrar entrada', sistemaId, bloqueId };
     case 'ABRIR':
@@ -67,6 +69,7 @@ export const TIPOS_DEL_MOTOR: ReadonlySet<TipoDeAviso> = new Set<TipoDeAviso>([
   'muy_vendido',
   'revisar_precio',
   'combo',
+  'consumo_zona',
 ]);
 
 /**

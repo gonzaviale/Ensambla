@@ -112,6 +112,31 @@ entran en la huella.
 | `ensambla.avisos.combo.frecuencia-minima` | `3` | Canastas en las que tiene que aparecer el par |
 | `ensambla.avisos.combo.descuento` | `0.1` | Fracción que se descuenta de la suma de los precios (0,1 = 10 %) |
 
+## CONSUMO_ZONA · Lo que pide la zona y el negocio no tiene (`ReglaProductoDeLaZona`)
+
+Sugiere sumar al inventario los productos que más se venden en la zona y que el negocio todavía no ofrece.
+
+**Ranking** (`AnalisisZona.masVendidos()`): los productos de los agregados de la zona que venden al menos 3 comercios, primero los que más
+comercios venden y, a igualdad, los que más unidades por semana mueven. Con menos de 3 comercios en la zona no hay ranking, y nunca incluye
+ids ni ventas de un comercio. Es **por zona**: `agregado_zona_producto` no guarda el rubro, así que todavía no se filtra por rubro.
+
+**Regla:**
+
+- Cuenta sólo los que vende al menos `consumo-zona.popularidad-minima` de los comercios de la zona (60 %).
+- Saca los que el negocio ya tiene en cualquiera de sus tablas de inventario: se considera el mismo producto si el nombre del negocio empieza
+  por una palabra que también está en el de la zona, ignorando tildes, plurales, números, palabras de menos de tres letras y las de relleno
+  (de, del, con, pack, unidad…). Por eso «Café Cabrales 500 g» tapa a «Café La Virginia 250 g».
+- Avisa de los primeros `consumo-zona.maximo` (2). Sin tabla de inventario donde sumarlo no avisa.
+
+El aviso muestra «N de M comercios lo venden, a $P en promedio» y las unidades por semana: sólo agregados. La acción «Sumar a mi inventario» es
+un `CREAR_REGISTRO` (nombre, cantidad 0, precio = promedio redondeado a la decena y mínimo 5) y «Ver en Mi zona» es un `VER_ZONA` que sólo abre
+la pantalla de la zona. La entidad es `zona:<nombre normalizado>` y los datos `{nombre, precio}`.
+
+| Propiedad | Por defecto | Qué hace |
+|---|---|---|
+| `ensambla.avisos.consumo-zona.popularidad-minima` | `0.6` | Fracción de los comercios de la zona que tienen que vender el producto |
+| `ensambla.avisos.consumo-zona.maximo` | `2` | Cuántos avisos como máximo por negocio |
+
 ## Historial de precio y REVISAR_PRECIO · Las ventas cayeron después de un aumento (`ReglaRevisarPrecioTrasAumento`)
 
 Cada vez que cambia el precio (`price`) de un producto **del inventario**, `RegistroDatosService.editar` anota el cambio en la tabla
@@ -165,7 +190,7 @@ pantalla dice «vendés $X más por semana que antes de aplicar los avisos» y n
 El frontend (`useMotorDeAvisos`) junta los avisos del servidor con los que Sami calcula en el navegador. Para no duplicar ni resucitar
 avisos descartados:
 
-- Con el **backend real** (`VITE_API_MOCKS` distinto de `completo`), los tipos `stock`, `estancado`, `precio_zona`, `muy_vendido`, `revisar_precio` y `combo` son **siempre del servidor**, también
+- Con el **backend real** (`VITE_API_MOCKS` distinto de `completo`), los tipos `stock`, `estancado`, `precio_zona`, `muy_vendido`, `revisar_precio`, `combo` y `consumo_zona` (todos) son **siempre del servidor**, también
   mientras todavía no contestó: el navegador no lo calcula. Así un aviso descartado o aplicado no reaparece como copia local, y no hay un
   parpadeo de avisos duplicados al abrir la pantalla.
 - Los demás tipos que el servidor trae (por ejemplo `stock`) también se omiten en el navegador mientras haya alguno pendiente.

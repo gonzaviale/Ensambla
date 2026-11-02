@@ -35,6 +35,15 @@ final class AccionesAviso {
         return accion;
     }
 
+    /** Lleva a la pantalla de la zona, filtrando por un producto; no cambia ningún dato. */
+    static Map<String, Object> verZona(String texto, String producto) {
+        Map<String, Object> accion = new LinkedHashMap<>();
+        accion.put("tipo", "VER_ZONA");
+        accion.put("texto", texto);
+        accion.put("producto", producto);
+        return accion;
+    }
+
     /** Cambia el precio del producto al sugerido cuando la persona la aplica. */
     static Map<String, Object> cambiarPrecio(BloqueInventario inventario, RegistroId registroId, String texto,
                                              BigDecimal sugerido) {

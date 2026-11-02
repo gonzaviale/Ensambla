@@ -42,6 +42,21 @@ public record AnalisisZona(String nombre, long comercios, List<AgregadoZonaProdu
                 .findFirst();
     }
 
+    /**
+     * El ranking de lo que más se vende en la zona: sólo los productos que venden {@link #MINIMO_COMERCIOS} comercios o
+     * más, primero los que más comercios venden y, a igualdad, los que más unidades por semana mueven. Con menos
+     * comercios en la zona no hay ranking: dejaría adivinar qué vende cada uno.
+     */
+    public List<AgregadoZonaProducto> masVendidos() {
+        if (comercios < MINIMO_COMERCIOS) {
+            return List.of();
+        }
+        List<AgregadoZonaProducto> anonimos = productos.stream()
+                .filter(producto -> producto.comerciosVenden() >= MINIMO_COMERCIOS)
+                .toList();
+        return new AnalisisZona(nombre, comercios, anonimos).ordenadoPorVentas().productos();
+    }
+
     /** Primero los que más comercios venden y, a igualdad, los que más unidades por semana mueven. */
     public AnalisisZona ordenadoPorVentas() {
         List<AgregadoZonaProducto> ordenados = productos.stream()

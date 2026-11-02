@@ -203,7 +203,7 @@ se vuelve a crear.
 **Motor de monitoreo.** `MonitoreoAvisosWorker` corre `EjecutarMotorAvisos` cada `ensambla.avisos.motor.intervalo` ms
 (5 minutos por defecto; se apaga con `ensambla.avisos.motor.habilitado=false`). `MotorAvisosService` recibe todas las `ReglaAviso`
 registradas como bean, así que una regla nueva no toca el motor. Por cada negocio crea los avisos nuevos, actualiza los que
-cambiaron, reactiva los vencidos y vence los pendientes que la regla ya no detecta. Las reglas actuales (`ReglaStockBajo`, `ReglaProductoEstancado`, `ReglaPrecioZona`, `ReglaProductoAltaRotacion`, `ReglaRevisarPrecioTrasAumento`, `ReglaComboBajaRotacion`) están descriptas en [`avisos-reglas.md`](avisos-reglas.md).
+cambiaron, reactiva los vencidos y vence los pendientes que la regla ya no detecta. Las reglas actuales (`ReglaStockBajo`, `ReglaProductoEstancado`, `ReglaPrecioZona`, `ReglaProductoAltaRotacion`, `ReglaRevisarPrecioTrasAumento`, `ReglaComboBajaRotacion`, `ReglaProductoDeLaZona`) están descriptas en [`avisos-reglas.md`](avisos-reglas.md).
 
 **Historial de precio (V22).** `historial_precio` guarda cada cambio del precio de un producto del inventario: `registro_id` (se borra en
 cascada con el registro), `precio_anterior` (null en el primer precio), `precio_nuevo` (positivo) y `cambiado_en`, con un índice por
@@ -212,7 +212,7 @@ cascada con el registro), `precio_anterior` (null en el primer precio), `precio_
 
 **API.** `GET /api/avisos[?estado=]` (pendientes primero, del más urgente al menos urgente), `GET /api/avisos/contador`,
 `POST /api/avisos/{id}/aplicar` y `POST /api/avisos/{id}/descartar`. Aplicar ejecuta la acción sugerida (`EDITAR_REGISTRO` cambia
-valores de un registro por clave de campo; `CREAR_REGISTRO` suma una fila, como el combo; `REGISTRAR` y `ABRIR` son atajos de pantalla) y marca el aviso como aplicado en la misma
+valores de un registro por clave de campo; `CREAR_REGISTRO` suma una fila, como el combo; `REGISTRAR`, `ABRIR` y `VER_ZONA` son atajos de pantalla) y marca el aviso como aplicado en la misma
 transacción. Un aviso de otro negocio responde 404.
 
 ## Carga por WhatsApp (V20)

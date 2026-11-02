@@ -32,6 +32,15 @@ class ResultadoReglaTest {
     }
 
     @Test
+    @DisplayName("La entidad de un producto de la zona es su nombre sin tildes ni mayúsculas, y no apunta a un registro")
+    void entidadDeZonaShouldUseTheNormalizedName() {
+        assertThat(ResultadoRegla.entidadDeZona("Café La Virginia 250 g"))
+                .isEqualTo(ResultadoRegla.entidadDeZona("CAFE LA VIRGINIA 250 G"));
+        assertThat(ResultadoRegla.entidadDeZona("Café")).startsWith("zona:");
+        assertThat(ResultadoRegla.registroDe(ResultadoRegla.entidadDeZona("Café"))).isEmpty();
+    }
+
+    @Test
     @DisplayName("La entidad de un combo no apunta a un producto solo")
     void registroDeShouldBeEmptyForComboEntity() {
         RegistroId mayor = RegistroId.de("d0000000-0000-4000-8000-000000000002");
