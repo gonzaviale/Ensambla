@@ -23,7 +23,7 @@ import {
   deshacerCambio,
   pedirQuitarEjemplos,
 } from '@/stores/accionesDelEditor';
-import { MODO_EN_LA_URL, useNavegacion } from '@/hooks/sistemas/useNavegacion';
+import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useArrastreDelEditor } from '@/hooks/sistemas/useArrastreDelEditor';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import {
@@ -31,18 +31,12 @@ import {
   seleccionarSeccionActiva,
   seleccionarSistemaActivo,
   useSistemaStore,
-  type ModoDelEditor,
 } from '@/stores/sistemaStore';
 
 const ruta = getRouteApi('/_app/sistemas/$sistemaId');
 
 // Cada sección lleva un color de la paleta, en orden, para distinguirlas de un vistazo.
 const COLORES_DE_SECCION: Color[] = ['orange', 'blue', 'coral', 'petrol', 'yellow'];
-
-const MODO_DE_LA_URL: Record<'construir' | 'usar', ModoDelEditor> = {
-  construir: 'build',
-  usar: 'use',
-};
 
 // Si «Tus piezas» quedó fijada al costado se recuerda en este navegador; si no se puede leer, flota.
 const CLAVE_PIEZAS_FIJAS = 'ensambla.piezasFijas';
@@ -61,10 +55,10 @@ function guardarPiezasFijas(fijada: boolean) {
   }
 }
 
-// Construir y Usar un sistema: biblioteca de piezas, lienzo con bloques, secciones e inspector.
+// El cuaderno: lienzo con bloques y datos siempre a mano; «Editar cuaderno» suma la biblioteca de piezas, las
+// secciones y el inspector sin cambiar de pantalla.
 export function SistemaPage() {
   const { sistemaId } = ruta.useParams();
-  const { modo: modoDeLaUrl } = ruta.useSearch();
   const navigate = useNavigate();
   const navegacion = useNavegacion();
 
@@ -73,7 +67,6 @@ export function SistemaPage() {
   const sistema = useSistemaStore(seleccionarSistemaActivo);
   const seccion = useSistemaStore(seleccionarSeccionActiva);
   const bloqueElegido = useSistemaStore(seleccionarBloqueElegido);
-  const modo = useSistemaStore((estado) => estado.modo);
   const listo = useSistemaStore((estado) => estado.listo);
   const tablaCompletaId = useSistemaStore((estado) => estado.tablaCompletaId);
   const seleccionadoId = useSistemaStore((estado) => estado.selectedId);
@@ -88,16 +81,13 @@ export function SistemaPage() {
 
   useTituloPagina(sistema?.name ?? 'Mi cuaderno');
 
-  // La dirección manda: abrir el sistema de la URL y seguir el modo que ella diga.
+  // Un cuaderno se abre siempre con las herramientas de armado a mano (el ?modo= de la dirección ya no cambia nada).
   useEffect(() => {
     if (!existe) return;
     const estado = useSistemaStore.getState();
-    if (estado.activeId !== sistemaId) estado.abrirSistema(sistemaId, MODO_DE_LA_URL[modoDeLaUrl]);
-    else if (estado.modo !== MODO_DE_LA_URL[modoDeLaUrl]) {
-      useSistemaStore.setState({ listo: false });
-      estado.cambiarModo(MODO_DE_LA_URL[modoDeLaUrl]);
-    }
-  }, [existe, sistemaId, modoDeLaUrl]);
+    if (estado.activeId !== sistemaId) estado.abrirSistema(sistemaId, 'build');
+    else if (estado.modo !== 'build') estado.cambiarModo('build');
+  }, [existe, sistemaId]);
 
   // Un sistema que ya no existe lleva al inicio, como el mockup.
   useEffect(() => {
@@ -127,24 +117,11 @@ export function SistemaPage() {
 
   if (!existe || !sistema || activoId !== sistemaId || !seccion) return null;
 
-  const cambiarModo = (siguiente: ModoDelEditor) => {
-    useSistemaStore.setState({ listo: false });
-    useSistemaStore.getState().cerrarModal();
-    useSistemaStore.getState().cambiarModo(siguiente);
-    void navigate({
-      to: '/sistemas/$sistemaId',
-      params: { sistemaId },
-      search: { modo: MODO_EN_LA_URL[siguiente] },
-      replace: true,
-    });
-  };
-
   const hayEjemplos = allBlocks(sistema).some((bloque) =>
     bloque.rows.some((fila) => fila.__example),
   );
   const tablaCompleta = findBlock(sistema, tablaCompletaId ?? undefined);
   const bloques = seccion.blocks;
-  const construyendo = modo === 'build';
 
   return (
     <>
@@ -152,52 +129,46 @@ export function SistemaPage() {
       <main
         id="main"
         tabIndex={-1}
-        className={`editor-layout ${modo === 'use' ? 'using' : ''} ${construyendo && bibliotecaFijada ? 'con-piezas-fijas' : ''}`
+        className={`editor-layout ${bibliotecaFijada ? 'con-piezas-fijas' : ''}`
           .replace(/\s+/g, ' ')
           .trim()}
       >
-        {construyendo && (
-          <BibliotecaDeBloques
-            abierta={bibliotecaAbierta}
-            fijada={bibliotecaFijada}
-            onCerrar={() => setBibliotecaAbierta(false)}
-            onFijar={(fijada) => {
-              setBibliotecaFijada(fijada);
-              guardarPiezasFijas(fijada);
-              setBibliotecaAbierta(false);
-            }}
-            onArrastrar={arrastre.alArrastrar}
-            onFinArrastre={arrastre.limpiar}
-          />
-        )}
+        <BibliotecaDeBloques
+          abierta={bibliotecaAbierta}
+          fijada={bibliotecaFijada}
+          onCerrar={() => setBibliotecaAbierta(false)}
+          onFijar={(fijada) => {
+            setBibliotecaFijada(fijada);
+            guardarPiezasFijas(fijada);
+            setBibliotecaAbierta(false);
+          }}
+          onArrastrar={arrastre.alArrastrar}
+          onFinArrastre={arrastre.limpiar}
+        />
         <div className="canvas-area" onDragOver={arrastre.alPasarPor} onDrop={arrastre.alSoltar}>
           <EncabezadoDelEditor
             nombre={sistema.name}
-            modo={modo}
             guardando={guardando}
             puedeDeshacer={hayHistorial}
             onCuadernos={() => void navegacion.irAMisSistemas()}
-            onModo={cambiarModo}
             onDeshacer={deshacerCambio}
           />
-          {listo && modo === 'use' && (
+          {listo && (
             <CierreDeCreacion
               sistema={sistema}
               onRegistrar={(bloqueId) => abrirModal({ tipo: 'registro', bloqueId })}
-              onPersonalizar={() => cambiarModo('build')}
+              onPersonalizar={() => useSistemaStore.getState().descartarCartelListo()}
               onAjustarConSami={() => void navegacion.ajustarConSami(sistema.id)}
               onCerrar={() => useSistemaStore.getState().descartarCartelListo()}
             />
           )}
           <div className="canvas-heading">
             <div className="canvas-titulo">
-              <span className={`canvas-titulo-icono ${construyendo ? '' : 'usando'}`.trim()}>
-                <Icon name={construyendo ? 'tools' : 'grid'} />
+              <span className="canvas-titulo-icono usando">
+                <Icon name="grid" />
               </span>
               <div>
-                <span className="canvas-etiqueta">
-                  {construyendo ? 'Gestión de tablas · Armado' : 'Gestión de tablas · Uso diario'}
-                </span>
+                <span className="canvas-etiqueta">Gestión de tablas</span>
                 <h1>
                   <button
                     type="button"
@@ -207,11 +178,7 @@ export function SistemaPage() {
                     {sistema.name} <Icon name="edit" />
                   </button>
                 </h1>
-                <p>
-                  {construyendo
-                    ? 'Sumá tablas, movelas entre secciones y elegí qué datos guarda cada una.'
-                    : 'Cargá registros, buscá lo que necesitás y revisá cómo viene tu negocio.'}
-                </p>
+                <p>Sumá tablas, cargá registros y revisá cómo viene tu negocio.</p>
                 <div className="canvas-cifras">
                   <span data-color="orange">
                     <strong>{allBlocks(sistema).length}</strong> tablas
@@ -226,21 +193,17 @@ export function SistemaPage() {
               </div>
             </div>
             <div className="canvas-heading-actions">
-              {construyendo && (
-                <Btn
-                  cls="secondary mobile-blocks"
-                  data-accion="mobile-library"
-                  data-tour="agregar-pieza-movil"
-                  onClick={() => setBibliotecaAbierta((abierta) => !abierta)}
-                >
-                  <Icon name="plus" /> Bloques
-                </Btn>
-              )}
-              {construyendo && (
-                <Btn cls="secondary" onClick={() => abrirModal({ tipo: 'secciones' })}>
-                  <Icon name="folder" /> Secciones
-                </Btn>
-              )}
+              <Btn
+                cls="secondary mobile-blocks"
+                data-accion="mobile-library"
+                data-tour="agregar-pieza-movil"
+                onClick={() => setBibliotecaAbierta((abierta) => !abierta)}
+              >
+                <Icon name="plus" /> Bloques
+              </Btn>
+              <Btn cls="secondary" onClick={() => abrirModal({ tipo: 'secciones' })}>
+                <Icon name="folder" /> Secciones
+              </Btn>
               <button
                 type="button"
                 className="foto-redonda"
@@ -257,11 +220,13 @@ export function SistemaPage() {
               >
                 <Icon name="camera" />
               </button>
-              {!construyendo && (
-                <Btn cls="secondary" data-accion="resumen-pdf" onClick={() => abrirModal({ tipo: 'resumen' })}>
-                  <Icon name="download" /> Resumen en PDF
-                </Btn>
-              )}
+              <Btn
+                cls="secondary"
+                data-accion="resumen-pdf"
+                onClick={() => abrirModal({ tipo: 'resumen' })}
+              >
+                <Icon name="download" /> Resumen en PDF
+              </Btn>
               <Btn
                 cls="secondary"
                 data-accion="ajustar-con-sami"
@@ -298,21 +263,17 @@ export function SistemaPage() {
                   </button>
                 </div>
               ))}
-              {construyendo && (
-                <IconBtn
-                  name="plus"
-                  label="Agregar una sección"
-                  onClick={() => abrirModal({ tipo: 'agregarSeccion' })}
-                />
-              )}
-            </nav>
-            {construyendo && (
-              <LayoutToolbar
-                compacta
-                distribucion={sistema.layout}
-                onElegir={(distribucion: Distribucion) => aplicarDistribucion(distribucion)}
+              <IconBtn
+                name="plus"
+                label="Agregar una sección"
+                onClick={() => abrirModal({ tipo: 'agregarSeccion' })}
               />
-            )}
+            </nav>
+            <LayoutToolbar
+              compacta
+              distribucion={sistema.layout}
+              onElegir={(distribucion: Distribucion) => aplicarDistribucion(distribucion)}
+            />
           </div>
           {hayEjemplos && (
             <div className="sample-data-banner">
@@ -335,7 +296,7 @@ export function SistemaPage() {
                   key={bloque.id}
                   bloque={bloque}
                   sistema={sistema}
-                  modo={modo}
+                  modo="build"
                   seleccionado={seleccionadoId === bloque.id}
                   primero={indice === 0}
                   ultimo={indice === bloques.length - 1}
@@ -363,33 +324,26 @@ export function SistemaPage() {
                 </div>
                 <h2>Este espacio lo armás vos.</h2>
                 <p>
-                  {construyendo
-                    ? 'Traé un bloque desde la izquierda o elegí uno acá. Los campos ya vienen preparados.'
-                    : 'Esta sección todavía no tiene bloques. Agregá uno para empezar a registrar.'}
+                  Traé un bloque desde la izquierda o elegí uno acá. Los campos ya vienen
+                  preparados.
                 </p>
                 <div className="row">
-                  {construyendo ? (
-                    (['inventory', 'orders', 'clients'] as TipoBloque[]).map((tipo) => (
-                      <Btn
-                        key={tipo}
-                        cls="secondary"
-                        data-accion="add-block"
-                        data-tour="agregar-pieza-vacio"
-                        onClick={() => agregarBloque(tipo)}
-                      >
-                        <Icon name={CATALOG[tipo].icon} /> {CATALOG[tipo].name}
-                      </Btn>
-                    ))
-                  ) : (
-                    <Btn cls="primary" data-accion="mode" onClick={() => cambiarModo('build')}>
-                      Agregar mi primer bloque
+                  {(['inventory', 'orders', 'clients'] as TipoBloque[]).map((tipo) => (
+                    <Btn
+                      key={tipo}
+                      cls="secondary"
+                      data-accion="add-block"
+                      data-tour="agregar-pieza-vacio"
+                      onClick={() => agregarBloque(tipo)}
+                    >
+                      <Icon name={CATALOG[tipo].icon} /> {CATALOG[tipo].name}
                     </Btn>
-                  )}
+                  ))}
                 </div>
               </div>
             )}
           </div>
-          {construyendo && bloques.length > 0 && (
+          {bloques.length > 0 && (
             <>
               <button
                 type="button"
@@ -407,7 +361,7 @@ export function SistemaPage() {
             </>
           )}
         </div>
-        {construyendo && bloqueElegido && <Inspector bloque={bloqueElegido} sistema={sistema} />}
+        {bloqueElegido && <Inspector bloque={bloqueElegido} sistema={sistema} />}
       </main>
       <SamiFlotante sistemaId={sistema.id} />
       {tablaCompleta && (

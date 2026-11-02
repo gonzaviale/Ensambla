@@ -147,7 +147,7 @@ describe('modales', () => {
     expect(boton).toHaveFocus();
   });
 
-  it('el lienzo en blanco crea un sistema vacío en modo Construir', async () => {
+  it('el lienzo en blanco crea un sistema vacío en modo edición', async () => {
     const { user } = await abrirInicio();
 
     await clickButton(user, /Empezar de cero/);

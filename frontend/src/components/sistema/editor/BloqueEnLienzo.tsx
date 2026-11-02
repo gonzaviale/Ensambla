@@ -315,7 +315,7 @@ export function BloqueEnLienzo({
         <Resumen sistema={sistema} />
       ) : bloque.type === 'note' ? (
         <div className="note-content">{bloque.content}</div>
-      ) : bloque.type === 'form' && modo === 'use' ? (
+      ) : bloque.type === 'form' ? (
         <>
           <FormularioEnLinea bloque={bloque} sistema={sistema} />
           <Registros bloque={bloque} sistema={sistema} consulta="" />

@@ -154,8 +154,8 @@
   font-weight: 800;
 }
 .landing .ens-demo-section .ens-demo-badge {
-  color: var(--ens-ink);
-  background: var(--ens-yellow);
+  color: #fff;
+  background: var(--ens-yellow-dark);
   border-radius: 5px;
   padding: 2px 7px;
   font-size: 14px;

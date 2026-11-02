@@ -135,13 +135,13 @@ describe('el resumen del negocio en PDF', () => {
     ).toBeVisible();
   });
 
-  it('el botón sólo aparece al usar el sistema, no al armarlo', async () => {
+  it('el botón también está al editar el cuaderno', async () => {
     const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
     const sistema = crearAlmacenDeEjemplo(hoy());
     estado.sistemas.set(usuario.email, [sistema]);
     renderApp(`/sistemas/${sistema.id}?modo=construir`);
     await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
 
-    expect(screen.queryByRole('button', { name: /Resumen en PDF/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Resumen en PDF/ })).toBeVisible();
   });
 });

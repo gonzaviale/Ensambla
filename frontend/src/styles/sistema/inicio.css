@@ -161,16 +161,6 @@ body:has(.inicio) {
 .inicio-ficha:focus-visible .inicio-ficha-flecha {
   transform: translateX(4px);
 }
-/* Sobre amarillo el blanco no se lee: el texto va en petróleo y el ícono blanco sobre un círculo petróleo. */
-.inicio-ficha[data-color='yellow'] {
-  color: var(--petrol);
-}
-.inicio-ficha[data-color='yellow'] .inicio-ficha-icono {
-  background: var(--petrol);
-}
-.inicio-ficha[data-color='yellow'] .inicio-ficha-flecha {
-  color: var(--petrol);
-}
 
 /* Otras herramientas: botones redondos de color, sin caja alrededor */
 .inicio-atajos {
@@ -303,9 +293,6 @@ body:has(.inicio) {
   font-size: 12px;
   opacity: 0.9;
 }
-.inicio-cuaderno[data-color='yellow'] {
-  color: var(--petrol);
-}
 
 /* Plantillas: tarjetas de color */
 .inicio-plantillas {
@@ -394,19 +381,6 @@ body:has(.inicio) {
 .inicio-plantilla-ver:hover .icon,
 .inicio-plantilla-ver:focus-visible .icon {
   transform: translateX(3px);
-}
-.inicio-plantilla[data-color='yellow'] {
-  color: var(--petrol);
-}
-.inicio-plantilla[data-color='yellow'] .inicio-plantilla-icono {
-  background: var(--petrol);
-  color: #fff;
-}
-.inicio-plantilla[data-color='yellow'] .inicio-plantilla-piezas li {
-  background: rgb(255 255 255 / 0.45);
-}
-.inicio-plantilla[data-color='yellow'] .inicio-plantilla-ver {
-  color: var(--petrol);
 }
 
 /* Ejemplo: el sistema de muestra, en blanco */
@@ -508,8 +482,8 @@ body:has(.inicio) {
   gap: 6px;
   padding: 4px 12px;
   border-radius: 999px;
-  background: var(--yellow);
-  color: var(--petrol);
+  background: var(--yellow-dark);
+  color: #fff;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;

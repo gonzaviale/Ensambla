@@ -209,16 +209,6 @@ body:has(.editor-layout) {
 .library-item > .icon {
   color: #fff;
 }
-/* Sobre amarillo el blanco no se lee: texto en petróleo y el ícono blanco sobre un cuadrado petróleo. */
-.library-item[data-color='yellow'] {
-  color: var(--petrol);
-}
-.library-item[data-color='yellow'] .icon-tile {
-  background: var(--petrol);
-}
-.library-item[data-color='yellow'] > .icon {
-  color: var(--petrol);
-}
 .block-library .library-tip {
   background: #fff;
   border: 1.5px solid var(--line);
@@ -256,8 +246,8 @@ body:has(.editor-layout) {
   display: inline-block;
   padding: 3px 10px;
   border-radius: 999px;
-  background: var(--yellow);
-  color: var(--petrol);
+  background: #ba9500;
+  color: #fff;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.4px;
@@ -377,20 +367,6 @@ body:has(.editor-layout) {
 .section-tab:not(.active):hover {
   background: var(--tint);
 }
-.section-tab[data-color='yellow'].active > button:first-child,
-.section-tab[data-color='yellow'].active .icon-btn {
-  color: var(--petrol);
-}
-.section-tab[data-color='yellow'].active > button:first-child::before {
-  background: var(--petrol);
-}
-.section-tab[data-color='yellow'] .section-tab-cuenta {
-  color: var(--petrol);
-}
-.section-tab[data-color='yellow'].active .section-tab-cuenta {
-  background: var(--petrol);
-  color: #fff;
-}
 .section-tabs > .icon-btn {
   margin-bottom: 0;
   border: 1.5px dashed var(--line);
@@ -440,14 +416,6 @@ body:has(.editor-layout) {
 }
 .block-tools .icon-btn:disabled {
   opacity: 0.4;
-}
-.block[data-color='yellow'] .block-head,
-.block[data-color='yellow'] .block-tools .icon-btn {
-  color: var(--petrol);
-}
-.block[data-color='yellow'] .block-head .icon-tile {
-  background: var(--petrol);
-  color: #fff;
 }
 .block-width-row {
   border-bottom-color: var(--line);
@@ -502,9 +470,6 @@ body:has(.editor-layout) {
   background: var(--accent);
   color: #fff;
 }
-.block[data-color='yellow'] .block-bar .btn.soft {
-  color: var(--petrol);
-}
 
 /* Conjuntos listos: igual que las piezas, color lleno con íconos y texto en blanco */
 .section-preset {
@@ -530,12 +495,6 @@ body:has(.editor-layout) {
   font-size: 11px;
   color: inherit;
   opacity: 0.92;
-}
-.section-preset[data-color='yellow'] {
-  color: var(--petrol);
-}
-.section-preset[data-color='yellow'] .icon-tile {
-  background: var(--petrol);
 }
 
 /* «Distribuí tus piezas» va en la misma fila que las secciones, a la derecha */
@@ -642,12 +601,12 @@ body:has(.editor-layout) {
   color: #fff;
 }
 .system-ready .btn.primary {
-  background: var(--yellow);
-  color: var(--petrol);
-  box-shadow: 0 3px 0 #b89d1c;
+  background: var(--yellow-dark);
+  color: #fff;
+  box-shadow: 0 3px 0 #a67f00;
 }
 .system-ready .btn.primary:hover {
-  background: #f3d94f;
+  background: #f0c400;
 }
 .system-ready .btn.secondary {
   background: #fff;
@@ -1072,8 +1031,8 @@ body:has(.editor-layout) {
   background: var(--blue);
 }
 .field-type-badge[data-tipo='currency'] {
-  background: var(--yellow);
-  color: var(--petrol);
+  background: var(--yellow-dark);
+  color: #fff;
 }
 .field-type-badge[data-tipo='date'],
 .field-type-badge[data-tipo='time'],
@@ -1125,60 +1084,6 @@ body:has(.editor-layout) {
   flex-shrink: 0;
   width: 96px;
   height: auto;
-}
-
-/* Selector Construir / Usar sistema: un solo color (petróleo) que se desliza al modo elegido. */
-.mode-switch {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-  background: white;
-  border: 2px solid var(--petrol);
-  border-radius: 999px;
-  padding: 4px;
-}
-.mode-switch::before {
-  content: '';
-  position: absolute;
-  top: 4px;
-  bottom: 4px;
-  left: 4px;
-  width: calc(50% - 4px);
-  border-radius: 999px;
-  background: var(--petrol);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.mode-switch:has(button.active:last-child)::before {
-  transform: translateX(100%);
-}
-.mode-switch button {
-  position: relative;
-  z-index: 1;
-  justify-content: center;
-  border-radius: 999px;
-  background: transparent;
-  box-shadow: none;
-  color: var(--petrol);
-  font-size: 13px;
-  font-weight: 700;
-  transition: color 0.3s;
-}
-.mode-switch button.active {
-  background: transparent;
-  box-shadow: none;
-  color: white;
-}
-@media (max-width: 680px) {
-  .mode-switch button {
-    font-size: 11px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .mode-switch::before,
-  .mode-switch button {
-    transition: none;
-  }
 }
 
 /* Menú de arriba con la paleta: la sección actual en petróleo y una rayita celeste al pasar el mouse. */
