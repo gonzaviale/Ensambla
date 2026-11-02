@@ -42,7 +42,7 @@ entidades). Los tests unitarios no levantan nada; para la transacción usan `sup
 El worker está deshabilitado en el perfil de pruebas. Las pruebas llaman explícitamente al
 caso de uso o al repositorio y no dependen del reloj del scheduler.
 `ProcesamientoPostgresIntegrationTest` cubre reclamos/reservas concurrentes con dos conexiones,
-finalización idempotente, recuperación con token, cambio de día UTC y aislamiento.
+finalización idempotente, recuperación con token, cambio de día argentino y aislamiento.
 `LecturaSeguridadIntegrationTest` usa la cadena de seguridad real y PostgreSQL para verificar
 401/403/404, reintento y consumo del negocio autenticado.
 
@@ -75,7 +75,7 @@ temporales de pruebas, sin necesidad de aplicar cambios a la base local habitual
 ## Control por plan (ENS-95)
 
 - `PlanTest`, `SuscripcionTest` y `ControlPlanServiceTest`: cuotas, funciones habilitadas, vigencia
-  con inicio inclusivo y fin exclusivo, fallback al gratuito y mes calculado en UTC.
+  con inicio inclusivo y fin exclusivo, fallback al gratuito y mes calculado en hora argentina.
 - `ControlPlanPostgresIntegrationTest`: dos altas simultáneas de sistemas y registros, lotes completos,
   conservación de datos, concurrencia entre lectura inmediata y cola, reservas pendientes, cambio de mes,
   finalización tardía y consumo inmediato con costo desconocido.
@@ -123,7 +123,7 @@ El evaluador pasó 39 pruebas sin omitidas usando `ENSAMBLA_EVAL_JAR` con el jar
 
 ## Consulta de planes y pantalla (ENS-97)
 
-`ConsultaPlanesServiceTest` verifica catálogo, elegibilidad, prueba total, mes UTC, reservas,
+`ConsultaPlanesServiceTest` verifica catálogo, elegibilidad, prueba total, mes argentino, reservas,
 premium vigente y vencimiento antes del job. Los tests de caso de uso, mappers y configuración
 comprueban el contrato y el reloj por capa. `PlanSeguridadIntegrationTest` agrega la consulta privada
 con PostgreSQL y seguridad reales: sesión, negocio ajeno ignorado, contadores, historial y límites.

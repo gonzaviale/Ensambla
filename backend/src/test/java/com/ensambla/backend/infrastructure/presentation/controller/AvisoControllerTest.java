@@ -15,6 +15,10 @@ import com.ensambla.backend.domain.useCase.aviso.contarAvisos.ContarAvisos;
 import com.ensambla.backend.domain.useCase.aviso.descartarAviso.DescartarAviso;
 import com.ensambla.backend.domain.useCase.aviso.listarAvisos.ListarAvisos;
 import com.ensambla.backend.domain.useCase.aviso.listarAvisos.ListarAvisosRequest;
+import com.ensambla.backend.domain.useCase.aviso.obtenerImpactoAvisos.ImpactoAvisos;
+import com.ensambla.backend.domain.useCase.aviso.obtenerImpactoAvisos.ImpactoDeAviso;
+import com.ensambla.backend.domain.useCase.aviso.obtenerImpactoAvisos.ObtenerImpactoAvisos;
+import com.ensambla.backend.domain.model.aviso.ImpactoAviso;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.aviso.AvisoPresentationMapper;
 import com.ensambla.backend.support.MockMvcDePrueba;
@@ -24,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +51,7 @@ class AvisoControllerTest {
     private final ContarAvisos contarAvisos = mock(ContarAvisos.class);
     private final AplicarAviso aplicarAviso = mock(AplicarAviso.class);
     private final DescartarAviso descartarAviso = mock(DescartarAviso.class);
+    private final ObtenerImpactoAvisos obtenerImpactoAvisos = mock(ObtenerImpactoAvisos.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private MockMvc mockMvc;
@@ -53,7 +59,7 @@ class AvisoControllerTest {
     @BeforeEach
     void setUp() {
         var controller = new AvisoController(listarAvisos, contarAvisos, aplicarAviso,
-                descartarAviso, new AvisoPresentationMapper());
+                descartarAviso, obtenerImpactoAvisos, new AvisoPresentationMapper());
         mockMvc = MockMvcDePrueba.standalone(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -76,6 +82,25 @@ class AvisoControllerTest {
                 .andExpect(jsonPath("$[0].motivos[0]").value("motivo"))
                 .andExpect(jsonPath("$[0].acciones[0].tipo").value("ABRIR"))
                 .andExpect(jsonPath("$[0].datos.cantidad").value(0));
+    }
+
+    @Test
+    @DisplayName("GET impacto devuelve lo aplicado y lo que cambió en las ventas de cada aviso medido")
+    void impactoShouldReturnTheMeasuredImpact() throws Exception {
+        var impacto = new ImpactoAviso(14, new BigDecimal("1.00"), new BigDecimal("2.00"),
+                new BigDecimal("10.00"), new BigDecimal("20.00"));
+        when(obtenerImpactoAvisos.execute(USUARIO_ID)).thenReturn(new ImpactoAvisos(3, 1, new BigDecimal("70.00"),
+                List.of(new ImpactoDeAviso(AVISO_ID, TipoAviso.ESTANCADO, "Mermelada cara", AHORA, impacto))));
+
+        mockMvc.perform(get("/api/avisos/impacto").principal(principal))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.aplicados").value(3))
+                .andExpect(jsonPath("$.descartados").value(1))
+                .andExpect(jsonPath("$.ingresoSemanalDelta").value(70.00))
+                .andExpect(jsonPath("$.medidos[0].avisoId").value(AVISO_ID.toString()))
+                .andExpect(jsonPath("$.medidos[0].tipo").value("ESTANCADO"))
+                .andExpect(jsonPath("$.medidos[0].ventanaDias").value(14))
+                .andExpect(jsonPath("$.medidos[0].ingresoSemanalDelta").value(70.00));
     }
 
     @Test

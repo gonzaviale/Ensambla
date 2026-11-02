@@ -1,4 +1,5 @@
 import { PanelDeAvisos } from '@/components/sistema/avisos/PanelDeAvisos';
+import { TarjetaDeImpacto } from '@/components/sistema/avisos/TarjetaDeImpacto';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 
@@ -9,6 +10,7 @@ export function AvisosPage() {
     <>
       <CabeceraComun active="avisos" />
       <main id="main" tabIndex={-1} className="page-wrap avisos-page reveal">
+        <TarjetaDeImpacto />
         <PanelDeAvisos />
       </main>
     </>

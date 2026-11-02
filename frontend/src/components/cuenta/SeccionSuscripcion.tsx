@@ -34,7 +34,7 @@ function ResumenDelPlan({ datos }: { datos: Planes }) {
           <dd>{cantidad(uso.registros, actual?.limiteRegistros ?? null)}</dd>
         </div>
         <div>
-          <dt>Páginas leídas con IA</dt>
+          <dt>Análisis de foto</dt>
           <dd>{cantidad(uso.paginasIa, uso.limitePaginasIa)}</dd>
         </div>
       </dl>

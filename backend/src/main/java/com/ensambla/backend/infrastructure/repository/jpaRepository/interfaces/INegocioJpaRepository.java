@@ -5,6 +5,7 @@ import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,6 +21,9 @@ public interface INegocioJpaRepository extends JpaRepository<NegocioEntity, UUID
     Optional<NegocioEntity> findTopByDuenioIdOrderByCreadoEnAscIdAsc(UUID duenioId);
 
     long countByZonaIdAndComparteDatosZonaTrue(UUID zonaId);
+
+    @Query("select u.email from UsuarioEntity u where u.id = (select n.duenioId from NegocioEntity n where n.id = :negocioId)")
+    Optional<String> findEmailDuenioById(@Param("negocioId") UUID negocioId);
 
     @Query("select n.id from NegocioEntity n order by n.creadoEn, n.id")
     List<UUID> findAllIds();

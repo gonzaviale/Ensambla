@@ -3,9 +3,11 @@ package com.ensambla.backend.domain.model.aviso;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +19,7 @@ class AvisoTest {
 
     private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
     private static final ProyectoId PROYECTO_ID = ProyectoId.de("c0000000-0000-4000-8000-000000000001");
+    private static final RegistroId PRODUCTO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-19T12:00:00Z");
     private static final OffsetDateTime DESPUES = OffsetDateTime.parse("2026-10-19T13:00:00Z");
 
@@ -140,6 +143,76 @@ class AvisoTest {
                 .isInstanceOf(BusinessRuleException.class);
         assertThatThrownBy(() -> descartado.actualizarCon(resultado, DESPUES))
                 .isInstanceOf(BusinessRuleException.class);
+    }
+
+    @Test
+    @DisplayName("Un aviso aplicado de stock o de estancado sobre un producto es medible hasta que se mide")
+    void esMedibleShouldBeTrueForAppliedAvisoOfAProductNotYetMeasured() {
+        Aviso aviso = givenAplicado(TipoAviso.ESTANCADO, "registro:" + PRODUCTO_ID);
+
+        assertThat(aviso.esMedible()).isTrue();
+        assertThat(givenAplicado(TipoAviso.STOCK, "registro:" + PRODUCTO_ID).esMedible()).isTrue();
+
+        aviso.registrarImpacto(givenImpacto(), DESPUES);
+
+        assertThat(aviso.esMedible()).isFalse();
+    }
+
+    @Test
+    @DisplayName("No es medible si no fue aplicado, si es de otro tipo o si no apunta a un producto")
+    void esMedibleShouldBeFalseWhenAvisoDoesNotQualify() {
+        Aviso sinResueltoEn = givenAplicado(TipoAviso.STOCK, "registro:" + PRODUCTO_ID);
+        sinResueltoEn.setResueltoEn(null);
+
+        assertThat(givenAviso((short) 2).esMedible()).isFalse();
+        assertThat(sinResueltoEn.esMedible()).isFalse();
+        assertThat(givenAplicado(TipoAviso.COMBO, "registro:" + PRODUCTO_ID).esMedible()).isFalse();
+        assertThat(givenAplicado(TipoAviso.STOCK, "zona:yerba").esMedible()).isFalse();
+    }
+
+    @Test
+    @DisplayName("El producto del aviso sale de su entidad")
+    void productoIdShouldComeFromTheEntity() {
+        assertThat(givenAplicado(TipoAviso.STOCK, "registro:" + PRODUCTO_ID).productoId()).contains(PRODUCTO_ID);
+        assertThat(givenAplicado(TipoAviso.STOCK, "zona:yerba").productoId()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Registrar el impacto lo suma a los datos sin perder los de origen ni cambiar la huella")
+    void registrarImpactoShouldKeepTheOriginalData() {
+        Aviso aviso = givenAplicado(TipoAviso.ESTANCADO, "registro:" + PRODUCTO_ID);
+        String huella = aviso.getHuella();
+
+        aviso.registrarImpacto(givenImpacto(), DESPUES);
+
+        assertThat(aviso.getDatos()).containsEntry("cantidad", 2).containsKey("impacto");
+        assertThat(aviso.impacto()).contains(givenImpacto());
+        assertThat(aviso.getHuella()).isEqualTo(huella);
+        assertThat(aviso.getEstado()).isEqualTo(EstadoAviso.APLICADO);
+        assertThat(aviso.getActualizadoEn()).isEqualTo(DESPUES);
+    }
+
+    @Test
+    @DisplayName("Registrar el impacto en un aviso sin datos crea los datos")
+    void registrarImpactoShouldWorkWithoutData() {
+        Aviso aviso = Aviso.builder().build();
+
+        aviso.registrarImpacto(givenImpacto(), DESPUES);
+
+        assertThat(aviso.impacto()).contains(givenImpacto());
+    }
+
+    private static Aviso givenAplicado(TipoAviso tipo, String entidad) {
+        Aviso aviso = Aviso.nuevo(NEGOCIO_ID, tipo,
+                new ResultadoRegla(PROYECTO_ID, entidad, (short) 2, "Titulo", "Detalle", Map.of("cantidad", 2),
+                        List.of(), List.of()), AHORA);
+        aviso.aplicar(DESPUES);
+        return aviso;
+    }
+
+    private static ImpactoAviso givenImpacto() {
+        return new ImpactoAviso(14, new BigDecimal("1.00"), new BigDecimal("2.00"),
+                new BigDecimal("100.00"), new BigDecimal("250.00"));
     }
 
     private static Aviso givenAviso(short prioridad) {

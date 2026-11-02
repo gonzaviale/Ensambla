@@ -7,8 +7,10 @@ import com.ensambla.backend.domain.useCase.aviso.aplicarAviso.AplicarAviso;
 import com.ensambla.backend.domain.useCase.aviso.contarAvisos.ContarAvisos;
 import com.ensambla.backend.domain.useCase.aviso.descartarAviso.DescartarAviso;
 import com.ensambla.backend.domain.useCase.aviso.listarAvisos.ListarAvisos;
+import com.ensambla.backend.domain.useCase.aviso.obtenerImpactoAvisos.ObtenerImpactoAvisos;
 import com.ensambla.backend.infrastructure.presentation.dto.aviso.AvisoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.aviso.ContadorAvisosResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.aviso.ImpactoAvisosResponse;
 import com.ensambla.backend.infrastructure.presentation.mapper.aviso.AvisoPresentationMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,6 +36,7 @@ public class AvisoController {
     private final ContarAvisos contarAvisos;
     private final AplicarAviso aplicarAviso;
     private final DescartarAviso descartarAviso;
+    private final ObtenerImpactoAvisos obtenerImpactoAvisos;
     private final AvisoPresentationMapper avisoPresentationMapper;
 
     @GetMapping
@@ -49,6 +52,13 @@ public class AvisoController {
     public ResponseEntity<ContadorAvisosResponse> contar(Authentication authentication) {
         return ResponseEntity.ok(avisoPresentationMapper.toResponse(
                 contarAvisos.execute(usuarioDe(authentication))));
+    }
+
+    @GetMapping("/impacto")
+    @Operation(summary = "Qué pasó con las ventas después de aplicar cada aviso, y cuántos se aplicaron o descartaron")
+    public ResponseEntity<ImpactoAvisosResponse> impacto(Authentication authentication) {
+        return ResponseEntity.ok(avisoPresentationMapper.toResponse(
+                obtenerImpactoAvisos.execute(usuarioDe(authentication))));
     }
 
     @PostMapping("/{avisoId}/aplicar")

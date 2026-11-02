@@ -1,12 +1,14 @@
 package com.ensambla.backend.domain.model.aviso;
 
 import com.ensambla.backend.domain.model.common.Huella;
+import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -25,9 +27,35 @@ public record ResultadoRegla(
         List<Object> acciones) {
 
     private static final String PREFIJO_REGISTRO = "registro:";
+    private static final String PREFIJO_COMBO = "combo:";
+    private static final String PREFIJO_ZONA = "zona:";
 
     public static String entidadDeRegistro(RegistroId registroId) {
         return PREFIJO_REGISTRO + registroId;
+    }
+
+    /** Un producto de la zona que el negocio no tiene: la entidad es su nombre, sin tildes ni plurales. */
+    public static String entidadDeZona(String nombre) {
+        return PREFIJO_ZONA + TextoNormalizado.clave(nombre);
+    }
+
+    /** Un combo de dos productos: la entidad no depende del orden en que se nombran. */
+    public static String entidadDeCombo(RegistroId uno, RegistroId otro) {
+        return uno.toString().compareTo(otro.toString()) <= 0
+                ? PREFIJO_COMBO + uno + ":" + otro
+                : PREFIJO_COMBO + otro + ":" + uno;
+    }
+
+    /** El registro al que apunta una entidad {@code registro:<uuid>}; vacío si la entidad es de otra forma. */
+    public static Optional<RegistroId> registroDe(String entidad) {
+        if (entidad == null || !entidad.startsWith(PREFIJO_REGISTRO)) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(RegistroId.de(entidad.substring(PREFIJO_REGISTRO.length())));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
     }
 
     /** Identificador estable del aviso: {@code tipo:entidad:hash(datos)}. */

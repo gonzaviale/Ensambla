@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.campo.CampoId;
@@ -134,7 +135,7 @@ public class ProcesamientoRepositoryImpl implements ProcesamientoRepository {
     @Transactional
     public boolean reservar(LoteTrabajo lote, int paginas, int limite, OffsetDateTime ahora) {
         MapSqlParameterSource parametros = parametros(lote).addValue("paginas", paginas)
-                .addValue("limite", limite).addValue("fecha", ahora.toLocalDate()).addValue("ahora", ahora);
+                .addValue("limite", limite).addValue("fecha", ZonaNegocio.dia(ahora)).addValue("ahora", ahora);
         List<Integer> reserva = jdbcTemplate.query("""
                 SELECT paginas_reservadas FROM lote_subida
                 WHERE negocio_id = :negocio AND id = :lote AND reclamo_id = :token AND estado = 'PROCESANDO'

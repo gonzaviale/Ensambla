@@ -1,13 +1,20 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.port.ExportadorReportePort;
+import com.ensambla.backend.domain.port.GeneradorResumenPdfPort;
+import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
+import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
+import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import com.ensambla.backend.domain.service.reporte.ReporteService;
 import com.ensambla.backend.domain.useCase.reporte.exportarReporte.ExportarReporte;
+import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenNegocio;
 import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporte;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,6 +48,27 @@ public class ReporteUseCaseConfig {
         return new ExportarReporte(
                 negocioRepository, controlPlanService, bloqueRepository, reporteService, registroRepository,
                 campoRepository, exportadorReportePort, clock);
+    }
+
+    @Bean
+    public ExportarResumenNegocio exportarResumenNegocio(
+            NegocioRepository negocioRepository,
+            ControlPlanService controlPlanService,
+            ProyectoRepository proyectoRepository,
+            DatosDeProyectoService datosDeProyectoService,
+            ZonaRepository zonaRepository,
+            AgregadoZonaRepository agregadoZonaRepository,
+            AvisoRepository avisoRepository,
+            GeneradorResumenPdfPort generadorResumenPdfPort,
+            Clock clock) {
+        return new ExportarResumenNegocio(negocioRepository, controlPlanService, proyectoRepository,
+                datosDeProyectoService, zonaRepository, agregadoZonaRepository, avisoRepository,
+                generadorResumenPdfPort, clock);
+    }
+
+    @Bean
+    public DatosDeProyectoService datosDeProyectoService(RegistroRepository registroRepository) {
+        return new DatosDeProyectoService(registroRepository);
     }
 
     @Bean

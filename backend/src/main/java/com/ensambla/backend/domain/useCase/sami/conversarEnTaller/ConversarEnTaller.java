@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.sami.conversarEnTaller;
 
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
@@ -28,13 +29,13 @@ import com.ensambla.backend.domain.model.sami.taller.ValidacionTaller;
 import com.ensambla.backend.domain.port.TallerIaPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -56,7 +57,7 @@ import java.util.stream.Stream;
  * Un turno de la charla con Sami en el taller: se reconoce el rubro (sin IA) para mandarle al modelo sólo el kit que
  * importa, el modelo conversa y pide herramientas, el dominio valida lo que pidió y devuelve acciones para que el
  * taller las aplique. Reserva la consulta del día del negocio antes de llamar (un rechazo por límite no cuesta nada)
- * y registra los tokens gastados. El día del límite es UTC.
+ * y registra los tokens gastados. El día del límite es el argentino ({@link ZonaNegocio}).
  * <p>
  * El rubro de la persona se reconoce sin gastar IA: se buscan los términos de cada kit en el mensaje, la charla reciente y el
  * nombre del sistema (con {@link TextoNormalizado}, así «Velas» y «vela» dan lo mismo). Un término de varias palabras
@@ -120,9 +121,14 @@ public class ConversarEnTaller {
      */
     private RespuestaTaller conversar(NegocioId negocioId, String mensaje, ImagenTaller imagen, EstadoTaller estado,
                                      List<MensajeTaller> historial, OffsetDateTime ahora, int limiteDiario) {
-        LocalDate fecha = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate();
+        controlPlanService.exigirIa(negocioId);
+        LocalDate fecha = ZonaNegocio.dia(ahora);
         if (!consumoSamiRepository.reservar(negocioId, fecha, limiteDiario, ahora)) {
             throw new BusinessRuleException(LIMITE_ALCANZADO);
+        }
+        if (imagen != null) {
+            // Una foto es un análisis de foto del plan, sin importar cuántas veces el modelo se consulte en el turno.
+            controlPlanService.reservarPaginaIaInmediata(negocioId, limiteDiarioFotos, ahora);
         }
         KitRubro kit = detectar(mensaje, estado, historial).orElse(null);
         ResultadoTallerIa resultado = consultar(new ConsultaTaller(mensaje, estado, historial, kit, imagen));
@@ -365,19 +371,24 @@ public class ConversarEnTaller {
     private final CatalogoComponentes catalogoComponentes;
     private final KitsRubro kitsRubro;
     private final List<TerminosDeKit> kits;
+    private final ControlPlanService controlPlanService;
     private final Clock clock;
     private final int limiteDiario;
+    private final int limiteDiarioFotos;
 
     public ConversarEnTaller(NegocioRepository negocioRepository, TallerIaPort tallerIaPort,
                              ConsumoSamiRepository consumoSamiRepository, CatalogoComponentes catalogoComponentes,
-                             KitsRubro kitsRubro, Clock clock, int limiteDiario) {
+                             KitsRubro kitsRubro, ControlPlanService controlPlanService, Clock clock,
+                             int limiteDiario, int limiteDiarioFotos) {
         this.negocioRepository = negocioRepository;
         this.tallerIaPort = tallerIaPort;
         this.consumoSamiRepository = consumoSamiRepository;
         this.catalogoComponentes = catalogoComponentes;
         this.kitsRubro = kitsRubro;
+        this.controlPlanService = controlPlanService;
         this.clock = clock;
         this.limiteDiario = limiteDiario;
+        this.limiteDiarioFotos = limiteDiarioFotos;
         descripciones.put(HerramientaTaller.AGREGAR_PIEZA,
                 (args, nombres) -> "Sumé " + pieza(referenciaNueva(args), nombres));
         descripciones.put(HerramientaTaller.QUITAR_PIEZA,

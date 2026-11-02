@@ -63,8 +63,8 @@ export function ModalRenovacion({ cancelar = false }: { cancelar?: boolean }) {
           </p>
           <p>La autorización no habilita un período pago hasta confirmar el cobro aprobado.</p>
           <p>
-            Durante la prueba conservás sus diez páginas totales. Premium pago incluye cien páginas
-            por mes calendario UTC.
+            Durante la prueba conservás tus diez análisis de foto totales. Premium pago incluye cien
+            análisis de foto por mes.
           </p>
           <p>Podés cancelar las próximas renovaciones desde Planes.</p>
         </>

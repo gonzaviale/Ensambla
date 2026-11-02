@@ -41,7 +41,7 @@ export const handlersImportaciones = [
           error: 'Forbidden',
           path: pathDe(request),
           traceId: crypto.randomUUID(),
-          message: 'Alcanzaste las páginas de IA de tu plan. Conocé Premium en Planes.',
+          message: 'Alcanzaste los análisis de foto de tu plan. Conocé Premium en Planes.',
           codigo: 'LIMITE_IA_MENSUAL',
         },
         { status: 403 },

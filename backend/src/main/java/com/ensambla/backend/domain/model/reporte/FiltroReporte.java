@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.model.reporte;
 
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
@@ -28,7 +29,7 @@ public record FiltroReporte(
         String valor) {
 
     /** Las fechas de los reportes son las del día en Argentina, no las del servidor. */
-    public static final ZoneId ZONA = ZoneId.of("America/Argentina/Buenos_Aires");
+    public static final ZoneId ZONA = ZonaNegocio.ZONA;
 
     /**
      * @param campos los del bloque: el filtro por valor sólo admite una columna de opción o de sí/no

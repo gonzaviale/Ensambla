@@ -128,7 +128,7 @@ class LeerImagenTest {
 
         assertThatThrownBy(() -> leerImagen.execute(request))
                 .isInstanceOf(RestriccionPlanException.class)
-                .hasMessage("Se alcanzó el límite diario de páginas de IA. Probá mañana.");
+                .hasMessage("Se alcanzó el límite diario de análisis de foto. Probá mañana.");
 
         verifyNoInteractions(lectorCuadernoPort);
     }

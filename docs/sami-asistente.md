@@ -103,7 +103,7 @@ Sami y la lectura del cuaderno piden una **puerta** y la configuración decide p
 | `modelo-rapido` | Haiku 4.5 del proveedor | atiende todo |
 | `modelo-avanzado` | Sonnet 4.6 del proveedor | sólo si el rápido no está seguro; para apagar el escalado, dejar vacío también el avanzado del proveedor |
 | `umbral-escalar` | `0.6` | confianza que tiene que alcanzar un modelo para no escalar |
-| `limite-diario-ia` | `20` | consultas con IA por negocio y por día (UTC) |
+| `limite-diario-ia` | `20` | consultas con IA por negocio y por día (argentino) |
 
 - **Costo medido** con Haiku 4.5 real: ≈ 830 tokens de entrada y 100 de salida por consulta.
 - **Consumo**: `consumo_sami_diario` (migración `V13`) guarda, por negocio y día, las consultas y los tokens. La

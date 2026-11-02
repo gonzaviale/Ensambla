@@ -29,6 +29,15 @@ class IConsultasPorNegocioJpaRepositoryTest extends PostgresDatosTestSupport {
     }
 
     @Test
+    @DisplayName("Encuentra el email del dueño del negocio y nada si el negocio no existe")
+    void findEmailDuenioByIdShouldReturnOwnerEmail() {
+        NegocioEntity negocio = givenNegocio("dueña@example.com");
+
+        assertThat(negocios.findEmailDuenioById(negocio.getId())).contains("dueña@example.com");
+        assertThat(negocios.findEmailDuenioById(UUID.randomUUID())).isEmpty();
+    }
+
+    @Test
     @DisplayName("No devuelve negocio para un usuario que no es dueño de ninguno")
     void findFirstByDuenioIdShouldReturnEmptyWhenUsuarioOwnsNothing() {
         UUID usuarioSinNegocio = givenUsuario("sin-negocio@example.com");

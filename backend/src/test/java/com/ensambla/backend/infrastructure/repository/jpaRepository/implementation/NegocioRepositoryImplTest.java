@@ -56,6 +56,14 @@ class NegocioRepositoryImplTest {
     }
 
     @Test
+    @DisplayName("Resuelve el email del dueño del negocio")
+    void findEmailDuenioByIdShouldDelegateToJpa() {
+        when(negocioJpaRepository.findEmailDuenioById(NEGOCIO_ID.valor())).thenReturn(Optional.of("dueño@example.com"));
+
+        assertThat(negocioRepository.findEmailDuenioById(NEGOCIO_ID)).contains("dueño@example.com");
+    }
+
+    @Test
     @DisplayName("Lista los ids de todos los negocios")
     void findAllIdsShouldDelegateToJpa() {
         when(negocioJpaRepository.findAllIds()).thenReturn(List.of(NEGOCIO_ID.valor()));

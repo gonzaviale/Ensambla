@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.BloqueInventario;
 import com.ensambla.backend.domain.model.aviso.ContextoNegocio;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.MetricasVentas;
 import com.ensambla.backend.domain.model.aviso.ReglaAviso;
 import com.ensambla.backend.domain.model.aviso.ResultadoRegla;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
@@ -13,13 +14,16 @@ import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.precio.CambioPrecio;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.model.zona.Zona;
 import com.ensambla.backend.domain.model.zona.ZonaId;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.precio.HistorialPrecioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
@@ -34,6 +38,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -79,6 +84,9 @@ class EjecutarMotorAvisosTest {
 
     @Mock
     private AgregadoZonaRepository agregadoZonaRepository;
+
+    @Mock
+    private HistorialPrecioRepository historialPrecioRepository;
 
     @Mock
     private AvisoRepository avisoRepository;
@@ -431,6 +439,17 @@ class EjecutarMotorAvisosTest {
     }
 
     @Test
+    @DisplayName("Le pasa a las reglas los cambios de precio del último período, desde la medianoche argentina")
+    void executeShouldBuildCambiosDePrecioOfTheLastPeriod() {
+        CambioPrecio cambio = new CambioPrecio(NEGOCIO_ID, RegistroId.nuevo(), new BigDecimal("1000"),
+                new BigDecimal("1200"), ANTES);
+        OffsetDateTime desde = OffsetDateTime.parse("2026-09-19T03:00:00Z");
+        when(historialPrecioRepository.findByNegocioIdDesde(NEGOCIO_ID, desde)).thenReturn(List.of(cambio));
+
+        assertThat(thenContextoEvaluado().cambiosDePrecio()).containsExactly(cambio);
+    }
+
+    @Test
     @DisplayName("El día de hoy es el de la hora argentina, aunque en UTC ya sea el día siguiente")
     void executeShouldUseArgentinaDateForHoy() {
         ejecutarMotorAvisos = motor(List.of(regla), OffsetDateTime.parse("2026-10-20T01:00:00Z"));
@@ -445,7 +464,8 @@ class EjecutarMotorAvisosTest {
 
     private EjecutarMotorAvisos motor(List<ReglaAviso> reglas, OffsetDateTime ahora) {
         return new EjecutarMotorAvisos(negocioRepository, reglas, proyectoRepository, registroRepository,
-                zonaRepository, agregadoZonaRepository, avisoRepository, new TransaccionDirecta(),
+                zonaRepository, agregadoZonaRepository, historialPrecioRepository,
+                new MetricasVentas(30, new BigDecimal("0.5")), avisoRepository, new TransaccionDirecta(),
                 Clock.fixed(ahora.toInstant(), ZoneOffset.UTC));
     }
 

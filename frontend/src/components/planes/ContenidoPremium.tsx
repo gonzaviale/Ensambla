@@ -32,7 +32,7 @@ export function ContenidoPremium({
           {new Date(acceso.finPeriodo).toLocaleDateString('es-AR', {
             day: 'numeric',
             month: 'long',
-            timeZone: 'UTC',
+            timeZone: 'America/Argentina/Buenos_Aires',
           })}
           .
         </small>

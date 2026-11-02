@@ -16,7 +16,7 @@ public record PruebaPremium(NegocioId negocioId, OffsetDateTime inicioEn, Offset
     public void validarPaginas(int cantidad) {
         if (cantidad > LIMITE_PAGINAS_IA - paginasIa) {
             throw new RestriccionPlanException("LIMITE_IA_PRUEBA",
-                    "La prueba incluye diez páginas de IA en total. Tus datos se conservan.");
+                    "La prueba incluye diez análisis de foto en total. Tus datos se conservan.");
         }
     }
 

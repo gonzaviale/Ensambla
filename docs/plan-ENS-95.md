@@ -10,7 +10,7 @@ de la rama. No se realizaron cambios en Jira.
 |---|---:|---:|
 | Sistemas/proyectos por negocio | 1 | Sin límite comercial |
 | Registros guardados en total por negocio | 1.000 | Sin límite comercial |
-| Páginas/intentos de IA por mes calendario UTC | 10 | 100 |
+| Páginas/intentos de IA por mes calendario argentino | 10 | 100 |
 | Carga manual, edición, búsqueda y stock básico | Sí | Sí |
 | Recetas y cálculo de costos | No | Sí |
 | Reportes filtrados y descarga XLSX | No | Sí |
@@ -34,7 +34,7 @@ No se activan pruebas ni se cobran suscripciones en esta etapa.
 - Un bloqueo de la fila del negocio permanece hasta terminar la transacción de validación y alta
   o reserva. Así dos solicitudes simultáneas no autorizan una misma disponibilidad.
 - La IA conserva el contador diario persistente. El mes suma `paginas + reservadas` entre su primer
-  día inclusive y el primer día del siguiente mes exclusive, en UTC, siempre filtrando por negocio.
+  día inclusive y el primer día del siguiente mes exclusive, en hora argentina, siempre filtrando por negocio.
   El índice primario existente `(negocio_id, fecha)` permite esta consulta.
 - La validación del mes y la reserva diaria del worker comparten una transacción mediante
   `ReservaIaService`. La llamada externa se realiza después, fuera del bloqueo. Finalizar o recuperar
@@ -59,7 +59,7 @@ No se borran sistemas, filas ni recetas por superar una cuota o por terminar la 
 Las lecturas básicas, ediciones y borrados de datos continúan disponibles. Las nuevas altas que
 no entren en el gratuito y las operaciones premium se bloquean. Borrar datos libera capacidad de
 sistemas/registros; el historial de intentos de IA se conserva y la disponibilidad se renueva en
-el siguiente mes UTC.
+el siguiente mes argentino.
 
 ## Validación
 

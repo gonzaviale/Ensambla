@@ -12,7 +12,7 @@ import { renderApp } from '@/test/renderApp';
 import { ESPERA, setupServerError, setupUsuarioConSesion } from '@/test/testHelpers';
 
 // Con el backend real (VITE_API_MOCKS distinto de «completo») el motor del servidor es el dueño de los avisos de
-// estancado y de combo. Los tests corren con todo simulado, así que acá sólo se cambia ese modo.
+// estancado. Los tests corren con todo simulado, así que acá sólo se cambia ese modo.
 vi.mock('@/config/env', async (importOriginal) => {
   const original = await importOriginal<typeof ConfigEnv>();
   return { ...original, env: { ...original.env, mocks: 'ninguno' as const } };
@@ -34,6 +34,10 @@ const abrirAlmacen = async () => {
 const delNavegador = (tipo: string) =>
   useSistemaStore.getState().avisos.some((aviso) => aviso.tipo === tipo && !aviso.servidorId);
 
+// Con el motor activo el servidor genera todos los tipos y el navegador no muestra ninguno propio: se espera a que el
+// plan haya habilitado los avisos (el acceso se resolvió) para saber que los del navegador ya tuvieron su oportunidad.
+const hayDelNavegador = () => useSistemaStore.getState().accesoAvisos !== null;
+
 describe('avisos con el motor del servidor activo', () => {
   it('un aviso de estancado descartado no vuelve como copia del navegador', async () => {
     const { usuario, sistema } = await abrirAlmacen();
@@ -44,10 +48,10 @@ describe('avisos con el motor del servidor activo', () => {
     renderApp(`/sistemas/${sistema.id}?modo=usar`);
     await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
     // Los del navegador llegan cuando el plan los habilita: se espera a uno que sí se muestra.
-    await waitFor(() => expect(delNavegador('stock')).toBe(true), ESPERA);
+    await waitFor(() => expect(hayDelNavegador()).toBe(true), ESPERA);
 
     expect(delNavegador('estancado')).toBe(false);
-    expect(delNavegador('combo')).toBe(false);
+    expect(delNavegador('stock')).toBe(false);
   });
 
   it('mientras el servidor todavía no contestó, tampoco aparecen copias del navegador', async () => {
@@ -65,24 +69,21 @@ describe('avisos con el motor del servidor activo', () => {
     );
     renderApp(`/sistemas/${sistema.id}?modo=usar`);
     await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
-    await waitFor(() => expect(delNavegador('stock')).toBe(true), ESPERA);
+    await waitFor(() => expect(hayDelNavegador()).toBe(true), ESPERA);
 
     expect(delNavegador('estancado')).toBe(false);
-    expect(delNavegador('combo')).toBe(false);
 
     liberar();
     await new Promise((resolver) => setTimeout(resolver, 150));
     expect(delNavegador('estancado')).toBe(false);
-    expect(delNavegador('combo')).toBe(false);
   });
 
-  it('si el servidor no responde, siguen los avisos de estancado y de combo del navegador', async () => {
+  it('si el servidor no responde, siguen los avisos de estancado del navegador', async () => {
     const { sistema } = await abrirAlmacen();
     setupServerError('get', '/avisos', 500, 'Error interno');
     renderApp(`/sistemas/${sistema.id}?modo=usar`);
     await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
 
-    await waitFor(() => expect(delNavegador('combo')).toBe(true), ESPERA);
-    expect(delNavegador('estancado')).toBe(true);
+    await waitFor(() => expect(delNavegador('estancado')).toBe(true), ESPERA);
   });
 });

@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.sami.conversarConSami;
 
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.common.TextoNormalizado;
@@ -27,13 +28,13 @@ import com.ensambla.backend.domain.port.SamiIaPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -56,7 +57,7 @@ import java.util.stream.Collectors;
  *     rápidas (T-116).</li>
  *     <li>Sin preguntas útiles o agotado el máximo, consulta a la IA (T-117): reserva la consulta del día del
  *     negocio antes de llamar (así un rechazo por límite no cuesta nada), registra los tokens gastados y valida que
- *     la respuesta referencie una plantilla existente. El día del límite es UTC.</li>
+ *     la respuesta referencie una plantilla existente. El día del límite es el argentino.</li>
  * </ol>
  * No guarda estado: el texto y las respuestas dadas hasta ahora alcanzan para reconstruirlo.
  */
@@ -75,6 +76,7 @@ public class ConversarConSami {
     private final PlantillaRepository plantillaRepository;
     private final SamiIaPort samiIaPort;
     private final ConsumoSamiRepository consumoSamiRepository;
+    private final ControlPlanService controlPlanService;
     private final Clock clock;
     private final double umbralConfianza;
     private final int maxPreguntas;
@@ -86,12 +88,13 @@ public class ConversarConSami {
 
     public ConversarConSami(NegocioRepository negocioRepository, PlantillaRepository plantillaRepository,
                             DiccionarioSami diccionario, SamiIaPort samiIaPort,
-                            ConsumoSamiRepository consumoSamiRepository, Clock clock, double umbralConfianza,
-                            int maxPreguntas, int limiteDiarioIa) {
+                            ConsumoSamiRepository consumoSamiRepository, ControlPlanService controlPlanService,
+                            Clock clock, double umbralConfianza, int maxPreguntas, int limiteDiarioIa) {
         this.negocioRepository = negocioRepository;
         this.plantillaRepository = plantillaRepository;
         this.samiIaPort = samiIaPort;
         this.consumoSamiRepository = consumoSamiRepository;
+        this.controlPlanService = controlPlanService;
         this.clock = clock;
         this.umbralConfianza = umbralConfianza;
         this.maxPreguntas = maxPreguntas;
@@ -324,7 +327,8 @@ public class ConversarConSami {
     /** @throws BusinessRuleException si se agotó el límite, la IA falló o su respuesta no es utilizable */
     private InterpretacionSami proponerConIa(NegocioId negocioId, String texto, List<RespuestaSami> respuestas,
                                              List<PlantillaProyecto> disponibles, OffsetDateTime ahora) {
-        LocalDate fecha = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate();
+        controlPlanService.exigirIa(negocioId);
+        LocalDate fecha = ZonaNegocio.dia(ahora);
         if (!consumoSamiRepository.reservar(negocioId, fecha, limiteDiarioIa, ahora)) {
             throw new BusinessRuleException(LIMITE_ALCANZADO);
         }

@@ -18,6 +18,7 @@ import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TallerIaPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTaller;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTallerRequest;
 import com.ensambla.backend.domain.useCase.sami.conversarEnTaller.ConversarEnTallerResponse;
@@ -53,6 +54,8 @@ public final class TallerDePrueba {
     public static final UsuarioId USUARIO_ID = UsuarioId.de("d0000000-0000-4000-8000-000000000001");
     public static final NegocioId NEGOCIO_ID = NegocioId.de("d0000000-0000-4000-8000-000000000002");
 
+    public static final int LIMITE_DIARIO_FOTOS = 30;
+
     private static final String TEXTO_DEL_MODELO = "Listo.";
     private static final ConsumoIaSami CONSUMO = new ConsumoIaSami("bedrock", "haiku", 1, 1);
     private static final Pattern RENGLONES_SIN_CARGAR = Pattern.compile("No pude cargar (\\d+) rengl");
@@ -67,16 +70,18 @@ public final class TallerDePrueba {
     public TallerDePrueba(KitsRubro kitsRubro) {
         ConsumoSamiRepository consumoSamiRepository = mock(ConsumoSamiRepository.class);
         when(consumoSamiRepository.reservar(any(), any(), anyInt(), any())).thenReturn(true);
-        conversacion = conversacion(tallerIaPort, consumoSamiRepository, kitsRubro, Clock.systemUTC(), 1);
+        conversacion = conversacion(tallerIaPort, consumoSamiRepository, mock(ControlPlanService.class), kitsRubro,
+                Clock.systemUTC(), 1, LIMITE_DIARIO_FOTOS);
     }
 
     /** El caso de uso con el catálogo real, para el negocio {@link #NEGOCIO_ID} del usuario {@link #USUARIO_ID}. */
     public static ConversarEnTaller conversacion(TallerIaPort tallerIaPort, ConsumoSamiRepository consumoSamiRepository,
-                                                 KitsRubro kitsRubro, Clock clock, int limiteDiario) {
+                                                 ControlPlanService controlPlanService, KitsRubro kitsRubro, Clock clock,
+                                                 int limiteDiario, int limiteDiarioFotos) {
         NegocioRepository negocioRepository = mock(NegocioRepository.class);
         lenient().when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         return new ConversarEnTaller(negocioRepository, tallerIaPort, consumoSamiRepository, SamiPruebas.catalogoReal(),
-                kitsRubro, clock, limiteDiario);
+                kitsRubro, controlPlanService, clock, limiteDiario, limiteDiarioFotos);
     }
 
     /** Un turno del usuario {@link #USUARIO_ID}, con su respuesta leída como objetos del dominio. */

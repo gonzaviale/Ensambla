@@ -8,6 +8,7 @@ export const ICONO_DE_AVISO: Record<TipoDeAviso, NombreDeIcono> = {
   muy_vendido: 'spark',
   combo: 'orders',
   consumo_zona: 'users',
+  revisar_precio: 'undo',
 };
 
 /** El nombre corto de cada tipo: lo primero que se lee para saber de qué se trata. */
@@ -18,6 +19,7 @@ export const NOMBRE_DE_TIPO: Record<TipoDeAviso, string> = {
   muy_vendido: 'Se vende mucho',
   combo: 'Combo',
   consumo_zona: 'Lo que pide la zona',
+  revisar_precio: 'Revisar el precio',
 };
 
 export const NIVEL_DE_AVISO = { 3: 'Urgente', 2: 'Para hoy', 1: 'Para mirar' } as const;
@@ -58,6 +60,15 @@ export function datosDelAviso(aviso: Aviso): DatoDelAviso[] {
       { etiqueta: 'Lo tenés a', valor: pesos(precio), tono: 'malo' },
       { etiqueta: 'Precio sugerido', valor: pesos(sugerido), tono: 'bueno' },
       ...(baja > 0 ? [{ etiqueta: 'Rebaja', valor: `${baja} %` }] : []),
+    ];
+  }
+  if (aviso.tipo === 'revisar_precio') {
+    const anterior = numero(datos.precioAnterior);
+    const nuevo = numero(datos.precioNuevo);
+    if (anterior === undefined || nuevo === undefined) return [];
+    return [
+      { etiqueta: 'Precio anterior', valor: pesos(anterior), tono: 'bueno' },
+      { etiqueta: 'Precio actual', valor: pesos(nuevo), tono: 'malo' },
     ];
   }
   return [];

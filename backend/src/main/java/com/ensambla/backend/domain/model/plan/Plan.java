@@ -60,7 +60,7 @@ public class Plan {
 
     public void validarPaginasIa(long usadasYReservadas, int nuevas) {
         validarCupo(usadasYReservadas, nuevas, limitePaginasIaMensuales, "LIMITE_IA_MENSUAL",
-                "páginas de IA por mes");
+                "análisis de foto por mes");
     }
 
     public void validarFuncion(FuncionPlan funcion) {

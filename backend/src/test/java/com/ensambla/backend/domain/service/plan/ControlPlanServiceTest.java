@@ -2,6 +2,8 @@ package com.ensambla.backend.domain.service.plan;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
+import com.ensambla.backend.domain.model.plan.AccesoIa;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.FuncionPlan;
@@ -26,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
@@ -65,6 +68,12 @@ class ControlPlanServiceTest {
     @Spy
     private TransaccionPort transaccionPort = new TransaccionDirecta();
 
+    @Mock
+    private NegocioRepository negocioRepository;
+
+    @Spy
+    private AccesoIa accesoIa = AccesoIa.LIBRE;
+
     @InjectMocks
     private ControlPlanService controlPlanService;
 
@@ -92,18 +101,18 @@ class ControlPlanServiceTest {
     }
 
     @Test
-    @DisplayName("Calcula el mes por el instante UTC aunque el desplazamiento local esté en otro mes")
-    void validarPaginasIaShouldUseUtcMonth() {
+    @DisplayName("Calcula el mes por el día argentino aunque en UTC ya sea el mes siguiente")
+    void validarPaginasIaShouldUseArgentinaMonth() {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setInicioEn(INSTANTE.minusMonths(1));
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
         when(planRepository.findById(PLAN_ID)).thenReturn(Optional.of(plan()));
-        OffsetDateTime ahora = OffsetDateTime.parse("2026-09-30T23:30:00-03:00");
+        OffsetDateTime ahora = OffsetDateTime.parse("2026-10-01T02:30:00Z");
 
         controlPlanService.validarPaginasIa(NEGOCIO_ID, 1, ahora);
 
         verify(usoPlanRepository).paginasEnPeriodo(NEGOCIO_ID,
-                LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"));
+                LocalDate.parse("2026-09-01"), LocalDate.parse("2026-10-01"));
         verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
     }
 
@@ -192,16 +201,16 @@ class ControlPlanServiceTest {
     }
 
     @Test
-    @DisplayName("Una foto inmediata valida el mes, reserva en el día UTC con el límite diario y no lanza si entra")
-    void reservarPaginaIaInmediataShouldReserveInTheUtcDay() {
+    @DisplayName("Una foto inmediata valida el mes, reserva en el día argentino con el límite diario y no lanza si entra")
+    void reservarPaginaIaInmediataShouldReserveInTheArgentinaDay() {
         givenActivePlan();
         OffsetDateTime enArgentina = INSTANTE.withOffsetSameInstant(ZoneOffset.ofHours(-3));
-        LocalDate diaUtc = INSTANTE.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate();
-        when(usoPlanRepository.registrarPaginaInmediata(NEGOCIO_ID, diaUtc, 100, enArgentina)).thenReturn(true);
+        LocalDate diaArgentino = ZonaNegocio.dia(INSTANTE);
+        when(usoPlanRepository.registrarPaginaInmediata(NEGOCIO_ID, diaArgentino, 100, enArgentina)).thenReturn(true);
 
         controlPlanService.reservarPaginaIaInmediata(NEGOCIO_ID, 100, enArgentina);
 
-        verify(usoPlanRepository).registrarPaginaInmediata(NEGOCIO_ID, diaUtc, 100, enArgentina);
+        verify(usoPlanRepository).registrarPaginaInmediata(NEGOCIO_ID, diaArgentino, 100, enArgentina);
     }
 
     @Test

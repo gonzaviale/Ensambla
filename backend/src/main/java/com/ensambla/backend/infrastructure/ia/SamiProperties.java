@@ -11,8 +11,8 @@ import java.util.Locale;
  *
  * @param umbralConfianza confianza mínima para proponer sin preguntar más ni consultar a la IA
  * @param maxPreguntas    cuántas preguntas de aclaración se le hacen como máximo a la persona
- * @param limiteDiarioIa  consultas con IA por negocio y por día (UTC) del asistente de plantillas
- * @param limiteDiarioTaller consultas con IA por negocio y por día (UTC) del taller conversacional; comparte el
+ * @param limiteDiarioIa  consultas con IA por negocio y por día (argentino) del asistente de plantillas
+ * @param limiteDiarioTaller consultas con IA por negocio y por día (argentino) del taller conversacional; comparte el
  *                        contador con el asistente de plantillas
  * @param ia              proveedor y modelos del respaldo con IA
  */

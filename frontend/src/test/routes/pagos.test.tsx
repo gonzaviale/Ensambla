@@ -59,7 +59,7 @@ describe('contratación y renovación automática', () => {
     const dialogo = screen.getByRole('dialog', { name: 'Contratar Premium' });
     expect(within(dialogo).getByText(/14\.900.*finales cada 30 días/)).toBeVisible();
     expect(within(dialogo).getByText(/El primer cobro se programa para/)).toBeVisible();
-    expect(within(dialogo).getByText(/diez páginas totales/)).toBeVisible();
+    expect(within(dialogo).getByText(/diez análisis de foto totales/)).toBeVisible();
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.getByRole('button', { name: 'Contratar Premium' })).toHaveFocus();

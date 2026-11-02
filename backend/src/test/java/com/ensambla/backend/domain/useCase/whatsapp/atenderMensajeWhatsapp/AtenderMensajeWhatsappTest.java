@@ -220,6 +220,20 @@ class AtenderMensajeWhatsappTest {
     }
 
     @Test
+    @DisplayName("Con la IA no habilitada para el dueño responde el motivo y no llama a la IA")
+    void executeShouldRejectWhenIaIsNotEnabledForTheOwner() {
+        MensajeWhatsapp mensaje = givenReclamado(givenTexto("gasté 5000 en harina"));
+        doThrow(new RestriccionPlanException("IA_NO_HABILITADA", "La IA no está habilitada para tu cuenta."))
+                .when(controlPlanService).exigirIa(NEGOCIO_ID);
+
+        atender.execute();
+
+        verify(mensajeria).enviarTexto(TELEFONO, "La IA no está habilitada para tu cuenta.");
+        verifyNoInteractions(interpreteIa);
+        verify(consumoSamiRepository, never()).reservar(any(), any(), anyInt(), any());
+    }
+
+    @Test
     @DisplayName("Con el límite diario de Sami agotado responde el motivo y no llama a la IA")
     void executeShouldRejectWhenSamiLimitIsReached() {
         MensajeWhatsapp mensaje = givenReclamado(givenTexto("gasté 5000 en harina"));
@@ -498,12 +512,12 @@ class AtenderMensajeWhatsappTest {
     void executeShouldRespectThePhotoQuota() {
         givenReclamado(givenFoto(null));
         when(mensajeria.descargarMedia("F1")).thenReturn(new ArchivoWhatsapp(ImagenTestData.jpeg(), "image/jpeg"));
-        doThrow(new RestriccionPlanException("LIMITE_IA_MENSUAL", "Llegaste al límite de páginas de IA de tu plan"))
+        doThrow(new RestriccionPlanException("LIMITE_IA_MENSUAL", "Llegaste al límite de análisis de foto de tu plan"))
                 .when(controlPlanService).reservarPaginaIaInmediata(NEGOCIO_ID, 100, AHORA);
 
         atender.execute();
 
-        verify(mensajeria).enviarTexto(TELEFONO, "Llegaste al límite de páginas de IA de tu plan");
+        verify(mensajeria).enviarTexto(TELEFONO, "Llegaste al límite de análisis de foto de tu plan");
         verifyNoInteractions(lectorCuadernoPort);
     }
 

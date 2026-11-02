@@ -61,6 +61,60 @@ class AnalisisZonaTest {
         assertThat(result.comercios()).isEqualTo(10);
     }
 
+    @Test
+    @DisplayName("Encuentra el producto de la zona sin importar tildes ni mayúsculas")
+    void productoConRangoShouldFindProductIgnoringAccentsAndCase() {
+        AnalisisZona analisis = givenAnalisis(10, givenProducto("Azúcar Ledesma 1 kg", 8, "5"));
+
+        assertThat(analisis.productoConRango("AZUCAR ledesma 1 KG")).isPresent();
+        assertThat(analisis.productoConRango("Yerba")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("No da rango si la zona tiene menos comercios que el mínimo")
+    void productoConRangoShouldBeEmptyWhenZoneHasFewerStoresThanMinimum() {
+        AnalisisZona analisis = givenAnalisis(2, givenProducto("Yerba", 8, "5"));
+
+        assertThat(analisis.productoConRango("Yerba")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("No da rango si el producto lo cobran menos comercios que el mínimo")
+    void productoConRangoShouldBeEmptyWhenProductHasFewerStoresThanMinimum() {
+        AnalisisZona analisis = givenAnalisis(10, new AgregadoZonaProducto("Yerba", 2, 2, new BigDecimal("100"),
+                new BigDecimal("150"), new BigDecimal("200"), new BigDecimal("5")));
+
+        assertThat(analisis.productoConRango("Yerba")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("El ranking de más vendidos va por comercios que venden y desempata por unidades por semana")
+    void masVendidosShouldRankByCommercesThenUnits() {
+        AnalisisZona analisis = givenAnalisis(10,
+                givenProducto("Azúcar", 4, "20"),
+                givenProducto("Yerba", 9, "5"),
+                givenProducto("Fideos", 4, "30"));
+
+        assertThat(analisis.masVendidos()).extracting(AgregadoZonaProducto::nombre)
+                .containsExactly("Yerba", "Fideos", "Azúcar");
+    }
+
+    @Test
+    @DisplayName("El ranking deja afuera lo que venden menos comercios que el mínimo")
+    void masVendidosShouldLeaveOutProductsSoldByFewerStoresThanMinimum() {
+        AnalisisZona analisis = givenAnalisis(10, givenProducto("Yerba", 9, "5"), givenProducto("Sal", 2, "50"));
+
+        assertThat(analisis.masVendidos()).extracting(AgregadoZonaProducto::nombre).containsExactly("Yerba");
+    }
+
+    @Test
+    @DisplayName("No hay ranking cuando la zona tiene menos comercios que el mínimo")
+    void masVendidosShouldBeEmptyWhenZoneHasFewerStoresThanMinimum() {
+        AnalisisZona analisis = givenAnalisis(2, givenProducto("Yerba", 9, "5"));
+
+        assertThat(analisis.masVendidos()).isEmpty();
+    }
+
     // --- helpers ---
     private AnalisisZona givenAnalisis(long comercios, AgregadoZonaProducto... productos) {
         return new AnalisisZona(NOMBRE, comercios, List.of(productos));

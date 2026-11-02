@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.procesamiento.consultarConsumo;
 
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.procesamiento.ConsumoDiario;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
@@ -22,7 +23,7 @@ public class ConsultarConsumo {
 
     public ConsumoItem execute(UsuarioId usuarioId) {
         NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(usuarioId);
-        ConsumoDiario consumo = procesamientoRepository.consumo(negocioId, OffsetDateTime.now(clock).toLocalDate());
+        ConsumoDiario consumo = procesamientoRepository.consumo(negocioId, ZonaNegocio.dia(OffsetDateTime.now(clock)));
         return ConsumoItem.de(consumo, politicaProcesamiento.limiteDiario());
     }
 }

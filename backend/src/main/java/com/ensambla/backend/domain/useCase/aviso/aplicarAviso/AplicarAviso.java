@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.useCase.aviso.aplicarAviso;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.aviso.Aviso;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
@@ -25,14 +26,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Ejecuta la acción sugerida del aviso y lo marca como aplicado en una sola operación. Sólo {@code EDITAR_REGISTRO}
- * cambia datos (por ejemplo, el precio de un producto); las demás ({@code REGISTRAR}, {@code ABRIR}) son atajos de
- * pantalla y no tocan nada.
+ * Ejecuta la acción sugerida del aviso y lo marca como aplicado en una sola operación. {@code EDITAR_REGISTRO} cambia
+ * datos (por ejemplo, el precio de un producto) y {@code CREAR_REGISTRO} suma una fila (un combo); las demás
+ * ({@code REGISTRAR}, {@code ABRIR}) son atajos de pantalla y no tocan nada.
  */
 @RequiredArgsConstructor
 public class AplicarAviso {
 
     static final String EDITAR_REGISTRO = "EDITAR_REGISTRO";
+
+    static final String CREAR_REGISTRO = "CREAR_REGISTRO";
 
     private final NegocioRepository negocioRepository;
 
@@ -68,9 +71,33 @@ public class AplicarAviso {
         aviso.getAcciones().stream()
                 .filter(Map.class::isInstance)
                 .map(accion -> (Map<?, ?>) accion)
-                .filter(accion -> EDITAR_REGISTRO.equals(accion.get("tipo")))
+                .filter(accion -> EDITAR_REGISTRO.equals(accion.get("tipo")) || CREAR_REGISTRO.equals(accion.get("tipo")))
                 .findFirst()
-                .ifPresent(accion -> editarRegistro(aviso.getNegocioId(), accion, ahora));
+                .ifPresent(accion -> {
+                    if (CREAR_REGISTRO.equals(accion.get("tipo"))) {
+                        crearRegistro(aviso.getNegocioId(), accion, ahora);
+                    } else {
+                        editarRegistro(aviso.getNegocioId(), accion, ahora);
+                    }
+                });
+    }
+
+    /** Suma la fila que el aviso propone (un combo) a la tabla indicada, con las mismas validaciones y límites del plan que cargarla a mano. */
+    private void crearRegistro(NegocioId negocioId, Map<?, ?> accion, OffsetDateTime ahora) {
+        BloqueId bloqueId = bloqueIdDe(accion);
+        List<Campo> campos = campoRepository.findByBloqueIdAndNegocioId(bloqueId, negocioId);
+        Map<String, Object> validos = Registro.validar(campos, cambiosPorCampo(accion, campos));
+        registroDatosService.validarConexiones(negocioId, campos, validos);
+        controlPlanService.validarAltaRegistros(negocioId, 1, ahora);
+        registroRepository.save(Registro.deAviso(negocioId, bloqueId, validos, ahora));
+    }
+
+    private static BloqueId bloqueIdDe(Map<?, ?> accion) {
+        try {
+            return BloqueId.de(String.valueOf(accion.get("bloqueId")));
+        } catch (IllegalArgumentException e) {
+            throw new BusinessRuleException("La acción del aviso no indica en qué tabla crear la fila");
+        }
     }
 
     private void editarRegistro(NegocioId negocioId, Map<?, ?> accion, OffsetDateTime ahora) {

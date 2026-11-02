@@ -259,6 +259,11 @@ export function SistemaPage() {
               >
                 <Icon name="camera" />
               </button>
+              {!construyendo && (
+                <Btn cls="secondary" data-accion="resumen-pdf" onClick={() => abrirModal({ tipo: 'resumen' })}>
+                  <Icon name="download" /> Resumen en PDF
+                </Btn>
+              )}
               <Btn
                 cls="secondary"
                 data-accion="ajustar-con-sami"

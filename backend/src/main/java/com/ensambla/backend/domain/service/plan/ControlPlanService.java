@@ -1,8 +1,10 @@
 package com.ensambla.backend.domain.service.plan;
 
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.plan.AccesoIa;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.FuncionPlan;
@@ -12,6 +14,7 @@ import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.AccesoContenidoRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
@@ -22,7 +25,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -44,6 +46,10 @@ public class ControlPlanService {
 
     private final TransaccionPort transaccionPort;
 
+    private final NegocioRepository negocioRepository;
+
+    private final AccesoIa accesoIa;
+
     private static final int LIMITE_GRATUITO = 3;
 
     public void validarAltaProyecto(NegocioId negocioId, OffsetDateTime ahora) {
@@ -62,7 +68,20 @@ public class ControlPlanService {
         });
     }
 
+    /**
+     * Con el acceso a la IA restringido, sólo el dueño de un email habilitado puede usarla (lectura, Sami y taller).
+     *
+     * @throws RestriccionPlanException si el dueño del negocio no está habilitado
+     */
+    public void exigirIa(NegocioId negocioId) {
+        if (accesoIa.restringido()
+                && !accesoIa.permite(negocioRepository.findEmailDuenioById(negocioId).orElse(null))) {
+            throw new RestriccionPlanException("IA_NO_HABILITADA", AccesoIa.MENSAJE);
+        }
+    }
+
     public void validarPaginasIa(NegocioId negocioId, int cantidad, OffsetDateTime ahora) {
+        exigirIa(negocioId);
         transaccionPort.ejecutar(() -> {
             usoPlanRepository.bloquearNegocio(negocioId);
             Plan plan = vigente(negocioId, ahora);
@@ -71,7 +90,7 @@ public class ControlPlanService {
                 prueba.get().validarPaginas(cantidad);
                 return;
             }
-            LocalDate mes = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate().withDayOfMonth(1);
+            LocalDate mes = ZonaNegocio.primerDiaDelMes(ahora);
             plan.validarPaginasIa(usoPlanRepository.paginasEnPeriodo(negocioId, mes, mes.plusMonths(1)), cantidad);
         });
     }
@@ -108,7 +127,7 @@ public class ControlPlanService {
      * @throws RestriccionPlanException si se agotó el límite diario; el mensual lo informa {@link #validarPaginasIa}
      */
     public void reservarPaginaIaInmediata(NegocioId negocioId, int limiteDiario, OffsetDateTime ahora) {
-        LocalDate dia = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate();
+        LocalDate dia = ZonaNegocio.dia(ahora);
         boolean reservada = reservarPaginasIa(negocioId, 1, ahora,
                 () -> usoPlanRepository.registrarPaginaInmediata(negocioId, dia, limiteDiario, ahora));
         if (!reservada) {
@@ -151,8 +170,8 @@ public class ControlPlanService {
                                            OffsetDateTime ahora) {
         return transaccionPort.ejecutar(() -> {
             usoPlanRepository.bloquearNegocio(negocioId);
-            LocalDate periodo = ahora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate().withDayOfMonth(1);
-            OffsetDateTime fin = periodo.plusMonths(1).atStartOfDay().atOffset(ZoneOffset.UTC);
+            LocalDate periodo = ZonaNegocio.primerDiaDelMes(ahora);
+            OffsetDateTime fin = ZonaNegocio.inicioDelDia(periodo.plusMonths(1));
             List<String> candidatas = claves.stream().distinct().toList();
             if (esPremium(negocioId, ahora)) {
                 return new AccesoContenidoItem(candidatas, 0, null, candidatas.size(), 0, fin);
