@@ -25,6 +25,13 @@ export const planesQuery = () =>
     },
   });
 
+/** Si el plan actual incluye una función (por ejemplo `REPORTES_FILTRADOS`); mientras se consulta no se sabe. */
+export function useFuncionDePlan(funcion: string) {
+  const { data, isPending } = usePlanes();
+  const plan = data?.planes.find((candidato) => candidato.codigo === data.suscripcion.codigoPlanActual);
+  return { cargando: isPending, incluida: plan?.funciones.includes(funcion) ?? false };
+}
+
 export function usePlanes() {
   const consulta = useQuery(planesQuery());
   return {

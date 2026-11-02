@@ -13,6 +13,7 @@ import { ModalImportar } from './modales/ModalImportar';
 import { ModalPlantilla } from './modales/ModalPlantilla';
 import { ModalRenombrar } from './modales/ModalRenombrar';
 import { ModalRegistro } from './modales/ModalRegistro';
+import { ModalResumen } from './modales/ModalResumen';
 import { ModalRenombrarPieza } from './modales/ModalRenombrarPieza';
 import { ModalSecciones } from './modales/ModalSecciones';
 import { ModalPruebaPremium } from '@/components/planes/ModalPruebaPremium';
@@ -43,6 +44,8 @@ function ContenidoDelModal() {
       return <ModalRenovacion cancelar />;
     case 'renombrar':
       return <ModalRenombrar />;
+    case 'resumen':
+      return <ModalResumen />;
     case 'eliminarCuaderno':
       return <ModalEliminarCuaderno />;
     case 'renombrarPieza':

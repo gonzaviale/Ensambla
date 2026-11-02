@@ -67,6 +67,12 @@
 			<artifactId>fastexcel</artifactId>
 			<version>0.19.0</version>
 		</dependency>
+		<!-- Resumen del negocio en PDF: tablas y texto sin necesitar un motor de HTML -->
+		<dependency>
+			<groupId>com.github.librepdf</groupId>
+			<artifactId>openpdf</artifactId>
+			<version>2.0.3</version>
+		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
