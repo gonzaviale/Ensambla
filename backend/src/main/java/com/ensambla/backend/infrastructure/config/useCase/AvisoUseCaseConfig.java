@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.model.aviso.MetricasVentas;
 import com.ensambla.backend.domain.model.aviso.ReglaAviso;
+import com.ensambla.backend.domain.model.aviso.ReglaPrecioZona;
 import com.ensambla.backend.domain.model.aviso.ReglaProductoEstancado;
 import com.ensambla.backend.domain.model.aviso.ReglaStockBajo;
 import com.ensambla.backend.domain.port.TransaccionPort;
@@ -117,6 +118,11 @@ public class AvisoUseCaseConfig {
             @Value("${ensambla.avisos.periodo-dias:30}") int periodoDias,
             @Value("${ensambla.avisos.baja-rotacion-factor:0.5}") BigDecimal factorBajaRotacion) {
         return new MetricasVentas(periodoDias, factorBajaRotacion);
+    }
+
+    @Bean
+    public ReglaPrecioZona reglaPrecioZona() {
+        return new ReglaPrecioZona();
     }
 
     @Bean

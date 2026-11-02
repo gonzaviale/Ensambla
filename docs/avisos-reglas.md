@@ -62,6 +62,21 @@ anotó ninguna venta, no avisa (no se puede saber qué se mueve). La entidad es 
 La acción «Rebajar a $X» es un `EDITAR_REGISTRO` que cambia `price`; al aplicarla el precio baja, la regla deja de detectar el
 producto y el aviso vence solo.
 
+## PRECIO_ZONA · Precio frente a la competencia de la zona (`ReglaPrecioZona`)
+
+Compara el precio de cada producto con el **rango** (mínimo y máximo) que cobran los comercios de la zona por el mismo producto
+(mismo nombre, sin importar tildes ni mayúsculas). Si el precio queda fuera del rango, avisa:
+
+- **Por debajo del mínimo:** muestra el rango y la diferencia ($ y %), y sugiere **revisar costos y margen** (con el costo cargado,
+  dice cuánto queda por unidad o cuánto se pierde). No cambia el precio: sólo ofrece «Ver producto».
+- **Por encima del máximo:** muestra el rango y la diferencia y sugiere **bajarlo**. La acción «Bajar a $X» es un `EDITAR_REGISTRO`
+  que cambia `price` al máximo de la zona redondeado a la decena (o al máximo exacto si el redondeo no lo deja por debajo del precio actual).
+
+**Anonimato:** con menos de 3 comercios en la zona (`AnalisisZona.MINIMO_COMERCIOS`) o menos de 3 que cobren ese producto no se calcula
+ni se muestra rango. Los textos sólo traen el mínimo, el máximo y la cantidad de comercios. Se compara aunque el producto no tenga
+stock ni ventas. La entidad es `registro:<id>` y los datos son `{precio, minimo, maximo}`: si cambia el precio o el rango de la zona,
+un aviso descartado vuelve a aparecer. Puede convivir con `ESTANCADO` sobre el mismo producto (cada tipo explica su causa).
+
 ## Impacto de los avisos aplicados (`MedirImpactoAvisos`)
 
 Cuando la persona aplica un aviso de `STOCK` o de `ESTANCADO` sobre un producto, el servidor mide después qué pasó con las ventas de
@@ -89,7 +104,7 @@ pantalla dice «vendés $X más por semana que antes de aplicar los avisos» y n
 El frontend (`useMotorDeAvisos`) junta los avisos del servidor con los que Sami calcula en el navegador. Para no duplicar ni resucitar
 avisos descartados:
 
-- Con el **backend real** (`VITE_API_MOCKS` distinto de `completo`), el tipo `estancado` es **siempre del servidor**, también
+- Con el **backend real** (`VITE_API_MOCKS` distinto de `completo`), los tipos `estancado` y `precio_zona` son **siempre del servidor**, también
   mientras todavía no contestó: el navegador no lo calcula. Así un aviso descartado o aplicado no reaparece como copia local, y no hay un
   parpadeo de avisos duplicados al abrir la pantalla.
 - Los demás tipos que el servidor trae (por ejemplo `stock`) también se omiten en el navegador mientras haya alguno pendiente.
