@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { getRouteApi, useNavigate } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
-import { AvisosDelCuaderno } from '@/components/sistema/avisos/AvisosDelCuaderno';
+import { SamiFlotante } from '@/components/sistema/avisos/SamiFlotante';
 import { BibliotecaDeBloques } from '@/components/sistema/editor/BibliotecaDeBloques';
 import { BloqueEnLienzo } from '@/components/sistema/editor/BloqueEnLienzo';
 import { CierreDeCreacion } from '@/components/sistema/CierreDeCreacion';
@@ -190,7 +190,6 @@ export function SistemaPage() {
               onCerrar={() => useSistemaStore.getState().descartarCartelListo()}
             />
           )}
-          {!construyendo && <AvisosDelCuaderno sistemaId={sistema.id} />}
           <div className="canvas-heading">
             <div className="canvas-titulo">
               <span className={`canvas-titulo-icono ${construyendo ? '' : 'usando'}`.trim()}>
@@ -412,15 +411,7 @@ export function SistemaPage() {
         </div>
         {construyendo && bloqueElegido && <Inspector bloque={bloqueElegido} sistema={sistema} />}
       </main>
-      <button
-        type="button"
-        className="sami-float"
-        aria-label="¿Una mano con esto?"
-        title="¿Una mano con esto?"
-        onClick={() => abrirModal({ tipo: 'ayuda' })}
-      >
-        <img className="sami-float-img" src="/mockup/sami-boton.webp" alt="" />
-      </button>
+      <SamiFlotante sistemaId={sistema.id} />
       {tablaCompleta && (
         <TablaCompleta key={tablaCompleta.id} bloque={tablaCompleta} sistema={sistema} />
       )}

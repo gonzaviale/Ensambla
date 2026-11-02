@@ -1,6 +1,6 @@
 import type { AccionDeAviso, Aviso } from '@/lib/sistema/alertas';
 import { findBlock, id as nuevoId } from '@/lib/sistema/core';
-import { crearAlmacenDeEjemplo } from '@/lib/sistema/demo';
+import { crearAlmacenCargado, crearAlmacenDeEjemplo } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
 import { destinoDeAviso } from '@/lib/sistema/destinoDeAviso';
 import { resaltar } from '@/lib/sistema/resaltar';
@@ -129,10 +129,23 @@ export function useAccionesDeAvisos() {
     useSistemaStore.getState().avisar('Creamos un almacén de ejemplo. Sami ya lo está mirando.');
   };
 
+  const crearDemoCargado = () => {
+    void navegacion.crearYAbrir(crearAlmacenCargado(hoy()), 'use');
+    useSistemaStore
+      .getState()
+      .avisar('Cargamos un almacén con muchos datos. Sami ya lo está mirando.');
+  };
+
+  /** Lleva a un registro (o a una tabla) del cuaderno y lo marca. */
+  const irAlObjeto = (destino: { sistemaId: string; bloqueId: string; filaId?: string }) =>
+    irAlBloque(destino.sistemaId, destino.bloqueId, { filaId: destino.filaId });
+
   return {
     ejecutar,
+    irAlObjeto,
     descartar,
     ver,
     crearDemo,
+    crearDemoCargado,
   };
 }

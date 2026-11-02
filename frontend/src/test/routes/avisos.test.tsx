@@ -7,7 +7,6 @@ import { crearAlmacenDeEjemplo } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
 import type { Sistema } from '@/lib/sistema/tipos';
 import { estado } from '@/mocks/db/estado';
-import { destinoDeAviso } from '@/lib/sistema/destinoDeAviso';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { avisoDelServidor } from '@/test/avisosData';
 import { renderApp } from '@/test/renderApp';
@@ -357,41 +356,109 @@ describe('sin datos y con el almacén de ejemplo', () => {
 
     await waitFor(() => expect(useSistemaStore.getState().sistemas).toHaveLength(1), ESPERA);
     expect(useSistemaStore.getState().sistemas[0]?.demoAlmacen).toBe(true);
-    expect(await screen.findByText(/Encontré 9 cosas para mirar/, {}, ESPERA)).toBeVisible();
+    expect(
+      await screen.findByRole('button', { name: /Hablar con Sami: 9 avisos/ }, ESPERA),
+    ).toBeVisible();
   });
 
-  it('los avisos del cuaderno van arriba y «Ver los 9» abre la pantalla de avisos', async () => {
-    const { user } = await abrirConDemo();
+  describe('el chat de Sami', () => {
+    const abrirChat = async () => {
+      const { user } = await abrirConDemo();
+      await user.click(screen.getByRole('button', { name: /Hablar con Sami/ }));
+      const chat = await screen.findByRole('dialog', { name: 'Chat con Sami' });
+      return { user, chat };
+    };
+    const preguntar = async (
+      user: ReturnType<typeof userEvent.setup>,
+      chat: HTMLElement,
+      pregunta: string,
+    ) => {
+      await user.type(within(chat).getByRole('textbox', { name: 'Escribile a Sami' }), pregunta);
+      await user.click(within(chat).getByRole('button', { name: 'Enviar' }));
+    };
 
-    const avisos = screen.getByRole('region', { name: /Encontré 9 cosas para mirar/ });
-    expect(avisos.querySelectorAll('.aviso-cuaderno')).toHaveLength(3);
-    await user.click(within(avisos).getByRole('button', { name: /Ver los 9/ }));
-    expect(await screen.findByRole('region', { name: /Lo que encontré/ }, ESPERA)).toBeVisible();
+    it('el Sami flotante muestra cuántos avisos tiene el cuaderno', async () => {
+      await abrirConDemo();
+
+      const sami = screen.getByRole('button', { name: /Hablar con Sami: 9 avisos/ });
+      expect(within(sami).getByText('9')).toBeVisible();
+    });
+
+    it('al abrirlo saluda y muestra lo más importante, con «Ver los 9 avisos»', async () => {
+      const { user, chat } = await abrirChat();
+
+      expect(within(chat).getByText(/encontré 9 cosas para mirar/)).toBeVisible();
+      expect(within(chat).getAllByRole('button', { name: /^Ver: / })).toHaveLength(3);
+      await user.click(within(chat).getByRole('button', { name: /Ver los 9 avisos/ }));
+      expect(await screen.findByRole('region', { name: /Lo que encontré/ }, ESPERA)).toBeVisible();
+    });
+
+    it('«Ver» lleva a lo que representa el aviso, lo marca y guarda el chat', async () => {
+      const { user, chat } = await abrirChat();
+
+      await user.click(within(chat).getAllByRole('button', { name: /^Ver: / })[0] as HTMLElement);
+
+      await waitFor(
+        () => expect(document.querySelector('.resaltado-marco')).not.toBeNull(),
+        ESPERA,
+      );
+      expect(screen.queryByRole('dialog', { name: 'Chat con Sami' })).toBeNull();
+    });
+
+    it('al abrirlo desaparece el ícono flotante y vuelve al cerrarlo', async () => {
+      const { user, chat } = await abrirChat();
+
+      expect(screen.queryByRole('button', { name: /Hablar con Sami/ })).toBeNull();
+      await user.click(within(chat).getByRole('button', { name: 'Cerrar el chat' }));
+      expect(screen.getByRole('button', { name: /Hablar con Sami/ })).toBeVisible();
+    });
+
+    it('se agranda y se achica con el botón de la cabecera', async () => {
+      const { user, chat } = await abrirChat();
+
+      expect(chat).not.toHaveClass('expandido');
+      await user.click(within(chat).getByRole('button', { name: 'Agrandar el chat' }));
+      expect(chat).toHaveClass('expandido');
+      await user.click(within(chat).getByRole('button', { name: 'Achicar el chat' }));
+      expect(chat).not.toHaveClass('expandido');
+    });
+
+    it('contesta por el stock', async () => {
+      const { user, chat } = await abrirChat();
+
+      await preguntar(user, chat, '¿Qué me falta?');
+
+      expect(await within(chat).findByText(/con poco stock/, {}, ESPERA)).toBeVisible();
+      expect(within(chat).getByText('Aceite Natura 900 ml')).toBeVisible();
+    });
+
+    it('contesta por un producto', async () => {
+      const { user, chat } = await abrirChat();
+
+      await preguntar(user, chat, '¿cuánta yerba me queda?');
+
+      expect(await within(chat).findByText(/Te quedan 4/, {}, ESPERA)).toBeVisible();
+    });
+
+    it('contesta por las ventas', async () => {
+      const { user, chat } = await abrirChat();
+
+      await preguntar(user, chat, '¿Cuánto vendí?');
+
+      expect(await within(chat).findByText(/Últimos 30 días/, {}, ESPERA)).toBeVisible();
+    });
   });
 
-  it('«Ver» lleva a lo que representa el aviso y lo marca con el marco animado', async () => {
-    const { user } = await abrirConDemo();
-
-    const avisos = screen.getByRole('region', { name: /Encontré 9 cosas para mirar/ });
-    const visibles = useSistemaStore
-      .getState()
-      .avisos.filter((aviso) => aviso.sistemaId === sistemaActual()?.id)
-      .sort((a, b) => b.prioridad - a.prioridad)
-      .slice(0, 3);
-    const indice = visibles.findIndex((aviso) => destinoDeAviso(aviso));
-    expect(indice).toBeGreaterThanOrEqual(0);
-
-    await user.click(within(avisos).getAllByRole('button', { name: /^Ver: / })[indice] as HTMLElement);
-
-    await waitFor(() => expect(document.querySelector('.resaltado-marco')).not.toBeNull(), ESPERA);
-    expect(screen.queryByRole('region', { name: /Lo que encontré/ })).toBeNull();
-  });
-
-  it('en construir no hay franja: sigue la barra de distribución', async () => {
+  it('en construir sigue la barra de distribución', async () => {
     await abrirConDemo('construir');
 
-    expect(screen.queryByRole('region', { name: /Encontré \d+ cosas para mirar/ })).toBeNull();
     expect(screen.getByRole('group', { name: 'Distribuí tus piezas' })).toBeVisible();
+  });
+
+  it('el cuaderno ya no muestra los avisos arriba: viven en el chat de Sami', async () => {
+    await abrirConDemo();
+
+    expect(screen.queryByRole('region', { name: /Encontré \d+ cosas para mirar/ })).toBeNull();
   });
 });
 
@@ -609,9 +676,9 @@ describe('los avisos del motor del servidor', () => {
       useSistemaStore.getState().avisos.some((aviso) => aviso.tipo === tipo && !aviso.servidorId);
     await waitFor(() => expect(locales('combo')).toBe(true), ESPERA);
 
-    expect(useSistemaStore.getState().avisos.filter((aviso) => aviso.tipo === 'estancado')).toEqual([
-      expect.objectContaining({ servidorId: expect.any(String) }),
-    ]);
+    expect(useSistemaStore.getState().avisos.filter((aviso) => aviso.tipo === 'estancado')).toEqual(
+      [expect.objectContaining({ servidorId: expect.any(String) })],
+    );
     expect(locales('stock')).toBe(true);
   });
 

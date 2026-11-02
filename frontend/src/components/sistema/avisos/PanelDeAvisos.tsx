@@ -279,6 +279,9 @@ export function PanelDeAvisos() {
             Crear un almacén de ejemplo para probar
           </button>
         )}
+        <button type="button" className="text-link" onClick={acciones.crearDemoCargado}>
+          Cargar un almacén con muchos datos
+        </button>
       </div>
       <ContenidoPremium acceso={acceso} recurso="avisos" compacto />
     </section>
