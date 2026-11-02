@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.aviso.BloqueInventario;
 import com.ensambla.backend.domain.model.aviso.BloqueVentas;
 import com.ensambla.backend.domain.model.aviso.ContextoNegocio;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.MetricasVentas;
 import com.ensambla.backend.domain.model.aviso.ReglaAviso;
 import com.ensambla.backend.domain.model.aviso.ResultadoRegla;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
@@ -15,12 +16,14 @@ import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.precio.CambioPrecio;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.precio.HistorialPrecioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
@@ -64,6 +67,10 @@ public class EjecutarMotorAvisos {
 
     private final AgregadoZonaRepository agregadoZonaRepository;
 
+    private final HistorialPrecioRepository historialPrecioRepository;
+
+    private final MetricasVentas metricasVentas;
+
     private final AvisoRepository avisoRepository;
 
     private final TransaccionPort transaccionPort;
@@ -106,7 +113,14 @@ public class EjecutarMotorAvisos {
         List<BloqueVentas> ventas = proyectos.stream()
                 .flatMap(proyecto -> ventasDe(proyecto, negocioId).stream())
                 .toList();
-        return new ContextoNegocio(negocioId, hoy, inventarios, ventas, zonaDe(negocioId));
+        return new ContextoNegocio(negocioId, hoy, inventarios, ventas, zonaDe(negocioId),
+                cambiosDePrecioDe(negocioId, hoy));
+    }
+
+    /** Los cambios de precio del período: un aumento más viejo ya no cuenta para ningún aviso. */
+    private List<CambioPrecio> cambiosDePrecioDe(NegocioId negocioId, LocalDate hoy) {
+        return historialPrecioRepository.findByNegocioIdDesde(
+                negocioId, ZonaNegocio.inicioDelDia(hoy.minusDays(metricasVentas.periodoDias())));
     }
 
     /** Los agregados de la zona del negocio, o una zona vacía si todavía no tiene una asignada. */

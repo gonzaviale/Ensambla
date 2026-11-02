@@ -6,6 +6,7 @@ import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.lote.LoteSubidaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.precio.HistorialPrecioRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
@@ -95,7 +96,10 @@ public class RegistroUseCaseConfig {
     @Bean
     public RegistroDatosService registroDatosService(
             RegistroRepository registroRepository,
+            BloqueRepository bloqueRepository,
+            HistorialPrecioRepository historialPrecioRepository,
             TransaccionPort transaccionPort) {
-        return new RegistroDatosService(registroRepository, transaccionPort);
+        return new RegistroDatosService(registroRepository, bloqueRepository, historialPrecioRepository,
+                transaccionPort);
     }
 }

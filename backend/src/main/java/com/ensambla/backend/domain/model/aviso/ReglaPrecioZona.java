@@ -1,12 +1,10 @@
 package com.ensambla.backend.domain.model.aviso;
 
-import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.zona.AgregadoZonaProducto;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +17,7 @@ import static com.ensambla.backend.domain.model.aviso.FormatoAviso.aDiez;
 import static com.ensambla.backend.domain.model.aviso.FormatoAviso.nombreDe;
 import static com.ensambla.backend.domain.model.aviso.FormatoAviso.numero;
 import static com.ensambla.backend.domain.model.aviso.FormatoAviso.pesos;
+import static com.ensambla.backend.domain.model.aviso.FormatoAviso.porcentaje;
 
 /**
  * Productos cuyo precio de venta queda fuera del rango de la zona: por debajo del precio mínimo que cobran los comercios
@@ -30,7 +29,6 @@ import static com.ensambla.backend.domain.model.aviso.FormatoAviso.pesos;
 public class ReglaPrecioZona implements ReglaAviso {
 
     private static final short PRIORIDAD = 2;
-    private static final BigDecimal CIEN = BigDecimal.valueOf(100);
 
     @Override
     public TipoAviso tipo() {
@@ -39,9 +37,6 @@ public class ReglaPrecioZona implements ReglaAviso {
 
     @Override
     public List<ResultadoRegla> evaluar(ContextoNegocio contexto) {
-        if (contexto.zona().comercios() < AnalisisZona.MINIMO_COMERCIOS) {
-            return List.of();
-        }
         return contexto.inventarios().stream()
                 .flatMap(inventario -> inventario.registros().stream()
                         .map(registro -> evaluarRegistro(contexto.zona(), inventario, registro))
@@ -55,7 +50,7 @@ public class ReglaPrecioZona implements ReglaAviso {
             return null;
         }
         String nombre = nombreDe(inventario, registro);
-        Optional<AgregadoZonaProducto> deLaZona = productoDeLaZona(zona, nombre);
+        Optional<AgregadoZonaProducto> deLaZona = zona.productoConRango(nombre);
         if (deLaZona.isEmpty()) {
             return null;
         }
@@ -67,13 +62,6 @@ public class ReglaPrecioZona implements ReglaAviso {
             return porEncima(inventario, registro, nombre, precio, rango);
         }
         return null;
-    }
-
-    private static Optional<AgregadoZonaProducto> productoDeLaZona(AnalisisZona zona, String nombre) {
-        return zona.productos().stream()
-                .filter(producto -> producto.comercios() >= AnalisisZona.MINIMO_COMERCIOS)
-                .filter(producto -> TextoNormalizado.de(producto.nombre()).equals(TextoNormalizado.de(nombre)))
-                .findFirst();
     }
 
     private ResultadoRegla porDebajo(BloqueInventario inventario, Registro registro, String nombre, BigDecimal precio,
@@ -123,10 +111,6 @@ public class ReglaPrecioZona implements ReglaAviso {
                 ? "Con tu costo de " + pesos(costo) + ", perdés " + pesos(margen.negate()) + " por unidad."
                 : "Con tu costo de " + pesos(costo) + ", te quedan " + pesos(margen) + " por unidad ("
                         + porcentaje(margen, costo) + " % sobre el costo).";
-    }
-
-    private static String porcentaje(BigDecimal parte, BigDecimal base) {
-        return parte.multiply(CIEN).divide(base, 0, RoundingMode.HALF_UP).toPlainString();
     }
 
     private ResultadoRegla resultado(BloqueInventario inventario, Registro registro, String titulo, String detalle,

@@ -61,6 +61,32 @@ class AnalisisZonaTest {
         assertThat(result.comercios()).isEqualTo(10);
     }
 
+    @Test
+    @DisplayName("Encuentra el producto de la zona sin importar tildes ni mayúsculas")
+    void productoConRangoShouldFindProductIgnoringAccentsAndCase() {
+        AnalisisZona analisis = givenAnalisis(10, givenProducto("Azúcar Ledesma 1 kg", 8, "5"));
+
+        assertThat(analisis.productoConRango("AZUCAR ledesma 1 KG")).isPresent();
+        assertThat(analisis.productoConRango("Yerba")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("No da rango si la zona tiene menos comercios que el mínimo")
+    void productoConRangoShouldBeEmptyWhenZoneHasFewerStoresThanMinimum() {
+        AnalisisZona analisis = givenAnalisis(2, givenProducto("Yerba", 8, "5"));
+
+        assertThat(analisis.productoConRango("Yerba")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("No da rango si el producto lo cobran menos comercios que el mínimo")
+    void productoConRangoShouldBeEmptyWhenProductHasFewerStoresThanMinimum() {
+        AnalisisZona analisis = givenAnalisis(10, new AgregadoZonaProducto("Yerba", 2, 2, new BigDecimal("100"),
+                new BigDecimal("150"), new BigDecimal("200"), new BigDecimal("5")));
+
+        assertThat(analisis.productoConRango("Yerba")).isEmpty();
+    }
+
     // --- helpers ---
     private AnalisisZona givenAnalisis(long comercios, AgregadoZonaProducto... productos) {
         return new AnalisisZona(NOMBRE, comercios, List.of(productos));

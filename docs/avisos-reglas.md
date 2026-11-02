@@ -77,6 +77,45 @@ ni se muestra rango. Los textos sólo traen el mínimo, el máximo y la cantidad
 stock ni ventas. La entidad es `registro:<id>` y los datos son `{precio, minimo, maximo}`: si cambia el precio o el rango de la zona,
 un aviso descartado vuelve a aparecer. Puede convivir con `ESTANCADO` sobre el mismo producto (cada tipo explica su causa).
 
+## MUY_VENDIDO · Producto de alta rotación con precio bajo (`ReglaProductoAltaRotacion`)
+
+Avisa de un producto que **se vende más que de costumbre** y está **por debajo del rango de la zona**:
+
+- Las unidades del período (`periodo-dias`) superan su promedio por período (`MetricaProducto.promedioPorPeriodo`, calculado desde la
+  primera venta; con menos de un período de historia el promedio es igual a lo vendido y no avisa).
+- Su precio es menor al **mínimo** que cobran los comercios de la zona (mismo nombre, sin importar tildes ni mayúsculas), con el mínimo de
+  3 comercios en la zona y en el producto (`AnalisisZona.productoConRango`).
+
+El aumento sugerido es el mínimo de la zona redondeado a la decena (o el mínimo exacto si el redondeo no lo deja por encima del precio
+actual). El aviso muestra las ventas del período, el promedio, el precio actual y el rango de la zona. La acción «Subir a $X» es un
+`EDITAR_REGISTRO` que cambia `price`. La entidad es `registro:<id>` y los datos son `{precio, sugerido}`.
+
+## Historial de precio y REVISAR_PRECIO · Las ventas cayeron después de un aumento (`ReglaRevisarPrecioTrasAumento`)
+
+Cada vez que cambia el precio (`price`) de un producto **del inventario**, `RegistroDatosService.editar` anota el cambio en la tabla
+`historial_precio` (precio anterior y nuevo, con la fecha). Sólo se anota lo que pasa por ahí (editar una fila, aplicar un aviso); no hay
+historial de lo anterior a esta función. Las filas de ventas, aunque tengan precio, no se anotan.
+
+La regla toma el **último** cambio de cada producto y avisa si:
+
+- Fue un **aumento** de los últimos `periodo-dias` días (el primer precio que se carga no es un aumento).
+- Ya pasó la ventana posterior (`revision-precio.ventana-dias`): no se puede comparar antes.
+- Las unidades por día de la ventana posterior cayeron al menos `revision-precio.caida-minima` respecto de la ventana anterior
+  (mismo cálculo que el impacto de un aviso, `ImpactoAviso.medir`) y antes se vendía.
+
+La acción «Volver a $anterior» es un `EDITAR_REGISTRO`; al aplicarla queda anotada una baja, el último cambio deja de ser un aumento y el
+aviso vence solo. La entidad es `registro:<id>` y los datos `{precioAnterior, precioNuevo, fecha}`: un aviso descartado sólo vuelve si hay un
+aumento nuevo. Es un tipo propio (`REVISAR_PRECIO`) porque el motor vence los avisos por tipo y entidad, y dos reglas del mismo tipo se
+pisarían.
+
+**No es el impacto de los avisos:** el impacto (más abajo) mide después de aplicar un aviso de stock o estancado y nunca genera un aviso;
+esta regla genera un aviso por cualquier aumento de precio, venga de un aviso o de una edición a mano.
+
+| Propiedad | Por defecto | Qué hace |
+|---|---|---|
+| `ensambla.avisos.revision-precio.ventana-dias` | `7` | Días antes y después del aumento que se comparan |
+| `ensambla.avisos.revision-precio.caida-minima` | `0.2` | Fracción mínima que tienen que caer las unidades por día (0,2 = 20 %) |
+
 ## Impacto de los avisos aplicados (`MedirImpactoAvisos`)
 
 Cuando la persona aplica un aviso de `STOCK` o de `ESTANCADO` sobre un producto, el servidor mide después qué pasó con las ventas de
@@ -104,7 +143,7 @@ pantalla dice «vendés $X más por semana que antes de aplicar los avisos» y n
 El frontend (`useMotorDeAvisos`) junta los avisos del servidor con los que Sami calcula en el navegador. Para no duplicar ni resucitar
 avisos descartados:
 
-- Con el **backend real** (`VITE_API_MOCKS` distinto de `completo`), los tipos `estancado` y `precio_zona` son **siempre del servidor**, también
+- Con el **backend real** (`VITE_API_MOCKS` distinto de `completo`), los tipos `estancado`, `precio_zona`, `muy_vendido` y `revisar_precio` son **siempre del servidor**, también
   mientras todavía no contestó: el navegador no lo calcula. Así un aviso descartado o aplicado no reaparece como copia local, y no hay un
   parpadeo de avisos duplicados al abrir la pantalla.
 - Los demás tipos que el servidor trae (por ejemplo `stock`) también se omiten en el navegador mientras haya alguno pendiente.

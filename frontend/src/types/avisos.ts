@@ -12,10 +12,20 @@ export const accionDelServidorSchema = z
   })
   .passthrough();
 
+const tipoDeAvisoSchema = z.enum([
+  'STOCK',
+  'PRECIO_ZONA',
+  'ESTANCADO',
+  'MUY_VENDIDO',
+  'COMBO',
+  'CONSUMO_ZONA',
+  'REVISAR_PRECIO',
+]);
+
 export const avisoDelServidorSchema = z.object({
   id: z.string(),
   proyectoId: z.string().nullable(),
-  tipo: z.enum(['STOCK', 'PRECIO_ZONA', 'ESTANCADO', 'MUY_VENDIDO', 'COMBO', 'CONSUMO_ZONA']),
+  tipo: tipoDeAvisoSchema,
   grupo: z.enum(['STOCK', 'VENTAS', 'ZONA']),
   prioridad: z.number().int().min(1).max(3),
   estado: z.enum(['PENDIENTE', 'APLICADO', 'DESCARTADO', 'VENCIDO']),
@@ -43,7 +53,7 @@ export const impactoAvisosSchema = z.object({
   medidos: z.array(
     z.object({
       avisoId: z.string(),
-      tipo: z.enum(['STOCK', 'PRECIO_ZONA', 'ESTANCADO', 'MUY_VENDIDO', 'COMBO', 'CONSUMO_ZONA']),
+      tipo: tipoDeAvisoSchema,
       titulo: z.string(),
       aplicadoEn: z.string().nullable(),
       ventanaDias: z.number().int(),

@@ -1,7 +1,10 @@
 package com.ensambla.backend.domain.model.zona;
 
+import com.ensambla.backend.domain.model.common.TextoNormalizado;
+
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 /** Lo que se sabe de una zona: cuántos comercios aportan y los precios y ventas agregados de sus productos. */
 public record AnalisisZona(String nombre, long comercios, List<AgregadoZonaProducto> productos) {
@@ -23,6 +26,20 @@ public record AnalisisZona(String nombre, long comercios, List<AgregadoZonaProdu
             return this;
         }
         return new AnalisisZona(nombre, comercios, List.of());
+    }
+
+    /**
+     * Los agregados de un producto (mismo nombre, sin importar tildes ni mayúsculas), sólo si la zona y el producto
+     * tienen al menos {@link #MINIMO_COMERCIOS} comercios: con menos, el rango dejaría adivinar qué cobra cada uno.
+     */
+    public Optional<AgregadoZonaProducto> productoConRango(String nombre) {
+        if (comercios < MINIMO_COMERCIOS) {
+            return Optional.empty();
+        }
+        return productos.stream()
+                .filter(producto -> producto.comercios() >= MINIMO_COMERCIOS)
+                .filter(producto -> TextoNormalizado.de(producto.nombre()).equals(TextoNormalizado.de(nombre)))
+                .findFirst();
     }
 
     /** Primero los que más comercios venden y, a igualdad, los que más unidades por semana mueven. */

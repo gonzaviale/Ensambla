@@ -54,8 +54,11 @@ export function aAvisoDeSami(
 
 /** Tipos de aviso que genera el motor del servidor. Con el backend real, el navegador no los calcula por su cuenta. */
 export const TIPOS_DEL_MOTOR: ReadonlySet<TipoDeAviso> = new Set<TipoDeAviso>([
+  'stock',
   'estancado',
   'precio_zona',
+  'muy_vendido',
+  'revisar_precio',
 ]);
 
 /**

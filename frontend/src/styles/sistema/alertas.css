@@ -1092,6 +1092,10 @@
   --nivel: #00506a;
   --nivel-tint: #e0eef3;
 }
+.alerta[data-tipo='revisar_precio'] {
+  --nivel: #b5453a;
+  --nivel-tint: #fbe9e6;
+}
 .sami-chip.p2 .icon,
 .sami-chip.p3 .icon {
   color: var(--petrol);

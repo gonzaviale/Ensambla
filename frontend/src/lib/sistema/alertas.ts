@@ -7,7 +7,13 @@ import type { ProductoDeZona, Zona } from './zona';
 // se envía. El motor es puro: la interfaz y las acciones viven en otro lado.
 
 export type TipoDeAviso =
-  'stock' | 'precio_zona' | 'estancado' | 'muy_vendido' | 'combo' | 'consumo_zona';
+  | 'stock'
+  | 'precio_zona'
+  | 'estancado'
+  | 'muy_vendido'
+  | 'combo'
+  | 'consumo_zona'
+  | 'revisar_precio';
 
 export type GrupoDeAviso = 'stock' | 'ventas' | 'zona';
 
@@ -24,6 +30,7 @@ const GRUPO_DE: Record<TipoDeAviso, GrupoDeAviso> = {
   muy_vendido: 'ventas',
   combo: 'ventas',
   consumo_zona: 'zona',
+  revisar_precio: 'ventas',
 };
 
 export type AccionDeAviso =
@@ -78,6 +85,7 @@ export type Aviso = {
 const ORDEN: TipoDeAviso[] = [
   'stock',
   'estancado',
+  'revisar_precio',
   'precio_zona',
   'muy_vendido',
   'combo',
