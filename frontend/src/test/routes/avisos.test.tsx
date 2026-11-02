@@ -335,7 +335,7 @@ describe('la campana y la pantalla de avisos', () => {
     await user.click(within(panel).getByRole('button', { name: /Preguntale a Sami/ }));
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Lo armamos juntos.' }, ESPERA),
+      await screen.findByRole('heading', { level: 1, name: 'Construyamos juntos' }, ESPERA),
     ).toBeVisible();
   });
 });

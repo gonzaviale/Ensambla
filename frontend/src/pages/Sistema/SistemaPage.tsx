@@ -12,7 +12,6 @@ import { TablaCompleta } from '@/components/sistema/editor/TablaCompleta';
 import { Icon } from '@/components/sistema/Icon';
 import { IconBtn } from '@/components/sistema/IconBtn';
 import { IconTile } from '@/components/sistema/IconTile';
-import { KpisDelComercio } from '@/components/sistema/KpisDelComercio';
 import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import { varsDeColor } from '@/components/sistema/colores';
@@ -272,7 +271,6 @@ export function SistemaPage() {
               </Btn>
             </div>
           </div>
-          {!construyendo && <KpisDelComercio />}
           <div className="tabs-y-distribucion">
             <nav className="section-tabs" aria-label="Secciones del cuaderno">
               {/* <span className="section-tabs-label">Secciones</span> */}

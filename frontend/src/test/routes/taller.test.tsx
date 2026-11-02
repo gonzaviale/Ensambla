@@ -28,7 +28,7 @@ const abrirTaller = async () => {
   await verifyHeadingPresentAsync(/En qué puedo/);
   const user = userEvent.setup();
   await clickButton(user, /Crear con Sami/);
-  await verifyHeadingPresentAsync('Lo armamos juntos.');
+  await verifyHeadingPresentAsync('Construyamos juntos');
   return { router, user };
 };
 
@@ -304,7 +304,7 @@ describe('el taller de Sami', () => {
     await verifyHeadingPresentAsync(/En qué puedo/);
     await clickButton(user, /Crear con Sami/);
 
-    await verifyHeadingPresentAsync('Lo armamos juntos.');
+    await verifyHeadingPresentAsync('Construyamos juntos');
     expect(useSistemaStore.getState().taller?.borrador).toBeNull();
     expect(screen.getByText('TU IDEA VA A APARECER ACÁ')).toBeVisible();
   });

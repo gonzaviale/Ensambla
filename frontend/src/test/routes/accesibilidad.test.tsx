@@ -41,7 +41,7 @@ describe('accesibilidad de las pantallas', () => {
   it('taller de Sami', async () => {
     setupUsuarioConSesion();
     renderApp('/taller');
-    await screen.findByRole('heading', { name: 'Lo armamos juntos.' }, ESPERA);
+    await screen.findByRole('heading', { name: 'Construyamos juntos' }, ESPERA);
     await sinViolaciones();
   });
 

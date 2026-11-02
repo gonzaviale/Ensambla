@@ -733,7 +733,7 @@ describe('traer datos de una foto', () => {
     if (!entrada) throw new Error('Falta el selector de archivos');
     await user.upload(entrada, foto());
 
-    await screen.findByRole('heading', { name: 'Lo ajustamos juntos.' }, ESPERA);
+    await screen.findByRole('heading', { name: 'Construyamos juntos' }, ESPERA);
     expect(await screen.findByText(/Miré tu foto/, undefined, ESPERA)).toBeVisible();
     expect(screen.getByText(/Te paso una foto de cómo anoto hoy/)).toBeVisible();
     expect(await screen.findByText('¿Qué significan los tildes?', undefined, ESPERA)).toBeVisible();
