@@ -27,6 +27,7 @@ import java.util.Map;
 public class Registro {
 
     public static final String ORIGEN_WHATSAPP = "WhatsApp";
+    public static final String ORIGEN_AVISO = "Aviso de Sami";
 
     private static final String MENSAJE_OBLIGATORIO = "Este dato es obligatorio";
 
@@ -74,6 +75,14 @@ public class Registro {
         Registro registro = nuevo(negocioId, bloqueId, valores, ahora);
         registro.setOrigen(ORIGEN_WHATSAPP);
         registro.setOrden(orden);
+        return registro;
+    }
+
+    /** Fila que creó un aviso al aplicarlo (un combo, por ejemplo): queda marcada con su origen. */
+    public static Registro deAviso(NegocioId negocioId, BloqueId bloqueId, Map<String, Object> valores,
+                                   OffsetDateTime ahora) {
+        Registro registro = nuevo(negocioId, bloqueId, valores, ahora);
+        registro.setOrigen(ORIGEN_AVISO);
         return registro;
     }
 

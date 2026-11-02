@@ -90,6 +90,28 @@ El aumento sugerido es el mínimo de la zona redondeado a la decena (o el mínim
 actual). El aviso muestra las ventas del período, el promedio, el precio actual y el rango de la zona. La acción «Subir a $X» es un
 `EDITAR_REGISTRO` que cambia `price`. La entidad es `registro:<id>` y los datos son `{precio, sugerido}`.
 
+## COMBO · Productos que se llevan juntos y rotan poco (`ReglaComboBajaRotacion`)
+
+Propone armar un combo con dos productos que **se venden juntos** y de los que **al menos uno rota poco**:
+
+- Una **canasta** es lo que un mismo cliente se llevó el mismo día (las ventas no tienen ticket; sin cliente no hay canastas). Se cuentan
+  las canastas del último período (`periodo-dias`).
+- El par cuenta si apareció en al menos `combo.frecuencia-minima` canastas y uno de los dos tiene baja rotación (`MetricasVentas.esBajaRotacion`).
+- Los dos tienen que estar en la misma tabla de inventario, con precio. Si el inventario ya tiene un producto cuyo nombre contiene «combo» y
+  los nombres de los dos, no se propone de nuevo.
+- Precio sugerido: la suma de los precios menos `combo.descuento`, redondeada a la decena; si no queda por debajo de la suma, no avisa.
+  El costo del combo es la suma de los costos, sólo si los dos lo tienen.
+
+La acción «Crear el combo» es un `CREAR_REGISTRO`: al aplicarla, `AplicarAviso` suma a la tabla de inventario una fila «Combo A + B» con
+cantidad 0, el precio sugerido y el costo (con las mismas validaciones y el mismo límite de filas del plan que cargarla a mano; la fila queda
+con origen «Aviso de Sami»). La entidad es `combo:<idA>:<idB>` (ids ordenados) y los datos `{precioA, precioB, sugerido}`: las canastas no
+entran en la huella.
+
+| Propiedad | Por defecto | Qué hace |
+|---|---|---|
+| `ensambla.avisos.combo.frecuencia-minima` | `3` | Canastas en las que tiene que aparecer el par |
+| `ensambla.avisos.combo.descuento` | `0.1` | Fracción que se descuenta de la suma de los precios (0,1 = 10 %) |
+
 ## Historial de precio y REVISAR_PRECIO · Las ventas cayeron después de un aumento (`ReglaRevisarPrecioTrasAumento`)
 
 Cada vez que cambia el precio (`price`) de un producto **del inventario**, `RegistroDatosService.editar` anota el cambio en la tabla
@@ -143,7 +165,7 @@ pantalla dice «vendés $X más por semana que antes de aplicar los avisos» y n
 El frontend (`useMotorDeAvisos`) junta los avisos del servidor con los que Sami calcula en el navegador. Para no duplicar ni resucitar
 avisos descartados:
 
-- Con el **backend real** (`VITE_API_MOCKS` distinto de `completo`), los tipos `estancado`, `precio_zona`, `muy_vendido` y `revisar_precio` son **siempre del servidor**, también
+- Con el **backend real** (`VITE_API_MOCKS` distinto de `completo`), los tipos `stock`, `estancado`, `precio_zona`, `muy_vendido`, `revisar_precio` y `combo` son **siempre del servidor**, también
   mientras todavía no contestó: el navegador no lo calcula. Así un aviso descartado o aplicado no reaparece como copia local, y no hay un
   parpadeo de avisos duplicados al abrir la pantalla.
 - Los demás tipos que el servidor trae (por ejemplo `stock`) también se omiten en el navegador mientras haya alguno pendiente.

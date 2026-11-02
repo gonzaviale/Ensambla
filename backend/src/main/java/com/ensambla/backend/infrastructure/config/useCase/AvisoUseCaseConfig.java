@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.model.aviso.MetricasVentas;
 import com.ensambla.backend.domain.model.aviso.ReglaAviso;
+import com.ensambla.backend.domain.model.aviso.ReglaComboBajaRotacion;
 import com.ensambla.backend.domain.model.aviso.ReglaPrecioZona;
 import com.ensambla.backend.domain.model.aviso.ReglaProductoAltaRotacion;
 import com.ensambla.backend.domain.model.aviso.ReglaProductoEstancado;
@@ -129,6 +130,15 @@ public class AvisoUseCaseConfig {
     @Bean
     public ReglaPrecioZona reglaPrecioZona() {
         return new ReglaPrecioZona();
+    }
+
+    /** La frecuencia mínima del par y el descuento salen de {@code ensambla.avisos.combo.*}. */
+    @Bean
+    public ReglaComboBajaRotacion reglaComboBajaRotacion(
+            MetricasVentas metricasVentas,
+            @Value("${ensambla.avisos.combo.frecuencia-minima:3}") int frecuenciaMinima,
+            @Value("${ensambla.avisos.combo.descuento:0.1}") BigDecimal descuento) {
+        return new ReglaComboBajaRotacion(metricasVentas, frecuenciaMinima, descuento);
     }
 
     @Bean

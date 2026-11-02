@@ -82,6 +82,35 @@ describe('aAvisoDeSami', () => {
       },
     ]);
   });
+
+  it('crear una fila (un combo) también se le pide al servidor, que la crea y cierra el aviso', () => {
+    const aviso = aAvisoDeSami(
+      avisoDelServidor({
+        tipo: 'COMBO',
+        acciones: [
+          { tipo: 'CREAR_REGISTRO', texto: 'Crear el combo', proyectoId: PROYECTO_ID, bloqueId: 'inventario' },
+          { tipo: 'CREAR_REGISTRO' },
+        ],
+      }),
+      new Map(),
+    );
+
+    expect(aviso.tipo).toBe('combo');
+    expect(aviso.acciones).toEqual([
+      {
+        tipo: 'servidor',
+        texto: 'Crear el combo',
+        avisoId: 'e0000000-0000-4000-8000-000000000001',
+        confirmacion: 'Listo, lo creamos.',
+      },
+      {
+        tipo: 'servidor',
+        texto: 'Crear la fila',
+        avisoId: 'e0000000-0000-4000-8000-000000000001',
+        confirmacion: 'Listo, lo creamos.',
+      },
+    ]);
+  });
 });
 
 describe('tiposCubiertosPorElServidor', () => {
@@ -101,6 +130,7 @@ describe('tiposCubiertosPorElServidor', () => {
       'precio_zona',
       'muy_vendido',
       'revisar_precio',
+      'combo',
     ]);
   });
 
@@ -108,13 +138,13 @@ describe('tiposCubiertosPorElServidor', () => {
     const cubiertos = tiposCubiertosPorElServidor(delServidor('STOCK', 'ESTANCADO'), true);
 
     expect([...cubiertos].sort()).toEqual([
+      'combo',
       'estancado',
       'muy_vendido',
       'precio_zona',
       'revisar_precio',
       'stock',
     ]);
-    expect(cubiertos.has('combo')).toBe(false);
     expect(cubiertos.has('consumo_zona')).toBe(false);
   });
 });

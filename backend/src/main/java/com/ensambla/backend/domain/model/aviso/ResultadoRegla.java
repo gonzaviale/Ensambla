@@ -26,9 +26,17 @@ public record ResultadoRegla(
         List<Object> acciones) {
 
     private static final String PREFIJO_REGISTRO = "registro:";
+    private static final String PREFIJO_COMBO = "combo:";
 
     public static String entidadDeRegistro(RegistroId registroId) {
         return PREFIJO_REGISTRO + registroId;
+    }
+
+    /** Un combo de dos productos: la entidad no depende del orden en que se nombran. */
+    public static String entidadDeCombo(RegistroId uno, RegistroId otro) {
+        return uno.toString().compareTo(otro.toString()) <= 0
+                ? PREFIJO_COMBO + uno + ":" + otro
+                : PREFIJO_COMBO + otro + ":" + uno;
     }
 
     /** El registro al que apunta una entidad {@code registro:<uuid>}; vacío si la entidad es de otra forma. */

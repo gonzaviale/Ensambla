@@ -22,6 +22,24 @@ class ResultadoReglaTest {
     }
 
     @Test
+    @DisplayName("La entidad de un combo es la misma sin importar el orden de los productos")
+    void entidadDeComboShouldNotDependOnOrder() {
+        RegistroId mayor = RegistroId.de("d0000000-0000-4000-8000-000000000002");
+        String esperada = "combo:" + REGISTRO_ID + ":" + mayor;
+
+        assertThat(ResultadoRegla.entidadDeCombo(REGISTRO_ID, mayor)).isEqualTo(esperada);
+        assertThat(ResultadoRegla.entidadDeCombo(mayor, REGISTRO_ID)).isEqualTo(esperada);
+    }
+
+    @Test
+    @DisplayName("La entidad de un combo no apunta a un producto solo")
+    void registroDeShouldBeEmptyForComboEntity() {
+        RegistroId mayor = RegistroId.de("d0000000-0000-4000-8000-000000000002");
+
+        assertThat(ResultadoRegla.registroDe(ResultadoRegla.entidadDeCombo(REGISTRO_ID, mayor))).isEmpty();
+    }
+
+    @Test
     @DisplayName("Del texto de una entidad de registro se recupera el registro")
     void registroDeShouldReadTheRegistroOfAnEntity() {
         assertThat(ResultadoRegla.registroDe("registro:" + REGISTRO_ID)).contains(REGISTRO_ID);

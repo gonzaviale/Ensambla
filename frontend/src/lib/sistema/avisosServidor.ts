@@ -17,6 +17,13 @@ function aAccion(accion: AccionDelServidor, avisoId: string): AccionDeAviso {
         avisoId,
         confirmacion: 'Listo, aplicamos el cambio.',
       };
+    case 'CREAR_REGISTRO':
+      return {
+        tipo: 'servidor',
+        texto: accion.texto ?? 'Crear la fila',
+        avisoId,
+        confirmacion: 'Listo, lo creamos.',
+      };
     case 'REGISTRAR':
       return { tipo: 'registrar', texto: accion.texto ?? 'Registrar entrada', sistemaId, bloqueId };
     case 'ABRIR':
@@ -59,6 +66,7 @@ export const TIPOS_DEL_MOTOR: ReadonlySet<TipoDeAviso> = new Set<TipoDeAviso>([
   'precio_zona',
   'muy_vendido',
   'revisar_precio',
+  'combo',
 ]);
 
 /**

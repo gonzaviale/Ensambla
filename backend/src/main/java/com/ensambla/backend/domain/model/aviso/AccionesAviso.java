@@ -24,6 +24,17 @@ final class AccionesAviso {
         return accion;
     }
 
+    /** Suma una fila nueva a la tabla de inventario cuando la persona la aplica; los valores van por clave de campo. */
+    static Map<String, Object> crearRegistro(BloqueInventario inventario, String texto, Map<String, Object> valores) {
+        Map<String, Object> accion = new LinkedHashMap<>();
+        accion.put("tipo", "CREAR_REGISTRO");
+        accion.put("texto", texto);
+        accion.put("proyectoId", inventario.bloque().getProyectoId().toString());
+        accion.put("bloqueId", inventario.bloque().getId().toString());
+        accion.put("valores", valores);
+        return accion;
+    }
+
     /** Cambia el precio del producto al sugerido cuando la persona la aplica. */
     static Map<String, Object> cambiarPrecio(BloqueInventario inventario, RegistroId registroId, String texto,
                                              BigDecimal sugerido) {
