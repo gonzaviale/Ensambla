@@ -67,8 +67,8 @@ servidor para actualizar el estado. Un 403 con código comercial se conserva sin
 `completo` simula planes y conserva el historial de prueba en la base local de demostración;
 `parcial` y `ninguno` usan el backend real, incluidos sistemas, preferencias, Sami y zona. Para validar
 los límites comerciales usá el backend y PostgreSQL reales; `completo` sigue siendo una simulación.
-Gratuito incluye tres avisos mensuales y tres recomendaciones mensuales compartidas entre Mi zona y
-Otra zona. Los cupos se guardan por negocio en el servidor y el contenido adicional invita a Planes.
+Gratuito incluye seis avisos mensuales y seis recomendaciones de zona mensuales (el cupo de zona se
+comparte entre Mi zona y Otra zona). Los cupos se guardan por negocio en el servidor y el contenido adicional invita a Planes.
 Detalle de pruebas y entorno local aislado en [plan-ENS-97.md](../docs/plan-ENS-97.md).
 
 ### Renovación automática (ENS-98)

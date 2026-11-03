@@ -498,8 +498,8 @@ erDiagram
 Desde V19, `contenido_plan_desbloqueado` persiste las claves admitidas por negocio, tipo (`AVISOS`
 o `ZONA`) y mes calendario argentino. La clave primaria compuesta impide cobrar dos veces el mismo
 contenido. La validación mantiene bloqueada la fila de `negocio` hasta registrar el desbloqueo:
-dos consultas concurrentes comparten el mismo cupo. Gratuito dispone de tres avisos y, por
-separado, tres recomendaciones compartidas entre Mi zona y Otra zona. Premium vigente, incluida
+dos consultas concurrentes comparten el mismo cupo. Gratuito dispone de seis avisos y, por
+separado, seis recomendaciones de zona compartidas entre Mi zona y Otra zona. Premium vigente, incluida
 la prueba, no consume desbloqueos gratuitos. La expiración de Premium vuelve a aplicar el cupo
 del mes y conserva sistemas, registros e historial.
 
