@@ -7,7 +7,7 @@ import { avisoDelServidor } from '@/test/avisosData';
 import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
 
 describe('vista gratuita y acceso a Premium', () => {
-  it('Mi zona ofrece tres productos y una vista previa sin el contenido restringido', async () => {
+  it('Mi zona ofrece seis productos y una vista previa sin el contenido restringido', async () => {
     setupUsuarioConSesion();
     renderApp('/zona');
 
@@ -16,8 +16,8 @@ describe('vista gratuita y acceso a Premium', () => {
     expect(
       await screen.findByRole('region', { name: 'Tu acceso a recomendaciones' }, ESPERA),
     ).toBeVisible();
-    expect(document.querySelectorAll('.zona-tarjeta')).toHaveLength(3);
-    expect(screen.getByText(/3 de 3/)).toBeVisible();
+    expect(document.querySelectorAll('.zona-tarjeta')).toHaveLength(6);
+    expect(screen.getByText(/6 de 6/)).toBeVisible();
     expect(screen.getByRole('link', { name: 'Conocer Premium' })).toHaveAttribute(
       'href',
       '/planes',
@@ -25,26 +25,26 @@ describe('vista gratuita y acceso a Premium', () => {
     expect(document.querySelector('.contenido-premium-muestra')?.textContent).toBe('');
   });
 
-  it('la campana cuenta el aviso bloqueado pero el panel sólo entrega tres detalles', async () => {
+  it('la campana cuenta el aviso bloqueado pero el panel sólo entrega seis detalles', async () => {
     const usuario = setupUsuarioConSesion();
     estado.avisosDelServidor.set(
       usuario.email,
-      Array.from({ length: 4 }, (_, indice) =>
+      Array.from({ length: 7 }, (_, indice) =>
         avisoDelServidor({ id: `aviso-${indice}`, titulo: `Detalle reservado ${indice}` }),
       ),
     );
     renderApp('/inicio');
     const user = userEvent.setup();
 
-    const campana = await screen.findByRole('button', { name: /Avisos de Sami: 4/ }, ESPERA);
+    const campana = await screen.findByRole('button', { name: /Avisos de Sami: 7/ }, ESPERA);
     await user.click(campana);
     expect(screen.getByText('Hay 1 aviso más con Premium.')).toBeVisible();
     await user.click(screen.getByRole('button', { name: /Ver todos los avisos/ }));
 
     await screen.findByRole('region', { name: /Lo que encontré en tus datos/ }, ESPERA);
-    await waitFor(() => expect(screen.getByText(/3 de 3/)).toBeVisible(), ESPERA);
+    await waitFor(() => expect(screen.getByText(/6 de 6/)).toBeVisible(), ESPERA);
     expect(screen.getByRole('heading', { name: 'Detalle reservado 0' })).toBeVisible();
-    expect(screen.queryByRole('heading', { name: 'Detalle reservado 3' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Detalle reservado 6' })).toBeNull();
     expect(screen.getByText(/Hay 1 aviso más/)).toBeVisible();
     expect(screen.getByRole('link', { name: 'Conocer Premium' })).toBeVisible();
   });
