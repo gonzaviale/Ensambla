@@ -1,4 +1,6 @@
 import {
+  useEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -7,9 +9,11 @@ import {
   type PointerEvent,
 } from 'react';
 import type { CargaDeArrastre, LadoDelCambio } from '@/hooks/sistemas/useArrastreDelEditor';
+import { useTandas } from '@/hooks/sistemas/useTandas';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import { normalize, totals } from '@/lib/sistema/core';
 import { textoPlano } from '@/lib/sistema/formato';
+import { alPedirFila, TANDA_DE_REGISTROS } from '@/lib/sistema/tandas';
 import type { Ancho, Bloque, Sistema } from '@/lib/sistema/tipos';
 import {
   cambiarAncho,
@@ -69,6 +73,8 @@ function Resumen({ sistema }: { sistema: Sistema }) {
   );
 }
 
+// La tabla del bloque: los registros se dibujan de a 10 (con el scroll del propio bloque) y la búsqueda filtra sobre
+// todos. Un cuaderno con cientos de registros no estira la página ni dibuja de más.
 function Registros({
   bloque,
   sistema,
@@ -79,6 +85,34 @@ function Registros({
   consulta: string;
 }) {
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
+  const buscado = normalize(consulta);
+  const coincidentes = useMemo(
+    () =>
+      buscado
+        ? bloque.rows.filter((fila) =>
+            normalize(
+              bloque.fields.map((campo) => textoPlano(sistema, campo, fila[campo.key])).join(' '),
+            ).includes(buscado),
+          )
+        : bloque.rows,
+    [bloque.rows, bloque.fields, sistema, buscado],
+  );
+  const { visibles, quedan, sumar, mostrarHasta, alDesplazar } = useTandas(
+    coincidentes.length,
+    TANDA_DE_REGISTROS,
+    buscado,
+  );
+
+  // Si piden llevar la vista a un registro que todavía no se dibujó, se dibujan los que hagan falta hasta él.
+  useEffect(
+    () =>
+      alPedirFila(({ bloqueId, filaId }) => {
+        if (bloqueId !== bloque.id) return;
+        const indice = coincidentes.findIndex((fila) => fila.id === filaId);
+        if (indice >= 0) mostrarHasta(indice);
+      }),
+  );
+
   if (!bloque.rows.length) {
     return (
       <div className="data-empty">
@@ -96,35 +130,27 @@ function Registros({
       </div>
     );
   }
-  const buscado = normalize(consulta);
+  const filas = coincidentes.slice(0, visibles);
   return (
-    <div className="table-scroll">
-      <table className="data-table">
-        <thead>
-          <tr>
-            {bloque.fields.map((campo) => (
-              <th scope="col" key={campo.key}>
-                {campo.label}
-                {campo.type === 'relation' ? ' ↗' : ''}
+    <>
+      <div className="table-scroll" onScroll={alDesplazar}>
+        <table className="data-table">
+          <thead>
+            <tr>
+              {bloque.fields.map((campo) => (
+                <th scope="col" key={campo.key}>
+                  {campo.label}
+                  {campo.type === 'relation' ? ' ↗' : ''}
+                </th>
+              ))}
+              <th scope="col">
+                <span className="sr-only">Acciones</span>
               </th>
-            ))}
-            <th scope="col">
-              <span className="sr-only">Acciones</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {bloque.rows.map((fila) => {
-            const texto = normalize(
-              bloque.fields.map((campo) => textoPlano(sistema, campo, fila[campo.key])).join(' '),
-            );
-            return (
-              <tr
-                key={fila.id}
-                data-record={fila.id}
-                data-search={texto}
-                hidden={!texto.includes(buscado)}
-              >
+            </tr>
+          </thead>
+          <tbody>
+            {filas.map((fila) => (
+              <tr key={fila.id} data-record={fila.id}>
                 {bloque.fields.map((campo) => (
                   <td
                     key={campo.key}
@@ -151,11 +177,23 @@ function Registros({
                   />
                 </td>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+            ))}
+            {!filas.length && (
+              <tr>
+                <td colSpan={bloque.fields.length + 1}>
+                  <span className="empty-preview">No hay registros que coincidan.</span>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      {quedan > 0 && (
+        <button type="button" className="tabla-mas" onClick={sumar}>
+          Mostrar {Math.min(TANDA_DE_REGISTROS, quedan)} más · quedan {quedan}
+        </button>
+      )}
+    </>
   );
 }
 

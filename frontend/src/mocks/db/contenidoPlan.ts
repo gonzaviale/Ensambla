@@ -3,6 +3,8 @@ import { planesDe } from './planes';
 import type { AccesoContenido } from '@/types/contenidoPlan';
 import type { Zona } from '@/lib/sistema/zona';
 
+const LIMITE_GRATUITO = 6;
+
 export function contenidoDe(
   email: string,
   tipo: 'AVISOS' | 'ZONA',
@@ -27,7 +29,7 @@ export function contenidoDe(
   const conocidas = new Set(estado.contenidosDesbloqueados.get(clave) ?? []);
   const autorizadas = candidatas.filter((id) => {
     if (conocidas.has(id)) return true;
-    if (conocidas.size >= 3) return false;
+    if (conocidas.size >= LIMITE_GRATUITO) return false;
     conocidas.add(id);
     return true;
   });
@@ -36,7 +38,7 @@ export function contenidoDe(
   return {
     autorizadas,
     usadas: conocidas.size,
-    limite: 3,
+    limite: LIMITE_GRATUITO,
     total: candidatas.length,
     bloqueadas: candidatas.length - autorizadas.length,
     finPeriodo,

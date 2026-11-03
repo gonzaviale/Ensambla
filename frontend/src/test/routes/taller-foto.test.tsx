@@ -46,6 +46,13 @@ const adjuntar = async (user: Usuario, archivo: File = foto()) => {
   await user.upload(selector, archivo);
 };
 
+/** Las dudas de la foto van primero, de a una; la tarjeta de los vínculos nuevos aparece cuando no queda ninguna. */
+const saltearDudas = async (user: Usuario) => {
+  while (screen.queryByRole('button', { name: 'Saltear esta duda' })) {
+    await user.click(screen.getByRole('button', { name: 'Saltear esta duda' }));
+  }
+};
+
 const miniatura = () => screen.queryByRole('img', { name: 'La foto que vas a mandar a Sami' });
 
 const espiarElTaller = () => {
@@ -188,6 +195,7 @@ describe('una foto para Sami en el taller', () => {
     await clickButton(user, /Ajustalo conmigo/);
     expect(await screen.findByText(/Miré tu foto: anotaste tres ventas/, {}, ESPERA)).toBeVisible();
     // Los productos y las clientas de la foto no están: se suman sólo al confirmarlo.
+    await saltearDudas(user);
     const tarjeta = screen.getByRole('group', { name: 'Registros que no encontré' });
     expect(tarjeta).toHaveTextContent('Lucía, Marta');
     expect(tarjeta).toHaveTextContent('Vela lavanda, Vela vainilla, Vela flotante');
@@ -273,6 +281,7 @@ describe('una foto para Sami en el taller', () => {
     const piezas = pedidos[0]?.estado.piezas ?? [];
     expect(piezas.find((pieza) => pieza.tipo === 'clients')?.nombres).toEqual(['Lucía']);
     expect(piezas.find((pieza) => pieza.tipo === 'inventory')?.nombres).toEqual(['Vela lavanda']);
+    await saltearDudas(user);
     const tarjeta = screen.getByRole('group', { name: 'Registros que no encontré' });
     expect(tarjeta).toHaveTextContent('Marta');
     expect(tarjeta).toHaveTextContent('Vela vainilla, Vela flotante');
@@ -306,6 +315,7 @@ describe('una foto para Sami en el taller', () => {
     await clickButton(user, /Ajustalo conmigo/);
     await screen.findByText(/Miré tu foto/, {}, ESPERA);
 
+    await saltearDudas(user);
     await clickButton(user, /No, dejalos sin vincular/);
 
     expect(screen.queryByRole('group', { name: 'Registros que no encontré' })).toBeNull();
@@ -330,6 +340,7 @@ describe('una foto para Sami en el taller', () => {
     await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });
     await clickButton(user, /Ajustalo conmigo/);
     await screen.findByText(/Miré tu foto/, {}, ESPERA);
+    await saltearDudas(user);
     await clickButton(user, /Sumarlos/);
     await clickButton(user, /Guardar cambios/);
 
@@ -346,5 +357,22 @@ describe('una foto para Sami en el taller', () => {
         .flatMap((bloque) => bloque.rows)
         .some((fila) => fila.__example),
     ).toBe(false);
+  });
+  it('suelta un aviso por vez: primero las dudas de a una y recién después la tarjeta de los vínculos nuevos', async () => {
+    const { user } = await abrirTaller();
+    await clickButton(user, /Almacén o kiosco/);
+    await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
+    await adjuntar(user);
+    await screen.findByRole('img', { name: 'La foto que vas a mandar a Sami' });
+    await clickButton(user, /Ajustalo conmigo/);
+    await screen.findByText(/Miré tu foto/, {}, ESPERA);
+
+    expect(screen.getByRole('group', { name: 'Respuestas rápidas' })).toBeVisible();
+    expect(screen.queryByRole('group', { name: 'Registros que no encontré' })).toBeNull();
+
+    await saltearDudas(user);
+
+    expect(screen.queryByRole('group', { name: 'Respuestas rápidas' })).toBeNull();
+    expect(screen.getByRole('group', { name: 'Registros que no encontré' })).toBeVisible();
   });
 });

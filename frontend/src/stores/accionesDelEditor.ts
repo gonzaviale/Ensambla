@@ -1,4 +1,4 @@
-import { CATALOG, COLORS, PRESETS_DE_SECCION, TEMPLATES } from '@/lib/sistema/catalogo';
+import { CATALOG, COLORS, TEMPLATES } from '@/lib/sistema/catalogo';
 import {
   allBlocks,
   applyLayout,
@@ -7,7 +7,6 @@ import {
   findBlock,
   id as nuevoId,
   makeBlock,
-  makeSystem,
   makeTemplate,
   moveBlock,
   normalize,
@@ -18,12 +17,18 @@ import {
   validateRow,
   wireSystem,
 } from '@/lib/sistema/core';
+import {
+  armarSeccion,
+  moverSeccionEn,
+  quitarSeccionDe,
+  renombrarSeccionesEn,
+  seccionReceptora,
+} from '@/lib/sistema/secciones';
 import type {
   Ancho,
   Campo,
   ClavePlantilla,
   Color,
-  Seccion,
   Sistema,
   TipoBloque,
   Valor,
@@ -200,12 +205,7 @@ export function aplicarDistribucion(distribucion: NonNullable<Sistema['layout']>
 }
 
 export function agregarSeccion(nombre: string, inicio: string) {
-  const preset = PRESETS_DE_SECCION[inicio];
-  const nueva: Seccion = {
-    id: nuevoId(),
-    name: nombre || preset?.name || 'Nueva sección',
-    blocks: preset ? (makeSystem('_', preset.types).sections[0]?.blocks ?? []) : [],
-  };
+  const nueva = armarSeccion(nombre, inicio);
   useSistemaStore.setState({ modal: null, selectedId: null, sectionId: nueva.id });
   store().commit((s) => {
     s.sections.push(nueva);
@@ -224,34 +224,20 @@ export function agregarConjunto(clave: ClavePlantilla) {
 }
 
 export function renombrarSecciones(nombres: [string, string][]) {
-  store().commit((s) => {
-    for (const [seccionId, nombre] of nombres) {
-      const seccion = s.sections.find((item) => item.id === seccionId);
-      if (seccion && nombre) seccion.name = nombre;
-    }
-  });
+  store().commit((s) => renombrarSeccionesEn(s, nombres));
 }
 
 export function moverSeccion(seccionId: string, direccion: 'arriba' | 'abajo') {
-  store().commit((s) => {
-    const indice = s.sections.findIndex((seccion) => seccion.id === seccionId);
-    const destino = indice + (direccion === 'arriba' ? -1 : 1);
-    if (indice < 0 || destino < 0 || destino >= s.sections.length) return;
-    const [seccion] = s.sections.splice(indice, 1);
-    if (seccion) s.sections.splice(destino, 0, seccion);
-  });
+  store().commit((s) => moverSeccionEn(s, seccionId, direccion));
 }
 
 export function quitarSeccion(seccionId: string) {
   const sistema = sistemaActivo();
   if (!sistema || sistema.sections.length < 2) return;
-  const destino = sistema.sections.find((seccion) => seccion.id !== seccionId);
+  const destino = seccionReceptora(sistema, seccionId);
   if (!destino) return;
   store().commit((s) => {
-    const origen = s.sections.find((seccion) => seccion.id === seccionId);
-    const receptora = s.sections.find((seccion) => seccion.id === destino.id);
-    if (origen && receptora) receptora.blocks.push(...origen.blocks);
-    s.sections = s.sections.filter((seccion) => seccion.id !== seccionId);
+    quitarSeccionDe(s, seccionId);
   });
   if (store().sectionId === seccionId) useSistemaStore.setState({ sectionId: destino.id });
   store().avisar('Sección quitada. Los bloques y sus datos se conservaron.');

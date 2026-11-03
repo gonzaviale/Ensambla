@@ -7,16 +7,16 @@ import { setupUsuarioConSesion } from '@/test/testHelpers';
 import { makeSystem } from '@/lib/sistema/core';
 
 describe('cupos de contenido del plan', () => {
-  it('permite tres avisos y una consulta repetida no libera el cuarto', async () => {
+  it('permite seis avisos y una consulta repetida no libera el séptimo', async () => {
     setupUsuarioConSesion();
 
-    const primero = await desbloquearAvisos(['a', 'b', 'a', 'c', 'd']);
-    const repetido = await desbloquearAvisos(['a', 'd']);
+    const primero = await desbloquearAvisos(['a', 'b', 'a', 'c', 'd', 'e', 'f', 'g']);
+    const repetido = await desbloquearAvisos(['a', 'g']);
 
-    expect(primero.autorizadas).toEqual(['a', 'b', 'c']);
+    expect(primero.autorizadas).toEqual(['a', 'b', 'c', 'd', 'e', 'f']);
     expect(primero.bloqueadas).toBe(1);
     expect(repetido.autorizadas).toEqual(['a']);
-    expect(repetido.usadas).toBe(3);
+    expect(repetido.usadas).toBe(6);
   });
 
   it('la prueba Premium ofrece todos los avisos sin gastar el cupo gratuito', async () => {
@@ -35,15 +35,15 @@ describe('cupos de contenido del plan', () => {
     expect(estado.contenidosDesbloqueados.size).toBe(0);
   });
 
-  it('Mi zona y Otra zona comparten los tres productos mensuales', async () => {
+  it('Mi zona y Otra zona comparten los seis productos mensuales', async () => {
     setupUsuarioConSesion();
 
     const propia = await obtenerZona();
     const otra = await analizarZona({ lugar: 'Palermo' });
 
-    expect(propia.productos).toHaveLength(3);
-    expect(propia.acceso?.usadas).toBe(3);
-    expect(otra.acceso?.usadas).toBe(3);
+    expect(propia.productos).toHaveLength(6);
+    expect(propia.acceso?.usadas).toBe(6);
+    expect(otra.acceso?.usadas).toBe(6);
     expect(otra.productos).toHaveLength(0);
     expect(otra.acceso?.bloqueadas).toBeGreaterThan(0);
   });

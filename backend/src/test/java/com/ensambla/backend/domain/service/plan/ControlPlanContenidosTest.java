@@ -51,18 +51,18 @@ class ControlPlanContenidosTest {
             AccesoIa.LIBRE);
 
     @Test
-    @DisplayName("Gratuito admite tres claves distintas y conserva el orden sin cobrar duplicados")
+    @DisplayName("Gratuito admite seis claves distintas y conserva el orden sin cobrar duplicados")
     void seleccionarShouldLimitUniqueNewContent() {
         givenPlan(CodigoPlan.GRATUITO);
         when(acceso.autorizadas(NEGOCIO, TipoContenidoPlan.AVISOS, PERIODO)).thenReturn(new HashSet<>());
 
         AccesoContenidoItem resultado = servicio.seleccionar(NEGOCIO, TipoContenidoPlan.AVISOS,
-                List.of("a", "b", "a", "c", "d"), AHORA);
+                List.of("a", "b", "a", "c", "d", "e", "f", "g"), AHORA);
 
-        assertThat(resultado.autorizadas()).containsExactly("a", "b", "c");
-        assertThat(resultado.usadas()).isEqualTo(3);
-        assertThat(resultado.limite()).isEqualTo(3);
-        assertThat(resultado.total()).isEqualTo(4);
+        assertThat(resultado.autorizadas()).containsExactly("a", "b", "c", "d", "e", "f");
+        assertThat(resultado.usadas()).isEqualTo(6);
+        assertThat(resultado.limite()).isEqualTo(6);
+        assertThat(resultado.total()).isEqualTo(7);
         assertThat(resultado.bloqueadas()).isEqualTo(1);
         assertThat(resultado.finPeriodo()).isEqualTo(OffsetDateTime.parse("2026-12-01T03:00:00Z"));
         verify(uso).bloquearNegocio(NEGOCIO);
@@ -70,18 +70,18 @@ class ControlPlanContenidosTest {
     }
 
     @Test
-    @DisplayName("Reconsultar lo desbloqueado no libera cupo para el cuarto contenido")
+    @DisplayName("Reconsultar lo desbloqueado no libera cupo para el séptimo contenido")
     void seleccionarShouldKeepExistingKeysWithoutRotatingQuota() {
         givenPlan(CodigoPlan.GRATUITO);
         when(acceso.autorizadas(NEGOCIO, TipoContenidoPlan.ZONA, PERIODO))
-                .thenReturn(new HashSet<>(Set.of("a", "b", "c")));
+                .thenReturn(new HashSet<>(Set.of("a", "b", "c", "d", "e", "f")));
 
         AccesoContenidoItem resultado = servicio.seleccionar(NEGOCIO, TipoContenidoPlan.ZONA,
-                List.of("a", "d"), AHORA.withOffsetSameInstant(ZoneOffset.ofHours(-3)));
+                List.of("a", "g"), AHORA.withOffsetSameInstant(ZoneOffset.ofHours(-3)));
 
         assertThat(resultado.autorizadas()).containsExactly("a");
         assertThat(resultado.bloqueadas()).isEqualTo(1);
-        assertThat(resultado.usadas()).isEqualTo(3);
+        assertThat(resultado.usadas()).isEqualTo(6);
     }
 
     @Test
@@ -99,14 +99,15 @@ class ControlPlanContenidosTest {
     }
 
     @Test
-    @DisplayName("Una acción directa sobre el cuarto aviso devuelve una restricción comercial")
-    void exigirShouldRejectFourthContent() {
+    @DisplayName("Una acción directa sobre el séptimo aviso devuelve una restricción comercial")
+    void exigirShouldRejectSeventhContent() {
         givenPlan(CodigoPlan.GRATUITO);
         when(acceso.autorizadas(NEGOCIO, TipoContenidoPlan.AVISOS, PERIODO))
-                .thenReturn(new HashSet<>(Set.of("a", "b", "c")));
+                .thenReturn(new HashSet<>(Set.of("a", "b", "c", "d", "e", "f")));
 
-        assertThatThrownBy(() -> servicio.exigir(NEGOCIO, TipoContenidoPlan.AVISOS, "d", AHORA))
+        assertThatThrownBy(() -> servicio.exigir(NEGOCIO, TipoContenidoPlan.AVISOS, "g", AHORA))
                 .isInstanceOf(RestriccionPlanException.class)
+                .hasMessageContaining("6 contenidos")
                 .extracting("codigo").isEqualTo("LIMITE_CONTENIDO_AVISOS");
     }
 
@@ -115,7 +116,7 @@ class ControlPlanContenidosTest {
     void exigirShouldAllowPreviouslyUnlockedContent() {
         givenPlan(CodigoPlan.GRATUITO);
         when(acceso.autorizadas(NEGOCIO, TipoContenidoPlan.AVISOS, PERIODO))
-                .thenReturn(new HashSet<>(Set.of("a", "b", "c")));
+                .thenReturn(new HashSet<>(Set.of("a", "b", "c", "d", "e", "f")));
 
         assertThatCode(() -> servicio.exigir(NEGOCIO, TipoContenidoPlan.AVISOS, "a", AHORA))
                 .doesNotThrowAnyException();

@@ -1,5 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { moverSeccion, quitarSeccion, renombrarSecciones } from '@/stores/accionesDelEditor';
+import {
+  moverSeccionDelBorrador,
+  quitarSeccionDelBorrador,
+  renombrarSeccionesDelBorrador,
+} from '@/stores/accionesDelTaller';
 import { seleccionarSistemaActivo, useSistemaStore } from '@/stores/sistemaStore';
 import { Btn } from '../Btn';
 import { Icon } from '../Icon';
@@ -7,9 +12,18 @@ import { IconBtn } from '../IconBtn';
 import { Modal } from '../Modal';
 import { varsDeColor } from '../colores';
 
-// Renombrar, ordenar y quitar las secciones del sistema.
-export function ModalSecciones() {
-  const sistema = useSistemaStore(seleccionarSistemaActivo);
+// Renombrar, ordenar y quitar las secciones del sistema (o de la propuesta de Sami, con `enBorrador`).
+export function ModalSecciones({ enBorrador = false }: { enBorrador?: boolean }) {
+  const sistema = useSistemaStore((estado) =>
+    enBorrador ? estado.taller?.borrador : seleccionarSistemaActivo(estado),
+  );
+  const acciones = enBorrador
+    ? {
+        renombrar: renombrarSeccionesDelBorrador,
+        mover: moverSeccionDelBorrador,
+        quitar: quitarSeccionDelBorrador,
+      }
+    : { renombrar: renombrarSecciones, mover: moverSeccion, quitar: quitarSeccion };
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const cerrarModal = useSistemaStore((estado) => estado.cerrarModal);
   const avisar = useSistemaStore((estado) => estado.avisar);
@@ -23,7 +37,7 @@ export function ModalSecciones() {
 
   // Mover o quitar guarda antes los nombres que ya se escribieron, como hace el mockup.
   const conNombres = (accion: () => void) => {
-    renombrarSecciones(nombres());
+    acciones.renombrar(nombres());
     setEscritos({});
     accion();
   };
@@ -31,7 +45,7 @@ export function ModalSecciones() {
   const guardar = (evento: FormEvent) => {
     evento.preventDefault();
     if (nombres().some(([, nombre]) => !nombre)) return;
-    renombrarSecciones(nombres());
+    acciones.renombrar(nombres());
     cerrarModal();
     avisar('Nombres actualizados.');
   };
@@ -66,19 +80,19 @@ export function ModalSecciones() {
                 name="up"
                 label="Mover sección arriba"
                 disabled={indice === 0}
-                onClick={() => conNombres(() => moverSeccion(seccion.id, 'arriba'))}
+                onClick={() => conNombres(() => acciones.mover(seccion.id, 'arriba'))}
               />
               <IconBtn
                 name="down"
                 label="Mover sección abajo"
                 disabled={indice === sistema.sections.length - 1}
-                onClick={() => conNombres(() => moverSeccion(seccion.id, 'abajo'))}
+                onClick={() => conNombres(() => acciones.mover(seccion.id, 'abajo'))}
               />
               <IconBtn
                 name="trash"
                 label="Quitar sección y conservar bloques"
                 disabled={sistema.sections.length === 1}
-                onClick={() => conNombres(() => quitarSeccion(seccion.id))}
+                onClick={() => conNombres(() => acciones.quitar(seccion.id))}
               />
             </div>
           ))}
@@ -88,7 +102,7 @@ export function ModalSecciones() {
           conservan.
         </p>
         <div className="modal-footer spread">
-          <Btn cls="secondary" onClick={() => abrirModal({ tipo: 'agregarSeccion' })}>
+          <Btn cls="secondary" onClick={() => abrirModal({ tipo: 'agregarSeccion', enBorrador })}>
             <Icon name="plus" /> Nueva sección
           </Btn>
           <button className="btn primary" type="submit">
