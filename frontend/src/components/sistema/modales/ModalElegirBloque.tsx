@@ -1,11 +1,12 @@
 import { CATALOG } from '@/lib/sistema/catalogo';
 import type { TipoBloque } from '@/lib/sistema/tipos';
 import { agregarBloque } from '@/stores/accionesDelEditor';
+import { sumarBloqueAlBorrador } from '@/stores/accionesDelTaller';
 import { IconTile } from '../IconTile';
 import { Modal } from '../Modal';
 
-// «¿Qué pieza necesitás?»: todo el catálogo de bloques en tarjetas.
-export function ModalElegirBloque() {
+// «¿Qué pieza necesitás?»: todo el catálogo de bloques en tarjetas. Con `enBorrador` suma a la propuesta de Sami.
+export function ModalElegirBloque({ enBorrador = false }: { enBorrador?: boolean }) {
   return (
     <Modal>
       <h2 id="modal-title">¿Qué pieza necesitás?</h2>
@@ -17,7 +18,7 @@ export function ModalElegirBloque() {
               key={tipo}
               type="button"
               className="need-card"
-              onClick={() => agregarBloque(tipo)}
+              onClick={() => (enBorrador ? sumarBloqueAlBorrador(tipo) : agregarBloque(tipo))}
             >
               <IconTile tipo={tipo} />
               <div>

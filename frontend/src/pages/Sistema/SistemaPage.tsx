@@ -13,9 +13,9 @@ import { Icon } from '@/components/sistema/Icon';
 import { IconTile } from '@/components/sistema/IconTile';
 import { HerramientasDelCuaderno } from '@/components/sistema/editor/HerramientasDelCuaderno';
 import { CATALOG } from '@/lib/sistema/catalogo';
-import { varsDeColor } from '@/components/sistema/colores';
+import { SeccionesTabs } from '@/components/sistema/editor/SeccionesTabs';
 import { allBlocks, findBlock, totals } from '@/lib/sistema/core';
-import type { Color, Distribucion, TipoBloque } from '@/lib/sistema/tipos';
+import type { Distribucion, TipoBloque } from '@/lib/sistema/tipos';
 import {
   agregarBloque,
   aplicarDistribucion,
@@ -33,9 +33,6 @@ import {
 } from '@/stores/sistemaStore';
 
 const ruta = getRouteApi('/_app/sistemas/$sistemaId');
-
-// Cada sección lleva un color de la paleta, en orden, para distinguirlas de un vistazo.
-const COLORES_DE_SECCION: Color[] = ['orange', 'blue', 'coral', 'petrol', 'yellow'];
 
 // Si «Tus piezas» quedó fijada al costado se recuerda en este navegador; si no se puede leer, flota.
 const CLAVE_PIEZAS_FIJAS = 'ensambla.piezasFijas';
@@ -219,34 +216,12 @@ export function SistemaPage() {
           </div>
           {/* Con una sola sección no hace falta la barra: se agrega otra desde el ícono «Agregar y organizar». */}
           {sistema.sections.length > 1 && (
-            <div className="tabs-y-distribucion">
-              <nav className="section-tabs" aria-label="Secciones del cuaderno">
-                {sistema.sections.map((otra, indice) => (
-                  <div
-                    key={otra.id}
-                    style={varsDeColor(
-                      COLORES_DE_SECCION[indice % COLORES_DE_SECCION.length] ?? 'orange',
-                    )}
-                    data-color={COLORES_DE_SECCION[indice % COLORES_DE_SECCION.length]}
-                    className={`section-tab ${otra.id === seccion.id ? 'active' : ''} ${arrastre.sobre?.destino === otra.id ? 'drop-active' : ''}`
-                      .replace(/\s+/g, ' ')
-                      .trim()}
-                    data-drop-section={otra.id}
-                  >
-                    <button
-                      type="button"
-                      aria-current={otra.id === seccion.id ? 'page' : 'false'}
-                      onClick={() => elegirSeccion(otra.id)}
-                    >
-                      {otra.name}
-                      <span className="section-tab-cuenta" aria-hidden="true">
-                        {otra.blocks.length}
-                      </span>
-                    </button>
-                  </div>
-                ))}
-              </nav>
-            </div>
+            <SeccionesTabs
+              secciones={sistema.sections}
+              activaId={seccion.id}
+              onElegir={elegirSeccion}
+              sobreId={arrastre.sobre?.destino}
+            />
           )}
           {hayEjemplos && (
             <div className="sample-data-banner">

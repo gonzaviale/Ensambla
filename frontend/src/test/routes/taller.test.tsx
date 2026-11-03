@@ -46,13 +46,15 @@ const lienzo = () => {
 };
 
 const piezas = () =>
-  [
-    ...document.querySelectorAll(
-      '#draft-canvas .preview-block .preview-name, #draft-canvas .preview-block strong',
-    ),
-  ]
+  [...document.querySelectorAll('#draft-canvas .block .block-nombre')]
     .map((nodo) => nodo.textContent?.trim())
     .filter(Boolean);
+
+const cantidadDePiezas = () => document.querySelectorAll('#draft-canvas > .block').length;
+
+// Las piezas, las secciones y la distribución se tocan desde los íconos desplegables, como en el cuaderno.
+const abrirAgregarYOrganizar = (user: ReturnType<typeof userEvent.setup>) =>
+  user.click(screen.getByRole('button', { name: 'Agregar y organizar' }));
 
 describe('el taller de Sami', () => {
   it('empieza con el saludo, los ejemplos y el lienzo vacío', async () => {
@@ -138,10 +140,10 @@ describe('el taller de Sami', () => {
     await conPropuesta();
 
     expect(screen.getByLabelText('Nombre de tu cuaderno')).toHaveValue('Mi almacén');
-    expect(screen.getByText('Propuesta sin guardar')).toBeVisible();
+    expect(screen.queryByText(/sin guardar/i)).toBeNull();
     expect(screen.getByText(/^Te armé los productos/)).toBeVisible();
     expect(screen.getByText('Ya lo podés ver a la derecha.')).toBeVisible();
-    expect(screen.getByText('3 piezas conectadas')).toBeVisible();
+    expect(cantidadDePiezas()).toBe(3);
     expect(screen.getByLabelText('¿Qué le falta? ¿Qué cambiarías?')).toBeVisible();
   });
 
@@ -152,7 +154,7 @@ describe('el taller de Sami', () => {
     await clickButton(user, /Ajustalo conmigo/);
 
     expect(await screen.findByText('Listo, sumé los gastos.', {}, ESPERA)).toBeVisible();
-    expect(screen.getByText('4 piezas conectadas')).toBeVisible();
+    expect(cantidadDePiezas()).toBe(4);
   });
 
   it('se puede cambiar el nombre, el ancho y quitar piezas', async () => {
@@ -167,21 +169,21 @@ describe('el taller de Sami', () => {
 
     const bloque = screen
       .getByRole('button', { name: /^Los de la cuadra/ })
-      .closest<HTMLElement>('.preview-block');
+      .closest<HTMLElement>('.block');
     if (!bloque) throw new Error('Falta la pieza');
     await user.click(within(bloque).getByRole('button', { name: 'Fila completa' }));
     expect(bloque).toHaveAttribute('data-width', 'full');
 
     await user.click(within(bloque).getByRole('button', { name: 'Quitar de la propuesta' }));
     expect(screen.queryByRole('button', { name: /^Los de la cuadra/ })).toBeNull();
-    expect(screen.getByText('2 piezas conectadas')).toBeVisible();
+    expect(cantidadDePiezas()).toBe(2);
   });
 
   it('se puede editar un registro de ejemplo y agregar uno propio, y al crear el sistema pasan', async () => {
     const { user } = await conPropuesta();
     const bloque = screen
       .getByRole('button', { name: /^Productos/ })
-      .closest<HTMLElement>('.preview-block');
+      .closest<HTMLElement>('.block');
     if (!bloque) throw new Error('Falta la pieza');
     expect(within(bloque).getAllByText('Ejemplo').length).toBeGreaterThan(0);
 
@@ -199,7 +201,7 @@ describe('el taller de Sami', () => {
     const editada = within(bloque).getByText('Yerba Taragüí 1 kg').closest('tr');
     expect(editada).not.toHaveClass('example-row');
 
-    await user.click(within(bloque).getByRole('button', { name: '+ Agregar registro' }));
+    await user.click(within(bloque).getByRole('button', { name: 'Registrar' }));
     expect(await screen.findByRole('heading', { name: 'Registrar producto' })).toBeVisible();
     await user.type(screen.getByLabelText(/^Producto/), 'Mate de calabaza');
     await user.type(screen.getByLabelText(/^Cantidad/), '8');
@@ -221,11 +223,11 @@ describe('el taller de Sami', () => {
     const { user } = await conPropuesta();
     const bloque = screen
       .getByRole('button', { name: /^Productos/ })
-      .closest<HTMLElement>('.preview-block');
+      .closest<HTMLElement>('.block');
     if (!bloque) throw new Error('Falta la pieza');
     const antes = within(bloque).getAllByRole('row').length;
 
-    await user.click(within(bloque).getByRole('button', { name: '+ Agregar registro' }));
+    await user.click(within(bloque).getByRole('button', { name: 'Registrar' }));
     await screen.findByRole('heading', { name: 'Registrar producto' });
     await clickButton(user, 'Guardar');
 
@@ -237,11 +239,15 @@ describe('el taller de Sami', () => {
   it('suma una pieza de la paleta y cambia la distribución', async () => {
     const { user } = await conPropuesta();
 
-    await user.click(screen.getByRole('button', { name: /^Gastos/ }));
-    expect(screen.getByText('4 piezas conectadas')).toBeVisible();
+    await abrirAgregarYOrganizar(user);
+    await user.click(screen.getByRole('button', { name: 'Bloques' }));
+    const dialogo = await screen.findByRole('dialog');
+    await user.click(within(dialogo).getByRole('button', { name: /^Gastos/ }));
+    expect(cantidadDePiezas()).toBe(4);
 
+    await user.click(screen.getByRole('button', { name: 'Distribución de los bloques' }));
     await clickButton(user, /1 columna/);
-    const anchos = [...document.querySelectorAll('#draft-canvas .preview-block')].map((nodo) =>
+    const anchos = [...document.querySelectorAll('#draft-canvas .block')].map((nodo) =>
       nodo.getAttribute('data-width'),
     );
     expect(new Set(anchos)).toEqual(new Set(['full']));
@@ -284,13 +290,13 @@ describe('el taller de Sami', () => {
     const filasDeEjemplo = () => document.querySelectorAll('#draft-canvas .example-row').length;
     expect(filasDeEjemplo()).toBeGreaterThan(0);
 
-    await clickButton(user, /Borrar ejemplos/);
+    await clickButton(user, /Quitar ejemplos/);
     expect(filasDeEjemplo()).toBeGreaterThan(0);
     const dialogo = await screen.findByRole('dialog');
     await user.click(within(dialogo).getByRole('button', { name: 'Borrar ejemplos' }));
 
     await waitFor(() => expect(filasDeEjemplo()).toBe(0), ESPERA);
-    expect(screen.queryByRole('button', { name: /Borrar ejemplos/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Quitar ejemplos/ })).not.toBeInTheDocument();
     const borrador = useSistemaStore.getState().taller?.borrador;
     expect(borrador && allBlocks(borrador).every((bloque) => bloque.rows.length === 0)).toBe(true);
   });

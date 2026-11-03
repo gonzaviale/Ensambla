@@ -34,9 +34,10 @@ export type Modal =
   | { tipo: 'consejosDeFoto'; onTomarFoto: () => void }
   | { tipo: 'campo'; bloqueId: string; clave?: string | null }
   | { tipo: 'bienvenida' }
-  | { tipo: 'secciones' }
-  | { tipo: 'agregarSeccion' }
-  | { tipo: 'elegirBloque' }
+  /** Con `enBorrador` trabajan sobre la propuesta de Sami en vez de sobre el cuaderno abierto. */
+  | { tipo: 'secciones'; enBorrador?: boolean }
+  | { tipo: 'agregarSeccion'; enBorrador?: boolean }
+  | { tipo: 'elegirBloque'; enBorrador?: boolean }
   | {
       tipo: 'importar';
       /** El sistema al que se llevan los datos; sin sistema se crea uno nuevo. */

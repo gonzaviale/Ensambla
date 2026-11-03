@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTandas } from '@/hooks/sistemas/useTandas';
 import { CATALOG } from '@/lib/sistema/catalogo';
+import { conNuevasPrimero, TANDA_DE_TABLA_COMPLETA } from '@/lib/sistema/tandas';
 import {
   filtrarFilas,
   hayFiltros,
@@ -27,7 +29,11 @@ type Props = {
   onRegistro?: (filaId: string | null) => void;
   /** Lo que dice el botón para salir: en el taller se vuelve a la propuesta, no al sistema. */
   textoVolver?: string;
+  /** Los registros que se cargaron en este armado: van primero y resaltados. */
+  nuevas?: ReadonlySet<string>;
 };
+
+const SIN_NUEVAS: ReadonlySet<string> = new Set();
 
 // La tabla de un bloque a toda la pantalla: más lugar para leerla, y filtros por columna además de la búsqueda.
 // Se usa en el sistema y en la propuesta del taller de Sami.
@@ -36,6 +42,7 @@ export function TablaCompleta({
   sistema,
   onRegistro,
   textoVolver = 'Volver al cuaderno',
+  nuevas = SIN_NUEVAS,
 }: Props) {
   const verTablaCompleta = useSistemaStore((estado) => estado.verTablaCompleta);
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
@@ -52,10 +59,16 @@ export function TablaCompleta({
   const raiz = useRef<HTMLDivElement>(null);
   const cerrar = () => verTablaCompleta(null);
 
-  const filas = useMemo(
-    () => filtrarFilas(sistema, bloque, consulta, filtros),
-    [sistema, bloque, consulta, filtros],
+  const coincidentes = useMemo(
+    () => conNuevasPrimero(filtrarFilas(sistema, bloque, consulta, filtros), nuevas),
+    [sistema, bloque, consulta, filtros, nuevas],
   );
+  const { visibles, quedan, sumar, alDesplazar } = useTandas(
+    coincidentes.length,
+    TANDA_DE_TABLA_COMPLETA,
+    JSON.stringify([consulta, filtros]),
+  );
+  const filas = coincidentes.slice(0, visibles);
   const filtrando = hayFiltros(consulta, filtros);
 
   // Cada lápiz dice a qué registro corresponde (por su primera columna), para distinguirlos con el lector de pantalla.
@@ -132,7 +145,7 @@ export function TablaCompleta({
             <h2 id="tabla-completa-titulo">{bloque.name}</h2>
             <p aria-live="polite">
               {filtrando
-                ? `Mostrando ${filas.length} de ${bloque.rows.length} registros`
+                ? `Mostrando ${coincidentes.length} de ${bloque.rows.length} registros`
                 : `${bloque.rows.length} registros`}
             </p>
           </div>
@@ -161,7 +174,7 @@ export function TablaCompleta({
           </Btn>
         </div>
 
-        <div className="tabla-completa-tabla">
+        <div className="tabla-completa-tabla" onScroll={alDesplazar}>
           <table className="data-table">
             <thead>
               <tr>
@@ -189,8 +202,12 @@ export function TablaCompleta({
             </thead>
             <tbody>
               {filas.map((fila) => (
-                <tr key={fila.id} data-record={fila.id}>
-                  {bloque.fields.map((campo) => (
+                <tr
+                  key={fila.id}
+                  data-record={fila.id}
+                  className={nuevas.has(fila.id) ? 'fila-nueva' : undefined}
+                >
+                  {bloque.fields.map((campo, indice) => (
                     <td
                       key={campo.key}
                       title={textoPlano(sistema, campo, fila[campo.key])}
@@ -202,6 +219,7 @@ export function TablaCompleta({
                           : ''
                       }
                     >
+                      {indice === 0 && nuevas.has(fila.id) && <em className="nuevo-badge">Nuevo</em>}
                       <ValorDeCampo sistema={sistema} campo={campo} valor={fila[campo.key]} />
                     </td>
                   ))}
@@ -216,6 +234,11 @@ export function TablaCompleta({
               ))}
             </tbody>
           </table>
+          {quedan > 0 && (
+            <button type="button" className="tabla-mas" onClick={sumar}>
+              Mostrar {Math.min(TANDA_DE_TABLA_COMPLETA, quedan)} más · quedan {quedan}
+            </button>
+          )}
           {!filas.length && (
             <p className="tabla-completa-vacia">
               {bloque.rows.length

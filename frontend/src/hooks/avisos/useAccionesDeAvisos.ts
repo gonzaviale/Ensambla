@@ -4,6 +4,7 @@ import { crearAlmacenCargado, crearAlmacenDeEjemplo } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
 import { destinoDeAviso } from '@/lib/sistema/destinoDeAviso';
 import { resaltar } from '@/lib/sistema/resaltar';
+import { pedirMostrarFila } from '@/lib/sistema/tandas';
 import { useAplicarAviso, useDescartarAviso } from '@/hooks/avisos/mutations';
 import { useGuardarPreferencias } from '@/hooks/preferencias/mutations';
 import { usePreferencias } from '@/hooks/preferencias/queries';
@@ -12,6 +13,8 @@ import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
 const MAXIMO_DE_DESCARTADOS = 200;
+/** Lo que se espera a que la tabla dibuje el registro pedido antes de marcarlo. */
+const ESPERA_DE_LA_TANDA = 60;
 
 // Lo que se puede hacer con un aviso: aplicarlo, abrirlo, descartarlo o apagar un grupo.
 export function useAccionesDeAvisos() {
@@ -42,15 +45,20 @@ export function useAccionesDeAvisos() {
       item.blocks.some((bloque) => bloque.id === bloqueId),
     );
     if (seccion && seccion.id !== store.sectionId) store.elegirSeccion(seccion.id);
+    // La tabla dibuja de a tandas: con la sección ya a la vista se le pide el registro y, cuando lo dibujó, se lo marca.
     setTimeout(() => {
-      const bloque = document.querySelector(`[data-block="${CSS.escape(bloqueId)}"]`);
-      const fila = filaId
-        ? bloque?.querySelector(`[data-record="${CSS.escape(filaId)}"]:not([hidden])`)
-        : null;
-      const objetivo = fila ?? bloque;
-      objetivo?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-      resaltar(objetivo);
-      if (nuevoRegistro) store.abrirModal({ tipo: 'registro', bloqueId, filaId });
+      if (filaId) pedirMostrarFila(bloqueId, filaId);
+      setTimeout(
+        () => {
+          const bloque = document.querySelector(`[data-block="${CSS.escape(bloqueId)}"]`);
+          const fila = filaId ? bloque?.querySelector(`[data-record="${CSS.escape(filaId)}"]`) : null;
+          const objetivo = fila ?? bloque;
+          objetivo?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+          resaltar(objetivo);
+          if (nuevoRegistro) store.abrirModal({ tipo: 'registro', bloqueId, filaId });
+        },
+        filaId ? ESPERA_DE_LA_TANDA : 0,
+      );
     }, 120);
   };
 

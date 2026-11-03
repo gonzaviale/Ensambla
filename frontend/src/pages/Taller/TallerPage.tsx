@@ -1,6 +1,7 @@
 import {
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type ChangeEvent,
@@ -14,27 +15,21 @@ import { TarjetaDeVinculosNuevos } from '@/components/sistema/TarjetaDeVinculosN
 import { BurbujasDeConversacion } from '@/components/sistema/BurbujasDeConversacion';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
-import { LayoutToolbar } from '@/components/sistema/LayoutToolbar';
-import { PreviewBoard } from '@/components/sistema/PreviewBoard';
+import { TableroDelTaller } from '@/components/sistema/TableroDelTaller';
+import { HerramientasDelCuaderno } from '@/components/sistema/editor/HerramientasDelCuaderno';
+import { SeccionesTabs } from '@/components/sistema/editor/SeccionesTabs';
 import { TablaCompleta } from '@/components/sistema/editor/TablaCompleta';
 import { Sami } from '@/components/sistema/Sami';
 import { VisorDeFoto } from '@/components/sistema/VisorDeFoto';
-import { varsDeColor } from '@/components/sistema/colores';
 import { ajusteParaGuardar, mismoSistema, sistemaParaCrear } from '@/lib/sistema/acciones';
 import { burbujasDeSami } from '@/lib/burbujasDeSami';
 import { ritmoDeSami } from '@/lib/ritmoDeSami';
 import { debeMostrarConsejosDeFoto } from '@/lib/sistema/consejosDeFoto';
-import { CATALOG } from '@/lib/sistema/catalogo';
-import {
-  allBlocks,
-  applyLayout,
-  findBlock,
-  makeBlock,
-  moveBlock,
-  wireSystem,
-} from '@/lib/sistema/core';
+import { allBlocks, applyLayout, findBlock, moveBlock, totals } from '@/lib/sistema/core';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
-import type { Distribucion, TipoBloque } from '@/lib/sistema/tipos';
+import { resaltar } from '@/lib/sistema/resaltar';
+import { registrosNuevos } from '@/lib/sistema/tandas';
+import type { Distribucion } from '@/lib/sistema/tipos';
 import {
   saludoDeSami,
   saludoParaAjustar,
@@ -83,8 +78,6 @@ const EJEMPLOS: {
 
 // Hasta dónde crece el campo de escribir antes de ponerle scroll.
 const ALTO_MAXIMO_DEL_CAMPO = 160;
-
-const PIEZAS_PARA_SUMAR: TipoBloque[] = ['clients', 'sales', 'inventory', 'orders', 'expenses'];
 
 const ruta = getRouteApi('/_app/taller');
 
@@ -224,16 +217,58 @@ export function TallerPage() {
     }
   }, [cantidadDeMensajes, pensando, visiblesDelUltimo, escribiendoSami]);
 
+  // Se calculan con el borrador (que cambia sólo al editarlo) y no en cada tecla del chat.
+  const borradorActual = taller?.borrador ?? undefined;
+  const hayEjemplos = useMemo(
+    () =>
+      allBlocks(borradorActual).some((bloque) => bloque.rows.some((fila) => fila.__example)),
+    [borradorActual],
+  );
+  const hayCambios = useMemo(
+    () =>
+      !original ||
+      !borradorActual ||
+      !mismoSistema(ajusteParaGuardar(original, borradorActual), original),
+    [original, borradorActual],
+  );
+  // Los registros que no estaban guardados: lo que cargó Sami (de una foto, por ejemplo) o la persona en este armado.
+  const nuevas = useMemo(
+    () =>
+      registrosNuevos(
+        allBlocks(borradorActual),
+        new Set(allBlocks(original).flatMap((bloque) => bloque.rows.map((fila) => fila.id))),
+      ),
+    [borradorActual, original],
+  );
+
+  // Cuando Sami termina de cargar registros se lleva la vista al primer bloque con novedades y se lo resalta.
+  const marcaDeNuevas = useRef({ pensando: false, cantidad: 0 });
+  useEffect(() => {
+    const previa = marcaDeNuevas.current;
+    marcaDeNuevas.current = { pensando, cantidad: nuevas.size };
+    if (!previa.pensando || pensando || nuevas.size <= previa.cantidad) return;
+    const seccionConNuevas = useSistemaStore
+      .getState()
+      .taller?.borrador?.sections.find((seccion) =>
+        seccion.blocks.some((bloque) => bloque.rows.some((fila) => nuevas.has(fila.id))),
+      );
+    if (seccionConNuevas) actualizarTaller({ seccionId: seccionConNuevas.id });
+    const marco = requestAnimationFrame(() => {
+      const bloque = document.querySelector<HTMLElement>('#draft-canvas .block.con-nuevos');
+      bloque?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      resaltar(bloque);
+    });
+    return () => cancelAnimationFrame(marco);
+  }, [pensando, nuevas, actualizarTaller]);
+
   if (!taller) return null;
   const { borrador } = taller;
   const seccionId = taller.seccionId ?? borrador?.sections[0]?.id ?? null;
   const tablaCompleta = borrador ? findBlock(borrador, tablaCompletaId ?? undefined) : undefined;
   const ajustando = Boolean(original);
-  const hayEjemplos = Boolean(
-    borrador && allBlocks(borrador).some((bloque) => bloque.rows.some((fila) => fila.__example)),
-  );
-  const hayCambios =
-    !original || !borrador || !mismoSistema(ajusteParaGuardar(original, borrador), original);
+  // Una sola cosa por vez en el chat: la duda a la vista, si no la tarjeta de vínculos, si no los ejemplos.
+  const dudaALaVista = taller.dudas[taller.respuestasDeDudas.length];
+  const hayVinculos = Boolean(borrador) && taller.vinculosPendientes.length > 0;
 
   const alEnviar = (evento: FormEvent) => {
     evento.preventDefault();
@@ -251,13 +286,6 @@ export function TallerPage() {
     actualizarTaller({ nombre: ejemplo.nombre });
     void enviar(ejemplo.texto);
   };
-
-  const sumarPieza = (tipo: TipoBloque) =>
-    editarBorrador((copia) => {
-      const seccion = copia.sections.find((item) => item.id === seccionId) ?? copia.sections[0];
-      seccion?.blocks.push(makeBlock(tipo, true));
-      wireSystem(copia);
-    });
 
   const quitarPieza = (bloqueId: string) =>
     editarBorrador((copia) => {
@@ -368,97 +396,86 @@ export function TallerPage() {
           <span>
             {ajustando ? 'AJUSTANDO TU CUADERNO CON SAMI' : 'EL TALLER DE TU PRIMER CUADERNO'}
           </span>
-          {/* El cartel sólo aparece cuando hay algo sin guardar. */}
-          {(ajustando ? hayCambios : borrador) && (
-            <span className="tag outline">
-              {ajustando ? 'Cambios sin guardar' : 'Propuesta sin guardar'}
-            </span>
-          )}
         </div>
         <div className="studio-layout chat-flotante">
           <section className="studio-canvas">
             {borrador ? (
               <>
-                <div className="draft-heading">
-                  <div>
-                    <span className="eyebrow">
-                      {ajustando ? 'TU CUADERNO, CON LOS CAMBIOS' : 'TU PROPUESTA, A LA VISTA'}
+                <div className="canvas-heading">
+                  <div className="canvas-titulo">
+                    <span className="canvas-titulo-icono usando">
+                      <Icon name="grid" />
                     </span>
-                    <input
-                      className="draft-name-input"
-                      id="guide-system-name"
-                      aria-label="Nombre de tu cuaderno"
-                      maxLength={100}
-                      value={borrador.name}
-                      onChange={(evento) =>
+                    <div>
+                      <span className="canvas-etiqueta">
+                        {ajustando ? 'Tu cuaderno, con los cambios' : 'Tu propuesta, a la vista'}
+                      </span>
+                      <input
+                        className="draft-name-input"
+                        id="guide-system-name"
+                        aria-label="Nombre de tu cuaderno"
+                        maxLength={100}
+                        value={borrador.name}
+                        onChange={(evento) =>
+                          editarBorrador((copia) => {
+                            copia.name = evento.target.value;
+                          })
+                        }
+                      />
+                      <div className="canvas-cifras">
+                        <span data-color="orange">
+                          <strong>{allBlocks(borrador).length}</strong> tablas
+                        </span>
+                        <span data-color="blue">
+                          <strong>{borrador.sections.length}</strong> secciones
+                        </span>
+                        <span data-color="coral">
+                          <strong>{totals(borrador).records}</strong> registros
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="canvas-heading-actions">
+                    <HerramientasDelCuaderno
+                      distribucion={borrador.layout}
+                      onDistribucion={(distribucion: Distribucion) =>
                         editarBorrador((copia) => {
-                          copia.name = evento.target.value;
+                          applyLayout(copia, distribucion);
                         })
                       }
+                      onBloques={() => abrirModal({ tipo: 'elegirBloque', enBorrador: true })}
+                      onSecciones={() => abrirModal({ tipo: 'secciones', enBorrador: true })}
+                      onNuevaSeccion={() => abrirModal({ tipo: 'agregarSeccion', enBorrador: true })}
+                      onFoto={() => {
+                        abrirChat();
+                        elegirDondeSacarLaFoto();
+                      }}
                     />
                   </div>
-                  <span className="tag">{allBlocks(borrador).length} piezas conectadas</span>
                 </div>
-                <p className="draft-intro">
-                  {ajustando
-                    ? 'Pedile a Sami lo que quieras cambiar, o cambiá nombres, anchos y posiciones acá. Tus registros se conservan.'
-                    : 'Esto ya tiene forma. Cambiá nombres, anchos y posiciones, o pedile un ajuste a Sami.'}
-                </p>
-                <LayoutToolbar
-                  distribucion={borrador.layout}
-                  onElegir={(distribucion: Distribucion) =>
-                    editarBorrador((copia) => {
-                      applyLayout(copia, distribucion);
-                    })
-                  }
-                />
-                <div className="draft-palette">
-                  <span>Sumar una pieza:</span>
-                  {PIEZAS_PARA_SUMAR.map((tipo) => (
-                    <button
-                      key={tipo}
-                      type="button"
-                      style={varsDeColor(CATALOG[tipo].color)}
-                      onClick={() => sumarPieza(tipo)}
-                    >
-                      <Icon name={CATALOG[tipo].icon} />
-                      {CATALOG[tipo].name}
-                      <Icon name="plus" />
-                    </button>
-                  ))}
-                </div>
-                <div className="draft-section-tabs">
-                  {borrador.sections.map((seccion) => (
-                    <button
-                      key={seccion.id}
-                      type="button"
-                      className={seccionId === seccion.id ? 'active' : ''}
-                      onClick={() => actualizarTaller({ seccionId: seccion.id })}
-                    >
-                      {seccion.name}
-                      <span>{seccion.blocks.length}</span>
-                    </button>
-                  ))}
-                  <span className="preview-example-label">
+                {/* Con una sola sección no hace falta la barra: se agrega otra desde el ícono «Agregar y organizar». */}
+                {borrador.sections.length > 1 && (
+                  <SeccionesTabs
+                    secciones={borrador.sections}
+                    activaId={seccionId ?? borrador.sections[0]?.id ?? ''}
+                    onElegir={(id) => actualizarTaller({ seccionId: id })}
+                  />
+                )}
+                {hayEjemplos && (
+                  <div className="sample-data-banner">
+                    <Icon name="help" />
                     {ajustando
-                      ? 'Las filas de ejemplo no se guardan ni son reales'
-                      : 'Las filas marcadas «Ejemplo» no son reales: están para imaginarlo'}
-                  </span>
-                  {hayEjemplos && (
-                    <button
-                      type="button"
-                      className="draft-clear-examples"
-                      onClick={pedirQuitarEjemplosDelBorrador}
-                    >
-                      <Icon name="trash" />
-                      Borrar ejemplos
+                      ? 'Estás viendo filas de ejemplo: no se guardan ni son reales.'
+                      : 'Estás viendo datos de ejemplo para imaginarlo: no son reales.'}
+                    <button type="button" onClick={pedirQuitarEjemplosDelBorrador}>
+                      Quitar ejemplos
                     </button>
-                  )}
-                </div>
-                <PreviewBoard
+                  </div>
+                )}
+                <TableroDelTaller
                   sistema={borrador}
                   seccionId={seccionId}
-                  editable
+                  nuevas={nuevas}
                   arrastrando={arrastrando}
                   sobre={sobre}
                   onRenombrar={(bloqueId) => abrirModal({ tipo: 'renombrarPieza', bloqueId })}
@@ -624,46 +641,48 @@ export function TallerPage() {
               </div>
             )}
           </div>
-          {!escribiendoSami && borrador && taller.vinculosPendientes.length > 0 && (
-            <TarjetaDeVinculosNuevos
-              pendientes={taller.vinculosPendientes}
-              borrador={borrador}
-              pensando={taller.pensando}
-              onResolver={resolverPendientes}
-            />
-          )}
-          {escribiendoSami ? null : taller.dudas[taller.respuestasDeDudas.length] ? (
-            <BotoneraDeDudas
-              dudas={taller.dudas}
-              respondidas={taller.respuestasDeDudas.length}
-              pensando={taller.pensando}
-              onResponder={responderDuda}
-              onEscribirOtraCosa={escribirOtraCosa}
-            />
-          ) : borrador ? null : (
-            <div className="conversation-examples">
-              <span>O probá con un ejemplo:</span>
-              {EJEMPLOS.map((ejemplo) => (
-                <button
-                  key={ejemplo.clave}
-                  type="button"
-                  disabled={taller.pensando}
-                  onClick={() => usarEjemplo(ejemplo)}
-                >
-                  <Icon name={ejemplo.icono} />
-                  {ejemplo.etiqueta}
-                  <Icon name="arrow" />
+          {/* Una sola pregunta a la vez: las dudas primero y, recién respondidas, la tarjeta de los vínculos nuevos. */}
+          <div className="conversation-avisos">
+            {escribiendoSami ? null : dudaALaVista ? (
+              <BotoneraDeDudas
+                dudas={taller.dudas}
+                respondidas={taller.respuestasDeDudas.length}
+                pensando={taller.pensando}
+                onResponder={responderDuda}
+                onEscribirOtraCosa={escribirOtraCosa}
+              />
+            ) : hayVinculos && borrador ? (
+              <TarjetaDeVinculosNuevos
+                pendientes={taller.vinculosPendientes}
+                borrador={borrador}
+                pensando={taller.pensando}
+                onResolver={resolverPendientes}
+              />
+            ) : borrador ? null : (
+              <div className="conversation-examples">
+                <span>O probá con un ejemplo:</span>
+                {EJEMPLOS.map((ejemplo) => (
+                  <button
+                    key={ejemplo.clave}
+                    type="button"
+                    disabled={taller.pensando}
+                    onClick={() => usarEjemplo(ejemplo)}
+                  >
+                    <Icon name={ejemplo.icono} />
+                    {ejemplo.etiqueta}
+                    <Icon name="arrow" />
+                  </button>
+                ))}
+              </div>
+            )}
+            {!escribiendoSami && !dudaALaVista && taller.anterior && (
+              <div className="feedback-chips">
+                <button type="button" disabled={taller.pensando} onClick={deshacer}>
+                  <Icon name="undo" /> Deshacer lo último
                 </button>
-              ))}
-            </div>
-          )}
-          {!escribiendoSami && taller.anterior && (
-            <div className="feedback-chips">
-              <button type="button" disabled={taller.pensando} onClick={deshacer}>
-                <Icon name="undo" /> Deshacer lo último
-              </button>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
         <form className="guide-composer" data-tour="describe" onSubmit={alEnviar}>
           <label htmlFor="guide-message" className="sr-only">
@@ -766,6 +785,7 @@ export function TallerPage() {
           bloque={tablaCompleta}
           sistema={borrador}
           textoVolver="Volver a la propuesta"
+          nuevas={nuevas}
           onRegistro={(filaId) =>
             abrirModal({ tipo: 'registroDelBorrador', bloqueId: tablaCompleta.id, filaId })
           }

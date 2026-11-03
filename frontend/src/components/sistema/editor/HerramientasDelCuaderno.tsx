@@ -12,8 +12,9 @@ type Props = {
   onBloques: () => void;
   onSecciones: () => void;
   onNuevaSeccion: () => void;
-  onFoto: () => void;
-  onResumen: () => void;
+  /** Sin esta acción (o sin `onResumen`) no se dibuja: el taller de Sami no las tiene. */
+  onFoto?: () => void;
+  onResumen?: () => void;
 };
 
 function Accion({
@@ -100,12 +101,16 @@ export function HerramientasDelCuaderno({
           <Accion icono="plus" onClick={y(onNuevaSeccion)}>
             Agregar una sección
           </Accion>
-          <Accion icono="camera" onClick={y(onFoto)}>
-            Traer datos de una foto
-          </Accion>
-          <Accion icono="download" data-accion="resumen-pdf" onClick={y(onResumen)}>
-            Resumen en PDF
-          </Accion>
+          {onFoto && (
+            <Accion icono="camera" onClick={y(onFoto)}>
+              Traer datos de una foto
+            </Accion>
+          )}
+          {onResumen && (
+            <Accion icono="download" data-accion="resumen-pdf" onClick={y(onResumen)}>
+              Resumen en PDF
+            </Accion>
+          )}
         </div>
       </div>
       <div className={`herramienta ${abierto === 'distribucion' ? 'abierta' : ''}`.trim()}>

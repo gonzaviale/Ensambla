@@ -1,13 +1,14 @@
 import { useState, type FormEvent } from 'react';
 import { PRESETS_DE_SECCION } from '@/lib/sistema/catalogo';
 import { agregarSeccion } from '@/stores/accionesDelEditor';
+import { agregarSeccionAlBorrador } from '@/stores/accionesDelTaller';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { Btn } from '../Btn';
 import { Icon } from '../Icon';
 import { Modal } from '../Modal';
 import { varsDeColor } from '../colores';
 
-export function ModalAgregarSeccion() {
+export function ModalAgregarSeccion({ enBorrador = false }: { enBorrador?: boolean }) {
   const cerrarModal = useSistemaStore((estado) => estado.cerrarModal);
   const [nombre, setNombre] = useState('');
   const [inicio, setInicio] = useState('empty');
@@ -15,7 +16,9 @@ export function ModalAgregarSeccion() {
   const guardar = (evento: FormEvent) => {
     evento.preventDefault();
     const limpio = nombre.trim();
-    if (limpio) agregarSeccion(limpio, inicio);
+    if (!limpio) return;
+    if (enBorrador) agregarSeccionAlBorrador(limpio, inicio);
+    else agregarSeccion(limpio, inicio);
   };
 
   return (
