@@ -363,8 +363,8 @@ body:has(.ubicacion-page) {
 .ubicacion-solapa-estado.pendiente {
   padding: 2px 8px;
   border-radius: 999px;
-  background: var(--yellow);
-  color: var(--ink);
+  background: var(--yellow-dark);
+  color: #fff;
 }
 .ubicacion-solapa-estado.guardada {
   width: 22px;

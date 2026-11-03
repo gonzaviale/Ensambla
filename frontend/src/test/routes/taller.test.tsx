@@ -28,7 +28,7 @@ const abrirTaller = async () => {
   await verifyHeadingPresentAsync(/En qué puedo/);
   const user = userEvent.setup();
   await clickButton(user, /Crear con Sami/);
-  await verifyHeadingPresentAsync('Lo armamos juntos.');
+  await verifyHeadingPresentAsync('Construyamos juntos');
   return { router, user };
 };
 
@@ -62,7 +62,7 @@ describe('el taller de Sami', () => {
     expect(screen.getByText('Contame qué hacés y cómo te organizás hoy.')).toBeVisible();
     expect(screen.getByText('O probá con un ejemplo:')).toBeVisible();
     expect(screen.getByText('TU IDEA VA A APARECER ACÁ')).toBeVisible();
-    expect(screen.getByText('Tu idea es el punto de partida')).toBeVisible();
+    expect(screen.queryByText('Tu idea es el punto de partida')).toBeNull();
   });
 
   it('la cámara abre un pop up con los consejos y «Tomar foto» abre el selector', async () => {
@@ -304,7 +304,7 @@ describe('el taller de Sami', () => {
     await verifyHeadingPresentAsync(/En qué puedo/);
     await clickButton(user, /Crear con Sami/);
 
-    await verifyHeadingPresentAsync('Lo armamos juntos.');
+    await verifyHeadingPresentAsync('Construyamos juntos');
     expect(useSistemaStore.getState().taller?.borrador).toBeNull();
     expect(screen.getByText('TU IDEA VA A APARECER ACÁ')).toBeVisible();
   });

@@ -2,19 +2,25 @@ package com.ensambla.backend.domain.service.registro;
 
 import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
+import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.precio.CambioPrecio;
 import com.ensambla.backend.domain.model.registro.ConsultaRegistros;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
+import com.ensambla.backend.domain.repository.precio.HistorialPrecioRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import lombok.RequiredArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -25,7 +31,13 @@ public class RegistroDatosService {
 
     private static final String MENSAJE_FILA_INEXISTENTE = "Esa fila ya no existe";
 
+    private static final String CLAVE_PRECIO = "price";
+
     private final RegistroRepository registroRepository;
+
+    private final BloqueRepository bloqueRepository;
+
+    private final HistorialPrecioRepository historialPrecioRepository;
 
     private final TransaccionPort transaccionPort;
 
@@ -43,14 +55,45 @@ public class RegistroDatosService {
         return registroRepository.buscar(consulta).contenido();
     }
 
+    /**
+     * Guarda los cambios del registro. Si es un producto del inventario y le cambió el precio, deja anotado el cambio
+     * en el historial de precios: el motor de avisos lo usa para saber cuándo hubo un aumento.
+     */
     public Registro editar(Registro registro, List<Campo> campos, Map<String, Object> cambios,
                            OffsetDateTime ahora) {
         return transaccionPort.ejecutar(() -> {
             Map<String, Object> validos = Registro.validar(campos, registro.combinarCon(cambios));
             validarConexiones(registro.getNegocioId(), campos, validos);
+            Optional<Campo> campoPrecio = campos.stream().filter(campo -> CLAVE_PRECIO.equals(campo.getClave()))
+                    .findFirst();
+            BigDecimal anterior = campoPrecio.map(campo -> precioDe(registro, campo)).orElse(null);
             registro.reemplazarValores(validos, ahora);
-            return registroRepository.save(registro);
+            Registro guardado = registroRepository.save(registro);
+            campoPrecio.ifPresent(campo -> registrarCambioDePrecio(guardado, campo, anterior, ahora));
+            return guardado;
         });
+    }
+
+    private void registrarCambioDePrecio(Registro registro, Campo campoPrecio, BigDecimal anterior,
+                                         OffsetDateTime ahora) {
+        CambioPrecio cambio = CambioPrecio.entre(
+                registro.getNegocioId(), registro.getId(), anterior, precioDe(registro, campoPrecio), ahora);
+        if (cambio != null && esDeInventario(registro)) {
+            historialPrecioRepository.save(cambio);
+        }
+    }
+
+    /** Las filas de ventas también tienen precio, pero sólo el de un producto del inventario es «el precio de venta». */
+    private boolean esDeInventario(Registro registro) {
+        return bloqueRepository.findByIdAndNegocioId(registro.getBloqueId(), registro.getNegocioId())
+                .filter(bloque -> bloque.getTipo() == TipoBloque.INVENTARIO)
+                .isPresent();
+    }
+
+    private static BigDecimal precioDe(Registro registro, Campo campoPrecio) {
+        return registro.getValores().get(campoPrecio.getId().toString()) instanceof Number numero
+                ? new BigDecimal(numero.toString())
+                : null;
     }
 
     /**

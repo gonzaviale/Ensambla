@@ -328,15 +328,14 @@ describe('la campana y la pantalla de avisos', () => {
     ).toMatchObject({ price: 1850 });
   });
 
-  it('«Preguntale a Sami» lleva al taller de Sami', async () => {
+  it('en lugar de «Preguntale a Sami» está el Sami flotante, que abre el chat', async () => {
     const { user } = await abrirConDemo();
     const panel = await abrirPanel(user);
 
-    await user.click(within(panel).getByRole('button', { name: /Preguntale a Sami/ }));
+    expect(within(panel).queryByRole('button', { name: /Preguntale a Sami/ })).toBeNull();
+    await user.click(screen.getByRole('button', { name: /Hablar con Sami/ }));
 
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Lo armamos juntos.' }, ESPERA),
-    ).toBeVisible();
+    expect(await screen.findByRole('dialog', { name: 'Chat con Sami' })).toBeVisible();
   });
 });
 
@@ -356,24 +355,119 @@ describe('sin datos y con el almacén de ejemplo', () => {
 
     await waitFor(() => expect(useSistemaStore.getState().sistemas).toHaveLength(1), ESPERA);
     expect(useSistemaStore.getState().sistemas[0]?.demoAlmacen).toBe(true);
-    expect(await screen.findByText(/Encontré 9 cosas para mirar/, {}, ESPERA)).toBeVisible();
+    // Primero el cuaderno (la pantalla de avisos también tiene su Sami flotante); después el número.
+    await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
+    await waitFor(
+      () => expect(screen.getByRole('button', { name: /Hablar con Sami: 9 avisos/ })).toBeVisible(),
+      ESPERA,
+    );
   });
 
-  it('la franja de Sami muestra lo principal del sistema en modo usar', async () => {
-    const { user } = await abrirConDemo();
+  describe('el chat de Sami', () => {
+    const abrirChat = async () => {
+      const { user } = await abrirConDemo();
+      await user.click(screen.getByRole('button', { name: /Hablar con Sami/ }));
+      const chat = await screen.findByRole('dialog', { name: 'Chat con Sami' });
+      return { user, chat };
+    };
+    const preguntar = async (
+      user: ReturnType<typeof userEvent.setup>,
+      chat: HTMLElement,
+      pregunta: string,
+    ) => {
+      await user.type(within(chat).getByRole('textbox', { name: 'Escribile a Sami' }), pregunta);
+      await user.click(within(chat).getByRole('button', { name: 'Enviar' }));
+    };
 
-    const franja = screen.getByLabelText('Avisos de Sami', { selector: 'section' });
-    expect(within(franja).getByText('Encontré 9 cosas para mirar.')).toBeVisible();
-    expect(franja.querySelectorAll('.sami-chip')).toHaveLength(3);
-    await user.click(within(franja).getAllByRole('button')[0] as HTMLElement);
-    expect(await screen.findByRole('region', { name: /Lo que encontré/ }, ESPERA)).toBeVisible();
+    it('el Sami flotante muestra cuántos avisos tiene el cuaderno', async () => {
+      await abrirConDemo();
+
+      const sami = screen.getByRole('button', { name: /Hablar con Sami: 9 avisos/ });
+      expect(within(sami).getByText('9')).toBeVisible();
+    });
+
+    it('al abrirlo saluda y muestra lo más importante, con «Ver los 9 avisos»', async () => {
+      const { user, chat } = await abrirChat();
+
+      expect(within(chat).getByText(/encontré 9 cosas para mirar/)).toBeVisible();
+      expect(within(chat).getAllByRole('button', { name: /^Ver: / })).toHaveLength(3);
+      await user.click(within(chat).getByRole('button', { name: /Ver los 9 avisos/ }));
+      expect(await screen.findByRole('region', { name: /Lo que encontré/ }, ESPERA)).toBeVisible();
+    });
+
+    it('«Ver» lleva a lo que representa el aviso, lo marca y guarda el chat', async () => {
+      const { user, chat } = await abrirChat();
+
+      await user.click(within(chat).getAllByRole('button', { name: /^Ver: / })[0] as HTMLElement);
+
+      await waitFor(
+        () => expect(document.querySelector('.resaltado-marco')).not.toBeNull(),
+        ESPERA,
+      );
+      expect(screen.queryByRole('dialog', { name: 'Chat con Sami' })).toBeNull();
+    });
+
+    it('al abrirlo desaparece el ícono flotante y vuelve al cerrarlo', async () => {
+      const { user, chat } = await abrirChat();
+
+      expect(screen.queryByRole('button', { name: /Hablar con Sami/ })).toBeNull();
+      await user.click(within(chat).getByRole('button', { name: 'Cerrar el chat' }));
+      expect(screen.getByRole('button', { name: /Hablar con Sami/ })).toBeVisible();
+    });
+
+    it('se agranda y se achica con el botón de la cabecera', async () => {
+      const { user, chat } = await abrirChat();
+
+      expect(chat).not.toHaveClass('expandido');
+      await user.click(within(chat).getByRole('button', { name: 'Agrandar el chat' }));
+      expect(chat).toHaveClass('expandido');
+      await user.click(within(chat).getByRole('button', { name: 'Achicar el chat' }));
+      expect(chat).not.toHaveClass('expandido');
+    });
+
+    it('contesta por el stock', async () => {
+      const { user, chat } = await abrirChat();
+
+      await preguntar(user, chat, '¿Qué me falta?');
+
+      expect(await within(chat).findByText(/con poco stock/, {}, ESPERA)).toBeVisible();
+      expect(within(chat).getByText('Aceite Natura 900 ml')).toBeVisible();
+    });
+
+    it('contesta por un producto', async () => {
+      const { user, chat } = await abrirChat();
+
+      await preguntar(user, chat, '¿cuánta yerba me queda?');
+
+      expect(await within(chat).findByText(/Te quedan 4/, {}, ESPERA)).toBeVisible();
+    });
+
+    it('contesta por las ventas', async () => {
+      const { user, chat } = await abrirChat();
+
+      await preguntar(user, chat, '¿Cuánto vendí?');
+
+      expect(await within(chat).findByText(/Últimos 30 días/, {}, ESPERA)).toBeVisible();
+    });
   });
 
-  it('en construir no hay franja: sigue la barra de distribución', async () => {
+  it('en construir sigue la barra de distribución', async () => {
     await abrirConDemo('construir');
 
-    expect(screen.queryByLabelText('Avisos de Sami', { selector: 'section' })).toBeNull();
     expect(screen.getByRole('group', { name: 'Distribuí tus piezas' })).toBeVisible();
+  });
+
+  it('con una sola sección no hay barra de secciones (se agrega otra desde los íconos)', async () => {
+    await abrirConDemo();
+
+    expect(screen.queryByRole('navigation', { name: 'Secciones del cuaderno' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Agregar y organizar' })).toBeVisible();
+  });
+
+  it('el cuaderno ya no muestra los avisos arriba: viven en el chat de Sami', async () => {
+    await abrirConDemo();
+
+    expect(screen.queryByRole('region', { name: /Encontré \d+ cosas para mirar/ })).toBeNull();
   });
 });
 
@@ -591,9 +685,9 @@ describe('los avisos del motor del servidor', () => {
       useSistemaStore.getState().avisos.some((aviso) => aviso.tipo === tipo && !aviso.servidorId);
     await waitFor(() => expect(locales('combo')).toBe(true), ESPERA);
 
-    expect(useSistemaStore.getState().avisos.filter((aviso) => aviso.tipo === 'estancado')).toEqual([
-      expect.objectContaining({ servidorId: expect.any(String) }),
-    ]);
+    expect(useSistemaStore.getState().avisos.filter((aviso) => aviso.tipo === 'estancado')).toEqual(
+      [expect.objectContaining({ servidorId: expect.any(String) })],
+    );
     expect(locales('stock')).toBe(true);
   });
 

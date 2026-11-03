@@ -5,17 +5,17 @@ import { StorefrontIcon } from '@phosphor-icons/react/dist/csr/Storefront';
 const DOLORES = [
   {
     Icono: NotebookIcon,
-    pregunta: '¿Quién me debía?',
-    texto: 'Lo anotaste, pero encontrarlo te lleva más de lo que pensabas.',
+    pregunta: '¿Quién me debe?',
+    texto: 'Tenés el fiado anotado, pero encontrarlo te lleva tiempo.',
   },
   {
     Icono: MagnifyingGlassIcon,
-    pregunta: '¿Dónde puse ese gasto?',
+    pregunta: '¿Dónde está ese gasto?',
     texto: 'Entre tickets, hojas y mensajes, un dato puede quedar perdido.',
   },
   {
     Icono: StorefrontIcon,
-    pregunta: '¿Cuánto vendí hoy?',
+    pregunta: '¿Cuánto llevo vendido hoy?',
     texto: 'Después de atender todo el día, todavía falta ordenar las ventas.',
   },
 ] as const;
@@ -26,10 +26,10 @@ export function Problema() {
       <div className="ens-wrap ens-problem">
         <div>
           <p className="ens-eyebrow">Un día cualquiera en tu negocio</p>
-          <h2 id="problema-titulo">Entre atender y anotar, siempre queda algo para después.</h2>
+          <h2 id="problema-titulo">Entre atender y anotar, siempre queda algo para después</h2>
           <p className="ens-lead">
-            Una venta en una hoja. Un gasto en otra. Y un fiado que quedó entre los mensajes. Cuando
-            llega el momento de hacer las cuentas, toca juntar todo.
+            Cuando tenés una venta en una hoja, un gasto en otra y un fiado entre los mensajes,
+            necesitás reunir toda la información para hacer las cuentas.
           </p>
         </div>
         <ul className="ens-pains">

@@ -93,7 +93,7 @@ describe('ajustar con Sami un sistema que ya existe', () => {
 
     await clickButton(user, /Ajustar con Sami/);
 
-    await verifyHeadingPresentAsync('Lo ajustamos juntos.');
+    await verifyHeadingPresentAsync('Construyamos juntos');
     expect(router.state.location.search).toEqual({ sistema: sistema.id });
     expect(screen.getByText(/Estoy mirando «Almacén de Ana»/)).toBeVisible();
     expect(screen.getByLabelText('Nombre de tu cuaderno')).toHaveValue('Almacén de Ana');
@@ -143,7 +143,7 @@ describe('ajustar con Sami un sistema que ya existe', () => {
   it('con el Sami simulado: «poné Cliente primero»; si se vuelve sin guardar, el sistema no cambia', async () => {
     const { router, user, sistema } = await abrirSistema();
     await clickButton(user, /Ajustar con Sami/);
-    await verifyHeadingPresentAsync('Lo ajustamos juntos.');
+    await verifyHeadingPresentAsync('Construyamos juntos');
 
     await pedirASami(user, 'poné Cliente primero');
 
@@ -161,7 +161,7 @@ describe('ajustar con Sami un sistema que ya existe', () => {
   it('con el Sami simulado: «cambiale el nombre a Teléfono por Celular»', async () => {
     const { user } = await abrirSistema();
     await clickButton(user, /Ajustar con Sami/);
-    await verifyHeadingPresentAsync('Lo ajustamos juntos.');
+    await verifyHeadingPresentAsync('Construyamos juntos');
 
     await pedirASami(user, 'cambiale el nombre a Teléfono por Celular');
 
@@ -175,7 +175,7 @@ describe('ajustar con Sami un sistema que ya existe', () => {
   it('deja ver la tabla de una pieza de la propuesta a pantalla completa, como en el sistema', async () => {
     const { user } = await abrirSistema();
     await clickButton(user, /Ajustar con Sami/);
-    await verifyHeadingPresentAsync('Lo ajustamos juntos.');
+    await verifyHeadingPresentAsync('Construyamos juntos');
     const clientes = deTipo(useSistemaStore.getState().taller?.borrador ?? undefined, 'clients');
 
     await clickButton(user, `Ver ${clientes.name} a pantalla completa`);
@@ -193,7 +193,7 @@ describe('ajustar con Sami un sistema que ya existe', () => {
 
     renderApp('/taller?sistema=no-existe');
 
-    await verifyHeadingPresentAsync('Lo armamos juntos.');
+    await verifyHeadingPresentAsync('Construyamos juntos');
     expect(useSistemaStore.getState().taller).toMatchObject({ sistemaId: null, borrador: null });
     expect(screen.queryByRole('button', { name: /Guardar cambios/ })).toBeNull();
   });

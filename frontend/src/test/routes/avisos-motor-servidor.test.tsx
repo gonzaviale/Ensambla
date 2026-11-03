@@ -34,6 +34,10 @@ const abrirAlmacen = async () => {
 const delNavegador = (tipo: string) =>
   useSistemaStore.getState().avisos.some((aviso) => aviso.tipo === tipo && !aviso.servidorId);
 
+// Con el motor activo el servidor genera todos los tipos y el navegador no muestra ninguno propio: se espera a que el
+// plan haya habilitado los avisos (el acceso se resolvió) para saber que los del navegador ya tuvieron su oportunidad.
+const hayDelNavegador = () => useSistemaStore.getState().accesoAvisos !== null;
+
 describe('avisos con el motor del servidor activo', () => {
   it('un aviso de estancado descartado no vuelve como copia del navegador', async () => {
     const { usuario, sistema } = await abrirAlmacen();
@@ -44,9 +48,10 @@ describe('avisos con el motor del servidor activo', () => {
     renderApp(`/sistemas/${sistema.id}?modo=usar`);
     await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
     // Los del navegador llegan cuando el plan los habilita: se espera a uno que sí se muestra.
-    await waitFor(() => expect(delNavegador('stock')).toBe(true), ESPERA);
+    await waitFor(() => expect(hayDelNavegador()).toBe(true), ESPERA);
 
     expect(delNavegador('estancado')).toBe(false);
+    expect(delNavegador('stock')).toBe(false);
   });
 
   it('mientras el servidor todavía no contestó, tampoco aparecen copias del navegador', async () => {
@@ -64,7 +69,7 @@ describe('avisos con el motor del servidor activo', () => {
     );
     renderApp(`/sistemas/${sistema.id}?modo=usar`);
     await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
-    await waitFor(() => expect(delNavegador('stock')).toBe(true), ESPERA);
+    await waitFor(() => expect(hayDelNavegador()).toBe(true), ESPERA);
 
     expect(delNavegador('estancado')).toBe(false);
 

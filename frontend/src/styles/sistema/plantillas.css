@@ -43,9 +43,6 @@ body:has(.template-page) {
   background: var(--accent);
   color: #fff;
 }
-.template-page .filter-pills button[data-color='yellow'].active {
-  color: var(--petrol);
-}
 .filtro-punto {
   width: 10px;
   height: 10px;
@@ -54,9 +51,6 @@ body:has(.template-page) {
 }
 .template-page .filter-pills button.active .filtro-punto {
   background: #fff;
-}
-.template-page .filter-pills button[data-color='yellow'].active .filtro-punto {
-  background: var(--petrol);
 }
 
 /* Buscador */

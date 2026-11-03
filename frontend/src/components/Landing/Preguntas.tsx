@@ -1,18 +1,18 @@
 const PREGUNTAS = [
   {
-    pregunta: '¿Tengo que cargar todo de una?',
+    pregunta: '¿Tengo que cargar toda la información al comenzar?',
     respuesta:
-      'Podés empezar por una parte de tu negocio, como las ventas. Sumá el resto cuando lo necesites.',
+      'Podés empezar por una parte de tu negocio, como las ventas, y sumar el resto cuando lo necesites.',
   },
   {
     pregunta: '¿Tengo que dejar de usar mi cuaderno?',
     respuesta:
-      'Podés seguir anotando como hasta ahora y pasar tus anotaciones de a poco. Vos elegís por dónde empezar.',
+      'Podés seguir anotando como hasta ahora e incorporar tus anotaciones gradualmente, en el orden que prefieras.',
   },
   {
     pregunta: '¿Qué pasa si una foto se lee mal?',
     respuesta:
-      'Antes de guardar, revisás los datos. Podés corregirlos o quitar lo que no querés incorporar.',
+      'Antes de guardar, podés revisar los datos, corregirlos o quitar lo que no querés incorporar.',
   },
   {
     pregunta: '¿Puedo descargar una copia de mis datos?',
@@ -27,7 +27,7 @@ export function Preguntas() {
       <div className="ens-wrap ens-faq">
         <div>
           <p className="ens-eyebrow">Antes de empezar</p>
-          <h2 id="dudas-titulo">Las dudas también tienen su lugar.</h2>
+          <h2 id="dudas-titulo">Encontrá respuestas a tus dudas</h2>
         </div>
         <div>
           {PREGUNTAS.map(({ pregunta, respuesta }) => (

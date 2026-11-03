@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ChangeEvent,
@@ -20,6 +21,8 @@ import { Sami } from '@/components/sistema/Sami';
 import { VisorDeFoto } from '@/components/sistema/VisorDeFoto';
 import { varsDeColor } from '@/components/sistema/colores';
 import { ajusteParaGuardar, mismoSistema, sistemaParaCrear } from '@/lib/sistema/acciones';
+import { burbujasDeSami } from '@/lib/burbujasDeSami';
+import { ritmoDeSami } from '@/lib/ritmoDeSami';
 import { debeMostrarConsejosDeFoto } from '@/lib/sistema/consejosDeFoto';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import {
@@ -77,6 +80,9 @@ const EJEMPLOS: {
       'Tengo una peluquería. Doy turnos para corte y color, quiero tener a mis clientes con su teléfono y saber qué productos me quedan.',
   },
 ];
+
+// Hasta dónde crece el campo de escribir antes de ponerle scroll.
+const ALTO_MAXIMO_DEL_CAMPO = 160;
 
 const PIEZAS_PARA_SUMAR: TipoBloque[] = ['clients', 'sales', 'inventory', 'orders', 'expenses'];
 
@@ -161,11 +167,62 @@ export function TallerPage() {
 
   const cantidadDeMensajes = taller?.mensajes.length ?? 0;
   const pensando = taller?.pensando ?? false;
+
+  // Lo que dice Sami aparece de a una burbuja, con los puntitos de «escribiendo» en el medio: así se lee con calma y
+  // el scroll acompaña lo último en vez de saltar al final de una pared de mensajes.
+  // El campo crece con lo que se escribe, hasta un tope.
+  const entrada = taller?.entrada;
+  useLayoutEffect(() => {
+    const area = campo.current;
+    if (!area) return;
+    area.style.height = 'auto';
+    area.style.height = `${Math.min(area.scrollHeight, ALTO_MAXIMO_DEL_CAMPO)}px`;
+  }, [entrada, chatAbierto]);
+
+  const ultimoIndice = cantidadDeMensajes - 1;
+  const ultimo = taller?.mensajes[ultimoIndice];
+  const clave = ultimo ? `${ultimoIndice}|${ultimo.quien}|${ultimo.texto}` : '';
+  // El saludo con el que arranca la charla se ve entero de una; las respuestas aparecen de a una.
+  const escalonar = ultimoIndice > 0;
+  const partesDelUltimo =
+    escalonar && ultimo?.quien === 'sami' ? burbujasDeSami(ultimo.texto).length : 0;
+  const [revelado, setRevelado] = useState({ clave: '', visibles: 0 });
   useEffect(() => {
-    if (!mensajes.current) return;
-    mensajes.current.scrollTop = mensajes.current.scrollHeight;
-    if (!pensando && cantidadDeMensajes > 1) campo.current?.focus({ preventScroll: true });
-  }, [cantidadDeMensajes, pensando]);
+    if (!escalonar || !ultimo || ultimo.quien !== 'sami') return;
+    const partes = burbujasDeSami(ultimo.texto);
+    if (ritmoDeSami.maxima === 0) {
+      setRevelado({ clave, visibles: partes.length });
+      return;
+    }
+    setRevelado({ clave, visibles: 1 });
+    const temporizadores: number[] = [];
+    let espera = 0;
+    for (let indice = 1; indice < partes.length; indice++) {
+      espera += Math.min(
+        ritmoDeSami.maxima,
+        ritmoDeSami.base + (partes[indice]?.length ?? 0) * ritmoDeSami.porLetra,
+      );
+      temporizadores.push(
+        window.setTimeout(() => setRevelado({ clave, visibles: indice + 1 }), espera),
+      );
+    }
+    return () => temporizadores.forEach((temporizador) => window.clearTimeout(temporizador));
+    // El mensaje se identifica por la clave: si no cambia, no se reinicia la cuenta.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clave]);
+  const visiblesDelUltimo = revelado.clave === clave ? revelado.visibles : 1;
+  const escribiendoSami = partesDelUltimo > 1 && visiblesDelUltimo < partesDelUltimo;
+
+  useEffect(() => {
+    const lista = mensajes.current;
+    if (!lista) return;
+    if (typeof lista.scrollTo === 'function')
+      lista.scrollTo({ top: lista.scrollHeight, behavior: 'smooth' });
+    else lista.scrollTop = lista.scrollHeight;
+    if (!pensando && !escribiendoSami && cantidadDeMensajes > 1) {
+      campo.current?.focus({ preventScroll: true });
+    }
+  }, [cantidadDeMensajes, pensando, visiblesDelUltimo, escribiendoSami]);
 
   if (!taller) return null;
   const { borrador } = taller;
@@ -311,15 +368,12 @@ export function TallerPage() {
           <span>
             {ajustando ? 'AJUSTANDO TU CUADERNO CON SAMI' : 'EL TALLER DE TU PRIMER CUADERNO'}
           </span>
-          <span className="tag outline">
-            {ajustando
-              ? hayCambios
-                ? 'Cambios sin guardar'
-                : 'Sin cambios todavía'
-              : borrador
-                ? 'Propuesta sin guardar'
-                : 'Tu idea es el punto de partida'}
-          </span>
+          {/* El cartel sólo aparece cuando hay algo sin guardar. */}
+          {(ajustando ? hayCambios : borrador) && (
+            <span className="tag outline">
+              {ajustando ? 'Cambios sin guardar' : 'Propuesta sin guardar'}
+            </span>
+          )}
         </div>
         <div className="studio-layout chat-flotante">
           <section className="studio-canvas">
@@ -513,11 +567,14 @@ export function TallerPage() {
         <header className="conversation-head">
           <img className="conversation-sami" src="/mockup/sami-constructora.webp" alt="" />
           <div>
-            <h1>{ajustando ? 'Lo ajustamos juntos.' : 'Lo armamos juntos.'}</h1>
-            <p>
-              <span className="live-dot" />
-              Sami · Tu guía
+            <p className="conversation-estado">
+              <strong>Sami</strong>
+              <span>
+                <span className="live-dot" />
+                Conectado
+              </span>
             </p>
+            <h1>Construyamos juntos</h1>
           </div>
           <button
             type="button"
@@ -536,8 +593,23 @@ export function TallerPage() {
                 quien={mensaje.quien}
                 texto={mensaje.texto}
                 foto={mensaje.foto}
+                visibles={
+                  escalonar && indice === ultimoIndice && mensaje.quien === 'sami'
+                    ? visiblesDelUltimo
+                    : undefined
+                }
               />
             ))}
+            {escribiendoSami && (
+              <div
+                className="conversation-bubble sami escribiendo"
+                aria-label="Sami está escribiendo"
+              >
+                <i />
+                <i />
+                <i />
+              </div>
+            )}
             {taller.pensando && (
               <div className="thinking-bubble" data-tour="describe-pensando">
                 <Sami pose="think" />
@@ -552,7 +624,7 @@ export function TallerPage() {
               </div>
             )}
           </div>
-          {borrador && taller.vinculosPendientes.length > 0 && (
+          {!escribiendoSami && borrador && taller.vinculosPendientes.length > 0 && (
             <TarjetaDeVinculosNuevos
               pendientes={taller.vinculosPendientes}
               borrador={borrador}
@@ -560,7 +632,7 @@ export function TallerPage() {
               onResolver={resolverPendientes}
             />
           )}
-          {taller.dudas[taller.respuestasDeDudas.length] ? (
+          {escribiendoSami ? null : taller.dudas[taller.respuestasDeDudas.length] ? (
             <BotoneraDeDudas
               dudas={taller.dudas}
               respondidas={taller.respuestasDeDudas.length}
@@ -585,7 +657,7 @@ export function TallerPage() {
               ))}
             </div>
           )}
-          {taller.anterior && (
+          {!escribiendoSami && taller.anterior && (
             <div className="feedback-chips">
               <button type="button" disabled={taller.pensando} onClick={deshacer}>
                 <Icon name="undo" /> Deshacer lo último
@@ -594,17 +666,13 @@ export function TallerPage() {
           )}
         </div>
         <form className="guide-composer" data-tour="describe" onSubmit={alEnviar}>
-          <label htmlFor="guide-message">
+          <label htmlFor="guide-message" className="sr-only">
             {borrador ? '¿Qué le falta? ¿Qué cambiarías?' : 'Contame un poco de tu negocio'}
           </label>
           <textarea
             id="guide-message"
             ref={campo}
-            placeholder={
-              borrador
-                ? 'Por ejemplo: quiero los clientes en otra sección…'
-                : 'Tengo un almacén, vendo productos y anoto lo que me fían…'
-            }
+            placeholder={borrador ? 'Pedile un cambio a Sami…' : 'Contale de tu negocio…'}
             maxLength={2500}
             disabled={taller.pensando}
             value={taller.entrada}
@@ -668,7 +736,8 @@ export function TallerPage() {
               type="submit"
               disabled={taller.pensando || preparandoFoto}
             >
-              {borrador ? 'Ajustalo conmigo' : 'Pensalo conmigo'} <Icon name="arrow" />
+              <span className="sr-only">{borrador ? 'Ajustalo conmigo' : 'Pensalo conmigo'}</span>
+              <Icon name="arrow" />
             </button>
           </div>
         </form>

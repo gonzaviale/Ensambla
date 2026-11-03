@@ -16,7 +16,17 @@ function aAccion(accion: AccionDelServidor, avisoId: string): AccionDeAviso {
         texto: accion.texto ?? 'Aplicar el cambio',
         avisoId,
         confirmacion: 'Listo, aplicamos el cambio.',
+        ...(accion.bloqueId ? { sistemaId, bloqueId, filaId: accion.registroId } : {}),
       };
+    case 'CREAR_REGISTRO':
+      return {
+        tipo: 'servidor',
+        texto: accion.texto ?? 'Crear la fila',
+        avisoId,
+        confirmacion: 'Listo, lo creamos.',
+      };
+    case 'VER_ZONA':
+      return { tipo: 'zona', texto: accion.texto ?? 'Ver en Mi zona', producto: accion.producto };
     case 'REGISTRAR':
       return { tipo: 'registrar', texto: accion.texto ?? 'Registrar entrada', sistemaId, bloqueId };
     case 'ABRIR':
@@ -53,7 +63,15 @@ export function aAvisoDeSami(
 }
 
 /** Tipos de aviso que genera el motor del servidor. Con el backend real, el navegador no los calcula por su cuenta. */
-export const TIPOS_DEL_MOTOR: ReadonlySet<TipoDeAviso> = new Set<TipoDeAviso>(['estancado']);
+export const TIPOS_DEL_MOTOR: ReadonlySet<TipoDeAviso> = new Set<TipoDeAviso>([
+  'stock',
+  'estancado',
+  'precio_zona',
+  'muy_vendido',
+  'revisar_precio',
+  'combo',
+  'consumo_zona',
+]);
 
 /**
  * Tipos de aviso cuya copia del navegador no se muestra. Siempre los que el servidor ya trajo; y, si su motor está

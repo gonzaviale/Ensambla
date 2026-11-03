@@ -194,3 +194,31 @@
 .modal-configurar-cuaderno form .modal-footer {
   justify-content: flex-start;
 }
+
+/* El resumen del negocio en PDF: qué incluye, el período y el aviso de que es Premium. */
+.resumen-incluye {
+  padding-left: 22px;
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 18px;
+}
+.resumen-fechas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.resumen-premium {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--petrol);
+}
+.modal-resumen .modal-footer {
+  flex-wrap: wrap;
+}
+@media (max-width: 480px) {
+  .resumen-fechas {
+    grid-template-columns: 1fr;
+  }
+}

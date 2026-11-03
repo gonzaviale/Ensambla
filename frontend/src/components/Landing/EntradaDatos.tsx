@@ -5,7 +5,7 @@ import { CheckCircleIcon } from '@phosphor-icons/react/dist/csr/CheckCircle';
 
 const PASOS = [
   { id: 'cuaderno', nombre: 'Lo tenés en papel' },
-  { id: 'revisar', nombre: 'Revisás lo leído' },
+  { id: 'revisar', nombre: 'Revisás los datos' },
   { id: 'buscar', nombre: 'Lo encontrás' },
 ] as const;
 type PasoId = (typeof PASOS)[number]['id'];
@@ -75,17 +75,14 @@ export function EntradaDatos() {
     >
       <div className="ens-wrap">
         <div className="ens-demo-intro">
-          <p className="ens-eyebrow">Ayer lo anotaste. Hoy lo necesitás.</p>
-          <h2 id="ejemplo-titulo">
-            ¿Quién te debía
-            <br />y cuánto?
-          </h2>
+          <p className="ens-eyebrow">De tu cuaderno a la información que necesitás</p>
+          <h2 id="ejemplo-titulo">Consultá quién te debe y cuánto</h2>
           <p>
-            En este ejemplo, Ana llevó {PESOS.format(3200)} fiado. Mirá cómo pasás de ese apunte a
-            encontrarlo por nombre.
+            En este ejemplo, Ana tiene un fiado de {PESOS.format(3200)}. Explorá cómo revisás el
+            importe y encontrás la anotación por su nombre.
           </p>
         </div>
-        <p className="ens-demo-guide">Probalo paso a paso. Tocá los botones para avanzar.</p>
+        <p className="ens-demo-guide">Explorá el ejemplo paso a paso con los botones.</p>
         <ol className="ens-steps" aria-label="Pasos del ejemplo">
           {PASOS.map(({ id, nombre }, indice) => (
             <li key={id}>
@@ -131,20 +128,20 @@ export function EntradaDatos() {
             {paso === 'cuaderno' && (
               <div className="ens-demo-start">
                 <p className="ens-example-question">
-                  Ese dato que necesitás,
-                  <br />
-                  <strong>sin recorrer todas las hojas.</strong>
+                  Encontrá el dato que necesitás <strong>sin recorrer todas las hojas</strong>
                 </p>
-                <p>Una foto puede ser tu punto de partida. Antes de guardar, revisás los datos.</p>
+                <p>
+                  Empezá con una foto de tus anotaciones y revisá los datos antes de guardarlos.
+                </p>
                 <button type="button" className="ens-secondary" onClick={() => avanzar('revisar')}>
                   Comenzar el ejemplo <ArrowRightIcon aria-hidden size={19} />
                 </button>
-                <p className="ens-demo-next-hint">Tocá el botón para pasar al paso 2.</p>
+                <p className="ens-demo-next-hint">Seleccioná el botón para continuar al paso 2.</p>
               </div>
             )}
             {paso === 'revisar' && (
               <form className="ens-review-form" onSubmit={confirmar} noValidate>
-                <p>¿Esto es lo que anotaste? Podés corregir el importe para probar.</p>
+                <p>Revisá los datos y, si lo necesitás, corregí el importe antes de confirmar.</p>
                 <div className="ens-example-person">
                   <span>Cliente</span>
                   <strong>Ana López</strong>
@@ -209,9 +206,9 @@ export function EntradaDatos() {
                 </ul>
                 <p className="ens-search-status" role="status">
                   {encontrados.length === 0
-                    ? 'No hay coincidencias. Probá con Ana, Pedro o Lucía.'
+                    ? 'No hay coincidencias. Buscá a Ana, Pedro o Lucía.'
                     : encontrados.length === 1
-                      ? 'Encontraste el fiado. Ya sabés a quién y cuánto anotaste.'
+                      ? 'Encontraste el fiado con el nombre y el importe que confirmaste.'
                       : encontrados.length +
                         ' fiados de ejemplo. Escribí un nombre para encontrar el que buscás.'}
                 </p>
@@ -220,8 +217,8 @@ export function EntradaDatos() {
           </div>
         </div>
         <p className="ens-example-disclaimer" id="ejemplo-nota">
-          Ejemplo interactivo con datos inventados: no se guarda información. La lectura de una foto
-          puede necesitar correcciones.
+          Este ejemplo usa datos ficticios y no guarda información; al leer una foto, los datos
+          pueden necesitar correcciones.
         </p>
       </div>
     </section>
