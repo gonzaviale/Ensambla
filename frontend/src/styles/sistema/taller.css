@@ -177,100 +177,100 @@ body:has(.creation-studio) {
 }
 
 /* Propuesta del Taller: sin pasteles, colores sólidos de la paleta y letra más grande. */
-.studio-canvas .draft-heading .eyebrow {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--orange);
-}
-.studio-canvas .draft-heading > .tag {
-  font-size: 13px;
-  font-weight: 700;
-  background: var(--yellow-dark);
-  color: #fff;
-  border: 0;
-}
 .studio-canvas .draft-name-input {
-  font-size: 32px;
+  font-size: 28px;
   color: var(--petrol);
   border-bottom-color: var(--petrol);
-}
-.studio-canvas .draft-intro {
-  font-size: 16px;
-  line-height: 1.6;
-  color: var(--ink);
 }
 .studio-canvas .layout-toolbar,
 .studio-canvas .layout-toolbar button {
   font-size: 14px;
 }
-.studio-canvas .draft-palette > span {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--petrol);
+
+/* Los bloques de la propuesta usan el aspecto del cuaderno (.block, .data-table); acá van sólo las diferencias. */
+.studio-canvas .canvas-heading {
+  margin-top: 0;
 }
-.studio-canvas .draft-palette button {
-  background: white;
-  border: 2px solid var(--accent);
-  border-radius: 999px;
-  padding: 8px 14px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink);
-}
-.studio-canvas .draft-palette button > .icon {
-  width: 17px;
-  height: 17px;
-  color: var(--accent);
-}
-.studio-canvas .draft-palette button:hover {
-  background: var(--accent);
-  color: white;
-}
-.studio-canvas .draft-palette button:hover > .icon {
-  color: white;
-}
-.studio-canvas .draft-section-tabs {
-  border-bottom: 2px solid var(--line);
-}
-.studio-canvas .draft-section-tabs > button {
-  font-size: 15px;
-  font-weight: 600;
-  padding: 9px 16px;
-  border-radius: 999px;
-  border: 2px solid var(--petrol);
-  color: var(--petrol);
-}
-.studio-canvas .draft-section-tabs > button.active {
-  background: var(--petrol);
-  color: white;
-}
-.studio-canvas .draft-section-tabs button > span {
-  font-size: 13px;
-}
-.studio-canvas .draft-section-tabs > .preview-example-label {
-  font-size: 13px;
-  color: var(--muted);
-}
-.studio-canvas .draft-section-tabs > .draft-clear-examples {
+.studio-canvas .block-nombre {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-left: auto;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 7px 14px;
-  border-radius: 999px;
-  border: 2px solid var(--coral);
-  background: transparent;
-  color: var(--coral);
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
-.studio-canvas .draft-section-tabs > .draft-clear-examples:hover {
-  background: var(--coral);
-  color: white;
+.studio-canvas .block-nombre .icon {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  opacity: 0.85;
 }
-
+/* Lo que Sami acaba de cargar: primero, con el color del bloque y una marca «Nuevo». */
+.studio-canvas .block-nuevos {
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.studio-canvas .data-table tbody tr.fila-nueva td {
+  background: var(--tint);
+}
+.studio-canvas .data-table tbody tr.fila-nueva td:first-child {
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+.studio-canvas .nuevo-badge,
+.tabla-completa .nuevo-badge {
+  display: inline-block;
+  margin-right: 7px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.tabla-completa .data-table tbody tr.fila-nueva td {
+  background: var(--tint);
+}
+.tabla-completa .data-table tbody tr.fila-nueva td:first-child {
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+/* «Mostrar 10 más»: las tablas se cargan de a poco y el scroll queda dentro del bloque. */
+.block .tabla-mas,
+.tabla-completa .tabla-mas {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: #fff;
+  color: var(--accent, var(--petrol));
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.block .tabla-mas {
+  border-radius: 0 0 11px 11px;
+}
+.block .tabla-mas:hover,
+.tabla-completa .tabla-mas:hover {
+  background: var(--tint, #f4f6f1);
+}
+.studio-canvas .canvas-empty {
+  grid-column: 1 / -1;
+}
 /* Piezas de la vista previa (Taller y vista de una plantilla) */
 :is(.studio-canvas, .template-preview-stage) .preview-block {
   border: 2px solid var(--accent);
@@ -480,6 +480,30 @@ button.chat-abrir img {
 .sami-conversation.flotante textarea {
   overscroll-behavior: contain;
 }
+/* Lo que Sami pregunta (dudas, vínculos nuevos, ejemplos) queda abajo, acotado y con su propio scroll: en una
+   pantalla chica las burbujas siguen legibles y nunca se apilan dos preguntas. */
+.sami-conversation.flotante .conversation-avisos {
+  position: sticky;
+  bottom: 0;
+  max-height: min(46vh, 340px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-top: 6px;
+  background: linear-gradient(to bottom, transparent, #fff 8px);
+}
+.conversation-avisos:empty {
+  display: none;
+}
+.conversation-avisos .vinculos-nuevos-mas {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--petrol);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
 /* En el celular el chat es una hoja que sube desde abajo, de lado a lado. */
 @media (max-width: 760px) {
   .sami-conversation.flotante {
@@ -515,6 +539,9 @@ button.chat-abrir img {
   }
   .sami-conversation.flotante .conversation-foot {
     display: none;
+  }
+  .sami-conversation.flotante .conversation-avisos {
+    max-height: 40dvh;
   }
   button.chat-abrir {
     left: 16px;

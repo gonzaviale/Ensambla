@@ -100,7 +100,7 @@ describe('la conversación de Sami en el taller', () => {
 
     expect(await screen.findByText('Te armé las ventas y los clientes.', {}, ESPERA)).toBeVisible();
     expect(screen.getByLabelText('Nombre de tu cuaderno')).toHaveValue('Mi cuaderno');
-    expect(screen.getByText('2 piezas conectadas')).toBeVisible();
+    expect(document.querySelectorAll('#draft-canvas > .block')).toHaveLength(2);
     const [pedido] = pedidos as PedidoAlTaller[];
     expect(pedido?.mensaje).toBe('Tengo un almacén y vendo productos');
     expect(pedido?.estado).toMatchObject({ nombre: 'Mi cuaderno', piezas: [] });
@@ -183,7 +183,7 @@ describe('la conversación de Sami en el taller', () => {
     ]);
     const sofia = pieza('Clientes').rows.find((fila) => fila.name === 'Sofía Ruiz');
     expect(turnos.rows[0]).toMatchObject({ cliente: sofia?.id, hora: '10:30' });
-    expect(screen.getByText('3 piezas conectadas')).toBeVisible();
+    expect(document.querySelectorAll('#draft-canvas > .block')).toHaveLength(3);
   });
 
   it('Sami puede armar el sistema desde cero con herramientas y dejar una pregunta', async () => {
@@ -203,7 +203,7 @@ describe('la conversación de Sami en el taller', () => {
       await screen.findByText('Empecemos por tus ventas y tus clientes.', {}, ESPERA),
     ).toBeVisible();
     expect(await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA)).toBeVisible();
-    expect(screen.getByText('2 piezas conectadas')).toBeVisible();
+    expect(document.querySelectorAll('#draft-canvas > .block')).toHaveLength(2);
     expect(within(await botonera()).getByText('¿Llevás stock?')).toBeVisible();
   });
 
@@ -329,7 +329,7 @@ describe('la conversación de Sami en el taller', () => {
 
     expect(await screen.findByText('Listo, sumé los gastos.', {}, ESPERA)).toBeVisible();
     expect(pedidos.map((pedido) => pedido.mensaje)).toEqual(['sumá gastos']);
-    expect(screen.getByText('4 piezas conectadas')).toBeVisible();
+    expect(document.querySelectorAll('#draft-canvas > .block')).toHaveLength(4);
   });
 
   it('sacar una pieza y renombrar el sistema también se le piden a Sami', async () => {
@@ -337,7 +337,7 @@ describe('la conversación de Sami en el taller', () => {
 
     await escribir(user, 'sacá los clientes');
     expect(await screen.findByText('Listo, saqué clientes.', {}, ESPERA)).toBeVisible();
-    expect(screen.getByText('2 piezas conectadas')).toBeVisible();
+    expect(document.querySelectorAll('#draft-canvas > .block')).toHaveLength(2);
 
     await escribir(user, 'llamalo Almacén Don Luis');
     expect(
@@ -369,7 +369,7 @@ describe('la conversación de Sami en el taller', () => {
     await escribir(user, 'gracias, Sami');
 
     expect(await screen.findByText(/Cuando quieras seguimos/, {}, ESPERA)).toBeVisible();
-    expect(screen.getByText('3 piezas conectadas')).toBeVisible();
+    expect(document.querySelectorAll('#draft-canvas > .block')).toHaveLength(3);
     expect(screen.queryByRole('button', { name: /Deshacer lo último/ })).toBeNull();
   });
 

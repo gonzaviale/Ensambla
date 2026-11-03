@@ -113,21 +113,21 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     @Test
-    @DisplayName("El receptor real de contenidos admite tres claves y rechaza la cuarta sin reiniciar el cupo")
+    @DisplayName("El receptor real de contenidos admite seis claves y rechaza la séptima sin reiniciar el cupo")
     void contenidosShouldEnforceMonthlyQuotaOverHttp() throws Exception {
         mockMvc.perform(post("/api/planes/contenidos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"tipo\":\"AVISOS\",\"claves\":[\"a\",\"b\",\"c\",\"d\"]}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.autorizadas.length()").value(3))
+                        .content("{\"tipo\":\"AVISOS\",\"claves\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\"]}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.autorizadas.length()").value(6))
                 .andExpect(jsonPath("$.bloqueadas").value(1))
                 .andExpect(header().string("Cache-Control", "no-store"));
 
         mockMvc.perform(post("/api/planes/contenidos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"tipo\":\"AVISOS\",\"claves\":[\"d\"]}"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"tipo\":\"AVISOS\",\"claves\":[\"g\"]}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.autorizadas.length()").value(0))
-                .andExpect(jsonPath("$.usadas").value(3));
+                .andExpect(jsonPath("$.usadas").value(6));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM contenido_plan_desbloqueado WHERE negocio_id=?",
-                Long.class, negocioId.valor())).isEqualTo(3);
+                Long.class, negocioId.valor())).isEqualTo(6);
     }
 
     @Test

@@ -50,7 +50,7 @@ public class ControlPlanService {
 
     private final AccesoIa accesoIa;
 
-    private static final int LIMITE_GRATUITO = 3;
+    private static final int LIMITE_GRATUITO = 6;
 
     public void validarAltaProyecto(NegocioId negocioId, OffsetDateTime ahora) {
         transaccionPort.ejecutar(() -> {
@@ -196,7 +196,7 @@ public class ControlPlanService {
         transaccionPort.ejecutar(() -> {
             if (!seleccionar(negocioId, tipo, List.of(clave), ahora).autorizadas().contains(clave)) {
                 throw new RestriccionPlanException("LIMITE_CONTENIDO_" + tipo.name(),
-                        "Usaste los tres contenidos incluidos este mes. "
+                        "Usaste los " + LIMITE_GRATUITO + " contenidos incluidos este mes. "
                                 + "Con Premium podés acceder a todos desde Planes.");
             }
         });

@@ -59,11 +59,11 @@ function ContenidoDelModal() {
     case 'campo':
       return <ModalCampo bloqueId={modal.bloqueId} clave={modal.clave} />;
     case 'secciones':
-      return <ModalSecciones />;
+      return <ModalSecciones enBorrador={modal.enBorrador} />;
     case 'agregarSeccion':
-      return <ModalAgregarSeccion />;
+      return <ModalAgregarSeccion enBorrador={modal.enBorrador} />;
     case 'elegirBloque':
-      return <ModalElegirBloque />;
+      return <ModalElegirBloque enBorrador={modal.enBorrador} />;
     case 'importar':
       return (
         <ModalImportar

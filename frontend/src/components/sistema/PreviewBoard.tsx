@@ -1,41 +1,17 @@
-import { useState, type CSSProperties, type DragEvent } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import { findBlock, totals } from '@/lib/sistema/core';
-import type { Ancho, Bloque, Campo, Sistema, Valor } from '@/lib/sistema/tipos';
-import { LIENZO } from './arrastre';
+import type { Bloque, Campo, Sistema, Valor } from '@/lib/sistema/tipos';
 import { varsDeColor } from './colores';
 import { Icon } from './Icon';
-import { IconBtn } from './IconBtn';
 import { ValorDeCampo } from './ValorDeCampo';
-import { WidthButtons } from './WidthButtons';
 
 type PreviewBoardProps = {
   sistema: Sistema;
   /** Más chico, para el inicio y la vista previa de plantillas. */
   compacto?: boolean;
   seccionId?: string | null;
-  /** La propuesta de Sami: se puede renombrar, quitar, ensanchar y arrastrar cada pieza. */
-  editable?: boolean;
-  onRenombrar?: (bloqueId: string) => void;
-  /** Editar un registro de ejemplo (o agregar uno, con `filaId` en `null`) antes de crear el sistema. */
-  onRegistro?: (bloqueId: string, filaId: string | null) => void;
-  onQuitar?: (bloqueId: string) => void;
-  onAncho?: (bloqueId: string, ancho: Ancho) => void;
-  /** Ver la tabla de una pieza a pantalla completa, como en el sistema. */
-  onTablaCompleta?: (bloqueId: string) => void;
-  /** Arrastrar y soltar las piezas de la propuesta. */
-  arrastrando?: string | null;
-  /** La pieza (o `#canvas`, el lienzo vacío) sobre la que está pasando lo que se arrastra. */
-  sobre?: string | null;
-  onArrastrar?: (evento: DragEvent<HTMLButtonElement>, bloqueId: string) => void;
-  onSobre?: (destino: string) => void;
-  onSoltar?: (antesDe: string | null) => void;
-  onFinArrastre?: () => void;
 };
-
-const bloqueDeEvento = (evento: DragEvent<HTMLElement>) =>
-  (evento.target as HTMLElement).closest<HTMLElement>('[data-draft-block]')?.dataset.draftBlock ??
-  null;
 
 const CAMPOS_OCULTOS = ['notes', 'detail', 'minimum'];
 
@@ -59,13 +35,10 @@ function Contenido({
   bloque,
   sistema,
   compacto,
-  onRegistro,
 }: {
   bloque: Bloque;
   sistema: Sistema;
   compacto: boolean;
-  /** Con esto la tabla deja editar y agregar registros. */
-  onRegistro?: (bloqueId: string, filaId: string | null) => void;
 }) {
   const [verTodas, setVerTodas] = useState(false);
   if (bloque.type === 'summary') {
@@ -86,18 +59,13 @@ function Contenido({
   const limite = compacto ? 2 : 3;
   const filas = verTodas ? bloque.rows : bloque.rows.slice(0, limite);
   return (
-    <div className={`preview-table-scroll${verTodas ? 'preview-table-expandida' : ''}`}>
+    <div className={`preview-table-scroll ${verTodas ? 'preview-table-expandida' : ''}`.trim()}>
       <table className="preview-table">
         <thead>
           <tr>
             {campos.map((campo) => (
               <th key={campo.key}>{campo.label}</th>
             ))}
-            {onRegistro && (
-              <th className="preview-row-actions">
-                <span className="sr-only">Acciones</span>
-              </th>
-            )}
           </tr>
         </thead>
         <tbody>
@@ -110,20 +78,11 @@ function Contenido({
                     {valorDeVista(sistema, campo, fila[campo.key])}
                   </td>
                 ))}
-                {onRegistro && (
-                  <td className="preview-row-actions">
-                    <IconBtn
-                      name="edit"
-                      label="Editar registro"
-                      onClick={() => onRegistro(bloque.id, fila.id)}
-                    />
-                  </td>
-                )}
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={campos.length + (onRegistro ? 1 : 0)}>
+              <td colSpan={campos.length}>
                 <span className="empty-preview">
                   {VACIO_POR_TIPO[bloque.type] ?? 'Un lugar listo para tus registros.'}
                 </span>
@@ -141,66 +100,20 @@ function Contenido({
           {verTodas ? 'Ver menos' : `Ver todas (${bloque.rows.length})`}
         </button>
       )}
-      {onRegistro && (
-        <button type="button" className="preview-more" onClick={() => onRegistro(bloque.id, null)}>
-          + Agregar registro
-        </button>
-      )}
     </div>
   );
 }
 
-// La vista previa de un sistema con los bloques en su distribución: el inicio, las plantillas y la propuesta de Sami.
-export function PreviewBoard({
-  sistema,
-  compacto = false,
-  seccionId = null,
-  editable = false,
-  onRenombrar,
-  onRegistro,
-  onQuitar,
-  onAncho,
-  onTablaCompleta,
-  arrastrando = null,
-  sobre = null,
-  onArrastrar,
-  onSobre,
-  onSoltar,
-  onFinArrastre,
-}: PreviewBoardProps) {
+// La vista previa de un sistema con los bloques en su distribución: el inicio y las plantillas.
+export function PreviewBoard({ sistema, compacto = false, seccionId = null }: PreviewBoardProps) {
   const seccion = sistema.sections.find((item) => item.id === seccionId) ?? sistema.sections[0];
   const bloques = seccion?.blocks ?? [];
 
   return (
     <div
-      className={`preview-grid ${compacto ? 'compact' : ''} ${sobre === LIENZO ? 'drop-active' : ''}`.trim()}
-      id={editable ? 'draft-canvas' : undefined}
-      onDragOver={
-        editable && arrastrando
-          ? (evento) => {
-              evento.preventDefault();
-              const bloque = bloqueDeEvento(evento);
-              onSobre?.(bloque && bloque !== arrastrando ? bloque : LIENZO);
-            }
-          : undefined
-      }
-      onDrop={
-        editable && arrastrando
-          ? (evento) => {
-              evento.preventDefault();
-              onSoltar?.(bloqueDeEvento(evento));
-            }
-          : undefined
-      }
+      className={`preview-grid ${compacto ? 'compact' : ''}`.trim()}
       aria-label={`Propuesta visual de ${sistema.name}`}
-      data-tour={editable ? 'draft-canvas' : undefined}
     >
-      {bloques.length === 0 && (
-        <div className="draft-empty">
-          <Icon name="plus" />
-          Elegí una pieza de arriba para empezar.
-        </div>
-      )}
       {bloques.map((bloque) => {
         const estilo: CSSProperties = {
           ...varsDeColor(bloque.color),
@@ -209,74 +122,18 @@ export function PreviewBoard({
         return (
           <section
             key={bloque.id}
-            className={`preview-block ${arrastrando === bloque.id ? 'dragging' : ''} ${sobre === bloque.id ? 'drag-over' : ''}`.trim()}
+            className="preview-block"
             data-width={bloque.width}
             data-color={bloque.color}
-            data-draft-block={editable ? bloque.id : undefined}
             style={estilo}
           >
             <div className="preview-block-head">
               <span className="preview-block-icon">
                 <Icon name={CATALOG[bloque.type].icon} />
               </span>
-              {editable ? (
-                <button
-                  type="button"
-                  className="preview-name"
-                  onClick={() => onRenombrar?.(bloque.id)}
-                >
-                  {bloque.name} <Icon name="edit" />
-                </button>
-              ) : (
-                <strong>{bloque.name}</strong>
-              )}
-              {editable && (
-                <div className="preview-controls">
-                  {onTablaCompleta && bloque.type !== 'summary' && bloque.type !== 'note' && (
-                    <IconBtn
-                      name="expand"
-                      label={`Ver ${bloque.name} a pantalla completa`}
-                      data-accion="table-fullscreen"
-                      onClick={() => onTablaCompleta(bloque.id)}
-                    />
-                  )}
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    title="Arrastrar esta pieza"
-                    aria-label="Arrastrar esta pieza"
-                    draggable
-                    data-drag-kind="draft"
-                    data-value={bloque.id}
-                    onDragStart={(evento) => onArrastrar?.(evento, bloque.id)}
-                    onDragEnd={onFinArrastre}
-                  >
-                    <Icon name="grip" />
-                  </button>
-                  <IconBtn
-                    name="close"
-                    label="Quitar de la propuesta"
-                    onClick={() => onQuitar?.(bloque.id)}
-                  />
-                </div>
-              )}
+              <strong>{bloque.name}</strong>
             </div>
-            {editable && (
-              <div className="preview-sizing" data-tour="review">
-                <span>Arrastrá para ordenar</span>
-                <WidthButtons
-                  ancho={bloque.width}
-                  accion="draft-width"
-                  onElegir={(ancho) => onAncho?.(bloque.id, ancho)}
-                />
-              </div>
-            )}
-            <Contenido
-              bloque={bloque}
-              sistema={sistema}
-              compacto={compacto}
-              onRegistro={editable ? onRegistro : undefined}
-            />
+            <Contenido bloque={bloque} sistema={sistema} compacto={compacto} />
           </section>
         );
       })}
