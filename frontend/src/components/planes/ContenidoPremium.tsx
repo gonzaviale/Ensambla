@@ -25,7 +25,6 @@ export function ContenidoPremium({
             {acceso.usadas} de {acceso.limite}
           </strong>{' '}
           {recurso} de este mes.
-          {recurso === 'recomendaciones' ? ' El cupo se comparte entre Mi zona y Otra zona.' : ''}
         </p>
         <small>
           Se renueva el{' '}

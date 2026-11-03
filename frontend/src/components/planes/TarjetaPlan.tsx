@@ -3,15 +3,13 @@ import { GestionRenovacion } from './GestionRenovacion';
 import { Icon } from '@/components/sistema/Icon';
 import type { Plan } from '@/types/planes';
 
-const FUNCIONES = [
-  ['RECETAS_COSTOS', 'Recetas y cálculo de costos'],
-  ['REPORTES_FILTRADOS', 'Reportes filtrados'],
-  ['EXPORTAR_EXCEL', 'Descarga de reportes en Excel'],
-] as const;
+const FUNCIONES = [['REPORTES_FILTRADOS', 'Resúmenes en PDF']] as const;
+
+const AVISOS_Y_RECOMENDACIONES_GRATUITOS = '6';
 
 function limite(valor: number | null, configurado: boolean) {
   if (!configurado) return 'Por definir';
-  return valor === null ? 'Sin límite comercial' : valor.toLocaleString('es-AR');
+  return valor === null ? 'Sin límite' : valor.toLocaleString('es-AR');
 }
 
 function precio(plan: Plan) {
@@ -86,11 +84,11 @@ export function TarjetaPlan({
         </div>
         <div>
           <dt>Avisos por mes</dt>
-          <dd>{premium ? 'Todos los disponibles' : '3'}</dd>
+          <dd>{premium ? 'Sin límite' : AVISOS_Y_RECOMENDACIONES_GRATUITOS}</dd>
         </div>
         <div>
-          <dt>Recomendaciones de Mi zona y Otra zona por mes</dt>
-          <dd>{premium ? 'Todas las disponibles' : '3 entre ambas funciones'}</dd>
+          <dt>Recomendaciones de zona por mes</dt>
+          <dd>{premium ? 'Sin límite' : AVISOS_Y_RECOMENDACIONES_GRATUITOS}</dd>
         </div>
       </dl>
       <ul className="plan-features">
