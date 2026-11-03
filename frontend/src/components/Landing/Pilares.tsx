@@ -7,9 +7,8 @@ export function Pilares() {
     >
       <div className="ens-wrap">
         <h2 id="beneficios-titulo">
-          Menos buscar.
-          <br />
-          <span>Más tiempo para atender.</span>
+          Menos tiempo buscando, <br />
+          <span>más tiempo para vender</span>
         </h2>
       </div>
     </section>

@@ -11,13 +11,9 @@ export function LlamadaFinal() {
           <i />
           <i />
         </div>
-        <h2 id="empezar-titulo">
-          Tu negocio ya tiene bastante movimiento.
-          <br />
-          Dale un lugar a tus anotaciones.
-        </h2>
+        <h2 id="empezar-titulo">Organizá las anotaciones de tu negocio en un solo lugar</h2>
         <p>
-          Empezá con una venta, un gasto o un fiado. Lo importante es tenerlo a mano cuando lo
+          Empezá con una venta, un gasto o un fiado para tener la información disponible cuando la
           necesites.
         </p>
         <Link to="/registro" className="ens-primary">

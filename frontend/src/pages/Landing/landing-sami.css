@@ -1,0 +1,313 @@
+/* Ejemplos locales de Sami: la persona elige categoría y alterna las dos vistas. */
+.landing .ens-sami-guide {
+  margin-top: 16px;
+  color: var(--ens-ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+.landing .ens-sami-explorer {
+  margin-top: 28px;
+}
+.landing .ens-sami-categories li {
+  display: block;
+  padding: 0;
+  min-height: 0;
+}
+.landing .ens-sami-categories button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 88px;
+  padding: 16px 12px;
+  border: 0;
+  border-bottom: 4px solid transparent;
+  color: var(--ens-ink);
+  background: transparent;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background-color 180ms,
+    border-color 180ms;
+}
+.landing .ens-sami-categories button:hover,
+.landing .ens-sami-categories button[aria-pressed='true'] {
+  background: var(--ens-wash);
+}
+.landing .ens-sami-categories button[aria-pressed='true'] {
+  border-bottom-color: var(--ens-ink);
+}
+.landing .ens-sami-playground {
+  background: #fcf6e6;
+}
+.landing .ens-sami-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  align-items: center;
+  gap: 48px;
+  padding-block: 40px;
+}
+.landing .ens-sami-companion {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.landing .ens-sami-character {
+  width: min(100%, 330px);
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 180ms ease-in-out,
+    transform 280ms ease-in-out;
+}
+.landing .ens-sami-character[data-cambiando='true'] {
+  opacity: 0;
+  transform: translateY(5px);
+}
+.landing .ens-sami-character .sami {
+  display: block;
+  width: 100%;
+  height: 280px;
+}
+.landing .ens-sami-message {
+  width: 100%;
+  max-width: 390px;
+  min-height: 112px;
+  padding: 18px 22px;
+  border: 1px solid #e7ddc5;
+  border-radius: 18px 18px 18px 4px;
+  background: white;
+  color: var(--ens-muted);
+  font-size: 16px;
+  line-height: 1.65;
+  animation: ens-sami-entrar 240ms ease-out both;
+}
+.landing .ens-sami-message strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ens-ink);
+}
+.landing .ens-sami-notebook {
+  min-width: 0;
+  border: 1px solid var(--ens-line);
+  border-radius: 16px;
+  background: white;
+  box-shadow: 6px 7px 0 #e8dfc6;
+  overflow: hidden;
+}
+.landing .ens-sami-notebook-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 24px;
+  background: var(--ens-ink);
+  color: white;
+  font-size: 17px;
+  font-weight: 800;
+}
+.landing .ens-sami-notebook-head span:last-child {
+  flex: none;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--ens-yellow);
+  color: var(--ens-ink-deep);
+  font-size: 13px;
+}
+.landing .ens-sami-notebook-body {
+  padding: 24px;
+}
+.landing .ens-sami-view-label {
+  color: var(--ens-ink);
+  font-size: 15px;
+  font-weight: 800;
+}
+.landing .ens-sami-page {
+  display: grid;
+  align-items: center;
+  min-height: 210px;
+  padding-block: 20px;
+  animation: ens-sami-entrar 260ms ease-out both;
+}
+.landing .ens-sami-handwriting {
+  margin: 0;
+  padding: 16px 12px 16px 24px;
+  border-left: 2px solid #e9b3ab;
+  background: repeating-linear-gradient(transparent 0 33px, #ece6d7 34px 35px);
+  color: var(--ens-ink);
+  font-family: 'Segoe Print', 'Bradley Hand', cursive;
+  font-size: 21px;
+  line-height: 35px;
+}
+.landing .ens-sami-fields {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+.landing .ens-sami-fields > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-block: 14px;
+  border-bottom: 1px solid var(--ens-line);
+}
+.landing .ens-sami-fields dt {
+  color: var(--ens-muted);
+  font-size: 15px;
+}
+.landing .ens-sami-fields dd {
+  margin: 0;
+  color: var(--ens-ink);
+  font-size: 17px;
+  font-weight: 800;
+  text-align: right;
+}
+.landing .ens-sami-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  min-height: 48px;
+  margin-top: 16px;
+  color: var(--ens-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.landing .ens-sami-status svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--ens-ink);
+}
+.landing .ens-sami-disclaimer {
+  padding-top: 14px;
+  color: var(--ens-muted);
+  font-size: 14px;
+  text-align: center;
+}
+@keyframes ens-sami-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 1000px) {
+  .landing .ens-sami-workspace {
+    gap: 24px;
+  }
+  .landing .ens-sami-notebook-head {
+    padding-inline: 18px;
+    font-size: 16px;
+  }
+  .landing .ens-sami-notebook-body {
+    padding: 20px;
+  }
+  .landing .ens-sami-character .sami {
+    height: 245px;
+  }
+}
+@media (max-width: 760px) {
+  .landing .ens-sami-workspace {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding-block: 26px;
+  }
+  .landing .ens-sami-companion {
+    grid-template-columns: 130px minmax(0, 1fr);
+    gap: 16px;
+    align-items: center;
+  }
+  .landing .ens-sami-character .sami {
+    height: 125px;
+  }
+  .landing .ens-sami-message {
+    min-height: 0;
+    max-width: none;
+    padding: 14px 16px;
+    font-size: 15px;
+  }
+  .landing .ens-sami-page {
+    min-height: 200px;
+  }
+  .landing .ens-sami-guide {
+    font-size: 15px;
+  }
+}
+@media (max-width: 600px) {
+  .landing .ens-sami-categories button {
+    gap: 10px;
+    min-height: 72px;
+    padding: 12px 10px;
+    font-size: 16px;
+  }
+  .landing .ens-sami-workspace {
+    gap: 18px;
+  }
+  .landing .ens-sami-companion {
+    grid-template-columns: 100px minmax(0, 1fr);
+    gap: 10px;
+  }
+  .landing .ens-sami-character .sami {
+    height: 110px;
+  }
+  .landing .ens-sami-notebook-body {
+    padding: 18px 16px;
+  }
+  .landing .ens-sami-handwriting {
+    font-size: 19px;
+    padding-left: 14px;
+  }
+  .landing .ens-sami-fields > div {
+    gap: 14px;
+  }
+  .landing .ens-sami-fields dd {
+    font-size: 16px;
+  }
+  .landing .ens-sami-organize {
+    width: 100%;
+  }
+}
+@media (max-width: 360px) {
+  .landing .ens-sami-categories button {
+    gap: 8px;
+    padding-inline: 6px;
+    font-size: 15px;
+  }
+  .landing .ens-sami-companion {
+    grid-template-columns: 80px minmax(0, 1fr);
+  }
+  .landing .ens-sami-message {
+    padding: 12px;
+    font-size: 14px;
+  }
+  .landing .ens-sami-notebook-head {
+    padding-inline: 12px;
+    font-size: 14px;
+  }
+  .landing .ens-sami-fields > div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+    padding-block: 10px;
+  }
+  .landing .ens-sami-fields dd {
+    text-align: left;
+  }
+  .landing .ens-sami-page {
+    min-height: 240px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing .ens-sami-character,
+  .landing .ens-sami-message,
+  .landing .ens-sami-page {
+    animation: none;
+    transition: none;
+  }
+}

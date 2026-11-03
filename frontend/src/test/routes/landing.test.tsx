@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -7,7 +7,7 @@ import { ESPERA, verifyHeadingPresentAsync } from '@/test/testHelpers';
 
 async function abrirLanding() {
   const router = renderApp('/');
-  await verifyHeadingPresentAsync('Tu cuaderno de siempre. Tus cuentas, más claras.');
+  await verifyHeadingPresentAsync('Tu cuaderno de siempre, con tus cuentas más claras');
   return { router, user: userEvent.setup() };
 }
 
@@ -40,7 +40,7 @@ describe('landing del cuaderno digital', () => {
 
   it('permite corregir un importe y encontrar el resultado confirmado', async () => {
     const { user } = await abrirLanding();
-    await user.click(screen.getByRole('button', { name: 'Revisás lo leído' }));
+    await user.click(screen.getByRole('button', { name: 'Revisás los datos' }));
     const importe = screen.getByLabelText('Importe del fiado');
     await user.clear(importe);
     await user.type(importe, '4500.5');
@@ -69,7 +69,9 @@ describe('landing del cuaderno digital', () => {
     await user.clear(buscar);
     await user.type(buscar, 'nadie');
     expect(within(lista).queryByRole('listitem')).not.toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('No hay coincidencias');
+    expect(
+      within(document.getElementById('como-funciona') as HTMLElement).getByRole('status'),
+    ).toHaveTextContent('No hay coincidencias');
     await user.clear(buscar);
     await user.type(buscar, 'luci');
     expect(lista).toHaveTextContent('Lucía Pérez');
@@ -77,7 +79,7 @@ describe('landing del cuaderno digital', () => {
 
   it('rechaza un importe vacío o no positivo sin pasar a la confirmación', async () => {
     const { user } = await abrirLanding();
-    await user.click(screen.getByRole('button', { name: 'Revisás lo leído' }));
+    await user.click(screen.getByRole('button', { name: 'Revisás los datos' }));
     const importe = screen.getByLabelText('Importe del fiado');
     await user.clear(importe);
     await user.type(importe, '0');
@@ -92,8 +94,76 @@ describe('landing del cuaderno digital', () => {
     const { user } = await abrirLanding();
     screen.getByRole('button', { name: 'Lo tenés en papel' }).focus();
     await user.keyboard('{Tab}{Enter}');
-    expect(screen.getByRole('button', { name: 'Revisás lo leído' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Revisás los datos' })).toHaveFocus();
     expect(screen.getByLabelText('Importe del fiado')).toBeVisible();
+  });
+
+  it('Sami organiza cada categoría y vuelve a la anotación al cambiar de ejemplo', async () => {
+    const { user } = await abrirLanding();
+    const seccion = within(document.getElementById('a-tu-manera') as HTMLElement);
+    const ejemplos = [
+      ['Ventas', 'Total de la venta', '$ 7.000'],
+      ['Gastos', 'Medio de pago', 'Transferencia'],
+      ['Fiados', 'Importe pendiente', '$ 3.200'],
+      ['Productos', 'Cantidad disponible', '12 unidades'],
+    ];
+
+    for (const [categoria, campo, valor] of ejemplos) {
+      await user.click(seccion.getByRole('button', { name: categoria }));
+      const panel = within(seccion.getByRole('region', { name: `Ejemplo de ${categoria}` }));
+      expect(seccion.getByRole('button', { name: categoria })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      expect(seccion.getAllByRole('button', { pressed: true })).toHaveLength(1);
+      expect(panel.getByText('Tu anotación')).toBeVisible();
+      expect(panel.queryByRole('definition')).not.toBeInTheDocument();
+      await user.click(panel.getByRole('button', { name: 'Ver cómo se organiza' }));
+      expect(panel.getByText(campo as string)).toBeVisible();
+      expect(panel.getByText(valor as string)).toBeVisible();
+      expect(panel.getAllByRole('definition')).toHaveLength(3);
+      expect(panel.getByRole('status')).toHaveTextContent('organizado para revisar');
+    }
+    expect(localStorage.length).toBe(0);
+  });
+
+  it('mantiene un solo Sami y una pose diferente por categoría incluso al volver a elegirlas', async () => {
+    const { user } = await abrirLanding();
+    const seccion = within(document.getElementById('a-tu-manera') as HTMLElement);
+    const poses = new Set<string>();
+    for (const categoria of ['Ventas', 'Gastos', 'Fiados', 'Productos', 'Ventas']) {
+      await user.click(seccion.getByRole('button', { name: categoria }));
+      await waitFor(() =>
+        expect(document.querySelector('.ens-sami-character')).toHaveAttribute(
+          'data-cambiando',
+          'false',
+        ),
+      );
+      expect(seccion.getAllByRole('img', { name: 'Sami, el pulpito de Ensambla' })).toHaveLength(1);
+      const imagen = seccion.getByRole('img', { name: 'Sami, el pulpito de Ensambla' });
+      const pose = imagen.getAttribute('viewBox') as string;
+      poses.add(pose);
+      await user.click(seccion.getByRole('button', { name: 'Ver cómo se organiza' }));
+      expect(imagen).toHaveAttribute('viewBox', pose);
+    }
+    expect(poses.size).toBe(4);
+  });
+
+  it('permite elegir una categoría con el teclado y regresar al apunte original', async () => {
+    const { user } = await abrirLanding();
+    const seccion = within(document.getElementById('a-tu-manera') as HTMLElement);
+    seccion.getByRole('button', { name: 'Ventas' }).focus();
+    await user.keyboard('{Tab}{Enter}');
+    expect(seccion.getByRole('button', { name: 'Gastos' })).toHaveFocus();
+    expect(seccion.getByRole('button', { name: 'Gastos' })).toHaveAttribute('aria-pressed', 'true');
+    const panel = within(seccion.getByRole('region', { name: 'Ejemplo de Gastos' }));
+    await user.click(panel.getByRole('button', { name: 'Ver cómo se organiza' }));
+    const volver = panel.getByRole('button', { name: 'Volver a la anotación' });
+    volver.focus();
+    await user.keyboard('{Enter}');
+    expect(panel.getByText(/Pagué \$ 18.500 al proveedor/)).toBeVisible();
+    expect(panel.queryByRole('definition')).not.toBeInTheDocument();
+    expect(panel.getByRole('button', { name: 'Ver cómo se organiza' })).toHaveFocus();
   });
 
   it('cada enlace interno tiene un destino y el ejemplo se alcanza desde la primera pantalla', async () => {
