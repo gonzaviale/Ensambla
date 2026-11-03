@@ -325,13 +325,16 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 7px;
-    min-height: 105px;
-    padding: 10px 6px;
+    min-height: 96px;
+    padding: 10px 8px;
     font-size: 14px;
   }
   .landing .ens-demo-section .ens-steps {
     gap: 7px;
     margin-bottom: 20px;
+  }
+  .landing .ens-demo-section .ens-step .ens-step-action {
+    display: none;
   }
   .landing .ens-demo-section .ens-example {
     padding: 22px 13px;
@@ -339,7 +342,8 @@
   }
   .landing .ens-demo-section .ens-book {
     padding-inline: 29px 10px;
-    min-height: 225px;
+    min-height: 200px;
+    transform: rotate(-1deg);
   }
   .landing .ens-demo-section .ens-hand {
     font-size: 22px;
@@ -353,9 +357,15 @@
   .landing .ens-demo-section .ens-review-form,
   .landing .ens-demo-section .ens-demo-search {
     padding: 18px 13px;
+    min-height: 0;
   }
   .landing .ens-demo-section .ens-demo-start .ens-example-question {
-    font-size: 21px;
+    font-size: 20px;
+  }
+  .landing .ens-demo-section .ens-demo-intro > p:not(.ens-eyebrow),
+  .landing .ens-demo-section .ens-demo-start > p {
+    font-size: 16px;
+    line-height: 1.7;
   }
   .landing .ens-demo-section .ens-secondary {
     font-size: 16px;

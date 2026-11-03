@@ -13,6 +13,7 @@ import { useTituloPagina } from '@/hooks/useTituloPagina';
 import './landing.css';
 import './landing-ejemplo.css';
 import './landing-recorrido.css';
+import './landing-sami.css';
 
 export function LandingPage() {
   useTituloPagina('Tu cuaderno digital, tus cuentas más claras');

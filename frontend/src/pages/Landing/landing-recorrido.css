@@ -1,4 +1,4 @@
-/* Pausa tipográfica, una sola aparición de Sami y acciones más explícitas. */
+/* Recorrido de la landing: beneficios, asistente y acciones del ejemplo. */
 .landing .ens-outcome.ens-outcome--statement {
   padding-block: 56px;
 }
@@ -20,15 +20,11 @@
   display: block;
   text-align: center;
 }
-.landing .ens-your-way--centered > div {
-  max-width: 760px;
-  margin-inline: auto;
-}
 .landing .ens-your-way--centered .ens-eyebrow {
   justify-content: center;
 }
 .landing .ens-your-way--centered h2 {
-  margin: 13px auto 16px;
+  margin: 10px auto 12px;
   max-width: 680px;
 }
 .landing .ens-your-way--centered .ens-lead {
@@ -36,52 +32,75 @@
   margin-inline: auto;
 }
 .landing .ens-sami-scene {
-  margin-top: 22px;
+  margin-top: 24px;
+  text-align: center;
+}
+.landing .ens-sami-panorama {
+  background: #fcf6e6;
 }
 .landing .ens-sami-stage {
-  position: relative;
-  max-width: 800px;
+  max-width: 1280px;
   margin-inline: auto;
 }
 .landing .ens-sami-stage > img {
-  width: 480px;
+  width: 100%;
   height: auto;
+  aspect-ratio: 12 / 5;
+  object-fit: cover;
+  object-position: center 55%;
   margin-inline: auto;
-  border-radius: 50%;
 }
-.landing .ens-sami-stage .ens-tags {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  display: block;
-  pointer-events: none;
+.landing .ens-sami-categories-band {
+  border-block: 1px solid var(--ens-line);
 }
-.landing .ens-sami-stage .ens-tags li {
-  position: absolute;
-  left: 3%;
-  top: 16%;
-  font-size: 20px;
-  padding: 11px 19px;
-  box-shadow: 0 4px 0 #00303f12;
-  pointer-events: auto;
+.landing .ens-sami-categories {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 0;
+  margin-block: 0;
+  list-style: none;
 }
-.landing .ens-sami-stage .ens-tags li:nth-child(2) {
-  left: auto;
-  right: 2%;
-  top: 24%;
+.landing .ens-sami-categories li {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 88px;
+  padding: 16px 12px;
+  color: var(--ens-ink);
+  font-size: 18px;
+  font-weight: 800;
 }
-.landing .ens-sami-stage .ens-tags li:nth-child(3) {
-  left: 8%;
-  top: 62%;
+.landing .ens-sami-categories li + li {
+  border-left: 1px solid var(--ens-line);
 }
-.landing .ens-sami-stage .ens-tags li:nth-child(4) {
-  left: auto;
-  right: 6%;
-  top: 68%;
+.landing .ens-sami-category-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border-radius: 10px;
+  background: var(--ens-yellow);
+  color: var(--ens-ink-deep);
+}
+.landing .ens-sami-categories li:nth-child(2) .ens-sami-category-icon {
+  background: var(--ens-blue);
+}
+.landing .ens-sami-categories li:nth-child(3) .ens-sami-category-icon {
+  background: var(--ens-coral);
+}
+.landing .ens-sami-categories li:nth-child(4) .ens-sami-category-icon {
+  background: var(--ens-orange);
+}
+.landing .ens-sami-categories li svg {
+  width: 24px;
+  height: 24px;
 }
 .landing .ens-sami-scene figcaption {
-  max-width: 520px;
-  margin: 19px auto 0;
+  max-width: 620px;
+  margin: 24px auto 0;
   color: var(--ens-muted);
   font-size: 18px;
   line-height: 1.7;
@@ -92,6 +111,12 @@
   color: var(--ens-ink);
   font-size: 24px;
   line-height: 1.35;
+}
+.landing #a-tu-manera {
+  padding-block: 48px 28px;
+}
+.landing #tus-dudas {
+  padding-block: 36px 56px;
 }
 .landing .ens-hero-result {
   width: 245px;
@@ -166,35 +191,123 @@
   }
 }
 @media (max-width: 600px) {
+  .landing .ens-hero {
+    gap: 24px;
+    padding-block: 28px 32px;
+  }
+  .landing .ens-hero h1 {
+    max-width: 15ch;
+    font-size: clamp(34px, 9vw, 46px);
+    line-height: 1.12;
+    letter-spacing: -1.4px;
+  }
+  .landing .ens-hero .ens-actions {
+    display: grid;
+    gap: 8px;
+  }
+  .landing .ens-hero .ens-link {
+    justify-content: center;
+  }
+  .landing .ens-hero-photo {
+    padding: 0;
+  }
+  .landing .ens-hero-photo:before {
+    inset: 12px -4px 90px 12px;
+  }
+  .landing .ens-hero-photo .ens-hero-result {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 3px 12px;
+    width: calc(100% - 24px);
+    margin: -36px auto 0;
+    padding: 14px 16px;
+    transform: none;
+  }
+  .landing .ens-hero-result .ens-result-label,
+  .landing .ens-hero-result .ens-result-link {
+    grid-column: 1 / -1;
+  }
+  .landing .ens-hero-result strong {
+    margin: 0;
+    font-size: 20px;
+  }
+  .landing .ens-hero-result b {
+    grid-column: 2;
+    grid-row: 2 / 4;
+    align-self: center;
+    font-size: 26px;
+  }
+  .landing .ens-hero-result .ens-result-link {
+    margin-top: 8px;
+  }
+  .landing .ens-section,
+  .landing #a-tu-manera {
+    padding-block: 36px;
+  }
+  .landing #tus-dudas {
+    padding-block: 16px 36px;
+  }
+  .landing .ens-lead,
+  .landing .ens-pains p,
+  .landing .ens-faq details p {
+    font-size: 16px;
+    line-height: 1.7;
+  }
+  .landing .ens-pains h3 {
+    font-size: 20px;
+  }
+  .landing .ens-faq summary {
+    min-height: 64px;
+    font-size: 16px;
+    padding-block: 16px;
+  }
+  .landing .ens-final h2 {
+    font-size: clamp(28px, 7.5vw, 36px);
+  }
+  .landing .ens-final > div > p {
+    font-size: 16px;
+    line-height: 1.7;
+  }
   .landing .ens-outcome.ens-outcome--statement {
     padding-block: 38px;
   }
   .landing .ens-outcome--statement h2 {
-    font-size: clamp(32px, 8vw, 42px);
+    font-size: clamp(28px, 7.5vw, 40px);
     letter-spacing: -1px;
   }
   .landing .ens-sami-stage > img {
-    width: 100%;
-    max-width: 380px;
+    aspect-ratio: 6 / 5;
   }
-  .landing .ens-sami-stage .ens-tags {
-    position: static;
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    margin-top: 8px;
+  .landing .ens-sami-categories {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .landing .ens-sami-stage .ens-tags li {
-    position: static;
-    padding: 9px 15px;
-    font-size: 18px;
+  .landing .ens-sami-categories li {
+    justify-content: flex-start;
+    gap: 10px;
+    min-height: 76px;
+    padding: 14px 10px;
+    font-size: 16px;
+  }
+  .landing .ens-sami-categories li:nth-child(odd) {
+    border-left: 0;
+  }
+  .landing .ens-sami-categories li:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--ens-line);
+  }
+  .landing .ens-sami-category-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
   }
   .landing .ens-sami-scene figcaption {
-    margin-top: 26px;
-    font-size: 17px;
+    margin-top: 20px;
+    font-size: 16px;
   }
   .landing .ens-sami-scene figcaption strong {
-    font-size: 23px;
+    font-size: 22px;
   }
   .landing .ens-demo-section .ens-demo-progress {
     padding-inline: 13px;
@@ -203,5 +316,16 @@
 @media (max-width: 480px) {
   .landing .ens-hero-result {
     width: 215px;
+  }
+}
+@media (max-width: 360px) {
+  .landing .ens-sami-categories li {
+    gap: 8px;
+    padding-inline: 6px;
+    font-size: 15px;
+  }
+  .landing .ens-sami-category-icon {
+    width: 32px;
+    height: 32px;
   }
 }

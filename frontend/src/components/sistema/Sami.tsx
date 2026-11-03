@@ -1,7 +1,8 @@
-export type PoseDeSami = 'hello' | 'think' | 'build';
+export type PoseDeSami = 'hello' | 'think' | 'build' | 'wink';
 
 // Poses recortadas con transparencia real; el SVG solo elige el encuadre (igual que el mockup).
 const ENCUADRES = {
+  wink: { viewBox: '0 0 1361 1156', archivo: 'sami-guino-hd.png', ancho: 1361, alto: 1156 },
   hello: { viewBox: '40 85 655 550', archivo: 'sami-poses-sin-fondo.png', ancho: 2172, alto: 724 },
   think: {
     viewBox: '800 135 590 490',
