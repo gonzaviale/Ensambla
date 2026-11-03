@@ -33,6 +33,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -47,6 +48,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-22T15:00:00Z");
+    private static final List<String> SIETE_CLAVES = List.of("a", "b", "c", "d", "e", "f", "g");
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -88,47 +90,47 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
     @Test
     @DisplayName("El cupo persiste, es separado por función y se renueva al cambiar el mes UTC")
     void seleccionarShouldPersistAndRenewQuota() {
-        acceso.seleccionar(NegocioId.de(negocio), TipoContenidoPlan.AVISOS, List.of("a", "b", "c", "d"), AHORA);
+        acceso.seleccionar(NegocioId.de(negocio), TipoContenidoPlan.AVISOS, SIETE_CLAVES, AHORA);
 
         AccesoContenidoItem repetido = acceso
-                .seleccionar(NegocioId.de(negocio), TipoContenidoPlan.AVISOS, List.of("d"), AHORA);
+                .seleccionar(NegocioId.de(negocio), TipoContenidoPlan.AVISOS, List.of("g"), AHORA);
 
         assertThat(repetido.autorizadas()).isEmpty();
         assertThat(acceso.seleccionar(NegocioId.de(negocio), TipoContenidoPlan.ZONA, List.of("a"), AHORA).autorizadas())
                 .containsExactly("a");
-        assertThat(acceso.seleccionar(NegocioId.de(negocio), TipoContenidoPlan.AVISOS, List.of("d"), AHORA
+        assertThat(acceso.seleccionar(NegocioId.de(negocio), TipoContenidoPlan.AVISOS, List.of("g"), AHORA
                 .plusMonths(1))
-                .autorizadas()).containsExactly("d");
+                .autorizadas()).containsExactly("g");
     }
 
     @Test
-    @DisplayName("Mi zona y Otra zona comparten tres productos; el cuarto no sale en el resultado")
+    @DisplayName("Mi zona y Otra zona comparten seis productos; el séptimo y el octavo no salen en el resultado")
     void filtrarShouldShareQuotaBetweenZonesWithoutLeakingProducts() {
-        ZonaItem primera = filtrarZona(NegocioId.de(negocio), givenZona("Mi zona", "A", "B"));
+        ZonaItem primera = filtrarZona(NegocioId.de(negocio), givenZona("Mi zona", "A", "B", "C", "D"));
 
-        ZonaItem otra = filtrarZona(NegocioId.de(negocio), givenZona("Otra zona", "C", "D"));
+        ZonaItem otra = filtrarZona(NegocioId.de(negocio), givenZona("Otra zona", "E", "F", "G", "H"));
 
-        assertThat(primera.productos()).hasSize(2);
-        assertThat(otra.productos()).extracting(ZonaItem.ProductoItem::nombre).containsExactly("C");
-        assertThat(otra.acceso().bloqueadas()).isEqualTo(1);
-        assertThat(otra.acceso().usadas()).isEqualTo(3);
+        assertThat(primera.productos()).hasSize(4);
+        assertThat(otra.productos()).extracting(ZonaItem.ProductoItem::nombre).containsExactly("E", "F");
+        assertThat(otra.acceso().bloqueadas()).isEqualTo(2);
+        assertThat(otra.acceso().usadas()).isEqualTo(6);
     }
 
     @Test
-    @DisplayName("Dos consultas concurrentes no admiten más de tres contenidos en total")
+    @DisplayName("Dos consultas concurrentes no admiten más de seis contenidos en total")
     void seleccionarShouldSerializeConcurrentUnlocks() throws Exception {
         CountDownLatch salida = new CountDownLatch(1);
         try (var ejecutor = Executors.newFixedThreadPool(2)) {
             var primero = ejecutor.submit(() -> { salida.await(); return acceso.seleccionar(
-                    NegocioId.de(negocio), TipoContenidoPlan.AVISOS, List.of("a", "b", "c"), AHORA); });
+                    NegocioId.de(negocio), TipoContenidoPlan.AVISOS, List.of("a", "b", "c", "d"), AHORA); });
             var segundo = ejecutor.submit(() -> { salida.await(); return acceso.seleccionar(
-                    NegocioId.de(negocio), TipoContenidoPlan.AVISOS, List.of("d", "e", "f"), AHORA); });
+                    NegocioId.de(negocio), TipoContenidoPlan.AVISOS, List.of("e", "f", "g", "h"), AHORA); });
             salida.countDown();
 
             int admitidos = primero.get(15, TimeUnit.SECONDS).autorizadas().size()
                     + segundo.get(15, TimeUnit.SECONDS).autorizadas().size();
 
-            assertThat(admitidos).isEqualTo(3);
+            assertThat(admitidos).isEqualTo(6);
         }
     }
 
@@ -136,14 +138,13 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
     @DisplayName("La prueba vigente permite todos los avisos y al vencer aplica el cupo gratuito")
     void seleccionarShouldRespectTrialExpiry() {
         prueba.iniciar(NegocioId.de(negocio), AHORA);
-        assertThat(acceso.seleccionar(NegocioId.de(negocio), TipoContenidoPlan.AVISOS, List.of("a", "b", "c", "d"),
-                AHORA)
-                .autorizadas()).hasSize(4);
+        assertThat(acceso.seleccionar(NegocioId.de(negocio), TipoContenidoPlan.AVISOS, SIETE_CLAVES, AHORA)
+                .autorizadas()).hasSize(7);
 
         AccesoContenidoItem vencido = acceso.seleccionar(NegocioId.de(negocio), TipoContenidoPlan.AVISOS,
-                List.of("a", "b", "c", "d"), AHORA.plusDays(7));
+                SIETE_CLAVES, AHORA.plusDays(7));
 
-        assertThat(vencido.autorizadas()).hasSize(3);
+        assertThat(vencido.autorizadas()).hasSize(6);
         assertThat(vencido.bloqueadas()).isEqualTo(1);
     }
 
@@ -175,9 +176,9 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
     @DisplayName("El desbloqueo identifica el negocio exclusivamente desde el usuario de la sesión")
     void executeShouldUseSessionNegocio() {
         AccesoContenidoItem resultado = desbloquear.execute(new DesbloquearContenidosRequest(
-                UsuarioId.de(usuario), "AVISOS", List.of("uno", "dos", "tres", "cuatro")));
+                UsuarioId.de(usuario), "AVISOS", SIETE_CLAVES));
 
-        assertThat(resultado.autorizadas()).hasSize(3);
+        assertThat(resultado.autorizadas()).hasSize(6);
         assertThat(resultado.bloqueadas()).isEqualTo(1);
     }
 
@@ -211,8 +212,8 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
         return item.filtrada(acceso.seleccionar(negocioId, TipoContenidoPlan.ZONA, item.clavesDeAcceso(), AHORA));
     }
 
-    private ZonaItem givenZona(String nombre, String primero, String segundo) {
-        return new ZonaItem(nombre, 5, List.of(givenProducto(primero), givenProducto(segundo)));
+    private ZonaItem givenZona(String nombre, String... productos) {
+        return new ZonaItem(nombre, 5, Arrays.stream(productos).map(this::givenProducto).toList());
     }
 
     private ZonaItem.ProductoItem givenProducto(String nombre) {
