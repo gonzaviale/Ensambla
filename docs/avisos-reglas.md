@@ -62,6 +62,107 @@ anotó ninguna venta, no avisa (no se puede saber qué se mueve). La entidad es 
 La acción «Rebajar a $X» es un `EDITAR_REGISTRO` que cambia `price`; al aplicarla el precio baja, la regla deja de detectar el
 producto y el aviso vence solo.
 
+## PRECIO_ZONA · Precio frente a la competencia de la zona (`ReglaPrecioZona`)
+
+Compara el precio de cada producto con el **rango** (mínimo y máximo) que cobran los comercios de la zona por el mismo producto
+(mismo nombre, sin importar tildes ni mayúsculas). Si el precio queda fuera del rango, avisa:
+
+- **Por debajo del mínimo:** muestra el rango y la diferencia ($ y %), y sugiere **revisar costos y margen** (con el costo cargado,
+  dice cuánto queda por unidad o cuánto se pierde). No cambia el precio: sólo ofrece «Ver producto».
+- **Por encima del máximo:** muestra el rango y la diferencia y sugiere **bajarlo**. La acción «Bajar a $X» es un `EDITAR_REGISTRO`
+  que cambia `price` al máximo de la zona redondeado a la decena (o al máximo exacto si el redondeo no lo deja por debajo del precio actual).
+
+**Anonimato:** con menos de 3 comercios en la zona (`AnalisisZona.MINIMO_COMERCIOS`) o menos de 3 que cobren ese producto no se calcula
+ni se muestra rango. Los textos sólo traen el mínimo, el máximo y la cantidad de comercios. Se compara aunque el producto no tenga
+stock ni ventas. La entidad es `registro:<id>` y los datos son `{precio, minimo, maximo}`: si cambia el precio o el rango de la zona,
+un aviso descartado vuelve a aparecer. Puede convivir con `ESTANCADO` sobre el mismo producto (cada tipo explica su causa).
+
+## MUY_VENDIDO · Producto de alta rotación con precio bajo (`ReglaProductoAltaRotacion`)
+
+Avisa de un producto que **se vende más que de costumbre** y está **por debajo del rango de la zona**:
+
+- Las unidades del período (`periodo-dias`) superan su promedio por período (`MetricaProducto.promedioPorPeriodo`, calculado desde la
+  primera venta; con menos de un período de historia el promedio es igual a lo vendido y no avisa).
+- Su precio es menor al **mínimo** que cobran los comercios de la zona (mismo nombre, sin importar tildes ni mayúsculas), con el mínimo de
+  3 comercios en la zona y en el producto (`AnalisisZona.productoConRango`).
+
+El aumento sugerido es el mínimo de la zona redondeado a la decena (o el mínimo exacto si el redondeo no lo deja por encima del precio
+actual). El aviso muestra las ventas del período, el promedio, el precio actual y el rango de la zona. La acción «Subir a $X» es un
+`EDITAR_REGISTRO` que cambia `price`. La entidad es `registro:<id>` y los datos son `{precio, sugerido}`.
+
+## COMBO · Productos que se llevan juntos y rotan poco (`ReglaComboBajaRotacion`)
+
+Propone armar un combo con dos productos que **se venden juntos** y de los que **al menos uno rota poco**:
+
+- Una **canasta** es lo que un mismo cliente se llevó el mismo día (las ventas no tienen ticket; sin cliente no hay canastas). Se cuentan
+  las canastas del último período (`periodo-dias`).
+- El par cuenta si apareció en al menos `combo.frecuencia-minima` canastas y uno de los dos tiene baja rotación (`MetricasVentas.esBajaRotacion`).
+- Los dos tienen que estar en la misma tabla de inventario, con precio. Si el inventario ya tiene un producto cuyo nombre contiene «combo» y
+  los nombres de los dos, no se propone de nuevo.
+- Precio sugerido: la suma de los precios menos `combo.descuento`, redondeada a la decena; si no queda por debajo de la suma, no avisa.
+  El costo del combo es la suma de los costos, sólo si los dos lo tienen.
+
+La acción «Crear el combo» es un `CREAR_REGISTRO`: al aplicarla, `AplicarAviso` suma a la tabla de inventario una fila «Combo A + B» con
+cantidad 0, el precio sugerido y el costo (con las mismas validaciones y el mismo límite de filas del plan que cargarla a mano; la fila queda
+con origen «Aviso de Sami»). La entidad es `combo:<idA>:<idB>` (ids ordenados) y los datos `{precioA, precioB, sugerido}`: las canastas no
+entran en la huella.
+
+| Propiedad | Por defecto | Qué hace |
+|---|---|---|
+| `ensambla.avisos.combo.frecuencia-minima` | `3` | Canastas en las que tiene que aparecer el par |
+| `ensambla.avisos.combo.descuento` | `0.1` | Fracción que se descuenta de la suma de los precios (0,1 = 10 %) |
+
+## CONSUMO_ZONA · Lo que pide la zona y el negocio no tiene (`ReglaProductoDeLaZona`)
+
+Sugiere sumar al inventario los productos que más se venden en la zona y que el negocio todavía no ofrece.
+
+**Ranking** (`AnalisisZona.masVendidos()`): los productos de los agregados de la zona que venden al menos 3 comercios, primero los que más
+comercios venden y, a igualdad, los que más unidades por semana mueven. Con menos de 3 comercios en la zona no hay ranking, y nunca incluye
+ids ni ventas de un comercio. Es **por zona**: `agregado_zona_producto` no guarda el rubro, así que todavía no se filtra por rubro.
+
+**Regla:**
+
+- Cuenta sólo los que vende al menos `consumo-zona.popularidad-minima` de los comercios de la zona (60 %).
+- Saca los que el negocio ya tiene en cualquiera de sus tablas de inventario: se considera el mismo producto si el nombre del negocio empieza
+  por una palabra que también está en el de la zona, ignorando tildes, plurales, números, palabras de menos de tres letras y las de relleno
+  (de, del, con, pack, unidad…). Por eso «Café Cabrales 500 g» tapa a «Café La Virginia 250 g».
+- Avisa de los primeros `consumo-zona.maximo` (2). Sin tabla de inventario donde sumarlo no avisa.
+
+El aviso muestra «N de M comercios lo venden, a $P en promedio» y las unidades por semana: sólo agregados. La acción «Sumar a mi inventario» es
+un `CREAR_REGISTRO` (nombre, cantidad 0, precio = promedio redondeado a la decena y mínimo 5) y «Ver en Mi zona» es un `VER_ZONA` que sólo abre
+la pantalla de la zona. La entidad es `zona:<nombre normalizado>` y los datos `{nombre, precio}`.
+
+| Propiedad | Por defecto | Qué hace |
+|---|---|---|
+| `ensambla.avisos.consumo-zona.popularidad-minima` | `0.6` | Fracción de los comercios de la zona que tienen que vender el producto |
+| `ensambla.avisos.consumo-zona.maximo` | `2` | Cuántos avisos como máximo por negocio |
+
+## Historial de precio y REVISAR_PRECIO · Las ventas cayeron después de un aumento (`ReglaRevisarPrecioTrasAumento`)
+
+Cada vez que cambia el precio (`price`) de un producto **del inventario**, `RegistroDatosService.editar` anota el cambio en la tabla
+`historial_precio` (precio anterior y nuevo, con la fecha). Sólo se anota lo que pasa por ahí (editar una fila, aplicar un aviso); no hay
+historial de lo anterior a esta función. Las filas de ventas, aunque tengan precio, no se anotan.
+
+La regla toma el **último** cambio de cada producto y avisa si:
+
+- Fue un **aumento** de los últimos `periodo-dias` días (el primer precio que se carga no es un aumento).
+- Ya pasó la ventana posterior (`revision-precio.ventana-dias`): no se puede comparar antes.
+- Las unidades por día de la ventana posterior cayeron al menos `revision-precio.caida-minima` respecto de la ventana anterior
+  (mismo cálculo que el impacto de un aviso, `ImpactoAviso.medir`) y antes se vendía.
+
+La acción «Volver a $anterior» es un `EDITAR_REGISTRO`; al aplicarla queda anotada una baja, el último cambio deja de ser un aumento y el
+aviso vence solo. La entidad es `registro:<id>` y los datos `{precioAnterior, precioNuevo, fecha}`: un aviso descartado sólo vuelve si hay un
+aumento nuevo. Es un tipo propio (`REVISAR_PRECIO`) porque el motor vence los avisos por tipo y entidad, y dos reglas del mismo tipo se
+pisarían.
+
+**No es el impacto de los avisos:** el impacto (más abajo) mide después de aplicar un aviso de stock o estancado y nunca genera un aviso;
+esta regla genera un aviso por cualquier aumento de precio, venga de un aviso o de una edición a mano.
+
+| Propiedad | Por defecto | Qué hace |
+|---|---|---|
+| `ensambla.avisos.revision-precio.ventana-dias` | `7` | Días antes y después del aumento que se comparan |
+| `ensambla.avisos.revision-precio.caida-minima` | `0.2` | Fracción mínima que tienen que caer las unidades por día (0,2 = 20 %) |
+
 ## Impacto de los avisos aplicados (`MedirImpactoAvisos`)
 
 Cuando la persona aplica un aviso de `STOCK` o de `ESTANCADO` sobre un producto, el servidor mide después qué pasó con las ventas de
@@ -89,7 +190,7 @@ pantalla dice «vendés $X más por semana que antes de aplicar los avisos» y n
 El frontend (`useMotorDeAvisos`) junta los avisos del servidor con los que Sami calcula en el navegador. Para no duplicar ni resucitar
 avisos descartados:
 
-- Con el **backend real** (`VITE_API_MOCKS` distinto de `completo`), el tipo `estancado` es **siempre del servidor**, también
+- Con el **backend real** (`VITE_API_MOCKS` distinto de `completo`), los tipos `stock`, `estancado`, `precio_zona`, `muy_vendido`, `revisar_precio`, `combo` y `consumo_zona` (todos) son **siempre del servidor**, también
   mientras todavía no contestó: el navegador no lo calcula. Así un aviso descartado o aplicado no reaparece como copia local, y no hay un
   parpadeo de avisos duplicados al abrir la pantalla.
 - Los demás tipos que el servidor trae (por ejemplo `stock`) también se omiten en el navegador mientras haya alguno pendiente.

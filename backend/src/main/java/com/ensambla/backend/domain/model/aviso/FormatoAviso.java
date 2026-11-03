@@ -18,6 +18,7 @@ final class FormatoAviso {
     static final String CLAVE_CANTIDAD = "quantity";
 
     private static final BigDecimal DIEZ = BigDecimal.TEN;
+    private static final BigDecimal CIEN = BigDecimal.valueOf(100);
     private static final Locale ARGENTINA = Locale.of("es", "AR");
 
     private FormatoAviso() {
@@ -46,6 +47,11 @@ final class FormatoAviso {
     static String pesos(BigDecimal importe) {
         DecimalFormat formato = new DecimalFormat("#,##0.##", DecimalFormatSymbols.getInstance(ARGENTINA));
         return "$" + formato.format(importe);
+    }
+
+    /** Cuánto es la parte de la base, en porcentaje entero: 200 de 1.000 es 20. */
+    static String porcentaje(BigDecimal parte, BigDecimal base) {
+        return parte.multiply(CIEN).divide(base, 0, RoundingMode.HALF_UP).toPlainString();
     }
 
     /** Día y mes sin ceros: 5/10. */

@@ -40,6 +40,18 @@ existe en la simulación). La primera vez aparece la bienvenida con la guía int
 plantillas, taller con Sami, editor (Construir y Usar), avisos de Sami con la campana, y «Mi zona». La base
 simulada persiste en `localStorage`. Detalle en [../docs/ui-mockup.md](../docs/ui-mockup.md).
 
+### Demo con datos cargados (`npm run dev:demo`)
+
+```bash
+npm run dev:demo      # http://localhost:5173, todo simulado, sin backend
+```
+
+Usa `.env.demo` (`VITE_API_MOCKS=completo` y `VITE_DEMO_CARGADA=si`). Al arrancar, la cuenta `demo@ensambla.local` /
+`EnsamblaDemo2026!` ya trae el cuaderno «Almacén de barrio» (30 productos, 12 clientes y 759 ventas de los últimos 90 días,
+contados desde hoy), unos 18 avisos de todos los tipos, y Premium por un año. En cada arranque se vuelve a sembrar el
+almacén y se reponen los avisos descartados; los cuadernos que armes a mano se conservan. Los datos salen de
+`crearAlmacenCargado` (`src/lib/sistema/demo.ts`) y la semilla está en `src/mocks/db/demoCargada.ts`.
+
 ## Planes y prueba premium (ENS-97)
 
 La opción «Planes» abre `/planes`, con sesión obligatoria. Muestra catálogo y precio configurado,

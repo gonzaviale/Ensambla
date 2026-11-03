@@ -82,6 +82,55 @@ describe('aAvisoDeSami', () => {
       },
     ]);
   });
+
+  it('ver en Mi zona lleva a la zona con el producto, sin pedirle nada al servidor', () => {
+    const aviso = aAvisoDeSami(
+      avisoDelServidor({
+        tipo: 'CONSUMO_ZONA',
+        grupo: 'ZONA',
+        acciones: [
+          { tipo: 'VER_ZONA', texto: 'Ver en Mi zona', producto: 'Café La Virginia 250 g' },
+          { tipo: 'VER_ZONA' },
+        ],
+      }),
+      new Map(),
+    );
+
+    expect(aviso.tipo).toBe('consumo_zona');
+    expect(aviso.acciones).toEqual([
+      { tipo: 'zona', texto: 'Ver en Mi zona', producto: 'Café La Virginia 250 g' },
+      { tipo: 'zona', texto: 'Ver en Mi zona', producto: undefined },
+    ]);
+  });
+
+  it('crear una fila (un combo) también se le pide al servidor, que la crea y cierra el aviso', () => {
+    const aviso = aAvisoDeSami(
+      avisoDelServidor({
+        tipo: 'COMBO',
+        acciones: [
+          { tipo: 'CREAR_REGISTRO', texto: 'Crear el combo', proyectoId: PROYECTO_ID, bloqueId: 'inventario' },
+          { tipo: 'CREAR_REGISTRO' },
+        ],
+      }),
+      new Map(),
+    );
+
+    expect(aviso.tipo).toBe('combo');
+    expect(aviso.acciones).toEqual([
+      {
+        tipo: 'servidor',
+        texto: 'Crear el combo',
+        avisoId: 'e0000000-0000-4000-8000-000000000001',
+        confirmacion: 'Listo, lo creamos.',
+      },
+      {
+        tipo: 'servidor',
+        texto: 'Crear la fila',
+        avisoId: 'e0000000-0000-4000-8000-000000000001',
+        confirmacion: 'Listo, lo creamos.',
+      },
+    ]);
+  });
 });
 
 describe('tiposCubiertosPorElServidor', () => {
@@ -93,15 +142,36 @@ describe('tiposCubiertosPorElServidor', () => {
     expect(tiposCubiertosPorElServidor([], false).size).toBe(0);
   });
 
-  it('con el motor activo cubre siempre estancado, aunque no haya ninguno pendiente', () => {
+  it('con el motor activo cubre siempre los tipos del motor, aunque no haya ninguno pendiente', () => {
     // Un aviso aplicado o descartado ya no está en la lista: la copia del navegador no puede volver a mostrarlo.
-    expect([...tiposCubiertosPorElServidor([], true)]).toEqual(['estancado']);
+    expect([...tiposCubiertosPorElServidor([], true)]).toEqual([
+      'stock',
+      'estancado',
+      'precio_zona',
+      'muy_vendido',
+      'revisar_precio',
+      'combo',
+      'consumo_zona',
+    ]);
   });
 
-  it('con el motor activo suma los tipos que trajo el servidor a los que ya cubre', () => {
+  it('con el motor activo cubre todos los tipos de aviso, también los que trajo el servidor', () => {
     const cubiertos = tiposCubiertosPorElServidor(delServidor('STOCK', 'ESTANCADO'), true);
 
+    expect([...cubiertos].sort()).toEqual([
+      'combo',
+      'consumo_zona',
+      'estancado',
+      'muy_vendido',
+      'precio_zona',
+      'revisar_precio',
+      'stock',
+    ]);
+  });
+
+  it('sin motor activo suma los tipos que trajo el servidor', () => {
+    const cubiertos = tiposCubiertosPorElServidor(delServidor('STOCK', 'ESTANCADO'), false);
+
     expect([...cubiertos].sort()).toEqual(['estancado', 'stock']);
-    expect(cubiertos.has('muy_vendido')).toBe(false);
   });
 });

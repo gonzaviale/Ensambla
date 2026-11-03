@@ -255,7 +255,8 @@ export const TEMPLATES: Record<ClavePlantilla, DefinicionDePlantilla> = {
 export const COLORS: Record<Color, string> = {
   orange: '#EE8000',
   coral: '#F85F5A',
-  yellow: '#EBCE32',
+  // Amarillo oscuro: con letra blanca es más oscuro que el #EBCE32 de la marca para que el blanco se lea, sin virar a marrón.
+  yellow: '#ba9500',
   blue: '#4EB2D4',
   petrol: '#00506A',
 };

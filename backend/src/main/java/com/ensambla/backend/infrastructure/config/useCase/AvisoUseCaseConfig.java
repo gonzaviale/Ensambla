@@ -2,12 +2,18 @@ package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.model.aviso.MetricasVentas;
 import com.ensambla.backend.domain.model.aviso.ReglaAviso;
+import com.ensambla.backend.domain.model.aviso.ReglaComboBajaRotacion;
+import com.ensambla.backend.domain.model.aviso.ReglaPrecioZona;
+import com.ensambla.backend.domain.model.aviso.ReglaProductoAltaRotacion;
+import com.ensambla.backend.domain.model.aviso.ReglaProductoDeLaZona;
 import com.ensambla.backend.domain.model.aviso.ReglaProductoEstancado;
+import com.ensambla.backend.domain.model.aviso.ReglaRevisarPrecioTrasAumento;
 import com.ensambla.backend.domain.model.aviso.ReglaStockBajo;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.precio.HistorialPrecioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
@@ -40,11 +46,14 @@ public class AvisoUseCaseConfig {
             RegistroRepository registroRepository,
             ZonaRepository zonaRepository,
             AgregadoZonaRepository agregadoZonaRepository,
+            HistorialPrecioRepository historialPrecioRepository,
+            MetricasVentas metricasVentas,
             AvisoRepository avisoRepository,
             TransaccionPort transaccionPort,
             Clock clock) {
         return new EjecutarMotorAvisos(negocioRepository, reglas, proyectoRepository, registroRepository,
-                zonaRepository, agregadoZonaRepository, avisoRepository, transaccionPort, clock);
+                zonaRepository, agregadoZonaRepository, historialPrecioRepository, metricasVentas, avisoRepository,
+                transaccionPort, clock);
     }
 
     @Bean
@@ -117,6 +126,42 @@ public class AvisoUseCaseConfig {
             @Value("${ensambla.avisos.periodo-dias:30}") int periodoDias,
             @Value("${ensambla.avisos.baja-rotacion-factor:0.5}") BigDecimal factorBajaRotacion) {
         return new MetricasVentas(periodoDias, factorBajaRotacion);
+    }
+
+    @Bean
+    public ReglaPrecioZona reglaPrecioZona() {
+        return new ReglaPrecioZona();
+    }
+
+    /** La popularidad mínima y el máximo de avisos salen de {@code ensambla.avisos.consumo-zona.*}. */
+    @Bean
+    public ReglaProductoDeLaZona reglaProductoDeLaZona(
+            @Value("${ensambla.avisos.consumo-zona.popularidad-minima:0.6}") BigDecimal popularidadMinima,
+            @Value("${ensambla.avisos.consumo-zona.maximo:2}") int maximo) {
+        return new ReglaProductoDeLaZona(popularidadMinima, maximo);
+    }
+
+    /** La frecuencia mínima del par y el descuento salen de {@code ensambla.avisos.combo.*}. */
+    @Bean
+    public ReglaComboBajaRotacion reglaComboBajaRotacion(
+            MetricasVentas metricasVentas,
+            @Value("${ensambla.avisos.combo.frecuencia-minima:3}") int frecuenciaMinima,
+            @Value("${ensambla.avisos.combo.descuento:0.1}") BigDecimal descuento) {
+        return new ReglaComboBajaRotacion(metricasVentas, frecuenciaMinima, descuento);
+    }
+
+    @Bean
+    public ReglaProductoAltaRotacion reglaProductoAltaRotacion(MetricasVentas metricasVentas) {
+        return new ReglaProductoAltaRotacion(metricasVentas);
+    }
+
+    /** La ventana (días antes y después del aumento) y la caída mínima salen de {@code ensambla.avisos.revision-precio.*}. */
+    @Bean
+    public ReglaRevisarPrecioTrasAumento reglaRevisarPrecioTrasAumento(
+            MetricasVentas metricasVentas,
+            @Value("${ensambla.avisos.revision-precio.ventana-dias:7}") int ventanaDias,
+            @Value("${ensambla.avisos.revision-precio.caida-minima:0.2}") BigDecimal caidaMinima) {
+        return new ReglaRevisarPrecioTrasAumento(metricasVentas, ventanaDias, caidaMinima);
     }
 
     @Bean

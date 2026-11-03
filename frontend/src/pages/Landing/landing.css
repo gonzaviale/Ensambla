@@ -8,6 +8,7 @@
   --ens-muted: #526268;
   --ens-orange: #ee8000;
   --ens-yellow: #ebce32;
+  --ens-yellow-dark: #ba9500;
   --ens-blue: #4eb2d4;
   --ens-coral: #f85f5a;
   --ens-magenta: #b52d66;
@@ -250,10 +251,10 @@
   margin-top: 13px;
 }
 .landing .ens-ribbon {
-  background: var(--ens-yellow);
+  background: var(--ens-yellow-dark);
   padding: 17px 25px;
   text-align: center;
-  color: var(--ens-ink);
+  color: #fff;
   font-size: 16px;
   line-height: 1.5;
   font-weight: 700;
@@ -309,8 +310,8 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--ens-yellow);
-  color: var(--ens-ink);
+  background: var(--ens-yellow-dark);
+  color: #fff;
 }
 .landing .ens-pains li:nth-child(2) .ens-icon {
   background: var(--ens-coral);
@@ -589,8 +590,8 @@
   border-radius: 7px;
   font-size: 14px;
   font-weight: 800;
-  color: var(--ens-ink-deep);
-  background: var(--ens-yellow);
+  color: #fff;
+  background: var(--ens-yellow-dark);
   transform: rotate(var(--tag-tilt));
   transition: transform 0.25s;
 }
@@ -642,8 +643,8 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--ens-yellow);
-  color: var(--ens-ink);
+  background: var(--ens-yellow-dark);
+  color: #fff;
 }
 .landing .ens-data-icon svg {
   width: 27px;

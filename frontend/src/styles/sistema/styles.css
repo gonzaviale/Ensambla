@@ -39,6 +39,7 @@
   --orange: #ee8000;
   --coral: #f85f5a;
   --yellow: #ebce32;
+  --yellow-dark: #ba9500;
   --blue: #4eb2d4;
   --petrol: #00506a;
   --ink: #263443;
@@ -1422,33 +1423,6 @@ textarea {
 .save-status .icon {
   width: 13px;
   height: 13px;
-}
-.mode-switch {
-  display: flex;
-  padding: 4px;
-  background: #f1f2ed;
-  border: 1px solid #e7e9e1;
-  border-radius: 10px;
-  gap: 3px;
-}
-.mode-switch button {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  font-size: 11px;
-  padding: 7px 13px;
-  border-radius: 7px;
-  color: #899183;
-  font-weight: 600;
-}
-.mode-switch button.active {
-  background: white;
-  color: var(--ink);
-  box-shadow: 0 2px 5px #26344309;
-}
-.mode-switch .icon {
-  width: 15px;
-  height: 15px;
 }
 .editor-layout {
   display: grid;
@@ -3299,19 +3273,6 @@ textarea {
   }
   .editor-topbar > .row:last-child {
     gap: 5px;
-  }
-  .editor-topbar .mode-switch {
-    padding: 3px;
-    gap: 0;
-  }
-  .mode-switch button {
-    font-size: 9px;
-    padding: 6px 9px;
-    gap: 4px;
-  }
-  .mode-switch .icon {
-    width: 12px;
-    height: 12px;
   }
   .editor-topbar > .row:last-child > .icon-btn {
     display: none;

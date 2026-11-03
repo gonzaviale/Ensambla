@@ -6,7 +6,7 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V9__modelo_sistema_y_monitoreo.sql`, `V10__datos_prueba_san_justo.sql`, `V11__avisos_entidad_y_datos.sql`,
 `V12__planes_y_suscripciones.sql`, `V13__limites_y_funciones_por_plan.sql`, `V14__prueba_premium.sql`,
 `V15__renovaciones_y_pagos_premium.sql`,
-`V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`).
+`V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -189,7 +189,7 @@ que traducirlos al guardar; `MONEDA` todavía no cuenta como numérica para fór
 
 ### Avisos del motor de monitoreo
 
-`aviso` guarda cada recomendación: `tipo` (`STOCK`, `PRECIO_ZONA`, `ESTANCADO`, `MUY_VENDIDO`, `COMBO`, `CONSUMO_ZONA`), `grupo`
+`aviso` guarda cada recomendación: `tipo` (`STOCK`, `PRECIO_ZONA`, `ESTANCADO`, `MUY_VENDIDO`, `COMBO`, `CONSUMO_ZONA`, `REVISAR_PRECIO`), `grupo`
 (`STOCK`, `VENTAS`, `ZONA`), `prioridad` (3 urgente, 2 para hoy, 1 para mirar), `huella` (el id estable del frontend, único por
 negocio), `titulo`, `detalle`, `motivos` y `acciones` (JSON) y `estado` (`PENDIENTE`, `APLICADO`, `DESCARTADO`, `VENCIDO`).
 `resuelto_en` está cargado si y sólo si el aviso se aplicó o se descartó (`ck_aviso_resuelto`): con eso se mide cuántos se aplican
@@ -203,11 +203,16 @@ se vuelve a crear.
 **Motor de monitoreo.** `MonitoreoAvisosWorker` corre `EjecutarMotorAvisos` cada `ensambla.avisos.motor.intervalo` ms
 (5 minutos por defecto; se apaga con `ensambla.avisos.motor.habilitado=false`). `MotorAvisosService` recibe todas las `ReglaAviso`
 registradas como bean, así que una regla nueva no toca el motor. Por cada negocio crea los avisos nuevos, actualiza los que
-cambiaron, reactiva los vencidos y vence los pendientes que la regla ya no detecta. Las reglas actuales (`ReglaStockBajo`, `ReglaProductoEstancado`) están descriptas en [`avisos-reglas.md`](avisos-reglas.md).
+cambiaron, reactiva los vencidos y vence los pendientes que la regla ya no detecta. Las reglas actuales (`ReglaStockBajo`, `ReglaProductoEstancado`, `ReglaPrecioZona`, `ReglaProductoAltaRotacion`, `ReglaRevisarPrecioTrasAumento`, `ReglaComboBajaRotacion`, `ReglaProductoDeLaZona`) están descriptas en [`avisos-reglas.md`](avisos-reglas.md).
+
+**Historial de precio (V22).** `historial_precio` guarda cada cambio del precio de un producto del inventario: `registro_id` (se borra en
+cascada con el registro), `precio_anterior` (null en el primer precio), `precio_nuevo` (positivo) y `cambiado_en`, con un índice por
+`(negocio_id, cambiado_en)`. Lo escribe `RegistroDatosService.editar` y lo lee el motor para detectar aumentos
+(`REVISAR_PRECIO`). V22 también agrega `REVISAR_PRECIO` al CHECK `aviso_tipo_check` de `aviso.tipo`.
 
 **API.** `GET /api/avisos[?estado=]` (pendientes primero, del más urgente al menos urgente), `GET /api/avisos/contador`,
 `POST /api/avisos/{id}/aplicar` y `POST /api/avisos/{id}/descartar`. Aplicar ejecuta la acción sugerida (`EDITAR_REGISTRO` cambia
-valores de un registro por clave de campo; `REGISTRAR` y `ABRIR` son atajos de pantalla) y marca el aviso como aplicado en la misma
+valores de un registro por clave de campo; `CREAR_REGISTRO` suma una fila, como el combo; `REGISTRAR`, `ABRIR` y `VER_ZONA` son atajos de pantalla) y marca el aviso como aplicado en la misma
 transacción. Un aviso de otro negocio responde 404.
 
 ## Carga por WhatsApp (V20)

@@ -6,7 +6,8 @@ public enum TipoAviso {
     ESTANCADO(GrupoAviso.VENTAS),
     MUY_VENDIDO(GrupoAviso.VENTAS),
     COMBO(GrupoAviso.VENTAS),
-    CONSUMO_ZONA(GrupoAviso.ZONA);
+    CONSUMO_ZONA(GrupoAviso.ZONA),
+    REVISAR_PRECIO(GrupoAviso.VENTAS);
 
     private final GrupoAviso grupo;
 

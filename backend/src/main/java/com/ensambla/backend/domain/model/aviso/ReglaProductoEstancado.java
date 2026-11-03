@@ -127,7 +127,8 @@ public class ReglaProductoEstancado implements ReglaAviso {
                 detalle(metrica, precio, sugerido, referencia),
                 datos,
                 List.of(referencia.motivo(), ultimaVenta(metrica), "Tenés " + texto(cantidad) + " en stock."),
-                List.of(accionRebajar(inventario, registro.getId(), sugerido), accionAbrir(inventario, registro.getId())));
+                List.of(AccionesAviso.cambiarPrecio(inventario, registro.getId(), "Rebajar a " + pesos(sugerido), sugerido),
+                        AccionesAviso.abrir(inventario, registro.getId())));
     }
 
     private String detalle(MetricaProducto metrica, BigDecimal precio, BigDecimal sugerido, Referencia referencia) {
@@ -143,24 +144,5 @@ public class ReglaProductoEstancado implements ReglaAviso {
         return metrica.ultimaVenta() == null
                 ? "Todavía no anotaste ventas de este producto."
                 : "La última venta fue el " + fechaCorta(metrica.ultimaVenta()) + ".";
-    }
-
-    private static Map<String, Object> accionRebajar(BloqueInventario inventario, RegistroId registroId,
-                                                     BigDecimal sugerido) {
-        Map<String, Object> accion = accionAbrir(inventario, registroId);
-        accion.put("tipo", "EDITAR_REGISTRO");
-        accion.put("texto", "Rebajar a " + pesos(sugerido));
-        accion.put("valores", Map.of(CLAVE_PRECIO, sugerido));
-        return accion;
-    }
-
-    private static Map<String, Object> accionAbrir(BloqueInventario inventario, RegistroId registroId) {
-        Map<String, Object> accion = new LinkedHashMap<>();
-        accion.put("tipo", "ABRIR");
-        accion.put("texto", "Ver producto");
-        accion.put("proyectoId", inventario.bloque().getProyectoId().toString());
-        accion.put("bloqueId", inventario.bloque().getId().toString());
-        accion.put("registroId", registroId.toString());
-        return accion;
     }
 }

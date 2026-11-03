@@ -38,10 +38,8 @@ export function objetivosDelPaso(paso: PasoDeTutorial, bloqueId: string | null, 
     case 'review':
     case 'create':
     case 'pickTemplate':
-    case 'buildMode':
     case 'rename':
     case 'fillRecord':
-    case 'useMode':
       marcas = [[paso, null]];
       break;
     case 'describe':
@@ -118,7 +116,6 @@ export function useTutorialEnPantalla() {
       const estado = useSistemaStore.getState();
       const contexto: ContextoDelTutorial = {
         vista: vistaDe(ruta),
-        modo: estado.modo,
         activeId: estado.activeId,
         selectedId: estado.selectedId,
         sistemas: estado.sistemas,
@@ -148,7 +145,6 @@ export function useTutorialEnPantalla() {
         estado.sistemas !== anterior.sistemas ||
         estado.activeId !== anterior.activeId ||
         estado.selectedId !== anterior.selectedId ||
-        estado.modo !== anterior.modo ||
         estado.modal !== anterior.modal ||
         estado.taller !== anterior.taller
       ) {

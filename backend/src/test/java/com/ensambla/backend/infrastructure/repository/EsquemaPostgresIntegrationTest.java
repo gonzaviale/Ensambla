@@ -12,11 +12,13 @@ import com.ensambla.backend.domain.model.lote.EstadoLote;
 import com.ensambla.backend.domain.model.lote.FotoId;
 import com.ensambla.backend.domain.model.lote.LoteId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.precio.CambioPrecio;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.zona.ZonaId;
+import com.ensambla.backend.domain.repository.precio.HistorialPrecioRepository;
 import com.ensambla.backend.infrastructure.repository.entity.AgregadoZonaProductoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.AvisoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
@@ -98,6 +100,9 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Autowired
     private ILecturaIaJpaRepository lecturas;
+
+    @Autowired
+    private HistorialPrecioRepository historialPrecio;
 
     @Autowired
     private EntityManager entityManager;
@@ -381,6 +386,56 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         AvisoId avisoId = AvisoId.de(givenAviso(negocioId, "stock:1:b", "registro:1", EstadoAviso.PENDIENTE, null));
 
         assertThat(avisoId).isNotNull();
+    }
+
+    @Test
+    @DisplayName("La base admite avisos de revisar el precio")
+    void shouldPersistRevisarPrecioAviso() {
+        NegocioId negocioId = NegocioId.de(givenNegocio("a@example.com"));
+
+        AvisoEntity aviso = AvisoEntity.builder()
+                .negocioId(negocioId.valor()).tipo(TipoAviso.REVISAR_PRECIO).grupo(GrupoAviso.VENTAS).prioridad((short) 2)
+                .entidad("registro:1").huella("revisar:1").titulo("Yerba vende menos").detalle("Revisá el precio")
+                .estado(EstadoAviso.PENDIENTE).creadoEn(AHORA).actualizadoEn(AHORA).build();
+
+        assertThat(persistirYVaciar(aviso).getId()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("El historial de precio guarda los cambios del negocio y devuelve los del período del más viejo al más nuevo")
+    void historialPrecioShouldSaveAndListChangesSinceDate() {
+        NegocioId negocioId = NegocioId.de(givenNegocio("a@example.com"));
+        RegistroId registroId = givenProductoConPrecio(negocioId);
+        historialPrecio.save(new CambioPrecio(negocioId, registroId, null, new BigDecimal("900"), AHORA.minusDays(40)));
+        historialPrecio.save(new CambioPrecio(negocioId, registroId, new BigDecimal("1200"), new BigDecimal("1500"),
+                AHORA.minusDays(2)));
+        historialPrecio.save(new CambioPrecio(negocioId, registroId, new BigDecimal("900"), new BigDecimal("1200"),
+                AHORA.minusDays(10)));
+        entityManager.clear();
+
+        List<CambioPrecio> cambios = historialPrecio.findByNegocioIdDesde(negocioId, AHORA.minusDays(30));
+
+        assertThat(cambios).extracting(CambioPrecio::nuevo)
+                .containsExactly(new BigDecimal("1200.00"), new BigDecimal("1500.00"));
+        assertThat(cambios.getFirst().anterior()).isEqualByComparingTo("900");
+        assertThat(cambios.getFirst().registroId()).isEqualTo(registroId);
+    }
+
+    @Test
+    @DisplayName("La base no admite un precio nuevo que no sea positivo")
+    void historialPrecioShouldRejectNonPositivePrice() {
+        NegocioId negocioId = NegocioId.de(givenNegocio("a@example.com"));
+        RegistroId registroId = givenProductoConPrecio(negocioId);
+
+        assertThatThrownBy(() -> historialPrecio.save(
+                new CambioPrecio(negocioId, registroId, null, BigDecimal.ZERO, AHORA)))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    private RegistroId givenProductoConPrecio(NegocioId negocioId) {
+        ProyectoId proyectoId = ProyectoId.de(givenProyecto(negocioId, "Almacén"));
+        BloqueId bloqueId = BloqueId.de(givenBloque(negocioId, proyectoId, "Inventario"));
+        return RegistroId.de(givenRegistro(negocioId, bloqueId, Map.of()));
     }
 
     // --- arrange (modelo del frontend) ---

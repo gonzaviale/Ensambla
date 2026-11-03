@@ -23,6 +23,8 @@ export type Modal =
   | { tipo: 'cancelarRenovacion' }
   /** Configurar el cuaderno: cambiarle el nombre o, desde ahí, eliminarlo. */
   | { tipo: 'renombrar' }
+  /** El resumen del negocio en PDF del sistema abierto. */
+  | { tipo: 'resumen' }
   | { tipo: 'eliminarCuaderno' }
   | { tipo: 'renombrarPieza'; bloqueId: string }
   | { tipo: 'registro'; bloqueId: string; filaId?: string | null }

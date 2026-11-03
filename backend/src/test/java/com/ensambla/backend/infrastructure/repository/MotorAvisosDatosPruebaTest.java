@@ -2,12 +2,14 @@ package com.ensambla.backend.infrastructure.repository;
 
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.MetricasVentas;
 import com.ensambla.backend.domain.model.aviso.ReglaAviso;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.precio.HistorialPrecioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
@@ -79,6 +81,12 @@ class MotorAvisosDatosPruebaTest {
 
     @Autowired
     private AgregadoZonaRepository agregadoZonaRepository;
+
+    @Autowired
+    private HistorialPrecioRepository historialPrecioRepository;
+
+    @Autowired
+    private MetricasVentas metricasVentas;
 
     @Autowired
     private TransaccionPort transaccionPort;
@@ -221,7 +229,8 @@ class MotorAvisosDatosPruebaTest {
         when(soloEsteNegocio.findAllIds()).thenReturn(List.of(negocioId));
         when(soloEsteNegocio.findZonaIdById(negocioId)).thenReturn(negocioRepository.findZonaIdById(negocioId));
         new EjecutarMotorAvisos(soloEsteNegocio, reglas, proyectoRepository, registroRepository, zonaRepository,
-                agregadoZonaRepository, avisoRepository, transaccionPort, Clock.fixed(ahora.toInstant(), ahora.getOffset()))
+                agregadoZonaRepository, historialPrecioRepository, metricasVentas, avisoRepository, transaccionPort,
+                Clock.fixed(ahora.toInstant(), ahora.getOffset()))
                 .execute();
     }
 

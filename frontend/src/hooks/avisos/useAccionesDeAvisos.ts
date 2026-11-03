@@ -1,10 +1,13 @@
 import type { AccionDeAviso, Aviso } from '@/lib/sistema/alertas';
 import { findBlock, id as nuevoId } from '@/lib/sistema/core';
-import { crearAlmacenDeEjemplo } from '@/lib/sistema/demo';
+import { crearAlmacenCargado, crearAlmacenDeEjemplo } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
+import { destinoDeAviso } from '@/lib/sistema/destinoDeAviso';
+import { resaltar } from '@/lib/sistema/resaltar';
 import { useAplicarAviso, useDescartarAviso } from '@/hooks/avisos/mutations';
 import { useGuardarPreferencias } from '@/hooks/preferencias/mutations';
 import { usePreferencias } from '@/hooks/preferencias/queries';
+import { useAbrirAvisos } from '@/hooks/avisos/useAbrirAvisos';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
@@ -17,8 +20,10 @@ export function useAccionesDeAvisos() {
   const aplicarEnServidor = useAplicarAviso();
   const descartarEnServidor = useDescartarAviso();
   const navegacion = useNavegacion();
+  const abrirAvisos = useAbrirAvisos();
 
-  // Abre el sistema, va a la sección del bloque, lo resalta y, si hace falta, abre el formulario.
+  // Abre el sistema, va a la sección del bloque y marca con el marco animado el registro (o la tabla, si no se
+  // sabe cuál). Si hace falta, abre el formulario de un registro nuevo.
   const irAlBloque = async (
     sistemaId: string,
     bloqueId: string,
@@ -27,7 +32,10 @@ export function useAccionesDeAvisos() {
       nuevoRegistro = false,
     }: { filaId?: string | null; nuevoRegistro?: boolean } = {},
   ) => {
-    await navegacion.abrirSistema(sistemaId, 'use');
+    const abierto = useSistemaStore.getState();
+    if (abierto.activeId !== sistemaId || abierto.modo !== 'use') {
+      await navegacion.abrirSistema(sistemaId, 'use');
+    }
     const store = useSistemaStore.getState();
     const sistema = store.sistemas.find((item) => item.id === sistemaId);
     const seccion = sistema?.sections.find((item) =>
@@ -35,12 +43,15 @@ export function useAccionesDeAvisos() {
     );
     if (seccion && seccion.id !== store.sectionId) store.elegirSeccion(seccion.id);
     setTimeout(() => {
-      const nodo = document.querySelector(`[data-block="${bloqueId}"]`);
-      nodo?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      nodo?.classList.add('destacado');
-      setTimeout(() => nodo?.classList.remove('destacado'), 1800);
-      if (filaId || nuevoRegistro) store.abrirModal({ tipo: 'registro', bloqueId, filaId });
-    }, 80);
+      const bloque = document.querySelector(`[data-block="${CSS.escape(bloqueId)}"]`);
+      const fila = filaId
+        ? bloque?.querySelector(`[data-record="${CSS.escape(filaId)}"]:not([hidden])`)
+        : null;
+      const objetivo = fila ?? bloque;
+      objetivo?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      resaltar(objetivo);
+      if (nuevoRegistro) store.abrirModal({ tipo: 'registro', bloqueId, filaId });
+    }, 120);
   };
 
   const ejecutar = (accion: AccionDeAviso) => {
@@ -100,14 +111,41 @@ export function useAccionesDeAvisos() {
     });
   };
 
+  /** «Ver»: lleva al objeto que representa el aviso y lo marca; si no apunta a ninguno, abre sus detalles. */
+  const ver = (aviso: Aviso) => {
+    const destino = destinoDeAviso(aviso);
+    if (destino) {
+      useSistemaStore.getState().ocultarAvisoNuevo();
+      void irAlBloque(destino.sistemaId, destino.bloqueId, { filaId: destino.filaId });
+      return;
+    }
+    const zona = aviso.acciones.find((accion) => accion.tipo === 'zona');
+    if (zona) ejecutar(zona);
+    else void abrirAvisos(aviso.id);
+  };
+
   const crearDemo = () => {
     void navegacion.crearYAbrir(crearAlmacenDeEjemplo(hoy()), 'use');
     useSistemaStore.getState().avisar('Creamos un almacén de ejemplo. Sami ya lo está mirando.');
   };
 
+  const crearDemoCargado = () => {
+    void navegacion.crearYAbrir(crearAlmacenCargado(hoy()), 'use');
+    useSistemaStore
+      .getState()
+      .avisar('Cargamos un almacén con muchos datos. Sami ya lo está mirando.');
+  };
+
+  /** Lleva a un registro (o a una tabla) del cuaderno y lo marca. */
+  const irAlObjeto = (destino: { sistemaId: string; bloqueId: string; filaId?: string }) =>
+    irAlBloque(destino.sistemaId, destino.bloqueId, { filaId: destino.filaId });
+
   return {
     ejecutar,
+    irAlObjeto,
     descartar,
+    ver,
     crearDemo,
+    crearDemoCargado,
   };
 }
