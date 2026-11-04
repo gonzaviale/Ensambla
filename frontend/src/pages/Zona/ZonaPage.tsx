@@ -22,7 +22,7 @@ import {
 import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { useAnalisisDeOtraZona } from '@/hooks/zona/useAnalisisDeOtraZona';
-import { useZona } from '@/hooks/zona/queries';
+import { useZona, useZonaDeLoQueSeVende } from '@/hooks/zona/queries';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
 type Vista = 'precios' | 'cerca' | 'otra';
@@ -125,13 +125,13 @@ export function ZonaPage() {
           </div>
         </div>
         {vista === 'precios' && (
-          <VistaDePrecios zona={zona} propios={propios} titulo={`Precios en ${zona.nombre}`} />
+          <>
+            <VistaDePrecios zona={zona} propios={propios} titulo={`Precios en ${zona.nombre}`} />
+            <ContenidoPremium acceso={zona.acceso} recurso="recomendaciones" compacto />
+          </>
         )}
         {vista === 'cerca' && <VistaDeLoQueSeVende zona={zona} />}
         {vista === 'otra' && <VistaDeOtraZona />}
-        {vista !== 'otra' && (
-          <ContenidoPremium acceso={zona.acceso} recurso="recomendaciones" compacto />
-        )}
         <PageFooter />
       </main>
     </>
@@ -202,10 +202,13 @@ function VistaDePrecios({
   );
 }
 
+// `zona` es la de «Precios» (primero lo que ya tenés): sirve para el resumen lateral, que compara tus precios. La lista
+// sale de la zona de esta pestaña, que prioriza lo que todavía no tenés y gasta su propio cupo del plan gratuito.
 function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
   const sistemas = useSistemaStore((estado) => estado.sistemas);
   const acciones = useAccionesDeAvisos();
   const propios = useMemo(() => productosPropios(sistemas), [sistemas]);
+  const cerca = useZonaDeLoQueSeVende(!sinSuficientes(zona));
   if (sinSuficientes(zona)) return <SinDatosSuficientes zona={zona} />;
 
   // Los productos nuevos se suman al primer inventario que tenga la persona.
@@ -223,7 +226,7 @@ function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
   const yaLoTiene = (producto: ProductoDeZona) =>
     nombres.some((nombre) => parecido(nombre, producto.nombre) === 1);
 
-  const productos = [...zona.productos].sort(
+  const productos = [...(cerca.data?.productos ?? [])].sort(
     (a, b) =>
       b.ventas.comercios - a.ventas.comercios ||
       b.ventas.unidadesPorSemana - a.ventas.unidadesPorSemana,
@@ -243,67 +246,86 @@ function VistaDeLoQueSeVende({ zona }: { zona: Zona }) {
   };
 
   return (
-    <div className="zona-grid">
-      <section className="zona-panel">
-        {!destino && (
-          <div className="info-box">
-            Para sumar productos a tu inventario necesitás un cuaderno con un bloque de Inventario.
+    <>
+      <div className="zona-grid">
+        <section className="zona-panel">
+          {!destino && (
+            <div className="info-box">
+              Para sumar productos a tu inventario necesitás un cuaderno con un bloque de
+              Inventario.
+            </div>
+          )}
+          <div className="row between">
+            <h2>Lo más vendido en {zona.nombre}</h2>
+            <span className="tag outline">{productos.length}</span>
           </div>
-        )}
-        <div className="row between">
-          <h2>Lo más vendido en {zona.nombre}</h2>
-          <span className="tag outline">{productos.length}</span>
-        </div>
-        <div className="zona-lista">
-          {productos.map((producto) => {
-            const porcentaje = Math.round((producto.ventas.comercios / zona.comercios) * 100);
-            const lo = yaLoTiene(producto);
-            return (
-              <article
-                key={producto.nombre}
-                className="zona-tarjeta"
-                style={varsDeColor(lo ? 'blue' : 'orange')}
-              >
-                <div className="zona-tarjeta-cabeza">
-                  <div>
-                    <strong>{producto.nombre}</strong>
-                    <div className="zona-meta">
-                      Lo venden {producto.ventas.comercios} de {zona.comercios} comercios · unas{' '}
-                      {producto.ventas.unidadesPorSemana} unidades por semana cada uno
+          <div className="zona-lista">
+            {cerca.isPending && (
+              <div className="empty" role="status">
+                <Icon name="orders" />
+                <p>Buscando lo que se vende cerca…</p>
+              </div>
+            )}
+            {cerca.isError && (
+              <div className="empty" role="alert">
+                <Icon name="orders" />
+                <p>No pudimos traer lo que se vende cerca.</p>
+                <Btn cls="soft small" onClick={() => void cerca.refetch()}>
+                  Probar de nuevo
+                </Btn>
+              </div>
+            )}
+            {productos.map((producto) => {
+              const porcentaje = Math.round((producto.ventas.comercios / zona.comercios) * 100);
+              const lo = yaLoTiene(producto);
+              return (
+                <article
+                  key={producto.nombre}
+                  className="zona-tarjeta"
+                  style={varsDeColor(lo ? 'blue' : 'orange')}
+                >
+                  <div className="zona-tarjeta-cabeza">
+                    <div>
+                      <strong>{producto.nombre}</strong>
+                      <div className="zona-meta">
+                        Lo venden {producto.ventas.comercios} de {zona.comercios} comercios · unas{' '}
+                        {producto.ventas.unidadesPorSemana} unidades por semana cada uno
+                      </div>
+                    </div>
+                    <div className="zona-precio">
+                      {pesos(producto.precio.promedio)}
+                      <small>promedio</small>
                     </div>
                   </div>
-                  <div className="zona-precio">
-                    {pesos(producto.precio.promedio)}
-                    <small>promedio</small>
+                  <div
+                    className="zona-barra"
+                    role="img"
+                    aria-label={`${porcentaje}% de los comercios de la zona lo venden`}
+                  >
+                    <i style={{ width: `${porcentaje}%` }} />
                   </div>
-                </div>
-                <div
-                  className="zona-barra"
-                  role="img"
-                  aria-label={`${porcentaje}% de los comercios de la zona lo venden`}
-                >
-                  <i style={{ width: `${porcentaje}%` }} />
-                </div>
-                <div className="zona-acciones">
-                  {lo ? (
-                    <span className="zona-etiqueta justo">
-                      <Icon name="check-circle" /> Ya lo tenés
-                    </span>
-                  ) : (
-                    <Btn cls="soft small" disabled={!destino} onClick={() => sumar(producto)}>
-                      <Icon name="plus" /> Sumar a mis productos
-                    </Btn>
-                  )}
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-      <aside className="zona-lateral">
-        <ResumenFrenteALaZona productos={zona.productos} propios={propios} zona={zona.nombre} />
-      </aside>
-    </div>
+                  <div className="zona-acciones">
+                    {lo ? (
+                      <span className="zona-etiqueta justo">
+                        <Icon name="check-circle" /> Ya lo tenés
+                      </span>
+                    ) : (
+                      <Btn cls="soft small" disabled={!destino} onClick={() => sumar(producto)}>
+                        <Icon name="plus" /> Sumar a mis productos
+                      </Btn>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+        <aside className="zona-lateral">
+          <ResumenFrenteALaZona productos={zona.productos} propios={propios} zona={zona.nombre} />
+        </aside>
+      </div>
+      <ContenidoPremium acceso={cerca.data?.acceso} recurso="recomendaciones" compacto />
+    </>
   );
 }
 

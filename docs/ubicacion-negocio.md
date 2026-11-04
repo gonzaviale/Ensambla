@@ -96,7 +96,12 @@ los dos, manda el punto.
   front muestra «Hacen falta al menos 3 para mostrar datos»).
 - Los productos salen ordenados por cuántos comercios los venden y, a igualdad, por unidades por semana. El mínimo
   y el orden son reglas del modelo (`AnalisisZona.sinProductosSiHayMenosDe` y `ordenadoPorVentas`); el cupo del plan
-  gratuito se aplica después de ordenar, así que con cupo se ven primero los más vendidos.
+  gratuito se aplica después de ordenar, así que con cupo se ven primero los más vendidos. «Otra zona» gasta su propio
+  cupo (`ZONA_OTRA`), aparte del de las pestañas de «Mi zona» y sin mirar el inventario del negocio.
+- «Mi zona» (`GET /api/zona/agregados?vista=precios|cerca`, `precios` por defecto) ordena distinto según la pestaña y
+  cada una gasta su cupo gratuito (`VistaZona`): **Precios** deja ver primero los productos que el negocio ya tiene
+  (cupo `ZONA`) y **Qué se vende cerca** primero los más vendidos que todavía no tiene (cupo `ZONA_CERCA`). Que un
+  producto sea «el mismo» lo decide `NombreDeProducto`, igual que en el aviso «lo que pide la zona».
 - **No filtra por rubro**: usa las zonas fijas ya cargadas y sus agregados globales. Filtrar por rubro (y por radio
   libre alrededor del punto) queda para cuando existan los agregados por rubro de H-38 / H-44.
 

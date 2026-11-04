@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
+import { id as nuevoId, makeSystem } from '@/lib/sistema/core';
 import { crearAlmacenDeEjemplo } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
 import { MINIMO_DE_COMERCIOS } from '@/lib/sistema/zona';
@@ -149,6 +150,7 @@ describe('Qué se vende cerca', () => {
   it('ordena por cuántos comercios lo venden y deja sumar lo que falta a tu inventario', async () => {
     const { user } = await abrirZona(true);
     await user.click(screen.getByRole('tab', { name: /Qué se vende cerca/ }));
+    await screen.findByText('Leche La Serenísima 1 L', { selector: 'strong' }, ESPERA);
 
     const nombres = [...document.querySelectorAll('.zona-tarjeta strong')].map(
       (nodo) => nodo.textContent,
@@ -175,6 +177,7 @@ describe('Qué se vende cerca', () => {
   it('sin un inventario avisa que hace falta uno y no deja sumar', async () => {
     const { user } = await abrirZona();
     await user.click(screen.getByRole('tab', { name: /Qué se vende cerca/ }));
+    await screen.findByText('Leche La Serenísima 1 L', { selector: 'strong' }, ESPERA);
 
     expect(screen.getByText(/necesitás un cuaderno con un bloque de Inventario/)).toBeVisible();
     expect(
@@ -182,6 +185,70 @@ describe('Qué se vende cerca', () => {
         name: /Sumar a mis productos/,
       }),
     ).toBeDisabled();
+  });
+});
+
+describe('el cupo gratuito de cada pestaña', () => {
+  const NOMBRES_DE_LA_PERSONA = [
+    'Yerba Playadito 1 kg',
+    'Aceite Natura 900 ml',
+    'Coca-Cola 2,25 L',
+    'Azúcar Ledesma 1 kg',
+    'Fideos Matarazzo 500 g',
+    'Lavandina Ayudín 1 L',
+  ];
+
+  const abrirGratuitoConSusProductos = async () => {
+    const usuario = setupUsuarioBase({ nombre: 'Ana Pérez' });
+    const sistema = makeSystem('Mi almacén', ['inventory']);
+    const inventario = sistema.sections.flatMap((seccion) => seccion.blocks)[0];
+    if (inventario) {
+      inventario.rows = NOMBRES_DE_LA_PERSONA.map((name) => ({
+        id: nuevoId(),
+        name,
+        quantity: 5,
+        price: 1000,
+      }));
+    }
+    estado.sistemas.set(usuario.email, [sistema]);
+    renderApp('/zona');
+    await screen.findByRole(
+      'heading',
+      { level: 1, name: /Mirá cuánto se cobra en tu zona/ },
+      ESPERA,
+    );
+    return userEvent.setup();
+  };
+
+  const usadas = () => screen.getByLabelText('Tu acceso a recomendaciones');
+
+  it('Precios deja ver tus productos y Qué se vende cerca lo más vendido que te falta, cada uno con sus seis', async () => {
+    const user = await abrirGratuitoConSusProductos();
+
+    for (const nombre of NOMBRES_DE_LA_PERSONA) {
+      expect(screen.getByText(nombre, { selector: 'strong' })).toBeVisible();
+    }
+    expect(screen.queryByText('Leche La Serenísima 1 L', { selector: 'strong' })).toBeNull();
+    expect(within(usadas()).getByText('6 de 6')).toBeVisible();
+
+    await user.click(screen.getByRole('tab', { name: /Qué se vende cerca/ }));
+    expect(
+      await screen.findByText('Leche La Serenísima 1 L', { selector: 'strong' }, ESPERA),
+    ).toBeVisible();
+    expect(screen.queryByText('Yerba Playadito 1 kg', { selector: 'strong' })).toBeNull();
+    expect(within(usadas()).getByText('6 de 6')).toBeVisible();
+  });
+
+  it('abrir Qué se vende cerca no le quita a Precios los productos que ya había visto', async () => {
+    const user = await abrirGratuitoConSusProductos();
+    await user.click(screen.getByRole('tab', { name: /Qué se vende cerca/ }));
+    await screen.findByText('Leche La Serenísima 1 L', { selector: 'strong' }, ESPERA);
+
+    await user.click(screen.getByRole('tab', { name: /Precios/ }));
+
+    for (const nombre of NOMBRES_DE_LA_PERSONA) {
+      expect(screen.getByText(nombre, { selector: 'strong' })).toBeVisible();
+    }
   });
 });
 

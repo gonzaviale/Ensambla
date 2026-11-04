@@ -8,6 +8,7 @@ import {
   guardarRegistroDelBorrador,
   pedirQuitarRegistro,
 } from '@/stores/accionesDelEditor';
+import { useAplicarAviso } from '@/hooks/avisos/mutations';
 import { seleccionarSistemaActivo, useSistemaStore } from '@/stores/sistemaStore';
 import { Btn } from '../Btn';
 import { CampoDeFormulario } from '../editor/CampoDeFormulario';
@@ -27,10 +28,13 @@ type Props = {
   filaId?: string | null;
   /** El registro es de la propuesta de Sami (todavía no es un sistema creado), no del sistema abierto. */
   enBorrador?: boolean;
+  /** El aviso del servidor desde el que se abrió el formulario: al guardar el registro queda aplicado. */
+  avisoId?: string;
 };
 
 // «Registrar» y «Editar» un registro de un bloque.
-export function ModalRegistro({ bloqueId, filaId, enBorrador = false }: Props) {
+export function ModalRegistro({ bloqueId, filaId, enBorrador = false, avisoId }: Props) {
+  const aplicarAviso = useAplicarAviso();
   const sistema = useSistemaStore((estado) =>
     enBorrador ? (estado.taller?.borrador ?? undefined) : seleccionarSistemaActivo(estado),
   );
@@ -64,7 +68,10 @@ export function ModalRegistro({ bloqueId, filaId, enBorrador = false }: Props) {
     if (resultado) {
       setErrores(resultado);
       requestAnimationFrame(() => enfocarPrimerError(formulario.current));
+      return;
     }
+    // Guardó el registro que pedía el aviso (por ejemplo, la entrada de mercadería): el aviso ya se atendió.
+    if (avisoId) aplicarAviso.mutate(avisoId);
   };
 
   return (

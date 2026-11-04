@@ -54,7 +54,7 @@ export type AccionDeAviso =
       confirmacion: string;
     }
   /** Abre el formulario de un registro nuevo (por ejemplo, una entrada de mercadería). */
-  | { tipo: 'registrar'; texto: string; sistemaId: string; bloqueId: string }
+  | { tipo: 'registrar'; texto: string; sistemaId: string; bloqueId: string; avisoId?: string }
   | { tipo: 'abrir'; texto: string; sistemaId: string; bloqueId: string; filaId?: string }
   /** Lleva a «Mi zona», filtrando por un producto. */
   | { tipo: 'zona'; texto: string; producto?: string }

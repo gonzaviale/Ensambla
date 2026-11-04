@@ -51,7 +51,7 @@ function ContenidoDelModal() {
     case 'renombrarPieza':
       return <ModalRenombrarPieza bloqueId={modal.bloqueId} />;
     case 'registro':
-      return <ModalRegistro bloqueId={modal.bloqueId} filaId={modal.filaId} />;
+      return <ModalRegistro bloqueId={modal.bloqueId} filaId={modal.filaId} avisoId={modal.avisoId} />;
     case 'consejosDeFoto':
       return <ModalConsejosDeFoto onTomarFoto={modal.onTomarFoto} />;
     case 'registroDelBorrador':
