@@ -1,4 +1,10 @@
-import { sinDatosInsuficientes, type ProductoDeZona, type Zona } from '@/lib/sistema/zona';
+import {
+  propioDe,
+  sinDatosInsuficientes,
+  type ProductoDeZona,
+  type ProductoPropio,
+  type Zona,
+} from '@/lib/sistema/zona';
 import { distanciaEnMetros, ZONA_DE_PRUEBA } from './ubicacion';
 
 const producto = (
@@ -39,6 +45,38 @@ const ZONA_EN_CRUDO: Zona = {
 };
 
 export const zonaDeLaPersona = (): Zona => sinDatosInsuficientes(ZONA_EN_CRUDO);
+
+/** La pantalla de «Mi zona» que pide los datos; define el orden con el que se reparte su cupo gratuito. */
+export type VistaDeLaZona = 'precios' | 'cerca' | 'otra';
+
+const porVentas = (a: ProductoDeZona, b: ProductoDeZona) =>
+  b.ventas.comercios - a.ventas.comercios ||
+  b.ventas.unidadesPorSemana - a.ventas.unidadesPorSemana;
+
+const primeroLosQue = (
+  productos: ProductoDeZona[],
+  criterio: (producto: ProductoDeZona) => boolean,
+) => [...productos.filter(criterio), ...productos.filter((producto) => !criterio(producto))];
+
+/**
+ * Los productos como los ordena el servidor para cada pantalla: Precios, primero lo que la persona ya tiene; Qué se
+ * vende cerca, lo más vendido que todavía no tiene (y al final lo que sí); Otra zona, lo más vendido sin mirar el
+ * inventario.
+ */
+export function ordenadaParaVista(
+  zona: Zona,
+  vista: VistaDeLaZona,
+  propios: ProductoPropio[],
+): Zona {
+  const esPropio = (producto: ProductoDeZona) => Boolean(propioDe(producto, propios));
+  const productos =
+    vista === 'precios'
+      ? primeroLosQue(zona.productos, esPropio)
+      : vista === 'cerca'
+        ? primeroLosQue([...zona.productos].sort(porVentas), (producto) => !esPropio(producto))
+        : [...zona.productos].sort(porVentas);
+  return { ...zona, productos };
+}
 
 // Un número estable a partir de un texto: la misma dirección da siempre el mismo análisis.
 const huella = (texto: string) => {

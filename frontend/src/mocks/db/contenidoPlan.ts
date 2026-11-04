@@ -5,11 +5,10 @@ import type { Zona } from '@/lib/sistema/zona';
 
 const LIMITE_GRATUITO = 6;
 
-export function contenidoDe(
-  email: string,
-  tipo: 'AVISOS' | 'ZONA',
-  claves: string[],
-): AccesoContenido {
+/** Cada pantalla de «Mi zona» gasta su propio cupo gratuito, igual que el servidor. */
+export type TipoDeCupo = 'AVISOS' | 'ZONA' | 'ZONA_CERCA' | 'ZONA_OTRA';
+
+export function contenidoDe(email: string, tipo: TipoDeCupo, claves: string[]): AccesoContenido {
   const ahora = new Date();
   const periodo = ahora.toISOString().slice(0, 7);
   const finPeriodo = new Date(
@@ -45,9 +44,10 @@ export function contenidoDe(
   };
 }
 
-export function zonaConAcceso(email: string, zona: Zona): Zona {
+/** La zona con sólo lo que el cupo `tipo` deja ver (Precios gasta `ZONA`; las otras pestañas, el suyo). */
+export function zonaConAcceso(email: string, zona: Zona, tipo: TipoDeCupo = 'ZONA'): Zona {
   const claves = zona.productos.map((producto) => `zona:${zona.nombre}|${producto.nombre}`);
-  const acceso = contenidoDe(email, 'ZONA', claves);
+  const acceso = contenidoDe(email, tipo, claves);
   return {
     ...zona,
     acceso,
