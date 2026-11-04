@@ -104,16 +104,52 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
     }
 
     @Test
-    @DisplayName("Mi zona y Otra zona comparten seis productos; el séptimo y el octavo no salen en el resultado")
-    void filtrarShouldShareQuotaBetweenZonesWithoutLeakingProducts() {
-        ZonaItem primera = filtrarZona(NegocioId.de(negocio), givenZona("Mi zona", "A", "B", "C", "D"));
+    @DisplayName("Dos consultas del mismo cupo de zona comparten seis productos; el séptimo y el octavo no salen")
+    void filtrarShouldShareQuotaWithinTheSameZoneQuotaWithoutLeakingProducts() {
+        ZonaItem primera = filtrarZona(NegocioId.de(negocio), TipoContenidoPlan.ZONA,
+                givenZona("Mi zona", "A", "B", "C", "D"));
 
-        ZonaItem otra = filtrarZona(NegocioId.de(negocio), givenZona("Otra zona", "E", "F", "G", "H"));
+        ZonaItem segunda = filtrarZona(NegocioId.de(negocio), TipoContenidoPlan.ZONA,
+                givenZona("Mi zona", "E", "F", "G", "H"));
 
         assertThat(primera.productos()).hasSize(4);
-        assertThat(otra.productos()).extracting(ZonaItem.ProductoItem::nombre).containsExactly("E", "F");
-        assertThat(otra.acceso().bloqueadas()).isEqualTo(2);
-        assertThat(otra.acceso().usadas()).isEqualTo(6);
+        assertThat(segunda.productos()).extracting(ZonaItem.ProductoItem::nombre).containsExactly("E", "F");
+        assertThat(segunda.acceso().bloqueadas()).isEqualTo(2);
+        assertThat(segunda.acceso().usadas()).isEqualTo(6);
+    }
+
+    @Test
+    @DisplayName("Precios, Qué se vende cerca y Otra zona gastan cada uno sus seis: una pestaña no deja sin cupo a otra")
+    void filtrarShouldKeepAnIndependentQuotaForEachZoneView() {
+        NegocioId negocioId = NegocioId.de(negocio);
+        filtrarZona(negocioId, TipoContenidoPlan.ZONA, givenZona("Mi zona", "A", "B", "C", "D", "E", "F"));
+
+        ZonaItem cerca = filtrarZona(negocioId, TipoContenidoPlan.ZONA_CERCA,
+                givenZona("Mi zona", "G", "H", "I", "J", "K", "L", "M"));
+        ZonaItem otra = filtrarZona(negocioId, TipoContenidoPlan.ZONA_OTRA,
+                givenZona("Otra zona", "N", "O"));
+
+        assertThat(cerca.productos()).hasSize(6);
+        assertThat(cerca.acceso().usadas()).isEqualTo(6);
+        assertThat(cerca.acceso().bloqueadas()).isEqualTo(1);
+        assertThat(otra.productos()).hasSize(2);
+        assertThat(otra.acceso().usadas()).isEqualTo(2);
+        assertThat(filtrarZona(negocioId, TipoContenidoPlan.ZONA, givenZona("Mi zona", "Z")).productos()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("La base acepta los cupos de cada pestaña de zona y rechaza cualquier otro tipo")
+    void tipoShouldOnlyAcceptKnownContentTypes() {
+        for (TipoContenidoPlan tipo : TipoContenidoPlan.values()) {
+            jdbc.update("INSERT INTO contenido_plan_desbloqueado(negocio_id,tipo,periodo,clave,creado_en) "
+                    + "VALUES (?,?,?,?,?)", negocio, tipo.name(), java.sql.Date.valueOf("2026-10-01"), "x", AHORA);
+        }
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM contenido_plan_desbloqueado WHERE negocio_id=?",
+                Integer.class, negocio)).isEqualTo(TipoContenidoPlan.values().length);
+        assertThatThrownBy(() -> jdbc.update("INSERT INTO contenido_plan_desbloqueado(negocio_id,tipo,periodo,clave,"
+                + "creado_en) VALUES (?,?,?,?,?)", negocio, "OTRO", java.sql.Date.valueOf("2026-10-01"), "x", AHORA))
+                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     }
 
     @Test
@@ -208,8 +244,8 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
         assertThat(listarSistemas.execute(new ListarSistemasRequest(UsuarioId.de(usuario)))).hasSize(1);
     }
 
-    private ZonaItem filtrarZona(NegocioId negocioId, ZonaItem item) {
-        return item.filtrada(acceso.seleccionar(negocioId, TipoContenidoPlan.ZONA, item.clavesDeAcceso(), AHORA));
+    private ZonaItem filtrarZona(NegocioId negocioId, TipoContenidoPlan tipo, ZonaItem item) {
+        return item.filtrada(acceso.seleccionar(negocioId, tipo, item.clavesDeAcceso(), AHORA));
     }
 
     private ZonaItem givenZona(String nombre, String... productos) {

@@ -44,9 +44,8 @@ public class ZonaUseCaseConfig {
             AgregadoZonaRepository agregadoZonaRepository,
             Clock clock,
             NegocioRepository negocioRepository,
-            ControlPlanService controlPlanService,
-            ProductosPropiosService productosPropiosService) {
+            ControlPlanService controlPlanService) {
         return new AnalizarZona(zonaRepository, geocodificadorPort, agregadoZonaRepository, clock,
-                negocioRepository, controlPlanService, productosPropiosService);
+                negocioRepository, controlPlanService);
     }
 }

@@ -64,11 +64,21 @@ public record AnalisisZona(String nombre, long comercios, List<AgregadoZonaProdu
      * su orden. Sirve para que, con un cupo de productos que se pueden ver, entren antes los que sirven para comparar.
      */
     public AnalisisZona conLosPropiosPrimero(List<String> nombresPropios) {
+        return separadosPor(nombresPropios, true);
+    }
+
+    /** Al revés: primero lo que el negocio todavía no tiene y al final lo que ya tiene, cada grupo en su orden. */
+    public AnalisisZona conLosQueFaltanPrimero(List<String> nombresPropios) {
+        return separadosPor(nombresPropios, false);
+    }
+
+    private AnalisisZona separadosPor(List<String> nombresPropios, boolean propiosPrimero) {
         Predicate<AgregadoZonaProducto> esPropio = producto -> nombresPropios.stream()
                 .anyMatch(nombre -> NombreDeProducto.esElMismo(nombre, producto.nombre()));
+        Predicate<AgregadoZonaProducto> primero = propiosPrimero ? esPropio : esPropio.negate();
         List<AgregadoZonaProducto> ordenados = Stream.concat(
-                productos.stream().filter(esPropio),
-                productos.stream().filter(esPropio.negate())).toList();
+                productos.stream().filter(primero),
+                productos.stream().filter(primero.negate())).toList();
         return new AnalisisZona(nombre, comercios, ordenados);
     }
 

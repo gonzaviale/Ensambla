@@ -2,23 +2,23 @@ package com.ensambla.backend.domain.useCase.zona.analizarZona;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
-import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.model.ubicacion.ConsultaDireccion;
 import com.ensambla.backend.domain.model.ubicacion.DireccionEncontrada;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
+import com.ensambla.backend.domain.model.zona.VistaZona;
 import com.ensambla.backend.domain.model.zona.Zona;
 import com.ensambla.backend.domain.port.GeocodificadorPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.zona.ProductosPropiosService;
 import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -36,23 +36,22 @@ public class AnalizarZona {
 
     private final ControlPlanService controlPlanService;
 
-    private final ProductosPropiosService productosPropiosService;
-
     /**
      * Con un punto del mapa busca la zona precargada que lo contiene; si no, busca un barrio por nombre y, si
      * no es uno conocido, lo trata como una dirección. No filtra por rubro: usa los agregados de la zona, sin
-     * productos si aportan menos de {@link AnalisisZona#MINIMO_COMERCIOS} comercios y ordenados por ventas.
+     * productos si aportan menos de {@link AnalisisZona#MINIMO_COMERCIOS} comercios y ordenados por ventas, sin mirar
+     * el inventario del negocio. Gasta el cupo gratuito de {@link VistaZona#OTRA}, aparte del de Mi zona.
      */
     public ZonaItem execute(AnalizarZonaRequest request) {
         Zona zona = zonaPedida(request)
                 .orElseThrow(() -> new ResourceNotFoundException("Todavía no tenemos datos de esa zona"));
         NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        AnalisisZona analisis = agregadoZonaRepository.analizar(zona)
-                .sinProductosSiHayMenosDe(AnalisisZona.MINIMO_COMERCIOS)
-                .ordenadoPorVentas();
-        ZonaItem zonaItem = ZonaItem.de(productosPropiosService.conLosPropiosPrimero(negocioId, analisis));
-        AccesoContenidoItem acceso = controlPlanService.seleccionar(
-                negocioId, TipoContenidoPlan.ZONA, zonaItem.clavesDeAcceso(), OffsetDateTime.now(clock));
+        AnalisisZona analisis = VistaZona.OTRA.ordenar(
+                agregadoZonaRepository.analizar(zona).sinProductosSiHayMenosDe(AnalisisZona.MINIMO_COMERCIOS),
+                List.of());
+        ZonaItem zonaItem = ZonaItem.de(analisis);
+        AccesoContenidoItem acceso = controlPlanService.seleccionar(negocioId, VistaZona.OTRA.tipoDeContenido(),
+                zonaItem.clavesDeAcceso(), OffsetDateTime.now(clock));
         return zonaItem.filtrada(acceso);
     }
 

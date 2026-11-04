@@ -10,22 +10,18 @@ import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
-import com.ensambla.backend.domain.model.zona.AgregadoZonaProducto;
-import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class ProductosPropiosServiceTest {
@@ -40,8 +36,8 @@ class ProductosPropiosServiceTest {
             proyectoRepository, new DatosDeProyectoService(registroRepository));
 
     @Test
-    @DisplayName("Pone primero los productos del inventario del negocio y no cuenta las filas de ejemplo ni las sin nombre")
-    void conLosPropiosPrimeroShouldPutInventoryProductsFirst() {
+    @DisplayName("Devuelve los nombres del inventario sin las filas de ejemplo ni las sin nombre")
+    void nombresDelInventarioShouldReturnRealNamedProducts() {
         Proyecto proyecto = givenProyectoConInventario(
                 registro("Yerba Playadito 1 kg", false),
                 registro("Fideos de ejemplo", true),
@@ -51,33 +47,27 @@ class ProductosPropiosServiceTest {
         when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(proyecto));
         when(proyectoRepository.findByIdAndNegocioId(proyecto.getId(), NEGOCIO_ID)).thenReturn(Optional.of(proyecto));
 
-        AnalisisZona result = service.conLosPropiosPrimero(NEGOCIO_ID, givenAnalisis("Azúcar", "Fideos", "Yerba 500 g"));
+        List<String> result = service.nombresDelInventario(NEGOCIO_ID);
 
-        assertThat(result.productos()).extracting(AgregadoZonaProducto::nombre)
-                .containsExactly("Yerba 500 g", "Azúcar", "Fideos");
+        assertThat(result).containsExactly("Yerba Playadito 1 kg");
     }
 
     @Test
-    @DisplayName("Si el negocio no tiene proyectos deja los productos de la zona como estaban")
-    void conLosPropiosPrimeroShouldKeepOrderWithoutProjects() {
+    @DisplayName("Si el proyecto ya no existe no aporta nombres")
+    void nombresDelInventarioShouldSkipMissingProjects() {
         Proyecto proyecto = givenProyectoConInventario();
         when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(proyecto));
         when(proyectoRepository.findByIdAndNegocioId(proyecto.getId(), NEGOCIO_ID)).thenReturn(Optional.empty());
 
-        AnalisisZona result = service.conLosPropiosPrimero(NEGOCIO_ID, givenAnalisis("Azúcar", "Yerba"));
-
-        assertThat(result.productos()).extracting(AgregadoZonaProducto::nombre).containsExactly("Azúcar", "Yerba");
+        assertThat(service.nombresDelInventario(NEGOCIO_ID)).isEmpty();
     }
 
     @Test
-    @DisplayName("Sin productos en la zona no consulta el inventario")
-    void conLosPropiosPrimeroShouldSkipLookupWhenZoneHasNoProducts() {
-        AnalisisZona sinProductos = AnalisisZona.sinZona();
+    @DisplayName("Un negocio sin proyectos no tiene nombres")
+    void nombresDelInventarioShouldBeEmptyWithoutProjects() {
+        when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
 
-        AnalisisZona result = service.conLosPropiosPrimero(NEGOCIO_ID, sinProductos);
-
-        assertThat(result).isSameAs(sinProductos);
-        verifyNoInteractions(proyectoRepository, registroRepository);
+        assertThat(service.nombresDelInventario(NEGOCIO_ID)).isEmpty();
     }
 
     // --- arrange ---
@@ -92,12 +82,5 @@ class ProductosPropiosServiceTest {
     private static Registro registro(String nombre, boolean esEjemplo) {
         return Registro.builder().id(RegistroId.nuevo()).negocioId(NEGOCIO_ID).bloqueId(INVENTARIO_ID)
                 .esEjemplo(esEjemplo).valores(Map.of(NOMBRE_ID.toString(), nombre)).build();
-    }
-
-    private static AnalisisZona givenAnalisis(String... nombres) {
-        return new AnalisisZona("San Justo", 10, java.util.Arrays.stream(nombres)
-                .map(nombre -> new AgregadoZonaProducto(nombre, 8, 6, new BigDecimal("100"), new BigDecimal("150"),
-                        new BigDecimal("200"), new BigDecimal("5")))
-                .toList());
     }
 }

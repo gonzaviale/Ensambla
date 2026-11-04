@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.useCase.zona.analizarZona;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.model.ubicacion.DireccionEncontrada;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.zona.AgregadoZonaProducto;
@@ -13,7 +14,6 @@ import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
-import com.ensambla.backend.domain.service.zona.ProductosPropiosService;
 import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem.ProductoItem;
@@ -32,6 +32,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -52,8 +53,6 @@ class AnalizarZonaTest {
     private final ZonaRepository zonaRepository = mock(ZonaRepository.class);
     private final GeocodificadorPort geocodificadorPort = mock(GeocodificadorPort.class);
     private final AgregadoZonaRepository agregadoZonaRepository = mock(AgregadoZonaRepository.class);
-    private final ProductosPropiosService productosPropiosService = mock(ProductosPropiosService.class,
-            invocation -> invocation.getArgument(1));
 
     @Test
     @DisplayName("Resuelve la zona del punto del mapa sin buscar el texto ni la dirección")
@@ -213,19 +212,16 @@ class AnalizarZonaTest {
     }
 
     @Test
-    @DisplayName("Con el cupo del plan gratuito deja ver primero los productos que el negocio tiene")
-    void executeShouldOfferOwnedProductsFirstToThePlanQuota() {
+    @DisplayName("Gasta el cupo propio de Otra zona, aparte del de las pestañas de Mi zona")
+    void executeShouldSpendTheQuotaOfOtherZone() {
         Zona zona = givenZonaResolvedByPoint();
-        givenAnalisis(zona, 10,
-                givenProducto("Yerba", 9, "5"),
-                givenProducto("Azúcar", 4, "20"));
-        when(productosPropiosService.conLosPropiosPrimero(any(), any()))
-                .thenAnswer(invocation -> ((AnalisisZona) invocation.getArgument(1))
-                        .conLosPropiosPrimero(List.of("Azúcar")));
+        givenAnalisis(zona, 10, givenProducto("Yerba", 9, "5"));
+        ControlPlanService controlPlanService = mock(ControlPlanService.class, autorizaTodo());
 
-        ZonaItem result = analizarZona(autorizaSoloLaPrimera()).execute(conPunto(null));
+        new ZonaUseCaseConfig().analizarZona(zonaRepository, geocodificadorPort, agregadoZonaRepository, CLOCK,
+                negocioRepository, controlPlanService).execute(conPunto(null));
 
-        assertThat(result.productos()).extracting(ProductoItem::nombre).containsExactly("Azúcar");
+        verify(controlPlanService).seleccionar(any(), eq(TipoContenidoPlan.ZONA_OTRA), any(), any());
     }
 
     // --- arrange ---
@@ -290,6 +286,6 @@ class AnalizarZonaTest {
         ControlPlanService controlPlanService = mock(ControlPlanService.class, plan);
         return new ZonaUseCaseConfig().analizarZona(
                 zonaRepository, geocodificadorPort, agregadoZonaRepository, CLOCK, negocioRepository,
-                controlPlanService, productosPropiosService);
+                controlPlanService);
     }
 }

@@ -133,6 +133,21 @@ class AnalisisZonaTest {
     }
 
     @Test
+    @DisplayName("Pone primero los productos que el negocio no tiene y deja los propios al final, cada grupo en su orden")
+    void conLosQueFaltanPrimeroShouldPutMissingProductsFirstKeepingOrder() {
+        AnalisisZona analisis = givenAnalisis(10,
+                givenProducto("Azúcar Ledesma 1 kg", 9, "5"),
+                givenProducto("Yerba Playadito 500 g", 8, "5"),
+                givenProducto("Fideos Matarazzo 500 g", 7, "5"),
+                givenProducto("Aceite Natura 900 ml", 6, "5"));
+
+        AnalisisZona result = analisis.conLosQueFaltanPrimero(List.of("Aceite Natura 1 L", "Yerba Playadito 1 kg"));
+
+        assertThat(result.productos()).extracting(AgregadoZonaProducto::nombre).containsExactly(
+                "Azúcar Ledesma 1 kg", "Fideos Matarazzo 500 g", "Yerba Playadito 500 g", "Aceite Natura 900 ml");
+    }
+
+    @Test
     @DisplayName("Sin productos propios deja los de la zona como estaban")
     void conLosPropiosPrimeroShouldKeepOrderWhenNegocioHasNoProducts() {
         AnalisisZona analisis = givenAnalisis(10, givenProducto("Yerba", 9, "5"), givenProducto("Azúcar", 8, "5"));
