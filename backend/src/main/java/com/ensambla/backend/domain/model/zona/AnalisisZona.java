@@ -5,6 +5,8 @@ import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /** Lo que se sabe de una zona: cuántos comercios aportan y los precios y ventas agregados de sus productos. */
 public record AnalisisZona(String nombre, long comercios, List<AgregadoZonaProducto> productos) {
@@ -55,6 +57,19 @@ public record AnalisisZona(String nombre, long comercios, List<AgregadoZonaProdu
                 .filter(producto -> producto.comerciosVenden() >= MINIMO_COMERCIOS)
                 .toList();
         return new AnalisisZona(nombre, comercios, anonimos).ordenadoPorVentas().productos();
+    }
+
+    /**
+     * Primero los productos que el negocio ya tiene ({@link NombreDeProducto#esElMismo}) y después el resto, cada grupo en
+     * su orden. Sirve para que, con un cupo de productos que se pueden ver, entren antes los que sirven para comparar.
+     */
+    public AnalisisZona conLosPropiosPrimero(List<String> nombresPropios) {
+        Predicate<AgregadoZonaProducto> esPropio = producto -> nombresPropios.stream()
+                .anyMatch(nombre -> NombreDeProducto.esElMismo(nombre, producto.nombre()));
+        List<AgregadoZonaProducto> ordenados = Stream.concat(
+                productos.stream().filter(esPropio),
+                productos.stream().filter(esPropio.negate())).toList();
+        return new AnalisisZona(nombre, comercios, ordenados);
     }
 
     /** Primero los que más comercios venden y, a igualdad, los que más unidades por semana mueven. */

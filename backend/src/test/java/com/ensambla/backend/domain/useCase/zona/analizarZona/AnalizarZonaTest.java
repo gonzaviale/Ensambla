@@ -13,6 +13,7 @@ import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.service.zona.ProductosPropiosService;
 import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem.ProductoItem;
@@ -30,6 +31,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -50,6 +52,8 @@ class AnalizarZonaTest {
     private final ZonaRepository zonaRepository = mock(ZonaRepository.class);
     private final GeocodificadorPort geocodificadorPort = mock(GeocodificadorPort.class);
     private final AgregadoZonaRepository agregadoZonaRepository = mock(AgregadoZonaRepository.class);
+    private final ProductosPropiosService productosPropiosService = mock(ProductosPropiosService.class,
+            invocation -> invocation.getArgument(1));
 
     @Test
     @DisplayName("Resuelve la zona del punto del mapa sin buscar el texto ni la dirección")
@@ -208,6 +212,22 @@ class AnalizarZonaTest {
         assertThat(result.productos()).extracting(ProductoItem::nombre).containsExactly("Yerba");
     }
 
+    @Test
+    @DisplayName("Con el cupo del plan gratuito deja ver primero los productos que el negocio tiene")
+    void executeShouldOfferOwnedProductsFirstToThePlanQuota() {
+        Zona zona = givenZonaResolvedByPoint();
+        givenAnalisis(zona, 10,
+                givenProducto("Yerba", 9, "5"),
+                givenProducto("Azúcar", 4, "20"));
+        when(productosPropiosService.conLosPropiosPrimero(any(), any()))
+                .thenAnswer(invocation -> ((AnalisisZona) invocation.getArgument(1))
+                        .conLosPropiosPrimero(List.of("Azúcar")));
+
+        ZonaItem result = analizarZona(autorizaSoloLaPrimera()).execute(conPunto(null));
+
+        assertThat(result.productos()).extracting(ProductoItem::nombre).containsExactly("Azúcar");
+    }
+
     // --- arrange ---
     private Zona givenZona() {
         return Zona.builder().id(ZONA_ID).nombre(NOMBRE_ZONA).localidad("San Justo").build();
@@ -270,6 +290,6 @@ class AnalizarZonaTest {
         ControlPlanService controlPlanService = mock(ControlPlanService.class, plan);
         return new ZonaUseCaseConfig().analizarZona(
                 zonaRepository, geocodificadorPort, agregadoZonaRepository, CLOCK, negocioRepository,
-                controlPlanService);
+                controlPlanService, productosPropiosService);
     }
 }

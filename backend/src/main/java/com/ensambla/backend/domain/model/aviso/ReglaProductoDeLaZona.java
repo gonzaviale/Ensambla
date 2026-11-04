@@ -1,8 +1,8 @@
 package com.ensambla.backend.domain.model.aviso;
 
-import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import com.ensambla.backend.domain.model.zona.AgregadoZonaProducto;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
+import com.ensambla.backend.domain.model.zona.NombreDeProducto;
 import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
@@ -10,7 +10,6 @@ import java.math.RoundingMode;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static com.ensambla.backend.domain.model.aviso.FormatoAviso.CLAVE_CANTIDAD;
 import static com.ensambla.backend.domain.model.aviso.FormatoAviso.CLAVE_NOMBRE;
@@ -34,10 +33,6 @@ public class ReglaProductoDeLaZona implements ReglaAviso {
 
     private static final short PRIORIDAD = 1;
     private static final int STOCK_MINIMO_SUGERIDO = 5;
-    private static final int LARGO_MINIMO_DE_PALABRA = 3;
-    /** Palabras que no distinguen un producto de otro: artículos, preposiciones, unidades y presentaciones. */
-    private static final Set<String> VACIAS = Set.of("del", "las", "los", "con", "sin", "por", "para", "lts", "unidad",
-            "unidades", "pack", "docena", "docen");
 
     private final BigDecimal popularidadMinima;
 
@@ -58,7 +53,7 @@ public class ReglaProductoDeLaZona implements ReglaAviso {
         AnalisisZona zona = contexto.zona();
         return zona.masVendidos().stream()
                 .filter(producto -> esPopular(producto, zona))
-                .filter(producto -> tuyos.stream().noneMatch(nombre -> esElMismo(nombre, producto.nombre())))
+                .filter(producto -> tuyos.stream().noneMatch(nombre -> NombreDeProducto.esElMismo(nombre, producto.nombre())))
                 .limit(maximo)
                 .map(producto -> resultado(destino, producto, zona))
                 .toList();
@@ -77,21 +72,6 @@ public class ReglaProductoDeLaZona implements ReglaAviso {
         BigDecimal parte = BigDecimal.valueOf(producto.comerciosVenden())
                 .divide(BigDecimal.valueOf(zona.comercios()), 4, RoundingMode.HALF_UP);
         return parte.compareTo(popularidadMinima) >= 0;
-    }
-
-    /** Es el mismo producto si el nombre del negocio empieza por una palabra que también está en el de la zona. */
-    private static boolean esElMismo(String nombreDelNegocio, String nombreDeLaZona) {
-        List<String> tuyas = palabrasSignificativas(nombreDelNegocio);
-        return !tuyas.isEmpty() && palabrasSignificativas(nombreDeLaZona).contains(tuyas.getFirst());
-    }
-
-    /** Sin tildes ni plurales, sin las palabras vacías, sin números y sin palabras de menos de tres letras. */
-    private static List<String> palabrasSignificativas(String nombre) {
-        return TextoNormalizado.palabras(nombre).stream()
-                .filter(palabra -> palabra.length() >= LARGO_MINIMO_DE_PALABRA)
-                .filter(palabra -> !VACIAS.contains(palabra))
-                .filter(palabra -> !Character.isDigit(palabra.charAt(0)))
-                .toList();
     }
 
     private ResultadoRegla resultado(BloqueInventario destino, AgregadoZonaProducto producto, AnalisisZona zona) {

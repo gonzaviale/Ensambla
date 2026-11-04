@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.service.zona.ProductosPropiosService;
 import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,8 @@ public class ObtenerZona {
 
     private final ControlPlanService controlPlanService;
 
+    private final ProductosPropiosService productosPropiosService;
+
     private final Clock clock;
 
     public ZonaItem execute(ObtenerZonaRequest request) {
@@ -32,7 +35,7 @@ public class ObtenerZona {
         AnalisisZona analisis = zonaRepository.findByIdSiTiene(negocio.getZonaId())
                 .map(agregadoZonaRepository::analizar)
                 .orElseGet(AnalisisZona::sinZona);
-        ZonaItem zonaItem = ZonaItem.de(analisis);
+        ZonaItem zonaItem = ZonaItem.de(productosPropiosService.conLosPropiosPrimero(negocio.getId(), analisis));
         AccesoContenidoItem acceso = controlPlanService.seleccionar(
                 negocio.getId(), TipoContenidoPlan.ZONA, zonaItem.clavesDeAcceso(), OffsetDateTime.now(clock));
         return zonaItem.filtrada(acceso);

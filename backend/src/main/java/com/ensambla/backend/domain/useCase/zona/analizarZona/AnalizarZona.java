@@ -12,6 +12,7 @@ import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.service.zona.ProductosPropiosService;
 import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,8 @@ public class AnalizarZona {
 
     private final ControlPlanService controlPlanService;
 
+    private final ProductosPropiosService productosPropiosService;
+
     /**
      * Con un punto del mapa busca la zona precargada que lo contiene; si no, busca un barrio por nombre y, si
      * no es uno conocido, lo trata como una dirección. No filtra por rubro: usa los agregados de la zona, sin
@@ -47,7 +50,7 @@ public class AnalizarZona {
         AnalisisZona analisis = agregadoZonaRepository.analizar(zona)
                 .sinProductosSiHayMenosDe(AnalisisZona.MINIMO_COMERCIOS)
                 .ordenadoPorVentas();
-        ZonaItem zonaItem = ZonaItem.de(analisis);
+        ZonaItem zonaItem = ZonaItem.de(productosPropiosService.conLosPropiosPrimero(negocioId, analisis));
         AccesoContenidoItem acceso = controlPlanService.seleccionar(
                 negocioId, TipoContenidoPlan.ZONA, zonaItem.clavesDeAcceso(), OffsetDateTime.now(clock));
         return zonaItem.filtrada(acceso);

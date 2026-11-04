@@ -10,6 +10,7 @@ import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.service.zona.ProductosPropiosService;
 import com.ensambla.backend.domain.useCase.plan.AccesoContenidoItem;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem;
 import com.ensambla.backend.infrastructure.config.useCase.ZonaUseCaseConfig;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -40,8 +42,11 @@ class ObtenerZonaTest {
     private final AgregadoZonaRepository agregadoZonaRepository = mock(AgregadoZonaRepository.class);
     private final ControlPlanService controlPlanService = mock(ControlPlanService.class,
             invocation -> autorizaTodo(invocation.getArgument(2)));
+    private final ProductosPropiosService productosPropiosService = mock(ProductosPropiosService.class,
+            invocation -> invocation.getArgument(1));
     private final ObtenerZona obtenerZona = new ZonaUseCaseConfig().obtenerZona(
-            negocioRepository, zonaRepository, agregadoZonaRepository, controlPlanService, CLOCK);
+            negocioRepository, zonaRepository, agregadoZonaRepository, controlPlanService, productosPropiosService,
+            CLOCK);
 
     @Test
     @DisplayName("Devuelve los agregados de la zona del negocio de la sesión")
@@ -81,7 +86,36 @@ class ObtenerZonaTest {
         verifyNoInteractions(agregadoZonaRepository);
     }
 
+    @Test
+    @DisplayName("Con el cupo del plan gratuito deja ver primero los productos que el negocio tiene")
+    void executeShouldOfferOwnedProductsFirstToThePlanQuota() {
+        Zona zona = givenZona();
+        ControlPlanService soloLaPrimera = mock(ControlPlanService.class, invocation -> {
+            List<String> claves = invocation.getArgument(2);
+            return new AccesoContenidoItem(claves.subList(0, 1), 1, 1, claves.size(), claves.size() - 1, null);
+        });
+        ObtenerZona conCupo = new ZonaUseCaseConfig().obtenerZona(negocioRepository, zonaRepository,
+                agregadoZonaRepository, soloLaPrimera, productosPropiosService, CLOCK);
+        when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID))
+                .thenReturn(Negocio.builder().zonaId(ZONA_ID).build());
+        when(zonaRepository.findByIdSiTiene(ZONA_ID)).thenReturn(Optional.of(zona));
+        when(agregadoZonaRepository.analizar(zona)).thenReturn(new AnalisisZona("San Justo - UNLaM", 10, List.of(
+                givenProducto("Azúcar 1 kg"), givenProducto("Yerba 1kg"))));
+        when(productosPropiosService.conLosPropiosPrimero(any(), any()))
+                .thenAnswer(invocation -> ((AnalisisZona) invocation.getArgument(1))
+                        .conLosPropiosPrimero(List.of("Yerba")));
+
+        ZonaItem result = conCupo.execute(new ObtenerZonaRequest(USUARIO_ID));
+
+        assertThat(result.productos()).extracting(ZonaItem.ProductoItem::nombre).containsExactly("Yerba 1kg");
+    }
+
     // --- arrange ---
+    private static AgregadoZonaProducto givenProducto(String nombre) {
+        return new AgregadoZonaProducto(nombre, 8, 6, new BigDecimal("2800.00"), new BigDecimal("3100.00"),
+                new BigDecimal("3400.00"), new BigDecimal("12.50"));
+    }
+
     private static AccesoContenidoItem autorizaTodo(List<String> claves) {
         return new AccesoContenidoItem(claves, 0, null, claves.size(), 0, null);
     }
