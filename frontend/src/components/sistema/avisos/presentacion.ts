@@ -24,11 +24,8 @@ export const NOMBRE_DE_TIPO: Record<TipoDeAviso, string> = {
 
 export const NIVEL_DE_AVISO = { 3: 'Urgente', 2: 'Para hoy', 1: 'Para mirar' } as const;
 
-/** Lo que dice el botón: lo que modifica los datos arranca con «Aplicar», salvo sumar algo nuevo, que ya se entiende solo. */
+/** Lo que dice el botón: la acción, tal cual («Subir a $ 3.820», «Registrar entrada»). */
 export function textoDeAccion(accion: AccionDeAviso) {
-  if (accion.tipo === 'aplicar' || accion.tipo === 'servidor') {
-    return `Aplicar: ${accion.texto.charAt(0).toLowerCase()}${accion.texto.slice(1)}`;
-  }
   return accion.texto;
 }
 

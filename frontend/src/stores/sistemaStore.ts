@@ -27,7 +27,8 @@ export type Modal =
   | { tipo: 'resumen' }
   | { tipo: 'eliminarCuaderno' }
   | { tipo: 'renombrarPieza'; bloqueId: string }
-  | { tipo: 'registro'; bloqueId: string; filaId?: string | null }
+  /** `avisoId`: el aviso del servidor desde el que se abrió; al guardar el registro se da por aplicado. */
+  | { tipo: 'registro'; bloqueId: string; filaId?: string | null; avisoId?: string }
   /** Un registro de la propuesta de Sami, que todavía no es un sistema creado. */
   | { tipo: 'registroDelBorrador'; bloqueId: string; filaId?: string | null }
   /** Los consejos para sacar una buena foto; «Tomar foto» llama a `onTomarFoto` (abre el selector). */

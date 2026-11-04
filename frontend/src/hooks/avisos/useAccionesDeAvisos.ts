@@ -33,7 +33,8 @@ export function useAccionesDeAvisos() {
     {
       filaId = null,
       nuevoRegistro = false,
-    }: { filaId?: string | null; nuevoRegistro?: boolean } = {},
+      avisoId,
+    }: { filaId?: string | null; nuevoRegistro?: boolean; avisoId?: string } = {},
   ) => {
     const abierto = useSistemaStore.getState();
     if (abierto.activeId !== sistemaId || abierto.modo !== 'use') {
@@ -55,7 +56,7 @@ export function useAccionesDeAvisos() {
           const objetivo = fila ?? bloque;
           objetivo?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
           resaltar(objetivo);
-          if (nuevoRegistro) store.abrirModal({ tipo: 'registro', bloqueId, filaId });
+          if (nuevoRegistro) store.abrirModal({ tipo: 'registro', bloqueId, filaId, avisoId });
         },
         filaId ? ESPERA_DE_LA_TANDA : 0,
       );
@@ -86,7 +87,10 @@ export function useAccionesDeAvisos() {
         break;
       case 'registrar':
         store.ocultarAvisoNuevo();
-        void irAlBloque(accion.sistemaId, accion.bloqueId, { nuevoRegistro: true });
+        void irAlBloque(accion.sistemaId, accion.bloqueId, {
+          nuevoRegistro: true,
+          avisoId: accion.avisoId,
+        });
         break;
       case 'abrir':
         store.ocultarAvisoNuevo();
