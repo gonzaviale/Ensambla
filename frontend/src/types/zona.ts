@@ -19,6 +19,12 @@ export const zonaSchema = z.object({
 }) satisfies z.ZodType<Zona, z.ZodTypeDef, unknown>;
 
 /**
+ * Qué pantalla de «Mi zona» pide los datos. Cada una ordena los productos a su manera y gasta su propio cupo del plan
+ * gratuito: «precios» muestra primero lo que ya tenés y «cerca» lo más vendido que todavía no tenés.
+ */
+export type VistaDeZona = 'precios' | 'cerca';
+
+/**
  * Lo que la persona pide para ver otra zona: un punto del mapa (el servidor busca la zona que lo contiene)
  * o, si no hay punto, un barrio o una dirección escritos.
  */
