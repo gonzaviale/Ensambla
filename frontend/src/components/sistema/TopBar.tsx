@@ -4,7 +4,7 @@ import { Logo } from './Logo';
 import { MenuDePerfil } from './MenuDePerfil';
 
 export type SeccionActiva =
-  'home' | 'sistemas' | 'templates' | 'zone' | 'avisos' | 'plans' | 'account';
+  'home' | 'sistemas' | 'templates' | 'zone' | 'avisos' | 'promociones' | 'plans' | 'account';
 
 type TopBarProps = {
   active?: SeccionActiva;
@@ -16,6 +16,7 @@ type TopBarProps = {
   onPlantillas: () => void;
   onZona: () => void;
   onAvisos: () => void;
+  onPromociones: () => void;
   onPlanes: () => void;
   onAyuda: () => void;
   /** «Configuración», en el menú del avatar. */
@@ -34,6 +35,7 @@ export function TopBar({
   onPlantillas,
   onZona,
   onAvisos,
+  onPromociones,
   onPlanes,
   onAyuda,
   onCuenta,
@@ -82,6 +84,14 @@ export function TopBar({
           onClick={ir(onAvisos)}
         >
           Avisos
+        </button>
+        <button
+          type="button"
+          className={active === 'promociones' ? 'active' : ''}
+          aria-current={active === 'promociones' ? 'page' : undefined}
+          onClick={ir(onPromociones)}
+        >
+          Promociones
         </button>
         <button
           type="button"

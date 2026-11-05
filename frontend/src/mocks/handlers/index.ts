@@ -9,6 +9,7 @@ import { handlersZona } from './zona';
 import { handlersUbicacion } from './ubicacion';
 import { handlersNegocio } from './negocio';
 import { handlersPlanes } from './planes';
+import { handlersPromociones } from './promociones';
 import { handlersReportes } from './reportes';
 import { handlersReposicion } from './reposicion';
 import { handlersWhatsapp } from './whatsapp';
@@ -29,6 +30,7 @@ export function handlersPara(modo: ModoMocks) {
       ...handlersPlanes,
       ...handlersReportes,
       ...handlersReposicion,
+      ...handlersPromociones,
       ...handlersWhatsapp,
       ...handlersSamiProyecto,
       ...handlersSamiTaller,

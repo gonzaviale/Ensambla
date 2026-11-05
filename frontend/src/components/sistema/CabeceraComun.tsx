@@ -23,6 +23,7 @@ export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
       onPlantillas={() => void navegacion.irAPlantillas()}
       onZona={() => void navegacion.irAZona()}
       onAvisos={() => void abrirAvisos()}
+      onPromociones={() => void navegacion.irAPromociones()}
       onPlanes={() => void navegacion.irAPlanes()}
       onAyuda={() => abrirModal({ tipo: 'ayuda' })}
       onCuenta={() => void navegacion.irACuenta()}
