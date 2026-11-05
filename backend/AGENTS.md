@@ -14,10 +14,13 @@ Antes de tocar código leé [ARQUITECTURA.md](ARQUITECTURA.md), [README.md](READ
 - Nombres de dominio en español (clases, campos, métodos de servicio, enums, tablas).
 - `domain` no depende de `infrastructure` ni de Spring: casos de uso, servicios y reglas se registran como `@Bean` en
   `*UseCaseConfig` y la transacción la abre el caso de uso con `TransaccionPort`.
-- Las 7 reglas de [ARQUITECTURA.md](ARQUITECTURA.md): Testcontainers (sin H2), ids tipados (`ProyectoId`…), enums junto
+- Las 9 reglas de [ARQUITECTURA.md](ARQUITECTURA.md): Testcontainers (sin H2), ids tipados (`ProyectoId`…), enums junto
   a su modelo, DTOs en el subpaquete del caso de uso, sin sufijo `UseCase`, DTOs con fábrica `de()` (sin mappers de
   dominio), servicios sólo para la lógica de varios pasos que repiten dos o más casos de uso (las búsquedas de una
-  línea son métodos `default` del puerto) y ningún caso de uso llama a otro.
+  línea son métodos `default` del puerto), ningún caso de uso llama a otro, **variantes por tipo con polimorfismo**
+  (interfaz o base abstracta y una clase por variante; nunca `switch` ni `if` por tipo, tampoco en los tests: contrato
+  abstracto heredado) y **métodos que se explican solos** (`execute()` como lista de pasos, todo el detalle en métodos
+  privados). Las dos últimas valen para todo lo nuevo; lo viejo está en la «Deuda conocida».
 - El `Clock` sólo vive en los use cases; los servicios reciben el instante por parámetro.
 - Antes de cerrar una tarea: `./mvnw clean verify` en verde (100 % de cobertura por clase).
 

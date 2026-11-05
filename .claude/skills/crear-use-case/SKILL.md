@@ -1,6 +1,6 @@
 ---
 name: crear-use-case
-description: Crea un caso de uso nuevo (endpoint) del backend de Ensambla de punta a punta siguiendo la estructura de capas del proyecto - model e id tipado, repositorio (puerto), caso de uso con sus DTOs en su subpaquete (fábricas de(), sin mapper de dominio), servicio solo si se comparte, bean manual en *UseCaseConfig, entity, JPA, RepositoryImpl, mapper de repositorio, DTO web, mapper de presentación y controller - más sus tests. Usar cuando se pida "agregar un endpoint", "crear el caso de uso de X", "nuevo módulo/feature del backend", "exponer GET/POST/PATCH/DELETE de X", "agregar una consulta" o "sumar una entidad". Para limpiar o reordenar un caso de uso que ya existe usar refactor-use-case; para los tests usar escribir-tests; las reglas de estructura están en reglas-arquitectura.
+description: Crea un caso de uso nuevo (endpoint) del backend de Ensambla de punta a punta siguiendo la estructura de capas del proyecto - model e id tipado, repositorio (puerto), caso de uso con sus DTOs en su subpaquete (fábricas de(), sin mapper de dominio), servicio solo si se comparte, variantes por tipo como interfaz o clase base abstracta con una clase por variante (nunca switch), execute() como lista de pasos con el detalle en métodos privados, bean manual en *UseCaseConfig, entity, JPA, RepositoryImpl, mapper de repositorio, DTO web, mapper de presentación y controller - más sus tests. Usar cuando se pida "agregar un endpoint", "crear el caso de uso de X", "nuevo módulo/feature del backend", "exponer GET/POST/PATCH/DELETE de X", "agregar una consulta" o "sumar una entidad". Para limpiar o reordenar un caso de uso que ya existe usar refactor-use-case; para los tests usar escribir-tests; las reglas de estructura están en reglas-arquitectura.
 ---
 
 # Crear un caso de uso nuevo (backend Ensambla)
@@ -21,6 +21,14 @@ Vocabulario y tablas: `docs/modelo-datos.md`. Tareas: `docs/backlog.md`.
 4. **Decidí dónde va cada cosa:** traer una entidad o responder 404 es un método `default` del puerto; una regla pura va
    al modelo; lo que usa solo este caso de uso es un método privado. Un servicio solo si es lógica de varios pasos que ya
    repite otro caso de uso (buscala con grep); nunca llames a otro caso de uso.
+5. **¿Hay variantes por tipo?** Si algo se comporta distinto según un tipo (de campo, de aviso, canal, comando,
+   formato), no escribas un `switch` ni una cadena de `if`: definí una **interfaz** (`ReglaAviso`) con **una clase por
+   variante**, o una **clase base abstracta con método plantilla** si comparten el flujo. Cada variante es un `@Bean` del
+   `*UseCaseConfig` y el caso de uso recibe la `List<Interfaz>` o un catálogo. Sumar una variante después es sumar una
+   clase (regla 8). `ArchitectureTest` rechaza un `switch` nuevo.
+6. **Escribí `execute()` primero, como una lista de pasos**, con los nombres de los métodos privados que todavía no
+   existen (`faltantesDe(proyecto)`, `agruparPorProveedor(...)`, `respuestaCon(...)`), y recién después el detalle de cada
+   uno. Nada de lógica inline en `execute()` (regla 9).
 
 ## Estructura: qué archivo va en cada capa
 
@@ -71,6 +79,41 @@ public class CrearProyecto {
     private Proyecto crear(NegocioId negocioId, CrearProyectoRequest request, OffsetDateTime ahora) {
         return proyectoRepository.save(Proyecto.nuevo(negocioId, request.nombre(), request.descripcion(), ahora));
     }
+}
+```
+
+Variantes por tipo (regla 8): una interfaz, una clase por variante y el caso de uso que solo recorre la lista. Con flujo
+común, una base abstracta con método plantilla.
+
+```java
+public interface ReglaPromocion {
+
+    Optional<Promocion> evaluar(ContextoPromocion contexto);
+}
+
+public class PromocionCombo implements ReglaPromocion { … }
+
+public class SugerirPromociones {
+
+    private final List<ReglaPromocion> reglas;
+
+    public SugerirPromocionesResponse execute(SugerirPromocionesRequest request) {
+        ContextoPromocion contexto = contextoDe(request);
+        return SugerirPromocionesResponse.de(promocionesQueAplican(contexto));
+    }
+
+    private List<Promocion> promocionesQueAplican(ContextoPromocion contexto) {
+        return reglas.stream().map(regla -> regla.evaluar(contexto)).flatMap(Optional::stream).toList();
+    }
+}
+
+public abstract class CanalPromocion {
+
+    public final String redactar(Promocion promocion) {
+        return ajustarAlLargo(limpiar(pedirTexto(armarPedido(promocion))));
+    }
+
+    protected abstract String armarPedido(Promocion promocion);
 }
 ```
 
@@ -160,6 +203,8 @@ Después abrí Swagger (`/swagger-ui.html`, solo con el perfil `dev`) y probá e
 - [ ] Caso de uso sin sufijo, con sus DTOs en su subpaquete y fábricas `de()`; sin mapper de dominio.
 - [ ] Servicio nuevo solo si es lógica de varios pasos que repiten dos o más casos de uso; búsquedas `findX().orElseThrow` como `default` del puerto; ningún caso de uso llama a otro; nada de Spring en `domain`.
 - [ ] `execute()` es una lista de pasos; las escrituras dentro de `transaccionPort.ejecutar(...)`.
+- [ ] Todo el detalle está en métodos privados con nombre de dominio; sin `if` anidados, sin números ni textos mágicos (regla 9).
+- [ ] Nada decide por tipo con `switch` ni `if`: una interfaz (o base abstracta) y una clase por variante, registradas como beans (regla 8).
 - [ ] Bean agregado al `*UseCaseConfig` con el orden correcto de argumentos.
 - [ ] `@Tag`/`@Operation` en el controller y ruta agregada a `SecurityConfig` solo si es pública.
 - [ ] Migración Flyway nueva si cambió el esquema (y `docs/modelo-datos.md` actualizado).

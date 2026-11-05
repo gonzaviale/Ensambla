@@ -9,6 +9,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -30,6 +32,26 @@ class ArchitectureTest {
     // Los value objects de id, su interfaz y las dos reglas que derivan UUID de un texto.
     private static final Pattern UUID_ALLOWED = Pattern.compile(
             ".*/model/.*/\\w+Id\\.java|.*/model/common/(Identificador|Huella)\\.java|.*/model/sistema/IdSistema\\.java");
+    // target/classes -> src/main/java
+    private static final Path MAIN_SOURCES = CLASSES.getParent().getParent()
+            .resolve("src/main/java/com/ensambla/backend");
+    private static final Pattern SWITCH_STATEMENT = Pattern.compile("\\bswitch\\s*\\(");
+    private static final Pattern JAVA_COMMENTS = Pattern.compile("/\\*.*?\\*/|//[^\\n]*", Pattern.DOTALL);
+    // Deuda conocida de ARQUITECTURA.md (regla 8): código anterior a la regla. Solo puede bajar.
+    private static final Set<String> SWITCH_CONOCIDOS = Set.of(
+            "domain/model/campo/Campo.java",
+            "domain/model/campo/ConfiguracionCampo.java",
+            "domain/model/reporte/TablaReporte.java",
+            "domain/model/lectura/LecturaCuaderno.java",
+            "domain/model/whatsapp/FilaPropuesta.java",
+            "domain/model/zona/VistaZona.java",
+            "domain/model/pago/RenovacionPremium.java",
+            "domain/model/registro/DireccionOrden.java",
+            "domain/useCase/sami/conversarConSami/ConversarConSamiResponse.java",
+            "infrastructure/pago/MercadoPagoSuscripcionesAdapter.java",
+            "infrastructure/reporte/ExportadorReporteXlsxAdapter.java",
+            "infrastructure/presentation/mapper/zona/ZonaPresentationMapper.java",
+            "infrastructure/ia/InterpreteRegistrosSimulado.java");
 
     @Test
     @DisplayName("Las clases del dominio no dependen de la infraestructura")
@@ -84,6 +106,22 @@ class ArchitectureTest {
     }
 
     @Test
+    @DisplayName("No se suman switch nuevos: las variantes se resuelven con polimorfismo")
+    void sourcesShouldNotAddNewSwitchStatements() throws IOException {
+        Set<String> conSwitch = sourcesWithSwitch();
+
+        thenOnlyKnownSourcesUseSwitch(conSwitch);
+    }
+
+    @Test
+    @DisplayName("La deuda conocida de switch no guarda archivos que ya lo eliminaron")
+    void knownSwitchListShouldNotKeepResolvedSources() throws IOException {
+        Set<String> conSwitch = sourcesWithSwitch();
+
+        thenEveryKnownSourceStillUsesSwitch(conSwitch);
+    }
+
+    @Test
     @DisplayName("Los tests no usan H2")
     void testsShouldNotUseH2() {
         assertThat(ArchitectureTest.class.getResource("/application-h2-test.properties")).isNull();
@@ -97,6 +135,17 @@ class ArchitectureTest {
 
     private List<Path> domainSources() throws IOException {
         return files(DOMAIN_SOURCES, ".java");
+    }
+
+    /** Los fuentes de producción con un {@code switch} (sin contar comentarios), por su ruta bajo el paquete raíz. */
+    private Set<String> sourcesWithSwitch() throws IOException {
+        Set<String> conSwitch = new TreeSet<>();
+        for (Path source : files(MAIN_SOURCES, ".java")) {
+            if (usesSwitch(source)) {
+                conSwitch.add(MAIN_SOURCES.relativize(source).toString().replace('\\', '/'));
+            }
+        }
+        return conSwitch;
     }
 
     /**
@@ -147,7 +196,22 @@ class ArchitectureTest {
         }
     }
 
+    private void thenOnlyKnownSourcesUseSwitch(Set<String> conSwitch) {
+        assertThat(conSwitch).as("switch nuevos: resolvelos con una clase por variante (regla 8)")
+                .isSubsetOf(SWITCH_CONOCIDOS);
+    }
+
+    private void thenEveryKnownSourceStillUsesSwitch(Set<String> conSwitch) {
+        assertThat(conSwitch).as("sacá de SWITCH_CONOCIDOS y de ARQUITECTURA.md lo que ya no usa switch")
+                .containsAll(SWITCH_CONOCIDOS);
+    }
+
     // --- helpers ---
+    private boolean usesSwitch(Path source) throws IOException {
+        String sinComentarios = JAVA_COMMENTS.matcher(Files.readString(source)).replaceAll("");
+        return SWITCH_STATEMENT.matcher(sinComentarios).find();
+    }
+
     private List<Path> files(Path root, String extension) throws IOException {
         assertThat(root).exists();
         try (Stream<Path> paths = Files.walk(root)) {

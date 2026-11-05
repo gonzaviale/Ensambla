@@ -191,6 +191,88 @@ public class ActualizarRenovacion {
 }
 ```
 
+### 8. Las variantes se resuelven con polimorfismo, no con `switch`
+
+**Por qué:** un `switch` o una cadena de `if` por tipo junta en un solo método el conocimiento de todas las variantes.
+Para sumar una hay que abrir ese método, y cada variante nueva lo agranda y suma casos a su test. Con una clase por
+variante, la regla de cada una vive junto a ella y sumar una es sumar una clase.
+
+**Cómo:**
+
+- Si el comportamiento cambia según un tipo (tipo de campo, de aviso, canal, comando, formato), ese tipo es una
+  **interfaz** con una clase por variante.
+- Si las variantes comparten el flujo y solo cambia un paso, van como **clase base abstracta con un método plantilla**:
+  la base define el orden de los pasos y cada variante sobrescribe el que le toca.
+- Un enum solo identifica a la variante. El comportamiento no se pregunta con `switch (tipo)`: se le pide a la clase
+  (`regla.evaluar(contexto)`).
+- Las variantes se registran como `@Bean` en el `*UseCaseConfig`, y quien las usa recibe la `List<Interfaz>` (el motor de
+  avisos recibe todas las `ReglaAviso`) o un catálogo que elige la que corresponde. Sumar una variante no toca a quien
+  las usa.
+- Una cadena de `if` que pregunta por el tipo (`tipo == …`, `instanceof`) es lo mismo que un `switch`. Pasar un valor a
+  otro (un texto a una constante) se resuelve con un `Map` o un método del enum, tampoco con `switch`.
+- Los tests siguen el mismo esquema: una clase abstracta con el contrato de la interfaz y un test por implementación que
+  la extiende (skill `escribir-tests`).
+- `ArchitectureTest` falla ante cualquier `switch` que no esté en la lista de «Deuda conocida». Esa lista solo puede bajar.
+
+```java
+// ✅ una clase por variante; el motor no sabe cuántas hay
+public interface ReglaAviso {
+    TipoAviso tipo();
+    List<ResultadoRegla> evaluar(ContextoNegocio contexto);
+}
+public class ReglaStockBajo implements ReglaAviso { … }
+public class ReglaPrecioZona implements ReglaAviso { … }
+
+// ✅ la base fija el flujo y cada canal pone su paso
+public abstract class CanalPromocion {
+    public final String redactar(Promocion promocion) { … armarPedido(promocion) … ajustarAlLargo(texto) … }
+    protected abstract String armarPedido(Promocion promocion);
+}
+
+// ❌ todas las variantes en un solo método (Campo.errorDe)
+return switch (tipo) {
+    case TEXTO, TEXTO_LARGO, EMAIL, TELEFONO, HORA -> errorDeTexto(valor);
+    case NUMERO, MONEDA -> errorSi(!esNumeroFinito(valor), "Tiene que ser un número");
+    …
+};
+```
+
+### 9. Un método se explica solo: el detalle va en métodos privados
+
+**Por qué:** si hay que leer veinte líneas para entender qué hace un método, el nombre no dice nada y el código se
+vuelve espagueti. Un método bien escrito se lee como una frase y cada paso se entiende por su nombre.
+
+**Cómo:**
+
+- El método público (`execute()` en un caso de uso) es una **lista corta de pasos**. Cada línea llama a un método con un
+  nombre que dice qué hace (`faltantesDe(proyecto)`, `agruparPorProveedor(...)`, `respuestaCon(...)`). No hay bloques de
+  lógica inline ni comentarios que expliquen lo que el nombre debería decir.
+- **Todo** el detalle va en métodos privados, con un nombre de dominio en español. Cada método opera en un solo nivel de
+  abstracción: o decide qué pasos dar, o hace uno de ellos.
+- Sin `if` anidados. Se usan cláusulas de guarda, predicados con nombre (`estaAgotado()`, `tieneProveedor()`) o
+  polimorfismo (regla 8).
+- Sin números ni textos mágicos: constantes con nombre (`HORA_DEL_RESUMEN`, `MAXIMO_DE_ITEMS`).
+- Los tests siguen igual: un test es `given → acción → then` y toda la mecánica va en métodos privados (skill
+  `escribir-tests`).
+
+```java
+// ✅ se lee como una frase
+public ArmarPedidoProveedorResponse execute(ArmarPedidoProveedorRequest request) {
+    NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+    Proyecto proyecto = proyectoRepository.obtener(negocioId, request.proyectoId());
+    PedidoReposicion pedido = pedidoDeLoQueFalta(proyecto, request);
+    return respuestaConPdf(pedido, proyecto);
+}
+
+// ❌ la lógica queda a la vista y hay que descifrarla
+public ArmarPedidoProveedorResponse execute(ArmarPedidoProveedorRequest request) {
+    …
+    for (Registro r : inventario.registros()) {
+        if (cantidad != null) {
+            if (cantidad.signum() <= 0 || (minimo != null && cantidad.compareTo(minimo) <= 0)) {
+                BigDecimal pedir = minimo == null ? BigDecimal.TEN : minimo.multiply(BigDecimal.valueOf(2))…
+```
+
 ## Otras reglas que siguen vigentes
 
 - **Aislamiento por negocio:** el `NegocioId` sale de la sesión, jamás del body, la URL ni un query param. Un recurso
@@ -210,6 +292,34 @@ public class ActualizarRenovacion {
 | Sin `domain/dto`, `domain/mapper` ni `domain/model/enums` | los paquetes no existen |
 | Ids tipados | en los fuentes de `domain`, solo los `*Id`, `Identificador`, `IdSistema` y `Huella` nombran `UUID` |
 | Sin H2 | no hay `application-h2-test.properties` ni `org.h2.Driver` en el classpath |
+| Sin `switch` nuevos | en los fuentes de `src/main/java`, solo los archivos de «Deuda conocida» tienen un `switch`; y esa lista no guarda archivos que ya lo eliminaron |
+
+La regla 9 (métodos que se explican solos) y que las variantes tengan su test de contrato no se pueden verificar
+automáticamente: se revisan a mano antes de cerrar.
+
+## Deuda conocida (regla 8)
+
+Código anterior a la regla 8, que decide por tipo con un `switch`. No se toca mientras no se acomode esa parte, y cada
+archivo que se corrija se saca de la lista `SWITCH_CONOCIDOS` de `ArchitectureTest`.
+
+| Archivo | Qué decide con un `switch` |
+|---|---|
+| `domain/model/campo/Campo` | el error de un valor según el `TipoCampo` |
+| `domain/model/campo/ConfiguracionCampo` | el error del valor inicial según el `TipoCampo` |
+| `domain/model/reporte/TablaReporte` | cómo se convierte la celda de un reporte según el `TipoCampo` |
+| `domain/model/lectura/LecturaCuaderno` | cómo se comprueba el dato leído según el tipo del campo |
+| `domain/model/whatsapp/FilaPropuesta` | cómo se tipa un valor según el tipo del campo (y un texto de sí o no) |
+| `domain/model/zona/VistaZona` | cómo se ordena la zona según la pestaña |
+| `domain/model/pago/RenovacionPremium` | el estado propio que corresponde al que informa el proveedor |
+| `domain/model/registro/DireccionOrden` | pasar un texto a una dirección de orden |
+| `domain/useCase/sami/conversarConSami/ConversarConSamiResponse` | la propuesta de la respuesta según el tipo de paso |
+| `infrastructure/pago/MercadoPagoSuscripcionesAdapter` | cómo se identifica el contrato según el tipo de notificación |
+| `infrastructure/reporte/ExportadorReporteXlsxAdapter` | cómo se escribe una celda según la clase del valor |
+| `infrastructure/presentation/mapper/zona/ZonaPresentationMapper` | pasar el texto de una vista a `VistaZona` |
+| `infrastructure/ia/InterpreteRegistrosSimulado` | el dato simulado según el tipo del campo |
+
+El acomodo previsto es el de siempre: una interfaz por variante y una clase por tipo (por ejemplo, un validador por
+cada `TipoCampo`). La receta está en el skill `refactor-use-case`.
 
 ## Controles rápidos
 
@@ -221,4 +331,5 @@ find src/main/java/com/ensambla/backend/domain -name "*UseCase.java"
 ls -d src/main/java/com/ensambla/backend/domain/{dto,mapper,model/enums} 2>/dev/null
 grep -rlw "UUID" src/main/java/com/ensambla/backend/domain | grep -v "Id.java$\|Identificador\|IdSistema\|Huella"
 grep -n "h2database" pom.xml; ls src/test/resources/application-h2-test.properties 2>/dev/null
+grep -rlE "\bswitch\s*\(" src/main/java        # solo los de «Deuda conocida»
 ```

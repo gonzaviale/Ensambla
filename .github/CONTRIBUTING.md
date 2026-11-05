@@ -62,6 +62,11 @@ tipo(scope): descripcion
   - Los DTOs se mapean con su fábrica `de()`; no hay mappers de dominio
   - Ids tipados (`ProyectoId`, `NegocioId`…) en todas las capas salvo las entidades JPA
   - Enums junto a su modelo; transacciones con `TransaccionPort`; tests con base sobre Testcontainers, sin H2
+  - Variantes por tipo con **polimorfismo** (interfaz o base abstracta y una clase por variante), nunca con `switch` ni
+    `if` por tipo; los tests de variantes heredan un contrato abstracto
+  - Métodos que se explican solos: `execute()` es una lista de pasos y todo el detalle va en métodos privados con
+    nombre de dominio, sin `if` anidados ni números mágicos
+  - El código anterior que usa `switch` está en la «Deuda conocida» de `ARQUITECTURA.md`: no se suman más
 - Migraciones Flyway `V{n}__{descripcion}.sql`: **nunca se edita una ya aplicada**, se crea una nueva
 - **Aislamiento:** el `negocio_id` sale siempre de la sesión, nunca del body ni de la URL
 - Cobertura 100 % de líneas y ramas por clase (JaCoCo en `verify`)

@@ -18,6 +18,9 @@ fuente; si cambiás uno, cambiá los dos):
 
 ## Reglas del backend (resumen de ARQUITECTURA.md)
 
+Son nueve. Las reglas 8 y 9 son las que más se criticaron del código y **valen para todo lo nuevo** (frontend incluido).
+Lo viejo que las incumple está en la «Deuda conocida» de `ARQUITECTURA.md` y se acomoda aparte.
+
 1. Los tests con base usan Testcontainers (`PostgresRepositoryTestSupport`), nunca H2.
 2. Los ids son value objects (`ProyectoId`, `NegocioId`…) en todas las capas; las entidades JPA siguen con `UUID`.
 3. Los enums viven junto a su modelo (`domain/model/campo/TipoCampo`).
@@ -28,6 +31,13 @@ fuente; si cambiás uno, cambiá los dos):
    las búsquedas de una línea son métodos `default` del puerto y las reglas puras van al modelo. Un caso de uso nunca
    llama a otro caso de uso. El dominio no usa Spring: beans manuales en `*UseCaseConfig` y transacciones con
    `TransaccionPort`.
+8. Las variantes por tipo se resuelven con **polimorfismo**: una interfaz (o una clase base abstracta con método
+   plantilla) y una clase por variante, registradas como beans. Nunca un `switch` ni una cadena de `if` por tipo
+   (`ArchitectureTest` rechaza un `switch` nuevo). Sus tests igual: una clase abstracta de contrato que heredan los tests
+   de cada variante. Modelo: `ReglaAviso` y sus reglas.
+9. Un método se explica solo: `execute()` es una lista corta de pasos con nombres que se leen como una frase y **todo**
+   el detalle va en métodos privados con nombre de dominio (un solo nivel de abstracción, sin `if` anidados, sin números
+   ni textos mágicos). Los tests siguen la misma forma: `given → acción → then`, todo en privados.
 
 `ArchitectureTest` verifica las reglas que se pueden comprobar automáticamente. Siguen valiendo el aislamiento por
 negocio (el `NegocioId` sale de la sesión; recurso ajeno → 404), que una migración Flyway aplicada no se edita, los

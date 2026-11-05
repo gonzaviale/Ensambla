@@ -1,6 +1,6 @@
 ---
 name: refactor-use-case
-description: Refactoriza un caso de uso del backend de Ensambla (com.ensambla.backend.domain.useCase.*) a la estructura objetivo del proyecto, dejando execute() como una lista de pasos, moviendo las reglas puras al model, la lógica de un solo caso de uso a métodos privados y a servicios de dominio solo lo que comparten dos o más casos de uso; con sus DTOs en el subpaquete del caso, fábricas de() en lugar de mappers, ids tipados, sin sufijo UseCase y sin Spring en el dominio; y sus tests al estilo Arrange-Act-Assert con helpers privados, nombres camelCase y @DisplayName en español; sin cambiar el comportamiento y manteniendo los tests verdes. Usar cuando se pida "refactorizar este caso de uso", "dejar SOLID", "extraer a private methods/al model/al service", "eliminar este servicio/mapper", limpiar un execute() con lógica inline, o "refactorizar/limpiar los tests" (extraer when/then y validaciones a métodos privados, camelCase, DisplayName).
+description: Refactoriza un caso de uso del backend de Ensambla (com.ensambla.backend.domain.useCase.*) a la estructura objetivo del proyecto, dejando execute() como una lista de pasos, moviendo las reglas puras al model, la lógica de un solo caso de uso a métodos privados y a servicios de dominio solo lo que comparten dos o más casos de uso; con sus DTOs en el subpaquete del caso, fábricas de() en lugar de mappers, ids tipados, sin sufijo UseCase y sin Spring en el dominio; y sus tests al estilo Arrange-Act-Assert con helpers privados, nombres camelCase y @DisplayName en español; y que sustituye un switch por tipo por polimorfismo (receta para la «Deuda conocida»); sin cambiar el comportamiento y manteniendo los tests verdes. Usar cuando se pida "refactorizar este caso de uso", "sacar este switch a polimorfismo", "dejar SOLID", "extraer a private methods/al model/al service", "eliminar este servicio/mapper", limpiar un execute() con lógica inline, o "refactorizar/limpiar los tests" (extraer when/then y validaciones a métodos privados, camelCase, DisplayName).
 ---
 
 > Copia para Codex. La fuente es `.claude/skills/refactor-use-case/SKILL.md`: si cambiás uno, cambiá los dos.
@@ -77,6 +77,9 @@ public ProyectoItem execute(CrearProyectoDesdePlantillaRequest request) {
   `default` del puerto o al modelo.
 - **Un mapper de dominio** → se reemplaza por la fábrica `de()` del DTO; su test pasa a ser el test del DTO.
 - **Un `UUID` en una firma** → el id tipado de esa entidad.
+- **Un `switch` o una cadena de `if` por tipo** → polimorfismo (regla 8). Ver la receta de abajo.
+- **Un método largo con detalle inline** → `execute()` o el método público queda como lista de pasos y cada paso pasa a un
+  método privado con nombre de dominio (regla 9).
 
 Para mantener los servicios agnósticos del tiempo y los tests deterministas: el caso de uso mantiene su `Clock` y le
 pasa `OffsetDateTime.now(clock)` al servicio o al modelo.
@@ -93,9 +96,31 @@ pasa `OffsetDateTime.now(clock)` al servicio o al modelo.
    **toda** regla movida al model (un caso por comportamiento): el build exige 100 % por clase.
 6. **Compilar y correr** los tests afectados, `ArchitectureTest` y después `clean verify`.
 
+## Receta: sacar un `switch` por tipo a polimorfismo
+
+Para el código de la «Deuda conocida» de `ARQUITECTURA.md` (por ejemplo `Campo.errorDe`, que decide según `TipoCampo`).
+El comportamiento no cambia: los tests existentes deben pasar sin tocar sus aserciones.
+
+1. **Nombrá la responsabilidad que varía** y definí la interfaz (`ValidadorDeValor` con `errorDe(Object valor)`).
+2. **Una clase por variante**, con la rama del `switch` adentro (`ValidadorDeTexto`, `ValidadorDeNumero`,
+   `ValidadorDeFecha`…). Si las ramas comparten pasos, una base abstracta con método plantilla y cada clase sobrescribe
+   el paso que cambia.
+3. **El enum deja de decidir:** la variante se obtiene de un catálogo (`Map<TipoCampo, ValidadorDeValor>` armado una sola
+   vez, o un método del enum que devuelve su instancia). Si falta una variante, que falle al armar el catálogo, sin
+   `default ->`.
+4. **El modelo delega:** `campo.errorDe(valor)` pasa a ser una línea que le pide el resultado a la variante.
+5. **Tests:** una clase abstracta de contrato (`ValidadorDeValorContratoTest`) heredada por el test de cada variante; los
+   casos del test viejo se reparten entre las variantes y el contrato. Cobertura 100 % por clase.
+6. **Sacá el archivo de la lista:** borralo de `SWITCH_CONOCIDOS` en `ArchitectureTest` y de la tabla «Deuda conocida»
+   de `ARQUITECTURA.md`. Si olvidás hacerlo, el test falla.
+7. Un archivo por vez: `clean verify` en verde antes de pasar al siguiente.
+
 ## Anti-patrones (NO hacer)
 
-- Un método por cada write o por cada línea: eso es fragmentar, no ordenar.
+- Un método por cada write o por cada línea: eso es fragmentar, no ordenar. Un método privado vale cuando su nombre
+  dice un paso del dominio.
+- Reemplazar un `switch` por otro (un `Map` de lambdas que repite la ramificación): la variante tiene que ser una clase
+  con su propia regla.
 - Crear un servicio para lógica que usa un solo caso de uso, o un mapper de dominio para lo que es una fábrica.
 - Crear interfaces para los casos de uso cuando hay una sola implementación (YAGNI).
 - Mover I/O (repositorios) dentro del model.

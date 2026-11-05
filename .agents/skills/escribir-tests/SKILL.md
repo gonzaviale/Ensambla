@@ -1,6 +1,6 @@
 ---
 name: escribir-tests
-description: Escribe o reescribe los tests del backend de Ensambla al estilo del proyecto - Arrange-Act-Assert con helpers privados givenX/thenX, métodos camelCase xShouldYWhenZ, @DisplayName en español, imports explícitos, builders en vez de reflexión, un comportamiento por test - con plantillas por capa (caso de uso con TransaccionDirecta, DTO con fábrica de(), servicio compartido, modelo e ids tipados, mapper de presentación, controller con MockMvcDePrueba, repo impl, mapper de repositorio, JPA contra PostgreSQL con Testcontainers, integración HTTP sin H2, excepciones, config, ArchitectureTest). Usar cuando se pida "escribir/agregar/arreglar tests", "testear este caso de uso/servicio/controller/mapper", "cubrir X con tests" o al terminar una feature nueva. Para refactorizar el caso de uso en sí usar refactor-use-case; para crear una feature usar crear-use-case.
+description: Escribe o reescribe los tests del backend de Ensambla al estilo del proyecto - Arrange-Act-Assert con helpers privados givenX/thenX, métodos camelCase xShouldYWhenZ, @DisplayName en español, imports explícitos, builders en vez de reflexión, un comportamiento por test, variantes probadas con una clase abstracta de contrato que heredan los tests de cada implementación - con plantillas por capa (caso de uso con TransaccionDirecta, DTO con fábrica de(), servicio compartido, modelo e ids tipados, mapper de presentación, controller con MockMvcDePrueba, repo impl, mapper de repositorio, JPA contra PostgreSQL con Testcontainers, integración HTTP sin H2, excepciones, config, ArchitectureTest). Usar cuando se pida "escribir/agregar/arreglar tests", "testear este caso de uso/servicio/controller/mapper", "cubrir X con tests" o al terminar una feature nueva. Para refactorizar el caso de uso en sí usar refactor-use-case; para crear una feature usar crear-use-case.
 ---
 
 > Copia para Codex. La fuente es `.claude/skills/escribir-tests/SKILL.md`: si cambiás uno, cambiá los dos.
@@ -35,6 +35,14 @@ estructura que se prueban están en [`backend/ARQUITECTURA.md`](../../../backend
     Los getters/setters/builders de Lombok no cuentan (`lombok.addLombokGeneratedAnnotation = true`).
 11. **Nunca H2.** Lo que levanta base o contexto `extends PostgresRepositoryTestSupport` (Testcontainers); `ArchitectureTest`
     falla si vuelve `h2`.
+12. **Las variantes se prueban con herencia.** Cada interfaz con variantes (`ReglaAviso`, `ReglaPromocion`,
+    `CanalPromocion`, `SeccionResumen`…) tiene una **clase abstracta de contrato** (`<Interfaz>ContratoTest`) con lo que
+    toda implementación debe cumplir, y un test por variante que **la extiende**, entrega la instancia (`crear()`) y suma
+    solo lo propio. Sumar una variante es sumar una clase de test que hereda el contrato. Sin `switch` ni `if` en los
+    tests.
+13. **Los helpers se explican solos.** Un helper hace una sola cosa y su nombre dice cuál (`givenInventarioConDosAgotados`,
+    `thenElPedidoAgrupaPorProveedor`). Ni un bloque de armado ni de asserts va inline en el `@Test`; sin números ni textos
+    mágicos (constantes con nombre).
 
 ## Qué probar en cada capa
 
@@ -45,6 +53,7 @@ estructura que se prueban están en [`backend/ARQUITECTURA.md`](../../../backend
 | Método `default` de un puerto | `<Puerto>Test` en `domain/repository/<area>` | `mock(Puerto.class, CALLS_REAL_METHODS)`; los `when` van sobre los métodos abstractos (`findByIdAndNegocioId`), nunca sobre el `default` | camino feliz · el 404 con su mensaje |
 | `*Service` (compartido) | `*ServiceTest` | `@Mock` de repositorios/otros servicios + `@InjectMocks` | camino feliz · cada rama de error · **orden** de validaciones (`InOrder`) · que no consulta si la validación falla (`verifyNoInteractions`) |
 | Model con reglas, ids | `*Test` | sin mocks | cada regla, casos borde; un id nuevo ya lo cubre `IdentificadorTest` si se suma a su lista |
+| Variantes de una interfaz o base abstracta | `<Interfaz>ContratoTest` (abstracta) + un `*Test` por variante que la extiende | la abstracta declara `crear()` y los tests del contrato; cada variante implementa `crear()` y suma sus casos | el contrato en todas las variantes · cada regla propia de la variante · sus casos borde |
 | `*PresentationMapper` | `*PresentationMapperTest` | sin mocks | un test por método · lista vacía |
 | `*Controller` | `*ControllerTest` | `mock()` de los casos de uso + `MockMvcDePrueba.standalone(controller).setControllerAdvice(new GlobalExceptionHandler())` | 200 con JSON · el request llega bien al caso de uso (`ArgumentCaptor`) · 200 `[]` · 404 · 400 por id inválido (`verifyNoInteractions`) · 400 por validación del body |
 | `*RepositoryImpl` | `*RepositoryImplTest` | `@Mock` del JPA repo; mapper real | mapeo completo · orden · vacío · `Optional` presente/ausente · el JPA recibe `id.valor()` |
@@ -82,6 +91,43 @@ class UsuarioRepositoryTest {
     private Usuario obtenerActivo() {
         return usuarioRepository.obtenerActivo(USUARIO_ID);
     }
+}
+```
+
+Variantes polimórficas (el contrato lo heredan todas; cada variante suma lo suyo):
+
+```java
+abstract class ReglaPromocionContratoTest {
+
+    protected abstract ReglaPromocion crear();
+
+    @Test
+    @DisplayName("No propone nada cuando el negocio no tiene datos")
+    void evaluarShouldReturnEmptyWhenContextIsEmpty() {
+        Optional<Promocion> result = crear().evaluar(ContextoPromocionDePrueba.vacio());
+
+        assertThat(result).isEmpty();
+    }
+}
+
+class PromocionComboTest extends ReglaPromocionContratoTest {
+
+    @Override
+    protected ReglaPromocion crear() {
+        return new PromocionCombo();
+    }
+
+    @Test
+    @DisplayName("Propone el combo de los dos productos que se llevan juntos")
+    void evaluarShouldProposeComboWhenTwoProductsSellTogether() {
+        givenVentasConjuntasDe(YERBA, AZUCAR);
+
+        Optional<Promocion> result = evaluar();
+
+        thenProponeElCombo(result, YERBA, AZUCAR);
+    }
+
+    // --- arrange --- / --- act --- / --- assert ---
 }
 ```
 
