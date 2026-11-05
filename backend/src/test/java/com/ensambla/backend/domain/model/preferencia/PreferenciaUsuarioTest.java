@@ -1,9 +1,11 @@
 package com.ensambla.backend.domain.model.preferencia;
 
+import com.ensambla.backend.domain.model.aviso.GrupoAviso;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +28,8 @@ class PreferenciaUsuarioTest {
         assertThat(result.getGrupos()).isEmpty();
         assertThat(result.isBienvenidaVista()).isFalse();
         assertThat(result.getNombre()).isNull();
+        assertThat(result.isAvisosPorWhatsapp()).isFalse();
+        assertThat(result.getResumenWhatsappEnviadoEl()).isNull();
         assertThat(result.getCreadoEn()).isEqualTo(AHORA);
         assertThat(result.getActualizadoEn()).isEqualTo(AHORA);
     }
@@ -55,5 +59,44 @@ class PreferenciaUsuarioTest {
 
         preferencia.actualizar(List.of(), Map.of(), false, null, DESPUES);
         assertThat(preferencia.getNombre()).isNull();
+    }
+
+    @Test
+    @DisplayName("Prender o apagar los avisos por WhatsApp mueve la fecha de actualización")
+    void configurarAvisosPorWhatsappShouldTurnThemOnAndOff() {
+        PreferenciaUsuario preferencia = PreferenciaUsuario.inicial(USUARIO_ID, AHORA);
+
+        preferencia.configurarAvisosPorWhatsapp(true, DESPUES);
+        assertThat(preferencia.isAvisosPorWhatsapp()).isTrue();
+        assertThat(preferencia.getActualizadoEn()).isEqualTo(DESPUES);
+
+        preferencia.configurarAvisosPorWhatsapp(false, DESPUES.plusHours(1));
+        assertThat(preferencia.isAvisosPorWhatsapp()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Sabe si ya recibió el resumen de un día")
+    void yaRecibioElResumenDeShouldCompareTheLastSentDay() {
+        PreferenciaUsuario preferencia = PreferenciaUsuario.inicial(USUARIO_ID, AHORA);
+        LocalDate hoy = LocalDate.of(2026, 10, 21);
+
+        assertThat(preferencia.yaRecibioElResumenDe(hoy)).isFalse();
+
+        preferencia.registrarResumenEnviado(hoy, DESPUES);
+
+        assertThat(preferencia.yaRecibioElResumenDe(hoy)).isTrue();
+        assertThat(preferencia.yaRecibioElResumenDe(hoy.plusDays(1))).isFalse();
+        assertThat(preferencia.getActualizadoEn()).isEqualTo(DESPUES);
+    }
+
+    @Test
+    @DisplayName("Recibe los avisos de todos los grupos salvo los que apagó")
+    void recibeAvisosDelGrupoShouldBeTrueUnlessTheGroupWasTurnedOff() {
+        PreferenciaUsuario preferencia = PreferenciaUsuario.inicial(USUARIO_ID, AHORA);
+        preferencia.actualizar(List.of(), Map.of("ZONA", false, "STOCK", true), false, null, DESPUES);
+
+        assertThat(preferencia.recibeAvisosDelGrupo(GrupoAviso.STOCK)).isTrue();
+        assertThat(preferencia.recibeAvisosDelGrupo(GrupoAviso.VENTAS)).isTrue();
+        assertThat(preferencia.recibeAvisosDelGrupo(GrupoAviso.ZONA)).isFalse();
     }
 }

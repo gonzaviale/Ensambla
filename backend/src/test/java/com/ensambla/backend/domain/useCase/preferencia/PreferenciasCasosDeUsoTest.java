@@ -50,7 +50,7 @@ class PreferenciasCasosDeUsoTest {
         PreferenciasItem result = obtenerPreferencias.execute(new ObtenerPreferenciasRequest(USUARIO_ID));
 
         assertThat(result).isEqualTo(
-                new PreferenciasItem(List.of("a1"), Map.of("STOCK", false), true, "Gonza"));
+                new PreferenciasItem(List.of("a1"), Map.of("STOCK", false), true, "Gonza", false));
     }
 
     @Test
@@ -62,7 +62,8 @@ class PreferenciasCasosDeUsoTest {
         PreferenciasItem result = guardarPreferencias.execute(
                 new GuardarPreferenciasRequest(USUARIO_ID, List.of("a1"), Map.of("ZONA", false), true, "Gonza"));
 
-        assertThat(result).isEqualTo(new PreferenciasItem(List.of("a1"), Map.of("ZONA", false), true, "Gonza"));
+        assertThat(result).isEqualTo(
+                new PreferenciasItem(List.of("a1"), Map.of("ZONA", false), true, "Gonza", false));
         verify(preferenciaRepository).save(any(PreferenciaUsuario.class));
     }
 

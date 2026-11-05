@@ -10,5 +10,6 @@ public record PreferenciasResponse(
         List<String> descartadas,
         Map<String, Boolean> grupos,
         boolean bienvenidaVista,
-        String nombre) {
+        String nombre,
+        boolean avisosPorWhatsapp) {
 }

@@ -1,14 +1,22 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
+import com.ensambla.backend.domain.model.aviso.ResumenMatinal;
+import com.ensambla.backend.domain.model.aviso.SeccionAgotados;
+import com.ensambla.backend.domain.model.aviso.SeccionAvisosDePrecio;
+import com.ensambla.backend.domain.model.aviso.SeccionBajoMinimo;
+import com.ensambla.backend.domain.model.aviso.SeccionLoQuePideLaZona;
+import com.ensambla.backend.domain.model.aviso.SeccionResumen;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.model.whatsapp.PoliticaAtencionWhatsapp;
 import com.ensambla.backend.domain.port.InterpreteRegistrosIaPort;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.port.MensajeriaWhatsappPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.preferencia.PreferenciaRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
@@ -23,6 +31,7 @@ import com.ensambla.backend.domain.useCase.whatsapp.atenderMensajeWhatsapp.Atend
 import com.ensambla.backend.domain.useCase.whatsapp.confirmarVerificacionWhatsapp.ConfirmarVerificacionWhatsapp;
 import com.ensambla.backend.domain.useCase.whatsapp.consultarVinculacionWhatsapp.ConsultarVinculacionWhatsapp;
 import com.ensambla.backend.domain.useCase.whatsapp.desvincularWhatsapp.DesvincularWhatsapp;
+import com.ensambla.backend.domain.useCase.whatsapp.enviarResumenPorWhatsapp.EnviarResumenPorWhatsapp;
 import com.ensambla.backend.domain.useCase.whatsapp.generarCodigoVinculacion.GenerarCodigoVinculacion;
 import com.ensambla.backend.domain.useCase.whatsapp.procesarMensajeEntrante.ProcesarMensajeEntrante;
 import com.ensambla.backend.domain.useCase.whatsapp.solicitarVerificacionWhatsapp.SolicitarVerificacionWhatsapp;
@@ -30,10 +39,13 @@ import com.ensambla.backend.infrastructure.ia.IaProperties;
 import com.ensambla.backend.infrastructure.ia.LectorCuadernoTimeoutAdapter;
 import com.ensambla.backend.infrastructure.ia.SamiProperties;
 import com.ensambla.backend.infrastructure.whatsapp.WhatsappProperties;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 
 import java.time.Clock;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 @Configuration
@@ -172,5 +184,58 @@ public class WhatsappUseCaseConfig {
                 clock,
                 new PoliticaAtencionWhatsapp(samiProperties.limiteDiarioTaller(), politicaProcesamiento.limiteDiario(),
                         atencion.umbralConfianza(), atencion.vigenciaReclamo()));
+    }
+
+    @Bean
+    @Order(1)
+    public SeccionResumen seccionAgotados() {
+        return new SeccionAgotados();
+    }
+
+    @Bean
+    @Order(2)
+    public SeccionResumen seccionBajoMinimo() {
+        return new SeccionBajoMinimo();
+    }
+
+    @Bean
+    @Order(3)
+    public SeccionResumen seccionAvisosDePrecio() {
+        return new SeccionAvisosDePrecio();
+    }
+
+    @Bean
+    @Order(4)
+    public SeccionResumen seccionLoQuePideLaZona() {
+        return new SeccionLoQuePideLaZona();
+    }
+
+    /** El resumen recibe todas las secciones que haya registradas: para sumar una alcanza con un bean nuevo. */
+    @Bean
+    public ResumenMatinal resumenMatinal(List<SeccionResumen> secciones) {
+        return new ResumenMatinal(secciones);
+    }
+
+    @Bean
+    public EnviarResumenPorWhatsapp enviarResumenPorWhatsapp(
+            PreferenciaRepository preferenciaRepository,
+            VinculoWhatsappRepository vinculoRepository,
+            NegocioRepository negocioRepository,
+            AvisoRepository avisoRepository,
+            ResumenMatinal resumenMatinal,
+            MensajeriaWhatsappPort mensajeria,
+            TransaccionPort transaccionPort,
+            Clock clock,
+            @Value("${ensambla.whatsapp.resumen.hora:9}") int horaDelResumen) {
+        return new EnviarResumenPorWhatsapp(
+                preferenciaRepository,
+                vinculoRepository,
+                negocioRepository,
+                avisoRepository,
+                resumenMatinal,
+                mensajeria,
+                transaccionPort,
+                clock,
+                horaDelResumen);
     }
 }

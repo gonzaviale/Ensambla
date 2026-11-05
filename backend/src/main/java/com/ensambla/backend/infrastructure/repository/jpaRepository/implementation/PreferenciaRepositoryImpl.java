@@ -8,6 +8,7 @@ import com.ensambla.backend.infrastructure.repository.mapper.PreferenciaReposito
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -26,5 +27,12 @@ public class PreferenciaRepositoryImpl implements PreferenciaRepository {
     public PreferenciaUsuario save(PreferenciaUsuario preferencia) {
         return preferenciaRepositoryMapper.toDomain(
                 preferenciaJpaRepository.save(preferenciaRepositoryMapper.toEntity(preferencia)));
+    }
+
+    @Override
+    public List<PreferenciaUsuario> findAllConAvisosPorWhatsapp() {
+        return preferenciaJpaRepository.findByAvisosPorWhatsappTrue().stream()
+                .map(preferenciaRepositoryMapper::toDomain)
+                .toList();
     }
 }

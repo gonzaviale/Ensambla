@@ -6,6 +6,7 @@ import com.ensambla.backend.infrastructure.repository.entity.PreferenciaUsuarioE
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ class PreferenciaRepositoryMapperTest {
 
     private static final UsuarioId USUARIO_ID = UsuarioId.de("b0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-21T10:00:00Z");
+    private static final LocalDate DIA = LocalDate.of(2026, 10, 21);
 
     private final PreferenciaRepositoryMapper mapper = new PreferenciaRepositoryMapper();
 
@@ -24,7 +26,8 @@ class PreferenciaRepositoryMapperTest {
     void toDomainShouldMapEveryField() {
         PreferenciaUsuarioEntity entity = PreferenciaUsuarioEntity.builder()
                 .usuarioId(USUARIO_ID.valor()).avisosDescartados(List.of("a1")).gruposAvisos(Map.of("ZONA", false))
-                .bienvenidaVista(true).nombrePreferido("Gonza").creadoEn(AHORA).actualizadoEn(AHORA).build();
+                .bienvenidaVista(true).nombrePreferido("Gonza").avisosPorWhatsapp(true)
+                .resumenWhatsappEnviadoEl(DIA).creadoEn(AHORA).actualizadoEn(AHORA).build();
 
         PreferenciaUsuario result = mapper.toDomain(entity);
 
@@ -33,6 +36,8 @@ class PreferenciaRepositoryMapperTest {
         assertThat(result.getGrupos()).containsEntry("ZONA", false);
         assertThat(result.isBienvenidaVista()).isTrue();
         assertThat(result.getNombre()).isEqualTo("Gonza");
+        assertThat(result.isAvisosPorWhatsapp()).isTrue();
+        assertThat(result.getResumenWhatsappEnviadoEl()).isEqualTo(DIA);
         assertThat(result.getCreadoEn()).isEqualTo(AHORA);
         assertThat(result.getActualizadoEn()).isEqualTo(AHORA);
     }
@@ -42,6 +47,8 @@ class PreferenciaRepositoryMapperTest {
     void toEntityShouldMapEveryField() {
         PreferenciaUsuario preferencia = PreferenciaUsuario.inicial(USUARIO_ID, AHORA);
         preferencia.actualizar(List.of("a1"), Map.of("ZONA", false), true, "Gonza", AHORA);
+        preferencia.configurarAvisosPorWhatsapp(true, AHORA);
+        preferencia.registrarResumenEnviado(DIA, AHORA);
 
         PreferenciaUsuarioEntity result = mapper.toEntity(preferencia);
 
@@ -50,6 +57,8 @@ class PreferenciaRepositoryMapperTest {
         assertThat(result.getGruposAvisos()).containsEntry("ZONA", false);
         assertThat(result.getBienvenidaVista()).isTrue();
         assertThat(result.getNombrePreferido()).isEqualTo("Gonza");
+        assertThat(result.getAvisosPorWhatsapp()).isTrue();
+        assertThat(result.getResumenWhatsappEnviadoEl()).isEqualTo(DIA);
         assertThat(result.getCreadoEn()).isEqualTo(AHORA);
         assertThat(result.getActualizadoEn()).isEqualTo(AHORA);
     }

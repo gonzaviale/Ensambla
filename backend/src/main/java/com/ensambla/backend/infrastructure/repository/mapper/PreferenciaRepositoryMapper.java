@@ -16,6 +16,8 @@ public class PreferenciaRepositoryMapper {
                 .grupos(entity.getGruposAvisos())
                 .bienvenidaVista(entity.getBienvenidaVista())
                 .nombre(entity.getNombrePreferido())
+                .avisosPorWhatsapp(entity.getAvisosPorWhatsapp())
+                .resumenWhatsappEnviadoEl(entity.getResumenWhatsappEnviadoEl())
                 .creadoEn(entity.getCreadoEn())
                 .actualizadoEn(entity.getActualizadoEn())
                 .build();
@@ -28,6 +30,8 @@ public class PreferenciaRepositoryMapper {
                 .gruposAvisos(preferencia.getGrupos())
                 .bienvenidaVista(preferencia.isBienvenidaVista())
                 .nombrePreferido(preferencia.getNombre())
+                .avisosPorWhatsapp(preferencia.isAvisosPorWhatsapp())
+                .resumenWhatsappEnviadoEl(preferencia.getResumenWhatsappEnviadoEl())
                 .creadoEn(preferencia.getCreadoEn())
                 .actualizadoEn(preferencia.getActualizadoEn())
                 .build();

@@ -9,13 +9,15 @@ public record PreferenciasItem(
         List<String> descartadas,
         Map<String, Boolean> grupos,
         boolean bienvenidaVista,
-        String nombre) {
+        String nombre,
+        boolean avisosPorWhatsapp) {
 
     public static PreferenciasItem de(PreferenciaUsuario preferencia) {
         return new PreferenciasItem(
                 preferencia.getDescartadas(),
                 preferencia.getGrupos(),
                 preferencia.isBienvenidaVista(),
-                preferencia.getNombre());
+                preferencia.getNombre(),
+                preferencia.isAvisosPorWhatsapp());
     }
 }

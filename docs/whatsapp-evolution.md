@@ -51,6 +51,30 @@ Después muestra el resumen («Para *Gastos* entendí: 1) Concepto: harina · Mo
 
 Si falla la IA el mensaje queda `FALLIDO` y la persona lo vuelve a mandar: no hay reintentos automáticos para no cobrar dos veces.
 
+### 3. El resumen de la mañana (Sami te escribe a vos)
+
+En **Tu cuenta › WhatsApp**, con el número ya vinculado, aparece la casilla «Mandame el resumen de Sami cada mañana»
+(`PUT /api/preferencias/avisos-por-whatsapp`; sin número vinculado responde 400). Si está prendida, una vez por día y
+desde las 9 (hora argentina) Sami manda un mensaje con lo que encontró en el negocio:
+
+```
+Buen día, Ana. Sami revisó Almacén de Ana y encontró:
+- 2 productos agotados
+- 3 productos por debajo del mínimo
+- 1 aviso de precio
+Abrí Ensambla para ver los detalles.
+```
+
+- Cada línea es una parte del resumen (`SeccionResumen`: agotados, bajo el mínimo, avisos de precio y lo que pide la
+  zona). Sumar una parte es sumar una clase y registrarla como bean en `WhatsappUseCaseConfig`.
+- Cuenta los avisos pendientes de los grupos que la persona no apagó. Si no hay nada que contar **no manda nada**.
+- Una vez por día: se anota el último día enviado en `preferencia_usuario.resumen_whatsapp_enviado_el`. Si la entrega
+  falla, no se da por enviado y se reintenta en la vuelta siguiente.
+- No hay envíos instantáneos: un solo mensaje por día, para no spamear ni arriesgar el número (Evolution no es oficial).
+- Lo corre `ResumenWhatsappWorker` cada 10 minutos. Se configura con `ENSAMBLA_WHATSAPP_RESUMEN` (prender o apagar),
+  `ENSAMBLA_WHATSAPP_RESUMEN_HORA` (hora argentina, por defecto 9) y `ENSAMBLA_WHATSAPP_RESUMEN_INTERVALO`
+  (milisegundos). Con el proveedor `simulado` el mensaje queda en el log.
+
 ## Webhook
 
 Evolution entrega los mensajes a `POST /api/whatsapp/webhook`. Ese endpoint es público y sin CSRF, así que se protege con el

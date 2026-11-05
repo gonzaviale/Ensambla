@@ -1,8 +1,10 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.useCase.preferencia.configurarAvisosPorWhatsapp.ConfigurarAvisosPorWhatsapp;
 import com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias.GuardarPreferencias;
 import com.ensambla.backend.domain.useCase.preferencia.obtenerPreferencias.ObtenerPreferencias;
+import com.ensambla.backend.infrastructure.presentation.dto.preferencia.AvisosPorWhatsappWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.preferencia.PreferenciasResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.preferencia.PreferenciasWebRequest;
 import com.ensambla.backend.infrastructure.presentation.mapper.preferencia.PreferenciaPresentationMapper;
@@ -28,6 +30,8 @@ public class PreferenciaController {
 
     private final GuardarPreferencias guardarPreferencias;
 
+    private final ConfigurarAvisosPorWhatsapp configurarAvisosPorWhatsapp;
+
     private final PreferenciaPresentationMapper preferenciaPresentationMapper;
 
     @GetMapping
@@ -43,5 +47,14 @@ public class PreferenciaController {
             Authentication authentication, @Valid @RequestBody PreferenciasWebRequest request) {
         return ResponseEntity.ok(preferenciaPresentationMapper.toResponse(guardarPreferencias.execute(
                 preferenciaPresentationMapper.toGuardarRequest(UsuarioId.de(authentication.getName()), request))));
+    }
+
+    @PutMapping("/avisos-por-whatsapp")
+    @Operation(summary = "Prender o apagar el resumen de la mañana por WhatsApp (pide tener el número vinculado)")
+    public ResponseEntity<PreferenciasResponse> configurarAvisosPorWhatsapp(
+            Authentication authentication, @Valid @RequestBody AvisosPorWhatsappWebRequest request) {
+        return ResponseEntity.ok(preferenciaPresentationMapper.toResponse(configurarAvisosPorWhatsapp.execute(
+                preferenciaPresentationMapper.toConfigurarAvisosRequest(
+                        UsuarioId.de(authentication.getName()), request))));
     }
 }

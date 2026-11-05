@@ -1,7 +1,10 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.useCase.preferencia.PreferenciasItem;
+import com.ensambla.backend.domain.useCase.preferencia.configurarAvisosPorWhatsapp.ConfigurarAvisosPorWhatsapp;
+import com.ensambla.backend.domain.useCase.preferencia.configurarAvisosPorWhatsapp.ConfigurarAvisosPorWhatsappRequest;
 import com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias.GuardarPreferencias;
 import com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias.GuardarPreferenciasRequest;
 import com.ensambla.backend.domain.useCase.preferencia.obtenerPreferencias.ObtenerPreferencias;
@@ -34,6 +37,7 @@ class PreferenciaControllerTest {
 
     private final ObtenerPreferencias obtenerPreferencias = mock(ObtenerPreferencias.class);
     private final GuardarPreferencias guardarPreferencias = mock(GuardarPreferencias.class);
+    private final ConfigurarAvisosPorWhatsapp configurarAvisosPorWhatsapp = mock(ConfigurarAvisosPorWhatsapp.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private MockMvc mockMvc;
@@ -41,7 +45,8 @@ class PreferenciaControllerTest {
     @BeforeEach
     void setUp() {
         var controller = new PreferenciaController(
-                obtenerPreferencias, guardarPreferencias, new PreferenciaPresentationMapper());
+                obtenerPreferencias, guardarPreferencias, configurarAvisosPorWhatsapp,
+                new PreferenciaPresentationMapper());
         mockMvc = MockMvcDePrueba.standalone(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -51,14 +56,15 @@ class PreferenciaControllerTest {
     @DisplayName("GET devuelve las preferencias del usuario de sesión")
     void obtenerShouldReturnPreferencias() throws Exception {
         when(obtenerPreferencias.execute(any())).thenReturn(
-                new PreferenciasItem(List.of("a1"), Map.of("STOCK", false), true, "Gonza"));
+                new PreferenciasItem(List.of("a1"), Map.of("STOCK", false), true, "Gonza", false));
 
         mockMvc.perform(get("/api/preferencias").principal(principal))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.descartadas[0]").value("a1"))
                 .andExpect(jsonPath("$.grupos.STOCK").value(false))
                 .andExpect(jsonPath("$.bienvenidaVista").value(true))
-                .andExpect(jsonPath("$.nombre").value("Gonza"));
+                .andExpect(jsonPath("$.nombre").value("Gonza"))
+                .andExpect(jsonPath("$.avisosPorWhatsapp").value(false));
         verify(obtenerPreferencias).execute(new ObtenerPreferenciasRequest(USUARIO_ID));
     }
 
@@ -66,7 +72,7 @@ class PreferenciaControllerTest {
     @DisplayName("GET omite el nombre cuando no hay uno elegido")
     void obtenerShouldOmitMissingNombre() throws Exception {
         when(obtenerPreferencias.execute(any())).thenReturn(
-                new PreferenciasItem(List.of(), Map.of(), false, null));
+                new PreferenciasItem(List.of(), Map.of(), false, null, false));
 
         mockMvc.perform(get("/api/preferencias").principal(principal))
                 .andExpect(status().isOk())
@@ -77,7 +83,7 @@ class PreferenciaControllerTest {
     @DisplayName("PUT guarda las preferencias con el usuario de sesión")
     void guardarShouldSaveForSessionUsuario() throws Exception {
         when(guardarPreferencias.execute(any())).thenReturn(
-                new PreferenciasItem(List.of("a1"), Map.of(), true, "Gonza"));
+                new PreferenciasItem(List.of("a1"), Map.of(), true, "Gonza", false));
 
         mockMvc.perform(put("/api/preferencias").principal(principal).contentType("application/json")
                         .content("{\"descartadas\":[\"a1\"],\"grupos\":{},\"bienvenidaVista\":true,\"nombre\":\"Gonza\"}"))
@@ -95,5 +101,38 @@ class PreferenciaControllerTest {
                                 + "\"nombre\":\"un nombre que supera por mucho los cuarenta caracteres\"}"))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(guardarPreferencias);
+    }
+
+    @Test
+    @DisplayName("PUT de avisos por WhatsApp los prende para el usuario de sesión")
+    void configurarAvisosShouldTurnThemOnForSessionUsuario() throws Exception {
+        when(configurarAvisosPorWhatsapp.execute(any())).thenReturn(
+                new PreferenciasItem(List.of(), Map.of(), true, null, true));
+
+        mockMvc.perform(put("/api/preferencias/avisos-por-whatsapp").principal(principal)
+                        .contentType("application/json").content("{\"activo\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.avisosPorWhatsapp").value(true));
+        verify(configurarAvisosPorWhatsapp).execute(new ConfigurarAvisosPorWhatsappRequest(USUARIO_ID, true));
+    }
+
+    @Test
+    @DisplayName("PUT de avisos por WhatsApp responde 400 cuando falta el valor")
+    void configurarAvisosShouldRejectAMissingValue() throws Exception {
+        mockMvc.perform(put("/api/preferencias/avisos-por-whatsapp").principal(principal)
+                        .contentType("application/json").content("{}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(configurarAvisosPorWhatsapp);
+    }
+
+    @Test
+    @DisplayName("PUT de avisos por WhatsApp responde 400 cuando no hay número vinculado")
+    void configurarAvisosShouldReturn400WhenThereIsNoLinkedNumber() throws Exception {
+        when(configurarAvisosPorWhatsapp.execute(any()))
+                .thenThrow(new BusinessRuleException("Primero vinculá tu número de WhatsApp para recibir los avisos"));
+
+        mockMvc.perform(put("/api/preferencias/avisos-por-whatsapp").principal(principal)
+                        .contentType("application/json").content("{\"activo\":true}"))
+                .andExpect(status().isBadRequest());
     }
 }

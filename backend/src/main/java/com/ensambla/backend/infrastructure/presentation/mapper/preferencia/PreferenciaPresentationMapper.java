@@ -2,8 +2,10 @@ package com.ensambla.backend.infrastructure.presentation.mapper.preferencia;
 
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.preferencia.PreferenciasItem;
+import com.ensambla.backend.domain.useCase.preferencia.configurarAvisosPorWhatsapp.ConfigurarAvisosPorWhatsappRequest;
 import com.ensambla.backend.domain.useCase.preferencia.guardarPreferencias.GuardarPreferenciasRequest;
 import com.ensambla.backend.domain.useCase.preferencia.obtenerPreferencias.ObtenerPreferenciasRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.preferencia.AvisosPorWhatsappWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.preferencia.PreferenciasResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.preferencia.PreferenciasWebRequest;
 import org.springframework.stereotype.Component;
@@ -29,6 +31,12 @@ public class PreferenciaPresentationMapper {
                 preferencias.descartadas(),
                 preferencias.grupos(),
                 preferencias.bienvenidaVista(),
-                preferencias.nombre());
+                preferencias.nombre(),
+                preferencias.avisosPorWhatsapp());
+    }
+
+    public ConfigurarAvisosPorWhatsappRequest toConfigurarAvisosRequest(
+            UsuarioId usuarioId, AvisosPorWhatsappWebRequest request) {
+        return new ConfigurarAvisosPorWhatsappRequest(usuarioId, request.activo());
     }
 }

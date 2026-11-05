@@ -169,7 +169,7 @@ traducción. V9 sólo agrega columnas con `DEFAULT` o nullable y tablas nuevas; 
 | `Campo.min` | `campo.minimo` | |
 | `Campo.target` | `campo.bloque_relacionado_id` | Ya existía (V5). |
 | `Fila.__example` / `__source` | `registro.es_ejemplo` / `origen` | |
-| `Preferencias` | `preferencia_usuario` (nueva, una fila por usuario) | `descartadas`→`avisos_descartados`, `grupos`→`grupos_avisos`, `bienvenidaVista`→`bienvenida_vista`, `nombre`→`nombre_preferido`. |
+| `Preferencias` | `preferencia_usuario` (nueva, una fila por usuario) | `descartadas`→`avisos_descartados`, `grupos`→`grupos_avisos`, `bienvenidaVista`→`bienvenida_vista`, `nombre`→`nombre_preferido`. Desde la V24 suma `avisos_por_whatsapp` (pidió el resumen de la mañana por WhatsApp; se cambia con `PUT /api/preferencias/avisos-por-whatsapp`, no con el `PUT` de preferencias) y `resumen_whatsapp_enviado_el` (último día argentino en que se le mandó, para no repetirlo). |
 
 Pendiente para cuando se haga `PUT /sistemas`: el frontend genera ids `e<uuid>` y las columnas son `uuid`, así que la API tiene
 que traducirlos al guardar; `MONEDA` todavía no cuenta como numérica para fórmulas, recetas ni totales.
@@ -367,6 +367,8 @@ erDiagram
         jsonb grupos_avisos
         boolean bienvenida_vista
         text nombre_preferido
+        boolean avisos_por_whatsapp
+        date resumen_whatsapp_enviado_el
     }
     aviso {
         uuid id PK

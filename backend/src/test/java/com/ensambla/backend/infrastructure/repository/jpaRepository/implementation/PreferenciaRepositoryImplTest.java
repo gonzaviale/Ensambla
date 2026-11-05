@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,6 +42,26 @@ class PreferenciaRepositoryImplTest {
         PreferenciaUsuario result = repository.save(PreferenciaUsuario.inicial(USUARIO_ID, AHORA));
 
         assertThat(result.getUsuarioId()).isEqualTo(USUARIO_ID);
+    }
+
+    @Test
+    @DisplayName("Lista a quienes pidieron el resumen por WhatsApp y los mapea al dominio")
+    void findAllConAvisosPorWhatsappShouldMapThem() {
+        when(jpa.findByAvisosPorWhatsappTrue()).thenReturn(List.of(entity()));
+
+        List<PreferenciaUsuario> result = repository.findAllConAvisosPorWhatsapp();
+
+        assertThat(result).extracting(PreferenciaUsuario::getUsuarioId).containsExactly(USUARIO_ID);
+    }
+
+    @Test
+    @DisplayName("Si nadie lo pidió la lista queda vacía")
+    void findAllConAvisosPorWhatsappShouldBeEmptyWhenNobodyAskedForIt() {
+        when(jpa.findByAvisosPorWhatsappTrue()).thenReturn(List.of());
+
+        List<PreferenciaUsuario> result = repository.findAllConAvisosPorWhatsapp();
+
+        assertThat(result).isEmpty();
     }
 
     private PreferenciaUsuarioEntity entity() {
