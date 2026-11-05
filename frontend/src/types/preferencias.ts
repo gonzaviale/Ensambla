@@ -10,6 +10,8 @@ export const preferenciasSchema = z.object({
   bienvenidaVista: z.boolean(),
   /** Cómo quiere que Sami lo llame; si falta, se usa el nombre de la cuenta. */
   nombre: z.string().trim().min(1).max(40).optional(),
+  /** Pidió que Sami le mande por WhatsApp el resumen de la mañana. Se cambia con su propia acción, no al guardar. */
+  avisosPorWhatsapp: z.boolean().optional(),
 });
 
 export type Preferencias = z.infer<typeof preferenciasSchema>;

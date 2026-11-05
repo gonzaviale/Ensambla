@@ -162,3 +162,22 @@
     padding: 18px 16px;
   }
 }
+
+/* El resumen de la mañana por WhatsApp: una casilla grande con su explicación. */
+.cuenta-avisos-whatsapp {
+  margin: 14px 0;
+  display: grid;
+  gap: 6px;
+}
+.cuenta-opcion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cuenta-opcion input {
+  width: 24px;
+  height: 24px;
+}

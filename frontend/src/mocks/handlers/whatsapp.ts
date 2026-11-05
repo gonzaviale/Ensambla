@@ -4,7 +4,7 @@ import {
   telefonoWhatsappSchema,
   type VinculoWhatsapp,
 } from '@/types/whatsapp';
-import { estado, type CuentaWhatsapp } from '../db/estado';
+import { estado, guardarPreferenciasDe, preferenciasDe, type CuentaWhatsapp } from '../db/estado';
 import { errorResponse } from '../errores';
 import { api, cuenta, pathDe } from './comun';
 
@@ -110,5 +110,17 @@ export const handlersWhatsapp = [
     estado.whatsapp.set(usuario.email, { vinculo: null, verificacion: null });
     estado.alCambiar?.();
     return new HttpResponse(null, { status: 204 });
+  }),
+  // El resumen de la mañana: sólo se puede prender con un número vinculado; apagarlo siempre se puede.
+  http.put(api('/preferencias/avisos-por-whatsapp'), async ({ request }) => {
+    const { usuario, error } = cuenta(request, true);
+    if (error) return error;
+    const { activo } = (await request.json()) as { activo: boolean };
+    if (activo && !cuentaWhatsapp(usuario.email).vinculo) {
+      return errorResponse(400, 'Primero vinculá tu número de WhatsApp para recibir los avisos', pathDe(request));
+    }
+    const preferencias = { ...preferenciasDe(usuario.email), avisosPorWhatsapp: activo };
+    guardarPreferenciasDe(usuario.email, preferencias);
+    return HttpResponse.json(preferencias);
   }),
 ];

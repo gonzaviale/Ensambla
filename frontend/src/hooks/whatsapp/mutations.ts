@@ -1,11 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
+  configurarAvisosPorWhatsapp,
   confirmarVerificacionWhatsapp,
   desvincularWhatsapp,
   generarCodigoVinculacion,
   solicitarVerificacionWhatsapp,
 } from '@/api/whatsapp';
 import { sesionKeys, useUsuarioOpcional } from '@/hooks/auth/queries';
+import { preferenciasKeys } from '@/hooks/preferencias/queries';
 import type { Usuario } from '@/types/auth';
 import { vinculacionWhatsappKey } from './queries';
 
@@ -48,5 +50,14 @@ export function useDesvincularWhatsapp() {
       const clave = claveDelUsuario();
       if (clave) queryClient.setQueryData(clave, null);
     },
+  });
+}
+
+/** Prende o apaga el resumen de la mañana; las preferencias que devuelve el servidor reemplazan a las del caché. */
+export function useConfigurarAvisosPorWhatsapp() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: configurarAvisosPorWhatsapp,
+    onSuccess: (preferencias) => queryClient.setQueryData(preferenciasKeys.all, preferencias),
   });
 }

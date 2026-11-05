@@ -16,6 +16,7 @@ import {
   type VinculoWhatsapp,
 } from '@/types/whatsapp';
 import { Btn } from '../sistema/Btn';
+import { AvisosPorWhatsapp } from './AvisosPorWhatsapp';
 
 const fecha = (valor: string) =>
   new Intl.DateTimeFormat('es-AR', { dateStyle: 'long' }).format(new Date(valor));
@@ -51,6 +52,7 @@ function NumeroVinculado({ vinculo }: { vinculo: VinculoWhatsapp }) {
         y las guarda cuando le respondés que sí. Las fotos descuentan de las páginas con IA de{' '}
         <Link to="/planes">tu plan</Link>.
       </p>
+      <AvisosPorWhatsapp />
       {desvincular.isError ? <p role="alert">{leerErrorServidor(desvincular.error)?.mensaje}</p> : null}
       <div className="cuenta-acciones">
         {vinculo.numeroBot ? (

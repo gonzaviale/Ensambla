@@ -1,11 +1,12 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { estado } from '@/mocks/db/estado';
+import { estado, preferenciasDe } from '@/mocks/db/estado';
 import { CODIGO_DE_PRUEBA, TELEFONO_OCUPADO } from '@/mocks/handlers/whatsapp';
 import { renderApp } from '@/test/renderApp';
 import {
   ESPERA,
+  setupServerError,
   setupUsuarioConSesion,
   verifyHeadingPresentAsync,
 } from '@/test/testHelpers';
@@ -15,6 +16,16 @@ const abrirWhatsapp = async () => {
   renderApp('/cuenta?seccion=whatsapp');
   await verifyHeadingPresentAsync('Tu cuenta');
   return { usuario, user: userEvent.setup() };
+};
+
+// Una cuenta que ya verificó su número: es lo que hace falta para pedir el resumen de la mañana.
+const abrirConNumeroVinculado = async () => {
+  const { user, usuario } = await abrirWhatsapp();
+  await pedirCodigo(user, '+54 9 11 2233 4455');
+  await user.type(await screen.findByLabelText('Código'), CODIGO_DE_PRUEBA);
+  await user.click(screen.getByRole('button', { name: 'Confirmar número' }));
+  await screen.findByText('+5491122334455');
+  return { user, usuario };
 };
 
 const pedirCodigo = async (user: ReturnType<typeof userEvent.setup>, telefono: string) => {
@@ -119,5 +130,48 @@ describe('tu cuenta: WhatsApp', () => {
     await waitFor(() => expect(estado.whatsapp.get(usuario.email)?.vinculo).toBeNull(), ESPERA);
     expect(within(screen.getByRole('navigation', { name: 'Secciones de tu cuenta' }))
       .getByRole('link', { name: 'WhatsApp' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('con el número vinculado se puede pedir el resumen de la mañana y queda guardado', async () => {
+    const { user, usuario } = await abrirConNumeroVinculado();
+    const casilla = screen.getByLabelText('Mandame el resumen de Sami cada mañana');
+    expect(casilla).not.toBeChecked();
+
+    await user.click(casilla);
+
+    await waitFor(() => expect(screen.getByLabelText('Mandame el resumen de Sami cada mañana')).toBeChecked(), ESPERA);
+    expect(preferenciasDe(usuario.email).avisosPorWhatsapp).toBe(true);
+  });
+
+  it('el resumen de la mañana se puede apagar de nuevo', async () => {
+    const { user, usuario } = await abrirConNumeroVinculado();
+    await user.click(screen.getByLabelText('Mandame el resumen de Sami cada mañana'));
+    await waitFor(() => expect(screen.getByLabelText('Mandame el resumen de Sami cada mañana')).toBeChecked(), ESPERA);
+
+    await user.click(screen.getByLabelText('Mandame el resumen de Sami cada mañana'));
+
+    await waitFor(
+      () => expect(screen.getByLabelText('Mandame el resumen de Sami cada mañana')).not.toBeChecked(),
+      ESPERA,
+    );
+    expect(preferenciasDe(usuario.email).avisosPorWhatsapp).toBe(false);
+  });
+
+  it('si el servidor no deja prenderlo muestra el motivo y la casilla sigue apagada', async () => {
+    const { user } = await abrirConNumeroVinculado();
+    setupServerError('put', '/preferencias/avisos-por-whatsapp', 400, 'Primero vinculá tu número de WhatsApp');
+
+    await user.click(screen.getByLabelText('Mandame el resumen de Sami cada mañana'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Primero vinculá tu número de WhatsApp');
+    expect(screen.getByLabelText('Mandame el resumen de Sami cada mañana')).not.toBeChecked();
+  });
+
+  it('sin número vinculado no se ofrece el resumen de la mañana', async () => {
+    await abrirWhatsapp();
+
+    await screen.findByLabelText('Tu número de WhatsApp');
+
+    expect(screen.queryByLabelText('Mandame el resumen de Sami cada mañana')).not.toBeInTheDocument();
   });
 });

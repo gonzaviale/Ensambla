@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { preferenciasSchema } from '@/types/preferencias';
 import {
   codigoVinculacionSchema,
   verificacionWhatsappSchema,
@@ -28,3 +29,7 @@ export const generarCodigoVinculacion = () =>
   http.post('/whatsapp/vinculacion/codigo', {}, codigoVinculacionSchema);
 
 export const desvincularWhatsapp = () => http.delete('/whatsapp/vinculacion', z.undefined());
+
+/** Prende o apaga el resumen de la mañana por WhatsApp; devuelve las preferencias ya actualizadas. */
+export const configurarAvisosPorWhatsapp = (activo: boolean) =>
+  http.put('/preferencias/avisos-por-whatsapp', { activo }, preferenciasSchema);
