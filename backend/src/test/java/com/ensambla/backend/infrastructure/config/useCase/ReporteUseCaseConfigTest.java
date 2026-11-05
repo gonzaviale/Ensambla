@@ -26,6 +26,8 @@ import com.ensambla.backend.domain.service.reporte.ReporteService;
 import com.ensambla.backend.domain.useCase.reporte.GenerarReporteRequest;
 import com.ensambla.backend.domain.useCase.reporte.exportarReporte.ExportarReporteResponse;
 import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporteResponse;
+import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicioRequest;
+import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicioResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -116,5 +118,24 @@ class ReporteUseCaseConfigTest {
 
         assertThat(response.contenido()).containsExactly(7);
         assertThat(response.nombreArchivo()).startsWith("resumen-almacen-");
+    }
+
+    @Test
+    @DisplayName("El wiring de las métricas del inicio conecta el servicio de datos y el reloj")
+    void obtenerResumenInicioUseCaseShouldWireCollaborators() {
+        ProyectoId proyectoId = ProyectoId.de("c0000000-0000-4000-8000-000000000001");
+        ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
+        Negocio negocio = Negocio.builder().id(NEGOCIO_ID).nombre("Almacén de Ana").build();
+        Proyecto proyecto = Proyecto.builder().id(proyectoId).nombre("Almacén").bloques(List.of()).build();
+        when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID)).thenReturn(negocio);
+        when(proyectoRepository.obtener(NEGOCIO_ID, proyectoId)).thenReturn(proyecto);
+
+        ObtenerResumenInicioResponse response = config.obtenerResumenInicio(
+                        negocioRepository, proyectoRepository,
+                        config.datosDeProyectoService(mock(RegistroRepository.class)), Clock.systemUTC())
+                .execute(new ObtenerResumenInicioRequest(USUARIO_ID, proyectoId));
+
+        assertThat(response.sistema()).isEqualTo("Almacén");
+        assertThat(response.hayVentas()).isFalse();
     }
 }

@@ -5,6 +5,9 @@ import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenNegocio;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenRequest;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenResponse;
+import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicio;
+import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicioRequest;
+import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicioResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +33,8 @@ public class ResumenController {
 
     private final ExportarResumenNegocio exportarResumenNegocio;
 
+    private final ObtenerResumenInicio obtenerResumenInicio;
+
     @GetMapping("/pdf")
     @Operation(summary = "Descargar el resumen del negocio en PDF: ventas, ganancia, stock, gastos, zona y avisos del período")
     public ResponseEntity<byte[]> descargar(
@@ -44,5 +49,14 @@ public class ResumenController {
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment().filename(archivo.nombreArchivo()).build().toString())
                 .body(archivo.contenido());
+    }
+
+    @GetMapping("/inicio")
+    @Operation(summary = "Las métricas del inicio de un sistema: ventas de hoy, lo que más salió, lo que falta y lo parado")
+    public ResponseEntity<ObtenerResumenInicioResponse> inicio(
+            Authentication authentication,
+            @PathVariable ProyectoId proyectoId) {
+        return ResponseEntity.ok(obtenerResumenInicio.execute(
+                new ObtenerResumenInicioRequest(UsuarioId.de(authentication.getName()), proyectoId)));
     }
 }

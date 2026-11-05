@@ -6,6 +6,9 @@ import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenNegocio;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenRequest;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenResponse;
+import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicio;
+import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicioRequest;
+import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicioResponse;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,8 +17,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.security.Principal;
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -24,6 +29,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class ResumenControllerTest {
@@ -34,12 +40,14 @@ class ResumenControllerTest {
     private final Principal sesion = new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
 
     private ExportarResumenNegocio exportarResumenNegocio;
+    private ObtenerResumenInicio obtenerResumenInicio;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         exportarResumenNegocio = mock(ExportarResumenNegocio.class);
-        mockMvc = MockMvcDePrueba.standalone(new ResumenController(exportarResumenNegocio))
+        obtenerResumenInicio = mock(ObtenerResumenInicio.class);
+        mockMvc = MockMvcDePrueba.standalone(new ResumenController(exportarResumenNegocio, obtenerResumenInicio))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -82,5 +90,37 @@ class ResumenControllerTest {
                 .andExpect(status().isBadRequest());
         mockMvc.perform(get("/api/proyectos/{id}/resumen/pdf", PROYECTO_ID).param("desde", "ayer").principal(sesion))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("GET inicio devuelve las métricas del sistema y pasa el usuario de la sesión")
+    void inicioShouldReturnTheHomeMetrics() throws Exception {
+        when(obtenerResumenInicio.execute(any(ObtenerResumenInicioRequest.class))).thenReturn(respuestaDeInicio());
+
+        mockMvc.perform(get("/api/proyectos/{id}/resumen/inicio", PROYECTO_ID).principal(sesion))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sistema").value("Almacén de Ana"))
+                .andExpect(jsonPath("$.hoy").value("2026-10-19"))
+                .andExpect(jsonPath("$.hayVentas").value(true))
+                .andExpect(jsonPath("$.ventasDeHoy.ingresos").value(6800))
+                .andExpect(jsonPath("$.faltantes.total").value(0))
+                .andExpect(jsonPath("$.parados").isEmpty());
+        verify(obtenerResumenInicio).execute(new ObtenerResumenInicioRequest(USUARIO_ID, PROYECTO_ID));
+    }
+
+    // --- helpers ---
+    private static ObtenerResumenInicioResponse respuestaDeInicio() {
+        return new ObtenerResumenInicioResponse(
+                "Almacén de Ana",
+                LocalDate.parse("2026-10-19"),
+                true,
+                true,
+                new ObtenerResumenInicioResponse.VentasDeHoy(
+                        new BigDecimal("6800"), new BigDecimal("2"), 1, 0, new BigDecimal("3400")),
+                new ObtenerResumenInicioResponse.UltimoDiaConVentas(LocalDate.parse("2026-10-19"),
+                        new BigDecimal("6800")),
+                null,
+                new ObtenerResumenInicioResponse.Faltantes(0, List.of()),
+                List.of());
     }
 }

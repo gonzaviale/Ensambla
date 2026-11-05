@@ -16,6 +16,7 @@ import com.ensambla.backend.domain.service.reporte.ReporteService;
 import com.ensambla.backend.domain.useCase.reporte.exportarReporte.ExportarReporte;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenNegocio;
 import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporte;
+import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicio;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -64,6 +65,15 @@ public class ReporteUseCaseConfig {
         return new ExportarResumenNegocio(negocioRepository, controlPlanService, proyectoRepository,
                 datosDeProyectoService, zonaRepository, agregadoZonaRepository, avisoRepository,
                 generadorResumenPdfPort, clock);
+    }
+
+    @Bean
+    public ObtenerResumenInicio obtenerResumenInicio(
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository,
+            DatosDeProyectoService datosDeProyectoService,
+            Clock clock) {
+        return new ObtenerResumenInicio(negocioRepository, proyectoRepository, datosDeProyectoService, clock);
     }
 
     @Bean

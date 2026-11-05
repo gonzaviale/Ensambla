@@ -1,6 +1,7 @@
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { FichasParaEmpezar } from '@/components/sistema/FichasParaEmpezar';
 import { Icon } from '@/components/sistema/Icon';
+import { MetricasDelInicio } from '@/components/sistema/MetricasDelInicio';
 import { PageFooter } from '@/components/sistema/PageFooter';
 import { varsDeColor } from '@/components/sistema/colores';
 import { CATALOG, TEMPLATES } from '@/lib/sistema/catalogo';
@@ -40,6 +41,8 @@ export function InicioPage() {
 
           <FichasParaEmpezar guia />
         </section>
+
+        <MetricasDelInicio />
 
         <section className="inicio-atajos" aria-label="Más para tu negocio">
           <Atajo
