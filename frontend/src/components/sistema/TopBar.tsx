@@ -4,7 +4,7 @@ import { Logo } from './Logo';
 import { MenuDePerfil } from './MenuDePerfil';
 
 export type SeccionActiva =
-  'home' | 'sistemas' | 'templates' | 'zone' | 'avisos' | 'plans' | 'account';
+  'home' | 'negocio' | 'sistemas' | 'templates' | 'zone' | 'avisos' | 'plans' | 'account';
 
 type TopBarProps = {
   active?: SeccionActiva;
@@ -12,6 +12,8 @@ type TopBarProps = {
   /** La campana de avisos, que vive en el encabezado. */
   campana?: ReactNode;
   onInicio: () => void;
+  /** «Mi negocio»: cierre del día, compras y proyección. */
+  onNegocio?: () => void;
   onSistemas: () => void;
   onPlantillas: () => void;
   onZona: () => void;
@@ -30,6 +32,7 @@ export function TopBar({
   nombre,
   campana,
   onInicio,
+  onNegocio,
   onSistemas,
   onPlantillas,
   onZona,
@@ -68,6 +71,16 @@ export function TopBar({
         >
           Inicio
         </button>
+        {onNegocio && (
+          <button
+            type="button"
+            className={active === 'negocio' ? 'active' : ''}
+            aria-current={active === 'negocio' ? 'page' : undefined}
+            onClick={ir(onNegocio)}
+          >
+            Mi negocio
+          </button>
+        )}
         <button
           type="button"
           className={active === 'sistemas' ? 'active' : ''}

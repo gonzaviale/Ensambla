@@ -19,6 +19,7 @@ export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
       nombre={nombre}
       campana={<Campana />}
       onInicio={() => void navegacion.irAInicio()}
+      onNegocio={() => void navegacion.irANegocio()}
       onSistemas={() => void navegacion.irAMisSistemas()}
       onPlantillas={() => void navegacion.irAPlantillas()}
       onZona={() => void navegacion.irAZona()}

@@ -1,3 +1,4 @@
+import { ResumenDeNegocio } from '@/components/gestion/ResumenDeNegocio';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { FichasParaEmpezar } from '@/components/sistema/FichasParaEmpezar';
 import { Icon } from '@/components/sistema/Icon';
@@ -40,6 +41,8 @@ export function InicioPage() {
 
           <FichasParaEmpezar guia />
         </section>
+
+        <ResumenDeNegocio />
 
         <section className="inicio-atajos" aria-label="Más para tu negocio">
           <Atajo

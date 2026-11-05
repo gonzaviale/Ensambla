@@ -26,4 +26,6 @@
 @import './cuaderno-avisos.css';
 /* Los dos íconos de herramientas del cuaderno. */
 @import './herramientas.css';
+/* «Mi negocio»: cierre del día, compras y «¿Me conviene?». */
+@import './gestion.css';
 @import './overrides.css';

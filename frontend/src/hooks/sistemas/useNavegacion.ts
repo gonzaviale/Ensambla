@@ -48,7 +48,10 @@ export function useNavegacion() {
       | '/zona'
       | '/planes'
       | '/sami'
-      | '/avisos',
+      | '/avisos'
+      | '/cierre'
+      | '/compras'
+      | '/proyeccion',
   ) => {
     limpiar();
     return navigate({ to });
@@ -96,6 +99,10 @@ export function useNavegacion() {
       return sistema ? navigate({ to: '/taller', search: { sistema: sistema.id } }) : navigate({ to: '/taller' });
     },
     irAZona: () => irA('/zona'),
+    /** «Mi negocio»: el cierre del día, las compras y la proyección («¿Me conviene?»). */
+    irANegocio: () => irA('/cierre'),
+    irACompras: () => irA('/compras'),
+    irAProyeccion: () => irA('/proyeccion'),
     /** El avatar: la configuración de la cuenta, en la sección que se pida (el perfil, si no). */
     irACuenta: (seccion?: SeccionDeCuenta) => {
       limpiar();

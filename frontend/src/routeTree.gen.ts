@@ -12,11 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicaRouteImport } from './routes/_publica'
 import { Route as AppAvisosRouteImport } from './routes/_app/avisos'
+import { Route as AppCierreRouteImport } from './routes/_app/cierre'
+import { Route as AppComprasRouteImport } from './routes/_app/compras'
 import { Route as AppCuadernosRouteImport } from './routes/_app/cuadernos'
 import { Route as AppCuentaRouteImport } from './routes/_app/cuenta'
 import { Route as AppInicioRouteImport } from './routes/_app/inicio'
 import { Route as AppPlanesRouteImport } from './routes/_app/planes'
 import { Route as AppPlantillasRouteImport } from './routes/_app/plantillas'
+import { Route as AppProyeccionRouteImport } from './routes/_app/proyeccion'
 import { Route as AppSamiRouteImport } from './routes/_app/sami'
 import { Route as AppTallerRouteImport } from './routes/_app/taller'
 import { Route as AppUbicacionRouteImport } from './routes/_app/ubicacion'
@@ -37,6 +40,16 @@ const PublicaRoute = PublicaRouteImport.update({
 const AppAvisosRoute = AppAvisosRouteImport.update({
   id: '/avisos',
   path: '/avisos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCierreRoute = AppCierreRouteImport.update({
+  id: '/cierre',
+  path: '/cierre',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppComprasRoute = AppComprasRouteImport.update({
+  id: '/compras',
+  path: '/compras',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCuadernosRoute = AppCuadernosRouteImport.update({
@@ -62,6 +75,11 @@ const AppPlanesRoute = AppPlanesRouteImport.update({
 const AppPlantillasRoute = AppPlantillasRouteImport.update({
   id: '/plantillas',
   path: '/plantillas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProyeccionRoute = AppProyeccionRouteImport.update({
+  id: '/proyeccion',
+  path: '/proyeccion',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSamiRoute = AppSamiRouteImport.update({
@@ -108,11 +126,14 @@ const AppSistemasSistemaIdRoute = AppSistemasSistemaIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof PublicaIndexRoute
   '/avisos': typeof AppAvisosRoute
+  '/cierre': typeof AppCierreRoute
+  '/compras': typeof AppComprasRoute
   '/cuadernos': typeof AppCuadernosRoute
   '/cuenta': typeof AppCuentaRoute
   '/inicio': typeof AppInicioRoute
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
+  '/proyeccion': typeof AppProyeccionRoute
   '/sami': typeof AppSamiRoute
   '/taller': typeof AppTallerRoute
   '/ubicacion': typeof AppUbicacionRoute
@@ -124,11 +145,14 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof PublicaIndexRoute
   '/avisos': typeof AppAvisosRoute
+  '/cierre': typeof AppCierreRoute
+  '/compras': typeof AppComprasRoute
   '/cuadernos': typeof AppCuadernosRoute
   '/cuenta': typeof AppCuentaRoute
   '/inicio': typeof AppInicioRoute
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
+  '/proyeccion': typeof AppProyeccionRoute
   '/sami': typeof AppSamiRoute
   '/taller': typeof AppTallerRoute
   '/ubicacion': typeof AppUbicacionRoute
@@ -142,11 +166,14 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_publica': typeof PublicaRouteWithChildren
   '/_app/avisos': typeof AppAvisosRoute
+  '/_app/cierre': typeof AppCierreRoute
+  '/_app/compras': typeof AppComprasRoute
   '/_app/cuadernos': typeof AppCuadernosRoute
   '/_app/cuenta': typeof AppCuentaRoute
   '/_app/inicio': typeof AppInicioRoute
   '/_app/planes': typeof AppPlanesRoute
   '/_app/plantillas': typeof AppPlantillasRoute
+  '/_app/proyeccion': typeof AppProyeccionRoute
   '/_app/sami': typeof AppSamiRoute
   '/_app/taller': typeof AppTallerRoute
   '/_app/ubicacion': typeof AppUbicacionRoute
@@ -161,11 +188,14 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/avisos'
+    | '/cierre'
+    | '/compras'
     | '/cuadernos'
     | '/cuenta'
     | '/inicio'
     | '/planes'
     | '/plantillas'
+    | '/proyeccion'
     | '/sami'
     | '/taller'
     | '/ubicacion'
@@ -177,11 +207,14 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/avisos'
+    | '/cierre'
+    | '/compras'
     | '/cuadernos'
     | '/cuenta'
     | '/inicio'
     | '/planes'
     | '/plantillas'
+    | '/proyeccion'
     | '/sami'
     | '/taller'
     | '/ubicacion'
@@ -194,11 +227,14 @@ export interface FileRouteTypes {
     | '/_app'
     | '/_publica'
     | '/_app/avisos'
+    | '/_app/cierre'
+    | '/_app/compras'
     | '/_app/cuadernos'
     | '/_app/cuenta'
     | '/_app/inicio'
     | '/_app/planes'
     | '/_app/plantillas'
+    | '/_app/proyeccion'
     | '/_app/sami'
     | '/_app/taller'
     | '/_app/ubicacion'
@@ -237,6 +273,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAvisosRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/cierre': {
+      id: '/_app/cierre'
+      path: '/cierre'
+      fullPath: '/cierre'
+      preLoaderRoute: typeof AppCierreRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/compras': {
+      id: '/_app/compras'
+      path: '/compras'
+      fullPath: '/compras'
+      preLoaderRoute: typeof AppComprasRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/cuadernos': {
       id: '/_app/cuadernos'
       path: '/cuadernos'
@@ -270,6 +320,13 @@ declare module '@tanstack/react-router' {
       path: '/plantillas'
       fullPath: '/plantillas'
       preLoaderRoute: typeof AppPlantillasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/proyeccion': {
+      id: '/_app/proyeccion'
+      path: '/proyeccion'
+      fullPath: '/proyeccion'
+      preLoaderRoute: typeof AppProyeccionRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/sami': {
@@ -333,11 +390,14 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAvisosRoute: typeof AppAvisosRoute
+  AppCierreRoute: typeof AppCierreRoute
+  AppComprasRoute: typeof AppComprasRoute
   AppCuadernosRoute: typeof AppCuadernosRoute
   AppCuentaRoute: typeof AppCuentaRoute
   AppInicioRoute: typeof AppInicioRoute
   AppPlanesRoute: typeof AppPlanesRoute
   AppPlantillasRoute: typeof AppPlantillasRoute
+  AppProyeccionRoute: typeof AppProyeccionRoute
   AppSamiRoute: typeof AppSamiRoute
   AppTallerRoute: typeof AppTallerRoute
   AppUbicacionRoute: typeof AppUbicacionRoute
@@ -347,11 +407,14 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAvisosRoute: AppAvisosRoute,
+  AppCierreRoute: AppCierreRoute,
+  AppComprasRoute: AppComprasRoute,
   AppCuadernosRoute: AppCuadernosRoute,
   AppCuentaRoute: AppCuentaRoute,
   AppInicioRoute: AppInicioRoute,
   AppPlanesRoute: AppPlanesRoute,
   AppPlantillasRoute: AppPlantillasRoute,
+  AppProyeccionRoute: AppProyeccionRoute,
   AppSamiRoute: AppSamiRoute,
   AppTallerRoute: AppTallerRoute,
   AppUbicacionRoute: AppUbicacionRoute,
