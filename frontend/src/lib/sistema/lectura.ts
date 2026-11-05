@@ -49,7 +49,7 @@ type ColumnaDeEjemplo = { campo: Campo; valores: Valor[] };
 
 const COLUMNAS_NUEVAS: Partial<Record<TipoBloque, ColumnaDeEjemplo>> = {
   inventory: {
-    campo: { key: 'proveedor', label: 'Proveedor', type: 'text', required: false },
+    campo: { key: 'marca', label: 'Marca', type: 'text', required: false },
     valores: ['Distribuidora Sur', 'Mayorista Norte', 'Distribuidora Sur'],
   },
   clients: {
@@ -61,7 +61,7 @@ const COLUMNAS_NUEVAS: Partial<Record<TipoBloque, ColumnaDeEjemplo>> = {
     valores: ['11 4444-5555', '11 5555-6666', '11 6666-7777'],
   },
   expenses: {
-    campo: { key: 'proveedor', label: 'Proveedor', type: 'text', required: false },
+    campo: { key: 'marca', label: 'Marca', type: 'text', required: false },
     valores: ['Distribuidora Sur', 'Mayorista Norte', 'Distribuidora Sur'],
   },
   sales: {

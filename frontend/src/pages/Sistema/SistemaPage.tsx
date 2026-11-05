@@ -204,6 +204,7 @@ export function SistemaPage() {
                   })
                 }
                 onResumen={() => abrirModal({ tipo: 'resumen' })}
+                onPedidoProveedor={() => abrirModal({ tipo: 'pedidoProveedor' })}
               />
               <Btn
                 cls="secondary"

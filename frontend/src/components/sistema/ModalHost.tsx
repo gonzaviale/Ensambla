@@ -10,6 +10,7 @@ import { ModalConsejosDeFoto } from './modales/ModalConsejosDeFoto';
 import { ModalEliminarCuaderno } from './modales/ModalEliminarCuaderno';
 import { ModalElegirBloque } from './modales/ModalElegirBloque';
 import { ModalImportar } from './modales/ModalImportar';
+import { ModalPedidoProveedor } from './modales/ModalPedidoProveedor';
 import { ModalPlantilla } from './modales/ModalPlantilla';
 import { ModalRenombrar } from './modales/ModalRenombrar';
 import { ModalRegistro } from './modales/ModalRegistro';
@@ -46,6 +47,8 @@ function ContenidoDelModal() {
       return <ModalRenombrar />;
     case 'resumen':
       return <ModalResumen />;
+    case 'pedidoProveedor':
+      return <ModalPedidoProveedor />;
     case 'eliminarCuaderno':
       return <ModalEliminarCuaderno />;
     case 'renombrarPieza':

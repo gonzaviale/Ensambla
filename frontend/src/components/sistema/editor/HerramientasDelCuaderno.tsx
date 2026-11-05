@@ -15,6 +15,7 @@ type Props = {
   /** Sin esta acción (o sin `onResumen`) no se dibuja: el taller de Sami no las tiene. */
   onFoto?: () => void;
   onResumen?: () => void;
+  onPedidoProveedor?: () => void;
 };
 
 function Accion({
@@ -46,6 +47,7 @@ export function HerramientasDelCuaderno({
   onNuevaSeccion,
   onFoto,
   onResumen,
+  onPedidoProveedor,
 }: Props) {
   const [abierto, setAbierto] = useState<Panel | null>(null);
   const contenedor = useRef<HTMLDivElement>(null);
@@ -104,6 +106,11 @@ export function HerramientasDelCuaderno({
           {onFoto && (
             <Accion icono="camera" onClick={y(onFoto)}>
               Traer datos de una foto
+            </Accion>
+          )}
+          {onPedidoProveedor && (
+            <Accion icono="box" data-accion="pedido-proveedor" onClick={y(onPedidoProveedor)}>
+              Pedido a proveedor
             </Accion>
           )}
           {onResumen && (

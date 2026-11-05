@@ -31,6 +31,7 @@ export const CATALOG: Record<TipoBloque, DefinicionDeBloque> = {
       campo('price', 'Precio', 'currency'),
       campo('cost', 'Costo', 'currency'),
       campo('minimum', 'Stock mínimo', 'number'),
+      campo('supplier', 'Proveedor'),
     ],
     examples: [
       { name: 'Yerba Playadito 1 kg', quantity: 24, price: 3600, cost: 2700, minimum: 10 },

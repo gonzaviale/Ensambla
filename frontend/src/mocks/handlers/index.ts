@@ -10,6 +10,7 @@ import { handlersUbicacion } from './ubicacion';
 import { handlersNegocio } from './negocio';
 import { handlersPlanes } from './planes';
 import { handlersReportes } from './reportes';
+import { handlersReposicion } from './reposicion';
 import { handlersWhatsapp } from './whatsapp';
 
 // Las rutas actuales ya existen en el backend. Sólo el modo completo las simula para tests y demos.
@@ -27,6 +28,7 @@ export function handlersPara(modo: ModoMocks) {
       ...handlersNegocio,
       ...handlersPlanes,
       ...handlersReportes,
+      ...handlersReposicion,
       ...handlersWhatsapp,
       ...handlersSamiProyecto,
       ...handlersSamiTaller,

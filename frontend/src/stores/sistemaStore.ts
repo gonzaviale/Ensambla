@@ -25,6 +25,8 @@ export type Modal =
   | { tipo: 'renombrar' }
   /** El resumen del negocio en PDF del sistema abierto. */
   | { tipo: 'resumen' }
+  /** El pedido a un proveedor con lo que falta del sistema abierto. */
+  | { tipo: 'pedidoProveedor' }
   | { tipo: 'eliminarCuaderno' }
   | { tipo: 'renombrarPieza'; bloqueId: string }
   /** `avisoId`: el aviso del servidor desde el que se abrió; al guardar el registro se da por aplicado. */

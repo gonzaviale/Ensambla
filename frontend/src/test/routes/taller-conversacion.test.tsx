@@ -348,17 +348,17 @@ describe('la conversación de Sami en el taller', () => {
 
   it('lo que Sami pide con herramientas se aplica a la propuesta y se puede deshacer', async () => {
     const user = await conPropuesta();
-    expect(etiquetasDelInventario()).not.toContain('Proveedor');
+    expect(etiquetasDelInventario()).not.toContain('Marca');
 
-    await escribir(user, 'agregá un proveedor al inventario');
+    await escribir(user, 'agregá una marca al inventario');
 
     expect(
-      await screen.findByText('Listo, sumé el proveedor al inventario.', {}, ESPERA),
+      await screen.findByText('Listo, sumé la marca al inventario.', {}, ESPERA),
     ).toBeVisible();
-    await waitFor(() => expect(etiquetasDelInventario()).toContain('Proveedor'), ESPERA);
+    await waitFor(() => expect(etiquetasDelInventario()).toContain('Marca'), ESPERA);
     await clickButton(user, /Deshacer lo último/);
 
-    expect(etiquetasDelInventario()).not.toContain('Proveedor');
+    expect(etiquetasDelInventario()).not.toContain('Marca');
     expect(screen.getByText(/Listo, volví atrás/)).toBeVisible();
     expect(screen.queryByRole('button', { name: /Deshacer lo último/ })).toBeNull();
   });

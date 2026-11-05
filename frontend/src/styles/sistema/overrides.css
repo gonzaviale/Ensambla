@@ -217,6 +217,79 @@
 .modal-resumen .modal-footer {
   flex-wrap: wrap;
 }
+
+/* El pedido a un proveedor: solapas por proveedor y una fila por producto con su cantidad. */
+.modal-pedido .modal-footer {
+  flex-wrap: wrap;
+}
+.pedido-proveedores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 10px;
+}
+.pedido-proveedores button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line, #d5dde2);
+  border-radius: 999px;
+  background: #fff;
+  font: inherit;
+  font-weight: 600;
+  color: var(--petrol);
+  cursor: pointer;
+}
+.pedido-proveedores button.activa {
+  background: var(--petrol);
+  border-color: var(--petrol);
+  color: #fff;
+}
+.pedido-ayuda {
+  color: var(--muted);
+  font-size: 15px;
+  margin: 0 0 10px;
+}
+.pedido-lista {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 14px;
+  display: grid;
+  gap: 8px;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.pedido-fila {
+  display: grid;
+  grid-template-columns: auto 1fr 110px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line, #d5dde2);
+  border-radius: 12px;
+}
+.pedido-fila-texto {
+  display: grid;
+  gap: 2px;
+}
+.pedido-fila-texto span {
+  color: var(--muted);
+  font-size: 15px;
+}
+.pedido-fila-cantidad label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.pedido-vacio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--petrol);
+}
 @media (max-width: 480px) {
   .resumen-fechas {
     grid-template-columns: 1fr;

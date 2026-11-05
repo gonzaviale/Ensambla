@@ -437,11 +437,11 @@ const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
     };
   }
   const inventario = deTipo('inventory');
-  if (/proveedor/.test(texto) && inventario) {
+  if (/marca/.test(texto) && inventario) {
     return {
-      respuesta: 'Listo, sumé el proveedor al inventario.',
+      respuesta: 'Listo, sumé la marca al inventario.',
       acciones: [
-        accion('agregar_campo', { pieza: inventario.id, etiqueta: 'Proveedor', tipo: 'text' }),
+        accion('agregar_campo', { pieza: inventario.id, etiqueta: 'Marca', tipo: 'text' }),
       ],
       preguntas: [],
     };
@@ -463,7 +463,7 @@ const respuestaDe = ({ mensaje = '', estado, imagen }: Pedido) => {
         pregunta: '¿Qué querés hacer con tu cuaderno?',
         opciones: [
           'Sumar gastos',
-          'Agregar un proveedor al inventario',
+          'Agregar una marca al inventario',
           'Poner todo en una columna',
         ],
       },

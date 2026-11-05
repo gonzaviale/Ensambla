@@ -778,6 +778,7 @@ describe('Sami ensambla el sistema desde cero', () => {
         'Precio',
         'Costo',
         'Stock mínimo',
+        'Proveedor',
         'Aroma',
       ]);
       expect(velas.fields.at(-1)).toMatchObject({ key: 'aroma', type: 'text', required: false });
