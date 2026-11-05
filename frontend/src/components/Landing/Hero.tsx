@@ -7,10 +7,10 @@ export function Hero() {
     <section className="ens-wrap ens-hero" id="inicio" aria-labelledby="inicio-titulo">
       <div className="ens-hero-copy">
         <p className="ens-eyebrow">Para comercios de barrio como el tuyo</p>
-        <h1 id="inicio-titulo">Tu cuaderno de siempre, con tus cuentas más claras</h1>
+        <h1 id="inicio-titulo">Tu cuaderno de siempre, con un asistente que te dice qué hacer hoy</h1>
         <p>
-          Ensambla es un cuaderno digital para anotar ventas, gastos y fiados, y encontrar lo que
-          necesitás sin buscar hoja por hoja.
+          Ensambla lee lo que anotás y te avisa qué reponer, te deja armado el pedido para tu
+          proveedor y te prepara qué publicar para tus clientes.
         </p>
         <div className="ens-actions">
           <Link to="/registro" className="ens-primary">

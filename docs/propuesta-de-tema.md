@@ -1,6 +1,6 @@
-# Propuesta de tema — ENSAMBLA (v1.2, 14/10/2026)
+# Propuesta de tema — ENSAMBLA (v1.3, 05/11/2026)
 
-Generado desde `originales/Propuesta_de_Tema_ENSAMBLA_2026_v1.2.docx`. El original es la fuente de verdad.
+Generado desde `originales/Propuesta_de_Tema_ENSAMBLA_2026_v1.3.docx`. El original es la fuente de verdad.
 
 UNIVERSIDAD NACIONAL DE LA MATANZA
 
@@ -16,7 +16,7 @@ Tu sistema, un bloque a la vez.
 
 PROPUESTA DE TEMA
 
-Plataforma que convierte los cuadernos en papel de emprendedores en un sistema de gestión digital, simple y ordenado
+Asistente del comerciante de barrio: lee lo que ya anota y le dice qué hacer hoy: reponer, avisar y promocionar
 
 INTEGRANTES
 
@@ -58,9 +58,9 @@ Lic. Juan De Cicco · Ing. Alejandro Rusticcini · Ing. Sergio Bonavento · Ing.
 
 Identificación del documento
 
-| Versión | 1.2 |
+| Versión | 1.3 |
 |---|---|
-| Última actualización | 14/10/2026 |
+| Última actualización | 05/11/2026 |
 
 Control de versiones
 
@@ -69,8 +69,9 @@ Control de versiones
 | 1.0 | Equipo Ensambla | 09/10/2026 | Propuesta inicial del proyecto |
 | 1.1 | Equipo Ensambla | 10/10/2026 | Reenfoque del producto: digitalización de cuadernos con IA para emprendedores mayores |
 | 1.2 | Equipo Ensambla | 14/10/2026 | Actualización al MVP 2: stack definido, hoja de ruta, ampliaciones implementadas y estado de la IA |
+| 1.3 | Equipo Ensambla | 05/11/2026 | Reenfoque: asistente del comerciante de barrio (no es una plataforma de gestión). Pedido a proveedor en PDF, resumen diario por WhatsApp y publicaciones para compartir |
 
-Nota de edición: los datos de tutoría, referentes y distribución interna de roles deben completarse cuando se confirmen. La propuesta funcional y técnica es preliminar y está sujeta a validación del equipo. Este documento se actualiza en cada MVP; la versión 1.2 refleja el estado del MVP 2.
+Nota de edición: los datos de tutoría, referentes y distribución interna de roles deben completarse cuando se confirmen. La propuesta funcional y técnica es preliminar y está sujeta a validación del equipo. Este documento se actualiza en cada MVP; la versión 1.3 reenfoca el producto como asistente del comerciante de barrio y suma sus primeras funciones de uso diario.
 
 ## ÍNDICE
 
@@ -88,13 +89,15 @@ Estructura de la propuesta de tema.
 
 ENFOQUE DEL DOCUMENTO
 
-Ensambla propone que emprendedores que llevan su negocio en cuadernos de papel —y a quienes las planillas de cálculo y las aplicaciones de gestión les resultan difíciles— puedan pasar a una gestión digital ordenada sin aprender a usar esas herramientas: sacan una foto de su cuaderno y Ensambla arma el sistema. Este documento presenta el concepto, el alcance inicial y los principales supuestos a validar.
+Ensambla es el asistente del comerciante de barrio: mira lo que ya anota en su cuaderno o por WhatsApp, le dice qué hacer hoy y le deja el trabajo listo. No es una plataforma de gestión. Este documento presenta el concepto, el alcance inicial y los principales supuestos a validar.
 
 ## I  ·  RESUMEN
 
 Ensambla es una aplicación web, pensada primero para el celular, que ayuda a emprendedores adultos y adultos mayores a ordenar su emprendimiento a partir de lo que ya hacen: anotar en un cuaderno. La persona saca una foto de sus páginas de ventas, gastos, pedidos, stock o fiados; la plataforma, mediante inteligencia artificial, interpreta lo escrito, propone cómo organizarlo y lo convierte en registros digitales que se pueden revisar, corregir, consultar y ampliar con el tiempo. No hace falta saber usar Excel, diseñar tablas ni aprender términos técnicos.
 
 El núcleo del producto —y lo que define su primer MVP— es ese recorrido: de la foto del cuaderno a un sistema ordenado, con la persona siempre confirmando lo que leyó la IA. Sobre esa base, Ensambla conserva su enfoque modular: los datos se organizan en proyectos —el sistema de cada emprendimiento— formados por bloques (Ventas, Clientes, Stock…) que pueden conectarse entre sí, ajustarse o ampliarse, y se ofrecen plantillas (Inventario, Pedidos y Clientes) para quien prefiera empezar sin fotos. Indicadores, equipos con roles, planes, importación de planillas, automatizaciones, integraciones y un mercado de plantillas se contemplan como líneas de evolución para los MVP 3 y 4.
+
+Definición (v1.3). Ensambla es el asistente del comerciante de barrio: mira lo que ya anota (el cuaderno, las fotos, WhatsApp) y le dice qué hacer hoy —reponer, avisar, promocionar— y le deja el trabajo listo: el pedido al proveedor, el mensaje, la publicación. No es una plataforma de gestión: no lleva contabilidad, costos, ganancias ni impuestos. La regla para sumar una función es que termine en algo que el comerciante lleva en la mano, use datos que ya cargó y evite calcular plata. En esta versión se suman el pedido a proveedor en PDF, el resumen diario de Sami por WhatsApp y las publicaciones para compartir en redes.
 
 ## II · MERCADO
 

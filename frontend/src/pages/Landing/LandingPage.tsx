@@ -16,7 +16,7 @@ import './landing-recorrido.css';
 import './landing-sami.css';
 
 export function LandingPage() {
-  useTituloPagina('Tu cuaderno digital, tus cuentas más claras');
+  useTituloPagina('Tu cuaderno de siempre, con un asistente que te dice qué hacer hoy');
   useDesplazamientoSuave();
 
   return (

@@ -7,7 +7,9 @@ import { ESPERA, verifyHeadingPresentAsync } from '@/test/testHelpers';
 
 async function abrirLanding() {
   const router = renderApp('/');
-  await verifyHeadingPresentAsync('Tu cuaderno de siempre, con tus cuentas más claras');
+  await verifyHeadingPresentAsync(
+    'Tu cuaderno de siempre, con un asistente que te dice qué hacer hoy',
+  );
   return { router, user: userEvent.setup() };
 }
 

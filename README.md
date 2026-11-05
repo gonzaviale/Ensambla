@@ -2,17 +2,23 @@
 
 > **Tu sistema, un bloque a la vez.**
 
-Ensambla es una aplicación web **no-code** para que emprendedores, comercios y PyMEs armen el sistema interno de su
-negocio —inventario, pedidos, clientes— sin programar: eligen una **plantilla** (o empiezan en blanco), agregan
-**bloques** con **campos** tipados y cargan **registros** con formularios y tablas generados automáticamente.
+**Ensambla es el asistente del comerciante de barrio.** Mira lo que ya anota (el cuaderno, las fotos, WhatsApp) y le dice
+qué hacer hoy: **reponer, avisar, promocionar**. Y le deja el trabajo listo: el pedido al proveedor, el mensaje, la
+publicación. No es una plataforma de gestión: no lleva contabilidad, costos ni impuestos.
+
+La definición completa, lo que no es y la regla para aceptar funciones nuevas están en
+[docs/que-es-ensambla.md](docs/que-es-ensambla.md).
 
 Trabajo Práctico Integrador · UNLaM · Tecnicatura en Desarrollo de Aplicaciones Web/Móviles · 2026.
 
-## Estado
+## Qué hace
 
-Estamos en el **MVP 2** (el núcleo vendible). Esta base deja armadas la estructura, la pila tecnológica, el modelo de
-datos y los pipelines para que el equipo arranque con las tareas `T-001` … `T-038` del backlog. Ver
-[docs/backlog.md](docs/backlog.md).
+| Verbo | Funciones |
+|---|---|
+| **Cargar** | Foto del cuaderno leída con IA (con revisión antes de guardar) · Sami arma el sistema conversando · carga por WhatsApp · plantillas |
+| **Avisar** | Avisos de Sami (stock, precio frente a la zona, productos parados, combos) · Mi zona · resumen de la mañana por WhatsApp |
+| **Reponer** | Aviso de stock · pedido a proveedor en PDF |
+| **Promocionar** | Publicaciones y lista de precios armadas por Sami para compartir |
 
 ## Estructura
 
@@ -20,8 +26,8 @@ datos y los pipelines para que el equipo arranque con las tareas `T-001` … `T-
 |---|---|
 | [`backend/`](backend/README.md) | API REST: Spring Boot 4, Java 21, PostgreSQL 17, Flyway, sesión por cookie + CSRF |
 | [`frontend/`](frontend/README.md) | SPA: Vite, React 19, TypeScript, TanStack Router/Query/Form, Tailwind 4, zod, MSW |
-| [`docs/`](docs) | Modelo de datos, backlog del MVP 2 y guía de marca |
-| `.claude/skills` | Skills para trabajar con Claude Code: `crear-use-case`, `escribir-tests`, `refactor-use-case` |
+| [`docs/`](docs) | Definición del producto, modelo de datos, reglas de avisos, WhatsApp, Sami y guía de marca |
+| `.claude/skills` y `.agents/skills` | Skills para trabajar con Claude Code y Codex (misma fuente): reglas de arquitectura, crear caso de uso, escribir tests y refactor |
 | `.github/` | CI (backend y frontend), deploy, plantilla de PR y guía de contribución |
 
 ## Cómo levantarlo
@@ -43,10 +49,16 @@ npm install
 npm run dev
 ```
 
-Registro, login, logout y sesión funcionan contra el backend real. `.env.example` usa
-`VITE_API_MOCKS=ninguno`; `completo` queda disponible para tests y demos simuladas.
-El registro crea la cuenta y el negocio, y el formulario inicia sesión automáticamente.
-Detalle y criterios verificados: [docs/acceso-sesion.md](docs/acceso-sesion.md).
+`.env.example` usa `VITE_API_MOCKS=ninguno`; `completo` queda disponible para tests y demos simuladas. WhatsApp e IA
+arrancan en modo `simulado` (no envían nada ni gastan): ver [docs/whatsapp-evolution.md](docs/whatsapp-evolution.md) y
+[docs/sami-asistente.md](docs/sami-asistente.md) para conectarlos de verdad.
+
+## Cómo se escribe el código
+
+Las reglas del backend están en [backend/ARQUITECTURA.md](backend/ARQUITECTURA.md). Las dos que más importan al sumar
+código: **las variantes por tipo se resuelven con polimorfismo** (una clase por variante, nunca un `switch`) y **los
+métodos se explican solos** (una lista corta de pasos y todo el detalle en métodos privados). Los tests siguen la misma
+forma. `ArchitectureTest` rechaza un `switch` nuevo.
 
 ## Calidad
 
@@ -59,6 +71,3 @@ Detalle y criterios verificados: [docs/acceso-sesion.md](docs/acceso-sesion.md).
 
 Ramas `tipo/descripcion-corta`, Conventional Commits, PR a `dev` con 1 aprobación y *Squash and merge*.
 Detalle en [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md). Flujo de ramas: `main` ← `stg` ← `dev` ← feature.
-
-<!-- prueba: sin checks de Vercel en el PR -->
-
