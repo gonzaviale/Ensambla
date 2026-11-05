@@ -137,7 +137,7 @@ class ConversarEnTallerArmadoTest {
                 llamada("agregar_pieza", Map.of("tipo", "inventory", "campos", nueve)));
 
         assertThat((List<?>) result.acciones().get(0).argumentos().get("campos")).hasSize(8);
-        assertThat((List<?>) result.acciones().get(1).argumentos().get("campos")).hasSize(7);
+        assertThat((List<?>) result.acciones().get(1).argumentos().get("campos")).hasSize(6);
     }
 
     @Test

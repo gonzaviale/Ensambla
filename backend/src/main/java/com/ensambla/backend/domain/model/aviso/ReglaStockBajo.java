@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.model.aviso;
 
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.reposicion.SituacionStock;
 
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
@@ -17,8 +18,6 @@ public class ReglaStockBajo implements ReglaAviso {
 
     private static final short PRIORIDAD_AGOTADO = 3;
     private static final short PRIORIDAD_BAJO_MINIMO = 2;
-    private static final BigDecimal PEDIDO_SIN_MINIMO = BigDecimal.TEN;
-    private static final BigDecimal DOS = BigDecimal.valueOf(2);
 
     @Override
     public TipoAviso tipo() {
@@ -46,7 +45,7 @@ public class ReglaStockBajo implements ReglaAviso {
             return null;
         }
         String nombre = nombreDe(inventario, registro);
-        BigDecimal pedir = cantidadAPedir(cantidad, hayMinimo ? minimo : null);
+        BigDecimal pedir = SituacionStock.pedidoPara(cantidad, hayMinimo ? minimo : null);
         Map<String, Object> datos = new LinkedHashMap<>();
         datos.put("cantidad", cantidad);
         datos.put("minimo", hayMinimo ? minimo : BigDecimal.ZERO);
@@ -71,11 +70,6 @@ public class ReglaStockBajo implements ReglaAviso {
         return minimo == null
                 ? "No tiene un mínimo definido: te avisamos porque se agotó."
                 : "Definiste un mínimo de " + texto(minimo) + " y quedan " + texto(cantidad) + ".";
-    }
-
-    private static BigDecimal cantidadAPedir(BigDecimal cantidad, BigDecimal minimo) {
-        BigDecimal objetivo = minimo == null ? PEDIDO_SIN_MINIMO : minimo.multiply(DOS);
-        return objetivo.subtract(cantidad).max(BigDecimal.ONE);
     }
 
     /** Registrar la entrada si el proyecto tiene tabla de entradas; si no, abrir el producto. */

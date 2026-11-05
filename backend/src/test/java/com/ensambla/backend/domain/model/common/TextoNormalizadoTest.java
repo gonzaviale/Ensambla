@@ -69,6 +69,18 @@ class TextoNormalizadoTest {
     }
 
     @Test
+    @DisplayName("El slug pasa a minúsculas, quita tildes y cambia signos y espacios por guiones")
+    void slugShouldBuildAFileNameFriendlyText() {
+        assertThat(TextoNormalizado.slug("  Distribuidora Ñandú S.R.L. ")).isEqualTo("distribuidora-nandu-s-r-l");
+    }
+
+    @Test
+    @DisplayName("El slug de un texto sin letras ni números queda vacío")
+    void slugShouldBeEmptyWhenThereIsNothingToKeep() {
+        assertThat(TextoNormalizado.slug("¿¡?!")).isEmpty();
+    }
+
+    @Test
     @DisplayName("La clave de un nombre ignora tildes, mayúsculas y plural")
     void claveShouldMatchNamesWrittenDifferently() {
         assertThat(TextoNormalizado.clave("Teléfonos")).isEqualTo(TextoNormalizado.clave("telefono"));

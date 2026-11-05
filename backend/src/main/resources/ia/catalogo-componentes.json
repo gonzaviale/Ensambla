@@ -36,6 +36,12 @@
           "etiqueta": "Stock mínimo",
           "tipo": "number",
           "obligatorio": false
+        },
+        {
+          "clave": "supplier",
+          "etiqueta": "Proveedor",
+          "tipo": "text",
+          "obligatorio": false
         }
       ]
     },

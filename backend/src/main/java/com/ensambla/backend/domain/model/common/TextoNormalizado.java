@@ -41,6 +41,13 @@ public final class TextoNormalizado {
         return String.join(" ", palabras(nombre));
     }
 
+    /** El texto para un nombre de archivo: minúsculas, sin tildes y con guiones en lugar de signos y espacios. */
+    public static String slug(String texto) {
+        return sinTildes(texto).toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("^-+|-+$", "");
+    }
+
     private static String sinTildes(String texto) {
         return Normalizer.normalize(texto, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
     }
