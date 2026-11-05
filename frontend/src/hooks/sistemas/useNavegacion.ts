@@ -51,7 +51,10 @@ export function useNavegacion() {
       | '/avisos'
       | '/cierre'
       | '/compras'
-      | '/proyeccion',
+      | '/proyeccion'
+      | '/pedidos'
+      | '/ofertas'
+      | '/monotributo',
   ) => {
     limpiar();
     return navigate({ to });
@@ -103,6 +106,10 @@ export function useNavegacion() {
     irANegocio: () => irA('/cierre'),
     irACompras: () => irA('/compras'),
     irAProyeccion: () => irA('/proyeccion'),
+    /** Los pedidos que llegan por WhatsApp, las ofertas y el monotributo, también en «Mi negocio». */
+    irAPedidos: () => irA('/pedidos'),
+    irAOfertas: () => irA('/ofertas'),
+    irAMonotributo: () => irA('/monotributo'),
     /** El avatar: la configuración de la cuenta, en la sección que se pida (el perfil, si no). */
     irACuenta: (seccion?: SeccionDeCuenta) => {
       limpiar();

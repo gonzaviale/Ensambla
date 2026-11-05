@@ -17,6 +17,9 @@ import { Route as AppComprasRouteImport } from './routes/_app/compras'
 import { Route as AppCuadernosRouteImport } from './routes/_app/cuadernos'
 import { Route as AppCuentaRouteImport } from './routes/_app/cuenta'
 import { Route as AppInicioRouteImport } from './routes/_app/inicio'
+import { Route as AppMonotributoRouteImport } from './routes/_app/monotributo'
+import { Route as AppOfertasRouteImport } from './routes/_app/ofertas'
+import { Route as AppPedidosRouteImport } from './routes/_app/pedidos'
 import { Route as AppPlanesRouteImport } from './routes/_app/planes'
 import { Route as AppPlantillasRouteImport } from './routes/_app/plantillas'
 import { Route as AppProyeccionRouteImport } from './routes/_app/proyeccion'
@@ -65,6 +68,21 @@ const AppCuentaRoute = AppCuentaRouteImport.update({
 const AppInicioRoute = AppInicioRouteImport.update({
   id: '/inicio',
   path: '/inicio',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMonotributoRoute = AppMonotributoRouteImport.update({
+  id: '/monotributo',
+  path: '/monotributo',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOfertasRoute = AppOfertasRouteImport.update({
+  id: '/ofertas',
+  path: '/ofertas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPedidosRoute = AppPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPlanesRoute = AppPlanesRouteImport.update({
@@ -131,6 +149,9 @@ export interface FileRoutesByFullPath {
   '/cuadernos': typeof AppCuadernosRoute
   '/cuenta': typeof AppCuentaRoute
   '/inicio': typeof AppInicioRoute
+  '/monotributo': typeof AppMonotributoRoute
+  '/ofertas': typeof AppOfertasRoute
+  '/pedidos': typeof AppPedidosRoute
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
   '/proyeccion': typeof AppProyeccionRoute
@@ -150,6 +171,9 @@ export interface FileRoutesByTo {
   '/cuadernos': typeof AppCuadernosRoute
   '/cuenta': typeof AppCuentaRoute
   '/inicio': typeof AppInicioRoute
+  '/monotributo': typeof AppMonotributoRoute
+  '/ofertas': typeof AppOfertasRoute
+  '/pedidos': typeof AppPedidosRoute
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
   '/proyeccion': typeof AppProyeccionRoute
@@ -171,6 +195,9 @@ export interface FileRoutesById {
   '/_app/cuadernos': typeof AppCuadernosRoute
   '/_app/cuenta': typeof AppCuentaRoute
   '/_app/inicio': typeof AppInicioRoute
+  '/_app/monotributo': typeof AppMonotributoRoute
+  '/_app/ofertas': typeof AppOfertasRoute
+  '/_app/pedidos': typeof AppPedidosRoute
   '/_app/planes': typeof AppPlanesRoute
   '/_app/plantillas': typeof AppPlantillasRoute
   '/_app/proyeccion': typeof AppProyeccionRoute
@@ -193,6 +220,9 @@ export interface FileRouteTypes {
     | '/cuadernos'
     | '/cuenta'
     | '/inicio'
+    | '/monotributo'
+    | '/ofertas'
+    | '/pedidos'
     | '/planes'
     | '/plantillas'
     | '/proyeccion'
@@ -212,6 +242,9 @@ export interface FileRouteTypes {
     | '/cuadernos'
     | '/cuenta'
     | '/inicio'
+    | '/monotributo'
+    | '/ofertas'
+    | '/pedidos'
     | '/planes'
     | '/plantillas'
     | '/proyeccion'
@@ -232,6 +265,9 @@ export interface FileRouteTypes {
     | '/_app/cuadernos'
     | '/_app/cuenta'
     | '/_app/inicio'
+    | '/_app/monotributo'
+    | '/_app/ofertas'
+    | '/_app/pedidos'
     | '/_app/planes'
     | '/_app/plantillas'
     | '/_app/proyeccion'
@@ -306,6 +342,27 @@ declare module '@tanstack/react-router' {
       path: '/inicio'
       fullPath: '/inicio'
       preLoaderRoute: typeof AppInicioRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/monotributo': {
+      id: '/_app/monotributo'
+      path: '/monotributo'
+      fullPath: '/monotributo'
+      preLoaderRoute: typeof AppMonotributoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/ofertas': {
+      id: '/_app/ofertas'
+      path: '/ofertas'
+      fullPath: '/ofertas'
+      preLoaderRoute: typeof AppOfertasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pedidos': {
+      id: '/_app/pedidos'
+      path: '/pedidos'
+      fullPath: '/pedidos'
+      preLoaderRoute: typeof AppPedidosRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/planes': {
@@ -395,6 +452,9 @@ interface AppRouteChildren {
   AppCuadernosRoute: typeof AppCuadernosRoute
   AppCuentaRoute: typeof AppCuentaRoute
   AppInicioRoute: typeof AppInicioRoute
+  AppMonotributoRoute: typeof AppMonotributoRoute
+  AppOfertasRoute: typeof AppOfertasRoute
+  AppPedidosRoute: typeof AppPedidosRoute
   AppPlanesRoute: typeof AppPlanesRoute
   AppPlantillasRoute: typeof AppPlantillasRoute
   AppProyeccionRoute: typeof AppProyeccionRoute
@@ -412,6 +472,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppCuadernosRoute: AppCuadernosRoute,
   AppCuentaRoute: AppCuentaRoute,
   AppInicioRoute: AppInicioRoute,
+  AppMonotributoRoute: AppMonotributoRoute,
+  AppOfertasRoute: AppOfertasRoute,
+  AppPedidosRoute: AppPedidosRoute,
   AppPlanesRoute: AppPlanesRoute,
   AppPlantillasRoute: AppPlantillasRoute,
   AppProyeccionRoute: AppProyeccionRoute,

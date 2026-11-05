@@ -12,6 +12,9 @@ const TITULOS: Record<PantallaDeNegocio, string> = {
   cierre: 'Cierre del día',
   compras: 'Compras',
   proyeccion: '¿Me conviene?',
+  pedidos: 'Pedidos',
+  ofertas: 'Ofertas',
+  monotributo: 'Monotributo',
 };
 
 /**
@@ -32,12 +35,15 @@ export function MarcoDeNegocio({
   useTituloPagina(TITULOS[pantalla]);
   const negocio = useNegocio();
   const navegacion = useNavegacion();
-  const ir = (destino: PantallaDeNegocio) =>
-    void (destino === 'cierre'
-      ? navegacion.irANegocio()
-      : destino === 'compras'
-        ? navegacion.irACompras()
-        : navegacion.irAProyeccion());
+  const destinos: Record<PantallaDeNegocio, () => Promise<void>> = {
+    cierre: navegacion.irANegocio,
+    compras: navegacion.irACompras,
+    proyeccion: navegacion.irAProyeccion,
+    pedidos: navegacion.irAPedidos,
+    ofertas: navegacion.irAOfertas,
+    monotributo: navegacion.irAMonotributo,
+  };
+  const ir = (destino: PantallaDeNegocio) => void destinos[destino]();
 
   return (
     <>
@@ -68,8 +74,8 @@ export function MarcoDeNegocio({
           </div>
         )}
         <span className="gn-aviso-mockup">
-          <Icon name="bulb" /> Mockup: los gastos fijos, los proveedores y la hoja del día son de
-          ejemplo.
+          <Icon name="bulb" /> Mockup: lo que no sale de tu cuaderno (gastos fijos, proveedores,
+          mensajes, categorías) es de ejemplo.
         </span>
         <PageFooter />
       </main>

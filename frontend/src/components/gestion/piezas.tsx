@@ -6,12 +6,16 @@ import type { NombreDeIcono } from '@/lib/sistema/iconos';
 
 // Piezas chicas que comparten las tres pantallas de «Mi negocio».
 
-export type PantallaDeNegocio = 'cierre' | 'compras' | 'proyeccion';
+export type PantallaDeNegocio =
+  'cierre' | 'compras' | 'proyeccion' | 'pedidos' | 'ofertas' | 'monotributo';
 
 const PANTALLAS: { clave: PantallaDeNegocio; etiqueta: string; icono: NombreDeIcono }[] = [
   { clave: 'cierre', etiqueta: 'Cierre del día', icono: 'wallet' },
   { clave: 'compras', etiqueta: 'Compras', icono: 'box' },
   { clave: 'proyeccion', etiqueta: '¿Me conviene?', icono: 'chart' },
+  { clave: 'pedidos', etiqueta: 'Pedidos', icono: 'orders' },
+  { clave: 'ofertas', etiqueta: 'Ofertas', icono: 'spark' },
+  { clave: 'monotributo', etiqueta: 'Monotributo', icono: 'note' },
 ];
 
 /** Las tres pestañas de «Mi negocio». */
@@ -109,12 +113,31 @@ export function DiceSami({
   );
 }
 
-/** Un mensaje de WhatsApp tal como le llegaría a la otra persona. */
-export function MensajeDeWhatsapp({ para, texto }: { para: string; texto: string }) {
+/** Un mensaje de WhatsApp tal como le llegaría a la otra persona, o como llegó del cliente (`de`). */
+export function MensajeDeWhatsapp({
+  para,
+  de,
+  hora,
+  texto,
+}: {
+  para?: string;
+  de?: string;
+  hora?: string;
+  texto: string;
+}) {
   return (
-    <figure className="gn-whatsapp">
+    <figure className="gn-whatsapp" data-entrante={de ? true : undefined}>
       <figcaption>
-        Para <strong>{para}</strong> · por WhatsApp
+        {de ? (
+          <>
+            De <strong>{de}</strong>
+          </>
+        ) : (
+          <>
+            Para <strong>{para}</strong>
+          </>
+        )}{' '}
+        · por WhatsApp{hora && ` · ${hora}`}
       </figcaption>
       <p>{texto}</p>
     </figure>

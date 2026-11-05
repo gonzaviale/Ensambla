@@ -1,3 +1,5 @@
+import type { MensajeDePedido } from './pedidos';
+
 // Datos del mockup de «Mi negocio» que el backend todavía no guarda: gastos fijos, cómo cobra el comercio,
 // proveedores, la hoja del día que «lee» Sami y el remito que llega. Todo inventado para el almacén de la demo;
 // las ventas, el stock y los costos salen del cuaderno de verdad.
@@ -161,3 +163,89 @@ export const COSTOS_DEL_REMITO: Record<string, number> = {
   'Harina 000 Pureza 1 kg': 920,
   'Aceite Natura 900 ml': 2050,
 };
+
+// --- Pedidos, ofertas y monotributo ---
+
+/** Mensajes de clientes que llegaron hoy por WhatsApp, con lo que entendió Sami de cada uno. */
+export const PEDIDOS_DE_HOY: MensajeDePedido[] = [
+  {
+    id: 'p1',
+    cliente: 'Doña Rosa',
+    hora: '10:12',
+    texto: 'Hola! me separás 2 leches, un pan lactal y la yerba de siempre? paso a las 18',
+    lineas: [
+      { texto: '2 leches', cantidad: 2, busca: 'leche entera' },
+      { texto: 'un pan lactal', cantidad: 1, busca: 'pan lactal' },
+      { texto: 'la yerba de siempre', cantidad: 1, busca: 'yerba', deSiempre: true },
+    ],
+    entrega: 'retira',
+    pago: 'cobrado',
+  },
+  {
+    id: 'p2',
+    cliente: 'Bar La Esquina',
+    hora: '11:40',
+    texto: 'Buenas! Necesito 6 coca de 2 y cuarto y 8 fernet para hoy, me lo traen?',
+    lineas: [
+      { texto: '6 coca de 2 y cuarto', cantidad: 6, busca: 'coca' },
+      { texto: '8 fernet', cantidad: 8, busca: 'fernet' },
+    ],
+    entrega: 'envio',
+    pago: 'cobrado',
+  },
+  {
+    id: 'p3',
+    cliente: 'Familia Gómez',
+    hora: '12:05',
+    texto: 'hola, 1 aceite natura, 2 fideos y una salsa de tomate. lo anotás en la cuenta?',
+    lineas: [
+      { texto: '1 aceite natura', cantidad: 1, busca: 'aceite' },
+      { texto: '2 fideos', cantidad: 2, busca: 'fideos' },
+      { texto: 'una salsa de tomate', cantidad: 1, busca: 'salsa de tomate' },
+    ],
+    entrega: 'retira',
+    pago: 'fiado',
+  },
+  {
+    id: 'p4',
+    cliente: 'Carlos del 3° B',
+    hora: '12:31',
+    texto: 'tenés huevos? un maple. y un dulce de leche. me lo acercás?',
+    lineas: [
+      { texto: 'un maple de huevos', cantidad: 1, busca: 'huevos' },
+      { texto: 'un dulce de leche', cantidad: 1, busca: 'dulce de leche' },
+    ],
+    entrega: 'envio',
+    pago: 'cobrado',
+  },
+];
+
+/** Clientes que pidieron no recibir ofertas. El resto aceptó cuando Sami les preguntó la primera vez. */
+export const SIN_PERMISO_PARA_OFERTAS = ['Escuela N° 14', 'Sociedad de Fomento', 'Club Social'];
+
+/** Ofertas por cliente y por semana, como máximo. */
+export const TOPE_DE_OFERTAS_POR_SEMANA = 1;
+
+export type CategoriaMonotributo = { letra: string; tope: number; cuota: number };
+
+/**
+ * Categorías de ejemplo: NO son las vigentes. Las reales las publica ARCA y se actualizan dos veces por año; en el
+ * producto se leerían de una tabla que se mantiene aparte.
+ */
+export const CATEGORIAS_DE_EJEMPLO: CategoriaMonotributo[] = [
+  { letra: 'A', tope: 6500000, cuota: 18000 },
+  { letra: 'B', tope: 9800000, cuota: 22000 },
+  { letra: 'C', tope: 13500000, cuota: 27000 },
+  { letra: 'D', tope: 17000000, cuota: 35000 },
+  { letra: 'E', tope: 20000000, cuota: 43000 },
+];
+
+export const CATEGORIA_ACTUAL = 'B';
+
+/** Lo facturado en los 9 meses anteriores al cuaderno (del más viejo al más nuevo), cargado de las facturas viejas. */
+export const FACTURADO_ANTES_DEL_CUADERNO = [
+  640000, 655000, 670000, 690000, 700000, 715000, 730000, 750000, 770000,
+];
+
+/** Día del mes en que vence la cuota. */
+export const VENCIMIENTO_CUOTA = 20;
