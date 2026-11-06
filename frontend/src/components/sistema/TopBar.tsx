@@ -4,7 +4,15 @@ import { Logo } from './Logo';
 import { MenuDePerfil } from './MenuDePerfil';
 
 export type SeccionActiva =
-  'home' | 'sistemas' | 'metricas' | 'templates' | 'zone' | 'avisos' | 'plans' | 'account';
+  | 'home'
+  | 'sistemas'
+  | 'metricas'
+  | 'templates'
+  | 'zone'
+  | 'avisos'
+  | 'laboratory'
+  | 'plans'
+  | 'account';
 
 type TopBarProps = {
   active?: SeccionActiva;
@@ -18,6 +26,7 @@ type TopBarProps = {
   onPlantillas: () => void;
   onZona: () => void;
   onAvisos: () => void;
+  onLaboratorio: () => void;
   onPlanes: () => void;
   onAyuda: () => void;
   /** «Configuración», en el menú del avatar. */
@@ -37,6 +46,7 @@ export function TopBar({
   onPlantillas,
   onZona,
   onAvisos,
+  onLaboratorio,
   onPlanes,
   onAyuda,
   onCuenta,
@@ -93,6 +103,14 @@ export function TopBar({
           onClick={ir(onAvisos)}
         >
           Avisos
+        </button>
+        <button
+          type="button"
+          className={active === 'laboratory' ? 'active' : ''}
+          aria-current={active === 'laboratory' ? 'page' : undefined}
+          onClick={ir(onLaboratorio)}
+        >
+          Laboratorio
         </button>
         <button
           type="button"
