@@ -49,4 +49,22 @@ describe('laboratorio de decisiones', () => {
     expect(screen.getByRole('heading', { name: 'Así se forma el resultado del negocio' })).toBeVisible();
     expect(screen.getByText('= Resultado operativo estimado')).toBeVisible();
   });
+
+  it('cruza el escenario con Mi zona y arma un plan medible', async () => {
+    setupUsuarioConSesion();
+    renderApp('/laboratorio');
+    const user = userEvent.setup();
+
+    await screen.findByRole('heading', { name: 'Probá una decisión antes de tomarla' }, ESPERA);
+    await user.click(screen.getByRole('button', { name: /Quiero probar una decisión/ }));
+    expect(screen.getByRole('heading', { name: '¿Qué pasa si aplicás este camino?' })).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: '7 Mi zona' }));
+    expect(screen.getByRole('heading', { name: 'Compará la decisión con tu contexto' })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Usar en mi plan' }));
+    expect(screen.getByRole('heading', { name: 'Un plan pequeño, medible y revisable' })).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Ver cómo se mediría' }));
+    expect(screen.getByRole('heading', { name: 'Ensambla también controla qué ocurrió' })).toBeVisible();
+  });
 });

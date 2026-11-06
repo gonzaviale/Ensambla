@@ -4,7 +4,9 @@ import {
   ArrowRightIcon,
   ChartLineUpIcon,
   CheckCircleIcon,
+  ClipboardTextIcon,
   FlaskIcon,
+  MapPinIcon,
   TargetIcon,
   ShieldWarningIcon,
   SparkleIcon,
@@ -20,10 +22,12 @@ const PASOS = [
   'Definir meta',
   'Caminos posibles',
   'Probar escenario',
-  'Riesgos',
+  'Mi zona',
+  'Plan de acción',
+  'Seguimiento',
 ] as const;
 
-type Paso = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+type Paso = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 export function LaboratorioPage() {
   useTituloPagina('Laboratorio de decisiones');
@@ -57,7 +61,9 @@ export function LaboratorioPage() {
         {paso === 3 && <DefinirMeta onContinuar={() => ir(4)} />}
         {paso === 4 && <Caminos onSimular={() => ir(5)} />}
         {paso === 5 && <Escenario />}
-        {paso === 6 && <Riesgos />}
+        {paso === 6 && <CruceConZona onPlan={() => ir(7)} />}
+        {paso === 7 && <PlanDeAccion onSeguimiento={() => ir(8)} />}
+        {paso === 8 && <Seguimiento />}
 
         <div className="laboratorio-navegacion">
           <button type="button" className="laboratorio-volver" disabled={paso === 0} onClick={() => ir(paso - 1)}>
@@ -203,9 +209,71 @@ function Escenario() {
 function Control({ etiqueta, valor, posicion }: { etiqueta: string; valor: string; posicion: string }) { return <label className="laboratorio-control"><span>{etiqueta}<strong>{valor}</strong></span><input aria-label={etiqueta} type="range" defaultValue={Number.parseInt(posicion)} /></label>; }
 function Barra({ clase, alto, nombre, valor }: { clase: string; alto: string; nombre: string; valor: string }) { return <figure><div className={`laboratorio-barra ${clase}`} style={{ height: alto }} /><figcaption>{nombre}<strong>{valor}</strong></figcaption></figure>; }
 
-function Riesgos() {
-  return <section><Encabezado etiqueta="Alerta temprana" titulo="Qué podría afectar tu negocio" texto="Sami conecta rentabilidad, cobranzas, gastos y stock para señalar problemas antes de que se vuelvan difíciles de resolver." /><div className="laboratorio-cadena"><span>Ventas fiadas crecen<b>+18% este mes</b></span><ArrowRightIcon /><span>Los cobros se demoran<b>Promedio: 24 días</b></span><ArrowRightIcon /><span>Resultado y caja se separan<b>Requiere seguimiento</b></span></div><div className="laboratorio-riesgos"><Riesgo prioridad="Prioridad alta" titulo="Las ventas pendientes representan una parte importante" texto="El resultado contable incluye $96.000 en ventas fiadas. Ensambla no las presenta como dinero disponible." fundamento="Principio de devengado y separación entre resultado y flujo de efectivo." /><Riesgo prioridad="Prioridad media" titulo="El margen baja aunque las ventas crecen" texto="Las ventas crecieron 9%, pero el resultado bruto solo creció 2%. Tres productos concentran la diferencia." fundamento="Comparación del margen bruto y el costo estimado de lo vendido." /></div><Explicacion texto="Podés simular una mejora en las cobranzas, revisar el margen de los productos o reducir un gasto. Te mostraré qué alternativa protege mejor el resultado." /></section>;
+function CruceConZona({ onPlan }: { onPlan: () => void }) {
+  return (
+    <section>
+      <Encabezado etiqueta="Laboratorio + Mi zona" titulo="Compará la decisión con tu contexto" texto="El precio de la zona no decide por vos: funciona como una referencia agregada para evaluar si una alternativa es razonable." />
+      <Demuestra texto="Cómo Ensambla combina información interna del negocio con estadísticas agrupadas de Mi zona sin mostrar comercios individuales." />
+      <div className="laboratorio-zona-layout">
+        <article className="laboratorio-producto-zona">
+          <div className="laboratorio-producto-titulo"><div><p className="laboratorio-etiqueta">Producto involucrado</p><h2>Aceite de girasol 1,5 L</h2></div><MapPinIcon aria-hidden size={28} /></div>
+          <div className="laboratorio-precios-zona"><Metrica etiqueta="Tu precio actual" valor="$3.500" /><Metrica etiqueta="Promedio de la zona" valor="$3.820" /><Metrica etiqueta="Precio para margen de 25%" valor="$3.873" /></div>
+          <div className="laboratorio-rango"><span style={{ left: '16%' }}>$3.420 mínimo</span><i /><b style={{ left: '42%' }}>Tu precio</b><em style={{ left: '67%' }}>Promedio</em><span style={{ right: '0' }}>$4.120 máximo</span></div>
+          <p className="laboratorio-privacidad">Datos ficticios y agrupados de 8 comercios para esta demostración. No se muestran nombres ni direcciones.</p>
+        </article>
+        <aside className="laboratorio-alternativas-zona">
+          <h2>Tres alternativas</h2>
+          <AlternativaZona nombre="Mantener" precio="$3.500" margen="17%" aporte="$47.600" />
+          <AlternativaZona nombre="Acercarse al promedio" precio="$3.820" margen="24%" aporte="$66.240" recomendada />
+          <AlternativaZona nombre="Alcanzar margen objetivo" precio="$3.873" margen="25%" aporte="$69.328" />
+          <button type="button" className="btn primary" onClick={onPlan}>Usar en mi plan</button>
+        </aside>
+      </div>
+      <Explicacion texto="El promedio de la zona es una referencia, no una orden. Si llevás el precio a $3.820 y las unidades bajan menos de 8 %, el aporte seguiría mejorando. Podés cambiar esa caída supuesta." />
+    </section>
+  );
 }
 
-function Riesgo({ prioridad, titulo, texto, fundamento }: { prioridad: string; titulo: string; texto: string; fundamento: string }) { return <article className="laboratorio-riesgo"><span>{prioridad}</span><h2>{titulo}</h2><p>{texto}</p><small><strong>Fundamento:</strong> {fundamento}</small></article>; }
+function AlternativaZona({ nombre, precio, margen, aporte, recomendada }: { nombre: string; precio: string; margen: string; aporte: string; recomendada?: boolean }) {
+  return <div className={`laboratorio-alternativa-zona ${recomendada ? 'recomendada' : ''}`}><div><strong>{nombre}</strong>{recomendada && <span>Equilibrada</span>}</div><dl><div><dt>Precio</dt><dd>{precio}</dd></div><div><dt>Margen</dt><dd>{margen}</dd></div><div><dt>Aporte estimado</dt><dd>{aporte}</dd></div></dl></div>;
+}
+
+function PlanDeAccion({ onSeguimiento }: { onSeguimiento: () => void }) {
+  return (
+    <section>
+      <Encabezado etiqueta="Decisión convertida en gestión" titulo="Un plan pequeño, medible y revisable" texto="La simulación no cambia precios ni registros. El usuario elige una estrategia y Ensambla la convierte en objetivos semanales." />
+      <Demuestra texto="Cómo la aplicación pasa de recomendar a acompañar una decisión sin ejecutarla automáticamente ni ocultar sus supuestos." />
+      <div className="laboratorio-plan-layout">
+        <article className="laboratorio-plan">
+          <header><ClipboardTextIcon aria-hidden size={28} /><div><p className="laboratorio-etiqueta">Plan noviembre</p><h2>Mejorar el resultado sin depender solo de vender más</h2></div></header>
+          <TareaPlan numero="1" titulo="Revisar el precio del aceite" detalle="Probar $3.820 durante una semana" impacto="+$18.640 estimados" />
+          <TareaPlan numero="2" titulo="Reducir gastos extraordinarios" detalle="Meta: $20.000 menos esta semana" impacto="+$20.000 estimados" />
+          <TareaPlan numero="3" titulo="Aumentar ventas con margen sano" detalle="Objetivo: 12 ventas adicionales" impacto="+$14.400 estimados" />
+        </article>
+        <aside className="laboratorio-meta-plan"><p>Meta mensual</p><strong>$500.000</strong><span>Resultado operativo estimado</span><div><i style={{ width: '64%' }} /></div><b>64 % del objetivo proyectado</b><small>Se revisa cada semana. Nada se aplica sin confirmación.</small><button type="button" className="btn primary" onClick={onSeguimiento}>Ver cómo se mediría</button></aside>
+      </div>
+    </section>
+  );
+}
+
+function TareaPlan({ numero, titulo, detalle, impacto }: { numero: string; titulo: string; detalle: string; impacto: string }) {
+  return <div className="laboratorio-tarea"><span>{numero}</span><div><strong>{titulo}</strong><p>{detalle}</p></div><b>{impacto}</b></div>;
+}
+
+function Seguimiento() {
+  return (
+    <section>
+      <Encabezado etiqueta="Proyectado frente a real" titulo="Ensambla también controla qué ocurrió" texto="Después de una decisión, el sistema compara el escenario elegido con los resultados registrados y mejora los próximos supuestos." />
+      <Demuestra texto="El cierre del ciclo de gestión: registrar, interpretar, detectar, simular, decidir y medir, manteniendo trazabilidad." />
+      <div className="laboratorio-seguimiento">
+        <Metrica etiqueta="Resultado proyectado" valor="$500.000" />
+        <Metrica etiqueta="Resultado observado" valor="$462.000" />
+        <Metrica etiqueta="Diferencia" valor="−$38.000" alerta />
+      </div>
+      <div className="laboratorio-cadena"><span>Se detectó un cambio<b>Aviso económico</b></span><ArrowRightIcon /><span>Se probaron alternativas<b>Laboratorio + Mi zona</b></span><ArrowRightIcon /><span>Se midió el resultado<b>Aprendizaje para el próximo plan</b></span></div>
+      <article className="laboratorio-cierre"><div className="laboratorio-cierre-sami"><Sami pose="hello" /></div><div><p className="laboratorio-etiqueta">Sami cierra el ciclo</p><h2>La idea funcionó, pero las ventas crecieron menos de lo supuesto</h2><p>Esperábamos un crecimiento de 12 % y ocurrió uno de 7 %. El margen mejoró como se había proyectado. Para el próximo escenario voy a conservar el margen observado y usar un crecimiento de ventas más prudente.</p><div><span>Supuesto ajustado</span><strong>Crecimiento esperado: 7–9 %</strong></div></div></article>
+    </section>
+  );
+}
+
 function Explicacion({ texto }: { texto: string }) { return <aside className="laboratorio-explicacion"><div className="laboratorio-sami-cara"><Sami pose="think" /></div><div><strong>Sami te lo explica</strong><p>{texto}</p></div></aside>; }
