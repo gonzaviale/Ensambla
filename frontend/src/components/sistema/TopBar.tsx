@@ -9,6 +9,7 @@ export type SeccionActiva =
   | 'templates'
   | 'zone'
   | 'avisos'
+  | 'cash'
   | 'laboratory'
   | 'plans'
   | 'account';
@@ -23,6 +24,7 @@ type TopBarProps = {
   onPlantillas: () => void;
   onZona: () => void;
   onAvisos: () => void;
+  onCaja: () => void;
   onLaboratorio: () => void;
   onPlanes: () => void;
   onAyuda: () => void;
@@ -42,6 +44,7 @@ export function TopBar({
   onPlantillas,
   onZona,
   onAvisos,
+  onCaja,
   onLaboratorio,
   onPlanes,
   onAyuda,
@@ -69,6 +72,14 @@ export function TopBar({
     <header className={`topbar ${menuAbierto ? 'menu-abierto' : ''}`.trim()}>
       <Logo onClick={ir(onInicio)} />
       <nav id="nav-principal" className="topnav" aria-label="Principal">
+        <button
+          type="button"
+          className={active === 'cash' ? 'active' : ''}
+          aria-current={active === 'cash' ? 'page' : undefined}
+          onClick={ir(onCaja)}
+        >
+          Caja
+        </button>
         <button
           type="button"
           className={active === 'home' ? 'active' : ''}

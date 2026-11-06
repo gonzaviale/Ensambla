@@ -49,6 +49,7 @@ export function useNavegacion() {
       | '/planes'
       | '/sami'
       | '/avisos'
+      | '/caja'
       | '/laboratorio',
   ) => {
     limpiar();
@@ -104,6 +105,8 @@ export function useNavegacion() {
     },
     /** La pantalla de avisos de Sami. */
     irAAvisos: () => irA('/avisos'),
+    /** La caja reúne cobros, retiros y gastos de todos los cuadernos del negocio. */
+    irACaja: () => irA('/caja'),
     /** El laboratorio económico: permite probar metas y decisiones sin cambiar el cuaderno. */
     irALaboratorio: () => irA('/laboratorio'),
     irAPlanes: () => irA('/planes'),
