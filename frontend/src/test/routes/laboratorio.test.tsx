@@ -34,4 +34,19 @@ describe('laboratorio de decisiones', () => {
     expect(screen.getByRole('heading', { name: 'Tres caminos para llegar a $500.000' })).toBeVisible();
     expect(screen.getByText('Confianza media-alta')).toBeVisible();
   });
+
+  it('conecta un aviso económico con su fundamento contable', async () => {
+    setupUsuarioConSesion();
+    renderApp('/laboratorio');
+    const user = userEvent.setup();
+
+    await screen.findByRole('heading', { name: 'Probá una decisión antes de tomarla' }, ESPERA);
+    await user.click(screen.getByRole('button', { name: /Ver el recorrido completo/ }));
+    expect(screen.getByRole('heading', { name: 'Vendiste más, pero tu margen bajó' })).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Entender por qué' }));
+
+    expect(screen.getByRole('heading', { name: 'Así se forma el resultado del negocio' })).toBeVisible();
+    expect(screen.getByText('= Resultado operativo estimado')).toBeVisible();
+  });
 });

@@ -13,15 +13,24 @@ import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Sami } from '@/components/sistema/Sami';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 
-const PASOS = ['Laboratorio', 'Definir meta', 'Caminos posibles', 'Probar escenario', 'Riesgos'] as const;
+const PASOS = [
+  'Inicio',
+  'Aviso económico',
+  'Fundamento contable',
+  'Definir meta',
+  'Caminos posibles',
+  'Probar escenario',
+  'Riesgos',
+] as const;
 
-type Paso = 0 | 1 | 2 | 3 | 4;
+type Paso = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export function LaboratorioPage() {
   useTituloPagina('Laboratorio de decisiones');
   const [paso, setPaso] = useState<Paso>(0);
 
-  const ir = (destino: number) => setPaso(Math.max(0, Math.min(4, destino)) as Paso);
+  const ir = (destino: number) =>
+    setPaso(Math.max(0, Math.min(PASOS.length - 1, destino)) as Paso);
 
   return (
     <>
@@ -43,16 +52,18 @@ export function LaboratorioPage() {
         </nav>
 
         {paso === 0 && <Portada onElegir={ir} />}
-        {paso === 1 && <DefinirMeta onContinuar={() => ir(2)} />}
-        {paso === 2 && <Caminos onSimular={() => ir(3)} />}
-        {paso === 3 && <Escenario />}
-        {paso === 4 && <Riesgos />}
+        {paso === 1 && <AvisoEconomico onEntender={() => ir(2)} onSimular={() => ir(5)} />}
+        {paso === 2 && <SaludContable onMeta={() => ir(3)} />}
+        {paso === 3 && <DefinirMeta onContinuar={() => ir(4)} />}
+        {paso === 4 && <Caminos onSimular={() => ir(5)} />}
+        {paso === 5 && <Escenario />}
+        {paso === 6 && <Riesgos />}
 
         <div className="laboratorio-navegacion">
           <button type="button" className="laboratorio-volver" disabled={paso === 0} onClick={() => ir(paso - 1)}>
             <ArrowLeftIcon aria-hidden size={20} /> Pantalla anterior
           </button>
-          <button type="button" className="btn primary" disabled={paso === 4} onClick={() => ir(paso + 1)}>
+          <button type="button" className="btn primary" disabled={paso === PASOS.length - 1} onClick={() => ir(paso + 1)}>
             Continuar recorrido <ArrowRightIcon aria-hidden size={20} />
           </button>
         </div>
@@ -82,9 +93,9 @@ function Portada({ onElegir }: { onElegir: (paso: number) => void }) {
     <section>
       <Encabezado etiqueta="Gemelo económico" titulo="Probá una decisión antes de tomarla" texto="Ensambla usa la información contable de tu negocio para simular metas, decisiones y riesgos sin modificar tus datos reales." />
       <div className="laboratorio-acciones">
-        <TarjetaAccion color="naranja" icono={<TargetIcon />} titulo="Quiero alcanzar una meta" texto="Decinos cuánto querés ganar, invertir o ahorrar. Buscamos caminos posibles para lograrlo." accion="Definir una meta" onClick={() => onElegir(1)} />
-        <TarjetaAccion color="petroleo" icono={<FlaskIcon />} titulo="Quiero probar una decisión" texto="Simulá un aumento de precios, una contratación, una compra o un cambio en tus gastos." accion="Probar una decisión" onClick={() => onElegir(3)} />
-        <TarjetaAccion color="coral" icono={<ShieldWarningIcon />} titulo="Quiero anticipar problemas" texto="Revisá qué podría afectar tu rentabilidad, tus cobros o el cumplimiento de tus metas." accion="Ver riesgos" onClick={() => onElegir(4)} />
+        <TarjetaAccion color="naranja" icono={<SparkleIcon />} titulo="Ver el recorrido completo" texto="Empezá en un aviso económico y seguí el análisis hasta convertirlo en una decisión medible." accion="Comenzar por el aviso" onClick={() => onElegir(1)} />
+        <TarjetaAccion color="petroleo" icono={<TargetIcon />} titulo="Quiero alcanzar una meta" texto="Decinos cuánto querés ganar, invertir o ahorrar. Buscamos caminos posibles para lograrlo." accion="Definir una meta" onClick={() => onElegir(3)} />
+        <TarjetaAccion color="coral" icono={<FlaskIcon />} titulo="Quiero probar una decisión" texto="Simulá un aumento de precios, una contratación, una compra o un cambio en tus gastos." accion="Probar una decisión" onClick={() => onElegir(5)} />
       </div>
       <div className="laboratorio-base">
         <section className="laboratorio-panel">
@@ -98,6 +109,71 @@ function Portada({ onElegir }: { onElegir: (paso: number) => void }) {
       </div>
     </section>
   );
+}
+
+function AvisoEconomico({ onEntender, onSimular }: { onEntender: () => void; onSimular: () => void }) {
+  return (
+    <section>
+      <Encabezado etiqueta="Avisos + motor económico" titulo="Vendiste más, pero tu margen bajó" texto="Sami detectó un cambio importante y lo conecta con el Laboratorio para entenderlo antes de tomar una decisión." />
+      <Demuestra texto="Cómo Ensambla pasa de registrar operaciones a detectar un problema económico con evidencia y ofrecer una acción concreta." />
+      <article className="laboratorio-aviso-economico">
+        <div className="laboratorio-aviso-prioridad"><ShieldWarningIcon aria-hidden size={28} /><span>Prioridad alta</span></div>
+        <div className="laboratorio-aviso-contenido">
+          <p className="laboratorio-etiqueta">Rentabilidad · Almacén de barrio</p>
+          <h2>Las ventas crecieron 12 %, pero el resultado bruto bajó 4 %</h2>
+          <p>El costo de los productos aumentó más que los precios. Aceite, leche y yerba explican la mayor parte de la diferencia.</p>
+          <div className="laboratorio-evidencias">
+            <Dato etiqueta="Ventas" valor="+12%" positivo />
+            <Dato etiqueta="Resultado bruto" valor="−4%" />
+            <Dato etiqueta="Productos involucrados" valor="3" />
+            <Dato etiqueta="Confianza" valor="Alta" positivo />
+          </div>
+          <div className="laboratorio-acciones-aviso">
+            <button type="button" className="btn primary" onClick={onEntender}>Entender por qué</button>
+            <button type="button" className="btn secondary" onClick={onSimular}>Probar una solución</button>
+            <button type="button" className="laboratorio-textual">Ver productos involucrados</button>
+          </div>
+        </div>
+      </article>
+      <Explicacion texto="No estoy suponiendo que vender más siempre es mejor. Comparé ventas, costos y margen entre períodos. El aviso tiene confianza alta porque el 94 % del importe vendido tiene costo informado." />
+    </section>
+  );
+}
+
+function SaludContable({ onMeta }: { onMeta: () => void }) {
+  return (
+    <section>
+      <Encabezado etiqueta="Fundamento contable" titulo="Así se forma el resultado del negocio" texto="Cada importe puede explicarse con sus operaciones de origen. La contabilidad está por debajo; Sami la traduce a lenguaje cotidiano." />
+      <Demuestra texto="La diferencia entre vender, obtener margen y tener un resultado positivo. También muestra límites y calidad de la información." />
+      <div className="laboratorio-contabilidad-layout">
+        <article className="laboratorio-estado-resultados">
+          <div className="laboratorio-estado-cabecera"><div><p>Noviembre de 2026</p><h2>Estado de resultados de gestión</h2></div><span><CheckCircleIcon aria-hidden /> 86 operaciones</span></div>
+          <LineaContable nombre="Ventas registradas" ayuda="Incluye ventas cobradas y fiadas" valor="$1.200.000" />
+          <LineaContable nombre="− Costo estimado de lo vendido" ayuda="Costo actual de los productos vendidos" valor="−$700.000" />
+          <LineaContable nombre="= Resultado bruto" ayuda="Lo que queda para cubrir los demás gastos" valor="$500.000" destacada />
+          <LineaContable nombre="− Gastos operativos" ayuda="Alquiler, servicios, transporte y otros" valor="−$320.000" />
+          <LineaContable nombre="= Resultado operativo estimado" ayuda="Resultado después de costos y gastos" valor="$180.000" total />
+          <p className="laboratorio-formula">Ventas − costo de mercadería vendida − gastos = resultado operativo estimado.</p>
+        </article>
+        <aside className="laboratorio-traductor">
+          <div className="laboratorio-traductor-sami"><Sami pose="think" /></div>
+          <h2>En palabras simples</h2>
+          <p>Vendiste por $1.200.000. Los productos que salieron habían costado aproximadamente $700.000. Después de los gastos registrados, el negocio generó un resultado estimado de $180.000.</p>
+          <div><strong>Importante</strong><p>$96.000 corresponden a ventas fiadas. Forman parte del resultado, pero no representan dinero disponible.</p></div>
+          <button type="button" className="btn primary" onClick={onMeta}>Convertirlo en una meta</button>
+        </aside>
+      </div>
+      <div className="laboratorio-calidad"><strong>Calidad del análisis: alta</strong><span>94 % del importe vendido tiene costo · 86 ventas · gastos registrados durante todo el período</span></div>
+    </section>
+  );
+}
+
+function Demuestra({ texto }: { texto: string }) {
+  return <aside className="laboratorio-demuestra"><strong>Qué demuestra esta pantalla</strong><p>{texto}</p></aside>;
+}
+
+function LineaContable({ nombre, ayuda, valor, destacada, total }: { nombre: string; ayuda: string; valor: string; destacada?: boolean; total?: boolean }) {
+  return <div className={`laboratorio-linea-contable ${destacada ? 'destacada' : ''} ${total ? 'total' : ''}`}><div><strong>{nombre}</strong><span>{ayuda}</span></div><b>{valor}</b></div>;
 }
 
 function TarjetaAccion({ color, icono, titulo, texto, accion, onClick }: { color: string; icono: React.ReactNode; titulo: string; texto: string; accion: string; onClick: () => void }) {
