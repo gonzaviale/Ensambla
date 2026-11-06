@@ -48,7 +48,8 @@ export function useNavegacion() {
       | '/zona'
       | '/planes'
       | '/sami'
-      | '/avisos',
+      | '/avisos'
+      | '/laboratorio',
   ) => {
     limpiar();
     return navigate({ to });
@@ -103,6 +104,8 @@ export function useNavegacion() {
     },
     /** La pantalla de avisos de Sami. */
     irAAvisos: () => irA('/avisos'),
+    /** El laboratorio económico: permite probar metas y decisiones sin cambiar el cuaderno. */
+    irALaboratorio: () => irA('/laboratorio'),
     irAPlanes: () => irA('/planes'),
     /** «Armalo con Sami»: la conversación que crea un proyecto real en el backend. */
     irASami: () => irA('/sami'),
