@@ -1,7 +1,8 @@
 import { delay, http, HttpResponse } from 'msw';
 import { planesDe } from '../db/planes';
-import { sistemasDe } from '../db/estado';
+import { estado, sistemasDe } from '../db/estado';
 import type { Sistema } from '@/lib/sistema/tipos';
+import type { AvisoDelServidor } from '@/types/avisos';
 import type { Metricas } from '@/types/metricas';
 import type { ResumenInicio } from '@/types/resumenInicio';
 import { errorResponse } from '../errores';
@@ -201,8 +202,44 @@ function serieDiaria(ventas: { fecha: string; ingreso: number }[], desde: string
   return serie;
 }
 
+// Lo que Sami avisó sobre este cuaderno: lo pendiente ahora y lo que se resolvió dentro del período.
+function avisosDe(
+  sistemaId: string,
+  todos: AvisoDelServidor[],
+  desde: string,
+  hasta: string,
+): Metricas['avisos'] {
+  const delCuaderno = todos.filter((aviso) => aviso.proyectoId === sistemaId);
+  const pendientes = new Map<string, number>();
+  delCuaderno
+    .filter((aviso) => aviso.estado === 'PENDIENTE')
+    .forEach((aviso) => pendientes.set(aviso.tipo, (pendientes.get(aviso.tipo) ?? 0) + 1));
+  const resueltos = (resultado: 'APLICADO' | 'DESCARTADO') =>
+    delCuaderno.filter((aviso) => {
+      // El día se cuenta en hora local, como el resto de las fechas del mock (no el día en UTC).
+      const dia = aviso.resueltoEn ? aIso(new Date(aviso.resueltoEn)) : undefined;
+      return aviso.estado === resultado && dia !== undefined && dia >= desde && dia <= hasta;
+    }).length;
+  return {
+    totalPendientes: [...pendientes.values()].reduce((total, cantidad) => total + cantidad, 0),
+    pendientes: [...pendientes.entries()].map(([tipo, cantidad]) => ({
+      tipo: tipo as AvisoDelServidor['tipo'],
+      cantidad,
+    })),
+    aplicados: resueltos('APLICADO'),
+    descartados: resueltos('DESCARTADO'),
+    medidos: 0,
+    ingresoSemanalDelta: 0,
+  };
+}
+
 // Las métricas detalladas de «Mis métricas», con las mismas reglas que el servidor real.
-export function metricasDe(sistema: Sistema, periodo: PeriodoDelServidor, hoy: string): Metricas {
+export function metricasDe(
+  sistema: Sistema,
+  periodo: PeriodoDelServidor,
+  hoy: string,
+  avisosDelServidor: AvisoDelServidor[] = [],
+): Metricas {
   const bloques = sistema.sections.flatMap((seccion) => seccion.blocks);
   const filas = (tipo: 'sales' | 'inventory' | 'expenses' | 'clients') =>
     bloques
@@ -375,9 +412,13 @@ export function metricasDe(sistema: Sistema, periodo: PeriodoDelServidor, hoy: s
       fiado: sumar(aFiado),
       ventasFiadas: aFiado.length,
     },
+    // La demostración no tiene agregados de la zona por producto: sin zona, como una cuenta sin rangos comparables.
+    zona: null,
+    avisos: avisosDe(sistema.id, avisosDelServidor, desde, hoy),
     gastos: bloqueDeGastos
       ? {
           total: totalGastos,
+          cantidad: gastosDelPeriodo.length,
           resultado: ingresos - totalGastos,
           porCategoria: [...porCategoria.entries()]
             .sort((a, b) => b[1] - a[1])
@@ -405,7 +446,14 @@ export const handlersReportes = [
     if (!sistema) return errorResponse(404, 'Proyecto no encontrado', pathDe(request));
     const periodo = new URL(request.url).searchParams.get('periodo') ?? 'SEMANA';
     if (!esPeriodo(periodo)) return errorResponse(400, 'Período inválido', pathDe(request));
-    return HttpResponse.json(metricasDe(sistema, periodo, aIso(new Date())));
+    return HttpResponse.json(
+      metricasDe(
+        sistema,
+        periodo,
+        aIso(new Date()),
+        estado.avisosDelServidor.get(sesion.usuario.email) ?? [],
+      ),
+    );
   }),
   http.get(api('/proyectos/:sistemaId/resumen/pdf'), async ({ request, params }) => {
     await delay(LATENCIA_BACKEND_MS);

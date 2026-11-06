@@ -20,11 +20,8 @@ import {
   type PeriodoDeVentas,
 } from '@/lib/sistema/metricasInicio';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
-import type { Color, Sistema } from '@/lib/sistema/tipos';
-import { useSistemaStore } from '@/stores/sistemaStore';
+import type { Color } from '@/lib/sistema/tipos';
 import type { ResumenInicio } from '@/types/resumenInicio';
-
-const COLORES_DE_CUADERNO: Color[] = ['petrol', 'orange', 'blue', 'coral', 'yellow'];
 
 // El tablero del inicio para quien ya usa Ensambla: el saludo, lo que viene vendiendo (lo primero que se mira), lo
 // que más sale, lo que se acaba y lo que está quieto. Nunca muestra ceros de relleno: si no hay datos, lo dice.
@@ -53,7 +50,7 @@ export function MetricasDelInicio({
         <div className="tablero-acciones">
           <button type="button" className="tablero-primera-vez" onClick={onPrimeraVez}>
             <Icon name="help" />
-            Primera vez
+            ¿Primera vez?
           </button>
           <button
             type="button"
@@ -239,18 +236,20 @@ function TarjetaDeFaltantes({ resumen }: PropsDeTarjeta) {
   const { total, primeros } = resumen.faltantes;
   if (total === 0) {
     return (
-      <Tarjeta color="yellow" icono="check-circle" titulo="Tu stock">
-        <p className="tablero-tarjeta-valor">Nada se acabó</p>
-        <p className="tablero-tarjeta-dato">Ningún producto está agotado ni en su mínimo.</p>
+      <Tarjeta color="yellow" icono="check-circle" titulo="Stock">
+        <p className="tablero-tarjeta-valor">Tu stock está al día</p>
+        <p className="tablero-tarjeta-dato">
+          Ningún producto está agotado ni por debajo de su mínimo.
+        </p>
       </Tarjeta>
     );
   }
   return (
     <Tarjeta color="coral" icono="box" titulo="Se te está acabando">
       <p className="tablero-tarjeta-valor">{total === 1 ? '1 producto' : `${total} productos`}</p>
-      <ul className="tablero-tarjeta-lista">
+      <ul className="tablero-tarjeta-lista tablero-tarjeta-lista-recuadros">
         {primeros.map((producto) => (
-          <li key={producto.nombre}>
+          <li key={producto.nombre} data-agotado={producto.cantidad <= 0 ? 'true' : undefined}>
             <span>{producto.nombre}</span>
             <strong>
               {producto.cantidad <= 0 ? 'Agotado' : `Quedan ${formatoCantidad(producto.cantidad)}`}
@@ -281,50 +280,5 @@ function TarjetaDeParados({ resumen }: PropsDeTarjeta) {
         ))}
       </ul>
     </Tarjeta>
-  );
-}
-
-// Los últimos cuadernos que se tocaron, para entrar directo; «Ver todos» lleva a «Mis cuadernos».
-export function CuadernosRecientes() {
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
-  const navegacion = useNavegacion();
-  const recientes = [...sistemas]
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-    .slice(0, 4);
-  if (recientes.length === 0) return null;
-  return (
-    <section className="inicio-recientes" aria-label="Tus cuadernos">
-      <div className="inicio-recientes-cabecera">
-        <h2>Tus cuadernos</h2>
-        <button
-          type="button"
-          className="inicio-recientes-todos"
-          onClick={() => void navegacion.irAMisSistemas()}
-        >
-          Ver todos <Icon name="arrow" />
-        </button>
-      </div>
-      <div className="inicio-recientes-lista">
-        {recientes.map((sistema: Sistema, indice) => {
-          const color = COLORES_DE_CUADERNO[indice % COLORES_DE_CUADERNO.length] ?? 'petrol';
-          return (
-            <button
-              key={sistema.id}
-              type="button"
-              className="inicio-reciente"
-              style={varsDeColor(color)}
-              data-color={color}
-              onClick={() => void navegacion.abrirSistema(sistema.id)}
-            >
-              <span className="inicio-reciente-icono">
-                <Icon name="folder" />
-              </span>
-              <span className="inicio-reciente-nombre">{sistema.name}</span>
-              <Icon name="arrow" />
-            </button>
-          );
-        })}
-      </div>
-    </section>
   );
 }

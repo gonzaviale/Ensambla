@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.reporte.obtenerMetricas;
 
+import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import com.ensambla.backend.domain.model.reporte.PeriodoMetricas;
 import com.ensambla.backend.domain.model.reporte.ResumenNegocio;
 import com.ensambla.backend.domain.useCase.reporte.VentaDelDia;
@@ -7,6 +8,7 @@ import com.ensambla.backend.domain.useCase.reporte.VentaDelDia;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Las métricas detalladas de un sistema en un período: lo vendido y lo que se ganó, las ventas día por día, los
@@ -17,6 +19,8 @@ import java.util.List;
  * @param parados   productos con stock que no se vendieron en las últimas dos semanas; vacío si todavía no hay dos
  *                  semanas de ventas anotadas
  * @param gastos    {@code null} si el sistema no tiene una tabla de gastos con importe
+ * @param zona      {@code null} si la zona no alcanza el mínimo de comercios o ningún producto tiene rango
+ * @param avisos    lo que Sami avisó y lo que se hizo con esos avisos
  */
 public record ObtenerMetricasResponse(
         String sistema,
@@ -30,7 +34,9 @@ public record ObtenerMetricasResponse(
         List<Parado> parados,
         Stock stock,
         Clientes clientes,
-        Gastos gastos) {
+        Gastos gastos,
+        Zona zona,
+        Avisos avisos) {
 
     /**
      * @param sinPrecio          ventas del período sin precio: cuentan como unidades pero no suman plata
@@ -76,8 +82,37 @@ public record ObtenerMetricasResponse(
     public record GastoPorCategoria(String categoria, BigDecimal total) {
     }
 
-    /** {@code resultado} son los ingresos del período menos los gastos. */
-    public record Gastos(BigDecimal total, BigDecimal resultado, List<GastoPorCategoria> porCategoria) {
+    /** {@code cantidad} son los gastos anotados; {@code resultado}, los ingresos del período menos los gastos. */
+    public record Gastos(BigDecimal total, long cantidad, BigDecimal resultado,
+                         List<GastoPorCategoria> porCategoria) {
+    }
+
+    /** {@code porcentaje} es cuánto se aleja del rango: negativo si está por debajo del mínimo, positivo si pasa el máximo. */
+    public record ProductoDesalineado(String nombre, BigDecimal precio, BigDecimal minimo, BigDecimal maximo,
+                                      BigDecimal porcentaje) {
+    }
+
+    /** Cómo están los precios del sistema frente a los de la zona: datos agregados y anónimos de otros comercios. */
+    public record Zona(String nombre, long comercios, long debajo, long dentro, long encima,
+                       List<ProductoDesalineado> desalineados) {
+    }
+
+    public record AvisoPendiente(TipoAviso tipo, long cantidad) {
+    }
+
+    /**
+     * @param aplicados           avisos que se aplicaron en el período
+     * @param descartados         avisos que se descartaron en el período
+     * @param medidos             los aplicados cuyo impacto ya se midió
+     * @param ingresoSemanalDelta lo que cambió el ingreso semanal en los medidos: una comparación, no una causa
+     */
+    public record Avisos(
+            long totalPendientes,
+            List<AvisoPendiente> pendientes,
+            long aplicados,
+            long descartados,
+            long medidos,
+            BigDecimal ingresoSemanalDelta) {
     }
 
     /**
@@ -125,15 +160,37 @@ public record ObtenerMetricasResponse(
                 new Clientes(clientes.top().stream()
                         .map(cliente -> new Cliente(cliente.nombre(), cliente.compras(), cliente.ingresos()))
                         .toList(), clientes.fiado(), clientes.ventasFiadas()),
-                gastosDe(resumen.gastos()));
+                gastosDe(resumen.gastos()),
+                zonaDe(resumen.zona()),
+                avisosDe(resumen.avisos()));
     }
 
     private static Gastos gastosDe(ResumenNegocio.Gastos gastos) {
         if (gastos == null) {
             return null;
         }
-        return new Gastos(gastos.total(), gastos.resultado(), gastos.porCategoria().stream()
+        return new Gastos(gastos.total(), gastos.cantidad(), gastos.resultado(), gastos.porCategoria().stream()
                 .map(categoria -> new GastoPorCategoria(categoria.categoria(), categoria.total()))
                 .toList());
+    }
+
+    private static Zona zonaDe(ResumenNegocio.ZonaResumen zona) {
+        if (zona == null) {
+            return null;
+        }
+        return new Zona(zona.nombre(), zona.comercios(), zona.debajo(), zona.dentro(), zona.encima(),
+                zona.desalineados().stream()
+                        .map(producto -> new ProductoDesalineado(producto.nombre(), producto.precio(),
+                                producto.minimo(), producto.maximo(), producto.porcentaje()))
+                        .toList());
+    }
+
+    private static Avisos avisosDe(ResumenNegocio.AvisosResumen avisos) {
+        return new Avisos(avisos.totalPendientes(),
+                avisos.pendientes().entrySet().stream()
+                        .map((Map.Entry<TipoAviso, Long> pendiente) ->
+                                new AvisoPendiente(pendiente.getKey(), pendiente.getValue()))
+                        .toList(),
+                avisos.aplicados(), avisos.descartados(), avisos.medidos(), avisos.ingresoSemanalDelta());
     }
 }

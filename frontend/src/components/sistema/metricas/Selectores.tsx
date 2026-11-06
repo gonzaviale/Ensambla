@@ -34,7 +34,7 @@ export function SelectorDePeriodo({
   );
 }
 
-// Los mismos colores que las tarjetas de «Tus cuadernos», para reconocer cada cuaderno.
+// Un color de la marca para cada cuaderno de la lista, para reconocerlos de un vistazo.
 const COLORES: Color[] = ['petrol', 'orange', 'blue', 'coral', 'yellow'];
 
 // De qué cuaderno son los números: con uno solo es su nombre; con varios, un botón que abre una lista propia

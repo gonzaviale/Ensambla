@@ -266,49 +266,72 @@
   }
 }
 
-/* Barras horizontales */
-.barras-horizontales {
-  display: grid;
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* Tablas de detalle: como las del PDF, con una barrita bajo el nombre */
+.metricas-tabla-caja {
+  overflow-x: auto;
 }
-.barras-horizontales li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 4px 12px;
-  align-items: center;
+.metricas-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
 }
-.barras-horizontales-nombre {
+.metricas-tabla th,
+.metricas-tabla td {
+  padding: 10px 12px;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--ink);
+}
+.metricas-tabla thead th {
+  background: var(--accent, var(--petrol));
+  /* Letra blanca sólo sobre petróleo; sobre los demás colores, tinta oscura (se lee mejor). */
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+.metricas-panel[data-color='petrol'] .metricas-tabla thead th {
+  color: #fff;
+}
+.metricas-tabla thead th:first-child {
+  border-radius: 12px 0 0 12px;
+}
+.metricas-tabla thead th:last-child {
+  border-radius: 0 12px 12px 0;
+}
+.metricas-tabla tbody tr {
+  border-bottom: 2px dashed var(--line);
+}
+.metricas-tabla tbody tr:last-child {
+  border-bottom: 0;
+}
+.metricas-tabla tbody th {
+  min-width: 140px;
+  max-width: 260px;
+  text-align: left;
+  font-weight: 700;
+}
+.metricas-tabla-nombre {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 15px;
-  color: var(--ink);
 }
-.barras-horizontales-valor {
-  grid-row: 1;
-  grid-column: 2;
-  font-size: 15px;
-  color: var(--ink);
-}
-.barras-horizontales-pista {
-  grid-column: 1 / -1;
-  height: 12px;
-  border-radius: 99px;
-  background: var(--soft);
-  overflow: hidden;
-}
-.barras-horizontales-relleno {
+.metricas-tabla-barra {
   display: block;
   width: var(--ancho);
-  height: 100%;
+  height: 6px;
+  margin-top: 6px;
   border-radius: 99px;
   background: var(--accent, var(--petrol));
   transform-origin: left;
   animation: barra-se-estira 0.7s cubic-bezier(0.2, 0.9, 0.3, 1) both;
   animation-delay: calc(var(--i) * 60ms);
+}
+.metricas-tabla thead th:first-child {
+  text-align: left;
+}
+.metricas-tabla .vacio {
+  color: var(--muted);
 }
 @keyframes barra-se-estira {
   from {
@@ -556,6 +579,33 @@
   flex-shrink: 0;
 }
 
+/* Los productos que se acaban, cada uno en su recuadro blanco para que se vean de lejos */
+.tablero-tarjeta-lista-recuadros {
+  gap: 8px;
+}
+.tablero-tarjeta-lista-recuadros li,
+.tablero-tarjeta-lista-recuadros li:first-child {
+  align-items: center;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: 0 2px 0 rgb(38 52 67 / 0.12);
+}
+.tablero-tarjeta-lista-recuadros li strong {
+  color: var(--ink);
+  font-weight: 800;
+}
+.tablero-tarjeta-lista-recuadros li[data-agotado='true'] strong {
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--coral);
+  font-size: 14px;
+}
+
 .tablero-aviso,
 .metricas-aviso {
   padding: 22px 24px;
@@ -608,86 +658,6 @@
     opacity: 1;
     transform: none;
   }
-}
-
-/* Tus cuadernos, para entrar directo */
-.inicio-recientes {
-  margin-bottom: 48px;
-}
-.inicio-recientes-cabecera {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.inicio-recientes-cabecera h2 {
-  font-size: 22px;
-  color: var(--ink);
-}
-.inicio-recientes-todos {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 0;
-  background: none;
-  color: var(--petrol);
-  font-weight: 700;
-}
-.inicio-recientes-todos .icon {
-  width: 16px;
-  height: 16px;
-}
-.inicio-recientes-lista {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 14px;
-}
-.inicio-reciente {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  padding: 14px 16px;
-  border: 2px solid var(--line);
-  border-radius: 18px;
-  background: #fff;
-  color: var(--ink);
-  text-align: left;
-  font-weight: 700;
-  transition:
-    border-color 0.2s,
-    transform 0.2s;
-}
-.inicio-reciente:hover,
-.inicio-reciente:focus-visible {
-  border-color: var(--accent);
-  transform: translateY(-2px);
-}
-.inicio-reciente-icono {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: var(--accent);
-  color: #fff;
-}
-.inicio-reciente[data-color='yellow'] .inicio-reciente-icono {
-  color: var(--petrol);
-}
-.inicio-reciente-nombre {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.inicio-reciente > .icon {
-  width: 16px;
-  height: 16px;
-  color: var(--muted);
 }
 
 /* «¿En qué puedo ayudarte hoy?» más chico, debajo del tablero */
@@ -834,6 +804,9 @@ body:has(.metricas) {
   background: #fff;
   animation: aparece 0.45s ease both;
 }
+.metricas-panel-ancho {
+  grid-column: 1 / -1;
+}
 .metricas-panel h2 {
   font-size: 20px;
   color: var(--ink);
@@ -842,33 +815,6 @@ body:has(.metricas) {
   margin-top: -6px;
   font-size: 14px;
   color: var(--muted);
-}
-.metricas-lista {
-  display: grid;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.metricas-lista li {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 0;
-  border-top: 2px dashed var(--line);
-  font-size: 15px;
-}
-.metricas-lista li:first-child {
-  border-top: 0;
-}
-.metricas-lista li span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.metricas-lista li strong {
-  flex-shrink: 0;
-  text-align: right;
 }
 .metricas-nota {
   font-size: 14px;
@@ -879,6 +825,10 @@ body:has(.metricas) {
   flex-wrap: wrap;
   gap: 8px 24px;
   font-size: 16px;
+}
+.metricas-gastos small {
+  font-size: 14px;
+  color: var(--muted);
 }
 .metricas-gastos strong {
   font-size: 20px;
@@ -934,7 +884,7 @@ body:has(.metricas) {
 }
 @media (prefers-reduced-motion: reduce) {
   .grafico-barra-relleno,
-  .barras-horizontales-relleno,
+  .metricas-tabla-barra,
   .tablero-ventas,
   .tablero-tarjeta,
   .metricas-cifra,

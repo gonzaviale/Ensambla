@@ -1,7 +1,7 @@
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { FichasParaEmpezar } from '@/components/sistema/FichasParaEmpezar';
 import { Icon } from '@/components/sistema/Icon';
-import { CuadernosRecientes, MetricasDelInicio } from '@/components/sistema/MetricasDelInicio';
+import { MetricasDelInicio } from '@/components/sistema/MetricasDelInicio';
 import { PageFooter } from '@/components/sistema/PageFooter';
 import { varsDeColor } from '@/components/sistema/colores';
 import { CATALOG, TEMPLATES } from '@/lib/sistema/catalogo';
@@ -30,7 +30,6 @@ export function InicioPage() {
         {diario ? (
           <>
             <MetricasDelInicio nombre={nombre} onPrimeraVez={tutorial.empezar} />
-            {/* <CuadernosRecientes /> */}
             <section className="inicio-portada inicio-portada-compacta">
               <div className="inicio-saludo">
                 <h2>¿En qué puedo ayudarte hoy?</h2>
@@ -53,7 +52,7 @@ export function InicioPage() {
                 <span className="inicio-guia-icono">
                   <Icon name="help" />
                 </span>
-                Primera vez
+                ¿Primera vez?
               </button>
             </div>
 

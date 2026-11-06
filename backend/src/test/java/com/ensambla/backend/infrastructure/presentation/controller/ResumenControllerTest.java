@@ -162,7 +162,9 @@ class ResumenControllerTest {
                 List.of(),
                 new ObtenerMetricasResponse.Stock(0, 0, List.of(), BigDecimal.ZERO, BigDecimal.ZERO),
                 new ObtenerMetricasResponse.Clientes(List.of(), BigDecimal.ZERO, 0),
-                null);
+                null,
+                null,
+                new ObtenerMetricasResponse.Avisos(0, List.of(), 0, 0, 0, BigDecimal.ZERO));
     }
 
     private static ObtenerResumenInicioResponse respuestaDeInicio() {

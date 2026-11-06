@@ -56,31 +56,3 @@ export function GraficoDeBarras({
     </figure>
   );
 }
-
-export type Fila = { clave: string; nombre: string; valor: number; texto: string };
-
-// Barras horizontales para comparar productos, clientes o categorías: el nombre arriba, la barra y el valor al lado.
-export function BarrasHorizontales({ filas, titulo }: { filas: Fila[]; titulo: string }) {
-  const maximo = Math.max(0, ...filas.map((fila) => fila.valor));
-  return (
-    <ul className="barras-horizontales" aria-label={titulo}>
-      {filas.map((fila, indice) => (
-        <li
-          key={fila.clave}
-          style={
-            {
-              '--ancho': `${maximo > 0 ? Math.max(2, (fila.valor / maximo) * 100) : 2}%`,
-              '--i': indice,
-            } as CSSProperties
-          }
-        >
-          <span className="barras-horizontales-nombre">{fila.nombre}</span>
-          <span className="barras-horizontales-pista">
-            <span className="barras-horizontales-relleno" />
-          </span>
-          <strong className="barras-horizontales-valor">{fila.texto}</strong>
-        </li>
-      ))}
-    </ul>
-  );
-}

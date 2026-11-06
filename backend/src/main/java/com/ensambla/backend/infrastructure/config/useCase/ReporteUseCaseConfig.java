@@ -82,8 +82,12 @@ public class ReporteUseCaseConfig {
             NegocioRepository negocioRepository,
             ProyectoRepository proyectoRepository,
             DatosDeProyectoService datosDeProyectoService,
+            ZonaRepository zonaRepository,
+            AgregadoZonaRepository agregadoZonaRepository,
+            AvisoRepository avisoRepository,
             Clock clock) {
-        return new ObtenerMetricas(negocioRepository, proyectoRepository, datosDeProyectoService, clock);
+        return new ObtenerMetricas(negocioRepository, proyectoRepository, datosDeProyectoService, zonaRepository,
+                agregadoZonaRepository, avisoRepository, clock);
     }
 
     @Bean

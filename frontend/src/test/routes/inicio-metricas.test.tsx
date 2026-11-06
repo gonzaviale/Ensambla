@@ -26,6 +26,20 @@ const sinVentas = {
   ventasFiadas: 0,
 };
 
+/** Un cuaderno con productos pero sin ventas, sin faltantes y sin parados. */
+const resumenSinNovedades = () => ({
+  sistema: 'x',
+  hoy: hoy(),
+  hayVentas: false,
+  hayProductos: true,
+  ventas: { hoy: sinVentas, semana: sinVentas, mes: sinVentas },
+  ventasPorDia: [],
+  ultimoDiaConVentas: null,
+  masVendido: null,
+  faltantes: { total: 0, primeros: [] },
+  parados: [],
+});
+
 const abrirInicio = async (sistemas: Sistema[]) => {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
   estado.sistemas.set(usuario.email, sistemas);
@@ -114,18 +128,7 @@ describe('inicio: cómo te va', () => {
     server.use(
       http.get('/api/proyectos/:sistemaId/resumen/inicio', ({ params }) => {
         pedidos.push(String(params.sistemaId));
-        return HttpResponse.json({
-          sistema: 'x',
-          hoy: hoy(),
-          hayVentas: false,
-          hayProductos: true,
-          ventas: { hoy: sinVentas, semana: sinVentas, mes: sinVentas },
-          ventasPorDia: [],
-          ultimoDiaConVentas: null,
-          masVendido: null,
-          faltantes: { total: 0, primeros: [] },
-          parados: [],
-        });
+        return HttpResponse.json(resumenSinNovedades());
       }),
     );
     const reciente = almacen('Kiosco Centro', '2026-10-21T10:00:00.000Z');
@@ -195,12 +198,44 @@ describe('inicio: cómo te va', () => {
     ).toBeVisible();
   });
 
-  it('muestra los últimos cuadernos para abrirlos rápido', async () => {
+  it('si no falta nada dice «Tu stock está al día»', async () => {
+    server.use(
+      http.get('/api/proyectos/:sistemaId/resumen/inicio', () =>
+        HttpResponse.json(resumenSinNovedades()),
+      ),
+    );
+
     await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
 
-    const recientes = await screen.findByRole('region', { name: 'Tus cuadernos' }, ESPERA);
-    expect(within(recientes).getByRole('button', { name: /Almacén de barrio/ })).toBeVisible();
-    expect(within(recientes).getByRole('button', { name: /Ver todos/ })).toBeVisible();
+    const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
+    expect(await within(seccion).findByText('Tu stock está al día', {}, ESPERA)).toBeVisible();
+    expect(within(seccion).queryByRole('heading', { name: 'Se te está acabando' })).toBeNull();
+  });
+
+  it('los productos que se acaban se destacan, cada uno en su recuadro', async () => {
+    server.use(
+      http.get('/api/proyectos/:sistemaId/resumen/inicio', () =>
+        HttpResponse.json({
+          ...resumenSinNovedades(),
+          faltantes: {
+            total: 2,
+            primeros: [
+              { nombre: 'Yerba', cantidad: 0, minimo: 5, pedir: null },
+              { nombre: 'Fideos', cantidad: 3, minimo: 6, pedir: null },
+            ],
+          },
+        }),
+      ),
+    );
+
+    await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
+
+    const tarjeta = await screen.findByRole('heading', { name: 'Se te está acabando' }, ESPERA);
+    const lista = within(tarjeta.closest('article') as HTMLElement).getByRole('list');
+    const recuadros = within(lista).getAllByRole('listitem');
+    expect(recuadros).toHaveLength(2);
+    expect(recuadros[0]).toHaveTextContent('YerbaAgotado');
+    expect(recuadros[1]).toHaveTextContent('FideosQuedan 3');
   });
 
   it('sin ventas anotadas muestra sólo el stock', async () => {

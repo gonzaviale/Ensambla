@@ -1,7 +1,10 @@
 package com.ensambla.backend.domain.useCase.reporte;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.BloqueVentas;
+import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.bloque.TipoBloque;
@@ -17,8 +20,15 @@ import com.ensambla.backend.domain.model.reporte.BloqueGastos;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
 import com.ensambla.backend.domain.model.reporte.PeriodoMetricas;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.model.zona.AgregadoZonaProducto;
+import com.ensambla.backend.domain.model.zona.AnalisisZona;
+import com.ensambla.backend.domain.model.zona.Zona;
+import com.ensambla.backend.domain.model.zona.ZonaId;
+import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
+import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
+import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricas;
 import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricasRequest;
@@ -28,18 +38,22 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -52,6 +66,7 @@ class ObtenerMetricasTest {
     /** En UTC ya es el 20, pero en Argentina todavía es el 19. */
     private static final Instant INSTANTE = Instant.parse("2026-10-20T01:00:00Z");
     private static final LocalDate HOY = LocalDate.of(2026, 10, 19);
+    private static final ZonaId ZONA_ID = ZonaId.de("e0000000-0000-4000-8000-000000000001");
     private static final UUID YERBA = UUID.fromString("d0000000-0000-4000-8000-000000000001");
     private static final UUID MERMELADA = UUID.fromString("d0000000-0000-4000-8000-000000000003");
     private static final CampoId CAMPO_FIADO_ID = CampoId.de("f0000000-0000-4000-8000-000000000016");
@@ -64,8 +79,13 @@ class ObtenerMetricasTest {
     private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
     private final DatosDeProyectoService datosDeProyectoService = mock(DatosDeProyectoService.class);
 
+    private final ZonaRepository zonaRepository = mock(ZonaRepository.class);
+    private final AgregadoZonaRepository agregadoZonaRepository = mock(AgregadoZonaRepository.class);
+    private final AvisoRepository avisoRepository = mock(AvisoRepository.class);
+
     private final ObtenerMetricas obtenerMetricas = new ObtenerMetricas(
-            negocioRepository, proyectoRepository, datosDeProyectoService, Clock.fixed(INSTANTE, ZoneOffset.UTC));
+            negocioRepository, proyectoRepository, datosDeProyectoService, zonaRepository, agregadoZonaRepository,
+            avisoRepository, Clock.fixed(INSTANTE, ZoneOffset.UTC));
 
     private Proyecto proyecto;
 
@@ -75,6 +95,8 @@ class ObtenerMetricasTest {
         proyecto = Proyecto.builder().id(PROYECTO_ID).negocioId(NEGOCIO_ID).nombre("Almacén de prueba").build();
         when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID)).thenReturn(negocio);
         when(proyectoRepository.obtener(NEGOCIO_ID, PROYECTO_ID)).thenReturn(proyecto);
+        when(negocioRepository.findZonaIdById(NEGOCIO_ID)).thenReturn(Optional.empty());
+        when(avisoRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
     }
 
     @Test
@@ -168,10 +190,77 @@ class ObtenerMetricasTest {
         ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.SEMANA);
 
         assertThat(response.gastos().total()).isEqualByComparingTo("1500");
+        assertThat(response.gastos().cantidad()).isEqualTo(2);
         assertThat(response.gastos().resultado()).isEqualByComparingTo("5300");
         assertThat(response.gastos().porCategoria()).extracting(ObtenerMetricasResponse.GastoPorCategoria::categoria)
                 .containsExactly("Servicios", "Mercadería");
         assertThat(response.gastos().porCategoria().getFirst().total()).isEqualByComparingTo("1000");
+    }
+
+    @Test
+    @DisplayName("Sin zona asignada ni avisos deja la zona en null y los avisos en cero")
+    void executeShouldLeaveZoneEmptyWithoutZoneOrAvisos() {
+        givenDatos(List.of(venta(YERBA, 1, 3400, "2026-10-15")), List.of());
+
+        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.SEMANA);
+
+        assertThat(response.zona()).isNull();
+        assertThat(response.avisos().totalPendientes()).isZero();
+        assertThat(response.avisos().pendientes()).isEmpty();
+        assertThat(response.avisos().aplicados()).isZero();
+    }
+
+    @Test
+    @DisplayName("Compara los precios con el rango de la zona del negocio")
+    void executeShouldComparePricesWithTheZone() {
+        Zona zona = Zona.builder().id(ZONA_ID).nombre("San Justo").build();
+        when(negocioRepository.findZonaIdById(NEGOCIO_ID)).thenReturn(Optional.of(ZONA_ID));
+        when(zonaRepository.findById(ZONA_ID)).thenReturn(Optional.of(zona));
+        when(agregadoZonaRepository.analizar(zona)).thenReturn(new AnalisisZona("San Justo", 8, List.of(
+                rango("Yerba", "3500", "4800"), rango("Mermelada", "1700", "3000"))));
+        givenDatos(List.of(venta(YERBA, 1, 3400, "2026-10-15")), List.of());
+
+        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.SEMANA);
+
+        assertThat(response.zona().nombre()).isEqualTo("San Justo");
+        assertThat(response.zona().comercios()).isEqualTo(8);
+        assertThat(response.zona().debajo()).isEqualTo(1);
+        assertThat(response.zona().dentro()).isEqualTo(1);
+        assertThat(response.zona().encima()).isZero();
+        assertThat(response.zona().desalineados()).singleElement().satisfies(producto -> {
+            assertThat(producto.nombre()).isEqualTo("Yerba");
+            assertThat(producto.precio()).isEqualByComparingTo("3400");
+            assertThat(producto.minimo()).isEqualByComparingTo("3500");
+            assertThat(producto.maximo()).isEqualByComparingTo("4800");
+            assertThat(producto.porcentaje()).isEqualByComparingTo("-3");
+        });
+    }
+
+    @Test
+    @DisplayName("Cuenta los avisos pendientes por tipo y lo aplicado o descartado, sólo del sistema pedido")
+    void executeShouldSummarizeAvisosOfTheProject() {
+        OffsetDateTime hace3Dias = OffsetDateTime.parse("2026-10-16T15:00:00Z");
+        when(avisoRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(List.of(
+                aviso(PROYECTO_ID, TipoAviso.STOCK, EstadoAviso.PENDIENTE, null),
+                aviso(PROYECTO_ID, TipoAviso.COMBO, EstadoAviso.PENDIENTE, null),
+                aviso(PROYECTO_ID, TipoAviso.STOCK, EstadoAviso.APLICADO, hace3Dias),
+                aviso(PROYECTO_ID, TipoAviso.STOCK, EstadoAviso.DESCARTADO, hace3Dias),
+                aviso(OTRO_PROYECTO_ID, TipoAviso.STOCK, EstadoAviso.PENDIENTE, null)));
+        givenDatos(List.of(venta(YERBA, 1, 3400, "2026-10-15")), List.of());
+
+        ObtenerMetricasResponse response = whenObtener(PeriodoMetricas.SEMANA);
+
+        assertThat(response.avisos().totalPendientes()).isEqualTo(2);
+        assertThat(response.avisos().pendientes())
+                .extracting(ObtenerMetricasResponse.AvisoPendiente::tipo,
+                        ObtenerMetricasResponse.AvisoPendiente::cantidad)
+                .containsExactlyInAnyOrder(
+                        tuple(TipoAviso.STOCK, 1L),
+                        tuple(TipoAviso.COMBO, 1L));
+        assertThat(response.avisos().aplicados()).isEqualTo(1);
+        assertThat(response.avisos().descartados()).isEqualTo(1);
+        assertThat(response.avisos().medidos()).isZero();
+        assertThat(response.avisos().ingresoSemanalDelta()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     @Test
@@ -214,6 +303,16 @@ class ObtenerMetricasTest {
     }
 
     // --- helpers ---
+    private static AgregadoZonaProducto rango(String nombre, String minimo, String maximo) {
+        return new AgregadoZonaProducto(nombre, 8, 8, new BigDecimal(minimo), new BigDecimal(minimo),
+                new BigDecimal(maximo), BigDecimal.TEN);
+    }
+
+    private static Aviso aviso(ProyectoId proyectoId, TipoAviso tipo, EstadoAviso estado, OffsetDateTime resueltoEn) {
+        return Aviso.builder().proyectoId(proyectoId).tipo(tipo).estado(estado).resueltoEn(resueltoEn)
+                .prioridad((short) 1).datos(Map.of()).acciones(List.of()).build();
+    }
+
     private static Registro producto(UUID id, String nombre, Object cantidad, Object precio, Object costo,
                                      Object minimo) {
         Map<String, Object> valores = new LinkedHashMap<>();

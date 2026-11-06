@@ -3,8 +3,9 @@ import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
 import { PageFooter } from '@/components/sistema/PageFooter';
 import { varsDeColor } from '@/components/sistema/colores';
-import { BarrasHorizontales, GraficoDeBarras } from '@/components/sistema/metricas/GraficoDeBarras';
+import { GraficoDeBarras } from '@/components/sistema/metricas/GraficoDeBarras';
 import { SelectorDeCuaderno, SelectorDePeriodo } from '@/components/sistema/metricas/Selectores';
+import { TablaDeDetalle } from '@/components/sistema/metricas/TablaDeDetalle';
 import { useNumeroAnimado } from '@/components/sistema/metricas/useNumeroAnimado';
 import { useMetricas } from '@/hooks/reportes/queries';
 import { useCuadernoElegido } from '@/hooks/reportes/useCuadernoElegido';
@@ -18,7 +19,6 @@ import {
   diaCompleto,
   etiquetaDelDia,
   formatoCantidad,
-  textoUnidades,
   type PeriodoDeVentas,
 } from '@/lib/sistema/metricasInicio';
 import type { Color } from '@/lib/sistema/tipos';
@@ -103,6 +103,7 @@ export function MetricasPage() {
                 <Panel
                   titulo="Día por día"
                   detalle="Lo que entró cada día. Tocá una barra para ver el número."
+                  ancho
                 >
                   <GraficoDeBarras
                     key={mostrado}
@@ -122,93 +123,16 @@ export function MetricasPage() {
                 </Panel>
               )}
               {metricas.masVendidos.length > 0 && (
-                <Panel
-                  titulo="Lo que más se vendió"
-                  detalle={`Por unidades, ${QUE_PERIODO[mostrado]}.`}
-                  color="orange"
-                >
-                  <BarrasHorizontales
-                    titulo="Lo que más se vendió"
-                    filas={metricas.masVendidos.map((producto) => ({
-                      clave: producto.nombre,
-                      nombre: producto.nombre,
-                      valor: producto.unidades,
-                      texto: textoUnidades(producto.unidades),
-                    }))}
-                  />
-                </Panel>
+                <PanelDeMasVendidos metricas={metricas} periodo={mostrado} />
               )}
               {metricas.stock.productos > 0 && <PanelDeStock metricas={metricas} />}
-              {metricas.parados.length > 0 && (
-                <Panel
-                  titulo="Sin venderse hace 2 semanas"
-                  detalle="Tienen stock y no tuvieron ventas: es plata que está quieta."
-                  color="blue"
-                >
-                  <ul className="metricas-lista">
-                    {metricas.parados.map((producto) => (
-                      <li key={producto.nombre}>
-                        <span>{producto.nombre}</span>
-                        <strong>
-                          {producto.capital != null
-                            ? `${formatoPesos(producto.capital)} en stock`
-                            : textoUnidades(producto.cantidad)}
-                        </strong>
-                      </li>
-                    ))}
-                  </ul>
-                </Panel>
-              )}
+              {metricas.parados.length > 0 && <PanelDeParados metricas={metricas} />}
               {(metricas.clientes.top.length > 0 || metricas.clientes.ventasFiadas > 0) && (
-                <Panel titulo="Tus clientes" detalle="Quiénes más te compraron." color="petrol">
-                  {metricas.clientes.top.length > 0 && (
-                    <BarrasHorizontales
-                      titulo="Tus clientes"
-                      filas={metricas.clientes.top.map((cliente) => ({
-                        clave: cliente.nombre,
-                        nombre: `${cliente.nombre} · ${cliente.compras} ${cliente.compras === 1 ? 'compra' : 'compras'}`,
-                        valor: cliente.ingresos,
-                        texto: formatoPesos(cliente.ingresos),
-                      }))}
-                    />
-                  )}
-                  {metricas.clientes.ventasFiadas > 0 && (
-                    <p className="metricas-nota">
-                      Vendiste fiado {formatoPesos(metricas.clientes.fiado)} (
-                      {metricas.clientes.ventasFiadas}{' '}
-                      {metricas.clientes.ventasFiadas === 1 ? 'venta' : 'ventas'}).
-                    </p>
-                  )}
-                </Panel>
+                <PanelDeClientes metricas={metricas} periodo={mostrado} />
               )}
-              {metricas.gastos && (
-                <Panel
-                  titulo="Tus gastos"
-                  detalle={`Lo que anotaste como gasto ${QUE_PERIODO[mostrado]}.`}
-                  color="yellow"
-                >
-                  <p className="metricas-gastos">
-                    <span>
-                      Gastaste <strong>{formatoPesos(metricas.gastos.total)}</strong>
-                    </span>
-                    <span>
-                      {metricas.gastos.resultado >= 0 ? 'Te quedaron' : 'Te faltaron'}{' '}
-                      <strong>{formatoPesos(Math.abs(metricas.gastos.resultado))}</strong>
-                    </span>
-                  </p>
-                  {metricas.gastos.porCategoria.length > 0 && (
-                    <BarrasHorizontales
-                      titulo="Gastos por categoría"
-                      filas={metricas.gastos.porCategoria.map((categoria) => ({
-                        clave: categoria.categoria,
-                        nombre: categoria.categoria,
-                        valor: categoria.total,
-                        texto: formatoPesos(categoria.total),
-                      }))}
-                    />
-                  )}
-                </Panel>
-              )}
+              {metricas.gastos && <PanelDeGastos gastos={metricas.gastos} periodo={mostrado} />}
+              {metricas.zona && <PanelDeZona zona={metricas.zona} />}
+              <PanelDeAvisos avisos={metricas.avisos} periodo={mostrado} />
             </div>
           </div>
         )}
@@ -230,57 +154,95 @@ function Resumen({ metricas, periodo }: { metricas: Metricas; periodo: PeriodoDe
     ventas.ingresosAnteriores,
     metricas.hasta,
   );
-  if (!metricas.hayVentas) {
-    return (
-      <p className="metricas-aviso" role="status">
-        Todavía no anotaste ventas en «{metricas.sistema}». Cuando lo hagas, acá vas a ver cuánto
-        vendés.
-      </p>
-    );
-  }
+  const { gastos, stock, clientes } = metricas;
+  const hayOtrasCifras = gastos != null || stock.productos > 0;
+  const aviso = (
+    <p className="metricas-aviso" role="status">
+      Todavía no anotaste ventas en «{metricas.sistema}». Cuando lo hagas, acá vas a ver cuánto
+      vendés.
+    </p>
+  );
+  if (!metricas.hayVentas && !hayOtrasCifras) return aviso;
   return (
-    <section className="metricas-resumen" aria-label="Resumen">
-      <Cifra color="petrol" icono="wallet" titulo={titulo} principal>
-        <p className="metricas-cifra-valor">{formatoPesos(vendido)}</p>
-        {comparacion && (
-          <p className="metricas-cifra-dato">
-            <Icon name={ventas.ingresos >= ventas.ingresosAnteriores ? 'up' : 'down'} />
-            {comparacion}
-          </p>
-        )}
-        {ventas.sinPrecio > 0 && (
-          <p className="metricas-cifra-nota">
-            {ventas.sinPrecio === 1
-              ? '1 venta sin precio no está sumada.'
-              : `${ventas.sinPrecio} ventas sin precio no están sumadas.`}
-          </p>
-        )}
-      </Cifra>
-      <Cifra color="orange" icono="spark" titulo="Te quedó, más o menos">
-        {ventas.gananciaEstimada != null ? (
+    <>
+      {!metricas.hayVentas && aviso}
+      <section className="metricas-resumen" aria-label="Resumen">
+        {metricas.hayVentas && (
           <>
-            <p className="metricas-cifra-valor">{formatoPesos(ventas.gananciaEstimada)}</p>
-            <p className="metricas-cifra-dato">
-              Lo vendido menos lo que te costó, con el costo de hoy.
-            </p>
+            <Cifra color="petrol" icono="wallet" titulo={titulo} principal>
+              <p className="metricas-cifra-valor">{formatoPesos(vendido)}</p>
+              {comparacion && (
+                <p className="metricas-cifra-dato">
+                  <Icon name={ventas.ingresos >= ventas.ingresosAnteriores ? 'up' : 'down'} />
+                  {comparacion}
+                </p>
+              )}
+              {ventas.sinPrecio > 0 && (
+                <p className="metricas-cifra-nota">
+                  {ventas.sinPrecio === 1
+                    ? '1 venta sin precio no está sumada.'
+                    : `${ventas.sinPrecio} ventas sin precio no están sumadas.`}
+                </p>
+              )}
+            </Cifra>
+            <Cifra color="orange" icono="spark" titulo="Te quedó, más o menos">
+              {ventas.gananciaEstimada != null ? (
+                <>
+                  <p className="metricas-cifra-valor">{formatoPesos(ventas.gananciaEstimada)}</p>
+                  <p className="metricas-cifra-dato">
+                    Lo vendido menos lo que te costó, con el costo de hoy.
+                  </p>
+                </>
+              ) : (
+                <p className="metricas-cifra-dato">
+                  Cargá el costo de tus productos para ver cuánto te queda.
+                </p>
+              )}
+            </Cifra>
+            <Cifra color="blue" icono="check-circle" titulo="Unidades vendidas">
+              <p className="metricas-cifra-valor">{formatoCantidad(ventas.unidades)}</p>
+              <p className="metricas-cifra-dato">
+                {ventas.cantidad === 1 ? '1 venta anotada' : `${ventas.cantidad} ventas anotadas`}
+              </p>
+            </Cifra>
+            {periodo !== 'hoy' && (
+              <Cifra color="yellow" icono="clock" titulo="Por día, en promedio">
+                <p className="metricas-cifra-valor">{formatoPesos(ventas.ingresoPorDia)}</p>
+                <p className="metricas-cifra-dato">Contando también los días sin ventas.</p>
+              </Cifra>
+            )}
           </>
-        ) : (
-          <p className="metricas-cifra-dato">
-            Cargá el costo de tus productos para ver cuánto te queda.
-          </p>
         )}
-      </Cifra>
-      <Cifra color="blue" icono="check-circle" titulo="Ventas anotadas">
-        <p className="metricas-cifra-valor">{formatoCantidad(ventas.cantidad)}</p>
-        <p className="metricas-cifra-dato">{textoUnidades(ventas.unidades)} en total</p>
-      </Cifra>
-      {periodo !== 'hoy' && (
-        <Cifra color="yellow" icono="clock" titulo="Por día, en promedio">
-          <p className="metricas-cifra-valor">{formatoPesos(ventas.ingresoPorDia)}</p>
-          <p className="metricas-cifra-dato">Contando también los días sin ventas.</p>
-        </Cifra>
-      )}
-    </section>
+        {gastos && (
+          <>
+            <Cifra color="blue" icono="wallet" titulo="Gastos">
+              <p className="metricas-cifra-valor">{formatoPesos(gastos.total)}</p>
+              <p className="metricas-cifra-dato">
+                {gastos.cantidad === 1 ? '1 gasto anotado' : `${gastos.cantidad} gastos anotados`}
+              </p>
+            </Cifra>
+            <Cifra color="petrol" icono="chart" titulo="Resultado">
+              <p className="metricas-cifra-valor">{formatoPesos(gastos.resultado)}</p>
+              <p className="metricas-cifra-dato">Ingresos menos gastos</p>
+            </Cifra>
+          </>
+        )}
+        {metricas.hayVentas && clientes.ventasFiadas > 0 && (
+          <Cifra color="yellow" icono="note" titulo="Vendido a fiado">
+            <p className="metricas-cifra-valor">{formatoPesos(clientes.fiado)}</p>
+            <p className="metricas-cifra-dato">
+              {clientes.ventasFiadas === 1 ? '1 venta' : `${clientes.ventasFiadas} ventas`}
+            </p>
+          </Cifra>
+        )}
+        {stock.productos > 0 && (
+          <Cifra color="orange" icono="box" titulo="Valor del stock">
+            <p className="metricas-cifra-valor">{formatoPesos(stock.valorACosto)}</p>
+            <p className="metricas-cifra-dato">A costo</p>
+          </Cifra>
+        )}
+      </section>
+    </>
   );
 }
 
@@ -299,7 +261,7 @@ function Cifra({
 }) {
   return (
     <article
-      className={`metricas-cifra ${principal ? 'metricas-cifra-principal' : ''}`.trim()}
+      className={`metricas-cifra ${principal || color === 'petrol' ? 'metricas-cifra-principal' : ''}`.trim()}
       style={varsDeColor(color)}
       data-color={color}
     >
@@ -318,15 +280,23 @@ function Panel({
   titulo,
   detalle,
   color = 'petrol',
+  ancho = false,
   children,
 }: {
   titulo: string;
   detalle: string;
   color?: Color;
+  /** Ocupa las dos columnas: para lo que tiene muchas columnas o muchos días. */
+  ancho?: boolean;
   children: ReactNode;
 }) {
   return (
-    <section className="metricas-panel" style={varsDeColor(color)} aria-label={titulo}>
+    <section
+      className={ancho ? 'metricas-panel metricas-panel-ancho' : 'metricas-panel'}
+      style={varsDeColor(color)}
+      data-color={color}
+      aria-label={titulo}
+    >
       <h2>{titulo}</h2>
       <p className="metricas-panel-detalle">{detalle}</p>
       {children}
@@ -334,33 +304,298 @@ function Panel({
   );
 }
 
-function PanelDeStock({ metricas }: { metricas: Metricas }) {
-  const { stock } = metricas;
+const SIN_DATO = '-';
+
+const pesosOGuion = (valor: number | null | undefined) =>
+  valor == null ? SIN_DATO : formatoPesos(valor);
+
+const proporcionDe = (valor: number, valores: number[]) => {
+  const maximo = Math.max(0, ...valores);
+  return maximo > 0 ? valor / maximo : 0;
+};
+
+// Lo que más salió, con lo que entró y lo que quedó de cada producto (la ganancia usa el costo de hoy).
+function PanelDeMasVendidos({
+  metricas,
+  periodo,
+}: {
+  metricas: Metricas;
+  periodo: PeriodoDeVentas;
+}) {
+  const unidades = metricas.masVendidos.map((producto) => producto.unidades);
   return (
     <Panel
-      titulo={stock.totalFaltantes > 0 ? 'Se te está acabando' : 'Tu stock'}
-      detalle={`${stock.productos} ${stock.productos === 1 ? 'producto' : 'productos'}. A precio de venta valen ${formatoPesos(stock.valorAPrecio)}.`}
-      color={stock.totalFaltantes > 0 ? 'coral' : 'petrol'}
+      titulo="Lo que más se vendió"
+      detalle={`Por unidades, ${QUE_PERIODO[periodo]}. La ganancia usa el costo actual de cada producto.`}
+      color="orange"
+      ancho
     >
-      {stock.totalFaltantes === 0 ? (
-        <p className="metricas-nota">Ningún producto está agotado ni en su mínimo.</p>
+      <TablaDeDetalle
+        titulo="Lo que más se vendió"
+        columnas={[
+          { titulo: 'Producto' },
+          { titulo: 'Unidades' },
+          { titulo: 'Ingresos' },
+          { titulo: 'Ganancia' },
+        ]}
+        filas={metricas.masVendidos.map((producto) => ({
+          clave: producto.nombre,
+          barra: proporcionDe(producto.unidades, unidades),
+          celdas: [
+            producto.nombre,
+            formatoCantidad(producto.unidades),
+            producto.ingresos > 0 ? formatoPesos(producto.ingresos) : SIN_DATO,
+            pesosOGuion(producto.ganancia),
+          ],
+        }))}
+      />
+    </Panel>
+  );
+}
+
+// Lo que se acaba, con lo que queda, el mínimo que se puso y cuánto falta para llegar al doble de ese mínimo.
+function PanelDeStock({ metricas }: { metricas: Metricas }) {
+  const { stock } = metricas;
+  const hayFaltantes = stock.totalFaltantes > 0;
+  return (
+    <Panel
+      titulo={hayFaltantes ? 'Se te está acabando' : 'Tu stock está al día'}
+      detalle={`${stock.productos} ${stock.productos === 1 ? 'producto' : 'productos'}. Valen ${formatoPesos(stock.valorACosto)} a costo y ${formatoPesos(stock.valorAPrecio)} a precio de venta.`}
+      color={hayFaltantes ? 'coral' : 'petrol'}
+    >
+      {hayFaltantes ? (
+        <TablaDeDetalle
+          titulo="Productos que se acaban"
+          columnas={[
+            { titulo: 'Producto' },
+            { titulo: 'Quedan' },
+            { titulo: 'Mínimo' },
+            { titulo: 'Para llegar al doble' },
+          ]}
+          filas={stock.faltantes.map((producto) => ({
+            clave: producto.nombre,
+            celdas: [
+              producto.nombre,
+              producto.cantidad <= 0 ? 'Agotado' : formatoCantidad(producto.cantidad),
+              producto.minimo == null ? SIN_DATO : formatoCantidad(producto.minimo),
+              producto.pedir == null ? SIN_DATO : formatoCantidad(producto.pedir),
+            ],
+          }))}
+        />
       ) : (
-        <ul className="metricas-lista">
-          {stock.faltantes.map((producto) => (
-            <li key={producto.nombre}>
-              <span>{producto.nombre}</span>
-              <strong>
-                {producto.cantidad <= 0
-                  ? 'Agotado'
-                  : `Quedan ${formatoCantidad(producto.cantidad)}`}
-                {producto.pedir != null && ` · conviene pedir ${formatoCantidad(producto.pedir)}`}
-              </strong>
-            </li>
-          ))}
-        </ul>
+        <p className="metricas-nota">Ningún producto está agotado ni por debajo de su mínimo.</p>
       )}
       {stock.totalFaltantes > stock.faltantes.length && (
-        <p className="metricas-nota">y {stock.totalFaltantes - stock.faltantes.length} más.</p>
+        <p className="metricas-nota">Y {stock.totalFaltantes - stock.faltantes.length} más.</p>
+      )}
+    </Panel>
+  );
+}
+
+// Lo que tiene stock y no se vende hace dos semanas: la plata parada, a costo.
+function PanelDeParados({ metricas }: { metricas: Metricas }) {
+  const capitales = metricas.parados.map((producto) => producto.capital ?? 0);
+  const conCosto = metricas.parados.some((producto) => producto.capital != null);
+  return (
+    <Panel
+      titulo="Sin venderse hace 2 semanas"
+      detalle="Tienen stock y no tuvieron ventas: es plata que está quieta."
+      color="blue"
+    >
+      <TablaDeDetalle
+        titulo="Productos parados"
+        columnas={[
+          { titulo: 'Producto' },
+          { titulo: 'En stock' },
+          { titulo: 'Plata parada (a costo)' },
+        ]}
+        filas={metricas.parados.map((producto) => ({
+          clave: producto.nombre,
+          barra: conCosto ? proporcionDe(producto.capital ?? 0, capitales) : undefined,
+          celdas: [
+            producto.nombre,
+            formatoCantidad(producto.cantidad),
+            pesosOGuion(producto.capital),
+          ],
+        }))}
+      />
+      {conCosto && (
+        <p className="metricas-nota">
+          En total hay {formatoPesos(capitales.reduce((suma, capital) => suma + capital, 0))}{' '}
+          parados.
+        </p>
+      )}
+    </Panel>
+  );
+}
+
+// Quiénes más compraron y cuánto se vendió a fiado (lo vendido, no lo que todavía se debe).
+function PanelDeClientes({ metricas, periodo }: { metricas: Metricas; periodo: PeriodoDeVentas }) {
+  const { top, fiado, ventasFiadas } = metricas.clientes;
+  const ingresos = top.map((cliente) => cliente.ingresos);
+  return (
+    <Panel
+      titulo="Tus clientes"
+      detalle={`Quiénes más te compraron ${QUE_PERIODO[periodo]}.`}
+      color="petrol"
+    >
+      {top.length > 0 && (
+        <TablaDeDetalle
+          titulo="Tus clientes"
+          columnas={[{ titulo: 'Cliente' }, { titulo: 'Compras' }, { titulo: 'Ingresos' }]}
+          filas={top.map((cliente) => ({
+            clave: cliente.nombre,
+            barra: proporcionDe(cliente.ingresos, ingresos),
+            celdas: [cliente.nombre, String(cliente.compras), formatoPesos(cliente.ingresos)],
+          }))}
+        />
+      )}
+      {ventasFiadas > 0 && (
+        <p className="metricas-nota">
+          Vendiste fiado {formatoPesos(fiado)} ({ventasFiadas}{' '}
+          {ventasFiadas === 1 ? 'venta' : 'ventas'}).
+        </p>
+      )}
+    </Panel>
+  );
+}
+
+// Lo gastado en el período, por categoría, y lo que queda de los ingresos.
+function PanelDeGastos({
+  gastos,
+  periodo,
+}: {
+  gastos: NonNullable<Metricas['gastos']>;
+  periodo: PeriodoDeVentas;
+}) {
+  const totales = gastos.porCategoria.map((categoria) => categoria.total);
+  return (
+    <Panel
+      titulo="Tus gastos"
+      detalle={`Lo que anotaste como gasto ${QUE_PERIODO[periodo]}.`}
+      color="yellow"
+    >
+      <p className="metricas-gastos">
+        <span>
+          Gastaste <strong>{formatoPesos(gastos.total)}</strong>{' '}
+          <small>
+            ({gastos.cantidad} {gastos.cantidad === 1 ? 'gasto anotado' : 'gastos anotados'})
+          </small>
+        </span>
+        <span>
+          {gastos.resultado >= 0 ? 'Te quedaron' : 'Te faltaron'}{' '}
+          <strong>{formatoPesos(Math.abs(gastos.resultado))}</strong>
+        </span>
+      </p>
+      {gastos.porCategoria.length > 0 ? (
+        <TablaDeDetalle
+          titulo="Gastos por categoría"
+          columnas={[{ titulo: 'Categoría' }, { titulo: 'Total' }]}
+          filas={gastos.porCategoria.map((categoria) => ({
+            clave: categoria.categoria,
+            barra: proporcionDe(categoria.total, totales),
+            celdas: [categoria.categoria, formatoPesos(categoria.total)],
+          }))}
+        />
+      ) : (
+        <p className="metricas-nota">No anotaste gastos en el período.</p>
+      )}
+    </Panel>
+  );
+}
+
+// Cómo están sus precios frente a los de la zona. Son datos agregados y anónimos de otros comercios.
+function PanelDeZona({ zona }: { zona: NonNullable<Metricas['zona']> }) {
+  return (
+    <Panel
+      titulo={`Tus precios frente a la zona (${zona.nombre})`}
+      detalle={`${zona.debajo} por debajo del rango, ${zona.dentro} dentro y ${zona.encima} por encima. Son datos agregados y anónimos de ${zona.comercios} comercios.`}
+      color="blue"
+      ancho
+    >
+      {zona.desalineados.length > 0 ? (
+        <TablaDeDetalle
+          titulo="Precios fuera del rango de la zona"
+          columnas={[
+            { titulo: 'Producto' },
+            { titulo: 'Tu precio' },
+            { titulo: 'Rango de la zona' },
+            { titulo: 'Diferencia' },
+          ]}
+          filas={zona.desalineados.map((producto) => ({
+            clave: producto.nombre,
+            celdas: [
+              producto.nombre,
+              formatoPesos(producto.precio),
+              `${formatoPesos(producto.minimo)} a ${formatoPesos(producto.maximo)}`,
+              `${producto.porcentaje > 0 ? '+' : ''}${producto.porcentaje} %`,
+            ],
+          }))}
+        />
+      ) : (
+        <p className="metricas-nota">
+          Todos tus precios comparables están dentro del rango de la zona.
+        </p>
+      )}
+    </Panel>
+  );
+}
+
+const NOMBRE_DE_AVISO: Record<Metricas['avisos']['pendientes'][number]['tipo'], string> = {
+  STOCK: 'Stock',
+  PRECIO_ZONA: 'Precio frente a la zona',
+  ESTANCADO: 'Productos sin movimiento',
+  MUY_VENDIDO: 'Productos que se venden mucho',
+  COMBO: 'Combos',
+  CONSUMO_ZONA: 'Lo que pide la zona',
+  REVISAR_PRECIO: 'Precios para revisar',
+};
+
+// Lo que Sami le avisó y lo que hizo con esos avisos. El impacto es una comparación, no una causa.
+function PanelDeAvisos({
+  avisos,
+  periodo,
+}: {
+  avisos: Metricas['avisos'];
+  periodo: PeriodoDeVentas;
+}) {
+  const { totalPendientes, pendientes, aplicados, descartados, medidos, ingresoSemanalDelta } =
+    avisos;
+  const pendientesTexto = totalPendientes === 1 ? '1 pendiente' : `${totalPendientes} pendientes`;
+  const cuando =
+    periodo === 'hoy'
+      ? 'Hoy'
+      : periodo === 'semana'
+        ? 'En los últimos 7 días'
+        : 'En los últimos 30 días';
+  return (
+    <Panel
+      titulo="Avisos de Sami"
+      detalle={`${pendientesTexto}. ${cuando} aplicaste ${aplicados} y descartaste ${descartados}.`}
+      color="orange"
+    >
+      {pendientes.length > 0 ? (
+        <TablaDeDetalle
+          titulo="Avisos pendientes"
+          columnas={[{ titulo: 'Qué conviene mirar' }, { titulo: 'Avisos' }]}
+          filas={pendientes.map((pendiente) => ({
+            clave: pendiente.tipo,
+            barra: proporcionDe(
+              pendiente.cantidad,
+              pendientes.map((otro) => otro.cantidad),
+            ),
+            celdas: [NOMBRE_DE_AVISO[pendiente.tipo], String(pendiente.cantidad)],
+          }))}
+        />
+      ) : (
+        <p className="metricas-nota">No tenés avisos pendientes.</p>
+      )}
+      {medidos > 0 && (
+        <p className="metricas-nota">
+          De los avisos aplicados ya medimos {medidos}: el ingreso semanal cambió{' '}
+          {formatoPesos(ingresoSemanalDelta)} entre antes y después. Es una comparación, no prueba
+          que el aviso sea la causa: también influyen la época del año, los feriados o el faltante.
+        </p>
       )}
     </Panel>
   );

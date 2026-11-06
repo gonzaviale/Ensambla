@@ -143,7 +143,7 @@ class ReporteUseCaseConfigTest {
     }
 
     @Test
-    @DisplayName("El wiring de las métricas detalladas conecta el servicio de datos y el reloj")
+    @DisplayName("El wiring de las métricas detalladas conecta el servicio de datos, la zona, los avisos y el reloj")
     void obtenerMetricasUseCaseShouldWireCollaborators() {
         ProyectoId proyectoId = ProyectoId.de("c0000000-0000-4000-8000-000000000001");
         ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
@@ -154,7 +154,8 @@ class ReporteUseCaseConfigTest {
 
         ObtenerMetricasResponse response = config.obtenerMetricas(
                         negocioRepository, proyectoRepository,
-                        config.datosDeProyectoService(mock(RegistroRepository.class)), Clock.systemUTC())
+                        config.datosDeProyectoService(mock(RegistroRepository.class)), mock(ZonaRepository.class),
+                        mock(AgregadoZonaRepository.class), mock(AvisoRepository.class), Clock.systemUTC())
                 .execute(new ObtenerMetricasRequest(USUARIO_ID, proyectoId, PeriodoMetricas.MES));
 
         assertThat(response.sistema()).isEqualTo("Almacén");

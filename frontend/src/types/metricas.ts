@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { tipoDeAvisoSchema } from './avisos';
 import { ventaDelDiaSchema } from './resumenInicio';
 
 export const PERIODOS_DEL_SERVIDOR = ['HOY', 'SEMANA', 'MES'] as const;
@@ -53,10 +54,40 @@ export const metricasSchema = z.object({
   gastos: z
     .object({
       total: z.number(),
+      cantidad: z.number().int(),
       resultado: z.number(),
       porCategoria: z.array(z.object({ categoria: z.string(), total: z.number() })),
     })
     .nullish(),
+  /** Precios frente a los de la zona: datos agregados y anónimos. Sin zona o sin rangos comparables no viene. */
+  zona: z
+    .object({
+      nombre: z.string(),
+      comercios: z.number().int(),
+      debajo: z.number().int(),
+      dentro: z.number().int(),
+      encima: z.number().int(),
+      desalineados: z.array(
+        z.object({
+          nombre: z.string(),
+          precio: z.number(),
+          minimo: z.number(),
+          maximo: z.number(),
+          /** Negativo si está por debajo del mínimo de la zona, positivo si pasa el máximo. */
+          porcentaje: z.number(),
+        }),
+      ),
+    })
+    .nullish(),
+  avisos: z.object({
+    totalPendientes: z.number().int(),
+    pendientes: z.array(z.object({ tipo: tipoDeAvisoSchema, cantidad: z.number().int() })),
+    aplicados: z.number().int(),
+    descartados: z.number().int(),
+    medidos: z.number().int(),
+    /** Lo que cambió el ingreso semanal en los avisos medidos: una comparación, no una causa. */
+    ingresoSemanalDelta: z.number(),
+  }),
 });
 
 export type Metricas = z.infer<typeof metricasSchema>;
