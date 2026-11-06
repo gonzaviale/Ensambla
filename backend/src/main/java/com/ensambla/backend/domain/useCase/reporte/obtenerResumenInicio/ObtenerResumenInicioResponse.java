@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio;
 
 import com.ensambla.backend.domain.model.reporte.ResumenNegocio;
+import com.ensambla.backend.domain.useCase.reporte.VentaDelDia;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -15,7 +16,8 @@ import java.util.List;
  * @param hoy               el día de hoy, en hora argentina
  * @param hayVentas         si el sistema tiene al menos una venta anotada hasta hoy
  * @param hayProductos      si el sistema tiene productos en su inventario
- * @param ventasDeHoy       lo vendido hoy
+ * @param ventasPorDia      lo que entró cada uno de los últimos 30 días, del más viejo a hoy
+ * @param ventas            lo vendido hoy, en la última semana y en los últimos 30 días, cada uno con su comparación
  * @param ultimoDiaConVentas el último día en que se anotó una venta; {@code null} si nunca se vendió
  * @param masVendido        el producto que más unidades vendió en los últimos 30 días; {@code null} si no vendió nada
  * @param faltantes         productos agotados o bajo su mínimo
@@ -27,7 +29,8 @@ public record ObtenerResumenInicioResponse(
         LocalDate hoy,
         boolean hayVentas,
         boolean hayProductos,
-        VentasDeHoy ventasDeHoy,
+        Ventas ventas,
+        List<VentaDelDia> ventasPorDia,
         UltimoDiaConVentas ultimoDiaConVentas,
         MasVendido masVendido,
         Faltantes faltantes,
@@ -36,19 +39,34 @@ public record ObtenerResumenInicioResponse(
     /** Máximo de productos que se listan como faltantes o parados: el inicio muestra un adelanto, no la tabla entera. */
     static final int MAXIMO_PRODUCTOS = 3;
 
+    /** Las ventas de los tres períodos que el inicio deja elegir. */
+    public record Ventas(VentasDelPeriodo hoy, VentasDelPeriodo semana, VentasDelPeriodo mes) {
+    }
+
     /**
-     * @param ingresos            lo que entró hoy por las ventas con precio
-     * @param unidades            unidades vendidas hoy
-     * @param cantidad            filas de venta de hoy (cada una es un producto, no un cliente)
-     * @param sinPrecio           cuántas de esas filas no tienen precio y por eso no suman en {@code ingresos}
-     * @param ingresosSemanaPasada lo que entró el mismo día de la semana pasada; sirve para comparar
+     * @param ingresos           lo que entró en el período por las ventas con precio
+     * @param unidades           unidades vendidas en el período
+     * @param cantidad           filas de venta del período (cada una es un producto, no un cliente)
+     * @param sinPrecio          cuántas de esas filas no tienen precio y por eso no suman en {@code ingresos}
+     * @param ingresosAnteriores lo que entró en el período con el que se compara: el mismo día de la semana pasada
+     *                           para hoy, y los 7 o 30 días anteriores para la semana y el mes
+     * @param fiado              lo vendido a fiado en el período
+     * @param ventasFiadas       cuántas ventas fueron a fiado
      */
-    public record VentasDeHoy(
+    public record VentasDelPeriodo(
             BigDecimal ingresos,
             BigDecimal unidades,
             long cantidad,
             long sinPrecio,
-            BigDecimal ingresosSemanaPasada) {
+            BigDecimal ingresosAnteriores,
+            BigDecimal fiado,
+            long ventasFiadas) {
+
+        static VentasDelPeriodo de(ResumenNegocio resumen, BigDecimal ingresosAnteriores, long sinPrecio) {
+            ResumenNegocio.Ventas ventas = resumen.ventas();
+            return new VentasDelPeriodo(ventas.ingresos(), ventas.unidades(), ventas.cantidad(), sinPrecio,
+                    ingresosAnteriores, resumen.clientes().fiado(), resumen.clientes().ventasFiadas());
+        }
     }
 
     public record UltimoDiaConVentas(LocalDate fecha, BigDecimal ingresos) {
@@ -72,9 +90,10 @@ public record ObtenerResumenInicioResponse(
     /**
      * Arma las métricas con los resúmenes ya calculados.
      *
-     * @param mes       resumen de los últimos 30 días
-     * @param quincena  resumen de las últimas dos semanas
-     * @param hoyResumen resumen de hoy
+     * @param mes                resumen de los últimos 30 días
+     * @param quincena           resumen de las últimas dos semanas
+     * @param ventas             lo vendido en cada período
+     * @param ventasPorDia       lo que entró cada día de los últimos 30
      * @param puedeListarParados si hay al menos dos semanas de ventas anotadas, que es lo que hace cierto que un
      *                           producto "no se vendió" en ese tiempo
      */
@@ -83,19 +102,17 @@ public record ObtenerResumenInicioResponse(
             boolean hayVentas,
             ResumenNegocio mes,
             ResumenNegocio quincena,
-            ResumenNegocio hoyResumen,
-            BigDecimal ingresosSemanaPasada,
-            long ventasDeHoySinPrecio,
+            Ventas ventas,
+            List<VentaDelDia> ventasPorDia,
             UltimoDiaConVentas ultimoDia,
             boolean puedeListarParados) {
-        ResumenNegocio.Ventas ventas = hoyResumen.ventas();
         return new ObtenerResumenInicioResponse(
                 mes.sistema(),
                 hoy,
                 hayVentas,
                 mes.stock().productos() > 0,
-                new VentasDeHoy(ventas.ingresos(), ventas.unidades(), ventas.cantidad(), ventasDeHoySinPrecio,
-                        ingresosSemanaPasada),
+                ventas,
+                ventasPorDia,
                 ultimoDia,
                 mes.masVendidos().stream().findFirst()
                         .map(producto -> new MasVendido(producto.nombre(), producto.unidades(), producto.ingresos(),

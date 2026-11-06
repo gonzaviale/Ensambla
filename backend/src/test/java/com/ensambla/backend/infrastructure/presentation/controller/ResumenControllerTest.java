@@ -2,10 +2,14 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.reporte.PeriodoMetricas;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenNegocio;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenRequest;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenResponse;
+import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricas;
+import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricasRequest;
+import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricasResponse;
 import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicio;
 import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicioRequest;
 import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicioResponse;
@@ -25,6 +29,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -41,13 +46,15 @@ class ResumenControllerTest {
 
     private ExportarResumenNegocio exportarResumenNegocio;
     private ObtenerResumenInicio obtenerResumenInicio;
+    private ObtenerMetricas obtenerMetricas;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         exportarResumenNegocio = mock(ExportarResumenNegocio.class);
         obtenerResumenInicio = mock(ObtenerResumenInicio.class);
-        mockMvc = MockMvcDePrueba.standalone(new ResumenController(exportarResumenNegocio, obtenerResumenInicio))
+        obtenerMetricas = mock(ObtenerMetricas.class);
+        mockMvc = MockMvcDePrueba.standalone(new ResumenController(exportarResumenNegocio, obtenerResumenInicio, obtenerMetricas))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -102,25 +109,79 @@ class ResumenControllerTest {
                 .andExpect(jsonPath("$.sistema").value("Almacén de Ana"))
                 .andExpect(jsonPath("$.hoy").value("2026-10-19"))
                 .andExpect(jsonPath("$.hayVentas").value(true))
-                .andExpect(jsonPath("$.ventasDeHoy.ingresos").value(6800))
+                .andExpect(jsonPath("$.ventas.hoy.ingresos").value(6800))
                 .andExpect(jsonPath("$.faltantes.total").value(0))
                 .andExpect(jsonPath("$.parados").isEmpty());
         verify(obtenerResumenInicio).execute(new ObtenerResumenInicioRequest(USUARIO_ID, PROYECTO_ID));
     }
 
+    @Test
+    @DisplayName("GET métricas sin período pide la semana y devuelve los números del sistema")
+    void metricasShouldUseTheWeekByDefault() throws Exception {
+        when(obtenerMetricas.execute(any(ObtenerMetricasRequest.class))).thenReturn(respuestaDeMetricas());
+
+        mockMvc.perform(get("/api/proyectos/{id}/resumen/metricas", PROYECTO_ID).principal(sesion))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.periodo").value("SEMANA"))
+                .andExpect(jsonPath("$.ventas.ingresos").value(6800));
+        verify(obtenerMetricas).execute(new ObtenerMetricasRequest(USUARIO_ID, PROYECTO_ID, PeriodoMetricas.SEMANA));
+    }
+
+    @Test
+    @DisplayName("GET métricas pasa el período que se pidió")
+    void metricasShouldPassTheRequestedPeriod() throws Exception {
+        when(obtenerMetricas.execute(any(ObtenerMetricasRequest.class))).thenReturn(respuestaDeMetricas());
+
+        mockMvc.perform(get("/api/proyectos/{id}/resumen/metricas", PROYECTO_ID).param("periodo", "MES")
+                        .principal(sesion))
+                .andExpect(status().isOk());
+        verify(obtenerMetricas).execute(new ObtenerMetricasRequest(USUARIO_ID, PROYECTO_ID, PeriodoMetricas.MES));
+    }
+
+    @Test
+    @DisplayName("GET métricas con un período que no existe responde 400 sin llegar al caso de uso")
+    void metricasShouldReturn400ForUnknownPeriod() throws Exception {
+        mockMvc.perform(get("/api/proyectos/{id}/resumen/metricas", PROYECTO_ID).param("periodo", "ANIO")
+                        .principal(sesion))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(obtenerMetricas);
+    }
+
     // --- helpers ---
+    private static ObtenerMetricasResponse respuestaDeMetricas() {
+        return new ObtenerMetricasResponse(
+                "Almacén de Ana",
+                PeriodoMetricas.SEMANA,
+                LocalDate.parse("2026-10-13"),
+                LocalDate.parse("2026-10-19"),
+                true,
+                new ObtenerMetricasResponse.Ventas(new BigDecimal("6800"), new BigDecimal("2"), 1, 0,
+                        new BigDecimal("971.43"), new BigDecimal("3400"), null),
+                List.of(),
+                List.of(),
+                List.of(),
+                new ObtenerMetricasResponse.Stock(0, 0, List.of(), BigDecimal.ZERO, BigDecimal.ZERO),
+                new ObtenerMetricasResponse.Clientes(List.of(), BigDecimal.ZERO, 0),
+                null);
+    }
+
     private static ObtenerResumenInicioResponse respuestaDeInicio() {
         return new ObtenerResumenInicioResponse(
                 "Almacén de Ana",
                 LocalDate.parse("2026-10-19"),
                 true,
                 true,
-                new ObtenerResumenInicioResponse.VentasDeHoy(
-                        new BigDecimal("6800"), new BigDecimal("2"), 1, 0, new BigDecimal("3400")),
+                new ObtenerResumenInicioResponse.Ventas(ventasDelPeriodo(), ventasDelPeriodo(), ventasDelPeriodo()),
+                List.of(),
                 new ObtenerResumenInicioResponse.UltimoDiaConVentas(LocalDate.parse("2026-10-19"),
                         new BigDecimal("6800")),
                 null,
                 new ObtenerResumenInicioResponse.Faltantes(0, List.of()),
                 List.of());
+    }
+
+    private static ObtenerResumenInicioResponse.VentasDelPeriodo ventasDelPeriodo() {
+        return new ObtenerResumenInicioResponse.VentasDelPeriodo(
+                new BigDecimal("6800"), new BigDecimal("2"), 1, 0, new BigDecimal("3400"), BigDecimal.ZERO, 0);
     }
 }

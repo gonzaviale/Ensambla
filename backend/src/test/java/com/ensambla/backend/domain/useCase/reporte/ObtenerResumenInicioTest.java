@@ -4,6 +4,8 @@ import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.aviso.BloqueInventario;
 import com.ensambla.backend.domain.model.aviso.BloqueVentas;
 import com.ensambla.backend.domain.model.bloque.Bloque;
+import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
@@ -27,6 +29,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +54,7 @@ class ObtenerResumenInicioTest {
     private static final UUID MERMELADA = UUID.fromString("d0000000-0000-4000-8000-000000000003");
     private static final UUID ACEITE = UUID.fromString("d0000000-0000-4000-8000-000000000004");
     private static final UUID ARROZ = UUID.fromString("d0000000-0000-4000-8000-000000000005");
+    private static final CampoId CAMPO_FIADO_ID = CampoId.de("f0000000-0000-4000-8000-000000000016");
 
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
@@ -86,13 +90,43 @@ class ObtenerResumenInicioTest {
         assertThat(response.sistema()).isEqualTo("Almacén de prueba");
         assertThat(response.hoy()).isEqualTo(HOY);
         assertThat(response.hayVentas()).isTrue();
-        assertThat(response.ventasDeHoy().ingresos()).isEqualByComparingTo("10200");
-        assertThat(response.ventasDeHoy().unidades()).isEqualByComparingTo("6");
-        assertThat(response.ventasDeHoy().cantidad()).isEqualTo(3);
-        assertThat(response.ventasDeHoy().sinPrecio()).isEqualTo(1);
-        assertThat(response.ventasDeHoy().ingresosSemanaPasada()).isEqualByComparingTo("3400");
+        assertThat(response.ventas().hoy().ingresos()).isEqualByComparingTo("10200");
+        assertThat(response.ventas().hoy().unidades()).isEqualByComparingTo("6");
+        assertThat(response.ventas().hoy().cantidad()).isEqualTo(3);
+        assertThat(response.ventas().hoy().sinPrecio()).isEqualTo(1);
+        assertThat(response.ventas().hoy().ingresosAnteriores()).isEqualByComparingTo("3400");
         assertThat(response.ultimoDiaConVentas().fecha()).isEqualTo(HOY);
         assertThat(response.ultimoDiaConVentas().ingresos()).isEqualByComparingTo("10200");
+        assertThat(response.ventasPorDia()).hasSize(30);
+        assertThat(response.ventasPorDia().getLast().fecha()).isEqualTo(HOY);
+        assertThat(response.ventasPorDia().getLast().ingresos()).isEqualByComparingTo("10200");
+    }
+
+    @Test
+    @DisplayName("Suma lo vendido en la semana y en el mes, lo compara con el período anterior y cuenta el fiado")
+    void executeShouldSumTheWeekAndTheMonthWithTheirComparisonAndCredit() {
+        givenDatos(
+                List.of(
+                        ventaAFiado(YERBA, 2, 3400, "2026-10-19"),
+                        venta(YERBA, 1, 3400, "2026-10-15"),
+                        venta(YERBA, 1, 3400, "2026-10-12"),
+                        venta(YERBA, 5, 3400, "2026-09-25"),
+                        venta(YERBA, 4, 3400, "2026-09-01")),
+                yerba());
+
+        ObtenerResumenInicioResponse response = whenObtener();
+
+        assertThat(response.ventas().hoy().fiado()).isEqualByComparingTo("6800");
+        assertThat(response.ventas().semana().ingresos()).isEqualByComparingTo("10200");
+        assertThat(response.ventas().semana().unidades()).isEqualByComparingTo("3");
+        assertThat(response.ventas().semana().cantidad()).isEqualTo(2);
+        assertThat(response.ventas().semana().ingresosAnteriores()).isEqualByComparingTo("3400");
+        assertThat(response.ventas().semana().fiado()).isEqualByComparingTo("6800");
+        assertThat(response.ventas().semana().ventasFiadas()).isEqualTo(1);
+        assertThat(response.ventas().mes().ingresos()).isEqualByComparingTo("30600");
+        assertThat(response.ventas().mes().unidades()).isEqualByComparingTo("9");
+        assertThat(response.ventas().mes().ingresosAnteriores()).isEqualByComparingTo("13600");
+        assertThat(response.ventas().mes().ventasFiadas()).isEqualTo(1);
     }
 
     @Test
@@ -106,8 +140,8 @@ class ObtenerResumenInicioTest {
 
         ObtenerResumenInicioResponse response = whenObtener();
 
-        assertThat(response.ventasDeHoy().ingresos()).isEqualByComparingTo("0");
-        assertThat(response.ventasDeHoy().cantidad()).isZero();
+        assertThat(response.ventas().hoy().ingresos()).isEqualByComparingTo("0");
+        assertThat(response.ventas().hoy().cantidad()).isZero();
         assertThat(response.ultimoDiaConVentas().fecha()).isEqualTo(LocalDate.of(2026, 10, 16));
         assertThat(response.ultimoDiaConVentas().ingresos()).isEqualByComparingTo("6800");
     }
@@ -215,9 +249,7 @@ class ObtenerResumenInicioTest {
 
     // --- arrange ---
     private void givenDatos(List<Registro> ventas, Registro... productos) {
-        Bloque bloqueDeVentas = AvisoTestData.bloqueVentas();
-        BloqueVentas ventasDelSistema = new BloqueVentas(
-                bloqueDeVentas, AvisoTestData.camposPorClave(bloqueDeVentas), ventas);
+        BloqueVentas ventasDelSistema = bloqueDeVentas(ventas);
         List<BloqueInventario> inventarios = productos.length == 0
                 ? List.of()
                 : List.of(AvisoTestData.inventarioConPrecios(productos));
@@ -263,6 +295,22 @@ class ObtenerResumenInicioTest {
         poner(valores, AvisoTestData.CAMPO_FECHA_ID.toString(), fecha);
         return Registro.builder().id(RegistroId.nuevo()).negocioId(AvisoTestData.NEGOCIO_ID)
                 .bloqueId(AvisoTestData.VENTAS_ID).valores(valores).build();
+    }
+
+    private static Registro ventaAFiado(UUID producto, int cantidad, Integer precio, String fecha) {
+        Registro venta = venta(producto, cantidad, precio, fecha);
+        venta.getValores().put(CAMPO_FIADO_ID.toString(), true);
+        return venta;
+    }
+
+    private static BloqueVentas bloqueDeVentas(List<Registro> ventas) {
+        Bloque base = AvisoTestData.bloqueVentas();
+        List<Campo> campos = new ArrayList<>(base.getCampos());
+        campos.add(Campo.builder().id(CAMPO_FIADO_ID).negocioId(AvisoTestData.NEGOCIO_ID)
+                .bloqueId(AvisoTestData.VENTAS_ID).clave("credit").build());
+        Bloque bloque = Bloque.builder().id(base.getId()).negocioId(base.getNegocioId())
+                .proyectoId(base.getProyectoId()).tipo(base.getTipo()).campos(campos).build();
+        return new BloqueVentas(bloque, AvisoTestData.camposPorClave(bloque), ventas);
     }
 
     private static void poner(Map<String, Object> valores, String campoId, Object valor) {

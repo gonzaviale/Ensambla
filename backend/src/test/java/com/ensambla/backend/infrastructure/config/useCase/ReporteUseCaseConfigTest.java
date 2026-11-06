@@ -26,6 +26,9 @@ import com.ensambla.backend.domain.service.reporte.ReporteService;
 import com.ensambla.backend.domain.useCase.reporte.GenerarReporteRequest;
 import com.ensambla.backend.domain.useCase.reporte.exportarReporte.ExportarReporteResponse;
 import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporteResponse;
+import com.ensambla.backend.domain.model.reporte.PeriodoMetricas;
+import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricasRequest;
+import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricasResponse;
 import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicioRequest;
 import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicioResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -137,5 +140,24 @@ class ReporteUseCaseConfigTest {
 
         assertThat(response.sistema()).isEqualTo("Almacén");
         assertThat(response.hayVentas()).isFalse();
+    }
+
+    @Test
+    @DisplayName("El wiring de las métricas detalladas conecta el servicio de datos y el reloj")
+    void obtenerMetricasUseCaseShouldWireCollaborators() {
+        ProyectoId proyectoId = ProyectoId.de("c0000000-0000-4000-8000-000000000001");
+        ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
+        Negocio negocio = Negocio.builder().id(NEGOCIO_ID).nombre("Almacén de Ana").build();
+        Proyecto proyecto = Proyecto.builder().id(proyectoId).nombre("Almacén").bloques(List.of()).build();
+        when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID)).thenReturn(negocio);
+        when(proyectoRepository.obtener(NEGOCIO_ID, proyectoId)).thenReturn(proyecto);
+
+        ObtenerMetricasResponse response = config.obtenerMetricas(
+                        negocioRepository, proyectoRepository,
+                        config.datosDeProyectoService(mock(RegistroRepository.class)), Clock.systemUTC())
+                .execute(new ObtenerMetricasRequest(USUARIO_ID, proyectoId, PeriodoMetricas.MES));
+
+        assertThat(response.sistema()).isEqualTo("Almacén");
+        assertThat(response.porDia()).hasSize(30);
     }
 }

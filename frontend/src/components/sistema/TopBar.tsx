@@ -4,7 +4,7 @@ import { Logo } from './Logo';
 import { MenuDePerfil } from './MenuDePerfil';
 
 export type SeccionActiva =
-  'home' | 'sistemas' | 'templates' | 'zone' | 'avisos' | 'plans' | 'account';
+  'home' | 'sistemas' | 'metricas' | 'templates' | 'zone' | 'avisos' | 'plans' | 'account';
 
 type TopBarProps = {
   active?: SeccionActiva;
@@ -13,6 +13,8 @@ type TopBarProps = {
   campana?: ReactNode;
   onInicio: () => void;
   onSistemas: () => void;
+  /** «Mis métricas»: los números del negocio en detalle. */
+  onMetricas: () => void;
   onPlantillas: () => void;
   onZona: () => void;
   onAvisos: () => void;
@@ -31,6 +33,7 @@ export function TopBar({
   campana,
   onInicio,
   onSistemas,
+  onMetricas,
   onPlantillas,
   onZona,
   onAvisos,
@@ -74,6 +77,14 @@ export function TopBar({
           onClick={ir(onSistemas)}
         >
           Mis cuadernos
+        </button>
+        <button
+          type="button"
+          className={active === 'metricas' ? 'active' : ''}
+          aria-current={active === 'metricas' ? 'page' : undefined}
+          onClick={ir(onMetricas)}
+        >
+          Mis métricas
         </button>
         <button
           type="button"

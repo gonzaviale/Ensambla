@@ -9,14 +9,29 @@ import type { Sistema } from '@/lib/sistema/tipos';
 import { estado } from '@/mocks/db/estado';
 import { server } from '@/mocks/node';
 import { renderApp } from '@/test/renderApp';
-import { ESPERA, setupUsuarioConSesion, verifyHeadingPresentAsync } from '@/test/testHelpers';
+import {
+  ESPERA,
+  setupUsuarioConSesion,
+  verifyHeadingPresentAsync,
+  verifyPathAsync,
+} from '@/test/testHelpers';
+
+const sinVentas = {
+  ingresos: 0,
+  unidades: 0,
+  cantidad: 0,
+  sinPrecio: 0,
+  ingresosAnteriores: 0,
+  fiado: 0,
+  ventasFiadas: 0,
+};
 
 const abrirInicio = async (sistemas: Sistema[]) => {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
   estado.sistemas.set(usuario.email, sistemas);
-  renderApp('/inicio');
+  const router = renderApp('/inicio');
   await verifyHeadingPresentAsync(/En qué puedo/);
-  return userEvent.setup();
+  return Object.assign(userEvent.setup(), { router });
 };
 
 const almacen = (nombre: string, actualizadoEn: string): Sistema => ({
@@ -62,13 +77,36 @@ describe('inicio: cómo te va', () => {
     await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
 
     const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
+    // Los números llegan después del saludo: primero se espera a que estén.
+    expect(
+      await within(seccion).findByRole('heading', { name: 'Esta semana vendiste' }, ESPERA),
+    ).toBeVisible();
+    expect(
+      within(seccion).getByRole('heading', { level: 1, name: 'Hola, Ana Pérez.' }),
+    ).toBeVisible();
     expect(within(seccion).getByText('Almacén de barrio')).toBeVisible();
+    expect(
+      within(seccion).getByRole('list', { name: 'Ventas de los últimos 7 días' }),
+    ).toBeVisible();
     expect(within(seccion).queryByRole('combobox')).toBeNull();
-    expect(within(seccion).getByRole('heading', { name: 'Hoy vendiste' })).toBeVisible();
     expect(
       within(seccion).getByRole('heading', { name: 'Lo que más salió este mes' }),
     ).toBeVisible();
     expect(within(seccion).getByRole('heading', { name: 'Se te está acabando' })).toBeVisible();
+  });
+
+  it('la tarjeta de ventas arranca en la semana y deja mirar hoy o el mes', async () => {
+    const user = await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
+    const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
+    expect(
+      await within(seccion).findByRole('button', { name: 'Esta semana' }, ESPERA),
+    ).toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(within(seccion).getByRole('button', { name: 'Hoy' }));
+    expect(within(seccion).getByRole('heading', { name: 'Hoy vendiste' })).toBeVisible();
+
+    await user.click(within(seccion).getByRole('button', { name: 'Este mes' }));
+    expect(within(seccion).getByRole('heading', { name: 'Este mes vendiste' })).toBeVisible();
   });
 
   it('con varios cuadernos deja elegir de cuál ver los números y se acuerda de la elección', async () => {
@@ -81,7 +119,8 @@ describe('inicio: cómo te va', () => {
           hoy: hoy(),
           hayVentas: false,
           hayProductos: true,
-          ventasDeHoy: { ingresos: 0, unidades: 0, cantidad: 0, sinPrecio: 0, ingresosSemanaPasada: 0 },
+          ventas: { hoy: sinVentas, semana: sinVentas, mes: sinVentas },
+          ventasPorDia: [],
           ultimoDiaConVentas: null,
           masVendido: null,
           faltantes: { total: 0, primeros: [] },
@@ -93,23 +132,75 @@ describe('inicio: cómo te va', () => {
     const viejo = almacen('Almacén Norte', '2026-10-01T10:00:00.000Z');
     const user = await abrirInicio([viejo, reciente]);
 
-    const selector = await screen.findByRole('combobox', { name: 'Cuaderno' }, ESPERA);
-    expect(selector).toHaveValue(reciente.id);
+    const selector = await screen.findByRole('button', { name: 'Cuaderno: Kiosco Centro' }, ESPERA);
     expect(pedidos).toEqual([reciente.id]);
 
-    await user.selectOptions(selector, viejo.id);
+    await user.click(selector);
+    const lista = screen.getByRole('listbox', { name: 'Cuadernos' });
+    expect(within(lista).getByRole('option', { name: 'Kiosco Centro' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await user.click(within(lista).getByRole('option', { name: 'Almacén Norte' }));
 
     await waitFor(() => expect(pedidos).toContain(viejo.id), ESPERA);
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Cuaderno: Almacén Norte' })).toBeVisible();
     expect(window.localStorage.getItem('ensambla.inicio.cuaderno')).toBe(viejo.id);
   });
 
-  it('si el servidor no contesta no muestra nada en lugar de ceros', async () => {
+  it('la lista de cuadernos se maneja con el teclado y se cierra con Escape', async () => {
+    const reciente = almacen('Kiosco Centro', '2026-10-21T10:00:00.000Z');
+    const viejo = almacen('Almacén Norte', '2026-10-01T10:00:00.000Z');
+    const user = await abrirInicio([viejo, reciente]);
+    const selector = await screen.findByRole('button', { name: 'Cuaderno: Kiosco Centro' }, ESPERA);
+
+    selector.focus();
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getByRole('listbox', { name: 'Cuadernos' })).toBeVisible();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(selector).toHaveFocus();
+
+    await user.keyboard('{ArrowDown}{ArrowDown}{Enter}');
+
+    expect(
+      await screen.findByRole('button', { name: 'Cuaderno: Almacén Norte' }, ESPERA),
+    ).toBeVisible();
+    expect(window.localStorage.getItem('ensambla.inicio.cuaderno')).toBe(viejo.id);
+  });
+
+  it('si el servidor no contesta lo dice en lugar de mostrar ceros', async () => {
     escucharPedidos();
 
     await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
 
-    expect(await screen.findByRole('heading', { name: /Plantillas para arrancar/ })).toBeVisible();
-    expect(screen.queryByRole('region', { name: 'Cómo te va' })).toBeNull();
+    const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
+    expect(
+      await within(seccion).findByText(/No pudimos traer tus números/, {}, ESPERA),
+    ).toBeVisible();
+    expect(within(seccion).queryByRole('heading', { name: /vendiste/ })).toBeNull();
+  });
+
+  it('«Primera vez» y «Mis métricas» quedan arriba, junto al saludo', async () => {
+    const user = await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
+    const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
+    expect(within(seccion).getByRole('button', { name: 'Primera vez' })).toBeVisible();
+
+    await user.click(within(seccion).getByRole('button', { name: 'Mis métricas' }));
+
+    await verifyPathAsync(user.router, '/metricas');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Mis métricas' }, ESPERA),
+    ).toBeVisible();
+  });
+
+  it('muestra los últimos cuadernos para abrirlos rápido', async () => {
+    await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
+
+    const recientes = await screen.findByRole('region', { name: 'Tus cuadernos' }, ESPERA);
+    expect(within(recientes).getByRole('button', { name: /Almacén de barrio/ })).toBeVisible();
+    expect(within(recientes).getByRole('button', { name: /Ver todos/ })).toBeVisible();
   });
 
   it('sin ventas anotadas muestra sólo el stock', async () => {
@@ -123,7 +214,9 @@ describe('inicio: cómo te va', () => {
     await abrirInicio([sistema]);
 
     const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
-    expect(within(seccion).queryByRole('heading', { name: /Hoy/ })).toBeNull();
-    expect(within(seccion).getByRole('heading', { name: 'Se te está acabando' })).toBeVisible();
+    expect(
+      await within(seccion).findByRole('heading', { name: 'Se te está acabando' }, ESPERA),
+    ).toBeVisible();
+    expect(within(seccion).queryByRole('heading', { name: /vendiste/ })).toBeNull();
   });
 });

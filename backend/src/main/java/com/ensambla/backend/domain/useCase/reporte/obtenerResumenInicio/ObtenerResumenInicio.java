@@ -11,9 +11,13 @@ import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
+import com.ensambla.backend.domain.useCase.reporte.VentaDelDia;
 import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicioResponse.UltimoDiaConVentas;
+import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicioResponse.Ventas;
+import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicioResponse.VentasDelPeriodo;
 import lombok.RequiredArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -49,17 +53,35 @@ public class ObtenerResumenInicio {
         DatosDeProyecto datos = datosDeProyectoService.cargar(proyecto, negocio.getId());
         List<VentaProducto> ventas = ventasHastaHoy(datos, hoy);
         UltimoDiaConVentas ultimoDia = ultimoDiaConVentas(negocio, datos, ventas, hoy);
+        ResumenNegocio mes = resumen(negocio, datos, hoy.minusDays(DIAS_DEL_MES - 1L), hoy, hoy);
+        ResumenNegocio semana = resumen(negocio, datos, hoy.minusDays(DIAS_DE_UNA_SEMANA - 1L), hoy, hoy);
+        ResumenNegocio dia = resumen(negocio, datos, hoy, hoy, hoy);
+        BigDecimal ingresosDelMismoDiaDeLaSemanaPasada =
+                resumen(negocio, datos, hoy.minusDays(DIAS_DE_UNA_SEMANA), hoy.minusDays(DIAS_DE_UNA_SEMANA), hoy)
+                        .ventas().ingresos();
+        Ventas ventasDelInicio = new Ventas(
+                VentasDelPeriodo.de(dia, ingresosDelMismoDiaDeLaSemanaPasada, sinPrecio(ventas, hoy, hoy)),
+                VentasDelPeriodo.de(semana, semana.ventas().ingresosAnteriores(),
+                        sinPrecio(ventas, hoy.minusDays(DIAS_DE_UNA_SEMANA - 1L), hoy)),
+                VentasDelPeriodo.de(mes, mes.ventas().ingresosAnteriores(),
+                        sinPrecio(ventas, hoy.minusDays(DIAS_DEL_MES - 1L), hoy)));
         return ObtenerResumenInicioResponse.de(
                 hoy,
                 !ventas.isEmpty(),
-                resumen(negocio, datos, hoy.minusDays(DIAS_DEL_MES - 1L), hoy, hoy),
+                mes,
                 resumen(negocio, datos, hoy.minusDays(DIAS_DE_LA_QUINCENA - 1L), hoy, hoy),
-                resumen(negocio, datos, hoy, hoy, hoy),
-                resumen(negocio, datos, hoy.minusDays(DIAS_DE_UNA_SEMANA), hoy.minusDays(DIAS_DE_UNA_SEMANA), hoy)
-                        .ventas().ingresos(),
-                ventas.stream().filter(venta -> venta.fecha().equals(hoy) && venta.precio() == null).count(),
+                ventasDelInicio,
+                VentaDelDia.serie(ventas, hoy.minusDays(DIAS_DEL_MES - 1L), hoy),
                 ultimoDia,
                 tieneQuincenaDeVentas(ventas, hoy));
+    }
+
+    /** Cuántas ventas del período no tienen precio y por eso no suman plata. */
+    private static long sinPrecio(List<VentaProducto> ventas, LocalDate desde, LocalDate hasta) {
+        return ventas.stream()
+                .filter(venta -> !venta.fecha().isBefore(desde) && !venta.fecha().isAfter(hasta))
+                .filter(venta -> venta.precio() == null)
+                .count();
     }
 
     private static List<VentaProducto> ventasHastaHoy(DatosDeProyecto datos, LocalDate hoy) {

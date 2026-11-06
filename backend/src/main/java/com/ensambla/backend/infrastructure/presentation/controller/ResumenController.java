@@ -1,10 +1,14 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.reporte.PeriodoMetricas;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenNegocio;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenRequest;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenResponse;
+import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricas;
+import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricasRequest;
+import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricasResponse;
 import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicio;
 import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicioRequest;
 import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicioResponse;
@@ -35,6 +39,8 @@ public class ResumenController {
 
     private final ObtenerResumenInicio obtenerResumenInicio;
 
+    private final ObtenerMetricas obtenerMetricas;
+
     @GetMapping("/pdf")
     @Operation(summary = "Descargar el resumen del negocio en PDF: ventas, ganancia, stock, gastos, zona y avisos del período")
     public ResponseEntity<byte[]> descargar(
@@ -58,5 +64,15 @@ public class ResumenController {
             @PathVariable ProyectoId proyectoId) {
         return ResponseEntity.ok(obtenerResumenInicio.execute(
                 new ObtenerResumenInicioRequest(UsuarioId.de(authentication.getName()), proyectoId)));
+    }
+
+    @GetMapping("/metricas")
+    @Operation(summary = "Las métricas detalladas de un sistema para hoy, la semana o el mes (por defecto, la semana)")
+    public ResponseEntity<ObtenerMetricasResponse> metricas(
+            Authentication authentication,
+            @PathVariable ProyectoId proyectoId,
+            @RequestParam(defaultValue = "SEMANA") PeriodoMetricas periodo) {
+        return ResponseEntity.ok(obtenerMetricas.execute(
+                new ObtenerMetricasRequest(UsuarioId.de(authentication.getName()), proyectoId, periodo)));
     }
 }

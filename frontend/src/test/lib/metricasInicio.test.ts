@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  comparacionConLaSemanaPasada,
+  comparacionConElPeriodoAnterior,
   cuandoFue,
   cuadernosConDatos,
+  diaCompleto,
+  diasDelGrafico,
+  etiquetaDelDia,
   textoUnidades,
 } from '@/lib/sistema/metricasInicio';
 import { makeSystem } from '@/lib/sistema/core';
@@ -12,7 +15,8 @@ import type { Sistema } from '@/lib/sistema/tipos';
 const conFilas = (nombre: string, actualizadoEn: string, ejemplo: boolean): Sistema => {
   const sistema = makeSystem(nombre, ['inventory', 'sales'], false);
   const inventario = sistema.sections[0]?.blocks[0];
-  if (inventario) inventario.rows = [{ id: 'p1', name: 'Yerba', ...(ejemplo ? { __example: true } : {}) }];
+  if (inventario)
+    inventario.rows = [{ id: 'p1', name: 'Yerba', ...(ejemplo ? { __example: true } : {}) }];
   return { ...sistema, updatedAt: actualizadoEn };
 };
 
@@ -28,18 +32,20 @@ describe('métricas del inicio', () => {
     expect(resultado.map((cuaderno) => cuaderno.name)).toEqual(['Reciente', 'Viejo']);
   });
 
-  it('compara con el mismo día de la semana pasada', () => {
-    expect(comparacionConLaSemanaPasada(10200, 3400, '2026-10-19')).toBe(
+  it('compara con el mismo día de la semana pasada, con la semana pasada y con el mes pasado', () => {
+    expect(comparacionConElPeriodoAnterior('hoy', 10200, 3400, '2026-10-19')).toBe(
       `${formatoPesos(6800)} más que el lunes pasado`,
     );
-    expect(comparacionConLaSemanaPasada(1000, 3400, '2026-10-19')).toBe(
-      `${formatoPesos(2400)} menos que el lunes pasado`,
+    expect(comparacionConElPeriodoAnterior('semana', 1000, 3400, '2026-10-19')).toBe(
+      `${formatoPesos(2400)} menos que la semana pasada`,
     );
-    expect(comparacionConLaSemanaPasada(3400, 3400, '2026-10-19')).toBe('Igual que el lunes pasado');
+    expect(comparacionConElPeriodoAnterior('mes', 3400, 3400, '2026-10-19')).toBe(
+      'Igual que el mes pasado',
+    );
   });
 
-  it('no compara cuando la semana pasada no vendió nada', () => {
-    expect(comparacionConLaSemanaPasada(5000, 0, '2026-10-19')).toBeNull();
+  it('no compara cuando el período anterior no vendió nada', () => {
+    expect(comparacionConElPeriodoAnterior('semana', 5000, 0, '2026-10-19')).toBeNull();
   });
 
   it('cuenta cuándo fue la última venta', () => {
@@ -50,5 +56,16 @@ describe('métricas del inicio', () => {
   it('escribe las unidades en singular y plural', () => {
     expect(textoUnidades(1)).toBe('1 unidad');
     expect(textoUnidades(2.5)).toBe('2,5 unidades');
+  });
+
+  it('nombra los días del gráfico corto en el eje y completo en el detalle', () => {
+    expect(etiquetaDelDia('2026-10-19')).toBe('lun 19');
+    expect(diaCompleto('2026-11-01')).toBe('domingo 1/11');
+  });
+
+  it('dibuja treinta días para el mes y siete para hoy o la semana', () => {
+    expect(diasDelGrafico('mes')).toBe(30);
+    expect(diasDelGrafico('semana')).toBe(7);
+    expect(diasDelGrafico('hoy')).toBe(7);
   });
 });

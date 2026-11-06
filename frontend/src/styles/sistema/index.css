@@ -12,6 +12,8 @@
 @import './revision.css';
 /* El inicio rearmado: acciones a mano, fondo blanco y la paleta completa. */
 @import './inicio.css';
+/* El tablero del inicio, los gráficos y «Mis métricas». */
+@import './metricas.css';
 /* La pantalla del sistema: fondo blanco, piezas y cabeceras de color. */
 @import './sistema-editor.css';
 @import './ubicacion.css';

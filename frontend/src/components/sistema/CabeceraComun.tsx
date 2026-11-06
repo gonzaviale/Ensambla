@@ -20,6 +20,7 @@ export function CabeceraComun({ active = 'home' }: { active?: SeccionActiva }) {
       campana={<Campana />}
       onInicio={() => void navegacion.irAInicio()}
       onSistemas={() => void navegacion.irAMisSistemas()}
+      onMetricas={() => void navegacion.irAMetricas()}
       onPlantillas={() => void navegacion.irAPlantillas()}
       onZona={() => void navegacion.irAZona()}
       onAvisos={() => void abrirAvisos()}

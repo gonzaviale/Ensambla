@@ -24,9 +24,7 @@ const tieneFilasPropias = (sistema: Sistema) =>
  * (las filas de ejemplo no cuentan). El que se tocó más recientemente va primero.
  */
 export function cuadernosConDatos(sistemas: Sistema[]): Sistema[] {
-  return sistemas
-    .filter(tieneFilasPropias)
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return sistemas.filter(tieneFilasPropias).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 const aFecha = (iso: string) => {
@@ -46,12 +44,64 @@ export function cuandoFue(fecha: string, hoy: string) {
   return `el ${nombreDelDia(fecha)} ${Number(dia)}/${Number(mes)}`;
 }
 
-/** Cuánto cambió lo vendido hoy contra el mismo día de la semana pasada; sin base para comparar no dice nada. */
-export function comparacionConLaSemanaPasada(ingresos: number, anterior: number, hoy: string) {
+export type PeriodoDeVentas = 'hoy' | 'semana' | 'mes';
+
+/** Cómo se llama cada período en la pantalla. */
+export const PERIODOS_DE_VENTAS: {
+  clave: PeriodoDeVentas;
+  boton: string;
+  titulo: string;
+  sin: string;
+}[] = [
+  { clave: 'hoy', boton: 'Hoy', titulo: 'Hoy vendiste', sin: 'Todavía no anotaste ventas de hoy' },
+  {
+    clave: 'semana',
+    boton: 'Esta semana',
+    titulo: 'Esta semana vendiste',
+    sin: 'Esta semana todavía no anotaste ventas',
+  },
+  {
+    clave: 'mes',
+    boton: 'Este mes',
+    titulo: 'Este mes vendiste',
+    sin: 'Este mes todavía no anotaste ventas',
+  },
+];
+
+/**
+ * Cuánto cambió lo vendido contra el período anterior: el mismo día de la semana pasada, la semana pasada o el mes
+ * pasado. Sin base para comparar no dice nada.
+ */
+export function comparacionConElPeriodoAnterior(
+  periodo: PeriodoDeVentas,
+  ingresos: number,
+  anterior: number,
+  hoy: string,
+) {
   if (anterior <= 0) return null;
-  const dia = nombreDelDia(hoy);
+  const contra =
+    periodo === 'hoy'
+      ? `el ${nombreDelDia(hoy)} pasado`
+      : periodo === 'semana'
+        ? 'la semana pasada'
+        : 'el mes pasado';
   const diferencia = ingresos - anterior;
-  if (diferencia === 0) return `Igual que el ${dia} pasado`;
-  const cuanto = formatoPesos(Math.abs(diferencia));
-  return `${cuanto} ${diferencia > 0 ? 'más' : 'menos'} que el ${dia} pasado`;
+  if (diferencia === 0) return `Igual que ${contra}`;
+  return `${formatoPesos(Math.abs(diferencia))} ${diferencia > 0 ? 'más' : 'menos'} que ${contra}`;
 }
+
+/** «lun 19» para «2026-10-19»: lo que va debajo de cada barra. */
+export function etiquetaDelDia(iso: string) {
+  const [, , dia = ''] = iso.split('-');
+  const nombre = nombreDelDia(iso).slice(0, 3);
+  return `${nombre} ${Number(dia)}`;
+}
+
+/** «lunes 19/10»: el día completo, para el detalle de una barra. */
+export function diaCompleto(iso: string) {
+  const [, mes = '', dia = ''] = iso.split('-');
+  return `${nombreDelDia(iso)} ${Number(dia)}/${Number(mes)}`;
+}
+
+/** Los días que se dibujan para cada período: el mes completo, o la última semana para hoy y la semana. */
+export const diasDelGrafico = (periodo: PeriodoDeVentas) => (periodo === 'mes' ? 30 : 7);
