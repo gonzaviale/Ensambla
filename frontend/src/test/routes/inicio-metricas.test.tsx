@@ -188,7 +188,7 @@ describe('inicio: cómo te va', () => {
   it('«Primera vez» y «Mis métricas» quedan arriba, junto al saludo', async () => {
     const user = await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
     const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
-    expect(within(seccion).getByRole('button', { name: 'Primera vez' })).toBeVisible();
+    expect(within(seccion).getByRole('button', { name: '¿Primera vez?' })).toBeVisible();
 
     await user.click(within(seccion).getByRole('button', { name: 'Mis métricas' }));
 
