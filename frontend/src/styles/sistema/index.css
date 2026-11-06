@@ -26,4 +26,5 @@
 @import './cuaderno-avisos.css';
 /* Los dos íconos de herramientas del cuaderno. */
 @import './herramientas.css';
+@import './proveedores.css';
 @import './overrides.css';

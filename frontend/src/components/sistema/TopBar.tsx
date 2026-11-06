@@ -4,7 +4,7 @@ import { Logo } from './Logo';
 import { MenuDePerfil } from './MenuDePerfil';
 
 export type SeccionActiva =
-  'home' | 'sistemas' | 'templates' | 'zone' | 'avisos' | 'plans' | 'account';
+  'home' | 'sistemas' | 'templates' | 'zone' | 'avisos' | 'plans' | 'account' | 'proveedores';
 
 type TopBarProps = {
   active?: SeccionActiva;
@@ -15,6 +15,7 @@ type TopBarProps = {
   onSistemas: () => void;
   onPlantillas: () => void;
   onZona: () => void;
+  onProveedores?: () => void;
   onAvisos: () => void;
   onPlanes: () => void;
   onAyuda: () => void;
@@ -33,6 +34,7 @@ export function TopBar({
   onSistemas,
   onPlantillas,
   onZona,
+  onProveedores,
   onAvisos,
   onPlanes,
   onAyuda,
@@ -93,6 +95,16 @@ export function TopBar({
         <button type="button" className={active === 'zone' ? 'active' : ''} onClick={ir(onZona)}>
           Mi zona
         </button>
+        {onProveedores && (
+          <button
+            type="button"
+            className={active === 'proveedores' ? 'active' : ''}
+            aria-current={active === 'proveedores' ? 'page' : undefined}
+            onClick={ir(onProveedores)}
+          >
+            Proveedores <span className="prov-nav-demo">Demo</span>
+          </button>
+        )}
         <button
           type="button"
           className={active === 'plans' ? 'active' : ''}

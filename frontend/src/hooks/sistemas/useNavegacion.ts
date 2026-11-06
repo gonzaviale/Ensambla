@@ -46,6 +46,7 @@ export function useNavegacion() {
       | '/plantillas'
       | '/taller'
       | '/zona'
+      | '/proveedores'
       | '/planes'
       | '/sami'
       | '/avisos',
@@ -96,6 +97,7 @@ export function useNavegacion() {
       return sistema ? navigate({ to: '/taller', search: { sistema: sistema.id } }) : navigate({ to: '/taller' });
     },
     irAZona: () => irA('/zona'),
+    irAProveedores: () => irA('/proveedores'),
     /** El avatar: la configuración de la cuenta, en la sección que se pida (el perfil, si no). */
     irACuenta: (seccion?: SeccionDeCuenta) => {
       limpiar();
