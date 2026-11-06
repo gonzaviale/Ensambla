@@ -36,3 +36,9 @@ nombres de dominio en español y el 100 % de cobertura por clase: `./mvnw clean 
 ## Commits
 
 Conventional Commits en minúscula, en imperativo y sin punto final (`refactor(backend): …`), solo cuando se pidan.
+
+## Documentación de cambios
+
+No crear ni subir archivos `.md` para explicar, resumir, diseñar o planificar una implementación. Esas explicaciones
+se mantienen en la conversación. Sólo se agrega o modifica documentación Markdown cuando el usuario lo solicita de
+forma explícita.
