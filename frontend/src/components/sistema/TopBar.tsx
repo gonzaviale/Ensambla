@@ -74,19 +74,19 @@ export function TopBar({
       <nav id="nav-principal" className="topnav" aria-label="Principal">
         <button
           type="button"
-          className={active === 'cash' ? 'active' : ''}
-          aria-current={active === 'cash' ? 'page' : undefined}
-          onClick={ir(onCaja)}
-        >
-          Caja
-        </button>
-        <button
-          type="button"
           className={active === 'home' ? 'active' : ''}
           data-accion="home"
           onClick={onInicio}
         >
           Inicio
+        </button>
+        <button
+          type="button"
+          className={active === 'cash' ? 'active' : ''}
+          aria-current={active === 'cash' ? 'page' : undefined}
+          onClick={ir(onCaja)}
+        >
+          Caja
         </button>
         <button
           type="button"

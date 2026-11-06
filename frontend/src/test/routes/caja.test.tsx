@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { renderApp } from '@/test/renderApp';
@@ -13,6 +13,9 @@ describe('caja inteligente', () => {
     await screen.findByRole('heading', { name: 'Caja del negocio' }, ESPERA);
     expect(router.state.location.pathname).toBe('/caja');
     expect(screen.getByRole('button', { name: 'Caja' })).toHaveAttribute('aria-current', 'page');
+    const navegacion = screen.getByRole('navigation', { name: 'Principal' });
+    const secciones = within(navegacion).getAllByRole('button').map((boton) => boton.textContent);
+    expect(secciones.slice(0, 2)).toEqual(['Inicio', 'Caja']);
   });
 
   it('explica una diferencia y permite cerrar sin alterar movimientos', async () => {

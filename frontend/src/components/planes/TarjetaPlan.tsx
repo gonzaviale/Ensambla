@@ -3,9 +3,21 @@ import { GestionRenovacion } from './GestionRenovacion';
 import { Icon } from '@/components/sistema/Icon';
 import type { Plan } from '@/types/planes';
 
-const FUNCIONES = [['REPORTES_FILTRADOS', 'Resúmenes en PDF']] as const;
-
 const AVISOS_Y_RECOMENDACIONES_GRATUITOS = '6';
+
+const BENEFICIOS_GRATUITOS = [
+  'Organización básica y carga manual',
+  'Caja operativa y últimos 7 cierres',
+  'Sami y avisos esenciales',
+  'Estado económico y 1 escenario mensual',
+] as const;
+
+const BENEFICIOS_PREMIUM = [
+  'Mayor capacidad para gestionar el negocio',
+  'Caja inteligente, historial y recordatorios',
+  'Laboratorio con escenarios ilimitados',
+  'Sami avanzado, Mi zona y reportes en PDF',
+] as const;
 
 function limite(valor: number | null, configurado: boolean) {
   if (!configurado) return 'Por definir';
@@ -58,8 +70,8 @@ export function TarjetaPlan({
       <h2>{plan.nombre}</h2>
       <p className="plan-card-description">
         {premium
-          ? 'Más espacio para tus datos. Más herramientas para decidir.'
-          : 'Lo esencial para empezar a organizar tu negocio.'}
+          ? 'Más control para entender tu negocio y decidir con anticipación.'
+          : 'Lo esencial para registrar, controlar la caja y conocer el estado de tu negocio.'}
       </p>
       <p className="plan-price">{precio(plan)}</p>
       <p className="plan-price-detail">
@@ -92,21 +104,11 @@ export function TarjetaPlan({
         </div>
       </dl>
       <ul className="plan-features">
-        <li>
-          <Icon name="check" /> Carga manual, edición y consulta
-        </li>
-        {FUNCIONES.map(([codigo, nombre]) => {
-          const incluida = plan.funciones.includes(codigo);
-          return (
-            <li key={codigo} className={incluida ? '' : 'plan-feature-excluded'}>
-              <Icon name={incluida ? 'check' : 'close'} />
-              <span>
-                {nombre}
-                {!incluida ? <span className="sr-only">: no incluido</span> : null}
-              </span>
-            </li>
-          );
-        })}
+        {(premium ? BENEFICIOS_PREMIUM : BENEFICIOS_GRATUITOS).map((beneficio) => (
+          <li key={beneficio}>
+            <Icon name="check" /> {beneficio}
+          </li>
+        ))}
       </ul>
       {premium ? (
         <div className="plan-card-bottom">

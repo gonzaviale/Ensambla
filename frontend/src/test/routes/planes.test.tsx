@@ -38,6 +38,10 @@ describe('planes y activación de prueba', () => {
     expect(within(premium).getByText('100')).toBeVisible();
     expect(within(premium).getByText(/14\.900/)).toBeVisible();
     expect(within(premium).getByText('Cada 30 días · renovación automática')).toBeVisible();
+    expect(within(gratuito).getByText('Caja operativa y últimos 7 cierres')).toBeVisible();
+    expect(within(gratuito).getByText('Estado económico y 1 escenario mensual')).toBeVisible();
+    expect(within(premium).getByText('Caja inteligente, historial y recordatorios')).toBeVisible();
+    expect(within(premium).getByText('Laboratorio con escenarios ilimitados')).toBeVisible();
     expect(botonPrueba()).toBeEnabled();
     expect(document.title).toBe('Planes · Ensambla');
   });
