@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { MarcoDeNegocio } from '@/components/gestion/MarcoDeNegocio';
 import {
+  CampoDePlata,
   Cifra,
   CuentaPasoAPaso,
   DiceSami,
@@ -13,27 +14,34 @@ import { faltantes } from '@/lib/gestion/compras';
 import {
   CAMBIO_INICIAL,
   GASTOS_FIJOS,
-  HOJA_DEL_DIA,
   type Renglon,
   type TipoDeRenglon,
 } from '@/lib/gestion/datosDeEjemplo';
-import { pesos, porcentaje } from '@/lib/gestion/formato';
-import { proyectar } from '@/lib/gestion/proyeccion';
-import { cierreDelDia, fiadoConLaHoja, type CuentaCorriente } from '@/lib/gestion/resultado';
+import { conPuntos, montoDe, pesos, porcentaje } from '@/lib/gestion/formato';
+import {
+  destinosDelCuaderno,
+  llevaCliente,
+  llevaMedio,
+  pendientesDeLaHoja,
+  repartoPorBloque,
+  TIPOS_DE_RENGLON,
+  type Destino,
+} from '@/lib/gestion/hoja';
+import { renglonesDePedidos } from '@/lib/gestion/elDia';
+import { proyectar, supuestoDePrecio } from '@/lib/gestion/proyeccion';
+import {
+  cierreDelDia,
+  fiadoConLaHoja,
+  type Cliente,
+  type CuentaCorriente,
+} from '@/lib/gestion/resultado';
 import type { Negocio } from '@/hooks/gestion/useNegocio';
 import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
+import { useNegocioStore } from '@/stores/negocioStore';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
-const TIPOS: Record<TipoDeRenglon, string> = {
-  venta: 'Venta',
-  fiado: 'Fiado',
-  cobro: 'Cobro de fiado',
-  pago: 'Pago a proveedor',
-  gasto: 'Gasto',
-  merma: 'Pérdida',
-};
-
-type Paso = 'foto' | 'leyendo' | 'revisar' | 'cerrado';
+const MEDIOS = { efectivo: 'En efectivo', cuenta: 'Por QR o transferencia' } as const;
+const MEDIOS_CORTOS = { efectivo: 'en efectivo', cuenta: 'por QR o transferencia' } as const;
 
 // El cierre del día: la foto de la hoja de hoy, la revisión de lo que leyó Sami y el cierre con
 // la ganancia de verdad separada de la plata del cajón. Abajo, el mes con la cuenta completa y el fiado.
@@ -56,15 +64,23 @@ export function CierrePage() {
 }
 
 function Cierre({ negocio }: { negocio: Negocio }) {
-  const [paso, setPaso] = useState<Paso>('foto');
-  const [renglones, setRenglones] = useState<Renglon[]>(HOJA_DEL_DIA);
+  const paso = useNegocioStore((estado) => estado.pasoDelCierre);
+  const setPaso = useNegocioStore((estado) => estado.cambiarPasoDelCierre);
+  const renglones = useNegocioStore((estado) => estado.hoja);
+  const cambiarHoja = useNegocioStore((estado) => estado.cambiarHoja);
+  const creados = useNegocioStore((estado) => estado.bloquesCreados);
+  const sumarBloque = useNegocioStore((estado) => estado.crearBloque);
+  const confirmados = useNegocioStore((estado) => estado.confirmados);
   const [foto, setFoto] = useState<string | null>(null);
+  // Los pedidos de WhatsApp confirmados ya están en el cuaderno: entran al día sin pasar por la foto.
+  const dePedidos = useMemo(() => renglonesDePedidos(Object.values(confirmados)), [confirmados]);
+  const todos = [...renglones, ...dePedidos];
 
   useEffect(() => {
     if (paso !== 'leyendo') return;
     const lectura = window.setTimeout(() => setPaso('revisar'), 1400);
     return () => window.clearTimeout(lectura);
-  }, [paso]);
+  }, [paso, setPaso]);
 
   useEffect(
     () => () => {
@@ -79,10 +95,25 @@ function Cierre({ negocio }: { negocio: Negocio }) {
     setPaso('leyendo');
   };
 
-  const cambiarTipo = (id: string, tipo: TipoDeRenglon) =>
-    setRenglones((lista) =>
-      lista.map((renglon) => (renglon.id === id ? { ...renglon, tipo, dudoso: false } : renglon)),
-    );
+  const avisar = useSistemaStore((estado) => estado.avisar);
+  const destinos = useMemo(
+    () => destinosDelCuaderno(negocio.sistema, creados),
+    [negocio.sistema, creados],
+  );
+  const pendientes = pendientesDeLaHoja(renglones, destinos);
+
+  const cambiar = (cambiado: Renglon) =>
+    cambiarHoja(renglones.map((renglon) => (renglon.id === cambiado.id ? cambiado : renglon)));
+
+  const crearBloque = (destino: Destino) => {
+    sumarBloque(destino.tipoDeBloque);
+    avisar(`Al cerrar el día sumo el bloque «${destino.bloque}» a tu cuaderno.`);
+  };
+
+  const cerrar = () => {
+    setPaso('cerrado');
+    avisar(`Anoté los ${renglones.length} renglones de la hoja en tu cuaderno.`);
+  };
 
   const { resultado } = negocio;
   const margenDelMes = resultado.ventas > 0 ? resultado.margenBruto / resultado.ventas : 0;
@@ -105,11 +136,21 @@ function Cierre({ negocio }: { negocio: Negocio }) {
           <div className="gn-foto">
             <DiceSami>
               <p>
-                <strong>Seguí anotando como siempre.</strong> Al final del día sacale una foto a la
-                hoja y yo separo ventas, fiado, cobros, pagos y pérdidas. Vos revisás antes de
-                cerrar.
+                <strong>Seguí anotando como siempre, todo en la misma hoja.</strong> Al final del
+                día sacale una foto: yo paso cada renglón al bloque que corresponde de tu cuaderno
+                (ventas, fiado, gastos, pérdidas) y te cierro la caja. Vos revisás antes de cerrar.
+                Para cargar un solo bloque, como una lista de precios, usá la foto desde el
+                cuaderno.
               </p>
             </DiceSami>
+            {dePedidos.length > 0 && (
+              <p className="gn-gris">
+                Ya tengo {dePedidos.length === 1 ? 'un pedido' : `${dePedidos.length} pedidos`} de
+                WhatsApp que confirmaste por{' '}
+                {pesos(dePedidos.reduce((total, renglon) => total + renglon.importe, 0))}: con la
+                foto sumo el resto del día.
+              </p>
+            )}
             <div className="gn-foto-acciones">
               <label className="btn primary">
                 <Icon name="camera" /> Sacar la foto
@@ -141,47 +182,58 @@ function Cierre({ negocio }: { negocio: Negocio }) {
           <div className="gn-revision">
             <DiceSami pose="wink">
               <p>
-                Leí <strong>{renglones.length} renglones</strong>. Marqué en amarillo el que no
-                tengo claro. Si me equivoqué en alguno, cambialo antes de cerrar.
+                Leí <strong>{renglones.length} renglones</strong> y elegí en qué bloque de tu
+                cuaderno va cada uno. Marqué en amarillo el que no tengo claro. Si leí mal un
+                importe o un nombre, tocá «Corregir».
               </p>
             </DiceSami>
             <ul className="gn-renglones">
               {renglones.map((renglon) => (
-                <li key={renglon.id} data-dudoso={renglon.dudoso || undefined}>
-                  <span className="gn-escrito">{renglon.escrito}</span>
-                  <Icon name="arrow" />
-                  <span className="gn-entendido">
-                    <strong>{renglon.detalle}</strong>
-                    <small>{pesos(renglon.importe)}</small>
-                  </span>
-                  <select
-                    aria-label={`Qué es «${renglon.escrito}»`}
-                    value={renglon.tipo}
-                    onChange={(evento) =>
-                      cambiarTipo(renglon.id, evento.target.value as TipoDeRenglon)
-                    }
-                  >
-                    {Object.entries(TIPOS).map(([clave, etiqueta]) => (
-                      <option key={clave} value={clave}>
-                        {etiqueta}
-                      </option>
-                    ))}
-                  </select>
-                </li>
+                <RenglonDeLaHoja
+                  key={renglon.id}
+                  renglon={renglon}
+                  destinos={destinos}
+                  clientes={negocio.datos.clientes}
+                  onCambiar={cambiar}
+                  onCrearBloque={crearBloque}
+                />
               ))}
             </ul>
+            {dePedidos.length > 0 && <DePedidos renglones={dePedidos} destinos={destinos} />}
             <div className="gn-revision-pie">
+              {!pendientes.listo && (
+                <p className="gn-gris" role="status">
+                  {[
+                    pendientes.sinBloque.length > 0 &&
+                      `Falta crear ${pendientes.sinBloque.map((bloque) => `«${bloque}»`).join(' y ')} o cambiar el destino`,
+                    pendientes.sinCliente > 0 &&
+                      (pendientes.sinCliente === 1
+                        ? 'Un fiado no dice de quién es'
+                        : `${pendientes.sinCliente} fiados no dicen de quién son`),
+                  ]
+                    .filter(Boolean)
+                    .join('. ')}
+                  .
+                </p>
+              )}
               <Btn cls="ghost" onClick={() => setPaso('foto')}>
                 Otra foto
               </Btn>
-              <Btn cls="primary" onClick={() => setPaso('cerrado')}>
+              <Btn cls="primary" disabled={!pendientes.listo} onClick={cerrar}>
                 <Icon name="check" /> Cerrar el día
               </Btn>
             </div>
           </div>
         )}
 
-        {cerrado && <ElDia renglones={renglones} margenDelMes={margenDelMes} />}
+        {cerrado && (
+          <ElDia
+            renglones={todos}
+            margenDelMes={margenDelMes}
+            reparto={repartoPorBloque(renglones, destinos)}
+            deWhatsapp={dePedidos.length}
+          />
+        )}
       </Seccion>
 
       <ElMes negocio={negocio} />
@@ -193,13 +245,237 @@ function Cierre({ negocio }: { negocio: Negocio }) {
   );
 }
 
-function ElDia({ renglones, margenDelMes }: { renglones: Renglon[]; margenDelMes: number }) {
+function RenglonDeLaHoja({
+  renglon,
+  destinos,
+  clientes,
+  onCambiar,
+  onCrearBloque,
+}: {
+  renglon: Renglon;
+  destinos: Record<TipoDeRenglon, Destino>;
+  clientes: Cliente[];
+  onCambiar: (renglon: Renglon) => void;
+  onCrearBloque: (destino: Destino) => void;
+}) {
+  const [corrigiendo, setCorrigiendo] = useState(Boolean(renglon.dudoso));
+  const destino = destinos[renglon.tipo];
+  const sinCliente = llevaCliente(renglon.tipo) && !renglon.cliente?.trim();
+  const abierto = corrigiendo || sinCliente;
+  const listaDeClientes = `clientes-${renglon.id}`;
+
+  const cambiarTipo = (tipo: TipoDeRenglon) =>
+    onCambiar({
+      ...renglon,
+      tipo,
+      dudoso: false,
+      medio: llevaMedio(tipo) ? (renglon.medio ?? 'efectivo') : undefined,
+    });
+
+  return (
+    <li data-dudoso={renglon.dudoso || undefined}>
+      <div className="gn-renglon-fila">
+        <span className="gn-escrito">{renglon.escrito}</span>
+        <Icon name="arrow" />
+        <span className="gn-entendido">
+          <strong>{renglon.detalle}</strong>
+          <small>
+            {pesos(renglon.importe)}
+            {llevaMedio(renglon.tipo) && renglon.medio && ` · ${MEDIOS_CORTOS[renglon.medio]}`}
+            {llevaCliente(renglon.tipo) && renglon.cliente && ` · ${renglon.cliente}`}
+          </small>
+        </span>
+        <label className="gn-destino">
+          <span>Va a</span>
+          <select
+            aria-label={`A qué bloque va «${renglon.escrito}»`}
+            value={renglon.tipo}
+            onChange={(evento) => cambiarTipo(evento.target.value as TipoDeRenglon)}
+          >
+            {TIPOS_DE_RENGLON.map((tipo) => (
+              <option key={tipo} value={tipo}>
+                {destinos[tipo].bloque}
+                {destinos[tipo].falta ? ' (no lo tenés)' : ''} · {destinos[tipo].como}
+              </option>
+            ))}
+          </select>
+        </label>
+        <Btn cls="ghost small" aria-expanded={abierto} onClick={() => setCorrigiendo(!corrigiendo)}>
+          <Icon name="edit" /> Corregir
+        </Btn>
+      </div>
+
+      {renglon.dudoso && renglon.motivo && (
+        <p className="gn-renglon-nota">
+          <Icon name="bulb" />
+          <span>{renglon.motivo}</span>
+        </p>
+      )}
+
+      {destino.falta && (
+        <div className="gn-renglon-falta">
+          <span>
+            Tu cuaderno no tiene un bloque de {destino.bloque}. Lo creo, o elegí otro destino
+            arriba.
+          </span>
+          <Btn cls="soft small" onClick={() => onCrearBloque(destino)}>
+            <Icon name="plus" /> Crear «{destino.bloque}»
+          </Btn>
+        </div>
+      )}
+
+      {abierto && (
+        <div className="gn-renglon-editor">
+          <label>
+            <span>Qué es</span>
+            <input
+              type="text"
+              value={renglon.detalle}
+              onChange={(evento) => onCambiar({ ...renglon, detalle: evento.target.value })}
+            />
+          </label>
+          <label>
+            <span>Importe</span>
+            <CampoDePlata
+              valor={renglon.importe}
+              onCambiar={(importe) => onCambiar({ ...renglon, importe })}
+            />
+          </label>
+          {llevaMedio(renglon.tipo) && (
+            <label>
+              <span>Cómo se pagó</span>
+              <select
+                value={renglon.medio ?? 'efectivo'}
+                onChange={(evento) =>
+                  onCambiar({ ...renglon, medio: evento.target.value as keyof typeof MEDIOS })
+                }
+              >
+                {Object.entries(MEDIOS).map(([clave, etiqueta]) => (
+                  <option key={clave} value={clave}>
+                    {etiqueta}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {llevaCliente(renglon.tipo) && (
+            <label>
+              <span>De quién</span>
+              <input
+                type="text"
+                list={listaDeClientes}
+                value={renglon.cliente ?? ''}
+                aria-invalid={sinCliente || undefined}
+                placeholder="Elegí o escribí el cliente"
+                onChange={(evento) => onCambiar({ ...renglon, cliente: evento.target.value })}
+              />
+              <datalist id={listaDeClientes}>
+                {clientes.map((cliente) => (
+                  <option key={cliente.id} value={cliente.nombre} />
+                ))}
+              </datalist>
+            </label>
+          )}
+          <Btn
+            cls="secondary small"
+            disabled={sinCliente}
+            onClick={() => {
+              onCambiar({ ...renglon, dudoso: false });
+              setCorrigiendo(false);
+            }}
+          >
+            <Icon name="check" /> Listo
+          </Btn>
+        </div>
+      )}
+    </li>
+  );
+}
+
+const detallesDe = (renglones: Renglon[], tipo: TipoDeRenglon) =>
+  renglones
+    .filter((renglon) => renglon.tipo === tipo)
+    .map((renglon) => renglon.detalle)
+    .join(', ') || undefined;
+
+/** Los pedidos de WhatsApp confirmados: ya están en el cuaderno, así que no se corrigen acá. */
+function DePedidos({
+  renglones,
+  destinos,
+}: {
+  renglones: Renglon[];
+  destinos: Record<TipoDeRenglon, Destino>;
+}) {
+  return (
+    <div className="gn-de-pedidos">
+      <h3>Entraron por WhatsApp</h3>
+      <p className="gn-gris">
+        Los pedidos que confirmaste ya están en tu cuaderno. Cuentan en el cierre, pero no hace
+        falta anotarlos en la hoja.
+      </p>
+      <ul className="gn-renglones">
+        {renglones.map((renglon) => (
+          <li key={renglon.id} data-whatsapp>
+            <div className="gn-renglon-fila">
+              <span className="gn-escrito">
+                <span className="tag">WhatsApp</span>
+              </span>
+              <Icon name="arrow" />
+              <span className="gn-entendido">
+                <strong>{renglon.detalle}</strong>
+                <small>
+                  {pesos(renglon.importe)}
+                  {renglon.medio && ` · ${MEDIOS_CORTOS[renglon.medio]}`}
+                </small>
+              </span>
+              <span className="gn-destino">
+                <span>Va a</span>
+                <strong>
+                  {destinos[renglon.tipo].bloque} · {destinos[renglon.tipo].como}
+                </strong>
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ElDia({
+  renglones,
+  margenDelMes,
+  reparto,
+  deWhatsapp,
+}: {
+  renglones: Renglon[];
+  margenDelMes: number;
+  /** Dónde quedó anotado lo de la hoja. */
+  reparto: { bloque: string; cantidad: number }[];
+  /** Cuántos pedidos de WhatsApp entraron al día. */
+  deWhatsapp: number;
+}) {
   const cierre = cierreDelDia(renglones, margenDelMes);
   const [contado, setContado] = useState('');
-  const diferencia = contado === '' ? null : Number(contado) - cierre.cajon;
+  const diferencia = contado === '' ? null : montoDe(contado) - cierre.cajon;
 
   return (
     <div className="gn-dia">
+      <DiceSami pose="wink">
+        <p>
+          Lo anoté en tu cuaderno:{' '}
+          {reparto
+            .map(
+              ({ bloque, cantidad }) =>
+                `${cantidad} ${cantidad === 1 ? 'renglón' : 'renglones'} en ${bloque}`,
+            )
+            .join(', ')}
+          .
+          {deWhatsapp > 0 &&
+            ` ${deWhatsapp === 1 ? 'El pedido de WhatsApp ya estaba' : `Los ${deWhatsapp} pedidos de WhatsApp ya estaban`}: también cuentan.`}{' '}
+          Ahora, lo que el cuaderno solo no te dice:
+        </p>
+      </DiceSami>
       <div className="gn-cifras">
         <Cifra
           etiqueta="Vendiste"
@@ -242,9 +518,14 @@ function ElDia({ renglones, margenDelMes }: { renglones: Renglon[]; margenDelMes
               etiqueta: 'Pérdidas',
               valor: cierre.mermas,
               clase: 'resta',
-              detalle: 'El aceite roto',
+              detalle: detallesDe(renglones, 'merma'),
             },
-            { etiqueta: 'Gastos del día', valor: cierre.gastos, clase: 'resta', detalle: 'Bolsas' },
+            {
+              etiqueta: 'Gastos del día',
+              valor: cierre.gastos,
+              clase: 'resta',
+              detalle: detallesDe(renglones, 'gasto'),
+            },
             {
               etiqueta: 'Parte del día de los gastos fijos',
               valor: cierre.fijosDelDia,
@@ -273,13 +554,16 @@ function ElDia({ renglones, margenDelMes }: { renglones: Renglon[]; margenDelMes
           />
           <label className="gn-contar">
             <span>¿Cuánto contaste en el cajón?</span>
-            <input
-              type="number"
-              inputMode="numeric"
-              placeholder={String(Math.round(cierre.cajon))}
-              value={contado}
-              onChange={(evento) => setContado(evento.target.value)}
-            />
+            <span className="gn-monto">
+              <span aria-hidden="true">$</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder={conPuntos(cierre.cajon)}
+                value={contado === '' ? '' : conPuntos(montoDe(contado)) || '0'}
+                onChange={(evento) => setContado(evento.target.value)}
+              />
+            </span>
           </label>
           {diferencia !== null && (
             <p
@@ -520,7 +804,7 @@ function ResumenDelDomingo({ negocio }: { negocio: Negocio }) {
     const masVendidos = [...datos.productos]
       .map((producto) => ({
         producto,
-        proyeccion: proyectar(datos, hoy, { tipo: 'precio', productoId: producto.id, cambio: 0.1 }),
+        proyeccion: proyectar(datos, hoy, [supuestoDePrecio(producto, 0.1)]),
       }))
       .sort((a, b) => b.proyeccion.diferencia - a.proyeccion.diferencia);
     const precio = masVendidos[0];

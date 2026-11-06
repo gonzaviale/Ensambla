@@ -65,11 +65,15 @@ export function nombreDelMes(mes: string) {
 export const categoriaPara = (facturado: number, categorias = CATEGORIAS_DE_EJEMPLO) =>
   categorias.find((categoria) => categoria.tope >= facturado) ?? null;
 
+export type OpcionesDeMonotributo = {
+  letra?: string;
+  categorias?: CategoriaMonotributo[];
+};
+
 export function estadoMonotributo(
   datos: DatosDelNegocio,
   hoy: string,
-  letra = CATEGORIA_ACTUAL,
-  categorias = CATEGORIAS_DE_EJEMPLO,
+  { letra = CATEGORIA_ACTUAL, categorias = CATEGORIAS_DE_EJEMPLO }: OpcionesDeMonotributo = {},
 ): EstadoMonotributo {
   const categoria =
     categorias.find((item) => item.letra === letra) ?? (categorias[0] as CategoriaMonotributo);

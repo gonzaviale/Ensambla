@@ -3,7 +3,6 @@ import { MarcoDeNegocio } from '@/components/gestion/MarcoDeNegocio';
 import { Cifra, DiceSami, MensajeDeWhatsapp, Seccion } from '@/components/gestion/piezas';
 import { Btn } from '@/components/sistema/Btn';
 import { Icon } from '@/components/sistema/Icon';
-import { PEDIDOS_DE_HOY } from '@/lib/gestion/datosDeEjemplo';
 import { pesos } from '@/lib/gestion/formato';
 import {
   armarPedido,
@@ -13,6 +12,7 @@ import {
 } from '@/lib/gestion/pedidos';
 import type { Negocio } from '@/hooks/gestion/useNegocio';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
+import { useNegocioStore } from '@/stores/negocioStore';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
 const ESTADOS: Record<EstadoDeLinea, string> = {
@@ -43,12 +43,22 @@ export function PedidosPage() {
 }
 
 function Pedidos({ negocio }: { negocio: Negocio }) {
+  const confirmados = useNegocioStore((estado) => estado.confirmados);
+  const confirmarPedido = useNegocioStore((estado) => estado.confirmarPedido);
+  // Un pedido confirmado queda como se confirmó; los demás se arman con el stock de ahora, que ya descuenta lo
+  // confirmado.
   const pedidos = useMemo(
-    () => PEDIDOS_DE_HOY.map((mensaje) => armarPedido(mensaje, negocio.datos)),
-    [negocio.datos],
+    () =>
+      negocio.pedidos.map(
+        (mensaje) => confirmados[mensaje.id] ?? armarPedido(mensaje, negocio.datos),
+      ),
+    [negocio.pedidos, negocio.datos, confirmados],
   );
-  const [confirmados, setConfirmados] = useState<string[]>([]);
-  const incompletos = pedidos.filter((pedido) => pedido.incompleto).length;
+  const cuantosConfirmados = pedidos.filter((pedido) => confirmados[pedido.mensaje.id]).length;
+  const deOfertas = pedidos.filter((pedido) => pedido.mensaje.id.startsWith('oferta-')).length;
+  const incompletos = pedidos.filter(
+    (pedido) => pedido.incompleto && !confirmados[pedido.mensaje.id],
+  ).length;
   const total = pedidos.reduce((suma, pedido) => suma + pedido.total, 0);
   const aFiado = pedidos
     .filter((pedido) => pedido.mensaje.pago === 'fiado')
@@ -59,14 +69,16 @@ function Pedidos({ negocio }: { negocio: Negocio }) {
 
   return (
     <>
-      <DiceSami>
+      <DiceSami lado="derecha">
         <p>
-          Hoy llegaron <strong>{pedidos.length} pedidos</strong> por WhatsApp. Los armé contra tu
+          Hoy llegaron <strong>{pedidos.length} pedidos</strong> por WhatsApp
+          {deOfertas > 0 && <> ({deOfertas} respondiendo a tus ofertas)</>}. Los armé contra tu
           stock
           {incompletos > 0 && (
             <>
-              : <strong>{incompletos}</strong> tienen algo que falta y ya te dejé la explicación
-              para el cliente
+              : <strong>{incompletos}</strong>{' '}
+              {incompletos === 1 ? 'tiene algo que falta' : 'tienen algo que falta'} y ya te dejé la
+              explicación para el cliente
             </>
           )}
           .
@@ -77,7 +89,7 @@ function Pedidos({ negocio }: { negocio: Negocio }) {
         <Cifra
           etiqueta="Pedidos de hoy"
           valor={String(pedidos.length)}
-          detalle={`${confirmados.length} confirmados`}
+          detalle={`${cuantosConfirmados} confirmados`}
         />
         <Cifra etiqueta="Suman" valor={pesos(total)} detalle={`${pesos(aFiado)} a fiado`} />
         <Cifra
@@ -98,8 +110,8 @@ function Pedidos({ negocio }: { negocio: Negocio }) {
               key={pedido.mensaje.id}
               pedido={pedido}
               negocio={negocio.sistema.name}
-              confirmado={confirmados.includes(pedido.mensaje.id)}
-              onConfirmar={() => setConfirmados((lista) => [...lista, pedido.mensaje.id])}
+              confirmado={Boolean(confirmados[pedido.mensaje.id])}
+              onConfirmar={() => confirmarPedido(pedido)}
             />
           ))}
         </div>
@@ -138,6 +150,7 @@ function Pedido({
         <div>
           <h3>{mensaje.cliente}</h3>
           <span className="gn-etiquetas">
+            {mensaje.id.startsWith('oferta-') && <span className="tag">Por tu oferta</span>}
             <span className="tag outline">{mensaje.entrega === 'envio' ? 'Envío' : 'Retira'}</span>
             <span className="tag" data-riesgo={mensaje.pago === 'fiado' ? 'medio' : 'bajo'}>
               {mensaje.pago === 'fiado' ? 'A fiado' : 'Cobrado'}
@@ -168,10 +181,20 @@ function Pedido({
       </ul>
 
       {confirmado ? (
-        <p className="gn-enviado">
-          <Icon name="check-circle" /> Respondido. Descontado del stock y anotado en el cierre de
-          hoy.
-        </p>
+        <div className="gn-orden-acciones">
+          <span className="gn-enviado">
+            <Icon name="check-circle" /> Respondido. Descontado del stock y anotado en el cierre de
+            hoy.
+          </span>
+          <Btn cls="ghost small" onClick={() => void navegacion.irANegocio()}>
+            Ver el cierre
+          </Btn>
+          {pedido.total > 0 && (
+            <Btn cls="ghost small" onClick={() => void navegacion.irAMonotributo()}>
+              Facturar
+            </Btn>
+          )}
+        </div>
       ) : (
         <>
           {verRespuesta && (

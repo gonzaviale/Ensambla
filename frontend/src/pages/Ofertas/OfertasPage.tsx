@@ -10,11 +10,12 @@ import {
   DIAS_DE_SOBRA,
   mensajeDeOferta,
   ofertasPosibles,
-  resultadoEstimado,
   type OfertaPosible,
 } from '@/lib/gestion/ofertas';
+import { pedidosDeOferta } from '@/lib/gestion/elDia';
 import type { Negocio } from '@/hooks/gestion/useNegocio';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
+import { useNegocioStore } from '@/stores/negocioStore';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
 // Ofertas por WhatsApp: qué ofrecer, hasta qué descuento se sigue ganando y a
@@ -37,11 +38,21 @@ export function OfertasPage() {
 }
 
 function Ofertas({ negocio }: { negocio: Negocio }) {
-  const ofertas = useMemo(
-    () => ofertasPosibles(negocio.datos, negocio.hoy),
-    [negocio.datos, negocio.hoy],
-  );
-  const parada = ofertas.reduce((total, oferta) => total + oferta.plataParada, 0);
+  const enviadas = useNegocioStore((estado) => estado.ofertas);
+  // Las enviadas quedan como salieron, aunque después baje el stock con los pedidos que trajeron.
+  const ofertas = useMemo(() => {
+    const posibles = ofertasPosibles(negocio.datos, negocio.hoy).map(
+      (oferta) => enviadas[oferta.producto.id]?.oferta ?? oferta,
+    );
+    const yaListadas = new Set(posibles.map((oferta) => oferta.producto.id));
+    const otras = Object.values(enviadas)
+      .map((enviada) => enviada.oferta)
+      .filter((oferta) => !yaListadas.has(oferta.producto.id));
+    return [...posibles, ...otras];
+  }, [negocio.datos, negocio.hoy, enviadas]);
+  const sinMandar = ofertas.filter((oferta) => !enviadas[oferta.producto.id]);
+  const pendientes = sinMandar.length;
+  const parada = sinMandar.reduce((total, oferta) => total + oferta.plataParada, 0);
 
   if (ofertas.length === 0)
     return (
@@ -52,12 +63,20 @@ function Ofertas({ negocio }: { negocio: Negocio }) {
 
   return (
     <>
-      <DiceSami>
-        <p>
-          Tenés <strong>{pesos(parada)}</strong> parados en estos {ofertas.length} productos. Te
-          propongo una oferta para cada uno: <strong>todas te siguen dejando ganancia</strong>, y
-          sólo les llegan a quienes compran eso o algo parecido.
-        </p>
+      <DiceSami lado="derecha">
+        {pendientes === 0 ? (
+          <p>
+            Ya mandaste todas las ofertas. Las respuestas entran como pedidos: confirmalos en
+            Pedidos y acá te cuento cuánto se vendió.
+          </p>
+        ) : (
+          <p>
+            Tenés <strong>{pesos(parada)}</strong> parados en{' '}
+            {pendientes === 1 ? 'este producto' : `estos ${pendientes} productos`}. Te propongo una
+            oferta para cada uno: <strong>todas te siguen dejando ganancia</strong>, y sólo les
+            llegan a quienes compran eso o algo parecido.
+          </p>
+        )}
       </DiceSami>
 
       <div className="gn-ofertas">
@@ -96,20 +115,36 @@ function Ofertas({ negocio }: { negocio: Negocio }) {
 function Oferta({ base, negocio }: { base: OfertaPosible; negocio: string }) {
   const [descuento, setDescuento] = useState(base.descuentoSugerido);
   const [verMensaje, setVerMensaje] = useState(false);
-  const [enviada, setEnviada] = useState(false);
+  const enviadaAntes = useNegocioStore((estado) => estado.ofertas[base.producto.id]);
+  const confirmados = useNegocioStore((estado) => estado.confirmados);
+  const enviarOferta = useNegocioStore((estado) => estado.enviarOferta);
   const avisar = useSistemaStore((estado) => estado.avisar);
   const navegacion = useNavegacion();
-  const oferta = conDescuento(base, descuento);
+  const enviada = Boolean(enviadaAntes);
+  const oferta = enviadaAntes?.oferta ?? conDescuento(base, descuento);
   const pierde = oferta.dejaPorUnidad <= 0;
   const maximoEnPasos = Math.max(1, Math.floor(base.descuentoMaximo * 20) + 1);
-  const resultado = resultadoEstimado(oferta);
   const primero = oferta.destinatarios[0]?.nombre ?? 'cliente';
 
+  // Lo que ya pasó: las respuestas que llegaron y, de esas, las que se confirmaron como venta.
+  const respuestas = enviadaAntes?.pedidos ?? [];
+  const vendidos = respuestas
+    .map((mensaje) => confirmados[mensaje.id])
+    .filter((pedido) => pedido !== undefined);
+  const unidades = vendidos
+    .flatMap((pedido) => pedido.lineas)
+    .reduce((total, linea) => total + linea.entrega, 0);
+  const vendido = vendidos.reduce((total, pedido) => total + pedido.total, 0);
+
   const enviar = () => {
-    setEnviada(true);
+    const pedidos = pedidosDeOferta(
+      oferta,
+      new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+    );
+    enviarOferta({ oferta, pedidos });
     setVerMensaje(false);
     avisar(
-      `Mandamos la oferta de ${oferta.producto.nombre} a ${oferta.destinatarios.length} clientes.`,
+      `Mandamos la oferta de ${oferta.producto.nombre} a ${oferta.destinatarios.length} clientes. ${pedidos.length} ya respondieron: están en Pedidos.`,
     );
   };
 
@@ -178,17 +213,27 @@ function Oferta({ base, negocio }: { base: OfertaPosible; negocio: string }) {
       {enviada ? (
         <div className="gn-oferta-resultado" role="status">
           <span className="gn-enviado">
-            <Icon name="check-circle" /> Enviada. Así viene (estimación del mockup):
+            <Icon name="check-circle" /> Enviada. Así viene:
           </span>
           <ul>
             <li>
-              <strong>{resultado.respondieron}</strong> respondieron «LA QUIERO» y entraron como
-              pedidos.
+              <strong>{respuestas.length}</strong>{' '}
+              {respuestas.length === 1 ? 'respondió' : 'respondieron'} «LA QUIERO» y{' '}
+              {respuestas.length === 1 ? 'entró como pedido' : 'entraron como pedidos'}
+              {vendidos.length < respuestas.length &&
+                `: ${respuestas.length - vendidos.length} sin confirmar`}
+              .
             </li>
             <li>
-              Vendiste <strong>{resultado.unidades}</strong> por {pesos(resultado.vendido)}:
-              volvieron {pesos(resultado.recuperado)} que estaban parados y ganaste{' '}
-              {pesos(resultado.ganancia)}.
+              {vendidos.length === 0 ? (
+                'Cuando confirmes los pedidos, acá vas a ver cuánto vendiste y cuánta plata parada volvió.'
+              ) : (
+                <>
+                  Vendiste <strong>{unidades}</strong> por {pesos(vendido)}: volvieron{' '}
+                  {pesos(unidades * oferta.producto.costo)} que estaban parados y ganaste{' '}
+                  {pesos(unidades * oferta.dejaPorUnidad)}.
+                </>
+              )}
             </li>
           </ul>
           <Btn cls="ghost small" onClick={() => void navegacion.irAPedidos()}>

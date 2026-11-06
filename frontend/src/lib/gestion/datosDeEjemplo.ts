@@ -84,6 +84,10 @@ export type Renglon = {
   cliente?: string;
   /** Sami no está segura y lo marca para revisar. */
   dudoso?: boolean;
+  /** Por qué duda Sami. */
+  motivo?: string;
+  /** Entró por un pedido de WhatsApp confirmado: ya está en el cuaderno y no sale de la foto. */
+  pedidoId?: string;
 };
 
 /** La hoja de hoy del cuaderno, como la lee Sami. */
@@ -144,6 +148,8 @@ export const HOJA_DEL_DIA: Renglon[] = [
     importe: 1900,
     detalle: 'Aceite Natura roto (a costo)',
     dudoso: true,
+    motivo:
+      'La hoja no dice el importe. Lo puse a costo ($ 1.900); a precio de venta serían $ 2.600.',
   },
 ];
 

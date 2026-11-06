@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Icon } from '@/components/sistema/Icon';
 import { Sami } from '@/components/sistema/Sami';
-import { pesos } from '@/lib/gestion/formato';
+import { conPuntos, montoDe, pesos } from '@/lib/gestion/formato';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
 
 // Piezas chicas que comparten las tres pantallas de «Mi negocio».
@@ -97,16 +97,18 @@ export function CuentaPasoAPaso({ pasos, titulo }: { pasos: PasoDeCuenta[]; titu
   );
 }
 
-/** Lo que dice Sami, con su cara al lado. */
+/** Lo que dice Sami, con su cara al lado (a la izquierda, o a la derecha con `lado`). */
 export function DiceSami({
   children,
   pose = 'hello',
+  lado = 'izquierda',
 }: {
   children: ReactNode;
   pose?: 'hello' | 'think' | 'wink';
+  lado?: 'izquierda' | 'derecha';
 }) {
   return (
-    <div className="gn-sami">
+    <div className="gn-sami" data-lado={lado === 'derecha' ? 'derecha' : undefined}>
       <Sami pose={pose} />
       <div className="gn-sami-texto">{children}</div>
     </div>
@@ -141,6 +143,34 @@ export function MensajeDeWhatsapp({
       </figcaption>
       <p>{texto}</p>
     </figure>
+  );
+}
+
+/** Un campo para escribir plata: muestra los puntos de miles y devuelve el número. */
+export function CampoDePlata({
+  valor,
+  onCambiar,
+  etiqueta,
+  placeholder = '0',
+}: {
+  valor: number;
+  onCambiar: (valor: number) => void;
+  /** Para lectores de pantalla, cuando el campo no tiene una etiqueta visible. */
+  etiqueta?: string;
+  placeholder?: string;
+}) {
+  return (
+    <span className="gn-monto">
+      <span aria-hidden="true">$</span>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={conPuntos(valor)}
+        placeholder={placeholder}
+        aria-label={etiqueta}
+        onChange={(evento) => onCambiar(montoDe(evento.target.value))}
+      />
+    </span>
   );
 }
 

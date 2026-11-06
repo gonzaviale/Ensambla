@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { faltantes, planDeCompras } from '@/lib/gestion/compras';
 import { PEDIDOS_DE_HOY, type CategoriaMonotributo } from '@/lib/gestion/datosDeEjemplo';
+import { conLoDeHoy, DIA_VACIO, pedidosDeOferta, renglonesDePedidos } from '@/lib/gestion/elDia';
 import { categoriaPara, estadoMonotributo, facturaSimulada } from '@/lib/gestion/monotributo';
 import {
   conDescuento,
@@ -150,6 +152,76 @@ describe('las ofertas', () => {
     if (!oferta) throw new Error('El almacén de la demo tiene que tener algo para ofertar');
 
     expect(conDescuento(oferta, oferta.descuentoMaximo + 0.05).dejaPorUnidad).toBeLessThan(0);
+  });
+});
+
+describe('lo que pasa de una pestaña a otra', () => {
+  const yerba = {
+    id: 'y1',
+    nombre: 'Yerba Playadito 1 kg',
+    stock: 4,
+    precio: 3600,
+    costo: 2700,
+    minimo: 0,
+  };
+  const base = () =>
+    negocio({
+      productos: [yerba],
+      clientes: [{ id: 'c1', nombre: 'Doña Rosa', telefono: '' }],
+    });
+
+  it('un pedido confirmado es una venta de hoy y descuenta stock', () => {
+    const pedido = armarPedido(
+      { ...mensaje([{ texto: '3 yerbas', cantidad: 3, busca: 'yerba' }]), pago: 'fiado' },
+      base(),
+    );
+
+    const datos = conLoDeHoy(base(), HOY, { ...DIA_VACIO, confirmados: [pedido] });
+
+    expect(datos.productos[0]?.stock).toBe(1);
+    expect(datos.ventas).toEqual([
+      { productoId: 'y1', cantidad: 3, precio: 3600, fecha: HOY, clienteId: 'c1', fiado: true },
+    ]);
+    expect(renglonesDePedidos([pedido])[0]).toMatchObject({
+      tipo: 'fiado',
+      importe: 3 * 3600,
+      cliente: 'Doña Rosa',
+      pedidoId: 'm1',
+    });
+  });
+
+  it('un remito recibido suma stock y trae el costo nuevo; un precio nuevo queda puesto', () => {
+    const cuaderno = almacen();
+    const orden = planDeCompras(faltantes(cuaderno, HOY), 150000).ordenes.find((cada) =>
+      cada.items.some((cosa) => cosa.producto.nombre.startsWith('Yerba')),
+    );
+    const item = orden?.items.find((cosa) => cosa.producto.nombre.startsWith('Yerba'));
+    if (!orden || !item) throw new Error('La demo tiene que pedir yerba');
+
+    const datos = conLoDeHoy(cuaderno, HOY, {
+      confirmados: [],
+      recibidos: [orden],
+      precios: { [item.producto.id]: 4000 },
+    });
+    const despues = datos.productos.find((producto) => producto.id === item.producto.id);
+
+    expect(despues?.stock).toBe(item.producto.stock + item.pedir);
+    expect(despues?.costo).toBe(3150);
+    expect(despues?.precio).toBe(4000);
+  });
+
+  it('las respuestas a una oferta son pedidos con el precio de la oferta', () => {
+    const [oferta] = ofertasPosibles(almacen(), HOY);
+    if (!oferta) throw new Error('El almacén de la demo tiene que tener algo para ofertar');
+
+    const pedidos = pedidosDeOferta(oferta, '12:00');
+    const [primero] = pedidos;
+    if (!primero) throw new Error('Alguien tiene que responder');
+    const armado = armarPedido(primero, almacen());
+
+    expect(pedidos.every((pedido) => pedido.id.startsWith('oferta-'))).toBe(true);
+    expect(primero.cliente).toBe(oferta.destinatarios[0]?.nombre);
+    expect(armado.total).toBe((armado.lineas[0]?.entrega ?? 0) * oferta.precioOferta);
   });
 });
 

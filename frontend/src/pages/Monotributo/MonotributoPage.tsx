@@ -3,18 +3,18 @@ import { MarcoDeNegocio } from '@/components/gestion/MarcoDeNegocio';
 import { Cifra, DiceSami, Seccion } from '@/components/gestion/piezas';
 import { Btn } from '@/components/sistema/Btn';
 import { Icon } from '@/components/sistema/Icon';
-import { PEDIDOS_DE_HOY } from '@/lib/gestion/datosDeEjemplo';
 import { pesos, porcentaje } from '@/lib/gestion/formato';
 import {
   estadoMonotributo,
   facturaSimulada,
   nombreDelMes,
   type EstadoMonotributo,
-  type FacturaC,
 } from '@/lib/gestion/monotributo';
 import { armarPedido } from '@/lib/gestion/pedidos';
 import type { Negocio } from '@/hooks/gestion/useNegocio';
 import { formatoFecha } from '@/lib/sistema/formato';
+import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
+import { useNegocioStore } from '@/stores/negocioStore';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
 // Monotributo: lo facturado contra el tope de la categoría, cuándo se pasa, qué
@@ -38,6 +38,7 @@ export function MonotributoPage() {
 }
 
 function Monotributo({ negocio }: { negocio: Negocio }) {
+  // Los pedidos confirmados hoy ya son ventas del cuaderno: cuentan en lo facturado en 12 meses.
   const estado = useMemo(
     () => estadoMonotributo(negocio.datos, negocio.hoy),
     [negocio.datos, negocio.hoy],
@@ -53,6 +54,8 @@ function Monotributo({ negocio }: { negocio: Negocio }) {
         <Icon name="bulb" /> Las categorías, los topes y las cuotas son de ejemplo. Las vigentes las
         publica ARCA y cambian dos veces por año.
       </span>
+
+      <Facturar negocio={negocio} estado={estado} />
 
       <div className="gn-cifras">
         <Cifra
@@ -123,8 +126,6 @@ function Monotributo({ negocio }: { negocio: Negocio }) {
           })}
         </ul>
       </Seccion>
-
-      <Facturar negocio={negocio} />
     </>
   );
 }
@@ -161,37 +162,51 @@ function Proyeccion({ estado }: { estado: EstadoMonotributo }) {
   );
 }
 
-function Facturar({ negocio }: { negocio: Negocio }) {
+function Facturar({ negocio, estado }: { negocio: Negocio; estado: EstadoMonotributo }) {
+  const confirmados = useNegocioStore((store) => store.confirmados);
+  const facturas = useNegocioStore((store) => store.facturas);
+  const onEmitir = useNegocioStore((store) => store.emitirFactura);
+  const navegacion = useNavegacion();
+  // Se factura lo que se vendió: los pedidos confirmados. Los que faltan confirmar se ven, pero esperan.
   const ventas = useMemo(
     () =>
-      PEDIDOS_DE_HOY.map((mensaje) => armarPedido(mensaje, negocio.datos)).filter(
-        (pedido) => pedido.total > 0,
-      ),
-    [negocio.datos],
+      negocio.pedidos
+        .map((mensaje) => confirmados[mensaje.id] ?? armarPedido(mensaje, negocio.datos))
+        .filter((pedido) => pedido.total > 0),
+    [negocio.pedidos, negocio.datos, confirmados],
   );
-  const [facturas, setFacturas] = useState<Record<string, FacturaC>>({});
   const [cuit, setCuit] = useState<Record<string, string>>({});
-  const avisar = useSistemaStore((estado) => estado.avisar);
+  const avisar = useSistemaStore((store) => store.avisar);
+  const emitidas = Object.values(facturas);
+  const vendidoHoy = ventas
+    .filter((venta) => confirmados[venta.mensaje.id])
+    .reduce((total, venta) => total + venta.total, 0);
 
   const emitir = (id: string, cliente: string, total: number) => {
     const receptor = cuit[id]?.trim()
       ? `${cliente} (CUIT ${cuit[id]?.trim()})`
       : 'Consumidor final';
-    const factura = facturaSimulada(
-      receptor,
-      total,
-      negocio.hoy,
-      41 + Object.keys(facturas).length,
-    );
-    setFacturas((lista) => ({ ...lista, [id]: factura }));
+    const factura = facturaSimulada(receptor, total, negocio.hoy, 41 + emitidas.length);
+    onEmitir(id, factura);
     avisar(`Factura C ${factura.numero} lista. En el mockup es simulada: no se mandó a ARCA.`);
   };
 
   return (
     <Seccion
       titulo="Facturar las ventas de hoy"
-      bajada="Factura C desde la venta, sin entrar a la web de ARCA. Si el cliente te pide factura con CUIT, escribilo."
+      bajada="Factura C desde los pedidos que confirmaste, sin entrar a la web de ARCA. Si el cliente te pide factura con CUIT, escribilo."
     >
+      {vendidoHoy > 0 && (
+        <p className="gn-facturado-hoy" role="status">
+          <Icon name="check-circle" />
+          <span>
+            Los pedidos que confirmaste hoy suman <strong>{pesos(vendidoHoy)}</strong> y ya cuentan
+            en lo facturado en 12 meses: llevás {pesos(estado.total12)} de{' '}
+            {pesos(estado.categoria.tope)}, el <strong>{porcentaje(estado.usado)}</strong> del tope
+            de la categoría {estado.categoria.letra}.
+          </span>
+        </p>
+      )}
       <ul className="gn-facturas">
         {ventas.map((venta) => {
           const id = venta.mensaje.id;
@@ -212,6 +227,13 @@ function Facturar({ negocio }: { negocio: Negocio }) {
                 {factura ? (
                   <span className="gn-enviado">
                     <Icon name="check-circle" /> Facturada
+                  </span>
+                ) : !confirmados[id] ? (
+                  <span className="gn-facturas-accion">
+                    <small className="gn-gris">Sin confirmar</small>
+                    <Btn cls="ghost small" onClick={() => void navegacion.irAPedidos()}>
+                      Confirmarlo
+                    </Btn>
                   </span>
                 ) : (
                   <span className="gn-facturas-accion">

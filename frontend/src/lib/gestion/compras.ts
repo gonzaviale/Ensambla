@@ -72,38 +72,65 @@ export function faltantes(datos: DatosDelNegocio, hoy: string): Faltante[] {
 export type OrdenDeCompra = {
   proveedor: Proveedor;
   items: Faltante[];
+  /** Lo de este proveedor que no entra en la plata: se pide en la próxima vuelta. */
+  postergados: Faltante[];
   total: number;
+  /** Ya se le mandó al proveedor: queda como se mandó, aunque cambie la plata. */
+  enviada: boolean;
 };
 
 export type PlanDeCompras = {
   ordenes: OrdenDeCompra[];
-  /** Lo que no entra en la plata disponible: se pide en la próxima vuelta. */
+  /** Lo que no entra en la plata disponible, de todos los proveedores. */
   postergados: Faltante[];
+  /** Lo que suman los pedidos que todavía no se mandaron. */
   total: number;
+  /** Lo que ya se comprometió con los pedidos enviados. */
+  enviado: number;
   caja: number;
+  /** La plata que queda después de lo enviado y lo que falta mandar; negativa si no alcanza. */
+  quedan: number;
 };
+
+const sumar = (items: Faltante[]) => items.reduce((total, item) => total + item.subtotal, 0);
 
 /**
  * Agrupa los faltantes por proveedor. Lo agotado y lo urgente entra siempre; lo demás, del que dura menos al que
- * dura más, mientras alcance la plata. Lo que no entra queda para la próxima vuelta.
+ * dura más, mientras alcance la plata. Lo que no entra queda para la próxima vuelta, dentro del pedido de su
+ * proveedor. Los pedidos ya enviados no se tocan: su plata se descuenta y sus productos no se vuelven a pedir.
  */
-export function planDeCompras(lista: Faltante[], caja = CAJA_PARA_COMPRAS): PlanDeCompras {
+export function planDeCompras(
+  lista: Faltante[],
+  caja = CAJA_PARA_COMPRAS,
+  enviadas: OrdenDeCompra[] = [],
+): PlanDeCompras {
+  const yaPedidos = new Set(enviadas.map((orden) => orden.proveedor.id));
+  const enviado = enviadas.reduce((total, orden) => total + orden.total, 0);
   const incluidos: Faltante[] = [];
   const postergados: Faltante[] = [];
   let gastado = 0;
   for (const faltante of lista) {
-    if (faltante.urgencia !== 'pronto' || gastado + faltante.subtotal <= caja) {
+    if (yaPedidos.has(faltante.proveedor.id)) continue;
+    if (faltante.urgencia !== 'pronto' || enviado + gastado + faltante.subtotal <= caja) {
       incluidos.push(faltante);
       gastado += faltante.subtotal;
     } else {
       postergados.push(faltante);
     }
   }
-  const ordenes = PROVEEDORES.map((proveedor) => {
+  const ordenes = PROVEEDORES.map((proveedor): OrdenDeCompra => {
+    const mandada = enviadas.find((orden) => orden.proveedor.id === proveedor.id);
+    if (mandada) return { ...mandada, enviada: true };
     const items = incluidos.filter((item) => item.proveedor.id === proveedor.id);
-    return { proveedor, items, total: items.reduce((total, item) => total + item.subtotal, 0) };
-  }).filter((orden) => orden.items.length > 0);
-  return { ordenes, postergados, total: gastado, caja };
+    return {
+      proveedor,
+      items,
+      postergados: postergados.filter((item) => item.proveedor.id === proveedor.id),
+      total: sumar(items),
+      enviada: false,
+    };
+  }).filter((orden) => orden.items.length > 0 || orden.postergados.length > 0);
+  return { ordenes, postergados, total: gastado, enviado, caja, quedan: caja - enviado - gastado };
 }
 
 /** El mensaje de WhatsApp para el proveedor, listo para revisar antes de mandarlo. */

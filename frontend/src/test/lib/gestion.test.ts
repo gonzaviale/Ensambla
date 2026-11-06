@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { cambiosDeCosto, faltantes, planDeCompras, proveedorDe } from '@/lib/gestion/compras';
 import { HOJA_DEL_DIA, type Renglon } from '@/lib/gestion/datosDeEjemplo';
-import { interpretarPregunta, proyectar } from '@/lib/gestion/proyeccion';
+import { destinosDelCuaderno, pendientesDeLaHoja } from '@/lib/gestion/hoja';
+import {
+  interpretarPregunta,
+  proyectar,
+  supuestoDePrecio,
+  type Supuesto,
+} from '@/lib/gestion/proyeccion';
 import {
   cierreDelDia,
   cuentaDelMes,
@@ -183,6 +189,20 @@ describe('las compras', () => {
     expect(plan.postergados.length).toBeGreaterThan(0);
   });
 
+  it('un pedido enviado no cambia con la plata y descuenta lo que ya se comprometió', () => {
+    const lista = faltantes(almacen(), HOY);
+    const [primera] = planDeCompras(lista, 150000).ordenes;
+    if (!primera) throw new Error('El almacén de la demo tiene que tener algo para pedir');
+
+    const plan = planDeCompras(lista, 1, [primera]);
+    const enviada = plan.ordenes.find((orden) => orden.proveedor.id === primera.proveedor.id);
+
+    expect(enviada?.enviada).toBe(true);
+    expect(enviada?.total).toBe(primera.total);
+    expect(plan.enviado).toBe(primera.total);
+    expect(plan.quedan).toBe(1 - primera.total - plan.total);
+  });
+
   it('sugiere el precio que mantiene el margen cuando sube el costo', () => {
     const [cambio] = cambiosDeCosto([producto({ precio: 1000, costo: 600 })], {
       'Yerba Playadito 1 kg': 750,
@@ -194,51 +214,124 @@ describe('las compras', () => {
 });
 
 describe('¿me conviene?', () => {
+  const ayudante = (mensual: number): Supuesto[] => [
+    { id: 'g', tipo: 'gastoFijo', concepto: 'Un ayudante', mensual, origen: 'vos' },
+    {
+      id: 'v',
+      tipo: 'ventas',
+      etiqueta: 'Ventas de más por día',
+      monto: 0,
+      vecesPorMes: 30,
+      cuando: 'por día',
+      incognita: true,
+      origen: 'supuesto',
+    },
+  ];
+
   it('sumar un gasto fijo sin vender más baja la ganancia', () => {
-    const proyeccion = proyectar(almacen(), HOY, {
-      tipo: 'gastoFijo',
-      concepto: 'Un ayudante',
-      mensual: 60000,
-      ventasExtraPorDia: 0,
-    });
+    const proyeccion = proyectar(almacen(), HOY, ayudante(60000));
 
     expect(proyeccion.diferencia).toBeCloseTo(-60000);
     expect(proyeccion.veredicto).toBe('no-conviene');
     expect(proyeccion.serie).toHaveLength(14);
   });
 
+  it('lo que no se sabe se vuelve un umbral: vendiendo eso de más, el gasto se paga solo', () => {
+    const datos = almacen();
+    const { umbral } = proyectar(datos, HOY, ayudante(60000));
+    if (!umbral) throw new Error('Con ventas desconocidas tiene que haber un umbral');
+
+    const conElUmbral = ayudante(60000).map((supuesto) =>
+      supuesto.tipo === 'ventas' ? { ...supuesto, monto: umbral.valor } : supuesto,
+    );
+
+    expect(umbral.supuestoId).toBe('v');
+    expect(umbral.frase).toMatch(/más que hoy/);
+    expect(proyectar(datos, HOY, conElUmbral).diferencia).toBeCloseTo(0, 0);
+  });
+
+  it('una compra grande se mira contra lo que deja en un año', () => {
+    const proyeccion = proyectar(almacen(), HOY, [
+      { id: 'i', tipo: 'inversion', concepto: 'Heladera', monto: 120000, origen: 'vos' },
+      {
+        id: 'v',
+        tipo: 'ventas',
+        etiqueta: 'Ventas de más por día',
+        monto: 0,
+        vecesPorMes: 30,
+        cuando: 'por día',
+        incognita: true,
+        origen: 'supuesto',
+      },
+    ]);
+
+    expect(proyeccion.serie[0]?.despues).toBe(-120000);
+    expect(proyeccion.veredicto).toBe('no-conviene');
+    expect(proyeccion.umbral?.valor).toBeGreaterThan(0);
+  });
+
   it('subir un básico vende menos unidades pero puede ganar más', () => {
     const datos = almacen();
     const yerba = datos.productos.find((item) => item.nombre.startsWith('Yerba'));
+    if (!yerba) throw new Error('El almacén de la demo tiene yerba');
 
-    const proyeccion = proyectar(datos, HOY, {
-      tipo: 'precio',
-      productoId: yerba?.id ?? '',
-      cambio: 0.1,
-    });
+    const proyeccion = proyectar(datos, HOY, [supuestoDePrecio(yerba, 0.1)]);
 
     expect(proyeccion.despues.ventas).not.toBe(proyeccion.antes.ventas);
     expect(proyeccion.veredicto).toBe('conviene');
   });
 
-  it('entiende una pregunta escrita', () => {
-    const productos = almacen().productos;
+  it('traduce una pregunta escrita en supuestos', () => {
+    const datos = almacen();
+    const tipos = (pregunta: string) =>
+      interpretarPregunta(pregunta, datos, HOY).supuestos.map((supuesto) => supuesto.tipo);
 
-    expect(interpretarPregunta('¿Qué pasa si subo la yerba 15%?', productos)).toMatchObject({
-      tipo: 'precio',
-      cambio: 0.15,
-    });
-    expect(interpretarPregunta('¿Puedo tomar un ayudante por 350 mil?', productos)).toMatchObject({
-      tipo: 'gastoFijo',
-      mensual: 350000,
-    });
+    expect(interpretarPregunta('¿Qué pasa si subo la yerba 15%?', datos, HOY).supuestos).toEqual([
+      expect.objectContaining({ tipo: 'precio', cambio: 0.15 }),
+    ]);
     expect(
-      interpretarPregunta('¿Me conviene empezar a vender pan casero?', productos),
-    ).toMatchObject({
-      tipo: 'producto',
-      nombre: 'pan casero',
+      interpretarPregunta('¿Puedo tomar un ayudante por 350 mil?', datos, HOY).supuestos[0],
+    ).toMatchObject({ tipo: 'gastoFijo', mensual: 350000, origen: 'vos' });
+    expect(tipos('¿Me conviene abrir los domingos?')).toEqual(['ventas', 'gastoFijo', 'aparte']);
+    expect(tipos('¿Me conviene comprar una heladera de 450 mil?')).toEqual(['inversion', 'ventas']);
+    expect(
+      interpretarPregunta('¿Me conviene empezar a vender pan casero?', datos, HOY).supuestos[0],
+    ).toMatchObject({ tipo: 'producto', nombre: 'pan casero' });
+  });
+
+  it('una pregunta que no reconoce igual arma la cuenta con lo básico', () => {
+    const decision = interpretarPregunta('¿Me conviene pintar el frente?', almacen(), HOY);
+
+    expect(decision.entendida).toBe(false);
+    expect(decision.supuestos.map((supuesto) => supuesto.tipo)).toEqual(['ventas', 'gastoFijo']);
+  });
+});
+
+describe('la hoja del día en el cuaderno', () => {
+  it('manda cada renglón a un bloque del cuaderno y avisa cuál falta', () => {
+    const destinos = destinosDelCuaderno(crearAlmacenCargado(HOY));
+
+    expect(destinos.fiado).toMatchObject({ bloque: 'Ventas', falta: false });
+    expect(destinos.gasto).toMatchObject({ bloque: 'Gastos', falta: true });
+    expect(destinos.merma.tipoDeBloque).toBe('inventory');
+    expect(pendientesDeLaHoja(HOJA_DEL_DIA, destinos).sinBloque).toEqual(['Gastos']);
+  });
+
+  it('con el bloque creado y cada fiado con su cliente, se puede cerrar', () => {
+    const destinos = destinosDelCuaderno(crearAlmacenCargado(HOY), ['expenses']);
+    const sinCliente: Renglon = {
+      id: 'x',
+      escrito: 'fiado 500',
+      tipo: 'fiado',
+      importe: 500,
+      detalle: 'Fiado',
+    };
+
+    expect(pendientesDeLaHoja(HOJA_DEL_DIA, destinos).listo).toBe(true);
+    expect(pendientesDeLaHoja([...HOJA_DEL_DIA, sinCliente], destinos)).toMatchObject({
+      sinCliente: 1,
+      listo: false,
     });
-    expect(interpretarPregunta('hola', productos)).toBeNull();
   });
 });
 

@@ -6,6 +6,7 @@ import { PageFooter } from '@/components/sistema/PageFooter';
 import { useNegocio, type Negocio } from '@/hooks/gestion/useNegocio';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
+import { useNegocioStore } from '@/stores/negocioStore';
 import { PestanasDeNegocio, type PantallaDeNegocio } from './piezas';
 
 const TITULOS: Record<PantallaDeNegocio, string> = {
@@ -35,6 +36,7 @@ export function MarcoDeNegocio({
   useTituloPagina(TITULOS[pantalla]);
   const negocio = useNegocio();
   const navegacion = useNavegacion();
+  const reiniciar = useNegocioStore((estado) => estado.reiniciar);
   const destinos: Record<PantallaDeNegocio, () => Promise<void>> = {
     cierre: navegacion.irANegocio,
     compras: navegacion.irACompras,
@@ -73,10 +75,16 @@ export function MarcoDeNegocio({
             </Btn>
           </div>
         )}
-        <span className="gn-aviso-mockup">
-          <Icon name="bulb" /> Mockup: lo que no sale de tu cuaderno (gastos fijos, proveedores,
-          mensajes, categorías) es de ejemplo.
-        </span>
+        <div className="gn-aviso-mockup gn-aviso-dia">
+          <span>
+            <Icon name="bulb" /> Mockup: lo que no sale de tu cuaderno (gastos fijos, proveedores,
+            mensajes, categorías) es de ejemplo. Lo que hacés hoy pasa de una pestaña a otra
+            mientras dure la sesión.
+          </span>
+          <Btn cls="ghost small" onClick={reiniciar}>
+            Empezar el día de nuevo
+          </Btn>
+        </div>
         <PageFooter />
       </main>
     </>

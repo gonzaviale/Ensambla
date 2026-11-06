@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { MarcoDeNegocio } from '@/components/gestion/MarcoDeNegocio';
-import { DiceSami, MensajeDeWhatsapp, Seccion } from '@/components/gestion/piezas';
+import { CampoDePlata, DiceSami, MensajeDeWhatsapp, Seccion } from '@/components/gestion/piezas';
 import { Btn } from '@/components/sistema/Btn';
 import { Icon } from '@/components/sistema/Icon';
 import {
@@ -12,9 +12,10 @@ import {
   type OrdenDeCompra,
   type Urgencia,
 } from '@/lib/gestion/compras';
-import { CAJA_PARA_COMPRAS, COSTOS_DEL_REMITO } from '@/lib/gestion/datosDeEjemplo';
+import { COSTOS_DEL_REMITO } from '@/lib/gestion/datosDeEjemplo';
 import { pesos, porcentaje } from '@/lib/gestion/formato';
 import type { Negocio } from '@/hooks/gestion/useNegocio';
+import { useNegocioStore } from '@/stores/negocioStore';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
 const URGENCIAS: Record<Urgencia, string> = {
@@ -51,8 +52,19 @@ export function ComprasPage() {
 
 function Compras({ negocio }: { negocio: Negocio }) {
   const lista = useMemo(() => faltantes(negocio.datos, negocio.hoy), [negocio.datos, negocio.hoy]);
-  const [caja, setCaja] = useState(CAJA_PARA_COMPRAS);
-  const plan = useMemo(() => planDeCompras(lista, caja), [lista, caja]);
+  const caja = useNegocioStore((estado) => estado.caja);
+  const setCaja = useNegocioStore((estado) => estado.cambiarCaja);
+  const enviadas = useNegocioStore((estado) => estado.ordenesEnviadas);
+  const enviarOrden = useNegocioStore((estado) => estado.enviarOrden);
+  const plan = useMemo(() => planDeCompras(lista, caja, enviadas), [lista, caja, enviadas]);
+  const avisar = useSistemaStore((store) => store.avisar);
+
+  const enviar = (orden: OrdenDeCompra) => {
+    enviarOrden(orden);
+    avisar(
+      `Le mandamos el pedido a ${orden.proveedor.nombre}. Cuando llegue, sacale una foto al remito.`,
+    );
+  };
 
   if (lista.length === 0)
     return (
@@ -67,109 +79,70 @@ function Compras({ negocio }: { negocio: Negocio }) {
 
   return (
     <>
-      <DiceSami>
+      <DiceSami lado="derecha">
         <p>
           Mirando lo que vendiste en los últimos 30 días, <strong>{lista.length} productos</strong>{' '}
           no llegan a la próxima entrega
           {agotados > 0 && (
             <>
               {' '}
-              y <strong>{agotados} ya se agotaron</strong>
+              y <strong>{agotados === 1 ? '1 ya se agotó' : `${agotados} ya se agotaron`}</strong>
             </>
           )}
-          . Te armé un pedido por proveedor con una semana de colchón.
+          . Te armé un pedido por proveedor con una semana de colchón, según la plata que tengas.
         </p>
       </DiceSami>
 
-      <Seccion titulo="Lo que se está por acabar" bajada="Del que dura menos al que dura más.">
-        <div className="gn-tabla-scroll">
-          <table className="gn-tabla">
-            <thead>
-              <tr>
-                <th scope="col">Producto</th>
-                <th scope="col">Stock</th>
-                <th scope="col">Vendés</th>
-                <th scope="col">Te dura</th>
-                <th scope="col">Pedir</th>
-                <th scope="col">Proveedor</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lista.map((faltante) => (
-                <tr key={faltante.producto.id}>
-                  <th scope="row">{faltante.producto.nombre}</th>
-                  <td>{faltante.producto.stock}</td>
-                  <td>
-                    {faltante.ritmo >= 1
-                      ? `${Math.round(faltante.ritmo)} por día`
-                      : `${Math.round(faltante.ritmo * 7)} por semana`}
-                  </td>
-                  <td>
-                    <span className="tag" data-urgencia={faltante.urgencia}>
-                      {URGENCIAS[faltante.urgencia]}
-                    </span>{' '}
-                    {duracion(faltante)}
-                  </td>
-                  <td>
-                    <strong>{faltante.pedir}</strong> · {pesos(faltante.subtotal)}
-                  </td>
-                  <td>
-                    {faltante.proveedor.nombre}
-                    <small className="gn-gris">
-                      Pasa cada {faltante.proveedor.entregaCadaDias} días
-                    </small>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Seccion>
-
       <Seccion
-        titulo="Cuánto podés gastar"
-        bajada="Sale de tu caja: lo que queda después de apartar el cambio y los gastos fijos que vencen."
+        titulo="Qué pedir y a quién"
+        bajada="Lo agotado y lo urgente va siempre. Lo demás entra mientras alcance la plata; lo que no, queda para la próxima vuelta."
       >
         <div className="gn-caja">
           <label>
-            <span>Para compras esta semana</span>
-            <input
-              type="range"
-              min={50000}
-              max={250000}
-              step={5000}
-              value={caja}
-              onChange={(evento) => setCaja(Number(evento.target.value))}
+            <span>
+              Plata para compras esta semana
+              <small className="gn-gris">
+                Lo que queda en la caja después de apartar el cambio y los gastos fijos que vencen
+              </small>
+            </span>
+            <CampoDePlata
+              valor={caja}
+              onCambiar={setCaja}
+              etiqueta="Plata para compras esta semana"
             />
-            <strong>{pesos(caja)}</strong>
           </label>
-          <p>
-            El pedido suma <strong>{pesos(plan.total)}</strong>.{' '}
-            {plan.postergados.length === 0
-              ? 'Entra todo.'
-              : `Lo agotado y lo urgente va siempre. Para la próxima vuelta dejo ${plan.postergados
-                  .map(
-                    (faltante) =>
-                      `${faltante.producto.nombre} (te dura ${duracion(faltante).toLowerCase()})`,
-                  )
-                  .join(', ')}.`}
-          </p>
-          {plan.total > caja && (
+          <dl className="gn-caja-cuenta">
+            {plan.enviado > 0 && (
+              <div>
+                <dt>Ya pedido</dt>
+                <dd>{pesos(plan.enviado)}</dd>
+              </div>
+            )}
+            <div>
+              <dt>{plan.enviado > 0 ? 'Falta mandar' : 'Los pedidos suman'}</dt>
+              <dd>{pesos(plan.total)}</dd>
+            </div>
+            <div data-tono={plan.quedan < 0 ? 'mal' : 'bien'}>
+              <dt>{plan.quedan < 0 ? 'Te faltan' : 'Te quedan'}</dt>
+              <dd>{pesos(Math.abs(plan.quedan))}</dd>
+            </div>
+          </dl>
+          {plan.quedan < 0 && (
             <p className="gn-diferencia" data-tono="mal">
-              Lo urgente ya pasa tu presupuesto por {pesos(plan.total - caja)}. Cobrar el fiado
-              atrasado te alcanza para cubrirlo.
+              Lo urgente ya pasa tu plata por {pesos(-plan.quedan)}. Cobrar el fiado atrasado te
+              alcanza para cubrirlo.
             </p>
           )}
         </div>
-      </Seccion>
 
-      <Seccion
-        titulo="Pedidos por proveedor"
-        bajada="Revisá el mensaje antes de mandarlo. Nada sale sin tu OK."
-      >
         <div className="gn-ordenes">
           {plan.ordenes.map((orden) => (
-            <Orden key={orden.proveedor.id} orden={orden} negocio={negocio} />
+            <Orden
+              key={orden.proveedor.id}
+              orden={orden}
+              negocio={negocio}
+              onEnviar={() => enviar(orden)}
+            />
           ))}
         </div>
       </Seccion>
@@ -177,32 +150,71 @@ function Compras({ negocio }: { negocio: Negocio }) {
   );
 }
 
-type EstadoDeOrden = 'borrador' | 'enviado' | 'leyendo' | 'recibido';
+/** Un producto del pedido: cuánto queda, cuánto dura al ritmo de venta y cuánto pedir. */
+function ItemDeCompra({ item, postergado = false }: { item: Faltante; postergado?: boolean }) {
+  const ritmo =
+    item.ritmo >= 1
+      ? `vendés ${Math.round(item.ritmo)} por día`
+      : `vendés ${Math.max(1, Math.round(item.ritmo * 7))} por semana`;
+  return (
+    <li data-postergado={postergado || undefined}>
+      <span className="gn-items-que">
+        <strong>{item.producto.nombre}</strong>
+        <small className="gn-gris">
+          Quedan {item.producto.stock} · {ritmo}
+        </small>
+      </span>
+      {postergado ? (
+        <span className="gn-items-cuando">
+          <small className="gn-gris">Te dura {duracion(item).toLowerCase()}</small>
+          <span className="tag outline">Para la próxima</span>
+        </span>
+      ) : (
+        <span className="gn-items-cuando">
+          <span className="tag" data-urgencia={item.urgencia}>
+            {URGENCIAS[item.urgencia]}
+          </span>
+          <small className="gn-gris">
+            {item.producto.stock === 0 ? 'Ya no hay' : `Te dura ${duracion(item).toLowerCase()}`}
+          </small>
+        </span>
+      )}
+      <span className="gn-items-cuanto">
+        <strong>Pedir {item.pedir}</strong>
+        <small className="gn-gris">{pesos(item.subtotal)}</small>
+      </span>
+    </li>
+  );
+}
 
-function Orden({ orden, negocio }: { orden: OrdenDeCompra; negocio: Negocio }) {
-  const [estado, setEstado] = useState<EstadoDeOrden>('borrador');
+function Orden({
+  orden,
+  negocio,
+  onEnviar,
+}: {
+  orden: OrdenDeCompra;
+  negocio: Negocio;
+  onEnviar: () => void;
+}) {
+  const recepcion = useNegocioStore((store) => store.recepcion[orden.proveedor.id] ?? 'enviado');
+  const cambiarRecepcion = useNegocioStore((store) => store.cambiarRecepcion);
+  const precios = useNegocioStore((store) => store.precios);
+  const cambiarPrecio = useNegocioStore((store) => store.cambiarPrecio);
   const [verMensaje, setVerMensaje] = useState(false);
-  const [actualizados, setActualizados] = useState<string[]>([]);
   const avisar = useSistemaStore((store) => store.avisar);
+  const estado = orden.enviada ? recepcion : 'borrador';
+  const proveedorId = orden.proveedor.id;
 
   useEffect(() => {
-    if (estado !== 'leyendo') return;
-    const lectura = window.setTimeout(() => setEstado('recibido'), 1300);
+    if (recepcion !== 'leyendo') return;
+    const lectura = window.setTimeout(() => cambiarRecepcion(proveedorId, 'recibido'), 1300);
     return () => window.clearTimeout(lectura);
-  }, [estado]);
+  }, [recepcion, proveedorId, cambiarRecepcion]);
 
   const cambios = cambiosDeCosto(
     orden.items.map((item) => item.producto),
     COSTOS_DEL_REMITO,
   );
-
-  const enviar = () => {
-    setEstado('enviado');
-    setVerMensaje(false);
-    avisar(
-      `Le mandamos el pedido a ${orden.proveedor.nombre}. Cuando llegue, sacale una foto al remito.`,
-    );
-  };
 
   return (
     <article className="gn-orden" data-estado={estado}>
@@ -215,46 +227,56 @@ function Orden({ orden, negocio }: { orden: OrdenDeCompra; negocio: Negocio }) {
         </div>
         <strong>{pesos(orden.total)}</strong>
       </header>
-      <ul>
+      <ul className="gn-items">
         {orden.items.map((item) => (
-          <li key={item.producto.id}>
-            <span>
-              {item.pedir} × {item.producto.nombre}
-            </span>
-            <span className="gn-gris">{pesos(item.subtotal)}</span>
-          </li>
+          <ItemDeCompra key={item.producto.id} item={item} />
         ))}
+        {!orden.enviada &&
+          orden.postergados.map((item) => (
+            <ItemDeCompra key={item.producto.id} item={item} postergado />
+          ))}
       </ul>
-
-      {estado === 'borrador' && (
-        <>
-          {verMensaje && (
-            <MensajeDeWhatsapp
-              para={orden.proveedor.nombre}
-              texto={mensajeParaProveedor(orden, negocio.sistema.name)}
-            />
-          )}
-          <div className="gn-orden-acciones">
-            <Btn
-              cls="ghost small"
-              aria-expanded={verMensaje}
-              onClick={() => setVerMensaje(!verMensaje)}
-            >
-              <Icon name="eye" /> {verMensaje ? 'Ocultar el mensaje' : 'Ver el mensaje'}
-            </Btn>
-            <Btn cls="primary small" onClick={enviar}>
-              Mandar por WhatsApp
-            </Btn>
-          </div>
-        </>
+      {orden.enviada && orden.postergados.length > 0 && (
+        <p className="gn-gris">
+          Quedó para la próxima: {orden.postergados.map((item) => item.producto.nombre).join(', ')}.
+        </p>
       )}
+
+      {estado === 'borrador' &&
+        (orden.items.length === 0 ? (
+          <p className="gn-gris">
+            Con la plata de esta semana, todo lo de {orden.proveedor.nombre} espera a la próxima
+            vuelta.
+          </p>
+        ) : (
+          <>
+            {verMensaje && (
+              <MensajeDeWhatsapp
+                para={orden.proveedor.nombre}
+                texto={mensajeParaProveedor(orden, negocio.sistema.name)}
+              />
+            )}
+            <div className="gn-orden-acciones">
+              <Btn
+                cls="ghost small"
+                aria-expanded={verMensaje}
+                onClick={() => setVerMensaje(!verMensaje)}
+              >
+                <Icon name="eye" /> {verMensaje ? 'Ocultar el mensaje' : 'Ver el mensaje'}
+              </Btn>
+              <Btn cls="primary small" onClick={onEnviar}>
+                Mandar por WhatsApp
+              </Btn>
+            </div>
+          </>
+        ))}
 
       {estado === 'enviado' && (
         <div className="gn-orden-acciones">
           <span className="gn-enviado">
             <Icon name="clock" /> Pedido enviado. Esperando la entrega.
           </span>
-          <Btn cls="secondary small" onClick={() => setEstado('leyendo')}>
+          <Btn cls="secondary small" onClick={() => cambiarRecepcion(proveedorId, 'leyendo')}>
             <Icon name="camera" /> Llegó: foto del remito
           </Btn>
         </div>
@@ -288,7 +310,7 @@ function Orden({ orden, negocio }: { orden: OrdenDeCompra; negocio: Negocio }) {
               </DiceSami>
               <ul className="gn-subas">
                 {cambios.map((cambio) => {
-                  const listo = actualizados.includes(cambio.producto.id);
+                  const listo = precios[cambio.producto.id] === cambio.precioSugerido;
                   return (
                     <li key={cambio.producto.id}>
                       <span>
@@ -311,7 +333,7 @@ function Orden({ orden, negocio }: { orden: OrdenDeCompra; negocio: Negocio }) {
                         <Btn
                           cls="soft small"
                           onClick={() => {
-                            setActualizados((lista) => [...lista, cambio.producto.id]);
+                            cambiarPrecio(cambio.producto.id, cambio.precioSugerido);
                             avisar(
                               `${cambio.producto.nombre} ahora sale ${pesos(cambio.precioSugerido)}.`,
                             );

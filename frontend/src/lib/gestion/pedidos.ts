@@ -14,6 +14,8 @@ export type LineaPedida = {
   busca: string;
   /** «La de siempre»: se elige lo que más le compró ese cliente entre lo que coincide. */
   deSiempre?: boolean;
+  /** Un precio pactado (el de una oferta); si no, el del inventario. */
+  precio?: number;
 };
 
 export type MensajeDePedido = {
@@ -93,15 +95,17 @@ export function armarPedido(mensaje: MensajeDePedido, datos: DatosDelNegocio): P
       producto,
       entrega,
       estado,
-      subtotal: entrega * producto.precio,
+      subtotal: entrega * (linea.precio ?? producto.precio),
       aviso:
         estado === 'agotado'
           ? `Se agotó. Llega con ${proveedor.nombre}, que pasa cada ${proveedor.entregaCadaDias} días.`
           : estado === 'poco'
             ? `Pidió ${linea.cantidad} y te quedan ${producto.stock}.`
-            : linea.deSiempre && (compras.get(producto.id) ?? 0) > 0
-              ? `«La de siempre»: es lo que más te compró (${compras.get(producto.id)} unidades).`
-              : undefined,
+            : linea.precio !== undefined
+              ? `Precio de la oferta: ${pesos(linea.precio)} (lista ${pesos(producto.precio)}).`
+              : linea.deSiempre && (compras.get(producto.id) ?? 0) > 0
+                ? `«La de siempre»: es lo que más te compró (${compras.get(producto.id)} unidades).`
+                : undefined,
     };
   });
   return {
