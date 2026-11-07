@@ -60,11 +60,11 @@ public class ObtenerResumenInicio {
                 resumen(negocio, datos, hoy.minusDays(DIAS_DE_UNA_SEMANA), hoy.minusDays(DIAS_DE_UNA_SEMANA), hoy)
                         .ventas().ingresos();
         Ventas ventasDelInicio = new Ventas(
-                VentasDelPeriodo.de(dia, ingresosDelMismoDiaDeLaSemanaPasada, sinPrecio(ventas, hoy, hoy)),
+                VentasDelPeriodo.de(dia, ingresosDelMismoDiaDeLaSemanaPasada, sinPrecio(ventas, hoy)),
                 VentasDelPeriodo.de(semana, semana.ventas().ingresosAnteriores(),
-                        sinPrecio(ventas, hoy.minusDays(DIAS_DE_UNA_SEMANA - 1L), hoy)),
+                        sinPrecio(ventas, hoy.minusDays(DIAS_DE_UNA_SEMANA - 1L))),
                 VentasDelPeriodo.de(mes, mes.ventas().ingresosAnteriores(),
-                        sinPrecio(ventas, hoy.minusDays(DIAS_DEL_MES - 1L), hoy)));
+                        sinPrecio(ventas, hoy.minusDays(DIAS_DEL_MES - 1L))));
         return ObtenerResumenInicioResponse.de(
                 hoy,
                 !ventas.isEmpty(),
@@ -76,10 +76,10 @@ public class ObtenerResumenInicio {
                 tieneQuincenaDeVentas(ventas, hoy));
     }
 
-    /** Cuántas ventas del período no tienen precio y por eso no suman plata. */
-    private static long sinPrecio(List<VentaProducto> ventas, LocalDate desde, LocalDate hasta) {
+    /** Cuántas ventas del período que termina hoy no tienen precio y por eso no suman plata. */
+    private static long sinPrecio(List<VentaProducto> ventas, LocalDate desde) {
         return ventas.stream()
-                .filter(venta -> !venta.fecha().isBefore(desde) && !venta.fecha().isAfter(hasta))
+                .filter(venta -> !venta.fecha().isBefore(desde))
                 .filter(venta -> venta.precio() == null)
                 .count();
     }
