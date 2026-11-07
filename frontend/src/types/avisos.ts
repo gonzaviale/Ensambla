@@ -14,7 +14,7 @@ export const accionDelServidorSchema = z
   })
   .passthrough();
 
-const tipoDeAvisoSchema = z.enum([
+export const tipoDeAvisoSchema = z.enum([
   'STOCK',
   'PRECIO_ZONA',
   'ESTANCADO',

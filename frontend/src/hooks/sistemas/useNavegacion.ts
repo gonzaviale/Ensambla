@@ -43,6 +43,7 @@ export function useNavegacion() {
     to:
       | '/inicio'
       | '/cuadernos'
+      | '/metricas'
       | '/plantillas'
       | '/taller'
       | '/zona'
@@ -129,5 +130,7 @@ export function useNavegacion() {
     },
     /** «Mis cuadernos»: la pantalla con todos los cuadernos y las maneras de crear uno. */
     irAMisSistemas: () => irA('/cuadernos'),
+    /** «Mis métricas»: los números del negocio en detalle, por día, semana o mes. */
+    irAMetricas: () => irA('/metricas'),
   };
 }

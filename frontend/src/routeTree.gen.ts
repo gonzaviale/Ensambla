@@ -16,6 +16,7 @@ import { Route as AppCuadernosRouteImport } from './routes/_app/cuadernos'
 import { Route as AppCuentaRouteImport } from './routes/_app/cuenta'
 import { Route as AppInicioRouteImport } from './routes/_app/inicio'
 import { Route as AppLaboratorioRouteImport } from './routes/_app/laboratorio'
+import { Route as AppMetricasRouteImport } from './routes/_app/metricas'
 import { Route as AppPlanesRouteImport } from './routes/_app/planes'
 import { Route as AppPlantillasRouteImport } from './routes/_app/plantillas'
 import { Route as AppSamiRouteImport } from './routes/_app/sami'
@@ -58,6 +59,11 @@ const AppInicioRoute = AppInicioRouteImport.update({
 const AppLaboratorioRoute = AppLaboratorioRouteImport.update({
   id: '/laboratorio',
   path: '/laboratorio',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMetricasRoute = AppMetricasRouteImport.update({
+  id: '/metricas',
+  path: '/metricas',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPlanesRoute = AppPlanesRouteImport.update({
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/cuenta': typeof AppCuentaRoute
   '/inicio': typeof AppInicioRoute
   '/laboratorio': typeof AppLaboratorioRoute
+  '/metricas': typeof AppMetricasRoute
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
   '/sami': typeof AppSamiRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   '/cuenta': typeof AppCuentaRoute
   '/inicio': typeof AppInicioRoute
   '/laboratorio': typeof AppLaboratorioRoute
+  '/metricas': typeof AppMetricasRoute
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
   '/sami': typeof AppSamiRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   '/_app/cuenta': typeof AppCuentaRoute
   '/_app/inicio': typeof AppInicioRoute
   '/_app/laboratorio': typeof AppLaboratorioRoute
+  '/_app/metricas': typeof AppMetricasRoute
   '/_app/planes': typeof AppPlanesRoute
   '/_app/plantillas': typeof AppPlantillasRoute
   '/_app/sami': typeof AppSamiRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
     | '/cuenta'
     | '/inicio'
     | '/laboratorio'
+    | '/metricas'
     | '/planes'
     | '/plantillas'
     | '/sami'
@@ -191,6 +201,7 @@ export interface FileRouteTypes {
     | '/cuenta'
     | '/inicio'
     | '/laboratorio'
+    | '/metricas'
     | '/planes'
     | '/plantillas'
     | '/sami'
@@ -209,6 +220,7 @@ export interface FileRouteTypes {
     | '/_app/cuenta'
     | '/_app/inicio'
     | '/_app/laboratorio'
+    | '/_app/metricas'
     | '/_app/planes'
     | '/_app/plantillas'
     | '/_app/sami'
@@ -275,6 +287,13 @@ declare module '@tanstack/react-router' {
       path: '/laboratorio'
       fullPath: '/laboratorio'
       preLoaderRoute: typeof AppLaboratorioRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/metricas': {
+      id: '/_app/metricas'
+      path: '/metricas'
+      fullPath: '/metricas'
+      preLoaderRoute: typeof AppMetricasRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/planes': {
@@ -356,6 +375,7 @@ interface AppRouteChildren {
   AppCuentaRoute: typeof AppCuentaRoute
   AppInicioRoute: typeof AppInicioRoute
   AppLaboratorioRoute: typeof AppLaboratorioRoute
+  AppMetricasRoute: typeof AppMetricasRoute
   AppPlanesRoute: typeof AppPlanesRoute
   AppPlantillasRoute: typeof AppPlantillasRoute
   AppSamiRoute: typeof AppSamiRoute
@@ -371,6 +391,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCuentaRoute: AppCuentaRoute,
   AppInicioRoute: AppInicioRoute,
   AppLaboratorioRoute: AppLaboratorioRoute,
+  AppMetricasRoute: AppMetricasRoute,
   AppPlanesRoute: AppPlanesRoute,
   AppPlantillasRoute: AppPlantillasRoute,
   AppSamiRoute: AppSamiRoute,
