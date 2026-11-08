@@ -9,7 +9,8 @@ export type SeccionActiva =
   | 'templates'
   | 'zone'
   | 'avisos'
-  | 'laboratory'
+  | 'goals'
+  | 'academy'
   | 'plans'
   | 'account';
 
@@ -23,7 +24,8 @@ type TopBarProps = {
   onPlantillas: () => void;
   onZona: () => void;
   onAvisos: () => void;
-  onLaboratorio: () => void;
+  onObjetivos: () => void;
+  onAcademy: () => void;
   onPlanes: () => void;
   onAyuda: () => void;
   /** «Configuración», en el menú del avatar. */
@@ -42,7 +44,8 @@ export function TopBar({
   onPlantillas,
   onZona,
   onAvisos,
-  onLaboratorio,
+  onObjetivos,
+  onAcademy,
   onPlanes,
   onAyuda,
   onCuenta,
@@ -94,11 +97,19 @@ export function TopBar({
         </button>
         <button
           type="button"
-          className={active === 'laboratory' ? 'active' : ''}
-          aria-current={active === 'laboratory' ? 'page' : undefined}
-          onClick={ir(onLaboratorio)}
+          className={active === 'goals' ? 'active' : ''}
+          aria-current={active === 'goals' ? 'page' : undefined}
+          onClick={ir(onObjetivos)}
         >
-          Laboratorio
+          Objetivos
+        </button>
+        <button
+          type="button"
+          className={active === 'academy' ? 'active' : ''}
+          aria-current={active === 'academy' ? 'page' : undefined}
+          onClick={ir(onAcademy)}
+        >
+          Sami Academy
         </button>
         <button
           type="button"

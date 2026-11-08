@@ -4,6 +4,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { useUsuario } from '@/hooks/auth/queries';
 import { usePreferencias } from '@/hooks/preferencias/queries';
 import type { SeccionDeCuenta } from '@/lib/cuenta';
+import type { LeccionDeAcademy } from '@/lib/academy';
 import type { Sistema } from '@/lib/sistema/tipos';
 import { useSistemaStore, type ModoDelEditor } from '@/stores/sistemaStore';
 import type { ImagenParaSami } from '@/types/samiTaller';
@@ -49,7 +50,8 @@ export function useNavegacion() {
       | '/planes'
       | '/sami'
       | '/avisos'
-      | '/laboratorio',
+      | '/objetivos'
+      | '/sami-academy',
   ) => {
     limpiar();
     return navigate({ to });
@@ -104,8 +106,18 @@ export function useNavegacion() {
     },
     /** La pantalla de avisos de Sami. */
     irAAvisos: () => irA('/avisos'),
-    /** El laboratorio económico: permite probar metas y decisiones sin cambiar el cuaderno. */
-    irALaboratorio: () => irA('/laboratorio'),
+    /** Los objetivos del negocio: cómo van, qué recomienda Sami y el plan para cada uno. */
+    irAObjetivos: () => irA('/objetivos'),
+    /** El plan de acción y el seguimiento de un objetivo. */
+    irAObjetivo: (objetivoId: string) => {
+      limpiar();
+      return navigate({ to: '/objetivos/$objetivoId', params: { objetivoId } });
+    },
+    /** Sami Academy: lecciones de contabilidad; con `objetivoId`, aplicadas a ese objetivo. */
+    irASamiAcademy: (leccion?: LeccionDeAcademy, objetivoId?: string) => {
+      limpiar();
+      return navigate({ to: '/sami-academy', search: { leccion, objetivo: objetivoId } });
+    },
     irAPlanes: () => irA('/planes'),
     /** «Armalo con Sami»: la conversación que crea un proyecto real en el backend. */
     irASami: () => irA('/sami'),

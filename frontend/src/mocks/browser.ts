@@ -8,6 +8,7 @@ import { handlersPara } from './handlers';
 import { sembrarDemoCargada } from './db/demoCargada';
 import { estado, sembrarUsuario } from './db/estado';
 import { interceptarFetch } from './interceptarFetch';
+import { useObjetivosStore } from '@/stores/objetivosStore';
 
 const CLAVE = 'ensambla.mock.datos.v1';
 
@@ -68,7 +69,11 @@ if (env.mocks === 'completo') {
     email: 'demo@ensambla.local',
     contrasenia: 'EnsamblaDemo2026!',
   });
-  if (env.demoCargada) sembrarDemoCargada('demo@ensambla.local');
+  if (env.demoCargada) {
+    sembrarDemoCargada('demo@ensambla.local');
+    // Los objetivos todavía no viven en el backend: el de ejemplo se siembra una sola vez en el navegador.
+    useObjetivosStore.getState().sembrarEjemplo();
+  }
 }
 
 const handlers = handlersPara(env.mocks);
