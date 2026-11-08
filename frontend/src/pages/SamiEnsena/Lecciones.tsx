@@ -3,11 +3,11 @@ import { CheckCircleIcon, ProhibitIcon } from '@phosphor-icons/react';
 import { Sami } from '@/components/sistema/Sami';
 import { Explicacion } from '@/pages/Objetivos/piezas';
 
-// Las lecciones de texto de Sami Academy. Los importes son los de la base de ejemplo («Almacén de barrio»).
+// Las lecciones de texto de Sami te enseña. Los importes son los de la base de ejemplo («Almacén de barrio»).
 
 export function LeccionResultado({ onObjetivo }: { onObjetivo: () => void }) {
   return (
-    <div className="academy-leccion">
+    <div className="ensenanza-leccion">
       <div className="objetivos-contabilidad-layout">
         <article className="objetivos-estado-resultados">
           <div className="objetivos-estado-cabecera">
@@ -149,14 +149,14 @@ const METRICAS = [
 
 export function LeccionMetricas() {
   return (
-    <div className="academy-leccion">
-      <p className="academy-intro">
+    <div className="ensenanza-leccion">
+      <p className="ensenanza-intro">
         Cada número que ves en Ensambla se puede explicar. Estos son los que más vas a usar, con su
         cuenta y con el valor de ejemplo del «Almacén de barrio».
       </p>
-      <div className="academy-metricas">
+      <div className="ensenanza-metricas">
         {METRICAS.map((metrica) => (
-          <article key={metrica.nombre} className="academy-metrica">
+          <article key={metrica.nombre} className="ensenanza-metrica">
             <header>
               <h3>{metrica.nombre}</h3>
               <strong>{metrica.valor}</strong>
@@ -181,7 +181,7 @@ export function LeccionMetricas() {
 
 function Bloque({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
-    <section className="academy-bloque">
+    <section className="ensenanza-bloque">
       <h3>{titulo}</h3>
       {children}
     </section>
@@ -190,12 +190,12 @@ function Bloque({ titulo, children }: { titulo: string; children: ReactNode }) {
 
 export function LeccionRecomendaciones() {
   return (
-    <div className="academy-leccion">
-      <p className="academy-intro">
+    <div className="ensenanza-leccion">
+      <p className="ensenanza-intro">
         Sami no adivina: hace cuentas con tus datos y te las muestra. Así arma una recomendación,
         paso a paso.
       </p>
-      <ol className="academy-pasos">
+      <ol className="ensenanza-pasos">
         <li>
           <strong>Junta tus datos.</strong>
           <span>
@@ -217,7 +217,7 @@ export function LeccionRecomendaciones() {
           </span>
         </li>
       </ol>
-      <div className="academy-columnas">
+      <div className="ensenanza-columnas">
         <Bloque titulo="Qué datos usa">
           <ul>
             <li>Tus ventas, sus costos y los gastos que registraste.</li>
@@ -240,7 +240,7 @@ export function LeccionRecomendaciones() {
         </Bloque>
       </div>
       <Bloque titulo="Qué nunca hace">
-        <ul className="academy-nunca">
+        <ul className="ensenanza-nunca">
           {[
             'Cambiar precios, gastos o registros sin que lo confirmes.',
             'Prometer un resultado: los caminos son estimaciones, y muestra sus supuestos.',
@@ -288,11 +288,11 @@ const CONSEJOS = [
 
 export function LeccionConsejos({ onObjetivo }: { onObjetivo: () => void }) {
   return (
-    <div className="academy-leccion">
-      <p className="academy-intro">
+    <div className="ensenanza-leccion">
+      <p className="ensenanza-intro">
         Cinco hábitos simples que hacen que las cuentas de Sami sean cada vez más confiables.
       </p>
-      <ol className="academy-consejos">
+      <ol className="ensenanza-consejos">
         {CONSEJOS.map((consejo) => (
           <li key={consejo.titulo}>
             <strong>{consejo.titulo}</strong>

@@ -91,7 +91,7 @@ export function ObjetivosPage() {
                       key={objetivo.id}
                       objetivo={objetivo}
                       onPlan={() => void navegacion.irAObjetivo(objetivo.id)}
-                      onProbar={() => void navegacion.irASamiAcademy('escenario', objetivo.id)}
+                      onProbar={() => void navegacion.irASamiTeEnsena('escenario', objetivo.id)}
                       onQuitar={() => quitar(objetivo)}
                     />
                   ))}

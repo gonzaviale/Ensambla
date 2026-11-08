@@ -1,6 +1,6 @@
-// Las lecciones de Sami Academy. El orden es el del índice.
+// Las lecciones de «Sami te enseña». El orden es el del índice.
 
-export const LECCIONES_DE_ACADEMY = [
+export const LECCIONES_DE_SAMI = [
   'resultado',
   'metricas',
   'recomendaciones',
@@ -8,10 +8,10 @@ export const LECCIONES_DE_ACADEMY = [
   'consejos',
 ] as const;
 
-export type LeccionDeAcademy = (typeof LECCIONES_DE_ACADEMY)[number];
+export type LeccionDeSami = (typeof LECCIONES_DE_SAMI)[number];
 
 export const DATOS_DE_LECCION: Record<
-  LeccionDeAcademy,
+  LeccionDeSami,
   { titulo: string; resumen: string; minutos: number }
 > = {
   resultado: {
@@ -42,6 +42,6 @@ export const DATOS_DE_LECCION: Record<
   },
 };
 
-export function esLeccion(valor: unknown): valor is LeccionDeAcademy {
-  return LECCIONES_DE_ACADEMY.some((leccion) => leccion === valor);
+export function esLeccion(valor: unknown): valor is LeccionDeSami {
+  return LECCIONES_DE_SAMI.some((leccion) => leccion === valor);
 }

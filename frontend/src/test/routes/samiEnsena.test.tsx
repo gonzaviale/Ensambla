@@ -6,7 +6,7 @@ import { useObjetivosStore } from '@/stores/objetivosStore';
 import { renderApp } from '@/test/renderApp';
 import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
 
-describe('sami academy', () => {
+describe('sami te enseña', () => {
   beforeEach(() => {
     act(() => useObjetivosStore.setState({ objetivos: [], ejemploSembrado: false }));
   });
@@ -16,18 +16,18 @@ describe('sami academy', () => {
     const router = renderApp('/inicio');
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole('button', { name: 'Sami Academy' }, ESPERA));
+    await user.click(await screen.findByRole('button', { name: 'Sami te enseña' }, ESPERA));
 
     expect(
       await screen.findByRole('heading', { name: 'Cómo se forma tu resultado' }),
     ).toBeVisible();
-    expect(router.state.location.pathname).toBe('/sami-academy');
+    expect(router.state.location.pathname).toBe('/sami-te-ensena');
     expect(screen.getByText('= Resultado operativo estimado')).toBeVisible();
   });
 
   it('una lección que no existe cae en la primera', async () => {
     setupUsuarioConSesion();
-    renderApp('/sami-academy?leccion=inventada');
+    renderApp('/sami-te-ensena?leccion=inventada');
 
     expect(
       await screen.findByRole('heading', { name: 'Cómo se forma tu resultado' }, ESPERA),
@@ -36,7 +36,7 @@ describe('sami academy', () => {
 
   it('recorre las lecciones desde el índice', async () => {
     setupUsuarioConSesion();
-    const router = renderApp('/sami-academy');
+    const router = renderApp('/sami-te-ensena');
     const user = userEvent.setup();
 
     await screen.findByRole('heading', { name: 'Cómo se forma tu resultado' }, ESPERA);
@@ -60,7 +60,7 @@ describe('sami academy', () => {
     act(() =>
       useObjetivosStore.setState({ objetivos: [objetivoDeEjemplo()], ejemploSembrado: true }),
     );
-    renderApp('/sami-academy?leccion=escenario&objetivo=objetivo-ejemplo');
+    renderApp('/sami-te-ensena?leccion=escenario&objetivo=objetivo-ejemplo');
 
     await screen.findByRole('heading', { name: 'Probá un escenario' }, ESPERA);
     expect(screen.getByText('Resultado proyectado').nextElementSibling).toHaveTextContent(
@@ -80,7 +80,7 @@ describe('sami academy', () => {
 
   it('sin objetivos prueba con un ejemplo e invita a definir el propio', async () => {
     setupUsuarioConSesion();
-    const router = renderApp('/sami-academy?leccion=escenario');
+    const router = renderApp('/sami-te-ensena?leccion=escenario');
     const user = userEvent.setup();
 
     await screen.findByRole('heading', { name: 'Probá un escenario' }, ESPERA);

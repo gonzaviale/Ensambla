@@ -18,7 +18,7 @@ import { Route as AppInicioRouteImport } from './routes/_app/inicio'
 import { Route as AppPlanesRouteImport } from './routes/_app/planes'
 import { Route as AppPlantillasRouteImport } from './routes/_app/plantillas'
 import { Route as AppSamiRouteImport } from './routes/_app/sami'
-import { Route as AppSamiAcademyRouteImport } from './routes/_app/sami-academy'
+import { Route as AppSamiTeEnsenaRouteImport } from './routes/_app/sami-te-ensena'
 import { Route as AppTallerRouteImport } from './routes/_app/taller'
 import { Route as AppUbicacionRouteImport } from './routes/_app/ubicacion'
 import { Route as AppZonaRouteImport } from './routes/_app/zona'
@@ -72,9 +72,9 @@ const AppSamiRoute = AppSamiRouteImport.update({
   path: '/sami',
   getParentRoute: () => AppRoute,
 } as any)
-const AppSamiAcademyRoute = AppSamiAcademyRouteImport.update({
-  id: '/sami-academy',
-  path: '/sami-academy',
+const AppSamiTeEnsenaRoute = AppSamiTeEnsenaRouteImport.update({
+  id: '/sami-te-ensena',
+  path: '/sami-te-ensena',
   getParentRoute: () => AppRoute,
 } as any)
 const AppTallerRoute = AppTallerRouteImport.update({
@@ -132,7 +132,7 @@ export interface FileRoutesByFullPath {
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
   '/sami': typeof AppSamiRoute
-  '/sami-academy': typeof AppSamiAcademyRoute
+  '/sami-te-ensena': typeof AppSamiTeEnsenaRoute
   '/taller': typeof AppTallerRoute
   '/ubicacion': typeof AppUbicacionRoute
   '/zona': typeof AppZonaRoute
@@ -151,7 +151,7 @@ export interface FileRoutesByTo {
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
   '/sami': typeof AppSamiRoute
-  '/sami-academy': typeof AppSamiAcademyRoute
+  '/sami-te-ensena': typeof AppSamiTeEnsenaRoute
   '/taller': typeof AppTallerRoute
   '/ubicacion': typeof AppUbicacionRoute
   '/zona': typeof AppZonaRoute
@@ -172,7 +172,7 @@ export interface FileRoutesById {
   '/_app/planes': typeof AppPlanesRoute
   '/_app/plantillas': typeof AppPlantillasRoute
   '/_app/sami': typeof AppSamiRoute
-  '/_app/sami-academy': typeof AppSamiAcademyRoute
+  '/_app/sami-te-ensena': typeof AppSamiTeEnsenaRoute
   '/_app/taller': typeof AppTallerRoute
   '/_app/ubicacion': typeof AppUbicacionRoute
   '/_app/zona': typeof AppZonaRoute
@@ -194,7 +194,7 @@ export interface FileRouteTypes {
     | '/planes'
     | '/plantillas'
     | '/sami'
-    | '/sami-academy'
+    | '/sami-te-ensena'
     | '/taller'
     | '/ubicacion'
     | '/zona'
@@ -213,7 +213,7 @@ export interface FileRouteTypes {
     | '/planes'
     | '/plantillas'
     | '/sami'
-    | '/sami-academy'
+    | '/sami-te-ensena'
     | '/taller'
     | '/ubicacion'
     | '/zona'
@@ -233,7 +233,7 @@ export interface FileRouteTypes {
     | '/_app/planes'
     | '/_app/plantillas'
     | '/_app/sami'
-    | '/_app/sami-academy'
+    | '/_app/sami-te-ensena'
     | '/_app/taller'
     | '/_app/ubicacion'
     | '/_app/zona'
@@ -315,11 +315,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSamiRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/sami-academy': {
-      id: '/_app/sami-academy'
-      path: '/sami-academy'
-      fullPath: '/sami-academy'
-      preLoaderRoute: typeof AppSamiAcademyRouteImport
+    '/_app/sami-te-ensena': {
+      id: '/_app/sami-te-ensena'
+      path: '/sami-te-ensena'
+      fullPath: '/sami-te-ensena'
+      preLoaderRoute: typeof AppSamiTeEnsenaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/taller': {
@@ -396,7 +396,7 @@ interface AppRouteChildren {
   AppPlanesRoute: typeof AppPlanesRoute
   AppPlantillasRoute: typeof AppPlantillasRoute
   AppSamiRoute: typeof AppSamiRoute
-  AppSamiAcademyRoute: typeof AppSamiAcademyRoute
+  AppSamiTeEnsenaRoute: typeof AppSamiTeEnsenaRoute
   AppTallerRoute: typeof AppTallerRoute
   AppUbicacionRoute: typeof AppUbicacionRoute
   AppZonaRoute: typeof AppZonaRoute
@@ -413,7 +413,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPlanesRoute: AppPlanesRoute,
   AppPlantillasRoute: AppPlantillasRoute,
   AppSamiRoute: AppSamiRoute,
-  AppSamiAcademyRoute: AppSamiAcademyRoute,
+  AppSamiTeEnsenaRoute: AppSamiTeEnsenaRoute,
   AppTallerRoute: AppTallerRoute,
   AppUbicacionRoute: AppUbicacionRoute,
   AppZonaRoute: AppZonaRoute,

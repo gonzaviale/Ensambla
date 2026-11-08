@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Sami } from '@/components/sistema/Sami';
 
-// Piezas visuales que comparten Objetivos y Sami Academy.
+// Piezas visuales que comparten Objetivos y «Sami te enseña».
 
 export function Encabezado({
   etiqueta,

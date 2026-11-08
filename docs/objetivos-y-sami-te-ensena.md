@@ -1,4 +1,4 @@
-# Objetivos y Sami Academy
+# Objetivos y Sami te enseña
 
 Rama: `feat/objetivos-sami-academy`. Reorganiza el recorrido de 9 pantallas del «laboratorio de decisiones»
 ([diseño](superpowers/specs/2026-11-05-laboratorio-decisiones-contable-design.md),
@@ -11,10 +11,10 @@ palabra «laboratorio».
 |---|---|
 | Inicio | **Objetivos**: cómo van tus objetivos (si no hay ninguno, «Definí tu primer objetivo») |
 | Aviso económico | Se quitó de acá: pasa al inicio de la app (lo hace otra persona) |
-| Fundamento contable | Sami Academy → «Cómo se forma tu resultado» |
+| Fundamento contable | Sami te enseña → «Cómo se forma tu resultado» |
 | Definir meta | Objetivos → formulario «¿Qué querés lograr?» |
 | Caminos posibles | Objetivos → ícono «Recomendación de Sami» dentro de cada tarjeta |
-| Probar escenario | Sami Academy → «Probá un escenario», con los controles funcionando; se llega desde la tarjeta del objetivo |
+| Probar escenario | Sami te enseña → «Probá un escenario», con los controles funcionando; se llega desde la tarjeta del objetivo |
 | Mi zona | Pestaña «Cruce con Mi zona» dentro de Objetivos. **En evaluación**: puede quedar, moverse o borrarse |
 | Plan de acción | Objetivos → «Ver plan de acción» de cada tarjeta (`/objetivos/:id`) |
 | Seguimiento | Se fundió con el plan de acción: avance, resultado de hoy y lo que dice Sami sobre la tendencia |
@@ -23,10 +23,10 @@ palabra «laboratorio».
 
 - `/objetivos`: lista de objetivos y, en la otra pestaña, el cruce con Mi zona.
 - `/objetivos/:objetivoId`: plan de acción y seguimiento de un objetivo.
-- `/sami-academy?leccion=…&objetivo=…`: lecciones `resultado`, `metricas`, `recomendaciones`, `escenario` y `consejos`.
+- `/sami-te-ensena?leccion=…&objetivo=…`: lecciones `resultado`, `metricas`, `recomendaciones`, `escenario` y `consejos`.
   Sin `leccion` (o con una inválida) abre la primera. `objetivo` elige con cuál se prueba el escenario.
 
-## Sami Academy
+## Sami te enseña
 
 1. **Cómo se forma tu resultado**: estado de resultados de gestión y traducción a palabras simples.
 2. **Tus métricas, una por una**: qué es, cómo se calcula y cómo leer cada una.
@@ -48,4 +48,4 @@ Todavía no hay backend para objetivos ni para el cálculo económico.
   tres al valor recomendado el resultado llega a la meta. Es una estimación de demostración, y la pantalla lo dice.
 - «Cruce con Mi zona» sigue con datos ficticios, como antes.
 
-Código: `src/lib/objetivos.ts` (cuentas), `src/stores/objetivosStore.ts`, `src/pages/Objetivos/`, `src/pages/SamiAcademy/`.
+Código: `src/lib/objetivos.ts` (cuentas), `src/stores/objetivosStore.ts`, `src/pages/Objetivos/`, `src/pages/SamiEnsena/`.

@@ -39,7 +39,7 @@ export function ObjetivoDetallePage({ objetivoId }: { objetivoId: string }) {
         {objetivo ? (
           <Detalle
             objetivo={objetivo}
-            onProbar={() => void navegacion.irASamiAcademy('escenario', objetivo.id)}
+            onProbar={() => void navegacion.irASamiTeEnsena('escenario', objetivo.id)}
           />
         ) : (
           <section className="objetivos-vacio">

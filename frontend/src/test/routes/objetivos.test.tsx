@@ -102,7 +102,7 @@ describe('objetivos', () => {
     expect(screen.getByRole('button', { name: 'Ir a mis objetivos' })).toBeVisible();
   });
 
-  it('abre el escenario de Sami Academy con el objetivo elegido', async () => {
+  it('abre el escenario de «Sami te enseña» con el objetivo elegido', async () => {
     setupUsuarioConSesion();
     conObjetivoDeEjemplo();
     const router = renderApp('/objetivos');
@@ -110,7 +110,7 @@ describe('objetivos', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Ver cómo funcionaría' }, ESPERA));
 
-    expect(router.state.location.pathname).toBe('/sami-academy');
+    expect(router.state.location.pathname).toBe('/sami-te-ensena');
     expect(router.state.location.search).toMatchObject({
       leccion: 'escenario',
       objetivo: 'objetivo-ejemplo',

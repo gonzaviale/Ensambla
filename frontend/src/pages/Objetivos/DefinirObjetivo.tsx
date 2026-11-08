@@ -22,41 +22,45 @@ export function DefinirObjetivo({ onDefinido, onCancelar }: Props) {
   };
 
   return (
-    <section aria-labelledby={`${idCampo}-titulo`}>
-      <form className="objetivos-meta" onSubmit={enviar}>
-        <h2 id={`${idCampo}-titulo`} className="objetivos-meta-titulo">
-          ¿Qué querés lograr?
-        </h2>
-        <label htmlFor={idCampo}>Contale tu objetivo a Sami</label>
-        <textarea
-          id={idCampo}
-          value={texto}
-          placeholder="Ej.: Quiero ganar $400.000 por mes sin subir demasiado los precios"
-          onChange={(evento) => setTexto(evento.target.value)}
-        />
-        <div className="objetivos-ejemplos">
-          {EJEMPLOS_DE_OBJETIVO.map((ejemplo) => (
-            <button type="button" key={ejemplo} onClick={() => setTexto(ejemplo)}>
-              {ejemplo}
-            </button>
-          ))}
+    <section className="objetivos-definir" aria-labelledby={`${idCampo}-titulo`}>
+      <form className="objetivos-formulario" onSubmit={enviar}>
+        <h2 id={`${idCampo}-titulo`}>¿Qué querés lograr?</h2>
+        <div className="field">
+          <label htmlFor={idCampo}>Contale tu objetivo a Sami</label>
+          <textarea
+            id={idCampo}
+            rows={4}
+            value={texto}
+            placeholder="Ej.: Quiero ganar $400.000 por mes sin subir demasiado los precios"
+            onChange={(evento) => setTexto(evento.target.value)}
+          />
+          <span className="input-hint">
+            Sami lo transforma en una meta medible y la sigue semana a semana.
+          </span>
         </div>
-        <div className="objetivos-meta-pie">
-          <span>Sami lo transforma en una meta medible y la va siguiendo semana a semana.</span>
-          <div className="objetivos-meta-acciones">
-            {onCancelar && (
-              <button type="button" className="btn secondary" onClick={onCancelar}>
-                Cancelar
+        <div>
+          <p className="objetivos-ejemplos-titulo">O empezá con uno de estos:</p>
+          <div className="example-chips">
+            {EJEMPLOS_DE_OBJETIVO.map((ejemplo) => (
+              <button type="button" key={ejemplo} onClick={() => setTexto(ejemplo)}>
+                {ejemplo}
               </button>
-            )}
-            <button type="submit" className="btn primary" disabled={!texto.trim()}>
-              Definir objetivo
-            </button>
+            ))}
           </div>
+        </div>
+        <div className="objetivos-formulario-acciones">
+          {onCancelar && (
+            <button type="button" className="btn secondary" onClick={onCancelar}>
+              Cancelar
+            </button>
+          )}
+          <button type="submit" className="btn primary" disabled={!texto.trim()}>
+            Definir objetivo
+          </button>
         </div>
       </form>
       <aside className="objetivos-fundamento">
-        <ChartLineUpIcon aria-hidden size={28} />
+        <ChartLineUpIcon aria-hidden size={24} />
         <div>
           <strong>Cómo se mide</strong>
           <p>

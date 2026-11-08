@@ -2,7 +2,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
-import { DATOS_DE_LECCION, LECCIONES_DE_ACADEMY, type LeccionDeAcademy } from '@/lib/academy';
+import { DATOS_DE_LECCION, LECCIONES_DE_SAMI, type LeccionDeSami } from '@/lib/ensenanza';
 import { useObjetivosStore } from '@/stores/objetivosStore';
 import { Encabezado } from '@/pages/Objetivos/piezas';
 import { LeccionEscenario } from './LeccionEscenario';
@@ -13,19 +13,19 @@ import {
   LeccionResultado,
 } from './Lecciones';
 
-type Props = { leccion: LeccionDeAcademy; objetivoId?: string };
+type Props = { leccion: LeccionDeSami; objetivoId?: string };
 
-// Sami Academy: donde Sami enseña contabilidad aplicada al negocio y explica cómo hace sus recomendaciones.
-export function SamiAcademyPage({ leccion, objetivoId }: Props) {
-  useTituloPagina('Sami Academy');
+// Sami te enseña: donde Sami enseña contabilidad aplicada al negocio y explica cómo hace sus recomendaciones.
+export function SamiEnsenaPage({ leccion, objetivoId }: Props) {
+  useTituloPagina('Sami te enseña');
   const navigate = useNavigate();
   const navegacion = useNavegacion();
   const objetivos = useObjetivosStore((estado) => estado.objetivos);
 
   // Cambiar de lección no vuelve al principio de la página ni suma entradas al historial.
-  const abrir = (siguiente: LeccionDeAcademy, objetivo = objetivoId) =>
+  const abrir = (siguiente: LeccionDeSami, objetivo = objetivoId) =>
     void navigate({
-      to: '/sami-academy',
+      to: '/sami-te-ensena',
       search: { leccion: siguiente, objetivo },
       replace: true,
       resetScroll: false,
@@ -35,18 +35,18 @@ export function SamiAcademyPage({ leccion, objetivoId }: Props) {
 
   return (
     <>
-      <CabeceraComun active="academy" />
-      <main id="main" tabIndex={-1} className="page-wrap objetivos-page academy-page reveal">
+      <CabeceraComun active="learn" />
+      <main id="main" tabIndex={-1} className="page-wrap objetivos-page ensenanza-page reveal">
         <Encabezado
-          etiqueta="Sami Academy"
-          titulo="Entendé tus números con Sami"
+          etiqueta="Lecciones"
+          titulo="Sami te enseña"
           texto="Lecciones cortas de contabilidad aplicadas a tu negocio: de dónde sale cada métrica, cómo hace Sami sus recomendaciones y cómo probar escenarios con tus objetivos."
           sami="Te enseña sin tecnicismos"
         />
-        <div className="academy-layout">
-          <nav className="academy-indice" aria-label="Lecciones">
+        <div className="ensenanza-layout">
+          <nav className="ensenanza-indice" aria-label="Lecciones">
             <ol>
-              {LECCIONES_DE_ACADEMY.map((clave, indice) => (
+              {LECCIONES_DE_SAMI.map((clave, indice) => (
                 <li key={clave}>
                   <button
                     type="button"
@@ -64,10 +64,10 @@ export function SamiAcademyPage({ leccion, objetivoId }: Props) {
               ))}
             </ol>
           </nav>
-          <section className="academy-contenido" aria-labelledby="leccion-titulo">
+          <section className="ensenanza-contenido" aria-labelledby="leccion-titulo">
             <header>
               <p className="objetivos-etiqueta">
-                Lección {LECCIONES_DE_ACADEMY.indexOf(leccion) + 1} de {LECCIONES_DE_ACADEMY.length}
+                Lección {LECCIONES_DE_SAMI.indexOf(leccion) + 1} de {LECCIONES_DE_SAMI.length}
               </p>
               <h2 id="leccion-titulo">{datos.titulo}</h2>
               <p>{datos.resumen}</p>

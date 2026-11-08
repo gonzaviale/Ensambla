@@ -29,8 +29,8 @@ export function LeccionEscenario({ objetivos, objetivoId, onElegir, onDefinir, o
   const objetivo = propio ?? objetivoDeEjemplo();
 
   return (
-    <div className="academy-leccion">
-      <ol className="academy-pasos">
+    <div className="ensenanza-leccion">
+      <ol className="ensenanza-pasos">
         <li>
           <strong>Elegís un objetivo.</strong>
           <span>El escenario parte de tu resultado de hoy y de la meta que te pusiste.</span>
@@ -47,7 +47,7 @@ export function LeccionEscenario({ objetivos, objetivoId, onElegir, onDefinir, o
 
       {propio ? (
         objetivos.length > 1 && (
-          <div className="academy-selector">
+          <div className="ensenanza-selector">
             <label htmlFor={idSelector}>Objetivo a probar</label>
             <select
               id={idSelector}
@@ -63,7 +63,7 @@ export function LeccionEscenario({ objetivos, objetivoId, onElegir, onDefinir, o
           </div>
         )
       ) : (
-        <div className="academy-aviso">
+        <div className="ensenanza-aviso">
           <p>
             Todavía no definiste objetivos, así que probamos con un ejemplo: «{objetivo.texto}».
           </p>
