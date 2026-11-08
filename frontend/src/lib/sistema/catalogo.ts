@@ -253,7 +253,8 @@ export const TEMPLATES: Record<ClavePlantilla, DefinicionDePlantilla> = {
 };
 
 export const COLORS: Record<Color, string> = {
-  orange: '#EE8000',
+  // Naranja único de la interfaz (el de la marca, #EE8000, da 2,7:1 con letras blancas).
+  orange: '#BD5900',
   coral: '#F85F5A',
   // Amarillo oscuro: con letra blanca es más oscuro que el #EBCE32 de la marca para que el blanco se lea, sin virar a marrón.
   yellow: '#ba9500',

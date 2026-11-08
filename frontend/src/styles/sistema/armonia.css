@@ -14,6 +14,9 @@
      (el #ee8000 puro da 2,7:1). El naranja de marca queda para bordes, íconos y detalles. */
   --accion: #bd5900;
   --accion-hover: #a64d00;
+  /* Un solo naranja en toda la interfaz: el resto de las hojas lo usan como `var(--orange)`.
+     El logo y la franja de colores de arriba conservan el naranja de marca (#ee8000). */
+  --orange: var(--accion);
   /* Gris de los textos secundarios: 5,4:1 sobre blanco (el anterior daba 4,6:1 y 4,3:1 sobre gris claro). */
   --muted: #5f6d72;
 
@@ -30,7 +33,7 @@
   --aviso-texto: #7a5f00;
   --info-borde: var(--blue);
   --info-texto: var(--petrol);
-  --naranja-texto: #b45300;
+  --naranja-texto: var(--accion);
 
   /* Neutros. */
   --superficie: #ffffff;
@@ -167,12 +170,14 @@
   box-shadow: var(--sombra-tarjeta-hover);
 }
 .inicio-ficha-icono {
-  background: var(--superficie);
-  border: 2px solid var(--accent);
-  color: var(--accent-texto);
+  border: 0;
+  background: none;
+  color: var(--accent);
 }
 .inicio-ficha-imagen {
-  border: 2px solid var(--accent);
+  padding: 0;
+  border: 0;
+  background: none;
 }
 .inicio-ficha-texto strong {
   color: var(--azul);
@@ -182,14 +187,14 @@
   opacity: 1;
 }
 .inicio-ficha-flecha {
-  background: var(--superficie);
-  border: 2px solid var(--accent);
-  color: var(--accent-texto);
+  border: 0;
+  background: none;
+  color: var(--accent);
 }
 .inicio-ficha:hover .inicio-ficha-flecha,
 .inicio-ficha:focus-visible .inicio-ficha-flecha {
-  background: var(--accent);
-  color: #fff;
+  background: none;
+  color: var(--accent-texto);
 }
 
 .inicio-hola {
@@ -248,9 +253,9 @@
   box-shadow: var(--sombra-tarjeta);
 }
 .inicio-plantilla-icono {
-  background: var(--superficie);
-  border: 2px solid var(--accent);
-  color: var(--accent-texto);
+  border: 0;
+  background: none;
+  color: var(--accent);
 }
 .inicio-plantilla h3 {
   color: var(--azul);
@@ -343,8 +348,8 @@
 }
 .alertas-lista .alerta-icono,
 .alertas-lista .alerta.p1 .alerta-icono {
-  background: var(--superficie);
-  border: 2px solid var(--nivel);
+  border: 0;
+  background: none;
   color: var(--nivel-texto);
 }
 .alerta-tipo {
@@ -429,8 +434,8 @@
 
 /* La campana: mismo criterio que la lista. */
 .campana-aviso-icono {
-  border: 2px solid var(--nivel);
-  background: var(--superficie);
+  border: 0;
+  background: none;
   color: var(--nivel-texto);
 }
 .campana-aviso-nivel {
@@ -518,29 +523,30 @@
   border-color: var(--urgente-borde);
   background: var(--superficie);
 }
-.welcome-choice > .icon-tile,
-.welcome-choice.reset > .icon-tile {
-  border: 2px solid currentColor;
-  background: var(--superficie);
+.welcome-choice > .icon-tile {
+  border: 0;
+  background: none;
 }
 
 /* Primera vez: los íconos de las dos opciones llevan borde en vez de relleno. */
 .welcome-choice.guided > .icon-tile {
-  border: 2px solid var(--accion);
-  background: var(--superficie);
+  border: 0;
+  background: none;
   color: var(--accion);
 }
 .welcome-choice.reset > .icon-tile {
-  border: 2px solid var(--urgente-borde);
-  background: var(--superficie);
+  border: 0;
+  background: none;
   color: var(--urgente-texto);
 }
 
 /* ───────── Planes: Premium en blanco con borde amarillo; el botón, amarillo con blanco ───────── */
+/* Premium: lo que más se mira de la página. Más ancha, borde amarillo grueso, sombra y precio grande. */
 .plan-card-premium {
-  border: 2px solid var(--aviso-borde);
+  border: 3px solid var(--aviso-borde);
   background: var(--superficie);
   color: var(--ink);
+  box-shadow: 0 26px 48px -28px rgb(186 149 0 / 0.6);
 }
 .plan-card-premium p {
   color: var(--muted);
@@ -560,15 +566,6 @@
 }
 .plan-card-premium .plan-feature-excluded {
   color: var(--muted);
-}
-.plan-card-premium .btn.primary {
-  border-color: #8f7000;
-  background: #8f7000;
-  color: #fff;
-}
-.plan-card-premium .btn.primary:hover:not(:disabled) {
-  border-color: #7a5f00;
-  background: #7a5f00;
 }
 .plan-card-premium .btn:disabled {
   border-color: var(--borde);
@@ -721,9 +718,9 @@
   color: var(--accent-texto);
 }
 .template-page .template-body .icon-tile {
-  border: 2px solid var(--accent);
-  background: var(--superficie);
-  color: var(--accent-texto);
+  border: 0;
+  background: none;
+  color: var(--accent);
 }
 .template-page .template-page .page-title .eyebrow,
 .template-page .page-title .eyebrow {
@@ -748,8 +745,8 @@
   color: var(--accent-texto);
 }
 .block-head .icon-tile {
-  border: 2px solid var(--accent);
-  background: var(--superficie);
+  border: 0;
+  background: none;
   color: var(--accent-texto);
 }
 .block-bar .btn.soft {
@@ -773,8 +770,8 @@
   box-shadow: var(--sombra-tarjeta);
 }
 .library-item .icon-tile {
-  border: 1.5px solid var(--accent);
-  background: var(--superficie);
+  border: 0;
+  background: none;
   color: var(--accent-texto);
 }
 .library-item p {
@@ -885,4 +882,65 @@
 .block .tabla-mas,
 .tabla-completa .tabla-mas {
   color: var(--accent-texto, var(--azul));
+}
+
+/* ───────── Planes ───────── */
+.plans-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.14fr);
+  align-items: stretch;
+}
+.plan-card:not(.plan-card-premium) {
+  border: 1px solid var(--borde);
+}
+.plan-card .plan-card-icon {
+  border: 0;
+  background: none;
+}
+.plan-card-premium h2 {
+  font-size: 36px;
+}
+.plan-card-premium .plan-price {
+  font-size: clamp(32px, 4vw, 46px);
+}
+.plan-card-premium .btn.primary {
+  min-height: 54px;
+  font-size: 16px;
+}
+
+/* «Plan actual»: un resumen chico, sin competir con las tarjetas. */
+.plan-current,
+.plan-current-trial {
+  padding: 16px 20px;
+  border: 1px solid var(--borde);
+  border-radius: 16px;
+}
+.plan-current .eyebrow {
+  font-size: 10px;
+}
+.plan-current h2 {
+  margin: 2px 0 0;
+  font-size: 17px;
+  letter-spacing: -0.3px;
+}
+.plan-usage-grid {
+  gap: 18px;
+  margin: 14px 0 8px;
+}
+.plan-usage dd {
+  margin: 3px 0 6px;
+}
+.plan-usage dd strong {
+  font-size: 20px;
+  letter-spacing: -0.5px;
+}
+.plan-usage-note {
+  font-size: 11px;
+}
+
+/* La fecha hasta cuándo dura el plan: abajo de las tarjetas, chica, a la izquierda y en gris. */
+.plans-nota {
+  margin: 14px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: left;
 }

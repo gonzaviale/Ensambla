@@ -131,7 +131,7 @@ describe('el resumen del negocio en PDF', () => {
     await user.click(within(modal).getByRole('link', { name: 'Ver planes' }));
 
     expect(
-      await screen.findByRole('heading', { name: 'Gratuito, tu espacio actual' }, ESPERA),
+      await screen.findByRole('heading', { name: 'Plan Gratuito' }, ESPERA),
     ).toBeVisible();
   });
 

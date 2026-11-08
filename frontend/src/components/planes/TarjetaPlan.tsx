@@ -52,7 +52,7 @@ export function TarjetaPlan({
           <Icon name={premium ? 'spark' : 'grid'} />
         </span>
         {actual ? (
-          <span className="plan-label">{pruebaActiva ? 'En prueba' : 'Tu plan'}</span>
+          <span className="plan-label">{pruebaActiva ? 'En prueba' : 'Plan actual'}</span>
         ) : null}
       </div>
       <h2>{plan.nombre}</h2>

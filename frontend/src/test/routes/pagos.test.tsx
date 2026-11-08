@@ -24,7 +24,7 @@ const contratoDeEjemplo = (): NonNullable<Renovacion['contrato']> => ({
   enlace: 'https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_id=contrato-local',
 });
 const esperarPlanes = () =>
-  screen.findByRole('heading', { name: /tu espacio actual|Tu prueba Premium está activa/ }, ESPERA);
+  screen.findByRole('heading', { name: /Plan (Gratuito|Premium)|Prueba Premium activa/ }, ESPERA);
 
 function simularRenovacion(datos: Renovacion) {
   server.use(http.get('/api/planes/renovacion', () => HttpResponse.json(datos)));
@@ -98,7 +98,7 @@ describe('contratación y renovación automática', () => {
     expect(intentos).toBe(1);
     expect(token).toBeTruthy();
     expect(body).toBe('');
-    expect(screen.getByRole('heading', { name: 'Gratuito, tu espacio actual' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Plan Gratuito' })).toBeVisible();
     expect(estado.pruebasPremium.size).toBe(0);
   });
 
@@ -112,7 +112,7 @@ describe('contratación y renovación automática', () => {
 
     expect(await screen.findByText('Renovación automática autorizada.', {}, ESPERA)).toBeVisible();
     expect(screen.getByText(/El acceso pago se habilita al confirmar/)).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'Gratuito, tu espacio actual' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Plan Gratuito' })).toBeVisible();
   });
 
   it('cancelar pide confirmación y conserva el Premium ya pagado', async () => {
@@ -153,7 +153,7 @@ describe('contratación y renovación automática', () => {
     expect(
       await screen.findByText('La renovación automática está cancelada.', {}, ESPERA),
     ).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'Premium, tu espacio actual' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Plan Premium' })).toBeVisible();
     expect(screen.getByText(/Tu período pago está disponible hasta/)).toBeVisible();
     expect(cancelaciones).toBe(1);
   });

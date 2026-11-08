@@ -46,6 +46,13 @@ export function PlanesPage() {
   const datos = consulta.data;
   const actual = datos?.planes.find((plan) => plan.codigo === datos.suscripcion.codigoPlanActual);
   const esPrueba = datos?.suscripcion.pruebaActiva ?? false;
+  // La fecha hasta cuándo dura el plan va chica, al pie de las tarjetas.
+  const notaDeVigencia =
+    esPrueba && datos?.prueba
+      ? `Disfrutá las funciones premium hasta el ${fecha(datos.prueba.finEn)}.`
+      : actual?.codigo === 'PREMIUM' && datos?.suscripcion.finEn
+        ? `Tu período pago está disponible hasta el ${fecha(datos.suscripcion.finEn)}.`
+        : null;
   const pruebaFinalizada =
     datos?.prueba &&
     Date.parse(datos.prueba.finEn) <= Date.parse(datos.consultadoEn) &&
@@ -96,24 +103,12 @@ export function PlanesPage() {
             >
               <div className="plan-current-heading">
                 <div>
-                  <span className="eyebrow">TU PLAN HOY</span>
+                  <span className="eyebrow">PLAN ACTUAL</span>
                   <h2 id="plan-current-title">
-                    {esPrueba
-                      ? 'Tu prueba Premium está activa'
-                      : `${actual.nombre}, tu espacio actual`}
+                    {esPrueba ? 'Prueba Premium activa' : `Plan ${actual.nombre}`}
                   </h2>
-                  {esPrueba && datos.prueba ? (
-                    <p>Disfrutá las funciones premium hasta el {fecha(datos.prueba.finEn)}.</p>
-                  ) : null}
                   {pruebaFinalizada ? (
                     <p>Tu prueba terminó. Seguís con el gratuito y todos tus datos se conservan.</p>
-                  ) : null}
-                  {!esPrueba && !pruebaFinalizada ? (
-                    <p>
-                      {actual.codigo === 'PREMIUM' && datos.suscripcion.finEn
-                        ? `Tu período pago está disponible hasta el ${fecha(datos.suscripcion.finEn)}.`
-                        : 'Acá podés ver lo que llevás usado en tu negocio.'}
-                    </p>
                   ) : null}
                 </div>
                 <Btn
@@ -136,7 +131,9 @@ export function PlanesPage() {
                   limite={actual.limiteRegistros}
                 />
                 <Uso
-                  titulo={esPrueba ? 'Análisis de foto de la prueba' : 'Análisis de foto de este mes'}
+                  titulo={
+                    esPrueba ? 'Análisis de foto de la prueba' : 'Análisis de foto de este mes'
+                  }
                   cantidad={datos.uso.paginasIa}
                   limite={datos.uso.limitePaginasIa}
                 />
@@ -151,8 +148,8 @@ export function PlanesPage() {
               datos.uso.limitePaginasIa !== null &&
               datos.uso.paginasIa >= datos.uso.limitePaginasIa ? (
                 <p className="plan-quota-notice" role="status">
-                  Usaste los análisis de foto incluidos. Las demás funciones premium siguen disponibles
-                  hasta que termine la prueba.
+                  Usaste los análisis de foto incluidos. Las demás funciones premium siguen
+                  disponibles hasta que termine la prueba.
                 </p>
               ) : null}
             </section>
@@ -174,6 +171,7 @@ export function PlanesPage() {
                 />
               ))}
             </section>
+            {notaDeVigencia ? <p className="plans-nota">* {notaDeVigencia}</p> : null}
             <section className="plans-reassurance" aria-labelledby="plans-data-title">
               <Icon name="check" />
               <div>

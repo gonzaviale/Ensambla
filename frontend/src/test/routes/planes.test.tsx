@@ -20,9 +20,9 @@ const pruebaDeEjemplo = (paginas = 3, vencida = false): PruebaPremium => {
   };
 };
 const esperarGratuito = () =>
-  screen.findByRole('heading', { name: 'Gratuito, tu espacio actual' }, ESPERA);
+  screen.findByRole('heading', { name: 'Plan Gratuito' }, ESPERA);
 const esperarPrueba = () =>
-  screen.findByRole('heading', { name: 'Tu prueba Premium está activa' }, ESPERA);
+  screen.findByRole('heading', { name: 'Prueba Premium activa' }, ESPERA);
 const botonPrueba = () => screen.getByRole('button', { name: 'Probar Premium por 7 días' });
 
 describe('planes y activación de prueba', () => {
@@ -147,7 +147,7 @@ describe('planes y activación de prueba', () => {
     server.use(http.get('/api/planes', () => HttpResponse.json(datos)));
     renderApp('/planes');
 
-    await screen.findByRole('heading', { name: 'Premium, tu espacio actual' }, ESPERA);
+    await screen.findByRole('heading', { name: 'Plan Premium' }, ESPERA);
 
     expect(screen.getByRole('button', { name: 'Premium activo' })).toBeDisabled();
     expect(screen.getByRole('progressbar', { name: 'Análisis de foto de este mes' })).toHaveAttribute(
@@ -200,7 +200,7 @@ describe('planes y activación de prueba', () => {
     expect(await screen.findByRole('alert', {}, ESPERA)).toHaveTextContent(/ya utilizó su prueba/);
 
     expect(intentos).toBe(1);
-    expect(screen.queryByRole('heading', { name: 'Tu prueba Premium está activa' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Prueba Premium activa' })).toBeNull();
     expect(estado.pruebasPremium.size).toBe(0);
   });
 

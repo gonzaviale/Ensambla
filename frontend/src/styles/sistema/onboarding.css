@@ -179,7 +179,7 @@ svg.sami {
   box-shadow: 0 2px 0 #e9cd9a33;
 }
 .welcome-choice.guided > .icon-tile {
-  background: #ee8000;
+  background: var(--orange);
   color: white;
 }
 .welcome-choice.reset {
@@ -191,7 +191,7 @@ svg.sami {
   color: #bb4944;
 }
 .welcome-choice:hover {
-  border-color: #ee8000;
+  border-color: var(--orange);
   box-shadow: 0 3px 12px #183e4d0a;
 }
 .welcome-modal .demo-welcome > .welcome-note {
@@ -221,7 +221,7 @@ svg.sami {
   pointer-events: auto;
   background: #fffdfa;
   border: 1px solid #eddbbc;
-  border-top: 4px solid #ee8000;
+  border-top: 4px solid var(--orange);
   border-radius: 16px;
   box-shadow: 0 15px 65px #122e4540;
   padding: 15px 17px 14px;
@@ -268,7 +268,7 @@ svg.sami {
   background: #e8edeb;
 }
 .tour-progress > i.active:nth-child(1) {
-  background: #ee8000;
+  background: var(--orange);
 }
 .tour-progress > i.active:nth-child(2) {
   background: #ebce32;
