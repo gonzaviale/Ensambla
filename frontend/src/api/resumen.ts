@@ -1,4 +1,3 @@
-import { metricasSchema } from '@/types/metricas';
 import { resumenInicioSchema } from '@/types/resumenInicio';
 import { http } from './client';
 
@@ -20,15 +19,3 @@ export function descargarResumen(sistemaId: string, periodo: PeriodoDelResumen, 
 /** Las métricas del inicio de un cuaderno: lo vendido hoy, lo que más salió, lo que falta y lo que está parado. */
 export const obtenerResumenInicio = (sistemaId: string, signal?: AbortSignal) =>
   http.get(`/proyectos/${encodeURIComponent(sistemaId)}/resumen/inicio`, resumenInicioSchema, signal);
-
-/** Las métricas detalladas de un cuaderno para hoy, la semana o el mes. */
-export const obtenerMetricas = (
-  sistemaId: string,
-  periodo: 'HOY' | 'SEMANA' | 'MES',
-  signal?: AbortSignal,
-) =>
-  http.get(
-    `/proyectos/${encodeURIComponent(sistemaId)}/resumen/metricas?periodo=${periodo}`,
-    metricasSchema,
-    signal,
-  );

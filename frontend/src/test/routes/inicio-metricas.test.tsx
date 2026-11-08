@@ -87,7 +87,7 @@ describe('inicio: cómo te va', () => {
     expect(pedidos).toEqual([]);
   });
 
-  it('con un cuaderno cargado muestra lo vendido hoy, lo que más salió, lo que falta y lo parado', async () => {
+  it('con un cuaderno cargado muestra lo vendido y lo parado, sin lo que más salió ni lo que falta', async () => {
     await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
 
     const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
@@ -104,9 +104,12 @@ describe('inicio: cómo te va', () => {
     ).toBeVisible();
     expect(within(seccion).queryByRole('combobox')).toBeNull();
     expect(
-      within(seccion).getByRole('heading', { name: 'Lo que más salió este mes' }),
+      within(seccion).getByRole('heading', { name: 'Sin venderse hace 2 semanas' }),
     ).toBeVisible();
-    expect(within(seccion).getByRole('heading', { name: 'Se te está acabando' })).toBeVisible();
+    expect(
+      within(seccion).queryByRole('heading', { name: 'Lo que más salió este mes' }),
+    ).toBeNull();
+    expect(within(seccion).queryByRole('heading', { name: 'Se te está acabando' })).toBeNull();
   });
 
   it('la tarjeta de ventas arranca en la semana y deja mirar hoy o el mes', async () => {
@@ -185,60 +188,14 @@ describe('inicio: cómo te va', () => {
     expect(within(seccion).queryByRole('heading', { name: /vendiste/ })).toBeNull();
   });
 
-  it('«Primera vez» y «Mis métricas» quedan arriba, junto al saludo', async () => {
-    const user = await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
+  it('«Primera vez» queda arriba, junto al saludo, y ya no hay acceso a «Mis métricas»', async () => {
+    await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
     const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
     expect(within(seccion).getByRole('button', { name: '¿Primera vez?' })).toBeVisible();
-
-    await user.click(within(seccion).getByRole('button', { name: 'Mis métricas' }));
-
-    await verifyPathAsync(user.router, '/metricas');
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Mis métricas' }, ESPERA),
-    ).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Mis métricas' })).toBeNull();
   });
 
-  it('si no falta nada dice «Tu stock está al día»', async () => {
-    server.use(
-      http.get('/api/proyectos/:sistemaId/resumen/inicio', () =>
-        HttpResponse.json(resumenSinNovedades()),
-      ),
-    );
-
-    await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
-
-    const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
-    expect(await within(seccion).findByText('Tu stock está al día', {}, ESPERA)).toBeVisible();
-    expect(within(seccion).queryByRole('heading', { name: 'Se te está acabando' })).toBeNull();
-  });
-
-  it('los productos que se acaban se destacan, cada uno en su recuadro', async () => {
-    server.use(
-      http.get('/api/proyectos/:sistemaId/resumen/inicio', () =>
-        HttpResponse.json({
-          ...resumenSinNovedades(),
-          faltantes: {
-            total: 2,
-            primeros: [
-              { nombre: 'Yerba', cantidad: 0, minimo: 5, pedir: null },
-              { nombre: 'Fideos', cantidad: 3, minimo: 6, pedir: null },
-            ],
-          },
-        }),
-      ),
-    );
-
-    await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
-
-    const tarjeta = await screen.findByRole('heading', { name: 'Se te está acabando' }, ESPERA);
-    const lista = within(tarjeta.closest('article') as HTMLElement).getByRole('list');
-    const recuadros = within(lista).getAllByRole('listitem');
-    expect(recuadros).toHaveLength(2);
-    expect(recuadros[0]).toHaveTextContent('YerbaAgotado');
-    expect(recuadros[1]).toHaveTextContent('FideosQuedan 3');
-  });
-
-  it('sin ventas anotadas muestra sólo el stock', async () => {
+  it('sin ventas anotadas no muestra la tarjeta de ventas', async () => {
     const sistema = almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z');
     sistema.sections.forEach((seccion) =>
       seccion.blocks.forEach((bloque) => {
@@ -250,8 +207,57 @@ describe('inicio: cómo te va', () => {
 
     const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
     expect(
-      await within(seccion).findByRole('heading', { name: 'Se te está acabando' }, ESPERA),
+      await within(seccion).findByRole('article', { name: 'Aviso económico' }, ESPERA),
     ).toBeVisible();
     expect(within(seccion).queryByRole('heading', { name: /vendiste/ })).toBeNull();
   });
+});
+
+describe('inicio: aviso económico', () => {
+  beforeEach(() => window.localStorage.clear());
+
+  it('muestra el aviso de ejemplo con su prioridad, sus números y la marca «Ejemplo»', async () => {
+    await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
+
+    const tarjeta = await screen.findByRole('article', { name: 'Aviso económico' }, ESPERA);
+    expect(
+      within(tarjeta).getByRole('heading', {
+        name: 'Las ventas crecieron 12 %, pero el resultado bruto bajó 4 %',
+      }),
+    ).toBeVisible();
+    expect(within(tarjeta).getByText('Prioridad alta')).toBeVisible();
+    expect(within(tarjeta).getByText('Ejemplo')).toBeVisible();
+    expect(within(tarjeta).getByText('Ventas').nextSibling).toHaveTextContent('+12 %');
+    expect(within(tarjeta).getByText('Resultado bruto').nextSibling).toHaveTextContent('−4 %');
+    expect(within(tarjeta).getByText('Productos involucrados').nextSibling).toHaveTextContent('3');
+    expect(within(tarjeta).getByText('Confianza').nextSibling).toHaveTextContent('Alta');
+  });
+
+  it('«Ver productos involucrados» los despliega y los vuelve a ocultar', async () => {
+    const user = await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
+    const tarjeta = await screen.findByRole('article', { name: 'Aviso económico' }, ESPERA);
+
+    await user.click(within(tarjeta).getByRole('button', { name: 'Ver productos involucrados' }));
+    const lista = within(tarjeta).getByRole('list', { name: 'Productos involucrados' });
+    expect(
+      within(lista)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent),
+    ).toEqual(['Aceite', 'Leche', 'Yerba']);
+
+    await user.click(within(tarjeta).getByRole('button', { name: 'Ocultar productos' }));
+    expect(within(tarjeta).queryByRole('list', { name: 'Productos involucrados' })).toBeNull();
+  });
+
+  it.each(['Entender por qué', 'Probar una solución'])(
+    '«%s» lleva al Laboratorio',
+    async (boton) => {
+      const user = await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
+      const tarjeta = await screen.findByRole('article', { name: 'Aviso económico' }, ESPERA);
+
+      await user.click(within(tarjeta).getByRole('button', { name: boton }));
+
+      await verifyPathAsync(user.router, '/laboratorio');
+    },
+  );
 });

@@ -5,6 +5,7 @@ import { GraficoDeBarras } from '@/components/sistema/metricas/GraficoDeBarras';
 import { SelectorDeCuaderno, SelectorDePeriodo } from '@/components/sistema/metricas/Selectores';
 import { useNumeroAnimado } from '@/components/sistema/metricas/useNumeroAnimado';
 import { useResumenInicio } from '@/hooks/reportes/queries';
+import { useAvisoEconomico } from '@/hooks/reportes/useAvisoEconomico';
 import { useCuadernoElegido } from '@/hooks/reportes/useCuadernoElegido';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { formatoPesos } from '@/lib/sistema/formato';
@@ -15,16 +16,17 @@ import {
   diaCompleto,
   diasDelGrafico,
   etiquetaDelDia,
-  formatoCantidad,
   textoUnidades,
   type PeriodoDeVentas,
 } from '@/lib/sistema/metricasInicio';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
 import type { Color } from '@/lib/sistema/tipos';
+import type { AvisoEconomico } from '@/types/avisoEconomico';
 import type { ResumenInicio } from '@/types/resumenInicio';
 
-// El tablero del inicio para quien ya usa Ensambla: el saludo, lo que viene vendiendo (lo primero que se mira), lo
-// que más sale, lo que se acaba y lo que está quieto. Nunca muestra ceros de relleno: si no hay datos, lo dice.
+// El tablero del inicio para quien ya usa Ensambla: el saludo, lo que viene vendiendo (lo primero que se mira), el
+// aviso económico, lo que más sale, lo que se acaba y lo que está quieto. Nunca muestra ceros de relleno: si
+// no hay datos, lo dice.
 export function MetricasDelInicio({
   nombre,
   onPrimeraVez,
@@ -32,7 +34,6 @@ export function MetricasDelInicio({
   nombre: string;
   onPrimeraVez: () => void;
 }) {
-  const navegacion = useNavegacion();
   const { cuadernos, cuaderno, elegir } = useCuadernoElegido();
   const { resumen, fallo, reintentar } = useResumenInicio(cuaderno?.id);
   if (!cuaderno) return null;
@@ -51,14 +52,6 @@ export function MetricasDelInicio({
           <button type="button" className="tablero-primera-vez" onClick={onPrimeraVez}>
             <Icon name="help" />
             ¿Primera vez?
-          </button>
-          <button
-            type="button"
-            className="tablero-ir-metricas"
-            onClick={() => void navegacion.irAMetricas()}
-          >
-            <Icon name="chart" />
-            Mis métricas
           </button>
         </div>
       </div>
@@ -87,11 +80,8 @@ export function MetricasDelInicio({
       ) : (
         <div className="tablero-cuerpo">
           {resumen.hayVentas && <TarjetaDeVentas resumen={resumen} />}
-          <div className="tablero-tarjetas">
-            {resumen.masVendido && <TarjetaMasVendido resumen={resumen} />}
-            {resumen.hayProductos && <TarjetaDeFaltantes resumen={resumen} />}
-            {resumen.parados.length > 0 && <TarjetaDeParados resumen={resumen} />}
-          </div>
+          <TarjetaDeAvisoEconomico sistemaId={cuaderno.id} cuaderno={cuaderno.name} />
+          {resumen.parados.length > 0 && <TarjetaDeParados resumen={resumen} />}
         </div>
       )}
     </section>
@@ -99,6 +89,100 @@ export function MetricasDelInicio({
 }
 
 type PropsDeTarjeta = { resumen: ResumenInicio };
+
+const PRIORIDAD: Record<AvisoEconomico['prioridad'], string> = {
+  ALTA: 'Prioridad alta',
+  MEDIA: 'Prioridad media',
+  BAJA: 'Para mirar',
+};
+
+const CONFIANZA: Record<AvisoEconomico['confianza'], string> = {
+  ALTA: 'Alta',
+  MEDIA: 'Media',
+  BAJA: 'Baja',
+};
+
+const conSigno = (valor: number) => `${valor > 0 ? '+' : valor < 0 ? '−' : ''}${Math.abs(valor)} %`;
+
+// El aviso económico del cuaderno, como en el Laboratorio de decisiones: la prioridad a un costado, qué cambió, los
+// números que lo muestran y qué hacer. Mientras el backend no lo calcula es un ejemplo, y lo dice.
+function TarjetaDeAvisoEconomico({ sistemaId, cuaderno }: { sistemaId: string; cuaderno: string }) {
+  const { aviso, esEjemplo } = useAvisoEconomico(sistemaId);
+  const navegacion = useNavegacion();
+  const [verProductos, setVerProductos] = useState(false);
+  if (!aviso) return null;
+  const irAlLaboratorio = () => void navegacion.irALaboratorio();
+  return (
+    <article
+      className="tablero-aviso-sami"
+      data-prioridad={aviso.prioridad}
+      aria-label="Aviso económico"
+    >
+      <div className="tablero-aviso-sami-prioridad">
+        <Icon name="chart" />
+        <span>{PRIORIDAD[aviso.prioridad]}</span>
+      </div>
+      <div className="tablero-aviso-sami-contenido">
+        <p className="tablero-aviso-sami-etiqueta">
+          {aviso.categoria} · {cuaderno}
+          {esEjemplo && (
+            <>
+              {' '}
+              <span className="tablero-aviso-sami-ejemplo">Ejemplo</span>
+            </>
+          )}
+        </p>
+        <h3>{aviso.titulo}</h3>
+        <p className="tablero-aviso-sami-detalle">{aviso.explicacion}</p>
+        <dl className="tablero-aviso-sami-evidencias">
+          <div>
+            <dt>Ventas</dt>
+            <dd>{conSigno(aviso.variacionVentas)}</dd>
+          </div>
+          <div>
+            <dt>Resultado bruto</dt>
+            <dd>{conSigno(aviso.variacionResultadoBruto)}</dd>
+          </div>
+          <div>
+            <dt>Productos involucrados</dt>
+            <dd>{aviso.productos.length}</dd>
+          </div>
+          <div>
+            <dt>Confianza</dt>
+            <dd>{CONFIANZA[aviso.confianza]}</dd>
+          </div>
+        </dl>
+        {verProductos && (
+          <ul className="tablero-aviso-sami-productos" aria-label="Productos involucrados">
+            {aviso.productos.map((producto) => (
+              <li key={producto}>{producto}</li>
+            ))}
+          </ul>
+        )}
+        <div className="tablero-aviso-sami-acciones">
+          <button
+            type="button"
+            className="tablero-aviso-sami-boton principal"
+            onClick={irAlLaboratorio}
+          >
+            Entender por qué
+          </button>
+          <button type="button" className="tablero-aviso-sami-boton" onClick={irAlLaboratorio}>
+            Probar una solución
+          </button>
+          <button
+            type="button"
+            className="tablero-aviso-sami-textual"
+            aria-expanded={verProductos}
+            onClick={() => setVerProductos((valor) => !valor)}
+          >
+            {verProductos ? 'Ocultar productos' : 'Ver productos involucrados'}
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
 
 // Lo que se viene vendiendo: el número grande, la comparación y las ventas día por día. Arranca en la semana.
 function TarjetaDeVentas({ resumen }: PropsDeTarjeta) {
@@ -213,54 +297,6 @@ function Tarjeta({
       </header>
       {children}
     </article>
-  );
-}
-
-function TarjetaMasVendido({ resumen }: PropsDeTarjeta) {
-  const producto = resumen.masVendido;
-  if (!producto) return null;
-  return (
-    <Tarjeta color="orange" icono="spark" titulo="Lo que más salió este mes">
-      <p className="tablero-tarjeta-valor">{producto.nombre}</p>
-      <p className="tablero-tarjeta-dato">
-        {textoUnidades(producto.unidades)} en los últimos 30 días
-      </p>
-      {producto.ganancia != null && (
-        <p className="tablero-tarjeta-nota">Te dejó cerca de {formatoPesos(producto.ganancia)}.</p>
-      )}
-    </Tarjeta>
-  );
-}
-
-function TarjetaDeFaltantes({ resumen }: PropsDeTarjeta) {
-  const { total, primeros } = resumen.faltantes;
-  if (total === 0) {
-    return (
-      <Tarjeta color="yellow" icono="check-circle" titulo="Stock">
-        <p className="tablero-tarjeta-valor">Tu stock está al día</p>
-        <p className="tablero-tarjeta-dato">
-          Ningún producto está agotado ni por debajo de su mínimo.
-        </p>
-      </Tarjeta>
-    );
-  }
-  return (
-    <Tarjeta color="coral" icono="box" titulo="Se te está acabando">
-      <p className="tablero-tarjeta-valor">{total === 1 ? '1 producto' : `${total} productos`}</p>
-      <ul className="tablero-tarjeta-lista tablero-tarjeta-lista-recuadros">
-        {primeros.map((producto) => (
-          <li key={producto.nombre} data-agotado={producto.cantidad <= 0 ? 'true' : undefined}>
-            <span>{producto.nombre}</span>
-            <strong>
-              {producto.cantidad <= 0 ? 'Agotado' : `Quedan ${formatoCantidad(producto.cantidad)}`}
-            </strong>
-          </li>
-        ))}
-      </ul>
-      {total > primeros.length && (
-        <p className="tablero-tarjeta-nota">y {total - primeros.length} más.</p>
-      )}
-    </Tarjeta>
   );
 }
 

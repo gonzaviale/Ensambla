@@ -13,8 +13,8 @@ const leerCuadernoElegido = () => {
 };
 
 /**
- * Los cuadernos que tienen números para mostrar y cuál se está mirando. Arranca con el último elegido (lo comparten el
- * inicio y «Mis métricas») o, si no hay, con el último que se tocó.
+ * Los cuadernos que tienen números para mostrar y cuál se está mirando. Arranca con el último elegido en el inicio o,
+ * si no hay, con el último que se tocó.
  */
 export function useCuadernoElegido() {
   const sistemas = useSistemaStore((estado) => estado.sistemas);
