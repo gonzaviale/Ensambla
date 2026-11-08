@@ -1,7 +1,8 @@
 # Armonía visual
 
-Rama: `feat/armonia-visual`. Solo estilos (`frontend/src/styles/sistema/armonia.css`, que carga al final): no cambia
-funcionalidad ni componentes. Unifica cómo se pintan botones, avisos y tarjetas.
+Rama: `feat/armonia-visual`. Casi todo son estilos (`frontend/src/styles/sistema/armonia.css`, que carga al final). Lo único que no es CSS:
+el texto y el orden de la pantalla de Planes y el color naranja de los bloques. No cambia funcionalidad. Unifica cómo se
+pintan botones, avisos y tarjetas.
 
 ## Reglas
 
@@ -36,7 +37,7 @@ funcionalidad ni componentes. Unifica cómo se pintan botones, avisos y tarjetas
 | `--urgente-borde` / `--urgente-texto` | `#f85f5a` / `#c42b2b` | rojo |
 | `--aviso-borde` / `--aviso-texto` | `#ebce32` / `#7a5f00` | amarillo |
 | `--info-borde` / `--azul-texto` | `#4eb2d4` / `#1f6f8f` | celeste |
-| `--naranja-texto` | `#b45300` | letras naranja sobre blanco |
+| `--naranja-texto` | `= --accion` | letras naranja sobre blanco |
 | `--muted` | `#5f6d72` | texto secundario (antes `#69777c`) |
 
 Cada color tiene una versión `-texto` que llega a 4,5:1 sobre blanco. Los de marca (`#ee8000`, `#ebce32`, `#4eb2d4`)
