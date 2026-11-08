@@ -1,0 +1,888 @@
+/* Armonía visual: una sola forma de pintar botones, avisos y tarjetas.
+   Carga al final, así que manda sobre las hojas anteriores.
+
+   Reglas del sistema
+   - Colores de la paleta, pero casi siempre como borde, ícono o letra; el fondo es blanco o gris muy claro.
+   - Un botón principal por zona: naranja con letras blancas. El resto, azul: sin fondo (secundario) o
+     sólido (cuando tiene que destacar). El amarillo es solo para casos puntuales.
+   - Estados: rojo = urgente o peligro, amarillo = atención, azul = información o normal.
+   - Cada color tiene una versión para texto (`-texto`) que llega a 4,5:1 sobre blanco; la de marca queda
+     para bordes, íconos y detalles. */
+
+:root {
+  /* Acción principal: el naranja de marca, oscurecido lo justo para que las letras blancas lleguen a 4,5:1
+     (el #ee8000 puro da 2,7:1). El naranja de marca queda para bordes, íconos y detalles. */
+  --accion: #bd5900;
+  --accion-hover: #a64d00;
+  /* Gris de los textos secundarios: 5,4:1 sobre blanco (el anterior daba 4,6:1 y 4,3:1 sobre gris claro). */
+  --muted: #5f6d72;
+
+  /* Azul de la marca (petróleo) para texto, bordes y botones sólidos. El celeste queda para detalles. */
+  --azul: var(--petrol);
+  --azul-hover: #003e53;
+  --azul-claro: var(--blue);
+  --azul-borde: #9fcfdf;
+
+  /* Estados. `-borde` y `-icono` son los de marca; `-texto` es el legible sobre blanco. */
+  --urgente-borde: var(--coral);
+  --urgente-texto: #c42b2b;
+  --aviso-borde: var(--yellow);
+  --aviso-texto: #7a5f00;
+  --info-borde: var(--blue);
+  --info-texto: var(--petrol);
+  --naranja-texto: #b45300;
+
+  /* Neutros. */
+  --superficie: #ffffff;
+  --superficie-suave: #f7f8f6;
+  --borde: #e4e6df;
+  --borde-fuerte: #cfd4ca;
+}
+
+/* ───────── Botones ───────── */
+
+.btn {
+  min-height: 43px;
+  padding: 10px 18px;
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  font-weight: 700;
+  box-shadow: none;
+}
+.btn:hover:not(:disabled) {
+  transform: none;
+}
+
+/* Principal: naranja, letras blancas. */
+.btn.primary,
+.btn.orange {
+  background: var(--accion);
+  border-color: var(--accion);
+  color: #fff;
+  box-shadow: none;
+}
+.btn.primary:hover:not(:disabled),
+.btn.orange:hover:not(:disabled) {
+  background: var(--accion-hover);
+  border-color: var(--accion-hover);
+}
+
+/* Secundario: sin fondo, letras y borde azules. `soft` es el mismo botón. */
+.btn.secondary,
+.btn.soft {
+  background: transparent;
+  border-color: var(--azul);
+  color: var(--azul);
+  box-shadow: none;
+}
+.btn.secondary:hover:not(:disabled),
+.btn.soft:hover:not(:disabled) {
+  background: #eef6f9;
+  border-color: var(--azul);
+  color: var(--azul);
+}
+
+/* Azul sólido: cuando el botón tiene que destacar sin ser la acción principal. */
+.btn.azul {
+  background: var(--azul);
+  border-color: var(--azul);
+  color: #fff;
+}
+.btn.azul:hover:not(:disabled) {
+  background: var(--azul-hover);
+  border-color: var(--azul-hover);
+}
+
+/* Amarillo con blanco: solo en casos puntuales (por ejemplo, lo que es Premium). */
+.btn.amarillo {
+  background: #8f7000;
+  border-color: #8f7000;
+  color: #fff;
+}
+.btn.amarillo:hover:not(:disabled) {
+  background: #7a5f00;
+  border-color: #7a5f00;
+}
+
+/* Sin fondo ni borde: acciones de baja jerarquía. */
+.btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--azul);
+}
+.btn.ghost:hover:not(:disabled) {
+  background: #eef6f9;
+}
+
+/* Peligro: rojo. La versión suave (`danger`) es sin fondo; la sólida (`peligro`) confirma. */
+.btn.danger {
+  background: transparent;
+  border-color: var(--urgente-texto);
+  color: var(--urgente-texto);
+}
+.btn.danger:hover:not(:disabled) {
+  background: #fdf0ee;
+}
+.btn.peligro {
+  background: var(--urgente-texto);
+  border-color: var(--urgente-texto);
+  color: #fff;
+  box-shadow: none;
+}
+.btn.peligro:hover:not(:disabled) {
+  background: #a82424;
+  border-color: #a82424;
+}
+.btn.peligro:disabled {
+  background: #b9b9b9;
+  border-color: #b9b9b9;
+}
+
+/* ───────── Tarjetas de color: borde, ícono y letra del color; el fondo es blanco ─────────
+   Cada tarjeta recibe su color en `--accent`. `--accent-texto` es el mismo color, más oscuro, para
+   las letras (con el celeste o el amarillo de marca directo no se leen). */
+.inicio-ficha,
+.inicio-cuaderno,
+.inicio-plantilla,
+.inicio-atajo {
+  --accent-texto: color-mix(in srgb, var(--accent) 58%, #000);
+}
+
+:root {
+  --azul-texto: #1f6f8f;
+  --sombra-tarjeta: 0 10px 24px -18px rgb(38 52 67 / 0.45);
+  --sombra-tarjeta-hover: 0 16px 30px -18px rgb(38 52 67 / 0.5);
+}
+
+/* Inicio: las tres maneras de empezar. */
+.inicio-ficha {
+  background: var(--superficie);
+  border: 2px solid var(--accent);
+  color: var(--ink);
+  box-shadow: var(--sombra-tarjeta);
+}
+.inicio-ficha:hover,
+.inicio-ficha:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: var(--sombra-tarjeta-hover);
+}
+.inicio-ficha-icono {
+  background: var(--superficie);
+  border: 2px solid var(--accent);
+  color: var(--accent-texto);
+}
+.inicio-ficha-imagen {
+  border: 2px solid var(--accent);
+}
+.inicio-ficha-texto strong {
+  color: var(--azul);
+}
+.inicio-ficha-texto span {
+  color: var(--muted);
+  opacity: 1;
+}
+.inicio-ficha-flecha {
+  background: var(--superficie);
+  border: 2px solid var(--accent);
+  color: var(--accent-texto);
+}
+.inicio-ficha:hover .inicio-ficha-flecha,
+.inicio-ficha:focus-visible .inicio-ficha-flecha {
+  background: var(--accent);
+  color: #fff;
+}
+
+.inicio-hola {
+  color: var(--azul-texto);
+}
+
+/* Inicio: otras herramientas. */
+.inicio-atajo-icono {
+  background: var(--superficie);
+  border: 2px solid var(--accent);
+  color: var(--accent-texto);
+  box-shadow: none;
+}
+.inicio-atajo:hover .inicio-atajo-icono,
+.inicio-atajo:focus-visible .inicio-atajo-icono {
+  transform: none;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.inicio-atajo-texto strong {
+  color: var(--azul);
+}
+
+/* Cuadernos guardados: el lomo y el borde llevan el color; la tapa es blanca. */
+.inicio-cuaderno {
+  background: var(--superficie);
+  border: 2px solid var(--accent);
+  color: var(--ink);
+  box-shadow: var(--sombra-tarjeta);
+}
+.inicio-cuaderno:hover,
+.inicio-cuaderno:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: var(--sombra-tarjeta-hover);
+}
+.inicio-cuaderno-lomo {
+  border-right: 2px solid var(--accent);
+  background: radial-gradient(circle, var(--accent) 3.5px, transparent 4px) center 6px / 22px 18px
+    repeat-y;
+}
+.inicio-cuaderno-tapa .icon {
+  color: var(--accent-texto);
+}
+.inicio-cuaderno-tapa strong {
+  color: var(--azul);
+}
+.inicio-cuaderno-tapa span {
+  color: var(--muted);
+  opacity: 1;
+}
+
+/* Plantillas. */
+.inicio-plantilla {
+  background: var(--superficie);
+  border: 2px solid var(--accent);
+  color: var(--ink);
+  box-shadow: var(--sombra-tarjeta);
+}
+.inicio-plantilla-icono {
+  background: var(--superficie);
+  border: 2px solid var(--accent);
+  color: var(--accent-texto);
+}
+.inicio-plantilla h3 {
+  color: var(--azul);
+}
+.inicio-plantilla p {
+  color: var(--muted);
+  opacity: 1;
+}
+.inicio-plantilla-piezas li {
+  background: var(--superficie);
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, #fff);
+  color: var(--accent-texto);
+}
+/* «Ver el cuaderno»: un botón secundario más. */
+.inicio-plantilla-ver {
+  border: 1.5px solid var(--azul);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--azul);
+}
+.inicio-plantilla-ver:hover,
+.inicio-plantilla-ver:focus-visible {
+  background: #eef6f9;
+}
+
+/* Mis cuadernos. */
+.cuadernos-etiqueta {
+  border: 1.5px solid var(--aviso-borde);
+  background: var(--superficie);
+  color: var(--aviso-texto);
+}
+.cuadernos-cifras span {
+  border: 1.5px solid var(--accion);
+  background: var(--superficie);
+  color: var(--naranja-texto);
+}
+.cuadernos-cifras span[data-color='blue'] {
+  border-color: var(--azul-claro);
+  background: var(--superficie);
+  color: var(--azul-texto);
+}
+.cuadernos-ajustar {
+  border: 1.5px solid var(--azul);
+  color: var(--azul);
+}
+.cuadernos-ajustar:hover {
+  background: #eef6f9;
+  color: var(--azul);
+}
+.cuadernos-vacio {
+  border: 2px solid var(--azul);
+  background: var(--superficie);
+  color: var(--ink);
+}
+.cuadernos-vacio h2 {
+  color: var(--azul);
+}
+.cuadernos-page .cuadernos-vacio p {
+  color: var(--muted);
+}
+
+/* ───────── Avisos: el color lo da la prioridad, no el tipo ─────────
+   Urgente = rojo, para hoy = amarillo, para mirar = azul. El tipo (stock, precio…) queda como etiqueta. */
+.alerta,
+.alerta[data-tipo],
+.campana-aviso {
+  --nivel: var(--info-borde);
+  --nivel-texto: var(--info-texto);
+  --nivel-tint: var(--superficie);
+}
+.alerta.p2,
+.alerta.p2[data-tipo],
+.campana-aviso.p2 {
+  --nivel: var(--aviso-borde);
+  --nivel-texto: var(--aviso-texto);
+}
+.alerta.p3,
+.alerta.p3[data-tipo],
+.campana-aviso.p3 {
+  --nivel: var(--urgente-borde);
+  --nivel-texto: var(--urgente-texto);
+}
+
+.alertas-lista .alerta,
+.alertas-lista .alerta.p3 {
+  background: var(--superficie);
+  border: 2px solid var(--nivel);
+  border-left-width: 8px;
+  box-shadow: none;
+}
+.alertas-lista .alerta-icono,
+.alertas-lista .alerta.p1 .alerta-icono {
+  background: var(--superficie);
+  border: 2px solid var(--nivel);
+  color: var(--nivel-texto);
+}
+.alerta-tipo {
+  border: 1px solid var(--borde-fuerte);
+  background: transparent;
+  color: var(--ink);
+}
+.alertas-lista .alerta-nivel,
+.alertas-lista .alerta.p1 .alerta-nivel,
+.alertas-lista .alerta.p3 .alerta-nivel {
+  padding: 2px 9px;
+  border: 1.5px solid var(--nivel);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--nivel-texto);
+}
+.alertas-lista .alerta h3 {
+  color: var(--ink);
+}
+.alerta-propuesta,
+.alertas-lista .alerta.p3 .alerta-propuesta {
+  background: var(--superficie-suave);
+  border: 1.5px dashed var(--borde-fuerte);
+}
+.alerta-ver:hover,
+.alerta-ver:focus-visible {
+  background: var(--superficie-suave);
+}
+.alerta-descartar:hover,
+.alerta-descartar:focus-visible {
+  border-color: var(--urgente-texto);
+  background: var(--superficie);
+  color: var(--urgente-texto);
+}
+
+/* «Lo que no puede esperar»: borde rojo, letras rojas. */
+.alertas-urgentes {
+  border: 2px solid var(--urgente-borde);
+  background: var(--superficie);
+  color: var(--urgente-texto);
+}
+.alertas-urgentes strong {
+  color: var(--urgente-texto);
+}
+.alertas-urgentes button {
+  border: 1.5px solid var(--urgente-borde);
+  background: var(--superficie);
+  color: var(--urgente-texto);
+}
+.alertas-urgentes button:hover,
+.alertas-urgentes button:focus-visible {
+  background: #fdf0ee;
+}
+
+/* Encabezado de Sami: blanco, con borde y título azules. */
+.alertas-head {
+  border: 2px solid var(--azul);
+  background: var(--superficie);
+  color: var(--ink);
+}
+.alertas-head .eyebrow {
+  color: var(--aviso-texto);
+}
+.alertas-head h1 {
+  color: var(--azul);
+}
+.alertas-head p {
+  color: var(--muted);
+}
+.alertas-vacio.ok {
+  border: 2px solid var(--azul);
+  border-top: 6px solid var(--aviso-borde);
+  background: var(--superficie);
+  box-shadow: none;
+}
+.alertas-vacio.ok h3 {
+  color: var(--azul);
+}
+.alertas-vacio.ok p {
+  color: var(--muted);
+}
+
+/* La campana: mismo criterio que la lista. */
+.campana-aviso-icono {
+  border: 2px solid var(--nivel);
+  background: var(--superficie);
+  color: var(--nivel-texto);
+}
+.campana-aviso-nivel {
+  border: 1.5px solid var(--nivel);
+  background: transparent;
+  color: var(--nivel-texto);
+}
+.campana-aviso-ocultar:hover {
+  background: transparent;
+  color: var(--urgente-texto);
+}
+.alert-badge {
+  background: var(--azul);
+}
+.alert-bell.urgente .alert-badge {
+  background: var(--urgente-texto);
+}
+
+/* Contadores de los filtros de avisos: el activo va en blanco sobre la marca azul. */
+.alertas-cinta .alertas-filtros button.active span {
+  background: #fff;
+  color: var(--azul);
+}
+
+/* ───────── Avisos sueltos, errores e información: fondo blanco y borde del estado ───────── */
+.sample-data-banner,
+.blank-warning,
+.storage-warning,
+.simulation-label,
+.home-v2 .import-banner,
+.tour-hint,
+.library-tip,
+.block-library .library-tip {
+  border: 1.5px solid var(--aviso-borde);
+  background: var(--superficie);
+  color: var(--aviso-texto);
+}
+.form-error {
+  border: 1.5px solid var(--urgente-borde);
+  background: var(--superficie);
+  color: var(--urgente-texto);
+}
+.sami-aside,
+.welcome-bubble,
+.campos-nuevos,
+.info-box,
+.help-answer,
+.agenda-card,
+.preview-appointment {
+  border: 1.5px solid var(--azul-borde);
+  background: var(--superficie);
+  color: var(--ink);
+}
+.status-badge.progress {
+  border: 1px solid var(--azul-borde);
+  background: var(--superficie);
+  color: var(--azul);
+}
+.status-badge.good,
+.tag.aceptado,
+.zona-etiqueta.justo {
+  border: 1px solid #9ccdb4;
+  background: var(--superficie);
+  color: var(--ok);
+}
+.status-badge,
+.tag.warm,
+.zona-etiqueta.bajo {
+  border: 1px solid var(--aviso-borde);
+  background: var(--superficie);
+  color: var(--aviso-texto);
+}
+.zona-etiqueta.alto {
+  border: 1px solid var(--urgente-borde);
+  background: var(--superficie);
+  color: var(--urgente-texto);
+}
+
+/* Primera vez: las dos maneras de empezar. */
+.welcome-choice.guided {
+  border-color: var(--accion);
+  background: var(--superficie);
+}
+.welcome-choice.reset {
+  border-color: var(--urgente-borde);
+  background: var(--superficie);
+}
+.welcome-choice > .icon-tile,
+.welcome-choice.reset > .icon-tile {
+  border: 2px solid currentColor;
+  background: var(--superficie);
+}
+
+/* Primera vez: los íconos de las dos opciones llevan borde en vez de relleno. */
+.welcome-choice.guided > .icon-tile {
+  border: 2px solid var(--accion);
+  background: var(--superficie);
+  color: var(--accion);
+}
+.welcome-choice.reset > .icon-tile {
+  border: 2px solid var(--urgente-borde);
+  background: var(--superficie);
+  color: var(--urgente-texto);
+}
+
+/* ───────── Planes: Premium en blanco con borde amarillo; el botón, amarillo con blanco ───────── */
+.plan-card-premium {
+  border: 2px solid var(--aviso-borde);
+  background: var(--superficie);
+  color: var(--ink);
+}
+.plan-card-premium p {
+  color: var(--muted);
+}
+.plan-card-premium .plan-price {
+  color: var(--ink);
+}
+.plan-card-premium .plan-card-icon,
+.plans-heading-piece,
+.plan-trial-symbol {
+  border: 2px solid var(--aviso-borde);
+  background: var(--superficie);
+  color: var(--aviso-texto);
+}
+.plan-card-premium .plan-limits > div {
+  border-color: var(--borde);
+}
+.plan-card-premium .plan-feature-excluded {
+  color: var(--muted);
+}
+.plan-card-premium .btn.primary {
+  border-color: #8f7000;
+  background: #8f7000;
+  color: #fff;
+}
+.plan-card-premium .btn.primary:hover:not(:disabled) {
+  border-color: #7a5f00;
+  background: #7a5f00;
+}
+.plan-card-premium .btn:disabled {
+  border-color: var(--borde);
+  background: var(--superficie-suave);
+  color: var(--muted);
+}
+.plan-card-premium .plan-label {
+  border-color: var(--aviso-borde);
+  color: var(--aviso-texto);
+}
+
+/* ───────── Objetivos y Sami te enseña ───────── */
+.objetivos-camino.recomendado,
+.objetivos-alternativa-zona.recomendada {
+  border: 2px solid var(--accion);
+  background: var(--superficie);
+}
+.objetivos-explicacion,
+.objetivos-fundamento,
+.objetivos-cierre {
+  border: 1.5px solid var(--azul-borde);
+  background: var(--superficie);
+}
+.objetivos-cierre-sami {
+  border-right: 1.5px solid var(--azul-borde);
+  background: var(--superficie);
+}
+.objetivos-linea-contable.destacada {
+  border-left: 4px solid var(--azul-claro);
+  background: var(--superficie);
+}
+.objetivos-linea-contable.total {
+  border-top: 2px solid var(--azul);
+  background: var(--superficie);
+}
+.objetivos-linea-contable.total strong,
+.objetivos-linea-contable.total b {
+  color: var(--azul);
+}
+.objetivos-linea-contable.total span {
+  color: var(--muted);
+}
+.objetivos-formula,
+.objetivos-traductor > div:not(.objetivos-traductor-sami),
+.ensenanza-aviso {
+  border: 1.5px solid var(--aviso-borde);
+  background: var(--superficie);
+  color: var(--aviso-texto);
+}
+.objetivos-calidad {
+  border: 1.5px solid #9ccdb4;
+  background: var(--superficie);
+}
+.objetivos-tarea > span {
+  border: 1.5px solid var(--accion);
+  background: var(--superficie);
+  color: var(--naranja-texto);
+}
+.objetivos-meta-plan {
+  border: 2px solid var(--azul);
+  background: var(--superficie);
+}
+.objetivos-recomendacion {
+  border: 1.5px solid var(--accion);
+  background: var(--superficie);
+  color: var(--naranja-texto);
+}
+.objetivos-recomendacion.abierta {
+  background: var(--superficie);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accion) 22%, transparent);
+}
+.objetivos-recomendacion-panel {
+  border: 1.5px solid var(--borde);
+  border-left: 4px solid var(--accion);
+  background: var(--superficie);
+}
+.ensenanza-indice button.active {
+  border: 2px solid var(--azul);
+  background: var(--superficie);
+}
+.ensenanza-consejos li {
+  border: 1px solid var(--borde);
+  border-left: 4px solid var(--accion);
+  background: var(--superficie);
+}
+
+/* ───────── Mi zona: resumen y banner en blanco, con borde azul ───────── */
+.zona-ref,
+.zone-banner {
+  border: 2px solid var(--azul);
+  background: var(--superficie);
+  color: var(--ink);
+}
+.zona-ref h2,
+.zone-banner h3 {
+  color: var(--azul);
+}
+.zona-ref p,
+.zone-banner p {
+  color: var(--muted);
+}
+.zona-ref .eyebrow {
+  color: var(--aviso-texto);
+}
+.zona-ref-nums div {
+  border: 1px solid var(--borde);
+  border-top-width: 4px;
+}
+.zona-etiqueta {
+  border: 1px solid var(--azul-borde);
+  background: var(--superficie);
+  color: var(--azul);
+}
+
+/* Mi zona: la pestaña elegida lleva el borde y las letras de su color, sin relleno. */
+.zona-vistas button.active {
+  border-color: var(--tab);
+  background: var(--superficie);
+  color: color-mix(in srgb, var(--tab) 58%, #000);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tab) 22%, transparent);
+}
+.zona-vistas button.active .icon {
+  color: var(--tab);
+}
+
+/* ───────── Plantillas ───────── */
+.template-page .template-card,
+.template-page .filter-pills button {
+  --accent-texto: color-mix(in srgb, var(--accent) 58%, #000);
+}
+.template-page .filter-pills button.active {
+  border-color: var(--accent);
+  background: var(--superficie);
+  color: var(--accent-texto);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.template-page .filter-pills button.active .filtro-punto {
+  background: var(--accent);
+}
+.template-page .set-visual {
+  border-bottom: 3px solid var(--accent);
+  background: var(--superficie-suave);
+}
+.template-page .set-top span {
+  background: var(--accent);
+  opacity: 0.55;
+}
+.template-page .set-count,
+.template-page [data-template='shop'] .set-count {
+  color: var(--accent-texto);
+}
+.template-page .template-body .icon-tile {
+  border: 2px solid var(--accent);
+  background: var(--superficie);
+  color: var(--accent-texto);
+}
+.template-page .template-page .page-title .eyebrow,
+.template-page .page-title .eyebrow {
+  color: var(--naranja-texto);
+}
+
+/* ───────── Editor del cuaderno: los bloques llevan su color en el borde y el título ───────── */
+.block,
+.library-item {
+  --accent-texto: color-mix(in srgb, var(--accent) 58%, #000);
+}
+.block {
+  border-color: color-mix(in srgb, var(--accent) 55%, #fff);
+}
+.block .block-head {
+  border-bottom: 3px solid var(--accent);
+  background: var(--superficie);
+  color: var(--ink);
+}
+.block .block-head strong,
+.block .block-head h3 {
+  color: var(--accent-texto);
+}
+.block-head .icon-tile {
+  border: 2px solid var(--accent);
+  background: var(--superficie);
+  color: var(--accent-texto);
+}
+.block-bar .btn.soft {
+  border-color: var(--accion);
+  background: var(--accion);
+  color: #fff;
+}
+.block-bar .btn.soft:hover:not(:disabled) {
+  border-color: var(--accion-hover);
+  background: var(--accion-hover);
+  color: #fff;
+}
+.library-item,
+.library-item:hover {
+  border: 1px solid var(--borde);
+  border-left: 4px solid var(--accent);
+  background: var(--superficie);
+  color: var(--ink);
+}
+.library-item:hover {
+  box-shadow: var(--sombra-tarjeta);
+}
+.library-item .icon-tile {
+  border: 1.5px solid var(--accent);
+  background: var(--superficie);
+  color: var(--accent-texto);
+}
+.library-item p {
+  color: var(--muted);
+  opacity: 1;
+}
+.library-item > .icon {
+  color: var(--muted);
+}
+.canvas-titulo-icono,
+.canvas-titulo-icono.usando {
+  border: 2px solid var(--accion);
+  background: var(--superficie);
+  color: var(--accion);
+}
+.canvas-titulo-icono.usando {
+  border-color: var(--azul);
+  color: var(--azul);
+}
+.canvas-etiqueta {
+  border: 1.5px solid var(--aviso-borde);
+  background: var(--superficie);
+  color: var(--aviso-texto);
+}
+.block-tools .icon-btn {
+  color: var(--muted);
+}
+.block-tools .icon-btn:hover:not(:disabled) {
+  background: var(--superficie-suave);
+  color: var(--azul);
+}
+.block-title p {
+  color: var(--muted);
+  opacity: 1;
+}
+
+/* ───────── Legibilidad: lo que el chequeo de contraste encontró ───────── */
+.page-footer,
+.page-footer span,
+.page-footer div {
+  color: var(--muted);
+}
+.eyebrow,
+.objetivos-etiqueta {
+  color: var(--naranja-texto);
+}
+.sami-float-numero,
+.campana-cuenta {
+  background: var(--accion);
+  color: #fff;
+}
+.sami-float-numero.urgente {
+  background: var(--urgente-texto);
+}
+.zona-page .page-title .eyebrow,
+.empty-studio-label {
+  color: var(--naranja-texto);
+}
+.conversation-foot {
+  color: var(--muted);
+}
+/* Taller: las piezas fantasma de «tu idea va a aparecer acá», con borde de color. */
+.ghost-clients,
+.ghost-orders,
+.ghost-stock {
+  background: var(--superficie);
+}
+.ghost-clients {
+  border: 2px dashed var(--azul-claro);
+  color: var(--azul-texto);
+}
+.ghost-orders {
+  border: 2px dashed var(--urgente-borde);
+  color: var(--urgente-texto);
+}
+.ghost-stock {
+  border: 2px dashed var(--aviso-borde);
+  color: var(--aviso-texto);
+}
+
+/* Editor: textos secundarios que estaban demasiado claros, y cifras del cuaderno legibles. */
+.builder-note,
+.tabla-mas,
+.record-count,
+.resize-grip,
+.data-empty,
+.add-block-end,
+.save-status,
+.width-buttons button:not(.active) {
+  color: var(--muted);
+}
+.canvas-cifras > [data-color='orange'] strong {
+  color: var(--naranja-texto);
+}
+.canvas-cifras > [data-color='blue'] strong {
+  color: var(--azul-texto);
+}
+.canvas-cifras > [data-color='coral'] strong {
+  color: var(--urgente-texto);
+}
+/* Chat de Sami: los globos de Sami en neutro; los de la persona, azul sólido. */
+.conversation-bubble:not(.you) {
+  border: 1px solid var(--borde);
+  background: var(--superficie-suave);
+  color: var(--ink);
+}
+
+.block .tabla-mas,
+.tabla-completa .tabla-mas {
+  color: var(--accent-texto, var(--azul));
+}

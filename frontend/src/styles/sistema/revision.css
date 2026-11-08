@@ -334,15 +334,6 @@
   color: var(--ink);
 }
 
-/* Botón principal en coral, como la acción del inicio */
-.modal-importar .btn.primary {
-  background: var(--coral);
-  color: #fff;
-  box-shadow: 0 3px 0 #c8433f;
-}
-.modal-importar .btn.primary:hover {
-  background: #e64c47;
-}
 .modal-importar .modal-footer {
   border-top: 2px solid var(--line);
 }

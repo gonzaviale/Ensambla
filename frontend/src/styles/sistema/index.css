@@ -29,3 +29,5 @@
 /* Los dos íconos de herramientas del cuaderno. */
 @import './herramientas.css';
 @import './overrides.css';
+/* Armonía visual: botones, estados y tarjetas con una sola regla. Va al final. */
+@import './armonia.css';
