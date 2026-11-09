@@ -27,17 +27,11 @@
 @media(max-width:900px){.objetivos-zona-layout,.objetivos-plan-layout,.objetivos-cierre{grid-template-columns:1fr}.objetivos-precios-zona,.objetivos-seguimiento{grid-template-columns:1fr 1fr}.objetivos-cierre-sami{min-height:150px}}
 @media(max-width:600px){.objetivos-page{padding:24px 16px 50px}.objetivos-encabezado h1{font-size:27px}.objetivos-resultados{grid-template-columns:1fr}.objetivos-volver{justify-content:center}.objetivos-grafico>div{gap:8px}.objetivos-sami-mini{min-width:0}}
 
-/* Objetivos: pestañas, tarjetas de objetivo y su avance. */
-.objetivos-pestanias { display:flex; gap:8px; margin-bottom:24px; }
-.objetivos-pestanias button { min-height:44px; padding:8px 18px; border:1px solid var(--line); border-radius:10px; background:var(--paper); color:var(--muted); font-weight:700; }
-.objetivos-pestanias button.active { color:white; background:var(--petrol); border-color:var(--petrol); }
+/* Objetivos: tarjetas de objetivo, su avance y lo que se puede hacer. */
 .objetivos-lista { display:grid; gap:16px; margin-bottom:20px; }
 .objetivos-tarjeta { padding:22px; border:1px solid var(--line); border-radius:var(--radius); background:var(--paper); box-shadow:var(--shadow); }
 .objetivos-tarjeta > header { display:flex; justify-content:space-between; align-items:flex-start; gap:18px; }
 .objetivos-tarjeta > header h2 { margin-top:5px; font-size:21px; max-width:640px; }
-.objetivos-recomendacion { position:relative; display:inline-flex; align-items:center; gap:7px; flex:0 0 auto; min-height:44px; padding:8px 14px; border:1px solid #f0c98a; border-radius:99px; background:#fff3df; color:#8b4800; font-size:12px; font-weight:800; }
-.objetivos-recomendacion.abierta { background:#ffe3b5; }
-.objetivos-punto { position:absolute; top:-3px; right:-3px; width:11px; height:11px; border:2px solid white; border-radius:50%; background:var(--coral); }
 .objetivos-cumplido { display:inline-flex; align-items:center; gap:6px; color:var(--ok); font-size:12px; font-weight:800; }
 .objetivos-tarjeta-avance { display:grid; grid-template-columns:1fr minmax(220px,.8fr); gap:26px; align-items:end; margin-top:18px; }
 .objetivos-avance-cifras { display:flex; align-items:baseline; gap:10px; margin-bottom:8px; }
@@ -51,12 +45,54 @@
 .objetivos-tendencia i { display:block; min-height:6px; border-radius:6px 6px 0 0; background:var(--blue); }
 .objetivos-tendencia figure:last-child i { background:var(--orange); }
 .objetivos-tendencia figcaption { position:absolute; left:0; right:0; bottom:-19px; color:var(--muted); font-size:9px; text-align:center; white-space:nowrap; }
-.objetivos-recomendacion-panel { margin-top:20px; padding:18px; border-radius:16px; background:#fffaf2; border:1px solid #f4dcb5; }
-.objetivos-recomendacion-panel h3 { font-size:17px; }
-.objetivos-recomendacion-panel > p { margin:4px 0 14px; color:var(--muted); font-size:12px; }
-.objetivos-camino h4 { font-size:18px; }
 .objetivos-tarjeta-acciones { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:20px; padding-top:16px; border-top:1px solid var(--line); }
 .objetivos-tarjeta-acciones .objetivos-textual { display:inline-flex; align-items:center; gap:5px; margin-left:auto; }
+.objetivos-pasos-boton { display:flex; align-items:center; gap:8px; min-height:44px; margin-top:18px; padding:8px 16px; border:1px solid #f0c98a; border-radius:99px; background:#fff3df; color:#8b4800; font-size:14px; font-weight:800; }
+.objetivos-pasos-boton svg { transition:transform .15s; }
+.objetivos-pasos-boton.abierta svg { transform:rotate(180deg); }
+.objetivos-pasos { margin-top:14px; padding:18px; border:1px solid #f4dcb5; border-radius:16px; background:#fffaf2; }
+.objetivos-pasos ol { display:grid; gap:14px; margin:0; padding:0; list-style:none; counter-reset:paso; }
+.objetivos-pasos li { position:relative; padding-left:44px; counter-increment:paso; }
+.objetivos-pasos li::before { content:counter(paso); position:absolute; left:0; top:0; display:grid; place-items:center; width:30px; height:30px; border-radius:50%; background:#ffe3b5; color:#8b4800; font-weight:800; }
+.objetivos-pasos li strong { font-size:16px; }
+.objetivos-pasos li p { margin:4px 0 8px; color:var(--muted); font-size:14px; }
+.objetivos-paso-efecto { display:inline-block; padding:4px 10px; border-radius:99px; background:#e4f3e9; color:var(--ok); font-size:13px; font-weight:800; }
+.objetivos-pasos-total { margin-top:16px; padding-top:14px; border-top:1px solid #f4dcb5; font-size:15px; font-weight:800; }
+.objetivos-paso-efecto.negativo { background:#fde6e1; color:#b3402d; }
+.objetivos-ajuste { margin:6px 0 10px; padding:12px 14px; border-radius:12px; background:white; border:1px solid #f4dcb5; }
+.objetivos-ajuste label { display:block; font-size:14px; }
+.objetivos-ajuste label strong { font-size:18px; color:var(--petrol); }
+.objetivos-ajuste label span { color:var(--ok); font-size:12px; font-weight:800; }
+.objetivos-ajuste input[type=range] { width:100%; min-height:32px; accent-color:var(--orange); }
+.objetivos-ajuste-extremos { display:flex; justify-content:space-between; color:var(--muted); font-size:11px; }
+.objetivos-curva { display:flex; align-items:flex-end; gap:4px; height:64px; margin-top:10px; border-bottom:1px solid var(--line); }
+.objetivos-curva i { flex:1; min-height:4px; border-radius:4px 4px 0 0; background:#cfe3ea; }
+.objetivos-curva i.negativa { background:#f1b0a5; }
+.objetivos-curva i.elegida { background:var(--orange); }
+.objetivos-curva-nota { margin:6px 0 0 !important; font-size:12px !important; }
+.objetivos-sensibilidad { display:flex; flex-wrap:wrap; gap:6px 18px; margin:0 0 14px; padding:0; border:0; }
+.objetivos-sensibilidad legend { margin-bottom:6px; padding:0; font-size:14px; font-weight:800; }
+.objetivos-sensibilidad label { display:flex; align-items:center; gap:8px; min-height:44px; font-size:14px; cursor:pointer; }
+.objetivos-sensibilidad input { width:18px; height:18px; accent-color:var(--orange); }
+.objetivos-paso-zona { margin:0 0 8px !important; padding:8px 10px; border-radius:10px; background:#e6f3f7; color:var(--petrol) !important; }
+.objetivos-paso-eleccion { display:flex; align-items:center; gap:10px; min-height:44px; margin-top:6px; font-size:14px; font-weight:700; cursor:pointer; }
+.objetivos-paso-eleccion input { width:20px; height:20px; accent-color:var(--orange); }
+.objetivos-escenario { margin-top:16px; padding:16px; border:1px solid #cfe3ea; border-radius:14px; background:white; }
+.objetivos-escenario h3 { font-size:16px; }
+.objetivos-escenario > p { margin-top:10px; font-size:14px; font-weight:700; }
+.objetivos-escenario dl { display:grid; gap:10px; margin:12px 0 0; }
+.objetivos-escenario dl > div { display:grid; grid-template-columns:110px 1fr; align-items:center; gap:10px; }
+.objetivos-escenario dt { font-size:13px; color:var(--muted); }
+.objetivos-escenario dd { position:relative; display:flex; align-items:center; margin:0; height:30px; border-radius:8px; background:var(--soft); }
+.objetivos-escenario dd i { display:block; height:100%; border-radius:8px; background:var(--blue); transition:width .25s; }
+.objetivos-escenario dd.con-pasos i { background:var(--orange); }
+.objetivos-escenario dd.meta i { background:#cfe3ea; }
+.objetivos-escenario dd b { position:absolute; right:10px; font-size:13px; }
+.objetivos-negocio { margin-bottom:18px; padding:18px 20px; border:1px solid var(--line); border-radius:var(--radius); background:var(--paper); box-shadow:var(--shadow); }
+.objetivos-negocio h2 { font-size:18px; }
+.objetivos-negocio > p { margin:2px 0 12px; color:var(--muted); font-size:13px; }
+.objetivos-negocio-cifras { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; }
+.objetivos-pasos-nota, .objetivos-pasos-vacio { margin-top:8px; color:var(--muted); font-size:13px; }
 
 .objetivos-vacio { max-width:640px; margin:30px auto; padding:26px; border:1px solid var(--line); border-radius:var(--radius); background:var(--paper); text-align:center; }
 .objetivos-vacio p { margin:8px 0 16px; color:var(--muted); }

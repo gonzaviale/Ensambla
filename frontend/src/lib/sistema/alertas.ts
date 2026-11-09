@@ -160,7 +160,7 @@ export const productoDeZona = (nombre: string, zona: Zona): ProductoDeZona | und
 type Rotacion = { u30: number; ultima?: string };
 
 // Lo que se vendió de cada producto en los últimos 30 días, y cuándo fue la última venta.
-function rotaciones(sistema: Sistema, hoy: string) {
+export function rotaciones(sistema: Sistema, hoy: string) {
   const porProducto = new Map<string, Rotacion>();
   let hayVentas = false;
   for (const bloque of allBlocks(sistema).filter((item) => item.type === 'sales')) {
