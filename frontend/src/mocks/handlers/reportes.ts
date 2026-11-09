@@ -1,4 +1,5 @@
 import { delay, http, HttpResponse } from 'msw';
+import { AVISO_ECONOMICO_DE_EJEMPLO } from '../db/avisoEconomico';
 import { planesDe } from '../db/planes';
 import { sistemasDe } from '../db/estado';
 import type { Sistema } from '@/lib/sistema/tipos';
@@ -203,6 +204,14 @@ export const handlersReportes = [
     const sistema = sistemasDe(sesion.usuario.email).find((otro) => otro.id === params.sistemaId);
     if (!sistema) return errorResponse(404, 'Proyecto no encontrado', pathDe(request));
     return HttpResponse.json(resumenInicioDe(sistema, aIso(new Date())));
+  }),
+  http.get(api('/proyectos/:sistemaId/resumen/aviso-economico'), async ({ request, params }) => {
+    await delay(LATENCIA_BACKEND_MS);
+    const sesion = cuenta(request);
+    if (sesion.error) return sesion.error;
+    const sistema = sistemasDe(sesion.usuario.email).find((otro) => otro.id === params.sistemaId);
+    if (!sistema) return errorResponse(404, 'Proyecto no encontrado', pathDe(request));
+    return HttpResponse.json({ aviso: AVISO_ECONOMICO_DE_EJEMPLO });
   }),
   http.get(api('/proyectos/:sistemaId/resumen/pdf'), async ({ request, params }) => {
     await delay(LATENCIA_BACKEND_MS);

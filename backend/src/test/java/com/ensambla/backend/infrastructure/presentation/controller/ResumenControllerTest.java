@@ -7,6 +7,9 @@ import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenNegocio;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenRequest;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenResponse;
+import com.ensambla.backend.domain.useCase.reporte.obtenerAvisoEconomico.ObtenerAvisoEconomico;
+import com.ensambla.backend.domain.useCase.reporte.obtenerAvisoEconomico.ObtenerAvisoEconomicoRequest;
+import com.ensambla.backend.domain.useCase.reporte.obtenerAvisoEconomico.ObtenerAvisoEconomicoResponse;
 import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricas;
 import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricasRequest;
 import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricasResponse;
@@ -47,6 +50,7 @@ class ResumenControllerTest {
     private ExportarResumenNegocio exportarResumenNegocio;
     private ObtenerResumenInicio obtenerResumenInicio;
     private ObtenerMetricas obtenerMetricas;
+    private ObtenerAvisoEconomico obtenerAvisoEconomico;
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -54,7 +58,9 @@ class ResumenControllerTest {
         exportarResumenNegocio = mock(ExportarResumenNegocio.class);
         obtenerResumenInicio = mock(ObtenerResumenInicio.class);
         obtenerMetricas = mock(ObtenerMetricas.class);
-        mockMvc = MockMvcDePrueba.standalone(new ResumenController(exportarResumenNegocio, obtenerResumenInicio, obtenerMetricas))
+        obtenerAvisoEconomico = mock(ObtenerAvisoEconomico.class);
+        mockMvc = MockMvcDePrueba.standalone(new ResumenController(
+                        exportarResumenNegocio, obtenerResumenInicio, obtenerMetricas, obtenerAvisoEconomico))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -147,7 +153,47 @@ class ResumenControllerTest {
         verifyNoInteractions(obtenerMetricas);
     }
 
+    @Test
+    @DisplayName("GET aviso económico devuelve el aviso de la semana y pasa el usuario de la sesión")
+    void avisoEconomicoShouldReturnTheWeeklyNotice() throws Exception {
+        when(obtenerAvisoEconomico.execute(any(ObtenerAvisoEconomicoRequest.class))).thenReturn(respuestaDeAviso());
+
+        mockMvc.perform(get("/api/proyectos/{id}/resumen/aviso-economico", PROYECTO_ID).principal(sesion))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.aviso.prioridad").value("BAJA"))
+                .andExpect(jsonPath("$.aviso.tendencia").value("MEJORA"))
+                .andExpect(jsonPath("$.aviso.variacionVentas").value(12))
+                .andExpect(jsonPath("$.aviso.variacionResultadoBruto").value(5))
+                .andExpect(jsonPath("$.aviso.productos[0]").value("Yerba"));
+        verify(obtenerAvisoEconomico).execute(new ObtenerAvisoEconomicoRequest(USUARIO_ID, PROYECTO_ID));
+    }
+
+    @Test
+    @DisplayName("GET aviso económico devuelve el aviso vacío cuando no hay con qué comparar")
+    void avisoEconomicoShouldReturnNullWhenThereIsNothingToCompare() throws Exception {
+        when(obtenerAvisoEconomico.execute(any(ObtenerAvisoEconomicoRequest.class)))
+                .thenReturn(new ObtenerAvisoEconomicoResponse(null));
+
+        mockMvc.perform(get("/api/proyectos/{id}/resumen/aviso-economico", PROYECTO_ID).principal(sesion))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.aviso").isEmpty());
+    }
+
+    @Test
+    @DisplayName("GET aviso económico con un id inválido responde 400 sin llegar al caso de uso")
+    void avisoEconomicoShouldReturn400WhenIdIsNotUuid() throws Exception {
+        mockMvc.perform(get("/api/proyectos/{id}/resumen/aviso-economico", "id-invalido").principal(sesion))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(obtenerAvisoEconomico);
+    }
+
     // --- helpers ---
+    private static ObtenerAvisoEconomicoResponse respuestaDeAviso() {
+        return new ObtenerAvisoEconomicoResponse(new ObtenerAvisoEconomicoResponse.Aviso(
+                "BAJA", "MEJORA", "Rentabilidad", "Las ventas subieron 12 % y la ganancia subió 5 %",
+                "Tu negocio está mejorando.", new BigDecimal("12"), new BigDecimal("5"), List.of("Yerba"), "ALTA"));
+    }
+
     private static ObtenerMetricasResponse respuestaDeMetricas() {
         return new ObtenerMetricasResponse(
                 "Almacén de Ana",

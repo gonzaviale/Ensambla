@@ -216,21 +216,63 @@ describe('inicio: cómo te va', () => {
 describe('inicio: aviso económico', () => {
   beforeEach(() => window.localStorage.clear());
 
-  it('muestra el aviso de ejemplo con su prioridad, sus números y la marca «Ejemplo»', async () => {
+  it('muestra el aviso de la semana con su prioridad y sus números', async () => {
     await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
 
     const tarjeta = await screen.findByRole('article', { name: 'Aviso económico' }, ESPERA);
     expect(
       within(tarjeta).getByRole('heading', {
-        name: 'Las ventas crecieron 12 %, pero el resultado bruto bajó 4 %',
+        name: 'Las ventas subieron 12 %, pero la ganancia bajó 4 %',
       }),
     ).toBeVisible();
     expect(within(tarjeta).getByText('Prioridad alta')).toBeVisible();
-    expect(within(tarjeta).getByText('Ejemplo')).toBeVisible();
     expect(within(tarjeta).getByText('Ventas').nextSibling).toHaveTextContent('+12 %');
-    expect(within(tarjeta).getByText('Resultado bruto').nextSibling).toHaveTextContent('−4 %');
+    expect(within(tarjeta).getByText('Ganancia').nextSibling).toHaveTextContent('−4 %');
     expect(within(tarjeta).getByText('Productos involucrados').nextSibling).toHaveTextContent('3');
     expect(within(tarjeta).getByText('Confianza').nextSibling).toHaveTextContent('Alta');
+  });
+
+  it('cuando el negocio mejora lo dice y ofrece ver los objetivos', async () => {
+    server.use(
+      http.get('/api/proyectos/:sistemaId/resumen/aviso-economico', () =>
+        HttpResponse.json({
+          aviso: {
+            prioridad: 'BAJA',
+            tendencia: 'MEJORA',
+            categoria: 'Ventas',
+            titulo: 'Las ventas subieron 20 % frente a la semana pasada',
+            explicacion: 'Tu negocio está mejorando: vendiste más que la semana pasada.',
+            variacionVentas: 20,
+            variacionResultadoBruto: null,
+            productos: ['Yerba'],
+            confianza: 'BAJA',
+          },
+        }),
+      ),
+    );
+    const user = await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
+
+    const tarjeta = await screen.findByRole('article', { name: 'Aviso económico' }, ESPERA);
+    expect(within(tarjeta).getByText('Vas mejorando')).toBeVisible();
+    expect(within(tarjeta).getByText('Ganancia').nextSibling).toHaveTextContent('Sin costos');
+    expect(within(tarjeta).queryByRole('button', { name: 'Probar una solución' })).toBeNull();
+
+    await user.click(within(tarjeta).getByRole('button', { name: 'Ver mis objetivos' }));
+
+    await verifyPathAsync(user.router, '/objetivos');
+  });
+
+  it('sin una semana anterior para comparar no muestra el aviso', async () => {
+    server.use(
+      http.get('/api/proyectos/:sistemaId/resumen/aviso-economico', () =>
+        HttpResponse.json({ aviso: null }),
+      ),
+    );
+    await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
+
+    const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
+    await within(seccion).findByRole('heading', { name: /vendiste/ }, ESPERA);
+    expect(within(seccion).queryByRole('article', { name: 'Aviso económico' })).toBeNull();
   });
 
   it('«Ver productos involucrados» los despliega y los vuelve a ocultar', async () => {
@@ -249,15 +291,12 @@ describe('inicio: aviso económico', () => {
     expect(within(tarjeta).queryByRole('list', { name: 'Productos involucrados' })).toBeNull();
   });
 
-  it.each(['Entender por qué', 'Probar una solución'])(
-    '«%s» lleva al Laboratorio',
-    async (boton) => {
-      const user = await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
-      const tarjeta = await screen.findByRole('article', { name: 'Aviso económico' }, ESPERA);
+  it.each(['Entender por qué', 'Probar una solución'])('«%s» lleva a Objetivos', async (boton) => {
+    const user = await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
+    const tarjeta = await screen.findByRole('article', { name: 'Aviso económico' }, ESPERA);
 
-      await user.click(within(tarjeta).getByRole('button', { name: boton }));
+    await user.click(within(tarjeta).getByRole('button', { name: boton }));
 
-      await verifyPathAsync(user.router, '/laboratorio');
-    },
-  );
+    await verifyPathAsync(user.router, '/objetivos');
+  });
 });

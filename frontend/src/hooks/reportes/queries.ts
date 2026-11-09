@@ -1,8 +1,9 @@
 import { queryOptions, useQuery } from '@tanstack/react-query';
-import { obtenerResumenInicio } from '@/api/resumen';
+import { obtenerAvisoEconomico, obtenerResumenInicio } from '@/api/resumen';
 
 export const resumenKeys = {
   inicio: (sistemaId: string) => ['resumen', 'inicio', sistemaId] as const,
+  avisoEconomico: (sistemaId: string) => ['resumen', 'aviso-economico', sistemaId] as const,
 };
 
 export const resumenInicioQuery = (sistemaId: string) =>
@@ -22,3 +23,11 @@ export function useResumenInicio(sistemaId: string | undefined) {
   });
   return { resumen: consulta.data, fallo: consulta.isError, reintentar: consulta.refetch };
 }
+
+export const avisoEconomicoQuery = (sistemaId: string) =>
+  queryOptions({
+    queryKey: resumenKeys.avisoEconomico(sistemaId),
+    queryFn: ({ signal }) => obtenerAvisoEconomico(sistemaId, signal),
+    staleTime: 30_000,
+    retry: false,
+  });

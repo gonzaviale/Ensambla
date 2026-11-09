@@ -27,6 +27,8 @@ import com.ensambla.backend.domain.useCase.reporte.GenerarReporteRequest;
 import com.ensambla.backend.domain.useCase.reporte.exportarReporte.ExportarReporteResponse;
 import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporteResponse;
 import com.ensambla.backend.domain.model.reporte.PeriodoMetricas;
+import com.ensambla.backend.domain.useCase.reporte.obtenerAvisoEconomico.ObtenerAvisoEconomicoRequest;
+import com.ensambla.backend.domain.useCase.reporte.obtenerAvisoEconomico.ObtenerAvisoEconomicoResponse;
 import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricasRequest;
 import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricasResponse;
 import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicioRequest;
@@ -160,5 +162,23 @@ class ReporteUseCaseConfigTest {
 
         assertThat(response.sistema()).isEqualTo("Almacén");
         assertThat(response.porDia()).hasSize(30);
+    }
+
+    @Test
+    @DisplayName("El wiring del aviso económico conecta el servicio de datos y el reloj")
+    void obtenerAvisoEconomicoUseCaseShouldWireCollaborators() {
+        ProyectoId proyectoId = ProyectoId.de("c0000000-0000-4000-8000-000000000001");
+        ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
+        Negocio negocio = Negocio.builder().id(NEGOCIO_ID).nombre("Almacén de Ana").build();
+        Proyecto proyecto = Proyecto.builder().id(proyectoId).nombre("Almacén").bloques(List.of()).build();
+        when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID)).thenReturn(negocio);
+        when(proyectoRepository.obtener(NEGOCIO_ID, proyectoId)).thenReturn(proyecto);
+
+        ObtenerAvisoEconomicoResponse response = config.obtenerAvisoEconomico(
+                        negocioRepository, proyectoRepository,
+                        config.datosDeProyectoService(mock(RegistroRepository.class)), Clock.systemUTC())
+                .execute(new ObtenerAvisoEconomicoRequest(USUARIO_ID, proyectoId));
+
+        assertThat(response.aviso()).isNull();
     }
 }

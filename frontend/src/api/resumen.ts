@@ -1,3 +1,4 @@
+import { avisoEconomicoResponseSchema } from '@/types/avisoEconomico';
 import { resumenInicioSchema } from '@/types/resumenInicio';
 import { http } from './client';
 
@@ -5,7 +6,11 @@ import { http } from './client';
 export type PeriodoDelResumen = { desde?: string; hasta?: string };
 
 /** El resumen del negocio de un sistema, como PDF listo para guardar. */
-export function descargarResumen(sistemaId: string, periodo: PeriodoDelResumen, signal?: AbortSignal) {
+export function descargarResumen(
+  sistemaId: string,
+  periodo: PeriodoDelResumen,
+  signal?: AbortSignal,
+) {
   const consulta = new URLSearchParams();
   if (periodo.desde) consulta.set('desde', periodo.desde);
   if (periodo.hasta) consulta.set('hasta', periodo.hasta);
@@ -18,4 +23,15 @@ export function descargarResumen(sistemaId: string, periodo: PeriodoDelResumen, 
 
 /** Las métricas del inicio de un cuaderno: lo vendido hoy, lo que más salió, lo que falta y lo que está parado. */
 export const obtenerResumenInicio = (sistemaId: string, signal?: AbortSignal) =>
-  http.get(`/proyectos/${encodeURIComponent(sistemaId)}/resumen/inicio`, resumenInicioSchema, signal);
+  http.get(
+    `/proyectos/${encodeURIComponent(sistemaId)}/resumen/inicio`,
+    resumenInicioSchema,
+    signal,
+  );
+
+export const obtenerAvisoEconomico = (sistemaId: string, signal?: AbortSignal) =>
+  http.get(
+    `/proyectos/${encodeURIComponent(sistemaId)}/resumen/aviso-economico`,
+    avisoEconomicoResponseSchema,
+    signal,
+  );

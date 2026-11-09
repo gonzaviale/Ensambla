@@ -104,33 +104,29 @@ const CONFIANZA: Record<AvisoEconomico['confianza'], string> = {
 
 const conSigno = (valor: number) => `${valor > 0 ? '+' : valor < 0 ? '−' : ''}${Math.abs(valor)} %`;
 
-// El aviso económico del cuaderno, como en el Laboratorio de decisiones: la prioridad a un costado, qué cambió, los
-// números que lo muestran y qué hacer. Mientras el backend no lo calcula es un ejemplo, y lo dice.
+// El aviso económico del cuaderno: esta semana frente a la anterior. La prioridad a un costado, qué cambió, los
+// números que lo muestran y qué hacer. Cuando el negocio mejora también avisa, para que se sepa qué está andando bien.
 function TarjetaDeAvisoEconomico({ sistemaId, cuaderno }: { sistemaId: string; cuaderno: string }) {
-  const { aviso, esEjemplo } = useAvisoEconomico(sistemaId);
+  const { aviso } = useAvisoEconomico(sistemaId);
   const navegacion = useNavegacion();
   const [verProductos, setVerProductos] = useState(false);
   if (!aviso) return null;
-  const irAlLaboratorio = () => void navegacion.irALaboratorio();
+  const irAObjetivos = () => void navegacion.irAObjetivos();
+  const mejora = aviso.tendencia === 'MEJORA';
   return (
     <article
       className="tablero-aviso-sami"
       data-prioridad={aviso.prioridad}
+      data-tendencia={aviso.tendencia}
       aria-label="Aviso económico"
     >
       <div className="tablero-aviso-sami-prioridad">
-        <Icon name="chart" />
-        <span>{PRIORIDAD[aviso.prioridad]}</span>
+        <Icon name={mejora ? 'up' : 'chart'} />
+        <span>{mejora ? 'Vas mejorando' : PRIORIDAD[aviso.prioridad]}</span>
       </div>
       <div className="tablero-aviso-sami-contenido">
         <p className="tablero-aviso-sami-etiqueta">
           {aviso.categoria} · {cuaderno}
-          {esEjemplo && (
-            <>
-              {' '}
-              <span className="tablero-aviso-sami-ejemplo">Ejemplo</span>
-            </>
-          )}
         </p>
         <h3>{aviso.titulo}</h3>
         <p className="tablero-aviso-sami-detalle">{aviso.explicacion}</p>
@@ -140,8 +136,12 @@ function TarjetaDeAvisoEconomico({ sistemaId, cuaderno }: { sistemaId: string; c
             <dd>{conSigno(aviso.variacionVentas)}</dd>
           </div>
           <div>
-            <dt>Resultado bruto</dt>
-            <dd>{conSigno(aviso.variacionResultadoBruto)}</dd>
+            <dt>Ganancia</dt>
+            <dd>
+              {aviso.variacionResultadoBruto === null
+                ? 'Sin costos'
+                : conSigno(aviso.variacionResultadoBruto)}
+            </dd>
           </div>
           <div>
             <dt>Productos involucrados</dt>
@@ -160,24 +160,38 @@ function TarjetaDeAvisoEconomico({ sistemaId, cuaderno }: { sistemaId: string; c
           </ul>
         )}
         <div className="tablero-aviso-sami-acciones">
-          <button
-            type="button"
-            className="tablero-aviso-sami-boton principal"
-            onClick={irAlLaboratorio}
-          >
-            Entender por qué
-          </button>
-          <button type="button" className="tablero-aviso-sami-boton" onClick={irAlLaboratorio}>
-            Probar una solución
-          </button>
-          <button
-            type="button"
-            className="tablero-aviso-sami-textual"
-            aria-expanded={verProductos}
-            onClick={() => setVerProductos((valor) => !valor)}
-          >
-            {verProductos ? 'Ocultar productos' : 'Ver productos involucrados'}
-          </button>
+          {mejora ? (
+            <button
+              type="button"
+              className="tablero-aviso-sami-boton principal"
+              onClick={irAObjetivos}
+            >
+              Ver mis objetivos
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="tablero-aviso-sami-boton principal"
+                onClick={irAObjetivos}
+              >
+                Entender por qué
+              </button>
+              <button type="button" className="tablero-aviso-sami-boton" onClick={irAObjetivos}>
+                Probar una solución
+              </button>
+            </>
+          )}
+          {aviso.productos.length > 0 && (
+            <button
+              type="button"
+              className="tablero-aviso-sami-textual"
+              aria-expanded={verProductos}
+              onClick={() => setVerProductos((valor) => !valor)}
+            >
+              {verProductos ? 'Ocultar productos' : 'Ver productos involucrados'}
+            </button>
+          )}
         </div>
       </div>
     </article>

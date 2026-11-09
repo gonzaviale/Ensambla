@@ -6,6 +6,9 @@ import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenNegocio;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenRequest;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenResponse;
+import com.ensambla.backend.domain.useCase.reporte.obtenerAvisoEconomico.ObtenerAvisoEconomico;
+import com.ensambla.backend.domain.useCase.reporte.obtenerAvisoEconomico.ObtenerAvisoEconomicoRequest;
+import com.ensambla.backend.domain.useCase.reporte.obtenerAvisoEconomico.ObtenerAvisoEconomicoResponse;
 import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricas;
 import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricasRequest;
 import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricasResponse;
@@ -41,6 +44,8 @@ public class ResumenController {
 
     private final ObtenerMetricas obtenerMetricas;
 
+    private final ObtenerAvisoEconomico obtenerAvisoEconomico;
+
     @GetMapping("/pdf")
     @Operation(summary = "Descargar el resumen del negocio en PDF: ventas, ganancia, stock, gastos, zona y avisos del período")
     public ResponseEntity<byte[]> descargar(
@@ -74,5 +79,14 @@ public class ResumenController {
             @RequestParam(defaultValue = "SEMANA") PeriodoMetricas periodo) {
         return ResponseEntity.ok(obtenerMetricas.execute(
                 new ObtenerMetricasRequest(UsuarioId.de(authentication.getName()), proyectoId, periodo)));
+    }
+
+    @GetMapping("/aviso-economico")
+    @Operation(summary = "El aviso económico del inicio: esta semana frente a la anterior, en ventas y ganancia")
+    public ResponseEntity<ObtenerAvisoEconomicoResponse> avisoEconomico(
+            Authentication authentication,
+            @PathVariable ProyectoId proyectoId) {
+        return ResponseEntity.ok(obtenerAvisoEconomico.execute(
+                new ObtenerAvisoEconomicoRequest(UsuarioId.de(authentication.getName()), proyectoId)));
     }
 }

@@ -16,6 +16,7 @@ import com.ensambla.backend.domain.service.reporte.ReporteService;
 import com.ensambla.backend.domain.useCase.reporte.exportarReporte.ExportarReporte;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenNegocio;
 import com.ensambla.backend.domain.useCase.reporte.generarReporte.GenerarReporte;
+import com.ensambla.backend.domain.useCase.reporte.obtenerAvisoEconomico.ObtenerAvisoEconomico;
 import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricas;
 import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicio;
 import org.springframework.context.annotation.Bean;
@@ -75,6 +76,15 @@ public class ReporteUseCaseConfig {
             DatosDeProyectoService datosDeProyectoService,
             Clock clock) {
         return new ObtenerResumenInicio(negocioRepository, proyectoRepository, datosDeProyectoService, clock);
+    }
+
+    @Bean
+    public ObtenerAvisoEconomico obtenerAvisoEconomico(
+            NegocioRepository negocioRepository,
+            ProyectoRepository proyectoRepository,
+            DatosDeProyectoService datosDeProyectoService,
+            Clock clock) {
+        return new ObtenerAvisoEconomico(negocioRepository, proyectoRepository, datosDeProyectoService, clock);
     }
 
     @Bean
