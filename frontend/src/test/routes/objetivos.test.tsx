@@ -84,8 +84,10 @@ describe('objetivos', () => {
 
     expect(router.state.location.pathname).toBe('/objetivos/objetivo-ejemplo');
     expect(await screen.findByRole('heading', { name: 'Seguimiento' })).toBeVisible();
-    expect(screen.getByText('Revisar los precios con margen bajo')).toBeVisible();
-    expect(screen.getByText('Reducir gastos extraordinarios')).toBeVisible();
+    expect(
+      screen.getByText('Subí un poco los precios que casi no te dejan ganancia'),
+    ).toBeVisible();
+    expect(screen.getByText('Recortá los gastos que no son de todos los meses')).toBeVisible();
     expect(screen.getByText(/Tu resultado subió \$60\.000/)).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Volver a objetivos' }));
@@ -116,6 +118,10 @@ describe('objetivos', () => {
       objetivo: 'objetivo-ejemplo',
     });
     expect(await screen.findByRole('heading', { name: 'Probá un escenario' })).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Volver al plan de acción' }));
+
+    expect(router.state.location.pathname).toBe('/objetivos/objetivo-ejemplo');
   });
 
   it('pide confirmación antes de quitar un objetivo', async () => {

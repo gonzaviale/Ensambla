@@ -22,7 +22,7 @@ export function Encabezado({
         <p>{texto}</p>
       </div>
       <div className="objetivos-sami-mini">
-        <Sami pose="think" />
+        <img src="/mockup/sami-guino.webp" alt="" />
         <div>
           <strong>Sami está listo</strong>
           <span>{sami}</span>
@@ -59,7 +59,7 @@ export function Metrica({
   alerta?: boolean;
 }) {
   return (
-    <div className={`objetivos-metrica ${alerta ? 'alerta' : ''}`.trim()}>
+    <div className={`objetivos-metrica ${alerta ? 'negativa' : ''}`.trim()}>
       <span>{etiqueta}</span>
       <strong>{valor}</strong>
     </div>

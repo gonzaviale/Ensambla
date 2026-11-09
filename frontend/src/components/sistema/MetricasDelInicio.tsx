@@ -1,0 +1,320 @@
+import { useState, type ReactNode } from 'react';
+import { Icon } from '@/components/sistema/Icon';
+import { varsDeColor } from '@/components/sistema/colores';
+import { GraficoDeBarras } from '@/components/sistema/metricas/GraficoDeBarras';
+import { SelectorDeCuaderno, SelectorDePeriodo } from '@/components/sistema/metricas/Selectores';
+import { useNumeroAnimado } from '@/components/sistema/metricas/useNumeroAnimado';
+import { useResumenInicio } from '@/hooks/reportes/queries';
+import { useAvisoEconomico } from '@/hooks/reportes/useAvisoEconomico';
+import { useCuadernoElegido } from '@/hooks/reportes/useCuadernoElegido';
+import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
+import { formatoPesos } from '@/lib/sistema/formato';
+import {
+  PERIODOS_DE_VENTAS,
+  comparacionConElPeriodoAnterior,
+  cuandoFue,
+  diaCompleto,
+  diasDelGrafico,
+  etiquetaDelDia,
+  textoUnidades,
+  type PeriodoDeVentas,
+} from '@/lib/sistema/metricasInicio';
+import type { NombreDeIcono } from '@/lib/sistema/iconos';
+import type { Color } from '@/lib/sistema/tipos';
+import type { AvisoEconomico } from '@/types/avisoEconomico';
+import type { ResumenInicio } from '@/types/resumenInicio';
+
+// El tablero del inicio para quien ya usa Ensambla: el saludo, lo que viene vendiendo (lo primero que se mira), el
+// aviso económico, lo que más sale, lo que se acaba y lo que está quieto. Nunca muestra ceros de relleno: si
+// no hay datos, lo dice.
+export function MetricasDelInicio({
+  nombre,
+  onPrimeraVez,
+}: {
+  nombre: string;
+  onPrimeraVez: () => void;
+}) {
+  const { cuadernos, cuaderno, elegir } = useCuadernoElegido();
+  const { resumen, fallo, reintentar } = useResumenInicio(cuaderno?.id);
+  if (!cuaderno) return null;
+
+  return (
+    <section className="tablero" aria-label="Cómo te va">
+      <div className="tablero-cabecera">
+        <div className="tablero-saludo">
+          <h1>Hola, {nombre}.</h1>
+          <p className="tablero-cuaderno">
+            <span>Así viene</span>
+            <SelectorDeCuaderno cuadernos={cuadernos} cuaderno={cuaderno} onCambio={elegir} />
+          </p>
+        </div>
+        <div className="tablero-acciones">
+          <button type="button" className="tablero-primera-vez" onClick={onPrimeraVez}>
+            <Icon name="help" />
+            ¿Primera vez?
+          </button>
+        </div>
+      </div>
+
+      {fallo ? (
+        <p className="tablero-aviso" role="status">
+          No pudimos traer tus números ahora.{' '}
+          <button type="button" onClick={() => void reintentar()}>
+            Probar de nuevo
+          </button>
+        </p>
+      ) : !resumen ? (
+        <div className="tablero-cargando">
+          <span className="sr-only" role="status">
+            Mirando tus números…
+          </span>
+          <span className="tablero-cargando-principal" />
+          <span />
+          <span />
+          <span />
+        </div>
+      ) : !resumen.hayVentas && !resumen.hayProductos ? (
+        <p className="tablero-aviso" role="status">
+          Cuando anotes ventas o productos en «{cuaderno.name}», acá vas a ver cómo te va.
+        </p>
+      ) : (
+        <div className="tablero-cuerpo">
+          {resumen.hayVentas && <TarjetaDeVentas resumen={resumen} />}
+          <TarjetaDeAvisoEconomico sistemaId={cuaderno.id} cuaderno={cuaderno.name} />
+          {resumen.parados.length > 0 && <TarjetaDeParados resumen={resumen} />}
+        </div>
+      )}
+    </section>
+  );
+}
+
+type PropsDeTarjeta = { resumen: ResumenInicio };
+
+const PRIORIDAD: Record<AvisoEconomico['prioridad'], string> = {
+  ALTA: 'Prioridad alta',
+  MEDIA: 'Prioridad media',
+  BAJA: 'Para mirar',
+};
+
+const CONFIANZA: Record<AvisoEconomico['confianza'], string> = {
+  ALTA: 'Alta',
+  MEDIA: 'Media',
+  BAJA: 'Baja',
+};
+
+const conSigno = (valor: number) => `${valor > 0 ? '+' : valor < 0 ? '−' : ''}${Math.abs(valor)} %`;
+
+// El aviso económico del cuaderno, como en el Laboratorio de decisiones: la prioridad a un costado, qué cambió, los
+// números que lo muestran y qué hacer. Mientras el backend no lo calcula es un ejemplo, y lo dice.
+function TarjetaDeAvisoEconomico({ sistemaId, cuaderno }: { sistemaId: string; cuaderno: string }) {
+  const { aviso, esEjemplo } = useAvisoEconomico(sistemaId);
+  const navegacion = useNavegacion();
+  const [verProductos, setVerProductos] = useState(false);
+  if (!aviso) return null;
+  const irAlLaboratorio = () => void navegacion.irALaboratorio();
+  return (
+    <article
+      className="tablero-aviso-sami"
+      data-prioridad={aviso.prioridad}
+      aria-label="Aviso económico"
+    >
+      <div className="tablero-aviso-sami-prioridad">
+        <Icon name="chart" />
+        <span>{PRIORIDAD[aviso.prioridad]}</span>
+      </div>
+      <div className="tablero-aviso-sami-contenido">
+        <p className="tablero-aviso-sami-etiqueta">
+          {aviso.categoria} · {cuaderno}
+          {esEjemplo && (
+            <>
+              {' '}
+              <span className="tablero-aviso-sami-ejemplo">Ejemplo</span>
+            </>
+          )}
+        </p>
+        <h3>{aviso.titulo}</h3>
+        <p className="tablero-aviso-sami-detalle">{aviso.explicacion}</p>
+        <dl className="tablero-aviso-sami-evidencias">
+          <div>
+            <dt>Ventas</dt>
+            <dd>{conSigno(aviso.variacionVentas)}</dd>
+          </div>
+          <div>
+            <dt>Resultado bruto</dt>
+            <dd>{conSigno(aviso.variacionResultadoBruto)}</dd>
+          </div>
+          <div>
+            <dt>Productos involucrados</dt>
+            <dd>{aviso.productos.length}</dd>
+          </div>
+          <div>
+            <dt>Confianza</dt>
+            <dd>{CONFIANZA[aviso.confianza]}</dd>
+          </div>
+        </dl>
+        {verProductos && (
+          <ul className="tablero-aviso-sami-productos" aria-label="Productos involucrados">
+            {aviso.productos.map((producto) => (
+              <li key={producto}>{producto}</li>
+            ))}
+          </ul>
+        )}
+        <div className="tablero-aviso-sami-acciones">
+          <button
+            type="button"
+            className="tablero-aviso-sami-boton principal"
+            onClick={irAlLaboratorio}
+          >
+            Entender por qué
+          </button>
+          <button type="button" className="tablero-aviso-sami-boton" onClick={irAlLaboratorio}>
+            Probar una solución
+          </button>
+          <button
+            type="button"
+            className="tablero-aviso-sami-textual"
+            aria-expanded={verProductos}
+            onClick={() => setVerProductos((valor) => !valor)}
+          >
+            {verProductos ? 'Ocultar productos' : 'Ver productos involucrados'}
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+// Lo que se viene vendiendo: el número grande, la comparación y las ventas día por día. Arranca en la semana.
+function TarjetaDeVentas({ resumen }: PropsDeTarjeta) {
+  const [periodo, setPeriodo] = useState<PeriodoDeVentas>('semana');
+  const { ultimoDiaConVentas, hoy } = resumen;
+  const ventas = resumen.ventas[periodo];
+  const textos = PERIODOS_DE_VENTAS.find((opcion) => opcion.clave === periodo);
+  const monto = useNumeroAnimado(ventas.ingresos);
+  const conPlata = ventas.ingresos > 0;
+  const comparacion = conPlata
+    ? comparacionConElPeriodoAnterior(periodo, ventas.ingresos, ventas.ingresosAnteriores, hoy)
+    : null;
+  const barras = resumen.ventasPorDia.slice(-diasDelGrafico(periodo)).map((dia, indice, todos) => ({
+    clave: dia.fecha,
+    etiqueta:
+      periodo !== 'mes' || indice % 5 === 4 || indice === todos.length - 1
+        ? etiquetaDelDia(dia.fecha)
+        : '',
+    nombre: diaCompleto(dia.fecha),
+    valor: dia.ingresos,
+    detalle: formatoPesos(dia.ingresos),
+    destacada: dia.fecha === hoy,
+  }));
+
+  return (
+    <article className="tablero-ventas">
+      <div className="tablero-ventas-texto">
+        <SelectorDePeriodo valor={periodo} onCambio={setPeriodo} variante="oscuro" />
+        {ventas.cantidad === 0 ? (
+          <>
+            <h2>{textos?.sin}</h2>
+            {ultimoDiaConVentas && (
+              <p className="tablero-ventas-dato">
+                Lo último que anotaste fue {cuandoFue(ultimoDiaConVentas.fecha, hoy)}:{' '}
+                {ultimoDiaConVentas.ingresos > 0
+                  ? formatoPesos(ultimoDiaConVentas.ingresos)
+                  : 'ventas sin precio'}
+                .
+              </p>
+            )}
+          </>
+        ) : (
+          <>
+            <h2>{textos?.titulo}</h2>
+            <p className="tablero-ventas-monto">
+              {conPlata ? formatoPesos(monto) : textoUnidades(ventas.unidades)}
+            </p>
+            {comparacion && (
+              <p
+                className="tablero-ventas-comparacion"
+                data-sube={ventas.ingresos >= ventas.ingresosAnteriores ? 'true' : 'false'}
+              >
+                <Icon name={ventas.ingresos >= ventas.ingresosAnteriores ? 'up' : 'down'} />
+                {comparacion}
+              </p>
+            )}
+            <p className="tablero-ventas-dato">
+              {ventas.cantidad === 1 ? '1 venta anotada' : `${ventas.cantidad} ventas anotadas`} ·{' '}
+              {textoUnidades(ventas.unidades)}
+            </p>
+            {!conPlata && (
+              <p className="tablero-ventas-dato">
+                Esas ventas no tienen precio, así que no puedo sumar la plata.
+              </p>
+            )}
+            {ventas.ventasFiadas > 0 && (
+              <p className="tablero-ventas-dato">
+                Vendiste fiado {formatoPesos(ventas.fiado)} ({ventas.ventasFiadas}{' '}
+                {ventas.ventasFiadas === 1 ? 'venta' : 'ventas'}).
+              </p>
+            )}
+            {conPlata && ventas.sinPrecio > 0 && (
+              <p className="tablero-ventas-nota">
+                {ventas.sinPrecio === 1
+                  ? '1 venta sin precio no está sumada.'
+                  : `${ventas.sinPrecio} ventas sin precio no están sumadas.`}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+      <GraficoDeBarras
+        key={periodo}
+        barras={barras}
+        titulo={
+          periodo === 'mes' ? 'Ventas de los últimos 30 días' : 'Ventas de los últimos 7 días'
+        }
+        variante="oscuro"
+      />
+    </article>
+  );
+}
+
+function Tarjeta({
+  color,
+  icono,
+  titulo,
+  children,
+}: {
+  color: Color;
+  icono: NombreDeIcono;
+  titulo: string;
+  children: ReactNode;
+}) {
+  return (
+    <article className="tablero-tarjeta" style={varsDeColor(color)} data-color={color}>
+      <header>
+        <span className="tablero-tarjeta-icono">
+          <Icon name={icono} />
+        </span>
+        <h3>{titulo}</h3>
+      </header>
+      {children}
+    </article>
+  );
+}
+
+function TarjetaDeParados({ resumen }: PropsDeTarjeta) {
+  return (
+    <Tarjeta color="blue" icono="clock" titulo="Sin venderse hace 2 semanas">
+      <ul className="tablero-tarjeta-lista">
+        {resumen.parados.map((producto) => (
+          <li key={producto.nombre}>
+            <span>{producto.nombre}</span>
+            <strong>
+              {producto.capital != null
+                ? `${formatoPesos(producto.capital)} en stock`
+                : textoUnidades(producto.cantidad)}
+            </strong>
+          </li>
+        ))}
+      </ul>
+    </Tarjeta>
+  );
+}

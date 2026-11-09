@@ -2,7 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { makeSystem } from '@/lib/sistema/core';
+import { id as nuevoId, makeSystem, wireSystem } from '@/lib/sistema/core';
 import { crearAlmacenDeEjemplo } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
 import type { Sistema } from '@/lib/sistema/tipos';
@@ -208,7 +208,7 @@ describe('la campana y la pantalla de avisos', () => {
 
     const subida = tarjeta(/Yerba Playadito 1 kg se vende mucho/);
     expect(
-      within(subida).getByRole('button', { name: /Aplicar: subir a \$ 3\.820/ }),
+      within(subida).getByRole('button', { name: /Subir a \$ 3\.820/ }),
     ).toBeVisible();
   });
 
@@ -218,7 +218,7 @@ describe('la campana y la pantalla de avisos', () => {
 
     await user.click(
       within(tarjeta(/Yerba Playadito 1 kg se vende mucho/)).getByRole('button', {
-        name: /Aplicar: subir a \$ 3\.820/,
+        name: /Subir a \$ 3\.820/,
       }),
     );
 
@@ -633,13 +633,57 @@ describe('los avisos del motor del servidor', () => {
 
     await user.click(
       within(tarjeta('Te quedaste sin Yerba Playadito 1 kg')).getByRole('button', {
-        name: 'Aplicar: subir a $ 4.200',
+        name: 'Subir a $ 4.200',
       }),
     );
 
     await verifyToastAsync('Listo, aplicamos el cambio.');
     await waitFor(() => expect(delServidor()).toHaveLength(0), ESPERA);
     expect(estado.avisosDelServidor.get(usuario.email)?.[0]?.estado).toBe('APLICADO');
+  });
+
+  it('registrar la entrada que pide el aviso de stock lo da por aplicado', async () => {
+    const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+    const sistema = makeSystem('Mi almacén', ['inventory', 'entries']);
+    const bloques = sistema.sections.flatMap((seccion) => seccion.blocks);
+    const inventario = bloques.find((bloque) => bloque.type === 'inventory');
+    const entradas = bloques.find((bloque) => bloque.type === 'entries');
+    if (!inventario || !entradas) throw new Error('Faltan las tablas del cuaderno');
+    const producto = { id: nuevoId(), name: 'Yerba Playadito 1 kg', quantity: 0, price: 4200 };
+    inventario.rows = [producto];
+    wireSystem(sistema);
+    estado.sistemas.set(usuario.email, [sistema]);
+    estado.avisosDelServidor.set(usuario.email, [
+      avisoDelServidor({
+        proyectoId: sistema.id,
+        acciones: [
+          { tipo: 'REGISTRAR', texto: 'Registrar entrada', proyectoId: sistema.id, bloqueId: entradas.id },
+        ],
+      }),
+    ]);
+    renderApp(`/sistemas/${sistema.id}?modo=usar`);
+    await screen.findByRole('heading', { level: 1, name: /Mi almacén/ }, ESPERA);
+    await waitFor(() => expect(delServidor()).toHaveLength(1), ESPERA);
+    const user = userEvent.setup();
+    await abrirPanel(user);
+
+    await user.click(
+      within(tarjeta('Te quedaste sin Yerba Playadito 1 kg')).getByRole('button', {
+        name: 'Registrar entrada',
+      }),
+    );
+    const modal = await screen.findByRole('dialog', { name: 'Registrar entrada' }, ESPERA);
+    // Mientras no se guarda la entrada, el aviso sigue pendiente.
+    expect(estado.avisosDelServidor.get(usuario.email)?.[0]?.estado).toBe('PENDIENTE');
+    await user.selectOptions(within(modal).getByLabelText(/Producto/), producto.id);
+    await user.type(within(modal).getByLabelText(/Cantidad/), '20');
+    await user.click(within(modal).getByRole('button', { name: 'Guardar' }));
+
+    await waitFor(
+      () => expect(estado.avisosDelServidor.get(usuario.email)?.[0]?.estado).toBe('APLICADO'),
+      ESPERA,
+    );
+    await waitFor(() => expect(delServidor()).toHaveLength(0), ESPERA);
   });
 
   it('si el servidor no puede aplicar el cambio, el aviso vuelve y se avisa', async () => {
@@ -653,7 +697,7 @@ describe('los avisos del motor del servidor', () => {
 
     await user.click(
       within(tarjeta('Te quedaste sin Yerba Playadito 1 kg')).getByRole('button', {
-        name: 'Aplicar: subir a $ 4.200',
+        name: 'Subir a $ 4.200',
       }),
     );
 

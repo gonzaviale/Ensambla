@@ -28,7 +28,13 @@ function aAccion(accion: AccionDelServidor, avisoId: string): AccionDeAviso {
     case 'VER_ZONA':
       return { tipo: 'zona', texto: accion.texto ?? 'Ver en Mi zona', producto: accion.producto };
     case 'REGISTRAR':
-      return { tipo: 'registrar', texto: accion.texto ?? 'Registrar entrada', sistemaId, bloqueId };
+      return {
+        tipo: 'registrar',
+        texto: accion.texto ?? 'Registrar entrada',
+        sistemaId,
+        bloqueId,
+        avisoId,
+      };
     case 'ABRIR':
       return {
         tipo: 'abrir',
