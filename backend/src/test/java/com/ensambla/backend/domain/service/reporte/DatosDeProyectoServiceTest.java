@@ -34,7 +34,7 @@ class DatosDeProyectoServiceTest {
     private final DatosDeProyectoService service = new DatosDeProyectoService(registroRepository);
 
     @Test
-    @DisplayName("Carga las tablas de inventario, ventas y gastos con sus campos por clave y sin las filas de ejemplo")
+    @DisplayName("Carga las tablas de inventario, ventas, gastos y entradas con sus campos por clave y sin las filas de ejemplo")
     void cargarShouldLoadInventoryExpensesAndSalesWithoutExamples() {
         Registro real = registro(INVENTARIO_ID, false);
         Registro ejemplo = registro(INVENTARIO_ID, true);
@@ -60,6 +60,10 @@ class DatosDeProyectoServiceTest {
         assertThat(datos.ventas()).singleElement().satisfies(ventas -> {
             assertThat(ventas.bloque().getId()).isEqualTo(VENTAS_ID);
             assertThat(ventas.registros()).containsExactly(venta);
+        });
+        assertThat(datos.entradas()).singleElement().satisfies(entradas -> {
+            assertThat(entradas.bloque().getId()).isEqualTo(ENTRADAS_ID);
+            assertThat(entradas.registros()).isEmpty();
         });
         assertThat(datos.gastos()).singleElement().satisfies(gastos -> {
             assertThat(gastos.bloque().getId()).isEqualTo(GASTOS_ID);

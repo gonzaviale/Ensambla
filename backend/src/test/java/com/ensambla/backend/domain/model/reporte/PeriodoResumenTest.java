@@ -58,6 +58,23 @@ class PeriodoResumenTest {
     }
 
     @Test
+    @DisplayName("Los últimos días cuentan hoy, y sin días son 30")
+    void ultimosDiasShouldCountTodayAndDefaultToThirty() {
+        assertThat(PeriodoResumen.ultimosDias(7, HOY)).isEqualTo(new PeriodoResumen(HOY.minusDays(6), HOY));
+        assertThat(PeriodoResumen.ultimosDias(null, HOY)).isEqualTo(new PeriodoResumen(HOY.minusDays(29), HOY));
+    }
+
+    @Test
+    @DisplayName("Los últimos días tienen que ser positivos y no más de 366")
+    void ultimosDiasShouldRejectInvalidAmounts() {
+        assertThatThrownBy(() -> PeriodoResumen.ultimosDias(0, HOY))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("La cantidad de días tiene que ser mayor a cero");
+        assertThatThrownBy(() -> PeriodoResumen.ultimosDias(367, HOY))
+                .isInstanceOf(BusinessRuleException.class);
+    }
+
+    @Test
     @DisplayName("Incluye el primer y el último día, y no un día vacío")
     void incluyeShouldCoverBothEnds() {
         PeriodoResumen periodo = new PeriodoResumen(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 7));
