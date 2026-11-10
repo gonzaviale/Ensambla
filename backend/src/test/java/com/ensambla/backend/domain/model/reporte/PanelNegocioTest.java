@@ -36,6 +36,7 @@ class PanelNegocioTest {
     private static final BloqueId GASTOS_ID = BloqueId.de("b0000000-0000-4000-8000-000000000004");
     private static final CampoId GASTO_FECHA_ID = CampoId.de("f0000000-0000-4000-8000-000000000022");
     private static final CampoId GASTO_TOTAL_ID = CampoId.de("f0000000-0000-4000-8000-000000000023");
+    private static final CampoId GASTO_CATEGORIA_ID = CampoId.de("f0000000-0000-4000-8000-000000000024");
     private static final BloqueId ENTRADAS_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
     private static final CampoId ENTRADA_PRODUCTO_ID = CampoId.de("f0000000-0000-4000-8000-000000000041");
     private static final CampoId ENTRADA_CANTIDAD_ID = CampoId.de("f0000000-0000-4000-8000-000000000042");
@@ -71,8 +72,8 @@ class PanelNegocioTest {
         assertThat(metricas.gastos()).isEqualByComparingTo("6500");
         assertThat(metricas.teDeben()).isEqualByComparingTo("17000");
         assertThat(metricas.queda()).isEqualByComparingTo("17400");
-        assertThat(metricas.margen()).isEqualByComparingTo("19.3");
-        assertThat(metricas.ticketPromedio()).isEqualByComparingTo("13600");
+        assertThat(metricas.margen()).isEqualByComparingTo("20.6");
+        assertThat(metricas.ticketPromedio()).isEqualByComparingTo("18133.33");
         assertThat(metricas.variacion()).isEqualByComparingTo("220");
     }
 
@@ -176,6 +177,60 @@ class PanelNegocioTest {
         assertThat(panel.metricas().mercaderia()).isEqualByComparingTo("13500");
     }
 
+    // --- mercadería anotada como gasto ---
+
+    @Test
+    @DisplayName("La categoría Mercadería no es un gasto ni se suma a las entradas: sería contar la compra dos veces")
+    void armarShouldNotCountMerchandiseExpensesTwice() {
+        List<Registro> gastos = List.of(
+                gasto("2026-09-23", 5000),
+                gasto("2026-10-12", 1500),
+                gasto("2026-10-02", 700, "Servicios"),
+                gasto("2026-10-01", 9000, "Mercadería"));
+
+        PanelNegocio panel = PanelNegocio.armar(datosConGastosYEntradas(gastos), PERIODO, HOY);
+
+        PanelNegocio.Metricas metricas = panel.metricas();
+        assertThat(metricas.gastos()).isEqualByComparingTo("7200");
+        assertThat(metricas.mercaderia()).isEqualByComparingTo("13500");
+        assertThat(metricas.queda()).isEqualByComparingTo("16700");
+    }
+
+    @Test
+    @DisplayName("Sin tabla de entradas, la mercadería anotada como gasto es la mercadería y no un gasto más")
+    void armarShouldTakePurchasesFromExpensesWithoutAnEntriesTable() {
+        List<Registro> gastos = List.of(
+                gasto("2026-09-23", 5000),
+                gasto("2026-09-24", 9000, " mercaderia "),
+                gasto("2026-08-01", 700, "Mercadería"));
+        DatosDeProyecto datos = new DatosDeProyecto("Almacén",
+                List.of(AvisoTestData.inventarioConPrecios(yerba())),
+                List.of(bloqueDeVentas(List.of(venta(YERBA, 10, 3400, "2026-09-22", false)))),
+                List.of(gastosDe(gastos)));
+
+        PanelNegocio panel = PanelNegocio.armar(datos, PERIODO, HOY);
+
+        assertThat(panel.metricas().gastos()).isEqualByComparingTo("5000");
+        assertThat(panel.metricas().mercaderia()).isEqualByComparingTo("9000");
+        assertThat(panel.flujoDeCaja().getFirst().salidas()).isEqualByComparingTo("14000");
+        assertThat(panel.metricas().queda()).isEqualByComparingTo("20000");
+    }
+
+    @Test
+    @DisplayName("Ventas sin precio cuentan como venta pero no hay ticket ni margen que calcular")
+    void armarShouldNotComputeTicketOrMarginWithoutPrices() {
+        DatosDeProyecto datos = new DatosDeProyecto("Almacén",
+                List.of(AvisoTestData.inventarioConPrecios(yerba())),
+                List.of(bloqueDeVentas(List.of(venta(YERBA, 3, null, "2026-10-12", false)))), List.of());
+
+        PanelNegocio panel = PanelNegocio.armar(datos, PERIODO, HOY);
+
+        assertThat(panel.vacio()).isFalse();
+        assertThat(panel.metricas().vendiste()).isEqualByComparingTo("0");
+        assertThat(panel.metricas().ticketPromedio()).isNull();
+        assertThat(panel.metricas().margen()).isNull();
+    }
+
     // --- sin datos ---
 
     @Test
@@ -226,6 +281,15 @@ class PanelNegocioTest {
                 List.of(AvisoTestData.inventarioConPrecios(yerba())),
                 List.of(bloqueDeVentas(List.of(venta(YERBA, 10, 3400, "2026-09-22", false)))),
                 List.of(gastosDe(gastos)));
+    }
+
+    private static DatosDeProyecto datosConGastosYEntradas(List<Registro> gastos) {
+        return new DatosDeProyecto("Almacén",
+                List.of(AvisoTestData.inventarioConPrecios(yerba(), fideos(), aceite())),
+                List.of(bloqueDeVentas(List.of(
+                        venta(YERBA, 10, 3400, "2026-09-22", false), venta(FIDEOS, 2, 1700, "2026-10-12", false)))),
+                List.of(gastosDe(gastos)), Map.of(),
+                List.of(entradasDe(List.of(entrada(YERBA.toString(), 5, "2026-09-24")))));
     }
 
     private static DatosDeProyecto datosConEntradas(List<Registro> entradas) {
@@ -279,9 +343,14 @@ class PanelNegocioTest {
     }
 
     private static Registro gasto(String fecha, Integer total) {
+        return gasto(fecha, total, null);
+    }
+
+    private static Registro gasto(String fecha, Integer total, String categoria) {
         Map<String, Object> valores = new LinkedHashMap<>();
         poner(valores, GASTO_FECHA_ID, fecha);
         poner(valores, GASTO_TOTAL_ID, total);
+        poner(valores, GASTO_CATEGORIA_ID, categoria);
         return Registro.builder().id(RegistroId.nuevo()).negocioId(AvisoTestData.NEGOCIO_ID).bloqueId(GASTOS_ID)
                 .valores(valores).build();
     }
@@ -289,9 +358,11 @@ class PanelNegocioTest {
     private static BloqueGastos gastosDe(List<Registro> gastos) {
         Campo fecha = campo(GASTO_FECHA_ID, GASTOS_ID, "date");
         Campo total = campo(GASTO_TOTAL_ID, GASTOS_ID, "total");
+        Campo categoria = campo(GASTO_CATEGORIA_ID, GASTOS_ID, "category");
         Bloque bloque = Bloque.builder().id(GASTOS_ID).negocioId(AvisoTestData.NEGOCIO_ID)
-                .proyectoId(AvisoTestData.PROYECTO_ID).tipo(TipoBloque.GASTOS).campos(List.of(fecha, total)).build();
-        return new BloqueGastos(bloque, Map.of("date", fecha, "total", total), gastos);
+                .proyectoId(AvisoTestData.PROYECTO_ID).tipo(TipoBloque.GASTOS)
+                .campos(List.of(fecha, total, categoria)).build();
+        return new BloqueGastos(bloque, Map.of("date", fecha, "total", total, "category", categoria), gastos);
     }
 
     private static Registro entrada(String producto, Integer cantidad, String fecha) {

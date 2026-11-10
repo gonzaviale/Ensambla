@@ -63,10 +63,13 @@ class PanelNegocioControllerTest {
         mockMvc.perform(get("/api/negocio/panel").param("proyectoId", PROYECTO_ID.toString())
                         .param("dias", "7").principal(sesion))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.desde").value("2026-10-01"))
+                .andExpect(jsonPath("$.hasta").value("2026-10-07"))
                 .andExpect(jsonPath("$.hayDatos").value(true))
                 .andExpect(jsonPath("$.dias").value(7))
                 .andExpect(jsonPath("$.metricas.vendiste").value(1000))
                 .andExpect(jsonPath("$.metricas.gastos").doesNotExist())
+                .andExpect(jsonPath("$.flujoDeCaja[0].desde").value("2026-10-01"))
                 .andExpect(jsonPath("$.flujoDeCaja[0].saldoAcumulado").value(1000));
         verify(obtenerPanelNegocio).execute(new ObtenerPanelNegocioRequest(USUARIO_ID, PROYECTO_ID, 7));
     }
