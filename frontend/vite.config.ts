@@ -6,6 +6,8 @@ import tailwindcss from '@tailwindcss/vite';
 import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import type { Plugin as PluginPostcss } from 'postcss';
 import prefixSelector from 'postcss-prefix-selector';
+import basicSsl from '@vitejs/plugin-basic-ssl';
+import { catalogosProductos, proxyOpenFoodFacts } from './config/catalogosProductos';
 
 // Las hojas del mockup (src/styles/sistema) se usan sin modificar, pero sus reglas globales
 // (body, p, h1, a, button…) pisarían la landing y el acceso: se acotan bajo `.mk-root`.
@@ -74,7 +76,18 @@ const aislarBaseDeTailwind: PluginPostcss = {
 };
 
 export default defineConfig({
-  plugins: [tanstackRouter({ target: 'react', autoCodeSplitting: true }), react(), tailwindcss()],
+  // Las demos HTTP y HTTPS pueden correr juntas sin pisarse los módulos optimizados.
+  cacheDir:
+    process.env.ENSAMBLA_HTTPS === '1' ? 'node_modules/.cache/vite-movil' : 'node_modules/.vite',
+  plugins: [
+    catalogosProductos(),
+    tanstackRouter({ target: 'react', autoCodeSplitting: true }),
+    react(),
+    tailwindcss(),
+    ...(process.env.ENSAMBLA_HTTPS === '1'
+      ? [basicSsl({ name: 'ensambla-local', certDir: 'node_modules/.vite/basic-ssl' })]
+      : []),
+  ],
   css: { postcss: { plugins: [acotarSistema, renombrarAnimaciones, aislarBaseDeTailwind] } },
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
@@ -83,6 +96,7 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
+      '/catalogos/openfoodfacts/': proxyOpenFoodFacts,
       '/api': 'http://localhost:8080',
     },
   },
