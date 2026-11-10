@@ -4,7 +4,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { objetivoDeEjemplo } from '@/lib/objetivos';
 import { useObjetivosStore } from '@/stores/objetivosStore';
 import { renderApp } from '@/test/renderApp';
-import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
+import {
+  ESPERA,
+  setupServerError,
+  setupServerResponse,
+  setupUsuarioConSesion,
+} from '@/test/testHelpers';
 
 const conObjetivoDeEjemplo = () =>
   act(() =>
@@ -71,11 +76,63 @@ describe('objetivos', () => {
 
     const boton = await screen.findByRole('button', { name: /Qué podés hacer/ }, ESPERA);
     expect(boton).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByText(/Cargá tus productos y sus costos en un cuaderno/)).toBeVisible();
+    expect(
+      await screen.findByText(/Cargá tus productos y sus costos en un cuaderno/, {}, ESPERA),
+    ).toBeVisible();
 
     await user.click(boton);
     expect(boton).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByText(/Cargá tus productos/)).not.toBeInTheDocument();
+  });
+
+  it('muestra los productos elegidos por el servidor y conserva el slider y la comparación de zona', async () => {
+    setupUsuarioConSesion();
+    conObjetivoDeEjemplo();
+    setupServerResponse('get', '/objetivos/pasos', 200, [
+      {
+        tipo: 'SUBIR_PRECIO',
+        nombre: 'Yerba',
+        precio: 3600,
+        costo: 2700,
+        stock: 4,
+        vendidas30Dias: 60,
+        precioZona: { minimo: 3500, promedio: 3900, maximo: 4300 },
+      },
+    ]);
+    renderApp('/objetivos');
+
+    expect(await screen.findByText(/Subile .* a Yerba/, {}, ESPERA)).toBeVisible();
+    expect(screen.getByRole('slider', { name: /Subile/ })).toBeVisible();
+    expect(screen.getByText(/En tu zona lo cobran entre/)).toBeVisible();
+  });
+
+  it('conserva el objetivo y permite reintentar cuando no puede calcular los pasos', async () => {
+    setupUsuarioConSesion();
+    conObjetivoDeEjemplo();
+    setupServerError('get', '/objetivos/pasos', 503, 'No pudimos calcular los pasos.');
+    renderApp('/objetivos');
+    const user = userEvent.setup();
+
+    expect(
+      await screen.findByRole('alert', { name: 'No pudimos calcular tus pasos' }, ESPERA),
+    ).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Cómo van tus objetivos' })).toBeVisible();
+    setupServerResponse('get', '/objetivos/pasos', 200, [
+      {
+        tipo: 'PONER_A_LA_VISTA',
+        nombre: 'Coca-Cola',
+        precio: 2700,
+        costo: 1950,
+        stock: 18,
+        vendidas30Dias: 5,
+        precioZona: null,
+      },
+    ]);
+
+    await user.click(screen.getByRole('button', { name: 'Reintentar recomendaciones' }));
+
+    expect(await screen.findByText('Poné Coca-Cola a la vista', {}, ESPERA)).toBeVisible();
+    expect(screen.queryByRole('alert', { name: 'No pudimos calcular tus pasos' })).not.toBeInTheDocument();
   });
 
   it('un objetivo que no existe invita a volver', async () => {
