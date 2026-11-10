@@ -362,6 +362,25 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     @Test
+    @DisplayName("Carga el snapshot inicial de CABA y La Matanza completo")
+    void shouldSeedInitialWhereToOpenSnapshot() {
+        Integer zonas = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM zona
+                WHERE nombre IN ('Almagro', 'Boedo', 'Caballito Norte', 'Caballito Sur', 'Chacarita', 'Colegiales',
+                    'Villa Ortúzar', 'Paternal', 'Villa Crespo Sur', 'Villa del Parque', 'Flores Norte',
+                    'Ramos Mejía', 'San Justo - UNLaM')
+                """, Integer.class);
+        Integer metricas = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM metrica_zona WHERE fuente_codigo = 'OSM'", Integer.class);
+        Integer puntos = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM punto_interes_zona WHERE fuente_codigo = 'OSM'", Integer.class);
+
+        assertThat(zonas).isEqualTo(13);
+        assertThat(metricas).isEqualTo(130);
+        assertThat(puntos).isGreaterThan(2_000);
+    }
+
+    @Test
     @DisplayName("Guarda una métrica y un punto de interés trazables para una zona")
     void shouldPersistHybridZoneMetricAndPoint() {
         UUID zonaId = givenZona("Zona híbrida");
