@@ -112,7 +112,7 @@ public record AvisoEconomico(
                     : "Vendiste menos, pero te quedó más ganancia: lo que vendiste te dejó más por cada venta.";
         }
         return vendioMas
-                ? "Vendiste más, pero te quedó menos ganancia: revisá los precios de los productos de abajo."
+                ? "Vendiste más, pero te quedó menos ganancia: revisá los precios de los productos involucrados."
                 : "Esta semana vendiste menos y te quedó menos ganancia que la anterior.";
     }
 

@@ -229,7 +229,7 @@ describe('inicio: aviso económico', () => {
     expect(within(tarjeta).getByText('Ventas').nextSibling).toHaveTextContent('+12 %');
     expect(within(tarjeta).getByText('Ganancia').nextSibling).toHaveTextContent('−4 %');
     expect(within(tarjeta).getByText('Productos involucrados').nextSibling).toHaveTextContent('3');
-    expect(within(tarjeta).getByText('Confianza').nextSibling).toHaveTextContent('Alta');
+    expect(within(tarjeta).queryByText('Confianza')).toBeNull();
   });
 
   it('cuando el negocio mejora lo dice y ofrece ver los objetivos', async () => {
@@ -275,20 +275,22 @@ describe('inicio: aviso económico', () => {
     expect(within(seccion).queryByRole('article', { name: 'Aviso económico' })).toBeNull();
   });
 
-  it('«Ver productos involucrados» los despliega y los vuelve a ocultar', async () => {
+  it('«Productos involucrados» abre un modal con la lista y se cierra', async () => {
     const user = await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
     const tarjeta = await screen.findByRole('article', { name: 'Aviso económico' }, ESPERA);
+    expect(within(tarjeta).queryByRole('list', { name: 'Productos involucrados' })).toBeNull();
 
-    await user.click(within(tarjeta).getByRole('button', { name: 'Ver productos involucrados' }));
-    const lista = within(tarjeta).getByRole('list', { name: 'Productos involucrados' });
+    await user.click(within(tarjeta).getByRole('button', { name: /Productos involucrados|3/ }));
+    const modal = await screen.findByRole('dialog');
+    const lista = within(modal).getByRole('list', { name: 'Productos involucrados' });
     expect(
       within(lista)
         .getAllByRole('listitem')
         .map((item) => item.textContent),
     ).toEqual(['Aceite', 'Leche', 'Yerba']);
 
-    await user.click(within(tarjeta).getByRole('button', { name: 'Ocultar productos' }));
-    expect(within(tarjeta).queryByRole('list', { name: 'Productos involucrados' })).toBeNull();
+    await user.click(within(modal).getByRole('button', { name: 'Listo' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it.each(['Entender por qué', 'Probar una solución'])('«%s» lleva a Objetivos', async (boton) => {

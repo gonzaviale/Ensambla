@@ -8,7 +8,7 @@ export const AVISO_ECONOMICO_DE_EJEMPLO: AvisoEconomico = {
   categoria: 'Rentabilidad',
   titulo: 'Las ventas subieron 12 %, pero la ganancia bajó 4 %',
   explicacion:
-    'Vendiste más, pero te quedó menos ganancia: revisá los precios de los productos de abajo.',
+    'Vendiste más, pero te quedó menos ganancia: revisá los precios de los productos involucrados.',
   variacionVentas: 12,
   variacionResultadoBruto: -4,
   productos: ['Aceite', 'Leche', 'Yerba'],

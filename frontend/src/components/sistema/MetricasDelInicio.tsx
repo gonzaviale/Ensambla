@@ -9,6 +9,7 @@ import { useAvisoEconomico } from '@/hooks/reportes/useAvisoEconomico';
 import { useCuadernoElegido } from '@/hooks/reportes/useCuadernoElegido';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { formatoPesos } from '@/lib/sistema/formato';
+import { useSistemaStore } from '@/stores/sistemaStore';
 import {
   PERIODOS_DE_VENTAS,
   comparacionConElPeriodoAnterior,
@@ -96,12 +97,6 @@ const PRIORIDAD: Record<AvisoEconomico['prioridad'], string> = {
   BAJA: 'Para mirar',
 };
 
-const CONFIANZA: Record<AvisoEconomico['confianza'], string> = {
-  ALTA: 'Alta',
-  MEDIA: 'Media',
-  BAJA: 'Baja',
-};
-
 const conSigno = (valor: number) => `${valor > 0 ? '+' : valor < 0 ? '−' : ''}${Math.abs(valor)} %`;
 
 // El aviso económico del cuaderno: esta semana frente a la anterior. La prioridad a un costado, qué cambió, los
@@ -109,7 +104,7 @@ const conSigno = (valor: number) => `${valor > 0 ? '+' : valor < 0 ? '−' : ''}
 function TarjetaDeAvisoEconomico({ sistemaId, cuaderno }: { sistemaId: string; cuaderno: string }) {
   const { aviso } = useAvisoEconomico(sistemaId);
   const navegacion = useNavegacion();
-  const [verProductos, setVerProductos] = useState(false);
+  const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   if (!aviso) return null;
   const irAObjetivos = () => void navegacion.irAObjetivos();
   const mejora = aviso.tendencia === 'MEJORA';
@@ -145,20 +140,25 @@ function TarjetaDeAvisoEconomico({ sistemaId, cuaderno }: { sistemaId: string; c
           </div>
           <div>
             <dt>Productos involucrados</dt>
-            <dd>{aviso.productos.length}</dd>
-          </div>
-          <div>
-            <dt>Confianza</dt>
-            <dd>{CONFIANZA[aviso.confianza]}</dd>
+            <dd>
+              {aviso.productos.length > 0 ? (
+                <button
+                  type="button"
+                  className="tablero-aviso-sami-evidencia-boton"
+                  aria-haspopup="dialog"
+                  onClick={() =>
+                    abrirModal({ tipo: 'productosDelAviso', productos: aviso.productos })
+                  }
+                >
+                  {aviso.productos.length}
+                  <Icon name="arrow" />
+                </button>
+              ) : (
+                0
+              )}
+            </dd>
           </div>
         </dl>
-        {verProductos && (
-          <ul className="tablero-aviso-sami-productos" aria-label="Productos involucrados">
-            {aviso.productos.map((producto) => (
-              <li key={producto}>{producto}</li>
-            ))}
-          </ul>
-        )}
         <div className="tablero-aviso-sami-acciones">
           {mejora ? (
             <button
@@ -181,16 +181,6 @@ function TarjetaDeAvisoEconomico({ sistemaId, cuaderno }: { sistemaId: string; c
                 Probar una solución
               </button>
             </>
-          )}
-          {aviso.productos.length > 0 && (
-            <button
-              type="button"
-              className="tablero-aviso-sami-textual"
-              aria-expanded={verProductos}
-              onClick={() => setVerProductos((valor) => !valor)}
-            >
-              {verProductos ? 'Ocultar productos' : 'Ver productos involucrados'}
-            </button>
           )}
         </div>
       </div>
