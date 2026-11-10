@@ -7,6 +7,7 @@ import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { bloqueDeVentas, pesos, porcentaje, sistemaDelPanel } from '@/lib/sistema/panelDelNegocio';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import type { MetricasDelPanel, PanelDelNegocio as Panel } from '@/types/panel';
+import { DecisionesRapidas } from './DecisionesRapidas';
 import { FlujoDeCajaPorSemana } from './FlujoDeCajaPorSemana';
 
 type Detalle = 'ventas' | 'objetivos';
@@ -125,38 +126,37 @@ export function PanelDelNegocio() {
         </div>
       )}
       {consulta.data?.metricas && (
-        <>
-          <ul className="panel-tarjetas">
-            {tarjetasDe(consulta.data.metricas).map((tarjeta) => (
-              <li key={tarjeta.clave} className="panel-tarjeta" data-metrica={tarjeta.clave}>
-                <span className="panel-tarjeta-etiqueta">{tarjeta.etiqueta}</span>
-                <strong
-                  className={tarjeta.alerta ? 'panel-tarjeta-valor alerta' : 'panel-tarjeta-valor'}
+        <ul className="panel-tarjetas">
+          {tarjetasDe(consulta.data.metricas).map((tarjeta) => (
+            <li key={tarjeta.clave} className="panel-tarjeta" data-metrica={tarjeta.clave}>
+              <span className="panel-tarjeta-etiqueta">{tarjeta.etiqueta}</span>
+              <strong
+                className={tarjeta.alerta ? 'panel-tarjeta-valor alerta' : 'panel-tarjeta-valor'}
+              >
+                {tarjeta.valor}
+              </strong>
+              {tarjeta.nota && (
+                <span
+                  className={tarjeta.notaMala ? 'panel-tarjeta-nota mala' : 'panel-tarjeta-nota'}
                 >
-                  {tarjeta.valor}
-                </strong>
-                {tarjeta.nota && (
-                  <span
-                    className={tarjeta.notaMala ? 'panel-tarjeta-nota mala' : 'panel-tarjeta-nota'}
-                  >
-                    {tarjeta.nota}
-                  </span>
-                )}
-                <p>{tarjeta.paraQueSirve}</p>
-                <button
-                  type="button"
-                  className="panel-tarjeta-detalle"
-                  onClick={() => void verDetalle(tarjeta.detalle)}
-                >
-                  {tarjeta.verMas}
-                  <Icon name="arrow" />
-                </button>
-              </li>
-            ))}
-          </ul>
-          <FlujoDeCaja panel={consulta.data} />
-        </>
+                  {tarjeta.nota}
+                </span>
+              )}
+              <p>{tarjeta.paraQueSirve}</p>
+              <button
+                type="button"
+                className="panel-tarjeta-detalle"
+                onClick={() => void verDetalle(tarjeta.detalle)}
+              >
+                {tarjeta.verMas}
+                <Icon name="arrow" />
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
+      <DecisionesRapidas />
+      {consulta.data?.metricas && <FlujoDeCaja panel={consulta.data} />}
     </section>
   );
 }

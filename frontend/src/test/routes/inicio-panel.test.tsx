@@ -80,8 +80,10 @@ describe('inicio: panel del negocio', () => {
     expect(
       document.querySelector('[data-metrica="margen"] .panel-tarjeta-valor'),
     ).toHaveTextContent(/^\d+(,\d)? %$/);
-    const accesos = within(screen.getByRole('region', { name: 'Cómo viene tu negocio' }))
-      .getAllByRole('button', { name: /Ver |Mejorar/ })
+    const tarjetas = document.querySelector<HTMLElement>('.panel-tarjetas');
+    if (!tarjetas) throw new Error('Faltan las tarjetas');
+    const accesos = within(tarjetas)
+      .getAllByRole('button')
       .map((boton) => boton.textContent);
     expect(new Set(accesos).size).toBe(accesos.length);
   });

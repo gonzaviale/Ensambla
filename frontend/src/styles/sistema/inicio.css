@@ -783,6 +783,126 @@ body:has(.inicio) {
   color: var(--bad);
 }
 
+/* Las sugerencias de Sami: una línea cada una, con el botón de lo que propone */
+.panel-decisiones {
+  margin-top: 12px;
+}
+.panel-decisiones-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px 16px;
+  margin-bottom: 8px;
+}
+.panel-decisiones-cabecera h2 {
+  font-size: 18px;
+}
+.panel-decisiones-cabecera p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--panel-suave);
+}
+.sugerencias {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sugerencia {
+  --nivel: var(--blue);
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--nivel);
+  border-radius: 14px;
+  background: var(--paper);
+}
+.sugerencia[data-nivel='2'] {
+  --nivel: var(--orange);
+}
+.sugerencia[data-nivel='3'] {
+  --nivel: var(--bad);
+}
+.sugerencia-icono {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--nivel) 14%, var(--paper));
+  color: var(--nivel);
+}
+.sugerencia[data-nivel='1'] .sugerencia-icono {
+  color: #1f6f8e;
+}
+.sugerencia[data-nivel='2'] .sugerencia-icono {
+  color: #9a5b06;
+}
+.sugerencia-meta {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--panel-suave);
+}
+.sugerencia h3 {
+  font-size: 15px;
+  line-height: 1.3;
+}
+.sugerencia-acciones {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sugerencia-mas {
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--petrol);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.sugerencia-mas:hover {
+  text-decoration: underline;
+}
+.sugerencia-detalle {
+  grid-column: 2 / -1;
+  display: grid;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line);
+  font-size: 13px;
+}
+.sugerencia-detalle p {
+  margin: 0;
+}
+.sugerencia-detalle ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--panel-suave);
+}
+.sugerencia-descartar {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--bad);
+  cursor: pointer;
+}
+.sugerencia-descartar:hover {
+  text-decoration: underline;
+}
+
 /* Mientras llegan los números: reserva el lugar para que lo de abajo no salte */
 .panel-esqueleto-tarjetas {
   display: grid;
@@ -823,6 +943,16 @@ body:has(.inicio) {
     grid-column: 1 / -1;
   }
   .panel-semana-saldo {
+    grid-column: 1 / -1;
+  }
+  .sugerencia {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+  .sugerencia-acciones {
+    grid-column: 1 / -1;
+    justify-content: space-between;
+  }
+  .sugerencia-detalle {
     grid-column: 1 / -1;
   }
   .panel-esqueleto-tarjetas {
