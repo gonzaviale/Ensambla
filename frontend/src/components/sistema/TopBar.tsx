@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { GraduationCapIcon } from '@phosphor-icons/react';
 import { Icon } from './Icon';
 import { Logo } from './Logo';
 import { MenuDePerfil } from './MenuDePerfil';
@@ -9,7 +10,8 @@ export type SeccionActiva =
   | 'templates'
   | 'zone'
   | 'avisos'
-  | 'laboratory'
+  | 'goals'
+  | 'learn'
   | 'plans'
   | 'account';
 
@@ -23,7 +25,8 @@ type TopBarProps = {
   onPlantillas: () => void;
   onZona: () => void;
   onAvisos: () => void;
-  onLaboratorio: () => void;
+  onObjetivos: () => void;
+  onEnsenanza: () => void;
   onPlanes: () => void;
   onAyuda: () => void;
   /** «Configuración», en el menú del avatar. */
@@ -42,7 +45,8 @@ export function TopBar({
   onPlantillas,
   onZona,
   onAvisos,
-  onLaboratorio,
+  onObjetivos,
+  onEnsenanza,
   onPlanes,
   onAyuda,
   onCuenta,
@@ -94,11 +98,11 @@ export function TopBar({
         </button>
         <button
           type="button"
-          className={active === 'laboratory' ? 'active' : ''}
-          aria-current={active === 'laboratory' ? 'page' : undefined}
-          onClick={ir(onLaboratorio)}
+          className={active === 'goals' ? 'active' : ''}
+          aria-current={active === 'goals' ? 'page' : undefined}
+          onClick={ir(onObjetivos)}
         >
-          Laboratorio
+          Objetivos
         </button>
         <button
           type="button"
@@ -124,6 +128,16 @@ export function TopBar({
       </nav>
       <div className="row topbar-right">
         {campana}
+        <button
+          type="button"
+          className={`boton-ensenanza ${active === 'learn' ? 'active' : ''}`.trim()}
+          aria-label="Sami te enseña"
+          aria-current={active === 'learn' ? 'page' : undefined}
+          title="Sami te enseña"
+          onClick={onEnsenanza}
+        >
+          <GraduationCapIcon aria-hidden size={20} />
+        </button>
         <button
           type="button"
           className="help-trigger"

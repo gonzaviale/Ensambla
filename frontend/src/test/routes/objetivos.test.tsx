@@ -1,0 +1,105 @@
+import { act, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { objetivoDeEjemplo } from '@/lib/objetivos';
+import { useObjetivosStore } from '@/stores/objetivosStore';
+import { renderApp } from '@/test/renderApp';
+import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
+
+const conObjetivoDeEjemplo = () =>
+  act(() =>
+    useObjetivosStore.setState({ objetivos: [objetivoDeEjemplo()], ejemploSembrado: true }),
+  );
+
+describe('objetivos', () => {
+  beforeEach(() => {
+    act(() => useObjetivosStore.setState({ objetivos: [], ejemploSembrado: false }));
+  });
+
+  it('se abre desde la navegación principal y ya no hay un laboratorio', async () => {
+    setupUsuarioConSesion();
+    const router = renderApp('/inicio');
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole('button', { name: 'Objetivos' }, ESPERA));
+    await screen.findByRole('heading', { name: 'Definí tu primer objetivo' }, ESPERA);
+
+    expect(router.state.location.pathname).toBe('/objetivos');
+    expect(screen.getByRole('button', { name: 'Objetivos' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(screen.queryByRole('button', { name: 'Laboratorio' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/laboratorio/i)).not.toBeInTheDocument();
+  });
+
+  it('sin objetivos propone definir uno y lo muestra con lo que falta, sin porcentajes', async () => {
+    setupUsuarioConSesion();
+    renderApp('/objetivos');
+    const user = userEvent.setup();
+
+    await screen.findByRole('heading', { name: 'Definí tu primer objetivo' }, ESPERA);
+    expect(screen.getByRole('button', { name: 'Definir objetivo' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: /Quiero ganar \$400\.000/ }));
+    await user.click(screen.getByRole('button', { name: 'Definir objetivo' }));
+
+    expect(await screen.findByRole('heading', { name: 'Cómo van tus objetivos' })).toBeVisible();
+    expect(screen.getByText(/ganás por mes · te faltan \$220\.000/)).toBeVisible();
+    expect(screen.getByText(/Todavía no hay semanas para comparar/)).toBeVisible();
+    expect(screen.queryByText(/%/)).not.toBeInTheDocument();
+  });
+
+  it('todo está en una pantalla: sin pestañas ni saltos a otras páginas', async () => {
+    setupUsuarioConSesion();
+    conObjetivoDeEjemplo();
+    const router = renderApp('/objetivos');
+
+    await screen.findByRole('heading', { name: 'Cómo van tus objetivos' }, ESPERA);
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver cómo funcionaría' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver plan de acción' })).not.toBeInTheDocument();
+    expect(screen.getByText(/Subió \$60\.000 en las últimas 5 semanas/)).toBeVisible();
+    expect(router.state.location.pathname).toBe('/objetivos');
+  });
+
+  it('despliega qué hacer en el lugar, y sin productos cargados lo explica', async () => {
+    setupUsuarioConSesion();
+    conObjetivoDeEjemplo();
+    renderApp('/objetivos');
+    const user = userEvent.setup();
+
+    const boton = await screen.findByRole('button', { name: /Qué podés hacer/ }, ESPERA);
+    expect(boton).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText(/Cargá tus productos y sus costos en un cuaderno/)).toBeVisible();
+
+    await user.click(boton);
+    expect(boton).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText(/Cargá tus productos/)).not.toBeInTheDocument();
+  });
+
+  it('un objetivo que no existe invita a volver', async () => {
+    setupUsuarioConSesion();
+    renderApp('/objetivos/no-existe');
+
+    expect(
+      await screen.findByRole('heading', { name: 'No encontramos ese objetivo' }, ESPERA),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Ir a mis objetivos' })).toBeVisible();
+  });
+
+  it('pide confirmación antes de quitar un objetivo', async () => {
+    setupUsuarioConSesion();
+    conObjetivoDeEjemplo();
+    renderApp('/objetivos');
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole('button', { name: /Quitar objetivo/ }, ESPERA));
+    const dialogo = await screen.findByRole('dialog');
+    expect(within(dialogo).getByText('¿Quitar este objetivo?')).toBeVisible();
+    await user.click(within(dialogo).getByRole('button', { name: 'Quitar objetivo' }));
+
+    expect(await screen.findByRole('heading', { name: 'Definí tu primer objetivo' })).toBeVisible();
+    expect(useObjetivosStore.getState().objetivos).toHaveLength(0);
+  });
+});

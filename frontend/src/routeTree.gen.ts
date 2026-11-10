@@ -15,16 +15,18 @@ import { Route as AppAvisosRouteImport } from './routes/_app/avisos'
 import { Route as AppCuadernosRouteImport } from './routes/_app/cuadernos'
 import { Route as AppCuentaRouteImport } from './routes/_app/cuenta'
 import { Route as AppInicioRouteImport } from './routes/_app/inicio'
-import { Route as AppLaboratorioRouteImport } from './routes/_app/laboratorio'
 import { Route as AppPlanesRouteImport } from './routes/_app/planes'
 import { Route as AppPlantillasRouteImport } from './routes/_app/plantillas'
 import { Route as AppSamiRouteImport } from './routes/_app/sami'
+import { Route as AppSamiTeEnsenaRouteImport } from './routes/_app/sami-te-ensena'
 import { Route as AppTallerRouteImport } from './routes/_app/taller'
 import { Route as AppUbicacionRouteImport } from './routes/_app/ubicacion'
 import { Route as AppZonaRouteImport } from './routes/_app/zona'
 import { Route as PublicaIndexRouteImport } from './routes/_publica/index'
 import { Route as PublicaLoginRouteImport } from './routes/_publica/login'
 import { Route as PublicaRegistroRouteImport } from './routes/_publica/registro'
+import { Route as AppObjetivosIndexRouteImport } from './routes/_app/objetivos/index'
+import { Route as AppObjetivosObjetivoIdRouteImport } from './routes/_app/objetivos/$objetivoId'
 import { Route as AppSistemasSistemaIdRouteImport } from './routes/_app/sistemas.$sistemaId'
 
 const AppRoute = AppRouteImport.update({
@@ -55,11 +57,6 @@ const AppInicioRoute = AppInicioRouteImport.update({
   path: '/inicio',
   getParentRoute: () => AppRoute,
 } as any)
-const AppLaboratorioRoute = AppLaboratorioRouteImport.update({
-  id: '/laboratorio',
-  path: '/laboratorio',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppPlanesRoute = AppPlanesRouteImport.update({
   id: '/planes',
   path: '/planes',
@@ -73,6 +70,11 @@ const AppPlantillasRoute = AppPlantillasRouteImport.update({
 const AppSamiRoute = AppSamiRouteImport.update({
   id: '/sami',
   path: '/sami',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSamiTeEnsenaRoute = AppSamiTeEnsenaRouteImport.update({
+  id: '/sami-te-ensena',
+  path: '/sami-te-ensena',
   getParentRoute: () => AppRoute,
 } as any)
 const AppTallerRoute = AppTallerRouteImport.update({
@@ -105,6 +107,16 @@ const PublicaRegistroRoute = PublicaRegistroRouteImport.update({
   path: '/registro',
   getParentRoute: () => PublicaRoute,
 } as any)
+const AppObjetivosIndexRoute = AppObjetivosIndexRouteImport.update({
+  id: '/objetivos/',
+  path: '/objetivos/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppObjetivosObjetivoIdRoute = AppObjetivosObjetivoIdRouteImport.update({
+  id: '/objetivos/$objetivoId',
+  path: '/objetivos/$objetivoId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSistemasSistemaIdRoute = AppSistemasSistemaIdRouteImport.update({
   id: '/sistemas/$sistemaId',
   path: '/sistemas/$sistemaId',
@@ -117,16 +129,18 @@ export interface FileRoutesByFullPath {
   '/cuadernos': typeof AppCuadernosRoute
   '/cuenta': typeof AppCuentaRoute
   '/inicio': typeof AppInicioRoute
-  '/laboratorio': typeof AppLaboratorioRoute
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
   '/sami': typeof AppSamiRoute
+  '/sami-te-ensena': typeof AppSamiTeEnsenaRoute
   '/taller': typeof AppTallerRoute
   '/ubicacion': typeof AppUbicacionRoute
   '/zona': typeof AppZonaRoute
   '/login': typeof PublicaLoginRoute
   '/registro': typeof PublicaRegistroRoute
+  '/objetivos/$objetivoId': typeof AppObjetivosObjetivoIdRoute
   '/sistemas/$sistemaId': typeof AppSistemasSistemaIdRoute
+  '/objetivos/': typeof AppObjetivosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicaIndexRoute
@@ -134,16 +148,18 @@ export interface FileRoutesByTo {
   '/cuadernos': typeof AppCuadernosRoute
   '/cuenta': typeof AppCuentaRoute
   '/inicio': typeof AppInicioRoute
-  '/laboratorio': typeof AppLaboratorioRoute
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
   '/sami': typeof AppSamiRoute
+  '/sami-te-ensena': typeof AppSamiTeEnsenaRoute
   '/taller': typeof AppTallerRoute
   '/ubicacion': typeof AppUbicacionRoute
   '/zona': typeof AppZonaRoute
   '/login': typeof PublicaLoginRoute
   '/registro': typeof PublicaRegistroRoute
+  '/objetivos/$objetivoId': typeof AppObjetivosObjetivoIdRoute
   '/sistemas/$sistemaId': typeof AppSistemasSistemaIdRoute
+  '/objetivos': typeof AppObjetivosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -153,17 +169,19 @@ export interface FileRoutesById {
   '/_app/cuadernos': typeof AppCuadernosRoute
   '/_app/cuenta': typeof AppCuentaRoute
   '/_app/inicio': typeof AppInicioRoute
-  '/_app/laboratorio': typeof AppLaboratorioRoute
   '/_app/planes': typeof AppPlanesRoute
   '/_app/plantillas': typeof AppPlantillasRoute
   '/_app/sami': typeof AppSamiRoute
+  '/_app/sami-te-ensena': typeof AppSamiTeEnsenaRoute
   '/_app/taller': typeof AppTallerRoute
   '/_app/ubicacion': typeof AppUbicacionRoute
   '/_app/zona': typeof AppZonaRoute
   '/_publica/login': typeof PublicaLoginRoute
   '/_publica/registro': typeof PublicaRegistroRoute
   '/_publica/': typeof PublicaIndexRoute
+  '/_app/objetivos/$objetivoId': typeof AppObjetivosObjetivoIdRoute
   '/_app/sistemas/$sistemaId': typeof AppSistemasSistemaIdRoute
+  '/_app/objetivos/': typeof AppObjetivosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -173,16 +191,18 @@ export interface FileRouteTypes {
     | '/cuadernos'
     | '/cuenta'
     | '/inicio'
-    | '/laboratorio'
     | '/planes'
     | '/plantillas'
     | '/sami'
+    | '/sami-te-ensena'
     | '/taller'
     | '/ubicacion'
     | '/zona'
     | '/login'
     | '/registro'
+    | '/objetivos/$objetivoId'
     | '/sistemas/$sistemaId'
+    | '/objetivos/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -190,16 +210,18 @@ export interface FileRouteTypes {
     | '/cuadernos'
     | '/cuenta'
     | '/inicio'
-    | '/laboratorio'
     | '/planes'
     | '/plantillas'
     | '/sami'
+    | '/sami-te-ensena'
     | '/taller'
     | '/ubicacion'
     | '/zona'
     | '/login'
     | '/registro'
+    | '/objetivos/$objetivoId'
     | '/sistemas/$sistemaId'
+    | '/objetivos'
   id:
     | '__root__'
     | '/_app'
@@ -208,17 +230,19 @@ export interface FileRouteTypes {
     | '/_app/cuadernos'
     | '/_app/cuenta'
     | '/_app/inicio'
-    | '/_app/laboratorio'
     | '/_app/planes'
     | '/_app/plantillas'
     | '/_app/sami'
+    | '/_app/sami-te-ensena'
     | '/_app/taller'
     | '/_app/ubicacion'
     | '/_app/zona'
     | '/_publica/login'
     | '/_publica/registro'
     | '/_publica/'
+    | '/_app/objetivos/$objetivoId'
     | '/_app/sistemas/$sistemaId'
+    | '/_app/objetivos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -270,13 +294,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppInicioRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/laboratorio': {
-      id: '/_app/laboratorio'
-      path: '/laboratorio'
-      fullPath: '/laboratorio'
-      preLoaderRoute: typeof AppLaboratorioRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/planes': {
       id: '/_app/planes'
       path: '/planes'
@@ -296,6 +313,13 @@ declare module '@tanstack/react-router' {
       path: '/sami'
       fullPath: '/sami'
       preLoaderRoute: typeof AppSamiRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/sami-te-ensena': {
+      id: '/_app/sami-te-ensena'
+      path: '/sami-te-ensena'
+      fullPath: '/sami-te-ensena'
+      preLoaderRoute: typeof AppSamiTeEnsenaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/taller': {
@@ -340,6 +364,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicaRegistroRouteImport
       parentRoute: typeof PublicaRoute
     }
+    '/_app/objetivos/': {
+      id: '/_app/objetivos/'
+      path: '/objetivos'
+      fullPath: '/objetivos/'
+      preLoaderRoute: typeof AppObjetivosIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/objetivos/$objetivoId': {
+      id: '/_app/objetivos/$objetivoId'
+      path: '/objetivos/$objetivoId'
+      fullPath: '/objetivos/$objetivoId'
+      preLoaderRoute: typeof AppObjetivosObjetivoIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/sistemas/$sistemaId': {
       id: '/_app/sistemas/$sistemaId'
       path: '/sistemas/$sistemaId'
@@ -355,14 +393,16 @@ interface AppRouteChildren {
   AppCuadernosRoute: typeof AppCuadernosRoute
   AppCuentaRoute: typeof AppCuentaRoute
   AppInicioRoute: typeof AppInicioRoute
-  AppLaboratorioRoute: typeof AppLaboratorioRoute
   AppPlanesRoute: typeof AppPlanesRoute
   AppPlantillasRoute: typeof AppPlantillasRoute
   AppSamiRoute: typeof AppSamiRoute
+  AppSamiTeEnsenaRoute: typeof AppSamiTeEnsenaRoute
   AppTallerRoute: typeof AppTallerRoute
   AppUbicacionRoute: typeof AppUbicacionRoute
   AppZonaRoute: typeof AppZonaRoute
+  AppObjetivosObjetivoIdRoute: typeof AppObjetivosObjetivoIdRoute
   AppSistemasSistemaIdRoute: typeof AppSistemasSistemaIdRoute
+  AppObjetivosIndexRoute: typeof AppObjetivosIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -370,14 +410,16 @@ const AppRouteChildren: AppRouteChildren = {
   AppCuadernosRoute: AppCuadernosRoute,
   AppCuentaRoute: AppCuentaRoute,
   AppInicioRoute: AppInicioRoute,
-  AppLaboratorioRoute: AppLaboratorioRoute,
   AppPlanesRoute: AppPlanesRoute,
   AppPlantillasRoute: AppPlantillasRoute,
   AppSamiRoute: AppSamiRoute,
+  AppSamiTeEnsenaRoute: AppSamiTeEnsenaRoute,
   AppTallerRoute: AppTallerRoute,
   AppUbicacionRoute: AppUbicacionRoute,
   AppZonaRoute: AppZonaRoute,
+  AppObjetivosObjetivoIdRoute: AppObjetivosObjetivoIdRoute,
   AppSistemasSistemaIdRoute: AppSistemasSistemaIdRoute,
+  AppObjetivosIndexRoute: AppObjetivosIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
