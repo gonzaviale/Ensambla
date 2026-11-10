@@ -20,7 +20,6 @@ export function InicioPage() {
   const nombre = useNombre();
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const tutorial = useAccionesDelTutorial();
-  const navegacion = useNavegacion();
   // Quien ya tiene un cuaderno ve el panel de su negocio: la bienvenida pasa a una franja corta (el h1 es el mismo)
   // y las formas de empezar siguen a mano. Quien recién empieza ve la bienvenida grande de siempre.
   const hayPanel = useSistemaStore((estado) => sistemaDelPanel(estado.sistemas) !== null);
@@ -37,7 +36,10 @@ export function InicioPage() {
                 ¿Primera vez? Mostrarme cómo empezar
               </button>
             </div>
-            <FichasParaEmpezar guia compacto />
+            <div className="inicio-bienvenida-acciones">
+              <FichasParaEmpezar guia compacto />
+              <Atajos compactos />
+            </div>
           </section>
         )}
 
@@ -63,29 +65,7 @@ export function InicioPage() {
           </section>
         )}
 
-        <section className="inicio-atajos" aria-label="Más para tu negocio">
-          <Atajo
-            color="coral"
-            icono="camera"
-            titulo="Cargar desde una foto"
-            texto="Sacale una foto a tu cuaderno o subí una captura. Siempre revisás antes de guardar."
-            onClick={() =>
-              abrirModal({
-                tipo: 'importar',
-                sistemaId: null,
-                bloqueId: null,
-                contexto: 'registros',
-              })
-            }
-          />
-          <Atajo
-            color="petrol"
-            icono="chart"
-            titulo="Ver mi zona"
-            texto="Mirá cuánto se cobra cerca y qué se vende. Nunca se sabe quién es quién."
-            onClick={() => void navegacion.irAZona()}
-          />
-        </section>
+        {!hayPanel && <Atajos />}
 
         <section className="inicio-bloque">
           <Titulo
@@ -166,6 +146,41 @@ export function InicioPage() {
         <PageFooter />
       </main>
     </>
+  );
+}
+
+// «Cargar desde una foto» y «Ver mi zona». Con la bienvenida grande son dos atajos con su explicación; en la franja
+// compacta de quien ya tiene datos son dos botones chicos, debajo de las formas de empezar.
+function Atajos({ compactos = false }: { compactos?: boolean }) {
+  const abrirModal = useSistemaStore((estado) => estado.abrirModal);
+  const navegacion = useNavegacion();
+  return (
+    <section
+      className={compactos ? 'inicio-atajos compactos' : 'inicio-atajos'}
+      aria-label="Más para tu negocio"
+    >
+      <Atajo
+        color="coral"
+        icono="camera"
+        titulo="Cargar desde una foto"
+        texto="Sacale una foto a tu cuaderno o subí una captura. Siempre revisás antes de guardar."
+        onClick={() =>
+          abrirModal({
+            tipo: 'importar',
+            sistemaId: null,
+            bloqueId: null,
+            contexto: 'registros',
+          })
+        }
+      />
+      <Atajo
+        color="petrol"
+        icono="chart"
+        titulo="Ver mi zona"
+        texto="Mirá cuánto se cobra cerca y qué se vende. Nunca se sabe quién es quién."
+        onClick={() => void navegacion.irAZona()}
+      />
+    </section>
   );
 }
 

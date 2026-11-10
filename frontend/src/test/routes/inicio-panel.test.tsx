@@ -122,6 +122,41 @@ describe('inicio: panel del negocio', () => {
     await verifyPathAsync(router, '/plantillas');
   });
 
+  it('«Cargar desde una foto» y «Ver mi zona» van en la franja de bienvenida, una sola vez', async () => {
+    await abrirInicio([crearAlmacenCargado(hoy())]);
+    await cifrasAsync();
+
+    const bienvenida = within(screen.getByRole('region', { name: 'Empezar algo nuevo' }));
+    expect(bienvenida.getByRole('button', { name: /Cargar desde una foto/ })).toBeVisible();
+    expect(bienvenida.getByRole('button', { name: /Ver mi zona/ })).toBeVisible();
+    expect(screen.getAllByRole('button', { name: /Cargar desde una foto/ })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /Ver mi zona/ })).toHaveLength(1);
+    expect(screen.getAllByRole('region', { name: 'Más para tu negocio' })).toHaveLength(1);
+    expect(document.querySelector('.inicio-atajos.compactos')).not.toBeNull();
+  });
+
+  it('desde la franja, «Ver mi zona» lleva a Mi zona', async () => {
+    const { user, router } = await abrirInicio([crearAlmacenCargado(hoy())]);
+    await cifrasAsync();
+
+    await user.click(
+      within(screen.getByRole('region', { name: 'Empezar algo nuevo' })).getByRole('button', {
+        name: /Ver mi zona/,
+      }),
+    );
+
+    await verifyPathAsync(router, '/zona');
+  });
+
+  it('quien recién empieza sigue viendo los dos atajos con su explicación', async () => {
+    await abrirInicio([]);
+
+    const atajos = within(screen.getByRole('region', { name: 'Más para tu negocio' }));
+    expect(atajos.getByText(/Sacale una foto a tu cuaderno/)).toBeVisible();
+    expect(atajos.getByRole('button', { name: /Ver mi zona/ })).toBeVisible();
+    expect(document.querySelector('.inicio-atajos.compactos')).toBeNull();
+  });
+
   it('quien recién empieza ve la bienvenida grande, sin franja compacta ni panel', async () => {
     await abrirInicio([]);
 

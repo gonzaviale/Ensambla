@@ -1034,3 +1034,56 @@ body:has(.inicio) {
     flex-direction: column;
   }
 }
+
+/* Los dos atajos dentro de la franja de bienvenida: debajo de las tres formas de empezar, al mismo ancho */
+.inicio-bienvenida-acciones {
+  display: grid;
+  gap: 10px;
+}
+.inicio-atajos.compactos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.inicio-atajos.compactos .inicio-atajo {
+  gap: 10px;
+  max-width: none;
+  min-width: 0;
+  padding: 7px 12px;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper);
+  transition: border-color 0.2s;
+}
+.inicio-atajos.compactos .inicio-atajo:hover,
+.inicio-atajos.compactos .inicio-atajo:focus-visible {
+  border-color: var(--accent);
+}
+.inicio-atajos.compactos .inicio-atajo-icono {
+  width: 32px;
+  height: 32px;
+  box-shadow: none;
+}
+.inicio-atajos.compactos .inicio-atajo-icono .icon {
+  width: 17px;
+  height: 17px;
+}
+.inicio-atajos.compactos .inicio-atajo-texto strong {
+  font-size: 14px;
+  line-height: 1.2;
+}
+.inicio-atajos.compactos .inicio-atajo-texto span {
+  display: none;
+}
+@media (max-width: 640px) {
+  .inicio-atajos.compactos .inicio-atajo {
+    gap: 8px;
+    padding: 7px 10px;
+  }
+  .inicio-atajos.compactos .inicio-atajo-texto strong {
+    font-size: 13px;
+  }
+}
