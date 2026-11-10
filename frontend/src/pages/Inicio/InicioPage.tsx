@@ -1,3 +1,4 @@
+import { PanelDelNegocio } from '@/components/inicio/PanelDelNegocio';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { FichasParaEmpezar } from '@/components/sistema/FichasParaEmpezar';
 import { Icon } from '@/components/sistema/Icon';
@@ -12,7 +13,7 @@ import { useSistemaStore } from '@/stores/sistemaStore';
 
 const CLAVES = Object.keys(TEMPLATES) as ClavePlantilla[];
 
-// Inicio: un saludo, las tres maneras de empezar como fichas de color, las otras herramientas y las
+// Inicio: las métricas del negocio, un saludo, las tres maneras de empezar como fichas de color, las otras herramientas y las
 // plantillas (los cuadernos guardados tienen su propia pantalla, «Mis cuadernos»). Fondo blanco; el color va lleno en cada ficha, con íconos blancos.
 export function InicioPage() {
   const nombre = useNombre();
@@ -23,6 +24,8 @@ export function InicioPage() {
     <>
       <CabeceraComun />
       <main id="main" tabIndex={-1} className="home inicio reveal">
+        <PanelDelNegocio />
+
         <section className="inicio-portada">
           <div className="inicio-saludo">
             <p className="inicio-hola">Hola, {nombre}.</p>

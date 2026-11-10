@@ -591,3 +591,212 @@ body:has(.inicio) {
     text-align: center;
   }
 }
+
+/* Panel del negocio: las métricas y el flujo de caja de los últimos días, arriba de todo */
+.panel-negocio {
+  margin-bottom: 44px;
+}
+.panel-estado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--soft);
+  color: var(--ink);
+}
+.panel-estado p {
+  margin: 0;
+  max-width: 62ch;
+}
+.panel-error {
+  border-color: color-mix(in srgb, var(--bad) 35%, var(--line));
+}
+.panel-tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.panel-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+.panel-tarjeta-etiqueta {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.panel-tarjeta-valor {
+  font-size: 28px;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--petrol);
+}
+.panel-tarjeta-valor.alerta {
+  color: var(--bad);
+}
+.panel-tarjeta-nota {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ok);
+}
+.panel-tarjeta-nota.mala {
+  color: var(--bad);
+}
+.panel-tarjeta p {
+  margin: 6px 0 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.panel-tarjeta-detalle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--petrol);
+  cursor: pointer;
+}
+.panel-tarjeta-detalle:hover {
+  text-decoration: underline;
+}
+.panel-flujo {
+  margin-top: 14px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+.panel-flujo h3 {
+  font-size: 18px;
+}
+.panel-flujo-bajada {
+  margin: 4px 0 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.panel-semanas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.panel-semana {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--soft);
+}
+.panel-semana h4 {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.panel-semana-fila {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.panel-semana-etiqueta {
+  color: var(--muted);
+  font-weight: 700;
+}
+.panel-semana-barra {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--line);
+  overflow: hidden;
+}
+.panel-semana-barra i {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+  background: var(--petrol);
+}
+.panel-semana-fila[data-tipo='sale'] .panel-semana-barra i {
+  background: var(--coral);
+}
+.panel-semana-importe {
+  min-width: 84px;
+  text-align: right;
+  color: var(--ink);
+}
+.panel-semana-deja,
+.panel-flujo-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.panel-semana-deja {
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+.panel-semana-deja strong,
+.panel-flujo-total strong {
+  font-size: 15px;
+  color: var(--ink);
+}
+.panel-semana-deja[data-signo='1'] strong,
+.panel-flujo-total[data-signo='1'] strong {
+  color: var(--ok);
+}
+.panel-semana-deja[data-signo='-1'] strong,
+.panel-flujo-total[data-signo='-1'] strong {
+  color: var(--bad);
+}
+.panel-flujo-total {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--petrol) 8%, var(--paper));
+  font-size: 15px;
+  color: var(--petrol);
+}
+.panel-flujo-total strong {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+@media (max-width: 640px) {
+  .panel-estado {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .panel-tarjetas {
+    grid-template-columns: 1fr 1fr;
+  }
+  .panel-tarjeta-valor {
+    font-size: 22px;
+  }
+  .panel-semanas {
+    grid-template-columns: 1fr;
+  }
+}

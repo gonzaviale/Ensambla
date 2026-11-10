@@ -8,6 +8,7 @@ import { handlersSistemas } from './sistemas';
 import { handlersZona } from './zona';
 import { handlersUbicacion } from './ubicacion';
 import { handlersNegocio } from './negocio';
+import { handlersPanel } from './panel';
 import { handlersPlanes } from './planes';
 import { handlersReportes } from './reportes';
 import { handlersWhatsapp } from './whatsapp';
@@ -25,6 +26,7 @@ export function handlersPara(modo: ModoMocks) {
       ...handlersAvisos,
       ...handlersUbicacion,
       ...handlersNegocio,
+      ...handlersPanel,
       ...handlersPlanes,
       ...handlersReportes,
       ...handlersWhatsapp,
