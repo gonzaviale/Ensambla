@@ -7,6 +7,7 @@ import { conResultadoReal, negocioDe } from '@/lib/objetivosNegocio';
 import { hoy } from '@/lib/sistema/formato';
 import { useObjetivosStore } from '@/stores/objetivosStore';
 import { useSistemaStore } from '@/stores/sistemaStore';
+import { EntradaDondeAbrir } from '@/pages/DondeAbrir/EntradaDondeAbrir';
 import { DefinirObjetivo } from './DefinirObjetivo';
 import { NegocioHoy } from './NegocioHoy';
 import { ObjetivoCard } from './ObjetivoCard';
@@ -76,6 +77,7 @@ export function ObjetivosPage() {
             )}
           </>
         )}
+        <EntradaDondeAbrir />
       </main>
     </>
   );

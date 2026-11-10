@@ -12,6 +12,7 @@ export type SeccionActiva =
   | 'avisos'
   | 'goals'
   | 'learn'
+  | 'open'
   | 'plans'
   | 'account';
 
@@ -24,6 +25,7 @@ type TopBarProps = {
   onSistemas: () => void;
   onPlantillas: () => void;
   onZona: () => void;
+  onDondeAbrir: () => void;
   onAvisos: () => void;
   onObjetivos: () => void;
   onEnsenanza: () => void;
@@ -44,6 +46,7 @@ export function TopBar({
   onSistemas,
   onPlantillas,
   onZona,
+  onDondeAbrir,
   onAvisos,
   onObjetivos,
   onEnsenanza,
@@ -113,6 +116,14 @@ export function TopBar({
         </button>
         <button type="button" className={active === 'zone' ? 'active' : ''} onClick={ir(onZona)}>
           Mi zona
+        </button>
+        <button
+          type="button"
+          className={active === 'open' ? 'active' : ''}
+          aria-current={active === 'open' ? 'page' : undefined}
+          onClick={ir(onDondeAbrir)}
+        >
+          Dónde abrir
         </button>
         <button
           type="button"

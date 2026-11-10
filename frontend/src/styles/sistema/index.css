@@ -18,6 +18,8 @@
 @import './planes.css';
 /* Laboratorio económico: simulaciones contables explicadas por Sami. */
 @import './objetivos.css';
+/* «Dónde abrir»: comparar zonas para un próximo local. */
+@import './donde-abrir.css';
 /* Plantillas con la paleta completa. */
 @import './plantillas.css';
 /* Taller de Sami con la paleta completa. */
