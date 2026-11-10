@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.model.zona.VistaZona;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem.ProductoItem;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem;
 import com.ensambla.backend.domain.useCase.zona.analizarZona.AnalizarZona;
@@ -64,7 +65,25 @@ class ZonaControllerTest {
                 .andExpect(jsonPath("$.productos[0].precio.maximo").value(3400.0))
                 .andExpect(jsonPath("$.productos[0].ventas.comercios").value(6))
                 .andExpect(jsonPath("$.productos[0].ventas.unidadesPorSemana").value(12.5));
-        verify(obtenerZona).execute(new ObtenerZonaRequest(USUARIO_ID));
+        verify(obtenerZona).execute(new ObtenerZonaRequest(USUARIO_ID, VistaZona.PRECIOS));
+    }
+
+    @Test
+    @DisplayName("GET agregados con vista=cerca pide la pantalla Qué se vende cerca")
+    void agregadosShouldDelegateNearbyView() throws Exception {
+        when(obtenerZona.execute(any())).thenReturn(givenZona());
+
+        mockMvc.perform(get("/api/zona/agregados").param("vista", "cerca").principal(principal))
+                .andExpect(status().isOk());
+        verify(obtenerZona).execute(new ObtenerZonaRequest(USUARIO_ID, VistaZona.CERCA));
+    }
+
+    @Test
+    @DisplayName("GET agregados rechaza una vista desconocida sin tocar el caso de uso")
+    void agregadosShouldRejectUnknownView() throws Exception {
+        mockMvc.perform(get("/api/zona/agregados").param("vista", "otra").principal(principal))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(obtenerZona);
     }
 
     @Test

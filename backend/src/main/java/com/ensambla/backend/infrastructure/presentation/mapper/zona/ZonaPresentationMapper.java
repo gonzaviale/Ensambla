@@ -1,6 +1,8 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.zona;
 
+import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.model.zona.VistaZona;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem.ProductoItem;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem;
 import com.ensambla.backend.domain.useCase.zona.analizarZona.AnalizarZonaRequest;
@@ -15,8 +17,17 @@ import org.springframework.stereotype.Component;
 @Component
 public class ZonaPresentationMapper {
 
-    public ObtenerZonaRequest toObtenerRequest(UsuarioId usuarioId) {
-        return new ObtenerZonaRequest(usuarioId);
+    /** La pantalla de Mi zona que pide los datos: «precios» o «qué se vende cerca». */
+    public ObtenerZonaRequest toObtenerRequest(UsuarioId usuarioId, String vista) {
+        return new ObtenerZonaRequest(usuarioId, vistaDe(vista));
+    }
+
+    private static VistaZona vistaDe(String vista) {
+        return switch (vista) {
+            case "precios" -> VistaZona.PRECIOS;
+            case "cerca" -> VistaZona.CERCA;
+            default -> throw new BusinessRuleException("La vista tiene que ser «precios» o «cerca»");
+        };
     }
 
     public AnalizarZonaRequest toAnalizarRequest(AnalizarZonaWebRequest request, UsuarioId usuarioId) {

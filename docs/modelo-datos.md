@@ -495,12 +495,16 @@ erDiagram
 
 ## Tablas
 
-Desde V19, `contenido_plan_desbloqueado` persiste las claves admitidas por negocio, tipo (`AVISOS`
-o `ZONA`) y mes calendario argentino. La clave primaria compuesta impide cobrar dos veces el mismo
-contenido. La validación mantiene bloqueada la fila de `negocio` hasta registrar el desbloqueo:
-dos consultas concurrentes comparten el mismo cupo. Gratuito dispone de seis avisos y, por
-separado, seis recomendaciones de zona compartidas entre Mi zona y Otra zona. Premium vigente, incluida
-la prueba, no consume desbloqueos gratuitos. La expiración de Premium vuelve a aplicar el cupo
+Desde V19, `contenido_plan_desbloqueado` persiste las claves admitidas por negocio, tipo y mes
+calendario argentino. El tipo es `AVISOS` o uno por pestaña de Mi zona: `ZONA` (Precios), `ZONA_CERCA`
+(Qué se vende cerca) y `ZONA_OTRA` (Otra zona); V23 sumó los dos últimos al `CHECK`. La clave primaria
+compuesta impide cobrar dos veces el mismo contenido. La validación mantiene bloqueada la fila de
+`negocio` hasta registrar el desbloqueo: dos consultas concurrentes comparten el mismo cupo. Gratuito
+dispone de seis avisos y, por separado, seis recomendaciones de zona **por pestaña**: cada pantalla
+tiene su cupo, así una no deja sin lugar a otra. Cada una también ordena a su manera lo que desbloquea
+primero (`VistaZona`): Precios, lo que el negocio ya tiene; Qué se vende cerca, lo más vendido que todavía
+no tiene; Otra zona, lo más vendido. Premium vigente, incluida la prueba, no consume desbloqueos
+gratuitos. La expiración de Premium vuelve a aplicar el cupo
 del mes y conserva sistemas, registros e historial.
 
 La cookie de sesión se llama `ENSAMBLA_SESSION` por defecto para evitar colisiones con otras

@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.useCase.zona.analizarZona;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.model.ubicacion.DireccionEncontrada;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.zona.AgregadoZonaProducto;
@@ -30,6 +31,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -206,6 +209,19 @@ class AnalizarZonaTest {
         ZonaItem result = analizarZona(autorizaSoloLaPrimera()).execute(conPunto(null));
 
         assertThat(result.productos()).extracting(ProductoItem::nombre).containsExactly("Yerba");
+    }
+
+    @Test
+    @DisplayName("Gasta el cupo propio de Otra zona, aparte del de las pestañas de Mi zona")
+    void executeShouldSpendTheQuotaOfOtherZone() {
+        Zona zona = givenZonaResolvedByPoint();
+        givenAnalisis(zona, 10, givenProducto("Yerba", 9, "5"));
+        ControlPlanService controlPlanService = mock(ControlPlanService.class, autorizaTodo());
+
+        new ZonaUseCaseConfig().analizarZona(zonaRepository, geocodificadorPort, agregadoZonaRepository, CLOCK,
+                negocioRepository, controlPlanService).execute(conPunto(null));
+
+        verify(controlPlanService).seleccionar(any(), eq(TipoContenidoPlan.ZONA_OTRA), any(), any());
     }
 
     // --- arrange ---

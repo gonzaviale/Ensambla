@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -31,10 +32,15 @@ public class ZonaController {
     private final ZonaPresentationMapper zonaPresentationMapper;
 
     @GetMapping("/agregados")
-    @Operation(summary = "Precios y ventas agregados de la zona del negocio de la sesión")
-    public ResponseEntity<ZonaWebResponse> agregados(Authentication authentication) {
+    @Operation(
+            summary = "Precios y ventas agregados de la zona del negocio de la sesión",
+            description = "La vista indica la pantalla que pide los datos y define el orden y el cupo del plan gratuito: "
+                    + "«precios» (por defecto) muestra primero los productos que el negocio ya tiene; «cerca» muestra "
+                    + "primero los más vendidos que todavía no tiene. Cada vista gasta su propio cupo mensual.")
+    public ResponseEntity<ZonaWebResponse> agregados(Authentication authentication,
+                                                     @RequestParam(defaultValue = "precios") String vista) {
         return ResponseEntity.ok(zonaPresentationMapper.toResponse(obtenerZona.execute(
-                zonaPresentationMapper.toObtenerRequest(UsuarioId.de(authentication.getName())))));
+                zonaPresentationMapper.toObtenerRequest(UsuarioId.de(authentication.getName()), vista))));
     }
 
     @PostMapping("/analisis")
@@ -43,7 +49,8 @@ public class ZonaController {
             description = "Con latitud y longitud resuelve la zona precargada que contiene el punto; si no, busca el "
                     + "barrio o la dirección escritos. Si en la zona hay menos de 3 comercios devuelve la lista de "
                     + "productos vacía (no hay datos suficientes). No filtra por rubro. Los productos vienen ordenados "
-                    + "por cuántos comercios los venden y el plan gratuito ve sólo los primeros de su cupo.")
+                    + "por cuántos comercios los venden y el plan gratuito ve sólo los primeros de su cupo, que es "
+                    + "aparte del de Mi zona.")
     public ResponseEntity<ZonaWebResponse> analizar(Authentication authentication,
                                                     @Valid @RequestBody AnalizarZonaWebRequest request) {
         return ResponseEntity.ok(zonaPresentationMapper.toResponse(
