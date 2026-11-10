@@ -1,5 +1,6 @@
 import { ArrowLeftIcon, ClipboardTextIcon } from '@phosphor-icons/react';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
+import { Sami } from '@/components/sistema/Sami';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import {
@@ -68,21 +69,20 @@ function Detalle({ objetivo, onProbar }: { objetivo: Objetivo; onProbar: () => v
   const porcentaje = Math.round(avance(objetivo) * 100);
   const diferencia = ultimoValor(objetivo) - objetivo.meta;
 
-  // Cada paso dice qué hacer y hasta dónde, en palabras simples.
   const tareas = [
     {
-      titulo: 'Subí un poco los precios que casi no te dejan ganancia',
-      detalle: `Buscá los productos que vendés casi al costo y subilos de a poco, hasta ganar ${PALANCA.margen.formato(recomendados.margen)}.`,
+      titulo: 'Revisar los precios con margen bajo',
+      detalle: `Meta: ${PALANCA.margen.formato(recomendados.margen)}`,
       impacto: impacto.margen,
     },
     {
-      titulo: 'Recortá los gastos que no son de todos los meses',
-      detalle: `Revisá compras grandes, arreglos o pedidos de urgencia y evitá o postergá los que puedas: la idea es gastar ${formatoPesos(recomendados.gastos)} menos por mes.`,
+      titulo: 'Reducir gastos extraordinarios',
+      detalle: `Meta: ${PALANCA.gastos.formato(recomendados.gastos)} por mes`,
       impacto: impacto.gastos,
     },
     {
-      titulo: 'Vendé más de lo que más te deja',
-      detalle: `Poné a la vista y ofrecé primero los productos que te dejan buena ganancia, hasta vender ${PALANCA.ventas.formato(recomendados.ventas)} más.`,
+      titulo: 'Aumentar ventas con margen sano',
+      detalle: `Objetivo: ${PALANCA.ventas.formato(recomendados.ventas)} de ventas`,
       impacto: impacto.ventas,
     },
   ];
@@ -111,10 +111,7 @@ function Detalle({ objetivo, onProbar }: { objetivo: Objetivo; onProbar: () => v
               <ClipboardTextIcon aria-hidden size={28} />
               <div>
                 <p className="objetivos-etiqueta">Camino combinado</p>
-                <h2>Cómo llegar a tu meta en tres pasos</h2>
-                <p>
-                  No hace falta hacer todo de golpe: cada paso suma una parte de lo que te falta.
-                </p>
+                <h2>Cómo llegar sin depender solo de vender más</h2>
               </div>
             </header>
             {tareas.map((tarea, indice) => (
@@ -124,15 +121,11 @@ function Detalle({ objetivo, onProbar }: { objetivo: Objetivo; onProbar: () => v
                   <strong>{tarea.titulo}</strong>
                   <p>{tarea.detalle}</p>
                 </div>
-                <b>
-                  Suma {formatoPesos(tarea.impacto)}
-                  <small>por mes</small>
-                </b>
+                <b>+{formatoPesos(tarea.impacto)} por mes</b>
               </div>
             ))}
             <p className="objetivos-formula">
-              Si hacés los tres pasos, juntos cubren lo que te falta para llegar a la meta. Son
-              números de ejemplo: Sami los ajusta cuando pasen las semanas.
+              Estimaciones de demostración: con las tres tareas, tu resultado llegaría a la meta.
             </p>
           </article>
           <aside className="objetivos-meta-plan">
@@ -195,7 +188,7 @@ function Seguimiento({ objetivo, diferencia }: { objetivo: Objetivo; diferencia:
       </div>
       <article className="objetivos-cierre">
         <div className="objetivos-cierre-sami">
-          <img src="/mockup/sami-detective.webp" alt="" />
+          <Sami pose="hello" />
         </div>
         <div>
           <p className="objetivos-etiqueta">Sami mide cómo vas</p>

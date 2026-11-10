@@ -10,7 +10,7 @@
 
 .objetivos-dato{display:flex;justify-content:space-between;gap:18px;padding:9px 0;border-bottom:1px solid var(--line);font-size:12px}.objetivos-dato:last-child{border:0}.objetivos-dato span{color:var(--muted)}.objetivos-dato .positivo{color:var(--ok)}
 
-.objetivos-metrica{padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}.objetivos-metrica span{display:block;color:var(--muted);font-size:11px}.objetivos-metrica strong{display:block;margin-top:5px;font-size:24px}.objetivos-metrica.negativa strong{color:var(--coral)}
+.objetivos-metrica{padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}.objetivos-metrica span{display:block;color:var(--muted);font-size:11px}.objetivos-metrica strong{display:block;margin-top:5px;font-size:24px}.objetivos-metrica.alerta strong{color:var(--coral)}
 .objetivos-caminos{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.objetivos-camino{padding:18px;border:1px solid var(--line);border-radius:var(--radius);background:var(--paper);box-shadow:var(--shadow)}.objetivos-camino.recomendado{border:2px solid var(--orange);padding:17px;background:#fffaf2}.objetivos-recomendado{display:block;margin-bottom:7px;color:#a95700;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.objetivos-camino h2{font-size:18px}.objetivos-camino > p{min-height:40px;margin:5px 0 12px;color:var(--muted);font-size:11px}.objetivos-camino dl{margin:0}.objetivos-camino dl div{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:11px}.objetivos-camino dd{font-weight:800}.objetivos-camino small{display:flex;gap:5px;align-items:center;margin:12px 0;color:var(--muted);font-size:10px}.objetivos-camino .btn{width:100%}
 .objetivos-explicacion{display:grid;grid-template-columns:60px 1fr;gap:13px;align-items:center;margin-top:15px;padding:14px;border-radius:16px;background:#fff3df}.objetivos-sami-cara{height:60px;overflow:hidden}.objetivos-sami-cara .sami{width:60px;height:60px}.objetivos-explicacion strong{font-size:13px}.objetivos-explicacion p{margin-top:3px;color:var(--muted);font-size:12px}
 .objetivos-simulador{display:grid;grid-template-columns:280px 1fr;gap:15px}.objetivos-controles{padding:18px;border:1px solid var(--line);border-radius:var(--radius);background:var(--paper)}.objetivos-controles h2,.objetivos-grafico h2{font-size:17px}.objetivos-controles > p{margin-top:16px;padding:10px;border-radius:9px;background:var(--soft);color:var(--muted);font-size:10px}.objetivos-control{display:block;margin-top:18px}.objetivos-control span{display:flex;justify-content:space-between;font-size:11px}.objetivos-control strong{color:var(--petrol)}.objetivos-control input{width:100%;accent-color:var(--orange)}.objetivos-resultados{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.objetivos-grafico{grid-column:1/-1;padding:17px;border:1px solid var(--line);border-radius:var(--radius);background:var(--paper)}.objetivos-grafico > div{display:flex;align-items:flex-end;gap:18px;height:220px;padding-top:20px;border-bottom:1px solid var(--line)}.objetivos-grafico figure{display:flex;flex-direction:column;justify-content:flex-end;flex:1;height:100%;margin:0;text-align:center}.objetivos-barra{min-height:24px;border-radius:10px 10px 0 0}.objetivos-barra.coral{background:var(--coral)}.objetivos-barra.celeste{background:var(--blue)}.objetivos-barra.naranja{background:var(--orange)}.objetivos-grafico figcaption{padding:8px 2px;color:var(--muted);font-size:10px}.objetivos-grafico figcaption strong{display:block;color:var(--ink);font-size:12px}
@@ -101,43 +101,38 @@
 @media(max-width:900px){.objetivos-tarjeta-avance { grid-template-columns:1fr; } .objetivos-tarjeta > header { flex-direction:column; } .objetivos-tarjeta-acciones .objetivos-textual { margin-left:0; }}
 
 /* Sami te enseña. */
-.ensenanza-layout { display:grid; grid-template-columns:minmax(0,1fr); gap:20px; }
-/* Las lecciones como temas, igual que las fichas del inicio: tarjeta blanca con borde e ícono de su color. */
-.ensenanza-temas { min-width:0; }
-.ensenanza-temas ul { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; margin:0; padding:0; list-style:none; }
-.ensenanza-temas li { display:flex; }
-.ensenanza-temas button { display:grid; align-content:start; gap:6px; width:100%; padding:16px; border:2px solid var(--accent); border-radius:22px; background:var(--superficie, #fff); color:var(--petrol); text-align:left; box-shadow:var(--sombra-tarjeta); transition:transform .2s, box-shadow .2s; }
-.ensenanza-temas button:hover { transform:translateY(-2px); box-shadow:var(--sombra-tarjeta-hover); }
-.ensenanza-temas button:focus-visible { outline:3px solid var(--petrol); outline-offset:3px; }
-.ensenanza-temas button .icon { width:26px; height:26px; margin-bottom:4px; color:var(--accent); }
-.ensenanza-temas strong { display:block; font-size:14px; line-height:1.3; }
-.ensenanza-temas small { color:var(--petrol); font-size:12px; }
-.ensenanza-temas button.active { border-width:3px; padding:15px; box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent), var(--sombra-tarjeta-hover); }
-.ensenanza-temas button.active small { color:var(--petrol); font-weight:800; }
+.ensenanza-layout { display:grid; grid-template-columns:290px minmax(0,1fr); gap:22px; align-items:start; }
+.ensenanza-indice ol { display:grid; gap:8px; margin:0; padding:0; list-style:none; }
+.ensenanza-indice button { display:flex; align-items:center; gap:12px; width:100%; min-height:56px; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:var(--paper); text-align:left; }
+.ensenanza-indice button > span { display:grid; place-items:center; flex:0 0 auto; width:28px; height:28px; border-radius:50%; background:var(--soft); color:var(--ink); font-weight:800; font-size:12px; }
+.ensenanza-indice strong { display:block; font-size:13px; }
+.ensenanza-indice small { color:var(--muted); font-size:10px; }
+.ensenanza-indice button.active { border-color:var(--petrol); background:#e6f3f7; }
+.ensenanza-indice button.active > span { background:var(--petrol); color:white; }
 .ensenanza-contenido { padding:24px; border:1px solid var(--line); border-radius:var(--radius); background:var(--paper); box-shadow:var(--shadow); min-width:0; }
 .ensenanza-contenido > header { margin-bottom:20px; }
 .ensenanza-contenido > header h2 { margin:5px 0 6px; font-size:26px; }
-.ensenanza-contenido > header p:last-child { color:var(--petrol); font-size:14px; }
+.ensenanza-contenido > header p:last-child { color:var(--muted); font-size:14px; }
 .ensenanza-leccion { display:grid; gap:18px; }
-.ensenanza-intro { color:var(--petrol); font-size:14px; max-width:760px; }
-.ensenanza-pasos { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin:0; padding:0; list-style:none; }
-.ensenanza-pasos li { position:relative; padding:14px 14px 14px 32px; border:1.5px solid var(--line); border-radius:14px; background:var(--superficie, #fff); }
-.ensenanza-pasos li::before { content:''; position:absolute; left:14px; top:20px; width:8px; height:8px; border-radius:50%; background:var(--orange); }
+.ensenanza-intro { color:var(--muted); font-size:14px; max-width:760px; }
+.ensenanza-pasos { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin:0; padding:0; list-style:none; counter-reset:paso; }
+.ensenanza-pasos li { position:relative; padding:14px 14px 14px 46px; border:1px solid var(--line); border-radius:14px; background:var(--soft); counter-increment:paso; }
+.ensenanza-pasos li::before { content:counter(paso); position:absolute; left:12px; top:14px; display:grid; place-items:center; width:24px; height:24px; border-radius:50%; background:var(--petrol); color:white; font-size:12px; font-weight:800; }
 .ensenanza-pasos strong, .ensenanza-consejos strong { display:block; font-size:13px; }
-.ensenanza-pasos span, .ensenanza-consejos span { display:block; margin-top:3px; color:var(--petrol); font-size:12px; }
+.ensenanza-pasos span, .ensenanza-consejos span { display:block; margin-top:3px; color:var(--muted); font-size:12px; }
 .ensenanza-metricas { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; }
 .ensenanza-metrica { padding:16px; border:1px solid var(--line); border-radius:14px; background:var(--paper); }
 .ensenanza-metrica header { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
 .ensenanza-metrica h3 { font-size:16px; }
 .ensenanza-metrica header strong { color:var(--petrol); font-size:20px; }
-.ensenanza-metrica > p { margin:6px 0 10px; color:var(--petrol); font-size:12px; }
+.ensenanza-metrica > p { margin:6px 0 10px; color:var(--muted); font-size:12px; }
 .ensenanza-metrica dl { display:grid; gap:8px; margin:0; }
 .ensenanza-metrica dt { font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--orange); }
 .ensenanza-metrica dd { margin:2px 0 0; font-size:12px; }
 .ensenanza-columnas { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 .ensenanza-bloque { padding:16px; border:1px solid var(--line); border-radius:14px; }
 .ensenanza-bloque h3 { margin-bottom:8px; font-size:16px; }
-.ensenanza-bloque ul { display:grid; gap:7px; margin:0; padding-left:18px; color:var(--petrol); font-size:12px; }
+.ensenanza-bloque ul { display:grid; gap:7px; margin:0; padding-left:18px; color:var(--muted); font-size:12px; }
 .ensenanza-nunca { padding-left:0 !important; list-style:none; }
 .ensenanza-nunca li { display:flex; gap:8px; align-items:flex-start; }
 .ensenanza-nunca svg { flex:0 0 auto; color:var(--coral); margin-top:1px; }
@@ -145,15 +140,13 @@
 .ensenanza-consejos li { padding:13px 15px; border-left:4px solid var(--orange); border-radius:0 12px 12px 0; background:#fff9f0; }
 .ensenanza-selector { display:grid; gap:6px; max-width:520px; }
 .ensenanza-selector label { font-size:12px; font-weight:800; }
-.ensenanza-selector select { min-height:44px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:var(--paper); color:var(--petrol); }
+.ensenanza-selector select { min-height:44px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:var(--paper); color:var(--ink); }
 .ensenanza-aviso { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:13px 15px; border-radius:12px; background:#fff9dc; border:1px solid #f0df87; font-size:12px; }
 /* Dentro de una lección el espacio es menor que el de la página: el simulador se apila. */
 .ensenanza-contenido .objetivos-simulador { grid-template-columns:minmax(0,1fr); }
 .ensenanza-contenido .objetivos-resultados { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); }
 .ensenanza-contenido .objetivos-contabilidad-layout { grid-template-columns:minmax(0,1fr); }
 @media(max-width:900px){.ensenanza-layout { grid-template-columns:1fr; } .ensenanza-columnas { grid-template-columns:1fr; } .ensenanza-contenido { padding:18px; }}
-@media(max-width:900px){.ensenanza-temas ul { grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); }}
-@media(max-width:560px){.ensenanza-temas ul { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; padding:4px 2px 10px; } .ensenanza-temas li { flex:0 0 160px; scroll-snap-align:start; }}
 
 /* Definir un objetivo: usa los campos y chips de la app, en dos columnas. */
 .objetivos-definir { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); gap:18px; align-items:start; }
@@ -168,141 +161,6 @@
 @media(max-width:900px){ .objetivos-definir { grid-template-columns:minmax(0,1fr); } .objetivos-formulario { padding:18px; } }
 
 /* El gorro de la barra: lleva a «Sami te enseña». Mismo tamaño y borde que la campana. */
-.boton-ensenanza { display:inline-grid; place-items:center; width:38px; height:38px; border:1px solid var(--line); border-radius:12px; background:white; color:var(--petrol); cursor:pointer; transition:border-color .15s; }
+.boton-ensenanza { display:inline-grid; place-items:center; width:38px; height:38px; border:1px solid var(--line); border-radius:12px; background:white; color:var(--ink); cursor:pointer; transition:border-color .15s; }
 .boton-ensenanza:hover { border-color:var(--orange); }
 .boton-ensenanza.active { border-color:var(--petrol); background:var(--petrol); color:white; }
-
-/* «Probá un escenario»: palancas, resultado y comparación lado a lado, sobre un fondo gris suave para que no sea
-   todo blanco. Petróleo para lo propio, naranja sólo para el escenario; nada más de color. */
-.ensenanza-simulador { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,.9fr) minmax(0,1.1fr); gap:12px; padding:12px; border-radius:20px; background:var(--superficie-suave, #f7f8f6); border:1px solid var(--line); }
-.ensenanza-panel { display:grid; align-content:start; gap:12px; padding:16px; border-radius:16px; background:var(--superficie, #fff); border:1px solid var(--line); color:var(--petrol); min-width:0; }
-.ensenanza-panel h3 { font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--petrol); }
-.ensenanza-control { display:grid; gap:6px; font-size:13px; }
-.ensenanza-control > span { display:flex; justify-content:space-between; gap:10px; }
-.ensenanza-control strong { color:var(--petrol); font-size:13px; }
-.ensenanza-control input[type='range'] { --lleno:50%; width:100%; height:8px; margin:4px 0; border-radius:99px; background:linear-gradient(to right, var(--orange) var(--lleno), color-mix(in srgb, var(--petrol) 14%, #fff) var(--lleno)); appearance:none; -webkit-appearance:none; cursor:pointer; }
-.ensenanza-control input[type='range']::-webkit-slider-thumb { -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:var(--orange); border:3px solid #fff; box-shadow:0 1px 4px rgb(0 0 0 / .3); }
-.ensenanza-control input[type='range']::-moz-range-thumb { width:16px; height:16px; border-radius:50%; background:var(--orange); border:3px solid #fff; box-shadow:0 1px 4px rgb(0 0 0 / .3); }
-.ensenanza-control input[type='range']:focus-visible { outline:3px solid var(--petrol); outline-offset:4px; }
-.ensenanza-nota { margin:0; color:var(--petrol); font-size:11px; }
-.ensenanza-resultado { border:2px solid var(--petrol); }
-.ensenanza-resultado-etiqueta { margin:0; color:var(--petrol); font-size:12px; }
-.ensenanza-resultado-valor { margin:-6px 0 4px; font-size:30px; font-weight:800; letter-spacing:-.02em; }
-.ensenanza-resultado dl { display:grid; gap:8px; margin:0; }
-.ensenanza-resultado dl div { display:flex; justify-content:space-between; gap:10px; padding:8px 10px; border-radius:10px; background:var(--superficie-suave, #f7f8f6); font-size:13px; }
-.ensenanza-resultado dl div[data-alerta='true'] { box-shadow:inset 0 0 0 1.5px var(--orange); }
-.ensenanza-resultado dd { margin:0; font-weight:800; }
-.ensenanza-barras { display:grid; gap:12px; margin:0; padding:0; list-style:none; }
-.ensenanza-barras li { display:grid; grid-template-columns:1fr auto; gap:4px 10px; font-size:12px; }
-.ensenanza-barras li strong { font-size:13px; }
-.ensenanza-barras i { grid-column:1 / -1; height:10px; border-radius:99px; background:color-mix(in srgb, var(--petrol) 30%, #fff); }
-.ensenanza-barras li[data-clase='escenario'] i { background:var(--orange); }
-.ensenanza-barras li[data-clase='meta'] i { background:var(--petrol); }
-@media(max-width:1000px){ .ensenanza-simulador { grid-template-columns:1fr 1fr; } .ensenanza-simulador > :first-child { grid-column:1 / -1; } }
-@media(max-width:600px){ .ensenanza-simulador { grid-template-columns:1fr; padding:8px; } }
-
-/* ── Sami te enseña: legible ──
-   Fondo gris muy suave en la lección y cada bloque como tarjeta blanca con borde; letra oscura (petróleo para títulos y
-   números, gris oscuro para el texto) y tamaños que se leen sin esfuerzo. Petróleo como color principal y naranja como
-   único acento. Todo va bajo .ensenanza-page para no tocar la pantalla de Objetivos. */
-.ensenanza-page .ensenanza-contenido { background:var(--superficie-suave, #f7f8f6); box-shadow:none; }
-.ensenanza-page .ensenanza-contenido > header h2 { color:var(--petrol); }
-.ensenanza-page .ensenanza-contenido > header p:last-child { color:var(--petrol); font-size:15px; }
-.ensenanza-page .ensenanza-leccion { gap:16px; }
-.ensenanza-page .ensenanza-leccion > .btn { justify-self:start; }
-
-/* Tarjetas blancas con el mismo borde */
-.ensenanza-page .objetivos-estado-resultados,
-.ensenanza-page .objetivos-traductor,
-.ensenanza-page .ensenanza-metrica,
-.ensenanza-page .ensenanza-bloque,
-.ensenanza-page .ensenanza-pasos li,
-.ensenanza-page .ensenanza-consejos li,
-.ensenanza-page .objetivos-calidad,
-.ensenanza-page .objetivos-explicacion { border:1.5px solid color-mix(in srgb, var(--petrol) 18%, #fff); border-radius:16px; background:#fff; box-shadow:none; }
-
-/* Cómo se forma tu resultado: estado y «en palabras simples» lado a lado */
-.ensenanza-page .ensenanza-contenido .objetivos-contabilidad-layout { grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); align-items:start; gap:16px; }
-.ensenanza-page .objetivos-estado-cabecera { background:#fff; }
-.ensenanza-page .objetivos-estado-cabecera p { font-size:12px; }
-.ensenanza-page .objetivos-estado-cabecera h3 { color:var(--petrol); font-size:18px; }
-.ensenanza-page .objetivos-estado-cabecera > span { font-size:12px; }
-.ensenanza-page .objetivos-linea-contable { padding:12px 18px; }
-.ensenanza-page .objetivos-linea-contable strong { color:var(--petrol); font-size:14px; }
-.ensenanza-page .objetivos-linea-contable span { font-size:12px; }
-.ensenanza-page .objetivos-linea-contable > b { color:var(--petrol); font-size:16px; }
-.ensenanza-page .objetivos-linea-contable.destacada { border-left:0; background:#fff; box-shadow:inset 4px 0 0 var(--orange); }
-.ensenanza-page .objetivos-linea-contable.total { border-left:0; background:#fff; box-shadow:inset 4px 0 0 var(--petrol); }
-.ensenanza-page .objetivos-linea-contable.total strong,
-.ensenanza-page .objetivos-linea-contable.total > b { color:var(--petrol); }
-.ensenanza-page .objetivos-linea-contable.total > b { font-size:24px; }
-.ensenanza-page .objetivos-formula { margin:12px 18px 16px; padding:0; border:0; background:none; color:var(--petrol); font-size:12px; }
-.ensenanza-page .objetivos-traductor { padding:18px; }
-.ensenanza-page .objetivos-traductor-sami,
-.ensenanza-page .objetivos-traductor-sami .sami { width:56px; height:56px; }
-.ensenanza-page .objetivos-traductor h3 { color:var(--petrol); font-size:17px; }
-.ensenanza-page .objetivos-traductor > p { color:var(--petrol); font-size:14px; line-height:1.5; }
-.ensenanza-page .objetivos-traductor > div:not(.objetivos-traductor-sami) { border:0; border-left:4px solid var(--orange); border-radius:0 10px 10px 0; background:var(--superficie-suave, #f7f8f6); color:var(--petrol); }
-.ensenanza-page .objetivos-traductor > div strong { color:var(--petrol); font-size:13px; }
-.ensenanza-page .objetivos-traductor > div p { color:var(--petrol); font-size:13px; }
-.ensenanza-page .objetivos-traductor .btn { width:auto; }
-.ensenanza-page .objetivos-calidad { margin-top:0; }
-.ensenanza-page .objetivos-calidad strong { color:var(--petrol); font-size:13px; }
-.ensenanza-page .objetivos-calidad span { color:var(--petrol); font-size:13px; }
-
-/* Tus métricas: número grande, la cuenta en una franja gris y texto legible */
-.ensenanza-page .ensenanza-metrica { display:grid; align-content:start; gap:8px; padding:18px; }
-.ensenanza-page .ensenanza-metrica h3 { color:var(--petrol); font-size:15px; }
-.ensenanza-page .ensenanza-metrica header strong { font-size:24px; }
-.ensenanza-page .ensenanza-metrica > p { margin:0; color:var(--petrol); font-size:14px; line-height:1.45; }
-.ensenanza-page .ensenanza-metrica dt { color:var(--petrol); font-size:11px; }
-.ensenanza-page .ensenanza-metrica dd { color:var(--petrol); font-size:13px; line-height:1.45; }
-.ensenanza-page .ensenanza-metrica dl > div:first-child dd { padding:6px 10px; border-radius:8px; background:var(--superficie-suave, #f7f8f6); color:var(--petrol); font-weight:700; }
-
-/* Cómo recomienda Sami y Sugerencias */
-.ensenanza-page .ensenanza-pasos strong,
-.ensenanza-page .ensenanza-consejos strong { color:var(--petrol); font-size:14px; }
-.ensenanza-page .ensenanza-pasos span,
-.ensenanza-page .ensenanza-consejos span { color:var(--petrol); font-size:13px; line-height:1.45; }
-.ensenanza-page .ensenanza-bloque { padding:18px; }
-.ensenanza-page .ensenanza-bloque h3 { color:var(--petrol); font-size:16px; }
-.ensenanza-page .ensenanza-bloque ul { color:var(--petrol); font-size:14px; line-height:1.45; }
-.ensenanza-page .ensenanza-consejos { grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
-.ensenanza-page .ensenanza-consejos li { padding:16px; border-left:4px solid var(--orange); }
-.ensenanza-page .objetivos-explicacion { color:var(--petrol); }
-.ensenanza-page .objetivos-explicacion p { color:var(--petrol); font-size:14px; }
-@media(max-width:900px){ .ensenanza-page .ensenanza-contenido .objetivos-contabilidad-layout { grid-template-columns:minmax(0,1fr); } }
-/* Sami te enseña: ninguna letra gris; todo el texto en petróleo (los botones llenos siguen con su letra). */
-.ensenanza-page :is(p, span, small, dt, dd, li, label):not(button *, .btn *) { color:var(--petrol); }
-
-/* Plan de acción: letra más grande y texto oscuro para que se lea bien. */
-.objetivos-volver { font-size:16px; }
-.objetivos-sami-mini img { width:44px; height:auto; }
-.objetivos-sami-mini strong { font-size:15px; color:var(--petrol); }
-.objetivos-sami-mini span { font-size:13px; color:var(--ink); }
-.objetivos-plan h2 { font-size:22px; color:var(--petrol); }
-.objetivos-plan > header p:not(.objetivos-etiqueta) { margin-top:4px; color:var(--ink); font-size:15px; }
-.objetivos-plan .objetivos-etiqueta { font-size:12px; }
-.objetivos-tarea { grid-template-columns:40px 1fr auto; gap:14px; padding:16px 0; }
-.objetivos-tarea > span { width:38px; height:38px; font-size:17px; }
-.objetivos-tarea strong { font-size:17px; color:var(--ink); }
-.objetivos-tarea p { margin-top:4px; color:var(--ink); font-size:15px; line-height:1.45; }
-.objetivos-tarea > b { color:var(--ok); font-size:16px; text-align:right; white-space:nowrap; }
-.objetivos-tarea > b small { display:block; color:var(--ink); font-size:13px; font-weight:600; }
-.objetivos-plan .objetivos-formula { margin:16px 0 0; padding:12px 14px; font-size:15px; line-height:1.45; }
-.objetivos-meta-plan > p { color:var(--ink); font-size:16px; }
-.objetivos-meta-plan > strong { font-size:44px; }
-.objetivos-meta-plan > span { color:var(--ink); font-size:15px; }
-.objetivos-meta-plan > b { font-size:17px; }
-.objetivos-meta-plan > small { color:var(--ink); font-size:14px; }
-.objetivos-meta-plan .btn { font-size:16px; }
-.objetivos-metrica span { color:var(--ink); font-size:15px; }
-.objetivos-metrica strong { font-size:28px; }
-.objetivos-cierre-sami img { width:120px; height:auto; align-self:center; }
-.objetivos-cierre h2 { color:var(--petrol); }
-.objetivos-cierre > div:last-child > p:not(.objetivos-etiqueta) { color:var(--ink); font-size:16px; line-height:1.5; }
-@media(max-width:600px){ .objetivos-tarea { grid-template-columns:40px 1fr; } .objetivos-tarea > b { grid-column:2; text-align:left; } }
-/* Gráfico de evolución: las barras no se estiran cuando hay pocas semanas. */
-.objetivos-tendencia { gap:14px; }
-.objetivos-tendencia figure { flex:0 1 64px; }
-.objetivos-tendencia figcaption { left:50%; right:auto; transform:translateX(-50%); color:var(--ink); font-size:13px; }
