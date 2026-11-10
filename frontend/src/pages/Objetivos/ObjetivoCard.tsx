@@ -1,20 +1,31 @@
-import { useId, useState } from 'react';
-import { CheckCircleIcon, SparkleIcon, TrashIcon } from '@phosphor-icons/react';
+import { useId, useMemo, useState } from 'react';
+import { CaretDownIcon, CheckCircleIcon, TrashIcon } from '@phosphor-icons/react';
+import { useZona } from '@/hooks/zona/queries';
 import {
   avance,
   brecha,
-  caminos,
   formatoPesos,
   ultimoValor,
   variacion,
   type Objetivo,
 } from '@/lib/objetivos';
-import { Explicacion, Progreso } from './piezas';
+import {
+  comparacionConZona,
+  escenarioDe,
+  montoDe,
+  pasosConcretos,
+  type Montos,
+  type Sensibilidad,
+} from '@/lib/objetivosPasos';
+import { hoy } from '@/lib/sistema/formato';
+import { useSistemaStore } from '@/stores/sistemaStore';
+import { AjusteDePaso, Sensibilidades } from './AjusteDePaso';
+import { Progreso } from './piezas';
 
 type Props = {
   objetivo: Objetivo;
-  onPlan: () => void;
-  onProbar: () => void;
+  /** La tarjeta arranca con los pasos a la vista (cuando hay un solo objetivo). */
+  abierta?: boolean;
   onQuitar: () => void;
 };
 
@@ -27,36 +38,37 @@ function textoDeTendencia(objetivo: Objetivo) {
   return `${cambio > 0 ? 'Subió' : 'Bajó'} ${formatoPesos(Math.abs(cambio))} en ${plazo}.`;
 }
 
-export function ObjetivoCard({ objetivo, onPlan, onProbar, onQuitar }: Props) {
-  const [recomendacionAbierta, setRecomendacionAbierta] = useState(false);
+export function ObjetivoCard({ objetivo, abierta = false, onQuitar }: Props) {
+  const [verPasos, setVerPasos] = useState(abierta);
+  const [elegidos, setElegidos] = useState<ReadonlySet<string>>(new Set());
+  const [montos, setMontos] = useState<Montos>({});
+  const [sensibilidad, setSensibilidad] = useState<Sensibilidad>('media');
   const idPanel = useId();
+  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const zona = useZona();
+  const pasos = useMemo(() => pasosConcretos(sistemas, hoy(), zona), [sistemas, zona]);
+  const escenario = escenarioDe(objetivo, pasos, elegidos, montos, sensibilidad);
   const cumplido = brecha(objetivo) === 0;
-  const porcentaje = Math.round(avance(objetivo) * 100);
   const maximo = Math.max(1, ...objetivo.historial.map((punto) => punto.valor));
+
+  const alternar = (clave: string) =>
+    setElegidos((actuales) => {
+      const siguientes = new Set(actuales);
+      if (!siguientes.delete(clave)) siguientes.add(clave);
+      return siguientes;
+    });
 
   return (
     <article className="objetivos-tarjeta">
       <header>
         <div>
-          <p className="objetivos-etiqueta">Meta mensual · {formatoPesos(objetivo.meta)}</p>
+          <p className="objetivos-etiqueta">Tu objetivo</p>
           <h2>{objetivo.texto}</h2>
         </div>
-        {cumplido ? (
+        {cumplido && (
           <span className="objetivos-cumplido">
-            <CheckCircleIcon aria-hidden size={20} /> Objetivo alcanzado
+            <CheckCircleIcon aria-hidden size={20} /> Lo lograste
           </span>
-        ) : (
-          <button
-            type="button"
-            className={`objetivos-recomendacion ${recomendacionAbierta ? 'abierta' : ''}`.trim()}
-            aria-expanded={recomendacionAbierta}
-            aria-controls={idPanel}
-            onClick={() => setRecomendacionAbierta((abierta) => !abierta)}
-          >
-            <SparkleIcon aria-hidden size={20} weight="fill" />
-            <span>Recomendación de Sami</span>
-            {!recomendacionAbierta && <i aria-hidden className="objetivos-punto" />}
-          </button>
         )}
       </header>
 
@@ -65,19 +77,21 @@ export function ObjetivoCard({ objetivo, onPlan, onProbar, onQuitar }: Props) {
           <div className="objetivos-avance-cifras">
             <strong>{formatoPesos(ultimoValor(objetivo))}</strong>
             <span>
-              de {formatoPesos(objetivo.meta)} · {porcentaje} %
+              {cumplido
+                ? 'ganás por mes'
+                : `ganás por mes · te faltan ${formatoPesos(brecha(objetivo))}`}
             </span>
           </div>
           <Progreso
             valor={avance(objetivo)}
-            etiqueta={`Avance hacia ${formatoPesos(objetivo.meta)}`}
+            etiqueta={`Lo que ganás hoy frente a ${formatoPesos(objetivo.meta)}`}
           />
           <p className="objetivos-tendencia-texto">{textoDeTendencia(objetivo)}</p>
         </div>
         <div
           className="objetivos-tendencia"
           role="img"
-          aria-label={`Resultado mensual estimado: ${objetivo.historial
+          aria-label={`Lo que ganaste por mes: ${objetivo.historial
             .map((punto) => `${punto.semana} ${formatoPesos(punto.valor)}`)
             .join(', ')}`}
         >
@@ -90,62 +104,142 @@ export function ObjetivoCard({ objetivo, onPlan, onProbar, onQuitar }: Props) {
         </div>
       </div>
 
-      {recomendacionAbierta && (
-        <div id={idPanel} className="objetivos-recomendacion-panel">
-          <h3>Recomendación para tu objetivo</h3>
-          <p>
-            Te faltan {formatoPesos(brecha(objetivo))} por mes. Son tres caminos calculados sobre tu
-            estructura actual de ventas, costos y gastos.
-          </p>
-          <div className="objetivos-caminos">
-            {caminos(objetivo).map((camino) => (
-              <article
-                key={camino.clave}
-                className={`objetivos-camino ${camino.recomendado ? 'recomendado' : ''}`.trim()}
-              >
-                {camino.recomendado && (
-                  <span className="objetivos-recomendado">Recomendado por equilibrio</span>
-                )}
-                <h4>{camino.titulo}</h4>
-                <p>{camino.bajada}</p>
-                <dl>
-                  {camino.datos.map((dato) => (
-                    <div key={dato.nombre}>
-                      <dt>{dato.nombre}</dt>
-                      <dd>{dato.valor}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <small>
-                  <CheckCircleIcon aria-hidden /> {camino.confianza}
-                </small>
-                {camino.recomendado && (
-                  <button type="button" className="btn primary" onClick={onProbar}>
-                    Probar este camino
-                  </button>
-                )}
-              </article>
-            ))}
-          </div>
-          <Explicacion>
-            Recomiendo combinar porque aumentar solamente las ventas exige muchas operaciones
-            adicionales, y subir solo los precios podría reducir la demanda. Son estimaciones de
-            demostración, no promesas.
-          </Explicacion>
-        </div>
+      {!cumplido && (
+        <>
+          <button
+            type="button"
+            className={`objetivos-pasos-boton ${verPasos ? 'abierta' : ''}`.trim()}
+            aria-expanded={verPasos}
+            aria-controls={idPanel}
+            onClick={() => setVerPasos((visible) => !visible)}
+          >
+            Qué podés hacer
+            <CaretDownIcon aria-hidden size={18} />
+          </button>
+          {verPasos && (
+            <div id={idPanel} className="objetivos-pasos">
+              {pasos.length === 0 ? (
+                <p className="objetivos-pasos-vacio">
+                  Cargá tus productos y sus costos en un cuaderno, y Sami te dice qué hacer con cada
+                  uno para llegar.
+                </p>
+              ) : (
+                <>
+                  {pasos.some((paso) => paso.curva) && (
+                    <Sensibilidades sensibilidad={sensibilidad} onCambiar={setSensibilidad} />
+                  )}
+                  <ol>
+                    {pasos.map((paso) => {
+                      const monto = montoDe(paso, montos, sensibilidad);
+                      const resultado = paso.calcular(monto, sensibilidad);
+                      const zonaDelPaso = comparacionConZona(
+                        paso.producto,
+                        resultado.precioNuevo,
+                        zona,
+                      );
+                      return (
+                        <li key={paso.clave}>
+                          <strong>{resultado.titulo}</strong>
+                          <p>{resultado.detalle}</p>
+                          <AjusteDePaso
+                            paso={paso}
+                            valor={monto}
+                            sensibilidad={sensibilidad}
+                            onCambiar={(valor) =>
+                              setMontos((actuales) => ({ ...actuales, [paso.clave]: valor }))
+                            }
+                          />
+                          {zonaDelPaso && <p className="objetivos-paso-zona">{zonaDelPaso}</p>}
+                          <span
+                            className={`objetivos-paso-efecto ${(resultado.sumaPorMes ?? 0) < 0 ? 'negativo' : ''}`.trim()}
+                          >
+                            {resultado.efecto}
+                          </span>
+                          <label className="objetivos-paso-eleccion">
+                            <input
+                              type="checkbox"
+                              checked={elegidos.has(paso.clave)}
+                              onChange={() => alternar(paso.clave)}
+                            />
+                            Lo voy a hacer
+                          </label>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                  <Escenario
+                    escenario={escenario}
+                    meta={objetivo.meta}
+                    hayElegidos={elegidos.size > 0}
+                  />
+                  <p className="objetivos-pasos-nota">
+                    Son cálculos con lo que cargaste. Vos decidís qué hacer: Ensambla no cambia tus
+                    precios.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       <footer className="objetivos-tarjeta-acciones">
-        <button type="button" className="btn primary" onClick={onPlan}>
-          Ver plan de acción
-        </button>
-        <button type="button" className="btn secondary" onClick={onProbar}>
-          Ver cómo funcionaría
-        </button>
         <button type="button" className="objetivos-textual" onClick={onQuitar}>
           <TrashIcon aria-hidden size={16} /> Quitar objetivo
         </button>
       </footer>
     </article>
+  );
+}
+
+type EscenarioProps = {
+  escenario: ReturnType<typeof escenarioDe>;
+  meta: number;
+  hayElegidos: boolean;
+};
+
+// «Probá un escenario», dentro de la tarjeta: tildás los pasos y ves cómo quedaría lo que ganás por mes.
+function Escenario({ escenario, meta, hayElegidos }: EscenarioProps) {
+  const ancho = (valor: number) => `${Math.min(100, Math.max(2, (valor / meta) * 100))}%`;
+  return (
+    <section className="objetivos-escenario" aria-live="polite" aria-label="Cómo quedaría">
+      <h3>Cómo quedaría</h3>
+      {hayElegidos ? (
+        <>
+          <dl>
+            <div>
+              <dt>Hoy ganás</dt>
+              <dd>
+                <i style={{ width: ancho(escenario.hoy) }} />
+                <b>{formatoPesos(escenario.hoy)}</b>
+              </dd>
+            </div>
+            <div>
+              <dt>Con tus pasos</dt>
+              <dd className="con-pasos">
+                <i style={{ width: ancho(escenario.conPasos) }} />
+                <b>{formatoPesos(escenario.conPasos)}</b>
+              </dd>
+            </div>
+            <div>
+              <dt>Tu objetivo</dt>
+              <dd className="meta">
+                <i style={{ width: '100%' }} />
+                <b>{formatoPesos(meta)}</b>
+              </dd>
+            </div>
+          </dl>
+          <p>
+            {escenario.faltaria === 0
+              ? '¡Con esto llegás a tu objetivo!'
+              : `Con esto todavía te faltarían ${formatoPesos(escenario.faltaria)} por mes.`}
+            {escenario.liberada > 0 &&
+              ` Además recuperás hasta ${formatoPesos(escenario.liberada)} de mercadería parada.`}
+          </p>
+        </>
+      ) : (
+        <p>Tildá «Lo voy a hacer» en los pasos que te sirvan y mirá cómo quedaría lo que ganás.</p>
+      )}
+    </section>
   );
 }

@@ -33,7 +33,7 @@ describe('objetivos', () => {
     expect(screen.queryByText(/laboratorio/i)).not.toBeInTheDocument();
   });
 
-  it('sin objetivos propone definir uno y lo muestra con su avance', async () => {
+  it('sin objetivos propone definir uno y lo muestra con lo que falta, sin porcentajes', async () => {
     setupUsuarioConSesion();
     renderApp('/objetivos');
     const user = userEvent.setup();
@@ -45,53 +45,37 @@ describe('objetivos', () => {
     await user.click(screen.getByRole('button', { name: 'Definir objetivo' }));
 
     expect(await screen.findByRole('heading', { name: 'Cómo van tus objetivos' })).toBeVisible();
-    expect(screen.getByText(/Meta mensual · \$400\.000/)).toBeVisible();
-    expect(screen.getByRole('progressbar', { name: /Avance hacia \$400\.000/ })).toHaveAttribute(
-      'aria-valuenow',
-      '45',
-    );
+    expect(screen.getByText(/ganás por mes · te faltan \$220\.000/)).toBeVisible();
     expect(screen.getByText(/Todavía no hay semanas para comparar/)).toBeVisible();
+    expect(screen.queryByText(/%/)).not.toBeInTheDocument();
   });
 
-  it('muestra cómo cambió el resultado y la recomendación en la tarjeta', async () => {
+  it('todo está en una pantalla: sin pestañas ni saltos a otras páginas', async () => {
+    setupUsuarioConSesion();
+    conObjetivoDeEjemplo();
+    const router = renderApp('/objetivos');
+
+    await screen.findByRole('heading', { name: 'Cómo van tus objetivos' }, ESPERA);
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver cómo funcionaría' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver plan de acción' })).not.toBeInTheDocument();
+    expect(screen.getByText(/Subió \$60\.000 en las últimas 5 semanas/)).toBeVisible();
+    expect(router.state.location.pathname).toBe('/objetivos');
+  });
+
+  it('despliega qué hacer en el lugar, y sin productos cargados lo explica', async () => {
     setupUsuarioConSesion();
     conObjetivoDeEjemplo();
     renderApp('/objetivos');
     const user = userEvent.setup();
 
-    await screen.findByRole('heading', { name: 'Cómo van tus objetivos' }, ESPERA);
-    expect(screen.getByText(/Subió \$60\.000 en las últimas 5 semanas/)).toBeVisible();
-    expect(screen.queryByText('Camino combinado')).not.toBeInTheDocument();
+    const boton = await screen.findByRole('button', { name: /Qué podés hacer/ }, ESPERA);
+    expect(boton).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText(/Cargá tus productos y sus costos en un cuaderno/)).toBeVisible();
 
-    const recomendacion = screen.getByRole('button', { name: /Recomendación de Sami/ });
-    expect(recomendacion).toHaveAttribute('aria-expanded', 'false');
-    await user.click(recomendacion);
-
-    expect(recomendacion).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('heading', { name: 'Recomendación para tu objetivo' })).toBeVisible();
-    expect(screen.getByText('Camino combinado')).toBeVisible();
-    expect(screen.getByText('Recomendado por equilibrio')).toBeVisible();
-    expect(screen.queryByText('Aviso económico')).not.toBeInTheDocument();
-  });
-
-  it('lleva al plan de acción del objetivo, con su seguimiento', async () => {
-    setupUsuarioConSesion();
-    conObjetivoDeEjemplo();
-    const router = renderApp('/objetivos');
-    const user = userEvent.setup();
-
-    await user.click(await screen.findByRole('button', { name: 'Ver plan de acción' }, ESPERA));
-
-    expect(router.state.location.pathname).toBe('/objetivos/objetivo-ejemplo');
-    expect(await screen.findByRole('heading', { name: 'Seguimiento' })).toBeVisible();
-    expect(
-      screen.getByText('Subí un poco los precios que casi no te dejan ganancia'),
-    ).toBeVisible();
-    expect(screen.getByText('Recortá los gastos que no son de todos los meses')).toBeVisible();
-    expect(screen.getByText(/Tu resultado subió \$60\.000/)).toBeVisible();
-
-    await user.click(screen.getByRole('button', { name: 'Volver a objetivos' }));
-    expect(router.state.location.pathname).toBe('/objetivos');
+    await user.click(boton);
+    expect(boton).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText(/Cargá tus productos/)).not.toBeInTheDocument();
   });
 
   it('un objetivo que no existe invita a volver', async () => {
@@ -102,26 +86,6 @@ describe('objetivos', () => {
       await screen.findByRole('heading', { name: 'No encontramos ese objetivo' }, ESPERA),
     ).toBeVisible();
     expect(screen.getByRole('button', { name: 'Ir a mis objetivos' })).toBeVisible();
-  });
-
-  it('abre el escenario de «Sami te enseña» con el objetivo elegido', async () => {
-    setupUsuarioConSesion();
-    conObjetivoDeEjemplo();
-    const router = renderApp('/objetivos');
-    const user = userEvent.setup();
-
-    await user.click(await screen.findByRole('button', { name: 'Ver cómo funcionaría' }, ESPERA));
-
-    expect(router.state.location.pathname).toBe('/sami-te-ensena');
-    expect(router.state.location.search).toMatchObject({
-      leccion: 'escenario',
-      objetivo: 'objetivo-ejemplo',
-    });
-    expect(await screen.findByRole('heading', { name: 'Probá un escenario' })).toBeVisible();
-
-    await user.click(screen.getByRole('button', { name: 'Volver al plan de acción' }));
-
-    expect(router.state.location.pathname).toBe('/objetivos/objetivo-ejemplo');
   });
 
   it('pide confirmación antes de quitar un objetivo', async () => {
@@ -137,20 +101,5 @@ describe('objetivos', () => {
 
     expect(await screen.findByRole('heading', { name: 'Definí tu primer objetivo' })).toBeVisible();
     expect(useObjetivosStore.getState().objetivos).toHaveLength(0);
-  });
-
-  it('deja la pestaña de Mi zona y desde ahí usa el plan del objetivo', async () => {
-    setupUsuarioConSesion();
-    conObjetivoDeEjemplo();
-    const router = renderApp('/objetivos');
-    const user = userEvent.setup();
-
-    await user.click(await screen.findByRole('tab', { name: 'Cruce con Mi zona' }, ESPERA));
-    expect(
-      screen.getByRole('heading', { name: 'Compará una decisión con tu contexto' }),
-    ).toBeVisible();
-
-    await user.click(screen.getByRole('button', { name: 'Usar en mi plan' }));
-    expect(router.state.location.pathname).toBe('/objetivos/objetivo-ejemplo');
   });
 });
