@@ -2,10 +2,14 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.zona.analizarZona.AnalizarZona;
+import com.ensambla.backend.domain.useCase.zona.explorarDondeAbrir.ExplorarDondeAbrir;
 import com.ensambla.backend.domain.useCase.zona.obtenerZona.ObtenerZona;
 import com.ensambla.backend.infrastructure.presentation.dto.zona.AnalizarZonaWebRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.zona.DondeAbrirWebResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.zona.ExplorarDondeAbrirWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.zona.ZonaWebResponse;
 import com.ensambla.backend.infrastructure.presentation.mapper.zona.ZonaPresentationMapper;
+import com.ensambla.backend.infrastructure.presentation.mapper.zona.DondeAbrirPresentationMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -29,7 +33,11 @@ public class ZonaController {
 
     private final AnalizarZona analizarZona;
 
+    private final ExplorarDondeAbrir explorarDondeAbrir;
+
     private final ZonaPresentationMapper zonaPresentationMapper;
+
+    private final DondeAbrirPresentationMapper dondeAbrirPresentationMapper;
 
     @GetMapping("/agregados")
     @Operation(
@@ -56,5 +64,18 @@ public class ZonaController {
         return ResponseEntity.ok(zonaPresentationMapper.toResponse(
                 analizarZona.execute(zonaPresentationMapper.toAnalizarRequest(
                         request, UsuarioId.de(authentication.getName())))));
+    }
+
+    @PostMapping("/donde-abrir")
+    @Operation(
+            summary = "Compara zonas para abrir un nuevo local",
+            description = "Aplica primero los límites solicitados y luego puntúa las zonas con datos trazables. "
+                    + "La ubicación del local actual siempre se toma del negocio de la sesión. Los factores sin "
+                    + "datos redistribuyen su peso y el alquiler sólo participa cuando la persona carga cotizaciones.")
+    public ResponseEntity<DondeAbrirWebResponse> dondeAbrir(
+            Authentication authentication,
+            @Valid @RequestBody ExplorarDondeAbrirWebRequest request) {
+        return ResponseEntity.ok(dondeAbrirPresentationMapper.toResponse(explorarDondeAbrir.execute(
+                dondeAbrirPresentationMapper.toRequest(request, UsuarioId.de(authentication.getName())))));
     }
 }

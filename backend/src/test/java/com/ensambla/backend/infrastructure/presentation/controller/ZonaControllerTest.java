@@ -3,14 +3,20 @@ package com.ensambla.backend.infrastructure.presentation.controller;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.zona.VistaZona;
+import com.ensambla.backend.domain.model.negocio.RubroNegocio;
+import com.ensambla.backend.domain.model.zona.ZonaId;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem.ProductoItem;
 import com.ensambla.backend.domain.useCase.zona.ZonaItem;
 import com.ensambla.backend.domain.useCase.zona.analizarZona.AnalizarZona;
 import com.ensambla.backend.domain.useCase.zona.analizarZona.AnalizarZonaRequest;
 import com.ensambla.backend.domain.useCase.zona.obtenerZona.ObtenerZona;
 import com.ensambla.backend.domain.useCase.zona.obtenerZona.ObtenerZonaRequest;
+import com.ensambla.backend.domain.useCase.zona.explorarDondeAbrir.ExplorarDondeAbrir;
+import com.ensambla.backend.domain.useCase.zona.explorarDondeAbrir.ExplorarDondeAbrirRequest;
+import com.ensambla.backend.domain.useCase.zona.explorarDondeAbrir.ExplorarDondeAbrirResponse;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.zona.ZonaPresentationMapper;
+import com.ensambla.backend.infrastructure.presentation.mapper.zona.DondeAbrirPresentationMapper;
 import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -37,13 +44,15 @@ class ZonaControllerTest {
 
     private final ObtenerZona obtenerZona = mock(ObtenerZona.class);
     private final AnalizarZona analizarZona = mock(AnalizarZona.class);
+    private final ExplorarDondeAbrir explorarDondeAbrir = mock(ExplorarDondeAbrir.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        var controller = new ZonaController(obtenerZona, analizarZona, new ZonaPresentationMapper());
+        var controller = new ZonaController(obtenerZona, analizarZona, explorarDondeAbrir,
+                new ZonaPresentationMapper(), new DondeAbrirPresentationMapper());
         mockMvc = MockMvcDePrueba.standalone(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -170,10 +179,52 @@ class ZonaControllerTest {
         verifyNoInteractions(analizarZona);
     }
 
+    @Test
+    @DisplayName("POST dónde abrir toma el usuario de la sesión y devuelve el ranking")
+    void dondeAbrirShouldDelegateAuthenticatedBusiness() throws Exception {
+        when(explorarDondeAbrir.execute(any())).thenReturn(givenDondeAbrir());
+
+        mockMvc.perform(post("/api/zona/donde-abrir").principal(principal).contentType("application/json")
+                        .content("""
+                                {"rubro":"ALMACEN","publico":"VECINOS","importancia":{"ESCUELAS":2},
+                                 "limites":{"distanciaMaxKm":4},
+                                 "alquileres":[{"zonaId":"c0000000-0000-4000-8000-000000000001","valor":500000}]}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.evaluadas").value(1))
+                .andExpect(jsonPath("$.ranking[0].nombre").value("San Justo - UNLaM"));
+        verify(explorarDondeAbrir).execute(new ExplorarDondeAbrirRequest(
+                USUARIO_ID, RubroNegocio.ALMACEN, com.ensambla.backend.domain.model.zona.PublicoDondeAbrir.VECINOS,
+                Map.of(com.ensambla.backend.domain.model.zona.FactorDondeAbrir.ESCUELAS, 2),
+                new ExplorarDondeAbrirRequest.Limites(new BigDecimal("4"), null, null, null, null, null),
+                Map.of(ZonaId.de("c0000000-0000-4000-8000-000000000001"), new BigDecimal("500000"))));
+    }
+
+    @Test
+    @DisplayName("POST dónde abrir valida rubro y público antes de ejecutar")
+    void dondeAbrirShouldValidateRequiredFields() throws Exception {
+        mockMvc.perform(post("/api/zona/donde-abrir").principal(principal).contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(explorarDondeAbrir);
+    }
+
     // --- arrange ---
     private ZonaItem givenZona() {
         return new ZonaItem("San Justo - UNLaM", 10, List.of(new ProductoItem("Yerba 1kg", 8,
                 new BigDecimal("2800.00"), new BigDecimal("3100.00"), new BigDecimal("3400.00"), 6,
                 new BigDecimal("12.50"))));
+    }
+
+    private ExplorarDondeAbrirResponse givenDondeAbrir() {
+        var negocio = new ExplorarDondeAbrirResponse.NegocioActual(
+                "Almacén", RubroNegocio.ALMACEN, "Arieta 1", new BigDecimal("-34.67"),
+                new BigDecimal("-58.56"), null);
+        var zona = new ExplorarDondeAbrirResponse.ZonaEvaluada(
+                ZonaId.de("c0000000-0000-4000-8000-000000000001"), "San Justo - UNLaM", "San Justo",
+                "La Matanza", new BigDecimal("-34.67"), new BigDecimal("-58.56"), BigDecimal.ONE,
+                new BigDecimal("8.5"), "BUENA", List.of(), List.of("Buen acceso"), List.of("Confirmar en calle"),
+                List.of());
+        return new ExplorarDondeAbrirResponse(negocio, 1, List.of(zona), List.of(), List.of());
     }
 }

@@ -4,11 +4,13 @@ import com.ensambla.backend.domain.port.GeocodificadorPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
+import com.ensambla.backend.domain.repository.zona.DatosDondeAbrirRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import com.ensambla.backend.domain.service.zona.ProductosPropiosService;
 import com.ensambla.backend.domain.useCase.zona.analizarZona.AnalizarZona;
+import com.ensambla.backend.domain.useCase.zona.explorarDondeAbrir.ExplorarDondeAbrir;
 import com.ensambla.backend.domain.useCase.zona.obtenerZona.ObtenerZona;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -47,5 +49,13 @@ public class ZonaUseCaseConfig {
             ControlPlanService controlPlanService) {
         return new AnalizarZona(zonaRepository, geocodificadorPort, agregadoZonaRepository, clock,
                 negocioRepository, controlPlanService);
+    }
+
+    @Bean
+    public ExplorarDondeAbrir explorarDondeAbrir(
+            NegocioRepository negocioRepository,
+            DatosDondeAbrirRepository datosDondeAbrirRepository,
+            Clock clock) {
+        return new ExplorarDondeAbrir(negocioRepository, datosDondeAbrirRepository, clock);
     }
 }
