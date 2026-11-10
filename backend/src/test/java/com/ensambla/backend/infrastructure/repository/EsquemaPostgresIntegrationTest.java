@@ -50,6 +50,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -106,6 +107,9 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
 
     @Test
@@ -344,6 +348,50 @@ class EsquemaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         UUID agregadoId = givenAgregado(zonaId, "yerba", 3, 3);
 
         assertThat(agregadoId).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Registra fuentes trazables para los datos híbridos de zona")
+    void shouldSeedHybridZoneSources() {
+        Integer fuentes = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM fuente_dato_zona
+                WHERE codigo IN ('ENSAMBLA', 'OSM', 'CABA_DATOS', 'PBA_DATOS', 'INDEC_CENSO_2022', 'USUARIO')
+                """, Integer.class);
+
+        assertThat(fuentes).isEqualTo(6);
+    }
+
+    @Test
+    @DisplayName("Guarda una métrica y un punto de interés trazables para una zona")
+    void shouldPersistHybridZoneMetricAndPoint() {
+        UUID zonaId = givenZona("Zona híbrida");
+
+        int metricas = jdbcTemplate.update("""
+                INSERT INTO metrica_zona
+                    (zona_id, tipo, valor, unidad, fuente_codigo, observada_en, confianza)
+                VALUES (?, 'TRANSPORTE', 7, 'lugares_500m', 'OSM', DATE '2026-11-10', 80)
+                """, zonaId);
+        int puntos = jdbcTemplate.update("""
+                INSERT INTO punto_interes_zona
+                    (zona_id, clave_externa, tipo, nombre, latitud, longitud, fuente_codigo, observada_en)
+                VALUES (?, 'node/1', 'TRANSPORTE', 'Estación de prueba', -34.67, -58.56, 'OSM', DATE '2026-11-10')
+                """, zonaId);
+
+        assertThat(metricas).isOne();
+        assertThat(puntos).isOne();
+    }
+
+    @Test
+    @DisplayName("La base exige rubro sólo para métricas de competencia")
+    void shouldRequireRubroOnlyForCompetitionMetrics() {
+        UUID zonaId = givenZona("Zona con competencia");
+
+        assertThatThrownBy(() -> jdbcTemplate.update("""
+                INSERT INTO metrica_zona
+                    (zona_id, tipo, valor, unidad, fuente_codigo, observada_en)
+                VALUES (?, 'COMPETENCIA', 3, 'comercios_500m', 'OSM', DATE '2026-11-10')
+                """, zonaId))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test

@@ -177,7 +177,7 @@ que traducirlos al guardar; `MONEDA` todavía no cuenta como numérica para fór
 ### Zona y negocio
 
 - `zona` (global): nombre, localidad, partido, provincia, centro (`latitud`, `longitud`) y `radio_metros`.
-- `negocio` suma `rubro` (`ALMACEN`, `KIOSCO`, `MINIMERCADO`, `DIETETICA`, `OTRO`), `direccion`, `localidad`, coordenadas
+- `negocio` suma `rubro` (`ALMACEN`, `KIOSCO`, `MINIMERCADO`, `DIETETICA`, `PAPELERIA`, `OTRO`), `direccion`, `localidad`, coordenadas
   (`ck_negocio_coordenadas`: ambas o ninguna), `zona_id` y `comparte_datos_zona`. Si es `false`, el negocio no aporta a los agregados.
   ENS-69 reutiliza estas columnas con `GET/PATCH /api/business`, sin modificar migraciones. El dueño se obtiene
   desde la sesión; al guardar un punto nuevo, `zona_id` se reasigna a la zona cuyo `radio_metros` contiene el punto
@@ -186,6 +186,11 @@ que traducirlos al guardar; `MONEDA` todavía no cuenta como numérica para fór
 - `agregado_zona_producto`: precio mínimo, promedio y máximo, comercios que lo tienen y que lo venden, y unidades por semana de un
   comercio promedio. Es el dato que consume `Zona` del frontend. La privacidad la hace cumplir la base: `comercios >= 3` y
   `comercios_venden >= 3`, así nunca se guarda un dato que identifique a un comercio. Único por `(zona_id, producto_normalizado)`.
+- V24 suma `fuente_dato_zona`, `metrica_zona` y `punto_interes_zona` para «Dónde abrir». Las fuentes conservan
+  procedencia, licencia y fecha de consulta; las métricas guardan valores comparables por zona y, para competencia,
+  por rubro; los puntos conservan las coordenadas reales que se muestran en el mapa. Son snapshots globales y no
+  contienen datos de un comercio individual. Las búsquedas leen PostgreSQL y nunca llaman a fuentes externas durante
+  la navegación. Las lecturas de Ensambla sólo participan agregadas cuando cumplen el mínimo de anonimato.
 
 ### Avisos del motor de monitoreo
 
