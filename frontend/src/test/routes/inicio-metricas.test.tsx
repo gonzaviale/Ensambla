@@ -104,8 +104,8 @@ describe('inicio: cómo te va', () => {
     ).toBeVisible();
     expect(within(seccion).queryByRole('combobox')).toBeNull();
     expect(
-      within(seccion).getByRole('heading', { name: 'Sin venderse hace 2 semanas' }),
-    ).toBeVisible();
+      within(seccion).queryByRole('heading', { name: 'Sin venderse hace 2 semanas' }),
+    ).toBeNull();
     expect(
       within(seccion).queryByRole('heading', { name: 'Lo que más salió este mes' }),
     ).toBeNull();

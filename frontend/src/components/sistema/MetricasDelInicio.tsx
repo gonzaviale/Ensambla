@@ -1,6 +1,5 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { Icon } from '@/components/sistema/Icon';
-import { varsDeColor } from '@/components/sistema/colores';
 import { GraficoDeBarras } from '@/components/sistema/metricas/GraficoDeBarras';
 import { SelectorDeCuaderno, SelectorDePeriodo } from '@/components/sistema/metricas/Selectores';
 import { useNumeroAnimado } from '@/components/sistema/metricas/useNumeroAnimado';
@@ -20,8 +19,6 @@ import {
   textoUnidades,
   type PeriodoDeVentas,
 } from '@/lib/sistema/metricasInicio';
-import type { NombreDeIcono } from '@/lib/sistema/iconos';
-import type { Color } from '@/lib/sistema/tipos';
 import type { AvisoEconomico } from '@/types/avisoEconomico';
 import type { ResumenInicio } from '@/types/resumenInicio';
 
@@ -82,7 +79,6 @@ export function MetricasDelInicio({
         <div className="tablero-cuerpo">
           {resumen.hayVentas && <TarjetaDeVentas resumen={resumen} />}
           <TarjetaDeAvisoEconomico sistemaId={cuaderno.id} cuaderno={cuaderno.name} />
-          {resumen.parados.length > 0 && <TarjetaDeParados resumen={resumen} />}
         </div>
       )}
     </section>
@@ -277,48 +273,5 @@ function TarjetaDeVentas({ resumen }: PropsDeTarjeta) {
         variante="oscuro"
       />
     </article>
-  );
-}
-
-function Tarjeta({
-  color,
-  icono,
-  titulo,
-  children,
-}: {
-  color: Color;
-  icono: NombreDeIcono;
-  titulo: string;
-  children: ReactNode;
-}) {
-  return (
-    <article className="tablero-tarjeta" style={varsDeColor(color)} data-color={color}>
-      <header>
-        <span className="tablero-tarjeta-icono">
-          <Icon name={icono} />
-        </span>
-        <h3>{titulo}</h3>
-      </header>
-      {children}
-    </article>
-  );
-}
-
-function TarjetaDeParados({ resumen }: PropsDeTarjeta) {
-  return (
-    <Tarjeta color="blue" icono="clock" titulo="Sin venderse hace 2 semanas">
-      <ul className="tablero-tarjeta-lista">
-        {resumen.parados.map((producto) => (
-          <li key={producto.nombre}>
-            <span>{producto.nombre}</span>
-            <strong>
-              {producto.capital != null
-                ? `${formatoPesos(producto.capital)} en stock`
-                : textoUnidades(producto.cantidad)}
-            </strong>
-          </li>
-        ))}
-      </ul>
-    </Tarjeta>
   );
 }
