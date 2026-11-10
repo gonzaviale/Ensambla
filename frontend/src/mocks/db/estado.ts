@@ -1,6 +1,7 @@
 import type { Sistema } from '@/lib/sistema/tipos';
 import type { AvisoDelServidor } from '@/types/avisos';
 import type { ConfiguracionNegocio } from '@/types/negocio';
+import type { ObjetivoDelServidor } from '@/types/objetivos';
 import type { PruebaPremium } from '@/types/planes';
 import type { VerificacionWhatsapp, VinculoWhatsapp } from '@/types/whatsapp';
 import { PREFERENCIAS_INICIALES, type Preferencias } from '@/types/preferencias';
@@ -26,6 +27,8 @@ type Estado = {
   negocios: Map<string, ConfiguracionNegocio>;
   /** Los avisos que el motor del servidor dejó a cada cuenta (por email); los tests los siembran. */
   avisosDelServidor: Map<string, AvisoDelServidor[]>;
+  /** Los objetivos de cada cuenta (por email), del más viejo al más nuevo. */
+  objetivos: Map<string, ObjetivoDelServidor[]>;
   pruebasPremium: Map<string, PruebaPremium>;
   contenidosDesbloqueados: Map<string, string[]>;
   paginasIa: Map<string, number>;
@@ -42,6 +45,7 @@ export const estado: Estado = {
   preferencias: new Map(),
   negocios: new Map(),
   avisosDelServidor: new Map(),
+  objetivos: new Map(),
   pruebasPremium: new Map(),
   contenidosDesbloqueados: new Map(),
   paginasIa: new Map(),
@@ -56,6 +60,7 @@ export function reiniciarEstado() {
   estado.preferencias = new Map();
   estado.negocios = new Map();
   estado.avisosDelServidor = new Map();
+  estado.objetivos = new Map();
   estado.pruebasPremium = new Map();
   estado.contenidosDesbloqueados = new Map();
   estado.paginasIa = new Map();
@@ -74,6 +79,13 @@ export const preferenciasDe = (email: string) =>
 
 export function guardarSistemasDe(email: string, sistemas: Sistema[]) {
   estado.sistemas.set(email, sistemas);
+  estado.alCambiar?.();
+}
+
+export const objetivosDe = (email: string) => estado.objetivos.get(email) ?? [];
+
+export function guardarObjetivosDe(email: string, objetivos: ObjetivoDelServidor[]) {
+  estado.objetivos.set(email, objetivos);
   estado.alCambiar?.();
 }
 

@@ -1,5 +1,6 @@
-// Los objetivos del negocio y las cuentas de demostración que Sami usa para recomendar caminos. Todavía no hay
-// backend: los importes parten de la base económica de ejemplo («Almacén de barrio») y se escalan a cada meta.
+// Los objetivos del negocio y las cuentas de demostración que Sami usa para recomendar caminos. El servidor guarda
+// el texto y la meta; el historial y los importes parten de la base económica de ejemplo («Almacén de barrio») y se
+// escalan a cada meta.
 
 export type PuntoDeProgreso = { semana: string; valor: number };
 
@@ -63,17 +64,46 @@ export function nuevoObjetivo(texto: string): Objetivo {
   };
 }
 
+export const ID_OBJETIVO_DE_EJEMPLO = 'objetivo-ejemplo';
+export const TEXTO_OBJETIVO_DE_EJEMPLO =
+  'Quiero ganar $500.000 por mes sin subir demasiado los precios';
+
+const HISTORIAL_DE_EJEMPLO: PuntoDeProgreso[] = [
+  120_000,
+  134_000,
+  141_000,
+  158_000,
+  171_000,
+  RESULTADO_ACTUAL,
+].map((valor, indice, valores) => ({
+  semana: indice === valores.length - 1 ? 'Hoy' : `Hace ${valores.length - 1 - indice} sem.`,
+  valor,
+}));
+
 /** El objetivo de ejemplo de la demo cargada: seis semanas de historia hasta hoy. */
 export function objetivoDeEjemplo(): Objetivo {
-  const valores = [120_000, 134_000, 141_000, 158_000, 171_000, RESULTADO_ACTUAL];
   return {
-    id: 'objetivo-ejemplo',
-    texto: 'Quiero ganar $500.000 por mes sin subir demasiado los precios',
+    id: ID_OBJETIVO_DE_EJEMPLO,
+    texto: TEXTO_OBJETIVO_DE_EJEMPLO,
     meta: META_POR_DEFECTO,
-    historial: valores.map((valor, indice) => ({
-      semana: indice === valores.length - 1 ? 'Hoy' : `Hace ${valores.length - 1 - indice} sem.`,
-      valor,
-    })),
+    historial: HISTORIAL_DE_EJEMPLO.map((punto) => ({ ...punto })),
+  };
+}
+
+/**
+ * El objetivo que guardó el servidor (solo el texto y la meta), listo para mostrar. El historial no se guarda:
+ * parte de hoy, igual que un objetivo recién definido; solo el de ejemplo de la demo trae sus seis semanas.
+ */
+export function objetivoDesdeServidor(guardado: Pick<Objetivo, 'id' | 'texto' | 'meta'>): Objetivo {
+  const { id, texto, meta } = guardado;
+  return {
+    id,
+    texto,
+    meta,
+    historial:
+      id === ID_OBJETIVO_DE_EJEMPLO
+        ? HISTORIAL_DE_EJEMPLO.map((punto) => ({ ...punto }))
+        : [{ semana: 'Hoy', valor: RESULTADO_ACTUAL }],
   };
 }
 
