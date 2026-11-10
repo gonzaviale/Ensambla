@@ -5,6 +5,7 @@ import { Icon } from '@/components/sistema/Icon';
 import { PageFooter } from '@/components/sistema/PageFooter';
 import { varsDeColor } from '@/components/sistema/colores';
 import { CATALOG, TEMPLATES } from '@/lib/sistema/catalogo';
+import { sistemaDelPanel } from '@/lib/sistema/panelDelNegocio';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
 import type { ClavePlantilla, Color } from '@/lib/sistema/tipos';
 import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
@@ -20,6 +21,9 @@ export function InicioPage() {
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const tutorial = useAccionesDelTutorial();
   const navegacion = useNavegacion();
+  // Con el panel arriba, su título es el h1 de la pantalla: el saludo baja a h2 para que los títulos sigan en orden.
+  const hayPanel = useSistemaStore((estado) => sistemaDelPanel(estado.sistemas) !== null);
+  const Saludo = hayPanel ? 'h2' : 'h1';
   return (
     <>
       <CabeceraComun />
@@ -29,7 +33,7 @@ export function InicioPage() {
         <section className="inicio-portada">
           <div className="inicio-saludo">
             <p className="inicio-hola">Hola, {nombre}.</p>
-            <h1>¿En qué puedo ayudarte hoy?</h1>
+            <Saludo>¿En qué puedo ayudarte hoy?</Saludo>
             <p className="inicio-bajada">
               Tocá una ficha para arrancar. Lo que armes, después lo podés cambiar.
             </p>

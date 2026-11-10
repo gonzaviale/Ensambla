@@ -21,7 +21,7 @@ body:has(.inicio) {
   color: var(--coral);
   margin-bottom: 6px;
 }
-.inicio-saludo h1 {
+.inicio-saludo :is(h1, h2) {
   font-size: clamp(34px, 4.4vw, 54px);
   line-height: 1.05;
   letter-spacing: -0.045em;
@@ -233,7 +233,7 @@ body:has(.inicio) {
 .inicio-titulo {
   margin-bottom: 22px;
 }
-.inicio-titulo h2 {
+.inicio-titulo :is(h1, h2) {
   font-size: 26px;
   color: var(--ink);
 }
@@ -436,7 +436,7 @@ body:has(.inicio) {
   .inicio-bloque {
     margin-top: 48px;
   }
-  .inicio-titulo h2 {
+  .inicio-titulo :is(h1, h2) {
     font-size: 22px;
   }
   .inicio-plantillas {
@@ -594,6 +594,7 @@ body:has(.inicio) {
 
 /* Panel del negocio: las métricas y el flujo de caja de los últimos días, arriba de todo */
 .panel-negocio {
+  --panel-suave: #5a686d;
   margin-bottom: 44px;
 }
 .panel-estado {
@@ -635,7 +636,7 @@ body:has(.inicio) {
 .panel-tarjeta-etiqueta {
   font-size: 13px;
   font-weight: 700;
-  color: var(--muted);
+  color: var(--panel-suave);
 }
 .panel-tarjeta-valor {
   font-size: 28px;
@@ -657,7 +658,7 @@ body:has(.inicio) {
 .panel-tarjeta p {
   margin: 6px 0 10px;
   font-size: 13px;
-  color: var(--muted);
+  color: var(--panel-suave);
 }
 .panel-tarjeta-detalle {
   display: inline-flex;
@@ -677,75 +678,75 @@ body:has(.inicio) {
   text-decoration: underline;
 }
 .panel-flujo {
-  margin-top: 14px;
-  padding: 18px 20px;
+  margin-top: 12px;
+  padding: 16px 20px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--paper);
   box-shadow: var(--shadow);
 }
-.panel-flujo h3 {
+.panel-flujo h2 {
   font-size: 18px;
 }
 .panel-flujo-bajada {
-  margin: 4px 0 14px;
+  margin: 2px 0 10px;
   font-size: 13px;
-  color: var(--muted);
+  color: var(--panel-suave);
 }
 .panel-semanas {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 12px;
+  gap: 0;
   margin: 0;
   padding: 0;
   list-style: none;
 }
+/* Una línea por semana: el rango, lo que entró, lo que salió y el saldo */
 .panel-semana {
   display: grid;
-  gap: 6px;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--soft);
+  grid-template-columns: 104px minmax(0, 1fr) minmax(0, 1fr) 112px;
+  align-items: center;
+  gap: 4px 18px;
+  padding: 9px 0;
+  border-top: 1px solid var(--line);
 }
-.panel-semana h4 {
+.panel-semana h3 {
   font-size: 13px;
   font-weight: 800;
   color: var(--ink);
 }
 .panel-semana-fila {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 2px 8px;
   font-size: 13px;
 }
 .panel-semana-etiqueta {
-  color: var(--muted);
+  color: var(--panel-suave);
   font-weight: 700;
 }
+.panel-semana-importe {
+  text-align: right;
+  color: var(--ink);
+}
 .panel-semana-barra {
+  grid-column: 1 / -1;
   display: block;
-  height: 12px;
-  border-radius: 6px;
+  height: 8px;
+  border-radius: 4px;
   background: var(--line);
   overflow: hidden;
 }
 .panel-semana-barra i {
   display: block;
   height: 100%;
-  border-radius: 6px;
+  border-radius: 4px;
   background: var(--petrol);
 }
 .panel-semana-fila[data-tipo='sale'] .panel-semana-barra i {
   background: var(--coral);
 }
-.panel-semana-importe {
-  min-width: 84px;
-  text-align: right;
-  color: var(--ink);
-}
-.panel-semana-deja,
+.panel-semana-saldo,
 .panel-flujo-total {
   display: flex;
   align-items: baseline;
@@ -754,30 +755,23 @@ body:has(.inicio) {
   margin: 0;
   font-size: 13px;
   font-weight: 700;
-  color: var(--muted);
+  color: var(--panel-suave);
 }
-.panel-semana-deja {
-  padding-top: 6px;
-  border-top: 1px solid var(--line);
-}
-.panel-semana-deja strong,
-.panel-flujo-total strong {
-  font-size: 15px;
+.panel-semana-saldo strong {
+  font-size: 14px;
   color: var(--ink);
 }
-.panel-semana-deja[data-signo='1'] strong,
-.panel-flujo-total[data-signo='1'] strong {
+.panel-semana-saldo[data-signo='1'] strong {
   color: var(--ok);
 }
-.panel-semana-deja[data-signo='-1'] strong,
-.panel-flujo-total[data-signo='-1'] strong {
+.panel-semana-saldo[data-signo='-1'] strong {
   color: var(--bad);
 }
 .panel-flujo-total {
-  margin-top: 14px;
-  padding: 12px 14px;
+  margin-top: 6px;
+  padding: 10px 14px;
   border-radius: 14px;
-  background: color-mix(in srgb, var(--petrol) 8%, var(--paper));
+  background: #eef2f4;
   font-size: 15px;
   color: var(--petrol);
 }
@@ -785,6 +779,30 @@ body:has(.inicio) {
   font-size: 22px;
   letter-spacing: -0.02em;
 }
+.panel-flujo-total[data-signo='-1'] strong {
+  color: var(--bad);
+}
+
+/* Mientras llegan los números: reserva el lugar para que lo de abajo no salte */
+.panel-esqueleto-tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+}
+.panel-esqueleto-tarjetas span,
+.panel-esqueleto-flujo {
+  display: block;
+  border-radius: var(--radius);
+  background: var(--soft);
+}
+.panel-esqueleto-tarjetas span {
+  height: 132px;
+}
+.panel-esqueleto-flujo {
+  height: 360px;
+  margin-top: 12px;
+}
+
 @media (max-width: 640px) {
   .panel-estado {
     flex-direction: column;
@@ -796,7 +814,18 @@ body:has(.inicio) {
   .panel-tarjeta-valor {
     font-size: 22px;
   }
-  .panel-semanas {
-    grid-template-columns: 1fr;
+  .panel-semana {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 14px;
+    padding: 12px 0;
+  }
+  .panel-semana h3 {
+    grid-column: 1 / -1;
+  }
+  .panel-semana-saldo {
+    grid-column: 1 / -1;
+  }
+  .panel-esqueleto-tarjetas {
+    grid-template-columns: 1fr 1fr;
   }
 }

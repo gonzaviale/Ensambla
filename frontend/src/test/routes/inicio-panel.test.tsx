@@ -42,7 +42,7 @@ describe('inicio: panel del negocio', () => {
     expect(within(panel).getByText(/Lo fiado no entra hasta que lo cobrás/)).toBeVisible();
   });
 
-  it('el flujo de caja es una fila por semana con lo que entró, salió y dejó, escrito', async () => {
+  it('el flujo de caja es una fila por semana con lo que entró, salió y el saldo, escrito', async () => {
     await abrirInicio([crearAlmacenCargado(hoy())]);
     await cifrasAsync();
 
@@ -53,7 +53,7 @@ describe('inicio: panel del negocio', () => {
     for (const fila of filas) {
       expect(within(fila).getByText('Entró')).toBeVisible();
       expect(within(fila).getByText('Salió')).toBeVisible();
-      expect(within(fila).getByText('Dejó')).toBeVisible();
+      expect(within(fila).getByText('Saldo')).toBeVisible();
       expect(fila).toHaveTextContent(/\$\d/);
     }
     expect(screen.getByText('Te va quedando')).toBeVisible();
@@ -71,6 +71,42 @@ describe('inicio: panel del negocio', () => {
     expect(within(tarjeta('teDeben')).getByText(/Lo que vendiste fiado/)).toBeVisible();
     await user.click(within(tarjeta('vendiste')).getByRole('button', { name: /Ver mis ventas/ }));
     await verifyPathAsync(router, `/sistemas/${sistema?.id}`);
+  });
+
+  it('el margen usa la coma decimal y cada acceso a un detalle tiene su propio nombre', async () => {
+    await abrirInicio([crearAlmacenCargado(hoy())]);
+    await cifrasAsync();
+
+    expect(
+      document.querySelector('[data-metrica="margen"] .panel-tarjeta-valor'),
+    ).toHaveTextContent(/^\d+(,\d)? %$/);
+    const accesos = within(screen.getByRole('region', { name: 'Cómo viene tu negocio' }))
+      .getAllByRole('button', { name: /Ver |Mejorar/ })
+      .map((boton) => boton.textContent);
+    expect(new Set(accesos).size).toBe(accesos.length);
+  });
+
+  it('el título del panel es el h1 y el saludo baja a h2', async () => {
+    await abrirInicio([crearAlmacenCargado(hoy())]);
+    await cifrasAsync();
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Cómo viene tu negocio');
+    expect(screen.getByRole('heading', { level: 2, name: /En qué puedo/ })).toBeVisible();
+  });
+
+  it('sin cuadernos el saludo sigue siendo el h1', async () => {
+    await abrirInicio([]);
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/En qué puedo/);
+  });
+
+  it('mientras llegan los números avisa que está haciendo las cuentas', async () => {
+    await abrirInicio([crearAlmacenCargado(hoy())]);
+
+    const panel = screen.getByRole('region', { name: 'Cómo viene tu negocio' });
+    expect(within(panel).getByRole('status')).toHaveTextContent('Estamos haciendo tus cuentas');
+    await cifrasAsync();
+    expect(screen.queryByText('Estamos haciendo tus cuentas…')).toBeNull();
   });
 
   it('«Ver mis objetivos» lleva a Objetivos', async () => {
