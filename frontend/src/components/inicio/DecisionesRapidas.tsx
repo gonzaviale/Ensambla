@@ -29,7 +29,7 @@ export function DecisionesRapidas() {
     <section className="panel-decisiones" aria-labelledby="panel-decisiones-titulo">
       <div className="panel-decisiones-cabecera">
         <div>
-          <h2 id="panel-decisiones-titulo">Para decidir hoy</h2>
+          <h3 id="panel-decisiones-titulo">Para decidir hoy</h3>
           <p>Lo más importante que vio Sami en tu negocio.</p>
         </div>
         {restantes > 0 && (
@@ -76,7 +76,7 @@ function Sugerencia({ aviso, onAccion, onDescartar }: Props) {
         <p className="sugerencia-meta">
           {NOMBRE_DE_TIPO[aviso.tipo]} · {NIVEL_DE_AVISO[aviso.prioridad]}
         </p>
-        <h3>{aviso.titulo}</h3>
+        <h4>{aviso.titulo}</h4>
       </div>
       <div className="sugerencia-acciones">
         {principal && (

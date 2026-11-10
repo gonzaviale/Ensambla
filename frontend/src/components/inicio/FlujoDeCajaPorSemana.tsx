@@ -20,9 +20,9 @@ export function FlujoDeCajaPorSemana({ semanas }: { semanas: SemanaDeCaja[] }) {
       <ol className="panel-semanas" aria-label="Flujo de caja por semana">
         {semanas.map((semana) => (
           <li key={semana.desde} className="panel-semana">
-            <h3>
+            <h4>
               {diaYMes(semana.desde)} al {diaYMes(semana.hasta)}
-            </h3>
+            </h4>
             <FilaDeSemana tipo="entra" etiqueta="Entró" importe={semana.entradas} maximo={maximo} />
             <FilaDeSemana tipo="sale" etiqueta="Salió" importe={semana.salidas} maximo={maximo} />
             <p className="panel-semana-saldo" data-signo={Math.sign(semana.saldo)}>

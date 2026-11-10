@@ -78,8 +78,7 @@ function tarjetasDe(metricas: MetricasDelPanel): Tarjeta[] {
 }
 
 // Lo que más importa del negocio al abrir la app: las métricas y el flujo de caja de los últimos días, con el
-// cálculo del servidor. Sin cuadernos no aparece; sin ventas explica cómo cargarlas, sin inventar números. Es el
-// tema principal de la pantalla, por eso su título es el h1 (el saludo de abajo pasa a h2).
+// cálculo del servidor. Sin cuadernos no aparece; sin ventas explica cómo cargarlas, sin inventar números.
 export function PanelDelNegocio() {
   const sistemas = useSistemaStore((estado) => estado.sistemas);
   const sistema = useMemo(() => sistemaDelPanel(sistemas), [sistemas]);
@@ -101,7 +100,7 @@ export function PanelDelNegocio() {
   return (
     <section className="panel-negocio" aria-labelledby="panel-negocio-titulo">
       <div className="inicio-titulo">
-        <h1 id="panel-negocio-titulo">Cómo viene tu negocio</h1>
+        <h2 id="panel-negocio-titulo">Cómo viene tu negocio</h2>
         {consulta.data?.hayDatos && <p>{periodo(consulta.data)}</p>}
       </div>
       {consulta.isPending && <Esqueleto />}
@@ -183,7 +182,7 @@ function Esqueleto() {
 function FlujoDeCaja({ panel }: { panel: Panel }) {
   return (
     <div className="panel-flujo">
-      <h2>Tu flujo de caja, semana a semana</h2>
+      <h3>Tu flujo de caja, semana a semana</h3>
       <p className="panel-flujo-bajada">
         Entra lo que cobraste. Sale lo que gastaste y la mercadería que compraste. Lo fiado no entra
         hasta que lo cobrás.

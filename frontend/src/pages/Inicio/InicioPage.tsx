@@ -21,32 +21,47 @@ export function InicioPage() {
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const tutorial = useAccionesDelTutorial();
   const navegacion = useNavegacion();
-  // Con el panel arriba, su título es el h1 de la pantalla: el saludo baja a h2 para que los títulos sigan en orden.
+  // Quien ya tiene un cuaderno ve el panel de su negocio: la bienvenida pasa a una franja corta (el h1 es el mismo)
+  // y las formas de empezar siguen a mano. Quien recién empieza ve la bienvenida grande de siempre.
   const hayPanel = useSistemaStore((estado) => sistemaDelPanel(estado.sistemas) !== null);
-  const Saludo = hayPanel ? 'h2' : 'h1';
   return (
     <>
       <CabeceraComun />
       <main id="main" tabIndex={-1} className="home inicio reveal">
+        {hayPanel && (
+          <section className="inicio-bienvenida" aria-label="Empezar algo nuevo">
+            <div className="inicio-bienvenida-texto">
+              <p className="inicio-hola">Hola, {nombre}.</p>
+              <h1>¿En qué puedo ayudarte hoy?</h1>
+              <button type="button" className="inicio-guia-chica" onClick={tutorial.empezar}>
+                ¿Primera vez? Mostrarme cómo empezar
+              </button>
+            </div>
+            <FichasParaEmpezar guia compacto />
+          </section>
+        )}
+
         <PanelDelNegocio />
 
-        <section className="inicio-portada">
-          <div className="inicio-saludo">
-            <p className="inicio-hola">Hola, {nombre}.</p>
-            <Saludo>¿En qué puedo ayudarte hoy?</Saludo>
-            <p className="inicio-bajada">
-              Tocá una ficha para arrancar. Lo que armes, después lo podés cambiar.
-            </p>
-            <button type="button" className="inicio-guia" onClick={tutorial.empezar}>
-              <span className="inicio-guia-icono">
-                <Icon name="help" />
-              </span>
-              ¿Primera vez? Mostrarme cómo empezar
-            </button>
-          </div>
+        {!hayPanel && (
+          <section className="inicio-portada">
+            <div className="inicio-saludo">
+              <p className="inicio-hola">Hola, {nombre}.</p>
+              <h1>¿En qué puedo ayudarte hoy?</h1>
+              <p className="inicio-bajada">
+                Tocá una ficha para arrancar. Lo que armes, después lo podés cambiar.
+              </p>
+              <button type="button" className="inicio-guia" onClick={tutorial.empezar}>
+                <span className="inicio-guia-icono">
+                  <Icon name="help" />
+                </span>
+                ¿Primera vez? Mostrarme cómo empezar
+              </button>
+            </div>
 
-          <FichasParaEmpezar guia />
-        </section>
+            <FichasParaEmpezar guia />
+          </section>
+        )}
 
         <section className="inicio-atajos" aria-label="Más para tu negocio">
           <Atajo

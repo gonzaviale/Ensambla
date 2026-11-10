@@ -88,12 +88,46 @@ describe('inicio: panel del negocio', () => {
     expect(new Set(accesos).size).toBe(accesos.length);
   });
 
-  it('el título del panel es el h1 y el saludo baja a h2', async () => {
+  it('con panel el saludo sigue siendo el h1 y el título del panel es un h2', async () => {
     await abrirInicio([crearAlmacenCargado(hoy())]);
     await cifrasAsync();
 
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Cómo viene tu negocio');
-    expect(screen.getByRole('heading', { level: 2, name: /En qué puedo/ })).toBeVisible();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/En qué puedo/);
+    expect(screen.getByRole('heading', { level: 2, name: 'Cómo viene tu negocio' })).toBeVisible();
+  });
+
+  it('quien ya tiene un cuaderno ve una bienvenida compacta con las tres formas de empezar', async () => {
+    await abrirInicio([crearAlmacenCargado(hoy())]);
+    await cifrasAsync();
+
+    const bienvenida = screen.getByRole('region', { name: 'Empezar algo nuevo' });
+    expect(within(bienvenida).getByText('Hola, Ana Pérez.')).toBeVisible();
+    expect(within(bienvenida).getByRole('button', { name: /Crear con Sami/ })).toBeVisible();
+    expect(within(bienvenida).getByRole('button', { name: /Elegir una plantilla/ })).toBeVisible();
+    expect(within(bienvenida).getByRole('button', { name: /Empezar de cero/ })).toBeVisible();
+    expect(within(bienvenida).getByRole('button', { name: /Primera vez/ })).toBeVisible();
+    expect(screen.queryByText(/Tocá una ficha para arrancar/)).toBeNull();
+  });
+
+  it('desde la bienvenida compacta se sigue pudiendo crear: «Elegir una plantilla» lleva a Plantillas', async () => {
+    const { user, router } = await abrirInicio([crearAlmacenCargado(hoy())]);
+    await cifrasAsync();
+
+    await user.click(
+      within(screen.getByRole('region', { name: 'Empezar algo nuevo' })).getByRole('button', {
+        name: /Elegir una plantilla/,
+      }),
+    );
+
+    await verifyPathAsync(router, '/plantillas');
+  });
+
+  it('quien recién empieza ve la bienvenida grande, sin franja compacta ni panel', async () => {
+    await abrirInicio([]);
+
+    expect(screen.getByText(/Tocá una ficha para arrancar/)).toBeVisible();
+    expect(screen.queryByRole('region', { name: 'Empezar algo nuevo' })).toBeNull();
+    expect(titulo()).toBeNull();
   });
 
   it('sin cuadernos el saludo sigue siendo el h1', async () => {
