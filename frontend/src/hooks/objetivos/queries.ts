@@ -2,7 +2,8 @@ import { queryOptions, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { listarObjetivos, obtenerPasosObjetivo } from '@/api/objetivos';
 import { useUsuarioOpcional } from '@/hooks/auth/queries';
-import { objetivoDesdeServidor, type Objetivo } from '@/lib/objetivos';
+import { useComoVieneTuNegocio } from '@/hooks/objetivos/useComoVieneTuNegocio';
+import { conHistorialReal, objetivoDesdeServidor, type Objetivo } from '@/lib/objetivos';
 
 export const objetivosKey = ['objetivos'] as const;
 
@@ -21,16 +22,26 @@ export const objetivosQuery = (usuarioId: string) =>
 
 const SIN_OBJETIVOS: Objetivo[] = [];
 
-/** Los objetivos de la persona, del más viejo al más nuevo. Vacío mientras carga o si el servidor falla. */
+/**
+ * Los objetivos de la persona, del más viejo al más nuevo, con el resultado real de las últimas semanas. Vacío
+ * mientras carga o si el servidor falla; sin ventas (o mientras llega cómo viene el negocio) quedan sin historial.
+ */
 export function useObjetivos() {
   const usuario = useUsuarioOpcional();
   const consulta = useQuery({
     ...objetivosQuery(usuario?.id ?? 'sin-sesion'),
     enabled: !!usuario,
   });
+  const { negocio } = useComoVieneTuNegocio();
+  const semanas = negocio?.semanas;
   const objetivos = useMemo(
-    () => (consulta.data ? consulta.data.map(objetivoDesdeServidor) : SIN_OBJETIVOS),
-    [consulta.data],
+    () =>
+      consulta.data
+        ? consulta.data.map((guardado) =>
+            conHistorialReal(objetivoDesdeServidor(guardado), semanas ?? []),
+          )
+        : SIN_OBJETIVOS,
+    [consulta.data, semanas],
   );
   return { objetivos, cargando: consulta.isPending, fallo: consulta.isError };
 }

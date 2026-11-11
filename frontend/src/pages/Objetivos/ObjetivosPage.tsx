@@ -1,12 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { PlusIcon } from '@phosphor-icons/react';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { useEliminarObjetivo } from '@/hooks/objetivos/mutations';
 import { useObjetivos } from '@/hooks/objetivos/queries';
+import { useComoVieneTuNegocio } from '@/hooks/objetivos/useComoVieneTuNegocio';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { formatoPesos, type Objetivo } from '@/lib/objetivos';
-import { conResultadoReal, negocioDe } from '@/lib/objetivosNegocio';
-import { hoy } from '@/lib/sistema/formato';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { DefinirObjetivo } from './DefinirObjetivo';
 import { NegocioHoy } from './NegocioHoy';
@@ -19,9 +18,8 @@ export function ObjetivosPage() {
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const { objetivos, cargando } = useObjetivos();
   const eliminar = useEliminarObjetivo().mutate;
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
   const [definiendo, setDefiniendo] = useState(false);
-  const negocio = useMemo(() => negocioDe(sistemas, hoy()), [sistemas]);
+  const { negocio } = useComoVieneTuNegocio();
 
   const quitar = (objetivo: Objetivo) =>
     abrirModal({
@@ -63,7 +61,7 @@ export function ObjetivosPage() {
               {objetivos.map((objetivo) => (
                 <ObjetivoCard
                   key={objetivo.id}
-                  objetivo={conResultadoReal(objetivo, negocio)}
+                  objetivo={objetivo}
                   abierta={objetivos.length === 1}
                   onQuitar={() => quitar(objetivo)}
                 />

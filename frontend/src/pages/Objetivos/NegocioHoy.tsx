@@ -1,10 +1,11 @@
-import type { Negocio } from '@/lib/objetivosNegocio';
 import { formatoPesos } from '@/lib/objetivos';
+import type { ComoVieneTuNegocio } from '@/types/comoVieneTuNegocio';
 import { Metrica } from './piezas';
 
-// Cómo viene el negocio en los últimos 30 días, con lo que la persona anotó, dicho en pesos y sin jerga.
-export function NegocioHoy({ negocio }: { negocio: Negocio }) {
-  if (!negocio.hayVentas) return null;
+// Cómo viene el negocio en los últimos 30 días, con lo que la persona anotó, dicho en pesos y sin jerga. Lo calcula
+// el servidor; mientras carga o sin ventas no se muestra ningún número.
+export function NegocioHoy({ negocio }: { negocio: ComoVieneTuNegocio | undefined }) {
+  if (!negocio?.hayVentas) return null;
   return (
     <section className="objetivos-negocio" aria-labelledby="objetivos-negocio-titulo">
       <h2 id="objetivos-negocio-titulo">Cómo viene tu negocio</h2>

@@ -13,6 +13,7 @@ import { handlersPanel } from './panel';
 import { handlersPlanes } from './planes';
 import { handlersReportes } from './reportes';
 import { handlersWhatsapp } from './whatsapp';
+import { handlersComoVieneTuNegocio } from './comoVieneTuNegocio';
 
 // Las rutas actuales ya existen en el backend. Sólo el modo completo las simula para tests y demos.
 const handlersDelSistema = [...handlersSistemas, ...handlersZona];
@@ -34,6 +35,7 @@ export function handlersPara(modo: ModoMocks) {
       ...handlersWhatsapp,
       ...handlersSamiProyecto,
       ...handlersSamiTaller,
+      ...handlersComoVieneTuNegocio,
     ];
   if (modo === 'parcial') return []; // Las rutas ya implementadas usan el backend real.
   return [];

@@ -41,7 +41,7 @@ describe('objetivos', () => {
     await user.click(screen.getByRole('button', { name: 'Definir objetivo' }));
 
     expect(await screen.findByRole('heading', { name: 'Cómo van tus objetivos' })).toBeVisible();
-    expect(screen.getByText(/ganás por mes · te faltan \$220\.000/)).toBeVisible();
+    expect(screen.getByText(/ganás por mes · te faltan \$400\.000/)).toBeVisible();
     expect(screen.getByText(/Todavía no hay semanas para comparar/)).toBeVisible();
     expect(screen.queryByText(/%/)).not.toBeInTheDocument();
   });
@@ -54,8 +54,42 @@ describe('objetivos', () => {
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Ver cómo funcionaría' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Ver plan de acción' })).not.toBeInTheDocument();
-    expect(screen.getByText(/Subió \$60\.000 en las últimas 5 semanas/)).toBeVisible();
     expect(router.state.location.pathname).toBe('/objetivos');
+  });
+
+  it('sin ventas no muestra números de ejemplo: ni cómo viene el negocio ni semanas inventadas', async () => {
+    setupObjetivoDeEjemplo(setupUsuarioConSesion().email);
+    renderApp('/objetivos');
+
+    await screen.findByRole('heading', { name: 'Cómo van tus objetivos' }, ESPERA);
+    expect(screen.getByText(/Todavía no hay semanas para comparar/)).toBeVisible();
+    expect(screen.getByText(/ganás por mes · te faltan \$500\.000/)).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Cómo viene tu negocio' })).not.toBeInTheDocument();
+  });
+
+  it('con ventas muestra cómo viene el negocio y el avance de las semanas reales', async () => {
+    setupObjetivoDeEjemplo(setupUsuarioConSesion().email);
+    setupServerResponse('get', '/objetivos/negocio', 200, {
+      hayVentas: true,
+      vendiste: 400_000,
+      mercaderia: 250_000,
+      gastos: 30_000,
+      queda: 120_000,
+      teDeben: 15_000,
+      semanas: [
+        { semana: 'Hace 2 sem.', queda: 80_000 },
+        { semana: 'Hace 1 sem.', queda: 100_000 },
+        { semana: 'Hoy', queda: 120_000 },
+      ],
+    });
+    renderApp('/objetivos');
+
+    expect(
+      await screen.findByRole('heading', { name: 'Cómo viene tu negocio' }, ESPERA),
+    ).toBeVisible();
+    expect(await screen.findByText(/Subió \$40\.000 en las últimas 2 semanas/, {}, ESPERA)).toBeVisible();
+    expect(screen.getByText(/ganás por mes · te faltan \$380\.000/)).toBeVisible();
+    expect(screen.getByText(/Te deben \(fiado\)/)).toBeVisible();
   });
 
   it('despliega qué hacer en el lugar, y sin productos cargados lo explica', async () => {
