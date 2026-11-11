@@ -195,6 +195,11 @@ public class ActualizarRenovacion {
 
 - **Aislamiento por negocio:** el `NegocioId` sale de la sesión, jamás del body, la URL ni un query param. Un recurso
   ajeno responde 404, igual que uno inexistente.
+  - **Excepción: el cliente que pide por WhatsApp** (`domain/useCase/pedido`). No tiene sesión ni cuenta: elige el comercio en
+    la conversación. El `NegocioId` nunca viene del mensaje: sale de una búsqueda del servidor entre los comercios con WhatsApp
+    vinculado (`ComercioRepository.listarConWhatsapp`), se guarda en `conversacion_cliente` y se vuelve a validar contra esa lista
+    en cada mensaje. El cliente nunca ve datos de un negocio que no sea el elegido, y las órdenes del dueño en la app siguen
+    filtrándose por el `negocio_id` de su sesión.
 - **Tiempo:** solo los casos de uso tienen `Clock`; los servicios reciben el instante por parámetro.
 - **Flyway:** una migración aplicada nunca se edita.
 - **Nombres de dominio en español.**

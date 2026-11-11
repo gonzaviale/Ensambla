@@ -3,9 +3,11 @@ package com.ensambla.backend.domain.model.whatsapp;
 import com.ensambla.backend.domain.model.common.TextoNormalizado;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.IntStream;
 
 /**
  * Encuentra, entre las filas que una tabla ya tiene, la que la persona quiso nombrar aunque no la haya escrito tal
@@ -48,6 +50,32 @@ public final class CoincidenciaDeFilas {
             }
         }
         return mejores.size() == 1 ? Optional.of(mejores.getFirst()) : Optional.empty();
+    }
+
+    /**
+     * Todos los candidatos que se parecen a lo buscado, para cuando hay que dejar elegir a la persona en lugar de
+     * adivinar: si alguno tiene exactamente las mismas palabras, sólo esos; si no, los que comparten palabras, los más
+     * parecidos primero y, a igual parecido, en el orden en que vinieron.
+     *
+     * @return las posiciones de los candidatos; vacío si ninguno se parece
+     */
+    public static List<Integer> coincidencias(String buscado, List<String> candidatos) {
+        List<String> palabrasBuscadas = palabras(buscado);
+        List<Double> puntajes = candidatos.stream()
+                .map(candidato -> puntaje(palabrasBuscadas, palabras(candidato)))
+                .toList();
+        List<Integer> exactas = IntStream.range(0, candidatos.size())
+                .filter(i -> puntajes.get(i) == PUNTAJE_EXACTO)
+                .boxed()
+                .toList();
+        if (!exactas.isEmpty()) {
+            return exactas;
+        }
+        return IntStream.range(0, candidatos.size())
+                .filter(i -> puntajes.get(i) > 0)
+                .boxed()
+                .sorted(Comparator.comparing((Integer i) -> puntajes.get(i)).reversed())
+                .toList();
     }
 
     /** Las palabras que nombran: con la medida separada del número y sin artículos ni preposiciones. */

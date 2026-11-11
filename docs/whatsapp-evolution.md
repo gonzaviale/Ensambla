@@ -63,8 +63,19 @@ Además de los comercios vinculados, el webhook reconoce a los **clientes** de l
 | Cualquier otro número | Respuesta fija de «no vinculado»; no se guarda nada ni se generan pedidos. |
 
 `AtencionWhatsappWorker` vacía las dos colas, cada una con su tope de 20 mensajes por vuelta, y una cola que falla no frena a la
-otra. Por ahora Sami solo registra al cliente y lo saluda; el pedido (comercio por nombre, lista de compra y orden) se suma en las
-fases siguientes. La API de prueba no tiene ventana de 24 h ni plantillas: eso aparece recién al migrar a la API oficial.
+otra. La API de prueba no tiene ventana de 24 h ni plantillas: eso aparece recién al migrar a la API oficial.
+
+**Elegir el comercio.** Sami registra al cliente la primera vez que escribe y conversa con él (`conversacion_cliente`):
+
+1. Lo saluda y le pregunta a qué comercio quiere pedirle. Si ya pidió antes le ofrece seguir con el último: *SÍ* sigue, *NO* o
+   el nombre de otro comercio lo cambia.
+2. Busca el comercio **por nombre** entre los negocios con WhatsApp vinculado, sin tildes ni mayúsculas y tolerando errores. Si
+   hay uno solo lo elige; si varios se parecen (por ejemplo «almacén») los muestra numerados y espera el número; si ninguno, lo dice.
+3. Ya con el comercio, recibe el pedido. Escribir *CAMBIAR* (o «otro comercio») vuelve al paso 1. Todavía no arma la lista de
+   compra: eso se suma en la fase siguiente.
+
+Si el cliente no habla por 30 minutos, la próxima vez Sami vuelve a saludar. Si el comercio deja de tener WhatsApp vinculado
+mientras tanto, Sami lo avisa y pregunta de nuevo.
 
 ## Webhook
 

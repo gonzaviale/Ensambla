@@ -109,6 +109,37 @@ class CoincidenciaDeFilasTest {
     }
 
     @Test
+    @DisplayName("Con las mismas palabras que un candidato devuelve sólo a ese, aunque otros se le parezcan")
+    void coincidenciasShouldReturnOnlyTheExactOnes() {
+        List<String> harinas = List.of("Harina 000", "Harina 0000", "Azúcar");
+
+        assertThat(CoincidenciaDeFilas.coincidencias("harina 000", harinas)).containsExactly(0);
+    }
+
+    @Test
+    @DisplayName("Sin un candidato exacto devuelve todos los que se parecen, los más parecidos primero")
+    void coincidenciasShouldReturnEverySimilarOneBestFirst() {
+        List<String> dulces = List.of("Dulce de leche repostero", "Dulce de membrillo", "Azúcar");
+
+        assertThat(CoincidenciaDeFilas.coincidencias("dulce", dulces)).containsExactly(1, 0);
+    }
+
+    @Test
+    @DisplayName("Con el mismo parecido mantiene el orden en que vinieron los candidatos")
+    void coincidenciasShouldKeepTheOrderOnTies() {
+        List<String> harinas = List.of("Harina 000", "Harina 0000", "Azúcar");
+
+        assertThat(CoincidenciaDeFilas.coincidencias("harina", harinas)).containsExactly(0, 1);
+    }
+
+    @Test
+    @DisplayName("Si ninguno se parece, o no hay candidatos, devuelve vacío")
+    void coincidenciasShouldReturnEmptyWhenNothingMatches() {
+        assertThat(CoincidenciaDeFilas.coincidencias("manteca", PRODUCTOS)).isEmpty();
+        assertThat(CoincidenciaDeFilas.coincidencias("harina", List.of())).isEmpty();
+    }
+
+    @Test
     @DisplayName("Con mucho en común pero no todo, coincide si comparten al menos la mitad de las palabras")
     void buscarShouldAcceptHalfOfTheWords() {
         assertThat(CoincidenciaDeFilas.buscar("torta chocolate grande", List.of("Torta chocolate", "Pan"))).contains(0);

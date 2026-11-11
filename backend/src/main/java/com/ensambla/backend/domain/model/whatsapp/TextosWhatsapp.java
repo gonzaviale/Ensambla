@@ -36,8 +36,6 @@ public final class TextosWhatsapp {
     public static final String ERROR_TEMPORAL = "Tuve un problema con tu mensaje. Probá de nuevo en un rato.";
     public static final String FOTO_NO_DESCARGADA = "No pude descargar tu foto. Mandámela de nuevo.";
     public static final String CLIENTE_SOLO_TEXTO = "Por ahora sólo entiendo mensajes de texto. Escribime qué querés pedir.";
-    public static final String BIENVENIDA_CLIENTE = "¡Hola! Soy Sami, de Ensambla. Muy pronto vas a poder pedirme "
-            + "lo que necesites para tu comercio de confianza y retirarlo cuando esté listo.";
 
     private static final String CODIGO_VERIFICACION =
             "Tu código de Ensambla es %s. Vence en 10 minutos. Si no lo pediste, ignorá este mensaje.";

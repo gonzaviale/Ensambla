@@ -7,7 +7,7 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V12__planes_y_suscripciones.sql`, `V13__limites_y_funciones_por_plan.sql`, `V14__prueba_premium.sql`,
 `V15__renovaciones_y_pagos_premium.sql`,
 `V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
-`V24__objetivo.sql`, `V25__clientes_whatsapp.sql`).
+`V24__objetivo.sql`, `V25__clientes_whatsapp.sql`, `V26__conversacion_cliente.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -270,6 +270,23 @@ teléfono y lo que escribe espera en su propia cola, separada de `whatsapp_mensa
 (variable `ENSAMBLA_WHATSAPP_PEDIDOS_CLIENTES_PERMITIDOS`, separados por coma) y los comercios vinculados. Un número que no está
 en ninguna de las dos listas recibe la respuesta fija de «no vinculado» y no se guarda nada. Un comercio vinculado sigue su camino
 aunque también figure como cliente.
+
+## Pedidos por WhatsApp: la conversación del cliente (V26)
+
+`conversacion_cliente` guarda en qué paso está el cliente con Sami. Hay una sola por cliente (`UNIQUE (cliente_id)`, se borra en
+cascada con él): si pasa un rato sin hablar, la misma fila se reinicia.
+
+- `estado`: `ELIGIENDO_COMERCIO` (todavía no dijo a quién le pide) o `PIDIENDO` (ya eligió; `negocio_id` es obligatorio en ese
+  estado, `ck_conversacion_cliente_pidiendo`).
+- `negocio_id`: eligiendo, el comercio que Sami le ofrece seguir (el último al que le pidió); pidiendo, el comercio elegido. Se borra
+  en cascada con el negocio.
+- `opciones` (`jsonb`, lista de ids de negocio): los comercios parecidos entre los que tiene que elegir con un número, en el orden
+  en que se le mostraron.
+- `actualizado_en`: cuándo habló por última vez. Pasados 30 minutos la conversación vuelve a saludar y preguntar el comercio.
+
+**Los comercios son los negocios con un número vinculado** (`whatsapp_vinculo`). El cliente nombra el comercio y Sami lo busca por
+nombre sin tildes ni mayúsculas, tolerando errores de tipeo; si varios se parecen, los muestra numerados (hasta 9). Los nombres de
+`negocio.nombre` no son únicos: por eso, ante nombres iguales o parecidos, Sami siempre deja elegir y nunca adivina.
 
 ## Datos de prueba (V10)
 

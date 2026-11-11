@@ -11,6 +11,8 @@ import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.pedido.ClienteWhatsappRepository;
+import com.ensambla.backend.domain.repository.pedido.ComercioRepository;
+import com.ensambla.backend.domain.repository.pedido.ConversacionClienteRepository;
 import com.ensambla.backend.domain.repository.pedido.MensajeClienteRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
@@ -144,6 +146,8 @@ public class WhatsappUseCaseConfig {
     public AtenderMensajeCliente atenderMensajeCliente(
             MensajeClienteRepository mensajeRepository,
             ClienteWhatsappRepository clienteRepository,
+            ConversacionClienteRepository conversacionRepository,
+            ComercioRepository comercioRepository,
             MensajeriaWhatsappPort mensajeria,
             TransaccionPort transaccionPort,
             Clock clock,
@@ -151,6 +155,8 @@ public class WhatsappUseCaseConfig {
         return new AtenderMensajeCliente(
                 mensajeRepository,
                 clienteRepository,
+                conversacionRepository,
+                comercioRepository,
                 mensajeria,
                 transaccionPort,
                 clock,

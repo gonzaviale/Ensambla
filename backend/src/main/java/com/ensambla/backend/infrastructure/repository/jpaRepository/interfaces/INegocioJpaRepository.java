@@ -27,4 +27,9 @@ public interface INegocioJpaRepository extends JpaRepository<NegocioEntity, UUID
 
     @Query("select n.id from NegocioEntity n order by n.creadoEn, n.id")
     List<UUID> findAllIds();
+
+    /** Los negocios con un número de WhatsApp vinculado: los comercios a los que un cliente puede pedirle. */
+    @Query("select n from NegocioEntity n where exists (select 1 from VinculoWhatsappEntity v where v.negocioId = n.id)"
+            + " order by n.nombre, n.id")
+    List<NegocioEntity> findConWhatsappVinculado();
 }
