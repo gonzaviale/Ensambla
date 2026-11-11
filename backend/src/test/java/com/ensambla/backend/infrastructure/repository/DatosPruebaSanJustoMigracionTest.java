@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DatosPruebaSanJustoMigracionTest {
 
     private static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
-            DockerImageName.parse("postgres:17-alpine"));
+            DockerImageName.parse("postgres:17-alpine")).withUrlParam("sslmode", "disable");
 
     private static JdbcTemplate jdbc;
 
