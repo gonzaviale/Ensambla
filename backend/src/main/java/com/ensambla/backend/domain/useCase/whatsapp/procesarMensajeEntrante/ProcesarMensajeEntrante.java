@@ -3,6 +3,8 @@ package com.ensambla.backend.domain.useCase.whatsapp.procesarMensajeEntrante;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.pedido.MensajeCliente;
+import com.ensambla.backend.domain.model.pedido.PoliticaPedidosWhatsapp;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.whatsapp.CodigoVinculacion;
 import com.ensambla.backend.domain.model.whatsapp.MensajeEntrante;
@@ -14,6 +16,7 @@ import com.ensambla.backend.domain.model.whatsapp.VinculoWhatsapp;
 import com.ensambla.backend.domain.port.MensajeriaWhatsappPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.pedido.MensajeClienteRepository;
 import com.ensambla.backend.domain.repository.whatsapp.CodigoVinculacionRepository;
 import com.ensambla.backend.domain.repository.whatsapp.MensajeWhatsappRepository;
 import com.ensambla.backend.domain.repository.whatsapp.VinculoWhatsappRepository;
@@ -28,8 +31,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Atiende al instante lo que llega por WhatsApp: vincula el número si trae un código, rechaza a quien no está
- * vinculado y deja el resto en la cola para que Sami lo atienda sin hacer esperar al proveedor.
+ * Atiende al instante lo que llega por WhatsApp: vincula el número si trae un código, deja en la cola de su negocio
+ * lo que escribe un comercio vinculado, en la cola de clientes lo que escribe un cliente de la lista de prueba y
+ * rechaza al resto, para que Sami atienda sin hacer esperar al proveedor.
  */
 @RequiredArgsConstructor
 public class ProcesarMensajeEntrante {
@@ -41,7 +45,9 @@ public class ProcesarMensajeEntrante {
     private final CodigoVinculacionRepository codigoRepository;
     private final VinculoWhatsappRepository vinculoRepository;
     private final MensajeWhatsappRepository mensajeRepository;
+    private final MensajeClienteRepository mensajeClienteRepository;
     private final VinculacionWhatsappService vinculacionService;
+    private final PoliticaPedidosWhatsapp politicaPedidos;
     private final MensajeriaWhatsappPort mensajeria;
     private final TransaccionPort transaccionPort;
     private final Clock clock;
@@ -53,11 +59,22 @@ public class ProcesarMensajeEntrante {
             return;
         }
         Optional<VinculoWhatsapp> vinculo = vinculoRepository.findByTelefono(entrante.telefono());
-        if (vinculo.isEmpty()) {
+        if (vinculo.isPresent()) {
+            transaccionPort.ejecutar(() -> encolar(vinculo.get(), entrante));
+        } else if (politicaPedidos.permite(entrante.telefono())) {
+            recibirDeCliente(entrante);
+        } else {
             mensajeria.enviarTexto(entrante.telefono(), TextosWhatsapp.NO_VINCULADO);
+        }
+    }
+
+    /** Un cliente de la lista de prueba: lo que escribe espera en su propia cola, porque todavía no es de ningún negocio. */
+    private void recibirDeCliente(MensajeEntrante entrante) {
+        if (entrante.tipo() != TipoMensajeWhatsapp.TEXTO) {
+            mensajeria.enviarTexto(entrante.telefono(), TextosWhatsapp.CLIENTE_SOLO_TEXTO);
             return;
         }
-        transaccionPort.ejecutar(() -> encolar(vinculo.get(), entrante));
+        transaccionPort.ejecutar(() -> encolarDeCliente(entrante));
     }
 
     private void vincular(MensajeEntrante entrante, String textoCodigo) {
@@ -89,6 +106,13 @@ public class ProcesarMensajeEntrante {
             return;
         }
         mensajeRepository.save(MensajeWhatsapp.recibido(vinculo.getNegocioId(), entrante));
+    }
+
+    private void encolarDeCliente(MensajeEntrante entrante) {
+        if (mensajeClienteRepository.existsByIdExterno(entrante.idExterno())) {
+            return;
+        }
+        mensajeClienteRepository.save(MensajeCliente.recibido(entrante));
     }
 
     private static Optional<String> codigoDeVinculacion(MensajeEntrante entrante) {

@@ -51,6 +51,21 @@ Después muestra el resumen («Para *Gastos* entendí: 1) Concepto: harina · Mo
 
 Si falla la IA el mensaje queda `FALLIDO` y la persona lo vuelve a mandar: no hay reintentos automáticos para no cobrar dos veces.
 
+### 3. Pedidos de clientes (ENS-273, en construcción)
+
+Además de los comercios vinculados, el webhook reconoce a los **clientes** de la lista de prueba
+(`ENSAMBLA_WHATSAPP_PEDIDOS_CLIENTES_PERMITIDOS`, números con código de país separados por coma). El remitente se decide así:
+
+| Quién escribe | Qué pasa |
+|---|---|
+| Un comercio vinculado | Su mensaje va a `whatsapp_mensaje` y lo atiende Sami como en el punto 2. |
+| Un cliente de la lista | Su texto va a `mensaje_cliente`; una foto o una nota de voz recibe «sólo entiendo texto». |
+| Cualquier otro número | Respuesta fija de «no vinculado»; no se guarda nada ni se generan pedidos. |
+
+`AtencionWhatsappWorker` vacía las dos colas, cada una con su tope de 20 mensajes por vuelta, y una cola que falla no frena a la
+otra. Por ahora Sami solo registra al cliente y lo saluda; el pedido (comercio por nombre, lista de compra y orden) se suma en las
+fases siguientes. La API de prueba no tiene ventana de 24 h ni plantillas: eso aparece recién al migrar a la API oficial.
+
 ## Webhook
 
 Evolution entrega los mensajes a `POST /api/whatsapp/webhook`. Ese endpoint es público y sin CSRF, así que se protege con el

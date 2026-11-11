@@ -33,6 +33,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -224,7 +225,8 @@ class WhatsappControllersTest {
     private MockMvc webhook(String secreto) {
         var properties = new WhatsappProperties("simulado", "", secreto,
                 new WhatsappProperties.Evolution("", "", "", Duration.ofSeconds(1)),
-                new WhatsappProperties.Atencion(false, Duration.ofSeconds(1), Duration.ofMinutes(2), 0.6));
+                new WhatsappProperties.Atencion(false, Duration.ofSeconds(1), Duration.ofMinutes(2), 0.6),
+                new WhatsappProperties.Pedidos(List.of()));
         var controller = new WhatsappWebhookController(new EvolutionWebhookParser(Clock.systemUTC()), procesar,
                 properties);
         return MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new GlobalExceptionHandler()).build();

@@ -10,6 +10,7 @@ import org.springframework.web.client.RestClient;
 
 import java.time.Clock;
 import java.util.Base64;
+import java.util.List;
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -162,7 +163,8 @@ class MensajeriaWhatsappTest {
     void configShouldBuildBothProviders() {
         WhatsappProperties properties = new WhatsappProperties("evolution", "5491100000000", "secreto",
                 new WhatsappProperties.Evolution("http://localhost:8081", "clave", "ensambla", Duration.ofSeconds(5)),
-                new WhatsappProperties.Atencion(false, Duration.ofSeconds(1), Duration.ofMinutes(2), 0.6));
+                new WhatsappProperties.Atencion(false, Duration.ofSeconds(1), Duration.ofMinutes(2), 0.6),
+                new WhatsappProperties.Pedidos(List.of()));
         WhatsappConfig config = new WhatsappConfig();
 
         assertThat(config.mensajeriaWhatsappSimulada(properties)).isInstanceOf(MensajeriaWhatsappSimulada.class);

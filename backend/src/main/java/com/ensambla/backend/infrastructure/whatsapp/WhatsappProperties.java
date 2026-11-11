@@ -4,6 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * Configuración de la carga por WhatsApp ({@code ensambla.whatsapp.*}).
@@ -14,6 +15,7 @@ import java.time.Duration;
  *                       rechaza todo
  * @param evolution      conexión con Evolution API
  * @param atencion       cómo atiende Sami los mensajes recibidos
+ * @param pedidos        quiénes pueden pedirle a Sami como clientes
  */
 @ConfigurationProperties(prefix = "ensambla.whatsapp")
 public record WhatsappProperties(
@@ -21,8 +23,19 @@ public record WhatsappProperties(
         @DefaultValue("") String numeroBot,
         @DefaultValue("") String webhookSecreto,
         @DefaultValue Evolution evolution,
-        @DefaultValue Atencion atencion
+        @DefaultValue Atencion atencion,
+        @DefaultValue Pedidos pedidos
 ) {
+
+    /**
+     * @param clientesPermitidos teléfonos de los clientes que pueden pedirle a Sami, separados por coma. Con la API de
+     *                           prueba de WhatsApp es una lista cerrada: un número que no está acá ni vinculado como
+     *                           comercio no genera pedidos. Se aceptan con «+», espacios o guiones.
+     */
+    public record Pedidos(
+            @DefaultValue List<String> clientesPermitidos
+    ) {
+    }
 
     /**
      * @param url       base de Evolution API, por ejemplo {@code http://localhost:8081}
