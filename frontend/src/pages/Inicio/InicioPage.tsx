@@ -1,3 +1,4 @@
+import { PanelDelNegocio } from '@/components/inicio/PanelDelNegocio';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { FichasParaEmpezar } from '@/components/sistema/FichasParaEmpezar';
 import { Icon } from '@/components/sistema/Icon';
@@ -5,42 +6,54 @@ import { MetricasDelInicio } from '@/components/sistema/MetricasDelInicio';
 import { PageFooter } from '@/components/sistema/PageFooter';
 import { varsDeColor } from '@/components/sistema/colores';
 import { CATALOG, TEMPLATES } from '@/lib/sistema/catalogo';
+import { sistemaDelPanel } from '@/lib/sistema/panelDelNegocio';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
 import type { ClavePlantilla, Color } from '@/lib/sistema/tipos';
-import { useCuadernoElegido } from '@/hooks/reportes/useCuadernoElegido';
 import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
 import { useAccionesDelTutorial } from '@/hooks/tutorial/useAccionesDelTutorial';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
 const CLAVES = Object.keys(TEMPLATES) as ClavePlantilla[];
 
-// Inicio. Quien ya anota ventas o productos ve primero su tablero (el saludo, lo que viene vendiendo y lo que conviene
-// mirar) y sus cuadernos a mano; las maneras de empezar algo nuevo quedan más abajo. Quien recién llega ve el saludo y
-// las tres fichas para empezar, como siempre. Fondo blanco; el color va lleno en cada ficha, con íconos blancos.
+// Inicio: quien ya tiene un cuaderno ve una bienvenida corta con las maneras de empezar y, abajo, sus números (lo que
+// vende, el aviso económico, las sugerencias de Sami y el flujo de caja); quien recién llega ve la bienvenida grande. Después
+// las otras herramientas y las plantillas (los cuadernos guardados tienen su propia pantalla, «Mis cuadernos»).
+// Fondo blanco; el color va lleno en cada ficha, con íconos blancos.
 export function InicioPage() {
   const nombre = useNombre();
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const tutorial = useAccionesDelTutorial();
-  const navegacion = useNavegacion();
-  const diario = useCuadernoElegido().cuaderno !== undefined;
+  // Quien ya tiene un cuaderno ve el panel de su negocio: la bienvenida pasa a una franja corta (el h1 es el mismo)
+  // y las formas de empezar siguen a mano. Quien recién empieza ve la bienvenida grande de siempre.
+  const hayPanel = useSistemaStore((estado) => sistemaDelPanel(estado.sistemas) !== null);
   return (
     <>
       <CabeceraComun />
       <main id="main" tabIndex={-1} className="home inicio reveal">
-        {diario ? (
+        {hayPanel && (
+          <section className="inicio-bienvenida" aria-label="Empezar algo nuevo">
+            <div className="inicio-bienvenida-texto">
+              <p className="inicio-hola">Hola, {nombre}.</p>
+              <h1>¿En qué puedo ayudarte hoy?</h1>
+              <button type="button" className="inicio-guia-chica" onClick={tutorial.empezar}>
+                ¿Primera vez? Mostrarme cómo empezar
+              </button>
+            </div>
+            <div className="inicio-bienvenida-acciones">
+              <FichasParaEmpezar guia compacto />
+              <Atajos compactos />
+            </div>
+          </section>
+        )}
+
+        {hayPanel && (
           <>
-            <MetricasDelInicio nombre={nombre} onPrimeraVez={tutorial.empezar} />
-            <section className="inicio-portada inicio-portada-compacta">
-              <div className="inicio-saludo">
-                <h2>¿En qué puedo ayudarte hoy?</h2>
-                <p className="inicio-bajada">
-                  Para arrancar algo nuevo: tocá una ficha. Lo que armes, después lo podés cambiar.
-                </p>
-              </div>
-              <FichasParaEmpezar guia />
-            </section>
+            <MetricasDelInicio />
+            <PanelDelNegocio />
           </>
-        ) : (
+        )}
+
+        {!hayPanel && (
           <section className="inicio-portada">
             <div className="inicio-saludo">
               <p className="inicio-hola">Hola, {nombre}.</p>
@@ -52,7 +65,7 @@ export function InicioPage() {
                 <span className="inicio-guia-icono">
                   <Icon name="help" />
                 </span>
-                ¿Primera vez?
+                ¿Primera vez? Mostrarme cómo empezar
               </button>
             </div>
 
@@ -60,29 +73,7 @@ export function InicioPage() {
           </section>
         )}
 
-        <section className="inicio-atajos" aria-label="Más para tu negocio">
-          <Atajo
-            color="coral"
-            icono="camera"
-            titulo="Cargar desde una foto"
-            texto="Sacale una foto a tu cuaderno o subí una captura. Siempre revisás antes de guardar."
-            onClick={() =>
-              abrirModal({
-                tipo: 'importar',
-                sistemaId: null,
-                bloqueId: null,
-                contexto: 'registros',
-              })
-            }
-          />
-          <Atajo
-            color="petrol"
-            icono="chart"
-            titulo="Ver mi zona"
-            texto="Mirá cuánto se cobra cerca y qué se vende. Nunca se sabe quién es quién."
-            onClick={() => void navegacion.irAZona()}
-          />
-        </section>
+        {!hayPanel && <Atajos />}
 
         <section className="inicio-bloque">
           <Titulo
@@ -163,6 +154,41 @@ export function InicioPage() {
         <PageFooter />
       </main>
     </>
+  );
+}
+
+// «Cargar desde una foto» y «Ver mi zona». Con la bienvenida grande son dos atajos con su explicación; en la franja
+// compacta de quien ya tiene datos son dos botones chicos, debajo de las formas de empezar.
+function Atajos({ compactos = false }: { compactos?: boolean }) {
+  const abrirModal = useSistemaStore((estado) => estado.abrirModal);
+  const navegacion = useNavegacion();
+  return (
+    <section
+      className={compactos ? 'inicio-atajos compactos' : 'inicio-atajos'}
+      aria-label="Más para tu negocio"
+    >
+      <Atajo
+        color="coral"
+        icono="camera"
+        titulo="Cargar desde una foto"
+        texto="Sacale una foto a tu cuaderno o subí una captura. Siempre revisás antes de guardar."
+        onClick={() =>
+          abrirModal({
+            tipo: 'importar',
+            sistemaId: null,
+            bloqueId: null,
+            contexto: 'registros',
+          })
+        }
+      />
+      <Atajo
+        color="petrol"
+        icono="chart"
+        titulo="Ver mi zona"
+        texto="Mirá cuánto se cobra cerca y qué se vende. Nunca se sabe quién es quién."
+        onClick={() => void navegacion.irAZona()}
+      />
+    </section>
   );
 }
 

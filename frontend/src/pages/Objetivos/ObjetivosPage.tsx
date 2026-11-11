@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import { PlusIcon } from '@phosphor-icons/react';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
+import { useEliminarObjetivo } from '@/hooks/objetivos/mutations';
+import { useObjetivos } from '@/hooks/objetivos/queries';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { formatoPesos, type Objetivo } from '@/lib/objetivos';
 import { conResultadoReal, negocioDe } from '@/lib/objetivosNegocio';
 import { hoy } from '@/lib/sistema/formato';
-import { useObjetivosStore } from '@/stores/objetivosStore';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { DefinirObjetivo } from './DefinirObjetivo';
 import { NegocioHoy } from './NegocioHoy';
@@ -16,8 +17,8 @@ import { Encabezado } from './piezas';
 export function ObjetivosPage() {
   useTituloPagina('Objetivos');
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
-  const objetivos = useObjetivosStore((estado) => estado.objetivos);
-  const eliminar = useObjetivosStore((estado) => estado.eliminar);
+  const { objetivos, cargando } = useObjetivos();
+  const eliminar = useEliminarObjetivo().mutate;
   const sistemas = useSistemaStore((estado) => estado.sistemas);
   const [definiendo, setDefiniendo] = useState(false);
   const negocio = useMemo(() => negocioDe(sistemas, hoy()), [sistemas]);
@@ -35,7 +36,11 @@ export function ObjetivosPage() {
     <>
       <CabeceraComun active="goals" />
       <main id="main" tabIndex={-1} className="page-wrap objetivos-page reveal">
-        {objetivos.length === 0 ? (
+        {cargando ? (
+          <p role="status" className="objetivos-cargando">
+            Cargando tus objetivos…
+          </p>
+        ) : objetivos.length === 0 ? (
           <>
             <Encabezado
               etiqueta="Objetivos"

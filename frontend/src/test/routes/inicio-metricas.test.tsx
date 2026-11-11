@@ -95,9 +95,7 @@ describe('inicio: cómo te va', () => {
     expect(
       await within(seccion).findByRole('heading', { name: 'Esta semana vendiste' }, ESPERA),
     ).toBeVisible();
-    expect(
-      within(seccion).getByRole('heading', { level: 1, name: 'Hola, Ana Pérez.' }),
-    ).toBeVisible();
+    expect(within(seccion).queryByRole('heading', { level: 1 })).toBeNull();
     expect(within(seccion).getByText('Almacén de barrio')).toBeVisible();
     expect(
       within(seccion).getByRole('list', { name: 'Ventas de los últimos 7 días' }),
@@ -188,10 +186,12 @@ describe('inicio: cómo te va', () => {
     expect(within(seccion).queryByRole('heading', { name: /vendiste/ })).toBeNull();
   });
 
-  it('«Primera vez» queda arriba, junto al saludo, y ya no hay acceso a «Mis métricas»', async () => {
+  it('el saludo y «Primera vez» van en la bienvenida compacta, no en el tablero, y no hay acceso a «Mis métricas»', async () => {
     await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
     const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
-    expect(within(seccion).getByRole('button', { name: '¿Primera vez?' })).toBeVisible();
+    expect(within(seccion).queryByRole('button', { name: /Primera vez/ })).toBeNull();
+    const bienvenida = screen.getByRole('region', { name: 'Empezar algo nuevo' });
+    expect(within(bienvenida).getByRole('button', { name: /Primera vez/ })).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Mis métricas' })).toBeNull();
   });
 

@@ -1,7 +1,8 @@
 import { useId, useState, type FormEvent } from 'react';
 import { ChartLineUpIcon } from '@phosphor-icons/react';
-import { EJEMPLOS_DE_OBJETIVO, type Objetivo } from '@/lib/objetivos';
-import { useObjetivosStore } from '@/stores/objetivosStore';
+import { leerErrorServidor } from '@/hooks/errores';
+import { useDefinirObjetivo } from '@/hooks/objetivos/mutations';
+import { EJEMPLOS_DE_OBJETIVO, objetivoDesdeServidor, type Objetivo } from '@/lib/objetivos';
 
 type Props = {
   onDefinido: (objetivo: Objetivo) => void;
@@ -10,15 +11,20 @@ type Props = {
 
 // «¿Qué querés lograr?»: la persona lo escribe con sus palabras y Sami lo convierte en un objetivo medible.
 export function DefinirObjetivo({ onDefinido, onCancelar }: Props) {
-  const definir = useObjetivosStore((estado) => estado.definir);
+  const definir = useDefinirObjetivo();
   const [texto, setTexto] = useState('');
   const idCampo = useId();
+  const error = leerErrorServidor(definir.error);
 
   const enviar = (evento: FormEvent) => {
     evento.preventDefault();
-    if (!texto.trim()) return;
-    onDefinido(definir(texto));
-    setTexto('');
+    if (!texto.trim() || definir.isPending) return;
+    definir.mutate(texto, {
+      onSuccess: (guardado) => {
+        setTexto('');
+        onDefinido(objetivoDesdeServidor(guardado));
+      },
+    });
   };
 
   return (
@@ -48,13 +54,22 @@ export function DefinirObjetivo({ onDefinido, onCancelar }: Props) {
             ))}
           </div>
         </div>
+        {error && (
+          <p className="input-hint" role="alert">
+            {error.campos.texto ?? error.campos.meta ?? error.mensaje}
+          </p>
+        )}
         <div className="objetivos-formulario-acciones">
           {onCancelar && (
             <button type="button" className="btn secondary" onClick={onCancelar}>
               Cancelar
             </button>
           )}
-          <button type="submit" className="btn primary" disabled={!texto.trim()}>
+          <button
+            type="submit"
+            className="btn primary"
+            disabled={!texto.trim() || definir.isPending}
+          >
             Definir objetivo
           </button>
         </div>

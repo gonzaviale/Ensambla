@@ -22,16 +22,10 @@ import {
 import type { AvisoEconomico } from '@/types/avisoEconomico';
 import type { ResumenInicio } from '@/types/resumenInicio';
 
-// El tablero del inicio para quien ya usa Ensambla: el saludo, lo que viene vendiendo (lo primero que se mira), el
-// aviso económico, lo que más sale, lo que se acaba y lo que está quieto. Nunca muestra ceros de relleno: si
-// no hay datos, lo dice.
-export function MetricasDelInicio({
-  nombre,
-  onPrimeraVez,
-}: {
-  nombre: string;
-  onPrimeraVez: () => void;
-}) {
+// El tablero del inicio para quien ya usa Ensambla: lo que viene vendiendo (lo primero que se mira) y el aviso
+// económico, de un cuaderno a elegir. La página ya saluda arriba, en la bienvenida compacta. Nunca muestra ceros de
+// relleno: si no hay datos, lo dice.
+export function MetricasDelInicio() {
   const { cuadernos, cuaderno, elegir } = useCuadernoElegido();
   const { resumen, fallo, reintentar } = useResumenInicio(cuaderno?.id);
   if (!cuaderno) return null;
@@ -40,17 +34,10 @@ export function MetricasDelInicio({
     <section className="tablero" aria-label="Cómo te va">
       <div className="tablero-cabecera">
         <div className="tablero-saludo">
-          <h1>Hola, {nombre}.</h1>
           <p className="tablero-cuaderno">
             <span>Así viene</span>
             <SelectorDeCuaderno cuadernos={cuadernos} cuaderno={cuaderno} onCambio={elegir} />
           </p>
-        </div>
-        <div className="tablero-acciones">
-          <button type="button" className="tablero-primera-vez" onClick={onPrimeraVez}>
-            <Icon name="help" />
-            ¿Primera vez?
-          </button>
         </div>
       </div>
 

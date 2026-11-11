@@ -1,6 +1,7 @@
 import { ArrowLeftIcon, ClipboardTextIcon } from '@phosphor-icons/react';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Sami } from '@/components/sistema/Sami';
+import { useObjetivos } from '@/hooks/objetivos/queries';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import {
@@ -14,16 +15,14 @@ import {
   variacion,
   type Objetivo,
 } from '@/lib/objetivos';
-import { useObjetivosStore } from '@/stores/objetivosStore';
 import { Encabezado, Metrica } from './piezas';
 
 // El plan de acción y el seguimiento de un objetivo: cómo se llega y cómo se va.
 export function ObjetivoDetallePage({ objetivoId }: { objetivoId: string }) {
-  const objetivo = useObjetivosStore((estado) =>
-    estado.objetivos.find((item) => item.id === objetivoId),
-  );
+  const { objetivos, cargando } = useObjetivos();
+  const objetivo = objetivos.find((item) => item.id === objetivoId);
   const navegacion = useNavegacion();
-  useTituloPagina(objetivo ? 'Plan de acción' : 'Objetivo no encontrado');
+  useTituloPagina(objetivo || cargando ? 'Plan de acción' : 'Objetivo no encontrado');
 
   return (
     <>
@@ -41,6 +40,10 @@ export function ObjetivoDetallePage({ objetivoId }: { objetivoId: string }) {
             objetivo={objetivo}
             onProbar={() => void navegacion.irASamiTeEnsena('escenario', objetivo.id)}
           />
+        ) : cargando ? (
+          <p role="status" className="objetivos-cargando">
+            Cargando el objetivo…
+          </p>
         ) : (
           <section className="objetivos-vacio">
             <h1>No encontramos ese objetivo</h1>

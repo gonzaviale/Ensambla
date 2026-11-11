@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ID_OBJETIVO_DE_EJEMPLO,
   META_POR_DEFECTO,
   RESULTADO_ACTUAL,
   aportes,
@@ -9,6 +10,7 @@ import {
   metaDesdeTexto,
   nuevoObjetivo,
   objetivoDeEjemplo,
+  objetivoDesdeServidor,
   resultadoProyectado,
   valoresRecomendados,
   variacion,
@@ -31,6 +33,29 @@ describe('objetivos', () => {
     expect(objetivo.meta).toBe(400_000);
     expect(objetivo.historial).toEqual([{ semana: 'Hoy', valor: RESULTADO_ACTUAL }]);
     expect(variacion(objetivo)).toBe(0);
+  });
+
+  it('un objetivo guardado en el servidor arranca con el resultado de hoy, como uno nuevo', () => {
+    const objetivo = objetivoDesdeServidor({ id: 'abc', texto: 'Quiero crecer', meta: 300_000 });
+
+    expect(objetivo).toEqual({
+      id: 'abc',
+      texto: 'Quiero crecer',
+      meta: 300_000,
+      historial: [{ semana: 'Hoy', valor: RESULTADO_ACTUAL }],
+    });
+  });
+
+  it('el objetivo de ejemplo del servidor trae sus seis semanas de historia', () => {
+    const ejemplo = objetivoDeEjemplo();
+
+    const objetivo = objetivoDesdeServidor({
+      id: ID_OBJETIVO_DE_EJEMPLO,
+      texto: ejemplo.texto,
+      meta: ejemplo.meta,
+    });
+
+    expect(objetivo).toEqual(ejemplo);
   });
 
   it('mide el avance y lo que falta', () => {

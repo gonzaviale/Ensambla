@@ -3,6 +3,7 @@ import { guardarBorradorSesion } from '@/lib/borradorSesion';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { eliminarSistema, guardarSistema } from '@/api/sistemas';
+import { objetivosKeys } from '@/hooks/objetivos/queries';
 import { sistemasQuery } from '@/hooks/sistemas/queries';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
@@ -48,6 +49,7 @@ export function useSincronizarSistemas() {
           )
           .map((sistema) => sistema.id);
         marcarGuardados(sinCambios, eliminados);
+        void queryClient.invalidateQueries({ queryKey: objetivosKeys.pasos });
         avisoDeErrorDado = false;
       } catch (error) {
         guardarBorradorSesion(useSistemaStore.getState());
@@ -98,7 +100,10 @@ export function useSincronizarSistemas() {
       if (pendientes.length > 0 || eliminados.length > 0) return;
       void queryClient
         .fetchQuery({ ...sistemasQuery(), staleTime: 0 })
-        .then((sistemas) => useSistemaStore.getState().actualizarDesdeServidor(sistemas))
+        .then((sistemas) => {
+          useSistemaStore.getState().actualizarDesdeServidor(sistemas);
+          void queryClient.invalidateQueries({ queryKey: objetivosKeys.pasos });
+        })
         .catch(() => undefined);
     };
     document.addEventListener('visibilitychange', alVolver);
