@@ -51,7 +51,8 @@ public class ExplorarDondeAbrir {
             List<String> motivos = motivosDeDescarte(zona, distancia, request);
             if (!motivos.isEmpty()) {
                 descartadas.add(new ExplorarDondeAbrirResponse.ZonaDescartada(
-                        zona.id(), zona.nombre(), distancia, motivos));
+                        zona.id(), zona.nombre(), zona.localidad(), jurisdiccion(zona), zona.latitud(),
+                        zona.longitud(), distancia, motivos));
             } else {
                 ranking.add(puntuar(zona, distancia, request, rangos));
             }

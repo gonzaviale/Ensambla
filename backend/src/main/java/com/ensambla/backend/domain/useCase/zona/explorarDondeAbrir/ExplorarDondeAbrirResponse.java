@@ -41,6 +41,8 @@ public record ExplorarDondeAbrirResponse(
                          DatosZonaDondeAbrir.Fuente fuente, LocalDate observadaEn) {
     }
 
-    public record ZonaDescartada(ZonaId id, String nombre, BigDecimal distanciaKm, List<String> motivos) {
+    public record ZonaDescartada(ZonaId id, String nombre, String localidad, String jurisdiccion,
+                                 BigDecimal latitud, BigDecimal longitud, BigDecimal distanciaKm,
+                                 List<String> motivos) {
     }
 }

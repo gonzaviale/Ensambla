@@ -43,6 +43,8 @@ public record DondeAbrirWebResponse(
     public record FuenteWebResponse(String codigo, String nombre, String tipo, String url, String licencia) {
     }
 
-    public record ZonaDescartadaWebResponse(String id, String nombre, BigDecimal distanciaKm, List<String> motivos) {
+    public record ZonaDescartadaWebResponse(String id, String nombre, String localidad, String jurisdiccion,
+                                            BigDecimal latitud, BigDecimal longitud, BigDecimal distanciaKm,
+                                            List<String> motivos) {
     }
 }

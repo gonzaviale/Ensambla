@@ -50,7 +50,8 @@ public class DondeAbrirPresentationMapper {
                         negocio.direccion(), negocio.latitud(), negocio.longitud(), id(negocio.zonaId())),
                 response.evaluadas(), response.ranking().stream().map(this::zona).toList(),
                 response.descartadas().stream().map(descartada -> new DondeAbrirWebResponse.ZonaDescartadaWebResponse(
-                        id(descartada.id()), descartada.nombre(), descartada.distanciaKm(), descartada.motivos()))
+                        id(descartada.id()), descartada.nombre(), descartada.localidad(), descartada.jurisdiccion(),
+                        descartada.latitud(), descartada.longitud(), descartada.distanciaKm(), descartada.motivos()))
                         .toList(), response.avisos());
     }
 

@@ -73,7 +73,8 @@ class DondeAbrirPresentationMapperTest {
                 new ExplorarDondeAbrirResponse.NegocioActual(
                         "Negocio", RubroNegocio.ALMACEN, null, null, null, null),
                 2, List.of(zona), List.of(new ExplorarDondeAbrirResponse.ZonaDescartada(
-                        zonaId, "Boedo", BigDecimal.TEN, List.of("Lejos"))), List.of("Aviso"));
+                        zonaId, "Boedo", "CABA", "CABA", new BigDecimal("-34.6"),
+                        new BigDecimal("-58.4"), BigDecimal.TEN, List.of("Lejos"))), List.of("Aviso"));
 
         var resultado = mapper.toResponse(response);
 
