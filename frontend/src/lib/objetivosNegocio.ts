@@ -1,9 +1,9 @@
-import { ultimoValor, type Objetivo } from './objetivos';
 import { allBlocks } from './sistema/core';
 import type { Sistema } from './sistema/tipos';
 
 // Cómo viene el negocio, con lo que la persona anotó en sus cuadernos: los últimos 30 días, dicho en pesos y sin
-// términos contables.
+// términos contables. La pantalla usa lo que calcula el servidor (GET /objetivos/negocio); esta cuenta es la que
+// replica el modo de demostración.
 
 export type Negocio = {
   hayVentas: boolean;
@@ -24,6 +24,14 @@ const enLosUltimos30 = (hoy: string, fecha: string) => {
   );
   return dias >= 0 && dias < 30;
 };
+
+/** La categoría de la compra de mercadería, escrita como venga («Mercadería», «mercaderia»…). */
+const esMercaderia = (categoria: unknown) =>
+  String(categoria ?? '')
+    .trim()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase() === 'mercaderia';
 
 export function negocioDe(sistemas: Sistema[], hoy: string): Negocio {
   const negocio: Negocio = {
@@ -59,7 +67,7 @@ export function negocioDe(sistemas: Sistema[], hoy: string): Negocio {
       .filter((bloque) => bloque.type === 'expenses')
       .flatMap((bloque) => bloque.rows)) {
       if (
-        gasto.category === 'Mercadería' ||
+        esMercaderia(gasto.category) ||
         !gasto.date ||
         !enLosUltimos30(hoy, String(gasto.date))
       )
@@ -69,15 +77,4 @@ export function negocioDe(sistemas: Sistema[], hoy: string): Negocio {
   }
   negocio.queda = negocio.vendiste - negocio.mercaderia - negocio.gastos;
   return negocio;
-}
-
-/** Con ventas anotadas, «lo que ganás hoy» es lo que realmente queda; sin ellas se sigue la estimación de ejemplo. */
-export function conResultadoReal(objetivo: Objetivo, negocio: Negocio): Objetivo {
-  if (!negocio.hayVentas || negocio.queda <= 0 || objetivo.historial.length === 0) return objetivo;
-  const historial = objetivo.historial.map((punto, indice, todos) =>
-    indice === todos.length - 1 ? { ...punto, valor: Math.round(negocio.queda) } : punto,
-  );
-  return ultimoValor({ ...objetivo, historial }) === ultimoValor(objetivo)
-    ? objetivo
-    : { ...objetivo, historial };
 }

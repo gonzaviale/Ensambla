@@ -1,6 +1,6 @@
 import { useId, useMemo, useState } from 'react';
 import { CaretDownIcon, CheckCircleIcon, TrashIcon } from '@phosphor-icons/react';
-import { useZona } from '@/hooks/zona/queries';
+import { usePasosObjetivo } from '@/hooks/objetivos/queries';
 import {
   avance,
   brecha,
@@ -17,8 +17,6 @@ import {
   type Montos,
   type Sensibilidad,
 } from '@/lib/objetivosPasos';
-import { hoy } from '@/lib/sistema/formato';
-import { useSistemaStore } from '@/stores/sistemaStore';
 import { AjusteDePaso, Sensibilidades } from './AjusteDePaso';
 import { Progreso } from './piezas';
 
@@ -44,9 +42,8 @@ export function ObjetivoCard({ objetivo, abierta = false, onQuitar }: Props) {
   const [montos, setMontos] = useState<Montos>({});
   const [sensibilidad, setSensibilidad] = useState<Sensibilidad>('media');
   const idPanel = useId();
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
-  const zona = useZona();
-  const pasos = useMemo(() => pasosConcretos(sistemas, hoy(), zona), [sistemas, zona]);
+  const consultaPasos = usePasosObjetivo();
+  const pasos = useMemo(() => pasosConcretos(consultaPasos.data ?? []), [consultaPasos.data]);
   const escenario = escenarioDe(objetivo, pasos, elegidos, montos, sensibilidad);
   const cumplido = brecha(objetivo) === 0;
   const maximo = Math.max(1, ...objetivo.historial.map((punto) => punto.valor));
@@ -118,7 +115,28 @@ export function ObjetivoCard({ objetivo, abierta = false, onQuitar }: Props) {
           </button>
           {verPasos && (
             <div id={idPanel} className="objetivos-pasos">
-              {pasos.length === 0 ? (
+              {consultaPasos.isPending ? (
+                <p role="status" className="objetivos-pasos-vacio">
+                  Sami está calculando tus recomendaciones…
+                </p>
+              ) : consultaPasos.isError ? (
+                <div
+                  role="alert"
+                  aria-label="No pudimos calcular tus pasos"
+                  className="objetivos-pasos-error"
+                >
+                  <strong>No pudimos calcular tus pasos</strong>
+                  <p>Tu objetivo sigue guardado. Revisá tu conexión y volvé a intentar.</p>
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    disabled={consultaPasos.isFetching}
+                    onClick={() => void consultaPasos.refetch()}
+                  >
+                    {consultaPasos.isFetching ? 'Reintentando…' : 'Reintentar recomendaciones'}
+                  </button>
+                </div>
+              ) : pasos.length === 0 ? (
                 <p className="objetivos-pasos-vacio">
                   Cargá tus productos y sus costos en un cuaderno, y Sami te dice qué hacer con cada
                   uno para llegar.
@@ -133,9 +151,8 @@ export function ObjetivoCard({ objetivo, abierta = false, onQuitar }: Props) {
                       const monto = montoDe(paso, montos, sensibilidad);
                       const resultado = paso.calcular(monto, sensibilidad);
                       const zonaDelPaso = comparacionConZona(
-                        paso.producto,
                         resultado.precioNuevo,
-                        zona,
+                        paso.precioZona,
                       );
                       return (
                         <li key={paso.clave}>

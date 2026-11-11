@@ -1,16 +1,10 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { objetivoDeEjemplo } from '@/lib/objetivos';
-import { useObjetivosStore } from '@/stores/objetivosStore';
+import { describe, expect, it } from 'vitest';
 import { renderApp } from '@/test/renderApp';
-import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
+import { ESPERA, setupObjetivoDeEjemplo, setupUsuarioConSesion } from '@/test/testHelpers';
 
 describe('sami te enseña', () => {
-  beforeEach(() => {
-    act(() => useObjetivosStore.setState({ objetivos: [], ejemploSembrado: false }));
-  });
-
   it('se abre desde la navegación y empieza por la primera lección', async () => {
     setupUsuarioConSesion();
     const router = renderApp('/inicio');
@@ -32,6 +26,23 @@ describe('sami te enseña', () => {
     expect(
       await screen.findByRole('heading', { name: 'Cómo se forma tu resultado' }, ESPERA),
     ).toBeVisible();
+  });
+
+  it('muestra las lecciones como temas para elegir, sin números ni orden', async () => {
+    setupUsuarioConSesion();
+    renderApp('/sami-te-ensena?leccion=escenario');
+
+    await screen.findByRole('heading', { name: 'Probá un escenario' }, ESPERA);
+    const temas = within(screen.getByRole('navigation', { name: 'Lecciones' }));
+    expect(temas.getByRole('list').tagName).toBe('UL');
+    expect(temas.getAllByRole('button')).toHaveLength(5);
+    temas.getAllByRole('button').forEach((tema) => expect(tema.textContent).not.toMatch(/^\d/));
+    expect(temas.getByRole('button', { name: /Probá un escenario/ })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(screen.queryByText(/Lección \d de \d/)).toBeNull();
+    expect(document.querySelector('ol.ensenanza-pasos')).toBeNull();
   });
 
   it('recorre las lecciones desde el índice', async () => {
@@ -56,10 +67,7 @@ describe('sami te enseña', () => {
   });
 
   it('prueba un escenario con el objetivo y el resultado sigue a los controles', async () => {
-    setupUsuarioConSesion();
-    act(() =>
-      useObjetivosStore.setState({ objetivos: [objetivoDeEjemplo()], ejemploSembrado: true }),
-    );
+    setupObjetivoDeEjemplo(setupUsuarioConSesion().email);
     renderApp('/sami-te-ensena?leccion=escenario&objetivo=objetivo-ejemplo');
 
     await screen.findByRole('heading', { name: 'Probá un escenario' }, ESPERA);

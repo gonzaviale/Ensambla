@@ -1,7 +1,9 @@
 import { guardarSistema } from '@/api/sistemas';
 import { ApiError } from '@/api/apiError';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useRouter } from '@tanstack/react-router';
 import { useUsuario } from '@/hooks/auth/queries';
+import { objetivosKeys } from '@/hooks/objetivos/queries';
 import { usePreferencias } from '@/hooks/preferencias/queries';
 import type { SeccionDeCuenta } from '@/lib/cuenta';
 import type { LeccionDeSami } from '@/lib/ensenanza';
@@ -32,6 +34,7 @@ export const saludoParaAjustar = (nombreDelSistema: string) =>
 export function useNavegacion() {
   const navigate = useNavigate();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const nombre = useNombre();
 
   const limpiar = () => {
@@ -158,6 +161,7 @@ export function useNavegacion() {
         const guardado = await guardarSistema(sistema);
         useSistemaStore.getState().agregarSistema(guardado);
         useSistemaStore.getState().marcarGuardados([guardado.id], []);
+        void queryClient.invalidateQueries({ queryKey: objetivosKeys.pasos });
         await abrirSistema(guardado.id, modo, true);
       } catch (error) {
         useSistemaStore

@@ -36,11 +36,15 @@ palabra «laboratorio».
 
 ## Qué es real y qué es simulado
 
-Todavía no hay backend para objetivos ni para el cálculo económico.
+Los objetivos se guardan en el servidor; el cálculo económico todavía no tiene backend.
 
-- Los objetivos se guardan en el navegador (`localStorage`, clave `ensambla.objetivos.v1`), no por cuenta.
-- La demo cargada (`npm run dev:demo`) siembra una sola vez un objetivo de ejemplo con seis semanas de historia. Un objetivo
-  nuevo arranca con una sola semana y Sami avisa que todavía no hay con qué comparar.
+- Cada negocio ve solo sus objetivos (`GET`, `POST` y `DELETE /api/objetivos`). Se ven después de recargar y desde otro
+  navegador; un objetivo de otro negocio responde 404. El servidor guarda el texto y la meta (`objetivo`, migración V24).
+- El historial semanal no se guarda: lo arma el frontend. Un objetivo arranca con una sola semana y Sami avisa que todavía
+  no hay con qué comparar.
+- La demo cargada (`npm run dev:demo`) siembra en la API simulada un objetivo de ejemplo con seis semanas de historia (el
+  frontend reconoce su id `objetivo-ejemplo`). Vuelve a su lugar en cada arranque; los objetivos que la persona definió se
+  conservan.
 - Los importes salen de la base de ejemplo «Almacén de barrio» (resultado $180.000 por mes). Sami toma el primer importe
   que aparece en el texto del objetivo como meta; si no hay ninguno, usa $500.000.
 - Los caminos y el escenario escalan un camino de referencia (+12 % de ventas, −$80.000 de gastos, +3 puntos de margen para
@@ -48,4 +52,5 @@ Todavía no hay backend para objetivos ni para el cálculo económico.
   tres al valor recomendado el resultado llega a la meta. Es una estimación de demostración, y la pantalla lo dice.
 - «Cruce con Mi zona» sigue con datos ficticios, como antes.
 
-Código: `src/lib/objetivos.ts` (cuentas), `src/stores/objetivosStore.ts`, `src/pages/Objetivos/`, `src/pages/SamiEnsena/`.
+Código: `src/lib/objetivos.ts` (cuentas), `src/api/objetivos.ts` y `src/hooks/objetivos/` (servidor), `src/pages/Objetivos/`,
+`src/pages/SamiEnsena/`.

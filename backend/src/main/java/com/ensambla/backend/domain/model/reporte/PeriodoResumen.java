@@ -35,6 +35,21 @@ public record PeriodoResumen(LocalDate desde, LocalDate hasta) {
         return periodo;
     }
 
+    /**
+     * Los últimos {@code dias} días, contando hoy; sin {@code dias} son los {@value #DIAS_POR_DEFECTO}.
+     *
+     * @throws BusinessRuleException si {@code dias} no es positivo o supera {@value #MAXIMO_DIAS}
+     */
+    public static PeriodoResumen ultimosDias(Integer dias, LocalDate hoy) {
+        if (dias == null) {
+            return armar(null, hoy, hoy);
+        }
+        if (dias < 1) {
+            throw new BusinessRuleException("La cantidad de días tiene que ser mayor a cero");
+        }
+        return armar(hoy.minusDays(dias - 1L), hoy, hoy);
+    }
+
     /** Cuántos días cubre, contando el primero y el último. */
     public long dias() {
         return ChronoUnit.DAYS.between(desde, hasta) + 1;
