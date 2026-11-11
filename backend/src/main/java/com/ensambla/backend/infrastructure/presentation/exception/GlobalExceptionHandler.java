@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.presentation.exception;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.exception.CatalogoNoDisponibleException;
 import com.ensambla.backend.domain.exception.CampoInvalidoException;
 import com.ensambla.backend.domain.exception.CredencialesInvalidasException;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
@@ -35,6 +36,11 @@ import java.util.UUID;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(CatalogoNoDisponibleException.class)
+    public ResponseEntity<ErrorResponse> handleCatalogo(CatalogoNoDisponibleException e, HttpServletRequest request) {
+        return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage(), request, null);
+    }
 
     @ExceptionHandler(ServicioUbicacionException.class)
     public ResponseEntity<ErrorResponse> handleUbicacion(ServicioUbicacionException e, HttpServletRequest request) {

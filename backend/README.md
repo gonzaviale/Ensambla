@@ -139,6 +139,13 @@ y [modelo de datos](../docs/modelo-datos.md).
   y Swagger, además de `POST /api/pagos/mercadopago` con firma. Todo lo demás exige sesión
   (401 con el cuerpo `ErrorResponse` estándar).
 
+## Catálogos de productos por código
+
+`GET /api/catalogos/{fuente}/{codigo}` requiere sesión y consulta SEPA (incluido en el JAR) u Open Food Facts
+(API v3 con caché, plazo y límite compartido por instancia). No requiere claves ni archivos adicionales.
+El guardado de Inventario valida el código y los duplicados antes de persistir.
+Configuración, actualización del catálogo y pruebas: [escaneo de productos](../docs/escaneo-de-productos.md).
+
 ## Endpoints
 
 La búsqueda privada de direcciones y el catálogo de rubros se documentan en
