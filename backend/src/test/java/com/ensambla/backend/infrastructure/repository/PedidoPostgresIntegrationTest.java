@@ -5,7 +5,9 @@ import com.ensambla.backend.domain.model.pedido.ClienteWhatsapp;
 import com.ensambla.backend.domain.model.pedido.Comercio;
 import com.ensambla.backend.domain.model.pedido.ConversacionCliente;
 import com.ensambla.backend.domain.model.pedido.LineaDeCompra;
+import com.ensambla.backend.domain.model.pedido.EstadoOrdenCompra;
 import com.ensambla.backend.domain.model.pedido.MensajeCliente;
+import com.ensambla.backend.domain.model.pedido.OrdenCompra;
 import com.ensambla.backend.domain.model.pedido.ProductoEnStock;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
@@ -16,12 +18,14 @@ import com.ensambla.backend.domain.repository.pedido.ClienteWhatsappRepository;
 import com.ensambla.backend.domain.repository.pedido.ComercioRepository;
 import com.ensambla.backend.domain.repository.pedido.ConversacionClienteRepository;
 import com.ensambla.backend.domain.repository.pedido.MensajeClienteRepository;
+import com.ensambla.backend.domain.repository.pedido.OrdenCompraRepository;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
@@ -32,6 +36,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Lo que sólo se ve contra PostgreSQL: el esquema de V25 y V26, la cola con SKIP LOCKED y la consulta de comercios. */
 class PedidoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
@@ -51,6 +56,9 @@ class PedidoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @Autowired
     private ComercioRepository comercios;
+
+    @Autowired
+    private OrdenCompraRepository ordenes;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -136,13 +144,15 @@ class PedidoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         guardada.elegir(negocioId, AHORA.plusMinutes(1));
         ProductoEnStock yerba = new ProductoEnStock(RegistroId.nuevo(), "Yerba Playadito 1 kg",
                 new BigDecimal("3500.50"), new BigDecimal("10"));
-        guardada.armarLista(List.of(LineaDeCompra.de(yerba, new BigDecimal("2"), List.of())), AHORA.plusMinutes(2));
+        guardada.armarLista(List.of(LineaDeCompra.de(yerba, new BigDecimal("2"), List.of(yerba))), AHORA.plusMinutes(2));
+        guardada.ofrecerCambioDeMarca(1, AHORA.plusMinutes(2));
         conversaciones.save(guardada);
 
         ConversacionCliente actualizada = conversaciones.findByClienteId(cliente.getId()).orElseThrow();
         assertThat(actualizada.getId()).isEqualTo(guardada.getId());
         assertThat(actualizada.getNegocioId()).isEqualTo(negocioId);
         assertThat(actualizada.getOpciones()).isEmpty();
+        assertThat(actualizada.getRenglonACambiar()).isEqualTo(1);
         assertThat(actualizada.getLista()).singleElement().satisfies(linea -> {
             assertThat(linea.producto()).isEqualTo(yerba);
             assertThat(linea.cantidad()).isEqualByComparingTo("2");
@@ -150,6 +160,31 @@ class PedidoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         });
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM conversacion_cliente WHERE cliente_id = ?",
                 Integer.class, cliente.getId().valor())).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("Guarda la orden pendiente con sus ítems y total, y la base no acepta un rechazo con otro estado")
+    void orderShouldBeSavedWithItsItems() {
+        ClienteWhatsapp cliente = clientes.save(ClienteWhatsapp.nuevo(TELEFONO, AHORA));
+        ProductoEnStock yerba = new ProductoEnStock(RegistroId.nuevo(), "Yerba Playadito 1 kg",
+                new BigDecimal("3500"), new BigDecimal("10"));
+
+        OrdenCompra guardada = ordenes.save(OrdenCompra.pendiente(negocioId, cliente.getId(),
+                List.of(LineaDeCompra.de(yerba, new BigDecimal("2"), List.of())), AHORA));
+
+        assertThat(guardada.getId()).isNotNull();
+        assertThat(guardada.getEstado()).isEqualTo(EstadoOrdenCompra.PENDIENTE);
+        assertThat(guardada.getTotal()).isEqualByComparingTo("7000");
+        assertThat(guardada.getItems()).singleElement().satisfies(item -> {
+            assertThat(item.productoId()).isEqualTo(yerba.id());
+            assertThat(item.cantidad()).isEqualByComparingTo("2");
+        });
+        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM orden_compra WHERE id = ?", String.class,
+                guardada.getId().valor())).isEqualTo("PENDIENTE");
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                "UPDATE orden_compra SET motivo_rechazo = 'x' WHERE id = ?", guardada.getId().valor()))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        jdbcTemplate.update("DELETE FROM orden_compra WHERE id = ?", guardada.getId().valor());
     }
 
     @Test

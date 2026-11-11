@@ -6,16 +6,20 @@ import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pedido.ArmadoDeLista;
 import com.ensambla.backend.domain.model.pedido.BuscadorDeComercios;
+import com.ensambla.backend.domain.model.pedido.CambioDeMarca;
 import com.ensambla.backend.domain.model.pedido.BuscadorDeProductos;
 import com.ensambla.backend.domain.model.pedido.CatalogoDeProductos;
 import com.ensambla.backend.domain.model.pedido.ClienteWhatsapp;
 import com.ensambla.backend.domain.model.pedido.Comercio;
 import com.ensambla.backend.domain.model.pedido.ConsultaPedido;
 import com.ensambla.backend.domain.model.pedido.ConversacionCliente;
+import com.ensambla.backend.domain.model.pedido.LineaDeCompra;
 import com.ensambla.backend.domain.model.pedido.MensajeCliente;
+import com.ensambla.backend.domain.model.pedido.OrdenCompra;
 import com.ensambla.backend.domain.model.pedido.PedidoInterpretado;
 import com.ensambla.backend.domain.model.pedido.ProductoEnStock;
 import com.ensambla.backend.domain.model.pedido.TextosPedido;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.whatsapp.RespuestaChat;
 import com.ensambla.backend.domain.model.whatsapp.TextosWhatsapp;
 import com.ensambla.backend.domain.port.InterpretePedidoIaPort;
@@ -25,6 +29,7 @@ import com.ensambla.backend.domain.repository.pedido.ClienteWhatsappRepository;
 import com.ensambla.backend.domain.repository.pedido.ComercioRepository;
 import com.ensambla.backend.domain.repository.pedido.ConversacionClienteRepository;
 import com.ensambla.backend.domain.repository.pedido.MensajeClienteRepository;
+import com.ensambla.backend.domain.repository.pedido.OrdenCompraRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
@@ -36,12 +41,17 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Atiende, de a uno y en orden, lo que escribieron los clientes por WhatsApp. Registra al cliente la primera vez que
  * escribe y lo acompaña en la conversación: lo saluda, le pregunta a qué comercio quiere pedirle (por nombre, ofreciendo
- * seguir con el último) y, ya elegido el comercio, le arma la lista de compra con el stock del comercio. Tiene muchas
+ * seguir con el último) y, ya elegido el comercio, le arma la lista de compra con el stock del comercio, le deja cambiar
+ * de marca y, cuando confirma, crea la orden de compra para que el dueño la gestione. Tiene muchas
  * dependencias a propósito: ningún caso de uso llama a otro, así que los pasos viven acá y la lógica pura en el modelo.
  */
 @RequiredArgsConstructor
@@ -53,6 +63,7 @@ public class AtenderMensajeCliente {
     private final ClienteWhatsappRepository clienteRepository;
     private final ConversacionClienteRepository conversacionRepository;
     private final ComercioRepository comercioRepository;
+    private final OrdenCompraRepository ordenRepository;
     private final ProyectoRepository proyectoRepository;
     private final DatosDeProyectoService datosDeProyectoService;
     private final ControlPlanService controlPlanService;
@@ -206,7 +217,88 @@ public class AtenderMensajeCliente {
             conversacion.reiniciar(null, ahora);
             return TextosPedido.COMERCIO_NO_DISPONIBLE;
         }
+        RespuestaChat respuesta = RespuestaChat.de(texto);
+        if (conversacion.esperaCambioDeMarca()) {
+            return eligiendoMarca(conversacion, comercio.get(), texto, respuesta, ahora);
+        }
+        if (conversacion.tieneLista()) {
+            if (respuesta == RespuestaChat.SI) {
+                return confirmar(conversacion, comercio.get(), ahora);
+            }
+            if (respuesta == RespuestaChat.NO) {
+                conversacion.vaciarLista(ahora);
+                return TextosPedido.PEDIDO_DESCARTADO;
+            }
+            Optional<String> cambio = CambioDeMarca.pedido(texto);
+            if (cambio.isPresent()) {
+                return ofrecerMarcas(conversacion, cambio.get(), ahora);
+            }
+        } else if (respuesta == RespuestaChat.SI || respuesta == RespuestaChat.NO) {
+            conversacion.tocar(ahora);
+            return TextosPedido.NO_ENTENDI_PEDIDO;
+        }
         return armarLista(conversacion, comercio.get(), texto, ahora);
+    }
+
+    // --- cambiar de marca ---
+
+    /** «Cambiar 2» o «cambiar el aceite»: le muestra las otras marcas del renglón y espera que elija una. */
+    private String ofrecerMarcas(ConversacionCliente conversacion, String quiere, OffsetDateTime ahora) {
+        OptionalInt renglon = CambioDeMarca.renglon(quiere, conversacion.getLista());
+        if (renglon.isEmpty()) {
+            conversacion.tocar(ahora);
+            return TextosPedido.RENGLON_NO_ENCONTRADO;
+        }
+        LineaDeCompra linea = conversacion.getLista().get(renglon.getAsInt() - 1);
+        if (linea.alternativas().isEmpty()) {
+            conversacion.tocar(ahora);
+            return TextosPedido.sinAlternativas(linea.producto().nombre());
+        }
+        conversacion.ofrecerCambioDeMarca(renglon.getAsInt(), ahora);
+        return TextosPedido.alternativas(linea);
+    }
+
+    /** Elige otra marca con el número, la deja como estaba con NO, y cualquier otra cosa es un pedido nuevo. */
+    private String eligiendoMarca(ConversacionCliente conversacion, Comercio comercio, String texto,
+                                  RespuestaChat respuesta, OffsetDateTime ahora) {
+        if (respuesta == RespuestaChat.NO) {
+            conversacion.dejarMarca(ahora);
+            return TextosPedido.lista(comercio.nombre(), new ArmadoDeLista(conversacion.getLista(), List.of()));
+        }
+        if (respuesta != RespuestaChat.NUMERO) {
+            return armarLista(conversacion, comercio, texto, ahora);
+        }
+        List<ProductoEnStock> opciones = conversacion.renglonEnCambio().alternativas();
+        int numero = RespuestaChat.numero(texto);
+        if (numero < 1 || numero > opciones.size()) {
+            conversacion.tocar(ahora);
+            return TextosPedido.opcionDeMarcaInvalida(opciones.size());
+        }
+        conversacion.cambiarMarca(opciones.get(numero - 1), ahora);
+        return TextosPedido.lista(comercio.nombre(), new ArmadoDeLista(conversacion.getLista(), List.of()));
+    }
+
+    // --- confirmar ---
+
+    /**
+     * Con el SÍ del cliente la lista pasa a ser una orden pendiente para el dueño. Antes se comprueba que el precio y
+     * el stock sigan como los vio: si algo cambió no se manda nada y se le pide que arme la lista de nuevo.
+     */
+    private String confirmar(ConversacionCliente conversacion, Comercio comercio, OffsetDateTime ahora) {
+        Map<RegistroId, ProductoEnStock> catalogo = catalogoDe(comercio.id()).stream()
+                .collect(Collectors.toMap(ProductoEnStock::id, Function.identity()));
+        List<String> cambiados = conversacion.getLista().stream()
+                .filter(linea -> !linea.sigueVigente(catalogo))
+                .map(linea -> linea.producto().nombre())
+                .toList();
+        if (!cambiados.isEmpty()) {
+            conversacion.vaciarLista(ahora);
+            return TextosPedido.cambioDeStock(cambiados);
+        }
+        OrdenCompra orden = ordenRepository.save(OrdenCompra.pendiente(comercio.id(), conversacion.getClienteId(),
+                conversacion.getLista(), ahora));
+        conversacion.vaciarLista(ahora);
+        return TextosPedido.pedidoConfirmado(comercio.nombre(), orden.getTotal());
     }
 
     /**

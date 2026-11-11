@@ -1,7 +1,11 @@
 package com.ensambla.backend.domain.model.pedido;
 
+import com.ensambla.backend.domain.model.registro.RegistroId;
+
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * Un renglón de la lista de compra: un producto real del comercio con su cantidad y su precio. Nada sale de otro lado
@@ -28,6 +32,24 @@ public record LineaDeCompra(ProductoEnStock producto, BigDecimal cantidad, boole
     /** El mismo producto pedido dos veces es un solo renglón con las cantidades sumadas. */
     public LineaDeCompra sumar(LineaDeCompra otra) {
         return conStock(producto, cantidad.add(otra.cantidad), alternativas);
+    }
+
+    /**
+     * El mismo renglón con otra marca: la misma cantidad (con el tope del stock de la nueva) y, entre las alternativas,
+     * la que se dejó, así puede volver atrás.
+     */
+    public LineaDeCompra cambiarPor(ProductoEnStock nuevo) {
+        List<ProductoEnStock> otras = Stream.concat(
+                alternativas.stream().filter(alternativa -> !alternativa.id().equals(nuevo.id())),
+                Stream.of(producto)).toList();
+        return conStock(nuevo, cantidad, otras);
+    }
+
+    /** Si el producto sigue en el catálogo con el mismo precio y con stock para la cantidad que se confirma. */
+    public boolean sigueVigente(Map<RegistroId, ProductoEnStock> catalogo) {
+        ProductoEnStock actual = catalogo.get(producto.id());
+        return actual != null && actual.precio().compareTo(producto.precio()) == 0
+                && actual.stock().compareTo(cantidad) >= 0;
     }
 
     public BigDecimal subtotal() {

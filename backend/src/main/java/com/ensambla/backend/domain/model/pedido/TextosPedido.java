@@ -18,11 +18,26 @@ public final class TextosPedido {
     public static final String NO_ENTENDI_PEDIDO = "No entendí qué querés pedir. Escribime algo como «1 kilo de "
             + "yerba, aceite y fideos».";
 
-    private static final String PIE_DE_LISTA = "Si querés pedir otra cosa, escribímelo y armo la lista de nuevo. "
-            + "Para elegir otro comercio, escribí *CAMBIAR*.";
+    public static final String PEDIDO_DESCARTADO = "Listo, descarté la lista. Escribime qué querés pedir cuando "
+            + "quieras.";
+    public static final String RENGLON_NO_ENCONTRADO = "No encontré ese renglón de la lista. Escribí *CAMBIAR* y el "
+            + "número del renglón, por ejemplo *CAMBIAR 1*.";
+
+    private static final String CONFIRMAR = "Respondé *SÍ* para confirmar tu pedido o *NO* para descartarlo.";
+    private static final String CONFIRMAR_Y_CAMBIAR = "Respondé *SÍ* para confirmar tu pedido, *NO* para descartarlo "
+            + "o *CAMBIAR 1* (el número del renglón) para elegir otra marca.";
+    private static final String PIE_DE_LISTA = "Para pedir otra cosa, escribímelo de nuevo. Para elegir otro "
+            + "comercio, escribí *OTRO COMERCIO*.";
+    private static final String CAMBIO_DE_STOCK = "Mientras tanto cambió el precio o el stock de: %s. Escribime de "
+            + "nuevo qué querés pedir y armo la lista con lo que hay.";
+    private static final String PEDIDO_CONFIRMADO = "¡Listo! Mandé tu pedido a *%s* (total %s). Te aviso por acá cuando "
+            + "el comercio lo acepte y cuando esté listo para retirar. Podés pedir otra cosa cuando quieras.";
+    private static final String SIN_ALTERNATIVAS = "No tengo otras marcas de *%s*. Si querés, escribime otro pedido.";
+    private static final String OPCION_DE_MARCA_INVALIDA = "Elegí un número entre 1 y %d, o respondé NO para dejarlo "
+            + "como está.";
     private static final String SIN_PRODUCTOS = "*%s* todavía no tiene productos con precio y stock cargados para "
-            + "pedir por acá. Si querés otro comercio, escribí *CAMBIAR*.";
-    private static final String SIN_COINCIDENCIAS_PIE = "Probá con otra cosa, o escribí *CAMBIAR* para elegir otro "
+            + "pedir por acá. Si querés otro comercio, escribí *OTRO COMERCIO*.";
+    private static final String SIN_COINCIDENCIAS_PIE = "Probá con otra cosa, o escribí *OTRO COMERCIO* para elegir otro "
             + "comercio.";
 
     private static final Locale ARGENTINA = Locale.of("es", "AR");
@@ -33,7 +48,7 @@ public final class TextosPedido {
     private static final String OPCION_INVALIDA = "Elegí un número entre 1 y %d, o respondé NO para escribir otro nombre.";
     private static final String COMERCIO_ELEGIDO = "Listo, te atiende *%s*. ¿Qué necesitás? Escribime lo que querés "
             + "pedir con tus palabras, por ejemplo «1 kilo de yerba, aceite y fideos». Si querés otro comercio, "
-            + "escribí *CAMBIAR*.";
+            + "escribí *OTRO COMERCIO*.";
 
     private TextosPedido() {
     }
@@ -84,8 +99,38 @@ public final class TextosPedido {
         });
         lineas.add("Total: " + dinero(armado.total()));
         armado.faltantes().forEach(faltante -> lineas.add(faltante(faltante)));
+        boolean hayAlternativas = armado.lineas().stream().anyMatch(linea -> !linea.alternativas().isEmpty());
+        lineas.add(hayAlternativas ? CONFIRMAR_Y_CAMBIAR : CONFIRMAR);
         lineas.add(PIE_DE_LISTA);
         return String.join("\n", lineas);
+    }
+
+    /** Las otras marcas del renglón, numeradas, para que el cliente elija una. */
+    public static String alternativas(LineaDeCompra linea) {
+        List<String> lineas = new ArrayList<>();
+        lineas.add("Para *%s* tengo estas otras opciones. Respondé con el número:".formatted(
+                linea.producto().nombre()));
+        IntStream.range(0, linea.alternativas().size()).forEach(i -> lineas.add("%d) %s — %s".formatted(i + 1,
+                linea.alternativas().get(i).nombre(), dinero(linea.alternativas().get(i).precio()))));
+        lineas.add("O respondé NO para dejarlo como está.");
+        return String.join("\n", lineas);
+    }
+
+    public static String sinAlternativas(String producto) {
+        return SIN_ALTERNATIVAS.formatted(producto);
+    }
+
+    public static String opcionDeMarcaInvalida(int cantidad) {
+        return OPCION_DE_MARCA_INVALIDA.formatted(cantidad);
+    }
+
+    /** Qué productos cambiaron de precio o se quedaron sin stock entre que se armó la lista y se confirmó. */
+    public static String cambioDeStock(List<String> productos) {
+        return CAMBIO_DE_STOCK.formatted(String.join(", ", productos));
+    }
+
+    public static String pedidoConfirmado(String comercio, BigDecimal total) {
+        return PEDIDO_CONFIRMADO.formatted(comercio, dinero(total));
     }
 
     /** Cuando nada de lo pedido está en el stock: lo que falta y cómo seguir. */

@@ -9,9 +9,13 @@ import com.ensambla.backend.domain.model.pedido.Comercio;
 import com.ensambla.backend.domain.model.pedido.ConsultaPedido;
 import com.ensambla.backend.domain.model.pedido.ConversacionCliente;
 import com.ensambla.backend.domain.model.pedido.EstadoConversacionCliente;
+import com.ensambla.backend.domain.model.pedido.EstadoOrdenCompra;
+import com.ensambla.backend.domain.model.pedido.LineaDeCompra;
 import com.ensambla.backend.domain.model.pedido.LineaPedida;
 import com.ensambla.backend.domain.model.pedido.MensajeCliente;
+import com.ensambla.backend.domain.model.pedido.OrdenCompra;
 import com.ensambla.backend.domain.model.pedido.PedidoInterpretado;
+import com.ensambla.backend.domain.model.pedido.ProductoEnStock;
 import com.ensambla.backend.domain.model.pedido.ProductoFaltante;
 import com.ensambla.backend.domain.model.pedido.TextosPedido;
 import com.ensambla.backend.domain.model.registro.Registro;
@@ -26,6 +30,7 @@ import com.ensambla.backend.domain.repository.pedido.ClienteWhatsappRepository;
 import com.ensambla.backend.domain.repository.pedido.ComercioRepository;
 import com.ensambla.backend.domain.repository.pedido.ConversacionClienteRepository;
 import com.ensambla.backend.domain.repository.pedido.MensajeClienteRepository;
+import com.ensambla.backend.domain.repository.pedido.OrdenCompraRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
@@ -79,6 +84,7 @@ class AtenderMensajeClienteTest {
     private final ClienteWhatsappRepository clienteRepository = mock(ClienteWhatsappRepository.class);
     private final ConversacionClienteRepository conversacionRepository = mock(ConversacionClienteRepository.class);
     private final ComercioRepository comercioRepository = mock(ComercioRepository.class);
+    private final OrdenCompraRepository ordenRepository = mock(OrdenCompraRepository.class);
     private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
     private final RegistroRepository registroRepository = mock(RegistroRepository.class);
     private final ControlPlanService controlPlanService = mock(ControlPlanService.class);
@@ -86,7 +92,7 @@ class AtenderMensajeClienteTest {
     private final InterpretePedidoIaPort interpreteIa = mock(InterpretePedidoIaPort.class);
     private final MensajeriaWhatsappPort mensajeria = mock(MensajeriaWhatsappPort.class);
     private final AtenderMensajeCliente atenderMensajeCliente = new AtenderMensajeCliente(mensajeRepository,
-            clienteRepository, conversacionRepository, comercioRepository, proyectoRepository,
+            clienteRepository, conversacionRepository, comercioRepository, ordenRepository, proyectoRepository,
             new DatosDeProyectoService(registroRepository), controlPlanService, consumoSamiRepository, interpreteIa,
             mensajeria, new TransaccionDirecta(), Clock.fixed(INSTANTE, ZoneOffset.UTC), VIGENCIA, LIMITE_SAMI);
 
@@ -573,7 +579,269 @@ class AtenderMensajeClienteTest {
         assertThat(thenConversacionGuardada().getEstado()).isEqualTo(EstadoConversacionCliente.ELIGIENDO_COMERCIO);
     }
 
+    // --- confirmar, descartar y cambiar de marca ---
+
+    @Test
+    @DisplayName("Con el SÍ del cliente la lista se convierte en una orden pendiente y la conversación queda libre")
+    void executeShouldCreateThePendingOrderOnConfirmation() {
+        Registro registro = registro("Yerba Playadito 1 kg", 3500, 10);
+        ProductoEnStock yerba = givenProducto(registro);
+        givenStock(registro);
+        givenListaArmada(null, LineaDeCompra.de(yerba, BigDecimal.valueOf(2), List.of()));
+        givenMensajeReclamado("sí");
+        when(ordenRepository.save(any(OrdenCompra.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
+
+        atenderMensajeCliente.execute();
+
+        ArgumentCaptor<OrdenCompra> orden = ArgumentCaptor.forClass(OrdenCompra.class);
+        verify(ordenRepository).save(orden.capture());
+        assertThat(orden.getValue().getNegocioId()).isEqualTo(DON_PEPE.id());
+        assertThat(orden.getValue().getClienteId()).isEqualTo(CLIENTE_ID);
+        assertThat(orden.getValue().getEstado()).isEqualTo(EstadoOrdenCompra.PENDIENTE);
+        assertThat(orden.getValue().getTotal()).isEqualByComparingTo("7000");
+        assertThat(orden.getValue().getItems()).singleElement().satisfies(item -> {
+            assertThat(item.productoId()).isEqualTo(yerba.id());
+            assertThat(item.cantidad()).isEqualByComparingTo("2");
+        });
+        verify(mensajeria).enviarTexto(TELEFONO,
+                TextosPedido.pedidoConfirmado("Almacén Don Pepe", new BigDecimal("7000")));
+        assertThat(thenConversacionGuardada().getLista()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Si entre tanto subió el precio o se acabó el stock no manda la orden y pide armar la lista de nuevo")
+    void executeShouldNotCreateTheOrderWhenTheStockChanged() {
+        Registro viejo = registro("Yerba Playadito 1 kg", 3500, 10);
+        ProductoEnStock yerba = givenProducto(viejo);
+        Registro masCara = PedidoTestData.registro("Yerba Playadito 1 kg", 4000, 10, false);
+        ProductoEnStock mismoProductoMasCaro = givenProducto(masCara);
+        givenStock(new Registro[]{masCara});
+        givenListaArmada(null, LineaDeCompra.de(new ProductoEnStock(mismoProductoMasCaro.id(), yerba.nombre(),
+                yerba.precio(), yerba.stock()), BigDecimal.valueOf(2), List.of()));
+        givenMensajeReclamado("confirmo");
+
+        atenderMensajeCliente.execute();
+
+        verify(ordenRepository, never()).save(any());
+        verify(mensajeria).enviarTexto(TELEFONO, TextosPedido.cambioDeStock(List.of("Yerba Playadito 1 kg")));
+        assertThat(thenConversacionGuardada().getLista()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Si el producto se quedó sin stock suficiente tampoco manda la orden")
+    void executeShouldNotCreateTheOrderWhenThereIsNoStockLeft() {
+        Registro registro = registro("Yerba Playadito 1 kg", 3500, 1);
+        ProductoEnStock yerba = givenProducto(registro);
+        givenStock(registro);
+        givenListaArmada(null, new LineaDeCompra(yerba, BigDecimal.valueOf(2), false, List.of()));
+        givenMensajeReclamado("ok");
+
+        atenderMensajeCliente.execute();
+
+        verify(ordenRepository, never()).save(any());
+        verify(mensajeria).enviarTexto(TELEFONO, TextosPedido.cambioDeStock(List.of("Yerba Playadito 1 kg")));
+    }
+
+    @Test
+    @DisplayName("Con el NO del cliente descarta la lista sin crear ninguna orden")
+    void executeShouldDiscardTheListOnNo() {
+        givenListaArmada(null, LineaDeCompra.de(givenProducto(registro("Yerba", 3500, 10)), null, List.of()));
+        givenMensajeReclamado("no");
+
+        atenderMensajeCliente.execute();
+
+        verify(mensajeria).enviarTexto(TELEFONO, TextosPedido.PEDIDO_DESCARTADO);
+        verify(ordenRepository, never()).save(any());
+        assertThat(thenConversacionGuardada().getLista()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Un SÍ o un NO sin lista armada no gasta una consulta de IA y explica cómo pedir")
+    void executeShouldNotCallTheAiForAnswersWithoutAList() {
+        givenPidiendoADonPepe();
+        givenMensajeReclamado("sí");
+
+        atenderMensajeCliente.execute();
+
+        verify(mensajeria).enviarTexto(TELEFONO, TextosPedido.NO_ENTENDI_PEDIDO);
+        verify(interpreteIa, never()).interpretar(any());
+        verify(ordenRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Un NO sin lista armada también explica cómo pedir")
+    void executeShouldExplainHowToOrderOnNoWithoutAList() {
+        givenPidiendoADonPepe();
+        givenMensajeReclamado("no");
+
+        atenderMensajeCliente.execute();
+
+        verify(mensajeria).enviarTexto(TELEFONO, TextosPedido.NO_ENTENDI_PEDIDO);
+        verify(interpreteIa, never()).interpretar(any());
+    }
+
+    @Test
+    @DisplayName("CAMBIAR con el número de un renglón muestra las otras marcas y espera que elija una")
+    void executeShouldOfferTheOtherBrandsOfALine() {
+        LineaDeCompra aceite = givenAceiteConAlternativa();
+        givenListaArmada(null, givenYerba(), aceite);
+        givenMensajeReclamado("cambiar 2");
+
+        atenderMensajeCliente.execute();
+
+        verify(mensajeria).enviarTexto(TELEFONO, TextosPedido.alternativas(aceite));
+        assertThat(thenConversacionGuardada().getRenglonACambiar()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("CAMBIAR con el nombre del producto también encuentra el renglón")
+    void executeShouldFindTheLineByName() {
+        LineaDeCompra aceite = givenAceiteConAlternativa();
+        givenListaArmada(null, givenYerba(), aceite);
+        givenMensajeReclamado("cambiar el aceite");
+
+        atenderMensajeCliente.execute();
+
+        verify(mensajeria).enviarTexto(TELEFONO, TextosPedido.alternativas(aceite));
+        assertThat(thenConversacionGuardada().getRenglonACambiar()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("Un renglón sin otras marcas lo dice y no espera ninguna elección")
+    void executeShouldSayWhenALineHasNoAlternatives() {
+        givenListaArmada(null, givenYerba());
+        givenMensajeReclamado("cambiar 1");
+
+        atenderMensajeCliente.execute();
+
+        verify(mensajeria).enviarTexto(TELEFONO, TextosPedido.sinAlternativas("Yerba Playadito 1 kg"));
+        assertThat(thenConversacionGuardada().getRenglonACambiar()).isNull();
+    }
+
+    @Test
+    @DisplayName("CAMBIAR con un renglón que no existe explica cómo pedirlo")
+    void executeShouldRejectAnUnknownLine() {
+        givenListaArmada(null, givenYerba());
+        givenMensajeReclamado("cambiar 9");
+
+        atenderMensajeCliente.execute();
+
+        verify(mensajeria).enviarTexto(TELEFONO, TextosPedido.RENGLON_NO_ENCONTRADO);
+    }
+
+    @Test
+    @DisplayName("Elegir una de las otras marcas con su número cambia ese renglón y muestra la lista de nuevo")
+    void executeShouldSwitchTheBrandWithTheChosenNumber() {
+        LineaDeCompra aceite = givenAceiteConAlternativa();
+        givenListaArmada(2, givenYerba(), aceite);
+        givenMensajeReclamado("1");
+
+        atenderMensajeCliente.execute();
+
+        ConversacionCliente conversacion = thenConversacionGuardada();
+        assertThat(conversacion.getLista().get(1).producto().nombre()).isEqualTo("Aceite Natura 900 ml");
+        assertThat(conversacion.getRenglonACambiar()).isNull();
+        ArgumentCaptor<String> respuesta = ArgumentCaptor.forClass(String.class);
+        verify(mensajeria).enviarTexto(org.mockito.ArgumentMatchers.eq(TELEFONO), respuesta.capture());
+        assertThat(respuesta.getValue()).contains("2) Aceite Natura 900 ml x1 — $2.400", "Total: $5.900");
+    }
+
+    @Test
+    @DisplayName("Un número fuera de las otras marcas pide elegir uno válido y sigue esperando")
+    void executeShouldRejectAnInvalidBrandNumber() {
+        givenListaArmada(2, givenYerba(), givenAceiteConAlternativa());
+        givenMensajeReclamado("5");
+
+        atenderMensajeCliente.execute();
+
+        verify(mensajeria).enviarTexto(TELEFONO, TextosPedido.opcionDeMarcaInvalida(1));
+        assertThat(thenConversacionGuardada().getRenglonACambiar()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("El número cero tampoco es una de las otras marcas")
+    void executeShouldRejectZeroAsABrandNumber() {
+        givenListaArmada(2, givenYerba(), givenAceiteConAlternativa());
+        givenMensajeReclamado("0");
+
+        atenderMensajeCliente.execute();
+
+        verify(mensajeria).enviarTexto(TELEFONO, TextosPedido.opcionDeMarcaInvalida(1));
+    }
+
+    @Test
+    @DisplayName("Responder NO al cambio de marca deja la lista como estaba y la muestra de nuevo")
+    void executeShouldKeepTheBrandOnNo() {
+        LineaDeCompra aceite = givenAceiteConAlternativa();
+        givenListaArmada(2, givenYerba(), aceite);
+        givenMensajeReclamado("no");
+
+        atenderMensajeCliente.execute();
+
+        ConversacionCliente conversacion = thenConversacionGuardada();
+        assertThat(conversacion.getLista().get(1)).isEqualTo(aceite);
+        assertThat(conversacion.getRenglonACambiar()).isNull();
+        verify(mensajeria).enviarTexto(org.mockito.ArgumentMatchers.eq(TELEFONO), anyString());
+    }
+
+    @Test
+    @DisplayName("Mientras espera una marca, un mensaje que no es un número ni NO se toma como un pedido nuevo")
+    void executeShouldTreatOtherTextAsANewOrderWhileChoosingABrand() {
+        Registro fideos = registro("Fideos Matarazzo 500 g", 1200, 20);
+        givenStock(fideos);
+        givenListaArmada(2, givenYerba(), givenAceiteConAlternativa());
+        givenMensajeReclamado("dame fideos");
+        when(interpreteIa.interpretar(any(ConsultaPedido.class))).thenReturn(new PedidoInterpretado(
+                List.of(new LineaPedida("fideos", null)), null));
+
+        atenderMensajeCliente.execute();
+
+        ConversacionCliente conversacion = thenConversacionGuardada();
+        assertThat(conversacion.getLista()).extracting(linea -> linea.producto().nombre())
+                .containsExactly("Fideos Matarazzo 500 g");
+        assertThat(conversacion.getRenglonACambiar()).isNull();
+    }
+
+    @Test
+    @DisplayName("Con la lista armada, un mensaje que no es SÍ, NO ni cambiar es un pedido nuevo que la reemplaza")
+    void executeShouldReplaceTheListWithANewOrder() {
+        givenStock(registro("Fideos Matarazzo 500 g", 1200, 20));
+        givenListaArmada(null, givenYerba());
+        givenMensajeReclamado("mejor dame fideos");
+        when(interpreteIa.interpretar(any(ConsultaPedido.class))).thenReturn(new PedidoInterpretado(
+                List.of(new LineaPedida("fideos", null)), null));
+
+        atenderMensajeCliente.execute();
+
+        assertThat(thenConversacionGuardada().getLista()).extracting(linea -> linea.producto().nombre())
+                .containsExactly("Fideos Matarazzo 500 g");
+    }
+
     // --- datos de prueba ---
+
+    private static ProductoEnStock givenProducto(Registro registro) {
+        return ProductoEnStock.de(PedidoTestData.inventario(registro), registro).orElseThrow();
+    }
+
+    private static LineaDeCompra givenYerba() {
+        return LineaDeCompra.de(givenProducto(registro("Yerba Playadito 1 kg", 3500, 10)), null, List.of());
+    }
+
+    /** Un aceite de 2000 con otra marca de 2400 como alternativa. */
+    private static LineaDeCompra givenAceiteConAlternativa() {
+        return LineaDeCompra.de(givenProducto(registro("Aceite Cocinero 900 ml", 2000, 3)), null,
+                List.of(givenProducto(registro("Aceite Natura 900 ml", 2400, 8))));
+    }
+
+    /** La conversación de Don Pepe con una lista ya armada; {@code renglonACambiar} si espera elegir otra marca. */
+    private void givenListaArmada(Integer renglonACambiar, LineaDeCompra... lineas) {
+        givenComercios(DON_PEPE);
+        givenClienteConocido(DON_PEPE.id());
+        when(consumoSamiRepository.reservar(any(), any(), anyInt(), any())).thenReturn(true);
+        when(conversacionRepository.findByClienteId(CLIENTE_ID)).thenReturn(Optional.of(ConversacionCliente.builder()
+                .clienteId(CLIENTE_ID).estado(EstadoConversacionCliente.PIDIENDO).negocioId(DON_PEPE.id())
+                .lista(List.of(lineas)).renglonACambiar(renglonACambiar).actualizadoEn(AHORA.minusMinutes(5)).build()));
+    }
 
     private void givenPidiendoADonPepe() {
         givenComercios(DON_PEPE);

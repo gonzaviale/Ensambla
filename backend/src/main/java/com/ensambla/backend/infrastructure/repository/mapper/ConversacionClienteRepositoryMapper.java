@@ -29,6 +29,7 @@ public class ConversacionClienteRepositoryMapper {
                 .negocioId(Identificador.opcional(entity.getNegocioId(), NegocioId::de))
                 .opciones(objectMapper.readValue(entity.getOpciones(), new TypeReference<List<NegocioId>>() { }))
                 .lista(objectMapper.readValue(entity.getLista(), new TypeReference<List<LineaDeCompra>>() { }))
+                .renglonACambiar(entity.getRenglonACambiar())
                 .actualizadoEn(entity.getActualizadoEn())
                 .build();
     }
@@ -41,6 +42,7 @@ public class ConversacionClienteRepositoryMapper {
                 .negocioId(Identificador.valorDe(conversacion.getNegocioId()))
                 .opciones(objectMapper.writeValueAsString(conversacion.getOpciones()))
                 .lista(objectMapper.writeValueAsString(conversacion.getLista()))
+                .renglonACambiar(conversacion.getRenglonACambiar())
                 .actualizadoEn(conversacion.getActualizadoEn())
                 .build();
     }

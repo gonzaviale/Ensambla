@@ -7,7 +7,7 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V12__planes_y_suscripciones.sql`, `V13__limites_y_funciones_por_plan.sql`, `V14__prueba_premium.sql`,
 `V15__renovaciones_y_pagos_premium.sql`,
 `V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
-`V24__objetivo.sql`, `V25__clientes_whatsapp.sql`, `V26__conversacion_cliente.sql`, `V27__lista_de_compra_conversacion.sql`).
+`V24__objetivo.sql`, `V25__clientes_whatsapp.sql`, `V26__conversacion_cliente.sql`, `V27__lista_de_compra_conversacion.sql`, `V28__orden_compra.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -290,6 +290,22 @@ la cantidad (nunca más que el stock; si se limitó, `limitadaPorStock`) y las a
 u ofrecer opciones la vacía. **Nada de la lista sale de otro lado que del inventario del comercio:** nombre, precio y stock son los
 campos `name`, `price` y `quantity` de sus tablas de inventario (sin las filas de ejemplo); un producto sin precio o sin stock no
 se ofrece.
+
+**Cambiar de marca (V28).** `renglon_a_cambiar` (entero desde 1, vacío por defecto) es el renglón de la lista para el que se
+ofrecieron otras marcas y la conversación espera el número elegido.
+
+**La orden de compra (V28).** `orden_compra` nace cuando el cliente confirma la lista:
+
+- `negocio_id` (se borra en cascada con el negocio) y `cliente_id` (el cliente que la confirmó).
+- `estado`: `PENDIENTE` (al crearla), `ACEPTADA`, `RECHAZADA`, `EN_PREPARACION` o `LISTA`; los cambios los hace el dueño desde la app.
+- `items` (`jsonb`): cada ítem guarda el producto (id de su fila de inventario), el nombre, la cantidad y el **precio de ese momento**,
+  así la orden no cambia si el comercio después edita su inventario.
+- `total` (`numeric(14,2)`, no negativo), `motivo_rechazo` (sólo con estado `RECHAZADA`, `ck_orden_compra_motivo`), `creado_en` y
+  `actualizado_en`. Índice por `(negocio_id, estado, creado_en DESC)` para la lista del dueño.
+
+**Cuándo se descuenta el stock.** Confirmar no toca el inventario: el stock se descuenta cuando el dueño **acepta** la orden. Antes
+de crearla se vuelve a comprobar que cada producto siga con el mismo precio y con stock para la cantidad; si algo cambió no se manda
+la orden y se le pide al cliente que arme la lista de nuevo.
 
 **Los comercios son los negocios con un número vinculado** (`whatsapp_vinculo`). El cliente nombra el comercio y Sami lo busca por
 nombre sin tildes ni mayúsculas, tolerando errores de tipeo; si varios se parecen, los muestra numerados (hasta 9). Los nombres de

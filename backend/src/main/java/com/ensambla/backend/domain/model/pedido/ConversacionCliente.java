@@ -10,6 +10,7 @@ import lombok.Setter;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -49,6 +50,9 @@ public class ConversacionCliente {
     @Builder.Default
     private List<LineaDeCompra> lista = List.of();
 
+    /** El renglón de la lista (desde 1) para el que se le ofrecieron otras marcas y espera su elección; null si ninguno. */
+    private Integer renglonACambiar;
+
     private OffsetDateTime actualizadoEn;
 
     public static ConversacionCliente nueva(ClienteId clienteId, OffsetDateTime ahora) {
@@ -70,6 +74,7 @@ public class ConversacionCliente {
         negocioId = ofrecido;
         opciones = List.of();
         lista = List.of();
+        renglonACambiar = null;
         actualizadoEn = ahora;
     }
 
@@ -79,6 +84,7 @@ public class ConversacionCliente {
         negocioId = null;
         opciones = List.copyOf(comercios);
         lista = List.of();
+        renglonACambiar = null;
         actualizadoEn = ahora;
     }
 
@@ -87,13 +93,52 @@ public class ConversacionCliente {
         negocioId = comercio;
         opciones = List.of();
         lista = List.of();
+        renglonACambiar = null;
         actualizadoEn = ahora;
     }
 
     /** Sami armó la lista con lo que pidió el cliente; reemplaza a la anterior. */
     public void armarLista(List<LineaDeCompra> renglones, OffsetDateTime ahora) {
         lista = List.copyOf(renglones);
+        renglonACambiar = null;
         actualizadoEn = ahora;
+    }
+
+    /** El cliente descartó la lista o ya la confirmó: no queda nada armado. */
+    public void vaciarLista(OffsetDateTime ahora) {
+        armarLista(List.of(), ahora);
+    }
+
+    public boolean tieneLista() {
+        return !lista.isEmpty();
+    }
+
+    /** Se le ofrecen otras marcas del renglón (desde 1) y se espera que elija una. */
+    public void ofrecerCambioDeMarca(int renglon, OffsetDateTime ahora) {
+        renglonACambiar = renglon;
+        actualizadoEn = ahora;
+    }
+
+    /** Deja de esperar la elección de otra marca y la lista queda como estaba. */
+    public void dejarMarca(OffsetDateTime ahora) {
+        renglonACambiar = null;
+        actualizadoEn = ahora;
+    }
+
+    public boolean esperaCambioDeMarca() {
+        return renglonACambiar != null;
+    }
+
+    /** El renglón que se está cambiando. */
+    public LineaDeCompra renglonEnCambio() {
+        return lista.get(renglonACambiar - 1);
+    }
+
+    /** Cambia el renglón que se estaba cambiando por la otra marca elegida. */
+    public void cambiarMarca(ProductoEnStock nueva, OffsetDateTime ahora) {
+        List<LineaDeCompra> cambiada = new ArrayList<>(lista);
+        cambiada.set(renglonACambiar - 1, renglonEnCambio().cambiarPor(nueva));
+        armarLista(cambiada, ahora);
     }
 
     /** El cliente siguió hablando sin cambiar de paso: la conversación sigue vigente. */

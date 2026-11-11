@@ -99,7 +99,7 @@ class ConversacionClienteRepositoriesTest {
         ProductoEnStock taragui = new ProductoEnStock(RegistroId.de("d0000000-0000-4000-8000-000000000002"),
                 "Yerba Taragüí 1 kg", new BigDecimal("3800"), new BigDecimal("6"));
         ConversacionCliente dominio = givenConversacion(PEPE, List.of()).toBuilder()
-                .estado(EstadoConversacionCliente.PIDIENDO)
+                .estado(EstadoConversacionCliente.PIDIENDO).renglonACambiar(2)
                 .lista(List.of(LineaDeCompra.de(yerba, new BigDecimal("2"), List.of(taragui)),
                         LineaDeCompra.de(taragui, new BigDecimal("9"), List.of())))
                 .build();
@@ -108,6 +108,7 @@ class ConversacionClienteRepositoriesTest {
 
         assertThat(leida).usingRecursiveComparison().isEqualTo(dominio);
         assertThat(leida.getLista().get(1).limitadaPorStock()).isTrue();
+        assertThat(leida.getRenglonACambiar()).isEqualTo(2);
         assertThat(mapper.toEntity(ConversacionCliente.nueva(CLIENTE_ID, AHORA)).getLista()).isEqualTo("[]");
     }
 

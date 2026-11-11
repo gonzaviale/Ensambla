@@ -67,7 +67,8 @@ class TextosPedidoTest {
                 Total: $13.001,50
                 No tengo «fideos tallarin», pero tengo Fideos Matarazzo 500 g ($1.200).
                 No tengo «pañales».
-                Si querés pedir otra cosa, escribímelo y armo la lista de nuevo. Para elegir otro comercio, escribí *CAMBIAR*.""");
+                Respondé *SÍ* para confirmar tu pedido, *NO* para descartarlo o *CAMBIAR 1* (el número del renglón) para elegir otra marca.
+                Para pedir otra cosa, escribímelo de nuevo. Para elegir otro comercio, escribí *OTRO COMERCIO*.""");
     }
 
     @Test
@@ -75,13 +76,13 @@ class TextosPedidoTest {
     void sinCoincidenciasShouldListWhatIsMissing() {
         assertThat(TextosPedido.sinCoincidencias(List.of(new ProductoFaltante("pañales", null)))).isEqualTo("""
                 No tengo «pañales».
-                Probá con otra cosa, o escribí *CAMBIAR* para elegir otro comercio.""");
+                Probá con otra cosa, o escribí *OTRO COMERCIO* para elegir otro comercio.""");
     }
 
     @Test
     @DisplayName("Un comercio sin productos pedibles lo dice y ofrece cambiar de comercio")
     void sinProductosShouldNameTheBusiness() {
-        assertThat(TextosPedido.sinProductos("Kiosco Sol")).contains("*Kiosco Sol*").contains("*CAMBIAR*");
+        assertThat(TextosPedido.sinProductos("Kiosco Sol")).contains("*Kiosco Sol*").contains("*OTRO COMERCIO*");
     }
 
     @Test
@@ -104,6 +105,41 @@ class TextosPedidoTest {
     @Test
     @DisplayName("Al elegir el comercio le dice quién lo atiende y cómo cambiar")
     void comercioElegidoShouldNameTheBusiness() {
-        assertThat(TextosPedido.comercioElegido("Kiosco Sol")).contains("*Kiosco Sol*").contains("*CAMBIAR*");
+        assertThat(TextosPedido.comercioElegido("Kiosco Sol")).contains("*Kiosco Sol*").contains("*OTRO COMERCIO*");
+    }
+
+    @Test
+    @DisplayName("Sin otras marcas en ningún renglón la lista sólo ofrece confirmar o descartar")
+    void listaShouldNotOfferBrandChangeWithoutAlternatives() {
+        ArmadoDeLista armado = new ArmadoDeLista(List.of(
+                LineaDeCompra.de(producto("Yerba Playadito 1 kg", "3500", "10"), BigDecimal.ONE, List.of())),
+                List.of());
+
+        assertThat(TextosPedido.lista("Kiosco Sol", armado))
+                .contains("Respondé *SÍ* para confirmar tu pedido o *NO* para descartarlo.")
+                .doesNotContain("CAMBIAR 1");
+    }
+
+    @Test
+    @DisplayName("Las otras marcas del renglón salen numeradas con su precio y se puede dejar como está")
+    void alternativasShouldNumberTheOtherBrands() {
+        LineaDeCompra linea = LineaDeCompra.de(producto("Aceite Cocinero 900 ml", "2000", "3"), BigDecimal.ONE,
+                List.of(producto("Aceite Natura 900 ml", "2400", "8"), producto("Aceite Lira 900 ml", "2200.50", "5")));
+
+        assertThat(TextosPedido.alternativas(linea)).isEqualTo("""
+                Para *Aceite Cocinero 900 ml* tengo estas otras opciones. Respondé con el número:
+                1) Aceite Natura 900 ml — $2.400
+                2) Aceite Lira 900 ml — $2.200,50
+                O respondé NO para dejarlo como está.""");
+    }
+
+    @Test
+    @DisplayName("Los avisos del cambio de marca y de la confirmación dicen lo que pasó")
+    void confirmationAndBrandTextsShouldSayWhatHappened() {
+        assertThat(TextosPedido.sinAlternativas("Fideos")).contains("*Fideos*").contains("otras marcas");
+        assertThat(TextosPedido.opcionDeMarcaInvalida(2)).contains("entre 1 y 2").contains("como está");
+        assertThat(TextosPedido.cambioDeStock(List.of("Yerba", "Aceite"))).contains("Yerba, Aceite");
+        assertThat(TextosPedido.pedidoConfirmado("Kiosco Sol", new BigDecimal("9000")))
+                .contains("*Kiosco Sol*").contains("$9.000").contains("listo para retirar");
     }
 }

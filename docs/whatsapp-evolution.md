@@ -84,8 +84,20 @@ otra. La API de prueba no tiene ventana de 24 h ni plantillas: eso aparece reci�
 
 La lista muestra precios, subtotales y total. Nada sale de otro lado que del stock del comercio: nombre, precio y stock son los campos
 `name`, `price` y `quantity` de sus inventarios. Una consulta a la IA cuenta como una consulta de Sami del comercio elegido (mismo plan
-y mismo límite diario que el taller); un comercio sin productos con precio y stock no gasta ninguna. Cambiar de marca y confirmar el
-pedido se suman en la fase siguiente.
+y mismo límite diario que el taller); un comercio sin productos con precio y stock no gasta ninguna.
+
+**Con la lista armada, el cliente responde:**
+
+| Mensaje | Qué hace Sami |
+|---|---|
+| *SÍ* (o «ok», «confirmo») | Vuelve a comprobar precio y stock; si siguen igual crea la **orden de compra pendiente** y le avisa el total. Si algo cambió no manda nada y le pide armar la lista de nuevo. |
+| *NO* | Descarta la lista. |
+| *CAMBIAR 2* o «cambiar el aceite» | Muestra las otras marcas de ese renglón, numeradas con su precio. Se responde con el número (cambia la marca y mantiene la cantidad) o *NO* (lo deja como está). |
+| Cualquier otra cosa | Se toma como un pedido nuevo y reemplaza la lista. |
+| *OTRO COMERCIO* | Vuelve a elegir el comercio. |
+
+El stock **no se descuenta al confirmar** sino cuando el dueño acepta la orden. La gestión de la orden por el dueño (aceptar, rechazar,
+en preparación, lista para retirar) y el aviso al cliente se suman en las fases siguientes.
 
 Si el cliente no habla por 30 minutos, la próxima vez Sami vuelve a saludar. Si el comercio deja de tener WhatsApp vinculado
 mientras tanto, Sami lo avisa y pregunta de nuevo.

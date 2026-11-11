@@ -52,6 +52,9 @@ public class ConversacionClienteEntity {
     @Column(nullable = false, columnDefinition = "jsonb")
     private String lista;
 
+    @Column(name = "renglon_a_cambiar")
+    private Integer renglonACambiar;
+
     @Column(name = "actualizado_en", nullable = false)
     private OffsetDateTime actualizadoEn;
 }
