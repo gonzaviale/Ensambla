@@ -2,6 +2,7 @@ import type { ModoMocks } from '@/config/env';
 import { handlersAuth } from './auth';
 import { handlersAvisos } from './avisos';
 import { handlersImportaciones } from './importaciones';
+import { handlersObjetivos } from './objetivos';
 import { handlersSamiProyecto } from './samiProyecto';
 import { handlersSamiTaller } from './samiTaller';
 import { handlersSistemas } from './sistemas';
@@ -23,6 +24,7 @@ export function handlersPara(modo: ModoMocks) {
       ...handlersAuth,
       ...handlersDelSistema,
       ...handlersImportaciones,
+      ...handlersObjetivos,
       ...handlersAvisos,
       ...handlersUbicacion,
       ...handlersNegocio,

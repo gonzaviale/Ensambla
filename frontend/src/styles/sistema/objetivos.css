@@ -93,6 +93,9 @@
 .objetivos-negocio > p { margin:2px 0 12px; color:var(--muted); font-size:13px; }
 .objetivos-negocio-cifras { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; }
 .objetivos-pasos-nota, .objetivos-pasos-vacio { margin-top:8px; color:var(--muted); font-size:13px; }
+.objetivos-pasos-error { display:grid; justify-items:start; gap:8px; color:var(--muted); font-size:13px; }
+.objetivos-pasos-error strong { color:var(--ink); font-size:15px; }
+.objetivos-pasos-error p { margin:0; }
 
 .objetivos-vacio { max-width:640px; margin:30px auto; padding:26px; border:1px solid var(--line); border-radius:var(--radius); background:var(--paper); text-align:center; }
 .objetivos-vacio p { margin:8px 0 16px; color:var(--muted); }

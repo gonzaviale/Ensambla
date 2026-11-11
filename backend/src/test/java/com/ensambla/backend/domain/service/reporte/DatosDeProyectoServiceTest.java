@@ -10,14 +10,17 @@ import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
+import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class DatosDeProyectoServiceTest {
@@ -111,6 +114,22 @@ class DatosDeProyectoServiceTest {
         DatosDeProyecto datos = service.cargar(proyecto, NEGOCIO_ID);
 
         assertThat(datos.nombresDeClientes()).containsOnly(java.util.Map.entry(rosa.getId().toString(), "Doña Rosa"));
+    }
+
+    @Test
+    @DisplayName("Reutiliza las filas de un sistema cargado y excluye sus ejemplos sin consultar el repositorio")
+    void cargarShouldReuseLoadedSystemWithoutRepositoryQueries() {
+        Registro real = registro(INVENTARIO_ID, false);
+        Registro ejemplo = registro(INVENTARIO_ID, true);
+        Bloque inventario = bloque(INVENTARIO_ID, TipoBloque.INVENTARIO, campo("name"));
+        Proyecto proyecto = Proyecto.builder().nombre("Almacén").bloques(List.of(inventario)).build();
+        Sistema sistema = new Sistema(proyecto, List.of(), Map.of(INVENTARIO_ID, List.of(real, ejemplo)));
+
+        DatosDeProyecto datos = service.cargar(sistema);
+
+        assertThat(datos.inventarios()).singleElement().satisfies(resultado ->
+                assertThat(resultado.registros()).containsExactly(real));
+        verifyNoInteractions(registroRepository);
     }
 
     // --- helpers ---

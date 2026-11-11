@@ -1,8 +1,6 @@
 import { formatoPesos, ultimoValor, type Objetivo } from './objetivos';
-import { productoDeZona, rotaciones } from './sistema/alertas';
-import { allBlocks } from './sistema/core';
-import type { Sistema } from './sistema/tipos';
-import { posicionDelPrecio, sinDatosInsuficientes, type Zona } from './sistema/zona';
+import { posicionDelPrecio } from './sistema/zona';
+import type { PrecioZonaObjetivo, ProductoParaPaso } from '@/types/objetivos';
 
 // Los pasos concretos de un objetivo: cosas para hacer con los productos del negocio, dichas como las diría un
 // vecino («subile $200 a la yerba»), no como un porcentaje. Salen de lo que la persona tiene cargado.
@@ -46,6 +44,7 @@ export type Resultado = {
 export type Paso = {
   clave: string;
   producto: string;
+  precioZona: PrecioZonaObjetivo | null;
   /** Sin ajuste, el paso es fijo. */
   ajuste?: Ajuste;
   calcular: (valor: number, sensibilidad: Sensibilidad) => Resultado;
@@ -53,41 +52,14 @@ export type Paso = {
   curva?: (valor: number, sensibilidad: Sensibilidad) => number;
 };
 
-type Producto = {
-  nombre: string;
-  precio: number;
-  costo: number;
-  stock: number;
-  /** Unidades vendidas en los últimos 30 días. */
-  vendidas: number;
-};
+type Producto = Omit<ProductoParaPaso, 'tipo' | 'vendidas30Dias'> & { vendidas: number };
 
-const numero = (valor: unknown) => Number(valor ?? 0) || 0;
 const redondearA = (valor: number, paso: number) => Math.max(paso, Math.round(valor / paso) * paso);
 const alPaso = (valor: number, paso: number, desde: number, hasta: number) =>
   Math.min(hasta, Math.max(desde, Math.round(valor / paso) * paso));
 const pasoDePrecio = (precio: number) => (precio >= 1500 ? 50 : 10);
 
-function productosDe(sistemas: Sistema[], hoy: string): Producto[] {
-  return sistemas.flatMap((sistema) => {
-    const { porProducto } = rotaciones(sistema, hoy);
-    return allBlocks(sistema)
-      .filter((bloque) => bloque.type === 'inventory')
-      .flatMap((bloque) => bloque.rows)
-      .map((fila) => ({
-        nombre: String(fila.name ?? '').trim(),
-        precio: numero(fila.price),
-        costo: numero(fila.cost),
-        stock: numero(fila.quantity),
-        vendidas: porProducto.get(fila.id)?.u30 ?? 0,
-      }))
-      .filter((producto) => producto.nombre && producto.precio > 0 && producto.costo > 0);
-  });
-}
-
 const gananciaPorUnidad = (producto: Producto) => producto.precio - producto.costo;
-const margen = (producto: Producto) => gananciaPorUnidad(producto) / producto.precio;
-const masVendidoPrimero = (a: Producto, b: Producto) => b.vendidas - a.vendidas;
 
 /**
  * Cuántas unidades se venderían al subir el precio. La demanda baja en línea recta: cuanto más se sube, más gente
@@ -130,6 +102,7 @@ function pasoDeSubirPrecio(producto: Producto): Paso {
   return {
     clave: 'subir-precio',
     producto: producto.nombre,
+    precioZona: producto.precioZona,
     ajuste: { verbo: 'Subile', desde: paso, hasta, paso, sugerido },
     curva: ganancia,
     calcular: (aumento, sensibilidad) => {
@@ -153,14 +126,12 @@ function pasoDeSubirPrecio(producto: Producto): Paso {
   };
 }
 
-function pasoDeMoverParado(producto: Producto, zona?: Zona): Paso {
+function pasoDeMoverParado(producto: Producto): Paso {
   const paso = pasoDePrecio(producto.precio);
   const margenTotal = producto.precio - producto.costo;
   const hasta = Math.max(paso, Math.floor((margenTotal - paso) / paso) * paso);
   // Si la zona cobra menos, se baja hasta ese promedio (mientras siga dejando ganancia); si no, un 10 %.
-  const promedio = zona
-    ? productoDeZona(producto.nombre, sinDatosInsuficientes(zona))?.precio.promedio
-    : undefined;
+  const promedio = producto.precioZona?.promedio;
   const alPromedio =
     promedio !== undefined && promedio > producto.costo && promedio < producto.precio
       ? producto.precio - promedio
@@ -170,6 +141,7 @@ function pasoDeMoverParado(producto: Producto, zona?: Zona): Paso {
   return {
     clave: 'mover-parado',
     producto: producto.nombre,
+    precioZona: producto.precioZona,
     ajuste: {
       verbo: 'Bajale',
       desde: paso,
@@ -196,6 +168,7 @@ function pasoDePonerALaVista(producto: Producto): Paso {
   return {
     clave: 'poner-a-la-vista',
     producto: producto.nombre,
+    precioZona: producto.precioZona,
     calcular: () => ({
       titulo: `Poné ${producto.nombre} a la vista`,
       detalle: `Es el que más te deja por cada venta: ${formatoPesos(gananciaPorUnidad(producto))}. Ofrecelo cerca de la caja o junto a lo que se lleva la gente. Con 5 ventas más por mes ya se nota.`,
@@ -206,42 +179,14 @@ function pasoDePonerALaVista(producto: Producto): Paso {
   };
 }
 
-/** Hasta tres pasos, cada uno con un producto de verdad. Sin productos cargados no hay nada que recomendar. */
-export function pasosConcretos(sistemas: Sistema[], hoy: string, zona?: Zona): Paso[] {
-  const productos = productosDe(sistemas, hoy);
-  const pasos: Paso[] = [];
-  const usados = new Set<string>();
-
-  // 1. Subir un poco el precio de lo que más sale y poco deja.
-  const pocoMargen = productos
-    .filter((producto) => producto.vendidas > 0 && margen(producto) < 0.3)
-    .sort(masVendidoPrimero)[0];
-  if (pocoMargen) {
-    usados.add(pocoMargen.nombre);
-    pasos.push(pasoDeSubirPrecio(pocoMargen));
-  }
-
-  // 2. Hacer salir lo que está parado.
-  const parado = productos
-    .filter(
-      (producto) =>
-        producto.vendidas === 0 &&
-        producto.stock > 0 &&
-        producto.precio - producto.costo >= pasoDePrecio(producto.precio) * 2,
-    )
-    .sort((a, b) => b.costo * b.stock - a.costo * a.stock)[0];
-  if (parado) {
-    usados.add(parado.nombre);
-    pasos.push(pasoDeMoverParado(parado, zona));
-  }
-
-  // 3. Poner a la vista lo que más deja por venta.
-  const rinde = productos
-    .filter((producto) => producto.vendidas > 0 && !usados.has(producto.nombre))
-    .sort((a, b) => gananciaPorUnidad(b) - gananciaPorUnidad(a))[0];
-  if (rinde) pasos.push(pasoDePonerALaVista(rinde));
-
-  return pasos;
+/** Convierte los productos ya elegidos por el servidor en los pasos interactivos del frontend. */
+export function pasosConcretos(productos: ProductoParaPaso[]): Paso[] {
+  return productos.map(({ vendidas30Dias, ...producto }) => {
+    const datos = { ...producto, vendidas: vendidas30Dias };
+    if (producto.tipo === 'SUBIR_PRECIO') return pasoDeSubirPrecio(datos);
+    if (producto.tipo === 'MOVER_PARADO') return pasoDeMoverParado(datos);
+    return pasoDePonerALaVista(datos);
+  });
 }
 
 /** Los montos elegidos a mano, por paso; los que faltan usan el sugerido. */
@@ -290,12 +235,10 @@ const LUGAR = {
 
 /** Cómo queda el precio del paso frente a lo que cobran otros comercios de la zona; nada si hay pocos datos. */
 export function comparacionConZona(
-  producto: string,
   precioNuevo: number,
-  zona: Zona,
+  precioZona: PrecioZonaObjetivo | null,
 ): string | null {
-  const datos = productoDeZona(producto, sinDatosInsuficientes(zona));
-  if (!datos) return null;
-  const { minimo, promedio, maximo } = datos.precio;
+  if (!precioZona) return null;
+  const { minimo, promedio, maximo } = precioZona;
   return `En tu zona lo cobran entre ${formatoPesos(minimo)} y ${formatoPesos(maximo)} (en promedio ${formatoPesos(promedio)}). A ${formatoPesos(precioNuevo)} quedás ${LUGAR[posicionDelPrecio(precioNuevo, promedio)]}.`;
 }

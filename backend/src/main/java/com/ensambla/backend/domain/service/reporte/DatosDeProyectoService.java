@@ -12,6 +12,7 @@ import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.reporte.BloqueEntradas;
 import com.ensambla.backend.domain.model.reporte.BloqueGastos;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
+import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -19,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 /**
  * Carga las tablas de inventario, de ventas, de gastos y de entradas de un proyecto con sus campos por clave semántica y sus
@@ -30,6 +32,18 @@ public class DatosDeProyectoService {
     private final RegistroRepository registroRepository;
 
     public DatosDeProyecto cargar(Proyecto proyecto, NegocioId negocioId) {
+        return cargar(proyecto, bloque -> registrosReales(bloque, negocioId));
+    }
+
+    /** Reutiliza un sistema ya cargado en lote, sin volver a consultar sus filas. */
+    public DatosDeProyecto cargar(Sistema sistema) {
+        return cargar(sistema.proyecto(), bloque -> sistema.registrosPorBloque()
+                .getOrDefault(bloque.getId(), List.of()).stream()
+                .filter(registro -> !registro.esDeEjemplo())
+                .toList());
+    }
+
+    private DatosDeProyecto cargar(Proyecto proyecto, Function<Bloque, List<Registro>> registrosDe) {
         BloqueId entradasId = proyecto.getBloques().stream()
                 .filter(bloque -> bloque.getTipo() == TipoBloque.ENTRADAS)
                 .map(Bloque::getId)
@@ -39,32 +53,34 @@ public class DatosDeProyectoService {
                 proyecto.getNombre(),
                 delTipo(proyecto, TipoBloque.INVENTARIO).stream()
                         .map(bloque -> new BloqueInventario(
-                                bloque, entradasId, camposPorClave(bloque), registrosReales(bloque, negocioId)))
+                                bloque, entradasId, camposPorClave(bloque), registrosDe.apply(bloque)))
                         .toList(),
                 delTipo(proyecto, TipoBloque.VENTAS).stream()
                         .map(bloque -> new BloqueVentas(
-                                bloque, camposPorClave(bloque), registrosReales(bloque, negocioId)))
+                                bloque, camposPorClave(bloque), registrosDe.apply(bloque)))
                         .toList(),
                 delTipo(proyecto, TipoBloque.GASTOS).stream()
                         .map(bloque -> new BloqueGastos(
-                                bloque, camposPorClave(bloque), registrosReales(bloque, negocioId)))
+                                bloque, camposPorClave(bloque), registrosDe.apply(bloque)))
                         .toList(),
-                nombresDeClientes(proyecto, negocioId),
+                nombresDeClientes(proyecto, registrosDe),
                 delTipo(proyecto, TipoBloque.ENTRADAS).stream()
                         .map(bloque -> new BloqueEntradas(
-                                bloque, camposPorClave(bloque), registrosReales(bloque, negocioId)))
+                                bloque, camposPorClave(bloque), registrosDe.apply(bloque)))
                         .toList());
     }
 
     /** El nombre (campo {@code name}) de cada fila de las tablas de clientes, por id de la fila. */
-    private Map<String, String> nombresDeClientes(Proyecto proyecto, NegocioId negocioId) {
+    private Map<String, String> nombresDeClientes(
+            Proyecto proyecto,
+            Function<Bloque, List<Registro>> registrosDe) {
         Map<String, String> nombres = new LinkedHashMap<>();
         for (Bloque bloque : delTipo(proyecto, TipoBloque.CLIENTES)) {
             Campo nombre = camposPorClave(bloque).get("name");
             if (nombre == null) {
                 continue;
             }
-            for (Registro registro : registrosReales(bloque, negocioId)) {
+            for (Registro registro : registrosDe.apply(bloque)) {
                 if (registro.getValores().get(nombre.getId().toString()) instanceof String texto && !texto.isBlank()) {
                     nombres.put(registro.getId().toString(), texto.trim());
                 }
