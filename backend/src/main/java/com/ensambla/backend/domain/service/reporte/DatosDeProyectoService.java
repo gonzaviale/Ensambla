@@ -9,6 +9,7 @@ import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.reporte.BloqueEntradas;
 import com.ensambla.backend.domain.model.reporte.BloqueGastos;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
 import com.ensambla.backend.domain.model.sistema.Sistema;
@@ -22,7 +23,7 @@ import java.util.Objects;
 import java.util.function.Function;
 
 /**
- * Carga las tablas de inventario, de ventas y de gastos de un proyecto con sus campos por clave semántica y sus
+ * Carga las tablas de inventario, de ventas, de gastos y de entradas de un proyecto con sus campos por clave semántica y sus
  * registros. Las filas de ejemplo de la plantilla no son datos del negocio y quedan afuera.
  */
 @RequiredArgsConstructor
@@ -62,7 +63,11 @@ public class DatosDeProyectoService {
                         .map(bloque -> new BloqueGastos(
                                 bloque, camposPorClave(bloque), registrosDe.apply(bloque)))
                         .toList(),
-                nombresDeClientes(proyecto, registrosDe));
+                nombresDeClientes(proyecto, registrosDe),
+                delTipo(proyecto, TipoBloque.ENTRADAS).stream()
+                        .map(bloque -> new BloqueEntradas(
+                                bloque, camposPorClave(bloque), registrosDe.apply(bloque)))
+                        .toList());
     }
 
     /** El nombre (campo {@code name}) de cada fila de las tablas de clientes, por id de la fila. */

@@ -239,7 +239,7 @@ describe('el tutorial', () => {
     await user.click(within(cartel()).getByRole('button', { name: 'Salir del tutorial' }));
     expect(screen.queryByLabelText('Guía interactiva de Sami')).toBeNull();
 
-    await user.click(screen.getByRole('button', { name: /Mostrarme cómo empezar/ }));
+    await user.click(screen.getByRole('button', { name: /Primera vez/ }));
     await esperarPaso('Tres maneras de empezar.');
   });
 
