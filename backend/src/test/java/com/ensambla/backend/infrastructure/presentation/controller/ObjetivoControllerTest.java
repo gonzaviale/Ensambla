@@ -9,6 +9,12 @@ import com.ensambla.backend.domain.useCase.objetivo.eliminarObjetivo.EliminarObj
 import com.ensambla.backend.domain.useCase.objetivo.listarObjetivos.ListarObjetivos;
 import com.ensambla.backend.domain.useCase.objetivo.listarObjetivos.ListarObjetivosRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
+import com.ensambla.backend.domain.model.objetivo.TipoPasoObjetivo;
+import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasos;
+import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasosRequest;
+import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasosResponse;
+import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasosResponse.PasoItem;
+import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasosResponse.PrecioZonaItem;
 import com.ensambla.backend.infrastructure.presentation.mapper.objetivo.ObjetivoPresentationMapper;
 import com.ensambla.backend.support.MockMvcDePrueba;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,6 +50,7 @@ class ObjetivoControllerTest {
     private final ListarObjetivos listarObjetivos = mock(ListarObjetivos.class);
     private final CrearObjetivo crearObjetivo = mock(CrearObjetivo.class);
     private final EliminarObjetivo eliminarObjetivo = mock(EliminarObjetivo.class);
+    private final ObtenerPasos obtenerPasos = mock(ObtenerPasos.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private MockMvc mockMvc;
@@ -54,6 +61,7 @@ class ObjetivoControllerTest {
                 listarObjetivos,
                 crearObjetivo,
                 eliminarObjetivo,
+                obtenerPasos,
                 new ObjetivoPresentationMapper());
         mockMvc = MockMvcDePrueba.standalone(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
@@ -207,5 +215,49 @@ class ObjetivoControllerTest {
         return mockMvc.perform(post("/api/objetivos").principal(principal)
                 .contentType("application/json")
                 .content(body));
+    }
+
+    @Test
+    @DisplayName("GET pasos devuelve los productos reales con el rango de zona")
+    void pasosShouldReturnRealProductsWithZoneRange() throws Exception {
+        when(obtenerPasos.execute(any())).thenReturn(response());
+
+        mockMvc.perform(get("/api/objetivos/pasos").principal(principal))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].tipo").value("SUBIR_PRECIO"))
+                .andExpect(jsonPath("$[0].nombre").value("Yerba"))
+                .andExpect(jsonPath("$[0].precio").value(3600))
+                .andExpect(jsonPath("$[0].costo").value(2700))
+                .andExpect(jsonPath("$[0].stock").value(4))
+                .andExpect(jsonPath("$[0].vendidas30Dias").value(60))
+                .andExpect(jsonPath("$[0].precioZona.minimo").value(3500))
+                .andExpect(jsonPath("$[0].precioZona.promedio").value(3900))
+                .andExpect(jsonPath("$[0].precioZona.maximo").value(4300));
+        verify(obtenerPasos).execute(new ObtenerPasosRequest(USUARIO_ID));
+    }
+
+    @Test
+    @DisplayName("GET pasos devuelve una lista vacía cuando no hay productos para recomendar")
+    void pasosShouldReturnEmptyListWithoutCandidates() throws Exception {
+        when(obtenerPasos.execute(any())).thenReturn(new ObtenerPasosResponse(List.of()));
+
+        mockMvc.perform(get("/api/objetivos/pasos").principal(principal))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    private ObtenerPasosResponse response() {
+        return new ObtenerPasosResponse(List.of(new PasoItem(
+                TipoPasoObjetivo.SUBIR_PRECIO,
+                "Yerba",
+                decimal("3600"),
+                decimal("2700"),
+                decimal("4"),
+                decimal("60"),
+                new PrecioZonaItem(decimal("3500"), decimal("3900"), decimal("4300")))));
+    }
+
+    private BigDecimal decimal(String valor) {
+        return new BigDecimal(valor);
     }
 }

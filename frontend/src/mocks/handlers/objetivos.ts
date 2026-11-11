@@ -1,7 +1,10 @@
 import { delay, http, HttpResponse } from 'msw';
 import { z } from 'zod';
+import { hoy } from '@/lib/sistema/formato';
 import { objetivosDelServidorSchema, type ObjetivoDelServidor } from '@/types/objetivos';
-import { guardarObjetivosDe, objetivosDe } from '../db/estado';
+import { guardarObjetivosDe, objetivosDe, sistemasDe } from '../db/estado';
+import { pasosObjetivoSimulados } from '../db/objetivos';
+import { zonaDeLaPersona } from '../db/zona';
 import { errorResponse } from '../errores';
 import { api, cuenta, LATENCIA_BACKEND_MS, pathDe } from './comun';
 
@@ -56,5 +59,13 @@ export const handlersObjetivos = [
       propios.filter((objetivo) => objetivo.id !== params.id),
     );
     return new HttpResponse(null, { status: 204 });
+  }),
+  http.get(api('/objetivos/pasos'), async ({ request }) => {
+    const { usuario, error } = cuenta(request);
+    if (error) return error;
+    await delay(LATENCIA_BACKEND_MS);
+    return HttpResponse.json(
+      pasosObjetivoSimulados(sistemasDe(usuario.email), hoy(), zonaDeLaPersona()),
+    );
   }),
 ];

@@ -45,6 +45,8 @@ Las secciones sin datos se omiten (gastos, clientes, zona, productos).
   puerto `GeneradorResumenPdfPort` y adaptador `infrastructure/reporte/GeneradorResumenPdfAdapter` (OpenPDF).
 - `ResumenController`. Front: `components/sistema/modales/ModalResumen.tsx`, `api/resumen.ts`, `hooks/reportes`, `lib/descargas.ts`.
 
+Las métricas de la home (`GET /api/negocio/panel`) usan este mismo cálculo; ver [panel-negocio.md](panel-negocio.md).
+
 ## Fuera de alcance por ahora
 
 PDF o Excel por tabla desde la pantalla (el endpoint de Excel `GET /api/bloques/{id}/reporte/descarga` sigue sin pantalla), reportes por

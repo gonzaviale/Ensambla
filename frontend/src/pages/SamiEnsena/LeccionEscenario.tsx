@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useState, type CSSProperties } from 'react';
 import {
   PALANCAS,
   aportes,
@@ -12,7 +12,7 @@ import {
   type Palanca,
   type Valores,
 } from '@/lib/objetivos';
-import { Explicacion, Metrica } from '@/pages/Objetivos/piezas';
+import { Explicacion } from '@/pages/Objetivos/piezas';
 
 type Props = {
   objetivos: Objetivo[];
@@ -30,21 +30,6 @@ export function LeccionEscenario({ objetivos, objetivoId, onElegir, onDefinir, o
 
   return (
     <div className="ensenanza-leccion">
-      <ol className="ensenanza-pasos">
-        <li>
-          <strong>Elegís un objetivo.</strong>
-          <span>El escenario parte de tu resultado de hoy y de la meta que te pusiste.</span>
-        </li>
-        <li>
-          <strong>Movés las tres palancas.</strong>
-          <span>Ventas, margen y gastos. Cada una cierra una parte de lo que te falta.</span>
-        </li>
-        <li>
-          <strong>Ves qué pasaría.</strong>
-          <span>Es una simulación: no cambia tus datos, tus precios ni tus registros.</span>
-        </li>
-      </ol>
-
       {propio ? (
         objetivos.length > 1 && (
           <div className="ensenanza-selector">
@@ -101,16 +86,16 @@ function Simulador({ objetivo }: { objetivo: Objetivo }) {
   const maximo = Math.max(objetivo.meta, proyectado, hoy);
 
   const barras = [
-    { clase: 'coral', nombre: 'Hoy', valor: hoy },
-    { clase: 'naranja', nombre: 'Con tu escenario', valor: proyectado },
-    { clase: 'celeste', nombre: 'Tu objetivo', valor: objetivo.meta },
+    { clase: 'hoy', nombre: 'Hoy', valor: hoy },
+    { clase: 'escenario', nombre: 'Con tu escenario', valor: proyectado },
+    { clase: 'meta', nombre: 'Tu objetivo', valor: objetivo.meta },
   ];
 
   return (
     <>
-      <div className="objetivos-simulador">
-        <div className="objetivos-controles">
-          <h3>Cambios a probar</h3>
+      <div className="ensenanza-simulador">
+        <section className="ensenanza-panel" aria-labelledby="palancas-titulo">
+          <h3 id="palancas-titulo">Palancas</h3>
           {PALANCAS.map((palanca) => (
             <Control
               key={palanca.clave}
@@ -122,42 +107,42 @@ function Simulador({ objetivo }: { objetivo: Objetivo }) {
               }
             />
           ))}
-          <p>
-            <strong>Supuesto:</strong> la cantidad vendida no cae al mover precios. Los controles
-            arrancan en lo que recomienda Sami para llegar a tu meta.
-          </p>
-        </div>
-        <div className="objetivos-resultados">
-          <Metrica etiqueta="Resultado proyectado" valor={formatoPesos(proyectado)} />
-          <Metrica
-            etiqueta={falta === 0 ? 'Meta alcanzada' : 'Te faltaría'}
-            valor={falta === 0 ? formatoPesos(objetivo.meta) : formatoPesos(falta)}
-            alerta={falta > 0}
-          />
-          <Metrica etiqueta="Meta mensual" valor={formatoPesos(objetivo.meta)} />
-          <div className="objetivos-grafico">
-            <h3>Comparación</h3>
+          <p className="ensenanza-nota">Arrancan en lo que recomienda Sami.</p>
+        </section>
+
+        <section className="ensenanza-panel ensenanza-resultado" aria-labelledby="resultado-titulo">
+          <h3 id="resultado-titulo">Resultado</h3>
+          <p className="ensenanza-resultado-etiqueta">Resultado proyectado</p>
+          <p className="ensenanza-resultado-valor">{formatoPesos(proyectado)}</p>
+          <dl>
             <div>
-              {barras.map((barra) => (
-                <figure key={barra.nombre}>
-                  <div
-                    className={`objetivos-barra ${barra.clase}`}
-                    style={{ height: `${Math.max(6, (barra.valor / maximo) * 100)}%` }}
-                  />
-                  <figcaption>
-                    {barra.nombre}
-                    <strong>{formatoPesos(barra.valor)}</strong>
-                  </figcaption>
-                </figure>
-              ))}
+              <dt>Meta mensual</dt>
+              <dd>{formatoPesos(objetivo.meta)}</dd>
             </div>
-          </div>
-        </div>
+            <div data-alerta={falta > 0 ? 'true' : undefined}>
+              <dt>{falta === 0 ? 'Meta alcanzada' : 'Te faltaría'}</dt>
+              <dd>{falta === 0 ? '✓' : formatoPesos(falta)}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section className="ensenanza-panel" aria-labelledby="comparacion-titulo">
+          <h3 id="comparacion-titulo">Comparación</h3>
+          <ul className="ensenanza-barras">
+            {barras.map((barra) => (
+              <li key={barra.nombre} data-clase={barra.clase}>
+                <span>{barra.nombre}</span>
+                <strong>{formatoPesos(barra.valor)}</strong>
+                <i style={{ width: `${Math.max(4, (barra.valor / maximo) * 100)}%` }} />
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
       <Explicacion>
         {falta === 0
-          ? `Con estos cambios llegarías a la meta: ventas aportan ${formatoPesos(aporte.ventas)}, margen ${formatoPesos(aporte.margen)} y gastos ${formatoPesos(aporte.gastos)} por mes. Si una palanca rinde menos de lo supuesto, el resultado quedaría por debajo.`
-          : `Con estos cambios llegarías a ${formatoPesos(proyectado)} por mes y te faltarían ${formatoPesos(falta)}. Probá subir una palanca o combinar las tres. Es una estimación de demostración.`}
+          ? `Llegás a la meta: ventas aportan ${formatoPesos(aporte.ventas)}, margen ${formatoPesos(aporte.margen)} y gastos ${formatoPesos(aporte.gastos)} por mes.`
+          : `Te faltarían ${formatoPesos(falta)} por mes. Probá subir una palanca o combinar las tres.`}
       </Explicacion>
     </>
   );
@@ -175,7 +160,7 @@ function Control({
   onCambio: (valor: number) => void;
 }) {
   return (
-    <label className="objetivos-control">
+    <label className="ensenanza-control">
       <span>
         {palanca.etiqueta}
         <strong>{palanca.formato(valor)}</strong>
@@ -187,6 +172,7 @@ function Control({
         max={maximo}
         step={palanca.paso}
         value={valor}
+        style={{ '--lleno': `${maximo > 0 ? (valor / maximo) * 100 : 0}%` } as CSSProperties}
         onChange={(evento) => onCambio(Number(evento.target.value))}
       />
     </label>

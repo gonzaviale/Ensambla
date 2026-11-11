@@ -2,7 +2,9 @@ import { z } from 'zod';
 import {
   objetivoDelServidorSchema,
   objetivosDelServidorSchema,
+  productosParaPasosSchema,
   type NuevoObjetivo,
+  type ProductoParaPaso,
 } from '@/types/objetivos';
 import { http } from './client';
 
@@ -16,3 +18,6 @@ export const crearObjetivo = (objetivo: NuevoObjetivo) =>
 // Un objetivo ajeno responde 404, igual que uno que no existe.
 export const eliminarObjetivo = (id: string) =>
   http.delete(`/objetivos/${encodeURIComponent(id)}`, z.undefined());
+
+export const obtenerPasosObjetivo = (signal?: AbortSignal): Promise<ProductoParaPaso[]> =>
+  http.get('/objetivos/pasos', productosParaPasosSchema, signal);

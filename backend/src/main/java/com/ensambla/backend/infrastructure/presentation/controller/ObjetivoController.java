@@ -5,8 +5,10 @@ import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.objetivo.crearObjetivo.CrearObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.eliminarObjetivo.EliminarObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.listarObjetivos.ListarObjetivos;
+import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasos;
 import com.ensambla.backend.infrastructure.presentation.dto.objetivo.CrearObjetivoWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.objetivo.ObjetivoResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.objetivo.PasoObjetivoWebResponse;
 import com.ensambla.backend.infrastructure.presentation.mapper.objetivo.ObjetivoPresentationMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -37,6 +39,8 @@ public class ObjetivoController {
 
     private final EliminarObjetivo eliminarObjetivo;
 
+    private final ObtenerPasos obtenerPasos;
+
     private final ObjetivoPresentationMapper objetivoPresentationMapper;
 
     @GetMapping
@@ -61,5 +65,13 @@ public class ObjetivoController {
         eliminarObjetivo.execute(objetivoPresentationMapper.toEliminarRequest(
                 UsuarioId.de(authentication.getName()), objetivoId));
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/pasos")
+    @Operation(summary = "Productos reales del negocio elegidos para los pasos concretos de sus objetivos")
+    public ResponseEntity<List<PasoObjetivoWebResponse>> pasos(Authentication authentication) {
+        return ResponseEntity.ok(objetivoPresentationMapper.toResponse(obtenerPasos.execute(
+                objetivoPresentationMapper.toObtenerPasosRequest(
+                        UsuarioId.de(authentication.getName())))));
     }
 }

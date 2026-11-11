@@ -1,10 +1,14 @@
 import { queryOptions, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { listarObjetivos } from '@/api/objetivos';
+import { listarObjetivos, obtenerPasosObjetivo } from '@/api/objetivos';
 import { useUsuarioOpcional } from '@/hooks/auth/queries';
 import { objetivoDesdeServidor, type Objetivo } from '@/lib/objetivos';
 
 export const objetivosKey = ['objetivos'] as const;
+
+export const objetivosKeys = {
+  pasos: [...objetivosKey, 'pasos'] as const,
+};
 
 // Los objetivos son de la cuenta: la clave lleva a la persona para no mostrarle los de otra sesión.
 export const objetivosQuery = (usuarioId: string) =>
@@ -29,4 +33,15 @@ export function useObjetivos() {
     [consulta.data],
   );
   return { objetivos, cargando: consulta.isPending, fallo: consulta.isError };
+}
+
+export const pasosObjetivoQuery = () =>
+  queryOptions({
+    queryKey: objetivosKeys.pasos,
+    queryFn: ({ signal }) => obtenerPasosObjetivo(signal),
+    staleTime: 5 * 60_000,
+  });
+
+export function usePasosObjetivo() {
+  return useQuery(pasosObjetivoQuery());
 }
