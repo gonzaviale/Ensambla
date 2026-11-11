@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.useCase.sistema.SistemaItem;
@@ -24,7 +25,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -132,9 +132,9 @@ class ObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                         campo("date", "Fecha", "date")),
                 List.of(
                         fila(frontId(), "product", yerbaId, "quantity", 60,
-                                "price", 3600, "date", LocalDate.now().toString()),
+                                "price", 3600, "date", hoyEnElNegocio()),
                         fila(frontId(), "product", cocaColaId, "quantity", 5,
-                                "price", 2700, "date", LocalDate.now().toString())),
+                                "price", 2700, "date", hoyEnElNegocio())),
                 "", false, null);
         SistemaItem item = new SistemaItem(
                 sistemaId, "Almacén de objetivos", OffsetDateTime.now().toString(), null,
@@ -155,6 +155,11 @@ class ObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
             fila.put((String) clavesYValores[indice], clavesYValores[indice + 1]);
         }
         return fila;
+    }
+
+    /** El día del negocio (Argentina), no el del servidor: pasadas las 21:00 hora local el UTC ya es el día siguiente. */
+    private static String hoyEnElNegocio() {
+        return ZonaNegocio.dia(OffsetDateTime.now()).toString();
     }
 
     private static String frontId() {
