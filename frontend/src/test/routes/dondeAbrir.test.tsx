@@ -8,19 +8,19 @@ import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
 
 const TITULO = 'Encontrá la mejor zona para tu próximo local';
 
-const prepararNegocio = () => {
+const prepararNegocio = (localidad = 'Villa Crespo') => {
   const usuario = setupUsuarioConSesion();
   estado.negocios.set(usuario.email, {
     nombre: 'Almacén de barrio',
     rubro: 'ALMACEN',
     ubicacion: {
       direccion: 'Av. Corrientes 5000',
-      localidad: 'Villa Crespo',
+      localidad,
       latitud: -34.5996,
       longitud: -58.4403,
     },
     comparteDatosZona: true,
-    zona: 'Villa Crespo',
+    zona: localidad,
   });
   return usuario;
 };
@@ -112,6 +112,18 @@ describe('dónde abrir', () => {
     await user.click(screen.getByRole('button', { name: /Seguir con una papelería/ }));
 
     expect(await screen.findByText('¿Dónde querés buscar?')).toBeVisible();
+  });
+
+  it('toma la localidad real del negocio para buscar cerca', async () => {
+    prepararNegocio('San Justo');
+    renderApp('/zona/donde-abrir');
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole('button', { name: /Sí, es correcto/ }, ESPERA));
+
+    expect(screen.getByRole('button', { name: /Cerca de mi local actual/ })).toHaveTextContent(
+      'Hasta 4 km de San Justo',
+    );
   });
 
   it('hace las preguntas de a una, y lo ya respondido queda como una charla', async () => {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { Sami } from '@/components/sistema/Sami';
+import { useConfiguracionNegocio } from '@/hooks/negocio/queries';
 import type { RespuestasDeSami } from '@/lib/respuestasDeSami';
 
 type Opcion = { valor: string; titulo: string; ayuda: string };
@@ -15,7 +16,7 @@ const PREGUNTAS: Pregunta[] = [
     clave: 'alcance',
     texto: '¿Dónde querés buscar?',
     opciones: [
-      { valor: 'cerca', titulo: 'Cerca de mi local actual', ayuda: 'Hasta 4 km de Villa Crespo' },
+      { valor: 'cerca', titulo: 'Cerca de mi local actual', ayuda: 'Hasta 4 km de tu local actual' },
       {
         valor: 'toda',
         titulo: 'En cualquier zona',
@@ -69,6 +70,8 @@ type Props = {
 // Sami pregunta de a una. Lo ya respondido queda arriba como una charla; al contestar la última, muestra las zonas.
 export function PreguntasDeSami({ respuestas, onResponder, onTerminar }: Props) {
   const [indice, setIndice] = useState(0);
+  const negocio = useConfiguracionNegocio().data;
+  const localidad = negocio?.ubicacion?.localidad ?? negocio?.zona ?? 'tu local actual';
   const actual = PREGUNTAS[indice];
 
   const responder = (pregunta: Pregunta, valor: string) => {
@@ -116,7 +119,9 @@ export function PreguntasDeSami({ respuestas, onResponder, onTerminar }: Props) 
                 onClick={() => responder(actual, opcion.valor)}
               >
                 <strong>{opcion.titulo}</strong>
-                <span>{opcion.ayuda}</span>
+                <span>
+                  {opcion.valor === 'cerca' ? `Hasta 4 km de ${localidad}` : opcion.ayuda}
+                </span>
               </button>
             ))}
           </div>
