@@ -677,16 +677,52 @@ body:has(.inicio) {
 .panel-tarjeta-detalle:hover {
   text-decoration: underline;
 }
-.panel-flujo {
+/* Las secciones plegables de la home: cerradas muestran el título y su dato clave */
+.panel-desplegable {
   margin-top: 12px;
-  padding: 16px 20px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--paper);
   box-shadow: var(--shadow);
 }
-.panel-flujo h3 {
+.panel-desplegable > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  padding: 14px 20px;
+  cursor: pointer;
+  list-style: none;
+}
+.panel-desplegable > summary::-webkit-details-marker {
+  display: none;
+}
+.panel-desplegable > summary h3 {
+  margin: 0;
   font-size: 18px;
+}
+.panel-desplegable-resumen {
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--panel-suave);
+}
+.panel-desplegable > summary > svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  transition: transform 0.15s ease;
+}
+.panel-desplegable[open] > summary > svg {
+  transform: rotate(180deg);
+}
+.panel-desplegable > summary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+  border-radius: var(--radius);
+}
+.panel-desplegable-cuerpo {
+  padding: 0 20px 16px;
 }
 .panel-flujo-bajada {
   margin: 2px 0 10px;
@@ -784,9 +820,6 @@ body:has(.inicio) {
 }
 
 /* Las sugerencias de Sami: una línea cada una, con el botón de lo que propone */
-.panel-decisiones {
-  margin-top: 12px;
-}
 .panel-decisiones-cabecera {
   display: flex;
   flex-wrap: wrap;
@@ -794,9 +827,6 @@ body:has(.inicio) {
   justify-content: space-between;
   gap: 6px 16px;
   margin-bottom: 8px;
-}
-.panel-decisiones-cabecera h3 {
-  font-size: 18px;
 }
 .panel-decisiones-cabecera p {
   margin: 2px 0 0;

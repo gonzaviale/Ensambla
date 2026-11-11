@@ -12,8 +12,9 @@ import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import type { AccionDeAviso, Aviso } from '@/lib/sistema/alertas';
 import { sugerenciasDeLaHome } from '@/lib/sistema/sugerenciasDeLaHome';
 import { useSistemaStore } from '@/stores/sistemaStore';
+import { Desplegable } from './Desplegable';
 
-// Las sugerencias más importantes de Sami al lado de los números, en una línea cada una: qué pasa y el botón con
+// Las sugerencias más importantes de Sami, en una sección que arranca cerrada, en una línea cada una: qué pasa y el botón con
 // lo que propone. El porqué y descartar quedan un toque más adentro, para no descartar sin querer. La lista sale
 // del motor de avisos (los del servidor y los que Sami calcula en el navegador, con el límite del plan aplicado).
 // Sin avisos la sección no aparece.
@@ -26,12 +27,9 @@ export function DecisionesRapidas() {
   const sugerencias = sugerenciasDeLaHome(avisos);
   const restantes = avisos.length - sugerencias.length;
   return (
-    <section className="panel-decisiones" aria-labelledby="panel-decisiones-titulo">
+    <Desplegable titulo="Para decidir hoy" resumen={resumenDe(sugerencias)}>
       <div className="panel-decisiones-cabecera">
-        <div>
-          <h3 id="panel-decisiones-titulo">Para decidir hoy</h3>
-          <p>Lo más importante que vio Sami en tu negocio.</p>
-        </div>
+        <p>Lo más importante que vio Sami en tu negocio.</p>
         {restantes > 0 && (
           <Btn cls="small soft" onClick={() => void navegacion.irAAvisos()}>
             Ver las otras {restantes} <Icon name="arrow" />
@@ -48,8 +46,16 @@ export function DecisionesRapidas() {
           />
         ))}
       </ul>
-    </section>
+    </Desplegable>
   );
+}
+
+/** «3 sugerencias · 1 urgente»: lo que hay para decidir, sin abrir la sección. */
+function resumenDe(sugerencias: Aviso[]) {
+  const urgentes = sugerencias.filter((aviso) => aviso.prioridad === 3).length;
+  const cuantas = `${sugerencias.length} ${sugerencias.length === 1 ? 'sugerencia' : 'sugerencias'}`;
+  if (urgentes === 0) return cuantas;
+  return `${cuantas} · ${urgentes} ${urgentes === 1 ? 'urgente' : 'urgentes'}`;
 }
 
 type Props = {

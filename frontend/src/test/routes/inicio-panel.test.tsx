@@ -30,12 +30,29 @@ const titulo = () => screen.queryByRole('heading', { name: NOMBRE_DEL_PANEL });
 /** El título aparece mientras carga: lo que hay que esperar es el flujo de caja. */
 const cifrasAsync = () =>
   screen.findByText(/Lo fiado no entra hasta que lo cobrás/, undefined, ESPERA);
+/** El flujo de caja arranca cerrado: se espera a que llegue y se abre como lo haría la persona. */
+const abrirFlujoAsync = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(
+    await screen.findByRole('heading', { name: 'Tu flujo de caja, semana a semana' }, ESPERA),
+  );
+};
 
 describe('inicio: panel del negocio', () => {
-  it('con ventas muestra el flujo de caja de los últimos 30 días, sin repetir las métricas del tablero', async () => {
-    await abrirInicio([crearAlmacenCargado(hoy())]);
+  it('con ventas muestra el flujo de caja cerrado, con lo que te va quedando, y sin repetir las métricas del tablero', async () => {
+    const { user } = await abrirInicio([crearAlmacenCargado(hoy())]);
 
-    await cifrasAsync();
+    const titulo = await screen.findByRole(
+      'heading',
+      { name: 'Tu flujo de caja, semana a semana' },
+      ESPERA,
+    );
+    const flujo = titulo.closest('details') as HTMLElement;
+    expect(flujo).not.toHaveAttribute('open');
+    expect(within(flujo).getByText(/^Te va quedando \$/)).toBeVisible();
+    expect(within(flujo).getByText(/Lo fiado no entra hasta que lo cobrás/)).not.toBeVisible();
+
+    await user.click(titulo);
+
     const panel = screen.getByRole('region', { name: NOMBRE_DEL_PANEL });
     expect(within(panel).getByText(/Los últimos 30 días/)).toBeVisible();
     expect(within(panel).getByText(/Lo fiado no entra hasta que lo cobrás/)).toBeVisible();
@@ -44,8 +61,8 @@ describe('inicio: panel del negocio', () => {
   });
 
   it('el flujo de caja es una fila por semana con lo que entró, salió y el saldo, escrito', async () => {
-    await abrirInicio([crearAlmacenCargado(hoy())]);
-    await cifrasAsync();
+    const { user } = await abrirInicio([crearAlmacenCargado(hoy())]);
+    await abrirFlujoAsync(user);
 
     const semanas = within(screen.getByRole('list', { name: 'Flujo de caja por semana' }));
     const filas = semanas.getAllByRole('listitem');
@@ -195,7 +212,9 @@ describe('inicio: panel del negocio', () => {
     );
     await clickButton(user, 'Probar de nuevo');
 
-    expect(await cifrasAsync()).toBeVisible();
+    expect(
+      await screen.findByRole('heading', { name: 'Tu flujo de caja, semana a semana' }, ESPERA),
+    ).toBeVisible();
     expect(screen.queryByRole('alert')).toBeNull();
   });
 });

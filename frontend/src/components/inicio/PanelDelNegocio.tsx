@@ -5,10 +5,11 @@ import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
 import { usePanelDelNegocio } from '@/hooks/panel/queries';
 import { useCuadernoElegido } from '@/hooks/reportes/useCuadernoElegido';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
-import { bloqueDeVentas, sistemaDelPanel } from '@/lib/sistema/panelDelNegocio';
+import { bloqueDeVentas, pesos, sistemaDelPanel } from '@/lib/sistema/panelDelNegocio';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import type { PanelDelNegocio as Panel } from '@/types/panel';
 import { DecisionesRapidas } from './DecisionesRapidas';
+import { Desplegable } from './Desplegable';
 import { FlujoDeCajaPorSemana } from './FlujoDeCajaPorSemana';
 
 const DIA_MES = (fecha: string) => `${fecha.slice(8, 10)}/${fecha.slice(5, 7)}`;
@@ -80,14 +81,17 @@ function Esqueleto() {
 }
 
 function FlujoDeCaja({ panel }: { panel: Panel }) {
+  const queda = panel.flujoDeCaja.at(-1)?.saldoAcumulado ?? 0;
   return (
-    <div className="panel-flujo">
-      <h3>Tu flujo de caja, semana a semana</h3>
+    <Desplegable
+      titulo="Tu flujo de caja, semana a semana"
+      resumen={`Te va quedando ${pesos(queda)}`}
+    >
       <p className="panel-flujo-bajada">
         Entra lo que cobraste. Sale lo que gastaste y la mercadería que compraste. Lo fiado no entra
         hasta que lo cobrás.
       </p>
       <FlujoDeCajaPorSemana semanas={panel.flujoDeCaja} />
-    </div>
+    </Desplegable>
   );
 }

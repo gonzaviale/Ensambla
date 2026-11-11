@@ -6,7 +6,8 @@ diferencias que se explican abajo.
 
 **Qué muestra hoy la home.** La bienvenida compacta arriba; después el tablero «Cómo te va» (lo vendido y el aviso económico, con el selector
 de cuaderno: `ObtenerResumenInicio` y `ObtenerAvisoEconomico`); y debajo «Tu plata y lo que conviene hacer», con las sugerencias de Sami y el
-flujo de caja de este endpoint, del mismo cuaderno que se eligió arriba. Las métricas de este endpoint (`vendiste`, `queda`, `teDeben`,
+flujo de caja de este endpoint, del mismo cuaderno que se eligió arriba. Esas dos secciones son desplegables y arrancan cerradas, para no
+saturar el inicio: el encabezado ya dice lo principal («3 sugerencias · 1 urgente», «Te va quedando $800.500»). Las métricas de este endpoint (`vendiste`, `queda`, `teDeben`,
 `margen`…) siguen en la respuesta pero la home ya no las dibuja: para vendido y rentabilidad manda el tablero.
 
 ## Cómo se pide
@@ -96,5 +97,5 @@ avisos que ya corre en el navegador (los del servidor más los que calcula Sami,
 - Backend: `domain/model/reporte/PanelNegocio` (cálculo puro), `BloqueEntradas`, `PeriodoResumen.ultimosDias`,
   `domain/service/reporte/DatosDeProyectoService` (carga también las entradas), `domain/useCase/reporte/obtenerPanelNegocio/*`,
   `PanelNegocioController` y `PanelNegocioPresentationMapper`. La prueba de punta a punta con base real es `PanelNegocioIntegrationTest`.
-- Front: `components/inicio/*` (`PanelDelNegocio`, `FlujoDeCajaPorSemana`, `DecisionesRapidas`), `components/sistema/MetricasDelInicio`, `api/panel.ts`, `hooks/panel/queries.ts`,
+- Front: `components/inicio/*` (`PanelDelNegocio`, `FlujoDeCajaPorSemana`, `DecisionesRapidas`, `Desplegable`), `components/sistema/MetricasDelInicio`, `api/panel.ts`, `hooks/panel/queries.ts`,
   `lib/sistema/panelDelNegocio.ts` (qué cuaderno mirar y el formato de pesos y porcentajes) y, para el modo demo, `mocks/db/panel.ts`.
