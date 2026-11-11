@@ -71,8 +71,21 @@ otra. La API de prueba no tiene ventana de 24 h ni plantillas: eso aparece reci�
    el nombre de otro comercio lo cambia.
 2. Busca el comercio **por nombre** entre los negocios con WhatsApp vinculado, sin tildes ni mayúsculas y tolerando errores. Si
    hay uno solo lo elige; si varios se parecen (por ejemplo «almacén») los muestra numerados y espera el número; si ninguno, lo dice.
-3. Ya con el comercio, recibe el pedido. Escribir *CAMBIAR* (o «otro comercio») vuelve al paso 1. Todavía no arma la lista de
-   compra: eso se suma en la fase siguiente.
+3. Ya con el comercio, recibe el pedido en texto libre. Escribir *CAMBIAR* (o «otro comercio») vuelve al paso 1.
+
+**Armar la lista de compra.** Lo que el cliente escribe («dame 2 yerba playadito, aceite y fideos») pasa por la IA
+(`InterpretePedidoIaPort`: simulado sin costo, o el modelo rápido de Sami), que lo convierte en cosas con su cantidad. Después
+`BuscadorDeProductos` las busca en el inventario del comercio:
+
+- Pedido claro («yerba playadito»): agrega ese producto.
+- Pedido vago («aceite»): elige la primera opción razonable y muestra «También tengo: …» con las otras marcas, para poder cambiarla.
+- Sin stock suficiente: deja lo que hay y lo avisa («solo tengo 3»).
+- El comercio no lo tiene: «No tengo X, pero tengo Y ($precio)» si hay algo del mismo tipo, o solo «No tengo X».
+
+La lista muestra precios, subtotales y total. Nada sale de otro lado que del stock del comercio: nombre, precio y stock son los campos
+`name`, `price` y `quantity` de sus inventarios. Una consulta a la IA cuenta como una consulta de Sami del comercio elegido (mismo plan
+y mismo límite diario que el taller); un comercio sin productos con precio y stock no gasta ninguna. Cambiar de marca y confirmar el
+pedido se suman en la fase siguiente.
 
 Si el cliente no habla por 30 minutos, la próxima vez Sami vuelve a saludar. Si el comercio deja de tener WhatsApp vinculado
 mientras tanto, Sami lo avisa y pregunta de nuevo.

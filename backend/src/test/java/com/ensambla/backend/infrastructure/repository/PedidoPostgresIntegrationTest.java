@@ -4,7 +4,10 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pedido.ClienteWhatsapp;
 import com.ensambla.backend.domain.model.pedido.Comercio;
 import com.ensambla.backend.domain.model.pedido.ConversacionCliente;
+import com.ensambla.backend.domain.model.pedido.LineaDeCompra;
 import com.ensambla.backend.domain.model.pedido.MensajeCliente;
+import com.ensambla.backend.domain.model.pedido.ProductoEnStock;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.whatsapp.EstadoMensajeWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.MensajeEntrante;
@@ -21,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -130,12 +134,20 @@ class PedidoPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         ConversacionCliente guardada = conversaciones.findByClienteId(cliente.getId()).orElseThrow();
         assertThat(guardada.getOpciones()).containsExactly(negocioId);
         guardada.elegir(negocioId, AHORA.plusMinutes(1));
+        ProductoEnStock yerba = new ProductoEnStock(RegistroId.nuevo(), "Yerba Playadito 1 kg",
+                new BigDecimal("3500.50"), new BigDecimal("10"));
+        guardada.armarLista(List.of(LineaDeCompra.de(yerba, new BigDecimal("2"), List.of())), AHORA.plusMinutes(2));
         conversaciones.save(guardada);
 
         ConversacionCliente actualizada = conversaciones.findByClienteId(cliente.getId()).orElseThrow();
         assertThat(actualizada.getId()).isEqualTo(guardada.getId());
         assertThat(actualizada.getNegocioId()).isEqualTo(negocioId);
         assertThat(actualizada.getOpciones()).isEmpty();
+        assertThat(actualizada.getLista()).singleElement().satisfies(linea -> {
+            assertThat(linea.producto()).isEqualTo(yerba);
+            assertThat(linea.cantidad()).isEqualByComparingTo("2");
+            assertThat(linea.subtotal()).isEqualByComparingTo("7001");
+        });
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM conversacion_cliente WHERE cliente_id = ?",
                 Integer.class, cliente.getId().valor())).isEqualTo(1);
     }

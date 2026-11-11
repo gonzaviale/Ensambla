@@ -7,7 +7,7 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V12__planes_y_suscripciones.sql`, `V13__limites_y_funciones_por_plan.sql`, `V14__prueba_premium.sql`,
 `V15__renovaciones_y_pagos_premium.sql`,
 `V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
-`V24__objetivo.sql`, `V25__clientes_whatsapp.sql`, `V26__conversacion_cliente.sql`).
+`V24__objetivo.sql`, `V25__clientes_whatsapp.sql`, `V26__conversacion_cliente.sql`, `V27__lista_de_compra_conversacion.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -283,6 +283,13 @@ cascada con él): si pasa un rato sin hablar, la misma fila se reinicia.
 - `opciones` (`jsonb`, lista de ids de negocio): los comercios parecidos entre los que tiene que elegir con un número, en el orden
   en que se le mostraron.
 - `actualizado_en`: cuándo habló por última vez. Pasados 30 minutos la conversación vuelve a saludar y preguntar el comercio.
+
+**La lista de compra (V27).** `lista` (`jsonb`, lista de renglones) guarda lo que Sami armó con el stock del comercio mientras espera
+confirmación. Cada renglón lleva el producto elegido (id de su fila de inventario, nombre, precio y stock al momento de armarla),
+la cantidad (nunca más que el stock; si se limitó, `limitadaPorStock`) y las alternativas de otra marca. Elegir comercio, reiniciar
+u ofrecer opciones la vacía. **Nada de la lista sale de otro lado que del inventario del comercio:** nombre, precio y stock son los
+campos `name`, `price` y `quantity` de sus tablas de inventario (sin las filas de ejemplo); un producto sin precio o sin stock no
+se ofrece.
 
 **Los comercios son los negocios con un número vinculado** (`whatsapp_vinculo`). El cliente nombra el comercio y Sami lo busca por
 nombre sin tildes ni mayúsculas, tolerando errores de tipeo; si varios se parecen, los muestra numerados (hasta 9). Los nombres de

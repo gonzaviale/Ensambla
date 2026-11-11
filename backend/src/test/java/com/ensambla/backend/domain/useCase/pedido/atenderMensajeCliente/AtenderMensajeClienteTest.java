@@ -1,28 +1,43 @@
 package com.ensambla.backend.domain.useCase.pedido.atenderMensajeCliente;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pedido.ClienteId;
 import com.ensambla.backend.domain.model.pedido.ClienteWhatsapp;
 import com.ensambla.backend.domain.model.pedido.Comercio;
+import com.ensambla.backend.domain.model.pedido.ConsultaPedido;
 import com.ensambla.backend.domain.model.pedido.ConversacionCliente;
 import com.ensambla.backend.domain.model.pedido.EstadoConversacionCliente;
+import com.ensambla.backend.domain.model.pedido.LineaPedida;
 import com.ensambla.backend.domain.model.pedido.MensajeCliente;
+import com.ensambla.backend.domain.model.pedido.PedidoInterpretado;
+import com.ensambla.backend.domain.model.pedido.ProductoFaltante;
 import com.ensambla.backend.domain.model.pedido.TextosPedido;
+import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.sami.ConsumoIaSami;
 import com.ensambla.backend.domain.model.whatsapp.EstadoMensajeWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.MensajeEntrante;
 import com.ensambla.backend.domain.model.whatsapp.TextosWhatsapp;
 import com.ensambla.backend.domain.model.whatsapp.TipoMensajeWhatsapp;
+import com.ensambla.backend.domain.port.InterpretePedidoIaPort;
 import com.ensambla.backend.domain.port.MensajeriaWhatsappPort;
 import com.ensambla.backend.domain.repository.pedido.ClienteWhatsappRepository;
 import com.ensambla.backend.domain.repository.pedido.ComercioRepository;
 import com.ensambla.backend.domain.repository.pedido.ConversacionClienteRepository;
 import com.ensambla.backend.domain.repository.pedido.MensajeClienteRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
+import com.ensambla.backend.domain.repository.registro.RegistroRepository;
+import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
+import com.ensambla.backend.support.PedidoTestData;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -31,8 +46,12 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
+import static com.ensambla.backend.support.PedidoTestData.INVENTARIO_ID;
+import static com.ensambla.backend.support.PedidoTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.PedidoTestData.proyectoConInventario;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -53,16 +72,23 @@ class AtenderMensajeClienteTest {
             "Almacén Doña Rosa");
     private static final Comercio KIOSCO = new Comercio(NegocioId.de("a0000000-0000-4000-8000-000000000003"),
             "Kiosco Sol");
+    private static final int LIMITE_SAMI = 60;
     private static final NegocioId CERRADO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000009");
 
     private final MensajeClienteRepository mensajeRepository = mock(MensajeClienteRepository.class);
     private final ClienteWhatsappRepository clienteRepository = mock(ClienteWhatsappRepository.class);
     private final ConversacionClienteRepository conversacionRepository = mock(ConversacionClienteRepository.class);
     private final ComercioRepository comercioRepository = mock(ComercioRepository.class);
+    private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
+    private final RegistroRepository registroRepository = mock(RegistroRepository.class);
+    private final ControlPlanService controlPlanService = mock(ControlPlanService.class);
+    private final ConsumoSamiRepository consumoSamiRepository = mock(ConsumoSamiRepository.class);
+    private final InterpretePedidoIaPort interpreteIa = mock(InterpretePedidoIaPort.class);
     private final MensajeriaWhatsappPort mensajeria = mock(MensajeriaWhatsappPort.class);
     private final AtenderMensajeCliente atenderMensajeCliente = new AtenderMensajeCliente(mensajeRepository,
-            clienteRepository, conversacionRepository, comercioRepository, mensajeria, new TransaccionDirecta(),
-            Clock.fixed(INSTANTE, ZoneOffset.UTC), VIGENCIA);
+            clienteRepository, conversacionRepository, comercioRepository, proyectoRepository,
+            new DatosDeProyectoService(registroRepository), controlPlanService, consumoSamiRepository, interpreteIa,
+            mensajeria, new TransaccionDirecta(), Clock.fixed(INSTANTE, ZoneOffset.UTC), VIGENCIA, LIMITE_SAMI);
 
     // --- la cola ---
 
@@ -397,19 +423,124 @@ class AtenderMensajeClienteTest {
     // --- pedir ---
 
     @Test
-    @DisplayName("Ya con el comercio elegido, el pedido todavía no se arma y se lo avisa sin salir de la conversación")
-    void executeShouldKeepTheBusinessWhileOrdering() {
-        givenMensajeReclamado("dame 1 kilo de yerba");
-        givenComercios(DON_PEPE);
-        givenClienteConocido(DON_PEPE.id());
-        givenConversacionVigente(EstadoConversacionCliente.PIDIENDO, DON_PEPE.id(), List.of());
+    @DisplayName("Arma la lista con productos reales del comercio, con precios y total, y la guarda en la conversación")
+    void executeShouldBuildTheShoppingListFromTheStock() {
+        givenMensajeReclamado("dame 2 yerba playadito, aceite y pañales");
+        givenPidiendoADonPepe();
+        givenStock(registro("Yerba Playadito 1 kg", 3500, 10), registro("Aceite Cocinero 900 ml", 2000, 3),
+                registro("Aceite Natura 900 ml", 2400, 8));
+        ConsumoIaSami consumo = new ConsumoIaSami("bedrock", "haiku", 100, 20);
+        when(interpreteIa.interpretar(any(ConsultaPedido.class))).thenReturn(new PedidoInterpretado(List.of(
+                new LineaPedida("yerba playadito", BigDecimal.valueOf(2)), new LineaPedida("aceite", null),
+                new LineaPedida("pañales", null)), consumo));
 
         atenderMensajeCliente.execute();
 
-        verify(mensajeria).enviarTexto(TELEFONO, TextosPedido.PEDIDO_EN_CONSTRUCCION);
+        ArgumentCaptor<String> respuesta = ArgumentCaptor.forClass(String.class);
+        verify(mensajeria).enviarTexto(org.mockito.ArgumentMatchers.eq(TELEFONO), respuesta.capture());
+        assertThat(respuesta.getValue()).contains("Tu pedido en *Almacén Don Pepe*:",
+                "1) Yerba Playadito 1 kg x2 — $7.000", "2) Aceite Cocinero 900 ml x1 — $2.000",
+                "También tengo: Aceite Natura 900 ml", "Total: $9.000", "No tengo «pañales».");
         ConversacionCliente conversacion = thenConversacionGuardada();
         assertThat(conversacion.getEstado()).isEqualTo(EstadoConversacionCliente.PIDIENDO);
+        assertThat(conversacion.getLista()).extracting(linea -> linea.producto().nombre())
+                .containsExactly("Yerba Playadito 1 kg", "Aceite Cocinero 900 ml");
         assertThat(conversacion.getActualizadoEn()).isEqualTo(AHORA);
+        verify(controlPlanService).exigirIa(DON_PEPE.id());
+        verify(consumoSamiRepository).registrar(DON_PEPE.id(), ZonaNegocio.dia(AHORA), consumo, AHORA);
+    }
+
+    @Test
+    @DisplayName("A la IA le pasa lo que escribió el cliente y los nombres de los productos del comercio")
+    void executeShouldGiveTheAiTheProductNames() {
+        givenMensajeReclamado("dame yerba");
+        givenPidiendoADonPepe();
+        givenStock(registro("Yerba Playadito 1 kg", 3500, 10), registro("Aceite Cocinero 900 ml", 2000, 3));
+        when(interpreteIa.interpretar(any(ConsultaPedido.class))).thenReturn(PedidoInterpretado.sinResultado(null));
+
+        atenderMensajeCliente.execute();
+
+        ArgumentCaptor<ConsultaPedido> consulta = ArgumentCaptor.forClass(ConsultaPedido.class);
+        verify(interpreteIa).interpretar(consulta.capture());
+        assertThat(consulta.getValue().texto()).isEqualTo("dame yerba");
+        assertThat(consulta.getValue().productos()).containsExactly("Aceite Cocinero 900 ml", "Yerba Playadito 1 kg");
+    }
+
+    @Test
+    @DisplayName("Una consulta sin costo (modo simulado) no se registra en el consumo")
+    void executeShouldNotRecordConsumptionWhenThereIsNone() {
+        givenMensajeReclamado("yerba");
+        givenPidiendoADonPepe();
+        givenStock(registro("Yerba Playadito 1 kg", 3500, 10));
+        when(interpreteIa.interpretar(any(ConsultaPedido.class))).thenReturn(new PedidoInterpretado(
+                List.of(new LineaPedida("yerba", null)), null));
+
+        atenderMensajeCliente.execute();
+
+        verify(consumoSamiRepository, never()).registrar(any(), any(), any(), any());
+        assertThat(thenConversacionGuardada().getLista()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("Un comercio sin productos con precio y stock no gasta una consulta de IA y lo dice")
+    void executeShouldNotCallTheAiWhenThereAreNoProducts() {
+        givenMensajeReclamado("dame yerba");
+        givenPidiendoADonPepe();
+        givenStock(registro("Agotado", 100, 0));
+
+        atenderMensajeCliente.execute();
+
+        verify(mensajeria).enviarTexto(TELEFONO, TextosPedido.sinProductos("Almacén Don Pepe"));
+        verify(interpreteIa, never()).interpretar(any());
+        verify(consumoSamiRepository, never()).reservar(any(), any(), anyInt(), any());
+        assertThat(thenConversacionGuardada().getActualizadoEn()).isEqualTo(AHORA);
+    }
+
+    @Test
+    @DisplayName("Con el límite diario de Sami agotado avisa al cliente y no pregunta a la IA")
+    void executeShouldRejectWhenTheDailyLimitIsReached() {
+        MensajeCliente mensaje = givenMensajeReclamado("dame yerba");
+        givenPidiendoADonPepe();
+        givenStock(registro("Yerba Playadito 1 kg", 3500, 10));
+        when(consumoSamiRepository.reservar(DON_PEPE.id(), ZonaNegocio.dia(AHORA), LIMITE_SAMI, AHORA))
+                .thenReturn(false);
+
+        atenderMensajeCliente.execute();
+
+        verify(mensajeria).enviarTexto(TELEFONO, TextosWhatsapp.LIMITE_SAMI);
+        verify(interpreteIa, never()).interpretar(any());
+        thenMensajeGuardado(mensaje, EstadoMensajeWhatsapp.ATENDIDO);
+        verify(conversacionRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Si el mensaje no era un pedido le explica cómo pedir y no toca la lista")
+    void executeShouldExplainHowToOrderWhenNothingWasUnderstood() {
+        givenMensajeReclamado("gracias");
+        givenPidiendoADonPepe();
+        givenStock(registro("Yerba Playadito 1 kg", 3500, 10));
+        when(interpreteIa.interpretar(any(ConsultaPedido.class))).thenReturn(PedidoInterpretado.sinResultado(null));
+
+        atenderMensajeCliente.execute();
+
+        verify(mensajeria).enviarTexto(TELEFONO, TextosPedido.NO_ENTENDI_PEDIDO);
+        assertThat(thenConversacionGuardada().getLista()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Si el comercio no tiene nada de lo pedido lo dice, recomienda lo parecido y no arma la lista")
+    void executeShouldReportWhenNothingIsInStock() {
+        givenMensajeReclamado("pañales");
+        givenPidiendoADonPepe();
+        givenStock(registro("Yerba Playadito 1 kg", 3500, 10));
+        when(interpreteIa.interpretar(any(ConsultaPedido.class))).thenReturn(new PedidoInterpretado(
+                List.of(new LineaPedida("pañales", null)), null));
+
+        atenderMensajeCliente.execute();
+
+        verify(mensajeria).enviarTexto(TELEFONO,
+                TextosPedido.sinCoincidencias(List.of(new ProductoFaltante("pañales", null))));
+        assertThat(thenConversacionGuardada().getLista()).isEmpty();
     }
 
     @Test
@@ -443,6 +574,24 @@ class AtenderMensajeClienteTest {
     }
 
     // --- datos de prueba ---
+
+    private void givenPidiendoADonPepe() {
+        givenComercios(DON_PEPE);
+        givenClienteConocido(DON_PEPE.id());
+        givenConversacionVigente(EstadoConversacionCliente.PIDIENDO, DON_PEPE.id(), List.of());
+        when(consumoSamiRepository.reservar(any(), any(), anyInt(), any())).thenReturn(true);
+    }
+
+    /** El inventario de Don Pepe: un proyecto con una tabla de inventario y estas filas. */
+    private void givenStock(Registro... registros) {
+        when(proyectoRepository.findAllByNegocioId(DON_PEPE.id())).thenReturn(List.of(proyectoConInventario()));
+        when(registroRepository.findAllByBloqueIdAndNegocioId(INVENTARIO_ID, NEGOCIO_ID))
+                .thenReturn(List.of(registros));
+    }
+
+    private static Registro registro(String nombre, Object precio, Object stock) {
+        return PedidoTestData.registro(nombre, precio, stock, false);
+    }
 
     private MensajeCliente givenMensajeReclamado(String texto) {
         MensajeCliente mensaje = givenMensaje(texto);

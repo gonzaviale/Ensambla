@@ -48,6 +48,10 @@ public class ConversacionClienteEntity {
     @Column(nullable = false, columnDefinition = "jsonb")
     private String opciones;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(nullable = false, columnDefinition = "jsonb")
+    private String lista;
+
     @Column(name = "actualizado_en", nullable = false)
     private OffsetDateTime actualizadoEn;
 }

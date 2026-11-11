@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.model.sami.DiccionarioSami;
 import com.ensambla.backend.domain.model.sami.taller.CatalogoComponentes;
 import com.ensambla.backend.domain.model.sami.taller.KitRubro;
 import com.ensambla.backend.domain.model.sami.taller.KitsRubro;
+import com.ensambla.backend.domain.port.InterpretePedidoIaPort;
 import com.ensambla.backend.domain.port.InterpreteRegistrosIaPort;
 import com.ensambla.backend.domain.port.SamiIaPort;
 import com.ensambla.backend.domain.port.TallerIaPort;
@@ -75,6 +76,27 @@ public class SamiConfig {
         ClienteModeloTexto modelo = proveedores.elegir(ajustes.proveedor())
                 .texto(ajustes, ajustes.modeloRapido(), ia.maxTokens());
         return new InterpreteRegistrosIaAdapter(modelo, prompt, objectMapper);
+    }
+
+    /** Interpreta lo que pide un cliente por WhatsApp; igual que los registros: simulado sin costo o el modelo rápido. */
+    @Bean
+    PromptWhatsappPedido promptWhatsappPedido() {
+        return new PromptWhatsappPedido(new ClassPathResource("ia/prompt-whatsapp-pedido.md"),
+                new ClassPathResource("ia/esquema-whatsapp-pedido.json"));
+    }
+
+    @Bean
+    InterpretePedidoIaPort interpretePedidoIaPort(PromptWhatsappPedido prompt, ObjectMapper objectMapper,
+                                                  SamiProperties properties, IaProperties iaProperties,
+                                                  ProveedoresIa proveedores) {
+        SamiProperties.Ia ia = properties.ia();
+        AjustesIa ajustes = ia.ajustes(iaProperties);
+        if (ClienteModeloTextoSimulado.PROVEEDOR.equals(ajustes.proveedor())) {
+            return new InterpretePedidoSimulado();
+        }
+        ClienteModeloTexto modelo = proveedores.elegir(ajustes.proveedor())
+                .texto(ajustes, ajustes.modeloRapido(), ia.maxTokens());
+        return new InterpretePedidoIaAdapter(modelo, prompt, objectMapper);
     }
 
     /**

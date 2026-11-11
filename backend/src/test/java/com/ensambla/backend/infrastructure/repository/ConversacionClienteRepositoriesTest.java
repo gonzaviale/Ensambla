@@ -6,6 +6,9 @@ import com.ensambla.backend.domain.model.pedido.Comercio;
 import com.ensambla.backend.domain.model.pedido.ConversacionCliente;
 import com.ensambla.backend.domain.model.pedido.ConversacionClienteId;
 import com.ensambla.backend.domain.model.pedido.EstadoConversacionCliente;
+import com.ensambla.backend.domain.model.pedido.LineaDeCompra;
+import com.ensambla.backend.domain.model.pedido.ProductoEnStock;
+import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.infrastructure.repository.entity.ConversacionClienteEntity;
 import com.ensambla.backend.infrastructure.repository.entity.NegocioEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.implementation.ComercioRepositoryImpl;
@@ -17,6 +20,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -85,6 +89,26 @@ class ConversacionClienteRepositoriesTest {
 
         assertThat(comercios.listarConWhatsapp()).containsExactly(
                 new Comercio(PEPE, "Almacén Don Pepe"), new Comercio(ROSA, "Almacén Doña Rosa"));
+    }
+
+    @Test
+    @DisplayName("El mapper guarda la lista de compra con sus productos, precios y alternativas y la lee igual")
+    void mapperShouldRoundTripTheShoppingList() {
+        ProductoEnStock yerba = new ProductoEnStock(RegistroId.de("d0000000-0000-4000-8000-000000000001"),
+                "Yerba Playadito 1 kg", new BigDecimal("3500"), new BigDecimal("10"));
+        ProductoEnStock taragui = new ProductoEnStock(RegistroId.de("d0000000-0000-4000-8000-000000000002"),
+                "Yerba Taragüí 1 kg", new BigDecimal("3800"), new BigDecimal("6"));
+        ConversacionCliente dominio = givenConversacion(PEPE, List.of()).toBuilder()
+                .estado(EstadoConversacionCliente.PIDIENDO)
+                .lista(List.of(LineaDeCompra.de(yerba, new BigDecimal("2"), List.of(taragui)),
+                        LineaDeCompra.de(taragui, new BigDecimal("9"), List.of())))
+                .build();
+
+        ConversacionCliente leida = mapper.toDomain(mapper.toEntity(dominio));
+
+        assertThat(leida).usingRecursiveComparison().isEqualTo(dominio);
+        assertThat(leida.getLista().get(1).limitadaPorStock()).isTrue();
+        assertThat(mapper.toEntity(ConversacionCliente.nueva(CLIENTE_ID, AHORA)).getLista()).isEqualTo("[]");
     }
 
     private static ConversacionCliente givenConversacion(NegocioId negocioId, List<NegocioId> opciones) {

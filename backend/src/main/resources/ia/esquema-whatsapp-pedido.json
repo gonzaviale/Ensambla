@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["lineas"],
+  "properties": {
+    "lineas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["producto", "cantidad"],
+        "properties": {
+          "producto": {"type": "string"},
+          "cantidad": {"type": ["number", "null"]}
+        }
+      }
+    }
+  }
+}

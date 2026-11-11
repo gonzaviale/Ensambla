@@ -9,6 +9,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.time.OffsetDateTime;
 import java.util.List;
 
+import static com.ensambla.backend.support.PedidoTestData.producto;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ConversacionClienteTest {
@@ -105,6 +106,30 @@ class ConversacionClienteTest {
 
         assertThat(conversacion.getEstado()).isEqualTo(EstadoConversacionCliente.PIDIENDO);
         assertThat(conversacion.getActualizadoEn()).isEqualTo(AHORA.plusMinutes(10));
+    }
+
+    @Test
+    @DisplayName("Armar la lista reemplaza a la anterior y elegir, reiniciar u ofrecer opciones la descartan")
+    void armarListaShouldReplaceAndEveryRestartShouldDiscardIt() {
+        List<LineaDeCompra> primera = List.of(LineaDeCompra.de(producto("Yerba", "3500", "10"), null, List.of()));
+        List<LineaDeCompra> segunda = List.of(LineaDeCompra.de(producto("Aceite", "2000", "5"), null, List.of()));
+        ConversacionCliente conversacion = ConversacionCliente.nueva(CLIENTE_ID, AHORA);
+        conversacion.elegir(PEPE, AHORA);
+
+        conversacion.armarLista(primera, AHORA.plusMinutes(1));
+        conversacion.armarLista(segunda, AHORA.plusMinutes(2));
+
+        assertThat(conversacion.getLista()).isEqualTo(segunda);
+        assertThat(conversacion.getEstado()).isEqualTo(EstadoConversacionCliente.PIDIENDO);
+        assertThat(conversacion.getActualizadoEn()).isEqualTo(AHORA.plusMinutes(2));
+        conversacion.elegir(ROSA, AHORA);
+        assertThat(conversacion.getLista()).isEmpty();
+        conversacion.armarLista(primera, AHORA);
+        conversacion.reiniciar(null, AHORA);
+        assertThat(conversacion.getLista()).isEmpty();
+        conversacion.armarLista(primera, AHORA);
+        conversacion.ofrecerOpciones(List.of(PEPE, ROSA), AHORA);
+        assertThat(conversacion.getLista()).isEmpty();
     }
 
     @ParameterizedTest

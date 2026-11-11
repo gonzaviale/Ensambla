@@ -45,6 +45,10 @@ public class ConversacionCliente {
     @Builder.Default
     private List<NegocioId> opciones = List.of();
 
+    /** La lista de compra armada con el stock del comercio, todavía sin confirmar. */
+    @Builder.Default
+    private List<LineaDeCompra> lista = List.of();
+
     private OffsetDateTime actualizadoEn;
 
     public static ConversacionCliente nueva(ClienteId clienteId, OffsetDateTime ahora) {
@@ -65,6 +69,7 @@ public class ConversacionCliente {
         estado = EstadoConversacionCliente.ELIGIENDO_COMERCIO;
         negocioId = ofrecido;
         opciones = List.of();
+        lista = List.of();
         actualizadoEn = ahora;
     }
 
@@ -73,6 +78,7 @@ public class ConversacionCliente {
         estado = EstadoConversacionCliente.ELIGIENDO_COMERCIO;
         negocioId = null;
         opciones = List.copyOf(comercios);
+        lista = List.of();
         actualizadoEn = ahora;
     }
 
@@ -80,6 +86,13 @@ public class ConversacionCliente {
         estado = EstadoConversacionCliente.PIDIENDO;
         negocioId = comercio;
         opciones = List.of();
+        lista = List.of();
+        actualizadoEn = ahora;
+    }
+
+    /** Sami armó la lista con lo que pidió el cliente; reemplaza a la anterior. */
+    public void armarLista(List<LineaDeCompra> renglones, OffsetDateTime ahora) {
+        lista = List.copyOf(renglones);
         actualizadoEn = ahora;
     }
 

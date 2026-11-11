@@ -3,6 +3,7 @@ package com.ensambla.backend.infrastructure.config.useCase;
 import com.ensambla.backend.domain.model.pedido.PoliticaPedidosWhatsapp;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
 import com.ensambla.backend.domain.model.whatsapp.PoliticaAtencionWhatsapp;
+import com.ensambla.backend.domain.port.InterpretePedidoIaPort;
 import com.ensambla.backend.domain.port.InterpreteRegistrosIaPort;
 import com.ensambla.backend.domain.port.LectorCuadernoPort;
 import com.ensambla.backend.domain.port.MensajeriaWhatsappPort;
@@ -15,6 +16,7 @@ import com.ensambla.backend.domain.repository.pedido.ComercioRepository;
 import com.ensambla.backend.domain.repository.pedido.ConversacionClienteRepository;
 import com.ensambla.backend.domain.repository.pedido.MensajeClienteRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
 import com.ensambla.backend.domain.repository.whatsapp.CodigoVinculacionRepository;
@@ -23,6 +25,7 @@ import com.ensambla.backend.domain.repository.whatsapp.PropuestaWhatsappReposito
 import com.ensambla.backend.domain.repository.whatsapp.VerificacionWhatsappRepository;
 import com.ensambla.backend.domain.repository.whatsapp.VinculoWhatsappRepository;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import com.ensambla.backend.domain.service.whatsapp.VinculacionWhatsappService;
 import com.ensambla.backend.domain.useCase.pedido.atenderMensajeCliente.AtenderMensajeCliente;
 import com.ensambla.backend.domain.useCase.whatsapp.atenderMensajeWhatsapp.AtenderMensajeWhatsapp;
@@ -148,19 +151,31 @@ public class WhatsappUseCaseConfig {
             ClienteWhatsappRepository clienteRepository,
             ConversacionClienteRepository conversacionRepository,
             ComercioRepository comercioRepository,
+            ProyectoRepository proyectoRepository,
+            DatosDeProyectoService datosDeProyectoService,
+            ControlPlanService controlPlanService,
+            ConsumoSamiRepository consumoSamiRepository,
+            InterpretePedidoIaPort interpreteIa,
             MensajeriaWhatsappPort mensajeria,
             TransaccionPort transaccionPort,
             Clock clock,
-            WhatsappProperties whatsappProperties) {
+            WhatsappProperties whatsappProperties,
+            SamiProperties samiProperties) {
         return new AtenderMensajeCliente(
                 mensajeRepository,
                 clienteRepository,
                 conversacionRepository,
                 comercioRepository,
+                proyectoRepository,
+                datosDeProyectoService,
+                controlPlanService,
+                consumoSamiRepository,
+                interpreteIa,
                 mensajeria,
                 transaccionPort,
                 clock,
-                whatsappProperties.atencion().vigenciaReclamo());
+                whatsappProperties.atencion().vigenciaReclamo(),
+                samiProperties.limiteDiarioTaller());
     }
 
     /** La lectura de la foto es la misma de la app: con el mismo tope de espera por llamada a la IA. */

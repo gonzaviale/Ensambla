@@ -1,25 +1,39 @@
 package com.ensambla.backend.domain.useCase.pedido.atenderMensajeCliente;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.aviso.BloqueInventario;
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.pedido.ArmadoDeLista;
 import com.ensambla.backend.domain.model.pedido.BuscadorDeComercios;
+import com.ensambla.backend.domain.model.pedido.BuscadorDeProductos;
+import com.ensambla.backend.domain.model.pedido.CatalogoDeProductos;
 import com.ensambla.backend.domain.model.pedido.ClienteWhatsapp;
 import com.ensambla.backend.domain.model.pedido.Comercio;
+import com.ensambla.backend.domain.model.pedido.ConsultaPedido;
 import com.ensambla.backend.domain.model.pedido.ConversacionCliente;
 import com.ensambla.backend.domain.model.pedido.MensajeCliente;
+import com.ensambla.backend.domain.model.pedido.PedidoInterpretado;
+import com.ensambla.backend.domain.model.pedido.ProductoEnStock;
 import com.ensambla.backend.domain.model.pedido.TextosPedido;
 import com.ensambla.backend.domain.model.whatsapp.RespuestaChat;
 import com.ensambla.backend.domain.model.whatsapp.TextosWhatsapp;
+import com.ensambla.backend.domain.port.InterpretePedidoIaPort;
 import com.ensambla.backend.domain.port.MensajeriaWhatsappPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.pedido.ClienteWhatsappRepository;
 import com.ensambla.backend.domain.repository.pedido.ComercioRepository;
 import com.ensambla.backend.domain.repository.pedido.ConversacionClienteRepository;
 import com.ensambla.backend.domain.repository.pedido.MensajeClienteRepository;
+import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
+import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -27,7 +41,8 @@ import java.util.Optional;
 /**
  * Atiende, de a uno y en orden, lo que escribieron los clientes por WhatsApp. Registra al cliente la primera vez que
  * escribe y lo acompaña en la conversación: lo saluda, le pregunta a qué comercio quiere pedirle (por nombre, ofreciendo
- * seguir con el último) y, ya elegido el comercio, le recibe el pedido.
+ * seguir con el último) y, ya elegido el comercio, le arma la lista de compra con el stock del comercio. Tiene muchas
+ * dependencias a propósito: ningún caso de uso llama a otro, así que los pasos viven acá y la lógica pura en el modelo.
  */
 @RequiredArgsConstructor
 public class AtenderMensajeCliente {
@@ -38,10 +53,16 @@ public class AtenderMensajeCliente {
     private final ClienteWhatsappRepository clienteRepository;
     private final ConversacionClienteRepository conversacionRepository;
     private final ComercioRepository comercioRepository;
+    private final ProyectoRepository proyectoRepository;
+    private final DatosDeProyectoService datosDeProyectoService;
+    private final ControlPlanService controlPlanService;
+    private final ConsumoSamiRepository consumoSamiRepository;
+    private final InterpretePedidoIaPort interpreteIa;
     private final MensajeriaWhatsappPort mensajeria;
     private final TransaccionPort transaccionPort;
     private final Clock clock;
     private final Duration vigenciaReclamo;
+    private final int limiteDiarioSami;
 
     /** @return si había un mensaje esperando; quien lo llama insiste mientras haya */
     public boolean execute() {
@@ -180,12 +201,60 @@ public class AtenderMensajeCliente {
             conversacion.reiniciar(null, ahora);
             return TextosPedido.PREGUNTAR_COMERCIO;
         }
-        if (comercioDe(comercios, conversacion.getNegocioId()).isEmpty()) {
+        Optional<Comercio> comercio = comercioDe(comercios, conversacion.getNegocioId());
+        if (comercio.isEmpty()) {
             conversacion.reiniciar(null, ahora);
             return TextosPedido.COMERCIO_NO_DISPONIBLE;
         }
-        conversacion.tocar(ahora);
-        return TextosPedido.PEDIDO_EN_CONSTRUCCION;
+        return armarLista(conversacion, comercio.get(), texto, ahora);
+    }
+
+    /**
+     * Pasa lo que escribió el cliente a una lista con productos reales del comercio: la IA entiende qué pidió y el stock
+     * decide qué hay. Nada de la lista sale de otro lado que del inventario del comercio.
+     */
+    private String armarLista(ConversacionCliente conversacion, Comercio comercio, String texto, OffsetDateTime ahora) {
+        List<ProductoEnStock> catalogo = catalogoDe(comercio.id());
+        if (catalogo.isEmpty()) {
+            conversacion.tocar(ahora);
+            return TextosPedido.sinProductos(comercio.nombre());
+        }
+        PedidoInterpretado pedido = interpretar(comercio.id(), texto, catalogo, ahora);
+        if (pedido.lineas().isEmpty()) {
+            conversacion.tocar(ahora);
+            return TextosPedido.NO_ENTENDI_PEDIDO;
+        }
+        ArmadoDeLista armado = BuscadorDeProductos.armar(pedido.lineas(), catalogo);
+        if (armado.lineas().isEmpty()) {
+            conversacion.tocar(ahora);
+            return TextosPedido.sinCoincidencias(armado.faltantes());
+        }
+        conversacion.armarLista(armado.lineas(), ahora);
+        return TextosPedido.lista(comercio.nombre(), armado);
+    }
+
+    /** Los productos con precio y stock de los inventarios del comercio. */
+    private List<ProductoEnStock> catalogoDe(NegocioId negocioId) {
+        List<BloqueInventario> inventarios = proyectoRepository.findAllByNegocioId(negocioId).stream()
+                .flatMap(proyecto -> datosDeProyectoService.cargar(proyecto, negocioId).inventarios().stream())
+                .toList();
+        return CatalogoDeProductos.de(inventarios);
+    }
+
+    /** Pedirle a la IA cuenta como una consulta de Sami del comercio elegido: mismo plan y mismo límite diario. */
+    private PedidoInterpretado interpretar(NegocioId negocioId, String texto, List<ProductoEnStock> catalogo,
+                                           OffsetDateTime ahora) {
+        controlPlanService.exigirIa(negocioId);
+        LocalDate dia = ZonaNegocio.dia(ahora);
+        if (!consumoSamiRepository.reservar(negocioId, dia, limiteDiarioSami, ahora)) {
+            throw new BusinessRuleException(TextosWhatsapp.LIMITE_SAMI);
+        }
+        PedidoInterpretado pedido = interpreteIa.interpretar(
+                new ConsultaPedido(texto, catalogo.stream().map(ProductoEnStock::nombre).toList()));
+        if (pedido.consumo() != null) {
+            consumoSamiRepository.registrar(negocioId, dia, pedido.consumo(), ahora);
+        }
+        return pedido;
     }
 
     private static Optional<Comercio> comercioDe(List<Comercio> comercios, NegocioId negocioId) {
