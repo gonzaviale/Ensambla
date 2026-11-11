@@ -33,6 +33,10 @@ public class ExplorarDondeAbrir {
     private static final double PENALIZACION_CANIBALIZACION = 1.2d;
     private static final double UMBRAL_BUENA = 6d;
     private static final double UMBRAL_INTERMEDIA = 4d;
+    private static final Map<RubroNegocio, String> RUBROS_EN_PLURAL = Map.of(
+            RubroNegocio.ALMACEN, "almacenes",
+            RubroNegocio.PAPELERIA, "papelerías",
+            RubroNegocio.KIOSCO, "kioscos");
 
     private final NegocioRepository negocioRepository;
     private final DatosDondeAbrirRepository datosRepository;
@@ -111,9 +115,6 @@ public class ExplorarDondeAbrir {
         for (Map.Entry<FactorDondeAbrir, Double> entrada : pesos.entrySet()) {
             FactorDondeAbrir factor = entrada.getKey();
             Medicion medicion = medicion(zona, factor, request.alquileres());
-            if (medicion == null) {
-                continue;
-            }
             double subpuntaje = rangos.get(factor).puntuar(medicion.valor().doubleValue(), factor.menosEsMejor());
             double aporte = entrada.getValue() * subpuntaje;
             aportes.add(new ExplorarDondeAbrirResponse.Aporte(
@@ -403,12 +404,7 @@ public class ExplorarDondeAbrir {
     }
 
     private static String plural(RubroNegocio rubro) {
-        return switch (rubro) {
-            case ALMACEN -> "almacenes";
-            case PAPELERIA -> "papelerías";
-            case KIOSCO -> "kioscos";
-            default -> "comercios";
-        };
+        return RUBROS_EN_PLURAL.getOrDefault(rubro, "comercios");
     }
 
     private static BigDecimal decimal(double valor, int escala) {
