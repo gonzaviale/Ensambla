@@ -13,6 +13,9 @@ public interface ObjetivoRepository {
     /** Del más viejo al más nuevo. */
     List<Objetivo> findAllByNegocioId(NegocioId negocioId);
 
+    /** Los negocios que tienen objetivos, ordenados, de a {@code tamano} por {@code pagina} (desde 0). */
+    List<NegocioId> findNegocioIdsConObjetivos(int pagina, int tamano);
+
     Optional<Objetivo> findByIdAndNegocioId(ObjetivoId objetivoId, NegocioId negocioId);
 
     Objetivo save(Objetivo objetivo);

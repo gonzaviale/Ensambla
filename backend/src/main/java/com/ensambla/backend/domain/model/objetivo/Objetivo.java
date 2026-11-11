@@ -9,6 +9,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 
 /** Lo que la persona quiere lograr con su negocio y el resultado mensual que busca. */
 @Getter
@@ -35,6 +36,15 @@ public class Objetivo {
 
     public boolean estaAlcanzado() {
         return alcanzadoEn != null;
+    }
+
+    /** Si ese resultado mensual llega a la meta. */
+    public boolean llegaA(BigDecimal resultado) {
+        return resultado.compareTo(meta) >= 0;
+    }
+
+    public Optional<HitoObjetivo> hito() {
+        return estaAlcanzado() ? Optional.of(HitoObjetivo.OBJETIVO_ALCANZADO) : Optional.empty();
     }
 
     public void marcarAlcanzado(OffsetDateTime ahora) {

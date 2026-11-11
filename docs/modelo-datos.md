@@ -7,7 +7,7 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V12__planes_y_suscripciones.sql`, `V13__limites_y_funciones_por_plan.sql`, `V14__prueba_premium.sql`,
 `V15__renovaciones_y_pagos_premium.sql`,
 `V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
-`V24__objetivo.sql`, `V27__mini_objetivo.sql`).
+`V24__objetivo.sql`, `V27__mini_objetivo.sql`, `V28__progreso_objetivo.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -277,6 +277,30 @@ de avance no se guarda: lo calcula el frontend.
 responde 404. Al crear un objetivo (`POST /api/objetivos`) el servidor propone los 3 de mayor aporte, sin repetir tipo ni
 producto; sin datos propone los que haya. La IA sólo redacta el texto (`ensambla.objetivos.ia.habilitada`, apagada por
 defecto); el número lo calcula el servidor y, sin IA, cada uno lleva su texto de reserva.
+
+### Monitoreo silencioso de objetivos (V28)
+
+`V28` suma `mini_objetivo.sin_avance_desde` (desde qué día el valor de un mini-objetivo en curso no mejora; vacío si viene
+mejorando) y la tabla `progreso_objetivo`: una foto por día del avance.
+
+- Cada fila es de un `objetivo` (borrado en cascada) y, si es de un mini-objetivo, de un `mini_objetivo` (también en cascada).
+  `mini_objetivo_id` vacío es la foto del objetivo mayor: su `valor` es el resultado del negocio de los últimos 30 días; el de
+  un mini-objetivo es su métrica. `dia` es el día argentino y `medido_en` el instante de la medición.
+- `ux_progreso_dia` (`UNIQUE NULLS NOT DISTINCT (objetivo_id, mini_objetivo_id, dia)`) garantiza una sola foto por sujeto y
+  día: la última pasada del día pisa a la anterior (`INSERT … ON CONFLICT … DO UPDATE`, así dos pasadas a la vez no chocan).
+- No hay `negocio_id`: se llega siempre desde un objetivo ya comprobado como del negocio de la sesión.
+
+**Worker.** `MonitoreoObjetivosWorker` corre `MonitorearObjetivos` cada hora (`ensambla.objetivos.monitoreo.habilitado`,
+`.intervalo`, `.demora-inicial` y `.tamano-tanda`: 50 negocios por vez, una transacción por negocio y un `try/catch` por
+negocio). Mide el resultado del negocio y la métrica de cada mini-objetivo en curso, marca como `LOGRADO` el que llegó a su
+meta y el objetivo cuyo resultado la alcanzó (`alcanzado_en`), y a un objetivo que nunca tuvo mini-objetivos le propone los
+suyos con texto de reserva. **No crea avisos ni manda mensajes**: el caso de uso no recibe ningún puerto que lo permita y
+un test de integración cuenta las filas de `aviso` antes y después de una pasada.
+
+**API.** `GET /api/objetivos/{id}/progreso`: la serie semanal (la última foto de cada semana, de lunes a domingo) del objetivo
+y de cada mini-objetivo en curso o logrado, con el hito `OBJETIVO_ALCANZADO`, `MINI_LOGRADO` o `SIN_AVANCE` (14 días sin
+mejorar) si corresponde. Las semanas anteriores a la primera foto del objetivo se completan con el resultado que se calcula
+con los cuadernos, marcadas `estimado: true`. Un objetivo de otro negocio responde 404.
 
 ## Datos de prueba (V10)
 

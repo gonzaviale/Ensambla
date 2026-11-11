@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.service.objetivo;
 import com.ensambla.backend.domain.model.aviso.MetricasVentas;
 import com.ensambla.backend.domain.model.objetivo.CandidatoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.CandidatosDelNegocio;
+import com.ensambla.backend.domain.model.objetivo.MedidorMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
 import com.ensambla.backend.domain.model.sistema.Sistema;
@@ -29,6 +30,7 @@ import static com.ensambla.backend.support.NegocioDePrueba.almacen;
 import static com.ensambla.backend.support.ObjetivoTestData.NEGOCIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -68,6 +70,29 @@ class PropuestaMiniObjetivosServiceTest {
         assertThat(result.candidatos()).extracting(CandidatoMiniObjetivo::tipo).contains(
                 TipoMiniObjetivo.PONER_A_LA_VISTA, TipoMiniObjetivo.VENTAS_SEMANALES, TipoMiniObjetivo.SUBIR_PRECIO);
         verifyNoInteractions(zonaRepository, agregadoZonaRepository);
+    }
+
+    @Test
+    @DisplayName("El medidor carga los datos de todos los sistemas del negocio")
+    void medidorShouldLoadTheDataOfEverySystemOfTheBusiness() {
+        givenSistemasConDatos(almacen(), new DatosDeProyecto("Kiosco", List.of(), List.of(), List.of()));
+
+        MedidorMiniObjetivo result = service.medidor(NEGOCIO_ID, HOY);
+
+        assertThat(result.hayVentas()).isTrue();
+        assertThat(result.resultado()).isEqualByComparingTo("-27000");
+    }
+
+    @Test
+    @DisplayName("Los candidatos de un medidor ya cargado salen sin volver a leer los sistemas")
+    void candidatosShouldUseAnAlreadyLoadedMeter() {
+        givenSistemasConDatos(almacen());
+        MedidorMiniObjetivo medidor = service.medidor(NEGOCIO_ID, HOY);
+
+        List<CandidatoMiniObjetivo> result = service.candidatos(NEGOCIO_ID, medidor);
+
+        assertThat(result).extracting(CandidatoMiniObjetivo::tipo).contains(TipoMiniObjetivo.PONER_A_LA_VISTA);
+        verify(sistemaRepository, times(1)).findAllByNegocioId(NEGOCIO_ID);
     }
 
     @Test

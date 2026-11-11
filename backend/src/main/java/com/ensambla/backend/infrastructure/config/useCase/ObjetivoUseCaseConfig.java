@@ -6,6 +6,7 @@ import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
+import com.ensambla.backend.domain.repository.objetivo.ProgresoObjetivoRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
@@ -19,15 +20,20 @@ import com.ensambla.backend.domain.useCase.objetivo.eliminarObjetivo.EliminarObj
 import com.ensambla.backend.domain.useCase.objetivo.listarCandidatos.ListarCandidatos;
 import com.ensambla.backend.domain.useCase.objetivo.listarMiniObjetivos.ListarMiniObjetivos;
 import com.ensambla.backend.domain.useCase.objetivo.listarObjetivos.ListarObjetivos;
+import com.ensambla.backend.domain.useCase.objetivo.monitorearObjetivos.MonitorearObjetivos;
+import com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso.ObtenerProgreso;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasos;
 import com.ensambla.backend.domain.useCase.objetivo.reemplazarMiniObjetivo.ReemplazarMiniObjetivo;
 import com.ensambla.backend.infrastructure.ia.ObjetivosIaProperties;
+import com.ensambla.backend.infrastructure.objetivos.ObjetivosMonitoreoProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Clock;
 
 @Configuration
+@EnableConfigurationProperties(ObjetivosMonitoreoProperties.class)
 public class ObjetivoUseCaseConfig {
 
     @Bean
@@ -137,6 +143,42 @@ public class ObjetivoUseCaseConfig {
                 objetivoRepository,
                 miniObjetivoRepository,
                 transaccionPort,
+                clock);
+    }
+
+    @Bean
+    public MonitorearObjetivos monitorearObjetivos(
+            ObjetivoRepository objetivoRepository,
+            MiniObjetivoRepository miniObjetivoRepository,
+            ProgresoObjetivoRepository progresoObjetivoRepository,
+            PropuestaMiniObjetivosService propuestaMiniObjetivosService,
+            TransaccionPort transaccionPort,
+            Clock clock,
+            ObjetivosMonitoreoProperties objetivosMonitoreoProperties) {
+        return new MonitorearObjetivos(
+                objetivoRepository,
+                miniObjetivoRepository,
+                progresoObjetivoRepository,
+                propuestaMiniObjetivosService,
+                transaccionPort,
+                clock,
+                objetivosMonitoreoProperties.tamanoTanda());
+    }
+
+    @Bean
+    public ObtenerProgreso obtenerProgreso(
+            NegocioRepository negocioRepository,
+            ObjetivoRepository objetivoRepository,
+            MiniObjetivoRepository miniObjetivoRepository,
+            ProgresoObjetivoRepository progresoObjetivoRepository,
+            PropuestaMiniObjetivosService propuestaMiniObjetivosService,
+            Clock clock) {
+        return new ObtenerProgreso(
+                negocioRepository,
+                objetivoRepository,
+                miniObjetivoRepository,
+                progresoObjetivoRepository,
+                propuestaMiniObjetivosService,
                 clock);
     }
 

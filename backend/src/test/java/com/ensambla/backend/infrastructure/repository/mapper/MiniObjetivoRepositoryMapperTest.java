@@ -47,6 +47,7 @@ class MiniObjetivoRepositoryMapperTest {
                 .titulo(TITULO)
                 .justificacion(JUSTIFICACION)
                 .textoConIa(true)
+                .sinAvanceDesde(SEMANA)
                 .reemplazadoPor(OTRO_MINI_ID.valor())
                 .creadoEn(AHORA)
                 .actualizadoEn(AHORA.plusDays(1))
@@ -70,6 +71,7 @@ class MiniObjetivoRepositoryMapperTest {
         assertThat(result.getTitulo()).isEqualTo(TITULO);
         assertThat(result.getJustificacion()).isEqualTo(JUSTIFICACION);
         assertThat(result.isTextoConIa()).isTrue();
+        assertThat(result.getSinAvanceDesde()).isEqualTo(SEMANA);
         assertThat(result.getReemplazadoPor()).isEqualTo(OTRO_MINI_ID);
         assertThat(result.getCreadoEn()).isEqualTo(AHORA);
         assertThat(result.getActualizadoEn()).isEqualTo(AHORA.plusDays(1));
@@ -94,6 +96,7 @@ class MiniObjetivoRepositoryMapperTest {
         mini.setPosicion(2);
         mini.setTextoConIa(true);
         mini.setReemplazadoPor(OTRO_MINI_ID);
+        mini.setSinAvanceDesde(SEMANA);
 
         MiniObjetivoEntity result = mapper.toEntity(mini);
 
@@ -108,6 +111,7 @@ class MiniObjetivoRepositoryMapperTest {
         assertThat(result.getValorInicial()).isEqualTo(VALOR_INICIAL);
         assertThat(result.getValorActual()).isEqualTo(VALOR_INICIAL);
         assertThat(result.getAporteEstimado()).isEqualTo(APORTE);
+        assertThat(result.getSinAvanceDesde()).isEqualTo(SEMANA);
         assertThat(result.getEstado()).isEqualTo(EstadoMiniObjetivo.EN_CURSO);
         assertThat(result.getSemanaInicio()).isEqualTo(SEMANA);
         assertThat(result.getTitulo()).isEqualTo(TITULO);

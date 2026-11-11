@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.service.objetivo;
 
 import com.ensambla.backend.domain.model.aviso.MetricasVentas;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.objetivo.CandidatoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.CandidatosDelNegocio;
 import com.ensambla.backend.domain.model.objetivo.CandidatosMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MedidorMiniObjetivo;
@@ -38,11 +39,21 @@ public class PropuestaMiniObjetivosService {
 
     /** El resultado del negocio hoy y los mini-objetivos posibles, del que más suma al que menos. */
     public CandidatosDelNegocio candidatos(NegocioId negocioId, LocalDate hoy) {
+        MedidorMiniObjetivo medidor = medidor(negocioId, hoy);
+        return new CandidatosDelNegocio(medidor.resultado(), candidatos(negocioId, medidor));
+    }
+
+    /** Lo que el negocio tiene hoy en todos sus cuadernos, listo para medir o proponer. */
+    public MedidorMiniObjetivo medidor(NegocioId negocioId, LocalDate hoy) {
         List<DatosDeProyecto> datos = sistemaRepository.findAllByNegocioId(negocioId).stream()
                 .map(datosDeProyectoService::cargar)
                 .toList();
-        MedidorMiniObjetivo medidor = MedidorMiniObjetivo.de(datos, metricasVentas, hoy);
-        return new CandidatosDelNegocio(medidor.resultado(), CandidatosMiniObjetivo.armar(medidor, zonaDe(negocioId)));
+        return MedidorMiniObjetivo.de(datos, metricasVentas, hoy);
+    }
+
+    /** Los mini-objetivos posibles con lo que ya se midió, del que más suma al que menos. */
+    public List<CandidatoMiniObjetivo> candidatos(NegocioId negocioId, MedidorMiniObjetivo medidor) {
+        return CandidatosMiniObjetivo.armar(medidor, zonaDe(negocioId));
     }
 
     private AnalisisZona zonaDe(NegocioId negocioId) {

@@ -83,10 +83,8 @@ public class CrearObjetivo {
             nuevo.marcarAlcanzado(ahora);
         }
         Objetivo guardado = objetivoRepository.save(nuevo);
-        for (int indice = 0; indice < elegidos.size(); indice++) {
-            miniObjetivoRepository.save(MiniObjetivo.nuevo(
-                    guardado, indice + 1, elegidos.get(indice), SemanaObjetivo.lunesDe(hoy), ahora));
-        }
+        MiniObjetivo.propuestos(guardado, elegidos, SemanaObjetivo.lunesDe(hoy), ahora)
+                .forEach(miniObjetivoRepository::save);
         return guardado;
     }
 

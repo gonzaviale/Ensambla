@@ -5,7 +5,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 import static com.ensambla.backend.support.MiniObjetivoTestData.APORTE;
 import static com.ensambla.backend.support.MiniObjetivoTestData.JUSTIFICACION;
@@ -17,6 +19,7 @@ import static com.ensambla.backend.support.MiniObjetivoTestData.SEMANA;
 import static com.ensambla.backend.support.MiniObjetivoTestData.TITULO;
 import static com.ensambla.backend.support.MiniObjetivoTestData.VALOR_INICIAL;
 import static com.ensambla.backend.support.MiniObjetivoTestData.candidato;
+import static com.ensambla.backend.support.MiniObjetivoTestData.candidatoDelNegocio;
 import static com.ensambla.backend.support.MiniObjetivoTestData.miniObjetivo;
 import static com.ensambla.backend.support.ObjetivoTestData.AHORA;
 import static com.ensambla.backend.support.ObjetivoTestData.NEGOCIO_ID;
@@ -28,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class MiniObjetivoTest {
 
     private static final OffsetDateTime DESPUES = AHORA.plusDays(2);
+    private static final LocalDate HOY = LocalDate.of(2026, 11, 12);
 
     @Test
     @DisplayName("Uno nuevo arranca en curso con el valor inicial del candidato y un id propio")
@@ -174,7 +178,166 @@ class MiniObjetivoTest {
                 .hasMessage("El mini-objetivo ya no está en curso");
     }
 
+    @Test
+    @DisplayName("Propone un mini-objetivo en curso por candidato, en las posiciones 1, 2, 3 y en ese orden")
+    void propuestosShouldAssignPositionsInOrder() {
+        CandidatoMiniObjetivo margen = candidatoDelNegocio(TipoMiniObjetivo.MEJORAR_MARGEN, "14000");
+
+        List<MiniObjetivo> result = MiniObjetivo.propuestos(objetivo(), List.of(candidato(), margen), SEMANA, AHORA);
+
+        assertThat(result).extracting(MiniObjetivo::getPosicion).containsExactly(1, 2);
+        assertThat(result).extracting(MiniObjetivo::getTipo)
+                .containsExactly(TipoMiniObjetivo.SUBIR_PRECIO, TipoMiniObjetivo.MEJORAR_MARGEN);
+        assertThat(result).allSatisfy(mini -> {
+            assertThat(mini.getEstado()).isEqualTo(EstadoMiniObjetivo.EN_CURSO);
+            assertThat(mini.getObjetivoId()).isEqualTo(OBJETIVO_ID);
+            assertThat(mini.getSemanaInicio()).isEqualTo(SEMANA);
+        });
+    }
+
+    @Test
+    @DisplayName("Sin candidatos no propone ningún mini-objetivo")
+    void propuestosShouldBeEmptyWithoutCandidates() {
+        List<MiniObjetivo> result = MiniObjetivo.propuestos(objetivo(), List.of(), SEMANA, AHORA);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Al medir un valor que mejora, lo guarda y deja de estar sin avance")
+    void medirShouldRecordTheValueAndClearTheStallWhenItImproves() {
+        MiniObjetivo mini = conSinAvanceDesde(HOY.minusDays(5));
+
+        mini.medir(new BigDecimal("13000"), HOY, DESPUES);
+
+        assertThat(mini.getValorActual()).isEqualByComparingTo("13000");
+        assertThat(mini.getSinAvanceDesde()).isNull();
+        assertThat(mini.getEstado()).isEqualTo(EstadoMiniObjetivo.EN_CURSO);
+        assertThat(mini.getActualizadoEn()).isEqualTo(DESPUES);
+    }
+
+    @Test
+    @DisplayName("Al medir un valor que no mejora, queda sin avance desde hoy")
+    void medirShouldStartTheStallWhenTheValueDoesNotImprove() {
+        MiniObjetivo mini = miniObjetivo();
+
+        mini.medir(VALOR_INICIAL, HOY, DESPUES);
+
+        assertThat(mini.getSinAvanceDesde()).isEqualTo(HOY);
+        assertThat(mini.getValorActual()).isEqualByComparingTo(VALOR_INICIAL);
+    }
+
+    @Test
+    @DisplayName("Si ya estaba sin avance y el valor empeora, conserva el día en que empezó")
+    void medirShouldKeepTheStallStartWhenTheValueGetsWorse() {
+        MiniObjetivo mini = conSinAvanceDesde(HOY.minusDays(5));
+
+        mini.medir(new BigDecimal("12000"), HOY, DESPUES);
+
+        assertThat(mini.getSinAvanceDesde()).isEqualTo(HOY.minusDays(5));
+        assertThat(mini.getValorActual()).isEqualByComparingTo("12000");
+    }
+
+    @Test
+    @DisplayName("En un tipo que baja, un valor menor es una mejora")
+    void medirShouldTreatALowerValueAsImprovementWhenTheTypeGoesDown() {
+        MiniObjetivo mini = conValores(TipoMiniObjetivo.RECORTAR_GASTO, "40000", "36000", "40000");
+        mini.setSinAvanceDesde(HOY.minusDays(3));
+
+        mini.medir(new BigDecimal("38000"), HOY, DESPUES);
+
+        assertThat(mini.getSinAvanceDesde()).isNull();
+        assertThat(mini.getEstado()).isEqualTo(EstadoMiniObjetivo.EN_CURSO);
+    }
+
+    @Test
+    @DisplayName("En un tipo que baja, un valor mayor no es una mejora")
+    void medirShouldNotTreatAHigherValueAsImprovementWhenTheTypeGoesDown() {
+        MiniObjetivo mini = conValores(TipoMiniObjetivo.RECORTAR_GASTO, "40000", "36000", "40000");
+
+        mini.medir(new BigDecimal("41000"), HOY, DESPUES);
+
+        assertThat(mini.getSinAvanceDesde()).isEqualTo(HOY);
+    }
+
+    @Test
+    @DisplayName("Al medir un valor que llega a la meta queda logrado y sin avance")
+    void medirShouldMarkAsAchievedWhenTheGoalIsReached() {
+        MiniObjetivo mini = conSinAvanceDesde(HOY.minusDays(20));
+
+        mini.medir(META_MINI, HOY, DESPUES);
+
+        assertThat(mini.getEstado()).isEqualTo(EstadoMiniObjetivo.LOGRADO);
+        assertThat(mini.getSinAvanceDesde()).isNull();
+        assertThat(mini.getValorActual()).isEqualByComparingTo(META_MINI);
+    }
+
+    @Test
+    @DisplayName("Al medir guarda el valor con centavos")
+    void medirShouldRoundTheValueToCents() {
+        MiniObjetivo mini = miniObjetivo();
+
+        mini.medir(new BigDecimal("12999.996"), HOY, DESPUES);
+
+        assertThat(mini.getValorActual()).isEqualTo(new BigDecimal("13000.00"));
+    }
+
+    @Test
+    @DisplayName("No se mide un mini-objetivo que ya no está en curso")
+    void medirShouldFailWhenNotInProgress() {
+        MiniObjetivo mini = conEstado(EstadoMiniObjetivo.LOGRADO);
+
+        assertThatThrownBy(() -> mini.medir(META_MINI, HOY, DESPUES))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("El mini-objetivo ya no está en curso");
+    }
+
+    @Test
+    @DisplayName("Uno logrado tiene el hito de logrado")
+    void hitoShouldBeAchievedWhenTheMiniObjetivoWasAchieved() {
+        MiniObjetivo mini = conEstado(EstadoMiniObjetivo.LOGRADO);
+
+        assertThat(mini.hito(HOY)).contains(HitoObjetivo.MINI_LOGRADO);
+    }
+
+    @Test
+    @DisplayName("Uno en curso que no mejora desde hace 14 días tiene el hito de sin avance")
+    void hitoShouldBeStalledWhenItHasNotImprovedForFourteenDays() {
+        MiniObjetivo mini = conSinAvanceDesde(HOY.minusDays(MiniObjetivo.DIAS_SIN_AVANCE));
+
+        assertThat(mini.hito(HOY)).contains(HitoObjetivo.SIN_AVANCE);
+    }
+
+    @Test
+    @DisplayName("Uno que no mejora desde hace menos de 14 días todavía no tiene hito")
+    void hitoShouldBeEmptyWhenTheStallIsRecent() {
+        MiniObjetivo mini = conSinAvanceDesde(HOY.minusDays(MiniObjetivo.DIAS_SIN_AVANCE - 1L));
+
+        assertThat(mini.hito(HOY)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Uno que viene mejorando no tiene hito")
+    void hitoShouldBeEmptyWhenItIsImproving() {
+        assertThat(miniObjetivo().hito(HOY)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Uno reemplazado no tiene hito aunque haya quedado sin avance")
+    void hitoShouldBeEmptyWhenTheMiniObjetivoWasReplaced() {
+        MiniObjetivo mini = conSinAvanceDesde(HOY.minusDays(30));
+        mini.setEstado(EstadoMiniObjetivo.REEMPLAZADO);
+
+        assertThat(mini.hito(HOY)).isEmpty();
+    }
+
     // --- helpers ---
+    private static MiniObjetivo conSinAvanceDesde(LocalDate dia) {
+        MiniObjetivo mini = miniObjetivo();
+        mini.setSinAvanceDesde(dia);
+        return mini;
+    }
+
     private static MiniObjetivo conEstado(EstadoMiniObjetivo estado) {
         MiniObjetivo mini = miniObjetivo();
         mini.setEstado(estado);

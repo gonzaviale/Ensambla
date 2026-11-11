@@ -13,6 +13,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.IntStream;
 
 /**
  * Un cambio, una métrica o una meta semanal que Sami propone para llegar a un objetivo. Mide un valor
@@ -27,6 +30,9 @@ import java.time.OffsetDateTime;
 public class MiniObjetivo {
 
     public static final int MAXIMO_EN_CURSO = 3;
+
+    /** Desde cuántos días sin mejorar un mini-objetivo en curso cuenta como sin avance. */
+    public static final int DIAS_SIN_AVANCE = 14;
 
     private MiniObjetivoId id;
 
@@ -65,6 +71,9 @@ public class MiniObjetivo {
 
     private boolean textoConIa;
 
+    /** Desde qué día el valor no mejora; vacío si viene mejorando o ya no está en curso. */
+    private LocalDate sinAvanceDesde;
+
     /** El que lo reemplazó, si fue reemplazado. */
     private MiniObjetivoId reemplazadoPor;
 
@@ -98,6 +107,14 @@ public class MiniObjetivo {
                 .build();
     }
 
+    /** Un mini-objetivo en curso por candidato, en las posiciones 1, 2, 3… en el orden recibido. */
+    public static List<MiniObjetivo> propuestos(
+            Objetivo objetivo, List<CandidatoMiniObjetivo> candidatos, LocalDate semanaInicio, OffsetDateTime ahora) {
+        return IntStream.range(0, candidatos.size())
+                .mapToObj(indice -> nuevo(objetivo, indice + 1, candidatos.get(indice), semanaInicio, ahora))
+                .toList();
+    }
+
     public boolean estaEnCurso() {
         return estado == EstadoMiniObjetivo.EN_CURSO;
     }
@@ -118,6 +135,42 @@ public class MiniObjetivo {
         }
         BigDecimal recorrido = sube ? valorActual.subtract(valorInicial) : valorInicial.subtract(valorActual);
         return recorrido.divide(total, 4, RoundingMode.HALF_UP).max(BigDecimal.ZERO).min(BigDecimal.ONE);
+    }
+
+    /**
+     * Registra lo que se midió hoy: si el valor mejora (en el sentido de su tipo) deja de estar sin avance; si no, y
+     * todavía no lo estaba, empieza a estarlo desde hoy. Si con eso llega a la meta, queda logrado.
+     */
+    public void medir(BigDecimal valor, LocalDate hoy, OffsetDateTime ahora) {
+        exigirEnCurso();
+        if (mejora(valor)) {
+            sinAvanceDesde = null;
+        } else if (sinAvanceDesde == null) {
+            sinAvanceDesde = hoy;
+        }
+        valorActual = valor.setScale(2, RoundingMode.HALF_UP);
+        actualizadoEn = ahora;
+        if (cumplido()) {
+            estado = EstadoMiniObjetivo.LOGRADO;
+            sinAvanceDesde = null;
+        }
+    }
+
+    /** Lo que el monitoreo detecta de este mini-objetivo hoy; vacío si no hay nada para destacar. */
+    public Optional<HitoObjetivo> hito(LocalDate hoy) {
+        if (estado == EstadoMiniObjetivo.LOGRADO) {
+            return Optional.of(HitoObjetivo.MINI_LOGRADO);
+        }
+        if (estaEnCurso() && sinAvanceDesde != null && !sinAvanceDesde.isAfter(hoy.minusDays(DIAS_SIN_AVANCE))) {
+            return Optional.of(HitoObjetivo.SIN_AVANCE);
+        }
+        return Optional.empty();
+    }
+
+    private boolean mejora(BigDecimal valor) {
+        return tipo.sentido() == SentidoMiniObjetivo.SUBE
+                ? valor.compareTo(valorActual) > 0
+                : valor.compareTo(valorActual) < 0;
     }
 
     /** La persona lo cambió por {@code nuevo}; el lugar queda libre para el reemplazo. */

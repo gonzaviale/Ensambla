@@ -79,6 +79,9 @@ public class MiniObjetivoEntity {
     @Column(name = "texto_con_ia", nullable = false)
     private boolean textoConIa;
 
+    @Column(name = "sin_avance_desde")
+    private LocalDate sinAvanceDesde;
+
     @Column(name = "reemplazado_por")
     private UUID reemplazadoPor;
 

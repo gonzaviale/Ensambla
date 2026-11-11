@@ -98,6 +98,20 @@ public final class MedidorMiniObjetivo {
         return gastos;
     }
 
+    /**
+     * El resultado de los 30 días que terminan en cada una de las últimas semanas, por el lunes de esa semana y de la
+     * más vieja a la de hoy; vacío si no hubo ventas. Es lo que se sabe del pasado aunque el monitoreo no estuviera.
+     */
+    public Map<LocalDate, BigDecimal> resultadoPorSemana() {
+        Map<LocalDate, BigDecimal> porSemana = new LinkedHashMap<>();
+        List<ComoVieneElNegocio.Semana> semanas = negocio.semanas();
+        for (int indice = 0; indice < semanas.size(); indice++) {
+            LocalDate fin = hoy.minusDays((long) (semanas.size() - 1 - indice) * DIAS_SEMANA);
+            porSemana.put(SemanaObjetivo.lunesDe(fin), BigDecimal.valueOf(semanas.get(indice).queda()));
+        }
+        return porSemana;
+    }
+
     /** Lo que queda de cada $100 vendidos después de pagar la mercadería; vacío si no hay costos con qué calcularlo. */
     public Optional<BigDecimal> margen() {
         if (negocio.vendiste() <= 0 || negocio.mercaderia() <= 0) {

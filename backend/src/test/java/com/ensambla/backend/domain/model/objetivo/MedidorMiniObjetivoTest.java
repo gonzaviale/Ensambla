@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -226,6 +227,27 @@ class MedidorMiniObjetivoTest {
                 .hasValueSatisfying(valor -> assertThat(valor).isEqualByComparingTo("23.62"));
         assertThat(medidor.valorDe(TipoMiniObjetivo.VENTAS_SEMANALES, null, null))
                 .hasValueSatisfying(valor -> assertThat(valor).isEqualByComparingTo("73050"));
+    }
+
+    @Test
+    @DisplayName("El resultado por semana trae el de los 30 días que terminan cada semana, por su lunes, hasta hoy")
+    void resultadoPorSemanaShouldHaveTheResultOfEachOfTheLastWeeks() {
+        Map<LocalDate, BigDecimal> result = medidor(almacen()).resultadoPorSemana();
+
+        assertThat(result).hasSize(ComoVieneElNegocio.SEMANAS_DE_HISTORIAL);
+        assertThat(result.keySet()).first().isEqualTo(LocalDate.of(2026, 10, 5));
+        assertThat(result.keySet()).last().isEqualTo(LocalDate.of(2026, 11, 9));
+        assertThat(result.get(LocalDate.of(2026, 11, 9))).isEqualByComparingTo("-27000");
+    }
+
+    @Test
+    @DisplayName("Sin ventas no hay resultado por semana")
+    void resultadoPorSemanaShouldBeEmptyWithoutSales() {
+        DatosDeProyecto sinVentas = NegocioDePrueba.cuaderno("Almacén")
+                .producto(YERBA, "Yerba 1 kg", 40, 4200, 3300)
+                .build();
+
+        assertThat(medidor(sinVentas).resultadoPorSemana()).isEmpty();
     }
 
     // --- helpers: negocio ---

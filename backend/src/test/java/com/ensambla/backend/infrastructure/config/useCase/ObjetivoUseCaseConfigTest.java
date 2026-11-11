@@ -6,11 +6,13 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.objetivo.CandidatosDelNegocio;
 import com.ensambla.backend.domain.model.objetivo.EstadoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.ProgresoObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
+import com.ensambla.backend.domain.repository.objetivo.ProgresoObjetivoRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
@@ -23,8 +25,11 @@ import com.ensambla.backend.domain.useCase.objetivo.listarMiniObjetivos.ListarMi
 import com.ensambla.backend.domain.useCase.objetivo.listarMiniObjetivos.ListarMiniObjetivosResponse;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasosRequest;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasosResponse;
+import com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso.ObtenerProgresoRequest;
+import com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso.ObtenerProgresoResponse;
 import com.ensambla.backend.domain.useCase.objetivo.reemplazarMiniObjetivo.ReemplazarMiniObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.reemplazarMiniObjetivo.ReemplazarMiniObjetivoRequest;
+import com.ensambla.backend.infrastructure.objetivos.ObjetivosMonitoreoProperties;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,6 +45,7 @@ import java.util.Optional;
 import static com.ensambla.backend.support.MiniObjetivoTestData.MINI_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.miniObjetivo;
 import static com.ensambla.backend.support.ObjetivoTestData.AHORA;
+import static com.ensambla.backend.support.ObjetivoTestData.META;
 import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.objetivo;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,6 +66,7 @@ class ObjetivoUseCaseConfigTest {
     private final ObjetivoRepository objetivoRepository = mock(ObjetivoRepository.class);
     private final MiniObjetivoRepository miniObjetivoRepository = mock(MiniObjetivoRepository.class);
     private final SistemaRepository sistemaRepository = mock(SistemaRepository.class);
+    private final ProgresoObjetivoRepository progresoObjetivoRepository = mock(ProgresoObjetivoRepository.class);
 
     @Test
     @DisplayName("El wiring de la propuesta carga los sistemas del negocio y no encuentra candidatos sin datos")
@@ -156,6 +163,38 @@ class ObjetivoUseCaseConfigTest {
                 .execute(new ObtenerPasosRequest(USUARIO_ID));
 
         assertThat(response.content()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("El wiring del monitoreo mide cada objetivo y guarda su foto del día")
+    void monitorearObjetivosShouldWireTheRepositories() {
+        when(objetivoRepository.findNegocioIdsConObjetivos(0, 50)).thenReturn(List.of(NEGOCIO_ID));
+        when(objetivoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(objetivo()));
+        when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+
+        config.monitorearObjetivos(
+                        objetivoRepository, miniObjetivoRepository, progresoObjetivoRepository, propuesta(),
+                        new TransaccionDirecta(), CLOCK, new ObjetivosMonitoreoProperties(50))
+                .execute();
+
+        ArgumentCaptor<ProgresoObjetivo> captor = ArgumentCaptor.forClass(ProgresoObjetivo.class);
+        verify(progresoObjetivoRepository).registrar(captor.capture());
+        assertThat(captor.getValue().objetivoId()).isEqualTo(OBJETIVO_ID);
+    }
+
+    @Test
+    @DisplayName("El wiring del progreso busca el objetivo del negocio de la sesión")
+    void obtenerProgresoShouldWireTheRepositories() {
+        givenObjetivoYMiniObjetivo();
+        when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+
+        ObtenerProgresoResponse result = config.obtenerProgreso(
+                        negocioRepository, objetivoRepository, miniObjetivoRepository, progresoObjetivoRepository,
+                        propuesta(), CLOCK)
+                .execute(new ObtenerProgresoRequest(USUARIO_ID, OBJETIVO_ID));
+
+        assertThat(result.meta()).isEqualTo(META);
+        assertThat(result.semanas()).isEmpty();
     }
 
     // --- helpers ---
