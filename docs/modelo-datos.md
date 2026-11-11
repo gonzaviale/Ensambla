@@ -7,7 +7,7 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V12__planes_y_suscripciones.sql`, `V13__limites_y_funciones_por_plan.sql`, `V14__prueba_premium.sql`,
 `V15__renovaciones_y_pagos_premium.sql`,
 `V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
-`V24__objetivo.sql`).
+`V24__objetivo.sql`, `V27__mini_objetivo.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -254,6 +254,29 @@ leerla. Un índice único parcial permite una sola propuesta abierta por teléfo
 de avance no se guarda: lo calcula el frontend.
 
 **API.** `GET`, `POST` y `DELETE /api/objetivos`. El `negocio_id` sale de la sesión; un objetivo de otro negocio responde 404.
+
+### Mini-objetivos (V27)
+
+`V27` suma `objetivo.alcanzado_en` (cuándo el resultado del negocio llegó a la meta; vacío mientras no la alcance) y la tabla
+`mini_objetivo`: los hasta 3 cambios o metas con números del negocio que Sami propone al definir un objetivo.
+
+- Cada fila es de un `objetivo` y de un `negocio` (los dos con borrado en cascada) y tiene su `tipo` (`SUBIR_PRECIO`,
+  `MOVER_PARADO`, `PONER_A_LA_VISTA`, `RECORTAR_GASTO`, `MEJORAR_MARGEN` o `VENTAS_SEMANALES`), su `estado` (`EN_CURSO`,
+  `LOGRADO`, `ABANDONADO` o `REEMPLAZADO`), `meta`, `valor_inicial`, `valor_actual` y `aporte_estimado` (pesos por mes),
+  la `semana_inicio` (el lunes en que se propuso), su `titulo` y `justificacion` (`texto_con_ia` dice si los redactó la IA).
+- `registro_id` es el producto del cuaderno, sin clave foránea: el producto puede borrarse. `referencia` es su nombre o la
+  categoría de gasto.
+- `posicion` va de 1 a 3 y un índice único parcial `(objetivo_id, posicion) WHERE estado = 'EN_CURSO'` garantiza como máximo
+  3 en curso por objetivo. Los reemplazados, logrados y abandonados quedan como historia y no ocupan lugar.
+- `reemplazado_por` apunta al que lo reemplazó; su clave foránea es diferida porque, al cambiar uno, el viejo se actualiza
+  antes de insertar el nuevo (un lugar lo ocupa uno solo).
+
+**API.** `GET /api/objetivos/{id}/mini-objetivos` (los en curso, el historial y por qué faltan: `POCOS_DATOS` u
+`OBJETIVO_ALCANZADO`), `GET …/{miniId}/candidatos` (hasta 3 alternativas con los datos de hoy), `POST …/{miniId}/reemplazo`
+(el candidato elegido: `tipo`, `registroId`, `referencia`) y `DELETE …/{miniId}`. Un objetivo o mini-objetivo de otro negocio
+responde 404. Al crear un objetivo (`POST /api/objetivos`) el servidor propone los 3 de mayor aporte, sin repetir tipo ni
+producto; sin datos propone los que haya. La IA sólo redacta el texto (`ensambla.objetivos.ia.habilitada`, apagada por
+defecto); el número lo calcula el servidor y, sin IA, cada uno lleva su texto de reserva.
 
 ## Datos de prueba (V10)
 

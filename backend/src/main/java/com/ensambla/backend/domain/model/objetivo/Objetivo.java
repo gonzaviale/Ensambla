@@ -30,6 +30,17 @@ public class Objetivo {
 
     private OffsetDateTime creadoEn;
 
+    /** Cuándo el resultado del negocio llegó a la meta; vacío mientras no la alcance. */
+    private OffsetDateTime alcanzadoEn;
+
+    public boolean estaAlcanzado() {
+        return alcanzadoEn != null;
+    }
+
+    public void marcarAlcanzado(OffsetDateTime ahora) {
+        alcanzadoEn = ahora;
+    }
+
     public static Objetivo nuevo(NegocioId negocioId, String texto, BigDecimal meta, OffsetDateTime ahora) {
         return Objetivo.builder()
                 .negocioId(negocioId)

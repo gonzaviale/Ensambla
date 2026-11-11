@@ -24,6 +24,26 @@ class ObjetivoTest {
     }
 
     @Test
+    @DisplayName("Un objetivo nuevo todavía no está alcanzado")
+    void nuevoShouldNotBeReached() {
+        Objetivo result = Objetivo.nuevo(NEGOCIO_ID, TEXTO, META, AHORA);
+
+        assertThat(result.estaAlcanzado()).isFalse();
+        assertThat(result.getAlcanzadoEn()).isNull();
+    }
+
+    @Test
+    @DisplayName("Al marcarlo alcanzado se anota cuándo")
+    void marcarAlcanzadoShouldRecordWhen() {
+        Objetivo objetivo = Objetivo.nuevo(NEGOCIO_ID, TEXTO, META, AHORA);
+
+        objetivo.marcarAlcanzado(AHORA.plusDays(1));
+
+        assertThat(objetivo.estaAlcanzado()).isTrue();
+        assertThat(objetivo.getAlcanzadoEn()).isEqualTo(AHORA.plusDays(1));
+    }
+
+    @Test
     @DisplayName("Un objetivo nuevo guarda el texto sin espacios en los extremos")
     void nuevoShouldStripText() {
         Objetivo result = Objetivo.nuevo(NEGOCIO_ID, "  " + TEXTO + " \n", META, AHORA);

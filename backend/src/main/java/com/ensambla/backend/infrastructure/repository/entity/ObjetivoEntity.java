@@ -39,6 +39,9 @@ public class ObjetivoEntity {
     @Column(name = "creado_en", nullable = false, updatable = false)
     private OffsetDateTime creadoEn;
 
+    @Column(name = "alcanzado_en")
+    private OffsetDateTime alcanzadoEn;
+
     /** El id se genera al insertar. */
     @PrePersist
     void asignarId() {
