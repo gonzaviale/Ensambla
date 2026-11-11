@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.objetivo.TipoDecision;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
@@ -13,6 +14,7 @@ import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
+import com.ensambla.backend.domain.service.objetivo.DecisionesObjetivoService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.aviso.AvisoItem;
@@ -49,6 +51,8 @@ public class AplicarAviso {
 
     private final AvisoRepository avisoRepository;
 
+    private final DecisionesObjetivoService decisionesObjetivoService;
+
     private final TransaccionPort transaccionPort;
 
     private final Clock clock;
@@ -64,7 +68,9 @@ public class AplicarAviso {
     private Aviso aplicar(Aviso aviso, OffsetDateTime ahora) {
         aviso.aplicar(ahora);
         ejecutarAccion(aviso, ahora);
-        return avisoRepository.save(aviso);
+        Aviso aplicado = avisoRepository.save(aviso);
+        decisionesObjetivoService.registrarAviso(aplicado, TipoDecision.AVISO_APLICADO, ahora);
+        return aplicado;
     }
 
     private void ejecutarAccion(Aviso aviso, OffsetDateTime ahora) {

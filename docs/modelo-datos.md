@@ -7,7 +7,7 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V12__planes_y_suscripciones.sql`, `V13__limites_y_funciones_por_plan.sql`, `V14__prueba_premium.sql`,
 `V15__renovaciones_y_pagos_premium.sql`,
 `V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
-`V24__objetivo.sql`, `V27__mini_objetivo.sql`, `V28__progreso_objetivo.sql`).
+`V24__objetivo.sql`, `V27__mini_objetivo.sql`, `V28__progreso_objetivo.sql`, `V29__decision_objetivo.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -301,6 +301,29 @@ un test de integración cuenta las filas de `aviso` antes y después de una pasa
 y de cada mini-objetivo en curso o logrado, con el hito `OBJETIVO_ALCANZADO`, `MINI_LOGRADO` o `SIN_AVANCE` (14 días sin
 mejorar) si corresponde. Las semanas anteriores a la primera foto del objetivo se completan con el resultado que se calcula
 con los cuadernos, marcadas `estimado: true`. Un objetivo de otro negocio responde 404.
+
+### Decisiones frente a un objetivo (V29)
+
+`V29` crea `decision_objetivo`: lo que la persona decidió frente a cada objetivo, para dibujarlo en el gráfico de la semana y
+mostrar qué efecto tuvo.
+
+- Una fila por objetivo activo del negocio (sin `alcanzado_en`), con `tipo` (`AVISO_APLICADO`, `AVISO_DESCARTADO`,
+  `PASO_ACEPTADO` o `PASO_IGNORADO`), `descripcion` (el título del aviso o del paso), `tomada_en` y `semana_inicio` (el lunes en
+  hora argentina). Si el negocio no tiene objetivos, no se guarda nada.
+- `mini_objetivo_id` es el mini-objetivo en curso del producto del aviso (o el que se aceptó o ignoró); queda vacío si ninguno
+  coincide, y también si el mini-objetivo se borra (`ON DELETE SET NULL`). `aviso_id` sigue el mismo criterio. `registro_id` es
+  el producto, sin clave foránea.
+- `ux_decision_aviso` (`UNIQUE (objetivo_id, aviso_id) WHERE aviso_id IS NOT NULL`) evita registrar dos veces el mismo aviso en un
+  objetivo.
+- **Se anotan solas.** `AplicarAviso` y `DescartarAviso` llaman a `DecisionesObjetivoService.registrarAviso` **dentro de su
+  transacción**: el aviso y la decisión se guardan juntos o no se guarda ninguno. «Ignorar» un paso es explícito: un botón, no se
+  deduce de no hacer nada. Aceptar un paso no cambia nada del cuaderno.
+
+**API.** `POST /api/objetivos/{id}/mini-objetivos/{miniId}/decisiones` con `{ "tipo": "ACEPTADO" | "IGNORADO" }` (201; el
+mini-objetivo tiene que estar en curso) y `GET /api/objetivos/{id}/decisiones`: las decisiones por semana, de la más nueva a la más
+vieja. Cada una trae su `efecto`: `MEDIDO` con `deltaIngresoSemanal` (lo que cambió el ingreso semanal del producto, que mide
+`MedirImpactoAvisos` a los 14 días en avisos `ESTANCADO` y `STOCK` aplicados), `MIDIENDO` mientras la ventana no terminó, o
+`SIN_MEDICION` (avisos descartados, pasos y tipos que no se miden). Un objetivo o mini-objetivo de otro negocio responde 404.
 
 ## Datos de prueba (V10)
 

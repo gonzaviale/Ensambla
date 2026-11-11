@@ -5,12 +5,21 @@ import com.ensambla.backend.domain.model.aviso.MetricasVentas;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.objetivo.CandidatosDelNegocio;
 import com.ensambla.backend.domain.model.objetivo.EstadoMiniObjetivo;
+import com.ensambla.backend.domain.model.aviso.Aviso;
+import com.ensambla.backend.domain.model.aviso.EstadoAviso;
+import com.ensambla.backend.domain.model.aviso.TipoAviso;
+import com.ensambla.backend.domain.model.objetivo.DecisionObjetivo;
+import com.ensambla.backend.domain.model.objetivo.DecisionPaso;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.Objetivo;
 import com.ensambla.backend.domain.model.objetivo.ProgresoObjetivo;
+import com.ensambla.backend.domain.model.objetivo.TipoDecision;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
+import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
+import com.ensambla.backend.domain.repository.objetivo.DecisionObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ProgresoObjetivoRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
@@ -25,8 +34,11 @@ import com.ensambla.backend.domain.useCase.objetivo.listarMiniObjetivos.ListarMi
 import com.ensambla.backend.domain.useCase.objetivo.listarMiniObjetivos.ListarMiniObjetivosResponse;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasosRequest;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasosResponse;
+import com.ensambla.backend.domain.useCase.objetivo.listarDecisiones.ListarDecisionesRequest;
+import com.ensambla.backend.domain.useCase.objetivo.listarDecisiones.ListarDecisionesResponse;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso.ObtenerProgresoRequest;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso.ObtenerProgresoResponse;
+import com.ensambla.backend.domain.useCase.objetivo.registrarDecisionPaso.RegistrarDecisionPasoRequest;
 import com.ensambla.backend.domain.useCase.objetivo.reemplazarMiniObjetivo.ReemplazarMiniObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.reemplazarMiniObjetivo.ReemplazarMiniObjetivoRequest;
 import com.ensambla.backend.infrastructure.objetivos.ObjetivosMonitoreoProperties;
@@ -42,6 +54,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
+import static com.ensambla.backend.support.DecisionTestData.aviso;
 import static com.ensambla.backend.support.MiniObjetivoTestData.MINI_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.miniObjetivo;
 import static com.ensambla.backend.support.ObjetivoTestData.AHORA;
@@ -50,6 +63,7 @@ import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.objetivo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -67,6 +81,7 @@ class ObjetivoUseCaseConfigTest {
     private final MiniObjetivoRepository miniObjetivoRepository = mock(MiniObjetivoRepository.class);
     private final SistemaRepository sistemaRepository = mock(SistemaRepository.class);
     private final ProgresoObjetivoRepository progresoObjetivoRepository = mock(ProgresoObjetivoRepository.class);
+    private final DecisionObjetivoRepository decisionObjetivoRepository = mock(DecisionObjetivoRepository.class);
 
     @Test
     @DisplayName("El wiring de la propuesta carga los sistemas del negocio y no encuentra candidatos sin datos")
@@ -195,6 +210,54 @@ class ObjetivoUseCaseConfigTest {
 
         assertThat(result.meta()).isEqualTo(META);
         assertThat(result.semanas()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("El wiring del servicio de decisiones anota una decisión por objetivo activo")
+    void decisionesObjetivoServiceShouldWireTheRepositories() {
+        Objetivo delNegocio = objetivo();
+        delNegocio.setNegocioId(NEGOCIO_ID);
+        Aviso aplicado = aviso(TipoAviso.ESTANCADO, EstadoAviso.APLICADO);
+        aplicado.setNegocioId(NEGOCIO_ID);
+        when(objetivoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(delNegocio));
+        when(miniObjetivoRepository.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID))
+                .thenReturn(List.of(miniObjetivo()));
+
+        config.decisionesObjetivoService(objetivoRepository, miniObjetivoRepository, decisionObjetivoRepository)
+                .registrarAviso(aplicado, TipoDecision.AVISO_APLICADO, AHORA);
+
+        ArgumentCaptor<DecisionObjetivo> captor = ArgumentCaptor.forClass(DecisionObjetivo.class);
+        verify(decisionObjetivoRepository).save(captor.capture());
+        assertThat(captor.getValue().miniObjetivoId()).isEqualTo(MINI_ID);
+    }
+
+    @Test
+    @DisplayName("El wiring de decidir un paso busca el mini-objetivo del negocio de la sesión y guarda la decisión")
+    void registrarDecisionPasoShouldWireTheRepositories() {
+        givenObjetivoYMiniObjetivo();
+        when(decisionObjetivoRepository.save(any(DecisionObjetivo.class))).thenAnswer(call -> call.getArgument(0));
+
+        config.registrarDecisionPaso(
+                        negocioRepository, objetivoRepository, miniObjetivoRepository, decisionObjetivoRepository,
+                        new TransaccionDirecta(), CLOCK)
+                .execute(new RegistrarDecisionPasoRequest(USUARIO_ID, OBJETIVO_ID, MINI_ID, DecisionPaso.ACEPTADO));
+
+        ArgumentCaptor<DecisionObjetivo> captor = ArgumentCaptor.forClass(DecisionObjetivo.class);
+        verify(decisionObjetivoRepository).save(captor.capture());
+        assertThat(captor.getValue().tipo()).isEqualTo(TipoDecision.PASO_ACEPTADO);
+    }
+
+    @Test
+    @DisplayName("El wiring de listar decisiones busca el objetivo del negocio de la sesión")
+    void listarDecisionesShouldWireTheRepositories() {
+        givenObjetivoYMiniObjetivo();
+
+        ListarDecisionesResponse result = config.listarDecisiones(
+                        negocioRepository, objetivoRepository, decisionObjetivoRepository, mock(AvisoRepository.class))
+                .execute(new ListarDecisionesRequest(USUARIO_ID, OBJETIVO_ID));
+
+        assertThat(result.semanas()).isEmpty();
+        verify(decisionObjetivoRepository).findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID);
     }
 
     // --- helpers ---

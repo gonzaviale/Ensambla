@@ -4,6 +4,8 @@ import com.ensambla.backend.domain.model.aviso.MetricasVentas;
 import com.ensambla.backend.domain.port.RedaccionObjetivosIaPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
+import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
+import com.ensambla.backend.domain.repository.objetivo.DecisionObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ProgresoObjetivoRepository;
@@ -11,6 +13,7 @@ import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
+import com.ensambla.backend.domain.service.objetivo.DecisionesObjetivoService;
 import com.ensambla.backend.domain.service.objetivo.PropuestaMiniObjetivosService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
@@ -19,10 +22,12 @@ import com.ensambla.backend.domain.useCase.objetivo.crearObjetivo.CrearObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.eliminarObjetivo.EliminarObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.listarCandidatos.ListarCandidatos;
 import com.ensambla.backend.domain.useCase.objetivo.listarMiniObjetivos.ListarMiniObjetivos;
+import com.ensambla.backend.domain.useCase.objetivo.listarDecisiones.ListarDecisiones;
 import com.ensambla.backend.domain.useCase.objetivo.listarObjetivos.ListarObjetivos;
 import com.ensambla.backend.domain.useCase.objetivo.monitorearObjetivos.MonitorearObjetivos;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso.ObtenerProgreso;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasos;
+import com.ensambla.backend.domain.useCase.objetivo.registrarDecisionPaso.RegistrarDecisionPaso;
 import com.ensambla.backend.domain.useCase.objetivo.reemplazarMiniObjetivo.ReemplazarMiniObjetivo;
 import com.ensambla.backend.infrastructure.ia.ObjetivosIaProperties;
 import com.ensambla.backend.infrastructure.objetivos.ObjetivosMonitoreoProperties;
@@ -180,6 +185,47 @@ public class ObjetivoUseCaseConfig {
                 progresoObjetivoRepository,
                 propuestaMiniObjetivosService,
                 clock);
+    }
+
+    @Bean
+    public DecisionesObjetivoService decisionesObjetivoService(
+            ObjetivoRepository objetivoRepository,
+            MiniObjetivoRepository miniObjetivoRepository,
+            DecisionObjetivoRepository decisionObjetivoRepository) {
+        return new DecisionesObjetivoService(
+                objetivoRepository,
+                miniObjetivoRepository,
+                decisionObjetivoRepository);
+    }
+
+    @Bean
+    public RegistrarDecisionPaso registrarDecisionPaso(
+            NegocioRepository negocioRepository,
+            ObjetivoRepository objetivoRepository,
+            MiniObjetivoRepository miniObjetivoRepository,
+            DecisionObjetivoRepository decisionObjetivoRepository,
+            TransaccionPort transaccionPort,
+            Clock clock) {
+        return new RegistrarDecisionPaso(
+                negocioRepository,
+                objetivoRepository,
+                miniObjetivoRepository,
+                decisionObjetivoRepository,
+                transaccionPort,
+                clock);
+    }
+
+    @Bean
+    public ListarDecisiones listarDecisiones(
+            NegocioRepository negocioRepository,
+            ObjetivoRepository objetivoRepository,
+            DecisionObjetivoRepository decisionObjetivoRepository,
+            AvisoRepository avisoRepository) {
+        return new ListarDecisiones(
+                negocioRepository,
+                objetivoRepository,
+                decisionObjetivoRepository,
+                avisoRepository);
     }
 
     @Bean

@@ -10,12 +10,14 @@ import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.registro.Registro;
+import com.ensambla.backend.domain.model.objetivo.TipoDecision;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
+import com.ensambla.backend.domain.service.objetivo.DecisionesObjetivoService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.aviso.aplicarAviso.AplicarAviso;
@@ -46,6 +48,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -79,11 +82,13 @@ class AvisoCasosDeUsoTest {
     private final ListarAvisos listarAvisos =
             new ListarAvisos(negocioRepository, avisoRepository, controlPlanService, CLOCK);
     private final ContarAvisos contarAvisos = new ContarAvisos(negocioRepository, avisoRepository);
+    private final DecisionesObjetivoService decisionesObjetivoService = mock(DecisionesObjetivoService.class);
     private final AplicarAviso aplicarAviso = new AplicarAviso(negocioRepository, controlPlanService,
             registroDatosService,
-            registroRepository, campoRepository, avisoRepository, new TransaccionDirecta(), CLOCK);
+            registroRepository, campoRepository, avisoRepository, decisionesObjetivoService,
+            new TransaccionDirecta(), CLOCK);
     private final DescartarAviso descartarAviso = new DescartarAviso(negocioRepository,
-            controlPlanService, avisoRepository, new TransaccionDirecta(), CLOCK);
+            controlPlanService, avisoRepository, decisionesObjetivoService, new TransaccionDirecta(), CLOCK);
 
     @BeforeEach
     void givenNegocioDelUsuario() {
@@ -153,6 +158,26 @@ class AvisoCasosDeUsoTest {
     }
 
     @Test
+    @DisplayName("Aplicar anota la decisión de la persona en sus objetivos con el aviso ya guardado")
+    void aplicarShouldRecordTheDecisionInTheObjetivos() {
+        Aviso aviso = givenGuardado(givenAvisoConAcciones());
+
+        aplicar();
+
+        verify(decisionesObjetivoService).registrarAviso(aviso, TipoDecision.AVISO_APLICADO, AHORA);
+    }
+
+    @Test
+    @DisplayName("Si no se puede anotar la decisión el aviso tampoco queda aplicado: es la misma transacción")
+    void aplicarShouldPropagateAFailureWhileRecordingTheDecision() {
+        givenGuardado(givenAvisoConAcciones());
+        doThrow(new IllegalStateException("falló")).when(decisionesObjetivoService)
+                .registrarAviso(any(Aviso.class), any(TipoDecision.class), any(OffsetDateTime.class));
+
+        assertThatThrownBy(this::aplicar).isInstanceOf(IllegalStateException.class).hasMessage("falló");
+    }
+
+    @Test
     @DisplayName("Aplicar un aviso de otro negocio responde 'no existe' y no aplica nada")
     void aplicarShouldNotApplyForeignAviso() {
         when(avisoRepository.findByIdAndNegocioId(AVISO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
@@ -169,7 +194,7 @@ class AvisoCasosDeUsoTest {
         aviso.setEstado(EstadoAviso.DESCARTADO);
 
         assertThatThrownBy(this::aplicar).isInstanceOf(BusinessRuleException.class);
-        verifyNoInteractions(registroDatosService);
+        verifyNoInteractions(registroDatosService, decisionesObjetivoService);
         verify(avisoRepository, never()).save(any());
     }
 
@@ -304,6 +329,27 @@ class AvisoCasosDeUsoTest {
         assertThat(aviso.getEstado()).isEqualTo(EstadoAviso.DESCARTADO);
         assertThat(aviso.getResueltoEn()).isEqualTo(AHORA);
         verify(avisoRepository).save(aviso);
+    }
+
+    @Test
+    @DisplayName("Descartar anota la decisión de la persona en sus objetivos con el aviso ya guardado")
+    void descartarShouldRecordTheDecisionInTheObjetivos() {
+        Aviso aviso = givenGuardado(givenAvisoConAcciones());
+
+        descartarAviso.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID));
+
+        verify(decisionesObjetivoService).registrarAviso(aviso, TipoDecision.AVISO_DESCARTADO, AHORA);
+    }
+
+    @Test
+    @DisplayName("Descartar un aviso que ya fue resuelto no anota ninguna decisión")
+    void descartarShouldNotRecordADecisionWhenAvisoWasResolved() {
+        Aviso aviso = givenGuardado(givenAvisoConAcciones());
+        aviso.setEstado(EstadoAviso.APLICADO);
+
+        assertThatThrownBy(() -> descartarAviso.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID)))
+                .isInstanceOf(BusinessRuleException.class);
+        verifyNoInteractions(decisionesObjetivoService);
     }
 
     // --- arrange ---

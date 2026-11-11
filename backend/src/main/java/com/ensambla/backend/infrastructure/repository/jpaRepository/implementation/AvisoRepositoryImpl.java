@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
+import com.ensambla.backend.domain.model.common.Identificador;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IAvisoJpaRepository;
@@ -45,6 +46,13 @@ public class AvisoRepositoryImpl implements AvisoRepository {
     @Override
     public List<Aviso> findByNegocioId(NegocioId negocioId) {
         return jpa.findByNegocioId(negocioId.valor()).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public List<Aviso> findAllByIdsAndNegocioId(List<AvisoId> ids, NegocioId negocioId) {
+        return jpa.findByIdInAndNegocioId(Identificador.valores(ids), negocioId.valor()).stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override
