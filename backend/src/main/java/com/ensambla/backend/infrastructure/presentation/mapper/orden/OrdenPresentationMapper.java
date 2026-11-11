@@ -38,6 +38,7 @@ public class OrdenPresentationMapper {
                 orden.items().stream().map(this::toResponse).toList(),
                 orden.total(),
                 orden.motivoRechazo(),
+                orden.clienteAvisado(),
                 orden.creadoEn(),
                 orden.actualizadoEn());
     }

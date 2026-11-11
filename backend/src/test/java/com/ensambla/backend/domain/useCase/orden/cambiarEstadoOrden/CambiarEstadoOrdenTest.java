@@ -5,7 +5,10 @@ import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.campo.CampoId;
+import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.pedido.TextosPedido;
+import com.ensambla.backend.domain.port.MensajeriaWhatsappPort;
 import com.ensambla.backend.domain.model.pedido.ClienteId;
 import com.ensambla.backend.domain.model.pedido.ClienteWhatsapp;
 import com.ensambla.backend.domain.model.pedido.EstadoOrdenCompra;
@@ -42,6 +45,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -66,13 +70,16 @@ class CambiarEstadoOrdenTest {
     private final ClienteWhatsappRepository clienteRepository = mock(ClienteWhatsappRepository.class);
     private final RegistroRepository registroRepository = mock(RegistroRepository.class);
     private final CampoRepository campoRepository = mock(CampoRepository.class);
+    private final MensajeriaWhatsappPort mensajeria = mock(MensajeriaWhatsappPort.class);
     private final CambiarEstadoOrden cambiarEstadoOrden = new OrdenUseCaseConfig().cambiarEstadoOrden(
-            negocioRepository, ordenRepository, clienteRepository, registroRepository, campoRepository,
+            negocioRepository, ordenRepository, clienteRepository, registroRepository, campoRepository, mensajeria,
             new TransaccionDirecta(), Clock.fixed(INSTANTE, ZoneOffset.UTC));
 
     @BeforeEach
     void givenNegocioYCliente() {
-        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID)).thenReturn(
+                Negocio.builder().id(NEGOCIO_ID).nombre("Almacén Don Pepe").build());
+        when(mensajeria.enviarTexto(anyString(), anyString())).thenReturn(true);
         when(clienteRepository.findAllByIds(List.of(CLIENTE_ID))).thenReturn(List.of(
                 ClienteWhatsapp.builder().id(CLIENTE_ID).telefono(TELEFONO).creadoEn(CREADA).build()));
         when(ordenRepository.save(any(OrdenCompra.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
@@ -213,12 +220,123 @@ class CambiarEstadoOrdenTest {
     }
 
     @Test
-    @DisplayName("Si el cliente ya no existe la orden igual cambia, sin teléfono")
+    @DisplayName("Si el cliente ya no existe la orden igual cambia, sin teléfono y sin poder avisarle")
     void executeShouldWorkWithoutTheClientPhone() {
         givenOrdenPendiente(3);
         when(clienteRepository.findAllByIds(List.of(CLIENTE_ID))).thenReturn(List.of());
 
-        assertThat(whenCambia(EstadoOrdenCompra.RECHAZADA, null).clienteTelefono()).isNull();
+        OrdenItem resultado = whenCambia(EstadoOrdenCompra.RECHAZADA, null);
+
+        assertThat(resultado.clienteTelefono()).isNull();
+        assertThat(resultado.clienteAvisado()).isFalse();
+        verify(mensajeria, never()).enviarTexto(anyString(), anyString());
+    }
+
+    // --- avisos al cliente ---
+
+    @Test
+    @DisplayName("Al aceptar la orden Sami le avisa al cliente por WhatsApp y lo informa")
+    void executeShouldTellTheClientWhenTheOrderIsAccepted() {
+        givenOrdenPendiente(3);
+        givenProductoConStock(10);
+
+        OrdenItem resultado = whenCambia(EstadoOrdenCompra.ACEPTADA, null);
+
+        assertThat(resultado.clienteAvisado()).isTrue();
+        verify(mensajeria).enviarTexto(TELEFONO, TextosPedido.avisoAlCliente(
+                ordenConEstado(EstadoOrdenCompra.ACEPTADA, null), "Almacén Don Pepe").orElseThrow());
+    }
+
+    @Test
+    @DisplayName("Al dejarla lista le avisa que ya puede retirarla, con el total")
+    void executeShouldTellTheClientWhenTheOrderIsReady() {
+        OrdenCompra orden = givenOrdenPendiente(3);
+        orden.pasarA(EstadoOrdenCompra.ACEPTADA, null, CREADA);
+        orden.pasarA(EstadoOrdenCompra.EN_PREPARACION, null, CREADA);
+
+        OrdenItem resultado = whenCambia(EstadoOrdenCompra.LISTA, null);
+
+        assertThat(resultado.clienteAvisado()).isTrue();
+        verify(mensajeria).enviarTexto(TELEFONO,
+                "¡Tu pedido en *Almacén Don Pepe* está listo! Ya podés pasar a retirarlo. Total: $10.500.");
+    }
+
+    @Test
+    @DisplayName("Al rechazarla le avisa con el motivo si el dueño lo dio")
+    void executeShouldTellTheClientWhenTheOrderIsRejected() {
+        givenOrdenPendiente(3);
+
+        whenCambia(EstadoOrdenCompra.RECHAZADA, "Hoy no me queda stock");
+
+        ArgumentCaptor<String> texto = ArgumentCaptor.forClass(String.class);
+        verify(mensajeria).enviarTexto(org.mockito.ArgumentMatchers.eq(TELEFONO), texto.capture());
+        assertThat(texto.getValue()).contains("*Almacén Don Pepe* no pudo aceptar tu pedido.")
+                .contains("Motivo: Hoy no me queda stock.");
+    }
+
+    @Test
+    @DisplayName("Al rechazarla sin motivo el aviso no inventa uno")
+    void executeShouldTellTheClientWithoutAReasonWhenThereIsNone() {
+        givenOrdenPendiente(3);
+
+        whenCambia(EstadoOrdenCompra.RECHAZADA, null);
+
+        ArgumentCaptor<String> texto = ArgumentCaptor.forClass(String.class);
+        verify(mensajeria).enviarTexto(org.mockito.ArgumentMatchers.eq(TELEFONO), texto.capture());
+        assertThat(texto.getValue()).doesNotContain("Motivo");
+    }
+
+    @Test
+    @DisplayName("Poner la orden en preparación no se avisa")
+    void executeShouldNotTellTheClientAboutThePreparation() {
+        OrdenCompra orden = givenOrdenPendiente(3);
+        orden.pasarA(EstadoOrdenCompra.ACEPTADA, null, CREADA);
+
+        OrdenItem resultado = whenCambia(EstadoOrdenCompra.EN_PREPARACION, null);
+
+        assertThat(resultado.clienteAvisado()).isNull();
+        verify(mensajeria, never()).enviarTexto(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("Si el aviso no salió la orden igual queda como la dejó el dueño y se informa que no se avisó")
+    void executeShouldKeepTheStepWhenTheMessageFails() {
+        givenOrdenPendiente(3);
+        when(mensajeria.enviarTexto(anyString(), anyString())).thenReturn(false);
+
+        OrdenItem resultado = whenCambia(EstadoOrdenCompra.RECHAZADA, null);
+
+        assertThat(resultado.estado()).isEqualTo(EstadoOrdenCompra.RECHAZADA);
+        assertThat(resultado.clienteAvisado()).isFalse();
+        verify(ordenRepository).save(any(OrdenCompra.class));
+    }
+
+    @Test
+    @DisplayName("Si el proveedor de WhatsApp falla con una excepción tampoco se pierde el paso del dueño")
+    void executeShouldKeepTheStepWhenTheProviderThrows() {
+        givenOrdenPendiente(3);
+        when(mensajeria.enviarTexto(anyString(), anyString())).thenThrow(new IllegalStateException("sin red"));
+
+        OrdenItem resultado = whenCambia(EstadoOrdenCompra.RECHAZADA, null);
+
+        assertThat(resultado.estado()).isEqualTo(EstadoOrdenCompra.RECHAZADA);
+        assertThat(resultado.clienteAvisado()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Si el paso falla no se le avisa nada al cliente")
+    void executeShouldNotTellTheClientWhenTheStepFails() {
+        givenOrdenPendiente(3);
+        givenProductoConStock(2);
+
+        assertThatThrownBy(() -> whenCambia(EstadoOrdenCompra.ACEPTADA, null))
+                .isInstanceOf(BusinessRuleException.class);
+
+        verify(mensajeria, never()).enviarTexto(anyString(), anyString());
+    }
+
+    private static OrdenCompra ordenConEstado(EstadoOrdenCompra estado, String motivo) {
+        return OrdenCompra.builder().estado(estado).motivoRechazo(motivo).total(new BigDecimal("10500")).build();
     }
 
     // --- arrange ---

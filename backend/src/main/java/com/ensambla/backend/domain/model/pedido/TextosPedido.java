@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -32,6 +33,11 @@ public final class TextosPedido {
             + "nuevo qué querés pedir y armo la lista con lo que hay.";
     private static final String PEDIDO_CONFIRMADO = "¡Listo! Mandé tu pedido a *%s* (total %s). Te aviso por acá cuando "
             + "el comercio lo acepte y cuando esté listo para retirar. Podés pedir otra cosa cuando quieras.";
+    private static final String ORDEN_ACEPTADA = "¡Buenas noticias! *%s* aceptó tu pedido y lo está preparando. Te aviso "
+            + "cuando esté listo para retirar.";
+    private static final String ORDEN_RECHAZADA = "*%s* no pudo aceptar tu pedido.%s Si querés, escribime qué necesitás y "
+            + "armamos otro, en este comercio o en otro.";
+    private static final String ORDEN_LISTA = "¡Tu pedido en *%s* está listo! Ya podés pasar a retirarlo. Total: %s.";
     private static final String SIN_ALTERNATIVAS = "No tengo otras marcas de *%s*. Si querés, escribime otro pedido.";
     private static final String OPCION_DE_MARCA_INVALIDA = "Elegí un número entre 1 y %d, o respondé NO para dejarlo "
             + "como está.";
@@ -131,6 +137,20 @@ public final class TextosPedido {
 
     public static String pedidoConfirmado(String comercio, BigDecimal total) {
         return PEDIDO_CONFIRMADO.formatted(comercio, dinero(total));
+    }
+
+    /**
+     * Lo que Sami le avisa al cliente cuando el dueño lleva su orden a una etapa nueva: que la aceptó, que no pudo
+     * aceptarla (con el motivo si lo dio) o que ya puede retirarla. Preparar una orden no se avisa.
+     */
+    public static Optional<String> avisoAlCliente(OrdenCompra orden, String comercio) {
+        return switch (orden.getEstado()) {
+            case ACEPTADA -> Optional.of(ORDEN_ACEPTADA.formatted(comercio));
+            case RECHAZADA -> Optional.of(ORDEN_RECHAZADA.formatted(comercio,
+                    orden.getMotivoRechazo() == null ? "" : " Motivo: " + orden.getMotivoRechazo() + "."));
+            case LISTA -> Optional.of(ORDEN_LISTA.formatted(comercio, dinero(orden.getTotal())));
+            case PENDIENTE, EN_PREPARACION -> Optional.empty();
+        };
     }
 
     /** Cuando nada de lo pedido está en el stock: lo que falta y cómo seguir. */

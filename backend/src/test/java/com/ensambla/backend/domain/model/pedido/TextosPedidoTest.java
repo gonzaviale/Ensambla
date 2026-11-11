@@ -103,6 +103,34 @@ class TextosPedidoTest {
     }
 
     @Test
+    @DisplayName("Sami avisa al cliente cuando la orden se acepta, se rechaza o queda lista, y no cuando se prepara")
+    void avisoAlClienteShouldCoverTheStepsTheClientCaresAbout() {
+        OrdenCompra base = OrdenCompra.builder().total(new BigDecimal("10500")).build();
+
+        assertThat(TextosPedido.avisoAlCliente(base.toBuilder().estado(EstadoOrdenCompra.ACEPTADA).build(), "Kiosco Sol"))
+                .hasValueSatisfying(texto -> assertThat(texto).contains("*Kiosco Sol* aceptó tu pedido"));
+        assertThat(TextosPedido.avisoAlCliente(base.toBuilder().estado(EstadoOrdenCompra.LISTA).build(), "Kiosco Sol"))
+                .contains("¡Tu pedido en *Kiosco Sol* está listo! Ya podés pasar a retirarlo. Total: $10.500.");
+        assertThat(TextosPedido.avisoAlCliente(base.toBuilder().estado(EstadoOrdenCompra.EN_PREPARACION).build(),
+                "Kiosco Sol")).isEmpty();
+        assertThat(TextosPedido.avisoAlCliente(base.toBuilder().estado(EstadoOrdenCompra.PENDIENTE).build(),
+                "Kiosco Sol")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("El aviso de rechazo incluye el motivo sólo si lo hay")
+    void avisoAlClienteShouldIncludeTheReasonOnlyWhenThereIsOne() {
+        OrdenCompra rechazada = OrdenCompra.builder().estado(EstadoOrdenCompra.RECHAZADA).build();
+
+        assertThat(TextosPedido.avisoAlCliente(rechazada.toBuilder().motivoRechazo("Sin stock").build(), "Kiosco Sol"))
+                .hasValueSatisfying(texto -> assertThat(texto)
+                        .contains("*Kiosco Sol* no pudo aceptar tu pedido. Motivo: Sin stock. Si querés"));
+        assertThat(TextosPedido.avisoAlCliente(rechazada, "Kiosco Sol"))
+                .hasValueSatisfying(texto -> assertThat(texto)
+                        .contains("no pudo aceptar tu pedido. Si querés").doesNotContain("Motivo"));
+    }
+
+    @Test
     @DisplayName("Al elegir el comercio le dice quién lo atiende y cómo cambiar")
     void comercioElegidoShouldNameTheBusiness() {
         assertThat(TextosPedido.comercioElegido("Kiosco Sol")).contains("*Kiosco Sol*").contains("*OTRO COMERCIO*");

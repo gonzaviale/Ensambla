@@ -14,6 +14,7 @@ public record OrdenCompraResponse(
         List<ItemOrdenResponse> items,
         BigDecimal total,
         String motivoRechazo,
+        Boolean clienteAvisado,
         OffsetDateTime creadoEn,
         OffsetDateTime actualizadoEn) {
 }

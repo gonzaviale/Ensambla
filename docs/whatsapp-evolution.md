@@ -118,7 +118,24 @@ API (siempre sobre el negocio de la sesión; la orden de otro negocio responde 4
 - `GET /api/ordenes[?estado=PENDIENTE|ACEPTADA|RECHAZADA|EN_PREPARACION|LISTA]`: las 100 más recientes, la más nueva primero.
 - `PATCH /api/ordenes/{id}/estado` con `{"estado": "...", "motivo": "..."}`: devuelve la orden actualizada.
 
-El aviso al cliente por WhatsApp cuando el dueño la rechaza o la deja lista se suma en la fase siguiente.
+### 5. Sami le avisa al cliente (ENS-280)
+
+Cuando el dueño cambia la etapa, Sami le escribe al cliente por el mismo WhatsApp con el que pidió:
+
+| Paso del dueño | Qué recibe el cliente |
+|---|---|
+| Aceptar | «*Comercio* aceptó tu pedido y lo está preparando. Te aviso cuando esté listo para retirar.» |
+| Rechazar | «*Comercio* no pudo aceptar tu pedido.» más el motivo si el dueño lo dio, y la invitación a pedir otra cosa, ahí o en otro comercio |
+| Dejar lista | «¡Tu pedido en *Comercio* está listo! Ya podés pasar a retirarlo. Total: $…» |
+| Poner en preparación | Nada |
+
+El aviso sale **después** de guardar el paso, así que si WhatsApp falla (o el cliente ya no tiene número) la orden igual queda como la
+dejó el dueño. La respuesta de `PATCH /api/ordenes/{id}/estado` trae `clienteAvisado`: `true` si salió, `false` si no (y la app le
+muestra al dueño el número del cliente para que le avise por su cuenta) y `null` cuando ese paso no se avisa.
+
+Con Evolution (la API no oficial) el mensaje sale en cualquier momento. Con la API oficial el aviso de «lista» puede salir pasadas las
+24 h del último mensaje del cliente, y fuera de esa ventana sólo se pueden mandar **plantillas aprobadas**: al migrar hay que
+registrar estas tres plantillas. Con la API de prueba que usamos hoy no aplica.
 
 Si el cliente no habla por 30 minutos, la próxima vez Sami vuelve a saludar. Si el comercio deja de tener WhatsApp vinculado
 mientras tanto, Sami lo avisa y pregunta de nuevo.

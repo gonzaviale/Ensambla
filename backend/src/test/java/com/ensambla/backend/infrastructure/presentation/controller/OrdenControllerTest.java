@@ -96,7 +96,8 @@ class OrdenControllerTest {
 
         result.andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("RECHAZADA"))
-                .andExpect(jsonPath("$.motivoRechazo").value("No hay stock"));
+                .andExpect(jsonPath("$.motivoRechazo").value("No hay stock"))
+                .andExpect(jsonPath("$.clienteAvisado").value(true));
         verify(cambiarEstadoOrden).execute(new CambiarEstadoOrdenRequest(USUARIO_ID, ORDEN_ID,
                 EstadoOrdenCompra.RECHAZADA, "No hay stock"));
     }
@@ -159,6 +160,6 @@ class OrdenControllerTest {
     private static OrdenItem givenOrden(EstadoOrdenCompra estado, String motivo) {
         return new OrdenItem(ORDEN_ID, "5491100000001", estado, List.of(new LineaOrdenItem("Yerba Playadito 1 kg",
                 BigDecimal.valueOf(2), new BigDecimal("3500"), new BigDecimal("7000"))), new BigDecimal("7000"),
-                motivo, AHORA, AHORA);
+                motivo, true, AHORA, AHORA);
     }
 }

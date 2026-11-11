@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
+import com.ensambla.backend.domain.port.MensajeriaWhatsappPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
@@ -34,6 +35,7 @@ public class OrdenUseCaseConfig {
             ClienteWhatsappRepository clienteRepository,
             RegistroRepository registroRepository,
             CampoRepository campoRepository,
+            MensajeriaWhatsappPort mensajeria,
             TransaccionPort transaccionPort,
             Clock clock) {
         return new CambiarEstadoOrden(
@@ -42,6 +44,7 @@ public class OrdenUseCaseConfig {
                 clienteRepository,
                 registroRepository,
                 campoRepository,
+                mensajeria,
                 transaccionPort,
                 clock);
     }

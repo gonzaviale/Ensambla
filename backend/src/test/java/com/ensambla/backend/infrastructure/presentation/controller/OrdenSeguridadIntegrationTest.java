@@ -7,7 +7,9 @@ import com.ensambla.backend.domain.model.pedido.ItemDeOrden;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.port.MensajeriaWhatsappPort;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
+import com.ensambla.backend.infrastructure.whatsapp.MensajeriaWhatsappSimulada;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.ClienteWhatsappEntity;
@@ -99,6 +101,9 @@ class OrdenSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @Autowired
     private IOrdenCompraJpaRepository ordenes;
 
+    @Autowired
+    private MensajeriaWhatsappPort mensajeria;
+
     private MockMvc mockMvc;
     private NegocioId negocioId;
     private MockHttpSession sesion;
@@ -159,8 +164,12 @@ class OrdenSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .header("X-CSRF-TOKEN", csrfToken).contentType("application/json")
                 .content("{\"estado\":\"ACEPTADA\"}"));
 
-        result.andExpect(status().isOk()).andExpect(jsonPath("$.estado").value("ACEPTADA"));
+        result.andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("ACEPTADA"))
+                .andExpect(jsonPath("$.clienteAvisado").value(true));
         assertThat(stock()).isEqualByComparingTo("7");
+        assertThat(avisosEnviadosA(clientes.findById(clienteId).orElseThrow().getTelefono()))
+                .singleElement().satisfies(aviso -> assertThat(aviso).contains("aceptó tu pedido"));
         assertThat(ordenes.findById(orden).orElseThrow().getEstado()).isEqualTo(EstadoOrdenCompra.ACEPTADA);
     }
 
@@ -240,6 +249,14 @@ class OrdenSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     // --- arrange ---
+
+    /** Lo que Sami le mandó al cliente: en los tests el proveedor de WhatsApp es el simulado, que guarda lo que envía. */
+    private List<String> avisosEnviadosA(String telefono) {
+        return ((MensajeriaWhatsappSimulada) mensajeria).enviados().stream()
+                .filter(enviado -> enviado.telefono().equals(telefono))
+                .map(MensajeriaWhatsappSimulada.Enviado::texto)
+                .toList();
+    }
 
     private BigDecimal stock() {
         Object valor = registros.findById(yerbaId).orElseThrow().getValores().get(campoStockId.toString());

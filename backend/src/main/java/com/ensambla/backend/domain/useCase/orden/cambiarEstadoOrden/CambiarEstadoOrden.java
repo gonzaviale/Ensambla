@@ -1,8 +1,11 @@
 package com.ensambla.backend.domain.useCase.orden.cambiarEstadoOrden;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
+import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.pedido.TextosPedido;
+import com.ensambla.backend.domain.port.MensajeriaWhatsappPort;
 import com.ensambla.backend.domain.model.pedido.ClienteWhatsapp;
 import com.ensambla.backend.domain.model.pedido.EstadoOrdenCompra;
 import com.ensambla.backend.domain.model.pedido.ItemDeOrden;
@@ -17,6 +20,7 @@ import com.ensambla.backend.domain.repository.pedido.OrdenCompraRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.useCase.orden.OrdenItem;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -25,12 +29,14 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * El dueño lleva una orden de su negocio a la etapa siguiente: aceptarla, rechazarla, ponerla en preparación o dejarla
  * lista para retirar. Al aceptarla se descuenta del inventario lo que pidió el cliente; si el stock ya no alcanza no
- * se acepta y no se toca nada.
+ * se acepta y no se toca nada. Cuando la acepta, la rechaza o la deja lista, Sami le avisa al cliente por WhatsApp.
  */
+@Slf4j
 @RequiredArgsConstructor
 public class CambiarEstadoOrden {
 
@@ -39,14 +45,38 @@ public class CambiarEstadoOrden {
     private final ClienteWhatsappRepository clienteRepository;
     private final RegistroRepository registroRepository;
     private final CampoRepository campoRepository;
+    private final MensajeriaWhatsappPort mensajeria;
     private final TransaccionPort transaccionPort;
     private final Clock clock;
 
     public OrdenItem execute(CambiarEstadoOrdenRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        Negocio negocio = negocioRepository.obtenerNegocioDelUsuario(request.usuarioId());
         OffsetDateTime ahora = OffsetDateTime.now(clock);
-        OrdenCompra orden = transaccionPort.ejecutar(() -> cambiar(negocioId, request, ahora));
-        return OrdenItem.de(orden, telefonoDelCliente(orden));
+        OrdenCompra orden = transaccionPort.ejecutar(() -> cambiar(negocio.getId(), request, ahora));
+        String telefono = telefonoDelCliente(orden);
+        return OrdenItem.de(orden, telefono, avisarAlCliente(orden, negocio.getNombre(), telefono));
+    }
+
+    /**
+     * Ya con la orden guardada, Sami le avisa al cliente por WhatsApp. Si no se pudo entregar la orden igual quedó
+     * como la dejó el dueño; el aviso que falló se informa para que él lo avise por su cuenta.
+     *
+     * @return si el aviso salió; null si este paso no se avisa
+     */
+    private Boolean avisarAlCliente(OrdenCompra orden, String comercio, String telefono) {
+        Optional<String> aviso = TextosPedido.avisoAlCliente(orden, comercio);
+        if (aviso.isEmpty()) {
+            return null;
+        }
+        if (telefono == null) {
+            return false;
+        }
+        try {
+            return mensajeria.enviarTexto(telefono, aviso.get());
+        } catch (RuntimeException e) {
+            log.warn("No se pudo avisar por WhatsApp al cliente de la orden {}", orden.getId(), e);
+            return false;
+        }
     }
 
     private OrdenCompra cambiar(NegocioId negocioId, CambiarEstadoOrdenRequest request, OffsetDateTime ahora) {
