@@ -174,6 +174,7 @@ function PorQueEstaZona({
               <thead>
                 <tr>
                   <th scope="col">Qué miro</th>
+                  <th scope="col">Dato y fuente</th>
                   <th scope="col">Peso</th>
                   <th scope="col">Puntaje</th>
                   <th scope="col">Aporte</th>
@@ -183,6 +184,12 @@ function PorQueEstaZona({
                 {conPeso.map((aporte) => (
                   <tr key={aporte.clave}>
                     <th scope="row">{aporte.etiqueta}</th>
+                    <td>
+                      {aporte.valor?.toLocaleString('es-AR') ?? '—'}
+                      {aporte.fuente && (
+                        <small className="donde-fuente">{aporte.fuente.nombre}</small>
+                      )}
+                    </td>
                     <td>{Math.round(aporte.peso * 100)} %</td>
                     <td>{formatoPuntaje(aporte.puntaje)}</td>
                     <td>{dosDecimales.format(aporte.aporte)}</td>
@@ -192,14 +199,14 @@ function PorQueEstaZona({
               <tfoot>
                 {penalizada && (
                   <tr>
-                    <th scope="row" colSpan={3}>
+                    <th scope="row" colSpan={4}>
                       Descuento por quedar muy cerca de tu local
                     </th>
                     <td>−1,20</td>
                   </tr>
                 )}
                 <tr>
-                  <th scope="row" colSpan={3}>
+                  <th scope="row" colSpan={4}>
                     Puntaje final
                   </th>
                   <td>{formatoPuntaje(item.puntaje)}</td>

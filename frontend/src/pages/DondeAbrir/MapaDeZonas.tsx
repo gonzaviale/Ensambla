@@ -9,6 +9,7 @@ type Props = {
   puntos: Punto[];
   capas: Record<TipoDePunto, boolean>;
   onSeleccionar: (id: string) => void;
+  localActual?: { latitud: number | null; longitud: number | null; nombre: string };
 };
 
 export function MapaDeZonas(props: Props) {

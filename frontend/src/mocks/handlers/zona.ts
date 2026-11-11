@@ -12,6 +12,15 @@ import {
 } from '../db/zona';
 import { errorResponse } from '../errores';
 import { api, cuenta, LATENCIA_BACKEND_MS, pathDe } from './comun';
+import {
+  FILTROS_INICIALES,
+  ZONAS,
+  explorar,
+  puntosDeLaZona,
+  type FactorClave,
+  type Filtros,
+  type Rubro,
+} from '@/lib/dondeAbrir';
 
 const DEMORA_DEL_ANALISIS_MS = import.meta.env.MODE === 'test' ? 0 : 650;
 
@@ -56,5 +65,108 @@ export const handlersZona = [
     return zona
       ? otraZona(zona)
       : errorResponse(404, 'Todavía no tenemos datos de esa zona', pathDe(request));
+  }),
+
+  http.post(api('/zona/donde-abrir'), async ({ request }) => {
+    const { usuario, error } = cuenta(request, true);
+    if (error) return error;
+    const body = (await request.json()) as {
+      rubro?: string;
+      publico?: string;
+      importancia?: Record<string, 0 | 1 | 2>;
+      limites?: Partial<Filtros['limites']>;
+    };
+    const rubro = ({ ALMACEN: 'almacen', PAPELERIA: 'papeleria', KIOSCO: 'kiosco' } as const)[
+      body.rubro as 'ALMACEN'
+    ];
+    if (!rubro) return errorResponse(400, 'Elegí un rubro válido', pathDe(request));
+    const publico = ({ VECINOS: 'vecinos', ESTUDIANTES: 'estudiantes', OFICINAS: 'oficinas' } as const)[
+      body.publico as 'VECINOS'
+    ];
+    if (!publico) return errorResponse(400, 'Elegí el público principal', pathDe(request));
+    const factorDesdeApi: Record<string, FactorClave> = {
+      COMPETENCIA: 'competencia', ACTIVIDAD_ACCESO: 'movimiento', DENSIDAD: 'vecinos',
+      ESCUELAS: 'escuelas', OFICINAS: 'oficinas', TRANSPORTE: 'transporte', PARQUES: 'parques',
+      SALUD: 'salud', COMPLEMENTARIOS: 'complementarios', PERFIL_SOCIOECONOMICO: 'poder',
+      DEMANDA_ENSAMBLA: 'demanda', ALQUILER: 'alquiler',
+    };
+    const importancia = { ...FILTROS_INICIALES.importancia };
+    Object.entries(body.importancia ?? {}).forEach(([factor, valor]) => {
+      const clave = factorDesdeApi[factor];
+      if (clave) importancia[clave] = valor;
+    });
+    const filtros: Filtros = {
+      rubro,
+      publico,
+      importancia,
+      limites: {
+        ...FILTROS_INICIALES.limites,
+        distanciaMaxKm: body.limites?.distanciaMaxKm ?? 6,
+        competenciaMax: body.limites?.competenciaMax ?? 15,
+        escuelasMin: body.limites?.escuelasMin ?? 0,
+        parquesMin: body.limites?.parquesMin ?? 0,
+        transporteMin: body.limites?.transporteMin ?? 0,
+      },
+    };
+    const resultado = explorar(filtros);
+    const idDe = (id: string) => {
+      const indice = Math.max(0, ZONAS.findIndex((zona) => zona.id === id));
+      return `00000000-0000-4000-8000-${String(indice + 1).padStart(12, '0')}`;
+    };
+    const fuente = {
+      codigo: 'OSM', nombre: 'OpenStreetMap', tipo: 'COMUNITARIA',
+      url: 'https://www.openstreetmap.org/', licencia: 'ODbL 1.0',
+    };
+    const factorApi: Record<FactorClave, string> = Object.fromEntries(
+      Object.entries(factorDesdeApi).map(([api, front]) => [front, api]),
+    ) as Record<FactorClave, string>;
+    const valor = (zona: (typeof ZONAS)[number], factor: FactorClave, rubroActual: Rubro) => {
+      if (factor === 'competencia') return zona.competencia[rubroActual];
+      if (factor === 'vecinos') return zona.densidad;
+      if (factor === 'demanda') return zona.demanda ?? 0;
+      return zona[factor];
+    };
+    const tipoPunto = {
+      competencia: 'COMPETENCIA', escuela: 'ESCUELA', oficina: 'OFICINA',
+      transporte: 'TRANSPORTE', parque: 'PARQUE', salud: 'SALUD', complementario: 'COMPLEMENTARIO',
+    } as const;
+    const zonaBase = (zona: (typeof ZONAS)[number], distanciaKm: number) => ({
+      id: idDe(zona.id), nombre: zona.nombre,
+      localidad: zona.jurisdiccion === 'caba' ? 'Ciudad Autónoma de Buenos Aires' : zona.nombre,
+      jurisdiccion: zona.jurisdiccion === 'caba' ? 'CABA' : 'La Matanza',
+      latitud: zona.latitud, longitud: zona.longitud, distanciaKm,
+    });
+    const ranking = resultado.ranking.map((item) => ({
+      ...zonaBase(item.zona, item.distanciaKm),
+      puntaje: item.puntaje,
+      coincidencia: item.coincidencia.toUpperCase(),
+      aportes: item.aportes
+        .filter((aporte) => aporte.clave !== 'demanda')
+        .map((aporte) => ({
+          factor: factorApi[aporte.clave], etiqueta: aporte.etiqueta,
+          valor: valor(item.zona, aporte.clave, filtros.rubro), unidad: 'estimacion',
+          peso: aporte.peso, puntaje: aporte.puntaje, aporte: aporte.aporte,
+          fuente, observadaEn: '2026-11-10',
+        })),
+      porQue: item.porQue,
+      riesgos: item.riesgos,
+      puntos: puntosDeLaZona(item.zona, filtros.rubro).map((punto, indice) => ({
+        clave: `mock:${item.zona.id}:${indice}`, tipo: tipoPunto[punto.tipo],
+        rubro: punto.tipo === 'competencia' ? body.rubro : null, nombre: punto.nombre,
+        latitud: punto.latitud, longitud: punto.longitud, fuente, observadaEn: '2026-11-10',
+      })),
+    }));
+    return HttpResponse.json({
+      negocioActual: {
+        nombre: `Negocio de ${usuario.nombre}`, rubro: 'ALMACEN', direccion: 'Av. Corrientes 5000',
+        latitud: -34.5996, longitud: -58.4403, zonaId: null,
+      },
+      evaluadas: resultado.evaluadas,
+      ranking,
+      descartadas: resultado.descartadas.map((item) => ({
+        ...zonaBase(item.zona, item.distanciaKm), motivos: item.motivos,
+      })),
+      avisos: ['El alquiler no influye en el ranking hasta que cargues cotizaciones reales'],
+    });
   }),
 ];

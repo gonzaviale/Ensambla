@@ -18,6 +18,7 @@ export type FactorClave =
   | 'parques'
   | 'salud'
   | 'complementarios'
+  | 'demanda'
   | 'poder'
   | 'alquiler';
 
@@ -56,6 +57,7 @@ const CLAVES_DE_FACTOR: FactorClave[] = [
   'parques',
   'salud',
   'complementarios',
+  'demanda',
   'poder',
   'alquiler',
 ];
@@ -129,6 +131,11 @@ export const FACTORES: { clave: FactorClave; etiqueta: string; ayuda: string }[]
     etiqueta: 'Comercios que atraen gente',
     ayuda: 'Farmacias, bancos y supermercados a menos de 500 m',
   },
+  {
+    clave: 'demanda',
+    etiqueta: 'Demanda observada',
+    ayuda: 'Ventas agregadas y anónimas de al menos tres comercios de Ensambla',
+  },
   { clave: 'poder', etiqueta: 'Poder de compra', ayuda: 'Nivel socioeconómico de la zona' },
   {
     clave: 'alquiler',
@@ -167,6 +174,8 @@ export type DatosDeZona = {
   complementarios: number;
   /** Nivel socioeconómico, de 1 a 10. */
   poder: number;
+  /** Demanda agregada observada en Ensambla; puede faltar si no alcanza el mínimo anónimo. */
+  demanda?: number;
   /** Nivel de alquiler, de 0 a 100 (100 = la más cara de las zonas comparadas). */
   alquiler: number;
   /** Comercios del mismo rubro a menos de 500 m. */
@@ -463,6 +472,7 @@ const PESOS_BASE: Record<Rubro, Pesos> = {
     parques: 0.03,
     salud: 0.02,
     complementarios: 0.07,
+    demanda: 0,
     poder: 0.09,
     alquiler: 0.14,
   },
@@ -476,6 +486,7 @@ const PESOS_BASE: Record<Rubro, Pesos> = {
     parques: 0.02,
     salud: 0.01,
     complementarios: 0.07,
+    demanda: 0,
     poder: 0.05,
     alquiler: 0.07,
   },
@@ -489,6 +500,7 @@ const PESOS_BASE: Record<Rubro, Pesos> = {
     parques: 0.03,
     salud: 0.02,
     complementarios: 0.05,
+    demanda: 0,
     poder: 0.03,
     alquiler: 0.07,
   },
@@ -544,6 +556,8 @@ const valorCrudo = (zona: DatosDeZona, clave: FactorClave, rubro: Rubro): number
       return zona.competencia[rubro];
     case 'vecinos':
       return zona.densidad;
+    case 'demanda':
+      return zona.demanda ?? 0;
     default:
       return zona[clave];
   }
@@ -568,6 +582,10 @@ export type Aporte = {
   peso: number;
   puntaje: number;
   aporte: number;
+  valor?: number;
+  unidad?: string;
+  fuente?: { codigo: string; nombre: string; url: string | null; licencia: string | null };
+  observadaEn?: string | null;
 };
 
 export type Coincidencia = 'buena' | 'intermedia' | 'mala';
@@ -589,6 +607,8 @@ export type ZonaPuntuada = {
   aportes: Aporte[];
   porQue: string[];
   riesgos: string[];
+  /** Puntos reales del snapshot; el cálculo local de demostración no los necesita. */
+  puntos?: Punto[];
 };
 
 const redondear = (valor: number, decimales = 1) => {
@@ -624,6 +644,8 @@ function frasePositiva(zona: DatosDeZona, clave: FactorClave, rubro: Rubro): str
       return `${zona.salud} hospitales o centros de salud cerca`;
     case 'complementarios':
       return `${zona.complementarios} comercios que atraen gente (farmacias, bancos, supermercados)`;
+    case 'demanda':
+      return 'Ensambla observa buena demanda agregada en esta zona';
     case 'poder':
       return 'Vecinos con buen poder de compra';
     case 'alquiler':
@@ -651,6 +673,8 @@ function fraseDeRiesgo(zona: DatosDeZona, clave: FactorClave, rubro: Rubro): str
       return 'Hay pocos centros de salud cerca';
     case 'complementarios':
       return 'Hay pocos comercios que atraigan gente';
+    case 'demanda':
+      return 'Ensambla observa menos demanda que en otras zonas con datos suficientes';
     case 'poder':
       return 'El poder de compra de la zona es más bajo que en otras';
     case 'alquiler':
@@ -840,7 +864,7 @@ export function queVerificar(rubro: Rubro): string[] {
   };
   return [
     'Caminá la zona un día de semana y un sábado, a distintas horas.',
-    'Mirá locales en alquiler y pedí el precio real: acá el alquiler es un dato de ejemplo.',
+    'Mirá locales en alquiler y cargá cotizaciones reales para compararlos en el ranking.',
     `Consultá en tu municipio qué habilitación necesita ${UN_RUBRO[rubro]} en esa dirección.`,
     propias[rubro],
   ];
@@ -927,7 +951,7 @@ export function resumenParaCompartir(filtros: Filtros, exploracion: Exploracion)
         `${indice + 1}. ${item.zona.nombre} (${ETIQUETA_DE_COINCIDENCIA[item.coincidencia].toLowerCase()}). ${item.porQue[0]}.`,
     );
   return [
-    `Dónde abrir mi próximo local, ${NOMBRE_DE_RUBRO[filtros.rubro]} (estimación de Sami, con datos de ejemplo):`,
+    `Dónde abrir mi próximo local, ${NOMBRE_DE_RUBRO[filtros.rubro]} (estimación de Sami con fuentes trazables):`,
     ...lineas,
     'Ojo: es una estimación para decidir mejor, no una predicción de ventas.',
   ].join('\n');

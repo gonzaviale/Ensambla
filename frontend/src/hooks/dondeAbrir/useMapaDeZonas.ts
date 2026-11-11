@@ -13,7 +13,6 @@ import {
 } from 'leaflet';
 import { cartografia } from '@/config/ubicacion';
 import {
-  LOCAL_ACTUAL,
   RADIO_DE_ANALISIS_M,
   formatoPuntaje,
   type Coincidencia,
@@ -48,6 +47,7 @@ type Parametros = {
   puntos: Punto[];
   capas: Record<TipoDePunto, boolean>;
   onSeleccionar: (id: string) => void;
+  localActual?: { latitud: number | null; longitud: number | null; nombre: string };
 };
 
 /** El mapa: todas las zonas (las del podio numeradas, las descartadas en gris) y lo que hay alrededor. */
@@ -58,6 +58,7 @@ export function useMapaDeZonas({
   puntos,
   capas,
   onSeleccionar,
+  localActual,
 }: Parametros) {
   const contenedor = useRef<HTMLDivElement>(null);
   const mapa = useRef<Map | null>(null);
@@ -67,6 +68,7 @@ export function useMapaDeZonas({
   const primerAjuste = useRef(true);
   const ultimaSeleccion = useRef('');
   const [error, setError] = useState(false);
+  const local = useRef(localActual);
 
   useEffect(() => {
     seleccionar.current = onSeleccionar;
@@ -75,10 +77,14 @@ export function useMapaDeZonas({
   useEffect(() => {
     if (!contenedor.current) return;
     try {
+      const centro =
+        local.current?.latitud != null && local.current.longitud != null
+          ? ([local.current.latitud, local.current.longitud] as [number, number])
+          : ([-34.62, -58.47] as [number, number]);
       const instancia = map(contenedor.current, {
         scrollWheelZoom: false,
         zoomControl: true,
-      }).setView([LOCAL_ACTUAL.latitud, LOCAL_ACTUAL.longitud], 13);
+      }).setView(centro, 13);
       tileLayer(cartografia.url, {
         attribution: cartografia.atribucion,
         maxZoom: cartografia.zoomMaximo,
@@ -87,17 +93,19 @@ export function useMapaDeZonas({
       })
         .on('tileerror', () => setError(true))
         .addTo(instancia);
-      marker([LOCAL_ACTUAL.latitud, LOCAL_ACTUAL.longitud], {
-        title: 'Tu local actual',
-        alt: 'Tu local actual',
-        keyboard: false,
-        icon: divIcon({
-          className: 'donde-local',
-          html: '<span>Tu local</span>',
-          iconSize: [64, 26],
-          iconAnchor: [32, 13],
-        }),
-      }).addTo(instancia);
+      if (local.current?.latitud != null && local.current.longitud != null) {
+        marker([local.current.latitud, local.current.longitud], {
+          title: local.current.nombre,
+          alt: 'Tu local actual',
+          keyboard: false,
+          icon: divIcon({
+            className: 'donde-local',
+            html: '<span>Tu local</span>',
+            iconSize: [64, 26],
+            iconAnchor: [32, 13],
+          }),
+        }).addTo(instancia);
+      }
       grupoDeZonas.current = layerGroup().addTo(instancia);
       grupoDePuntos.current = layerGroup().addTo(instancia);
       mapa.current = instancia;
@@ -158,8 +166,13 @@ export function useMapaDeZonas({
     });
 
     try {
-      if (primerAjuste.current && ranking.length > 0) {
-        const limites = latLngBounds([[LOCAL_ACTUAL.latitud, LOCAL_ACTUAL.longitud]]);
+      const primera = ranking.at(0);
+      if (primerAjuste.current && primera) {
+        const limites = latLngBounds([
+          local.current?.latitud != null && local.current.longitud != null
+            ? [local.current.latitud, local.current.longitud]
+            : [primera.zona.latitud, primera.zona.longitud],
+        ]);
         ranking
           .slice(0, 3)
           .forEach((item) => limites.extend([item.zona.latitud, item.zona.longitud]));

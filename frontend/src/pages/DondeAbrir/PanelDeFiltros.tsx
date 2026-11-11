@@ -8,7 +8,6 @@ import {
   FACTORES,
   FILTROS_INICIALES,
   PRESETS,
-  SIN_LIMITE_ALQUILER,
   SIN_LIMITE_COMPETENCIA,
   SIN_LIMITE_KM,
   conPreset,
@@ -173,17 +172,6 @@ export function PanelDeFiltros({ filtros, activos, onCambiar }: Props) {
                 paso={1}
                 texto={(valor) => (valor === 0 ? 'No importa' : `Al menos ${valor}`)}
                 onCambiar={(valor) => cambiarLimite('transporteMin', valor)}
-              />
-              <Deslizador
-                etiqueta="Alquiler"
-                valor={filtros.limites.alquilerMax}
-                minimo={20}
-                maximo={SIN_LIMITE_ALQUILER}
-                paso={5}
-                texto={(valor) =>
-                  valor >= SIN_LIMITE_ALQUILER ? 'Sin límite' : `Hasta nivel ${valor}`
-                }
-                onCambiar={(valor) => cambiarLimite('alquilerMax', valor)}
               />
             </div>
           </div>

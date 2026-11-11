@@ -1,4 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { DondeAbrirPage } from '@/pages/DondeAbrir/DondeAbrirPage';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 
-export const Route = createFileRoute('/_app/donde-abrir')({ component: DondeAbrirPage });
+export const Route = createFileRoute('/_app/donde-abrir')({
+  beforeLoad: () => {
+    throw redirect({ to: '/zona/donde-abrir', replace: true });
+  },
+});

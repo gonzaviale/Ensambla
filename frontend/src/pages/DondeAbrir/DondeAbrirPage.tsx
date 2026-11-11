@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeftIcon, CopyIcon, XIcon } from '@phosphor-icons/react';
-import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Sami } from '@/components/sistema/Sami';
 import { COLOR_DE_PUNTO } from '@/hooks/dondeAbrir/useMapaDeZonas';
+import { useDondeAbrir, type AlquileresPorZona } from '@/hooks/dondeAbrir/queries';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import {
@@ -13,9 +13,7 @@ import {
   PRESETS,
   SIN_LIMITE_KM,
   conPreset,
-  explorar,
   filtrosActivos,
-  puntosDeLaZona,
   resumenParaCompartir,
   sinFiltro,
   type Filtros,
@@ -79,8 +77,10 @@ export function DondeAbrirPage() {
   const [dondeMostrar, setDondeMostrar] = useState<DondeMostrar>('elegida');
   // Quién subió o bajó solo se marca cuando la persona mueve un filtro, no por lo que contestó en las preguntas.
   const [movioFiltros, setMovioFiltros] = useState(false);
+  const [alquileres, setAlquileres] = useState<AlquileresPorZona>({});
 
-  const exploracion = useMemo(() => explorar(filtros), [filtros]);
+  const consulta = useDondeAbrir(filtros, alquileres, paso === 'resultado');
+  const exploracion = consulta.data ?? { ranking: [], descartadas: [], evaluadas: 0 };
   const { ranking, descartadas } = exploracion;
   const elegida = ranking.find((item) => item.zona.id === seleccionadaId) ?? ranking[0];
   const activos = useMemo(() => filtrosActivos(filtros), [filtros]);
@@ -114,8 +114,8 @@ export function DondeAbrirPage() {
 
   const puntos = useMemo(() => {
     const zonas = dondeMostrar === 'todas' ? ranking : elegida ? [elegida] : [];
-    return zonas.flatMap((item) => puntosDeLaZona(item.zona, filtros.rubro));
-  }, [dondeMostrar, ranking, elegida, filtros.rubro]);
+    return zonas.flatMap((item) => item.puntos ?? []);
+  }, [dondeMostrar, ranking, elegida]);
 
   const cambiarFiltros = (nuevos: Filtros | ((actuales: Filtros) => Filtros)) => {
     setMovioFiltros(true);
@@ -142,15 +142,13 @@ export function DondeAbrirPage() {
   };
 
   return (
-    <>
-      <CabeceraComun active="open" />
-      <main id="main" tabIndex={-1} className="page-wrap objetivos-page donde-page reveal">
+    <main id="main" tabIndex={-1} className="page-wrap objetivos-page donde-page reveal">
         <button
           type="button"
           className="objetivos-volver"
-          onClick={() => void navegacion.irAObjetivos()}
+          onClick={() => void navegacion.irAZona()}
         >
-          <ArrowLeftIcon aria-hidden size={20} /> Volver a objetivos
+          <ArrowLeftIcon aria-hidden size={20} /> Volver a Mi zona
         </button>
         <header className="donde-encabezado">
           <div>
@@ -166,8 +164,8 @@ export function DondeAbrirPage() {
           </ol>
         </header>
         <p className="donde-demo" role="note">
-          <strong>Demostración.</strong> Las zonas y los números son de ejemplo. Los trámites salen
-          de las páginas oficiales.
+          <strong>Datos trazables.</strong> Comparamos el snapshot guardado de OpenStreetMap con las
+          lecturas agregadas y anónimas disponibles en Ensambla.
         </p>
 
         {paso === 'confirmar' && (
@@ -183,6 +181,20 @@ export function DondeAbrirPage() {
 
         {paso === 'resultado' && (
           <div className="donde-resultado">
+            {consulta.isPending && (
+              <p className="donde-estado" role="status">Estoy comparando las zonas…</p>
+            )}
+            {consulta.isError && (
+              <div className="donde-estado error" role="alert">
+                <p>No pudimos calcular el ranking. Tus respuestas siguen guardadas.</p>
+                <button type="button" className="btn secondary" onClick={() => void consulta.refetch()}>
+                  Volver a intentar
+                </button>
+              </div>
+            )}
+            {consulta.data?.avisos.map((aviso) => (
+              <p className="donde-aviso-datos" role="note" key={aviso}>{aviso}</p>
+            ))}
             {elegida && (
               <section className="donde-recomienda" aria-label="Recomendación de Sami">
                 <div className="donde-recomienda-cabeza">
@@ -229,6 +241,39 @@ export function DondeAbrirPage() {
             )}
 
             <PanelDeFiltros filtros={filtros} activos={activos.length} onCambiar={cambiarFiltros} />
+            {ranking.length > 0 && (
+              <section className="donde-alquileres" aria-labelledby="donde-alquileres-titulo">
+                <div>
+                  <h3 id="donde-alquileres-titulo">Cotizaciones reales de alquiler</h3>
+                  <p>Son opcionales. El alquiler sólo cambia el ranking en las zonas donde cargás un valor.</p>
+                </div>
+                <div className="donde-alquileres-lista">
+                  {ranking.slice(0, 3).map((item) => (
+                    <label key={item.zona.id}>
+                      <span>{item.zona.nombre}</span>
+                      <input
+                        type="number"
+                        min={1}
+                        step={10000}
+                        inputMode="numeric"
+                        placeholder="$ por mes"
+                        value={alquileres[item.zona.id] ?? ''}
+                        onChange={(evento) => {
+                          const valor = Number(evento.target.value);
+                          setAlquileres((actuales) => {
+                            if (Number.isFinite(valor) && valor > 0)
+                              return { ...actuales, [item.zona.id]: valor };
+                            return Object.fromEntries(
+                              Object.entries(actuales).filter(([zonaId]) => zonaId !== item.zona.id),
+                            );
+                          });
+                        }}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </section>
+            )}
             <div className="donde-barra-de-control">
               <LeyendaDeColores />
               <div className="donde-acciones">
@@ -277,6 +322,7 @@ export function DondeAbrirPage() {
                   puntos={puntos}
                   capas={capas}
                   onSeleccionar={setSeleccionadaId}
+                  localActual={consulta.data?.negocioActual}
                 />
                 <details className="donde-capas">
                   <summary>Qué ver en el mapa</summary>
@@ -324,7 +370,6 @@ export function DondeAbrirPage() {
             </p>
           </div>
         )}
-      </main>
-    </>
+    </main>
   );
 }

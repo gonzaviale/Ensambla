@@ -53,6 +53,77 @@
   color: var(--muted);
   font-size: 12px;
 }
+.donde-estado,
+.donde-aviso-datos {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--soft);
+  color: var(--petrol);
+  font-size: 13px;
+}
+.donde-estado.error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-color: #efb4b4;
+  background: #fff7f7;
+  color: #8c2525;
+}
+.donde-alquileres {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr);
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+}
+.donde-alquileres h3 {
+  color: var(--petrol);
+  font-size: 16px;
+}
+.donde-alquileres p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.donde-alquileres-lista {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.donde-alquileres-lista label {
+  display: grid;
+  gap: 5px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+.donde-alquileres-lista input {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font: inherit;
+}
+.donde-fuente {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+@media (max-width: 760px) {
+  .donde-alquileres {
+    grid-template-columns: 1fr;
+  }
+  .donde-alquileres-lista {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* Pasos con Sami */
 .donde-paso {

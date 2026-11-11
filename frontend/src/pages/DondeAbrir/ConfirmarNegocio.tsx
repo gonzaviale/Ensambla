@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { CheckIcon } from '@phosphor-icons/react';
+import { Link } from '@tanstack/react-router';
 import { Sami } from '@/components/sistema/Sami';
+import { useConfiguracionNegocio } from '@/hooks/negocio/queries';
 import {
-  LOCAL_ACTUAL,
   NOMBRE_DE_RUBRO,
-  SIGLA_DE_JURISDICCION,
   UN_RUBRO,
   type Rubro,
 } from '@/lib/dondeAbrir';
@@ -24,6 +24,11 @@ type Props = {
 export function ConfirmarNegocio({ rubro, onConfirmar }: Props) {
   const [cambiando, setCambiando] = useState(false);
   const [elegido, setElegido] = useState<Rubro>(rubro);
+  const configuracion = useConfiguracionNegocio();
+  const negocio = configuracion.data;
+  const lugar = negocio?.ubicacion
+    ? `${negocio.ubicacion.localidad ?? negocio.zona ?? 'tu ubicación'}`
+    : null;
 
   return (
     <section className="donde-paso" aria-labelledby="donde-confirmar-titulo">
@@ -36,15 +41,26 @@ export function ConfirmarNegocio({ rubro, onConfirmar }: Props) {
             Antes de empezar, quiero asegurarme de que te entiendo
           </h2>
           <p>
-            Veo que tu negocio es <strong>{LOCAL_ACTUAL.nombre}</strong>, {UN_RUBRO[rubro]} en{' '}
-            <strong>
-              {LOCAL_ACTUAL.barrio}, {SIGLA_DE_JURISDICCION.caba}
-            </strong>
-            . ¿Es correcto?
+            {configuracion.isPending ? (
+              'Estoy leyendo la configuración de tu negocio…'
+            ) : negocio ? (
+              <>
+                Veo que tu negocio es <strong>{negocio.nombre}</strong>
+                {lugar ? <> en <strong>{lugar}</strong></> : ''}. Vamos a buscar dónde abrir{' '}
+                <strong>{UN_RUBRO[rubro]}</strong>. ¿Es correcto?
+              </>
+            ) : (
+              'No pude leer la configuración de tu negocio.'
+            )}
           </p>
           <small>
-            Lo tomo de la configuración de tu negocio. En esta demostración es un ejemplo.
+            Lo tomo de la configuración real de tu negocio y nunca de lo que mande esta pantalla.
           </small>
+          {negocio && !negocio.ubicacion && (
+            <Link className="text-link" to="/ubicacion">
+              Configurar la ubicación antes de comparar distancias
+            </Link>
+          )}
         </div>
       </div>
 
@@ -75,7 +91,12 @@ export function ConfirmarNegocio({ rubro, onConfirmar }: Props) {
         </div>
       ) : (
         <div className="donde-botones">
-          <button type="button" className="btn primary" onClick={() => onConfirmar(rubro)}>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={configuracion.isPending || configuracion.isError}
+            onClick={() => onConfirmar(rubro)}
+          >
             <CheckIcon aria-hidden size={18} weight="bold" /> Sí, es correcto
           </button>
           <button type="button" className="btn secondary" onClick={() => setCambiando(true)}>

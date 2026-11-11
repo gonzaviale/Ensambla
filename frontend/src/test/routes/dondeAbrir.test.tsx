@@ -1,11 +1,29 @@
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useObjetivosStore } from '@/stores/objetivosStore';
+import { estado } from '@/mocks/db/estado';
 import { renderApp } from '@/test/renderApp';
 import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
 
 const TITULO = 'Encontrá la mejor zona para tu próximo local';
+
+const prepararNegocio = () => {
+  const usuario = setupUsuarioConSesion();
+  estado.negocios.set(usuario.email, {
+    nombre: 'Almacén de barrio',
+    rubro: 'ALMACEN',
+    ubicacion: {
+      direccion: 'Av. Corrientes 5000',
+      localidad: 'Villa Crespo',
+      latitud: -34.5996,
+      longitud: -58.4403,
+    },
+    comparteDatosZona: true,
+    zona: 'Villa Crespo',
+  });
+  return usuario;
+};
 
 type Respuestas = {
   alcance?: RegExp;
@@ -15,8 +33,8 @@ type Respuestas = {
 };
 
 const abrir = async () => {
-  setupUsuarioConSesion();
-  const router = renderApp('/donde-abrir');
+  prepararNegocio();
+  const router = renderApp('/zona/donde-abrir');
   await screen.findByRole('heading', { name: TITULO }, ESPERA);
   return { router, user: userEvent.setup() };
 };
@@ -55,34 +73,35 @@ describe('dónde abrir', () => {
   });
 
   it('es una sección de la barra de arriba y arranca confirmando el negocio', async () => {
-    setupUsuarioConSesion();
+    prepararNegocio();
     const router = renderApp('/inicio');
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole('button', { name: 'Dónde abrir' }, ESPERA));
+    await user.click(await screen.findByRole('button', { name: 'Zona' }, ESPERA));
+    await user.click(await screen.findByRole('link', { name: 'Dónde abrir' }, ESPERA));
 
     expect(await screen.findByRole('heading', { name: TITULO })).toBeVisible();
-    expect(router.state.location.pathname).toBe('/donde-abrir');
-    expect(screen.getByRole('button', { name: 'Dónde abrir' })).toHaveAttribute(
+    expect(router.state.location.pathname).toBe('/zona/donde-abrir');
+    expect(screen.getByRole('link', { name: 'Dónde abrir' })).toHaveAttribute(
       'aria-current',
       'page',
     );
-    expect(screen.getByRole('note')).toHaveTextContent(/Demostración/);
-    expect(screen.getByText(/Veo que tu negocio es/)).toHaveTextContent(
-      /Almacén de barrio.*almacén.*Villa Crespo, CABA/,
+    expect(screen.getByRole('note')).toHaveTextContent(/Datos trazables/);
+    expect(await screen.findByText(/Veo que tu negocio es/)).toHaveTextContent(
+      /Almacén de barrio.*Villa Crespo.*almacén/,
     );
     expect(screen.getByText(/¿Es correcto\?/)).toBeVisible();
   });
 
   it('también se entra desde Objetivos', async () => {
-    setupUsuarioConSesion();
+    prepararNegocio();
     const router = renderApp('/objetivos');
     const user = userEvent.setup();
 
     await user.click(await screen.findByRole('button', { name: 'Ver dónde conviene' }, ESPERA));
 
     await screen.findByRole('heading', { name: TITULO });
-    expect(router.state.location.pathname).toBe('/donde-abrir');
+    expect(router.state.location.pathname).toBe('/zona/donde-abrir');
   });
 
   it('si el negocio no es ese, deja elegir otro rubro antes de seguir', async () => {
@@ -220,7 +239,7 @@ describe('dónde abrir', () => {
     await abrirFiltros(user);
     mover(/Parques y plazas cerca/, 2);
 
-    expect(zonas().length).toBeLessThan(antes);
+    await waitFor(() => expect(zonas().length).toBeLessThan(antes));
     expect(
       within(screen.getByRole('list', { name: 'Filtros activos' })).getByText(/Al menos 2 parques/),
     ).toBeVisible();
@@ -228,7 +247,7 @@ describe('dónde abrir', () => {
     expect(screen.getAllByText(/parques: pediste al menos 2/).length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole('button', { name: 'Quitar filtro: Al menos 2 parques' }));
-    expect(zonas().length).toBe(antes);
+    await waitFor(() => expect(zonas().length).toBe(antes));
   });
 
   it('quién subió o bajó solo se marca cuando se mueve un filtro', async () => {
@@ -241,7 +260,9 @@ describe('dónde abrir', () => {
     await abrirFiltros(user);
     await user.click(screen.getByRole('button', { name: 'Familias' }));
 
-    expect(screen.getAllByLabelText(/^(Subió|Bajó) \d+ puestos?$/).length).toBeGreaterThan(0);
+    await waitFor(() =>
+      expect(screen.getAllByLabelText(/^(Subió|Bajó) \d+ puestos?$/).length).toBeGreaterThan(0),
+    );
   });
 
   it('una zona de la Ciudad con un local mediano se tramita online, sin costo y sin profesional', async () => {
@@ -282,7 +303,7 @@ describe('dónde abrir', () => {
     await llegarALasZonas(user, { alcance: /En cualquier zona/ });
 
     await user.click(
-      within(screen.getByRole('list', { name: /Zonas recomendadas/ })).getByRole('button', {
+      await within(screen.getByRole('list', { name: /Zonas recomendadas/ })).findByRole('button', {
         name: /Ramos Mejía/,
       }),
     );
@@ -339,7 +360,7 @@ describe('dónde abrir', () => {
   it('elegir otra zona cambia el detalle y vuelve a la primera solapa', async () => {
     const { user } = await abrir();
     await llegarALasZonas(user);
-    const primera = screen.getByRole('heading', { level: 3, name: /./ }).textContent;
+    const primera = screen.getByRole('article').querySelector('h3')?.textContent;
     await irATramites(user);
 
     await user.click(zonas()[1] as HTMLElement);
@@ -368,18 +389,20 @@ describe('dónde abrir', () => {
     mover(/Escuelas cerca/, 9);
     mover(/Parques y plazas cerca/, 4);
 
-    expect(screen.getAllByText(/no quedó ninguna zona/).length).toBeGreaterThan(0);
+    await waitFor(() =>
+      expect(screen.getAllByText(/no quedó ninguna zona/).length).toBeGreaterThan(0),
+    );
     expect(screen.queryByRole('article')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Restablecer' }));
-    expect(zonas().length).toBeGreaterThanOrEqual(3);
+    await waitFor(() => expect(zonas().length).toBeGreaterThanOrEqual(3));
   });
 
-  it('vuelve a Objetivos', async () => {
+  it('vuelve a Mi zona', async () => {
     const { router, user } = await abrir();
 
-    await user.click(screen.getByRole('button', { name: 'Volver a objetivos' }));
+    await user.click(screen.getByRole('button', { name: 'Volver a Mi zona' }));
 
-    expect(router.state.location.pathname).toBe('/objetivos');
+    expect(router.state.location.pathname).toBe('/zona');
   });
 });
