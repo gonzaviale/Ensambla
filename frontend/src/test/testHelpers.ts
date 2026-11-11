@@ -2,7 +2,8 @@ import { screen, waitFor } from '@testing-library/react';
 import type { UserEvent } from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { expect } from 'vitest';
-import { estado, sembrarUsuario, type UsuarioMock } from '@/mocks/db/estado';
+import { objetivoDeEjemplo } from '@/lib/objetivos';
+import { estado, guardarObjetivosDe, sembrarUsuario, type UsuarioMock } from '@/mocks/db/estado';
 import { PREFERENCIAS_INICIALES } from '@/types/preferencias';
 import { server } from '@/mocks/node';
 
@@ -51,6 +52,12 @@ export const setupUsuarioConSesion = (
   const usuario = sembrarUsuario({ ...datos, conSesion: true });
   estado.preferencias.set(usuario.email, { ...PREFERENCIAS_INICIALES, bienvenidaVista });
   return usuario;
+};
+
+// El objetivo de ejemplo de la demo, ya guardado en el servidor simulado para esa cuenta.
+export const setupObjetivoDeEjemplo = (email: string) => {
+  const { id, texto, meta } = objetivoDeEjemplo();
+  guardarObjetivosDe(email, [{ id, texto, meta, creadoEn: '2026-10-01T12:00:00' }]);
 };
 
 export const setupUsuarioSinSesion = (datos: Partial<UsuarioMock> = {}) => sembrarUsuario(datos);

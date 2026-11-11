@@ -3,12 +3,12 @@ import { useNavigate } from '@tanstack/react-router';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
 import { varsDeColor } from '@/components/sistema/colores';
+import { useObjetivos } from '@/hooks/objetivos/queries';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { DATOS_DE_LECCION, LECCIONES_DE_SAMI, type LeccionDeSami } from '@/lib/ensenanza';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
 import type { Color } from '@/lib/sistema/tipos';
-import { useObjetivosStore } from '@/stores/objetivosStore';
 import { Encabezado } from '@/pages/Objetivos/piezas';
 import { LeccionEscenario } from './LeccionEscenario';
 import {
@@ -34,7 +34,7 @@ export function SamiEnsenaPage({ leccion, objetivoId }: Props) {
   useTituloPagina('Sami te enseña');
   const navigate = useNavigate();
   const navegacion = useNavegacion();
-  const objetivos = useObjetivosStore((estado) => estado.objetivos);
+  const { objetivos } = useObjetivos();
 
   // Cambiar de lección no vuelve al principio de la página ni suma entradas al historial.
   const abrir = (siguiente: LeccionDeSami, objetivo = objetivoId) =>

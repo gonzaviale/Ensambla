@@ -1,16 +1,10 @@
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { objetivoDeEjemplo } from '@/lib/objetivos';
-import { useObjetivosStore } from '@/stores/objetivosStore';
+import { describe, expect, it } from 'vitest';
 import { renderApp } from '@/test/renderApp';
-import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
+import { ESPERA, setupObjetivoDeEjemplo, setupUsuarioConSesion } from '@/test/testHelpers';
 
 describe('sami te enseña', () => {
-  beforeEach(() => {
-    act(() => useObjetivosStore.setState({ objetivos: [], ejemploSembrado: false }));
-  });
-
   it('se abre desde la navegación y empieza por la primera lección', async () => {
     setupUsuarioConSesion();
     const router = renderApp('/inicio');
@@ -73,10 +67,7 @@ describe('sami te enseña', () => {
   });
 
   it('prueba un escenario con el objetivo y el resultado sigue a los controles', async () => {
-    setupUsuarioConSesion();
-    act(() =>
-      useObjetivosStore.setState({ objetivos: [objetivoDeEjemplo()], ejemploSembrado: true }),
-    );
+    setupObjetivoDeEjemplo(setupUsuarioConSesion().email);
     renderApp('/sami-te-ensena?leccion=escenario&objetivo=objetivo-ejemplo');
 
     await screen.findByRole('heading', { name: 'Probá un escenario' }, ESPERA);

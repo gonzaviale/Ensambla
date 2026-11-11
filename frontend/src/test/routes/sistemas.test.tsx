@@ -1,23 +1,18 @@
-import { act, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { HttpResponse, http } from 'msw';
-import { afterEach, describe, expect, it } from 'vitest';
-import { objetivoDeEjemplo } from '@/lib/objetivos';
+import { describe, expect, it } from 'vitest';
 import { makeTemplate } from '@/lib/sistema/core';
 import { estado } from '@/mocks/db/estado';
 import { server } from '@/mocks/node';
-import { useObjetivosStore } from '@/stores/objetivosStore';
 import { renderApp } from '@/test/renderApp';
 import {
   ESPERA,
+  setupObjetivoDeEjemplo,
   setupServerError,
   setupUsuarioConSesion,
   verifyHeadingPresentAsync,
 } from '@/test/testHelpers';
 import { useSistemaStore } from '@/stores/sistemaStore';
-
-afterEach(() => {
-  act(() => useObjetivosStore.setState({ objetivos: [], ejemploSembrado: false }));
-});
 
 describe('los sistemas llegan del servidor y vuelven a él', () => {
   it('carga los sistemas de la cuenta antes de mostrar el inicio', async () => {
@@ -77,9 +72,7 @@ describe('los sistemas llegan del servidor y vuelven a él', () => {
     const usuario = setupUsuarioConSesion();
     const sistema = makeTemplate('shop', {}, true);
     estado.sistemas.set(usuario.email, [sistema]);
-    act(() =>
-      useObjetivosStore.setState({ objetivos: [objetivoDeEjemplo()], ejemploSembrado: true }),
-    );
+    setupObjetivoDeEjemplo(usuario.email);
     let consultas = 0;
     server.use(
       http.get('/api/objetivos/pasos', () => {
