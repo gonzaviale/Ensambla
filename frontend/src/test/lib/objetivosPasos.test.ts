@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { objetivoDeEjemplo } from '@/lib/objetivos';
-import { conResultadoReal, negocioDe } from '@/lib/objetivosNegocio';
+import { negocioDe } from '@/lib/objetivosNegocio';
 import {
   comparacionConZona,
   escenarioDe,
@@ -10,16 +10,53 @@ import {
   ventasConAumento,
 } from '@/lib/objetivosPasos';
 import { crearAlmacenCargado } from '@/lib/sistema/demo';
-import type { Zona } from '@/lib/sistema/zona';
+import type { ProductoParaPaso } from '@/types/objetivos';
 
 const HOY = '2026-11-08';
 
-const almacen = () => pasosConcretos([crearAlmacenCargado(HOY)], HOY);
-const yerba = { nombre: 'Yerba', precio: 3600, costo: 2700, stock: 4, vendidas: 60 };
+const PRODUCTOS: ProductoParaPaso[] = [
+  {
+    tipo: 'SUBIR_PRECIO',
+    nombre: 'Yerba Playadito 1 kg',
+    precio: 3600,
+    costo: 2700,
+    stock: 4,
+    vendidas30Dias: 60,
+    precioZona: { minimo: 3500, promedio: 3900, maximo: 4300 },
+  },
+  {
+    tipo: 'MOVER_PARADO',
+    nombre: 'Cacao amargo',
+    precio: 2500,
+    costo: 1800,
+    stock: 20,
+    vendidas30Dias: 0,
+    precioZona: null,
+  },
+  {
+    tipo: 'PONER_A_LA_VISTA',
+    nombre: 'Alfajor',
+    precio: 1000,
+    costo: 400,
+    stock: 8,
+    vendidas30Dias: 10,
+    precioZona: null,
+  },
+];
+
+const almacen = () => pasosConcretos(PRODUCTOS);
+const yerba = {
+  nombre: 'Yerba',
+  precio: 3600,
+  costo: 2700,
+  stock: 4,
+  vendidas: 60,
+  precioZona: null,
+};
 
 describe('pasos concretos de un objetivo', () => {
   it('sin cuadernos no hay nada que recomendar', () => {
-    expect(pasosConcretos([], HOY)).toEqual([]);
+    expect(pasosConcretos([])).toEqual([]);
   });
 
   it('con el almacén cargado arma pasos con productos de verdad', () => {
@@ -112,24 +149,13 @@ describe('pasos concretos de un objetivo', () => {
   });
 
   it('compara el precio nuevo con lo que cobran en la zona, y calla si hay pocos datos', () => {
-    const zona: Zona = {
-      nombre: 'Barrio',
-      comercios: 8,
-      productos: [
-        {
-          nombre: 'Yerba Playadito 1 kg',
-          comercios: 6,
-          precio: { minimo: 3500, promedio: 3900, maximo: 4300 },
-          ventas: { comercios: 6, unidadesPorSemana: 10 },
-        },
-      ],
-    };
+    const precioZona = { minimo: 3500, promedio: 3900, maximo: 4300 };
 
-    expect(comparacionConZona('Yerba Playadito 1 kg', 3800, zona)).toMatch(
+    expect(comparacionConZona(3800, precioZona)).toMatch(
       /entre \$3\.500 y \$4\.300.*dentro de lo que cobran/,
     );
-    expect(comparacionConZona('Yerba Playadito 1 kg', 4600, zona)).toMatch(/más caro/);
-    expect(comparacionConZona('Yerba Playadito 1 kg', 3800, { ...zona, comercios: 2 })).toBeNull();
+    expect(comparacionConZona(4600, precioZona)).toMatch(/más caro/);
+    expect(comparacionConZona(3800, null)).toBeNull();
   });
 });
 
@@ -142,18 +168,7 @@ describe('cómo viene el negocio', () => {
     expect(negocio.vendiste).toBeGreaterThan(negocio.mercaderia);
   });
 
-  it('sin ventas no hay números y el objetivo sigue con su estimación de ejemplo', () => {
-    const negocio = negocioDe([], HOY);
-    const objetivo = objetivoDeEjemplo();
-
-    expect(negocio.hayVentas).toBe(false);
-    expect(conResultadoReal(objetivo, negocio)).toBe(objetivo);
-  });
-
-  it('con ventas, lo que ganás hoy es lo que realmente te queda', () => {
-    const negocio = negocioDe([crearAlmacenCargado(HOY)], HOY);
-    const real = conResultadoReal(objetivoDeEjemplo(), negocio);
-
-    expect(real.historial.at(-1)?.valor).toBe(Math.round(negocio.queda));
+  it('sin ventas no hay números', () => {
+    expect(negocioDe([], HOY).hayVentas).toBe(false);
   });
 });

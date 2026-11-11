@@ -11,6 +11,7 @@ import { ModalEliminarCuaderno } from './modales/ModalEliminarCuaderno';
 import { ModalElegirBloque } from './modales/ModalElegirBloque';
 import { ModalImportar } from './modales/ModalImportar';
 import { ModalPlantilla } from './modales/ModalPlantilla';
+import { ModalProductosDelAviso } from './modales/ModalProductosDelAviso';
 import { ModalRenombrar } from './modales/ModalRenombrar';
 import { ModalRegistro } from './modales/ModalRegistro';
 import { ModalResumen } from './modales/ModalResumen';
@@ -32,6 +33,8 @@ function ContenidoDelModal() {
       return <ModalBienvenida />;
     case 'blanco':
       return <ModalBlanco />;
+    case 'productosDelAviso':
+      return <ModalProductosDelAviso productos={modal.productos} />;
     case 'plantilla':
       return <ModalPlantilla clave={modal.clave} />;
     case 'ayuda':

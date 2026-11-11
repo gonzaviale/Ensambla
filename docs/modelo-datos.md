@@ -6,7 +6,8 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V9__modelo_sistema_y_monitoreo.sql`, `V10__datos_prueba_san_justo.sql`, `V11__avisos_entidad_y_datos.sql`,
 `V12__planes_y_suscripciones.sql`, `V13__limites_y_funciones_por_plan.sql`, `V14__prueba_premium.sql`,
 `V15__renovaciones_y_pagos_premium.sql`,
-`V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`).
+`V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
+`V24__objetivo.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -250,6 +251,14 @@ leerla. Un índice único parcial permite una sola propuesta abierta por teléfo
 **API nueva.** `POST /api/whatsapp/verificacion` (`{telefono}`: manda el código por WhatsApp) y
 `POST /api/whatsapp/verificacion/confirmar` (`{codigo}`: vincula el número). `GET /api/whatsapp/vinculacion` suma `numeroBot`.
 `POST /api/whatsapp/webhook` acepta el secreto también como `?token=`.
+
+## Objetivos (V24)
+
+`objetivo` guarda lo que la persona le cuenta a Sami y su meta mensual: `negocio_id` (se borra en cascada con el negocio),
+`texto` (no vacío), `meta` (`numeric(14,2)`, positiva) y `creado_en`, con un índice por `(negocio_id, creado_en)`. El historial
+de avance no se guarda: lo calcula el frontend.
+
+**API.** `GET`, `POST` y `DELETE /api/objetivos`. El `negocio_id` sale de la sesión; un objetivo de otro negocio responde 404.
 
 ## Datos de prueba (V10)
 
