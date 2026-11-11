@@ -54,6 +54,7 @@ export function useNavegacion() {
       | '/sami'
       | '/avisos'
       | '/objetivos'
+      | '/pedidos'
       | '/sami-te-ensena',
   ) => {
     limpiar();
@@ -111,6 +112,7 @@ export function useNavegacion() {
     irAAvisos: () => irA('/avisos'),
     /** Los objetivos del negocio: cómo van, qué recomienda Sami y el plan para cada uno. */
     irAObjetivos: () => irA('/objetivos'),
+    irAPedidos: () => irA('/pedidos'),
     /** El plan de acción y el seguimiento de un objetivo. */
     irAObjetivo: (objetivoId: string) => {
       limpiar();

@@ -15,6 +15,7 @@ import { Route as AppAvisosRouteImport } from './routes/_app/avisos'
 import { Route as AppCuadernosRouteImport } from './routes/_app/cuadernos'
 import { Route as AppCuentaRouteImport } from './routes/_app/cuenta'
 import { Route as AppInicioRouteImport } from './routes/_app/inicio'
+import { Route as AppPedidosRouteImport } from './routes/_app/pedidos'
 import { Route as AppPlanesRouteImport } from './routes/_app/planes'
 import { Route as AppPlantillasRouteImport } from './routes/_app/plantillas'
 import { Route as AppSamiRouteImport } from './routes/_app/sami'
@@ -55,6 +56,11 @@ const AppCuentaRoute = AppCuentaRouteImport.update({
 const AppInicioRoute = AppInicioRouteImport.update({
   id: '/inicio',
   path: '/inicio',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPedidosRoute = AppPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPlanesRoute = AppPlanesRouteImport.update({
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/cuadernos': typeof AppCuadernosRoute
   '/cuenta': typeof AppCuentaRoute
   '/inicio': typeof AppInicioRoute
+  '/pedidos': typeof AppPedidosRoute
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
   '/sami': typeof AppSamiRoute
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/cuadernos': typeof AppCuadernosRoute
   '/cuenta': typeof AppCuentaRoute
   '/inicio': typeof AppInicioRoute
+  '/pedidos': typeof AppPedidosRoute
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
   '/sami': typeof AppSamiRoute
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/_app/cuadernos': typeof AppCuadernosRoute
   '/_app/cuenta': typeof AppCuentaRoute
   '/_app/inicio': typeof AppInicioRoute
+  '/_app/pedidos': typeof AppPedidosRoute
   '/_app/planes': typeof AppPlanesRoute
   '/_app/plantillas': typeof AppPlantillasRoute
   '/_app/sami': typeof AppSamiRoute
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/cuadernos'
     | '/cuenta'
     | '/inicio'
+    | '/pedidos'
     | '/planes'
     | '/plantillas'
     | '/sami'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/cuadernos'
     | '/cuenta'
     | '/inicio'
+    | '/pedidos'
     | '/planes'
     | '/plantillas'
     | '/sami'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/_app/cuadernos'
     | '/_app/cuenta'
     | '/_app/inicio'
+    | '/_app/pedidos'
     | '/_app/planes'
     | '/_app/plantillas'
     | '/_app/sami'
@@ -292,6 +304,13 @@ declare module '@tanstack/react-router' {
       path: '/inicio'
       fullPath: '/inicio'
       preLoaderRoute: typeof AppInicioRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pedidos': {
+      id: '/_app/pedidos'
+      path: '/pedidos'
+      fullPath: '/pedidos'
+      preLoaderRoute: typeof AppPedidosRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/planes': {
@@ -393,6 +412,7 @@ interface AppRouteChildren {
   AppCuadernosRoute: typeof AppCuadernosRoute
   AppCuentaRoute: typeof AppCuentaRoute
   AppInicioRoute: typeof AppInicioRoute
+  AppPedidosRoute: typeof AppPedidosRoute
   AppPlanesRoute: typeof AppPlanesRoute
   AppPlantillasRoute: typeof AppPlantillasRoute
   AppSamiRoute: typeof AppSamiRoute
@@ -410,6 +430,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCuadernosRoute: AppCuadernosRoute,
   AppCuentaRoute: AppCuentaRoute,
   AppInicioRoute: AppInicioRoute,
+  AppPedidosRoute: AppPedidosRoute,
   AppPlanesRoute: AppPlanesRoute,
   AppPlantillasRoute: AppPlantillasRoute,
   AppSamiRoute: AppSamiRoute,

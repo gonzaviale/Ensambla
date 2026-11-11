@@ -4,7 +4,7 @@ import { axe } from 'vitest-axe';
 import { describe, expect, it } from 'vitest';
 import { crearAlmacenDeEjemplo } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
-import { estado } from '@/mocks/db/estado';
+import { estado, guardarOrdenesDe } from '@/mocks/db/estado';
 import { renderApp } from '@/test/renderApp';
 import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
 
@@ -89,6 +89,27 @@ describe('accesibilidad de las pantallas', () => {
     await sinViolaciones();
     await user.click(screen.getByRole('button', { name: /Ver todos los avisos/ }));
     await screen.findByRole('region', { name: /Lo que encontré/ }, ESPERA);
+    await sinViolaciones();
+  });
+
+  it('pedidos, con órdenes y con el formulario de rechazo abierto', async () => {
+    const { email } = setupUsuarioConSesion();
+    guardarOrdenesDe(email, [
+      {
+        id: crypto.randomUUID(),
+        clienteTelefono: '5491155550001',
+        estado: 'PENDIENTE',
+        items: [{ nombre: 'Yerba Playadito 1 kg', cantidad: 2, precioUnitario: 3500, subtotal: 7000 }],
+        total: 7000,
+        motivoRechazo: null,
+        creadoEn: '2026-11-11T12:00:00Z',
+        actualizadoEn: '2026-11-11T12:00:00Z',
+      },
+    ]);
+    renderApp('/pedidos');
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Rechazar' }, ESPERA));
+    await screen.findByLabelText('Motivo del rechazo (opcional)', undefined, ESPERA);
     await sinViolaciones();
   });
 

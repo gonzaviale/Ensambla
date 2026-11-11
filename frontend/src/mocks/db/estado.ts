@@ -2,6 +2,7 @@ import type { Sistema } from '@/lib/sistema/tipos';
 import type { AvisoDelServidor } from '@/types/avisos';
 import type { ConfiguracionNegocio } from '@/types/negocio';
 import type { ObjetivoDelServidor } from '@/types/objetivos';
+import type { OrdenDelServidor } from '@/types/pedidos';
 import type { PruebaPremium } from '@/types/planes';
 import type { VerificacionWhatsapp, VinculoWhatsapp } from '@/types/whatsapp';
 import { PREFERENCIAS_INICIALES, type Preferencias } from '@/types/preferencias';
@@ -29,6 +30,8 @@ type Estado = {
   avisosDelServidor: Map<string, AvisoDelServidor[]>;
   /** Los objetivos de cada cuenta (por email), del más viejo al más nuevo. */
   objetivos: Map<string, ObjetivoDelServidor[]>;
+  /** Las órdenes de compra de cada cuenta (por email), las más nuevas primero. */
+  ordenes: Map<string, OrdenDelServidor[]>;
   pruebasPremium: Map<string, PruebaPremium>;
   contenidosDesbloqueados: Map<string, string[]>;
   paginasIa: Map<string, number>;
@@ -46,6 +49,7 @@ export const estado: Estado = {
   negocios: new Map(),
   avisosDelServidor: new Map(),
   objetivos: new Map(),
+  ordenes: new Map(),
   pruebasPremium: new Map(),
   contenidosDesbloqueados: new Map(),
   paginasIa: new Map(),
@@ -61,6 +65,7 @@ export function reiniciarEstado() {
   estado.negocios = new Map();
   estado.avisosDelServidor = new Map();
   estado.objetivos = new Map();
+  estado.ordenes = new Map();
   estado.pruebasPremium = new Map();
   estado.contenidosDesbloqueados = new Map();
   estado.paginasIa = new Map();
@@ -86,6 +91,13 @@ export const objetivosDe = (email: string) => estado.objetivos.get(email) ?? [];
 
 export function guardarObjetivosDe(email: string, objetivos: ObjetivoDelServidor[]) {
   estado.objetivos.set(email, objetivos);
+  estado.alCambiar?.();
+}
+
+export const ordenesDe = (email: string) => estado.ordenes.get(email) ?? [];
+
+export function guardarOrdenesDe(email: string, ordenes: OrdenDelServidor[]) {
+  estado.ordenes.set(email, ordenes);
   estado.alCambiar?.();
 }
 

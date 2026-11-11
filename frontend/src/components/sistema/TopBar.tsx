@@ -11,6 +11,7 @@ export type SeccionActiva =
   | 'zone'
   | 'avisos'
   | 'goals'
+  | 'orders'
   | 'learn'
   | 'plans'
   | 'account';
@@ -26,6 +27,7 @@ type TopBarProps = {
   onZona: () => void;
   onAvisos: () => void;
   onObjetivos: () => void;
+  onPedidos: () => void;
   onEnsenanza: () => void;
   onPlanes: () => void;
   onAyuda: () => void;
@@ -46,6 +48,7 @@ export function TopBar({
   onZona,
   onAvisos,
   onObjetivos,
+  onPedidos,
   onEnsenanza,
   onPlanes,
   onAyuda,
@@ -103,6 +106,14 @@ export function TopBar({
           onClick={ir(onObjetivos)}
         >
           Objetivos
+        </button>
+        <button
+          type="button"
+          className={active === 'orders' ? 'active' : ''}
+          aria-current={active === 'orders' ? 'page' : undefined}
+          onClick={ir(onPedidos)}
+        >
+          Pedidos
         </button>
         <button
           type="button"

@@ -1,0 +1,50 @@
+/* Pedidos: las órdenes que los clientes confirman por WhatsApp y que el dueño gestiona. */
+.pedidos-page { max-width: 1000px; }
+
+.pedidos-encabezado { margin-bottom: 24px; }
+.pedidos-encabezado h1 { margin: 6px 0 8px; font-size: 34px; }
+.pedidos-encabezado > p:last-child { max-width: 720px; color: var(--muted); font-size: 15px; }
+.pedidos-etiqueta { color: var(--orange); font-size: 11px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+
+.pedidos-aviso { padding: 18px 0; color: var(--muted); font-size: 15px; }
+.pedidos-vacio { padding: 28px; border: 1px dashed var(--line); border-radius: var(--radius); background: var(--paper); }
+.pedidos-vacio h2 { font-size: 20px; }
+.pedidos-vacio p { max-width: 560px; margin-top: 8px; color: var(--muted); font-size: 15px; }
+
+.pedidos-filtros { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.pedidos-filtro { min-height: 44px; padding: 8px 16px; border: 1px solid var(--line); border-radius: 99px; background: var(--paper); color: var(--ink); font-size: 14px; font-weight: 700; }
+.pedidos-filtro[aria-pressed='true'] { border-color: var(--petrol); background: var(--petrol); color: white; }
+
+.pedidos-lista { display: grid; gap: 16px; }
+.pedido-card { padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow); }
+.pedido-card > header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+.pedido-card > header h2 { font-size: 19px; }
+.pedido-card > header p { margin-top: 3px; color: var(--muted); font-size: 13px; }
+
+.pedido-estado { padding: 5px 12px; border-radius: 99px; font-size: 13px; font-weight: 800; white-space: nowrap; background: var(--soft); color: var(--petrol); }
+.pedido-estado.pendiente { background: #fff3df; color: #8b4800; }
+.pedido-estado.aceptada, .pedido-estado.en-preparacion { background: #e6f3f7; color: var(--petrol); }
+.pedido-estado.lista { background: #e4f3e9; color: var(--ok); }
+.pedido-estado.rechazada { background: #fde8e4; color: var(--coral); }
+
+.pedido-items { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.pedido-items li { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+.pedido-total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px; font-size: 15px; }
+.pedido-total strong { font-size: 22px; color: var(--petrol); }
+.pedido-motivo { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: #fde8e4; color: #8a2f20; font-size: 14px; }
+.pedido-error { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: #fde8e4; color: #8a2f20; font-size: 14px; font-weight: 700; }
+
+.pedido-acciones { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.pedido-acciones .btn { min-height: 44px; }
+.pedido-rechazo { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.pedido-rechazo label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 700; }
+.pedido-rechazo textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; resize: vertical; }
+.pedido-rechazo .pedido-acciones { margin-top: 12px; padding-top: 0; border-top: 0; }
+
+@media (max-width: 600px) {
+  .pedidos-page { padding: 24px 16px 50px; }
+  .pedidos-encabezado h1 { font-size: 27px; }
+  .pedido-card { padding: 18px 16px; }
+  .pedido-card > header { flex-direction: column; }
+  .pedido-acciones .btn { flex: 1 1 100%; }
+}
