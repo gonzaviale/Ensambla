@@ -1,5 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.model.common.Identificador;
+import com.ensambla.backend.domain.model.pedido.ClienteId;
 import com.ensambla.backend.domain.model.pedido.ClienteWhatsapp;
 import com.ensambla.backend.domain.repository.pedido.ClienteWhatsappRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IClienteWhatsappJpaRepository;
@@ -7,6 +9,8 @@ import com.ensambla.backend.infrastructure.repository.mapper.PedidoRepositoryMap
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -19,6 +23,11 @@ public class ClienteWhatsappRepositoryImpl implements ClienteWhatsappRepository 
     @Override
     public Optional<ClienteWhatsapp> findByTelefono(String telefono) {
         return jpa.findByTelefono(telefono).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<ClienteWhatsapp> findAllByIds(Collection<ClienteId> ids) {
+        return jpa.findAllById(Identificador.valores(ids)).stream().map(mapper::toDomain).toList();
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.repository;
 
+import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pedido.ClienteId;
 import com.ensambla.backend.domain.model.pedido.EstadoOrdenCompra;
@@ -18,9 +19,11 @@ import tools.jackson.databind.json.JsonMapper;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -29,6 +32,8 @@ class OrdenCompraRepositoriesTest {
 
     private static final UUID ID = UUID.fromString("f0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-11-11T12:00:00Z");
+    private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    private static final NegocioId OTRO_NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000002");
 
     private final OrdenCompraRepositoryMapper mapper = new OrdenCompraRepositoryMapper(JsonMapper.builder().build());
     private final IOrdenCompraJpaRepository jpa = mock(IOrdenCompraJpaRepository.class);
@@ -65,9 +70,35 @@ class OrdenCompraRepositoriesTest {
         assertThat(guardada.getId().valor()).isEqualTo(ID);
     }
 
+    @Test
+    @DisplayName("Lista las órdenes del negocio, todas o sólo las de un estado")
+    void repositoryShouldListByBusinessAndState() {
+        OrdenCompraEntity entity = mapper.toEntity(givenOrden());
+        when(jpa.findTop100ByNegocioIdOrderByCreadoEnDescIdDesc(NEGOCIO_ID.valor())).thenReturn(List.of(entity));
+        when(jpa.findTop100ByNegocioIdAndEstadoOrderByCreadoEnDescIdDesc(NEGOCIO_ID.valor(),
+                EstadoOrdenCompra.LISTA)).thenReturn(List.of());
+
+        assertThat(ordenes.findAllByNegocioId(NEGOCIO_ID)).extracting(o -> o.getId().valor()).containsExactly(ID);
+        assertThat(ordenes.findAllByNegocioIdAndEstado(NEGOCIO_ID, EstadoOrdenCompra.LISTA)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Busca la orden por id dentro del negocio y una ajena no se encuentra")
+    void repositoryShouldFindByIdWithinTheBusiness() {
+        OrdenCompraEntity entity = mapper.toEntity(givenOrden());
+        when(jpa.findByIdAndNegocioId(ID, NEGOCIO_ID.valor())).thenReturn(Optional.of(entity));
+        when(jpa.findByIdAndNegocioId(ID, OTRO_NEGOCIO_ID.valor())).thenReturn(Optional.empty());
+
+        assertThat(ordenes.findByIdAndNegocioId(OrdenCompraId.de(ID), NEGOCIO_ID)).isPresent();
+        assertThat(ordenes.findByIdAndNegocioId(OrdenCompraId.de(ID), OTRO_NEGOCIO_ID)).isEmpty();
+        assertThatThrownBy(() -> ordenes.obtener(OTRO_NEGOCIO_ID, OrdenCompraId.de(ID)))
+                .isInstanceOf(ResourceNotFoundException.class);
+        assertThat(ordenes.obtener(NEGOCIO_ID, OrdenCompraId.de(ID)).getId().valor()).isEqualTo(ID);
+    }
+
     private static OrdenCompra givenOrden() {
         return OrdenCompra.builder().id(OrdenCompraId.de(ID))
-                .negocioId(NegocioId.de("a0000000-0000-4000-8000-000000000001"))
+                .negocioId(NEGOCIO_ID)
                 .clienteId(ClienteId.de("c0000000-0000-4000-8000-000000000001"))
                 .estado(EstadoOrdenCompra.PENDIENTE)
                 .items(List.of(

@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.model.pedido;
 
+import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -38,6 +39,23 @@ public class OrdenCompra {
     private OffsetDateTime creadoEn;
 
     private OffsetDateTime actualizadoEn;
+
+    /**
+     * El dueño la lleva a otra etapa. Sólo valen los pasos que {@link EstadoOrdenCompra#puedePasarA} permite. Un rechazo
+     * puede explicar el motivo; en cualquier otro paso el motivo se descarta.
+     *
+     * @throws BusinessRuleException si la orden no puede pasar de su estado a ese
+     */
+    public void pasarA(EstadoOrdenCompra destino, String motivo, OffsetDateTime ahora) {
+        if (!estado.puedePasarA(destino)) {
+            throw new BusinessRuleException("No se puede pasar una orden %s a %s".formatted(estado.etiqueta(),
+                    destino.etiqueta()));
+        }
+        estado = destino;
+        motivoRechazo = destino == EstadoOrdenCompra.RECHAZADA && motivo != null && !motivo.isBlank()
+                ? motivo.strip() : null;
+        actualizadoEn = ahora;
+    }
 
     /** La orden nueva de lo que el cliente confirmó: pendiente de que el dueño la acepte. */
     public static OrdenCompra pendiente(NegocioId negocioId, ClienteId clienteId, List<LineaDeCompra> lineas,

@@ -80,6 +80,16 @@ class PedidoRepositoriesTest {
     }
 
     @Test
+    @DisplayName("Trae a los clientes con esos ids")
+    void clienteRepositoryShouldFindManyByIds() {
+        ClienteWhatsappEntity entity = mapper.toEntity(givenCliente());
+        when(clienteJpa.findAllById(List.of(ID))).thenReturn(List.of(entity));
+
+        assertThat(clientes.findAllByIds(List.of(ClienteId.de(ID)))).extracting(c -> c.getId().valor())
+                .containsExactly(ID);
+    }
+
+    @Test
     @DisplayName("Guarda el mensaje y consulta si ya existe por su id externo")
     void mensajeRepositoryShouldSaveAndCheckDuplicates() {
         MensajeClienteEntity entity = mapper.toEntity(givenMensaje());

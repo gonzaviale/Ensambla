@@ -96,8 +96,29 @@ y mismo límite diario que el taller); un comercio sin productos con precio y st
 | Cualquier otra cosa | Se toma como un pedido nuevo y reemplaza la lista. |
 | *OTRO COMERCIO* | Vuelve a elegir el comercio. |
 
-El stock **no se descuenta al confirmar** sino cuando el dueño acepta la orden. La gestión de la orden por el dueño (aceptar, rechazar,
-en preparación, lista para retirar) y el aviso al cliente se suman en las fases siguientes.
+El stock **no se descuenta al confirmar** sino cuando el dueño acepta la orden.
+
+### 4. El dueño gestiona las órdenes desde la app (ENS-279)
+
+Las órdenes confirmadas llegan a **Pedidos** (barra principal, `/pedidos`), que se actualiza solo cada 30 segundos. Cada orden muestra el
+WhatsApp del cliente, lo que pidió con el precio de ese momento, el total y su etapa; el dueño la lleva así:
+
+| Etapa | Qué puede hacer el dueño |
+|---|---|
+| Pendiente | **Aceptar** o **Rechazar** (con un motivo opcional de hasta 300 caracteres) |
+| Aceptada | **Poner en preparación** o **Dejar lista para retirar** |
+| En preparación | **Dejar lista para retirar** |
+| Lista para retirar / Rechazada | Nada: son finales |
+
+**Al aceptar se descuenta del inventario** lo que pidió el cliente. Si el stock ya no alcanza (o el producto se borró), la orden no se
+acepta, el inventario no se toca y la app muestra el motivo. Rechazar no mueve el stock.
+
+API (siempre sobre el negocio de la sesión; la orden de otro negocio responde 404 y un paso que no corresponde, 400):
+
+- `GET /api/ordenes[?estado=PENDIENTE|ACEPTADA|RECHAZADA|EN_PREPARACION|LISTA]`: las 100 más recientes, la más nueva primero.
+- `PATCH /api/ordenes/{id}/estado` con `{"estado": "...", "motivo": "..."}`: devuelve la orden actualizada.
+
+El aviso al cliente por WhatsApp cuando el dueño la rechaza o la deja lista se suma en la fase siguiente.
 
 Si el cliente no habla por 30 minutos, la próxima vez Sami vuelve a saludar. Si el comercio deja de tener WhatsApp vinculado
 mientras tanto, Sami lo avisa y pregunta de nuevo.
