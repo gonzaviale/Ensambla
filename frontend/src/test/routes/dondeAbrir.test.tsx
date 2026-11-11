@@ -1,7 +1,6 @@
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { useObjetivosStore } from '@/stores/objetivosStore';
+import { describe, expect, it } from 'vitest';
 import { estado } from '@/mocks/db/estado';
 import { renderApp } from '@/test/renderApp';
 import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
@@ -68,10 +67,6 @@ const irATramites = async (user: ReturnType<typeof userEvent.setup>) =>
   user.click(screen.getByRole('tab', { name: 'Qué tenés que tramitar' }));
 
 describe('dónde abrir', () => {
-  beforeEach(() => {
-    act(() => useObjetivosStore.setState({ objetivos: [], ejemploSembrado: false }));
-  });
-
   it('es una sección de la barra de arriba y arranca confirmando el negocio', async () => {
     prepararNegocio();
     const router = renderApp('/inicio');
