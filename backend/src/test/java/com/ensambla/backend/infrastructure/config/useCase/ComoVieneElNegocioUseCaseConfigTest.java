@@ -1,10 +1,9 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
-import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
-import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
+import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerComoVieneElNegocio.ObtenerComoVieneElNegocioRequest;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerComoVieneElNegocio.ObtenerComoVieneElNegocioResponse;
@@ -26,16 +25,15 @@ class ComoVieneElNegocioUseCaseConfigTest {
     private final ComoVieneElNegocioUseCaseConfig config = new ComoVieneElNegocioUseCaseConfig();
 
     @Test
-    @DisplayName("El wiring conecta el negocio, sus sistemas, el servicio de datos y el reloj")
+    @DisplayName("El wiring conecta el negocio, sus cuadernos, el servicio de datos y el reloj")
     void obtenerComoVieneElNegocioShouldWireCollaborators() {
         NegocioRepository negocioRepository = mock(NegocioRepository.class);
-        ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
-        when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID))
-                .thenReturn(Negocio.builder().id(NEGOCIO_ID).nombre("Almacén de Ana").build());
-        when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+        SistemaRepository sistemaRepository = mock(SistemaRepository.class);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
 
         ObtenerComoVieneElNegocioResponse response = config.obtenerComoVieneElNegocio(
-                        negocioRepository, proyectoRepository, mock(DatosDeProyectoService.class), Clock.systemUTC())
+                        negocioRepository, sistemaRepository, mock(DatosDeProyectoService.class), Clock.systemUTC())
                 .execute(new ObtenerComoVieneElNegocioRequest(USUARIO_ID));
 
         assertThat(response.hayVentas()).isFalse();

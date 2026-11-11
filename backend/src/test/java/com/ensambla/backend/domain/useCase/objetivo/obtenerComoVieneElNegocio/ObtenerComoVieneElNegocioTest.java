@@ -1,16 +1,14 @@
 package com.ensambla.backend.domain.useCase.objetivo.obtenerComoVieneElNegocio;
 
 import com.ensambla.backend.domain.model.aviso.BloqueVentas;
-import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
-import com.ensambla.backend.domain.model.proyecto.Proyecto;
-import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
+import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
-import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
+import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import com.ensambla.backend.support.AvisoTestData;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,16 +37,15 @@ class ObtenerComoVieneElNegocioTest {
     private static final UUID YERBA = UUID.fromString("d0000000-0000-4000-8000-000000000001");
 
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
-    private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
+    private final SistemaRepository sistemaRepository = mock(SistemaRepository.class);
     private final DatosDeProyectoService datosDeProyectoService = mock(DatosDeProyectoService.class);
 
     private final ObtenerComoVieneElNegocio obtenerComoVieneElNegocio = new ObtenerComoVieneElNegocio(
-            negocioRepository, proyectoRepository, datosDeProyectoService, Clock.fixed(INSTANTE, ZoneOffset.UTC));
+            negocioRepository, sistemaRepository, datosDeProyectoService, Clock.fixed(INSTANTE, ZoneOffset.UTC));
 
     @BeforeEach
     void setUp() {
-        when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID))
-                .thenReturn(Negocio.builder().id(NEGOCIO_ID).nombre("Almacén de Ana").build());
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
     }
 
     @Test
@@ -71,7 +68,7 @@ class ObtenerComoVieneElNegocioTest {
     @Test
     @DisplayName("Un negocio sin sistemas responde sin ventas y sin semanas")
     void executeShouldReturnNoSalesWhenTheBusinessHasNoSystems() {
-        when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+        when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
 
         ObtenerComoVieneElNegocioResponse response = whenObtener();
 
@@ -83,18 +80,17 @@ class ObtenerComoVieneElNegocioTest {
     // --- arrange ---
     @SafeVarargs
     private void givenSistemas(List<Registro>... ventasPorSistema) {
-        List<Proyecto> proyectos = new ArrayList<>();
+        List<Sistema> sistemas = new ArrayList<>();
         for (List<Registro> ventas : ventasPorSistema) {
-            Proyecto proyecto = Proyecto.builder().id(ProyectoId.nuevo()).negocioId(NEGOCIO_ID)
-                    .nombre("Sistema " + proyectos.size()).build();
-            proyectos.add(proyecto);
+            Sistema sistema = mock(Sistema.class);
+            sistemas.add(sistema);
             BloqueVentas bloque = new BloqueVentas(AvisoTestData.bloqueVentas(),
                     AvisoTestData.camposPorClave(AvisoTestData.bloqueVentas()), ventas);
-            when(datosDeProyectoService.cargar(proyecto, NEGOCIO_ID)).thenReturn(new DatosDeProyecto(
-                    proyecto.getNombre(), List.of(AvisoTestData.inventarioConPrecios(yerba())), List.of(bloque),
-                    List.of()));
+            when(datosDeProyectoService.cargar(sistema)).thenReturn(new DatosDeProyecto(
+                    "Sistema " + sistemas.size(), List.of(AvisoTestData.inventarioConPrecios(yerba())),
+                    List.of(bloque), List.of()));
         }
-        when(proyectoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(proyectos);
+        when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(sistemas);
     }
 
     // --- act ---

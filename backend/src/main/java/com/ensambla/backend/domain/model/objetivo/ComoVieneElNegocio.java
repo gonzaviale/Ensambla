@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.model.objetivo;
 
 import com.ensambla.backend.domain.model.aviso.BloqueInventario;
 import com.ensambla.backend.domain.model.aviso.VentaProducto;
+import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
 import com.ensambla.backend.domain.model.reporte.PeriodoResumen;
@@ -13,7 +14,6 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -49,7 +49,8 @@ public record ComoVieneElNegocio(
 
     private static final int DIAS_DE_UNA_SEMANA = 7;
     private static final String HOY = "Hoy";
-    private static final String MERCADERIA = "Mercadería";
+    /** La categoría de la compra de mercadería, escrita como venga («Mercadería», «mercaderia»…). */
+    private static final String MERCADERIA = TextoNormalizado.de("Mercadería");
 
     /** {@code semana} es «Hoy» o «Hace N sem.»; {@code queda} es el resultado de los 30 días que terminan esa semana. */
     public record Semana(String semana, long queda) {
@@ -110,7 +111,7 @@ public record ComoVieneElNegocio(
 
     private static BigDecimal deMercaderia(ResumenNegocio resumen) {
         return resumen.gastos().porCategoria().stream()
-                .filter(categoria -> MERCADERIA.equals(categoria.categoria()))
+                .filter(categoria -> MERCADERIA.equals(TextoNormalizado.de(categoria.categoria())))
                 .map(ResumenNegocio.GastoPorCategoria::total)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
@@ -129,21 +130,6 @@ public record ComoVieneElNegocio(
                 .filter(venta -> costos.containsKey(venta.productoId()))
                 .map(venta -> costos.get(venta.productoId()).multiply(venta.cantidad()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    /**
-     * Las unidades vendidas de cada producto del inventario en los mismos 30 días que mira el resultado (hoy incluido).
-     * Un producto sin ventas en el período queda en cero; las ventas de un producto que ya no está en el inventario no
-     * se cuentan. Es la cuenta que usan los pasos concretos de los objetivos.
-     */
-    public static Map<RegistroId, BigDecimal> vendidasEn30Dias(DatosDeProyecto datos, LocalDate hoy) {
-        Map<RegistroId, BigDecimal> vendidas = new LinkedHashMap<>();
-        datos.inventarios().forEach(inventario -> inventario.registros()
-                .forEach(registro -> vendidas.put(registro.getId(), BigDecimal.ZERO)));
-        ventasDelPeriodo(datos, hasta(hoy))
-                .filter(venta -> vendidas.containsKey(venta.productoId()))
-                .forEach(venta -> vendidas.merge(venta.productoId(), venta.cantidad(), BigDecimal::add));
-        return vendidas;
     }
 
     private static Stream<VentaProducto> ventasDelPeriodo(DatosDeProyecto datos, PeriodoResumen periodo) {

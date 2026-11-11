@@ -46,9 +46,4 @@ Todos los montos van en pesos enteros, redondeados hacia el más cercano.
 - Controller: `ComoVieneElNegocioController`. Es un controller propio para no tocar `ObjetivoController` (ENS-248).
 - No necesita migración.
 
-## Regla de ventas de 30 días por producto (para ENS-250)
-
-`ComoVieneElNegocio.vendidasEn30Dias(datos, hoy)` devuelve, por cada producto del inventario de un sistema, las
-unidades vendidas en los mismos 30 días que usa este endpoint. Un producto sin ventas vale 0, y las ventas de un
-producto que ya no está en el inventario no se cuentan. Es la que tiene que usar `GET /api/objetivos/pasos` para
-«vendidas en 30 días».
+Las «vendidas en 30 días» de los pasos (ENS-250) salen de `MetricasVentas`, que mira el mismo período de 30 días.

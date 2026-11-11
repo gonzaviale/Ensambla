@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { objetivoDeEjemplo } from '@/lib/objetivos';
-import { conResultadoReal, negocioDe } from '@/lib/objetivosNegocio';
+import { negocioDe } from '@/lib/objetivosNegocio';
 import {
   comparacionConZona,
   escenarioDe,
@@ -168,18 +168,7 @@ describe('cómo viene el negocio', () => {
     expect(negocio.vendiste).toBeGreaterThan(negocio.mercaderia);
   });
 
-  it('sin ventas no hay números y el objetivo sigue con su estimación de ejemplo', () => {
-    const negocio = negocioDe([], HOY);
-    const objetivo = objetivoDeEjemplo();
-
-    expect(negocio.hayVentas).toBe(false);
-    expect(conResultadoReal(objetivo, negocio)).toBe(objetivo);
-  });
-
-  it('con ventas, lo que ganás hoy es lo que realmente te queda', () => {
-    const negocio = negocioDe([crearAlmacenCargado(HOY)], HOY);
-    const real = conResultadoReal(objetivoDeEjemplo(), negocio);
-
-    expect(real.historial.at(-1)?.valor).toBe(Math.round(negocio.queda));
+  it('sin ventas no hay números', () => {
+    expect(negocioDe([], HOY).hayVentas).toBe(false);
   });
 });

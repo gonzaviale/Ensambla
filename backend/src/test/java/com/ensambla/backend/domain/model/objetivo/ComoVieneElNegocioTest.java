@@ -16,7 +16,6 @@ import com.ensambla.backend.support.AvisoTestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -48,6 +47,7 @@ class ComoVieneElNegocioTest {
                         venta(YERBA, 100, 3400, "2026-08-01", false)),
                 List.of(gasto("2026-10-05", 8000, "Servicios"),
                         gasto("2026-10-06", 50000, "Mercadería"),
+                        gasto("2026-10-07", 20000, " mercaderia "),
                         gasto("2026-08-01", 9999, "Alquiler")));
 
         ComoVieneElNegocio negocio = ComoVieneElNegocio.armar(List.of(almacen), HOY);
@@ -116,26 +116,6 @@ class ComoVieneElNegocioTest {
 
         assertThat(negocio.hayVentas()).isFalse();
         assertThat(negocio.semanas()).isEmpty();
-    }
-
-    // --- vendidas en 30 días ---
-
-    @Test
-    @DisplayName("Cuenta las unidades vendidas de cada producto en los últimos 30 días; sin ventas queda en cero")
-    void vendidasEn30DiasShouldCountUnitsPerProduct() {
-        DatosDeProyecto almacen = proyectoSinGastos(List.of(
-                venta(YERBA, 10, 3400, "2026-10-10", false),
-                venta(YERBA, 5, 3400, "2026-10-19", true),
-                venta(YERBA, 7, 3400, "2026-09-19", false),
-                venta(FIDEOS, 3, 1700, "2026-09-20", false),
-                venta(UUID.randomUUID(), 4, 100, "2026-10-10", false)));
-
-        Map<RegistroId, BigDecimal> vendidas = ComoVieneElNegocio.vendidasEn30Dias(almacen, HOY);
-
-        assertThat(vendidas).containsOnlyKeys(RegistroId.de(YERBA), RegistroId.de(FIDEOS), RegistroId.de(GALLETITAS));
-        assertThat(vendidas.get(RegistroId.de(YERBA))).isEqualByComparingTo("15");
-        assertThat(vendidas.get(RegistroId.de(FIDEOS))).isEqualByComparingTo("3");
-        assertThat(vendidas.get(RegistroId.de(GALLETITAS))).isEqualByComparingTo("0");
     }
 
     // --- assert ---
