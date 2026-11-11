@@ -2,6 +2,7 @@ import { PanelDelNegocio } from '@/components/inicio/PanelDelNegocio';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { FichasParaEmpezar } from '@/components/sistema/FichasParaEmpezar';
 import { Icon } from '@/components/sistema/Icon';
+import { MetricasDelInicio } from '@/components/sistema/MetricasDelInicio';
 import { PageFooter } from '@/components/sistema/PageFooter';
 import { varsDeColor } from '@/components/sistema/colores';
 import { CATALOG, TEMPLATES } from '@/lib/sistema/catalogo';
@@ -14,8 +15,10 @@ import { useSistemaStore } from '@/stores/sistemaStore';
 
 const CLAVES = Object.keys(TEMPLATES) as ClavePlantilla[];
 
-// Inicio: las métricas del negocio, un saludo, las tres maneras de empezar como fichas de color, las otras herramientas y las
-// plantillas (los cuadernos guardados tienen su propia pantalla, «Mis cuadernos»). Fondo blanco; el color va lleno en cada ficha, con íconos blancos.
+// Inicio: quien ya tiene un cuaderno ve una bienvenida corta con las maneras de empezar y, abajo, sus números (lo que
+// vende, el aviso económico, las sugerencias de Sami y el flujo de caja); quien recién llega ve la bienvenida grande. Después
+// las otras herramientas y las plantillas (los cuadernos guardados tienen su propia pantalla, «Mis cuadernos»).
+// Fondo blanco; el color va lleno en cada ficha, con íconos blancos.
 export function InicioPage() {
   const nombre = useNombre();
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
@@ -43,7 +46,12 @@ export function InicioPage() {
           </section>
         )}
 
-        <PanelDelNegocio />
+        {hayPanel && (
+          <>
+            <MetricasDelInicio />
+            <PanelDelNegocio />
+          </>
+        )}
 
         {!hayPanel && (
           <section className="inicio-portada">

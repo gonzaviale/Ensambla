@@ -56,15 +56,13 @@ export function LeccionResultado({ onObjetivo }: { onObjetivo: () => void }) {
           </div>
           <h3>En palabras simples</h3>
           <p>
-            Vendiste por $1.200.000. Los productos que salieron habían costado aproximadamente
-            $700.000. Después de los gastos registrados, el negocio generó un resultado estimado de
-            $180.000.
+            Vendiste $1.200.000. Esos productos costaron unos $700.000 y, después de los gastos, te
+            quedaron unos $180.000.
           </p>
           <div>
             <strong>Importante</strong>
             <p>
-              $96.000 corresponden a ventas fiadas. Forman parte del resultado, pero no representan
-              dinero disponible.
+              $96.000 son ventas fiadas: cuentan en el resultado, pero todavía no son plata en mano.
             </p>
           </div>
           <button type="button" className="btn primary" onClick={onObjetivo}>
@@ -150,10 +148,6 @@ const METRICAS = [
 export function LeccionMetricas() {
   return (
     <div className="ensenanza-leccion">
-      <p className="ensenanza-intro">
-        Cada número que ves en Ensambla se puede explicar. Estos son los que más vas a usar, con su
-        cuenta y con el valor de ejemplo del «Almacén de barrio».
-      </p>
       <div className="ensenanza-metricas">
         {METRICAS.map((metrica) => (
           <article key={metrica.nombre} className="ensenanza-metrica">
@@ -191,11 +185,7 @@ function Bloque({ titulo, children }: { titulo: string; children: ReactNode }) {
 export function LeccionRecomendaciones() {
   return (
     <div className="ensenanza-leccion">
-      <p className="ensenanza-intro">
-        Sami no adivina: hace cuentas con tus datos y te las muestra. Así arma una recomendación,
-        paso a paso.
-      </p>
-      <ol className="ensenanza-pasos">
+      <ul className="ensenanza-pasos">
         <li>
           <strong>Junta tus datos.</strong>
           <span>
@@ -216,7 +206,7 @@ export function LeccionRecomendaciones() {
             Prefiere el que reparte el esfuerzo, porque depende menos de un solo supuesto.
           </span>
         </li>
-      </ol>
+      </ul>
       <div className="ensenanza-columnas">
         <Bloque titulo="Qué datos usa">
           <ul>
@@ -254,8 +244,8 @@ export function LeccionRecomendaciones() {
         </ul>
       </Bloque>
       <Explicacion>
-        Hoy los importes de los objetivos son de demostración. Cuando se conecten a tus ventas
-        reales, la cuenta es la misma: sale de tus registros y la podés revisar.
+        Hoy los importes son de demostración. Con tus ventas reales la cuenta es la misma, y la
+        podés revisar.
       </Explicacion>
     </div>
   );
@@ -289,17 +279,14 @@ const CONSEJOS = [
 export function LeccionConsejos({ onObjetivo }: { onObjetivo: () => void }) {
   return (
     <div className="ensenanza-leccion">
-      <p className="ensenanza-intro">
-        Cinco hábitos simples que hacen que las cuentas de Sami sean cada vez más confiables.
-      </p>
-      <ol className="ensenanza-consejos">
+      <ul className="ensenanza-consejos">
         {CONSEJOS.map((consejo) => (
           <li key={consejo.titulo}>
             <strong>{consejo.titulo}</strong>
             <span>{consejo.texto}</span>
           </li>
         ))}
-      </ol>
+      </ul>
       <button type="button" className="btn primary" onClick={onObjetivo}>
         Ir a mis objetivos
       </button>

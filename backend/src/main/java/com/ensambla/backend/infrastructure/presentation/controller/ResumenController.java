@@ -1,10 +1,20 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.reporte.PeriodoMetricas;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenNegocio;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenRequest;
 import com.ensambla.backend.domain.useCase.reporte.exportarResumen.ExportarResumenResponse;
+import com.ensambla.backend.domain.useCase.reporte.obtenerAvisoEconomico.ObtenerAvisoEconomico;
+import com.ensambla.backend.domain.useCase.reporte.obtenerAvisoEconomico.ObtenerAvisoEconomicoRequest;
+import com.ensambla.backend.domain.useCase.reporte.obtenerAvisoEconomico.ObtenerAvisoEconomicoResponse;
+import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricas;
+import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricasRequest;
+import com.ensambla.backend.domain.useCase.reporte.obtenerMetricas.ObtenerMetricasResponse;
+import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicio;
+import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicioRequest;
+import com.ensambla.backend.domain.useCase.reporte.obtenerResumenInicio.ObtenerResumenInicioResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +40,12 @@ public class ResumenController {
 
     private final ExportarResumenNegocio exportarResumenNegocio;
 
+    private final ObtenerResumenInicio obtenerResumenInicio;
+
+    private final ObtenerMetricas obtenerMetricas;
+
+    private final ObtenerAvisoEconomico obtenerAvisoEconomico;
+
     @GetMapping("/pdf")
     @Operation(summary = "Descargar el resumen del negocio en PDF: ventas, ganancia, stock, gastos, zona y avisos del período")
     public ResponseEntity<byte[]> descargar(
@@ -44,5 +60,33 @@ public class ResumenController {
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment().filename(archivo.nombreArchivo()).build().toString())
                 .body(archivo.contenido());
+    }
+
+    @GetMapping("/inicio")
+    @Operation(summary = "Las métricas del inicio de un sistema: ventas de hoy, lo que más salió, lo que falta y lo parado")
+    public ResponseEntity<ObtenerResumenInicioResponse> inicio(
+            Authentication authentication,
+            @PathVariable ProyectoId proyectoId) {
+        return ResponseEntity.ok(obtenerResumenInicio.execute(
+                new ObtenerResumenInicioRequest(UsuarioId.de(authentication.getName()), proyectoId)));
+    }
+
+    @GetMapping("/metricas")
+    @Operation(summary = "Las métricas detalladas de un sistema para hoy, la semana o el mes (por defecto, la semana)")
+    public ResponseEntity<ObtenerMetricasResponse> metricas(
+            Authentication authentication,
+            @PathVariable ProyectoId proyectoId,
+            @RequestParam(defaultValue = "SEMANA") PeriodoMetricas periodo) {
+        return ResponseEntity.ok(obtenerMetricas.execute(
+                new ObtenerMetricasRequest(UsuarioId.de(authentication.getName()), proyectoId, periodo)));
+    }
+
+    @GetMapping("/aviso-economico")
+    @Operation(summary = "El aviso económico del inicio: esta semana frente a la anterior, en ventas y ganancia")
+    public ResponseEntity<ObtenerAvisoEconomicoResponse> avisoEconomico(
+            Authentication authentication,
+            @PathVariable ProyectoId proyectoId) {
+        return ResponseEntity.ok(obtenerAvisoEconomico.execute(
+                new ObtenerAvisoEconomicoRequest(UsuarioId.de(authentication.getName()), proyectoId)));
     }
 }

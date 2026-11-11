@@ -1,8 +1,13 @@
+import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { useNavigate } from '@tanstack/react-router';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
+import { Icon } from '@/components/sistema/Icon';
+import { varsDeColor } from '@/components/sistema/colores';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { DATOS_DE_LECCION, LECCIONES_DE_SAMI, type LeccionDeSami } from '@/lib/ensenanza';
+import type { NombreDeIcono } from '@/lib/sistema/iconos';
+import type { Color } from '@/lib/sistema/tipos';
 import { useObjetivosStore } from '@/stores/objetivosStore';
 import { Encabezado } from '@/pages/Objetivos/piezas';
 import { LeccionEscenario } from './LeccionEscenario';
@@ -14,6 +19,15 @@ import {
 } from './Lecciones';
 
 type Props = { leccion: LeccionDeSami; objetivoId?: string };
+
+// Cada lección es un tema con su color y su ícono, como las fichas del inicio: se elige cualquiera, sin orden.
+const TEMA_DE_LECCION: Record<LeccionDeSami, { color: Color; icono: NombreDeIcono }> = {
+  resultado: { color: 'petrol', icono: 'chart' },
+  metricas: { color: 'blue', icono: 'grid' },
+  recomendaciones: { color: 'orange', icono: 'spark' },
+  escenario: { color: 'coral', icono: 'settings' },
+  consejos: { color: 'yellow', icono: 'bulb' },
+};
 
 // Sami te enseña: donde Sami enseña contabilidad aplicada al negocio y explica cómo hace sus recomendaciones.
 export function SamiEnsenaPage({ leccion, objetivoId }: Props) {
@@ -32,11 +46,22 @@ export function SamiEnsenaPage({ leccion, objetivoId }: Props) {
     });
   const irAObjetivos = () => void navegacion.irAObjetivos();
   const datos = DATOS_DE_LECCION[leccion];
+  // Si llegó desde el plan de un objetivo, tiene que poder volver a ese plan sin buscarlo.
+  const objetivoDeOrigen = objetivos.find((objetivo) => objetivo.id === objetivoId);
 
   return (
     <>
       <CabeceraComun active="learn" />
       <main id="main" tabIndex={-1} className="page-wrap objetivos-page ensenanza-page reveal">
+        {objetivoDeOrigen && (
+          <button
+            type="button"
+            className="objetivos-volver"
+            onClick={() => void navegacion.irAObjetivo(objetivoDeOrigen.id)}
+          >
+            <ArrowLeftIcon aria-hidden size={20} /> Volver al plan de acción
+          </button>
+        )}
         <Encabezado
           etiqueta="Lecciones"
           titulo="Sami te enseña"
@@ -44,31 +69,27 @@ export function SamiEnsenaPage({ leccion, objetivoId }: Props) {
           sami="Te enseña sin tecnicismos"
         />
         <div className="ensenanza-layout">
-          <nav className="ensenanza-indice" aria-label="Lecciones">
-            <ol>
-              {LECCIONES_DE_SAMI.map((clave, indice) => (
+          <nav className="ensenanza-temas" aria-label="Lecciones">
+            <ul>
+              {LECCIONES_DE_SAMI.map((clave) => (
                 <li key={clave}>
                   <button
                     type="button"
                     className={clave === leccion ? 'active' : ''}
+                    style={varsDeColor(TEMA_DE_LECCION[clave].color)}
                     aria-current={clave === leccion ? 'page' : undefined}
                     onClick={() => abrir(clave)}
                   >
-                    <span>{indice + 1}</span>
-                    <div>
-                      <strong>{DATOS_DE_LECCION[clave].titulo}</strong>
-                      <small>{DATOS_DE_LECCION[clave].minutos} min</small>
-                    </div>
+                    <Icon name={TEMA_DE_LECCION[clave].icono} />
+                    <strong>{DATOS_DE_LECCION[clave].titulo}</strong>
+                    <small>{DATOS_DE_LECCION[clave].minutos} min</small>
                   </button>
                 </li>
               ))}
-            </ol>
+            </ul>
           </nav>
           <section className="ensenanza-contenido" aria-labelledby="leccion-titulo">
             <header>
-              <p className="objetivos-etiqueta">
-                Lección {LECCIONES_DE_SAMI.indexOf(leccion) + 1} de {LECCIONES_DE_SAMI.length}
-              </p>
               <h2 id="leccion-titulo">{datos.titulo}</h2>
               <p>{datos.resumen}</p>
             </header>

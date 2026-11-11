@@ -25,21 +25,22 @@ const abrirInicio = async (sistemas: Sistema[]) => {
   return { router, user: userEvent.setup(), sistema: sistemas[0] };
 };
 
-const titulo = () => screen.queryByRole('heading', { name: 'Cómo viene tu negocio' });
-/** El título aparece mientras carga: lo que hay que esperar son las cifras. */
-const cifrasAsync = () => screen.findByText('Vendiste', undefined, ESPERA);
+const NOMBRE_DEL_PANEL = 'Tu plata y lo que conviene hacer';
+const titulo = () => screen.queryByRole('heading', { name: NOMBRE_DEL_PANEL });
+/** El título aparece mientras carga: lo que hay que esperar es el flujo de caja. */
+const cifrasAsync = () =>
+  screen.findByText(/Lo fiado no entra hasta que lo cobrás/, undefined, ESPERA);
 
 describe('inicio: panel del negocio', () => {
-  it('con ventas muestra las métricas y el flujo de caja de los últimos 30 días', async () => {
+  it('con ventas muestra el flujo de caja de los últimos 30 días, sin repetir las métricas del tablero', async () => {
     await abrirInicio([crearAlmacenCargado(hoy())]);
 
     await cifrasAsync();
-    const panel = screen.getByRole('region', { name: 'Cómo viene tu negocio' });
-    for (const etiqueta of ['Vendiste', 'Te queda', 'Te deben', 'Margen']) {
-      expect(within(panel).getByText(etiqueta)).toBeVisible();
-    }
+    const panel = screen.getByRole('region', { name: NOMBRE_DEL_PANEL });
     expect(within(panel).getByText(/Los últimos 30 días/)).toBeVisible();
     expect(within(panel).getByText(/Lo fiado no entra hasta que lo cobrás/)).toBeVisible();
+    expect(document.querySelector('.panel-tarjetas')).toBeNull();
+    expect(screen.getByRole('region', { name: 'Cómo te va' })).toBeVisible();
   });
 
   it('el flujo de caja es una fila por semana con lo que entró, salió y el saldo, escrito', async () => {
@@ -59,41 +60,12 @@ describe('inicio: panel del negocio', () => {
     expect(screen.getByText('Te va quedando')).toBeVisible();
   });
 
-  it('cada métrica explica para qué sirve y lleva a su detalle', async () => {
-    const { user, router, sistema } = await abrirInicio([crearAlmacenCargado(hoy())]);
-    await cifrasAsync();
-    const tarjeta = (clave: string) => {
-      const encontrada = document.querySelector<HTMLElement>(`[data-metrica="${clave}"]`);
-      if (!encontrada) throw new Error(`Falta la tarjeta ${clave}`);
-      return encontrada;
-    };
-
-    expect(within(tarjeta('teDeben')).getByText(/Lo que vendiste fiado/)).toBeVisible();
-    await user.click(within(tarjeta('vendiste')).getByRole('button', { name: /Ver mis ventas/ }));
-    await verifyPathAsync(router, `/sistemas/${sistema?.id}`);
-  });
-
-  it('el margen usa la coma decimal y cada acceso a un detalle tiene su propio nombre', async () => {
-    await abrirInicio([crearAlmacenCargado(hoy())]);
-    await cifrasAsync();
-
-    expect(
-      document.querySelector('[data-metrica="margen"] .panel-tarjeta-valor'),
-    ).toHaveTextContent(/^\d+(,\d)? %$/);
-    const tarjetas = document.querySelector<HTMLElement>('.panel-tarjetas');
-    if (!tarjetas) throw new Error('Faltan las tarjetas');
-    const accesos = within(tarjetas)
-      .getAllByRole('button')
-      .map((boton) => boton.textContent);
-    expect(new Set(accesos).size).toBe(accesos.length);
-  });
-
   it('con panel el saludo sigue siendo el h1 y el título del panel es un h2', async () => {
     await abrirInicio([crearAlmacenCargado(hoy())]);
     await cifrasAsync();
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/En qué puedo/);
-    expect(screen.getByRole('heading', { level: 2, name: 'Cómo viene tu negocio' })).toBeVisible();
+    expect(screen.getByRole('heading', { level: 2, name: NOMBRE_DEL_PANEL })).toBeVisible();
   });
 
   it('quien ya tiene un cuaderno ve una bienvenida compacta con las tres formas de empezar', async () => {
@@ -174,21 +146,10 @@ describe('inicio: panel del negocio', () => {
   it('mientras llegan los números avisa que está haciendo las cuentas', async () => {
     await abrirInicio([crearAlmacenCargado(hoy())]);
 
-    const panel = screen.getByRole('region', { name: 'Cómo viene tu negocio' });
+    const panel = screen.getByRole('region', { name: NOMBRE_DEL_PANEL });
     expect(within(panel).getByRole('status')).toHaveTextContent('Estamos haciendo tus cuentas');
     await cifrasAsync();
     expect(screen.queryByText('Estamos haciendo tus cuentas…')).toBeNull();
-  });
-
-  it('«Ver mis objetivos» lleva a Objetivos', async () => {
-    const { user, router } = await abrirInicio([crearAlmacenCargado(hoy())]);
-    await cifrasAsync();
-
-    const queda = document.querySelector<HTMLElement>('[data-metrica="queda"]');
-    if (!queda) throw new Error('Falta la tarjeta de lo que te queda');
-    await user.click(within(queda).getByRole('button', { name: /Ver mis objetivos/ }));
-
-    await verifyPathAsync(router, '/objetivos');
   });
 
   it('si el primer cuaderno no tiene ventas, mira el que sí las tiene', async () => {
@@ -209,7 +170,7 @@ describe('inicio: panel del negocio', () => {
     const { user, router, sistema } = await abrirInicio([makeTemplate('shop', {}, true)]);
 
     expect(await screen.findByText(/Todavía no cargaste ventas/, undefined, ESPERA)).toBeVisible();
-    expect(screen.queryByText('Vendiste')).toBeNull();
+    expect(screen.queryByText(/Lo fiado no entra hasta que lo cobrás/)).toBeNull();
     expect(screen.queryByRole('img', { name: /Flujo de caja/ })).toBeNull();
 
     await clickButton(user, /Cargar mis ventas/);
@@ -234,7 +195,7 @@ describe('inicio: panel del negocio', () => {
     );
     await clickButton(user, 'Probar de nuevo');
 
-    expect(await screen.findByText('Vendiste', undefined, ESPERA)).toBeVisible();
+    expect(await cifrasAsync()).toBeVisible();
     expect(screen.queryByRole('alert')).toBeNull();
   });
 });

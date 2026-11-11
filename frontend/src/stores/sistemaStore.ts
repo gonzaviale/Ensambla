@@ -35,6 +35,8 @@ export type Modal =
   | { tipo: 'consejosDeFoto'; onTomarFoto: () => void }
   | { tipo: 'campo'; bloqueId: string; clave?: string | null }
   | { tipo: 'bienvenida' }
+  /** Los productos detrás del aviso económico del inicio (pueden ser cientos). */
+  | { tipo: 'productosDelAviso'; productos: string[] }
   /** Con `enBorrador` trabajan sobre la propuesta de Sami en vez de sobre el cuaderno abierto. */
   | { tipo: 'secciones'; enBorrador?: boolean }
   | { tipo: 'agregarSeccion'; enBorrador?: boolean }
