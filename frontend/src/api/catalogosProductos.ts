@@ -1,25 +1,18 @@
 import { z } from 'zod';
+import { http } from './client';
 import { codigoGtin, mismoGtin } from '@/lib/escaneo/codigo';
 import type { CoincidenciaCatalogo, ResultadoCatalogos } from '@/types/escaneo';
 
-const productoSepa = z.object({
-  codigo: z.string(),
-  nombre: z.string(),
-  marca: z.string(),
-  presentacion: z.string(),
-});
-const respuestaSepa = z.object({ producto: productoSepa.nullable() });
-const respuestaOff = z.object({
-  product: z
+const respuestaCatalogo = z.object({
+  producto: z
     .object({
-      code: z.string(),
-      product_name: z.string().optional(),
-      product_name_es: z.string().optional(),
-      brands: z.string().optional(),
-      quantity: z.string().optional(),
-      image_front_url: z.string().optional(),
+      codigo: z.string(),
+      nombre: z.string(),
+      marca: z.string(),
+      presentacion: z.string(),
+      imagen: z.string().nullish(),
     })
-    .optional(),
+    .nullable(),
 });
 const cache = new Map<string, { hasta: number; fuente: CoincidenciaCatalogo }>();
 
@@ -38,46 +31,31 @@ async function consultarFuente(
   const plazo = setTimeout(() => controlador.abort(), 8_000);
   try {
     if (signal.aborted) throw new DOMException('Consulta cancelada', 'AbortError');
-    const res = await fetch(`/catalogos/${fuente}/${codigo}`, {
-      signal: controlador.signal,
-      credentials: 'omit',
-    });
-    if (res.status === 404) resultado = { fuente, estado: 'no_encontrado' };
-    else {
-      if (!res.ok) throw new Error('Fuente no disponible');
-      const datos: unknown = await res.json();
-      if (fuente === 'sepa') {
-        const { producto } = respuestaSepa.parse(datos);
-        if (producto && !mismoGtin(producto.codigo, codigo)) throw new Error('Otro código');
-        resultado = {
-          fuente,
-          estado: producto ? 'encontrado' : 'no_encontrado',
-          ...(producto ? { producto } : {}),
-        };
-      } else {
-        const { product: p } = respuestaOff.parse(datos);
-        if (p && !mismoGtin(p.code, codigo)) throw new Error('Otro código');
-        const imagen = p?.image_front_url;
-        resultado = {
-          fuente,
-          estado: p ? 'encontrado' : 'no_encontrado',
-          ...(p
-            ? {
-                producto: {
-                  codigo,
-                  nombre: p.product_name_es?.trim() || p.product_name?.trim() || '',
-                  marca: p.brands ?? '',
-                  presentacion: p.quantity ?? '',
-                  ...(imagen &&
-                  /^https:\/\/images\.open(?:food|beauty|products)facts\.org\//.test(imagen)
-                    ? { imagen }
-                    : {}),
-                },
-              }
-            : {}),
-        };
-      }
-    }
+    const { producto } = await http.get(
+      `/catalogos/${fuente}/${codigo}`,
+      respuestaCatalogo,
+      controlador.signal,
+    );
+    if (producto && !mismoGtin(producto.codigo, codigo)) throw new Error('Otro código');
+    const imagen = producto?.imagen;
+    resultado = {
+      fuente,
+      estado: producto ? 'encontrado' : 'no_encontrado',
+      ...(producto
+        ? {
+            producto: {
+              codigo: producto.codigo,
+              nombre: producto.nombre,
+              marca: producto.marca,
+              presentacion: producto.presentacion,
+              ...(imagen &&
+              /^https:\/\/images\.open(?:food|beauty|products)facts\.org\//.test(imagen)
+                ? { imagen }
+                : {}),
+            },
+          }
+        : {}),
+    };
   } catch {
     if (signal.aborted) throw new DOMException('Consulta cancelada', 'AbortError');
     return { fuente, estado: 'no_disponible' };

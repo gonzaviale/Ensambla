@@ -97,8 +97,8 @@ async function buscar(user: ReturnType<typeof userEvent.setup>, codigo: string) 
 }
 function sinCoincidencias(codigo: string) {
   server.use(
-    http.get(`/catalogos/sepa/${codigo}`, () => HttpResponse.json({ producto: null })),
-    http.get(`/catalogos/openfoodfacts/${codigo}`, () => new HttpResponse(null, { status: 404 })),
+    http.get(`/api/catalogos/sepa/${codigo}`, () => HttpResponse.json({ producto: null })),
+    http.get(`/api/catalogos/openfoodfacts/${codigo}`, () => HttpResponse.json({ producto: null })),
   );
 }
 const cambiar = (nombre: string, valor: string) =>
@@ -109,7 +109,7 @@ const cambiar = (nombre: string, valor: string) =>
 describe('carga exclusiva de productos en inventario', () => {
   it('entra desde Inventario sin caja y guarda la ficha revisada, con campos propios y persistencia', async () => {
     server.use(
-      http.get('/catalogos/sepa/7790957000101', () =>
+      http.get('/api/catalogos/sepa/7790957000101', () =>
         HttpResponse.json({
           producto: {
             codigo: '7790957000101',
@@ -119,12 +119,14 @@ describe('carga exclusiva de productos en inventario', () => {
           },
         }),
       ),
-      http.get('/catalogos/openfoodfacts/7790957000101', () =>
+      http.get('/api/catalogos/openfoodfacts/7790957000101', () =>
         HttpResponse.json({
-          product: {
-            code: '7790957000101',
-            product_name: 'Alfajor',
-            image_front_url: 'https://images.openfoodfacts.org/foto.jpg',
+          producto: {
+            codigo: '7790957000101',
+            nombre: 'Alfajor',
+            marca: '',
+            presentacion: '',
+            imagen: 'https://images.openfoodfacts.org/foto.jpg',
           },
         }),
       ),
@@ -171,7 +173,7 @@ describe('carga exclusiva de productos en inventario', () => {
   });
   it('reconoce un código propio, conserva las unidades y permite descartar sin guardar', async () => {
     const consulta = vi.fn(() => HttpResponse.json({ producto: null }));
-    server.use(http.get('/catalogos/:fuente/77903754', consulta));
+    server.use(http.get('/api/catalogos/:fuente/77903754', consulta));
     const { user, actual, inventario } = await abrir();
     await buscar(user, '77903754');
     expect(screen.getByRole('heading', { name: 'Revisá el producto' })).toBeVisible();

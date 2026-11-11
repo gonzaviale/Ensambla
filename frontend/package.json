@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "dev:demo": "vite --mode demo",
-    "dev:demo:movil": "node scripts/iniciar-movil.mjs",
+    "dev:movil": "node scripts/iniciar-movil.mjs",
+    "dev:demo:movil": "node scripts/iniciar-movil.mjs --demo",
     "catalogo:sepa": "node scripts/importar-sepa.mjs",
     "catalogo:sepa:descargar": "node scripts/descargar-sepa.mjs",
     "build": "tsc -b && vite build",

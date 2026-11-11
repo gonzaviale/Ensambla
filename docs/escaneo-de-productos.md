@@ -1,154 +1,149 @@
 # Carga de productos por código en Inventario
 
-Permite identificar un producto, revisar sus datos y confirmar su carga en una tabla de Inventario.
-Se abre desde **Escanear productos** en el bloque o en la tabla a pantalla completa. El destino queda
-identificado en `/sistemas/$sistemaId?escanear=$inventarioId`, incluso si hay varios inventarios.
+La pantalla de Inventario consulta los catálogos mediante el backend autenticado de Ensambla.
+Funciona con el frontend compilado y el despliegue de Docker/Caddy; no depende de adaptadores de Vite.
+La búsqueda no modifica el stock. La persona revisa los datos y confirma la carga.
 
-## Ejecutar en local
+## Ejecutar la aplicación real
 
-Con Node.js 22, desde `frontend/`:
+Requisitos: Java 21, Docker y Node.js 22. No se necesitan claves de SEPA ni Open Food Facts.
+
+Desde `backend/`:
+
+```sh
+docker compose up -d
+./mvnw spring-boot:run
+```
+
+En Windows se puede usar `mvnw.cmd`. Desde `frontend/`, en otra terminal:
 
 ```sh
 npm ci
-npm run dev:demo
+npm run dev
 ```
 
-Abrir <http://127.0.0.1:5173/cuadernos>. La demo admite `demo@ensambla.local` / `EnsamblaDemo2026!`.
-Abrir un cuaderno y su tabla Inventario. La demo usa los mocks existentes y guarda en el navegador.
-Para trabajar con el backend configurado, ejecutar `npm run dev` en lugar de `dev:demo`.
+La configuración normal usa `VITE_API_MOCKS=ninguno` y `VITE_API_URL=/api`; las llamadas pasan al backend
+por el proxy habitual. Registrar una cuenta o ingresar con una cuenta real de esa base, abrir un cuaderno
+y tocar **Escanear productos** en una tabla de Inventario, también disponible a pantalla completa.
+Las credenciales de la demo no crean una cuenta en PostgreSQL.
 
-Para probar desde Android (Chrome) o iPhone (Safari) en la misma red Wi-Fi:
+Para probar la cámara desde el teléfono, en la misma red:
 
 ```sh
-npm run dev:demo:movil
+npm run dev:movil
 ```
 
-Vite muestra la URL HTTPS de la red en el puerto 5174. La cámara del navegador requiere un contexto
-seguro: en el teléfono debe usarse esa URL con un certificado aceptado por el dispositivo. HTTP y HTTPS
-tienen almacenamiento y cachés separados.
+Abrir la URL HTTPS del puerto 5174 que imprime Vite. El dispositivo debe aceptar el certificado local.
+HTTP y HTTPS tienen sesiones y almacenamiento separados. Android/Chrome e iPhone/Safari necesitan
+un contexto seguro y permiso de cámara; el selector permite cambiar de lente.
 
-## Lista SEPA descargada
+`npm run dev:demo` y `npm run dev:demo:movil` mantienen el modo completamente simulado. En ese modo el
+catálogo de prueba devuelve ausencia y permite ensayar la carga manual; no valida la integración real.
 
-La rama incluye `frontend/datos/catalogos/sepa.json.gz`: un índice comprimido de **77.038 códigos**
-del relevamiento del 10/11/2026. Se carga automáticamente al iniciar Vite, sin descargar ni descomprimir
-archivos a mano. El archivo contiene sólo los datos públicos de identificación de productos y su
-atribución. No se sirve como parte del JavaScript de la aplicación.
+## Catálogos en el backend
 
-Para actualizarlo desde `frontend/`:
+`GET /api/catalogos/{fuente}/{codigo}` requiere sesión, admite `sepa` y `openfoodfacts`, y devuelve
+`{"producto":null}` si el código no existe. Un GTIN o fuente inválidos devuelven 400; una caída o límite
+del proveedor devuelve 503, distinguible de una ausencia. Sin sesión responde 401.
+
+Las fichas se normalizan a `codigo`, `nombre`, `marca`, `presentacion` e `imagen` opcional. El servidor
+valida la identidad del código recibido y sólo admite imágenes HTTPS de los dominios de imágenes de
+Open Food Facts y sus proyectos asociados. El frontend usa el cliente HTTP central, respeta
+`VITE_API_URL` y valida la respuesta con Zod. Sólo el servidor habla con el proveedor público, sin reenviar
+cookies, credenciales, referencias de navegación ni datos del negocio.
+
+### SEPA incluido
+
+`backend/src/main/resources/catalogos/sepa.json.gz` incluye **77.038 códigos del 10/11/2026** en unos 2 MB.
+Se empaqueta automáticamente en el JAR y la imagen del backend. No hace falta descargar, copiar ni
+configurar un archivo adicional para que otro integrante lo use.
+
+El índice contiene identificación pública de productos, fecha, atribución, URL de origen y SHA-256 del
+ZIP oficial. Se validaron el dígito de control y los GTIN equivalentes; se conservaron los ceros iniciales.
+Se excluyen precios de supermercados, datos de comercios y sucursales. No representa todos los
+productos disponibles en Argentina ni garantiza la exactitud de cada descripción.
+
+Para actualizarlo, desde `frontend/`:
 
 ```sh
 npm run catalogo:sepa:descargar
 ```
 
-`catalogo:sepa:descargar` consulta el catálogo oficial, selecciona el ZIP más reciente por su fecha y lo
-descarga. Procesa los archivos `productos.csv`, incluidos los ZIP anidados, sin extraer sus rutas al
-proyecto. Lee el código desde `id_producto`; `productos_ean` es un indicador y no el código.
-
-Valida el dígito de control, conserva los ceros iniciales y deduplica GTIN equivalentes. El índice sólo
-contiene código, descripción, marca y presentación; no incorpora los precios de cada supermercado.
-Guarda fecha, origen y SHA-256 de la descarga para identificar el conjunto importado. Una descarga o
-importación fallida conserva el índice anterior.
-
-La actualización se guarda en `frontend/.local/catalogo-sepa.json`, excluido de Git, y tiene prioridad
-sobre el índice incluido. La descarga diaria pesa cientos de MB y su procesamiento puede tardar varios
-minutos. Reiniciar Vite después de actualizar el índice. `SEPA_CATALOGO_PATH` permite configurar otra
-ubicación, en JSON o JSON comprimido con gzip. Una ruta explícita inválida se informa como indisponible.
-
-También se admite importar un ZIP oficial ya descargado, indicando la fecha de sus datos:
+El comando consulta el recurso oficial más reciente y procesa sus ZIP anidados y `productos.csv`.
+El código real es `id_producto`; `productos_ean` es un indicador. La descarga pesa cientos de MB y puede
+tardar varios minutos. Genera `frontend/.local/catalogo-sepa.json` sin subir el ZIP ni reemplazar el
+índice anterior si falla. También admite un ZIP ya descargado:
 
 ```sh
-npm run catalogo:sepa -- "ruta/sepa.zip" 2026-11-10
+npm run catalogo:sepa -- "ruta/sepa.zip" AAAA-MM-DD
 ```
 
-Para un conjunto propio previamente preparado se admite `.jsonl`, con un objeto por línea:
+Para usar una actualización externa, configurar en el backend `ENSAMBLA_SEPA_RECURSO=file:/ruta/catalogo-sepa.json`
+y reiniciar. Admite JSON o JSON comprimido con gzip. En Docker, montar el archivo en el volumen de datos
+(por ejemplo `/app/datos/catalogos/sepa.json`) y configurar esa ruta. Un recurso inválido impide arrancar
+con un índice parcial. El índice incluido sigue disponible cuando no se configura un recurso externo.
 
-```json
-{"codigo":"77903754","descripciones":["Descripción del producto"],"marcas":["Marca"]}
-```
+### Open Food Facts por API
 
-Sin un índice válido, la pantalla informa que SEPA no está disponible y permite continuar con la otra
-fuente o con carga manual.
+El backend consulta la API v3 por código y sólo solicita los campos requeridos. Tiene un plazo de cinco
+segundos, una caché compartida por instancia de 15 minutos y hasta 1.000 fichas, incluidas las ausencias.
+Los fallos no se cachean. Limita a 12 consultas externas nuevas por minuto por instancia; SEPA sigue
+funcionando si Open Food Facts no está disponible. No se descarga ni redistribuye una base combinada.
 
-## Consulta de Open Food Facts por API
+Configuración opcional centralizada en `application.properties`:
 
-No necesita descargar una base ni configurar una clave. Con conexión a Internet, el adaptador consulta
-la API v3 de Open Food Facts por código. Envía sólo ese identificador, un agente de aplicación y los
-campos públicos requeridos; elimina cookies, credenciales y referencias al negocio.
+| Variable | Valor inicial |
+|---|---|
+| `ENSAMBLA_SEPA_RECURSO` | `classpath:catalogos/sepa.json.gz` |
+| `ENSAMBLA_OFF_URL` | `https://world.openfoodfacts.org` |
+| `ENSAMBLA_OFF_USER_AGENT` | Identificación de Ensambla y repositorio |
+| `ENSAMBLA_OFF_TIMEOUT` | `5s` |
+| `ENSAMBLA_OFF_CACHE` | `15m` |
+| `ENSAMBLA_OFF_LIMITE` | `12` |
 
-Las respuestas se validan con Zod y se verifica que el GTIN coincida. Cada fuente tiene un plazo de
-respuesta y estados separados para producto inexistente e indisponibilidad. Las consultas exitosas o
-sin coincidencia se conservan en memoria 15 minutos; las fallidas pueden reintentarse. El proxy limita
-las consultas externas a 12 por minuto y permite completar los datos a mano si se alcanza ese límite.
-La caché no equivale a un catálogo completo sin conexión.
+El límite es por proceso. Si se escala a varias réplicas con una misma IP de salida, corresponde coordinar
+el presupuesto de consultas entre instancias o reducir el límite de cada una.
 
-## Uso y guardado
+## Revisión y guardado
 
-1. Leer el código con cámara, lector USB/Bluetooth que envía Enter, o ingresarlo manualmente.
-2. Para un producto nuevo, revisar la descripción sugerida y la foto, si existe. Se elige la descripción
-   más informativa de SEPA y Open Food Facts, completando marca y presentación sin repetirlas. La foto
-   puede provenir de la otra fuente para el mismo GTIN. **Ver origen de los datos** muestra el detalle.
-3. Completar los campos reales de esa tabla: conteo, costo, precio, mínimo y campos personalizados.
-4. Confirmar la carga. Se puede leer el siguiente producto o volver a la tabla de destino.
+1. Leer con cámara, lector USB/Bluetooth que envía Enter o ingreso manual.
+2. Si ya existe en el inventario elegido, revisar ese producto. No se crea otro ni se alteran unidades al leer.
+3. Para productos nuevos se consulta cada fuente y se sugiere la descripción más informativa, con marca,
+   presentación y foto si existe. **Ver origen de los datos** muestra la procedencia. Todo es revisable.
+4. Completar los campos reales de la tabla: conteo, costo, precio, mínimo y campos personalizados.
+5. Confirmar. El guardado usa la sincronización autenticada existente de sistemas, con transacción y
+   aislamiento por negocio. Al recargar, los datos se leen de PostgreSQL.
 
-El inventario propio tiene prioridad. Un código ya registrado muestra el producto existente; leerlo
-no crea una fila ni altera las unidades. También se puede vincular a un producto sin código. El
-selector excluye productos con otro GTIN y vuelve a validar la condición al guardar.
+Se puede vincular un producto sin código, descartar o completar manualmente una ficha ausente.
+La carga local conserva los campos no editados y advierte cambios concurrentes en un mismo campo.
+El backend vuelve a validar el GTIN, el campo de texto y los datos del registro codificado, y rechaza
+códigos equivalentes duplicados dentro del inventario enviado. Cada tabla tiene su propio inventario.
+No se crean ventas, movimientos, cobros ni tickets. Se conserva el mecanismo existente de sincronización
+de documentos; no se incorpora edición colaborativa en tiempo real.
 
-Se respeta la configuración de cada campo: conteo cero válido y precios opcionales cuando la tabla
-lo permite. Los errores aparecen junto al campo y al confirmar se enfoca el primero. Cambiar de código
-o navegar advierte si queda una carga pendiente. Descartar conserva el inventario. Tras guardar o
-descartar con teclado, el foco vuelve a la entrada del código; con cámara no se fuerza el teclado móvil.
+## Cámara y pruebas
 
-El guardado reutiliza `upsertRow`, el historial `commit` y la sincronización habitual del sistema.
-Valida sobre una copia para evitar cambios parciales y sólo agrega la columna de código al confirmar.
-Revalida duplicados al guardar. En ediciones aplica los campos modificados y conserva los cambios
-concurrentes de otros campos; si ambos flujos modificaron el mismo dato, pide volver a revisar.
-No agrega coordinación nueva entre usuarios ni modifica movimientos de ventas o compras.
-
-## Cámara
-
-ZXing se carga al abrir el lector. Admite EAN-8, EAN-13, UPC-A e ITF/GTIN-14, con validación de longitud
-y dígito de control. Esa validación no certifica una asignación de GS1.
-
-La selección automática prioriza la cámara elegida manualmente, recordada por identificador y etiqueta,
-y luego la trasera principal. Una lectura automática aislada no desplaza la selección manual. El
-selector muestra la cámara utilizada y permite cambiarla.
-
-Cada apertura tiene video, stream y decodificador propios. Libera las pistas al leer, cerrar, ocultar la
-página o desmontar, incluidos los permisos y decodificadores tardíos. Hay plazo de inicio, errores
-recuperables y enfoque continuo cuando el dispositivo lo admite. No guarda fotos ni videos.
-
-Las pruebas automatizadas cubren la prioridad y los ciclos de cámara. Sigue siendo necesaria la prueba
-física de apertura, lectura repetida y reapertura en Android e iPhone.
-
-## Fuentes y despliegue
-
-- [SEPA / Secretaría de Comercio](https://datos.produccion.gob.ar/dataset/sepa-precios): CC BY 4.0.
-- [Open Food Facts y asociados](https://openfoodfacts.github.io/openfoodfacts-server/api/): base ODbL,
-  contenido DbCL y fotos CC BY-SA, con posibles derechos de terceros.
-- El índice SEPA incluido conserva fecha, URL de origen, licencia y SHA-256 de su ZIP. Es una extracción
-  de los identificadores públicos de productos, con GTIN validados y deduplicados; se omiten precios,
-  comercios y sucursales. No se garantiza que cubra todos los productos ni la exactitud de cada registro.
-- Las fuentes se mantienen separadas y atribuidas. No se redistribuye una base combinada con Open Food
-  Facts ni se envían modificaciones a esos catálogos. GS1 y ARCA no están integrados.
-
-Los adaptadores de `frontend/config/catalogosProductos.ts` funcionan en el **servidor local de Vite**.
-El build estático no sirve esos endpoints: antes de desplegar hay que trasladarlos al backend o a un
-servicio de catálogo. Los endpoints existentes de guardado de inventario no cambian.
-
-## Estructura y validación
-
-Los componentes presentan controles y reciben acciones; los hooks coordinan cámara, consultas y
-guardado; `lib/escaneo` valida e identifica productos; `api` valida las respuestas externas. Los estilos
-usan los tokens centrales del sistema.
+ZXing se carga al abrir el lector y admite EAN-8, EAN-13, UPC-A e ITF/GTIN-14. La validación no certifica
+una asignación GS1. Se recuerda la cámara elegida manualmente y luego se prioriza la trasera principal.
+Se liberan las pistas al leer, cerrar, ocultar la página o desmontar. No se guardan fotos ni videos.
 
 ```sh
+# backend, con Docker y Java 21
+./mvnw clean verify
+# frontend
 npm run lint
 npm run typecheck
 npm test
 npm run build
 ```
 
-Las pruebas cubren importación y descarga SEPA, errores que conservan el índice, consulta por fuente,
-GTIN equivalentes, campos propios, duplicados, guardado atómico, ediciones concurrentes, cancelación,
-navegación pendiente, selección de inventario y ciclo de cámara.
+Las pruebas cubren catálogos, caché, límites, errores, seguridad HTTP, guardado y recarga con PostgreSQL
+real mediante Testcontainers, validación del servidor, duplicados, cancelación y ciclo de cámara.
+La lectura y selección de lentes en dispositivos físicos Android e iPhone requiere comprobación manual.
+
+## Atribución
+
+- [SEPA / Secretaría de Comercio](https://datos.produccion.gob.ar/dataset/sepa-precios): CC BY 4.0.
+  El índice incluido es una extracción transformada y deduplicada de sus identificadores de productos.
+- [Open Food Facts y asociados](https://openfoodfacts.github.io/openfoodfacts-server/api/): base ODbL,
+  contenido DbCL y fotos CC BY-SA, con posibles derechos de terceros. Las fuentes se mantienen separadas.
