@@ -3,7 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { guardarOrdenesDe, ordenesDe } from '@/mocks/db/estado';
 import { renderApp } from '@/test/renderApp';
-import { ESPERA, setupServerError, setupUsuarioConSesion } from '@/test/testHelpers';
+import {
+  ESPERA,
+  setupServerError,
+  setupServerResponse,
+  setupUsuarioConSesion,
+} from '@/test/testHelpers';
 import type { OrdenDelServidor } from '@/types/pedidos';
 
 const orden = (parcial: Partial<OrdenDelServidor> = {}): OrdenDelServidor => ({
@@ -234,6 +239,40 @@ describe('pedidos', () => {
     );
     expect(screen.getByText('Pendiente')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Aceptar' })).toBeEnabled();
+  });
+
+  it('si Sami no pudo avisarle al cliente por WhatsApp, se lo dice al dueño con el número para que le avise', async () => {
+    const { email } = setupUsuarioConSesion();
+    const aceptada = orden({ estado: 'ACEPTADA' });
+    guardarOrdenesDe(email, [aceptada]);
+    setupServerResponse('patch', `/ordenes/${aceptada.id}/estado`, 200, {
+      ...aceptada,
+      estado: 'LISTA',
+      clienteAvisado: false,
+    });
+    renderApp('/pedidos');
+    const user = userEvent.setup();
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Dejar lista para retirar' }, ESPERA),
+    );
+
+    const aviso = await screen.findByRole('alert', undefined, ESPERA);
+    expect(aviso).toHaveTextContent('quedó lista para retirar');
+    expect(aviso).toHaveTextContent('no pudimos avisarle a tu cliente por WhatsApp');
+    expect(aviso).toHaveTextContent('+5491155550001');
+  });
+
+  it('cuando el aviso al cliente salió no muestra ninguna advertencia', async () => {
+    const { email } = setupUsuarioConSesion();
+    guardarOrdenesDe(email, [orden()]);
+    renderApp('/pedidos');
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole('button', { name: 'Aceptar' }, ESPERA));
+
+    expect(await screen.findByText('Aceptado', undefined, ESPERA)).toBeVisible();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('si no se pueden cargar los pedidos lo avisa', async () => {

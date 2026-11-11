@@ -42,10 +42,12 @@ export const handlersPedidos = [
       motivoRechazo: cambio.data.estado === 'RECHAZADA' && motivo ? motivo : null,
       actualizadoEn: new Date().toISOString(),
     };
+    // Como el servidor: Sami avisa al cliente al aceptar, rechazar o dejar lista; preparar no se avisa.
+    const avisado = cambio.data.estado === 'EN_PREPARACION' ? null : true;
     guardarOrdenesDe(
       usuario.email,
       propias.map((posible) => (posible.id === orden.id ? actualizada : posible)),
     );
-    return HttpResponse.json(actualizada);
+    return HttpResponse.json({ ...actualizada, clienteAvisado: avisado });
   }),
 ];

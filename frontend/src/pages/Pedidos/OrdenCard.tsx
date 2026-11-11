@@ -71,6 +71,13 @@ export function OrdenCard({ orden }: { orden: OrdenDelServidor }) {
         </p>
       )}
 
+      {cambiar.data?.clienteAvisado === false && (
+        <p role="alert" className="pedido-error">
+          El pedido quedó {ETIQUETA_DE_ESTADO[orden.estado].toLowerCase()}, pero no pudimos avisarle
+          a tu cliente por WhatsApp. Avisale vos al {clienteLegible(orden.clienteTelefono)}.
+        </p>
+      )}
+
       {pasos.length > 0 &&
         (rechazando ? (
           <form className="pedido-rechazo" onSubmit={rechazar}>

@@ -26,6 +26,8 @@ export const ordenDelServidorSchema = z.object({
   items: z.array(itemDeOrdenSchema),
   total: z.number(),
   motivoRechazo: z.string().nullable().optional(),
+  // Sólo al cambiar el estado: si Sami le pudo avisar al cliente por WhatsApp (false si no salió). Al listar no viene.
+  clienteAvisado: z.boolean().nullable().optional(),
   creadoEn: z.string(),
   actualizadoEn: z.string(),
 });
