@@ -1285,3 +1285,356 @@
     margin-left: 0;
   }
 }
+
+/* Revisión de claridad: decisión primero, comparación simple y mapa siempre junto a los ajustes. */
+.donde-bajada {
+  max-width: 620px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.donde-pasos-cabeza {
+  counter-reset: progreso;
+  gap: 14px;
+}
+.donde-pasos-cabeza li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  counter-increment: progreso;
+}
+.donde-pasos-cabeza li::before {
+  content: counter(progreso);
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid #b9c2bc;
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+.donde-pasos-cabeza li[aria-current='step'] {
+  border: 0;
+  background: transparent;
+  color: var(--petrol);
+}
+.donde-pasos-cabeza li[aria-current='step']::before {
+  border-color: var(--petrol);
+  background: var(--petrol);
+  color: #fff;
+}
+.donde-editar-negocio {
+  display: inline-flex;
+  margin-top: 10px;
+}
+.donde-falta-ubicacion {
+  margin-top: 6px;
+  color: #7a5f00;
+  font-size: 12px;
+}
+.donde-seccion-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.donde-seccion-cabeza h2 {
+  margin-top: 2px;
+  color: var(--petrol);
+  font-size: 21px;
+}
+.donde-seccion-cabeza > p {
+  max-width: 430px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.donde-comparacion {
+  display: grid;
+  gap: 14px;
+  padding: 20px 22px;
+  border: 2px solid #e4e6df;
+  border-radius: 18px;
+  background: #fff;
+}
+.donde-comparacion-tabla {
+  overflow-x: auto;
+}
+.donde-comparacion table {
+  width: 100%;
+  min-width: 660px;
+  border-collapse: collapse;
+  color: var(--ink);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.donde-comparacion th,
+.donde-comparacion td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e4e6df;
+  text-align: center;
+}
+.donde-comparacion th:first-child {
+  width: 190px;
+  text-align: left;
+}
+.donde-comparacion thead th {
+  color: var(--petrol);
+  font-weight: 800;
+}
+.donde-comparacion thead th span {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: #e6f1f4;
+  font-size: 11px;
+}
+.donde-comparacion tr.destacada th,
+.donde-comparacion tr.destacada td {
+  background: #f4fafb;
+  color: var(--petrol);
+  font-weight: 800;
+}
+.donde-alquileres {
+  padding: 0 16px;
+  border: 1.5px solid #c7dce3;
+  border-radius: 14px;
+  background: #f7fbfc;
+}
+.donde-alquileres summary {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.donde-alquileres > p {
+  color: var(--muted);
+  font-size: 12px;
+}
+.donde-alquileres-lista {
+  padding: 12px 0 16px;
+}
+.donde-barra-de-control > p {
+  color: var(--muted);
+  font-size: 13px;
+}
+.donde-explorador {
+  --alto-mapa: 540px;
+  display: grid;
+  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+.donde-explorador-controles {
+  height: var(--alto-mapa);
+  padding: 16px;
+  overflow-y: auto;
+  border: 2px solid #e4e6df;
+  border-radius: 16px;
+  background: #fff;
+  scrollbar-width: thin;
+}
+.donde-explorador .donde-mapa-columna {
+  align-content: start;
+}
+.donde-explorador .donde-mapa {
+  height: calc(var(--alto-mapa) - 42px);
+}
+.donde-explorador .donde-leyenda {
+  min-height: 34px;
+}
+.donde-filtros {
+  border: 0;
+  border-radius: 0;
+}
+.donde-filtros-cabeza {
+  display: flex;
+  align-items: flex-start;
+  padding: 0 0 14px;
+}
+.donde-filtros-cabeza > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+.donde-filtros-cabeza h2 {
+  color: var(--petrol);
+  font-size: 17px;
+}
+.donde-filtros-cabeza p {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.donde-filtros-cabeza > b {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: var(--orange);
+  color: #fff;
+  font-size: 11px;
+}
+.donde-filtros-icono {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: #e6f1f4;
+  color: var(--petrol);
+}
+.donde-filtros-principales {
+  display: grid;
+  gap: 14px;
+}
+.donde-campo-select {
+  display: grid;
+  gap: 5px;
+  color: var(--ink);
+  font-size: 13px;
+}
+.donde-campo-select span {
+  font-weight: 700;
+}
+.donde-campo-select select,
+.donde-factor select {
+  min-height: 38px;
+  padding: 6px 30px 6px 10px;
+  border: 1.5px solid #cfd4ca;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+.donde-filtros-avanzados,
+.donde-capas {
+  margin-top: 14px;
+  border-top: 1px solid #e4e6df;
+}
+.donde-filtros-avanzados summary,
+.donde-capas summary {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.donde-filtros-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  padding: 12px 0 6px;
+  border-top: 0;
+}
+.donde-factor {
+  align-items: start;
+  flex-direction: column;
+  gap: 4px;
+}
+.donde-factor select {
+  width: 100%;
+  min-height: 34px;
+  font-size: 12px;
+}
+.donde-chips {
+  margin-top: 12px;
+}
+.donde-capas-lista,
+.donde-donde {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+}
+.donde-capas-lista label,
+.donde-donde label {
+  padding: 5px 2px;
+  border: 0;
+  border-radius: 0;
+  font-weight: 600;
+}
+.donde-capas-lista label.marcada,
+.donde-donde label.marcada {
+  border: 0;
+  background: transparent;
+  color: var(--petrol);
+}
+.donde-ranking-completo {
+  display: grid;
+  gap: 14px;
+  padding: 20px 22px;
+  border: 2px solid #e4e6df;
+  border-radius: 18px;
+  background: #fff;
+}
+.donde-ranking-completo .donde-lista {
+  height: 320px;
+}
+.donde-mas-info {
+  display: inline-flex;
+  margin-top: 8px;
+  color: var(--petrol);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: underline;
+}
+.donde-datos p {
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.donde-datos a {
+  color: var(--petrol);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+@media (max-width: 860px) {
+  .donde-explorador {
+    --alto-mapa: 400px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .donde-explorador-controles {
+    height: auto;
+    max-height: 420px;
+  }
+  .donde-explorador .donde-mapa {
+    height: var(--alto-mapa);
+  }
+}
+
+@media (max-width: 700px) {
+  .donde-pasos-cabeza {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .donde-pasos-cabeza li {
+    max-width: 110px;
+    font-size: 10px;
+  }
+  .donde-comparacion,
+  .donde-ranking-completo {
+    padding: 16px;
+  }
+  .donde-seccion-cabeza {
+    align-items: start;
+    flex-direction: column;
+  }
+}

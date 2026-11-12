@@ -1,9 +1,5 @@
 import { useId, useState } from 'react';
-import {
-  ArrowCounterClockwiseIcon,
-  CaretDownIcon,
-  SlidersHorizontalIcon,
-} from '@phosphor-icons/react';
+import { ArrowCounterClockwiseIcon, SlidersHorizontalIcon } from '@phosphor-icons/react';
 import {
   FACTORES,
   FILTROS_INICIALES,
@@ -20,103 +16,101 @@ import {
 } from '@/lib/dondeAbrir';
 
 const NIVELES: { valor: Importancia; etiqueta: string }[] = [
-  { valor: 0, etiqueta: 'Nada' },
+  { valor: 0, etiqueta: 'No influye' },
   { valor: 1, etiqueta: 'Importa' },
-  { valor: 2, etiqueta: 'Mucho' },
+  { valor: 2, etiqueta: 'Importa mucho' },
 ];
 
 type Props = {
   filtros: Filtros;
-  /** Cuántos filtros se apartan de lo de siempre. */
   activos: number;
   onCambiar: (filtros: Filtros) => void;
 };
 
-// Los filtros arrancan cerrados: el resultado es lo primero que se ve. Cada cambio recalcula las zonas al instante.
+// Los dos ajustes más útiles quedan a la vista. El resto sigue disponible sin llenar la pantalla de botones.
 export function PanelDeFiltros({ filtros, activos, onCambiar }: Props) {
-  const [abierto, setAbierto] = useState(false);
-  const idCuerpo = useId();
+  const [avanzados, setAvanzados] = useState(false);
   const preset = presetActivo(filtros);
 
   const cambiarLimite = <K extends keyof Limites>(clave: K, valor: Limites[K]) =>
     onCambiar({ ...filtros, limites: { ...filtros.limites, [clave]: valor } });
   const cambiarImportancia = (clave: FactorClave, valor: Importancia) =>
     onCambiar({ ...filtros, importancia: { ...filtros.importancia, [clave]: valor } });
+  const restablecer = () =>
+    onCambiar({ ...FILTROS_INICIALES, rubro: filtros.rubro, publico: filtros.publico });
 
   return (
-    <section className="donde-filtros" aria-label="Filtros">
-      <div className="donde-filtros-cabeza">
-        <button
-          type="button"
-          className="donde-filtros-boton"
-          aria-expanded={abierto}
-          aria-controls={idCuerpo}
-          onClick={() => setAbierto((valor) => !valor)}
-        >
-          <SlidersHorizontalIcon aria-hidden size={18} />
-          <span>Ajustar con filtros</span>
-          {activos > 0 && <b aria-label={`${activos} activos`}>{activos}</b>}
-          <CaretDownIcon aria-hidden size={14} className="flecha" />
-        </button>
-        {abierto && (
-          <button
-            type="button"
-            className="donde-filtros-restablecer"
-            disabled={activos === 0}
-            onClick={() =>
-              onCambiar({ ...FILTROS_INICIALES, rubro: filtros.rubro, publico: filtros.publico })
-            }
+    <section className="donde-filtros" aria-label="Ajustes de la recomendación">
+      <header className="donde-filtros-cabeza">
+        <div>
+          <span className="donde-filtros-icono" aria-hidden="true">
+            <SlidersHorizontalIcon size={18} />
+          </span>
+          <div>
+            <h2>Ajustá la búsqueda</h2>
+            <p>El mapa y el ranking cambian al instante.</p>
+          </div>
+        </div>
+        {activos > 0 && <b aria-label={`${activos} filtros activos`}>{activos}</b>}
+      </header>
+
+      <div className="donde-filtros-principales">
+        <label className="donde-campo-select">
+          <span>Prioridad</span>
+          <select
+            aria-label="Prioridad"
+            value={preset ?? 'personalizado'}
+            onChange={(evento) => {
+              const elegido = PRESETS.find((item) => item.id === evento.target.value);
+              if (elegido) onCambiar(conPreset(filtros, elegido));
+            }}
           >
-            <ArrowCounterClockwiseIcon aria-hidden size={14} /> Restablecer
-          </button>
-        )}
+            {preset === null && <option value="personalizado">Personalizada</option>}
+            {PRESETS.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.nombre}
+              </option>
+            ))}
+          </select>
+        </label>
+        <Deslizador
+          etiqueta="Distancia a tu local"
+          valor={filtros.limites.distanciaMaxKm}
+          minimo={1}
+          maximo={SIN_LIMITE_KM}
+          paso={0.5}
+          texto={(valor) => (valor >= SIN_LIMITE_KM ? 'Sin límite' : `Hasta ${formatoKm(valor)}`)}
+          onCambiar={(valor) => cambiarLimite('distanciaMaxKm', valor)}
+        />
       </div>
 
-      {abierto && (
-        <div id={idCuerpo} className="donde-filtros-cuerpo">
+      <details
+        className="donde-filtros-avanzados"
+        open={avanzados}
+        onToggle={(evento) => setAvanzados(evento.currentTarget.open)}
+      >
+        <summary aria-expanded={avanzados}>Más filtros</summary>
+        <div className="donde-filtros-cuerpo">
           <div className="donde-bloque">
-            <h3>Qué te importa</h3>
-            <div className="donde-presets" role="group" aria-label="Combinaciones rápidas">
-              {PRESETS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  aria-pressed={preset === item.id}
-                  className={preset === item.id ? 'activo' : ''}
-                  onClick={() => onCambiar(conPreset(filtros, item))}
-                >
-                  {item.nombre}
-                </button>
-              ))}
-            </div>
+            <h3>Cuánto importa cada factor</h3>
             <div className="donde-factores">
               {FACTORES.map((factor) => (
-                <div key={factor.clave} className="donde-factor" title={factor.ayuda}>
-                  <span id={`factor-${factor.clave}`}>{factor.etiqueta}</span>
-                  <div
-                    className="donde-segmento"
-                    role="radiogroup"
+                <label key={factor.clave} className="donde-factor" title={factor.ayuda}>
+                  <span>{factor.etiqueta}</span>
+                  <select
                     aria-label={`Importancia de ${factor.etiqueta.toLowerCase()}`}
+                    value={filtros.importancia[factor.clave]}
+                    onChange={(evento) =>
+                      cambiarImportancia(factor.clave, Number(evento.target.value) as Importancia)
+                    }
                   >
                     {NIVELES.map((nivel) => (
-                      <label
-                        key={nivel.valor}
-                        className={
-                          filtros.importancia[factor.clave] === nivel.valor ? 'marcada' : ''
-                        }
-                        data-nivel={nivel.valor}
-                      >
-                        <input
-                          type="radio"
-                          name={`importancia-${factor.clave}`}
-                          checked={filtros.importancia[factor.clave] === nivel.valor}
-                          onChange={() => cambiarImportancia(factor.clave, nivel.valor)}
-                        />
+                      <option key={nivel.valor} value={nivel.valor}>
                         {nivel.etiqueta}
-                      </label>
+                      </option>
                     ))}
-                  </div>
-                </div>
+                  </select>
+                </label>
               ))}
             </div>
           </div>
@@ -124,17 +118,6 @@ export function PanelDeFiltros({ filtros, activos, onCambiar }: Props) {
           <div className="donde-bloque">
             <h3>Límites que descartan zonas</h3>
             <div className="donde-limites">
-              <Deslizador
-                etiqueta="Distancia a tu local"
-                valor={filtros.limites.distanciaMaxKm}
-                minimo={1}
-                maximo={SIN_LIMITE_KM}
-                paso={0.5}
-                texto={(valor) =>
-                  valor >= SIN_LIMITE_KM ? 'Sin límite' : `Hasta ${formatoKm(valor)}`
-                }
-                onCambiar={(valor) => cambiarLimite('distanciaMaxKm', valor)}
-              />
               <Deslizador
                 etiqueta="Comercios similares cerca"
                 valor={filtros.limites.competenciaMax}
@@ -175,8 +158,16 @@ export function PanelDeFiltros({ filtros, activos, onCambiar }: Props) {
               />
             </div>
           </div>
+          <button
+            type="button"
+            className="donde-filtros-restablecer"
+            disabled={activos === 0}
+            onClick={restablecer}
+          >
+            <ArrowCounterClockwiseIcon aria-hidden size={14} /> Restablecer
+          </button>
         </div>
-      )}
+      </details>
     </section>
   );
 }

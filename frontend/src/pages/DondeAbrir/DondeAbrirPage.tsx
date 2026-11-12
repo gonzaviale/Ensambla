@@ -29,14 +29,15 @@ import { ListaDeZonas, type CambioDePuesto } from './ListaDeZonas';
 import { MapaDeZonas } from './MapaDeZonas';
 import { PanelDeFiltros } from './PanelDeFiltros';
 import { PreguntasDeSami } from './PreguntasDeSami';
+import { ComparacionDeZonas } from './ComparacionDeZonas';
 
 type Paso = 'confirmar' | 'preguntas' | 'resultado';
 type DondeMostrar = 'elegida' | 'todas';
 
 const PASOS: { clave: Paso; titulo: string }[] = [
-  { clave: 'confirmar', titulo: 'Tu negocio' },
-  { clave: 'preguntas', titulo: 'Preguntas' },
-  { clave: 'resultado', titulo: 'Zonas y trámites' },
+  { clave: 'confirmar', titulo: 'Confirmá tu negocio' },
+  { clave: 'preguntas', titulo: 'Contanos qué buscás' },
+  { clave: 'resultado', titulo: 'Compará zonas' },
 ];
 
 const RESPUESTAS_INICIALES: RespuestasDeSami = {
@@ -64,7 +65,7 @@ function filtrosDesde(respuestas: RespuestasDeSami, actuales: Filtros): Filtros 
 // «Dónde abrir»: Sami confirma el negocio, pregunta, recomienda zonas y explica qué hay que tramitar para abrir en la
 // que se elija. Cada filtro que se mueve recalcula todo al instante. Es una demostración con datos de ejemplo.
 export function DondeAbrirPage() {
-  useTituloPagina('Dónde abrir');
+  useTituloPagina('Tu próximo negocio');
   const navegacion = useNavegacion();
   const avisar = useSistemaStore((estado) => estado.avisar);
   const [paso, setPaso] = useState<Paso>('confirmar');
@@ -143,233 +144,257 @@ export function DondeAbrirPage() {
 
   return (
     <main id="main" tabIndex={-1} className="page-wrap objetivos-page donde-page reveal">
-        <button
-          type="button"
-          className="objetivos-volver"
-          onClick={() => void navegacion.irAZona()}
-        >
-          <ArrowLeftIcon aria-hidden size={20} /> Volver a Mi zona
-        </button>
-        <header className="donde-encabezado">
-          <div>
-            <p className="objetivos-etiqueta">Dónde abrir</p>
-            <h1>Encontrá la mejor zona para tu próximo local</h1>
-          </div>
-          <ol className="donde-pasos-cabeza" aria-label="Dónde estás">
-            {PASOS.map((item) => (
-              <li key={item.clave} aria-current={item.clave === paso ? 'step' : undefined}>
-                {item.titulo}
-              </li>
-            ))}
-          </ol>
-        </header>
-        <p className="donde-demo" role="note">
-          <strong>Datos trazables.</strong> Comparamos el snapshot guardado de OpenStreetMap con las
-          lecturas agregadas y anónimas disponibles en Ensambla.
-        </p>
+      <button type="button" className="objetivos-volver" onClick={() => void navegacion.irAZona()}>
+        <ArrowLeftIcon aria-hidden size={20} /> Volver a Mi zona
+      </button>
+      <header className="donde-encabezado">
+        <div>
+          <p className="objetivos-etiqueta">Zona</p>
+          <h1>Tu próximo negocio</h1>
+          <p className="donde-bajada">
+            Compará zonas y entendé qué necesitás para abrir un nuevo local.
+          </p>
+        </div>
+        <ol className="donde-pasos-cabeza" aria-label="Progreso de Tu próximo negocio">
+          {PASOS.map((item) => (
+            <li key={item.clave} aria-current={item.clave === paso ? 'step' : undefined}>
+              {item.titulo}
+            </li>
+          ))}
+        </ol>
+      </header>
+      {paso === 'confirmar' && (
+        <ConfirmarNegocio rubro={filtros.rubro} onConfirmar={confirmarRubro} />
+      )}
+      {paso === 'preguntas' && (
+        <PreguntasDeSami
+          respuestas={respuestas}
+          onResponder={responder}
+          onTerminar={() => setPaso('resultado')}
+        />
+      )}
 
-        {paso === 'confirmar' && (
-          <ConfirmarNegocio rubro={filtros.rubro} onConfirmar={confirmarRubro} />
-        )}
-        {paso === 'preguntas' && (
-          <PreguntasDeSami
-            respuestas={respuestas}
-            onResponder={responder}
-            onTerminar={() => setPaso('resultado')}
-          />
-        )}
-
-        {paso === 'resultado' && (
-          <div className="donde-resultado">
-            {consulta.isPending && (
-              <p className="donde-estado" role="status">Estoy comparando las zonas…</p>
-            )}
-            {consulta.isError && (
-              <div className="donde-estado error" role="alert">
-                <p>No pudimos calcular el ranking. Tus respuestas siguen guardadas.</p>
-                <button type="button" className="btn secondary" onClick={() => void consulta.refetch()}>
-                  Volver a intentar
-                </button>
-              </div>
-            )}
-            {consulta.data?.avisos.map((aviso) => (
-              <p className="donde-aviso-datos" role="note" key={aviso}>{aviso}</p>
-            ))}
-            {elegida && (
-              <section className="donde-recomienda" aria-label="Recomendación de Sami">
-                <div className="donde-recomienda-cabeza">
-                  <div className="donde-sami-cara" aria-hidden="true">
-                    <Sami pose="think" />
-                  </div>
-                  <div>
-                    <h2>
-                      {elegida.zona.id === ranking[0]?.zona.id
-                        ? `Mi recomendación para tu ${NOMBRE_DE_RUBRO[filtros.rubro]}`
-                        : 'Lo que sé de la zona que elegiste'}
-                    </h2>
-                    <p>
-                      Elegí una zona para ver por qué la recomiendo y qué tenés que tramitar para
-                      abrir ahí.
-                    </p>
-                  </div>
-                </div>
-                <ol className="donde-mejores" aria-label="Mejores zonas">
-                  {mejores.map((item) => (
-                    <li key={item.zona.id}>
-                      <button
-                        type="button"
-                        aria-pressed={item.zona.id === elegida.zona.id}
-                        className={`${item.coincidencia} ${item.zona.id === elegida.zona.id ? 'activa' : ''}`.trim()}
-                        onClick={() => setSeleccionadaId(item.zona.id)}
-                      >
-                        <i aria-hidden />
-                        {item.zona.nombre}
-                      </button>
-                    </li>
-                  ))}
-                </ol>
-                <DetalleDeZona
-                  key={elegida.zona.id}
-                  item={elegida}
-                  filtros={filtros}
-                  superficie={superficie}
-                  onSuperficie={setSuperficie}
-                  calculoAbierto={calculoAbierto}
-                  onAlternarCalculo={() => setCalculoAbierto((abierto) => !abierto)}
-                />
-              </section>
-            )}
-
-            <PanelDeFiltros filtros={filtros} activos={activos.length} onCambiar={cambiarFiltros} />
-            {ranking.length > 0 && (
-              <section className="donde-alquileres" aria-labelledby="donde-alquileres-titulo">
-                <div>
-                  <h3 id="donde-alquileres-titulo">Cotizaciones reales de alquiler</h3>
-                  <p>Son opcionales. El alquiler sólo cambia el ranking en las zonas donde cargás un valor.</p>
-                </div>
-                <div className="donde-alquileres-lista">
-                  {ranking.slice(0, 3).map((item) => (
-                    <label key={item.zona.id}>
-                      <span>{item.zona.nombre}</span>
-                      <input
-                        type="number"
-                        min={1}
-                        step={10000}
-                        inputMode="numeric"
-                        placeholder="$ por mes"
-                        value={alquileres[item.zona.id] ?? ''}
-                        onChange={(evento) => {
-                          const valor = Number(evento.target.value);
-                          setAlquileres((actuales) => {
-                            if (Number.isFinite(valor) && valor > 0)
-                              return { ...actuales, [item.zona.id]: valor };
-                            return Object.fromEntries(
-                              Object.entries(actuales).filter(([zonaId]) => zonaId !== item.zona.id),
-                            );
-                          });
-                        }}
-                      />
-                    </label>
-                  ))}
-                </div>
-              </section>
-            )}
-            <div className="donde-barra-de-control">
-              <LeyendaDeColores />
-              <div className="donde-acciones">
-                <button type="button" className="btn ghost small" onClick={copiar}>
-                  <CopyIcon aria-hidden size={16} /> Copiar resumen
-                </button>
-                <button
-                  type="button"
-                  className="btn ghost small"
-                  onClick={() => setPaso('preguntas')}
-                >
-                  Cambiar mis respuestas
-                </button>
-              </div>
+      {paso === 'resultado' && (
+        <div className="donde-resultado">
+          {consulta.isPending && (
+            <p className="donde-estado" role="status">
+              Estoy comparando las zonas…
+            </p>
+          )}
+          {consulta.isError && (
+            <div className="donde-estado error" role="alert">
+              <p>No pudimos calcular el ranking. Tus respuestas siguen guardadas.</p>
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={() => void consulta.refetch()}
+              >
+                Volver a intentar
+              </button>
             </div>
-
-            {activos.length > 0 && (
-              <ul className="donde-chips" aria-label="Filtros activos">
-                {activos.map((activo) => (
-                  <li key={activo.id}>
+          )}
+          {consulta.data?.avisos.map((aviso) => (
+            <p className="donde-aviso-datos" role="note" key={aviso}>
+              {aviso}
+            </p>
+          ))}
+          {elegida && (
+            <section className="donde-recomienda" aria-label="Recomendación de Sami">
+              <div className="donde-recomienda-cabeza">
+                <div className="donde-sami-cara" aria-hidden="true">
+                  <Sami pose="think" />
+                </div>
+                <div>
+                  <h2>
+                    {elegida.zona.id === ranking[0]?.zona.id
+                      ? `Mi recomendación para tu ${NOMBRE_DE_RUBRO[filtros.rubro]}`
+                      : 'Lo que sé de la zona que elegiste'}
+                  </h2>
+                  <p>
+                    Elegí una zona para ver por qué la recomiendo y qué tenés que tramitar para
+                    abrir ahí.
+                  </p>
+                </div>
+              </div>
+              <ol className="donde-mejores" aria-label="Mejores zonas">
+                {mejores.map((item) => (
+                  <li key={item.zona.id}>
                     <button
                       type="button"
-                      aria-label={`Quitar filtro: ${activo.texto}`}
-                      onClick={() => cambiarFiltros((actual) => sinFiltro(actual, activo.id))}
+                      aria-pressed={item.zona.id === elegida.zona.id}
+                      className={`${item.coincidencia} ${item.zona.id === elegida.zona.id ? 'activa' : ''}`.trim()}
+                      onClick={() => setSeleccionadaId(item.zona.id)}
                     >
-                      {activo.texto} <XIcon aria-hidden size={12} weight="bold" />
+                      <i aria-hidden />
+                      {item.zona.nombre}
                     </button>
                   </li>
                 ))}
-              </ul>
-            )}
+              </ol>
+            </section>
+          )}
 
-            <div className="donde-cuerpo">
-              <ListaDeZonas
+          {mejores.length > 0 && (
+            <ComparacionDeZonas zonas={mejores.slice(0, 3)} filtros={filtros} />
+          )}
+
+          {ranking.length > 0 && (
+            <details className="donde-alquileres">
+              <summary id="donde-alquileres-titulo">
+                Agregar cotizaciones reales de alquiler
+              </summary>
+              <p>Es opcional. Solo cambia el ranking de las zonas donde cargás un valor.</p>
+              <div className="donde-alquileres-lista">
+                {ranking.slice(0, 3).map((item) => (
+                  <label key={item.zona.id}>
+                    <span>{item.zona.nombre}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      step={10000}
+                      inputMode="numeric"
+                      placeholder="$ por mes"
+                      value={alquileres[item.zona.id] ?? ''}
+                      onChange={(evento) => {
+                        const valor = Number(evento.target.value);
+                        setAlquileres((actuales) => {
+                          if (Number.isFinite(valor) && valor > 0)
+                            return { ...actuales, [item.zona.id]: valor };
+                          return Object.fromEntries(
+                            Object.entries(actuales).filter(([zonaId]) => zonaId !== item.zona.id),
+                          );
+                        });
+                      }}
+                    />
+                  </label>
+                ))}
+              </div>
+            </details>
+          )}
+          <div className="donde-barra-de-control">
+            <p>Explorá el mapa y ajustá solo lo que necesites.</p>
+            <div className="donde-acciones">
+              <button type="button" className="btn ghost small" onClick={copiar}>
+                <CopyIcon aria-hidden size={16} /> Copiar resumen
+              </button>
+              <button
+                type="button"
+                className="btn ghost small"
+                onClick={() => setPaso('preguntas')}
+              >
+                Cambiar mis respuestas
+              </button>
+            </div>
+          </div>
+
+          <div className="donde-explorador">
+            <aside className="donde-explorador-controles">
+              <PanelDeFiltros
+                filtros={filtros}
+                activos={activos.length}
+                onCambiar={cambiarFiltros}
+              />
+              {activos.length > 0 && (
+                <ul className="donde-chips" aria-label="Filtros activos">
+                  {activos.map((activo) => (
+                    <li key={activo.id}>
+                      <button
+                        type="button"
+                        aria-label={`Quitar filtro: ${activo.texto}`}
+                        onClick={() => cambiarFiltros((actual) => sinFiltro(actual, activo.id))}
+                      >
+                        {activo.texto} <XIcon aria-hidden size={12} weight="bold" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <details className="donde-capas">
+                <summary>Qué mostrar en el mapa</summary>
+                <div className="donde-capas-lista">
+                  {CAPAS.map(({ tipo, etiqueta }) => (
+                    <label key={tipo} className={capas[tipo] ? 'marcada' : ''}>
+                      <input
+                        type="checkbox"
+                        checked={capas[tipo]}
+                        onChange={() =>
+                          setCapas((actual) => ({ ...actual, [tipo]: !actual[tipo] }))
+                        }
+                      />
+                      <i aria-hidden style={{ background: COLOR_DE_PUNTO[tipo] }} />
+                      {etiqueta}
+                    </label>
+                  ))}
+                </div>
+                <div className="donde-donde" role="radiogroup" aria-label="Dónde mostrarlo">
+                  <label className={dondeMostrar === 'elegida' ? 'marcada' : ''}>
+                    <input
+                      type="radio"
+                      name="donde-mostrar"
+                      checked={dondeMostrar === 'elegida'}
+                      onChange={() => setDondeMostrar('elegida')}
+                    />
+                    Solo en la zona elegida
+                  </label>
+                  <label className={dondeMostrar === 'todas' ? 'marcada' : ''}>
+                    <input
+                      type="radio"
+                      name="donde-mostrar"
+                      checked={dondeMostrar === 'todas'}
+                      onChange={() => setDondeMostrar('todas')}
+                    />
+                    En todas las zonas
+                  </label>
+                </div>
+              </details>
+            </aside>
+            <div className="donde-mapa-columna">
+              <MapaDeZonas
                 ranking={ranking}
                 descartadas={descartadas}
                 seleccionadaId={elegida?.zona.id ?? ''}
-                cambios={cambios}
-                onElegir={setSeleccionadaId}
+                puntos={puntos}
+                capas={capas}
+                onSeleccionar={setSeleccionadaId}
+                localActual={consulta.data?.negocioActual}
               />
-              <div className="donde-mapa-columna">
-                <MapaDeZonas
-                  ranking={ranking}
-                  descartadas={descartadas}
-                  seleccionadaId={elegida?.zona.id ?? ''}
-                  puntos={puntos}
-                  capas={capas}
-                  onSeleccionar={setSeleccionadaId}
-                  localActual={consulta.data?.negocioActual}
-                />
-                <details className="donde-capas">
-                  <summary>Qué ver en el mapa</summary>
-                  <div className="donde-capas-lista">
-                    {CAPAS.map(({ tipo, etiqueta }) => (
-                      <label key={tipo} className={capas[tipo] ? 'marcada' : ''}>
-                        <input
-                          type="checkbox"
-                          checked={capas[tipo]}
-                          onChange={() =>
-                            setCapas((actual) => ({ ...actual, [tipo]: !actual[tipo] }))
-                          }
-                        />
-                        <i aria-hidden style={{ background: COLOR_DE_PUNTO[tipo] }} />
-                        {etiqueta}
-                      </label>
-                    ))}
-                  </div>
-                  <div className="donde-donde" role="radiogroup" aria-label="Dónde mostrarlo">
-                    <label className={dondeMostrar === 'elegida' ? 'marcada' : ''}>
-                      <input
-                        type="radio"
-                        name="donde-mostrar"
-                        checked={dondeMostrar === 'elegida'}
-                        onChange={() => setDondeMostrar('elegida')}
-                      />
-                      Solo en la zona elegida
-                    </label>
-                    <label className={dondeMostrar === 'todas' ? 'marcada' : ''}>
-                      <input
-                        type="radio"
-                        name="donde-mostrar"
-                        checked={dondeMostrar === 'todas'}
-                        onChange={() => setDondeMostrar('todas')}
-                      />
-                      En todas las zonas
-                    </label>
-                  </div>
-                </details>
-              </div>
+              <LeyendaDeColores />
             </div>
-
-            <p className="donde-nota-chica">
-              Es una estimación para decidir mejor, no una predicción de ventas.
-            </p>
           </div>
-        )}
+
+          <section className="donde-ranking-completo" aria-labelledby="donde-ranking-titulo">
+            <div className="donde-seccion-cabeza">
+              <div>
+                <p className="objetivos-etiqueta">Ranking completo</p>
+                <h2 id="donde-ranking-titulo">Todas las zonas analizadas</h2>
+              </div>
+              <p>Elegí una para ver el detalle y los trámites.</p>
+            </div>
+            <ListaDeZonas
+              ranking={ranking}
+              descartadas={descartadas}
+              seleccionadaId={elegida?.zona.id ?? ''}
+              cambios={cambios}
+              onElegir={setSeleccionadaId}
+            />
+          </section>
+
+          {elegida && (
+            <DetalleDeZona
+              item={elegida}
+              filtros={filtros}
+              superficie={superficie}
+              onSuperficie={setSuperficie}
+              calculoAbierto={calculoAbierto}
+              onAlternarCalculo={() => setCalculoAbierto((abierto) => !abierto)}
+            />
+          )}
+
+          <p className="donde-nota-chica">
+            Es una estimación para decidir mejor, no una predicción de ventas.
+          </p>
+        </div>
+      )}
     </main>
   );
 }
