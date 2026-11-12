@@ -2,6 +2,7 @@ import type { Sistema } from '@/lib/sistema/tipos';
 import type { AvisoDelServidor } from '@/types/avisos';
 import type { ConfiguracionNegocio } from '@/types/negocio';
 import type { ObjetivoDelServidor } from '@/types/objetivos';
+import type { DatosAutogestion } from './objetivosAutogestionados';
 import type { PruebaPremium } from '@/types/planes';
 import type { VerificacionWhatsapp, VinculoWhatsapp } from '@/types/whatsapp';
 import { PREFERENCIAS_INICIALES, type Preferencias } from '@/types/preferencias';
@@ -29,6 +30,8 @@ type Estado = {
   avisosDelServidor: Map<string, AvisoDelServidor[]>;
   /** Los objetivos de cada cuenta (por email), del más viejo al más nuevo. */
   objetivos: Map<string, ObjetivoDelServidor[]>;
+  /** Mini-objetivos, progreso, decisiones y cierres de cada objetivo (por id); se arman la primera vez que se piden. */
+  autogestion: Map<string, DatosAutogestion>;
   pruebasPremium: Map<string, PruebaPremium>;
   contenidosDesbloqueados: Map<string, string[]>;
   paginasIa: Map<string, number>;
@@ -46,6 +49,7 @@ export const estado: Estado = {
   negocios: new Map(),
   avisosDelServidor: new Map(),
   objetivos: new Map(),
+  autogestion: new Map(),
   pruebasPremium: new Map(),
   contenidosDesbloqueados: new Map(),
   paginasIa: new Map(),
@@ -61,6 +65,7 @@ export function reiniciarEstado() {
   estado.negocios = new Map();
   estado.avisosDelServidor = new Map();
   estado.objetivos = new Map();
+  estado.autogestion = new Map();
   estado.pruebasPremium = new Map();
   estado.contenidosDesbloqueados = new Map();
   estado.paginasIa = new Map();

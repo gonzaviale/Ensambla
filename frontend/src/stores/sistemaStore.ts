@@ -6,6 +6,7 @@ import type { Aviso } from '@/lib/sistema/alertas';
 import type { VinculoPendiente } from '@/lib/sistema/acciones';
 import type { Bloque, ClavePlantilla, Seccion, Sistema } from '@/lib/sistema/tipos';
 import { TUTORIAL_INICIAL, type EstadoDelTutorial } from '@/lib/sistema/tutorial';
+import type { MiniObjetivo } from '@/types/objetivos';
 import type { ImagenParaSami, OpcionesDeSami } from '@/types/samiTaller';
 
 // El estado del taller y del editor: los sistemas de la persona y lo que está haciendo con ellos. Es el
@@ -49,6 +50,8 @@ export type Modal =
       /** `negocio`: la foto sirve para contarle a Sami cómo trabaja la persona. */
       contexto: 'registros' | 'negocio';
     }
+  /** «Cambiar por otro» en un mini-objetivo (H-52): las alternativas que propone Sami. */
+  | { tipo: 'cambiarMini'; objetivoId: string; mini: MiniObjetivo }
   | {
       tipo: 'confirmar';
       titulo: string;
@@ -282,7 +285,11 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
       let cambio = false;
       const actualizados = estado.sistemas.map((actual) => {
         const nuevo = delServidor.get(actual.id);
-        if (!nuevo || estado.pendientes.includes(actual.id) || estado.eliminados.includes(actual.id))
+        if (
+          !nuevo ||
+          estado.pendientes.includes(actual.id) ||
+          estado.eliminados.includes(actual.id)
+        )
           return actual;
         if (JSON.stringify(nuevo) === JSON.stringify(actual)) return actual;
         cambio = true;

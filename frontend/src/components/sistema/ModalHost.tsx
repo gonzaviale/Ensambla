@@ -19,6 +19,7 @@ import { ModalRenombrarPieza } from './modales/ModalRenombrarPieza';
 import { ModalSecciones } from './modales/ModalSecciones';
 import { ModalPruebaPremium } from '@/components/planes/ModalPruebaPremium';
 import { ModalRenovacion } from '@/components/planes/ModalRenovacion';
+import { ModalCambiarMiniObjetivo } from './modales/ModalCambiarMiniObjetivo';
 
 const ENFOCABLES =
   'button:not(:disabled),a[href],input:not([hidden]),select,textarea,[tabindex="0"]';
@@ -54,7 +55,9 @@ function ContenidoDelModal() {
     case 'renombrarPieza':
       return <ModalRenombrarPieza bloqueId={modal.bloqueId} />;
     case 'registro':
-      return <ModalRegistro bloqueId={modal.bloqueId} filaId={modal.filaId} avisoId={modal.avisoId} />;
+      return (
+        <ModalRegistro bloqueId={modal.bloqueId} filaId={modal.filaId} avisoId={modal.avisoId} />
+      );
     case 'consejosDeFoto':
       return <ModalConsejosDeFoto onTomarFoto={modal.onTomarFoto} />;
     case 'registroDelBorrador':
@@ -75,6 +78,8 @@ function ContenidoDelModal() {
           contexto={modal.contexto}
         />
       );
+    case 'cambiarMini':
+      return <ModalCambiarMiniObjetivo objetivoId={modal.objetivoId} mini={modal.mini} />;
     case 'confirmar':
       return <ModalConfirmar {...modal} />;
   }

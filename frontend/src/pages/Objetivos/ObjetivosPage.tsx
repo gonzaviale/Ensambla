@@ -4,6 +4,7 @@ import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { useEliminarObjetivo } from '@/hooks/objetivos/mutations';
 import { useObjetivos } from '@/hooks/objetivos/queries';
 import { useComoVieneTuNegocio } from '@/hooks/objetivos/useComoVieneTuNegocio';
+import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { formatoPesos, type Objetivo } from '@/lib/objetivos';
 import { useSistemaStore } from '@/stores/sistemaStore';
@@ -20,6 +21,7 @@ export function ObjetivosPage() {
   const eliminar = useEliminarObjetivo().mutate;
   const [definiendo, setDefiniendo] = useState(false);
   const { negocio } = useComoVieneTuNegocio();
+  const navegacion = useNavegacion();
 
   const quitar = (objetivo: Objetivo) =>
     abrirModal({
@@ -64,6 +66,7 @@ export function ObjetivosPage() {
                   objetivo={objetivo}
                   abierta={objetivos.length === 1}
                   onQuitar={() => quitar(objetivo)}
+                  onVerSemana={() => void navegacion.irAObjetivo(objetivo.id)}
                 />
               ))}
             </div>

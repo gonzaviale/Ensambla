@@ -1,6 +1,12 @@
 import { useId, useMemo, useState } from 'react';
-import { CaretDownIcon, CheckCircleIcon, TrashIcon } from '@phosphor-icons/react';
-import { usePasosObjetivo } from '@/hooks/objetivos/queries';
+import {
+  CalendarCheckIcon,
+  CaretDownIcon,
+  CheckCircleIcon,
+  TrashIcon,
+} from '@phosphor-icons/react';
+import { usePasosObjetivo, useSemanasObjetivo } from '@/hooks/objetivos/queries';
+import { resumenSinVer } from '@/lib/objetivosAutogestion';
 import {
   avance,
   brecha,
@@ -25,6 +31,8 @@ type Props = {
   /** La tarjeta arranca con los pasos a la vista (cuando hay un solo objetivo). */
   abierta?: boolean;
   onQuitar: () => void;
+  /** Lleva al seguimiento semanal del objetivo (mini-objetivos, gráfico y reajustes). */
+  onVerSemana: () => void;
 };
 
 function textoDeTendencia(objetivo: Objetivo) {
@@ -36,13 +44,15 @@ function textoDeTendencia(objetivo: Objetivo) {
   return `${cambio > 0 ? 'Subió' : 'Bajó'} ${formatoPesos(Math.abs(cambio))} en ${plazo}.`;
 }
 
-export function ObjetivoCard({ objetivo, abierta = false, onQuitar }: Props) {
+export function ObjetivoCard({ objetivo, abierta = false, onQuitar, onVerSemana }: Props) {
   const [verPasos, setVerPasos] = useState(abierta);
   const [elegidos, setElegidos] = useState<ReadonlySet<string>>(new Set());
   const [montos, setMontos] = useState<Montos>({});
   const [sensibilidad, setSensibilidad] = useState<Sensibilidad>('media');
   const idPanel = useId();
   const consultaPasos = usePasosObjetivo();
+  const ultimoCierre = useSemanasObjetivo(objetivo.id).data?.ultimoCierre ?? null;
+  const resumenListo = resumenSinVer(objetivo.id, ultimoCierre);
   const pasos = useMemo(() => pasosConcretos(consultaPasos.data ?? []), [consultaPasos.data]);
   const escenario = escenarioDe(objetivo, pasos, elegidos, montos, sensibilidad);
   const cumplido = brecha(objetivo) === 0;
@@ -201,6 +211,10 @@ export function ObjetivoCard({ objetivo, abierta = false, onQuitar }: Props) {
       )}
 
       <footer className="objetivos-tarjeta-acciones">
+        <button type="button" className="btn secondary" onClick={onVerSemana}>
+          <CalendarCheckIcon aria-hidden size={18} /> Ver mi semana
+        </button>
+        {resumenListo && <span className="objetivos-chip-resumen">Resumen de la semana listo</span>}
         <button type="button" className="objetivos-textual" onClick={onQuitar}>
           <TrashIcon aria-hidden size={16} /> Quitar objetivo
         </button>

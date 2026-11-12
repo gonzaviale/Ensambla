@@ -1,9 +1,15 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { crearObjetivo, eliminarObjetivo } from '@/api/objetivos';
+import {
+  abandonarMiniObjetivo,
+  crearObjetivo,
+  decidirPaso,
+  eliminarObjetivo,
+  reemplazarMiniObjetivo,
+} from '@/api/objetivos';
 import { useUsuarioOpcional } from '@/hooks/auth/queries';
 import { metaDesdeTexto } from '@/lib/objetivos';
-import type { ObjetivoDelServidor } from '@/types/objetivos';
-import { objetivosKey } from './queries';
+import type { CandidatoMiniObjetivo, DecisionDePaso, ObjetivoDelServidor } from '@/types/objetivos';
+import { objetivosKey, objetivosKeys } from './queries';
 
 function useClaveDeObjetivos() {
   const usuario = useUsuarioOpcional();
@@ -38,5 +44,38 @@ export function useEliminarObjetivo() {
     },
     // Si el servidor no lo tenía (404) o falló, se vuelve a preguntar para mostrar lo que hay de verdad.
     onError: () => queryClient.invalidateQueries({ queryKey: clave }),
+  });
+}
+
+// Cambiar, quitar o decidir sobre un mini-objetivo cambia los minis, el progreso y las decisiones: se vuelve a pedir
+// todo lo del objetivo.
+function useAlCambiarElObjetivo(objetivoId: string) {
+  const queryClient = useQueryClient();
+  return () => queryClient.invalidateQueries({ queryKey: objetivosKeys.detalle(objetivoId) });
+}
+
+export function useReemplazarMiniObjetivo(objetivoId: string) {
+  const alCambiar = useAlCambiarElObjetivo(objetivoId);
+  return useMutation({
+    mutationFn: ({ miniId, candidato }: { miniId: string; candidato: CandidatoMiniObjetivo }) =>
+      reemplazarMiniObjetivo(objetivoId, miniId, candidato),
+    onSettled: alCambiar,
+  });
+}
+
+export function useAbandonarMiniObjetivo(objetivoId: string) {
+  const alCambiar = useAlCambiarElObjetivo(objetivoId);
+  return useMutation({
+    mutationFn: (miniId: string) => abandonarMiniObjetivo(objetivoId, miniId),
+    onSettled: alCambiar,
+  });
+}
+
+export function useDecidirPaso(objetivoId: string) {
+  const alCambiar = useAlCambiarElObjetivo(objetivoId);
+  return useMutation({
+    mutationFn: ({ miniId, tipo }: { miniId: string; tipo: DecisionDePaso }) =>
+      decidirPaso(objetivoId, miniId, tipo),
+    onSettled: alCambiar,
   });
 }
