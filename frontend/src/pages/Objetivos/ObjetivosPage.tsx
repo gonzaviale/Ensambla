@@ -13,7 +13,7 @@ import { NegocioHoy } from './NegocioHoy';
 import { ObjetivoCard } from './ObjetivoCard';
 import { Encabezado } from './piezas';
 
-// Todo en una pantalla: los objetivos, qué hacer con cada uno y, abajo, cómo sumar otro.
+// Todo en una pantalla: los objetivos, cómo vienen y, abajo, cómo sumar otro.
 export function ObjetivosPage() {
   useTituloPagina('Objetivos');
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
@@ -64,7 +64,6 @@ export function ObjetivosPage() {
                 <ObjetivoCard
                   key={objetivo.id}
                   objetivo={objetivo}
-                  abierta={objetivos.length === 1}
                   onQuitar={() => quitar(objetivo)}
                   onVerSemana={() => void navegacion.irAObjetivo(objetivo.id)}
                 />

@@ -8,12 +8,15 @@ import com.ensambla.backend.domain.model.objetivo.MedidorMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivoId;
 import com.ensambla.backend.domain.model.objetivo.Objetivo;
+import com.ensambla.backend.domain.model.objetivo.ConteoDecisiones;
 import com.ensambla.backend.domain.model.objetivo.ProgresoObjetivo;
+import com.ensambla.backend.domain.model.objetivo.ResumenSemanal;
 import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ProgresoObjetivoRepository;
+import com.ensambla.backend.domain.repository.objetivo.ResumenSemanalRepository;
 import com.ensambla.backend.domain.service.objetivo.PropuestaMiniObjetivosService;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso.ObtenerProgresoResponse.PuntoSemanal;
 import com.ensambla.backend.support.NegocioDePrueba;
@@ -58,6 +61,7 @@ class ObtenerProgresoTest {
     private final ProgresoObjetivoRepository progresoObjetivoRepository = mock(ProgresoObjetivoRepository.class);
     private final PropuestaMiniObjetivosService propuestaMiniObjetivosService =
             mock(PropuestaMiniObjetivosService.class);
+    private final ResumenSemanalRepository resumenSemanalRepository = mock(ResumenSemanalRepository.class);
     private ObtenerProgreso obtenerProgreso;
 
     @BeforeEach
@@ -68,6 +72,7 @@ class ObtenerProgresoTest {
                 miniObjetivoRepository,
                 progresoObjetivoRepository,
                 propuestaMiniObjetivosService,
+                resumenSemanalRepository,
                 CLOCK);
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID)).thenReturn(objetivo());
@@ -104,6 +109,23 @@ class ObtenerProgresoTest {
                 .containsExactly(true, true, true, true, true, false);
         assertThat(result.semanas()).extracting(PuntoSemanal::semana).last().isEqualTo(ESTA_SEMANA);
         assertThat(result.semanas().get(4).semana()).isEqualTo(SEMANA_ANTERIOR);
+    }
+
+    @Test
+    @DisplayName("Una semana ya cerrada muestra el resultado de su cierre del domingo, igual que su resumen")
+    void executeShouldShowTheSundayCloseResultForAClosedWeek() {
+        givenFotos(foto(null, HOY, "-27000"));
+        givenMinis();
+        givenCierre(SEMANA_ANTERIOR, "-31000");
+
+        ObtenerProgresoResponse result = whenObtener();
+
+        assertThat(result.semanas()).filteredOn(punto -> punto.semana().equals(SEMANA_ANTERIOR))
+                .singleElement()
+                .satisfies(punto -> {
+                    assertThat(punto.valor()).isEqualByComparingTo("-31000");
+                    assertThat(punto.estimado()).isFalse();
+                });
     }
 
     @Test
@@ -187,6 +209,12 @@ class ObtenerProgresoTest {
     // --- arrange ---
     private void givenFotos(ProgresoObjetivo... fotos) {
         when(progresoObjetivoRepository.findAllByObjetivoId(OBJETIVO_ID)).thenReturn(List.of(fotos));
+    }
+
+    private void givenCierre(LocalDate semana, String resultado) {
+        ResumenSemanal cierre = ResumenSemanal.de(objetivo(), semana, new BigDecimal(resultado),
+                new ConteoDecisiones(0, 0, 0, 0), List.of(), "", List.of(), AHORA);
+        when(resumenSemanalRepository.findAllByObjetivoId(OBJETIVO_ID)).thenReturn(List.of(cierre));
     }
 
     private void givenMinis(MiniObjetivo... minis) {

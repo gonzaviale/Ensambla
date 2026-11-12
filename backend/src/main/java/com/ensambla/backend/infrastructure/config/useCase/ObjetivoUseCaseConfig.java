@@ -181,6 +181,7 @@ public class ObjetivoUseCaseConfig {
             MiniObjetivoRepository miniObjetivoRepository,
             ProgresoObjetivoRepository progresoObjetivoRepository,
             PropuestaMiniObjetivosService propuestaMiniObjetivosService,
+            ResumenSemanalRepository resumenSemanalRepository,
             Clock clock) {
         return new ObtenerProgreso(
                 negocioRepository,
@@ -188,6 +189,7 @@ public class ObjetivoUseCaseConfig {
                 miniObjetivoRepository,
                 progresoObjetivoRepository,
                 propuestaMiniObjetivosService,
+                resumenSemanalRepository,
                 clock);
     }
 

@@ -382,6 +382,16 @@ producción hay que borrarlo antes de publicar.
 
 Detalles: [sami-asistente.md](sami-asistente.md).
 
+### Objetivo de la cuenta demo (V33)
+
+`V33__objetivo_demo.sql` le suma a `demo@ensambla.test` 12 semanas de ventas que van mejorando (un 4 % más por semana;
+uno de cada cuatro productos vende siempre lo mismo), hasta el día en que se aplica la migración, con `origen = 'Demo de
+objetivos'`. También le crea un objetivo de hace 8 semanas con una meta del doble de lo que dejaron esas ventas en los
+últimos 30 días, redondeada a $10.000; las 4 semanas de antes llenan los 30 días de las primeras semanas del objetivo.
+Deja afuera el azúcar y los productos sin stock, para no romper los avisos del demo de V10.
+Los mini-objetivos, los cierres y los reajustes los arma el sistema solo, con el cierre al arrancar y el monitoreo.
+Busca todo por email y por clave de columna: sin la cuenta demo (por ejemplo, en producción) no hace nada.
+
 ## Aislamiento entre negocios (T-010, T-011)
 
 Todo lo que construye un usuario cuelga de un **negocio**. Para que sea imposible —aun con un bug en la aplicación—

@@ -64,7 +64,9 @@ describe('objetivos', () => {
     await screen.findByRole('heading', { name: 'Cómo van tus objetivos' }, ESPERA);
     expect(screen.getByText(/Todavía no hay semanas para comparar/)).toBeVisible();
     expect(screen.getByText(/ganás por mes · te faltan \$500\.000/)).toBeVisible();
-    expect(screen.queryByRole('heading', { name: 'Cómo viene tu negocio' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Cómo viene tu negocio' }),
+    ).not.toBeInTheDocument();
   });
 
   it('con ventas muestra cómo viene el negocio y el avance de las semanas reales', async () => {
@@ -87,75 +89,23 @@ describe('objetivos', () => {
     expect(
       await screen.findByRole('heading', { name: 'Cómo viene tu negocio' }, ESPERA),
     ).toBeVisible();
-    expect(await screen.findByText(/Subió \$40\.000 en las últimas 2 semanas/, {}, ESPERA)).toBeVisible();
+    expect(
+      await screen.findByText(/Subió \$40\.000 en las últimas 2 semanas/, {}, ESPERA),
+    ).toBeVisible();
     expect(screen.getByText(/ganás por mes · te faltan \$380\.000/)).toBeVisible();
     expect(screen.getByText(/Te deben \(fiado\)/)).toBeVisible();
   });
 
-  it('despliega qué hacer en el lugar, y sin productos cargados lo explica', async () => {
+  it('la tarjeta no repite qué hacer: lo muestra el seguimiento de la semana', async () => {
     setupObjetivoDeEjemplo(setupUsuarioConSesion().email);
-    renderApp('/objetivos');
+    const router = renderApp('/objetivos');
     const user = userEvent.setup();
 
-    const boton = await screen.findByRole('button', { name: /Qué podés hacer/ }, ESPERA);
-    expect(boton).toHaveAttribute('aria-expanded', 'true');
-    expect(
-      await screen.findByText(/Cargá tus productos y sus costos en un cuaderno/, {}, ESPERA),
-    ).toBeVisible();
+    await user.click(await screen.findByRole('button', { name: /Ver mi semana/ }, ESPERA));
 
-    await user.click(boton);
-    expect(boton).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByText(/Cargá tus productos/)).not.toBeInTheDocument();
-  });
-
-  it('muestra los productos elegidos por el servidor y conserva el slider y la comparación de zona', async () => {
-    setupObjetivoDeEjemplo(setupUsuarioConSesion().email);
-    setupServerResponse('get', '/objetivos/pasos', 200, [
-      {
-        tipo: 'SUBIR_PRECIO',
-        nombre: 'Yerba',
-        precio: 3600,
-        costo: 2700,
-        stock: 4,
-        vendidas30Dias: 60,
-        precioZona: { minimo: 3500, promedio: 3900, maximo: 4300 },
-      },
-    ]);
-    renderApp('/objetivos');
-
-    expect(await screen.findByText(/Subile .* a Yerba/, {}, ESPERA)).toBeVisible();
-    expect(screen.getByRole('slider', { name: /Subile/ })).toBeVisible();
-    expect(screen.getByText(/En tu zona lo cobran entre/)).toBeVisible();
-  });
-
-  it('conserva el objetivo y permite reintentar cuando no puede calcular los pasos', async () => {
-    setupObjetivoDeEjemplo(setupUsuarioConSesion().email);
-    setupServerError('get', '/objetivos/pasos', 503, 'No pudimos calcular los pasos.');
-    renderApp('/objetivos');
-    const user = userEvent.setup();
-
-    expect(
-      await screen.findByRole('alert', { name: 'No pudimos calcular tus pasos' }, ESPERA),
-    ).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'Cómo van tus objetivos' })).toBeVisible();
-    setupServerResponse('get', '/objetivos/pasos', 200, [
-      {
-        tipo: 'PONER_A_LA_VISTA',
-        nombre: 'Coca-Cola',
-        precio: 2700,
-        costo: 1950,
-        stock: 18,
-        vendidas30Dias: 5,
-        precioZona: null,
-      },
-    ]);
-
-    await user.click(screen.getByRole('button', { name: 'Reintentar recomendaciones' }));
-
-    expect(await screen.findByText('Poné Coca-Cola a la vista', {}, ESPERA)).toBeVisible();
-    expect(
-      screen.queryByRole('alert', { name: 'No pudimos calcular tus pasos' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Qué podés hacer/ })).not.toBeInTheDocument();
+    expect(screen.queryByText('Lo voy a hacer')).not.toBeInTheDocument();
+    await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/objetivos\/.+/));
   });
 
   it('un objetivo que no existe invita a volver', async () => {

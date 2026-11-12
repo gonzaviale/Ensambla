@@ -7,24 +7,30 @@ import com.ensambla.backend.domain.model.objetivo.MedidorMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.Objetivo;
 import com.ensambla.backend.domain.model.objetivo.ProgresoObjetivo;
+import com.ensambla.backend.domain.model.objetivo.ResumenSemanal;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ProgresoObjetivoRepository;
+import com.ensambla.backend.domain.repository.objetivo.ResumenSemanalRepository;
 import com.ensambla.backend.domain.service.objetivo.PropuestaMiniObjetivosService;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso.ObtenerProgresoResponse.MiniProgreso;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso.ObtenerProgresoResponse.PuntoSemanal;
 import lombok.RequiredArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Lo que el monitoreo midió de un objetivo del negocio de la sesión, semana por semana. Las semanas anteriores a la
- * primera foto del objetivo se completan con el resultado que se calcula con los cuadernos, marcadas como estimadas.
+ * primera foto del objetivo se completan con el resultado que se calcula con los cuadernos, marcadas como estimadas. Una
+ * semana ya cerrada muestra lo que dio su cierre del domingo: el mismo número que su resumen.
  * Un objetivo ajeno responde como inexistente.
  */
 @RequiredArgsConstructor
@@ -40,6 +46,8 @@ public class ObtenerProgreso {
 
     private final PropuestaMiniObjetivosService propuestaMiniObjetivosService;
 
+    private final ResumenSemanalRepository resumenSemanalRepository;
+
     private final Clock clock;
 
     public ObtenerProgresoResponse execute(ObtenerProgresoRequest request) {
@@ -52,21 +60,28 @@ public class ObtenerProgreso {
                 .filter(mini -> mini.estaEnCurso() || mini.getEstado() == EstadoMiniObjetivo.LOGRADO)
                 .map(mini -> MiniProgreso.de(mini, hoy, fotosDe(mini, fotos)))
                 .toList();
-        return ObtenerProgresoResponse.de(objetivo, serieDelObjetivo(negocioId, hoy, fotos), minis);
+        return ObtenerProgresoResponse.de(objetivo, serieDelObjetivo(negocioId, objetivo, hoy, fotos), minis);
     }
 
     private static List<ProgresoObjetivo> fotosDe(MiniObjetivo mini, List<ProgresoObjetivo> fotos) {
         return fotos.stream().filter(foto -> mini.getId().equals(foto.miniObjetivoId())).toList();
     }
 
-    private List<PuntoSemanal> serieDelObjetivo(NegocioId negocioId, LocalDate hoy, List<ProgresoObjetivo> fotos) {
+    private List<PuntoSemanal> serieDelObjetivo(
+            NegocioId negocioId, Objetivo objetivo, LocalDate hoy, List<ProgresoObjetivo> fotos) {
         List<PuntoSemanal> medidos = ProgresoObjetivo.ultimaDeCadaSemana(
                         fotos.stream().filter(ProgresoObjetivo::esDelObjetivo).toList()).stream()
                 .map(PuntoSemanal::de)
                 .toList();
         List<PuntoSemanal> serie = new ArrayList<>(estimadosAnterioresA(negocioId, hoy, medidos));
         serie.addAll(medidos);
-        return serie;
+        Map<LocalDate, BigDecimal> cierres = resumenSemanalRepository.findAllByObjetivoId(objetivo.getId()).stream()
+                .collect(Collectors.toMap(ResumenSemanal::semanaInicio, ResumenSemanal::resultado));
+        return serie.stream()
+                .map(punto -> cierres.containsKey(punto.semana())
+                        ? new PuntoSemanal(punto.semana(), cierres.get(punto.semana()), false)
+                        : punto)
+                .toList();
     }
 
     /** Las semanas de las que se sabe el resultado pero que el monitoreo no midió, antes de su primera foto. */

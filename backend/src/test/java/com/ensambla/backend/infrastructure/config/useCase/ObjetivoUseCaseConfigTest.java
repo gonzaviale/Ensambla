@@ -210,7 +210,7 @@ class ObjetivoUseCaseConfigTest {
 
         ObtenerProgresoResponse result = config.obtenerProgreso(
                         negocioRepository, objetivoRepository, miniObjetivoRepository, progresoObjetivoRepository,
-                        propuesta(), CLOCK)
+                        propuesta(), mock(ResumenSemanalRepository.class), CLOCK)
                 .execute(new ObtenerProgresoRequest(USUARIO_ID, OBJETIVO_ID));
 
         assertThat(result.meta()).isEqualTo(META);
