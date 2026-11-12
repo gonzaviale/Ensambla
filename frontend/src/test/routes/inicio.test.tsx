@@ -92,6 +92,9 @@ describe('inicio', () => {
 describe('plantillas', () => {
   it('abre la vista previa, elige opciones y crea el sistema con ejemplos', async () => {
     const { user, router } = await abrirInicio();
+    // Las plantillas viven en su pantalla: la home sólo tiene la ficha «Elegir una plantilla».
+    await clickButton(user, 'Plantillas');
+    await verifyHeadingPresentAsync(/Elegí una base/);
     const tarjeta = document.querySelector<HTMLElement>('[data-template="business"]');
     if (!tarjeta) throw new Error('Falta la tarjeta de la plantilla');
 

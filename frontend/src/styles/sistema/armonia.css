@@ -1,0 +1,946 @@
+/* Armonía visual. Se carga al final y fija UN criterio para toda la app.
+
+   Regla 60-30-10 y jerarquía por rol, no por pantalla:
+   · Blanco y gris muy claro (60 %): fondos y tarjetas. Una tarjeta normal es blanca, con borde fino.
+   · Petróleo (30 %): estructura. Navegación, títulos, tarjeta destacada (una por pantalla), acciones de apoyo,
+     selección activa y foco.
+   · Naranja (10 %): la acción principal. UN botón relleno naranja por pantalla o modal, más detalles chicos.
+   · Celeste, amarillo y coral: apoyos. Sólo como marca chica (un punto, una línea, una etiqueta suave) o con
+     significado: coral = alerta o peligro, amarillo = destacado, celeste = información o dato.
+
+   Botones, de mayor a menor peso:
+     .btn.primary   naranja relleno      la acción principal (una)
+     .btn.petrol    petróleo relleno     la acción de una tarjeta repetida
+     .btn.secondary contorno petróleo    alternativas
+     .btn.ghost     sólo texto           acciones de poco peso
+     .btn.danger    coral suave          borrar o dar de baja
+
+   Tarjetas, de mayor a menor peso:
+     1. Destacada: petróleo relleno (resumen de la pantalla).
+     2. Normal: blanca, borde fino, sombra de reposo.
+     3. Anidada: gris muy claro, sin sombra.
+   El color propio de cada bloque (--accent / --tint) queda sólo en el ícono y en una línea superior. */
+
+:root {
+  --c-accion: #ee8000;
+  --c-accion-hover: #f29122;
+  --c-accion-sombra: #ce6d00;
+  --c-accion-texto: #a95700; /* naranja legible como texto sobre blanco */
+  --c-accion-100: #fff3df;
+  --c-estructura: #00506a;
+  --c-estructura-700: #003e53;
+  --c-estructura-sombra: #00384c;
+  --c-estructura-100: #e6f3f7;
+  --c-estructura-50: #f3f9fb;
+  --c-borde: #e4e8e6;
+  --c-borde-fuerte: #cfdde3;
+  --c-fondo-suave: #f6f8f8;
+  --sombra-reposo: 0 1px 2px rgb(38 52 67 / 0.05), 0 8px 24px rgb(38 52 67 / 0.05);
+  --sombra-elevada: 0 2px 4px rgb(38 52 67 / 0.06), 0 16px 36px rgb(38 52 67 / 0.1);
+}
+
+/* ===== Marca y navegación ===== */
+
+/* Una sola firma: una pieza naranja sobre la línea petróleo (en lugar de las cinco franjas). */
+.topbar::after,
+.brand-header::after {
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--c-accion) 0 72px,
+    var(--c-estructura) 72px 100%
+  );
+}
+.topnav button.active {
+  background: var(--c-estructura);
+  color: #fff;
+}
+.topnav button:not(.active):hover {
+  background: var(--c-estructura-100);
+  color: var(--c-estructura);
+}
+
+/* Etiqueta pequeña sobre los títulos: un solo color en toda la app. */
+.eyebrow,
+.template-page .page-title .eyebrow,
+.zona-page .page-title .eyebrow {
+  color: var(--c-accion-texto);
+}
+
+/* ===== Botones ===== */
+
+.btn.primary,
+.btn.orange {
+  border-color: var(--c-accion);
+  background: var(--c-accion);
+  color: #fff;
+  box-shadow: 0 3px 0 var(--c-accion-sombra);
+}
+.btn.primary:hover:not(:disabled),
+.btn.orange:hover:not(:disabled) {
+  background: var(--c-accion-hover);
+}
+.btn.primary:active:not(:disabled),
+.btn.orange:active:not(:disabled) {
+  box-shadow: none;
+  transform: translateY(2px);
+}
+.btn.petrol {
+  border-color: var(--c-estructura);
+  background: var(--c-estructura);
+  color: #fff;
+  box-shadow: 0 3px 0 var(--c-estructura-sombra);
+}
+.btn.petrol:hover:not(:disabled) {
+  background: var(--c-estructura-700);
+}
+.btn.petrol:active:not(:disabled) {
+  box-shadow: none;
+  transform: translateY(2px);
+}
+.btn.secondary {
+  border-color: var(--c-borde-fuerte);
+  background: #fff;
+  color: var(--c-estructura);
+}
+.btn.secondary:hover:not(:disabled) {
+  border-color: var(--c-estructura);
+  background: var(--c-estructura-50);
+}
+.btn.soft {
+  background: var(--c-estructura-100);
+  color: var(--c-estructura);
+}
+.btn.ghost {
+  color: var(--c-estructura);
+}
+.btn.ghost:hover:not(:disabled) {
+  background: var(--c-estructura-100);
+}
+.btn.danger {
+  background: #fff1ef;
+  color: var(--bad);
+}
+
+/* Segmentados y pestañas: lo activo es siempre petróleo. */
+.zona-vistas button.active,
+.template-page .filter-pills button.active {
+  border-color: var(--c-estructura);
+  background: var(--c-estructura);
+  color: #fff;
+}
+.template-page .filter-pills button:not(.active):hover {
+  border-color: var(--c-estructura);
+}
+.template-page .filter-pills button {
+  border-width: 1px;
+  border-color: var(--c-borde-fuerte);
+}
+.template-page .filter-pills button.active .filtro-punto {
+  background: #fff;
+}
+.template-page .searchbox input {
+  border-width: 1px;
+  border-color: var(--c-borde-fuerte);
+  box-shadow: none;
+}
+.template-page .searchbox input:focus {
+  border-color: var(--c-estructura);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-estructura) 16%, transparent);
+}
+
+/* ===== Cómo empezar: una principal y dos de apoyo ===== */
+
+.inicio-ficha {
+  border: 1px solid var(--c-borde);
+  background: #fff;
+  color: var(--ink);
+  box-shadow: var(--sombra-reposo);
+}
+.inicio-ficha:hover,
+.inicio-ficha:focus-visible {
+  border-color: var(--c-estructura);
+  box-shadow: var(--sombra-elevada);
+}
+.inicio-ficha-icono {
+  background: var(--c-estructura-100);
+  color: var(--c-estructura);
+}
+.inicio-ficha-flecha {
+  background: var(--c-estructura-100);
+  color: var(--c-estructura);
+}
+.inicio-ficha-texto span {
+  color: var(--muted);
+  opacity: 1;
+}
+/* La primera ficha es la acción principal de la pantalla. */
+.inicio-fichas > .inicio-ficha:first-child {
+  border-color: var(--c-accion);
+  background: var(--c-accion);
+  color: #fff;
+  box-shadow: 0 3px 0 var(--c-accion-sombra);
+}
+.inicio-fichas > .inicio-ficha:first-child:hover,
+.inicio-fichas > .inicio-ficha:first-child:focus-visible {
+  border-color: var(--c-accion-hover);
+  background: var(--c-accion-hover);
+}
+.inicio-fichas > .inicio-ficha:first-child .inicio-ficha-icono {
+  background: rgb(255 255 255 / 0.25);
+  color: #fff;
+}
+.inicio-fichas > .inicio-ficha:first-child .inicio-ficha-flecha {
+  background: #fff;
+  color: var(--c-accion);
+}
+.inicio-fichas > .inicio-ficha:first-child .inicio-ficha-texto span {
+  color: rgb(255 255 255 / 0.92);
+}
+
+/* Atajos (cargar foto, ver mi zona): todos iguales, con el ícono en petróleo suave. */
+.inicio-atajo-icono {
+  background: var(--c-estructura-100);
+  color: var(--c-estructura);
+  box-shadow: none;
+}
+.inicio-atajo:hover .inicio-atajo-icono,
+.inicio-atajo:focus-visible .inicio-atajo-icono {
+  transform: none;
+  box-shadow: none;
+}
+.inicio-atajo-texto strong {
+  color: var(--c-estructura);
+  text-decoration: none;
+}
+.inicio-atajo:hover strong,
+.inicio-atajo:focus-visible strong {
+  text-decoration: none;
+}
+.inicio-atajos.compactos .inicio-atajo {
+  border: 1px solid var(--c-borde);
+  box-shadow: var(--sombra-reposo);
+}
+.inicio-atajos.compactos .inicio-atajo:hover,
+.inicio-atajos.compactos .inicio-atajo:focus-visible {
+  border-color: var(--c-estructura);
+  background: var(--c-estructura-50);
+}
+
+/* «¿Primera vez?»: un apoyo discreto, no una acción. */
+.inicio-guia-chica {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+}
+.inicio-guia-chica:hover,
+.inicio-guia-chica:focus-visible {
+  color: var(--c-estructura);
+  text-decoration: none;
+}
+
+/* Saludo del inicio. */
+.inicio-hola {
+  color: var(--c-accion-texto);
+}
+
+/* ===== Cuadernos ===== */
+
+.inicio-cuaderno {
+  position: relative;
+  border: 2px solid var(--c-estructura);
+  background: #fff;
+  color: var(--c-estructura);
+  /* Sombra «de sticker»: sólida y desplazada, como la de los botones. */
+  box-shadow: 5px 5px 0 color-mix(in srgb, var(--c-estructura) 28%, #fff);
+  transition:
+    transform 0.2s cubic-bezier(0.3, 1.4, 0.5, 1),
+    box-shadow 0.2s,
+    background 0.2s;
+}
+.inicio-cuaderno:hover,
+.inicio-cuaderno:focus-visible {
+  background: var(--c-estructura-50);
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0 color-mix(in srgb, var(--c-estructura) 45%, #fff);
+}
+.inicio-cuaderno:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 color-mix(in srgb, var(--c-estructura) 28%, #fff);
+}
+/* Marcapáginas con el color propio del cuaderno: el único toque de color de la tapa. */
+.inicio-cuaderno::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: 20px;
+  width: 20px;
+  height: 34px;
+  background: var(--accent);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 76%, 0 100%);
+}
+/* El lomo de espiral: línea petróleo y agujeros del mismo color. */
+.inicio-cuaderno-lomo {
+  border-right: 2px solid var(--c-estructura);
+  background:
+    radial-gradient(circle, var(--c-estructura) 3.5px, transparent 4px) center 6px / 22px 18px repeat-y,
+    #fff;
+}
+/* Hoja rayada abajo, como un cuaderno de verdad. */
+.inicio-cuaderno-tapa {
+  flex: 1;
+  background:
+    repeating-linear-gradient(
+        to bottom,
+        transparent 0 21px,
+        color-mix(in srgb, var(--c-estructura) 14%, #fff) 21px 22px
+      )
+      0 100% / 100% 58% no-repeat;
+}
+.inicio-cuaderno-tapa,
+.inicio-cuaderno-tapa strong,
+.inicio-cuaderno-tapa .icon {
+  color: var(--c-estructura);
+}
+.inicio-cuaderno-tapa .icon {
+  box-sizing: content-box;
+  width: 22px;
+  height: 22px;
+  padding: 9px;
+  border-radius: 12px;
+  background: var(--c-estructura-100);
+}
+.inicio-cuaderno-tapa strong {
+  font-size: 18px;
+  font-weight: 800;
+}
+.inicio-cuaderno-tapa span {
+  color: var(--c-estructura);
+  opacity: 0.75;
+}
+.cuadernos-etiqueta {
+  background: var(--c-estructura-100);
+  color: var(--c-estructura);
+}
+.cuadernos-cifras span,
+.cuadernos-cifras span[data-color='blue'] {
+  background: var(--c-fondo-suave);
+  border: 1px solid var(--c-borde);
+  color: var(--ink);
+}
+
+/* Plantillas del inicio: las tres son del mismo peso, así que las tres iguales. */
+.inicio-plantilla {
+  border: 1px solid var(--c-borde);
+  background: #fff;
+  color: var(--ink);
+  box-shadow: var(--sombra-reposo);
+}
+.inicio-plantilla:hover,
+.inicio-plantilla:focus-within {
+  box-shadow: var(--sombra-elevada);
+}
+.inicio-plantilla-icono {
+  background: var(--c-estructura-100);
+  color: var(--c-estructura);
+}
+.inicio-plantilla p {
+  color: var(--muted);
+  opacity: 1;
+}
+.inicio-plantilla-piezas li {
+  background: var(--c-fondo-suave);
+  color: var(--ink);
+}
+.inicio-plantilla-ver {
+  background: var(--c-estructura);
+  color: #fff;
+}
+.inicio-plantilla-ver:hover {
+  background: var(--c-estructura-700);
+}
+
+/* ===== Elegir plantilla ===== */
+
+.template-page .template-card {
+  border: 1px solid var(--c-borde);
+  box-shadow: var(--sombra-reposo);
+}
+.template-page .set-visual {
+  background: var(--c-estructura-50);
+  border-bottom: 1px solid var(--c-borde);
+}
+.template-page .set-count,
+.template-page [data-template='shop'] .set-count {
+  color: var(--c-estructura);
+}
+.template-page .template-body .icon-tile {
+  background: var(--c-estructura-100);
+  color: var(--c-estructura);
+}
+.template-page .filtro-punto {
+  background: var(--blue);
+}
+.template-page .filter-pills button.active .filtro-punto {
+  background: #fff;
+}
+.template-page .field-tags span {
+  border: 1px solid var(--c-borde-fuerte);
+  background: #fff;
+}
+
+/* ===== Bloques del cuaderno: cabecera blanca, el color sólo en el ícono y la línea de arriba ===== */
+
+.block {
+  border: 1px solid var(--c-borde);
+  border-top: 4px solid var(--accent);
+  box-shadow: var(--sombra-reposo);
+}
+.block.selected {
+  border-color: var(--c-estructura);
+  border-top-color: var(--c-estructura);
+  box-shadow: 0 0 0 2px var(--c-estructura);
+}
+.block .block-head {
+  background: #fff;
+  border-bottom: 1px solid var(--c-borde);
+  color: var(--ink);
+}
+.block-head .icon-tile {
+  background: var(--tint);
+  color: var(--accent);
+}
+.block-title h2 {
+  color: var(--c-estructura);
+}
+.block-title p {
+  color: var(--muted);
+  opacity: 1;
+}
+.block-tools .icon-btn {
+  color: var(--muted);
+}
+.block-tools .icon-btn:hover:not(:disabled) {
+  background: var(--c-estructura-100);
+  color: var(--c-estructura);
+}
+
+/* ===== Mi zona: tarjetas blancas y etiquetas suaves con significado ===== */
+
+.zona-tarjeta {
+  border: 1px solid var(--c-borde);
+  box-shadow: var(--sombra-reposo);
+}
+/* Tu producto: se distingue con un lomo petróleo, no con un marco naranja. */
+.zona-tarjeta.mio {
+  border-color: var(--c-borde);
+  border-left: 5px solid var(--c-estructura);
+}
+.zona-ref {
+  background: var(--c-estructura-50);
+  border-color: var(--c-borde-fuerte);
+}
+
+.zona-etiqueta {
+  background: var(--c-estructura-100);
+  color: var(--c-estructura);
+}
+.zona-etiqueta.justo {
+  background: var(--c-estructura-100);
+  color: var(--c-estructura);
+}
+.zona-etiqueta.alto {
+  background: #ffe9e8;
+  color: #a02b28;
+}
+.zona-etiqueta.bajo {
+  background: #fff4d6;
+  color: #7a4a00;
+}
+
+/* ===== Planes ===== */
+
+.plans-heading-piece {
+  background: var(--c-accion-100);
+  color: var(--c-accion);
+}
+
+/* ===== Avisos: lo urgente se ve primero sin gritar ===== */
+
+.alertas-urgentes {
+  border: 1px solid #f3c3bf;
+  border-left: 5px solid var(--bad);
+  background: #fff1ef;
+  color: #7a1010;
+}
+.alertas-urgentes button {
+  border: 1px solid #f3c3bf;
+}
+.alertas-urgentes button:hover,
+.alertas-urgentes button:focus-visible {
+  border-color: var(--bad);
+  background: #fff;
+}
+
+/* ===== Encabezado del cuaderno ===== */
+
+.canvas-titulo-icono,
+.canvas-titulo-icono.usando {
+  background: var(--c-estructura);
+}
+.canvas-etiqueta {
+  background: var(--c-estructura-100);
+  color: var(--c-estructura);
+}
+/* Las cifras son datos, no categorías: todas iguales, el número en petróleo. */
+.canvas-cifras > span,
+.canvas-cifras > [data-color] {
+  border: 1px solid var(--c-borde);
+  background: var(--c-fondo-suave);
+}
+.canvas-cifras > [data-color] strong,
+.canvas-cifras strong {
+  color: var(--c-estructura);
+}
+.foto-redonda {
+  background: var(--c-estructura-100);
+  color: var(--c-estructura);
+  box-shadow: none;
+}
+.foto-redonda:hover {
+  background: var(--c-estructura);
+  color: #fff;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--c-estructura) 14%, transparent);
+}
+
+/* Secciones: la elegida va en petróleo; las otras, neutras con el punto de su color. */
+.section-tab {
+  border: 1px solid var(--c-borde-fuerte);
+}
+.section-tab-cuenta {
+  background: var(--c-fondo-suave);
+  color: var(--c-estructura);
+}
+.section-tab.active {
+  border-color: var(--c-estructura);
+  background: var(--c-estructura);
+}
+.section-tab.active .section-tab-cuenta {
+  background: rgb(255 255 255 / 0.2);
+  color: #fff;
+}
+.section-tab:not(.active):hover {
+  background: var(--c-estructura-50);
+}
+.section-tabs > .icon-btn {
+  border: 1px dashed var(--c-borde-fuerte);
+  color: var(--c-estructura);
+}
+
+/* Herramientas del cuaderno: íconos petróleo; el naranja queda para la acción principal. */
+.herramienta-icono {
+  border-width: 1px;
+  border-color: var(--c-borde-fuerte);
+  color: var(--c-estructura);
+}
+.herramienta-icono:hover,
+.herramienta.abierta .herramienta-icono {
+  border-color: var(--c-estructura);
+  background: var(--c-estructura-50);
+}
+.herramienta-icono:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-estructura) 30%, transparent);
+}
+.herramienta-panel > button:hover {
+  background: var(--c-estructura-50);
+}
+.herramienta-panel > button:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--c-estructura);
+}
+.herramienta-panel > button .icon {
+  color: var(--c-estructura);
+}
+
+/* Tablas: encabezado petróleo sobre línea neutra; el color del bloque ya está arriba. */
+.data-table th {
+  color: var(--c-estructura);
+  border-bottom: 2px solid var(--c-borde-fuerte);
+}
+.data-table tbody tr:hover {
+  background: var(--c-estructura-50);
+}
+
+/* ===== Taller de Sami: la ilustración vacía usa los tres roles (estructura, superficie, acción) ===== */
+
+.studio-canvas {
+  border: 1px solid var(--c-borde);
+}
+.empty-studio-label {
+  color: var(--c-accion-texto);
+}
+.ghost-stock {
+  background: var(--c-estructura);
+  color: #fff;
+}
+.ghost-stock i {
+  background: #fff;
+  opacity: 0.3;
+}
+.ghost-clients {
+  border: 1px solid var(--c-borde-fuerte);
+  background: #fff;
+  color: var(--c-estructura);
+}
+.ghost-orders {
+  background: var(--c-accion);
+  color: #fff;
+}
+
+/* ===== Piezas que aún mezclaban colores sin significado ===== */
+
+/* La firma de los diálogos es la misma que la de la barra: una pieza naranja sobre línea petróleo. */
+.modal:not(.modal-importar)::before {
+  height: 4px;
+  background: linear-gradient(90deg, var(--c-accion) 0 72px, var(--c-estructura) 72px 100%);
+}
+/* El marco giratorio de «Ver» llama la atención con los dos colores de la marca. */
+.resaltado-marco > i {
+  background: conic-gradient(
+    from var(--resaltado-giro),
+    var(--orange),
+    var(--petrol),
+    var(--orange)
+  );
+}
+/* Tipos de campo: son una etiqueta de dato, no una categoría de color. */
+.field-type-badge,
+.field-type-badge[data-tipo] {
+  background: var(--c-estructura-100);
+  color: var(--c-estructura);
+}
+/* Premium: el botón principal sigue siendo naranja; la prueba lleva petróleo. */
+.plan-card-premium .btn.primary {
+  border-color: var(--c-accion);
+  background: var(--c-accion);
+  color: #fff;
+}
+.plan-trial-symbol {
+  background: var(--c-estructura);
+}
+.alertas-cinta .alertas-filtros button.active span {
+  background: #fff;
+  color: var(--c-estructura);
+}
+.campana-ver-todos {
+  background: var(--c-accion);
+  color: #fff;
+}
+
+/* ===== PRUEBA: tablero de ventas invertido (fondo claro, lo que enfatiza va en petróleo oscuro) =====
+   Para volver al tablero oscuro, borrar este bloque entero. */
+
+.tablero-ventas {
+  background: var(--c-estructura-100);
+  color: var(--c-estructura);
+  box-shadow: none;
+}
+.tablero-ventas h2,
+.tablero-ventas-monto,
+.tablero-ventas-dato {
+  color: var(--c-estructura);
+}
+.tablero-ventas-nota {
+  color: var(--muted);
+}
+.tablero-ventas-comparacion {
+  background: var(--c-estructura);
+  color: #fff;
+}
+.tablero-ventas .selector-periodo-oscuro {
+  background: #fff;
+}
+.tablero-ventas .selector-periodo-oscuro button {
+  color: var(--c-estructura);
+}
+.tablero-ventas .selector-periodo-oscuro button[aria-pressed='true'] {
+  background: var(--c-estructura);
+  color: #fff;
+  box-shadow: none;
+}
+.tablero-ventas .grafico-barras-oscuro .grafico-barra-relleno {
+  background: var(--blue);
+  opacity: 0.45;
+}
+.tablero-ventas .grafico-barras-oscuro .grafico-barra[data-destacada='true'] .grafico-barra-relleno {
+  background: var(--c-estructura);
+  opacity: 1;
+}
+.tablero-ventas .grafico-barras-oscuro .grafico-barra:hover .grafico-barra-relleno {
+  opacity: 0.8;
+}
+.tablero-ventas .grafico-barras-oscuro .grafico-barra-etiqueta {
+  color: var(--c-estructura);
+}
+.tablero-ventas .grafico-barras-oscuro .grafico-barra-detalle {
+  background: var(--c-estructura);
+  box-shadow: none;
+}
+
+/* ===== Avisos: a todo el ancho, tarjetas en grilla y el color dice la prioridad ===== */
+
+.avisos-page {
+  max-width: 1180px;
+}
+
+/* Cabecera clara, igual que el tablero del inicio. */
+.alertas-head {
+  border: 1px solid var(--c-borde-fuerte);
+  background: var(--c-estructura-100);
+  color: var(--c-estructura);
+}
+.alertas-sami {
+  filter: drop-shadow(0 6px 10px rgb(0 80 106 / 0.18));
+}
+.alertas-head .eyebrow {
+  color: var(--c-accion-texto);
+}
+.alertas-head h1 {
+  color: var(--c-estructura);
+}
+.alertas-head p {
+  color: var(--ink);
+}
+
+/* La invitación a completar el comercio: un apoyo, no una alarma. */
+.ubicacion-aviso {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 20px;
+  padding: 12px 18px;
+  border: 1px solid var(--c-borde);
+  border-radius: 14px;
+  background: var(--c-fondo-suave);
+}
+.ubicacion-aviso strong {
+  grid-column: 1;
+  font-size: 15px;
+  color: var(--c-estructura);
+}
+.ubicacion-aviso p {
+  grid-column: 1;
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.ubicacion-aviso .text-link {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--c-estructura);
+}
+
+/* Leyenda de colores, justo debajo de los filtros. */
+.alertas-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  margin: -6px 0 0;
+  padding: 0 4px;
+  list-style: none;
+  font-size: 13px;
+  color: var(--muted);
+}
+.alertas-leyenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.alertas-leyenda strong {
+  color: var(--ink);
+}
+.alertas-leyenda i {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+.alertas-leyenda [data-nivel='3'] i {
+  background: var(--coral);
+}
+.alertas-leyenda [data-nivel='2'] i {
+  background: var(--yellow);
+}
+.alertas-leyenda [data-nivel='1'] i {
+  background: var(--blue);
+}
+
+/* Tarjetas en grilla: 4 por fila en pantalla ancha y menos a medida que se achica. */
+.alertas-lista {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  align-items: start;
+  gap: 18px;
+}
+
+/* El color es la prioridad, no el tipo: rojo urgente, amarillo advertencia, azul normal. */
+.alertas-lista .alerta,
+.alertas-lista .alerta[data-tipo] {
+  --nivel: var(--blue);
+  --nivel-tint: #e8f5fa;
+  --nivel-ink: var(--c-estructura);
+  --nivel-texto: #fff;
+}
+.alertas-lista .alerta.p2,
+.alertas-lista .alerta.p2[data-tipo] {
+  --nivel: var(--yellow);
+  --nivel-tint: #fff9dc;
+  --nivel-ink: #7a5c00;
+}
+.alertas-lista .alerta.p3,
+.alertas-lista .alerta.p3[data-tipo] {
+  --nivel: var(--coral);
+  --nivel-tint: #ffe8e4;
+  --nivel-ink: #b32a25;
+}
+.alertas-lista .alerta,
+.alertas-lista .alerta.p3 {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--c-borde);
+  border-top: 4px solid var(--nivel);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--sombra-reposo);
+}
+.alerta-cabeza {
+  grid-template-columns: 40px 1fr auto;
+  gap: 12px;
+  padding: 16px 14px 10px;
+}
+.alertas-lista .alerta-icono {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--nivel-tint);
+  color: var(--nivel-ink);
+}
+.alertas-lista .alerta-icono .icon {
+  width: 20px;
+  height: 20px;
+}
+.alerta-meta {
+  gap: 6px;
+}
+.alerta-tipo {
+  background: var(--c-fondo-suave);
+  color: var(--ink);
+}
+.alertas-lista .alerta .alerta-nivel,
+.alertas-lista .alerta.p3 .alerta-nivel {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--nivel-tint);
+  color: var(--nivel-ink);
+}
+/* Con la grilla, el nombre del cuaderno repite lo que ya se sabe: queda en el detalle. */
+.alerta-cuaderno {
+  display: none;
+}
+.alertas-lista .alerta h3 {
+  font-size: 16px;
+}
+.alertas-lista .alerta p {
+  font-size: 13px;
+}
+.alerta-propuesta {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  margin: 0 14px 12px;
+  padding: 12px;
+  border: 1px solid var(--c-borde);
+  background: var(--c-fondo-suave);
+}
+.alertas-lista .alerta.p3 .alerta-propuesta {
+  background: var(--c-fondo-suave);
+}
+.alerta-propuesta .btn {
+  width: 100%;
+}
+.alerta-ver {
+  border-top: 1px solid var(--c-borde);
+  color: var(--c-estructura);
+}
+.alerta-ver:hover,
+.alerta-ver:focus-visible {
+  background: var(--c-estructura-50);
+}
+
+/* La campana y el aviso del inicio usan la misma escala de colores. */
+.campana-aviso {
+  --nivel: var(--blue);
+  --nivel-tint: #e8f5fa;
+  --nivel-ink: var(--c-estructura);
+}
+.campana-aviso.p2 {
+  --nivel: var(--yellow);
+  --nivel-tint: #fff9dc;
+  --nivel-ink: #7a5c00;
+}
+.campana-aviso.p3 {
+  --nivel: var(--coral);
+  --nivel-tint: #ffe8e4;
+  --nivel-ink: #b32a25;
+}
+.campana-aviso-icono,
+.campana-aviso-nivel {
+  background: var(--nivel-tint);
+  color: var(--nivel-ink);
+}
+.tablero-aviso-sami[data-prioridad='MEDIA'] {
+  --franja: var(--yellow);
+}
+
+/* Tarjeta angosta: el ícono va con la etiqueta y el título ocupa todo el ancho. */
+.alerta-cabeza {
+  align-items: center;
+  row-gap: 8px;
+}
+.alerta-cabeza > .alerta-cuerpo {
+  display: contents;
+}
+.alerta-cabeza .alerta-meta {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0;
+}
+.alerta-cabeza .alerta-icono {
+  grid-column: 1;
+  grid-row: 1;
+}
+.alerta-cabeza .alerta-descartar {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: start;
+}
+.alerta-cabeza .alerta-cuerpo h3,
+.alerta-cabeza .alerta-cuerpo p {
+  grid-column: 1 / -1;
+}
+.alerta-cabeza .alerta-cuerpo h3 {
+  margin: 4px 0 0;
+}
+
+@media (max-width: 560px) {
+  .ubicacion-aviso {
+    grid-template-columns: 1fr;
+  }
+  .ubicacion-aviso .text-link {
+    grid-column: 1;
+    grid-row: auto;
+    margin-top: 6px;
+  }
+}

@@ -67,7 +67,7 @@ export function TarjetaDeAviso({ aviso, enfocado = false, onAccion, onDescartar 
             <small>Qué te propongo</small>
             <strong>{propuesta}</strong>
           </div>
-          <button type="button" className="btn primary small" onClick={() => onAccion(principal)}>
+          <button type="button" className="btn petrol small" onClick={() => onAccion(principal)}>
             {textoDeAccion(principal)}
           </button>
         </div>
