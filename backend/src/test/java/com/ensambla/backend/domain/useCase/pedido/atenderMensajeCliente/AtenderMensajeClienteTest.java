@@ -18,6 +18,7 @@ import com.ensambla.backend.domain.model.pedido.PedidoInterpretado;
 import com.ensambla.backend.domain.model.pedido.ProductoEnStock;
 import com.ensambla.backend.domain.model.pedido.ProductoFaltante;
 import com.ensambla.backend.domain.model.pedido.TextosPedido;
+import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.sami.ConsumoIaSami;
 import com.ensambla.backend.domain.model.whatsapp.EstadoMensajeWhatsapp;
@@ -53,6 +54,7 @@ import java.util.Optional;
 
 import static com.ensambla.backend.support.PedidoTestData.INVENTARIO_ID;
 import static com.ensambla.backend.support.PedidoTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.PedidoTestData.PROYECTO_ID;
 import static com.ensambla.backend.support.PedidoTestData.proyectoConInventario;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -852,7 +854,11 @@ class AtenderMensajeClienteTest {
 
     /** El inventario de Don Pepe: un proyecto con una tabla de inventario y estas filas. */
     private void givenStock(Registro... registros) {
-        when(proyectoRepository.findAllByNegocioId(DON_PEPE.id())).thenReturn(List.of(proyectoConInventario()));
+        // La lista de proyectos viene sin tablas: el caso de uso pide cada uno con su estructura.
+        when(proyectoRepository.findAllByNegocioId(DON_PEPE.id())).thenReturn(List.of(
+                Proyecto.builder().id(PROYECTO_ID).negocioId(NEGOCIO_ID).nombre("Almacén").build()));
+        when(proyectoRepository.findByIdAndNegocioId(PROYECTO_ID, DON_PEPE.id()))
+                .thenReturn(Optional.of(proyectoConInventario()));
         when(registroRepository.findAllByBloqueIdAndNegocioId(INVENTARIO_ID, NEGOCIO_ID))
                 .thenReturn(List.of(registros));
     }

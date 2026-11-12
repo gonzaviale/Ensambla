@@ -325,9 +325,14 @@ public class AtenderMensajeCliente {
         return TextosPedido.lista(comercio.nombre(), armado);
     }
 
-    /** Los productos con precio y stock de los inventarios del comercio. */
+    /**
+     * Los productos con precio y stock de los inventarios del comercio. La lista de proyectos viene sin sus tablas: cada
+     * uno se vuelve a pedir con su estructura (bloques y campos), como hace el motor de avisos.
+     */
     private List<ProductoEnStock> catalogoDe(NegocioId negocioId) {
         List<BloqueInventario> inventarios = proyectoRepository.findAllByNegocioId(negocioId).stream()
+                .map(proyecto -> proyectoRepository.findByIdAndNegocioId(proyecto.getId(), negocioId))
+                .flatMap(Optional::stream)
                 .flatMap(proyecto -> datosDeProyectoService.cargar(proyecto, negocioId).inventarios().stream())
                 .toList();
         return CatalogoDeProductos.de(inventarios);

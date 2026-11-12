@@ -9,6 +9,7 @@ import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pedido.ProductoEnStock;
 import com.ensambla.backend.domain.model.proyecto.Proyecto;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 
@@ -21,6 +22,7 @@ import java.util.Map;
 public final class PedidoTestData {
 
     public static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
+    public static final ProyectoId PROYECTO_ID = ProyectoId.de("c0000000-0000-4000-8000-000000000001");
     public static final BloqueId INVENTARIO_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
     public static final CampoId CAMPO_NOMBRE_ID = CampoId.de("f0000000-0000-4000-8000-000000000001");
     public static final CampoId CAMPO_PRECIO_ID = CampoId.de("f0000000-0000-4000-8000-000000000002");
@@ -41,7 +43,8 @@ public final class PedidoTestData {
     }
 
     public static Proyecto proyectoConInventario() {
-        return Proyecto.builder().nombre("Almacén").bloques(List.of(bloqueInventario())).build();
+        return Proyecto.builder().id(PROYECTO_ID).negocioId(NEGOCIO_ID).nombre("Almacén")
+                .bloques(List.of(bloqueInventario())).build();
     }
 
     public static BloqueInventario inventario(Registro... registros) {
