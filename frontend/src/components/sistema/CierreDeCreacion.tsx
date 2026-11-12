@@ -53,7 +53,7 @@ export function CierreDeCreacion({
       </div>
       <div className="system-ready-actions">
         {paraRegistrar && (
-          <Btn cls="primary small" onClick={() => onRegistrar(paraRegistrar.id)}>
+          <Btn cls="petrol small" onClick={() => onRegistrar(paraRegistrar.id)}>
             <Icon name="plus" /> Registrar mi primer dato
           </Btn>
         )}
