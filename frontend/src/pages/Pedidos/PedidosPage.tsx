@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { QrDeSami } from '@/components/pedidos/QrDeSami';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { usePedidos } from '@/hooks/pedidos/queries';
 import { FILTROS, filtrarPedidos, type FiltroDePedidos } from '@/lib/pedidos';
@@ -67,6 +68,8 @@ export function PedidosPage() {
             )}
           </>
         )}
+
+        <QrDeSami />
       </main>
     </>
   );

@@ -49,6 +49,13 @@ export function pasosPara(estado: EstadoDeOrden): PasoDelDueno[] {
   }
 }
 
+/** El mensaje con el que se abre el chat al escanear el QR: el cliente sólo tiene que enviarlo. */
+export const MENSAJE_PARA_PEDIR = 'Hola Sami, quiero hacer un pedido';
+
+/** El enlace que abre en WhatsApp el chat con Sami (el número del bot, sólo dígitos con código de país). */
+export const enlaceParaPedir = (numeroBot: string) =>
+  `https://wa.me/${numeroBot}?text=${encodeURIComponent(MENSAJE_PARA_PEDIR)}`;
+
 const cantidades = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 3 });
 export const formatoCantidad = (valor: number) => cantidades.format(valor);
 

@@ -99,7 +99,9 @@ describe('accesibilidad de las pantallas', () => {
         id: crypto.randomUUID(),
         clienteTelefono: '5491155550001',
         estado: 'PENDIENTE',
-        items: [{ nombre: 'Yerba Playadito 1 kg', cantidad: 2, precioUnitario: 3500, subtotal: 7000 }],
+        items: [
+          { nombre: 'Yerba Playadito 1 kg', cantidad: 2, precioUnitario: 3500, subtotal: 7000 },
+        ],
         total: 7000,
         motivoRechazo: null,
         creadoEn: '2026-11-11T12:00:00Z',
@@ -110,6 +112,21 @@ describe('accesibilidad de las pantallas', () => {
     const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: 'Rechazar' }, ESPERA));
     await screen.findByLabelText('Motivo del rechazo (opcional)', undefined, ESPERA);
+    await sinViolaciones();
+  });
+
+  it('pedidos, con el QR para que los clientes pidan por WhatsApp', async () => {
+    const { email } = setupUsuarioConSesion();
+    estado.whatsapp.set(email, {
+      vinculo: {
+        telefono: '5491122334455',
+        vinculadoEn: '2026-10-01T12:00:00Z',
+        numeroBot: '5491155550000',
+      },
+      verificacion: null,
+    });
+    renderApp('/pedidos');
+    await screen.findByRole('img', { name: /Código QR/ }, ESPERA);
     await sinViolaciones();
   });
 

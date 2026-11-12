@@ -118,6 +118,19 @@ API (siempre sobre el negocio de la sesión; la orden de otro negocio responde 4
 - `GET /api/ordenes[?estado=PENDIENTE|ACEPTADA|RECHAZADA|EN_PREPARACION|LISTA]`: las 100 más recientes, la más nueva primero.
 - `PATCH /api/ordenes/{id}/estado` con `{"estado": "...", "motivo": "..."}`: devuelve la orden actualizada.
 
+### 6. El QR que abre el chat con Sami (ENS-281)
+
+En **Pedidos** el dueño tiene el panel «Que tus clientes te pidan por WhatsApp»: un QR que se escanea desde el celular y abre en
+WhatsApp el chat con Sami (`https://wa.me/<número del bot>?text=Hola Sami, quiero hacer un pedido`), y un botón para **descargar el QR
+como SVG** e imprimirlo grande, sin pérdida de calidad, para el mostrador o la vidriera.
+
+- El número de Sami sale de `GET /api/whatsapp/vinculacion` (`numeroBot`, configurado con `ENSAMBLA_WHATSAPP_NUMERO_BOT`); no hay un
+  endpoint nuevo ni se genera nada en el servidor. El QR se dibuja en el navegador (`qrcode.react`).
+- **Sin el WhatsApp del dueño vinculado no hay QR:** el comercio no recibe pedidos hasta vincularlo (es lo que lo hace aparecer cuando
+  el cliente elige comercio), así que el panel lo invita a vincularlo y lleva a *Tu cuenta › WhatsApp*.
+- El QR abre el chat con Sami, no con un comercio: el cliente elige el comercio **por nombre**. Con la API de prueba sólo pueden pedir
+  los números de `ENSAMBLA_WHATSAPP_PEDIDOS_CLIENTES_PERMITIDOS`.
+
 ### 5. Sami le avisa al cliente (ENS-280)
 
 Cuando el dueño cambia la etapa, Sami le escribe al cliente por el mismo WhatsApp con el que pidió:

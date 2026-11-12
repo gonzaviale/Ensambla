@@ -1,7 +1,7 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
-import { guardarOrdenesDe, ordenesDe } from '@/mocks/db/estado';
+import { describe, expect, it, vi } from 'vitest';
+import { estado, guardarOrdenesDe, ordenesDe } from '@/mocks/db/estado';
 import { renderApp } from '@/test/renderApp';
 import {
   ESPERA,
@@ -273,6 +273,110 @@ describe('pedidos', () => {
 
     expect(await screen.findByText('Aceptado', undefined, ESPERA)).toBeVisible();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  describe('el QR para que los clientes pidan por WhatsApp', () => {
+    const vincular = (email: string, numeroBot = '5491155550000') =>
+      estado.whatsapp.set(email, {
+        vinculo: { telefono: '5491122334455', vinculadoEn: '2026-10-01T12:00:00Z', numeroBot },
+        verificacion: null,
+      });
+
+    it('con el WhatsApp vinculado muestra el QR y el enlace que abre el chat con Sami, aun sin pedidos', async () => {
+      vincular(setupUsuarioConSesion().email);
+      renderApp('/pedidos');
+
+      expect(
+        await screen.findByRole(
+          'img',
+          { name: 'Código QR que abre el chat de WhatsApp con Sami' },
+          ESPERA,
+        ),
+      ).toBeVisible();
+      expect(screen.getByRole('link', { name: 'Abrir el chat con Sami' })).toHaveAttribute(
+        'href',
+        'https://wa.me/5491155550000?text=Hola%20Sami%2C%20quiero%20hacer%20un%20pedido',
+      );
+      expect(
+        await screen.findByRole('heading', { name: 'Todavía no te llegaron pedidos' }, ESPERA),
+      ).toBeVisible();
+    });
+
+    it('también aparece debajo de los pedidos', async () => {
+      const { email } = setupUsuarioConSesion();
+      vincular(email);
+      guardarOrdenesDe(email, [orden()]);
+      renderApp('/pedidos');
+
+      await screen.findByRole('article', { name: '+5491155550001' }, ESPERA);
+      expect(await screen.findByRole('img', { name: /Código QR/ }, ESPERA)).toBeVisible();
+    });
+
+    it('descarga el QR como un archivo SVG para imprimirlo', async () => {
+      vincular(setupUsuarioConSesion().email);
+      const crearUrl = vi.fn(() => 'blob:qr');
+      const revocarUrl = vi.fn();
+      vi.stubGlobal(
+        'URL',
+        Object.assign(URL, { createObjectURL: crearUrl, revokeObjectURL: revocarUrl }),
+      );
+      const clic = vi
+        .spyOn(HTMLAnchorElement.prototype, 'click')
+        .mockImplementation(() => undefined);
+      renderApp('/pedidos');
+      const user = userEvent.setup();
+
+      await user.click(await screen.findByRole('button', { name: 'Descargar el QR' }, ESPERA));
+
+      const [archivo] = crearUrl.mock.calls[0] as unknown as [Blob];
+      expect(archivo.type).toBe('image/svg+xml');
+      expect(await archivo.text()).toContain('<svg');
+      expect(clic).toHaveBeenCalledTimes(1);
+      expect((clic.mock.contexts[0] as HTMLAnchorElement).download).toBe('qr-pedidos-sami.svg');
+      expect(revocarUrl).toHaveBeenCalledWith('blob:qr');
+      clic.mockRestore();
+      vi.unstubAllGlobals();
+    });
+
+    it('sin el WhatsApp vinculado pide vincularlo y lleva a Tu cuenta', async () => {
+      setupUsuarioConSesion();
+      const router = renderApp('/pedidos');
+      const user = userEvent.setup();
+
+      await user.click(await screen.findByRole('button', { name: 'Vincular mi WhatsApp' }, ESPERA));
+
+      await waitFor(() => expect(router.state.location.pathname).toBe('/cuenta'), ESPERA);
+      expect(router.state.location.search).toEqual({ seccion: 'whatsapp' });
+      expect(screen.queryByRole('img', { name: /Código QR/ })).not.toBeInTheDocument();
+    });
+
+    it('si todavía no hay un número de Sami configurado lo explica y no muestra el QR', async () => {
+      vincular(setupUsuarioConSesion().email, '');
+      renderApp('/pedidos');
+
+      expect(
+        await screen.findByText(/Todavía no hay un número de Sami configurado/, undefined, ESPERA),
+      ).toBeVisible();
+      expect(screen.queryByRole('img', { name: /Código QR/ })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', { name: 'Abrir el chat con Sami' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('si no se puede consultar la vinculación no muestra el panel', async () => {
+      setupUsuarioConSesion();
+      setupServerError('get', '/whatsapp/vinculacion', 500, 'Error del servidor');
+      renderApp('/pedidos');
+
+      await screen.findByRole('heading', { name: 'Todavía no te llegaron pedidos' }, ESPERA);
+      await waitFor(
+        () =>
+          expect(
+            screen.queryByRole('heading', { name: /pidan|te pidan por WhatsApp/ }),
+          ).not.toBeInTheDocument(),
+        ESPERA,
+      );
+    });
   });
 
   it('si no se pueden cargar los pedidos lo avisa', async () => {
