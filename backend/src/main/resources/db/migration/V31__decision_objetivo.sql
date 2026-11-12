@@ -1,4 +1,4 @@
--- V29: las decisiones de la persona frente a un objetivo (ENS-269). Cada vez que aplica o descarta un aviso, o acepta o
+-- V31: las decisiones de la persona frente a un objetivo (ENS-269). Cada vez que aplica o descarta un aviso, o acepta o
 -- ignora el paso de un mini-objetivo, queda una fila por objetivo activo del negocio para dibujarla en el gráfico de la
 -- semana y, cuando se pueda, mostrar qué efecto tuvo.
 

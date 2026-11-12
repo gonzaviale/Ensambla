@@ -1,4 +1,4 @@
--- V27: los mini-objetivos de un objetivo (ENS-267). Al definir un objetivo, el servidor propone hasta 3 cambios o metas
+-- V29: los mini-objetivos de un objetivo (ENS-267). Al definir un objetivo, el servidor propone hasta 3 cambios o metas
 -- con números del negocio; cada uno mide una métrica y tiene un estado. Los reemplazados, logrados y abandonados quedan
 -- como historia. `objetivo.alcanzado_en` marca el objetivo cuyo resultado ya llegó a la meta (sin mini-objetivos).
 

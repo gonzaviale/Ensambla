@@ -331,6 +331,189 @@ class MiniObjetivoTest {
         assertThat(mini.hito(HOY)).isEmpty();
     }
 
+    @Test
+    @DisplayName("Un valor cumple la meta de un tipo que baja cuando no la supera")
+    void cumpleConShouldBeTrueWhenTheValueIsAtOrBelowTheGoalOfADecreasingType() {
+        MiniObjetivo mini = conValores(TipoMiniObjetivo.RECORTAR_GASTO, "40000", "36000", "40000");
+
+        assertThat(mini.cumpleCon(new BigDecimal("36000"))).isTrue();
+        assertThat(mini.cumpleCon(new BigDecimal("36001"))).isFalse();
+    }
+
+    @Test
+    @DisplayName("Uno logrado o quitado que nadie siguió espera el reajuste del cierre")
+    void esperaReajusteShouldBeTrueWhenAchievedOrRemovedWithoutAFollower() {
+        assertThat(conEstado(EstadoMiniObjetivo.LOGRADO).esperaReajuste()).isTrue();
+        assertThat(conEstado(EstadoMiniObjetivo.ABANDONADO).esperaReajuste()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Uno en curso, reemplazado o ya seguido por otro no espera reajuste")
+    void esperaReajusteShouldBeFalseWhenInProgressReplacedOrAlreadyFollowed() {
+        MiniObjetivo seguido = conEstado(EstadoMiniObjetivo.LOGRADO);
+        seguido.setReemplazadoPor(OTRO_MINI_ID);
+
+        assertThat(miniObjetivo().esperaReajuste()).isFalse();
+        assertThat(conEstado(EstadoMiniObjetivo.REEMPLAZADO).esperaReajuste()).isFalse();
+        assertThat(seguido.esperaReajuste()).isFalse();
+    }
+
+    @Test
+    @DisplayName("La meta siguiente suma al valor al cierre el mismo recorrido que se pidió al principio")
+    void metaSiguienteShouldAddTheInitialStepToTheClosingValue() {
+        MiniObjetivo mini = conValores(TipoMiniObjetivo.SUBIR_PRECIO, "12600", "14183", "14500");
+
+        assertThat(mini.metaSiguiente(new BigDecimal("14500"))).hasValueSatisfying(
+                meta -> assertThat(meta).isEqualByComparingTo("16083.00"));
+    }
+
+    @Test
+    @DisplayName("Si el valor al cierre quedó debajo de la meta, la meta siguiente parte de la meta")
+    void metaSiguienteShouldStartFromTheGoalWhenTheValueIsBelowIt() {
+        MiniObjetivo mini = conValores(TipoMiniObjetivo.SUBIR_PRECIO, "12600", "14183", "14500");
+
+        assertThat(mini.metaSiguiente(new BigDecimal("14000"))).hasValueSatisfying(
+                meta -> assertThat(meta).isEqualByComparingTo("15766.00"));
+    }
+
+    @Test
+    @DisplayName("En un tipo que baja, la meta siguiente resta el recorrido inicial")
+    void metaSiguienteShouldSubtractTheStepWhenTheTypeDecreases() {
+        MiniObjetivo mini = conValores(TipoMiniObjetivo.RECORTAR_GASTO, "40000", "36000", "35000");
+
+        assertThat(mini.metaSiguiente(new BigDecimal("35000"))).hasValueSatisfying(
+                meta -> assertThat(meta).isEqualByComparingTo("31000.00"));
+    }
+
+    @Test
+    @DisplayName("Un gasto no puede bajar de cero: si ya llegó, no hay meta siguiente")
+    void metaSiguienteShouldBeEmptyWhenAnExpenseCannotGoBelowZero() {
+        MiniObjetivo mini = conValores(TipoMiniObjetivo.RECORTAR_GASTO, "100", "0", "0");
+
+        assertThat(mini.metaSiguiente(BigDecimal.ZERO)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("El margen siguiente no pasa del tope")
+    void metaSiguienteShouldCapTheMarginAtTheTop() {
+        MiniObjetivo mini = conValores(TipoMiniObjetivo.MEJORAR_MARGEN, "55", "57", "59");
+
+        assertThat(mini.metaSiguiente(new BigDecimal("59"))).hasValueSatisfying(
+                meta -> assertThat(meta).isEqualByComparingTo("60.00"));
+    }
+
+    @Test
+    @DisplayName("Un margen que ya está en el tope no tiene meta siguiente")
+    void metaSiguienteShouldBeEmptyWhenTheMarginIsAlreadyAtTheTop() {
+        MiniObjetivo mini = conValores(TipoMiniObjetivo.MEJORAR_MARGEN, "58", "60", "60");
+
+        assertThat(mini.metaSiguiente(new BigDecimal("60"))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Si la meta era igual al valor inicial, la siguiente pide un 10 % más")
+    void metaSiguienteShouldAskTenPercentMoreWhenThereWasNoInitialStep() {
+        MiniObjetivo mini = conValores(TipoMiniObjetivo.VENTAS_SEMANALES, "100", "100", "100");
+
+        assertThat(mini.metaSiguiente(new BigDecimal("100"))).hasValueSatisfying(
+                meta -> assertThat(meta).isEqualByComparingTo("110.00"));
+    }
+
+    @Test
+    @DisplayName("Con otra meta conserva el tipo, el producto, el aporte y el título, y arranca del valor al cierre")
+    void conMetaShouldKeepTheMiniObjetivoAndStartFromTheClosingValue() {
+        CandidatoMiniObjetivo result = miniObjetivo().conMeta(new BigDecimal("14500"), new BigDecimal("16083.00"),
+                "Lo lograste");
+
+        assertThat(result.tipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
+        assertThat(result.registroId()).isEqualTo(PRODUCTO_ID);
+        assertThat(result.referencia()).isEqualTo(PRODUCTO);
+        assertThat(result.valorInicial()).isEqualByComparingTo("14500.00");
+        assertThat(result.valorInicial().scale()).isEqualTo(2);
+        assertThat(result.meta()).isEqualByComparingTo("16083.00");
+        assertThat(result.aporteEstimado()).isEqualTo(APORTE);
+        assertThat(result.titulo()).isEqualTo(TITULO);
+        assertThat(result.justificacion()).isEqualTo("Lo lograste");
+        assertThat(result.textoConIa()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Uno en curso que se logra al cierre queda logrado y apunta al que lo sigue")
+    void lograrYSeguirConShouldMarkAsAchievedAndPointToTheFollower() {
+        MiniObjetivo mini = conSinAvanceDesde(HOY);
+
+        mini.lograrYSeguirCon(OTRO_MINI_ID, DESPUES);
+
+        assertThat(mini.getEstado()).isEqualTo(EstadoMiniObjetivo.LOGRADO);
+        assertThat(mini.getSinAvanceDesde()).isNull();
+        assertThat(mini.getReemplazadoPor()).isEqualTo(OTRO_MINI_ID);
+        assertThat(mini.getActualizadoEn()).isEqualTo(DESPUES);
+    }
+
+    @Test
+    @DisplayName("Uno que ya estaba logrado conserva su estado y apunta al que lo sigue")
+    void lograrYSeguirConShouldKeepAnAchievedMiniObjetivoAchieved() {
+        MiniObjetivo mini = conEstado(EstadoMiniObjetivo.LOGRADO);
+
+        mini.lograrYSeguirCon(OTRO_MINI_ID, DESPUES);
+
+        assertThat(mini.getEstado()).isEqualTo(EstadoMiniObjetivo.LOGRADO);
+        assertThat(mini.getReemplazadoPor()).isEqualTo(OTRO_MINI_ID);
+    }
+
+    @Test
+    @DisplayName("No se puede seguir uno logrado que ya tiene quien lo siga")
+    void lograrYSeguirConShouldRejectAnAchievedMiniObjetivoAlreadyFollowed() {
+        MiniObjetivo mini = conEstado(EstadoMiniObjetivo.LOGRADO);
+        mini.setReemplazadoPor(MiniObjetivoId.nuevo());
+
+        assertThatThrownBy(() -> mini.lograrYSeguirCon(OTRO_MINI_ID, DESPUES))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("El mini-objetivo ya fue reajustado");
+    }
+
+    @Test
+    @DisplayName("No se puede subir la meta de uno quitado")
+    void lograrYSeguirConShouldRejectARemovedMiniObjetivo() {
+        MiniObjetivo mini = conEstado(EstadoMiniObjetivo.ABANDONADO);
+
+        assertThatThrownBy(() -> mini.lograrYSeguirCon(OTRO_MINI_ID, DESPUES))
+                .isInstanceOf(BusinessRuleException.class);
+    }
+
+    @Test
+    @DisplayName("Uno en curso que cede su lugar queda reemplazado")
+    void cederLugarAShouldReplaceAMiniObjetivoInProgress() {
+        MiniObjetivo mini = miniObjetivo();
+
+        mini.cederLugarA(OTRO_MINI_ID, DESPUES);
+
+        assertThat(mini.getEstado()).isEqualTo(EstadoMiniObjetivo.REEMPLAZADO);
+        assertThat(mini.getReemplazadoPor()).isEqualTo(OTRO_MINI_ID);
+    }
+
+    @Test
+    @DisplayName("Uno quitado que cede su lugar sigue quitado y apunta al que ocupó el lugar")
+    void cederLugarAShouldKeepARemovedMiniObjetivoRemoved() {
+        MiniObjetivo mini = conEstado(EstadoMiniObjetivo.ABANDONADO);
+
+        mini.cederLugarA(OTRO_MINI_ID, DESPUES);
+
+        assertThat(mini.getEstado()).isEqualTo(EstadoMiniObjetivo.ABANDONADO);
+        assertThat(mini.getReemplazadoPor()).isEqualTo(OTRO_MINI_ID);
+        assertThat(mini.getActualizadoEn()).isEqualTo(DESPUES);
+    }
+
+    @Test
+    @DisplayName("No cede su lugar uno que ya fue reemplazado")
+    void cederLugarAShouldRejectAReplacedMiniObjetivo() {
+        MiniObjetivo mini = conEstado(EstadoMiniObjetivo.REEMPLAZADO);
+
+        assertThatThrownBy(() -> mini.cederLugarA(OTRO_MINI_ID, DESPUES))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("El mini-objetivo ya fue reajustado");
+    }
+
     // --- helpers ---
     private static MiniObjetivo conSinAvanceDesde(LocalDate dia) {
         MiniObjetivo mini = miniObjetivo();

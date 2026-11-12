@@ -7,7 +7,8 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V12__planes_y_suscripciones.sql`, `V13__limites_y_funciones_por_plan.sql`, `V14__prueba_premium.sql`,
 `V15__renovaciones_y_pagos_premium.sql`,
 `V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
-`V24__objetivo.sql`, `V27__mini_objetivo.sql`, `V28__progreso_objetivo.sql`, `V29__decision_objetivo.sql`).
+`V24__objetivo.sql`, `V29__mini_objetivo.sql`, `V30__progreso_objetivo.sql`, `V31__decision_objetivo.sql`,
+`V32__resumen_semanal_objetivo.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -255,9 +256,9 @@ de avance no se guarda: lo calcula el frontend.
 
 **API.** `GET`, `POST` y `DELETE /api/objetivos`. El `negocio_id` sale de la sesión; un objetivo de otro negocio responde 404.
 
-### Mini-objetivos (V27)
+### Mini-objetivos (V29)
 
-`V27` suma `objetivo.alcanzado_en` (cuándo el resultado del negocio llegó a la meta; vacío mientras no la alcance) y la tabla
+`V29` suma `objetivo.alcanzado_en` (cuándo el resultado del negocio llegó a la meta; vacío mientras no la alcance) y la tabla
 `mini_objetivo`: los hasta 3 cambios o metas con números del negocio que Sami propone al definir un objetivo.
 
 - Cada fila es de un `objetivo` y de un `negocio` (los dos con borrado en cascada) y tiene su `tipo` (`SUBIR_PRECIO`,
@@ -278,9 +279,9 @@ responde 404. Al crear un objetivo (`POST /api/objetivos`) el servidor propone l
 producto; sin datos propone los que haya. La IA sólo redacta el texto (`ensambla.objetivos.ia.habilitada`, apagada por
 defecto); el número lo calcula el servidor y, sin IA, cada uno lleva su texto de reserva.
 
-### Monitoreo silencioso de objetivos (V28)
+### Monitoreo silencioso de objetivos (V30)
 
-`V28` suma `mini_objetivo.sin_avance_desde` (desde qué día el valor de un mini-objetivo en curso no mejora; vacío si viene
+`V30` suma `mini_objetivo.sin_avance_desde` (desde qué día el valor de un mini-objetivo en curso no mejora; vacío si viene
 mejorando) y la tabla `progreso_objetivo`: una foto por día del avance.
 
 - Cada fila es de un `objetivo` (borrado en cascada) y, si es de un mini-objetivo, de un `mini_objetivo` (también en cascada).
@@ -302,9 +303,9 @@ y de cada mini-objetivo en curso o logrado, con el hito `OBJETIVO_ALCANZADO`, `M
 mejorar) si corresponde. Las semanas anteriores a la primera foto del objetivo se completan con el resultado que se calcula
 con los cuadernos, marcadas `estimado: true`. Un objetivo de otro negocio responde 404.
 
-### Decisiones frente a un objetivo (V29)
+### Decisiones frente a un objetivo (V31)
 
-`V29` crea `decision_objetivo`: lo que la persona decidió frente a cada objetivo, para dibujarlo en el gráfico de la semana y
+`V31` crea `decision_objetivo`: lo que la persona decidió frente a cada objetivo, para dibujarlo en el gráfico de la semana y
 mostrar qué efecto tuvo.
 
 - Una fila por objetivo activo del negocio (sin `alcanzado_en`), con `tipo` (`AVISO_APLICADO`, `AVISO_DESCARTADO`,
@@ -324,6 +325,35 @@ mini-objetivo tiene que estar en curso) y `GET /api/objetivos/{id}/decisiones`: 
 vieja. Cada una trae su `efecto`: `MEDIDO` con `deltaIngresoSemanal` (lo que cambió el ingreso semanal del producto, que mide
 `MedirImpactoAvisos` a los 14 días en avisos `ESTANCADO` y `STOCK` aplicados), `MIDIENDO` mientras la ventana no terminó, o
 `SIN_MEDICION` (avisos descartados, pasos y tipos que no se miden). Un objetivo o mini-objetivo de otro negocio responde 404.
+
+### Cierre del domingo y reajuste (V32)
+
+`V32` crea `resumen_semanal_objetivo` (cómo terminó cada semana de un objetivo) y `reajuste_mini_objetivo` (qué mini-objetivo
+se cambió en ese cierre y por qué).
+
+- `resumen_semanal_objetivo`: una fila por objetivo y semana (`semana_inicio`, el lunes argentino), borrada en cascada con el
+  objetivo. Guarda `resultado` (los últimos 30 días al domingo), `avance` (de 0 a 1 frente a la meta), el conteo de decisiones
+  de la semana (`decisiones_aplicadas`, `_descartadas`, `_aceptadas`, `_ignoradas`), `minis` (jsonb con el valor de cada
+  mini-objetivo al cierre: `[{"miniObjetivoId": "…", "valor": "123.45"}]`), `que_funciono` (el resumen en palabras),
+  `texto_con_ia` y `cerrado_en`.
+- `ux_resumen_semana` (`UNIQUE (objetivo_id, semana_inicio)`) hace el cierre idempotente: si otra corrida ya cerró la semana,
+  el repositorio lo informa como duplicado y se sigue con la próxima.
+- `reajuste_mini_objetivo`: cuelga del resumen (cascada). `mini_anterior_id` es el que se dejó y `mini_nuevo_id` el que lo
+  siguió (`ON DELETE SET NULL`). `tipo` es `SUBIR_META`, `REEMPLAZAR` o `PROBAR_OTRO_CAMINO`; `motivo` es el texto para la
+  persona. Guarda títulos y metas de ese momento para poder contarlo después.
+
+**Reglas del reajuste.** Si el objetivo ya llegó a la meta o la semana no tuvo ventas, no se cambia nada. Si no: un
+mini-objetivo logrado sube su meta (o, si no se puede pedir más, se reemplaza); uno quitado por la persona o cuyo producto ya
+no está en el cuaderno se reemplaza; si se aplicó un aviso y las ventas no subieron, se prueba otro tipo de mini-objetivo; si
+pasaron dos cierres sin mejorar, se reemplaza. Un reemplazo no repite un mini-objetivo de las últimas 4 semanas.
+
+**Worker.** `CierreSemanalObjetivosWorker` corre `CerrarSemanasObjetivos` los domingos 23:30 (hora argentina) y una vez al
+arrancar, para cerrar las semanas que quedaron sin cerrar (`ensambla.objetivos.cierre.habilitado`, `.cron`,
+`.max-semanas-pendientes`: 8, `.tamano-tanda`: 50). Una transacción por objetivo y semana. **No crea avisos ni manda mensajes.**
+
+**API.** `GET /api/objetivos/{id}/semanas`: `{ ultimoCierre, semanas: [{ semana, resultado, avance, decisiones, queFunciono,
+textoConIa, reajustes: [{ tipo, motivo, de: { titulo, meta }, a }] }] }`, de la más nueva a la más vieja. Un objetivo de otro
+negocio responde 404.
 
 ## Datos de prueba (V10)
 

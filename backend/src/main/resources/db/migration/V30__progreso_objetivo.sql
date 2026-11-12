@@ -1,4 +1,4 @@
--- V28: el monitoreo silencioso de los objetivos (ENS-268). Cada hora el servidor mide el resultado del negocio y la
+-- V30: el monitoreo silencioso de los objetivos (ENS-268). Cada hora el servidor mide el resultado del negocio y la
 -- métrica de cada mini-objetivo en curso y guarda una foto por día; no crea avisos ni manda mensajes. Lo que se ve
 -- de ahí es sólo lo que la persona consulta al entrar.
 

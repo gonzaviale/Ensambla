@@ -13,6 +13,7 @@ import com.ensambla.backend.domain.model.objetivo.DecisionPaso;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.Objetivo;
 import com.ensambla.backend.domain.model.objetivo.ProgresoObjetivo;
+import com.ensambla.backend.domain.model.objetivo.ResumenSemanal;
 import com.ensambla.backend.domain.model.objetivo.TipoDecision;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
@@ -22,6 +23,7 @@ import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.objetivo.DecisionObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ProgresoObjetivoRepository;
+import com.ensambla.backend.domain.repository.objetivo.ResumenSemanalRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
@@ -36,11 +38,14 @@ import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasosReq
 import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasosResponse;
 import com.ensambla.backend.domain.useCase.objetivo.listarDecisiones.ListarDecisionesRequest;
 import com.ensambla.backend.domain.useCase.objetivo.listarDecisiones.ListarDecisionesResponse;
+import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasRequest;
+import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasResponse;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso.ObtenerProgresoRequest;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso.ObtenerProgresoResponse;
 import com.ensambla.backend.domain.useCase.objetivo.registrarDecisionPaso.RegistrarDecisionPasoRequest;
 import com.ensambla.backend.domain.useCase.objetivo.reemplazarMiniObjetivo.ReemplazarMiniObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.reemplazarMiniObjetivo.ReemplazarMiniObjetivoRequest;
+import com.ensambla.backend.infrastructure.objetivos.ObjetivosCierreProperties;
 import com.ensambla.backend.infrastructure.objetivos.ObjetivosMonitoreoProperties;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
@@ -258,6 +263,41 @@ class ObjetivoUseCaseConfigTest {
 
         assertThat(result.semanas()).isEmpty();
         verify(decisionObjetivoRepository).findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID);
+    }
+
+    @Test
+    @DisplayName("El wiring del cierre semanal cierra la semana pendiente y guarda su resumen")
+    void cerrarSemanasObjetivosShouldWireTheRepositories() {
+        ResumenSemanalRepository resumenSemanalRepository = mock(ResumenSemanalRepository.class);
+        Objetivo deLaSemanaPasada = objetivo();
+        deLaSemanaPasada.setCreadoEn(AHORA.minusWeeks(1));
+        when(objetivoRepository.findNegocioIdsConObjetivos(0, 50)).thenReturn(List.of(NEGOCIO_ID));
+        when(objetivoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(deLaSemanaPasada));
+        when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+
+        config.cerrarSemanasObjetivos(
+                        objetivoRepository, miniObjetivoRepository, decisionObjetivoRepository,
+                        mock(AvisoRepository.class), resumenSemanalRepository, propuesta(), new TransaccionDirecta(),
+                        CLOCK, new ObjetivosCierreProperties(8, 50))
+                .execute();
+
+        ArgumentCaptor<ResumenSemanal> captor = ArgumentCaptor.forClass(ResumenSemanal.class);
+        verify(resumenSemanalRepository).save(captor.capture());
+        assertThat(captor.getValue().objetivoId()).isEqualTo(OBJETIVO_ID);
+    }
+
+    @Test
+    @DisplayName("El wiring de listar semanas busca el objetivo del negocio de la sesión")
+    void listarSemanasShouldWireTheRepositories() {
+        ResumenSemanalRepository resumenSemanalRepository = mock(ResumenSemanalRepository.class);
+        givenObjetivoYMiniObjetivo();
+
+        ListarSemanasResponse result = config.listarSemanas(
+                        negocioRepository, objetivoRepository, resumenSemanalRepository)
+                .execute(new ListarSemanasRequest(USUARIO_ID, OBJETIVO_ID));
+
+        assertThat(result.semanas()).isEmpty();
+        verify(resumenSemanalRepository).findAllByObjetivoId(OBJETIVO_ID);
     }
 
     // --- helpers ---

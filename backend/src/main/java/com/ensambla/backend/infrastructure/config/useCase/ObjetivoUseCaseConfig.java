@@ -9,6 +9,7 @@ import com.ensambla.backend.domain.repository.objetivo.DecisionObjetivoRepositor
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ProgresoObjetivoRepository;
+import com.ensambla.backend.domain.repository.objetivo.ResumenSemanalRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
@@ -18,18 +19,21 @@ import com.ensambla.backend.domain.service.objetivo.PropuestaMiniObjetivosServic
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import com.ensambla.backend.domain.useCase.objetivo.abandonarMiniObjetivo.AbandonarMiniObjetivo;
+import com.ensambla.backend.domain.useCase.objetivo.cerrarSemanasObjetivos.CerrarSemanasObjetivos;
 import com.ensambla.backend.domain.useCase.objetivo.crearObjetivo.CrearObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.eliminarObjetivo.EliminarObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.listarCandidatos.ListarCandidatos;
 import com.ensambla.backend.domain.useCase.objetivo.listarMiniObjetivos.ListarMiniObjetivos;
 import com.ensambla.backend.domain.useCase.objetivo.listarDecisiones.ListarDecisiones;
 import com.ensambla.backend.domain.useCase.objetivo.listarObjetivos.ListarObjetivos;
+import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanas;
 import com.ensambla.backend.domain.useCase.objetivo.monitorearObjetivos.MonitorearObjetivos;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso.ObtenerProgreso;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasos;
 import com.ensambla.backend.domain.useCase.objetivo.registrarDecisionPaso.RegistrarDecisionPaso;
 import com.ensambla.backend.domain.useCase.objetivo.reemplazarMiniObjetivo.ReemplazarMiniObjetivo;
 import com.ensambla.backend.infrastructure.ia.ObjetivosIaProperties;
+import com.ensambla.backend.infrastructure.objetivos.ObjetivosCierreProperties;
 import com.ensambla.backend.infrastructure.objetivos.ObjetivosMonitoreoProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -38,7 +42,7 @@ import org.springframework.context.annotation.Configuration;
 import java.time.Clock;
 
 @Configuration
-@EnableConfigurationProperties(ObjetivosMonitoreoProperties.class)
+@EnableConfigurationProperties({ObjetivosMonitoreoProperties.class, ObjetivosCierreProperties.class})
 public class ObjetivoUseCaseConfig {
 
     @Bean
@@ -226,6 +230,41 @@ public class ObjetivoUseCaseConfig {
                 objetivoRepository,
                 decisionObjetivoRepository,
                 avisoRepository);
+    }
+
+    @Bean
+    public CerrarSemanasObjetivos cerrarSemanasObjetivos(
+            ObjetivoRepository objetivoRepository,
+            MiniObjetivoRepository miniObjetivoRepository,
+            DecisionObjetivoRepository decisionObjetivoRepository,
+            AvisoRepository avisoRepository,
+            ResumenSemanalRepository resumenSemanalRepository,
+            PropuestaMiniObjetivosService propuestaMiniObjetivosService,
+            TransaccionPort transaccionPort,
+            Clock clock,
+            ObjetivosCierreProperties objetivosCierreProperties) {
+        return new CerrarSemanasObjetivos(
+                objetivoRepository,
+                miniObjetivoRepository,
+                decisionObjetivoRepository,
+                avisoRepository,
+                resumenSemanalRepository,
+                propuestaMiniObjetivosService,
+                transaccionPort,
+                clock,
+                objetivosCierreProperties.maxSemanasPendientes(),
+                objetivosCierreProperties.tamanoTanda());
+    }
+
+    @Bean
+    public ListarSemanas listarSemanas(
+            NegocioRepository negocioRepository,
+            ObjetivoRepository objetivoRepository,
+            ResumenSemanalRepository resumenSemanalRepository) {
+        return new ListarSemanas(
+                negocioRepository,
+                objetivoRepository,
+                resumenSemanalRepository);
     }
 
     @Bean

@@ -34,6 +34,11 @@ public class MiniObjetivo {
     /** Desde cuántos días sin mejorar un mini-objetivo en curso cuenta como sin avance. */
     public static final int DIAS_SIN_AVANCE = 14;
 
+    /** El margen bruto más alto que se le pide a un mini-objetivo de margen, en puntos. */
+    public static final BigDecimal TOPE_DE_MARGEN = BigDecimal.valueOf(60);
+
+    private static final BigDecimal PASO_SI_NO_HAY_RECORRIDO = new BigDecimal("0.10");
+
     private MiniObjetivoId id;
 
     private ObjetivoId objetivoId;
@@ -121,9 +126,48 @@ public class MiniObjetivo {
 
     /** Si el valor actual ya llegó a la meta, según el sentido del tipo. */
     public boolean cumplido() {
+        return cumpleCon(valorActual);
+    }
+
+    /** Si ese valor llega a la meta, según el sentido del tipo. */
+    public boolean cumpleCon(BigDecimal valor) {
         return tipo.sentido() == SentidoMiniObjetivo.SUBE
-                ? valorActual.compareTo(meta) >= 0
-                : valorActual.compareTo(meta) <= 0;
+                ? valor.compareTo(meta) >= 0
+                : valor.compareTo(meta) <= 0;
+    }
+
+    /** Si quedó logrado o quitado y todavía nada ocupó su lugar: el cierre semanal tiene que seguirlo. */
+    public boolean esperaReajuste() {
+        return (estado == EstadoMiniObjetivo.LOGRADO || estado == EstadoMiniObjetivo.ABANDONADO)
+                && reemplazadoPor == null;
+    }
+
+    /**
+     * La meta que sigue a la lograda: desde el valor al cierre (o la meta, si quedó más cerca) se suma el mismo
+     * recorrido que se le pidió al principio, en el sentido del tipo. El margen no pasa de {@link #TOPE_DE_MARGEN} y un
+     * gasto no baja de cero; vacío si con eso no se puede pedir más que la meta de ahora.
+     */
+    public Optional<BigDecimal> metaSiguiente(BigDecimal valor) {
+        BigDecimal paso = meta.subtract(valorInicial).abs();
+        if (paso.signum() == 0) {
+            paso = meta.abs().multiply(PASO_SI_NO_HAY_RECORRIDO);
+        }
+        BigDecimal nueva = tipo.sentido() == SentidoMiniObjetivo.SUBE
+                ? valor.max(meta).add(paso)
+                : valor.min(meta).subtract(paso).max(BigDecimal.ZERO);
+        if (tipo == TipoMiniObjetivo.MEJORAR_MARGEN) {
+            nueva = nueva.min(TOPE_DE_MARGEN);
+        }
+        boolean pideMas = tipo.sentido() == SentidoMiniObjetivo.SUBE
+                ? nueva.compareTo(meta) > 0
+                : nueva.compareTo(meta) < 0;
+        return pideMas ? Optional.of(nueva.setScale(2, RoundingMode.HALF_UP)) : Optional.empty();
+    }
+
+    /** El mismo mini-objetivo con otra meta, que arranca del valor al cierre: es el que sigue a uno logrado. */
+    public CandidatoMiniObjetivo conMeta(BigDecimal valor, BigDecimal nuevaMeta, String justificacionNueva) {
+        return new CandidatoMiniObjetivo(tipo, registroId, referencia, valor.setScale(2, RoundingMode.HALF_UP),
+                nuevaMeta, aporteEstimado, titulo, justificacionNueva, false);
     }
 
     /** Qué parte del camino del valor inicial a la meta se recorrió, de 0 a 1. */
@@ -177,6 +221,39 @@ public class MiniObjetivo {
     public void reemplazarPor(MiniObjetivoId nuevo, OffsetDateTime ahora) {
         exigirEnCurso();
         estado = EstadoMiniObjetivo.REEMPLAZADO;
+        reemplazadoPor = nuevo;
+        actualizadoEn = ahora;
+    }
+
+    /**
+     * Lo logró (recién o antes) y lo sigue {@code nuevo}, con una meta más alta.
+     *
+     * @throws BusinessRuleException si ya lo siguió otro o fue reemplazado o quitado
+     */
+    public void lograrYSeguirCon(MiniObjetivoId nuevo, OffsetDateTime ahora) {
+        if (!estaEnCurso() && !(estado == EstadoMiniObjetivo.LOGRADO && reemplazadoPor == null)) {
+            throw new BusinessRuleException("El mini-objetivo ya fue reajustado");
+        }
+        estado = EstadoMiniObjetivo.LOGRADO;
+        sinAvanceDesde = null;
+        reemplazadoPor = nuevo;
+        actualizadoEn = ahora;
+    }
+
+    /**
+     * El cierre semanal pone a {@code nuevo} en su lugar: si estaba en curso queda reemplazado; si estaba logrado o
+     * quitado, conserva su estado y sólo apunta al que lo siguió.
+     *
+     * @throws BusinessRuleException si su lugar ya lo ocupó otro
+     */
+    public void cederLugarA(MiniObjetivoId nuevo, OffsetDateTime ahora) {
+        if (estaEnCurso()) {
+            reemplazarPor(nuevo, ahora);
+            return;
+        }
+        if (!esperaReajuste()) {
+            throw new BusinessRuleException("El mini-objetivo ya fue reajustado");
+        }
         reemplazadoPor = nuevo;
         actualizadoEn = ahora;
     }
