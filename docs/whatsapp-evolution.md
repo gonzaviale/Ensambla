@@ -153,6 +153,30 @@ registrar estas tres plantillas. Con la API de prueba que usamos hoy no aplica.
 Si el cliente no habla por 30 minutos, la próxima vez Sami vuelve a saludar. Si el comercio deja de tener WhatsApp vinculado
 mientras tanto, Sami lo avisa y pregunta de nuevo.
 
+### 7. Probar los pedidos de punta a punta (ENS-282)
+
+**Automático.** `PedidosPorWhatsappIntegrationTest` corre el flujo completo contra PostgreSQL con las piezas reales (webhook →
+cola de clientes → conversación → orden → gestión del dueño → aviso) y los proveedores de WhatsApp y de IA simulados: elige el
+comercio por nombre entre dos parecidos, pide en texto libre, cambia una marca, confirma, y el dueño acepta, prepara y deja lista la
+orden (con el descuento de stock y los avisos). También cubre el rechazo, el stock que se acaba antes de aceptar, la vuelta del
+cliente con la oferta del último comercio y el número fuera de la lista (respuesta fija, sin filas).
+
+**Manual, con Evolution y números de prueba.**
+
+1. Levantá el backend con `ensambla.whatsapp.proveedor=evolution` (ver «Puesta en marcha local») y listá los números de prueba de los
+   clientes en `ENSAMBLA_WHATSAPP_PEDIDOS_CLIENTES_PERMITIDOS` (con código de país, separados por coma). Para probar sin gastar IA dejá
+   `ENSAMBLA_IA_PROVEEDOR=simulado`.
+2. Entrá con un comercio de prueba (los de `V10`, `comercio01@ensambla.test` a `comercio10@ensambla.test`, todos con la contraseña
+   `Ensambla-Test-2026`) y **vinculá su WhatsApp** en *Tu cuenta › WhatsApp*: sin número vinculado el comercio no aparece cuando el
+   cliente lo elige. Revisá que su inventario tenga **nombre, cantidad y precio** cargados (Sami sólo ofrece lo que tiene precio y stock).
+3. En *Pedidos* escaneá el QR con el celular de un número de la lista (o escribile al número de Sami). Probá, en este orden:
+   «hola» → el nombre del comercio → «dame 2 yerba, aceite y fideos» → `CAMBIAR 2` y el número de la marca → `SÍ`.
+4. En *Pedidos* aparece la orden pendiente: **Aceptar** (baja el stock en *Mis cuadernos*), **Poner en preparación**, **Dejar lista para
+   retirar**. En el celular del cliente tienen que llegar los avisos de «aceptó» y de «está listo».
+5. Probá lo que tiene que fallar bien: escribir desde un número que no está en la lista (recibe «no vinculado» y no se crea nada),
+   un producto que el comercio no tiene («No tengo X, pero tengo Y»), rechazar una orden con motivo y aceptar una orden cuyo stock ya
+   no alcanza (la app muestra el motivo y no se acepta).
+
 ## Webhook
 
 Evolution entrega los mensajes a `POST /api/whatsapp/webhook`. Ese endpoint es público y sin CSRF, así que se protege con el
