@@ -62,8 +62,18 @@ const CLAVES_DE_FACTOR: FactorClave[] = [
   'alquiler',
 ];
 
+const CLAVES_RESPALDADAS: FactorClave[] = [
+  'competencia',
+  'escuelas',
+  'parques',
+  'oficinas',
+  'transporte',
+  'salud',
+  'complementarios',
+];
+
 const IMPORTANCIA_NORMAL = Object.fromEntries(
-  CLAVES_DE_FACTOR.map((clave) => [clave, 1]),
+  CLAVES_DE_FACTOR.map((clave) => [clave, CLAVES_RESPALDADAS.includes(clave) ? 1 : 0]),
 ) as Record<FactorClave, Importancia>;
 
 export const FILTROS_INICIALES: Filtros = {
@@ -115,8 +125,6 @@ export const FACTORES: { clave: FactorClave; etiqueta: string; ayuda: string }[]
     etiqueta: 'Poca competencia',
     ayuda: 'Comercios similares al tuyo a menos de 500 m',
   },
-  { clave: 'movimiento', etiqueta: 'Gente pasando', ayuda: 'Movimiento de personas en la calle' },
-  { clave: 'vecinos', etiqueta: 'Vecinos cerca', ayuda: 'Personas que viven en la zona' },
   { clave: 'escuelas', etiqueta: 'Escuelas cerca', ayuda: 'Escuelas a menos de 500 m' },
   { clave: 'parques', etiqueta: 'Parques cerca', ayuda: 'Parques y plazas a menos de 500 m' },
   { clave: 'oficinas', etiqueta: 'Oficinas cerca', ayuda: 'Oficinas y bancos a menos de 500 m' },
@@ -130,17 +138,6 @@ export const FACTORES: { clave: FactorClave; etiqueta: string; ayuda: string }[]
     clave: 'complementarios',
     etiqueta: 'Comercios que atraen gente',
     ayuda: 'Farmacias, bancos y supermercados a menos de 500 m',
-  },
-  {
-    clave: 'demanda',
-    etiqueta: 'Demanda observada',
-    ayuda: 'Ventas agregadas y anónimas de al menos tres comercios de Ensambla',
-  },
-  { clave: 'poder', etiqueta: 'Poder de compra', ayuda: 'Nivel socioeconómico de la zona' },
-  {
-    clave: 'alquiler',
-    etiqueta: 'Alquiler accesible',
-    ayuda: 'Qué tan barato es alquilar, comparado con las otras zonas',
   },
 ];
 
@@ -430,16 +427,10 @@ export type Preset = {
 
 export const PRESETS: Preset[] = [
   { id: 'equilibrado', nombre: 'Equilibrado', importancia: {} },
-  { id: 'alquiler', nombre: 'Alquiler bajo', importancia: { alquiler: 2, poder: 0 } },
   {
-    id: 'movimiento',
-    nombre: 'Mucho movimiento',
-    importancia: { movimiento: 2, transporte: 2, vecinos: 0 },
-  },
-  {
-    id: 'familias',
-    nombre: 'Familias',
-    importancia: { escuelas: 2, parques: 2, vecinos: 2, oficinas: 0 },
+    id: 'escuelas',
+    nombre: 'Escuelas y plazas',
+    importancia: { escuelas: 2, parques: 2, oficinas: 0 },
   },
 ];
 
@@ -451,7 +442,8 @@ export function conPreset(filtros: Filtros, preset: Preset): Filtros {
 export function presetActivo(filtros: Filtros): string | null {
   const coincide = (preset: Preset) =>
     CLAVES_DE_FACTOR.every(
-      (clave) => filtros.importancia[clave] === (preset.importancia[clave] ?? 1),
+      (clave) =>
+        filtros.importancia[clave] === (preset.importancia[clave] ?? IMPORTANCIA_NORMAL[clave]),
     );
   return PRESETS.find(coincide)?.id ?? null;
 }
@@ -464,8 +456,8 @@ export type Pesos = Record<FactorClave, number>;
 const PESOS_BASE: Record<Rubro, Pesos> = {
   almacen: {
     competencia: 0.2,
-    movimiento: 0.1,
-    vecinos: 0.22,
+    movimiento: 0,
+    vecinos: 0,
     escuelas: 0.05,
     oficinas: 0.03,
     transporte: 0.05,
@@ -473,13 +465,13 @@ const PESOS_BASE: Record<Rubro, Pesos> = {
     salud: 0.02,
     complementarios: 0.07,
     demanda: 0,
-    poder: 0.09,
-    alquiler: 0.14,
+    poder: 0,
+    alquiler: 0,
   },
   papeleria: {
     competencia: 0.2,
-    movimiento: 0.11,
-    vecinos: 0.05,
+    movimiento: 0,
+    vecinos: 0,
     escuelas: 0.24,
     oficinas: 0.13,
     transporte: 0.05,
@@ -487,13 +479,13 @@ const PESOS_BASE: Record<Rubro, Pesos> = {
     salud: 0.01,
     complementarios: 0.07,
     demanda: 0,
-    poder: 0.05,
-    alquiler: 0.07,
+    poder: 0,
+    alquiler: 0,
   },
   kiosco: {
     competencia: 0.13,
-    movimiento: 0.24,
-    vecinos: 0.03,
+    movimiento: 0,
+    vecinos: 0,
     escuelas: 0.11,
     oficinas: 0.11,
     transporte: 0.18,
@@ -501,8 +493,8 @@ const PESOS_BASE: Record<Rubro, Pesos> = {
     salud: 0.02,
     complementarios: 0.05,
     demanda: 0,
-    poder: 0.03,
-    alquiler: 0.07,
+    poder: 0,
+    alquiler: 0,
   },
 };
 
@@ -521,13 +513,17 @@ export function pesosPara(filtros: Filtros): Pesos {
     pesos.transporte *= 1.2;
   }
   for (const clave of CLAVES_DE_FACTOR) {
-    pesos[clave] *= MULTIPLICADOR_DE_IMPORTANCIA[filtros.importancia[clave]];
+    const importancia = filtros.importancia[clave] ?? IMPORTANCIA_NORMAL[clave];
+    pesos[clave] *= MULTIPLICADOR_DE_IMPORTANCIA[importancia];
   }
   const total = CLAVES_DE_FACTOR.reduce((suma, clave) => suma + pesos[clave], 0);
   // Si la persona dijo que nada le importa, se mira todo por igual en vez de dividir por cero.
   if (total === 0) {
     return Object.fromEntries(
-      CLAVES_DE_FACTOR.map((clave) => [clave, 1 / CLAVES_DE_FACTOR.length]),
+      CLAVES_DE_FACTOR.map((clave) => [
+        clave,
+        CLAVES_RESPALDADAS.includes(clave) ? 1 / CLAVES_RESPALDADAS.length : 0,
+      ]),
     ) as Pesos;
   }
   return Object.fromEntries(
@@ -828,9 +824,6 @@ export function filtrosActivos(filtros: Filtros): FiltroActivo[] {
       texto: `Al menos ${limites.transporteMin} paradas o estaciones`,
     });
   }
-  if (limites.alquilerMax !== base.alquilerMax) {
-    activos.push({ id: 'alquilerMax', texto: `Alquiler hasta nivel ${limites.alquilerMax}` });
-  }
   for (const { clave, etiqueta } of FACTORES) {
     if (filtros.importancia[clave] === 0) {
       activos.push({ id: `importancia:${clave}`, texto: `Sin mirar: ${etiqueta.toLowerCase()}` });
@@ -864,7 +857,6 @@ export function queVerificar(rubro: Rubro): string[] {
   };
   return [
     'Caminá la zona un día de semana y un sábado, a distintas horas.',
-    'Mirá locales en alquiler y cargá cotizaciones reales para compararlos en el ranking.',
     `Consultá en tu municipio qué habilitación necesita ${UN_RUBRO[rubro]} en esa dirección.`,
     propias[rubro],
   ];

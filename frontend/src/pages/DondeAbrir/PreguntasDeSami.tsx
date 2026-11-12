@@ -32,29 +32,32 @@ const PREGUNTAS: Pregunta[] = [
     clave: 'prioridad',
     texto: '¿Qué pesa más para vos?',
     opciones: [
-      { valor: 'alquiler', titulo: 'Alquiler bajo', ayuda: 'Prefiero gastar menos por mes' },
-      { valor: 'movimiento', titulo: 'Mucho movimiento', ayuda: 'Prefiero que pase mucha gente' },
       { valor: 'equilibrado', titulo: 'Un equilibrio', ayuda: 'Un poco de cada cosa' },
+      {
+        valor: 'escuelas',
+        titulo: 'Escuelas y plazas',
+        ayuda: 'Priorizo escuelas, parques y espacios de encuentro cercanos',
+      },
     ],
   },
   {
     clave: 'publico',
-    texto: '¿Qué tipo de movimiento querés aprovechar?',
+    texto: '¿Qué entorno querés priorizar?',
     opciones: [
       {
         valor: 'vecinos',
-        titulo: 'Movimiento residencial',
-        ayuda: 'Personas que viven y compran cerca de su casa',
+        titulo: 'Sin priorizar un entorno',
+        ayuda: 'Miro de forma equilibrada todos los datos disponibles',
       },
       {
         valor: 'estudiantes',
-        titulo: 'Escuelas y familias',
-        ayuda: 'Movimiento alrededor de escuelas, plazas y actividades familiares',
+        titulo: 'Escuelas y plazas',
+        ayuda: 'Priorizo escuelas, parques y plazas cercanas',
       },
       {
         valor: 'oficinas',
-        titulo: 'Zona laboral',
-        ayuda: 'Personas que trabajan o hacen trámites cerca',
+        titulo: 'Oficinas y transporte',
+        ayuda: 'Priorizo oficinas, bancos, paradas y estaciones cercanas',
       },
     ],
   },

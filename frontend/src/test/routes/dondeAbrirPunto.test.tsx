@@ -46,7 +46,7 @@ const abrirResultado = async () => {
   for (const respuesta of [
     /Cerca de mi local actual/,
     /Un equilibrio/,
-    /Movimiento residencial/,
+    /Sin priorizar un entorno/,
     /^Mediano/,
   ]) {
     await user.click(await screen.findByRole('button', { name: respuesta }));
@@ -57,8 +57,8 @@ const abrirResultado = async () => {
 
 describe('dónde abrir: medir un lugar del mapa', () => {
   it('el pedido lleva el lugar tocado y, sin él, no manda nada', () => {
-    const sinLugar = pedidoDondeAbrir(FILTROS_INICIALES, {});
-    const conLugar = pedidoDondeAbrir(FILTROS_INICIALES, {}, { latitud: -34.62, longitud: -58.45 });
+    const sinLugar = pedidoDondeAbrir(FILTROS_INICIALES);
+    const conLugar = pedidoDondeAbrir(FILTROS_INICIALES, { latitud: -34.62, longitud: -58.45 });
 
     expect(sinLugar).not.toHaveProperty('punto');
     expect(conLugar.punto).toEqual({ latitud: -34.62, longitud: -58.45 });

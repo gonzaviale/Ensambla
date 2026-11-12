@@ -384,9 +384,6 @@ public class ExplorarDondeAbrir {
         if (negocio.getLatitud() == null || negocio.getLongitud() == null) {
             avisos.add("Configurá la ubicación de tu negocio para calcular distancias y evitar superponer locales");
         }
-        if (mapa(request.alquileres()).isEmpty()) {
-            avisos.add("El alquiler no influye en el ranking hasta que cargues cotizaciones reales");
-        }
         LocalDate hoy = LocalDate.now(clock);
         boolean desactualizado = zonas.stream().flatMap(zona -> zona.metricas().values().stream())
                 .map(Medicion::observadaEn).filter(fecha -> fecha != null)
@@ -396,6 +393,7 @@ public class ExplorarDondeAbrir {
         }
         for (FactorDondeAbrir factor : FactorDondeAbrir.values()) {
             if (factor != FactorDondeAbrir.ALQUILER
+                    && mapa(request.importancia()).getOrDefault(factor, 1) > 0
                     && zonas.stream().noneMatch(zona -> zona.metricas().containsKey(factor))) {
                 avisos.add("Todavía no hay datos de " + factor.etiqueta().toLowerCase()
                         + "; su peso se redistribuyó entre los factores disponibles");

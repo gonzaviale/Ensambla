@@ -1,7 +1,7 @@
 import type { Publico } from './dondeAbrir';
 
 export type Alcance = 'cerca' | 'toda';
-export type Prioridad = 'equilibrado' | 'alquiler' | 'movimiento';
+export type Prioridad = 'equilibrado' | 'escuelas';
 /** Tamaño aproximado del local; de ahí sale qué trámite le corresponde. */
 export type Tamano = 'chico' | 'mediano' | 'grande' | 'muy-grande';
 

@@ -47,7 +47,7 @@ const llegarALasZonas = async (
   for (const respuesta of [
     respuestas.alcance ?? /Cerca de mi local actual/,
     respuestas.prioridad ?? /Un equilibrio/,
-    respuestas.publico ?? /Movimiento residencial/,
+    respuestas.publico ?? /Sin priorizar un entorno/,
     respuestas.tamano ?? /^Mediano/,
   ]) {
     await user.click(await screen.findByRole('button', { name: respuesta }));
@@ -141,16 +141,19 @@ describe('dónde abrir', () => {
     expect(await screen.findByText('Pregunta 1 de 4')).toBeVisible();
   });
 
-  it('pregunta qué movimiento se quiere aprovechar sin suponer clientes conocidos', async () => {
+  it('pregunta por entornos comprobables sin suponer clientes conocidos', async () => {
     const { user } = await abrir();
     await user.click(screen.getByRole('button', { name: /Sí, es correcto/ }));
     await user.click(screen.getByRole('button', { name: /Cerca de mi local actual/ }));
+    expect(screen.queryByRole('button', { name: /Alquiler bajo/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Mucho movimiento/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Escuelas y plazas/ })).toBeVisible();
     await user.click(screen.getByRole('button', { name: /Un equilibrio/ }));
 
-    expect(await screen.findByText('¿Qué tipo de movimiento querés aprovechar?')).toBeVisible();
-    expect(screen.getByRole('button', { name: /Movimiento residencial/ })).toBeVisible();
-    expect(screen.getByRole('button', { name: /Escuelas y familias/ })).toBeVisible();
-    expect(screen.getByRole('button', { name: /Zona laboral/ })).toBeVisible();
+    expect(await screen.findByText('¿Qué entorno querés priorizar?')).toBeVisible();
+    expect(screen.getByRole('button', { name: /Sin priorizar un entorno/ })).toBeVisible();
+    expect(screen.getByRole('button', { name: /Escuelas y plazas/ })).toBeVisible();
+    expect(screen.getByRole('button', { name: /Oficinas y transporte/ })).toBeVisible();
     expect(screen.queryByText('¿A quién le vendés más?')).not.toBeInTheDocument();
   });
 
@@ -218,8 +221,14 @@ describe('dónde abrir', () => {
 
     const comparacion = screen.getByRole('table', { name: 'Comparación de las mejores zonas' });
     expect(within(comparacion).getByRole('rowheader', { name: 'Puntaje general' })).toBeVisible();
-    expect(within(comparacion).getByRole('rowheader', { name: 'Alquiler estimado' })).toBeVisible();
-    expect(within(comparacion).getByRole('rowheader', { name: 'Movimiento' })).toBeVisible();
+    expect(
+      within(comparacion).queryByRole('rowheader', { name: 'Alquiler estimado' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(comparacion).queryByRole('rowheader', { name: 'Movimiento' }),
+    ).not.toBeInTheDocument();
+    expect(within(comparacion).getByRole('rowheader', { name: 'Escuelas cerca' })).toBeVisible();
+    expect(within(comparacion).getByRole('rowheader', { name: 'Parques y plazas' })).toBeVisible();
     expect(
       within(comparacion).getByRole('rowheader', { name: 'Competencia cercana' }),
     ).toBeVisible();
@@ -297,25 +306,30 @@ describe('dónde abrir', () => {
     await llegarALasZonas(user);
 
     const modos = screen.getByRole('group', { name: 'Modos rápidos' });
-    for (const nombre of ['Equilibrado', 'Alquiler bajo', 'Mucho movimiento', 'Familias']) {
+    for (const nombre of ['Equilibrado', 'Escuelas y plazas']) {
       expect(within(modos).getByRole('button', { name: nombre })).toBeVisible();
     }
     for (const nombre of [
       'Poca competencia',
-      'Gente pasando',
-      'Vecinos cerca',
       'Escuelas cerca',
       'Parques cerca',
       'Oficinas cerca',
       'Transporte',
       'Salud cerca',
       'Comercios que atraen gente',
+    ]) {
+      expect(screen.getByRole('group', { name: nombre })).toBeVisible();
+    }
+    for (const nombre of [
+      'Gente pasando',
+      'Vecinos cerca',
       'Demanda observada',
       'Poder de compra',
       'Alquiler accesible',
     ]) {
-      expect(screen.getByRole('group', { name: nombre })).toBeVisible();
+      expect(screen.queryByRole('group', { name: nombre })).not.toBeInTheDocument();
     }
+    expect(screen.queryByText('Agregar cotizaciones reales de alquiler')).not.toBeInTheDocument();
     expect(screen.queryByText('Límites que descartan zonas')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('slider', { name: /Comercios similares cerca/ }),
@@ -347,7 +361,7 @@ describe('dónde abrir', () => {
     await llegarALasZonas(user);
     const modos = screen.getByRole('group', { name: 'Modos rápidos' });
 
-    await user.click(within(modos).getByRole('button', { name: 'Familias' }));
+    await user.click(within(modos).getByRole('button', { name: 'Escuelas y plazas' }));
     expect(
       within(screen.getByRole('group', { name: 'Escuelas cerca' })).getByRole('radio', {
         name: 'Mucho',
@@ -358,7 +372,7 @@ describe('dónde abrir', () => {
         name: 'Nada',
       }),
     ).toBeChecked();
-    expect(within(modos).getByRole('button', { name: 'Familias' })).toHaveAttribute(
+    expect(within(modos).getByRole('button', { name: 'Escuelas y plazas' })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
@@ -397,7 +411,7 @@ describe('dónde abrir', () => {
       0,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Familias' }));
+    await user.click(screen.getByRole('button', { name: 'Escuelas y plazas' }));
 
     await waitFor(() =>
       expect(screen.getAllByLabelText(/^(Subió|Bajó) \d+ puestos?$/).length).toBeGreaterThan(0),
@@ -503,6 +517,7 @@ describe('dónde abrir', () => {
       within(calculo).getByRole('columnheader', { name: 'Importancia en el resultado' }),
     ).toBeVisible();
     expect(within(calculo).queryByRole('columnheader', { name: 'Aporte' })).not.toBeInTheDocument();
+    expect(within(calculo).queryByText('OpenStreetMap')).not.toBeInTheDocument();
     await user.click(screen.getByText('Cómo usamos los datos'));
     expect(screen.getAllByText(/OpenStreetMap/).length).toBeGreaterThan(0);
   });

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeftIcon, CopyIcon } from '@phosphor-icons/react';
 import { Sami } from '@/components/sistema/Sami';
 import { COLOR_DE_PUNTO } from '@/hooks/dondeAbrir/useMapaDeZonas';
-import { useDondeAbrir, type AlquileresPorZona, type PuntoElegido } from '@/hooks/dondeAbrir/queries';
+import { useDondeAbrir, type PuntoElegido } from '@/hooks/dondeAbrir/queries';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import {
@@ -78,11 +78,10 @@ export function DondeAbrirPage() {
   const [dondeMostrar, setDondeMostrar] = useState<DondeMostrar>('elegida');
   // Quién subió o bajó solo se marca cuando la persona mueve un filtro, no por lo que contestó en las preguntas.
   const [movioFiltros, setMovioFiltros] = useState(false);
-  const [alquileres, setAlquileres] = useState<AlquileresPorZona>({});
   // Un lugar cualquiera que la persona tocó en el mapa: el servidor lo mide en vivo y lo suma al ranking.
   const [punto, setPunto] = useState<PuntoElegido | null>(null);
 
-  const consulta = useDondeAbrir(filtros, alquileres, paso === 'resultado', punto);
+  const consulta = useDondeAbrir(filtros, paso === 'resultado', punto);
   const exploracion = consulta.data ?? { ranking: [], descartadas: [], evaluadas: 0 };
   const puntoElegidoId = consulta.data?.puntoElegidoId ?? null;
   const { ranking, descartadas } = exploracion;
@@ -255,39 +254,6 @@ export function DondeAbrirPage() {
             <ComparacionDeZonas zonas={mejores.slice(0, 3)} filtros={filtros} />
           )}
 
-          {ranking.length > 0 && (
-            <details className="donde-alquileres">
-              <summary id="donde-alquileres-titulo">
-                Agregar cotizaciones reales de alquiler
-              </summary>
-              <p>Es opcional. Solo cambia el ranking de las zonas donde cargás un valor.</p>
-              <div className="donde-alquileres-lista">
-                {ranking.slice(0, 3).map((item) => (
-                  <label key={item.zona.id}>
-                    <span>{item.zona.nombre}</span>
-                    <input
-                      type="number"
-                      min={1}
-                      step={10000}
-                      inputMode="numeric"
-                      placeholder="$ por mes"
-                      value={alquileres[item.zona.id] ?? ''}
-                      onChange={(evento) => {
-                        const valor = Number(evento.target.value);
-                        setAlquileres((actuales) => {
-                          if (Number.isFinite(valor) && valor > 0)
-                            return { ...actuales, [item.zona.id]: valor };
-                          return Object.fromEntries(
-                            Object.entries(actuales).filter(([zonaId]) => zonaId !== item.zona.id),
-                          );
-                        });
-                      }}
-                    />
-                  </label>
-                ))}
-              </div>
-            </details>
-          )}
           <div className="donde-barra-de-control">
             <p>Explorá el mapa y ajustá solo lo que necesites.</p>
             <div className="donde-acciones">

@@ -71,7 +71,7 @@ public class ZonaController {
             summary = "Compara zonas para abrir un nuevo local",
             description = "Aplica primero los límites solicitados y luego puntúa las zonas con datos trazables. "
                     + "La ubicación del local actual siempre se toma del negocio de la sesión. Los factores sin "
-                    + "datos redistribuyen su peso y el alquiler sólo participa cuando la persona carga cotizaciones.")
+                    + "datos redistribuyen su peso entre los factores disponibles.")
     public ResponseEntity<DondeAbrirWebResponse> dondeAbrir(
             Authentication authentication,
             @Valid @RequestBody ExplorarDondeAbrirWebRequest request) {
