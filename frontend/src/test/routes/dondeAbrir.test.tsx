@@ -1,11 +1,11 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { estado } from '@/mocks/db/estado';
 import { renderApp } from '@/test/renderApp';
 import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
 
-const TITULO = 'Encontrá la mejor zona para tu próximo local';
+const TITULO = 'Tu próximo negocio';
 
 const prepararNegocio = (localidad = 'Villa Crespo') => {
   const usuario = setupUsuarioConSesion();
@@ -47,7 +47,7 @@ const llegarALasZonas = async (
   for (const respuesta of [
     respuestas.alcance ?? /Cerca de mi local actual/,
     respuestas.prioridad ?? /Un equilibrio/,
-    respuestas.publico ?? /A los vecinos/,
+    respuestas.publico ?? /Movimiento residencial/,
     respuestas.tamano ?? /^Mediano/,
   ]) {
     await user.click(await screen.findByRole('button', { name: respuesta }));
@@ -58,7 +58,7 @@ const llegarALasZonas = async (
 const zonas = () =>
   within(screen.getByRole('list', { name: /Zonas recomendadas/ })).getAllByRole('button');
 const abrirFiltros = async (user: ReturnType<typeof userEvent.setup>) =>
-  user.click(screen.getByRole('button', { name: /Ajustar con filtros/ }));
+  user.click(screen.getByText('Más filtros'));
 const mover = (nombre: RegExp, valor: number) =>
   fireEvent.change(screen.getByRole('slider', { name: nombre }), {
     target: { value: String(valor) },
@@ -73,15 +73,20 @@ describe('dónde abrir', () => {
     const user = userEvent.setup();
 
     await user.click(await screen.findByRole('button', { name: 'Zona' }, ESPERA));
-    await user.click(await screen.findByRole('link', { name: 'Dónde abrir' }, ESPERA));
+    await user.click(await screen.findByRole('link', { name: 'Tu próximo negocio' }, ESPERA));
 
     expect(await screen.findByRole('heading', { name: TITULO })).toBeVisible();
     expect(router.state.location.pathname).toBe('/zona/donde-abrir');
-    expect(screen.getByRole('link', { name: 'Dónde abrir' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Tu próximo negocio' })).toHaveAttribute(
       'aria-current',
       'page',
     );
-    expect(screen.getByRole('note')).toHaveTextContent(/Datos trazables/);
+    expect(screen.queryByText(/Datos trazables/)).not.toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Progreso de Tu próximo negocio' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Editar datos de mi negocio' })).toHaveAttribute(
+      'href',
+      '/ubicacion',
+    );
     expect(await screen.findByText(/Veo que tu negocio es/)).toHaveTextContent(
       /Almacén de barrio.*Villa Crespo.*almacén/,
     );
@@ -138,6 +143,19 @@ describe('dónde abrir', () => {
     expect(await screen.findByText('Pregunta 1 de 4')).toBeVisible();
   });
 
+  it('pregunta qué movimiento se quiere aprovechar sin suponer clientes conocidos', async () => {
+    const { user } = await abrir();
+    await user.click(screen.getByRole('button', { name: /Sí, es correcto/ }));
+    await user.click(screen.getByRole('button', { name: /Cerca de mi local actual/ }));
+    await user.click(screen.getByRole('button', { name: /Un equilibrio/ }));
+
+    expect(await screen.findByText('¿Qué tipo de movimiento querés aprovechar?')).toBeVisible();
+    expect(screen.getByRole('button', { name: /Movimiento residencial/ })).toBeVisible();
+    expect(screen.getByRole('button', { name: /Escuelas y familias/ })).toBeVisible();
+    expect(screen.getByRole('button', { name: /Zona laboral/ })).toBeVisible();
+    expect(screen.queryByText('¿A quién le vendés más?')).not.toBeInTheDocument();
+  });
+
   it('al terminar las preguntas muestra las zonas, con la leyenda de colores y sin barras', async () => {
     const { user } = await abrir();
     await llegarALasZonas(user);
@@ -149,31 +167,31 @@ describe('dónde abrir', () => {
     expect(within(leyenda).getByText('Coincidencia intermedia')).toBeVisible();
     expect(within(leyenda).getByText('Mala coincidencia')).toBeVisible();
     expect(document.querySelector('.donde-barra')).toBeNull();
-    expect(screen.queryByText(/\d de 10\b/)).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Lo que cuenta Sami' })).not.toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Lista de zonas' })).toBeVisible();
   });
 
-  it('lo que dice Sami va al principio de todo, y recién abajo están los filtros, las zonas y el mapa', async () => {
+  it('primero compara el top tres y después deja ajustar con el mapa siempre al lado', async () => {
     const { user } = await abrir();
     await llegarALasZonas(user);
 
     const recomendacion = screen.getByRole('region', { name: 'Recomendación de Sami' });
-    const filtros = screen.getByRole('region', { name: 'Filtros' });
+    const comparacion = screen.getByRole('table', { name: 'Comparación de las mejores zonas' });
+    const filtros = screen.getByRole('region', { name: 'Ajustes de la recomendación' });
     const lista = screen.getByRole('region', { name: 'Lista de zonas' });
     const mapa = screen.getByRole('region', { name: /Mapa con las zonas/ });
     const antes = (a: HTMLElement, b: HTMLElement) =>
       Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(antes(recomendacion, filtros)).toBe(true);
-    expect(antes(filtros, lista)).toBe(true);
-    expect(antes(lista, mapa) || antes(mapa, lista)).toBe(true);
+    expect(antes(recomendacion, comparacion)).toBe(true);
+    expect(antes(comparacion, filtros)).toBe(true);
+    expect(filtros.closest('.donde-explorador')).toBe(mapa.closest('.donde-explorador'));
+    expect(antes(filtros, mapa)).toBe(true);
+    expect(antes(mapa, lista)).toBe(true);
     expect(antes(recomendacion, mapa)).toBe(true);
     expect(
       within(recomendacion).getByRole('heading', { name: 'Mi recomendación para tu almacén' }),
     ).toBeVisible();
-    expect(
-      within(recomendacion).getByRole('tab', { name: 'Qué tenés que tramitar' }),
-    ).toBeVisible();
+    expect(screen.getByRole('tab', { name: 'Qué tenés que tramitar' })).toBeVisible();
   });
 
   it('el bloque de Sami deja comparar las tres mejores zonas sin bajar a la lista', async () => {
@@ -185,17 +203,31 @@ describe('dónde abrir', () => {
     ).getAllByRole('button');
     expect(mejores).toHaveLength(3);
     expect(mejores[0]).toHaveAttribute('aria-pressed', 'true');
-    const primera = within(recomendacion).getByRole('article').querySelector('h3')?.textContent;
+    const primera = screen.getByRole('article').querySelector('h3')?.textContent;
 
     await user.click(mejores[1] as HTMLElement);
 
     expect(mejores[1]).toHaveAttribute('aria-pressed', 'true');
-    expect(within(recomendacion).getByRole('article').querySelector('h3')?.textContent).not.toBe(
-      primera,
-    );
+    expect(screen.getByRole('article').querySelector('h3')?.textContent).not.toBe(primera);
     expect(
       within(recomendacion).getByRole('heading', { name: 'Lo que sé de la zona que elegiste' }),
     ).toBeVisible();
+  });
+
+  it('la comparación muestra diferencias comprensibles y no pesos técnicos', async () => {
+    const { user } = await abrir();
+    await llegarALasZonas(user);
+
+    const comparacion = screen.getByRole('table', { name: 'Comparación de las mejores zonas' });
+    expect(within(comparacion).getByRole('rowheader', { name: 'Puntaje general' })).toBeVisible();
+    expect(within(comparacion).getByRole('rowheader', { name: 'Alquiler estimado' })).toBeVisible();
+    expect(within(comparacion).getByRole('rowheader', { name: 'Movimiento' })).toBeVisible();
+    expect(
+      within(comparacion).getByRole('rowheader', { name: 'Competencia cercana' }),
+    ).toBeVisible();
+    expect(within(comparacion).getByRole('rowheader', { name: 'Distancia' })).toBeVisible();
+    expect(within(comparacion).queryByText('Peso')).not.toBeInTheDocument();
+    expect(within(comparacion).queryByText('Aporte')).not.toBeInTheDocument();
   });
 
   it('una zona elegida en la lista de abajo también aparece arriba, en el bloque de Sami', async () => {
@@ -212,6 +244,45 @@ describe('dónde abrir', () => {
     expect(mejores[3]).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('elegir una zona no desplaza bruscamente toda la página', async () => {
+    const { user } = await abrir();
+    await llegarALasZonas(user);
+    const desplazarDocumento = vi.spyOn(Element.prototype, 'scrollIntoView');
+    desplazarDocumento.mockClear();
+    const lista = screen.getByRole('region', { name: 'Lista de zonas' }) as HTMLDivElement;
+    const segunda = zonas()[1] as HTMLButtonElement;
+    Object.defineProperty(lista, 'clientHeight', { configurable: true, value: 320 });
+    Object.defineProperty(segunda, 'offsetTop', { configurable: true, value: 2_000 });
+    lista.getBoundingClientRect = () => ({
+      x: 0,
+      y: 200,
+      top: 200,
+      right: 400,
+      bottom: 520,
+      left: 0,
+      width: 400,
+      height: 320,
+      toJSON: () => ({}),
+    });
+    segunda.getBoundingClientRect = () => ({
+      x: 0,
+      y: 250,
+      top: 250,
+      right: 400,
+      bottom: 300,
+      left: 0,
+      width: 400,
+      height: 50,
+      toJSON: () => ({}),
+    });
+
+    await user.click(segunda);
+
+    expect(desplazarDocumento).not.toHaveBeenCalled();
+    expect(lista.scrollTop).toBe(0);
+    desplazarDocumento.mockRestore();
+  });
+
   it('cada zona dice con un color qué tan bien coincide, también para quien usa lector de pantalla', async () => {
     const { user } = await abrir();
     await llegarALasZonas(user);
@@ -223,18 +294,21 @@ describe('dónde abrir', () => {
     );
   });
 
-  it('los filtros arrancan cerrados y se abren cuando la persona quiere', async () => {
+  it('muestra los ajustes principales y deja los avanzados cerrados', async () => {
     const { user } = await abrir();
     await llegarALasZonas(user);
 
-    const boton = screen.getByRole('button', { name: /Ajustar con filtros/ });
+    const prioridad = screen.getByRole('combobox', { name: 'Prioridad' });
+    expect(prioridad).toBeVisible();
+    expect(screen.getByRole('slider', { name: /Distancia a tu local/ })).toBeVisible();
+    const boton = screen.getByText(/Más filtros/);
     expect(boton).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+    expect(screen.getByRole('slider', { name: /Parques y plazas cerca/ })).not.toBeVisible();
 
     await user.click(boton);
     expect(boton).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('slider', { name: /Parques y plazas cerca/ })).toBeVisible();
-    expect(screen.getByRole('radiogroup', { name: 'Importancia de parques cerca' })).toBeVisible();
+    expect(screen.getByRole('combobox', { name: 'Importancia de parques cerca' })).toBeVisible();
   });
 
   it('un límite descarta zonas, las muestra aparte con su motivo y se puede quitar', async () => {
@@ -265,7 +339,7 @@ describe('dónde abrir', () => {
     );
 
     await abrirFiltros(user);
-    await user.click(screen.getByRole('button', { name: 'Familias' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Prioridad' }), 'familias');
 
     await waitFor(() =>
       expect(screen.getAllByLabelText(/^(Subió|Bajó) \d+ puestos?$/).length).toBeGreaterThan(0),
@@ -288,6 +362,12 @@ describe('dónde abrir', () => {
     expect(
       within(guia).getByText('Habilitación de actividad económica, modalidad exprés'),
     ).toBeVisible();
+    expect(
+      within(guia).getByRole('link', { name: /Más información sobre Habilitación de actividad/ }),
+    ).toHaveAttribute(
+      'href',
+      'https://buenosaires.gob.ar/tramites/habilitacion-de-actividad-economica-expres',
+    );
   });
 
   it('el tamaño del local cambia el trámite que corresponde', async () => {
@@ -356,15 +436,20 @@ describe('dónde abrir', () => {
     const panel = screen.getByRole('tabpanel');
     expect(within(panel).getByText('Por qué la recomiendo')).toBeVisible();
     expect(within(panel).getByText('Riesgos')).toBeVisible();
-    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(screen.queryByRole('table', { name: /Detalle del puntaje/ })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Cómo lo calculé/ }));
+    const calculo = screen.getByRole('table', { name: /Detalle del puntaje/ });
+    expect(within(calculo).getByRole('rowheader', { name: 'Puntaje final' })).toBeVisible();
     expect(
-      within(screen.getByRole('table')).getByRole('rowheader', { name: 'Puntaje final' }),
+      within(calculo).getByRole('columnheader', { name: 'Importancia en el resultado' }),
     ).toBeVisible();
+    expect(within(calculo).queryByRole('columnheader', { name: 'Aporte' })).not.toBeInTheDocument();
+    await user.click(screen.getByText('Cómo usamos los datos'));
+    expect(screen.getAllByText(/OpenStreetMap/).length).toBeGreaterThan(0);
   });
 
-  it('elegir otra zona cambia el detalle y vuelve a la primera solapa', async () => {
+  it('elegir otra zona cambia el detalle sin sacar a la persona de la solapa actual', async () => {
     const { user } = await abrir();
     await llegarALasZonas(user);
     const primera = screen.getByRole('article').querySelector('h3')?.textContent;
@@ -372,7 +457,7 @@ describe('dónde abrir', () => {
 
     await user.click(zonas()[1] as HTMLElement);
 
-    expect(screen.getByRole('tab', { name: 'Por qué esta zona' })).toHaveAttribute(
+    expect(screen.getByRole('tab', { name: 'Qué tenés que tramitar' })).toHaveAttribute(
       'aria-selected',
       'true',
     );

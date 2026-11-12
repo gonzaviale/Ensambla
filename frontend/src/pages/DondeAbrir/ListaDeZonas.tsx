@@ -20,18 +20,29 @@ type Props = {
 };
 
 export function ListaDeZonas({ ranking, descartadas, seleccionadaId, cambios, onElegir }: Props) {
-  // Si la zona se elige en el mapa, la lista se desplaza hasta ella. En el primer dibujo no se mueve nada.
+  const lista = useRef<HTMLDivElement>(null);
+  // Si la zona se elige en el mapa, se desplaza únicamente esta lista. Nunca se mueve la página completa.
   const primera = useRef(true);
   useEffect(() => {
     if (primera.current) {
       primera.current = false;
       return;
     }
-    document.getElementById(`zona-${seleccionadaId}`)?.scrollIntoView({ block: 'nearest' });
+    const contenedor = lista.current;
+    const elemento = document.getElementById(`zona-${seleccionadaId}`);
+    if (!contenedor || !elemento) return;
+    const cajaContenedor = contenedor.getBoundingClientRect();
+    const cajaElemento = elemento.getBoundingClientRect();
+    const arriba = cajaElemento.top - cajaContenedor.top + contenedor.scrollTop;
+    const abajo = cajaElemento.bottom - cajaContenedor.top + contenedor.scrollTop;
+    if (arriba < contenedor.scrollTop) contenedor.scrollTop = arriba;
+    else if (abajo > contenedor.scrollTop + contenedor.clientHeight) {
+      contenedor.scrollTop = abajo - contenedor.clientHeight;
+    }
   }, [seleccionadaId]);
 
   return (
-    <div className="donde-lista" role="region" aria-label="Lista de zonas" tabIndex={0}>
+    <div ref={lista} className="donde-lista" role="region" aria-label="Lista de zonas" tabIndex={0}>
       {ranking.length > 0 ? (
         <ol className="donde-zonas" aria-label="Zonas recomendadas, de la mejor a la peor">
           {ranking.map((item, indice) => (
