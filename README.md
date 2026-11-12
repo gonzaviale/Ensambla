@@ -26,7 +26,47 @@ datos y los pipelines para que el equipo arranque con las tareas `T-001` … `T-
 
 ## Cómo levantarlo
 
-Requisitos: JDK 21, Node 22+, Docker.
+Para levantar el proyecto completo sólo hace falta **Docker con Compose**. Desde la raíz:
+
+```bash
+docker compose up --build -d --wait
+```
+
+Abrir <http://localhost:8088>. Se construyen el frontend estático y el JAR del backend con los mismos
+Dockerfiles del despliegue, y se inicia PostgreSQL 17. El catálogo SEPA está incluido en el JAR;
+Open Food Facts se consulta desde el servidor y no necesita claves. Registro, sesión y guardado son reales.
+Los datos se conservan en volúmenes. Para detener: `docker compose stop`; para ver registros: `docker compose logs -f`.
+
+Este entorno HTTP sólo se publica en el loopback de la PC. Para un servidor con dominio y HTTPS se usa
+[`deploy/docker-compose.yml`](deploy/docker-compose.yml), con `DOMINIO` y `POSTGRES_PASSWORD` configurados.
+IA y WhatsApp conservan sus proveedores simulados hasta configurar sus credenciales reales por separado.
+
+Para probar el lector desde un teléfono con HTTPS, usando esta misma aplicación y base de datos:
+
+```bash
+docker compose --profile movil up -d tunel-movil
+docker compose logs tunel-movil
+```
+
+Abrir en el teléfono el enlace `https://…trycloudflare.com` que aparece en los registros e iniciar sesión
+con una cuenta de esta base. La guía de [escaneo desde el celular](docs/escaneo-de-productos.md#probar-desde-el-celular-con-docker)
+explica cómo repetir y detener la prueba.
+
+Para verificar el circuito contra esos contenedores (Node 24, sin instalar paquetes):
+
+```bash
+node scripts/verificar-integracion.mjs --reiniciar-backend
+```
+
+Comprueba frontend estático, registro, login, CSRF, SEPA, guardado, duplicados, aislamiento y persistencia
+tras reiniciar el backend. `--exigir-off` también exige descripción e imagen del proveedor externo;
+CI admite su indisponibilidad temporal y exige SEPA. Crea dos cuentas `@example.test` identificadas como
+pruebas y elimina su sistema al terminar. El job `ci-integracion` ejecuta esta comprobación en cada PR;
+el control requerido `ci-frontend` depende de que esa integración termine correctamente.
+
+Para desarrollar fuera de Docker: JDK 21, Node 24+ y Docker para PostgreSQL. `.nvmrc` indica la versión;
+la instalación del frontend rechaza versiones anteriores mediante `engine-strict`, en lugar de continuar
+con una versión que el lector no admite.
 
 ```bash
 # 1. Base de datos

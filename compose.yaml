@@ -1,0 +1,85 @@
+name: ensambla-integracion
+
+# Integración real en cualquier PC con Docker: mismos Dockerfiles del despliegue.
+# Para el VPS con dominio, TLS y credenciales propias: deploy/docker-compose.yml.
+services:
+  # Acceso HTTPS temporal a esta misma aplicación para probar la cámara en un teléfono.
+  # Sólo se inicia al pedir el perfil movil; no abre puertos adicionales de la PC.
+  tunel-movil:
+    image: cloudflare/cloudflared:latest
+    profiles: [movil]
+    depends_on:
+      acceso-movil:
+        condition: service_started
+    command: [tunnel, --no-autoupdate, --protocol, http2, --url, "http://acceso-movil:80"]
+
+  acceso-movil:
+    image: caddy:2-alpine
+    profiles: [movil]
+    depends_on:
+      web:
+        condition: service_healthy
+    volumes:
+      - ./deploy/Caddyfile.movil:/etc/caddy/Caddyfile:ro
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: ../deploy/web.Dockerfile
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${ENSAMBLA_PUERTO:-8088}:80"
+    volumes:
+      - ./deploy/Caddyfile.integracion:/etc/caddy/Caddyfile:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/api/auth/csrf"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
+
+  backend:
+    build: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      PORT: 8080
+      FRONTEND_URL: http://localhost:${ENSAMBLA_PUERTO:-8088}
+      # Este compose publica HTTP sólo en loopback; el despliegue HTTPS conserva Secure.
+      SESSION_COOKIE_SECURE: "false"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ensambla
+      SPRING_DATASOURCE_USERNAME: ensambla_user
+      SPRING_DATASOURCE_PASSWORD: integracion_solo_red_interna
+      JAVA_OPTS: -Xms128m -Xmx768m
+      ENSAMBLA_IA_PROVEEDOR: simulado
+      ENSAMBLA_WHATSAPP_PROVEEDOR: simulado
+    volumes:
+      - backend-datos:/app/datos
+    healthcheck:
+      test: ["CMD", "bash", "-ec", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 60s
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ensambla
+      POSTGRES_USER: ensambla_user
+      POSTGRES_PASSWORD: integracion_solo_red_interna
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ensambla_user -d ensambla"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  pgdata:
+  backend-datos:
