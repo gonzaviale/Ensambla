@@ -8,6 +8,7 @@ import com.ensambla.backend.domain.model.zona.DatosZonaDondeAbrir.Medicion;
 import com.ensambla.backend.domain.model.zona.FactorDondeAbrir;
 import com.ensambla.backend.domain.model.zona.PublicoDondeAbrir;
 import com.ensambla.backend.domain.model.zona.ZonaId;
+import com.ensambla.backend.domain.port.EntornoDelPuntoPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.zona.DatosDondeAbrirRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,10 @@ public class ExplorarDondeAbrir {
     private static final double RADIO_TERRESTRE_KM = 6_371d;
     private static final double DISTANCIA_CANIBALIZACION_KM = 1d;
     private static final double PENALIZACION_CANIBALIZACION = 1.2d;
+    private static final double COBERTURA_MAXIMA_KM = 8d;
+    private static final int DECIMALES_DEL_PUNTO = 5;
+    private static final DatosZonaDondeAbrir.Fuente OPEN_STREET_MAP = new DatosZonaDondeAbrir.Fuente(
+            "OSM", "OpenStreetMap", "COMUNITARIA", "https://www.openstreetmap.org/", "ODbL 1.0");
     private static final double UMBRAL_BUENA = 6d;
     private static final double UMBRAL_INTERMEDIA = 4d;
     private static final Map<RubroNegocio, String> RUBROS_EN_PLURAL = Map.of(
@@ -40,12 +45,17 @@ public class ExplorarDondeAbrir {
 
     private final NegocioRepository negocioRepository;
     private final DatosDondeAbrirRepository datosRepository;
+    private final EntornoDelPuntoPort entornoPort;
     private final Clock clock;
 
     public ExplorarDondeAbrirResponse execute(ExplorarDondeAbrirRequest request) {
         validar(request);
         Negocio negocio = negocioRepository.obtenerNegocioDelUsuario(request.usuarioId());
-        List<DatosZonaDondeAbrir> zonas = datosRepository.buscar(request.rubro());
+        List<DatosZonaDondeAbrir> zonas = new ArrayList<>(datosRepository.buscar(request.rubro()));
+        DatosZonaDondeAbrir puntoElegido = puntoElegido(request, zonas);
+        if (puntoElegido != null) {
+            zonas.add(puntoElegido);
+        }
         Map<FactorDondeAbrir, Rango> rangos = rangos(zonas, request.alquileres());
         List<ExplorarDondeAbrirResponse.ZonaEvaluada> ranking = new ArrayList<>();
         List<ExplorarDondeAbrirResponse.ZonaDescartada> descartadas = new ArrayList<>();
@@ -67,9 +77,60 @@ public class ExplorarDondeAbrir {
                         : zona.distanciaKm()));
         descartadas.sort(Comparator.comparing(zona -> zona.distanciaKm() == null
                 ? BigDecimal.valueOf(Double.MAX_VALUE) : zona.distanciaKm()));
+        List<String> avisos = new ArrayList<>(avisos(zonas, negocio, request));
+        if (puntoElegido != null) {
+            avisos.addFirst("El lugar que elegiste se midió ahora con OpenStreetMap: competencia, escuelas, oficinas, "
+                    + "paradas, parques, salud y comercios a 500 m. No tiene índice de actividad, vecinos, poder de "
+                    + "compra ni demanda de Ensambla, así que esos factores no suman a su puntaje");
+        }
         return new ExplorarDondeAbrirResponse(
                 negocioActual(negocio), zonas.size(), List.copyOf(ranking), List.copyOf(descartadas),
-                avisos(zonas, negocio, request));
+                List.copyOf(avisos), puntoElegido == null ? null : puntoElegido.id());
+    }
+
+    /** Mide ahora el lugar que la persona tocó en el mapa y lo deja listo para competir con las zonas precargadas. */
+    private DatosZonaDondeAbrir puntoElegido(ExplorarDondeAbrirRequest request, List<DatosZonaDondeAbrir> zonas) {
+        ExplorarDondeAbrirRequest.PuntoElegido punto = request.punto();
+        if (punto == null) {
+            return null;
+        }
+        BigDecimal latitud = punto.latitud().setScale(DECIMALES_DEL_PUNTO, RoundingMode.HALF_UP);
+        BigDecimal longitud = punto.longitud().setScale(DECIMALES_DEL_PUNTO, RoundingMode.HALF_UP);
+        DatosZonaDondeAbrir cercana = zonas.stream()
+                .filter(zona -> kilometros(latitud, longitud, zona) <= COBERTURA_MAXIMA_KM)
+                .min(Comparator.comparingDouble(zona -> kilometros(latitud, longitud, zona)))
+                .orElseThrow(() -> new BusinessRuleException(
+                        "Por ahora medimos puntos de CABA y La Matanza: elegí un lugar dentro de esas zonas"));
+        List<DatosZonaDondeAbrir.Punto> lugares = entornoPort.consultar(latitud, longitud, clock.instant());
+        LocalDate hoy = LocalDate.now(clock);
+        Map<FactorDondeAbrir, Medicion> metricas = new EnumMap<>(FactorDondeAbrir.class);
+        medir(metricas, FactorDondeAbrir.COMPETENCIA, "comercios_500m",
+                cantidad(lugares, "COMPETENCIA", request.rubro().name()), hoy);
+        medir(metricas, FactorDondeAbrir.ESCUELAS, "lugares_500m", cantidad(lugares, "ESCUELA", null), hoy);
+        medir(metricas, FactorDondeAbrir.OFICINAS, "lugares_500m", cantidad(lugares, "OFICINA", null), hoy);
+        medir(metricas, FactorDondeAbrir.TRANSPORTE, "lugares_500m", cantidad(lugares, "TRANSPORTE", null), hoy);
+        medir(metricas, FactorDondeAbrir.PARQUES, "lugares_500m", cantidad(lugares, "PARQUE", null), hoy);
+        medir(metricas, FactorDondeAbrir.SALUD, "lugares_500m", cantidad(lugares, "SALUD", null), hoy);
+        medir(metricas, FactorDondeAbrir.COMPLEMENTARIOS, "lugares_500m",
+                cantidad(lugares, "COMPLEMENTARIO", null), hoy);
+        List<DatosZonaDondeAbrir.Punto> visibles = lugares.stream()
+                .filter(lugar -> !"COMPETENCIA".equals(lugar.tipo()) || request.rubro().name().equals(lugar.rubro()))
+                .toList();
+        String clave = "punto:" + latitud.toPlainString() + "," + longitud.toPlainString();
+        return new DatosZonaDondeAbrir(ZonaId.deClave(clave),
+                "Punto elegido · cerca de " + cercana.nombre(), cercana.localidad(), cercana.partido(),
+                cercana.provincia(), latitud, longitud, metricas, visibles);
+    }
+
+    private static long cantidad(List<DatosZonaDondeAbrir.Punto> lugares, String tipo, String rubro) {
+        return lugares.stream()
+                .filter(lugar -> tipo.equals(lugar.tipo()) && (rubro == null || rubro.equals(lugar.rubro())))
+                .count();
+    }
+
+    private static void medir(Map<FactorDondeAbrir, Medicion> metricas, FactorDondeAbrir factor, String unidad,
+                              long cantidad, LocalDate hoy) {
+        metricas.put(factor, new Medicion(BigDecimal.valueOf(cantidad), unidad, OPEN_STREET_MAP, hoy));
     }
 
     private static void validar(ExplorarDondeAbrirRequest request) {
@@ -89,6 +150,12 @@ public class ExplorarDondeAbrir {
                 throw new BusinessRuleException("Cada alquiler informado tiene que ser mayor que cero");
             }
         });
+        ExplorarDondeAbrirRequest.PuntoElegido punto = request.punto();
+        if (punto != null && (punto.latitud() == null || punto.longitud() == null
+                || punto.latitud().abs().compareTo(BigDecimal.valueOf(90)) > 0
+                || punto.longitud().abs().compareTo(BigDecimal.valueOf(180)) > 0)) {
+            throw new BusinessRuleException("El punto elegido tiene que tener latitud y longitud válidas");
+        }
         ExplorarDondeAbrirRequest.Limites limites = request.limites();
         if (limites != null && (negativo(limites.distanciaMaxKm()) || negativo(limites.competenciaMax())
                 || negativo(limites.escuelasMin()) || negativo(limites.parquesMin())
@@ -346,13 +413,17 @@ public class ExplorarDondeAbrir {
         if (negocio.getLatitud() == null || negocio.getLongitud() == null) {
             return null;
         }
-        double lat1 = Math.toRadians(negocio.getLatitud().doubleValue());
+        return decimal(kilometros(negocio.getLatitud(), negocio.getLongitud(), zona), 1);
+    }
+
+    private static double kilometros(BigDecimal latitud, BigDecimal longitud, DatosZonaDondeAbrir zona) {
+        double lat1 = Math.toRadians(latitud.doubleValue());
         double lat2 = Math.toRadians(zona.latitud().doubleValue());
         double deltaLat = lat2 - lat1;
-        double deltaLon = Math.toRadians(zona.longitud().doubleValue() - negocio.getLongitud().doubleValue());
+        double deltaLon = Math.toRadians(zona.longitud().doubleValue() - longitud.doubleValue());
         double a = Math.pow(Math.sin(deltaLat / 2d), 2d)
                 + Math.cos(lat1) * Math.cos(lat2) * Math.pow(Math.sin(deltaLon / 2d), 2d);
-        return decimal(2d * RADIO_TERRESTRE_KM * Math.asin(Math.sqrt(a)), 1);
+        return 2d * RADIO_TERRESTRE_KM * Math.asin(Math.sqrt(a));
     }
 
     private static String coincidencia(double puntaje) {

@@ -14,7 +14,13 @@ public record ExplorarDondeAbrirResponse(
         int evaluadas,
         List<ZonaEvaluada> ranking,
         List<ZonaDescartada> descartadas,
-        List<String> avisos) {
+        List<String> avisos,
+        ZonaId puntoElegidoId) {
+
+    public ExplorarDondeAbrirResponse(NegocioActual negocioActual, int evaluadas, List<ZonaEvaluada> ranking,
+                                      List<ZonaDescartada> descartadas, List<String> avisos) {
+        this(negocioActual, evaluadas, ranking, descartadas, avisos, null);
+    }
 
     public record NegocioActual(String nombre, RubroNegocio rubro, String direccion, BigDecimal latitud,
                                 BigDecimal longitud, ZonaId zonaId) {

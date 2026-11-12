@@ -121,6 +121,8 @@ export const dondeAbrirSchema = z.object({
   ),
   descartadas: z.array(zonaBaseDondeAbrirSchema.extend({ motivos: z.array(z.string()) })),
   avisos: z.array(z.string()),
+  /** Id del lugar que la persona tocó en el mapa, si pidió medir uno. */
+  puntoElegidoId: z.string().uuid().nullish(),
 });
 
 export type DondeAbrirResponse = z.infer<typeof dondeAbrirSchema>;
@@ -138,4 +140,6 @@ export type PedidoDondeAbrir = {
     alquilerMax?: number;
   };
   alquileres: { zonaId: string; valor: number }[];
+  /** Un lugar cualquiera del mapa: el servidor lo mide en vivo y lo suma al ranking. */
+  punto?: { latitud: number; longitud: number };
 };

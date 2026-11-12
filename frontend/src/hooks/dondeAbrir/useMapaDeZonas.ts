@@ -29,6 +29,11 @@ export const COLOR_DE_COINCIDENCIA: Record<Coincidencia, string> = {
   mala: '#c42b2b',
 };
 export const COLOR_SIN_PODIO = '#69777c';
+/** El lugar que la persona tocó en el mapa: el naranja de la marca, aparte de los colores del ranking. */
+const COLOR_DEL_ELEGIDO = '#ee8000';
+
+/** Cinco decimales son ~1 m: alcanza para el mapa y evita pedidos distintos por un pixel. */
+const redondear = (valor: number) => Math.round(valor * 1e5) / 1e5;
 
 export const COLOR_DE_PUNTO: Record<TipoDePunto, string> = {
   competencia: '#c42b2b',
@@ -47,6 +52,12 @@ type Parametros = {
   puntos: Punto[];
   capas: Record<TipoDePunto, boolean>;
   onSeleccionar: (id: string) => void;
+  /** Se llama con el lugar que la persona toca en el mapa para medirlo en vivo. */
+  onElegirPunto?: (latitud: number, longitud: number) => void;
+  /** El lugar tocado, para dibujarlo enseguida aunque todavía no haya vuelto la medición. */
+  punto?: { latitud: number; longitud: number } | null;
+  /** Id de ese lugar dentro del ranking, cuando el servidor ya lo midió. */
+  puntoElegidoId?: string | null;
   localActual?: { latitud: number | null; longitud: number | null; nombre: string };
 };
 
@@ -58,13 +69,18 @@ export function useMapaDeZonas({
   puntos,
   capas,
   onSeleccionar,
+  onElegirPunto,
+  punto,
+  puntoElegidoId,
   localActual,
 }: Parametros) {
   const contenedor = useRef<HTMLDivElement>(null);
   const mapa = useRef<Map | null>(null);
   const grupoDeZonas = useRef<LayerGroup | null>(null);
   const grupoDePuntos = useRef<LayerGroup | null>(null);
+  const grupoDelElegido = useRef<LayerGroup | null>(null);
   const seleccionar = useRef(onSeleccionar);
+  const elegirPunto = useRef(onElegirPunto);
   const primerAjuste = useRef(true);
   const ultimaSeleccion = useRef('');
   const [error, setError] = useState(false);
@@ -72,7 +88,8 @@ export function useMapaDeZonas({
 
   useEffect(() => {
     seleccionar.current = onSeleccionar;
-  }, [onSeleccionar]);
+    elegirPunto.current = onElegirPunto;
+  }, [onSeleccionar, onElegirPunto]);
 
   useEffect(() => {
     if (!contenedor.current) return;
@@ -108,6 +125,10 @@ export function useMapaDeZonas({
       }
       grupoDeZonas.current = layerGroup().addTo(instancia);
       grupoDePuntos.current = layerGroup().addTo(instancia);
+      grupoDelElegido.current = layerGroup().addTo(instancia);
+      instancia.on('click', (evento) =>
+        elegirPunto.current?.(redondear(evento.latlng.lat), redondear(evento.latlng.lng)),
+      );
       mapa.current = instancia;
     } catch {
       setError(true);
@@ -117,6 +138,7 @@ export function useMapaDeZonas({
       mapa.current = null;
       grupoDeZonas.current = null;
       grupoDePuntos.current = null;
+      grupoDelElegido.current = null;
     };
   }, []);
 
@@ -142,6 +164,7 @@ export function useMapaDeZonas({
     ranking.forEach((item, indice) => {
       const color = COLOR_DE_COINCIDENCIA[item.coincidencia];
       const activa = item.zona.id === seleccionadaId;
+      const esElegido = item.zona.id === puntoElegidoId;
       const centro: [number, number] = [item.zona.latitud, item.zona.longitud];
       circle(centro, {
         radius: RADIO_DE_ANALISIS_M,
@@ -155,8 +178,11 @@ export function useMapaDeZonas({
         title: `Puesto ${indice + 1}: ${item.zona.nombre} (${formatoPuntaje(item.puntaje)})`,
         alt: `Puesto ${indice + 1}: ${item.zona.nombre}`,
         icon: divIcon({
-          className: `donde-pin ${activa ? 'activa' : ''} ${indice > 2 ? 'chico' : ''}`.trim(),
-          html: `<span style="--color:${color}">${indice + 1}</span>`,
+          className:
+            `donde-pin ${activa ? 'activa' : ''} ${indice > 2 && !esElegido ? 'chico' : ''} ${esElegido ? 'punto' : ''}`
+              .replace(/\s+/g, ' ')
+              .trim(),
+          html: `<span style="--color:${color}">${esElegido ? '★' : indice + 1}</span>`,
           iconSize: [32, 32],
           iconAnchor: [16, 16],
         }),
@@ -188,7 +214,31 @@ export function useMapaDeZonas({
     } catch {
       // Sin tamaño (por ejemplo, en pruebas): el mapa queda donde está.
     }
-  }, [ranking, descartadas, seleccionadaId]);
+  }, [ranking, descartadas, seleccionadaId, puntoElegidoId]);
+
+  // El lugar tocado se ve al instante; cuando llega la medición, entra al ranking como una zona más.
+  useEffect(() => {
+    const grupo = grupoDelElegido.current;
+    if (!grupo) return;
+    grupo.clearLayers();
+    if (!punto) return;
+    circle([punto.latitud, punto.longitud], {
+      radius: RADIO_DE_ANALISIS_M,
+      color: COLOR_DEL_ELEGIDO,
+      weight: 2,
+      dashArray: '2 6',
+      fillOpacity: 0.04,
+      interactive: false,
+    }).addTo(grupo);
+    circleMarker([punto.latitud, punto.longitud], {
+      radius: 5,
+      color: '#ffffff',
+      weight: 2,
+      fillColor: COLOR_DEL_ELEGIDO,
+      fillOpacity: 1,
+      interactive: false,
+    }).addTo(grupo);
+  }, [punto]);
 
   useEffect(() => {
     const grupo = grupoDePuntos.current;

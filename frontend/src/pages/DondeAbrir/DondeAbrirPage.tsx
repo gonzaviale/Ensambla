@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeftIcon, CopyIcon } from '@phosphor-icons/react';
 import { Sami } from '@/components/sistema/Sami';
 import { COLOR_DE_PUNTO } from '@/hooks/dondeAbrir/useMapaDeZonas';
-import { useDondeAbrir, type AlquileresPorZona } from '@/hooks/dondeAbrir/queries';
+import { useDondeAbrir, type AlquileresPorZona, type PuntoElegido } from '@/hooks/dondeAbrir/queries';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import {
@@ -79,11 +79,19 @@ export function DondeAbrirPage() {
   // Quién subió o bajó solo se marca cuando la persona mueve un filtro, no por lo que contestó en las preguntas.
   const [movioFiltros, setMovioFiltros] = useState(false);
   const [alquileres, setAlquileres] = useState<AlquileresPorZona>({});
+  // Un lugar cualquiera que la persona tocó en el mapa: el servidor lo mide en vivo y lo suma al ranking.
+  const [punto, setPunto] = useState<PuntoElegido | null>(null);
 
-  const consulta = useDondeAbrir(filtros, alquileres, paso === 'resultado');
+  const consulta = useDondeAbrir(filtros, alquileres, paso === 'resultado', punto);
   const exploracion = consulta.data ?? { ranking: [], descartadas: [], evaluadas: 0 };
+  const puntoElegidoId = consulta.data?.puntoElegidoId ?? null;
   const { ranking, descartadas } = exploracion;
   const elegida = ranking.find((item) => item.zona.id === seleccionadaId) ?? ranking[0];
+
+  // Al medir un lugar nuevo, el detalle pasa a ser el de ese lugar.
+  useEffect(() => {
+    if (puntoElegidoId) setSeleccionadaId(puntoElegidoId);
+  }, [puntoElegidoId]);
   const activos = useMemo(() => filtrosActivos(filtros), [filtros]);
   // Las tres mejores para comparar de un vistazo; si se eligió otra, también aparece.
   const mejores = useMemo(() => {
@@ -183,7 +191,16 @@ export function DondeAbrirPage() {
           )}
           {consulta.isError && (
             <div className="donde-estado error" role="alert">
-              <p>No pudimos calcular el ranking. Tus respuestas siguen guardadas.</p>
+              <p>
+                {punto
+                  ? 'No pudimos medir ese lugar. Probá con otro punto o volvé a intentar.'
+                  : 'No pudimos calcular el ranking. Tus respuestas siguen guardadas.'}
+              </p>
+              {punto && (
+                <button type="button" className="btn ghost" onClick={() => setPunto(null)}>
+                  Quitar el lugar
+                </button>
+              )}
               <button
                 type="button"
                 className="btn secondary"
@@ -350,9 +367,26 @@ export function DondeAbrirPage() {
                 puntos={puntos}
                 capas={capas}
                 onSeleccionar={setSeleccionadaId}
+                onElegirPunto={(latitud, longitud) => setPunto({ latitud, longitud })}
+                punto={punto}
+                puntoElegidoId={puntoElegidoId}
                 localActual={consulta.data?.negocioActual}
               />
-              <LeyendaDeColores />
+              <div className="donde-punto" role="status">
+                {punto && consulta.isFetching ? (
+                  <p>Midiendo ese lugar con datos de OpenStreetMap…</p>
+                ) : punto && !consulta.isError ? (
+                  <p>
+                    Mediste un lugar a mano: se cuenta lo que hay a 500 m, ahora mismo.{' '}
+                    <button type="button" className="btn ghost small" onClick={() => setPunto(null)}>
+                      Quitar el lugar
+                    </button>
+                  </p>
+                ) : (
+                  <p>Tocá cualquier lugar del mapa para medirlo y compararlo con las zonas.</p>
+                )}
+              </div>
+              <LeyendaDeColores capas={capas} hayLugarElegido={Boolean(punto)} />
             </div>
           </div>
 

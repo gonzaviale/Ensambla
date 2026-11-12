@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.port.GeocodificadorPort;
+import com.ensambla.backend.domain.port.EntornoDelPuntoPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
@@ -55,7 +56,8 @@ public class ZonaUseCaseConfig {
     public ExplorarDondeAbrir explorarDondeAbrir(
             NegocioRepository negocioRepository,
             DatosDondeAbrirRepository datosDondeAbrirRepository,
+            EntornoDelPuntoPort entornoDelPuntoPort,
             Clock clock) {
-        return new ExplorarDondeAbrir(negocioRepository, datosDondeAbrirRepository, clock);
+        return new ExplorarDondeAbrir(negocioRepository, datosDondeAbrirRepository, entornoDelPuntoPort, clock);
     }
 }

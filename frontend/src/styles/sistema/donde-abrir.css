@@ -322,11 +322,42 @@
   border-radius: 50%;
   background: #2f7a55;
 }
+.donde-leyendas {
+  display: grid;
+  gap: 6px;
+}
+.donde-leyenda .titulo {
+  color: var(--ink, #263443);
+  font-weight: 700;
+}
 .donde-leyenda .intermedia i {
   background: #c99a00;
 }
 .donde-leyenda .mala i {
   background: #c42b2b;
+}
+/* Las zonas se dibujan como anillos en el mapa y los lugares como puntos llenos: la leyenda copia esa diferencia. */
+.donde-leyenda .zona i {
+  width: 12px;
+  height: 12px;
+  border: 3px solid currentColor;
+  background: #fff;
+  box-sizing: border-box;
+}
+.donde-leyenda .zona.buena i {
+  color: #2f7a55;
+}
+.donde-leyenda .zona.intermedia i {
+  color: #c99a00;
+  background: #fff;
+}
+.donde-leyenda .zona.mala i {
+  color: #c42b2b;
+  background: #fff;
+}
+.donde-leyenda .zona.elegido i {
+  color: #ee8000;
+  border-style: dashed;
 }
 .donde-acciones {
   display: flex;
@@ -783,6 +814,19 @@
 }
 .donde-pin.chico span {
   transform: scale(0.8);
+}
+.donde-pin.punto span {
+  border-style: dashed;
+  font-size: 15px;
+}
+.donde-punto {
+  min-height: 24px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.donde-punto p {
+  margin: 0;
 }
 .donde-pin.activa span {
   background: var(--color);

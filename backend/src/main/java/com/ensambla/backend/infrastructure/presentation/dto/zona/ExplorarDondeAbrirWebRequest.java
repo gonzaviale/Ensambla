@@ -4,6 +4,8 @@ import com.ensambla.backend.domain.model.negocio.RubroNegocio;
 import com.ensambla.backend.domain.model.zona.FactorDondeAbrir;
 import com.ensambla.backend.domain.model.zona.PublicoDondeAbrir;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -20,7 +22,14 @@ public record ExplorarDondeAbrirWebRequest(
         @NotNull PublicoDondeAbrir publico,
         Map<FactorDondeAbrir, @Min(0) @Max(2) Integer> importancia,
         @Valid LimitesWebRequest limites,
-        List<@Valid AlquilerWebRequest> alquileres) {
+        List<@Valid AlquilerWebRequest> alquileres,
+        @Valid PuntoWebRequest punto) {
+
+    /** Un lugar cualquiera del mapa; se mide en vivo y compite con las zonas precargadas. */
+    public record PuntoWebRequest(
+            @NotNull @DecimalMin("-90") @DecimalMax("90") BigDecimal latitud,
+            @NotNull @DecimalMin("-180") @DecimalMax("180") BigDecimal longitud) {
+    }
 
     public record LimitesWebRequest(
             @PositiveOrZero BigDecimal distanciaMaxKm,

@@ -9,7 +9,8 @@ public record DondeAbrirWebResponse(
         int evaluadas,
         List<ZonaEvaluadaWebResponse> ranking,
         List<ZonaDescartadaWebResponse> descartadas,
-        List<String> avisos) {
+        List<String> avisos,
+        String puntoElegidoId) {
 
     public record NegocioActualWebResponse(String nombre, String rubro, String direccion, BigDecimal latitud,
                                            BigDecimal longitud, String zonaId) {

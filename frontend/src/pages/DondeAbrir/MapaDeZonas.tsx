@@ -9,6 +9,9 @@ type Props = {
   puntos: Punto[];
   capas: Record<TipoDePunto, boolean>;
   onSeleccionar: (id: string) => void;
+  onElegirPunto?: (latitud: number, longitud: number) => void;
+  punto?: { latitud: number; longitud: number } | null;
+  puntoElegidoId?: string | null;
   localActual?: { latitud: number | null; longitud: number | null; nombre: string };
 };
 

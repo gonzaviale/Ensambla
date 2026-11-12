@@ -38,7 +38,13 @@ const PUBLICO_API = {
 
 export type AlquileresPorZona = Record<string, number>;
 
-export function pedidoDondeAbrir(filtros: Filtros, alquileres: AlquileresPorZona): PedidoDondeAbrir {
+export type PuntoElegido = { latitud: number; longitud: number };
+
+export function pedidoDondeAbrir(
+  filtros: Filtros,
+  alquileres: AlquileresPorZona,
+  punto?: PuntoElegido | null,
+): PedidoDondeAbrir {
   return {
     rubro: RUBRO_API[filtros.rubro],
     publico: PUBLICO_API[filtros.publico],
@@ -62,6 +68,7 @@ export function pedidoDondeAbrir(filtros: Filtros, alquileres: AlquileresPorZona
     alquileres: Object.entries(alquileres)
       .filter(([, valor]) => Number.isFinite(valor) && valor > 0)
       .map(([zonaId, valor]) => ({ zonaId, valor })),
+    ...(punto && { punto }),
   };
 }
 
@@ -69,8 +76,9 @@ export function useDondeAbrir(
   filtros: Filtros,
   alquileres: AlquileresPorZona,
   habilitada: boolean,
+  punto?: PuntoElegido | null,
 ) {
-  const pedido = pedidoDondeAbrir(filtros, alquileres);
+  const pedido = pedidoDondeAbrir(filtros, alquileres, punto);
   return useQuery({
     queryKey: ['zona', 'donde-abrir', pedido],
     queryFn: ({ signal }) => explorarDondeAbrir(pedido, signal),

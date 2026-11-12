@@ -19,7 +19,12 @@ public class DondeAbrirPresentationMapper {
 
     public ExplorarDondeAbrirRequest toRequest(ExplorarDondeAbrirWebRequest request, UsuarioId usuarioId) {
         return new ExplorarDondeAbrirRequest(usuarioId, request.rubro(), request.publico(), request.importancia(),
-                limites(request.limites()), alquileres(request));
+                limites(request.limites()), alquileres(request), punto(request.punto()));
+    }
+
+    private static ExplorarDondeAbrirRequest.PuntoElegido punto(
+            ExplorarDondeAbrirWebRequest.PuntoWebRequest punto) {
+        return punto == null ? null : new ExplorarDondeAbrirRequest.PuntoElegido(punto.latitud(), punto.longitud());
     }
 
     private static ExplorarDondeAbrirRequest.Limites limites(
@@ -52,7 +57,7 @@ public class DondeAbrirPresentationMapper {
                 response.descartadas().stream().map(descartada -> new DondeAbrirWebResponse.ZonaDescartadaWebResponse(
                         id(descartada.id()), descartada.nombre(), descartada.localidad(), descartada.jurisdiccion(),
                         descartada.latitud(), descartada.longitud(), descartada.distanciaKm(), descartada.motivos()))
-                        .toList(), response.avisos());
+                        .toList(), response.avisos(), id(response.puntoElegidoId()));
     }
 
     private DondeAbrirWebResponse.ZonaEvaluadaWebResponse zona(ExplorarDondeAbrirResponse.ZonaEvaluada zona) {

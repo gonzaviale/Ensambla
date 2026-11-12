@@ -31,7 +31,7 @@ class DondeAbrirPresentationMapperTest {
     @DisplayName("Convierte un pedido mínimo y deja vacíos los alquileres opcionales")
     void shouldMapMinimalRequest() {
         var request = new ExplorarDondeAbrirWebRequest(
-                RubroNegocio.KIOSCO, PublicoDondeAbrir.OFICINAS, null, null, null);
+                RubroNegocio.KIOSCO, PublicoDondeAbrir.OFICINAS, null, null, null, null);
 
         var resultado = mapper.toRequest(request, USUARIO_ID);
 
@@ -39,6 +39,19 @@ class DondeAbrirPresentationMapperTest {
         assertThat(resultado.rubro()).isEqualTo(RubroNegocio.KIOSCO);
         assertThat(resultado.limites()).isNull();
         assertThat(resultado.alquileres()).isEmpty();
+        assertThat(resultado.punto()).isNull();
+    }
+
+    @Test
+    @DisplayName("Convierte el punto elegido en el mapa")
+    void shouldMapChosenPoint() {
+        var request = new ExplorarDondeAbrirWebRequest(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS, null, null,
+                null, new ExplorarDondeAbrirWebRequest.PuntoWebRequest(new BigDecimal("-34.6"), new BigDecimal("-58.4")));
+
+        var resultado = mapper.toRequest(request, USUARIO_ID);
+
+        assertThat(resultado.punto().latitud()).isEqualByComparingTo("-34.6");
+        assertThat(resultado.punto().longitud()).isEqualByComparingTo("-58.4");
     }
 
     @Test
@@ -46,7 +59,7 @@ class DondeAbrirPresentationMapperTest {
     void shouldRejectDuplicateRentQuotes() {
         var alquiler = new ExplorarDondeAbrirWebRequest.AlquilerWebRequest(ZONA_UUID, BigDecimal.TEN);
         var request = new ExplorarDondeAbrirWebRequest(
-                RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS, Map.of(), null, List.of(alquiler, alquiler));
+                RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS, Map.of(), null, List.of(alquiler, alquiler), null);
 
         assertThatThrownBy(() -> mapper.toRequest(request, USUARIO_ID))
                 .isInstanceOf(BusinessRuleException.class)
@@ -74,11 +87,12 @@ class DondeAbrirPresentationMapperTest {
                         "Negocio", RubroNegocio.ALMACEN, null, null, null, null),
                 2, List.of(zona), List.of(new ExplorarDondeAbrirResponse.ZonaDescartada(
                         zonaId, "Boedo", "CABA", "CABA", new BigDecimal("-34.6"),
-                        new BigDecimal("-58.4"), BigDecimal.TEN, List.of("Lejos"))), List.of("Aviso"));
+                        new BigDecimal("-58.4"), BigDecimal.TEN, List.of("Lejos"))), List.of("Aviso"), zonaId);
 
         var resultado = mapper.toResponse(response);
 
         assertThat(resultado.negocioActual().zonaId()).isNull();
+        assertThat(resultado.puntoElegidoId()).isEqualTo(ZONA_UUID.toString());
         assertThat(resultado.ranking()).singleElement().satisfies(item -> {
             assertThat(item.id()).isEqualTo(ZONA_UUID.toString());
             assertThat(item.aportes().getFirst().fuente().codigo()).isEqualTo("OSM");

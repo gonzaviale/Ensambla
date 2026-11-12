@@ -99,6 +99,8 @@ const punto = (item: DondeAbrirResponse['ranking'][number]['puntos'][number]): P
 export type ExploracionRemota = Exploracion & {
   negocioActual: DondeAbrirResponse['negocioActual'];
   avisos: string[];
+  /** Id del lugar medido en vivo, si la persona tocó uno en el mapa. */
+  puntoElegidoId: string | null;
 };
 
 export function adaptarDondeAbrir(respuesta: DondeAbrirResponse, filtros: Filtros): ExploracionRemota {
@@ -140,5 +142,6 @@ export function adaptarDondeAbrir(respuesta: DondeAbrirResponse, filtros: Filtro
     evaluadas: respuesta.evaluadas,
     negocioActual: respuesta.negocioActual,
     avisos: respuesta.avisos,
+    puntoElegidoId: respuesta.puntoElegidoId ?? null,
   };
 }

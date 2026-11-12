@@ -8,6 +8,7 @@ import com.ensambla.backend.domain.model.zona.DatosZonaDondeAbrir;
 import com.ensambla.backend.domain.model.zona.FactorDondeAbrir;
 import com.ensambla.backend.domain.model.zona.PublicoDondeAbrir;
 import com.ensambla.backend.domain.model.zona.ZonaId;
+import com.ensambla.backend.domain.port.EntornoDelPuntoPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.zona.DatosDondeAbrirRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +31,10 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class ExplorarDondeAbrirTest {
@@ -47,7 +51,9 @@ class ExplorarDondeAbrirTest {
 
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final DatosDondeAbrirRepository datosRepository = mock(DatosDondeAbrirRepository.class);
-    private final ExplorarDondeAbrir useCase = new ExplorarDondeAbrir(negocioRepository, datosRepository, CLOCK);
+    private final EntornoDelPuntoPort entornoPort = mock(EntornoDelPuntoPort.class);
+    private final ExplorarDondeAbrir useCase =
+            new ExplorarDondeAbrir(negocioRepository, datosRepository, entornoPort, CLOCK);
 
     @BeforeEach
     void setUp() {
@@ -321,6 +327,89 @@ class ExplorarDondeAbrirTest {
         assertThat(resultado.ranking()).anySatisfy(zona -> assertThat(zona.riesgos()).hasSize(2));
     }
 
+    @Test
+    @DisplayName("Mide en vivo el punto elegido y lo compara con las zonas precargadas")
+    void shouldMeasureChosenPointLiveAndRankItWithPreloadedZones() {
+        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(
+                zonaEn(ZONA_A, "Base", "-34.65", "-58.55", Map.of(FactorDondeAbrir.ESCUELAS, medicion(1))),
+                zonaEn(ZONA_B, "Lejana", "-34.70", "-58.60", Map.of(FactorDondeAbrir.ESCUELAS, medicion(0)))));
+        when(entornoPort.consultar(eq(new BigDecimal("-34.65100")), eq(new BigDecimal("-58.55100")),
+                eq(CLOCK.instant()))).thenReturn(entornoDelPunto());
+
+        var resultado = useCase.execute(new ExplorarDondeAbrirRequest(USUARIO_ID, RubroNegocio.ALMACEN,
+                PublicoDondeAbrir.ESTUDIANTES, importanciaSolo(FactorDondeAbrir.ESCUELAS), null, Map.of(),
+                new ExplorarDondeAbrirRequest.PuntoElegido(new BigDecimal("-34.651"), new BigDecimal("-58.551"))));
+
+        assertThat(resultado.evaluadas()).isEqualTo(3);
+        assertThat(resultado.puntoElegidoId()).isNotNull();
+        var punto = resultado.ranking().getFirst();
+        assertThat(punto.id()).isEqualTo(resultado.puntoElegidoId());
+        assertThat(punto.nombre()).isEqualTo("Punto elegido · cerca de Base");
+        assertThat(punto.jurisdiccion()).isEqualTo("La Matanza");
+        assertThat(punto.aportes()).singleElement().satisfies(aporte -> {
+            assertThat(aporte.factor()).isEqualTo(FactorDondeAbrir.ESCUELAS);
+            assertThat(aporte.valor()).isEqualByComparingTo("2");
+            assertThat(aporte.fuente().codigo()).isEqualTo("OSM");
+            assertThat(aporte.observadaEn()).isEqualTo(LocalDate.parse("2026-11-10"));
+        });
+        assertThat(punto.puntos()).hasSize(8)
+                .noneMatch(lugar -> "KIOSCO".equals(lugar.rubro()));
+        assertThat(resultado.avisos().getFirst()).contains("OpenStreetMap");
+    }
+
+    @Test
+    @DisplayName("El punto elegido cuenta cada categoría y sólo la competencia del rubro")
+    void shouldCountEveryCategoryOfTheChosenPoint() {
+        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(
+                zonaEn(ZONA_A, "Base", "-34.65", "-58.55", Map.of())));
+        when(entornoPort.consultar(eq(new BigDecimal("-34.65100")), eq(new BigDecimal("-58.55100")),
+                eq(CLOCK.instant()))).thenReturn(entornoDelPunto());
+
+        var resultado = useCase.execute(new ExplorarDondeAbrirRequest(USUARIO_ID, RubroNegocio.ALMACEN,
+                PublicoDondeAbrir.VECINOS, Map.of(), null, Map.of(),
+                new ExplorarDondeAbrirRequest.PuntoElegido(new BigDecimal("-34.651"), new BigDecimal("-58.551"))));
+
+        var aportes = resultado.ranking().stream()
+                .filter(zona -> zona.id().equals(resultado.puntoElegidoId())).findFirst().orElseThrow().aportes();
+        assertThat(aportes).extracting(ExplorarDondeAbrirResponse.Aporte::factor).containsExactlyInAnyOrder(
+                FactorDondeAbrir.COMPETENCIA, FactorDondeAbrir.ESCUELAS, FactorDondeAbrir.OFICINAS,
+                FactorDondeAbrir.TRANSPORTE, FactorDondeAbrir.PARQUES, FactorDondeAbrir.SALUD,
+                FactorDondeAbrir.COMPLEMENTARIOS);
+        assertThat(aportes).filteredOn(aporte -> aporte.factor() == FactorDondeAbrir.COMPETENCIA)
+                .singleElement().satisfies(aporte -> assertThat(aporte.valor()).isEqualByComparingTo("1"));
+    }
+
+    @Test
+    @DisplayName("No mide un punto fuera de CABA y La Matanza")
+    void shouldRejectChosenPointOutsideCoverage() {
+        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(
+                zonaEn(ZONA_A, "Base", "-34.65", "-58.55", Map.of())));
+        var pedido = new ExplorarDondeAbrirRequest(USUARIO_ID, RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
+                Map.of(), null, Map.of(),
+                new ExplorarDondeAbrirRequest.PuntoElegido(new BigDecimal("-31.4"), new BigDecimal("-64.2")));
+
+        assertThatThrownBy(() -> useCase.execute(pedido))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("CABA y La Matanza");
+        verifyNoInteractions(entornoPort);
+    }
+
+    @Test
+    @DisplayName("Sin punto elegido no consulta la fuente en vivo ni agrega zonas")
+    void shouldNotQueryLiveSourceWithoutChosenPoint() {
+        when(datosRepository.buscar(RubroNegocio.ALMACEN)).thenReturn(List.of(
+                zona(ZONA_A, "Única", Map.of(FactorDondeAbrir.ESCUELAS, medicion(3)))));
+
+        var resultado = useCase.execute(request(RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
+                Map.of(), null, Map.of()));
+
+        assertThat(resultado.puntoElegidoId()).isNull();
+        assertThat(resultado.evaluadas()).isEqualTo(1);
+        verify(entornoPort, org.mockito.Mockito.never()).consultar(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any());
+    }
+
     @ParameterizedTest(name = "rechaza {0}")
     @MethodSource("requestsInvalidos")
     @DisplayName("Rechaza filtros incompletos o inválidos")
@@ -359,8 +448,30 @@ class ExplorarDondeAbrirTest {
                 new Object[]{"escuelas negativas", conLimites(BigDecimal.ZERO, 0, -1, 0, 0, BigDecimal.ZERO)},
                 new Object[]{"parques negativos", conLimites(BigDecimal.ZERO, 0, 0, -1, 0, BigDecimal.ZERO)},
                 new Object[]{"transporte negativo", conLimites(BigDecimal.ZERO, 0, 0, 0, -1, BigDecimal.ZERO)},
+                new Object[]{"punto sin latitud", conPunto(null, BigDecimal.ONE)},
+                new Object[]{"punto sin longitud", conPunto(BigDecimal.ONE, null)},
+                new Object[]{"latitud fuera de rango", conPunto(new BigDecimal("91"), BigDecimal.ONE)},
+                new Object[]{"longitud fuera de rango", conPunto(BigDecimal.ONE, new BigDecimal("-181"))},
                 new Object[]{"alquiler máximo negativo", conLimites(BigDecimal.ZERO, 0, 0, 0, 0,
                         new BigDecimal("-1"))});
+    }
+
+    private static ExplorarDondeAbrirRequest conPunto(BigDecimal latitud, BigDecimal longitud) {
+        return new ExplorarDondeAbrirRequest(USUARIO_ID, RubroNegocio.ALMACEN, PublicoDondeAbrir.VECINOS,
+                Map.of(), null, Map.of(), new ExplorarDondeAbrirRequest.PuntoElegido(latitud, longitud));
+    }
+
+    private static List<DatosZonaDondeAbrir.Punto> entornoDelPunto() {
+        return List.of(
+                lugar("ESCUELA", null), lugar("ESCUELA", null), lugar("OFICINA", null),
+                lugar("TRANSPORTE", null), lugar("PARQUE", null), lugar("SALUD", null),
+                lugar("COMPLEMENTARIO", null), lugar("COMPETENCIA", "ALMACEN"),
+                lugar("COMPETENCIA", "KIOSCO"));
+    }
+
+    private static DatosZonaDondeAbrir.Punto lugar(String tipo, String rubro) {
+        return new DatosZonaDondeAbrir.Punto("node:" + tipo + rubro, tipo, rubro, "Lugar",
+                new BigDecimal("-34.651"), new BigDecimal("-58.551"), OSM, LocalDate.parse("2026-11-10"));
     }
 
     private static ExplorarDondeAbrirRequest conLimites(BigDecimal distancia, Integer competencia,

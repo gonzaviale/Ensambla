@@ -190,8 +190,14 @@ que traducirlos al guardar; `MONEDA` todavía no cuenta como numérica para fór
 - V24 suma `fuente_dato_zona`, `metrica_zona` y `punto_interes_zona` para «Dónde abrir». Las fuentes conservan
   procedencia, licencia y fecha de consulta; las métricas guardan valores comparables por zona y, para competencia,
   por rubro; los puntos conservan las coordenadas reales que se muestran en el mapa. Son snapshots globales y no
-  contienen datos de un comercio individual. Las búsquedas leen PostgreSQL y nunca llaman a fuentes externas durante
-  la navegación. Las lecturas de Ensambla sólo participan agregadas cuando cumplen el mínimo de anonimato.
+  contienen datos de un comercio individual. Las zonas precargadas se leen de PostgreSQL. Las lecturas de Ensambla
+  sólo participan agregadas cuando cumplen el mínimo de anonimato.
+- **Lugar suelto del mapa.** `POST /api/zona/donde-abrir` acepta `punto { latitud, longitud }`: el servidor mide ahora lo que
+  hay a 500 m (Overpass / OpenStreetMap, con las mismas reglas del snapshot) y lo suma al ranking como «Punto elegido».
+  Es la única consulta externa de la navegación: se guarda 24 h por punto en memoria, no se persiste y sólo envía
+  coordenadas. Sólo se miden lugares a menos de 8 km de una zona precargada (CABA y La Matanza), que es donde hay
+  guía de trámites. Un lugar suelto no tiene vecinos, poder de compra ni demanda de Ensambla (son por zona), así que esos
+  factores no suman a su puntaje; el aviso de la respuesta lo dice.
 
 ### Avisos del motor de monitoreo
 

@@ -15,13 +15,17 @@ import { api, cuenta, LATENCIA_BACKEND_MS, pathDe } from './comun';
 import {
   FILTROS_INICIALES,
   ZONAS,
+  distanciaEnKm,
   explorar,
   puntosDeLaZona,
+  puntuar,
+  type DatosDeZona,
   type FactorClave,
   type Filtros,
   type Rubro,
 } from '@/lib/dondeAbrir';
 
+const ID_DEL_PUNTO_ELEGIDO = '00000000-0000-4000-8000-0000000000ff';
 const DEMORA_DEL_ANALISIS_MS = import.meta.env.MODE === 'test' ? 0 : 650;
 
 // Cada pantalla de Mi zona ordena los productos a su manera y gasta su propio cupo gratuito.
@@ -75,6 +79,7 @@ export const handlersZona = [
       publico?: string;
       importancia?: Record<string, 0 | 1 | 2>;
       limites?: Partial<Filtros['limites']>;
+      punto?: { latitud?: number; longitud?: number };
     };
     const rubro = ({ ALMACEN: 'almacen', PAPELERIA: 'papeleria', KIOSCO: 'kiosco' } as const)[
       body.rubro as 'ALMACEN'
@@ -109,7 +114,36 @@ export const handlersZona = [
       },
     };
     const resultado = explorar(filtros);
+    // Modo demo: un lugar tocado en el mapa se simula con los números de la zona precargada más cercana.
+    // El servidor real lo mide en vivo con OpenStreetMap.
+    let zonaDelPunto: DatosDeZona | null = null;
+    if (body.punto) {
+      const { latitud, longitud } = body.punto;
+      if (typeof latitud !== 'number' || typeof longitud !== 'number')
+        return errorResponse(400, 'El punto elegido tiene que tener latitud y longitud válidas', pathDe(request));
+      const cercana = ZONAS.map((zona) => ({ zona, km: distanciaEnKm({ latitud, longitud }, zona) })).sort(
+        (a, b) => a.km - b.km,
+      )[0];
+      if (!cercana || cercana.km > 8)
+        return errorResponse(
+          400,
+          'Por ahora medimos puntos de CABA y La Matanza: elegí un lugar dentro de esas zonas',
+          pathDe(request),
+        );
+      zonaDelPunto = {
+        ...cercana.zona,
+        id: 'punto-elegido',
+        nombre: `Punto elegido · cerca de ${cercana.zona.nombre}`,
+        latitud,
+        longitud,
+      };
+    }
+    const puntoPuntuado = zonaDelPunto ? puntuar(zonaDelPunto, filtros) : null;
+    const rankingConPunto = puntoPuntuado
+      ? [...resultado.ranking, puntoPuntuado].sort((a, b) => b.puntaje - a.puntaje || a.distanciaKm - b.distanciaKm)
+      : resultado.ranking;
     const idDe = (id: string) => {
+      if (id === 'punto-elegido') return ID_DEL_PUNTO_ELEGIDO;
       const indice = Math.max(0, ZONAS.findIndex((zona) => zona.id === id));
       return `00000000-0000-4000-8000-${String(indice + 1).padStart(12, '0')}`;
     };
@@ -136,7 +170,7 @@ export const handlersZona = [
       jurisdiccion: zona.jurisdiccion === 'caba' ? 'CABA' : 'La Matanza',
       latitud: zona.latitud, longitud: zona.longitud, distanciaKm,
     });
-    const ranking = resultado.ranking.map((item) => ({
+    const ranking = rankingConPunto.map((item) => ({
       ...zonaBase(item.zona, item.distanciaKm),
       puntaje: item.puntaje,
       coincidencia: item.coincidencia.toUpperCase(),
@@ -161,12 +195,18 @@ export const handlersZona = [
         nombre: `Negocio de ${usuario.nombre}`, rubro: 'ALMACEN', direccion: 'Av. Corrientes 5000',
         latitud: -34.5996, longitud: -58.4403, zonaId: null,
       },
-      evaluadas: resultado.evaluadas,
+      evaluadas: resultado.evaluadas + (puntoPuntuado ? 1 : 0),
       ranking,
       descartadas: resultado.descartadas.map((item) => ({
         ...zonaBase(item.zona, item.distanciaKm), motivos: item.motivos,
       })),
-      avisos: ['El alquiler no influye en el ranking hasta que cargues cotizaciones reales'],
+      avisos: [
+        ...(puntoPuntuado
+          ? ['Modo demo: el lugar que elegiste se simula con los números de la zona más cercana']
+          : []),
+        'El alquiler no influye en el ranking hasta que cargues cotizaciones reales',
+      ],
+      puntoElegidoId: puntoPuntuado ? ID_DEL_PUNTO_ELEGIDO : null,
     });
   }),
 ];
