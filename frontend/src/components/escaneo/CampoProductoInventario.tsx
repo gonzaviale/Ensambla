@@ -27,9 +27,6 @@ export function CampoProductoInventario({
           {campo.label}
           {campo.required && <span aria-hidden="true"> *</span>}
         </label>
-        <span aria-hidden="true">
-          {desplegable ? 'Elegir' : campo.type === 'checkbox' ? 'Marcar' : 'Escribir'}
-        </span>
       </div>
       <div className={`escaneo-control ${desplegable ? 'escaneo-control-elegir' : ''}`}>
         <ControlDeCampo

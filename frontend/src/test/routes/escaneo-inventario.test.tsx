@@ -86,11 +86,11 @@ async function abrir(segundaTabla = false) {
 }
 async function buscar(user: ReturnType<typeof userEvent.setup>, codigo: string) {
   await user.type(screen.getByRole('textbox', { name: 'Código de barras' }), `${codigo}{Enter}`);
-  await screen.findByRole('region', { name: 'Revisión del producto' });
+  await screen.findByRole('region', { name: 'Producto detectado' });
   await waitFor(() =>
     expect(
       screen.getByRole('button', {
-        name: /Agregar producto al inventario|Guardar cambios del producto/,
+        name: /Agregar producto al inventario|Guardar cambios del producto|Agregar al stock/,
       }),
     ).toBeEnabled(),
   );
@@ -140,6 +140,11 @@ describe('carga exclusiva de productos en inventario', () => {
       'Alfajor de chocolate con mousse Jorgito 45g',
     );
     expect(screen.getByRole('img', { name: 'Foto de referencia del producto' })).toBeVisible();
+    expect(
+      within(screen.getByRole('region', { name: 'Producto detectado' })).getByRole('heading', {
+        name: 'Alfajor de chocolate con mousse Jorgito 45g',
+      }),
+    ).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Ver origen de los datos' }));
     expect(screen.getByRole('dialog', { name: 'Origen de los datos' })).toHaveTextContent('SEPA');
     await user.click(screen.getByRole('button', { name: 'Cerrar detalle' }));
@@ -176,17 +181,97 @@ describe('carga exclusiva de productos en inventario', () => {
     server.use(http.get('/api/catalogos/:fuente/77903754', consulta));
     const { user, actual, inventario } = await abrir();
     await buscar(user, '77903754');
-    expect(screen.getByRole('heading', { name: 'Revisá el producto' })).toBeVisible();
-    expect(screen.getByRole('spinbutton', { name: 'Cantidad' })).toHaveValue(10);
-    expect(consulta).not.toHaveBeenCalled();
-    cambiar('Cantidad', '99');
+    expect(
+      within(screen.getByRole('region', { name: 'Producto detectado' })).getByRole('heading', {
+        name: 'Guaymallén',
+      }),
+    ).toBeVisible();
+    expect(screen.getByText('Este producto ya está en tu inventario')).toBeVisible();
+    expect(screen.getByRole('heading', { name: '¿Querés sumar al stock?' })).toBeVisible();
+    expect(screen.queryByRole('spinbutton', { name: 'Precio' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Lector de códigos' })).toBeNull();
+    cambiar('Unidades a agregar', '99');
     await user.click(screen.getByRole('button', { name: 'Descartar carga' }));
     expect(
       allBlocks(actual()).find((bloque) => bloque.id === inventario.id)?.rows[0]?.quantity,
     ).toBe(10);
-    expect(screen.queryByRole('region', { name: 'Revisión del producto' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Sumar al stock' })).toBeNull();
     expect(screen.getByRole('textbox', { name: 'Código de barras' })).toHaveFocus();
   });
+  it('agrega unidades al producto registrado y persiste el total sin duplicarlo', async () => {
+    sinCoincidencias('77903754');
+    const { user, actual, inventario, usuario, sistema } = await abrir();
+    await buscar(user, '77903754');
+    expect(screen.queryByRole('region', { name: 'Revisión del producto' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Lector de códigos' })).toBeNull();
+    cambiar('Unidades a agregar', '3');
+    expect(screen.getByText('13', { selector: 'output' })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Agregar al stock' }));
+    const confirmacion = await screen.findByRole('region', { name: 'Último producto guardado' });
+    await waitFor(() => expect(confirmacion).toHaveTextContent('Stock actualizado'), ESPERA);
+    expect(confirmacion).toHaveTextContent('Agregaste 3 unidades');
+    const filas = requerido(allBlocks(actual()).find((bloque) => bloque.id === inventario.id)).rows;
+    expect(filas).toHaveLength(1);
+    expect(filas[0]).toMatchObject({ id: 'alfajor', quantity: 13, cost: 500, price: 850.25 });
+    await waitFor(
+      () =>
+        expect(
+          estado.sistemas.get(usuario.email)?.find((item) => item.id === sistema.id)?.sections,
+        ).toEqual(actual().sections),
+      ESPERA,
+    );
+    expect(screen.getByRole('region', { name: 'Lector de códigos' })).toBeVisible();
+  });
+
+  it('no cambia el stock con una cantidad vacía, cero o negativa y enfoca la corrección', async () => {
+    sinCoincidencias('77903754');
+    const { user, actual, inventario } = await abrir();
+    await buscar(user, '77903754');
+    for (const cantidad of ['', '0', '-3']) {
+      cambiar('Unidades a agregar', cantidad);
+      await user.click(screen.getByRole('button', { name: 'Agregar al stock' }));
+      expect(screen.getByRole('alert')).toHaveTextContent('mayor que cero');
+      expect(screen.getByRole('spinbutton', { name: 'Unidades a agregar' })).toHaveFocus();
+      expect(
+        allBlocks(actual()).find((bloque) => bloque.id === inventario.id)?.rows[0]?.quantity,
+      ).toBe(10);
+    }
+  });
+
+  it('permite iniciar otro escaneo desde la revisión sin mostrar el lector al pie ni perder datos sin confirmar', async () => {
+    sinCoincidencias('77903754');
+    const { user } = await abrir();
+    await buscar(user, '77903754');
+    cambiar('Unidades a agregar', '2');
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    try {
+      await user.click(screen.getByRole('button', { name: 'Escanear otro producto' }));
+      expect(screen.getByRole('spinbutton', { name: 'Unidades a agregar' })).toHaveValue(2);
+      expect(screen.queryByRole('region', { name: 'Lector de códigos' })).toBeNull();
+      confirmar.mockReturnValue(true);
+      await user.click(screen.getByRole('button', { name: 'Escanear otro producto' }));
+      expect(screen.getByRole('region', { name: 'Lector de códigos' })).toBeVisible();
+      expect(screen.queryByRole('region', { name: 'Sumar al stock' })).toBeNull();
+      expect(screen.getByRole('textbox', { name: 'Código de barras' })).toHaveValue('');
+    } finally {
+      confirmar.mockRestore();
+    }
+  });
+
+  it('conserva la descripción propia y permite reponer aunque el catálogo no responda', async () => {
+    server.use(
+      http.get('/api/catalogos/:fuente/77903754', () => HttpResponse.json({}, { status: 503 })),
+    );
+    const { user, actual, inventario } = await abrir();
+    await buscar(user, '77903754');
+    cambiar('Unidades a agregar', '2');
+    await user.click(screen.getByRole('button', { name: 'Agregar al stock' }));
+    await screen.findByRole('region', { name: 'Último producto guardado' });
+    expect(
+      allBlocks(actual()).find((bloque) => bloque.id === inventario.id)?.rows[0],
+    ).toMatchObject({ name: 'Guaymallén', quantity: 12 });
+  });
+
   it('vincula sólo productos sin otro código y queda listo para la siguiente lectura con teclado', async () => {
     sinCoincidencias('3017620422003');
     const { user, sistema, inventario, actual } = await abrir();
@@ -211,9 +296,10 @@ describe('carga exclusiva de productos en inventario', () => {
     await screen.findByRole('region', { name: 'Último producto guardado' });
     expect(screen.getByRole('textbox', { name: 'Código de barras' })).toHaveFocus();
     await user.keyboard('3017620422003{Enter}');
-    await screen.findByRole('region', { name: 'Revisión del producto' });
-    expect(screen.getByRole('spinbutton', { name: 'Cantidad' })).toHaveValue(7);
-    expect(screen.getByRole('textbox', { name: 'Producto' })).toHaveValue('Producto sin código');
+    await screen.findByRole('region', { name: 'Sumar al stock' });
+    expect(screen.getByRole('spinbutton', { name: 'Unidades a agregar' })).toHaveValue(null);
+    expect(screen.queryByRole('region', { name: 'Último producto guardado' })).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Producto sin código' })).toBeVisible();
     const filas = requerido(allBlocks(actual()).find((bloque) => bloque.id === inventario.id)).rows;
     expect(filas).toHaveLength(2);
     expect(filas.find((fila) => fila.id === 'sin-codigo')).toMatchObject({
@@ -243,22 +329,24 @@ describe('carga exclusiva de productos en inventario', () => {
       price: '',
     });
   });
-  it('un costo editado no pisa el stock que otro flujo actualizó mientras se revisaba', async () => {
+  it('suma al stock vigente y conserva los otros datos actualizados mientras se revisaba', async () => {
     const { user, sistema, inventario, actual } = await abrir();
     await buscar(user, '77903754');
-    cambiar('Costo', '600');
+    cambiar('Unidades a agregar', '3');
     act(() =>
       useSistemaStore.getState().actualizarSistema(sistema.id, (copia) => {
-        requerido(
+        const producto = requerido(
           requerido(allBlocks(copia).find((bloque) => bloque.id === inventario.id)).rows[0],
-        ).quantity = 6;
+        );
+        producto.quantity = 6;
+        producto.cost = 600;
       }),
     );
-    await user.click(screen.getByRole('button', { name: 'Guardar cambios del producto' }));
+    await user.click(screen.getByRole('button', { name: 'Agregar al stock' }));
     await screen.findByRole('region', { name: 'Último producto guardado' });
     expect(
       allBlocks(actual()).find((bloque) => bloque.id === inventario.id)?.rows[0],
-    ).toMatchObject({ quantity: 6, cost: 600 });
+    ).toMatchObject({ quantity: 9, cost: 600, price: 850.25 });
   });
   it('volver al inventario protege el borrador y abre su tabla cuando se confirma salir', async () => {
     const { user, router, destino } = await abrir();
@@ -267,7 +355,7 @@ describe('carga exclusiva de productos en inventario', () => {
     await user.click(screen.getByRole('button', { name: 'Volver al inventario' }));
     expect(confirmar).toHaveBeenCalledOnce();
     expect(router.state.location.search).toMatchObject({ escanear: destino.id });
-    expect(screen.getByRole('region', { name: 'Revisión del producto' })).toBeVisible();
+    expect(screen.getByRole('region', { name: 'Sumar al stock' })).toBeVisible();
     confirmar.mockReturnValue(true);
     await user.click(screen.getByRole('button', { name: 'Volver al inventario' }));
     await screen.findByRole('dialog', { name: destino.name });

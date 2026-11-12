@@ -6,6 +6,7 @@ import {
   buscarProductoPorCodigo,
   guardarProductoEscaneado,
   prepararProducto,
+  sumarStockProductoEscaneado,
 } from '@/lib/escaneo/inventario';
 import { codigoGtin, mismoGtin } from '@/lib/escaneo/codigo';
 import { sugerirProducto } from '@/lib/escaneo/catalogos';
@@ -23,15 +24,38 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
   const [borrador, setBorrador] = useState<BorradorProductoInventario | null>(null);
   const [resultado, setResultado] = useState<ResultadoCatalogos | null>(null);
   const [buscando, setBuscando] = useState(false);
+  const [consultandoReferencia, setConsultandoReferencia] = useState(false);
+  const [cantidadAgregar, setCantidadAgregar] = useState('');
+  const [unidadesAgregadas, setUnidadesAgregadas] = useState<number | null>(null);
   const [errores, setErrores] = useState<ErroresFila>({});
   const [mensaje, setMensaje] = useState('');
   const [ultimo, setUltimo] = useState<Fila | null>(null);
+  const esReposicion =
+    !!borrador?.productoId && mismoGtin(borrador.originales.barcode, borrador.codigo);
+  const productoActual = inventario?.rows.find((fila) => fila.id === borrador?.productoId);
   const formulario = useRef<HTMLFormElement>(null);
   const entradaCodigo = useRef<HTMLInputElement>(null);
+  const revisionProducto = useRef<HTMLDivElement>(null);
+  const confirmacionCarga = useRef<HTMLDivElement>(null);
+  const codigoEnRevision = borrador?.codigo;
+  useEffect(() => {
+    if (codigoEnRevision && !buscando && window.matchMedia?.('(max-width: 850px)').matches) {
+      revisionProducto.current?.scrollIntoView({
+        block: 'start',
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ? 'instant'
+          : 'smooth',
+      });
+    }
+  }, [codigoEnRevision, buscando]);
+  useEffect(() => {
+    if (ultimo) confirmacionCarga.current?.scrollIntoView({ block: 'start', behavior: 'instant' });
+  }, [ultimo]);
   const origenLectura = useRef<'codigo' | 'camara'>('codigo');
   const [retomarLectura, setRetomarLectura] = useState(0);
   useEffect(() => {
-    if (retomarLectura > 0 && origenLectura.current === 'codigo') entradaCodigo.current?.focus();
+    if (retomarLectura > 0 && origenLectura.current === 'codigo')
+      entradaCodigo.current?.focus({ preventScroll: true });
   }, [retomarLectura]);
   const [revisionErrores, setRevisionErrores] = useState(0);
   useEffect(() => {
@@ -57,12 +81,14 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
     secuencia.current++;
     consulta.current?.abort();
     setBuscando(false);
+    setConsultandoReferencia(false);
   };
   const limpiar = () => {
     setBorrador(null);
     setResultado(null);
     setCodigo('');
     setErrores({});
+    setCantidadAgregar('');
   };
   const buscar = useCallback(
     async (entrada: string, origen: 'codigo' | 'camara' = 'codigo') => {
@@ -84,34 +110,32 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
       const numero = ++secuencia.current;
       setErrores({});
       setMensaje('');
+      setUltimo(null);
+      setUnidadesAgregadas(null);
+      setCantidadAgregar('');
       setResultado(null);
       setBuscando(false);
       setCodigo(valido);
       const propio = buscarProductoPorCodigo(inventario, valido);
       setBorrador(prepararProducto(inventario, valido, propio));
-      if (propio) {
-        setMensaje(
-          'Este código ya está en tu inventario. No se agrega otro producto ni se modifica la cantidad al escanear.',
-        );
-        return;
-      }
       const controlador = new AbortController();
       consulta.current = controlador;
       const plazo = setTimeout(() => controlador.abort(), 12_000);
-      setBuscando(true);
+      setBuscando(!propio);
+      setConsultandoReferencia(true);
       try {
         const encontrados = await consultarCatalogos(valido, controlador.signal);
         if (numero !== secuencia.current) return;
         setResultado(encontrados);
         const sugerencia = sugerirProducto(encontrados);
-        if (sugerencia.nombre)
+        if (!propio && sugerencia.nombre)
           setBorrador((actual) =>
             actual
               ? { ...actual, valores: { ...actual.valores, name: sugerencia.nombre } }
               : actual,
           );
       } catch (e) {
-        if (numero === secuencia.current)
+        if (!propio && numero === secuencia.current)
           setErrores({
             _form:
               e instanceof Error && e.name === 'AbortError'
@@ -120,7 +144,10 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
           });
       } finally {
         clearTimeout(plazo);
-        if (numero === secuencia.current) setBuscando(false);
+        if (numero === secuencia.current) {
+          setBuscando(false);
+          setConsultandoReferencia(false);
+        }
       }
     },
     [inventario, borrador],
@@ -134,7 +161,16 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
       setErrores({ _form: 'El negocio ya no existe.' });
       return;
     }
-    const guardado = guardarProductoEscaneado(actual, inventarioId, borrador);
+    const guardado =
+      esReposicion && borrador.productoId
+        ? sumarStockProductoEscaneado(
+            actual,
+            inventarioId,
+            borrador.productoId,
+            borrador.codigo,
+            cantidadAgregar,
+          )
+        : guardarProductoEscaneado(actual, inventarioId, borrador);
     if (guardado.errores) {
       setErrores(guardado.errores);
       setRevisionErrores((revision) => revision + 1);
@@ -146,6 +182,7 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
     detener();
     limpiar();
     setUltimo(guardado.producto);
+    setUnidadesAgregadas(esReposicion ? Number(cantidadAgregar) : null);
     setRetomarLectura((revision) => revision + 1);
     setMensaje(
       borrador.productoId
@@ -161,12 +198,23 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
     borrador,
     resultado,
     buscando,
+    consultandoReferencia,
+    esReposicion,
+    productoActual,
+    cantidadAgregar,
+    unidadesAgregadas,
+    cambiarCantidadAgregar: (cantidad: string) => {
+      setCantidadAgregar(cantidad);
+      setErrores((actual) => ({ ...actual, quantity: '' }));
+    },
     errores,
     mensaje,
     ultimo,
     sugerencia: resultado ? sugerirProducto(resultado) : null,
     formulario,
     entradaCodigo,
+    revisionProducto,
+    confirmacionCarga,
     productosVinculables:
       inventario?.rows
         .filter(
@@ -223,8 +271,26 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
     cancelar: () => {
       detener();
       limpiar();
+      setUltimo(null);
+      setUnidadesAgregadas(null);
       setRetomarLectura((revision) => revision + 1);
       setMensaje('Carga descartada. El inventario conserva sus datos.');
+    },
+    otraLectura: () => {
+      if (
+        borrador &&
+        !window.confirm(
+          'Hay una carga sin confirmar. ¿Querés descartarla y escanear otro producto?',
+        )
+      )
+        return;
+      detener();
+      limpiar();
+      setUltimo(null);
+      setUnidadesAgregadas(null);
+      setMensaje('');
+      origenLectura.current = 'codigo';
+      setRetomarLectura((revision) => revision + 1);
     },
   };
 }

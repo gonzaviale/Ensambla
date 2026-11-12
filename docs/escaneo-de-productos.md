@@ -6,12 +6,14 @@ La búsqueda no modifica el stock. La persona revisa los datos y confirma la car
 
 ## Ejecutar la aplicación real
 
-Requisitos: Java 21, Docker y Node.js 22. No se necesitan claves de SEPA ni Open Food Facts.
+Requisitos para desarrollo: Java 21, Docker y Node.js 24. No se necesitan claves de SEPA ni Open Food Facts.
+Para ejecutar todo con imágenes, alcanza con `docker compose up --build -d --wait` desde la raíz;
+el frontend estático queda en <http://localhost:8088> y usa el backend y PostgreSQL reales.
 
 Desde `backend/`:
 
 ```sh
-docker compose up -d
+docker compose up -d postgres
 ./mvnw spring-boot:run
 ```
 
@@ -27,7 +29,43 @@ por el proxy habitual. Registrar una cuenta o ingresar con una cuenta real de es
 y tocar **Escanear productos** en una tabla de Inventario, también disponible a pantalla completa.
 Las credenciales de la demo no crean una cuenta en PostgreSQL.
 
-Para probar la cámara desde el teléfono, en la misma red:
+### Probar desde el celular con Docker
+
+Con el entorno real de Docker ya iniciado, ejecutar desde la raíz:
+
+```sh
+docker compose --profile movil up -d tunel-movil
+docker compose logs tunel-movil
+```
+
+Abrir en Chrome de Android o Safari de iPhone el enlace `https://…trycloudflare.com` que aparece
+en los registros. Ingresar con la misma cuenta de la PC, abrir el cuaderno y tocar **Escanear productos**
+en Inventario. El navegador del teléfono pide su propio permiso de cámara.
+
+El enlace sirve el frontend compilado, el backend y PostgreSQL de ese entorno. Comparte cuentas y
+registros con <http://localhost:8088>; no usa datos simulados. El acceso móvil agrega cookies `Secure`
+y redirige HTTP a HTTPS. No requiere aceptar un certificado local ni abrir puertos del router.
+La sesión del teléfono es independiente; al ingresar aparecen los datos guardados de la cuenta.
+IA y WhatsApp mantienen la configuración del entorno: este acceso no agrega sus credenciales.
+
+El enlace temporal es público: quien lo tenga puede llegar a la pantalla de acceso, y los datos
+del negocio siguen requiriendo sesión. Funciona mientras la PC, Docker y el túnel estén encendidos;
+no hace falta compartir Wi-Fi. Para cerrar sólo este acceso:
+
+```sh
+docker compose --profile movil stop tunel-movil acceso-movil
+```
+
+Para obtener un enlace nuevo, recrear el túnel y consultar nuevamente sus registros:
+
+```sh
+docker compose --profile movil up -d --force-recreate tunel-movil
+docker compose logs tunel-movil
+```
+
+### Probar desde el celular con Vite
+
+Para desarrollo fuera de Docker, en la misma red:
 
 ```sh
 npm run dev:movil
@@ -107,12 +145,21 @@ el presupuesto de consultas entre instancias o reducir el límite de cada una.
 ## Revisión y guardado
 
 1. Leer con cámara, lector USB/Bluetooth que envía Enter o ingreso manual.
-2. Si ya existe en el inventario elegido, revisar ese producto. No se crea otro ni se alteran unidades al leer.
+2. Si ya existe en el inventario elegido, se muestra su foto de referencia si está disponible, la descripción
+   propia y **¿Querés sumar al stock?**. Ingresar las unidades a agregar, revisar el total previsto y confirmar
+   **Agregar al stock**, o **Descartar carga**. La suma se calcula sobre las existencias vigentes de la pestaña;
+   conserva precio, costo y otros campos. La consulta opcional de la foto no bloquea esta operación.
 3. Para productos nuevos se consulta cada fuente y se sugiere la descripción más informativa, con marca,
    presentación y foto si existe. **Ver origen de los datos** muestra la procedencia. Todo es revisable.
 4. Completar los campos reales de la tabla: conteo, costo, precio, mínimo y campos personalizados.
 5. Confirmar. El guardado usa la sincronización autenticada existente de sistemas, con transacción y
    aislamiento por negocio. Al recargar, los datos se leen de PostgreSQL.
+
+Durante la revisión, el lector y el ingreso manual se ocultan. **Escanear otro producto** al principio
+permite volver a la lectura, con confirmación antes de descartar una carga pendiente. **Descartar carga**
+queda como una acción visible al final. Tras guardar o descartar, vuelve a aparecer el lector.
+Leer un código no altera por sí solo las unidades ni crea duplicados; la reposición requiere una cantidad
+positiva y una confirmación explícita.
 
 Se puede vincular un producto sin código, descartar o completar manualmente una ficha ausente.
 La carga local conserva los campos no editados y advierte cambios concurrentes en un mismo campo.

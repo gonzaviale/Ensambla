@@ -7,6 +7,7 @@ import {
   leerCamaraElegida,
   liberarCamara,
   listarCamarasDelLector,
+  olvidarCamaraElegida,
   recordarCamaraComprobada,
   recordarCamaraElegida,
 } from '@/api/camaraCodigo';
@@ -19,6 +20,7 @@ const AVISO_SIN_LECTURA_MS = 8_000;
 export function useCamaraCodigo(onCodigo: (codigo: string) => void) {
   const video = useRef<HTMLVideoElement>(null);
   const callback = useRef(onCodigo);
+  const usarAutomatica = useRef(false);
   useEffect(() => {
     callback.current = onCodigo;
   }, [onCodigo]);
@@ -67,7 +69,7 @@ export function useCamaraCodigo(onCodigo: (codigo: string) => void) {
       setAbierta(false);
     };
     const alTerminarPista = () =>
-      fallar('La cámara se interrumpió. Tocá «Escanear producto» para volver a iniciarla.');
+      fallar('La cámara se interrumpió. Tocá «Reintentar cámara» para volver a iniciarla.');
     const plazo = setTimeout(
       () => fallar('La cámara no terminó de iniciar. Revisá el permiso y volvé a intentar.'),
       PLAZO_INICIO_MS,
@@ -86,9 +88,12 @@ export function useCamaraCodigo(onCodigo: (codigo: string) => void) {
         if (cancelado) return;
         const previas = await listarCamarasDelLector();
         if (cancelado) return;
+        setCamaras(previas);
         const preferida = leerCamaraComprobada();
-        const manual = leerCamaraElegida();
+        const manual = usarAutomatica.current ? undefined : leerCamaraElegida();
         let elegida = camaraId || elegirCamaraAutomatica(previas, preferida, manual)?.id || '';
+        // Conservar la selección visible aunque el dispositivo falle antes de devolver un stream.
+        setCamaraActualId(previas.some((camara) => camara.id === elegida) ? elegida : '');
         let descartada = '';
         const solicitar = (id: string) =>
           navigator.mediaDevices.getUserMedia({
@@ -214,16 +219,14 @@ export function useCamaraCodigo(onCodigo: (codigo: string) => void) {
           ['NotFoundError', 'OverconstrainedError'].includes(e.name)
         ) {
           setCamaraId('');
-          fallar(
-            'La cámara elegida no está disponible. Volvé a abrir el lector para usar la cámara automática.',
-          );
+          fallar('La cámara elegida no está disponible. Elegí otra cámara o la opción automática.');
           return;
         }
         fallar(
           e instanceof DOMException && e.name === 'NotAllowedError'
             ? 'No se habilitó la cámara. Revisá el permiso del navegador o ingresá el código a mano.'
             : e instanceof DOMException && e.name === 'NotReadableError'
-              ? 'La cámara está ocupada. Cerrá la otra aplicación y volvé a intentar.'
+              ? 'La cámara no pudo iniciarse. Puede estar ocupada o desconectada. Elegí otra cámara o volvé a intentar.'
               : e instanceof Error
                 ? e.message
                 : 'No pudimos iniciar la cámara.',
@@ -265,8 +268,10 @@ export function useCamaraCodigo(onCodigo: (codigo: string) => void) {
     abrir,
     reiniciar: abrir,
     seleccionarCamara: (id: string) => {
+      usarAutomatica.current = !id;
       if (id)
         recordarCamaraElegida(camaras.find((camara) => camara.id === id) ?? { id, nombre: '' });
+      else olvidarCamaraElegida();
       setCamaraId(id);
       abrir();
     },

@@ -54,8 +54,28 @@ export function LectorDeCodigos({
           <p>Con la cámara o con tu lector de códigos.</p>
         </div>
       </div>
+      {errorCamara && (
+        <div className="escaneo-aviso escaneo-aviso-error" role="alert">
+          <Icon name="camera" />
+          <div>
+            <strong>La cámara necesita atención</strong>
+            <p>{errorCamara}</p>
+          </div>
+        </div>
+      )}
       {abierta ? (
         <div className="escaneo-camara">
+          <div className="escaneo-estado-camara" role="status">
+            <Icon name={iniciando ? 'clock' : 'camera'} />
+            <div>
+              <strong>{iniciando ? 'Iniciando cámara…' : 'Cámara lista para leer'}</strong>
+              <p>
+                {iniciando
+                  ? 'Preparando la imagen del lector.'
+                  : 'Apuntá al código y mantené visibles todas las barras.'}
+              </p>
+            </div>
+          </div>
           <video
             key={sesion}
             ref={video}
@@ -64,36 +84,17 @@ export function LectorDeCodigos({
             autoPlay
             aria-label="Vista previa del lector"
           />
-          <p role="status">
-            {iniciando
-              ? 'Iniciando cámara…'
-              : 'Buscando código… Mantené visibles todas las barras y los números.'}
-          </p>
           {sinLectura && (
-            <p className="escaneo-consejo-lector" role="status">
-              Todavía no detectamos el código. Alejá un poco el teléfono para que enfoque, evitá
-              reflejos y probá otra cámara si la imagen se ve borrosa.
-            </p>
-          )}
-          {camaras.length > 1 && (
-            <label>
-              Cámara del lector
-              <span className="escaneo-control escaneo-control-elegir">
-                <select
-                  value={camaraId || camaraActualId}
-                  disabled={iniciando}
-                  onChange={(e) => onCamara(e.target.value)}
-                >
-                  <option value="">Elegir automáticamente</option>
-                  {camaras.map((camara) => (
-                    <option key={camara.id} value={camara.id}>
-                      {camara.nombre}
-                    </option>
-                  ))}
-                </select>
-                <Icon name="down" />
-              </span>
-            </label>
+            <div className="escaneo-aviso escaneo-aviso-existente" role="status">
+              <Icon name="help" />
+              <div>
+                <strong>Todavía no detectamos el código</strong>
+                <p>
+                  Alejá un poco el teléfono para que enfoque, evitá reflejos y probá otra cámara si
+                  la imagen se ve borrosa.
+                </p>
+              </div>
+            </div>
           )}
           {camaraActiva && (
             <p className="escaneo-ayuda">
@@ -111,13 +112,28 @@ export function LectorDeCodigos({
         </div>
       ) : (
         <Btn cls="primary escaneo-boton-camara" disabled={buscando} onClick={onAbrir}>
-          <Icon name="camera" /> Escanear producto
+          <Icon name="camera" /> {errorCamara ? 'Reintentar cámara' : 'Escanear producto'}
         </Btn>
       )}
-      {errorCamara && (
-        <p className="escaneo-error" role="alert">
-          {errorCamara}
-        </p>
+      {(abierta || errorCamara) && camaras.length > 0 && (
+        <label>
+          Cámara del lector
+          <span className="escaneo-control escaneo-control-elegir">
+            <select
+              value={camaraId || camaraActualId}
+              disabled={iniciando}
+              onChange={(e) => onCamara(e.target.value)}
+            >
+              <option value="">Elegir automáticamente</option>
+              {camaras.map((camara) => (
+                <option key={camara.id} value={camara.id}>
+                  {camara.nombre}
+                </option>
+              ))}
+            </select>
+            <Icon name="down" />
+          </span>
+        </label>
       )}
       <form
         className="escaneo-codigo"
@@ -147,10 +163,13 @@ export function LectorDeCodigos({
           </button>
         </div>
       </form>
-      <p className="escaneo-ayuda">
-        Un lector USB o Bluetooth funciona como un teclado: lee el código y envía Enter. Después de
-        cada lectura, tocá «Escanear producto» para leer el siguiente.
-      </p>
+      <details className="escaneo-ayuda-lector">
+        <summary>¿Usás un lector USB o Bluetooth?</summary>
+        <p className="escaneo-ayuda">
+          Funciona como un teclado: lee el código y envía Enter. Después de cada lectura, podés
+          escanear o ingresar el siguiente código.
+        </p>
+      </details>
     </section>
   );
 }

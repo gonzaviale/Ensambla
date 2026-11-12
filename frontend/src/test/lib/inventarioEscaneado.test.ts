@@ -5,6 +5,7 @@ import {
   buscarProductoPorCodigo,
   guardarProductoEscaneado,
   prepararProducto,
+  sumarStockProductoEscaneado,
 } from '@/lib/escaneo/inventario';
 
 function requerido<T>(dato: T | undefined): T {
@@ -157,5 +158,70 @@ describe('alta por código en el inventario existente', () => {
     expect(guardarProductoEscaneado(sistema, inventario.id, nuevo).errores?._form).toMatch(
       /de texto/,
     );
+  });
+});
+
+describe('reposición de un producto reconocido', () => {
+  it('suma las unidades al stock vigente sin duplicar el producto ni modificar otros datos', () => {
+    const { sistema, inventario } = escenario();
+    const producto = requerido(inventario.rows[0]);
+    producto.barcode = '0000077903754';
+    producto.quantity = 6;
+    producto.cost = 350;
+    const antes = clone(sistema);
+    const resultado = sumarStockProductoEscaneado(
+      sistema,
+      inventario.id,
+      producto.id,
+      '77903754',
+      '3',
+    );
+    expect(resultado.errores).toBeUndefined();
+    expect(resultado.producto).toEqual({ ...producto, quantity: 9 });
+    expect(
+      allBlocks(requerido(resultado.sistema)).find((bloque) => bloque.id === inventario.id)?.rows,
+    ).toHaveLength(1);
+    expect(sistema).toEqual(antes);
+  });
+
+  it('admite cantidades decimales positivas sin reemplazar el stock actual', () => {
+    const { sistema, inventario } = escenario();
+    expect(
+      sumarStockProductoEscaneado(sistema, inventario.id, 'alfajor', '77903754', '0.5').producto
+        ?.quantity,
+    ).toBe(10.5);
+  });
+
+  it.each([
+    '',
+    ' ',
+    '0',
+    '-2',
+    'NaN',
+    'Infinity',
+    '1e309',
+    String(Number.MAX_SAFE_INTEGER),
+    String(Number.MIN_VALUE),
+  ])('rechaza una cantidad inválida %j sin alterar el inventario', (cantidad) => {
+    const { sistema, inventario } = escenario();
+    const antes = clone(sistema);
+    expect(
+      sumarStockProductoEscaneado(sistema, inventario.id, 'alfajor', '77903754', cantidad).errores
+        ?.quantity,
+    ).toBeTruthy();
+    expect(sistema).toEqual(antes);
+  });
+
+  it('impide reponer un producto eliminado o cuyo código cambió', () => {
+    const { sistema, inventario } = escenario();
+    expect(
+      sumarStockProductoEscaneado(sistema, inventario.id, 'eliminado', '77903754', '2').errores
+        ?._form,
+    ).toMatch(/eliminado/);
+    expect(
+      sumarStockProductoEscaneado(sistema, inventario.id, 'alfajor', '3017620422003', '2').errores
+        ?._form,
+    ).toMatch(/código.*cambió/);
+    expect(inventario.rows[0]?.quantity).toBe(10);
   });
 });

@@ -25,6 +25,14 @@ export function recordarCamaraElegida(camara: CamaraDelLector) {
   }
 }
 
+export function olvidarCamaraElegida() {
+  try {
+    localStorage.removeItem(CLAVE_ELEGIDA);
+  } catch {
+    // La selección automática de esta sesión sigue disponible sin almacenamiento.
+  }
+}
+
 export function leerCamaraComprobada(): string {
   try {
     return localStorage.getItem(CLAVE_CAMARA) ?? '';

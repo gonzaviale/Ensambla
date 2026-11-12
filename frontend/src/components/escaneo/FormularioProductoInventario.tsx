@@ -84,7 +84,11 @@ export function FormularioProductoInventario({
             </div>
           )}
           {grupos.map((grupo) => (
-            <section className="escaneo-grupo" key={grupo.titulo} aria-label={grupo.titulo}>
+            <section
+              className={`escaneo-grupo ${grupo.campos.some((campo) => campo.key === 'quantity') ? 'escaneo-grupo-existencias' : ''}`}
+              key={grupo.titulo}
+              aria-label={grupo.titulo}
+            >
               <h3>{grupo.titulo}</h3>
               <p>{grupo.ayuda}</p>
               <div className="escaneo-grilla-campos">
@@ -121,8 +125,8 @@ export function FormularioProductoInventario({
             </button>
           </div>
         </fieldset>
-        <button type="button" className="btn ghost" onClick={onCancelar}>
-          Descartar carga
+        <button type="button" className="btn escaneo-descartar" onClick={onCancelar}>
+          <Icon name="close" /> Descartar carga
         </button>
       </form>
     </section>

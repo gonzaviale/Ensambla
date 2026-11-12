@@ -29,6 +29,60 @@ type Resultado =
   | { sistema: Sistema; producto: Fila; errores?: never }
   | { errores: ErroresFila; sistema?: never; producto?: never };
 
+/** Suma sobre el stock vigente y conserva los demás datos del producto. */
+export function sumarStockProductoEscaneado(
+  sistema: Sistema,
+  inventarioId: string,
+  productoId: string,
+  codigo: string,
+  entrada: string,
+): Resultado {
+  const cantidad = Number(entrada);
+  if (!entrada.trim() || !Number.isFinite(cantidad) || cantidad <= 0)
+    return { errores: { quantity: 'Ingresá una cantidad mayor que cero para agregar.' } };
+  const inventario = findBlock(sistema, inventarioId);
+  if (!inventario || inventario.type !== 'inventory')
+    return { errores: { _form: 'Este inventario ya no está disponible.' } };
+  const producto = inventario.rows.find((fila) => fila.id === productoId);
+  if (!producto)
+    return { errores: { _form: 'El producto fue eliminado. Volvé a buscar el código.' } };
+  if (!mismoGtin(producto.barcode, codigo))
+    return {
+      errores: {
+        _form: 'El código de este producto cambió. Volvé a escanearlo antes de sumar stock.',
+      },
+    };
+  if (!inventario.fields.some((campo) => campo.key === 'quantity' && campo.type === 'number'))
+    return {
+      errores: {
+        _form: 'Este inventario necesita un campo numérico de cantidad para sumar stock.',
+      },
+    };
+  const actual = Number(producto.quantity ?? 0);
+  const total = actual + cantidad;
+  if (!Number.isFinite(actual) || actual < 0)
+    return {
+      errores: { _form: 'No pudimos leer el stock actual. Revisá el producto en el inventario.' },
+    };
+  if (!Number.isFinite(total) || total > Number.MAX_SAFE_INTEGER || total <= actual)
+    return {
+      errores: { quantity: 'No se puede sumar esa cantidad. Revisá las unidades a agregar.' },
+    };
+  const borrador = prepararProducto(inventario, String(producto.barcode), producto);
+  borrador.valores.quantity = total;
+  const resultado = guardarProductoEscaneado(sistema, inventarioId, borrador);
+  if (
+    resultado.errores &&
+    Object.keys(resultado.errores).some((clave) => !['quantity', '_form'].includes(clave))
+  )
+    return {
+      errores: {
+        _form: 'Revisá los datos de este producto en el inventario antes de sumar stock.',
+      },
+    };
+  return resultado;
+}
+
 /** Usa las validaciones del cuaderno sobre una copia; no crea movimientos ni ventas. */
 export function guardarProductoEscaneado(
   sistema: Sistema,
