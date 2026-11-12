@@ -57,8 +57,6 @@ const llegarALasZonas = async (
 
 const zonas = () =>
   within(screen.getByRole('list', { name: /Zonas recomendadas/ })).getAllByRole('button');
-const abrirFiltros = async (user: ReturnType<typeof userEvent.setup>) =>
-  user.click(screen.getByText('Más filtros'));
 const mover = (nombre: RegExp, valor: number) =>
   fireEvent.change(screen.getByRole('slider', { name: nombre }), {
     target: { value: String(valor) },
@@ -294,41 +292,102 @@ describe('dónde abrir', () => {
     );
   });
 
-  it('muestra los ajustes principales y deja los avanzados cerrados', async () => {
+  it('muestra todos los factores, los modos rápidos y el radio junto al mapa', async () => {
     const { user } = await abrir();
     await llegarALasZonas(user);
 
-    const prioridad = screen.getByRole('combobox', { name: 'Prioridad' });
-    expect(prioridad).toBeVisible();
-    expect(screen.getByRole('slider', { name: /Distancia a tu local/ })).toBeVisible();
-    const boton = screen.getByText(/Más filtros/);
-    expect(boton).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByRole('slider', { name: /Parques y plazas cerca/ })).not.toBeVisible();
+    const modos = screen.getByRole('group', { name: 'Modos rápidos' });
+    for (const nombre of ['Equilibrado', 'Alquiler bajo', 'Mucho movimiento', 'Familias']) {
+      expect(within(modos).getByRole('button', { name: nombre })).toBeVisible();
+    }
+    for (const nombre of [
+      'Poca competencia',
+      'Gente pasando',
+      'Vecinos cerca',
+      'Escuelas cerca',
+      'Parques cerca',
+      'Oficinas cerca',
+      'Transporte',
+      'Salud cerca',
+      'Comercios que atraen gente',
+      'Demanda observada',
+      'Poder de compra',
+      'Alquiler accesible',
+    ]) {
+      expect(screen.getByRole('group', { name: nombre })).toBeVisible();
+    }
+    expect(screen.queryByText('Límites que descartan zonas')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('slider', { name: /Comercios similares cerca/ }),
+    ).not.toBeInTheDocument();
 
-    await user.click(boton);
-    expect(boton).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('slider', { name: /Parques y plazas cerca/ })).toBeVisible();
-    expect(screen.getByRole('combobox', { name: 'Importancia de parques cerca' })).toBeVisible();
+    const radio = screen.getByRole('slider', { name: /Radio de búsqueda/ });
+    expect(radio).toBeVisible();
+    expect(radio.closest('.donde-mapa-columna')).not.toBeNull();
   });
 
-  it('un límite descarta zonas, las muestra aparte con su motivo y se puede quitar', async () => {
+  it('deja personalizar cualquier factor y un cambio manual activa Personalizado', async () => {
+    const { user } = await abrir();
+    await llegarALasZonas(user);
+
+    const modos = screen.getByRole('group', { name: 'Modos rápidos' });
+    expect(within(modos).getByRole('button', { name: 'Equilibrado' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    const competencia = screen.getByRole('group', { name: 'Poca competencia' });
+    await user.click(within(competencia).getByRole('radio', { name: 'Mucho' }));
+
+    expect(within(competencia).getByRole('radio', { name: 'Mucho' })).toBeChecked();
+    expect(within(modos).getByText('Personalizado')).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('los modos rápidos configuran todos los factores y Restablecer vuelve a Equilibrado', async () => {
+    const { user } = await abrir();
+    await llegarALasZonas(user);
+    const modos = screen.getByRole('group', { name: 'Modos rápidos' });
+
+    await user.click(within(modos).getByRole('button', { name: 'Familias' }));
+    expect(
+      within(screen.getByRole('group', { name: 'Escuelas cerca' })).getByRole('radio', {
+        name: 'Mucho',
+      }),
+    ).toBeChecked();
+    expect(
+      within(screen.getByRole('group', { name: 'Oficinas cerca' })).getByRole('radio', {
+        name: 'Nada',
+      }),
+    ).toBeChecked();
+    expect(within(modos).getByRole('button', { name: 'Familias' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    mover(/Radio de búsqueda/, 2);
+    await user.click(screen.getByRole('button', { name: 'Restablecer' }));
+
+    expect(within(modos).getByRole('button', { name: 'Equilibrado' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('slider', { name: /Radio de búsqueda/ })).toHaveValue('4');
+    expect(
+      within(screen.getByRole('group', { name: 'Escuelas cerca' })).getByRole('radio', {
+        name: 'Importa',
+      }),
+    ).toBeChecked();
+  });
+
+  it('el radio reduce las zonas sin duplicar filtros activos', async () => {
     const { user } = await abrir();
     await llegarALasZonas(user);
     const antes = zonas().length;
-    expect(screen.queryByRole('list', { name: 'Filtros activos' })).not.toBeInTheDocument();
 
-    await abrirFiltros(user);
-    mover(/Parques y plazas cerca/, 2);
+    mover(/Radio de búsqueda/, 2);
 
     await waitFor(() => expect(zonas().length).toBeLessThan(antes));
-    expect(
-      within(screen.getByRole('list', { name: 'Filtros activos' })).getByText(/Al menos 2 parques/),
-    ).toBeVisible();
-    await user.click(screen.getByText(/Descartadas por tus límites/));
-    expect(screen.getAllByText(/parques: pediste al menos 2/).length).toBeGreaterThan(0);
-
-    await user.click(screen.getByRole('button', { name: 'Quitar filtro: Al menos 2 parques' }));
-    await waitFor(() => expect(zonas().length).toBe(antes));
+    expect(screen.queryByRole('list', { name: 'Filtros activos' })).not.toBeInTheDocument();
+    expect(screen.getByText(/Descartadas por tus límites/)).toBeVisible();
   });
 
   it('quién subió o bajó solo se marca cuando se mueve un filtro', async () => {
@@ -338,8 +397,7 @@ describe('dónde abrir', () => {
       0,
     );
 
-    await abrirFiltros(user);
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Prioridad' }), 'familias');
+    await user.click(screen.getByRole('button', { name: 'Familias' }));
 
     await waitFor(() =>
       expect(screen.getAllByLabelText(/^(Subió|Bajó) \d+ puestos?$/).length).toBeGreaterThan(0),
@@ -471,23 +529,6 @@ describe('dónde abrir', () => {
     await user.click(screen.getByRole('button', { name: 'Cambiar mis respuestas' }));
 
     expect(await screen.findByText('Pregunta 1 de 4')).toBeVisible();
-  });
-
-  it('si los límites no dejan ninguna zona, lo avisa y deja volver atrás', async () => {
-    const { user } = await abrir();
-    await llegarALasZonas(user);
-    await abrirFiltros(user);
-
-    mover(/Escuelas cerca/, 9);
-    mover(/Parques y plazas cerca/, 4);
-
-    await waitFor(() =>
-      expect(screen.getAllByText(/no quedó ninguna zona/).length).toBeGreaterThan(0),
-    );
-    expect(screen.queryByRole('article')).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Restablecer' }));
-    await waitFor(() => expect(zonas().length).toBeGreaterThanOrEqual(3));
   });
 
   it('vuelve a Mi zona', async () => {
