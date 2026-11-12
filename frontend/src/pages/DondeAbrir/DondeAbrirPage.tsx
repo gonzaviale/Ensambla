@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeftIcon, CopyIcon, XIcon } from '@phosphor-icons/react';
+import { ArrowLeftIcon, CopyIcon } from '@phosphor-icons/react';
 import { Sami } from '@/components/sistema/Sami';
 import { COLOR_DE_PUNTO } from '@/hooks/dondeAbrir/useMapaDeZonas';
 import { useDondeAbrir, type AlquileresPorZona } from '@/hooks/dondeAbrir/queries';
@@ -15,7 +15,6 @@ import {
   conPreset,
   filtrosActivos,
   resumenParaCompartir,
-  sinFiltro,
   type Filtros,
   type Rubro,
   type TipoDePunto,
@@ -30,6 +29,7 @@ import { MapaDeZonas } from './MapaDeZonas';
 import { PanelDeFiltros } from './PanelDeFiltros';
 import { PreguntasDeSami } from './PreguntasDeSami';
 import { ComparacionDeZonas } from './ComparacionDeZonas';
+import { RadioDeBusqueda } from './RadioDeBusqueda';
 
 type Paso = 'confirmar' | 'preguntas' | 'resultado';
 type DondeMostrar = 'elegida' | 'todas';
@@ -294,21 +294,6 @@ export function DondeAbrirPage() {
                 activos={activos.length}
                 onCambiar={cambiarFiltros}
               />
-              {activos.length > 0 && (
-                <ul className="donde-chips" aria-label="Filtros activos">
-                  {activos.map((activo) => (
-                    <li key={activo.id}>
-                      <button
-                        type="button"
-                        aria-label={`Quitar filtro: ${activo.texto}`}
-                        onClick={() => cambiarFiltros((actual) => sinFiltro(actual, activo.id))}
-                      >
-                        {activo.texto} <XIcon aria-hidden size={12} weight="bold" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
               <details className="donde-capas">
                 <summary>Qué mostrar en el mapa</summary>
                 <div className="donde-capas-lista">
@@ -349,6 +334,15 @@ export function DondeAbrirPage() {
               </details>
             </aside>
             <div className="donde-mapa-columna">
+              <RadioDeBusqueda
+                valor={filtros.limites.distanciaMaxKm}
+                onCambiar={(valor) =>
+                  cambiarFiltros((actual) => ({
+                    ...actual,
+                    limites: { ...actual.limites, distanciaMaxKm: valor },
+                  }))
+                }
+              />
               <MapaDeZonas
                 ranking={ranking}
                 descartadas={descartadas}

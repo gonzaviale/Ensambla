@@ -1450,7 +1450,7 @@
   align-content: start;
 }
 .donde-explorador .donde-mapa {
-  height: calc(var(--alto-mapa) - 42px);
+  height: calc(var(--alto-mapa) - 116px);
 }
 .donde-explorador .donde-leyenda {
   min-height: 34px;
@@ -1462,6 +1462,8 @@
 .donde-filtros-cabeza {
   display: flex;
   align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
   padding: 0 0 14px;
 }
 .donde-filtros-cabeza > div {
@@ -1478,16 +1480,11 @@
   color: var(--muted);
   font-size: 11px;
 }
-.donde-filtros-cabeza > b {
-  display: inline-grid;
-  place-items: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 99px;
-  background: var(--orange);
-  color: #fff;
-  font-size: 11px;
+.donde-filtros-cabeza .donde-filtros-restablecer {
+  flex: none;
+  min-height: 30px;
+  padding: 0 3px;
+  font-size: 10px;
 }
 .donde-filtros-icono {
   display: grid;
@@ -1498,35 +1495,10 @@
   background: #e6f1f4;
   color: var(--petrol);
 }
-.donde-filtros-principales {
-  display: grid;
-  gap: 14px;
-}
-.donde-campo-select {
-  display: grid;
-  gap: 5px;
-  color: var(--ink);
-  font-size: 13px;
-}
-.donde-campo-select span {
-  font-weight: 700;
-}
-.donde-campo-select select,
-.donde-factor select {
-  min-height: 38px;
-  padding: 6px 30px 6px 10px;
-  border: 1.5px solid #cfd4ca;
-  border-radius: 10px;
-  background: #fff;
-  color: var(--ink);
-  font: inherit;
-}
-.donde-filtros-avanzados,
 .donde-capas {
   margin-top: 14px;
   border-top: 1px solid #e4e6df;
 }
-.donde-filtros-avanzados summary,
 .donde-capas summary {
   min-height: 42px;
   display: flex;
@@ -1536,25 +1508,140 @@
   font-weight: 800;
   cursor: pointer;
 }
-.donde-filtros-cuerpo {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 20px;
-  padding: 12px 0 6px;
-  border-top: 0;
+.donde-modos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+.donde-modos button,
+.donde-modo-personalizado {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border: 1.5px solid #cfd4ca;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+.donde-modos button:hover {
+  border-color: var(--petrol);
+  color: var(--petrol);
+}
+.donde-modos button[aria-pressed='true'] {
+  border-color: var(--petrol);
+  background: var(--petrol);
+  color: #fff;
+}
+.donde-modo-personalizado[aria-current='true'] {
+  border-color: var(--orange);
+  background: var(--orange);
+  color: #fff;
+}
+.donde-factores {
+  gap: 0;
 }
 .donde-factor {
-  align-items: start;
-  flex-direction: column;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: minmax(92px, 1fr) minmax(138px, auto);
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 7px 0;
+  border: 0;
+  border-bottom: 1px solid #edf0eb;
 }
-.donde-factor select {
-  width: 100%;
-  min-height: 34px;
+.donde-factor-nombre {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+.donde-niveles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1.5px solid #cfd4ca;
+  border-radius: 999px;
+  background: #fff;
+}
+.donde-niveles label {
+  position: relative;
+  min-width: 0;
+  cursor: pointer;
+}
+.donde-niveles label + label {
+  border-left: 1px solid #e4e6df;
+}
+.donde-niveles input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.donde-niveles span {
+  min-height: 27px;
+  display: grid;
+  place-items: center;
+  padding: 2px 4px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+.donde-niveles label.marcada span {
+  background: var(--petrol);
+  color: #fff;
+}
+.donde-niveles label.marcada[data-nivel='0'] span {
+  background: #69777c;
+}
+.donde-niveles label.marcada[data-nivel='2'] span {
+  background: var(--orange);
+}
+.donde-niveles label:has(input:focus-visible) {
+  outline: 3px solid #4eb2d4;
+  outline-offset: -2px;
+}
+.donde-radio-busqueda {
+  min-height: 66px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  border: 1.5px solid #b9dce5;
+  border-radius: 14px;
+  background: #f4fafb;
+}
+.donde-radio-icono {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #e0f0f3;
+  color: var(--petrol);
+}
+.donde-radio-busqueda > div {
+  min-width: 0;
+}
+.donde-radio-busqueda label {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--petrol);
   font-size: 12px;
+  font-weight: 800;
 }
-.donde-chips {
-  margin-top: 12px;
+.donde-radio-busqueda output {
+  flex: none;
+}
+.donde-radio-busqueda input {
+  width: 100%;
+  margin-top: 6px;
+  accent-color: var(--petrol);
 }
 .donde-capas-lista,
 .donde-donde {
@@ -1612,10 +1699,11 @@
   }
   .donde-explorador-controles {
     height: auto;
-    max-height: 420px;
+    max-height: none;
+    overflow-y: visible;
   }
   .donde-explorador .donde-mapa {
-    height: var(--alto-mapa);
+    height: calc(var(--alto-mapa) - 76px);
   }
 }
 
