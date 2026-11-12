@@ -11,7 +11,7 @@ export function ZonaLayout() {
             Mi zona actual
           </Link>
           <Link to="/zona/donde-abrir" activeProps={{ className: 'active' }}>
-            Dónde abrir
+            Tu próximo negocio
           </Link>
         </nav>
       </div>

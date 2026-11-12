@@ -3,11 +3,7 @@ import { CheckIcon } from '@phosphor-icons/react';
 import { Link } from '@tanstack/react-router';
 import { Sami } from '@/components/sistema/Sami';
 import { useConfiguracionNegocio } from '@/hooks/negocio/queries';
-import {
-  NOMBRE_DE_RUBRO,
-  UN_RUBRO,
-  type Rubro,
-} from '@/lib/dondeAbrir';
+import { NOMBRE_DE_RUBRO, UN_RUBRO, type Rubro } from '@/lib/dondeAbrir';
 
 const RUBROS: { valor: Rubro; etiqueta: string }[] = [
   { valor: 'almacen', etiqueta: 'Un almacén' },
@@ -46,20 +42,30 @@ export function ConfirmarNegocio({ rubro, onConfirmar }: Props) {
             ) : negocio ? (
               <>
                 Veo que tu negocio es <strong>{negocio.nombre}</strong>
-                {lugar ? <> en <strong>{lugar}</strong></> : ''}. Vamos a buscar dónde abrir{' '}
-                <strong>{UN_RUBRO[rubro]}</strong>. ¿Es correcto?
+                {lugar ? (
+                  <>
+                    {' '}
+                    en <strong>{lugar}</strong>
+                  </>
+                ) : (
+                  ''
+                )}
+                . Vamos a buscar dónde abrir <strong>{UN_RUBRO[rubro]}</strong>. ¿Es correcto?
               </>
             ) : (
               'No pude leer la configuración de tu negocio.'
             )}
           </p>
           <small>
-            Lo tomo de la configuración real de tu negocio y nunca de lo que mande esta pantalla.
+            Usamos estos datos para calcular la distancia y comparar un local nuevo con el actual.
           </small>
+          <Link className="text-link donde-editar-negocio" to="/ubicacion">
+            Editar datos de mi negocio
+          </Link>
           {negocio && !negocio.ubicacion && (
-            <Link className="text-link" to="/ubicacion">
-              Configurar la ubicación antes de comparar distancias
-            </Link>
+            <p className="donde-falta-ubicacion">
+              Cargá la ubicación antes de comparar distancias.
+            </p>
           )}
         </div>
       </div>

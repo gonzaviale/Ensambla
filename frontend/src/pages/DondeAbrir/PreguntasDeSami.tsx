@@ -16,7 +16,11 @@ const PREGUNTAS: Pregunta[] = [
     clave: 'alcance',
     texto: '¿Dónde querés buscar?',
     opciones: [
-      { valor: 'cerca', titulo: 'Cerca de mi local actual', ayuda: 'Hasta 4 km de tu local actual' },
+      {
+        valor: 'cerca',
+        titulo: 'Cerca de mi local actual',
+        ayuda: 'Hasta 4 km de tu local actual',
+      },
       {
         valor: 'toda',
         titulo: 'En cualquier zona',
@@ -35,15 +39,23 @@ const PREGUNTAS: Pregunta[] = [
   },
   {
     clave: 'publico',
-    texto: '¿A quién le vendés más?',
+    texto: '¿Qué tipo de movimiento querés aprovechar?',
     opciones: [
-      { valor: 'vecinos', titulo: 'A los vecinos', ayuda: 'Gente que vive en la zona' },
+      {
+        valor: 'vecinos',
+        titulo: 'Movimiento residencial',
+        ayuda: 'Personas que viven y compran cerca de su casa',
+      },
       {
         valor: 'estudiantes',
-        titulo: 'A estudiantes y familias',
-        ayuda: 'Cerca de escuelas y parques',
+        titulo: 'Escuelas y familias',
+        ayuda: 'Movimiento alrededor de escuelas, plazas y actividades familiares',
       },
-      { valor: 'oficinas', titulo: 'A gente que trabaja cerca', ayuda: 'Oficinas y bancos' },
+      {
+        valor: 'oficinas',
+        titulo: 'Zona laboral',
+        ayuda: 'Personas que trabajan o hacen trámites cerca',
+      },
     ],
   },
   {
