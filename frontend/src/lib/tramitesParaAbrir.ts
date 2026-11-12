@@ -22,6 +22,8 @@ export type Aprobacion = {
   modalidad: Modalidad;
   /** Cuándo corresponde, si no es siempre. */
   cuando?: string;
+  /** Página oficial que explica este requisito, cuando existe una referencia directa. */
+  fuente?: Fuente;
 };
 
 export type Paso = { texto: string; modalidad?: Modalidad };
@@ -84,6 +86,7 @@ function guiaCaba(rubro: Rubro, superficieM2: number): GuiaDeTramites {
     paraQue: 'Confirma qué usos admite el lugar según el Código Urbanístico.',
     modalidad: 'confirmar',
     cuando: 'Solo si el local está en un área especial o el uso lo exige. Tiene costo.',
+    fuente: FUENTES_CABA[1],
   };
   const aprobaciones: Aprobacion[] = esExpres
     ? [
@@ -93,6 +96,7 @@ function guiaCaba(rubro: Rubro, superficieM2: number): GuiaDeTramites {
           organismo: 'Agencia Gubernamental de Control',
           paraQue: 'Habilita el local si tiene hasta 200 m² y cumple las condiciones del trámite.',
           modalidad: 'online',
+          fuente: FUENTES_CABA[0],
         },
         {
           id: 'caa',
@@ -100,6 +104,7 @@ function guiaCaba(rubro: Rubro, superficieM2: number): GuiaDeTramites {
           organismo: 'Agencia de Protección Ambiental',
           paraQue: 'Se genera solo al completar todos los formularios del trámite exprés.',
           modalidad: 'online',
+          fuente: FUENTES_CABA[0],
         },
         consultaDeUsos,
       ]
@@ -116,6 +121,7 @@ function guiaCaba(rubro: Rubro, superficieM2: number): GuiaDeTramites {
               ? 'Hasta 500 m². Podés empezar a trabajar de inmediato; después hay una revisión técnica.'
               : 'Es obligatoria si el local supera los 500 m². Podés empezar de inmediato; después hay una revisión técnica.',
           modalidad: 'online',
+          fuente: FUENTES_CABA[1],
         },
         {
           id: 'anexo-tecnico',
@@ -123,6 +129,7 @@ function guiaCaba(rubro: Rubro, superficieM2: number): GuiaDeTramites {
           organismo: 'Arquitecto, ingeniero o maestro mayor de obras matriculado',
           paraQue: 'Lo carga el profesional con el número de trámite y el código de seguridad.',
           modalidad: 'confirmar',
+          fuente: FUENTES_CABA[1],
         },
         {
           id: 'caa',
@@ -130,6 +137,7 @@ function guiaCaba(rubro: Rubro, superficieM2: number): GuiaDeTramites {
           organismo: 'Agencia de Protección Ambiental',
           paraQue: 'Verifica que el local cumpla las normas ambientales.',
           modalidad: 'confirmar',
+          fuente: FUENTES_CABA[1],
         },
         consultaDeUsos,
       ];
@@ -266,6 +274,7 @@ function guiaLaMatanza(rubro: Rubro, superficieM2: number): GuiaDeTramites {
       paraQue:
         'El municipio recomienda hacerla antes de empezar: confirma si tu rubro se puede abrir en esa dirección.',
       modalidad: 'oficina',
+      fuente: FUENTES_LA_MATANZA[2],
     },
     {
       id: 'habilitacion',
@@ -274,6 +283,7 @@ function guiaLaMatanza(rubro: Rubro, superficieM2: number): GuiaDeTramites {
       paraQue:
         'El trámite principal. Los formularios se piden online y en la oficina te ayudan a armarlos.',
       modalidad: 'mixta',
+      fuente: FUENTES_LA_MATANZA[0],
     },
     {
       id: 'libre-deuda',
@@ -281,6 +291,7 @@ function guiaLaMatanza(rubro: Rubro, superficieM2: number): GuiaDeTramites {
       organismo: 'Banco de Cuentas Municipal',
       paraQue: 'Se pide para acreditar que el inmueble no tiene deuda.',
       modalidad: 'oficina',
+      fuente: FUENTES_LA_MATANZA[0],
     },
     {
       id: 'contrato',
@@ -288,6 +299,7 @@ function guiaLaMatanza(rubro: Rubro, superficieM2: number): GuiaDeTramites {
       organismo: 'Dirección de Catastro',
       paraQue: 'Certifica el contrato con el que acreditás que podés usar el local.',
       modalidad: 'oficina',
+      fuente: FUENTES_LA_MATANZA[0],
     },
     {
       id: 'inscripcion-fiscal',
@@ -305,6 +317,7 @@ function guiaLaMatanza(rubro: Rubro, superficieM2: number): GuiaDeTramites {
       paraQue: 'Los rubros alimenticios los presentan junto con el resto de la documentación.',
       modalidad: 'confirmar',
       cuando: 'Si vendés alimentos.',
+      fuente: FUENTES_LA_MATANZA[0],
     });
   }
   aprobaciones.push({
@@ -324,6 +337,7 @@ function guiaLaMatanza(rubro: Rubro, superficieM2: number): GuiaDeTramites {
       paraQue: 'El maxikiosco es un rubro con reglamentación especial.',
       modalidad: 'confirmar',
       cuando: 'Si tu kiosco es un maxikiosco.',
+      fuente: FUENTES_LA_MATANZA[1],
     });
   }
 

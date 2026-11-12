@@ -75,6 +75,16 @@ export function GuiaDeTramites({ zona, rubro, superficie, onSuperficie }: Props)
                 <span>{aprobacion.organismo}</span>
                 <p>{aprobacion.paraQue}</p>
                 {aprobacion.cuando && <em>{aprobacion.cuando}</em>}
+                {aprobacion.fuente && (
+                  <a
+                    className="donde-mas-info"
+                    href={aprobacion.fuente.url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Más información sobre {aprobacion.nombre}
+                  </a>
+                )}
               </div>
               <ChipDeModalidad modalidad={aprobacion.modalidad} />
             </li>
