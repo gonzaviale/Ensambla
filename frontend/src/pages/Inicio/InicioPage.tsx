@@ -121,7 +121,7 @@ function Atajos({ compactos = false }: { compactos?: boolean }) {
       aria-label="Más para tu negocio"
     >
       <Atajo
-        color="coral"
+        color="petrol"
         icono="camera"
         titulo="Cargar desde una foto"
         texto="Sacale una foto a tu cuaderno o subí una captura. Siempre revisás antes de guardar."
@@ -135,7 +135,7 @@ function Atajos({ compactos = false }: { compactos?: boolean }) {
         }
       />
       <Atajo
-        color="petrol"
+        color="blue"
         icono="chart"
         titulo="Ver mi zona"
         texto="Mirá cuánto se cobra cerca y qué se vende. Nunca se sabe quién es quién."

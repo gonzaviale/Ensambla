@@ -19,7 +19,20 @@
      1. Destacada: petróleo relleno (resumen de la pantalla).
      2. Normal: blanca, borde fino, sombra de reposo.
      3. Anidada: gris muy claro, sin sombra.
-   El color propio de cada bloque (--accent / --tint) queda sólo en el ícono y en una línea superior. */
+   El color propio de cada bloque (--accent / --tint) queda sólo en el ícono y en una línea superior.
+
+   El naranja, además de la acción principal, marca dónde estás y lo que importa hoy: la sección activa de la barra,
+   el período elegido y la barra de hoy en el gráfico.
+
+   Cómo se reparte el resto de la paleta (siempre por significado, nunca por turno):
+     · Naranja: Sami y la acción principal.   · Petróleo: estructura y lo que es del negocio (ventas, cuadernos).
+     · Celeste: información y datos de la zona.   · Amarillo: lo destacado y lo que se debe mirar (fiado, «bajo»).
+     · Coral: alerta, costo y peligro.
+   Lo que entra, lo que sale, lo que queda y lo que te deben llevan cada uno su color; la posición de un precio
+   (bajo, en línea, alto) también; y la prioridad de un aviso (azul, amarillo, rojo).
+
+   Colores sólidos, sin pasteles: donde hay un fondo de color es petróleo, y lo que va adentro (íconos, barras,
+   etiquetas) es celeste claro o blanco. Los tintes suaves sólo se usan para pasar el mouse. */
 
 :root {
   --c-accion: #ee8000;
@@ -31,6 +44,7 @@
   --c-estructura-700: #003e53;
   --c-estructura-sombra: #00384c;
   --c-estructura-100: #e6f3f7;
+  --c-celeste: #a8dcec; /* celeste claro sólido: lo que va adentro de un fondo petróleo */
   --c-estructura-50: #f3f9fb;
   --c-borde: #e4e8e6;
   --c-borde-fuerte: #cfdde3;
@@ -41,18 +55,21 @@
 
 /* ===== Marca y navegación ===== */
 
-/* Una sola firma: una pieza naranja sobre la línea petróleo (en lugar de las cinco franjas). */
+/* La línea de la marca: los cinco colores, siempre en el mismo orden, bajo la barra y arriba de los diálogos. */
 .topbar::after,
 .brand-header::after {
-  height: 3px;
+  height: 4px;
   background: linear-gradient(
     90deg,
-    var(--c-accion) 0 72px,
-    var(--c-estructura) 72px 100%
+    var(--orange) 0 20%,
+    var(--yellow) 20% 40%,
+    var(--blue) 40% 60%,
+    var(--petrol) 60% 80%,
+    var(--coral) 80% 100%
   );
 }
 .topnav button.active {
-  background: var(--c-estructura);
+  background: var(--c-accion);
   color: #fff;
 }
 .topnav button:not(.active):hover {
@@ -438,10 +455,6 @@
   border-color: var(--c-borde);
   border-left: 5px solid var(--c-estructura);
 }
-.zona-ref {
-  background: var(--c-estructura-50);
-  border-color: var(--c-borde-fuerte);
-}
 
 .zona-etiqueta {
   background: var(--c-estructura-100);
@@ -465,23 +478,6 @@
 .plans-heading-piece {
   background: var(--c-accion-100);
   color: var(--c-accion);
-}
-
-/* ===== Avisos: lo urgente se ve primero sin gritar ===== */
-
-.alertas-urgentes {
-  border: 1px solid #f3c3bf;
-  border-left: 5px solid var(--bad);
-  background: #fff1ef;
-  color: #7a1010;
-}
-.alertas-urgentes button {
-  border: 1px solid #f3c3bf;
-}
-.alertas-urgentes button:hover,
-.alertas-urgentes button:focus-visible {
-  border-color: var(--bad);
-  background: #fff;
 }
 
 /* ===== Encabezado del cuaderno ===== */
@@ -600,10 +596,17 @@
 
 /* ===== Piezas que aún mezclaban colores sin significado ===== */
 
-/* La firma de los diálogos es la misma que la de la barra: una pieza naranja sobre línea petróleo. */
+/* Los diálogos llevan la misma línea de cinco colores que la barra. */
 .modal:not(.modal-importar)::before {
   height: 4px;
-  background: linear-gradient(90deg, var(--c-accion) 0 72px, var(--c-estructura) 72px 100%);
+  background: linear-gradient(
+    90deg,
+    var(--orange) 0 20%,
+    var(--yellow) 20% 40%,
+    var(--blue) 40% 60%,
+    var(--petrol) 60% 80%,
+    var(--coral) 80% 100%
+  );
 }
 /* El marco giratorio de «Ver» llama la atención con los dos colores de la marca. */
 .resaltado-marco > i {
@@ -636,56 +639,6 @@
 .campana-ver-todos {
   background: var(--c-accion);
   color: #fff;
-}
-
-/* ===== PRUEBA: tablero de ventas invertido (fondo claro, lo que enfatiza va en petróleo oscuro) =====
-   Para volver al tablero oscuro, borrar este bloque entero. */
-
-.tablero-ventas {
-  background: var(--c-estructura-100);
-  color: var(--c-estructura);
-  box-shadow: none;
-}
-.tablero-ventas h2,
-.tablero-ventas-monto,
-.tablero-ventas-dato {
-  color: var(--c-estructura);
-}
-.tablero-ventas-nota {
-  color: var(--muted);
-}
-.tablero-ventas-comparacion {
-  background: var(--c-estructura);
-  color: #fff;
-}
-.tablero-ventas .selector-periodo-oscuro {
-  background: #fff;
-}
-.tablero-ventas .selector-periodo-oscuro button {
-  color: var(--c-estructura);
-}
-.tablero-ventas .selector-periodo-oscuro button[aria-pressed='true'] {
-  background: var(--c-estructura);
-  color: #fff;
-  box-shadow: none;
-}
-.tablero-ventas .grafico-barras-oscuro .grafico-barra-relleno {
-  background: var(--blue);
-  opacity: 0.45;
-}
-.tablero-ventas .grafico-barras-oscuro .grafico-barra[data-destacada='true'] .grafico-barra-relleno {
-  background: var(--c-estructura);
-  opacity: 1;
-}
-.tablero-ventas .grafico-barras-oscuro .grafico-barra:hover .grafico-barra-relleno {
-  opacity: 0.8;
-}
-.tablero-ventas .grafico-barras-oscuro .grafico-barra-etiqueta {
-  color: var(--c-estructura);
-}
-.tablero-ventas .grafico-barras-oscuro .grafico-barra-detalle {
-  background: var(--c-estructura);
-  box-shadow: none;
 }
 
 /* ===== Avisos: a todo el ancho, tarjetas en grilla y el color dice la prioridad ===== */
@@ -943,4 +896,302 @@
     grid-row: auto;
     margin-top: 6px;
   }
+}
+
+/* ===== Sólidos: petróleo de fondo, celeste claro y blanco adentro ===== */
+
+.btn.soft {
+  background: var(--c-estructura);
+  color: #fff;
+}
+
+/* Íconos en cuadrado o círculo: petróleo con el dibujo en celeste claro. */
+.inicio-ficha-icono,
+.inicio-ficha-flecha,
+.inicio-atajo-icono,
+.foto-redonda,
+.inicio-cuaderno-tapa .icon,
+.template-page .template-body .icon-tile {
+  background: var(--c-estructura);
+  color: var(--c-celeste);
+}
+.foto-redonda:hover {
+  background: var(--c-estructura-700);
+  color: #fff;
+}
+/* El ícono de cada bloque va con el color propio del bloque, lleno. */
+.block-head .icon-tile {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Etiquetas: petróleo con letra blanca. */
+.cuadernos-etiqueta,
+.canvas-etiqueta,
+.field-type-badge,
+.field-type-badge[data-tipo] {
+  background: var(--c-estructura);
+  color: #fff;
+}
+
+/* Mi zona: etiquetas llenas con significado y el panel de referencia en petróleo. */
+.zona-etiqueta,
+.zona-etiqueta.justo {
+  background: var(--c-estructura);
+  color: #fff;
+}
+.zona-etiqueta.alto {
+  background: #e0443f;
+  color: #fff;
+}
+.zona-etiqueta.bajo {
+  background: var(--yellow);
+  color: #3d3000;
+}
+.zona-ref-nums div {
+  background: var(--c-celeste);
+}
+.zona-ref .zona-ref-nums strong,
+.zona-ref .zona-ref-nums span {
+  color: var(--c-estructura);
+}
+
+/* Tablero de ventas: fondo petróleo; adentro, celeste claro; lo de hoy en blanco. */
+.tablero-ventas {
+  background: var(--c-estructura);
+  color: #fff;
+  box-shadow: 0 22px 50px color-mix(in srgb, var(--c-estructura) 28%, transparent);
+}
+.tablero-ventas h2 {
+  color: #fff;
+}
+.tablero-ventas-monto {
+  color: #fff;
+}
+.tablero-ventas-dato {
+  color: rgb(255 255 255 / 0.92);
+}
+.tablero-ventas-nota {
+  color: rgb(255 255 255 / 0.75);
+}
+.tablero-ventas-comparacion,
+.tablero-ventas-comparacion[data-sube='true'] {
+  background: var(--c-celeste);
+  color: var(--c-estructura);
+}
+.tablero-ventas-comparacion[data-sube='true'] .icon {
+  color: var(--c-estructura);
+}
+.tablero-ventas .selector-periodo-oscuro {
+  background: rgb(255 255 255 / 0.12);
+}
+.tablero-ventas .selector-periodo-oscuro button {
+  color: #fff;
+}
+.tablero-ventas .selector-periodo-oscuro button[aria-pressed='true'] {
+  background: var(--c-accion);
+  color: #fff;
+  box-shadow: none;
+}
+.tablero-ventas .grafico-barras-oscuro .grafico-barra-relleno {
+  background: var(--c-celeste);
+  opacity: 1;
+}
+.tablero-ventas .grafico-barras-oscuro .grafico-barra[data-destacada='true'] .grafico-barra-relleno {
+  background: var(--c-accion);
+}
+.tablero-ventas .grafico-barras-oscuro .grafico-barra:hover .grafico-barra-relleno {
+  opacity: 0.85;
+}
+.tablero-ventas .grafico-barras-oscuro .grafico-barra-etiqueta {
+  color: var(--c-celeste);
+}
+.tablero-ventas .grafico-barras-oscuro .grafico-barra-detalle {
+  background: #fff;
+  color: var(--c-estructura);
+  box-shadow: none;
+}
+
+/* Avisos: la cabecera en petróleo y la prioridad con colores llenos. */
+.alertas-head {
+  border: 0;
+  background: var(--c-estructura);
+  color: #fff;
+}
+.alertas-sami {
+  filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.25));
+}
+.alertas-head .eyebrow {
+  color: var(--c-celeste);
+}
+.alertas-head h1 {
+  color: #fff;
+}
+.alertas-head p {
+  color: rgb(255 255 255 / 0.9);
+}
+.alertas-lista .alerta,
+.alertas-lista .alerta[data-tipo],
+.campana-aviso {
+  --nivel-solido: #1b8bb0;
+  --nivel-solido-texto: #fff;
+}
+.alertas-lista .alerta.p2,
+.alertas-lista .alerta.p2[data-tipo],
+.campana-aviso.p2 {
+  --nivel-solido: var(--yellow);
+  --nivel-solido-texto: #3d3000;
+}
+.alertas-lista .alerta.p3,
+.alertas-lista .alerta.p3[data-tipo],
+.campana-aviso.p3 {
+  --nivel-solido: #c42b2b;
+  --nivel-solido-texto: #fff;
+}
+.alertas-lista .alerta-icono,
+.alertas-lista .alerta .alerta-nivel,
+.alertas-lista .alerta.p3 .alerta-nivel,
+.campana-aviso-icono,
+.campana-aviso-nivel {
+  background: var(--nivel-solido);
+  color: var(--nivel-solido-texto);
+}
+
+/* Planes: la pieza del título, llena. */
+.plans-heading-piece {
+  background: var(--c-accion);
+  color: #fff;
+}
+
+/* Plantillas: la portada con las piezas en miniatura va en petróleo. */
+.template-page .set-visual {
+  background: var(--c-estructura);
+  border-bottom: 0;
+}
+.template-page .set-count,
+.template-page [data-template='shop'] .set-count {
+  color: var(--c-celeste);
+}
+
+/* ===== Más paleta, con criterio ===== */
+
+/* Cifras del negocio: la línea de arriba dice qué mide cada una. */
+.objetivos-metrica {
+  border-top: 4px solid var(--c-borde-fuerte);
+}
+.objetivos-metrica[data-tono='ingreso'] {
+  border-top-color: var(--petrol);
+}
+.objetivos-metrica[data-tono='costo'] {
+  border-top-color: var(--coral);
+}
+.objetivos-metrica[data-tono='resultado'] {
+  border-top-color: var(--blue);
+}
+.objetivos-metrica[data-tono='deuda'] {
+  border-top-color: var(--yellow);
+}
+
+/* Mi zona: la posición de tu precio, siempre con los mismos tres colores. */
+/* Resumen de la zona: panel en petróleo suave y, adentro, tres tarjetas de color con letra petróleo (amarillo = más
+   baratos, celeste = en línea, naranja = más caros: los mismos tres de las etiquetas de cada producto). */
+.zona-ref {
+  background: var(--c-estructura-100);
+  border: 1px solid var(--c-borde-fuerte);
+}
+.zona-ref .eyebrow,
+.zona-ref h2,
+.zona-ref > p {
+  color: var(--c-estructura);
+}
+.zona-ref-nums div {
+  border-top: 0;
+}
+.zona-ref-nums div:nth-child(1) {
+  background: var(--yellow);
+}
+.zona-ref-nums div:nth-child(2) {
+  background: var(--blue);
+}
+.zona-ref-nums div:nth-child(3) {
+  background: var(--orange);
+}
+.zona-ref .zona-ref-nums strong,
+.zona-ref .zona-ref-nums span {
+  color: var(--c-estructura);
+  text-shadow: none;
+}
+.zona-etiqueta,
+.zona-etiqueta.bajo,
+.zona-etiqueta.justo,
+.zona-etiqueta.alto {
+  background: var(--c-estructura);
+  color: #fff;
+  text-shadow: none;
+}
+.zona-etiqueta::before {
+  content: '';
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--blue);
+}
+.zona-etiqueta.bajo::before {
+  background: var(--yellow);
+}
+.zona-etiqueta.alto::before {
+  background: var(--orange);
+}
+.zona-tarjeta.mio {
+  border-left-color: var(--blue);
+}
+
+/* Avisos: tarjeta blanca con borde petróleo, como el cuaderno; Sami pone el color. */
+.alertas-head {
+  border: 2px solid var(--c-estructura);
+  background: #fff;
+  color: var(--c-estructura);
+  box-shadow: 5px 5px 0 color-mix(in srgb, var(--c-estructura) 28%, #fff);
+}
+.alertas-head .eyebrow {
+  color: var(--c-accion-texto);
+}
+.alertas-head h1 {
+  color: var(--c-estructura);
+}
+.alertas-head p {
+  color: var(--ink);
+}
+
+/* Cómo empezar: cada ficha lleva el color de lo que hace. */
+.inicio-ficha[data-color='blue'] .inicio-ficha-icono,
+.inicio-ficha[data-color='blue'] .inicio-ficha-flecha,
+.inicio-atajo[data-color='blue'] .inicio-atajo-icono {
+  background: var(--blue);
+  color: var(--c-estructura);
+}
+.inicio-ficha[data-color='yellow'] .inicio-ficha-icono,
+.inicio-ficha[data-color='yellow'] .inicio-ficha-flecha {
+  background: var(--yellow);
+  color: #3d3000;
+}
+/* Planes: la prueba activa se destaca en amarillo. */
+.plan-current-trial {
+  border-top-color: var(--yellow);
+}
+
+/* Plantillas: el naranja marca el filtro elegido y el ícono de cada plantilla. */
+.template-page .filter-pills button.active {
+  border-color: var(--c-accion);
+  background: var(--c-accion);
+  color: #fff;
+}
+.template-page .template-body .icon-tile {
+  background: var(--c-accion);
+  color: #fff;
+}
+.template-page .searchbox input:focus {
+  border-color: var(--c-accion);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-accion) 20%, transparent);
 }
