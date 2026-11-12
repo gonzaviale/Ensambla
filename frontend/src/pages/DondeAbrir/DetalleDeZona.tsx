@@ -181,9 +181,10 @@ function PorQueEstaZona({
       <details className="donde-plegable donde-datos">
         <summary>Cómo usamos los datos</summary>
         <p>
-          Comparamos el snapshot guardado de OpenStreetMap con las lecturas agregadas y anónimas
-          disponibles en Ensambla. La fecha y la fuente se muestran para que puedas revisar de dónde
-          sale cada dato.
+          Contamos lugares registrados dentro de 500 metros de cada zona. Sirven para comparar
+          cercanía de comercios, escuelas, plazas, oficinas, transporte y salud; no reemplazan una
+          recorrida porque puede haber lugares todavía no registrados. Abajo podés revisar la fuente
+          del snapshot.
         </p>
         {fuentes.length > 0 && (
           <ul>
@@ -236,12 +237,7 @@ function PorQueEstaZona({
                 {conPeso.map((aporte) => (
                   <tr key={aporte.clave}>
                     <th scope="row">{aporte.etiqueta}</th>
-                    <td>
-                      {formatoDato(aporte.valor, aporte.unidad)}
-                      {aporte.fuente && (
-                        <small className="donde-fuente">{aporte.fuente.nombre}</small>
-                      )}
-                    </td>
+                    <td>{formatoDato(aporte.valor, aporte.unidad)}</td>
                     <td>{Math.round(aporte.peso * 100)} %</td>
                     <td>{formatoPuntaje(aporte.puntaje)} de 10</td>
                   </tr>

@@ -5,25 +5,6 @@ type Props = {
   filtros: Filtros;
 };
 
-const nivel = (valor: number, invertir = false) => {
-  const ajustado = invertir ? 100 - valor : valor;
-  if (ajustado >= 67) return 'Alto';
-  if (ajustado >= 34) return 'Medio';
-  return 'Bajo';
-};
-
-const alquiler = (item: ZonaPuntuada) => {
-  const dato = item.aportes.find((aporte) => aporte.clave === 'alquiler');
-  if (dato?.unidad === 'ARS_mensuales' && dato.valor) {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      maximumFractionDigits: 0,
-    }).format(dato.valor);
-  }
-  return `${nivel(item.zona.alquiler, true)} · nivel ${Math.round(item.zona.alquiler)} de 100`;
-};
-
 // Una comparación corta para decidir. El detalle matemático queda separado en «Cómo lo calculé».
 export function ComparacionDeZonas({ zonas, filtros }: Props) {
   return (
@@ -54,13 +35,15 @@ export function ComparacionDeZonas({ zonas, filtros }: Props) {
               valor={(item) => `${formatoPuntaje(item.puntaje)} de 10`}
               destacada
             />
-            <Fila titulo="Alquiler estimado" zonas={zonas} valor={alquiler} />
             <Fila
-              titulo="Movimiento"
+              titulo="Escuelas cerca"
               zonas={zonas}
-              valor={(item) =>
-                `${nivel(item.zona.movimiento)} · ${Math.round(item.zona.movimiento)} de 100`
-              }
+              valor={(item) => `${item.zona.escuelas} a menos de 500 m`}
+            />
+            <Fila
+              titulo="Parques y plazas"
+              zonas={zonas}
+              valor={(item) => `${item.zona.parques} a menos de 500 m`}
             />
             <Fila
               titulo="Competencia cercana"

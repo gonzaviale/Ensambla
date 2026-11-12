@@ -68,6 +68,22 @@ describe('dónde abrir: cálculo', () => {
     }
   });
 
+  it('solo puntúa factores respaldados por el snapshot actual', () => {
+    const pesos = pesosPara(FILTROS_INICIALES);
+    for (const clave of ['movimiento', 'vecinos', 'demanda', 'poder', 'alquiler'] as const) {
+      expect(pesos[clave]).toBe(0);
+    }
+    expect(FACTORES.map((factor) => factor.clave)).toEqual([
+      'competencia',
+      'escuelas',
+      'parques',
+      'oficinas',
+      'transporte',
+      'salud',
+      'complementarios',
+    ]);
+  });
+
   it('un factor que no importa pesa cero, y uno que importa mucho pesa más que uno normal', () => {
     const base = pesosPara(FILTROS_INICIALES);
     const sinParques = pesosPara(conImportancia(FILTROS_INICIALES, { parques: 0 }));
@@ -82,7 +98,12 @@ describe('dónde abrir: cálculo', () => {
       Importancia
     >;
     const pesos = pesosPara({ ...FILTROS_INICIALES, importancia: nada });
-    for (const peso of Object.values(pesos)) expect(peso).toBeCloseTo(1 / FACTORES.length, 10);
+    for (const factor of FACTORES) {
+      expect(pesos[factor.clave]).toBeCloseTo(1 / FACTORES.length, 10);
+    }
+    for (const clave of ['movimiento', 'vecinos', 'demanda', 'poder', 'alquiler'] as const) {
+      expect(pesos[clave]).toBe(0);
+    }
   });
 
   it('ordena las zonas de mayor a menor puntaje, entre 0 y 10', () => {

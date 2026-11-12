@@ -36,9 +36,7 @@ const PUBLICO_API = {
   oficinas: 'OFICINAS',
 } as const;
 
-export type AlquileresPorZona = Record<string, number>;
-
-export function pedidoDondeAbrir(filtros: Filtros, alquileres: AlquileresPorZona): PedidoDondeAbrir {
+export function pedidoDondeAbrir(filtros: Filtros): PedidoDondeAbrir {
   return {
     rubro: RUBRO_API[filtros.rubro],
     publico: PUBLICO_API[filtros.publico],
@@ -59,18 +57,12 @@ export function pedidoDondeAbrir(filtros: Filtros, alquileres: AlquileresPorZona
       parquesMin: filtros.limites.parquesMin,
       transporteMin: filtros.limites.transporteMin,
     },
-    alquileres: Object.entries(alquileres)
-      .filter(([, valor]) => Number.isFinite(valor) && valor > 0)
-      .map(([zonaId, valor]) => ({ zonaId, valor })),
+    alquileres: [],
   };
 }
 
-export function useDondeAbrir(
-  filtros: Filtros,
-  alquileres: AlquileresPorZona,
-  habilitada: boolean,
-) {
-  const pedido = pedidoDondeAbrir(filtros, alquileres);
+export function useDondeAbrir(filtros: Filtros, habilitada: boolean) {
+  const pedido = pedidoDondeAbrir(filtros);
   return useQuery({
     queryKey: ['zona', 'donde-abrir', pedido],
     queryFn: ({ signal }) => explorarDondeAbrir(pedido, signal),
