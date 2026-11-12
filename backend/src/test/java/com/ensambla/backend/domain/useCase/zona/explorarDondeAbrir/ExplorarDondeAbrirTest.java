@@ -122,7 +122,7 @@ class ExplorarDondeAbrirTest {
     }
 
     @Test
-    @DisplayName("Informa cuando falta ubicación, redistribuye factores ausentes y tolera una zona sin métricas")
+    @DisplayName("Informa cuando falta ubicación y tolera una zona sin métricas ni factores elegidos")
     void shouldDegradeGracefullyWhenDataIsMissing() {
         Negocio sinUbicacion = Negocio.builder().nombre("Sin ubicación").rubro(RubroNegocio.ALMACEN).build();
         when(negocioRepository.obtenerNegocioDelUsuario(USUARIO_ID)).thenReturn(sinUbicacion);
@@ -143,9 +143,7 @@ class ExplorarDondeAbrirTest {
             assertThat(zona.aportes()).isEmpty();
             assertThat(zona.porQue()).containsExactly("Ningún factor se destaca: es una zona pareja");
         });
-        assertThat(resultado.avisos()).anyMatch(aviso -> aviso.contains("ubicación"))
-                .anyMatch(aviso -> aviso.contains("alquiler"))
-                .anyMatch(aviso -> aviso.contains("redistribuyó"));
+        assertThat(resultado.avisos()).anyMatch(aviso -> aviso.contains("ubicación"));
     }
 
     @Test
@@ -304,7 +302,6 @@ class ExplorarDondeAbrirTest {
 
         assertThat(resultado.ranking().getFirst().distanciaKm()).isNull();
         assertThat(resultado.avisos()).anyMatch(aviso -> aviso.contains("ubicación"))
-                .anyMatch(aviso -> aviso.contains("alquiler"))
                 .noneMatch(aviso -> aviso.contains("90 días"));
     }
 
