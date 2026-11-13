@@ -447,8 +447,8 @@ body:has(.creation-studio) {
   cursor: pointer;
 }
 .conversation-head .chat-minimizar:hover {
-  border-color: #b52d66;
-  color: #b52d66;
+  border-color: var(--petrol);
+  color: var(--petrol);
 }
 button.chat-abrir {
   position: fixed;

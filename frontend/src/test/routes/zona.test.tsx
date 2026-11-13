@@ -141,7 +141,7 @@ describe('Mi zona', () => {
     await verifyPathAsync(router, '/zona');
 
     await clickButton(user, 'Inicio');
-    await clickButton(user, 'Mi zona');
+    await clickButton(user, 'Zona');
     await verifyPathAsync(router, '/zona');
   });
 });

@@ -11,6 +11,7 @@ import { formatoPesos, type Objetivo } from '@/lib/objetivos';
 import { diaCorto, proximoCierre } from '@/lib/objetivosAutogestion';
 import { hoy } from '@/lib/sistema/formato';
 import { useSistemaStore } from '@/stores/sistemaStore';
+import { EntradaDondeAbrir } from '@/pages/DondeAbrir/EntradaDondeAbrir';
 import { DefinirObjetivo } from './DefinirObjetivo';
 import { NegocioHoy } from './NegocioHoy';
 import { ObjetivoCard } from './ObjetivoCard';
@@ -87,6 +88,7 @@ export function ObjetivosPage() {
             )}
           </>
         )}
+        <EntradaDondeAbrir />
       </main>
     </>
   );

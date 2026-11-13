@@ -55,7 +55,7 @@ export function TemplateCard({
           ))}
         </div>
         <div className="template-actions">
-          <Btn cls="primary small" data-accion="preview-template" onClick={() => onVer(clave)}>
+          <Btn cls="petrol small" data-accion="preview-template" onClick={() => onVer(clave)}>
             Ver el cuaderno <Icon name="arrow" />
           </Btn>
         </div>

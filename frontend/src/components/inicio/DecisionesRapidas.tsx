@@ -86,7 +86,7 @@ function Sugerencia({ aviso, onAccion, onDescartar }: Props) {
       </div>
       <div className="sugerencia-acciones">
         {principal && (
-          <button type="button" className="btn primary small" onClick={() => onAccion(principal)}>
+          <button type="button" className="btn petrol small" onClick={() => onAccion(principal)}>
             {textoDeAccion(principal)}
           </button>
         )}

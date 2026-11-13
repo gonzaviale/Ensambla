@@ -56,7 +56,7 @@ export function AvisoDeSami() {
           {primera && (
             <button
               type="button"
-              className="btn primary small"
+              className="btn petrol small"
               onClick={() => acciones.ejecutar(primera)}
             >
               {textoDeAccion(primera)}

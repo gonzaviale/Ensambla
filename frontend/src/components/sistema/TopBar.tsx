@@ -112,7 +112,7 @@ export function TopBar({
           Plantillas
         </button>
         <button type="button" className={active === 'zone' ? 'active' : ''} onClick={ir(onZona)}>
-          Mi zona
+          Zona
         </button>
         <button
           type="button"

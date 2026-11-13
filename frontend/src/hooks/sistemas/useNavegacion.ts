@@ -50,6 +50,7 @@ export function useNavegacion() {
       | '/plantillas'
       | '/taller'
       | '/zona'
+      | '/zona/donde-abrir'
       | '/planes'
       | '/sami'
       | '/avisos'
@@ -111,6 +112,8 @@ export function useNavegacion() {
     irAAvisos: () => irA('/avisos'),
     /** Los objetivos del negocio: cómo van, qué recomienda Sami y el plan para cada uno. */
     irAObjetivos: () => irA('/objetivos'),
+    /** «Dónde abrir»: Sami compara zonas dentro de la sección Zona. */
+    irADondeAbrir: () => irA('/zona/donde-abrir'),
     /** El plan de acción y el seguimiento de un objetivo. */
     irAObjetivo: (objetivoId: string) => {
       limpiar();

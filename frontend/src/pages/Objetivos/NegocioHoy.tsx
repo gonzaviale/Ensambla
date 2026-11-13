@@ -11,18 +11,23 @@ export function NegocioHoy({ negocio }: { negocio: ComoVieneTuNegocio | undefine
       <h2 id="objetivos-negocio-titulo">Cómo viene tu negocio</h2>
       <p>Los últimos 30 días, con lo que anotaste en tus cuadernos.</p>
       <div className="objetivos-negocio-cifras">
-        <Metrica etiqueta="Vendiste" valor={formatoPesos(negocio.vendiste)} />
-        <Metrica etiqueta="La mercadería te costó" valor={formatoPesos(negocio.mercaderia)} />
+        <Metrica etiqueta="Vendiste" valor={formatoPesos(negocio.vendiste)} tono="ingreso" />
+        <Metrica
+          etiqueta="La mercadería te costó"
+          valor={formatoPesos(negocio.mercaderia)}
+          tono="costo"
+        />
         {negocio.gastos > 0 && (
-          <Metrica etiqueta="Otros gastos" valor={formatoPesos(negocio.gastos)} />
+          <Metrica etiqueta="Otros gastos" valor={formatoPesos(negocio.gastos)} tono="costo" />
         )}
         <Metrica
           etiqueta="Te queda"
           valor={formatoPesos(negocio.queda)}
           alerta={negocio.queda < 0}
+          tono="resultado"
         />
         {negocio.teDeben > 0 && (
-          <Metrica etiqueta="Te deben (fiado)" valor={formatoPesos(negocio.teDeben)} />
+          <Metrica etiqueta="Te deben (fiado)" valor={formatoPesos(negocio.teDeben)} tono="deuda" />
         )}
       </div>
     </section>

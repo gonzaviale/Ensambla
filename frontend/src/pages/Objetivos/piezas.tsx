@@ -56,13 +56,16 @@ export function Metrica({
   etiqueta,
   valor,
   alerta,
+  tono,
 }: {
   etiqueta: string;
   valor: string;
   alerta?: boolean;
+  /** Qué mide la cifra: marca la línea de color de arriba (lo que entra, lo que sale, lo que queda, lo que te deben). */
+  tono?: 'ingreso' | 'costo' | 'resultado' | 'deuda';
 }) {
   return (
-    <div className={`objetivos-metrica ${alerta ? 'alerta' : ''}`.trim()}>
+    <div className={`objetivos-metrica ${alerta ? 'alerta' : ''}`.trim()} data-tono={tono}>
       <span>{etiqueta}</span>
       <strong>{valor}</strong>
     </div>
