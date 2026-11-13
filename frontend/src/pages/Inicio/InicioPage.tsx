@@ -5,23 +5,19 @@ import { Icon } from '@/components/sistema/Icon';
 import { MetricasDelInicio } from '@/components/sistema/MetricasDelInicio';
 import { PageFooter } from '@/components/sistema/PageFooter';
 import { varsDeColor } from '@/components/sistema/colores';
-import { CATALOG, TEMPLATES } from '@/lib/sistema/catalogo';
 import { sistemaDelPanel } from '@/lib/sistema/panelDelNegocio';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
-import type { ClavePlantilla, Color } from '@/lib/sistema/tipos';
+import type { Color } from '@/lib/sistema/tipos';
 import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
 import { useAccionesDelTutorial } from '@/hooks/tutorial/useAccionesDelTutorial';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
-const CLAVES = Object.keys(TEMPLATES) as ClavePlantilla[];
-
 // Inicio: quien ya tiene un cuaderno ve una bienvenida corta con las maneras de empezar y, abajo, sus números (lo que
-// vende, el aviso económico, las sugerencias de Sami y el flujo de caja); quien recién llega ve la bienvenida grande. Después
-// las otras herramientas y las plantillas (los cuadernos guardados tienen su propia pantalla, «Mis cuadernos»).
+// vende, el aviso económico, las sugerencias de Sami y el flujo de caja); quien recién llega ve la bienvenida grande. Las
+// plantillas tienen su pantalla y su ficha de arriba (los cuadernos guardados, la suya: «Mis cuadernos»).
 // Fondo blanco; el color va lleno en cada ficha, con íconos blancos.
 export function InicioPage() {
   const nombre = useNombre();
-  const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const tutorial = useAccionesDelTutorial();
   // Quien ya tiene un cuaderno ve el panel de su negocio: la bienvenida pasa a una franja corta (el h1 es el mismo)
   // y las formas de empezar siguen a mano. Quien recién empieza ve la bienvenida grande de siempre.
@@ -75,49 +71,6 @@ export function InicioPage() {
 
         {!hayPanel && <Atajos />}
 
-        <section className="inicio-bloque">
-          <Titulo
-            titulo="Plantillas para arrancar"
-            detalle="Cada una trae varias piezas que se entienden entre sí. Después sumás las tuyas."
-          />
-          <div className="inicio-plantillas">
-            {CLAVES.map((clave) => {
-              const plantilla = TEMPLATES[clave];
-              return (
-                <article
-                  key={clave}
-                  className="inicio-plantilla"
-                  data-template={clave}
-                  data-color={plantilla.color}
-                  style={varsDeColor(plantilla.color)}
-                >
-                  <span className="inicio-plantilla-icono">
-                    <Icon name={plantilla.icon} />
-                  </span>
-                  <h3>{plantilla.name}</h3>
-                  <p>{plantilla.subtitle}</p>
-                  <ul className="inicio-plantilla-piezas">
-                    {plantilla.types.map((tipo) => (
-                      <li key={tipo}>
-                        <Icon name={CATALOG[tipo].icon} />
-                        {CATALOG[tipo].name}
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    type="button"
-                    className="inicio-plantilla-ver"
-                    data-accion="preview-template"
-                    onClick={() => abrirModal({ tipo: 'plantilla', clave })}
-                  >
-                    Ver el cuaderno <Icon name="arrow" />
-                  </button>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-
         {/* <section className="inicio-bloque inicio-ejemplo">
           <Titulo
             titulo="Así se ve un cuaderno"
@@ -168,7 +121,7 @@ function Atajos({ compactos = false }: { compactos?: boolean }) {
       aria-label="Más para tu negocio"
     >
       <Atajo
-        color="coral"
+        color="petrol"
         icono="camera"
         titulo="Cargar desde una foto"
         texto="Sacale una foto a tu cuaderno o subí una captura. Siempre revisás antes de guardar."
@@ -182,23 +135,13 @@ function Atajos({ compactos = false }: { compactos?: boolean }) {
         }
       />
       <Atajo
-        color="petrol"
+        color="blue"
         icono="chart"
         titulo="Ver mi zona"
         texto="Mirá cuánto se cobra cerca y qué se vende. Nunca se sabe quién es quién."
         onClick={() => void navegacion.irAZona()}
       />
     </section>
-  );
-}
-
-// Título de sección.
-function Titulo({ titulo, detalle }: { titulo: string; detalle?: string }) {
-  return (
-    <div className="inicio-titulo">
-      <h2>{titulo}</h2>
-      {detalle && <p>{detalle}</p>}
-    </div>
   );
 }
 

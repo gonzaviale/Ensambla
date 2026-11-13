@@ -170,7 +170,7 @@
   color: var(--ens-ink);
 }
 .landing .ens-link:hover {
-  color: var(--ens-magenta);
+  color: var(--ens-ink-deep);
 }
 .landing .ens-note {
   margin-top: 18px;
@@ -251,7 +251,7 @@
   margin-top: 13px;
 }
 .landing .ens-ribbon {
-  background: var(--ens-yellow-dark);
+  background: var(--ens-ink);
   padding: 17px 25px;
   text-align: center;
   color: #fff;
@@ -310,7 +310,7 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--ens-yellow-dark);
+  background: var(--ens-ink);
   color: #fff;
 }
 .landing .ens-pains li:nth-child(2) .ens-icon {
@@ -527,7 +527,7 @@
   font-size: 14px;
 }
 .landing .ens-outcome {
-  background: var(--ens-campaign);
+  background: var(--ens-ink);
   color: var(--ens-paper);
   padding-block: 48px;
 }
@@ -590,8 +590,8 @@
   border-radius: 7px;
   font-size: 14px;
   font-weight: 800;
-  color: #fff;
-  background: var(--ens-yellow-dark);
+  color: #263443;
+  background: var(--ens-orange, #ee8000);
   transform: rotate(var(--tag-tilt));
   transition: transform 0.25s;
 }
@@ -643,7 +643,7 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--ens-yellow-dark);
+  background: var(--ens-ink);
   color: #fff;
 }
 .landing .ens-data-icon svg {

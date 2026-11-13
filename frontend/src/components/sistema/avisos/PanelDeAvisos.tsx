@@ -175,6 +175,20 @@ export function PanelDeAvisos() {
           <Icon name="arrow" />
         </button>
       </div>
+      <ul className="alertas-leyenda" aria-label="Qué significa cada color">
+        <li data-nivel="3">
+          <i aria-hidden="true" />
+          <strong>Rojo · Urgente</strong> no puede esperar
+        </li>
+        <li data-nivel="2">
+          <i aria-hidden="true" />
+          <strong>Amarillo · Advertencia</strong> conviene mirarlo hoy
+        </li>
+        <li data-nivel="1">
+          <i aria-hidden="true" />
+          <strong>Azul · Normal</strong> para mirar con calma
+        </li>
+      </ul>
       {cuadernos.size > 1 && (
         <div className="alertas-cuadernos" role="group" aria-label="Filtrar por cuaderno">
           <span>Cuaderno</span>
