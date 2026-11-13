@@ -51,6 +51,17 @@ class PromptTallerTest {
     }
 
     @Test
+    @DisplayName("Las instrucciones fijan el vocabulario: negocio, sección, pestañas y tablas, y nunca sistema ni cuaderno")
+    void peticionShouldTeachTheVocabulary() {
+        PeticionConHerramientas peticion = prompt.peticion(new ConsultaTaller("hola", VACIO, List.of()));
+
+        assertThat(peticion.instrucciones())
+                .contains("armás las secciones del negocio de la persona")
+                .contains("«sección»", "«pestañas»", "«tablas»")
+                .contains("Nunca digas «sistema», «proyecto» ni «cuaderno»");
+    }
+
+    @Test
     @DisplayName("Las instrucciones terminan con los componentes del catálogo y sus datos de fábrica")
     void peticionShouldListCatalogComponentsInInstructions() {
         PeticionConHerramientas peticion = prompt.peticion(new ConsultaTaller("hola", VACIO, List.of()));

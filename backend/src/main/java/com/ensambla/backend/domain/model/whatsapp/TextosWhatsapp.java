@@ -29,7 +29,7 @@ public final class TextosWhatsapp {
     public static final String VENCIDA = "Esa carga venció sin confirmarse. Mandámela de nuevo.";
     public static final String NO_ENTENDI = "No encontré nada para cargar en ese mensaje. Probá con algo como "
             + "«gasté 5000 en harina» o mandame una foto del cuaderno.";
-    public static final String SIN_TABLAS = "Todavía no tenés tablas para cargar datos. Armá tu sistema en la app y "
+    public static final String SIN_TABLAS = "Todavía no tenés tablas para cargar datos. Armá tu primera sección en la app y "
             + "volvé a escribirme.";
     public static final String TABLA_INEXISTENTE = "Esa tabla ya no existe. Mandame los datos de nuevo.";
     public static final String LIMITE_SAMI = "Hoy ya usaste todas las consultas con Sami. Probá mañana o cargalo desde la app.";
