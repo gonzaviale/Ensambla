@@ -14,7 +14,7 @@ type Pregunta = {
 const PREGUNTAS: Pregunta[] = [
   {
     clave: 'alcance',
-    texto: '¿Dónde querés buscar?',
+    texto: '¿En qué zona querés llegar a nuevos clientes?',
     opciones: [
       {
         valor: 'cerca',
@@ -30,7 +30,7 @@ const PREGUNTAS: Pregunta[] = [
   },
   {
     clave: 'prioridad',
-    texto: '¿Qué pesa más para vos?',
+    texto: '¿Qué combinación de lugares puede atraer mejor a tu público?',
     opciones: [
       { valor: 'equilibrado', titulo: 'Un equilibrio', ayuda: 'Un poco de cada cosa' },
       {
@@ -42,7 +42,7 @@ const PREGUNTAS: Pregunta[] = [
   },
   {
     clave: 'publico',
-    texto: '¿Qué entorno querés priorizar?',
+    texto: '¿En qué entorno suele moverse el público al que querés llegar?',
     opciones: [
       {
         valor: 'vecinos',

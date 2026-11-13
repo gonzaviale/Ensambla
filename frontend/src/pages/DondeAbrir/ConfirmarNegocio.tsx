@@ -50,7 +50,8 @@ export function ConfirmarNegocio({ rubro, onConfirmar }: Props) {
                 ) : (
                   ''
                 )}
-                . Vamos a buscar dónde abrir <strong>{UN_RUBRO[rubro]}</strong>. ¿Es correcto?
+                . Vamos a buscar dónde abrir <strong>{UN_RUBRO[rubro]}</strong>. ¿Querés continuar
+                con estos datos?
               </>
             ) : (
               'No pude leer la configuración de tu negocio.'
@@ -60,7 +61,7 @@ export function ConfirmarNegocio({ rubro, onConfirmar }: Props) {
             Usamos estos datos para calcular la distancia y comparar un local nuevo con el actual.
           </small>
           <Link className="text-link donde-editar-negocio" to="/ubicacion">
-            Editar datos de mi negocio
+            Editar ubicación de mi negocio
           </Link>
           {negocio && !negocio.ubicacion && (
             <p className="donde-falta-ubicacion">
@@ -88,10 +89,10 @@ export function ConfirmarNegocio({ rubro, onConfirmar }: Props) {
           </fieldset>
           <div className="donde-botones">
             <button type="button" className="btn primary" onClick={() => onConfirmar(elegido)}>
-              Seguir con {UN_RUBRO[elegido]}
+              Usar este tipo de local
             </button>
             <button type="button" className="btn ghost" onClick={() => setCambiando(false)}>
-              Volver
+              Cancelar
             </button>
           </div>
         </div>
@@ -103,10 +104,10 @@ export function ConfirmarNegocio({ rubro, onConfirmar }: Props) {
             disabled={configuracion.isPending || configuracion.isError}
             onClick={() => onConfirmar(rubro)}
           >
-            <CheckIcon aria-hidden size={18} weight="bold" /> Sí, es correcto
+            <CheckIcon aria-hidden size={18} weight="bold" /> Continuar con estos datos
           </button>
-          <button type="button" className="btn secondary" onClick={() => setCambiando(true)}>
-            No, quiero cambiar algo
+          <button type="button" className="text-link" onClick={() => setCambiando(true)}>
+            Cambiar el tipo de local
           </button>
         </div>
       )}
