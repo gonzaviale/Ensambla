@@ -18,6 +18,7 @@ import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
+import com.ensambla.backend.domain.service.objetivo.DecisionesObjetivoService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.aviso.aplicarAviso.AplicarAviso;
@@ -77,10 +78,11 @@ public class AvisoUseCaseConfig {
             RegistroRepository registroRepository,
             CampoRepository campoRepository,
             AvisoRepository avisoRepository,
+            DecisionesObjetivoService decisionesObjetivoService,
             TransaccionPort transaccionPort,
             Clock clock) {
         return new AplicarAviso(negocioRepository, controlPlanService, registroDatosService, registroRepository,
-                campoRepository, avisoRepository, transaccionPort, clock);
+                campoRepository, avisoRepository, decisionesObjetivoService, transaccionPort, clock);
     }
 
     @Bean
@@ -88,10 +90,12 @@ public class AvisoUseCaseConfig {
             NegocioRepository negocioRepository,
             ControlPlanService controlPlanService,
             AvisoRepository avisoRepository,
+            DecisionesObjetivoService decisionesObjetivoService,
             TransaccionPort transaccionPort,
             Clock clock) {
         return new DescartarAviso(
-                negocioRepository, controlPlanService, avisoRepository, transaccionPort, clock);
+                negocioRepository, controlPlanService, avisoRepository, decisionesObjetivoService, transaccionPort,
+                clock);
     }
 
     /** La ventana (días antes y días después del aviso) sale de {@code ensambla.avisos.impacto.ventana-dias}. */

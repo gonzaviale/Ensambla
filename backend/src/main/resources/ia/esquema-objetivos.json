@@ -1,0 +1,20 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["minis"],
+  "properties": {
+    "minis": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["codigo", "titulo", "justificacion"],
+        "properties": {
+          "codigo": {"type": "string"},
+          "titulo": {"type": "string"},
+          "justificacion": {"type": "string"}
+        }
+      }
+    }
+  }
+}

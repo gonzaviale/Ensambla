@@ -22,6 +22,9 @@ public interface AvisoRepository {
 
     List<Aviso> findByNegocioId(NegocioId negocioId);
 
+    /** Los avisos del negocio con esos ids, de una vez; los que no existen o son de otro negocio no vienen. */
+    List<Aviso> findAllByIdsAndNegocioId(List<AvisoId> ids, NegocioId negocioId);
+
     List<Aviso> findByNegocioIdAndEstado(NegocioId negocioId, EstadoAviso estado);
 
     /** El aviso del negocio; uno ajeno responde como inexistente. */

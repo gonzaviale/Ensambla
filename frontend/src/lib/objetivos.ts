@@ -23,7 +23,7 @@ const BRECHA_DE_REFERENCIA = META_POR_DEFECTO - RESULTADO_DE_REFERENCIA;
 
 export const EJEMPLOS_DE_OBJETIVO = [
   'Quiero ganar $400.000 por mes sin subir demasiado los precios',
-  'Quiero recuperar mis gastos antes del día 20',
+  'Quiero cubrir mis gastos y que me queden $150.000 por mes',
   'Quiero poder retirar $150.000 por mes sin afectar el negocio',
 ] as const;
 

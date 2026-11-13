@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.objetivo.Objetivo;
 import com.ensambla.backend.infrastructure.repository.entity.ObjetivoEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IObjetivoJpaRepository;
@@ -7,6 +8,7 @@ import com.ensambla.backend.infrastructure.repository.mapper.ObjetivoRepositoryM
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.List;
 import java.util.Optional;
@@ -52,6 +54,16 @@ class ObjetivoRepositoryImplTest {
         List<Objetivo> result = repository.findAllByNegocioId(NEGOCIO_ID);
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Pide los negocios con objetivos por página y los mapea a ids de negocio")
+    void findNegocioIdsConObjetivosShouldRequestThePageAndMapTheIds() {
+        when(jpa.findNegocioIdsConObjetivos(PageRequest.of(2, 50))).thenReturn(List.of(NEGOCIO_ID.valor()));
+
+        List<NegocioId> result = repository.findNegocioIdsConObjetivos(2, 50);
+
+        assertThat(result).containsExactly(NEGOCIO_ID);
     }
 
     @Test

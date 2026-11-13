@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import com.ensambla.backend.infrastructure.repository.entity.AvisoEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,6 +19,9 @@ public interface IAvisoJpaRepository extends JpaRepository<AvisoEntity, UUID> {
     List<AvisoEntity> findByNegocioIdAndTipoAndEstado(UUID negocioId, TipoAviso tipo, EstadoAviso estado);
 
     List<AvisoEntity> findByNegocioId(UUID negocioId);
+
+    /** Sólo los del negocio: un id de otro negocio no viene. */
+    List<AvisoEntity> findByIdInAndNegocioId(Collection<UUID> ids, UUID negocioId);
 
     List<AvisoEntity> findByNegocioIdAndEstado(UUID negocioId, EstadoAviso estado);
 }

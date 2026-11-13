@@ -7,6 +7,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -136,6 +137,32 @@ class IObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
 
         assertThatThrownBy(() -> objetivos.saveAndFlush(sinMeta))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("Lista cada negocio con objetivos una sola vez y no incluye a los que no tienen")
+    void findNegocioIdsConObjetivosShouldListEachBusinessOnce() {
+        UUID sinObjetivos = givenNegocio("c@example.com").getId();
+        givenObjetivo(negocioA, "Uno", AHORA);
+        givenObjetivo(negocioA, "Dos", AHORA.plusDays(1));
+        givenObjetivo(negocioB, "Tres", AHORA);
+
+        List<UUID> result = objetivos.findNegocioIdsConObjetivos(PageRequest.of(0, 1000));
+
+        assertThat(result).doesNotHaveDuplicates().contains(negocioA, negocioB).doesNotContain(sinObjetivos);
+    }
+
+    @Test
+    @DisplayName("Pagina los negocios con objetivos sin repetirlos entre páginas")
+    void findNegocioIdsConObjetivosShouldPageWithoutRepeating() {
+        givenObjetivo(negocioA, "Uno", AHORA);
+        givenObjetivo(negocioB, "Dos", AHORA);
+
+        List<UUID> primera = objetivos.findNegocioIdsConObjetivos(PageRequest.of(0, 1));
+        List<UUID> segunda = objetivos.findNegocioIdsConObjetivos(PageRequest.of(1, 1));
+
+        assertThat(primera).hasSize(1);
+        assertThat(segunda).hasSize(1).doesNotContainAnyElementsOf(primera);
     }
 
     @Test

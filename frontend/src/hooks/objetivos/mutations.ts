@@ -1,9 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { crearObjetivo, eliminarObjetivo } from '@/api/objetivos';
+import { crearObjetivo, decidirPaso, eliminarObjetivo } from '@/api/objetivos';
 import { useUsuarioOpcional } from '@/hooks/auth/queries';
-import { metaDesdeTexto } from '@/lib/objetivos';
-import type { ObjetivoDelServidor } from '@/types/objetivos';
-import { objetivosKey } from './queries';
+import type { DecisionDePaso, ObjetivoDelServidor } from '@/types/objetivos';
+import { objetivosKey, objetivosKeys } from './queries';
 
 function useClaveDeObjetivos() {
   const usuario = useUsuarioOpcional();
@@ -15,8 +14,8 @@ export function useDefinirObjetivo() {
   const queryClient = useQueryClient();
   const clave = useClaveDeObjetivos();
   return useMutation({
-    mutationFn: (texto: string) =>
-      crearObjetivo({ texto: texto.trim(), meta: metaDesdeTexto(texto) }),
+    mutationFn: ({ texto, meta }: { texto: string; meta: number }) =>
+      crearObjetivo({ texto: texto.trim(), meta }),
     onSuccess: (creado) => {
       queryClient.setQueryData<ObjetivoDelServidor[]>(clave, (actuales) => [
         ...(actuales ?? []),
@@ -38,5 +37,21 @@ export function useEliminarObjetivo() {
     },
     // Si el servidor no lo tenía (404) o falló, se vuelve a preguntar para mostrar lo que hay de verdad.
     onError: () => queryClient.invalidateQueries({ queryKey: clave }),
+  });
+}
+
+// Decidir sobre un mini-objetivo cambia los minis, el progreso y las decisiones: se vuelve a pedir
+// todo lo del objetivo.
+function useAlCambiarElObjetivo(objetivoId: string) {
+  const queryClient = useQueryClient();
+  return () => queryClient.invalidateQueries({ queryKey: objetivosKeys.detalle(objetivoId) });
+}
+
+export function useDecidirPaso(objetivoId: string) {
+  const alCambiar = useAlCambiarElObjetivo(objetivoId);
+  return useMutation({
+    mutationFn: ({ miniId, tipo }: { miniId: string; tipo: DecisionDePaso }) =>
+      decidirPaso(objetivoId, miniId, tipo),
+    onSettled: alCambiar,
   });
 }

@@ -49,6 +49,7 @@ export type Modal =
       /** `negocio`: la foto sirve para contarle a Sami cómo trabaja la persona. */
       contexto: 'registros' | 'negocio';
     }
+  /** «Cambiar por otro» en un mini-objetivo (H-52): las alternativas que propone Sami. */
   | {
       tipo: 'confirmar';
       titulo: string;
@@ -282,7 +283,11 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
       let cambio = false;
       const actualizados = estado.sistemas.map((actual) => {
         const nuevo = delServidor.get(actual.id);
-        if (!nuevo || estado.pendientes.includes(actual.id) || estado.eliminados.includes(actual.id))
+        if (
+          !nuevo ||
+          estado.pendientes.includes(actual.id) ||
+          estado.eliminados.includes(actual.id)
+        )
           return actual;
         if (JSON.stringify(nuevo) === JSON.stringify(actual)) return actual;
         cambio = true;

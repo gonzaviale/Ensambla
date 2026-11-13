@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IObjetivoJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.ObjetivoRepositoryMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -24,6 +25,13 @@ public class ObjetivoRepositoryImpl implements ObjetivoRepository {
     public List<Objetivo> findAllByNegocioId(NegocioId negocioId) {
         return objetivoJpaRepository.findAllByNegocioIdOrderByCreadoEnAscIdAsc(negocioId.valor()).stream()
                 .map(objetivoRepositoryMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<NegocioId> findNegocioIdsConObjetivos(int pagina, int tamano) {
+        return objetivoJpaRepository.findNegocioIdsConObjetivos(PageRequest.of(pagina, tamano)).stream()
+                .map(NegocioId::de)
                 .toList();
     }
 

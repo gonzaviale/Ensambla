@@ -67,6 +67,16 @@ class AvisoRepositoryImplTest {
     }
 
     @Test
+    @DisplayName("Trae de una vez los avisos del negocio con esos ids, pasando al JPA los UUID")
+    void findAllByIdsAndNegocioIdShouldPassTheUuidsAndMap() {
+        when(jpa.findByIdInAndNegocioId(List.of(ID), NEGOCIO_ID.valor())).thenReturn(List.of(entity()));
+
+        List<Aviso> result = repository.findAllByIdsAndNegocioId(List.of(AvisoId.de(ID)), NEGOCIO_ID);
+
+        assertThat(result).extracting(Aviso::getId).containsExactly(AvisoId.de(ID));
+    }
+
+    @Test
     @DisplayName("Lista todos los avisos del negocio")
     void findByNegocioIdShouldMap() {
         when(jpa.findByNegocioId(NEGOCIO_ID.valor())).thenReturn(List.of(entity()));
