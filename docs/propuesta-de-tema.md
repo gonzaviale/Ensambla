@@ -1,6 +1,6 @@
-# Propuesta de tema — ENSAMBLA (v1.2, 14/10/2026)
+# Propuesta de tema — ENSAMBLA (v1.4, 13/11/2026)
 
-Generado desde `originales/Propuesta_de_Tema_ENSAMBLA_2026_v1.2.docx`. El original es la fuente de verdad.
+Generado desde `originales/Propuesta_de_Tema_ENSAMBLA_2026_v1.2.docx`. El original es la fuente de verdad. **La versión 1.4 (varios negocios por cuenta y vista conjunta) se editó directamente en esta copia; el `.docx` de `originales/` sigue en la 1.2 y hay que regenerarlo.**
 
 UNIVERSIDAD NACIONAL DE LA MATANZA
 
@@ -58,9 +58,9 @@ Lic. Juan De Cicco · Ing. Alejandro Rusticcini · Ing. Sergio Bonavento · Ing.
 
 Identificación del documento
 
-| Versión | 1.2 |
+| Versión | 1.4 |
 |---|---|
-| Última actualización | 14/10/2026 |
+| Última actualización | 13/11/2026 |
 
 Control de versiones
 
@@ -69,8 +69,9 @@ Control de versiones
 | 1.0 | Equipo Ensambla | 09/10/2026 | Propuesta inicial del proyecto |
 | 1.1 | Equipo Ensambla | 10/10/2026 | Reenfoque del producto: digitalización de cuadernos con IA para emprendedores mayores |
 | 1.2 | Equipo Ensambla | 14/10/2026 | Actualización al MVP 2: stack definido, hoja de ruta, ampliaciones implementadas y estado de la IA |
+| 1.4 | Equipo Ensambla | 13/11/2026 | Varios negocios por cuenta y vista conjunta: el plan pasa a ser de la cuenta, «cuaderno» queda sólo para el de papel y lo que se arma pasa a llamarse «sección» |
 
-Nota de edición: los datos de tutoría, referentes y distribución interna de roles deben completarse cuando se confirmen. La propuesta funcional y técnica es preliminar y está sujeta a validación del equipo. Este documento se actualiza en cada MVP; la versión 1.2 refleja el estado del MVP 2.
+Nota de edición: los datos de tutoría, referentes y distribución interna de roles deben completarse cuando se confirmen. La propuesta funcional y técnica es preliminar y está sujeta a validación del equipo. Este documento se actualiza en cada MVP; la versión 1.2 refleja el estado del MVP 2 y la 1.4 suma varios negocios por cuenta con una vista conjunta.
 
 ## ÍNDICE
 
@@ -94,7 +95,7 @@ Ensambla propone que emprendedores que llevan su negocio en cuadernos de papel �
 
 Ensambla es una aplicación web, pensada primero para el celular, que ayuda a emprendedores adultos y adultos mayores a ordenar su emprendimiento a partir de lo que ya hacen: anotar en un cuaderno. La persona saca una foto de sus páginas de ventas, gastos, pedidos, stock o fiados; la plataforma, mediante inteligencia artificial, interpreta lo escrito, propone cómo organizarlo y lo convierte en registros digitales que se pueden revisar, corregir, consultar y ampliar con el tiempo. No hace falta saber usar Excel, diseñar tablas ni aprender términos técnicos.
 
-El núcleo del producto —y lo que define su primer MVP— es ese recorrido: de la foto del cuaderno a un sistema ordenado, con la persona siempre confirmando lo que leyó la IA. Sobre esa base, Ensambla conserva su enfoque modular: los datos se organizan en proyectos —el sistema de cada emprendimiento— formados por bloques (Ventas, Clientes, Stock…) que pueden conectarse entre sí, ajustarse o ampliarse, y se ofrecen plantillas (Inventario, Pedidos y Clientes) para quien prefiera empezar sin fotos. Indicadores, equipos con roles, planes, importación de planillas, automatizaciones, integraciones y un mercado de plantillas se contemplan como líneas de evolución para los MVP 3 y 4.
+El núcleo del producto —y lo que define su primer MVP— es ese recorrido: de la foto del cuaderno a un sistema ordenado, con la persona siempre confirmando lo que leyó la IA. Una misma cuenta puede tener más de un negocio —uno en el plan Gratuito; el propio y hasta cinco adicionales en Premium— y mirarlos juntos en una vista conjunta. Sobre esa base, Ensambla conserva su enfoque modular: los datos de cada negocio se organizan en secciones —lo que antes se llamaba proyecto o «cuaderno»— formadas por bloques (Ventas, Clientes, Stock…) que pueden conectarse entre sí, ajustarse o ampliarse, y se ofrecen plantillas (Inventario, Pedidos y Clientes) para quien prefiera empezar sin fotos. Indicadores, equipos con roles, planes, importación de planillas, automatizaciones, integraciones y un mercado de plantillas se contemplan como líneas de evolución para los MVP 3 y 4.
 
 ## II · MERCADO
 
@@ -148,6 +149,8 @@ Ensambla será una aplicación web adaptable, pensada principalmente para usarse
 
 Por ejemplo, una emprendedora que vende velas artesanales anota sus ventas en un cuaderno: fecha, clienta, producto, cantidad y si le pagaron. Al subir las fotos de un mes, Ensambla crea el bloque «Ventas» con esos campos, carga cada venta como un registro y marca los datos que no pudo leer con seguridad. Desde ese momento puede buscar a una clienta, ver cuánto vendió en el mes o quién le debe, y la semana siguiente sumar nuevas páginas al mismo bloque. Los bloques siguen siendo configurables y existen plantillas para quien prefiera empezar sin fotos.
 
+Una cuenta agrupa uno o más negocios. Cada negocio tiene sus secciones (Ventas, Stock, Clientes…), que se abren desde el Inicio, y la persona elige con cuál trabaja. La vista conjunta suma lo vendido, lo gastado y los avisos pendientes de todos sus negocios, para quien atiende más de uno. «Cuaderno» queda reservado para el cuaderno de papel que se fotografía.
+
 ### 2. Funcionamiento
 
 1. Crear la cuenta.  La persona se registra con pocos datos y se crea el espacio de su emprendimiento.
@@ -166,9 +169,11 @@ Digitalización con IA (núcleo).  Subida de fotos desde la cámara o la galerí
 
 Acceso y espacio del negocio.  Registro, inicio de sesión y aislamiento de la información de cada emprendimiento.
 
+Varios negocios y vista conjunta (versión 1.4, en desarrollo).  Una cuenta puede tener varios negocios según su plan, elegir con cuál trabaja, crear y eliminar negocios (nunca el último) y mirar un resumen conjunto de todos. El plan y la prueba premium son de la cuenta; el Inicio muestra el negocio y sus secciones como accesos.
+
 Consulta y uso diario.  Tablas de registros con búsqueda, orden y totales simples; ficha de cada registro con acceso a la foto de origen; edición, eliminación y carga manual cuando haga falta. Por decisión del equipo se adelantaron funciones previstas para el MVP 4: inventario con entradas y salidas de stock, recetas con costo calculado y reportes por tabla con filtros, totales y descarga en XLSX.
 
-Ajustes y plantillas.  Armar el sistema en proyectos y bloques: renombrar bloques y campos, agregar o quitar campos (texto, número, fecha, opción, sí/no, conexión con otra tabla y fórmula calculada) y tres plantillas base —Inventario, Pedidos y Clientes— para empezar sin fotos.
+Ajustes y plantillas.  Armar el negocio en secciones y bloques: renombrar bloques y campos, agregar o quitar campos (texto, número, fecha, opción, sí/no, conexión con otra tabla y fórmula calculada) y tres plantillas base —Inventario, Pedidos y Clientes— para empezar sin fotos.
 
 Experiencia accesible.  Diseño pensado para el celular, tipografía grande, alto contraste, botones amplios y textos sin tecnicismos.
 
@@ -210,9 +215,9 @@ Para usuarios: dejar de depender solo del papel sin cambiar su forma de anotar, 
 
 Modalidad.  Servicio de software en la nube (SaaS), con acceso mediante navegador y suscripciones para capacidades ampliadas.
 
-Plan gratuito.  Una cantidad mensual limitada de páginas digitalizadas con IA, junto con la consulta y la carga manual, para que la persona compruebe el valor antes de pagar. En el MVP 2 existe un límite diario de páginas por negocio (configurable); los planes y la prueba premium llegan en el MVP 4.
+Plan gratuito.  Un negocio por cuenta y una cantidad mensual limitada de páginas digitalizadas con IA, junto con la consulta y la carga manual, para que la persona compruebe el valor antes de pagar. En el MVP 2 existe un límite diario de páginas por negocio (configurable); los planes y la prueba premium llegan en el MVP 4.
 
-Planes pagos.  Mayor volumen de páginas procesadas por mes y funciones avanzadas sujetas a validación, como indicadores, reportes, carga por audio o WhatsApp, permisos por rol e integraciones. El costo de procesamiento por página condiciona los límites de cada plan.
+Planes pagos.  Premium incluye el negocio propio y hasta cinco negocios adicionales (seis en total), mayor volumen de páginas procesadas por mes —que se cuenta por cuenta, sumando todos sus negocios— y funciones avanzadas sujetas a validación, como indicadores, reportes, carga por audio o WhatsApp, permisos por rol e integraciones. El costo de procesamiento por página condiciona los límites de cada plan.
 
 Prueba inicial.  Se contempla evaluar una prueba de 7 días de funciones premium; condiciones comerciales y límites de uso todavía deben definirse.
 
@@ -317,7 +322,12 @@ Las referencias de productos se incluyen como puntos de comparación funcional; 
 | Extracción estructurada | Obtención de datos ordenados en campos (fecha, monto, cliente…) a partir de una imagen o un texto libre. |
 | Nivel de confianza | Indicador de cuán segura está la IA de un dato leído; los valores bajos se resaltan para revisión. |
 | Registro | Cada fila de información guardada en un bloque, por ejemplo, una venta. |
-| Proyecto | Sistema armado por la persona para su emprendimiento; reúne uno o más bloques relacionados. |
+| Negocio | El emprendimiento de la persona. Una cuenta puede tener uno (Gratuito) o hasta seis (Premium: el propio y cinco adicionales); cada uno tiene sus secciones, sus registros y su configuración. |
+| Sección | Lo que la persona arma dentro de un negocio (Ventas, Stock, Clientes…); reúne uno o más bloques relacionados. Antes se llamaba «cuaderno» en la interfaz; en el código y la API sigue siendo «proyecto». |
+| Vista conjunta | Resumen de todos los negocios de una cuenta juntos: lo vendido, lo gastado, lo pendiente y los avisos de cada uno, con el total. |
+| Cuaderno | Sólo el cuaderno de papel donde la persona anotaba antes y que fotografía para digitalizarlo. |
+| Pestaña | Cada uno de los grupos de bloques dentro de una sección; antes se llamaban «secciones». |
+| Proyecto | Nombre técnico (código y API) de una sección. |
 | Conexión entre tablas | Campo que apunta a una fila de otro bloque del mismo proyecto (por ejemplo, el cliente de un pedido). |
 | Fórmula | Campo cuyo valor se calcula a partir de otros campos numéricos del mismo bloque. |
 | Lote | Conjunto de fotos de páginas del cuaderno que se suben y leen juntas. |
