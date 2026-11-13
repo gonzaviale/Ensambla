@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import javax.sql.DataSource;
 import java.util.UUID;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -25,8 +24,14 @@ class MigracionCajaPostgresIntegrationTest extends PostgresRepositoryTestSupport
 
     private static final String ESQUEMA = "prueba_migracion_caja";
 
-    @Autowired
-    private DataSource dataSource;
+    @Value("${spring.datasource.url}")
+    private String jdbcUrl;
+
+    @Value("${spring.datasource.username}")
+    private String jdbcUsuario;
+
+    @Value("${spring.datasource.password}")
+    private String jdbcContrasenia;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -45,7 +50,8 @@ class MigracionCajaPostgresIntegrationTest extends PostgresRepositoryTestSupport
             Long negociosAntes = jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA + ".negocio",
                     Long.class);
 
-            var resultado = Flyway.configure().dataSource(dataSource).schemas(ESQUEMA).defaultSchema(ESQUEMA)
+            var resultado = Flyway.configure().dataSource(jdbcUrl, jdbcUsuario, jdbcContrasenia)
+                    .schemas(ESQUEMA).defaultSchema(ESQUEMA)
                     .outOfOrder(permitirMigracionesPendientesAnteriores).load().migrate();
 
             assertThat(permitirMigracionesPendientesAnteriores).isTrue();
@@ -67,7 +73,8 @@ class MigracionCajaPostgresIntegrationTest extends PostgresRepositoryTestSupport
         try {
             givenLegacySale();
 
-            Flyway.configure().dataSource(dataSource).schemas(ESQUEMA).defaultSchema(ESQUEMA).load().migrate();
+            Flyway.configure().dataSource(jdbcUrl, jdbcUsuario, jdbcContrasenia)
+                    .schemas(ESQUEMA).defaultSchema(ESQUEMA).load().migrate();
 
             String datos = jdbcTemplate.queryForObject("SELECT datos::text FROM " + ESQUEMA + ".venta_caja",
                     String.class);
@@ -95,12 +102,14 @@ class MigracionCajaPostgresIntegrationTest extends PostgresRepositoryTestSupport
                 Files.copy(archivo, migracionesDev.resolve(archivo.getFileName()));
             }
         }
-        Flyway.configure().dataSource(dataSource).schemas(ESQUEMA).defaultSchema(ESQUEMA)
+        Flyway.configure().dataSource(jdbcUrl, jdbcUsuario, jdbcContrasenia)
+                .schemas(ESQUEMA).defaultSchema(ESQUEMA)
                 .locations("filesystem:" + migracionesDev).target("33").load().migrate();
     }
 
     private void givenLegacySale() {
-        Flyway.configure().dataSource(dataSource).schemas(ESQUEMA).defaultSchema(ESQUEMA)
+        Flyway.configure().dataSource(jdbcUrl, jdbcUsuario, jdbcContrasenia)
+                .schemas(ESQUEMA).defaultSchema(ESQUEMA)
                 .target("27").load().migrate();
         UUID negocioId = jdbcTemplate.queryForObject("SELECT id FROM " + ESQUEMA + ".negocio LIMIT 1", UUID.class);
         String datos = """
