@@ -77,9 +77,9 @@ class UbicacionUseCaseConfigTest {
         var response = useCase.execute();
 
         assertThat(response.rubros()).extracting(ListarRubrosResponse.RubroItem::codigo)
-                .containsExactly("ALMACEN", "KIOSCO", "MINIMERCADO", "DIETETICA", "OTRO");
+                .containsExactly("ALMACEN", "KIOSCO", "MINIMERCADO", "DIETETICA", "PAPELERIA", "OTRO");
         assertThat(response.rubros()).extracting(ListarRubrosResponse.RubroItem::nombre)
-                .containsExactly("Almacén", "Kiosco", "Minimercado", "Dietética", "Otro");
+                .containsExactly("Almacén", "Kiosco", "Minimercado", "Dietética", "Papelería", "Otro");
         assertThat(response.rubros().getFirst().codigo()).isEqualTo("ALMACEN");
         assertThat(response.rubros().getFirst().nombre()).isEqualTo("Almacén");
     }

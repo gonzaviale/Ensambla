@@ -1,0 +1,1697 @@
+/* «Dónde abrir»: confirmación, preguntas, zonas y trámites. Fondo blanco; el color va en bordes, íconos y letras.
+   Los colores de las zonas dicen qué tan bien coinciden: verde = buena, amarillo = intermedia, rojo = mala. */
+.donde-page {
+  max-width: 1180px;
+}
+.donde-encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.donde-encabezado h1 {
+  margin-top: 4px;
+  font-size: 30px;
+  max-width: 640px;
+}
+.donde-pasos-cabeza {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.donde-pasos-cabeza li {
+  padding: 4px 12px;
+  border: 1.5px solid #cfd4ca;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.donde-pasos-cabeza li[aria-current='step'] {
+  border-color: var(--petrol);
+  background: var(--petrol);
+  color: #fff;
+}
+.donde-demo {
+  margin: 0 0 20px;
+  padding: 8px 14px;
+  border: 1.5px solid #ebce32;
+  border-radius: 12px;
+  background: #fff;
+  color: #7a5f00;
+  font-size: 12px;
+}
+.donde-demo strong {
+  color: #7a5f00;
+}
+.donde-nota-chica {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.donde-estado,
+.donde-aviso-datos {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--soft);
+  color: var(--petrol);
+  font-size: 13px;
+}
+.donde-estado.error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-color: #efb4b4;
+  background: #fff7f7;
+  color: #8c2525;
+}
+/* Pasos con Sami */
+.donde-paso {
+  display: grid;
+  gap: 22px;
+  max-width: 760px;
+  padding: 26px 28px;
+  border: 2px solid #e4e6df;
+  border-radius: 20px;
+  background: #fff;
+}
+.donde-sami-dice {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.donde-sami-cara {
+  flex: none;
+  width: 64px;
+  height: 60px;
+  overflow: hidden;
+}
+.donde-sami-cara.grande {
+  width: 110px;
+  height: 100px;
+}
+.donde-sami-cara .sami {
+  width: 100%;
+  height: 100%;
+}
+.donde-globo h2 {
+  color: var(--petrol);
+  font-size: 22px;
+}
+.donde-globo p {
+  margin-top: 6px;
+  color: var(--ink);
+  font-size: 15px;
+}
+.donde-globo small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.donde-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.donde-respuestas-grandes {
+  display: grid;
+  gap: 16px;
+}
+.donde-opciones-grandes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.donde-opciones-grandes legend {
+  margin-bottom: 8px;
+  padding: 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 800;
+}
+.donde-opcion,
+.donde-opciones-grandes label {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 14px 16px;
+  border: 2px solid #e4e6df;
+  border-radius: 14px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.donde-opcion:hover,
+.donde-opciones-grandes label:hover {
+  border-color: var(--petrol);
+}
+.donde-opciones-grandes label.elegida {
+  border-color: var(--petrol);
+}
+.donde-opciones-grandes input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.donde-opciones-grandes label:has(input:focus-visible),
+.donde-opcion:focus-visible {
+  outline: 3px solid #4eb2d4;
+  outline-offset: 2px;
+}
+.donde-opcion strong,
+.donde-opciones-grandes label strong {
+  color: var(--petrol);
+  font-size: 16px;
+}
+.donde-opcion span {
+  color: var(--muted);
+  font-size: 13px;
+}
+.donde-charla {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.donde-charla li {
+  display: grid;
+  gap: 4px;
+}
+.donde-charla .sami-dice {
+  color: var(--muted);
+  font-size: 13px;
+}
+.donde-charla .vos-dijiste {
+  justify-self: end;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: var(--petrol);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.donde-pregunta-actual {
+  display: grid;
+  gap: 16px;
+}
+.donde-volver {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Resultado */
+.donde-resultado {
+  display: grid;
+  gap: 16px;
+}
+.donde-narra {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  border: 2px solid #9fcfdf;
+  border-radius: 16px;
+  background: #fff;
+}
+.donde-narra h4 {
+  margin-bottom: 2px;
+  color: var(--petrol);
+  font-size: 16px;
+}
+.donde-narra p {
+  color: var(--ink);
+  font-size: 14px;
+}
+.donde-barra-de-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 18px;
+}
+.donde-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--muted);
+}
+.donde-leyenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.donde-leyenda i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #2f7a55;
+}
+.donde-leyendas {
+  display: grid;
+  gap: 6px;
+}
+.donde-leyenda .titulo {
+  color: var(--ink, #263443);
+  font-weight: 700;
+}
+.donde-leyenda .intermedia i {
+  background: #c99a00;
+}
+.donde-leyenda .mala i {
+  background: #c42b2b;
+}
+/* Las zonas se dibujan como anillos en el mapa y los lugares como puntos llenos: la leyenda copia esa diferencia. */
+.donde-leyenda .zona i {
+  width: 12px;
+  height: 12px;
+  border: 3px solid currentColor;
+  background: #fff;
+  box-sizing: border-box;
+}
+.donde-leyenda .zona.buena i {
+  color: #2f7a55;
+}
+.donde-leyenda .zona.intermedia i {
+  color: #c99a00;
+  background: #fff;
+}
+.donde-leyenda .zona.mala i {
+  color: #c42b2b;
+  background: #fff;
+}
+.donde-leyenda .zona.elegido i {
+  color: #ee8000;
+  border-style: dashed;
+}
+.donde-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Lo que dice Sami, al principio de todo: su recomendación y qué hay que tramitar */
+.donde-recomienda {
+  display: grid;
+  gap: 14px;
+  padding: 20px 24px 22px;
+  border: 2px solid #9fcfdf;
+  border-radius: 20px;
+  background: #fff;
+}
+.donde-recomienda-cabeza {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.donde-recomienda-cabeza h2 {
+  color: var(--petrol);
+  font-size: 22px;
+}
+.donde-recomienda-cabeza p {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.donde-mejores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.donde-mejores button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 14px;
+  border: 1.5px solid #cfd4ca;
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+.donde-mejores button i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #2f7a55;
+}
+.donde-mejores button.intermedia i {
+  background: #c99a00;
+}
+.donde-mejores button.mala i {
+  background: #c42b2b;
+}
+.donde-mejores button:hover {
+  border-color: var(--petrol);
+}
+.donde-mejores button.activa {
+  border-color: var(--petrol);
+  background: var(--petrol);
+  color: #fff;
+}
+.donde-recomienda .donde-detalle {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+/* Filtros: arrancan cerrados */
+.donde-filtros {
+  border: 2px solid #e4e6df;
+  border-radius: 16px;
+  background: #fff;
+}
+.donde-filtros-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 12px 2px 4px;
+}
+.donde-filtros-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 12px;
+  color: var(--petrol);
+  font-size: 14px;
+  font-weight: 800;
+}
+.donde-filtros-boton b {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: var(--orange);
+  color: #fff;
+  font-size: 11px;
+}
+.donde-filtros-boton .flecha {
+  transition: transform 0.15s;
+}
+.donde-filtros-boton[aria-expanded='true'] .flecha {
+  transform: rotate(180deg);
+}
+.donde-filtros-restablecer {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  color: var(--petrol);
+  font-size: 12px;
+  font-weight: 700;
+}
+.donde-filtros-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 28px;
+  padding: 16px 22px 22px;
+  border-top: 1px solid #e4e6df;
+}
+.donde-bloque h3 {
+  margin-bottom: 12px;
+  color: var(--orange);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.donde-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.donde-presets button {
+  padding: 4px 12px;
+  border: 1.5px solid #cfd4ca;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.donde-presets button:hover {
+  border-color: var(--petrol);
+}
+.donde-presets button.activo {
+  border-color: var(--petrol);
+  background: var(--petrol);
+  color: #fff;
+}
+.donde-factores {
+  display: grid;
+  gap: 8px;
+}
+.donde-factor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+}
+.donde-segmento {
+  display: inline-flex;
+  flex: none;
+  overflow: hidden;
+  border: 1.5px solid #cfd4ca;
+  border-radius: 999px;
+}
+.donde-segmento label {
+  position: relative;
+  padding: 3px 11px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.donde-segmento label + label {
+  border-left: 1px solid #e4e6df;
+}
+.donde-segmento label.marcada {
+  background: var(--petrol);
+  color: #fff;
+}
+.donde-segmento label.marcada[data-nivel='0'] {
+  background: #69777c;
+}
+.donde-segmento label.marcada[data-nivel='2'] {
+  background: var(--orange);
+}
+.donde-segmento input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.donde-segmento label:has(input:focus-visible) {
+  outline: 3px solid #4eb2d4;
+  outline-offset: -2px;
+}
+.donde-limites {
+  display: grid;
+  gap: 14px;
+}
+.donde-deslizador {
+  display: grid;
+  gap: 4px;
+}
+.donde-deslizador label {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 13px;
+}
+.donde-deslizador output {
+  color: var(--petrol);
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.donde-deslizador input {
+  width: 100%;
+  accent-color: var(--petrol);
+}
+.donde-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.donde-chips button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 3px 11px;
+  border: 1.5px solid #9fcfdf;
+  border-radius: 999px;
+  color: var(--petrol);
+  font-size: 12px;
+  font-weight: 700;
+}
+.donde-chips button:hover {
+  border-color: #c42b2b;
+  color: #c42b2b;
+}
+
+/* Ranking */
+.donde-cuerpo {
+  --alto-mapa: 440px;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 18px;
+  align-items: start;
+}
+/* La lista tiene el alto del mapa y se desplaza: así las zonas están arriba, no al final de la pantalla. */
+.donde-lista {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+  height: var(--alto-mapa);
+  padding: 2px 6px 2px 2px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cfd4ca transparent;
+}
+.donde-lista:focus-visible {
+  outline: 3px solid #4eb2d4;
+  outline-offset: 2px;
+  border-radius: 14px;
+}
+.donde-zonas {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.donde-zona {
+  --c: #2f7a55;
+  --t: #2f7a55;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e4e6df;
+  border-radius: 16px;
+  background: #fff;
+  text-align: left;
+  transition: border-color 0.15s;
+}
+.donde-zona.intermedia {
+  --c: #c99a00;
+  --t: #7a5f00;
+}
+.donde-zona.mala {
+  --c: #c42b2b;
+  --t: #c42b2b;
+}
+.donde-zona:hover {
+  border-color: #9fcfdf;
+}
+.donde-zona.activa {
+  border-color: var(--petrol);
+  box-shadow: 0 0 0 3px rgb(0 80 106 / 0.14);
+}
+.donde-zona-puesto {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid #cfd4ca;
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+.donde-zona.activa .donde-zona-puesto {
+  border-color: var(--petrol);
+  color: var(--petrol);
+}
+.donde-zona-texto {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.donde-zona-texto strong {
+  color: var(--petrol);
+  font-size: 16px;
+}
+.donde-zona-texto > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.donde-nota {
+  min-width: 56px;
+  padding: 4px 10px;
+  border: 2px solid var(--c);
+  border-radius: 12px;
+  color: var(--t);
+  font-size: 20px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.donde-cambio {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 7px;
+  border: 1.5px solid currentColor;
+  border-radius: 99px;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+  vertical-align: middle;
+}
+.donde-cambio.sube {
+  color: #2f7a55;
+}
+.donde-cambio.baja {
+  color: #c42b2b;
+}
+.donde-cambio.nueva {
+  color: var(--petrol);
+}
+.donde-sin-zonas {
+  padding: 18px;
+  border: 1.5px solid #ebce32;
+  border-radius: 14px;
+  color: #7a5f00;
+  font-size: 13px;
+}
+.donde-descartadas {
+  border: 1.5px dashed #cfd4ca;
+  border-radius: 14px;
+  padding: 2px 14px;
+}
+.donde-descartadas summary {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.donde-descartadas summary b {
+  padding: 0 8px;
+  border-radius: 99px;
+  background: #69777c;
+  color: #fff;
+  font-size: 12px;
+}
+.donde-descartadas ul {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+.donde-descartadas li {
+  display: grid;
+  font-size: 12px;
+}
+.donde-descartadas li span {
+  color: var(--muted);
+}
+
+/* Mapa */
+.donde-mapa-columna {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.donde-mapa {
+  isolation: isolate;
+  height: var(--alto-mapa, 440px);
+  border: 2px solid #e4e6df;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.donde-mapa-aviso {
+  color: var(--muted);
+  font-size: 12px;
+}
+.donde-pin span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--color);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--color);
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgb(38 52 67 / 0.25);
+}
+.donde-pin.chico span {
+  transform: scale(0.8);
+}
+.donde-pin.punto span {
+  border-style: dashed;
+  font-size: 15px;
+}
+.donde-punto {
+  min-height: 24px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.donde-punto p {
+  margin: 0;
+}
+.donde-pin.activa span {
+  background: var(--color);
+  color: #fff;
+}
+.donde-local span {
+  display: block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #263443;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+.donde-capas summary {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.donde-capas-lista,
+.donde-donde {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.donde-capas-lista label,
+.donde-donde label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 11px;
+  border: 1.5px solid #cfd4ca;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.donde-capas-lista label.marcada {
+  border-color: var(--petrol);
+  color: var(--petrol);
+}
+.donde-donde label.marcada {
+  border-color: var(--petrol);
+  background: var(--petrol);
+  color: #fff;
+}
+.donde-capas-lista input,
+.donde-donde input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.donde-capas-lista label:has(input:focus-visible),
+.donde-donde label:has(input:focus-visible) {
+  outline: 3px solid #4eb2d4;
+  outline-offset: 2px;
+}
+.donde-capas-lista i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* Detalle y pestañas */
+.donde-detalle {
+  padding: 22px 24px;
+  border: 2px solid #e4e6df;
+  border-radius: 18px;
+  background: #fff;
+}
+.donde-detalle-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.donde-detalle h3 {
+  color: var(--petrol);
+  font-size: 22px;
+}
+.donde-detalle-cabeza p {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.donde-sello {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  border: 1.5px solid #2f7a55;
+  border-radius: 999px;
+  color: #2f7a55;
+  font-size: 12px;
+  font-weight: 800;
+}
+.donde-sello i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.donde-sello.intermedia {
+  border-color: #c99a00;
+  color: #7a5f00;
+}
+.donde-sello.mala {
+  border-color: #c42b2b;
+  color: #c42b2b;
+}
+.donde-pestanias {
+  display: flex;
+  gap: 6px;
+  margin: 16px 0 18px;
+  border-bottom: 1.5px solid #e4e6df;
+}
+.donde-pestanias button {
+  min-height: 44px;
+  margin-bottom: -1.5px;
+  padding: 0 16px;
+  border-bottom: 3px solid transparent;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 800;
+}
+.donde-pestanias button[aria-selected='true'] {
+  border-bottom-color: var(--orange);
+  color: var(--petrol);
+}
+.donde-columnas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 22px;
+}
+.donde-columnas h4 {
+  margin-bottom: 8px;
+  color: var(--orange);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.donde-columnas ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+.donde-columnas li {
+  display: flex;
+  gap: 8px;
+  color: var(--ink);
+}
+.donde-columnas li svg {
+  flex: none;
+  margin-top: 3px;
+}
+.donde-columnas .positivo svg {
+  color: #2f7a55;
+}
+.donde-columnas .riesgo svg {
+  color: #7a5f00;
+}
+.donde-plegable {
+  margin-top: 12px;
+  border-top: 1px solid #e4e6df;
+}
+.donde-plegable summary {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.donde-plegable ul {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding-left: 18px;
+  color: var(--ink);
+  font-size: 13px;
+}
+.donde-calculo-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 800;
+}
+.donde-calculo-boton svg {
+  transition: transform 0.15s;
+}
+.donde-calculo-boton[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+.donde-calculo {
+  display: grid;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e4e6df;
+}
+.donde-calculo p {
+  max-width: 720px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.donde-tabla {
+  overflow-x: auto;
+}
+.donde-tabla table {
+  width: 100%;
+  min-width: 420px;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.donde-tabla caption {
+  padding-bottom: 6px;
+  color: var(--ink);
+  font-weight: 800;
+  text-align: left;
+}
+.donde-tabla th,
+.donde-tabla td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e4e6df;
+  text-align: right;
+}
+.donde-tabla thead th {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.donde-tabla th:first-child,
+.donde-tabla tbody th {
+  text-align: left;
+}
+.donde-tabla tbody th {
+  font-weight: 600;
+}
+.donde-tabla tfoot th,
+.donde-tabla tfoot td {
+  color: var(--petrol);
+  font-weight: 800;
+}
+
+/* Trámites */
+.donde-guia {
+  display: grid;
+  gap: 16px;
+}
+.donde-superficie {
+  display: grid;
+  gap: 4px;
+  max-width: 420px;
+}
+.donde-superficie label {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+.donde-superficie output {
+  color: var(--petrol);
+  font-variant-numeric: tabular-nums;
+}
+.donde-superficie input {
+  width: 100%;
+  accent-color: var(--petrol);
+}
+.donde-sellos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.donde-sellos li {
+  display: grid;
+  gap: 2px;
+  padding: 8px 14px;
+  border: 1.5px solid #e4e6df;
+  border-radius: 12px;
+}
+.donde-sellos span {
+  color: var(--muted);
+  font-size: 11px;
+}
+.donde-sellos b {
+  color: var(--petrol);
+  font-size: 14px;
+}
+.donde-subtitulo {
+  margin-bottom: 8px;
+  color: var(--orange);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.donde-aprobaciones,
+.donde-pasos {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.donde-aprobaciones li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 1.5px solid #e4e6df;
+  border-radius: 14px;
+}
+.donde-aprobaciones strong {
+  display: block;
+  color: var(--petrol);
+  font-size: 14px;
+}
+.donde-aprobaciones span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.donde-aprobaciones p {
+  margin-top: 4px;
+  color: var(--ink);
+  font-size: 13px;
+}
+.donde-aprobaciones em {
+  display: block;
+  margin-top: 4px;
+  color: #7a5f00;
+  font-size: 12px;
+  font-style: normal;
+}
+.donde-pasos {
+  counter-reset: paso;
+}
+.donde-pasos li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding-left: 34px;
+  position: relative;
+  color: var(--ink);
+  font-size: 13px;
+  counter-increment: paso;
+}
+.donde-pasos li::before {
+  content: counter(paso);
+  position: absolute;
+  left: 0;
+  top: -1px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid var(--petrol);
+  border-radius: 50%;
+  color: var(--petrol);
+  font-size: 12px;
+  font-weight: 800;
+}
+.modalidad {
+  flex: none;
+  padding: 2px 10px;
+  border: 1.5px solid #1f6f8f;
+  border-radius: 999px;
+  color: #1f6f8f;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.modalidad.online {
+  border-color: var(--petrol);
+  color: var(--petrol);
+}
+.modalidad.oficina {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+.modalidad.confirmar {
+  border-color: #69777c;
+  color: #69777c;
+}
+.donde-oficinas {
+  list-style: none;
+  padding-left: 0 !important;
+}
+.donde-oficinas li {
+  display: grid;
+}
+.donde-oficinas span {
+  color: var(--muted);
+}
+.donde-fuentes {
+  padding-top: 12px;
+  border-top: 1px solid #e4e6df;
+  color: var(--muted);
+  font-size: 12px;
+}
+.donde-fuentes ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.donde-fuentes a {
+  color: var(--petrol);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* Entrada desde Objetivos */
+.donde-entrada {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 26px;
+  padding: 18px 22px;
+  border: 2px solid #9fcfdf;
+  border-radius: 18px;
+  background: #fff;
+}
+.donde-entrada-icono {
+  display: grid;
+  place-items: center;
+  color: var(--petrol);
+}
+.donde-entrada h2 {
+  font-size: 18px;
+  color: var(--petrol);
+}
+.donde-entrada p {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.donde-entrada .btn {
+  margin-left: auto;
+}
+
+@media (max-width: 1000px) {
+  .donde-cuerpo,
+  .donde-filtros-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .donde-cuerpo {
+    --alto-mapa: 340px;
+  }
+}
+@media (max-width: 700px) {
+  .donde-recomienda {
+    padding: 16px;
+  }
+  .donde-recomienda-cabeza {
+    align-items: flex-start;
+  }
+  .donde-paso {
+    padding: 18px;
+  }
+  .donde-sami-dice {
+    align-items: flex-start;
+  }
+  .donde-cuerpo {
+    --alto-mapa: 300px;
+  }
+  .donde-detalle {
+    padding: 18px;
+  }
+  .donde-aprobaciones li {
+    flex-direction: column;
+  }
+  .donde-entrada .btn {
+    margin-left: 0;
+  }
+}
+
+/* Revisión de claridad: decisión primero, comparación simple y mapa siempre junto a los ajustes. */
+.donde-bajada {
+  max-width: 620px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.donde-pasos-cabeza {
+  counter-reset: progreso;
+  gap: 14px;
+}
+.donde-pasos-cabeza li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  counter-increment: progreso;
+}
+.donde-pasos-cabeza li::before {
+  content: counter(progreso);
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid #b9c2bc;
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+.donde-pasos-cabeza li[aria-current='step'] {
+  border: 0;
+  background: transparent;
+  color: var(--petrol);
+}
+.donde-pasos-cabeza li[aria-current='step']::before {
+  border-color: var(--petrol);
+  background: var(--petrol);
+  color: #fff;
+}
+.donde-editar-negocio {
+  display: inline-flex;
+  margin-top: 10px;
+}
+.donde-falta-ubicacion {
+  margin-top: 6px;
+  color: #7a5f00;
+  font-size: 12px;
+}
+.donde-seccion-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.donde-seccion-cabeza h2 {
+  margin-top: 2px;
+  color: var(--petrol);
+  font-size: 21px;
+}
+.donde-seccion-cabeza > p {
+  max-width: 430px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.donde-comparacion {
+  display: grid;
+  gap: 14px;
+  padding: 20px 22px;
+  border: 2px solid #e4e6df;
+  border-radius: 18px;
+  background: #fff;
+}
+.donde-comparacion-tabla {
+  overflow-x: auto;
+}
+.donde-comparacion table {
+  width: 100%;
+  min-width: 660px;
+  border-collapse: collapse;
+  color: var(--ink);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.donde-comparacion th,
+.donde-comparacion td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e4e6df;
+  text-align: center;
+}
+.donde-comparacion th:first-child {
+  width: 190px;
+  text-align: left;
+}
+.donde-comparacion thead th {
+  color: var(--petrol);
+  font-weight: 800;
+}
+.donde-comparacion thead th span {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: #e6f1f4;
+  font-size: 11px;
+}
+.donde-comparacion tr.destacada th,
+.donde-comparacion tr.destacada td {
+  background: #f4fafb;
+  color: var(--petrol);
+  font-weight: 800;
+}
+.donde-barra-de-control > p {
+  color: var(--muted);
+  font-size: 13px;
+}
+.donde-explorador {
+  --alto-mapa: 540px;
+  display: grid;
+  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+.donde-explorador-controles {
+  height: var(--alto-mapa);
+  padding: 16px;
+  overflow-y: auto;
+  border: 2px solid #e4e6df;
+  border-radius: 16px;
+  background: #fff;
+  scrollbar-width: thin;
+}
+.donde-explorador .donde-mapa-columna {
+  align-content: start;
+}
+.donde-explorador .donde-mapa {
+  height: calc(var(--alto-mapa) - 116px);
+}
+.donde-explorador .donde-leyenda {
+  min-height: 34px;
+}
+.donde-filtros {
+  border: 0;
+  border-radius: 0;
+}
+.donde-filtros-cabeza {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 0 14px;
+}
+.donde-filtros-cabeza > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+.donde-filtros-cabeza h2 {
+  color: var(--petrol);
+  font-size: 17px;
+}
+.donde-filtros-cabeza p {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.donde-filtros-cabeza .donde-filtros-restablecer {
+  flex: none;
+  min-height: 30px;
+  padding: 0 3px;
+  font-size: 10px;
+}
+.donde-filtros-icono {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: #e6f1f4;
+  color: var(--petrol);
+}
+.donde-capas {
+  margin-top: 14px;
+  border-top: 1px solid #e4e6df;
+}
+.donde-capas summary {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.donde-modos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+.donde-modos button,
+.donde-modo-personalizado {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border: 1.5px solid #cfd4ca;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+.donde-modos button:hover {
+  border-color: var(--petrol);
+  color: var(--petrol);
+}
+.donde-modos button[aria-pressed='true'] {
+  border-color: var(--petrol);
+  background: var(--petrol);
+  color: #fff;
+}
+.donde-modo-personalizado[aria-current='true'] {
+  border-color: var(--orange);
+  background: var(--orange);
+  color: #fff;
+}
+.donde-factores {
+  gap: 0;
+}
+.donde-factor {
+  display: grid;
+  grid-template-columns: minmax(92px, 1fr) minmax(138px, auto);
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 7px 0;
+  border: 0;
+  border-bottom: 1px solid #edf0eb;
+}
+.donde-factor-nombre {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+.donde-niveles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1.5px solid #cfd4ca;
+  border-radius: 999px;
+  background: #fff;
+}
+.donde-niveles label {
+  position: relative;
+  min-width: 0;
+  cursor: pointer;
+}
+.donde-niveles label + label {
+  border-left: 1px solid #e4e6df;
+}
+.donde-niveles input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.donde-niveles span {
+  min-height: 27px;
+  display: grid;
+  place-items: center;
+  padding: 2px 4px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+.donde-niveles label.marcada span {
+  background: var(--petrol);
+  color: #fff;
+}
+.donde-niveles label.marcada[data-nivel='0'] span {
+  background: #69777c;
+}
+.donde-niveles label.marcada[data-nivel='2'] span {
+  background: var(--orange);
+}
+.donde-niveles label:has(input:focus-visible) {
+  outline: 3px solid #4eb2d4;
+  outline-offset: -2px;
+}
+.donde-radio-busqueda {
+  min-height: 66px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  border: 1.5px solid #b9dce5;
+  border-radius: 14px;
+  background: #f4fafb;
+}
+.donde-radio-icono {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #e0f0f3;
+  color: var(--petrol);
+}
+.donde-radio-busqueda > div {
+  min-width: 0;
+}
+.donde-radio-busqueda label {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--petrol);
+  font-size: 12px;
+  font-weight: 800;
+}
+.donde-radio-busqueda output {
+  flex: none;
+}
+.donde-radio-busqueda input {
+  width: 100%;
+  margin-top: 6px;
+  accent-color: var(--petrol);
+}
+.donde-capas-lista,
+.donde-donde {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+}
+.donde-capas-lista label,
+.donde-donde label {
+  padding: 5px 2px;
+  border: 0;
+  border-radius: 0;
+  font-weight: 600;
+}
+.donde-capas-lista label.marcada,
+.donde-donde label.marcada {
+  border: 0;
+  background: transparent;
+  color: var(--petrol);
+}
+.donde-ranking-completo {
+  display: grid;
+  gap: 14px;
+  padding: 20px 22px;
+  border: 2px solid #e4e6df;
+  border-radius: 18px;
+  background: #fff;
+}
+.donde-ranking-completo .donde-lista {
+  height: 320px;
+}
+.donde-mas-info {
+  display: inline-flex;
+  margin-top: 8px;
+  color: var(--petrol);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: underline;
+}
+.donde-datos p {
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.donde-datos a {
+  color: var(--petrol);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+@media (max-width: 860px) {
+  .donde-explorador {
+    --alto-mapa: 400px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .donde-explorador-controles {
+    height: auto;
+    max-height: none;
+    overflow-y: visible;
+  }
+  .donde-explorador .donde-mapa {
+    height: calc(var(--alto-mapa) - 76px);
+  }
+}
+
+@media (max-width: 700px) {
+  .donde-pasos-cabeza {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .donde-pasos-cabeza li {
+    max-width: 110px;
+    font-size: 10px;
+  }
+  .donde-comparacion,
+  .donde-ranking-completo {
+    padding: 16px;
+  }
+  .donde-seccion-cabeza {
+    align-items: start;
+    flex-direction: column;
+  }
+}

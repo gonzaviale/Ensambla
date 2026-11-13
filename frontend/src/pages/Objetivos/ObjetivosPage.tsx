@@ -7,6 +7,7 @@ import { useComoVieneTuNegocio } from '@/hooks/objetivos/useComoVieneTuNegocio';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { formatoPesos, type Objetivo } from '@/lib/objetivos';
 import { useSistemaStore } from '@/stores/sistemaStore';
+import { EntradaDondeAbrir } from '@/pages/DondeAbrir/EntradaDondeAbrir';
 import { DefinirObjetivo } from './DefinirObjetivo';
 import { NegocioHoy } from './NegocioHoy';
 import { ObjetivoCard } from './ObjetivoCard';
@@ -79,6 +80,7 @@ export function ObjetivosPage() {
             )}
           </>
         )}
+        <EntradaDondeAbrir />
       </main>
     </>
   );

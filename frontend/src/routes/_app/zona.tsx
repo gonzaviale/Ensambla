@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { ZonaPage } from '@/pages/Zona/ZonaPage';
+import { ZonaLayout } from '@/layouts/ZonaLayout';
 
 export const Route = createFileRoute('/_app/zona')({
-  component: ZonaPage,
+  component: ZonaLayout,
 });

@@ -4,6 +4,7 @@ export const RUBROS_DE_PRUEBA = [
   { codigo: 'KIOSCO', nombre: 'Kiosco' },
   { codigo: 'MINIMERCADO', nombre: 'Minimercado' },
   { codigo: 'DIETETICA', nombre: 'Dietética' },
+  { codigo: 'PAPELERIA', nombre: 'Papelería' },
   { codigo: 'OTRO', nombre: 'Otro' },
 ];
 // Misma zona que carga la migración V10 del backend.
