@@ -42,7 +42,7 @@ const abrirResultado = async () => {
   });
   renderApp('/zona/donde-abrir');
   const user = userEvent.setup();
-  await user.click(await screen.findByRole('button', { name: /Sí, es correcto/ }, ESPERA));
+  await user.click(await screen.findByRole('button', { name: /Continuar con estos datos/ }, ESPERA));
   for (const respuesta of [
     /Cerca de mi local actual/,
     /Un equilibrio/,

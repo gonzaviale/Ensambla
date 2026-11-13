@@ -43,7 +43,7 @@ const llegarALasZonas = async (
   user: ReturnType<typeof userEvent.setup>,
   respuestas: Respuestas = {},
 ) => {
-  await user.click(screen.getByRole('button', { name: /Sí, es correcto/ }));
+  await user.click(screen.getByRole('button', { name: /Continuar con estos datos/ }));
   for (const respuesta of [
     respuestas.alcance ?? /Cerca de mi local actual/,
     respuestas.prioridad ?? /Un equilibrio/,
@@ -81,14 +81,14 @@ describe('dónde abrir', () => {
     );
     expect(screen.queryByText(/Datos trazables/)).not.toBeInTheDocument();
     expect(screen.getByRole('list', { name: 'Progreso de Tu próximo negocio' })).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Editar datos de mi negocio' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Editar ubicación de mi negocio' })).toHaveAttribute(
       'href',
       '/ubicacion',
     );
     expect(await screen.findByText(/Veo que tu negocio es/)).toHaveTextContent(
       /Almacén de barrio.*Villa Crespo.*almacén/,
     );
-    expect(screen.getByText(/¿Es correcto\?/)).toBeVisible();
+    expect(screen.getByText(/¿Querés continuar con estos datos\?/)).toBeVisible();
   });
 
   it('también se entra desde Objetivos', async () => {
@@ -102,14 +102,22 @@ describe('dónde abrir', () => {
     expect(router.state.location.pathname).toBe('/zona/donde-abrir');
   });
 
-  it('si el negocio no es ese, deja elegir otro rubro antes de seguir', async () => {
+  it('separa la confirmación, el cambio de rubro y la edición de la ubicación', async () => {
     const { user } = await abrir();
 
-    await user.click(screen.getByRole('button', { name: /No, quiero cambiar algo/ }));
+    expect(screen.getByRole('link', { name: 'Editar ubicación de mi negocio' })).toHaveAttribute(
+      'href',
+      '/ubicacion',
+    );
+    expect(screen.queryByRole('button', { name: /No, quiero cambiar algo/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cambiar el tipo de local' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.getByRole('button', { name: 'Continuar con estos datos' })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Cambiar el tipo de local' }));
     await user.click(screen.getByRole('radio', { name: 'Una papelería' }));
-    await user.click(screen.getByRole('button', { name: /Seguir con una papelería/ }));
+    await user.click(screen.getByRole('button', { name: 'Usar este tipo de local' }));
 
-    expect(await screen.findByText('¿Dónde querés buscar?')).toBeVisible();
+    expect(await screen.findByText('¿En qué zona querés llegar a nuevos clientes?')).toBeVisible();
   });
 
   it('toma la localidad real del negocio para buscar cerca', async () => {
@@ -117,7 +125,9 @@ describe('dónde abrir', () => {
     renderApp('/zona/donde-abrir');
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole('button', { name: /Sí, es correcto/ }, ESPERA));
+    await user.click(
+      await screen.findByRole('button', { name: /Continuar con estos datos/ }, ESPERA),
+    );
 
     expect(screen.getByRole('button', { name: /Cerca de mi local actual/ })).toHaveTextContent(
       'Hasta 4 km de San Justo',
@@ -126,11 +136,13 @@ describe('dónde abrir', () => {
 
   it('hace las preguntas de a una, y lo ya respondido queda como una charla', async () => {
     const { user } = await abrir();
-    await user.click(screen.getByRole('button', { name: /Sí, es correcto/ }));
+    await user.click(screen.getByRole('button', { name: /Continuar con estos datos/ }));
 
     expect(await screen.findByText('Pregunta 1 de 4')).toBeVisible();
-    expect(screen.getByText('¿Dónde querés buscar?')).toBeVisible();
-    expect(screen.queryByText('¿Qué pesa más para vos?')).not.toBeInTheDocument();
+    expect(screen.getByText('¿En qué zona querés llegar a nuevos clientes?')).toBeVisible();
+    expect(
+      screen.queryByText('¿Qué combinación de lugares puede atraer mejor a tu público?'),
+    ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /En cualquier zona/ }));
     expect(await screen.findByText('Pregunta 2 de 4')).toBeVisible();
@@ -141,16 +153,21 @@ describe('dónde abrir', () => {
     expect(await screen.findByText('Pregunta 1 de 4')).toBeVisible();
   });
 
-  it('pregunta por entornos comprobables sin suponer clientes conocidos', async () => {
+  it('pregunta por entornos comprobables pensando en el público del negocio', async () => {
     const { user } = await abrir();
-    await user.click(screen.getByRole('button', { name: /Sí, es correcto/ }));
+    await user.click(screen.getByRole('button', { name: /Continuar con estos datos/ }));
     await user.click(screen.getByRole('button', { name: /Cerca de mi local actual/ }));
+    expect(
+      screen.getByText('¿Qué combinación de lugares puede atraer mejor a tu público?'),
+    ).toBeVisible();
     expect(screen.queryByRole('button', { name: /Alquiler bajo/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Mucho movimiento/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Escuelas y plazas/ })).toBeVisible();
     await user.click(screen.getByRole('button', { name: /Un equilibrio/ }));
 
-    expect(await screen.findByText('¿Qué entorno querés priorizar?')).toBeVisible();
+    expect(
+      await screen.findByText('¿En qué entorno suele moverse el público al que querés llegar?'),
+    ).toBeVisible();
     expect(screen.getByRole('button', { name: /Sin priorizar un entorno/ })).toBeVisible();
     expect(screen.getByRole('button', { name: /Escuelas y plazas/ })).toBeVisible();
     expect(screen.getByRole('button', { name: /Oficinas y transporte/ })).toBeVisible();
