@@ -16,7 +16,7 @@ import './landing-recorrido.css';
 import './landing-sami.css';
 
 export function LandingPage() {
-  useTituloPagina('Tu cuaderno digital, tus cuentas más claras');
+  useTituloPagina('Tu negocio de siempre, con tus cuentas más claras');
   useDesplazamientoSuave();
 
   return (

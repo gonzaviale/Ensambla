@@ -120,7 +120,9 @@ describe('planes y activación de prueba', () => {
 
     expect(screen.getByText(/Usaste los análisis de foto incluidos/)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Prueba activa' })).toBeDisabled();
-    expect(screen.getByRole('progressbar', { name: 'Análisis de foto de la prueba' })).toHaveValue(10);
+    expect(screen.getByRole('progressbar', { name: 'Análisis de foto de la prueba' })).toHaveValue(
+      10,
+    );
   });
 
   it('muestra la prueba finalizada, conserva los datos y no ofrece reiniciarla', async () => {
@@ -132,7 +134,7 @@ describe('planes y activación de prueba', () => {
 
     expect(screen.getByText(/Tu prueba terminó/)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Prueba ya utilizada' })).toBeDisabled();
-    expect(screen.getByText(/conservás tus cuadernos, registros y recetas/)).toBeVisible();
+    expect(screen.getByText(/conservás tus secciones, registros y recetas/)).toBeVisible();
   });
 
   it('muestra premium vigente con cien páginas y sin ofrecer otra prueba', async () => {
@@ -150,10 +152,9 @@ describe('planes y activación de prueba', () => {
     await screen.findByRole('heading', { name: 'Premium, tu espacio actual' }, ESPERA);
 
     expect(screen.getByRole('button', { name: 'Premium activo' })).toBeDisabled();
-    expect(screen.getByRole('progressbar', { name: 'Análisis de foto de este mes' })).toHaveAttribute(
-      'max',
-      '100',
-    );
+    expect(
+      screen.getByRole('progressbar', { name: 'Análisis de foto de este mes' }),
+    ).toHaveAttribute('max', '100');
   });
 
   it('un error inicial permite reintentar sin mostrar un plan inventado', async () => {

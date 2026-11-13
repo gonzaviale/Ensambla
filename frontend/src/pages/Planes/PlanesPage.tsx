@@ -181,7 +181,7 @@ export function PlanesPage() {
               <div>
                 <h2 id="plans-data-title">Tus datos tienen su lugar.</h2>
                 <p>
-                  Cuando termina la prueba conservás tus cuadernos, registros y recetas. Podés
+                  Cuando termina la prueba conservás tus secciones, registros y recetas. Podés
                   consultar y editar tus datos; las nuevas altas y las funciones premium respetan
                   los límites del plan gratuito.
                 </p>

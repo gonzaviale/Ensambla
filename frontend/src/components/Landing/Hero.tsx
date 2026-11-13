@@ -7,14 +7,14 @@ export function Hero() {
     <section className="ens-wrap ens-hero" id="inicio" aria-labelledby="inicio-titulo">
       <div className="ens-hero-copy">
         <p className="ens-eyebrow">Para comercios de barrio como el tuyo</p>
-        <h1 id="inicio-titulo">Tu cuaderno de siempre, con tus cuentas más claras</h1>
+        <h1 id="inicio-titulo">Tu negocio de siempre, con tus cuentas más claras</h1>
         <p>
-          Ensambla es un cuaderno digital para anotar ventas, gastos y fiados, y encontrar lo que
-          necesitás sin buscar hoja por hoja.
+          Ensambla te ayuda a anotar ventas, gastos y fiados, y a encontrar lo que necesitás sin
+          buscar hoja por hoja.
         </p>
         <div className="ens-actions">
           <Link to="/registro" className="ens-primary">
-            Empezar mi cuaderno <ArrowUpRightIcon aria-hidden size={20} />
+            Armar mi negocio <ArrowUpRightIcon aria-hidden size={20} />
           </Link>
           <a className="ens-link" href="#como-funciona">
             Ver un ejemplo <ArrowDownIcon aria-hidden size={18} />
@@ -32,7 +32,7 @@ export function Hero() {
           alt="Escena ilustrativa de una comerciante anotando en un cuaderno detrás del mostrador de un almacén de barrio."
         />
         <a className="ens-hero-result" href="#como-funciona">
-          <span className="ens-result-label">Ejemplo del cuaderno</span>
+          <span className="ens-result-label">Ejemplo de una sección</span>
           <strong>Ana López</strong>
           <span>Fiado registrado</span>
           <b>$ 3.200</b>

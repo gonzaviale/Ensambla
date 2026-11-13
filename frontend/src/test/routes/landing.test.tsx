@@ -7,7 +7,7 @@ import { ESPERA, verifyHeadingPresentAsync } from '@/test/testHelpers';
 
 async function abrirLanding() {
   const router = renderApp('/');
-  await verifyHeadingPresentAsync('Tu cuaderno de siempre, con tus cuentas más claras');
+  await verifyHeadingPresentAsync('Tu negocio de siempre, con tus cuentas más claras');
   return { router, user: userEvent.setup() };
 }
 
@@ -16,18 +16,18 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('landing del cuaderno digital', () => {
+describe('landing de Ensambla', () => {
   it('presenta un solo h1 y sus llamadas principales abren el registro real', async () => {
     const { router, user } = await abrirLanding();
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-    const enlaces = screen.getAllByRole('link', { name: /Empezar mi cuaderno/ });
+    const enlaces = screen.getAllByRole('link', { name: /Armar mi negocio/ });
     for (const enlace of enlaces) expect(enlace).toHaveAttribute('href', '/registro');
 
     await user.click(enlaces[0] as HTMLElement);
     await screen.findByRole('heading', { name: 'Creá tu cuenta' }, ESPERA);
     expect(router.state.location.pathname).toBe('/registro');
-    expect(screen.getByText('Empezá a armar el cuaderno de tu negocio.')).toBeVisible();
+    expect(screen.getByText('Empezá a armar tu negocio en Ensambla.')).toBeVisible();
   });
 
   it('lleva al ingreso existente desde el cierre', async () => {
