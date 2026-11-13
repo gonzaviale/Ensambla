@@ -45,6 +45,12 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ensambla}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-ensambla_user}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD en .env}
+      # Catálogos de identificación de productos; SEPA viene incluido en la imagen.
+      ENSAMBLA_SEPA_RECURSO: ${ENSAMBLA_SEPA_RECURSO:-classpath:catalogos/sepa.json.gz}
+      ENSAMBLA_OFF_URL: ${ENSAMBLA_OFF_URL:-https://world.openfoodfacts.org}
+      ENSAMBLA_OFF_TIMEOUT: ${ENSAMBLA_OFF_TIMEOUT:-5s}
+      ENSAMBLA_OFF_CACHE: ${ENSAMBLA_OFF_CACHE:-15m}
+      ENSAMBLA_OFF_LIMITE: ${ENSAMBLA_OFF_LIMITE:-12}
       ENSAMBLA_IA_PROVEEDOR: ${ENSAMBLA_IA_PROVEEDOR:-simulado}
       ENSAMBLA_IA_API_KEY: ${ENSAMBLA_IA_API_KEY:-}
       # Con ACCESO_RESTRINGIDO=true sólo los dueños con email en ACCESO_EMAILS (separados por coma) usan la IA.

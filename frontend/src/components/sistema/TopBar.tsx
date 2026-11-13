@@ -84,6 +84,7 @@ export function TopBar({
         <button
           type="button"
           className={active === 'sistemas' ? 'active' : ''}
+          aria-current={active === 'sistemas' ? 'page' : undefined}
           onClick={ir(onSistemas)}
         >
           Mis cuadernos
