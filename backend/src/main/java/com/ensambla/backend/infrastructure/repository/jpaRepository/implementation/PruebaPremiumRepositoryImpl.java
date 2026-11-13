@@ -1,7 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
-import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.PruebaPremium;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IPruebaPremiumJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.PruebaPremiumRepositoryMapper;
@@ -21,8 +21,8 @@ public class PruebaPremiumRepositoryImpl implements PruebaPremiumRepository {
     private final PruebaPremiumRepositoryMapper pruebaPremiumRepositoryMapper;
 
     @Override
-    public Optional<PruebaPremium> findByNegocioId(NegocioId negocioId) {
-        return pruebaPremiumJpaRepository.findById(negocioId.valor()).map(pruebaPremiumRepositoryMapper::toDomain);
+    public Optional<PruebaPremium> findByUsuarioId(UsuarioId usuarioId) {
+        return pruebaPremiumJpaRepository.findById(usuarioId.valor()).map(pruebaPremiumRepositoryMapper::toDomain);
     }
 
     @Override
@@ -32,7 +32,7 @@ public class PruebaPremiumRepositoryImpl implements PruebaPremiumRepository {
     }
 
     @Override
-    public List<NegocioId> findNegociosVencidos(OffsetDateTime ahora) {
-        return pruebaPremiumJpaRepository.findNegociosVencidos(ahora).stream().map(NegocioId::de).toList();
+    public List<UsuarioId> findUsuariosVencidos(OffsetDateTime ahora) {
+        return pruebaPremiumJpaRepository.findUsuariosVencidos(ahora).stream().map(UsuarioId::de).toList();
     }
 }

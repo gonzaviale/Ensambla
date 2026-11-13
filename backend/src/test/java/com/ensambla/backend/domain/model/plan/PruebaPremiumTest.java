@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 
 import static com.ensambla.backend.support.PlanTestData.INSTANTE;
-import static com.ensambla.backend.support.PlanTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.PlanTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -16,9 +16,9 @@ class PruebaPremiumTest {
     @Test
     @DisplayName("La prueba dura 168 horas exactas y comienza sin consumo")
     void nuevaShouldCreateSevenDayPeriod() {
-        PruebaPremium result = PruebaPremium.nueva(NEGOCIO_ID, INSTANTE);
+        PruebaPremium result = PruebaPremium.nueva(USUARIO_ID, INSTANTE);
 
-        assertThat(result.negocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(result.inicioEn()).isEqualTo(INSTANTE);
         assertThat(Duration.between(result.inicioEn(), result.finEn())).isEqualTo(Duration.ofHours(168));
         assertThat(result.paginasIa()).isZero();
@@ -27,7 +27,7 @@ class PruebaPremiumTest {
     @Test
     @DisplayName("Las páginas admitidas se acumulan hasta diez sin renovar la fecha ni el contador")
     void consumirShouldKeepOriginalPeriodAndAccumulatePages() {
-        PruebaPremium prueba = new PruebaPremium(NEGOCIO_ID, INSTANTE, INSTANTE.plusDays(7), 8);
+        PruebaPremium prueba = new PruebaPremium(USUARIO_ID, INSTANTE, INSTANTE.plusDays(7), 8);
 
         PruebaPremium result = prueba.consumir(2);
 
@@ -40,7 +40,7 @@ class PruebaPremiumTest {
     @Test
     @DisplayName("Se rechaza completo el intento que supera las diez páginas")
     void validarPaginasShouldRejectExceededTrialQuota() {
-        PruebaPremium prueba = new PruebaPremium(NEGOCIO_ID, INSTANTE, INSTANTE.plusDays(7), 9);
+        PruebaPremium prueba = new PruebaPremium(USUARIO_ID, INSTANTE, INSTANTE.plusDays(7), 9);
 
         assertThatThrownBy(() -> prueba.validarPaginas(2)).isInstanceOf(RestriccionPlanException.class)
                 .extracting("codigo").isEqualTo("LIMITE_IA_PRUEBA");

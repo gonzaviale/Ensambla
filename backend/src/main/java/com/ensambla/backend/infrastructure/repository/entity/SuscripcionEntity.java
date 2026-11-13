@@ -31,8 +31,8 @@ public class SuscripcionEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "negocio_id", nullable = false)
-    private UUID negocioId;
+    @Column(name = "usuario_id", nullable = false)
+    private UUID usuarioId;
 
     @Column(name = "plan_id", nullable = false)
     private UUID planId;

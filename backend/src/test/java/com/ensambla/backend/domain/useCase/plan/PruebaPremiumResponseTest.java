@@ -5,7 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static com.ensambla.backend.support.PlanTestData.INSTANTE;
-import static com.ensambla.backend.support.PlanTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.PlanTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PruebaPremiumResponseTest {
@@ -13,7 +13,7 @@ class PruebaPremiumResponseTest {
     @Test
     @DisplayName("Mapea fechas, páginas utilizadas y límite total de prueba")
     void deShouldMapTrialDetails() {
-        PruebaPremium prueba = new PruebaPremium(NEGOCIO_ID, INSTANTE, INSTANTE.plusDays(7), 3);
+        PruebaPremium prueba = new PruebaPremium(USUARIO_ID, INSTANTE, INSTANTE.plusDays(7), 3);
 
         PruebaPremiumResponse result = PruebaPremiumResponse.de(prueba);
 

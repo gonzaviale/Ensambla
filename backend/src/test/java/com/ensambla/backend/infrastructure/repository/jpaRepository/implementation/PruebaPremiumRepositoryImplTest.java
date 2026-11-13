@@ -1,6 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
-import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.model.plan.PruebaPremium;
 import com.ensambla.backend.infrastructure.repository.entity.PruebaPremiumEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IPruebaPremiumJpaRepository;
@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.ensambla.backend.support.PlanTestData.INSTANTE;
-import static com.ensambla.backend.support.PlanTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.PlanTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -27,21 +27,21 @@ class PruebaPremiumRepositoryImplTest {
 
     @Test
     @DisplayName("Recupera la prueba exclusivamente por el negocio solicitado")
-    void findByNegocioIdShouldMapStoredTrial() {
-        when(pruebaPremiumJpaRepository.findById(NEGOCIO_ID.valor())).thenReturn(Optional.of(givenEntity()));
+    void findByUsuarioIdShouldMapStoredTrial() {
+        when(pruebaPremiumJpaRepository.findById(USUARIO_ID.valor())).thenReturn(Optional.of(givenEntity()));
 
-        Optional<PruebaPremium> result = pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID);
+        Optional<PruebaPremium> result = pruebaPremiumRepository.findByUsuarioId(USUARIO_ID);
 
-        assertThat(result).contains(new PruebaPremium(NEGOCIO_ID, INSTANTE, INSTANTE.plusDays(7), 4));
-        verify(pruebaPremiumJpaRepository).findById(NEGOCIO_ID.valor());
+        assertThat(result).contains(new PruebaPremium(USUARIO_ID, INSTANTE, INSTANTE.plusDays(7), 4));
+        verify(pruebaPremiumJpaRepository).findById(USUARIO_ID.valor());
     }
 
     @Test
     @DisplayName("Un negocio sin historial devuelve un resultado vacío")
-    void findByNegocioIdShouldReturnEmptyWhenMissing() {
-        when(pruebaPremiumJpaRepository.findById(NEGOCIO_ID.valor())).thenReturn(Optional.empty());
+    void findByUsuarioIdShouldReturnEmptyWhenMissing() {
+        when(pruebaPremiumJpaRepository.findById(USUARIO_ID.valor())).thenReturn(Optional.empty());
 
-        Optional<PruebaPremium> result = pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID);
+        Optional<PruebaPremium> result = pruebaPremiumRepository.findByUsuarioId(USUARIO_ID);
 
         assertThat(result).isEmpty();
     }
@@ -52,9 +52,9 @@ class PruebaPremiumRepositoryImplTest {
         when(pruebaPremiumJpaRepository.saveAndFlush(any())).thenReturn(givenEntity());
 
         PruebaPremium result = pruebaPremiumRepository.save(
-                new PruebaPremium(NEGOCIO_ID, INSTANTE, INSTANTE.plusDays(7), 4));
+                new PruebaPremium(USUARIO_ID, INSTANTE, INSTANTE.plusDays(7), 4));
 
-        assertThat(result.negocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(result.inicioEn()).isEqualTo(INSTANTE);
         assertThat(result.finEn()).isEqualTo(INSTANTE.plusDays(7));
         assertThat(result.paginasIa()).isEqualTo(4);
@@ -62,18 +62,18 @@ class PruebaPremiumRepositoryImplTest {
 
     @Test
     @DisplayName("Delega la búsqueda de candidatos vencidos al instante solicitado")
-    void findNegociosVencidosShouldDelegateInstant() {
-        when(pruebaPremiumJpaRepository.findNegociosVencidos(INSTANTE)).thenReturn(List.of(NEGOCIO_ID.valor()));
+    void findUsuariosVencidosShouldDelegateInstant() {
+        when(pruebaPremiumJpaRepository.findUsuariosVencidos(INSTANTE)).thenReturn(List.of(USUARIO_ID.valor()));
 
-        List<NegocioId> result = pruebaPremiumRepository.findNegociosVencidos(INSTANTE);
+        List<UsuarioId> result = pruebaPremiumRepository.findUsuariosVencidos(INSTANTE);
 
-        assertThat(result).containsExactly(NEGOCIO_ID);
+        assertThat(result).containsExactly(USUARIO_ID);
     }
 
     // --- arrange ---
     private PruebaPremiumEntity givenEntity() {
         return PruebaPremiumEntity.builder()
-                .negocioId(NEGOCIO_ID.valor())
+                .usuarioId(USUARIO_ID.valor())
                 .inicioEn(INSTANTE)
                 .finEn(INSTANTE.plusDays(7))
                 .paginasIa(4)

@@ -32,7 +32,7 @@ class PlanPresentationMapperTest {
             assertThat(actual.limitesConfigurados()).isEqualTo(esperado.limitesConfigurados());
             assertThat(actual.precioMensual()).isEqualTo(esperado.precioMensual());
             assertThat(actual.moneda()).isEqualTo(esperado.moneda());
-            assertThat(actual.limiteProyectos()).isEqualTo(esperado.limiteProyectos());
+            assertThat(actual.limiteNegocios()).isEqualTo(esperado.limiteNegocios());
             assertThat(actual.limiteRegistros()).isEqualTo(esperado.limiteRegistros());
             assertThat(actual.limitePaginasIaMensuales()).isEqualTo(esperado.limitePaginasIaMensuales());
             assertThat(actual.funciones()).isEqualTo(esperado.funciones());
@@ -42,7 +42,7 @@ class PlanPresentationMapperTest {
         assertThat(result.suscripcion().puedeIniciarPrueba()).isEqualTo(origen.suscripcion().puedeIniciarPrueba());
         assertThat(result.suscripcion().inicioEn()).isEqualTo(origen.suscripcion().inicioEn());
         assertThat(result.suscripcion().finEn()).isEqualTo(origen.suscripcion().finEn());
-        assertThat(result.uso().proyectos()).isEqualTo(origen.uso().proyectos());
+        assertThat(result.uso().negocios()).isEqualTo(origen.uso().negocios());
         assertThat(result.uso().registros()).isEqualTo(origen.uso().registros());
         assertThat(result.uso().paginasIa()).isEqualTo(origen.uso().paginasIa());
         assertThat(result.uso().limitePaginasIa()).isEqualTo(origen.uso().limitePaginasIa());

@@ -27,8 +27,8 @@ public class RenovacionPremiumEntity {
     @Column(name = "id")
     private UUID id;
 
-    @Column(name = "negocio_id")
-    private UUID negocioId;
+    @Column(name = "usuario_id")
+    private UUID usuarioId;
 
     @Column(name = "proveedor_id", columnDefinition = "text")
     private String proveedorId;

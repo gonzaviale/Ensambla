@@ -47,7 +47,7 @@ class PlanUseCaseConfigTest {
         givenNegocio();
         givenCatalogo();
         Suscripcion suscripcion = suscripcion();
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion));
         when(planRepository.findById(suscripcion.getPlanId())).thenReturn(Optional.of(plan()));
 
         var result = planUseCaseConfig.consultarPlanes(negocioRepository, suscripcionRepository, planRepository,
@@ -62,12 +62,11 @@ class PlanUseCaseConfigTest {
     @Test
     @DisplayName("El wiring conecta usuario, catálogo, suscripción y reloj al inicio de prueba")
     void iniciarPruebaUseCaseShouldWireDependencies() {
-        givenNegocio();
         givenCatalogo();
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion()));
         when(pruebaPremiumRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var result = planUseCaseConfig.iniciarPrueba(negocioRepository, planRepository, pruebaPremiumRepository,
+        var result = planUseCaseConfig.iniciarPrueba(planRepository, pruebaPremiumRepository,
                         suscripcionRepository, usoPlanRepository, renovacionPremiumRepository,
                         new TransaccionDirecta(), clock)
                 .execute(new IniciarPruebaRequest(USUARIO_ID));
@@ -79,13 +78,13 @@ class PlanUseCaseConfigTest {
     @Test
     @DisplayName("El wiring conecta reloj, candidatos y suscripción al vencimiento automático")
     void vencerPruebasUseCaseShouldWireDependencies() {
-        when(pruebaPremiumRepository.findNegociosVencidos(INSTANTE)).thenReturn(List.of(NEGOCIO_ID));
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
+        when(pruebaPremiumRepository.findUsuariosVencidos(INSTANTE)).thenReturn(List.of(USUARIO_ID));
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion()));
 
         planUseCaseConfig.vencerPruebas(planRepository, pruebaPremiumRepository, suscripcionRepository,
                 usoPlanRepository, new TransaccionDirecta(), clock).execute();
 
-        verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
+        verify(usoPlanRepository).bloquearCuenta(USUARIO_ID);
     }
 
     // --- arrange ---

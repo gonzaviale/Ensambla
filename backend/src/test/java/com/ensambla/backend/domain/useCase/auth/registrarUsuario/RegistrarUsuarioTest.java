@@ -140,7 +140,7 @@ class RegistrarUsuarioTest {
         verify(suscripcionRepository).save(captor.capture());
         Suscripcion guardada = captor.getValue();
         assertThat(guardada.getId()).isNull();
-        assertThat(guardada.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(guardada.getUsuarioId()).isEqualTo(usuario().getId());
         assertThat(guardada.getPlanId()).isEqualTo(PLAN_ID);
         assertThat(guardada.getEstado()).isEqualTo(EstadoSuscripcion.ACTIVA);
         assertThat(guardada.getInicioEn()).isEqualTo(FECHA);

@@ -27,14 +27,14 @@ public class PlanPresentationMapper {
         return new PlanesResponse(response.consultadoEn(), response.planes().stream().map(this::toPlan).toList(),
                 new PlanesResponse.SuscripcionResponse(suscripcion.codigoPlanActual(), suscripcion.pruebaActiva(),
                         suscripcion.puedeIniciarPrueba(), suscripcion.inicioEn(), suscripcion.finEn()),
-                new PlanesResponse.UsoResponse(uso.proyectos(), uso.registros(), uso.paginasIa(),
+                new PlanesResponse.UsoResponse(uso.negocios(), uso.registros(), uso.paginasIa(),
                         uso.limitePaginasIa(), uso.periodoIa(), uso.inicioPeriodoIa(), uso.finPeriodoIa()),
                 response.prueba() == null ? null : toResponse(response.prueba()));
     }
 
     private PlanesResponse.PlanResponse toPlan(PlanItem plan) {
         return new PlanesResponse.PlanResponse(plan.codigo(), plan.nombre(), plan.precioConfigurado(),
-                plan.limitesConfigurados(), plan.precioMensual(), plan.moneda(), plan.limiteProyectos(),
+                plan.limitesConfigurados(), plan.precioMensual(), plan.moneda(), plan.limiteNegocios(),
                 plan.limiteRegistros(),
                 plan.limitePaginasIaMensuales(), plan.funciones());
     }

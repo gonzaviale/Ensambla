@@ -173,10 +173,10 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
         RenovacionPremium renovacion = renovacion();
         assertThat(renovacion.getPrimerCobroEn()).isEqualTo(prueba.finEn());
-        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM suscripcion WHERE negocio_id=?",
-                String.class, negocioId.valor())).isEqualTo("PRUEBA");
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM pago_premium WHERE negocio_id=?",
-                Integer.class, negocioId.valor())).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM suscripcion WHERE usuario_id=?",
+                String.class, usuarioId.valor())).isEqualTo("PRUEBA");
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM pago_premium WHERE usuario_id=?",
+                Integer.class, usuarioId.valor())).isZero();
     }
 
     @Test
@@ -205,8 +205,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
         assertThat(planActual()).isEqualTo("PREMIUM");
         assertThat(finPagado()).isEqualTo(AHORA.plusDays(30));
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM pago_premium WHERE negocio_id=?",
-                Integer.class, negocioId.valor())).isOne();
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM pago_premium WHERE usuario_id=?",
+                Integer.class, usuarioId.valor())).isOne();
     }
 
     @ParameterizedTest
@@ -237,8 +237,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
         assertThat(planActual()).isEqualTo("PREMIUM");
         assertThat(finPagado()).isEqualTo(AHORA.plusDays(30));
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM pago_premium WHERE negocio_id=?",
-                Integer.class, negocioId.valor())).isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM pago_premium WHERE usuario_id=?",
+                Integer.class, usuarioId.valor())).isEqualTo(2);
     }
 
     @Test
@@ -346,8 +346,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         mockMvc.perform(post("/api/planes/renovacion/cancelar").session(sesion).header("X-CSRF-TOKEN", csrf))
                 .andExpect(status().isOk());
 
-        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM suscripcion WHERE negocio_id=?",
-                String.class, negocioId.valor())).isEqualTo("PRUEBA");
+        assertThat(jdbcTemplate.queryForObject("SELECT estado FROM suscripcion WHERE usuario_id=?",
+                String.class, usuarioId.valor())).isEqualTo("PRUEBA");
     }
 
     @Test
@@ -397,8 +397,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
             segunda.get();
 
             verify(pasarelaSuscripcionesPort, times(1)).crear(any(), anyString());
-            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM renovacion_premium WHERE negocio_id=?",
-                    Integer.class, negocioId.valor())).isOne();
+            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM renovacion_premium WHERE usuario_id=?",
+                    Integer.class, usuarioId.valor())).isOne();
         }
     }
 
@@ -431,7 +431,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         mockMvc.perform(get("/api/planes/renovacion").session(sesion)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.habilitada").value(false)).andExpect(jsonPath("$.contrato").doesNotExist());
 
-        assertThat(renovacionPremiumService.consultar(negocioId)).isEmpty();
+        assertThat(renovacionPremiumService.consultar(usuarioId)).isEmpty();
     }
 
     @Test
@@ -479,8 +479,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrf))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("RENOVACION_EN_CURSO"));
 
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id=?",
-                Integer.class, negocioId.valor())).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE usuario_id=?",
+                Integer.class, usuarioId.valor())).isZero();
     }
 
     @Test
@@ -495,8 +495,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
         mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrf))
                 .andExpect(status().isOk());
 
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id=?",
-                Integer.class, negocioId.valor())).isOne();
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE usuario_id=?",
+                Integer.class, usuarioId.valor())).isOne();
     }
 
     @Test
@@ -597,8 +597,8 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
         assertThat(planActual()).isEqualTo("PREMIUM");
         assertThat(finPagado()).isEqualTo(AHORA.plusDays(60));
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM pago_premium WHERE negocio_id=?",
-                Integer.class, negocioId.valor())).isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM pago_premium WHERE usuario_id=?",
+                Integer.class, usuarioId.valor())).isEqualTo(2);
         assertThat(jdbcTemplate.queryForObject("SELECT estado FROM pago_premium WHERE factura_id=?",
                 String.class, facturaId("segunda-firmada"))).isEqualTo("approved");
     }
@@ -678,7 +678,7 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     private RenovacionPremium renovacion() {
-        return renovacionPremiumService.consultar(negocioId).orElseThrow();
+        return renovacionPremiumService.consultar(usuarioId).orElseThrow();
     }
 
     private String facturaId(String nombre) {
@@ -691,11 +691,11 @@ class RenovacionPremiumIntegrationTest extends PostgresRepositoryTestSupport {
 
     private String planActual() {
         return jdbcTemplate.queryForObject("SELECT p.codigo FROM suscripcion s JOIN plan p ON p.id=s.plan_id "
-                + "WHERE s.negocio_id=?", String.class, negocioId.valor());
+                + "WHERE s.usuario_id=?", String.class, usuarioId.valor());
     }
 
     private OffsetDateTime finPagado() {
-        return jdbcTemplate.queryForObject("SELECT fin_en FROM suscripcion WHERE negocio_id=?",
-                OffsetDateTime.class, negocioId.valor());
+        return jdbcTemplate.queryForObject("SELECT fin_en FROM suscripcion WHERE usuario_id=?",
+                OffsetDateTime.class, usuarioId.valor());
     }
 }

@@ -9,7 +9,7 @@ public record PlanesResponse(OffsetDateTime consultadoEn, List<PlanResponse> pla
 
     public record PlanResponse(String codigo, String nombre, boolean precioConfigurado, boolean limitesConfigurados,
                                 BigDecimal precioMensual,
-                                String moneda, Integer limiteProyectos, Long limiteRegistros,
+                                String moneda, Integer limiteNegocios, Long limiteRegistros,
                                 Integer limitePaginasIaMensuales, List<String> funciones) {
     }
 
@@ -17,7 +17,7 @@ public record PlanesResponse(OffsetDateTime consultadoEn, List<PlanResponse> pla
                                       OffsetDateTime inicioEn, OffsetDateTime finEn) {
     }
 
-    public record UsoResponse(long proyectos, long registros, long paginasIa, Integer limitePaginasIa,
+    public record UsoResponse(long negocios, long registros, long paginasIa, Integer limitePaginasIa,
                               String periodoIa, OffsetDateTime inicioPeriodoIa, OffsetDateTime finPeriodoIa) {
     }
 }

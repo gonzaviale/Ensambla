@@ -126,9 +126,9 @@ export function PlanesPage() {
               </div>
               <dl className="plan-usage-grid">
                 <Uso
-                  titulo="Cuadernos"
-                  cantidad={datos.uso.proyectos}
-                  limite={actual.limiteProyectos}
+                  titulo="Negocios"
+                  cantidad={datos.uso.negocios}
+                  limite={actual.limiteNegocios}
                 />
                 <Uso
                   titulo="Registros guardados"
@@ -136,7 +136,9 @@ export function PlanesPage() {
                   limite={actual.limiteRegistros}
                 />
                 <Uso
-                  titulo={esPrueba ? 'Análisis de foto de la prueba' : 'Análisis de foto de este mes'}
+                  titulo={
+                    esPrueba ? 'Análisis de foto de la prueba' : 'Análisis de foto de este mes'
+                  }
                   cantidad={datos.uso.paginasIa}
                   limite={datos.uso.limitePaginasIa}
                 />
@@ -151,8 +153,8 @@ export function PlanesPage() {
               datos.uso.limitePaginasIa !== null &&
               datos.uso.paginasIa >= datos.uso.limitePaginasIa ? (
                 <p className="plan-quota-notice" role="status">
-                  Usaste los análisis de foto incluidos. Las demás funciones premium siguen disponibles
-                  hasta que termine la prueba.
+                  Usaste los análisis de foto incluidos. Las demás funciones premium siguen
+                  disponibles hasta que termine la prueba.
                 </p>
               ) : null}
             </section>

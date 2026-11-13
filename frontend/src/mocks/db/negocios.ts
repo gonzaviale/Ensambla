@@ -1,5 +1,4 @@
 import { hoy } from '@/lib/sistema/formato';
-import type { Plan } from '@/types/planes';
 import type {
   ListaDeNegocios,
   NegocioDeLaCuenta,
@@ -13,9 +12,6 @@ import { planesDe } from './planes';
 // Los negocios de cada cuenta. Los sistemas, los avisos y el resto de los datos siguen colgando de la cuenta y
 // se atribuyen al primer negocio (el que se crea al registrarse); los que se agregan después arrancan vacíos.
 // Cuando cada pantalla trabaje con el negocio activo, los datos pasarán a colgar de cada negocio.
-
-/** Cuántos negocios permite cada plan: Gratuito el propio; Premium el propio y hasta cinco adicionales. */
-export const LIMITE_DE_NEGOCIOS: Record<Plan['codigo'], number> = { GRATUITO: 1, PREMIUM: 6 };
 
 export type NegocioMock = Omit<NegocioDeLaCuenta, 'activo'>;
 
@@ -47,8 +43,11 @@ export function guardarNegociosDe(email: string, cuenta: NegociosDeLaCuenta) {
   estado.alCambiar?.();
 }
 
+/** Cuántos negocios permite el plan vigente de la cuenta (Gratuito 1; Premium el propio y 5 adicionales). */
 export function limiteDeNegociosDe(email: string) {
-  return LIMITE_DE_NEGOCIOS[planesDe(email).suscripcion.codigoPlanActual];
+  const { planes, suscripcion } = planesDe(email);
+  const actual = planes.find((plan) => plan.codigo === suscripcion.codigoPlanActual);
+  return actual?.limiteNegocios ?? 1;
 }
 
 export const aNegocioDeLaCuenta = (negocio: NegocioMock, activoId: string): NegocioDeLaCuenta => ({

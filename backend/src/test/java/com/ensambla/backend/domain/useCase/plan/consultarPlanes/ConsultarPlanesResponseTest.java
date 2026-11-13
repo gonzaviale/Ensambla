@@ -28,7 +28,7 @@ class ConsultarPlanesResponseTest {
         assertThat(result.suscripcion().puedeIniciarPrueba()).isFalse();
         assertThat(result.suscripcion().inicioEn()).isEqualTo(consulta.suscripcion().getInicioEn());
         assertThat(result.suscripcion().finEn()).isEqualTo(consulta.suscripcion().getFinEn());
-        assertThat(result.uso().proyectos()).isEqualTo(2);
+        assertThat(result.uso().negocios()).isEqualTo(2);
         assertThat(result.uso().registros()).isEqualTo(89);
         assertThat(result.uso().paginasIa()).isEqualTo(6);
         assertThat(result.uso().limitePaginasIa()).isEqualTo(10);
@@ -58,7 +58,7 @@ class ConsultarPlanesResponseTest {
         assertThat(actual.limitesConfigurados()).isEqualTo(esperado.getLimitesConfigurados());
         assertThat(actual.precioMensual()).isEqualTo(esperado.getPrecioMensual());
         assertThat(actual.moneda()).isEqualTo(esperado.getMoneda());
-        assertThat(actual.limiteProyectos()).isEqualTo(esperado.getLimiteProyectos());
+        assertThat(actual.limiteNegocios()).isEqualTo(esperado.getLimiteNegocios());
         assertThat(actual.limiteRegistros()).isEqualTo(esperado.getLimiteRegistros());
         assertThat(actual.limitePaginasIaMensuales()).isEqualTo(esperado.getLimitePaginasIaMensuales());
         assertThat(actual.funciones()).isEqualTo(esperado.getFunciones());

@@ -13,6 +13,7 @@ import com.ensambla.backend.domain.model.plan.PruebaPremium;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.AccesoContenidoRepository;
@@ -52,18 +53,19 @@ public class ControlPlanService {
 
     private static final int LIMITE_GRATUITO = 6;
 
-    public void validarAltaProyecto(NegocioId negocioId, OffsetDateTime ahora) {
+    /** Un negocio más de la cuenta tiene que entrar en el límite de su plan (Gratuito 1; Premium 6). */
+    public void validarAltaNegocio(UsuarioId usuarioId, OffsetDateTime ahora) {
         transaccionPort.ejecutar(() -> {
-            usoPlanRepository.bloquearNegocio(negocioId);
-            Plan plan = vigente(negocioId, ahora);
-            plan.validarProyectos(usoPlanRepository.contarProyectos(negocioId));
+            usoPlanRepository.bloquearCuenta(usuarioId);
+            Plan plan = vigente(usuarioId, ahora);
+            plan.validarNegocios(usoPlanRepository.contarNegocios(usuarioId));
         });
     }
 
     public void validarAltaRegistros(NegocioId negocioId, long cantidad, OffsetDateTime ahora) {
         transaccionPort.ejecutar(() -> {
             usoPlanRepository.bloquearNegocio(negocioId);
-            Plan plan = vigente(negocioId, ahora);
+            Plan plan = vigente(cuentaDe(negocioId), ahora);
             plan.validarRegistros(usoPlanRepository.contarRegistros(negocioId), cantidad);
         });
     }
@@ -84,23 +86,24 @@ public class ControlPlanService {
         exigirIa(negocioId);
         transaccionPort.ejecutar(() -> {
             usoPlanRepository.bloquearNegocio(negocioId);
-            Plan plan = vigente(negocioId, ahora);
-            Optional<PruebaPremium> prueba = pruebaVigente(negocioId, ahora);
+            UsuarioId usuarioId = cuentaDe(negocioId);
+            Plan plan = vigente(usuarioId, ahora);
+            Optional<PruebaPremium> prueba = pruebaVigente(usuarioId, ahora);
             if (prueba.isPresent()) {
                 prueba.get().validarPaginas(cantidad);
                 return;
             }
             LocalDate mes = ZonaNegocio.primerDiaDelMes(ahora);
-            plan.validarPaginasIa(usoPlanRepository.paginasEnPeriodo(negocioId, mes, mes.plusMonths(1)), cantidad);
+            plan.validarPaginasIa(usoPlanRepository.paginasEnPeriodo(usuarioId, mes, mes.plusMonths(1)), cantidad);
         });
     }
 
     public void validarFuncion(NegocioId negocioId, FuncionPlan funcion, OffsetDateTime ahora) {
-        vigente(negocioId, ahora).validarFuncion(funcion);
+        vigente(cuentaDe(negocioId), ahora).validarFuncion(funcion);
     }
 
     private boolean esPremium(NegocioId negocioId, OffsetDateTime ahora) {
-        return vigente(negocioId, ahora).getCodigo() == CodigoPlan.PREMIUM;
+        return vigente(cuentaDe(negocioId), ahora).getCodigo() == CodigoPlan.PREMIUM;
     }
 
     /**
@@ -139,23 +142,28 @@ public class ControlPlanService {
     private void registrarPaginasPrueba(NegocioId negocioId, int cantidad, OffsetDateTime ahora) {
         transaccionPort.ejecutar(() -> {
             usoPlanRepository.bloquearNegocio(negocioId);
-            pruebaVigente(negocioId, ahora)
+            pruebaVigente(cuentaDe(negocioId), ahora)
                     .ifPresent(prueba -> pruebaPremiumRepository.save(prueba.consumir(cantidad)));
         });
     }
 
-    private Optional<PruebaPremium> pruebaVigente(NegocioId negocioId, OffsetDateTime ahora) {
-        Suscripcion suscripcion = suscripcionRepository.findByNegocioId(negocioId)
+    /** El plan, la prueba y el cupo de IA son de la cuenta: el negocio sólo dice de cuál. */
+    private UsuarioId cuentaDe(NegocioId negocioId) {
+        return negocioRepository.obtenerDuenioId(negocioId);
+    }
+
+    private Optional<PruebaPremium> pruebaVigente(UsuarioId usuarioId, OffsetDateTime ahora) {
+        Suscripcion suscripcion = suscripcionRepository.findByUsuarioId(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Suscripción no encontrada"));
         if (suscripcion.getEstado() == EstadoSuscripcion.PRUEBA && suscripcion.estaVigente(ahora)) {
-            return Optional.of(pruebaPremiumRepository.findByNegocioId(negocioId)
+            return Optional.of(pruebaPremiumRepository.findByUsuarioId(usuarioId)
                     .orElseThrow(() -> new ResourceNotFoundException("Prueba no encontrada")));
         }
         return Optional.empty();
     }
 
-    private Plan vigente(NegocioId negocioId, OffsetDateTime ahora) {
-        Suscripcion suscripcion = suscripcionRepository.findByNegocioId(negocioId)
+    private Plan vigente(UsuarioId usuarioId, OffsetDateTime ahora) {
+        Suscripcion suscripcion = suscripcionRepository.findByUsuarioId(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Suscripción no encontrada"));
         Plan plan = suscripcion.estaVigente(ahora)
                 ? planRepository.findById(suscripcion.getPlanId())

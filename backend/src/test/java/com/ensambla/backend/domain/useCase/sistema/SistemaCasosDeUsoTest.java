@@ -105,11 +105,10 @@ class SistemaCasosDeUsoTest {
         assertThat(guardado.proyecto().getActualizadoEn()).isEqualTo(AHORA);
         assertThat(result.id()).isEqualTo(SISTEMA_ID.toString());
         verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
-        verify(controlPlanService).validarAltaProyecto(NEGOCIO_ID, AHORA);
     }
 
     @Test
-    @DisplayName("Guardar reemplaza el sistema sin validar el alta cuando el proyecto ya es del negocio")
+    @DisplayName("Guardar reemplaza el sistema cuando el proyecto ya es del negocio")
     void guardarShouldReplaceWhenOwned() {
         givenNegocio();
         when(sistemaRepository.findNegocioIdByProyectoId(SISTEMA_ID)).thenReturn(Optional.of(NEGOCIO_ID));
@@ -117,7 +116,6 @@ class SistemaCasosDeUsoTest {
         guardarSistema.execute(givenGuardar());
 
         thenGuardado();
-        verify(controlPlanService, never()).validarAltaProyecto(any(), any());
     }
 
     @Test

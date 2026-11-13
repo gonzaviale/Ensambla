@@ -20,6 +20,9 @@ public interface NegocioRepository {
     /** Zona a la que pertenece el negocio; vacío si el negocio no existe o todavía no tiene zona. */
     Optional<ZonaId> findZonaIdById(NegocioId negocioId);
 
+    /** La cuenta dueña del negocio; vacío si el negocio no existe. */
+    Optional<UsuarioId> findDuenioIdById(NegocioId negocioId);
+
     /** Email del dueño del negocio; vacío si el negocio no existe. */
     Optional<String> findEmailDuenioById(NegocioId negocioId);
 
@@ -31,6 +34,11 @@ public interface NegocioRepository {
     /** El negocio de la sesión; un usuario sin negocio responde como inexistente. */
     default NegocioId obtenerIdDelUsuario(UsuarioId usuarioId) {
         return findIdByDuenioId(usuarioId).orElseThrow(NegocioRepository::negocioInexistente);
+    }
+
+    /** La cuenta a la que pertenece el negocio; un negocio inexistente responde como no encontrado. */
+    default UsuarioId obtenerDuenioId(NegocioId negocioId) {
+        return findDuenioIdById(negocioId).orElseThrow(() -> new ResourceNotFoundException("Negocio no encontrado"));
     }
 
     default Negocio obtenerNegocioDelUsuario(UsuarioId usuarioId) {

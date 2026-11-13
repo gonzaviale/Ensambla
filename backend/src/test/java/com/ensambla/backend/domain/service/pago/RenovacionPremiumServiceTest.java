@@ -23,7 +23,7 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 import static com.ensambla.backend.support.PagoTestData.AHORA;
-import static com.ensambla.backend.support.PagoTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.PagoTestData.USUARIO_ID;
 import static com.ensambla.backend.support.PagoTestData.RENOVACION_ID;
 import static com.ensambla.backend.support.PagoTestData.contrato;
 import static com.ensambla.backend.support.PagoTestData.pago;
@@ -63,7 +63,7 @@ class RenovacionPremiumServiceTest {
     @Test
     @DisplayName("Un identificador inexistente no bloquea otro negocio")
     void actualizarContratoShouldRejectMissingBusinessProjection() {
-        when(renovacionPremiumRepository.findNegocioIdById(RENOVACION_ID)).thenReturn(Optional.empty());
+        when(renovacionPremiumRepository.findUsuarioIdById(RENOVACION_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> renovacionPremiumService.actualizarContrato(RENOVACION_ID,
                 contrato(renovacion(), "pending", AHORA), AHORA)).isInstanceOf(ResourceNotFoundException.class);
@@ -120,7 +120,7 @@ class RenovacionPremiumServiceTest {
 
     private RenovacionPremium givenRenovacion() {
         RenovacionPremium renovacion = renovacion();
-        when(renovacionPremiumRepository.findNegocioIdById(RENOVACION_ID)).thenReturn(Optional.of(NEGOCIO_ID));
+        when(renovacionPremiumRepository.findUsuarioIdById(RENOVACION_ID)).thenReturn(Optional.of(USUARIO_ID));
         when(renovacionPremiumRepository.findById(RENOVACION_ID)).thenReturn(Optional.of(renovacion));
         return renovacion;
     }

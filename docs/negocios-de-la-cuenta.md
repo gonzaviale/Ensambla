@@ -197,8 +197,12 @@ puede llevar a Planes. El `message` ya viene redactado para mostrarse tal cual, 
   está en `frontend/src/api/negocios.ts` y los esquemas zod en `frontend/src/types/negocios.ts`. En el mock, los
   sistemas, avisos y demás datos siguen colgando de la cuenta y se atribuyen al primer negocio; los negocios que se
   crean arrancan vacíos. Cuando cada pantalla trabaje con el negocio activo, los datos pasarán a colgar de cada negocio.
-- **Plan:** `GET /api/planes` (`limiteProyectos` → `limiteNegocios`) cambia con T-198; el límite de `GET /api/negocios`
-  tiene que coincidir con ese valor.
+- **Plan (ya hecho en T-198):** el plan es de la cuenta y `GET /api/planes` expone `planes[].limiteNegocios`
+  (Gratuito 1, Premium 6) y `uso.negocios` en lugar de `limiteProyectos` y `uso.proyectos`. El `limite` de
+  `GET /api/negocios` tiene que ser ese mismo valor. Para dar de alta un negocio el caso de uso llama a
+  `ControlPlanService.validarAltaNegocio(usuarioId, ahora)` **dentro de la misma transacción que lo inserta**: bloquea
+  la fila de la cuenta y responde `RestriccionPlanException` (`LIMITE_NEGOCIOS`) si ya está en el límite. Ver
+  [modelo-datos.md](modelo-datos.md#plan-por-cuenta-y-límite-de-negocios-v34--h-55--t-198).
 
 ## Preguntas abiertas para quien aprueba
 

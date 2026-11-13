@@ -1,6 +1,6 @@
 package com.ensambla.backend.domain.model.plan;
 
-import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,7 +18,7 @@ public class Suscripcion {
 
     private SuscripcionId id;
 
-    private NegocioId negocioId;
+    private UsuarioId usuarioId;
 
     private PlanId planId;
 

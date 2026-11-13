@@ -26,8 +26,8 @@ public class PagoPremiumEntity {
     @Column(name = "factura_id", columnDefinition = "text")
     private String facturaId;
 
-    @Column(name = "negocio_id")
-    private UUID negocioId;
+    @Column(name = "usuario_id")
+    private UUID usuarioId;
 
     @Column(name = "renovacion_id")
     private UUID renovacionId;

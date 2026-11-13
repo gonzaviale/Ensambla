@@ -57,6 +57,24 @@ class NegocioRepositoryTest {
                 .hasMessage("No se encontró el negocio del usuario");
     }
 
+    @Test
+    @DisplayName("Resuelve la cuenta dueña del negocio")
+    void obtenerDuenioIdShouldResolveOwnerAccount() {
+        doReturn(Optional.of(USUARIO_ID)).when(negocioRepository).findDuenioIdById(NEGOCIO_ID);
+
+        assertThat(negocioRepository.obtenerDuenioId(NEGOCIO_ID)).isEqualTo(USUARIO_ID);
+    }
+
+    @Test
+    @DisplayName("Responde no encontrado si el negocio no existe al buscar su cuenta")
+    void obtenerDuenioIdShouldRejectMissingNegocio() {
+        doReturn(Optional.empty()).when(negocioRepository).findDuenioIdById(NEGOCIO_ID);
+
+        assertThatThrownBy(() -> negocioRepository.obtenerDuenioId(NEGOCIO_ID))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Negocio no encontrado");
+    }
+
     // --- arrange ---
     private void givenIdDelNegocio(Optional<NegocioId> id) {
         doReturn(id).when(negocioRepository).findIdByDuenioId(USUARIO_ID);

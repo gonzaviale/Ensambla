@@ -17,6 +17,7 @@ import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.support.TransaccionDirecta;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +37,7 @@ import java.util.function.BooleanSupplier;
 import static com.ensambla.backend.support.PlanTestData.INSTANTE;
 import static com.ensambla.backend.support.PlanTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.PlanTestData.PLAN_ID;
+import static com.ensambla.backend.support.PlanTestData.USUARIO_ID;
 import static com.ensambla.backend.support.PlanTestData.plan;
 import static com.ensambla.backend.support.PlanTestData.suscripcion;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,6 +46,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -77,17 +80,33 @@ class ControlPlanServiceTest {
     @InjectMocks
     private ControlPlanService controlPlanService;
 
+    @BeforeEach
+    void givenNegocioDeLaCuenta() {
+        lenient().when(negocioRepository.obtenerDuenioId(NEGOCIO_ID)).thenReturn(USUARIO_ID);
+    }
+
     @Test
-    @DisplayName("Bloquea el negocio antes de contar y autorizar un sistema")
-    void validarAltaProyectoShouldLockBeforeCounting() {
+    @DisplayName("Bloquea la cuenta antes de contar y autorizar un negocio")
+    void validarAltaNegocioShouldLockBeforeCounting() {
         givenActivePlan();
 
-        controlPlanService.validarAltaProyecto(NEGOCIO_ID, INSTANTE);
+        controlPlanService.validarAltaNegocio(USUARIO_ID, INSTANTE);
 
         var orden = inOrder(usoPlanRepository, suscripcionRepository);
-        orden.verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
-        orden.verify(suscripcionRepository).findByNegocioId(NEGOCIO_ID);
-        orden.verify(usoPlanRepository).contarProyectos(NEGOCIO_ID);
+        orden.verify(usoPlanRepository).bloquearCuenta(USUARIO_ID);
+        orden.verify(suscripcionRepository).findByUsuarioId(USUARIO_ID);
+        orden.verify(usoPlanRepository).contarNegocios(USUARIO_ID);
+    }
+
+    @Test
+    @DisplayName("Rechaza un negocio más cuando la cuenta ya alcanzó el límite de su plan")
+    void validarAltaNegocioShouldRejectWhenLimitReached() {
+        givenActivePlan();
+        when(usoPlanRepository.contarNegocios(USUARIO_ID)).thenReturn(3L);
+
+        assertThatThrownBy(() -> controlPlanService.validarAltaNegocio(USUARIO_ID, INSTANTE))
+                .isInstanceOf(RestriccionPlanException.class)
+                .extracting("codigo").isEqualTo("LIMITE_NEGOCIOS");
     }
 
     @Test
@@ -105,13 +124,13 @@ class ControlPlanServiceTest {
     void validarPaginasIaShouldUseArgentinaMonth() {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setInicioEn(INSTANTE.minusMonths(1));
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion));
         when(planRepository.findById(PLAN_ID)).thenReturn(Optional.of(plan()));
         OffsetDateTime ahora = OffsetDateTime.parse("2026-10-01T02:30:00Z");
 
         controlPlanService.validarPaginasIa(NEGOCIO_ID, 1, ahora);
 
-        verify(usoPlanRepository).paginasEnPeriodo(NEGOCIO_ID,
+        verify(usoPlanRepository).paginasEnPeriodo(USUARIO_ID,
                 LocalDate.parse("2026-09-01"), LocalDate.parse("2026-10-01"));
         verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
     }
@@ -142,20 +161,20 @@ class ControlPlanServiceTest {
 
     @Test
     @DisplayName("Una suscripción cancelada conserva los límites de alta del gratuito")
-    void validarAltaProyectoShouldUseFreePlanWhenCancelled() {
+    void validarAltaNegocioShouldUseFreePlanWhenCancelled() {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setEstado(EstadoSuscripcion.CANCELADA);
         givenFallback(suscripcion);
 
-        controlPlanService.validarAltaProyecto(NEGOCIO_ID, INSTANTE);
+        controlPlanService.validarAltaNegocio(USUARIO_ID, INSTANTE);
 
         verify(planRepository).findByCodigo(CodigoPlan.GRATUITO);
     }
 
     @Test
-    @DisplayName("Un negocio sin suscripción no recibe capacidades por defecto")
+    @DisplayName("Una cuenta sin suscripción no recibe capacidades por defecto")
     void validarFuncionShouldRejectMissingSubscription() {
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.empty());
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> controlPlanService.validarFuncion(
                 NEGOCIO_ID, FuncionPlan.RECETAS_COSTOS, INSTANTE))
@@ -167,7 +186,7 @@ class ControlPlanServiceTest {
     @Test
     @DisplayName("No habilita un plan referido que ya no existe")
     void validarFuncionShouldRejectMissingAssignedPlan() {
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion()));
         when(planRepository.findById(PLAN_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> controlPlanService.validarFuncion(
@@ -180,7 +199,7 @@ class ControlPlanServiceTest {
     void validarFuncionShouldRejectMissingFallbackPlan() {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setEstado(EstadoSuscripcion.VENCIDA);
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion));
         when(planRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> controlPlanService.validarFuncion(
@@ -194,7 +213,7 @@ class ControlPlanServiceTest {
         givenActivePlan();
         Suscripcion prueba = suscripcion();
         prueba.setEstado(EstadoSuscripcion.PRUEBA);
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(prueba));
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(prueba));
 
         assertThatThrownBy(() -> controlPlanService.validarPaginasIa(NEGOCIO_ID, 1, INSTANTE))
                 .isInstanceOf(ResourceNotFoundException.class).hasMessage("Prueba no encontrada");
@@ -225,7 +244,7 @@ class ControlPlanServiceTest {
     }
 
     @Test
-    @DisplayName("La reserva de páginas tampoco admite un negocio sin suscripción")
+    @DisplayName("La reserva de páginas tampoco admite una cuenta sin suscripción")
     void reservarPaginasIaShouldRejectMissingSubscription() {
         assertThatThrownBy(() -> controlPlanService.reservarPaginasIa(NEGOCIO_ID, 1, INSTANTE, () -> true))
                 .isInstanceOf(ResourceNotFoundException.class).hasMessage("Suscripción no encontrada");
@@ -288,7 +307,7 @@ class ControlPlanServiceTest {
     // --- arrange ---
     private Plan givenActivePlan() {
         Plan plan = plan();
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion()));
         when(planRepository.findById(PLAN_ID)).thenReturn(Optional.of(plan));
         return plan;
     }
@@ -296,15 +315,15 @@ class ControlPlanServiceTest {
     private PruebaPremium givenPruebaVigente() {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setEstado(EstadoSuscripcion.PRUEBA);
-        PruebaPremium prueba = PruebaPremium.nueva(NEGOCIO_ID, INSTANTE);
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
+        PruebaPremium prueba = PruebaPremium.nueva(USUARIO_ID, INSTANTE);
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion));
         when(planRepository.findById(PLAN_ID)).thenReturn(Optional.of(plan()));
-        when(pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(prueba));
+        when(pruebaPremiumRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(prueba));
         return prueba;
     }
 
     private void givenFallback(Suscripcion suscripcion) {
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion));
         when(planRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.of(plan()));
     }
 }

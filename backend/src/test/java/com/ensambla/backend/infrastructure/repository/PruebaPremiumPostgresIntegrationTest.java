@@ -102,10 +102,10 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
         List<Boolean> result = concurrently(() -> iniciar(INICIO), () -> iniciar(INICIO.plusHours(1)));
 
         assertThat(result).containsExactlyInAnyOrder(true, false);
-        PruebaPremium prueba = pruebaPremiumRepository.findByNegocioId(negocioId).orElseThrow();
+        PruebaPremium prueba = pruebaPremiumRepository.findByUsuarioId(usuarioId).orElseThrow();
         assertThat(prueba.finEn()).isEqualTo(prueba.inicioEn().plusDays(7));
         assertThat(prueba.paginasIa()).isZero();
-        assertThat(suscripcionRepository.findByNegocioId(negocioId).orElseThrow().getEstado())
+        assertThat(suscripcionRepository.findByUsuarioId(usuarioId).orElseThrow().getEstado())
                 .isEqualTo(EstadoSuscripcion.PRUEBA);
     }
 
@@ -197,7 +197,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
                 null, INICIO.plusDays(8), null);
 
         assertThat(prueba().paginasIa()).isEqualTo(2);
-        assertThat(suscripcionRepository.findByNegocioId(negocioId).orElseThrow().getEstado())
+        assertThat(suscripcionRepository.findByUsuarioId(usuarioId).orElseThrow().getEstado())
                 .isEqualTo(EstadoSuscripcion.ACTIVA);
     }
 
@@ -241,13 +241,13 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
         pruebaPremiumService.vencer(negocioId, INICIO.plusDays(7));
         pruebaPremiumService.vencer(negocioId, INICIO.plusDays(7));
 
-        assertThat(suscripcionRepository.findByNegocioId(negocioId).orElseThrow().getEstado())
+        assertThat(suscripcionRepository.findByUsuarioId(usuarioId).orElseThrow().getEstado())
                 .isEqualTo(EstadoSuscripcion.ACTIVA);
         assertThat(proyectoRepository.findAllByNegocioId(negocioId)).hasSize(2);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM registro WHERE negocio_id = ?",
                 Long.class, negocioId.valor())).isEqualTo(1001);
-        assertThatThrownBy(() -> proyectosDePrueba.crear(negocioId, "Tercero", null, INICIO.plusDays(7)))
-                .isInstanceOf(RestriccionPlanException.class);
+        assertThat(proyectosDePrueba.crear(negocioId, "Tercero", null, INICIO.plusDays(7)).getNombre())
+                .isEqualTo("Tercero");
         assertThatThrownBy(() -> pruebaPremiumService.iniciar(negocioId, INICIO.plusDays(8)))
                 .isInstanceOf(RestriccionPlanException.class).extracting("codigo").isEqualTo("PRUEBA_UTILIZADA");
         assertThat(prueba().inicioEn()).isEqualTo(INICIO);
@@ -257,23 +257,23 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     @DisplayName("Un premium activado después de seleccionar el vencimiento se conserva")
     void vencerShouldPreservePaidPremiumAfterTrial() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
-        assertThat(pruebaPremiumRepository.findNegociosVencidos(INICIO.plusDays(7))).contains(negocioId);
-        jdbcTemplate.update("UPDATE suscripcion SET estado = 'ACTIVA', fin_en = ? WHERE negocio_id = ?",
-                INICIO.plusMonths(1), negocioId.valor());
+        assertThat(pruebaPremiumRepository.findUsuariosVencidos(INICIO.plusDays(7))).contains(usuarioId);
+        jdbcTemplate.update("UPDATE suscripcion SET estado = 'ACTIVA', fin_en = ? WHERE usuario_id = ?",
+                INICIO.plusMonths(1), usuarioId.valor());
 
         pruebaPremiumService.vencer(negocioId, INICIO.plusDays(7));
 
         assertThatCode(() -> controlPlanService.validarFuncion(
                 negocioId, FuncionPlan.RECETAS_COSTOS, INICIO.plusDays(8))).doesNotThrowAnyException();
-        assertThat(pruebaPremiumRepository.findNegociosVencidos(INICIO.plusDays(7))).doesNotContain(negocioId);
+        assertThat(pruebaPremiumRepository.findUsuariosVencidos(INICIO.plusDays(7))).doesNotContain(usuarioId);
     }
 
     @Test
-    @DisplayName("La consulta de prueba no devuelve el historial de otro negocio")
-    void findByNegocioIdShouldIsolateTrialHistory() {
+    @DisplayName("La consulta de prueba no devuelve el historial de otra cuenta")
+    void findByUsuarioIdShouldIsolateTrialHistory() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
 
-        assertThat(pruebaPremiumRepository.findByNegocioId(NegocioId.nuevo())).isEmpty();
+        assertThat(pruebaPremiumRepository.findByUsuarioId(UsuarioId.nuevo())).isEmpty();
     }
 
     @Test
@@ -285,13 +285,13 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     }
 
     @Test
-    @DisplayName("La base rechaza una segunda prueba del mismo negocio")
+    @DisplayName("La base rechaza una segunda prueba de la misma cuenta")
     void saveShouldRejectDuplicateTrialHistory() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
 
         assertThatThrownBy(() -> jdbcTemplate.update("""
-                INSERT INTO prueba_premium (negocio_id, inicio_en, fin_en) VALUES (?, ?, ?)
-                """, negocioId.valor(), INICIO, INICIO.plusDays(7)))
+                INSERT INTO prueba_premium (usuario_id, inicio_en, fin_en) VALUES (?, ?, ?)
+                """, usuarioId.valor(), INICIO, INICIO.plusDays(7)))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -300,8 +300,8 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     void updateShouldRejectInvalidTrialDuration() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
 
-        assertThatThrownBy(() -> jdbcTemplate.update("UPDATE prueba_premium SET fin_en = ? WHERE negocio_id = ?",
-                INICIO.plusDays(8), negocioId.valor())).isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> jdbcTemplate.update("UPDATE prueba_premium SET fin_en = ? WHERE usuario_id = ?",
+                INICIO.plusDays(8), usuarioId.valor())).isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
@@ -309,31 +309,33 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     void updateShouldRejectTrialWithoutEnd() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
 
-        assertThatThrownBy(() -> jdbcTemplate.update("UPDATE suscripcion SET fin_en = NULL WHERE negocio_id = ?",
-                negocioId.valor())).isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> jdbcTemplate.update("UPDATE suscripcion SET fin_en = NULL WHERE usuario_id = ?",
+                usuarioId.valor())).isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
-    @DisplayName("La eliminación del negocio elimina su prueba sin dejar filas huérfanas")
-    void deleteShouldCascadeTrialHistory() {
+    @DisplayName("Eliminar el negocio conserva la prueba de la cuenta y eliminar la cuenta no deja filas huérfanas")
+    void deleteShouldCascadeTrialHistoryWithTheAccount() {
         pruebaPremiumService.iniciar(negocioId, INICIO);
 
         jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId.valor());
+        assertThat(pruebaPremiumRepository.findByUsuarioId(usuarioId)).isPresent();
+        jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId.valor());
 
-        assertThat(pruebaPremiumRepository.findByNegocioId(negocioId)).isEmpty();
+        assertThat(pruebaPremiumRepository.findByUsuarioId(usuarioId)).isEmpty();
     }
 
     @Test
     @DisplayName("Si falla la activación se revierte también el historial que permitiría perder la prueba")
     void iniciarShouldRollbackHistoryWhenSubscriptionUpdateFails() {
         jdbcTemplate.execute("ALTER TABLE suscripcion ADD CONSTRAINT ck_ens96_rollback "
-                + "CHECK (negocio_id <> '" + negocioId.valor() + "'::uuid OR estado <> 'PRUEBA')");
+                + "CHECK (usuario_id <> '" + usuarioId.valor() + "'::uuid OR estado <> 'PRUEBA')");
         try {
             assertThatThrownBy(() -> pruebaPremiumService.iniciar(negocioId, INICIO))
                     .isInstanceOf(DataIntegrityViolationException.class);
 
-            assertThat(pruebaPremiumRepository.findByNegocioId(negocioId)).isEmpty();
-            assertThat(suscripcionRepository.findByNegocioId(negocioId).orElseThrow().getEstado())
+            assertThat(pruebaPremiumRepository.findByUsuarioId(usuarioId)).isEmpty();
+            assertThat(suscripcionRepository.findByUsuarioId(usuarioId).orElseThrow().getEstado())
                     .isEqualTo(EstadoSuscripcion.ACTIVA);
         } finally {
             jdbcTemplate.execute("ALTER TABLE suscripcion DROP CONSTRAINT ck_ens96_rollback");
@@ -359,8 +361,8 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     }
 
     private void givenPaginasPrueba(int paginas) {
-        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = ? WHERE negocio_id = ?", paginas,
-                negocioId.valor());
+        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = ? WHERE usuario_id = ?", paginas,
+                usuarioId.valor());
     }
 
     private LoteTrabajo givenLote() {
@@ -390,7 +392,7 @@ class PruebaPremiumPostgresIntegrationTest extends PostgresRepositoryTestSupport
     }
 
     private PruebaPremium prueba() {
-        return pruebaPremiumRepository.findByNegocioId(negocioId).orElseThrow();
+        return pruebaPremiumRepository.findByUsuarioId(usuarioId).orElseThrow();
     }
 
     // --- helpers ---

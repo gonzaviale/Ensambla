@@ -63,9 +63,9 @@ class ConsultarPlanesTest {
         Plan gratuito = givenCatalogo();
         givenSuscripcion(gratuito, EstadoSuscripcion.ACTIVA, AHORA.plusDays(30));
         LocalDate inicio = LocalDate.parse("2026-11-01");
-        when(usoPlanRepository.contarProyectos(NEGOCIO_ID)).thenReturn(2L);
+        when(usoPlanRepository.contarNegocios(USUARIO_ID)).thenReturn(2L);
         when(usoPlanRepository.contarRegistros(NEGOCIO_ID)).thenReturn(1001L);
-        when(usoPlanRepository.paginasEnPeriodo(NEGOCIO_ID, inicio, inicio.plusMonths(1))).thenReturn(7L);
+        when(usoPlanRepository.paginasEnPeriodo(USUARIO_ID, inicio, inicio.plusMonths(1))).thenReturn(7L);
 
         ConsultarPlanesResponse result = consultar(OffsetDateTime.parse("2026-11-01T00:05:00-03:00"));
 
@@ -77,8 +77,8 @@ class ConsultarPlanesTest {
         assertThat(result.uso()).isEqualTo(new UsoPlanItem(2, 1001, 7, 10, "MENSUAL",
                 OffsetDateTime.parse("2026-11-01T03:00:00Z"), OffsetDateTime.parse("2026-12-01T03:00:00Z")));
         var orden = inOrder(usoPlanRepository, suscripcionRepository);
-        orden.verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
-        orden.verify(suscripcionRepository).findByNegocioId(NEGOCIO_ID);
+        orden.verify(usoPlanRepository).bloquearCuenta(USUARIO_ID);
+        orden.verify(suscripcionRepository).findByUsuarioId(USUARIO_ID);
     }
 
     @Test
@@ -86,7 +86,7 @@ class ConsultarPlanesTest {
     void executeShouldUseTrialTotalInsteadOfMonthlyUsage() {
         givenCatalogo();
         givenSuscripcion(premium(), EstadoSuscripcion.PRUEBA, AHORA.plusDays(4));
-        when(pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(prueba()));
+        when(pruebaPremiumRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(prueba()));
 
         ConsultarPlanesResponse result = consultar(AHORA);
 
@@ -97,7 +97,7 @@ class ConsultarPlanesTest {
         assertThat(result.uso().periodoIa()).isEqualTo("PRUEBA");
         assertThat(result.uso().inicioPeriodoIa()).isEqualTo(prueba().inicioEn());
         assertThat(result.uso().finPeriodoIa()).isEqualTo(prueba().finEn());
-        verify(usoPlanRepository, never()).paginasEnPeriodo(NEGOCIO_ID,
+        verify(usoPlanRepository, never()).paginasEnPeriodo(USUARIO_ID,
                 LocalDate.parse("2026-11-01"), LocalDate.parse("2026-12-01"));
     }
 
@@ -121,7 +121,7 @@ class ConsultarPlanesTest {
     void executeShouldFallBackAtExactTrialExpiry() {
         givenCatalogo();
         givenSuscripcion(premium(), EstadoSuscripcion.PRUEBA, AHORA);
-        when(pruebaPremiumRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(prueba()));
+        when(pruebaPremiumRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(prueba()));
 
         ConsultarPlanesResponse result = consultar(AHORA);
 
@@ -171,10 +171,10 @@ class ConsultarPlanesTest {
     }
 
     @Test
-    @DisplayName("Responde recurso inexistente cuando el negocio no tiene suscripción")
+    @DisplayName("Responde recurso inexistente cuando la cuenta no tiene suscripción")
     void executeShouldRejectMissingSubscription() {
         givenCatalogo();
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.empty());
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> consultar(AHORA))
                 .isInstanceOf(ResourceNotFoundException.class).hasMessage("Suscripción no encontrada");
@@ -184,7 +184,7 @@ class ConsultarPlanesTest {
     @DisplayName("Una referencia a un plan inexistente no se presenta como premium")
     void executeShouldRejectMissingAssignedPlan() {
         givenCatalogo();
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion()));
 
         assertThatThrownBy(() -> consultar(AHORA))
                 .isInstanceOf(ResourceNotFoundException.class).hasMessage("Plan no encontrado");
@@ -236,7 +236,7 @@ class ConsultarPlanesTest {
         suscripcion.setEstado(estado);
         suscripcion.setInicioEn(AHORA.minusDays(3));
         suscripcion.setFinEn(fin);
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion));
         if (suscripcion.estaVigente(AHORA)) {
             when(planRepository.findById(plan.getId())).thenReturn(Optional.of(plan));
         }

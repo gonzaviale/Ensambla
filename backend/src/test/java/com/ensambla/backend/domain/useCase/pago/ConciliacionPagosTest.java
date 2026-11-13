@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.ensambla.backend.support.PagoTestData.AHORA;
-import static com.ensambla.backend.support.PagoTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.PagoTestData.USUARIO_ID;
 import static com.ensambla.backend.support.PagoTestData.RENOVACION_ID;
 import static com.ensambla.backend.support.PagoTestData.renovacion;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -87,7 +87,7 @@ class ConciliacionPagosTest {
         RenovacionPremium renovacion = renovacion();
         renovacion.setId(id);
         renovacion.setSincronizadoEn(null);
-        when(renovacionPremiumRepository.findNegocioIdById(id)).thenReturn(Optional.of(NEGOCIO_ID));
+        when(renovacionPremiumRepository.findUsuarioIdById(id)).thenReturn(Optional.of(USUARIO_ID));
         when(renovacionPremiumRepository.findById(id)).thenReturn(Optional.of(renovacion));
         return renovacion;
     }

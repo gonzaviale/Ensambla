@@ -56,6 +56,14 @@ class NegocioRepositoryImplTest {
     }
 
     @Test
+    @DisplayName("Resuelve la cuenta dueña del negocio")
+    void findDuenioIdByIdShouldMapAccount() {
+        when(negocioJpaRepository.findDuenioIdById(NEGOCIO_ID.valor())).thenReturn(Optional.of(USUARIO_ID.valor()));
+
+        assertThat(negocioRepository.findDuenioIdById(NEGOCIO_ID)).contains(USUARIO_ID);
+    }
+
+    @Test
     @DisplayName("Resuelve el email del dueño del negocio")
     void findEmailDuenioByIdShouldDelegateToJpa() {
         when(negocioJpaRepository.findEmailDuenioById(NEGOCIO_ID.valor())).thenReturn(Optional.of("dueño@example.com"));

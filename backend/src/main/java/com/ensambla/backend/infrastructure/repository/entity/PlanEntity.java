@@ -55,8 +55,8 @@ public class PlanEntity {
     @Column(columnDefinition = "text")
     private String moneda;
 
-    @Column(name = "limite_proyectos")
-    private Integer limiteProyectos;
+    @Column(name = "limite_negocios")
+    private Integer limiteNegocios;
 
     @Column(name = "limite_registros")
     private Long limiteRegistros;

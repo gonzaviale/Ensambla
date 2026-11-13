@@ -1,10 +1,10 @@
 package com.ensambla.backend.support;
 
-import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pago.ContratoRemoto;
 import com.ensambla.backend.domain.model.pago.PagoRemoto;
 import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -15,7 +15,7 @@ public final class PagoTestData {
 
     public static final BigDecimal IMPORTE = new BigDecimal("14900.00");
 
-    public static final NegocioId NEGOCIO_ID = NegocioId.de("b444bcba-a316-4817-951e-a4545d7f1590");
+    public static final UsuarioId USUARIO_ID = UsuarioId.de("b444bcba-a316-4817-951e-a4545d7f1590");
 
     public static final RenovacionId RENOVACION_ID = RenovacionId.de("f4f5a7bb-71c8-43cd-b91e-32a0842b64af");
 
@@ -27,7 +27,7 @@ public final class PagoTestData {
     public static RenovacionPremium renovacion() {
         return RenovacionPremium.builder()
                 .id(RENOVACION_ID)
-                .negocioId(NEGOCIO_ID)
+                .usuarioId(USUARIO_ID)
                 .proveedorId(PROVEEDOR_ID)
                 .enlace("https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_id=" + PROVEEDOR_ID)
                 .estado("AUTORIZADA")

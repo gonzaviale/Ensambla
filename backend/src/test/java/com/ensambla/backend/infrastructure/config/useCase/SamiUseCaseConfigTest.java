@@ -81,7 +81,7 @@ class SamiUseCaseConfigTest {
                 .thenReturn(ProyectoTestData.proyecto());
 
         ProyectoItem result = config.crearProyectoDesdeSami(
-                        negocioRepository, plantillaRepository, proyectoRepository, mock(ControlPlanService.class),
+                        negocioRepository, plantillaRepository, proyectoRepository,
                         new TransaccionDirecta(), Clock.systemUTC())
                 .execute(new CrearProyectoDesdeSamiRequest(
                         USUARIO_ID, ProyectoTestData.PLANTILLA_ID, null, List.of()));

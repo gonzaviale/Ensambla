@@ -31,7 +31,7 @@ class SuscripcionRepositoryMapperTest {
         Suscripcion result = suscripcionRepositoryMapper.toDomain(origen);
 
         assertThat(result.getId()).isNull();
-        assertThat(result.getNegocioId()).isNull();
+        assertThat(result.getUsuarioId()).isNull();
         assertThat(result.getPlanId()).isNull();
         assertThat(result.getEstado()).isNull();
         assertThat(result.getInicioEn()).isNull();
@@ -58,7 +58,7 @@ class SuscripcionRepositoryMapperTest {
         SuscripcionEntity result = suscripcionRepositoryMapper.toEntity(origen);
 
         assertThat(result.getId()).isNull();
-        assertThat(result.getNegocioId()).isNull();
+        assertThat(result.getUsuarioId()).isNull();
         assertThat(result.getPlanId()).isNull();
         assertThat(result.getEstado()).isNull();
         assertThat(result.getInicioEn()).isNull();
@@ -71,7 +71,7 @@ class SuscripcionRepositoryMapperTest {
     private void thenToDomainMatches(Suscripcion result) {
         Suscripcion esperado = suscripcion();
         assertThat(result.getId()).isEqualTo(esperado.getId());
-        assertThat(result.getNegocioId()).isEqualTo(esperado.getNegocioId());
+        assertThat(result.getUsuarioId()).isEqualTo(esperado.getUsuarioId());
         assertThat(result.getPlanId()).isEqualTo(esperado.getPlanId());
         assertThat(result.getEstado()).isEqualTo(esperado.getEstado());
         assertThat(result.getInicioEn()).isEqualTo(esperado.getInicioEn());
@@ -83,7 +83,7 @@ class SuscripcionRepositoryMapperTest {
     private void thenToEntityMatches(SuscripcionEntity result) {
         SuscripcionEntity esperado = suscripcionEntity();
         assertThat(result.getId()).isEqualTo(esperado.getId());
-        assertThat(result.getNegocioId()).isEqualTo(esperado.getNegocioId());
+        assertThat(result.getUsuarioId()).isEqualTo(esperado.getUsuarioId());
         assertThat(result.getPlanId()).isEqualTo(esperado.getPlanId());
         assertThat(result.getEstado()).isEqualTo(esperado.getEstado());
         assertThat(result.getInicioEn()).isEqualTo(esperado.getInicioEn());

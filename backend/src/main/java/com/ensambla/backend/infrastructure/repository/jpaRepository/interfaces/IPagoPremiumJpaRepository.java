@@ -9,8 +9,8 @@ import java.util.UUID;
 
 public interface IPagoPremiumJpaRepository extends JpaRepository<PagoPremiumEntity, String> {
 
-    Optional<PagoPremiumEntity> findFirstByNegocioIdAndEstadoAndInicioEnLessThanEqualAndFinEnGreaterThanOrderByFinEnDesc(
-            UUID negocioId, String estado, OffsetDateTime inicio, OffsetDateTime fin);
+    Optional<PagoPremiumEntity> findFirstByUsuarioIdAndEstadoAndInicioEnLessThanEqualAndFinEnGreaterThanOrderByFinEnDesc(
+            UUID usuarioId, String estado, OffsetDateTime inicio, OffsetDateTime fin);
 
-    boolean existsByNegocioId(UUID negocioId);
+    boolean existsByUsuarioId(UUID usuarioId);
 }

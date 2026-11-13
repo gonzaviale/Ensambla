@@ -11,11 +11,11 @@ import java.util.UUID;
 
 public interface IPruebaPremiumJpaRepository extends JpaRepository<PruebaPremiumEntity, UUID> {
 
-    /** Candidatos globales del proceso interno; el servicio vuelve a comprobar bajo bloqueo por negocio. */
+    /** Candidatos globales del proceso interno; el servicio vuelve a comprobar bajo bloqueo por cuenta. */
     @Query(value = """
-            SELECT negocio_id FROM suscripcion
+            SELECT usuario_id FROM suscripcion
             WHERE estado = 'PRUEBA' AND fin_en <= :ahora
-            ORDER BY fin_en, negocio_id LIMIT 100
+            ORDER BY fin_en, usuario_id LIMIT 100
             """, nativeQuery = true)
-    List<UUID> findNegociosVencidos(@Param("ahora") OffsetDateTime ahora);
+    List<UUID> findUsuariosVencidos(@Param("ahora") OffsetDateTime ahora);
 }

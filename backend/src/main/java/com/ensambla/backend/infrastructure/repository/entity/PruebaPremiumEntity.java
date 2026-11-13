@@ -23,8 +23,8 @@ import java.util.UUID;
 public class PruebaPremiumEntity {
 
     @Id
-    @Column(name = "negocio_id", nullable = false)
-    private UUID negocioId;
+    @Column(name = "usuario_id", nullable = false)
+    private UUID usuarioId;
 
     @Column(name = "inicio_en", nullable = false, updatable = false)
     private OffsetDateTime inicioEn;

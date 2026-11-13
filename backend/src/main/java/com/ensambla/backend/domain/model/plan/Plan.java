@@ -32,7 +32,8 @@ public class Plan {
 
     private String moneda;
 
-    private Integer limiteProyectos;
+    /** Cuántos negocios puede tener la cuenta; {@code null} es sin límite. */
+    private Integer limiteNegocios;
 
     private Long limiteRegistros;
 
@@ -50,8 +51,14 @@ public class Plan {
         }
     }
 
-    public void validarProyectos(long existentes) {
-        validarCupo(existentes, 1, limiteProyectos, "LIMITE_SISTEMAS", "sistemas");
+    /** Un negocio más tiene que entrar en el límite del plan de la cuenta. */
+    public void validarNegocios(long existentes) {
+        if (limiteNegocios != null && existentes >= limiteNegocios) {
+            String recurso = limiteNegocios == 1 ? "negocio" : "negocios";
+            String sugerencia = codigo == CodigoPlan.GRATUITO ? " Pasate a Premium para sumar más." : "";
+            throw new RestriccionPlanException("LIMITE_NEGOCIOS",
+                    "Tu plan permite hasta " + limiteNegocios + " " + recurso + "." + sugerencia);
+        }
     }
 
     public void validarRegistros(long existentes, long nuevos) {

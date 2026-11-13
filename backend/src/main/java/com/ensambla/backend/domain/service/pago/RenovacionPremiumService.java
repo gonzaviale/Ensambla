@@ -2,7 +2,6 @@ package com.ensambla.backend.domain.service.pago;
 
 import com.ensambla.backend.domain.exception.PasarelaPagoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
-import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pago.ContratoRemoto;
 import com.ensambla.backend.domain.model.pago.PagoPremium;
 import com.ensambla.backend.domain.model.pago.PagoRemoto;
@@ -11,6 +10,7 @@ import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.pago.PagoPremiumRepository;
@@ -40,8 +40,8 @@ public class RenovacionPremiumService {
 
     private final TransaccionPort transaccionPort;
 
-    public Optional<RenovacionPremium> consultar(NegocioId negocioId) {
-        return renovacionPremiumRepository.findUltimaByNegocioId(negocioId);
+    public Optional<RenovacionPremium> consultar(UsuarioId usuarioId) {
+        return renovacionPremiumRepository.findUltimaByUsuarioId(usuarioId);
     }
 
     public RenovacionPremium obtener(RenovacionId id) {
@@ -71,15 +71,15 @@ public class RenovacionPremiumService {
         });
     }
 
-    /** Bloquea el negocio dueño de la renovación; se llama dentro de la transacción que la modifica. */
+    /** Bloquea la cuenta dueña de la renovación; se llama dentro de la transacción que la modifica. */
     public void bloquear(RenovacionId id) {
-        NegocioId negocioId = renovacionPremiumRepository.findNegocioIdById(id)
+        UsuarioId usuarioId = renovacionPremiumRepository.findUsuarioIdById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Renovación no encontrada"));
-        usoPlanRepository.bloquearNegocio(negocioId);
+        usoPlanRepository.bloquearCuenta(usuarioId);
     }
 
     /**
-     * Trae del proveedor el estado del contrato y de sus pagos y deja al negocio con el plan que corresponde: Premium
+     * Trae del proveedor el estado del contrato y de sus pagos y deja a la cuenta con el plan que corresponde: Premium
      * mientras haya un pago vigente y el gratuito cuando ya no queda ninguno.
      */
     public void sincronizar(RenovacionId id, OffsetDateTime ahora) {
@@ -99,7 +99,7 @@ public class RenovacionPremiumService {
         for (PagoRemoto pago : pasarelaSuscripcionesPort.listarPagos(renovacion.getProveedorId())) {
             aplicarPago(id, pago, ahora);
         }
-        recalcular(renovacion.getNegocioId(), ahora);
+        recalcular(renovacion.getUsuarioId(), ahora);
     }
 
     private void aplicarPago(RenovacionId renovacionId, PagoRemoto remoto, OffsetDateTime ahora) {
@@ -125,7 +125,7 @@ public class RenovacionPremiumService {
             }
             pagoPremiumRepository.save(PagoPremium.builder()
                     .facturaId(remoto.facturaId())
-                    .negocioId(renovacion.getNegocioId())
+                    .usuarioId(renovacion.getUsuarioId())
                     .renovacionId(renovacionId)
                     .pagoId(remoto.pagoId())
                     .estado(remoto.estado())
@@ -134,16 +134,16 @@ public class RenovacionPremiumService {
                     .modificadoProveedorEn(remoto.modificadoEn())
                     .actualizadoEn(ahora)
                     .build());
-            recalcular(renovacion.getNegocioId(), ahora);
+            recalcular(renovacion.getUsuarioId(), ahora);
         });
     }
 
-    /** Premium mientras haya un pago vigente; cuando ya no queda ninguno, el negocio vuelve al plan gratuito. */
-    private void recalcular(NegocioId negocioId, OffsetDateTime ahora) {
+    /** Premium mientras haya un pago vigente; cuando ya no queda ninguno, la cuenta vuelve al plan gratuito. */
+    private void recalcular(UsuarioId usuarioId, OffsetDateTime ahora) {
         transaccionPort.ejecutar(() -> {
-            usoPlanRepository.bloquearNegocio(negocioId);
-            Optional<PagoPremium> vigente = pagoPremiumRepository.findVigente(negocioId, ahora);
-            Suscripcion suscripcion = suscripcionRepository.obtener(negocioId);
+            usoPlanRepository.bloquearCuenta(usuarioId);
+            Optional<PagoPremium> vigente = pagoPremiumRepository.findVigente(usuarioId, ahora);
+            Suscripcion suscripcion = suscripcionRepository.obtener(usuarioId);
             if (vigente.isPresent()) {
                 PagoPremium pago = vigente.get();
                 suscripcion.setPlanId(planRepository.obtener(CodigoPlan.PREMIUM).getId());
@@ -152,7 +152,7 @@ public class RenovacionPremiumService {
                 suscripcion.setFinEn(pago.getFinEn());
             } else if (suscripcion.getEstado() == EstadoSuscripcion.ACTIVA
                     && suscripcion.getPlanId().equals(planRepository.obtener(CodigoPlan.PREMIUM).getId())
-                    && pagoPremiumRepository.existeByNegocioId(negocioId)) {
+                    && pagoPremiumRepository.existeByUsuarioId(usuarioId)) {
                 suscripcion.setPlanId(planRepository.obtener(CodigoPlan.GRATUITO).getId());
                 suscripcion.setInicioEn(ahora);
                 suscripcion.setFinEn(null);

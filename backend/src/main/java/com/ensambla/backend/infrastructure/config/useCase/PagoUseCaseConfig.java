@@ -2,7 +2,6 @@ package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
-import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.pago.PagoPremiumRepository;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
@@ -25,14 +24,13 @@ import java.time.Clock;
 public class PagoUseCaseConfig {
 
     @Bean
-    public ConsultarRenovacion consultarRenovacion(NegocioRepository negocioRepository,
+    public ConsultarRenovacion consultarRenovacion(
             RenovacionPremiumService renovacionPremiumService, PasarelaSuscripcionesPort pasarelaSuscripcionesPort) {
-        return new ConsultarRenovacion(negocioRepository, renovacionPremiumService, pasarelaSuscripcionesPort);
+        return new ConsultarRenovacion(renovacionPremiumService, pasarelaSuscripcionesPort);
     }
 
     @Bean
     public ContratarPremium contratarPremium(
-            NegocioRepository negocioRepository,
             UsuarioRepository usuarioRepository,
             RenovacionPremiumService renovacionPremiumService,
             PasarelaSuscripcionesPort pasarelaSuscripcionesPort,
@@ -42,28 +40,27 @@ public class PagoUseCaseConfig {
             UsoPlanRepository usoPlanRepository,
             TransaccionPort transaccionPort,
             Clock clock) {
-        return new ContratarPremium(negocioRepository, usuarioRepository, renovacionPremiumService,
+        return new ContratarPremium(usuarioRepository, renovacionPremiumService,
                 pasarelaSuscripcionesPort, suscripcionRepository, planRepository, renovacionPremiumRepository,
                 usoPlanRepository, transaccionPort, clock);
     }
 
     @Bean
     public CancelarRenovacion cancelarRenovacion(
-            NegocioRepository negocioRepository,
             RenovacionPremiumService renovacionPremiumService,
             PasarelaSuscripcionesPort pasarelaSuscripcionesPort,
             RenovacionPremiumRepository renovacionPremiumRepository,
             UsoPlanRepository usoPlanRepository,
             TransaccionPort transaccionPort,
             Clock clock) {
-        return new CancelarRenovacion(negocioRepository, renovacionPremiumService, pasarelaSuscripcionesPort,
+        return new CancelarRenovacion(renovacionPremiumService, pasarelaSuscripcionesPort,
                 renovacionPremiumRepository, usoPlanRepository, transaccionPort, clock);
     }
 
     @Bean
-    public ActualizarRenovacion actualizarRenovacion(NegocioRepository negocioRepository,
+    public ActualizarRenovacion actualizarRenovacion(
             RenovacionPremiumService renovacionPremiumService, Clock clock) {
-        return new ActualizarRenovacion(negocioRepository, renovacionPremiumService, clock);
+        return new ActualizarRenovacion(renovacionPremiumService, clock);
     }
 
     @Bean

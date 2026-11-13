@@ -14,7 +14,7 @@ export const planSchema = z.object({
     .string()
     .regex(/^[A-Z]{3}$/)
     .nullable(),
-  limiteProyectos: cantidad.nullable(),
+  limiteNegocios: cantidad.nullable(),
   limiteRegistros: cantidad.nullable(),
   limitePaginasIaMensuales: cantidad.nullable(),
   funciones: z.array(z.string()),
@@ -38,7 +38,7 @@ export const planesSchema = z.object({
     finEn: fecha.nullable(),
   }),
   uso: z.object({
-    proyectos: cantidad,
+    negocios: cantidad,
     registros: cantidad,
     paginasIa: cantidad,
     limitePaginasIa: cantidad.nullable(),

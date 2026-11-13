@@ -34,7 +34,7 @@ export const handlersPlanes = [
           timestamp: new Date().toISOString(),
           status: 403,
           error: 'Forbidden',
-          message: 'Este negocio ya utilizó su prueba premium.',
+          message: 'Esta cuenta ya utilizó su prueba premium.',
           path: pathDe(request),
           traceId: crypto.randomUUID(),
           codigo: 'PRUEBA_UTILIZADA',

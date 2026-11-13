@@ -27,7 +27,7 @@ public final class ConsultaPlanesTestData {
         premium.setConfigurado(false);
         premium.setPrecioMensual(null);
         premium.setMoneda(null);
-        premium.setLimiteProyectos(null);
+        premium.setLimiteNegocios(6);
         premium.setLimiteRegistros(null);
         premium.setLimitePaginasIaMensuales(100);
         premium.setFunciones(List.of("RECETAS_COSTOS", "REPORTES_FILTRADOS", "EXPORTAR_EXCEL"));
@@ -35,7 +35,7 @@ public final class ConsultaPlanesTestData {
     }
 
     public static PruebaPremium prueba() {
-        return new PruebaPremium(PlanTestData.NEGOCIO_ID, AHORA.minusDays(3), AHORA.plusDays(4), 8);
+        return new PruebaPremium(PlanTestData.USUARIO_ID, AHORA.minusDays(3), AHORA.plusDays(4), 8);
     }
 
     public static ConsultaPlanes consulta(boolean conPrueba) {

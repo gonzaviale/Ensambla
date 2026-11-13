@@ -47,6 +47,11 @@ public class NegocioRepositoryImpl implements NegocioRepository {
     }
 
     @Override
+    public Optional<UsuarioId> findDuenioIdById(NegocioId negocioId) {
+        return negocioJpaRepository.findDuenioIdById(negocioId.valor()).map(UsuarioId::de);
+    }
+
+    @Override
     public Optional<String> findEmailDuenioById(NegocioId negocioId) {
         return negocioJpaRepository.findEmailDuenioById(negocioId.valor());
     }

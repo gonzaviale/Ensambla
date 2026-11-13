@@ -22,6 +22,9 @@ public interface INegocioJpaRepository extends JpaRepository<NegocioEntity, UUID
 
     long countByZonaIdAndComparteDatosZonaTrue(UUID zonaId);
 
+    @Query("select n.duenioId from NegocioEntity n where n.id = :negocioId")
+    Optional<UUID> findDuenioIdById(@Param("negocioId") UUID negocioId);
+
     @Query("select u.email from UsuarioEntity u where u.id = (select n.duenioId from NegocioEntity n where n.id = :negocioId)")
     Optional<String> findEmailDuenioById(@Param("negocioId") UUID negocioId);
 

@@ -185,16 +185,14 @@ class CuposContenidoPostgresIntegrationTest extends PostgresRepositoryTestSuppor
     }
 
     @Test
-    @DisplayName("El guardado completo bloquea el segundo sistema y permite editar el primero")
-    void guardarShouldEnforceFreeSystemLimit() {
+    @DisplayName("El guardado completo admite varios sistemas en el gratuito y permite editar el primero")
+    void guardarShouldAllowSeveralSystemsAndEditing() {
         guardar(givenSistema("primero", "Sistema local", 0));
-
-        assertThatThrownBy(() -> guardar(givenSistema("segundo", "Sistema local", 0)))
-                .isInstanceOf(RestriccionPlanException.class).extracting("codigo").isEqualTo("LIMITE_SISTEMAS");
+        guardar(givenSistema("segundo", "Sistema local", 0));
 
         guardar(givenSistema("primero", "Nombre corregido", 0));
-        assertThat(listarSistemas.execute(new ListarSistemasRequest(UsuarioId.de(usuario)))).singleElement()
-                .satisfies(sistema -> assertThat(sistema.name()).isEqualTo("Nombre corregido"));
+        assertThat(listarSistemas.execute(new ListarSistemasRequest(UsuarioId.de(usuario))))
+                .extracting(sistema -> sistema.name()).containsExactlyInAnyOrder("Nombre corregido", "Sistema local");
         assertThat(uso.contarRegistrosProyecto(NegocioId.de(negocio), IdSistema.aId(NegocioId.de(negocio), "primero",
                 ProyectoId::de))).isZero();
     }

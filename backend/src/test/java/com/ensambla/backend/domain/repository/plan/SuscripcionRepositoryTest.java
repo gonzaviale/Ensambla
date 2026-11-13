@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
-import static com.ensambla.backend.support.PlanTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.PlanTestData.USUARIO_ID;
 import static com.ensambla.backend.support.PlanTestData.suscripcion;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -20,22 +20,22 @@ class SuscripcionRepositoryTest {
     private final SuscripcionRepository suscripcionRepository = mock(SuscripcionRepository.class, CALLS_REAL_METHODS);
 
     @Test
-    @DisplayName("Obtiene la suscripción solamente por el negocio recibido del servidor")
-    void obtenerShouldReturnSubscriptionOfNegocio() {
+    @DisplayName("Obtiene la suscripción solamente por la cuenta recibida del servidor")
+    void obtenerShouldReturnSubscriptionOfCuenta() {
         Suscripcion esperada = suscripcion();
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(esperada));
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(esperada));
 
-        Suscripcion result = suscripcionRepository.obtener(NEGOCIO_ID);
+        Suscripcion result = suscripcionRepository.obtener(USUARIO_ID);
 
         assertThat(result).isSameAs(esperada);
     }
 
     @Test
-    @DisplayName("Responde recurso inexistente cuando el negocio no tiene suscripción")
+    @DisplayName("Responde recurso inexistente cuando la cuenta no tiene suscripción")
     void obtenerShouldRejectMissingSubscription() {
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.empty());
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> suscripcionRepository.obtener(NEGOCIO_ID))
+        assertThatThrownBy(() -> suscripcionRepository.obtener(USUARIO_ID))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Suscripción no encontrada");
     }

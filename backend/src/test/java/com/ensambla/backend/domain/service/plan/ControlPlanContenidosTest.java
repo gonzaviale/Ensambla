@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.Plan;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.AccesoContenidoRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
@@ -39,6 +40,7 @@ import static org.mockito.Mockito.when;
 class ControlPlanContenidosTest {
 
     private static final NegocioId NEGOCIO = NegocioId.nuevo();
+    private static final UsuarioId USUARIO = UsuarioId.nuevo();
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-11-01T03:05:00Z");
     private static final LocalDate PERIODO = LocalDate.of(2026, 11, 1);
 
@@ -46,9 +48,9 @@ class ControlPlanContenidosTest {
     private final SuscripcionRepository suscripciones = mock(SuscripcionRepository.class);
     private final UsoPlanRepository uso = mock(UsoPlanRepository.class);
     private final AccesoContenidoRepository acceso = mock(AccesoContenidoRepository.class);
+    private final NegocioRepository negocios = mock(NegocioRepository.class);
     private final ControlPlanService servicio = new ControlPlanService(planes, suscripciones, uso, acceso,
-            mock(PruebaPremiumRepository.class), new TransaccionDirecta(), mock(NegocioRepository.class),
-            AccesoIa.LIBRE);
+            mock(PruebaPremiumRepository.class), new TransaccionDirecta(), negocios, AccesoIa.LIBRE);
 
     @Test
     @DisplayName("Gratuito admite seis claves distintas y conserva el orden sin cobrar duplicados")
@@ -123,14 +125,15 @@ class ControlPlanContenidosTest {
     }
 
     // --- arrange ---
-    /** El negocio tiene una suscripción vigente al plan con ese código. */
+    /** La cuenta dueña del negocio tiene una suscripción vigente al plan con ese código. */
     private void givenPlan(CodigoPlan codigo) {
         Plan plan = PlanTestData.plan();
         plan.setCodigo(codigo);
         Suscripcion suscripcion = PlanTestData.suscripcion();
         suscripcion.setInicioEn(AHORA.minusDays(1));
         suscripcion.setFinEn(AHORA.plusMonths(1));
-        when(suscripciones.findByNegocioId(NEGOCIO)).thenReturn(Optional.of(suscripcion));
+        when(negocios.obtenerDuenioId(NEGOCIO)).thenReturn(USUARIO);
+        when(suscripciones.findByUsuarioId(USUARIO)).thenReturn(Optional.of(suscripcion));
         when(planes.findById(suscripcion.getPlanId())).thenReturn(Optional.of(plan));
     }
 }

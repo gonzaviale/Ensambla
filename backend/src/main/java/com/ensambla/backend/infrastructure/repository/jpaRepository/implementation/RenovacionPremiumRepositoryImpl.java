@@ -1,8 +1,8 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
-import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IRenovacionPremiumJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.RenovacionPremiumRepositoryMapper;
@@ -32,8 +32,8 @@ public class RenovacionPremiumRepositoryImpl implements RenovacionPremiumReposit
     }
 
     @Override
-    public Optional<NegocioId> findNegocioIdById(RenovacionId id) {
-        return renovacionPremiumJpaRepository.findNegocioIdById(id.valor()).map(NegocioId::de);
+    public Optional<UsuarioId> findUsuarioIdById(RenovacionId id) {
+        return renovacionPremiumJpaRepository.findUsuarioIdById(id.valor()).map(UsuarioId::de);
     }
 
     @Override
@@ -43,8 +43,8 @@ public class RenovacionPremiumRepositoryImpl implements RenovacionPremiumReposit
     }
 
     @Override
-    public Optional<RenovacionPremium> findUltimaByNegocioId(NegocioId negocioId) {
-        return renovacionPremiumJpaRepository.findActualByNegocioId(negocioId.valor())
+    public Optional<RenovacionPremium> findUltimaByUsuarioId(UsuarioId usuarioId) {
+        return renovacionPremiumJpaRepository.findActualByUsuarioId(usuarioId.valor())
                 .map(renovacionPremiumRepositoryMapper::toDomain);
     }
 
@@ -54,7 +54,7 @@ public class RenovacionPremiumRepositoryImpl implements RenovacionPremiumReposit
     }
 
     @Override
-    public boolean existeAbierta(NegocioId negocioId) {
-        return renovacionPremiumJpaRepository.existsByNegocioIdAndEstadoNot(negocioId.valor(), "CANCELADA");
+    public boolean existeAbierta(UsuarioId usuarioId) {
+        return renovacionPremiumJpaRepository.existsByUsuarioIdAndEstadoNot(usuarioId.valor(), "CANCELADA");
     }
 }

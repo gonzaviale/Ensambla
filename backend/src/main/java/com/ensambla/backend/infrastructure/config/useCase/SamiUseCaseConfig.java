@@ -29,12 +29,10 @@ public class SamiUseCaseConfig {
             NegocioRepository negocioRepository,
             PlantillaRepository plantillaRepository,
             ProyectoRepository proyectoRepository,
-            ControlPlanService controlPlanService,
             TransaccionPort transaccionPort,
             Clock clock) {
         return new CrearProyectoDesdeSami(
-                negocioRepository, plantillaRepository, proyectoRepository, controlPlanService, transaccionPort,
-                clock);
+                negocioRepository, plantillaRepository, proyectoRepository, transaccionPort, clock);
     }
 
     @Bean

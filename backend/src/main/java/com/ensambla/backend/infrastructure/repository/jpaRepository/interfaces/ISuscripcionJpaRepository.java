@@ -8,6 +8,6 @@ import java.util.UUID;
 
 public interface ISuscripcionJpaRepository extends JpaRepository<SuscripcionEntity, UUID> {
 
-    /** Toda consulta de la suscripción actual se restringe al negocio resuelto desde la sesión. */
-    Optional<SuscripcionEntity> findByNegocioId(UUID negocioId);
+    /** La suscripción es de la cuenta de la sesión: nunca se pide por un id que venga del cliente. */
+    Optional<SuscripcionEntity> findByUsuarioId(UUID usuarioId);
 }

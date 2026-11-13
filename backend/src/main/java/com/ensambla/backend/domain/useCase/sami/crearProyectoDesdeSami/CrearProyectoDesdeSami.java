@@ -7,7 +7,6 @@ import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
-import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.proyecto.ProyectoItem;
 import lombok.RequiredArgsConstructor;
 
@@ -22,8 +21,6 @@ public class CrearProyectoDesdeSami {
     private final PlantillaRepository plantillaRepository;
 
     private final ProyectoRepository proyectoRepository;
-
-    private final ControlPlanService controlPlanService;
 
     private final TransaccionPort transaccionPort;
 
@@ -43,7 +40,6 @@ public class CrearProyectoDesdeSami {
      */
     private Proyecto crear(NegocioId negocioId, PlantillaProyecto plantilla, CrearProyectoDesdeSamiRequest request,
                            OffsetDateTime ahora) {
-        controlPlanService.validarAltaProyecto(negocioId, ahora);
         Proyecto proyecto = Proyecto.desdePlantilla(negocioId, plantilla, ahora);
         proyecto.agregarColumnas(request.columnasExtra(), ahora);
         if (request.nombre() != null && !request.nombre().isBlank()) {

@@ -4,7 +4,6 @@ import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
-import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.proyecto.crearProyecto.CrearProyecto;
 import com.ensambla.backend.domain.useCase.proyecto.crearProyectoDesdePlantilla.CrearProyectoDesdePlantilla;
 import com.ensambla.backend.domain.useCase.proyecto.eliminarProyecto.EliminarProyecto;
@@ -41,13 +40,11 @@ public class ProyectoUseCaseConfig {
     public CrearProyecto crearProyecto(
             NegocioRepository negocioRepository,
             ProyectoRepository proyectoRepository,
-            ControlPlanService controlPlanService,
             TransaccionPort transaccionPort,
             Clock clock) {
         return new CrearProyecto(
                 negocioRepository,
                 proyectoRepository,
-                controlPlanService,
                 transaccionPort,
                 clock);
     }
@@ -70,14 +67,12 @@ public class ProyectoUseCaseConfig {
             NegocioRepository negocioRepository,
             PlantillaRepository plantillaRepository,
             ProyectoRepository proyectoRepository,
-            ControlPlanService controlPlanService,
             TransaccionPort transaccionPort,
             Clock clock) {
         return new CrearProyectoDesdePlantilla(
                 negocioRepository,
                 plantillaRepository,
                 proyectoRepository,
-                controlPlanService,
                 transaccionPort,
                 clock);
     }

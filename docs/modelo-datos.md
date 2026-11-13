@@ -8,7 +8,7 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V15__renovaciones_y_pagos_premium.sql`,
 `V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
 `V24__objetivo.sql`, `V29__mini_objetivo.sql`, `V30__progreso_objetivo.sql`, `V31__decision_objetivo.sql`,
-`V32__resumen_semanal_objetivo.sql`).
+`V32__resumen_semanal_objetivo.sql`, `V34__plan_por_cuenta.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -94,9 +94,40 @@ Detalles y contrato con subida: [lectura-cuaderno-ia.md](lectura-cuaderno-ia.md)
 - No se cambian V1–V12, las cuotas no borran datos y el proveedor se llama fuera del bloqueo.
   Contratos, errores 403, pruebas y límites del alcance: [plan-ENS-95.md](plan-ENS-95.md).
 
+## Plan por cuenta y límite de negocios (V34 · H-55 / T-198)
+
+El plan es de la **cuenta** (`usuario`), no del negocio: vale para todos los negocios que tenga y fija cuántos puede
+tener. El contrato de API con el que se eligen, crean y eliminan los negocios está en
+[negocios-de-la-cuenta.md](negocios-de-la-cuenta.md).
+
+- `suscripcion`, `prueba_premium`, `renovacion_premium` y `pago_premium` pasan de `negocio_id` a `usuario_id`
+  (FK a `usuario` con cascada: borrar un negocio **no** borra el plan; borrar la cuenta sí). `suscripcion` sigue
+  siendo única (`ux_suscripcion_usuario`); la prueba Premium es una por cuenta; la FK compuesta de los pagos pasa a
+  `(usuario_id, renovacion_id)`; y un solo contrato de renovación abierto por cuenta (`ux_renovacion_abierta`).
+- Las cuentas actuales **heredan el plan de su negocio actual** (el más antiguo, que es el que la aplicación siempre
+  usó): se conservan estado, fechas, pruebas, renovaciones y pagos. Una cuenta con negocio y sin suscripción arranca
+  en Gratuito. Una cuenta con más de un negocio nunca se pudo crear desde la aplicación; si existiera, la suscripción y
+  la prueba de los demás negocios se descartan (son derivadas), pero **si tienen renovaciones o pagos la migración se
+  detiene** con un mensaje antes de perder cualquier dato de dinero.
+- `plan.limite_proyectos` pasa a `plan.limite_negocios`: **Gratuito 1; Premium 6** (el propio y 5 adicionales). Con
+  `limites_configurados` el límite es obligatorio (`ck_plan_limites_negocios`). Ya no hay tope de secciones
+  («cuadernos») por plan: lo que limita el plan es la cantidad de negocios, y los registros por negocio siguen en
+  `limite_registros`. `GET /api/planes` expone `limiteNegocios` y `uso.negocios`; el alta de negocios valida con
+  `ControlPlanService.validarAltaNegocio` (403 `LIMITE_NEGOCIOS`).
+- **Consumos (decisión de T-198).** El cupo mensual de páginas de IA es del plan, así que se **cuenta por cuenta**:
+  suma `consumo_ia_diario` de todos sus negocios (`UsoPlanRepository.paginasEnPeriodo(usuario, …)`); si no, una cuenta
+  Premium con seis negocios tendría seis veces el cupo. Quedan **por negocio**, sin cambios: los cupos de contenido
+  (`contenido_plan_desbloqueado`: sólo aplican al Gratuito, que tiene un único negocio, así que por negocio y por
+  cuenta dan lo mismo), la cantidad de registros (`limite_registros`: ídem), y los topes **diarios** de fotos
+  (`consumo_ia_diario`) y de consultas a Sami (`consumo_sami_diario`), que son frenos de uso del negocio que se está
+  usando. La prueba Premium (diez análisis en total) es una por cuenta.
+- Las operaciones sobre el plan se serializan bloqueando la **fila de la cuenta** (`UsoPlanRepository.bloquearCuenta`;
+  `bloquearNegocio` bloquea la cuenta dueña del negocio), de modo que dos negocios de la misma cuenta no pisan un cambio
+  de plan, el consumo de la prueba o el cupo mensual.
+
 ## Prueba premium (V14 · ENS-96 / T-068)
 
-- `prueba_premium`: una fila por negocio, PK/FK `negocio_id` con cascada, `inicio_en`, `fin_en`
+- `prueba_premium`: una fila por cuenta (hasta V33 por negocio; ver V34), PK/FK `usuario_id` con cascada, `inicio_en`, `fin_en`
   y `paginas_ia`. El período original es inmutable desde la aplicación; su inicio también representa
   la creación del historial. Se conserva al vencer o convertir la suscripción a premium pago.
 - Las restricciones exigen 168 horas y contador entre cero y diez. La suscripción `PRUEBA` también
@@ -122,11 +153,11 @@ Detalles y contrato con subida: [lectura-cuaderno-ia.md](lectura-cuaderno-ia.md)
 - `renovacion_premium` identifica cada contratación con un UUID enviado como referencia externa.
   Guarda negocio, identificador y enlace del proveedor, estado, importe/moneda contratados, primer
   cobro, próxima fecha informada, intención de cancelación y tiempos de sincronización.
-  Un índice parcial admite un solo contrato no cancelado por negocio. La creación se guarda antes
+  Un índice parcial admite un solo contrato no cancelado por cuenta (hasta V33, por negocio). La creación se guarda antes
   de llamar a Mercado Pago; una respuesta perdida se busca por referencia sin repetir la creación.
   Los contratos cancelados conservan su historia y pueden conciliar pagos o reembolsos posteriores.
 - `pago_premium` usa la factura del proveedor como clave y el pago como identificador único.
-  La FK compuesta `(negocio_id, renovacion_id)` evita relacionar pagos con contratos de otro negocio.
+  La FK compuesta `(usuario_id, renovacion_id)` evita relacionar pagos con contratos de otra cuenta.
   Cada factura conserva su intervalo de 720 horas desde el débito; el orden de los webhooks no
   modifica ese intervalo. Su estado conserva el valor externo del proveedor (`approved`, `refunded`,
   etc.); sólo `approved` puede conceder acceso. No se guardan tarjetas ni datos del medio de pago.
@@ -416,7 +447,7 @@ foránea es **compuesta**: `(negocio_id, bloque_id) → bloque (negocio_id, id)`
 erDiagram
     usuario ||--o{ negocio : "es dueño de"
     negocio ||--o{ proyecto : tiene
-    negocio ||--o| suscripcion : tiene
+    usuario ||--o| suscripcion : tiene
     plan ||--o{ suscripcion : asignado
     zona ||--o{ negocio : agrupa
     zona ||--o{ agregado_zona_producto : resume
@@ -471,14 +502,14 @@ erDiagram
         boolean limites_configurados "capacidades aprobadas, independiente del precio"
         numeric precio_mensual
         text moneda
-        int limite_proyectos
+        int limite_negocios "Gratuito 1 · Premium 6"
         bigint limite_registros
         int limite_paginas_ia_mensuales
         jsonb funciones
     }
     suscripcion {
         uuid id PK
-        uuid negocio_id FK,UK
+        uuid usuario_id FK,UK
         uuid plan_id FK
         text estado "ACTIVA | PRUEBA | VENCIDA | CANCELADA"
         timestamptz inicio_en
@@ -647,7 +678,7 @@ protecciones de cookie existentes. Cambiar de nombre requiere iniciar sesión nu
 | `usuario` | Cuenta de acceso | `email` único y normalizado por `CHECK`. MVP 2: un único dueño por negocio. |
 | `negocio` | Espacio de trabajo y límite de aislamiento | Se crea junto con el usuario en el registro (T-005). `duenio_id` `RESTRICT`. Miembros y roles (dueño / editor / operador) llegan en MVP 4 (T-060) con una tabla nueva. |
 | `plan` | Catálogo global de planes (ENS-94 / T-066) | Código único, precio, moneda, límites y funciones; condiciones comerciales iniciales pendientes (`configurado=false`). |
-| `suscripcion` | Plan actual de un negocio (ENS-94 / T-066) | Única por negocio, con período y estado. V12 y el registro asignan el gratuito activo. Prueba, control y pagos se agregan en las subtareas siguientes. |
+| `suscripcion` | Plan actual de la cuenta (ENS-94 / T-066; V34 la pasa del negocio al usuario) | Única por cuenta, con período y estado. V12 y el registro asignan el gratuito activo. Prueba, control y pagos también son de la cuenta (ver «Plan por cuenta y límite de negocios»). |
 | `plantilla` | Estructuras listas para copiar (T-013) | Global: sin `negocio_id`. `estructura` = `{ "bloques": [ { "nombre", "campos": [ { "nombre", "tipo", "obligatorio", "valorInicial", "opciones" } ] } ] }`. Crear un proyecto desde una plantilla **copia** la estructura; editar el proyecto no toca la plantilla (T-014). |
 | `proyecto` | Un sistema armado por el usuario | `plantilla_id` guarda el origen y pasa a `NULL` si la plantilla se borra. Borrar un proyecto borra en cascada bloques, campos y registros (T-012). |
 | `bloque` | Una "pieza": Productos, Clientes, Pedidos… | Nombre único por proyecto; `posicion` ordena la lista del constructor. |

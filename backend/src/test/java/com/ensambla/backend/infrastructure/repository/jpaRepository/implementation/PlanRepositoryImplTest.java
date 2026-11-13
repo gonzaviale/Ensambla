@@ -53,7 +53,7 @@ class PlanRepositoryImplTest {
         assertThat(result.getLimitesConfigurados()).isEqualTo(esperado.getLimitesConfigurados());
         assertThat(result.getPrecioMensual()).isEqualTo(esperado.getPrecioMensual());
         assertThat(result.getMoneda()).isEqualTo(esperado.getMoneda());
-        assertThat(result.getLimiteProyectos()).isEqualTo(esperado.getLimiteProyectos());
+        assertThat(result.getLimiteNegocios()).isEqualTo(esperado.getLimiteNegocios());
         assertThat(result.getLimiteRegistros()).isEqualTo(esperado.getLimiteRegistros());
         assertThat(result.getLimitePaginasIaMensuales()).isEqualTo(esperado.getLimitePaginasIaMensuales());
         assertThat(result.getFunciones()).isEqualTo(esperado.getFunciones());

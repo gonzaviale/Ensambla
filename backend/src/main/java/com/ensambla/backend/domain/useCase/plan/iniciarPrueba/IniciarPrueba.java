@@ -1,14 +1,13 @@
 package com.ensambla.backend.domain.useCase.plan.iniciarPrueba;
 
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
-import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Plan;
 import com.ensambla.backend.domain.model.plan.PruebaPremium;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
-import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.PruebaPremiumRepository;
@@ -22,8 +21,6 @@ import java.time.OffsetDateTime;
 
 @RequiredArgsConstructor
 public class IniciarPrueba {
-
-    private final NegocioRepository negocioRepository;
 
     private final PlanRepository planRepository;
 
@@ -40,30 +37,30 @@ public class IniciarPrueba {
     private final Clock clock;
 
     public PruebaPremiumResponse execute(IniciarPruebaRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
         OffsetDateTime ahora = OffsetDateTime.now(clock);
-        return PruebaPremiumResponse.de(transaccionPort.ejecutar(() -> iniciar(negocioId, ahora)));
+        return PruebaPremiumResponse.de(transaccionPort.ejecutar(() -> iniciar(request.usuarioId(), ahora)));
     }
 
-    private PruebaPremium iniciar(NegocioId negocioId, OffsetDateTime ahora) {
-        usoPlanRepository.bloquearNegocio(negocioId);
-        Suscripcion suscripcion = suscripcionRepository.obtener(negocioId);
-        validarSinPruebaNiContratacion(negocioId);
+    /** La prueba es de la cuenta: una sola, sin importar cuántos negocios tenga. */
+    private PruebaPremium iniciar(UsuarioId usuarioId, OffsetDateTime ahora) {
+        usoPlanRepository.bloquearCuenta(usuarioId);
+        Suscripcion suscripcion = suscripcionRepository.obtener(usuarioId);
+        validarSinPruebaNiContratacion(usuarioId);
         Plan premium = planRepository.obtener(CodigoPlan.PREMIUM);
         premium.validarLimitesConfigurados();
         if (suscripcion.estaVigente(ahora) && premium.getId().equals(suscripcion.getPlanId())) {
-            throw new RestriccionPlanException("PREMIUM_ACTIVO", "Tu negocio ya tiene premium activo.");
+            throw new RestriccionPlanException("PREMIUM_ACTIVO", "Tu cuenta ya tiene premium activo.");
         }
-        PruebaPremium prueba = pruebaPremiumRepository.save(PruebaPremium.nueva(negocioId, ahora));
+        PruebaPremium prueba = pruebaPremiumRepository.save(PruebaPremium.nueva(usuarioId, ahora));
         pasarAPrueba(suscripcion, premium, prueba, ahora);
         return prueba;
     }
 
-    private void validarSinPruebaNiContratacion(NegocioId negocioId) {
-        if (pruebaPremiumRepository.findByNegocioId(negocioId).isPresent()) {
-            throw new RestriccionPlanException("PRUEBA_UTILIZADA", "Este negocio ya utilizó su prueba premium.");
+    private void validarSinPruebaNiContratacion(UsuarioId usuarioId) {
+        if (pruebaPremiumRepository.findByUsuarioId(usuarioId).isPresent()) {
+            throw new RestriccionPlanException("PRUEBA_UTILIZADA", "Esta cuenta ya utilizó su prueba premium.");
         }
-        if (renovacionPremiumRepository.existeAbierta(negocioId)) {
+        if (renovacionPremiumRepository.existeAbierta(usuarioId)) {
             throw new RestriccionPlanException("RENOVACION_EN_CURSO",
                     "Tenés una contratación en curso. Cancelala antes de iniciar una prueba.");
         }

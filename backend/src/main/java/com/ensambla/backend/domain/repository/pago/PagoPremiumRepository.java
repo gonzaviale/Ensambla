@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.repository.pago;
 
-import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pago.PagoPremium;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -12,7 +12,7 @@ public interface PagoPremiumRepository {
 
     Optional<PagoPremium> findByFacturaId(String facturaId);
 
-    Optional<PagoPremium> findVigente(NegocioId negocioId, OffsetDateTime ahora);
+    Optional<PagoPremium> findVigente(UsuarioId usuarioId, OffsetDateTime ahora);
 
-    boolean existeByNegocioId(NegocioId negocioId);
+    boolean existeByUsuarioId(UsuarioId usuarioId);
 }

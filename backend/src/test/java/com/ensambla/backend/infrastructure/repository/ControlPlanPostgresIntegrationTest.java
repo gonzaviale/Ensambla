@@ -20,6 +20,7 @@ import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.repository.procesamiento.ProcesamientoRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
+import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.registro.RegistroDatosService;
 import com.ensambla.backend.domain.useCase.registro.crearRegistro.CrearRegistro;
@@ -78,6 +79,9 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     private ControlPlanService controlPlanService;
 
     @Autowired
+    private TransaccionPort transaccionPort;
+
+    @Autowired
     private LecturasInmediatasDePrueba consumoIaInmediatoService;
 
     @Autowired
@@ -91,6 +95,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     private UUID usuarioId;
     private UUID negocioId;
+    private final List<UUID> otrasCuentas = new java.util.ArrayList<>();
 
     @BeforeEach
     void setUp() {
@@ -105,18 +110,78 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     @AfterEach
     void tearDown() {
-        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocioId);
+        for (UUID cuenta : otrasCuentas) {
+            jdbcTemplate.update("DELETE FROM negocio WHERE duenio_id = ?", cuenta);
+            jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", cuenta);
+        }
+        otrasCuentas.clear();
+        jdbcTemplate.update("DELETE FROM negocio WHERE duenio_id = ?", usuarioId);
         jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", usuarioId);
     }
 
     @Test
-    @DisplayName("Dos altas simultáneas de sistemas gratuitos permiten exactamente una")
-    void crearProyectoShouldSerializeConcurrentCreates() throws Exception {
-        List<Boolean> result = concurrently(
-                () -> crearProyecto("Primero"), () -> crearProyecto("Segundo"));
+    @DisplayName("Dos altas simultáneas de negocios con un solo lugar libre en el plan permiten exactamente una")
+    void validarAltaNegocioShouldSerializeConcurrentCreates() throws Exception {
+        givenPremium(AHORA.plusMonths(1));
+        givenNegociosAdicionales(4);
+
+        List<Boolean> result = concurrently(() -> crearNegocio("Sexto"), () -> crearNegocio("Séptimo"));
 
         assertThat(result).containsExactlyInAnyOrder(true, false);
-        assertThat(usoPlanRepository.contarProyectos(NegocioId.de(negocioId))).isEqualTo(1);
+        assertThat(usoPlanRepository.contarNegocios(UsuarioId.de(usuarioId))).isEqualTo(6);
+    }
+
+    @Test
+    @DisplayName("El gratuito ya usa su único negocio y Premium permite hasta seis en total")
+    void validarAltaNegocioShouldApplyTheLimitOfThePlanOfTheAccount() {
+        assertThatThrownBy(() -> controlPlanService.validarAltaNegocio(UsuarioId.de(usuarioId), AHORA))
+                .isInstanceOf(RestriccionPlanException.class)
+                .hasMessage("Tu plan permite hasta 1 negocio. Pasate a Premium para sumar más.");
+
+        givenPremium(AHORA.plusMonths(1));
+        givenNegociosAdicionales(4);
+
+        assertThatCode(() -> controlPlanService.validarAltaNegocio(UsuarioId.de(usuarioId), AHORA))
+                .doesNotThrowAnyException();
+        givenNegociosAdicionales(1);
+        assertThatThrownBy(() -> controlPlanService.validarAltaNegocio(UsuarioId.de(usuarioId), AHORA))
+                .isInstanceOf(RestriccionPlanException.class).hasMessage("Tu plan permite hasta 6 negocios.");
+    }
+
+    @Test
+    @DisplayName("Los negocios de una cuenta comparten su plan: el segundo ve el Premium de la cuenta")
+    void validarFuncionShouldUseThePlanOfTheAccountForEveryNegocio() {
+        givenPremium(AHORA.plusMonths(1));
+        UUID segundo = givenNegociosAdicionales(1).getFirst();
+
+        for (FuncionPlan funcion : FuncionPlan.values()) {
+            assertThatCode(() -> controlPlanService.validarFuncion(NegocioId.de(segundo), funcion, AHORA))
+                    .doesNotThrowAnyException();
+        }
+    }
+
+    @Test
+    @DisplayName("El cupo mensual de IA suma las páginas de todos los negocios de la cuenta y no las de otras cuentas")
+    void paginasEnPeriodoShouldAddUpEveryNegocioOfTheAccountOnly() {
+        UUID segundo = givenNegociosAdicionales(1).getFirst();
+        givenConsumo(LocalDate.parse("2026-10-18"), 4, 1);
+        givenConsumoDe(segundo, LocalDate.parse("2026-10-19"), 3, 0);
+        UUID ajeno = givenOtraCuentaConNegocio();
+        givenConsumoDe(ajeno, LocalDate.parse("2026-10-19"), 9, 0);
+
+        long total = usoPlanRepository.paginasEnPeriodo(UsuarioId.de(usuarioId),
+                LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"));
+
+        assertThat(total).isEqualTo(8);
+    }
+
+    @Test
+    @DisplayName("Una cuenta o un negocio inexistentes no se pueden bloquear")
+    void bloquearShouldRejectMissingAccountOrNegocio() {
+        assertThatThrownBy(() -> usoPlanRepository.bloquearCuenta(UsuarioId.nuevo()))
+                .isInstanceOf(ResourceNotFoundException.class).hasMessage("Cuenta no encontrada");
+        assertThatThrownBy(() -> usoPlanRepository.bloquearNegocio(NegocioId.nuevo()))
+                .isInstanceOf(ResourceNotFoundException.class).hasMessage("Negocio no encontrado");
     }
 
     @Test
@@ -175,7 +240,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                 this::registrarPaginaInmediata);
 
         assertThat(result).containsExactlyInAnyOrder(true, false);
-        long total = usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
+        long total = usoPlanRepository.paginasEnPeriodo(UsuarioId.de(usuarioId),
                 LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"));
         assertThat(total).isBetween(9L, 10L);
     }
@@ -188,7 +253,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         List<Boolean> result = concurrently(this::registrarPaginaInmediata, this::registrarPaginaInmediata);
 
         assertThat(result).containsExactlyInAnyOrder(true, false);
-        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
+        assertThat(usoPlanRepository.paginasEnPeriodo(UsuarioId.de(usuarioId),
                 LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isEqualTo(10);
     }
 
@@ -199,7 +264,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
         assertThatThrownBy(this::registrarPaginaInmediata).isInstanceOf(RestriccionPlanException.class);
 
-        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
+        assertThat(usoPlanRepository.paginasEnPeriodo(UsuarioId.de(usuarioId),
                 LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isEqualTo(10);
     }
 
@@ -210,9 +275,9 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
         consumoIaInmediatoService.registrar(NegocioId.de(negocioId), OffsetDateTime.parse("2026-11-01T00:30:00-03:00"));
 
-        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
+        assertThat(usoPlanRepository.paginasEnPeriodo(UsuarioId.de(usuarioId),
                 LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isEqualTo(10);
-        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
+        assertThat(usoPlanRepository.paginasEnPeriodo(UsuarioId.de(usuarioId),
                 LocalDate.parse("2026-11-01"), LocalDate.parse("2026-12-01"))).isEqualTo(1);
     }
 
@@ -226,9 +291,9 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         procesamientoRepository.finalizar(lote, new ResultadoIntento(null, "Timeout", false),
                 null, octubre.plusMinutes(2), null);
 
-        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
+        assertThat(usoPlanRepository.paginasEnPeriodo(UsuarioId.de(usuarioId),
                 LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isEqualTo(2);
-        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
+        assertThat(usoPlanRepository.paginasEnPeriodo(UsuarioId.de(usuarioId),
                 LocalDate.parse("2026-11-01"), LocalDate.parse("2026-12-01"))).isZero();
     }
 
@@ -240,7 +305,7 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         boolean result = reservar(lote, 2, 1, AHORA);
 
         assertThat(result).isFalse();
-        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
+        assertThat(usoPlanRepository.paginasEnPeriodo(UsuarioId.de(usuarioId),
                 LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isZero();
     }
 
@@ -264,19 +329,19 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
                 .registrarPaginaInmediata(NegocioId.de(negocioId), AHORA.toLocalDate(), 0, AHORA);
 
         assertThat(result).isFalse();
-        assertThat(usoPlanRepository.paginasEnPeriodo(NegocioId.de(negocioId),
+        assertThat(usoPlanRepository.paginasEnPeriodo(UsuarioId.de(usuarioId),
                 LocalDate.parse("2026-10-01"), LocalDate.parse("2026-11-01"))).isZero();
     }
 
     @Test
-    @DisplayName("Premium permite más sistemas y habilita las tres funciones aprobadas")
-    void premiumShouldEnableFeaturesAndUnlimitedSystems() {
+    @DisplayName("Premium habilita las funciones aprobadas y el negocio puede tener varias secciones")
+    void premiumShouldEnableFeaturesAndAllowSeveralSystems() {
         givenPremium(AHORA.plusMonths(1));
 
         proyectosDePrueba.crear(NegocioId.de(negocioId), "Primero", null, AHORA);
         proyectosDePrueba.crear(NegocioId.de(negocioId), "Segundo", null, AHORA);
 
-        assertThat(usoPlanRepository.contarProyectos(NegocioId.de(negocioId))).isEqualTo(2);
+        assertThat(proyectoRepository.findAllByNegocioId(NegocioId.de(negocioId))).hasSize(2);
         for (FuncionPlan funcion : FuncionPlan.values()) {
             assertThatCode(() -> controlPlanService.validarFuncion(NegocioId.de(negocioId), funcion, AHORA))
                     .doesNotThrowAnyException();
@@ -298,10 +363,12 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     @Test
-    @DisplayName("Un negocio inexistente no puede bloquear ni consultar cuotas ajenas")
-    void validarAltaProyectoShouldRejectMissingNegocio() {
-        assertThatThrownBy(() -> controlPlanService.validarAltaProyecto(NegocioId.nuevo(), AHORA))
+    @DisplayName("Un negocio o una cuenta inexistentes no pueden bloquear ni consultar cuotas ajenas")
+    void validarAltaShouldRejectMissingNegocioOrCuenta() {
+        assertThatThrownBy(() -> controlPlanService.validarAltaRegistros(NegocioId.nuevo(), 1, AHORA))
                 .isInstanceOf(ResourceNotFoundException.class).hasMessage("Negocio no encontrado");
+        assertThatThrownBy(() -> controlPlanService.validarAltaNegocio(UsuarioId.nuevo(), AHORA))
+                .isInstanceOf(ResourceNotFoundException.class).hasMessage("Cuenta no encontrada");
 
         assertThat(planRepository.findById(PlanId.nuevo())).isEmpty();
     }
@@ -340,8 +407,37 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     private void givenPremium(OffsetDateTime fin) {
         jdbcTemplate.update("""
                 UPDATE suscripcion SET plan_id = (SELECT id FROM plan WHERE codigo = 'PREMIUM'),
-                    inicio_en = ?, fin_en = ? WHERE negocio_id = ?
-                """, AHORA.minusDays(1), fin, negocioId);
+                    inicio_en = ?, fin_en = ? WHERE usuario_id = ?
+                """, AHORA.minusDays(1), fin, usuarioId);
+    }
+
+    /** Suma negocios a la misma cuenta, como lo hará el alta de negocios de una cuenta Premium. */
+    private List<UUID> givenNegociosAdicionales(int cantidad) {
+        List<UUID> ids = new java.util.ArrayList<>();
+        for (int i = 0; i < cantidad; i++) {
+            UUID id = UUID.randomUUID();
+            jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Adicional', ?)",
+                    id, usuarioId);
+            ids.add(id);
+        }
+        return ids;
+    }
+
+    private UUID givenOtraCuentaConNegocio() {
+        UUID otraCuenta = UUID.randomUUID();
+        UUID otroNegocio = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Ajena')",
+                otraCuenta, otraCuenta + "@example.test");
+        jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Ajeno', ?)",
+                otroNegocio, otraCuenta);
+        otrasCuentas.add(otraCuenta);
+        return otroNegocio;
+    }
+
+    private void givenConsumoDe(UUID negocio, LocalDate dia, int paginas, int reservadas) {
+        jdbcTemplate.update("""
+                INSERT INTO consumo_ia_diario (negocio_id, fecha, paginas, reservadas) VALUES (?, ?, ?, ?)
+                """, negocio, dia, paginas, reservadas);
     }
 
     private LoteTrabajo givenLoteReclamado() {
@@ -355,8 +451,13 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     // --- act ---
-    private boolean crearProyecto(String nombre) {
-        proyectosDePrueba.crear(NegocioId.de(negocioId), nombre, null, AHORA);
+    /** Valida el cupo y da de alta el negocio en la misma transacción, como lo hará el caso de uso de alta. */
+    private boolean crearNegocio(String nombre) {
+        transaccionPort.ejecutar(() -> {
+            controlPlanService.validarAltaNegocio(UsuarioId.de(usuarioId), AHORA);
+            jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, ?, ?)",
+                    UUID.randomUUID(), nombre, usuarioId);
+        });
         return true;
     }
 

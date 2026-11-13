@@ -34,7 +34,7 @@ import java.util.Optional;
 
 import static com.ensambla.backend.support.PagoTestData.AHORA;
 import static com.ensambla.backend.support.PagoTestData.IMPORTE;
-import static com.ensambla.backend.support.PagoTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.PagoTestData.USUARIO_ID;
 import static com.ensambla.backend.support.PagoTestData.PROVEEDOR_ID;
 import static com.ensambla.backend.support.PagoTestData.RENOVACION_ID;
 import static com.ensambla.backend.support.PagoTestData.pago;
@@ -132,7 +132,7 @@ class RenovacionPremiumSincronizacionTest {
         givenPagos();
         givenRecalculo(suscripcion(EstadoSuscripcion.ACTIVA));
         when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.of(premium()));
-        when(pagoPremiumRepository.existeByNegocioId(NEGOCIO_ID)).thenReturn(false);
+        when(pagoPremiumRepository.existeByUsuarioId(USUARIO_ID)).thenReturn(false);
 
         renovacionPremiumService.sincronizar(RENOVACION_ID, AHORA);
 
@@ -156,7 +156,7 @@ class RenovacionPremiumSincronizacionTest {
     private RenovacionPremium givenRenovacionSincronizada() {
         RenovacionPremium renovacion = renovacion();
         when(renovacionPremiumRepository.findById(RENOVACION_ID)).thenReturn(Optional.of(renovacion));
-        when(renovacionPremiumRepository.findNegocioIdById(RENOVACION_ID)).thenReturn(Optional.of(NEGOCIO_ID));
+        when(renovacionPremiumRepository.findUsuarioIdById(RENOVACION_ID)).thenReturn(Optional.of(USUARIO_ID));
         when(renovacionPremiumRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(pasarelaSuscripcionesPort.consultar(PROVEEDOR_ID)).thenReturn(contratoAutorizado(renovacion));
         return renovacion;
@@ -167,8 +167,8 @@ class RenovacionPremiumSincronizacionTest {
     }
 
     private void givenRecalculo(Suscripcion suscripcion) {
-        when(pagoPremiumRepository.findVigente(NEGOCIO_ID, AHORA)).thenReturn(Optional.empty());
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
+        when(pagoPremiumRepository.findVigente(USUARIO_ID, AHORA)).thenReturn(Optional.empty());
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion));
     }
 
     // --- helpers ---
@@ -184,7 +184,7 @@ class RenovacionPremiumSincronizacionTest {
     }
 
     private static Suscripcion suscripcion(EstadoSuscripcion estado) {
-        return Suscripcion.builder().negocioId(NEGOCIO_ID).planId(PREMIUM_ID).estado(estado)
+        return Suscripcion.builder().usuarioId(USUARIO_ID).planId(PREMIUM_ID).estado(estado)
                 .inicioEn(AHORA.minusDays(1)).build();
     }
 }

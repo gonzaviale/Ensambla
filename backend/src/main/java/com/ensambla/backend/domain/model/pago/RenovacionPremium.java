@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.model.pago;
 
 import com.ensambla.backend.domain.exception.PasarelaPagoException;
-import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,7 +20,7 @@ public class RenovacionPremium {
 
     private RenovacionId id;
 
-    private NegocioId negocioId;
+    private UsuarioId usuarioId;
 
     private String proveedorId;
 

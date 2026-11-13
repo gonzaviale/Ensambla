@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
-import static com.ensambla.backend.support.PlanTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.PlanTestData.USUARIO_ID;
 import static com.ensambla.backend.support.PlanTestData.suscripcion;
 import static com.ensambla.backend.support.PlanTestData.suscripcionEntity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,22 +25,22 @@ class SuscripcionRepositoryImplTest {
 
     @Test
     @DisplayName("Recupera y mapea suscripcion desde persistencia")
-    void findByNegocioIdShouldMapStoredEntity() {
-        when(suscripcionJpaRepository.findByNegocioId(NEGOCIO_ID.valor())).thenReturn(Optional.of(suscripcionEntity()));
+    void findByUsuarioIdShouldMapStoredEntity() {
+        when(suscripcionJpaRepository.findByUsuarioId(USUARIO_ID.valor())).thenReturn(Optional.of(suscripcionEntity()));
 
-        Optional<Suscripcion> result = suscripcionRepository.findByNegocioId(NEGOCIO_ID);
+        Optional<Suscripcion> result = suscripcionRepository.findByUsuarioId(USUARIO_ID);
 
         assertThat(result).isPresent();
         thenEveryFieldMatches(result.orElseThrow());
-        verify(suscripcionJpaRepository).findByNegocioId(NEGOCIO_ID.valor());
+        verify(suscripcionJpaRepository).findByUsuarioId(USUARIO_ID.valor());
     }
 
     @Test
     @DisplayName("Conserva el resultado vacío cuando no existe suscripcion")
-    void findByNegocioIdShouldReturnEmptyWhenMissing() {
-        when(suscripcionJpaRepository.findByNegocioId(NEGOCIO_ID.valor())).thenReturn(Optional.empty());
+    void findByUsuarioIdShouldReturnEmptyWhenMissing() {
+        when(suscripcionJpaRepository.findByUsuarioId(USUARIO_ID.valor())).thenReturn(Optional.empty());
 
-        Optional<Suscripcion> result = suscripcionRepository.findByNegocioId(NEGOCIO_ID);
+        Optional<Suscripcion> result = suscripcionRepository.findByUsuarioId(USUARIO_ID);
 
         assertThat(result).isEmpty();
     }
@@ -60,7 +60,7 @@ class SuscripcionRepositoryImplTest {
     private void thenEveryFieldMatches(Suscripcion result) {
         Suscripcion esperado = suscripcion();
         assertThat(result.getId()).isEqualTo(esperado.getId());
-        assertThat(result.getNegocioId()).isEqualTo(esperado.getNegocioId());
+        assertThat(result.getUsuarioId()).isEqualTo(esperado.getUsuarioId());
         assertThat(result.getPlanId()).isEqualTo(esperado.getPlanId());
         assertThat(result.getEstado()).isEqualTo(esperado.getEstado());
         assertThat(result.getInicioEn()).isEqualTo(esperado.getInicioEn());

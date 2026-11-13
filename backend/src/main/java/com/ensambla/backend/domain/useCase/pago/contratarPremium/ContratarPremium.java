@@ -1,7 +1,6 @@
 package com.ensambla.backend.domain.useCase.pago.contratarPremium;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
-import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pago.ContratoRemoto;
 import com.ensambla.backend.domain.model.pago.PreparacionRenovacion;
 import com.ensambla.backend.domain.model.pago.RenovacionId;
@@ -12,7 +11,6 @@ import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
-import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
@@ -29,8 +27,6 @@ import java.util.Optional;
 
 @RequiredArgsConstructor
 public class ContratarPremium {
-
-    private final NegocioRepository negocioRepository;
 
     private final UsuarioRepository usuarioRepository;
 
@@ -53,8 +49,7 @@ public class ContratarPremium {
     public ConsultarRenovacionResponse execute(UsuarioId usuarioId) {
         pasarelaSuscripcionesPort.exigirDisponible();
         String email = usuarioRepository.obtenerActivo(usuarioId).getEmail();
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(usuarioId);
-        PreparacionRenovacion preparacion = preparar(negocioId, OffsetDateTime.now(clock));
+        PreparacionRenovacion preparacion = preparar(usuarioId, OffsetDateTime.now(clock));
         if (preparacion.nueva()) {
             ContratoRemoto remoto = pasarelaSuscripcionesPort.crear(preparacion.renovacion(), email);
             renovacionPremiumService.actualizarContrato(preparacion.renovacion().getId(), remoto,
@@ -63,14 +58,14 @@ public class ContratarPremium {
             renovacionPremiumService.sincronizar(preparacion.renovacion().getId(), OffsetDateTime.now(clock));
         }
         return ConsultarRenovacionResponse.de(pasarelaSuscripcionesPort.disponible(),
-                renovacionPremiumService.consultar(negocioId).orElseThrow());
+                renovacionPremiumService.consultar(usuarioId).orElseThrow());
     }
 
     /** Reutiliza la renovación en curso; si no hay o la anterior se canceló, prepara una nueva para la pasarela. */
-    private PreparacionRenovacion preparar(NegocioId negocioId, OffsetDateTime ahora) {
+    private PreparacionRenovacion preparar(UsuarioId usuarioId, OffsetDateTime ahora) {
         return transaccionPort.ejecutar(() -> {
-            usoPlanRepository.bloquearNegocio(negocioId);
-            Optional<RenovacionPremium> anterior = renovacionPremiumService.consultar(negocioId);
+            usoPlanRepository.bloquearCuenta(usuarioId);
+            Optional<RenovacionPremium> anterior = renovacionPremiumService.consultar(usuarioId);
             if (anterior.isPresent() && !"CANCELADA".equals(anterior.get().getEstado())) {
                 return new PreparacionRenovacion(anterior.get(), false);
             }
@@ -80,11 +75,11 @@ public class ContratarPremium {
                     || premium.getPrecioMensual().signum() <= 0 || !"ARS".equals(premium.getMoneda())) {
                 throw new BusinessRuleException("El precio de Premium todavía no está configurado.");
             }
-            Suscripcion suscripcion = suscripcionRepository.obtener(negocioId);
+            Suscripcion suscripcion = suscripcionRepository.obtener(usuarioId);
             OffsetDateTime primerCobro = ahora;
             if (suscripcion.estaVigente(ahora) && premium.getId().equals(suscripcion.getPlanId())) {
                 if (suscripcion.getFinEn() == null) {
-                    throw new BusinessRuleException("Tu negocio ya tiene Premium sin vencimiento.");
+                    throw new BusinessRuleException("Tu cuenta ya tiene Premium sin vencimiento.");
                 }
                 primerCobro = suscripcion.getFinEn();
             }
@@ -92,7 +87,7 @@ public class ContratarPremium {
             primerCobro = primerCobro.plusNanos(999_999_999).truncatedTo(ChronoUnit.SECONDS);
             RenovacionPremium renovacion = RenovacionPremium.builder()
                     .id(RenovacionId.nuevo())
-                    .negocioId(negocioId)
+                    .usuarioId(usuarioId)
                     .estado("PREPARANDO")
                     .importe(premium.getPrecioMensual())
                     .moneda(premium.getMoneda())

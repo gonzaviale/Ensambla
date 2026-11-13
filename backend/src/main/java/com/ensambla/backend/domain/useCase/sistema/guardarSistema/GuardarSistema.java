@@ -42,9 +42,6 @@ public class GuardarSistema {
         usoPlanRepository.bloquearNegocio(negocioId);
         Optional<NegocioId> duenioActual = sistemaRepository.findNegocioIdByProyectoId(sistema.id());
         validarDuenio(negocioId, duenioActual);
-        if (duenioActual.isEmpty()) {
-            controlPlanService.validarAltaProyecto(negocioId, sistema.proyecto().getActualizadoEn());
-        }
         validarRegistrosNuevos(negocioId, sistema);
         sistemaRepository.guardar(sistema, leidoEn);
         return sistema;

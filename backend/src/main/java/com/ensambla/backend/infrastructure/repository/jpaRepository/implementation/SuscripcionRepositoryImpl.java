@@ -1,7 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
-import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.ISuscripcionJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.SuscripcionRepositoryMapper;
@@ -25,7 +25,7 @@ public class SuscripcionRepositoryImpl implements SuscripcionRepository {
     }
 
     @Override
-    public Optional<Suscripcion> findByNegocioId(NegocioId negocioId) {
-        return suscripcionJpaRepository.findByNegocioId(negocioId.valor()).map(suscripcionRepositoryMapper::toDomain);
+    public Optional<Suscripcion> findByUsuarioId(UsuarioId usuarioId) {
+        return suscripcionJpaRepository.findByUsuarioId(usuarioId.valor()).map(suscripcionRepositoryMapper::toDomain);
     }
 }

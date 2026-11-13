@@ -285,7 +285,7 @@ class PanelNegocioIntegrationTest extends PostgresRepositoryTestSupport {
         if (planes.findByCodigo(CodigoPlan.GRATUITO).isEmpty()) {
             planes.saveAndFlush(PlanEntity.builder()
                     .codigo(CodigoPlan.GRATUITO).nombre("Gratuito").configurado(false)
-                    .limitesConfigurados(true).limiteProyectos(1).limiteRegistros(1000L)
+                    .limitesConfigurados(true).limiteNegocios(1).limiteRegistros(1000L)
                     .limitePaginasIaMensuales(10).funciones(List.of())
                     .creadoEn(AHORA).actualizadoEn(AHORA).build());
         }

@@ -36,7 +36,7 @@ public class ProyectosDePrueba {
 
     public Proyecto crear(NegocioId negocioId, String nombre, String descripcion, OffsetDateTime ahora) {
         ProyectoItem creado = new CrearProyecto(
-                negocioPropio(negocioId), proyectoRepository, controlPlanService, transaccionPort, reloj(ahora))
+                negocioPropio(negocioId), proyectoRepository, transaccionPort, reloj(ahora))
                 .execute(new CrearProyectoRequest(usuarioDe(negocioId), nombre, descripcion));
         return proyectoRepository.obtener(negocioId, creado.id());
     }

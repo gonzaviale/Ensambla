@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.ensambla.backend.support.PlanTestData.INSTANTE;
-import static com.ensambla.backend.support.PlanTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.PlanTestData.USUARIO_ID;
 import static com.ensambla.backend.support.PlanTestData.plan;
 import static com.ensambla.backend.support.PlanTestData.suscripcion;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,7 +52,7 @@ class VencerPruebasTest {
         assertThat(suscripcion.getInicioEn()).isEqualTo(INSTANTE);
         assertThat(suscripcion.getFinEn()).isNull();
         assertThat(suscripcion.getActualizadoEn()).isEqualTo(INSTANTE);
-        verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
+        verify(usoPlanRepository).bloquearCuenta(USUARIO_ID);
         verify(suscripcionRepository).save(suscripcion);
         verify(pruebaPremiumRepository, never()).save(any());
     }
@@ -72,7 +72,7 @@ class VencerPruebasTest {
     @DisplayName("Un pago activado después de listar candidatos no es degradado por el job")
     void executeShouldPreserveSubscriptionActivatedAfterSelection() {
         givenCandidato();
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion()));
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion()));
 
         vencerA(INSTANTE.plusDays(30));
 
@@ -83,7 +83,7 @@ class VencerPruebasTest {
     @Test
     @DisplayName("Un lote sin pruebas vencidas no modifica suscripciones")
     void executeShouldSkipEmptyBatch() {
-        when(pruebaPremiumRepository.findNegociosVencidos(INSTANTE)).thenReturn(List.of());
+        when(pruebaPremiumRepository.findUsuariosVencidos(INSTANTE)).thenReturn(List.of());
 
         vencerA(INSTANTE);
 
@@ -96,12 +96,12 @@ class VencerPruebasTest {
         Suscripcion suscripcion = suscripcion();
         suscripcion.setEstado(EstadoSuscripcion.PRUEBA);
         suscripcion.setFinEn(fin);
-        when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion));
         return suscripcion;
     }
 
     private void givenCandidato() {
-        when(pruebaPremiumRepository.findNegociosVencidos(any())).thenReturn(List.of(NEGOCIO_ID));
+        when(pruebaPremiumRepository.findUsuariosVencidos(any())).thenReturn(List.of(USUARIO_ID));
     }
 
     // --- act ---

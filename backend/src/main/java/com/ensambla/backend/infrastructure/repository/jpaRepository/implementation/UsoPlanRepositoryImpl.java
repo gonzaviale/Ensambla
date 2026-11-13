@@ -3,6 +3,7 @@ package com.ensambla.backend.infrastructure.repository.jpaRepository.implementat
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -20,16 +21,25 @@ public class UsoPlanRepositoryImpl implements UsoPlanRepository {
 
     @Override
     public void bloquearNegocio(NegocioId negocioId) {
-        if (jdbcTemplate.queryForList("SELECT id FROM negocio WHERE id = ? FOR UPDATE", UUID.class, negocioId.valor())
-                .isEmpty()) {
+        if (jdbcTemplate.queryForList("""
+                SELECT u.id FROM usuario u JOIN negocio n ON n.duenio_id = u.id WHERE n.id = ? FOR UPDATE OF u
+                """, UUID.class, negocioId.valor()).isEmpty()) {
             throw new ResourceNotFoundException("Negocio no encontrado");
         }
     }
 
     @Override
-    public long contarProyectos(NegocioId negocioId) {
-        return jdbcTemplate.queryForObject("SELECT count(*) FROM proyecto WHERE negocio_id = ?", Long.class,
-                negocioId.valor());
+    public void bloquearCuenta(UsuarioId usuarioId) {
+        if (jdbcTemplate.queryForList("SELECT id FROM usuario WHERE id = ? FOR UPDATE", UUID.class, usuarioId.valor())
+                .isEmpty()) {
+            throw new ResourceNotFoundException("Cuenta no encontrada");
+        }
+    }
+
+    @Override
+    public long contarNegocios(UsuarioId usuarioId) {
+        return jdbcTemplate.queryForObject("SELECT count(*) FROM negocio WHERE duenio_id = ?", Long.class,
+                usuarioId.valor());
     }
 
     @Override
@@ -47,11 +57,12 @@ public class UsoPlanRepositoryImpl implements UsoPlanRepository {
     }
 
     @Override
-    public long paginasEnPeriodo(NegocioId negocioId, LocalDate desde, LocalDate hasta) {
+    public long paginasEnPeriodo(UsuarioId usuarioId, LocalDate desde, LocalDate hasta) {
         return jdbcTemplate.queryForObject("""
-                SELECT COALESCE(sum(paginas::bigint + reservadas), 0)
-                FROM consumo_ia_diario WHERE negocio_id = ? AND fecha >= ? AND fecha < ?
-                """, Long.class, negocioId.valor(), desde, hasta);
+                SELECT COALESCE(sum(c.paginas::bigint + c.reservadas), 0)
+                FROM consumo_ia_diario c JOIN negocio n ON n.id = c.negocio_id
+                WHERE n.duenio_id = ? AND c.fecha >= ? AND c.fecha < ?
+                """, Long.class, usuarioId.valor(), desde, hasta);
     }
 
     @Override

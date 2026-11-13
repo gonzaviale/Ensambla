@@ -26,8 +26,8 @@ function ResumenDelPlan({ datos }: { datos: Planes }) {
       </p>
       <dl className="cuenta-datos">
         <div>
-          <dt>Cuadernos</dt>
-          <dd>{cantidad(uso.proyectos, actual?.limiteProyectos ?? null)}</dd>
+          <dt>Negocios</dt>
+          <dd>{cantidad(uso.negocios, actual?.limiteNegocios ?? null)}</dd>
         </div>
         <div>
           <dt>Registros</dt>

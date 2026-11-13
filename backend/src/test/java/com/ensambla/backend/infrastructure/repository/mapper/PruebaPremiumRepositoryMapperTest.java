@@ -6,7 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static com.ensambla.backend.support.PlanTestData.INSTANTE;
-import static com.ensambla.backend.support.PlanTestData.NEGOCIO_ID;
+import static com.ensambla.backend.support.PlanTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PruebaPremiumRepositoryMapperTest {
@@ -17,7 +17,7 @@ class PruebaPremiumRepositoryMapperTest {
     @DisplayName("Convierte todos los campos de la entidad al dominio")
     void toDomainShouldMapEveryField() {
         PruebaPremiumEntity entity = PruebaPremiumEntity.builder()
-                .negocioId(NEGOCIO_ID.valor())
+                .usuarioId(USUARIO_ID.valor())
                 .inicioEn(INSTANTE)
                 .finEn(INSTANTE.plusDays(7))
                 .paginasIa(4)
@@ -25,7 +25,7 @@ class PruebaPremiumRepositoryMapperTest {
 
         PruebaPremium result = pruebaPremiumRepositoryMapper.toDomain(entity);
 
-        assertThat(result.negocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(result.usuarioId()).isEqualTo(USUARIO_ID);
         assertThat(result.inicioEn()).isEqualTo(INSTANTE);
         assertThat(result.finEn()).isEqualTo(INSTANTE.plusDays(7));
         assertThat(result.paginasIa()).isEqualTo(4);
@@ -34,11 +34,11 @@ class PruebaPremiumRepositoryMapperTest {
     @Test
     @DisplayName("Convierte todos los campos del dominio a la entidad")
     void toEntityShouldMapEveryField() {
-        PruebaPremium prueba = new PruebaPremium(NEGOCIO_ID, INSTANTE, INSTANTE.plusDays(7), 5);
+        PruebaPremium prueba = new PruebaPremium(USUARIO_ID, INSTANTE, INSTANTE.plusDays(7), 5);
 
         PruebaPremiumEntity result = pruebaPremiumRepositoryMapper.toEntity(prueba);
 
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
+        assertThat(result.getUsuarioId()).isEqualTo(USUARIO_ID.valor());
         assertThat(result.getInicioEn()).isEqualTo(INSTANTE);
         assertThat(result.getFinEn()).isEqualTo(INSTANTE.plusDays(7));
         assertThat(result.getPaginasIa()).isEqualTo(5);

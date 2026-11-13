@@ -17,7 +17,7 @@ public record ConsultarPlanesResponse(OffsetDateTime consultadoEn, List<PlanItem
                 new SuscripcionPlanItem(consulta.planActual().getCodigo().name(), consulta.pruebaActiva(),
                         consulta.puedeIniciarPrueba(), consulta.suscripcion().getInicioEn(),
                         consulta.suscripcion().getFinEn()),
-                new UsoPlanItem(consulta.proyectos(), consulta.registros(), consulta.paginasIa(),
+                new UsoPlanItem(consulta.negocios(), consulta.registros(), consulta.paginasIa(),
                         consulta.limitePaginasIa(), consulta.periodoIa(), consulta.inicioPeriodoIa(),
                         consulta.finPeriodoIa()),
                 prueba == null ? null : PruebaPremiumResponse.de(prueba));
