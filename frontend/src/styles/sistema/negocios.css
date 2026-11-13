@@ -1,0 +1,104 @@
+/* Elegir con qué negocio trabajar (T-204): el pop-up que aparece al iniciar sesión con más de un negocio. Sigue el
+   criterio de armonia.css: cada negocio es una opción blanca con borde fino, y el color del estado tiene
+   significado (petróleo si viene bien, coral si pide atención, gris si todavía no hay ventas). */
+
+.elegir-negocio {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.elegir-negocio-opcion {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--c-borde);
+  border-left: 4px solid var(--c-estructura);
+  border-radius: 14px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.elegir-negocio-opcion[data-estado='ATENCION'] {
+  border-left-color: var(--coral);
+}
+.elegir-negocio-opcion[data-estado='SIN_DATOS'] {
+  border-left-color: var(--c-borde-fuerte);
+}
+.elegir-negocio-opcion:hover,
+.elegir-negocio-opcion:focus-visible {
+  border-color: var(--c-borde-fuerte);
+  box-shadow: var(--sombra-reposo);
+}
+.elegir-negocio-opcion:focus-visible {
+  outline: 3px solid var(--c-estructura);
+  outline-offset: 2px;
+}
+
+.elegir-negocio-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.elegir-negocio-fila strong {
+  font-size: 18px;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.negocio-estado {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--c-estructura-100);
+  color: var(--c-estructura);
+}
+[data-estado='ATENCION'] .negocio-estado {
+  background: #ffe9e8;
+  color: #b3322e;
+}
+[data-estado='SIN_DATOS'] .negocio-estado {
+  background: var(--c-fondo-suave);
+  color: var(--muted);
+}
+
+.elegir-negocio-detalle {
+  font-size: 15px;
+  color: var(--muted);
+}
+.elegir-negocio-detalle [data-hay] {
+  font-weight: 600;
+  color: var(--yellow-dark);
+}
+.elegir-negocio-ultimo {
+  color: var(--c-estructura);
+}
+
+.elegir-negocio-cargando {
+  display: grid;
+  gap: 10px;
+}
+.elegir-negocio-cargando > span:not(.sr-only) {
+  height: 68px;
+  border-radius: 14px;
+  background: var(--soft);
+  animation: respira 1.2s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .elegir-negocio-opcion {
+    transition: none;
+  }
+  .elegir-negocio-cargando > span {
+    animation: none;
+  }
+}
