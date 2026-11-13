@@ -11,6 +11,7 @@ import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ProgresoObjetivoRepository;
+import com.ensambla.backend.domain.service.objetivo.MonitoreoObjetivosService;
 import com.ensambla.backend.domain.service.objetivo.PropuestaMiniObjetivosService;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.BeforeEach;
@@ -282,9 +283,8 @@ class MonitorearObjetivosTest {
     private MonitorearObjetivos monitor(int tamanoTanda) {
         return new MonitorearObjetivos(
                 objetivoRepository,
-                miniObjetivoRepository,
-                progresoObjetivoRepository,
-                propuestaMiniObjetivosService,
+                new MonitoreoObjetivosService(objetivoRepository, miniObjetivoRepository,
+                        progresoObjetivoRepository, propuestaMiniObjetivosService),
                 new TransaccionDirecta(),
                 CLOCK,
                 tamanoTanda);

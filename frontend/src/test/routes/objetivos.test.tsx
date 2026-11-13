@@ -148,6 +148,63 @@ describe('objetivos', () => {
     ]);
   });
 
+  it('muestra qué entendió Sami y, si no encuentra la meta, pide escribirla antes de guardar', async () => {
+    const usuario = setupUsuarioConSesion();
+    renderApp('/objetivos');
+    const user = userEvent.setup();
+
+    await user.type(
+      await screen.findByLabelText('Contale tu objetivo a Sami', {}, ESPERA),
+      'Quiero subir la yerba a $4.000 y recuperar mis gastos',
+    );
+    const lectura = within(screen.getByRole('region', { name: 'Lo que entendió Sami' }));
+    expect(lectura.getByText(/Querés cubrir tus gastos/)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Definir objetivo' })).toBeDisabled();
+
+    await user.type(lectura.getByLabelText(/Tu meta/), '250000');
+    expect(lectura.getByLabelText(/Tu meta/)).toHaveValue('250.000');
+    await user.click(screen.getByRole('button', { name: 'Definir objetivo' }));
+
+    await screen.findByRole('heading', { name: 'Cómo van tus objetivos' }, ESPERA);
+    expect(objetivosDe(usuario.email)).toMatchObject([{ meta: 250_000 }]);
+  });
+
+  it('si la meta no se alcanza con lo que vende hoy, lo avisa y propone un primer escalón', async () => {
+    const usuario = setupUsuarioConSesion();
+    setupServerResponse('get', '/objetivos/negocio', 200, {
+      hayVentas: true,
+      vendiste: 83_000,
+      mercaderia: 55_000,
+      gastos: 0,
+      queda: 28_000,
+      teDeben: 0,
+      semanas: [{ semana: 'Hoy', queda: 28_000 }],
+    });
+    renderApp('/objetivos');
+    const user = userEvent.setup();
+
+    await user.type(
+      await screen.findByLabelText('Contale tu objetivo a Sami', {}, ESPERA),
+      'Quiero ganar un millon al mes',
+    );
+    const aviso = await screen.findByRole(
+      'note',
+      { name: 'Esta meta no se alcanza con lo que vendés hoy' },
+      ESPERA,
+    );
+    expect(within(aviso).getByText(/Hoy vendés unos \$83\.000 por mes/)).toBeVisible();
+
+    await user.click(within(aviso).getByRole('button', { name: 'Empezar por $36.000' }));
+    expect(screen.getByLabelText(/Tu meta/)).toHaveValue('36.000');
+    expect(
+      screen.queryByRole('note', { name: 'Esta meta no se alcanza con lo que vendés hoy' }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Definir objetivo' }));
+
+    await screen.findByRole('heading', { name: 'Cómo van tus objetivos' }, ESPERA);
+    expect(objetivosDe(usuario.email)).toMatchObject([{ meta: 36_000 }]);
+  });
+
   it('un objetivo guardado se ve al volver a abrir la pantalla', async () => {
     setupObjetivoDeEjemplo(setupUsuarioConSesion().email);
     renderApp('/objetivos');

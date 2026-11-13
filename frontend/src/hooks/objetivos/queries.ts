@@ -2,7 +2,6 @@ import { queryOptions, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import {
   listarObjetivos,
-  obtenerCandidatos,
   obtenerDecisionesObjetivo,
   obtenerMiniObjetivos,
   obtenerPasosObjetivo,
@@ -20,8 +19,6 @@ export const objetivosKeys = {
   /** Todo lo de un objetivo cuelga de esta clave: al decidir algo se invalida junta. */
   detalle: (objetivoId: string) => [...objetivosKey, 'detalle', objetivoId] as const,
   minis: (objetivoId: string) => [...objetivosKeys.detalle(objetivoId), 'minis'] as const,
-  candidatos: (objetivoId: string, miniId: string) =>
-    [...objetivosKeys.detalle(objetivoId), 'candidatos', miniId] as const,
   progreso: (objetivoId: string) => [...objetivosKeys.detalle(objetivoId), 'progreso'] as const,
   decisiones: (objetivoId: string) => [...objetivosKeys.detalle(objetivoId), 'decisiones'] as const,
   semanas: (objetivoId: string) => [...objetivosKeys.detalle(objetivoId), 'semanas'] as const,
@@ -81,16 +78,6 @@ export function useMiniObjetivos(objetivoId: string) {
   return useQuery({
     queryKey: objetivosKeys.minis(objetivoId),
     queryFn: ({ signal }) => obtenerMiniObjetivos(objetivoId, signal),
-    ...DATOS_DEL_OBJETIVO,
-  });
-}
-
-/** Se piden recién cuando la persona quiere cambiar ese mini-objetivo. */
-export function useCandidatos(objetivoId: string, miniId: string | null) {
-  return useQuery({
-    queryKey: objetivosKeys.candidatos(objetivoId, miniId ?? ''),
-    queryFn: ({ signal }) => obtenerCandidatos(objetivoId, miniId ?? '', signal),
-    enabled: !!miniId,
     ...DATOS_DEL_OBJETIVO,
   });
 }

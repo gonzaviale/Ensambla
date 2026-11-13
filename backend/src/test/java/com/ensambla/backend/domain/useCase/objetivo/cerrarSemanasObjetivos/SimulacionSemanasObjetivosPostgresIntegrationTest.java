@@ -17,6 +17,7 @@ import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ProgresoObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ResumenSemanalRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
+import com.ensambla.backend.domain.service.objetivo.MonitoreoObjetivosService;
 import com.ensambla.backend.domain.service.objetivo.PropuestaMiniObjetivosService;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanas;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasRequest;
@@ -129,8 +130,9 @@ class SimulacionSemanasObjetivosPostgresIntegrationTest extends PostgresReposito
     @BeforeEach
     void setUp() {
         inicio = SemanaObjetivo.lunesDe(LocalDate.now(ZonaNegocio.ZONA)).minusWeeks(SEMANAS + 1L);
-        monitorear = new MonitorearObjetivos(objetivoRepository, miniObjetivoRepository, progresoObjetivoRepository,
-                propuestaMiniObjetivosService, transaccionPort, reloj, 50);
+        monitorear = new MonitorearObjetivos(objetivoRepository, new MonitoreoObjetivosService(objetivoRepository,
+                miniObjetivoRepository, progresoObjetivoRepository, propuestaMiniObjetivosService), transaccionPort,
+                reloj, 50);
         cerrar = new CerrarSemanasObjetivos(objetivoRepository, miniObjetivoRepository, decisionObjetivoRepository,
                 avisoRepository, resumenSemanalRepository, propuestaMiniObjetivosService, transaccionPort, reloj,
                 SEMANAS, 50);

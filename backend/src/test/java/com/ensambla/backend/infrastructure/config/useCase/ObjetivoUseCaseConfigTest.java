@@ -27,7 +27,9 @@ import com.ensambla.backend.domain.repository.objetivo.ResumenSemanalRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
+import com.ensambla.backend.domain.service.objetivo.MonitoreoObjetivosService;
 import com.ensambla.backend.domain.service.objetivo.PropuestaMiniObjetivosService;
+import com.ensambla.backend.domain.useCase.objetivo.medirObjetivos.MedirObjetivosRequest;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import com.ensambla.backend.domain.useCase.objetivo.abandonarMiniObjetivo.AbandonarMiniObjetivoRequest;
 import com.ensambla.backend.domain.useCase.objetivo.listarCandidatos.ListarCandidatosRequest;
@@ -193,13 +195,31 @@ class ObjetivoUseCaseConfigTest {
         when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
 
         config.monitorearObjetivos(
-                        objetivoRepository, miniObjetivoRepository, progresoObjetivoRepository, propuesta(),
-                        new TransaccionDirecta(), CLOCK, new ObjetivosMonitoreoProperties(50))
+                        objetivoRepository, monitoreo(), new TransaccionDirecta(), CLOCK,
+                        new ObjetivosMonitoreoProperties(50))
                 .execute();
 
         ArgumentCaptor<ProgresoObjetivo> captor = ArgumentCaptor.forClass(ProgresoObjetivo.class);
         verify(progresoObjetivoRepository).registrar(captor.capture());
         assertThat(captor.getValue().objetivoId()).isEqualTo(OBJETIVO_ID);
+    }
+
+    @Test
+    @DisplayName("El wiring de medir mide el negocio de la sesión y guarda su foto del día")
+    void medirObjetivosShouldWireTheRepositories() {
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(objetivoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(objetivo()));
+        when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+
+        config.medirObjetivos(negocioRepository, monitoreo(), new TransaccionDirecta(), CLOCK)
+                .execute(new MedirObjetivosRequest(USUARIO_ID));
+
+        verify(progresoObjetivoRepository).registrar(any(ProgresoObjetivo.class));
+    }
+
+    private MonitoreoObjetivosService monitoreo() {
+        return config.monitoreoObjetivosService(
+                objetivoRepository, miniObjetivoRepository, progresoObjetivoRepository, propuesta());
     }
 
     @Test

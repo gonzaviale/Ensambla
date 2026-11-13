@@ -40,7 +40,7 @@ export const QUE_SE_MIDE: Record<TipoMiniObjetivo, string> = {
 
 export const ESTADO_DE_MINI: Record<MiniObjetivo['estado'], string> = {
   EN_CURSO: 'En curso',
-  LOGRADO: 'Lo lograste',
+  LOGRADO: 'Meta alcanzada',
   ABANDONADO: 'Lo quitaste',
   REEMPLAZADO: 'Lo cambiamos',
 };
@@ -152,4 +152,52 @@ export function faltaParaLaMeta(mini: MiniObjetivo): string | null {
     mini.sentido === 'BAJA' ? mini.valorActual - mini.meta : mini.meta - mini.valorActual;
   if (falta <= 0) return null;
   return valorDeMini(mini.tipo, falta);
+}
+
+/** El próximo domingo de cierre, contando hoy si es domingo. */
+export function proximoCierre(dia: string): string {
+  return domingoDe(lunesDe(dia));
+}
+
+/**
+ * Qué está haciendo Sami con un objetivo, para el recuadro de Sami arriba de la pantalla: si ya se logró, si le
+ * faltan ventas para medir, si hay un resumen sin ver o, si no, cuándo cierra la semana.
+ */
+export function estadoDeSami({
+  alcanzado,
+  sinDatos,
+  resumenListo,
+  dia,
+}: {
+  alcanzado: boolean;
+  sinDatos: boolean;
+  resumenListo: boolean;
+  dia: string;
+}): { titulo: string; detalle: string } {
+  if (alcanzado)
+    return { titulo: 'Lograste tu objetivo', detalle: 'Podés ponerte una meta más alta' };
+  if (sinDatos)
+    return { titulo: 'Sami espera tus ventas', detalle: 'Cargalas en un cuaderno para medir' };
+  if (resumenListo) return { titulo: 'Tu resumen está listo', detalle: 'Sami cerró tu semana' };
+  return {
+    titulo: 'Sami sigue tu semana',
+    detalle: `Mide cada día · cierra el domingo ${diaCorto(proximoCierre(dia))}`,
+  };
+}
+
+/**
+ * Cuánto suman por mes los mini-objetivos en curso frente a lo que falta para la meta: así se ve si alcanzan o si
+ * hacen falta varias rondas. Null si no hay nada que comparar.
+ */
+export function cuantoCubren(minis: MiniObjetivo[], teFaltan: number): string | null {
+  const suman = Math.round(
+    minis
+      .filter((mini) => mini.estado === 'EN_CURSO')
+      .reduce((total, mini) => total + Math.max(0, mini.aporteEstimado), 0),
+  );
+  if (teFaltan <= 0 || suman <= 0) return null;
+  if (suman >= teFaltan) {
+    return `Si cumplís estos mini-objetivos sumás cerca de ${formatoPesos(suman)} por mes: alcanza para llegar a tu meta.`;
+  }
+  return `Si cumplís estos mini-objetivos sumás cerca de ${formatoPesos(suman)} por mes de los ${formatoPesos(teFaltan)} que te faltan. Cada domingo Sami propone los siguientes para seguir acercándote.`;
 }

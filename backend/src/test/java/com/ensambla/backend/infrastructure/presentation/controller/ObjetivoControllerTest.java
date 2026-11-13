@@ -7,6 +7,8 @@ import com.ensambla.backend.domain.useCase.objetivo.crearObjetivo.CrearObjetivoR
 import com.ensambla.backend.domain.useCase.objetivo.eliminarObjetivo.EliminarObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.eliminarObjetivo.EliminarObjetivoRequest;
 import com.ensambla.backend.domain.useCase.objetivo.listarObjetivos.ListarObjetivos;
+import com.ensambla.backend.domain.useCase.objetivo.medirObjetivos.MedirObjetivos;
+import com.ensambla.backend.domain.useCase.objetivo.medirObjetivos.MedirObjetivosRequest;
 import com.ensambla.backend.domain.useCase.objetivo.listarObjetivos.ListarObjetivosRequest;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.domain.model.objetivo.TipoPasoObjetivo;
@@ -51,6 +53,7 @@ class ObjetivoControllerTest {
     private final CrearObjetivo crearObjetivo = mock(CrearObjetivo.class);
     private final EliminarObjetivo eliminarObjetivo = mock(EliminarObjetivo.class);
     private final ObtenerPasos obtenerPasos = mock(ObtenerPasos.class);
+    private final MedirObjetivos medirObjetivos = mock(MedirObjetivos.class);
     private final UsernamePasswordAuthenticationToken principal =
             new UsernamePasswordAuthenticationToken(USUARIO_ID.toString(), null);
     private MockMvc mockMvc;
@@ -62,6 +65,7 @@ class ObjetivoControllerTest {
                 crearObjetivo,
                 eliminarObjetivo,
                 obtenerPasos,
+                medirObjetivos,
                 new ObjetivoPresentationMapper());
         mockMvc = MockMvcDePrueba.standalone(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
@@ -199,6 +203,15 @@ class ObjetivoControllerTest {
 
         result.andExpect(status().isBadRequest());
         verifyNoInteractions(eliminarObjetivo);
+    }
+
+    @Test
+    @DisplayName("POST medir mide los objetivos del negocio de la sesión y devuelve 204")
+    void medirShouldReturn204AndPassSessionUsuario() throws Exception {
+        mockMvc.perform(post("/api/objetivos/medir").principal(principal))
+                .andExpect(status().isNoContent());
+
+        verify(medirObjetivos).execute(new MedirObjetivosRequest(USUARIO_ID));
     }
 
     // --- arrange ---

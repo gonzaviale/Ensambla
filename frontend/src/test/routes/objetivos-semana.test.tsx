@@ -1,8 +1,10 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { HttpResponse, http } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { estado, guardarObjetivosDe } from '@/mocks/db/estado';
 import { ID_OBJETIVO_DE_EJEMPLO } from '@/lib/objetivos';
+import { server } from '@/mocks/node';
 import { renderApp } from '@/test/renderApp';
 import {
   ESPERA,
@@ -29,6 +31,9 @@ describe('la semana de un objetivo que se autogestiona', () => {
 
     const lista = await minis();
     expect(await lista.findAllByRole('article')).toHaveLength(3);
+    expect(
+      screen.getByText(/Si cumplís estos mini-objetivos sumás cerca de \$[\d.]+ por mes/),
+    ).toBeVisible();
     expect(lista.getByRole('heading', { name: 'Subile $250 a Yerba 1 kg' })).toBeVisible();
     expect(lista.getByRole('heading', { name: 'Mové 6 Fernet por semana' })).toBeVisible();
 
@@ -105,73 +110,40 @@ describe('la semana de un objetivo que se autogestiona', () => {
     });
   });
 
-  it('cambia un mini-objetivo por otro candidato y el anterior pasa al historial', async () => {
+  it('lo que dejó para después se restaura y puede volver a decir «Lo hago»', async () => {
     conObjetivoDeEjemplo();
     renderApp(DETALLE);
     const user = userEvent.setup();
 
-    await (await minis()).findAllByRole('article');
+    const tarjeta = within((await (await minis()).findAllByRole('article'))[0] as HTMLElement);
+    expect(tarjeta.queryByRole('button', { name: /Cambiar|Quitar/ })).not.toBeInTheDocument();
+    await user.click(tarjeta.getByRole('button', { name: 'Dejarlo para después' }));
     await user.click(
-      screen.getByRole('button', { name: 'Cambiar «Vendé $90.000 por semana» por otro' }),
+      await tarjeta.findByRole(
+        'button',
+        { name: /^Restaurar «.*» para volver a decidir$/ },
+        ESPERA,
+      ),
     );
-    const dialogo = within(
-      await screen.findByRole('dialog', { name: 'Cambiar «Vendé $90.000 por semana»' }),
-    );
-    const candidatos = await dialogo.findAllByRole('listitem', {}, ESPERA);
-    expect(candidatos).toHaveLength(3);
-    await user.click(
-      within(candidatos[0] as HTMLElement).getByRole('button', { name: 'Elegir este' }),
-    );
+    await user.click(tarjeta.getByRole('button', { name: 'Lo hago' }));
 
-    const lista = await minis();
+    expect(await tarjeta.findByText('Esta semana dijiste que lo hacés', {}, ESPERA)).toBeVisible();
+    const decisiones = estado.autogestion.get(ID_OBJETIVO_DE_EJEMPLO)?.decisiones ?? [];
+    expect(decisiones.slice(-2).map((decision) => decision.tipo)).toEqual([
+      'PASO_IGNORADO',
+      'PASO_ACEPTADO',
+    ]);
+  });
+
+  it('el recuadro de Sami cuenta qué hace con el objetivo, no un «Sami está listo» genérico', async () => {
+    conObjetivoDeEjemplo();
+    renderApp(DETALLE);
+
+    await minis();
+    expect(screen.queryByText('Sami está listo')).not.toBeInTheDocument();
     expect(
-      await lista.findByRole('heading', { name: 'Poné las galletitas al lado de la caja' }, ESPERA),
+      screen.getByText(/Sami sigue tu semana|Tu resumen está listo|Sami espera tus ventas/),
     ).toBeVisible();
-    expect(
-      lista.queryByRole('heading', { name: 'Vendé $90.000 por semana' }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(estado.autogestion.get(ID_OBJETIVO_DE_EJEMPLO)?.historial[0]).toMatchObject({
-      titulo: 'Vendé $90.000 por semana',
-      estado: 'REEMPLAZADO',
-    });
-  });
-
-  it('«Me quedo con el que tengo» y Escape cierran sin cambiar nada', async () => {
-    conObjetivoDeEjemplo();
-    renderApp(DETALLE);
-    const user = userEvent.setup();
-
-    await (await minis()).findAllByRole('article');
-    const cambiar = screen.getByRole('button', {
-      name: 'Cambiar «Vendé $90.000 por semana» por otro',
-    });
-    await user.click(cambiar);
-    await user.click(await screen.findByRole('button', { name: 'Me quedo con el que tengo' }));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-
-    await user.click(cambiar);
-    await screen.findByRole('dialog');
-    await user.keyboard('{Escape}');
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(estado.autogestion.get(ID_OBJETIVO_DE_EJEMPLO)?.minis).toHaveLength(3);
-  });
-
-  it('quitar un mini-objetivo pide confirmación y lo saca de la lista', async () => {
-    conObjetivoDeEjemplo();
-    renderApp(DETALLE);
-    const user = userEvent.setup();
-
-    await (await minis()).findAllByRole('article');
-    await user.click(screen.getByRole('button', { name: 'Quitar «Mové 6 Fernet por semana»' }));
-    const dialogo = within(await screen.findByRole('dialog'));
-    expect(dialogo.getByText('¿Quitar este mini-objetivo?')).toBeVisible();
-    await user.click(dialogo.getByRole('button', { name: 'Quitar' }));
-
-    await waitFor(async () =>
-      expect(await (await minis()).findAllByRole('article')).toHaveLength(2),
-    );
-    expect(estado.autogestion.get(ID_OBJETIVO_DE_EJEMPLO)?.historial[0]?.estado).toBe('ABANDONADO');
   });
 
   it('si el servidor no trae los mini-objetivos lo explica sin romper la pantalla', async () => {
@@ -194,5 +166,41 @@ describe('la semana de un objetivo que se autogestiona', () => {
     expect(
       await screen.findByRole('heading', { name: 'No encontramos ese objetivo' }, ESPERA),
     ).toBeVisible();
+  });
+
+  it('al abrir la semana y al volver a la pestaña mide el negocio y trae los mini-objetivos de nuevo', async () => {
+    conObjetivoDeEjemplo();
+    let mediciones = 0;
+    let lecturasDeMinis = 0;
+    const contarMinis = ({ request }: { request: Request }) => {
+      if (request.url.endsWith(`/objetivos/${ID_OBJETIVO_DE_EJEMPLO}/mini-objetivos`))
+        lecturasDeMinis++;
+    };
+    server.events.on('request:start', contarMinis);
+    server.use(
+      http.post('/api/objetivos/medir', () => {
+        mediciones++;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    renderApp(DETALLE);
+    await minis();
+    await waitFor(() => expect(mediciones).toBe(1), ESPERA);
+    await waitFor(() => expect(lecturasDeMinis).toBeGreaterThan(0), ESPERA);
+    const lecturasAlAbrir = lecturasDeMinis;
+
+    fireEvent(window, new Event('focus'));
+
+    await waitFor(() => expect(mediciones).toBe(2), ESPERA);
+    await waitFor(() => expect(lecturasDeMinis).toBeGreaterThan(lecturasAlAbrir), ESPERA);
+    server.events.removeListener('request:start', contarMinis);
+  });
+
+  it('si medir falla, igual muestra lo último que midió Sami', async () => {
+    conObjetivoDeEjemplo();
+    setupServerError('post', '/objetivos/medir', 503, 'Caído');
+    renderApp(DETALLE);
+
+    expect(await (await minis()).findAllByRole('article')).toHaveLength(3);
   });
 });

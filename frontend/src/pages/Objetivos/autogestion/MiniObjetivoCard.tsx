@@ -1,4 +1,4 @@
-import { ArrowsClockwiseIcon, CheckIcon, ClockIcon, XIcon } from '@phosphor-icons/react';
+import { ArrowCounterClockwiseIcon, CheckIcon, ClockIcon } from '@phosphor-icons/react';
 import {
   ESTADO_DE_MINI,
   QUE_SE_MIDE,
@@ -14,19 +14,14 @@ type Props = {
   decidido?: DecisionDePaso;
   ocupado?: boolean;
   onDecidir: (tipo: DecisionDePaso) => void;
-  onCambiar: () => void;
-  onQuitar: () => void;
+  /** Vuelve a mostrar «Lo hago» y «Dejarlo para después» en un mini que se dejó para después. */
+  onRestaurar: () => void;
 };
 
 // Un mini-objetivo en curso: qué hacer, por qué, dónde está hoy frente a su meta y qué puede decidir la persona.
-export function MiniObjetivoCard({
-  mini,
-  decidido,
-  ocupado,
-  onDecidir,
-  onCambiar,
-  onQuitar,
-}: Props) {
+// Uno logrado queda en su lugar hasta el cierre del domingo, cuando Sami le sube la meta o propone otro.
+export function MiniObjetivoCard({ mini, decidido, ocupado, onDecidir, onRestaurar }: Props) {
+  const logrado = mini.estado === 'LOGRADO';
   const porcentaje = Math.round(mini.avance * 100);
   const idTitulo = `mini-${mini.id}`;
   const hoy = partesDeMini(mini.tipo, mini.valorActual);
@@ -67,7 +62,12 @@ export function MiniObjetivoCard({
       </div>
 
       <div className="mini-objetivo-decision">
-        {decidido ? (
+        {logrado ? (
+          <p className="mini-objetivo-decidido si" role="status">
+            <CheckIcon aria-hidden size={16} weight="bold" /> Meta alcanzada: el domingo Sami te
+            sube la meta o te propone otro
+          </p>
+        ) : decidido ? (
           <p
             className={`mini-objetivo-decidido ${decidido === 'ACEPTADO' ? 'si' : 'despues'}`}
             role="status"
@@ -79,6 +79,15 @@ export function MiniObjetivoCard({
             ) : (
               <>
                 <ClockIcon aria-hidden size={16} weight="bold" /> Lo dejaste para después
+                <button
+                  type="button"
+                  className="mini-objetivo-restaurar"
+                  disabled={ocupado}
+                  aria-label={`Restaurar «${mini.titulo}» para volver a decidir`}
+                  onClick={onRestaurar}
+                >
+                  <ArrowCounterClockwiseIcon aria-hidden size={16} weight="bold" /> Restaurar
+                </button>
               </>
             )}
           </p>
@@ -98,32 +107,11 @@ export function MiniObjetivoCard({
               disabled={ocupado}
               onClick={() => onDecidir('IGNORADO')}
             >
-              <ClockIcon aria-hidden size={16} /> Ahora no
+              <ClockIcon aria-hidden size={16} /> Dejarlo para después
             </button>
           </>
         )}
       </div>
-
-      <footer className="mini-objetivo-pie">
-        <button
-          type="button"
-          className="objetivos-textual"
-          disabled={ocupado}
-          aria-label={`Cambiar «${mini.titulo}» por otro`}
-          onClick={onCambiar}
-        >
-          <ArrowsClockwiseIcon aria-hidden size={16} /> Cambiar por otro
-        </button>
-        <button
-          type="button"
-          className="objetivos-textual quitar"
-          disabled={ocupado}
-          aria-label={`Quitar «${mini.titulo}»`}
-          onClick={onQuitar}
-        >
-          <XIcon aria-hidden size={16} /> Quitar
-        </button>
-      </footer>
     </article>
   );
 }

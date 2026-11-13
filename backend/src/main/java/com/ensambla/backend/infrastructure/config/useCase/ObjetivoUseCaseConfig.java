@@ -15,6 +15,7 @@ import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.objetivo.DecisionesObjetivoService;
+import com.ensambla.backend.domain.service.objetivo.MonitoreoObjetivosService;
 import com.ensambla.backend.domain.service.objetivo.PropuestaMiniObjetivosService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
@@ -27,6 +28,7 @@ import com.ensambla.backend.domain.useCase.objetivo.listarMiniObjetivos.ListarMi
 import com.ensambla.backend.domain.useCase.objetivo.listarDecisiones.ListarDecisiones;
 import com.ensambla.backend.domain.useCase.objetivo.listarObjetivos.ListarObjetivos;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanas;
+import com.ensambla.backend.domain.useCase.objetivo.medirObjetivos.MedirObjetivos;
 import com.ensambla.backend.domain.useCase.objetivo.monitorearObjetivos.MonitorearObjetivos;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso.ObtenerProgreso;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasos;
@@ -156,22 +158,40 @@ public class ObjetivoUseCaseConfig {
     }
 
     @Bean
-    public MonitorearObjetivos monitorearObjetivos(
+    public MonitoreoObjetivosService monitoreoObjetivosService(
             ObjetivoRepository objetivoRepository,
             MiniObjetivoRepository miniObjetivoRepository,
             ProgresoObjetivoRepository progresoObjetivoRepository,
-            PropuestaMiniObjetivosService propuestaMiniObjetivosService,
+            PropuestaMiniObjetivosService propuestaMiniObjetivosService) {
+        return new MonitoreoObjetivosService(
+                objetivoRepository,
+                miniObjetivoRepository,
+                progresoObjetivoRepository,
+                propuestaMiniObjetivosService);
+    }
+
+    @Bean
+    public MonitorearObjetivos monitorearObjetivos(
+            ObjetivoRepository objetivoRepository,
+            MonitoreoObjetivosService monitoreoObjetivosService,
             TransaccionPort transaccionPort,
             Clock clock,
             ObjetivosMonitoreoProperties objetivosMonitoreoProperties) {
         return new MonitorearObjetivos(
                 objetivoRepository,
-                miniObjetivoRepository,
-                progresoObjetivoRepository,
-                propuestaMiniObjetivosService,
+                monitoreoObjetivosService,
                 transaccionPort,
                 clock,
                 objetivosMonitoreoProperties.tamanoTanda());
+    }
+
+    @Bean
+    public MedirObjetivos medirObjetivos(
+            NegocioRepository negocioRepository,
+            MonitoreoObjetivosService monitoreoObjetivosService,
+            TransaccionPort transaccionPort,
+            Clock clock) {
+        return new MedirObjetivos(negocioRepository, monitoreoObjetivosService, transaccionPort, clock);
     }
 
     @Bean

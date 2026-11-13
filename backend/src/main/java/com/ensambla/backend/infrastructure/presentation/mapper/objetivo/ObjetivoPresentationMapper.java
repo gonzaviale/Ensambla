@@ -6,6 +6,7 @@ import com.ensambla.backend.domain.useCase.objetivo.ObjetivoItem;
 import com.ensambla.backend.domain.useCase.objetivo.crearObjetivo.CrearObjetivoRequest;
 import com.ensambla.backend.domain.useCase.objetivo.eliminarObjetivo.EliminarObjetivoRequest;
 import com.ensambla.backend.domain.useCase.objetivo.listarObjetivos.ListarObjetivosRequest;
+import com.ensambla.backend.domain.useCase.objetivo.medirObjetivos.MedirObjetivosRequest;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasosRequest;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasosResponse;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasosResponse.PasoItem;
@@ -43,6 +44,10 @@ public class ObjetivoPresentationMapper {
 
     public ObtenerPasosRequest toObtenerPasosRequest(UsuarioId usuarioId) {
         return new ObtenerPasosRequest(usuarioId);
+    }
+
+    public MedirObjetivosRequest toMedirRequest(UsuarioId usuarioId) {
+        return new MedirObjetivosRequest(usuarioId);
     }
 
     public List<PasoObjetivoWebResponse> toResponse(ObtenerPasosResponse response) {

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useAbandonarMiniObjetivo, useDecidirPaso } from '@/hooks/objetivos/mutations';
+import { useDecidirPaso } from '@/hooks/objetivos/mutations';
 import {
   useDecisionesObjetivo,
   useMiniObjetivos,
@@ -14,10 +14,9 @@ import {
   marcarResumenVisto,
   resumenSinVer,
   todasLasDecisiones,
+  cuantoCubren,
 } from '@/lib/objetivosAutogestion';
 import { hoy } from '@/lib/sistema/formato';
-import { useSistemaStore } from '@/stores/sistemaStore';
-import type { MiniObjetivo } from '@/types/objetivos';
 import { GraficoSemanal } from './GraficoSemanal';
 import { HistorialReajustes } from './HistorialReajustes';
 import { MiniObjetivoCard } from './MiniObjetivoCard';
@@ -25,15 +24,22 @@ import { RecorridoDeLaSemana } from './RecorridoDeLaSemana';
 import { ResumenListo } from './ResumenListo';
 
 // Lo que Sami hace solo con un objetivo: los 3 mini-objetivos, cómo fue cada semana y qué cambió los domingos.
-export function SeguimientoDelObjetivo({ objetivoId }: { objetivoId: string }) {
+export function SeguimientoDelObjetivo({
+  objetivoId,
+  teFaltan = 0,
+}: {
+  objetivoId: string;
+  /** Lo que falta por mes para la meta: se compara con lo que suman los mini-objetivos. */
+  teFaltan?: number;
+}) {
   const [verTodasLasSemanas, setVerTodasLasSemanas] = useState(false);
   const minis = useMiniObjetivos(objetivoId);
   const progreso = useProgresoObjetivo(objetivoId);
   const decisiones = useDecisionesObjetivo(objetivoId);
   const semanas = useSemanasObjetivo(objetivoId);
-  const abandonar = useAbandonarMiniObjetivo(objetivoId);
   const decidir = useDecidirPaso(objetivoId);
-  const abrirModal = useSistemaStore((estado) => estado.abrirModal);
+  // Los minis que la persona dejó para después y restauró: vuelve a ver los botones hasta que decida otra vez.
+  const [restaurados, setRestaurados] = useState<ReadonlySet<string>>(new Set());
   const [resumenOculto, setResumenOculto] = useState(false);
   const resumen = useRef<HTMLElement>(null);
   const recorrido = useRef<HTMLDivElement>(null);
@@ -44,26 +50,27 @@ export function SeguimientoDelObjetivo({ objetivoId }: { objetivoId: string }) {
     ...lista.map((decision) => decision.semanaInicio),
     ...(semanas.data?.semanas ?? []).map((semana) => semana.semana),
   ]).size;
-  const ocupado = abandonar.isPending || decidir.isPending;
+  const ocupado = decidir.isPending;
   const ultimoCierre = semanas.data?.ultimoCierre ?? null;
   const ultimaSemana = semanas.data?.semanas[0];
   const mostrarResumenListo =
     !resumenOculto && ultimoCierre !== null && resumenSinVer(objetivoId, ultimoCierre);
-  const falloAlgo = abandonar.isError || decidir.isError;
+  const falloAlgo = decidir.isError;
 
   const ocultarResumen = () => {
     if (ultimoCierre) marcarResumenVisto(objetivoId, ultimoCierre);
     setResumenOculto(true);
   };
 
-  const quitar = (mini: MiniObjetivo) =>
-    abrirModal({
-      tipo: 'confirmar',
-      titulo: '¿Quitar este mini-objetivo?',
-      mensaje: `Dejás de seguir «${mini.titulo}». El domingo Sami te propone otro para este lugar.`,
-      etiqueta: 'Quitar',
-      onConfirmar: () => abandonar.mutate(mini.id),
+  const conRestaurado = (miniId: string, restaurado: boolean) =>
+    setRestaurados((actuales) => {
+      const siguientes = new Set(actuales);
+      if (restaurado) siguientes.add(miniId);
+      else siguientes.delete(miniId);
+      return siguientes;
     });
+
+  const cuanto = minis.data ? cuantoCubren(minis.data.minis, teFaltan) : null;
 
   if (minis.isPending) {
     return (
@@ -109,19 +116,30 @@ export function SeguimientoDelObjetivo({ objetivoId }: { objetivoId: string }) {
             llegar.
           </p>
         ) : (
-          <div className="mini-objetivos">
-            {minis.data.minis.map((mini) => (
-              <MiniObjetivoCard
-                key={mini.id}
-                mini={mini}
-                decidido={decisionDeLaSemana(lista, mini.id, estaSemana)}
-                ocupado={ocupado}
-                onDecidir={(tipo) => decidir.mutate({ miniId: mini.id, tipo })}
-                onCambiar={() => abrirModal({ tipo: 'cambiarMini', objetivoId, mini })}
-                onQuitar={() => quitar(mini)}
-              />
-            ))}
-          </div>
+          <>
+            {cuanto && <p className="mini-objetivos-cubren">{cuanto}</p>}
+            <div className="mini-objetivos">
+              {minis.data.minis.map((mini) => (
+                <MiniObjetivoCard
+                  key={mini.id}
+                  mini={mini}
+                  decidido={
+                    restaurados.has(mini.id)
+                      ? undefined
+                      : decisionDeLaSemana(lista, mini.id, estaSemana)
+                  }
+                  ocupado={ocupado}
+                  onDecidir={(tipo) =>
+                    decidir.mutate(
+                      { miniId: mini.id, tipo },
+                      { onSuccess: () => conRestaurado(mini.id, false) },
+                    )
+                  }
+                  onRestaurar={() => conRestaurado(mini.id, true)}
+                />
+              ))}
+            </div>
+          </>
         )}
         {falloAlgo && (
           <p role="alert" className="objetivos-pasos-error">

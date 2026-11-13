@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  cuantoCubren,
   decisionDeLaSemana,
   diaCorto,
   domingoDe,
@@ -12,7 +13,7 @@ import {
   todasLasDecisiones,
   valorDeMini,
 } from '@/lib/objetivosAutogestion';
-import type { DecisionObjetivo } from '@/types/objetivos';
+import type { DecisionObjetivo, MiniObjetivo } from '@/types/objetivos';
 
 const decision = (cambios: Partial<DecisionObjetivo> = {}): DecisionObjetivo => ({
   id: 'd1',
@@ -146,3 +147,42 @@ const miniDePrueba = {
   semanaInicio: '2026-11-09',
   textoConIa: false,
 };
+
+describe('cuantoCubren', () => {
+  const mini = (
+    aporteEstimado: number,
+    estado: MiniObjetivo['estado'] = 'EN_CURSO',
+  ): MiniObjetivo => ({
+    id: `m-${aporteEstimado}-${estado}`,
+    posicion: 1,
+    tipo: 'VENTAS_SEMANALES',
+    sentido: 'SUBE',
+    estado,
+    titulo: 'Vender más',
+    justificacion: '',
+    referencia: null,
+    registroId: null,
+    valorInicial: 0,
+    valorActual: 0,
+    meta: 1,
+    avance: 0,
+    aporteEstimado,
+    semanaInicio: '2026-11-09',
+    textoConIa: false,
+  });
+
+  it('cuenta lo que suman los mini en curso frente a lo que falta', () => {
+    expect(
+      cuantoCubren([mini(25_714), mini(11_999), mini(1_660), mini(9_000, 'LOGRADO')], 972_000),
+    ).toMatch(/sumás cerca de \$39\.373 por mes de los \$972\.000 que te faltan/);
+  });
+
+  it('avisa cuando alcanzan para llegar a la meta', () => {
+    expect(cuantoCubren([mini(30_000), mini(20_000)], 40_000)).toMatch(/alcanza para llegar/);
+  });
+
+  it('sin brecha o sin aporte no dice nada', () => {
+    expect(cuantoCubren([mini(30_000)], 0)).toBeNull();
+    expect(cuantoCubren([mini(0)], 50_000)).toBeNull();
+  });
+});

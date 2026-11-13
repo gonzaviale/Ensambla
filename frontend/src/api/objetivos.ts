@@ -28,6 +28,9 @@ export const crearObjetivo = (objetivo: NuevoObjetivo) =>
 export const eliminarObjetivo = (id: string) =>
   http.delete(`/objetivos/${encodeURIComponent(id)}`, z.undefined());
 
+/** Pide al servidor que mida ya los objetivos del negocio, sin esperar al repaso de cada hora. */
+export const medirObjetivos = () => http.post('/objetivos/medir', undefined, z.undefined());
+
 export const obtenerPasosObjetivo = (signal?: AbortSignal): Promise<ProductoParaPaso[]> =>
   http.get('/objetivos/pasos', productosParaPasosSchema, signal);
 

@@ -26,6 +26,7 @@ class ListarMiniObjetivosResponseTest {
         MiniObjetivo primero = mini(1, EstadoMiniObjetivo.EN_CURSO, AHORA);
         MiniObjetivo reemplazado = mini(3, EstadoMiniObjetivo.REEMPLAZADO, AHORA.minusDays(2));
         MiniObjetivo logrado = mini(3, EstadoMiniObjetivo.LOGRADO, AHORA.minusDays(1));
+        logrado.setReemplazadoPor(MiniObjetivoId.nuevo());
 
         ListarMiniObjetivosResponse result = ListarMiniObjetivosResponse.de(
                 objetivo(), List.of(segundo, reemplazado, primero, logrado));
@@ -33,6 +34,34 @@ class ListarMiniObjetivosResponseTest {
         assertThat(result.minis()).extracting(MiniObjetivoItem::id).containsExactly(primero.getId(), segundo.getId());
         assertThat(result.historial()).extracting(MiniObjetivoItem::id)
                 .containsExactly(logrado.getId(), reemplazado.getId());
+    }
+
+    @Test
+    @DisplayName("Un logrado sigue en su lugar hasta el cierre del domingo y cuenta como ocupado")
+    void deShouldKeepAnAchievedMiniUntilTheWeeklyClose() {
+        MiniObjetivo primero = mini(1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+        MiniObjetivo logrado = mini(2, EstadoMiniObjetivo.LOGRADO, AHORA.minusDays(1));
+        MiniObjetivo tercero = mini(3, EstadoMiniObjetivo.EN_CURSO, AHORA);
+
+        ListarMiniObjetivosResponse result = ListarMiniObjetivosResponse.de(
+                objetivo(), List.of(tercero, logrado, primero));
+
+        assertThat(result.minis()).extracting(MiniObjetivoItem::id)
+                .containsExactly(primero.getId(), logrado.getId(), tercero.getId());
+        assertThat(result.historial()).isEmpty();
+        assertThat(result.faltanDatos()).isNull();
+    }
+
+    @Test
+    @DisplayName("Un logrado cuyo lugar ya ocupa otro en curso queda en la historia")
+    void deShouldMoveAnAchievedMiniToHistoryWhenItsPlaceIsTaken() {
+        MiniObjetivo logrado = mini(1, EstadoMiniObjetivo.LOGRADO, AHORA.minusDays(1));
+        MiniObjetivo nuevo = mini(1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+
+        ListarMiniObjetivosResponse result = ListarMiniObjetivosResponse.de(objetivo(), List.of(logrado, nuevo));
+
+        assertThat(result.minis()).extracting(MiniObjetivoItem::id).containsExactly(nuevo.getId());
+        assertThat(result.historial()).extracting(MiniObjetivoItem::id).containsExactly(logrado.getId());
     }
 
     @Test

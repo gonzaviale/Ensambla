@@ -43,19 +43,10 @@ const decision = (
 });
 
 describe('MiniObjetivoCard', () => {
-  it('muestra qué hacer, por qué, cuánto va y deja decidir, cambiar o quitar', async () => {
+  it('muestra qué hacer, por qué, cuánto va y deja decidir, sin cambiar ni quitar', async () => {
     const onDecidir = vi.fn();
-    const onCambiar = vi.fn();
-    const onQuitar = vi.fn();
     const user = userEvent.setup();
-    render(
-      <MiniObjetivoCard
-        mini={mini}
-        onDecidir={onDecidir}
-        onCambiar={onCambiar}
-        onQuitar={onQuitar}
-      />,
-    );
+    render(<MiniObjetivoCard mini={mini} onDecidir={onDecidir} onRestaurar={vi.fn()} />);
 
     const tarjeta = screen.getByRole('article', { name: 'Vendé $90.000 por semana' });
     expect(within(tarjeta).getByText('Hoy vendés unos $78.000 por semana.')).toBeVisible();
@@ -65,52 +56,68 @@ describe('MiniObjetivoCard', () => {
     expect(within(tarjeta).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
 
     await user.click(screen.getByRole('button', { name: 'Lo hago' }));
-    await user.click(screen.getByRole('button', { name: 'Ahora no' }));
-    await user.click(
-      screen.getByRole('button', { name: 'Cambiar «Vendé $90.000 por semana» por otro' }),
-    );
-    await user.click(screen.getByRole('button', { name: 'Quitar «Vendé $90.000 por semana»' }));
+    await user.click(screen.getByRole('button', { name: 'Dejarlo para después' }));
 
     expect(onDecidir.mock.calls).toEqual([['ACEPTADO'], ['IGNORADO']]);
-    expect(onCambiar).toHaveBeenCalledOnce();
-    expect(onQuitar).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('button', { name: /Cambiar|Quitar/ })).not.toBeInTheDocument();
   });
 
   it('si ya decidió esta semana lo dice en vez de volver a preguntar', () => {
-    const { rerender } = render(
+    render(
       <MiniObjetivoCard
         mini={mini}
         decidido="ACEPTADO"
         onDecidir={vi.fn()}
-        onCambiar={vi.fn()}
-        onQuitar={vi.fn()}
+        onRestaurar={vi.fn()}
       />,
     );
+
     expect(screen.getByRole('status')).toHaveTextContent('Esta semana dijiste que lo hacés');
     expect(screen.queryByRole('button', { name: 'Lo hago' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Restaurar/ })).not.toBeInTheDocument();
+  });
 
-    rerender(
+  it('un mini logrado sigue con su diseño y dice «Meta alcanzada», sin pedir decidir', () => {
+    render(
+      <MiniObjetivoCard
+        mini={{ ...mini, estado: 'LOGRADO', valorActual: 92000, avance: 1 }}
+        onDecidir={vi.fn()}
+        onRestaurar={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('article')).toHaveClass('mini-objetivo');
+    expect(screen.getByText('Meta alcanzada')).toBeVisible();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Meta alcanzada: el domingo Sami te sube la meta o te propone otro',
+    );
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('lo que dejó para después se puede restaurar para volver a decidir', async () => {
+    const onRestaurar = vi.fn();
+    const user = userEvent.setup();
+    render(
       <MiniObjetivoCard
         mini={mini}
         decidido="IGNORADO"
         onDecidir={vi.fn()}
-        onCambiar={vi.fn()}
-        onQuitar={vi.fn()}
+        onRestaurar={onRestaurar}
       />,
     );
+
     expect(screen.getByRole('status')).toHaveTextContent('Lo dejaste para después');
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Restaurar «Vendé $90.000 por semana» para volver a decidir',
+      }),
+    );
+
+    expect(onRestaurar).toHaveBeenCalledOnce();
   });
 
   it('mientras guarda no deja tocar los botones', () => {
-    render(
-      <MiniObjetivoCard
-        mini={mini}
-        ocupado
-        onDecidir={vi.fn()}
-        onCambiar={vi.fn()}
-        onQuitar={vi.fn()}
-      />,
-    );
+    render(<MiniObjetivoCard mini={mini} ocupado onDecidir={vi.fn()} onRestaurar={vi.fn()} />);
 
     screen.getAllByRole('button').forEach((boton) => expect(boton).toBeDisabled());
   });

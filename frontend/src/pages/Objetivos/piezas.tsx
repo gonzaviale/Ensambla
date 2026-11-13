@@ -8,11 +8,14 @@ export function Encabezado({
   titulo,
   texto,
   sami = 'Te explica cada cálculo',
+  samiTitulo = 'Sami está listo',
 }: {
   etiqueta: string;
   titulo: string;
   texto: string;
   sami?: string;
+  /** Qué está haciendo Sami en esta pantalla, en pocas palabras. */
+  samiTitulo?: string;
 }) {
   return (
     <header className="objetivos-encabezado">
@@ -24,7 +27,7 @@ export function Encabezado({
       <div className="objetivos-sami-mini">
         <Sami pose="think" />
         <div>
-          <strong>Sami está listo</strong>
+          <strong>{samiTitulo}</strong>
           <span>{sami}</span>
         </div>
       </div>

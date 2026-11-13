@@ -71,6 +71,13 @@ export const handlersObjetivos = [
     );
     return new HttpResponse(null, { status: 204 });
   }),
+  // Los datos simulados se calculan al pedirlos: medir no tiene nada que guardar.
+  http.post(api('/objetivos/medir'), async ({ request }) => {
+    const { error } = cuenta(request, true);
+    if (error) return error;
+    await delay(LATENCIA_BACKEND_MS);
+    return new HttpResponse(null, { status: 204 });
+  }),
   http.get(api('/objetivos/pasos'), async ({ request }) => {
     const { usuario, error } = cuenta(request);
     if (error) return error;
