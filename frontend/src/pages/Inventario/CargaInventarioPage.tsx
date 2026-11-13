@@ -8,6 +8,7 @@ import { FuentesDelProducto } from '@/components/escaneo/FuentesDelProducto';
 import { FormularioProductoInventario } from '@/components/escaneo/FormularioProductoInventario';
 import { ReposicionProductoInventario } from '@/components/escaneo/ReposicionProductoInventario';
 import { AtribucionCatalogos } from '@/components/escaneo/AtribucionCatalogos';
+import { ConfirmacionCambios } from '@/components/caja/ConfirmacionCambios';
 import { useCargaInventario } from '@/hooks/escaneo/useCargaInventario';
 import { useCamaraCodigo } from '@/hooks/escaneo/useCamaraCodigo';
 import { useDetalleCatalogos } from '@/hooks/escaneo/useDetalleCatalogos';
@@ -208,6 +209,13 @@ export function CargaInventarioPage({
           </>
         )}
       </main>
+      {carga.confirmacion && (
+        <ConfirmacionCambios
+          mensaje={carga.confirmacion}
+          onConservar={carga.conservarCambios}
+          onDescartar={carga.aceptarDescarte}
+        />
+      )}
       {carga.resultado && carga.sugerencia && (
         <FuentesDelProducto
           resultado={carga.resultado}

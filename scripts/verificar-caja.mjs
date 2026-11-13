@@ -77,15 +77,51 @@ async function principal() {
     inventario.rows.find(p=>p.id===coca).price=3000;
     await exigir(cliente,ruta,200,'PUT',recargado);
     assert.deepEqual(await exigir(cliente,'/api/caja/ventas',200,'POST',request),venta,'El precio nuevo cambió el comprobante histórico');
+    const consultaRuta='/api/caja/resumen?'+new URLSearchParams({proyectoId,inventarioId});
+    const anterior=await exigir(cliente,consultaRuta,200);
+    const mixta={...request,id:randomUUID(),medio:'MIXTO',recibido:1500,
+      lineas:[{productoId:coca,cantidad:1,precio:3000,modo:'UNIDAD'}],
+      pagos:[{medio:'EFECTIVO',importe:1000},{medio:'TRANSFERENCIA',importe:2000}]};
+    await exigir(cliente,'/api/caja/ventas',400,'POST',{...mixta,id:randomUUID(),pagos:[{medio:'EFECTIVO',importe:1}]});
+    const comprobanteMixto=await exigir(cliente,'/api/caja/ventas',200,'POST',mixta);
+    assert.equal(comprobanteMixto.vuelto,500);
+    assert.deepEqual(comprobanteMixto.pagos,mixta.pagos);
+    assert.deepEqual(await exigir(cliente,'/api/caja/ventas',200,'POST',mixta),comprobanteMixto);
+    const solicitudCierre={id:randomUUID(),proyectoId,inventarioId,revision:anterior.abierta.revision,
+      fondoInicial:500,entradas:100,retiros:200,contado:8800,nota:'Revisión completa'};
+    await exigir(cliente,'/api/caja/cierres',409,'POST',solicitudCierre);
+    const resumen=await exigir(cliente,consultaRuta,200);
+    assert.equal(resumen.abierta.total,10400);
+    assert.equal(resumen.abierta.efectivo,8400);
+    assert.equal(resumen.abierta.transferencia,2000);
+    assert.equal(resumen.abierta.ventas.length,2);
+    solicitudCierre.revision=resumen.abierta.revision;
+    await exigir(cliente,'/api/caja/cierres',403,'POST',solicitudCierre,false);
+    await exigir(ajeno,'/api/caja/cierres',404,'POST',solicitudCierre);
+    const cierre=await exigir(cliente,'/api/caja/cierres',200,'POST',solicitudCierre);
+    assert.equal(cierre.esperado,8800);assert.equal(cierre.diferencia,0);
+    assert.deepEqual(await exigir(cliente,'/api/caja/cierres',200,'POST',solicitudCierre),cierre);
+    await exigir(ajeno,'/api/caja/cierres/'+cierre.id,404);
+    assert.equal((await exigir(cliente,consultaRuta,200)).abierta.ventas.length,0);
     const ultimo={...request,recibido:null,lineas:[{productoId:pan,cantidad:1.5,precio:4000,modo:'PESO'}]};
     const simultaneas=await Promise.all([cliente.pedir('/api/caja/ventas','POST',{...ultimo,id:randomUUID()}),
       cliente.pedir('/api/caja/ventas','POST',{...ultimo,id:randomUUID()})]);
     assert.deepEqual(simultaneas.map(r=>r.estado).sort(),[200,409]);
+    const posterior=await exigir(cliente,consultaRuta,200);
+    assert.equal(posterior.abierta.ventas.length,1);
+    assert.equal(posterior.cierres[0].total,10400);
+    assert.deepEqual(await exigir(cliente,'/api/caja/cierres/'+cierre.id,200),cierre);
+    assert.deepEqual(await exigir(cliente,'/api/caja/cierres',200,'POST',solicitudCierre),cierre);
+    assert.equal((await exigir(cliente,consultaRuta,200)).abierta.ventas.length,1);
     console.log(JSON.stringify({resultado:'correcto',comprobaciones:[
       'sesión y CSRF reales','venta mixta: dos unidades y medio kilo','total y vuelto',
       'idempotencia persistente','aislamiento por negocio','revalidación de precio y stock',
       'editor anterior rechazado','recarga desde PostgreSQL','precio histórico conservado',
-      'dos cajas compiten por la última existencia: sólo una confirma']},null,2));
+      'dos cajas compiten por la última existencia: sólo una confirma',
+      'pago mixto y vuelto sólo sobre efectivo','resumen por medio de pago sin duplicar ventas',
+      'cierre con recuento y diferencia','revisión obligatoria ante ventas nuevas',
+      'historial inmutable y aislado por negocio','venta posterior en un período nuevo',
+      'reintentar el cierre anterior conserva las ventas posteriores abiertas']},null,2));
   } finally {
     await cliente.pedir(ruta,'DELETE').catch(()=>undefined);
   }

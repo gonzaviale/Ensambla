@@ -11,21 +11,43 @@ import {
 import { codigoGtin, mismoGtin } from '@/lib/escaneo/codigo';
 import { sugerirProducto } from '@/lib/escaneo/catalogos';
 import { useSistemaStore } from '@/stores/sistemaStore';
+import { useConfirmarCambios } from '@/hooks/useConfirmarCambios';
 import type { ErroresFila, Fila, Valor } from '@/lib/sistema/tipos';
 import type { BorradorProductoInventario, ResultadoCatalogos } from '@/types/escaneo';
 
 export function useCargaInventario(sistemaId: string, inventarioId: string) {
+  const cambios = useConfirmarCambios();
+  const confirmarCambio = cambios.confirmar;
+  const usuarioId = useSistemaStore((estado) => estado.usuarioId);
+  const clave = `ensambla:producto-pendiente:${usuarioId}:${sistemaId}:${inventarioId}`;
+  const [recuperado] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(clave) ?? 'null') as {
+        borrador: BorradorProductoInventario;
+        cantidad: string;
+      } | null;
+    } catch {
+      return null;
+    }
+  });
   const sistema = useSistemaStore((estado) =>
     estado.sistemas.find((item) => item.id === sistemaId),
   );
   const pendiente = useSistemaStore((estado) => estado.pendientes.includes(sistemaId));
   const inventario = findBlock(sistema, inventarioId);
   const [codigo, setCodigo] = useState('');
-  const [borrador, setBorrador] = useState<BorradorProductoInventario | null>(null);
+  const [borrador, setBorrador] = useState<BorradorProductoInventario | null>(
+    recuperado?.borrador ?? null,
+  );
   const [resultado, setResultado] = useState<ResultadoCatalogos | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [consultandoReferencia, setConsultandoReferencia] = useState(false);
-  const [cantidadAgregar, setCantidadAgregar] = useState('');
+  const [cantidadAgregar, setCantidadAgregar] = useState(recuperado?.cantidad ?? '');
+  useEffect(() => {
+    if (borrador)
+      localStorage.setItem(clave, JSON.stringify({ borrador, cantidad: cantidadAgregar }));
+    else localStorage.removeItem(clave);
+  }, [clave, borrador, cantidadAgregar]);
   const [unidadesAgregadas, setUnidadesAgregadas] = useState<number | null>(null);
   const [errores, setErrores] = useState<ErroresFila>({});
   const [mensaje, setMensaje] = useState('');
@@ -71,10 +93,18 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
     [],
   );
   useBlocker({
-    shouldBlockFn: () =>
-      !!borrador &&
-      !window.confirm('Hay un producto sin guardar. ¿Querés salir y descartar esta carga?'),
-    enableBeforeUnload: !!borrador,
+    shouldBlockFn: async () => {
+      if (!borrador) return false;
+      const salir = await cambios.confirmar(
+        'Hay un producto sin guardar. Si salís, se descartará esta carga.',
+      );
+      if (salir) {
+        localStorage.removeItem(clave);
+        setBorrador(null);
+      }
+      return !salir;
+    },
+    enableBeforeUnload: false,
   });
 
   const detener = () => {
@@ -84,6 +114,7 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
     setConsultandoReferencia(false);
   };
   const limpiar = () => {
+    localStorage.removeItem(clave);
     setBorrador(null);
     setResultado(null);
     setCodigo('');
@@ -102,7 +133,9 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
       }
       if (
         borrador &&
-        !window.confirm('Hay un producto sin guardar. ¿Querés descartarlo y buscar otro código?')
+        !(await confirmarCambio(
+          'Hay un producto sin guardar. Buscar otro código descartará esta carga.',
+        ))
       )
         return;
       consulta.current?.abort();
@@ -130,7 +163,7 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
         const sugerencia = sugerirProducto(encontrados);
         if (!propio && sugerencia.nombre)
           setBorrador((actual) =>
-            actual
+            actual && !String(actual.valores.name ?? '').trim()
               ? { ...actual, valores: { ...actual.valores, name: sugerencia.nombre } }
               : actual,
           );
@@ -150,7 +183,7 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
         }
       }
     },
-    [inventario, borrador],
+    [inventario, borrador, confirmarCambio],
   );
 
   const guardar = () => {
@@ -192,6 +225,9 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
   };
   return {
     sistema,
+    confirmacion: cambios.confirmacion,
+    aceptarDescarte: cambios.aceptar,
+    conservarCambios: cambios.conservar,
     inventario,
     pendiente,
     codigo,
@@ -268,7 +304,12 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
       setBorrador(nuevo);
       setErrores({});
     },
-    cancelar: () => {
+    cancelar: async () => {
+      if (
+        borrador &&
+        !(await cambios.confirmar('Esta carga todavía no se guardó en el inventario.'))
+      )
+        return;
       detener();
       limpiar();
       setUltimo(null);
@@ -276,12 +317,12 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
       setRetomarLectura((revision) => revision + 1);
       setMensaje('Carga descartada. El inventario conserva sus datos.');
     },
-    otraLectura: () => {
+    otraLectura: async () => {
       if (
         borrador &&
-        !window.confirm(
-          'Hay una carga sin confirmar. ¿Querés descartarla y escanear otro producto?',
-        )
+        !(await cambios.confirmar(
+          'Hay una carga sin confirmar. Escanear otro producto descartará estos datos.',
+        ))
       )
         return;
       detener();

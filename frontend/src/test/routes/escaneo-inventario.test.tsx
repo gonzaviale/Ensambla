@@ -192,6 +192,7 @@ describe('carga exclusiva de productos en inventario', () => {
     expect(screen.queryByRole('region', { name: 'Lector de códigos' })).toBeNull();
     cambiar('Unidades a agregar', '99');
     await user.click(screen.getByRole('button', { name: 'Descartar carga' }));
+    await user.click(await screen.findByRole('button', { name: 'Descartar y continuar' }));
     expect(
       allBlocks(actual()).find((bloque) => bloque.id === inventario.id)?.rows[0]?.quantity,
     ).toBe(10);
@@ -243,19 +244,15 @@ describe('carga exclusiva de productos en inventario', () => {
     const { user } = await abrir();
     await buscar(user, '77903754');
     cambiar('Unidades a agregar', '2');
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
-    try {
-      await user.click(screen.getByRole('button', { name: 'Escanear otro producto' }));
-      expect(screen.getByRole('spinbutton', { name: 'Unidades a agregar' })).toHaveValue(2);
-      expect(screen.queryByRole('region', { name: 'Lector de códigos' })).toBeNull();
-      confirmar.mockReturnValue(true);
-      await user.click(screen.getByRole('button', { name: 'Escanear otro producto' }));
-      expect(screen.getByRole('region', { name: 'Lector de códigos' })).toBeVisible();
-      expect(screen.queryByRole('region', { name: 'Sumar al stock' })).toBeNull();
-      expect(screen.getByRole('textbox', { name: 'Código de barras' })).toHaveValue('');
-    } finally {
-      confirmar.mockRestore();
-    }
+    await user.click(screen.getByRole('button', { name: 'Escanear otro producto' }));
+    await user.click(await screen.findByRole('button', { name: 'Seguir editando' }));
+    expect(screen.getByRole('spinbutton', { name: 'Unidades a agregar' })).toHaveValue(2);
+    expect(screen.queryByRole('region', { name: 'Lector de códigos' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Escanear otro producto' }));
+    await user.click(await screen.findByRole('button', { name: 'Descartar y continuar' }));
+    expect(screen.getByRole('region', { name: 'Lector de códigos' })).toBeVisible();
+    expect(screen.queryByRole('region', { name: 'Sumar al stock' })).toBeNull();
+    expect(screen.getByRole('textbox', { name: 'Código de barras' })).toHaveValue('');
   });
 
   it('conserva la descripción propia y permite reponer aunque el catálogo no responda', async () => {
@@ -351,16 +348,14 @@ describe('carga exclusiva de productos en inventario', () => {
   it('volver al inventario protege el borrador y abre su tabla cuando se confirma salir', async () => {
     const { user, router, destino } = await abrir();
     await buscar(user, '77903754');
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
     await user.click(screen.getByRole('button', { name: 'Volver al inventario' }));
-    expect(confirmar).toHaveBeenCalledOnce();
+    await user.click(await screen.findByRole('button', { name: 'Seguir editando' }));
     expect(router.state.location.search).toMatchObject({ escanear: destino.id });
     expect(screen.getByRole('region', { name: 'Sumar al stock' })).toBeVisible();
-    confirmar.mockReturnValue(true);
     await user.click(screen.getByRole('button', { name: 'Volver al inventario' }));
+    await user.click(await screen.findByRole('button', { name: 'Descartar y continuar' }));
     await screen.findByRole('dialog', { name: destino.name });
     expect(router.state.location.search.escanear).toBeUndefined();
-    confirmar.mockRestore();
   });
   it('usa la tabla elegida y no da de alta en el primer inventario del cuaderno', async () => {
     sinCoincidencias('3017620422003');
