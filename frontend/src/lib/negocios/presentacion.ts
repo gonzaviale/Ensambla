@@ -1,5 +1,7 @@
-// Cómo se dice cada negocio de la cuenta en pantalla (ENS-284). Las formas siguen el contrato de
-// `GET /api/negocios/resumen` (docs/api-negocios.md); cuando lleguen los tipos de T-194 son las mismas.
+import type { ResumenDeNegocio } from '@/types/negocios';
+
+// Cómo se dice cada negocio de la cuenta en pantalla (ENS-284). Los datos salen de `GET /api/negocios/resumen`
+// (docs/negocios-de-la-cuenta.md).
 
 export type EstadoDelNegocio = 'BIEN' | 'ATENCION' | 'SIN_DATOS';
 
@@ -17,6 +19,24 @@ export const ESTADO_DEL_NEGOCIO: Record<EstadoDelNegocio, string> = {
   ATENCION: 'Atención',
   SIN_DATOS: 'Sin ventas',
 };
+
+/** Sin ventas en el período no hay con qué juzgarlo; si lo que queda es negativo, pide atención. */
+export const estadoDelNegocio = ({
+  hayDatos,
+  queda,
+}: Pick<ResumenDeNegocio, 'hayDatos' | 'queda'>): EstadoDelNegocio => {
+  if (!hayDatos) return 'SIN_DATOS';
+  return queda !== null && queda < 0 ? 'ATENCION' : 'BIEN';
+};
+
+/** Lo que el pop-up necesita de cada negocio del resumen conjunto; los montos quedan afuera. */
+export const paraElegir = (resumen: ResumenDeNegocio): NegocioParaElegir => ({
+  id: resumen.id,
+  nombre: resumen.nombre,
+  rubro: resumen.rubro,
+  avisosPendientes: resumen.avisosPendientes,
+  estado: estadoDelNegocio(resumen),
+});
 
 export const textoDeAvisos = (cantidad: number) => {
   if (cantidad === 0) return 'Sin avisos pendientes';

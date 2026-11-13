@@ -4,8 +4,7 @@ import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
-import com.ensambla.backend.domain.model.objetivo.ComoVieneElNegocio;
-import com.ensambla.backend.domain.model.reporte.DatosDeProyecto;
+import com.ensambla.backend.domain.model.reporte.PanelNegocio;
 import com.ensambla.backend.domain.model.reporte.PeriodoResumen;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
@@ -20,10 +19,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * El resumen conjunto de la cuenta: todos los negocios del usuario, cada uno con las mismas cuentas que «Cómo viene
- * tu negocio» (los últimos 30 días) y sus avisos pendientes. No depende del negocio activo. Los datos se cargan
- * negocio por negocio, como en «Cómo viene tu negocio», porque el plan limita la cuenta a pocos negocios; los avisos
- * se cuentan de una vez para todos.
+ * El resumen conjunto de la cuenta ({@code GET /api/negocios/resumen}, ver {@code docs/negocios-de-la-cuenta.md}):
+ * todos los negocios del usuario, cada uno con las métricas del panel de la home sumadas sobre sus sistemas y sus
+ * avisos pendientes. Los datos se cargan negocio por negocio, porque el plan limita la cuenta a pocos negocios; los
+ * avisos se cuentan de una vez para todos. El activo es el negocio con el que trabaja la sesión.
  */
 @RequiredArgsConstructor
 public class ObtenerResumenDeLaCuenta {
@@ -40,20 +39,24 @@ public class ObtenerResumenDeLaCuenta {
 
     public ObtenerResumenDeLaCuentaResponse execute(ObtenerResumenDeLaCuentaRequest request) {
         LocalDate hoy = ZonaNegocio.dia(OffsetDateTime.now(clock));
+        PeriodoResumen periodo = PeriodoResumen.ultimosDias(request.dias(), hoy);
+        NegocioId activoId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
         List<Negocio> negocios = negocioRepository.findAllByDuenioId(request.usuarioId());
         Map<NegocioId, Long> pendientes = avisoRepository.contarPorNegocio(
                 negocios.stream().map(Negocio::getId).toList(), EstadoAviso.PENDIENTE);
         List<NegocioResumido> resumidos = negocios.stream()
-                .map(negocio -> resumir(negocio, hoy, pendientes.getOrDefault(negocio.getId(), 0L)))
+                .map(negocio -> NegocioResumido.de(
+                        negocio,
+                        negocio.getId().equals(activoId),
+                        paneles(negocio, periodo, hoy),
+                        pendientes.getOrDefault(negocio.getId(), 0L)))
                 .toList();
-        return ObtenerResumenDeLaCuentaResponse.de(
-                PeriodoResumen.ultimosDias(ComoVieneElNegocio.DIAS_DEL_PERIODO, hoy), resumidos);
+        return ObtenerResumenDeLaCuentaResponse.de(periodo, resumidos);
     }
 
-    private NegocioResumido resumir(Negocio negocio, LocalDate hoy, long avisosPendientes) {
-        List<DatosDeProyecto> datos = sistemaRepository.findAllByNegocioId(negocio.getId()).stream()
-                .map(datosDeProyectoService::cargar)
+    private List<PanelNegocio> paneles(Negocio negocio, PeriodoResumen periodo, LocalDate hoy) {
+        return sistemaRepository.findAllByNegocioId(negocio.getId()).stream()
+                .map(sistema -> PanelNegocio.armar(datosDeProyectoService.cargar(sistema), periodo, hoy))
                 .toList();
-        return NegocioResumido.de(negocio, ComoVieneElNegocio.armar(datos, hoy), avisosPendientes);
     }
 }

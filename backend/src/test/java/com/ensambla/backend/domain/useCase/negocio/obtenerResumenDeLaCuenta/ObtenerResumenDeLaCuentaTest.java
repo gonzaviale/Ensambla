@@ -1,8 +1,8 @@
 package com.ensambla.backend.domain.useCase.negocio.obtenerResumenDeLaCuenta;
 
+import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.aviso.BloqueVentas;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
-import com.ensambla.backend.domain.model.negocio.EstadoDelNegocio;
 import com.ensambla.backend.domain.model.negocio.Negocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.negocio.RubroNegocio;
@@ -29,8 +29,10 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class ObtenerResumenDeLaCuentaTest {
@@ -52,35 +54,74 @@ class ObtenerResumenDeLaCuentaTest {
             Clock.fixed(INSTANTE, ZoneOffset.UTC));
 
     @Test
-    @DisplayName("Resume cada negocio del dueño con sus ventas de los 30 días que terminan hoy, en hora argentina")
+    @DisplayName("Resume cada negocio del dueño con las métricas del panel de los 30 días que terminan hoy, en hora "
+            + "argentina")
     void executeShouldSummarizeEveryBusinessOfTheOwnerInArgentineTime() {
         givenNegocios();
         givenVentas(ALMACEN_ID, venta(2, "2026-10-19"), venta(9, "2026-10-20"), venta(9, "2026-09-19"));
         givenVentas(KIOSCO_ID);
         givenPendientes(Map.of(ALMACEN_ID, 3L));
 
-        ObtenerResumenDeLaCuentaResponse response = whenObtener();
+        ObtenerResumenDeLaCuentaResponse response = whenObtener(null);
 
-        assertThat(response.periodo().desde()).isEqualTo(LocalDate.of(2026, 9, 20));
-        assertThat(response.periodo().hasta()).isEqualTo(LocalDate.of(2026, 10, 19));
+        assertThat(response.desde()).isEqualTo(LocalDate.of(2026, 9, 20));
+        assertThat(response.hasta()).isEqualTo(LocalDate.of(2026, 10, 19));
+        assertThat(response.dias()).isEqualTo(30);
         assertThat(response.negocios()).extracting(NegocioResumido::id).containsExactly(ALMACEN_ID, KIOSCO_ID);
         thenAlmacenVendioDosYerbas(response.negocios().getFirst());
     }
 
     @Test
-    @DisplayName("Un negocio sin ventas ni avisos queda sin datos, con todo en cero")
-    void executeShouldReturnSinDatosForABusinessWithoutSalesOrAvisos() {
+    @DisplayName("Marca como activo sólo al negocio con el que trabaja la sesión")
+    void executeShouldMarkOnlyTheSessionBusinessAsActive() {
+        givenNegocios();
+        givenVentas(ALMACEN_ID);
+        givenVentas(KIOSCO_ID);
+        givenPendientes(Map.of());
+
+        ObtenerResumenDeLaCuentaResponse response = whenObtener(null);
+
+        assertThat(response.negocios()).extracting(NegocioResumido::activo).containsExactly(true, false);
+    }
+
+    @Test
+    @DisplayName("Un negocio sin ventas en el período no tiene datos, pero conserva sus avisos pendientes")
+    void executeShouldReturnNoDataForABusinessWithoutSales() {
         givenNegocios();
         givenVentas(ALMACEN_ID, venta(1, "2026-10-19"));
         givenVentas(KIOSCO_ID);
-        givenPendientes(Map.of(ALMACEN_ID, 3L));
+        givenPendientes(Map.of(KIOSCO_ID, 2L));
 
-        NegocioResumido kiosco = whenObtener().negocios().getLast();
+        NegocioResumido kiosco = whenObtener(null).negocios().getLast();
 
-        assertThat(kiosco.ventas()).isZero();
-        assertThat(kiosco.margen()).isZero();
-        assertThat(kiosco.avisosPendientes()).isZero();
-        assertThat(kiosco.estado()).isEqualTo(EstadoDelNegocio.SIN_DATOS);
+        assertThat(kiosco.hayDatos()).isFalse();
+        assertThat(kiosco.vendiste()).isNull();
+        assertThat(kiosco.queda()).isNull();
+        assertThat(kiosco.avisosPendientes()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("Mira sólo los días pedidos")
+    void executeShouldOnlyLookAtTheRequestedDays() {
+        givenNegocios();
+        givenVentas(ALMACEN_ID, venta(1, "2026-10-19"), venta(5, "2026-10-12"));
+        givenVentas(KIOSCO_ID);
+        givenPendientes(Map.of());
+
+        ObtenerResumenDeLaCuentaResponse response = whenObtener(7);
+
+        assertThat(response.desde()).isEqualTo(LocalDate.of(2026, 10, 13));
+        assertThat(response.dias()).isEqualTo(7);
+        assertThat(response.negocios().getFirst().vendiste()).isEqualByComparingTo("3400");
+    }
+
+    @Test
+    @DisplayName("Una cantidad de días fuera de rango se rechaza sin cargar ningún negocio")
+    void executeShouldRejectDaysOutOfRangeWithoutLoadingAnything() {
+        assertThatThrownBy(() -> whenObtener(367)).isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> whenObtener(0)).isInstanceOf(BusinessRuleException.class);
+
+        verifyNoInteractions(negocioRepository, sistemaRepository, avisoRepository);
     }
 
     @Test
@@ -91,29 +132,31 @@ class ObtenerResumenDeLaCuentaTest {
         givenVentas(KIOSCO_ID);
         givenPendientes(Map.of(ALMACEN_ID, 3L, KIOSCO_ID, 2L));
 
-        ObtenerResumenDeLaCuentaResponse response = whenObtener();
+        ObtenerResumenDeLaCuentaResponse response = whenObtener(null);
 
         verify(avisoRepository).contarPorNegocio(List.of(ALMACEN_ID, KIOSCO_ID), EstadoAviso.PENDIENTE);
-        assertThat(response.totales().avisosPendientes()).isEqualTo(5);
+        assertThat(response.total().avisosPendientes()).isEqualTo(5);
     }
 
     @Test
-    @DisplayName("Suma en los totales lo de todos los negocios")
-    void executeShouldAddUpTheTotalsOfEveryBusiness() {
+    @DisplayName("Suma en el total lo de todos los negocios")
+    void executeShouldAddUpTheTotalOfEveryBusiness() {
         givenNegocios();
         givenVentas(ALMACEN_ID, venta(2, "2026-10-19"));
         givenVentas(KIOSCO_ID, venta(1, "2026-10-18"));
         givenPendientes(Map.of());
 
-        ObtenerResumenDeLaCuentaResponse response = whenObtener();
+        ObtenerResumenDeLaCuentaResponse.Total total = whenObtener(null).total();
 
-        assertThat(response.totales().ventas()).isEqualTo(10200);
-        assertThat(response.totales().margen()).isEqualTo(2100);
-        assertThat(response.totales().avisosPendientes()).isZero();
+        assertThat(total.negocios()).isEqualTo(2);
+        assertThat(total.vendiste()).isEqualByComparingTo("10200");
+        assertThat(total.queda()).isEqualByComparingTo("10200");
+        assertThat(total.avisosPendientes()).isZero();
     }
 
     // --- arrange ---
     private void givenNegocios() {
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(ALMACEN_ID);
         when(negocioRepository.findAllByDuenioId(USUARIO_ID)).thenReturn(List.of(
                 negocio(ALMACEN_ID, "Almacén Don Pepe", RubroNegocio.ALMACEN),
                 negocio(KIOSCO_ID, "Kiosco de la esquina", RubroNegocio.KIOSCO)));
@@ -134,18 +177,21 @@ class ObtenerResumenDeLaCuentaTest {
     }
 
     // --- act ---
-    private ObtenerResumenDeLaCuentaResponse whenObtener() {
-        return obtenerResumenDeLaCuenta.execute(new ObtenerResumenDeLaCuentaRequest(USUARIO_ID));
+    private ObtenerResumenDeLaCuentaResponse whenObtener(Integer dias) {
+        return obtenerResumenDeLaCuenta.execute(new ObtenerResumenDeLaCuentaRequest(USUARIO_ID, dias));
     }
 
     // --- assert ---
+    /** Sin tabla de gastos ni de entradas lo que queda es todo lo cobrado, y los gastos no se conocen. */
     private static void thenAlmacenVendioDosYerbas(NegocioResumido almacen) {
         assertThat(almacen.nombre()).isEqualTo("Almacén Don Pepe");
         assertThat(almacen.rubro()).isEqualTo(RubroNegocio.ALMACEN);
-        assertThat(almacen.ventas()).isEqualTo(6800);
-        assertThat(almacen.margen()).isEqualTo(1400);
+        assertThat(almacen.hayDatos()).isTrue();
+        assertThat(almacen.vendiste()).isEqualByComparingTo("6800");
+        assertThat(almacen.gastos()).isNull();
+        assertThat(almacen.queda()).isEqualByComparingTo("6800");
+        assertThat(almacen.teDeben()).isZero();
         assertThat(almacen.avisosPendientes()).isEqualTo(3);
-        assertThat(almacen.estado()).isEqualTo(EstadoDelNegocio.BIEN);
     }
 
     // --- helpers ---
