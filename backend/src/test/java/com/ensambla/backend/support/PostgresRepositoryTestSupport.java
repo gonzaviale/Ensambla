@@ -13,7 +13,7 @@ public abstract class PostgresRepositoryTestSupport {
 
     // Contenedor compartido por estas clases durante la JVM; Ryuk lo elimina al finalizar.
     private static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
-            DockerImageName.parse("postgres:17-alpine"));
+            DockerImageName.parse("postgres:17-alpine")).withUrlParam("sslmode", "disable");
 
     static {
         POSTGRES.start();

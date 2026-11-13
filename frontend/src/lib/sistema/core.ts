@@ -207,6 +207,8 @@ export function upsertRow(
   filaId: string | null = null,
   sistema: Sistema,
 ): ResultadoFila {
+  if (filaId && bloque.rows.find(fila => fila.id === filaId)?.__source?.startsWith('Caja '))
+    return { errors: { _form: 'Esta venta se confirmó en Caja y conserva su comprobante.' } };
   const valores = resolveValues(bloque, valoresIniciales, sistema);
   const errores = validateRow(bloque, valores, sistema, filaId);
   if (Object.keys(errores).length) return { errors: errores };
@@ -420,6 +422,8 @@ export function removeRow(
   filaId: string,
   sistema: Sistema,
 ): { removed: true; errors?: never } | { errors: ErroresFila; removed?: never } {
+  if (bloque.rows.find(fila => fila.id === filaId)?.__source?.startsWith('Caja '))
+    return { errors: { _form: 'Esta venta se confirmó en Caja y conserva su comprobante.' } };
   const plan = movementPlan(bloque, {}, filaId, sistema, true);
   if (Object.keys(plan.errors).length) return { errors: plan.errors };
   // Quitar un movimiento de ejemplo no vuelve real al producto que tocó: sólo adopta el que usó un movimiento real.

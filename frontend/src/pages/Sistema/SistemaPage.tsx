@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { CargaInventarioPage } from '@/pages/Inventario/CargaInventarioPage';
 import { getRouteApi, useNavigate } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
@@ -55,6 +56,7 @@ function guardarPiezasFijas(fijada: boolean) {
 // secciones y el inspector sin cambiar de pantalla.
 export function SistemaPage() {
   const { sistemaId } = ruta.useParams();
+  const { escanear } = ruta.useSearch();
   const navigate = useNavigate();
   const navegacion = useNavegacion();
 
@@ -92,6 +94,7 @@ export function SistemaPage() {
 
   // Atajos: Esc deselecciona o cierra el catálogo del celular; Ctrl/Cmd+Z deshace.
   useEffect(() => {
+    if (escanear) return;
     const alTeclear = (evento: KeyboardEvent) => {
       if (useSistemaStore.getState().modal) return;
       if (evento.key === 'Escape') {
@@ -109,9 +112,18 @@ export function SistemaPage() {
     };
     document.addEventListener('keydown', alTeclear);
     return () => document.removeEventListener('keydown', alTeclear);
-  }, [seleccionar]);
+  }, [escanear, seleccionar]);
 
   if (!existe || !sistema || activoId !== sistemaId || !seccion) return null;
+
+  if (escanear)
+    return (
+      <CargaInventarioPage
+        key={`${sistema.id}-${escanear}`}
+        sistemaId={sistema.id}
+        inventarioId={escanear}
+      />
+    );
 
   const hayEjemplos = allBlocks(sistema).some((bloque) =>
     bloque.rows.some((fila) => fila.__example),
@@ -261,6 +273,11 @@ export function SistemaPage() {
                   onArrastrar={arrastre.alArrastrar}
                   onFinArrastre={arrastre.limpiar}
                   onTirador={arrastre.alTirador}
+                  onEscanear={
+                    bloque.type === 'inventory'
+                      ? () => void navegacion.irAEscaneoInventario(sistema.id, bloque.id)
+                      : undefined
+                  }
                 />
               ))
             ) : (
@@ -313,7 +330,16 @@ export function SistemaPage() {
       </main>
       <SamiFlotante sistemaId={sistema.id} />
       {tablaCompleta && (
-        <TablaCompleta key={tablaCompleta.id} bloque={tablaCompleta} sistema={sistema} />
+        <TablaCompleta
+          key={tablaCompleta.id}
+          bloque={tablaCompleta}
+          sistema={sistema}
+          onEscanear={
+            tablaCompleta.type === 'inventory'
+              ? () => void navegacion.irAEscaneoInventario(sistema.id, tablaCompleta.id)
+              : undefined
+          }
+        />
       )}
     </>
   );

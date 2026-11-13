@@ -1,0 +1,10 @@
+:80 {
+	# Cloudflare termina HTTPS. No aceptar sesiones por la URL pública HTTP.
+	@http header X-Forwarded-Proto http
+	redir @http https://{host}{uri} 308
+
+	reverse_proxy web:80 {
+		# La PC conserva su acceso HTTP local; el teléfono recibe cookies Secure.
+		header_down Set-Cookie "^(.+)$" "$1; Secure"
+	}
+}

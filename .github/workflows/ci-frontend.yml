@@ -3,24 +3,55 @@ name: CI frontend (lint, tipos, tests y build)
 on:
   push:
     branches: [dev, stg, main]
-    paths: ["frontend/**", ".github/workflows/ci-frontend.yml"]
+    paths: ["backend/**", "frontend/**", "deploy/**", "compose.yaml", "scripts/verificar-integracion.mjs", "scripts/verificar-caja.mjs", ".github/workflows/ci-frontend.yml"]
   pull_request:
     branches: [dev, stg, main]
-    paths: ["frontend/**", ".github/workflows/ci-frontend.yml"]
+    paths: ["backend/**", "frontend/**", "deploy/**", "compose.yaml", "scripts/verificar-integracion.mjs", "scripts/verificar-caja.mjs", ".github/workflows/ci-frontend.yml"]
 
 jobs:
+  integracion:
+    name: ci-integracion
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Levantar frontend estático, backend y PostgreSQL
+        run: docker compose up --build -d --wait --wait-timeout 180
+      - name: Verificar sesión, catálogo, persistencia y aislamiento
+        run: node scripts/verificar-integracion.mjs --reiniciar-backend
+      - name: Verificar cobros, stock, reintentos y concurrencia de Caja
+        run: node scripts/verificar-caja.mjs
+      - name: Registros
+        if: failure()
+        run: docker compose logs --no-color
+      - name: Limpiar el entorno efímero de CI
+        if: always()
+        run: docker compose down --volumes
+
   frontend:
     name: ci-frontend
+    needs: integracion
+    # Un job omitido puede satisfacer un check requerido. Ejecutar el gate también si falla su dependencia.
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend
     steps:
+      - name: Exigir que la integración real haya pasado
+        working-directory: ${{ github.workspace }}
+        env:
+          ESTADO_INTEGRACION: ${{ needs.integracion.result }}
+        run: test "$ESTADO_INTEGRACION" = success
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 

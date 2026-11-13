@@ -49,6 +49,7 @@ type BloqueEnLienzoProps = {
   onArrastrar: (evento: DragEvent<HTMLElement>, carga: CargaDeArrastre) => void;
   onFinArrastre: () => void;
   onTirador: (evento: PointerEvent<HTMLButtonElement>, bloque: Bloque, nodo: HTMLElement) => void;
+  onEscanear?: () => void;
 };
 
 const ENCABEZADOS_BAJOS_STOCK = 'low-stock';
@@ -251,6 +252,7 @@ export function BloqueEnLienzo({
   onArrastrar,
   onFinArrastre,
   onTirador,
+  onEscanear,
 }: BloqueEnLienzoProps) {
   const definicion = CATALOG[bloque.type];
   const seleccionar = useSistemaStore((estado) => estado.seleccionar);
@@ -360,7 +362,7 @@ export function BloqueEnLienzo({
         </>
       ) : (
         <>
-          <div className="block-bar">
+          <div className={`block-bar ${onEscanear ? 'con-escaneo' : ''}`.trim()}>
             <label className="searchbox">
               <Icon name="search" />
               <input
@@ -373,6 +375,11 @@ export function BloqueEnLienzo({
               />
             </label>
             <span className="record-count">{bloque.rows.length} registros</span>
+            {onEscanear && (
+              <Btn cls="primary small" onClick={onEscanear}>
+                <Icon name="camera" /> Escanear productos
+              </Btn>
+            )}
             <IconBtn
               name="expand"
               label={`Ver ${bloque.name} a pantalla completa`}

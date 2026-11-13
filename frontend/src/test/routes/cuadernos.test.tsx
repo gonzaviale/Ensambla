@@ -37,7 +37,7 @@ describe('mis cuadernos', () => {
   it('marca «Mis cuadernos» en el navbar', async () => {
     await abrirCuadernos();
     const nav = screen.getByRole('navigation', { name: 'Principal' });
-    expect(within(nav).getByRole('button', { name: 'Mis cuadernos' })).toHaveClass('active');
+    expect(within(nav).getByRole('button', { name: 'Mi Negocio' })).toHaveClass('active');
   });
 
   it('lista los cuadernos guardados y abre uno', async () => {

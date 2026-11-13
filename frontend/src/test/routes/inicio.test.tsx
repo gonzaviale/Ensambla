@@ -52,7 +52,7 @@ describe('inicio', () => {
     const { user, router } = await abrirInicio(true);
     expect(screen.queryByRole('button', { name: /Mi almacén/ })).toBeNull();
 
-    await clickButton(user, 'Mis cuadernos');
+    await clickButton(user, 'Mi Negocio');
 
     await verifyPathAsync(router, '/cuadernos');
     expect(
@@ -70,7 +70,7 @@ describe('inicio', () => {
       'aria-expanded',
       'true',
     );
-    await clickButton(user, 'Mis cuadernos');
+    await clickButton(user, 'Mi Negocio');
 
     await verifyPathAsync(router, '/cuadernos');
     expect(screen.getByRole('button', { name: 'Abrir el menú' })).toHaveAttribute(
