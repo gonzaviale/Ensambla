@@ -7,6 +7,7 @@ import type { ObjetivoDelServidor } from '@/types/objetivos';
 import { pruebaPremiumSchema, type PruebaPremium } from '@/types/planes';
 import { handlersPara } from './handlers';
 import { sembrarDemoCargada } from './db/demoCargada';
+import type { NegociosDeLaCuenta } from './db/negocios';
 import { estado, sembrarUsuario } from './db/estado';
 import { interceptarFetch } from './interceptarFetch';
 
@@ -16,6 +17,7 @@ type Guardado = {
   sistemas: Record<string, Sistema[]>;
   preferencias: Record<string, Preferencias>;
   negocios: Record<string, ConfiguracionNegocio>;
+  negociosDeLaCuenta?: Record<string, NegociosDeLaCuenta>;
   pruebasPremium: Record<string, PruebaPremium>;
   contenidosDesbloqueados?: Record<string, string[]>;
   objetivos?: Record<string, ObjetivoDelServidor[]>;
@@ -35,6 +37,7 @@ function restaurar() {
     estado.preferencias = new Map(Object.entries(guardado.preferencias ?? {}));
     estado.objetivos = new Map(Object.entries(guardado.objetivos ?? {}));
     estado.negocios = new Map(Object.entries(guardado.negocios ?? {}));
+    estado.negociosDeLaCuenta = new Map(Object.entries(guardado.negociosDeLaCuenta ?? {}));
     estado.pruebasPremium = new Map(
       Object.entries(guardado.pruebasPremium ?? {}).flatMap(([email, valor]) => {
         const prueba = pruebaPremiumSchema.safeParse(valor);
@@ -53,6 +56,7 @@ function conservar() {
       preferencias: Object.fromEntries(estado.preferencias),
       objetivos: Object.fromEntries(estado.objetivos),
       negocios: Object.fromEntries(estado.negocios),
+      negociosDeLaCuenta: Object.fromEntries(estado.negociosDeLaCuenta),
       pruebasPremium: Object.fromEntries(estado.pruebasPremium),
       contenidosDesbloqueados: Object.fromEntries(estado.contenidosDesbloqueados),
     };

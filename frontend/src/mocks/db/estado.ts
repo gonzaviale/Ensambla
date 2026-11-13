@@ -2,6 +2,7 @@ import type { Sistema } from '@/lib/sistema/tipos';
 import type { AvisoDelServidor } from '@/types/avisos';
 import type { ConfiguracionNegocio } from '@/types/negocio';
 import type { ObjetivoDelServidor } from '@/types/objetivos';
+import type { NegociosDeLaCuenta } from './negocios';
 import type { DatosAutogestion } from './objetivosAutogestionados';
 import type { PruebaPremium } from '@/types/planes';
 import type { VerificacionWhatsapp, VinculoWhatsapp } from '@/types/whatsapp';
@@ -26,6 +27,8 @@ type Estado = {
   sistemas: Map<string, Sistema[]>;
   preferencias: Map<string, Preferencias>;
   negocios: Map<string, ConfiguracionNegocio>;
+  /** Los negocios de cada cuenta (por email) y cuál está activo; el primero se crea al pedirlos por primera vez. */
+  negociosDeLaCuenta: Map<string, NegociosDeLaCuenta>;
   /** Los avisos que el motor del servidor dejó a cada cuenta (por email); los tests los siembran. */
   avisosDelServidor: Map<string, AvisoDelServidor[]>;
   /** Los objetivos de cada cuenta (por email), del más viejo al más nuevo. */
@@ -47,6 +50,7 @@ export const estado: Estado = {
   sistemas: new Map(),
   preferencias: new Map(),
   negocios: new Map(),
+  negociosDeLaCuenta: new Map(),
   avisosDelServidor: new Map(),
   objetivos: new Map(),
   autogestion: new Map(),
@@ -63,6 +67,7 @@ export function reiniciarEstado() {
   estado.sistemas = new Map();
   estado.preferencias = new Map();
   estado.negocios = new Map();
+  estado.negociosDeLaCuenta = new Map();
   estado.avisosDelServidor = new Map();
   estado.objetivos = new Map();
   estado.autogestion = new Map();

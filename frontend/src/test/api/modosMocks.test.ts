@@ -14,6 +14,18 @@ describe('API simulada según VITE_API_MOCKS', () => {
     );
     expect(rutas('parcial').filter((ruta) => ruta.includes('/planes'))).toEqual([]);
   });
+  it('los negocios de la cuenta sólo se simulan en el modo completo', () => {
+    expect(rutas('completo')).toEqual(
+      expect.arrayContaining([
+        'GET /negocios',
+        'POST /negocios',
+        'PUT /negocios/:id/activo',
+        'DELETE /negocios/:id',
+        'GET /negocios/resumen',
+      ]),
+    );
+    expect(rutas('parcial').filter((ruta) => ruta.includes('/negocios'))).toEqual([]);
+  });
   it('en modo completo simula la sesión y los sistemas', () => {
     expect(rutas('completo')).toEqual(
       expect.arrayContaining([
