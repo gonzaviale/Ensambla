@@ -34,6 +34,12 @@ public class VentaCajaEntity {
     @Column(name = "proyecto_id", nullable = false, updatable = false)
     private UUID proyectoId;
 
+    @Column(name = "inventario_id", nullable = false, updatable = false)
+    private UUID inventarioId;
+
+    @Column(name = "cierre_id")
+    private UUID cierreId;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb", updatable = false)
     private VentaCaja datos;

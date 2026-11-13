@@ -9,6 +9,7 @@ import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.caja.LineaVentaCaja;
 import com.ensambla.backend.domain.model.caja.MedioPagoCaja;
 import com.ensambla.backend.domain.model.caja.ModoVenta;
+import com.ensambla.backend.domain.model.caja.PagoCaja;
 import com.ensambla.backend.domain.model.caja.VentaCaja;
 import com.ensambla.backend.domain.model.campo.Campo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
@@ -69,8 +70,10 @@ public class CobrarVenta {
         OffsetDateTime ahora = OffsetDateTime.now(clock);
         controlPlanService.validarAltaRegistros(negocioId, request.lineas().size(), ahora);
         List<LineaVentaCaja> lineas = aplicarLineas(sistema, inventario, ventas, request, ahora);
-        VentaCaja venta = VentaCaja.nueva(request.id(), negocioId, sistema.id(), request.huella(),
-                lineas, MedioPagoCaja.valueOf(request.medio()), request.recibido(), ahora);
+        VentaCaja venta = VentaCaja.nueva(request.id(), negocioId, sistema.id(), request.inventarioId(),
+                request.huella(), lineas, MedioPagoCaja.valueOf(request.medio()), request.recibido(), ahora,
+                request.pagos() == null ? null : request.pagos().stream()
+                        .map(pago -> new PagoCaja(MedioPagoCaja.valueOf(pago.medio()), pago.importe())).toList());
         sistema.proyecto().setActualizadoEn(ahora);
         sistemaRepository.guardar(sistema);
         return ventaCajaRepository.save(venta);

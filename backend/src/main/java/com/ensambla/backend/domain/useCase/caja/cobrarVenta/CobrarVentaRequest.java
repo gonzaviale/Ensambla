@@ -11,12 +11,21 @@ import java.util.List;
 
 public record CobrarVentaRequest(UsuarioId usuarioId, VentaCajaId id, ProyectoId proyectoId,
                                  BloqueId inventarioId, BloqueId ventasId, List<LineaRequest> lineas,
-                                 String medio, BigDecimal recibido) {
+                                 String medio, BigDecimal recibido, List<PagoRequest> pagos) {
+
+    public CobrarVentaRequest(UsuarioId usuarioId, VentaCajaId id, ProyectoId proyectoId,
+            BloqueId inventarioId, BloqueId ventasId, List<LineaRequest> lineas, String medio, BigDecimal recibido) {
+        this(usuarioId, id, proyectoId, inventarioId, ventasId, lineas, medio, recibido, null);
+    }
+
+    public record PagoRequest(String medio, BigDecimal importe) {
+    }
 
     public record LineaRequest(RegistroId productoId, BigDecimal cantidad, BigDecimal precio, String modo) {
     }
 
     public String huella() {
-        return proyectoId + ":" + inventarioId + ":" + ventasId + ":" + medio + ":" + recibido + ":" + lineas;
+        String base = proyectoId + ":" + inventarioId + ":" + ventasId + ":" + medio + ":" + recibido + ":" + lineas;
+        return pagos == null ? base : base + ":" + pagos;
     }
 }

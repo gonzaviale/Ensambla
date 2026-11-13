@@ -2,6 +2,14 @@ package com.ensambla.backend.infrastructure.repository;
 
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.model.caja.VentaCajaId;
+import com.ensambla.backend.domain.model.caja.CierreCajaId;
+import com.ensambla.backend.domain.model.caja.ResumenCaja;
+import com.ensambla.backend.domain.repository.caja.CierreCajaRepository;
+import com.ensambla.backend.domain.useCase.caja.cerrarCaja.CerrarCaja;
+import com.ensambla.backend.domain.useCase.caja.cerrarCaja.CerrarCajaRequest;
+import com.ensambla.backend.domain.useCase.caja.consultarCaja.ConsultarCaja;
+import com.ensambla.backend.domain.useCase.caja.consultarCaja.ConsultarCajaRequest;
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
@@ -35,6 +43,7 @@ import org.springframework.web.context.WebApplicationContext;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.concurrent.CompletableFuture;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -47,6 +56,9 @@ class CajaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     private NegocioId negocioId;
 
     @Autowired private CobrarVenta cobrarVenta;
+    @Autowired private CerrarCaja cerrarCaja;
+    @Autowired private ConsultarCaja consultarCaja;
+    @Autowired private CierreCajaRepository cierreCajaRepository;
     @Autowired private CajaUseCaseConfig cajaUseCaseConfig;
     @Autowired private SistemaRepository sistemaRepository;
     @Autowired private VentaCajaRepository ventaCajaRepository;
@@ -85,6 +97,40 @@ class CajaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build()
                 .perform(post("/api/caja/ventas").contentType("application/json").content("{}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("El cierre conserva pagos mixtos y separa las ventas posteriores aunque se recargue la base")
+    void closureShouldPersistSplitAndStartNextPeriod() {
+        givenCuentaConInventario(new BigDecimal("2"));
+        CobrarVentaRequest base = solicitud();
+        CobrarVentaRequest mixta = new CobrarVentaRequest(base.usuarioId(), base.id(), base.proyectoId(),
+                base.inventarioId(), base.ventasId(), base.lineas(), "MIXTO", new BigDecimal("1500"),
+                List.of(new CobrarVentaRequest.PagoRequest("EFECTIVO", new BigDecimal("1000")),
+                        new CobrarVentaRequest.PagoRequest("TRANSFERENCIA", new BigDecimal("1000"))));
+        cobrarVenta.execute(mixta);
+        ResumenCaja resumen = ResumenCaja.de(ventaCajaRepository.listarAbiertas(
+                negocioId, base.proyectoId(), base.inventarioId()));
+        CerrarCajaRequest cierre = new CerrarCajaRequest(usuarioId, CierreCajaId.nuevo(), base.proyectoId(),
+                base.inventarioId(), resumen.revision(), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, null, "");
+
+        var guardado = cerrarCaja.execute(cierre);
+        entityManager.flush();
+        entityManager.clear();
+        cobrarVenta.execute(new CobrarVentaRequest(base.usuarioId(), VentaCajaId.nuevo(), base.proyectoId(),
+                base.inventarioId(), base.ventasId(), base.lineas(), "TARJETA", null));
+
+        assertThat(cerrarCaja.execute(cierre)).isEqualTo(guardado);
+        assertThat(guardado.resumen().efectivo()).isEqualByComparingTo("1000");
+        assertThat(guardado.resumen().transferencia()).isEqualByComparingTo("1000");
+        assertThat(guardado.resumen().ventas().getFirst().vuelto()).isEqualByComparingTo("500");
+        assertThat(ventaCajaRepository.listarAbiertas(negocioId, base.proyectoId(), base.inventarioId())).hasSize(1);
+        assertThat(cierreCajaRepository.listar(negocioId, base.proyectoId(), base.inventarioId(), 0)).hasSize(1);
+        assertThat(cierreCajaRepository.findByIdAndNegocioId(cierre.id(), NegocioId.nuevo())).isEmpty();
+        var consulta = consultarCaja.execute(new ConsultarCajaRequest(usuarioId, base.proyectoId(),
+                base.inventarioId(), ZonaNegocio.dia(guardado.cerradoEn()), 0));
+        assertThat(consulta.abierta().ventas()).hasSize(1);
+        assertThat(consulta.dia().ventas()).hasSize(2);
     }
 
     @Test

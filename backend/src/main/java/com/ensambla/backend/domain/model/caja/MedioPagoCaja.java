@@ -1,5 +1,5 @@
 package com.ensambla.backend.domain.model.caja;
 
 public enum MedioPagoCaja {
-    EFECTIVO, TRANSFERENCIA, TARJETA
+    EFECTIVO, TRANSFERENCIA, TARJETA, MIXTO
 }
