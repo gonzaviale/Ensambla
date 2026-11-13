@@ -4,7 +4,7 @@ import type { DestinoDeAviso } from './destinoDeAviso';
 import { destinoDeAviso } from './destinoDeAviso';
 import type { Bloque, Fila, Sistema } from './tipos';
 
-// El chat de Sami: contesta preguntas de stock, ventas y avisos con los datos del cuaderno abierto. No usa un
+// El chat de Sami: contesta preguntas de stock, ventas y avisos con los datos de la sección abierta. No usa un
 // modelo de lenguaje: reconoce de qué se habla por palabras clave y arma la respuesta con cuentas simples, así
 // anda sin conexión y siempre dice de dónde sale cada número.
 
@@ -156,7 +156,7 @@ const RELLENO = new Set([
   'esta',
 ]);
 
-/** Los productos del cuaderno que la pregunta nombra (por ejemplo «yerba» o «aceite natura»). */
+/** Los productos de la sección que la pregunta nombra (por ejemplo «yerba» o «aceite natura»). */
 function productosNombrados(pregunta: string, productos: Producto[]): Producto[] {
   const palabras = normalize(pregunta)
     .replace(/[^a-z0-9 ]+/g, ' ')
@@ -192,7 +192,7 @@ function suma(ventas: Venta[], desde: number, hasta: number) {
 
 // ---- Respuestas ----
 
-function avisosDelCuaderno(contexto: ContextoDeChat): Respuesta {
+function avisosDelSistema(contexto: ContextoDeChat): Respuesta {
   const avisos = [...contexto.avisos].sort((a, b) => b.prioridad - a.prioridad);
   if (!avisos.length) {
     return {
@@ -226,7 +226,7 @@ function stockBajo(contexto: ContextoDeChat): Respuesta {
     .sort((a, b) => numero(a.fila.quantity) - numero(b.fila.quantity));
   if (!productos.length) {
     return {
-      texto: 'Todavía no hay productos cargados en el cuaderno, así que no puedo mirar el stock.',
+      texto: 'Todavía no hay productos cargados en la sección, así que no puedo mirar el stock.',
     };
   }
   if (!bajos.length) {
@@ -259,7 +259,7 @@ function ventasGenerales(pregunta: string, contexto: ContextoDeChat): Respuesta 
   const ventas = ventasDe(contexto.sistema, contexto.hoy);
   if (!ventas.length) {
     return {
-      texto: 'Todavía no hay ventas anotadas en este cuaderno.',
+      texto: 'Todavía no hay ventas anotadas en esta sección.',
       sugerencias: ['¿Qué me falta?'],
     };
   }
@@ -390,7 +390,7 @@ function deZona(contexto: ContextoDeChat): Respuesta {
 export function ayuda(): Respuesta {
   return {
     texto:
-      'Puedo contarte cómo viene tu cuaderno. Probá preguntarme por el stock, las ventas, los avisos o un producto, por ejemplo «¿cuánta yerba me queda?».',
+      'Puedo contarte cómo viene tu sección. Probá preguntarme por el stock, las ventas, los avisos o un producto, por ejemplo «¿cuánta yerba me queda?».',
     sugerencias: SUGERENCIAS_INICIALES,
   };
 }
@@ -409,7 +409,7 @@ export function saludo(contexto: ContextoDeChat): Respuesta {
 export function inicio(contexto: ContextoDeChat): Respuesta {
   const bienvenida = saludo(contexto);
   if (!contexto.avisos.length) return bienvenida;
-  const avisos = avisosDelCuaderno(contexto);
+  const avisos = avisosDelSistema(contexto);
   return {
     ...avisos,
     texto: bienvenida.texto,
@@ -452,7 +452,7 @@ export function responder(pregunta: string, contexto: ContextoDeChat): Respuesta
       'revisar',
     ])
   ) {
-    return avisosDelCuaderno(contexto);
+    return avisosDelSistema(contexto);
   }
   if (tiene(texto, ['stock', 'falta', 'reponer', 'pedir', 'agot', 'quedan', 'queda']))
     return stockBajo(contexto);

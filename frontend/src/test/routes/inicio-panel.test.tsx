@@ -85,7 +85,7 @@ describe('inicio: panel del negocio', () => {
     expect(screen.getByRole('heading', { level: 2, name: NOMBRE_DEL_PANEL })).toBeVisible();
   });
 
-  it('quien ya tiene un cuaderno ve una bienvenida compacta con las tres formas de empezar', async () => {
+  it('quien ya tiene una sección ve una bienvenida compacta con las tres formas de empezar', async () => {
     await abrirInicio([crearAlmacenCargado(hoy())]);
     await cifrasAsync();
 
@@ -154,7 +154,7 @@ describe('inicio: panel del negocio', () => {
     expect(titulo()).toBeNull();
   });
 
-  it('sin cuadernos el saludo sigue siendo el h1', async () => {
+  it('sin secciones el saludo sigue siendo el h1', async () => {
     await abrirInicio([]);
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/En qué puedo/);
@@ -169,7 +169,7 @@ describe('inicio: panel del negocio', () => {
     expect(screen.queryByText('Estamos haciendo tus cuentas…')).toBeNull();
   });
 
-  it('si el primer cuaderno no tiene ventas, mira el que sí las tiene', async () => {
+  it('si la primera sección no tiene ventas, mira la que sí las tiene', async () => {
     await abrirInicio([makeTemplate('shop', {}, true), crearAlmacenCargado(hoy())]);
 
     await cifrasAsync();
@@ -177,13 +177,13 @@ describe('inicio: panel del negocio', () => {
     expect(screen.queryByText(/Todavía no cargaste ventas/)).toBeNull();
   });
 
-  it('sin cuadernos no aparece: la home queda como siempre', async () => {
+  it('sin secciones no aparece: la home queda como siempre', async () => {
     await abrirInicio([]);
 
     expect(titulo()).toBeNull();
   });
 
-  it('con un cuaderno sin ventas no inventa números y explica cómo cargarlas', async () => {
+  it('con una sección sin ventas no inventa números y explica cómo cargarlas', async () => {
     const { user, router, sistema } = await abrirInicio([makeTemplate('shop', {}, true)]);
 
     expect(await screen.findByText(/Todavía no cargaste ventas/, undefined, ESPERA)).toBeVisible();

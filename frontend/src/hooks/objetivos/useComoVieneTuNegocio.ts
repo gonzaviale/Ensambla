@@ -7,7 +7,7 @@ export const comoVieneTuNegocioQuery = (usuarioId: string) =>
   queryOptions({
     queryKey: ['objetivos', 'negocio', usuarioId] as const,
     queryFn: ({ signal }) => obtenerComoVieneTuNegocio(signal),
-    // Las ventas cambian mientras se cargan los cuadernos: se vuelve a preguntar al volver a Objetivos.
+    // Las ventas cambian mientras se cargan las secciones: se vuelve a preguntar al volver a Objetivos.
     staleTime: 30_000,
     retry: false,
   });

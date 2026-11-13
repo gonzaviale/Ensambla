@@ -46,7 +46,11 @@ export const handlersWhatsapp = [
       });
     const telefono = normalizar(valido.data);
     if (telefono === TELEFONO_OCUPADO)
-      return errorResponse(409, 'Ese número de WhatsApp ya está vinculado a otra cuenta', pathDe(request));
+      return errorResponse(
+        409,
+        'Ese número de WhatsApp ya está vinculado a otra cuenta',
+        pathDe(request),
+      );
     const actual = cuentaWhatsapp(usuario.email);
     if (actual.verificacion && Date.now() < new Date(actual.verificacion.reenviarDesde).getTime())
       return errorResponse(400, 'Esperá un momento antes de pedir otro código', pathDe(request));
@@ -69,13 +73,19 @@ export const handlersWhatsapp = [
     if (error) return error;
     const cuerpo = (await request.json()) as { codigo?: string };
     if (!codigoVerificacionSchema.safeParse(cuerpo.codigo).success)
-      return errorResponse(400, 'Revisá el código', pathDe(request), { codigo: 'El código tiene 6 dígitos' });
+      return errorResponse(400, 'Revisá el código', pathDe(request), {
+        codigo: 'El código tiene 6 dígitos',
+      });
     const actual = cuentaWhatsapp(usuario.email);
     const verificacion = actual.verificacion;
     if (!verificacion)
       return errorResponse(404, 'Primero pedí un código de verificación', pathDe(request));
     if (verificacion.intentos >= MAX_INTENTOS)
-      return errorResponse(400, 'Hiciste demasiados intentos. Pedí un código nuevo', pathDe(request));
+      return errorResponse(
+        400,
+        'Hiciste demasiados intentos. Pedí un código nuevo',
+        pathDe(request),
+      );
     if (cuerpo.codigo?.trim() !== CODIGO_DE_PRUEBA) {
       verificacion.intentos += 1;
       return errorResponse(

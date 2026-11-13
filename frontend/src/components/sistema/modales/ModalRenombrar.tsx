@@ -3,7 +3,7 @@ import { Icon } from '../Icon';
 import { Modal } from '../Modal';
 import { seleccionarSistemaActivo, useSistemaStore } from '@/stores/sistemaStore';
 
-// El lápiz al lado del nombre: se configura el cuaderno (el nombre) y, más abajo, se puede eliminar.
+// El lápiz al lado del nombre: se configura la sección (el nombre) y, más abajo, se puede eliminar.
 export function ModalRenombrar() {
   const sistema = useSistemaStore(seleccionarSistemaActivo);
   const commit = useSistemaStore((estado) => estado.commit);
@@ -22,8 +22,8 @@ export function ModalRenombrar() {
   };
 
   return (
-    <Modal clase="modal-configurar-cuaderno">
-      <h2 id="modal-title">Configurar cuaderno</h2>
+    <Modal clase="modal-configurar-sistema">
+      <h2 id="modal-title">Configurar sección</h2>
       <p>Elegí un nombre que reconozcas fácilmente.</p>
       <form onSubmit={guardar}>
         <div className="field">
@@ -38,23 +38,22 @@ export function ModalRenombrar() {
             onChange={(evento) => setNombre(evento.target.value)}
           />
         </div>
-          <button className="btn primary" type="submit">
-            Guardar nombre
-          </button>
-        <div className="modal-footer">
-        </div>
+        <button className="btn primary" type="submit">
+          Guardar nombre
+        </button>
+        <div className="modal-footer"></div>
       </form>
       <section className="zona-peligro" aria-labelledby="zona-peligro-titulo">
         <div>
-          <h3 id="zona-peligro-titulo">Eliminar este cuaderno</h3>
+          <h3 id="zona-peligro-titulo">Eliminar esta sección</h3>
           <p>Se borra con todas sus tablas y registros. No se puede deshacer.</p>
         </div>
         <button
           type="button"
           className="btn peligro"
-          onClick={() => abrirModal({ tipo: 'eliminarCuaderno' })}
+          onClick={() => abrirModal({ tipo: 'eliminarSistema' })}
         >
-          <Icon name="trash" /> Eliminar cuaderno
+          <Icon name="trash" /> Eliminar sección
         </button>
       </section>
     </Modal>

@@ -103,7 +103,7 @@ describe('store del taller', () => {
     expect(store().usuarioId).toBe('usuario-2');
   });
 
-  it('abrir un sistema elige su primera sección y limpia la selección y el historial', () => {
+  it('abrir un sistema elige su primera pestaña y limpia la selección y el historial', () => {
     const sistema = conUnSistema();
     store().seleccionar('algo');
     store().commit((s) => {
@@ -173,7 +173,7 @@ describe('store del taller', () => {
     expect(store().pendientes).toEqual([b.id]);
   });
 
-  it('elige una sección y un bloque, y los lectores los encuentran', () => {
+  it('elige una pestaña y un bloque, y los lectores los encuentran', () => {
     const sistema = conUnSistema();
     const bloque = sistema.sections[0]?.blocks[0];
     if (!bloque) throw new Error('Falta un bloque');
@@ -185,7 +185,7 @@ describe('store del taller', () => {
     expect(store().selectedId).toBeNull();
   });
 
-  it('deshacer una sección que ya no existe vuelve a la primera', () => {
+  it('deshacer una pestaña que ya no existe vuelve a la primera', () => {
     const sistema = conUnSistema();
     store().commit((s) => {
       s.sections.push({ id: 'otra', name: 'Otra', blocks: [] });

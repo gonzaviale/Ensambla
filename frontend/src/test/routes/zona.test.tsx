@@ -179,7 +179,7 @@ describe('Qué se vende cerca', () => {
     await user.click(screen.getByRole('tab', { name: /Qué se vende cerca/ }));
     await screen.findByText('Leche La Serenísima 1 L', { selector: 'strong' }, ESPERA);
 
-    expect(screen.getByText(/necesitás un cuaderno con un bloque de Inventario/)).toBeVisible();
+    expect(screen.getByText(/necesitás una sección con un bloque de Inventario/)).toBeVisible();
     expect(
       within(tarjetaDe('Leche La Serenísima 1 L')).getByRole('button', {
         name: /Sumar a mis productos/,

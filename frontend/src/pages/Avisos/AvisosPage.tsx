@@ -8,7 +8,7 @@ import { useSistemaStore } from '@/stores/sistemaStore';
 // La pestaña «Avisos»: lo que Sami encontró en tus datos, con más lugar que el panel lateral de antes.
 export function AvisosPage() {
   useTituloPagina('Avisos de Sami');
-  // El chat flotante habla del cuaderno que se estaba usando (o, si no hay, del primero).
+  // El chat flotante habla de la sección que se estaba usando (o, si no hay, de la primera).
   const sistemaDelChat = useSistemaStore(
     (estado) =>
       estado.sistemas.find((item) => item.id === estado.activeId)?.id ?? estado.sistemas[0]?.id,

@@ -77,7 +77,7 @@ export function makeSystem(name: string, types: TipoBloque[] = [], examples = fa
   }
   return {
     id: id(),
-    name: String(name || 'Mi cuaderno')
+    name: String(name || 'Mi sección')
       .trim()
       .slice(0, 100),
     createdAt: new Date().toISOString(),

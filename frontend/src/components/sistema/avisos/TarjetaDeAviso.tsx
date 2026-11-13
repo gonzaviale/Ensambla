@@ -46,7 +46,7 @@ export function TarjetaDeAviso({ aviso, enfocado = false, onAccion, onDescartar 
           <div className="alerta-meta">
             <span className="alerta-tipo">{NOMBRE_DE_TIPO[aviso.tipo]}</span>
             <span className="alerta-nivel">{NIVEL_DE_AVISO[aviso.prioridad]}</span>
-            <span className="alerta-cuaderno">{aviso.sistema}</span>
+            <span className="alerta-sistema">{aviso.sistema}</span>
           </div>
           <h3>{aviso.titulo}</h3>
           <p>{aviso.detalle}</p>
@@ -105,7 +105,7 @@ export function TarjetaDeAviso({ aviso, enfocado = false, onAccion, onDescartar 
             </>
           )}
           <p className="alerta-origen">
-            Cuaderno: <strong>{aviso.sistema}</strong>
+            Sección: <strong>{aviso.sistema}</strong>
             {detectado ? ` · detectado ${detectado}` : ''}
           </p>
           {otras.length > 0 && (

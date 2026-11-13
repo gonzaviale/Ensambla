@@ -11,7 +11,7 @@ import { Inspector } from '@/components/sistema/editor/Inspector';
 import { TablaCompleta } from '@/components/sistema/editor/TablaCompleta';
 import { Icon } from '@/components/sistema/Icon';
 import { IconTile } from '@/components/sistema/IconTile';
-import { HerramientasDelCuaderno } from '@/components/sistema/editor/HerramientasDelCuaderno';
+import { HerramientasDelSistema } from '@/components/sistema/editor/HerramientasDelSistema';
 import { CATALOG } from '@/lib/sistema/catalogo';
 import { SeccionesTabs } from '@/components/sistema/editor/SeccionesTabs';
 import { allBlocks, findBlock, totals } from '@/lib/sistema/core';
@@ -51,8 +51,8 @@ function guardarPiezasFijas(fijada: boolean) {
   }
 }
 
-// El cuaderno: lienzo con bloques y datos siempre a mano; «Editar cuaderno» suma la biblioteca de piezas, las
-// secciones y el inspector sin cambiar de pantalla.
+// La sección: lienzo con bloques y datos siempre a mano; «Editar sección» suma la biblioteca de piezas, las
+// pestañas y el inspector sin cambiar de pantalla.
 export function SistemaPage() {
   const { sistemaId } = ruta.useParams();
   const navigate = useNavigate();
@@ -75,9 +75,9 @@ export function SistemaPage() {
   const [bibliotecaFijada, setBibliotecaFijada] = useState(leerPiezasFijas);
   const arrastre = useArrastreDelEditor(seccion?.id);
 
-  useTituloPagina(sistema?.name ?? 'Mi cuaderno');
+  useTituloPagina(sistema?.name ?? 'Mi sección');
 
-  // Un cuaderno se abre siempre con las herramientas de armado a mano (el ?modo= de la dirección ya no cambia nada).
+  // Una sección se abre siempre con las herramientas de armado a mano (el ?modo= de la dirección ya no cambia nada).
   useEffect(() => {
     if (!existe) return;
     const estado = useSistemaStore.getState();
@@ -121,7 +121,7 @@ export function SistemaPage() {
 
   return (
     <>
-      <CabeceraComun active="sistemas" />
+      <CabeceraComun />
       <main
         id="main"
         tabIndex={-1}
@@ -146,7 +146,7 @@ export function SistemaPage() {
             nombre={sistema.name}
             guardando={guardando}
             puedeDeshacer={hayHistorial}
-            onCuadernos={() => void navegacion.irAMisSistemas()}
+            onInicio={() => void navegacion.irAInicio()}
             onDeshacer={deshacerCambio}
           />
           {listo && (
@@ -168,7 +168,7 @@ export function SistemaPage() {
                 <h1>
                   <button
                     type="button"
-                    title="Configurar cuaderno"
+                    title="Configurar sección"
                     onClick={() => abrirModal({ tipo: 'renombrar' })}
                   >
                     {sistema.name} <Icon name="edit" />
@@ -180,7 +180,7 @@ export function SistemaPage() {
                     <strong>{allBlocks(sistema).length}</strong> tablas
                   </span>
                   <span data-color="blue">
-                    <strong>{sistema.sections.length}</strong> secciones
+                    <strong>{sistema.sections.length}</strong> pestañas
                   </span>
                   <span data-color="coral">
                     <strong>{totals(sistema).records}</strong> registros
@@ -189,7 +189,7 @@ export function SistemaPage() {
               </div>
             </div>
             <div className="canvas-heading-actions">
-              <HerramientasDelCuaderno
+              <HerramientasDelSistema
                 distribucion={sistema.layout}
                 onDistribucion={(distribucion: Distribucion) => aplicarDistribucion(distribucion)}
                 onBloques={() => setBibliotecaAbierta((abierta) => !abierta)}
@@ -214,7 +214,7 @@ export function SistemaPage() {
               </Btn>
             </div>
           </div>
-          {/* Con una sola sección no hace falta la barra: se agrega otra desde el ícono «Agregar y organizar». */}
+          {/* Con una sola pestaña no hace falta la barra: se agrega otra desde el ícono «Agregar y organizar». */}
           {sistema.sections.length > 1 && (
             <SeccionesTabs
               secciones={sistema.sections}

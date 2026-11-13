@@ -94,7 +94,7 @@ describe('motor: creación y validación', () => {
 });
 
 describe('motor: bloques y datos', () => {
-  it('mover bloques entre secciones conserva registros, claves y relaciones', () => {
+  it('mover bloques entre pestañas conserva registros, claves y relaciones', () => {
     const sistema = makeSystem('Mi sistema', ['clients', 'orders'], true);
     const primera = fila(sistema.sections);
     const [clientes, pedidos] = primera.blocks as [Bloque, Bloque];

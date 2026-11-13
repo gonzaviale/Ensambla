@@ -207,9 +207,7 @@ describe('la campana y la pantalla de avisos', () => {
     expect(within(aviso).getByRole('button', { name: 'Descartar' })).toBeVisible();
 
     const subida = tarjeta(/Yerba Playadito 1 kg se vende mucho/);
-    expect(
-      within(subida).getByRole('button', { name: /Subir a \$ 3\.820/ }),
-    ).toBeVisible();
+    expect(within(subida).getByRole('button', { name: /Subir a \$ 3\.820/ })).toBeVisible();
   });
 
   it('aplicar un aviso cambia el precio y el aviso desaparece', async () => {
@@ -355,7 +353,7 @@ describe('sin datos y con el almacén de ejemplo', () => {
 
     await waitFor(() => expect(useSistemaStore.getState().sistemas).toHaveLength(1), ESPERA);
     expect(useSistemaStore.getState().sistemas[0]?.demoAlmacen).toBe(true);
-    // Primero el cuaderno (la pantalla de avisos también tiene su Sami flotante); después el número.
+    // Primero la sección (la pantalla de avisos también tiene su Sami flotante); después el número.
     await screen.findByRole('heading', { level: 1, name: /Almacén de ejemplo/ }, ESPERA);
     await waitFor(
       () => expect(screen.getByRole('button', { name: /Hablar con Sami: 9 avisos/ })).toBeVisible(),
@@ -379,7 +377,7 @@ describe('sin datos y con el almacén de ejemplo', () => {
       await user.click(within(chat).getByRole('button', { name: 'Enviar' }));
     };
 
-    it('el Sami flotante muestra cuántos avisos tiene el cuaderno', async () => {
+    it('el Sami flotante muestra cuántos avisos tiene la sección', async () => {
       await abrirConDemo();
 
       const sami = screen.getByRole('button', { name: /Hablar con Sami: 9 avisos/ });
@@ -457,14 +455,14 @@ describe('sin datos y con el almacén de ejemplo', () => {
     expect(screen.getByRole('group', { name: 'Distribuí tus piezas' })).toBeVisible();
   });
 
-  it('con una sola sección no hay barra de secciones (se agrega otra desde los íconos)', async () => {
+  it('con una sola pestaña no hay barra de pestañas (se agrega otra desde los íconos)', async () => {
     await abrirConDemo();
 
-    expect(screen.queryByRole('navigation', { name: 'Secciones del cuaderno' })).toBeNull();
+    expect(screen.queryByRole('navigation', { name: 'Pestañas de la sección' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Agregar y organizar' })).toBeVisible();
   });
 
-  it('el cuaderno ya no muestra los avisos arriba: viven en el chat de Sami', async () => {
+  it('la sección ya no muestra los avisos arriba: viven en el chat de Sami', async () => {
     await abrirConDemo();
 
     expect(screen.queryByRole('region', { name: /Encontré \d+ cosas para mirar/ })).toBeNull();
@@ -582,7 +580,7 @@ describe('los avisos del motor del servidor', () => {
     expect(within(estancado).getByText(/detectado/)).toBeVisible();
   });
 
-  it('se filtra por cuaderno y la franja resume lo que no puede esperar', async () => {
+  it('se filtra por sección y la franja resume lo que no puede esperar', async () => {
     const { user } = await abrirConAvisosDelServidor(
       avisoDelServidor(),
       avisoDelServidor({
@@ -597,10 +595,10 @@ describe('los avisos del motor del servidor', () => {
 
     const franja = screen.getByRole('complementary', { name: 'Lo urgente' });
     expect(within(franja).getByText(/1 cosa que no puede esperar/)).toBeVisible();
-    const cuadernos = screen.getByRole('group', { name: 'Filtrar por cuaderno' });
-    expect(within(cuadernos).getAllByRole('button').length).toBeGreaterThanOrEqual(3);
+    const sistemas = screen.getByRole('group', { name: 'Filtrar por sección' });
+    expect(within(sistemas).getAllByRole('button').length).toBeGreaterThanOrEqual(3);
 
-    await user.click(within(cuadernos).getAllByRole('button')[2] as HTMLElement);
+    await user.click(within(sistemas).getAllByRole('button')[2] as HTMLElement);
     expect(screen.queryByRole('heading', { level: 3, name: /Yerba Playadito/ })).toBeNull();
     expect(screen.getByRole('heading', { level: 3, name: /Azúcar/ })).toBeVisible();
   });
@@ -648,7 +646,7 @@ describe('los avisos del motor del servidor', () => {
     const bloques = sistema.sections.flatMap((seccion) => seccion.blocks);
     const inventario = bloques.find((bloque) => bloque.type === 'inventory');
     const entradas = bloques.find((bloque) => bloque.type === 'entries');
-    if (!inventario || !entradas) throw new Error('Faltan las tablas del cuaderno');
+    if (!inventario || !entradas) throw new Error('Faltan las tablas de la sección');
     const producto = { id: nuevoId(), name: 'Yerba Playadito 1 kg', quantity: 0, price: 4200 };
     inventario.rows = [producto];
     wireSystem(sistema);
@@ -657,7 +655,12 @@ describe('los avisos del motor del servidor', () => {
       avisoDelServidor({
         proyectoId: sistema.id,
         acciones: [
-          { tipo: 'REGISTRAR', texto: 'Registrar entrada', proyectoId: sistema.id, bloqueId: entradas.id },
+          {
+            tipo: 'REGISTRAR',
+            texto: 'Registrar entrada',
+            proyectoId: sistema.id,
+            bloqueId: entradas.id,
+          },
         ],
       }),
     ]);

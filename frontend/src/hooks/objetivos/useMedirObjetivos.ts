@@ -6,7 +6,7 @@ import { objetivosKey } from './queries';
 
 /**
  * Al abrir los objetivos, y cada vez que la persona vuelve a esta pestaña, le pide al servidor que mida el
- * negocio en ese momento y después recarga todo lo de los objetivos. Así una venta recién cargada en el cuaderno
+ * negocio en ese momento y después recarga todo lo de los objetivos. Así una venta recién cargada en la sección
  * se ve enseguida en los mini-objetivos y en el gráfico, sin esperar al repaso de cada hora.
  */
 export function useMedirObjetivos() {

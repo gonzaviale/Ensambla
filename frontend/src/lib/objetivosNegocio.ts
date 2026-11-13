@@ -1,7 +1,7 @@
 import { allBlocks } from './sistema/core';
 import type { Sistema } from './sistema/tipos';
 
-// Cómo viene el negocio, con lo que la persona anotó en sus cuadernos: los últimos 30 días, dicho en pesos y sin
+// Cómo viene el negocio, con lo que la persona anotó en sus secciones: los últimos 30 días, dicho en pesos y sin
 // términos contables. La pantalla usa lo que calcula el servidor (GET /objetivos/negocio); esta cuenta es la que
 // replica el modo de demostración.
 
@@ -66,11 +66,7 @@ export function negocioDe(sistemas: Sistema[], hoy: string): Negocio {
     for (const gasto of bloques
       .filter((bloque) => bloque.type === 'expenses')
       .flatMap((bloque) => bloque.rows)) {
-      if (
-        esMercaderia(gasto.category) ||
-        !gasto.date ||
-        !enLosUltimos30(hoy, String(gasto.date))
-      )
+      if (esMercaderia(gasto.category) || !gasto.date || !enLosUltimos30(hoy, String(gasto.date)))
         continue;
       negocio.gastos += numero(gasto.total);
     }

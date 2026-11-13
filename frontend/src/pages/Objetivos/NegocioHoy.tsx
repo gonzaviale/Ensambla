@@ -9,7 +9,7 @@ export function NegocioHoy({ negocio }: { negocio: ComoVieneTuNegocio | undefine
   return (
     <section className="objetivos-negocio" aria-labelledby="objetivos-negocio-titulo">
       <h2 id="objetivos-negocio-titulo">Cómo viene tu negocio</h2>
-      <p>Los últimos 30 días, con lo que anotaste en tus cuadernos.</p>
+      <p>Los últimos 30 días, con lo que anotaste en tus secciones.</p>
       <div className="objetivos-negocio-cifras">
         <Metrica etiqueta="Vendiste" valor={formatoPesos(negocio.vendiste)} tono="ingreso" />
         <Metrica

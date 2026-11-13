@@ -24,7 +24,8 @@ const enlaceDeSami = (numeroBot: string) => `https://wa.me/${numeroBot}`;
 
 // Segundos que faltan para poder pedir otro código; 0 cuando ya se puede.
 function useEsperaParaReenviar(reenviarDesde: string) {
-  const faltan = () => Math.max(0, Math.ceil((new Date(reenviarDesde).getTime() - Date.now()) / 1000));
+  const faltan = () =>
+    Math.max(0, Math.ceil((new Date(reenviarDesde).getTime() - Date.now()) / 1000));
   const [segundos, setSegundos] = useState(faltan);
   useEffect(() => {
     setSegundos(faltan());
@@ -47,14 +48,21 @@ function NumeroVinculado({ vinculo }: { vinculo: VinculoWhatsapp }) {
         <span>Vinculado el {fecha(vinculo.vinculadoEn)}</span>
       </p>
       <p>
-        Mandale a Sami una foto de tu cuaderno o un texto como «gasté 5000 en harina»: arma las filas, te las muestra
-        y las guarda cuando le respondés que sí. Las fotos descuentan de las páginas con IA de{' '}
-        <Link to="/planes">tu plan</Link>.
+        Mandale a Sami una foto de tu cuaderno o un texto como «gasté 5000 en harina»: arma las
+        filas, te las muestra y las guarda cuando le respondés que sí. Las fotos descuentan de las
+        páginas con IA de <Link to="/planes">tu plan</Link>.
       </p>
-      {desvincular.isError ? <p role="alert">{leerErrorServidor(desvincular.error)?.mensaje}</p> : null}
+      {desvincular.isError ? (
+        <p role="alert">{leerErrorServidor(desvincular.error)?.mensaje}</p>
+      ) : null}
       <div className="cuenta-acciones">
         {vinculo.numeroBot ? (
-          <a className="btn primary" href={enlaceDeSami(vinculo.numeroBot)} target="_blank" rel="noreferrer">
+          <a
+            className="btn primary"
+            href={enlaceDeSami(vinculo.numeroBot)}
+            target="_blank"
+            rel="noreferrer"
+          >
             Escribirle a Sami
           </a>
         ) : null}
@@ -108,13 +116,16 @@ function IngresarCodigo({
     const valido = codigoVerificacionSchema.safeParse(codigo);
     if (!valido.success) return setErrorLocal(valido.error.issues[0]?.message);
     setErrorLocal(undefined);
-    confirmar.mutate(valido.data, { onSuccess: () => avisar('Listo, vinculamos tu número de WhatsApp.') });
+    confirmar.mutate(valido.data, {
+      onSuccess: () => avisar('Listo, vinculamos tu número de WhatsApp.'),
+    });
   };
 
   return (
     <form onSubmit={enviar} aria-labelledby="cuenta-whatsapp-titulo" noValidate>
       <p role="status">
-        Te mandamos un código de 6 dígitos por WhatsApp al +{verificacion.telefono}. Vence en 10 minutos.
+        Te mandamos un código de 6 dígitos por WhatsApp al +{verificacion.telefono}. Vence en 10
+        minutos.
       </p>
       <div className="field">
         <label htmlFor="cuenta-whatsapp-codigo">Código</label>
@@ -183,8 +194,8 @@ function CargarNumero({ onEnviada }: { onEnviada: (verificacion: VerificacionWha
   return (
     <form onSubmit={enviar} aria-labelledby="cuenta-whatsapp-titulo" noValidate>
       <p>
-        Verificá tu número para usar a Sami por WhatsApp: te mandamos un código y lo escribís acá. Es para estar seguros
-        de que el número es tuyo.
+        Verificá tu número para usar a Sami por WhatsApp: te mandamos un código y lo escribís acá.
+        Es para estar seguros de que el número es tuyo.
       </p>
       <div className="field">
         <label htmlFor="cuenta-whatsapp-telefono">Tu número de WhatsApp</label>
@@ -229,7 +240,9 @@ function VincularConCodigo() {
   return (
     <details className="cuenta-alternativa">
       <summary>¿No te llega el código?</summary>
-      <p>También podés vincular el número desde tu teléfono: generá un código y mandáselo a Sami.</p>
+      <p>
+        También podés vincular el número desde tu teléfono: generá un código y mandáselo a Sami.
+      </p>
       {generar.isError ? <p role="alert">{leerErrorServidor(generar.error)?.mensaje}</p> : null}
       {resultado ? (
         <p role="status">
@@ -244,7 +257,10 @@ function VincularConCodigo() {
             </>
           ) : null}
           . Vale hasta las{' '}
-          {new Intl.DateTimeFormat('es-AR', { timeStyle: 'short' }).format(new Date(resultado.expiraEn))}.
+          {new Intl.DateTimeFormat('es-AR', { timeStyle: 'short' }).format(
+            new Date(resultado.expiraEn),
+          )}
+          .
         </p>
       ) : null}
       <Btn cls="secondary small" disabled={generar.isPending} onClick={() => generar.mutate()}>

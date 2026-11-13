@@ -9,7 +9,9 @@ import { ApiError } from './apiError';
 import { http } from './client';
 
 /** El número vinculado de la persona, o `null` si todavía no vinculó ninguno (el backend responde 404). */
-export async function obtenerVinculacionWhatsapp(signal?: AbortSignal): Promise<VinculoWhatsapp | null> {
+export async function obtenerVinculacionWhatsapp(
+  signal?: AbortSignal,
+): Promise<VinculoWhatsapp | null> {
   try {
     return await http.get('/whatsapp/vinculacion', vinculoWhatsappSchema, signal);
   } catch (error) {

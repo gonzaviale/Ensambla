@@ -187,7 +187,7 @@ body:has(.creation-studio) {
   font-size: 14px;
 }
 
-/* Los bloques de la propuesta usan el aspecto del cuaderno (.block, .data-table); acá van sólo las diferencias. */
+/* Los bloques de la propuesta usan el aspecto de la sección (.block, .data-table); acá van sólo las diferencias. */
 .studio-canvas .canvas-heading {
   margin-top: 0;
 }
@@ -354,7 +354,7 @@ body:has(.creation-studio) {
   padding: 11px 18px;
 }
 
-/* Vista de una plantilla (Plantillas → Ver el sistema) con la paleta. */
+/* Vista de una plantilla (Plantillas → Ver la sección) con la paleta. */
 .template-preview-header .eyebrow {
   font-size: 12px;
   font-weight: 700;

@@ -38,11 +38,11 @@ const abrirTallerConMuchosRegistros = async () => {
   estado.sistemas.set(usuario.email, [sistema]);
   renderApp(`/taller?sistema=${sistema.id}`);
   await verifyHeadingPresentAsync('Construyamos juntos');
-  await screen.findByLabelText('Nombre de tu cuaderno', {}, ESPERA);
+  await screen.findByLabelText('Nombre de tu sección', {}, ESPERA);
   return { user: userEvent.setup(), clave };
 };
 
-/** Lo que Sami cargaría de una foto: registros reales que no estaban en el cuaderno guardado. */
+/** Lo que Sami cargaría de una foto: registros reales que no estaban en la sección guardada. */
 const cargarComoSami = (clave: string) =>
   useSistemaStore.getState().editarBorrador((borrador) => {
     const bloque = inventarioDe(borrador);
@@ -121,36 +121,36 @@ describe('las tablas de la propuesta de Sami', () => {
     expect(within(bloque).queryByRole('button', { name: /^Mostrar \d+ más/ })).toBeNull();
   });
 
-  it('con una sola sección no se muestran las pestañas; con más de una, sí', async () => {
+  it('con una sola pestaña no se muestran las pestañas; con más de una, sí', async () => {
     const { user } = await abrirTallerConMuchosRegistros();
-    expect(screen.queryByRole('navigation', { name: 'Secciones del cuaderno' })).toBeNull();
+    expect(screen.queryByRole('navigation', { name: 'Pestañas de la sección' })).toBeNull();
     expect(screen.queryByText('Vista general')).toBeNull();
 
     await user.click(screen.getByRole('button', { name: 'Agregar y organizar' }));
-    await user.click(screen.getByRole('button', { name: 'Agregar una sección' }));
+    await user.click(screen.getByRole('button', { name: 'Agregar una pestaña' }));
     const dialogo = await screen.findByRole('dialog');
-    await user.type(within(dialogo).getByLabelText('Nombre de la sección'), 'Ventas');
-    await user.click(within(dialogo).getByRole('button', { name: 'Agregar sección' }));
+    await user.type(within(dialogo).getByLabelText('Nombre de la pestaña'), 'Ventas');
+    await user.click(within(dialogo).getByRole('button', { name: 'Agregar pestaña' }));
 
-    const pestanas = await screen.findByRole('navigation', { name: 'Secciones del cuaderno' });
+    const pestanas = await screen.findByRole('navigation', { name: 'Pestañas de la sección' });
     expect(within(pestanas).getAllByRole('button')).toHaveLength(2);
     expect(useSistemaStore.getState().taller?.borrador?.sections).toHaveLength(2);
-    // Es la propuesta la que cambia: el cuaderno guardado sigue con su sección.
+    // Es la propuesta la que cambia: la sección guardada sigue con su pestaña.
     expect(useSistemaStore.getState().sistemas[0]?.sections).toHaveLength(1);
   });
 
-  it('las secciones se quitan desde el desplegable, sobre la propuesta', async () => {
+  it('las pestañas se quitan desde el desplegable, sobre la propuesta', async () => {
     const { user } = await abrirTallerConMuchosRegistros();
     useSistemaStore.getState().editarBorrador((borrador) => {
       borrador.sections.push({ id: 'otra', name: 'Ventas', blocks: [] });
     });
-    await screen.findByRole('navigation', { name: 'Secciones del cuaderno' });
+    await screen.findByRole('navigation', { name: 'Pestañas de la sección' });
 
     await user.click(screen.getByRole('button', { name: 'Agregar y organizar' }));
-    await user.click(screen.getByRole('button', { name: 'Secciones' }));
+    await user.click(screen.getByRole('button', { name: 'Pestañas' }));
     const dialogo = await screen.findByRole('dialog');
     const quitar = within(dialogo).getAllByRole('button', {
-      name: 'Quitar sección y conservar bloques',
+      name: 'Quitar pestaña y conservar bloques',
     });
     await user.click(quitar[1] as HTMLElement);
 
@@ -158,7 +158,7 @@ describe('las tablas de la propuesta de Sami', () => {
       expect(useSistemaStore.getState().taller?.borrador?.sections).toHaveLength(1),
     );
     await clickButton(user, 'Guardar nombres');
-    expect(screen.queryByRole('navigation', { name: 'Secciones del cuaderno' })).toBeNull();
+    expect(screen.queryByRole('navigation', { name: 'Pestañas de la sección' })).toBeNull();
     expect(useSistemaStore.getState().sistemas[0]?.sections).toHaveLength(1);
   });
 

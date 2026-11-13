@@ -1216,7 +1216,7 @@ button.alertas-preguntar:focus-visible > .icon {
   background: #c42b2b;
   color: #fff;
 }
-.alerta-cuaderno {
+.alerta-sistema {
   color: var(--muted);
   font-weight: 600;
 }
@@ -1329,22 +1329,22 @@ button.alertas-preguntar:focus-visible > .icon {
   color: var(--muted);
 }
 
-/* Filtro por cuaderno */
-.alertas-cuadernos {
+/* Filtro por sección */
+.alertas-sistemas {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin: 4px 0 14px;
 }
-.alertas-cuadernos > span {
+.alertas-sistemas > span {
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
 }
-.alertas-cuadernos button {
+.alertas-sistemas button {
   padding: 6px 12px;
   border-radius: 999px;
   border: 2px solid var(--line);
@@ -1354,19 +1354,19 @@ button.alertas-preguntar:focus-visible > .icon {
   font-weight: 700;
   cursor: pointer;
 }
-.alertas-cuadernos button span {
+.alertas-sistemas button span {
   margin-left: 4px;
   padding: 1px 7px;
   border-radius: 999px;
   background: var(--soft);
   font-size: 11px;
 }
-.alertas-cuadernos button.active {
+.alertas-sistemas button.active {
   border-color: var(--petrol);
   background: var(--petrol);
   color: #fff;
 }
-.alertas-cuadernos button.active span {
+.alertas-sistemas button.active span {
   background: #ffffff33;
 }
 

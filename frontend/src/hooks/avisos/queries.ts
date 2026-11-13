@@ -23,7 +23,11 @@ const SIN_AVISOS: AvisoDelServidor[] = [];
 /** Los avisos pendientes del motor del servidor; vacío mientras carga o si falla. `respondio` es true si contestó bien. */
 export function useAvisosDelServidor() {
   const consulta = useQuery(avisosPendientesQuery());
-  return { avisos: consulta.data ?? SIN_AVISOS, cargando: consulta.isPending, respondio: consulta.isSuccess };
+  return {
+    avisos: consulta.data ?? SIN_AVISOS,
+    cargando: consulta.isPending,
+    respondio: consulta.isSuccess,
+  };
 }
 
 export const impactoDeAvisosQuery = () =>

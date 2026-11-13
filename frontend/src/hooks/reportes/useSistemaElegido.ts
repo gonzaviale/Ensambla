@@ -1,33 +1,33 @@
 import { useMemo, useState } from 'react';
-import { cuadernosConDatos } from '@/lib/sistema/metricasInicio';
+import { sistemasConDatos } from '@/lib/sistema/metricasInicio';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
-const CLAVE_DEL_CUADERNO = 'ensambla.inicio.cuaderno';
+const CLAVE_DEL_SISTEMA = 'ensambla.inicio.sistema';
 
-const leerCuadernoElegido = () => {
+const leerSistemaElegido = () => {
   try {
-    return window.localStorage.getItem(CLAVE_DEL_CUADERNO);
+    return window.localStorage.getItem(CLAVE_DEL_SISTEMA);
   } catch {
     return null;
   }
 };
 
 /**
- * Los cuadernos que tienen números para mostrar y cuál se está mirando. Arranca con el último elegido en el inicio o,
- * si no hay, con el último que se tocó.
+ * Las secciones que tienen números para mostrar y cuál se está mirando. Arranca con la última elegida en el inicio o,
+ * si no hay, con la última que se tocó.
  */
-export function useCuadernoElegido() {
-  const sistemas = useSistemaStore((estado) => estado.sistemas);
-  const cuadernos = useMemo(() => cuadernosConDatos(sistemas), [sistemas]);
-  const [elegido, setElegido] = useState(leerCuadernoElegido);
-  const cuaderno = cuadernos.find((item) => item.id === elegido) ?? cuadernos[0];
+export function useSistemaElegido() {
+  const todos = useSistemaStore((estado) => estado.sistemas);
+  const sistemas = useMemo(() => sistemasConDatos(todos), [todos]);
+  const [elegido, setElegido] = useState(leerSistemaElegido);
+  const sistema = sistemas.find((item) => item.id === elegido) ?? sistemas[0];
   const elegir = (id: string) => {
     setElegido(id);
     try {
-      window.localStorage.setItem(CLAVE_DEL_CUADERNO, id);
+      window.localStorage.setItem(CLAVE_DEL_SISTEMA, id);
     } catch {
       // Sin almacenamiento funciona igual: sólo no se acuerda de la elección.
     }
   };
-  return { cuadernos, cuaderno, elegir };
+  return { sistemas, sistema, elegir };
 }

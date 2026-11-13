@@ -45,7 +45,9 @@ describe('API de avisos', () => {
     estado.avisosDelServidor.set('otra@example.com', [avisoDelServidor()]);
     setupUsuarioConSesion({ email: 'lucia@example.com' });
 
-    const error = await aplicarAviso('e0000000-0000-4000-8000-000000000001').catch((e: unknown) => e);
+    const error = await aplicarAviso('e0000000-0000-4000-8000-000000000001').catch(
+      (e: unknown) => e,
+    );
 
     expect(error).toBeInstanceOf(ApiError);
     expect((error as ApiError).status).toBe(404);

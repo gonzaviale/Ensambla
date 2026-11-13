@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// Un aviso económico del cuaderno: cómo le fue esta semana frente a la anterior, en ventas y en ganancia, con los
+// Un aviso económico de la sección: cómo le fue esta semana frente a la anterior, en ventas y en ganancia, con los
 // productos que más explican el cambio. Lo calcula el servidor (GET /proyectos/{id}/resumen/aviso-economico).
 export const avisoEconomicoSchema = z.object({
   prioridad: z.enum(['ALTA', 'MEDIA', 'BAJA']),

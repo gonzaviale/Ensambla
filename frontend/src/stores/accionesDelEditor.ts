@@ -73,7 +73,7 @@ export function agregarBloque(
   store().avisar(`${CATALOG[tipo].name} agregado. Podés personalizarlo a la derecha.`);
 }
 
-/** Soltar un bloque sobre otro de la misma sección los cambia de lugar; cada uno conserva su ancho. */
+/** Soltar un bloque sobre otro de la misma pestaña los cambia de lugar; cada uno conserva su ancho. */
 export function intercambiarBloques(bloqueId: string, otroId: string) {
   if (bloqueId === otroId) return;
   store().commit((s) => {
@@ -210,7 +210,7 @@ export function agregarSeccion(nombre: string, inicio: string) {
   store().commit((s) => {
     s.sections.push(nueva);
   });
-  store().avisar('Sección agregada. Ya podés sumar o mover bloques.');
+  store().avisar('Pestaña agregada. Ya podés sumar o mover bloques.');
 }
 
 export function agregarConjunto(clave: ClavePlantilla) {
@@ -220,7 +220,7 @@ export function agregarConjunto(clave: ClavePlantilla) {
   store().commit((s) => {
     s.sections.push({ ...compuesta, name: TEMPLATES[clave].name });
   });
-  store().avisar('Conjunto agregado en una sección nueva.');
+  store().avisar('Conjunto agregado en una pestaña nueva.');
 }
 
 export function renombrarSecciones(nombres: [string, string][]) {
@@ -240,7 +240,7 @@ export function quitarSeccion(seccionId: string) {
     quitarSeccionDe(s, seccionId);
   });
   if (store().sectionId === seccionId) useSistemaStore.setState({ sectionId: destino.id });
-  store().avisar('Sección quitada. Los bloques y sus datos se conservaron.');
+  store().avisar('Pestaña quitada. Los bloques y sus datos se conservaron.');
 }
 
 export function pedirQuitarCampo(bloqueId: string, clave: string) {

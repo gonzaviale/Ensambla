@@ -26,11 +26,11 @@ export function ModalAgregarSeccion({ enBorrador = false }: { enBorrador?: boole
       <div className="icon-tile" style={varsDeColor('petrol')}>
         <Icon name="folder" />
       </div>
-      <h2 id="modal-title">Agregá una sección.</h2>
+      <h2 id="modal-title">Agregá una pestaña.</h2>
       <p>Separá lo que querés ver en distintas páginas. Por ejemplo: Ventas, Stock o Clientes.</p>
       <form onSubmit={guardar}>
         <div className="field">
-          <label htmlFor="section-name">Nombre de la sección</label>
+          <label htmlFor="section-name">Nombre de la pestaña</label>
           <input
             className="input"
             id="section-name"
@@ -50,7 +50,7 @@ export function ModalAgregarSeccion({ enBorrador = false }: { enBorrador?: boole
             value={inicio}
             onChange={(evento) => setInicio(evento.target.value)}
           >
-            <option value="empty">Una sección vacía</option>
+            <option value="empty">Una pestaña vacía</option>
             {Object.entries(PRESETS_DE_SECCION).map(([clave, preset]) => (
               <option key={clave} value={clave}>
                 {preset.label}
@@ -64,7 +64,7 @@ export function ModalAgregarSeccion({ enBorrador = false }: { enBorrador?: boole
           </Btn>
           <button className="btn primary" type="submit">
             <Icon name="plus" />
-            Agregar sección
+            Agregar pestaña
           </button>
         </div>
       </form>

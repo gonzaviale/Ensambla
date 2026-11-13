@@ -113,7 +113,7 @@
   }
 }
 
-/* Configurar y eliminar un cuaderno (lápiz al lado del nombre). Colores sólidos, sin pasteles. */
+/* Configurar y eliminar una sección (lápiz al lado del nombre). Colores sólidos, sin pasteles. */
 .btn.peligro {
   display: inline-flex;
   align-items: center;
@@ -155,11 +155,11 @@
   font-size: 13px;
   color: var(--muted);
 }
-.modal-eliminar-cuaderno .eliminar-cuaderno-subtitulo {
+.modal-eliminar-sistema .eliminar-sistema-subtitulo {
   margin: 14px 0 6px;
   font-weight: 700;
 }
-.eliminar-cuaderno-tablas {
+.eliminar-sistema-tablas {
   display: grid;
   gap: 6px;
   max-height: 210px;
@@ -168,7 +168,7 @@
   overflow-y: auto;
   list-style: none;
 }
-.eliminar-cuaderno-tablas li {
+.eliminar-sistema-tablas li {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -176,22 +176,22 @@
   border: 1px solid var(--line, #e5e5e5);
   border-radius: 10px;
 }
-.eliminar-cuaderno-punto {
+.eliminar-sistema-punto {
   width: 10px;
   height: 10px;
   flex-shrink: 0;
   border-radius: 50%;
   background: var(--accent);
 }
-.eliminar-cuaderno-nombre {
+.eliminar-sistema-nombre {
   flex: 1;
   font-weight: 600;
 }
-.eliminar-cuaderno-cantidad {
+.eliminar-sistema-cantidad {
   font-size: 13px;
   color: var(--muted);
 }
-.modal-configurar-cuaderno form .modal-footer {
+.modal-configurar-sistema form .modal-footer {
   justify-content: flex-start;
 }
 

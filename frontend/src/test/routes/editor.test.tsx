@@ -55,12 +55,12 @@ const tipoDeBloqueDe = (sistema: Sistema, tipo: string) => {
   return bloque;
 };
 
-describe('el editor: un solo cuaderno con todo a mano', () => {
+describe('el editor: una sola sección con todo a mano', () => {
   it('abre el sistema de la dirección con la biblioteca y el lienzo, sin el panel de ajustes', async () => {
     await abrirEditor();
 
     expect(
-      screen.queryByRole('button', { name: /Editar cuaderno|Usar cuaderno|Construir/ }),
+      screen.queryByRole('button', { name: /Editar sección|Usar sección|Construir/ }),
     ).toBeNull();
     expect(screen.getByText('Tus piezas')).toBeVisible();
     expect(screen.queryByRole('complementary', { name: /Personalizar/ })).toBeNull();
@@ -153,7 +153,7 @@ describe('el editor: un solo cuaderno con todo a mano', () => {
       expect(within(vista).getByLabelText('Cantidad: mín.')).toBeVisible();
       expect(within(vista).getByLabelText('Buscar en Inventario')).toBeVisible();
 
-      await user.click(within(vista).getByRole('button', { name: /Volver al cuaderno/ }));
+      await user.click(within(vista).getByRole('button', { name: /Volver a la sección/ }));
 
       expect(screen.queryByRole('dialog', { name: 'Inventario' })).toBeNull();
       expect(abrir).toHaveFocus();
@@ -190,7 +190,7 @@ describe('el editor: un solo cuaderno con todo a mano', () => {
       await user.keyboard('{Escape}');
       expect(document.documentElement.style.overflow).toBe('hidden');
 
-      await user.click(within(vista).getByRole('button', { name: /Volver al cuaderno/ }));
+      await user.click(within(vista).getByRole('button', { name: /Volver a la sección/ }));
       expect(document.documentElement.style.overflow).toBe('');
     });
 
@@ -276,14 +276,14 @@ describe('el editor: un solo cuaderno con todo a mano', () => {
     expect(activo().name).toBe('Almacén Don Luis');
   });
 
-  it('el lápiz deja eliminar el cuaderno escribiendo su nombre', async () => {
+  it('el lápiz deja eliminar la sección escribiendo su nombre', async () => {
     const { user, usuario, router, sistema } = await abrirEditor();
 
     await user.click(
       screen.getByRole('heading', { level: 1 }).querySelector('button') as HTMLElement,
     );
-    expect(await screen.findByRole('heading', { name: 'Configurar cuaderno' })).toBeVisible();
-    await clickButton(user, 'Eliminar cuaderno');
+    expect(await screen.findByRole('heading', { name: 'Configurar sección' })).toBeVisible();
+    await clickButton(user, 'Eliminar sección');
 
     const tablas = await screen.findByRole('list', { name: 'Tablas que se eliminan' });
     expect(within(tablas).getAllByRole('listitem')).toHaveLength(allBlocks(sistema).length);
@@ -298,7 +298,7 @@ describe('el editor: un solo cuaderno con todo a mano', () => {
     expect(eliminar).toBeEnabled();
     await user.click(eliminar);
 
-    await verifyPathAsync(router, '/cuadernos');
+    await verifyPathAsync(router, '/inicio');
     await verifyToastAsync(`Eliminamos «${sistema.name}».`);
     expect(useSistemaStore.getState().sistemas).toHaveLength(0);
     await waitFor(() => expect(estado.sistemas.get(usuario.email)).toHaveLength(0), ESPERA);
@@ -383,7 +383,7 @@ describe('bloques', () => {
     expect(nombres()).not.toContain('Clientes (copia)');
   });
 
-  it('el inspector cambia nombre, color, ancho y sección', async () => {
+  it('el inspector cambia nombre, color, ancho y pestaña', async () => {
     const { user } = await abrirEditor();
     await user.click(
       within(bloquePorNombre('Clientes')).getByRole('button', { name: 'Personalizar bloque' }),
@@ -455,7 +455,7 @@ describe('bloques', () => {
     expect(tipoDeBloque('sales').width).toBe('full');
   });
 
-  it('la distribución se aplica a la sección', async () => {
+  it('la distribución se aplica a la pestaña', async () => {
     const { user } = await abrirEditor();
 
     await clickButton(user, /1 columna/);
@@ -621,7 +621,7 @@ describe('registros', () => {
   });
 });
 
-describe('campos y secciones', () => {
+describe('campos y pestañas', () => {
   it('agrega un campo de opciones y lo quita', async () => {
     const { user } = await abrirEditor();
     await user.click(
@@ -668,29 +668,29 @@ describe('campos y secciones', () => {
     expect(within(modal).getByText('Ya hay un campo con ese nombre.')).toBeVisible();
   });
 
-  it('agrega una sección con piezas, la renombra, la mueve y la quita', async () => {
+  it('agrega una pestaña con piezas, la renombra, la mueve y la quita', async () => {
     const { user } = await abrirEditor();
 
-    await user.click(screen.getByRole('button', { name: 'Agregar una sección' }));
+    await user.click(screen.getByRole('button', { name: 'Agregar una pestaña' }));
     const nueva = await screen.findByRole('dialog');
-    await user.type(within(nueva).getByLabelText('Nombre de la sección'), 'Cuaderno');
+    await user.type(within(nueva).getByLabelText('Nombre de la pestaña'), 'Caja');
     await user.selectOptions(within(nueva).getByLabelText('¿Con qué querés empezar?'), 'sales');
-    await user.click(within(nueva).getByRole('button', { name: /Agregar sección/ }));
+    await user.click(within(nueva).getByRole('button', { name: /Agregar pestaña/ }));
 
-    expect(activo().sections.map((seccion) => seccion.name)).toEqual(['Vista general', 'Cuaderno']);
+    expect(activo().sections.map((seccion) => seccion.name)).toEqual(['Vista general', 'Caja']);
     expect(activo().sections[1]?.blocks.map((bloque) => bloque.type)).toEqual(['sales', 'clients']);
-    expect(await screen.findByRole('button', { name: 'Cuaderno', current: 'page' })).toBeVisible();
+    expect(await screen.findByRole('button', { name: 'Caja', current: 'page' })).toBeVisible();
 
-    await clickButton(user, /Secciones/);
+    await clickButton(user, /Pestañas/);
     const gestor = await screen.findByRole('dialog');
     await user.click(
-      within(gestor).getAllByRole('button', { name: 'Mover sección arriba' })[1] as HTMLElement,
+      within(gestor).getAllByRole('button', { name: 'Mover pestaña arriba' })[1] as HTMLElement,
     );
-    expect(activo().sections.map((seccion) => seccion.name)).toEqual(['Cuaderno', 'Vista general']);
+    expect(activo().sections.map((seccion) => seccion.name)).toEqual(['Caja', 'Vista general']);
 
     await user.click(
       within(gestor).getAllByRole('button', {
-        name: 'Quitar sección y conservar bloques',
+        name: 'Quitar pestaña y conservar bloques',
       })[0] as HTMLElement,
     );
     expect(activo().sections.map((seccion) => seccion.name)).toEqual(['Vista general']);
@@ -709,7 +709,7 @@ describe('campos y secciones', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('un conjunto listo se agrega en una sección nueva', async () => {
+  it('un conjunto listo se agrega en una pestaña nueva', async () => {
     const { user } = await abrirEditor();
 
     await clickButton(user, 'Conjuntos listos');
@@ -721,7 +721,7 @@ describe('campos y secciones', () => {
 });
 
 describe('traer datos de una foto', () => {
-  const foto = () => new File(['pixeles'], 'cuaderno.jpg', { type: 'image/jpeg' });
+  const foto = () => new File(['pixeles'], 'sistema.jpg', { type: 'image/jpeg' });
 
   it('desde el editor lleva la foto a Sami, que la mira y pregunta qué ve mal', async () => {
     const { user } = await abrirEditor(makeTemplate('shop', {}, false));

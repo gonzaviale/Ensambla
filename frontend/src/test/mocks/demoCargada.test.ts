@@ -18,8 +18,8 @@ describe('sembrarDemoCargada', () => {
     expect(planesDe(EMAIL).suscripcion.codigoPlanActual).toBe('PREMIUM');
   });
 
-  it('al sembrar de nuevo no duplica el almacén y conserva los cuadernos propios', () => {
-    const propio = makeSystem('Mi cuaderno', ['inventory'], false);
+  it('al sembrar de nuevo no duplica el almacén y conserva las secciones propias', () => {
+    const propio = makeSystem('Mi sección', ['inventory'], false);
     estado.sistemas.set(EMAIL, [propio]);
 
     sembrarDemoCargada(EMAIL);
@@ -27,7 +27,7 @@ describe('sembrarDemoCargada', () => {
 
     expect(sistemasDe(EMAIL).map((sistema) => sistema.name)).toEqual([
       'Almacén de barrio',
-      'Mi cuaderno',
+      'Mi sección',
     ]);
   });
 });

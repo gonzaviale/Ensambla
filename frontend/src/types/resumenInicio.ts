@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// Las métricas del inicio de un cuaderno, calculadas por el servidor con las ventas y el inventario que la persona
+// Las métricas del inicio de una sección, calculadas por el servidor con las ventas y el inventario que la persona
 // cargó. Lo que no se puede calcular con certeza llega vacío (`null` o lista vacía) y la pantalla no lo muestra.
 // Lo vendido en un período y con qué se compara: para hoy, el mismo día de la semana pasada; para la semana y el mes,
 // los 7 o 30 días anteriores.

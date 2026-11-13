@@ -112,7 +112,7 @@ export function SeguimientoDelObjetivo({
           </p>
         ) : minis.data.minis.length === 0 ? (
           <p className="objetivos-pasos-vacio">
-            Cargá tus ventas, productos y costos en un cuaderno, y Sami te propone tres pasos para
+            Cargá tus ventas, productos y costos en una sección, y Sami te propone tres pasos para
             llegar.
           </p>
         ) : (

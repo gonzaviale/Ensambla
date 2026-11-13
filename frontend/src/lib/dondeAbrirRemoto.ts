@@ -12,7 +12,10 @@ import type {
 } from '@/lib/dondeAbrir';
 import type { DondeAbrirResponse } from '@/types/zona';
 
-const FACTOR: Record<DondeAbrirResponse['ranking'][number]['aportes'][number]['factor'], FactorClave> = {
+const FACTOR: Record<
+  DondeAbrirResponse['ranking'][number]['aportes'][number]['factor'],
+  FactorClave
+> = {
   COMPETENCIA: 'competencia',
   ACTIVIDAD_ACCESO: 'movimiento',
   DENSIDAD: 'vecinos',
@@ -27,15 +30,16 @@ const FACTOR: Record<DondeAbrirResponse['ranking'][number]['aportes'][number]['f
   ALQUILER: 'alquiler',
 };
 
-const PUNTO: Record<DondeAbrirResponse['ranking'][number]['puntos'][number]['tipo'], TipoDePunto> = {
-  COMPETENCIA: 'competencia',
-  ESCUELA: 'escuela',
-  OFICINA: 'oficina',
-  TRANSPORTE: 'transporte',
-  PARQUE: 'parque',
-  SALUD: 'salud',
-  COMPLEMENTARIO: 'complementario',
-};
+const PUNTO: Record<DondeAbrirResponse['ranking'][number]['puntos'][number]['tipo'], TipoDePunto> =
+  {
+    COMPETENCIA: 'competencia',
+    ESCUELA: 'escuela',
+    OFICINA: 'oficina',
+    TRANSPORTE: 'transporte',
+    PARQUE: 'parque',
+    SALUD: 'salud',
+    COMPLEMENTARIO: 'complementario',
+  };
 
 const COINCIDENCIA: Record<DondeAbrirResponse['ranking'][number]['coincidencia'], Coincidencia> = {
   BUENA: 'buena',
@@ -46,10 +50,7 @@ const COINCIDENCIA: Record<DondeAbrirResponse['ranking'][number]['coincidencia']
 const jurisdiccion = (valor: 'CABA' | 'La Matanza') =>
   valor === 'CABA' ? ('caba' as const) : ('la-matanza' as const);
 
-function datosDeZona(
-  item: DondeAbrirResponse['ranking'][number],
-  filtros: Filtros,
-): DatosDeZona {
+function datosDeZona(item: DondeAbrirResponse['ranking'][number], filtros: Filtros): DatosDeZona {
   const valor = (factor: keyof typeof FACTOR) =>
     item.aportes.find((aporte) => aporte.factor === factor)?.valor ?? 0;
   return {
@@ -103,7 +104,10 @@ export type ExploracionRemota = Exploracion & {
   puntoElegidoId: string | null;
 };
 
-export function adaptarDondeAbrir(respuesta: DondeAbrirResponse, filtros: Filtros): ExploracionRemota {
+export function adaptarDondeAbrir(
+  respuesta: DondeAbrirResponse,
+  filtros: Filtros,
+): ExploracionRemota {
   const ranking: ZonaPuntuada[] = respuesta.ranking.map((item) => ({
     zona: datosDeZona(item, filtros),
     distanciaKm: item.distanciaKm ?? 0,

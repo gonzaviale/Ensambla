@@ -56,7 +56,7 @@ const espiarElTaller = (responder: (pedido: Record<string, unknown>) => JsonBody
 const conTresDudas = async () => {
   const pedidos = espiarElTaller((pedido) =>
     pedido.mensaje === 'tengo una dietética'
-      ? { respuesta: 'Veo tu cuaderno.', acciones: [], preguntas: DUDAS }
+      ? { respuesta: 'Veo tu sección.', acciones: [], preguntas: DUDAS }
       : { respuesta: 'Listo, ya lo ajusté.', acciones: [], preguntas: [] },
   );
   const user = await abrirTaller();

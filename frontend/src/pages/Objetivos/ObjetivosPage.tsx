@@ -32,7 +32,7 @@ export function ObjetivosPage() {
     abrirModal({
       tipo: 'confirmar',
       titulo: '¿Quitar este objetivo?',
-      mensaje: `Dejás de seguir «${objetivo.texto}» (${formatoPesos(objetivo.meta)} por mes). Tus cuadernos no cambian.`,
+      mensaje: `Dejás de seguir «${objetivo.texto}» (${formatoPesos(objetivo.meta)} por mes). Tus secciones no cambian.`,
       etiqueta: 'Quitar objetivo',
       onConfirmar: () => eliminar(objetivo.id),
     });

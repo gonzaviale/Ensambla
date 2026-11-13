@@ -26,7 +26,7 @@ const sinVentas = {
   ventasFiadas: 0,
 };
 
-/** Un cuaderno con productos pero sin ventas, sin faltantes y sin parados. */
+/** Una sección con productos pero sin ventas, sin faltantes y sin parados. */
 const resumenSinNovedades = () => ({
   sistema: 'x',
   hoy: hoy(),
@@ -69,7 +69,7 @@ const escucharPedidos = () => {
 describe('inicio: cómo te va', () => {
   beforeEach(() => window.localStorage.clear());
 
-  it('sin cuadernos no muestra métricas ni las pide', async () => {
+  it('sin secciones no muestra métricas ni las pide', async () => {
     const pedidos = escucharPedidos();
 
     await abrirInicio([]);
@@ -78,7 +78,7 @@ describe('inicio: cómo te va', () => {
     expect(pedidos).toEqual([]);
   });
 
-  it('un cuaderno con sólo filas de ejemplo no muestra métricas ni las pide', async () => {
+  it('una sección con sólo filas de ejemplo no muestra métricas ni las pide', async () => {
     const pedidos = escucharPedidos();
 
     await abrirInicio([makeTemplate('shop', {}, true)]);
@@ -87,7 +87,7 @@ describe('inicio: cómo te va', () => {
     expect(pedidos).toEqual([]);
   });
 
-  it('con un cuaderno cargado muestra lo vendido y lo parado, sin lo que más salió ni lo que falta', async () => {
+  it('con una sección cargada muestra lo vendido y lo parado, sin lo que más salió ni lo que falta', async () => {
     await abrirInicio([almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z')]);
 
     const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
@@ -124,7 +124,7 @@ describe('inicio: cómo te va', () => {
     expect(within(seccion).getByRole('heading', { name: 'Este mes vendiste' })).toBeVisible();
   });
 
-  it('con varios cuadernos deja elegir de cuál ver los números y se acuerda de la elección', async () => {
+  it('con varias secciones deja elegir de cuál ver los números y se acuerda de la elección', async () => {
     const pedidos: string[] = [];
     server.use(
       http.get('/api/proyectos/:sistemaId/resumen/inicio', ({ params }) => {
@@ -136,11 +136,11 @@ describe('inicio: cómo te va', () => {
     const viejo = almacen('Almacén Norte', '2026-10-01T10:00:00.000Z');
     const user = await abrirInicio([viejo, reciente]);
 
-    const selector = await screen.findByRole('button', { name: 'Cuaderno: Kiosco Centro' }, ESPERA);
+    const selector = await screen.findByRole('button', { name: 'Sección: Kiosco Centro' }, ESPERA);
     expect(pedidos).toEqual([reciente.id]);
 
     await user.click(selector);
-    const lista = screen.getByRole('listbox', { name: 'Cuadernos' });
+    const lista = screen.getByRole('listbox', { name: 'Secciones' });
     expect(within(lista).getByRole('option', { name: 'Kiosco Centro' })).toHaveAttribute(
       'aria-selected',
       'true',
@@ -149,19 +149,19 @@ describe('inicio: cómo te va', () => {
 
     await waitFor(() => expect(pedidos).toContain(viejo.id), ESPERA);
     expect(screen.queryByRole('listbox')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Cuaderno: Almacén Norte' })).toBeVisible();
-    expect(window.localStorage.getItem('ensambla.inicio.cuaderno')).toBe(viejo.id);
+    expect(screen.getByRole('button', { name: 'Sección: Almacén Norte' })).toBeVisible();
+    expect(window.localStorage.getItem('ensambla.inicio.sistema')).toBe(viejo.id);
   });
 
-  it('la lista de cuadernos se maneja con el teclado y se cierra con Escape', async () => {
+  it('la lista de secciones se maneja con el teclado y se cierra con Escape', async () => {
     const reciente = almacen('Kiosco Centro', '2026-10-21T10:00:00.000Z');
     const viejo = almacen('Almacén Norte', '2026-10-01T10:00:00.000Z');
     const user = await abrirInicio([viejo, reciente]);
-    const selector = await screen.findByRole('button', { name: 'Cuaderno: Kiosco Centro' }, ESPERA);
+    const selector = await screen.findByRole('button', { name: 'Sección: Kiosco Centro' }, ESPERA);
 
     selector.focus();
     await user.keyboard('{ArrowDown}');
-    expect(screen.getByRole('listbox', { name: 'Cuadernos' })).toBeVisible();
+    expect(screen.getByRole('listbox', { name: 'Secciones' })).toBeVisible();
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('listbox')).toBeNull();
     expect(selector).toHaveFocus();
@@ -169,9 +169,9 @@ describe('inicio: cómo te va', () => {
     await user.keyboard('{ArrowDown}{ArrowDown}{Enter}');
 
     expect(
-      await screen.findByRole('button', { name: 'Cuaderno: Almacén Norte' }, ESPERA),
+      await screen.findByRole('button', { name: 'Sección: Almacén Norte' }, ESPERA),
     ).toBeVisible();
-    expect(window.localStorage.getItem('ensambla.inicio.cuaderno')).toBe(viejo.id);
+    expect(window.localStorage.getItem('ensambla.inicio.sistema')).toBe(viejo.id);
   });
 
   it('si el servidor no contesta lo dice en lugar de mostrar ceros', async () => {

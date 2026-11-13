@@ -27,7 +27,10 @@ export type CodigoVinculacion = z.infer<typeof codigoVinculacionSchema>;
 export const telefonoWhatsappSchema = z
   .string()
   .trim()
-  .regex(/^[+0-9 ()-]{8,25}$/, 'Escribí el número con código de país, por ejemplo +54 9 11 2233 4455');
+  .regex(
+    /^[+0-9 ()-]{8,25}$/,
+    'Escribí el número con código de país, por ejemplo +54 9 11 2233 4455',
+  );
 
 export const codigoVerificacionSchema = z
   .string()

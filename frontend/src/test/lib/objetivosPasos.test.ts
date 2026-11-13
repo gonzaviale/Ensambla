@@ -55,7 +55,7 @@ const yerba = {
 };
 
 describe('pasos concretos de un objetivo', () => {
-  it('sin cuadernos no hay nada que recomendar', () => {
+  it('sin secciones no hay nada que recomendar', () => {
     expect(pasosConcretos([])).toEqual([]);
   });
 

@@ -97,7 +97,7 @@ describe('inicio: decisiones rápidas', () => {
     await verifyPathAsync(router, '/avisos');
   });
 
-  it('aplicar una sugerencia de precio lo cambia en el cuaderno y la saca de la lista', async () => {
+  it('aplicar una sugerencia de precio lo cambia en la sección y la saca de la lista', async () => {
     const { user } = await abrirInicio([crearAlmacenDeEjemplo(hoy())]);
     const antes = precioDe('Azúcar Ledesma 1 kg');
     expect(antes).toBeDefined();

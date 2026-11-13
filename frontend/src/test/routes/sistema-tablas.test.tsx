@@ -11,7 +11,7 @@ import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
 const FILAS = 25;
 
 /** Un almacén con muchos productos, abierto en su pantalla de siempre. */
-const abrirCuadernoConMuchosRegistros = async () => {
+const abrirSistemaConMuchosRegistros = async () => {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
   const sistema = makeTemplate('shop', {}, false);
   sistema.name = 'Almacén de Ana';
@@ -31,9 +31,9 @@ const abrirCuadernoConMuchosRegistros = async () => {
 
 const filasDe = (bloque: HTMLElement) => bloque.querySelectorAll('tbody tr[data-record]');
 
-describe('las tablas del cuaderno se cargan de a poco', () => {
+describe('las tablas de la sección se cargan de a poco', () => {
   it('muestran 10 registros con el scroll del bloque y suman de a 10 hasta el final', async () => {
-    const { user, bloque } = await abrirCuadernoConMuchosRegistros();
+    const { user, bloque } = await abrirSistemaConMuchosRegistros();
 
     expect(filasDe(bloque)).toHaveLength(10);
     expect(bloque.querySelector('.table-scroll')).not.toBeNull();
@@ -50,7 +50,7 @@ describe('las tablas del cuaderno se cargan de a poco', () => {
   });
 
   it('al llegar al final del scroll del bloque se suma la tanda siguiente', async () => {
-    const { bloque } = await abrirCuadernoConMuchosRegistros();
+    const { bloque } = await abrirSistemaConMuchosRegistros();
     const scroll = bloque.querySelector<HTMLElement>('.table-scroll');
     if (!scroll) throw new Error('Falta el scroll del bloque');
     Object.defineProperties(scroll, {
@@ -65,7 +65,7 @@ describe('las tablas del cuaderno se cargan de a poco', () => {
   });
 
   it('la búsqueda filtra sobre todos los registros, también los que todavía no se dibujaron', async () => {
-    const { user, bloque } = await abrirCuadernoConMuchosRegistros();
+    const { user, bloque } = await abrirSistemaConMuchosRegistros();
 
     await user.type(within(bloque).getByRole('textbox'), 'Producto 24');
 
@@ -78,7 +78,7 @@ describe('las tablas del cuaderno se cargan de a poco', () => {
   });
 
   it('un registro que todavía no se dibujó aparece cuando se pide llevar la vista a él', async () => {
-    const { bloque, inventario } = await abrirCuadernoConMuchosRegistros();
+    const { bloque, inventario } = await abrirSistemaConMuchosRegistros();
     expect(bloque.querySelector('[data-record="fila-17"]')).toBeNull();
 
     act(() => pedirMostrarFila(inventario.id, 'fila-17'));

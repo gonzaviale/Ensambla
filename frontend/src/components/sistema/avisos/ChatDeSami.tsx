@@ -43,7 +43,7 @@ type Props = {
   onAyuda: () => void;
 };
 
-// El chat de Sami, chico y al costado: se le pregunta por el stock, las ventas o los avisos del cuaderno abierto.
+// El chat de Sami, chico y al costado: se le pregunta por el stock, las ventas o los avisos de la sección abierta.
 export function ChatDeSami({ contexto, mensajes, onMensajes, onCerrar, onAyuda }: Props) {
   const [texto, setTexto] = useState('');
   const [pensando, setPensando] = useState(false);

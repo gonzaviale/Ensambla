@@ -153,7 +153,7 @@ export function BibliotecaDeBloques({
       ) : (
         <>
           <p className="small-text muted" style={{ fontSize: 10, marginBottom: 15 }}>
-            Agregá un conjunto en una sección nueva. Sus piezas ya vienen conectadas.
+            Agregá un conjunto en una pestaña nueva. Sus piezas ya vienen conectadas.
           </p>
           {(
             Object.entries(TEMPLATES) as [ClavePlantilla, (typeof TEMPLATES)[ClavePlantilla]][]
@@ -176,7 +176,7 @@ export function BibliotecaDeBloques({
             </button>
           ))}
           <Btn cls="secondary small full" onClick={() => abrirModal({ tipo: 'agregarSeccion' })}>
-            <Icon name="plus" /> Sección vacía
+            <Icon name="plus" /> Pestaña vacía
           </Btn>
         </>
       )}

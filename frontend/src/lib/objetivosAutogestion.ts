@@ -177,7 +177,7 @@ export function estadoDeSami({
   if (alcanzado)
     return { titulo: 'Lograste tu objetivo', detalle: 'Podés ponerte una meta más alta' };
   if (sinDatos)
-    return { titulo: 'Sami espera tus ventas', detalle: 'Cargalas en un cuaderno para medir' };
+    return { titulo: 'Sami espera tus ventas', detalle: 'Cargalas en una sección para medir' };
   if (resumenListo) return { titulo: 'Tu resumen está listo', detalle: 'Sami cerró tu semana' };
   return {
     titulo: 'Sami sigue tu semana',

@@ -36,7 +36,11 @@ const respuesta = (
 });
 
 /** Mantiene funcional la demo totalmente simulada; producción siempre usa el endpoint Java. */
-export function pasosObjetivoSimulados(sistemas: Sistema[], hoy: string, zona: Zona): ProductoParaPaso[] {
+export function pasosObjetivoSimulados(
+  sistemas: Sistema[],
+  hoy: string,
+  zona: Zona,
+): ProductoParaPaso[] {
   const productos = sistemas.flatMap((sistema) => {
     const { porProducto } = rotaciones(sistema, hoy);
     return allBlocks(sistema)
@@ -55,13 +59,8 @@ export function pasosObjetivoSimulados(sistemas: Sistema[], hoy: string, zona: Z
   const pasos: ProductoParaPaso[] = [];
   const usados = new Set<string>();
   const pocoMargen = [...productos]
-    .filter(
-      (producto) =>
-        producto.vendidas30Dias > 0 && ganancia(producto) < producto.precio * 0.3,
-    )
-    .sort(
-      (a, b) => b.vendidas30Dias - a.vendidas30Dias || orden(a).localeCompare(orden(b)),
-    )[0];
+    .filter((producto) => producto.vendidas30Dias > 0 && ganancia(producto) < producto.precio * 0.3)
+    .sort((a, b) => b.vendidas30Dias - a.vendidas30Dias || orden(a).localeCompare(orden(b)))[0];
   if (pocoMargen) {
     usados.add(pocoMargen.id);
     pasos.push(respuesta('SUBIR_PRECIO', pocoMargen, zona));
@@ -73,9 +72,7 @@ export function pasosObjetivoSimulados(sistemas: Sistema[], hoy: string, zona: Z
         producto.stock > 0 &&
         ganancia(producto) >= pasoDePrecio(producto.precio) * 2,
     )
-    .sort(
-      (a, b) => b.costo * b.stock - a.costo * a.stock || orden(a).localeCompare(orden(b)),
-    )[0];
+    .sort((a, b) => b.costo * b.stock - a.costo * a.stock || orden(a).localeCompare(orden(b)))[0];
   if (parado) {
     usados.add(parado.id);
     pasos.push(respuesta('MOVER_PARADO', parado, zona));

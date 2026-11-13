@@ -14,12 +14,20 @@ const haceDias = (iso: string, dias: number) => {
   return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`;
 };
 
-// Las mismas cuentas que hace el backend con los cuadernos de la sesión: los últimos 30 días y, para cada una de las
+// Las mismas cuentas que hace el backend con las secciones de la sesión: los últimos 30 días y, para cada una de las
 // últimas seis semanas, lo que quedaba de los 30 días que terminan ese día.
 export function comoVieneTuNegocioDe(sistemas: Sistema[], hoy: string): ComoVieneTuNegocio {
   const actual = negocioDe(sistemas, hoy);
   if (!actual.hayVentas) {
-    return { hayVentas: false, vendiste: 0, mercaderia: 0, gastos: 0, queda: 0, teDeben: 0, semanas: [] };
+    return {
+      hayVentas: false,
+      vendiste: 0,
+      mercaderia: 0,
+      gastos: 0,
+      queda: 0,
+      teDeben: 0,
+      semanas: [],
+    };
   }
   const vendiste = Math.round(actual.vendiste);
   const mercaderia = Math.round(actual.mercaderia);

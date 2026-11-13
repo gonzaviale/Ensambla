@@ -8,7 +8,7 @@ import { setupUsuarioConSesion } from '@/test/testHelpers';
 const HOY = '2026-11-08';
 
 describe('Cómo viene tu negocio', () => {
-  it('sin cuadernos el servidor responde sin ventas, en cero y sin semanas', async () => {
+  it('sin secciones el servidor responde sin ventas, en cero y sin semanas', async () => {
     setupUsuarioConSesion();
 
     expect(await obtenerComoVieneTuNegocio()).toEqual({

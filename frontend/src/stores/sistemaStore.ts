@@ -21,11 +21,11 @@ export type Modal =
   | { tipo: 'pruebaPremium' }
   | { tipo: 'contratarPremium' }
   | { tipo: 'cancelarRenovacion' }
-  /** Configurar el cuaderno: cambiarle el nombre o, desde ahí, eliminarlo. */
+  /** Configurar la sección: cambiarle el nombre o, desde ahí, eliminarla. */
   | { tipo: 'renombrar' }
   /** El resumen del negocio en PDF del sistema abierto. */
   | { tipo: 'resumen' }
-  | { tipo: 'eliminarCuaderno' }
+  | { tipo: 'eliminarSistema' }
   | { tipo: 'renombrarPieza'; bloqueId: string }
   /** `avisoId`: el aviso del servidor desde el que se abrió; al guardar el registro se da por aplicado. */
   | { tipo: 'registro'; bloqueId: string; filaId?: string | null; avisoId?: string }
@@ -37,7 +37,7 @@ export type Modal =
   | { tipo: 'bienvenida' }
   /** Los productos detrás del aviso económico del inicio (pueden ser cientos). */
   | { tipo: 'productosDelAviso'; productos: string[] }
-  /** Con `enBorrador` trabajan sobre la propuesta de Sami en vez de sobre el cuaderno abierto. */
+  /** Con `enBorrador` trabajan sobre la propuesta de Sami en vez de sobre la sección abierta. */
   | { tipo: 'secciones'; enBorrador?: boolean }
   | { tipo: 'agregarSeccion'; enBorrador?: boolean }
   | { tipo: 'elegirBloque'; enBorrador?: boolean }
@@ -97,8 +97,8 @@ export type PanelDeAvisos = {
   /** La pantalla de avisos está a la vista: mientras tanto no salta «Sami vio un cambio». */
   abierto: boolean;
   filtro: string;
-  /** El cuaderno por el que se filtran los avisos: «todos» o el id del cuaderno. */
-  cuaderno: string;
+  /** La sección por la que se filtran los avisos: «todos» o el id de la sección. */
+  sistema: string;
   /** El aviso que se abrió desde el toast o la franja: la pantalla lo muestra resaltado. */
   foco: string | null;
 };
@@ -106,7 +106,7 @@ export type PanelDeAvisos = {
 const PANEL_CERRADO: PanelDeAvisos = {
   abierto: false,
   filtro: 'todas',
-  cuaderno: 'todos',
+  sistema: 'todos',
   foco: null,
 };
 
@@ -354,7 +354,7 @@ export const useSistemaStore = create<SistemaStore>()((set, get) => ({
       sistemas: sistemas.map((item) => (item.id === anterior.id ? anterior : item)),
       historial: historial.slice(0, -1),
       pendientes: sinRepetir(pendientes, anterior.id),
-      // Si la sección elegida ya no existe en la copia anterior, se vuelve a la primera.
+      // Si la pestaña elegida ya no existe en la copia anterior, se vuelve a la primera.
       sectionId: anterior.sections.some((seccion) => seccion.id === sectionId)
         ? sectionId
         : (anterior.sections[0]?.id ?? null),

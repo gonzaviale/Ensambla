@@ -4,11 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { estado } from '@/mocks/db/estado';
 import { CODIGO_DE_PRUEBA, TELEFONO_OCUPADO } from '@/mocks/handlers/whatsapp';
 import { renderApp } from '@/test/renderApp';
-import {
-  ESPERA,
-  setupUsuarioConSesion,
-  verifyHeadingPresentAsync,
-} from '@/test/testHelpers';
+import { ESPERA, setupUsuarioConSesion, verifyHeadingPresentAsync } from '@/test/testHelpers';
 
 const abrirWhatsapp = async () => {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez', email: 'ana@example.com' });
@@ -36,7 +32,9 @@ describe('tu cuenta: WhatsApp', () => {
 
     await pedirCodigo(user, 'abc');
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Escribí el número con código de país');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Escribí el número con código de país',
+    );
     expect(estado.whatsapp.get(usuario.email)?.verificacion).toBeUndefined();
   });
 
@@ -45,7 +43,9 @@ describe('tu cuenta: WhatsApp', () => {
 
     await pedirCodigo(user, '+54 11 2233 4455');
 
-    expect(await screen.findByText(/Te mandamos un código de 6 dígitos por WhatsApp al \+5491122334455/)).toBeVisible();
+    expect(
+      await screen.findByText(/Te mandamos un código de 6 dígitos por WhatsApp al \+5491122334455/),
+    ).toBeVisible();
     await user.type(screen.getByLabelText('Código'), CODIGO_DE_PRUEBA);
     await user.click(screen.getByRole('button', { name: 'Confirmar número' }));
 
@@ -63,7 +63,9 @@ describe('tu cuenta: WhatsApp', () => {
     await user.type(await screen.findByLabelText('Código'), '000000');
     await user.click(screen.getByRole('button', { name: 'Confirmar número' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('El código no es correcto. Te quedan 4 intentos');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'El código no es correcto. Te quedan 4 intentos',
+    );
     expect(screen.getByLabelText('Código')).toHaveValue('000000');
   });
 
@@ -117,7 +119,10 @@ describe('tu cuenta: WhatsApp', () => {
 
     expect(await screen.findByLabelText('Tu número de WhatsApp')).toBeVisible();
     await waitFor(() => expect(estado.whatsapp.get(usuario.email)?.vinculo).toBeNull(), ESPERA);
-    expect(within(screen.getByRole('navigation', { name: 'Secciones de tu cuenta' }))
-      .getByRole('link', { name: 'WhatsApp' })).toHaveAttribute('aria-current', 'page');
+    expect(
+      within(screen.getByRole('navigation', { name: 'Secciones de tu cuenta' })).getByRole('link', {
+        name: 'WhatsApp',
+      }),
+    ).toHaveAttribute('aria-current', 'page');
   });
 });

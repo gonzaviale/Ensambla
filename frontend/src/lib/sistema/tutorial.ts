@@ -51,8 +51,8 @@ export const PASOS: Record<PasoDeTutorial, DetalleDePaso> = {
   create: {
     grupo: 1,
     title: 'Cuando te cierre, la creamos.',
-    text: 'Esta propuesta todavía no es un cuaderno guardado. Podés seguir ajustándola o confirmar para empezar a usarla.',
-    hint: 'Tocá “Sí, crear mi cuaderno”.',
+    text: 'Esta propuesta todavía no es una sección guardada. Podés seguir ajustándola o confirmar para empezar a usarla.',
+    hint: 'Tocá “Sí, crear mi sección”.',
   },
   pickTemplate: {
     grupo: 1,
@@ -64,7 +64,7 @@ export const PASOS: Record<PasoDeTutorial, DetalleDePaso> = {
     grupo: 1,
     title: 'Mirá las piezas antes de empezar.',
     text: 'Revisá los bloques y sus opciones. Cuando te sirva esta base, elegí empezar con este conjunto.',
-    hint: 'Confirmá la plantilla para crear tu cuaderno.',
+    hint: 'Confirmá la plantilla para crear tu sección.',
   },
   blankConfirm: {
     grupo: 1,
@@ -81,7 +81,7 @@ export const PASOS: Record<PasoDeTutorial, DetalleDePaso> = {
   customize: {
     grupo: 2,
     title: 'De acá se cambia.',
-    text: 'Abrí los ajustes de esta pieza. Podés cambiar su nombre, sus campos, su color y la sección donde aparece.',
+    text: 'Abrí los ajustes de esta pieza. Podés cambiar su nombre, sus campos, su color y la pestaña donde aparece.',
     hint: 'Tocá el botón de ajustes del bloque.',
   },
   rename: {
@@ -116,7 +116,7 @@ export const PASOS: Record<PasoDeTutorial, DetalleDePaso> = {
   },
   done: {
     grupo: 4,
-    title: 'Tu primer cuaderno ya es tuyo.',
+    title: 'Tu primera sección ya es tuya.',
     text: 'Elegiste una base, personalizaste una pieza, la moviste y cargaste un registro. Podés seguir explorando, sumar bloques o probar otro camino.',
     hint: 'Todo lo que hiciste quedó en esta demo.',
   },

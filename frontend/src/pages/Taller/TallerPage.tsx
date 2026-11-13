@@ -16,7 +16,7 @@ import { BurbujasDeConversacion } from '@/components/sistema/BurbujasDeConversac
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
 import { TableroDelTaller } from '@/components/sistema/TableroDelTaller';
-import { HerramientasDelCuaderno } from '@/components/sistema/editor/HerramientasDelCuaderno';
+import { HerramientasDelSistema } from '@/components/sistema/editor/HerramientasDelSistema';
 import { SeccionesTabs } from '@/components/sistema/editor/SeccionesTabs';
 import { TablaCompleta } from '@/components/sistema/editor/TablaCompleta';
 import { Sami } from '@/components/sistema/Sami';
@@ -122,8 +122,8 @@ export function TallerPage() {
     estado.tutorial.activo ? estado.tutorial.paso : null,
   );
 
-  // En el celular el chat tapa la propuesta: cuando la guía pide crear el cuaderno, se minimiza para
-  // que se vea el botón «Sí, crear mi cuaderno».
+  // En el celular el chat tapa la propuesta: cuando la guía pide crear la sección, se minimiza para
+  // que se vea el botón «Sí, crear mi sección».
   useEffect(() => {
     if (pasoDelTutorial === 'create' && window.matchMedia?.('(max-width: 760px)').matches) {
       setChatAbierto(false);
@@ -220,8 +220,7 @@ export function TallerPage() {
   // Se calculan con el borrador (que cambia sólo al editarlo) y no en cada tecla del chat.
   const borradorActual = taller?.borrador ?? undefined;
   const hayEjemplos = useMemo(
-    () =>
-      allBlocks(borradorActual).some((bloque) => bloque.rows.some((fila) => fila.__example)),
+    () => allBlocks(borradorActual).some((bloque) => bloque.rows.some((fila) => fila.__example)),
     [borradorActual],
   );
   const hayCambios = useMemo(
@@ -394,7 +393,7 @@ export function TallerPage() {
             <Icon name="back" /> {original ? `Volver a ${original.name}` : 'Inicio'}
           </Btn>
           <span>
-            {ajustando ? 'AJUSTANDO TU CUADERNO CON SAMI' : 'EL TALLER DE TU PRIMER CUADERNO'}
+            {ajustando ? 'AJUSTANDO TU SECCIÓN CON SAMI' : 'EL TALLER DE TU PRIMERA SECCIÓN'}
           </span>
         </div>
         <div className="studio-layout chat-flotante">
@@ -408,12 +407,12 @@ export function TallerPage() {
                     </span>
                     <div>
                       <span className="canvas-etiqueta">
-                        {ajustando ? 'Tu cuaderno, con los cambios' : 'Tu propuesta, a la vista'}
+                        {ajustando ? 'Tu sección, con los cambios' : 'Tu propuesta, a la vista'}
                       </span>
                       <input
                         className="draft-name-input"
                         id="guide-system-name"
-                        aria-label="Nombre de tu cuaderno"
+                        aria-label="Nombre de tu sección"
                         maxLength={100}
                         value={borrador.name}
                         onChange={(evento) =>
@@ -427,7 +426,7 @@ export function TallerPage() {
                           <strong>{allBlocks(borrador).length}</strong> tablas
                         </span>
                         <span data-color="blue">
-                          <strong>{borrador.sections.length}</strong> secciones
+                          <strong>{borrador.sections.length}</strong> pestañas
                         </span>
                         <span data-color="coral">
                           <strong>{totals(borrador).records}</strong> registros
@@ -436,7 +435,7 @@ export function TallerPage() {
                     </div>
                   </div>
                   <div className="canvas-heading-actions">
-                    <HerramientasDelCuaderno
+                    <HerramientasDelSistema
                       distribucion={borrador.layout}
                       onDistribucion={(distribucion: Distribucion) =>
                         editarBorrador((copia) => {
@@ -445,7 +444,9 @@ export function TallerPage() {
                       }
                       onBloques={() => abrirModal({ tipo: 'elegirBloque', enBorrador: true })}
                       onSecciones={() => abrirModal({ tipo: 'secciones', enBorrador: true })}
-                      onNuevaSeccion={() => abrirModal({ tipo: 'agregarSeccion', enBorrador: true })}
+                      onNuevaSeccion={() =>
+                        abrirModal({ tipo: 'agregarSeccion', enBorrador: true })
+                      }
                       onFoto={() => {
                         abrirChat();
                         elegirDondeSacarLaFoto();
@@ -453,7 +454,7 @@ export function TallerPage() {
                     />
                   </div>
                 </div>
-                {/* Con una sola sección no hace falta la barra: se agrega otra desde el ícono «Agregar y organizar». */}
+                {/* Con una sola pestaña no hace falta la barra: se agrega otra desde el ícono «Agregar y organizar». */}
                 {borrador.sections.length > 1 && (
                   <SeccionesTabs
                     secciones={borrador.sections}
@@ -501,7 +502,7 @@ export function TallerPage() {
                     {ajustando ? (
                       <span>
                         <strong>¿Te sirve así?</strong>
-                        <small>Se guarda sobre tu cuaderno, con tus registros.</small>
+                        <small>Se guarda sobre tu sección, con tus registros.</small>
                       </span>
                     ) : (
                       <span>
@@ -516,7 +517,7 @@ export function TallerPage() {
                     </Btn>
                   ) : (
                     <Btn cls="primary" data-accion="guide-create" onClick={crearSistema}>
-                      Sí, crear mi cuaderno <Icon name="arrow" />
+                      Sí, crear mi sección <Icon name="arrow" />
                     </Btn>
                   )}
                 </div>
@@ -556,7 +557,7 @@ export function TallerPage() {
                 </h2>
                 <p>
                   Una propuesta de bloques que podés mover, combinar y cambiar. Sin tener que
-                  imaginar el cuaderno a ciegas.
+                  imaginar la sección a ciegas.
                 </p>
                 {/* <span className="empty-studio-note">
                   <Icon name="spark" />
@@ -762,7 +763,7 @@ export function TallerPage() {
         </form>
         <p className="conversation-foot">
           {ajustando
-            ? 'Nada cambia en tu cuaderno hasta que guardes.'
+            ? 'Nada cambia en tu sección hasta que guardes.'
             : 'Vos decidís qué queda y cuándo está listo.'}
         </p>
       </aside>

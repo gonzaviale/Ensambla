@@ -15,7 +15,7 @@ type Props = {
 };
 
 // Traer datos de una foto: se elige la imagen y listo, la charla sigue con Sami. Es él quien la mira, cuenta qué leyó,
-// pregunta si algo está mal o es de otro cuaderno y ofrece sumar tablas. Acá no se revisa nada.
+// pregunta si algo está mal o es de otra sección y ofrece sumar tablas. Acá no se revisa nada.
 export function ModalImportar({ sistemaId }: Props) {
   const navegacion = useNavegacion();
   const archivoInput = useRef<HTMLInputElement>(null);
@@ -55,7 +55,7 @@ export function ModalImportar({ sistemaId }: Props) {
       <div className="sami-intro">
         <Sami pose="think" />
         <div>
-          <h2 id="modal-title">Mostrale tu cuaderno a Sami.</h2>
+          <h2 id="modal-title">Mostrale tu sección a Sami.</h2>
           <p>
             Subí una foto de cómo anotás hoy. Sami la mira, te cuenta qué entendió y te pregunta si
             está bien.

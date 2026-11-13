@@ -9,16 +9,16 @@ import {
 } from '@/lib/sistema/secciones';
 
 const conDosSecciones = () => {
-  const sistema = makeSystem('Mi cuaderno', ['clients']);
+  const sistema = makeSystem('Mi sección', ['clients']);
   const primera = sistema.sections[0];
-  if (!primera) throw new Error('Falta la primera sección');
+  if (!primera) throw new Error('Falta la primera pestaña');
   const segunda = armarSeccion('Ventas', 'empty');
   sistema.sections.push(segunda);
   return { sistema, primera, segunda };
 };
 
-describe('secciones y bloques de un sistema', () => {
-  it('sumarBloque agrega la pieza al final de la sección, con ejemplos si se piden', () => {
+describe('pestañas y bloques de un sistema', () => {
+  it('sumarBloque agrega la pieza al final de la pestaña, con ejemplos si se piden', () => {
     const { sistema, segunda } = conDosSecciones();
 
     const creado = sumarBloque(sistema, 'inventory', segunda.id, { conEjemplos: true });
@@ -28,7 +28,7 @@ describe('secciones y bloques de un sistema', () => {
     expect(creado?.rows.some((fila) => fila.__example)).toBe(true);
   });
 
-  it('sumarBloque no hace nada si la sección no existe', () => {
+  it('sumarBloque no hace nada si la pestaña no existe', () => {
     const { sistema } = conDosSecciones();
 
     expect(sumarBloque(sistema, 'inventory', 'no-existe')).toBeUndefined();
@@ -36,7 +36,7 @@ describe('secciones y bloques de un sistema', () => {
 
   it('armarSeccion usa el nombre pedido y, sin nombre, el del preset', () => {
     expect(armarSeccion('Ventas', 'empty').name).toBe('Ventas');
-    expect(armarSeccion('', 'empty').name).toBe('Nueva sección');
+    expect(armarSeccion('', 'empty').name).toBe('Nueva pestaña');
     expect(armarSeccion('Ventas', 'empty').blocks).toEqual([]);
   });
 
@@ -61,7 +61,7 @@ describe('secciones y bloques de un sistema', () => {
     expect(sistema.sections.map((seccion) => seccion.id)).toEqual([segunda.id, primera.id]);
   });
 
-  it('quitarSeccionDe pasa los bloques a otra sección y conserva sus datos', () => {
+  it('quitarSeccionDe pasa los bloques a otra pestaña y conserva sus datos', () => {
     const { sistema, primera, segunda } = conDosSecciones();
     const bloques = primera.blocks.map((bloque) => bloque.id);
 
@@ -72,8 +72,8 @@ describe('secciones y bloques de un sistema', () => {
     expect(sistema.sections[0]?.blocks.map((bloque) => bloque.id)).toEqual(bloques);
   });
 
-  it('no deja quitar la única sección', () => {
-    const sistema = makeSystem('Mi cuaderno', ['clients']);
+  it('no deja quitar la única pestaña', () => {
+    const sistema = makeSystem('Mi sección', ['clients']);
 
     expect(quitarSeccionDe(sistema, sistema.sections[0]?.id ?? '')).toBeUndefined();
     expect(sistema.sections).toHaveLength(1);

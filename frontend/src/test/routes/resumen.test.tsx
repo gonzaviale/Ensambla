@@ -64,12 +64,16 @@ describe('el resumen del negocio en PDF', () => {
     const direcciones = escucharPedidos();
     const { user, modal, sistema } = await abrirAlmacen(true);
 
-    expect(within(modal).getByRole('heading', { name: 'Resumen de tu negocio en PDF' })).toBeVisible();
+    expect(
+      within(modal).getByRole('heading', { name: 'Resumen de tu negocio en PDF' }),
+    ).toBeVisible();
     expect(within(modal).getByLabelText('Período')).toHaveValue('30');
     await user.click(within(modal).getByRole('button', { name: /Descargar PDF/ }));
 
     await waitFor(() => expect(guardarArchivo).toHaveBeenCalledTimes(1), ESPERA);
-    expect(guardarArchivo.mock.calls[0]?.[0]).toMatchObject({ nombre: 'resumen-almacen-20261019.pdf' });
+    expect(guardarArchivo.mock.calls[0]?.[0]).toMatchObject({
+      nombre: 'resumen-almacen-20261019.pdf',
+    });
     expect(direcciones).toHaveLength(1);
     expect(direcciones[0]?.pathname).toBe(`/api/proyectos/${sistema.id}/resumen/pdf`);
     expect(direcciones[0]?.searchParams.get('desde')).toBe(ultimosDias(30).desde);
@@ -135,7 +139,7 @@ describe('el resumen del negocio en PDF', () => {
     ).toBeVisible();
   });
 
-  it('el botón también está al editar el cuaderno', async () => {
+  it('el botón también está al editar la sección', async () => {
     const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
     const sistema = crearAlmacenDeEjemplo(hoy());
     estado.sistemas.set(usuario.email, [sistema]);

@@ -19,7 +19,7 @@ const pedidoDe = (destinoExistente: boolean): PedidoDeLectura => {
   };
 };
 
-const foto = () => new File(['pixeles'], 'cuaderno.jpg', { type: 'image/jpeg' });
+const foto = () => new File(['pixeles'], 'sistema.jpg', { type: 'image/jpeg' });
 
 const textoDe = async (parte: FormDataEntryValue | null) =>
   typeof parte === 'string' ? parte : ((await parte?.text()) ?? 'null');
@@ -45,7 +45,7 @@ describe('API de importaciones', () => {
     expect(lectura.filas).toEqual([{ monto: 1500 }]);
     expect(lectura.camposNuevos).toEqual([]);
     expect(lectura.dudas).toEqual([]);
-    expect(imagen).toBe('cuaderno.jpg');
+    expect(imagen).toBe('sistema.jpg');
     expect(enviado).toMatchObject({ nombre: 'Mis ventas', destinoExistente: true });
     expect((enviado as unknown as { campos: { key: string }[] }).campos.map((c) => c.key)).toEqual(
       pedido.campos.map((campo) => campo.key),

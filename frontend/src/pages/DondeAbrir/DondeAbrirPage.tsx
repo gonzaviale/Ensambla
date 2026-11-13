@@ -344,7 +344,11 @@ export function DondeAbrirPage() {
                 ) : punto && !consulta.isError ? (
                   <p>
                     Mediste un lugar a mano: se cuenta lo que hay a 500 m, ahora mismo.{' '}
-                    <button type="button" className="btn ghost small" onClick={() => setPunto(null)}>
+                    <button
+                      type="button"
+                      className="btn ghost small"
+                      onClick={() => setPunto(null)}
+                    >
                       Quitar el lugar
                     </button>
                   </p>

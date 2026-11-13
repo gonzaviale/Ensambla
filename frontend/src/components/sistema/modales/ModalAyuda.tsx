@@ -9,9 +9,9 @@ import { useSistemaStore } from '@/stores/sistemaStore';
 
 const RESPUESTAS: Record<string, string> = {
   blocks:
-    'Con Editar cuaderno, traé una pieza de la izquierda. Para poner dos juntas, soltá una en el lado izquierdo o derecho de otra. Los botones ½, ⅔ y 1 cambian el ancho. También podés arrastrar la esquina inferior de cada bloque.',
+    'Con Editar sección, traé una pieza de la izquierda. Para poner dos juntas, soltá una en el lado izquierdo o derecho de otra. Los botones ½, ⅔ y 1 cambian el ancho. También podés arrastrar la esquina inferior de cada bloque.',
   sections:
-    'Una sección es una página de tu cuaderno. Podés tener, por ejemplo, Ventas en una y Stock en otra. En Editar cuaderno → Secciones podés crearlas, renombrarlas y reordenarlas. En los ajustes de un bloque elegís a qué sección pertenece.',
+    'Una pestaña es una página de tu sección. Podés tener, por ejemplo, Ventas en una y Stock en otra. En Editar sección → Pestañas podés crearlas, renombrarlas y reordenarlas. En los ajustes de un bloque elegís a qué pestaña pertenece.',
   fields:
     'Abrí los ajustes de un bloque. En Campos podés cambiar nombres y tipos, agregar opciones o marcar un dato como obligatorio. Un vínculo te permite elegir, por ejemplo, un cliente al registrar una venta.',
   data: 'Usá Registrar para cargar un dato. Para probar la carga con una foto, elegí Traer datos de una foto: revisás los registros de ejemplo y confirmás qué incorporar.',
@@ -21,13 +21,13 @@ type Tema = [clave: string, icono: NombreDeIcono, etiqueta: string];
 
 const TEMAS_DEL_EDITOR: Tema[] = [
   ['blocks', 'box', 'Agregar y mover bloques'],
-  ['sections', 'folder', 'Separar el cuaderno en secciones'],
+  ['sections', 'folder', 'Separar la sección en pestañas'],
   ['fields', 'settings', 'Cambiar los campos'],
   ['data', 'image', 'Cargar mis primeros datos'],
 ];
 
 const TEMAS_DEL_INICIO: Tema[] = [
-  ['guide', 'spark', 'Crear un cuaderno conmigo'],
+  ['guide', 'spark', 'Crear una sección conmigo'],
   ['templates', 'grid', 'Encontrar una plantilla simple'],
 ];
 

@@ -5,15 +5,7 @@ import { Logo } from './Logo';
 import { MenuDePerfil } from './MenuDePerfil';
 
 export type SeccionActiva =
-  | 'home'
-  | 'sistemas'
-  | 'templates'
-  | 'zone'
-  | 'avisos'
-  | 'goals'
-  | 'learn'
-  | 'plans'
-  | 'account';
+  'home' | 'templates' | 'zone' | 'avisos' | 'goals' | 'learn' | 'plans' | 'account';
 
 type TopBarProps = {
   active?: SeccionActiva;
@@ -21,7 +13,6 @@ type TopBarProps = {
   /** La campana de avisos, que vive en el encabezado. */
   campana?: ReactNode;
   onInicio: () => void;
-  onSistemas: () => void;
   onPlantillas: () => void;
   onZona: () => void;
   onAvisos: () => void;
@@ -41,7 +32,6 @@ export function TopBar({
   nombre,
   campana,
   onInicio,
-  onSistemas,
   onPlantillas,
   onZona,
   onAvisos,
@@ -80,13 +70,6 @@ export function TopBar({
           onClick={onInicio}
         >
           Inicio
-        </button>
-        <button
-          type="button"
-          className={active === 'sistemas' ? 'active' : ''}
-          onClick={ir(onSistemas)}
-        >
-          Mis cuadernos
         </button>
         <button
           type="button"

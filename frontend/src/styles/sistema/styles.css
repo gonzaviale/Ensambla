@@ -1,39 +1,39 @@
 /* Identidad, componentes y adaptación de las vistas de Ensambla.
    Los cinco colores vienen del manual de marca; no se usan librerías de UI. */
 @font-face {
-  font-family: "Plus Jakarta Sans";
+  font-family: 'Plus Jakarta Sans';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("assets/jakarta-0.ttf") format("truetype");
+  src: url('assets/jakarta-0.ttf') format('truetype');
 }
 @font-face {
-  font-family: "Plus Jakarta Sans";
+  font-family: 'Plus Jakarta Sans';
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url("assets/jakarta-1.ttf") format("truetype");
+  src: url('assets/jakarta-1.ttf') format('truetype');
 }
 @font-face {
-  font-family: "Plus Jakarta Sans";
+  font-family: 'Plus Jakarta Sans';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url("assets/jakarta-2.ttf") format("truetype");
+  src: url('assets/jakarta-2.ttf') format('truetype');
 }
 @font-face {
-  font-family: "Plus Jakarta Sans";
+  font-family: 'Plus Jakarta Sans';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url("assets/jakarta-3.ttf") format("truetype");
+  src: url('assets/jakarta-3.ttf') format('truetype');
 }
 @font-face {
-  font-family: "Plus Jakarta Sans";
+  font-family: 'Plus Jakarta Sans';
   font-style: normal;
   font-weight: 800;
   font-display: swap;
-  src: url("assets/jakarta-4.ttf") format("truetype");
+  src: url('assets/jakarta-4.ttf') format('truetype');
 }
 :root {
   --orange: #ee8000;
@@ -53,7 +53,7 @@
   --bad: #c42b2b;
   --shadow: 0 16px 50px #2634430a;
   --radius: 20px;
-  --font: "Plus Jakarta Sans", Arial, sans-serif;
+  --font: 'Plus Jakarta Sans', Arial, sans-serif;
 }
 * {
   box-sizing: border-box;
@@ -1698,10 +1698,10 @@ textarea {
     border-color 0.15s,
     box-shadow 0.15s;
 }
-.block[data-width="half"] {
+.block[data-width='half'] {
   grid-column: span 6;
 }
-.block[data-width="third"] {
+.block[data-width='third'] {
   grid-column: span 4;
 }
 .block.selected {
@@ -2034,7 +2034,7 @@ textarea {
   height: 13px;
   color: var(--ink);
 }
-.swatch[data-color="petrol"] .icon {
+.swatch[data-color='petrol'] .icon {
   color: white;
 }
 .inspector-section-label {
@@ -2452,11 +2452,7 @@ textarea {
   line-height: 2.6;
   color: #74795f;
   font-size: 12px;
-  background-image: repeating-linear-gradient(
-    transparent,
-    transparent 31px,
-    #d8e1cf 32px
-  );
+  background-image: repeating-linear-gradient(transparent, transparent 31px, #d8e1cf 32px);
 }
 .fake-notebook strong {
   font-size: 15px;
@@ -2479,7 +2475,7 @@ textarea {
 .import-table td:first-child {
   width: 22px;
 }
-.import-table input[type="checkbox"] {
+.import-table input[type='checkbox'] {
   accent-color: var(--petrol);
 }
 .file-label {
@@ -2667,7 +2663,7 @@ textarea {
   .canvas-heading-actions .upload-label {
     display: none;
   }
-  .block[data-width="third"] {
+  .block[data-width='third'] {
     grid-column: span 6;
   }
   .wizard-layout {
@@ -2847,7 +2843,7 @@ textarea {
     font-size: 10px;
     padding: 7px 9px;
   }
-  .topnav button[data-action="nav-systems"] {
+  .topnav button[data-action='nav-systems'] {
     display: none;
   }
   .topbar-right .help-trigger {
@@ -3348,8 +3344,8 @@ textarea {
   .canvas-grid {
     gap: 13px;
   }
-  .block[data-width="half"],
-  .block[data-width="third"] {
+  .block[data-width='half'],
+  .block[data-width='third'] {
     grid-column: span 12;
   }
   .block-head {
@@ -3579,11 +3575,11 @@ textarea {
   height: 23px;
   mix-blend-mode: multiply;
 }
-.block-library .library-head > [data-action="close-library"] {
+.block-library .library-head > [data-action='close-library'] {
   display: none;
 }
 @media (max-width: 680px) {
-  .block-library .library-head > [data-action="close-library"] {
+  .block-library .library-head > [data-action='close-library'] {
     display: inline-flex;
   }
 }

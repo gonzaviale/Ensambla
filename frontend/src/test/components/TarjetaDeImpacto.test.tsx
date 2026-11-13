@@ -7,7 +7,9 @@ import { server } from '@/mocks/node';
 import type { ImpactoAvisos } from '@/types/avisos';
 import { ESPERA } from '@/test/testHelpers';
 
-const medido = (cambios: Partial<ImpactoAvisos['medidos'][number]> = {}): ImpactoAvisos['medidos'][number] => ({
+const medido = (
+  cambios: Partial<ImpactoAvisos['medidos'][number]> = {},
+): ImpactoAvisos['medidos'][number] => ({
   avisoId: 'aviso-1',
   tipo: 'ESTANCADO',
   titulo: 'Mermelada cara',
@@ -45,16 +47,22 @@ describe('la tarjeta de impacto de los avisos', () => {
   it('muestra cuánto cambió lo que se vende por semana y el detalle de cada aviso medido', async () => {
     renderTarjeta({ ingresoSemanalDelta: 770, medidos: [medido()] });
 
-    expect(await screen.findByText(/vendés .*770.* más por semana que antes/, undefined, ESPERA)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/vendés .*770.* más por semana que antes/, undefined, ESPERA),
+    ).toBeInTheDocument();
     expect(screen.getByText('Mermelada cara')).toBeInTheDocument();
-    expect(screen.getByText(/0,4 → 1,5 unidades por día, comparando 14 días antes y después/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/0,4 → 1,5 unidades por día, comparando 14 días antes y después/),
+    ).toBeInTheDocument();
     expect(screen.getByText(/otras cosas también cambian las ventas/)).toBeInTheDocument();
   });
 
   it('si se vende menos lo dice sin presentarlo como una ganancia', async () => {
     renderTarjeta({ ingresoSemanalDelta: -300, medidos: [medido({ ingresoSemanalDelta: -300 })] });
 
-    expect(await screen.findByText(/vendés .*300.* menos por semana que antes/, undefined, ESPERA)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/vendés .*300.* menos por semana que antes/, undefined, ESPERA),
+    ).toBeInTheDocument();
   });
 
   it('si no cambió, lo dice', async () => {

@@ -7,7 +7,7 @@ import { ModalBlanco } from './modales/ModalBlanco';
 import { ModalCampo } from './modales/ModalCampo';
 import { ModalConfirmar } from './modales/ModalConfirmar';
 import { ModalConsejosDeFoto } from './modales/ModalConsejosDeFoto';
-import { ModalEliminarCuaderno } from './modales/ModalEliminarCuaderno';
+import { ModalEliminarSistema } from './modales/ModalEliminarSistema';
 import { ModalElegirBloque } from './modales/ModalElegirBloque';
 import { ModalImportar } from './modales/ModalImportar';
 import { ModalPlantilla } from './modales/ModalPlantilla';
@@ -49,8 +49,8 @@ function ContenidoDelModal() {
       return <ModalRenombrar />;
     case 'resumen':
       return <ModalResumen />;
-    case 'eliminarCuaderno':
-      return <ModalEliminarCuaderno />;
+    case 'eliminarSistema':
+      return <ModalEliminarSistema />;
     case 'renombrarPieza':
       return <ModalRenombrarPieza bloqueId={modal.bloqueId} />;
     case 'registro':

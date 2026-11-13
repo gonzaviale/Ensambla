@@ -26,8 +26,9 @@ export function TarjetaDeImpacto() {
           <li key={medido.avisoId}>
             <strong>{medido.titulo}</strong>
             <span>
-              {unidades.format(medido.unidadesPorDiaAntes)} → {unidades.format(medido.unidadesPorDiaDespues)}{' '}
-              unidades por día, comparando {medido.ventanaDias} días antes y después de aplicarlo
+              {unidades.format(medido.unidadesPorDiaAntes)} →{' '}
+              {unidades.format(medido.unidadesPorDiaDespues)} unidades por día, comparando{' '}
+              {medido.ventanaDias} días antes y después de aplicarlo
             </span>
           </li>
         ))}

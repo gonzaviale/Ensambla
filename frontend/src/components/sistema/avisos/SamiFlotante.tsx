@@ -3,7 +3,7 @@ import { useSistemaStore } from '@/stores/sistemaStore';
 import { hoy } from '@/lib/sistema/formato';
 import { ChatDeSami, type Mensaje } from './ChatDeSami';
 
-// El Sami de la esquina: muestra cuántos avisos tiene el cuaderno y, al tocarlo, abre un chat chico para preguntarle.
+// El Sami de la esquina: muestra cuántos avisos tiene la sección y, al tocarlo, abre un chat chico para preguntarle.
 export function SamiFlotante({ sistemaId }: { sistemaId: string }) {
   const sistema = useSistemaStore((estado) =>
     estado.sistemas.find((item) => item.id === sistemaId),
@@ -13,7 +13,7 @@ export function SamiFlotante({ sistemaId }: { sistemaId: string }) {
   );
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const [abierto, setAbierto] = useState(false);
-  // La charla se conserva mientras el cuaderno esté abierto, aunque se cierre el panel.
+  // La charla se conserva mientras la sección esté abierta, aunque se cierre el panel.
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
   const boton = useRef<HTMLButtonElement>(null);
   const abiertoAntes = useRef(false);
@@ -48,7 +48,7 @@ export function SamiFlotante({ sistemaId }: { sistemaId: string }) {
           className="sami-float"
           aria-label={
             cantidad
-              ? `Hablar con Sami: ${cantidad === 1 ? '1 aviso' : `${cantidad} avisos`} en este cuaderno`
+              ? `Hablar con Sami: ${cantidad === 1 ? '1 aviso' : `${cantidad} avisos`} en esta sección`
               : 'Hablar con Sami'
           }
           aria-expanded={abierto}

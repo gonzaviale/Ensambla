@@ -15,7 +15,7 @@ export const panelDelNegocioQuery = (sistemaId: string, dias = DIAS_DEL_PANEL) =
     retry: false,
   });
 
-/** El panel de la home de un sistema; sin `sistemaId` (todavía no tiene cuadernos) no pregunta nada. */
+/** El panel de la home de un sistema; sin `sistemaId` (todavía no tiene secciones) no pregunta nada. */
 export function usePanelDelNegocio(sistemaId: string | null) {
   return useQuery({
     ...panelDelNegocioQuery(sistemaId ?? '', DIAS_DEL_PANEL),

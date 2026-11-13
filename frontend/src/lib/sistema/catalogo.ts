@@ -292,7 +292,7 @@ export const FIELD_TYPES: Record<TipoCampo, string> = {
   time: 'Horario',
 };
 
-/** Con qué puede arrancar una sección nueva: las piezas que ya vienen conectadas. */
+/** Con qué puede arrancar una pestaña nueva: las piezas que ya vienen conectadas. */
 export const PRESETS_DE_SECCION: Record<
   string,
   { name: string; label: string; types: TipoBloque[] }

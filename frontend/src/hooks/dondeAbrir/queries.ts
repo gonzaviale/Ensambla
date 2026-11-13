@@ -64,11 +64,7 @@ export function pedidoDondeAbrir(filtros: Filtros, punto?: PuntoElegido | null):
   };
 }
 
-export function useDondeAbrir(
-  filtros: Filtros,
-  habilitada: boolean,
-  punto?: PuntoElegido | null,
-) {
+export function useDondeAbrir(filtros: Filtros, habilitada: boolean, punto?: PuntoElegido | null) {
   const pedido = pedidoDondeAbrir(filtros, punto);
   return useQuery({
     queryKey: ['zona', 'donde-abrir', pedido],

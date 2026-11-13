@@ -151,10 +151,10 @@ describe('GraficoSemanal', () => {
     expect(container.querySelectorAll('.grafico-semanal-marca')).toHaveLength(2);
     expect(container.querySelectorAll('.grafico-semanal-punto.estimado')).toHaveLength(1);
     const filas = within(screen.getByRole('table')).getAllByRole('row');
-    expect(filas[1]).toHaveTextContent('$150.000 (calculado con tus cuadernos)');
+    expect(filas[1]).toHaveTextContent('$150.000 (calculado con tus secciones)');
     expect(filas[1]).toHaveTextContent('Ninguna');
     expect(filas[2]).toHaveTextContent('Aplicaste: Decisión a; Descartaste: Decisión b');
-    expect(screen.queryByText('Calculado con tus cuadernos')).not.toBeInTheDocument();
+    expect(screen.queryByText('Calculado con tus secciones')).not.toBeInTheDocument();
   });
 
   it('con una sola semana la pone al medio y sin estimados no los explica', () => {
@@ -170,7 +170,7 @@ describe('GraficoSemanal', () => {
     );
 
     expect(container.querySelector('.grafico-semanal-punto')).toHaveAttribute('cx', '338');
-    expect(screen.queryByText('Calculado con tus cuadernos')).not.toBeInTheDocument();
+    expect(screen.queryByText('Calculado con tus secciones')).not.toBeInTheDocument();
   });
 
   it('sin semanas explica que todavía no hay nada para dibujar', () => {

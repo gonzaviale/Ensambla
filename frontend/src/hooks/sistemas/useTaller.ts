@@ -107,7 +107,9 @@ export function mensajeDeDudas(dudas: OpcionesDeSami[], respuestas: (string | nu
   return dudas
     .flatMap((duda, indice) => {
       const respuesta = respuestas[indice]?.trim();
-      return respuesta ? [`${duda.tema?.trim() || duda.pregunta.trim()}: ${limpiarFinal(respuesta)}.`] : [];
+      return respuesta
+        ? [`${duda.tema?.trim() || duda.pregunta.trim()}: ${limpiarFinal(respuesta)}.`]
+        : [];
     })
     .join(' ')
     .slice(0, LARGO_MAXIMO_DE_RESPUESTAS);
@@ -132,7 +134,7 @@ export function useTaller() {
     imagen: ImagenParaSami | null,
   ): Promise<Turno> => {
     const { borrador } = taller;
-    const base = borrador ?? makeSystem(taller.nombre || 'Mi cuaderno', [], false);
+    const base = borrador ?? makeSystem(taller.nombre || 'Mi sección', [], false);
     const charla = taller.mensajes.map((mensaje) => ({
       quien: mensaje.quien,
       texto: mensaje.texto.slice(0, LARGO_MAXIMO_DE_MENSAJE),

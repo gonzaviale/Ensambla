@@ -1,4 +1,5 @@
 import { PanelDelNegocio } from '@/components/inicio/PanelDelNegocio';
+import { TuNegocio } from '@/components/inicio/TuNegocio';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { FichasParaEmpezar } from '@/components/sistema/FichasParaEmpezar';
 import { Icon } from '@/components/sistema/Icon';
@@ -12,14 +13,14 @@ import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
 import { useAccionesDelTutorial } from '@/hooks/tutorial/useAccionesDelTutorial';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
-// Inicio: quien ya tiene un cuaderno ve una bienvenida corta con las maneras de empezar y, abajo, sus números (lo que
-// vende, el aviso económico, las sugerencias de Sami y el flujo de caja); quien recién llega ve la bienvenida grande. Las
-// plantillas tienen su pantalla y su ficha de arriba (los cuadernos guardados, la suya: «Mis cuadernos»).
+// Inicio: quien ya tiene una sección ve una bienvenida corta con las maneras de empezar, «Tu negocio» (su nombre y sus
+// secciones como accesos) y, abajo, sus números (lo que vende, el aviso económico, las sugerencias de Sami y el flujo de
+// caja); quien recién llega ve la bienvenida grande. Las plantillas tienen su pantalla y su ficha de arriba.
 // Fondo blanco; el color va lleno en cada ficha, con íconos blancos.
 export function InicioPage() {
   const nombre = useNombre();
   const tutorial = useAccionesDelTutorial();
-  // Quien ya tiene un cuaderno ve el panel de su negocio: la bienvenida pasa a una franja corta (el h1 es el mismo)
+  // Quien ya tiene una sección ve el panel de su negocio: la bienvenida pasa a una franja corta (el h1 es el mismo)
   // y las formas de empezar siguen a mano. Quien recién empieza ve la bienvenida grande de siempre.
   const hayPanel = useSistemaStore((estado) => sistemaDelPanel(estado.sistemas) !== null);
   return (
@@ -41,6 +42,8 @@ export function InicioPage() {
             </div>
           </section>
         )}
+
+        <TuNegocio />
 
         {hayPanel && (
           <>
@@ -73,13 +76,13 @@ export function InicioPage() {
 
         {/* <section className="inicio-bloque inicio-ejemplo">
           <Titulo
-            titulo="Así se ve un cuaderno"
+            titulo="Así se ve una sección"
             detalle="Un ejemplo para mirar. Probá cambiar cómo se reparten las piezas."
           />
           <div className="hero-system">
             <div className="hero-system-top">
               <span className="live-dot" />
-              <strong>Un cuaderno. Tu forma de organizarlo.</strong>
+              <strong>Una sección. Tu forma de organizarlo.</strong>
               <span className="tag outline">Ejemplo</span>
             </div>
             <PreviewBoard sistema={ejemplo} compacto />

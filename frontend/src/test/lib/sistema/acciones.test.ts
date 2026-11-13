@@ -49,7 +49,7 @@ describe('las acciones de Sami sobre el taller', () => {
       expect(JSON.stringify(resumen)).not.toContain('Yerba');
     });
 
-    it('lleva la distribución elegida y la sección de cada pieza', () => {
+    it('lleva la distribución elegida y la pestaña de cada pieza', () => {
       sistema.layout = 'single';
 
       const resumen = resumirSistema(sistema);
@@ -76,8 +76,9 @@ describe('las acciones de Sami sobre el taller', () => {
       expect(ventas?.registros).toEqual([
         { id: nueva?.id, datos: { Producto: 'Fideos', Cantidad: 1 } },
       ]);
-      expect(resumirSistema(sistema).piezas.find((item) => item.tipo === 'sales')?.registros[0])
-        .toEqual({ id: guardada?.id, datos: { Producto: 'Yerba', Cantidad: 2, Cliente: 'Anto' } });
+      expect(
+        resumirSistema(sistema).piezas.find((item) => item.tipo === 'sales')?.registros[0],
+      ).toEqual({ id: guardada?.id, datos: { Producto: 'Yerba', Cantidad: 2, Cliente: 'Anto' } });
       // Los productos que se sumaron al vincular las ventas también son registros reales del armado (sin stock).
       expect(
         resumen.piezas
@@ -96,7 +97,9 @@ describe('las acciones de Sami sobre el taller', () => {
           filas: [{ Producto: 'Yerba', Cantidad: 2, Cliente: 'Anto' }],
         }),
       ]);
-      const guardadas = new Set(allBlocks(sistema).flatMap((bloque) => bloque.rows.map((fila) => fila.id)));
+      const guardadas = new Set(
+        allBlocks(sistema).flatMap((bloque) => bloque.rows.map((fila) => fila.id)),
+      );
 
       const resumen = resumirSistema(sistema, guardadas);
 
@@ -151,7 +154,7 @@ describe('las acciones de Sami sobre el taller', () => {
       expect(pieza('summary').fields).toEqual([]);
     });
 
-    it('no puede sumar nada si no hay secciones', () => {
+    it('no puede sumar nada si no hay pestañas', () => {
       sistema.sections = [];
 
       const resultado = aplicarAcciones(sistema, [accion('agregar_pieza', { tipo: 'expenses' })]);
@@ -340,7 +343,7 @@ describe('las acciones de Sami sobre el taller', () => {
   });
 
   describe('separar_en_seccion y cambiar_distribucion', () => {
-    it('crea la sección y pasa la pieza', () => {
+    it('crea la pestaña y pasa la pieza', () => {
       const resultado = aplicarAcciones(sistema, [
         accion('separar_en_seccion', { pieza: 'clients', seccion: 'Mis clientes' }),
       ]);
@@ -350,7 +353,7 @@ describe('las acciones de Sami sobre el taller', () => {
       expect(seccion?.blocks.map((bloque) => bloque.type)).toEqual(['clients']);
     });
 
-    it('reutiliza una sección que ya existe sin importar mayúsculas', () => {
+    it('reutiliza una pestaña que ya existe sin importar mayúsculas', () => {
       aplicarAcciones(sistema, [
         accion('separar_en_seccion', { pieza: 'clients', seccion: 'Aparte' }),
         accion('separar_en_seccion', { pieza: 'sales', seccion: 'aparte' }),
@@ -362,7 +365,7 @@ describe('las acciones de Sami sobre el taller', () => {
       expect(sistema.sections.find((item) => item.name === 'Aparte')?.blocks).toHaveLength(2);
     });
 
-    it('omite una pieza inexistente o una sección sin nombre', () => {
+    it('omite una pieza inexistente o una pestaña sin nombre', () => {
       const resultado = aplicarAcciones(sistema, [
         accion('separar_en_seccion', { pieza: 'nada', seccion: 'X' }),
         accion('separar_en_seccion', { pieza: 'clients', seccion: ' ' }),
@@ -842,7 +845,7 @@ describe('Sami ensambla el sistema desde cero', () => {
 
       expect(resultado.aplicadas).toEqual([
         'Sumé turnos.',
-        'Sumé encargos en la sección Agenda.',
+        'Sumé encargos en la pestaña Agenda.',
         'Sumé clientes.',
       ]);
       expect(resultado.omitidas).toEqual([
@@ -921,7 +924,7 @@ describe('Sami ensambla el sistema desde cero', () => {
   });
 
   describe('cargar_registros', () => {
-    it('entiende las fechas como se anotan en un cuaderno y descarta las que no existen', () => {
+    it('entiende las fechas como se anotan en una sección y descarta las que no existen', () => {
       aplicarAcciones(sistema, [accion('agregar_pieza', { tipo: 'expenses', ejemplos: [] })]);
       const anio = new Date().getFullYear();
 
@@ -1375,9 +1378,7 @@ describe('Sami ensambla el sistema desde cero', () => {
 
       expect(resultado.aplicadas).toEqual(['Borré un registro de clientes.']);
       expect(clientes.rows.some((fila) => fila.id === anto?.id)).toBe(false);
-      expect(
-        llamada('Ventas').rows.filter((fila) => fila.client === anto?.id),
-      ).toHaveLength(0);
+      expect(llamada('Ventas').rows.filter((fila) => fila.client === anto?.id)).toHaveLength(0);
     });
 
     it('nunca borra de más: sin criterio, con un dato que no existe o sin coincidencias no se borra nada', () => {
@@ -1388,7 +1389,10 @@ describe('Sami ensambla el sistema desde cero', () => {
         accion('borrar_registros', { pieza: 'sales', donde: {} }),
         accion('borrar_registros', { pieza: 'sales', donde: 'todo' }),
         accion('borrar_registros', { pieza: 'sales', donde: { Color: 'Rojo' } }),
-        accion('borrar_registros', { pieza: 'sales', donde: { Cliente: 'Anto Sdani', Color: 'Rojo' } }),
+        accion('borrar_registros', {
+          pieza: 'sales',
+          donde: { Cliente: 'Anto Sdani', Color: 'Rojo' },
+        }),
         accion('borrar_registros', { pieza: 'sales', donde: { Cantidad: 'mucho' } }),
         accion('borrar_registros', { pieza: 'sales', donde: { Cliente: 'Nadie' } }),
         accion('borrar_registros', { pieza: 'nada', donde: { Cliente: 'Anto Sdani' } }),
@@ -1427,7 +1431,10 @@ describe('Sami ensambla el sistema desde cero', () => {
         }),
       ]);
 
-      expect(resultado.aplicadas).toEqual(['Borré un registro de ventas.', 'Borré 2 registros de ventas.']);
+      expect(resultado.aplicadas).toEqual([
+        'Borré un registro de ventas.',
+        'Borré 2 registros de ventas.',
+      ]);
       expect(ventas.rows).toHaveLength(0);
     });
 
@@ -1591,7 +1598,11 @@ describe('Sami ensambla el sistema desde cero', () => {
 
       const creado = sistemaParaCrear(sistema);
 
-      expect(allBlocks(creado).flatMap((bloque) => bloque.rows).some((fila) => fila.__example)).toBe(false);
+      expect(
+        allBlocks(creado)
+          .flatMap((bloque) => bloque.rows)
+          .some((fila) => fila.__example),
+      ).toBe(false);
       expect(allBlocks(creado).find((bloque) => bloque.type === 'sales')?.rows).toHaveLength(1);
     });
   });
@@ -1705,7 +1716,9 @@ describe('el stock de las ventas que carga Sami', () => {
   it('borrar un cliente no toca el stock', () => {
     deTipo('clients').rows.push({ id: 'e8888888-cli', name: 'Ana' });
 
-    aplicarAcciones(sistema, [accion('borrar_registros', { pieza: 'clients', ids: ['e8888888-cli'] })]);
+    aplicarAcciones(sistema, [
+      accion('borrar_registros', { pieza: 'clients', ids: ['e8888888-cli'] }),
+    ]);
 
     expect(stock('Yerba')).toBe(5);
     expect(stock('Mate')).toBe(1);
@@ -1850,7 +1863,7 @@ describe('sistemaParaCrear: el sistema que sale del taller', () => {
 
     const sistema = sistemaParaCrear(borrador);
 
-    expect(sistema.name).toBe('Mi cuaderno');
+    expect(sistema.name).toBe('Mi sección');
     expect(sistema.id).toBe(borrador.id);
     const filas = allBlocks(sistema).flatMap((bloque) => bloque.rows);
     expect(filas.some((fila) => fila.__example)).toBe(false);
