@@ -64,6 +64,20 @@ class NegocioRepositoryImplTest {
     }
 
     @Test
+    @DisplayName("Lista los negocios del dueño en el orden en que los devuelve la consulta")
+    void findAllByDuenioIdShouldMapEveryNegocioInOrder() {
+        UUID otroNegocio = UUID.fromString("a0000000-0000-4000-8000-000000000002");
+        when(negocioJpaRepository.findAllByDuenioIdOrderByCreadoEnAscIdAsc(USUARIO_ID.valor())).thenReturn(List.of(
+                NegocioEntity.builder().id(NEGOCIO_ID.valor()).nombre("Almacén").build(),
+                NegocioEntity.builder().id(otroNegocio).nombre("Kiosco").build()));
+
+        List<Negocio> result = negocioRepository.findAllByDuenioId(USUARIO_ID);
+
+        assertThat(result).extracting(Negocio::getId).containsExactly(NEGOCIO_ID, NegocioId.de(otroNegocio));
+        assertThat(result).extracting(Negocio::getNombre).containsExactly("Almacén", "Kiosco");
+    }
+
+    @Test
     @DisplayName("Resuelve el email del dueño del negocio")
     void findEmailDuenioByIdShouldDelegateToJpa() {
         when(negocioJpaRepository.findEmailDuenioById(NEGOCIO_ID.valor())).thenReturn(Optional.of("dueño@example.com"));

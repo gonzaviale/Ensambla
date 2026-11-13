@@ -8,6 +8,7 @@ import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface AvisoRepository {
@@ -26,6 +27,9 @@ public interface AvisoRepository {
     List<Aviso> findAllByIdsAndNegocioId(List<AvisoId> ids, NegocioId negocioId);
 
     List<Aviso> findByNegocioIdAndEstado(NegocioId negocioId, EstadoAviso estado);
+
+    /** Cuántos avisos en ese estado tiene cada negocio, de una vez; un negocio sin ninguno no aparece. */
+    Map<NegocioId, Long> contarPorNegocio(List<NegocioId> negocioIds, EstadoAviso estado);
 
     /** El aviso del negocio; uno ajeno responde como inexistente. */
     default Aviso obtener(AvisoId avisoId, NegocioId negocioId) {

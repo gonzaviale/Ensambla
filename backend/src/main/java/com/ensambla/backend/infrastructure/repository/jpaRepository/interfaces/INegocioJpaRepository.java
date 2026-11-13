@@ -25,6 +25,8 @@ public interface INegocioJpaRepository extends JpaRepository<NegocioEntity, UUID
     @Query("select n.duenioId from NegocioEntity n where n.id = :negocioId")
     Optional<UUID> findDuenioIdById(@Param("negocioId") UUID negocioId);
 
+    List<NegocioEntity> findAllByDuenioIdOrderByCreadoEnAscIdAsc(UUID duenioId);
+
     @Query("select u.email from UsuarioEntity u where u.id = (select n.duenioId from NegocioEntity n where n.id = :negocioId)")
     Optional<String> findEmailDuenioById(@Param("negocioId") UUID negocioId);
 

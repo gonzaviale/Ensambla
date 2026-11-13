@@ -40,6 +40,13 @@ public class NegocioRepositoryImpl implements NegocioRepository {
     }
 
     @Override
+    public List<Negocio> findAllByDuenioId(UsuarioId usuarioId) {
+        return negocioJpaRepository.findAllByDuenioIdOrderByCreadoEnAscIdAsc(usuarioId.valor()).stream()
+                .map(negocioRepositoryMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public Optional<ZonaId> findZonaIdById(NegocioId negocioId) {
         return negocioJpaRepository.findById(negocioId.valor())
                 .map(NegocioEntity::getZonaId)

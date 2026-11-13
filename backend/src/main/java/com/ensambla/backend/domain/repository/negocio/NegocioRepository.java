@@ -17,6 +17,9 @@ public interface NegocioRepository {
 
     Optional<Negocio> findByDuenioIdParaActualizar(UsuarioId usuarioId);
 
+    /** Todos los negocios del dueño, del más antiguo al más nuevo. */
+    List<Negocio> findAllByDuenioId(UsuarioId usuarioId);
+
     /** Zona a la que pertenece el negocio; vacío si el negocio no existe o todavía no tiene zona. */
     Optional<ZonaId> findZonaIdById(NegocioId negocioId);
 

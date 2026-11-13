@@ -4,6 +4,8 @@ import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import com.ensambla.backend.infrastructure.repository.entity.AvisoEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
@@ -24,4 +26,22 @@ public interface IAvisoJpaRepository extends JpaRepository<AvisoEntity, UUID> {
     List<AvisoEntity> findByIdInAndNegocioId(Collection<UUID> ids, UUID negocioId);
 
     List<AvisoEntity> findByNegocioIdAndEstado(UUID negocioId, EstadoAviso estado);
+
+    /** Cuántos avisos en ese estado tiene cada uno de esos negocios; los que no tienen ninguno no vienen. */
+    @Query("""
+            select a.negocioId as negocioId, count(a) as cantidad
+            from AvisoEntity a
+            where a.negocioId in :negocioIds
+              and a.estado = :estado
+            group by a.negocioId
+            """)
+    List<AvisosPorNegocio> contarPorNegocio(@Param("negocioIds") Collection<UUID> negocioIds,
+                                            @Param("estado") EstadoAviso estado);
+
+    interface AvisosPorNegocio {
+
+        UUID getNegocioId();
+
+        long getCantidad();
+    }
 }
