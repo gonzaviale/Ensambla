@@ -75,7 +75,9 @@ async function abrir() {
   estado.sistemas.set(usuario.email, [sistema]);
   renderApp('/caja');
   await screen.findByRole('heading', { name: 'Caja', level: 1 }, ESPERA);
-  return userEvent.setup();
+  const user = userEvent.setup();
+  await user.click(screen.getByRole('tab', { name: 'Favoritos' }));
+  return user;
 }
 
 describe('cierres y pagos mixtos de caja', () => {
@@ -155,6 +157,7 @@ describe('cierres y pagos mixtos de caja', () => {
       http.get('/api/caja/cierres/:id', () => HttpResponse.json(cierre)),
     );
     const user = await abrir();
+    await user.click(screen.getByRole('button', { name: 'Actividad' }));
     await user.click(screen.getByRole('button', { name: 'Caja abierta' }));
     expect(await screen.findByText(/Abierta desde 12\/11\/26/)).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Cerrar caja' }));
@@ -193,6 +196,7 @@ describe('cierres y pagos mixtos de caja', () => {
       }),
     );
     const user = await abrir();
+    await user.click(screen.getByRole('button', { name: 'Actividad' }));
     await user.click(screen.getByRole('button', { name: 'Caja abierta' }));
     await user.click(await screen.findByRole('button', { name: 'Cerrar caja' }));
     await user.click(screen.getByRole('button', { name: 'Guardar cierre' }));
@@ -227,6 +231,7 @@ describe('cierres y pagos mixtos de caja', () => {
       }),
     );
     const user = await abrir();
+    await user.click(screen.getByRole('button', { name: 'Actividad' }));
     await user.click(screen.getByRole('button', { name: 'Caja abierta' }));
     await user.click(await screen.findByRole('button', { name: 'Cerrar caja' }));
     await user.click(screen.getByRole('button', { name: 'Guardar cierre' }));

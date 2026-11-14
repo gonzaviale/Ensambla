@@ -1,7 +1,8 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import * as sonidos from '@/api/sonidosEscaneo';
 import { allBlocks, makeTemplate } from '@/lib/sistema/core';
 import { prepararCaja } from '@/lib/caja';
 import { estado } from '@/mocks/db/estado';
@@ -10,7 +11,7 @@ import { renderApp } from '@/test/renderApp';
 import { ESPERA, setupUsuarioConSesion } from '@/test/testHelpers';
 import type { SolicitudCobro } from '@/types/caja';
 
-async function abrir() {
+async function abrir(escanear = false) {
   const usuario = setupUsuarioConSesion();
   const sistema = makeTemplate('shop', {}, false);
   const inventario = allBlocks(sistema).find((b) => b.type === 'inventory');
@@ -37,7 +38,9 @@ async function abrir() {
   estado.sistemas.set(usuario.email, [sistema]);
   renderApp('/caja');
   await screen.findByRole('heading', { name: 'Caja', level: 1 }, ESPERA);
-  return { user: userEvent.setup(), sistema, inventario };
+  const user = userEvent.setup();
+  if (!escanear) await user.click(screen.getByRole('tab', { name: 'Favoritos' }));
+  return { user, sistema, inventario };
 }
 
 function comprobante(request: SolicitudCobro) {
@@ -57,6 +60,59 @@ function comprobante(request: SolicitudCobro) {
 }
 
 describe('caja integrada con el cliente HTTP', () => {
+  it('permite buscar, revisar y consultar actividad sin perder la compra', async () => {
+    const vacio = {
+      ventas: [],
+      total: 0,
+      efectivo: 0,
+      transferencia: 0,
+      tarjeta: 0,
+      desde: null,
+      revision: 'vacia',
+    };
+    server.use(
+      http.get('/api/caja/resumen', () =>
+        HttpResponse.json({
+          fecha: '2026-11-14',
+          dia: vacio,
+          abierta: vacio,
+          cierres: [],
+          pagina: 0,
+          hayMas: false,
+        }),
+      ),
+    );
+    const { user } = await abrir(true);
+    expect(screen.queryByLabelText('Código de barras')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Escanear' }));
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByRole('tab', { name: 'Buscar' })).toHaveAttribute('aria-selected', 'true');
+    await user.type(screen.getByLabelText('Buscar artículo en el inventario'), 'Coca');
+    await user.click(screen.getByRole('button', { name: /Coca-Cola.*2.700/ }));
+    await user.click(screen.getByRole('button', { name: 'Revisar compra' }));
+    expect(screen.getByRole('button', { name: 'Continuar al cobro' })).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: 'Actividad' }));
+    await user.click(screen.getByRole('button', { name: 'Vender' }));
+    expect(screen.getByLabelText('Cantidad de Coca-Cola')).toHaveValue('1');
+    await user.click(screen.getByRole('button', { name: 'Seguir agregando' }));
+    expect(screen.getByRole('tab', { name: 'Buscar' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByLabelText('Buscar artículo en el inventario')).toHaveValue('Coca');
+  });
+  it('emite un solo aviso por lectura aunque agregue varias unidades y distingue códigos desconocidos', async () => {
+    const sonar = vi.spyOn(sonidos, 'sonarEscaneo');
+    try {
+      const { user } = await abrir(true);
+      await user.click(screen.getByRole('button', { name: '×2' }));
+      await user.click(screen.getByRole('button', { name: 'Ingresar código · lector USB' }));
+      await user.type(screen.getByLabelText('Código de barras'), '7790895000997{Enter}');
+      expect(screen.getByLabelText('Cantidad de Coca-Cola')).toHaveValue('2');
+      await user.type(screen.getByLabelText('Código de barras'), '77903754{Enter}');
+      await screen.findByRole('dialog');
+      expect(sonar.mock.calls).toEqual([['reconocido'], ['atencion']]);
+    } finally {
+      sonar.mockRestore();
+    }
+  });
   it('protege un artículo sin guardar con un diálogo propio y conserva los datos al seguir editando', async () => {
     const { user } = await abrir();
     await user.click(screen.getByRole('button', { name: 'Agregar artículo sin código' }));
@@ -71,6 +127,33 @@ describe('caja integrada con el cliente HTTP', () => {
     await user.click(await screen.findByRole('button', { name: 'Descartar y continuar' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+  it('consume los atajos una sola vez, permite desmarcarlos y conserva las unidades de un código nuevo', async () => {
+    const { user } = await abrir(true);
+    expect(screen.queryByLabelText('Cantidad para la próxima lectura')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '×1' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '×3' }));
+    await user.click(screen.getByRole('button', { name: '×3' }));
+    expect(screen.getByRole('button', { name: '×3' })).toHaveAttribute('aria-pressed', 'false');
+    await user.click(screen.getByRole('button', { name: '×5' }));
+    await user.click(screen.getByRole('button', { name: 'Ingresar código · lector USB' }));
+    await user.type(screen.getByLabelText('Código de barras'), '7790895000997{Enter}');
+    expect(screen.getByLabelText('Cantidad de Coca-Cola')).toHaveValue('5');
+    await user.type(screen.getByLabelText('Código de barras'), '7790895000997{Enter}');
+    expect(screen.getByLabelText('Cantidad de Coca-Cola')).toHaveValue('6');
+    await user.click(screen.getByRole('button', { name: 'Listo' }));
+    await user.click(screen.getByRole('button', { name: '×3' }));
+    await user.click(screen.getByRole('button', { name: 'Ingresar código · lector USB' }));
+    await user.type(screen.getByLabelText('Código de barras'), '77903754{Enter}');
+    const dialogo = await screen.findByRole('dialog', { name: 'Agregar artículo' });
+    expect(within(dialogo).getByLabelText('Cantidad')).toHaveValue('3');
+    await user.type(within(dialogo).getByLabelText('Nombre del artículo'), 'Alfajor');
+    await user.type(within(dialogo).getByLabelText('Precio por unidad ($)'), '850');
+    await user.click(within(dialogo).getByRole('button', { name: 'Agregar a la compra' }));
+    expect(screen.getByLabelText('Cantidad de Alfajor')).toHaveValue('3');
+    await screen.findByRole('dialog', { name: 'Ingresar código' });
+    await user.type(screen.getByLabelText('Código de barras'), '7790895000997{Enter}');
+    expect(screen.getByLabelText('Cantidad de Coca-Cola')).toHaveValue('7');
   });
   it('ubica Caja entre Inicio y Mi Negocio y suma unidades con retiro y deshacer', async () => {
     const { user } = await abrir();
@@ -108,14 +191,16 @@ describe('caja integrada con el cliente HTTP', () => {
   });
 
   it('un código desconocido permite un alta rápida y continuar la venta', async () => {
-    const { user } = await abrir();
+    const { user } = await abrir(true);
+    await user.click(screen.getByRole('button', { name: 'Ingresar código · lector USB' }));
     await user.type(screen.getByLabelText('Código de barras'), '77903754{Enter}');
     const dialogo = await screen.findByRole('dialog');
     expect(within(dialogo).getByText(/Artículo no reconocido/)).toBeVisible();
     await user.type(within(dialogo).getByLabelText('Nombre del artículo'), 'Alfajor');
     await user.type(within(dialogo).getByLabelText('Precio por unidad ($)'), '850');
     await user.click(within(dialogo).getByRole('button', { name: 'Agregar a la compra' }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await screen.findByRole('dialog', { name: 'Ingresar código' });
+    expect(screen.queryByRole('dialog', { name: 'Agregar artículo' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Cantidad de Alfajor')).toHaveValue('1');
     expect(screen.getByLabelText('Código de barras')).toHaveValue('');
   });

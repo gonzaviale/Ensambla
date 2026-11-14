@@ -3,6 +3,7 @@ import { DialogoCaja } from './DialogoCaja';
 import { ConfirmacionCambios } from './ConfirmacionCambios';
 import { useConfirmarCambios } from '@/hooks/useConfirmarCambios';
 import { dineroCaja, leerPrecio } from '@/lib/caja';
+import { Icon } from '@/components/sistema/Icon';
 import type { MedioCaja, PagoCaja, SolicitudCobro } from '@/types/caja';
 
 const medios: MedioCaja[] = ['EFECTIVO', 'TRANSFERENCIA', 'TARJETA'];
@@ -82,10 +83,11 @@ export function CobroCaja({
         onCerrar={() => void solicitarCierre()}
         bloqueado={bloqueado}
       >
-        <p className="caja-importe-previo">{dineroCaja(total)}</p>
-        <p className="caja-ayuda">
-          Registrá cómo te pagaron. El pago se realiza por tu medio habitual.
-        </p>
+        <div className="caja-cobro-importe">
+          <span className="caja-antetitulo">03 · TOTAL A COBRAR</span>
+          <p className="caja-importe-previo">{dineroCaja(total)}</p>
+        </div>
+        <p className="caja-ayuda">Elegí cómo recibiste el pago.</p>
         <fieldset disabled={bloqueado}>
           <legend>{dividido ? 'Primer medio' : 'Medio de pago'}</legend>
           <div className="caja-opciones">
@@ -102,6 +104,11 @@ export function CobroCaja({
                   setRecibido('');
                 }}
               >
+                <Icon
+                  name={
+                    valor === 'EFECTIVO' ? 'wallet' : valor === 'TRANSFERENCIA' ? 'arrow' : 'orders'
+                  }
+                />
                 {nombre(valor)}
               </button>
             ))}

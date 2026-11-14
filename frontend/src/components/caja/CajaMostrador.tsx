@@ -1,262 +1,349 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCaja } from '@/hooks/caja/useCaja';
 import { useCamaraCodigo } from '@/hooks/escaneo/useCamaraCodigo';
-import { LectorDeCodigos } from '@/components/escaneo/LectorDeCodigos';
-import { AtribucionCatalogos } from '@/components/escaneo/AtribucionCatalogos';
+import { useSonidosEscaneo } from '@/hooks/escaneo/useSonidosEscaneo';
+import { LectorCaja } from './LectorCaja';
 import { Icon } from '@/components/sistema/Icon';
 import { ArticuloCajaForm } from './ArticuloCajaForm';
 import { CompraActual } from './CompraActual';
 import { CobroCaja } from './CobroCaja';
 import { DialogoCaja } from './DialogoCaja';
 import { GestionCaja } from './GestionCaja';
-import { dineroCaja, modoVenta } from '@/lib/caja';
+import { ProductosCaja } from './ProductosCaja';
+import { BarraCompraMovil } from './BarraCompraMovil';
+import { dineroCaja } from '@/lib/caja';
 import { normalize } from '@/lib/sistema/core';
 
 export function CajaMostrador({
   sistemaId,
   inventarioId,
   ventasId,
+  bloqueoExterno = false,
 }: {
   sistemaId: string;
   inventarioId: string;
   ventasId: string;
+  bloqueoExterno?: boolean;
 }) {
   const caja = useCaja(sistemaId, inventarioId, ventasId);
+  const { preparar: prepararAudio } = useSonidosEscaneo();
   const [consulta, setConsulta] = useState('');
   const [vista, setVista] = useState<'cobrar' | 'dia' | 'abierta' | 'cierres'>('cobrar');
   const [favoritos, setFavoritos] = useState(false);
   const [cobrando, setCobrando] = useState(!!caja.solicitud);
+  const [entradaElegida, setEntradaElegida] = useState<'escanear' | 'buscar' | 'favoritos'>(
+    'escanear',
+  );
+  const [paso, setPaso] = useState<'agregar' | 'compra'>('agregar');
   const entrada = useRef<HTMLInputElement>(null);
   const camara = useCamaraCodigo((codigo) => {
     void caja.buscar(codigo);
   }, true);
-  const bloqueada = !!caja.seleccion || cobrando || favoritos || !!caja.ticket || !!caja.solicitud;
+  const bloqueada =
+    bloqueoExterno ||
+    !!caja.seleccion ||
+    cobrando ||
+    favoritos ||
+    !!caja.ticket ||
+    !!caja.solicitud;
   const cerrarCamara = camara.cerrar;
   useEffect(() => {
     if (bloqueada || vista !== 'cobrar') cerrarCamara();
   }, [bloqueada, cerrarCamara, vista]);
-  useEffect(() => {
-    if (!bloqueada) entrada.current?.focus();
-  }, [bloqueada, caja.lineas.length]);
-  const mostrados = caja.productos.filter((p) =>
-    consulta
-      ? normalize(`${p.name} ${p.barcode ?? ''}`).includes(normalize(consulta))
-      : p.favorite === true,
-  );
+  const cambiarPaso = (nuevo: 'agregar' | 'compra') => {
+    setPaso(nuevo);
+    if (nuevo === 'compra') cerrarCamara();
+  };
+  const cambiarEntrada = (nueva: typeof entradaElegida) => {
+    setEntradaElegida(nueva);
+    if (nueva !== 'escanear') cerrarCamara();
+    setConsulta('');
+  };
+  const volverAEscanear = () => {
+    prepararAudio();
+    cambiarPaso('agregar');
+    cambiarEntrada('escanear');
+  };
   return (
-    <>
+    <div
+      className="caja-mostrador"
+      data-paso={paso}
+      data-vista={vista}
+      data-entrada={entradaElegida}
+    >
       <div className="caja-contexto">
         <span>
           <Icon name="box" />
           {caja.inventario?.name}
         </span>
-        <span>{caja.pendiente ? 'Guardando cambios…' : 'Inventario conectado'}</span>
+        <span className="caja-conexion">
+          <span aria-hidden="true" />
+          {caja.pendiente ? 'Guardando cambios…' : 'Inventario conectado'}
+        </span>
       </div>
       <nav className="caja-vistas" aria-label="Secciones de caja">
-        {(
-          [
-            ['cobrar', 'Cobrar'],
-            ['dia', 'Resumen del día'],
-            ['abierta', 'Caja abierta'],
-            ['cierres', 'Cierres guardados'],
-          ] as const
-        ).map(([id, nombre]) => (
-          <button
-            type="button"
-            key={id}
-            aria-current={vista === id ? 'page' : undefined}
-            disabled={bloqueada}
-            onClick={() => setVista(id)}
-          >
-            {nombre}
-          </button>
-        ))}
+        <button
+          type="button"
+          aria-current={vista === 'cobrar' ? 'page' : undefined}
+          disabled={bloqueada}
+          onClick={() => setVista('cobrar')}
+        >
+          <Icon name="orders" />
+          Vender
+        </button>
+        <button
+          type="button"
+          aria-current={vista !== 'cobrar' ? 'page' : undefined}
+          disabled={bloqueada}
+          onClick={() => setVista(vista === 'cobrar' ? 'dia' : vista)}
+        >
+          <Icon name="chart" />
+          Actividad
+        </button>
       </nav>
       {vista !== 'cobrar' ? (
-        <GestionCaja
-          sistemaId={sistemaId}
-          inventarioId={inventarioId}
-          vista={vista}
-          compraPendiente={caja.lineas.length > 0}
-        />
+        <>
+          <nav className="caja-actividad-vistas" aria-label="Consultar actividad">
+            {(
+              [
+                ['dia', 'Resumen del día', 'chart'],
+                ['abierta', 'Caja abierta', 'wallet'],
+                ['cierres', 'Cierres guardados', 'folder'],
+              ] as const
+            ).map(([id, nombre, icono]) => (
+              <button
+                key={id}
+                type="button"
+                aria-current={vista === id ? 'page' : undefined}
+                disabled={bloqueada}
+                onClick={() => setVista(id)}
+              >
+                <Icon name={icono} />
+                {nombre}
+              </button>
+            ))}
+          </nav>
+          <GestionCaja
+            sistemaId={sistemaId}
+            inventarioId={inventarioId}
+            vista={vista}
+            compraPendiente={caja.lineas.length > 0}
+          />
+        </>
       ) : (
         <>
-          {caja.error && !bloqueada && (
-            <p className="caja-error" role="alert">
-              {caja.error}
-            </p>
-          )}
-          {caja.mensaje && (
-            <p className="caja-mensaje" role="status">
-              {caja.mensaje}
-            </p>
-          )}
-          <div className="caja-distribucion">
-            <div className="caja-entrada">
-              <section className="caja-lector">
-                <div className="caja-entre">
-                  <div>
-                    <span className="caja-antetitulo">AGREGAR A LA COMPRA</span>
-                    <h2>Escaneá y seguí</h2>
+          <div className="caja-venta-panel">
+            <nav className="caja-pasos" aria-label="Pasos de la venta">
+              <button
+                type="button"
+                aria-current={paso === 'agregar' ? 'step' : undefined}
+                disabled={bloqueada}
+                onClick={() => cambiarPaso('agregar')}
+              >
+                <span>1</span>Agregar
+              </button>
+              <button
+                type="button"
+                aria-current={paso === 'compra' ? 'step' : undefined}
+                disabled={bloqueada}
+                onClick={() => cambiarPaso('compra')}
+              >
+                <span>2</span>Compra <small>{caja.lineas.length}</small>
+              </button>
+              <button
+                type="button"
+                disabled={bloqueada || !caja.lineas.length || caja.pendiente}
+                onClick={() => setCobrando(true)}
+              >
+                <span>3</span>Cobrar
+              </button>
+            </nav>
+            {caja.error && !bloqueada && (
+              <p className="caja-error" role="alert">
+                {caja.error}
+              </p>
+            )}
+            {caja.mensaje && (
+              <div className="caja-mensaje" role="status">
+                <Icon name="check-circle" />
+                <span>{caja.mensaje}</span>
+              </div>
+            )}
+            <div className="caja-distribucion">
+              <div className="caja-entrada">
+                <section className="caja-lector">
+                  <div className="caja-entre">
+                    <div>
+                      <span className="caja-antetitulo">01 · NUEVA VENTA</span>
+                      <h2>Agregar productos</h2>
+                    </div>
+                    <Icon name="camera" />
                   </div>
-                  <Icon name="camera" />
-                </div>
-                <div className="caja-proxima">
-                  <label>
-                    Próxima lectura
-                    <input
-                      aria-label="Cantidad para la próxima lectura"
-                      inputMode="numeric"
-                      value={caja.cantidad}
-                      disabled={bloqueada}
-                      onChange={(e) => caja.setCantidad(e.target.value)}
-                    />
-                  </label>
-                  <div className="caja-opciones">
-                    {[1, 2, 3].map((n) => (
+                  <div
+                    className="caja-modos"
+                    role="tablist"
+                    aria-label="Cómo agregar productos"
+                    onKeyDown={(evento) => {
+                      const opciones = ['escanear', 'buscar', 'favoritos'] as const;
+                      const indice = opciones.indexOf(entradaElegida);
+                      const siguiente =
+                        evento.key === 'ArrowRight'
+                          ? (indice + 1) % 3
+                          : evento.key === 'ArrowLeft'
+                            ? (indice + 2) % 3
+                            : evento.key === 'Home'
+                              ? 0
+                              : evento.key === 'End'
+                                ? 2
+                                : -1;
+                      const opcion = opciones[siguiente];
+                      if (!opcion || bloqueada) return;
+                      evento.preventDefault();
+                      cambiarEntrada(opcion);
+                      evento.currentTarget
+                        .querySelector<HTMLButtonElement>(`#caja-modo-${opcion}`)
+                        ?.focus();
+                    }}
+                  >
+                    {(
+                      [
+                        ['escanear', 'Escanear', 'camera'],
+                        ['buscar', 'Buscar', 'search'],
+                        ['favoritos', 'Favoritos', 'grid'],
+                      ] as const
+                    ).map(([id, nombre, icono]) => (
                       <button
-                        key={n}
+                        key={id}
+                        id={`caja-modo-${id}`}
                         type="button"
-                        aria-pressed={caja.cantidad === String(n)}
+                        role="tab"
+                        tabIndex={entradaElegida === id ? 0 : -1}
+                        aria-selected={entradaElegida === id}
+                        aria-controls={`caja-panel-${id}`}
                         disabled={bloqueada}
-                        onClick={() => caja.setCantidad(String(n))}
+                        onClick={() => cambiarEntrada(id)}
                       >
-                        ×{n}
+                        <Icon name={icono} />
+                        {nombre}
                       </button>
                     ))}
                   </div>
-                </div>
-                <p className="caja-ayuda">
-                  La cantidad vuelve a uno después de agregar. Podés corregirla en la compra.
-                </p>
-                <LectorDeCodigos
-                  codigo={caja.codigo}
-                  buscando={caja.buscando || bloqueada}
-                  abierta={camara.abierta}
-                  iniciando={camara.iniciando}
-                  sinLectura={camara.sinLectura}
-                  sesion={camara.sesion}
-                  camaras={camara.camaras}
-                  camaraId={camara.camaraId}
-                  camaraActiva={camara.camaraActiva}
-                  camaraActualId={camara.camaraActualId}
-                  errorCamara={camara.error}
-                  video={camara.video}
-                  entradaCodigo={entrada}
-                  onCodigo={caja.setCodigo}
-                  onBuscar={() => void caja.buscar(caja.codigo)}
-                  onAbrir={camara.abrir}
-                  onCerrar={camara.cerrar}
-                  onReiniciar={camara.reiniciar}
-                  onCamara={camara.seleccionarCamara}
-                  continua
-                />
-              </section>
-              <section className="caja-productos" aria-label="Productos y favoritos">
-                <div className="caja-entre">
-                  <h2>{consulta ? 'Resultados' : 'Tus favoritos'}</h2>
-                  <button
-                    type="button"
-                    className="btn soft small"
-                    disabled={bloqueada}
-                    onClick={() => setFavoritos(true)}
+                  <div
+                    id="caja-panel-escanear"
+                    role="tabpanel"
+                    aria-labelledby="caja-modo-escanear"
+                    hidden={entradaElegida !== 'escanear'}
                   >
-                    <Icon name="plus" />
-                    Favoritos
-                  </button>
-                </div>
-                <label className="caja-buscador">
-                  <Icon name="search" />
-                  <input
-                    aria-label="Buscar artículo en el inventario"
-                    placeholder="Buscar un artículo por nombre…"
-                    value={consulta}
-                    onChange={(e) => setConsulta(e.target.value)}
-                    disabled={bloqueada}
-                  />
-                </label>
-                <div className="caja-favoritos">
-                  {mostrados.map((producto) => (
-                    <div key={producto.id} className="caja-tarjeta-producto">
-                      <button
-                        type="button"
-                        className="caja-elegir-producto"
-                        onClick={() => caja.elegir(producto)}
-                        disabled={bloqueada}
-                      >
-                        <span
-                          className={`caja-simbolo ${modoVenta(producto) === 'peso' ? 'peso' : ''}`}
-                        >
-                          <Icon name={modoVenta(producto) === 'peso' ? 'grid' : 'box'} />
-                        </span>
-                        <strong>{String(producto.name)}</strong>
-                        <span>
-                          {Number(producto.price) > 0
-                            ? dineroCaja(Math.round(Number(producto.price) * 100))
-                            : 'Completar precio'}{' '}
-                          / {modoVenta(producto) === 'peso' ? 'kg' : 'unidad'}
-                        </span>
-                      </button>
-                      <div className="caja-tarjeta-acciones">
-                        <button
-                          type="button"
-                          className="icon-btn"
-                          disabled={bloqueada}
-                          aria-label={`${producto.favorite === true ? 'Quitar de' : 'Agregar a'} favoritos: ${String(producto.name)}`}
-                          onClick={() => caja.favorito(producto)}
-                        >
-                          <Icon name={producto.favorite === true ? 'check' : 'plus'} />
-                        </button>
-                        <button
-                          type="button"
-                          className="icon-btn"
-                          disabled={bloqueada}
-                          aria-label={`Editar artículo ${String(producto.name)}`}
-                          onClick={() => caja.editar(producto)}
-                        >
-                          <Icon name="edit" />
-                        </button>
+                    <div className="caja-proxima">
+                      <div className="caja-proxima-resumen" aria-live="polite">
+                        <span>Próxima lectura</span>
+                        <strong>
+                          {caja.cantidad} {caja.cantidad === '1' ? 'unidad' : 'unidades'}
+                        </strong>
+                      </div>
+                      <div className="caja-opciones">
+                        {[2, 3, 5].map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            aria-pressed={caja.cantidad === String(n)}
+                            disabled={bloqueada}
+                            onClick={() => {
+                              prepararAudio();
+                              caja.setCantidad(caja.cantidad === String(n) ? '1' : String(n));
+                            }}
+                          >
+                            ×{n}
+                          </button>
+                        ))}
                       </div>
                     </div>
-                  ))}
-                </div>
-                {!mostrados.length && (
-                  <div className="caja-vacio">
-                    <Icon name="box" />
-                    <h3>
-                      {consulta
-                        ? 'No encontramos ese artículo'
-                        : 'Lo de todos los días, a un toque'}
-                    </h3>
-                    <p>
-                      {consulta
-                        ? 'Podés cargarlo y seguir con la compra.'
-                        : 'Agregá tus productos más vendidos desde el inventario o creá uno nuevo.'}
-                    </p>
+                    <LectorCaja
+                      habilitado={
+                        vista === 'cobrar' &&
+                        paso === 'agregar' &&
+                        entradaElegida === 'escanear' &&
+                        !bloqueada
+                      }
+                      lectura={caja.lectura}
+                      codigo={caja.codigo}
+                      buscando={caja.buscando || bloqueada}
+                      abierta={camara.abierta}
+                      iniciando={camara.iniciando}
+                      sinLectura={camara.sinLectura}
+                      sesion={camara.sesion}
+                      camaras={camara.camaras}
+                      camaraId={camara.camaraId}
+                      camaraActiva={camara.camaraActiva}
+                      camaraActualId={camara.camaraActualId}
+                      errorCamara={camara.error}
+                      video={camara.video}
+                      entradaCodigo={entrada}
+                      onCodigo={caja.setCodigo}
+                      onBuscar={() => void caja.buscar(caja.codigo)}
+                      onAbrir={camara.abrir}
+                      onCerrar={camara.cerrar}
+                      onReiniciar={camara.reiniciar}
+                      onCamara={camara.seleccionarCamara}
+                      continua
+                      compacto
+                      revisandoProducto={!!caja.seleccion}
+                      errorCodigo={caja.error}
+                      mensaje={caja.mensaje}
+                    />
                   </div>
-                )}
-                <button
-                  type="button"
-                  className="btn secondary"
-                  disabled={bloqueada}
-                  onClick={() => caja.nuevo()}
-                >
-                  <Icon name="plus" />
-                  Agregar artículo sin código
-                </button>
-              </section>
-              <AtribucionCatalogos />
+                  {entradaElegida !== 'escanear' && (
+                    <div
+                      id={`caja-panel-${entradaElegida}`}
+                      role="tabpanel"
+                      aria-labelledby={`caja-modo-${entradaElegida}`}
+                    >
+                      <ProductosCaja
+                        productos={caja.productos}
+                        consulta={consulta}
+                        favoritos={entradaElegida === 'favoritos'}
+                        bloqueada={bloqueada}
+                        onConsulta={setConsulta}
+                        onElegir={caja.elegir}
+                        onFavorito={caja.favorito}
+                        onEditar={caja.editar}
+                        onGestionar={() => setFavoritos(true)}
+                      />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className="btn secondary caja-articulo-manual"
+                    disabled={bloqueada}
+                    onClick={() => caja.nuevo()}
+                  >
+                    <Icon name="plus" />
+                    Agregar artículo sin código
+                  </button>
+                </section>
+              </div>
+              <CompraActual
+                lineas={caja.lineas}
+                total={caja.total}
+                bloqueada={bloqueada}
+                pendiente={caja.pendiente}
+                onAjustar={caja.ajustar}
+                onQuitar={caja.quitar}
+                onCobrar={() => setCobrando(true)}
+                onDeshacer={caja.deshacer}
+                puedeDeshacer={!!caja.anterior}
+                onAgregar={() => cambiarPaso('agregar')}
+              />
             </div>
-            <CompraActual
-              lineas={caja.lineas}
+            <BarraCompraMovil
               total={caja.total}
+              articulos={caja.lineas.length}
+              revisando={paso === 'compra'}
               bloqueada={bloqueada}
               pendiente={caja.pendiente}
-              onAjustar={caja.ajustar}
-              onQuitar={caja.quitar}
+              onRevisar={() => cambiarPaso('compra')}
               onCobrar={() => setCobrando(true)}
-              onDeshacer={caja.deshacer}
-              puedeDeshacer={!!caja.anterior}
+              onEscanear={volverAEscanear}
             />
           </div>
         </>
@@ -385,6 +472,6 @@ export function CajaMostrador({
           </div>
         </DialogoCaja>
       )}
-    </>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { dineroCaja, fechaCaja } from '@/lib/caja';
+import { Icon } from '@/components/sistema/Icon';
 import type { MedioCaja, ResumenVentasCaja as Resumen } from '@/types/caja';
 
 const medios = [
@@ -29,9 +30,18 @@ export function ResumenVentasCaja({ resumen, titulo }: { resumen: Resumen; titul
             aria-pressed={filtro === m.id}
             onClick={() => setFiltro(filtro === m.id ? null : m.id)}
           >
-            <span>{m.nombre}</span>
+            <span className="caja-medio-nombre">
+              <Icon
+                name={
+                  m.id === 'EFECTIVO' ? 'wallet' : m.id === 'TRANSFERENCIA' ? 'arrow' : 'orders'
+                }
+              />
+              {m.nombre}
+            </span>
             <strong>{dineroCaja(Math.round(resumen[m.clave] * 100))}</strong>
-            <small>Ver ventas →</small>
+            <small>
+              {filtro === m.id ? 'Filtro activo' : 'Ver ventas'} <span aria-hidden="true">→</span>
+            </small>
           </button>
         ))}
       </div>

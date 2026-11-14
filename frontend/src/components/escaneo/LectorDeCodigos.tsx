@@ -2,8 +2,10 @@ import type { RefObject } from 'react';
 import type { CamaraDelLector } from '@/types/escaneo';
 import { Btn } from '@/components/sistema/Btn';
 import { Icon } from '@/components/sistema/Icon';
+import { ControlSonidosEscaneo } from './ControlSonidosEscaneo';
+import { useSonidosEscaneo } from '@/hooks/escaneo/useSonidosEscaneo';
 
-type Props = {
+export type PropsLectorCodigos = {
   codigo: string;
   buscando: boolean;
   abierta: boolean;
@@ -24,6 +26,7 @@ type Props = {
   onReiniciar: () => void;
   onCamara: (id: string) => void;
   continua?: boolean;
+  compacto?: boolean;
 };
 export function LectorDeCodigos({
   codigo,
@@ -46,9 +49,16 @@ export function LectorDeCodigos({
   onReiniciar,
   onCamara,
   continua = false,
-}: Props) {
+  compacto = false,
+}: PropsLectorCodigos) {
+  const sonido = useSonidosEscaneo();
   return (
-    <section className="escaneo-panel escaneo-lector" aria-label="Lector de códigos">
+    <section
+      className={`escaneo-panel escaneo-lector ${compacto ? 'escaneo-lector-compacto' : ''}`}
+      aria-label="Lector de códigos"
+      onPointerDownCapture={sonido.preparar}
+      onKeyDownCapture={sonido.preparar}
+    >
       <div className="escaneo-panel-titulo">
         <span className="escaneo-numero-paso">1</span>
         <div>
@@ -56,6 +66,7 @@ export function LectorDeCodigos({
           <p>Con la cámara o con tu lector de códigos.</p>
         </div>
       </div>
+      {!compacto && <ControlSonidosEscaneo />}
       {errorCamara && (
         <div className="escaneo-aviso escaneo-aviso-error" role="alert">
           <Icon name="camera" />
@@ -166,13 +177,27 @@ export function LectorDeCodigos({
         </div>
       </form>
       <details className="escaneo-ayuda-lector">
-        <summary>¿Usás un lector USB o Bluetooth?</summary>
+        <summary>
+          {compacto ? (
+            <>
+              <Icon name="settings" />
+              Opciones del lector
+            </>
+          ) : (
+            '¿Usás un lector USB o Bluetooth?'
+          )}
+        </summary>
+        {compacto && <ControlSonidosEscaneo />}
         <p className="escaneo-ayuda">
           Funciona como un teclado: lee el código y envía Enter. Después de cada lectura, podés
           escanear o ingresar el siguiente código.
         </p>
       </details>
-      {continua && <p className="escaneo-ayuda">La cámara sigue leyendo. Retirá el código antes de presentar otro igual.</p>}
+      {continua && abierta && (
+        <p className="escaneo-ayuda">
+          La cámara sigue leyendo. Retirá el código antes de presentar otro igual.
+        </p>
+      )}
     </section>
   );
 }

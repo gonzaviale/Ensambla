@@ -1,4 +1,45 @@
 /* La carga por código comparte exclusivamente los tokens del sistema. */
+.escaneo-sonidos {
+  margin: 14px 0 20px;
+}
+.escaneo-sonidos-botones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.escaneo-sonidos-botones .btn.secondary {
+  border: 2px solid #5b8190;
+  background: #edf4f6;
+  color: #124c60;
+  min-height: 42px;
+}
+.escaneo-sonidos-botones .btn[aria-pressed='true'] {
+  background: #00506a;
+  color: #fff;
+  border-color: #00506a;
+}
+.escaneo-sonidos-botones .btn:disabled {
+  background: #e7eaec;
+  color: #727b80;
+  border-color: #c4cbd0;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.escaneo-sonidos-botones .btn:focus-visible {
+  outline: 3px solid #00506a;
+  outline-offset: 3px;
+}
+.escaneo-sonidos-botones .btn:not(:disabled):hover {
+  box-shadow: 0 3px 10px #12475c24;
+}
+.escaneo-sonidos-botones span {
+  font-size: 18px;
+  line-height: 1;
+}
+.escaneo-sonidos .escaneo-ayuda {
+  margin: 8px 0 0;
+  font-size: 11px;
+}
 .escaneo-pagina {
   max-width: 1280px;
   padding: 32px 28px 60px;

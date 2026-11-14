@@ -37,3 +37,5 @@
 /* Último: el criterio único de color, botones y tarjetas (ver el comentario de la hoja). */
 @import './armonia.css';
 @import './caja.css';
+@import './cajaMostrador.css';
+@import './cajaEscaneo.css';

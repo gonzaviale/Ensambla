@@ -64,7 +64,7 @@ export function DialogoCaja({
         aria-modal="true"
         aria-labelledby={tituloId}
       >
-        <div className="caja-entre">
+        <div className="caja-entre caja-dialogo-cabecera">
           <h2 id={tituloId}>{titulo}</h2>
           <button
             type="button"

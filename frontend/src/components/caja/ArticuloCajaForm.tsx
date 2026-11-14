@@ -31,7 +31,7 @@ export function ArticuloCajaForm({
     seleccion.producto ? modoVenta(seleccion.producto) : 'unidad',
   );
   const [precio, setPrecio] = useState(String(seleccion.producto?.price ?? ''));
-  const [cantidad, setCantidad] = useState(modo === 'peso' ? '100' : '1');
+  const [cantidad, setCantidad] = useState(modo === 'peso' ? '100' : (seleccion.unidades ?? '1'));
   const [favorito, setFavorito] = useState(seleccion.favorito);
   const [controlarStock, setControlarStock] = useState(seleccion.producto?.stockControl === true);
   const [extras, setExtras] = useState<Record<string, Valor>>({});
@@ -43,7 +43,7 @@ export function ArticuloCajaForm({
       escrito.current ||
       precio !== String(seleccion.producto?.price ?? '') ||
       modo !== inicialModo ||
-      cantidad !== (inicialModo === 'peso' ? '100' : '1') ||
+      cantidad !== (inicialModo === 'peso' ? '100' : (seleccion.unidades ?? '1')) ||
       favorito !== seleccion.favorito ||
       controlarStock !== (seleccion.producto?.stockControl === true) ||
       Object.keys(extras).length > 0;

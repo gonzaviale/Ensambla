@@ -5,6 +5,7 @@ import { consultarCatalogos } from '@/api/catalogosProductos';
 import { listarSistemas } from '@/api/sistemas';
 import { ApiError } from '@/api/apiError';
 import { sistemasKeys } from '@/hooks/sistemas/queries';
+import { useSonidosEscaneo } from '@/hooks/escaneo/useSonidosEscaneo';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { allBlocks } from '@/lib/sistema/core';
 import { codigoGtin, mismoGtin } from '@/lib/escaneo/codigo';
@@ -25,6 +26,7 @@ import type {
   PagoCaja,
 } from '@/types/caja';
 import type { Fila } from '@/lib/sistema/tipos';
+import type { ResultadoSonoroEscaneo } from '@/lib/escaneo/sonidos';
 
 export type SeleccionCaja = {
   producto?: Fila;
@@ -34,9 +36,11 @@ export type SeleccionCaja = {
   soloGuardar: boolean;
   mensaje: string;
   imagen?: string;
+  unidades?: string;
 };
 
 export function useCaja(sistemaId: string, inventarioId: string, ventasId: string) {
+  const { sonar } = useSonidosEscaneo();
   const usuarioId = useSistemaStore((s) => s.usuarioId);
   const sistema = useSistemaStore((s) => s.sistemas.find((item) => item.id === sistemaId));
   const pendiente = useSistemaStore((s) => s.pendientes.includes(sistemaId));
@@ -59,6 +63,12 @@ export function useCaja(sistemaId: string, inventarioId: string, ventasId: strin
   const [buscando, setBuscando] = useState(false);
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
+  const [lectura, setLectura] = useState<{ id: number; tipo: ResultadoSonoroEscaneo } | null>(null);
+  const secuenciaLectura = useRef(0);
+  const confirmarLectura = (tipo: ResultadoSonoroEscaneo) => {
+    setLectura({ id: ++secuenciaLectura.current, tipo });
+    sonar(tipo);
+  };
   const [ocupada, setOcupada] = useState(false);
   const [ticket, setTicket] = useState<VentaCaja | null>(null);
   const [cantidad, ponerCantidad] = useState('1');
@@ -89,14 +99,15 @@ export function useCaja(sistemaId: string, inventarioId: string, ventasId: strin
     try {
       const linea = crearLinea(producto, entrada);
       modificar(agregarLinea(lineasActuales.current, linea));
-      setCantidad('1');
       setCodigo('');
       setMensaje(`${linea.nombre} agregado a la compra.`);
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Revisá el artículo.');
+      return false;
     }
   };
-  const elegir = (producto: Fila) => {
+  const elegir = (producto: Fila, unidades = '1') => {
     if (solicitud || ocupada) return;
     if (modoVenta(producto) === 'peso' || !Number(producto.price)) {
       setSeleccion({
@@ -106,8 +117,10 @@ export function useCaja(sistemaId: string, inventarioId: string, ventasId: strin
         favorito: producto.favorite === true,
         soloGuardar: false,
         mensaje: '',
+        unidades,
       });
-    } else agregar(producto, cantidadActual.current);
+      return true;
+    } else return agregar(producto, unidades);
   };
   const buscar = async (entrada: string) => {
     if (bloqueada.current || seleccion || solicitud || ocupada) return;
@@ -115,11 +128,14 @@ export function useCaja(sistemaId: string, inventarioId: string, ventasId: strin
       const valido = codigoGtin(entrada);
       const existentes = productos.filter((p) => mismoGtin(p.barcode, valido));
       if (existentes.length > 1) throw new Error('Ese código está repetido. Revisá el inventario.');
+      const unidades = cantidadActual.current;
+      setCantidad('1');
       if (existentes[0]) {
-        elegir(existentes[0]);
+        if (elegir(existentes[0], unidades)) confirmarLectura('reconocido');
         return;
       }
       bloqueada.current = true;
+      confirmarLectura('atencion');
       const controller = new AbortController();
       consulta.current?.abort();
       consulta.current = controller;
@@ -131,6 +147,7 @@ export function useCaja(sistemaId: string, inventarioId: string, ventasId: strin
         favorito: false,
         soloGuardar: false,
         mensaje: 'Artículo no reconocido. ¿Querés agregarlo?',
+        unidades,
       });
       const timeout = setTimeout(() => controller.abort(), 12_000);
       try {
@@ -277,6 +294,7 @@ export function useCaja(sistemaId: string, inventarioId: string, ventasId: strin
     buscando,
     error,
     mensaje,
+    lectura,
     ocupada,
     ticket,
     solicitud,

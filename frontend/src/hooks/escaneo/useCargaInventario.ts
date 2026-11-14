@@ -12,10 +12,12 @@ import { codigoGtin, mismoGtin } from '@/lib/escaneo/codigo';
 import { sugerirProducto } from '@/lib/escaneo/catalogos';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { useConfirmarCambios } from '@/hooks/useConfirmarCambios';
+import { useSonidosEscaneo } from '@/hooks/escaneo/useSonidosEscaneo';
 import type { ErroresFila, Fila, Valor } from '@/lib/sistema/tipos';
 import type { BorradorProductoInventario, ResultadoCatalogos } from '@/types/escaneo';
 
 export function useCargaInventario(sistemaId: string, inventarioId: string) {
+  const { sonar } = useSonidosEscaneo();
   const cambios = useConfirmarCambios();
   const confirmarCambio = cambios.confirmar;
   const usuarioId = useSistemaStore((estado) => estado.usuarioId);
@@ -150,6 +152,7 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
       setBuscando(false);
       setCodigo(valido);
       const propio = buscarProductoPorCodigo(inventario, valido);
+      sonar(propio ? 'reconocido' : 'atencion');
       setBorrador(prepararProducto(inventario, valido, propio));
       const controlador = new AbortController();
       consulta.current = controlador;
@@ -183,7 +186,7 @@ export function useCargaInventario(sistemaId: string, inventarioId: string) {
         }
       }
     },
-    [inventario, borrador, confirmarCambio],
+    [inventario, borrador, confirmarCambio, sonar],
   );
 
   const guardar = () => {
