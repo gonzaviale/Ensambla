@@ -1,0 +1,74 @@
+.caja-pagina .caja-vistas {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 520px;
+}
+.caja-clientes {
+  max-width: 860px;
+  padding: 20px;
+  border: 1px solid #adb9bf;
+  border-radius: 14px;
+  background: #fff;
+}
+.caja-clientes h2 {
+  margin: 0;
+}
+.caja-clientes label {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 14px;
+}
+.caja-clientes input,
+.caja-clientes select {
+  min-height: 46px;
+  width: 100%;
+  min-width: 0;
+  font-size: 16px;
+  padding: 10px;
+  border: 1px solid #7398a6;
+  border-radius: 8px;
+}
+.caja-clientes .btn {
+  min-height: 44px;
+  font-size: 14px;
+}
+.caja-clientes-lista {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+}
+.caja-clientes-lista li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-top: 1px solid #dce5e9;
+}
+.caja-clientes-lista li > div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.caja-clientes-lista span,
+.caja-clientes-lista small {
+  font-size: 14px;
+  color: #344c59;
+}
+@media (max-width: 800px) {
+  .caja-pagina .caja-vistas {
+    max-width: none;
+  }
+  .caja-clientes {
+    padding: 14px;
+  }
+  .caja-clientes > .caja-entre {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .caja-pagina .caja-vistas button {
+    min-height: 44px;
+    font-size: 14px;
+  }
+}

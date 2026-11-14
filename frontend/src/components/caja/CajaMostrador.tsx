@@ -9,6 +9,7 @@ import { CompraActual } from './CompraActual';
 import { CobroCaja } from './CobroCaja';
 import { DialogoCaja } from './DialogoCaja';
 import { GestionCaja } from './GestionCaja';
+import { ClientesCaja } from './ClientesCaja';
 import { ProductosCaja } from './ProductosCaja';
 import { BarraCompraMovil } from './BarraCompraMovil';
 import { dineroCaja } from '@/lib/caja';
@@ -28,7 +29,9 @@ export function CajaMostrador({
   const caja = useCaja(sistemaId, inventarioId, ventasId);
   const { preparar: prepararAudio } = useSonidosEscaneo();
   const [consulta, setConsulta] = useState('');
-  const [vista, setVista] = useState<'cobrar' | 'dia' | 'abierta' | 'cierres'>('cobrar');
+  const [vista, setVista] = useState<'cobrar' | 'dia' | 'abierta' | 'cierres' | 'clientes'>(
+    'cobrar',
+  );
   const [favoritos, setFavoritos] = useState(false);
   const [cobrando, setCobrando] = useState(!!caja.solicitud);
   const [entradaElegida, setEntradaElegida] = useState<'escanear' | 'buscar' | 'favoritos'>(
@@ -93,15 +96,26 @@ export function CajaMostrador({
         </button>
         <button
           type="button"
-          aria-current={vista !== 'cobrar' ? 'page' : undefined}
+          aria-current={vista !== 'cobrar' && vista !== 'clientes' ? 'page' : undefined}
           disabled={bloqueada}
-          onClick={() => setVista(vista === 'cobrar' ? 'dia' : vista)}
+          onClick={() => setVista(vista === 'cobrar' || vista === 'clientes' ? 'dia' : vista)}
         >
           <Icon name="chart" />
           Actividad
         </button>
+        <button
+          type="button"
+          aria-current={vista === 'clientes' ? 'page' : undefined}
+          disabled={bloqueada}
+          onClick={() => setVista('clientes')}
+        >
+          <Icon name="users" />
+          Clientes
+        </button>
       </nav>
-      {vista !== 'cobrar' ? (
+      {vista === 'clientes' ? (
+        <ClientesCaja sistemaId={sistemaId} />
+      ) : vista !== 'cobrar' ? (
         <>
           <nav className="caja-actividad-vistas" aria-label="Consultar actividad">
             {(
