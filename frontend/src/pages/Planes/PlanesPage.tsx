@@ -160,7 +160,7 @@ export function PlanesPage() {
             </section>
             <div className="plans-section-heading">
               <h2>Qué incluye cada plan</h2>
-              <p>Los límites son para todo tu negocio.</p>
+              <p>El plan es de tu cuenta y vale para todos tus negocios.</p>
             </div>
             <section className="plans-grid" aria-label="Comparación de planes">
               {datos.planes.map((plan) => (

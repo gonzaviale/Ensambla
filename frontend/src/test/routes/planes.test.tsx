@@ -42,6 +42,20 @@ describe('planes y activación de prueba', () => {
     expect(document.title).toBe('Planes · Ensambla');
   });
 
+  it('dice cuántos negocios deja tener cada plan y que el plan es de la cuenta', async () => {
+    setupUsuarioConSesion();
+    renderApp('/planes');
+    await esperarGratuito();
+
+    const premium = screen.getByRole('article', { name: 'Plan Premium' });
+    const gratuito = screen.getByRole('article', { name: 'Plan Gratuito' });
+    expect(within(gratuito).getByText('1 negocio')).toBeVisible();
+    expect(within(premium).getByText('Tu negocio y hasta 5 más')).toBeVisible();
+    expect(
+      screen.getByText('El plan es de tu cuenta y vale para todos tus negocios.'),
+    ).toBeVisible();
+  });
+
   it('se puede entrar desde la navegación principal', async () => {
     setupUsuarioConSesion();
     const router = renderApp('/inicio');

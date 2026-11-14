@@ -60,6 +60,9 @@ describe('contratación y renovación automática', () => {
     expect(within(dialogo).getByText(/14\.900.*finales cada 30 días/)).toBeVisible();
     expect(within(dialogo).getByText(/El primer cobro se programa para/)).toBeVisible();
     expect(within(dialogo).getByText(/diez análisis de foto totales/)).toBeVisible();
+    expect(
+      within(dialogo).getByText('El plan es de tu cuenta: incluye tu negocio y hasta 5 más.'),
+    ).toBeVisible();
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.getByRole('button', { name: 'Contratar Premium' })).toHaveFocus();
@@ -147,6 +150,9 @@ describe('contratación y renovación automática', () => {
     await user.click(await screen.findByRole('button', { name: 'Cancelar renovación' }, ESPERA));
     const dialogo = screen.getByRole('dialog', { name: 'Cancelar renovación automática' });
     expect(within(dialogo).getByText(/período ya pagado/)).toBeVisible();
+    expect(
+      within(dialogo).getByText(/Tus negocios, secciones y registros se mantienen/),
+    ).toBeVisible();
     expect(cancelaciones).toBe(0);
     await user.click(within(dialogo).getByRole('button', { name: 'Confirmar cancelación' }));
 
