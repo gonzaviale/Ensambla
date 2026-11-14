@@ -49,7 +49,7 @@ import static org.mockito.Mockito.when;
 class MotorAvisosDatosPruebaTest {
 
     private static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
-            DockerImageName.parse("postgres:17-alpine"));
+            DockerImageName.parse("postgres:17-alpine")).withUrlParam("sslmode", "disable");
 
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-19T12:00:00Z");
 

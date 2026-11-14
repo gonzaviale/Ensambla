@@ -1,6 +1,8 @@
 package com.ensambla.backend.domain.model.common;
 
 import com.ensambla.backend.domain.model.aviso.AvisoId;
+import com.ensambla.backend.domain.model.caja.VentaCajaId;
+import com.ensambla.backend.domain.model.caja.CierreCajaId;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.inventario.MovimientoStockId;
@@ -47,7 +49,7 @@ class IdentificadorTest {
     private static final UUID UUID_FIJO = UUID.fromString("a0000000-0000-4000-8000-000000000001");
 
     static Stream<Class<?>> tipos() {
-        return Stream.of(AvisoId.class, BloqueId.class, CampoId.class, MovimientoStockId.class, FotoId.class,
+        return Stream.of(CierreCajaId.class, VentaCajaId.class, AvisoId.class, BloqueId.class, CampoId.class, MovimientoStockId.class, FotoId.class,
                 LoteId.class, NegocioId.class, RenovacionId.class, PlanId.class, SuscripcionId.class,
                 PlantillaId.class, ReclamoId.class, ProyectoId.class, RecetaId.class, RegistroId.class,
                 SeccionId.class, UsuarioId.class, ZonaId.class, VinculoWhatsappId.class, CodigoVinculacionId.class, PropuestaWhatsappId.class,
