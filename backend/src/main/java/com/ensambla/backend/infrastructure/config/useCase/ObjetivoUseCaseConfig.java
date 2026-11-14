@@ -9,6 +9,7 @@ import com.ensambla.backend.domain.repository.objetivo.DecisionObjetivoRepositor
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ProgresoObjetivoRepository;
+import com.ensambla.backend.domain.repository.objetivo.RespuestaMiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ResumenSemanalRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
@@ -27,6 +28,7 @@ import com.ensambla.backend.domain.useCase.objetivo.listarCandidatos.ListarCandi
 import com.ensambla.backend.domain.useCase.objetivo.listarMiniObjetivos.ListarMiniObjetivos;
 import com.ensambla.backend.domain.useCase.objetivo.listarDecisiones.ListarDecisiones;
 import com.ensambla.backend.domain.useCase.objetivo.listarObjetivos.ListarObjetivos;
+import com.ensambla.backend.domain.useCase.objetivo.listarRespuestasPendientes.ListarRespuestasPendientes;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanas;
 import com.ensambla.backend.domain.useCase.objetivo.medirObjetivos.MedirObjetivos;
 import com.ensambla.backend.domain.useCase.objetivo.monitorearObjetivos.MonitorearObjetivos;
@@ -34,6 +36,7 @@ import com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso.ObtenerProgr
 import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasos;
 import com.ensambla.backend.domain.useCase.objetivo.registrarDecisionPaso.RegistrarDecisionPaso;
 import com.ensambla.backend.domain.useCase.objetivo.reemplazarMiniObjetivo.ReemplazarMiniObjetivo;
+import com.ensambla.backend.domain.useCase.objetivo.responderMiniObjetivo.ResponderMiniObjetivo;
 import com.ensambla.backend.infrastructure.ia.ObjetivosIaProperties;
 import com.ensambla.backend.infrastructure.objetivos.ObjetivosCierreProperties;
 import com.ensambla.backend.infrastructure.objetivos.ObjetivosMonitoreoProperties;
@@ -298,6 +301,33 @@ public class ObjetivoUseCaseConfig {
                 negocioRepository,
                 objetivoRepository,
                 transaccionPort);
+    }
+
+    @Bean
+    public ResponderMiniObjetivo responderMiniObjetivo(
+            NegocioRepository negocioRepository,
+            ObjetivoRepository objetivoRepository,
+            MiniObjetivoRepository miniObjetivoRepository,
+            RespuestaMiniObjetivoRepository respuestaMiniObjetivoRepository,
+            DecisionObjetivoRepository decisionObjetivoRepository,
+            TransaccionPort transaccionPort,
+            Clock clock) {
+        return new ResponderMiniObjetivo(
+                negocioRepository,
+                objetivoRepository,
+                miniObjetivoRepository,
+                respuestaMiniObjetivoRepository,
+                decisionObjetivoRepository,
+                transaccionPort,
+                clock);
+    }
+
+    @Bean
+    public ListarRespuestasPendientes listarRespuestasPendientes(
+            NegocioRepository negocioRepository,
+            ObjetivoRepository objetivoRepository,
+            MiniObjetivoRepository miniObjetivoRepository) {
+        return new ListarRespuestasPendientes(negocioRepository, objetivoRepository, miniObjetivoRepository);
     }
 
     @Bean

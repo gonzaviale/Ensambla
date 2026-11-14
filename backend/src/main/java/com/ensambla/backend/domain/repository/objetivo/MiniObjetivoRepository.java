@@ -17,6 +17,12 @@ public interface MiniObjetivoRepository {
     Optional<MiniObjetivo> findByIdAndObjetivoIdAndNegocioId(
             MiniObjetivoId miniObjetivoId, ObjetivoId objetivoId, NegocioId negocioId);
 
+    /**
+     * Los mini-objetivos manuales en curso de todos los objetivos del negocio que todavía no tienen respuesta, del más
+     * viejo al más nuevo y, a igualdad, por posición. Nunca los de otro negocio.
+     */
+    List<MiniObjetivo> findAllPendientesDeRespuestaByNegocioId(NegocioId negocioId);
+
     /** Guarda y escribe en el acto: el orden de las escrituras importa (un lugar sólo lo ocupa uno en curso). */
     MiniObjetivo save(MiniObjetivo miniObjetivo);
 

@@ -14,13 +14,17 @@ import static com.ensambla.backend.support.DecisionTestData.SEMANA;
 import static com.ensambla.backend.support.DecisionTestData.TITULO_AVISO;
 import static com.ensambla.backend.support.DecisionTestData.aviso;
 import static com.ensambla.backend.support.MiniObjetivoTestData.MINI_ID;
+import static com.ensambla.backend.support.MiniObjetivoTestData.OTRO_MINI_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.PRODUCTO_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.TITULO;
+import static com.ensambla.backend.support.MiniObjetivoTestData.TITULO_MANUAL;
+import static com.ensambla.backend.support.MiniObjetivoTestData.miniManual;
 import static com.ensambla.backend.support.MiniObjetivoTestData.miniObjetivo;
 import static com.ensambla.backend.support.ObjetivoTestData.AHORA;
 import static com.ensambla.backend.support.ObjetivoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.objetivo;
+import static com.ensambla.backend.support.RespuestaMiniObjetivoTestData.respuesta;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DecisionObjetivoTest {
@@ -102,5 +106,22 @@ class DecisionObjetivoTest {
         DecisionObjetivo result = DecisionObjetivo.dePaso(miniObjetivo(), DecisionPaso.IGNORADO, AHORA);
 
         assertThat(result.tipo()).isEqualTo(TipoDecision.PASO_IGNORADO);
+    }
+
+    @Test
+    @DisplayName("La respuesta a un manual deja una decisión con el tipo de lo que contó, vinculada al mini-objetivo")
+    void deRespuestaShouldRecordTheDecisionOfTheAnswer() {
+        DecisionObjetivo result = DecisionObjetivo.deRespuesta(miniManual(), respuesta(), AHORA);
+
+        assertThat(result.id()).isNotNull();
+        assertThat(result.negocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(result.objetivoId()).isEqualTo(OBJETIVO_ID);
+        assertThat(result.miniObjetivoId()).isEqualTo(OTRO_MINI_ID);
+        assertThat(result.tipo()).isEqualTo(TipoDecision.MINI_EN_PARTE);
+        assertThat(result.avisoId()).isNull();
+        assertThat(result.registroId()).isNull();
+        assertThat(result.descripcion()).isEqualTo(TITULO_MANUAL);
+        assertThat(result.tomadaEn()).isEqualTo(AHORA);
+        assertThat(result.semanaInicio()).isEqualTo(LocalDate.of(2026, 11, 9));
     }
 }

@@ -27,6 +27,7 @@ import static com.ensambla.backend.support.ObjetivoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.objetivo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MiniObjetivoTest {
@@ -561,5 +562,30 @@ class MiniObjetivoTest {
 
         assertThat(mini.esManual()).isTrue();
         assertThat(mini.esMedido()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Un manual en curso se puede responder")
+    void exigirManualEnCursoShouldAcceptAManualInProgress() {
+        assertThatCode(() -> miniManual().exigirManualEnCurso()).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("Un mini-objetivo medido no se responde")
+    void exigirManualEnCursoShouldRejectAMeasuredMini() {
+        assertThatThrownBy(() -> miniObjetivo().exigirManualEnCurso())
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("Sólo se responden los mini-objetivos manuales");
+    }
+
+    @Test
+    @DisplayName("Un manual que ya no está en curso no se responde")
+    void exigirManualEnCursoShouldRejectAManualNoLongerInProgress() {
+        MiniObjetivo manual = miniManual();
+        manual.abandonar(AHORA);
+
+        assertThatThrownBy(manual::exigirManualEnCurso)
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("El mini-objetivo ya no está en curso");
     }
 }

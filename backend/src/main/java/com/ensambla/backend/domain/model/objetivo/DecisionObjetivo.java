@@ -62,6 +62,22 @@ public record DecisionObjetivo(
                 semanaDe(ahora));
     }
 
+    /** La decisión que deja la respuesta de la persona a un mini-objetivo manual. */
+    public static DecisionObjetivo deRespuesta(
+            MiniObjetivo mini, RespuestaMiniObjetivo respuesta, OffsetDateTime ahora) {
+        return new DecisionObjetivo(
+                DecisionObjetivoId.nuevo(),
+                mini.getNegocioId(),
+                mini.getObjetivoId(),
+                mini.getId(),
+                respuesta.hizo().tipoDecision(),
+                null,
+                null,
+                mini.getTitulo(),
+                ahora,
+                semanaDe(ahora));
+    }
+
     private static LocalDate semanaDe(OffsetDateTime instante) {
         return SemanaObjetivo.lunesDe(ZonaNegocio.dia(instante));
     }

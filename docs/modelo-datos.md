@@ -8,7 +8,7 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V15__renovaciones_y_pagos_premium.sql`,
 `V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
 `V24__objetivo.sql`, `V29__mini_objetivo.sql`, `V30__progreso_objetivo.sql`, `V31__decision_objetivo.sql`,
-`V32__resumen_semanal_objetivo.sql`, `V33__objetivo_demo.sql`, `V34__objetivo_tipo_y_modo.sql`).
+`V32__resumen_semanal_objetivo.sql`, `V33__objetivo_demo.sql`, `V34__objetivo_tipo_y_modo.sql`, `V35__respuesta_mini_objetivo.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -385,6 +385,25 @@ mini-objetivo no tenga números.
 **API.** `GET`/`POST /api/objetivos` suman `tipo` y `armadoConSami` y `meta` puede ser `null`; los mini-objetivos suman `modo`
 (en un manual `tipo`, `sentido`, `valorInicial`, `valorActual`, `meta`, `avance`, `aporteEstimado`, `registroId` y
 `referencia` son `null`).
+
+### Responder un mini-objetivo manual (V35)
+
+`V35` crea `respuesta_mini_objetivo`: lo que la persona cuenta de un mini-objetivo manual (diseño en
+[`objetivos-con-sami.md`](objetivos-con-sami.md)).
+
+- Cuelga del `mini_objetivo` (`mini_objetivo_id`, **único**: un manual se responde una sola vez y la respuesta no se pisa),
+  del `objetivo` y del `negocio` (los tres con borrado en cascada).
+- `hizo` (`SI`, `EN_PARTE`, `NO`) y `que_paso` (`FUNCIONO`, `NO_TUVE_TIEMPO`, `NO_FUNCIONO`, `OTRA`, obligatoria). No admite
+  «lo hice» con «no tuve tiempo». `comentario` es opcional (hasta 300 caracteres), `semana_inicio` es el lunes argentino de la
+  semana en que se respondió y `respondida_en` el instante.
+- Cada respuesta deja una fila en `decision_objetivo` con tipo `MINI_HECHO`, `MINI_EN_PARTE` o `MINI_NO_HECHO` (el título del
+  mini-objetivo como descripción), que `V35` suma al `CHECK` de `tipo`. El efecto de esas decisiones es `SIN_MEDICION`.
+- Responder **no cambia el estado** del mini-objetivo: sigue «en curso» hasta que el cierre del domingo lo renueve (T-247).
+
+**API.** `POST /api/objetivos/{id}/mini-objetivos/{miniId}/respuesta` (`{ hizo, quePaso, comentario? }`, `201`): `400` si el
+mini-objetivo es medido o ya no está en curso o la combinación es contradictoria, `409` si ya se respondió, `404` si es de otro
+negocio. `GET /api/objetivos/respuestas-pendientes` lista los manuales en curso sin respuesta de todos los objetivos del
+negocio, del más viejo al más nuevo.
 
 ## Datos de prueba (V10)
 

@@ -1,10 +1,13 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces;
 
 import com.ensambla.backend.domain.model.objetivo.EstadoMiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.HizoManual;
 import com.ensambla.backend.domain.model.objetivo.ModoMiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.QuePaso;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
 import com.ensambla.backend.infrastructure.repository.entity.MiniObjetivoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.ObjetivoEntity;
+import com.ensambla.backend.infrastructure.repository.entity.RespuestaMiniObjetivoEntity;
 import com.ensambla.backend.support.PostgresDatosTestSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,6 +35,9 @@ class IMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
 
     @Autowired
     private IMiniObjetivoJpaRepository minis;
+
+    @Autowired
+    private IRespuestaMiniObjetivoJpaRepository respuestas;
 
     private UUID negocioA;
     private UUID negocioB;
@@ -195,6 +201,54 @@ class IMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
 
         assertThatThrownBy(() -> minis.saveAndFlush(manualConMeta))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("Los pendientes son los manuales en curso sin respuesta, del más viejo al más nuevo")
+    void findPendientesDeRespuestaShouldListManualMinisInProgressWithoutAnswer() {
+        UUID nuevo = minis.saveAndFlush(manual(objetivoA, negocioA, 2, AHORA.plusDays(1))).getId();
+        UUID viejo = minis.saveAndFlush(manual(objetivoA, negocioA, 3, AHORA)).getId();
+        givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+
+        List<MiniObjetivoEntity> result = minis.findPendientesDeRespuesta(
+                negocioA, ModoMiniObjetivo.MANUAL, EstadoMiniObjetivo.EN_CURSO);
+
+        assertThat(result).extracting(MiniObjetivoEntity::getId).containsExactly(viejo, nuevo);
+    }
+
+    @Test
+    @DisplayName("Un manual ya respondido o que ya no está en curso no es pendiente")
+    void findPendientesDeRespuestaShouldSkipAnsweredAndNotInProgress() {
+        MiniObjetivoEntity respondido = minis.saveAndFlush(manual(objetivoA, negocioA, 2, AHORA));
+        respuestas.saveAndFlush(RespuestaMiniObjetivoEntity.builder()
+                .id(UUID.randomUUID())
+                .negocioId(negocioA)
+                .objetivoId(objetivoA)
+                .miniObjetivoId(respondido.getId())
+                .hizo(HizoManual.SI)
+                .quePaso(QuePaso.FUNCIONO)
+                .semanaInicio(SEMANA)
+                .respondidaEn(AHORA)
+                .build());
+        MiniObjetivoEntity quitado = manual(objetivoA, negocioA, 3, AHORA);
+        quitado.setEstado(EstadoMiniObjetivo.ABANDONADO);
+        minis.saveAndFlush(quitado);
+
+        List<MiniObjetivoEntity> result = minis.findPendientesDeRespuesta(
+                negocioA, ModoMiniObjetivo.MANUAL, EstadoMiniObjetivo.EN_CURSO);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Los pendientes nunca son de otro negocio")
+    void findPendientesDeRespuestaShouldNeverListOtherBusinessMinis() {
+        minis.saveAndFlush(manual(objetivoB, negocioB, 1, AHORA));
+
+        List<MiniObjetivoEntity> result = minis.findPendientesDeRespuesta(
+                negocioA, ModoMiniObjetivo.MANUAL, EstadoMiniObjetivo.EN_CURSO);
+
+        assertThat(result).isEmpty();
     }
 
     @Test

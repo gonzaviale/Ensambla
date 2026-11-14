@@ -281,6 +281,16 @@ public class MiniObjetivo {
         actualizadoEn = ahora;
     }
 
+    /**
+     * @throws BusinessRuleException si no es manual (los medidos no se responden) o ya no está en curso
+     */
+    public void exigirManualEnCurso() {
+        if (!esManual()) {
+            throw new BusinessRuleException("Sólo se responden los mini-objetivos manuales");
+        }
+        exigirEnCurso();
+    }
+
     /** @throws BusinessRuleException si ya fue logrado, reemplazado o quitado */
     public void exigirEnCurso() {
         if (!estaEnCurso()) {

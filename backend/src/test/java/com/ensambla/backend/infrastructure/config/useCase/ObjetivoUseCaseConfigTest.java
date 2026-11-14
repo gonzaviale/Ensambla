@@ -10,9 +10,12 @@ import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import com.ensambla.backend.domain.model.objetivo.DecisionObjetivo;
 import com.ensambla.backend.domain.model.objetivo.DecisionPaso;
+import com.ensambla.backend.domain.model.objetivo.HizoManual;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.Objetivo;
 import com.ensambla.backend.domain.model.objetivo.ProgresoObjetivo;
+import com.ensambla.backend.domain.model.objetivo.QuePaso;
+import com.ensambla.backend.domain.model.objetivo.RespuestaMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.ResumenSemanal;
 import com.ensambla.backend.domain.model.objetivo.TipoDecision;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
@@ -23,12 +26,15 @@ import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.objetivo.DecisionObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ProgresoObjetivoRepository;
+import com.ensambla.backend.domain.repository.objetivo.RespuestaMiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ResumenSemanalRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.objetivo.MonitoreoObjetivosService;
 import com.ensambla.backend.domain.service.objetivo.PropuestaMiniObjetivosService;
+import com.ensambla.backend.domain.useCase.objetivo.listarRespuestasPendientes.ListarRespuestasPendientesRequest;
+import com.ensambla.backend.domain.useCase.objetivo.listarRespuestasPendientes.ListarRespuestasPendientesResponse;
 import com.ensambla.backend.domain.useCase.objetivo.medirObjetivos.MedirObjetivosRequest;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import com.ensambla.backend.domain.useCase.objetivo.abandonarMiniObjetivo.AbandonarMiniObjetivoRequest;
@@ -47,6 +53,8 @@ import com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso.ObtenerProgr
 import com.ensambla.backend.domain.useCase.objetivo.registrarDecisionPaso.RegistrarDecisionPasoRequest;
 import com.ensambla.backend.domain.useCase.objetivo.reemplazarMiniObjetivo.ReemplazarMiniObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.reemplazarMiniObjetivo.ReemplazarMiniObjetivoRequest;
+import com.ensambla.backend.domain.useCase.objetivo.responderMiniObjetivo.ResponderMiniObjetivoRequest;
+import com.ensambla.backend.domain.useCase.objetivo.responderMiniObjetivo.ResponderMiniObjetivoResponse;
 import com.ensambla.backend.infrastructure.objetivos.ObjetivosCierreProperties;
 import com.ensambla.backend.infrastructure.objetivos.ObjetivosMonitoreoProperties;
 import com.ensambla.backend.support.TransaccionDirecta;
@@ -63,6 +71,8 @@ import java.util.Optional;
 
 import static com.ensambla.backend.support.DecisionTestData.aviso;
 import static com.ensambla.backend.support.MiniObjetivoTestData.MINI_ID;
+import static com.ensambla.backend.support.MiniObjetivoTestData.OTRO_MINI_ID;
+import static com.ensambla.backend.support.MiniObjetivoTestData.miniManual;
 import static com.ensambla.backend.support.MiniObjetivoTestData.miniObjetivo;
 import static com.ensambla.backend.support.ObjetivoTestData.AHORA;
 import static com.ensambla.backend.support.ObjetivoTestData.META;
@@ -335,5 +345,40 @@ class ObjetivoUseCaseConfigTest {
                 mock(ZonaRepository.class),
                 mock(AgregadoZonaRepository.class),
                 new MetricasVentas(30, new BigDecimal("0.5")));
+    }
+
+    @Test
+    @DisplayName("El wiring de responder un mini-objetivo conecta los repositorios, la transacción y el reloj")
+    void responderMiniObjetivoShouldWireTheRepositories() {
+        RespuestaMiniObjetivoRepository respuestaMiniObjetivoRepository = mock(RespuestaMiniObjetivoRepository.class);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID)).thenReturn(objetivo());
+        when(miniObjetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID, OTRO_MINI_ID)).thenReturn(miniManual());
+        when(respuestaMiniObjetivoRepository.save(any(RespuestaMiniObjetivo.class)))
+                .thenAnswer(call -> call.getArgument(0));
+
+        ResponderMiniObjetivoResponse result = config
+                .responderMiniObjetivo(negocioRepository, objetivoRepository, miniObjetivoRepository,
+                        respuestaMiniObjetivoRepository, decisionObjetivoRepository, new TransaccionDirecta(), CLOCK)
+                .execute(new ResponderMiniObjetivoRequest(
+                        USUARIO_ID, OBJETIVO_ID, OTRO_MINI_ID, HizoManual.SI, QuePaso.FUNCIONO, null));
+
+        assertThat(result.hizo()).isEqualTo(HizoManual.SI);
+        verify(decisionObjetivoRepository).save(any(DecisionObjetivo.class));
+    }
+
+    @Test
+    @DisplayName("El wiring de listar respuestas pendientes conecta los repositorios")
+    void listarRespuestasPendientesShouldWireTheRepositories() {
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(objetivoRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of(objetivo()));
+        when(miniObjetivoRepository.findAllPendientesDeRespuestaByNegocioId(NEGOCIO_ID))
+                .thenReturn(List.of(miniManual()));
+
+        ListarRespuestasPendientesResponse result = config
+                .listarRespuestasPendientes(negocioRepository, objetivoRepository, miniObjetivoRepository)
+                .execute(new ListarRespuestasPendientesRequest(USUARIO_ID));
+
+        assertThat(result.pendientes()).hasSize(1);
     }
 }

@@ -1,7 +1,9 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.model.objetivo.EstadoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivoId;
+import com.ensambla.backend.domain.model.objetivo.ModoMiniObjetivo;
 import com.ensambla.backend.infrastructure.repository.entity.MiniObjetivoEntity;
 import com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces.IMiniObjetivoJpaRepository;
 import com.ensambla.backend.infrastructure.repository.mapper.MiniObjetivoRepositoryMapper;
@@ -14,6 +16,7 @@ import java.util.Optional;
 
 import static com.ensambla.backend.support.MiniObjetivoTestData.MINI_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.OTRO_MINI_ID;
+import static com.ensambla.backend.support.MiniObjetivoTestData.miniManual;
 import static com.ensambla.backend.support.MiniObjetivoTestData.miniObjetivo;
 import static com.ensambla.backend.support.ObjetivoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
@@ -84,5 +87,16 @@ class MiniObjetivoRepositoryImplTest {
         verify(jpa).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getId()).isEqualTo(MINI_ID.valor());
         assertThat(result.getId()).isEqualTo(MiniObjetivoId.de(MINI_ID.valor()));
+    }
+
+    @Test
+    @DisplayName("Lista los manuales pendientes del negocio con el modo manual y el estado en curso")
+    void findAllPendientesDeRespuestaByNegocioIdShouldAskForManualMinisInProgress() {
+        when(jpa.findPendientesDeRespuesta(NEGOCIO_ID.valor(), ModoMiniObjetivo.MANUAL, EstadoMiniObjetivo.EN_CURSO))
+                .thenReturn(List.of(mapper.toEntity(miniManual())));
+
+        List<MiniObjetivo> result = repository.findAllPendientesDeRespuestaByNegocioId(NEGOCIO_ID);
+
+        assertThat(result).singleElement().satisfies(mini -> assertThat(mini.esManual()).isTrue());
     }
 }
