@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.presentation.mapper.objetivo;
 
 import com.ensambla.backend.domain.model.objetivo.EstadoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.FaltanDatosMiniObjetivos;
+import com.ensambla.backend.domain.model.objetivo.ModoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.SentidoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.MiniObjetivoItem;
@@ -89,6 +90,7 @@ class MiniObjetivoPresentationMapperTest {
 
         assertThat(result.id()).isEqualTo(MINI_ID);
         assertThat(result.posicion()).isEqualTo(1);
+        assertThat(result.modo()).isEqualTo(ModoMiniObjetivo.MEDIDO);
         assertThat(result.tipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
         assertThat(result.sentido()).isEqualTo(SentidoMiniObjetivo.SUBE);
         assertThat(result.estado()).isEqualTo(EstadoMiniObjetivo.EN_CURSO);

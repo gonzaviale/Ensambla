@@ -30,12 +30,14 @@ import java.util.List;
 import static com.ensambla.backend.support.MiniObjetivoTestData.APORTE;
 import static com.ensambla.backend.support.MiniObjetivoTestData.MINI_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.candidato;
+import static com.ensambla.backend.support.MiniObjetivoTestData.miniManual;
 import static com.ensambla.backend.support.MiniObjetivoTestData.miniObjetivo;
 import static com.ensambla.backend.support.NegocioDePrueba.almacen;
 import static com.ensambla.backend.support.ObjetivoTestData.AHORA;
 import static com.ensambla.backend.support.ObjetivoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.objetivo;
+import static com.ensambla.backend.support.ObjetivoTestData.objetivoSinMeta;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
@@ -226,6 +228,32 @@ class MonitorearObjetivosTest {
         whenMonitorear();
 
         verify(propuestaMiniObjetivosService, never()).candidatos(any(NegocioId.class), any(MedidorMiniObjetivo.class));
+    }
+
+    @Test
+    @DisplayName("Un mini-objetivo manual no se mide ni suma foto")
+    void executeShouldNotMeasureAManualMiniObjetivo() {
+        givenObjetivoConMinis(objetivo(), miniManual());
+
+        whenMonitorear();
+
+        verify(miniObjetivoRepository, never()).save(any());
+        assertThat(fotosGuardadas()).allMatch(ProgresoObjetivo::esDelObjetivo);
+    }
+
+    @Test
+    @DisplayName("Un objetivo sin meta en pesos nunca se marca alcanzado ni recibe mini-objetivos solo")
+    void executeShouldNotReachNorProposeToAnObjetivoWithoutGoal() {
+        Objetivo sinMeta = objetivoSinMeta();
+        givenObjetivoConMinis(sinMeta);
+
+        whenMonitorear();
+
+        assertThat(sinMeta.estaAlcanzado()).isFalse();
+        verify(objetivoRepository, never()).save(any());
+        verify(propuestaMiniObjetivosService, never()).candidatos(any(NegocioId.class), any(MedidorMiniObjetivo.class));
+        verify(miniObjetivoRepository, never()).save(any());
+        assertThat(fotosGuardadas()).singleElement().satisfies(foto -> assertThat(foto.esDelObjetivo()).isTrue());
     }
 
     @Test

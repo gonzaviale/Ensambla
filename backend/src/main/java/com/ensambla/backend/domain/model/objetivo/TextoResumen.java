@@ -95,12 +95,16 @@ public final class TextoResumen {
         }
     }
 
+    /** Sin meta en pesos ({@code meta} vacía) no hay cuánto falta: sólo se sigue con los mini-objetivos. */
     private static String cierre(BigDecimal resultado, BigDecimal meta, boolean alcanzado, boolean sinVentas) {
         if (alcanzado) {
             return "¡Llegaste a tu meta! Podés subirla para seguir creciendo.";
         }
         if (sinVentas) {
             return "No hubo ventas esta semana, así que no cambiamos tus mini-objetivos.";
+        }
+        if (meta == null) {
+            return "Seguí con tus mini-objetivos de la semana que viene.";
         }
         return "Te faltan " + pesos(meta.subtract(resultado)) + " para tu meta.";
     }

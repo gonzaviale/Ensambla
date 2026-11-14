@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces;
 
+import com.ensambla.backend.domain.model.objetivo.TipoObjetivo;
 import com.ensambla.backend.infrastructure.repository.entity.ObjetivoEntity;
 import com.ensambla.backend.support.PostgresDatosTestSupport;
 import org.junit.jupiter.api.BeforeEach;
@@ -184,6 +185,58 @@ class IObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
                 .texto(texto)
                 .meta(META)
                 .creadoEn(creadoEn)
+                .build();
+    }
+
+    @Test
+    @DisplayName("Guarda y relee un objetivo armado con Sami, sin meta en pesos")
+    void saveShouldRoundTripAnObjetivoWithoutGoal() {
+        UUID id = objetivos.saveAndFlush(objetivoSinMeta(negocioA, TipoObjetivo.HIBRIDO)).getId();
+
+        ObjetivoEntity result = objetivos.findByIdAndNegocioId(id, negocioA).orElseThrow();
+
+        assertThat(result.getTipo()).isEqualTo(TipoObjetivo.HIBRIDO);
+        assertThat(result.getMeta()).isNull();
+        assertThat(result.isArmadoConSami()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Un objetivo guardado sin tipo es monetario y no lo armó Sami")
+    void saveShouldDefaultToMonetario() {
+        UUID id = givenObjetivo(negocioA, "Clásico", AHORA).getId();
+
+        ObjetivoEntity result = objetivos.findByIdAndNegocioId(id, negocioA).orElseThrow();
+
+        assertThat(result.getTipo()).isEqualTo(TipoObjetivo.MONETARIO);
+        assertThat(result.isArmadoConSami()).isFalse();
+    }
+
+    @Test
+    @DisplayName("La base rechaza un objetivo monetario sin meta")
+    void saveShouldRejectAMonetarioWithoutGoal() {
+        ObjetivoEntity monetarioSinMeta = objetivoSinMeta(negocioA, TipoObjetivo.MONETARIO);
+
+        assertThatThrownBy(() -> objetivos.saveAndFlush(monetarioSinMeta))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("La base rechaza un objetivo no monetario con meta")
+    void saveShouldRejectANonMonetarioWithGoal() {
+        ObjetivoEntity conMeta = objetivoSinMeta(negocioA, TipoObjetivo.SIN_DATOS);
+        conMeta.setMeta(META);
+
+        assertThatThrownBy(() -> objetivos.saveAndFlush(conMeta))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    private ObjetivoEntity objetivoSinMeta(UUID negocioId, TipoObjetivo tipo) {
+        return ObjetivoEntity.builder()
+                .negocioId(negocioId)
+                .texto("Que me conozcan")
+                .tipo(tipo)
+                .armadoConSami(true)
+                .creadoEn(AHORA)
                 .build();
     }
 }

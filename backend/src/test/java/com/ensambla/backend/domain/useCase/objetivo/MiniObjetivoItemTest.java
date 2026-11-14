@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.useCase.objetivo;
 
 import com.ensambla.backend.domain.model.objetivo.EstadoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.ModoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.SentidoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
 import org.junit.jupiter.api.DisplayName;
@@ -11,13 +12,17 @@ import java.math.BigDecimal;
 
 import static com.ensambla.backend.support.MiniObjetivoTestData.APORTE;
 import static com.ensambla.backend.support.MiniObjetivoTestData.JUSTIFICACION;
+import static com.ensambla.backend.support.MiniObjetivoTestData.JUSTIFICACION_MANUAL;
 import static com.ensambla.backend.support.MiniObjetivoTestData.META_MINI;
 import static com.ensambla.backend.support.MiniObjetivoTestData.MINI_ID;
+import static com.ensambla.backend.support.MiniObjetivoTestData.OTRO_MINI_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.PRODUCTO;
 import static com.ensambla.backend.support.MiniObjetivoTestData.PRODUCTO_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.SEMANA;
 import static com.ensambla.backend.support.MiniObjetivoTestData.TITULO;
+import static com.ensambla.backend.support.MiniObjetivoTestData.TITULO_MANUAL;
 import static com.ensambla.backend.support.MiniObjetivoTestData.VALOR_INICIAL;
+import static com.ensambla.backend.support.MiniObjetivoTestData.miniManual;
 import static com.ensambla.backend.support.MiniObjetivoTestData.miniObjetivo;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -34,6 +39,7 @@ class MiniObjetivoItemTest {
 
         assertThat(result.id()).isEqualTo(MINI_ID);
         assertThat(result.posicion()).isEqualTo(1);
+        assertThat(result.modo()).isEqualTo(ModoMiniObjetivo.MEDIDO);
         assertThat(result.tipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
         assertThat(result.sentido()).isEqualTo(SentidoMiniObjetivo.SUBE);
         assertThat(result.estado()).isEqualTo(EstadoMiniObjetivo.EN_CURSO);
@@ -48,5 +54,29 @@ class MiniObjetivoItemTest {
         assertThat(result.aporteEstimado()).isEqualTo(APORTE);
         assertThat(result.semanaInicio()).isEqualTo(SEMANA);
         assertThat(result.textoConIa()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Un mini-objetivo manual copia su texto y deja sin números todo lo medido")
+    void deShouldLeaveTheNumbersEmptyForAManualMini() {
+        MiniObjetivoItem result = MiniObjetivoItem.de(miniManual());
+
+        assertThat(result.id()).isEqualTo(OTRO_MINI_ID);
+        assertThat(result.posicion()).isEqualTo(2);
+        assertThat(result.modo()).isEqualTo(ModoMiniObjetivo.MANUAL);
+        assertThat(result.estado()).isEqualTo(EstadoMiniObjetivo.EN_CURSO);
+        assertThat(result.titulo()).isEqualTo(TITULO_MANUAL);
+        assertThat(result.justificacion()).isEqualTo(JUSTIFICACION_MANUAL);
+        assertThat(result.semanaInicio()).isEqualTo(SEMANA);
+        assertThat(result.textoConIa()).isTrue();
+        assertThat(result.tipo()).isNull();
+        assertThat(result.sentido()).isNull();
+        assertThat(result.referencia()).isNull();
+        assertThat(result.registroId()).isNull();
+        assertThat(result.valorInicial()).isNull();
+        assertThat(result.valorActual()).isNull();
+        assertThat(result.meta()).isNull();
+        assertThat(result.avance()).isNull();
+        assertThat(result.aporteEstimado()).isNull();
     }
 }

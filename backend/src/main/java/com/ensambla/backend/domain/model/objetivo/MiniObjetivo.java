@@ -18,9 +18,11 @@ import java.util.Optional;
 import java.util.stream.IntStream;
 
 /**
- * Un cambio, una métrica o una meta semanal que Sami propone para llegar a un objetivo. Mide un valor
- * ({@code valorActual}) que tiene que llegar a la {@code meta} en el {@link TipoMiniObjetivo#sentido() sentido} de su
- * tipo. Un objetivo tiene como máximo {@link #MAXIMO_EN_CURSO} en curso, uno por posición.
+ * Un cambio, una métrica o una meta semanal que Sami propone para llegar a un objetivo. Uno {@link
+ * ModoMiniObjetivo#MEDIDO medido} mide un valor ({@code valorActual}) que tiene que llegar a la {@code meta} en el
+ * {@link TipoMiniObjetivo#sentido() sentido} de su tipo; uno {@link ModoMiniObjetivo#MANUAL manual} es una acción sin
+ * números que la persona responde, y su {@code tipo}, su {@code meta} y sus valores están vacíos. Un objetivo tiene como
+ * máximo {@link #MAXIMO_EN_CURSO} en curso, uno por posición.
  */
 @Getter
 @Setter
@@ -48,6 +50,10 @@ public class MiniObjetivo {
     /** Lugar en la pantalla, de 1 a {@link #MAXIMO_EN_CURSO}. */
     private int posicion;
 
+    @Builder.Default
+    private ModoMiniObjetivo modo = ModoMiniObjetivo.MEDIDO;
+
+    /** La métrica que mide; vacío si es manual. */
     private TipoMiniObjetivo tipo;
 
     /** El producto, si el tipo es de producto. */
@@ -122,6 +128,16 @@ public class MiniObjetivo {
 
     public boolean estaEnCurso() {
         return estado == EstadoMiniObjetivo.EN_CURSO;
+    }
+
+    /** Si lo mide el servidor con una métrica; sólo estos tienen meta y valores. */
+    public boolean esMedido() {
+        return modo == ModoMiniObjetivo.MEDIDO;
+    }
+
+    /** Si es una acción que la persona responde. */
+    public boolean esManual() {
+        return modo == ModoMiniObjetivo.MANUAL;
     }
 
     /** Si el valor actual ya llegó a la meta, según el sentido del tipo. */

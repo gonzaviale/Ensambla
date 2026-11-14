@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.objetivo;
 
+import com.ensambla.backend.domain.model.objetivo.TipoObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoPasoObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.ObjetivoItem;
 import com.ensambla.backend.domain.useCase.objetivo.crearObjetivo.CrearObjetivoRequest;
@@ -24,6 +25,7 @@ import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.TEXTO;
 import static com.ensambla.backend.support.ObjetivoTestData.USUARIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.objetivo;
+import static com.ensambla.backend.support.ObjetivoTestData.objetivoSinMeta;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ObjetivoPresentationMapperTest {
@@ -64,8 +66,20 @@ class ObjetivoPresentationMapperTest {
 
         assertThat(result.id()).isEqualTo(OBJETIVO_ID);
         assertThat(result.texto()).isEqualTo(TEXTO);
+        assertThat(result.tipo()).isEqualTo(TipoObjetivo.MONETARIO);
         assertThat(result.meta()).isEqualTo(META);
+        assertThat(result.armadoConSami()).isFalse();
         assertThat(result.creadoEn()).isEqualTo(AHORA);
+    }
+
+    @Test
+    @DisplayName("Un objetivo armado con Sami se responde sin meta y con su tipo")
+    void toResponseShouldKeepTheTypeAndMissingGoalOfAnObjetivoBuiltWithSami() {
+        ObjetivoResponse result = mapper.toResponse(ObjetivoItem.de(objetivoSinMeta()));
+
+        assertThat(result.tipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
+        assertThat(result.meta()).isNull();
+        assertThat(result.armadoConSami()).isTrue();
     }
 
     @Test

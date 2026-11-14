@@ -53,11 +53,13 @@ import static com.ensambla.backend.support.MiniObjetivoTestData.OTRO_MINI_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.PRODUCTO;
 import static com.ensambla.backend.support.MiniObjetivoTestData.PRODUCTO_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.candidatoDelNegocio;
+import static com.ensambla.backend.support.MiniObjetivoTestData.miniManual;
 import static com.ensambla.backend.support.MiniObjetivoTestData.miniObjetivo;
 import static com.ensambla.backend.support.ObjetivoTestData.AHORA;
 import static com.ensambla.backend.support.ObjetivoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.objetivo;
+import static com.ensambla.backend.support.ObjetivoTestData.objetivoSinMeta;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
@@ -523,5 +525,35 @@ class CerrarSemanasObjetivosTest {
         return new ResumenSemanal(ResumenSemanalId.nuevo(), OBJETIVO_ID, semana, new BigDecimal(resultado),
                 BigDecimal.ZERO, new ConteoDecisiones(0, 0, 0, 0), new ArrayList<>(List.of(
                         new CierreMini(MINI_ID, valorMini))), "", false, AHORA, List.of());
+    }
+
+    @Test
+    @DisplayName("Un mini-objetivo manual no se reajusta ni suma su valor al cierre")
+    void executeShouldLeaveAManualMiniObjetivoUntouched() {
+        MiniObjetivo manual = miniManual();
+        manual.abandonar(AHORA);
+        givenMinis(miniObjetivo(), manual);
+        givenValor(SIN_LLEGAR);
+
+        whenCerrar();
+
+        assertThat(resumenGuardado().minis()).containsExactly(new CierreMini(MINI_ID, SIN_LLEGAR));
+        assertThat(resumenGuardado().reajustes()).isEmpty();
+        assertThat(manual.getReemplazadoPor()).isNull();
+        verify(miniObjetivoRepository, never()).save(manual);
+    }
+
+    @Test
+    @DisplayName("Un objetivo sin meta en pesos cierra la semana sin avance y sin decir cuánto falta")
+    void executeShouldCloseTheWeekOfAnObjetivoWithoutGoal() {
+        givenObjetivo(objetivoSinMeta());
+        givenMinis(miniObjetivo(), miniManual());
+        givenValor(SIN_LLEGAR);
+
+        whenCerrar();
+
+        ResumenSemanal resumen = resumenGuardado();
+        assertThat(resumen.avance()).isEqualByComparingTo("0");
+        assertThat(resumen.queFunciono()).doesNotContain("Te faltan").endsWith("de la semana que viene.");
     }
 }

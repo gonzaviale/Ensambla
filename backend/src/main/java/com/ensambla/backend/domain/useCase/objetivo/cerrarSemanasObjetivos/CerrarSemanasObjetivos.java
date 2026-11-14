@@ -48,6 +48,8 @@ import java.util.stream.Collectors;
  * cuadernos a ese domingo, se aplican las {@link ReglasReajuste} a los mini-objetivos y se guarda el resumen con sus
  * reajustes en una sola transacción. Si otra corrida ya cerró esa semana, se deshace y se sigue con la próxima.
  * <p>
+ * Los mini-objetivos manuales no se reajustan acá: los renueva su propia regla según lo que respondió la persona.
+ * <p>
  * No crea avisos ni manda mensajes: el resumen sólo se ve cuando la persona entra a la app. Lee los avisos sólo para
  * saber si una decisión movió las ventas. Cada negocio va aparte y uno con error no frena a los demás.
  */
@@ -162,6 +164,7 @@ public class CerrarSemanasObjetivos {
     /** El valor al domingo de los mini-objetivos en curso o logrados, para compararlo en los cierres siguientes. */
     private static List<CierreMini> cierres(List<MiniObjetivo> minis, MedidorMiniObjetivo medidor) {
         return minis.stream()
+                .filter(MiniObjetivo::esMedido)
                 .filter(mini -> mini.estaEnCurso() || mini.esperaReajuste())
                 .flatMap(mini -> medidor.valorDe(mini.getTipo(), mini.getRegistroId(), mini.getReferencia())
                         .map(valor -> new CierreMini(mini.getId(), valor))
@@ -185,7 +188,7 @@ public class CerrarSemanasObjetivos {
                 .filter(resumen -> resumen.semanaInicio().equals(semana.minusWeeks(2)))
                 .findFirst();
         List<ReajusteMiniObjetivo> reajustes = new ArrayList<>();
-        for (MiniObjetivo mini : minis) {
+        for (MiniObjetivo mini : minis.stream().filter(MiniObjetivo::esMedido).toList()) {
             Optional<BigDecimal> valor =
                     medidor.valorDe(mini.getTipo(), mini.getRegistroId(), mini.getReferencia());
             ReglasReajuste.decidir(

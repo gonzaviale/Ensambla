@@ -60,4 +60,10 @@ class ResumenSemanalTest {
         assertThat(resumen.valorDe(MINI_ID)).contains(new BigDecimal("12600.00"));
         assertThat(resumen.valorDe(OTRO_MINI_ID)).isEmpty();
     }
+
+    @Test
+    @DisplayName("Sin meta en pesos el avance es cero")
+    void avanceDeShouldBeZeroWithoutGoal() {
+        assertThat(ResumenSemanal.avanceDe(new BigDecimal("500"), null)).isEqualByComparingTo("0");
+    }
 }

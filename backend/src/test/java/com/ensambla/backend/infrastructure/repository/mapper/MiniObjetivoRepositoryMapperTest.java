@@ -2,6 +2,7 @@ package com.ensambla.backend.infrastructure.repository.mapper;
 
 import com.ensambla.backend.domain.model.objetivo.EstadoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.ModoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
 import com.ensambla.backend.infrastructure.repository.entity.MiniObjetivoEntity;
 import org.junit.jupiter.api.DisplayName;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import static com.ensambla.backend.support.MiniObjetivoTestData.APORTE;
 import static com.ensambla.backend.support.MiniObjetivoTestData.JUSTIFICACION;
+import static com.ensambla.backend.support.MiniObjetivoTestData.JUSTIFICACION_MANUAL;
 import static com.ensambla.backend.support.MiniObjetivoTestData.META_MINI;
 import static com.ensambla.backend.support.MiniObjetivoTestData.MINI_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.OTRO_MINI_ID;
@@ -16,7 +18,9 @@ import static com.ensambla.backend.support.MiniObjetivoTestData.PRODUCTO;
 import static com.ensambla.backend.support.MiniObjetivoTestData.PRODUCTO_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.SEMANA;
 import static com.ensambla.backend.support.MiniObjetivoTestData.TITULO;
+import static com.ensambla.backend.support.MiniObjetivoTestData.TITULO_MANUAL;
 import static com.ensambla.backend.support.MiniObjetivoTestData.VALOR_INICIAL;
+import static com.ensambla.backend.support.MiniObjetivoTestData.miniManual;
 import static com.ensambla.backend.support.MiniObjetivoTestData.miniObjetivo;
 import static com.ensambla.backend.support.ObjetivoTestData.AHORA;
 import static com.ensambla.backend.support.ObjetivoTestData.NEGOCIO_ID;
@@ -35,6 +39,7 @@ class MiniObjetivoRepositoryMapperTest {
                 .objetivoId(OBJETIVO_ID.valor())
                 .negocioId(NEGOCIO_ID.valor())
                 .posicion((short) 3)
+                .modo(ModoMiniObjetivo.MEDIDO)
                 .tipo(TipoMiniObjetivo.SUBIR_PRECIO)
                 .registroId(PRODUCTO_ID.valor())
                 .referencia(PRODUCTO)
@@ -59,6 +64,7 @@ class MiniObjetivoRepositoryMapperTest {
         assertThat(result.getObjetivoId()).isEqualTo(OBJETIVO_ID);
         assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(result.getPosicion()).isEqualTo(3);
+        assertThat(result.getModo()).isEqualTo(ModoMiniObjetivo.MEDIDO);
         assertThat(result.getTipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);
         assertThat(result.getRegistroId()).isEqualTo(PRODUCTO_ID);
         assertThat(result.getReferencia()).isEqualTo(PRODUCTO);
@@ -133,5 +139,31 @@ class MiniObjetivoRepositoryMapperTest {
 
         assertThat(result.getRegistroId()).isNull();
         assertThat(result.getReemplazadoPor()).isNull();
+    }
+
+    @Test
+    @DisplayName("Un mini-objetivo manual se mapea a la entidad sin métrica ni números")
+    void toEntityShouldKeepAManualMiniWithoutNumbers() {
+        MiniObjetivoEntity result = mapper.toEntity(miniManual());
+
+        assertThat(result.getModo()).isEqualTo(ModoMiniObjetivo.MANUAL);
+        assertThat(result.getTipo()).isNull();
+        assertThat(result.getMeta()).isNull();
+        assertThat(result.getValorInicial()).isNull();
+        assertThat(result.getValorActual()).isNull();
+        assertThat(result.getAporteEstimado()).isNull();
+        assertThat(result.getTitulo()).isEqualTo(TITULO_MANUAL);
+    }
+
+    @Test
+    @DisplayName("Una entidad manual se mapea al dominio como manual")
+    void toDomainShouldMapAManualEntity() {
+        MiniObjetivoEntity entity = mapper.toEntity(miniManual());
+
+        MiniObjetivo result = mapper.toDomain(entity);
+
+        assertThat(result.esManual()).isTrue();
+        assertThat(result.getTipo()).isNull();
+        assertThat(result.getJustificacion()).isEqualTo(JUSTIFICACION_MANUAL);
     }
 }

@@ -106,4 +106,12 @@ class TextoResumenTest {
         nuevo.setTitulo("Vender más");
         return nuevo;
     }
+
+    @Test
+    @DisplayName("Sin meta en pesos no dice cuánto falta y sigue con los mini-objetivos")
+    void queFuncionoShouldNotTellWhatIsMissingWithoutGoal() {
+        String result = TextoResumen.queFunciono(RESULTADO, Optional.empty(), NINGUNA, null, false, false);
+
+        assertThat(result).doesNotContain("Te faltan").endsWith("Seguí con tus mini-objetivos de la semana que viene.");
+    }
 }

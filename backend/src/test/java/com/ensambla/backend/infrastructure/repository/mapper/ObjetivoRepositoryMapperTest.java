@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
 import com.ensambla.backend.domain.model.objetivo.Objetivo;
+import com.ensambla.backend.domain.model.objetivo.TipoObjetivo;
 import com.ensambla.backend.infrastructure.repository.entity.ObjetivoEntity;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,6 +12,7 @@ import static com.ensambla.backend.support.ObjetivoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.TEXTO;
 import static com.ensambla.backend.support.ObjetivoTestData.objetivo;
+import static com.ensambla.backend.support.ObjetivoTestData.objetivoSinMeta;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ObjetivoRepositoryMapperTest {
@@ -24,7 +26,9 @@ class ObjetivoRepositoryMapperTest {
                 .id(OBJETIVO_ID.valor())
                 .negocioId(NEGOCIO_ID.valor())
                 .texto(TEXTO)
+                .tipo(TipoObjetivo.HIBRIDO)
                 .meta(META)
+                .armadoConSami(true)
                 .creadoEn(AHORA)
                 .alcanzadoEn(AHORA.plusDays(3))
                 .build();
@@ -34,7 +38,9 @@ class ObjetivoRepositoryMapperTest {
         assertThat(result.getId()).isEqualTo(OBJETIVO_ID);
         assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(result.getTexto()).isEqualTo(TEXTO);
+        assertThat(result.getTipo()).isEqualTo(TipoObjetivo.HIBRIDO);
         assertThat(result.getMeta()).isEqualTo(META);
+        assertThat(result.isArmadoConSami()).isTrue();
         assertThat(result.getCreadoEn()).isEqualTo(AHORA);
         assertThat(result.getAlcanzadoEn()).isEqualTo(AHORA.plusDays(3));
     }
@@ -60,8 +66,20 @@ class ObjetivoRepositoryMapperTest {
         assertThat(result.getId()).isEqualTo(OBJETIVO_ID.valor());
         assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
         assertThat(result.getTexto()).isEqualTo(TEXTO);
+        assertThat(result.getTipo()).isEqualTo(TipoObjetivo.MONETARIO);
         assertThat(result.getMeta()).isEqualTo(META);
+        assertThat(result.isArmadoConSami()).isFalse();
         assertThat(result.getCreadoEn()).isEqualTo(AHORA);
+    }
+
+    @Test
+    @DisplayName("Un objetivo armado con Sami se mapea a la entidad sin meta")
+    void toEntityShouldKeepTheMissingGoalAndTheType() {
+        ObjetivoEntity result = mapper.toEntity(objetivoSinMeta());
+
+        assertThat(result.getTipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
+        assertThat(result.getMeta()).isNull();
+        assertThat(result.isArmadoConSami()).isTrue();
     }
 
     @Test

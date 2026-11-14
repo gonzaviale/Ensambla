@@ -57,6 +57,7 @@ public class ObtenerProgreso {
         List<ProgresoObjetivo> fotos = progresoObjetivoRepository.findAllByObjetivoId(objetivo.getId());
         List<MiniProgreso> minis = miniObjetivoRepository.findAllByObjetivoIdAndNegocioId(objetivo.getId(), negocioId)
                 .stream()
+                .filter(MiniObjetivo::esMedido)
                 .filter(mini -> mini.estaEnCurso() || mini.getEstado() == EstadoMiniObjetivo.LOGRADO)
                 .map(mini -> MiniProgreso.de(mini, hoy, fotosDe(mini, fotos)))
                 .toList();

@@ -9,6 +9,7 @@ import static com.ensambla.backend.support.ObjetivoTestData.AHORA;
 import static com.ensambla.backend.support.ObjetivoTestData.META;
 import static com.ensambla.backend.support.ObjetivoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.TEXTO;
+import static com.ensambla.backend.support.ObjetivoTestData.objetivoSinMeta;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ObjetivoTest {
@@ -72,5 +73,22 @@ class ObjetivoTest {
         Objetivo result = Objetivo.nuevo(NEGOCIO_ID, "  " + TEXTO + " \n", META, AHORA);
 
         assertThat(result.getTexto()).isEqualTo(TEXTO);
+    }
+
+    @Test
+    @DisplayName("Un objetivo nuevo es monetario y no lo armó Sami")
+    void nuevoShouldBeMonetarioAndNotBuiltWithSami() {
+        Objetivo result = Objetivo.nuevo(NEGOCIO_ID, TEXTO, META, AHORA);
+
+        assertThat(result.getTipo()).isEqualTo(TipoObjetivo.MONETARIO);
+        assertThat(result.isArmadoConSami()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Un objetivo sin meta en pesos nunca llega a la meta, por alto que sea el resultado")
+    void llegaAShouldBeFalseWithoutGoal() {
+        Objetivo objetivo = objetivoSinMeta();
+
+        assertThat(objetivo.llegaA(new BigDecimal("999999999"))).isFalse();
     }
 }

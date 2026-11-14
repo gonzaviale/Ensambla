@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.interfaces;
 
 import com.ensambla.backend.domain.model.objetivo.EstadoMiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.ModoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
 import com.ensambla.backend.infrastructure.repository.entity.MiniObjetivoEntity;
 import com.ensambla.backend.infrastructure.repository.entity.ObjetivoEntity;
@@ -152,6 +153,51 @@ class IMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
     }
 
     @Test
+    @DisplayName("Guarda y relee un mini-objetivo manual sin métrica ni números")
+    void saveShouldRoundTripAManualMiniObjetivo() {
+        MiniObjetivoEntity guardado = minis.saveAndFlush(manual(objetivoA, negocioA, 2, AHORA));
+
+        MiniObjetivoEntity result = minis.findByIdAndObjetivoIdAndNegocioId(guardado.getId(), objetivoA, negocioA)
+                .orElseThrow();
+
+        assertThat(result.getModo()).isEqualTo(ModoMiniObjetivo.MANUAL);
+        assertThat(result.getTipo()).isNull();
+        assertThat(result.getMeta()).isNull();
+        assertThat(result.getValorInicial()).isNull();
+        assertThat(result.getValorActual()).isNull();
+        assertThat(result.getAporteEstimado()).isNull();
+        assertThat(result.getTitulo()).isEqualTo("Pedile a 3 clientes");
+    }
+
+    @Test
+    @DisplayName("Un mini-objetivo guardado sin modo es medido")
+    void saveShouldDefaultToMedido() {
+        MiniObjetivoEntity guardado = givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+
+        assertThat(guardado.getModo()).isEqualTo(ModoMiniObjetivo.MEDIDO);
+    }
+
+    @Test
+    @DisplayName("La base rechaza un mini-objetivo medido sin meta")
+    void saveShouldRejectAMedidoWithoutGoal() {
+        MiniObjetivoEntity medidoSinMeta = mini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+        medidoSinMeta.setMeta(null);
+
+        assertThatThrownBy(() -> minis.saveAndFlush(medidoSinMeta))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("La base rechaza un mini-objetivo manual con números")
+    void saveShouldRejectAManualWithNumbers() {
+        MiniObjetivoEntity manualConMeta = manual(objetivoA, negocioA, 2, AHORA);
+        manualConMeta.setMeta(new BigDecimal("10.00"));
+
+        assertThatThrownBy(() -> minis.saveAndFlush(manualConMeta))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
     @DisplayName("Al borrar el objetivo se borran sus mini-objetivos")
     void deletingObjetivoShouldDeleteItsMiniObjetivos() {
         givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
@@ -174,6 +220,22 @@ class IMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
     private MiniObjetivoEntity givenMini(
             UUID objetivoId, UUID negocioId, int posicion, EstadoMiniObjetivo estado, OffsetDateTime creadoEn) {
         return minis.saveAndFlush(mini(objetivoId, negocioId, posicion, estado, creadoEn));
+    }
+
+    private static MiniObjetivoEntity manual(UUID objetivoId, UUID negocioId, int posicion, OffsetDateTime creadoEn) {
+        return MiniObjetivoEntity.builder()
+                .id(UUID.randomUUID())
+                .objetivoId(objetivoId)
+                .negocioId(negocioId)
+                .posicion((short) posicion)
+                .modo(ModoMiniObjetivo.MANUAL)
+                .estado(EstadoMiniObjetivo.EN_CURSO)
+                .semanaInicio(SEMANA)
+                .titulo("Pedile a 3 clientes")
+                .justificacion("Porque sí")
+                .creadoEn(creadoEn)
+                .actualizadoEn(creadoEn)
+                .build();
     }
 
     private static MiniObjetivoEntity mini(

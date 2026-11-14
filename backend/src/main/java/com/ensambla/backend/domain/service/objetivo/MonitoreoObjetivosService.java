@@ -21,7 +21,7 @@ import java.util.List;
 /**
  * Mide cómo viene cada objetivo de un negocio: el resultado y la métrica de cada mini-objetivo en curso, con una foto
  * por día. Marca como logrado lo que llegó a su meta y como alcanzado el objetivo cuyo resultado la alcanzó, y a un
- * objetivo que nunca tuvo mini-objetivos le propone los suyos. Lo usan el monitoreo de cada hora y la medición que se
+ * objetivo monetario que nunca tuvo mini-objetivos le propone los suyos. Los mini-objetivos manuales no se miden. Lo usan el monitoreo de cada hora y la medición que se
  * pide al abrir los objetivos, para que una venta recién cargada se vea enseguida.
  */
 @RequiredArgsConstructor
@@ -52,11 +52,12 @@ public class MonitoreoObjetivosService {
         }
         progresoObjetivoRepository.registrar(ProgresoObjetivo.de(objetivo.getId(), null, hoy, resultado, ahora));
         List<MiniObjetivo> minis = miniObjetivoRepository.findAllByObjetivoIdAndNegocioId(objetivo.getId(), negocioId);
-        if (minis.isEmpty() && !objetivo.estaAlcanzado()) {
+        if (minis.isEmpty() && objetivo.getTipo().tieneMeta() && !objetivo.estaAlcanzado()) {
             minis = proponer(negocioId, objetivo, medidor, hoy, ahora);
         }
         minis.stream()
                 .filter(MiniObjetivo::estaEnCurso)
+                .filter(MiniObjetivo::esMedido)
                 .forEach(mini -> medir(mini, medidor, hoy, ahora));
     }
 

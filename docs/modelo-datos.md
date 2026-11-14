@@ -8,7 +8,7 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V15__renovaciones_y_pagos_premium.sql`,
 `V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
 `V24__objetivo.sql`, `V29__mini_objetivo.sql`, `V30__progreso_objetivo.sql`, `V31__decision_objetivo.sql`,
-`V32__resumen_semanal_objetivo.sql`).
+`V32__resumen_semanal_objetivo.sql`, `V33__objetivo_demo.sql`, `V34__objetivo_tipo_y_modo.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -365,6 +365,26 @@ arrancar, para cerrar las semanas que quedaron sin cerrar (`ensambla.objetivos.c
 **API.** `GET /api/objetivos/{id}/semanas`: `{ ultimoCierre, semanas: [{ semana, resultado, avance, decisiones, queFunciono,
 textoConIa, reajustes: [{ tipo, motivo, de: { titulo, meta }, a }] }] }`, de la más nueva a la más vieja. Un objetivo de otro
 negocio responde 404.
+
+### Objetivos con Sami: tipo y modo (V34)
+
+Diseño completo en [`objetivos-con-sami.md`](objetivos-con-sami.md). `V34` deja que un objetivo no tenga meta en pesos y que un
+mini-objetivo no tenga números.
+
+- `objetivo.tipo` (`MONETARIO`, `CON_DATOS`, `SIN_DATOS` o `HIBRIDO`, por defecto `MONETARIO`) y `objetivo.armado_con_sami`
+  (si lo armó Sami con IA; es lo que cuenta para la cuota mensual). `objetivo.meta` ahora admite `NULL`, y la restricción
+  `ck_objetivo_meta_segun_tipo` exige que **sólo** el monetario la tenga.
+- `mini_objetivo.modo` (`MEDIDO` o `MANUAL`, por defecto `MEDIDO`). En uno `MANUAL` (una acción que la persona responde)
+  `tipo`, `registro_id`, `referencia`, `meta`, `valor_inicial`, `valor_actual` y `aporte_estimado` son `NULL`; en uno `MEDIDO`
+  todos los números y el `tipo` son obligatorios (`ck_mini_objetivo_segun_modo`). `tipo`, `meta`, `valor_inicial`,
+  `valor_actual` y `aporte_estimado` ahora admiten `NULL`.
+- Los objetivos y mini-objetivos que ya existían quedan `MONETARIO` y `MEDIDO`: no cambia nada de lo que ven.
+- Sin meta en pesos el objetivo nunca se da por alcanzado solo, el monitoreo no le propone mini-objetivos medidos y el
+  resumen del domingo guarda `avance = 0`. El monitoreo, el cierre y el progreso sólo miran los mini-objetivos medidos.
+
+**API.** `GET`/`POST /api/objetivos` suman `tipo` y `armadoConSami` y `meta` puede ser `null`; los mini-objetivos suman `modo`
+(en un manual `tipo`, `sentido`, `valorInicial`, `valorActual`, `meta`, `avance`, `aporteEstimado`, `registroId` y
+`referencia` son `null`).
 
 ## Datos de prueba (V10)
 

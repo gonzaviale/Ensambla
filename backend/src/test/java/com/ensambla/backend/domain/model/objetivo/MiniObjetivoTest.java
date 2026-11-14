@@ -20,6 +20,7 @@ import static com.ensambla.backend.support.MiniObjetivoTestData.TITULO;
 import static com.ensambla.backend.support.MiniObjetivoTestData.VALOR_INICIAL;
 import static com.ensambla.backend.support.MiniObjetivoTestData.candidato;
 import static com.ensambla.backend.support.MiniObjetivoTestData.candidatoDelNegocio;
+import static com.ensambla.backend.support.MiniObjetivoTestData.miniManual;
 import static com.ensambla.backend.support.MiniObjetivoTestData.miniObjetivo;
 import static com.ensambla.backend.support.ObjetivoTestData.AHORA;
 import static com.ensambla.backend.support.ObjetivoTestData.NEGOCIO_ID;
@@ -541,5 +542,24 @@ class MiniObjetivoTest {
         mini.setMeta(new BigDecimal(meta));
         mini.setValorActual(new BigDecimal(actual));
         return mini;
+    }
+
+    @Test
+    @DisplayName("Un mini-objetivo es medido por defecto y no manual")
+    void esMedidoShouldBeTheDefaultMode() {
+        MiniObjetivo mini = miniObjetivo();
+
+        assertThat(mini.getModo()).isEqualTo(ModoMiniObjetivo.MEDIDO);
+        assertThat(mini.esMedido()).isTrue();
+        assertThat(mini.esManual()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Un mini-objetivo manual no es medido")
+    void esManualShouldBeTrueForAManualMini() {
+        MiniObjetivo mini = miniManual();
+
+        assertThat(mini.esManual()).isTrue();
+        assertThat(mini.esMedido()).isFalse();
     }
 }

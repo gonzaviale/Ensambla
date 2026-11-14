@@ -32,6 +32,7 @@ import java.util.List;
 
 import static com.ensambla.backend.support.MiniObjetivoTestData.MINI_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.OTRO_MINI_ID;
+import static com.ensambla.backend.support.MiniObjetivoTestData.miniManual;
 import static com.ensambla.backend.support.MiniObjetivoTestData.miniObjetivo;
 import static com.ensambla.backend.support.NegocioDePrueba.YERBA;
 import static com.ensambla.backend.support.NegocioDePrueba.almacen;
@@ -41,6 +42,7 @@ import static com.ensambla.backend.support.ObjetivoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.USUARIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.objetivo;
+import static com.ensambla.backend.support.ObjetivoTestData.objetivoSinMeta;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -178,6 +180,30 @@ class ObtenerProgresoTest {
                 .satisfies(punto -> assertThat(punto.valor()).isEqualByComparingTo("14500"));
         assertThat(result.minis().get(1).hito()).isEqualTo(HitoObjetivo.MINI_LOGRADO);
         assertThat(result.minis().get(0).hito()).isNull();
+    }
+
+    @Test
+    @DisplayName("Un mini-objetivo manual no tiene serie: no se incluye entre los medidos")
+    void executeShouldLeaveOutTheManualMiniObjetivos() {
+        givenFotos();
+        givenMinis(miniObjetivo(), miniManual());
+
+        ObtenerProgresoResponse result = whenObtener();
+
+        assertThat(result.minis()).extracting(mini -> mini.mini().id()).containsExactly(MINI_ID);
+    }
+
+    @Test
+    @DisplayName("Un objetivo sin meta en pesos devuelve la meta vacía")
+    void executeShouldReturnAnEmptyGoalForAnObjetivoWithoutGoal() {
+        when(objetivoRepository.obtener(NEGOCIO_ID, OBJETIVO_ID)).thenReturn(objetivoSinMeta());
+        givenFotos();
+        givenMinis();
+
+        ObtenerProgresoResponse result = whenObtener();
+
+        assertThat(result.meta()).isNull();
+        assertThat(result.hito()).isNull();
     }
 
     @Test

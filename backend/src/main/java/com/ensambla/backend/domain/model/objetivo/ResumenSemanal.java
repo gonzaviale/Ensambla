@@ -55,8 +55,14 @@ public record ResumenSemanal(
                 .findFirst();
     }
 
-    /** Qué parte de la meta es el resultado, entre 0 y 1; una meta de cero o menos ya está cumplida. */
+    /**
+     * Qué parte de la meta es el resultado, entre 0 y 1; una meta de cero o menos ya está cumplida y un objetivo sin
+     * meta en pesos no tiene con qué compararse (cero).
+     */
     static BigDecimal avanceDe(BigDecimal resultado, BigDecimal meta) {
+        if (meta == null) {
+            return BigDecimal.ZERO;
+        }
         if (meta.signum() <= 0) {
             return BigDecimal.ONE;
         }
