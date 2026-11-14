@@ -102,3 +102,242 @@
     animation: none;
   }
 }
+
+/* Comparar mis negocios (T-205): los totales son la tarjeta destacada de la pantalla (borde petróleo) y la tabla va
+   en una tarjeta blanca de borde fino. Lo negativo va en coral y los avisos en amarillo oscuro, como en el pop-up.
+   En el celular cada fila pasa a ser una tarjeta con el nombre de cada métrica al lado de su valor. */
+
+.comparar-negocios {
+  display: grid;
+  gap: 20px;
+  padding-bottom: 48px;
+}
+
+.comparar-cabecera h1 {
+  margin: 6px 0 4px;
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1.1;
+  color: var(--ink);
+}
+.comparar-cabecera p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.comparar-cargando {
+  padding: 24px;
+  border-radius: var(--radius);
+  background: var(--soft);
+  color: var(--muted);
+  animation: respira 1.2s ease-in-out infinite alternate;
+}
+
+.comparar-totales,
+.comparar-tabla {
+  padding: 20px 22px;
+  border: 1px solid var(--c-borde);
+  border-radius: var(--radius);
+  background: #fff;
+}
+.comparar-totales {
+  border: 2px solid var(--c-estructura);
+  box-shadow: var(--sombra-reposo);
+}
+.comparar-totales h2,
+.comparar-tabla h2 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--ink);
+}
+
+.comparar-totales-cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.comparar-totales-cabecera span {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-estructura);
+}
+
+.comparar-totales dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px 20px;
+  margin: 16px 0 0;
+}
+.comparar-totales dt {
+  font-size: 14px;
+  color: var(--muted);
+}
+.comparar-totales dd {
+  margin: 2px 0 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--c-estructura);
+  font-variant-numeric: tabular-nums;
+}
+
+.comparar-negocios [data-negativo] {
+  color: #b3322e;
+}
+.comparar-negocios [data-hay] {
+  color: var(--yellow-dark);
+}
+
+.comparar-ayuda {
+  margin: 4px 0 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.comparar-tabla table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.comparar-tabla th,
+.comparar-tabla td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--c-borde);
+  text-align: right;
+  vertical-align: top;
+}
+.comparar-tabla thead th:first-child,
+.comparar-tabla tbody th {
+  text-align: left;
+}
+.comparar-tabla tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.comparar-tabla thead th {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.comparar-tabla thead button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.comparar-tabla thead button:hover {
+  background: var(--c-estructura-50);
+  color: var(--c-estructura);
+}
+.comparar-tabla thead button:focus-visible {
+  outline: 3px solid var(--c-estructura);
+  outline-offset: 2px;
+}
+.comparar-tabla th[aria-sort] button {
+  color: var(--c-estructura);
+}
+.comparar-flecha {
+  min-width: 10px;
+  font-size: 10px;
+}
+
+.comparar-tabla tbody td {
+  font-weight: 600;
+  color: var(--ink);
+}
+.comparar-tabla tbody tr[data-sin-datos] td {
+  color: var(--muted);
+  font-weight: 400;
+}
+.comparar-nombre {
+  display: block;
+  font-weight: 700;
+  color: var(--ink);
+}
+.comparar-detalle {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.comparar-activo {
+  color: var(--c-estructura);
+}
+
+.comparar-nota {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--c-fondo-suave);
+  font-size: 15px;
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .comparar-totales,
+  .comparar-tabla {
+    padding: 16px;
+  }
+  .comparar-tabla table,
+  .comparar-tabla tbody,
+  .comparar-tabla tr,
+  .comparar-tabla tbody th,
+  .comparar-tabla td {
+    display: block;
+  }
+  /* Los encabezados siguen ordenando: quedan como una fila de botones arriba de las tarjetas. */
+  .comparar-tabla thead tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .comparar-tabla thead th {
+    padding: 0;
+    border: 0;
+  }
+  .comparar-tabla thead th:first-child {
+    display: none;
+  }
+  .comparar-tabla thead button {
+    padding: 6px 10px;
+    border: 1px solid var(--c-borde);
+    border-radius: 999px;
+  }
+  .comparar-tabla tbody tr {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--c-borde);
+    border-radius: 14px;
+  }
+  .comparar-tabla tbody th,
+  .comparar-tabla td {
+    padding: 4px 0;
+    border: 0;
+  }
+  .comparar-tabla tbody th {
+    padding-bottom: 8px;
+  }
+  .comparar-tabla td {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .comparar-tabla td::before {
+    content: attr(data-titulo);
+    font-weight: 400;
+    color: var(--muted);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comparar-cargando {
+    animation: none;
+  }
+}

@@ -26,6 +26,7 @@ import { Route as AppZonaRouteImport } from './routes/_app/zona'
 import { Route as PublicaIndexRouteImport } from './routes/_publica/index'
 import { Route as PublicaLoginRouteImport } from './routes/_publica/login'
 import { Route as PublicaRegistroRouteImport } from './routes/_publica/registro'
+import { Route as AppNegociosCompararRouteImport } from './routes/_app/negocios.comparar'
 import { Route as AppObjetivosIndexRouteImport } from './routes/_app/objetivos/index'
 import { Route as AppObjetivosObjetivoIdRouteImport } from './routes/_app/objetivos/$objetivoId'
 import { Route as AppSistemasSistemaIdRouteImport } from './routes/_app/sistemas.$sistemaId'
@@ -115,6 +116,11 @@ const PublicaRegistroRoute = PublicaRegistroRouteImport.update({
   path: '/registro',
   getParentRoute: () => PublicaRoute,
 } as any)
+const AppNegociosCompararRoute = AppNegociosCompararRouteImport.update({
+  id: '/negocios/comparar',
+  path: '/negocios/comparar',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppObjetivosIndexRoute = AppObjetivosIndexRouteImport.update({
   id: '/objetivos/',
   path: '/objetivos/',
@@ -157,6 +163,7 @@ export interface FileRoutesByFullPath {
   '/zona': typeof AppZonaRouteWithChildren
   '/login': typeof PublicaLoginRoute
   '/registro': typeof PublicaRegistroRoute
+  '/negocios/comparar': typeof AppNegociosCompararRoute
   '/objetivos/$objetivoId': typeof AppObjetivosObjetivoIdRoute
   '/sistemas/$sistemaId': typeof AppSistemasSistemaIdRoute
   '/zona/donde-abrir': typeof AppZonaDondeAbrirRoute
@@ -178,6 +185,7 @@ export interface FileRoutesByTo {
   '/ubicacion': typeof AppUbicacionRoute
   '/login': typeof PublicaLoginRoute
   '/registro': typeof PublicaRegistroRoute
+  '/negocios/comparar': typeof AppNegociosCompararRoute
   '/objetivos/$objetivoId': typeof AppObjetivosObjetivoIdRoute
   '/sistemas/$sistemaId': typeof AppSistemasSistemaIdRoute
   '/zona/donde-abrir': typeof AppZonaDondeAbrirRoute
@@ -203,6 +211,7 @@ export interface FileRoutesById {
   '/_publica/login': typeof PublicaLoginRoute
   '/_publica/registro': typeof PublicaRegistroRoute
   '/_publica/': typeof PublicaIndexRoute
+  '/_app/negocios/comparar': typeof AppNegociosCompararRoute
   '/_app/objetivos/$objetivoId': typeof AppObjetivosObjetivoIdRoute
   '/_app/sistemas/$sistemaId': typeof AppSistemasSistemaIdRoute
   '/_app/zona/donde-abrir': typeof AppZonaDondeAbrirRoute
@@ -227,6 +236,7 @@ export interface FileRouteTypes {
     | '/zona'
     | '/login'
     | '/registro'
+    | '/negocios/comparar'
     | '/objetivos/$objetivoId'
     | '/sistemas/$sistemaId'
     | '/zona/donde-abrir'
@@ -248,6 +258,7 @@ export interface FileRouteTypes {
     | '/ubicacion'
     | '/login'
     | '/registro'
+    | '/negocios/comparar'
     | '/objetivos/$objetivoId'
     | '/sistemas/$sistemaId'
     | '/zona/donde-abrir'
@@ -272,6 +283,7 @@ export interface FileRouteTypes {
     | '/_publica/login'
     | '/_publica/registro'
     | '/_publica/'
+    | '/_app/negocios/comparar'
     | '/_app/objetivos/$objetivoId'
     | '/_app/sistemas/$sistemaId'
     | '/_app/zona/donde-abrir'
@@ -405,6 +417,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicaRegistroRouteImport
       parentRoute: typeof PublicaRoute
     }
+    '/_app/negocios/comparar': {
+      id: '/_app/negocios/comparar'
+      path: '/negocios/comparar'
+      fullPath: '/negocios/comparar'
+      preLoaderRoute: typeof AppNegociosCompararRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/objetivos/': {
       id: '/_app/objetivos/'
       path: '/objetivos'
@@ -469,6 +488,7 @@ interface AppRouteChildren {
   AppTallerRoute: typeof AppTallerRoute
   AppUbicacionRoute: typeof AppUbicacionRoute
   AppZonaRoute: typeof AppZonaRouteWithChildren
+  AppNegociosCompararRoute: typeof AppNegociosCompararRoute
   AppObjetivosObjetivoIdRoute: typeof AppObjetivosObjetivoIdRoute
   AppSistemasSistemaIdRoute: typeof AppSistemasSistemaIdRoute
   AppObjetivosIndexRoute: typeof AppObjetivosIndexRoute
@@ -487,6 +507,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppTallerRoute: AppTallerRoute,
   AppUbicacionRoute: AppUbicacionRoute,
   AppZonaRoute: AppZonaRouteWithChildren,
+  AppNegociosCompararRoute: AppNegociosCompararRoute,
   AppObjetivosObjetivoIdRoute: AppObjetivosObjetivoIdRoute,
   AppSistemasSistemaIdRoute: AppSistemasSistemaIdRoute,
   AppObjetivosIndexRoute: AppObjetivosIndexRoute,
