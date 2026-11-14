@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Icon } from '@/components/sistema/Icon';
 import { GraficoDeBarras } from '@/components/sistema/metricas/GraficoDeBarras';
+import { MetricasAMedida } from '@/components/sistema/metricas/MetricasAMedida';
 import { SelectorDeCuaderno, SelectorDePeriodo } from '@/components/sistema/metricas/Selectores';
 import { useNumeroAnimado } from '@/components/sistema/metricas/useNumeroAnimado';
 import { useResumenInicio } from '@/hooks/reportes/queries';
@@ -68,6 +69,7 @@ export function MetricasDelInicio() {
           <TarjetaDeAvisoEconomico sistemaId={cuaderno.id} cuaderno={cuaderno.name} />
         </div>
       )}
+      <MetricasAMedida sistemaId={cuaderno.id} cuaderno={cuaderno.name} />
     </section>
   );
 }

@@ -2,6 +2,7 @@ import type { Sistema } from '@/lib/sistema/tipos';
 import type { AvisoDelServidor } from '@/types/avisos';
 import type { ConfiguracionNegocio } from '@/types/negocio';
 import type { ObjetivoDelServidor } from '@/types/objetivos';
+import type { DefinicionDeMetrica, AutoriaDeMetrica } from '@/types/metricas';
 import type { DatosAutogestion } from './objetivosAutogestionados';
 import type { PruebaPremium } from '@/types/planes';
 import type { VerificacionWhatsapp, VinculoWhatsapp } from '@/types/whatsapp';
@@ -19,6 +20,12 @@ export type CuentaWhatsapp = {
   verificacion: (VerificacionWhatsapp & { intentos: number }) | null;
 };
 
+export type MetricaGuardada = {
+  id: string;
+  definicion: DefinicionDeMetrica;
+  autoria: AutoriaDeMetrica;
+};
+
 type Estado = {
   usuarios: Map<string, UsuarioMock>;
   sesionUsuarioId: string | null;
@@ -32,6 +39,8 @@ type Estado = {
   objetivos: Map<string, ObjetivoDelServidor[]>;
   /** Mini-objetivos, progreso, decisiones y cierres de cada objetivo (por id); se arman la primera vez que se piden. */
   autogestion: Map<string, DatosAutogestion>;
+  /** Las métricas a medida guardadas en cada cuaderno (por id del sistema), en el orden en que se pidieron. */
+  metricas: Map<string, MetricaGuardada[]>;
   pruebasPremium: Map<string, PruebaPremium>;
   contenidosDesbloqueados: Map<string, string[]>;
   paginasIa: Map<string, number>;
@@ -50,6 +59,7 @@ export const estado: Estado = {
   avisosDelServidor: new Map(),
   objetivos: new Map(),
   autogestion: new Map(),
+  metricas: new Map(),
   pruebasPremium: new Map(),
   contenidosDesbloqueados: new Map(),
   paginasIa: new Map(),
@@ -66,6 +76,7 @@ export function reiniciarEstado() {
   estado.avisosDelServidor = new Map();
   estado.objetivos = new Map();
   estado.autogestion = new Map();
+  estado.metricas = new Map();
   estado.pruebasPremium = new Map();
   estado.contenidosDesbloqueados = new Map();
   estado.paginasIa = new Map();

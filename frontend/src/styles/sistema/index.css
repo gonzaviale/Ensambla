@@ -14,6 +14,8 @@
 @import './inicio.css';
 /* El tablero del inicio y sus gráficos. */
 @import './tablero.css';
+/* Las métricas a medida del inicio. */
+@import './metricas-a-medida.css';
 /* La pantalla del sistema: fondo blanco, piezas y cabeceras de color. */
 @import './sistema-editor.css';
 @import './ubicacion.css';

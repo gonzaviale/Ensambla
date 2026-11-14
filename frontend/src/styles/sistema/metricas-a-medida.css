@@ -1,0 +1,216 @@
+/* «Tus métricas»: las que la persona elige para su cuaderno. Tarjetas blancas con borde de la paleta, letra oscura. */
+.metricas-medida {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+.metricas-medida-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.metricas-medida-cabecera h2 {
+  margin: 0;
+  color: var(--petrol);
+  font-size: 22px;
+}
+.metricas-medida-cabecera p {
+  margin: 4px 0 0;
+  color: var(--ink);
+}
+.metricas-medida-agregar,
+.agregar-metrica-ver {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 2px solid var(--petrol);
+  border-radius: 99px;
+  background: var(--petrol);
+  color: #fff;
+  font-weight: 700;
+}
+.agregar-metrica-ver {
+  background: #fff;
+  color: var(--petrol);
+}
+.metricas-medida-agregar:hover,
+.agregar-metrica-ver:hover {
+  border-color: var(--magenta, var(--coral));
+  background: var(--magenta, var(--coral));
+  color: #fff;
+}
+.metricas-medida-agregar:disabled,
+.agregar-metrica-ver:disabled {
+  opacity: 0.6;
+}
+.metricas-medida-aviso {
+  margin: 0;
+  color: var(--ink);
+}
+.metricas-medida-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.metrica-medida {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 16px;
+  border: 2px solid var(--orange);
+  border-radius: 16px;
+  background: #fff;
+  color: var(--ink);
+}
+.metrica-medida:nth-child(4n + 2) {
+  border-color: var(--blue);
+}
+.metrica-medida:nth-child(4n + 3) {
+  border-color: var(--yellow);
+}
+.metrica-medida:nth-child(4n) {
+  border-color: var(--coral);
+}
+.metrica-medida h3 {
+  margin: 0;
+  color: var(--petrol);
+  font-size: 17px;
+}
+.metrica-medida-titulo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.metrica-medida-quitar {
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--petrol);
+}
+.metrica-medida-receta {
+  margin: 0;
+  font-size: 14px;
+}
+.metrica-medida-valor {
+  margin: 0;
+  color: var(--petrol);
+  font-size: 30px;
+  font-weight: 800;
+}
+.metrica-medida-motivo {
+  margin: 0;
+  font-weight: 600;
+}
+.metrica-medida-reparto {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.metrica-medida-reparto li {
+  display: grid;
+  grid-template-columns: minmax(70px, 1fr) 2fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.metrica-medida-barra {
+  height: 10px;
+  border-radius: 99px;
+  background: var(--line);
+  overflow: hidden;
+}
+.metrica-medida-barra > span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--orange);
+}
+.metrica-medida-numero {
+  font-weight: 700;
+}
+.metrica-medida-origen {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--petrol);
+  font-weight: 700;
+  text-decoration: underline;
+}
+.metrica-medida-detalle {
+  margin: 0;
+  font-size: 14px;
+}
+.metrica-medida-error {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 700;
+}
+.agregar-metrica {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+  border: 2px solid var(--petrol);
+  border-radius: 16px;
+  background: #fff;
+}
+.agregar-metrica-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.agregar-metrica-cerrar {
+  border: 0;
+  background: transparent;
+  color: var(--petrol);
+  font-weight: 700;
+  text-decoration: underline;
+}
+.agregar-metrica-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+.agregar-metrica-form label {
+  display: grid;
+  gap: 4px;
+  color: var(--ink);
+  font-weight: 700;
+}
+.agregar-metrica-form input[type='text'],
+.agregar-metrica-form select {
+  padding: 10px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+}
+.agregar-metrica-check {
+  display: flex !important;
+  align-items: center;
+  gap: 8px !important;
+}
+.agregar-metrica-acciones,
+.agregar-metrica-vista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  grid-column: 1 / -1;
+}
+.agregar-metrica-vista {
+  flex-direction: column;
+  padding: 12px;
+  border: 2px dashed var(--line);
+  border-radius: 12px;
+}
