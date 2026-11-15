@@ -2561,3 +2561,15 @@
     width: 100%;
   }
 }
+
+.objetivos-definir-otro {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+@media (max-width: 600px) {
+  .objetivos-definir-otro,
+  .objetivos-definir-otro .btn {
+    width: 100%;
+  }
+}

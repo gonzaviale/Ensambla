@@ -3,6 +3,7 @@ import { PaperPlaneRightIcon } from '@phosphor-icons/react';
 import { leerErrorServidor } from '@/hooks/errores';
 import { useGuardarObjetivoConSami, useProponerObjetivo } from '@/hooks/objetivos/mutations';
 import { useCuotaObjetivos } from '@/hooks/objetivos/queries';
+import { useEsPlanGratuito } from '@/hooks/planes/queries';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
 import {
   COMO_SE_MIDE,
@@ -41,6 +42,7 @@ export function ConversarConSami({ onGuardado, onMetaEnPesos, onCancelar }: Prop
   const guardar = useGuardarObjetivoConSami();
   const { cuota: cuotaDelMes } = useCuotaObjetivos();
   const navegacion = useNavegacion();
+  const esGratuito = useEsPlanGratuito();
   const [texto, setTexto] = useState('');
   const [mensajes, setMensajes] = useState<MensajeDeConversacion[]>([]);
   const [propuesta, setPropuesta] = useState<PropuestaObjetivo | null>(null);
@@ -185,7 +187,7 @@ export function ConversarConSami({ onGuardado, onMetaEnPesos, onCancelar }: Prop
               >
                 Guardar como seguimiento manual
               </button>
-              {sinCuota && (
+              {sinCuota && esGratuito && (
                 <button
                   type="button"
                   className="btn secondary"

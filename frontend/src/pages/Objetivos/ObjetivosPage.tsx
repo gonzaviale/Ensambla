@@ -15,6 +15,7 @@ import { EntradaDondeAbrir } from '@/pages/DondeAbrir/EntradaDondeAbrir';
 import { NegocioHoy } from './NegocioHoy';
 import { NuevoObjetivo } from './NuevoObjetivo';
 import { PendientesDeRespuesta } from './PendientesDeRespuesta';
+import { CuotaEnObjetivos } from './sami/CuotaEnObjetivos';
 import { ObjetivoCard } from './ObjetivoCard';
 import { Encabezado } from './piezas';
 
@@ -87,9 +88,12 @@ export function ObjetivosPage() {
                 onCancelar={() => setDefiniendo(false)}
               />
             ) : (
-              <button type="button" className="btn secondary" onClick={() => setDefiniendo(true)}>
-                <PlusIcon aria-hidden size={18} /> Definir otro objetivo
-              </button>
+              <div className="objetivos-definir-otro">
+                <button type="button" className="btn secondary" onClick={() => setDefiniendo(true)}>
+                  <PlusIcon aria-hidden size={18} /> Definir otro objetivo
+                </button>
+                <CuotaEnObjetivos />
+              </div>
             )}
           </>
         )}

@@ -82,6 +82,12 @@ export function TarjetaPlan({
           <dt>Análisis de foto por mes</dt>
           <dd>{limite(plan.limitePaginasIaMensuales, plan.limitesConfigurados)}</dd>
         </div>
+        {plan.limiteObjetivosIaMensuales !== undefined && (
+          <div>
+            <dt>Objetivos con IA por mes</dt>
+            <dd>{limite(plan.limiteObjetivosIaMensuales, plan.limitesConfigurados)}</dd>
+          </div>
+        )}
         <div>
           <dt>Avisos por mes</dt>
           <dd>{premium ? 'Sin límite' : AVISOS_Y_RECOMENDACIONES_GRATUITOS}</dd>

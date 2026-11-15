@@ -17,6 +17,8 @@ export const planSchema = z.object({
   limiteProyectos: cantidad.nullable(),
   limiteRegistros: cantidad.nullable(),
   limitePaginasIaMensuales: cantidad.nullable(),
+  /** Cuántos objetivos armados con Sami (IA) incluye por mes; el servidor lo suma con la cuota (H-60). */
+  limiteObjetivosIaMensuales: cantidad.nullable().optional(),
   funciones: z.array(z.string()),
 });
 

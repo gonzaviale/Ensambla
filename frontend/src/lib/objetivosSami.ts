@@ -13,6 +13,8 @@ import type {
 /** Cuántos mensajes admite una conversación con Sami (los de la persona); el servidor lo vuelve a controlar. */
 export const MAXIMO_DE_MENSAJES = 6;
 export const MAXIMO_DEL_MENSAJE = 500;
+/** Lo que incluye Premium, para explicar qué se gana al pasar de plan; la cuota exacta la dice el servidor. */
+export const LIMITE_PREMIUM_DE_OBJETIVOS = 20;
 export const MAXIMO_DEL_TITULO = 80;
 export const MAXIMO_DE_LA_JUSTIFICACION = 280;
 
