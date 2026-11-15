@@ -106,7 +106,7 @@ public record PanelNegocio(PeriodoResumen periodo, Metricas metricas, List<Seman
         if (resumen.ventas().cantidad() == 0 && cobrosCaja.isEmpty()) {
             return new PanelNegocio(periodo, null, List.of());
         }
-        List<Venta> ventas = ventasConPrecio(datos.ventas(), periodo, datos.origenesVentasCaja());
+        List<Venta> ventas = ventasConPrecio(datos, periodo);
         List<Gasto> gastos = gastos(datos.gastos(), periodo);
         List<Movimiento> sinMercaderia = gastos.stream().filter(gasto -> !gasto.esMercaderia())
                 .map(Gasto::movimiento).toList();
@@ -135,7 +135,7 @@ public record PanelNegocio(PeriodoResumen periodo, Metricas metricas, List<Seman
 
     /** La ganancia sobre lo vendido de los productos que tienen costo; lo de los demás no entra ni arriba ni abajo. */
     private static BigDecimal margen(List<Venta> ventas, Map<RegistroId, BigDecimal> costos) {
-        List<Venta> conCosto = ventas.stream().filter(venta -> costos.containsKey(venta.venta().productoId())).toList();
+        List<Venta> conCosto = ventas.stream().filter(venta -> venta.venta().productoId() != null && costos.containsKey(venta.venta().productoId())).toList();
         BigDecimal vendido = suma(conCosto.stream().map(Venta::importe));
         if (vendido.signum() == 0) {
             return null;
@@ -190,15 +190,19 @@ public record PanelNegocio(PeriodoResumen periodo, Metricas metricas, List<Seman
     // --- lectura de las tablas ---
 
     /** Las ventas del período que tienen precio; las demás cuentan como venta pero no son plata. */
-    private static List<Venta> ventasConPrecio(List<BloqueVentas> bloques, PeriodoResumen periodo,
-                                              Set<String> origenesCaja) {
+    private static List<Venta> ventasConPrecio(DatosDeProyecto datos, PeriodoResumen periodo) {
+        Stream<Venta> articulos = ventasDeTablas(datos.ventas(), datos.origenesVentasCaja());
+        Stream<Venta> importes = datos.importesLibres().stream().map(venta -> new Venta(venta, false, true));
+        return Stream.concat(articulos, importes)
+                .filter(venta -> venta.venta().precio() != null && periodo.incluye(venta.venta().fecha())).toList();
+    }
+
+    private static Stream<Venta> ventasDeTablas(List<BloqueVentas> bloques, Set<String> origenesCaja) {
         return bloques.stream()
                 .flatMap(bloque -> bloque.registros().stream()
                         .flatMap(registro -> VentaProducto.desde(bloque, registro).stream()
                                 .map(venta -> new Venta(venta, esFiado(bloque, registro),
-                                        origenesCaja.contains(registro.getOrigen())))))
-                .filter(venta -> venta.venta().precio() != null && periodo.incluye(venta.venta().fecha()))
-                .toList();
+                                        origenesCaja.contains(registro.getOrigen())))));
     }
 
     private static boolean esFiado(BloqueVentas bloque, Registro registro) {

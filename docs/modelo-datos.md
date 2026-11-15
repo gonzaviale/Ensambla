@@ -691,7 +691,8 @@ Testcontainers.
 
 El JSON de `venta_caja.datos.lineas` admite `productoId: null` para una línea por importe libre,
 con nombre descriptivo, cantidad 1 y precio/importe positivos. No se crea un registro de inventario.
-La tabla genérica Ventas conserva la línea sin relación Producto y con descripción en el origen Caja.
+La tabla genérica Ventas conserva la línea sin relación Producto y con el origen canónico Caja + id.
+La descripción queda en el comprobante. Inicio incorpora los importes libres desde ese comprobante, sin productos ficticios.
 Los pagos y cobros posteriores conservan el mismo esquema; las cuentas agrupadas son una proyección de lectura.
 No se modifica ninguna migración aplicada ni hace falta agregar columnas para estos datos.
 

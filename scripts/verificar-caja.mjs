@@ -192,7 +192,12 @@ async function principal() {
     const despuesLibre=(await exigir(cliente,'/api/sistemas',200)).find(s=>s.id===proyectoId);
     assert.deepEqual(despuesLibre.sections.flatMap(s=>s.blocks).find(b=>b.id===inventarioId).rows,
       final.sections.flatMap(s=>s.blocks).find(b=>b.id===inventarioId).rows,'Un importe libre alteró el inventario');
+    const panelTrasImportes=await exigir(cliente,panelRuta,200);
+    assert.equal(panelTrasImportes.metricas.vendiste,29900);
+    assert.equal(panelTrasImportes.metricas.teDeben,4000);
+    assert.equal(panelTrasImportes.flujoDeCaja.reduce((suma,semana)=>suma+semana.entradas,0),25900);
     console.log(JSON.stringify({resultado:'correcto',comprobaciones:[
+      'Inicio incluye importes libres en ventas sin duplicar cobros ni deudas',
       'importe libre pagado, parcial mixto y fiado sin productos ni stock',
       'recuento obligatorio con cero válido y motivo de diferencias',
       'saldos y primera deuda agrupados por cliente desde el backend',

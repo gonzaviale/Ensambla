@@ -224,7 +224,7 @@ public class CobrarVenta {
                 Registro.validar(camposDeVenta(ventas, linea), valores), ahora);
         fila.setId(RegistroId.nuevo());
         fila.setOrden(orden);
-        fila.setOrigen("Caja " + venta.id() + (linea.productoId() == null ? " · " + linea.nombre() : ""));
+        fila.setOrigen("Caja " + venta.id());
         return fila;
     }
 

@@ -31,6 +31,7 @@ No es necesario recrearlo para actualizar la aplicación.
 | Fiado | Venta con cliente y sin pagos | Toda la venta pendiente; no entra efectivo |
 | Importe libre | Agregar importe, descripción Servicio, monto 2.500 | Aparece en compra e historial; no se crea producto |
 | Importe parcial/mixto | Pagar 500 efectivo y 500 transferencia de ese importe | Saldo 1.500; solo 500 al cajón; vuelto si se entrega más efectivo |
+| Inicio | Consultar el importe de 2.500 con entrega de 1.000 | Vendido 2.500, cobrado 1.000 y deuda 1.500, sin duplicaciones ni productos ficticios |
 | Cuenta | Abrir Clientes → Con deuda → Ver cuenta | Saldos y ventas de esa persona, incluida la deuda del servicio |
 | Entregas | Registrar 2.000 y luego 4.000 sobre la primera deuda | El saldo baja hasta cero; pasa a Pagada y permanece el historial |
 | Antigüedad | Consultar una venta con deuda de 30 días o más | Etiqueta informativa; pagar una parte conserva fecha original; saldar quita etiqueta |
@@ -56,6 +57,7 @@ Una compra grande mantiene accesible Cobrar y permite desplazar su lista.
   reintentos, importes libres con deuda y cierres históricos.
 - `ImporteLibreCajaTest`: descripción, cantidad uno, compatibilidad de huellas y datos incompatibles.
 - `CuentaClienteCajaItemTest`: agrupación, saldo, fecha más antigua, cuentas saldadas y cobros ajenos excluidos.
+- `ReportesImporteLibreTest`: importes pagados, parciales y fiados en Inicio/resumen, sin inventar costo ni producto y respetando el período.
 - `recuentoCaja.test.tsx`: recuento obligatorio, cero válido y explicación de diferencias.
 - `importeLibreCaja.test.tsx`: formulario, importes separados y umbrales de 29/30 días con zona argentina.
 - `contratosCaja.test.ts`: cliente HTTP, zod, fixtures y handlers MSW compartidos.

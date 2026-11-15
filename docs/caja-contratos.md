@@ -70,7 +70,7 @@ Respuesta:
 Solo los pagos aplicados cancelan deuda. Pagar 600 en efectivo para una parte de 500 devuelve 100.
 No se crea ningún producto ni movimiento de stock para el importe libre.
 La tabla Ventas conserva cantidad, precio, fecha, cliente y marca de fiado. El producto queda vacío y
-el origen contiene la descripción; el historial de caja conserva el detalle completo.
+el origen conserva la referencia de la venta; el historial de caja conserva la descripción y el detalle completo.
 La relación Producto obligatoria de las ventas de inventario se mantiene; el importe libre es la excepción explícita.
 
 Para un artículo se envía productoId real, cantidad, precio y modo UNIDAD/PESO, sin descripción.
@@ -160,6 +160,8 @@ Para inventarios anteriores o modificados desde el editor, se registra primero l
 el saldo de movimientos y la cantidad actual, con nota **Ajuste al stock del inventario antes de cobrar**.
 Ese ajuste puede ser una entrada o salida y evita inventar un saldo negativo al incorporar inventarios existentes.
 Luego se registra **Venta de caja {id}**. No se vuelve a descontar al cargar las filas del historial.
+Los importes libres se incorporan a ventas e ingresos de Inicio desde su comprobante, sin inventar
+un producto ni costo y sin volver a sumar cobros o deuda desde las filas de la tabla.
 
 Cada venta, cobro y cierre tiene identificador propio. Mismo id y mismo contenido devuelve el comprobante original.
 Otro contenido con el mismo id responde 409. La descripción del importe libre participa en la huella.

@@ -169,7 +169,7 @@ public record ResumenNegocio(
     public static ResumenNegocio armar(String negocio, DatosDeProyecto datos, AnalisisZona zona, List<Aviso> avisos,
                                        PeriodoResumen periodo, LocalDate hoy) {
         Map<RegistroId, Producto> productos = productosDe(datos.inventarios());
-        List<Venta> todas = ventasDe(datos.ventas(), datos.origenesVentasCaja());
+        List<Venta> todas = ventasRegistradas(datos);
         List<Venta> delPeriodo = todas.stream().filter(venta -> periodo.incluye(venta.venta().fecha())).toList();
         BigDecimal ingresos = suma(delPeriodo.stream().map(Venta::ingreso));
         return new ResumenNegocio(
@@ -211,6 +211,7 @@ public record ResumenNegocio(
     /** Lo vendido con precio menos el costo actual de cada producto; sólo cuentan los productos que tienen costo. */
     private static BigDecimal ganancia(List<Venta> ventas, Map<RegistroId, Producto> productos) {
         List<BigDecimal> ganancias = ventas.stream()
+                .filter(venta -> venta.venta().productoId() != null)
                 .filter(venta -> venta.venta().precio() != null)
                 .map(venta -> {
                     Producto producto = productos.get(venta.venta().productoId());
@@ -225,6 +226,7 @@ public record ResumenNegocio(
 
     private static List<ProductoVendido> masVendidos(List<Venta> delPeriodo, Map<RegistroId, Producto> productos) {
         return delPeriodo.stream()
+                .filter(venta -> venta.venta().productoId() != null)
                 .collect(Collectors.groupingBy(venta -> venta.venta().productoId(), LinkedHashMap::new,
                         Collectors.toList()))
                 .entrySet().stream()
@@ -443,6 +445,14 @@ public record ResumenNegocio(
             }
         }
         return productos;
+    }
+
+    private static List<Venta> ventasRegistradas(DatosDeProyecto datos) {
+        List<Venta> articulos = ventasDe(datos.ventas(), datos.origenesVentasCaja());
+        List<Venta> importes = datos.importesLibres().stream().map(venta -> new Venta(venta, false)).toList();
+        List<Venta> todas = new ArrayList<>(articulos);
+        todas.addAll(importes);
+        return todas;
     }
 
     private static List<Venta> ventasDe(List<BloqueVentas> bloques, Set<String> origenesCaja) {

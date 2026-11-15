@@ -494,7 +494,7 @@ class CajaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         Sistema sistema = sistemaRepository.findAllByNegocioId(negocioId).getFirst();
         assertThat(sistema.registrosPorBloque().get(CajaTestData.INVENTARIO)).hasSize(1);
         thenStockIs("2");
-        assertThat(sistema.registrosPorBloque().get(CajaTestData.VENTAS).getFirst().getOrigen()).contains("Servicio");
+        assertThat(sistema.registrosPorBloque().get(CajaTestData.VENTAS).getFirst().getOrigen()).isEqualTo("Caja " + respuesta.id());
     }
 
     @Test

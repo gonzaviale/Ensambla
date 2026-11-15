@@ -2,6 +2,8 @@ package com.ensambla.backend.domain.model.reporte;
 
 import com.ensambla.backend.domain.model.aviso.BloqueInventario;
 import com.ensambla.backend.domain.model.aviso.BloqueVentas;
+import com.ensambla.backend.domain.model.aviso.VentaProducto;
+import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.caja.CobroCaja;
 import com.ensambla.backend.domain.model.caja.VentaCaja;
 
@@ -29,6 +31,13 @@ public record DatosDeProyecto(
                            List<BloqueGastos> gastos, Map<String, String> nombresDeClientes,
                            List<BloqueEntradas> entradas) {
         this(nombre, inventarios, ventas, gastos, nombresDeClientes, entradas, List.of(), List.of());
+    }
+
+    public List<VentaProducto> importesLibres() {
+        return ventasCaja.stream().flatMap(venta -> venta.lineas().stream()
+                .filter(linea -> linea.productoId() == null)
+                .map(linea -> new VentaProducto(null, linea.cantidad(), linea.precio(),
+                        ZonaNegocio.dia(venta.creadoEn()), venta.clienteNombre()))).toList();
     }
 
     /** Las filas de Ventas representan los artículos; su dinero se cuenta desde el comprobante de Caja. */

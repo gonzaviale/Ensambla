@@ -120,3 +120,7 @@ La adaptación no cambia el comportamiento de ventas ni el esquema de datos.
 Deuda de legibilidad fuera de este ajuste: CobroCaja y los escenarios anteriores de CobrarVentaTest
 todavía concentran lógica y aserciones que conviene separar por intención. Los escenarios de relaciones
 adaptados en esta revisión y los constructores compartidos ya están separados por intención.
+
+En Inicio y resumen, la lectura nueva de importes libres está separada por intención. Los armadores
+generales previos de PanelNegocio y ResumenNegocio conservan su estructura; su refactor completo excede
+este circuito. Los servicios se suman desde el comprobante y se excluyen de productos más vendidos y margen con costo.
