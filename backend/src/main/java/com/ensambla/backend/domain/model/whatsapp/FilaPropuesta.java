@@ -1,12 +1,11 @@
 package com.ensambla.backend.domain.model.whatsapp;
 
 import com.ensambla.backend.domain.model.campo.Campo;
-import com.ensambla.backend.domain.model.campo.TipoCampo;
+import com.ensambla.backend.domain.model.campo.CampoNumerico;
 
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -27,7 +26,6 @@ public record FilaPropuesta(Map<String, String> valores, Set<String> dudosos, St
                             String nombreExistente, String campoNombre, Map<String, String> antes,
                             Map<String, VinculoPropuesto> vinculos) {
 
-    private static final Set<TipoCampo> NUMERICOS = Set.of(TipoCampo.NUMERO, TipoCampo.MONEDA);
     private static final String RELATIVO = "[+-]\\s*[0-9]+([.,][0-9]+)?";
 
     public FilaPropuesta {
@@ -90,7 +88,7 @@ public record FilaPropuesta(Map<String, String> valores, Set<String> dudosos, St
         for (Campo campo : campos) {
             String clave = campo.getId().toString();
             String valor = valores.get(clave);
-            if (NUMERICOS.contains(campo.getTipo()) && esRelativo(valor)) {
+            if (campo.esNumerico() && esRelativo(valor)) {
                 cambios.put(clave, sumado(actuales.get(clave), cambio(valor)));
             }
         }
@@ -123,33 +121,13 @@ public record FilaPropuesta(Map<String, String> valores, Set<String> dudosos, St
         for (Campo campo : campos) {
             String valor = valores.get(campo.getId().toString());
             if (valor != null) {
-                tipados.put(campo.getId().toString(), tipar(campo, valor.trim()));
+                tipados.put(campo.getId().toString(), campo.tipar(valor.trim()));
             }
         }
         return tipados;
     }
 
-    private static Object tipar(Campo campo, String valor) {
-        return switch (campo.getTipo()) {
-            case NUMERO, MONEDA -> numero(valor);
-            case SI_NO -> sino(valor);
-            default -> valor;
-        };
-    }
-
     private static Object numero(String valor) {
-        try {
-            return new BigDecimal(valor.replace(',', '.').replaceAll("\\s", ""));
-        } catch (NumberFormatException e) {
-            return valor;
-        }
-    }
-
-    private static Object sino(String valor) {
-        return switch (valor.toLowerCase(Locale.ROOT)) {
-            case "true", "si", "sí" -> Boolean.TRUE;
-            case "false", "no" -> Boolean.FALSE;
-            default -> valor;
-        };
+        return CampoNumerico.interpretar(valor);
     }
 }

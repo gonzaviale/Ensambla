@@ -1,13 +1,13 @@
 ---
 name: escribir-tests
-description: Escribe o reescribe los tests del backend de Ensambla al estilo del proyecto - Arrange-Act-Assert con helpers privados givenX/thenX, métodos camelCase xShouldYWhenZ, @DisplayName en español, imports explícitos, builders en vez de reflexión, un comportamiento por test - con plantillas por capa (caso de uso con TransaccionDirecta, DTO con fábrica de(), servicio compartido, modelo e ids tipados, mapper de presentación, controller con MockMvcDePrueba, repo impl, mapper de repositorio, JPA contra PostgreSQL con Testcontainers, integración HTTP sin H2, excepciones, config, ArchitectureTest). Usar cuando se pida "escribir/agregar/arreglar tests", "testear este caso de uso/servicio/controller/mapper", "cubrir X con tests" o al terminar una feature nueva. Para refactorizar el caso de uso en sí usar refactor-use-case; para crear una feature usar crear-use-case.
+description: Escribe o reescribe los tests del backend de Ensambla al estilo del proyecto - Arrange-Act-Assert con helpers privados givenX/thenX, métodos camelCase xShouldYWhenZ, @DisplayName en español, imports explícitos, builders en vez de reflexión, un comportamiento por test - con plantillas por capa (caso de uso con TransaccionDirecta, DTO con fábrica de(), servicio compartido, modelo e ids tipados, mapper de presentación, controller con MockMvcDePrueba, repo impl, mapper de repositorio, JPA contra PostgreSQL con Testcontainers, integración HTTP sin H2, excepciones, config, ArchitectureTest). Aplica siempre el skill codigo-semantico (obligatorio): tests dado/cuando/entonces con helpers givenX/whenX/thenX, sin lógica ni ternarios y con base abstracta por tipo. Usar cuando se pida "escribir/agregar/arreglar tests", "testear este caso de uso/servicio/controller/mapper", "cubrir X con tests" o al terminar una feature nueva. Para refactorizar el caso de uso en sí usar refactor-use-case; para crear una feature usar crear-use-case.
 ---
 
 > Copia para Codex. La fuente es `.claude/skills/escribir-tests/SKILL.md`: si cambiás uno, cambiá los dos.
 
 # Escribir tests del backend (estilo Ensambla)
 
-Un test se lee como una frase: **given → acción → then**. La mecánica (stubs, ejecución, asserts, verifies) va en
+Un test se lee como una frase: **dado → cuando → entonces** (`givenX()` → `whenX()` → `thenX()`). La mecánica (stubs, ejecución, asserts, verifies) va en
 **métodos privados al final de la clase**. Plantillas vivas: el módulo `plantilla` completo (`ListarPlantillasTest`,
 `ListarPlantillasResponseTest`, `PlantillaPresentationMapperTest`, `PlantillaRepositoryImplTest`,
 `PlantillaRepositoryMapperTest`, `PlantillaControllerTest`, `PlantillaUseCaseConfigTest`), `RegistrarUsuarioTest` (caso
@@ -35,6 +35,50 @@ estructura que se prueban están en [`backend/ARQUITECTURA.md`](../../../backend
     Los getters/setters/builders de Lombok no cuentan (`lombok.addLombokGeneratedAnnotation = true`).
 11. **Nunca H2.** Lo que levanta base o contexto `extends PostgresRepositoryTestSupport` (Testcontainers); `ArchitectureTest`
     falla si vuelve `h2`.
+
+### Tests semánticos (obligatorios, skill `codigo-semantico`)
+
+12. **Dado / cuando / entonces con helpers.** El cuerpo del test es `givenX()`, `whenX()`, `thenX()` con nombres que se
+    leen sin pensar (`givenContratoConPrecioAjeno()`, `whenSeActualizaElContrato()`, `thenSeRechazaElContrato()`).
+    Los `assertThat`, `verify` y stubs no van sueltos en el cuerpo: van en esos helpers.
+13. **Sin lógica en el test.** Nada de `if`, `for` con aserciones, `switch` ni ternarios (`caso == 6 ? … : …`). Si un
+    `@ParameterizedTest` decide qué esperar según el caso, se reemplaza por un test por escenario con su `given`.
+14. **Base abstracta cuando varios tipos comparten comportamiento.** Una clase abstracta (`CampoPorTipoTest`) con los
+    tests semánticos (`aceptaUnValorValido`, `rechazaUnValorInvalido`, `aceptaUnValorInicialValido`) que usa métodos
+    abstractos (`valorValido()`, `valorInvalido()`, `mensajeDeError()`), y un test concreto por subclase que **solo aporta
+    datos**. Cada subclase delgada queda cubierta por la base (100 % por clase) y agregar un tipo es agregar una clase de
+    test de tres métodos.
+15. **Nombres de datos que se leen solos** (`PRECIO_AJENO`, `OTRA_REFERENCIA`), no `X1`, `dto`, `valor2`. El test no
+    necesita comentarios: si hace falta uno, falta un helper o un nombre.
+16. **Helpers cortos** (≈10 líneas, un solo nivel) y agrupados al final, sin repetir el mismo setup en cada test.
+17. **Un `@Test` no usa `when(...)`, `verify(...)`, `assertThat` ni arma datos inline.** Todo va a `givenX` /
+    `whenX` / `thenX` (extract method). El test queda en tres líneas que se leen como una frase:
+
+```java
+// ❌ mecánica dentro del @Test
+@Test
+void editarShouldSaveCampo() {
+    when(campoRepository.obtener(CAMPO_ID, NEGOCIO_ID)).thenReturn(campo);
+    when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+
+    CampoItem item = editarCampo.execute(new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Precio"));
+
+    assertThat(item.nombre()).isEqualTo("Precio");
+    verify(campoRepository).save(campo);
+}
+
+// ✅ dado / cuando / entonces
+@Test
+void editarShouldSaveCampo() {
+    givenUnCampoDelNegocio();
+
+    CampoItem item = whenSeRenombraElCampo("Precio");
+
+    thenElCampoQuedaGuardadoConNombre(item, "Precio");
+}
+```
+18. **Los mismos helpers se reutilizan**: si dos tests arman el mismo dato o la misma verificación, es un helper (o un
+    `support/*TestData`), nunca copiar y pegar.
 
 ## Qué probar en cada capa
 
@@ -70,12 +114,17 @@ class UsuarioRepositoryTest {
     void obtenerActivoShouldThrowWhenMissing() {
         givenRepositoryHasNoUsuario();
 
-        assertThatThrownBy(this::obtenerActivo).isInstanceOf(CredencialesInvalidasException.class);
+        thenSeRechazaConCredencialesInvalidas();
     }
 
     // --- arrange ---
     private void givenRepositoryHasNoUsuario() {
         when(usuarioRepository.findById(USUARIO_ID)).thenReturn(Optional.empty());
+    }
+
+    // --- assert ---
+    private void thenSeRechazaConCredencialesInvalidas() {
+        assertThatThrownBy(this::obtenerActivo).isInstanceOf(CredencialesInvalidasException.class);
     }
 
     // --- act ---
@@ -101,9 +150,19 @@ DTO con su fábrica:
 @Test
 @DisplayName("Copia todos los datos de la plantilla")
 void deShouldCopyAllFields() {
-    ListarPlantillasResponse result = ListarPlantillasResponse.de(List.of(plantilla()));
+    ListarPlantillasResponse respuesta = whenSeArmaLaRespuestaDeUnaPlantilla();
 
-    assertThat(result.content()).singleElement().satisfies(item -> {
+    thenCopiaTodosLosDatosDeLaPlantilla(respuesta);
+}
+
+// --- act ---
+private ListarPlantillasResponse whenSeArmaLaRespuestaDeUnaPlantilla() {
+    return ListarPlantillasResponse.de(List.of(plantilla()));
+}
+
+// --- assert ---
+private void thenCopiaTodosLosDatosDeLaPlantilla(ListarPlantillasResponse respuesta) {
+    assertThat(respuesta.content()).singleElement().satisfies(item -> {
         assertThat(item.id()).isEqualTo(PLANTILLA_ID);
         assertThat(item.nombre()).isEqualTo(NOMBRE);
     });
@@ -116,9 +175,19 @@ Controller (el 400 no debe llegar al caso de uso):
 @Test
 @DisplayName("GET devuelve 400 cuando el id no es un UUID")
 void obtenerShouldReturn400WhenIdIsNotUuid() throws Exception {
-    ResultActions result = mockMvc.perform(get("/api/proyectos/id-invalido"));
+    ResultActions respuesta = whenSeConsultaConUnIdInvalido();
 
-    result.andExpect(status().isBadRequest());
+    thenRespondeBadRequestSinLlegarAlCasoDeUso(respuesta);
+}
+
+// --- act ---
+private ResultActions whenSeConsultaConUnIdInvalido() throws Exception {
+    return mockMvc.perform(get("/api/proyectos/id-invalido"));
+}
+
+// --- assert ---
+private void thenRespondeBadRequestSinLlegarAlCasoDeUso(ResultActions respuesta) throws Exception {
+    respuesta.andExpect(status().isBadRequest());
     verifyNoInteractions(obtenerProyecto);
 }
 ```
@@ -134,9 +203,9 @@ class IProyectoJpaRepositoryTest extends PostgresRepositoryTestSupport {
     void findByIdAndNegocioIdShouldReturnEmptyWhenProyectoBelongsToOtherNegocio() {
         UUID proyectoDeA = givenProyecto(negocioA);
 
-        Optional<ProyectoEntity> result = repository.findByIdAndNegocioId(proyectoDeA, negocioB);
+        Optional<ProyectoEntity> proyecto = whenSeBuscaDesdeOtroNegocio(proyectoDeA);
 
-        assertThat(result).isEmpty();
+        thenNoEncuentraNada(proyecto);
     }
 }
 ```

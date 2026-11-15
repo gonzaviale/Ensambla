@@ -1,4 +1,5 @@
 import { CATALOG, TEMPLATES } from './catalogo';
+import { comportamientoDe } from './comportamiento';
 import type {
   Bloque,
   Campo,
@@ -118,6 +119,18 @@ export function moveBlock(
 
 export const numero = (valor: Valor) => Number(valor ?? 0) || 0;
 
+function valorGuardable(campo: Campo, valor: Valor): Valor {
+  return comportamientoDe(campo.type).coercionar(valor);
+}
+
+function errorDeCampo(campo: Campo, valor: Valor, sistema: Sistema): string | undefined {
+  const comportamiento = comportamientoDe(campo.type);
+  const hayValor = valor !== '' && valor != null;
+  const errorDeValor = hayValor ? comportamiento.validar(campo, valor, sistema) : undefined;
+  if (errorDeValor) return errorDeValor;
+  return campo.required && comportamiento.falta(valor) ? 'Completá este campo.' : undefined;
+}
+
 export function validateRow(
   bloque: Bloque,
   valores: Record<string, Valor>,
@@ -126,45 +139,8 @@ export function validateRow(
 ): ErroresFila {
   const errores: ErroresFila = {};
   for (const campo of bloque.fields) {
-    const valor = valores[campo.key];
-    if (
-      campo.required &&
-      (valor == null ||
-        (typeof valor === 'string' && !valor.trim()) ||
-        (campo.type === 'checkbox' && valor !== true))
-    ) {
-      errores[campo.key] = 'Completá este campo.';
-    }
-    if (valor !== '' && valor != null) {
-      const texto = String(valor);
-      if (['number', 'currency'].includes(campo.type) && !Number.isFinite(Number(valor))) {
-        errores[campo.key] = 'Ingresá un número válido.';
-      }
-      if (campo.min != null && Number(valor) < campo.min) {
-        errores[campo.key] = `El mínimo es ${campo.min}.`;
-      }
-      if (campo.type === 'time' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(texto)) {
-        errores[campo.key] = 'Elegí un horario válido.';
-      }
-      if (campo.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(texto)) {
-        errores[campo.key] = 'Revisá el correo.';
-      }
-      if (
-        campo.type === 'date' &&
-        (!/^\d{4}-\d{2}-\d{2}$/.test(texto) || Number.isNaN(Date.parse(texto)))
-      ) {
-        errores[campo.key] = 'Elegí una fecha válida.';
-      }
-      if (campo.type === 'select' && !campo.options?.includes(texto)) {
-        errores[campo.key] = 'Elegí una de las opciones.';
-      }
-      if (
-        campo.type === 'relation' &&
-        !findBlock(sistema, campo.target)?.rows.some((fila) => fila.id === valor)
-      ) {
-        errores[campo.key] = 'Elegí un registro del bloque vinculado.';
-      }
-    }
+    const error = errorDeCampo(campo, valores[campo.key], sistema);
+    if (error) errores[campo.key] = error;
   }
   // Una venta fiada tiene que decir a quién.
   if (
@@ -215,13 +191,7 @@ export function upsertRow(
   const plan = movementPlan(bloque, valores, filaId, sistema);
   const fila: Fila = indice >= 0 ? { ...(bloque.rows[indice] as Fila) } : { id: id() };
   for (const campo of bloque.fields) {
-    const valor = valores[campo.key];
-    fila[campo.key] =
-      ['number', 'currency'].includes(campo.type) && valor !== '' && valor != null
-        ? Number(valor)
-        : campo.type === 'checkbox'
-          ? Boolean(valor)
-          : (valor ?? '');
+    fila[campo.key] = valorGuardable(campo, valores[campo.key]);
   }
   // Un ejemplo editado ya pertenece al usuario y se conserva al quitar ejemplos.
   if (indice >= 0) {

@@ -7,6 +7,8 @@ import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.useCase.campo.CampoItem;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
@@ -21,9 +23,20 @@ public class ListarCampos {
     private final CampoRepository campoRepository;
 
     public List<CampoItem> execute(ListarCamposRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        Bloque bloque = bloqueRepository.obtener(request.bloqueId(), negocioId);
-        List<Campo> campos = campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), negocioId);
-        return campos.stream().map(CampoItem::de).toList();
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        Bloque bloque = obtenerBloque(request.bloqueId(), negocioId);
+        return obtenerCamposDe(bloque, negocioId).stream().map(CampoItem::de).toList();
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private Bloque obtenerBloque(BloqueId bloqueId, NegocioId negocioId) {
+        return bloqueRepository.obtener(bloqueId, negocioId);
+    }
+
+    private List<Campo> obtenerCamposDe(Bloque bloque, NegocioId negocioId) {
+        return campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), negocioId);
     }
 }

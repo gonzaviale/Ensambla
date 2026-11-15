@@ -46,6 +46,22 @@ class ContenidoPlanControllerTest {
     }
 
     @Test
+    @DisplayName("Los avisos del servidor llegan al caso de uso sin el prefijo y vuelven con el que se pidió")
+    void desbloquearShouldTranslateTheServerPrefix() throws Exception {
+        var pedido = new DesbloquearContenidosRequest(USUARIO, "AVISOS", List.of("a1", "demo:1"));
+        when(caso.execute(pedido)).thenReturn(new AccesoContenidoItem(List.of("a1", "demo:1"), 2, 6, 2, 0,
+                OffsetDateTime.parse("2026-11-01T00:00:00Z")));
+
+        mvc.perform(post("/api/planes/contenidos")
+                        .principal(UsernamePasswordAuthenticationToken.authenticated(USUARIO.toString(), null, List.of()))
+                        .contentType("application/json")
+                        .content("{\"tipo\":\"AVISOS\",\"claves\":[\"servidor:a1\",\"demo:1\"]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.autorizadas[0]").value("servidor:a1"))
+                .andExpect(jsonPath("$.autorizadas[1]").value("demo:1"));
+    }
+
+    @Test
     @DisplayName("Un tipo desconocido no llega al caso de uso")
     void desbloquearShouldRejectInvalidType() throws Exception {
         mvc.perform(post("/api/planes/contenidos").contentType("application/json")

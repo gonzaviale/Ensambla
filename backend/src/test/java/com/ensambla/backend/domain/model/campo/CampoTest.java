@@ -1,266 +1,149 @@
 package com.ensambla.backend.domain.model.campo;
 
+import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CampoTest {
 
     private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
     private static final BloqueId BLOQUE_ID = BloqueId.de("b0000000-0000-4000-8000-000000000001");
+    private static final CampoId CAMPO_ID = CampoId.de("c0000000-0000-4000-8000-000000000001");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-10T12:00:00Z");
-    private static final BloqueId RELACIONADO_ID = BloqueId.de("b0000000-0000-4000-8000-000000000002");
 
     @Test
     @DisplayName("Un campo marcado como obligatorio es obligatorio")
     void esObligatorioShouldBeTrueWhenMarked() {
-        Campo campo = Campo.builder().obligatorio(true).build();
-
-        assertThat(campo.esObligatorio()).isTrue();
+        assertThat(campoObligatorio(true).esObligatorio()).isTrue();
     }
 
     @Test
     @DisplayName("Un campo sin marcar o sin dato no es obligatorio")
     void esObligatorioShouldBeFalseWhenNotMarkedOrNull() {
-        Campo sinMarcar = Campo.builder().obligatorio(false).build();
-        Campo sinDato = Campo.builder().build();
-
-        assertThat(sinMarcar.esObligatorio()).isFalse();
-        assertThat(sinDato.esObligatorio()).isFalse();
+        assertThat(campoObligatorio(false).esObligatorio()).isFalse();
+        assertThat(campoObligatorio(null).esObligatorio()).isFalse();
     }
 
     @Test
-    @DisplayName("Acepta un texto de hasta 1000 caracteres")
-    void errorDeShouldBeEmptyWhenTextoIsValid() {
-        assertThat(errorDe(TipoCampo.TEXTO, "x".repeat(1000))).isEmpty();
+    @DisplayName("Sin indicar tipo, el campo es de texto")
+    void builderShouldBuildTextoByDefault() {
+        assertThat(Campo.builder().build()).isInstanceOf(CampoTexto.class);
     }
 
     @Test
-    @DisplayName("Rechaza un texto que supera los 1000 caracteres")
-    void errorDeShouldReportWhenTextoIsTooLong() {
-        assertThat(errorDe(TipoCampo.TEXTO, "x".repeat(1001))).contains("Máximo 1000 caracteres");
+    @DisplayName("Un campo de texto no es número, conexión ni fórmula, y no tiene datos de otros tipos")
+    void aTextoCampoShouldHaveNoDataOfOtherTypes() {
+        Campo texto = Campo.builder().tipo(TipoCampo.TEXTO).build();
+
+        assertThat(texto.esNumerico()).isFalse();
+        assertThat(texto.esRelacion()).isFalse();
+        assertThat(texto.esFormula()).isFalse();
+        assertThat(texto.getOpciones()).isEmpty();
+        assertThat(texto.getBloqueRelacionadoId()).isNull();
+        assertThat(texto.getFormula()).isNull();
     }
 
     @Test
-    @DisplayName("Rechaza un número cargado donde se espera un texto")
-    void errorDeShouldReportWhenTextoIsNotAString() {
-        assertThat(errorDe(TipoCampo.TEXTO, 12)).contains("Tiene que ser un texto");
+    @DisplayName("Un campo nuevo queda en el lugar del bloque con las dos fechas iguales")
+    void ubicadoEnShouldPlaceTheCampoInTheBloque() {
+        Campo campo = Campo.builder().nombre("Talle").build();
+
+        Campo ubicado = campo.ubicadoEn(NEGOCIO_ID, BLOQUE_ID, (short) 2, AHORA);
+
+        assertThat(ubicado).isSameAs(campo);
+        assertThat(ubicado.getId()).isNull();
+        assertThat(ubicado.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(ubicado.getBloqueId()).isEqualTo(BLOQUE_ID);
+        assertThat(ubicado.getPosicion()).isEqualTo((short) 2);
+        assertThat(ubicado.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(ubicado.getActualizadoEn()).isEqualTo(AHORA);
     }
 
     @Test
-    @DisplayName("Acepta enteros y decimales como número")
-    void errorDeShouldBeEmptyWhenNumeroIsNumber() {
-        assertThat(errorDe(TipoCampo.NUMERO, 12)).isEmpty();
-        assertThat(errorDe(TipoCampo.NUMERO, 12.5)).isEmpty();
+    @DisplayName("El campo que reemplaza a otro conserva su id, su lugar y su fecha de creación")
+    void reemplazandoAShouldKeepIdentityAndPlace() {
+        Campo anterior = campoGuardado();
+        Campo nuevo = Campo.builder().nombre("Precio").tipo(TipoCampo.NUMERO).build();
+
+        Campo reemplazo = nuevo.reemplazandoA(anterior, AHORA.plusHours(1));
+
+        assertThat(reemplazo.getNombre()).isEqualTo("Precio");
+        assertThat(reemplazo.getTipo()).isEqualTo(TipoCampo.NUMERO);
+        assertThat(reemplazo.getId()).isEqualTo(CAMPO_ID);
+        assertThat(reemplazo.getBloqueId()).isEqualTo(BLOQUE_ID);
+        assertThat(reemplazo.getPosicion()).isEqualTo((short) 3);
+        assertThat(reemplazo.getClave()).isEqualTo("price");
+        assertThat(reemplazo.getMinimo()).isEqualByComparingTo(BigDecimal.TEN);
+        assertThat(reemplazo.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(reemplazo.getActualizadoEn()).isEqualTo(AHORA.plusHours(1));
     }
 
     @Test
-    @DisplayName("Rechaza un texto donde se espera un número")
-    void errorDeShouldReportWhenNumeroIsString() {
-        assertThat(errorDe(TipoCampo.NUMERO, "12")).contains("Tiene que ser un número");
+    @DisplayName("Un campo que ninguna fórmula usa se puede eliminar")
+    void validarSinFormulasQueLoUsenShouldPassWhenNoFormulaUsesIt() {
+        Campo precio = precioNumerico();
+
+        assertThatCode(() -> precio.validarSinFormulasQueLoUsen(List.of(precio), "eliminar"))
+                .doesNotThrowAnyException();
     }
 
     @Test
-    @DisplayName("Rechaza un número infinito")
-    void errorDeShouldReportWhenNumeroIsNotFinite() {
-        assertThat(errorDe(TipoCampo.NUMERO, Double.POSITIVE_INFINITY)).contains("Tiene que ser un número");
+    @DisplayName("Un campo del que depende una fórmula no se puede eliminar")
+    void validarSinFormulasQueLoUsenShouldRejectWhenAFormulaUsesIt() {
+        Campo precio = precioNumerico();
+        Campo total = formulaQueUsa(precio);
+
+        assertThatThrownBy(() -> precio.validarSinFormulasQueLoUsen(List.of(precio, total), "eliminar"))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("No se puede eliminar «Precio»: la fórmula «Total» lo usa");
     }
 
     @Test
-    @DisplayName("Acepta una fecha en formato AAAA-MM-DD")
-    void errorDeShouldBeEmptyWhenFechaIsIso() {
-        assertThat(errorDe(TipoCampo.FECHA, "2026-10-09")).isEmpty();
+    @DisplayName("Un campo de texto no puede cambiar de tipo si una fórmula lo usa")
+    void validarCambioDeTipoShouldRejectWhenAFormulaUsesIt() {
+        Campo precio = Campo.builder().id(CAMPO_ID).tipo(TipoCampo.TEXTO).nombre("Precio").build();
+        Campo total = formulaQueUsa(precio);
+
+        assertThatThrownBy(() -> precio.validarCambioDeTipo(List.of(precio, total)))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("cambiar el tipo de");
     }
 
-    @Test
-    @DisplayName("Rechaza una fecha que no existe en el calendario")
-    void errorDeShouldReportWhenFechaDoesNotExist() {
-        assertThat(errorDe(TipoCampo.FECHA, "2026-02-31")).contains("Tiene que ser una fecha válida");
+    private Campo campoObligatorio(Boolean obligatorio) {
+        return Campo.builder().obligatorio(obligatorio).build();
     }
 
-    @Test
-    @DisplayName("Rechaza una fecha con otro formato")
-    void errorDeShouldReportWhenFechaHasOtherFormat() {
-        assertThat(errorDe(TipoCampo.FECHA, "09/10/2026")).contains("Tiene que ser una fecha válida");
-    }
-
-    @Test
-    @DisplayName("Rechaza una fecha que no es un texto")
-    void errorDeShouldReportWhenFechaIsNotAString() {
-        assertThat(errorDe(TipoCampo.FECHA, 20261009)).contains("Tiene que ser una fecha válida");
-    }
-
-    @Test
-    @DisplayName("Acepta una de las opciones del campo")
-    void errorDeShouldBeEmptyWhenOpcionIsListed() {
-        assertThat(errorDe(TipoCampo.OPCION, "Mayorista")).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Rechaza una opción que no está en la lista")
-    void errorDeShouldReportWhenOpcionIsNotListed() {
-        assertThat(errorDe(TipoCampo.OPCION, "Otra")).contains("Elegí una de las opciones");
-    }
-
-    @Test
-    @DisplayName("Rechaza una opción que no es un texto")
-    void errorDeShouldReportWhenOpcionIsNotAString() {
-        assertThat(errorDe(TipoCampo.OPCION, true)).contains("Elegí una de las opciones");
-    }
-
-    @Test
-    @DisplayName("Acepta verdadero y falso como sí o no")
-    void errorDeShouldBeEmptyWhenSiNoIsBoolean() {
-        assertThat(errorDe(TipoCampo.SI_NO, false)).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Rechaza un texto donde se espera sí o no")
-    void errorDeShouldReportWhenSiNoIsString() {
-        assertThat(errorDe(TipoCampo.SI_NO, "sí")).contains("Tiene que ser sí o no");
-    }
-
-    @Test
-    @DisplayName("Acepta el id de una fila como valor de una conexión")
-    void errorDeShouldBeEmptyWhenRelacionIsUuid() {
-        assertThat(errorDe(TipoCampo.RELACION, RELACIONADO_ID.toString())).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Rechaza un texto que no es un id como valor de una conexión")
-    void errorDeShouldReportWhenRelacionIsNotUuid() {
-        assertThat(errorDe(TipoCampo.RELACION, "Ana")).contains("Elegí una fila de la tabla relacionada");
-    }
-
-    @Test
-    @DisplayName("Rechaza un id abreviado como valor de una conexión")
-    void errorDeShouldReportWhenRelacionIsNotCanonicalUuid() {
-        assertThat(errorDe(TipoCampo.RELACION, "1-1-1-1-1")).contains("Elegí una fila de la tabla relacionada");
-    }
-
-    @Test
-    @DisplayName("Rechaza un valor de conexión que no es un texto")
-    void errorDeShouldReportWhenRelacionIsNotAString() {
-        assertThat(errorDe(TipoCampo.RELACION, 12)).contains("Elegí una fila de la tabla relacionada");
-    }
-
-    @Test
-    @DisplayName("Un campo de conexión es una relación")
-    void esRelacionShouldBeTrueWhenTipoIsRelacion() {
-        assertThat(campo(TipoCampo.RELACION).esRelacion()).isTrue();
-    }
-
-    @Test
-    @DisplayName("Un campo de otro tipo no es una relación")
-    void esRelacionShouldBeFalseWhenTipoIsOther() {
-        assertThat(campo(TipoCampo.TEXTO).esRelacion()).isFalse();
-    }
-
-    @Test
-    @DisplayName("Configurar un campo de conexión guarda la tabla con la que se conecta")
-    void configurarShouldKeepBloqueRelacionado() {
-        Campo campo = Campo.nuevo(NEGOCIO_ID, BLOQUE_ID, (short) 0, configuracion("Talle"), AHORA);
-        ConfiguracionCampo.Validada relacion =
-                new ConfiguracionCampo.Validada("Cliente", TipoCampo.RELACION, false, null, List.of(), RELACIONADO_ID, null);
-
-        campo.configurar(relacion, AHORA);
-
-        assertThat(campo.getBloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
-    }
-
-    @Test
-    @DisplayName("Crea un campo nuevo con la configuración validada y las dos fechas iguales")
-    void nuevoShouldApplyConfiguracionAndSetDates() {
-        Campo result = Campo.nuevo(NEGOCIO_ID, BLOQUE_ID, (short) 2, configuracion("Talle"), AHORA);
-
-        assertThat(result.getId()).isNull();
-        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
-        assertThat(result.getBloqueId()).isEqualTo(BLOQUE_ID);
-        assertThat(result.getPosicion()).isEqualTo((short) 2);
-        assertThat(result.getNombre()).isEqualTo("Talle");
-        assertThat(result.getTipo()).isEqualTo(TipoCampo.OPCION);
-        assertThat(result.getObligatorio()).isTrue();
-        assertThat(result.getValorInicial()).isEqualTo("Chico");
-        assertThat(result.getOpciones()).containsExactly("Chico", "Grande");
-        assertThat(result.getBloqueRelacionadoId()).isNull();
-        assertThat(result.getCreadoEn()).isEqualTo(AHORA);
-        assertThat(result.getActualizadoEn()).isEqualTo(AHORA);
-    }
-
-    @Test
-    @DisplayName("Configurar reemplaza la configuración y conserva la fecha de creación")
-    void configurarShouldReplaceConfiguracionAndKeepCreationDate() {
-        Campo campo = Campo.nuevo(NEGOCIO_ID, BLOQUE_ID, (short) 0, configuracion("Talle"), AHORA);
-        ConfiguracionCampo.Validada nueva =
-                new ConfiguracionCampo.Validada("Precio", TipoCampo.NUMERO, false, null, List.of(), null, null);
-
-        campo.configurar(nueva, AHORA.plusHours(1));
-
-        assertThat(campo.getNombre()).isEqualTo("Precio");
-        assertThat(campo.getTipo()).isEqualTo(TipoCampo.NUMERO);
-        assertThat(campo.getObligatorio()).isFalse();
-        assertThat(campo.getValorInicial()).isNull();
-        assertThat(campo.getOpciones()).isEmpty();
-        assertThat(campo.getCreadoEn()).isEqualTo(AHORA);
-        assertThat(campo.getActualizadoEn()).isEqualTo(AHORA.plusHours(1));
-    }
-
-    // --- act ---
-    private Optional<String> errorDe(TipoCampo tipo, Object valor) {
-        return campo(tipo).errorDe(valor);
-    }
-
-    // --- helpers ---
-    private ConfiguracionCampo.Validada configuracion(String nombre) {
-        return new ConfiguracionCampo.Validada(
-                nombre, TipoCampo.OPCION, true, "Chico", List.of("Chico", "Grande"), null, null);
-    }
-
-    private Campo campo(TipoCampo tipo) {
+    private Campo campoGuardado() {
         return Campo.builder()
-                .tipo(tipo)
-                .opciones(List.of("Minorista", "Mayorista"))
+                .id(CAMPO_ID)
+                .negocioId(NEGOCIO_ID)
+                .bloqueId(BLOQUE_ID)
+                .posicion((short) 3)
+                .clave("price")
+                .minimo(BigDecimal.TEN)
+                .creadoEn(AHORA)
                 .build();
     }
 
-    @Test
-    @DisplayName("Un campo fórmula no admite que se cargue un valor")
-    void errorDeShouldRejectAnyValueOfFormula() {
-        assertThat(errorDe(TipoCampo.FORMULA, 3)).contains("Este dato se calcula solo");
+    private Campo precioNumerico() {
+        return Campo.builder().id(CAMPO_ID).tipo(TipoCampo.NUMERO).nombre("Precio").build();
     }
 
-    @Test
-    @DisplayName("Sólo un campo de tipo fórmula es una fórmula")
-    void esFormulaShouldDependOnTipo() {
-        assertThat(campo(TipoCampo.FORMULA).esFormula()).isTrue();
-        assertThat(campo(TipoCampo.NUMERO).esFormula()).isFalse();
-    }
-
-    @Test
-    @DisplayName("Calcula la fórmula con los valores que le da el registro")
-    void calcularShouldEvaluateFormulaWithGivenValues() {
-        Campo campo = campo(TipoCampo.FORMULA);
-        campo.setFormula("{" + RELACIONADO_ID + "} + 1");
-
-        assertThat(campo.calcular(id -> new java.math.BigDecimal("4"))).isEqualByComparingTo("5");
-    }
-
-    @Test
-    @DisplayName("Configurar un campo fórmula guarda la expresión")
-    void configurarShouldKeepFormula() {
-        Campo campo = Campo.nuevo(NEGOCIO_ID, BLOQUE_ID, (short) 0, configuracion("Talle"), AHORA);
-        ConfiguracionCampo.Validada formula =
-                new ConfiguracionCampo.Validada("Total", TipoCampo.FORMULA, false, null, List.of(), null, "1 + 1");
-
-        campo.configurar(formula, AHORA);
-
-        assertThat(campo.getFormula()).isEqualTo("1 + 1");
+    private Campo formulaQueUsa(Campo campo) {
+        return Campo.builder()
+                .tipo(TipoCampo.FORMULA)
+                .nombre("Total")
+                .formula("{" + campo.getId() + "} * 2")
+                .build();
     }
 }
