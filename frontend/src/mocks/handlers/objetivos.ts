@@ -2,11 +2,14 @@ import { delay, http, HttpResponse } from 'msw';
 import { z } from 'zod';
 import { hoy } from '@/lib/sistema/formato';
 import {
+  hizoSchema,
   objetivosDelServidorSchema,
+  quePasoSchema,
   tipoMiniObjetivoSchema,
   type MiniMedido,
   type MiniObjetivo,
   type ObjetivoDelServidor,
+  type RespuestaPendiente,
   type TipoDecision,
 } from '@/types/objetivos';
 import {
@@ -76,6 +79,26 @@ export const handlersObjetivos = [
     if (error) return error;
     await delay(LATENCIA_BACKEND_MS);
     return HttpResponse.json(cuotaDe(usuario.email));
+  }),
+  // Los manuales en curso sin respuesta, del más viejo al más nuevo.
+  http.get(api('/objetivos/respuestas-pendientes'), async ({ request }) => {
+    const { usuario, error } = cuenta(request);
+    if (error) return error;
+    await delay(LATENCIA_BACKEND_MS);
+    const pendientes: RespuestaPendiente[] = objetivosDe(usuario.email).flatMap((objetivo) =>
+      (estado.autogestion.get(objetivo.id)?.minis ?? []).flatMap((mini) =>
+        mini.modo === 'MANUAL' &&
+        mini.estado === 'EN_CURSO' &&
+        !estado.respuestasDeMinis.has(mini.id)
+          ? [{ objetivoId: objetivo.id, objetivoTexto: objetivo.texto, miniObjetivo: mini }]
+          : [],
+      ),
+    );
+    return HttpResponse.json(
+      pendientes.sort((a, b) =>
+        a.miniObjetivo.semanaInicio.localeCompare(b.miniObjetivo.semanaInicio),
+      ),
+    );
   }),
   http.post(api('/objetivos/sami/propuesta'), async ({ request }) => {
     const { usuario, error } = cuenta(request, true);
@@ -198,6 +221,12 @@ function cuotaDe(email: string) {
   return { usadas, limite, restantes: Math.max(0, limite - usadas) };
 }
 
+const respuestaSchema = z.object({
+  hizo: hizoSchema,
+  quePaso: quePasoSchema,
+  comentario: z.string().trim().max(300, 'Máximo 300 caracteres').optional(),
+});
+
 const decidirSchema = z.object({ tipo: z.enum(['ACEPTADO', 'IGNORADO']) });
 const reemplazoSchema = z.object({
   tipo: z.string(),
@@ -245,6 +274,68 @@ function handlersAutogestion() {
         historial: datos.historial,
         faltanDatos: null,
       });
+    }),
+    http.post(ruta('/mini-objetivos/:miniId/respuesta'), async ({ request, params }) => {
+      const { datos, error } = datosDe(request, param(params.id), true);
+      if (error) return error;
+      const { mini, error: sinMini } = miniEnCurso(request, datos, param(params.miniId));
+      if (sinMini) return sinMini;
+      await delay(LATENCIA_BACKEND_MS);
+      if (mini.modo !== 'MANUAL' || mini.estado !== 'EN_CURSO')
+        return errorResponse(
+          400,
+          'Sólo se responde un mini-objetivo manual en curso',
+          pathDe(request),
+        );
+      const pedido = respuestaSchema.safeParse(await request.json());
+      if (!pedido.success)
+        return errorResponse(400, 'Revisá tu respuesta.', pathDe(request), {
+          [String(pedido.error.issues[0]?.path[0])]: pedido.error.issues[0]?.message ?? 'Inválido',
+        });
+      // Si lo hiciste, tuviste tiempo.
+      if (pedido.data.hizo === 'SI' && pedido.data.quePaso === 'NO_TUVE_TIEMPO')
+        return errorResponse(
+          400,
+          'Si lo hiciste, tuviste tiempo: contanos qué pasó.',
+          pathDe(request),
+        );
+      if (estado.respuestasDeMinis.has(mini.id))
+        return errorResponse(
+          409,
+          'Ya le contaste a Sami cómo te fue esta semana.',
+          pathDe(request),
+        );
+      const respuesta = {
+        id: crypto.randomUUID(),
+        miniObjetivoId: mini.id,
+        hizo: pedido.data.hizo,
+        quePaso: pedido.data.quePaso,
+        comentario: pedido.data.comentario || null,
+        semanaInicio: lunesDe(hoy()),
+        respondidaEn: new Date().toISOString(),
+      };
+      estado.respuestasDeMinis.set(mini.id, respuesta);
+      const tipo: TipoDecision = {
+        SI: 'MINI_HECHO',
+        EN_PARTE: 'MINI_EN_PARTE',
+        NO: 'MINI_NO_HECHO',
+      }[pedido.data.hizo] as TipoDecision;
+      datos.decisiones = [
+        ...datos.decisiones,
+        {
+          id: crypto.randomUUID(),
+          tipo,
+          miniObjetivoId: mini.id,
+          avisoId: null,
+          registroId: null,
+          descripcion: mini.titulo,
+          tomadaEn: respuesta.respondidaEn,
+          semanaInicio: respuesta.semanaInicio,
+          efecto: 'SIN_MEDICION',
+          deltaIngresoSemanal: null,
+        },
+      ];
+      return HttpResponse.json(respuesta, { status: 201 });
     }),
     http.get(ruta('/mini-objetivos/:miniId/candidatos'), async ({ request, params }) => {
       const { datos, error } = datosDe(request, param(params.id));

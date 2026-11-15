@@ -5,6 +5,7 @@ import {
   eliminarObjetivo,
   guardarObjetivoConSami,
   proponerObjetivo,
+  responderMiniObjetivo,
 } from '@/api/objetivos';
 import { useUsuarioOpcional } from '@/hooks/auth/queries';
 import type {
@@ -13,6 +14,7 @@ import type {
   MensajeDeConversacion,
   ObjetivoConSami,
   ObjetivoDelServidor,
+  RespuestaDeMini,
 } from '@/types/objetivos';
 import { objetivosKey, objetivosKeys } from './queries';
 
@@ -97,5 +99,27 @@ export function useDecidirPaso(objetivoId: string) {
     mutationFn: ({ miniId, tipo }: { miniId: string; tipo: DecisionDePaso }) =>
       decidirPaso(objetivoId, miniId, tipo),
     onSettled: alCambiar,
+  });
+}
+
+/**
+ * La persona le cuenta a Sami cómo le fue con un manual. Se vuelve a pedir lo del objetivo y los pendientes: si el
+ * servidor ya tenía una respuesta (409), la primera queda y la pantalla deja de pedirla.
+ */
+export function useResponderMiniObjetivo(objetivoId: string) {
+  const queryClient = useQueryClient();
+  const usuario = useUsuarioOpcional();
+  const actualizar = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: objetivosKeys.detalle(objetivoId) }),
+      queryClient.invalidateQueries({
+        queryKey: [...objetivosKey, 'pendientes', usuario?.id ?? 'sin-sesion'],
+      }),
+    ]);
+  return useMutation({
+    mutationFn: ({ miniId, respuesta }: { miniId: string; respuesta: RespuestaDeMini }) =>
+      responderMiniObjetivo(objetivoId, miniId, respuesta),
+    onSuccess: actualizar,
+    onError: actualizar,
   });
 }

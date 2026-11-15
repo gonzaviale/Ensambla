@@ -132,6 +132,15 @@ export function decisionDeLaSemana(
   return ultima.tipo === 'PASO_ACEPTADO' ? 'ACEPTADO' : 'IGNORADO';
 }
 
+const DIA_MS = 86_400_000;
+
+/** El lunes de unas semanas después (o antes, si son negativas), en YYYY-MM-DD. */
+export function sumarSemanas(lunes: string, semanas: number): string {
+  return new Date(new Date(`${lunes}T12:00:00Z`).getTime() + semanas * 7 * DIA_MS)
+    .toISOString()
+    .slice(0, 10);
+}
+
 /** El domingo en que cierra la semana de ese lunes. */
 export function domingoDe(lunes: string): string {
   return new Date(new Date(`${lunes}T12:00:00Z`).getTime() + 6 * 86_400_000)

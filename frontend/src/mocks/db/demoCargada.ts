@@ -14,6 +14,11 @@ import {
   objetivosDe,
   sistemasDe,
 } from './estado';
+import {
+  datosSinDatosDeEjemplo,
+  ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO,
+  TEXTO_OBJETIVO_SIN_DATOS_DE_EJEMPLO,
+} from './objetivosAutogestionados';
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
@@ -36,8 +41,34 @@ export function sembrarDemoCargada(email: string, ahora = new Date()) {
       armadoConSami: false,
       creadoEn: new Date(ahora.getTime() - 35 * DIA_MS).toISOString(),
     },
-    ...objetivosDe(email).filter((objetivo) => objetivo.id !== ID_OBJETIVO_DE_EJEMPLO),
+    {
+      id: ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO,
+      texto: TEXTO_OBJETIVO_SIN_DATOS_DE_EJEMPLO,
+      tipo: 'SIN_DATOS',
+      meta: null,
+      armadoConSami: true,
+      creadoEn: new Date(ahora.getTime() - 9 * DIA_MS).toISOString(),
+    },
+    ...objetivosDe(email).filter(
+      (objetivo) =>
+        objetivo.id !== ID_OBJETIVO_DE_EJEMPLO && objetivo.id !== ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO,
+    ),
   ]);
+  // Un objetivo sin datos con manuales para contar y un resumen del domingo para leer.
+  const { respondido, ...sinDatos } = datosSinDatosDeEjemplo(
+    ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO,
+    hoy(),
+  );
+  estado.autogestion.set(ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO, sinDatos);
+  estado.respuestasDeMinis.set(respondido, {
+    id: `${respondido}-respuesta`,
+    miniObjetivoId: respondido,
+    hizo: 'SI',
+    quePaso: 'FUNCIONO',
+    comentario: null,
+    semanaInicio: hoy(),
+    respondidaEn: ahora.toISOString(),
+  });
   estado.pruebasPremium.set(email, {
     inicioEn: new Date(ahora.getTime() - DIA_MS).toISOString(),
     finEn: new Date(ahora.getTime() + 365 * DIA_MS).toISOString(),

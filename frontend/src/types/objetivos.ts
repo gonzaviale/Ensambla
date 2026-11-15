@@ -268,3 +268,36 @@ export type ObjetivoConSami = {
   seguimientoManual?: boolean;
   minis: MiniParaGuardar[];
 };
+
+// --- Responder un mini-objetivo manual (H-60) ---
+
+export const hizoSchema = z.enum(['SI', 'EN_PARTE', 'NO']);
+export const quePasoSchema = z.enum(['FUNCIONO', 'NO_TUVE_TIEMPO', 'NO_FUNCIONO', 'OTRA']);
+
+export type Hizo = z.infer<typeof hizoSchema>;
+export type QuePaso = z.infer<typeof quePasoSchema>;
+
+/** La respuesta de la semana: se manda una vez y no se pisa. El comentario es opcional (hasta 300 caracteres). */
+export type RespuestaDeMini = { hizo: Hizo; quePaso: QuePaso; comentario?: string };
+
+export const respuestaMiniObjetivoSchema = z.object({
+  id: z.string(),
+  miniObjetivoId: z.string(),
+  hizo: hizoSchema,
+  quePaso: quePasoSchema,
+  comentario: z.string().nullish(),
+  semanaInicio: z.string(),
+  respondidaEn: z.string(),
+});
+
+/** Un manual en curso sin respuesta, con el objetivo al que pertenece; del más viejo al más nuevo. */
+export const respuestaPendienteSchema = z.object({
+  objetivoId: z.string(),
+  objetivoTexto: z.string(),
+  miniObjetivo: miniManualSchema.extend({ justificacion: z.string().default('') }),
+});
+
+export const respuestasPendientesSchema = z.array(respuestaPendienteSchema);
+
+export type RespuestaMiniObjetivo = z.infer<typeof respuestaMiniObjetivoSchema>;
+export type RespuestaPendiente = z.infer<typeof respuestaPendienteSchema>;

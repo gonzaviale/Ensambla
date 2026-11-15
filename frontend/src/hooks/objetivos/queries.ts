@@ -2,6 +2,7 @@ import { queryOptions, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import {
   listarObjetivos,
+  listarRespuestasPendientes,
   obtenerCuotaObjetivos,
   obtenerDecisionesObjetivo,
   obtenerMiniObjetivos,
@@ -12,6 +13,7 @@ import {
 import { useUsuarioOpcional } from '@/hooks/auth/queries';
 import { useComoVieneTuNegocio } from '@/hooks/objetivos/useComoVieneTuNegocio';
 import { conHistorialReal, objetivoDesdeServidor, type Objetivo } from '@/lib/objetivos';
+import type { RespuestaPendiente } from '@/types/objetivos';
 
 export const objetivosKey = ['objetivos'] as const;
 
@@ -76,6 +78,26 @@ export function useCuotaObjetivos() {
     enabled: !!usuario,
   });
   return { cuota: consulta.data };
+}
+
+/** Los manuales que esperan la respuesta de la persona; sin dato (todavía o si falla) no se muestra nada. */
+export const respuestasPendientesQuery = (usuarioId: string) =>
+  queryOptions({
+    queryKey: [...objetivosKey, 'pendientes', usuarioId] as const,
+    queryFn: ({ signal }) => listarRespuestasPendientes(signal),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+const SIN_PENDIENTES: RespuestaPendiente[] = [];
+
+export function useRespuestasPendientes() {
+  const usuario = useUsuarioOpcional();
+  const consulta = useQuery({
+    ...respuestasPendientesQuery(usuario?.id ?? 'sin-sesion'),
+    enabled: !!usuario,
+  });
+  return { pendientes: consulta.data ?? SIN_PENDIENTES };
 }
 
 export const pasosObjetivoQuery = () =>

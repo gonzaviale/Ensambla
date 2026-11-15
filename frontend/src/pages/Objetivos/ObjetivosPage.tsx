@@ -14,6 +14,7 @@ import { useSistemaStore } from '@/stores/sistemaStore';
 import { EntradaDondeAbrir } from '@/pages/DondeAbrir/EntradaDondeAbrir';
 import { NegocioHoy } from './NegocioHoy';
 import { NuevoObjetivo } from './NuevoObjetivo';
+import { PendientesDeRespuesta } from './PendientesDeRespuesta';
 import { ObjetivoCard } from './ObjetivoCard';
 import { Encabezado } from './piezas';
 
@@ -68,6 +69,7 @@ export function ObjetivosPage() {
               samiTitulo="Sami sigue tus objetivos"
               sami={`Mide cada día · cierra el domingo ${diaCorto(proximoCierre(hoy()))}`}
             />
+            <PendientesDeRespuesta />
             <NegocioHoy negocio={negocio} />
             <div className="objetivos-lista">
               {objetivos.map((objetivo) => (
