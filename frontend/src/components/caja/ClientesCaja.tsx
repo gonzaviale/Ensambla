@@ -1,12 +1,34 @@
 import { useState } from 'react';
 import { ClienteCajaForm } from './ClienteCajaForm';
+import { CuentaClienteCaja } from './CuentaClienteCaja';
+import { useCuentasCaja } from '@/hooks/caja/useCuentasCaja';
+import { dineroCaja, fechaCaja, idCaja } from '@/lib/caja';
+import { hayPagoDeudaPendiente } from '@/lib/cobrosDeudasCaja';
 import { Icon } from '@/components/sistema/Icon';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { allBlocks, makeBlock, normalize } from '@/lib/sistema/core';
 import { clientesCaja, guardarClienteCaja } from '@/lib/clientesCaja';
-import type { ErroresFila, Valor } from '@/lib/sistema/tipos';
+import type { ErroresFila, Valor, Bloque, Fila } from '@/lib/sistema/tipos';
+import type { VentaCaja, CobroDeudaCaja } from '@/types/caja';
 
-export function ClientesCaja({ sistemaId }: { sistemaId: string }) {
+type CuentaCliente = {
+  id: string;
+  nombre: string;
+  telefono: string;
+  origen?: { tabla: Bloque; fila: Fila };
+  ventas: VentaCaja[];
+  cobros: CobroDeudaCaja[];
+};
+
+export function ClientesCaja({
+  sistemaId,
+  inventarioId,
+}: {
+  sistemaId: string;
+  inventarioId: string;
+}) {
+  const cuentas = useCuentasCaja(sistemaId, inventarioId);
+  const usuarioId = useSistemaStore((s) => s.usuarioId);
   const sistema = useSistemaStore((s) => s.sistemas.find((item) => item.id === sistemaId));
   const pendiente = useSistemaStore((s) => s.pendientes.includes(sistemaId));
   const [consulta, setConsulta] = useState('');
@@ -15,21 +37,61 @@ export function ClientesCaja({ sistemaId }: { sistemaId: string }) {
     null,
   );
   const [tablaNueva] = useState(() => makeBlock('clients'));
+  const [mostrarTodos, setMostrarTodos] = useState(false);
+  const [cuentaAbierta, setCuentaAbierta] = useState<string | null>(null);
   if (!sistema) return null;
   const tablas = allBlocks(sistema).filter((b) => b.type === 'clients');
   const tabla = tablas.find((b) => b.id === tablaElegida) ?? tablas[0];
   const tablaFormulario = tablas.find((b) => b.id === edicion?.tablaId) ?? tablaNueva;
   const cliente = tablaFormulario.rows.find((fila) => fila.id === edicion?.clienteId);
-  const clientes = clientesCaja(sistema).filter(({ fila }) =>
-    normalize(`${fila.name ?? ''} ${fila.phone ?? ''}`).includes(normalize(consulta)),
+  const porCliente = new Map<string, CuentaCliente>();
+  for (const origen of clientesCaja(sistema)) {
+    const id = idCaja(origen.fila.id);
+    porCliente.set(id, {
+      id,
+      nombre: String(origen.fila.name ?? ''),
+      telefono: String(origen.fila.phone ?? ''),
+      origen,
+      ventas: [],
+      cobros: [],
+    });
+  }
+  for (const venta of cuentas.data?.ventas ?? []) {
+    if (!venta.clienteId) continue;
+    const id = idCaja(venta.clienteId);
+    const cuenta = porCliente.get(id) ?? {
+      id,
+      nombre: venta.clienteNombre ?? 'Cliente de una venta',
+      telefono: '',
+      ventas: [],
+      cobros: [],
+    };
+    cuenta.ventas.push(venta);
+    porCliente.set(id, cuenta);
+  }
+  for (const cobro of cuentas.data?.cobros ?? [])
+    porCliente.get(idCaja(cobro.clienteId))?.cobros.push(cobro);
+  const saldoDe = (cuenta: CuentaCliente) =>
+    cuenta.ventas.reduce((sum, v) => sum + Math.round((v.saldo ?? 0) * 100), 0);
+  const clientes = [...porCliente.values()].filter(
+    (cuenta) =>
+      (mostrarTodos ||
+        saldoDe(cuenta) > 0 ||
+        hayPagoDeudaPendiente(usuarioId, sistemaId, inventarioId, cuenta.id)) &&
+      normalize(`${cuenta.nombre} ${cuenta.telefono}`).includes(normalize(consulta)),
   );
+  const conDeuda = [...porCliente.values()].filter((cuenta) => saldoDe(cuenta) > 0);
+  const abierta = cuentaAbierta ? porCliente.get(cuentaAbierta) : undefined;
   const guardar = (valores: Record<string, Valor>): ErroresFila => {
     if (!edicion) return {};
     let errores: ErroresFila = {};
     useSistemaStore.getState().actualizarSistema(sistemaId, (copia) => {
       errores = guardarClienteCaja(copia, edicion.tablaId, valores, edicion.clienteId).errores;
     });
-    if (!Object.keys(errores).length) setEdicion(null);
+    if (!Object.keys(errores).length) {
+      setEdicion(null);
+      setMostrarTodos(true);
+    }
     return errores;
   };
   return (
@@ -46,6 +108,30 @@ export function ClientesCaja({ sistemaId }: { sistemaId: string }) {
         >
           <Icon name="plus" />
           Crear cliente
+        </button>
+      </div>
+      {cuentas.data && (
+        <p className="caja-saldo">
+          Te deben{' '}
+          <strong>{dineroCaja(conDeuda.reduce((sum, cuenta) => sum + saldoDe(cuenta), 0))}</strong>{' '}
+          · {conDeuda.length} clientes en esta caja
+        </p>
+      )}
+      {cuentas.isPending && <p role="status">Cargando las cuentas de clientes…</p>}
+      {cuentas.error && (
+        <p role="alert" className="caja-error">
+          No pudimos cargar los saldos.
+          <button type="button" className="btn secondary" onClick={() => void cuentas.refetch()}>
+            Reintentar
+          </button>
+        </p>
+      )}
+      <div className="caja-opciones" aria-label="Filtrar clientes">
+        <button type="button" aria-pressed={!mostrarTodos} onClick={() => setMostrarTodos(false)}>
+          Con deuda
+        </button>
+        <button type="button" aria-pressed={mostrarTodos} onClick={() => setMostrarTodos(true)}>
+          Todos
         </button>
       </div>
       {tablas.length > 1 && (
@@ -74,28 +160,82 @@ export function ClientesCaja({ sistemaId }: { sistemaId: string }) {
       </p>
       {!clientes.length && (
         <p className="caja-vacio">
-          {consulta ? 'No encontramos clientes con esa búsqueda.' : 'Todavía no cargaste clientes.'}
+          {consulta
+            ? 'No encontramos clientes con esa búsqueda.'
+            : !mostrarTodos
+              ? 'No hay clientes con deuda para mostrar. Podés consultar Todos.'
+              : 'Todavía no cargaste clientes.'}
         </p>
       )}
       <ul className="caja-clientes-lista">
-        {clientes.map(({ tabla: origen, fila }) => (
-          <li key={fila.id}>
+        {clientes.map((cuenta) => (
+          <li key={cuenta.id}>
             <div>
-              <strong>{String(fila.name ?? '')}</strong>
-              {fila.phone && <span>{String(fila.phone)}</span>}
-              {tablas.length > 1 && <small>{origen.name}</small>}
+              <strong>{cuenta.nombre}</strong>
+              {hayPagoDeudaPendiente(usuarioId, sistemaId, inventarioId, cuenta.id) && (
+                <span>Hay un pago pendiente de verificar</span>
+              )}
+              {cuenta.telefono && <span>{cuenta.telefono}</span>}
+              <span>
+                {cuentas.data
+                  ? saldoDe(cuenta) > 0
+                    ? `Debe ${dineroCaja(saldoDe(cuenta))}`
+                    : 'Sin deuda'
+                  : 'Saldo sin actualizar'}
+              </span>
+              {saldoDe(cuenta) > 0 && (
+                <small>
+                  Pendiente desde{' '}
+                  {fechaCaja(
+                    [...cuenta.ventas]
+                      .filter((v) => (v.saldo ?? 0) > 0)
+                      .sort((a, b) => Date.parse(a.creadoEn) - Date.parse(b.creadoEn))[0]
+                      ?.creadoEn ?? '',
+                  )}
+                </small>
+              )}
+              {tablas.length > 1 && cuenta.origen && <small>{cuenta.origen.tabla.name}</small>}
             </div>
-            <button
-              type="button"
-              className="btn secondary"
-              aria-label={`Editar a ${String(fila.name)}`}
-              onClick={() => setEdicion({ tablaId: origen.id, clienteId: fila.id })}
-            >
-              Editar
-            </button>
+            <div className="caja-opciones">
+              <button
+                type="button"
+                className="btn primary"
+                disabled={!cuentas.data}
+                aria-label={`Ver cuenta de ${cuenta.nombre}`}
+                onClick={() => setCuentaAbierta(cuenta.id)}
+              >
+                Ver cuenta
+              </button>
+              {cuenta.origen && (
+                <button
+                  type="button"
+                  className="btn secondary"
+                  aria-label={`Editar a ${cuenta.nombre}`}
+                  onClick={() =>
+                    setEdicion({
+                      tablaId: cuenta.origen?.tabla.id ?? '',
+                      clienteId: cuenta.origen?.fila.id ?? null,
+                    })
+                  }
+                >
+                  Editar
+                </button>
+              )}
+            </div>
           </li>
         ))}
       </ul>
+      {abierta && (
+        <CuentaClienteCaja
+          sistemaId={sistemaId}
+          inventarioId={inventarioId}
+          clienteId={abierta.id}
+          nombre={abierta.nombre}
+          ventas={abierta.ventas}
+          cobros={abierta.cobros}
+          onCerrar={() => setCuentaAbierta(null)}
+        />
+      )}
       {edicion && (
         <ClienteCajaForm
           sistema={sistema}

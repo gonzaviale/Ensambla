@@ -6,6 +6,7 @@ import com.ensambla.backend.domain.model.caja.ResumenCaja;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.caja.CierreCajaRepository;
+import com.ensambla.backend.domain.repository.caja.CobroCajaRepository;
 import com.ensambla.backend.domain.repository.caja.VentaCajaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
@@ -23,6 +24,7 @@ public class CerrarCaja {
     private final SistemaRepository sistemaRepository;
     private final VentaCajaRepository ventaCajaRepository;
     private final CierreCajaRepository cierreCajaRepository;
+    private final CobroCajaRepository cobroCajaRepository;
     private final UsoPlanRepository usoPlanRepository;
     private final TransaccionPort transaccionPort;
     private final Clock clock;
@@ -43,12 +45,14 @@ public class CerrarCaja {
         }
         sistemaRepository.obtenerInventarioCaja(negocioId, request.proyectoId(), request.inventarioId());
         ResumenCaja resumen = ResumenCaja.de(ventaCajaRepository.listarAbiertas(
+                negocioId, request.proyectoId(), request.inventarioId()), cobroCajaRepository.listarAbiertos(
                 negocioId, request.proyectoId(), request.inventarioId()));
         CierreCaja cierre = CierreCaja.nuevo(request.id(), negocioId, request.proyectoId(),
                 request.inventarioId(), request.huella(), resumen, request.revision(), request.fondoInicial(),
                 request.entradas(), request.retiros(), request.contado(), request.nota(), OffsetDateTime.now(clock));
         cierreCajaRepository.save(cierre);
         ventaCajaRepository.marcarCerradas(negocioId, request.id(), resumen.ventas().stream().map(venta -> venta.id()).toList());
+        cobroCajaRepository.marcarCerrados(negocioId, request.id(), resumen.cobros().stream().map(cobro -> cobro.id()).toList());
         return cierre;
     }
 }

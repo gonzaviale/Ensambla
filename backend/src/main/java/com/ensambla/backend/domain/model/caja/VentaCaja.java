@@ -9,16 +9,39 @@ import com.ensambla.backend.domain.model.registro.RegistroId;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public record VentaCaja(VentaCajaId id, NegocioId negocioId, ProyectoId proyectoId, String huella,
                         List<LineaVentaCaja> lineas, MedioPagoCaja medio, BigDecimal total,
                         BigDecimal recibido, BigDecimal vuelto, OffsetDateTime creadoEn,
                         List<PagoCaja> pagos, BloqueId inventarioId,
-                        RegistroId clienteId, String clienteNombre) {
+                        RegistroId clienteId, String clienteNombre, List<PagoCaja> pagosIniciales) {
 
     public VentaCaja {
         lineas = List.copyOf(lineas);
         pagos = List.copyOf(pagos);
+        pagosIniciales = pagosIniciales == null ? pagos : List.copyOf(pagosIniciales);
+    }
+
+    public VentaCaja(VentaCajaId id, NegocioId negocioId, ProyectoId proyectoId, String huella,
+            List<LineaVentaCaja> lineas, MedioPagoCaja medio, BigDecimal total,
+            BigDecimal recibido, BigDecimal vuelto, OffsetDateTime creadoEn,
+            List<PagoCaja> pagos, BloqueId inventarioId, RegistroId clienteId, String clienteNombre) {
+        this(id, negocioId, proyectoId, huella, lineas, medio, total, recibido, vuelto, creadoEn,
+                pagos, inventarioId, clienteId, clienteNombre, pagos);
+    }
+
+    public VentaCaja conCobro(List<PagoCaja> nuevos) {
+        Map<MedioPagoCaja, BigDecimal> importes = new LinkedHashMap<>();
+        pagos.forEach(pago -> importes.merge(pago.medio(), pago.importe(), BigDecimal::add));
+        nuevos.forEach(pago -> importes.merge(pago.medio(), pago.importe(), BigDecimal::add));
+        List<PagoCaja> acumulados = importes.entrySet().stream()
+                .map(entrada -> new PagoCaja(entrada.getKey(), entrada.getValue())).toList();
+        validarPagos(acumulados, total, clienteId);
+        MedioPagoCaja medioActual = acumulados.size() == 1 ? acumulados.getFirst().medio() : MedioPagoCaja.MIXTO;
+        return new VentaCaja(id, negocioId, proyectoId, huella, lineas, medioActual, total, recibido, vuelto,
+                creadoEn, acumulados, inventarioId, clienteId, clienteNombre, pagosIniciales);
     }
 
     public VentaCaja(VentaCajaId id, NegocioId negocioId, ProyectoId proyectoId, String huella,

@@ -24,6 +24,32 @@ Caja reutiliza los registros de las tablas Clientes de Mi Negocio. Si Ventas tie
 
 El comprobante responde `total: 10000`, `cobrado: 4000`, `saldo: 6000`, `estado: "PARCIAL"`, `clienteId` y `clienteNombre`, además de los campos existentes. El efectivo recibido se usa para el vuelto, no como importe cobrado ni como cancelación automática del saldo.
 
+## Cuenta y cobros posteriores
+
+En **Caja → Clientes** se ven los contactos compartidos con Mi Negocio, el total que deben en el inventario elegido y el filtro **Con deuda**. **Ver cuenta** abre sus ventas y movimientos. Se puede cobrar una venta puntual o aplicar un importe a varias deudas del mismo cliente; la pantalla propone completar primero las más antiguas y muestra el reparto antes de confirmar. Un cliente eliminado de la agenda conserva su cuenta histórica.
+
+**Actividad → Ventas → Pendientes** incluye ventas fiadas y parciales. El detalle permite ver pagos y registrar otro cobro. **Actividad → Cobros** muestra las entradas del día por su fecha real. Una venta pagada permanece en el historial con saldo cero.
+
+`GET /api/caja/ventas?proyectoId=…&inventarioId=…` devuelve `{ventas, cobros}`. Las ventas incluyen sus pagos acumulados y `pagosIniciales`; los cobros posteriores son eventos separados, con fecha del servidor y aplicaciones por venta. Así no se cuenta dos veces la entrega inicial.
+
+`POST /api/caja/cobros` registra una operación independiente e idempotente:
+
+```json
+{
+  "id": "00000000-0000-0000-0000-000000000007",
+  "proyectoId": "00000000-0000-0000-0000-000000000002",
+  "inventarioId": "00000000-0000-0000-0000-000000000003",
+  "aplicaciones": [{
+    "ventaId": "00000000-0000-0000-0000-000000000001",
+    "pagos": [{"medio": "TRANSFERENCIA", "importe": 2000}]
+  }]
+}
+```
+
+Se permiten hasta tres medios distintos por venta y varias ventas del mismo cliente. Si una aplicación supera el saldo o pertenece a otra caja, no se guarda ninguna. Un reintento con el mismo id y contenido devuelve el comprobante anterior, incluso después del cierre. Ante una respuesta incierta el navegador conserva la solicitud y ofrece **Verificar misma operación**; recargar no crea un cobro nuevo.
+
+Los cierres suman las entregas iniciales de sus ventas y los cobros posteriores abiertos. Se puede cerrar un período con cobros aunque no tenga ventas nuevas. Cobrar una deuda vieja no reabre el cierre anterior ni modifica su comprobante. La migración V36 agrega la tabla de cobros sin editar migraciones aplicadas ni reescribir comprobantes viejos.
+
 ## Reglas del circuito
 
 - El negocio se obtiene de la sesión. Cliente, inventario o venta ajenos responden 404.

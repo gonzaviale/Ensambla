@@ -11,6 +11,6 @@ public record ConsultarCajaWebResponse(LocalDate fecha, ResumenCajaWebResponse d
                                        List<CierreListaWebResponse> cierres, int pagina, boolean hayMas) {
 
     public record CierreListaWebResponse(CierreCajaId id, OffsetDateTime desde, OffsetDateTime cerradoEn,
-                                         BigDecimal total, int cantidadVentas, BigDecimal diferencia) {
+                                         BigDecimal total, int cantidadVentas, BigDecimal diferencia, BigDecimal cobrado) {
     }
 }

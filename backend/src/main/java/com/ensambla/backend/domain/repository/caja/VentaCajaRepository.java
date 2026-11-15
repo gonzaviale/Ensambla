@@ -17,6 +17,12 @@ public interface VentaCajaRepository {
 
     VentaCaja save(VentaCaja venta);
 
+    void actualizarCobros(VentaCaja venta, OffsetDateTime ahora);
+
+    List<VentaCaja> listarTodas(NegocioId negocioId, ProyectoId proyectoId, BloqueId inventarioId);
+
+    List<VentaCaja> listarPorIds(NegocioId negocioId, List<VentaCajaId> ids);
+
     List<VentaCaja> listarAbiertas(NegocioId negocioId, ProyectoId proyectoId, BloqueId inventarioId);
 
     List<VentaCaja> listarEntre(NegocioId negocioId, ProyectoId proyectoId, BloqueId inventarioId,

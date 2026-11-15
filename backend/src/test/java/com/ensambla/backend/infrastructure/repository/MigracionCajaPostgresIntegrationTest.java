@@ -55,12 +55,14 @@ class MigracionCajaPostgresIntegrationTest extends PostgresRepositoryTestSupport
                     .outOfOrder(permitirMigracionesPendientesAnteriores).load().migrate();
 
             assertThat(permitirMigracionesPendientesAnteriores).isTrue();
-            assertThat(resultado.migrationsExecuted).isEqualTo(3);
+            assertThat(resultado.migrationsExecuted).isEqualTo(4);
             assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA + ".negocio", Long.class))
                     .isEqualTo(negociosAntes);
             assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA + ".venta_caja", Long.class))
                     .isZero();
             assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA + ".cierre_caja", Long.class))
+                    .isZero();
+            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA + ".cobro_caja", Long.class))
                     .isZero();
         } finally {
             jdbcTemplate.execute("DROP SCHEMA IF EXISTS " + ESQUEMA + " CASCADE");
@@ -98,7 +100,7 @@ class MigracionCajaPostgresIntegrationTest extends PostgresRepositoryTestSupport
     private void givenDevWithoutCaja() throws IOException {
         try (var archivos = Files.list(Path.of("src/main/resources/db/migration"))) {
             for (Path archivo : archivos.filter(path -> !path.getFileName().toString()
-                    .matches("V(27|34|35)__.*")).toList()) {
+                    .matches("V(27|34|35|36)__.*")).toList()) {
                 Files.copy(archivo, migracionesDev.resolve(archivo.getFileName()));
             }
         }

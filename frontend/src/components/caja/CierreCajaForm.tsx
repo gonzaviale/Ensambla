@@ -67,6 +67,13 @@ export function CierreCajaForm({
           <span>Total del período</span>
           <strong>{dineroCaja(Math.round(resumen.total * 100))}</strong>
           <span>{resumen.ventas.length} ventas</span>
+          <span>
+            Cobrado:{' '}
+            {dineroCaja(
+              Math.round((resumen.efectivo + resumen.transferencia + resumen.tarjeta) * 100),
+            )}
+          </span>
+          {!!resumen.cobros?.length && <span>{resumen.cobros.length} cobros de deudas</span>}
         </div>
         <p className="caja-nota">
           El resumen quedará guardado. El próximo cobro abrirá un nuevo período, incluso si vendés

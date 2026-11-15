@@ -42,6 +42,7 @@ const campo = (key,type,extras={}) => ({key,label:key,type,required:false,...ext
 async function principal() {
   const cliente = await cuenta(), ajeno = await cuenta();
   const proyectoId=randomUUID(),inventarioId=randomUUID(),ventasId=randomUUID(),coca=randomUUID(),pan=randomUUID();
+  const clientesId=randomUUID(),clienteId=randomUUID();
   const ahora=new Date().toISOString();
   const sistema={id:proyectoId,name:'Verificación real de Caja',createdAt:ahora,updatedAt:ahora,sections:[{
     id:randomUUID(),name:'Mi negocio',blocks:[{
@@ -52,7 +53,11 @@ async function principal() {
         {id:pan,name:'Pan francés',price:4000,quantity:2,saleMode:'peso',stockControl:true,favorite:true}],
     },{id:ventasId,type:'sales',name:'Ventas',description:'',content:'',color:'yellow',width:'full',
       fields:[campo('product','relation',{target:inventarioId,required:true}),campo('quantity','number',{min:0.001,required:true}),
-        campo('price','currency'),campo('date','date')],rows:[]}],
+        campo('price','currency'),campo('date','date'),campo('customer','relation',{target:clientesId}),
+        campo('credit','checkbox')],rows:[]},
+      {id:clientesId,type:'clients',name:'Clientes',description:'',content:'',color:'blue',width:'full',
+        fields:[campo('name','text',{required:true}),campo('phone','text')],
+        rows:[{id:clienteId,name:'Ana de prueba',phone:'1112345678'}]}],
   }]};
   const request={id:randomUUID(),proyectoId,inventarioId,ventasId,medio:'EFECTIVO',recibido:10000,
     lineas:[{productoId:coca,cantidad:2,precio:2700,modo:'UNIDAD'},{productoId:pan,cantidad:0.5,precio:4000,modo:'PESO'}]};
@@ -113,6 +118,51 @@ async function principal() {
     assert.deepEqual(await exigir(cliente,'/api/caja/cierres/'+cierre.id,200),cierre);
     assert.deepEqual(await exigir(cliente,'/api/caja/cierres',200,'POST',solicitudCierre),cierre);
     assert.equal((await exigir(cliente,consultaRuta,200)).abierta.ventas.length,1);
+    const deudaBase={...request,id:randomUUID(),clienteId,medio:'TRANSFERENCIA',recibido:null,
+      lineas:[{productoId:coca,cantidad:1,precio:3000,modo:'UNIDAD'}]};
+    await exigir(cliente,'/api/caja/ventas',400,'POST',{...deudaBase,clienteId:null,pagos:[]});
+    await exigir(cliente,'/api/caja/ventas',404,'POST',{...deudaBase,clienteId:randomUUID(),pagos:[]});
+    const parcial=await exigir(cliente,'/api/caja/ventas',200,'POST',{
+      ...deudaBase,pagos:[{medio:'TRANSFERENCIA',importe:1000}]});
+    assert.equal(parcial.saldo,2000);assert.equal(parcial.estado,'PARCIAL');
+    const fiada=await exigir(cliente,'/api/caja/ventas',200,'POST',{...deudaBase,id:randomUUID(),pagos:[]});
+    assert.equal(fiada.saldo,3000);assert.equal(fiada.estado,'PENDIENTE');
+    const conDeudas=await exigir(cliente,consultaRuta,200);
+    const cierreConDeudas=await exigir(cliente,'/api/caja/cierres',200,'POST',{
+      id:randomUUID(),proyectoId,inventarioId,revision:conDeudas.abierta.revision,
+      fondoInicial:0,entradas:0,retiros:0,contado:conDeudas.abierta.efectivo,nota:''});
+    const cobro={id:randomUUID(),proyectoId,inventarioId,aplicaciones:[
+      {ventaId:parcial.id,pagos:[{medio:'EFECTIVO',importe:2000}]},
+      {ventaId:fiada.id,pagos:[{medio:'TRANSFERENCIA',importe:1000}]}]};
+    await exigir(ajeno,'/api/caja/cobros',404,'POST',cobro);
+    await exigir(cliente,'/api/caja/cobros',400,'POST',{...cobro,id:randomUUID(),aplicaciones:[
+      {ventaId:parcial.id,pagos:[{medio:'EFECTIVO',importe:2001}]}]});
+    const pago=await exigir(cliente,'/api/caja/cobros',200,'POST',cobro);
+    assert.equal(pago.importe,3000);
+    assert.deepEqual(await exigir(cliente,'/api/caja/cobros',200,'POST',cobro),pago);
+    const cuentasRuta='/api/caja/ventas?'+new URLSearchParams({proyectoId,inventarioId});
+    const cuentas=await exigir(cliente,cuentasRuta,200);
+    assert.equal(cuentas.ventas.find(v=>v.id===parcial.id).estado,'PAGADA');
+    assert.equal(cuentas.ventas.find(v=>v.id===fiada.id).saldo,2000);
+    assert.equal(cuentas.cobros.length,1);
+    const soloCobros=await exigir(cliente,consultaRuta,200);
+    assert.equal(soloCobros.abierta.ventas.length,0);
+    assert.equal(soloCobros.abierta.cobros.length,1);
+    assert.equal(soloCobros.abierta.efectivo,2000);
+    assert.equal(soloCobros.abierta.transferencia,1000);
+    await exigir(cliente,'/api/caja/cierres',200,'POST',{
+      id:randomUUID(),proyectoId,inventarioId,revision:soloCobros.abierta.revision,
+      fondoInicial:0,entradas:0,retiros:0,contado:2000,nota:'Sólo cobros de deudas'});
+    assert.deepEqual(await exigir(cliente,'/api/caja/cierres/'+cierreConDeudas.id,200),cierreConDeudas);
+    assert.deepEqual(await exigir(cliente,'/api/caja/cobros',200,'POST',cobro),pago);
+    assert.equal((await exigir(cliente,consultaRuta,200)).abierta.cobros.length,0);
+    await exigir(cliente,'/api/caja/cobros',200,'POST',{id:randomUUID(),proyectoId,inventarioId,
+      aplicaciones:[{ventaId:fiada.id,pagos:[{medio:'TARJETA',importe:2000}]}]});
+    const saldadas=await exigir(cliente,cuentasRuta,200);
+    assert.equal(saldadas.ventas.find(v=>v.id===fiada.id).estado,'PAGADA');
+    assert.equal(saldadas.ventas.find(v=>v.id===fiada.id).saldo,0);
+    const final=(await exigir(cliente,'/api/sistemas',200)).find(s=>s.id===proyectoId);
+    assert.equal(final.sections.flatMap(s=>s.blocks).find(b=>b.id===inventarioId).rows.find(p=>p.id===coca).quantity,5);
     console.log(JSON.stringify({resultado:'correcto',comprobaciones:[
       'sesión y CSRF reales','venta mixta: dos unidades y medio kilo','total y vuelto',
       'idempotencia persistente','aislamiento por negocio','revalidación de precio y stock',
@@ -121,7 +171,11 @@ async function principal() {
       'pago mixto y vuelto sólo sobre efectivo','resumen por medio de pago sin duplicar ventas',
       'cierre con recuento y diferencia','revisión obligatoria ante ventas nuevas',
       'historial inmutable y aislado por negocio','venta posterior en un período nuevo',
-      'reintentar el cierre anterior conserva las ventas posteriores abiertas']},null,2));
+      'reintentar el cierre anterior conserva las ventas posteriores abiertas',
+      'cliente real obligatorio para fiado y pago parcial','saldo pendiente hasta completar la deuda',
+      'un cobro aplicado a dos ventas sin duplicación por reintentos',
+      'cierre sólo con cobros y fotografía anterior conservada',
+      'cobrar después de cerrar no reabre ventas ni vuelve a descontar stock']},null,2));
   } finally {
     await cliente.pedir(ruta,'DELETE').catch(()=>undefined);
   }

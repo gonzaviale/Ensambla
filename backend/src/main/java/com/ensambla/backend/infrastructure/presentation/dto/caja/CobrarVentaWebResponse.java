@@ -10,7 +10,8 @@ import java.util.List;
 public record CobrarVentaWebResponse(VentaCajaId id, List<LineaWebResponse> lineas, String medio,
                                      BigDecimal total, BigDecimal recibido, BigDecimal vuelto, OffsetDateTime creadoEn,
                                      List<PagoWebResponse> pagos, RegistroId clienteId, String clienteNombre,
-                                     BigDecimal cobrado, BigDecimal saldo, String estado) {
+                                     BigDecimal cobrado, BigDecimal saldo, String estado,
+                                     List<PagoWebResponse> pagosIniciales) {
 
     public record PagoWebResponse(String medio, BigDecimal importe) {
     }

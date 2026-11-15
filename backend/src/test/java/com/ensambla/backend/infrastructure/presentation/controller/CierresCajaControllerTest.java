@@ -8,6 +8,8 @@ import com.ensambla.backend.domain.useCase.caja.consultarCaja.ConsultarCaja;
 import com.ensambla.backend.domain.useCase.caja.consultarCaja.ConsultarCajaRequest;
 import com.ensambla.backend.domain.useCase.caja.consultarCaja.ConsultarCajaResponse;
 import com.ensambla.backend.domain.useCase.caja.obtenerCierre.ObtenerCierre;
+import com.ensambla.backend.domain.useCase.caja.listarVentas.ListarVentasCaja;
+import com.ensambla.backend.domain.useCase.caja.registrarCobro.RegistrarCobro;
 import com.ensambla.backend.domain.useCase.caja.obtenerCierre.ObtenerCierreRequest;
 import com.ensambla.backend.domain.model.caja.ResumenCaja;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
@@ -42,7 +44,8 @@ class CierresCajaControllerTest {
     private final CerrarCaja cerrar = mock(CerrarCaja.class);
     private final ObtenerCierre obtener = mock(ObtenerCierre.class);
     private final MockMvc mockMvc = MockMvcDePrueba.standalone(new CajaController(cobrar,
-            new CajaPresentationMapper(), consultar, cerrar, obtener))
+            new CajaPresentationMapper(), consultar, cerrar, obtener,
+            mock(ListarVentasCaja.class), mock(RegistrarCobro.class)))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
 
     @Test

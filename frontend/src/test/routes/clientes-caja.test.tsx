@@ -1,6 +1,8 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import { http, HttpResponse } from 'msw';
+import { server } from '@/mocks/node';
 import { allBlocks, makeTemplate } from '@/lib/sistema/core';
 import { prepararCaja } from '@/lib/caja';
 import { estado } from '@/mocks/db/estado';
@@ -17,6 +19,7 @@ async function abrir(sinTabla = false) {
     if (sinTabla) seccion.blocks = seccion.blocks.filter((b) => b.type !== 'clients');
   }
   estado.sistemas.set(usuario.email, [sistema]);
+  server.use(http.get('/api/caja/ventas', () => HttpResponse.json({ ventas: [], cobros: [] })));
   const app = renderApp('/caja');
   await screen.findByRole('heading', { name: 'Caja', level: 1 }, ESPERA);
   const user = userEvent.setup();

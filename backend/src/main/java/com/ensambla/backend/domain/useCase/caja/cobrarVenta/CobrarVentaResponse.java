@@ -11,7 +11,7 @@ import java.util.List;
 public record CobrarVentaResponse(VentaCajaId id, List<LineaItem> lineas, String medio, BigDecimal total,
                                   BigDecimal recibido, BigDecimal vuelto, OffsetDateTime creadoEn, List<PagoItem> pagos,
                                   RegistroId clienteId, String clienteNombre, BigDecimal cobrado,
-                                  BigDecimal saldo, String estado) {
+                                  BigDecimal saldo, String estado, List<PagoItem> pagosIniciales) {
 
     public record PagoItem(String medio, BigDecimal importe) {
     }
@@ -26,6 +26,7 @@ public record CobrarVentaResponse(VentaCajaId id, List<LineaItem> lineas, String
                 linea.precio(), linea.importe())).toList(), venta.medio().name(), venta.total(),
                 venta.recibido(), venta.vuelto(), venta.creadoEn(),
                 venta.pagos().stream().map(pago -> new PagoItem(pago.medio().name(), pago.importe())).toList(),
-                venta.clienteId(), venta.clienteNombre(), venta.cobrado(), venta.saldo(), venta.estado().name());
+                venta.clienteId(), venta.clienteNombre(), venta.cobrado(), venta.saldo(), venta.estado().name(),
+                venta.pagosIniciales().stream().map(pago -> new PagoItem(pago.medio().name(), pago.importe())).toList());
     }
 }

@@ -55,6 +55,11 @@ export const ventaCajaSchema = z.object({
   cobrado: z.number().optional(),
   saldo: z.number().optional(),
   estado: z.enum(['PENDIENTE', 'PARCIAL', 'PAGADA']).optional(),
+  pagosIniciales: z
+    .array(
+      z.object({ medio: z.enum(['EFECTIVO', 'TRANSFERENCIA', 'TARJETA']), importe: z.number() }),
+    )
+    .optional(),
   pagos: z
     .array(
       z.object({ medio: z.enum(['EFECTIVO', 'TRANSFERENCIA', 'TARJETA']), importe: z.number() }),
@@ -62,6 +67,34 @@ export const ventaCajaSchema = z.object({
     .default([]),
 });
 export type VentaCaja = z.infer<typeof ventaCajaSchema>;
+
+export const cobroDeudaCajaSchema = z.object({
+  id: z.string(),
+  clienteId: z.string(),
+  clienteNombre: z.string(),
+  importe: z.number(),
+  creadoEn: z.string(),
+  aplicaciones: z.array(
+    z.object({
+      ventaId: z.string(),
+      importe: z.number(),
+      pagos: z.array(
+        z.object({ medio: z.enum(['EFECTIVO', 'TRANSFERENCIA', 'TARJETA']), importe: z.number() }),
+      ),
+    }),
+  ),
+});
+export type CobroDeudaCaja = z.infer<typeof cobroDeudaCajaSchema>;
+export type SolicitudPagoDeudaCaja = {
+  id: string;
+  proyectoId: string;
+  inventarioId: string;
+  aplicaciones: { ventaId: string; pagos: PagoCaja[] }[];
+};
+export const cuentasCajaSchema = z.object({
+  ventas: z.array(ventaCajaSchema),
+  cobros: z.array(cobroDeudaCajaSchema),
+});
 
 export const resumenVentasCajaSchema = z.object({
   ventas: z.array(ventaCajaSchema),
@@ -71,6 +104,7 @@ export const resumenVentasCajaSchema = z.object({
   tarjeta: z.number(),
   desde: z.string().nullable(),
   revision: z.string(),
+  cobros: z.array(cobroDeudaCajaSchema).optional(),
 });
 export const cierreCajaSchema = z.object({
   id: z.string(),
@@ -95,6 +129,7 @@ export const consultaCajaSchema = z.object({
       cerradoEn: z.string(),
       total: z.number(),
       cantidadVentas: z.number(),
+      cobrado: z.number().optional(),
       diferencia: z.number().nullable(),
     }),
   ),

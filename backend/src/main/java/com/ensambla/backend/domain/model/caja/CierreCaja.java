@@ -18,7 +18,7 @@ public record CierreCaja(CierreCajaId id, NegocioId negocioId, ProyectoId proyec
             BloqueId inventarioId, String huella, ResumenCaja resumen, String revision,
             BigDecimal fondoInicial, BigDecimal entradas, BigDecimal retiros, BigDecimal contado,
             String nota, OffsetDateTime ahora) {
-        if (resumen.ventas().isEmpty()) {
+        if (resumen.ventas().isEmpty() && resumen.cobros().isEmpty()) {
             throw new BusinessRuleException("No hay ventas pendientes de cierre");
         }
         if (!resumen.revision().equals(revision)) {

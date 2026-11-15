@@ -29,9 +29,9 @@ export function CajaMostrador({
   const caja = useCaja(sistemaId, inventarioId, ventasId);
   const { preparar: prepararAudio } = useSonidosEscaneo();
   const [consulta, setConsulta] = useState('');
-  const [vista, setVista] = useState<'cobrar' | 'dia' | 'abierta' | 'cierres' | 'clientes'>(
-    'cobrar',
-  );
+  const [vista, setVista] = useState<
+    'cobrar' | 'dia' | 'cobros' | 'abierta' | 'cierres' | 'clientes'
+  >('cobrar');
   const [favoritos, setFavoritos] = useState(false);
   const [cobrando, setCobrando] = useState(!!caja.solicitud);
   const [entradaElegida, setEntradaElegida] = useState<'escanear' | 'buscar' | 'favoritos'>(
@@ -114,13 +114,14 @@ export function CajaMostrador({
         </button>
       </nav>
       {vista === 'clientes' ? (
-        <ClientesCaja sistemaId={sistemaId} />
+        <ClientesCaja sistemaId={sistemaId} inventarioId={inventarioId} />
       ) : vista !== 'cobrar' ? (
         <>
           <nav className="caja-actividad-vistas" aria-label="Consultar actividad">
             {(
               [
                 ['dia', 'Resumen del día', 'chart'],
+                ['cobros', 'Cobros', 'wallet'],
                 ['abierta', 'Caja abierta', 'wallet'],
                 ['cierres', 'Cierres guardados', 'folder'],
               ] as const

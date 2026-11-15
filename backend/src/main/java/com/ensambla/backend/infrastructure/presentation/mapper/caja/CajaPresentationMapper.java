@@ -20,9 +20,39 @@ import com.ensambla.backend.domain.useCase.caja.cobrarVenta.CobrarVentaResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.caja.CobrarVentaWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.caja.CobrarVentaWebResponse;
 import org.springframework.stereotype.Component;
+import com.ensambla.backend.domain.useCase.caja.CobroCajaItem;
+import com.ensambla.backend.domain.useCase.caja.listarVentas.ListarVentasCajaRequest;
+import com.ensambla.backend.domain.useCase.caja.listarVentas.ListarVentasCajaResponse;
+import com.ensambla.backend.domain.useCase.caja.registrarCobro.RegistrarCobroRequest;
+import com.ensambla.backend.infrastructure.presentation.dto.caja.CobroCajaWebResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.caja.ListarVentasCajaWebResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.caja.RegistrarCobroWebRequest;
 
 @Component
 public class CajaPresentationMapper {
+
+    public ListarVentasCajaRequest toListado(UsuarioId usuarioId, ProyectoId proyectoId, BloqueId inventarioId) {
+        return new ListarVentasCajaRequest(usuarioId, proyectoId, inventarioId);
+    }
+
+    public ListarVentasCajaWebResponse toListadoResponse(ListarVentasCajaResponse response) {
+        return new ListarVentasCajaWebResponse(response.ventas().stream().map(this::toResponse).toList(),
+                response.cobros().stream().map(this::toCobroResponse).toList());
+    }
+
+    public RegistrarCobroRequest toCobro(UsuarioId usuarioId, RegistrarCobroWebRequest request) {
+        return new RegistrarCobroRequest(usuarioId, request.id(), request.proyectoId(), request.inventarioId(),
+                request.aplicaciones().stream().map(aplicacion -> new RegistrarCobroRequest.AplicacionRequest(
+                        aplicacion.ventaId(), aplicacion.pagos().stream().map(pago ->
+                                new RegistrarCobroRequest.PagoRequest(pago.medio(), pago.importe())).toList())).toList());
+    }
+
+    public CobroCajaWebResponse toCobroResponse(CobroCajaItem cobro) {
+        return new CobroCajaWebResponse(cobro.id(), cobro.clienteId(), cobro.clienteNombre(), cobro.aplicaciones().stream().map(aplicacion ->
+                new CobroCajaWebResponse.AplicacionWebResponse(aplicacion.ventaId(), aplicacion.pagos().stream().map(pago ->
+                        new CobroCajaWebResponse.PagoWebResponse(pago.medio(), pago.importe())).toList(),
+                        aplicacion.importe())).toList(), cobro.importe(), cobro.creadoEn());
+    }
 
     public ConsultarCajaRequest toConsulta(UsuarioId usuarioId, ProyectoId proyectoId, BloqueId inventarioId,
             LocalDate fecha, int pagina) {
@@ -42,7 +72,7 @@ public class CajaPresentationMapper {
         return new ConsultarCajaWebResponse(response.fecha(), toResumen(response.dia()), toResumen(response.abierta()),
                 response.cierres().stream().map(cierre -> new ConsultarCajaWebResponse.CierreListaWebResponse(
                         cierre.id(), cierre.desde(), cierre.cerradoEn(), cierre.total(),
-                        cierre.cantidadVentas(), cierre.diferencia())).toList(), response.pagina(), response.hayMas());
+                        cierre.cantidadVentas(), cierre.diferencia(), cierre.cobrado())).toList(), response.pagina(), response.hayMas());
     }
 
     public CierreCajaWebResponse toCierreResponse(CierreCajaItem cierre) {
@@ -54,7 +84,7 @@ public class CajaPresentationMapper {
     private ResumenCajaWebResponse toResumen(ResumenCajaItem resumen) {
         return new ResumenCajaWebResponse(resumen.ventas().stream().map(this::toResponse).toList(),
                 resumen.total(), resumen.efectivo(), resumen.transferencia(), resumen.tarjeta(),
-                resumen.desde(), resumen.revision());
+                resumen.desde(), resumen.revision(), resumen.cobros().stream().map(this::toCobroResponse).toList());
     }
 
     public CobrarVentaRequest toRequest(UsuarioId usuarioId, CobrarVentaWebRequest request) {
@@ -73,6 +103,8 @@ public class CajaPresentationMapper {
                 response.total(), response.recibido(), response.vuelto(), response.creadoEn(),
                 response.pagos().stream().map(pago ->
                         new CobrarVentaWebResponse.PagoWebResponse(pago.medio(), pago.importe())).toList(),
-                response.clienteId(), response.clienteNombre(), response.cobrado(), response.saldo(), response.estado());
+                response.clienteId(), response.clienteNombre(), response.cobrado(), response.saldo(), response.estado(),
+                response.pagosIniciales().stream().map(pago ->
+                        new CobrarVentaWebResponse.PagoWebResponse(pago.medio(), pago.importe())).toList());
     }
 }

@@ -16,6 +16,14 @@ V3 carga Inventario, Pedidos y Clientes
 como plantillas globales; sus UUID coinciden con los del modo simulado del frontend. Este documento explica el
 porqué; si cambian, se actualizan juntos.
 
+## Caja: cobros posteriores (V36 · ENS-317)
+
+`cobro_caja` conserva cada pago de deuda con id propio, negocio, proyecto, inventario, fecha del servidor y aplicaciones a una o varias ventas del mismo cliente. Los importes y medios viven en el JSON inmutable; `cierre_id` vincula el movimiento al período en que se recibió. No se editan migraciones anteriores.
+
+`venta_caja.datos` conserva `clienteId`, `clienteNombre` y `pagosIniciales`, además de los pagos acumulados. Un cobro actualiza sólo ese acumulado, con bloqueo por negocio y en la misma transacción que el movimiento nuevo; conserva el cierre original de la venta. El saldo y el estado se calculan desde total y pagos. Los datos JSON anteriores, sin `pagosIniciales` ni cobros de deuda en el resumen de cierre, siguen siendo legibles.
+
+El cierre guarda una foto de ventas, cobros y saldos. Recibir después un pago modifica el estado actual de la venta y el nuevo período de caja; el cierre anterior conserva sus importes. Ver el contrato y la prueba de aceptación en [caja-clientes-y-cobros.md](caja-clientes-y-cobros.md).
+
 ## Convenciones
 
 - Nombres en **español, `snake_case`, sin tildes**; tablas en **singular**.

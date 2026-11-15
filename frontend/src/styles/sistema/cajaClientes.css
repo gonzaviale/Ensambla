@@ -82,7 +82,34 @@
   background: #fff5e7;
   font-size: 16px;
 }
+
+.caja-actividad-vistas {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.caja-cobros-lista {
+  max-height: 55dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
+}
+.caja-dialogo .caja-clientes-lista {
+  margin-bottom: 20px;
+}
+.caja-dialogo .caja-clientes-lista li {
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+.caja-dialogo .caja-clientes-lista .btn {
+  min-height: 44px;
+  font-size: 14px;
+}
 @media (max-width: 800px) {
+  .caja-actividad-vistas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .caja-clientes-lista li {
+    flex-wrap: wrap;
+  }
   .caja-pagina .caja-vistas {
     max-width: none;
   }

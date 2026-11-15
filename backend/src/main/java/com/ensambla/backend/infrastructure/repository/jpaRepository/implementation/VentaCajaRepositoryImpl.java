@@ -1,5 +1,7 @@
 package com.ensambla.backend.infrastructure.repository.jpaRepository.implementation;
 
+import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+
 import com.ensambla.backend.domain.model.caja.VentaCaja;
 import com.ensambla.backend.domain.model.caja.VentaCajaId;
 import com.ensambla.backend.domain.model.caja.CierreCajaId;
@@ -23,6 +25,28 @@ public class VentaCajaRepositoryImpl implements VentaCajaRepository {
 
     private final IVentaCajaJpaRepository ventaCajaJpaRepository;
     private final VentaCajaRepositoryMapper ventaCajaRepositoryMapper;
+
+    @Override
+    public List<VentaCaja> listarTodas(NegocioId negocioId, ProyectoId proyectoId, BloqueId inventarioId) {
+        return ventaCajaJpaRepository.findByNegocioIdAndProyectoIdAndInventarioIdOrderByCreadoEnAscIdAsc(
+                negocioId.valor(), proyectoId.valor(), inventarioId.valor()).stream()
+                .map(ventaCajaRepositoryMapper::toDomain).toList();
+    }
+
+    @Override
+    public List<VentaCaja> listarPorIds(NegocioId negocioId, List<VentaCajaId> ids) {
+        return ventaCajaJpaRepository.findByNegocioIdAndIdIn(negocioId.valor(), Identificador.valores(ids))
+                .stream().map(ventaCajaRepositoryMapper::toDomain).toList();
+    }
+
+    @Override
+    public void actualizarCobros(VentaCaja venta, OffsetDateTime ahora) {
+        var entity = ventaCajaJpaRepository.findByIdAndNegocioId(venta.id().valor(), venta.negocioId().valor())
+                .orElseThrow(() -> new ResourceNotFoundException("Venta no encontrada en el negocio"));
+        entity.setDatos(venta);
+        entity.setActualizadoEn(ahora);
+        ventaCajaJpaRepository.save(entity);
+    }
 
     @Override
     public List<VentaCaja> listarAbiertas(NegocioId negocioId, ProyectoId proyectoId, BloqueId inventarioId) {

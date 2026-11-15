@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.model.caja.ResumenCaja;
 import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.repository.caja.CierreCajaRepository;
+import com.ensambla.backend.domain.repository.caja.CobroCajaRepository;
 import com.ensambla.backend.domain.repository.caja.VentaCajaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
@@ -22,6 +23,7 @@ public class ConsultarCaja {
     private final SistemaRepository sistemaRepository;
     private final VentaCajaRepository ventaCajaRepository;
     private final CierreCajaRepository cierreCajaRepository;
+    private final CobroCajaRepository cobroCajaRepository;
     private final UsoPlanRepository usoPlanRepository;
     private final TransaccionPort transaccionPort;
     private final Clock clock;
@@ -39,6 +41,10 @@ public class ConsultarCaja {
         var delDia = ventaCajaRepository.listarEntre(negocioId, request.proyectoId(), request.inventarioId(),
                 ZonaNegocio.inicioDelDia(fecha), ZonaNegocio.inicioDelDia(fecha.plusDays(1)));
         var cierres = cierreCajaRepository.listar(negocioId, request.proyectoId(), request.inventarioId(), request.pagina());
-        return ConsultarCajaResponse.de(fecha, ResumenCaja.de(delDia), ResumenCaja.de(abiertas), cierres, request.pagina());
+        var cobrosAbiertos = cobroCajaRepository.listarAbiertos(negocioId, request.proyectoId(), request.inventarioId());
+        var cobrosDelDia = cobroCajaRepository.listarEntre(negocioId, request.proyectoId(), request.inventarioId(),
+                ZonaNegocio.inicioDelDia(fecha), ZonaNegocio.inicioDelDia(fecha.plusDays(1)));
+        return ConsultarCajaResponse.de(fecha, ResumenCaja.de(delDia, cobrosDelDia),
+                ResumenCaja.de(abiertas, cobrosAbiertos), cierres, request.pagina());
     }
 }

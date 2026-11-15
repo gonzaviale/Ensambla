@@ -6,6 +6,8 @@ import com.ensambla.backend.domain.useCase.caja.cobrarVenta.CobrarVentaResponse;
 import com.ensambla.backend.domain.useCase.caja.consultarCaja.ConsultarCaja;
 import com.ensambla.backend.domain.useCase.caja.cerrarCaja.CerrarCaja;
 import com.ensambla.backend.domain.useCase.caja.obtenerCierre.ObtenerCierre;
+import com.ensambla.backend.domain.useCase.caja.listarVentas.ListarVentasCaja;
+import com.ensambla.backend.domain.useCase.caja.registrarCobro.RegistrarCobro;
 import com.ensambla.backend.infrastructure.presentation.exception.GlobalExceptionHandler;
 import com.ensambla.backend.infrastructure.presentation.mapper.caja.CajaPresentationMapper;
 import com.ensambla.backend.support.CajaTestData;
@@ -33,7 +35,8 @@ class CajaControllerTest {
 
     private final CobrarVenta cobrarVenta = mock(CobrarVenta.class);
     private final MockMvc mockMvc = MockMvcDePrueba.standalone(new CajaController(cobrarVenta,
-            new CajaPresentationMapper(), mock(ConsultarCaja.class), mock(CerrarCaja.class), mock(ObtenerCierre.class)))
+            new CajaPresentationMapper(), mock(ConsultarCaja.class), mock(CerrarCaja.class), mock(ObtenerCierre.class),
+            mock(ListarVentasCaja.class), mock(RegistrarCobro.class)))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
 
     @Test
@@ -109,7 +112,8 @@ class CajaControllerTest {
                         new BigDecimal("0.5"), new BigDecimal("4000"), new BigDecimal("2000"))),
                 "EFECTIVO", new BigDecimal("2000"), new BigDecimal("5000"), new BigDecimal("3000"),
                 CajaTestData.AHORA, List.of(new CobrarVentaResponse.PagoItem("EFECTIVO",new BigDecimal("2000"))),
-                null, null, new BigDecimal("2000"), BigDecimal.ZERO, "PAGADA"));
+                null, null, new BigDecimal("2000"), BigDecimal.ZERO, "PAGADA",
+                List.of(new CobrarVentaResponse.PagoItem("EFECTIVO", new BigDecimal("2000")))));
     }
 
     private String body() {

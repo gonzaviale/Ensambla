@@ -8,6 +8,7 @@ import com.ensambla.backend.domain.model.caja.ResumenCaja;
 import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.caja.CierreCajaRepository;
+import com.ensambla.backend.domain.repository.caja.CobroCajaRepository;
 import com.ensambla.backend.domain.repository.caja.VentaCajaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
@@ -46,11 +47,12 @@ class OperacionesCajaTest {
     private final SistemaRepository sistemas = mock(SistemaRepository.class);
     private final VentaCajaRepository ventas = mock(VentaCajaRepository.class);
     private final CierreCajaRepository cierres = mock(CierreCajaRepository.class);
+    private final CobroCajaRepository cobros = mock(CobroCajaRepository.class);
     private final UsoPlanRepository uso = mock(UsoPlanRepository.class);
     private final TransaccionPort transaccion = new TransaccionDirecta();
     private final Clock clock = Clock.fixed(CajaTestData.AHORA.toInstant(), ZoneOffset.UTC);
-    private final CerrarCaja cerrar = new CerrarCaja(negocios, sistemas, ventas, cierres, uso, transaccion, clock);
-    private final ConsultarCaja consultar = new ConsultarCaja(negocios, sistemas, ventas, cierres, uso, transaccion, clock);
+    private final CerrarCaja cerrar = new CerrarCaja(negocios, sistemas, ventas, cierres, cobros, uso, transaccion, clock);
+    private final ConsultarCaja consultar = new ConsultarCaja(negocios, sistemas, ventas, cierres, cobros, uso, transaccion, clock);
     private final ObtenerCierre obtener = new ObtenerCierre(negocios, cierres);
 
     @Test
