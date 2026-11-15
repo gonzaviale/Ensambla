@@ -56,6 +56,32 @@
   font-size: 14px;
   color: #344c59;
 }
+
+.caja-selector-cliente {
+  margin: 16px 0;
+  padding: 14px;
+  background: #edf5f7;
+  border: 1px solid #7398a6;
+  border-radius: 10px;
+}
+.caja-opciones-clientes {
+  display: grid;
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 12px 0;
+}
+.caja-opciones-clientes button {
+  text-align: left;
+  justify-content: flex-start !important;
+  min-height: 44px;
+  font-size: 14px;
+}
+.caja-saldo {
+  padding: 12px;
+  border-left: 4px solid var(--orange);
+  background: #fff5e7;
+  font-size: 16px;
+}
 @media (max-width: 800px) {
   .caja-pagina .caja-vistas {
     max-width: none;

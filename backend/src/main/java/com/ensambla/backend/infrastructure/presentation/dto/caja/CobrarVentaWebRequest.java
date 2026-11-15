@@ -20,7 +20,8 @@ public record CobrarVentaWebRequest(@NotNull VentaCajaId id, @NotNull ProyectoId
                                     @NotEmpty @Size(max = 100) List<@NotNull @Valid LineaWebRequest> lineas,
                                     @NotNull @Pattern(regexp = "EFECTIVO|TRANSFERENCIA|TARJETA|MIXTO") String medio,
                                     @DecimalMin("0") @Digits(integer = 12, fraction = 2) BigDecimal recibido,
-                                    @Size(min = 1, max = 3) List<@NotNull @Valid PagoWebRequest> pagos) {
+                                    @Size(max = 3) List<@NotNull @Valid PagoWebRequest> pagos,
+                                    RegistroId clienteId) {
 
     public record PagoWebRequest(
             @NotNull @Pattern(regexp = "EFECTIVO|TRANSFERENCIA|TARJETA") String medio,

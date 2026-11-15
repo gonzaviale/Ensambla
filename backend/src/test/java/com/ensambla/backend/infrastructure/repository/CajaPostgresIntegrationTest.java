@@ -158,7 +158,64 @@ class CajaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         }
     }
 
+    @Test
+    @DisplayName("La venta fiada conserva su cliente y saldo después de recargar PostgreSQL")
+    void creditSaleShouldKeepCustomerAndBalanceAfterReload() {
+        givenCuentaConCliente();
+        CobrarVentaRequest base = solicitud();
+        CobrarVentaRequest fiada = new CobrarVentaRequest(base.usuarioId(), base.id(), base.proyectoId(),
+                base.inventarioId(), base.ventasId(), base.lineas(), "EFECTIVO", null, List.of(), CajaTestData.CLIENTE);
+
+        cobrarVenta.execute(fiada);
+        entityManager.flush();
+        entityManager.clear();
+        CobrarVentaResponse respuesta = cobrarVenta.execute(fiada);
+
+        assertThat(respuesta.estado()).isEqualTo("PENDIENTE");
+        assertThat(respuesta.saldo()).isEqualByComparingTo("2000");
+        assertThat(respuesta.cobrado()).isEqualByComparingTo("0");
+        assertThat(respuesta.clienteNombre()).isEqualTo("Ana López");
+        thenStockIs("1.5");
+    }
+
+    @Test
+    @DisplayName("La caja del día cuenta sólo la entrega recibida de una venta parcial")
+    void partialSaleShouldOnlyIncludeCollectedMoneyInDaySummary() {
+        givenCuentaConCliente();
+        CobrarVentaRequest base = solicitud();
+        CobrarVentaRequest parcial = new CobrarVentaRequest(base.usuarioId(), base.id(), base.proyectoId(),
+                base.inventarioId(), base.ventasId(), base.lineas(), "TRANSFERENCIA", null,
+                List.of(new CobrarVentaRequest.PagoRequest("TRANSFERENCIA", new BigDecimal("800"))), CajaTestData.CLIENTE);
+
+        cobrarVenta.execute(parcial);
+        entityManager.flush();
+        entityManager.clear();
+        var resumen = consultarCaja.execute(new ConsultarCajaRequest(usuarioId, base.proyectoId(),
+                base.inventarioId(), ZonaNegocio.dia(OffsetDateTime.now()), 0)).dia();
+
+        assertThat(resumen.total()).isEqualByComparingTo("2000");
+        assertThat(resumen.transferencia()).isEqualByComparingTo("800");
+        assertThat(resumen.efectivo()).isEqualByComparingTo("0");
+        assertThat(resumen.ventas().getFirst().saldo()).isEqualByComparingTo("1200");
+    }
+
     // --- arrange ---
+    private void givenCuentaConCliente() {
+        givenCuentaConInventario(new BigDecimal("2"));
+        Sistema sistema = sistemaRepository.findAllByNegocioId(negocioId).getFirst();
+        CajaTestData.agregarCliente(sistema);
+        var tabla = sistema.proyecto().getBloques().stream()
+                .filter(bloque -> bloque.getId().equals(CajaTestData.CLIENTES)).findFirst().orElseThrow();
+        tabla.setNegocioId(negocioId);
+        tabla.getCampos().forEach(campo -> campo.setNegocioId(negocioId));
+        sistema.proyecto().getBloques().stream().filter(bloque -> bloque.getId().equals(CajaTestData.VENTAS))
+                .flatMap(bloque -> bloque.getCampos().stream()).forEach(campo -> campo.setNegocioId(negocioId));
+        sistema.registrosPorBloque().get(CajaTestData.CLIENTES).forEach(fila -> fila.setNegocioId(negocioId));
+        sistemaRepository.guardar(sistema);
+        entityManager.flush();
+        entityManager.clear();
+    }
+
     private void givenCuentaConInventario(BigDecimal stock) {
         usuarioId = UsuarioId.de(usuarios.saveAndFlush(UsuarioEntity.builder().nombre("Caja")
                 .email(UsuarioId.nuevo() + "@example.com").estado(EstadoUsuario.ACTIVO)

@@ -85,13 +85,31 @@ class CajaControllerTest {
                 new CobrarVentaRequest.PagoRequest("TRANSFERENCIA", new BigDecimal("1000")));
     }
 
+    @Test
+    @DisplayName("Permite registrar una venta sin cobros y conserva el cliente en el contrato HTTP")
+    void cobrarShouldMapCreditSaleWithCustomer() throws Exception {
+        givenComprobante();
+        String cuerpo = body().replace("\"recibido\":5000", "\"recibido\":null,\"pagos\":[],\"clienteId\":\""
+                + CajaTestData.CLIENTE + "\"");
+
+        mockMvc.perform(post("/api/caja/ventas").principal(UsernamePasswordAuthenticationToken.authenticated(
+                        CajaTestData.USUARIO.toString(), null, List.of())).contentType("application/json").content(cuerpo))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<CobrarVentaRequest> captor = ArgumentCaptor.forClass(CobrarVentaRequest.class);
+        verify(cobrarVenta).execute(captor.capture());
+        assertThat(captor.getValue().pagos()).isEmpty();
+        assertThat(captor.getValue().clienteId()).isEqualTo(CajaTestData.CLIENTE);
+    }
+
     // --- arrange ---
     private void givenComprobante() {
         when(cobrarVenta.execute(any())).thenReturn(new CobrarVentaResponse(CajaTestData.OPERACION,
                 List.of(new CobrarVentaResponse.LineaItem(CajaTestData.PRODUCTO, "Pan", "PESO",
                         new BigDecimal("0.5"), new BigDecimal("4000"), new BigDecimal("2000"))),
                 "EFECTIVO", new BigDecimal("2000"), new BigDecimal("5000"), new BigDecimal("3000"),
-                CajaTestData.AHORA, List.of(new CobrarVentaResponse.PagoItem("EFECTIVO",new BigDecimal("2000")))));
+                CajaTestData.AHORA, List.of(new CobrarVentaResponse.PagoItem("EFECTIVO",new BigDecimal("2000"))),
+                null, null, new BigDecimal("2000"), BigDecimal.ZERO, "PAGADA"));
     }
 
     private String body() {

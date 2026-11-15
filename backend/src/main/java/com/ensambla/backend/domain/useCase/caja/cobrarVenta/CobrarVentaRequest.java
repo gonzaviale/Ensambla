@@ -11,7 +11,13 @@ import java.util.List;
 
 public record CobrarVentaRequest(UsuarioId usuarioId, VentaCajaId id, ProyectoId proyectoId,
                                  BloqueId inventarioId, BloqueId ventasId, List<LineaRequest> lineas,
-                                 String medio, BigDecimal recibido, List<PagoRequest> pagos) {
+                                 String medio, BigDecimal recibido, List<PagoRequest> pagos, RegistroId clienteId) {
+
+    public CobrarVentaRequest(UsuarioId usuarioId, VentaCajaId id, ProyectoId proyectoId,
+            BloqueId inventarioId, BloqueId ventasId, List<LineaRequest> lineas, String medio,
+            BigDecimal recibido, List<PagoRequest> pagos) {
+        this(usuarioId, id, proyectoId, inventarioId, ventasId, lineas, medio, recibido, pagos, null);
+    }
 
     public CobrarVentaRequest(UsuarioId usuarioId, VentaCajaId id, ProyectoId proyectoId,
             BloqueId inventarioId, BloqueId ventasId, List<LineaRequest> lineas, String medio, BigDecimal recibido) {
@@ -26,6 +32,7 @@ public record CobrarVentaRequest(UsuarioId usuarioId, VentaCajaId id, ProyectoId
 
     public String huella() {
         String base = proyectoId + ":" + inventarioId + ":" + ventasId + ":" + medio + ":" + recibido + ":" + lineas;
-        return pagos == null ? base : base + ":" + pagos;
+        String conPagos = pagos == null ? base : base + ":" + pagos;
+        return clienteId == null ? conPagos : conPagos + ":cliente:" + clienteId;
     }
 }

@@ -239,6 +239,7 @@ export function useCaja(sistemaId: string, inventarioId: string, ventasId: strin
     medio: SolicitudCobro['medio'],
     recibido: number | null,
     pagos?: PagoCaja[],
+    clienteId?: string,
   ) => {
     if (bloqueada.current || pendiente || !lineas.length) return;
     const request = solicitud ?? {
@@ -249,6 +250,7 @@ export function useCaja(sistemaId: string, inventarioId: string, ventasId: strin
       medio,
       recibido,
       ...(pagos ? { pagos } : {}),
+      ...(clienteId ? { clienteId: idCaja(clienteId) } : {}),
       lineas: lineas.map((l) => ({
         productoId: idCaja(l.productoId),
         cantidad: l.cantidad,

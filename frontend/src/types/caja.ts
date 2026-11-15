@@ -30,6 +30,7 @@ export type SolicitudCobro = {
   medio: MedioCaja | 'MIXTO';
   recibido: number | null;
   pagos?: PagoCaja[];
+  clienteId?: string;
   lineas: { productoId: string; cantidad: number; precio: number; modo: 'UNIDAD' | 'PESO' }[];
 };
 export const ventaCajaSchema = z.object({
@@ -49,6 +50,11 @@ export const ventaCajaSchema = z.object({
   recibido: z.number(),
   vuelto: z.number(),
   creadoEn: z.string(),
+  clienteId: z.string().nullish(),
+  clienteNombre: z.string().nullish(),
+  cobrado: z.number().optional(),
+  saldo: z.number().optional(),
+  estado: z.enum(['PENDIENTE', 'PARCIAL', 'PAGADA']).optional(),
   pagos: z
     .array(
       z.object({ medio: z.enum(['EFECTIVO', 'TRANSFERENCIA', 'TARJETA']), importe: z.number() }),

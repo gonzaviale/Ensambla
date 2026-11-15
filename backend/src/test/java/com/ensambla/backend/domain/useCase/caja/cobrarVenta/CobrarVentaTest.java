@@ -9,6 +9,7 @@ import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.caja.VentaCaja;
 import com.ensambla.backend.domain.model.caja.MedioPagoCaja;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.sistema.Sistema;
@@ -195,7 +196,129 @@ class CobrarVentaTest {
         thenRejects(BusinessRuleException.class);
     }
 
+    @Test
+    @DisplayName("Una venta fiada conserva al cliente y no inventa un cobro")
+    void executeShouldRegisterCreditSaleWithCustomer() {
+        givenCajaConCliente();
+
+        CobrarVentaResponse respuesta = cobrarVenta.execute(solicitudConCliente(List.of()));
+
+        thenPendingBalanceIs(respuesta, "2000", "PENDIENTE");
+        assertThat(respuesta.pagos()).isEmpty();
+        assertThat(respuesta.recibido()).isEqualByComparingTo("0");
+        assertThat(valor("quantity")).isEqualTo(new BigDecimal("1.5"));
+    }
+
+    @Test
+    @DisplayName("Una entrega parcial conserva el saldo y lo marca en la fila de ventas")
+    void executeShouldRegisterPartialPayment() {
+        givenCajaConCliente();
+
+        CobrarVentaResponse respuesta = cobrarVenta.execute(solicitudConCliente(
+                List.of(new CobrarVentaRequest.PagoRequest("TRANSFERENCIA", new BigDecimal("800")))));
+
+        thenPendingBalanceIs(respuesta, "1200", "PARCIAL");
+        Registro fila = sistema.registrosPorBloque().get(CajaTestData.VENTAS).getFirst();
+        assertThat(fila.getValores().get(campoVentas("credit").getId().toString())).isEqualTo(true);
+        assertThat(fila.getValores().get(campoVentas("customer").getId().toString()))
+                .isEqualTo(CajaTestData.CLIENTE.toString());
+    }
+
+    @Test
+    @DisplayName("Permite asociar un cliente a una venta pagada aunque la tabla use texto")
+    void executeShouldUseCustomerNameWhenSalesFieldIsText() {
+        givenCajaConCliente();
+        campoVentas("customer").setTipo(TipoCampo.TEXTO);
+        campoVentas("customer").setBloqueRelacionadoId(null);
+
+        CobrarVentaResponse respuesta = cobrarVenta.execute(solicitudConCliente(null));
+
+        thenPendingBalanceIs(respuesta, "0", "PAGADA");
+        Registro fila = sistema.registrosPorBloque().get(CajaTestData.VENTAS).getFirst();
+        assertThat(fila.getValores().get(campoVentas("customer").getId().toString())).isEqualTo("Ana López");
+    }
+
+    @Test
+    @DisplayName("Una venta pagada permite conservar el comprador sin identificar")
+    void executeShouldAllowAnonymousPaidSaleWithCustomerFields() {
+        givenCajaConCliente();
+
+        CobrarVentaResponse respuesta = cobrarVenta.execute(CajaTestData.request("0.5"));
+
+        assertThat(respuesta.clienteId()).isNull();
+        Registro fila = sistema.registrosPorBloque().get(CajaTestData.VENTAS).getFirst();
+        assertThat(fila.getValores().get(campoVentas("credit").getId().toString())).isEqualTo(false);
+    }
+
+    @Test
+    @DisplayName("Oculta un cliente que no pertenece al negocio sin descontar stock")
+    void executeShouldHideMissingCustomer() {
+        givenCaja();
+
+        assertThatThrownBy(() -> cobrarVenta.execute(solicitudConCliente(List.of())))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        assertThat(valor("quantity")).isEqualTo(new BigDecimal("2"));
+    }
+
+    @Test
+    @DisplayName("No permite fiar a un cliente de ejemplo")
+    void executeShouldRejectExampleCustomer() {
+        givenCaja();
+        CajaTestData.agregarCliente(sistema);
+        sistema.registrosPorBloque().get(CajaTestData.CLIENTES).getFirst().setEsEjemplo(true);
+
+        assertThatThrownBy(() -> cobrarVenta.execute(solicitudConCliente(List.of())))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("Rechaza un cliente de una tabla distinta a la relacionada con ventas")
+    void executeShouldRejectCustomerFromWrongTable() {
+        givenCaja();
+        CajaTestData.agregarCliente(sistema);
+        campoVentas("customer").setBloqueRelacionadoId(BloqueId.nuevo());
+
+        assertThatThrownBy(() -> cobrarVenta.execute(solicitudConCliente(List.of())))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("No confunde otro cliente con el solicitado")
+    void executeShouldMatchExactCustomerId() {
+        givenCaja();
+        CajaTestData.agregarCliente(sistema);
+        sistema.registrosPorBloque().get(CajaTestData.CLIENTES).getFirst().setId(RegistroId.nuevo());
+
+        assertThatThrownBy(() -> cobrarVenta.execute(solicitudConCliente(List.of())))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
     // --- arrange ---
+    private void givenCajaConCliente() {
+        givenCaja();
+        CajaTestData.agregarCliente(sistema);
+        when(ventaCajaRepository.save(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
+    }
+
+    private CobrarVentaRequest solicitudConCliente(List<CobrarVentaRequest.PagoRequest> pagos) {
+        CobrarVentaRequest base = CajaTestData.request("0.5");
+        return new CobrarVentaRequest(base.usuarioId(), base.id(), base.proyectoId(), base.inventarioId(),
+                base.ventasId(), base.lineas(), base.medio(), base.recibido(), pagos, CajaTestData.CLIENTE);
+    }
+
+    private Campo campoVentas(String clave) {
+        return ventas().getCampos().stream().filter(campo -> clave.equals(campo.getClave())).findFirst().orElseThrow();
+    }
+
+    private void thenPendingBalanceIs(CobrarVentaResponse respuesta, String saldo, String estado) {
+        assertThat(respuesta.saldo()).isEqualByComparingTo(saldo);
+        assertThat(respuesta.cobrado()).isEqualByComparingTo(respuesta.total().subtract(new BigDecimal(saldo)));
+        assertThat(respuesta.estado()).isEqualTo(estado);
+        assertThat(respuesta.clienteId()).isEqualTo(CajaTestData.CLIENTE);
+        assertThat(respuesta.clienteNombre()).isEqualTo("Ana López");
+    }
+
     private void givenUsuario() {
         when(negocioRepository.obtenerIdDelUsuario(CajaTestData.USUARIO)).thenReturn(CajaTestData.NEGOCIO);
     }

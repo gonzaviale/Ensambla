@@ -11,7 +11,12 @@ const medios = [
 
 export function ResumenVentasCaja({ resumen, titulo }: { resumen: Resumen; titulo: string }) {
   const [filtro, setFiltro] = useState<MedioCaja | null>(null);
-  const ventas = resumen.ventas.filter((v) => !filtro || v.pagos.some((p) => p.medio === filtro));
+  const [estado, setEstado] = useState<'todas' | 'pendientes' | 'pagadas'>('todas');
+  const ventas = resumen.ventas.filter(
+    (v) =>
+      (!filtro || v.pagos.some((p) => p.medio === filtro)) &&
+      (estado === 'todas' || (estado === 'pendientes' ? (v.saldo ?? 0) > 0 : (v.saldo ?? 0) === 0)),
+  );
   return (
     <section className="caja-resumen-ventas" aria-label={titulo}>
       <div className="caja-total-resumen">
@@ -57,6 +62,19 @@ export function ResumenVentasCaja({ resumen, titulo }: { resumen: Resumen; titul
           </button>
         )}
       </div>
+      <div className="caja-opciones" aria-label="Estado de las ventas">
+        {(
+          [
+            ['todas', 'Todas'],
+            ['pendientes', 'Pendientes'],
+            ['pagadas', 'Pagadas'],
+          ] as const
+        ).map(([id, texto]) => (
+          <button key={id} type="button" aria-pressed={estado === id} onClick={() => setEstado(id)}>
+            {texto}
+          </button>
+        ))}
+      </div>
       {filtro && (
         <p className="caja-ayuda">
           Las ventas mixtas aparecen en cada medio utilizado. El total de arriba cuenta cada venta
@@ -71,13 +89,22 @@ export function ResumenVentasCaja({ resumen, titulo }: { resumen: Resumen; titul
               <span>
                 {fechaCaja(v.creadoEn)}
                 <small>
-                  {v.medio === 'MIXTO'
-                    ? 'Pago mixto'
-                    : v.medio === 'EFECTIVO'
-                      ? 'Efectivo'
-                      : v.medio === 'TARJETA'
-                        ? 'Tarjeta'
-                        : 'Transferencia'}
+                  {v.clienteNombre && `${v.clienteNombre} · `}
+                  {(v.saldo ?? 0) > 0
+                    ? v.estado === 'PARCIAL'
+                      ? 'Pago parcial'
+                      : 'Pendiente de pago'
+                    : 'Pagada'}
+                  {' · '}
+                  {!v.pagos.length
+                    ? 'Sin cobros'
+                    : v.medio === 'MIXTO'
+                      ? 'Pago mixto'
+                      : v.medio === 'EFECTIVO'
+                        ? 'Efectivo'
+                        : v.medio === 'TARJETA'
+                          ? 'Tarjeta'
+                          : 'Transferencia'}
                 </small>
               </span>
               <strong>{dineroCaja(Math.round(v.total * 100))}</strong>
@@ -95,6 +122,12 @@ export function ResumenVentasCaja({ resumen, titulo }: { resumen: Resumen; titul
               ))}
             </ul>
             <div className="caja-pagos-detalle">
+              <p>
+                Cobrado: <strong>{dineroCaja(Math.round((v.cobrado ?? v.total) * 100))}</strong>
+              </p>
+              <p>
+                Pendiente: <strong>{dineroCaja(Math.round((v.saldo ?? 0) * 100))}</strong>
+              </p>
               {v.pagos.map((p) => (
                 <p key={p.medio}>
                   <span>{medios.find((m) => m.id === p.medio)?.nombre}</span>

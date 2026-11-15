@@ -374,11 +374,15 @@ export function CajaMostrador({
       )}
       {(cobrando || caja.solicitud) && !caja.ticket && (
         <CobroCaja
+          sistemaId={sistemaId}
+          ventasId={ventasId}
           total={caja.total}
           ocupada={caja.ocupada}
           incierta={!!caja.solicitud && !caja.ocupada}
           error={caja.error}
-          onConfirmar={(medio, recibido, pagos) => void caja.confirmar(medio, recibido, pagos)}
+          onConfirmar={(medio, recibido, pagos, clienteId) =>
+            void caja.confirmar(medio, recibido, pagos, clienteId)
+          }
           onCerrar={() => setCobrando(false)}
         />
       )}
@@ -393,7 +397,17 @@ export function CajaMostrador({
           <div className="caja-confirmada">
             <Icon name="check" />
             <strong>{dineroCaja(Math.round(caja.ticket.total * 100))}</strong>
-            <p>La venta y el cobro quedaron guardados.</p>
+            <p>
+              {(caja.ticket.saldo ?? 0) > 0
+                ? 'La venta y el saldo pendiente quedaron guardados.'
+                : 'La venta y el cobro quedaron guardados.'}
+            </p>
+            {caja.ticket.clienteNombre && <p>Cliente: {caja.ticket.clienteNombre}</p>}
+            {(caja.ticket.saldo ?? 0) > 0 && (
+              <p>
+                Pendiente: <strong>{dineroCaja(Math.round((caja.ticket.saldo ?? 0) * 100))}</strong>
+              </p>
+            )}
           </div>
           <ul className="caja-resumen">
             {caja.ticket.lineas.map((linea, indice) => (

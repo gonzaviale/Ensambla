@@ -62,7 +62,8 @@ public class CajaPresentationMapper {
                 request.ventasId(), request.lineas().stream().map(linea -> new CobrarVentaRequest.LineaRequest(
                         linea.productoId(), linea.cantidad(), linea.precio(), linea.modo())).toList(),
                 request.medio(), request.recibido(), request.pagos() == null ? null : request.pagos().stream()
-                        .map(pago -> new CobrarVentaRequest.PagoRequest(pago.medio(), pago.importe())).toList());
+                        .map(pago -> new CobrarVentaRequest.PagoRequest(pago.medio(), pago.importe())).toList(),
+                request.clienteId());
     }
 
     public CobrarVentaWebResponse toResponse(CobrarVentaResponse response) {
@@ -71,6 +72,7 @@ public class CajaPresentationMapper {
                         linea.cantidad(), linea.precio(), linea.importe())).toList(), response.medio(),
                 response.total(), response.recibido(), response.vuelto(), response.creadoEn(),
                 response.pagos().stream().map(pago ->
-                        new CobrarVentaWebResponse.PagoWebResponse(pago.medio(), pago.importe())).toList());
+                        new CobrarVentaWebResponse.PagoWebResponse(pago.medio(), pago.importe())).toList(),
+                response.clienteId(), response.clienteNombre(), response.cobrado(), response.saldo(), response.estado());
     }
 }

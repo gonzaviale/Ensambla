@@ -68,6 +68,17 @@ class PagosCajaTest {
         thenRejects(List.of(pago("2000", MedioPagoCaja.EFECTIVO)), new BigDecimal("2000.001"));
     }
 
+    @Test
+    @DisplayName("Rechaza un cobro mayor al total aunque haya cliente")
+    void nuevaShouldRejectOverpaymentWithCustomer() {
+        VentaCaja base = CierreCajaTestData.venta();
+
+        assertThatThrownBy(() -> VentaCaja.nueva(base.id(), base.negocioId(), base.proyectoId(),
+                base.inventarioId(), base.huella(), base.lineas(), MedioPagoCaja.TRANSFERENCIA, null,
+                base.creadoEn(), List.of(pago("2001", MedioPagoCaja.TRANSFERENCIA)), CajaTestData.CLIENTE, "Ana"))
+                .isInstanceOf(BusinessRuleException.class);
+    }
+
     // --- assert ---
     private void thenRejects(List<PagoCaja> pagos, BigDecimal recibido) {
         VentaCaja base = CierreCajaTestData.venta();

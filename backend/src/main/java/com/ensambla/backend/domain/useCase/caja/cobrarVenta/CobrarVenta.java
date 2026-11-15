@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @RequiredArgsConstructor
 public class CobrarVenta {
@@ -63,27 +64,28 @@ public class CobrarVenta {
                 .orElseThrow(() -> new ResourceNotFoundException("Sistema no encontrado"));
         Bloque inventario = obtenerBloque(sistema, request.inventarioId(), TipoBloque.INVENTARIO);
         Bloque ventas = obtenerBloque(sistema, request.ventasId(), TipoBloque.VENTAS);
+        String clienteNombre = obtenerCliente(sistema, ventas, request.clienteId());
         Campo relacion = campo(ventas, "product");
         if (!inventario.getId().equals(relacion.getBloqueRelacionadoId())) {
             throw new BusinessRuleException("La tabla de ventas debe usar el inventario elegido");
         }
         OffsetDateTime ahora = OffsetDateTime.now(clock);
         controlPlanService.validarAltaRegistros(negocioId, request.lineas().size(), ahora);
-        List<LineaVentaCaja> lineas = aplicarLineas(sistema, inventario, ventas, request, ahora);
+        List<LineaVentaCaja> lineas = aplicarLineas(sistema, inventario, request, ahora);
         VentaCaja venta = VentaCaja.nueva(request.id(), negocioId, sistema.id(), request.inventarioId(),
                 request.huella(), lineas, MedioPagoCaja.valueOf(request.medio()), request.recibido(), ahora,
                 request.pagos() == null ? null : request.pagos().stream()
-                        .map(pago -> new PagoCaja(MedioPagoCaja.valueOf(pago.medio()), pago.importe())).toList());
+                        .map(pago -> new PagoCaja(MedioPagoCaja.valueOf(pago.medio()), pago.importe())).toList(),
+                request.clienteId(), clienteNombre);
+        registrarLineasVentas(sistema, ventas, venta, ahora);
         sistema.proyecto().setActualizadoEn(ahora);
         sistemaRepository.guardar(sistema);
         return ventaCajaRepository.save(venta);
     }
 
-    private List<LineaVentaCaja> aplicarLineas(Sistema sistema, Bloque inventario, Bloque ventas,
+    private List<LineaVentaCaja> aplicarLineas(Sistema sistema, Bloque inventario,
             CobrarVentaRequest request, OffsetDateTime ahora) {
         List<LineaVentaCaja> lineas = new ArrayList<>();
-        List<Registro> filasVentas = new ArrayList<>(sistema.registrosPorBloque()
-                .getOrDefault(ventas.getId(), List.of()));
         for (var entrada : request.lineas()) {
             Registro producto = sistema.registrosPorBloque().getOrDefault(inventario.getId(), List.of()).stream()
                     .filter(item -> item.getId().equals(entrada.productoId())).findFirst()
@@ -97,11 +99,17 @@ public class CobrarVenta {
             LineaVentaCaja linea = LineaVentaCaja.de(producto.getId(),
                     String.valueOf(valor(inventario, producto, "name")), modo, entrada.cantidad(), precio);
             descontarStock(inventario, producto, linea, ahora);
-            filasVentas.add(registroVenta(sistema, ventas, linea, request, filasVentas.size(), ahora));
             lineas.add(linea);
         }
-        sistema.registrosPorBloque().put(ventas.getId(), filasVentas);
         return lineas;
+    }
+
+    private void registrarLineasVentas(Sistema sistema, Bloque ventas, VentaCaja venta, OffsetDateTime ahora) {
+        List<Registro> filas = new ArrayList<>(sistema.registrosPorBloque().getOrDefault(ventas.getId(), List.of()));
+        for (LineaVentaCaja linea : venta.lineas()) {
+            filas.add(registroVenta(sistema, ventas, linea, venta, filas.size(), ahora));
+        }
+        sistema.registrosPorBloque().put(ventas.getId(), filas);
     }
 
     private void descontarStock(Bloque inventario, Registro producto, LineaVentaCaja linea, OffsetDateTime ahora) {
@@ -119,18 +127,24 @@ public class CobrarVenta {
     }
 
     private Registro registroVenta(Sistema sistema, Bloque ventas, LineaVentaCaja linea,
-            CobrarVentaRequest request, int orden, OffsetDateTime ahora) {
+            VentaCaja venta, int orden, OffsetDateTime ahora) {
         Map<String, Object> valores = new LinkedHashMap<>();
         valores.put(campo(ventas, "product").getId().toString(), linea.productoId().toString());
         valores.put(campo(ventas, "quantity").getId().toString(), linea.cantidad());
         valores.put(campo(ventas, "price").getId().toString(), linea.precio());
+        ventas.getCampos().stream().filter(item -> "customer".equals(item.getClave())).findFirst()
+                .ifPresent(item -> valores.put(item.getId().toString(), venta.clienteId() == null
+                        ? null : item.getBloqueRelacionadoId() == null ? venta.clienteNombre()
+                                : venta.clienteId().toString()));
+        ventas.getCampos().stream().filter(item -> "credit".equals(item.getClave())).findFirst()
+                .ifPresent(item -> valores.put(item.getId().toString(), venta.saldo().signum() > 0));
         valores.put(campo(ventas, "date").getId().toString(),
                 ZonaNegocio.dia(ahora).toString());
         Registro fila = Registro.nuevo(sistema.proyecto().getNegocioId(), ventas.getId(),
                 Registro.validar(ventas.getCampos(), valores), ahora);
         fila.setId(RegistroId.nuevo());
         fila.setOrden(orden);
-        fila.setOrigen("Caja " + request.id());
+        fila.setOrigen("Caja " + venta.id());
         return fila;
     }
 
@@ -138,6 +152,25 @@ public class CobrarVenta {
         return sistema.proyecto().getBloques().stream()
                 .filter(bloque -> bloque.getId().equals(id) && bloque.getTipo() == tipo).findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("Tabla de caja no encontrada"));
+    }
+
+    private String obtenerCliente(Sistema sistema, Bloque ventas, RegistroId clienteId) {
+        if (clienteId == null) {
+            return null;
+        }
+        BloqueId destino = ventas.getCampos().stream().filter(item -> "customer".equals(item.getClave()))
+                .map(Campo::getBloqueRelacionadoId).filter(Objects::nonNull).findFirst().orElse(null);
+        for (Bloque tabla : sistema.proyecto().getBloques()) {
+            if (tabla.getTipo() == TipoBloque.CLIENTES && (destino == null || destino.equals(tabla.getId()))) {
+                var cliente = sistema.registrosPorBloque().getOrDefault(tabla.getId(), List.of()).stream()
+                        .filter(fila -> fila.getId().equals(clienteId) && !Boolean.TRUE.equals(fila.getEsEjemplo()))
+                        .findFirst();
+                if (cliente.isPresent()) {
+                    return String.valueOf(valor(tabla, cliente.get(), "name"));
+                }
+            }
+        }
+        throw new ResourceNotFoundException("Cliente no encontrado en el negocio");
     }
 
     private Campo campo(Bloque bloque, String clave) {
