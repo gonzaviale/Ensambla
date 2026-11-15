@@ -15,7 +15,9 @@ import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
+import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.service.objetivo.PropuestaMiniObjetivosService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.objetivo.ObjetivoItem;
 import com.ensambla.backend.domain.useCase.objetivo.guardarObjetivoConSami.GuardarObjetivoConSamiRequest.MiniElegido;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +35,8 @@ import java.util.List;
  * cumplir las reglas de una acción.
  * <p>
  * Con {@code seguimientoManual} guarda el seguimiento de respaldo (cuando la IA no estuvo): no cuenta como armado con
- * Sami.
+ * Sami ni gasta cuota. Un objetivo armado con Sami gasta una unidad de la cuota mensual del plan, que no se devuelve si
+ * después se borra; sin cuota responde {@code LIMITE_OBJETIVOS_IA} y no guarda nada.
  */
 @RequiredArgsConstructor
 public class GuardarObjetivoConSami {
@@ -47,6 +50,10 @@ public class GuardarObjetivoConSami {
     private final MiniObjetivoRepository miniObjetivoRepository;
 
     private final PropuestaMiniObjetivosService propuestaMiniObjetivosService;
+
+    private final ControlPlanService controlPlanService;
+
+    private final UsoPlanRepository usoPlanRepository;
 
     private final TransaccionPort transaccionPort;
 
@@ -64,9 +71,16 @@ public class GuardarObjetivoConSami {
         return ObjetivoItem.de(transaccionPort.ejecutar(() -> guardar(objetivo, minis, hoy, ahora)));
     }
 
+    /** Un objetivo armado con IA gasta una unidad de la cuota del mes, comprobada con el negocio bloqueado. */
     private Objetivo guardar(
             Objetivo nuevo, List<MiniObjetivoPropuesto> minis, LocalDate hoy, OffsetDateTime ahora) {
+        if (nuevo.isArmadoConSami()) {
+            controlPlanService.validarObjetivoIa(nuevo.getNegocioId(), ahora);
+        }
         Objetivo guardado = objetivoRepository.save(nuevo);
+        if (nuevo.isArmadoConSami()) {
+            usoPlanRepository.registrarObjetivoIa(guardado.getNegocioId(), guardado.getId(), ahora);
+        }
         LocalDate semana = SemanaObjetivo.lunesDe(hoy);
         for (int indice = 0; indice < minis.size(); indice++) {
             miniObjetivoRepository.save(minis.get(indice).aMiniObjetivo(guardado, indice + 1, semana, ahora));

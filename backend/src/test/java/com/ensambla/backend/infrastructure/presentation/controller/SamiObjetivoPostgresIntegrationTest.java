@@ -1,9 +1,11 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.infrastructure.presentation.dto.auth.CsrfResponse;
 import com.ensambla.backend.support.AlmacenDeObjetivosDePrueba;
 import com.ensambla.backend.support.PostgresRepositoryTestSupport;
+import com.ensambla.backend.support.SuscripcionesDePrueba;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.Filter;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -35,6 +38,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -67,6 +72,9 @@ class SamiObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport 
     @Autowired
     private SistemaRepository sistemaRepository;
 
+    @Autowired
+    private SuscripcionesDePrueba suscripciones;
+
     private MockMvc mockMvc;
     private MockHttpSession sesion;
     private String csrfToken;
@@ -78,6 +86,7 @@ class SamiObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport 
         UUID usuarioId = givenUsuarioYNegocio();
         negocioId = jdbcTemplate.queryForObject("SELECT id FROM negocio WHERE duenio_id = ?", UUID.class, usuarioId);
         AlmacenDeObjetivosDePrueba.guardar(sistemaRepository, negocioId);
+        suscripciones.asignarGratuito(NegocioId.de(negocioId), OffsetDateTime.now().minusDays(1));
         sesion = givenSesion(usuarioId);
     }
 
@@ -101,6 +110,76 @@ class SamiObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport 
                 .andExpect(jsonPath("$.datos.length()").value(5))
                 .andExpect(jsonPath("$.datos[0].fuente").value("VENTAS"))
                 .andExpect(jsonPath("$.datos[0].hay").value(true));
+    }
+
+    @Test
+    @DisplayName("La propuesta dice cuántos objetivos con IA lleva el mes y cuántos permite el plan")
+    void proponerShouldReportTheMonthlyAllowance() throws Exception {
+        whenPropuesta(CONVERSACION)
+                .andExpect(jsonPath("$.cuota.usadas").value(0))
+                .andExpect(jsonPath("$.cuota.limite").value(5))
+                .andExpect(jsonPath("$.cuota.restantes").value(5));
+    }
+
+    @Test
+    @DisplayName("Guardar con IA gasta una unidad de la cuota, que se ve en la propuesta y en Planes")
+    void guardarShouldSpendOneUnitOfTheAllowance() throws Exception {
+        String propuesta = whenPropuesta(CONVERSACION).andReturn().getResponse().getContentAsString();
+
+        whenGuardar(aceptando(propuesta, false)).andExpect(status().isCreated());
+
+        whenPropuesta(CONVERSACION)
+                .andExpect(jsonPath("$.cuota.usadas").value(1))
+                .andExpect(jsonPath("$.cuota.restantes").value(4));
+        mockMvc.perform(get("/api/planes").session(sesion))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.uso.objetivosIa").value(1))
+                .andExpect(jsonPath("$.uso.limiteObjetivosIa").value(5))
+                .andExpect(jsonPath("$.planes[0].limiteObjetivosIaMensuales").value(5))
+                .andExpect(jsonPath("$.planes[1].limiteObjetivosIaMensuales").value(20));
+    }
+
+    @Test
+    @DisplayName("Con la cuota agotada la propuesta no usa la IA y guardar con IA responde 403 LIMITE_OBJETIVOS_IA")
+    void shouldStopWhenTheAllowanceIsUsed() throws Exception {
+        String propuesta = whenPropuesta(CONVERSACION).andReturn().getResponse().getContentAsString();
+        givenCuotaAgotada();
+
+        whenPropuesta(CONVERSACION)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.origen").value("RESPALDO"))
+                .andExpect(jsonPath("$.respuesta").value(startsWith("Ya armaste los 5 objetivos")))
+                .andExpect(jsonPath("$.cuota.restantes").value(0));
+        whenGuardar(aceptando(propuesta, false))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.codigo").value("LIMITE_OBJETIVOS_IA"));
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM objetivo WHERE negocio_id = ?",
+                Integer.class, negocioId)).isZero();
+    }
+
+    @Test
+    @DisplayName("Con la cuota agotada el seguimiento manual se guarda igual y no gasta nada")
+    void guardarShouldStillSaveTheManualFollowUpWithoutAllowance() throws Exception {
+        givenCuotaAgotada();
+
+        whenGuardar("{\"texto\":\"" + OBJETIVO + "\",\"seguimientoManual\":true}")
+                .andExpect(status().isCreated());
+
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM consumo_objetivo_ia WHERE negocio_id = ?",
+                Integer.class, negocioId)).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("Eliminar el objetivo no devuelve la cuota del mes")
+    void eliminarShouldNotGiveTheAllowanceBack() throws Exception {
+        String propuesta = whenPropuesta(CONVERSACION).andReturn().getResponse().getContentAsString();
+        String objetivoId = JsonPath.read(whenGuardar(aceptando(propuesta, false))
+                .andReturn().getResponse().getContentAsString(), "$.id");
+
+        mockMvc.perform(delete(OBJETIVOS + "/{id}", objetivoId).session(sesion).header("X-CSRF-TOKEN", csrfToken))
+                .andExpect(status().isNoContent());
+
+        whenPropuesta(CONVERSACION).andExpect(jsonPath("$.cuota.usadas").value(1));
     }
 
     @Test
@@ -264,6 +343,13 @@ class SamiObjetivoPostgresIntegrationTest extends PostgresRepositoryTestSupport 
         cuerpo.put("seguimientoManual", seguimientoManual);
         cuerpo.put("minis", minis);
         return JSON.writeValueAsString(cuerpo);
+    }
+
+    private void givenCuotaAgotada() {
+        for (int indice = 0; indice < 5; indice++) {
+            jdbcTemplate.update("INSERT INTO consumo_objetivo_ia (negocio_id, objetivo_id, consumido_en) "
+                    + "VALUES (?, ?, now())", negocioId, UUID.randomUUID());
+        }
     }
 
     private UUID givenUsuarioYNegocio() {

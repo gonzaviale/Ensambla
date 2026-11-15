@@ -45,6 +45,17 @@ public record PropuestaObjetivo(
                 OrigenPropuesta.RESPALDO);
     }
 
+    /** Sin cuota del mes: no se consulta a la IA y se ofrece el seguimiento manual o mirar los planes. */
+    public static PropuestaObjetivo sinCuota(String objetivoDeLaPersona, Integer limite) {
+        return new PropuestaObjetivo(
+                "Ya armaste los " + limite + " objetivos con Sami que incluye tu plan este mes. Podés guardar tu "
+                        + "objetivo como seguimiento, o mirar los planes en «Planes» para armar más.",
+                null,
+                false,
+                List.of(MiniObjetivoPropuesto.manual(AccionManual.seguimiento(objetivoDeLaPersona), false)),
+                OrigenPropuesta.RESPALDO);
+    }
+
     /** El tipo que tendría el objetivo al guardarlo; vacío si no hay mini-objetivos o es una meta en pesos. */
     public Optional<TipoObjetivo> tipo() {
         return puedeGuardar() ? Optional.of(TipoObjetivo.de(minis)) : Optional.empty();

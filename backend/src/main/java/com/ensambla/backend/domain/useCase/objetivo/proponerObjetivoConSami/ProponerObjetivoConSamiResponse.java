@@ -8,6 +8,7 @@ import com.ensambla.backend.domain.model.objetivo.OrigenPropuesta;
 import com.ensambla.backend.domain.model.objetivo.PropuestaObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoObjetivo;
+import com.ensambla.backend.domain.model.plan.CuotaObjetivosIa;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 
 import java.math.BigDecimal;
@@ -20,6 +21,7 @@ import java.util.List;
  * @param tipo              el tipo que tendría el objetivo al guardarlo; {@code null} si no hay nada para guardar
  * @param datos             qué fuentes tiene el negocio y cuáles no
  * @param mensajesRestantes cuántos mensajes más admite la conversación
+ * @param cuota             los objetivos con IA que lleva guardados este mes y los que permite su plan
  */
 public record ProponerObjetivoConSamiResponse(
         String respuesta,
@@ -30,7 +32,21 @@ public record ProponerObjetivoConSamiResponse(
         List<DatoItem> datos,
         OrigenPropuesta origen,
         int mensajesRestantes,
-        boolean puedeGuardar) {
+        boolean puedeGuardar,
+        CuotaItem cuota) {
+
+    /**
+     * Los objetivos con IA del mes.
+     *
+     * @param limite    vacío si el plan no tiene límite
+     * @param restantes vacío si el plan no tiene límite
+     */
+    public record CuotaItem(long usadas, Integer limite, Integer restantes) {
+
+        public static CuotaItem de(CuotaObjetivosIa cuota) {
+            return new CuotaItem(cuota.usadas(), cuota.limite(), cuota.restantes());
+        }
+    }
 
     /**
      * Un mini-objetivo propuesto. Uno manual no tiene métrica ni números: su tipo, producto, referencia, valores,
@@ -69,7 +85,7 @@ public record ProponerObjetivoConSamiResponse(
     }
 
     public static ProponerObjetivoConSamiResponse de(
-            PropuestaObjetivo propuesta, List<DatoUsado> datos, int mensajesRestantes) {
+            PropuestaObjetivo propuesta, List<DatoUsado> datos, int mensajesRestantes, CuotaObjetivosIa cuota) {
         return new ProponerObjetivoConSamiResponse(
                 propuesta.respuesta(),
                 propuesta.entendido(),
@@ -79,6 +95,7 @@ public record ProponerObjetivoConSamiResponse(
                 datos.stream().map(DatoItem::de).toList(),
                 propuesta.origen(),
                 mensajesRestantes,
-                propuesta.puedeGuardar());
+                propuesta.puedeGuardar(),
+                CuotaItem.de(cuota));
     }
 }

@@ -14,12 +14,14 @@ import com.ensambla.backend.domain.model.objetivo.OrigenPropuesta;
 import com.ensambla.backend.domain.model.objetivo.PropuestaObjetivoIa;
 import com.ensambla.backend.domain.model.objetivo.RolMensaje;
 import com.ensambla.backend.domain.model.objetivo.TipoObjetivo;
+import com.ensambla.backend.domain.model.plan.CuotaObjetivosIa;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.port.ConversacionObjetivosIaPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
 import com.ensambla.backend.domain.service.objetivo.PropuestaMiniObjetivosService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.useCase.objetivo.proponerObjetivoConSami.ProponerObjetivoConSamiResponse.CuotaItem;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -80,6 +82,7 @@ class ProponerObjetivoConSamiTest {
         when(propuestaMiniObjetivosService.medidor(NEGOCIO_ID, HOY)).thenReturn(medidor);
         when(propuestaMiniObjetivosService.candidatos(NEGOCIO_ID, medidor)).thenReturn(catalogo());
         when(propuestaMiniObjetivosService.zona(NEGOCIO_ID)).thenReturn(AnalisisZona.sinZona());
+        when(controlPlanService.cuotaObjetivosIa(NEGOCIO_ID, AHORA)).thenReturn(new CuotaObjetivosIa(2, 5));
     }
 
     @Test
@@ -102,6 +105,36 @@ class ProponerObjetivoConSamiTest {
                 .containsExactly(ModoMiniObjetivo.MEDIDO, ModoMiniObjetivo.MANUAL);
         assertThat(result.minis().get(0).titulo()).isEqualTo(catalogo().get(2).titulo());
         assertThat(result.minis().get(1).tipo()).isNull();
+        assertThat(result.cuota()).isEqualTo(new CuotaItem(2, 5, 3));
+    }
+
+    @Test
+    @DisplayName("Con la cuota del mes agotada no consulta a la IA: explica y ofrece el seguimiento manual")
+    void executeShouldNotConsultTheIaWhenTheMonthlyAllowanceIsUsed() {
+        when(controlPlanService.cuotaObjetivosIa(NEGOCIO_ID, AHORA)).thenReturn(new CuotaObjetivosIa(5, 5));
+
+        ProponerObjetivoConSamiResponse result = whenProponer(true, mensajes());
+
+        assertThat(result.origen()).isEqualTo(OrigenPropuesta.RESPALDO);
+        assertThat(result.respuesta()).startsWith("Ya armaste los 5 objetivos con Sami").contains("«Planes»");
+        assertThat(result.tipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
+        assertThat(result.puedeGuardar()).isTrue();
+        assertThat(result.cuota()).isEqualTo(new CuotaItem(5, 5, 0));
+        verifyNoInteractions(consumoSamiRepository, conversacionObjetivosIaPort);
+        verify(controlPlanService, never()).exigirIa(any());
+    }
+
+    @Test
+    @DisplayName("En un plan sin límite la cuota viene sin límite ni restantes y no se agota")
+    void executeShouldReportAnUnlimitedAllowance() {
+        givenIaDisponible();
+        when(controlPlanService.cuotaObjetivosIa(NEGOCIO_ID, AHORA)).thenReturn(new CuotaObjetivosIa(40, null));
+        when(conversacionObjetivosIaPort.conversar(any(ConsultaObjetivoIa.class))).thenReturn(respuestaIa());
+
+        ProponerObjetivoConSamiResponse result = whenProponer(true, mensajes());
+
+        assertThat(result.origen()).isEqualTo(OrigenPropuesta.IA);
+        assertThat(result.cuota()).isEqualTo(new CuotaItem(40, null, null));
     }
 
     @Test
@@ -194,7 +227,8 @@ class ProponerObjetivoConSamiTest {
             assertThat(mini.justificacion()).contains(OBJETIVO);
         });
         assertThat(result.puedeGuardar()).isTrue();
-        verifyNoInteractions(controlPlanService, consumoSamiRepository, conversacionObjetivosIaPort);
+        verify(controlPlanService, never()).exigirIa(any());
+        verifyNoInteractions(consumoSamiRepository, conversacionObjetivosIaPort);
     }
 
     @Test

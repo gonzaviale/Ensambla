@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.lote.LoteId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.objetivo.ObjetivoId;
 import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.plan.PlanId;
 import com.ensambla.backend.domain.model.procesamiento.LoteTrabajo;
@@ -403,5 +404,70 @@ class ControlPlanPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         Proyecto proyecto = proyectoRepository.obtener(NegocioId.de(negocioId), ProyectoId.de(proyectoId));
         proyecto.renombrar(nombre, AHORA);
         proyectoRepository.save(proyecto);
+    }
+
+    @Test
+    @DisplayName("Cuenta los objetivos con IA del mes del negocio y no los de otros meses ni los de otro negocio")
+    void objetivosIaEnPeriodoShouldCountOnlyTheMonthOfTheBusiness() {
+        NegocioId negocio = NegocioId.de(negocioId);
+        usoPlanRepository.registrarObjetivoIa(negocio, ObjetivoId.nuevo(), AHORA);
+        usoPlanRepository.registrarObjetivoIa(negocio, ObjetivoId.nuevo(), AHORA.plusDays(3));
+        usoPlanRepository.registrarObjetivoIa(negocio, ObjetivoId.nuevo(), AHORA.minusMonths(1));
+        UUID otro = givenOtroNegocio();
+        usoPlanRepository.registrarObjetivoIa(NegocioId.de(otro), ObjetivoId.nuevo(), AHORA);
+
+        long result = usoPlanRepository.objetivosIaEnPeriodo(negocio,
+                OffsetDateTime.parse("2026-10-01T03:00:00Z"), OffsetDateTime.parse("2026-11-01T03:00:00Z"));
+
+        assertThat(result).isEqualTo(2);
+        borrarNegocio(otro);
+    }
+
+    @Test
+    @DisplayName("El gratuito guarda cinco objetivos con IA por mes y el sexto responde LIMITE_OBJETIVOS_IA")
+    void validarObjetivoIaShouldStopTheFreePlanAtFive() {
+        NegocioId negocio = NegocioId.de(negocioId);
+        for (int indice = 0; indice < 4; indice++) {
+            usoPlanRepository.registrarObjetivoIa(negocio, ObjetivoId.nuevo(), AHORA);
+        }
+        assertThatCode(() -> controlPlanService.validarObjetivoIa(negocio, AHORA)).doesNotThrowAnyException();
+        usoPlanRepository.registrarObjetivoIa(negocio, ObjetivoId.nuevo(), AHORA);
+
+        assertThatThrownBy(() -> controlPlanService.validarObjetivoIa(negocio, AHORA))
+                .isInstanceOf(RestriccionPlanException.class)
+                .satisfies(e -> assertThat(((RestriccionPlanException) e).getCodigo())
+                        .isEqualTo("LIMITE_OBJETIVOS_IA"));
+        assertThat(controlPlanService.cuotaObjetivosIa(negocio, AHORA).restantes()).isZero();
+    }
+
+    @Test
+    @DisplayName("Borrar un objetivo no devuelve la cuota del mes y borrar el negocio borra su consumo")
+    void consumoDeObjetivosIaShouldOutliveTheObjetivo() {
+        NegocioId negocio = NegocioId.de(negocioId);
+        UUID objetivo = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO objetivo (id, negocio_id, texto, tipo, armado_con_sami) "
+                + "VALUES (?, ?, 'Que me conozcan', 'SIN_DATOS', true)", objetivo, negocioId);
+        usoPlanRepository.registrarObjetivoIa(negocio, ObjetivoId.de(objetivo), AHORA);
+
+        jdbcTemplate.update("DELETE FROM objetivo WHERE id = ?", objetivo);
+
+        assertThat(controlPlanService.cuotaObjetivosIa(negocio, AHORA).usadas()).isEqualTo(1);
+    }
+
+    private void borrarNegocio(UUID negocio) {
+        UUID duenio = jdbcTemplate.queryForObject("SELECT duenio_id FROM negocio WHERE id = ?", UUID.class, negocio);
+        jdbcTemplate.update("DELETE FROM negocio WHERE id = ?", negocio);
+        jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", duenio);
+    }
+
+    private UUID givenOtroNegocio() {
+        UUID otroUsuario = UUID.randomUUID();
+        UUID otroNegocio = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO usuario (id, email, nombre) VALUES (?, ?, 'Otro')",
+                otroUsuario, otroUsuario + "@example.test");
+        jdbcTemplate.update("INSERT INTO negocio (id, nombre, duenio_id) VALUES (?, 'Otro', ?)",
+                otroNegocio, otroUsuario);
+        suscripcionService.asignarGratuito(NegocioId.de(otroNegocio), AHORA.minusDays(30));
+        return otroNegocio;
     }
 }

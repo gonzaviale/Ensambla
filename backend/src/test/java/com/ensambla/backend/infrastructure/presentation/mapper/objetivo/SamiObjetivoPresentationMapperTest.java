@@ -97,7 +97,8 @@ class SamiObjetivoPresentationMapperTest {
                         TipoMiniObjetivo.SUBIR_PRECIO, PRODUCTO_ID, PRODUCTO, "Título", "Razón", null, null, null,
                         false)),
                 List.of(new ProponerObjetivoConSamiResponse.DatoItem(FuenteDato.ZONA, true)),
-                OrigenPropuesta.IA, 4, true);
+                OrigenPropuesta.IA, 4, true,
+                new ProponerObjetivoConSamiResponse.CuotaItem(2, 5, 3));
 
         PropuestaObjetivoWebResponse result = mapper.toResponse(propuesta);
 
@@ -108,6 +109,9 @@ class SamiObjetivoPresentationMapperTest {
         assertThat(result.origen()).isEqualTo(OrigenPropuesta.IA);
         assertThat(result.mensajesRestantes()).isEqualTo(4);
         assertThat(result.puedeGuardar()).isTrue();
+        assertThat(result.cuota().usadas()).isEqualTo(2);
+        assertThat(result.cuota().limite()).isEqualTo(5);
+        assertThat(result.cuota().restantes()).isEqualTo(3);
         assertThat(result.minis()).singleElement().satisfies(mini -> {
             assertThat(mini.modo()).isEqualTo(ModoMiniObjetivo.MEDIDO);
             assertThat(mini.tipo()).isEqualTo(TipoMiniObjetivo.SUBIR_PRECIO);

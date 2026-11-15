@@ -9,6 +9,7 @@ import com.ensambla.backend.domain.model.objetivo.OrigenPropuesta;
 import com.ensambla.backend.domain.model.objetivo.PropuestaObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoObjetivo;
+import com.ensambla.backend.domain.model.plan.CuotaObjetivosIa;
 import com.ensambla.backend.domain.useCase.objetivo.proponerObjetivoConSami.ProponerObjetivoConSamiResponse.MiniPropuestoItem;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,7 @@ class ProponerObjetivoConSamiResponseTest {
                 List.of(MiniObjetivoPropuesto.medido(candidato())), OrigenPropuesta.IA);
 
         ProponerObjetivoConSamiResponse result = ProponerObjetivoConSamiResponse.de(
-                propuesta, List.of(new DatoUsado(FuenteDato.ZONA, false)), 4);
+                propuesta, List.of(new DatoUsado(FuenteDato.ZONA, false)), 4, new CuotaObjetivosIa(2, 5));
 
         assertThat(result.respuesta()).isEqualTo(RESPUESTA_IA);
         assertThat(result.entendido()).isEqualTo(ENTENDIDO);
@@ -47,6 +48,9 @@ class ProponerObjetivoConSamiResponseTest {
         assertThat(result.origen()).isEqualTo(OrigenPropuesta.IA);
         assertThat(result.mensajesRestantes()).isEqualTo(4);
         assertThat(result.puedeGuardar()).isTrue();
+        assertThat(result.cuota().usadas()).isEqualTo(2);
+        assertThat(result.cuota().limite()).isEqualTo(5);
+        assertThat(result.cuota().restantes()).isEqualTo(3);
         assertThat(result.datos()).singleElement().satisfies(dato -> {
             assertThat(dato.fuente()).isEqualTo(FuenteDato.ZONA);
             assertThat(dato.hay()).isFalse();
@@ -93,12 +97,14 @@ class ProponerObjetivoConSamiResponseTest {
     void deShouldHaveNoTypeForAMonetaryGoal() {
         PropuestaObjetivo propuesta = new PropuestaObjetivo(RESPUESTA_IA, null, true, List.of(), OrigenPropuesta.IA);
 
-        ProponerObjetivoConSamiResponse result = ProponerObjetivoConSamiResponse.de(propuesta, List.of(), 5);
+        ProponerObjetivoConSamiResponse result = ProponerObjetivoConSamiResponse.de(propuesta, List.of(), 5, new CuotaObjetivosIa(0, null));
 
         assertThat(result.tipo()).isNull();
         assertThat(result.entendido()).isNull();
         assertThat(result.esMonetario()).isTrue();
         assertThat(result.puedeGuardar()).isFalse();
         assertThat(result.minis()).isEmpty();
+        assertThat(result.cuota().limite()).isNull();
+        assertThat(result.cuota().restantes()).isNull();
     }
 }

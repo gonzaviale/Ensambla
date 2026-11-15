@@ -6,6 +6,7 @@ import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.AccesoIa;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
+import com.ensambla.backend.domain.model.plan.CuotaObjetivosIa;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.FuncionPlan;
 import com.ensambla.backend.domain.model.plan.Plan;
@@ -93,6 +94,31 @@ public class ControlPlanService {
             LocalDate mes = ZonaNegocio.primerDiaDelMes(ahora);
             plan.validarPaginasIa(usoPlanRepository.paginasEnPeriodo(negocioId, mes, mes.plusMonths(1)), cantidad);
         });
+    }
+
+    /** Los objetivos con IA de este mes (calendario argentino) y los que permite el plan vigente. */
+    public CuotaObjetivosIa cuotaObjetivosIa(NegocioId negocioId, OffsetDateTime ahora) {
+        return new CuotaObjetivosIa(
+                objetivosIaDelMes(negocioId, ahora), vigente(negocioId, ahora).getLimiteObjetivosIaMensuales());
+    }
+
+    /**
+     * Bloquea el negocio y comprueba que le quede cuota para un objetivo con IA más. Se llama dentro de la
+     * transacción que guarda el objetivo, así dos altas simultáneas no pasan el límite.
+     *
+     * @throws RestriccionPlanException si se agotó la cuota mensual
+     */
+    public void validarObjetivoIa(NegocioId negocioId, OffsetDateTime ahora) {
+        transaccionPort.ejecutar(() -> {
+            usoPlanRepository.bloquearNegocio(negocioId);
+            vigente(negocioId, ahora).validarObjetivosIa(objetivosIaDelMes(negocioId, ahora));
+        });
+    }
+
+    private long objetivosIaDelMes(NegocioId negocioId, OffsetDateTime ahora) {
+        LocalDate primerDia = ZonaNegocio.primerDiaDelMes(ahora);
+        return usoPlanRepository.objetivosIaEnPeriodo(negocioId, ZonaNegocio.inicioDelDia(primerDia),
+                ZonaNegocio.inicioDelDia(primerDia.plusMonths(1)));
     }
 
     public void validarFuncion(NegocioId negocioId, FuncionPlan funcion, OffsetDateTime ahora) {

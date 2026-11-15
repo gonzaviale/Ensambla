@@ -13,6 +13,7 @@ import com.ensambla.backend.infrastructure.presentation.dto.objetivo.GuardarObje
 import com.ensambla.backend.infrastructure.presentation.dto.objetivo.MiniElegidoWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.objetivo.ObjetivoResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.objetivo.PropuestaObjetivoWebResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.objetivo.PropuestaObjetivoWebResponse.CuotaWebResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.objetivo.PropuestaObjetivoWebResponse.DatoWebResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.objetivo.PropuestaObjetivoWebResponse.MiniPropuestoWebResponse;
 import com.ensambla.backend.infrastructure.presentation.dto.objetivo.ProponerObjetivoWebRequest;
@@ -54,7 +55,9 @@ public class SamiObjetivoPresentationMapper {
                 response.datos().stream().map(this::toResponse).toList(),
                 response.origen(),
                 response.mensajesRestantes(),
-                response.puedeGuardar());
+                response.puedeGuardar(),
+                new CuotaWebResponse(response.cuota().usadas(), response.cuota().limite(),
+                        response.cuota().restantes()));
     }
 
     public ObjetivoResponse toResponse(ObjetivoItem objetivo) {

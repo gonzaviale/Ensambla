@@ -2,6 +2,7 @@ package com.ensambla.backend.domain.useCase.objetivo.guardarObjetivoConSami;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.objetivo.CandidatosDelNegocio;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.ModoMiniObjetivo;
@@ -12,7 +13,9 @@ import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
+import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.service.objetivo.PropuestaMiniObjetivosService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.objetivo.ObjetivoItem;
 import com.ensambla.backend.domain.useCase.objetivo.guardarObjetivoConSami.GuardarObjetivoConSamiRequest.MiniElegido;
 import com.ensambla.backend.support.TransaccionDirecta;
@@ -42,6 +45,7 @@ import static com.ensambla.backend.support.ObjetivoTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -60,13 +64,15 @@ class GuardarObjetivoConSamiTest {
     private final MiniObjetivoRepository miniObjetivoRepository = mock(MiniObjetivoRepository.class);
     private final PropuestaMiniObjetivosService propuestaMiniObjetivosService =
             mock(PropuestaMiniObjetivosService.class);
+    private final ControlPlanService controlPlanService = mock(ControlPlanService.class);
+    private final UsoPlanRepository usoPlanRepository = mock(UsoPlanRepository.class);
     private GuardarObjetivoConSami guardarObjetivoConSami;
 
     @BeforeEach
     void setUp() {
         guardarObjetivoConSami = new GuardarObjetivoConSami(
                 negocioRepository, objetivoRepository, miniObjetivoRepository, propuestaMiniObjetivosService,
-                new TransaccionDirecta(), CLOCK);
+                controlPlanService, usoPlanRepository, new TransaccionDirecta(), CLOCK);
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(objetivoRepository.save(any(Objetivo.class))).thenAnswer(call -> {
             Objetivo objetivo = call.getArgument(0);
@@ -255,5 +261,38 @@ class GuardarObjetivoConSamiTest {
 
         assertThat(objetivoGuardado().getTipo()).isEqualTo(TipoObjetivo.HIBRIDO);
         verify(miniObjetivoRepository, times(2)).save(any(MiniObjetivo.class));
+    }
+
+    @Test
+    @DisplayName("Un objetivo armado con Sami gasta una unidad de la cuota: se valida antes de guardar y se anota después")
+    void executeShouldSpendOneUnitOfTheMonthlyAllowance() {
+        whenGuardar(false, accion());
+
+        InOrder orden = inOrder(controlPlanService, objetivoRepository, usoPlanRepository);
+        orden.verify(controlPlanService).validarObjetivoIa(NEGOCIO_ID, AHORA);
+        orden.verify(objetivoRepository).save(any(Objetivo.class));
+        orden.verify(usoPlanRepository).registrarObjetivoIa(NEGOCIO_ID, OBJETIVO_ID, AHORA);
+    }
+
+    @Test
+    @DisplayName("Sin cuota del mes no guarda el objetivo ni ningún mini-objetivo ni gasta nada")
+    void executeShouldSaveNothingWhenTheAllowanceIsUsed() {
+        doThrow(new RestriccionPlanException("LIMITE_OBJETIVOS_IA", "Ya armaste los 5 objetivos"))
+                .when(controlPlanService).validarObjetivoIa(NEGOCIO_ID, AHORA);
+
+        assertThatThrownBy(() -> whenGuardar(false, accion()))
+                .isInstanceOf(RestriccionPlanException.class)
+                .hasMessageContaining("Ya armaste los 5 objetivos");
+        verify(objetivoRepository, never()).save(any());
+        verify(miniObjetivoRepository, never()).save(any());
+        verifyNoInteractions(usoPlanRepository);
+    }
+
+    @Test
+    @DisplayName("El seguimiento manual no gasta ni consulta la cuota")
+    void executeShouldNotSpendTheAllowanceOnTheManualFollowUp() {
+        whenGuardar(true);
+
+        verifyNoInteractions(controlPlanService, usoPlanRepository);
     }
 }

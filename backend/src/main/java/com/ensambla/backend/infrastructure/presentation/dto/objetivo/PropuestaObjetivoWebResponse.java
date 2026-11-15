@@ -20,7 +20,12 @@ public record PropuestaObjetivoWebResponse(
         List<DatoWebResponse> datos,
         OrigenPropuesta origen,
         int mensajesRestantes,
-        boolean puedeGuardar) {
+        boolean puedeGuardar,
+        CuotaWebResponse cuota) {
+
+    /** Los objetivos con IA del mes; {@code limite} y {@code restantes} vacíos si el plan no tiene límite. */
+    public record CuotaWebResponse(long usadas, Integer limite, Integer restantes) {
+    }
 
     public record MiniPropuestoWebResponse(
             ModoMiniObjetivo modo,

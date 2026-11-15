@@ -9,6 +9,7 @@ import com.ensambla.backend.domain.model.objetivo.OrigenPropuesta;
 import com.ensambla.backend.domain.model.objetivo.PropuestaObjetivo;
 import com.ensambla.backend.domain.model.objetivo.RolMensaje;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
+import com.ensambla.backend.domain.model.plan.CuotaObjetivosIa;
 import com.ensambla.backend.domain.useCase.objetivo.ObjetivoItem;
 import com.ensambla.backend.domain.useCase.objetivo.guardarObjetivoConSami.GuardarObjetivoConSami;
 import com.ensambla.backend.domain.useCase.objetivo.guardarObjetivoConSami.GuardarObjetivoConSamiRequest;
@@ -78,7 +79,7 @@ class SamiObjetivoControllerTest {
         PropuestaObjetivo propuesta = new PropuestaObjetivo(RESPUESTA_IA, ENTENDIDO, false,
                 List.of(MiniObjetivoPropuesto.medido(candidato())), OrigenPropuesta.IA);
         when(proponerObjetivoConSami.execute(any())).thenReturn(ProponerObjetivoConSamiResponse.de(
-                propuesta, List.of(new DatoUsado(FuenteDato.ZONA, false)), 5));
+                propuesta, List.of(new DatoUsado(FuenteDato.ZONA, false)), 5, new CuotaObjetivosIa(2, 5)));
 
         ResultActions result = whenPropuesta(CONVERSACION);
 
@@ -95,14 +96,17 @@ class SamiObjetivoControllerTest {
                 .andExpect(jsonPath("$.minis[0].registroId").value(PRODUCTO_ID.toString()))
                 .andExpect(jsonPath("$.minis[0].referencia").value(PRODUCTO))
                 .andExpect(jsonPath("$.datos[0].fuente").value("ZONA"))
-                .andExpect(jsonPath("$.datos[0].hay").value(false));
+                .andExpect(jsonPath("$.datos[0].hay").value(false))
+                .andExpect(jsonPath("$.cuota.usadas").value(2))
+                .andExpect(jsonPath("$.cuota.limite").value(5))
+                .andExpect(jsonPath("$.cuota.restantes").value(3));
     }
 
     @Test
     @DisplayName("POST propuesta manda al caso de uso el usuario de la sesión y los mensajes")
     void proponerShouldPassTheRequestToTheUseCase() throws Exception {
         when(proponerObjetivoConSami.execute(any())).thenReturn(ProponerObjetivoConSamiResponse.de(
-                PropuestaObjetivo.respaldo(OBJETIVO), List.of(), 5));
+                PropuestaObjetivo.respaldo(OBJETIVO), List.of(), 5, new CuotaObjetivosIa(0, 5)));
 
         whenPropuesta(CONVERSACION).andExpect(status().isOk());
 

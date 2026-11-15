@@ -10,7 +10,8 @@ public record PlanesResponse(OffsetDateTime consultadoEn, List<PlanResponse> pla
     public record PlanResponse(String codigo, String nombre, boolean precioConfigurado, boolean limitesConfigurados,
                                 BigDecimal precioMensual,
                                 String moneda, Integer limiteProyectos, Long limiteRegistros,
-                                Integer limitePaginasIaMensuales, List<String> funciones) {
+                                Integer limitePaginasIaMensuales, Integer limiteObjetivosIaMensuales,
+                                List<String> funciones) {
     }
 
     public record SuscripcionResponse(String codigoPlanActual, boolean pruebaActiva, boolean puedeIniciarPrueba,
@@ -18,6 +19,7 @@ public record PlanesResponse(OffsetDateTime consultadoEn, List<PlanResponse> pla
     }
 
     public record UsoResponse(long proyectos, long registros, long paginasIa, Integer limitePaginasIa,
-                              String periodoIa, OffsetDateTime inicioPeriodoIa, OffsetDateTime finPeriodoIa) {
+                              String periodoIa, OffsetDateTime inicioPeriodoIa, OffsetDateTime finPeriodoIa,
+                              long objetivosIa, Integer limiteObjetivosIa) {
     }
 }

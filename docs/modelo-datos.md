@@ -8,7 +8,7 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V15__renovaciones_y_pagos_premium.sql`,
 `V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
 `V24__objetivo.sql`, `V29__mini_objetivo.sql`, `V30__progreso_objetivo.sql`, `V31__decision_objetivo.sql`,
-`V32__resumen_semanal_objetivo.sql`, `V33__objetivo_demo.sql`, `V34__objetivo_tipo_y_modo.sql`, `V35__respuesta_mini_objetivo.sql`).
+`V32__resumen_semanal_objetivo.sql`, `V33__objetivo_demo.sql`, `V34__objetivo_tipo_y_modo.sql`, `V35__respuesta_mini_objetivo.sql`, `V36__cuota_objetivos_ia.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -405,7 +405,17 @@ uno medido ya no está en el catálogo, dos miden lo mismo o una acción trae im
 persona como dato (sin correos ni teléfonos), el catálogo de métricas con códigos y datos agregados del negocio y de la zona;
 nunca nombres, contactos ni clientes. Una métrica fuera del catálogo se descarta y una acción con `$` o `%` también.
 `ensambla.objetivos.ia.conversacion-habilitada` apaga la conversación. Comparte el contador diario de Sami
-(`ensambla.objetivos.ia.limite-diario`). La cuota mensual por plan (Gratuito 5, Premium 20) la suma T-242.
+(`ensambla.objetivos.ia.limite-diario`). La cuota mensual por plan está en «Cuota mensual de objetivos con IA (V36)».
+
+### Cuota mensual de objetivos con IA (V36)
+
+`V36` suma `plan.limite_objetivos_ia_mensuales` (Gratuito 5, Premium 20; vacío es sin límite; `CHECK >= 0`) y la tabla
+`consumo_objetivo_ia`: una fila por objetivo armado con Sami con IA que se guardó (`negocio_id` con borrado en cascada,
+`objetivo_id` **sin** clave foránea y `consumido_en`). Borrar el objetivo no devuelve la cuota del mes. El mes es el del
+calendario argentino. Un monetario del formulario clásico y el seguimiento manual no gastan cuota.
+
+**API.** Guardar con IA sin cuota responde `403` con `codigo: "LIMITE_OBJETIVOS_IA"`. `GET /api/planes` suma
+`planes[].limiteObjetivosIaMensuales` y `uso.objetivosIa` / `uso.limiteObjetivosIa`; la propuesta de Sami trae `cuota`.
 
 ### Responder un mini-objetivo manual (V35)
 

@@ -30,6 +30,7 @@ public final class ConsultaPlanesTestData {
         premium.setLimiteProyectos(null);
         premium.setLimiteRegistros(null);
         premium.setLimitePaginasIaMensuales(100);
+        premium.setLimiteObjetivosIaMensuales(20);
         premium.setFunciones(List.of("RECETAS_COSTOS", "REPORTES_FILTRADOS", "EXPORTAR_EXCEL"));
         return premium;
     }
@@ -43,6 +44,6 @@ public final class ConsultaPlanesTestData {
         return new ConsultaPlanes(List.of(PlanTestData.plan(), premium()), PlanTestData.plan(), suscripcion,
                 conPrueba ? prueba() : null, false, !conPrueba, 2, 89, 6, 10, "MENSUAL",
                 AHORA.withDayOfMonth(1).withHour(0).withMinute(0),
-                AHORA.withDayOfMonth(1).withHour(0).withMinute(0).plusMonths(1));
+                AHORA.withDayOfMonth(1).withHour(0).withMinute(0).plusMonths(1), 3, 5);
     }
 }

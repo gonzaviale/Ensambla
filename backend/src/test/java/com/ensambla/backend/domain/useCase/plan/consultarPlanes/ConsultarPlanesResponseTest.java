@@ -33,6 +33,9 @@ class ConsultarPlanesResponseTest {
         assertThat(result.uso().paginasIa()).isEqualTo(6);
         assertThat(result.uso().limitePaginasIa()).isEqualTo(10);
         assertThat(result.uso().periodoIa()).isEqualTo("MENSUAL");
+        assertThat(result.uso().objetivosIa()).isEqualTo(3);
+        assertThat(result.uso().limiteObjetivosIa()).isEqualTo(5);
+        assertThat(result.planes()).extracting(PlanItem::limiteObjetivosIaMensuales).containsExactly(5, 20);
         assertThat(result.uso().inicioPeriodoIa()).isEqualTo(consulta.inicioPeriodoIa());
         assertThat(result.uso().finPeriodoIa()).isEqualTo(consulta.finPeriodoIa());
         assertThat(result.prueba().inicioEn()).isEqualTo(consulta.prueba().inicioEn());

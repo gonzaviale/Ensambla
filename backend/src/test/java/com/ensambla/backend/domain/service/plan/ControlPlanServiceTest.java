@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.service.plan;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.plan.AccesoIa;
+import com.ensambla.backend.domain.model.plan.CuotaObjetivosIa;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
@@ -306,5 +307,44 @@ class ControlPlanServiceTest {
     private void givenFallback(Suscripcion suscripcion) {
         when(suscripcionRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(Optional.of(suscripcion));
         when(planRepository.findByCodigo(CodigoPlan.GRATUITO)).thenReturn(Optional.of(plan()));
+    }
+
+    @Test
+    @DisplayName("La cuota de objetivos con IA cuenta el mes argentino y trae el límite del plan vigente")
+    void cuotaObjetivosIaShouldCountTheArgentinaMonthWithThePlanLimit() {
+        givenActivePlan();
+        when(usoPlanRepository.objetivosIaEnPeriodo(NEGOCIO_ID,
+                OffsetDateTime.parse("2026-10-01T03:00:00Z"), OffsetDateTime.parse("2026-11-01T03:00:00Z")))
+                .thenReturn(3L);
+
+        CuotaObjetivosIa result = controlPlanService.cuotaObjetivosIa(
+                NEGOCIO_ID, OffsetDateTime.parse("2026-10-20T12:00:00Z"));
+
+        assertThat(result).isEqualTo(new CuotaObjetivosIa(3, 5));
+        assertThat(result.restantes()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("Un objetivo con IA se valida con el negocio bloqueado antes de contar")
+    void validarObjetivoIaShouldLockBeforeCounting() {
+        givenActivePlan();
+        when(usoPlanRepository.objetivosIaEnPeriodo(any(), any(), any())).thenReturn(4L);
+
+        controlPlanService.validarObjetivoIa(NEGOCIO_ID, INSTANTE);
+
+        var orden = inOrder(usoPlanRepository);
+        orden.verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
+        orden.verify(usoPlanRepository).objetivosIaEnPeriodo(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Con la cuota agotada rechaza con el código del límite de objetivos con IA")
+    void validarObjetivoIaShouldRejectWhenTheAllowanceIsUsed() {
+        givenActivePlan();
+        when(usoPlanRepository.objetivosIaEnPeriodo(any(), any(), any())).thenReturn(5L);
+
+        assertThatThrownBy(() -> controlPlanService.validarObjetivoIa(NEGOCIO_ID, INSTANTE))
+                .isInstanceOf(RestriccionPlanException.class)
+                .hasMessageContaining("Ya armaste los 5 objetivos con Sami");
     }
 }

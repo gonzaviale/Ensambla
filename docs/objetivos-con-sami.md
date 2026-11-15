@@ -110,17 +110,24 @@ libera. El resumen del domingo lo dice («Esta semana no me contaste cómo te fu
 
 Los medidos de un objetivo mezclado se reajustan con las reglas de siempre (`ReglasReajuste`), sin cambios.
 
-## 5. Qué cuenta como «un objetivo con IA» para la cuota
+## 5. Qué cuenta como «un objetivo con IA» para la cuota (T-242, hecho)
 
 - **Cuenta** un objetivo que se guarda armado con Sami con IA (`armadoConSami = true`), una vez, con todas sus
   renovaciones semanales incluidas. Se descuenta **al guardar**, no al conversar.
-- **No cuenta:** un monetario del formulario clásico; un objetivo guardado como **seguimiento manual** cuando la IA no
-  respondió; conversar y no guardar; borrar un objetivo (la cuota no se devuelve: es del mes en que se guardó).
-- El mes es el calendario argentino, igual que `UsoPlanRepository`. Gratuito 5, Premium 20 (T-242).
-- **Al agotarse:** Sami no consulta a la IA; la respuesta explica que se usaron los 5 (o 20) del mes, ofrece Premium (si
-  es Gratuito) y deja guardar como seguimiento manual, que no cuenta. La cuota restante viaja en la propuesta (`cuota`,
-  lo agrega T-242) y en `GET /api/planes`/Objetivos (T-250).
+- **No cuenta:** un monetario del formulario clásico; un objetivo guardado como **seguimiento manual** (`seguimientoManual:
+  true`); conversar y no guardar; borrar un objetivo (la cuota **no se devuelve**: es del mes en que se guardó. Por eso se
+  anota en `consumo_objetivo_ia`, sin clave foránea al objetivo).
+- El mes es el calendario argentino, igual que las páginas de IA. Gratuito 5, Premium 20
+  (`plan.limite_objetivos_ia_mensuales`; vacío es sin límite). Durante la prueba de Premium vale el límite de Premium.
+- **Cómo se controla:** guardar con IA valida la cuota con el negocio bloqueado (`ControlPlanService.validarObjetivoIa`),
+  guarda y anota el consumo, todo en la misma transacción: dos altas simultáneas no pasan el límite. Sin cuota responde `403`
+  con `codigo: "LIMITE_OBJETIVOS_IA"` y no guarda nada.
+- **Al agotarse:** Sami no consulta a la IA; la propuesta explica que se usaron los del mes, manda a «Planes» y ofrece el
+  seguimiento manual (`origen: RESPALDO`, `cuota.restantes: 0`). Guardar el seguimiento sigue funcionando y no gasta.
+- **Dónde se ve:** `cuota` en la propuesta y `uso.objetivosIa` / `uso.limiteObjetivosIa` en `GET /api/planes` (abajo).
 - La reserva diaria de IA (`ConsumoSamiRepository.reservar`) se sigue usando: es otro límite, contra el abuso.
+- **Limitación conocida:** quien pide propuestas con IA y después guarda sólo como seguimiento manual no gasta cuota (sí
+  gastó una consulta diaria). Es lo esperado: no armó un objetivo con IA.
 
 ## 6. Reglas de IA
 
@@ -266,7 +273,8 @@ Respuesta `200`:
   ],
   "origen": "IA",
   "mensajesRestantes": 5,
-  "puedeGuardar": true
+  "puedeGuardar": true,
+  "cuota": { "usadas": 2, "limite": 5, "restantes": 3 }
 }
 ```
 
@@ -274,7 +282,8 @@ Respuesta `200`:
 - `origen`: `IA` o `RESPALDO`. `datos[].fuente`: `VENTAS`, `MARGEN`, `INVENTARIO`, `GASTOS`, `ZONA`.
 - `mensajesRestantes`: cuántos mensajes más de la persona admite la conversación.
 - Errores: `400` sin mensajes, más del tope o un mensaje vacío o de más de 500 caracteres.
-- T-242 le agrega `cuota: { usadas, limite, restantes }`.
+- `cuota`: los objetivos con IA del mes y los que permite el plan (`limite` y `restantes` son `null` si el plan no tiene
+  límite). Con `restantes: 0` la propuesta es de respaldo y trae el texto que manda a «Planes».
 
 ### `POST /api/objetivos/sami` (nuevo, T-245): guardar lo que la persona aceptó
 
@@ -299,6 +308,18 @@ descarta a uno que ya no está en el catálogo); el manual lleva su texto.
   `GET /api/objetivos/{id}/mini-objetivos`.
 - `400` si no hay mini-objetivos, hay más de 3, uno medido no está en el catálogo, dos chocan o un manual no cumple las
   reglas del punto 6.
+- `403` con `codigo: "LIMITE_OBJETIVOS_IA"` si es un objetivo con IA (no `seguimientoManual`) y el mes ya no tiene cuota.
+
+### `GET /api/planes` (cambia, T-242)
+
+`planes[].limiteObjetivosIaMensuales` (5 y 20; `null` si no hay límite) y, en `uso`, `objetivosIa` (los del mes) y
+`limiteObjetivosIa` (el del plan vigente):
+
+```json
+{ "uso": { "proyectos": 1, "registros": 120, "paginasIa": 4, "limitePaginasIa": 10, "periodoIa": "MENSUAL",
+           "inicioPeriodoIa": "2026-11-01T03:00:00Z", "finPeriodoIa": "2026-12-01T03:00:00Z",
+           "objetivosIa": 2, "limiteObjetivosIa": 5 } }
+```
 
 ### `GET /api/objetivos/{id}/mini-objetivos` (cambia el item)
 
@@ -385,10 +406,13 @@ Casos de borde de la validación (no son ejemplos de la persona, sino de la resp
 - **Puertos:** `ConversacionObjetivosIaPort`, `RespuestaMiniObjetivoRepository`.
 - **Casos de uso** (`domain/useCase/objetivo`): `proponerObjetivoConSami`, `guardarObjetivoConSami`, `responderMiniObjetivo`,
   `listarRespuestasPendientes`.
-- **Migraciones:** `V34__objetivo_tipo_y_modo.sql` (tipo, meta opcional, modo, restricciones) y
-  `V35__respuesta_mini_objetivo.sql` (respuestas y las decisiones nuevas).
+- **Migraciones:** `V34__objetivo_tipo_y_modo.sql` (tipo, meta opcional, modo, restricciones),
+  `V35__respuesta_mini_objetivo.sql` (respuestas y las decisiones nuevas) y `V36__cuota_objetivos_ia.sql` (cuota por plan y
+  su consumo).
 - **Infraestructura:** `ConversacionObjetivosIaAdapter` (+ `PromptConversacionObjetivos`, `ia/prompt-conversacion-objetivos.md`
   y `ia/esquema-conversacion-objetivos.json`), el cliente de texto simulado, `SamiObjetivoController` y
   `RespuestaMiniObjetivoController`. Propiedades: `ensambla.objetivos.ia.conversacion-habilitada` y `.max-mensajes`.
-- **Fuera de esta entrega:** cuota (T-242, T-250), métricas nuevas (T-244), renovación del domingo (T-247) y pantallas
-  (T-248, T-249).
+- **Cuota (T-242):** `CuotaObjetivosIa`, `Plan.validarObjetivosIa`, `ControlPlanService.cuotaObjetivosIa` y
+  `validarObjetivoIa`, `UsoPlanRepository.objetivosIaEnPeriodo` y `registrarObjetivoIa`.
+- **Fuera de esta entrega:** la cuota visible en las pantallas (T-250), métricas nuevas (T-244), renovación del domingo
+  (T-247) y pantallas (T-248, T-249).

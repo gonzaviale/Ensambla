@@ -13,6 +13,7 @@ import com.ensambla.backend.domain.model.objetivo.DecisionObjetivo;
 import com.ensambla.backend.domain.model.objetivo.DecisionPaso;
 import com.ensambla.backend.domain.model.objetivo.HizoManual;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.ModoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.Objetivo;
 import com.ensambla.backend.domain.model.objetivo.OrigenPropuesta;
 import com.ensambla.backend.domain.model.objetivo.ProgresoObjetivo;
@@ -22,6 +23,7 @@ import com.ensambla.backend.domain.model.objetivo.ResumenSemanal;
 import com.ensambla.backend.domain.model.objetivo.TipoDecision;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoObjetivo;
+import com.ensambla.backend.domain.model.plan.CuotaObjetivosIa;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.ConversacionObjetivosIaPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
@@ -32,6 +34,7 @@ import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ProgresoObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.RespuestaMiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ResumenSemanalRepository;
+import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
@@ -40,6 +43,7 @@ import com.ensambla.backend.domain.service.objetivo.MonitoreoObjetivosService;
 import com.ensambla.backend.domain.service.objetivo.PropuestaMiniObjetivosService;
 import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.objetivo.ObjetivoItem;
+import com.ensambla.backend.domain.useCase.objetivo.guardarObjetivoConSami.GuardarObjetivoConSamiRequest.MiniElegido;
 import com.ensambla.backend.domain.useCase.objetivo.guardarObjetivoConSami.GuardarObjetivoConSamiRequest;
 import com.ensambla.backend.domain.useCase.objetivo.listarRespuestasPendientes.ListarRespuestasPendientesRequest;
 import com.ensambla.backend.domain.useCase.objetivo.listarRespuestasPendientes.ListarRespuestasPendientesResponse;
@@ -408,6 +412,7 @@ class ObjetivoUseCaseConfigTest {
         ControlPlanService controlPlanService = mock(ControlPlanService.class);
         ConsumoSamiRepository consumoSamiRepository = mock(ConsumoSamiRepository.class);
         ConversacionObjetivosIaPort conversacionObjetivosIaPort = mock(ConversacionObjetivosIaPort.class);
+        when(controlPlanService.cuotaObjetivosIa(eq(NEGOCIO_ID), any())).thenReturn(new CuotaObjetivosIa(0, 5));
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
         when(negocioRepository.findZonaIdById(NEGOCIO_ID)).thenReturn(Optional.empty());
@@ -430,8 +435,10 @@ class ObjetivoUseCaseConfigTest {
         when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
         when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
         when(negocioRepository.findZonaIdById(NEGOCIO_ID)).thenReturn(Optional.empty());
+        ControlPlanService controlPlanService = mock(ControlPlanService.class);
+        when(controlPlanService.cuotaObjetivosIa(eq(NEGOCIO_ID), any())).thenReturn(new CuotaObjetivosIa(0, 5));
         ProponerObjetivoConSami apagada = config.proponerObjetivoConSami(negocioRepository, propuesta(),
-                mock(ControlPlanService.class), mock(ConsumoSamiRepository.class),
+                controlPlanService, mock(ConsumoSamiRepository.class),
                 mock(ConversacionObjetivosIaPort.class), CLOCK, new ObjetivosIaProperties(true, 10, false, 1));
 
         ProponerObjetivoConSamiResponse result = apagada.execute(new ProponerObjetivoConSamiRequest(USUARIO_ID, mensajes()));
@@ -448,11 +455,33 @@ class ObjetivoUseCaseConfigTest {
 
         ObjetivoItem result = config
                 .guardarObjetivoConSami(negocioRepository, objetivoRepository, miniObjetivoRepository, propuesta(),
-                        new TransaccionDirecta(), CLOCK)
+                        mock(ControlPlanService.class), mock(UsoPlanRepository.class), new TransaccionDirecta(), CLOCK)
                 .execute(new GuardarObjetivoConSamiRequest(USUARIO_ID, TEXTO_SIN_META, true, List.of()));
 
         assertThat(result.tipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
         assertThat(result.armadoConSami()).isFalse();
         verify(miniObjetivoRepository).save(any(MiniObjetivo.class));
+    }
+
+    @Test
+    @DisplayName("El wiring de guardar con Sami conecta el control del plan y el consumo de la cuota")
+    void guardarObjetivoConSamiShouldWireTheAllowance() {
+        ControlPlanService controlPlanService = mock(ControlPlanService.class);
+        UsoPlanRepository usoPlanRepository = mock(UsoPlanRepository.class);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(objetivoRepository.save(any(Objetivo.class))).thenAnswer(call -> {
+            Objetivo objetivo = call.getArgument(0);
+            objetivo.setId(OBJETIVO_ID);
+            return objetivo;
+        });
+        GuardarObjetivoConSamiRequest request = new GuardarObjetivoConSamiRequest(USUARIO_ID, TEXTO_SIN_META, false,
+                List.of(new MiniElegido(ModoMiniObjetivo.MANUAL, null, null, null, TITULO_ACCION,
+                        JUSTIFICACION_ACCION)));
+
+        config.guardarObjetivoConSami(negocioRepository, objetivoRepository, miniObjetivoRepository, propuesta(),
+                controlPlanService, usoPlanRepository, new TransaccionDirecta(), CLOCK).execute(request);
+
+        verify(controlPlanService).validarObjetivoIa(eq(NEGOCIO_ID), any());
+        verify(usoPlanRepository).registrarObjetivoIa(eq(NEGOCIO_ID), eq(OBJETIVO_ID), any());
     }
 }

@@ -12,6 +12,7 @@ import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ProgresoObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.RespuestaMiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ResumenSemanalRepository;
+import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
@@ -333,6 +334,8 @@ public class ObjetivoUseCaseConfig {
             ObjetivoRepository objetivoRepository,
             MiniObjetivoRepository miniObjetivoRepository,
             PropuestaMiniObjetivosService propuestaMiniObjetivosService,
+            ControlPlanService controlPlanService,
+            UsoPlanRepository usoPlanRepository,
             TransaccionPort transaccionPort,
             Clock clock) {
         return new GuardarObjetivoConSami(
@@ -340,6 +343,8 @@ public class ObjetivoUseCaseConfig {
                 objetivoRepository,
                 miniObjetivoRepository,
                 propuestaMiniObjetivosService,
+                controlPlanService,
+                usoPlanRepository,
                 transaccionPort,
                 clock);
     }

@@ -66,6 +66,8 @@ class ConsultarPlanesTest {
         when(usoPlanRepository.contarProyectos(NEGOCIO_ID)).thenReturn(2L);
         when(usoPlanRepository.contarRegistros(NEGOCIO_ID)).thenReturn(1001L);
         when(usoPlanRepository.paginasEnPeriodo(NEGOCIO_ID, inicio, inicio.plusMonths(1))).thenReturn(7L);
+        when(usoPlanRepository.objetivosIaEnPeriodo(NEGOCIO_ID, OffsetDateTime.parse("2026-11-01T03:00:00Z"),
+                OffsetDateTime.parse("2026-12-01T03:00:00Z"))).thenReturn(3L);
 
         ConsultarPlanesResponse result = consultar(OffsetDateTime.parse("2026-11-01T00:05:00-03:00"));
 
@@ -75,7 +77,8 @@ class ConsultarPlanesTest {
         assertThat(result.suscripcion().pruebaActiva()).isFalse();
         assertThat(result.prueba()).isNull();
         assertThat(result.uso()).isEqualTo(new UsoPlanItem(2, 1001, 7, 10, "MENSUAL",
-                OffsetDateTime.parse("2026-11-01T03:00:00Z"), OffsetDateTime.parse("2026-12-01T03:00:00Z")));
+                OffsetDateTime.parse("2026-11-01T03:00:00Z"), OffsetDateTime.parse("2026-12-01T03:00:00Z"),
+                3, 5));
         var orden = inOrder(usoPlanRepository, suscripcionRepository);
         orden.verify(usoPlanRepository).bloquearNegocio(NEGOCIO_ID);
         orden.verify(suscripcionRepository).findByNegocioId(NEGOCIO_ID);
@@ -95,6 +98,7 @@ class ConsultarPlanesTest {
         assertThat(result.uso().paginasIa()).isEqualTo(8);
         assertThat(result.uso().limitePaginasIa()).isEqualTo(10);
         assertThat(result.uso().periodoIa()).isEqualTo("PRUEBA");
+        assertThat(result.uso().limiteObjetivosIa()).isEqualTo(20);
         assertThat(result.uso().inicioPeriodoIa()).isEqualTo(prueba().inicioEn());
         assertThat(result.uso().finPeriodoIa()).isEqualTo(prueba().finEn());
         verify(usoPlanRepository, never()).paginasEnPeriodo(NEGOCIO_ID,
@@ -113,6 +117,7 @@ class ConsultarPlanesTest {
         assertThat(result.suscripcion().puedeIniciarPrueba()).isFalse();
         assertThat(result.suscripcion().pruebaActiva()).isFalse();
         assertThat(result.uso().limitePaginasIa()).isEqualTo(100);
+        assertThat(result.uso().limiteObjetivosIa()).isEqualTo(20);
         assertThat(result.uso().periodoIa()).isEqualTo("MENSUAL");
     }
 

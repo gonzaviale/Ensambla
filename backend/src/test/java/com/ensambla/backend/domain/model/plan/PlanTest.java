@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static com.ensambla.backend.support.PlanTestData.plan;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -107,5 +108,30 @@ class PlanTest {
 
         assertThatThrownBy(() -> plan.validarFuncion(FuncionPlan.EXPORTAR_EXCEL))
                 .isInstanceOf(RestriccionPlanException.class).hasMessageContaining("premium activo");
+    }
+
+    @Test
+    @DisplayName("La cuota mensual de objetivos con IA deja guardar mientras queden y rechaza al agotarse")
+    void validarObjetivosIaShouldEnforceMonthlyAllowance() {
+        Plan plan = plan();
+        plan.setLimiteObjetivosIaMensuales(5);
+
+        assertThatCode(() -> plan.validarObjetivosIa(4)).doesNotThrowAnyException();
+
+        assertThatThrownBy(() -> plan.validarObjetivosIa(5))
+                .isInstanceOf(RestriccionPlanException.class)
+                .hasMessageContaining("Ya armaste los 5 objetivos con Sami")
+                .hasMessageContaining("«Planes»")
+                .satisfies(e -> assertThat(((RestriccionPlanException) e).getCodigo())
+                        .isEqualTo("LIMITE_OBJETIVOS_IA"));
+    }
+
+    @Test
+    @DisplayName("Un plan sin límite de objetivos con IA nunca rechaza")
+    void validarObjetivosIaShouldAllowEverythingWithoutLimit() {
+        Plan plan = plan();
+        plan.setLimiteObjetivosIaMensuales(null);
+
+        assertThatCode(() -> plan.validarObjetivosIa(1_000)).doesNotThrowAnyException();
     }
 }
