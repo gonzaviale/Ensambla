@@ -34,7 +34,7 @@ class AvisoRepositoryImplTest {
     void saveShouldReturnPersistedAviso() {
         when(jpa.saveAndFlush(any(AvisoEntity.class))).thenReturn(entity());
 
-        Aviso result = repository.save(Aviso.builder().negocioId(NEGOCIO_ID).build());
+        Aviso result = repository.save(Aviso.builder().negocioId(NEGOCIO_ID).acciones(List.of()).build());
 
         assertThat(result.getId()).isEqualTo(AvisoId.de(ID));
     }

@@ -53,7 +53,7 @@ public class Aviso {
 
     private List<Object> motivos;
 
-    private List<Object> acciones;
+    private List<AccionDeAviso> acciones;
 
     @Builder.Default
     private EstadoAviso estado = EstadoAviso.PENDIENTE;

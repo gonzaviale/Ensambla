@@ -1,5 +1,7 @@
 package com.ensambla.backend.domain.useCase.aviso;
 
+import com.ensambla.backend.domain.model.aviso.AccionDeAviso;
+import com.ensambla.backend.domain.model.aviso.AccionVerZona;
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
@@ -19,6 +21,7 @@ class AvisoItemTest {
 
     private static final AvisoId ID = AvisoId.de("e0000000-0000-4000-8000-000000000001");
     private static final ProyectoId PROYECTO_ID = ProyectoId.de("c0000000-0000-4000-8000-000000000001");
+    private static final AccionDeAviso ACCION = new AccionVerZona("Ver en Mi zona", "yerba");
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-10-19T12:00:00Z");
 
     @Test
@@ -28,7 +31,7 @@ class AvisoItemTest {
 
         assertThat(result).isEqualTo(new AvisoItem(ID, PROYECTO_ID, TipoAviso.STOCK, GrupoAviso.STOCK, (short) 3,
                 EstadoAviso.PENDIENTE, "registro:1", "Te quedaste sin yerba", "No te quedan unidades",
-                List.of("motivo"), List.of(Map.of("tipo", "ABRIR")), Map.of("cantidad", 0), AHORA, null));
+                List.of("motivo"), List.of(ACCION), Map.of("cantidad", 0), AHORA, null));
     }
 
     private static Aviso givenAviso() {
@@ -36,7 +39,7 @@ class AvisoItemTest {
                 .id(ID).proyectoId(PROYECTO_ID).tipo(TipoAviso.STOCK).grupo(GrupoAviso.STOCK).prioridad((short) 3)
                 .estado(EstadoAviso.PENDIENTE).entidad("registro:1").titulo("Te quedaste sin yerba")
                 .detalle("No te quedan unidades").motivos(List.of("motivo"))
-                .acciones(List.of(Map.of("tipo", "ABRIR"))).datos(Map.of("cantidad", 0)).creadoEn(AHORA)
+                .acciones(List.of(ACCION)).datos(Map.of("cantidad", 0)).creadoEn(AHORA)
                 .build();
     }
 }

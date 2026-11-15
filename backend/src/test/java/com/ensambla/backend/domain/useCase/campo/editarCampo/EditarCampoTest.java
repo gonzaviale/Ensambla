@@ -76,7 +76,7 @@ class EditarCampoTest {
         assertThat(result.nombre()).isEqualTo("Costo");
         assertThat(result.tipo()).isEqualTo("TEXTO");
         assertThat(result.actualizadoEn()).isEqualTo(AHORA);
-        verify(campoRepository).save(campo);
+        thenSeGuardaUnCampo();
     }
 
     @Test
@@ -87,7 +87,7 @@ class EditarCampoTest {
 
         assertThatThrownBy(() -> editar(campo, "Producto", "TEXTO", null, null))
                 .isInstanceOf(DuplicateResourceException.class);
-        verify(campoRepository, never()).save(any());
+        thenNoSeGuardaNingunCampo();
     }
 
     @Test
@@ -99,7 +99,7 @@ class EditarCampoTest {
 
         assertThatThrownBy(() -> editar(campo, "Cliente", "RELACION", RELACIONADO_ID, null))
                 .isInstanceOf(CampoInvalidoException.class);
-        verify(campoRepository, never()).save(any());
+        thenNoSeGuardaNingunCampo();
     }
 
     @Test
@@ -123,7 +123,7 @@ class EditarCampoTest {
 
         assertThatThrownBy(() -> editar(campo, "Total", "FORMULA", null, "{" + CAMPO_ID + "} * 2"))
                 .isInstanceOf(CampoInvalidoException.class);
-        verify(campoRepository, never()).save(any());
+        thenNoSeGuardaNingunCampo();
     }
 
     @Test
@@ -135,7 +135,7 @@ class EditarCampoTest {
         assertThatThrownBy(() -> editar(cantidad, "Cantidad", "TEXTO", null, null))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("No se puede cambiar el tipo de «Cantidad»: la fórmula «Doble» lo usa");
-        verify(campoRepository, never()).save(any());
+        thenNoSeGuardaNingunCampo();
     }
 
     @Test
@@ -165,12 +165,12 @@ class EditarCampoTest {
     @Test
     @DisplayName("Un campo ajeno propaga el 404 sin consultar el bloque ni editar")
     void executeShouldStopWhenCampoIsForeign() {
-        when(campoRepository.findByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+        givenCampoAjeno();
 
         assertThatThrownBy(() -> editarCampo.execute(
                 new EditarCampoRequest(USUARIO_ID, CAMPO_ID, "Costo", "NUMERO", false, "0", null, null, null)))
                 .isInstanceOf(ResourceNotFoundException.class);
-        verify(campoRepository, never()).save(any());
+        thenNoSeGuardaNingunCampo();
     }
 
     // --- arrange ---
@@ -208,5 +208,18 @@ class EditarCampoTest {
         when(campoRepository.findByIdAndNegocioId(campo.getId(), NEGOCIO_ID)).thenReturn(Optional.of(campo));
         return editarCampo.execute(new EditarCampoRequest(
                 USUARIO_ID, campo.getId(), nombre, tipo, null, null, null, bloqueRelacionadoId, formula));
+    }
+
+    private void givenCampoAjeno() {
+        when(campoRepository.findByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+    }
+
+    // --- assert ---
+    private void thenSeGuardaUnCampo() {
+        verify(campoRepository).save(any(Campo.class));
+    }
+
+    private void thenNoSeGuardaNingunCampo() {
+        verify(campoRepository, never()).save(any());
     }
 }

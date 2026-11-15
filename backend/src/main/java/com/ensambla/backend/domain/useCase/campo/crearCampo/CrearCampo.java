@@ -9,6 +9,8 @@ import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.useCase.campo.CampoItem;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.model.bloque.BloqueId;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Clock;
@@ -28,19 +30,42 @@ public class CrearCampo {
     private final Clock clock;
 
     public CampoItem execute(CrearCampoRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        Bloque bloque = bloqueRepository.obtener(request.bloqueId(), negocioId);
-        ConfiguracionCampo configuracion = request.aConfiguracionCampo();
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        Bloque bloque = obtenerBloque(request.bloqueId(), negocioId);
         OffsetDateTime ahora = OffsetDateTime.now(clock);
-        return CampoItem.de(transaccionPort.ejecutar(() -> crear(bloque, configuracion, ahora)));
+        return CampoItem.de(crearEnTransaccion(bloque, request.aConfiguracionCampo(), ahora));
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private Bloque obtenerBloque(BloqueId bloqueId, NegocioId negocioId) {
+        return bloqueRepository.obtener(bloqueId, negocioId);
+    }
+
+    private Campo crearEnTransaccion(Bloque bloque, ConfiguracionCampo configuracion, OffsetDateTime ahora) {
+        return transaccionPort.ejecutar(() -> crear(bloque, configuracion, ahora));
     }
 
     /** {@code bloque} ya viene validado contra el negocio de la sesión; acá se cargan sus campos para validar. */
     private Campo crear(Bloque bloque, ConfiguracionCampo configuracion, OffsetDateTime ahora) {
-        bloque.setCampos(campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), bloque.getNegocioId()));
+        cargarCamposDe(bloque);
         Campo campo = bloque.agregarCampo(configuracion, ahora);
-        bloqueRepository.validarBloqueRelacionado(bloque, campo);
+        validarConexion(bloque, campo);
         campo.validarReferenciasDeFormula(bloque.getCampos());
+        return guardar(campo);
+    }
+
+    private void cargarCamposDe(Bloque bloque) {
+        bloque.setCampos(campoRepository.findByBloqueIdAndNegocioId(bloque.getId(), bloque.getNegocioId()));
+    }
+
+    private void validarConexion(Bloque bloque, Campo campo) {
+        bloqueRepository.validarBloqueRelacionado(bloque, campo);
+    }
+
+    private Campo guardar(Campo campo) {
         return campoRepository.save(campo);
     }
 }
