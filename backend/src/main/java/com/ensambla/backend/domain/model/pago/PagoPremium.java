@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.model.pago;
 
 import com.ensambla.backend.domain.exception.PasarelaPagoException;
-import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,7 +21,7 @@ public class PagoPremium {
 
     private String facturaId;
 
-    private UsuarioId usuarioId;
+    private NegocioId negocioId;
 
     private RenovacionId renovacionId;
 
@@ -40,7 +40,7 @@ public class PagoPremium {
     public static PagoPremium de(PagoRemoto remoto, RenovacionPremium renovacion, OffsetDateTime ahora) {
         return PagoPremium.builder()
                 .facturaId(remoto.facturaId())
-                .usuarioId(renovacion.getUsuarioId())
+                .negocioId(renovacion.getNegocioId())
                 .renovacionId(renovacion.getId())
                 .pagoId(remoto.pagoId())
                 .estado(remoto.estado())

@@ -29,7 +29,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 import static com.ensambla.backend.support.PagoTestData.AHORA;
-import static com.ensambla.backend.support.PagoTestData.USUARIO_ID;
+import static com.ensambla.backend.support.PagoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.PagoTestData.RENOVACION_ID;
 import static com.ensambla.backend.support.PagoTestData.contrato;
 import static com.ensambla.backend.support.PagoTestData.pago;
@@ -69,7 +69,7 @@ class RenovacionPremiumServiceTest {
     @Test
     @DisplayName("Un identificador inexistente no bloquea otro negocio")
     void actualizarContratoShouldRejectMissingBusinessProjection() {
-        givenRenovacionSinCuenta();
+        givenRenovacionSinNegocio();
 
         assertThatThrownBy(() -> renovacionPremiumService.actualizarContrato(RENOVACION_ID,
                 contrato(renovacion(), "pending", AHORA), AHORA)).isInstanceOf(ResourceNotFoundException.class);
@@ -169,8 +169,8 @@ class RenovacionPremiumServiceTest {
         when(renovacionPremiumRepository.findById(RENOVACION_ID)).thenReturn(Optional.empty());
     }
 
-    private void givenRenovacionSinCuenta() {
-        when(renovacionPremiumRepository.findUsuarioIdById(RENOVACION_ID)).thenReturn(Optional.empty());
+    private void givenRenovacionSinNegocio() {
+        when(renovacionPremiumRepository.findNegocioIdById(RENOVACION_ID)).thenReturn(Optional.empty());
     }
 
     private void givenQueGuardarDevuelveLoGuardado() {
@@ -193,7 +193,7 @@ class RenovacionPremiumServiceTest {
 
     private RenovacionPremium givenRenovacion() {
         RenovacionPremium renovacion = renovacion();
-        when(renovacionPremiumRepository.findUsuarioIdById(RENOVACION_ID)).thenReturn(Optional.of(USUARIO_ID));
+        when(renovacionPremiumRepository.findNegocioIdById(RENOVACION_ID)).thenReturn(Optional.of(NEGOCIO_ID));
         when(renovacionPremiumRepository.findById(RENOVACION_ID)).thenReturn(Optional.of(renovacion));
         return renovacion;
     }

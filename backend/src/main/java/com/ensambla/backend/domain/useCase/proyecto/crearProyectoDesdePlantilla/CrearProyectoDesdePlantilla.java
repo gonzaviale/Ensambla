@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.proyecto.ProyectoItem;
 import lombok.RequiredArgsConstructor;
 
@@ -22,6 +23,8 @@ public class CrearProyectoDesdePlantilla {
 
     private final ProyectoRepository proyectoRepository;
 
+    private final ControlPlanService controlPlanService;
+
     private final TransaccionPort transaccionPort;
 
     private final Clock clock;
@@ -34,8 +37,9 @@ public class CrearProyectoDesdePlantilla {
         return ProyectoItem.de(proyecto);
     }
 
-    /** Guarda toda la estructura de la plantilla en una sola operación: o queda completa o no queda nada. */
+    /** Guarda toda la estructura de la plantilla en la misma operación que el control del cupo. */
     private Proyecto crear(NegocioId negocioId, PlantillaProyecto plantilla, OffsetDateTime ahora) {
+        controlPlanService.validarAltaProyecto(negocioId, ahora);
         return proyectoRepository.saveConEstructura(Proyecto.desdePlantilla(negocioId, plantilla, ahora));
     }
 }

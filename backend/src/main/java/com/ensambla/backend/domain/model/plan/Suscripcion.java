@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.model.plan;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
-import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,7 +20,7 @@ public class Suscripcion {
 
     private SuscripcionId id;
 
-    private UsuarioId usuarioId;
+    private NegocioId negocioId;
 
     private PlanId planId;
 
@@ -61,6 +61,6 @@ public class Suscripcion {
             return Optional.empty();
         }
         return Optional.of(Optional.ofNullable(finEn).orElseThrow(
-                () -> new BusinessRuleException("Tu cuenta ya tiene Premium sin vencimiento.")));
+                () -> new BusinessRuleException("Tu negocio ya tiene Premium sin vencimiento.")));
     }
 }

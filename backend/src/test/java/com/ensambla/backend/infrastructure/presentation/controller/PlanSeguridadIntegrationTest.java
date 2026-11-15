@@ -180,14 +180,15 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     }
 
     @Test
-    @DisplayName("El plan limita negocios, no secciones: el gratuito puede crear más de un sistema")
-    void crearProyectoShouldNotBeLimitedByThePlan() throws Exception {
+    @DisplayName("La segunda alta de sistema se rechaza y la consulta básica conserva el existente")
+    void crearProyectoShouldRejectQuotaButPreserveRead() throws Exception {
         mockMvc.perform(post("/api/proyectos").session(sesion).header("X-CSRF-TOKEN", csrfToken)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"nombre\":\"Segundo\"}"))
-                .andExpect(status().isCreated());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.codigo").value("LIMITE_SISTEMAS"));
 
         mockMvc.perform(get("/api/proyectos").session(sesion).param("negocioId", UUID.randomUUID().toString()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
     }
 
     @Test
@@ -277,13 +278,13 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
         mockMvc.perform(post("/api/planes/prueba").session(sesion))
                 .andExpect(status().isForbidden());
 
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE usuario_id = ?",
-                Long.class, usuarioId.valor())).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
+                Long.class, negocioId.valor())).isZero();
     }
 
     @Test
     @DisplayName("La prueba ignora plan, fechas y negocio enviados por el cliente")
-    void iniciarPruebaShouldUseSessionAccountAndServerPolicy() throws Exception {
+    void iniciarPruebaShouldUseSessionBusinessAndServerPolicy() throws Exception {
         UUID ajenoId = UUID.randomUUID();
 
         mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken)
@@ -296,9 +297,9 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(jsonPath("$.limitePaginasIa").value(10))
                 .andExpect(header().string("Cache-Control", "no-store"));
 
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE usuario_id = ?",
-                Long.class, usuarioId.valor())).isEqualTo(1);
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE usuario_id = ?",
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
+                Long.class, negocioId.valor())).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
                 Long.class, ajenoId)).isZero();
     }
 
@@ -318,7 +319,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     void leerImagenShouldRejectExhaustedTrialQuota() throws Exception {
         mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
                 .andExpect(status().isOk());
-        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 10 WHERE usuario_id = ?", usuarioId.valor());
+        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 10 WHERE negocio_id = ?", negocioId.valor());
         entityManager.clear();
         MockMultipartFile imagen = new MockMultipartFile("imagen", "foto.jpg", "image/jpeg", ImagenTestData.jpeg());
         MockMultipartFile pedido = new MockMultipartFile(
@@ -348,16 +349,14 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
                 .andExpect(jsonPath("$.suscripcion.codigoPlanActual").value("GRATUITO"))
                 .andExpect(jsonPath("$.suscripcion.puedeIniciarPrueba").value(true))
                 .andExpect(jsonPath("$.suscripcion.pruebaActiva").value(false))
-                .andExpect(jsonPath("$.uso.negocios").value(1))
-                .andExpect(jsonPath("$.planes[0].limiteNegocios").value(1))
-                .andExpect(jsonPath("$.planes[1].limiteNegocios").value(6))
+                .andExpect(jsonPath("$.uso.proyectos").value(1))
                 .andExpect(jsonPath("$.uso.registros").value(1))
                 .andExpect(jsonPath("$.uso.periodoIa").value("MENSUAL"))
                 .andExpect(jsonPath("$.uso.limitePaginasIa").value(10))
                 .andExpect(jsonPath("$.prueba").doesNotExist());
 
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE usuario_id = ?",
-                Long.class, usuarioId.valor())).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM prueba_premium WHERE negocio_id = ?",
+                Long.class, negocioId.valor())).isZero();
     }
 
     @Test
@@ -365,7 +364,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     void consultarPlanesShouldReflectTrialActivation() throws Exception {
         mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
                 .andExpect(status().isOk());
-        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 8 WHERE usuario_id = ?", usuarioId.valor());
+        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 8 WHERE negocio_id = ?", negocioId.valor());
         entityManager.clear();
 
         mockMvc.perform(get("/api/planes").session(sesion))
@@ -385,7 +384,7 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     void consultarPlanesShouldKeepPremiumWhenTrialPagesAreExhausted() throws Exception {
         mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
                 .andExpect(status().isOk());
-        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 10 WHERE usuario_id = ?", usuarioId.valor());
+        jdbcTemplate.update("UPDATE prueba_premium SET paginas_ia = 10 WHERE negocio_id = ?", negocioId.valor());
         entityManager.clear();
 
         mockMvc.perform(get("/api/planes").session(sesion))
@@ -400,10 +399,10 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     void consultarPlanesShouldFallBackBeforeExpirationWorkerRuns() throws Exception {
         mockMvc.perform(post("/api/planes/prueba").session(sesion).header("X-CSRF-TOKEN", csrfToken))
                 .andExpect(status().isOk());
-        jdbcTemplate.update("UPDATE suscripcion SET inicio_en = ?, fin_en = ? WHERE usuario_id = ?",
-                ahora.minusDays(8), ahora.minusDays(1), usuarioId.valor());
-        jdbcTemplate.update("UPDATE prueba_premium SET inicio_en = ?, fin_en = ? WHERE usuario_id = ?",
-                ahora.minusDays(8), ahora.minusDays(1), usuarioId.valor());
+        jdbcTemplate.update("UPDATE suscripcion SET inicio_en = ?, fin_en = ? WHERE negocio_id = ?",
+                ahora.minusDays(8), ahora.minusDays(1), negocioId.valor());
+        jdbcTemplate.update("UPDATE prueba_premium SET inicio_en = ?, fin_en = ? WHERE negocio_id = ?",
+                ahora.minusDays(8), ahora.minusDays(1), negocioId.valor());
         entityManager.clear();
 
         mockMvc.perform(get("/api/planes").session(sesion))
@@ -433,8 +432,8 @@ class PlanSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     private void givenPremium(OffsetDateTime fin) {
         jdbcTemplate.update("""
                 UPDATE suscripcion SET plan_id = (SELECT id FROM plan WHERE codigo = 'PREMIUM'),
-                    inicio_en = ?, fin_en = ? WHERE usuario_id = ?
-                """, ahora.minusDays(1), fin, usuarioId.valor());
+                    inicio_en = ?, fin_en = ? WHERE negocio_id = ?
+                """, ahora.minusDays(1), fin, negocioId.valor());
         entityManager.clear();
     }
 

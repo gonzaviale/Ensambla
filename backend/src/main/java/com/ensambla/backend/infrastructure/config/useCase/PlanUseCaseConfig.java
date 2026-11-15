@@ -42,14 +42,15 @@ public class PlanUseCaseConfig {
     }
 
     @Bean
-    public IniciarPrueba iniciarPrueba(PlanRepository planRepository,
+    public IniciarPrueba iniciarPrueba(NegocioRepository negocioRepository,
+                                       PlanRepository planRepository,
                                        PruebaPremiumRepository pruebaPremiumRepository,
                                        SuscripcionRepository suscripcionRepository,
                                        UsoPlanRepository usoPlanRepository,
                                        RenovacionPremiumRepository renovacionPremiumRepository,
                                        TransaccionPort transaccionPort,
                                        Clock clock) {
-        return new IniciarPrueba(planRepository, pruebaPremiumRepository, suscripcionRepository,
+        return new IniciarPrueba(negocioRepository, planRepository, pruebaPremiumRepository, suscripcionRepository,
                 usoPlanRepository, renovacionPremiumRepository, transaccionPort, clock);
     }
 

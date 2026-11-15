@@ -1,6 +1,7 @@
 package com.ensambla.backend.support;
 
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
@@ -26,14 +27,12 @@ import static org.mockito.Mockito.when;
 
 /**
  * Corre los casos de uso reales de la prueba premium contra PostgreSQL en el instante que elige cada test. El negocio
- * se indica directo (en producción la cuenta sale de la sesión) y el vencimiento se limita a la cuenta de ese negocio
- * para no tocar los datos de otros tests.
+ * se indica directo (en producción sale de la sesión) y el vencimiento se limita a ese negocio para no tocar los
+ * datos de otros tests.
  */
 @Component
 @RequiredArgsConstructor
 public class PruebasPremiumDePrueba {
-
-    private final NegocioRepository negocioRepository;
 
     private final PlanRepository planRepository;
 
@@ -48,17 +47,28 @@ public class PruebasPremiumDePrueba {
     private final TransaccionPort transaccionPort;
 
     public PruebaPremiumResponse iniciar(NegocioId negocioId, OffsetDateTime ahora) {
-        return new IniciarPrueba(planRepository, pruebaPremiumRepository,
+        return new IniciarPrueba(negocioPropio(negocioId), planRepository, pruebaPremiumRepository,
                 suscripcionRepository, usoPlanRepository, renovacionPremiumRepository, transaccionPort,
                 Clock.fixed(ahora.toInstant(), ahora.getOffset()))
-                .execute(new IniciarPruebaRequest(negocioRepository.obtenerDuenioId(negocioId)));
+                .execute(new IniciarPruebaRequest(usuarioDe(negocioId)));
     }
 
     public void vencer(NegocioId negocioId, OffsetDateTime ahora) {
-        PruebaPremiumRepository soloEstaCuenta = mock(PruebaPremiumRepository.class);
-        when(soloEstaCuenta.findUsuariosVencidos(any())).thenReturn(List.of(negocioRepository.obtenerDuenioId(negocioId)));
-        new VencerPruebas(planRepository, soloEstaCuenta, suscripcionRepository, usoPlanRepository,
+        PruebaPremiumRepository soloEsteNegocio = mock(PruebaPremiumRepository.class);
+        when(soloEsteNegocio.findNegociosVencidos(any())).thenReturn(List.of(negocioId));
+        new VencerPruebas(planRepository, soloEsteNegocio, suscripcionRepository, usoPlanRepository,
                 transaccionPort, Clock.fixed(ahora.toInstant(), ahora.getOffset()))
                 .execute();
+    }
+
+    /** El usuario de prueba comparte el UUID con su negocio. */
+    private static UsuarioId usuarioDe(NegocioId negocioId) {
+        return UsuarioId.de(negocioId.valor());
+    }
+
+    private static NegocioRepository negocioPropio(NegocioId negocioId) {
+        NegocioRepository negocioRepository = mock(NegocioRepository.class);
+        when(negocioRepository.obtenerIdDelUsuario(usuarioDe(negocioId))).thenReturn(negocioId);
+        return negocioRepository;
     }
 }

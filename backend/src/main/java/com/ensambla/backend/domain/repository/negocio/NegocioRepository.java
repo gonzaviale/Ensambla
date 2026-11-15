@@ -17,25 +17,13 @@ public interface NegocioRepository {
 
     Optional<Negocio> findByDuenioIdParaActualizar(UsuarioId usuarioId);
 
-    /** Todos los negocios del dueño, del más antiguo al más nuevo. */
-    List<Negocio> findAllByDuenioId(UsuarioId usuarioId);
-
-    List<Negocio> findAllByDuenioIdParaActualizar(UsuarioId usuarioId);
-
-    Optional<Negocio> findByIdAndDuenioId(NegocioId negocioId, UsuarioId usuarioId);
-
     /** Zona a la que pertenece el negocio; vacío si el negocio no existe o todavía no tiene zona. */
     Optional<ZonaId> findZonaIdById(NegocioId negocioId);
-
-    /** La cuenta dueña del negocio; vacío si el negocio no existe. */
-    Optional<UsuarioId> findDuenioIdById(NegocioId negocioId);
 
     /** Email del dueño del negocio; vacío si el negocio no existe. */
     Optional<String> findEmailDuenioById(NegocioId negocioId);
 
     Negocio save(Negocio negocio);
-
-    void deleteById(NegocioId negocioId);
 
     /** Ids de todos los negocios; los usa el motor de monitoreo para recorrerlos. */
     List<NegocioId> findAllIds();
@@ -43,11 +31,6 @@ public interface NegocioRepository {
     /** El negocio de la sesión; un usuario sin negocio responde como inexistente. */
     default NegocioId obtenerIdDelUsuario(UsuarioId usuarioId) {
         return findIdByDuenioId(usuarioId).orElseThrow(NegocioRepository::negocioInexistente);
-    }
-
-    /** La cuenta a la que pertenece el negocio; un negocio inexistente responde como no encontrado. */
-    default UsuarioId obtenerDuenioId(NegocioId negocioId) {
-        return findDuenioIdById(negocioId).orElseThrow(() -> new ResourceNotFoundException("Negocio no encontrado"));
     }
 
     default Negocio obtenerNegocioDelUsuario(UsuarioId usuarioId) {

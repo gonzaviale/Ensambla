@@ -18,7 +18,7 @@ public class PlanRepositoryMapper {
                 .limitesConfigurados(origen.getLimitesConfigurados())
                 .precioMensual(origen.getPrecioMensual())
                 .moneda(origen.getMoneda())
-                .limiteNegocios(origen.getLimiteNegocios())
+                .limiteProyectos(origen.getLimiteProyectos())
                 .limiteRegistros(origen.getLimiteRegistros())
                 .limitePaginasIaMensuales(origen.getLimitePaginasIaMensuales())
                 .funciones(origen.getFunciones())

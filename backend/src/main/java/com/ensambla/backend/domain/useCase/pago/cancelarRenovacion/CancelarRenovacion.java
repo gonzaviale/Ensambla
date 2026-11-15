@@ -1,10 +1,12 @@
 package com.ensambla.backend.domain.useCase.pago.cancelarRenovacion;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.service.pago.RenovacionPremiumService;
@@ -16,6 +18,8 @@ import java.time.OffsetDateTime;
 
 @RequiredArgsConstructor
 public class CancelarRenovacion {
+
+    private final NegocioRepository negocioRepository;
 
     private final RenovacionPremiumService renovacionPremiumService;
 
@@ -30,17 +34,18 @@ public class CancelarRenovacion {
     private final Clock clock;
 
     public ConsultarRenovacionResponse execute(UsuarioId usuarioId) {
-        RenovacionPremium renovacion = solicitarCancelacion(usuarioId, OffsetDateTime.now(clock));
+        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(usuarioId);
+        RenovacionPremium renovacion = solicitarCancelacion(negocioId, OffsetDateTime.now(clock));
         renovacionPremiumService.sincronizar(renovacion.getId(), OffsetDateTime.now(clock));
         return ConsultarRenovacionResponse.de(pasarelaSuscripcionesPort.disponible(),
-                renovacionPremiumService.consultar(usuarioId).orElseThrow());
+                renovacionPremiumService.consultar(negocioId).orElseThrow());
     }
 
     /** La cancelación se pide acá y se aplica en la pasarela al sincronizar. */
-    private RenovacionPremium solicitarCancelacion(UsuarioId usuarioId, OffsetDateTime ahora) {
+    private RenovacionPremium solicitarCancelacion(NegocioId negocioId, OffsetDateTime ahora) {
         return transaccionPort.ejecutar(() -> {
-            usoPlanRepository.bloquearCuenta(usuarioId);
-            RenovacionPremium renovacion = renovacionPremiumService.consultar(usuarioId)
+            usoPlanRepository.bloquearNegocio(negocioId);
+            RenovacionPremium renovacion = renovacionPremiumService.consultar(negocioId)
                     .orElseThrow(() -> new ResourceNotFoundException("Renovación no encontrada"));
             renovacion.setCancelacionSolicitada(true);
             renovacion.setActualizadoEn(ahora);

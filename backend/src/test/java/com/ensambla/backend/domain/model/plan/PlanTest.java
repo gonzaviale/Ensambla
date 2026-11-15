@@ -13,50 +13,24 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class PlanTest {
 
     @Test
-    @DisplayName("El gratuito permite el primer negocio y rechaza el segundo sugiriendo Premium")
-    void validarNegociosShouldEnforceSingularLimitAndSuggestPremium() {
+    @DisplayName("Permite el primer sistema y rechaza el siguiente al alcanzar el límite")
+    void validarProyectosShouldEnforceLimit() {
         Plan plan = plan();
-        plan.setLimiteNegocios(1);
+        plan.setLimiteProyectos(1);
 
-        assertThatCode(() -> plan.validarNegocios(0)).doesNotThrowAnyException();
+        assertThatCode(() -> plan.validarProyectos(0)).doesNotThrowAnyException();
 
-        assertThatThrownBy(() -> plan.validarNegocios(1))
-                .isInstanceOf(RestriccionPlanException.class)
-                .hasMessage("Tu plan permite hasta 1 negocio. Pasate a Premium para sumar más.")
-                .extracting("codigo").isEqualTo("LIMITE_NEGOCIOS");
+        assertThatThrownBy(() -> plan.validarProyectos(1))
+                .isInstanceOf(RestriccionPlanException.class).hasMessageContaining("1 sistemas");
     }
 
     @Test
-    @DisplayName("Premium permite hasta seis negocios y no se sugiere a sí mismo")
-    void validarNegociosShouldEnforcePluralLimitWithoutSuggestion() {
+    @DisplayName("Un límite nulo permite sistemas sin límite comercial")
+    void validarProyectosShouldAllowUnlimitedConfiguredPlan() {
         Plan plan = plan();
-        plan.setCodigo(CodigoPlan.PREMIUM);
-        plan.setLimiteNegocios(6);
+        plan.setLimiteProyectos(null);
 
-        assertThatCode(() -> plan.validarNegocios(5)).doesNotThrowAnyException();
-
-        assertThatThrownBy(() -> plan.validarNegocios(6))
-                .isInstanceOf(RestriccionPlanException.class)
-                .hasMessage("Tu plan permite hasta 6 negocios.")
-                .extracting("codigo").isEqualTo("LIMITE_NEGOCIOS");
-    }
-
-    @Test
-    @DisplayName("Un límite nulo permite negocios sin límite comercial")
-    void validarNegociosShouldAllowUnlimitedConfiguredPlan() {
-        Plan plan = plan();
-        plan.setLimiteNegocios(null);
-
-        assertThatCode(() -> plan.validarNegocios(10000)).doesNotThrowAnyException();
-    }
-
-    @Test
-    @DisplayName("Un límite de registros nulo permite registros sin límite comercial")
-    void validarRegistrosShouldAllowUnlimitedConfiguredPlan() {
-        Plan plan = plan();
-        plan.setLimiteRegistros(null);
-
-        assertThatCode(() -> plan.validarRegistros(1_000_000, 1000)).doesNotThrowAnyException();
+        assertThatCode(() -> plan.validarProyectos(10000)).doesNotThrowAnyException();
     }
 
     @Test

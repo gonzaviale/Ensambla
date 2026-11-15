@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.useCase.pago.contratarPremium;
 
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.pago.ContratoRemoto;
 import com.ensambla.backend.domain.model.pago.PreparacionRenovacion;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
@@ -9,6 +10,7 @@ import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.PasarelaSuscripcionesPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
+import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.PlanRepository;
 import com.ensambla.backend.domain.repository.plan.SuscripcionRepository;
@@ -25,6 +27,8 @@ import java.util.Optional;
 
 @RequiredArgsConstructor
 public class ContratarPremium {
+
+    private final NegocioRepository negocioRepository;
 
     private final UsuarioRepository usuarioRepository;
 
@@ -47,9 +51,10 @@ public class ContratarPremium {
     public ConsultarRenovacionResponse execute(UsuarioId usuarioId) {
         exigirPasarelaDisponible();
         String email = obtenerEmailDelUsuario(usuarioId);
-        PreparacionRenovacion preparacion = preparar(usuarioId, ahora());
+        NegocioId negocioId = obtenerNegocioDelUsuario(usuarioId);
+        PreparacionRenovacion preparacion = preparar(negocioId, ahora());
         contratarOSincronizar(preparacion, email);
-        return respuestaDeLaRenovacion(usuarioId);
+        return respuestaDeLaRenovacion(negocioId);
     }
 
     private void exigirPasarelaDisponible() {
@@ -58,6 +63,10 @@ public class ContratarPremium {
 
     private String obtenerEmailDelUsuario(UsuarioId usuarioId) {
         return usuarioRepository.obtenerActivo(usuarioId).getEmail();
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
     }
 
     private OffsetDateTime ahora() {
@@ -81,36 +90,36 @@ public class ContratarPremium {
         renovacionPremiumService.sincronizar(renovacion.getId(), ahora());
     }
 
-    private ConsultarRenovacionResponse respuestaDeLaRenovacion(UsuarioId usuarioId) {
-        return ConsultarRenovacionResponse.de(pasarelaSuscripcionesPort.disponible(), ultimaRenovacionDe(usuarioId));
+    private ConsultarRenovacionResponse respuestaDeLaRenovacion(NegocioId negocioId) {
+        return ConsultarRenovacionResponse.de(pasarelaSuscripcionesPort.disponible(), ultimaRenovacionDe(negocioId));
     }
 
-    private RenovacionPremium ultimaRenovacionDe(UsuarioId usuarioId) {
-        return renovacionPremiumService.consultar(usuarioId).orElseThrow();
+    private RenovacionPremium ultimaRenovacionDe(NegocioId negocioId) {
+        return renovacionPremiumService.consultar(negocioId).orElseThrow();
     }
 
     /** Reutiliza la renovación en curso; si no hay o la anterior se canceló, prepara una nueva para la pasarela. */
-    private PreparacionRenovacion preparar(UsuarioId usuarioId, OffsetDateTime ahora) {
-        return transaccionPort.ejecutar(() -> prepararConCuentaBloqueada(usuarioId, ahora));
+    private PreparacionRenovacion preparar(NegocioId negocioId, OffsetDateTime ahora) {
+        return transaccionPort.ejecutar(() -> prepararConNegocioBloqueado(negocioId, ahora));
     }
 
-    private PreparacionRenovacion prepararConCuentaBloqueada(UsuarioId usuarioId, OffsetDateTime ahora) {
-        usoPlanRepository.bloquearCuenta(usuarioId);
-        return renovacionEnCurso(usuarioId)
+    private PreparacionRenovacion prepararConNegocioBloqueado(NegocioId negocioId, OffsetDateTime ahora) {
+        usoPlanRepository.bloquearNegocio(negocioId);
+        return renovacionEnCurso(negocioId)
                 .map(PreparacionRenovacion::reutilizada)
-                .orElseGet(() -> prepararNueva(usuarioId, ahora));
+                .orElseGet(() -> prepararNueva(negocioId, ahora));
     }
 
-    private Optional<RenovacionPremium> renovacionEnCurso(UsuarioId usuarioId) {
-        return renovacionPremiumService.consultar(usuarioId).filter(renovacion -> !renovacion.estaCancelada());
+    private Optional<RenovacionPremium> renovacionEnCurso(NegocioId negocioId) {
+        return renovacionPremiumService.consultar(negocioId).filter(renovacion -> !renovacion.estaCancelada());
     }
 
-    private PreparacionRenovacion prepararNueva(UsuarioId usuarioId, OffsetDateTime ahora) {
+    private PreparacionRenovacion prepararNueva(NegocioId negocioId, OffsetDateTime ahora) {
         Plan premium = planPremiumConPrecio();
-        Suscripcion suscripcion = suscripcionRepository.obtener(usuarioId);
+        Suscripcion suscripcion = suscripcionRepository.obtener(negocioId);
         OffsetDateTime primerCobro = primerCobroDe(suscripcion, premium, ahora);
         RenovacionPremium renovacion = RenovacionPremium.nueva(
-                usuarioId, premium.getPrecioMensual(), premium.getMoneda(), primerCobro, ahora);
+                negocioId, premium.getPrecioMensual(), premium.getMoneda(), primerCobro, ahora);
         return PreparacionRenovacion.nueva(renovacionPremiumRepository.save(renovacion));
     }
 

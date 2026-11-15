@@ -13,9 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -60,16 +58,5 @@ public class AvisoRepositoryImpl implements AvisoRepository {
     @Override
     public List<Aviso> findByNegocioIdAndEstado(NegocioId negocioId, EstadoAviso estado) {
         return jpa.findByNegocioIdAndEstado(negocioId.valor(), estado).stream().map(mapper::toDomain).toList();
-    }
-
-    @Override
-    public Map<NegocioId, Long> contarPorNegocio(List<NegocioId> negocioIds, EstadoAviso estado) {
-        if (negocioIds.isEmpty()) {
-            return Map.of();
-        }
-        return jpa.contarPorNegocio(Identificador.valores(negocioIds), estado).stream()
-                .collect(Collectors.toMap(
-                        avisos -> NegocioId.de(avisos.getNegocioId()),
-                        IAvisoJpaRepository.AvisosPorNegocio::getCantidad));
     }
 }

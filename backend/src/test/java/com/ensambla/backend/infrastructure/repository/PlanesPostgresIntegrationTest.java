@@ -70,12 +70,12 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
         assertThat(premium.getMoneda()).isEqualTo("ARS");
         assertThat(premium.getConfigurado()).isTrue();
         assertThat(gratuito.getLimitesConfigurados()).isTrue();
-        assertThat(gratuito.getLimiteNegocios()).isEqualTo(1);
+        assertThat(gratuito.getLimiteProyectos()).isEqualTo(1);
         assertThat(gratuito.getLimiteRegistros()).isEqualTo(1000L);
         assertThat(gratuito.getLimitePaginasIaMensuales()).isEqualTo(10);
         assertThat(gratuito.getFunciones()).isEmpty();
         assertThat(premium.getLimitesConfigurados()).isTrue();
-        assertThat(premium.getLimiteNegocios()).isEqualTo(6);
+        assertThat(premium.getLimiteProyectos()).isNull();
         assertThat(premium.getLimiteRegistros()).isNull();
         assertThat(premium.getLimitePaginasIaMensuales()).isEqualTo(100);
         assertThat(premium.getFunciones()).containsExactly("RECETAS_COSTOS", "REPORTES_FILTRADOS", "EXPORTAR_EXCEL", "AVISOS_COMPLETOS", "ZONA_COMPLETA");
@@ -89,10 +89,11 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
 
         UsuarioResponse result = registrarUsuario.execute(request);
 
+        UUID negocioId = negocios.findFirstByDuenioIdOrderByCreadoEnAscIdAsc(result.id().valor()).orElseThrow().getId();
         entityManager.clear();
-        Suscripcion suscripcion = suscripcionRepository.findByUsuarioId(result.id()).orElseThrow();
+        Suscripcion suscripcion = suscripcionRepository.findByNegocioId(NegocioId.de(negocioId)).orElseThrow();
         assertThat(suscripcion.getId()).isNotNull();
-        assertThat(suscripcion.getUsuarioId()).isEqualTo(result.id());
+        assertThat(suscripcion.getNegocioId()).isEqualTo(NegocioId.de(negocioId));
         assertThat(suscripcion.getPlanId())
                 .isEqualTo(PlanId.de(planes.findByCodigo(CodigoPlan.GRATUITO).orElseThrow().getId()));
         assertThat(suscripcion.getEstado()).isEqualTo(EstadoSuscripcion.ACTIVA);
@@ -103,21 +104,21 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
     }
 
     @Test
-    @DisplayName("Buscar por cuenta no devuelve la suscripción de otra cuenta")
-    void findByUsuarioIdShouldIsolateSubscriptions() {
-        var negocioA = givenNegocio("planes-a@example.com");
-        var negocioB = givenNegocio("planes-b@example.com");
-        suscripcionService.asignarGratuito(NegocioId.de(negocioA.getId()), AHORA);
+    @DisplayName("Buscar por negocio no devuelve la suscripción de otro negocio")
+    void findByNegocioIdShouldIsolateSubscriptions() {
+        UUID negocioA = givenNegocio("planes-a@example.com").getId();
+        UUID negocioB = givenNegocio("planes-b@example.com").getId();
+        suscripcionService.asignarGratuito(NegocioId.de(negocioA), AHORA);
         entityManager.clear();
 
-        Optional<SuscripcionEntity> result = suscripciones.findByUsuarioId(negocioB.getDuenioId());
+        Optional<SuscripcionEntity> result = suscripciones.findByNegocioId(negocioB);
 
         assertThat(result).isEmpty();
-        assertThat(suscripciones.findByUsuarioId(negocioA.getDuenioId())).isPresent();
+        assertThat(suscripciones.findByNegocioId(negocioA)).isPresent();
     }
 
     @Test
-    @DisplayName("La base rechaza una segunda suscripción actual para la misma cuenta")
+    @DisplayName("La base rechaza una segunda suscripción actual para el mismo negocio")
     void saveShouldRejectDuplicateSubscription() {
         UUID negocioId = givenNegocio("planes-duplicado@example.com").getId();
         suscripcionService.asignarGratuito(NegocioId.de(negocioId), AHORA);
@@ -127,19 +128,15 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
     }
 
     @Test
-    @DisplayName("Borrar un negocio conserva la suscripción de la cuenta; borrar la cuenta la elimina sin tocar el catálogo")
-    void deleteShouldKeepSubscriptionWithNegocioAndCascadeWithAccount() {
-        var negocio = givenNegocio("planes-borrar@example.com");
-        UUID suscripcionId = suscripcionService.asignarGratuito(NegocioId.de(negocio.getId()), AHORA)
-                .getId().valor();
+    @DisplayName("Borrar un negocio elimina su suscripción sin borrar el catálogo")
+    void deleteNegocioShouldCascadeSubscriptionOnly() {
+        UUID negocioId = givenNegocio("planes-borrar@example.com").getId();
+        UUID suscripcionId = suscripcionService.asignarGratuito(NegocioId.de(negocioId), AHORA).getId().valor();
 
-        negocios.deleteById(negocio.getId());
+        negocios.deleteById(negocioId);
         negocios.flush();
         entityManager.clear();
 
-        assertThat(suscripciones.findById(suscripcionId)).isPresent();
-        jdbcTemplate.update("DELETE FROM usuario WHERE id = ?", negocio.getDuenioId());
-        entityManager.clear();
         assertThat(suscripciones.findById(suscripcionId)).isEmpty();
         assertThat(planes.findByCodigo(CodigoPlan.GRATUITO)).isPresent();
     }
@@ -150,7 +147,7 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
         PlanEntity gratuito = planes.findByCodigo(CodigoPlan.GRATUITO).orElseThrow();
         gratuito.setConfigurado(true);
         gratuito.setMoneda("ARS");
-        gratuito.setLimiteNegocios(3);
+        gratuito.setLimiteProyectos(3);
         gratuito.setLimiteRegistros(100L);
         gratuito.setLimitePaginasIaMensuales(10);
         gratuito.setFunciones(List.of("FUNCION_DE_PRUEBA"));
@@ -161,7 +158,7 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
         PlanEntity result = planes.findByCodigo(CodigoPlan.GRATUITO).orElseThrow();
         assertThat(result.getConfigurado()).isTrue();
         assertThat(result.getMoneda()).isEqualTo("ARS");
-        assertThat(result.getLimiteNegocios()).isEqualTo(3);
+        assertThat(result.getLimiteProyectos()).isEqualTo(3);
         assertThat(result.getLimiteRegistros()).isEqualTo(100L);
         assertThat(result.getLimitePaginasIaMensuales()).isEqualTo(10);
         assertThat(result.getFunciones()).containsExactly("FUNCION_DE_PRUEBA");
@@ -170,8 +167,7 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "limite_negocios = -1",
-            "limite_negocios = NULL",
+            "limite_proyectos = -1",
             "limite_registros = -1",
             "limite_paginas_ia_mensuales = -1",
             "precio_mensual = -1",
@@ -192,11 +188,11 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
     @Test
     @DisplayName("La base rechaza un período que termina antes de empezar")
     void saveSubscriptionShouldRejectInvalidPeriod() {
-        UUID usuarioId = givenNegocio("planes-periodo@example.com").getDuenioId();
+        UUID negocioId = givenNegocio("planes-periodo@example.com").getId();
         UUID planId = planes.findByCodigo(CodigoPlan.GRATUITO).orElseThrow().getId();
 
         assertThatThrownBy(() -> suscripciones.saveAndFlush(SuscripcionEntity.builder()
-                .usuarioId(usuarioId)
+                .negocioId(negocioId)
                 .planId(planId)
                 .estado(EstadoSuscripcion.ACTIVA)
                 .inicioEn(AHORA)
@@ -207,12 +203,12 @@ class PlanesPostgresIntegrationTest extends PostgresDatosTestSupport {
     }
 
     @Test
-    @DisplayName("La base rechaza una suscripción para una cuenta inexistente")
+    @DisplayName("La base rechaza una suscripción para un negocio inexistente")
     void saveSubscriptionShouldRejectMissingNegocio() {
         UUID planId = planes.findByCodigo(CodigoPlan.GRATUITO).orElseThrow().getId();
 
         assertThatThrownBy(() -> suscripciones.saveAndFlush(SuscripcionEntity.builder()
-                .usuarioId(UUID.fromString("bb000000-0000-4000-8000-000000000099"))
+                .negocioId(UUID.fromString("bb000000-0000-4000-8000-000000000099"))
                 .planId(planId)
                 .estado(EstadoSuscripcion.ACTIVA)
                 .inicioEn(AHORA)

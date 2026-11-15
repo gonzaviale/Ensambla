@@ -13,21 +13,18 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class AvisoRepositoryImplTest {
 
     private static final UUID ID = UUID.fromString("e0000000-0000-4000-8000-000000000001");
     private static final NegocioId NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000001");
-    private static final NegocioId OTRO_NEGOCIO_ID = NegocioId.de("a0000000-0000-4000-8000-000000000002");
 
     private final IAvisoJpaRepository jpa = mock(IAvisoJpaRepository.class);
     private final AvisoRepositoryImpl repository = new AvisoRepositoryImpl(jpa, new AvisoRepositoryMapper());
@@ -94,42 +91,6 @@ class AvisoRepositoryImplTest {
 
         assertThat(repository.findByNegocioIdAndEstado(NEGOCIO_ID, EstadoAviso.PENDIENTE))
                 .extracting(Aviso::getId).containsExactly(AvisoId.de(ID));
-    }
-
-    @Test
-    @DisplayName("Cuenta de una vez los avisos de varios negocios en un estado, pasando al JPA los UUID")
-    void contarPorNegocioShouldPassTheUuidsAndMapTheCounts() {
-        when(jpa.contarPorNegocio(List.of(NEGOCIO_ID.valor(), OTRO_NEGOCIO_ID.valor()), EstadoAviso.PENDIENTE))
-                .thenReturn(List.of(avisosPorNegocio(NEGOCIO_ID, 3)));
-
-        Map<NegocioId, Long> result = repository.contarPorNegocio(
-                List.of(NEGOCIO_ID, OTRO_NEGOCIO_ID), EstadoAviso.PENDIENTE);
-
-        assertThat(result).containsExactly(Map.entry(NEGOCIO_ID, 3L));
-    }
-
-    @Test
-    @DisplayName("Sin negocios no consulta y no cuenta nada")
-    void contarPorNegocioShouldNotQueryWhenThereAreNoNegocios() {
-        Map<NegocioId, Long> result = repository.contarPorNegocio(List.of(), EstadoAviso.PENDIENTE);
-
-        assertThat(result).isEmpty();
-        verifyNoInteractions(jpa);
-    }
-
-    private static IAvisoJpaRepository.AvisosPorNegocio avisosPorNegocio(NegocioId negocioId, long cantidad) {
-        return new IAvisoJpaRepository.AvisosPorNegocio() {
-
-            @Override
-            public UUID getNegocioId() {
-                return negocioId.valor();
-            }
-
-            @Override
-            public long getCantidad() {
-                return cantidad;
-            }
-        };
     }
 
     private static AvisoEntity entity() {

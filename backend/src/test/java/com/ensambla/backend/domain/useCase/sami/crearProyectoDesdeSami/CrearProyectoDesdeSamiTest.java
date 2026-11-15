@@ -7,6 +7,7 @@ import com.ensambla.backend.domain.model.proyecto.Proyecto;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plantilla.PlantillaRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.proyecto.ProyectoItem;
 import com.ensambla.backend.domain.useCase.sami.ColumnaSamiItem;
 import com.ensambla.backend.support.ProyectoTestData;
@@ -37,10 +38,12 @@ class CrearProyectoDesdeSamiTest {
     private final NegocioRepository negocioRepository = mock(NegocioRepository.class);
     private final PlantillaRepository plantillaRepository = mock(PlantillaRepository.class);
     private final ProyectoRepository proyectoRepository = mock(ProyectoRepository.class);
+    private final ControlPlanService controlPlanService = mock(ControlPlanService.class);
     private final CrearProyectoDesdeSami useCase = new CrearProyectoDesdeSami(
             negocioRepository,
             plantillaRepository,
             proyectoRepository,
+            controlPlanService,
             new TransaccionDirecta(),
             Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC));
 
@@ -59,6 +62,7 @@ class CrearProyectoDesdeSamiTest {
                 .containsExactly("Nombre", "Rubro", "Saldo pendiente");
         assertThat(result.nombre()).isEqualTo("Velas de Ana");
         verify(proyectoRepository, never()).save(any());
+        verify(controlPlanService).validarAltaProyecto(NEGOCIO_ID, AHORA);
     }
 
     @Test
@@ -97,7 +101,7 @@ class CrearProyectoDesdeSamiTest {
         assertThatThrownBy(() -> useCase.execute(
                 new CrearProyectoDesdeSamiRequest(USUARIO_ID, PLANTILLA_ID, null, List.of())))
                 .isInstanceOf(ResourceNotFoundException.class);
-        verifyNoInteractions(proyectoRepository);
+        verifyNoInteractions(proyectoRepository, controlPlanService);
     }
 
     @Test
@@ -108,7 +112,7 @@ class CrearProyectoDesdeSamiTest {
         assertThatThrownBy(() -> useCase.execute(
                 new CrearProyectoDesdeSamiRequest(USUARIO_ID, PLANTILLA_ID, null, List.of())))
                 .isInstanceOf(ResourceNotFoundException.class);
-        verifyNoInteractions(plantillaRepository, proyectoRepository);
+        verifyNoInteractions(plantillaRepository, proyectoRepository, controlPlanService);
     }
 
     // --- arrange ---

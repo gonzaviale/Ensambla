@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.tuple;
 
 class IAvisoJpaRepositoryTest extends PostgresDatosTestSupport {
 
@@ -53,44 +52,12 @@ class IAvisoJpaRepositoryTest extends PostgresDatosTestSupport {
         assertThat(result).extracting(AvisoEntity::getId).containsExactly(propio);
     }
 
-    @Test
-    @DisplayName("Cuenta los avisos en el estado pedido de cada negocio y deja afuera los de otros estados")
-    void contarPorNegocioShouldCountOnlyTheRequestedStatePerBusiness() {
-        givenAviso(negocioA, "uno");
-        givenAviso(negocioA, "dos");
-        givenAviso(negocioB, "tres");
-        givenAviso(negocioB, "vencido", EstadoAviso.VENCIDO);
-
-        List<IAvisoJpaRepository.AvisosPorNegocio> result = avisos.contarPorNegocio(
-                List.of(negocioA, negocioB), EstadoAviso.PENDIENTE);
-
-        assertThat(result).extracting(IAvisoJpaRepository.AvisosPorNegocio::getNegocioId,
-                        IAvisoJpaRepository.AvisosPorNegocio::getCantidad)
-                .containsExactlyInAnyOrder(tuple(negocioA, 2L), tuple(negocioB, 1L));
-    }
-
-    @Test
-    @DisplayName("No cuenta los avisos de un negocio que no se pidió")
-    void contarPorNegocioShouldIgnoreBusinessesNotRequested() {
-        givenAviso(negocioA, "propio");
-        givenAviso(negocioB, "ajeno");
-
-        List<IAvisoJpaRepository.AvisosPorNegocio> result = avisos.contarPorNegocio(
-                List.of(negocioA), EstadoAviso.PENDIENTE);
-
-        assertThat(result).extracting(IAvisoJpaRepository.AvisosPorNegocio::getNegocioId).containsExactly(negocioA);
-    }
-
     // --- helpers ---
     private UUID givenAviso(UUID negocioId, String nombre) {
-        return givenAviso(negocioId, nombre, EstadoAviso.PENDIENTE);
-    }
-
-    private UUID givenAviso(UUID negocioId, String nombre, EstadoAviso estado) {
         return avisos.saveAndFlush(AvisoEntity.builder()
                 .negocioId(negocioId).tipo(TipoAviso.STOCK).grupo(GrupoAviso.STOCK).prioridad((short) 2)
                 .entidad("registro:" + nombre).huella("STOCK:" + nombre + ":" + UUID.randomUUID())
-                .titulo("Aviso " + nombre).detalle("detalle").acciones(List.of()).estado(estado)
+                .titulo("Aviso " + nombre).detalle("detalle").acciones(List.of()).estado(EstadoAviso.PENDIENTE)
                 .creadoEn(AHORA).actualizadoEn(AHORA)
                 .build()).getId();
     }

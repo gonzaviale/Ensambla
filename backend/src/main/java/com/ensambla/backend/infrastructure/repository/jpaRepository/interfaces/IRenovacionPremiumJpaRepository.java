@@ -12,15 +12,15 @@ public interface IRenovacionPremiumJpaRepository extends JpaRepository<Renovacio
 
     Optional<RenovacionPremiumEntity> findByProveedorId(String proveedorId);
 
-    @Query("SELECT r.usuarioId FROM RenovacionPremiumEntity r WHERE r.id = :id")
-    Optional<UUID> findUsuarioIdById(UUID id);
+    @Query("SELECT r.negocioId FROM RenovacionPremiumEntity r WHERE r.id = :id")
+    Optional<UUID> findNegocioIdById(UUID id);
 
     /** El contrato abierto tiene prioridad aun cuando dos creaciones compartan el mismo instante. */
-    @Query(value = "SELECT * FROM renovacion_premium WHERE usuario_id = :usuarioId "
+    @Query(value = "SELECT * FROM renovacion_premium WHERE negocio_id = :negocioId "
             + "ORDER BY (estado <> 'CANCELADA') DESC, creado_en DESC, id DESC LIMIT 1", nativeQuery = true)
-    Optional<RenovacionPremiumEntity> findActualByUsuarioId(UUID usuarioId);
+    Optional<RenovacionPremiumEntity> findActualByNegocioId(UUID negocioId);
 
-    boolean existsByUsuarioIdAndEstadoNot(UUID usuarioId, String estado);
+    boolean existsByNegocioIdAndEstadoNot(UUID negocioId, String estado);
 
     /** Orden rotativo y lote acotado para recuperar también notificaciones de contratos cancelados. */
     @Query(value = "SELECT id FROM renovacion_premium ORDER BY sincronizado_en NULLS FIRST, id LIMIT 100",

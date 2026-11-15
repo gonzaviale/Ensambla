@@ -14,7 +14,6 @@ import com.ensambla.backend.domain.model.plan.PruebaPremium;
 import com.ensambla.backend.domain.model.plan.Suscripcion;
 import com.ensambla.backend.domain.model.plan.TipoContenidoPlan;
 import com.ensambla.backend.domain.model.procesamiento.PoliticaProcesamiento;
-import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.AccesoContenidoRepository;
@@ -55,14 +54,8 @@ public class ControlPlanService {
 
     private final AccesoIa accesoIa;
 
-    /** Un negocio más de la cuenta tiene que entrar en el límite de su plan (Gratuito 1; Premium 6). */
-    public void validarAltaNegocio(UsuarioId usuarioId, OffsetDateTime ahora) {
-        conCuentaBloqueada(usuarioId, () -> exigirCupoDeNegocios(usuarioId, ahora));
-    }
-
-    /** Límite vigente de negocios de la cuenta; todo plan configurado debe tenerlo. */
-    public int limiteNegocios(UsuarioId usuarioId, OffsetDateTime ahora) {
-        return planVigenteDeLaCuenta(usuarioId, ahora).getLimiteNegocios();
+    public void validarAltaProyecto(NegocioId negocioId, OffsetDateTime ahora) {
+        conNegocioBloqueado(negocioId, () -> exigirCupoDeProyectos(negocioId, ahora));
     }
 
     public void validarAltaRegistros(NegocioId negocioId, long cantidad, OffsetDateTime ahora) {
@@ -150,21 +143,9 @@ public class ControlPlanService {
         });
     }
 
-    private void conCuentaBloqueada(UsuarioId usuarioId, Runnable trabajo) {
-        transaccionPort.ejecutar(() -> {
-            usoPlanRepository.bloquearCuenta(usuarioId);
-            trabajo.run();
-        });
-    }
-
-    /** El plan, la prueba y el cupo de IA son de la cuenta: el negocio sólo dice de cuál. */
-    private UsuarioId cuentaDe(NegocioId negocioId) {
-        return negocioRepository.obtenerDuenioId(negocioId);
-    }
-
-    private void exigirCupoDeNegocios(UsuarioId usuarioId, OffsetDateTime ahora) {
-        Plan plan = planVigenteDeLaCuenta(usuarioId, ahora);
-        plan.validarNegocios(usoPlanRepository.contarNegocios(usuarioId));
+    private void exigirCupoDeProyectos(NegocioId negocioId, OffsetDateTime ahora) {
+        Plan plan = planVigente(negocioId, ahora);
+        plan.validarProyectos(usoPlanRepository.contarProyectos(negocioId));
     }
 
     private void exigirCupoDeRegistros(NegocioId negocioId, long cantidad, OffsetDateTime ahora) {
@@ -181,16 +162,15 @@ public class ControlPlanService {
     }
 
     private void exigirCupoDePaginasIa(NegocioId negocioId, int cantidad, OffsetDateTime ahora) {
-        UsuarioId usuarioId = cuentaDe(negocioId);
-        Plan plan = planVigenteDeLaCuenta(usuarioId, ahora);
-        pruebaVigente(usuarioId, ahora).ifPresentOrElse(
+        Plan plan = planVigente(negocioId, ahora);
+        pruebaVigente(negocioId, ahora).ifPresentOrElse(
                 prueba -> prueba.validarPaginas(cantidad),
-                () -> plan.validarPaginasIa(paginasUsadasEnElMes(usuarioId, ahora), cantidad));
+                () -> plan.validarPaginasIa(paginasUsadasEnElMes(negocioId, ahora), cantidad));
     }
 
-    private long paginasUsadasEnElMes(UsuarioId usuarioId, OffsetDateTime ahora) {
+    private long paginasUsadasEnElMes(NegocioId negocioId, OffsetDateTime ahora) {
         LocalDate mes = ZonaNegocio.primerDiaDelMes(ahora);
-        return usoPlanRepository.paginasEnPeriodo(usuarioId, mes, mes.plusMonths(1));
+        return usoPlanRepository.paginasEnPeriodo(negocioId, mes, mes.plusMonths(1));
     }
 
     private boolean admitirIntentoDeLectura(
@@ -209,15 +189,15 @@ public class ControlPlanService {
 
     /** Se cobra al admitir un intento. También cuentan errores y timeouts, sin duplicar al finalizar el lote. */
     private void registrarPaginasPrueba(NegocioId negocioId, int cantidad, OffsetDateTime ahora) {
-        conNegocioBloqueado(negocioId, () -> pruebaVigente(cuentaDe(negocioId), ahora)
+        conNegocioBloqueado(negocioId, () -> pruebaVigente(negocioId, ahora)
                 .ifPresent(prueba -> pruebaPremiumRepository.save(prueba.consumir(cantidad))));
     }
 
-    private Optional<PruebaPremium> pruebaVigente(UsuarioId usuarioId, OffsetDateTime ahora) {
-        if (!estaEnPruebaVigente(suscripcionDe(usuarioId), ahora)) {
+    private Optional<PruebaPremium> pruebaVigente(NegocioId negocioId, OffsetDateTime ahora) {
+        if (!estaEnPruebaVigente(suscripcionDe(negocioId), ahora)) {
             return Optional.empty();
         }
-        return Optional.of(pruebaDe(usuarioId));
+        return Optional.of(pruebaDe(negocioId));
     }
 
     private boolean estaEnPruebaVigente(Suscripcion suscripcion, OffsetDateTime ahora) {
@@ -225,11 +205,7 @@ public class ControlPlanService {
     }
 
     private Plan planVigente(NegocioId negocioId, OffsetDateTime ahora) {
-        return planVigenteDeLaCuenta(cuentaDe(negocioId), ahora);
-    }
-
-    private Plan planVigenteDeLaCuenta(UsuarioId usuarioId, OffsetDateTime ahora) {
-        Suscripcion suscripcion = suscripcionDe(usuarioId);
+        Suscripcion suscripcion = suscripcionDe(negocioId);
         Plan plan = suscripcion.estaVigente(ahora) ? planContratadoPor(suscripcion) : planGratuito();
         plan.validarLimitesConfigurados();
         return plan;
@@ -239,13 +215,13 @@ public class ControlPlanService {
         return planVigente(negocioId, ahora).getCodigo() == CodigoPlan.PREMIUM;
     }
 
-    private Suscripcion suscripcionDe(UsuarioId usuarioId) {
-        return suscripcionRepository.findByUsuarioId(usuarioId)
+    private Suscripcion suscripcionDe(NegocioId negocioId) {
+        return suscripcionRepository.findByNegocioId(negocioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Suscripción no encontrada"));
     }
 
-    private PruebaPremium pruebaDe(UsuarioId usuarioId) {
-        return pruebaPremiumRepository.findByUsuarioId(usuarioId)
+    private PruebaPremium pruebaDe(NegocioId negocioId) {
+        return pruebaPremiumRepository.findByNegocioId(negocioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Prueba no encontrada"));
     }
 

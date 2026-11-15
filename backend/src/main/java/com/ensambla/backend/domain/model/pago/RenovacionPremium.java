@@ -1,7 +1,7 @@
 package com.ensambla.backend.domain.model.pago;
 
 import com.ensambla.backend.domain.exception.PasarelaPagoException;
-import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -37,7 +37,7 @@ public class RenovacionPremium {
 
     private RenovacionId id;
 
-    private UsuarioId usuarioId;
+    private NegocioId negocioId;
 
     private String proveedorId;
 
@@ -63,11 +63,11 @@ public class RenovacionPremium {
 
     private OffsetDateTime actualizadoEn;
 
-    public static RenovacionPremium nueva(UsuarioId usuarioId, BigDecimal importe, String moneda,
+    public static RenovacionPremium nueva(NegocioId negocioId, BigDecimal importe, String moneda,
             OffsetDateTime primerCobroEn, OffsetDateTime ahora) {
         return RenovacionPremium.builder()
                 .id(RenovacionId.nuevo())
-                .usuarioId(usuarioId)
+                .negocioId(negocioId)
                 .estado(ESTADO_PREPARANDO)
                 .importe(importe)
                 .moneda(moneda)

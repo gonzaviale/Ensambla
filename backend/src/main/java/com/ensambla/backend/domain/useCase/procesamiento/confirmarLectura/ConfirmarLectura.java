@@ -93,6 +93,7 @@ public class ConfirmarLectura {
     }
 
     private Proyecto crearProyecto(NegocioId negocioId, String nombre, OffsetDateTime ahora) {
+        controlPlanService.validarAltaProyecto(negocioId, ahora);
         return proyectoRepository.save(Proyecto.enBlanco(negocioId, nombre, null, ahora));
     }
 

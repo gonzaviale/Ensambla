@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.useCase.auth.registrarUsuario;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.negocio.Negocio;
+import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.EstadoSuscripcion;
 import com.ensambla.backend.domain.model.plan.Plan;
@@ -21,7 +22,7 @@ import lombok.RequiredArgsConstructor;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 
-/** Crea la cuenta, su negocio y la suscripción gratuita de la cuenta en una sola transacción: si algo falla no queda nada. */
+/** Crea la cuenta, su negocio y la suscripción gratuita en una sola transacción: si algo falla no queda nada. */
 @RequiredArgsConstructor
 public class RegistrarUsuario {
 
@@ -48,8 +49,8 @@ public class RegistrarUsuario {
         String email = Usuario.normalizarEmail(request.email());
         validarEmailLibre(email);
         Usuario usuario = crearUsuario(request, email, ahora);
-        crearNegocio(request, usuario, ahora);
-        asignarPlanGratuito(usuario, ahora);
+        Negocio negocio = crearNegocio(request, usuario, ahora);
+        asignarPlanGratuito(negocio.getId(), ahora);
         return usuario;
     }
 
@@ -70,8 +71,8 @@ public class RegistrarUsuario {
                 .build());
     }
 
-    private void crearNegocio(RegistrarUsuarioRequest request, Usuario usuario, OffsetDateTime ahora) {
-        negocioRepository.save(Negocio.builder()
+    private Negocio crearNegocio(RegistrarUsuarioRequest request, Usuario usuario, OffsetDateTime ahora) {
+        return negocioRepository.save(Negocio.builder()
                 .nombre(request.nombreNegocio().trim())
                 .duenioId(usuario.getId())
                 .creadoEn(ahora)
@@ -79,12 +80,11 @@ public class RegistrarUsuario {
                 .build());
     }
 
-    /** El plan es de la cuenta: vale para su primer negocio y para los que sume después. */
-    private void asignarPlanGratuito(Usuario usuario, OffsetDateTime ahora) {
+    private void asignarPlanGratuito(NegocioId negocioId, OffsetDateTime ahora) {
         Plan plan = planRepository.findByCodigo(CodigoPlan.GRATUITO)
                 .orElseThrow(() -> new ResourceNotFoundException("Plan gratuito no encontrado"));
         suscripcionRepository.save(Suscripcion.builder()
-                .usuarioId(usuario.getId())
+                .negocioId(negocioId)
                 .planId(plan.getId())
                 .estado(EstadoSuscripcion.ACTIVA)
                 .inicioEn(ahora)
