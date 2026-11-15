@@ -17,6 +17,12 @@ public interface NegocioRepository {
 
     Optional<Negocio> findByDuenioIdParaActualizar(UsuarioId usuarioId);
 
+    List<Negocio> findAllByDuenioId(UsuarioId usuarioId);
+
+    List<Negocio> findAllByDuenioIdParaActualizar(UsuarioId usuarioId);
+
+    Optional<Negocio> findByIdAndDuenioId(NegocioId negocioId, UsuarioId usuarioId);
+
     /** Zona a la que pertenece el negocio; vacío si el negocio no existe o todavía no tiene zona. */
     Optional<ZonaId> findZonaIdById(NegocioId negocioId);
 
@@ -27,6 +33,8 @@ public interface NegocioRepository {
     Optional<String> findEmailDuenioById(NegocioId negocioId);
 
     Negocio save(Negocio negocio);
+
+    void deleteById(NegocioId negocioId);
 
     /** Ids de todos los negocios; los usa el motor de monitoreo para recorrerlos. */
     List<NegocioId> findAllIds();

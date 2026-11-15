@@ -9,7 +9,10 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import static com.ensambla.backend.support.ProyectoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.UsuarioTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -20,6 +23,7 @@ class SesionAdapterTest {
     @AfterEach
     void clearContext() {
         SecurityContextHolder.clearContext();
+        RequestContextHolder.resetRequestAttributes();
     }
 
     @Test
@@ -62,6 +66,38 @@ class SesionAdapterTest {
         sesionAdapter.cerrar(request, new MockHttpServletResponse());
 
         thenCerrarShouldBeIdempotentWhenSessionIsMissing(request);
+    }
+
+    @Test
+    @DisplayName("Guarda y recupera el negocio activo en la sesión HTTP actual")
+    void negocioActivoShouldRoundTripInCurrentSession() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+
+        sesionAdapter.activar(USUARIO_ID, NEGOCIO_ID);
+
+        assertThat(sesionAdapter.obtener(USUARIO_ID)).contains(NEGOCIO_ID);
+        assertThat(request.getSession().getAttribute(
+                SesionAdapter.class.getName() + ".NEGOCIO_ACTIVO"))
+                .isEqualTo(NEGOCIO_ID.toString());
+    }
+
+    @Test
+    @DisplayName("Sin un pedido HTTP no inventa un negocio activo ni falla al activarlo")
+    void negocioActivoShouldBeEmptyWithoutCurrentRequest() {
+        sesionAdapter.activar(USUARIO_ID, NEGOCIO_ID);
+
+        assertThat(sesionAdapter.obtener(USUARIO_ID)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Una sesión sin un negocio tipado todavía no tiene negocio activo")
+    void negocioActivoShouldIgnoreInvalidAttribute() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.getSession().setAttribute(SesionAdapter.class.getName() + ".NEGOCIO_ACTIVO", "invalido");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+
+        assertThat(sesionAdapter.obtener(USUARIO_ID)).isEmpty();
     }
 
     // --- assert ---
