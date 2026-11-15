@@ -1,7 +1,19 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { crearObjetivo, decidirPaso, eliminarObjetivo } from '@/api/objetivos';
+import {
+  crearObjetivo,
+  decidirPaso,
+  eliminarObjetivo,
+  guardarObjetivoConSami,
+  proponerObjetivo,
+} from '@/api/objetivos';
 import { useUsuarioOpcional } from '@/hooks/auth/queries';
-import type { DecisionDePaso, ObjetivoDelServidor } from '@/types/objetivos';
+import type {
+  CuotaObjetivos,
+  DecisionDePaso,
+  MensajeDeConversacion,
+  ObjetivoConSami,
+  ObjetivoDelServidor,
+} from '@/types/objetivos';
 import { objetivosKey, objetivosKeys } from './queries';
 
 function useClaveDeObjetivos() {
@@ -21,6 +33,38 @@ export function useDefinirObjetivo() {
         ...(actuales ?? []),
         creado,
       ]);
+    },
+  });
+}
+
+const claveDeLaCuota = (usuarioId: string) => [...objetivosKey, 'cuota', usuarioId] as const;
+
+/** Sami lee lo que la persona escribió y propone mini-objetivos. No guarda nada: sólo al guardar se gasta cuota. */
+export function useProponerObjetivo() {
+  const queryClient = useQueryClient();
+  const usuario = useUsuarioOpcional();
+  return useMutation({
+    mutationFn: (mensajes: MensajeDeConversacion[]) => proponerObjetivo(mensajes),
+    onSuccess: ({ cuota }) => {
+      if (cuota && usuario)
+        queryClient.setQueryData<CuotaObjetivos>(claveDeLaCuota(usuario.id), cuota);
+    },
+  });
+}
+
+/** Guarda lo que la persona aceptó (o el seguimiento manual) y vuelve a preguntar cuántos objetivos con IA le quedan. */
+export function useGuardarObjetivoConSami() {
+  const queryClient = useQueryClient();
+  const clave = useClaveDeObjetivos();
+  const usuario = useUsuarioOpcional();
+  return useMutation({
+    mutationFn: (objetivo: ObjetivoConSami) => guardarObjetivoConSami(objetivo),
+    onSuccess: (creado) => {
+      queryClient.setQueryData<ObjetivoDelServidor[]>(clave, (actuales) => [
+        ...(actuales ?? []),
+        creado,
+      ]);
+      void queryClient.invalidateQueries({ queryKey: claveDeLaCuota(usuario?.id ?? 'sin-sesion') });
     },
   });
 }

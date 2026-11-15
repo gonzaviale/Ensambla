@@ -32,6 +32,8 @@ type Estado = {
   objetivos: Map<string, ObjetivoDelServidor[]>;
   /** Mini-objetivos, progreso, decisiones y cierres de cada objetivo (por id); se arman la primera vez que se piden. */
   autogestion: Map<string, DatosAutogestion>;
+  /** Cuántos objetivos con IA guardó cada cuenta en el mes (clave: email|AAAA-MM). */
+  objetivosConIa: Map<string, number>;
   pruebasPremium: Map<string, PruebaPremium>;
   contenidosDesbloqueados: Map<string, string[]>;
   paginasIa: Map<string, number>;
@@ -50,6 +52,7 @@ export const estado: Estado = {
   avisosDelServidor: new Map(),
   objetivos: new Map(),
   autogestion: new Map(),
+  objetivosConIa: new Map(),
   pruebasPremium: new Map(),
   contenidosDesbloqueados: new Map(),
   paginasIa: new Map(),
@@ -66,6 +69,7 @@ export function reiniciarEstado() {
   estado.avisosDelServidor = new Map();
   estado.objetivos = new Map();
   estado.autogestion = new Map();
+  estado.objetivosConIa = new Map();
   estado.pruebasPremium = new Map();
   estado.contenidosDesbloqueados = new Map();
   estado.paginasIa = new Map();

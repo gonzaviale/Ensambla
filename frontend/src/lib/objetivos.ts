@@ -2,66 +2,43 @@
 // meta; el historial es el resultado real de las últimas semanas (GET /objetivos/negocio). Las palancas parten de la
 // base económica de referencia («Almacén de barrio») y se escalan a cada meta.
 
+import type { TipoObjetivo } from '@/types/objetivos';
+
 export type PuntoDeProgreso = { semana: string; valor: number };
 
 export type Objetivo = {
   id: string;
   /** Lo que la persona le contó a Sami, con sus palabras. */
   texto: string;
-  /** Resultado mensual que se quiere alcanzar. */
-  meta: number;
+  /** Cómo se mide: con una meta en pesos, con datos del negocio, sin datos o mezclado. */
+  tipo: TipoObjetivo;
+  /** Resultado mensual que se quiere alcanzar. Sólo el objetivo monetario la tiene: sin importe no hay meta. */
+  meta: number | null;
+  /** Si lo armó Sami con IA (cuenta para la cuota del mes). */
+  armadoConSami: boolean;
   /** Resultado mensual estimado, semana a semana; el último es el de hoy. */
   historial: PuntoDeProgreso[];
 };
 
+/** Un objetivo con meta en pesos: la que se compara con el resultado del negocio. */
+export type ObjetivoConMeta = Objetivo & { meta: number };
+
+export const tieneMeta = (objetivo: Objetivo): objetivo is ObjetivoConMeta =>
+  objetivo.meta !== null;
+
 /** Resultado mensual de la base de referencia: sólo para escalar las palancas y para la lección de ejemplo. */
 const RESULTADO_DE_REFERENCIA = 180_000;
-export const META_POR_DEFECTO = 500_000;
+/** La meta del objetivo de ejemplo de las lecciones; un objetivo de verdad nunca la recibe por defecto. */
+export const META_DEL_EJEMPLO = 500_000;
 
 /** Con la brecha de referencia ($500.000 − $180.000), el camino combinado pide estas palancas. */
-const BRECHA_DE_REFERENCIA = META_POR_DEFECTO - RESULTADO_DE_REFERENCIA;
+const BRECHA_DE_REFERENCIA = META_DEL_EJEMPLO - RESULTADO_DE_REFERENCIA;
 
 export const EJEMPLOS_DE_OBJETIVO = [
   'Quiero ganar $400.000 por mes sin subir demasiado los precios',
   'Quiero cubrir mis gastos y que me queden $150.000 por mes',
   'Quiero poder retirar $150.000 por mes sin afectar el negocio',
 ] as const;
-
-/**
- * Un importe escrito como lo escribe la gente: «$400.000», «$ 400,000», «$400k», «400 mil», «1,5 millones». Los
- * miles van con punto o coma cada tres cifras; con un multiplicador, uno o dos decimales («1,5 M»).
- */
-const IMPORTE =
-  /(\$\s*)?(\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,](\d{1,2}))?\s*(k|mil|millones|millón|millon|m)?(?![\p{L}\d])/giu;
-
-const MULTIPLICADOR: Record<string, number> = {
-  k: 1_000,
-  mil: 1_000,
-  m: 1_000_000,
-  millon: 1_000_000,
-  millón: 1_000_000,
-  millones: 1_000_000,
-};
-
-/** Menos que esto no es una meta mensual: es un día, una cantidad o un porcentaje («antes del día 20»). */
-const META_MINIMA = 1_000;
-
-/**
- * Sami busca el importe del texto: primero uno con «$» o con multiplicador («$400k», «400 mil»), y si no hay, un
- * número grande suelto («400.000»). Si no encuentra ninguno razonable, usa la meta de ejemplo.
- */
-export function metaDesdeTexto(texto: string): number {
-  const importes = [...texto.matchAll(IMPORTE)].map((encontrado) => {
-    const [, peso, entero = '', decimales = '', sufijo] = encontrado;
-    const multiplicador = sufijo ? MULTIPLICADOR[sufijo.toLowerCase()] : undefined;
-    const valor = Number(`${entero.replace(/[.,]/g, '')}.${decimales || '0'}`) * (multiplicador ?? 1);
-    return { valor: Math.round(valor), marcado: Boolean(peso) || multiplicador !== undefined };
-  });
-  const razonables = importes.filter((importe) => importe.valor >= META_MINIMA);
-  return (
-    (razonables.find((importe) => importe.marcado) ?? razonables[0])?.valor ?? META_POR_DEFECTO
-  );
-}
 
 /** Lo que se gana hoy por mes; sin historial (todavía sin ventas) es cero, nunca un número de ejemplo. */
 export function ultimoValor(objetivo: Objetivo): number {
@@ -70,26 +47,19 @@ export function ultimoValor(objetivo: Objetivo): number {
 
 /** Qué parte de la meta ya se logra hoy, de 0 a 1. */
 export function avance(objetivo: Objetivo): number {
+  if (!tieneMeta(objetivo) || objetivo.meta <= 0) return 0;
   return Math.min(1, Math.max(0, ultimoValor(objetivo) / objetivo.meta));
 }
 
+/** Lo que falta para la meta; sin meta no hay nada que comparar, así que no falta nada. */
 export function brecha(objetivo: Objetivo): number {
-  return Math.max(0, objetivo.meta - ultimoValor(objetivo));
+  return tieneMeta(objetivo) ? Math.max(0, objetivo.meta - ultimoValor(objetivo)) : 0;
 }
 
 /** Cuánto cambió el resultado desde la primera semana medida. */
 export function variacion(objetivo: Objetivo): number {
   const primero = objetivo.historial[0]?.valor ?? 0;
   return ultimoValor(objetivo) - primero;
-}
-
-export function nuevoObjetivo(texto: string): Objetivo {
-  return {
-    id: crypto.randomUUID(),
-    texto: texto.trim(),
-    meta: metaDesdeTexto(texto),
-    historial: [],
-  };
 }
 
 export const ID_OBJETIVO_DE_EJEMPLO = 'objetivo-ejemplo';
@@ -109,22 +79,26 @@ const HISTORIAL_DE_EJEMPLO: PuntoDeProgreso[] = [
 }));
 
 /** El objetivo de ejemplo de las lecciones de Sami: seis semanas de historia inventada hasta hoy. */
-export function objetivoDeEjemplo(): Objetivo {
+export function objetivoDeEjemplo(): ObjetivoConMeta {
   return {
     id: ID_OBJETIVO_DE_EJEMPLO,
     texto: TEXTO_OBJETIVO_DE_EJEMPLO,
-    meta: META_POR_DEFECTO,
+    tipo: 'MONETARIO',
+    meta: META_DEL_EJEMPLO,
+    armadoConSami: false,
     historial: HISTORIAL_DE_EJEMPLO.map((punto) => ({ ...punto })),
   };
 }
 
 /**
- * El objetivo que guardó el servidor (solo el texto y la meta), listo para mostrar. El historial no se guarda: lo
- * pone {@link conHistorialReal} con las semanas reales del negocio.
+ * El objetivo que guardó el servidor (texto, tipo y meta, si tiene), listo para mostrar. El historial no se guarda:
+ * lo pone {@link conHistorialReal} con las semanas reales del negocio.
  */
-export function objetivoDesdeServidor(guardado: Pick<Objetivo, 'id' | 'texto' | 'meta'>): Objetivo {
-  const { id, texto, meta } = guardado;
-  return { id, texto, meta, historial: [] };
+export function objetivoDesdeServidor(
+  guardado: Pick<Objetivo, 'id' | 'texto' | 'tipo' | 'meta' | 'armadoConSami'>,
+): Objetivo {
+  const { id, texto, tipo, meta, armadoConSami } = guardado;
+  return { id, texto, tipo, meta, armadoConSami, historial: [] };
 }
 
 /** El objetivo con el resultado real de las últimas semanas; sin ventas queda sin historial. */

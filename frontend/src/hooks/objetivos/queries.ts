@@ -2,6 +2,7 @@ import { queryOptions, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import {
   listarObjetivos,
+  obtenerCuotaObjetivos,
   obtenerDecisionesObjetivo,
   obtenerMiniObjetivos,
   obtenerPasosObjetivo,
@@ -57,6 +58,24 @@ export function useObjetivos() {
     [consulta.data, semanas],
   );
   return { objetivos, cargando: consulta.isPending, fallo: consulta.isError };
+}
+
+/** Cuántos objetivos con IA le quedan a la persona este mes; sin dato (todavía o si falla) no se muestra nada. */
+export const cuotaObjetivosQuery = (usuarioId: string) =>
+  queryOptions({
+    queryKey: [...objetivosKey, 'cuota', usuarioId] as const,
+    queryFn: ({ signal }) => obtenerCuotaObjetivos(signal),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+export function useCuotaObjetivos() {
+  const usuario = useUsuarioOpcional();
+  const consulta = useQuery({
+    ...cuotaObjetivosQuery(usuario?.id ?? 'sin-sesion'),
+    enabled: !!usuario,
+  });
+  return { cuota: consulta.data };
 }
 
 export const pasosObjetivoQuery = () =>

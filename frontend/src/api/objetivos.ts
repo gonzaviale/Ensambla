@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import {
   candidatosMiniObjetivoSchema,
+  cuotaObjetivosSchema,
+  propuestaObjetivoSchema,
   decisionesObjetivoSchema,
   decisionObjetivoSchema,
   miniObjetivoSchema,
@@ -12,7 +14,9 @@ import {
   semanasObjetivoSchema,
   type CandidatoMiniObjetivo,
   type DecisionDePaso,
+  type MensajeDeConversacion,
   type NuevoObjetivo,
+  type ObjetivoConSami,
   type ProductoParaPaso,
 } from '@/types/objetivos';
 import { http } from './client';
@@ -23,6 +27,18 @@ export const listarObjetivos = (signal?: AbortSignal) =>
 
 export const crearObjetivo = (objetivo: NuevoObjetivo) =>
   http.post('/objetivos', objetivo, objetivoDelServidorSchema);
+
+/** Sami lee lo que la persona escribió y propone mini-objetivos; no guarda nada ni gasta cuota. */
+export const proponerObjetivo = (mensajes: MensajeDeConversacion[]) =>
+  http.post('/objetivos/sami/propuesta', { mensajes }, propuestaObjetivoSchema);
+
+/** Guarda lo que la persona aceptó; con `seguimientoManual` el servidor arma uno solo, sin IA ni cuota. */
+export const guardarObjetivoConSami = (objetivo: ObjetivoConSami) =>
+  http.post('/objetivos/sami', objetivo, objetivoDelServidorSchema);
+
+/** Cuántos objetivos con IA le quedan al negocio este mes. */
+export const obtenerCuotaObjetivos = (signal?: AbortSignal) =>
+  http.get('/objetivos/cuota', cuotaObjetivosSchema, signal);
 
 // Un objetivo ajeno responde 404, igual que uno que no existe.
 export const eliminarObjetivo = (id: string) =>

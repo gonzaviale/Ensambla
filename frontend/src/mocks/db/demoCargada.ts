@@ -1,6 +1,6 @@
 import {
   ID_OBJETIVO_DE_EJEMPLO,
-  META_POR_DEFECTO,
+  META_DEL_EJEMPLO,
   TEXTO_OBJETIVO_DE_EJEMPLO,
 } from '@/lib/objetivos';
 import { crearAlmacenCargado } from '@/lib/sistema/demo';
@@ -31,7 +31,9 @@ export function sembrarDemoCargada(email: string, ahora = new Date()) {
     {
       id: ID_OBJETIVO_DE_EJEMPLO,
       texto: TEXTO_OBJETIVO_DE_EJEMPLO,
-      meta: META_POR_DEFECTO,
+      tipo: 'MONETARIO',
+      meta: META_DEL_EJEMPLO,
+      armadoConSami: false,
       creadoEn: new Date(ahora.getTime() - 35 * DIA_MS).toISOString(),
     },
     ...objetivosDe(email).filter((objetivo) => objetivo.id !== ID_OBJETIVO_DE_EJEMPLO),

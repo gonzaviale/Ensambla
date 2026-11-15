@@ -2286,3 +2286,147 @@
   font-size: 14px;
   font-weight: 700;
 }
+
+/* --- Objetivos con Sami (H-60): conversación, mini-objetivos propuestos y cuota. Pensado para el celular primero. --- */
+.sami-conversar {
+  grid-template-columns: minmax(0, 1fr);
+}
+.sami-cuota {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--paper, #fff);
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 700;
+}
+.sami-cuota[data-agotada='true'] {
+  border-color: var(--yellow);
+  background: #fffbe6;
+  color: var(--ink);
+}
+.sami-hilo {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sami-hilo li {
+  max-width: 92%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--color-soft-surface, #f5f6f3);
+}
+.sami-hilo li[data-rol='PERSONA'] {
+  justify-self: end;
+  background: #e6f3f7;
+}
+.sami-hilo-quien {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.sami-hilo p {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+.sami-tipo {
+  color: var(--petrol);
+  font-weight: 800;
+}
+.sami-datos {
+  color: var(--muted);
+  font-size: 13px;
+}
+.sami-aparte {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--yellow);
+  border-radius: 14px;
+  background: #fff;
+}
+.sami-aparte-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.sami-subtitulo {
+  margin-bottom: 8px;
+  font-size: 15px;
+  color: var(--petrol);
+}
+.sami-minis {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sami-mini {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--petrol);
+  border-radius: 14px;
+  background: #fff;
+}
+.sami-mini[data-modo='manual'] {
+  border-top-color: var(--orange);
+}
+.sami-mini-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sami-mini-cabecera .objetivos-textual {
+  margin-left: auto;
+}
+.sami-mini h4 {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.sami-mini-numeros {
+  color: var(--muted);
+  font-size: 13px;
+}
+.sami-mini-edicion {
+  display: grid;
+  gap: 10px;
+}
+.sami-mini-edicion .field {
+  margin-bottom: 0;
+}
+.sami-escribir {
+  display: grid;
+  gap: 12px;
+}
+.objetivos-minis-resumen {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0 0 0 18px;
+  color: var(--ink);
+  font-size: 14px;
+}
+@media (max-width: 600px) {
+  .sami-hilo li {
+    max-width: 100%;
+  }
+  .sami-aparte-acciones .btn,
+  .sami-escribir > .btn {
+    width: 100%;
+  }
+  .objetivos-formulario-acciones .btn {
+    flex: 1 1 100%;
+  }
+}

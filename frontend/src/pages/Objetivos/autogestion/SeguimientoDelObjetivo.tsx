@@ -19,6 +19,7 @@ import {
 import { hoy } from '@/lib/sistema/formato';
 import { GraficoSemanal } from './GraficoSemanal';
 import { HistorialReajustes } from './HistorialReajustes';
+import { MiniManualCard } from './MiniManualCard';
 import { MiniObjetivoCard } from './MiniObjetivoCard';
 import { RecorridoDeLaSemana } from './RecorridoDeLaSemana';
 import { ResumenListo } from './ResumenListo';
@@ -71,6 +72,11 @@ export function SeguimientoDelObjetivo({
     });
 
   const cuanto = minis.data ? cuantoCubren(minis.data.minis, teFaltan) : null;
+  // Sin meta en pesos no hay resultado contra el que comparar: el gráfico sólo es de los objetivos con meta.
+  const progresoConMeta =
+    progreso.data && progreso.data.meta !== null
+      ? { ...progreso.data, meta: progreso.data.meta }
+      : null;
 
   if (minis.isPending) {
     return (
@@ -103,7 +109,7 @@ export function SeguimientoDelObjetivo({
 
       <section aria-labelledby="minis-titulo">
         <h2 id="minis-titulo" className="objetivos-subtitulo">
-          Tus 3 mini-objetivos
+          Tus mini-objetivos
         </h2>
         {minis.data.faltanDatos === 'OBJETIVO_ALCANZADO' ? (
           <p className="objetivos-pasos-vacio">
@@ -119,25 +125,29 @@ export function SeguimientoDelObjetivo({
           <>
             {cuanto && <p className="mini-objetivos-cubren">{cuanto}</p>}
             <div className="mini-objetivos">
-              {minis.data.minis.map((mini) => (
-                <MiniObjetivoCard
-                  key={mini.id}
-                  mini={mini}
-                  decidido={
-                    restaurados.has(mini.id)
-                      ? undefined
-                      : decisionDeLaSemana(lista, mini.id, estaSemana)
-                  }
-                  ocupado={ocupado}
-                  onDecidir={(tipo) =>
-                    decidir.mutate(
-                      { miniId: mini.id, tipo },
-                      { onSuccess: () => conRestaurado(mini.id, false) },
-                    )
-                  }
-                  onRestaurar={() => conRestaurado(mini.id, true)}
-                />
-              ))}
+              {minis.data.minis.map((mini) =>
+                mini.modo === 'MANUAL' ? (
+                  <MiniManualCard key={mini.id} mini={mini} />
+                ) : (
+                  <MiniObjetivoCard
+                    key={mini.id}
+                    mini={mini}
+                    decidido={
+                      restaurados.has(mini.id)
+                        ? undefined
+                        : decisionDeLaSemana(lista, mini.id, estaSemana)
+                    }
+                    ocupado={ocupado}
+                    onDecidir={(tipo) =>
+                      decidir.mutate(
+                        { miniId: mini.id, tipo },
+                        { onSuccess: () => conRestaurado(mini.id, false) },
+                      )
+                    }
+                    onRestaurar={() => conRestaurado(mini.id, true)}
+                  />
+                ),
+              )}
             </div>
           </>
         )}
@@ -167,9 +177,9 @@ export function SeguimientoDelObjetivo({
                 <p>{ultimaSemana.queFunciono}</p>
               </article>
             )}
-            {progreso.data ? (
-              <GraficoSemanal progreso={progreso.data} decisiones={lista} />
-            ) : progreso.isPending ? (
+            {progresoConMeta ? (
+              <GraficoSemanal progreso={progresoConMeta} decisiones={lista} />
+            ) : progreso.data ? null : progreso.isPending ? (
               <p role="status">Cargando el gráfico…</p>
             ) : (
               <p role="alert">No pudimos dibujar el gráfico.</p>

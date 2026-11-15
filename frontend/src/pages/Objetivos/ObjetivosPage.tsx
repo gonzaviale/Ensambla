@@ -12,8 +12,8 @@ import { diaCorto, proximoCierre } from '@/lib/objetivosAutogestion';
 import { hoy } from '@/lib/sistema/formato';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { EntradaDondeAbrir } from '@/pages/DondeAbrir/EntradaDondeAbrir';
-import { DefinirObjetivo } from './DefinirObjetivo';
 import { NegocioHoy } from './NegocioHoy';
+import { NuevoObjetivo } from './NuevoObjetivo';
 import { ObjetivoCard } from './ObjetivoCard';
 import { Encabezado } from './piezas';
 
@@ -32,7 +32,10 @@ export function ObjetivosPage() {
     abrirModal({
       tipo: 'confirmar',
       titulo: '¿Quitar este objetivo?',
-      mensaje: `Dejás de seguir «${objetivo.texto}» (${formatoPesos(objetivo.meta)} por mes). Tus cuadernos no cambian.`,
+      mensaje:
+        objetivo.meta === null
+          ? `Dejás de seguir «${objetivo.texto}». Tus cuadernos no cambian.`
+          : `Dejás de seguir «${objetivo.texto}» (${formatoPesos(objetivo.meta)} por mes). Tus cuadernos no cambian.`,
       etiqueta: 'Quitar objetivo',
       onConfirmar: () => eliminar(objetivo.id),
     });
@@ -50,11 +53,11 @@ export function ObjetivosPage() {
             <Encabezado
               etiqueta="Objetivos"
               titulo="Definí tu primer objetivo"
-              texto="Contale a Sami qué querés lograr con tu negocio. Te dice qué hacer con tus productos para llegar."
+              texto="Contale a Sami qué querés lograr, aunque no sea plata. Te arma pasos chicos para cada semana."
               samiTitulo="Sami te ayuda"
               sami="Le pone número a lo que querés lograr"
             />
-            <DefinirObjetivo onDefinido={() => setDefiniendo(false)} />
+            <NuevoObjetivo onDefinido={() => setDefiniendo(false)} />
           </>
         ) : (
           <>
@@ -77,7 +80,7 @@ export function ObjetivosPage() {
               ))}
             </div>
             {definiendo ? (
-              <DefinirObjetivo
+              <NuevoObjetivo
                 onDefinido={() => setDefiniendo(false)}
                 onCancelar={() => setDefiniendo(false)}
               />

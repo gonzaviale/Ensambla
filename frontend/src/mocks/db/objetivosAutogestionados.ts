@@ -2,6 +2,7 @@ import { lunesDe } from '@/lib/objetivosAutogestion';
 import type {
   CandidatoMiniObjetivo,
   DecisionObjetivo,
+  MiniMedido,
   MiniObjetivo,
   ObjetivoDelServidor,
   SemanaObjetivo,
@@ -35,11 +36,11 @@ function mini(
   id: string,
   posicion: number,
   datos: Pick<
-    MiniObjetivo,
+    MiniMedido,
     'tipo' | 'titulo' | 'justificacion' | 'valorInicial' | 'valorActual' | 'meta'
   > &
-    Partial<MiniObjetivo>,
-): MiniObjetivo {
+    Partial<MiniMedido>,
+): MiniMedido {
   const recorrido = datos.meta - datos.valorInicial;
   const avance =
     recorrido === 0
@@ -47,6 +48,7 @@ function mini(
       : Math.min(1, Math.max(0, (datos.valorActual - datos.valorInicial) / recorrido));
   return {
     id,
+    modo: 'MEDIDO',
     posicion,
     sentido: 'SUBE',
     estado: 'EN_CURSO',
@@ -88,7 +90,8 @@ function decision(
 export function datosDeEjemplo(objetivo: ObjetivoDelServidor, hoy: string): DatosAutogestion {
   const actual = lunesDe(hoy);
   const semana = (atras: number) => sumarSemanas(actual, -atras);
-  const meta = objetivo.meta;
+  // Un objetivo sin meta en pesos no tiene semanas de ejemplo: el simulador sólo arma las del monetario.
+  const meta = objetivo.meta ?? 0;
   const resultados = [0.3, 0.31, 0.34, 0.36, 0.35, 0.41, 0.45].map((parte) =>
     redondear(meta * parte),
   );
@@ -206,7 +209,7 @@ export function datosDeEjemplo(objetivo: ObjetivoDelServidor, hoy: string): Dato
     return {
       semana: lunes,
       resultado,
-      avance: Math.min(1, resultado / meta),
+      avance: meta > 0 ? Math.min(1, resultado / meta) : 0,
       decisiones: conteo(lunes),
       queFunciono: `${variacion} ${faltan(resultado)}`,
       textoConIa: false,
@@ -247,7 +250,8 @@ export function candidatosPara(
 ): CandidatoMiniObjetivo[] {
   const enCurso = new Set(datos.minis.map((item) => item.titulo));
   return CANDIDATOS.filter(
-    (candidato) => candidato.tipo !== mini.tipo && !enCurso.has(candidato.titulo),
+    (candidato) =>
+      (mini.modo === 'MANUAL' || candidato.tipo !== mini.tipo) && !enCurso.has(candidato.titulo),
   ).slice(0, 3);
 }
 
