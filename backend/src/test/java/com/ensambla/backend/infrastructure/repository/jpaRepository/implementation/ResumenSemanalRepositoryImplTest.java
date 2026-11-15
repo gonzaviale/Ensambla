@@ -118,7 +118,7 @@ class ResumenSemanalRepositoryImplTest {
     private static ResumenSemanal resumen(UUID id, ReajusteMiniObjetivo... reajustesDelResumen) {
         return new ResumenSemanal(ResumenSemanalId.de(id), OBJETIVO_ID, SEMANA, BigDecimal.TEN, BigDecimal.ONE,
                 new ConteoDecisiones(0, 0, 0, 0), List.of(new CierreMini(MINI_ID, BigDecimal.ONE)), "Bien", false,
-                AHORA, List.of(reajustesDelResumen));
+                AHORA, List.of(reajustesDelResumen), List.of());
     }
 
     private static ReajusteMiniObjetivo reajuste() {

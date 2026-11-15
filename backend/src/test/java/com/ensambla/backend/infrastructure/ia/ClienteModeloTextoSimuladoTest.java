@@ -56,4 +56,17 @@ class ClienteModeloTextoSimuladoTest {
 
         assertThat(result.json()).doesNotContain("MEDIDO").contains("{\"modo\":\"MANUAL\"");
     }
+
+    @Test
+    @DisplayName("En las renovaciones de manuales redacta un texto genérico por cada código del pedido")
+    void completarShouldAnswerEveryRenewalWithAGenericText() {
+        PeticionModeloTexto peticion = new PeticionModeloTexto("i", PromptRenovacionManuales.RENOVACIONES
+                + "\nr1: qué hacer: SE_DIVIDE.\nr2: qué hacer: CAMBIA.", "{}");
+
+        RespuestaModeloTexto result = cliente.completar(peticion);
+
+        assertThat(result.json()).contains("\"codigo\":\"r1\"", "\"codigo\":\"r2\"", "Seguí con tu objetivo esta semana");
+        assertThat(result.proveedor()).isEqualTo("simulado");
+        assertThat(result.tokensSalida()).isZero();
+    }
 }

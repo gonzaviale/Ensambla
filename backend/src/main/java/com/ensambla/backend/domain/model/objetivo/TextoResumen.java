@@ -31,6 +31,33 @@ public final class TextoResumen {
     }
 
     /**
+     * Lo que la persona respondió de sus mini-objetivos manuales y lo que quedó sin responder; vacío si no había
+     * ninguno. Lo que no respondió no se renueva hasta que responda.
+     */
+    public static String manuales(List<ManualCierre> manuales) {
+        if (manuales.isEmpty()) {
+            return "";
+        }
+        List<String> frases = new ArrayList<>();
+        long hechas = contar(manuales, HizoManual.SI);
+        long enParte = contar(manuales, HizoManual.EN_PARTE);
+        long noHechas = contar(manuales, HizoManual.NO);
+        if (hechas + enParte + noHechas > 0) {
+            frases.add("De tus acciones respondiste: " + hechas + " hechas, " + enParte + " en parte y " + noHechas
+                    + " sin hacer.");
+        }
+        manuales.stream()
+                .filter(manual -> !manual.respondido())
+                .forEach(manual -> frases.add("No me contaste cómo te fue con «" + manual.titulo()
+                        + "»: queda igual hasta que respondas."));
+        return String.join(" ", frases);
+    }
+
+    private static long contar(List<ManualCierre> manuales, HizoManual hizo) {
+        return manuales.stream().filter(manual -> manual.hizo() == hizo).count();
+    }
+
+    /**
      * Por qué el cierre cambió {@code anterior} por otro mini-objetivo, {@code nuevo}. El que sólo sube su meta usa
      * {@link #metaSubida}.
      */

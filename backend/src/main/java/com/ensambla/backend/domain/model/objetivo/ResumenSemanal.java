@@ -16,6 +16,7 @@ import java.util.Optional;
  * @param avance       qué parte de la meta es ese resultado, de 0 a 1
  * @param minis        el valor de cada mini-objetivo que se pudo medir al cierre
  * @param queFunciono  el resumen en palabras de la persona
+ * @param manuales     lo que la persona respondió de cada mini-objetivo manual en curso, o que no respondió
  */
 public record ResumenSemanal(
         ResumenSemanalId id,
@@ -28,11 +29,13 @@ public record ResumenSemanal(
         String queFunciono,
         boolean textoConIa,
         OffsetDateTime cerradoEn,
-        List<ReajusteMiniObjetivo> reajustes) {
+        List<ReajusteMiniObjetivo> reajustes,
+        List<ManualCierre> manuales) {
 
     public static ResumenSemanal de(
             Objetivo objetivo, LocalDate semanaInicio, BigDecimal resultado, ConteoDecisiones decisiones,
-            List<CierreMini> minis, String queFunciono, List<ReajusteMiniObjetivo> reajustes, OffsetDateTime ahora) {
+            List<CierreMini> minis, String queFunciono, List<ReajusteMiniObjetivo> reajustes,
+            List<ManualCierre> manuales, OffsetDateTime ahora) {
         return new ResumenSemanal(
                 ResumenSemanalId.nuevo(),
                 objetivo.getId(),
@@ -44,7 +47,8 @@ public record ResumenSemanal(
                 queFunciono,
                 false,
                 ahora,
-                List.copyOf(reajustes));
+                List.copyOf(reajustes),
+                List.copyOf(manuales));
     }
 
     /** El valor que tenía el mini-objetivo en este cierre; vacío si no se pudo medir o no estaba. */

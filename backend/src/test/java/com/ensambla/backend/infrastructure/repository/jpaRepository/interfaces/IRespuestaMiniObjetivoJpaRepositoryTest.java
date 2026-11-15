@@ -153,4 +153,16 @@ class IRespuestaMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
                 .actualizadoEn(AHORA)
                 .build();
     }
+
+    @Test
+    @DisplayName("Lista las respuestas del objetivo del negocio y nunca las de otro negocio")
+    void findAllByObjetivoIdAndNegocioIdShouldNeverListOtherBusinessAnswers() {
+        UUID id = respuestas.saveAndFlush(
+                respuesta(UUID.randomUUID(), manualA, HizoManual.SI, QuePaso.FUNCIONO, null)).getId();
+        UUID negocioB = givenNegocio("b@example.com").getId();
+
+        assertThat(respuestas.findAllByObjetivoIdAndNegocioId(objetivoA, negocioA))
+                .extracting(RespuestaMiniObjetivoEntity::getId).containsExactly(id);
+        assertThat(respuestas.findAllByObjetivoIdAndNegocioId(objetivoA, negocioB)).isEmpty();
+    }
 }

@@ -2,6 +2,9 @@ package com.ensambla.backend.infrastructure.repository.mapper;
 
 import com.ensambla.backend.domain.model.objetivo.CierreMini;
 import com.ensambla.backend.domain.model.objetivo.ConteoDecisiones;
+import com.ensambla.backend.domain.model.objetivo.HizoManual;
+import com.ensambla.backend.domain.model.objetivo.ManualCierre;
+import com.ensambla.backend.domain.model.objetivo.QuePaso;
 import com.ensambla.backend.domain.model.objetivo.ReajusteMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.ReajusteMiniObjetivoId;
 import com.ensambla.backend.domain.model.objetivo.ResumenSemanal;
@@ -13,6 +16,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -25,6 +29,10 @@ import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ResumenSemanalRepositoryMapperTest {
+
+    private static final List<ManualCierre> MANUALES = List.of(
+            new ManualCierre(MINI_ID, "Pedile a 3 clientes", HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO),
+            new ManualCierre(OTRO_MINI_ID, "Un cartel", null, null));
 
     private static final ResumenSemanalId RESUMEN_ID = ResumenSemanalId.de("00000000-0000-4000-8000-0000000000f1");
     private static final ReajusteMiniObjetivoId REAJUSTE_ID =
@@ -101,7 +109,7 @@ class ResumenSemanalRepositoryMapperTest {
     private static ResumenSemanal resumen() {
         return new ResumenSemanal(RESUMEN_ID, OBJETIVO_ID, SEMANA, RESULTADO, AVANCE,
                 new ConteoDecisiones(1, 2, 3, 4), List.of(new CierreMini(MINI_ID, VALOR)), "Bien", false, AHORA,
-                List.of(reajuste()));
+                List.of(reajuste()), MANUALES);
     }
 
     private static ReajusteMiniObjetivo reajuste() {
@@ -123,5 +131,25 @@ class ResumenSemanalRepositoryMapperTest {
                 .metaNueva(new BigDecimal("15000.00"))
                 .creadoEn(AHORA)
                 .build();
+    }
+
+    @Test
+    @DisplayName("Pasa lo respondido de los manuales a JSON, con vacío cuando no respondió")
+    void toEntityShouldMapTheManualAnswersAsJson() {
+        ResumenSemanalEntity result = mapper.toEntity(resumen());
+
+        assertThat(result.getManuales()).containsExactly(
+                new LinkedHashMap<>(Map.of("miniObjetivoId", MINI_ID.toString(), "titulo", "Pedile a 3 clientes",
+                        "hizo", "EN_PARTE", "quePaso", "NO_TUVE_TIEMPO")),
+                jsonSinRespuesta());
+    }
+
+    private static Map<String, Object> jsonSinRespuesta() {
+        Map<String, Object> json = new LinkedHashMap<>();
+        json.put("miniObjetivoId", OTRO_MINI_ID.toString());
+        json.put("titulo", "Un cartel");
+        json.put("hizo", null);
+        json.put("quePaso", null);
+        return json;
     }
 }

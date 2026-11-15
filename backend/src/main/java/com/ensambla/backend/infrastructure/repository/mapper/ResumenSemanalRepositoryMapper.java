@@ -3,7 +3,10 @@ package com.ensambla.backend.infrastructure.repository.mapper;
 import com.ensambla.backend.domain.model.common.Identificador;
 import com.ensambla.backend.domain.model.objetivo.CierreMini;
 import com.ensambla.backend.domain.model.objetivo.ConteoDecisiones;
+import com.ensambla.backend.domain.model.objetivo.HizoManual;
+import com.ensambla.backend.domain.model.objetivo.ManualCierre;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivoId;
+import com.ensambla.backend.domain.model.objetivo.QuePaso;
 import com.ensambla.backend.domain.model.objetivo.ObjetivoId;
 import com.ensambla.backend.domain.model.objetivo.ReajusteMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.ReajusteMiniObjetivoId;
@@ -25,6 +28,12 @@ public class ResumenSemanalRepositoryMapper {
 
     private static final String VALOR = "valor";
 
+    private static final String TITULO = "titulo";
+
+    private static final String HIZO = "hizo";
+
+    private static final String QUE_PASO = "quePaso";
+
     public ResumenSemanal toDomain(ResumenSemanalEntity source, List<ReajusteMiniObjetivoEntity> reajustes) {
         return new ResumenSemanal(
                 ResumenSemanalId.de(source.getId()),
@@ -41,7 +50,8 @@ public class ResumenSemanalRepositoryMapper {
                 source.getQueFunciono(),
                 source.isTextoConIa(),
                 source.getCerradoEn(),
-                reajustes.stream().map(this::toDomain).toList());
+                reajustes.stream().map(this::toDomain).toList(),
+                source.getManuales().stream().map(ResumenSemanalRepositoryMapper::manualDe).toList());
     }
 
     public ReajusteMiniObjetivo toDomain(ReajusteMiniObjetivoEntity source) {
@@ -70,6 +80,7 @@ public class ResumenSemanalRepositoryMapper {
                 .decisionesAceptadas(source.decisiones().aceptadas())
                 .decisionesIgnoradas(source.decisiones().ignoradas())
                 .minis(source.minis().stream().map(ResumenSemanalRepositoryMapper::jsonDe).toList())
+                .manuales(source.manuales().stream().map(ResumenSemanalRepositoryMapper::jsonDe).toList())
                 .queFunciono(source.queFunciono())
                 .textoConIa(source.textoConIa())
                 .cerradoEn(source.cerradoEn())
@@ -98,6 +109,24 @@ public class ResumenSemanalRepositoryMapper {
         json.put(MINI_OBJETIVO_ID, cierre.miniObjetivoId().toString());
         json.put(VALOR, cierre.valor().toPlainString());
         return json;
+    }
+
+    private static Object jsonDe(ManualCierre manual) {
+        Map<String, Object> json = new LinkedHashMap<>();
+        json.put(MINI_OBJETIVO_ID, manual.miniObjetivoId().toString());
+        json.put(TITULO, manual.titulo());
+        json.put(HIZO, manual.hizo() == null ? null : manual.hizo().name());
+        json.put(QUE_PASO, manual.quePaso() == null ? null : manual.quePaso().name());
+        return json;
+    }
+
+    private static ManualCierre manualDe(Object json) {
+        Map<?, ?> campos = (Map<?, ?>) json;
+        return new ManualCierre(
+                MiniObjetivoId.de(String.valueOf(campos.get(MINI_OBJETIVO_ID))),
+                String.valueOf(campos.get(TITULO)),
+                campos.get(HIZO) == null ? null : HizoManual.valueOf(String.valueOf(campos.get(HIZO))),
+                campos.get(QUE_PASO) == null ? null : QuePaso.valueOf(String.valueOf(campos.get(QUE_PASO))));
     }
 
     private static CierreMini cierreDe(Object json) {

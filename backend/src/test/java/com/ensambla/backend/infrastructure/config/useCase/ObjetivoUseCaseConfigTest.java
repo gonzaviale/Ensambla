@@ -26,6 +26,7 @@ import com.ensambla.backend.domain.model.objetivo.TipoObjetivo;
 import com.ensambla.backend.domain.model.plan.CuotaObjetivosIa;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.ConversacionObjetivosIaPort;
+import com.ensambla.backend.domain.port.RenovacionManualesIaPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
@@ -331,8 +332,10 @@ class ObjetivoUseCaseConfigTest {
 
         config.cerrarSemanasObjetivos(
                         objetivoRepository, miniObjetivoRepository, decisionObjetivoRepository,
-                        mock(AvisoRepository.class), resumenSemanalRepository, propuesta(), new TransaccionDirecta(),
-                        CLOCK, new ObjetivosCierreProperties(8, 50))
+                        mock(AvisoRepository.class), resumenSemanalRepository, propuesta(),
+                        mock(RespuestaMiniObjetivoRepository.class), mock(RenovacionManualesIaPort.class),
+                        mock(ControlPlanService.class), mock(ConsumoSamiRepository.class), new TransaccionDirecta(),
+                        CLOCK, new ObjetivosCierreProperties(8, 50), new ObjetivosIaProperties(false, 10, true, 6))
                 .execute();
 
         ArgumentCaptor<ResumenSemanal> captor = ArgumentCaptor.forClass(ResumenSemanal.class);

@@ -1,5 +1,7 @@
 package com.ensambla.backend.infrastructure.ia;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -13,16 +15,32 @@ public class ClienteModeloTextoSimulado implements ClienteModeloTexto {
     static final String PROVEEDOR = "simulado";
     static final Pattern PRIMERA_PLANTILLA = Pattern.compile("(?m)^- ([^:\\n]+): ");
     static final Pattern PRIMERA_METRICA = Pattern.compile("(?m)^(c\\d+): ");
+    static final Pattern CADA_RENOVACION = Pattern.compile("(?m)^(r\\d+): ");
 
     @Override
     public RespuestaModeloTexto completar(PeticionModeloTexto peticion) {
         if (peticion.contexto().contains(PromptConversacionObjetivos.CATALOGO)) {
             return conversacionDeObjetivo(peticion);
         }
+        if (peticion.contexto().startsWith(PromptRenovacionManuales.RENOVACIONES)) {
+            return renovacionesDeManuales(peticion);
+        }
         Matcher plantilla = PRIMERA_PLANTILLA.matcher(peticion.contexto());
         String nombre = plantilla.find() ? plantilla.group(1) : "";
         String json = "{\"plantilla\":\"%s\",\"columnas\":[],\"confianza\":0.5}".formatted(nombre);
         return new RespuestaModeloTexto(json, PROVEEDOR, PROVEEDOR, 0, 0);
+    }
+
+    /** Una renovación genérica por cada código del pedido; sólo prueba el circuito. */
+    private static RespuestaModeloTexto renovacionesDeManuales(PeticionModeloTexto peticion) {
+        Matcher renovacion = CADA_RENOVACION.matcher(peticion.contexto());
+        List<String> minis = new ArrayList<>();
+        while (renovacion.find()) {
+            minis.add(("{\"codigo\":\"%s\",\"titulo\":\"Seguí con tu objetivo esta semana\","
+                    + "\"justificacion\":\"Contale a Sami cómo te fue con esta acción.\"}")
+                    .formatted(renovacion.group(1)));
+        }
+        return new RespuestaModeloTexto("{\"minis\":[" + String.join(",", minis) + "]}", PROVEEDOR, PROVEEDOR, 0, 0);
     }
 
     /**

@@ -3,6 +3,7 @@ package com.ensambla.backend.infrastructure.config.useCase;
 import com.ensambla.backend.domain.model.aviso.MetricasVentas;
 import com.ensambla.backend.domain.port.ConversacionObjetivosIaPort;
 import com.ensambla.backend.domain.port.RedaccionObjetivosIaPort;
+import com.ensambla.backend.domain.port.RenovacionManualesIaPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
@@ -269,9 +270,14 @@ public class ObjetivoUseCaseConfig {
             AvisoRepository avisoRepository,
             ResumenSemanalRepository resumenSemanalRepository,
             PropuestaMiniObjetivosService propuestaMiniObjetivosService,
+            RespuestaMiniObjetivoRepository respuestaMiniObjetivoRepository,
+            RenovacionManualesIaPort renovacionManualesIaPort,
+            ControlPlanService controlPlanService,
+            ConsumoSamiRepository consumoSamiRepository,
             TransaccionPort transaccionPort,
             Clock clock,
-            ObjetivosCierreProperties objetivosCierreProperties) {
+            ObjetivosCierreProperties objetivosCierreProperties,
+            ObjetivosIaProperties objetivosIaProperties) {
         return new CerrarSemanasObjetivos(
                 objetivoRepository,
                 miniObjetivoRepository,
@@ -279,10 +285,16 @@ public class ObjetivoUseCaseConfig {
                 avisoRepository,
                 resumenSemanalRepository,
                 propuestaMiniObjetivosService,
+                respuestaMiniObjetivoRepository,
+                renovacionManualesIaPort,
+                controlPlanService,
+                consumoSamiRepository,
                 transaccionPort,
                 clock,
                 objetivosCierreProperties.maxSemanasPendientes(),
-                objetivosCierreProperties.tamanoTanda());
+                objetivosCierreProperties.tamanoTanda(),
+                objetivosIaProperties.habilitada(),
+                objetivosIaProperties.limiteDiario());
     }
 
     @Bean

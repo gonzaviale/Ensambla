@@ -239,7 +239,7 @@ class ObtenerProgresoTest {
 
     private void givenCierre(LocalDate semana, String resultado) {
         ResumenSemanal cierre = ResumenSemanal.de(objetivo(), semana, new BigDecimal(resultado),
-                new ConteoDecisiones(0, 0, 0, 0), List.of(), "", List.of(), AHORA);
+                new ConteoDecisiones(0, 0, 0, 0), List.of(), "", List.of(), List.of(), AHORA);
         when(resumenSemanalRepository.findAllByObjetivoId(OBJETIVO_ID)).thenReturn(List.of(cierre));
     }
 

@@ -8,6 +8,7 @@ import com.ensambla.backend.domain.model.objetivo.ObjetivoId;
 import com.ensambla.backend.domain.model.objetivo.SemanaObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoReajuste;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.port.RenovacionManualesIaPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
@@ -15,10 +16,13 @@ import com.ensambla.backend.domain.repository.objetivo.DecisionObjetivoRepositor
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ProgresoObjetivoRepository;
+import com.ensambla.backend.domain.repository.objetivo.RespuestaMiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ResumenSemanalRepository;
+import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.service.objetivo.MonitoreoObjetivosService;
 import com.ensambla.backend.domain.service.objetivo.PropuestaMiniObjetivosService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanas;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasRequest;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasResponse;
@@ -112,6 +116,18 @@ class SimulacionSemanasObjetivosPostgresIntegrationTest extends PostgresReposito
     private PropuestaMiniObjetivosService propuestaMiniObjetivosService;
 
     @Autowired
+    private RespuestaMiniObjetivoRepository respuestaMiniObjetivoRepository;
+
+    @Autowired
+    private RenovacionManualesIaPort renovacionManualesIaPort;
+
+    @Autowired
+    private ControlPlanService controlPlanService;
+
+    @Autowired
+    private ConsumoSamiRepository consumoSamiRepository;
+
+    @Autowired
     private TransaccionPort transaccionPort;
 
     @Autowired
@@ -134,8 +150,9 @@ class SimulacionSemanasObjetivosPostgresIntegrationTest extends PostgresReposito
                 miniObjetivoRepository, progresoObjetivoRepository, propuestaMiniObjetivosService), transaccionPort,
                 reloj, 50);
         cerrar = new CerrarSemanasObjetivos(objetivoRepository, miniObjetivoRepository, decisionObjetivoRepository,
-                avisoRepository, resumenSemanalRepository, propuestaMiniObjetivosService, transaccionPort, reloj,
-                SEMANAS, 50);
+                avisoRepository, resumenSemanalRepository, propuestaMiniObjetivosService,
+                respuestaMiniObjetivoRepository, renovacionManualesIaPort, controlPlanService, consumoSamiRepository,
+                transaccionPort, reloj, SEMANAS, 50, false, 10);
         obtenerProgreso = new ObtenerProgreso(negocioRepository, objetivoRepository, miniObjetivoRepository,
                 progresoObjetivoRepository, propuestaMiniObjetivosService, resumenSemanalRepository, reloj);
         registrarDecision = new RegistrarDecisionPaso(negocioRepository, objetivoRepository, miniObjetivoRepository,

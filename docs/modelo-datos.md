@@ -8,7 +8,7 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V15__renovaciones_y_pagos_premium.sql`,
 `V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
 `V24__objetivo.sql`, `V29__mini_objetivo.sql`, `V30__progreso_objetivo.sql`, `V31__decision_objetivo.sql`,
-`V32__resumen_semanal_objetivo.sql`, `V33__objetivo_demo.sql`, `V34__objetivo_tipo_y_modo.sql`, `V35__respuesta_mini_objetivo.sql`, `V36__cuota_objetivos_ia.sql`, `V37__metricas_mini_objetivo_nuevas.sql`).
+`V32__resumen_semanal_objetivo.sql`, `V33__objetivo_demo.sql`, `V34__objetivo_tipo_y_modo.sql`, `V35__respuesta_mini_objetivo.sql`, `V36__cuota_objetivos_ia.sql`, `V37__metricas_mini_objetivo_nuevas.sql`, `V38__cierre_con_manuales.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -431,6 +431,14 @@ calendario argentino. Un monetario del formulario clásico y el seguimiento manu
 Como no suman al resultado mensual, su `aporte_estimado` es 0 (sin estimación): quedan al final del ranking y sólo llenan
 lugares que las métricas que suman no ocupan, o las elige Sami. Quedan para después las de H-58 (fiados pendientes y clientes
 que compran).
+
+### Cierre del domingo con mini-objetivos manuales (V38)
+
+`V38` deja que el cierre renueve los manuales (diseño en [`objetivos-con-sami.md`](objetivos-con-sami.md)):
+`reajuste_mini_objetivo.meta_anterior` admite `NULL` (un manual no tiene meta) y `resumen_semanal_objetivo.manuales` (jsonb,
+por defecto `[]`) guarda por cada manual en curso al cierre `{miniObjetivoId, titulo, hizo, quePaso}`; `hizo` en `null` es un
+manual sin respuesta, que no se renueva hasta que se responda. `GET /api/objetivos/{id}/semanas` suma `manuales` a cada
+semana.
 
 ### Responder un mini-objetivo manual (V35)
 

@@ -2,6 +2,9 @@ package com.ensambla.backend.domain.useCase.objetivo.listarSemanas;
 
 import com.ensambla.backend.domain.model.objetivo.CierreMini;
 import com.ensambla.backend.domain.model.objetivo.ConteoDecisiones;
+import com.ensambla.backend.domain.model.objetivo.HizoManual;
+import com.ensambla.backend.domain.model.objetivo.ManualCierre;
+import com.ensambla.backend.domain.model.objetivo.QuePaso;
 import com.ensambla.backend.domain.model.objetivo.ReajusteMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.ReajusteMiniObjetivoId;
 import com.ensambla.backend.domain.model.objetivo.ResumenSemanal;
@@ -74,11 +77,27 @@ class ListarSemanasResponseTest {
     private static ResumenSemanal resumen(LocalDate semana, List<ReajusteMiniObjetivo> reajustes) {
         return new ResumenSemanal(ResumenSemanalId.nuevo(), OBJETIVO_ID, semana, new BigDecimal("180000"),
                 new BigDecimal("0.45"), new ConteoDecisiones(1, 2, 3, 4), List.of(new CierreMini(MINI_ID,
-                BigDecimal.ONE)), "Bien", false, AHORA, reajustes);
+                BigDecimal.ONE)), "Bien", false, AHORA, reajustes, List.of());
     }
 
     private static ReajusteMiniObjetivo reajuste(String tituloNuevo, BigDecimal metaNueva) {
         return new ReajusteMiniObjetivo(ReajusteMiniObjetivoId.nuevo(), MINI_ID, OTRO_MINI_ID,
                 TipoReajuste.SUBIR_META, "Lo lograste", "Viejo", new BigDecimal("100"), tituloNuevo, metaNueva, AHORA);
+    }
+
+    @Test
+    @DisplayName("Cada semana trae lo que la persona respondió de sus manuales, o que no respondió")
+    void deShouldCopyTheManualAnswers() {
+        ResumenSemanal resumen = new ResumenSemanal(ResumenSemanalId.nuevo(), OBJETIVO_ID, SEMANA,
+                new BigDecimal("180000"), BigDecimal.ZERO, new ConteoDecisiones(0, 0, 0, 0), List.of(), "Bien",
+                false, AHORA, List.of(), List.of(
+                        new ManualCierre(MINI_ID, "Pedile a 3 clientes", HizoManual.SI, QuePaso.FUNCIONO),
+                        new ManualCierre(OTRO_MINI_ID, "Un cartel", null, null)));
+
+        ListarSemanasResponse result = ListarSemanasResponse.de(List.of(resumen));
+
+        assertThat(result.semanas().getFirst().manuales()).containsExactly(
+                new ListarSemanasResponse.ManualItem(MINI_ID, "Pedile a 3 clientes", HizoManual.SI, QuePaso.FUNCIONO),
+                new ListarSemanasResponse.ManualItem(OTRO_MINI_ID, "Un cartel", null, null));
     }
 }

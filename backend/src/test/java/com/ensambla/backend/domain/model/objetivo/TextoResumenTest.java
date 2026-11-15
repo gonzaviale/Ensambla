@@ -4,8 +4,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
+import static com.ensambla.backend.support.MiniObjetivoTestData.MINI_ID;
+import static com.ensambla.backend.support.MiniObjetivoTestData.OTRO_MINI_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.miniObjetivo;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -124,5 +127,42 @@ class TextoResumenTest {
                 new BigDecimal("18000"))).contains("$24.000 en mercadería parada", "$18.000 en mercadería parada");
         assertThat(TextoResumen.metaSubida(TipoMiniObjetivo.VARIEDAD_VENDIDA, new BigDecimal("3"),
                 new BigDecimal("4"))).contains("3 productos distintos por semana", "4 productos distintos por semana");
+    }
+
+    @Test
+    @DisplayName("Sin mini-objetivos manuales el resumen no dice nada de ellos")
+    void manualesShouldBeEmptyWithoutManualMinis() {
+        assertThat(TextoResumen.manuales(List.of())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Cuenta lo que la persona hizo, hizo en parte y no hizo")
+    void manualesShouldCountTheAnswers() {
+        String result = TextoResumen.manuales(List.of(
+                new ManualCierre(MINI_ID, "Uno", HizoManual.SI, QuePaso.FUNCIONO),
+                new ManualCierre(OTRO_MINI_ID, "Dos", HizoManual.SI, QuePaso.OTRA),
+                new ManualCierre(MiniObjetivoId.nuevo(), "Tres", HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO),
+                new ManualCierre(MiniObjetivoId.nuevo(), "Cuatro", HizoManual.NO, QuePaso.NO_FUNCIONO)));
+
+        assertThat(result).isEqualTo("De tus acciones respondiste: 2 hechas, 1 en parte y 1 sin hacer.");
+    }
+
+    @Test
+    @DisplayName("Dice qué acciones quedaron sin respuesta y que no cambian hasta que responda")
+    void manualesShouldTellWhichOnesHaveNoAnswer() {
+        String result = TextoResumen.manuales(List.of(
+                new ManualCierre(MINI_ID, "Uno", HizoManual.SI, QuePaso.FUNCIONO),
+                new ManualCierre(OTRO_MINI_ID, "Un cartel", null, null)));
+
+        assertThat(result).isEqualTo("De tus acciones respondiste: 1 hechas, 0 en parte y 0 sin hacer. "
+                + "No me contaste cómo te fue con «Un cartel»: queda igual hasta que respondas.");
+    }
+
+    @Test
+    @DisplayName("Si ninguna se respondió sólo dice cuáles esperan la respuesta")
+    void manualesShouldOnlyListTheMissingAnswers() {
+        String result = TextoResumen.manuales(List.of(new ManualCierre(OTRO_MINI_ID, "Un cartel", null, null)));
+
+        assertThat(result).isEqualTo("No me contaste cómo te fue con «Un cartel»: queda igual hasta que respondas.");
     }
 }

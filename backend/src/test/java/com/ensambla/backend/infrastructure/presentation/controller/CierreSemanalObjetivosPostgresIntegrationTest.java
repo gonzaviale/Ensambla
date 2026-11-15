@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -68,13 +69,15 @@ class CierreSemanalObjetivosPostgresIntegrationTest extends PostgresRepositoryTe
 
     private MockMvc mockMvc;
     private MockHttpSession sesion;
+    private UUID negocioId;
     private String csrfToken;
 
     @BeforeEach
     void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).addFilters(securityFilter).build();
         UUID usuarioId = givenUsuarioYNegocio();
-        AlmacenDeObjetivosDePrueba.guardar(sistemaRepository, negocioDe(usuarioId));
+        negocioId = negocioDe(usuarioId);
+        AlmacenDeObjetivosDePrueba.guardar(sistemaRepository, negocioId);
         sesion = givenSesion(usuarioId);
     }
 
@@ -129,6 +132,57 @@ class CierreSemanalObjetivosPostgresIntegrationTest extends PostgresRepositoryTe
     }
 
     @Test
+    @DisplayName("El cierre renueva el manual respondido, deja sin renovar el que no y lo cuenta en el resumen")
+    void cerrarShouldRenewTheAnsweredManualAndKeepTheOtherOne() throws Exception {
+        UUID objetivoId = givenObjetivoSinMetaDeHaceDosSemanas();
+        UUID respondido = givenManual(objetivoId, 1, "Pedile a 3 clientes que te recomienden");
+        UUID sinRespuesta = givenManual(objetivoId, 2, "Poné un cartel en la vidriera");
+        jdbcTemplate.update("INSERT INTO respuesta_mini_objetivo (negocio_id, objetivo_id, mini_objetivo_id, hizo, "
+                + "que_paso, semana_inicio, respondida_en) VALUES (?, ?, ?, 'SI', 'FUNCIONO', current_date, now())",
+                negocioId, objetivoId, respondido);
+
+        cerrarSemanasObjetivos.execute();
+
+        assertThat(estadoDe(respondido)).isEqualTo("LOGRADO");
+        assertThat(jdbcTemplate.queryForObject("SELECT reemplazado_por FROM mini_objetivo WHERE id = ?", UUID.class,
+                respondido)).isNotNull();
+        assertThat(estadoDe(sinRespuesta)).isEqualTo("EN_CURSO");
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM mini_objetivo WHERE objetivo_id = ? "
+                + "AND posicion = 1 AND estado = 'EN_CURSO' AND modo = 'MANUAL' AND id <> ?", Integer.class,
+                objetivoId, respondido)).isEqualTo(1);
+        String semanas = mockMvc.perform(get(OBJETIVOS + "/{id}/semanas", objetivoId).session(sesion))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertThat(JsonPath.<List<String>>read(semanas, "$.semanas[*].reajustes[*].tipo")).containsExactly("SUBIR_META");
+        assertThat(JsonPath.<List<Object>>read(semanas, "$.semanas[*].reajustes[*].de.meta")).containsOnlyNulls();
+        assertThat(JsonPath.<List<String>>read(semanas, "$.semanas[*].manuales[*].titulo"))
+                .contains("Pedile a 3 clientes que te recomienden", "Poné un cartel en la vidriera");
+        assertThat(JsonPath.<List<String>>read(semanas, "$.semanas[*].manuales[?(@.hizo == 'SI')].quePaso"))
+                .containsExactly("FUNCIONO");
+        assertThat(JsonPath.<List<String>>read(semanas, "$.semanas[*].queFunciono"))
+                .anyMatch(texto -> texto.contains("No me contaste cómo te fue con «Poné un cartel en la vidriera»"));
+    }
+
+    @Test
+    @DisplayName("Después del cierre Sami pregunta primero por el manual que sigue sin respuesta")
+    void pendientesShouldAskFirstForTheManualThatWasNeverAnswered() throws Exception {
+        UUID objetivoId = givenObjetivoSinMetaDeHaceDosSemanas();
+        UUID respondido = givenManual(objetivoId, 1, "Pedile a 3 clientes que te recomienden");
+        givenManual(objetivoId, 2, "Poné un cartel en la vidriera");
+        jdbcTemplate.update("INSERT INTO respuesta_mini_objetivo (negocio_id, objetivo_id, mini_objetivo_id, hizo, "
+                + "que_paso, semana_inicio, respondida_en) VALUES (?, ?, ?, 'EN_PARTE', 'NO_TUVE_TIEMPO', "
+                + "current_date, now())", negocioId, objetivoId, respondido);
+
+        cerrarSemanasObjetivos.execute();
+
+        mockMvc.perform(get(OBJETIVOS + "/respuestas-pendientes").session(sesion))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].miniObjetivo.titulo").value("Poné un cartel en la vidriera"))
+                .andExpect(jsonPath("$[1].miniObjetivo.titulo").value(startsWith("Lo que faltó: ")));
+    }
+
+    @Test
     @DisplayName("Las semanas de un objetivo inexistente o ajeno responden 404")
     void semanasShouldReturn404ForAnUnknownObjetivo() throws Exception {
         mockMvc.perform(get(OBJETIVOS + "/{id}/semanas", UUID.randomUUID()).session(sesion))
@@ -158,6 +212,30 @@ class CierreSemanalObjetivosPostgresIntegrationTest extends PostgresRepositoryTe
         jdbcTemplate.update("UPDATE objetivo SET creado_en = now() - interval '15 days' WHERE id = ?", objetivoId);
         entityManager.clear();
         return objetivoId;
+    }
+
+    /** Un objetivo armado con Sami, sin meta, creado hace 15 días (tiene semanas por cerrar). */
+    private UUID givenObjetivoSinMetaDeHaceDosSemanas() {
+        UUID objetivoId = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO objetivo (id, negocio_id, texto, tipo, armado_con_sami, creado_en) "
+                + "VALUES (?, ?, 'Que me conozcan', 'SIN_DATOS', true, now() - interval '15 days')",
+                objetivoId, negocioId);
+        return objetivoId;
+    }
+
+    /** Un mini-objetivo manual en curso que empezó antes de la primera semana por cerrar. */
+    private UUID givenManual(UUID objetivoId, int posicion, String titulo) {
+        UUID id = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO mini_objetivo (id, objetivo_id, negocio_id, posicion, modo, estado, "
+                + "semana_inicio, titulo, justificacion, creado_en, actualizado_en) "
+                + "VALUES (?, ?, ?, ?, 'MANUAL', 'EN_CURSO', current_date - 40, ?, 'Porque sí', "
+                + "now() - interval '15 days', now() - interval '15 days')", id, objetivoId, negocioId, posicion, titulo);
+        return id;
+    }
+
+    private String estadoDe(UUID miniObjetivoId) {
+        return jdbcTemplate.queryForObject("SELECT estado FROM mini_objetivo WHERE id = ?", String.class,
+                miniObjetivoId);
     }
 
     private UUID givenUsuarioYNegocio() {

@@ -92,28 +92,37 @@ Un manual **pendiente** es uno en curso sin respuesta. `GET /api/objetivos/respu
 - «Un objetivo sin importe ya no recibe una meta falsa de $500.000»: la meta de $500.000 se sembraba en el frontend; con
   esto un objetivo sin importe se guarda con Sami (sin meta) y la API ya no necesita inventarla.
 
-## 4. Renovación de un manual según su respuesta (T-247)
+## 4. Renovación de un manual según su respuesta (T-247, hecho)
 
-El domingo a las 23:30, para cada manual **respondido**:
+El domingo a las 23:30, para cada manual **en curso respondido** (que empezó en esa semana o antes):
 
-| Respondió | Qué pasó | Mini-objetivo nuevo (misma posición, semana siguiente) |
-|---|---|---|
-| `SI` | `FUNCIONO` u `OTRA` | **Sube un paso**: la misma intención con un paso más ambicioso (de «hablar con 3 clientes» a «hablar con 5 y anotar lo que piden») |
-| `SI` | `NO_FUNCIONO` | **Cambia**: otra acción distinta hacia el mismo objetivo; lo que hizo no dio resultado |
-| `EN_PARTE` | cualquiera | **Se divide**: queda sólo la parte que faltó, en un paso más chico |
-| `NO` | `NO_TUVE_TIEMPO` | **Se simplifica**: la misma acción en su versión de 10 minutos |
-| `NO` | `NO_FUNCIONO` | **Cambia**: otra acción |
-| `NO` | `OTRA` | **Se simplifica** (y Sami lo pregunta con lo que escribió en el comentario) |
+| Respondió | Qué pasó | Acción (`AccionRenovacion`) | Mini-objetivo nuevo (misma posición, semana siguiente) | El viejo queda | Se anota como |
+|---|---|---|---|---|---|
+| `SI` | `FUNCIONO`, `OTRA` | `SUBE_UN_PASO` | **Sube un paso**: la misma intención con un paso más ambicioso | `LOGRADO` | `SUBIR_META` |
+| `SI` | `NO_FUNCIONO` | `CAMBIA` | **Cambia**: otra acción distinta; lo que hizo no dio resultado | `LOGRADO` | `PROBAR_OTRO_CAMINO` |
+| `EN_PARTE` | cualquiera | `SE_DIVIDE` | **Se divide**: queda sólo la parte que faltó, en un paso más chico | `REEMPLAZADO` | `REEMPLAZAR` |
+| `NO` | `NO_TUVE_TIEMPO`, `OTRA` | `SE_SIMPLIFICA` | **Se simplifica**: la misma acción en su versión de 10 minutos | `REEMPLAZADO` | `REEMPLAZAR` |
+| `NO` | `NO_FUNCIONO` | `CAMBIA` | **Cambia**: otra acción | `REEMPLAZADO` | `PROBAR_OTRO_CAMINO` |
 
-El texto del nuevo lo redacta la IA con la acción anterior y la respuesta; si la IA no está, el servidor usa un texto de
-reserva por cada fila de la tabla. Como en los medidos, el viejo queda en la historia (`REEMPLAZADO` o `LOGRADO` y
-`reemplazado_por`).
+**Quién escribe el texto nuevo.** Con IA (`ensambla.objetivos.ia.habilitada`, la misma de la redacción de H-52; hay acceso al
+plan y reserva diaria), `RenovacionManualesIaPort` recibe, por cada manual, la acción anterior, **qué hacer** (ya decidido por
+el servidor) y lo que la persona contó (el comentario, sin correos ni números largos y entre marcas de dato). Una llamada por
+objetivo y semana, antes de abrir la transacción. El texto vuelve validado como una acción (`AccionManual`: largos, sin `$` ni
+`%`); uno que no sirve, o cualquier falla de la IA, cae al **texto de reserva** de esa acción, que sale del título anterior y no
+trae ningún número nuevo. `textoConIa` del mini-objetivo nuevo dice cuál se usó.
 
-**Un manual sin respuesta no se renueva solo**: sigue en curso, la semana siguiente no cambia y Sami **pregunta primero**
-por ese (aparece primero en `respuestas-pendientes`, que se ordenan por antigüedad). Hasta que se responda, su lugar no se
-libera. El resumen del domingo lo dice («Esta semana no me contaste cómo te fue con…»).
+**Un manual sin respuesta no se renueva solo**: sigue en curso, no cambia de lugar ni de texto y el resumen del domingo lo
+dice («No me contaste cómo te fue con «…»: queda igual hasta que respondas.»). **Sami lo pregunta primero** la semana
+siguiente: `GET /api/objetivos/respuestas-pendientes` ordena por antigüedad, así que un manual viejo sin respuesta sale antes
+que el nuevo que lo siguió. Quitar un manual (`DELETE`) deja el lugar libre; el cierre no lo reemplaza.
 
-Los medidos de un objetivo mezclado se reajustan con las reglas de siempre (`ReglasReajuste`), sin cambios.
+Un manual se renueva aunque la semana no haya tenido ventas (no depende de los números). Un objetivo ya alcanzado no renueva
+(sólo un monetario se alcanza y no tiene manuales). Los medidos se reajustan con las reglas de siempre (`ReglasReajuste`),
+sin cambios, y los dos tipos conviven en el mismo cierre y el mismo resumen.
+
+**El resumen de la semana** suma `manuales`: por cada manual en curso al cierre, lo que respondió (`hizo`, `quePaso`) o
+`null` si no respondió; y `queFunciono` agrega «De tus acciones respondiste: X hechas, Y en parte y Z sin hacer.». Cada
+renovación es un `reajuste` más, con `de.meta` y `a.meta` en `null` (un manual no tiene meta).
 
 ## 5. Qué cuenta como «un objetivo con IA» para la cuota (T-242, hecho)
 
@@ -326,6 +335,31 @@ descarta a uno que ya no está en el catálogo); el manual lleva su texto.
            "objetivosIa": 2, "limiteObjetivosIa": 5 } }
 ```
 
+### `GET /api/objetivos/{id}/semanas` (cambia, T-247)
+
+Cada semana suma `manuales`, y los `reajustes` de un manual traen `de.meta` y `a.meta` en `null`:
+
+```json
+{
+  "semana": "2026-11-09",
+  "resultado": 180000.00,
+  "avance": 0,
+  "queFunciono": "Al cerrar la semana… De tus acciones respondiste: 1 hechas, 0 en parte y 0 sin hacer. No me contaste cómo te fue con «Poné un cartel»: queda igual hasta que respondas.",
+  "reajustes": [
+    { "tipo": "SUBIR_META",
+      "motivo": "Hiciste «Pedile a 3 clientes» y te funcionó: seguimos con un paso más, «Un paso más: Pedile a 3 clientes».",
+      "de": { "titulo": "Pedile a 3 clientes", "meta": null },
+      "a": { "titulo": "Un paso más: Pedile a 3 clientes", "meta": null } }
+  ],
+  "manuales": [
+    { "miniObjetivoId": "e7a1…", "titulo": "Pedile a 3 clientes", "hizo": "SI", "quePaso": "FUNCIONO" },
+    { "miniObjetivoId": "b2c4…", "titulo": "Poné un cartel", "hizo": null, "quePaso": null }
+  ]
+}
+```
+
+`hizo: null` es un manual sin respuesta. Los otros campos de la semana no cambian.
+
 ### `GET /api/objetivos/{id}/mini-objetivos` (cambia el item)
 
 `MiniObjetivoResponse` suma `modo` (`MEDIDO` o `MANUAL`); en un manual `tipo`, `sentido`, `registroId`, `referencia`,
@@ -412,8 +446,8 @@ Casos de borde de la validación (no son ejemplos de la persona, sino de la resp
 - **Casos de uso** (`domain/useCase/objetivo`): `proponerObjetivoConSami`, `guardarObjetivoConSami`, `responderMiniObjetivo`,
   `listarRespuestasPendientes`.
 - **Migraciones:** `V34__objetivo_tipo_y_modo.sql` (tipo, meta opcional, modo, restricciones),
-  `V35__respuesta_mini_objetivo.sql` (respuestas y las decisiones nuevas) y `V36__cuota_objetivos_ia.sql` (cuota por plan y
-  su consumo).
+  `V35__respuesta_mini_objetivo.sql` (respuestas y las decisiones nuevas), `V36__cuota_objetivos_ia.sql` (cuota por plan y
+  su consumo), `V37__metricas_mini_objetivo_nuevas.sql` y `V38__cierre_con_manuales.sql`.
 - **Infraestructura:** `ConversacionObjetivosIaAdapter` (+ `PromptConversacionObjetivos`, `ia/prompt-conversacion-objetivos.md`
   y `ia/esquema-conversacion-objetivos.json`), el cliente de texto simulado, `SamiObjetivoController` y
   `RespuestaMiniObjetivoController`. Propiedades: `ensambla.objetivos.ia.conversacion-habilitada` y `.max-mensajes`.
@@ -421,5 +455,7 @@ Casos de borde de la validación (no son ejemplos de la persona, sino de la resp
   `validarObjetivoIa`, `UsoPlanRepository.objetivosIaEnPeriodo` y `registrarObjetivoIa`.
 - **Métricas nuevas (T-244):** `TipoMiniObjetivo` suma tres tipos, `MedidorMiniObjetivo` sus mediciones
   (`productosBajoElMinimo`, `capitalParado`, `variedadVendida`) y `CandidatosMiniObjetivo` sus candidatos; migración V37.
-- **Fuera de esta entrega:** la cuota visible en las pantallas (T-250), las métricas de H-58 (fiados y clientes), renovación
-  del domingo (T-247) y pantallas (T-248, T-249).
+- **Cierre con manuales (T-247):** `AccionRenovacion`, `PedidoRenovacion`, `ManualCierre`, `RenovacionManualesIaPort`
+  (`RenovacionManualesIaAdapter` y `ia/prompt-renovacion-manuales.md`), `CerrarSemanasObjetivos` y migración V38.
+- **Fuera de esta entrega:** la cuota visible en las pantallas (T-250), las métricas de H-58 (fiados y clientes) y las
+  pantallas (T-248, T-249).

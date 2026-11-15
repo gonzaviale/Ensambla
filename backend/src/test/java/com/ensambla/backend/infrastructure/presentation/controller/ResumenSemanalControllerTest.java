@@ -1,9 +1,12 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.objetivo.HizoManual;
+import com.ensambla.backend.domain.model.objetivo.QuePaso;
 import com.ensambla.backend.domain.model.objetivo.TipoReajuste;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanas;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasRequest;
+import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasResponse.ManualItem;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasResponse;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasResponse.DecisionesItem;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasResponse.MiniItem;
@@ -24,6 +27,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import static com.ensambla.backend.support.MiniObjetivoTestData.MINI_ID;
+import static com.ensambla.backend.support.MiniObjetivoTestData.OTRO_MINI_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,6 +42,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class ResumenSemanalControllerTest {
+
+    private static final List<ManualItem> MANUALES = List.of(
+            new ManualItem(MINI_ID, "Pedile a 3 clientes", HizoManual.SI, QuePaso.FUNCIONO),
+            new ManualItem(OTRO_MINI_ID, "Un cartel", null, null));
 
     private static final String RUTA = "/api/objetivos/" + OBJETIVO_ID + "/semanas";
     private static final LocalDate SEMANA = LocalDate.of(2026, 11, 9);
@@ -62,7 +71,7 @@ class ResumenSemanalControllerTest {
                 SEMANA, new BigDecimal("180000"), new BigDecimal("0.45"), new DecisionesItem(1, 2, 3, 4),
                 "Esta semana…", false, List.of(new ReajusteItem(TipoReajuste.SUBIR_META, "Lo lograste",
                         new MiniItem("Vender más", new BigDecimal("100")), new MiniItem("Vender más",
-                        new BigDecimal("110"))))))));
+                        new BigDecimal("110")))), MANUALES))));
 
         ResultActions result = mockMvc.perform(get(RUTA).principal(principal));
 
@@ -70,6 +79,11 @@ class ResumenSemanalControllerTest {
                 .andExpect(jsonPath("$.ultimoCierre").value("2026-11-09"))
                 .andExpect(jsonPath("$.semanas[0].semana").value("2026-11-09"))
                 .andExpect(jsonPath("$.semanas[0].resultado").value(180000))
+                .andExpect(jsonPath("$.semanas[0].manuales[0].miniObjetivoId").value(MINI_ID.toString()))
+                .andExpect(jsonPath("$.semanas[0].manuales[0].titulo").value("Pedile a 3 clientes"))
+                .andExpect(jsonPath("$.semanas[0].manuales[0].hizo").value("SI"))
+                .andExpect(jsonPath("$.semanas[0].manuales[0].quePaso").value("FUNCIONO"))
+                .andExpect(jsonPath("$.semanas[0].manuales[1].hizo").doesNotExist())
                 .andExpect(jsonPath("$.semanas[0].avance").value(0.45))
                 .andExpect(jsonPath("$.semanas[0].decisiones.aplicadas").value(1))
                 .andExpect(jsonPath("$.semanas[0].decisiones.descartadas").value(2))

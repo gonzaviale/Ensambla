@@ -1,34 +1,49 @@
 package com.ensambla.backend.domain.useCase.objetivo.cerrarSemanasObjetivos;
 
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
+import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.aviso.ImpactoAviso;
 import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.objetivo.AccionRenovacion;
 import com.ensambla.backend.domain.model.objetivo.CandidatoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.CierreMini;
 import com.ensambla.backend.domain.model.objetivo.ConteoDecisiones;
 import com.ensambla.backend.domain.model.objetivo.DecisionObjetivo;
 import com.ensambla.backend.domain.model.objetivo.DecisionObjetivoId;
 import com.ensambla.backend.domain.model.objetivo.EstadoMiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.HizoManual;
+import com.ensambla.backend.domain.model.objetivo.ManualCierre;
 import com.ensambla.backend.domain.model.objetivo.MedidorMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.Objetivo;
 import com.ensambla.backend.domain.model.objetivo.ObjetivoId;
+import com.ensambla.backend.domain.model.objetivo.PedidoRenovacion;
+import com.ensambla.backend.domain.model.objetivo.QuePaso;
 import com.ensambla.backend.domain.model.objetivo.ReajusteMiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.RedaccionObjetivosIa;
+import com.ensambla.backend.domain.model.objetivo.RespuestaMiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.RespuestaMiniObjetivoId;
 import com.ensambla.backend.domain.model.objetivo.ResumenSemanal;
 import com.ensambla.backend.domain.model.objetivo.ResumenSemanalId;
+import com.ensambla.backend.domain.model.objetivo.TextoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoDecision;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TipoReajuste;
 import com.ensambla.backend.domain.model.registro.RegistroId;
+import com.ensambla.backend.domain.model.sami.ConsumoIaSami;
+import com.ensambla.backend.domain.port.RenovacionManualesIaPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.objetivo.DecisionObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
+import com.ensambla.backend.domain.repository.objetivo.RespuestaMiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ResumenSemanalRepository;
+import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
 import com.ensambla.backend.domain.service.objetivo.PropuestaMiniObjetivosService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -52,6 +67,7 @@ import static com.ensambla.backend.support.MiniObjetivoTestData.MINI_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.OTRO_MINI_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.PRODUCTO;
 import static com.ensambla.backend.support.MiniObjetivoTestData.PRODUCTO_ID;
+import static com.ensambla.backend.support.MiniObjetivoTestData.TITULO_MANUAL;
 import static com.ensambla.backend.support.MiniObjetivoTestData.candidatoDelNegocio;
 import static com.ensambla.backend.support.MiniObjetivoTestData.miniManual;
 import static com.ensambla.backend.support.MiniObjetivoTestData.miniObjetivo;
@@ -62,6 +78,8 @@ import static com.ensambla.backend.support.ObjetivoTestData.objetivo;
 import static com.ensambla.backend.support.ObjetivoTestData.objetivoSinMeta;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -81,6 +99,8 @@ class CerrarSemanasObjetivosTest {
     private static final RegistroId OTRO_PRODUCTO_ID = RegistroId.de("d0000000-0000-4000-8000-000000000002");
     /** Por debajo de la meta del mini-objetivo de prueba ($14.183). */
     private static final BigDecimal SIN_LLEGAR = new BigDecimal("13000");
+    private static final int LIMITE_DIARIO_IA = 10;
+    private static final ConsumoIaSami CONSUMO = new ConsumoIaSami("simulado", "simulado", 120, 80);
     private static final CandidatoMiniObjetivo VENTAS = candidatoDelNegocio(TipoMiniObjetivo.VENTAS_SEMANALES, "9000");
 
     private final ObjetivoRepository objetivoRepository = mock(ObjetivoRepository.class);
@@ -90,6 +110,11 @@ class CerrarSemanasObjetivosTest {
     private final ResumenSemanalRepository resumenSemanalRepository = mock(ResumenSemanalRepository.class);
     private final PropuestaMiniObjetivosService propuestaMiniObjetivosService =
             mock(PropuestaMiniObjetivosService.class);
+    private final RespuestaMiniObjetivoRepository respuestaMiniObjetivoRepository =
+            mock(RespuestaMiniObjetivoRepository.class);
+    private final RenovacionManualesIaPort renovacionManualesIaPort = mock(RenovacionManualesIaPort.class);
+    private final ControlPlanService controlPlanService = mock(ControlPlanService.class);
+    private final ConsumoSamiRepository consumoSamiRepository = mock(ConsumoSamiRepository.class);
     private final MedidorMiniObjetivo medidor = mock(MedidorMiniObjetivo.class);
     private CerrarSemanasObjetivos cerrarSemanasObjetivos;
 
@@ -425,9 +450,14 @@ class CerrarSemanasObjetivosTest {
 
     // --- arrange ---
     private CerrarSemanasObjetivos cierre(int maxSemanasPendientes, int tamanoTanda) {
+        return cierre(maxSemanasPendientes, tamanoTanda, false);
+    }
+
+    private CerrarSemanasObjetivos cierre(int maxSemanasPendientes, int tamanoTanda, boolean iaHabilitada) {
         return new CerrarSemanasObjetivos(objetivoRepository, miniObjetivoRepository, decisionObjetivoRepository,
-                avisoRepository, resumenSemanalRepository, propuestaMiniObjetivosService, new TransaccionDirecta(),
-                CLOCK, maxSemanasPendientes, tamanoTanda);
+                avisoRepository, resumenSemanalRepository, propuestaMiniObjetivosService,
+                respuestaMiniObjetivoRepository, renovacionManualesIaPort, controlPlanService, consumoSamiRepository,
+                new TransaccionDirecta(), CLOCK, maxSemanasPendientes, tamanoTanda, iaHabilitada, LIMITE_DIARIO_IA);
     }
 
     private void givenObjetivo(Objetivo objetivo) {
@@ -524,7 +554,7 @@ class CerrarSemanasObjetivosTest {
     private static ResumenSemanal resumen(LocalDate semana, String resultado, BigDecimal valorMini) {
         return new ResumenSemanal(ResumenSemanalId.nuevo(), OBJETIVO_ID, semana, new BigDecimal(resultado),
                 BigDecimal.ZERO, new ConteoDecisiones(0, 0, 0, 0), new ArrayList<>(List.of(
-                        new CierreMini(MINI_ID, valorMini))), "", false, AHORA, List.of());
+                        new CierreMini(MINI_ID, valorMini))), "", false, AHORA, List.of(), List.of());
     }
 
     @Test
@@ -554,6 +584,339 @@ class CerrarSemanasObjetivosTest {
 
         ResumenSemanal resumen = resumenGuardado();
         assertThat(resumen.avance()).isEqualByComparingTo("0");
-        assertThat(resumen.queFunciono()).doesNotContain("Te faltan").endsWith("de la semana que viene.");
+        assertThat(resumen.queFunciono()).doesNotContain("Te faltan").contains("de la semana que viene.");
+    }
+
+    // --- los mini-objetivos manuales ---
+
+    @Test
+    @DisplayName("Un manual que la persona hizo y le funcionó queda logrado y lo sigue uno con un paso más")
+    void executeShouldRenewAManualThatWorkedWithOneStepMore() {
+        MiniObjetivo manual = miniManual();
+        givenMinis(manual);
+        givenRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
+
+        whenCerrar();
+
+        MiniObjetivo nuevo = nuevoGuardado();
+        ReajusteMiniObjetivo reajuste = unicoReajuste();
+        assertThat(manual.getEstado()).isEqualTo(EstadoMiniObjetivo.LOGRADO);
+        assertThat(manual.getReemplazadoPor()).isEqualTo(nuevo.getId());
+        assertThat(nuevo.esManual()).isTrue();
+        assertThat(nuevo.getPosicion()).isEqualTo(manual.getPosicion());
+        assertThat(nuevo.getSemanaInicio()).isEqualTo(SEMANA.plusWeeks(1));
+        assertThat(nuevo.getTitulo()).isEqualTo("Un paso más: " + TITULO_MANUAL);
+        assertThat(nuevo.isTextoConIa()).isFalse();
+        assertThat(nuevo.getMeta()).isNull();
+        assertThat(reajuste.tipo()).isEqualTo(TipoReajuste.SUBIR_META);
+        assertThat(reajuste.motivo()).startsWith("Hiciste «" + TITULO_MANUAL + "» y te funcionó");
+        assertThat(reajuste.metaAnterior()).isNull();
+        assertThat(reajuste.metaNueva()).isNull();
+        assertThat(reajuste.tituloNuevo()).isEqualTo(nuevo.getTitulo());
+        thenSavedTheOldBeforeTheNew(manual);
+    }
+
+    @Test
+    @DisplayName("Un manual que se hizo en parte queda reemplazado por lo que faltó")
+    void executeShouldSplitAManualDoneInPart() {
+        MiniObjetivo manual = miniManual();
+        givenMinis(manual);
+        givenRespuesta(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, "Hablé con 1 sola vecina");
+
+        whenCerrar();
+
+        assertThat(manual.getEstado()).isEqualTo(EstadoMiniObjetivo.REEMPLAZADO);
+        assertThat(nuevoGuardado().getTitulo()).isEqualTo("Lo que faltó: " + TITULO_MANUAL);
+        assertThat(unicoReajuste().tipo()).isEqualTo(TipoReajuste.REEMPLAZAR);
+    }
+
+    @Test
+    @DisplayName("Un manual que no se hizo por falta de tiempo se simplifica")
+    void executeShouldSimplifyAManualThatWasNotDone() {
+        givenMinis(miniManual());
+        givenRespuesta(HizoManual.NO, QuePaso.NO_TUVE_TIEMPO, null);
+
+        whenCerrar();
+
+        assertThat(nuevoGuardado().getTitulo()).isEqualTo("Versión corta: " + TITULO_MANUAL);
+        assertThat(unicoReajuste().tipo()).isEqualTo(TipoReajuste.REEMPLAZAR);
+    }
+
+    @Test
+    @DisplayName("Un manual que no funcionó cambia por otra acción, aunque se haya hecho")
+    void executeShouldChangeAManualThatDidNotWork() {
+        MiniObjetivo manual = miniManual();
+        givenMinis(manual);
+        givenRespuesta(HizoManual.SI, QuePaso.NO_FUNCIONO, null);
+
+        whenCerrar();
+
+        assertThat(manual.getEstado()).isEqualTo(EstadoMiniObjetivo.LOGRADO);
+        assertThat(nuevoGuardado().getTitulo()).isEqualTo("Probá otra acción para tu objetivo");
+        assertThat(unicoReajuste().tipo()).isEqualTo(TipoReajuste.PROBAR_OTRO_CAMINO);
+    }
+
+    @Test
+    @DisplayName("El resumen cuenta lo respondido de los manuales")
+    void executeShouldSummarizeTheManualAnswers() {
+        MiniObjetivo manual = miniManual();
+        givenMinis(manual);
+        givenRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
+
+        whenCerrar();
+
+        ResumenSemanal resumen = resumenGuardado();
+        assertThat(resumen.manuales()).containsExactly(
+                new ManualCierre(OTRO_MINI_ID, TITULO_MANUAL, HizoManual.SI, QuePaso.FUNCIONO));
+        assertThat(resumen.queFunciono()).contains("De tus acciones respondiste: 1 hechas, 0 en parte y 0 sin hacer.");
+    }
+
+    @Test
+    @DisplayName("Un manual sin respuesta no se renueva: sigue igual y el resumen lo dice")
+    void executeShouldNotRenewAManualWithoutAnswer() {
+        MiniObjetivo manual = miniManual();
+        givenMinis(manual);
+
+        whenCerrar();
+
+        ResumenSemanal resumen = resumenGuardado();
+        assertThat(manual.estaEnCurso()).isTrue();
+        assertThat(manual.getReemplazadoPor()).isNull();
+        verify(miniObjetivoRepository, never()).save(any());
+        assertThat(resumen.reajustes()).isEmpty();
+        assertThat(resumen.manuales()).containsExactly(
+                new ManualCierre(OTRO_MINI_ID, TITULO_MANUAL, null, null));
+        assertThat(resumen.queFunciono()).contains("No me contaste cómo te fue con «" + TITULO_MANUAL
+                + "»: queda igual hasta que respondas.");
+    }
+
+    @Test
+    @DisplayName("Los medidos se reajustan como siempre y los manuales se renuevan en el mismo cierre")
+    void executeShouldReadjustTheMeasuredAndRenewTheManualOnesTogether() {
+        givenMinis(miniObjetivo(), miniManual());
+        givenValor(new BigDecimal("15000"));
+        givenRespuesta(HizoManual.NO, QuePaso.OTRA, null);
+
+        whenCerrar();
+
+        ResumenSemanal resumen = resumenGuardado();
+        assertThat(resumen.reajustes()).extracting(ReajusteMiniObjetivo::tipo)
+                .containsExactly(TipoReajuste.SUBIR_META, TipoReajuste.REEMPLAZAR);
+        assertThat(resumen.minis()).extracting(CierreMini::miniObjetivoId).containsExactly(MINI_ID);
+        verify(miniObjetivoRepository, times(4)).save(any(MiniObjetivo.class));
+    }
+
+    @Test
+    @DisplayName("Una semana sin ventas no se reajustan los medidos pero sí se renuevan los manuales")
+    void executeShouldRenewTheManualOnesInAWeekWithoutSales() {
+        when(medidor.ventasSemana()).thenReturn(BigDecimal.ZERO);
+        givenMinis(miniManual());
+        givenRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
+
+        whenCerrar();
+
+        assertThat(unicoReajuste().tipo()).isEqualTo(TipoReajuste.SUBIR_META);
+    }
+
+    @Test
+    @DisplayName("Un manual que empieza después de la semana que se cierra no entra en su cierre")
+    void executeShouldIgnoreAManualOfALaterWeek() {
+        MiniObjetivo manual = miniManual();
+        manual.setSemanaInicio(SEMANA.plusWeeks(1));
+        givenMinis(manual);
+        givenRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
+
+        whenCerrar();
+
+        assertThat(resumenGuardado().manuales()).isEmpty();
+        assertThat(manual.estaEnCurso()).isTrue();
+        verify(miniObjetivoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Un objetivo ya alcanzado no renueva sus manuales pero el resumen cuenta lo que respondieron")
+    void executeShouldNotRenewTheManualOnesOfAnAchievedObjetivo() {
+        Objetivo alcanzado = objetivo();
+        alcanzado.marcarAlcanzado(AHORA);
+        givenObjetivo(alcanzado);
+        MiniObjetivo manual = miniManual();
+        givenMinis(manual);
+        givenRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
+
+        whenCerrar();
+
+        assertThat(resumenGuardado().manuales()).hasSize(1);
+        assertThat(resumenGuardado().reajustes()).isEmpty();
+        assertThat(manual.estaEnCurso()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Un manual renovado no se vuelve a renovar en la semana siguiente del mismo cierre")
+    void executeShouldNotRenewTheSameManualTwiceWhenClosingSeveralWeeks() {
+        MiniObjetivo manual = miniManual();
+        givenObjetivo(creadoHaceSemanas(1));
+        givenMinis(manual);
+        givenRespuesta(HizoManual.SI, QuePaso.FUNCIONO, null);
+
+        whenCerrar();
+
+        verify(resumenSemanalRepository, times(2)).save(any(ResumenSemanal.class));
+        verify(miniObjetivoRepository, times(2)).save(any(MiniObjetivo.class));
+        assertThat(manual.getEstado()).isEqualTo(EstadoMiniObjetivo.LOGRADO);
+    }
+
+    // --- los manuales con IA ---
+
+    @Test
+    @DisplayName("Con IA, la acción nueva la redacta la IA leyendo lo que contó la persona, y se registra su consumo")
+    void executeShouldLetTheIaWriteTheRenewedAction() {
+        cerrarSemanasObjetivos = cierre(8, 50, true);
+        MiniObjetivo manual = miniManual();
+        givenMinis(manual);
+        givenRespuesta(HizoManual.EN_PARTE, QuePaso.NO_TUVE_TIEMPO, "Le mandé un mensaje a ana@mail.com");
+        givenIaDisponible();
+        when(renovacionManualesIaPort.renovar(any())).thenReturn(new RedaccionObjetivosIa(
+                List.of(new TextoMiniObjetivo("Hablá con 2 vecinas más", "Con más charlas sabés qué piden.")),
+                CONSUMO));
+
+        whenCerrar();
+
+        MiniObjetivo nuevo = nuevoGuardado();
+        assertThat(nuevo.getTitulo()).isEqualTo("Hablá con 2 vecinas más");
+        assertThat(nuevo.getJustificacion()).isEqualTo("Con más charlas sabés qué piden.");
+        assertThat(nuevo.isTextoConIa()).isTrue();
+        ArgumentCaptor<List<PedidoRenovacion>> pedidos = ArgumentCaptor.captor();
+        verify(renovacionManualesIaPort).renovar(pedidos.capture());
+        assertThat(pedidos.getValue()).singleElement().satisfies(pedido -> {
+            assertThat(pedido.accion()).isEqualTo(AccionRenovacion.SE_DIVIDE);
+            assertThat(pedido.titulo()).isEqualTo(TITULO_MANUAL);
+            assertThat(pedido.comentario()).isEqualTo("Le mandé un mensaje a [dato oculto]");
+        });
+        verify(consumoSamiRepository).registrar(eq(NEGOCIO_ID), any(), eq(CONSUMO), eq(AHORA_CIERRE));
+    }
+
+    @Test
+    @DisplayName("Si el texto de la IA no es una acción válida (trae un importe), se usa el texto de reserva")
+    void executeShouldFallBackWhenTheIaTextIsNotAValidAction() {
+        cerrarSemanasObjetivos = cierre(8, 50, true);
+        givenMinis(miniManual());
+        givenRespuesta(HizoManual.NO, QuePaso.OTRA, null);
+        givenIaDisponible();
+        when(renovacionManualesIaPort.renovar(any())).thenReturn(new RedaccionObjetivosIa(
+                List.of(new TextoMiniObjetivo("Cobrá $5.000 más", "Porque sí")), CONSUMO));
+
+        whenCerrar();
+
+        MiniObjetivo nuevo = nuevoGuardado();
+        assertThat(nuevo.getTitulo()).isEqualTo("Versión corta: " + TITULO_MANUAL);
+        assertThat(nuevo.isTextoConIa()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Si la IA falla se usa el texto de reserva y no se registra consumo")
+    void executeShouldFallBackWhenTheIaFails() {
+        cerrarSemanasObjetivos = cierre(8, 50, true);
+        givenMinis(miniManual());
+        givenRespuesta(HizoManual.NO, QuePaso.OTRA, null);
+        givenIaDisponible();
+        when(renovacionManualesIaPort.renovar(any())).thenThrow(new IllegalStateException("sin red"));
+
+        whenCerrar();
+
+        assertThat(nuevoGuardado().getTitulo()).isEqualTo("Versión corta: " + TITULO_MANUAL);
+        verify(consumoSamiRepository, never()).registrar(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Si la IA devuelve menos textos que renovaciones se usa el texto de reserva")
+    void executeShouldFallBackWhenTheIaReturnsFewerTexts() {
+        cerrarSemanasObjetivos = cierre(8, 50, true);
+        givenMinis(miniManual());
+        givenRespuesta(HizoManual.NO, QuePaso.OTRA, null);
+        givenIaDisponible();
+        when(renovacionManualesIaPort.renovar(any())).thenReturn(new RedaccionObjetivosIa(List.of(), CONSUMO));
+
+        whenCerrar();
+
+        assertThat(nuevoGuardado().getTitulo()).isEqualTo("Versión corta: " + TITULO_MANUAL);
+    }
+
+    @Test
+    @DisplayName("Sin acceso a la IA no la consulta y usa el texto de reserva")
+    void executeShouldNotConsultTheIaWithoutAccess() {
+        cerrarSemanasObjetivos = cierre(8, 50, true);
+        givenMinis(miniManual());
+        givenRespuesta(HizoManual.NO, QuePaso.OTRA, null);
+        doThrow(new RestriccionPlanException("IA_NO_HABILITADA", "No habilitada"))
+                .when(controlPlanService).exigirIa(NEGOCIO_ID);
+
+        whenCerrar();
+
+        assertThat(nuevoGuardado().getTitulo()).isEqualTo("Versión corta: " + TITULO_MANUAL);
+        verifyNoInteractions(renovacionManualesIaPort, consumoSamiRepository);
+    }
+
+    @Test
+    @DisplayName("Sin reserva diaria de IA no la consulta y usa el texto de reserva")
+    void executeShouldNotConsultTheIaWithoutDailyAllowance() {
+        cerrarSemanasObjetivos = cierre(8, 50, true);
+        givenMinis(miniManual());
+        givenRespuesta(HizoManual.NO, QuePaso.OTRA, null);
+        when(consumoSamiRepository.reservar(NEGOCIO_ID, LocalDate.of(2026, 11, 16), LIMITE_DIARIO_IA, AHORA_CIERRE))
+                .thenReturn(false);
+
+        whenCerrar();
+
+        assertThat(nuevoGuardado().getTitulo()).isEqualTo("Versión corta: " + TITULO_MANUAL);
+        verifyNoInteractions(renovacionManualesIaPort);
+    }
+
+    @Test
+    @DisplayName("Sin nada para renovar (un manual sin respuesta) no consulta a la IA")
+    void executeShouldNotConsultTheIaWithNothingToRenew() {
+        cerrarSemanasObjetivos = cierre(8, 50, true);
+        givenMinis(miniManual());
+
+        whenCerrar();
+
+        verifyNoInteractions(renovacionManualesIaPort, controlPlanService, consumoSamiRepository);
+    }
+
+    @Test
+    @DisplayName("Con la IA apagada nunca la consulta")
+    void executeShouldNeverConsultTheIaWhenItIsDisabled() {
+        givenMinis(miniManual());
+        givenRespuesta(HizoManual.NO, QuePaso.OTRA, null);
+
+        whenCerrar();
+
+        verifyNoInteractions(renovacionManualesIaPort, controlPlanService, consumoSamiRepository);
+    }
+
+    @Test
+    @DisplayName("Un objetivo alcanzado no consulta a la IA")
+    void executeShouldNotConsultTheIaForAnAchievedObjetivo() {
+        cerrarSemanasObjetivos = cierre(8, 50, true);
+        Objetivo alcanzado = objetivo();
+        alcanzado.marcarAlcanzado(AHORA);
+        givenObjetivo(alcanzado);
+        givenMinis(miniManual());
+        givenRespuesta(HizoManual.NO, QuePaso.OTRA, null);
+
+        whenCerrar();
+
+        verifyNoInteractions(renovacionManualesIaPort);
+    }
+
+    // --- helpers de los manuales ---
+    private void givenRespuesta(HizoManual hizo, QuePaso quePaso, String comentario) {
+        when(respuestaMiniObjetivoRepository.findAllByObjetivoIdAndNegocioId(OBJETIVO_ID, NEGOCIO_ID)).thenReturn(
+                List.of(new RespuestaMiniObjetivo(RespuestaMiniObjetivoId.nuevo(), NEGOCIO_ID, OBJETIVO_ID,
+                        OTRO_MINI_ID, hizo, quePaso, comentario, SEMANA, AHORA)));
+    }
+
+    private void givenIaDisponible() {
+        when(consumoSamiRepository.reservar(NEGOCIO_ID, LocalDate.of(2026, 11, 16), LIMITE_DIARIO_IA, AHORA_CIERRE))
+                .thenReturn(true);
     }
 }

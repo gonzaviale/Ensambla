@@ -1,7 +1,10 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.objetivo;
 
+import com.ensambla.backend.domain.model.objetivo.HizoManual;
+import com.ensambla.backend.domain.model.objetivo.QuePaso;
 import com.ensambla.backend.domain.model.objetivo.TipoReajuste;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasRequest;
+import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasResponse.ManualItem;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasResponse;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasResponse.DecisionesItem;
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasResponse.MiniItem;
@@ -16,11 +19,17 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import static com.ensambla.backend.support.MiniObjetivoTestData.MINI_ID;
+import static com.ensambla.backend.support.MiniObjetivoTestData.OTRO_MINI_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.USUARIO_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ResumenSemanalPresentationMapperTest {
+
+    private static final List<ManualItem> MANUALES = List.of(
+            new ManualItem(MINI_ID, "Pedile a 3 clientes", HizoManual.SI, QuePaso.FUNCIONO),
+            new ManualItem(OTRO_MINI_ID, "Un cartel", null, null));
 
     private static final LocalDate SEMANA = LocalDate.of(2026, 11, 9);
 
@@ -41,7 +50,7 @@ class ResumenSemanalPresentationMapperTest {
         SemanasObjetivoResponse result = mapper.toResponse(new ListarSemanasResponse(SEMANA, List.of(new SemanaItem(
                 SEMANA, BigDecimal.TEN, BigDecimal.ONE, new DecisionesItem(1, 2, 3, 4), "Bien", true, List.of(
                         new ReajusteItem(TipoReajuste.REEMPLAZAR, "Sin avance", new MiniItem("Viejo", BigDecimal.ONE),
-                                null))))));
+                                null)), MANUALES))));
 
         assertThat(result.ultimoCierre()).isEqualTo(SEMANA);
         SemanaResponse semana = result.semanas().get(0);
@@ -54,6 +63,13 @@ class ResumenSemanalPresentationMapperTest {
         assertThat(semana.decisiones().ignoradas()).isEqualTo(4);
         assertThat(semana.queFunciono()).isEqualTo("Bien");
         assertThat(semana.textoConIa()).isTrue();
+        assertThat(semana.manuales()).hasSize(2);
+        assertThat(semana.manuales().get(0).miniObjetivoId()).isEqualTo(MINI_ID);
+        assertThat(semana.manuales().get(0).titulo()).isEqualTo("Pedile a 3 clientes");
+        assertThat(semana.manuales().get(0).hizo()).isEqualTo(HizoManual.SI);
+        assertThat(semana.manuales().get(0).quePaso()).isEqualTo(QuePaso.FUNCIONO);
+        assertThat(semana.manuales().get(1).hizo()).isNull();
+        assertThat(semana.manuales().get(1).quePaso()).isNull();
         assertThat(semana.reajustes()).singleElement().satisfies(reajuste -> {
             assertThat(reajuste.tipo()).isEqualTo(TipoReajuste.REEMPLAZAR);
             assertThat(reajuste.motivo()).isEqualTo("Sin avance");

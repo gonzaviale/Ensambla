@@ -5,27 +5,40 @@ import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.common.ZonaNegocio;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.objetivo.AccionManual;
+import com.ensambla.backend.domain.model.objetivo.AccionRenovacion;
 import com.ensambla.backend.domain.model.objetivo.CandidatoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.CierreMini;
 import com.ensambla.backend.domain.model.objetivo.ConteoDecisiones;
 import com.ensambla.backend.domain.model.objetivo.DecisionObjetivo;
+import com.ensambla.backend.domain.model.objetivo.HizoManual;
+import com.ensambla.backend.domain.model.objetivo.ManualCierre;
 import com.ensambla.backend.domain.model.objetivo.MedidorMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.MiniObjetivoId;
 import com.ensambla.backend.domain.model.objetivo.MotivoReajuste;
 import com.ensambla.backend.domain.model.objetivo.Objetivo;
+import com.ensambla.backend.domain.model.objetivo.PedidoRenovacion;
+import com.ensambla.backend.domain.model.objetivo.RedaccionObjetivosIa;
 import com.ensambla.backend.domain.model.objetivo.ReajusteMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.ReglasReajuste;
+import com.ensambla.backend.domain.model.objetivo.RespuestaMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.ResumenSemanal;
 import com.ensambla.backend.domain.model.objetivo.SemanaObjetivo;
+import com.ensambla.backend.domain.model.objetivo.TextoMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.TextoResumen;
 import com.ensambla.backend.domain.model.objetivo.TipoReajuste;
+import com.ensambla.backend.domain.port.RenovacionManualesIaPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.objetivo.DecisionObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
+import com.ensambla.backend.domain.repository.objetivo.RespuestaMiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ResumenSemanalRepository;
+import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
 import com.ensambla.backend.domain.service.objetivo.PropuestaMiniObjetivosService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -48,7 +61,9 @@ import java.util.stream.Collectors;
  * cuadernos a ese domingo, se aplican las {@link ReglasReajuste} a los mini-objetivos y se guarda el resumen con sus
  * reajustes en una sola transacción. Si otra corrida ya cerró esa semana, se deshace y se sigue con la próxima.
  * <p>
- * Los mini-objetivos manuales no se reajustan acá: los renueva su propia regla según lo que respondió la persona.
+ * Los mini-objetivos manuales se renuevan según lo que respondió la persona ({@link AccionRenovacion}), con la IA
+ * leyendo lo que contó (sin datos personales) o, sin IA, con un texto de reserva; uno sin respuesta no se renueva y el
+ * resumen lo dice. El resumen guarda lo respondido.
  * <p>
  * No crea avisos ni manda mensajes: el resumen sólo se ve cuando la persona entra a la app. Lee los avisos sólo para
  * saber si una decisión movió las ventas. Cada negocio va aparte y uno con error no frena a los demás.
@@ -69,6 +84,14 @@ public class CerrarSemanasObjetivos {
 
     private final PropuestaMiniObjetivosService propuestaMiniObjetivosService;
 
+    private final RespuestaMiniObjetivoRepository respuestaMiniObjetivoRepository;
+
+    private final RenovacionManualesIaPort renovacionManualesIaPort;
+
+    private final ControlPlanService controlPlanService;
+
+    private final ConsumoSamiRepository consumoSamiRepository;
+
     private final TransaccionPort transaccionPort;
 
     private final Clock clock;
@@ -78,6 +101,15 @@ public class CerrarSemanasObjetivos {
 
     /** Cuántos negocios se piden por vez, para no cargar a todos juntos. */
     private final int tamanoTanda;
+
+    /** Si la IA lee lo que la persona contó para redactar la acción que renueva cada manual. */
+    private final boolean iaHabilitada;
+
+    private final int limiteDiarioIa;
+
+    /** Un manual en curso con la respuesta que la persona le dio. */
+    private record Renovable(MiniObjetivo mini, RespuestaMiniObjetivo respuesta) {
+    }
 
     public void execute() {
         OffsetDateTime ahora = OffsetDateTime.now(clock);
@@ -109,9 +141,10 @@ public class CerrarSemanasObjetivos {
         for (LocalDate semana : pendientes(objetivo, resumenes, ultima)) {
             MedidorMiniObjetivo medidor = medidores.computeIfAbsent(semana,
                     lunes -> propuestaMiniObjetivosService.medidor(negocioId, SemanaObjetivo.domingo(lunes)));
+            Map<MiniObjetivoId, TextoMiniObjetivo> textos = textosDeRenovacion(negocioId, objetivo, semana, ahora);
             try {
                 resumenes.add(0, transaccionPort.ejecutar(
-                        () -> cerrar(negocioId, objetivo, semana, medidor, resumenes, ahora)));
+                        () -> cerrar(negocioId, objetivo, semana, medidor, resumenes, textos, ahora)));
             } catch (DuplicateResourceException e) {
                 log.info("La semana {} del objetivo {} ya estaba cerrada", semana, objetivo.getId());
             }
@@ -140,7 +173,7 @@ public class CerrarSemanasObjetivos {
 
     private ResumenSemanal cerrar(
             NegocioId negocioId, Objetivo objetivo, LocalDate semana, MedidorMiniObjetivo medidor,
-            List<ResumenSemanal> anteriores, OffsetDateTime ahora) {
+            List<ResumenSemanal> anteriores, Map<MiniObjetivoId, TextoMiniObjetivo> textos, OffsetDateTime ahora) {
         List<MiniObjetivo> minis = miniObjetivoRepository.findAllByObjetivoIdAndNegocioId(objetivo.getId(), negocioId);
         List<DecisionObjetivo> decisiones =
                 decisionObjetivoRepository.findAllByObjetivoIdAndNegocioId(objetivo.getId(), negocioId);
@@ -148,17 +181,117 @@ public class CerrarSemanasObjetivos {
         boolean alcanzado = objetivo.estaAlcanzado() || objetivo.llegaA(resultado);
         boolean sinVentas = medidor.ventasSemana().signum() == 0;
         List<CierreMini> cierres = cierres(minis, medidor);
-        List<ReajusteMiniObjetivo> reajustes = alcanzado || sinVentas
-                ? List.of()
-                : reajustar(negocioId, objetivo, semana, medidor, minis, decisiones, anteriores, ahora);
+        List<ReajusteMiniObjetivo> reajustes = new ArrayList<>(alcanzado || sinVentas
+                ? List.<ReajusteMiniObjetivo>of()
+                : reajustar(negocioId, objetivo, semana, medidor, minis, decisiones, anteriores, ahora));
+        List<RespuestaMiniObjetivo> respuestas =
+                respuestaMiniObjetivoRepository.findAllByObjetivoIdAndNegocioId(objetivo.getId(), negocioId);
+        List<MiniObjetivo> manuales = manualesEnCurso(minis, semana);
+        List<ManualCierre> cierreManuales = manuales.stream()
+                .map(manual -> respuestaDe(manual, respuestas)
+                        .map(respuesta -> ManualCierre.respondido(manual, respuesta))
+                        .orElseGet(() -> ManualCierre.sinRespuesta(manual)))
+                .toList();
+        if (!alcanzado) {
+            reajustes.addAll(renovar(objetivo, semana, renovables(manuales, respuestas), textos, ahora));
+        }
         ConteoDecisiones conteo = ConteoDecisiones.de(decisiones.stream()
                 .filter(decision -> decision.semanaInicio().equals(semana))
                 .toList());
-        String queFunciono = TextoResumen.queFunciono(
+        String queFunciono = String.join(" ", TextoResumen.queFunciono(
                 resultado, resultadoDe(anteriores, semana.minusWeeks(1)), conteo, objetivo.getMeta(), alcanzado,
-                sinVentas);
-        return resumenSemanalRepository.save(
-                ResumenSemanal.de(objetivo, semana, resultado, conteo, cierres, queFunciono, reajustes, ahora));
+                sinVentas), TextoResumen.manuales(cierreManuales)).strip();
+        return resumenSemanalRepository.save(ResumenSemanal.de(
+                objetivo, semana, resultado, conteo, cierres, queFunciono, reajustes, cierreManuales, ahora));
+    }
+
+    /** Los manuales en curso que ya empezaron a esa semana: los que se renuevan o quedan sin respuesta. */
+    private static List<MiniObjetivo> manualesEnCurso(List<MiniObjetivo> minis, LocalDate semana) {
+        return minis.stream()
+                .filter(MiniObjetivo::esManual)
+                .filter(MiniObjetivo::estaEnCurso)
+                .filter(mini -> !mini.getSemanaInicio().isAfter(semana))
+                .toList();
+    }
+
+    private static Optional<RespuestaMiniObjetivo> respuestaDe(
+            MiniObjetivo mini, List<RespuestaMiniObjetivo> respuestas) {
+        return respuestas.stream().filter(respuesta -> respuesta.miniObjetivoId().equals(mini.getId())).findFirst();
+    }
+
+    private static List<Renovable> renovables(List<MiniObjetivo> manuales, List<RespuestaMiniObjetivo> respuestas) {
+        return manuales.stream()
+                .flatMap(manual -> respuestaDe(manual, respuestas).map(respuesta -> new Renovable(manual, respuesta))
+                        .stream())
+                .toList();
+    }
+
+    /**
+     * Lo que la IA redactó para renovar cada manual respondido de la semana, por mini-objetivo. Se pide antes de abrir la
+     * transacción y sólo si hay algo que renovar. Sin IA (apagada, sin acceso, sin reserva del día o si falla) queda
+     * vacío y cada acción lleva su texto de reserva.
+     */
+    private Map<MiniObjetivoId, TextoMiniObjetivo> textosDeRenovacion(
+            NegocioId negocioId, Objetivo objetivo, LocalDate semana, OffsetDateTime ahora) {
+        if (!iaHabilitada || objetivo.estaAlcanzado()) {
+            return Map.of();
+        }
+        List<Renovable> renovables = renovables(
+                manualesEnCurso(miniObjetivoRepository.findAllByObjetivoIdAndNegocioId(objetivo.getId(), negocioId),
+                        semana),
+                respuestaMiniObjetivoRepository.findAllByObjetivoIdAndNegocioId(objetivo.getId(), negocioId));
+        if (renovables.isEmpty()) {
+            return Map.of();
+        }
+        try {
+            controlPlanService.exigirIa(negocioId);
+            LocalDate fecha = ZonaNegocio.dia(ahora);
+            if (!consumoSamiRepository.reservar(negocioId, fecha, limiteDiarioIa, ahora)) {
+                return Map.of();
+            }
+            RedaccionObjetivosIa redaccion = renovacionManualesIaPort.renovar(renovables.stream()
+                    .map(renovable -> PedidoRenovacion.de(renovable.mini(), renovable.respuesta()))
+                    .toList());
+            consumoSamiRepository.registrar(negocioId, fecha, redaccion.consumo(), ahora);
+            Map<MiniObjetivoId, TextoMiniObjetivo> textos = new HashMap<>();
+            for (int indice = 0; indice < renovables.size(); indice++) {
+                textos.put(renovables.get(indice).mini().getId(), redaccion.textos().get(indice));
+            }
+            return textos;
+        } catch (RuntimeException e) {
+            log.warn("No se pudieron redactar las renovaciones con IA; se usa el texto de reserva", e);
+            return Map.of();
+        }
+    }
+
+    /**
+     * Renueva cada manual respondido según lo que contó la persona: el nuevo ocupa el mismo lugar desde la semana
+     * siguiente y el viejo queda logrado (si lo hizo) o reemplazado. Un manual sin respuesta no se toca.
+     */
+    private List<ReajusteMiniObjetivo> renovar(
+            Objetivo objetivo, LocalDate semana, List<Renovable> renovables,
+            Map<MiniObjetivoId, TextoMiniObjetivo> textos, OffsetDateTime ahora) {
+        List<ReajusteMiniObjetivo> reajustes = new ArrayList<>();
+        for (Renovable renovable : renovables) {
+            MiniObjetivo anterior = renovable.mini();
+            AccionRenovacion accion = AccionRenovacion.de(renovable.respuesta().hizo(), renovable.respuesta().quePaso());
+            Optional<AccionManual> deLaIa = Optional.ofNullable(textos.get(anterior.getId()))
+                    .flatMap(texto -> AccionManual.de(texto.titulo(), texto.justificacion()));
+            AccionManual texto = deLaIa.orElseGet(() -> accion.textoDeReserva(anterior.getTitulo()));
+            MiniObjetivo nuevo = MiniObjetivo.manual(
+                    objetivo, anterior.getPosicion(), texto, deLaIa.isPresent(), semana.plusWeeks(1), ahora);
+            if (renovable.respuesta().hizo() == HizoManual.SI) {
+                anterior.lograrYSeguirCon(nuevo.getId(), ahora);
+            } else {
+                anterior.reemplazarPor(nuevo.getId(), ahora);
+            }
+            miniObjetivoRepository.save(anterior);
+            miniObjetivoRepository.save(nuevo);
+            reajustes.add(ReajusteMiniObjetivo.de(
+                    anterior, nuevo, accion.tipoReajuste(), accion.motivo(anterior.getTitulo(), nuevo.getTitulo()),
+                    ahora));
+        }
+        return reajustes;
     }
 
     /** El valor al domingo de los mini-objetivos en curso o logrados, para compararlo en los cierres siguientes. */

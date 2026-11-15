@@ -27,7 +27,7 @@ class ResumenSemanalTest {
         List<CierreMini> cierres = new ArrayList<>(List.of(CIERRE));
 
         ResumenSemanal result = ResumenSemanal.de(objetivo(), SEMANA, new BigDecimal("100000"), CONTEO, cierres,
-                "Esta semana…", List.of(), AHORA);
+                "Esta semana…", List.of(), List.of(), AHORA);
         cierres.clear();
 
         assertThat(result.id()).isNotNull();
@@ -55,7 +55,7 @@ class ResumenSemanalTest {
     @DisplayName("Da el valor de un mini-objetivo al cierre, o vacío si no estaba")
     void valorDeShouldReturnTheClosingValueOfAMiniObjetivo() {
         ResumenSemanal resumen = ResumenSemanal.de(objetivo(), SEMANA, BigDecimal.ZERO, CONTEO, List.of(CIERRE),
-                "", List.of(), AHORA);
+                "", List.of(), List.of(), AHORA);
 
         assertThat(resumen.valorDe(MINI_ID)).contains(new BigDecimal("12600.00"));
         assertThat(resumen.valorDe(OTRO_MINI_ID)).isEmpty();
@@ -65,5 +65,21 @@ class ResumenSemanalTest {
     @DisplayName("Sin meta en pesos el avance es cero")
     void avanceDeShouldBeZeroWithoutGoal() {
         assertThat(ResumenSemanal.avanceDe(new BigDecimal("500"), null)).isEqualByComparingTo("0");
+    }
+
+    @Test
+    @DisplayName("El resumen guarda una copia de lo que la persona respondió de sus manuales")
+    void deShouldKeepACopyOfTheManualAnswers() {
+        List<ManualCierre> manuales = new ArrayList<>(List.of(
+                new ManualCierre(MINI_ID, "Un cartel", HizoManual.SI, QuePaso.FUNCIONO)));
+
+        ResumenSemanal result = ResumenSemanal.de(objetivo(), SEMANA, BigDecimal.ZERO, CONTEO, List.of(), "",
+                List.of(), manuales, AHORA);
+        manuales.clear();
+
+        assertThat(result.manuales()).singleElement().satisfies(manual -> {
+            assertThat(manual.titulo()).isEqualTo("Un cartel");
+            assertThat(manual.hizo()).isEqualTo(HizoManual.SI);
+        });
     }
 }
