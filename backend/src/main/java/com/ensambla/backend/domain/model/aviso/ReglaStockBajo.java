@@ -79,20 +79,11 @@ public class ReglaStockBajo implements ReglaAviso {
     }
 
     /** Registrar la entrada si el proyecto tiene tabla de entradas; si no, abrir el producto. */
-    private static Map<String, Object> accion(BloqueInventario inventario, RegistroId registroId) {
-        Map<String, Object> accion = new LinkedHashMap<>();
-        accion.put("proyectoId", inventario.bloque().getProyectoId().toString());
+    private static AccionDeAviso accion(BloqueInventario inventario, RegistroId registroId) {
         if (inventario.entradasId() != null) {
-            accion.put("tipo", "REGISTRAR");
-            accion.put("texto", "Registrar entrada");
-            accion.put("bloqueId", inventario.entradasId().toString());
-        } else {
-            accion.put("tipo", "ABRIR");
-            accion.put("texto", "Ver producto");
-            accion.put("bloqueId", inventario.bloque().getId().toString());
-            accion.put("registroId", registroId.toString());
+            return AccionesAviso.registrarEntrada(inventario);
         }
-        return accion;
+        return AccionesAviso.abrir(inventario, registroId);
     }
 
     private static String nombreDe(BloqueInventario inventario, Registro registro) {

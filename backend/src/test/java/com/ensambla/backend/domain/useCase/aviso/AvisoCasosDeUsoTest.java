@@ -2,6 +2,11 @@ package com.ensambla.backend.domain.useCase.aviso;
 
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
+import com.ensambla.backend.domain.model.aviso.AccionCrearRegistro;
+import com.ensambla.backend.domain.model.aviso.AccionDeAviso;
+import com.ensambla.backend.domain.model.aviso.AccionEditarRegistro;
+import com.ensambla.backend.domain.model.aviso.AccionInvalida;
+import com.ensambla.backend.domain.model.aviso.AccionRegistrar;
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
@@ -58,6 +63,10 @@ import static org.mockito.Mockito.when;
 
 class AvisoCasosDeUsoTest {
 
+    private static final String SIN_TABLA = "La acción del aviso no indica en qué tabla crear la fila";
+    private static final String SIN_REGISTRO = "La acción del aviso no indica qué registro cambiar";
+    private static final String SIN_VALORES = "La acción del aviso no indica qué valores cambiar";
+
     private static final UsuarioId USUARIO_ID = UsuarioId.de("00000000-0000-4000-8000-000000000001");
     private static final NegocioId NEGOCIO_ID = AvisoTestData.NEGOCIO_ID;
     private static final AvisoId AVISO_ID = AvisoId.de("e0000000-0000-4000-8000-000000000001");
@@ -73,9 +82,8 @@ class AvisoCasosDeUsoTest {
     private final RegistroRepository registroRepository = mock(RegistroRepository.class);
     private final CampoRepository campoRepository = mock(CampoRepository.class);
     private final ControlPlanService controlPlanService = mock(ControlPlanService.class, invocation -> {
-        if (invocation.getMethod().getName().equals("seleccionar")) {
-            List<String> claves = invocation.getArgument(2);
-            return new AccesoContenidoItem(claves, 0, null, claves.size(), 0, AHORA.plusMonths(1));
+        if (invocation.getMethod().getName().equals("avisosAutorizados")) {
+            return invocation.getArgument(1);
         }
         return Answers.RETURNS_DEFAULTS.answer(invocation);
     });
@@ -105,8 +113,7 @@ class AvisoCasosDeUsoTest {
         Aviso pocoUrgente = givenAviso("poco urgente", 1, EstadoAviso.PENDIENTE, 5);
         Aviso viejoUrgente = givenAviso("viejo urgente", 3, EstadoAviso.PENDIENTE, 1);
         Aviso nuevoUrgente = givenAviso("nuevo urgente", 3, EstadoAviso.PENDIENTE, 4);
-        when(avisoRepository.findByNegocioId(NEGOCIO_ID))
-                .thenReturn(List.of(descartado, pocoUrgente, viejoUrgente, nuevoUrgente));
+        givenAvisosDelNegocio(descartado, pocoUrgente, viejoUrgente, nuevoUrgente);
 
         List<AvisoItem> result = listarAvisos.execute(new ListarAvisosRequest(USUARIO_ID, null));
 
@@ -118,13 +125,12 @@ class AvisoCasosDeUsoTest {
     @DisplayName("Listar con estado devuelve sólo los avisos de ese estado del negocio del usuario")
     void listarShouldFilterByEstado() {
         Aviso pendiente = givenAviso("pendiente", 2, EstadoAviso.PENDIENTE, 1);
-        when(avisoRepository.findByNegocioIdAndEstado(NEGOCIO_ID, EstadoAviso.PENDIENTE))
-                .thenReturn(List.of(pendiente));
+        givenAvisosPendientes(pendiente);
 
         List<AvisoItem> result = listarAvisos.execute(new ListarAvisosRequest(USUARIO_ID, EstadoAviso.PENDIENTE));
 
         assertThat(result).extracting(AvisoItem::id).containsExactly(pendiente.getId());
-        verify(avisoRepository, never()).findByNegocioId(any());
+        thenNoSeConsultanTodosLosAvisos();
     }
 
     // --- contar ---
@@ -132,10 +138,10 @@ class AvisoCasosDeUsoTest {
     @Test
     @DisplayName("Contar devuelve los pendientes y cuántos son urgentes del negocio del usuario")
     void contarShouldCountPendingAndUrgent() {
-        when(avisoRepository.findByNegocioIdAndEstado(NEGOCIO_ID, EstadoAviso.PENDIENTE)).thenReturn(List.of(
+        givenAvisosPendientes(
                 givenAviso("a", 3, EstadoAviso.PENDIENTE, 1),
                 givenAviso("b", 2, EstadoAviso.PENDIENTE, 1),
-                givenAviso("c", 1, EstadoAviso.PENDIENTE, 1)));
+                givenAviso("c", 1, EstadoAviso.PENDIENTE, 1));
 
         ContadorAvisos result = contarAvisos.execute(USUARIO_ID);
 
@@ -154,7 +160,7 @@ class AvisoCasosDeUsoTest {
         assertThat(result.id()).isEqualTo(AVISO_ID);
         assertThat(aviso.getEstado()).isEqualTo(EstadoAviso.APLICADO);
         assertThat(aviso.getResueltoEn()).isEqualTo(AHORA);
-        verify(avisoRepository).save(aviso);
+        thenSeGuardaElAviso(aviso);
     }
 
     @Test
@@ -164,15 +170,14 @@ class AvisoCasosDeUsoTest {
 
         aplicar();
 
-        verify(decisionesObjetivoService).registrarAviso(aviso, TipoDecision.AVISO_APLICADO, AHORA);
+        thenSeAnotaLaDecision(aviso, TipoDecision.AVISO_APLICADO);
     }
 
     @Test
     @DisplayName("Si no se puede anotar la decisión el aviso tampoco queda aplicado: es la misma transacción")
     void aplicarShouldPropagateAFailureWhileRecordingTheDecision() {
         givenGuardado(givenAvisoConAcciones());
-        doThrow(new IllegalStateException("falló")).when(decisionesObjetivoService)
-                .registrarAviso(any(Aviso.class), any(TipoDecision.class), any(OffsetDateTime.class));
+        givenQueAnotarLaDecisionFalla();
 
         assertThatThrownBy(this::aplicar).isInstanceOf(IllegalStateException.class).hasMessage("falló");
     }
@@ -180,11 +185,11 @@ class AvisoCasosDeUsoTest {
     @Test
     @DisplayName("Aplicar un aviso de otro negocio responde 'no existe' y no aplica nada")
     void aplicarShouldNotApplyForeignAviso() {
-        when(avisoRepository.findByIdAndNegocioId(AVISO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+        givenAvisoAjeno();
 
         assertThatThrownBy(this::aplicar)
                 .isInstanceOf(ResourceNotFoundException.class).hasMessage("El aviso no existe");
-        verify(avisoRepository, never()).save(any());
+        thenNoSeGuardaNingunAviso();
     }
 
     @Test
@@ -194,8 +199,8 @@ class AvisoCasosDeUsoTest {
         aviso.setEstado(EstadoAviso.DESCARTADO);
 
         assertThatThrownBy(this::aplicar).isInstanceOf(BusinessRuleException.class);
-        verifyNoInteractions(registroDatosService, decisionesObjetivoService);
-        verify(avisoRepository, never()).save(any());
+        thenNoSeEjecutaLaAccionNiSeAnotaLaDecision();
+        thenNoSeGuardaNingunAviso();
     }
 
     @Test
@@ -205,14 +210,11 @@ class AvisoCasosDeUsoTest {
         Registro registro = AvisoTestData.registro(REGISTRO_ID.valor(), "Yerba", 2, 5);
         List<Campo> campos = List.of(AvisoTestData.campo(CAMPO_PRECIO_ID.valor(), "price"),
                 AvisoTestData.campo(AvisoTestData.CAMPO_NOMBRE_ID.valor(), "name"));
-        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(registro);
-        when(campoRepository.findByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID)).thenReturn(campos);
+        givenRegistroConCampos(registro, campos);
 
         aplicar();
 
-        InOrder orden = inOrder(registroDatosService, avisoRepository);
-        orden.verify(registroDatosService).editar(registro, campos, Map.of(CAMPO_PRECIO_ID.toString(), 4200), AHORA);
-        orden.verify(avisoRepository).save(aviso);
+        thenSeEditaElRegistroAntesDeGuardarElAviso(registro, campos, aviso);
     }
 
     @Test
@@ -220,17 +222,11 @@ class AvisoCasosDeUsoTest {
     void aplicarShouldCreateRegistroByCampoClave() {
         Aviso aviso = givenGuardado(givenAvisoConAcciones(crearCombo(Map.of("name", "Combo A + B", "quantity", 0,
                 "price", 1710))));
-        when(campoRepository.findByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID))
-                .thenReturn(camposDelInventario());
+        givenCamposDelInventarioEnElRepositorio();
 
         aplicar();
 
-        ArgumentCaptor<Registro> captor = ArgumentCaptor.forClass(Registro.class);
-        InOrder orden = inOrder(controlPlanService, registroRepository, avisoRepository);
-        orden.verify(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 1, AHORA);
-        orden.verify(registroRepository).save(captor.capture());
-        orden.verify(avisoRepository).save(aviso);
-        Registro creado = captor.getValue();
+        Registro creado = thenSeCreaLaFilaAntesDeGuardarElAviso(aviso);
         assertThat(creado.getNegocioId()).isEqualTo(NEGOCIO_ID);
         assertThat(creado.getBloqueId()).isEqualTo(AvisoTestData.INVENTARIO_ID);
         assertThat(creado.getOrigen()).isEqualTo(Registro.ORIGEN_AVISO);
@@ -238,14 +234,13 @@ class AvisoCasosDeUsoTest {
                 .containsEntry(AvisoTestData.CAMPO_NOMBRE_ID.toString(), "Combo A + B")
                 .containsEntry(AvisoTestData.CAMPO_CANTIDAD_ID.toString(), 0)
                 .containsEntry(CAMPO_PRECIO_ID.toString(), 1710);
-        verify(registroDatosService).validarConexiones(any(), any(), any());
+        thenSeValidanLasConexiones();
     }
 
     @Test
     @DisplayName("Rechaza una acción de creación sin una tabla válida")
     void aplicarShouldThrowWhenBloqueIdIsInvalid() {
-        givenGuardado(givenAvisoConAcciones(Map.of("tipo", "CREAR_REGISTRO", "bloqueId", "no-es-un-id",
-                "valores", Map.of("name", "Combo"))));
+        givenGuardado(givenAvisoConAcciones(accionIncompleta("CREAR_REGISTRO", SIN_TABLA)));
 
         assertThatThrownBy(this::aplicar)
                 .isInstanceOf(BusinessRuleException.class)
@@ -260,24 +255,23 @@ class AvisoCasosDeUsoTest {
         assertThatThrownBy(this::aplicar)
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("La tabla ya no tiene los campos que el aviso quería cambiar");
-        verify(registroRepository, never()).save(any());
+        thenNoSeGuardaNingunRegistro();
     }
 
     @Test
     @DisplayName("Las acciones que sólo abren pantallas no tocan ningún dato")
     void aplicarShouldDoNothingForNavigationActions() {
-        givenGuardado(givenAvisoConAcciones(Map.of("tipo", "REGISTRAR", "bloqueId", "x"), "texto suelto"));
+        givenGuardado(givenAvisoConAcciones(registrarEntrada()));
 
         aplicar();
 
-        verifyNoInteractions(registroDatosService, campoRepository);
+        thenNoSeTocaNingunDatoDelNegocio();
     }
 
     @Test
     @DisplayName("Rechaza una acción de edición con un registro que no es un id")
     void aplicarShouldThrowWhenRegistroIdIsInvalid() {
-        givenGuardado(givenAvisoConAcciones(Map.of("tipo", "EDITAR_REGISTRO", "registroId", "no-es-un-id",
-                "valores", Map.of("price", 1))));
+        givenGuardado(givenAvisoConAcciones(accionIncompleta("EDITAR_REGISTRO", SIN_REGISTRO)));
 
         assertThatThrownBy(this::aplicar)
                 .isInstanceOf(BusinessRuleException.class)
@@ -287,8 +281,7 @@ class AvisoCasosDeUsoTest {
     @Test
     @DisplayName("Rechaza una acción de edición sin valores")
     void aplicarShouldThrowWhenValoresAreMissing() {
-        givenRegistroYCampos();
-        givenGuardado(givenAvisoConAcciones(Map.of("tipo", "EDITAR_REGISTRO", "registroId", REGISTRO_ID.toString())));
+        givenGuardado(givenAvisoConAcciones(accionIncompleta("EDITAR_REGISTRO", SIN_VALORES)));
 
         assertThatThrownBy(this::aplicar)
                 .isInstanceOf(BusinessRuleException.class)
@@ -313,7 +306,7 @@ class AvisoCasosDeUsoTest {
         assertThatThrownBy(this::aplicar)
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("La tabla ya no tiene los campos que el aviso quería cambiar");
-        verify(registroDatosService, never()).editar(any(), any(), any(), any());
+        thenNoSeEditaNingunRegistro();
     }
 
     // --- descartar ---
@@ -328,7 +321,7 @@ class AvisoCasosDeUsoTest {
         assertThat(result.id()).isEqualTo(AVISO_ID);
         assertThat(aviso.getEstado()).isEqualTo(EstadoAviso.DESCARTADO);
         assertThat(aviso.getResueltoEn()).isEqualTo(AHORA);
-        verify(avisoRepository).save(aviso);
+        thenSeGuardaElAviso(aviso);
     }
 
     @Test
@@ -338,7 +331,7 @@ class AvisoCasosDeUsoTest {
 
         descartarAviso.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID));
 
-        verify(decisionesObjetivoService).registrarAviso(aviso, TipoDecision.AVISO_DESCARTADO, AHORA);
+        thenSeAnotaLaDecision(aviso, TipoDecision.AVISO_DESCARTADO);
     }
 
     @Test
@@ -349,10 +342,37 @@ class AvisoCasosDeUsoTest {
 
         assertThatThrownBy(() -> descartarAviso.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID)))
                 .isInstanceOf(BusinessRuleException.class);
-        verifyNoInteractions(decisionesObjetivoService);
+        thenNoSeAnotaNingunaDecision();
     }
 
     // --- arrange ---
+    private void givenAvisosDelNegocio(Aviso... avisos) {
+        when(avisoRepository.findByNegocioId(NEGOCIO_ID)).thenReturn(List.of(avisos));
+    }
+
+    private void givenAvisosPendientes(Aviso... avisos) {
+        when(avisoRepository.findByNegocioIdAndEstado(NEGOCIO_ID, EstadoAviso.PENDIENTE)).thenReturn(List.of(avisos));
+    }
+
+    private void givenAvisoAjeno() {
+        when(avisoRepository.findByIdAndNegocioId(AVISO_ID, NEGOCIO_ID)).thenReturn(Optional.empty());
+    }
+
+    private void givenQueAnotarLaDecisionFalla() {
+        doThrow(new IllegalStateException("falló")).when(decisionesObjetivoService)
+                .registrarAviso(any(Aviso.class), any(TipoDecision.class), any(OffsetDateTime.class));
+    }
+
+    private void givenRegistroConCampos(Registro registro, List<Campo> campos) {
+        when(registroRepository.obtener(REGISTRO_ID, NEGOCIO_ID)).thenReturn(registro);
+        when(campoRepository.findByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID)).thenReturn(campos);
+    }
+
+    private void givenCamposDelInventarioEnElRepositorio() {
+        when(campoRepository.findByBloqueIdAndNegocioId(AvisoTestData.INVENTARIO_ID, NEGOCIO_ID))
+                .thenReturn(camposDelInventario());
+    }
+
     private Aviso givenGuardado(Aviso aviso) {
         when(avisoRepository.findByIdAndNegocioId(AVISO_ID, NEGOCIO_ID)).thenReturn(Optional.of(aviso));
         return aviso;
@@ -365,9 +385,17 @@ class AvisoCasosDeUsoTest {
                 .thenReturn(List.of(AvisoTestData.campo(CAMPO_PRECIO_ID.valor(), "price")));
     }
 
-    private static Map<String, Object> crearCombo(Map<String, Object> valores) {
-        return Map.of("tipo", "CREAR_REGISTRO", "bloqueId", AvisoTestData.INVENTARIO_ID.toString(),
-                "valores", valores);
+    private static AccionDeAviso crearCombo(Map<String, Object> valores) {
+        return new AccionCrearRegistro("Crear el combo", AvisoTestData.PROYECTO_ID, AvisoTestData.INVENTARIO_ID,
+                valores);
+    }
+
+    private static AccionDeAviso registrarEntrada() {
+        return new AccionRegistrar("Registrar entrada", AvisoTestData.PROYECTO_ID, AvisoTestData.ENTRADAS_ID);
+    }
+
+    private static AccionDeAviso accionIncompleta(String tipo, String motivo) {
+        return new AccionInvalida(tipo, motivo, Map.of());
     }
 
     private static List<Campo> camposDelInventario() {
@@ -382,11 +410,12 @@ class AvisoCasosDeUsoTest {
                 .tipo(tipo).obligatorio(obligatorio).build();
     }
 
-    private static Map<String, Object> editarPrecio(Map<String, Object> valores) {
-        return Map.of("tipo", "EDITAR_REGISTRO", "registroId", REGISTRO_ID.toString(), "valores", valores);
+    private static AccionDeAviso editarPrecio(Map<String, Object> valores) {
+        return new AccionEditarRegistro("Cambiar precio", AvisoTestData.PROYECTO_ID, AvisoTestData.INVENTARIO_ID,
+                REGISTRO_ID, valores);
     }
 
-    private static Aviso givenAvisoConAcciones(Object... acciones) {
+    private static Aviso givenAvisoConAcciones(AccionDeAviso... acciones) {
         return Aviso.builder().id(AVISO_ID).negocioId(NEGOCIO_ID).estado(EstadoAviso.PENDIENTE)
                 .prioridad((short) 2).acciones(List.of(acciones)).build();
     }
@@ -401,5 +430,61 @@ class AvisoCasosDeUsoTest {
     // --- act ---
     private AvisoItem aplicar() {
         return aplicarAviso.execute(new ResolverAvisoRequest(USUARIO_ID, AVISO_ID));
+    }
+
+    // --- assert ---
+    private void thenNoSeConsultanTodosLosAvisos() {
+        verify(avisoRepository, never()).findByNegocioId(any());
+    }
+
+    private void thenSeGuardaElAviso(Aviso aviso) {
+        verify(avisoRepository).save(aviso);
+    }
+
+    private void thenNoSeGuardaNingunAviso() {
+        verify(avisoRepository, never()).save(any());
+    }
+
+    private void thenSeAnotaLaDecision(Aviso aviso, TipoDecision decision) {
+        verify(decisionesObjetivoService).registrarAviso(aviso, decision, AHORA);
+    }
+
+    private void thenNoSeAnotaNingunaDecision() {
+        verifyNoInteractions(decisionesObjetivoService);
+    }
+
+    private void thenNoSeEjecutaLaAccionNiSeAnotaLaDecision() {
+        verifyNoInteractions(registroDatosService, decisionesObjetivoService);
+    }
+
+    private void thenNoSeTocaNingunDatoDelNegocio() {
+        verifyNoInteractions(registroDatosService, campoRepository);
+    }
+
+    private void thenNoSeEditaNingunRegistro() {
+        verify(registroDatosService, never()).editar(any(), any(), any(), any());
+    }
+
+    private void thenNoSeGuardaNingunRegistro() {
+        verify(registroRepository, never()).save(any());
+    }
+
+    private void thenSeValidanLasConexiones() {
+        verify(registroDatosService).validarConexiones(any(), any(), any());
+    }
+
+    private void thenSeEditaElRegistroAntesDeGuardarElAviso(Registro registro, List<Campo> campos, Aviso aviso) {
+        InOrder orden = inOrder(registroDatosService, avisoRepository);
+        orden.verify(registroDatosService).editar(registro, campos, Map.of(CAMPO_PRECIO_ID.toString(), 4200), AHORA);
+        orden.verify(avisoRepository).save(aviso);
+    }
+
+    private Registro thenSeCreaLaFilaAntesDeGuardarElAviso(Aviso aviso) {
+        ArgumentCaptor<Registro> captor = ArgumentCaptor.forClass(Registro.class);
+        InOrder orden = inOrder(controlPlanService, registroRepository, avisoRepository);
+        orden.verify(controlPlanService).validarAltaRegistros(NEGOCIO_ID, 1, AHORA);
+        orden.verify(registroRepository).save(captor.capture());
+        orden.verify(avisoRepository).save(aviso);
+        return captor.getValue();
     }
 }

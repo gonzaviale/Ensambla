@@ -3,6 +3,7 @@ package com.ensambla.backend.domain.model.aviso;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.zona.AgregadoZonaProducto;
 import com.ensambla.backend.domain.model.zona.AnalisisZona;
+import com.ensambla.backend.support.AccionesDePrueba;
 import com.ensambla.backend.support.AvisoTestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,8 +45,7 @@ class ReglaPrecioZonaTest {
                     "En tu zona, 10 comercios lo venden entre $1.000 y $1.300.",
                     "Con tu costo de $700, te quedan $100 por unidad (14 % sobre el costo).");
             assertThat(resultado.acciones()).hasSize(1);
-            assertThat(accion(resultado, 0)).containsEntry("tipo", "ABRIR").containsEntry("texto", "Ver producto")
-                    .containsEntry("registroId", AZUCAR_ID.toString());
+            assertThat(resultado.acciones().get(0)).isEqualTo(AccionesDePrueba.abrirProducto(AZUCAR_ID));
             assertThat(resultado.datos()).containsEntry("precio", new BigDecimal("800"))
                     .containsEntry("minimo", new BigDecimal("1000")).containsEntry("maximo", new BigDecimal("1300"));
         });
@@ -82,14 +82,8 @@ class ReglaPrecioZonaTest {
                     "En tu zona, 10 comercios lo venden entre $1.000 y $1.300.",
                     "Los clientes comparan: por encima de lo que cobran al lado se compra menos.");
             assertThat(resultado.acciones()).hasSize(2);
-            assertThat(resultado.acciones().get(0)).isEqualTo(Map.of(
-                    "tipo", "EDITAR_REGISTRO",
-                    "texto", "Bajar a $1.300",
-                    "proyectoId", AvisoTestData.PROYECTO_ID.toString(),
-                    "bloqueId", AvisoTestData.INVENTARIO_ID.toString(),
-                    "registroId", AZUCAR_ID.toString(),
-                    "valores", Map.of("price", new BigDecimal("1300"))));
-            assertThat(accion(resultado, 1)).containsEntry("tipo", "ABRIR");
+            assertThat(resultado.acciones().get(0)).isEqualTo(AccionesDePrueba.cambiarPrecio("Bajar a $1.300", AZUCAR_ID, "1300"));
+            assertThat(resultado.acciones().get(1)).isEqualTo(AccionesDePrueba.abrirProducto(AZUCAR_ID));
         });
     }
 
@@ -100,9 +94,8 @@ class ReglaPrecioZonaTest {
 
         List<ResultadoRegla> resultados = whenEvaluar(zona, azucar(1298, null));
 
-        assertThat(resultados).singleElement().satisfies(resultado ->
-                assertThat(accion(resultado, 0)).containsEntry("texto", "Bajar a $1.296")
-                        .containsEntry("valores", Map.of("price", new BigDecimal("1296"))));
+        assertThat(resultados).singleElement().satisfies(resultado -> assertThat(resultado.acciones().get(0))
+                .isEqualTo(AccionesDePrueba.cambiarPrecio("Bajar a $1.296", AZUCAR_ID, "1296")));
     }
 
     @Test
@@ -207,11 +200,6 @@ class ReglaPrecioZonaTest {
     }
 
     // --- helpers ---
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> accion(ResultadoRegla resultado, int indice) {
-        return (Map<String, Object>) resultado.acciones().get(indice);
-    }
-
     private static String motivo(ResultadoRegla resultado, int indice) {
         return resultado.motivos().get(indice).toString();
     }
