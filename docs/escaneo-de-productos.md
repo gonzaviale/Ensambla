@@ -1,14 +1,13 @@
 # Carga de productos por código en Inventario
 
 La pantalla de Inventario consulta los catálogos mediante el backend autenticado de Ensambla.
-Funciona con el frontend compilado y el despliegue de Docker/Caddy; no depende de adaptadores de Vite.
+Las consultas funcionan con el backend autenticado y no dependen de adaptadores de Vite.
 La búsqueda no modifica el stock. La persona revisa los datos y confirma la carga.
 
 ## Ejecutar la aplicación real
 
-Requisitos para desarrollo: Java 21, Docker y Node.js 24. No se necesitan claves de SEPA ni Open Food Facts.
-Para ejecutar todo con imágenes, alcanza con `docker compose up --build -d --wait` desde la raíz;
-el frontend estático queda en <http://localhost:8088> y usa el backend y PostgreSQL reales.
+Requisitos para desarrollo: Java 21 y Node.js 22, como en la configuración existente del proyecto.
+No se necesitan claves de SEPA ni Open Food Facts.
 
 Desde `backend/`:
 
@@ -29,54 +28,10 @@ por el proxy habitual. Registrar una cuenta o ingresar con una cuenta real de es
 y tocar **Escanear productos** en una tabla de Inventario, también disponible a pantalla completa.
 Las credenciales de la demo no crean una cuenta en PostgreSQL.
 
-### Probar desde el celular con Docker
+### Prueba física en celular
 
-Con el entorno real de Docker ya iniciado, ejecutar desde la raíz:
-
-```sh
-docker compose --profile movil up -d tunel-movil
-docker compose logs tunel-movil
-```
-
-Abrir en Chrome de Android o Safari de iPhone el enlace `https://…trycloudflare.com` que aparece
-en los registros. Ingresar con la misma cuenta de la PC, abrir el cuaderno y tocar **Escanear productos**
-en Inventario. El navegador del teléfono pide su propio permiso de cámara.
-
-El enlace sirve el frontend compilado, el backend y PostgreSQL de ese entorno. Comparte cuentas y
-registros con <http://localhost:8088>; no usa datos simulados. El acceso móvil agrega cookies `Secure`
-y redirige HTTP a HTTPS. No requiere aceptar un certificado local ni abrir puertos del router.
-La sesión del teléfono es independiente; al ingresar aparecen los datos guardados de la cuenta.
-IA y WhatsApp mantienen la configuración del entorno: este acceso no agrega sus credenciales.
-
-El enlace temporal es público: quien lo tenga puede llegar a la pantalla de acceso, y los datos
-del negocio siguen requiriendo sesión. Funciona mientras la PC, Docker y el túnel estén encendidos;
-no hace falta compartir Wi-Fi. Para cerrar sólo este acceso:
-
-```sh
-docker compose --profile movil stop tunel-movil acceso-movil
-```
-
-Para obtener un enlace nuevo, recrear el túnel y consultar nuevamente sus registros:
-
-```sh
-docker compose --profile movil up -d --force-recreate tunel-movil
-docker compose logs tunel-movil
-```
-
-### Probar desde el celular con Vite
-
-Para desarrollo fuera de Docker, en la misma red:
-
-```sh
-npm run dev:movil
-```
-
-Abrir la URL HTTPS del puerto 5174 que imprime Vite. El dispositivo debe aceptar el certificado local.
-HTTP y HTTPS tienen sesiones y almacenamiento separados. Android/Chrome e iPhone/Safari necesitan
-un contexto seguro y permiso de cámara; el selector permite cambiar de lente.
-
-`npm run dev:demo` y `npm run dev:demo:movil` mantienen el modo completamente simulado. En ese modo el
-catálogo de prueba devuelve ausencia y permite ensayar la carga manual; no valida la integración real.
+Usar el entorno HTTPS que provea el equipo. Este PR no agrega configuración de servidor, certificados,
+túneles ni despliegue. El navegador necesita un contexto seguro y permiso de cámara.
 
 ## Catálogos en el backend
 
