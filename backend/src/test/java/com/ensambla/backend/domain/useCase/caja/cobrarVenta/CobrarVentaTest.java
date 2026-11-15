@@ -9,6 +9,7 @@ import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.caja.VentaCaja;
 import com.ensambla.backend.domain.model.caja.MedioPagoCaja;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.sistema.Sistema;
@@ -114,8 +115,7 @@ class CobrarVentaTest {
     @Test
     @DisplayName("Rechaza ventas que no apuntan al inventario elegido")
     void executeShouldRejectWrongRelation() {
-        givenCaja();
-        ventas().getCampos().getFirst().setBloqueRelacionadoId(BloqueId.nuevo());
+        givenVentasRelacionadasConOtroInventario();
 
         thenRejects(BusinessRuleException.class);
     }
@@ -196,6 +196,11 @@ class CobrarVentaTest {
     }
 
     // --- arrange ---
+    private void givenVentasRelacionadasConOtroInventario() {
+        givenCaja();
+        CajaTestData.cambiarCampo(ventas(), "product", TipoCampo.RELACION, BloqueId.nuevo());
+    }
+
     private void givenUsuario() {
         when(negocioRepository.obtenerIdDelUsuario(CajaTestData.USUARIO)).thenReturn(CajaTestData.NEGOCIO);
     }

@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.bloque.TipoBloque;
 import com.ensambla.backend.domain.model.caja.VentaCajaId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoBuilder;
 import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
@@ -38,18 +39,33 @@ public final class CajaTestData {
     }
 
     public static Sistema sistema() {
+        Bloque inventario = inventario();
+        Bloque ventas = ventas();
+        Registro producto = producto(inventario);
+        return sistemaConProducto(inventario, ventas, producto);
+    }
+
+    private static Bloque inventario() {
         Bloque inventario = bloque(INVENTARIO, TipoBloque.INVENTARIO);
         inventario.setNombre("Inventario");
         inventario.setCampos(new ArrayList<>(List.of(
                 campo(INVENTARIO, "name", TipoCampo.TEXTO), campo(INVENTARIO, "price", TipoCampo.MONEDA),
                 campo(INVENTARIO, "quantity", TipoCampo.NUMERO), campo(INVENTARIO, "saleMode", TipoCampo.TEXTO),
                 campo(INVENTARIO, "stockControl", TipoCampo.SI_NO))));
+        return inventario;
+    }
+
+    private static Bloque ventas() {
         Bloque ventas = bloque(VENTAS, TipoBloque.VENTAS);
         ventas.setNombre("Ventas");
         ventas.setCampos(new ArrayList<>(List.of(campo(VENTAS, "product", TipoCampo.RELACION),
                 campo(VENTAS, "price", TipoCampo.MONEDA), campo(VENTAS, "quantity", TipoCampo.NUMERO),
                 campo(VENTAS, "date", TipoCampo.FECHA))));
-        ventas.getCampos().getFirst().setBloqueRelacionadoId(INVENTARIO);
+        cambiarCampo(ventas, "product", TipoCampo.RELACION, INVENTARIO);
+        return ventas;
+    }
+
+    private static Registro producto(Bloque inventario) {
         Registro producto = Registro.nuevo(NEGOCIO, INVENTARIO, new LinkedHashMap<>(), AHORA);
         producto.setId(PRODUCTO);
         poner(inventario, producto, "name", "Pan francés");
@@ -57,6 +73,10 @@ public final class CajaTestData {
         poner(inventario, producto, "quantity", new BigDecimal("2"));
         poner(inventario, producto, "saleMode", "peso");
         poner(inventario, producto, "stockControl", true);
+        return producto;
+    }
+
+    private static Sistema sistemaConProducto(Bloque inventario, Bloque ventas, Registro producto) {
         return new Sistema(Proyecto.builder().id(PROYECTO).negocioId(NEGOCIO).nombre("Mi negocio")
                 .bloques(new ArrayList<>(List.of(inventario, ventas))).creadoEn(AHORA).actualizadoEn(AHORA).build(),
                 List.of(), new LinkedHashMap<>(Map.of(INVENTARIO, new ArrayList<>(List.of(producto)),
@@ -80,8 +100,20 @@ public final class CajaTestData {
     }
 
     private static Campo campo(BloqueId bloqueId, String clave, TipoCampo tipo) {
+        return datosDeCampo(bloqueId, clave, tipo).build();
+    }
+
+    private static CampoBuilder datosDeCampo(BloqueId bloqueId, String clave, TipoCampo tipo) {
         return Campo.builder().id(CampoId.nuevo()).negocioId(NEGOCIO).bloqueId(bloqueId).clave(clave)
                 .nombre(clave).tipo(tipo).obligatorio(false).opciones(List.of()).posicion((short) 0)
-                .creadoEn(AHORA).actualizadoEn(AHORA).build();
+                .creadoEn(AHORA).actualizadoEn(AHORA);
+    }
+
+    public static void cambiarCampo(Bloque bloque, String clave, TipoCampo tipo, BloqueId relacionado) {
+        Campo anterior = bloque.getCampos().stream().filter(campo -> campo.getClave().equals(clave))
+                .findFirst().orElseThrow();
+        Campo nuevo = datosDeCampo(bloque.getId(), clave, tipo).id(anterior.getId())
+                .bloqueRelacionadoId(relacionado).build();
+        bloque.getCampos().set(bloque.getCampos().indexOf(anterior), nuevo);
     }
 }
