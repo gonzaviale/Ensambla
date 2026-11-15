@@ -1,3 +1,5 @@
+import { ImporteLibreCaja } from './ImporteLibreCaja';
+import { detalleLineaVendida } from '@/lib/caja/importeLibre';
 import { useEffect, useRef, useState } from 'react';
 import { useCaja } from '@/hooks/caja/useCaja';
 import { useCamaraCodigo } from '@/hooks/escaneo/useCamaraCodigo';
@@ -29,6 +31,7 @@ export function CajaMostrador({
   const caja = useCaja(sistemaId, inventarioId, ventasId);
   const { preparar: prepararAudio } = useSonidosEscaneo();
   const [consulta, setConsulta] = useState('');
+  const [importeLibre, setImporteLibre] = useState(false);
   const [vista, setVista] = useState<
     'cobrar' | 'dia' | 'cobros' | 'abierta' | 'cierres' | 'clientes'
   >('cobrar');
@@ -44,6 +47,7 @@ export function CajaMostrador({
   }, true);
   const bloqueada =
     bloqueoExterno ||
+    importeLibre ||
     !!caja.seleccion ||
     cobrando ||
     favoritos ||
@@ -335,6 +339,14 @@ export function CajaMostrador({
                     <Icon name="plus" />
                     Agregar artículo sin código
                   </button>
+                  <button
+                    type="button"
+                    className="btn secondary caja-articulo-manual"
+                    disabled={bloqueada}
+                    onClick={() => setImporteLibre(true)}
+                  >
+                    Agregar importe
+                  </button>
                 </section>
               </div>
               <CompraActual
@@ -362,6 +374,9 @@ export function CajaMostrador({
             />
           </div>
         </>
+      )}
+      {importeLibre && (
+        <ImporteLibreCaja onAgregar={caja.agregarImporte} onCerrar={() => setImporteLibre(false)} />
       )}
       {caja.seleccion && caja.inventario && (
         <ArticuloCajaForm
@@ -414,10 +429,7 @@ export function CajaMostrador({
             {caja.ticket.lineas.map((linea, indice) => (
               <li key={indice}>
                 <span>
-                  {linea.nombre} ·{' '}
-                  {linea.modo === 'PESO'
-                    ? `${Math.round(linea.cantidad * 1000)} g`
-                    : `${linea.cantidad} u.`}
+                  {linea.nombre} · {detalleLineaVendida(linea)}
                 </span>
                 <strong>{dineroCaja(Math.round(linea.importe * 100))}</strong>
               </li>

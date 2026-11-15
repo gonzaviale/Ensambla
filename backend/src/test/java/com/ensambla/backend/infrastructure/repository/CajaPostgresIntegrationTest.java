@@ -29,6 +29,8 @@ import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.model.usuario.EstadoUsuario;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.repository.caja.VentaCajaRepository;
+import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
+import com.ensambla.backend.domain.model.caja.VentaCaja;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.useCase.caja.cobrarVenta.CobrarVenta;
 import com.ensambla.backend.domain.useCase.caja.cobrarVenta.CobrarVentaRequest;
@@ -74,6 +76,7 @@ class CajaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     private NegocioId negocioId;
 
     @Autowired private CobrarVenta cobrarVenta;
+    @Autowired private MovimientoStockRepository movimientosStock;
     @Autowired private RegistrarCobro registrarCobro;
     @Autowired private ListarVentasCaja listarVentasCaja;
     @Autowired private CobroCajaRepository cobroCajaRepository;
@@ -447,6 +450,109 @@ class CajaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         } catch (BusinessRuleException e) {
             return false;
         }
+    }
+
+    @Test
+    @DisplayName("El importe libre parcial mixto persiste sin crear productos ni mover stock")
+    void freeAmountShouldPersistMixedPartialSaleWithoutStock() {
+        givenCuentaConCliente();
+
+        CobrarVentaResponse venta = whenSeCobraImporteLibre(List.of(
+                new CobrarVentaRequest.PagoRequest("EFECTIVO", new BigDecimal("500")),
+                new CobrarVentaRequest.PagoRequest("TRANSFERENCIA", new BigDecimal("500"))));
+        entityManager.flush();
+        entityManager.clear();
+
+        thenImporteLibrePersistidoSinStock(venta, "PARCIAL", "1500");
+    }
+
+    @Test
+    @DisplayName("El importe libre fiado conserva toda la deuda y su descripción después de recargar")
+    void freeAmountShouldPersistCreditWithoutStock() {
+        givenCuentaConCliente();
+
+        CobrarVentaResponse venta = whenSeCobraImporteLibre(List.of());
+        entityManager.flush();
+        entityManager.clear();
+
+        thenImporteLibrePersistidoSinStock(venta, "PENDIENTE", "2500");
+    }
+
+    private CobrarVentaResponse whenSeCobraImporteLibre(List<CobrarVentaRequest.PagoRequest> pagos) {
+        return cobrarVenta.execute(new CobrarVentaRequest(usuarioId, VentaCajaId.nuevo(), CajaTestData.PROYECTO,
+                CajaTestData.INVENTARIO, CajaTestData.VENTAS, List.of(new CobrarVentaRequest.LineaRequest(
+                null, BigDecimal.ONE, new BigDecimal("2500"), "UNIDAD", "Servicio")),
+                "MIXTO", null, pagos, CajaTestData.CLIENTE));
+    }
+
+    private void thenImporteLibrePersistidoSinStock(CobrarVentaResponse respuesta, String estado, String saldo) {
+        VentaCaja guardada = ventaCajaRepository.findByIdAndNegocioId(respuesta.id(), negocioId).orElseThrow();
+        assertThat(guardada.lineas().getFirst().productoId()).isNull();
+        assertThat(guardada.lineas().getFirst().nombre()).isEqualTo("Servicio");
+        assertThat(guardada.estado().name()).isEqualTo(estado);
+        assertThat(guardada.saldo()).isEqualByComparingTo(saldo);
+        Sistema sistema = sistemaRepository.findAllByNegocioId(negocioId).getFirst();
+        assertThat(sistema.registrosPorBloque().get(CajaTestData.INVENTARIO)).hasSize(1);
+        thenStockIs("2");
+        assertThat(sistema.registrosPorBloque().get(CajaTestData.VENTAS).getFirst().getOrigen()).contains("Servicio");
+    }
+
+    @Test
+    @DisplayName("Una venta repetida deja una sola salida y el saldo de movimientos coincide con inventario")
+    void checkoutShouldRecordStockOnceWhenRetried() {
+        givenCuentaConInventario(new BigDecimal("2"));
+
+        cobrarVenta.execute(solicitud());
+        cobrarVenta.execute(solicitud());
+        entityManager.flush();
+        entityManager.clear();
+
+        thenSaldoYMovimientosCoinciden("1.5", 2);
+    }
+
+    @Test
+    @DisplayName("Dos líneas del mismo producto no duplican el ajuste de apertura")
+    void checkoutShouldRecordOneOpeningForRepeatedProduct() {
+        givenCuentaConInventario(new BigDecimal("2"));
+
+        CobrarVentaRequest base = solicitud();
+        cobrarVenta.execute(new CobrarVentaRequest(usuarioId, base.id(), base.proyectoId(), base.inventarioId(),
+                base.ventasId(), List.of(base.lineas().getFirst(), base.lineas().getFirst()), "EFECTIVO", null));
+        entityManager.flush();
+        entityManager.clear();
+
+        thenSaldoYMovimientosCoinciden("1", 3);
+    }
+
+    @Test
+    @DisplayName("Un ajuste manual del inventario queda asentado antes de la siguiente salida de caja")
+    void checkoutShouldReconcileManualStockAdjustment() {
+        givenCuentaConInventario(new BigDecimal("2"));
+        givenVentaYStockCorregido();
+
+        CobrarVentaRequest base = solicitud();
+        cobrarVenta.execute(new CobrarVentaRequest(usuarioId, VentaCajaId.nuevo(), base.proyectoId(),
+                base.inventarioId(), base.ventasId(), base.lineas(), "EFECTIVO", null));
+
+        thenSaldoYMovimientosCoinciden("0.25", 4);
+    }
+
+    private void givenVentaYStockCorregido() {
+        cobrarVenta.execute(solicitud());
+        Sistema sistema = sistemaRepository.findAllByNegocioId(negocioId).getFirst();
+        var inventario = sistema.proyecto().getBloques().stream()
+                .filter(bloque -> bloque.getId().equals(CajaTestData.INVENTARIO)).findFirst().orElseThrow();
+        CajaTestData.poner(inventario, sistema.registrosPorBloque().get(CajaTestData.INVENTARIO).getFirst(),
+                "quantity", new BigDecimal("0.75"));
+        sistemaRepository.guardar(sistema);
+    }
+
+    private void thenSaldoYMovimientosCoinciden(String saldo, int cantidadMovimientos) {
+        assertThat(movimientosStock.stockCompletoDe(List.of(CajaTestData.PRODUCTO), negocioId).get(CajaTestData.PRODUCTO))
+                .isEqualByComparingTo(saldo);
+        assertThat(movimientosStock.findRecientes(CajaTestData.INVENTARIO, negocioId, CajaTestData.PRODUCTO, 100))
+                .hasSize(cantidadMovimientos);
+        thenStockIs(saldo);
     }
 
     private void givenCuentaConCliente() {

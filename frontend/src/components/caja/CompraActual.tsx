@@ -59,70 +59,78 @@ export function CompraActual({
               <strong>{dineroCaja(linea.importeCentavos)}</strong>
             </div>
             <p className="caja-ayuda caja-precio-unitario">
-              {dineroCaja(Math.round(linea.precio * 100))} /{' '}
-              {linea.modo === 'peso' ? 'kg' : 'unidad'}
+              {linea.productoId === null ? (
+                'Importe libre'
+              ) : (
+                <>
+                  {dineroCaja(Math.round(linea.precio * 100))} /{' '}
+                  {linea.modo === 'peso' ? 'kg' : 'unidad'}
+                </>
+              )}
             </p>
             <div className="caja-entre">
-              <div className="caja-cantidad">
-                <button
-                  type="button"
-                  aria-label={`Restar ${linea.modo === 'peso' ? '100 gramos de' : 'una unidad de'} ${linea.nombre}`}
-                  disabled={bloqueada}
-                  onClick={() =>
-                    onAjustar(
-                      linea.id,
-                      Math.round((linea.cantidad - (linea.modo === 'peso' ? 0.1 : 1)) * 1000) /
-                        1000,
-                    )
-                  }
-                >
-                  −
-                </button>
-                <label>
-                  <span className="sr-only">
-                    Cantidad de {linea.nombre}
-                    {linea.modo === 'peso' ? ' en gramos' : ''}
-                  </span>
-                  <input
-                    key={`${linea.id}:${linea.cantidad}`}
-                    aria-label={`Cantidad de ${linea.nombre}${linea.modo === 'peso' ? ' en gramos' : ''}`}
-                    inputMode="numeric"
+              {linea.productoId !== null && (
+                <div className="caja-cantidad">
+                  <button
+                    type="button"
+                    aria-label={`Restar ${linea.modo === 'peso' ? '100 gramos de' : 'una unidad de'} ${linea.nombre}`}
                     disabled={bloqueada}
-                    defaultValue={
-                      linea.modo === 'peso' ? Math.round(linea.cantidad * 1000) : linea.cantidad
+                    onClick={() =>
+                      onAjustar(
+                        linea.id,
+                        Math.round((linea.cantidad - (linea.modo === 'peso' ? 0.1 : 1)) * 1000) /
+                          1000,
+                      )
                     }
-                    onBlur={(e) => {
-                      const valor = e.target.value.trim();
-                      if (/^\d+$/.test(valor))
-                        onAjustar(linea.id, Number(valor) / (linea.modo === 'peso' ? 1000 : 1));
-                      else
-                        e.target.value = String(
-                          linea.modo === 'peso'
-                            ? Math.round(linea.cantidad * 1000)
-                            : linea.cantidad,
-                        );
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') e.currentTarget.blur();
-                    }}
-                  />
-                  {linea.modo === 'peso' && <span>g</span>}
-                </label>
-                <button
-                  type="button"
-                  aria-label={`Sumar ${linea.modo === 'peso' ? '100 gramos de' : 'una unidad de'} ${linea.nombre}`}
-                  disabled={bloqueada}
-                  onClick={() =>
-                    onAjustar(
-                      linea.id,
-                      Math.round((linea.cantidad + (linea.modo === 'peso' ? 0.1 : 1)) * 1000) /
-                        1000,
-                    )
-                  }
-                >
-                  +
-                </button>
-              </div>
+                  >
+                    −
+                  </button>
+                  <label>
+                    <span className="sr-only">
+                      Cantidad de {linea.nombre}
+                      {linea.modo === 'peso' ? ' en gramos' : ''}
+                    </span>
+                    <input
+                      key={`${linea.id}:${linea.cantidad}`}
+                      aria-label={`Cantidad de ${linea.nombre}${linea.modo === 'peso' ? ' en gramos' : ''}`}
+                      inputMode="numeric"
+                      disabled={bloqueada}
+                      defaultValue={
+                        linea.modo === 'peso' ? Math.round(linea.cantidad * 1000) : linea.cantidad
+                      }
+                      onBlur={(e) => {
+                        const valor = e.target.value.trim();
+                        if (/^\d+$/.test(valor))
+                          onAjustar(linea.id, Number(valor) / (linea.modo === 'peso' ? 1000 : 1));
+                        else
+                          e.target.value = String(
+                            linea.modo === 'peso'
+                              ? Math.round(linea.cantidad * 1000)
+                              : linea.cantidad,
+                          );
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') e.currentTarget.blur();
+                      }}
+                    />
+                    {linea.modo === 'peso' && <span>g</span>}
+                  </label>
+                  <button
+                    type="button"
+                    aria-label={`Sumar ${linea.modo === 'peso' ? '100 gramos de' : 'una unidad de'} ${linea.nombre}`}
+                    disabled={bloqueada}
+                    onClick={() =>
+                      onAjustar(
+                        linea.id,
+                        Math.round((linea.cantidad + (linea.modo === 'peso' ? 0.1 : 1)) * 1000) /
+                          1000,
+                      )
+                    }
+                  >
+                    +
+                  </button>
+                </div>
+              )}
               <button
                 type="button"
                 className="caja-quitar"

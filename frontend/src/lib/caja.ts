@@ -58,7 +58,7 @@ export function crearLinea(producto: Fila, entrada = '1'): LineaCaja {
 
 export function agregarLinea(lineas: LineaCaja[], linea: LineaCaja): LineaCaja[] {
   const indice =
-    linea.modo === 'unidad'
+    linea.productoId !== null && linea.modo === 'unidad'
       ? lineas.findIndex(
           (item) =>
             item.productoId === linea.productoId &&
@@ -82,6 +82,7 @@ export function agregarLinea(lineas: LineaCaja[], linea: LineaCaja): LineaCaja[]
 }
 
 export function cambiarCantidad(linea: LineaCaja, cantidad: number): LineaCaja {
+  if (linea.productoId === null) return linea;
   const entrada = Math.round(cantidad * (linea.modo === 'peso' ? 1000 : 1));
   return {
     ...crearLinea(

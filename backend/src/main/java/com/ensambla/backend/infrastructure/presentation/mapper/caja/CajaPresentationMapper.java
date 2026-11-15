@@ -90,7 +90,7 @@ public class CajaPresentationMapper {
     public CobrarVentaRequest toRequest(UsuarioId usuarioId, CobrarVentaWebRequest request) {
         return new CobrarVentaRequest(usuarioId, request.id(), request.proyectoId(), request.inventarioId(),
                 request.ventasId(), request.lineas().stream().map(linea -> new CobrarVentaRequest.LineaRequest(
-                        linea.productoId(), linea.cantidad(), linea.precio(), linea.modo())).toList(),
+                        linea.productoId(), linea.cantidad(), linea.precio(), linea.modo(), linea.descripcion())).toList(),
                 request.medio(), request.recibido(), request.pagos() == null ? null : request.pagos().stream()
                         .map(pago -> new CobrarVentaRequest.PagoRequest(pago.medio(), pago.importe())).toList(),
                 request.clienteId());

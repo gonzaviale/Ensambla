@@ -4,7 +4,7 @@ import type { Valor } from '@/lib/sistema/tipos';
 export type ModoVentaCaja = 'unidad' | 'peso';
 export type LineaCaja = {
   id: string;
-  productoId: string;
+  productoId: string | null;
   nombre: string;
   modo: ModoVentaCaja;
   cantidad: number;
@@ -31,13 +31,19 @@ export type SolicitudCobro = {
   recibido: number | null;
   pagos?: PagoCaja[];
   clienteId?: string;
-  lineas: { productoId: string; cantidad: number; precio: number; modo: 'UNIDAD' | 'PESO' }[];
+  lineas: {
+    productoId: string | null;
+    descripcion?: string;
+    cantidad: number;
+    precio: number;
+    modo: 'UNIDAD' | 'PESO';
+  }[];
 };
 export const ventaCajaSchema = z.object({
   id: z.string(),
   lineas: z.array(
     z.object({
-      productoId: z.string(),
+      productoId: z.string().nullable(),
       nombre: z.string(),
       modo: z.string(),
       cantidad: z.number(),

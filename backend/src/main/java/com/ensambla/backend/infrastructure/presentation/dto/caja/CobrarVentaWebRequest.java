@@ -28,9 +28,10 @@ public record CobrarVentaWebRequest(@NotNull VentaCajaId id, @NotNull ProyectoId
             @NotNull @DecimalMin("0.01") @Digits(integer = 12, fraction = 2) BigDecimal importe) {
     }
 
-    public record LineaWebRequest(@NotNull RegistroId productoId,
+    public record LineaWebRequest(RegistroId productoId,
                                   @NotNull @DecimalMin("0.001") @Digits(integer = 8, fraction = 3) BigDecimal cantidad,
                                   @NotNull @DecimalMin("0.01") @Digits(integer = 9, fraction = 2) BigDecimal precio,
-                                  @NotNull @Pattern(regexp = "UNIDAD|PESO") String modo) {
+                                  @NotNull @Pattern(regexp = "UNIDAD|PESO") String modo,
+                                  @Size(max = 160) String descripcion) {
     }
 }

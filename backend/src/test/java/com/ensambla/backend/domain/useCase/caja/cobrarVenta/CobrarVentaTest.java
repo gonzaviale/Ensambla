@@ -14,6 +14,7 @@ import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.repository.caja.VentaCajaRepository;
+import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
@@ -54,13 +55,15 @@ class CobrarVentaTest {
     private VentaCajaRepository ventaCajaRepository;
     @Mock
     private ControlPlanService controlPlanService;
+    @Mock
+    private MovimientoStockRepository movimientoStockRepository;
     private CobrarVenta cobrarVenta;
     private Sistema sistema;
 
     @BeforeEach
     void setUp() {
         cobrarVenta = new CobrarVenta(negocioRepository, usoPlanRepository, sistemaRepository,
-                ventaCajaRepository, controlPlanService, new TransaccionDirecta(),
+                ventaCajaRepository, movimientoStockRepository, controlPlanService, new TransaccionDirecta(),
                 Clock.fixed(CajaTestData.AHORA.toInstant(), ZoneOffset.UTC));
         sistema = CajaTestData.sistema();
     }

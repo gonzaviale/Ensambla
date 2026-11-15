@@ -1,3 +1,4 @@
+import { detalleLineaVendida } from '@/lib/caja/importeLibre';
 import { useState } from 'react';
 import { dineroCaja, fechaCaja } from '@/lib/caja';
 import { Icon } from '@/components/sistema/Icon';
@@ -107,7 +108,7 @@ export function ResumenVentasCaja({
                   {v.clienteNombre && `${v.clienteNombre} · `}
                   {(v.saldo ?? 0) > 0
                     ? v.estado === 'PARCIAL'
-                      ? 'Pago parcial'
+                      ? 'Pendiente de pago · Pago parcial'
                       : 'Pendiente de pago'
                     : 'Pagada'}
                   {' · '}
@@ -129,8 +130,7 @@ export function ResumenVentasCaja({
               {v.lineas.map((l, i) => (
                 <li key={i}>
                   <span>
-                    {l.nombre} ·{' '}
-                    {l.modo === 'PESO' ? `${Math.round(l.cantidad * 1000)} g` : `${l.cantidad} u.`}
+                    {l.nombre} · {detalleLineaVendida(l)}
                   </span>
                   <strong>{dineroCaja(Math.round(l.importe * 100))}</strong>
                 </li>
