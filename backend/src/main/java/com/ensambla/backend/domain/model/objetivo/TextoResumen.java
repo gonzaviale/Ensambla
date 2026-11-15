@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static com.ensambla.backend.domain.model.objetivo.FormatoObjetivo.numero;
 import static com.ensambla.backend.domain.model.objetivo.FormatoObjetivo.pesos;
 
 /**
@@ -63,29 +62,13 @@ public final class TextoResumen {
      */
     public static String motivo(
             MotivoReajuste motivo, MiniObjetivo anterior, BigDecimal valorAlCierre, MiniObjetivo nuevo) {
-        return switch (motivo) {
-            case LOGRADO -> logrado(anterior, valorAlCierre, nuevo);
-            case QUITADO -> "Quitaste «" + anterior.getTitulo() + "». En su lugar te proponemos «"
-                    + nuevo.getTitulo() + "».";
-            case PRODUCTO_FUERA -> "«" + anterior.getReferencia() + "» ya no está en tu cuaderno o le falta el precio "
-                    + "o el costo. Lo cambiamos por «" + nuevo.getTitulo() + "».";
-            case DECISION_SIN_EFECTO -> "Aplicaste un aviso para «" + anterior.getTitulo() + "» y las ventas no "
-                    + "subieron. Probamos con «" + nuevo.getTitulo() + "».";
-            case SIN_AVANCE -> "Hace 2 semanas que «" + anterior.getTitulo() + "» no avanza. Lo cambiamos por «"
-                    + nuevo.getTitulo() + "».";
-        };
+        return motivo.explicar(anterior, valorAlCierre, nuevo);
     }
 
     /** La justificación del mini-objetivo que sigue a uno logrado, con su meta nueva. */
     public static String metaSubida(TipoMiniObjetivo tipo, BigDecimal valorAlCierre, BigDecimal nuevaMeta) {
-        return "Lo lograste: llegaste a " + valor(tipo, valorAlCierre) + ". Ahora el objetivo es "
-                + valor(tipo, nuevaMeta) + ".";
-    }
-
-    /** Uno logrado que ya no puede pedir más (el margen llegó a su tope) deja su lugar a otro. */
-    private static String logrado(MiniObjetivo anterior, BigDecimal valorAlCierre, MiniObjetivo nuevo) {
-        return "Lo lograste: llegaste a " + valor(anterior.getTipo(), valorAlCierre) + ". Como ya no se puede pedir "
-                + "más, ahora probamos con «" + nuevo.getTitulo() + "».";
+        return "Lo lograste: llegaste a " + tipo.decir(valorAlCierre) + ". Ahora el objetivo es "
+                + tipo.decir(nuevaMeta) + ".";
     }
 
     private static String cambio(BigDecimal resultado, Optional<BigDecimal> anterior) {
@@ -134,18 +117,5 @@ public final class TextoResumen {
             return "Seguí con tus mini-objetivos de la semana que viene.";
         }
         return "Te faltan " + pesos(meta.subtract(resultado)) + " para tu meta.";
-    }
-
-    /** El valor de la métrica como lo dice el negocio: pesos, unidades o puntos de margen. */
-    private static String valor(TipoMiniObjetivo tipo, BigDecimal valor) {
-        return switch (tipo) {
-            case SUBIR_PRECIO, VENTAS_SEMANALES -> pesos(valor) + " por semana";
-            case RECORTAR_GASTO -> pesos(valor) + " en el mes";
-            case MOVER_PARADO, PONER_A_LA_VISTA -> numero(valor) + " por semana";
-            case MEJORAR_MARGEN -> numero(valor) + " %";
-            case PRODUCTOS_BAJO_EL_MINIMO -> numero(valor) + " productos bajo el mínimo";
-            case CAPITAL_PARADO -> pesos(valor) + " en mercadería parada";
-            case VARIEDAD_VENDIDA -> numero(valor) + " productos distintos por semana";
-        };
     }
 }

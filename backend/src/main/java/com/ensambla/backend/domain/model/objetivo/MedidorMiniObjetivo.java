@@ -193,19 +193,11 @@ public final class MedidorMiniObjetivo {
      */
     public Optional<BigDecimal> valorDe(TipoMiniObjetivo tipo, RegistroId productoId, String referencia) {
         Optional<Producto> producto = Optional.ofNullable(productoId).map(productos::get);
-        return switch (tipo) {
-            case SUBIR_PRECIO -> producto.map(this::gananciaSemanal);
-            case MOVER_PARADO, PONER_A_LA_VISTA -> producto.map(dato -> unidades(dato.id(), DIAS_SEMANA));
-            case RECORTAR_GASTO -> Optional.of(gastoDe(referencia));
-            case MEJORAR_MARGEN -> margen();
-            case VENTAS_SEMANALES -> Optional.of(ventasSemana());
-            case PRODUCTOS_BAJO_EL_MINIMO -> productosBajoElMinimo();
-            case CAPITAL_PARADO -> capitalParado();
-            case VARIEDAD_VENDIDA -> variedadVendida();
-        };
+        return tipo.medirEn(this, producto, referencia);
     }
 
-    private BigDecimal gastoDe(String categoria) {
+    /** Lo gastado en los últimos 30 días en la categoría; cero si no hubo. */
+    public BigDecimal gastoDe(String categoria) {
         String clave = TextoNormalizado.de(categoria);
         return gastos.stream()
                 .filter(gasto -> TextoNormalizado.de(gasto.categoria()).equals(clave))

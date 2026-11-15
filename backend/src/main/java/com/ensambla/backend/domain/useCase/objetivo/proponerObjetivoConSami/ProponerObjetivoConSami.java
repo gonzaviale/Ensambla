@@ -10,6 +10,8 @@ import com.ensambla.backend.domain.model.objetivo.MedidorMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.PropuestaObjetivo;
 import com.ensambla.backend.domain.model.objetivo.PropuestaObjetivoIa;
 import com.ensambla.backend.domain.model.plan.CuotaObjetivosIa;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.model.zona.AnalisisZona;
 import com.ensambla.backend.domain.port.ConversacionObjetivosIaPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
@@ -61,18 +63,15 @@ public class ProponerObjetivoConSami {
     private final int maximoMensajes;
 
     public ProponerObjetivoConSamiResponse execute(ProponerObjetivoConSamiRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
         ConversacionObjetivo conversacion = ConversacionObjetivo.de(request.mensajes(), maximoMensajes);
         OffsetDateTime ahora = OffsetDateTime.now(clock);
-        LocalDate hoy = ZonaNegocio.dia(ahora);
-        MedidorMiniObjetivo medidor = propuestaMiniObjetivosService.medidor(negocioId, hoy);
-        List<CandidatoMiniObjetivo> catalogo = propuestaMiniObjetivosService.candidatos(negocioId, medidor).stream()
-                .limit(MAXIMO_EN_EL_CATALOGO)
-                .toList();
-        ContextoObjetivoIa contexto = ContextoObjetivoIa.de(medidor, propuestaMiniObjetivosService.zona(negocioId));
-        CuotaObjetivosIa cuota = controlPlanService.cuotaObjetivosIa(negocioId, ahora);
-        PropuestaObjetivo propuesta = proponer(negocioId, new ConsultaObjetivoIa(conversacion.paraLaIa(), catalogo,
-                contexto), conversacion, cuota, ahora);
+        MedidorMiniObjetivo medidor = medirElNegocio(negocioId, ahora);
+        ContextoObjetivoIa contexto = ContextoObjetivoIa.de(medidor, obtenerZona(negocioId));
+        CuotaObjetivosIa cuota = consultarCuota(negocioId, ahora);
+        ConsultaObjetivoIa consulta = new ConsultaObjetivoIa(
+                conversacion.paraLaIa(), catalogoDe(negocioId, medidor), contexto);
+        PropuestaObjetivo propuesta = proponer(negocioId, consulta, conversacion, cuota, ahora);
         return ProponerObjetivoConSamiResponse.de(
                 propuesta, contexto.datos(), conversacion.mensajesRestantes(), cuota);
     }
@@ -80,25 +79,75 @@ public class ProponerObjetivoConSami {
     private PropuestaObjetivo proponer(
             NegocioId negocioId, ConsultaObjetivoIa consulta, ConversacionObjetivo conversacion,
             CuotaObjetivosIa cuota, OffsetDateTime ahora) {
-        PropuestaObjetivo respaldo = PropuestaObjetivo.respaldo(conversacion.objetivoDeLaPersona());
         if (!iaHabilitada) {
-            return respaldo;
+            return PropuestaObjetivo.respaldo(conversacion.objetivoDeLaPersona());
         }
         if (cuota.agotada()) {
             return PropuestaObjetivo.sinCuota(conversacion.objetivoDeLaPersona(), cuota.limite());
         }
+        return proponerConIa(negocioId, consulta, conversacion, ahora);
+    }
+
+    private PropuestaObjetivo proponerConIa(
+            NegocioId negocioId, ConsultaObjetivoIa consulta, ConversacionObjetivo conversacion,
+            OffsetDateTime ahora) {
         try {
-            controlPlanService.exigirIa(negocioId);
-            LocalDate fecha = ZonaNegocio.dia(ahora);
-            if (!consumoSamiRepository.reservar(negocioId, fecha, limiteDiarioIa, ahora)) {
-                return respaldo;
-            }
-            PropuestaObjetivoIa respuesta = conversacionObjetivosIaPort.conversar(consulta);
-            consumoSamiRepository.registrar(negocioId, fecha, respuesta.consumo(), ahora);
-            return PropuestaObjetivo.de(respuesta, consulta);
+            return conversarSiHayReservaDiaria(negocioId, consulta, conversacion, ahora);
         } catch (RuntimeException e) {
             log.warn("No se pudo armar el objetivo con IA; se usa el seguimiento manual de respaldo", e);
-            return respaldo;
+            return PropuestaObjetivo.respaldo(conversacion.objetivoDeLaPersona());
         }
+    }
+
+    private PropuestaObjetivo conversarSiHayReservaDiaria(
+            NegocioId negocioId, ConsultaObjetivoIa consulta, ConversacionObjetivo conversacion,
+            OffsetDateTime ahora) {
+        exigirAccesoALaIa(negocioId);
+        LocalDate fecha = ZonaNegocio.dia(ahora);
+        if (!reservarConsumoDiario(negocioId, fecha, ahora)) {
+            return PropuestaObjetivo.respaldo(conversacion.objetivoDeLaPersona());
+        }
+        PropuestaObjetivoIa respuesta = conversarConSami(consulta);
+        registrarConsumo(negocioId, fecha, respuesta, ahora);
+        return PropuestaObjetivo.de(respuesta, consulta);
+    }
+
+    private List<CandidatoMiniObjetivo> catalogoDe(NegocioId negocioId, MedidorMiniObjetivo medidor) {
+        return propuestaMiniObjetivosService.candidatos(negocioId, medidor).stream()
+                .limit(MAXIMO_EN_EL_CATALOGO)
+                .toList();
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private MedidorMiniObjetivo medirElNegocio(NegocioId negocioId, OffsetDateTime ahora) {
+        return propuestaMiniObjetivosService.medidor(negocioId, ZonaNegocio.dia(ahora));
+    }
+
+    private AnalisisZona obtenerZona(NegocioId negocioId) {
+        return propuestaMiniObjetivosService.zona(negocioId);
+    }
+
+    private CuotaObjetivosIa consultarCuota(NegocioId negocioId, OffsetDateTime ahora) {
+        return controlPlanService.cuotaObjetivosIa(negocioId, ahora);
+    }
+
+    private void exigirAccesoALaIa(NegocioId negocioId) {
+        controlPlanService.exigirIa(negocioId);
+    }
+
+    private boolean reservarConsumoDiario(NegocioId negocioId, LocalDate fecha, OffsetDateTime ahora) {
+        return consumoSamiRepository.reservar(negocioId, fecha, limiteDiarioIa, ahora);
+    }
+
+    private PropuestaObjetivoIa conversarConSami(ConsultaObjetivoIa consulta) {
+        return conversacionObjetivosIaPort.conversar(consulta);
+    }
+
+    private void registrarConsumo(
+            NegocioId negocioId, LocalDate fecha, PropuestaObjetivoIa respuesta, OffsetDateTime ahora) {
+        consumoSamiRepository.registrar(negocioId, fecha, respuesta.consumo(), ahora);
     }
 }

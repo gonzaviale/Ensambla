@@ -11,7 +11,9 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 /**
  * Conversa un objetivo con un modelo de texto. Sólo lee los campos del esquema ({@code ia/esquema-conversacion-objetivos
@@ -28,6 +30,10 @@ public class ConversacionObjetivosIaAdapter implements ConversacionObjetivosIaPo
         record MiniJson(String modo, String codigo, String titulo, String justificacion) {
         }
     }
+
+    private static final Map<String, Function<RespuestaJson.MiniJson, EleccionIa>> FABRICAS_POR_MODO = Map.of(
+            "MEDIDO", mini -> new EleccionIa(ModoMiniObjetivo.MEDIDO, mini.codigo(), null, null),
+            "MANUAL", mini -> new EleccionIa(ModoMiniObjetivo.MANUAL, null, mini.titulo(), mini.justificacion()));
 
     private final ClienteModeloTexto modelo;
     private final PromptConversacionObjetivos prompt;
@@ -72,10 +78,11 @@ public class ConversacionObjetivosIaAdapter implements ConversacionObjetivosIaPo
         if (mini.modo() == null) {
             return null;
         }
-        return switch (mini.modo().strip().toUpperCase(Locale.ROOT)) {
-            case "MEDIDO" -> new EleccionIa(ModoMiniObjetivo.MEDIDO, mini.codigo(), null, null);
-            case "MANUAL" -> new EleccionIa(ModoMiniObjetivo.MANUAL, null, mini.titulo(), mini.justificacion());
-            default -> null;
-        };
+        Function<RespuestaJson.MiniJson, EleccionIa> fabrica = FABRICAS_POR_MODO.get(modoDe(mini));
+        return fabrica == null ? null : fabrica.apply(mini);
+    }
+
+    private static String modoDe(RespuestaJson.MiniJson mini) {
+        return mini.modo().strip().toUpperCase(Locale.ROOT);
     }
 }

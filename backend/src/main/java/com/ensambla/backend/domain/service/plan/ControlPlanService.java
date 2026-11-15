@@ -82,7 +82,7 @@ public class ControlPlanService {
     /** Los objetivos con IA de este mes (calendario argentino) y los que permite el plan vigente. */
     public CuotaObjetivosIa cuotaObjetivosIa(NegocioId negocioId, OffsetDateTime ahora) {
         return new CuotaObjetivosIa(
-                objetivosIaDelMes(negocioId, ahora), vigente(negocioId, ahora).getLimiteObjetivosIaMensuales());
+                objetivosIaDelMes(negocioId, ahora), planVigente(negocioId, ahora).getLimiteObjetivosIaMensuales());
     }
 
     /**
@@ -92,16 +92,7 @@ public class ControlPlanService {
      * @throws RestriccionPlanException si se agotó la cuota mensual
      */
     public void validarObjetivoIa(NegocioId negocioId, OffsetDateTime ahora) {
-        transaccionPort.ejecutar(() -> {
-            usoPlanRepository.bloquearNegocio(negocioId);
-            vigente(negocioId, ahora).validarObjetivosIa(objetivosIaDelMes(negocioId, ahora));
-        });
-    }
-
-    private long objetivosIaDelMes(NegocioId negocioId, OffsetDateTime ahora) {
-        LocalDate primerDia = ZonaNegocio.primerDiaDelMes(ahora);
-        return usoPlanRepository.objetivosIaEnPeriodo(negocioId, ZonaNegocio.inicioDelDia(primerDia),
-                ZonaNegocio.inicioDelDia(primerDia.plusMonths(1)));
+        conNegocioBloqueado(negocioId, () -> exigirCupoDeObjetivosIa(negocioId, ahora));
     }
 
     public void validarFuncion(NegocioId negocioId, FuncionPlan funcion, OffsetDateTime ahora) {
@@ -172,6 +163,17 @@ public class ControlPlanService {
     private void exigirCupoDeProyectos(NegocioId negocioId, OffsetDateTime ahora) {
         Plan plan = planVigente(negocioId, ahora);
         plan.validarProyectos(usoPlanRepository.contarProyectos(negocioId));
+    }
+
+    private void exigirCupoDeObjetivosIa(NegocioId negocioId, OffsetDateTime ahora) {
+        Plan plan = planVigente(negocioId, ahora);
+        plan.validarObjetivosIa(objetivosIaDelMes(negocioId, ahora));
+    }
+
+    private long objetivosIaDelMes(NegocioId negocioId, OffsetDateTime ahora) {
+        LocalDate primerDia = ZonaNegocio.primerDiaDelMes(ahora);
+        return usoPlanRepository.objetivosIaEnPeriodo(negocioId, ZonaNegocio.inicioDelDia(primerDia),
+                ZonaNegocio.inicioDelDia(primerDia.plusMonths(1)));
     }
 
     private void exigirCupoDeRegistros(NegocioId negocioId, long cantidad, OffsetDateTime ahora) {

@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.objetivo.DecisionObjetivo;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.RespuestaMiniObjetivo;
+import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.objetivo.DecisionObjetivoRepository;
@@ -39,25 +40,50 @@ public class ResponderMiniObjetivo {
     private final Clock clock;
 
     public ResponderMiniObjetivoResponse execute(ResponderMiniObjetivoRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        objetivoRepository.obtener(negocioId, request.objetivoId());
-        MiniObjetivo mini = miniObjetivoRepository.obtener(negocioId, request.objetivoId(), request.miniObjetivoId());
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        exigirQueElObjetivoSeaDelNegocio(negocioId, request);
+        MiniObjetivo mini = obtenerMiniObjetivo(negocioId, request);
         mini.exigirManualEnCurso();
         exigirSinRespuesta(mini);
         OffsetDateTime ahora = OffsetDateTime.now(clock);
         RespuestaMiniObjetivo respuesta = RespuestaMiniObjetivo.de(
                 mini, request.hizo(), request.quePaso(), request.comentario(), ahora);
-        return ResponderMiniObjetivoResponse.de(transaccionPort.ejecutar(() -> guardar(mini, respuesta, ahora)));
+        return ResponderMiniObjetivoResponse.de(guardarEnUnaTransaccion(mini, respuesta, ahora));
+    }
+
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private void exigirQueElObjetivoSeaDelNegocio(NegocioId negocioId, ResponderMiniObjetivoRequest request) {
+        objetivoRepository.obtener(negocioId, request.objetivoId());
+    }
+
+    private MiniObjetivo obtenerMiniObjetivo(NegocioId negocioId, ResponderMiniObjetivoRequest request) {
+        return miniObjetivoRepository.obtener(negocioId, request.objetivoId(), request.miniObjetivoId());
     }
 
     private void exigirSinRespuesta(MiniObjetivo mini) {
-        if (respuestaMiniObjetivoRepository.existsByMiniObjetivoId(mini.getId())) {
+        if (yaTieneRespuesta(mini)) {
             throw new DuplicateResourceException("Ya respondiste este mini-objetivo");
         }
     }
 
+    private boolean yaTieneRespuesta(MiniObjetivo mini) {
+        return respuestaMiniObjetivoRepository.existsByMiniObjetivoId(mini.getId());
+    }
+
+    private RespuestaMiniObjetivo guardarEnUnaTransaccion(
+            MiniObjetivo mini, RespuestaMiniObjetivo respuesta, OffsetDateTime ahora) {
+        return transaccionPort.ejecutar(() -> guardar(mini, respuesta, ahora));
+    }
+
     private RespuestaMiniObjetivo guardar(MiniObjetivo mini, RespuestaMiniObjetivo respuesta, OffsetDateTime ahora) {
-        decisionObjetivoRepository.save(DecisionObjetivo.deRespuesta(mini, respuesta, ahora));
+        anotarDecision(DecisionObjetivo.deRespuesta(mini, respuesta, ahora));
         return respuestaMiniObjetivoRepository.save(respuesta);
+    }
+
+    private void anotarDecision(DecisionObjetivo decision) {
+        decisionObjetivoRepository.save(decision);
     }
 }

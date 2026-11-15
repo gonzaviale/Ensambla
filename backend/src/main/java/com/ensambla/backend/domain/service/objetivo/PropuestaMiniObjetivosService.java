@@ -13,10 +13,13 @@ import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
+import com.ensambla.backend.domain.model.sistema.Sistema;
+import com.ensambla.backend.domain.model.zona.Zona;
 import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Carga lo que el negocio tiene en todos sus cuadernos y en su zona y arma los mini-objetivos posibles. Lo comparten
@@ -45,10 +48,7 @@ public class PropuestaMiniObjetivosService {
 
     /** Lo que el negocio tiene hoy en todos sus cuadernos, listo para medir o proponer. */
     public MedidorMiniObjetivo medidor(NegocioId negocioId, LocalDate hoy) {
-        List<DatosDeProyecto> datos = sistemaRepository.findAllByNegocioId(negocioId).stream()
-                .map(datosDeProyectoService::cargar)
-                .toList();
-        return MedidorMiniObjetivo.de(datos, metricasVentas, hoy);
+        return MedidorMiniObjetivo.de(cargarLosDatos(negocioId), metricasVentas, hoy);
     }
 
     /** Los mini-objetivos posibles con lo que ya se midió, del que más suma al que menos. */
@@ -58,9 +58,26 @@ public class PropuestaMiniObjetivosService {
 
     /** Lo que se sabe de la zona del negocio; sin zona, un análisis vacío. */
     public AnalisisZona zona(NegocioId negocioId) {
-        return negocioRepository.findZonaIdById(negocioId)
-                .flatMap(zonaRepository::findById)
-                .map(agregadoZonaRepository::analizar)
-                .orElseGet(AnalisisZona::sinZona);
+        return buscarZona(negocioId).map(this::analizar).orElseGet(AnalisisZona::sinZona);
+    }
+
+    private List<DatosDeProyecto> cargarLosDatos(NegocioId negocioId) {
+        return obtenerSistemas(negocioId).stream().map(this::cargar).toList();
+    }
+
+    private List<Sistema> obtenerSistemas(NegocioId negocioId) {
+        return sistemaRepository.findAllByNegocioId(negocioId);
+    }
+
+    private DatosDeProyecto cargar(Sistema sistema) {
+        return datosDeProyectoService.cargar(sistema);
+    }
+
+    private Optional<Zona> buscarZona(NegocioId negocioId) {
+        return negocioRepository.findZonaIdById(negocioId).flatMap(zonaRepository::findById);
+    }
+
+    private AnalisisZona analizar(Zona zona) {
+        return agregadoZonaRepository.analizar(zona);
     }
 }
