@@ -1,5 +1,6 @@
 import { ArrowLeftIcon, FlagCheckeredIcon, TrendUpIcon } from '@phosphor-icons/react';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
+import { PageFooter } from '@/components/sistema/PageFooter';
 import { useMiniObjetivos, useObjetivos, useSemanasObjetivo } from '@/hooks/objetivos/queries';
 import { useMedirObjetivos } from '@/hooks/objetivos/useMedirObjetivos';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
@@ -48,6 +49,7 @@ export function ObjetivoDetallePage({ objetivoId }: { objetivoId: string }) {
             </button>
           </section>
         )}
+        <PageFooter />
       </main>
     </>
   );

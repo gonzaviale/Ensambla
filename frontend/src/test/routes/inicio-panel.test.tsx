@@ -25,35 +25,33 @@ const abrirInicio = async (sistemas: Sistema[]) => {
   return { router, user: userEvent.setup(), sistema: sistemas[0] };
 };
 
-const NOMBRE_DEL_PANEL = 'Tu plata y lo que conviene hacer';
+const NOMBRE_DEL_PANEL = 'Tu flujo de caja';
 const titulo = () => screen.queryByRole('heading', { name: NOMBRE_DEL_PANEL });
 /** El título aparece mientras carga: lo que hay que esperar es el flujo de caja. */
 const cifrasAsync = () =>
   screen.findByText(/Lo fiado no entra hasta que lo cobrás/, undefined, ESPERA);
-/** El flujo de caja arranca cerrado: se espera a que llegue y se abre como lo haría la persona. */
+/** El detalle semana a semana arranca cerrado: se espera a que llegue y se abre como lo haría la persona. */
 const abrirFlujoAsync = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.click(
-    await screen.findByRole('heading', { name: 'Tu flujo de caja, semana a semana' }, ESPERA),
-  );
+  await user.click(await screen.findByRole('heading', { name: 'Semana a semana' }, ESPERA));
 };
 
 describe('inicio: panel del negocio', () => {
-  it('con ventas muestra el flujo de caja cerrado, con lo que te va quedando, y sin repetir las métricas del tablero', async () => {
+  it('con ventas muestra lo que te va quedando, lo que entró y salió, y el detalle semanal cerrado, sin repetir las métricas del tablero', async () => {
     const { user } = await abrirInicio([crearAlmacenCargado(hoy())]);
 
-    const titulo = await screen.findByRole(
-      'heading',
-      { name: 'Tu flujo de caja, semana a semana' },
-      ESPERA,
-    );
-    const flujo = titulo.closest('details') as HTMLElement;
-    expect(flujo).not.toHaveAttribute('open');
-    expect(within(flujo).getByText(/^Te va quedando \$/)).toBeVisible();
-    expect(within(flujo).getByText(/Lo fiado no entra hasta que lo cobrás/)).not.toBeVisible();
+    const titulo = await screen.findByRole('heading', { name: 'Semana a semana' }, ESPERA);
+    const panel = screen.getByRole('region', { name: NOMBRE_DEL_PANEL });
+    const resumen = within(panel.querySelector('.panel-flujo-resumen') as HTMLElement);
+    expect(resumen.getByText('Te va quedando')).toBeVisible();
+    expect(resumen.getByText('Entró')).toBeVisible();
+    expect(resumen.getByText('Salió')).toBeVisible();
+    expect(resumen.getAllByText(/\$\d/)).toHaveLength(3);
+    const detalle = titulo.closest('details') as HTMLElement;
+    expect(detalle).not.toHaveAttribute('open');
+    expect(within(detalle).getByText(/Lo fiado no entra hasta que lo cobrás/)).not.toBeVisible();
 
     await user.click(titulo);
 
-    const panel = screen.getByRole('region', { name: NOMBRE_DEL_PANEL });
     expect(within(panel).getByText(/Los últimos 30 días/)).toBeVisible();
     expect(within(panel).getByText(/Lo fiado no entra hasta que lo cobrás/)).toBeVisible();
     expect(document.querySelector('.panel-tarjetas')).toBeNull();
@@ -74,7 +72,7 @@ describe('inicio: panel del negocio', () => {
       expect(within(fila).getByText('Saldo')).toBeVisible();
       expect(fila).toHaveTextContent(/\$\d/);
     }
-    expect(screen.getByText('Te va quedando')).toBeVisible();
+    expect(screen.getAllByText('Te va quedando')).toHaveLength(1);
   });
 
   it('con panel el saludo sigue siendo el h1 y el título del panel es un h2', async () => {
@@ -212,9 +210,7 @@ describe('inicio: panel del negocio', () => {
     );
     await clickButton(user, 'Probar de nuevo');
 
-    expect(
-      await screen.findByRole('heading', { name: 'Tu flujo de caja, semana a semana' }, ESPERA),
-    ).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Semana a semana' }, ESPERA)).toBeVisible();
     expect(screen.queryByRole('alert')).toBeNull();
   });
 });

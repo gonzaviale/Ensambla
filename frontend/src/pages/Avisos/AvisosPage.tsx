@@ -2,6 +2,7 @@ import { PanelDeAvisos } from '@/components/sistema/avisos/PanelDeAvisos';
 import { SamiFlotante } from '@/components/sistema/avisos/SamiFlotante';
 import { TarjetaDeImpacto } from '@/components/sistema/avisos/TarjetaDeImpacto';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
+import { PageFooter } from '@/components/sistema/PageFooter';
 import { useTituloPagina } from '@/hooks/useTituloPagina';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
@@ -19,6 +20,7 @@ export function AvisosPage() {
       <main id="main" tabIndex={-1} className="page-wrap avisos-page reveal">
         <TarjetaDeImpacto />
         <PanelDeAvisos />
+        <PageFooter />
       </main>
       {/* Fuera del <main>: su animación de entrada haría que «fixed» se mueva con la página. */}
       {sistemaDelChat && <SamiFlotante sistemaId={sistemaDelChat} />}

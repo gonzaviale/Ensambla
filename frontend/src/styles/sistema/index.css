@@ -35,3 +35,7 @@
 @import './overrides.css';
 /* Último: el criterio único de color, botones y tarjetas (ver el comentario de la hoja). */
 @import './armonia.css';
+/* T-213: el orden y los tamaños del Inicio con negocio cargado. */
+@import './inicio-orden.css';
+/* T-216: el pie de todas las pantallas. */
+@import './pie.css';

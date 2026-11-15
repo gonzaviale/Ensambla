@@ -89,6 +89,33 @@ describe('inicio', () => {
   });
 });
 
+describe('pie de página', () => {
+  it('tiene los atajos agrupados y cada uno lleva a su pantalla', async () => {
+    const { user, router } = await abrirInicio();
+    const pie = within(screen.getByRole('navigation', { name: 'Pie de página' }));
+
+    for (const nombre of [
+      'Inicio',
+      'Mis cuadernos',
+      'Avisos',
+      'Objetivos',
+      'Mi zona',
+      'Plantillas',
+      'Sami te enseña',
+      'Configuración',
+      'Planes',
+    ]) {
+      expect(pie.getByRole('link', { name: nombre })).toBeVisible();
+    }
+    expect(pie.getByRole('link', { name: 'Avisos' })).toHaveAttribute('href', '/avisos');
+
+    await user.click(pie.getByRole('link', { name: 'Avisos' }));
+
+    await verifyPathAsync(router, '/avisos');
+    expect(screen.getByRole('navigation', { name: 'Pie de página' })).toBeVisible();
+  });
+});
+
 describe('plantillas', () => {
   it('abre la vista previa, elige opciones y crea el sistema con ejemplos', async () => {
     const { user, router } = await abrirInicio();

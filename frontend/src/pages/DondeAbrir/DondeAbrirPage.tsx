@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeftIcon, CopyIcon } from '@phosphor-icons/react';
+import { PageFooter } from '@/components/sistema/PageFooter';
 import { Sami } from '@/components/sistema/Sami';
 import { COLOR_DE_PUNTO } from '@/hooks/dondeAbrir/useMapaDeZonas';
 import { useDondeAbrir, type PuntoElegido } from '@/hooks/dondeAbrir/queries';
@@ -389,6 +390,7 @@ export function DondeAbrirPage() {
           </p>
         </div>
       )}
+      <PageFooter />
     </main>
   );
 }

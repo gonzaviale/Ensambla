@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { CarruselDeRentabilidad } from '@/components/inicio/CarruselDeRentabilidad';
 import { Icon } from '@/components/sistema/Icon';
 import { GraficoDeBarras } from '@/components/sistema/metricas/GraficoDeBarras';
-import { SelectorDeCuaderno, SelectorDePeriodo } from '@/components/sistema/metricas/Selectores';
+import { SelectorDePeriodo } from '@/components/sistema/metricas/Selectores';
 import { useNumeroAnimado } from '@/components/sistema/metricas/useNumeroAnimado';
 import { useResumenInicio } from '@/hooks/reportes/queries';
 import { useCuadernoElegido } from '@/hooks/reportes/useCuadernoElegido';
@@ -18,24 +19,19 @@ import {
 } from '@/lib/sistema/metricasInicio';
 import type { ResumenInicio } from '@/types/resumenInicio';
 
-// El tablero del inicio para quien ya usa Ensambla: lo que viene vendiendo, de un cuaderno a elegir (el aviso
-// económico va arriba de todo, en su carrusel). La página ya saluda arriba, en la bienvenida compacta. Nunca muestra ceros de
+// El tablero del inicio para quien ya usa Ensambla: lo que viene vendiendo del negocio elegido en el encabezado y,
+// debajo, las tarjetas cortas del aviso económico (ventas y ganancia frente a la semana pasada), todo junto. Nunca muestra ceros de
 // relleno: si no hay datos, lo dice.
 export function MetricasDelInicio() {
-  const { cuadernos, cuaderno, elegir } = useCuadernoElegido();
+  const { cuaderno } = useCuadernoElegido();
   const { resumen, fallo, reintentar } = useResumenInicio(cuaderno?.id);
   if (!cuaderno) return null;
 
   return (
-    <section className="tablero" aria-label="Cómo te va">
-      <div className="tablero-cabecera">
-        <div className="tablero-saludo">
-          <p className="tablero-cuaderno">
-            <span>Así viene</span>
-            <SelectorDeCuaderno cuadernos={cuadernos} cuaderno={cuaderno} onCambio={elegir} />
-          </p>
-        </div>
-      </div>
+    <section className="tablero" aria-labelledby="tablero-titulo">
+      <h2 id="tablero-titulo" className="inicio-seccion-titulo">
+        Cómo te va
+      </h2>
 
       {fallo ? (
         <p className="tablero-aviso" role="status">
@@ -63,6 +59,7 @@ export function MetricasDelInicio() {
           <TarjetaDeVentas resumen={resumen} />
         </div>
       )}
+      <CarruselDeRentabilidad />
     </section>
   );
 }
@@ -95,10 +92,10 @@ function TarjetaDeVentas({ resumen }: PropsDeTarjeta) {
   return (
     <article className="tablero-ventas">
       <div className="tablero-ventas-texto">
-        <SelectorDePeriodo valor={periodo} onCambio={setPeriodo} variante="oscuro" />
+        <SelectorDePeriodo valor={periodo} onCambio={setPeriodo} />
         {ventas.cantidad === 0 ? (
           <>
-            <h2>{textos?.sin}</h2>
+            <h3>{textos?.sin}</h3>
             {ultimoDiaConVentas && (
               <p className="tablero-ventas-dato">
                 Lo último que anotaste fue {cuandoFue(ultimoDiaConVentas.fecha, hoy)}:{' '}
@@ -111,7 +108,7 @@ function TarjetaDeVentas({ resumen }: PropsDeTarjeta) {
           </>
         ) : (
           <>
-            <h2>{textos?.titulo}</h2>
+            <h3>{textos?.titulo}</h3>
             <p className="tablero-ventas-monto">
               {conPlata ? formatoPesos(monto) : textoUnidades(ventas.unidades)}
             </p>
@@ -155,7 +152,7 @@ function TarjetaDeVentas({ resumen }: PropsDeTarjeta) {
         titulo={
           periodo === 'mes' ? 'Ventas de los últimos 30 días' : 'Ventas de los últimos 7 días'
         }
-        variante="oscuro"
+        variante="claro"
       />
     </article>
   );

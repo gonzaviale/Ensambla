@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { PlusIcon } from '@phosphor-icons/react';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
+import { PageFooter } from '@/components/sistema/PageFooter';
 import { useEliminarObjetivo } from '@/hooks/objetivos/mutations';
 import { useObjetivos } from '@/hooks/objetivos/queries';
 import { useMedirObjetivos } from '@/hooks/objetivos/useMedirObjetivos';
@@ -89,6 +90,7 @@ export function ObjetivosPage() {
           </>
         )}
         <EntradaDondeAbrir />
+        <PageFooter />
       </main>
     </>
   );

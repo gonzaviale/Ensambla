@@ -1,20 +1,23 @@
-import { CarruselDeRentabilidad } from '@/components/inicio/CarruselDeRentabilidad';
+import { DecisionesRapidas } from '@/components/inicio/DecisionesRapidas';
 import { PanelDelNegocio } from '@/components/inicio/PanelDelNegocio';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { FichasParaEmpezar } from '@/components/sistema/FichasParaEmpezar';
 import { Icon } from '@/components/sistema/Icon';
 import { MetricasDelInicio } from '@/components/sistema/MetricasDelInicio';
+import { SelectorDeCuaderno } from '@/components/sistema/metricas/Selectores';
 import { PageFooter } from '@/components/sistema/PageFooter';
 import { varsDeColor } from '@/components/sistema/colores';
 import { sistemaDelPanel } from '@/lib/sistema/panelDelNegocio';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
 import type { Color } from '@/lib/sistema/tipos';
 import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
+import { useCuadernoElegido } from '@/hooks/reportes/useCuadernoElegido';
 import { useAccionesDelTutorial } from '@/hooks/tutorial/useAccionesDelTutorial';
 import { useSistemaStore } from '@/stores/sistemaStore';
 
-// Inicio: quien ya tiene un cuaderno ve una bienvenida corta con las maneras de empezar y, abajo, sus números (lo que
-// vende, el aviso económico, las sugerencias de Sami y el flujo de caja); quien recién llega ve la bienvenida grande. Las
+// Inicio: quien ya tiene un cuaderno ve un encabezado corto con el negocio que mira, las maneras de empezar (Sami
+// primero) y, abajo, lo que conviene decidir hoy, cómo viene vendiendo y el flujo de caja; quien recién llega ve la
+// bienvenida grande. Las
 // plantillas tienen su pantalla y su ficha de arriba (los cuadernos guardados, la suya: «Mis cuadernos»).
 // Fondo blanco; el color va lleno en cada ficha, con íconos blancos.
 export function InicioPage() {
@@ -27,15 +30,17 @@ export function InicioPage() {
     <>
       <CabeceraComun />
       <main id="main" tabIndex={-1} className="home inicio reveal">
-        {hayPanel && <CarruselDeRentabilidad />}
         {hayPanel && (
           <section className="inicio-bienvenida" aria-label="Empezar algo nuevo">
-            <div className="inicio-bienvenida-texto">
-              <p className="inicio-hola">Hola, {nombre}.</p>
-              <h1>¿En qué puedo ayudarte hoy?</h1>
-              <button type="button" className="inicio-guia-chica" onClick={tutorial.empezar}>
-                ¿Primera vez? Mostrarme cómo empezar
-              </button>
+            <div className="inicio-encabezado">
+              <div className="inicio-bienvenida-texto">
+                <p className="inicio-hola">Hola, {nombre}.</p>
+                <h1>¿En qué puedo ayudarte hoy?</h1>
+                <button type="button" className="inicio-guia-chica" onClick={tutorial.empezar}>
+                  ¿Primera vez? Mostrarme cómo empezar
+                </button>
+              </div>
+              <NegocioElegido />
             </div>
             <div className="inicio-bienvenida-acciones">
               <FichasParaEmpezar guia compacto />
@@ -44,8 +49,11 @@ export function InicioPage() {
           </section>
         )}
 
+        {/* El orden de la home (T-213): lo que hay que decidir hoy, después cómo viene el negocio y, al final, la
+            consulta de la caja. */}
         {hayPanel && (
           <>
+            <DecisionesRapidas />
             <MetricasDelInicio />
             <PanelDelNegocio />
           </>
@@ -109,6 +117,18 @@ export function InicioPage() {
         <PageFooter />
       </main>
     </>
+  );
+}
+
+// De qué negocio son las ventas y la caja de abajo: el mismo selector de antes, ahora en el encabezado.
+function NegocioElegido() {
+  const { cuadernos, cuaderno, elegir } = useCuadernoElegido();
+  if (!cuaderno) return null;
+  return (
+    <p className="inicio-negocio">
+      <span>Estás mirando</span>
+      <SelectorDeCuaderno cuadernos={cuadernos} cuaderno={cuaderno} onCambio={elegir} />
+    </p>
   );
 }
 

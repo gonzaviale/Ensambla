@@ -1,6 +1,7 @@
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { useNavigate } from '@tanstack/react-router';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
+import { PageFooter } from '@/components/sistema/PageFooter';
 import { Icon } from '@/components/sistema/Icon';
 import { varsDeColor } from '@/components/sistema/colores';
 import { useObjetivos } from '@/hooks/objetivos/queries';
@@ -108,6 +109,7 @@ export function SamiEnsenaPage({ leccion, objetivoId }: Props) {
             {leccion === 'consejos' && <LeccionConsejos onObjetivo={irAObjetivos} />}
           </section>
         </div>
+        <PageFooter />
       </main>
     </>
   );

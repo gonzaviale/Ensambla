@@ -18,20 +18,20 @@ import {
 // El almacén de ejemplo tiene 6 avisos; de más a menos urgente: sin Aceite, Yerba bajo el mínimo, Lavandina
 // bajo el mínimo, Azúcar caro y estancado, Fideos barato frente a la zona y Yerba que se vende mucho.
 // En la home entra uno de cada tema: Aceite (falta), Azúcar (estancado) y Fideos (precio frente a la zona).
-// La sección arranca cerrada: salvo que se pida lo contrario, los tests la abren como lo haría la persona.
-const abrirInicio = async (sistemas: Sistema[], { abierta = true } = {}) => {
+// La sección está siempre abierta, arriba de las ventas (T-213).
+const abrirInicio = async (sistemas: Sistema[]) => {
   const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
   estado.sistemas.set(usuario.email, sistemas);
   const router = renderApp('/inicio');
   await verifyHeadingPresentAsync(/En qué puedo/);
   await waitFor(() => expect(useSistemaStore.getState().accesoAvisos).not.toBeNull(), ESPERA);
   const user = userEvent.setup();
-  if (abierta) await user.click(await screen.findByRole('heading', { name: 'Para decidir hoy' }));
+  await screen.findByRole('heading', { name: 'Para decidir hoy' }, ESPERA);
   return { router, user };
 };
 
 const seccion = () =>
-  screen.queryByRole('heading', { name: 'Para decidir hoy' })?.closest('details') ?? null;
+  screen.queryByRole('heading', { name: 'Para decidir hoy' })?.closest('section') ?? null;
 const sugerencias = () =>
   Array.from(seccion()?.querySelectorAll<HTMLElement>('[data-alerta]') ?? []);
 const titulos = () => sugerencias().map((fila) => within(fila).getByRole('heading').textContent);
@@ -41,12 +41,15 @@ const precioDe = (nombre: string) =>
     .sistemas[0]?.sections[0]?.blocks[0]?.rows.find((fila) => fila.name === nombre)?.price;
 
 describe('inicio: decisiones rápidas', () => {
-  it('arranca cerrada y el encabezado cuenta cuántas sugerencias hay y cuántas son urgentes', async () => {
-    await abrirInicio([crearAlmacenDeEjemplo(hoy())], { abierta: false });
+  it('se ve abierta, antes de las ventas, y al lado del título cuenta cuántas sugerencias hay y cuántas son urgentes', async () => {
+    await abrirInicio([crearAlmacenDeEjemplo(hoy())]);
 
-    expect(seccion()).not.toHaveAttribute('open');
     expect(within(seccion() as HTMLElement).getByText('3 sugerencias · 1 urgente')).toBeVisible();
-    expect(screen.queryByRole('button', { name: 'Registrar entrada' })).not.toBeVisible();
+    expect(screen.getByRole('button', { name: 'Registrar entrada' })).toBeVisible();
+    const ventas = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
+    expect(
+      (seccion() as HTMLElement).compareDocumentPosition(ventas) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('muestra una sugerencia de cada tema: lo que falta, lo que no se mueve y un precio frente a la zona', async () => {

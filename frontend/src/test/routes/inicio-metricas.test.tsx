@@ -91,7 +91,9 @@ describe('inicio: cómo te va', () => {
       await within(seccion).findByRole('heading', { name: 'Esta semana vendiste' }, ESPERA),
     ).toBeVisible();
     expect(within(seccion).queryByRole('heading', { level: 1 })).toBeNull();
-    expect(within(seccion).getByText('Almacén de barrio')).toBeVisible();
+    // El negocio elegido se muestra en el encabezado, no dentro de la sección.
+    expect(within(seccion).queryByText('Almacén de barrio')).toBeNull();
+    expect(screen.getByText('Estás mirando').parentElement).toHaveTextContent('Almacén de barrio');
     expect(
       within(seccion).getByRole('list', { name: 'Ventas de los últimos 7 días' }),
     ).toBeVisible();
