@@ -4,8 +4,20 @@ import { describe, expect, it } from 'vitest';
 import { allBlocks, findBlock, makeSystem, makeTemplate } from '@/lib/sistema/core';
 import type { Sistema } from '@/lib/sistema/tipos';
 import { estado } from '@/mocks/db/estado';
-import { seleccionarSistemaActivo, useSistemaStore } from '@/stores/sistemaStore';
+import { useSistemaStore } from '@/stores/sistemaStore';
 import { renderApp } from '@/test/renderApp';
+import {
+  activo,
+  bloquePorNombre,
+  cuandoSeCorrigeLaCantidadA,
+  cuandoSeEliminaElProducto,
+  cuandoSeRegistraElProducto,
+  dadoUnProductoRegistrado,
+  entoncesElInventarioMuestraElProducto,
+  entoncesElInventarioYaNoMuestraElProducto,
+  entoncesLaCantidadDelProductoEs,
+  tipoDeBloque,
+} from '@/test/registrosDelEditor';
 import {
   ESPERA,
   clickButton,
@@ -23,28 +35,6 @@ const abrirEditor = async (
   const router = renderApp(`/sistemas/${sistema.id}?modo=${modo}`);
   await screen.findByRole('heading', { level: 1, name: new RegExp(sistema.name) }, ESPERA);
   return { router, user: userEvent.setup(), sistema, usuario };
-};
-
-const activo = () => {
-  const sistema = seleccionarSistemaActivo(useSistemaStore.getState());
-  if (!sistema) throw new Error('No hay un sistema activo');
-  return sistema;
-};
-
-const bloquePorNombre = (nombre: string) => {
-  const nodo = [...document.querySelectorAll<HTMLElement>('.block')].find(
-    (bloque) => bloque.getAttribute('aria-label') === nombre,
-  );
-  if (!nodo) throw new Error(`Falta el bloque ${nombre}`);
-  return nodo;
-};
-
-const tipoDeBloque = (tipo: string) => {
-  const bloque = activo()
-    .sections.flatMap((seccion) => seccion.blocks)
-    .find((item) => item.type === tipo);
-  if (!bloque) throw new Error(`Falta el bloque de tipo ${tipo}`);
-  return bloque;
 };
 
 const tipoDeBloqueDe = (sistema: Sistema, tipo: string) => {
@@ -512,44 +502,30 @@ describe('bloques', () => {
 });
 
 describe('registros', () => {
-  it('registra un producto, lo edita y lo elimina', async () => {
+  it('registra un producto nuevo en el inventario', async () => {
     const { user } = await abrirEditor();
-    const inventario = bloquePorNombre('Inventario');
 
-    await user.click(within(inventario).getByRole('button', { name: /Registrar/ }));
-    const modal = await screen.findByRole('dialog');
-    await user.type(within(modal).getByLabelText(/Producto/), 'Alfajor Jorgito');
-    await user.type(within(modal).getByLabelText(/Cantidad/), '12');
-    await user.type(within(modal).getByLabelText('Precio'), '900');
-    await user.click(within(modal).getByRole('button', { name: 'Guardar' }));
+    await cuandoSeRegistraElProducto(user);
 
-    expect(await within(inventario).findByText('Alfajor Jorgito')).toBeVisible();
-    await verifyToastAsync('Registro guardado.');
+    await entoncesElInventarioMuestraElProducto();
+  });
 
-    const fila = within(inventario).getByText('Alfajor Jorgito').closest('tr');
-    if (!fila) throw new Error('Falta la fila');
-    await user.click(within(fila).getByRole('button', { name: 'Editar registro' }));
-    const edicion = await screen.findByRole('dialog');
-    const cantidad = within(edicion).getByLabelText(/Cantidad/);
-    await user.clear(cantidad);
-    await user.type(cantidad, '5');
-    await user.click(within(edicion).getByRole('button', { name: 'Guardar' }));
-    await verifyToastAsync('Registro actualizado.');
-    expect(
-      tipoDeBloque('inventory').rows.find((fila) => fila.name === 'Alfajor Jorgito')?.quantity,
-    ).toBe(5);
+  it('corrige la cantidad de un producto registrado', async () => {
+    const { user } = await abrirEditor();
+    await dadoUnProductoRegistrado(user);
 
-    await user.click(
-      within(
-        within(inventario).getByText('Alfajor Jorgito').closest('tr') as HTMLElement,
-      ).getByRole('button', { name: 'Editar registro' }),
-    );
-    await user.click(await screen.findByRole('button', { name: /Eliminar/ }));
-    await user.click(
-      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Eliminar' }),
-    );
+    await cuandoSeCorrigeLaCantidadA(user, '5');
 
-    await waitFor(() => expect(within(inventario).queryByText('Alfajor Jorgito')).toBeNull());
+    await entoncesLaCantidadDelProductoEs(5);
+  });
+
+  it('elimina un producto registrado', async () => {
+    const { user } = await abrirEditor();
+    await dadoUnProductoRegistrado(user);
+
+    await cuandoSeEliminaElProducto(user);
+
+    await entoncesElInventarioYaNoMuestraElProducto();
   });
 
   it('muestra los errores junto a cada campo y no guarda', async () => {
