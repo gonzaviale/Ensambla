@@ -8,7 +8,7 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V15__renovaciones_y_pagos_premium.sql`,
 `V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
 `V24__objetivo.sql`, `V29__mini_objetivo.sql`, `V30__progreso_objetivo.sql`, `V31__decision_objetivo.sql`,
-`V32__resumen_semanal_objetivo.sql`).
+`V32__resumen_semanal_objetivo.sql`, `V34__kit_marca.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -717,3 +717,12 @@ Ver [contratos y anulación](caja-contratos.md) y [aceptación](caja-validacion.
 | Archivos adjuntos a registros | MVP 4 · T-078 | Tipo de campo `ARCHIVO` sobre el mismo almacenamiento que `foto_cuaderno` |
 | Búsqueda semántica / deduplicación | Cuando haga falta | pgvector (ver arriba) |
 | Recuperación de contraseña | MVP 3 · T-039 | Tabla de tokens temporales |
+
+## Kit de marca (V34 · ENS-362 / T-263)
+
+- `kit_marca`: un kit por negocio (`ux_kit_marca_negocio`), con `color_principal` y `color_secundario` (`#RRGGBB`,
+  mayúsculas y distintos entre sí), `tipografia` (lista cerrada), `tono` (`CERCANO`, `PROFESIONAL`, `DIVERTIDO`) y el
+  logo opcional (`logo` bytea de hasta 2 MB y `logo_tipo_mime`, `image/png` o `image/jpeg`; ambos o ninguno).
+- La FK del negocio borra en cascada. Sin kit guardado, la API devuelve la paleta de Ensambla sin escribir nada.
+- **API** (siempre del negocio de la sesión): `GET/PUT /api/marca`, `PUT /api/marca/logo` (multipart `logo`; devuelve el
+  kit y los colores sugeridos desde el logo, calculados sin IA) y `GET /api/marca/logo`. Diseño: [carteles-diseno.md](carteles-diseno.md).
