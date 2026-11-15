@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.exception.RegistroInvalidoException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.CampoFormula;
 import com.ensambla.backend.domain.model.campo.CampoId;
 import com.ensambla.backend.domain.model.lote.FotoId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
@@ -130,13 +131,20 @@ public class Registro {
      */
     public Registro conFormulas(List<Campo> campos) {
         Map<String, Object> conCalculados = new LinkedHashMap<>(valores);
-        for (Campo campo : campos.stream().filter(Campo::esFormula).toList()) {
+        for (CampoFormula campo : camposFormula(campos)) {
             BigDecimal calculado = campo.calcular(this::numeroDe);
             if (calculado != null) {
                 conCalculados.put(campo.getId().toString(), calculado);
             }
         }
         return toBuilder().valores(conCalculados).build();
+    }
+
+    private static List<CampoFormula> camposFormula(List<Campo> campos) {
+        return campos.stream()
+                .filter(CampoFormula.class::isInstance)
+                .map(CampoFormula.class::cast)
+                .toList();
     }
 
     private BigDecimal numeroDe(CampoId campoId) {

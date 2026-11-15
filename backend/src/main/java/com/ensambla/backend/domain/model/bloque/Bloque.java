@@ -84,19 +84,19 @@ public class Bloque {
 
     /** Campo nuevo al final de la lista del bloque; todavía sin guardar. Requiere los campos cargados. */
     public Campo agregarCampo(ConfiguracionCampo configuracion, OffsetDateTime ahora) {
-        ConfiguracionCampo.Validada validada = configuracion.validar();
-        validarNombreDeCampoLibre(validada.nombre(), null);
-        return Campo.nuevo(negocioId, id, siguientePosicionDeCampo(), validada, ahora);
+        Campo campo = configuracion.validar();
+        validarNombreDeCampoLibre(campo.getNombre(), null);
+        return campo.ubicadoEn(negocioId, id, siguientePosicionDeCampo(), ahora);
     }
 
     /**
-     * Reemplaza la configuración de un campo de este bloque. Valida todo antes de tocar el campo, así un error no lo
-     * deja a medio modificar. Requiere los campos cargados.
+     * El campo que toma el lugar de {@code campo} con la nueva configuración. Valida todo antes de armarlo, así un
+     * error no deja nada a medio modificar. Requiere los campos cargados.
      */
-    public void editarCampo(Campo campo, ConfiguracionCampo configuracion, OffsetDateTime ahora) {
-        ConfiguracionCampo.Validada validada = configuracion.validar();
-        validarNombreDeCampoLibre(validada.nombre(), campo.getId());
-        campo.configurar(validada, ahora);
+    public Campo editarCampo(Campo campo, ConfiguracionCampo configuracion, OffsetDateTime ahora) {
+        Campo editado = configuracion.validar();
+        validarNombreDeCampoLibre(editado.getNombre(), campo.getId());
+        return editado.reemplazandoA(campo, ahora);
     }
 
     /**

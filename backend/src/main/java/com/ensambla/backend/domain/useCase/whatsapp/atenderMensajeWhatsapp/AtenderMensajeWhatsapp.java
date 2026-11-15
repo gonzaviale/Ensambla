@@ -77,7 +77,6 @@ public class AtenderMensajeWhatsapp {
     private static final int MAX_OPCIONES = 9;
     private static final String MOTIVO_PERDIDO = "Se perdió mientras se atendía";
     private static final int MAX_NOMBRES_POR_TABLA = 100;
-    private static final Set<TipoCampo> NUMERICOS = Set.of(TipoCampo.NUMERO, TipoCampo.MONEDA);
 
     private final MensajeWhatsappRepository mensajeRepository;
     private final VinculoWhatsappRepository vinculoRepository;
@@ -430,7 +429,7 @@ public class AtenderMensajeWhatsapp {
         for (Campo campo : campos) {
             if (campo.getValorInicial() != null && !campo.getValorInicial().isBlank()) {
                 valores.put(campo.getId().toString(), campo.getValorInicial());
-            } else if (campo.esObligatorio() && NUMERICOS.contains(campo.getTipo())) {
+            } else if (campo.esObligatorio() && campo.esNumerico()) {
                 valores.put(campo.getId().toString(), "0");
             }
         }
