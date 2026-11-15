@@ -32,7 +32,7 @@ export function ObjetivosPage() {
     abrirModal({
       tipo: 'confirmar',
       titulo: '¿Quitar este objetivo?',
-      mensaje: `Dejás de seguir «${objetivo.texto}» (${formatoPesos(objetivo.meta)} por mes). Tus cuadernos no cambian.`,
+      mensaje: `Dejás de seguir «${objetivo.texto}» (${formatoPesos(objetivo.meta)} por mes). Tu negocio no cambia.`,
       etiqueta: 'Quitar objetivo',
       onConfirmar: () => eliminar(objetivo.id),
     });
@@ -50,7 +50,7 @@ export function ObjetivosPage() {
             <Encabezado
               etiqueta="Objetivos"
               titulo="Definí tu primer objetivo"
-              texto="Contale a Sami qué querés lograr con tu negocio. Te dice qué hacer con tus productos para llegar."
+              texto="Contale a Sami qué querés lograr y te dice cómo llegar."
               samiTitulo="Sami te ayuda"
               sami="Le pone número a lo que querés lograr"
             />
@@ -61,7 +61,7 @@ export function ObjetivosPage() {
             <Encabezado
               etiqueta="Objetivos"
               titulo="Cómo van tus objetivos"
-              texto="Acá ves cuánto te falta para llegar. En «Ver mi semana» están los mini-objetivos de Sami."
+              texto="Cuánto te falta para llegar. Tus pasos están en «Ver mi semana»."
               samiTitulo="Sami sigue tus objetivos"
               sami={`Mide cada día · cierra el domingo ${diaCorto(proximoCierre(hoy()))}`}
             />

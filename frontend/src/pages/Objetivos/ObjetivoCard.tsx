@@ -20,7 +20,7 @@ type Props = {
 
 function textoDeTendencia(objetivo: Objetivo) {
   const semanas = objetivo.historial.length - 1;
-  if (semanas < 1) return 'Todavía no hay semanas para comparar. Sami lo va midiendo.';
+  if (semanas < 1) return 'Todavía no hay semanas para comparar.';
   const cambio = variacion(objetivo);
   const plazo = semanas === 1 ? 'la última semana' : `las últimas ${semanas} semanas`;
   if (cambio === 0) return `Sin cambios en ${plazo}.`;

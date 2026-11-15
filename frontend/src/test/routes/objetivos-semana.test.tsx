@@ -35,7 +35,9 @@ describe('la semana de un objetivo que se autogestiona', () => {
       screen.getByText(/Si cumplís estos mini-objetivos sumás cerca de \$[\d.]+ por mes/),
     ).toBeVisible();
     expect(lista.getByRole('heading', { name: 'Subile $250 a Yerba 1 kg' })).toBeVisible();
-    expect(lista.getByRole('heading', { name: 'Mové 6 Fernet por semana' })).toBeVisible();
+    expect(
+      lista.getByRole('heading', { name: 'Volvé a vender 6 Fernet por semana' }),
+    ).toBeVisible();
 
     const semana = within(screen.getByRole('region', { name: 'Cómo te fue cada semana' }));
     expect(
@@ -64,7 +66,7 @@ describe('la semana de un objetivo que se autogestiona', () => {
       await cambios.findByText(/Ahora el objetivo es \$16\.000 por semana/, {}, ESPERA),
     ).toBeVisible();
     expect(
-      cambios.getByText(/no avanza\. Lo cambiamos por «Mové 6 Fernet por semana»/),
+      cambios.getByText(/no avanza\. Lo cambiamos por «Volvé a vender 6 Fernet por semana»/),
     ).toBeVisible();
     expect(screen.queryByText(/Camino combinado/)).not.toBeInTheDocument();
   });
