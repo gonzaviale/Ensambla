@@ -18,26 +18,47 @@ public record CierreCaja(CierreCajaId id, NegocioId negocioId, ProyectoId proyec
             BloqueId inventarioId, String huella, ResumenCaja resumen, String revision,
             BigDecimal fondoInicial, BigDecimal entradas, BigDecimal retiros, BigDecimal contado,
             String nota, OffsetDateTime ahora) {
-        if (resumen.ventas().isEmpty()) {
+        exigirPeriodoActualizado(resumen, revision);
+        BigDecimal esperado = efectivoEsperado(resumen, fondoInicial, entradas, retiros);
+        exigirRecuento(contado);
+        BigDecimal diferencia = contado.subtract(esperado);
+        exigirMotivoDeDiferencia(diferencia, nota);
+        return new CierreCaja(id, negocioId, proyectoId, inventarioId, huella, resumen, fondoInicial,
+                entradas, retiros, esperado, contado, diferencia, nota.strip(), ahora);
+    }
+
+    private static void exigirPeriodoActualizado(ResumenCaja resumen, String revision) {
+        if (resumen.ventas().isEmpty() && resumen.cobros().isEmpty()) {
             throw new BusinessRuleException("No hay ventas pendientes de cierre");
         }
         if (!resumen.revision().equals(revision)) {
             throw new DuplicateResourceException("Entraron nuevas ventas. Revisá el resumen actualizado antes de cerrar");
         }
-        validarDinero(fondoInicial);
+    }
+
+    private static BigDecimal efectivoEsperado(ResumenCaja resumen, BigDecimal fondo,
+            BigDecimal entradas, BigDecimal retiros) {
+        validarDinero(fondo);
         validarDinero(entradas);
         validarDinero(retiros);
-        BigDecimal esperado = fondoInicial.add(resumen.efectivo()).add(entradas).subtract(retiros);
+        BigDecimal esperado = fondo.add(resumen.efectivo()).add(entradas).subtract(retiros);
         if (esperado.signum() < 0) {
             throw new BusinessRuleException("Los retiros superan el efectivo disponible");
         }
-        BigDecimal diferencia = null;
-        if (contado != null) {
-            validarDinero(contado);
-            diferencia = contado.subtract(esperado);
+        return esperado;
+    }
+
+    private static void exigirRecuento(BigDecimal contado) {
+        if (contado == null) {
+            throw new BusinessRuleException("Contá el efectivo antes de cerrar. Si no hay efectivo, escribí 0");
         }
-        return new CierreCaja(id, negocioId, proyectoId, inventarioId, huella, resumen, fondoInicial,
-                entradas, retiros, esperado, contado, diferencia, nota, ahora);
+        validarDinero(contado);
+    }
+
+    private static void exigirMotivoDeDiferencia(BigDecimal diferencia, String nota) {
+        if (diferencia.signum() != 0 && nota.isBlank()) {
+            throw new BusinessRuleException("Explicá la diferencia entre el efectivo esperado y el contado");
+        }
     }
 
     private static void validarDinero(BigDecimal importe) {

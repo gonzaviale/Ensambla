@@ -41,7 +41,7 @@ public class VentaCajaEntity {
     private UUID cierreId;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(nullable = false, columnDefinition = "jsonb", updatable = false)
+    @Column(nullable = false, columnDefinition = "jsonb")
     private VentaCaja datos;
 
     @Column(name = "creado_en", nullable = false, updatable = false)

@@ -4,6 +4,9 @@ import { dineroCaja, fechaCaja } from '@/lib/caja';
 import { ResumenVentasCaja } from './ResumenVentasCaja';
 import { CierreCajaForm } from './CierreCajaForm';
 import { DialogoCaja } from './DialogoCaja';
+import { HistorialCobrosCaja } from './HistorialCobrosCaja';
+import { CuentaVentaCaja } from './CuentaVentaCaja';
+import type { VentaCaja } from '@/types/caja';
 import type { ResumenVentasCaja as Resumen } from '@/types/caja';
 
 export function GestionCaja({
@@ -14,12 +17,13 @@ export function GestionCaja({
 }: {
   sistemaId: string;
   inventarioId: string;
-  vista: 'dia' | 'abierta' | 'cierres';
+  vista: 'dia' | 'cobros' | 'abierta' | 'cierres';
   compraPendiente: boolean;
 }) {
   const caja = useResumenCaja(sistemaId, inventarioId);
   const [cerrando, setCerrando] = useState<Resumen | null>(null);
   const [fecha, setFecha] = useState('');
+  const [ventaElegida, setVentaElegida] = useState<VentaCaja | null>(null);
   const datos = caja.consulta.data;
   const volver = () => {
     setCerrando(null);
@@ -31,11 +35,13 @@ export function GestionCaja({
         <div>
           <span className="caja-antetitulo">LAS CUENTAS CLARAS</span>
           <h2>
-            {vista === 'dia'
-              ? 'Resumen del día'
-              : vista === 'abierta'
-                ? 'Caja abierta'
-                : 'Cierres guardados'}
+            {vista === 'cobros'
+              ? 'Cobros del día'
+              : vista === 'dia'
+                ? 'Resumen del día'
+                : vista === 'abierta'
+                  ? 'Caja abierta'
+                  : 'Cierres guardados'}
           </h2>
         </div>
         <button
@@ -47,7 +53,7 @@ export function GestionCaja({
           Actualizar
         </button>
       </div>
-      {vista === 'dia' && (
+      {(vista === 'dia' || vista === 'cobros') && (
         <form
           className="caja-fecha"
           onSubmit={(e) => {
@@ -97,8 +103,15 @@ export function GestionCaja({
                 Ventas del {datos.fecha.split('-').reverse().join('/')}, de 00:00 a 23:59, hora de
                 Argentina. Incluye ventas de períodos ya cerrados.
               </p>
-              <ResumenVentasCaja resumen={datos.dia} titulo="Total vendido en el día" />
+              <ResumenVentasCaja
+                resumen={datos.dia}
+                titulo="Total vendido en el día"
+                onVerCuenta={setVentaElegida}
+              />
             </>
+          )}
+          {vista === 'cobros' && (
+            <HistorialCobrosCaja ventas={datos.dia.ventas} cobros={datos.dia.cobros ?? []} />
           )}
           {vista === 'abierta' && (
             <>
@@ -107,12 +120,21 @@ export function GestionCaja({
                   ? `Abierta desde ${fechaCaja(datos.abierta.desde)}. Se mantiene hasta que la cierres.`
                   : 'Sin ventas pendientes. El próximo cobro abrirá un período nuevo.'}
               </p>
-              <ResumenVentasCaja resumen={datos.abierta} titulo="Acumulado del período abierto" />
+              <ResumenVentasCaja
+                resumen={datos.abierta}
+                titulo="Acumulado del período abierto"
+                onVerCuenta={setVentaElegida}
+              />
+              {!!datos.abierta.cobros?.length && (
+                <HistorialCobrosCaja ventas={[]} cobros={datos.abierta.cobros} />
+              )}
               <div className="caja-acciones">
                 <button
                   type="button"
                   className="btn primary"
-                  disabled={!datos.abierta.ventas.length || caja.ocupada}
+                  disabled={
+                    (!datos.abierta.ventas.length && !datos.abierta.cobros?.length) || caja.ocupada
+                  }
                   onClick={() => {
                     caja.revisar();
                     setCerrando(datos.abierta);
@@ -147,7 +169,10 @@ export function GestionCaja({
                       </small>
                     </span>
                     <span>
-                      <strong>{dineroCaja(Math.round(c.total * 100))}</strong>
+                      <strong>
+                        {dineroCaja(Math.round((c.cobrado ?? c.total) * 100))} cobrados
+                      </strong>
+                      <small>{dineroCaja(Math.round(c.total * 100))} vendidos</small>
                       <small>
                         {c.diferencia === null
                           ? 'Sin recuento'
@@ -193,6 +218,14 @@ export function GestionCaja({
           )}
         </>
       )}
+      {ventaElegida && (
+        <CuentaVentaCaja
+          sistemaId={sistemaId}
+          inventarioId={inventarioId}
+          venta={ventaElegida}
+          onCerrar={() => setVentaElegida(null)}
+        />
+      )}
       {caja.detalle && (
         <DialogoCaja
           titulo="Cierre guardado"
@@ -202,7 +235,14 @@ export function GestionCaja({
           }}
         >
           <p className="caja-estado-periodo">Cerrado el {fechaCaja(caja.detalle.cerradoEn)}</p>
+          <p className="caja-ayuda">
+            Los saldos y cobros son los que había al cerrar. Consultá Ventas o Clientes para ver el
+            estado actual.
+          </p>
           <ResumenVentasCaja resumen={caja.detalle.resumen} titulo="Total del cierre" />
+          {!!caja.detalle.resumen.cobros?.length && (
+            <HistorialCobrosCaja ventas={[]} cobros={caja.detalle.resumen.cobros} />
+          )}
           <div className="caja-arqueo-guardado">
             <p>
               Fondo inicial:{' '}

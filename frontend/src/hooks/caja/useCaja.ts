@@ -1,3 +1,4 @@
+import { crearImporteLibre, lineaParaCobrar } from '@/lib/caja/importeLibre';
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { cobrarVenta } from '@/api/caja';
@@ -239,6 +240,7 @@ export function useCaja(sistemaId: string, inventarioId: string, ventasId: strin
     medio: SolicitudCobro['medio'],
     recibido: number | null,
     pagos?: PagoCaja[],
+    clienteId?: string,
   ) => {
     if (bloqueada.current || pendiente || !lineas.length) return;
     const request = solicitud ?? {
@@ -249,12 +251,8 @@ export function useCaja(sistemaId: string, inventarioId: string, ventasId: strin
       medio,
       recibido,
       ...(pagos ? { pagos } : {}),
-      lineas: lineas.map((l) => ({
-        productoId: idCaja(l.productoId),
-        cantidad: l.cantidad,
-        precio: l.precio,
-        modo: l.modo === 'peso' ? ('PESO' as const) : ('UNIDAD' as const),
-      })),
+      ...(clienteId ? { clienteId: idCaja(clienteId) } : {}),
+      lineas: lineas.map(lineaParaCobrar),
     };
     bloqueada.current = true;
     setOcupada(true);
@@ -307,6 +305,10 @@ export function useCaja(sistemaId: string, inventarioId: string, ventasId: strin
     elegir,
     buscar,
     registrar,
+    agregarImporte: (descripcion: string, importe: string) => {
+      modificar(agregarLinea(lineasActuales.current, crearImporteLibre(descripcion, importe)));
+      setMensaje('Importe agregado a la compra.');
+    },
     cerrar,
     confirmar,
     setTicket,

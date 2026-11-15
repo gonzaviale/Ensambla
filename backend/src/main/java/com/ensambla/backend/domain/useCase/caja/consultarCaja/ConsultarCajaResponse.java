@@ -14,11 +14,12 @@ public record ConsultarCajaResponse(LocalDate fecha, ResumenCajaItem dia, Resume
                                      List<CierreListaItem> cierres, int pagina, boolean hayMas) {
 
     public record CierreListaItem(CierreCajaId id, OffsetDateTime desde, OffsetDateTime cerradoEn,
-                                  BigDecimal total, int cantidadVentas, BigDecimal diferencia) {
+                                  BigDecimal total, int cantidadVentas, BigDecimal diferencia, BigDecimal cobrado) {
 
         public static CierreListaItem de(CierreCaja cierre) {
             return new CierreListaItem(cierre.id(), cierre.resumen().desde(), cierre.cerradoEn(),
-                    cierre.resumen().total(), cierre.resumen().ventas().size(), cierre.diferencia());
+                    cierre.resumen().total(), cierre.resumen().ventas().size(), cierre.diferencia(),
+                    cierre.resumen().efectivo().add(cierre.resumen().transferencia()).add(cierre.resumen().tarjeta()));
         }
     }
 

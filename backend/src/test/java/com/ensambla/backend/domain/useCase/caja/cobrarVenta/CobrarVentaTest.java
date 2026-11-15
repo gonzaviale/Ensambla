@@ -14,6 +14,7 @@ import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.sistema.Sistema;
 import com.ensambla.backend.domain.repository.caja.VentaCajaRepository;
+import com.ensambla.backend.domain.repository.inventario.MovimientoStockRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
@@ -54,13 +55,15 @@ class CobrarVentaTest {
     private VentaCajaRepository ventaCajaRepository;
     @Mock
     private ControlPlanService controlPlanService;
+    @Mock
+    private MovimientoStockRepository movimientoStockRepository;
     private CobrarVenta cobrarVenta;
     private Sistema sistema;
 
     @BeforeEach
     void setUp() {
         cobrarVenta = new CobrarVenta(negocioRepository, usoPlanRepository, sistemaRepository,
-                ventaCajaRepository, controlPlanService, new TransaccionDirecta(),
+                ventaCajaRepository, movimientoStockRepository, controlPlanService, new TransaccionDirecta(),
                 Clock.fixed(CajaTestData.AHORA.toInstant(), ZoneOffset.UTC));
         sistema = CajaTestData.sistema();
     }
@@ -195,10 +198,151 @@ class CobrarVentaTest {
         thenRejects(BusinessRuleException.class);
     }
 
-    // --- arrange ---
+    @Test
+    @DisplayName("Una venta fiada conserva al cliente y no inventa un cobro")
+    void executeShouldRegisterCreditSaleWithCustomer() {
+        givenCajaConCliente();
+
+        CobrarVentaResponse respuesta = cobrarVenta.execute(solicitudConCliente(List.of()));
+
+        thenPendingBalanceIs(respuesta, "2000", "PENDIENTE");
+        assertThat(respuesta.pagos()).isEmpty();
+        assertThat(respuesta.recibido()).isEqualByComparingTo("0");
+        assertThat(valor("quantity")).isEqualTo(new BigDecimal("1.5"));
+    }
+
+    @Test
+    @DisplayName("Una entrega parcial conserva el saldo y lo marca en la fila de ventas")
+    void executeShouldRegisterPartialPayment() {
+        givenCajaConCliente();
+
+        CobrarVentaResponse respuesta = cobrarVenta.execute(solicitudConCliente(
+                List.of(new CobrarVentaRequest.PagoRequest("TRANSFERENCIA", new BigDecimal("800")))));
+
+        thenPendingBalanceIs(respuesta, "1200", "PARCIAL");
+        Registro fila = sistema.registrosPorBloque().get(CajaTestData.VENTAS).getFirst();
+        assertThat(fila.getValores().get(campoVentas("credit").getId().toString())).isEqualTo(true);
+        assertThat(fila.getValores().get(campoVentas("customer").getId().toString()))
+                .isEqualTo(CajaTestData.CLIENTE.toString());
+    }
+
+    @Test
+    @DisplayName("Permite asociar un cliente a una venta pagada aunque la tabla use texto")
+    void executeShouldUseCustomerNameWhenSalesFieldIsText() {
+        givenClienteRegistradoComoTexto();
+
+        CobrarVentaResponse respuesta = whenSeCobraLaVentaConCliente();
+
+        thenSeConservaElNombreDelCliente(respuesta);
+    }
+
+    @Test
+    @DisplayName("Una venta pagada permite conservar el comprador sin identificar")
+    void executeShouldAllowAnonymousPaidSaleWithCustomerFields() {
+        givenCajaConCliente();
+
+        CobrarVentaResponse respuesta = cobrarVenta.execute(CajaTestData.request("0.5"));
+
+        assertThat(respuesta.clienteId()).isNull();
+        Registro fila = sistema.registrosPorBloque().get(CajaTestData.VENTAS).getFirst();
+        assertThat(fila.getValores().get(campoVentas("credit").getId().toString())).isEqualTo(false);
+    }
+
+    @Test
+    @DisplayName("Oculta un cliente que no pertenece al negocio sin descontar stock")
+    void executeShouldHideMissingCustomer() {
+        givenCaja();
+
+        assertThatThrownBy(() -> cobrarVenta.execute(solicitudConCliente(List.of())))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        assertThat(valor("quantity")).isEqualTo(new BigDecimal("2"));
+    }
+
+    @Test
+    @DisplayName("No permite fiar a un cliente de ejemplo")
+    void executeShouldRejectExampleCustomer() {
+        givenCaja();
+        CajaTestData.agregarCliente(sistema);
+        sistema.registrosPorBloque().get(CajaTestData.CLIENTES).getFirst().setEsEjemplo(true);
+
+        assertThatThrownBy(() -> cobrarVenta.execute(solicitudConCliente(List.of())))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("Rechaza un cliente de una tabla distinta a la relacionada con ventas")
+    void executeShouldRejectCustomerFromWrongTable() {
+        givenClienteRelacionadoConOtraTabla();
+
+        thenSeRechazaElClienteDeOtraTabla();
+    }
+
     private void givenVentasRelacionadasConOtroInventario() {
         givenCaja();
         CajaTestData.cambiarCampo(ventas(), "product", TipoCampo.RELACION, BloqueId.nuevo());
+    }
+
+    private void givenClienteRegistradoComoTexto() {
+        givenCajaConCliente();
+        CajaTestData.cambiarCampo(ventas(), "customer", TipoCampo.TEXTO, null);
+    }
+
+    private CobrarVentaResponse whenSeCobraLaVentaConCliente() {
+        return cobrarVenta.execute(solicitudConCliente(null));
+    }
+
+    private void thenSeConservaElNombreDelCliente(CobrarVentaResponse respuesta) {
+        thenPendingBalanceIs(respuesta, "0", "PAGADA");
+        Registro fila = sistema.registrosPorBloque().get(CajaTestData.VENTAS).getFirst();
+        assertThat(fila.getValores().get(campoVentas("customer").getId().toString())).isEqualTo("Ana López");
+    }
+
+    private void givenClienteRelacionadoConOtraTabla() {
+        givenCaja();
+        CajaTestData.agregarCliente(sistema);
+        CajaTestData.cambiarCampo(ventas(), "customer", TipoCampo.RELACION, BloqueId.nuevo());
+    }
+
+    private void thenSeRechazaElClienteDeOtraTabla() {
+        assertThatThrownBy(() -> cobrarVenta.execute(solicitudConCliente(List.of())))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("No confunde otro cliente con el solicitado")
+    void executeShouldMatchExactCustomerId() {
+        givenCaja();
+        CajaTestData.agregarCliente(sistema);
+        sistema.registrosPorBloque().get(CajaTestData.CLIENTES).getFirst().setId(RegistroId.nuevo());
+
+        assertThatThrownBy(() -> cobrarVenta.execute(solicitudConCliente(List.of())))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    // --- arrange ---
+    private void givenCajaConCliente() {
+        givenCaja();
+        CajaTestData.agregarCliente(sistema);
+        when(ventaCajaRepository.save(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
+    }
+
+    private CobrarVentaRequest solicitudConCliente(List<CobrarVentaRequest.PagoRequest> pagos) {
+        CobrarVentaRequest base = CajaTestData.request("0.5");
+        return new CobrarVentaRequest(base.usuarioId(), base.id(), base.proyectoId(), base.inventarioId(),
+                base.ventasId(), base.lineas(), base.medio(), base.recibido(), pagos, CajaTestData.CLIENTE);
+    }
+
+    private Campo campoVentas(String clave) {
+        return ventas().getCampos().stream().filter(campo -> clave.equals(campo.getClave())).findFirst().orElseThrow();
+    }
+
+    private void thenPendingBalanceIs(CobrarVentaResponse respuesta, String saldo, String estado) {
+        assertThat(respuesta.saldo()).isEqualByComparingTo(saldo);
+        assertThat(respuesta.cobrado()).isEqualByComparingTo(respuesta.total().subtract(new BigDecimal(saldo)));
+        assertThat(respuesta.estado()).isEqualTo(estado);
+        assertThat(respuesta.clienteId()).isEqualTo(CajaTestData.CLIENTE);
+        assertThat(respuesta.clienteNombre()).isEqualTo("Ana López");
     }
 
     private void givenUsuario() {

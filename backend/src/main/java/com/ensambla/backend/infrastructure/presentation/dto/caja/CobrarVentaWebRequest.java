@@ -20,16 +20,18 @@ public record CobrarVentaWebRequest(@NotNull VentaCajaId id, @NotNull ProyectoId
                                     @NotEmpty @Size(max = 100) List<@NotNull @Valid LineaWebRequest> lineas,
                                     @NotNull @Pattern(regexp = "EFECTIVO|TRANSFERENCIA|TARJETA|MIXTO") String medio,
                                     @DecimalMin("0") @Digits(integer = 12, fraction = 2) BigDecimal recibido,
-                                    @Size(min = 1, max = 3) List<@NotNull @Valid PagoWebRequest> pagos) {
+                                    @Size(max = 3) List<@NotNull @Valid PagoWebRequest> pagos,
+                                    RegistroId clienteId) {
 
     public record PagoWebRequest(
             @NotNull @Pattern(regexp = "EFECTIVO|TRANSFERENCIA|TARJETA") String medio,
             @NotNull @DecimalMin("0.01") @Digits(integer = 12, fraction = 2) BigDecimal importe) {
     }
 
-    public record LineaWebRequest(@NotNull RegistroId productoId,
+    public record LineaWebRequest(RegistroId productoId,
                                   @NotNull @DecimalMin("0.001") @Digits(integer = 8, fraction = 3) BigDecimal cantidad,
                                   @NotNull @DecimalMin("0.01") @Digits(integer = 9, fraction = 2) BigDecimal precio,
-                                  @NotNull @Pattern(regexp = "UNIDAD|PESO") String modo) {
+                                  @NotNull @Pattern(regexp = "UNIDAD|PESO") String modo,
+                                  @Size(max = 160) String descripcion) {
     }
 }

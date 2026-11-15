@@ -6,5 +6,5 @@ import java.util.List;
 
 public record ResumenCajaWebResponse(List<CobrarVentaWebResponse> ventas, BigDecimal total, BigDecimal efectivo,
                                      BigDecimal transferencia, BigDecimal tarjeta, OffsetDateTime desde,
-                                     String revision) {
+                                     String revision, List<CobroCajaWebResponse> cobros) {
 }

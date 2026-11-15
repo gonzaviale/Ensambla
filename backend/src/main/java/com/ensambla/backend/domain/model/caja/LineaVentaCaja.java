@@ -9,6 +9,20 @@ import java.math.RoundingMode;
 public record LineaVentaCaja(RegistroId productoId, String nombre, ModoVenta modo, BigDecimal cantidad,
                              BigDecimal precio, BigDecimal importe) {
 
+    public static LineaVentaCaja importeLibre(String descripcion, BigDecimal cantidad, BigDecimal precio) {
+        exigirDescripcion(descripcion);
+        if (cantidad.compareTo(BigDecimal.ONE) != 0) {
+            throw new BusinessRuleException("El importe libre se agrega una sola vez por renglón");
+        }
+        return de(null, descripcion.strip(), ModoVenta.UNIDAD, cantidad, precio);
+    }
+
+    private static void exigirDescripcion(String descripcion) {
+        if (descripcion == null || descripcion.isBlank() || descripcion.strip().length() > 160) {
+            throw new BusinessRuleException("Escribí una descripción de hasta 160 caracteres para el importe");
+        }
+    }
+
     public static LineaVentaCaja de(RegistroId productoId, String nombre, ModoVenta modo,
             BigDecimal cantidad, BigDecimal precio) {
         if (cantidad.signum() <= 0 || cantidad.scale() > 3 || precio.signum() <= 0 || precio.scale() > 2) {

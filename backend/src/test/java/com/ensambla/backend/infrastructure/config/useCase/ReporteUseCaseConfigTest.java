@@ -14,6 +14,8 @@ import com.ensambla.backend.domain.port.GeneradorResumenPdfPort;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
 import com.ensambla.backend.domain.repository.bloque.BloqueRepository;
 import com.ensambla.backend.domain.repository.campo.CampoRepository;
+import com.ensambla.backend.domain.repository.caja.CobroCajaRepository;
+import com.ensambla.backend.domain.repository.caja.VentaCajaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.proyecto.ProyectoRepository;
 import com.ensambla.backend.domain.repository.registro.RegistroRepository;
@@ -117,7 +119,8 @@ class ReporteUseCaseConfigTest {
 
         ExportarResumenResponse response = config.exportarResumenNegocio(
                         negocioRepository, mock(ControlPlanService.class), proyectoRepository,
-                        config.datosDeProyectoService(mock(RegistroRepository.class)), mock(ZonaRepository.class),
+                        config.datosDeProyectoService(mock(RegistroRepository.class), mock(VentaCajaRepository.class),
+                                mock(CobroCajaRepository.class)), mock(ZonaRepository.class),
                         mock(AgregadoZonaRepository.class), avisoRepository, generador, Clock.systemUTC())
                 .execute(new ExportarResumenRequest(USUARIO_ID, proyectoId, null, null));
 
@@ -137,7 +140,8 @@ class ReporteUseCaseConfigTest {
 
         ObtenerResumenInicioResponse response = config.obtenerResumenInicio(
                         negocioRepository, proyectoRepository,
-                        config.datosDeProyectoService(mock(RegistroRepository.class)), Clock.systemUTC())
+                        config.datosDeProyectoService(mock(RegistroRepository.class), mock(VentaCajaRepository.class),
+                                mock(CobroCajaRepository.class)), Clock.systemUTC())
                 .execute(new ObtenerResumenInicioRequest(USUARIO_ID, proyectoId));
 
         assertThat(response.sistema()).isEqualTo("Almacén");
@@ -156,7 +160,8 @@ class ReporteUseCaseConfigTest {
 
         ObtenerMetricasResponse response = config.obtenerMetricas(
                         negocioRepository, proyectoRepository,
-                        config.datosDeProyectoService(mock(RegistroRepository.class)), mock(ZonaRepository.class),
+                        config.datosDeProyectoService(mock(RegistroRepository.class), mock(VentaCajaRepository.class),
+                                mock(CobroCajaRepository.class)), mock(ZonaRepository.class),
                         mock(AgregadoZonaRepository.class), mock(AvisoRepository.class), Clock.systemUTC())
                 .execute(new ObtenerMetricasRequest(USUARIO_ID, proyectoId, PeriodoMetricas.MES));
 
@@ -176,7 +181,8 @@ class ReporteUseCaseConfigTest {
 
         ObtenerAvisoEconomicoResponse response = config.obtenerAvisoEconomico(
                         negocioRepository, proyectoRepository,
-                        config.datosDeProyectoService(mock(RegistroRepository.class)), Clock.systemUTC())
+                        config.datosDeProyectoService(mock(RegistroRepository.class), mock(VentaCajaRepository.class),
+                                mock(CobroCajaRepository.class)), Clock.systemUTC())
                 .execute(new ObtenerAvisoEconomicoRequest(USUARIO_ID, proyectoId));
 
         assertThat(response.aviso()).isNull();

@@ -4,7 +4,7 @@ import type { Valor } from '@/lib/sistema/tipos';
 export type ModoVentaCaja = 'unidad' | 'peso';
 export type LineaCaja = {
   id: string;
-  productoId: string;
+  productoId: string | null;
   nombre: string;
   modo: ModoVentaCaja;
   cantidad: number;
@@ -30,13 +30,20 @@ export type SolicitudCobro = {
   medio: MedioCaja | 'MIXTO';
   recibido: number | null;
   pagos?: PagoCaja[];
-  lineas: { productoId: string; cantidad: number; precio: number; modo: 'UNIDAD' | 'PESO' }[];
+  clienteId?: string;
+  lineas: {
+    productoId: string | null;
+    descripcion?: string;
+    cantidad: number;
+    precio: number;
+    modo: 'UNIDAD' | 'PESO';
+  }[];
 };
 export const ventaCajaSchema = z.object({
   id: z.string(),
   lineas: z.array(
     z.object({
-      productoId: z.string(),
+      productoId: z.string().nullable(),
       nombre: z.string(),
       modo: z.string(),
       cantidad: z.number(),
@@ -49,6 +56,16 @@ export const ventaCajaSchema = z.object({
   recibido: z.number(),
   vuelto: z.number(),
   creadoEn: z.string(),
+  clienteId: z.string().nullish(),
+  clienteNombre: z.string().nullish(),
+  cobrado: z.number().optional(),
+  saldo: z.number().optional(),
+  estado: z.enum(['PENDIENTE', 'PARCIAL', 'PAGADA']).optional(),
+  pagosIniciales: z
+    .array(
+      z.object({ medio: z.enum(['EFECTIVO', 'TRANSFERENCIA', 'TARJETA']), importe: z.number() }),
+    )
+    .optional(),
   pagos: z
     .array(
       z.object({ medio: z.enum(['EFECTIVO', 'TRANSFERENCIA', 'TARJETA']), importe: z.number() }),
@@ -56,6 +73,45 @@ export const ventaCajaSchema = z.object({
     .default([]),
 });
 export type VentaCaja = z.infer<typeof ventaCajaSchema>;
+
+export const cobroDeudaCajaSchema = z.object({
+  id: z.string(),
+  clienteId: z.string(),
+  clienteNombre: z.string(),
+  importe: z.number(),
+  creadoEn: z.string(),
+  aplicaciones: z.array(
+    z.object({
+      ventaId: z.string(),
+      importe: z.number(),
+      pagos: z.array(
+        z.object({ medio: z.enum(['EFECTIVO', 'TRANSFERENCIA', 'TARJETA']), importe: z.number() }),
+      ),
+    }),
+  ),
+});
+export type CobroDeudaCaja = z.infer<typeof cobroDeudaCajaSchema>;
+export type SolicitudPagoDeudaCaja = {
+  id: string;
+  proyectoId: string;
+  inventarioId: string;
+  aplicaciones: { ventaId: string; pagos: PagoCaja[] }[];
+};
+export const cuentaClienteCajaSchema = z.object({
+  clienteId: z.string(),
+  clienteNombre: z.string(),
+  saldo: z.number(),
+  cantidadPendientes: z.number(),
+  pendienteDesde: z.string().nullable(),
+  ventas: z.array(ventaCajaSchema),
+  cobros: z.array(cobroDeudaCajaSchema),
+});
+export type CuentaClienteCaja = z.infer<typeof cuentaClienteCajaSchema>;
+export const cuentasCajaSchema = z.object({
+  cuentas: z.array(cuentaClienteCajaSchema),
+  ventas: z.array(ventaCajaSchema),
+  cobros: z.array(cobroDeudaCajaSchema),
+});
 
 export const resumenVentasCajaSchema = z.object({
   ventas: z.array(ventaCajaSchema),
@@ -65,6 +121,7 @@ export const resumenVentasCajaSchema = z.object({
   tarjeta: z.number(),
   desde: z.string().nullable(),
   revision: z.string(),
+  cobros: z.array(cobroDeudaCajaSchema).optional(),
 });
 export const cierreCajaSchema = z.object({
   id: z.string(),
@@ -89,6 +146,7 @@ export const consultaCajaSchema = z.object({
       cerradoEn: z.string(),
       total: z.number(),
       cantidadVentas: z.number(),
+      cobrado: z.number().optional(),
       diferencia: z.number().nullable(),
     }),
   ),

@@ -32,6 +32,8 @@ public final class CajaTestData {
     public static final BloqueId INVENTARIO = BloqueId.nuevo();
     public static final BloqueId VENTAS = BloqueId.nuevo();
     public static final RegistroId PRODUCTO = RegistroId.nuevo();
+    public static final BloqueId CLIENTES = BloqueId.nuevo();
+    public static final RegistroId CLIENTE = RegistroId.nuevo();
     public static final VentaCajaId OPERACION = VentaCajaId.nuevo();
     public static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-11-12T12:00:00Z");
 
@@ -87,6 +89,36 @@ public final class CajaTestData {
         return new CobrarVentaRequest(USUARIO, OPERACION, PROYECTO, INVENTARIO, VENTAS,
                 List.of(new CobrarVentaRequest.LineaRequest(PRODUCTO, new BigDecimal(cantidad),
                         new BigDecimal("4000"), "PESO")), "EFECTIVO", new BigDecimal("5000"));
+    }
+
+    public static void agregarCliente(Sistema sistema) {
+        Bloque clientes = clientes();
+        Registro cliente = cliente(clientes);
+        sistema.proyecto().getBloques().add(1, clientes);
+        sistema.registrosPorBloque().put(CLIENTES, new ArrayList<>(List.of(cliente)));
+        agregarCamposDeCliente(sistema);
+    }
+
+    private static Bloque clientes() {
+        Bloque clientes = bloque(CLIENTES, TipoBloque.CLIENTES);
+        clientes.setNombre("Clientes");
+        clientes.setCampos(new ArrayList<>(List.of(campo(CLIENTES, "name", TipoCampo.TEXTO))));
+        return clientes;
+    }
+
+    private static Registro cliente(Bloque clientes) {
+        Registro cliente = Registro.nuevo(NEGOCIO, CLIENTES, new LinkedHashMap<>(), AHORA);
+        cliente.setId(CLIENTE);
+        poner(clientes, cliente, "name", "Ana López");
+        return cliente;
+    }
+
+    private static void agregarCamposDeCliente(Sistema sistema) {
+        Bloque ventas = sistema.proyecto().getBloques().stream().filter(bloque -> bloque.getId().equals(VENTAS))
+                .findFirst().orElseThrow();
+        ventas.getCampos().add(datosDeCampo(VENTAS, "customer", TipoCampo.RELACION)
+                .bloqueRelacionadoId(CLIENTES).build());
+        ventas.getCampos().add(campo(VENTAS, "credit", TipoCampo.SI_NO));
     }
 
     public static void poner(Bloque bloque, Registro registro, String clave, Object valor) {

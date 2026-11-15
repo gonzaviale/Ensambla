@@ -8,11 +8,12 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 public record ResumenCajaItem(List<CobrarVentaResponse> ventas, BigDecimal total, BigDecimal efectivo,
-                              BigDecimal transferencia, BigDecimal tarjeta, OffsetDateTime desde, String revision) {
+                              BigDecimal transferencia, BigDecimal tarjeta, OffsetDateTime desde, String revision,
+                              List<CobroCajaItem> cobros) {
 
     public static ResumenCajaItem de(ResumenCaja resumen) {
         return new ResumenCajaItem(resumen.ventas().stream().map(CobrarVentaResponse::de).toList(),
                 resumen.total(), resumen.efectivo(), resumen.transferencia(), resumen.tarjeta(),
-                resumen.desde(), resumen.revision());
+                resumen.desde(), resumen.revision(), resumen.cobros().stream().map(CobroCajaItem::de).toList());
     }
 }

@@ -1,3 +1,5 @@
+import { ImporteLibreCaja } from './ImporteLibreCaja';
+import { detalleLineaVendida } from '@/lib/caja/importeLibre';
 import { useEffect, useRef, useState } from 'react';
 import { useCaja } from '@/hooks/caja/useCaja';
 import { useCamaraCodigo } from '@/hooks/escaneo/useCamaraCodigo';
@@ -9,6 +11,7 @@ import { CompraActual } from './CompraActual';
 import { CobroCaja } from './CobroCaja';
 import { DialogoCaja } from './DialogoCaja';
 import { GestionCaja } from './GestionCaja';
+import { ClientesCaja } from './ClientesCaja';
 import { ProductosCaja } from './ProductosCaja';
 import { BarraCompraMovil } from './BarraCompraMovil';
 import { dineroCaja } from '@/lib/caja';
@@ -28,7 +31,10 @@ export function CajaMostrador({
   const caja = useCaja(sistemaId, inventarioId, ventasId);
   const { preparar: prepararAudio } = useSonidosEscaneo();
   const [consulta, setConsulta] = useState('');
-  const [vista, setVista] = useState<'cobrar' | 'dia' | 'abierta' | 'cierres'>('cobrar');
+  const [importeLibre, setImporteLibre] = useState(false);
+  const [vista, setVista] = useState<
+    'cobrar' | 'dia' | 'cobros' | 'abierta' | 'cierres' | 'clientes'
+  >('cobrar');
   const [favoritos, setFavoritos] = useState(false);
   const [cobrando, setCobrando] = useState(!!caja.solicitud);
   const [entradaElegida, setEntradaElegida] = useState<'escanear' | 'buscar' | 'favoritos'>(
@@ -41,6 +47,7 @@ export function CajaMostrador({
   }, true);
   const bloqueada =
     bloqueoExterno ||
+    importeLibre ||
     !!caja.seleccion ||
     cobrando ||
     favoritos ||
@@ -93,20 +100,32 @@ export function CajaMostrador({
         </button>
         <button
           type="button"
-          aria-current={vista !== 'cobrar' ? 'page' : undefined}
+          aria-current={vista !== 'cobrar' && vista !== 'clientes' ? 'page' : undefined}
           disabled={bloqueada}
-          onClick={() => setVista(vista === 'cobrar' ? 'dia' : vista)}
+          onClick={() => setVista(vista === 'cobrar' || vista === 'clientes' ? 'dia' : vista)}
         >
           <Icon name="chart" />
           Actividad
         </button>
+        <button
+          type="button"
+          aria-current={vista === 'clientes' ? 'page' : undefined}
+          disabled={bloqueada}
+          onClick={() => setVista('clientes')}
+        >
+          <Icon name="users" />
+          Clientes
+        </button>
       </nav>
-      {vista !== 'cobrar' ? (
+      {vista === 'clientes' ? (
+        <ClientesCaja sistemaId={sistemaId} inventarioId={inventarioId} />
+      ) : vista !== 'cobrar' ? (
         <>
           <nav className="caja-actividad-vistas" aria-label="Consultar actividad">
             {(
               [
                 ['dia', 'Resumen del día', 'chart'],
+                ['cobros', 'Cobros', 'wallet'],
                 ['abierta', 'Caja abierta', 'wallet'],
                 ['cierres', 'Cierres guardados', 'folder'],
               ] as const
@@ -320,6 +339,14 @@ export function CajaMostrador({
                     <Icon name="plus" />
                     Agregar artículo sin código
                   </button>
+                  <button
+                    type="button"
+                    className="btn secondary caja-articulo-manual"
+                    disabled={bloqueada}
+                    onClick={() => setImporteLibre(true)}
+                  >
+                    Agregar importe
+                  </button>
                 </section>
               </div>
               <CompraActual
@@ -348,6 +375,9 @@ export function CajaMostrador({
           </div>
         </>
       )}
+      {importeLibre && (
+        <ImporteLibreCaja onAgregar={caja.agregarImporte} onCerrar={() => setImporteLibre(false)} />
+      )}
       {caja.seleccion && caja.inventario && (
         <ArticuloCajaForm
           seleccion={caja.seleccion}
@@ -360,11 +390,15 @@ export function CajaMostrador({
       )}
       {(cobrando || caja.solicitud) && !caja.ticket && (
         <CobroCaja
+          sistemaId={sistemaId}
+          ventasId={ventasId}
           total={caja.total}
           ocupada={caja.ocupada}
           incierta={!!caja.solicitud && !caja.ocupada}
           error={caja.error}
-          onConfirmar={(medio, recibido, pagos) => void caja.confirmar(medio, recibido, pagos)}
+          onConfirmar={(medio, recibido, pagos, clienteId) =>
+            void caja.confirmar(medio, recibido, pagos, clienteId)
+          }
           onCerrar={() => setCobrando(false)}
         />
       )}
@@ -379,16 +413,23 @@ export function CajaMostrador({
           <div className="caja-confirmada">
             <Icon name="check" />
             <strong>{dineroCaja(Math.round(caja.ticket.total * 100))}</strong>
-            <p>La venta y el cobro quedaron guardados.</p>
+            <p>
+              {(caja.ticket.saldo ?? 0) > 0
+                ? 'La venta y el saldo pendiente quedaron guardados.'
+                : 'La venta y el cobro quedaron guardados.'}
+            </p>
+            {caja.ticket.clienteNombre && <p>Cliente: {caja.ticket.clienteNombre}</p>}
+            {(caja.ticket.saldo ?? 0) > 0 && (
+              <p>
+                Pendiente: <strong>{dineroCaja(Math.round((caja.ticket.saldo ?? 0) * 100))}</strong>
+              </p>
+            )}
           </div>
           <ul className="caja-resumen">
             {caja.ticket.lineas.map((linea, indice) => (
               <li key={indice}>
                 <span>
-                  {linea.nombre} ·{' '}
-                  {linea.modo === 'PESO'
-                    ? `${Math.round(linea.cantidad * 1000)} g`
-                    : `${linea.cantidad} u.`}
+                  {linea.nombre} · {detalleLineaVendida(linea)}
                 </span>
                 <strong>{dineroCaja(Math.round(linea.importe * 100))}</strong>
               </li>

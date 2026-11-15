@@ -5,7 +5,7 @@ on:
     branches: [dev, stg, main]
     paths: ["backend/**", "frontend/**", "deploy/**", "compose.yaml", "scripts/verificar-integracion.mjs", "scripts/verificar-caja.mjs", ".github/workflows/ci-frontend.yml"]
   pull_request:
-    branches: [dev, stg, main]
+    branches: [dev, stg, main, feat/caja]
     paths: ["backend/**", "frontend/**", "deploy/**", "compose.yaml", "scripts/verificar-integracion.mjs", "scripts/verificar-caja.mjs", ".github/workflows/ci-frontend.yml"]
 
 jobs:

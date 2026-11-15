@@ -31,6 +31,11 @@ import org.springframework.validation.annotation.Validated;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Max;
 import java.time.LocalDate;
+import com.ensambla.backend.domain.useCase.caja.listarVentas.ListarVentasCaja;
+import com.ensambla.backend.domain.useCase.caja.registrarCobro.RegistrarCobro;
+import com.ensambla.backend.infrastructure.presentation.dto.caja.CobroCajaWebResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.caja.ListarVentasCajaWebResponse;
+import com.ensambla.backend.infrastructure.presentation.dto.caja.RegistrarCobroWebRequest;
 
 @RestController
 @RequestMapping("/api/caja")
@@ -44,6 +49,24 @@ public class CajaController {
     private final ConsultarCaja consultarCaja;
     private final CerrarCaja cerrarCaja;
     private final ObtenerCierre obtenerCierre;
+    private final ListarVentasCaja listarVentasCaja;
+    private final RegistrarCobro registrarCobro;
+
+    @GetMapping("/ventas")
+    @Operation(summary = "Consultar ventas y saldos actuales para las cuentas de clientes")
+    public ResponseEntity<ListarVentasCajaWebResponse> listar(Authentication authentication,
+            @RequestParam ProyectoId proyectoId, @RequestParam BloqueId inventarioId) {
+        return ResponseEntity.ok(cajaPresentationMapper.toListadoResponse(listarVentasCaja.execute(
+                cajaPresentationMapper.toListado(UsuarioId.de(authentication.getName()), proyectoId, inventarioId))));
+    }
+
+    @PostMapping("/cobros")
+    @Operation(summary = "Registrar un pago de deudas del mismo cliente una sola vez")
+    public ResponseEntity<CobroCajaWebResponse> registrarCobro(Authentication authentication,
+            @Valid @RequestBody RegistrarCobroWebRequest request) {
+        return ResponseEntity.ok(cajaPresentationMapper.toCobroResponse(registrarCobro.execute(
+                cajaPresentationMapper.toCobro(UsuarioId.de(authentication.getName()), request))));
+    }
 
     @GetMapping("/resumen")
     @Operation(summary = "Consultar ventas del día, período abierto y cierres guardados")
