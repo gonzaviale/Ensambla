@@ -27,6 +27,14 @@ export const nuevoNegocioSchema = z
   .object({
     nombre: z.string().trim().min(1).max(NOMBRE_NEGOCIO_MAX),
     rubro: z.string().min(1).optional(),
+    ubicacion: z
+      .object({
+        direccion: z.string().trim().min(1).max(500),
+        localidad: z.string().trim().min(1).max(120),
+        latitud: z.number().finite().min(-90).max(90),
+        longitud: z.number().finite().min(-180).max(180),
+      })
+      .optional(),
   })
   .strict();
 export type NuevoNegocio = z.infer<typeof nuevoNegocioSchema>;

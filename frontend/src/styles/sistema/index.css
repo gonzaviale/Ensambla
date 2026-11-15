@@ -28,6 +28,7 @@
 @import './taller.css';
 /* Tu cuenta: la configuración del usuario, a la que lleva el avatar. */
 @import './cuenta.css';
+@import './negocios.css';
 /* Avisos arriba de la sección, marco animado de «Ver» y cifras del comercio. */
 @import './sistema-avisos.css';
 /* Los dos íconos de herramientas de la sección. */

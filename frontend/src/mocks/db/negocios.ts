@@ -5,6 +5,7 @@ import type {
   ResumenConjunto,
   ResumenDeNegocio,
 } from '@/types/negocios';
+import type { ConfiguracionNegocio } from '@/types/negocio';
 import { estado, sistemasDe, type UsuarioMock } from './estado';
 import { panelDe } from './panel';
 import { planesDe } from './planes';
@@ -13,7 +14,9 @@ import { planesDe } from './planes';
 // se atribuyen al primer negocio (el que se crea al registrarse); los que se agregan después arrancan vacíos.
 // Cuando cada pantalla trabaje con el negocio activo, los datos pasarán a colgar de cada negocio.
 
-export type NegocioMock = Omit<NegocioDeLaCuenta, 'activo'>;
+export type NegocioMock = Omit<NegocioDeLaCuenta, 'activo'> & {
+  configuracion: ConfiguracionNegocio;
+};
 
 export type NegociosDeLaCuenta = { activoId: string; negocios: NegocioMock[] };
 
@@ -25,6 +28,13 @@ function negocioInicial(usuario: UsuarioMock): NegocioMock {
     nombre: configuracion?.nombre ?? `Negocio de ${usuario.nombre}`,
     rubro: configuracion?.rubro ?? 'OTRO',
     creadoEn: new Date().toISOString(),
+    configuracion: configuracion ?? {
+      nombre: `Negocio de ${usuario.nombre}`,
+      rubro: 'OTRO',
+      ubicacion: null,
+      comparteDatosZona: true,
+      zona: null,
+    },
   };
 }
 
@@ -51,9 +61,28 @@ export function limiteDeNegociosDe(email: string) {
 }
 
 export const aNegocioDeLaCuenta = (negocio: NegocioMock, activoId: string): NegocioDeLaCuenta => ({
-  ...negocio,
+  id: negocio.id,
+  nombre: negocio.nombre,
+  rubro: negocio.rubro,
+  creadoEn: negocio.creadoEn,
   activo: negocio.id === activoId,
 });
+
+export function reflejarNegocioActivo(email: string) {
+  const cuenta = estado.negociosDeLaCuenta.get(email);
+  const activo = cuenta?.negocios.find((negocio) => negocio.id === cuenta.activoId);
+  if (activo) estado.negocios.set(email, structuredClone(activo.configuracion));
+}
+
+export function actualizarConfiguracionActiva(email: string, configuracion: ConfiguracionNegocio) {
+  const cuenta = estado.negociosDeLaCuenta.get(email);
+  const activo = cuenta?.negocios.find((negocio) => negocio.id === cuenta.activoId);
+  if (activo) {
+    activo.nombre = configuracion.nombre;
+    activo.rubro = configuracion.rubro;
+    activo.configuracion = structuredClone(configuracion);
+  }
+}
 
 export function listaDeNegociosDe(usuario: UsuarioMock): ListaDeNegocios {
   const { activoId, negocios } = negociosDe(usuario);

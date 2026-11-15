@@ -19,6 +19,8 @@ export type Modal =
   | { tipo: 'plantilla'; clave: ClavePlantilla }
   | { tipo: 'ayuda'; respuesta?: string }
   | { tipo: 'pruebaPremium' }
+  | { tipo: 'agregarNegocio' }
+  | { tipo: 'eliminarNegocio'; negocioId: string; nombre: string }
   | { tipo: 'contratarPremium' }
   | { tipo: 'cancelarRenovacion' }
   /** Configurar la sección: cambiarle el nombre o, desde ahí, eliminarla. */
