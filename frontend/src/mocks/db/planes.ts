@@ -1,5 +1,6 @@
 import { totals } from '@/lib/sistema/core';
 import type { Plan, Planes } from '@/types/planes';
+import { LIMITE_GRATUITO, LIMITE_PREMIUM } from './conversacionObjetivos';
 import { estado, sistemasDe } from './estado';
 
 const CATALOGO: Plan[] = [
@@ -13,6 +14,7 @@ const CATALOGO: Plan[] = [
     limiteProyectos: 1,
     limiteRegistros: 1000,
     limitePaginasIaMensuales: 10,
+    limiteObjetivosIaMensuales: LIMITE_GRATUITO,
     funciones: [],
   },
   {
@@ -25,6 +27,7 @@ const CATALOGO: Plan[] = [
     limiteProyectos: null,
     limiteRegistros: null,
     limitePaginasIaMensuales: 100,
+    limiteObjetivosIaMensuales: LIMITE_PREMIUM,
     funciones: [
       'RECETAS_COSTOS',
       'REPORTES_FILTRADOS',

@@ -1,7 +1,9 @@
-import { lunesDe } from '@/lib/objetivosAutogestion';
+import { lunesDe, sumarSemanas } from '@/lib/objetivosAutogestion';
 import type {
   CandidatoMiniObjetivo,
   DecisionObjetivo,
+  MiniManual,
+  MiniMedido,
   MiniObjetivo,
   ObjetivoDelServidor,
   SemanaObjetivo,
@@ -23,23 +25,17 @@ export type DatosAutogestion = {
 
 const DIA_MS = 86_400_000;
 
-export function sumarSemanas(lunes: string, semanas: number): string {
-  return new Date(new Date(`${lunes}T12:00:00Z`).getTime() + semanas * 7 * DIA_MS)
-    .toISOString()
-    .slice(0, 10);
-}
-
 const redondear = (valor: number) => Math.round(valor / 100) * 100;
 
 function mini(
   id: string,
   posicion: number,
   datos: Pick<
-    MiniObjetivo,
+    MiniMedido,
     'tipo' | 'titulo' | 'justificacion' | 'valorInicial' | 'valorActual' | 'meta'
   > &
-    Partial<MiniObjetivo>,
-): MiniObjetivo {
+    Partial<MiniMedido>,
+): MiniMedido {
   const recorrido = datos.meta - datos.valorInicial;
   const avance =
     recorrido === 0
@@ -47,6 +43,7 @@ function mini(
       : Math.min(1, Math.max(0, (datos.valorActual - datos.valorInicial) / recorrido));
   return {
     id,
+    modo: 'MEDIDO',
     posicion,
     sentido: 'SUBE',
     estado: 'EN_CURSO',
@@ -88,7 +85,8 @@ function decision(
 export function datosDeEjemplo(objetivo: ObjetivoDelServidor, hoy: string): DatosAutogestion {
   const actual = lunesDe(hoy);
   const semana = (atras: number) => sumarSemanas(actual, -atras);
-  const meta = objetivo.meta;
+  // Un objetivo sin meta en pesos no tiene semanas de ejemplo: el simulador sólo arma las del monetario.
+  const meta = objetivo.meta ?? 0;
   const resultados = [0.3, 0.31, 0.34, 0.36, 0.35, 0.41, 0.45].map((parte) =>
     redondear(meta * parte),
   );
@@ -206,7 +204,7 @@ export function datosDeEjemplo(objetivo: ObjetivoDelServidor, hoy: string): Dato
     return {
       semana: lunes,
       resultado,
-      avance: Math.min(1, resultado / meta),
+      avance: meta > 0 ? Math.min(1, resultado / meta) : 0,
       decisiones: conteo(lunes),
       queFunciono: `${variacion} ${faltan(resultado)}`,
       textoConIa: false,
@@ -247,7 +245,8 @@ export function candidatosPara(
 ): CandidatoMiniObjetivo[] {
   const enCurso = new Set(datos.minis.map((item) => item.titulo));
   return CANDIDATOS.filter(
-    (candidato) => candidato.tipo !== mini.tipo && !enCurso.has(candidato.titulo),
+    (candidato) =>
+      (mini.modo === 'MANUAL' || candidato.tipo !== mini.tipo) && !enCurso.has(candidato.titulo),
   ).slice(0, 3);
 }
 
@@ -297,3 +296,106 @@ const CANDIDATOS: CandidatoMiniObjetivo[] = [
     aporteEstimado: 7_500,
   },
 ];
+
+export const ID_OBJETIVO_SIN_DATOS_DE_EJEMPLO = 'objetivo-ejemplo-sin-datos';
+export const TEXTO_OBJETIVO_SIN_DATOS_DE_EJEMPLO = 'Que más gente conozca mi local';
+
+/**
+ * Un objetivo sin datos de ejemplo para la demo: la semana pasada cerró con tres acciones (una hecha, una a medias y
+ * una no hecha) y hay tres manuales en curso. El del domingo pasado quedó sin contar; uno de esta semana ya se
+ * respondió y el otro espera.
+ */
+export function datosSinDatosDeEjemplo(
+  objetivoId: string,
+  hoy: string,
+): DatosAutogestion & { respondido: string } {
+  const actual = lunesDe(hoy);
+  const pasada = sumarSemanas(actual, -1);
+  const id = (sufijo: string) => `${objetivoId}-${sufijo}`;
+  const manual = (
+    sufijo: string,
+    posicion: number,
+    titulo: string,
+    justificacion: string,
+    semanaInicio: string,
+    estado: MiniObjetivo['estado'] = 'EN_CURSO',
+  ): MiniManual => ({
+    id: id(sufijo),
+    modo: 'MANUAL',
+    posicion,
+    estado,
+    titulo,
+    justificacion,
+    semanaInicio,
+    textoConIa: true,
+  });
+
+  const hecha = manual(
+    'hecha',
+    1,
+    'Hablá con 3 clientes sobre lo que querés lograr',
+    'Sus respuestas te dicen por dónde empezar.',
+    pasada,
+    'REEMPLAZADO',
+  );
+  const aMedias = manual(
+    'a-medias',
+    2,
+    'Preguntale a 5 clientes qué les falta en el local',
+    'Te dicen qué agregar sin que tengas que adivinar.',
+    pasada,
+    'REEMPLAZADO',
+  );
+  const noHecha = manual(
+    'no-hecha',
+    3,
+    'Saludá por el nombre a los clientes de siempre',
+    'Un saludo personal hace que vuelvan.',
+    pasada,
+    'REEMPLAZADO',
+  );
+  const sinContar = manual(
+    'sin-contar',
+    3,
+    'Anotá qué te piden y no tenés',
+    'Con esa lista sabés qué sumar primero.',
+    pasada,
+  );
+  const respondida = manual(
+    'respondida',
+    1,
+    'Pedile a 3 clientes que te recomienden con un vecino',
+    'Es la forma más barata de que te conozcan.',
+    actual,
+  );
+  const pendiente = manual(
+    'pendiente',
+    2,
+    'Poné un cartel en la vereda con lo que ofrecés',
+    'Mucha gente pasa por la puerta y no sabe qué vendés.',
+    actual,
+  );
+
+  return {
+    minis: [respondida, pendiente, sinContar].sort((a, b) => a.posicion - b.posicion),
+    historial: [noHecha, aMedias, hecha],
+    progreso: [],
+    decisiones: [
+      decision(id('d1'), 'MINI_HECHO', pasada, hecha.titulo, hecha.id),
+      decision(id('d2'), 'MINI_EN_PARTE', pasada, aMedias.titulo, aMedias.id),
+      decision(id('d3'), 'MINI_NO_HECHO', pasada, noHecha.titulo, noHecha.id),
+    ],
+    semanas: [
+      {
+        semana: pasada,
+        resultado: 0,
+        avance: 0,
+        decisiones: { aplicadas: 0, descartadas: 0, aceptadas: 0, ignoradas: 0 },
+        queFunciono: 'Esta semana me contaste cómo te fue con 3 mini-objetivos.',
+        textoConIa: false,
+        reajustes: [],
+      },
+    ],
+    respondido: respondida.id,
+  };
+}

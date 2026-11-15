@@ -2286,3 +2286,290 @@
   font-size: 14px;
   font-weight: 700;
 }
+
+/* --- Objetivos con Sami (H-60): conversación, mini-objetivos propuestos y cuota. Pensado para el celular primero. --- */
+.sami-conversar {
+  grid-template-columns: minmax(0, 1fr);
+}
+.sami-cuota {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--paper, #fff);
+  color: var(--petrol);
+  font-size: 13px;
+  font-weight: 700;
+}
+.sami-cuota[data-agotada='true'] {
+  border-color: var(--yellow);
+  background: #fffbe6;
+  color: var(--ink);
+}
+.sami-hilo {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sami-hilo li {
+  max-width: 92%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--color-soft-surface, #f5f6f3);
+}
+.sami-hilo li[data-rol='PERSONA'] {
+  justify-self: end;
+  background: #e6f3f7;
+}
+.sami-hilo-quien {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.sami-hilo p {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+.sami-tipo {
+  color: var(--petrol);
+  font-weight: 800;
+}
+.sami-datos {
+  color: var(--muted);
+  font-size: 13px;
+}
+.sami-aparte {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--yellow);
+  border-radius: 14px;
+  background: #fff;
+}
+.sami-aparte-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.sami-subtitulo {
+  margin-bottom: 8px;
+  font-size: 15px;
+  color: var(--petrol);
+}
+.sami-minis {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sami-mini {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--petrol);
+  border-radius: 14px;
+  background: #fff;
+}
+.sami-mini[data-modo='manual'] {
+  border-top-color: var(--orange);
+}
+.sami-mini-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sami-mini-cabecera .objetivos-textual {
+  margin-left: auto;
+}
+.sami-mini h4 {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.sami-mini-numeros {
+  color: var(--muted);
+  font-size: 13px;
+}
+.sami-mini-edicion {
+  display: grid;
+  gap: 10px;
+}
+.sami-mini-edicion .field {
+  margin-bottom: 0;
+}
+.sami-escribir {
+  display: grid;
+  gap: 12px;
+}
+.objetivos-minis-resumen {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0 0 0 18px;
+  color: var(--ink);
+  font-size: 14px;
+}
+@media (max-width: 600px) {
+  .sami-hilo li {
+    max-width: 100%;
+  }
+  .sami-aparte-acciones .btn,
+  .sami-escribir > .btn {
+    width: 100%;
+  }
+  .objetivos-formulario-acciones .btn {
+    flex: 1 1 100%;
+  }
+}
+
+/* --- Mini-objetivos manuales (H-60): respuestas rápidas, pendientes y resumen del domingo --- */
+.mini-manual[data-pendiente='true'] {
+  border-top-color: var(--petrol);
+}
+.respuesta-rapida {
+  display: grid;
+  gap: 14px;
+}
+.respuesta-rapida fieldset {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.respuesta-rapida legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.respuesta-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.respuesta-opciones button {
+  flex: 1 1 auto;
+  min-width: 88px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.respuesta-opciones button[aria-pressed='true'] {
+  border-color: var(--petrol);
+  background: var(--petrol);
+  color: #fff;
+}
+.respuesta-opciones button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.respuesta-opciones button:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+.respuesta-rapida .field {
+  margin-bottom: 0;
+}
+
+.objetivos-pendientes {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.objetivos-pendientes h2 {
+  font-size: 18px;
+  color: var(--petrol);
+}
+.objetivos-pendientes-cuenta {
+  color: var(--muted);
+  font-weight: 700;
+}
+.objetivos-pendientes-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 14px;
+}
+
+.resumen-domingo {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--petrol);
+  border-radius: 14px;
+  background: #fff;
+}
+.resumen-domingo h3 {
+  font-size: 16px;
+  color: var(--petrol);
+}
+.resumen-domingo-columnas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 16px;
+}
+.resumen-domingo h4 {
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.resumen-domingo ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+.resumen-domingo li svg {
+  vertical-align: -3px;
+}
+.resumen-domingo [data-parte='cumplido'] li svg {
+  color: var(--color-ok);
+}
+.resumen-domingo [data-parte='nuevo'] li svg {
+  color: var(--orange);
+}
+.resumen-domingo-motivo {
+  color: var(--muted);
+}
+@media (max-width: 600px) {
+  .respuesta-opciones button {
+    flex: 1 1 calc(50% - 8px);
+  }
+  .respuesta-rapida .btn {
+    width: 100%;
+  }
+}
+
+.objetivos-definir-otro {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+@media (max-width: 600px) {
+  .objetivos-definir-otro,
+  .objetivos-definir-otro .btn {
+    width: 100%;
+  }
+}

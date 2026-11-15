@@ -8,7 +8,9 @@ import {
   resultadoProyectado,
   ultimoValor,
   valoresRecomendados,
+  tieneMeta,
   type Objetivo,
+  type ObjetivoConMeta,
   type Palanca,
   type Valores,
 } from '@/lib/objetivos';
@@ -23,8 +25,16 @@ type Props = {
 };
 
 // «Probá un escenario»: Sami explica cómo funciona y la persona lo prueba con uno de sus objetivos.
-export function LeccionEscenario({ objetivos, objetivoId, onElegir, onDefinir, onPlan }: Props) {
+export function LeccionEscenario({
+  objetivos: todos,
+  objetivoId,
+  onElegir,
+  onDefinir,
+  onPlan,
+}: Props) {
   const idSelector = useId();
+  // El escenario mueve palancas hasta una meta en pesos: un objetivo sin meta no tiene qué simular.
+  const objetivos = todos.filter(tieneMeta);
   const propio = objetivos.find((objetivo) => objetivo.id === objetivoId) ?? objetivos[0];
   const objetivo = propio ?? objetivoDeEjemplo();
 
@@ -76,7 +86,7 @@ export function LeccionEscenario({ objetivos, objetivoId, onElegir, onDefinir, o
   );
 }
 
-function Simulador({ objetivo }: { objetivo: Objetivo }) {
+function Simulador({ objetivo }: { objetivo: ObjetivoConMeta }) {
   const recomendados = valoresRecomendados(objetivo);
   const [valores, setValores] = useState<Valores>(recomendados);
   const proyectado = resultadoProyectado(objetivo, valores);

@@ -22,7 +22,7 @@ const conObjetivoDeEjemplo = () => {
 };
 
 const minis = async () =>
-  within(await screen.findByRole('region', { name: 'Tus 3 mini-objetivos' }, ESPERA));
+  within(await screen.findByRole('region', { name: 'Tus mini-objetivos' }, ESPERA));
 
 describe('la semana de un objetivo que se autogestiona', () => {
   it('con seis semanas simuladas muestra los 3 minis, el gráfico con las decisiones y los reajustes con su motivo', async () => {
@@ -159,7 +159,14 @@ describe('la semana de un objetivo que se autogestiona', () => {
   it('el objetivo de otra cuenta no se muestra', async () => {
     setupUsuarioConSesion();
     guardarObjetivosDe('otra@ensambla.test', [
-      { id: 'ajeno', texto: 'Ajeno', meta: 100000, creadoEn: '2026-10-01T12:00:00' },
+      {
+        id: 'ajeno',
+        texto: 'Ajeno',
+        tipo: 'MONETARIO',
+        meta: 100000,
+        armadoConSami: false,
+        creadoEn: '2026-10-01T12:00:00',
+      },
     ]);
     renderApp('/objetivos/ajeno');
 

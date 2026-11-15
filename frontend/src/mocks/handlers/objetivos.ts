@@ -2,13 +2,27 @@ import { delay, http, HttpResponse } from 'msw';
 import { z } from 'zod';
 import { hoy } from '@/lib/sistema/formato';
 import {
+  hizoSchema,
   objetivosDelServidorSchema,
+  quePasoSchema,
+  tipoMiniObjetivoSchema,
+  type MiniMedido,
   type MiniObjetivo,
   type ObjetivoDelServidor,
+  type RespuestaPendiente,
   type TipoDecision,
 } from '@/types/objetivos';
+import {
+  ConversacionInvalida,
+  LIMITE_GRATUITO,
+  LIMITE_PREMIUM,
+  minisDeUnObjetivo,
+  proponerSimulado,
+  tipoDeObjetivo,
+} from '../db/conversacionObjetivos';
 import { estado, guardarObjetivosDe, objetivosDe, sistemasDe } from '../db/estado';
 import { pasosObjetivoSimulados } from '../db/objetivos';
+import { planesDe } from '../db/planes';
 import {
   candidatosPara,
   datosDeEjemplo,
@@ -49,9 +63,89 @@ export const handlersObjetivos = [
     const creado: ObjetivoDelServidor = {
       id: crypto.randomUUID(),
       texto: datos.data.texto,
+      tipo: 'MONETARIO',
       meta: datos.data.meta,
+      armadoConSami: false,
       creadoEn: new Date().toISOString(),
     };
+    guardarObjetivosDe(usuario.email, [...objetivosDe(usuario.email), creado]);
+    return HttpResponse.json(creado, {
+      status: 201,
+      headers: { Location: `/api/objetivos/${creado.id}` },
+    });
+  }),
+  http.get(api('/objetivos/cuota'), async ({ request }) => {
+    const { usuario, error } = cuenta(request);
+    if (error) return error;
+    await delay(LATENCIA_BACKEND_MS);
+    return HttpResponse.json(cuotaDe(usuario.email));
+  }),
+  // Los manuales en curso sin respuesta, del más viejo al más nuevo.
+  http.get(api('/objetivos/respuestas-pendientes'), async ({ request }) => {
+    const { usuario, error } = cuenta(request);
+    if (error) return error;
+    await delay(LATENCIA_BACKEND_MS);
+    const pendientes: RespuestaPendiente[] = objetivosDe(usuario.email).flatMap((objetivo) =>
+      (estado.autogestion.get(objetivo.id)?.minis ?? []).flatMap((mini) =>
+        mini.modo === 'MANUAL' &&
+        mini.estado === 'EN_CURSO' &&
+        !estado.respuestasDeMinis.has(mini.id)
+          ? [{ objetivoId: objetivo.id, objetivoTexto: objetivo.texto, miniObjetivo: mini }]
+          : [],
+      ),
+    );
+    return HttpResponse.json(
+      pendientes.sort((a, b) =>
+        a.miniObjetivo.semanaInicio.localeCompare(b.miniObjetivo.semanaInicio),
+      ),
+    );
+  }),
+  http.post(api('/objetivos/sami/propuesta'), async ({ request }) => {
+    const { usuario, error } = cuenta(request, true);
+    if (error) return error;
+    await delay(LATENCIA_BACKEND_MS);
+    const pedido = conversacionSchema.safeParse(await request.json());
+    if (!pedido.success)
+      return errorResponse(400, 'Contale a Sami qué querés lograr.', pathDe(request));
+    try {
+      const cuota = cuotaDe(usuario.email);
+      return HttpResponse.json(proponerSimulado(pedido.data.mensajes, cuota));
+    } catch (problema) {
+      if (problema instanceof ConversacionInvalida)
+        return errorResponse(400, problema.message, pathDe(request));
+      throw problema;
+    }
+  }),
+  http.post(api('/objetivos/sami'), async ({ request }) => {
+    const { usuario, error } = cuenta(request, true);
+    if (error) return error;
+    await delay(LATENCIA_BACKEND_MS);
+    const pedido = guardarConSamiSchema.safeParse(await request.json());
+    if (!pedido.success)
+      return errorResponse(400, 'Revisá los datos del objetivo.', pathDe(request));
+    const { texto, seguimientoManual, minis } = pedido.data;
+    const id = crypto.randomUUID();
+    const guardados = minisDeUnObjetivo(minis, seguimientoManual, texto, id, hoy());
+    if (!guardados)
+      return errorResponse(400, 'Revisá los mini-objetivos que elegiste.', pathDe(request));
+    const armadoConSami = !seguimientoManual;
+    const creado: ObjetivoDelServidor = {
+      id,
+      texto,
+      tipo: seguimientoManual ? 'SIN_DATOS' : (tipoDeObjetivo(guardados) ?? 'SIN_DATOS'),
+      meta: null,
+      armadoConSami,
+      creadoEn: new Date().toISOString(),
+    };
+    estado.autogestion.set(id, {
+      minis: guardados,
+      historial: [],
+      progreso: [],
+      decisiones: [],
+      semanas: [],
+    });
+    if (armadoConSami)
+      estado.objetivosConIa.set(claveDeCuota(usuario.email), cuotaDe(usuario.email).usadas + 1);
     guardarObjetivosDe(usuario.email, [...objetivosDe(usuario.email), creado]);
     return HttpResponse.json(creado, {
       status: 201,
@@ -88,6 +182,50 @@ export const handlersObjetivos = [
   }),
   ...handlersAutogestion(),
 ];
+
+const conversacionSchema = z.object({
+  mensajes: z.array(z.object({ rol: z.enum(['PERSONA', 'SAMI']), texto: z.string() })),
+});
+
+const guardarConSamiSchema = z.object({
+  texto: z.string().trim().min(1).max(500),
+  seguimientoManual: z.boolean().default(false),
+  minis: z.array(
+    z.discriminatedUnion('modo', [
+      z.object({
+        modo: z.literal('MEDIDO'),
+        tipo: tipoMiniObjetivoSchema,
+        registroId: z
+          .string()
+          .nullable()
+          .optional()
+          .transform((valor) => valor ?? null),
+        referencia: z
+          .string()
+          .nullable()
+          .optional()
+          .transform((valor) => valor ?? null),
+      }),
+      z.object({ modo: z.literal('MANUAL'), titulo: z.string(), justificacion: z.string() }),
+    ]),
+  ),
+});
+
+const claveDeCuota = (email: string) => `${email}|${new Date().toISOString().slice(0, 7)}`;
+
+/** Gratuito 5 objetivos con IA por mes, Premium 20; el mes se cuenta desde que se guardó el objetivo. */
+function cuotaDe(email: string) {
+  const premium = planesDe(email).suscripcion.codigoPlanActual === 'PREMIUM';
+  const limite = premium ? LIMITE_PREMIUM : LIMITE_GRATUITO;
+  const usadas = estado.objetivosConIa.get(claveDeCuota(email)) ?? 0;
+  return { usadas, limite, restantes: Math.max(0, limite - usadas) };
+}
+
+const respuestaSchema = z.object({
+  hizo: hizoSchema,
+  quePaso: quePasoSchema,
+  comentario: z.string().trim().max(300, 'Máximo 300 caracteres').optional(),
+});
 
 const decidirSchema = z.object({ tipo: z.enum(['ACEPTADO', 'IGNORADO']) });
 const reemplazoSchema = z.object({
@@ -137,6 +275,68 @@ function handlersAutogestion() {
         faltanDatos: null,
       });
     }),
+    http.post(ruta('/mini-objetivos/:miniId/respuesta'), async ({ request, params }) => {
+      const { datos, error } = datosDe(request, param(params.id), true);
+      if (error) return error;
+      const { mini, error: sinMini } = miniEnCurso(request, datos, param(params.miniId));
+      if (sinMini) return sinMini;
+      await delay(LATENCIA_BACKEND_MS);
+      if (mini.modo !== 'MANUAL' || mini.estado !== 'EN_CURSO')
+        return errorResponse(
+          400,
+          'Sólo se responde un mini-objetivo manual en curso',
+          pathDe(request),
+        );
+      const pedido = respuestaSchema.safeParse(await request.json());
+      if (!pedido.success)
+        return errorResponse(400, 'Revisá tu respuesta.', pathDe(request), {
+          [String(pedido.error.issues[0]?.path[0])]: pedido.error.issues[0]?.message ?? 'Inválido',
+        });
+      // Si lo hiciste, tuviste tiempo.
+      if (pedido.data.hizo === 'SI' && pedido.data.quePaso === 'NO_TUVE_TIEMPO')
+        return errorResponse(
+          400,
+          'Si lo hiciste, tuviste tiempo: contanos qué pasó.',
+          pathDe(request),
+        );
+      if (estado.respuestasDeMinis.has(mini.id))
+        return errorResponse(
+          409,
+          'Ya le contaste a Sami cómo te fue esta semana.',
+          pathDe(request),
+        );
+      const respuesta = {
+        id: crypto.randomUUID(),
+        miniObjetivoId: mini.id,
+        hizo: pedido.data.hizo,
+        quePaso: pedido.data.quePaso,
+        comentario: pedido.data.comentario || null,
+        semanaInicio: lunesDe(hoy()),
+        respondidaEn: new Date().toISOString(),
+      };
+      estado.respuestasDeMinis.set(mini.id, respuesta);
+      const tipo: TipoDecision = {
+        SI: 'MINI_HECHO',
+        EN_PARTE: 'MINI_EN_PARTE',
+        NO: 'MINI_NO_HECHO',
+      }[pedido.data.hizo] as TipoDecision;
+      datos.decisiones = [
+        ...datos.decisiones,
+        {
+          id: crypto.randomUUID(),
+          tipo,
+          miniObjetivoId: mini.id,
+          avisoId: null,
+          registroId: null,
+          descripcion: mini.titulo,
+          tomadaEn: respuesta.respondidaEn,
+          semanaInicio: respuesta.semanaInicio,
+          efecto: 'SIN_MEDICION',
+          deltaIngresoSemanal: null,
+        },
+      ];
+      return HttpResponse.json(respuesta, { status: 201 });
+    }),
     http.get(ruta('/mini-objetivos/:miniId/candidatos'), async ({ request, params }) => {
       const { datos, error } = datosDe(request, param(params.id));
       if (error) return error;
@@ -157,8 +357,9 @@ function handlersAutogestion() {
       if (!candidato)
         return errorResponse(400, 'Ese candidato ya no está disponible', pathDe(request));
       await delay(LATENCIA_BACKEND_MS);
-      const nuevo: MiniObjetivo = {
+      const nuevo: MiniMedido = {
         ...candidato,
+        modo: 'MEDIDO',
         id: crypto.randomUUID(),
         posicion: mini.posicion,
         estado: 'EN_CURSO',
@@ -185,6 +386,12 @@ function handlersAutogestion() {
       if (error) return error;
       const { mini, error: sinMini } = miniEnCurso(request, datos, param(params.miniId));
       if (sinMini) return sinMini;
+      if (mini.modo === 'MANUAL')
+        return errorResponse(
+          400,
+          'Un mini-objetivo manual se responde, no se decide',
+          pathDe(request),
+        );
       const pedido = decidirSchema.safeParse(await request.json());
       if (!pedido.success) return errorResponse(400, 'La decisión es obligatoria', pathDe(request));
       await delay(LATENCIA_BACKEND_MS);
@@ -213,13 +420,13 @@ function handlersAutogestion() {
         meta: objetivo.meta,
         hito: null,
         semanas: datos.progreso,
-        minis: [...datos.minis, ...datos.historial.filter((item) => item.estado === 'LOGRADO')].map(
-          (mini) => ({
+        minis: [...datos.minis, ...datos.historial.filter((item) => item.estado === 'LOGRADO')]
+          .filter((mini): mini is MiniMedido => mini.modo === 'MEDIDO')
+          .map((mini) => ({
             mini,
             hito: mini.estado === 'LOGRADO' ? 'MINI_LOGRADO' : null,
             semanas: [{ semana: lunesDe(hoy()), valor: mini.valorActual, estimado: false }],
-          }),
-        ),
+          })),
       });
     }),
     http.get(ruta('/decisiones'), async ({ request, params }) => {

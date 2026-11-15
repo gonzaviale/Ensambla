@@ -4,7 +4,8 @@ import { formatoPesos } from '@/lib/objetivos';
 import type { DecisionObjetivo, ProgresoObjetivo } from '@/types/objetivos';
 
 type Props = {
-  progreso: ProgresoObjetivo;
+  /** El progreso de un objetivo con meta en pesos: sin meta no hay contra qué comparar el resultado. */
+  progreso: ProgresoObjetivo & { meta: number };
   decisiones: DecisionObjetivo[];
 };
 

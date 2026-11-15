@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import {
   candidatosMiniObjetivoSchema,
+  cuotaObjetivosSchema,
+  propuestaObjetivoSchema,
+  respuestaMiniObjetivoSchema,
+  respuestasPendientesSchema,
   decisionesObjetivoSchema,
   decisionObjetivoSchema,
   miniObjetivoSchema,
@@ -12,7 +16,10 @@ import {
   semanasObjetivoSchema,
   type CandidatoMiniObjetivo,
   type DecisionDePaso,
+  type MensajeDeConversacion,
   type NuevoObjetivo,
+  type ObjetivoConSami,
+  type RespuestaDeMini,
   type ProductoParaPaso,
 } from '@/types/objetivos';
 import { http } from './client';
@@ -23,6 +30,18 @@ export const listarObjetivos = (signal?: AbortSignal) =>
 
 export const crearObjetivo = (objetivo: NuevoObjetivo) =>
   http.post('/objetivos', objetivo, objetivoDelServidorSchema);
+
+/** Sami lee lo que la persona escribió y propone mini-objetivos; no guarda nada ni gasta cuota. */
+export const proponerObjetivo = (mensajes: MensajeDeConversacion[]) =>
+  http.post('/objetivos/sami/propuesta', { mensajes }, propuestaObjetivoSchema);
+
+/** Guarda lo que la persona aceptó; con `seguimientoManual` el servidor arma uno solo, sin IA ni cuota. */
+export const guardarObjetivoConSami = (objetivo: ObjetivoConSami) =>
+  http.post('/objetivos/sami', objetivo, objetivoDelServidorSchema);
+
+/** Cuántos objetivos con IA le quedan al negocio este mes. */
+export const obtenerCuotaObjetivos = (signal?: AbortSignal) =>
+  http.get('/objetivos/cuota', cuotaObjetivosSchema, signal);
 
 // Un objetivo ajeno responde 404, igual que uno que no existe.
 export const eliminarObjetivo = (id: string) =>
@@ -71,3 +90,23 @@ export const obtenerDecisionesObjetivo = (objetivoId: string, signal?: AbortSign
 
 export const obtenerSemanasObjetivo = (objetivoId: string, signal?: AbortSignal) =>
   http.get(`${rutaDe(objetivoId)}/semanas`, semanasObjetivoSchema, signal);
+
+/** Un manual se responde una sola vez por semana: la segunda respuesta es un 409 y la primera queda como estaba. */
+export const responderMiniObjetivo = (
+  objetivoId: string,
+  miniId: string,
+  respuesta: RespuestaDeMini,
+) =>
+  http.post(
+    `${rutaDeMini(objetivoId, miniId)}/respuesta`,
+    {
+      hizo: respuesta.hizo,
+      quePaso: respuesta.quePaso,
+      ...(respuesta.comentario?.trim() && { comentario: respuesta.comentario.trim() }),
+    },
+    respuestaMiniObjetivoSchema,
+  );
+
+/** Los manuales en curso sin respuesta de todos los objetivos del negocio, del más viejo al más nuevo. */
+export const listarRespuestasPendientes = (signal?: AbortSignal) =>
+  http.get('/objetivos/respuestas-pendientes', respuestasPendientesSchema, signal);
