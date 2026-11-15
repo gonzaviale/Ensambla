@@ -19,9 +19,12 @@ import com.ensambla.backend.domain.service.pago.RenovacionPremiumService;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
@@ -32,6 +35,8 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.ZoneOffset;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import static com.ensambla.backend.support.PagoTestData.AHORA;
 import static com.ensambla.backend.support.PagoTestData.IMPORTE;
@@ -87,32 +92,21 @@ class ContratarPremiumTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {0, 1, 2, 3, 4, 5})
+    @MethodSource("planesConCondicionesComercialesInvalidas")
     @DisplayName("No prepara una contratación con precio o moneda pendientes o inválidos")
-    void executeShouldRejectInvalidCommercialConditions(int caso) {
-        Plan plan = premium();
-        switch (caso) {
-            case 0 -> plan.setConfigurado(false);
-            case 1 -> plan.setConfigurado(null);
-            case 2 -> plan.setPrecioMensual(null);
-            case 3 -> plan.setPrecioMensual(BigDecimal.ZERO);
-            case 4 -> plan.setPrecioMensual(new BigDecimal("-1"));
-            case 5 -> plan.setMoneda("USD");
-            default -> throw new IllegalArgumentException();
-        }
+    void executeShouldRejectInvalidCommercialConditions(Plan plan) {
         givenCatalogo(plan);
 
         assertThatThrownBy(() -> contratarPremium.execute(USUARIO_ID)).isInstanceOf(BusinessRuleException.class);
 
-        verifyNoInteractions(suscripcionRepository, renovacionPremiumRepository);
-        verify(pasarelaSuscripcionesPort, never()).crear(any(), anyString());
+        thenNoSeIniciaNingunCobro();
     }
 
     @Test
     @DisplayName("No cobra otra vez a una cuenta con Premium sin vencimiento")
     void executeShouldRejectIndefinitePremium() {
         givenCatalogo(premium());
-        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion(PREMIUM_ID)));
+        givenSuscripcion(suscripcion(PREMIUM_ID));
 
         assertThatThrownBy(() -> contratarPremium.execute(USUARIO_ID)).isInstanceOf(BusinessRuleException.class);
     }
@@ -123,13 +117,13 @@ class ContratarPremiumTest {
         givenCatalogo(premium());
         Suscripcion suscripcion = suscripcion(PREMIUM_ID);
         suscripcion.setFinEn(AHORA);
-        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion));
+        givenSuscripcion(suscripcion);
         givenContratoCreado();
 
         contratarPremium.execute(USUARIO_ID);
 
         assertThat(thenRenovacionPreparada().getPrimerCobroEn()).isEqualTo(AHORA);
-        verify(pasarelaSuscripcionesPort).crear(any(), anyString());
+        thenSeCreaElContratoEnLaPasarela();
     }
 
     @ParameterizedTest
@@ -139,7 +133,7 @@ class ContratarPremiumTest {
         givenCatalogo(premium());
         Suscripcion suscripcion = suscripcion(PREMIUM_ID);
         suscripcion.setFinEn(AHORA.plusDays(4).plusNanos(nanos));
-        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion));
+        givenSuscripcion(suscripcion);
         givenContratoCreado();
 
         contratarPremium.execute(USUARIO_ID);
@@ -152,13 +146,8 @@ class ContratarPremiumTest {
     @Test
     @DisplayName("Un contrato cancelado permite una contratación nueva conservando su historial")
     void executeShouldAllowNewContractAfterCancellation() {
-        RenovacionPremium anterior = renovacion();
-        anterior.setEstado("CANCELADA");
-        when(renovacionPremiumService.consultar(USUARIO_ID))
-                .thenReturn(Optional.of(anterior), Optional.of(renovacion()));
-        when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.of(premium()));
-        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion(GRATUITO_ID)));
-        when(renovacionPremiumRepository.save(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
+        RenovacionPremium anterior = givenRenovacionCancelada();
+        givenCatalogoConPlanGratuitoActual();
 
         contratarPremium.execute(USUARIO_ID);
 
@@ -169,20 +158,20 @@ class ContratarPremiumTest {
     @DisplayName("Una renovación en curso no se vuelve a crear: se sincroniza con la pasarela")
     void executeShouldSyncOpenContractInsteadOfCreatingAnother() {
         RenovacionPremium abierta = renovacion();
-        when(renovacionPremiumService.consultar(USUARIO_ID)).thenReturn(Optional.of(abierta));
+        givenRenovacionEnCurso(abierta);
 
         contratarPremium.execute(USUARIO_ID);
 
-        verify(renovacionPremiumService).sincronizar(abierta.getId(), AHORA);
-        verify(pasarelaSuscripcionesPort, never()).crear(any(), anyString());
-        verifyNoInteractions(renovacionPremiumRepository);
+        thenSeSincronizaConLaPasarela(abierta);
+        thenNoSeCreaContratoEnLaPasarela();
+        thenNoSePreparaOtraRenovacion();
     }
 
     @Test
     @DisplayName("Sin suscripción no se inicia un cobro")
     void executeShouldRejectMissingSubscription() {
         givenCatalogo(premium());
-        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
+        givenSinSuscripcion();
 
         assertThatThrownBy(() -> contratarPremium.execute(USUARIO_ID)).isInstanceOf(ResourceNotFoundException.class);
     }
@@ -190,13 +179,59 @@ class ContratarPremiumTest {
     @Test
     @DisplayName("Sin catálogo no se inventa un precio")
     void executeShouldRejectMissingCatalog() {
-        when(renovacionPremiumService.consultar(USUARIO_ID)).thenReturn(Optional.empty());
-        when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.empty());
+        givenSinCatalogo();
 
         assertThatThrownBy(() -> contratarPremium.execute(USUARIO_ID)).isInstanceOf(ResourceNotFoundException.class);
     }
 
+    static Stream<Arguments> planesConCondicionesComercialesInvalidas() {
+        return Stream.of(
+                planInvalido("sin marcar como configurado", plan -> plan.setConfigurado(false)),
+                planInvalido("con el configurado sin informar", plan -> plan.setConfigurado(null)),
+                planInvalido("sin precio", plan -> plan.setPrecioMensual(null)),
+                planInvalido("con precio cero", plan -> plan.setPrecioMensual(BigDecimal.ZERO)),
+                planInvalido("con precio negativo", plan -> plan.setPrecioMensual(new BigDecimal("-1"))),
+                planInvalido("en una moneda que no es pesos", plan -> plan.setMoneda("USD")));
+    }
+
+    private static Arguments planInvalido(String descripcion, Consumer<Plan> deformacion) {
+        Plan plan = premium();
+        deformacion.accept(plan);
+        return Arguments.of(Named.of(descripcion, plan));
+    }
+
     // --- arrange ---
+    private void givenSuscripcion(Suscripcion suscripcion) {
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(suscripcion));
+    }
+
+    private void givenSinSuscripcion() {
+        when(suscripcionRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
+    }
+
+    private void givenRenovacionEnCurso(RenovacionPremium renovacion) {
+        when(renovacionPremiumService.consultar(USUARIO_ID)).thenReturn(Optional.of(renovacion));
+    }
+
+    private void givenSinCatalogo() {
+        when(renovacionPremiumService.consultar(USUARIO_ID)).thenReturn(Optional.empty());
+        when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.empty());
+    }
+
+    private RenovacionPremium givenRenovacionCancelada() {
+        RenovacionPremium anterior = renovacion();
+        anterior.setEstado("CANCELADA");
+        when(renovacionPremiumService.consultar(USUARIO_ID))
+                .thenReturn(Optional.of(anterior), Optional.of(renovacion()));
+        return anterior;
+    }
+
+    private void givenCatalogoConPlanGratuitoActual() {
+        when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.of(premium()));
+        givenSuscripcion(suscripcion(GRATUITO_ID));
+        givenContratoCreado();
+    }
+
     private void givenCatalogo(Plan plan) {
         when(renovacionPremiumService.consultar(USUARIO_ID)).thenReturn(Optional.empty(), Optional.of(renovacion()));
         when(planRepository.findByCodigo(CodigoPlan.PREMIUM)).thenReturn(Optional.of(plan));
@@ -217,6 +252,27 @@ class ContratarPremiumTest {
     }
 
     // --- assert ---
+    private void thenSeCreaElContratoEnLaPasarela() {
+        verify(pasarelaSuscripcionesPort).crear(any(), anyString());
+    }
+
+    private void thenNoSeCreaContratoEnLaPasarela() {
+        verify(pasarelaSuscripcionesPort, never()).crear(any(), anyString());
+    }
+
+    private void thenNoSePreparaOtraRenovacion() {
+        verifyNoInteractions(renovacionPremiumRepository);
+    }
+
+    private void thenSeSincronizaConLaPasarela(RenovacionPremium renovacion) {
+        verify(renovacionPremiumService).sincronizar(renovacion.getId(), AHORA);
+    }
+
+    private void thenNoSeIniciaNingunCobro() {
+        verifyNoInteractions(suscripcionRepository, renovacionPremiumRepository);
+        verify(pasarelaSuscripcionesPort, never()).crear(any(), anyString());
+    }
+
     private RenovacionPremium thenRenovacionPreparada() {
         ArgumentCaptor<RenovacionPremium> renovacion = ArgumentCaptor.forClass(RenovacionPremium.class);
         verify(renovacionPremiumRepository).save(renovacion.capture());

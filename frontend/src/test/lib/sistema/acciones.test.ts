@@ -11,6 +11,15 @@ import {
 } from '@/lib/sistema/acciones';
 import { allBlocks, clone, makeSystem, makeTemplate, upsertRow } from '@/lib/sistema/core';
 import type { Fila, Sistema } from '@/lib/sistema/tipos';
+import {
+  cuandoSeCarganTresVentasPorNombre,
+  cuandoSeSumanLosPendientes,
+  dadoUnCuadernoConUnaVelaDeEjemploYUnaClientaReal,
+  entoncesLasVentasQuedanVinculadasALosRegistrosNuevos,
+  entoncesLosFaltantesQuedanPendientesUnaSolaVez,
+  entoncesNoSeCreoNingunRegistroNuevo,
+  entoncesSoloRosaQuedaVinculada,
+} from '@/test/vinculosPorNombre';
 
 const accion = (herramienta: string, argumentos: Record<string, unknown>): AccionDeSami => ({
   herramienta,
@@ -1026,59 +1035,32 @@ describe('Sami ensambla el sistema desde cero', () => {
       expect(mismoSistema(sistema, antes)).toBe(true);
     });
 
-    it('los vínculos por nombre usan un registro real que ya está y no crean los que faltan: quedan pendientes', () => {
-      aplicarAcciones(sistema, [
-        accion('agregar_pieza', {
-          tipo: 'inventory',
-          nombre: 'Velas',
-          ejemplos: [{ Producto: 'Vela lavanda', Cantidad: 5 }],
-        }),
-        accion('agregar_pieza', { tipo: 'clients', nombre: 'Clientas', ejemplos: [] }),
-      ]);
-      llamada('Clientas').rows = [];
-      const rosa = upsertRow(llamada('Clientas'), { name: 'Rosa' }, null, sistema).row;
+    describe('con vínculos por nombre', () => {
+      let rosa: Fila;
+      let resultado: ReturnType<typeof aplicarAcciones>;
 
-      const resultado = aplicarAcciones(sistema, [
-        accion('agregar_pieza', { tipo: 'sales', ejemplos: [] }),
-        accion('cargar_registros', {
-          pieza: 'Ventas',
-          filas: [
-            { Producto: 'Vela lavanda', Cliente: 'rosa', Cantidad: 2 },
-            { Producto: 'Vela vainilla', Cliente: 'Lucía', Cantidad: 1 },
-            { Producto: 'vela vainilla', Cliente: 'Lucía', Cantidad: 3 },
-          ],
-        }),
-      ]);
+      beforeEach(() => {
+        rosa = dadoUnCuadernoConUnaVelaDeEjemploYUnaClientaReal(sistema);
+        resultado = cuandoSeCarganTresVentasPorNombre(sistema);
+      });
 
-      expect(resultado.aplicadas).toEqual(['Sumé ventas.', 'Cargué 3 registros en ventas.']);
-      const ventas = llamada('Ventas').rows;
-      // Rosa ya estaba: se vincula. Nada más se crea: ni la vela (el ejemplo no cuenta) ni Lucía.
-      expect(ventas.map((fila) => [fila.product, fila.customer])).toEqual([
-        ['', rosa?.id],
-        ['', ''],
-        ['', ''],
-      ]);
-      expect(llamada('Velas').rows.filter((fila) => !fila.__example)).toEqual([]);
-      expect(llamada('Clientas').rows.map((fila) => fila.name)).toEqual(['Rosa']);
-      // Dos ventas de «Vela vainilla» (con o sin mayúscula) piden una sola vez.
-      expect(
-        resultado.pendientes.map((pendiente) => [pendiente.nombre, pendiente.filas.length]),
-      ).toEqual([
-        ['Vela lavanda', 1],
-        ['Vela vainilla', 2],
-        ['Lucía', 2],
-      ]);
+      it('vincula solo con el registro real que ya está', () => {
+        entoncesSoloRosaQuedaVinculada(sistema, rosa);
+      });
 
-      sumarPendientes(sistema, resultado.pendientes);
+      it('no crea los registros que faltan', () => {
+        entoncesNoSeCreoNingunRegistroNuevo(sistema);
+      });
 
-      const velas = llamada('Velas').rows.filter((fila) => !fila.__example);
-      const lucia = llamada('Clientas').rows.find((fila) => fila.name === 'Lucía');
-      expect(velas.map((fila) => fila.name)).toEqual(['Vela lavanda', 'Vela vainilla']);
-      expect(ventas.map((fila) => [fila.product, fila.customer])).toEqual([
-        [velas[0]?.id, rosa?.id],
-        [velas[1]?.id, lucia?.id],
-        [velas[1]?.id, lucia?.id],
-      ]);
+      it('deja los faltantes pendientes, una sola vez cada uno', () => {
+        entoncesLosFaltantesQuedanPendientesUnaSolaVez(resultado);
+      });
+
+      it('al sumar los pendientes vincula las ventas con los registros nuevos', () => {
+        cuandoSeSumanLosPendientes(sistema, resultado);
+
+        entoncesLasVentasQuedanVinculadasALosRegistrosNuevos(sistema, rosa);
+      });
     });
 
     it('sumar los pendientes usa un registro que se cargó mientras tanto e ignora las filas que ya no están', () => {

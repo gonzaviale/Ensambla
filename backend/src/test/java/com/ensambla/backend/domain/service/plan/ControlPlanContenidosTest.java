@@ -1,6 +1,7 @@
 package com.ensambla.backend.domain.service.plan;
 
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
+import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.plan.AccesoIa;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
@@ -42,6 +43,10 @@ class ControlPlanContenidosTest {
     private static final NegocioId NEGOCIO = NegocioId.nuevo();
     private static final UsuarioId USUARIO = UsuarioId.nuevo();
     private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-11-01T03:05:00Z");
+    private static final List<String> AVISOS_DESBLOQUEADOS = List.of(
+            "e0000000-0000-4000-8000-000000000001", "e0000000-0000-4000-8000-000000000002",
+            "e0000000-0000-4000-8000-000000000003", "e0000000-0000-4000-8000-000000000004",
+            "e0000000-0000-4000-8000-000000000005", "e0000000-0000-4000-8000-000000000006");
     private static final LocalDate PERIODO = LocalDate.of(2026, 11, 1);
 
     private final PlanRepository planes = mock(PlanRepository.class);
@@ -124,7 +129,45 @@ class ControlPlanContenidosTest {
                 .doesNotThrowAnyException();
     }
 
+    @Test
+    @DisplayName("Los avisos desbloqueados quedan autorizados y el resto no, en el orden pedido")
+    void avisosAutorizadosShouldKeepOnlyTheUnlockedOnes() {
+        givenPlan(CodigoPlan.GRATUITO);
+        givenSeisAvisosDesbloqueados();
+        AvisoId yaDesbloqueado = AvisoId.de(AVISOS_DESBLOQUEADOS.getFirst());
+        AvisoId nuevo = AvisoId.nuevo();
+
+        List<AvisoId> autorizados = servicio.avisosAutorizados(NEGOCIO, List.of(nuevo, yaDesbloqueado), AHORA);
+
+        assertThat(autorizados).containsExactly(yaDesbloqueado);
+    }
+
+    @Test
+    @DisplayName("Una acción sobre un aviso ya desbloqueado sigue disponible sin conocer la clave guardada")
+    void exigirAccesoAlAvisoShouldAllowAnUnlockedAviso() {
+        givenPlan(CodigoPlan.GRATUITO);
+        givenSeisAvisosDesbloqueados();
+
+        assertThatCode(() -> servicio.exigirAccesoAlAviso(
+                NEGOCIO, AvisoId.de(AVISOS_DESBLOQUEADOS.getFirst()), AHORA)).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("Una acción sobre un séptimo aviso se rechaza")
+    void exigirAccesoAlAvisoShouldRejectTheSeventhAviso() {
+        givenPlan(CodigoPlan.GRATUITO);
+        givenSeisAvisosDesbloqueados();
+
+        assertThatThrownBy(() -> servicio.exigirAccesoAlAviso(NEGOCIO, AvisoId.nuevo(), AHORA))
+                .isInstanceOf(RestriccionPlanException.class);
+    }
+
     // --- arrange ---
+    private void givenSeisAvisosDesbloqueados() {
+        when(acceso.autorizadas(NEGOCIO, TipoContenidoPlan.AVISOS, PERIODO))
+                .thenReturn(new HashSet<>(AVISOS_DESBLOQUEADOS));
+    }
+
     /** La cuenta dueña del negocio tiene una suscripción vigente al plan con ese código. */
     private void givenPlan(CodigoPlan codigo) {
         Plan plan = PlanTestData.plan();

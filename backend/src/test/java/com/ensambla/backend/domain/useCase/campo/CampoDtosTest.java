@@ -38,10 +38,19 @@ class CampoDtosTest {
         assertThat(result.obligatorio()).isTrue();
         assertThat(result.valorInicial()).isEqualTo("Chico");
         assertThat(result.opciones()).containsExactly("Chico", "Grande");
-        assertThat(result.bloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
+        assertThat(result.bloqueRelacionadoId()).isNull();
         assertThat(result.posicion()).isEqualTo((short) 1);
         assertThat(result.creadoEn()).isEqualTo(CREADO);
         assertThat(result.actualizadoEn()).isEqualTo(ACTUALIZADO);
+    }
+
+    @Test
+    @DisplayName("Una conexión pasa a la respuesta la tabla con la que se conecta")
+    void campoItemShouldMapBloqueRelacionadoOfAConexion() {
+        CampoItem result = CampoItem.de(givenConexion());
+
+        assertThat(result.tipo()).isEqualTo("RELACION");
+        assertThat(result.bloqueRelacionadoId()).isEqualTo(RELACIONADO_ID);
     }
 
     @Test
@@ -84,6 +93,18 @@ class CampoDtosTest {
                 .obligatorio(obligatorio)
                 .valorInicial("Chico")
                 .opciones(TALLES)
+                .posicion((short) 1)
+                .creadoEn(CREADO)
+                .actualizadoEn(ACTUALIZADO)
+                .build();
+    }
+
+    private Campo givenConexion() {
+        return Campo.builder()
+                .id(CAMPO_ID)
+                .bloqueId(BLOQUE_ID)
+                .nombre("Cliente")
+                .tipo(TipoCampo.RELACION)
                 .bloqueRelacionadoId(RELACIONADO_ID)
                 .posicion((short) 1)
                 .creadoEn(CREADO)

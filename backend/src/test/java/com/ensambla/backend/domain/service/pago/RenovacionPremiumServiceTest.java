@@ -10,9 +10,12 @@ import com.ensambla.backend.domain.repository.pago.RenovacionPremiumRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
 import com.ensambla.backend.support.TransaccionDirecta;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -20,7 +23,10 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
+import java.util.stream.Stream;
 
 import static com.ensambla.backend.support.PagoTestData.AHORA;
 import static com.ensambla.backend.support.PagoTestData.USUARIO_ID;
@@ -54,7 +60,7 @@ class RenovacionPremiumServiceTest {
     @Test
     @DisplayName("Un contrato inexistente no se puede consultar")
     void obtenerShouldRejectUnknownContract() {
-        when(renovacionPremiumRepository.findById(RENOVACION_ID)).thenReturn(Optional.empty());
+        givenRenovacionInexistente();
 
         assertThatThrownBy(() -> renovacionPremiumService.obtener(RENOVACION_ID))
                 .isInstanceOf(ResourceNotFoundException.class);
@@ -63,31 +69,25 @@ class RenovacionPremiumServiceTest {
     @Test
     @DisplayName("Un identificador inexistente no bloquea otro negocio")
     void actualizarContratoShouldRejectMissingBusinessProjection() {
-        when(renovacionPremiumRepository.findUsuarioIdById(RENOVACION_ID)).thenReturn(Optional.empty());
+        givenRenovacionSinCuenta();
 
         assertThatThrownBy(() -> renovacionPremiumService.actualizarContrato(RENOVACION_ID,
                 contrato(renovacion(), "pending", AHORA), AHORA)).isInstanceOf(ResourceNotFoundException.class);
 
-        verifyNoInteractions(usoPlanRepository);
+        thenNoSeBloqueaNingunNegocio();
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {0, 1, 2, 3, 4, 5, 6, 7})
+    @MethodSource("contratosQueNoCorresponden")
     @DisplayName("No acepta cambios remotos de referencia, precio, moneda, frecuencia, fecha ni identidad")
-    void actualizarContratoShouldRejectMismatchedContract(int caso) {
-        RenovacionPremium renovacion = givenRenovacion();
-        ContratoRemoto base = contrato(renovacion, "pending", AHORA);
-        renovacion.setProveedorId(base.id());
-        ContratoRemoto remoto = new ContratoRemoto(caso == 6 ? "otro" : base.id(),
-                caso == 0 ? RenovacionId.nuevo() : base.referencia(), base.enlace(),
-                caso == 7 ? "desconocido" : base.estado(), caso == 1 ? BigDecimal.ONE : base.importe(),
-                caso == 2 ? "USD" : base.moneda(), caso == 3 ? 1 : 30, caso == 4 ? "months" : "days",
-                caso == 5 ? AHORA.minusSeconds(1) : AHORA, base.proximoCobroEn(), base.modificadoEn());
+    void actualizarContratoShouldRejectMismatchedContract(UnaryOperator<ContratoRemoto> desvio) {
+        RenovacionPremium renovacion = givenRenovacionConContratoDelProveedor();
+        ContratoRemoto remoto = desvio.apply(contrato(renovacion, "pending", AHORA));
 
         assertThatThrownBy(() -> renovacionPremiumService.actualizarContrato(RENOVACION_ID, remoto, AHORA))
                 .isInstanceOf(PasarelaPagoException.class);
 
-        verify(renovacionPremiumRepository, never()).save(any());
+        thenNoSeGuardaNingunaRenovacion();
     }
 
     @ParameterizedTest
@@ -96,7 +96,7 @@ class RenovacionPremiumServiceTest {
     void actualizarContratoShouldMapRemoteStatuses(String estado) {
         RenovacionPremium renovacion = givenRenovacion();
         renovacion.setProveedorId(null);
-        when(renovacionPremiumRepository.save(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
+        givenQueGuardarDevuelveLoGuardado();
 
         RenovacionPremium resultado = renovacionPremiumService.actualizarContrato(RENOVACION_ID,
                 contrato(renovacion, estado, AHORA), AHORA);
@@ -111,11 +111,84 @@ class RenovacionPremiumServiceTest {
         RenovacionPremium renovacion = givenRenovacion();
         renovacion.setProveedorId("mp-" + RENOVACION_ID);
         renovacion.setModificadoProveedorEn(AHORA.plusSeconds(1));
-        when(renovacionPremiumRepository.save(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
+        givenQueGuardarDevuelveLoGuardado();
 
         renovacionPremiumService.actualizarContrato(RENOVACION_ID, contrato(renovacion, "pending", AHORA), AHORA);
 
         assertThat(renovacion.getEstado()).isEqualTo("AUTORIZADA");
+    }
+
+    static Stream<Arguments> contratosQueNoCorresponden() {
+        return Stream.of(
+                desvio("de otra renovación", base -> contratoCon(base, RenovacionId.nuevo(), base.importe())),
+                desvio("con otro precio", base -> contratoCon(base, base.referencia(), BigDecimal.ONE)),
+                desvio("con otra moneda", base -> contratoConMoneda(base, "USD")),
+                desvio("con otra frecuencia", base -> contratoConPeriodo(base, 1, base.unidad())),
+                desvio("con otra unidad de tiempo", base -> contratoConPeriodo(base, base.frecuencia(), "months")),
+                desvio("con otra fecha de inicio", base -> contratoConInicio(base, AHORA.minusSeconds(1))),
+                desvio("de otro contrato del proveedor", base -> contratoConProveedor(base, "otro")),
+                desvio("con un estado desconocido", base -> contratoConEstado(base, "desconocido")));
+    }
+
+    private static Arguments desvio(String descripcion, UnaryOperator<ContratoRemoto> desvio) {
+        return Arguments.of(Named.of(descripcion, desvio));
+    }
+
+    private static ContratoRemoto contratoCon(ContratoRemoto base, RenovacionId referencia, BigDecimal importe) {
+        return new ContratoRemoto(base.id(), referencia, base.enlace(), base.estado(), importe, base.moneda(),
+                base.frecuencia(), base.unidad(), base.inicioEn(), base.proximoCobroEn(), base.modificadoEn());
+    }
+
+    private static ContratoRemoto contratoConMoneda(ContratoRemoto base, String moneda) {
+        return new ContratoRemoto(base.id(), base.referencia(), base.enlace(), base.estado(), base.importe(), moneda,
+                base.frecuencia(), base.unidad(), base.inicioEn(), base.proximoCobroEn(), base.modificadoEn());
+    }
+
+    private static ContratoRemoto contratoConPeriodo(ContratoRemoto base, int frecuencia, String unidad) {
+        return new ContratoRemoto(base.id(), base.referencia(), base.enlace(), base.estado(), base.importe(),
+                base.moneda(), frecuencia, unidad, base.inicioEn(), base.proximoCobroEn(), base.modificadoEn());
+    }
+
+    private static ContratoRemoto contratoConInicio(ContratoRemoto base, OffsetDateTime inicio) {
+        return new ContratoRemoto(base.id(), base.referencia(), base.enlace(), base.estado(), base.importe(),
+                base.moneda(), base.frecuencia(), base.unidad(), inicio, base.proximoCobroEn(), base.modificadoEn());
+    }
+
+    private static ContratoRemoto contratoConProveedor(ContratoRemoto base, String proveedorId) {
+        return new ContratoRemoto(proveedorId, base.referencia(), base.enlace(), base.estado(), base.importe(),
+                base.moneda(), base.frecuencia(), base.unidad(), base.inicioEn(), base.proximoCobroEn(),
+                base.modificadoEn());
+    }
+
+    private static ContratoRemoto contratoConEstado(ContratoRemoto base, String estado) {
+        return new ContratoRemoto(base.id(), base.referencia(), base.enlace(), estado, base.importe(), base.moneda(),
+                base.frecuencia(), base.unidad(), base.inicioEn(), base.proximoCobroEn(), base.modificadoEn());
+    }
+
+    private void givenRenovacionInexistente() {
+        when(renovacionPremiumRepository.findById(RENOVACION_ID)).thenReturn(Optional.empty());
+    }
+
+    private void givenRenovacionSinCuenta() {
+        when(renovacionPremiumRepository.findUsuarioIdById(RENOVACION_ID)).thenReturn(Optional.empty());
+    }
+
+    private void givenQueGuardarDevuelveLoGuardado() {
+        when(renovacionPremiumRepository.save(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
+    }
+
+    private void thenNoSeBloqueaNingunNegocio() {
+        verifyNoInteractions(usoPlanRepository);
+    }
+
+    private void thenNoSeGuardaNingunaRenovacion() {
+        verify(renovacionPremiumRepository, never()).save(any());
+    }
+
+    private RenovacionPremium givenRenovacionConContratoDelProveedor() {
+        RenovacionPremium renovacion = givenRenovacion();
+        renovacion.setProveedorId(contrato(renovacion, "pending", AHORA).id());
+        return renovacion;
     }
 
     private RenovacionPremium givenRenovacion() {

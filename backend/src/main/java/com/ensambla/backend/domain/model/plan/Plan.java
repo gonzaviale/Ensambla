@@ -1,5 +1,6 @@
 package com.ensambla.backend.domain.model.plan;
 
+import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.RestriccionPlanException;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,6 +18,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Plan {
+
+    private static final String MONEDA_DE_COBRO = "ARS";
 
     private PlanId id;
 
@@ -51,6 +54,12 @@ public class Plan {
         }
     }
 
+    public void validarPrecioMensualConfigurado() {
+        if (!tienePrecioMensualEnPesos()) {
+            throw new BusinessRuleException("El precio de Premium todavía no está configurado.");
+        }
+    }
+
     /** Un negocio más tiene que entrar en el límite del plan de la cuenta. */
     public void validarNegocios(long existentes) {
         if (limiteNegocios != null && existentes >= limiteNegocios) {
@@ -75,6 +84,13 @@ public class Plan {
             throw new RestriccionPlanException("FUNCION_PREMIUM",
                     "Esta función requiere un plan premium activo. Tus datos se conservan.");
         }
+    }
+
+    private boolean tienePrecioMensualEnPesos() {
+        return Boolean.TRUE.equals(configurado)
+                && precioMensual != null
+                && precioMensual.signum() > 0
+                && MONEDA_DE_COBRO.equals(moneda);
     }
 
     private void validarCupo(long usadas, long nuevas, Number limite, String codigo, String recurso) {

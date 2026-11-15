@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.mapper.aviso;
 
+import com.ensambla.backend.domain.model.aviso.AccionAbrirRegistro;
 import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
 import com.ensambla.backend.domain.model.aviso.GrupoAviso;
@@ -54,7 +55,7 @@ class AvisoPresentationMapperTest {
 
         assertThat(result).isEqualTo(new AvisoResponse(AVISO_ID, null, TipoAviso.STOCK, GrupoAviso.STOCK,
                 (short) 3, EstadoAviso.PENDIENTE, "registro:1", "titulo", "detalle", List.of("motivo"),
-                List.of(Map.of("tipo", "ABRIR")), Map.of("cantidad", 0), AHORA, null));
+                List.of(Map.of("tipo", "ABRIR", "texto", "Ver producto")), Map.of("cantidad", 0), AHORA, null));
     }
 
     @Test
@@ -86,7 +87,7 @@ class AvisoPresentationMapperTest {
 
     private static AvisoItem givenItem() {
         return new AvisoItem(AVISO_ID, null, TipoAviso.STOCK, GrupoAviso.STOCK, (short) 3, EstadoAviso.PENDIENTE,
-                "registro:1", "titulo", "detalle", List.of("motivo"), List.of(Map.of("tipo", "ABRIR")),
+                "registro:1", "titulo", "detalle", List.of("motivo"), List.of(new AccionAbrirRegistro("Ver producto", null, null, null)),
                 Map.of("cantidad", 0), AHORA, null);
     }
 }

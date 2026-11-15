@@ -3,6 +3,7 @@ package com.ensambla.backend.infrastructure.repository.jpaRepository.implementat
 import com.ensambla.backend.domain.model.bloque.Bloque;
 import com.ensambla.backend.domain.model.bloque.BloqueId;
 import com.ensambla.backend.domain.model.campo.Campo;
+import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.infrastructure.repository.entity.BloqueEntity;
 import com.ensambla.backend.infrastructure.repository.entity.CampoEntity;
@@ -75,8 +76,8 @@ class BloqueCampoRepositoryImplTest {
         CampoRepositoryImpl repository = new CampoRepositoryImpl(campoJpa, new CampoRepositoryMapper());
         when(campoJpa.findByBloqueIdAndNegocioIdOrderByPosicionAscIdAsc(BLOQUE_ID.valor(), NEGOCIO_ID.valor()))
                 .thenReturn(List.of(
-                CampoEntity.builder().nombre("Primero").build(),
-                CampoEntity.builder().nombre("Segundo").build()));
+                CampoEntity.builder().nombre("Primero").tipo(TipoCampo.TEXTO).build(),
+                CampoEntity.builder().nombre("Segundo").tipo(TipoCampo.TEXTO).build()));
 
         List<Campo> result = repository.findByBloqueIdAndNegocioId(BLOQUE_ID, NEGOCIO_ID);
 

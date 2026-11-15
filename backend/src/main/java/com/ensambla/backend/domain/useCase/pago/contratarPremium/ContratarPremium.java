@@ -1,9 +1,7 @@
 package com.ensambla.backend.domain.useCase.pago.contratarPremium;
 
-import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.pago.ContratoRemoto;
 import com.ensambla.backend.domain.model.pago.PreparacionRenovacion;
-import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.pago.RenovacionPremium;
 import com.ensambla.backend.domain.model.plan.CodigoPlan;
 import com.ensambla.backend.domain.model.plan.Plan;
@@ -47,55 +45,89 @@ public class ContratarPremium {
     private final Clock clock;
 
     public ConsultarRenovacionResponse execute(UsuarioId usuarioId) {
+        exigirPasarelaDisponible();
+        String email = obtenerEmailDelUsuario(usuarioId);
+        PreparacionRenovacion preparacion = preparar(usuarioId, ahora());
+        contratarOSincronizar(preparacion, email);
+        return respuestaDeLaRenovacion(usuarioId);
+    }
+
+    private void exigirPasarelaDisponible() {
         pasarelaSuscripcionesPort.exigirDisponible();
-        String email = usuarioRepository.obtenerActivo(usuarioId).getEmail();
-        PreparacionRenovacion preparacion = preparar(usuarioId, OffsetDateTime.now(clock));
+    }
+
+    private String obtenerEmailDelUsuario(UsuarioId usuarioId) {
+        return usuarioRepository.obtenerActivo(usuarioId).getEmail();
+    }
+
+    private OffsetDateTime ahora() {
+        return OffsetDateTime.now(clock);
+    }
+
+    private void contratarOSincronizar(PreparacionRenovacion preparacion, String email) {
         if (preparacion.nueva()) {
-            ContratoRemoto remoto = pasarelaSuscripcionesPort.crear(preparacion.renovacion(), email);
-            renovacionPremiumService.actualizarContrato(preparacion.renovacion().getId(), remoto,
-                    OffsetDateTime.now(clock));
+            crearContratoEnLaPasarela(preparacion.renovacion(), email);
         } else {
-            renovacionPremiumService.sincronizar(preparacion.renovacion().getId(), OffsetDateTime.now(clock));
+            sincronizarConLaPasarela(preparacion.renovacion());
         }
-        return ConsultarRenovacionResponse.de(pasarelaSuscripcionesPort.disponible(),
-                renovacionPremiumService.consultar(usuarioId).orElseThrow());
+    }
+
+    private void crearContratoEnLaPasarela(RenovacionPremium renovacion, String email) {
+        ContratoRemoto contrato = pasarelaSuscripcionesPort.crear(renovacion, email);
+        renovacionPremiumService.actualizarContrato(renovacion.getId(), contrato, ahora());
+    }
+
+    private void sincronizarConLaPasarela(RenovacionPremium renovacion) {
+        renovacionPremiumService.sincronizar(renovacion.getId(), ahora());
+    }
+
+    private ConsultarRenovacionResponse respuestaDeLaRenovacion(UsuarioId usuarioId) {
+        return ConsultarRenovacionResponse.de(pasarelaSuscripcionesPort.disponible(), ultimaRenovacionDe(usuarioId));
+    }
+
+    private RenovacionPremium ultimaRenovacionDe(UsuarioId usuarioId) {
+        return renovacionPremiumService.consultar(usuarioId).orElseThrow();
     }
 
     /** Reutiliza la renovación en curso; si no hay o la anterior se canceló, prepara una nueva para la pasarela. */
     private PreparacionRenovacion preparar(UsuarioId usuarioId, OffsetDateTime ahora) {
-        return transaccionPort.ejecutar(() -> {
-            usoPlanRepository.bloquearCuenta(usuarioId);
-            Optional<RenovacionPremium> anterior = renovacionPremiumService.consultar(usuarioId);
-            if (anterior.isPresent() && !"CANCELADA".equals(anterior.get().getEstado())) {
-                return new PreparacionRenovacion(anterior.get(), false);
-            }
-            Plan premium = planRepository.obtener(CodigoPlan.PREMIUM);
-            premium.validarLimitesConfigurados();
-            if (!Boolean.TRUE.equals(premium.getConfigurado()) || premium.getPrecioMensual() == null
-                    || premium.getPrecioMensual().signum() <= 0 || !"ARS".equals(premium.getMoneda())) {
-                throw new BusinessRuleException("El precio de Premium todavía no está configurado.");
-            }
-            Suscripcion suscripcion = suscripcionRepository.obtener(usuarioId);
-            OffsetDateTime primerCobro = ahora;
-            if (suscripcion.estaVigente(ahora) && premium.getId().equals(suscripcion.getPlanId())) {
-                if (suscripcion.getFinEn() == null) {
-                    throw new BusinessRuleException("Tu cuenta ya tiene Premium sin vencimiento.");
-                }
-                primerCobro = suscripcion.getFinEn();
-            }
-            // Mercado Pago conserva segundos: redondear hacia arriba evita anticipar el fin de la prueba.
-            primerCobro = primerCobro.plusNanos(999_999_999).truncatedTo(ChronoUnit.SECONDS);
-            RenovacionPremium renovacion = RenovacionPremium.builder()
-                    .id(RenovacionId.nuevo())
-                    .usuarioId(usuarioId)
-                    .estado("PREPARANDO")
-                    .importe(premium.getPrecioMensual())
-                    .moneda(premium.getMoneda())
-                    .primerCobroEn(primerCobro)
-                    .creadoEn(ahora)
-                    .actualizadoEn(ahora)
-                    .build();
-            return new PreparacionRenovacion(renovacionPremiumRepository.save(renovacion), true);
-        });
+        return transaccionPort.ejecutar(() -> prepararConCuentaBloqueada(usuarioId, ahora));
+    }
+
+    private PreparacionRenovacion prepararConCuentaBloqueada(UsuarioId usuarioId, OffsetDateTime ahora) {
+        usoPlanRepository.bloquearCuenta(usuarioId);
+        return renovacionEnCurso(usuarioId)
+                .map(PreparacionRenovacion::reutilizada)
+                .orElseGet(() -> prepararNueva(usuarioId, ahora));
+    }
+
+    private Optional<RenovacionPremium> renovacionEnCurso(UsuarioId usuarioId) {
+        return renovacionPremiumService.consultar(usuarioId).filter(renovacion -> !renovacion.estaCancelada());
+    }
+
+    private PreparacionRenovacion prepararNueva(UsuarioId usuarioId, OffsetDateTime ahora) {
+        Plan premium = planPremiumConPrecio();
+        Suscripcion suscripcion = suscripcionRepository.obtener(usuarioId);
+        OffsetDateTime primerCobro = primerCobroDe(suscripcion, premium, ahora);
+        RenovacionPremium renovacion = RenovacionPremium.nueva(
+                usuarioId, premium.getPrecioMensual(), premium.getMoneda(), primerCobro, ahora);
+        return PreparacionRenovacion.nueva(renovacionPremiumRepository.save(renovacion));
+    }
+
+    private Plan planPremiumConPrecio() {
+        Plan premium = planRepository.obtener(CodigoPlan.PREMIUM);
+        premium.validarLimitesConfigurados();
+        premium.validarPrecioMensualConfigurado();
+        return premium;
+    }
+
+    private OffsetDateTime primerCobroDe(Suscripcion suscripcion, Plan premium, OffsetDateTime ahora) {
+        OffsetDateTime desde = suscripcion.vencimientoDePremium(premium.getId(), ahora).orElse(ahora);
+        return alSegundoSiguiente(desde);
+    }
+
+    /** Mercado Pago conserva segundos: redondear hacia arriba evita anticipar el fin de la prueba. */
+    private OffsetDateTime alSegundoSiguiente(OffsetDateTime momento) {
+        return momento.plusNanos(999_999_999).truncatedTo(ChronoUnit.SECONDS);
     }
 }

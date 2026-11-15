@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.repository.mapper;
 
+import com.ensambla.backend.infrastructure.avisos.AccionDeAvisoJson;
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.AvisoId;
 import com.ensambla.backend.domain.model.common.Identificador;
@@ -25,7 +26,7 @@ public class AvisoRepositoryMapper {
                 .titulo(entity.getTitulo())
                 .detalle(entity.getDetalle())
                 .motivos(entity.getMotivos())
-                .acciones(entity.getAcciones())
+                .acciones(AccionDeAvisoJson.leerTodas(entity.getAcciones()))
                 .estado(entity.getEstado())
                 .resueltoEn(entity.getResueltoEn())
                 .creadoEn(entity.getCreadoEn())
@@ -47,7 +48,7 @@ public class AvisoRepositoryMapper {
                 .titulo(aviso.getTitulo())
                 .detalle(aviso.getDetalle())
                 .motivos(aviso.getMotivos())
-                .acciones(aviso.getAcciones())
+                .acciones(AccionDeAvisoJson.escribirTodas(aviso.getAcciones()))
                 .estado(aviso.getEstado())
                 .resueltoEn(aviso.getResueltoEn())
                 .creadoEn(aviso.getCreadoEn())

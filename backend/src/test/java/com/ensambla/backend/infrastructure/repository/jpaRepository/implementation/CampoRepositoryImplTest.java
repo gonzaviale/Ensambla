@@ -43,7 +43,11 @@ class CampoRepositoryImplTest {
     @DisplayName("El campo se busca por id dentro del negocio y se mapea")
     void findByIdAndNegocioIdShouldMapResult() {
         when(campoJpa.findByIdAndNegocioId(CAMPO_ID.valor(), NEGOCIO_ID.valor()))
-                .thenReturn(Optional.of(CampoEntity.builder().id(CAMPO_ID.valor()).nombre("Precio").build()));
+                .thenReturn(Optional.of(CampoEntity.builder()
+                        .id(CAMPO_ID.valor())
+                        .nombre("Precio")
+                        .tipo(TipoCampo.TEXTO)
+                        .build()));
 
         Optional<Campo> result = campoRepositoryImpl.findByIdAndNegocioId(CAMPO_ID, NEGOCIO_ID);
 

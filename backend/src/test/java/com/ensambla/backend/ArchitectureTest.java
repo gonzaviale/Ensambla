@@ -26,6 +26,7 @@ class ArchitectureTest {
             .resolve("src/main/java/com/ensambla/backend/domain");
     private static final String INFRASTRUCTURE_PACKAGE = "com/ensambla/backend/infrastructure";
     private static final String SPRING_PACKAGE = "org/springframework";
+    private static final Pattern SWITCH_STATEMENT = Pattern.compile("\\bswitch\\s*\\(");
     private static final Pattern UUID_REFERENCE = Pattern.compile("\\bUUID\\b");
     // Los value objects de id, su interfaz y las dos reglas que derivan UUID de un texto.
     private static final Pattern UUID_ALLOWED = Pattern.compile(
@@ -84,6 +85,14 @@ class ArchitectureTest {
     }
 
     @Test
+    @DisplayName("Los campos no usan switch: cada tipo se comporta en su propia clase")
+    void campoClassesShouldNotUseSwitch() throws IOException {
+        List<Path> sources = campoSources();
+
+        thenNoSourceUsesSwitch(sources);
+    }
+
+    @Test
     @DisplayName("Los tests no usan H2")
     void testsShouldNotUseH2() {
         assertThat(ArchitectureTest.class.getResource("/application-h2-test.properties")).isNull();
@@ -113,6 +122,10 @@ class ArchitectureTest {
                 .toList();
     }
 
+    private List<Path> campoSources() throws IOException {
+        return files(DOMAIN_SOURCES.resolve("model/campo"), ".java");
+    }
+
     // --- assert ---
     private void thenNoClassReferences(List<Path> classes, String forbiddenPackage) throws IOException {
         assertThat(classes).isNotEmpty();
@@ -134,6 +147,13 @@ class ArchitectureTest {
                 assertThat(referencia.matcher(bytecode).find())
                         .as("%s depende del caso de uso %s", nombreInterno(caso), nombreInterno(otro)).isFalse();
             }
+        }
+    }
+
+    private void thenNoSourceUsesSwitch(List<Path> sources) throws IOException {
+        assertThat(sources).isNotEmpty();
+        for (Path source : sources) {
+            assertThat(SWITCH_STATEMENT.matcher(Files.readString(source)).find()).as("switch en %s", source).isFalse();
         }
     }
 
