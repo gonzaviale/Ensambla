@@ -8,6 +8,7 @@ import {
   responderMiniObjetivo,
 } from '@/api/objetivos';
 import { useUsuarioOpcional } from '@/hooks/auth/queries';
+import { planesKeys } from '@/hooks/planes/queries';
 import type {
   CuotaObjetivos,
   DecisionDePaso,
@@ -67,6 +68,8 @@ export function useGuardarObjetivoConSami() {
         creado,
       ]);
       void queryClient.invalidateQueries({ queryKey: claveDeLaCuota(usuario?.id ?? 'sin-sesion') });
+      // La cuota viaja dentro de /planes: sin esto el uso del plan quedaría viejo hasta el próximo repaso.
+      void queryClient.invalidateQueries({ queryKey: planesKeys.actual });
     },
   });
 }

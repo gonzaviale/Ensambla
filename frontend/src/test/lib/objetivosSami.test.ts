@@ -60,6 +60,25 @@ function lasDos() {
 }
 
 describe('objetivos con Sami', () => {
+  it('si Sami todavía necesita aclarar, el servidor manda entendido y tipo nulos y la propuesta se lee igual', () => {
+    const aclarando = propuestaObjetivoSchema.parse({
+      respuesta: 'Los budines no están en tus datos. ¿Querés sumarlos al catálogo?',
+      entendido: null,
+      tipo: null,
+      esMonetario: false,
+      minis: [],
+      datos: [{ fuente: 'VENTAS', hay: true }],
+      origen: 'IA',
+      mensajesRestantes: 5,
+      puedeGuardar: false,
+      cuota: { usadas: 2, limite: 5, restantes: 3 },
+    });
+
+    expect(aclarando.entendido).toBe('');
+    expect(aclarando.tipo).toBeNull();
+    expect(aclarando.origen).toBe('IA');
+  });
+
   it('la propuesta del contrato se lee, y la cuota todavía puede no venir', () => {
     expect(PROPUESTA.minis).toHaveLength(2);
     expect(PROPUESTA.cuota).toBeUndefined();

@@ -47,6 +47,9 @@ export const planesSchema = z.object({
     periodoIa: z.enum(['MENSUAL', 'PRUEBA']),
     inicioPeriodoIa: fecha,
     finPeriodoIa: fecha,
+    /** Objetivos armados con Sami (IA) este mes y el tope del plan; sin tope (`null`) no hay cuota que mostrar (H-60). */
+    objetivosIa: cantidad.optional(),
+    limiteObjetivosIa: cantidad.nullable().optional(),
   }),
   prueba: pruebaPremiumSchema.nullable(),
 });

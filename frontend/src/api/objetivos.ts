@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import {
   candidatosMiniObjetivoSchema,
-  cuotaObjetivosSchema,
   propuestaObjetivoSchema,
   respuestaMiniObjetivoSchema,
   respuestasPendientesSchema,
@@ -15,6 +14,7 @@ import {
   progresoObjetivoSchema,
   semanasObjetivoSchema,
   type CandidatoMiniObjetivo,
+  type CuotaObjetivos,
   type DecisionDePaso,
   type MensajeDeConversacion,
   type NuevoObjetivo,
@@ -23,6 +23,7 @@ import {
   type ProductoParaPaso,
 } from '@/types/objetivos';
 import { http } from './client';
+import { consultarPlanes } from './planes';
 
 // Cada negocio ve solo los suyos: el servidor los busca por la sesión, nunca por un dato que mande el navegador.
 export const listarObjetivos = (signal?: AbortSignal) =>
@@ -39,9 +40,21 @@ export const proponerObjetivo = (mensajes: MensajeDeConversacion[]) =>
 export const guardarObjetivoConSami = (objetivo: ObjetivoConSami) =>
   http.post('/objetivos/sami', objetivo, objetivoDelServidorSchema);
 
-/** Cuántos objetivos con IA le quedan al negocio este mes. */
-export const obtenerCuotaObjetivos = (signal?: AbortSignal) =>
-  http.get('/objetivos/cuota', cuotaObjetivosSchema, signal);
+/**
+ * Cuántos objetivos con IA lleva el negocio este mes: el servidor lo informa dentro de `/planes` (uso y tope del plan),
+ * y es `null` si el plan no tiene tope.
+ */
+export const obtenerCuotaObjetivos = async (
+  signal?: AbortSignal,
+): Promise<CuotaObjetivos | null> => {
+  const { uso } = await consultarPlanes(signal);
+  if (uso.objetivosIa === undefined || uso.limiteObjetivosIa == null) return null;
+  return {
+    usadas: uso.objetivosIa,
+    limite: uso.limiteObjetivosIa,
+    restantes: Math.max(0, uso.limiteObjetivosIa - uso.objetivosIa),
+  };
+};
 
 // Un objetivo ajeno responde 404, igual que uno que no existe.
 export const eliminarObjetivo = (id: string) =>

@@ -2292,50 +2292,74 @@
   grid-template-columns: minmax(0, 1fr);
 }
 .sami-cuota {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: grid;
+  gap: 4px;
   width: fit-content;
-  padding: 4px 12px;
-  border: 1px solid var(--line);
-  border-radius: 99px;
-  background: var(--paper, #fff);
-  color: var(--petrol);
-  font-size: 13px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
   font-weight: 700;
 }
+.sami-cuota > span:first-child {
+  white-space: nowrap;
+}
+.sami-cuota svg {
+  display: inline-block;
+  color: var(--orange);
+  vertical-align: -2px;
+}
+.sami-cuota-barra {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--line);
+}
+.sami-cuota-barra i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--orange);
+}
 .sami-cuota[data-agotada='true'] {
-  border-color: var(--yellow);
-  background: #fffbe6;
   color: var(--ink);
 }
+.sami-chat.integrado {
+  position: static;
+  width: 100%;
+  height: auto;
+  box-shadow: none;
+  animation: none;
+  transition: none;
+}
+.sami-chat.integrado .sami-chat-cabeza {
+  cursor: default;
+}
+.sami-chat.integrado .sami-chat-mensajes {
+  flex: none;
+  max-height: 340px;
+  min-height: 90px;
+}
 .sami-hilo {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.sami-hilo li {
-  max-width: 92%;
-  padding: 10px 14px;
-  border-radius: 14px;
-  background: var(--color-soft-surface, #f5f6f3);
+.sami-hilo .sami-chat-burbuja.sami {
+  width: auto;
 }
-.sami-hilo li[data-rol='PERSONA'] {
-  justify-self: end;
-  background: #e6f3f7;
+/* El texto de una burbuja del chat flotante se oscurece con `.sami-chat-burbuja p`: la nuestra va sobre azul. */
+.sami-hilo .sami-chat-burbuja.yo p {
+  color: #fff;
 }
-.sami-hilo-quien {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.sami-chat-tope {
+  margin: 0;
+  padding: 10px 14px 14px;
 }
-.sami-hilo p {
-  margin: 2px 0 0;
-  overflow-wrap: anywhere;
+.sami-chat.integrado .sami-chat-form textarea {
+  min-height: 38px;
 }
 .sami-tipo {
   color: var(--petrol);
@@ -2406,24 +2430,11 @@
 .sami-mini-edicion .field {
   margin-bottom: 0;
 }
-.sami-escribir {
-  display: grid;
-  gap: 12px;
-}
-.objetivos-minis-resumen {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-  padding: 0 0 0 18px;
-  color: var(--ink);
-  font-size: 14px;
-}
 @media (max-width: 600px) {
   .sami-hilo li {
     max-width: 100%;
   }
-  .sami-aparte-acciones .btn,
-  .sami-escribir > .btn {
+  .sami-aparte-acciones .btn {
     width: 100%;
   }
   .objetivos-formulario-acciones .btn {
@@ -2562,14 +2573,206 @@
   }
 }
 
-.objetivos-definir-otro {
+/* --- Tarjetas de la semana: cada una ocupa lo que necesita y el botón sin completar se ve apagado --- */
+.mini-objetivos {
+  align-items: start;
+}
+.mini-manual .btn.primary:disabled {
+  border-color: var(--line);
+  background: var(--line);
+  box-shadow: none;
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 1;
+}
+.respuesta-rapida textarea {
+  min-height: 64px;
+}
+
+/* --- Avance de un objetivo sin meta en pesos: una columna por semana cerrada, un cuadrado por acción --- */
+.avance-semanas {
   display: grid;
-  justify-items: start;
+  gap: 14px;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+.avance-semanas figcaption {
+  color: var(--ink);
+  font-size: 15px;
+}
+.avance-semanas-columnas {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+}
+.avance-semanas-columna {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+.avance-semanas-pila {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 4px;
+}
+.avance-semanas-cuadrado {
+  display: inline-block;
+  width: 34px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--line);
+}
+.avance-semanas-cuadrado[data-hizo='SI'] {
+  background: var(--ok);
+}
+.avance-semanas-cuadrado[data-hizo='EN_PARTE'] {
+  background: var(--orange);
+}
+.avance-semanas-cuadrado[data-hizo='NO'] {
+  background: var(--line);
+}
+.avance-semanas-dia {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.avance-semanas-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  color: var(--ink);
+  font-size: 13px;
+  list-style: none;
+}
+.avance-semanas-leyenda .avance-semanas-cuadrado {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  vertical-align: -2px;
+}
+.avance-semanas-vacio {
+  margin: 0;
+  color: var(--ink);
+}
+.avance-semanas-fantasma {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  opacity: 0.55;
+}
+.avance-semanas-fantasma .avance-semanas-cuadrado {
+  background: transparent;
+  border: 2px dashed var(--line);
+}
+
+/* --- Cabecera de Objetivos: el botón de un desafío nuevo va donde antes estaba el cartel de Sami --- */
+.objetivos-nuevo-desafio {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+.objetivos-nuevo-desafio .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+}
+@media (max-width: 700px) {
+  .objetivos-encabezado {
+    flex-direction: column;
+  }
+  .objetivos-nuevo-desafio,
+  .objetivos-nuevo-desafio .btn {
+    width: 100%;
+    justify-items: stretch;
+  }
+}
+
+/* --- Tarjeta de un objetivo armado con Sami: tipo, mini-objetivos como filas y quién sigue cada uno --- */
+.objetivos-tarjeta.dinamico {
+  --acento: var(--orange);
+  border-top: 5px solid var(--acento);
+}
+.objetivos-tarjeta.dinamico[data-tipo='CON_DATOS'] {
+  --acento: var(--petrol);
+}
+.objetivos-tarjeta.dinamico[data-tipo='HIBRIDO'] {
+  --acento: var(--blue);
+}
+.objetivos-tipo {
+  flex: none;
+  padding: 4px 12px;
+  border: 1px solid color-mix(in srgb, var(--acento) 40%, var(--line));
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--acento) 10%, #fff);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.tarjeta-minis {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.tarjeta-mini {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
   gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+.tarjeta-mini-numero {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--acento);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+.tarjeta-mini-texto {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.tarjeta-mini-texto p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.tarjeta-mini-texto .objetivos-progreso {
+  height: 8px;
+}
+.tarjeta-mini-modo {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 @media (max-width: 600px) {
-  .objetivos-definir-otro,
-  .objetivos-definir-otro .btn {
-    width: 100%;
+  .tarjeta-mini {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .tarjeta-mini-modo {
+    grid-column: 2;
   }
 }

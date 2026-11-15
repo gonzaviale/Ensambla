@@ -12,6 +12,7 @@ import {
   type Objetivo,
   type ObjetivoConMeta,
 } from '@/lib/objetivos';
+import { MinisDeLaTarjeta } from './MinisDeLaTarjeta';
 import { Progreso } from './piezas';
 
 type Props = {
@@ -45,20 +46,15 @@ function ObjetivoSinMetaCard({ objetivo, onQuitar, onVerSemana }: Props) {
   const resumenListo = resumenSinVer(objetivo.id, ultimoCierre);
   const minis = useMiniObjetivos(objetivo.id).data?.minis ?? [];
   return (
-    <article className="objetivos-tarjeta">
+    <article className="objetivos-tarjeta dinamico" data-tipo={objetivo.tipo}>
       <header>
         <div>
-          <p className="objetivos-etiqueta">Tu objetivo · {ETIQUETA_DE_TIPO[objetivo.tipo]}</p>
+          <p className="objetivos-etiqueta">Tu objetivo</p>
           <h2>{objetivo.texto}</h2>
         </div>
+        <span className="objetivos-tipo">{ETIQUETA_DE_TIPO[objetivo.tipo]}</span>
       </header>
-      {minis.length > 0 && (
-        <ul className="objetivos-minis-resumen" aria-label="Mini-objetivos de esta semana">
-          {minis.map((mini) => (
-            <li key={mini.id}>{mini.titulo}</li>
-          ))}
-        </ul>
-      )}
+      <MinisDeLaTarjeta minis={minis} />
       <footer className="objetivos-tarjeta-acciones">
         <button type="button" className="btn secondary" onClick={onVerSemana}>
           <CalendarCheckIcon aria-hidden size={18} /> Ver mi semana

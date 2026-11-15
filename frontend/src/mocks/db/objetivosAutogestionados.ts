@@ -208,6 +208,7 @@ export function datosDeEjemplo(objetivo: ObjetivoDelServidor, hoy: string): Dato
       decisiones: conteo(lunes),
       queFunciono: `${variacion} ${faltan(resultado)}`,
       textoConIa: false,
+      manuales: [],
       reajustes: [],
     };
   });
@@ -393,6 +394,16 @@ export function datosSinDatosDeEjemplo(
         decisiones: { aplicadas: 0, descartadas: 0, aceptadas: 0, ignoradas: 0 },
         queFunciono: 'Esta semana me contaste cómo te fue con 3 mini-objetivos.',
         textoConIa: false,
+        manuales: [
+          { miniObjetivoId: hecha.id, titulo: hecha.titulo, hizo: 'SI', quePaso: 'FUNCIONO' },
+          { miniObjetivoId: aMedias.id, titulo: aMedias.titulo, hizo: 'EN_PARTE', quePaso: 'OTRA' },
+          {
+            miniObjetivoId: noHecha.id,
+            titulo: noHecha.titulo,
+            hizo: 'NO',
+            quePaso: 'NO_TUVE_TIEMPO',
+          },
+        ],
         reajustes: [],
       },
     ],

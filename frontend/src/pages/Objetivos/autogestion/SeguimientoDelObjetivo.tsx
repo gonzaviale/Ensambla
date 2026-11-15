@@ -19,6 +19,7 @@ import {
 } from '@/lib/objetivosAutogestion';
 import { armarResumenDelDomingo } from '@/lib/resumenDelDomingo';
 import { hoy } from '@/lib/sistema/formato';
+import { AvanceDeLasSemanas } from './AvanceDeLasSemanas';
 import { GraficoSemanal } from './GraficoSemanal';
 import { HistorialReajustes } from './HistorialReajustes';
 import { MiniManualCard } from './MiniManualCard';
@@ -206,7 +207,9 @@ export function SeguimientoDelObjetivo({
             )}
             {progresoConMeta ? (
               <GraficoSemanal progreso={progresoConMeta} decisiones={lista} />
-            ) : progreso.data ? null : progreso.isPending ? (
+            ) : progreso.data ? (
+              <AvanceDeLasSemanas semanas={semanas.data?.semanas ?? []} />
+            ) : progreso.isPending ? (
               <p role="status">Cargando el gráfico…</p>
             ) : (
               <p role="alert">No pudimos dibujar el gráfico.</p>

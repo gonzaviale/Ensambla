@@ -7,7 +7,14 @@ import { ESPERA, setupServerError, setupUsuarioConSesion } from '@/test/testHelp
 
 const hablar = async (user: ReturnType<typeof userEvent.setup>, texto: string) => {
   await user.type(await screen.findByLabelText('Contale tu objetivo a Sami', {}, ESPERA), texto);
-  await user.click(screen.getByRole('button', { name: /Hablar con Sami/ }));
+  await user.click(screen.getByRole('button', { name: 'Enviar' }));
+};
+
+const escribirYEnviarConEnter = async (user: ReturnType<typeof userEvent.setup>, texto: string) => {
+  await user.type(
+    await screen.findByLabelText('Contale tu objetivo a Sami', {}, ESPERA),
+    `${texto}{Enter}`,
+  );
 };
 
 const EL_MES = () => `${new Date().toISOString().slice(0, 7)}`;
@@ -39,6 +46,27 @@ describe('definir un objetivo conversando con Sami', () => {
     expect(screen.getByText('Te quedan 5 de 5 objetivos con IA este mes')).toBeVisible();
     // Todavía no se guardó nada ni se gastó cuota.
     expect(objetivosDe(estado.usuarios.values().next().value?.email ?? '')).toHaveLength(0);
+  });
+
+  it('funciona como un chat: Sami saluda, Enter envía, Shift+Enter hace un salto de línea y el mensaje queda en el hilo', async () => {
+    setupUsuarioConSesion();
+    renderApp('/objetivos');
+    const user = userEvent.setup();
+
+    const hilo = within(await screen.findByRole('list', { name: 'Conversación con Sami' }, ESPERA));
+    expect(hilo.getByText(/Hola, soy Sami/)).toBeVisible();
+
+    const campo = screen.getByLabelText('Contale tu objetivo a Sami');
+    await user.type(campo, 'Quiero vender más{Shift>}{Enter}{/Shift}y que me conozcan');
+    expect(campo).toHaveValue('Quiero vender más\ny que me conozcan');
+
+    await user.clear(campo);
+    await escribirYEnviarConEnter(user, 'Quiero vender más');
+
+    await screen.findByRole('region', { name: 'Lo que entendió Sami' }, ESPERA);
+    expect(hilo.getByText('Quiero vender más')).toBeVisible();
+    expect(hilo.queryByText(/Hola, soy Sami/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText('¿Querés cambiar algo?')).toHaveValue('');
   });
 
   it('se puede quitar y retocar un mini-objetivo antes de guardar; al guardar no se inventa una meta', async () => {

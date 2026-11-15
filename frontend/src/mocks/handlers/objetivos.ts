@@ -74,12 +74,6 @@ export const handlersObjetivos = [
       headers: { Location: `/api/objetivos/${creado.id}` },
     });
   }),
-  http.get(api('/objetivos/cuota'), async ({ request }) => {
-    const { usuario, error } = cuenta(request);
-    if (error) return error;
-    await delay(LATENCIA_BACKEND_MS);
-    return HttpResponse.json(cuotaDe(usuario.email));
-  }),
   // Los manuales en curso sin respuesta, del más viejo al más nuevo.
   http.get(api('/objetivos/respuestas-pendientes'), async ({ request }) => {
     const { usuario, error } = cuenta(request);

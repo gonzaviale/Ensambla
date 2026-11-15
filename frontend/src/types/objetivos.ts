@@ -168,6 +168,17 @@ export const decisionesObjetivoSchema = z.object({
 
 const miniDeReajusteSchema = z.object({ titulo: z.string(), meta: z.number() });
 
+export const hizoSchema = z.enum(['SI', 'EN_PARTE', 'NO']);
+export const quePasoSchema = z.enum(['FUNCIONO', 'NO_TUVE_TIEMPO', 'NO_FUNCIONO', 'OTRA']);
+
+/** Cómo le fue a la persona con un mini-objetivo manual en una semana que ya cerró. */
+const manualDeLaSemanaSchema = z.object({
+  miniObjetivoId: z.string(),
+  titulo: z.string(),
+  hizo: hizoSchema,
+  quePaso: quePasoSchema,
+});
+
 export const semanasObjetivoSchema = z.object({
   ultimoCierre: z.string().nullable(),
   semanas: z.array(
@@ -183,6 +194,8 @@ export const semanasObjetivoSchema = z.object({
       }),
       queFunciono: z.string(),
       textoConIa: z.boolean(),
+      /** Lo que la persona contó de sus manuales esa semana; sin manuales (o sin respuestas) queda vacío. */
+      manuales: z.array(manualDeLaSemanaSchema).optional(),
       reajustes: z.array(
         z.object({
           tipo: z.enum(['SUBIR_META', 'REEMPLAZAR', 'PROBAR_OTRO_CAMINO']),
@@ -218,6 +231,19 @@ export const cuotaObjetivosSchema = z.object({
   restantes: z.number().int().nonnegative(),
 });
 
+/** Así la manda el servidor: un plan sin tope trae `limite` y `restantes` vacíos y entonces no hay cuota que mostrar. */
+const cuotaDelServidorSchema = z
+  .object({
+    usadas: z.number().int().nonnegative(),
+    limite: z.number().int().nonnegative().nullable(),
+    restantes: z.number().int().nonnegative().nullable(),
+  })
+  .transform((cuota) =>
+    cuota.limite === null || cuota.restantes === null
+      ? null
+      : { usadas: cuota.usadas, limite: cuota.limite, restantes: cuota.restantes },
+  );
+
 export const fuenteDeDatosSchema = z.enum(['VENTAS', 'MARGEN', 'INVENTARIO', 'GASTOS', 'ZONA']);
 
 /** Un mini-objetivo que Sami propone: medido (con los números del servidor) o manual (sólo la acción). */
@@ -237,8 +263,11 @@ export const miniPropuestoSchema = z.object({
 export const propuestaObjetivoSchema = z.object({
   /** Lo que Sami le dice a la persona. */
   respuesta: z.string(),
-  /** Cómo entendió el objetivo; vacío si todavía necesita aclarar. */
-  entendido: z.string(),
+  /** Cómo entendió el objetivo; el servidor manda `null` si todavía necesita aclarar, y acá queda vacío. */
+  entendido: z
+    .string()
+    .nullish()
+    .transform((texto) => texto ?? ''),
   /** El tipo que quedaría al guardar; null si no hay mini-objetivos o es una meta en pesos. */
   tipo: tipoObjetivoSchema.nullable(),
   esMonetario: z.boolean(),
@@ -247,8 +276,8 @@ export const propuestaObjetivoSchema = z.object({
   origen: z.enum(['IA', 'RESPALDO']),
   mensajesRestantes: z.number().int().nonnegative(),
   puedeGuardar: z.boolean(),
-  /** La cuota del mes; la suma T-242, mientras tanto puede no venir. */
-  cuota: cuotaObjetivosSchema.nullish(),
+  /** La cuota del mes; vacía si el plan no tiene tope. */
+  cuota: cuotaDelServidorSchema.nullish(),
 });
 
 export type TipoMiniObjetivoPropuesto = z.infer<typeof miniPropuestoSchema>;
@@ -270,9 +299,6 @@ export type ObjetivoConSami = {
 };
 
 // --- Responder un mini-objetivo manual (H-60) ---
-
-export const hizoSchema = z.enum(['SI', 'EN_PARTE', 'NO']);
-export const quePasoSchema = z.enum(['FUNCIONO', 'NO_TUVE_TIEMPO', 'NO_FUNCIONO', 'OTRA']);
 
 export type Hizo = z.infer<typeof hizoSchema>;
 export type QuePaso = z.infer<typeof quePasoSchema>;

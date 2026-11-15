@@ -30,7 +30,7 @@ describe('la cuota de objetivos con IA', () => {
     const user = userEvent.setup();
 
     await screen.findByText('Te quedan 5 de 5 objetivos con IA este mes', {}, ESPERA);
-    await user.click(screen.getByRole('button', { name: /Definir otro objetivo/ }));
+    await user.click(screen.getByRole('button', { name: /Nuevo desafío/ }));
     await user.click(
       await screen.findByRole('button', { name: 'Quiero poner una meta en pesos por mes' }),
     );
