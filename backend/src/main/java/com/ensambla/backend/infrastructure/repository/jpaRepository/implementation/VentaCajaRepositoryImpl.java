@@ -27,6 +27,12 @@ public class VentaCajaRepositoryImpl implements VentaCajaRepository {
     private final VentaCajaRepositoryMapper ventaCajaRepositoryMapper;
 
     @Override
+    public List<VentaCaja> listarPorProyecto(NegocioId negocioId, ProyectoId proyectoId) {
+        return ventaCajaJpaRepository.findByNegocioIdAndProyectoIdOrderByCreadoEnAscIdAsc(
+                negocioId.valor(), proyectoId.valor()).stream().map(ventaCajaRepositoryMapper::toDomain).toList();
+    }
+
+    @Override
     public List<VentaCaja> listarTodas(NegocioId negocioId, ProyectoId proyectoId, BloqueId inventarioId) {
         return ventaCajaJpaRepository.findByNegocioIdAndProyectoIdAndInventarioIdOrderByCreadoEnAscIdAsc(
                 negocioId.valor(), proyectoId.valor(), inventarioId.valor()).stream()

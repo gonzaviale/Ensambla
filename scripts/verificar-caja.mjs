@@ -127,6 +127,8 @@ async function principal() {
     assert.equal(parcial.saldo,2000);assert.equal(parcial.estado,'PARCIAL');
     const fiada=await exigir(cliente,'/api/caja/ventas',200,'POST',{...deudaBase,id:randomUUID(),pagos:[]});
     assert.equal(fiada.saldo,3000);assert.equal(fiada.estado,'PENDIENTE');
+    const panelRuta='/api/negocio/panel?'+new URLSearchParams({proyectoId});
+    assert.equal((await exigir(cliente,panelRuta,200)).metricas.teDeben,5000);
     const conDeudas=await exigir(cliente,consultaRuta,200);
     const cierreConDeudas=await exigir(cliente,'/api/caja/cierres',200,'POST',{
       id:randomUUID(),proyectoId,inventarioId,revision:conDeudas.abierta.revision,
@@ -145,6 +147,9 @@ async function principal() {
     assert.equal(cuentas.ventas.find(v=>v.id===parcial.id).estado,'PAGADA');
     assert.equal(cuentas.ventas.find(v=>v.id===fiada.id).saldo,2000);
     assert.equal(cuentas.cobros.length,1);
+    const panelParcial=await exigir(cliente,panelRuta,200);
+    assert.equal(panelParcial.metricas.teDeben,2000);
+    assert.equal(panelParcial.flujoDeCaja.reduce((sum,s)=>sum+s.entradas,0),20400);
     const soloCobros=await exigir(cliente,consultaRuta,200);
     assert.equal(soloCobros.abierta.ventas.length,0);
     assert.equal(soloCobros.abierta.cobros.length,1);
@@ -161,6 +166,7 @@ async function principal() {
     const saldadas=await exigir(cliente,cuentasRuta,200);
     assert.equal(saldadas.ventas.find(v=>v.id===fiada.id).estado,'PAGADA');
     assert.equal(saldadas.ventas.find(v=>v.id===fiada.id).saldo,0);
+    assert.equal((await exigir(cliente,panelRuta,200)).metricas.teDeben,0);
     const final=(await exigir(cliente,'/api/sistemas',200)).find(s=>s.id===proyectoId);
     assert.equal(final.sections.flatMap(s=>s.blocks).find(b=>b.id===inventarioId).rows.find(p=>p.id===coca).quantity,5);
     console.log(JSON.stringify({resultado:'correcto',comprobaciones:[
@@ -175,6 +181,7 @@ async function principal() {
       'cliente real obligatorio para fiado y pago parcial','saldo pendiente hasta completar la deuda',
       'un cobro aplicado a dos ventas sin duplicación por reintentos',
       'cierre sólo con cobros y fotografía anterior conservada',
+      'Inicio usa el saldo real y el flujo de cobros sin duplicar ventas',
       'cobrar después de cerrar no reabre ventas ni vuelve a descontar stock']},null,2));
   } finally {
     await cliente.pedir(ruta,'DELETE').catch(()=>undefined);

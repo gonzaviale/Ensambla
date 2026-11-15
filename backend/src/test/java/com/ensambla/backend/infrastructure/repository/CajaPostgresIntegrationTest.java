@@ -3,6 +3,10 @@ package com.ensambla.backend.infrastructure.repository;
 import com.ensambla.backend.domain.exception.DuplicateResourceException;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.caja.CobroCajaId;
+import com.ensambla.backend.domain.model.proyecto.ProyectoId;
+import com.ensambla.backend.domain.model.reporte.PanelNegocio;
+import com.ensambla.backend.domain.model.reporte.PeriodoResumen;
+import com.ensambla.backend.domain.service.reporte.DatosDeProyectoService;
 import com.ensambla.backend.domain.repository.caja.CobroCajaRepository;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.plan.UsoPlanRepository;
@@ -74,6 +78,7 @@ class CajaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
     @Autowired private ListarVentasCaja listarVentasCaja;
     @Autowired private CobroCajaRepository cobroCajaRepository;
     @Autowired private NegocioRepository negocioRepository;
+    @Autowired private DatosDeProyectoService datosDeProyectoService;
     @Autowired private UsoPlanRepository usoPlanRepository;
     @Autowired private TransaccionPort transaccionPort;
     @Autowired private JdbcTemplate jdbcTemplate;
@@ -275,6 +280,29 @@ class CajaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         assertThat(siguiente.ventas()).isEmpty();
         assertThat(siguiente.cobros()).hasSize(1);
         assertThat(siguiente.transferencia()).isEqualByComparingTo("600");
+    }
+
+    @Test
+    @DisplayName("Inicio lee el saldo y el flujo reales después de recargar ventas y cobros de PostgreSQL")
+    void reportsShouldUseCurrentDebtAndRealCash() {
+        givenCuentaConCliente();
+        var venta = cobrarVenta.execute(solicitudParcial(CajaTestData.OPERACION, "800"));
+        registrarCobro.execute(solicitudCobro(venta.id(), "600", "TRANSFERENCIA"));
+        entityManager.flush();
+        entityManager.clear();
+        Sistema sistema = sistemaRepository.findAllByNegocioId(negocioId).getFirst();
+        var dia = ZonaNegocio.dia(venta.creadoEn());
+
+        var datos = datosDeProyectoService.cargar(sistema);
+        PanelNegocio panel = PanelNegocio.armar(datos, new PeriodoResumen(dia, dia), dia);
+
+        assertThat(panel.metricas().vendiste()).isEqualByComparingTo("2000");
+        assertThat(panel.metricas().teDeben()).isEqualByComparingTo("600");
+        assertThat(panel.metricas().queda()).isEqualByComparingTo("1400");
+        assertThat(ventaCajaRepository.listarPorProyecto(NegocioId.nuevo(), CajaTestData.PROYECTO)).isEmpty();
+        assertThat(ventaCajaRepository.listarPorProyecto(negocioId, ProyectoId.nuevo())).isEmpty();
+        assertThat(cobroCajaRepository.listarPorProyecto(NegocioId.nuevo(), CajaTestData.PROYECTO)).isEmpty();
+        assertThat(cobroCajaRepository.listarPorProyecto(negocioId, ProyectoId.nuevo())).isEmpty();
     }
 
     @Test

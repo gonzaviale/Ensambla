@@ -14,6 +14,8 @@ public interface ICobroCajaJpaRepository extends JpaRepository<CobroCajaEntity, 
 
     Optional<CobroCajaEntity> findByIdAndNegocioId(UUID id, UUID negocioId);
 
+    List<CobroCajaEntity> findByNegocioIdAndProyectoIdOrderByCreadoEnAscIdAsc(UUID negocioId, UUID proyectoId);
+
     List<CobroCajaEntity> findByNegocioIdAndProyectoIdAndInventarioIdOrderByCreadoEnAscIdAsc(
             UUID negocioId, UUID proyectoId, UUID inventarioId);
 

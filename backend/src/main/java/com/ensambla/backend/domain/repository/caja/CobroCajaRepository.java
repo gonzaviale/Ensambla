@@ -17,6 +17,8 @@ public interface CobroCajaRepository {
 
     CobroCaja save(CobroCaja cobro);
 
+    List<CobroCaja> listarPorProyecto(NegocioId negocioId, ProyectoId proyectoId);
+
     List<CobroCaja> listarTodos(NegocioId negocioId, ProyectoId proyectoId, BloqueId inventarioId);
 
     List<CobroCaja> listarAbiertos(NegocioId negocioId, ProyectoId proyectoId, BloqueId inventarioId);

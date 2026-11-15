@@ -50,6 +50,8 @@ Se permiten hasta tres medios distintos por venta y varias ventas del mismo clie
 
 Los cierres suman las entregas iniciales de sus ventas y los cobros posteriores abiertos. Se puede cerrar un período con cobros aunque no tenga ventas nuevas. Cobrar una deuda vieja no reabre el cierre anterior ni modifica su comprobante. La migración V36 agrega la tabla de cobros sin editar migraciones aplicadas ni reescribir comprobantes viejos.
 
+En Inicio y en el resumen del negocio, **Te deben** muestra el saldo actual de las ventas del período seleccionado. Las anotaciones manuales a fiado conservan su comportamiento. El flujo suma entregas iniciales y cobros por su fecha real; las filas de artículos de Caja siguen contando como ventas pero no vuelven a sumar dinero. Un período que sólo tiene cobros de deudas anteriores también muestra su flujo.
+
 ## Reglas del circuito
 
 - El negocio se obtiene de la sesión. Cliente, inventario o venta ajenos responden 404.
@@ -64,4 +66,26 @@ Los cierres suman las entregas iniciales de sus ventas y los cobros posteriores 
 
 Registrar una venta de $10.000 con una entrega de $4.000 a nombre de un cliente, recargar, encontrar $6.000 pendientes, registrar $2.000 y luego $4.000. Verificar saldo cero, estado Pagada, historial completo, descuento único de stock, separación por fecha de cobro, cierre anterior intacto y aislamiento respecto de otra cuenta.
 
-El acceso móvil se prueba contra frontend compilado, backend y PostgreSQL reales con el perfil `movil` de `compose.yaml`; los mocks sólo sirven como apoyo del desarrollo y las pruebas del frontend.
+## Prueba local y desde el teléfono
+
+Desde la raíz de esta rama, en PowerShell:
+
+```powershell
+$env:ENSAMBLA_PUERTO='8091'
+docker compose -p ensambla-clientes up -d --build --wait
+$env:ENSAMBLA_URL='http://localhost:8091'
+node scripts/verificar-caja.mjs
+```
+
+La aplicación compilada queda en `http://localhost:8091`, con backend y PostgreSQL propios. El script crea cuentas de prueba y comprueba el circuito mediante HTTP real, incluyendo sesión, CSRF, aislamiento, pagos mixtos, fiado, cobros, stock único, cierres e Inicio.
+
+Para abrir esa misma aplicación desde el teléfono con HTTPS y probar la cámara:
+
+```powershell
+docker compose -p ensambla-clientes --profile movil up -d
+docker compose -p ensambla-clientes logs tunel-movil
+```
+
+Abrir la dirección `https://…trycloudflare.com` que aparece en los logs. El perfil `movil` usa el frontend compilado y la misma base real; los mocks sólo sirven como apoyo del desarrollo y las pruebas del frontend. La dirección del túnel cambia cuando se recrea y la prueba física de cámara y teclado móvil se valida en el teléfono.
+
+Recorrer **Caja → Clientes → Nuevo cliente**, registrar una venta parcial y una fiada, recargar, abrir **Ver cuenta**, aplicar un pago dividido y completar el saldo. Confirmar que las ventas pasan de Pendientes a Pagadas, que el historial conserva cada entrega y que la caja suma sólo el dinero recibido. Cerrar la caja antes del último cobro y verificar que ese cierre conserva su foto original.

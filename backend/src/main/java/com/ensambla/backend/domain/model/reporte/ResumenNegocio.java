@@ -9,6 +9,7 @@ import com.ensambla.backend.domain.model.aviso.TipoAviso;
 import com.ensambla.backend.domain.model.aviso.VentaProducto;
 import com.ensambla.backend.domain.model.common.TextoNormalizado;
 import com.ensambla.backend.domain.model.common.ZonaNegocio;
+import com.ensambla.backend.domain.model.caja.VentaCaja;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 import com.ensambla.backend.domain.model.zona.AgregadoZonaProducto;
@@ -107,7 +108,7 @@ public record ResumenNegocio(
     public record ClienteTop(String nombre, long compras, BigDecimal ingresos) {
     }
 
-    /** {@code fiado} es lo vendido a fiado en el período. */
+    /** {@code fiado} es el saldo actual de las ventas del período, incluidas las anotadas manualmente a fiado. */
     public record Clientes(List<ClienteTop> top, BigDecimal fiado, long ventasFiadas) {
 
         public boolean vacio() {
@@ -168,7 +169,7 @@ public record ResumenNegocio(
     public static ResumenNegocio armar(String negocio, DatosDeProyecto datos, AnalisisZona zona, List<Aviso> avisos,
                                        PeriodoResumen periodo, LocalDate hoy) {
         Map<RegistroId, Producto> productos = productosDe(datos.inventarios());
-        List<Venta> todas = ventasDe(datos.ventas());
+        List<Venta> todas = ventasDe(datos.ventas(), datos.origenesVentasCaja());
         List<Venta> delPeriodo = todas.stream().filter(venta -> periodo.incluye(venta.venta().fecha())).toList();
         BigDecimal ingresos = suma(delPeriodo.stream().map(Venta::ingreso));
         return new ResumenNegocio(
@@ -180,7 +181,7 @@ public record ResumenNegocio(
                 masVendidos(delPeriodo, productos),
                 sinMovimiento(delPeriodo, productos),
                 stock(productos),
-                clientes(delPeriodo, datos.nombresDeClientes()),
+                clientes(delPeriodo, datos, periodo),
                 gastos(datos.gastos(), periodo, ingresos),
                 zona(zona, productos),
                 avisos(avisos, periodo));
@@ -298,7 +299,8 @@ public record ResumenNegocio(
 
     // --- clientes y fiado ---
 
-    private static Clientes clientes(List<Venta> delPeriodo, Map<String, String> nombresDeClientes) {
+    private static Clientes clientes(List<Venta> delPeriodo, DatosDeProyecto datos, PeriodoResumen periodo) {
+        Map<String, String> nombresDeClientes = datos.nombresDeClientes();
         List<ClienteTop> top = delPeriodo.stream()
                 .filter(venta -> venta.venta().cliente() != null)
                 .collect(Collectors.groupingBy(
@@ -312,7 +314,11 @@ public record ResumenNegocio(
                 .limit(MAXIMO_CLIENTES)
                 .toList();
         List<Venta> fiadas = delPeriodo.stream().filter(Venta::fiado).toList();
-        return new Clientes(top, suma(fiadas.stream().map(Venta::ingreso)), fiadas.size());
+        List<VentaCaja> pendientesCaja = datos.ventasCaja().stream()
+                .filter(venta -> periodo.incluye(ZonaNegocio.dia(venta.creadoEn())))
+                .filter(venta -> venta.saldo().signum() > 0).toList();
+        return new Clientes(top, suma(fiadas.stream().map(Venta::ingreso))
+                .add(suma(pendientesCaja.stream().map(VentaCaja::saldo))), fiadas.size() + pendientesCaja.size());
     }
 
     /**
@@ -439,11 +445,12 @@ public record ResumenNegocio(
         return productos;
     }
 
-    private static List<Venta> ventasDe(List<BloqueVentas> bloques) {
+    private static List<Venta> ventasDe(List<BloqueVentas> bloques, Set<String> origenesCaja) {
         return bloques.stream()
                 .flatMap(bloque -> bloque.registros().stream()
                         .flatMap(registro -> VentaProducto.desde(bloque, registro).stream()
-                                .map(venta -> new Venta(venta, Boolean.TRUE.equals(bloque.valorDe(registro, "credit"))))))
+                                .map(venta -> new Venta(venta, Boolean.TRUE.equals(bloque.valorDe(registro, "credit"))
+                                        && !origenesCaja.contains(registro.getOrigen())))))
                 .toList();
     }
 

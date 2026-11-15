@@ -25,6 +25,12 @@ public class CobroCajaRepositoryImpl implements CobroCajaRepository {
     private final CobroCajaRepositoryMapper cobroCajaRepositoryMapper;
 
     @Override
+    public List<CobroCaja> listarPorProyecto(NegocioId negocioId, ProyectoId proyectoId) {
+        return cobroCajaJpaRepository.findByNegocioIdAndProyectoIdOrderByCreadoEnAscIdAsc(
+                negocioId.valor(), proyectoId.valor()).stream().map(cobroCajaRepositoryMapper::toDomain).toList();
+    }
+
+    @Override
     public List<CobroCaja> listarTodos(NegocioId negocioId, ProyectoId proyectoId, BloqueId inventarioId) {
         return cobroCajaJpaRepository.findByNegocioIdAndProyectoIdAndInventarioIdOrderByCreadoEnAscIdAsc(
                 negocioId.valor(), proyectoId.valor(), inventarioId.valor()).stream()

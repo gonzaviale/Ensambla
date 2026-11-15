@@ -78,6 +78,17 @@ class CobroCajaRepositoryImplTest {
     }
 
     @Test
+    @DisplayName("El resumen del proyecto incluye sus cobros de cualquier inventario y cierre")
+    void listarPorProyectoShouldScopeByBusinessAndProject() {
+        when(jpa.findByNegocioIdAndProyectoIdOrderByCreadoEnAscIdAsc(cobro.negocioId().valor(),
+                cobro.proyectoId().valor())).thenReturn(List.of(mapper.toEntity(cobro)));
+
+        var encontrados = repositorio.listarPorProyecto(cobro.negocioId(), cobro.proyectoId());
+
+        assertThat(encontrados).containsExactly(cobro);
+    }
+
+    @Test
     @DisplayName("Lista sólo los cobros que todavía no tienen cierre")
     void listarAbiertosShouldScopeUnclosedCollections() {
         when(jpa.findByNegocioIdAndProyectoIdAndInventarioIdAndCierreIdIsNullOrderByCreadoEnAscIdAsc(cobro.negocioId().valor(),

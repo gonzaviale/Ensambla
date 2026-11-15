@@ -14,6 +14,8 @@ public interface IVentaCajaJpaRepository extends JpaRepository<VentaCajaEntity, 
 
     Optional<VentaCajaEntity> findByIdAndNegocioId(UUID id, UUID negocioId);
 
+    List<VentaCajaEntity> findByNegocioIdAndProyectoIdOrderByCreadoEnAscIdAsc(UUID negocioId, UUID proyectoId);
+
     List<VentaCajaEntity> findByNegocioIdAndProyectoIdAndInventarioIdOrderByCreadoEnAscIdAsc(
             UUID negocioId, UUID proyectoId, UUID inventarioId);
 

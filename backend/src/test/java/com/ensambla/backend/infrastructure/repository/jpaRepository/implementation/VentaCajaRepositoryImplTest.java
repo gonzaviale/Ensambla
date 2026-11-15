@@ -34,6 +34,17 @@ class VentaCajaRepositoryImplTest {
             BigDecimal.TEN, BigDecimal.ZERO, CajaTestData.AHORA);
 
     @Test
+    @DisplayName("El resumen del proyecto incluye sus ventas de cualquier inventario y cierre")
+    void listarPorProyectoShouldScopeByBusinessAndProject() {
+        when(jpa.findByNegocioIdAndProyectoIdOrderByCreadoEnAscIdAsc(venta.negocioId().valor(),
+                venta.proyectoId().valor())).thenReturn(List.of(mapper.toEntity(venta)));
+
+        var encontradas = repositorio.listarPorProyecto(venta.negocioId(), venta.proyectoId());
+
+        assertThat(encontradas).containsExactly(venta);
+    }
+
+    @Test
     @DisplayName("Guarda todos los datos históricos y los ids UUID en infraestructura")
     void saveShouldMapEntireSale() {
         when(jpa.save(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
