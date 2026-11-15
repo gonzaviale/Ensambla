@@ -7,12 +7,14 @@ export function DialogoCaja({
   children,
   bloqueado = false,
   rol = 'dialog',
+  clase = '',
 }: {
   titulo: string;
   onCerrar: () => void;
   children: ReactNode;
   bloqueado?: boolean;
   rol?: 'dialog' | 'alertdialog';
+  clase?: string;
 }) {
   const tituloId = useId();
   const raiz = useRef<HTMLElement>(null);
@@ -59,7 +61,7 @@ export function DialogoCaja({
     <div className="overlay-backdrop caja-overlay">
       <section
         ref={raiz}
-        className="modal caja-dialogo"
+        className={`modal caja-dialogo ${clase}`}
         role={rol}
         aria-modal="true"
         aria-labelledby={tituloId}

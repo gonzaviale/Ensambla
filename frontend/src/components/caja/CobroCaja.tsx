@@ -4,6 +4,7 @@ import { SelectorClienteCaja } from './SelectorClienteCaja';
 import { ConfirmacionCambios } from './ConfirmacionCambios';
 import { useConfirmarCambios } from '@/hooks/useConfirmarCambios';
 import { dineroCaja, leerPrecio } from '@/lib/caja';
+import { clientesCaja } from '@/lib/clientesCaja';
 import { Icon } from '@/components/sistema/Icon';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import type { MedioCaja, PagoCaja, SolicitudCobro } from '@/types/caja';
@@ -44,8 +45,10 @@ export function CobroCaja({
   const [tipo, setTipo] = useState<'pagada' | 'parcial' | 'fiada'>('pagada');
   const [importeParcial, setImporteParcial] = useState('');
   const [clienteId, setClienteId] = useState('');
-  const [asociarCliente, setAsociarCliente] = useState(false);
+  const [eligiendoCliente, setEligiendoCliente] = useState(false);
   const pendiente = useSistemaStore((s) => s.pendientes.includes(sistemaId));
+  const sistema = useSistemaStore((s) => s.sistemas.find((item) => item.id === sistemaId));
+  const cliente = clientesCaja(sistema).find((c) => c.fila.id === clienteId);
   const cambios = useConfirmarCambios();
   const solicitarCierre = async () => {
     if (ocupada || incierta) return;
@@ -105,86 +108,94 @@ export function CobroCaja({
     <>
       <DialogoCaja
         titulo={incierta ? 'Verificar la venta' : 'Registrar el cobro'}
+        clase="caja-dialogo-cobro"
         onCerrar={() => void solicitarCierre()}
         bloqueado={bloqueado}
       >
-        <div className="caja-cobro-importe">
-          <span className="caja-antetitulo">03 · TOTAL A COBRAR</span>
-          <p className="caja-importe-previo">{dineroCaja(total)}</p>
-        </div>
-        <fieldset disabled={bloqueado}>
-          <legend>Cómo queda la venta</legend>
-          <div className="caja-opciones">
-            {(
-              [
-                ['pagada', 'Pagada'],
-                ['parcial', 'A medias'],
-                ['fiada', 'Fiada'],
-              ] as const
-            ).map(([valor, texto]) => (
+        <div className="caja-cobro-cuerpo">
+          <div className="caja-cobro-importe">
+            <div>
+              <span className="caja-antetitulo">TOTAL DE LA VENTA</span>
+              <p className="caja-importe-previo">{dineroCaja(total)}</p>
+            </div>
+            {tipo !== 'pagada' && (
+              <div className="caja-cobro-saldo" role="status">
+                <span>Queda pendiente</span>
+                <strong>{importeValido ? dineroCaja(total - aCobrar) : 'Revisá el importe'}</strong>
+              </div>
+            )}
+          </div>
+          <fieldset disabled={bloqueado}>
+            <legend className="sr-only">Cómo queda la venta</legend>
+            <div className="caja-opciones">
+              {(
+                [
+                  ['pagada', 'Pagada'],
+                  ['parcial', 'A medias'],
+                  ['fiada', 'Fiada'],
+                ] as const
+              ).map(([valor, texto]) => (
+                <button
+                  key={valor}
+                  type="button"
+                  aria-pressed={tipo === valor}
+                  onClick={() => {
+                    setTipo(valor);
+                    setRecibido('');
+                    setDividido(false);
+                  }}
+                >
+                  {texto}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <div className="caja-cobro-herramientas">
+            <button
+              type="button"
+              className="btn secondary caja-cobro-cliente"
+              disabled={bloqueado}
+              aria-label={
+                cliente
+                  ? 'Cliente: ' + String(cliente.fila.name)
+                  : tipo === 'pagada'
+                    ? 'Agregar cliente (opcional)'
+                    : 'Elegir cliente para la deuda'
+              }
+              title={cliente ? String(cliente.fila.name) : undefined}
+              onClick={() => setEligiendoCliente(true)}
+            >
+              <Icon name="users" />
+              {cliente
+                ? String(cliente.fila.name)
+                : tipo === 'pagada'
+                  ? 'Cliente opcional'
+                  : 'Elegir cliente'}
+            </button>
+            {tipo !== 'fiada' && (
               <button
-                key={valor}
                 type="button"
-                aria-pressed={tipo === valor}
+                className="btn secondary caja-dividir"
+                aria-label={dividido ? 'Usar un solo medio' : 'Dividir pago'}
+                aria-pressed={dividido}
+                disabled={bloqueado}
                 onClick={() => {
-                  setTipo(valor);
+                  setDividido(!dividido);
                   setRecibido('');
-                  setDividido(false);
                 }}
               >
-                {texto}
+                {dividido ? 'Pago mixto' : 'Dividir pago'}
               </button>
-            ))}
+            )}
           </div>
-        </fieldset>
-        {tipo === 'parcial' && (
-          <label>
-            Paga ahora ($)
-            <input
-              inputMode="decimal"
-              value={importeParcial}
-              disabled={bloqueado}
-              onChange={(e) => setImporteParcial(e.target.value)}
-              placeholder="0,00"
-            />
-          </label>
-        )}
-        {tipo !== 'pagada' && (
-          <p className="caja-saldo" role="status">
-            Queda pendiente:{' '}
-            <strong>{importeValido ? dineroCaja(total - aCobrar) : 'Revisá el importe'}</strong>
-          </p>
-        )}
-        {(tipo !== 'pagada' || asociarCliente) && (
-          <SelectorClienteCaja
-            sistemaId={sistemaId}
-            ventasId={ventasId}
-            clienteId={clienteId}
-            bloqueado={bloqueado}
-            onCliente={setClienteId}
-          />
-        )}
-        {tipo === 'pagada' && !asociarCliente && (
-          <button
-            type="button"
-            className="btn secondary"
-            disabled={bloqueado}
-            onClick={() => setAsociarCliente(true)}
-          >
-            Agregar cliente (opcional)
-          </button>
-        )}
-        {tipo !== 'fiada' && (
-          <>
-            <p className="caja-ayuda">Elegí cómo recibiste el pago.</p>
+          {tipo !== 'fiada' && (
             <fieldset disabled={bloqueado}>
-              <legend>{dividido ? 'Primer medio' : 'Medio de pago'}</legend>
+              <legend className="sr-only">{dividido ? 'Primer medio' : 'Medio de pago'}</legend>
               <div className="caja-opciones">
                 {medios.map((valor) => (
                   <button
                     key={valor}
                     type="button"
-                    disabled={bloqueado}
                     aria-pressed={medio === valor}
                     onClick={() => {
                       setMedio(valor);
@@ -207,23 +218,26 @@ export function CobroCaja({
                 ))}
               </div>
             </fieldset>
-            <button
-              type="button"
-              className="btn secondary caja-dividir"
-              aria-pressed={dividido}
-              disabled={bloqueado}
-              onClick={() => {
-                setDividido(!dividido);
-                setRecibido('');
-              }}
-            >
-              {dividido ? 'Usar un solo medio' : 'Dividir pago'}
-            </button>
-            {dividido && (
-              <div className="caja-pago-dividido">
+          )}
+          <div className="caja-cobro-importes">
+            {tipo === 'parcial' && (
+              <label>
+                Paga ahora ($)
+                <input
+                  inputMode="decimal"
+                  value={importeParcial}
+                  disabled={bloqueado}
+                  onChange={(e) => setImporteParcial(e.target.value)}
+                  placeholder="0,00"
+                />
+              </label>
+            )}
+            {dividido && tipo !== 'fiada' && (
+              <>
                 <label>
-                  Importe en {nombre(medio).toLowerCase()} ($)
+                  {nombre(medio)} ($)
                   <input
+                    aria-label={'Importe en ' + nombre(medio).toLowerCase() + ' ($)'}
                     inputMode="decimal"
                     value={primeraParte}
                     disabled={bloqueado}
@@ -231,68 +245,72 @@ export function CobroCaja({
                     placeholder="0,00"
                   />
                 </label>
-                <fieldset disabled={bloqueado}>
-                  <legend>El resto se paga con</legend>
-                  <div className="caja-opciones">
+                <label>
+                  El resto con
+                  <select
+                    aria-label="El resto se paga con"
+                    value={segundo}
+                    disabled={bloqueado}
+                    onChange={(e) => {
+                      setSegundo(e.target.value as MedioCaja);
+                      setRecibido('');
+                    }}
+                  >
                     {medios
                       .filter((m) => m !== medio)
                       .map((valor) => (
-                        <button
-                          type="button"
-                          key={valor}
-                          disabled={bloqueado}
-                          aria-pressed={segundo === valor}
-                          onClick={() => {
-                            setSegundo(valor);
-                            setRecibido('');
-                          }}
-                        >
+                        <option key={valor} value={valor}>
                           {nombre(valor)}
-                        </button>
+                        </option>
                       ))}
-                  </div>
-                </fieldset>
-                <p className="caja-restante" role="status">
-                  {restante > 0
-                    ? `${nombre(segundo)}: ${dineroCaja(restante)}`
-                    : 'Revisá el importe: las dos partes deben ser mayores a cero.'}
-                </p>
-              </div>
+                  </select>
+                </label>
+              </>
             )}
-          </>
-        )}
-        {efectivo > 0 && (
-          <label>
-            Efectivo recibido ($)
-            <input
-              inputMode="decimal"
-              value={recibido}
-              disabled={bloqueado}
-              placeholder="Importe exacto"
-              onChange={(e) => setRecibido(e.target.value)}
-            />
-          </label>
-        )}
-        <p role="status">
-          {valido
-            ? efectivo > 0
-              ? `Vuelto: ${dineroCaja(entregado - efectivo)}`
-              : tipo === 'fiada'
-                ? 'Se guardará la deuda a nombre del cliente.'
-                : 'Confirmá que ya recibiste el pago.'
-            : 'Revisá los importes antes de confirmar.'}
-        </p>
-        {error && (
-          <p className="caja-error" role="alert">
-            {error}
-          </p>
-        )}
-        {incierta && (
-          <p className="caja-nota">
-            Estamos verificando si se registró. Consultar de nuevo conserva la misma operación; no
-            vuelvas a cobrarle a la persona.
-          </p>
-        )}
+            {efectivo > 0 && (
+              <label>
+                Recibido ($)
+                <input
+                  aria-label="Efectivo recibido ($)"
+                  inputMode="decimal"
+                  value={recibido}
+                  disabled={bloqueado}
+                  placeholder="Importe exacto"
+                  onChange={(e) => setRecibido(e.target.value)}
+                />
+              </label>
+            )}
+          </div>
+          <div className="caja-cobro-estado" role="status">
+            {dividido && tipo !== 'fiada' && (
+              <span>
+                {restante > 0
+                  ? nombre(segundo) + ': ' + dineroCaja(restante)
+                  : 'Las dos partes deben ser mayores a cero.'}
+              </span>
+            )}
+            <span>
+              {valido
+                ? efectivo > 0
+                  ? 'Vuelto: ' + dineroCaja(entregado - efectivo)
+                  : tipo === 'fiada'
+                    ? 'Deuda a nombre del cliente.'
+                    : 'Confirmá que recibiste el pago.'
+                : 'Revisá los importes y el cliente.'}
+            </span>
+          </div>
+          {error && (
+            <p className="caja-error" role="alert">
+              {error}
+            </p>
+          )}
+          {incierta && (
+            <p className="caja-nota">
+              Verificá la misma operación para saber si se registró. No vuelvas a cobrarle a la
+              persona.
+            </p>
+          )}
+        </div>
         <div className="caja-acciones">
           <button
             type="button"
@@ -320,6 +338,20 @@ export function CobroCaja({
           </button>
         </div>
       </DialogoCaja>
+      {eligiendoCliente && (
+        <DialogoCaja titulo="Cliente de la venta" onCerrar={() => setEligiendoCliente(false)}>
+          <SelectorClienteCaja
+            sistemaId={sistemaId}
+            ventasId={ventasId}
+            clienteId={clienteId}
+            bloqueado={bloqueado}
+            onCliente={(id) => {
+              setClienteId(id);
+              setEligiendoCliente(false);
+            }}
+          />
+        </DialogoCaja>
+      )}
       {cambios.confirmacion && (
         <ConfirmacionCambios
           mensaje={cambios.confirmacion}

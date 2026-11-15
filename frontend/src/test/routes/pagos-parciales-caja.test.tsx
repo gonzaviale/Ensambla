@@ -60,6 +60,7 @@ describe('ventas con saldo pendiente', () => {
     const { user, clienteId, solicitudes } = await abrir();
     await user.click(screen.getByRole('button', { name: 'Fiada' }));
     expect(screen.getByRole('button', { name: 'Registrar fiado' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Elegir cliente para la deuda' }));
     await user.click(screen.getByRole('button', { name: 'Ana López' }));
     await user.click(screen.getByRole('button', { name: 'Registrar fiado' }));
 
@@ -77,6 +78,7 @@ describe('ventas con saldo pendiente', () => {
     const { user, solicitudes } = await abrir();
     await user.click(screen.getByRole('button', { name: 'A medias' }));
     await user.type(screen.getByLabelText('Paga ahora ($)'), '4000');
+    await user.click(screen.getByRole('button', { name: 'Elegir cliente para la deuda' }));
     await user.click(screen.getByRole('button', { name: 'Ana López' }));
     await user.click(screen.getByRole('button', { name: 'Dividir pago' }));
     await user.type(screen.getByLabelText('Importe en efectivo ($)'), '1500');
@@ -93,6 +95,7 @@ describe('ventas con saldo pendiente', () => {
   it('rechaza un importe parcial que alcanza o supera el total', async () => {
     const { user, solicitudes } = await abrir();
     await user.click(screen.getByRole('button', { name: 'A medias' }));
+    await user.click(screen.getByRole('button', { name: 'Elegir cliente para la deuda' }));
     await user.click(screen.getByRole('button', { name: 'Ana López' }));
     await user.type(screen.getByLabelText('Paga ahora ($)'), '10001');
 
@@ -103,6 +106,7 @@ describe('ventas con saldo pendiente', () => {
   it('permite crear al cliente durante el cobro y espera a que se guarde', async () => {
     const { user, solicitudes } = await abrir();
     await user.click(screen.getByRole('button', { name: 'Fiada' }));
+    await user.click(screen.getByRole('button', { name: 'Elegir cliente para la deuda' }));
     await user.click(screen.getByRole('button', { name: 'Crear cliente' }));
     await user.type(screen.getByLabelText(/^Nombre/), 'Pedro');
     await user.click(screen.getByRole('button', { name: 'Guardar cliente' }));

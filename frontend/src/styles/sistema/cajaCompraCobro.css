@@ -1,0 +1,262 @@
+.caja-dialogo.caja-dialogo-cobro {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  width: min(540px, 100%);
+  height: min(760px, 94dvh);
+  overflow: hidden;
+  padding: 20px;
+}
+.caja-dialogo-cobro .caja-dialogo-cabecera {
+  position: static;
+  margin: 0;
+  padding: 0 0 8px;
+}
+.caja-cobro-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.caja-cobro-cuerpo > * {
+  flex-shrink: 0;
+}
+.caja-dialogo-cobro .caja-cobro-importe {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 12px;
+}
+.caja-dialogo-cobro .caja-importe-previo {
+  font-size: 32px;
+  margin: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.caja-cobro-saldo {
+  display: grid;
+  gap: 2px;
+  text-align: right;
+  font-size: 14px;
+  color: #694006;
+}
+.caja-cobro-herramientas,
+.caja-cobro-importes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.caja-dialogo-cobro .caja-cobro-herramientas .btn {
+  min-width: 0;
+  font-size: 14px;
+  padding: 8px;
+  min-height: 44px;
+  line-height: 1.2;
+}
+.caja-cobro-cliente {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.caja-cobro-herramientas .icon {
+  width: 18px;
+  height: 18px;
+}
+.caja-dialogo-cobro .caja-opciones {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  gap: 6px;
+}
+.caja-dialogo.caja-dialogo-cobro fieldset .caja-opciones button {
+  flex-direction: row;
+  gap: 5px;
+  min-height: 44px;
+  padding: 8px 4px;
+  font-size: 14px;
+}
+.caja-dialogo-cobro .caja-opciones .icon {
+  width: 18px;
+  height: 18px;
+}
+.caja-dialogo-cobro label {
+  gap: 4px;
+  font-size: 14px;
+  min-width: 0;
+  line-height: 1.2;
+}
+.caja-dialogo-cobro input,
+.caja-dialogo-cobro select {
+  min-height: 44px;
+  padding: 8px;
+  font-size: 16px;
+  line-height: 1.25;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #7398a6;
+  border-radius: 9px;
+  background: #fff;
+}
+.caja-cobro-estado {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #14533d;
+}
+.caja-dialogo-cobro .caja-error,
+.caja-dialogo-cobro .caja-nota {
+  margin: 0;
+  padding: 8px;
+  font-size: 14px;
+}
+.caja-dialogo-cobro .caja-acciones {
+  position: static;
+  margin: 0;
+  padding: 10px 0 0;
+  border-top: 1px solid #dce5e9;
+  flex-wrap: nowrap;
+}
+.caja-dialogo-cobro .caja-acciones .btn {
+  min-height: 44px;
+  padding: 10px;
+  font-size: 14px;
+}
+.caja-dialogo-cobro .caja-acciones .btn.primary {
+  flex: 1;
+}
+@media (max-width: 800px) {
+  .caja-mostrador[data-paso='compra'][data-vista='cobrar'] > .caja-vistas,
+  .caja-mostrador[data-paso='compra'][data-vista='cobrar'] .caja-venta-panel > .caja-mensaje {
+    display: none;
+  }
+  .caja-mostrador[data-paso='compra'] .caja-compra {
+    padding: 10px 12px;
+  }
+  .caja-mostrador[data-paso='compra'] .caja-compra-cabecera {
+    gap: 8px;
+    padding-bottom: 8px;
+  }
+  .caja-compra-cabecera > div {
+    min-width: 0;
+    flex: 1;
+  }
+  .caja-compra-cabecera h2 {
+    font-size: 18px;
+    white-space: nowrap;
+  }
+  .caja-compra-cabecera .caja-seguir-agregando {
+    flex-shrink: 0;
+    gap: 4px;
+    margin: 0;
+    width: auto;
+    padding: 8px;
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .caja-mostrador[data-paso='compra'] .caja-lista {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 0;
+    scrollbar-gutter: auto;
+    padding-right: 0;
+  }
+  .caja-mostrador[data-paso='compra'] .caja-lista > li {
+    padding: 10px 0;
+  }
+  .caja-mostrador[data-paso='compra'] .caja-lista .caja-entre > strong {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  .caja-lista .caja-entre > strong:first-child {
+    min-width: 0;
+    white-space: normal;
+  }
+  .caja-lista .caja-precio-unitario {
+    margin: 4px 0 6px;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  .caja-mostrador[data-paso='compra'] .caja-cantidad button {
+    height: 44px;
+    width: 44px;
+  }
+  .caja-mostrador[data-paso='compra'] .caja-quitar {
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 8px;
+  }
+  .caja-quitar-texto {
+    display: none;
+  }
+  .caja-mostrador[data-paso='compra'] .caja-deshacer {
+    margin: 6px 0 0;
+    min-height: 44px;
+    font-size: 14px;
+    padding: 8px;
+  }
+  .caja-dialogo.caja-dialogo-cobro {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    padding: max(10px, env(safe-area-inset-top)) 12px max(10px, env(safe-area-inset-bottom));
+    gap: 8px;
+  }
+  .caja-dialogo.caja-dialogo-cobro .caja-dialogo-cabecera {
+    padding: 0 0 6px;
+    margin: 0;
+  }
+  .caja-cobro-cuerpo {
+    gap: 8px;
+  }
+  .caja-dialogo-cobro .caja-cobro-importe {
+    padding: 8px 10px;
+  }
+  .caja-dialogo-cobro .caja-importe-previo {
+    font-size: clamp(24px, 7vw, 28px);
+  }
+  .caja-dialogo-cobro .caja-antetitulo {
+    font-size: 11px;
+    letter-spacing: 0.4px;
+  }
+  .caja-dialogo-cobro .caja-acciones {
+    padding-top: 8px;
+  }
+  .caja-cobro-herramientas,
+  .caja-cobro-importes {
+    gap: 8px;
+  }
+}
+@media (max-width: 380px) {
+  .caja-dialogo-cobro .caja-opciones .icon {
+    display: none;
+  }
+}
+@media (max-width: 800px) and (max-height: 640px) {
+  .caja-cobro-cuerpo {
+    gap: 6px;
+  }
+  .caja-mostrador[data-paso='compra'] .caja-lista > li {
+    padding: 8px 0;
+  }
+  .caja-mostrador[data-paso='compra'] .caja-precio-unitario {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    margin: 0;
+  }
+  .caja-mostrador[data-paso='compra'] .caja-lista .caja-entre:first-child {
+    margin-bottom: 6px;
+  }
+}

@@ -33,16 +33,17 @@ export function CompraActual({
           <h2>Compra actual</h2>
         </div>
         <span className="caja-contador">{lineas.length}</span>
+        <button
+          type="button"
+          className="btn secondary small caja-seguir-agregando"
+          aria-label="Seguir agregando"
+          disabled={bloqueada}
+          onClick={onAgregar}
+        >
+          <Icon name="plus" />
+          Agregar
+        </button>
       </div>
-      <button
-        type="button"
-        className="btn secondary small caja-seguir-agregando"
-        disabled={bloqueada}
-        onClick={onAgregar}
-      >
-        <Icon name="plus" />
-        Seguir agregando
-      </button>
       {!lineas.length && (
         <div className="caja-vacio">
           <Icon name="orders" />
@@ -57,7 +58,7 @@ export function CompraActual({
               <strong>{linea.nombre}</strong>
               <strong>{dineroCaja(linea.importeCentavos)}</strong>
             </div>
-            <p className="caja-ayuda">
+            <p className="caja-ayuda caja-precio-unitario">
               {dineroCaja(Math.round(linea.precio * 100))} /{' '}
               {linea.modo === 'peso' ? 'kg' : 'unidad'}
             </p>
@@ -130,7 +131,7 @@ export function CompraActual({
                 onClick={() => onQuitar(linea.id)}
               >
                 <Icon name="trash" />
-                Quitar
+                <span className="caja-quitar-texto">Quitar</span>
               </button>
             </div>
             {linea.modo === 'peso' && (
