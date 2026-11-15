@@ -61,6 +61,18 @@ public class Objetivo {
         alcanzadoEn = ahora;
     }
 
+    /** Un objetivo armado con Sami, sin meta en pesos; el id lo asigna la base. */
+    public static Objetivo conSami(
+            NegocioId negocioId, String texto, TipoObjetivo tipo, boolean armadoConSami, OffsetDateTime ahora) {
+        return Objetivo.builder()
+                .negocioId(negocioId)
+                .texto(texto.strip())
+                .tipo(tipo)
+                .armadoConSami(armadoConSami)
+                .creadoEn(ahora)
+                .build();
+    }
+
     public static Objetivo nuevo(NegocioId negocioId, String texto, BigDecimal meta, OffsetDateTime ahora) {
         return Objetivo.builder()
                 .negocioId(negocioId)

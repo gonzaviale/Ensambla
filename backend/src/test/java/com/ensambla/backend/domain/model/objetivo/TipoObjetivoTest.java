@@ -5,11 +5,16 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static com.ensambla.backend.support.MiniObjetivoTestData.miniManual;
-import static com.ensambla.backend.support.MiniObjetivoTestData.miniObjetivo;
+import static com.ensambla.backend.support.ConversacionObjetivoTestData.JUSTIFICACION_ACCION;
+import static com.ensambla.backend.support.ConversacionObjetivoTestData.TITULO_ACCION;
+import static com.ensambla.backend.support.MiniObjetivoTestData.candidato;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class TipoObjetivoTest {
+
+    private static final MiniObjetivoPropuesto MEDIDO = MiniObjetivoPropuesto.medido(candidato());
+    private static final MiniObjetivoPropuesto MANUAL =
+            MiniObjetivoPropuesto.manual(new AccionManual(TITULO_ACCION, JUSTIFICACION_ACCION), true);
 
     @Test
     @DisplayName("Sólo el monetario tiene meta en pesos")
@@ -23,24 +28,18 @@ class TipoObjetivoTest {
     @Test
     @DisplayName("Con sólo mini-objetivos medidos el objetivo es con datos")
     void deShouldBeConDatosWhenAllAreMeasured() {
-        TipoObjetivo result = TipoObjetivo.de(List.of(miniObjetivo()));
-
-        assertThat(result).isEqualTo(TipoObjetivo.CON_DATOS);
+        assertThat(TipoObjetivo.de(List.of(MEDIDO, MEDIDO))).isEqualTo(TipoObjetivo.CON_DATOS);
     }
 
     @Test
     @DisplayName("Con sólo mini-objetivos manuales el objetivo es sin datos")
     void deShouldBeSinDatosWhenAllAreManual() {
-        TipoObjetivo result = TipoObjetivo.de(List.of(miniManual()));
-
-        assertThat(result).isEqualTo(TipoObjetivo.SIN_DATOS);
+        assertThat(TipoObjetivo.de(List.of(MANUAL))).isEqualTo(TipoObjetivo.SIN_DATOS);
     }
 
     @Test
     @DisplayName("Con mini-objetivos medidos y manuales el objetivo es híbrido")
     void deShouldBeHibridoWhenMixed() {
-        TipoObjetivo result = TipoObjetivo.de(List.of(miniObjetivo(), miniManual()));
-
-        assertThat(result).isEqualTo(TipoObjetivo.HIBRIDO);
+        assertThat(TipoObjetivo.de(List.of(MEDIDO, MANUAL))).isEqualTo(TipoObjetivo.HIBRIDO);
     }
 }

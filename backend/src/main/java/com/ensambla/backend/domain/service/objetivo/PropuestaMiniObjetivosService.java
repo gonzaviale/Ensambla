@@ -53,10 +53,11 @@ public class PropuestaMiniObjetivosService {
 
     /** Los mini-objetivos posibles con lo que ya se midió, del que más suma al que menos. */
     public List<CandidatoMiniObjetivo> candidatos(NegocioId negocioId, MedidorMiniObjetivo medidor) {
-        return CandidatosMiniObjetivo.armar(medidor, zonaDe(negocioId));
+        return CandidatosMiniObjetivo.armar(medidor, zona(negocioId));
     }
 
-    private AnalisisZona zonaDe(NegocioId negocioId) {
+    /** Lo que se sabe de la zona del negocio; sin zona, un análisis vacío. */
+    public AnalisisZona zona(NegocioId negocioId) {
         return negocioRepository.findZonaIdById(negocioId)
                 .flatMap(zonaRepository::findById)
                 .map(agregadoZonaRepository::analizar)

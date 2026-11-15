@@ -293,8 +293,8 @@ descarta a uno que ya no está en el catálogo); el manual lleva su texto.
 }
 ```
 
-- Con `seguimientoManual: true` el servidor ignora `minis` y arma el de seguimiento; el objetivo queda `SIN_DATOS` y
-  `armadoConSami: false`.
+- `seguimientoManual` es opcional (sin él, es `false`). Con `true` el servidor ignora `minis` y arma el de seguimiento; el
+  objetivo queda `SIN_DATOS` y `armadoConSami: false`.
 - `201` con el objetivo (mismo objeto que `GET /api/objetivos`). Sus mini-objetivos se ven en
   `GET /api/objetivos/{id}/mini-objetivos`.
 - `400` si no hay mini-objetivos, hay más de 3, uno medido no está en el catálogo, dos chocan o un manual no cumple las
@@ -379,14 +379,16 @@ Casos de borde de la validación (no son ejemplos de la persona, sino de la resp
 ## 9. Cómo queda el código
 
 - **Dominio** (`domain/model/objetivo`): `TipoObjetivo`, `ModoMiniObjetivo`, `HizoManual`, `QuePaso`,
-  `RespuestaMiniObjetivo` (+ id), `AccionManual` (validación), `PropuestaObjetivo` (lo que se muestra antes de guardar),
-  `MensajeObjetivo`, `ConsultaObjetivoIa`, `PropuestaObjetivoIa`, `TextoSeguro` (quita datos personales).
+  `RespuestaMiniObjetivo` (+ id), `AccionManual` (reglas de una acción), `MiniObjetivoPropuesto`, `PropuestaObjetivo` (lo que
+  queda de la respuesta de la IA después de validarla), `ConversacionObjetivo` (tope de mensajes), `ConsultaObjetivoIa`,
+  `PropuestaObjetivoIa`, `ContextoObjetivoIa` (lo único que se le cuenta del negocio) y `TextoSeguro` (quita datos personales).
 - **Puertos:** `ConversacionObjetivosIaPort`, `RespuestaMiniObjetivoRepository`.
-- **Casos de uso** (`domain/useCase/objetivo`): `proponerObjetivoConSami`, `guardarObjetivoConSami`,
-  `responderMiniObjetivo`, `listarRespuestasPendientes`.
+- **Casos de uso** (`domain/useCase/objetivo`): `proponerObjetivoConSami`, `guardarObjetivoConSami`, `responderMiniObjetivo`,
+  `listarRespuestasPendientes`.
 - **Migraciones:** `V34__objetivo_tipo_y_modo.sql` (tipo, meta opcional, modo, restricciones) y
   `V35__respuesta_mini_objetivo.sql` (respuestas y las decisiones nuevas).
-- **Infraestructura:** `ConversacionObjetivosIaAdapter` (+ prompt y esquema), cliente simulado, endpoints en
-  `ObjetivoController`, `MiniObjetivoController`.
+- **Infraestructura:** `ConversacionObjetivosIaAdapter` (+ `PromptConversacionObjetivos`, `ia/prompt-conversacion-objetivos.md`
+  y `ia/esquema-conversacion-objetivos.json`), el cliente de texto simulado, `SamiObjetivoController` y
+  `RespuestaMiniObjetivoController`. Propiedades: `ensambla.objetivos.ia.conversacion-habilitada` y `.max-mensajes`.
 - **Fuera de esta entrega:** cuota (T-242, T-250), métricas nuevas (T-244), renovación del domingo (T-247) y pantallas
   (T-248, T-249).

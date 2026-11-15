@@ -19,9 +19,9 @@ public enum TipoObjetivo {
     }
 
     /** El tipo de un objetivo armado con Sami, según los modos de sus mini-objetivos. */
-    public static TipoObjetivo de(Collection<MiniObjetivo> minis) {
-        boolean hayMedidos = minis.stream().anyMatch(MiniObjetivo::esMedido);
-        boolean hayManuales = minis.stream().anyMatch(MiniObjetivo::esManual);
+    public static TipoObjetivo de(Collection<MiniObjetivoPropuesto> minis) {
+        boolean hayMedidos = minis.stream().anyMatch(MiniObjetivoPropuesto::esMedido);
+        boolean hayManuales = minis.stream().anyMatch(MiniObjetivoPropuesto::esManual);
         if (hayMedidos && hayManuales) {
             return HIBRIDO;
         }

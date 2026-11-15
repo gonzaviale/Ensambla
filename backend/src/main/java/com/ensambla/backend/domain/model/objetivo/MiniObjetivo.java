@@ -118,6 +118,26 @@ public class MiniObjetivo {
                 .build();
     }
 
+    /** Una acción manual en curso: sin métrica ni números, la persona la responde; el id se asigna acá. */
+    public static MiniObjetivo manual(
+            Objetivo objetivo, int posicion, AccionManual accion, boolean textoConIa, LocalDate semanaInicio,
+            OffsetDateTime ahora) {
+        return MiniObjetivo.builder()
+                .id(MiniObjetivoId.nuevo())
+                .objetivoId(objetivo.getId())
+                .negocioId(objetivo.getNegocioId())
+                .posicion(posicion)
+                .modo(ModoMiniObjetivo.MANUAL)
+                .estado(EstadoMiniObjetivo.EN_CURSO)
+                .semanaInicio(semanaInicio)
+                .titulo(accion.titulo())
+                .justificacion(accion.justificacion())
+                .textoConIa(textoConIa)
+                .creadoEn(ahora)
+                .actualizadoEn(ahora)
+                .build();
+    }
+
     /** Un mini-objetivo en curso por candidato, en las posiciones 1, 2, 3… en el orden recibido. */
     public static List<MiniObjetivo> propuestos(
             Objetivo objetivo, List<CandidatoMiniObjetivo> candidatos, LocalDate semanaInicio, OffsetDateTime ahora) {

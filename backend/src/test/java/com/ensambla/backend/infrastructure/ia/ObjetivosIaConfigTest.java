@@ -1,5 +1,10 @@
 package com.ensambla.backend.infrastructure.ia;
 
+import com.ensambla.backend.domain.model.objetivo.MiniObjetivoPropuesto;
+import com.ensambla.backend.domain.model.objetivo.ModoMiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.PropuestaObjetivo;
+import com.ensambla.backend.domain.model.objetivo.PropuestaObjetivoIa;
+import com.ensambla.backend.domain.port.ConversacionObjetivosIaPort;
 import com.ensambla.backend.domain.port.RedaccionObjetivosIaPort;
 import com.ensambla.backend.support.SamiPruebas;
 import org.junit.jupiter.api.DisplayName;
@@ -11,6 +16,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import static com.ensambla.backend.support.ConversacionObjetivoTestData.consulta;
 import static com.ensambla.backend.support.MiniObjetivoTestData.candidato;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -58,5 +64,45 @@ class ObjetivosIaConfigTest {
     private static SamiProperties sami() {
         return new SamiProperties(0.7, 3, 20, 60,
                 new SamiProperties.Ia(null, null, null, null, null, Duration.ofSeconds(30), 700, 0.6, 8000));
+    }
+
+    @Test
+    @DisplayName("Arma el pedido de la conversación con las instrucciones y el esquema de los archivos de la IA")
+    void promptConversacionObjetivosShouldLoadTheResources() {
+        PromptConversacionObjetivos prompt = config.promptConversacionObjetivos();
+
+        assertThat(prompt.peticion(consulta()).instrucciones()).contains("Sos Sami");
+    }
+
+    @Test
+    @DisplayName("Con el proveedor simulado la conversación propone una métrica del catálogo y una acción, sin costo")
+    void conversacionObjetivosIaPortShouldUseTheSimulatedProvider() {
+        ConversacionObjetivosIaPort port = config.conversacionObjetivosIaPort(
+                config.promptConversacionObjetivos(),
+                JsonMapper.builder().build(),
+                sami(),
+                new IaProperties("simulado", null, Duration.ofSeconds(60), 10, 0.8, Map.of()),
+                new ProveedoresIa(List.of(new ProveedorIaSimulado(
+                        new ClassPathResource("ia/lectura-simulada.json"), SamiPruebas::kitsReales))));
+
+        PropuestaObjetivoIa result = port.conversar(consulta());
+
+        assertThat(port).isInstanceOf(ConversacionObjetivosIaAdapter.class);
+        assertThat(PropuestaObjetivo.de(result, consulta()).minis())
+                .extracting(MiniObjetivoPropuesto::modo)
+                .containsExactly(ModoMiniObjetivo.MEDIDO, ModoMiniObjetivo.MANUAL);
+        assertThat(result.consumo().tokensEntrada()).isZero();
+    }
+
+    @Test
+    @DisplayName("Con un proveedor que no existe la conversación no levanta")
+    void conversacionObjetivosIaPortShouldFailWhenTheProviderDoesNotExist() {
+        assertThatThrownBy(() -> config.conversacionObjetivosIaPort(
+                config.promptConversacionObjetivos(),
+                JsonMapper.builder().build(),
+                sami(),
+                new IaProperties("inexistente", null, Duration.ofSeconds(60), 10, 0.8, Map.of()),
+                new ProveedoresIa(List.of())))
+                .isInstanceOf(IllegalStateException.class);
     }
 }

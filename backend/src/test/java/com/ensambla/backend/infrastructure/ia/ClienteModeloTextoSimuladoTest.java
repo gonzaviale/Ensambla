@@ -30,4 +30,30 @@ class ClienteModeloTextoSimuladoTest {
 
         assertThat(result.json()).contains("\"plantilla\":\"\"");
     }
+
+    @Test
+    @DisplayName("En la conversación de un objetivo elige la primera métrica del catálogo y suma una acción manual")
+    void completarShouldAnswerAnObjectiveConversationWithTheFirstMetric() {
+        PeticionModeloTexto peticion = new PeticionModeloTexto("i", PromptConversacionObjetivos.CATALOGO
+                + "\nc1: tipo SUBIR_PRECIO, sobre Yerba.\nc2: tipo MEJORAR_MARGEN, sobre el negocio.", "{}");
+
+        RespuestaModeloTexto result = cliente.completar(peticion);
+
+        assertThat(result.json())
+                .contains("{\"modo\":\"MEDIDO\",\"codigo\":\"c1\"}", "{\"modo\":\"MANUAL\"", "\"esMonetario\":false")
+                .doesNotContain("\"c2\"");
+        assertThat(result.proveedor()).isEqualTo("simulado");
+        assertThat(result.tokensEntrada()).isZero();
+    }
+
+    @Test
+    @DisplayName("Con el catálogo vacío la conversación de un objetivo sólo propone la acción manual")
+    void completarShouldAnswerAnObjectiveConversationWithoutMetrics() {
+        PeticionModeloTexto peticion = new PeticionModeloTexto("i", PromptConversacionObjetivos.CATALOGO
+                + "\n(vacío: no hay métricas para proponer; armá acciones manuales)", "{}");
+
+        RespuestaModeloTexto result = cliente.completar(peticion);
+
+        assertThat(result.json()).doesNotContain("MEDIDO").contains("{\"modo\":\"MANUAL\"");
+    }
 }

@@ -1,6 +1,7 @@
 package com.ensambla.backend.infrastructure.config.useCase;
 
 import com.ensambla.backend.domain.model.aviso.MetricasVentas;
+import com.ensambla.backend.domain.port.ConversacionObjetivosIaPort;
 import com.ensambla.backend.domain.port.RedaccionObjetivosIaPort;
 import com.ensambla.backend.domain.port.TransaccionPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
@@ -24,6 +25,7 @@ import com.ensambla.backend.domain.useCase.objetivo.abandonarMiniObjetivo.Abando
 import com.ensambla.backend.domain.useCase.objetivo.cerrarSemanasObjetivos.CerrarSemanasObjetivos;
 import com.ensambla.backend.domain.useCase.objetivo.crearObjetivo.CrearObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.eliminarObjetivo.EliminarObjetivo;
+import com.ensambla.backend.domain.useCase.objetivo.guardarObjetivoConSami.GuardarObjetivoConSami;
 import com.ensambla.backend.domain.useCase.objetivo.listarCandidatos.ListarCandidatos;
 import com.ensambla.backend.domain.useCase.objetivo.listarMiniObjetivos.ListarMiniObjetivos;
 import com.ensambla.backend.domain.useCase.objetivo.listarDecisiones.ListarDecisiones;
@@ -34,6 +36,7 @@ import com.ensambla.backend.domain.useCase.objetivo.medirObjetivos.MedirObjetivo
 import com.ensambla.backend.domain.useCase.objetivo.monitorearObjetivos.MonitorearObjetivos;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso.ObtenerProgreso;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasos;
+import com.ensambla.backend.domain.useCase.objetivo.proponerObjetivoConSami.ProponerObjetivoConSami;
 import com.ensambla.backend.domain.useCase.objetivo.registrarDecisionPaso.RegistrarDecisionPaso;
 import com.ensambla.backend.domain.useCase.objetivo.reemplazarMiniObjetivo.ReemplazarMiniObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.responderMiniObjetivo.ResponderMiniObjetivo;
@@ -301,6 +304,44 @@ public class ObjetivoUseCaseConfig {
                 negocioRepository,
                 objetivoRepository,
                 transaccionPort);
+    }
+
+    @Bean
+    public ProponerObjetivoConSami proponerObjetivoConSami(
+            NegocioRepository negocioRepository,
+            PropuestaMiniObjetivosService propuestaMiniObjetivosService,
+            ControlPlanService controlPlanService,
+            ConsumoSamiRepository consumoSamiRepository,
+            ConversacionObjetivosIaPort conversacionObjetivosIaPort,
+            Clock clock,
+            ObjetivosIaProperties objetivosIaProperties) {
+        return new ProponerObjetivoConSami(
+                negocioRepository,
+                propuestaMiniObjetivosService,
+                controlPlanService,
+                consumoSamiRepository,
+                conversacionObjetivosIaPort,
+                clock,
+                objetivosIaProperties.conversacionHabilitada(),
+                objetivosIaProperties.limiteDiario(),
+                objetivosIaProperties.maxMensajes());
+    }
+
+    @Bean
+    public GuardarObjetivoConSami guardarObjetivoConSami(
+            NegocioRepository negocioRepository,
+            ObjetivoRepository objetivoRepository,
+            MiniObjetivoRepository miniObjetivoRepository,
+            PropuestaMiniObjetivosService propuestaMiniObjetivosService,
+            TransaccionPort transaccionPort,
+            Clock clock) {
+        return new GuardarObjetivoConSami(
+                negocioRepository,
+                objetivoRepository,
+                miniObjetivoRepository,
+                propuestaMiniObjetivosService,
+                transaccionPort,
+                clock);
     }
 
     @Bean

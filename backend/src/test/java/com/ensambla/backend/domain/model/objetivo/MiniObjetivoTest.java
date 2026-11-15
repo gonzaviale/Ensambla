@@ -11,12 +11,14 @@ import java.util.List;
 
 import static com.ensambla.backend.support.MiniObjetivoTestData.APORTE;
 import static com.ensambla.backend.support.MiniObjetivoTestData.JUSTIFICACION;
+import static com.ensambla.backend.support.MiniObjetivoTestData.JUSTIFICACION_MANUAL;
 import static com.ensambla.backend.support.MiniObjetivoTestData.META_MINI;
 import static com.ensambla.backend.support.MiniObjetivoTestData.OTRO_MINI_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.PRODUCTO;
 import static com.ensambla.backend.support.MiniObjetivoTestData.PRODUCTO_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.SEMANA;
 import static com.ensambla.backend.support.MiniObjetivoTestData.TITULO;
+import static com.ensambla.backend.support.MiniObjetivoTestData.TITULO_MANUAL;
 import static com.ensambla.backend.support.MiniObjetivoTestData.VALOR_INICIAL;
 import static com.ensambla.backend.support.MiniObjetivoTestData.candidato;
 import static com.ensambla.backend.support.MiniObjetivoTestData.candidatoDelNegocio;
@@ -587,5 +589,30 @@ class MiniObjetivoTest {
         assertThatThrownBy(manual::exigirManualEnCurso)
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("El mini-objetivo ya no está en curso");
+    }
+
+    @Test
+    @DisplayName("Una acción manual nace en curso, sin métrica ni números, en la posición y la semana pedidas")
+    void manualShouldBuildAManualMiniInProgress() {
+        MiniObjetivo result = MiniObjetivo.manual(
+                objetivo(), 2, new AccionManual(TITULO_MANUAL, JUSTIFICACION_MANUAL), true, SEMANA, AHORA);
+
+        assertThat(result.getId()).isNotNull();
+        assertThat(result.getObjetivoId()).isEqualTo(OBJETIVO_ID);
+        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(result.getPosicion()).isEqualTo(2);
+        assertThat(result.esManual()).isTrue();
+        assertThat(result.getEstado()).isEqualTo(EstadoMiniObjetivo.EN_CURSO);
+        assertThat(result.getSemanaInicio()).isEqualTo(SEMANA);
+        assertThat(result.getTitulo()).isEqualTo(TITULO_MANUAL);
+        assertThat(result.getJustificacion()).isEqualTo(JUSTIFICACION_MANUAL);
+        assertThat(result.isTextoConIa()).isTrue();
+        assertThat(result.getTipo()).isNull();
+        assertThat(result.getMeta()).isNull();
+        assertThat(result.getValorInicial()).isNull();
+        assertThat(result.getValorActual()).isNull();
+        assertThat(result.getAporteEstimado()).isNull();
+        assertThat(result.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(result.getActualizadoEn()).isEqualTo(AHORA);
     }
 }

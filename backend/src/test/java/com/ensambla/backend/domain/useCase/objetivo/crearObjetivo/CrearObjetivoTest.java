@@ -305,7 +305,7 @@ class CrearObjetivoTest {
                 redaccionObjetivosIaPort,
                 new TransaccionDirecta(),
                 Clock.fixed(AHORA.toInstant(), ZoneOffset.UTC),
-                new ObjetivosIaProperties(iaHabilitada, LIMITE_DIARIO));
+                new ObjetivosIaProperties(iaHabilitada, LIMITE_DIARIO, true, 6));
         return crearObjetivo.execute(new CrearObjetivoRequest(USUARIO_ID, texto, META));
     }
 

@@ -386,6 +386,27 @@ mini-objetivo no tenga números.
 (en un manual `tipo`, `sentido`, `valorInicial`, `valorActual`, `meta`, `avance`, `aporteEstimado`, `registroId` y
 `referencia` son `null`).
 
+### Armar un objetivo con Sami (sin cambios de esquema)
+
+Usa lo de V34 (diseño en [`objetivos-con-sami.md`](objetivos-con-sami.md)). La conversación no se guarda: el frontend manda
+el historial en cada pedido y el servidor lo acota (hasta 6 mensajes de la persona de 500 caracteres,
+`ensambla.objetivos.ia.max-mensajes`).
+
+**API.** `POST /api/objetivos/sami/propuesta` (`{ mensajes: [{ rol: PERSONA|SAMI, texto }] }`): Sami contesta con los datos del
+negocio y propone hasta 3 mini-objetivos, sin guardar nada ni gastar cuota: `{ respuesta, entendido, tipo, esMonetario, minis,
+datos, origen, mensajesRestantes, puedeGuardar }`. Un `MEDIDO` sale de una métrica del catálogo con los números del servidor;
+un `MANUAL` es una acción sin números. Si la IA está apagada, sin acceso, sin reserva diaria, falla o responde algo inválido,
+`origen` es `RESPALDO` y la propuesta es un solo manual de seguimiento. `POST /api/objetivos/sami` (`{ texto,
+seguimientoManual?, minis: [...] }`, `201`) guarda el objetivo: de cada medido sólo se manda cuál es (`tipo`, `registroId`,
+`referencia`) y el servidor vuelve a calcular todo; el `tipo` del objetivo lo deduce el servidor. `400` si no hay entre 1 y 3,
+uno medido ya no está en el catálogo, dos miden lo mismo o una acción trae importes o porcentajes.
+
+**IA.** Puerto `ConversacionObjetivosIaPort` (proveedor simulado por defecto, sin costo). A la IA se le manda el texto de la
+persona como dato (sin correos ni teléfonos), el catálogo de métricas con códigos y datos agregados del negocio y de la zona;
+nunca nombres, contactos ni clientes. Una métrica fuera del catálogo se descarta y una acción con `$` o `%` también.
+`ensambla.objetivos.ia.conversacion-habilitada` apaga la conversación. Comparte el contador diario de Sami
+(`ensambla.objetivos.ia.limite-diario`). La cuota mensual por plan (Gratuito 5, Premium 20) la suma T-242.
+
 ### Responder un mini-objetivo manual (V35)
 
 `V35` crea `respuesta_mini_objetivo`: lo que la persona cuenta de un mini-objetivo manual (diseño en

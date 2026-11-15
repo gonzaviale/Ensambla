@@ -4,6 +4,7 @@ import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.model.aviso.MetricasVentas;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
 import com.ensambla.backend.domain.model.objetivo.CandidatosDelNegocio;
+import com.ensambla.backend.domain.model.objetivo.ConsultaObjetivoIa;
 import com.ensambla.backend.domain.model.objetivo.EstadoMiniObjetivo;
 import com.ensambla.backend.domain.model.aviso.Aviso;
 import com.ensambla.backend.domain.model.aviso.EstadoAviso;
@@ -13,13 +14,16 @@ import com.ensambla.backend.domain.model.objetivo.DecisionPaso;
 import com.ensambla.backend.domain.model.objetivo.HizoManual;
 import com.ensambla.backend.domain.model.objetivo.MiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.Objetivo;
+import com.ensambla.backend.domain.model.objetivo.OrigenPropuesta;
 import com.ensambla.backend.domain.model.objetivo.ProgresoObjetivo;
 import com.ensambla.backend.domain.model.objetivo.QuePaso;
 import com.ensambla.backend.domain.model.objetivo.RespuestaMiniObjetivo;
 import com.ensambla.backend.domain.model.objetivo.ResumenSemanal;
 import com.ensambla.backend.domain.model.objetivo.TipoDecision;
 import com.ensambla.backend.domain.model.objetivo.TipoMiniObjetivo;
+import com.ensambla.backend.domain.model.objetivo.TipoObjetivo;
 import com.ensambla.backend.domain.model.usuario.UsuarioId;
+import com.ensambla.backend.domain.port.ConversacionObjetivosIaPort;
 import com.ensambla.backend.domain.repository.negocio.NegocioRepository;
 import com.ensambla.backend.domain.repository.objetivo.MiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.aviso.AvisoRepository;
@@ -28,11 +32,15 @@ import com.ensambla.backend.domain.repository.objetivo.ObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ProgresoObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.RespuestaMiniObjetivoRepository;
 import com.ensambla.backend.domain.repository.objetivo.ResumenSemanalRepository;
+import com.ensambla.backend.domain.repository.sami.ConsumoSamiRepository;
 import com.ensambla.backend.domain.repository.sistema.SistemaRepository;
 import com.ensambla.backend.domain.repository.zona.AgregadoZonaRepository;
 import com.ensambla.backend.domain.repository.zona.ZonaRepository;
 import com.ensambla.backend.domain.service.objetivo.MonitoreoObjetivosService;
 import com.ensambla.backend.domain.service.objetivo.PropuestaMiniObjetivosService;
+import com.ensambla.backend.domain.service.plan.ControlPlanService;
+import com.ensambla.backend.domain.useCase.objetivo.ObjetivoItem;
+import com.ensambla.backend.domain.useCase.objetivo.guardarObjetivoConSami.GuardarObjetivoConSamiRequest;
 import com.ensambla.backend.domain.useCase.objetivo.listarRespuestasPendientes.ListarRespuestasPendientesRequest;
 import com.ensambla.backend.domain.useCase.objetivo.listarRespuestasPendientes.ListarRespuestasPendientesResponse;
 import com.ensambla.backend.domain.useCase.objetivo.medirObjetivos.MedirObjetivosRequest;
@@ -50,11 +58,15 @@ import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasR
 import com.ensambla.backend.domain.useCase.objetivo.listarSemanas.ListarSemanasResponse;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso.ObtenerProgresoRequest;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerProgreso.ObtenerProgresoResponse;
+import com.ensambla.backend.domain.useCase.objetivo.proponerObjetivoConSami.ProponerObjetivoConSami;
+import com.ensambla.backend.domain.useCase.objetivo.proponerObjetivoConSami.ProponerObjetivoConSamiRequest;
+import com.ensambla.backend.domain.useCase.objetivo.proponerObjetivoConSami.ProponerObjetivoConSamiResponse;
 import com.ensambla.backend.domain.useCase.objetivo.registrarDecisionPaso.RegistrarDecisionPasoRequest;
 import com.ensambla.backend.domain.useCase.objetivo.reemplazarMiniObjetivo.ReemplazarMiniObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.reemplazarMiniObjetivo.ReemplazarMiniObjetivoRequest;
 import com.ensambla.backend.domain.useCase.objetivo.responderMiniObjetivo.ResponderMiniObjetivoRequest;
 import com.ensambla.backend.domain.useCase.objetivo.responderMiniObjetivo.ResponderMiniObjetivoResponse;
+import com.ensambla.backend.infrastructure.ia.ObjetivosIaProperties;
 import com.ensambla.backend.infrastructure.objetivos.ObjetivosCierreProperties;
 import com.ensambla.backend.infrastructure.objetivos.ObjetivosMonitoreoProperties;
 import com.ensambla.backend.support.TransaccionDirecta;
@@ -69,6 +81,11 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
+import static com.ensambla.backend.support.ConversacionObjetivoTestData.JUSTIFICACION_ACCION;
+import static com.ensambla.backend.support.ConversacionObjetivoTestData.TITULO_ACCION;
+import static com.ensambla.backend.support.ConversacionObjetivoTestData.manual;
+import static com.ensambla.backend.support.ConversacionObjetivoTestData.mensajes;
+import static com.ensambla.backend.support.ConversacionObjetivoTestData.respuestaIa;
 import static com.ensambla.backend.support.DecisionTestData.aviso;
 import static com.ensambla.backend.support.MiniObjetivoTestData.MINI_ID;
 import static com.ensambla.backend.support.MiniObjetivoTestData.OTRO_MINI_ID;
@@ -77,10 +94,13 @@ import static com.ensambla.backend.support.MiniObjetivoTestData.miniObjetivo;
 import static com.ensambla.backend.support.ObjetivoTestData.AHORA;
 import static com.ensambla.backend.support.ObjetivoTestData.META;
 import static com.ensambla.backend.support.ObjetivoTestData.OBJETIVO_ID;
+import static com.ensambla.backend.support.ObjetivoTestData.TEXTO_SIN_META;
 import static com.ensambla.backend.support.ObjetivoTestData.objetivo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -380,5 +400,59 @@ class ObjetivoUseCaseConfigTest {
                 .execute(new ListarRespuestasPendientesRequest(USUARIO_ID));
 
         assertThat(result.pendientes()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("El wiring de proponer con Sami conecta la propuesta, la IA, el consumo y sus límites")
+    void proponerObjetivoConSamiShouldWireTheCollaboratorsAndTheLimits() {
+        ControlPlanService controlPlanService = mock(ControlPlanService.class);
+        ConsumoSamiRepository consumoSamiRepository = mock(ConsumoSamiRepository.class);
+        ConversacionObjetivosIaPort conversacionObjetivosIaPort = mock(ConversacionObjetivosIaPort.class);
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+        when(negocioRepository.findZonaIdById(NEGOCIO_ID)).thenReturn(Optional.empty());
+        when(consumoSamiRepository.reservar(any(), any(), anyInt(), any())).thenReturn(true);
+        when(conversacionObjetivosIaPort.conversar(any(ConsultaObjetivoIa.class)))
+                .thenReturn(respuestaIa(manual(TITULO_ACCION, JUSTIFICACION_ACCION)));
+
+        ProponerObjetivoConSamiResponse result = config
+                .proponerObjetivoConSami(negocioRepository, propuesta(), controlPlanService, consumoSamiRepository,
+                        conversacionObjetivosIaPort, CLOCK, new ObjetivosIaProperties(false, 7, true, 6))
+                .execute(new ProponerObjetivoConSamiRequest(USUARIO_ID, mensajes()));
+
+        assertThat(result.origen()).isEqualTo(OrigenPropuesta.IA);
+        verify(consumoSamiRepository).reservar(eq(NEGOCIO_ID), any(LocalDate.class), eq(7), any());
+    }
+
+    @Test
+    @DisplayName("El wiring de proponer con Sami respeta si la conversación está apagada y el tope de mensajes")
+    void proponerObjetivoConSamiShouldWireTheSwitchAndTheMessageLimit() {
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(sistemaRepository.findAllByNegocioId(NEGOCIO_ID)).thenReturn(List.of());
+        when(negocioRepository.findZonaIdById(NEGOCIO_ID)).thenReturn(Optional.empty());
+        ProponerObjetivoConSami apagada = config.proponerObjetivoConSami(negocioRepository, propuesta(),
+                mock(ControlPlanService.class), mock(ConsumoSamiRepository.class),
+                mock(ConversacionObjetivosIaPort.class), CLOCK, new ObjetivosIaProperties(true, 10, false, 1));
+
+        ProponerObjetivoConSamiResponse result = apagada.execute(new ProponerObjetivoConSamiRequest(USUARIO_ID, mensajes()));
+
+        assertThat(result.origen()).isEqualTo(OrigenPropuesta.RESPALDO);
+        assertThat(result.mensajesRestantes()).isZero();
+    }
+
+    @Test
+    @DisplayName("El wiring de guardar con Sami conecta los repositorios, la propuesta, la transacción y el reloj")
+    void guardarObjetivoConSamiShouldWireTheCollaborators() {
+        when(negocioRepository.obtenerIdDelUsuario(USUARIO_ID)).thenReturn(NEGOCIO_ID);
+        when(objetivoRepository.save(any(Objetivo.class))).thenAnswer(call -> call.getArgument(0));
+
+        ObjetivoItem result = config
+                .guardarObjetivoConSami(negocioRepository, objetivoRepository, miniObjetivoRepository, propuesta(),
+                        new TransaccionDirecta(), CLOCK)
+                .execute(new GuardarObjetivoConSamiRequest(USUARIO_ID, TEXTO_SIN_META, true, List.of()));
+
+        assertThat(result.tipo()).isEqualTo(TipoObjetivo.SIN_DATOS);
+        assertThat(result.armadoConSami()).isFalse();
+        verify(miniObjetivoRepository).save(any(MiniObjetivo.class));
     }
 }

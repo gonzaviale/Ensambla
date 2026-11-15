@@ -9,6 +9,7 @@ import static com.ensambla.backend.support.ObjetivoTestData.AHORA;
 import static com.ensambla.backend.support.ObjetivoTestData.META;
 import static com.ensambla.backend.support.ObjetivoTestData.NEGOCIO_ID;
 import static com.ensambla.backend.support.ObjetivoTestData.TEXTO;
+import static com.ensambla.backend.support.ObjetivoTestData.TEXTO_SIN_META;
 import static com.ensambla.backend.support.ObjetivoTestData.objetivoSinMeta;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -90,5 +91,28 @@ class ObjetivoTest {
         Objetivo objetivo = objetivoSinMeta();
 
         assertThat(objetivo.llegaA(new BigDecimal("999999999"))).isFalse();
+    }
+
+    @Test
+    @DisplayName("Un objetivo armado con Sami no tiene meta, trae su tipo y el texto sin espacios en los extremos")
+    void conSamiShouldBuildAnObjetivoWithoutGoal() {
+        Objetivo result = Objetivo.conSami(NEGOCIO_ID, "  " + TEXTO_SIN_META + " ", TipoObjetivo.HIBRIDO, true, AHORA);
+
+        assertThat(result.getId()).isNull();
+        assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID);
+        assertThat(result.getTexto()).isEqualTo(TEXTO_SIN_META);
+        assertThat(result.getTipo()).isEqualTo(TipoObjetivo.HIBRIDO);
+        assertThat(result.getMeta()).isNull();
+        assertThat(result.isArmadoConSami()).isTrue();
+        assertThat(result.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(result.estaAlcanzado()).isFalse();
+    }
+
+    @Test
+    @DisplayName("El seguimiento manual no cuenta como armado con Sami")
+    void conSamiShouldKeepTheFlagThatSamiDidNotBuildIt() {
+        Objetivo result = Objetivo.conSami(NEGOCIO_ID, TEXTO_SIN_META, TipoObjetivo.SIN_DATOS, false, AHORA);
+
+        assertThat(result.isArmadoConSami()).isFalse();
     }
 }
