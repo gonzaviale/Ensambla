@@ -52,7 +52,7 @@
 @media (max-width: 680px) {
   .topbar {
     position: relative;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
   }
   .menu-movil-boton {
     display: grid;

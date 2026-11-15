@@ -12,6 +12,7 @@ import type { Color } from '@/lib/sistema/tipos';
 import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
 import { useAccionesDelTutorial } from '@/hooks/tutorial/useAccionesDelTutorial';
 import { useSistemaStore } from '@/stores/sistemaStore';
+import { useNegociosDeLaCuenta } from '@/hooks/negocios/queries';
 
 // Inicio: quien ya tiene una sección ve una bienvenida corta con las maneras de empezar, «Tu negocio» (su nombre y sus
 // secciones como accesos) y, abajo, sus números (lo que vende, el aviso económico, las sugerencias de Sami y el flujo de
@@ -42,6 +43,8 @@ export function InicioPage() {
             </div>
           </section>
         )}
+
+        <AgregarNegocio />
 
         <TuNegocio />
 
@@ -110,6 +113,22 @@ export function InicioPage() {
         <PageFooter />
       </main>
     </>
+  );
+}
+
+function AgregarNegocio() {
+  const { data } = useNegociosDeLaCuenta();
+  const abrirModal = useSistemaStore((estado) => estado.abrirModal);
+  return (
+    <div className="inicio-agregar-negocio">
+      <span>
+        <strong>{data.negocios.length === 1 ? 'Tu negocio está activo' : `${data.negocios.length} negocios en tu cuenta`}</strong>
+        <small>La información de cada uno se mantiene separada.</small>
+      </span>
+      <button type="button" className="btn secondary" onClick={() => abrirModal({ tipo: 'agregarNegocio' })}>
+        <Icon name="plus" /> Agregar un negocio
+      </button>
+    </div>
   );
 }
 

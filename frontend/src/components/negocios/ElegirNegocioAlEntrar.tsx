@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { ElegirNegocio, type EstadoDeLaEleccion } from '@/components/negocios/ElegirNegocio';
 import { Btn } from '@/components/sistema/Btn';
 import { useRubros } from '@/hooks/negocio/queries';
-import { useActivarNegocio } from '@/hooks/negocios/mutations';
+import { useElegirNegocioAlEntrar } from '@/hooks/negocios/mutations';
 import { useResumenConjunto } from '@/hooks/negocios/resumenConjunto';
 import { paraElegir } from '@/lib/negocios/presentacion';
 import type { ListaDeNegocios } from '@/types/negocios';
@@ -23,7 +23,7 @@ const ENFOCABLES = 'button:not(:disabled)';
 export function ElegirNegocioAlEntrar({ lista, onListo }: Props) {
   const resumen = useResumenConjunto();
   const rubros = useRubros();
-  const activar = useActivarNegocio();
+  const activar = useElegirNegocioAlEntrar();
   const dialogo = useRef<HTMLElement>(null);
   const ultimo = lista.negocios.find((negocio) => negocio.id === lista.activoId);
   const abriendo = activar.isPending

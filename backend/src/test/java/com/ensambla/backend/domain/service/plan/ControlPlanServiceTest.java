@@ -110,6 +110,15 @@ class ControlPlanServiceTest {
     }
 
     @Test
+    @DisplayName("Informa el límite de negocios del plan vigente de la cuenta")
+    void limiteNegociosShouldReturnCurrentPlanLimit() {
+        Plan plan = givenActivePlan();
+        plan.setLimiteNegocios(6);
+
+        assertThat(controlPlanService.limiteNegocios(USUARIO_ID, INSTANTE)).isEqualTo(6);
+    }
+
+    @Test
     @DisplayName("Rechaza todas las filas del lote cuando no entran en la cuota")
     void validarAltaRegistrosShouldRejectWholeBatch() {
         givenActivePlan();

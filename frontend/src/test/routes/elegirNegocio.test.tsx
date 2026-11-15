@@ -7,6 +7,7 @@ import { server } from '@/mocks/node';
 import { renderApp } from '@/test/renderApp';
 import {
   ESPERA,
+  negocioDePrueba,
   setupServerError,
   setupUsuarioSinSesion,
   typeLabel,
@@ -16,18 +17,18 @@ import {
 
 const USUARIO = { email: 'dos-negocios@example.com', contrasenia: 'una-contrasenia-segura' };
 
-const ALMACEN = {
+const ALMACEN = negocioDePrueba({
   id: 'almacen',
   nombre: 'Almacén San Justo',
   rubro: 'ALMACEN',
   creadoEn: '2026-10-02T14:03:11Z',
-};
-const KIOSCO = {
+});
+const KIOSCO = negocioDePrueba({
   id: 'kiosco',
   nombre: 'Kiosco de la estación',
   rubro: 'KIOSCO',
   creadoEn: '2026-11-05T09:41:57Z',
-};
+});
 
 const conNegocios = (...negocios: (typeof ALMACEN)[]) => {
   setupUsuarioSinSesion(USUARIO);

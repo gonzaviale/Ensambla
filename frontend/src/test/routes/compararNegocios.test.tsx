@@ -5,7 +5,12 @@ import { describe, expect, it } from 'vitest';
 import { estado } from '@/mocks/db/estado';
 import { server } from '@/mocks/node';
 import { renderApp } from '@/test/renderApp';
-import { ESPERA, setupServerError, setupUsuarioConSesion } from '@/test/testHelpers';
+import {
+  ESPERA,
+  negocioDePrueba,
+  setupServerError,
+  setupUsuarioConSesion,
+} from '@/test/testHelpers';
 
 const esperarPantalla = () =>
   screen.findByRole('heading', { name: 'Comparar mis negocios', level: 1 }, ESPERA);
@@ -16,18 +21,18 @@ describe('comparar mis negocios', () => {
     estado.negociosDeLaCuenta.set(usuario.email, {
       activoId: 'almacen',
       negocios: [
-        {
+        negocioDePrueba({
           id: 'almacen',
           nombre: 'Almacén San Justo',
           rubro: 'ALMACEN',
           creadoEn: '2026-10-02T14:03:11Z',
-        },
-        {
+        }),
+        negocioDePrueba({
           id: 'kiosco',
           nombre: 'Kiosco de la estación',
           rubro: 'KIOSCO',
           creadoEn: '2026-11-05T09:41:57Z',
-        },
+        }),
       ],
     });
     renderApp('/negocios/comparar');

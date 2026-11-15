@@ -12,7 +12,7 @@ export function ElegirNegocioPage() {
   useTituloPagina('Elegí tu negocio');
   const { redirect } = useSearch({ from: '/elegir-negocio' });
   const router = useRouter();
-  const consulta = useQuery(negociosQuery());
+  const consulta = useQuery({ ...negociosQuery(), retry: false });
   const destino = destinoSeguro(redirect);
   const hayQueElegir = (consulta.data?.negocios.length ?? 0) > 1;
   const seguirDeLargo = consulta.isError || (consulta.isSuccess && !hayQueElegir);

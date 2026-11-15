@@ -6,6 +6,7 @@ import { objetivoDeEjemplo } from '@/lib/objetivos';
 import { estado, guardarObjetivosDe, sembrarUsuario, type UsuarioMock } from '@/mocks/db/estado';
 import { PREFERENCIAS_INICIALES } from '@/types/preferencias';
 import { server } from '@/mocks/node';
+import type { NegocioMock } from '@/mocks/db/negocios';
 
 export const ESPERA = { timeout: 5000 };
 
@@ -102,3 +103,15 @@ export const verifyToastAsync = (texto: string | RegExp) =>
     if (typeof texto === 'string') expect(toast).toHaveTextContent(texto);
     else expect(toast.textContent).toMatch(texto);
   }, ESPERA);
+
+/** Un negocio de la cuenta para sembrar en el mock, con la configuración que tendría recién creado. */
+export const negocioDePrueba = (datos: Omit<NegocioMock, 'configuracion'>): NegocioMock => ({
+  ...datos,
+  configuracion: {
+    nombre: datos.nombre,
+    rubro: datos.rubro,
+    ubicacion: null,
+    comparteDatosZona: true,
+    zona: null,
+  },
+});

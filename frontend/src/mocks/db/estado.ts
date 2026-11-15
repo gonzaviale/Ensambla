@@ -25,11 +25,10 @@ type Estado = {
   sesionUsuarioId: string | null;
   /**
    * Las secciones de cada negocio. Las del primer negocio de la cuenta van con el email (como cuando había uno solo);
-   * las de los demás, con `email#idDelNegocio`. Ver `claveDelNegocio`.
+   * las de los demás, con `email#idDelNegocio`. Ver `claveDeSistemas`.
    */
   sistemas: Map<string, Sistema[]>;
   preferencias: Map<string, Preferencias>;
-  /** La configuración (nombre, rubro, ubicación) de cada negocio, con la misma clave que `sistemas`. */
   negocios: Map<string, ConfiguracionNegocio>;
   /** Los negocios de cada cuenta (por email) y cuál está activo; el primero se crea al pedirlos por primera vez. */
   negociosDeLaCuenta: Map<string, NegociosDeLaCuenta>;
@@ -87,10 +86,10 @@ export function usuarioActual() {
 }
 
 /**
- * Dónde se guardan las secciones y la configuración de un negocio; sin decir cuál, las del negocio activo. Las del
- * primero quedan con el email, así una cuenta de un solo negocio (y los tests que la siembran) siguen igual que antes.
+ * Dónde se guardan las secciones de un negocio; sin decir cuál, las del negocio activo. Las del primero quedan con el
+ * email, así una cuenta de un solo negocio (y los tests que la siembran) siguen igual que antes.
  */
-export function claveDelNegocio(email: string, negocioId?: string) {
+export function claveDeSistemas(email: string, negocioId?: string) {
   const cuenta = estado.negociosDeLaCuenta.get(email);
   const id = negocioId ?? cuenta?.activoId;
   if (!cuenta || !id || id === cuenta.negocios[0]?.id) return email;
@@ -98,13 +97,13 @@ export function claveDelNegocio(email: string, negocioId?: string) {
 }
 
 export const sistemasDe = (email: string, negocioId?: string) =>
-  estado.sistemas.get(claveDelNegocio(email, negocioId)) ?? [];
+  estado.sistemas.get(claveDeSistemas(email, negocioId)) ?? [];
 
 export const preferenciasDe = (email: string) =>
   estado.preferencias.get(email) ?? PREFERENCIAS_INICIALES;
 
 export function guardarSistemasDe(email: string, sistemas: Sistema[], negocioId?: string) {
-  estado.sistemas.set(claveDelNegocio(email, negocioId), sistemas);
+  estado.sistemas.set(claveDeSistemas(email, negocioId), sistemas);
   estado.alCambiar?.();
 }
 

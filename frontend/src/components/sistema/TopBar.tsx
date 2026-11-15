@@ -3,6 +3,7 @@ import { GraduationCapIcon } from '@phosphor-icons/react';
 import { Icon } from './Icon';
 import { Logo } from './Logo';
 import { MenuDePerfil } from './MenuDePerfil';
+import { SelectorDeNegocio } from './SelectorDeNegocio';
 
 export type SeccionActiva =
   'home' | 'templates' | 'zone' | 'avisos' | 'goals' | 'learn' | 'plans' | 'account';
@@ -109,6 +110,7 @@ export function TopBar({
           <Icon name="help" /> Ayuda
         </button>
       </nav>
+      <SelectorDeNegocio />
       <div className="row topbar-right">
         {campana}
         <button

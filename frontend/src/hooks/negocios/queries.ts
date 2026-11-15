@@ -1,4 +1,4 @@
-import { queryOptions } from '@tanstack/react-query';
+import { queryOptions, useSuspenseQuery } from '@tanstack/react-query';
 import { listarNegocios } from '@/api/negocios';
 
 export const negociosKeys = {
@@ -12,5 +12,15 @@ export const negociosQuery = () =>
   queryOptions({
     queryKey: negociosKeys.lista,
     queryFn: ({ signal }) => listarNegocios(signal),
-    retry: false,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   });
+
+export function useNegociosDeLaCuenta() {
+  return useSuspenseQuery(negociosQuery());
+}
+
+export function useNegocioActivo() {
+  const { data } = useNegociosDeLaCuenta();
+  return data.negocios.find((negocio) => negocio.id === data.activoId) ?? data.negocios[0];
+}

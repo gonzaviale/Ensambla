@@ -5,15 +5,19 @@ import type {
   ResumenConjunto,
   ResumenDeNegocio,
 } from '@/types/negocios';
-import { claveDelNegocio, estado, sistemasDe, type UsuarioMock } from './estado';
+import type { ConfiguracionNegocio } from '@/types/negocio';
+import { claveDeSistemas, estado, sistemasDe, type UsuarioMock } from './estado';
 import { panelDe } from './panel';
 import { planesDe } from './planes';
 
-// Los negocios de cada cuenta. Cada negocio tiene sus secciones (ver `claveDelNegocio`): las pantallas trabajan con
-// las del negocio activo y uno nuevo arranca vacío. Los avisos y los objetivos siguen colgando de la cuenta y se
-// atribuyen al primer negocio (el que se crea al registrarse).
+// Los negocios de cada cuenta. Cada negocio tiene su configuración (la del activo se refleja en `estado.negocios`) y
+// sus secciones (ver `claveDeSistemas`): las pantallas trabajan con las del negocio activo y uno nuevo arranca vacío.
+// Los avisos y los objetivos siguen colgando de la cuenta y se atribuyen al primer negocio (el que se crea al
+// registrarse).
 
-export type NegocioMock = Omit<NegocioDeLaCuenta, 'activo'>;
+export type NegocioMock = Omit<NegocioDeLaCuenta, 'activo'> & {
+  configuracion: ConfiguracionNegocio;
+};
 
 export type NegociosDeLaCuenta = { activoId: string; negocios: NegocioMock[] };
 
@@ -25,6 +29,13 @@ function negocioInicial(usuario: UsuarioMock): NegocioMock {
     nombre: configuracion?.nombre ?? `Negocio de ${usuario.nombre}`,
     rubro: configuracion?.rubro ?? 'OTRO',
     creadoEn: new Date().toISOString(),
+    configuracion: configuracion ?? {
+      nombre: `Negocio de ${usuario.nombre}`,
+      rubro: 'OTRO',
+      ubicacion: null,
+      comparteDatosZona: true,
+      zona: null,
+    },
   };
 }
 
@@ -51,9 +62,28 @@ export function limiteDeNegociosDe(email: string) {
 }
 
 export const aNegocioDeLaCuenta = (negocio: NegocioMock, activoId: string): NegocioDeLaCuenta => ({
-  ...negocio,
+  id: negocio.id,
+  nombre: negocio.nombre,
+  rubro: negocio.rubro,
+  creadoEn: negocio.creadoEn,
   activo: negocio.id === activoId,
 });
+
+export function reflejarNegocioActivo(email: string) {
+  const cuenta = estado.negociosDeLaCuenta.get(email);
+  const activo = cuenta?.negocios.find((negocio) => negocio.id === cuenta.activoId);
+  if (activo) estado.negocios.set(email, structuredClone(activo.configuracion));
+}
+
+export function actualizarConfiguracionActiva(email: string, configuracion: ConfiguracionNegocio) {
+  const cuenta = estado.negociosDeLaCuenta.get(email);
+  const activo = cuenta?.negocios.find((negocio) => negocio.id === cuenta.activoId);
+  if (activo) {
+    activo.nombre = configuracion.nombre;
+    activo.rubro = configuracion.rubro;
+    activo.configuracion = structuredClone(configuracion);
+  }
+}
 
 export function listaDeNegociosDe(usuario: UsuarioMock): ListaDeNegocios {
   const { activoId, negocios } = negociosDe(usuario);
@@ -122,34 +152,24 @@ export function resumenConjuntoDe(usuario: UsuarioMock, dias: number): ResumenCo
 }
 
 /**
- * Saca de la cuenta el negocio con sus secciones y su configuración. Si era el primero, el que pasa a serlo se queda
- * con la clave del email (ver `claveDelNegocio`), así lo suyo no se pierde.
+ * Saca de la cuenta el negocio con sus secciones. Si era el primero, el que pasa a serlo se queda con la clave del
+ * email (ver `claveDeSistemas`), así sus secciones no se pierden.
  */
 export function eliminarNegocioDe(email: string, negocioId: string) {
   const cuenta = estado.negociosDeLaCuenta.get(email);
   if (!cuenta) return;
   const restantes = cuenta.negocios.filter((negocio) => negocio.id !== negocioId);
-  const deCadaNegocio = restantes.map((negocio) => {
-    const clave = claveDelNegocio(email, negocio.id);
-    return {
-      id: negocio.id,
-      sistemas: estado.sistemas.get(clave),
-      configuracion: estado.negocios.get(clave),
-    };
-  });
-  for (const negocio of cuenta.negocios) {
-    const clave = claveDelNegocio(email, negocio.id);
-    estado.sistemas.delete(clave);
-    estado.negocios.delete(clave);
-  }
+  const deCadaNegocio = restantes.map(
+    (negocio) => [negocio.id, estado.sistemas.get(claveDeSistemas(email, negocio.id))] as const,
+  );
+  for (const negocio of cuenta.negocios) estado.sistemas.delete(claveDeSistemas(email, negocio.id));
   // Si se elimina el activo, pasa a serlo el más antiguo de los que quedan.
   const activoId =
     cuenta.activoId === negocioId ? (restantes[0]?.id ?? cuenta.activoId) : cuenta.activoId;
   estado.negociosDeLaCuenta.set(email, { activoId, negocios: restantes });
-  for (const { id, sistemas, configuracion } of deCadaNegocio) {
-    const clave = claveDelNegocio(email, id);
-    if (sistemas) estado.sistemas.set(clave, sistemas);
-    if (configuracion) estado.negocios.set(clave, configuracion);
+  for (const [id, sistemas] of deCadaNegocio) {
+    if (sistemas) estado.sistemas.set(claveDeSistemas(email, id), sistemas);
   }
+  reflejarNegocioActivo(email);
   estado.alCambiar?.();
 }

@@ -16,16 +16,27 @@ public interface INegocioJpaRepository extends JpaRepository<NegocioEntity, UUID
     /** MVP2: negocio del dueño autenticado; el selector de negocio se implementa en T-061. */
     Optional<NegocioEntity> findFirstByDuenioIdOrderByCreadoEnAscIdAsc(UUID duenioId);
 
+    List<NegocioEntity> findAllByDuenioIdOrderByCreadoEnAscIdAsc(UUID duenioId);
+
+    Optional<NegocioEntity> findByIdAndDuenioId(UUID id, UUID duenioId);
+
     /** Serializa los PATCH del mismo dueño para conservar los campos que no se envían. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<NegocioEntity> findTopByDuenioIdOrderByCreadoEnAscIdAsc(UUID duenioId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select n from NegocioEntity n where n.id = :id and n.duenioId = :duenioId")
+    Optional<NegocioEntity> findByIdAndDuenioIdParaActualizar(
+            @Param("id") UUID id, @Param("duenioId") UUID duenioId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select n from NegocioEntity n where n.duenioId = :duenioId order by n.creadoEn, n.id")
+    List<NegocioEntity> findAllByDuenioIdParaActualizar(@Param("duenioId") UUID duenioId);
 
     long countByZonaIdAndComparteDatosZonaTrue(UUID zonaId);
 
     @Query("select n.duenioId from NegocioEntity n where n.id = :negocioId")
     Optional<UUID> findDuenioIdById(@Param("negocioId") UUID negocioId);
-
-    List<NegocioEntity> findAllByDuenioIdOrderByCreadoEnAscIdAsc(UUID duenioId);
 
     @Query("select u.email from UsuarioEntity u where u.id = (select n.duenioId from NegocioEntity n where n.id = :negocioId)")
     Optional<String> findEmailDuenioById(@Param("negocioId") UUID negocioId);

@@ -13,7 +13,9 @@ export function LoginPage() {
   // Con más de un negocio, después de ingresar se elige con cuál trabajar (T-204). Si la lista no llega se entra
   // igual, con el último que se usó: no saber cuántos negocios hay no tiene que trabar el inicio de sesión.
   const alIniciarSesion = async () => {
-    const lista = await queryClient.fetchQuery(negociosQuery()).catch(() => null);
+    const lista = await queryClient
+      .fetchQuery({ ...negociosQuery(), retry: false })
+      .catch(() => null);
     if (lista && lista.negocios.length > 1) {
       await router.navigate({ to: '/elegir-negocio', search: { redirect } });
     } else {

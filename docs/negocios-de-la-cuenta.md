@@ -4,8 +4,8 @@ Cómo se hablan el front y el back cuando una cuenta tiene **varios negocios** y
 es el acuerdo entre quien haga el backend (T-198 a T-201) y quien haga el frontend (T-202 a T-206); el front ya lo
 tiene simulado en `frontend/src/mocks/handlers/negocios.ts` (modo `completo`), con los mismos JSON, errores y códigos.
 
-> **Estado:** propuesta. Las rutas y los JSON de abajo son lo que se acuerda; si al implementar alguno tiene que
-> cambiar, se cambia acá, en los mocks (`frontend/src/mocks`) y en `frontend/src/types/negocios.ts` en el mismo PR.
+> **Estado:** Ola 2 implementada para listar, crear, activar y eliminar negocios. La vista conjunta pertenece a la
+> Ola 3 y se mantiene documentada como contrato pendiente.
 
 ## Vocabulario
 
@@ -39,7 +39,7 @@ Prefijo `/api`.
 | `POST /negocios` | Crea un negocio (no lo activa) | 201 |
 | `PUT /negocios/{id}/activo` | Elige el negocio activo; es idempotente | 200 (la lista ya actualizada) |
 | `DELETE /negocios/{id}` | Elimina el negocio con todo lo suyo | 204 |
-| `GET /negocios/resumen?dias=30` | Resumen conjunto de todos los negocios | 200 |
+| `GET /negocios/resumen?dias=30` | Resumen conjunto de todos los negocios (Ola 3, todavía no disponible) | 200 |
 
 ### `GET /api/negocios`
 
@@ -72,11 +72,22 @@ Los negocios van del más antiguo al más nuevo. `limite` sale del plan de la cu
 
 ### `POST /api/negocios`
 
-Body: `nombre` (1 a 120 caracteres, obligatorio) y `rubro` (un código de `GET /api/ubicacion/rubros`; si falta, `OTRO`).
-**Crear no cambia el negocio activo**: el front lo activa después con `PUT` si quiere trabajar en el nuevo.
+Body: `nombre` (1 a 120 caracteres, obligatorio), `rubro` (un código de `GET /api/ubicacion/rubros`; si falta,
+`OTRO`) y una `ubicacion` opcional. Si se envía la ubicación, sus cuatro campos son obligatorios y la localidad se
+valida contra el punto del mapa. **Crear no cambia el negocio activo**: el front de Ola 2 hace el `POST` y después el
+`PUT` para entrar inmediatamente al negocio nuevo.
 
 ```json
-{ "nombre": "Kiosco de la estación", "rubro": "KIOSCO" }
+{
+  "nombre": "Kiosco de la estación",
+  "rubro": "KIOSCO",
+  "ubicacion": {
+    "direccion": "Arieta 3200",
+    "localidad": "San Justo",
+    "latitud": -34.670123,
+    "longitud": -58.560789
+  }
+}
 ```
 
 Responde **201** con el negocio creado (`activo` siempre `false`):
@@ -110,7 +121,10 @@ La confirmación («Vas a perder…») es del front; el backend no pide un segun
 
 ### `GET /api/negocios/resumen?dias=30`
 
-La vista conjunta. `dias` son los últimos días contando hoy (por defecto 30; entre 1 y 366, si no **400**), con el
+> **Ola 3:** este endpoint todavía no está implementado. En Ola 2, “Todos mis negocios” aparece deshabilitado y
+> señalado como próximo para no prometer una vista que aún no existe.
+
+La vista conjunta prevista. `dias` son los últimos días contando hoy (por defecto 30; entre 1 y 366, si no **400**), con el
 «hoy» de Argentina. Cada negocio trae las **mismas métricas, con el mismo significado** que el panel de un negocio
 (`docs/panel-negocio.md`): `vendiste`, `gastos`, `queda` y `teDeben`. Un negocio sin ventas en el período viene con
 `hayDatos: false` y esas cuatro en `null` (no se manda un resumen de ceros). Lo que no se puede calcular tampoco se
@@ -190,7 +204,7 @@ puede llevar a Planes. El `message` ya viene redactado para mostrarse tal cual, 
 
 ## Cómo lo usa cada punta
 
-- **Backend:** el negocio activo se guarda en la cuenta y es lo que hoy sale de la sesión; los demás endpoints no
+- **Backend:** el negocio activo se guarda en la sesión HTTP y los repositorios lo resuelven de forma central; los demás endpoints no
   cambian de firma. El límite sale del plan de la cuenta (`limiteNegocios`, ver T-198). Crear y eliminar son
   transaccionales; eliminar borra en cascada todo lo del negocio.
 - **Frontend:** los handlers de `frontend/src/mocks/handlers/negocios.ts` responden esto en modo `completo`; el cliente
@@ -204,10 +218,9 @@ puede llevar a Planes. El `message` ya viene redactado para mostrarse tal cual, 
   la fila de la cuenta y responde `RestriccionPlanException` (`LIMITE_NEGOCIOS`) si ya está en el límite. Ver
   [modelo-datos.md](modelo-datos.md#plan-por-cuenta-y-límite-de-negocios-v34--h-55--t-198).
 
-## Preguntas abiertas para quien aprueba
+## Decisiones de Ola 2
 
-1. **Activar:** ¿`PUT /negocios/{id}/activo` (idempotente, lo propuesto) o `POST /negocios/{id}/activar`?
-2. **Crear y activar:** hoy crear no activa; si el front prefiere un solo paso, se agrega `activar: true` al body.
-3. **Eliminar el activo:** se activa el más antiguo que queda; la alternativa es exigir que el front active otro antes.
-4. **Rubro obligatorio:** hoy es opcional (`OTRO` por defecto) para no frenar el alta; se completa después en
-   `/ubicacion`.
+1. **Activar:** `PUT /negocios/{id}/activo`, idempotente.
+2. **Crear y activar:** el backend conserva dos operaciones; el frontend las encadena y entra al negocio nuevo.
+3. **Eliminar el activo:** se activa automáticamente el negocio más antiguo que queda.
+4. **Rubro y ubicación:** el rubro es opcional (`OTRO` por defecto) y la ubicación completa también es opcional.

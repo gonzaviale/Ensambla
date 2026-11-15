@@ -8,7 +8,7 @@ Fuente de verdad: las migraciones de `backend/src/main/resources/db/migration` (
 `V15__renovaciones_y_pagos_premium.sql`,
 `V20__whatsapp_vinculacion_y_mensajes.sql`, `V21__whatsapp_verificacion_y_sami.sql`, `V22__historial_precio.sql`,
 `V24__objetivo.sql`, `V29__mini_objetivo.sql`, `V30__progreso_objetivo.sql`, `V31__decision_objetivo.sql`,
-`V32__resumen_semanal_objetivo.sql`, `V34__plan_por_cuenta.sql`).
+`V32__resumen_semanal_objetivo.sql`, `V34__plan_por_cuenta.sql`, `V35__indice_negocios_de_la_cuenta.sql`).
 V9 adapta la base al frontend nuevo y al motor de monitoreo de la propuesta v1.3: zona y ubicación del negocio, secciones, atributos de bloque, campo y registro, preferencias de la cuenta, avisos y agregados de zona (sección «Frontend nuevo y monitoreo»). V10 carga datos de prueba de la zona de la UNLaM (San Justo); ver «Datos de prueba». V11 le suma al aviso la entidad que afecta y sus datos de origen.
 V5 agrega el tipo de campo `RELACION` (conexión entre tablas del mismo proyecto). V6 agrega `FORMULA` (valor calculado a partir de otros campos numéricos del mismo bloque). V7 agrega el inventario por movimientos (`movimiento_stock`). V8 agrega la receta de un producto (`receta`).
 V4 agrega reclamos, reservas y trazabilidad del procesamiento de IA.
@@ -124,6 +124,11 @@ tener. El contrato de API con el que se eligen, crean y eliminan los negocios es
 - Las operaciones sobre el plan se serializan bloqueando la **fila de la cuenta** (`UsoPlanRepository.bloquearCuenta`;
   `bloquearNegocio` bloquea la cuenta dueña del negocio), de modo que dos negocios de la misma cuenta no pisan un cambio
   de plan, el consumo de la prueba o el cupo mensual.
+
+## Índice de negocios de la cuenta (V35 · ENS-284 / T-199)
+
+`ix_negocio_duenio_creado` cubre `negocio (duenio_id, creado_en, id)`. Permite listar y bloquear los negocios del
+dueño en el mismo orden, desde el más antiguo, con el identificador como desempate.
 
 ## Prueba premium (V14 · ENS-96 / T-068)
 

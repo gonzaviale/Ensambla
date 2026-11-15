@@ -9,6 +9,7 @@ import {
   limiteDeNegociosDe,
   listaDeNegociosDe,
   negociosDe,
+  reflejarNegocioActivo,
   resumenConjuntoDe,
 } from '../db/negocios';
 import { RUBROS_DE_PRUEBA } from '../db/ubicacion';
@@ -67,6 +68,13 @@ export const handlersNegocios = [
       nombre: datos.data.nombre,
       rubro,
       creadoEn: new Date().toISOString(),
+      configuracion: {
+        nombre: datos.data.nombre,
+        rubro,
+        ubicacion: datos.data.ubicacion ?? null,
+        comparteDatosZona: true,
+        zona: null,
+      },
     };
     guardarNegociosDe(sesion.usuario.email, { activoId, negocios: [...negocios, nuevo] });
     return HttpResponse.json(aNegocioDeLaCuenta(nuevo, activoId), { status: 201, ...SIN_CACHE });
@@ -79,6 +87,7 @@ export const handlersNegocios = [
     if (!negocios.some((negocio) => negocio.id === params.id))
       return errorResponse(404, 'Negocio no encontrado', pathDe(request));
     guardarNegociosDe(sesion.usuario.email, { activoId: String(params.id), negocios });
+    reflejarNegocioActivo(sesion.usuario.email);
     return HttpResponse.json(listaDeNegociosDe(sesion.usuario), SIN_CACHE);
   }),
   http.delete(api('/negocios/:id'), async ({ request, params }) => {

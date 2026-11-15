@@ -62,6 +62,11 @@ public class ControlPlanService {
         });
     }
 
+    /** Límite vigente de negocios de la cuenta; todo plan configurado debe tenerlo. */
+    public int limiteNegocios(UsuarioId usuarioId, OffsetDateTime ahora) {
+        return vigente(usuarioId, ahora).getLimiteNegocios();
+    }
+
     public void validarAltaRegistros(NegocioId negocioId, long cantidad, OffsetDateTime ahora) {
         transaccionPort.ejecutar(() -> {
             usoPlanRepository.bloquearNegocio(negocioId);

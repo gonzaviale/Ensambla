@@ -9,7 +9,6 @@ import type { Sistema } from '@/lib/sistema/tipos';
 import { PREFERENCIAS_INICIALES } from '@/types/preferencias';
 import { crearKioscoCargado, crearPuestoDeFeria } from './demoNegocios';
 import {
-  claveDelNegocio,
   estado,
   guardarObjetivosDe,
   guardarPreferenciasDe,
@@ -17,7 +16,7 @@ import {
   objetivosDe,
   sistemasDe,
 } from './estado';
-import type { NegocioMock } from './negocios';
+import { reflejarNegocioActivo, type NegocioMock } from './negocios';
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
@@ -84,11 +83,24 @@ function sembrarNegocios(email: string, ahora: Date) {
     );
   }
 
+  // El nombre y el rubro son siempre los de la demo; la ubicación que se haya cargado se conserva. Antes de que hubiera
+  // varios negocios, la configuración de la cuenta era la del almacén.
+  const configuracionPrevia = (id: string) =>
+    anterior?.negocios.find((negocio) => negocio.id === id)?.configuracion ??
+    (id === 'demo-almacen' ? estado.negocios.get(email) : undefined);
   const negocios: NegocioMock[] = NEGOCIOS_DE_LA_DEMO.map(({ id, nombre, rubro, hace }) => ({
     id,
     nombre,
     rubro,
     creadoEn: new Date(ahora.getTime() - hace * DIA_MS).toISOString(),
+    configuracion: {
+      ubicacion: null,
+      comparteDatosZona: true,
+      zona: null,
+      ...configuracionPrevia(id),
+      nombre,
+      rubro,
+    },
   }));
   const activoId = negocios.some((negocio) => negocio.id === anterior?.activoId)
     ? (anterior?.activoId ?? 'demo-almacen')
@@ -99,13 +111,5 @@ function sembrarNegocios(email: string, ahora: Date) {
   for (const { id } of NEGOCIOS_DE_LA_DEMO) {
     guardarSistemasDe(email, [SECCIONES_DE_LA_DEMO[id](dia), ...(propias.get(id) ?? [])], id);
   }
-  // El almacén se llama como en la lista aunque se haya guardado otro nombre; la ubicación se conserva.
-  const configuracion = estado.negocios.get(claveDelNegocio(email, 'demo-almacen'));
-  if (configuracion) {
-    estado.negocios.set(claveDelNegocio(email, 'demo-almacen'), {
-      ...configuracion,
-      nombre: 'Almacén de barrio',
-      rubro: 'ALMACEN',
-    });
-  }
+  reflejarNegocioActivo(email);
 }
