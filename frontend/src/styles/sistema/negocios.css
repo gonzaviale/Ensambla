@@ -94,6 +94,19 @@
   animation: respira 1.2s ease-in-out infinite alternate;
 }
 
+/* Después de ingresar, antes de cargar el negocio. El texto tiene el tamaño de los demás modales de la app. */
+.elegir-negocio-al-entrar .modal > p {
+  margin-bottom: 18px;
+}
+.elegir-negocio-al-entrar .modal > p.elegir-negocio-abriendo,
+.elegir-negocio-al-entrar .modal > .tablero-aviso {
+  margin: 14px 0 0;
+}
+.elegir-negocio-abriendo {
+  font-weight: 600;
+  color: var(--c-estructura);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .elegir-negocio-opcion {
     transition: none;

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicaRouteImport } from './routes/_publica'
+import { Route as ElegirNegocioRouteImport } from './routes/elegir-negocio'
 import { Route as AppAvisosRouteImport } from './routes/_app/avisos'
 import { Route as AppCuadernosRouteImport } from './routes/_app/cuadernos'
 import { Route as AppCuentaRouteImport } from './routes/_app/cuenta'
@@ -39,6 +40,11 @@ const AppRoute = AppRouteImport.update({
 } as any)
 const PublicaRoute = PublicaRouteImport.update({
   id: '/_publica',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ElegirNegocioRoute = ElegirNegocioRouteImport.update({
+  id: '/elegir-negocio',
+  path: '/elegir-negocio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppAvisosRoute = AppAvisosRouteImport.update({
@@ -149,6 +155,7 @@ const AppZonaDondeAbrirRoute = AppZonaDondeAbrirRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicaIndexRoute
+  '/elegir-negocio': typeof ElegirNegocioRoute
   '/avisos': typeof AppAvisosRoute
   '/cuadernos': typeof AppCuadernosRoute
   '/cuenta': typeof AppCuentaRoute
@@ -172,6 +179,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof PublicaIndexRoute
+  '/elegir-negocio': typeof ElegirNegocioRoute
   '/avisos': typeof AppAvisosRoute
   '/cuadernos': typeof AppCuadernosRoute
   '/cuenta': typeof AppCuentaRoute
@@ -196,6 +204,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_publica': typeof PublicaRouteWithChildren
+  '/elegir-negocio': typeof ElegirNegocioRoute
   '/_app/avisos': typeof AppAvisosRoute
   '/_app/cuadernos': typeof AppCuadernosRoute
   '/_app/cuenta': typeof AppCuentaRoute
@@ -222,6 +231,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/elegir-negocio'
     | '/avisos'
     | '/cuadernos'
     | '/cuenta'
@@ -245,6 +255,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/elegir-negocio'
     | '/avisos'
     | '/cuadernos'
     | '/cuenta'
@@ -268,6 +279,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/_publica'
+    | '/elegir-negocio'
     | '/_app/avisos'
     | '/_app/cuadernos'
     | '/_app/cuenta'
@@ -294,6 +306,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   PublicaRoute: typeof PublicaRouteWithChildren
+  ElegirNegocioRoute: typeof ElegirNegocioRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -310,6 +323,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof PublicaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/elegir-negocio': {
+      id: '/elegir-negocio'
+      path: '/elegir-negocio'
+      fullPath: '/elegir-negocio'
+      preLoaderRoute: typeof ElegirNegocioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/avisos': {
@@ -533,6 +553,7 @@ const PublicaRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   PublicaRoute: PublicaRouteWithChildren,
+  ElegirNegocioRoute: ElegirNegocioRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
