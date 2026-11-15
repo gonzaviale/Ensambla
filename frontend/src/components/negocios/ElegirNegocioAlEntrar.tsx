@@ -51,15 +51,18 @@ export function ElegirNegocioAlEntrar({ lista, onListo }: Props) {
 
   // Como los modales de la app: el foco arranca adentro, Tab no se escapa y el fondo no se desplaza.
   const seguir = useRef(onListo);
+  const eligiendo = useRef(false);
   useEffect(() => {
     seguir.current = onListo;
+    eligiendo.current = activar.isPending;
   });
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     dialogo.current?.focus();
     const alTeclear = (evento: KeyboardEvent) => {
       if (evento.key === 'Escape') {
-        seguir.current();
+        // Con un cambio de negocio en camino no se entra: la app cargaría los datos del negocio anterior.
+        if (!eligiendo.current) seguir.current();
         return;
       }
       if (evento.key !== 'Tab' || !dialogo.current) return;

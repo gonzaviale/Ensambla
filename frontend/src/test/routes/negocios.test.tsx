@@ -7,7 +7,11 @@ import {
   reflejarNegocioActivo,
   type NegocioMock,
 } from '@/mocks/db/negocios';
-import { estado, type UsuarioMock } from '@/mocks/db/estado';
+import { estado, guardarSistemasDe, type UsuarioMock } from '@/mocks/db/estado';
+import { server } from '@/mocks/node';
+import { crearAlmacenCargado } from '@/lib/sistema/demo';
+import { hoy } from '@/lib/sistema/formato';
+import { useSistemaStore } from '@/stores/sistemaStore';
 import { renderApp } from '@/test/renderApp';
 import { ESPERA, setupUsuarioConSesion, verifyHeadingPresentAsync } from '@/test/testHelpers';
 
@@ -63,12 +67,56 @@ describe('mis negocios · Ola 2', () => {
     await user.click(selector);
     const menu = screen.getByRole('menu');
     expect(within(menu).getByText('2 de 6')).toBeVisible();
-    expect(within(menu).getByRole('menuitem', { name: /Todos mis negocios/ })).toBeDisabled();
+    expect(within(menu).getByRole('menuitem', { name: /Todos mis negocios/ })).toBeEnabled();
 
     await user.click(within(menu).getByRole('menuitem', { name: /Kiosco de la plaza/ }));
 
     expect(await screen.findByRole('button', { name: /Negocio activo.*Kiosco de la plaza/ }, ESPERA)).toBeVisible();
     expect(negociosDe(usuario).activoId).toBe(segundo.id);
+  });
+
+  it('«Todos mis negocios» lleva a comparar los negocios de la cuenta', async () => {
+    const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+    conSegundoNegocio(usuario);
+    const router = renderApp('/inicio');
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole('button', { name: /Negocio activo/ }, ESPERA));
+    await user.click(screen.getByRole('menuitem', { name: /Todos mis negocios/ }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/negocios/comparar'), ESPERA);
+    expect(await screen.findByRole('heading', { name: 'Comparar mis negocios', level: 1 }, ESPERA)).toBeVisible();
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('al cambiar de negocio guarda antes lo pendiente y no deja el borrador del anterior', async () => {
+    const usuario = setupUsuarioConSesion({ nombre: 'Ana Pérez' });
+    conSegundoNegocio(usuario);
+    const almacen = crearAlmacenCargado(hoy());
+    guardarSistemasDe(usuario.email, [almacen], negociosDe(usuario).negocios[0]?.id);
+    const guardados: string[] = [];
+    server.events.on('request:start', ({ request }) => {
+      if (request.method === 'PUT' && request.url.includes('/api/sistemas/')) guardados.push(request.url);
+    });
+    renderApp('/inicio');
+    const user = userEvent.setup();
+    const selector = await screen.findByRole('button', { name: /Negocio activo/ }, ESPERA);
+    await waitFor(() => expect(useSistemaStore.getState().sistemas).toHaveLength(1), ESPERA);
+    useSistemaStore.setState({ pendientes: [almacen.id] });
+    sessionStorage.setItem(
+      'ensambla:borrador-de-sesion',
+      JSON.stringify({ usuarioId: usuario.id, fecha: Date.now(), sistemas: [almacen], pendientes: [almacen.id], eliminados: [] }),
+    );
+
+    await user.click(selector);
+    await user.click(screen.getByRole('menuitem', { name: /Kiosco de la plaza/ }));
+
+    expect(await screen.findByRole('button', { name: /Negocio activo.*Kiosco de la plaza/ }, ESPERA)).toBeVisible();
+    expect(guardados.some((url) => url.endsWith(encodeURIComponent(almacen.id)))).toBe(true);
+    expect(sessionStorage.getItem('ensambla:borrador-de-sesion')).toBeNull();
+    expect(useSistemaStore.getState().pendientes).toEqual([]);
+    expect(useSistemaStore.getState().sistemas.map((sistema) => sistema.id)).not.toContain(almacen.id);
+    server.events.removeAllListeners();
   });
 
   it('crea un negocio desde Inicio, lo activa y vuelve a entrar a Inicio', async () => {

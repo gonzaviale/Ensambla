@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { useRouter } from '@tanstack/react-router';
 import { Icon } from './Icon';
 import { useActivarNegocio } from '@/hooks/negocios/mutations';
 import { useNegociosDeLaCuenta } from '@/hooks/negocios/queries';
@@ -13,6 +14,7 @@ const rubroLegible = (rubro: string) =>
 export function SelectorDeNegocio() {
   const { data } = useNegociosDeLaCuenta();
   const activar = useActivarNegocio();
+  const router = useRouter();
   const abrirModal = useSistemaStore((estado) => estado.abrirModal);
   const [abierto, setAbierto] = useState(false);
   const raiz = useRef<HTMLDivElement>(null);
@@ -39,6 +41,11 @@ export function SelectorDeNegocio() {
   }, [abierto]);
 
   if (!activo || data.negocios.length <= 1) return null;
+
+  const compararNegocios = () => {
+    setAbierto(false);
+    void router.navigate({ to: '/negocios/comparar' });
+  };
 
   const elegir = (idNegocio: string) => {
     setAbierto(false);
@@ -109,12 +116,10 @@ export function SelectorDeNegocio() {
             type="button"
             role="menuitem"
             className="negocio-selector-opcion negocio-selector-todos"
-            disabled
-            title="La vista conjunta se completa en la Ola 3"
+            onClick={compararNegocios}
           >
             <span className="negocio-selector-inicial"><Icon name="grid" /></span>
-            <span><strong>Todos mis negocios</strong><small>Ver todo junto</small></span>
-            <span className="negocio-selector-proximo">Ola 3</span>
+            <span><strong>Todos mis negocios</strong><small>Comparar y ver los totales</small></span>
           </button>
           <button
             type="button"
