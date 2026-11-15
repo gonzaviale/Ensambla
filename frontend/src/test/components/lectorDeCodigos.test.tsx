@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -18,14 +18,35 @@ vi.mock('@zxing/browser', () => ({
 }));
 
 const mediaOriginal = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
+const dialogoOriginal = {
+  showModal: Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, 'showModal'),
+  close: Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, 'close'),
+};
 let errorDeCamara = 'NotReadableError';
-beforeAll(() =>
+beforeAll(() => {
   Object.defineProperty(navigator, 'mediaDevices', {
     configurable: true,
     value: { getUserMedia: pedirCamara, enumerateDevices: enumerar },
-  }),
-);
+  });
+  Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
+    configurable: true,
+    value: function (this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    },
+  });
+  Object.defineProperty(HTMLDialogElement.prototype, 'close', {
+    configurable: true,
+    value: function (this: HTMLDialogElement) {
+      this.removeAttribute('open');
+    },
+  });
+});
 afterAll(() => {
+  for (const nombre of ['showModal', 'close'] as const) {
+    const original = dialogoOriginal[nombre];
+    if (original) Object.defineProperty(HTMLDialogElement.prototype, nombre, original);
+    else Reflect.deleteProperty(HTMLDialogElement.prototype, nombre);
+  }
   if (mediaOriginal) Object.defineProperty(navigator, 'mediaDevices', mediaOriginal);
   else Reflect.deleteProperty(navigator, 'mediaDevices');
 });
@@ -45,9 +66,12 @@ function crearStream(id: string) {
 
 function LectorConCamara() {
   const camara = useCamaraCodigo(vi.fn());
+  const [panel, setPanel] = useState<'codigo' | 'ajustes' | null>(null);
   const entrada = useRef<HTMLInputElement>(null);
   return (
     <LectorDeCodigos
+      panel={panel}
+      onPanel={setPanel}
       codigo=""
       buscando={false}
       abierta={camara.abierta}
@@ -102,15 +126,18 @@ describe('recuperación del lector al fallar una cámara', () => {
       const user = userEvent.setup();
       render(<LectorConCamara />);
       await user.click(screen.getByRole('button', { name: 'Escanear producto' }));
+      await user.click(screen.getByRole('button', { name: 'Ajustes del lector' }));
       const selector = await screen.findByRole('combobox', { name: 'Cámara del lector' });
       await waitFor(() => expect(selector).toBeEnabled());
       await user.selectOptions(selector, 'ocupada');
       expect(await screen.findByRole('alert')).toHaveTextContent(/cámara/i);
 
+      await user.click(screen.getByRole('button', { name: 'Ajustes del lector' }));
+
       const selectorTrasError = screen.getByRole('combobox', { name: 'Cámara del lector' });
       expect(selectorTrasError).toBeEnabled();
       expect(selectorTrasError).toHaveValue('ocupada');
-      expect(screen.getByRole('button', { name: 'Reintentar cámara' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Reiniciar lector' })).toBeEnabled();
       await user.selectOptions(selectorTrasError, 'disponible');
 
       await waitFor(() => expect(decodificar).toHaveBeenCalledTimes(2));
@@ -143,6 +170,8 @@ describe('recuperación del lector al fallar una cámara', () => {
       render(<LectorConCamara />);
       await user.click(screen.getByRole('button', { name: 'Escanear producto' }));
       await screen.findByRole('alert');
+
+      await user.click(screen.getByRole('button', { name: 'Ajustes del lector' }));
 
       const selector = screen.getByRole('combobox', { name: 'Cámara del lector' });
       expect(selector).toHaveValue('ocupada');

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Btn } from '@/components/sistema/Btn';
 import { Icon } from '@/components/sistema/Icon';
@@ -22,6 +23,7 @@ export function CargaInventarioPage({
   inventarioId: string;
 }) {
   const carga = useCargaInventario(sistemaId, inventarioId);
+  const [panelLector, setPanelLector] = useState<'codigo' | 'ajustes' | null>(null);
   const camara = useCamaraCodigo((codigo) => {
     void carga.buscar(codigo, 'camara');
   });
@@ -31,7 +33,7 @@ export function CargaInventarioPage({
   return (
     <>
       <CabeceraComun active="sistemas" />
-      <main id="main" tabIndex={-1} className="escaneo-pagina">
+      <main id="main" tabIndex={-1} className="escaneo-pagina" data-lectura={!carga.borrador}>
         <nav className="escaneo-migas" aria-label="Ubicación en el inventario">
           <button type="button" onClick={() => void navegacion.irAMisSistemas()}>
             Mis cuadernos
@@ -87,6 +89,9 @@ export function CargaInventarioPage({
               {!carga.borrador && (
                 <div className="escaneo-entrada">
                   <LectorDeCodigos
+                    panel={panelLector}
+                    onPanel={setPanelLector}
+                    mensaje={carga.mensaje}
                     codigo={carga.codigo}
                     buscando={carga.buscando}
                     abierta={camara.abierta}
@@ -186,20 +191,7 @@ export function CargaInventarioPage({
                       }}
                     />
                   )
-                ) : (
-                  <section className="escaneo-panel escaneo-vacio">
-                    <Icon name="box" />
-                    <h2>Un producto por vez, con tus datos</h2>
-                    <p>
-                      Leé el código con la cámara, un lector o ingresalo a mano. Completamos la
-                      descripción y vos revisás la cantidad, el costo y el precio.
-                    </p>
-                    <p>
-                      Si ya existe, lo reconocemos para evitar duplicados. Si no está en los
-                      catálogos, podés completarlo a mano.
-                    </p>
-                  </section>
-                )}
+                ) : null}
               </div>
             </div>
             <footer className="escaneo-atribucion">
