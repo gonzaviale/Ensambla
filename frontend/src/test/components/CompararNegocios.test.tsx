@@ -126,14 +126,13 @@ describe('CompararNegocios', () => {
     expect(screen.getByRole('columnheader', { name: /Vendiste/ })).not.toHaveAttribute('aria-sort');
   });
 
-  it('cada fila dice sus números, marca lo negativo y el negocio que se está usando', () => {
+  it('cada fila dice sus números, y marca lo negativo', () => {
     montar();
 
     const kiosco = fila('Kiosco de la estación');
     expect(kiosco).toHaveTextContent('$280.000');
     expect(within(kiosco).getByText('-$72.000')).toHaveAttribute('data-negativo', 'true');
-    expect(fila('Almacén San Justo')).toHaveTextContent('El que estás usando');
-    expect(kiosco).not.toHaveTextContent('El que estás usando');
+    expect(fila('Almacén San Justo')).not.toHaveTextContent('El que estás usando');
   });
 
   it('un negocio sin ventas lo dice y no inventa ceros', () => {

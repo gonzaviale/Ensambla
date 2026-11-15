@@ -92,9 +92,6 @@ export function CompararNegocios({ resumen, nombreDelRubro }: Props) {
                   <span className="comparar-nombre">{negocio.nombre}</span>
                   <span className="comparar-detalle">
                     {nombreDelRubro?.(negocio.rubro) ?? rubroLegible(negocio.rubro)}
-                    {negocio.activo && (
-                      <span className="comparar-activo"> · El que estás usando</span>
-                    )}
                     {!negocio.hayDatos && ' · Sin ventas en el período'}
                   </span>
                 </th>

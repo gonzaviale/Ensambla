@@ -18,8 +18,8 @@ type Props = {
 const ENFOCABLES = 'button:not(:disabled)';
 
 // El pop-up de T-204: al iniciar sesión con más de un negocio se elige con cuál trabajar antes de entrar, así la app
-// carga de entrada los datos de ese negocio. Elegir el que ya estaba activo, «Seguir con…» o Esc entran sin cambiar
-// nada.
+// carga de entrada los datos de ese negocio. Elegir el que ya estaba activo o «Seguir con…» entran sin cambiar nada.
+// Esc no hace nada: hay que elegir.
 export function ElegirNegocioAlEntrar({ lista, onListo }: Props) {
   const resumen = useResumenConjunto();
   const rubros = useRubros();
@@ -50,21 +50,10 @@ export function ElegirNegocioAlEntrar({ lista, onListo }: Props) {
   };
 
   // Como los modales de la app: el foco arranca adentro, Tab no se escapa y el fondo no se desplaza.
-  const seguir = useRef(onListo);
-  const eligiendo = useRef(false);
-  useEffect(() => {
-    seguir.current = onListo;
-    eligiendo.current = activar.isPending;
-  });
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     dialogo.current?.focus();
     const alTeclear = (evento: KeyboardEvent) => {
-      if (evento.key === 'Escape') {
-        // Con un cambio de negocio en camino no se entra: la app cargaría los datos del negocio anterior.
-        if (!eligiendo.current) seguir.current();
-        return;
-      }
       if (evento.key !== 'Tab' || !dialogo.current) return;
       const nodos = [...dialogo.current.querySelectorAll<HTMLElement>(ENFOCABLES)];
       const inicio = nodos[0];
@@ -100,9 +89,7 @@ export function ElegirNegocioAlEntrar({ lista, onListo }: Props) {
         >
           <span className="eyebrow">Tenés {lista.negocios.length} negocios</span>
           <h2 id="elegir-negocio-titulo">¿Con qué negocio trabajás hoy?</h2>
-          <p id="elegir-negocio-ayuda">
-            Elegí uno para entrar. Cómo viene cada uno sale de los últimos 30 días.
-          </p>
+          <p id="elegir-negocio-ayuda">Seleccioná uno para entrar.</p>
           <ElegirNegocio estado={estado} onElegir={elegir} nombreDelRubro={nombreDelRubro} />
           {abriendo && (
             <p className="elegir-negocio-abriendo" role="status">

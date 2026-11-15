@@ -195,7 +195,7 @@ describe('inicio: cómo te va', () => {
     expect(screen.queryByRole('button', { name: 'Mis métricas' })).toBeNull();
   });
 
-  it('sin ventas anotadas no muestra la tarjeta de ventas', async () => {
+  it('sin ventas anotadas no muestra métricas: se ve el inicio común', async () => {
     const sistema = almacen('Almacén de barrio', '2026-10-20T10:00:00.000Z');
     sistema.sections.forEach((seccion) =>
       seccion.blocks.forEach((bloque) => {
@@ -205,11 +205,10 @@ describe('inicio: cómo te va', () => {
 
     await abrirInicio([sistema]);
 
-    const seccion = await screen.findByRole('region', { name: 'Cómo te va' }, ESPERA);
     expect(
-      await within(seccion).findByRole('article', { name: 'Aviso económico' }, ESPERA),
+      await screen.findByText(/Tocá una ficha para arrancar/, undefined, ESPERA),
     ).toBeVisible();
-    expect(within(seccion).queryByRole('heading', { name: /vendiste/ })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Cómo te va' })).toBeNull();
   });
 });
 

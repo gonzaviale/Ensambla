@@ -6,9 +6,11 @@ import { Icon } from '@/components/sistema/Icon';
 import { MetricasDelInicio } from '@/components/sistema/MetricasDelInicio';
 import { PageFooter } from '@/components/sistema/PageFooter';
 import { varsDeColor } from '@/components/sistema/colores';
-import { sistemaDelPanel } from '@/lib/sistema/panelDelNegocio';
+import { sistemaDelPanel, tieneVentas } from '@/lib/sistema/panelDelNegocio';
 import type { NombreDeIcono } from '@/lib/sistema/iconos';
 import type { Color } from '@/lib/sistema/tipos';
+import { usePanelDelNegocio } from '@/hooks/panel/queries';
+import { useSistemaElegido } from '@/hooks/reportes/useSistemaElegido';
 import { useNavegacion, useNombre } from '@/hooks/sistemas/useNavegacion';
 import { useAccionesDelTutorial } from '@/hooks/tutorial/useAccionesDelTutorial';
 import { useSistemaStore } from '@/stores/sistemaStore';
@@ -23,7 +25,14 @@ export function InicioPage() {
   const tutorial = useAccionesDelTutorial();
   // Quien ya tiene una sección ve el panel de su negocio: la bienvenida pasa a una franja corta (el h1 es el mismo)
   // y las formas de empezar siguen a mano. Quien recién empieza ve la bienvenida grande de siempre.
-  const hayPanel = useSistemaStore((estado) => sistemaDelPanel(estado.sistemas) !== null);
+  const sistemas = useSistemaStore((estado) => estado.sistemas);
+  const { sistema: elegido } = useSistemaElegido();
+  const delPanel = elegido ?? sistemaDelPanel(sistemas);
+  const panel = usePanelDelNegocio(delPanel?.id ?? null);
+  // Sin ventas en el período no hay métricas para mostrar: se ve el inicio común. Mientras llegan los números se
+  // supone que hay (si la sección tiene ventas), así el panel no parpadea.
+  const hayPanel =
+    delPanel !== null && (panel.data ? panel.data.hayDatos : !panel.isPending || tieneVentas(delPanel));
   return (
     <>
       <CabeceraComun />

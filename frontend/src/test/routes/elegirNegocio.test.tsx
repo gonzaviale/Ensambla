@@ -98,53 +98,15 @@ describe('elegir con qué negocio trabajar al iniciar sesión', () => {
     server.events.removeAllListeners();
   });
 
-  it('Esc entra con el último negocio que se usó', async () => {
+  it('Esc no hace nada: hay que elegir un negocio', async () => {
     conNegocios(ALMACEN, KIOSCO);
     const { router, user } = await iniciarSesion();
     await popUp();
 
     await user.keyboard('{Escape}');
 
-    await verifyPathAsync(router, '/inicio');
-    expect(activoDelServidor()).toBe(ALMACEN.id);
-  });
-
-  it('Esc con el cambio de negocio en camino no entra a la app antes de que termine', async () => {
-    conNegocios(ALMACEN, KIOSCO);
-    let terminar: () => void = () => undefined;
-    const demora = new Promise<void>((resolver) => {
-      terminar = resolver;
-    });
-    server.use(
-      http.put('/api/negocios/:id/activo', async () => {
-        await demora;
-        estado.negociosDeLaCuenta.set(USUARIO.email, {
-          activoId: KIOSCO.id,
-          negocios: [ALMACEN, KIOSCO],
-        });
-        return HttpResponse.json({
-          activoId: KIOSCO.id,
-          limite: 6,
-          puedeCrear: true,
-          negocios: [
-            { ...ALMACEN, activo: false },
-            { ...KIOSCO, activo: true },
-          ],
-        });
-      }),
-    );
-    const { router, user } = await iniciarSesion();
-    const dialogo = await popUp();
-    await user.click(
-      await within(dialogo).findByRole('button', { name: 'Kiosco de la estación' }, ESPERA),
-    );
-
-    await user.keyboard('{Escape}');
     expect(router.state.location.pathname).toBe('/elegir-negocio');
-    terminar();
-
-    await verifyPathAsync(router, '/inicio');
-    expect(activoDelServidor()).toBe(KIOSCO.id);
+    expect(screen.getByRole('dialog')).toBeVisible();
   });
 
   it('si no se pudo cambiar de negocio lo dice y deja seguir', async () => {

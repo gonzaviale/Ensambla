@@ -183,16 +183,14 @@ describe('inicio: panel del negocio', () => {
     expect(titulo()).toBeNull();
   });
 
-  it('con una sección sin ventas no inventa números y explica cómo cargarlas', async () => {
-    const { user, router, sistema } = await abrirInicio([makeTemplate('shop', {}, true)]);
+  it('con una sección sin ventas no muestra el panel: se ve el inicio común', async () => {
+    await abrirInicio([makeTemplate('shop', {}, true)]);
 
-    expect(await screen.findByText(/Todavía no cargaste ventas/, undefined, ESPERA)).toBeVisible();
-    expect(screen.queryByText(/Lo fiado no entra hasta que lo cobrás/)).toBeNull();
-    expect(screen.queryByRole('img', { name: /Flujo de caja/ })).toBeNull();
-
-    await clickButton(user, /Cargar mis ventas/);
-
-    await verifyPathAsync(router, `/sistemas/${sistema?.id}`);
+    expect(
+      await screen.findByText(/Tocá una ficha para arrancar/, undefined, ESPERA),
+    ).toBeVisible();
+    expect(titulo()).toBeNull();
+    expect(screen.queryByText(/Todavía no cargaste ventas/)).toBeNull();
   });
 
   it('si el servidor falla avisa y permite reintentar', async () => {

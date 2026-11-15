@@ -110,7 +110,6 @@ export function TopBar({
           <Icon name="help" /> Ayuda
         </button>
       </nav>
-      <SelectorDeNegocio />
       <div className="row topbar-right">
         {campana}
         <button
@@ -132,13 +131,16 @@ export function TopBar({
         >
           <Icon name="help" />
         </button>
-        <MenuDePerfil
-          nombre={nombre}
-          enCuenta={active === 'account'}
-          cerrando={cerrandoSesion}
-          onConfiguracion={onCuenta}
-          onCerrarSesion={onCerrarSesion}
-        />
+        <div className="topbar-cuenta">
+          <SelectorDeNegocio />
+          <MenuDePerfil
+            nombre={nombre}
+            enCuenta={active === 'account'}
+            cerrando={cerrandoSesion}
+            onConfiguracion={onCuenta}
+            onCerrarSesion={onCerrarSesion}
+          />
+        </div>
         <button
           type="button"
           className="menu-movil-boton"

@@ -74,6 +74,7 @@ export function SelectorDeNegocio() {
         ref={disparador}
         type="button"
         className="negocio-selector-disparador"
+        aria-label={`Negocio activo: ${activo.nombre}`}
         aria-haspopup="menu"
         aria-expanded={abierto}
         aria-controls={abierto ? id : undefined}
@@ -82,7 +83,6 @@ export function SelectorDeNegocio() {
       >
         <span className="negocio-selector-inicial">{inicial(activo.nombre)}</span>
         <span className="negocio-selector-texto">
-          <small>Negocio activo</small>
           <strong>{activar.isPending ? 'Cambiando…' : activo.nombre}</strong>
         </span>
         <Icon name="down" />
