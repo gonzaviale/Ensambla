@@ -115,8 +115,7 @@ class CobrarVentaTest {
     @Test
     @DisplayName("Rechaza ventas que no apuntan al inventario elegido")
     void executeShouldRejectWrongRelation() {
-        givenCaja();
-        ventas().getCampos().getFirst().setBloqueRelacionadoId(BloqueId.nuevo());
+        givenVentasRelacionadasConOtroInventario();
 
         thenRejects(BusinessRuleException.class);
     }
@@ -227,15 +226,11 @@ class CobrarVentaTest {
     @Test
     @DisplayName("Permite asociar un cliente a una venta pagada aunque la tabla use texto")
     void executeShouldUseCustomerNameWhenSalesFieldIsText() {
-        givenCajaConCliente();
-        campoVentas("customer").setTipo(TipoCampo.TEXTO);
-        campoVentas("customer").setBloqueRelacionadoId(null);
+        givenClienteRegistradoComoTexto();
 
-        CobrarVentaResponse respuesta = cobrarVenta.execute(solicitudConCliente(null));
+        CobrarVentaResponse respuesta = whenSeCobraLaVentaConCliente();
 
-        thenPendingBalanceIs(respuesta, "0", "PAGADA");
-        Registro fila = sistema.registrosPorBloque().get(CajaTestData.VENTAS).getFirst();
-        assertThat(fila.getValores().get(campoVentas("customer").getId().toString())).isEqualTo("Ana López");
+        thenSeConservaElNombreDelCliente(respuesta);
     }
 
     @Test
@@ -275,10 +270,38 @@ class CobrarVentaTest {
     @Test
     @DisplayName("Rechaza un cliente de una tabla distinta a la relacionada con ventas")
     void executeShouldRejectCustomerFromWrongTable() {
+        givenClienteRelacionadoConOtraTabla();
+
+        thenSeRechazaElClienteDeOtraTabla();
+    }
+
+    private void givenVentasRelacionadasConOtroInventario() {
+        givenCaja();
+        CajaTestData.cambiarCampo(ventas(), "product", TipoCampo.RELACION, BloqueId.nuevo());
+    }
+
+    private void givenClienteRegistradoComoTexto() {
+        givenCajaConCliente();
+        CajaTestData.cambiarCampo(ventas(), "customer", TipoCampo.TEXTO, null);
+    }
+
+    private CobrarVentaResponse whenSeCobraLaVentaConCliente() {
+        return cobrarVenta.execute(solicitudConCliente(null));
+    }
+
+    private void thenSeConservaElNombreDelCliente(CobrarVentaResponse respuesta) {
+        thenPendingBalanceIs(respuesta, "0", "PAGADA");
+        Registro fila = sistema.registrosPorBloque().get(CajaTestData.VENTAS).getFirst();
+        assertThat(fila.getValores().get(campoVentas("customer").getId().toString())).isEqualTo("Ana López");
+    }
+
+    private void givenClienteRelacionadoConOtraTabla() {
         givenCaja();
         CajaTestData.agregarCliente(sistema);
-        campoVentas("customer").setBloqueRelacionadoId(BloqueId.nuevo());
+        CajaTestData.cambiarCampo(ventas(), "customer", TipoCampo.RELACION, BloqueId.nuevo());
+    }
 
+    private void thenSeRechazaElClienteDeOtraTabla() {
         assertThatThrownBy(() -> cobrarVenta.execute(solicitudConCliente(List.of())))
                 .isInstanceOf(ResourceNotFoundException.class);
     }

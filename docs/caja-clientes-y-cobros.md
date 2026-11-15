@@ -89,3 +89,22 @@ docker compose -p ensambla-clientes logs tunel-movil
 Abrir la dirección `https://…trycloudflare.com` que aparece en los logs. El perfil `movil` usa el frontend compilado y la misma base real; los mocks sólo sirven como apoyo del desarrollo y las pruebas del frontend. La dirección del túnel cambia cuando se recrea y la prueba física de cámara y teclado móvil se valida en el teléfono.
 
 Recorrer **Caja → Clientes → Nuevo cliente**, registrar una venta parcial y una fiada, recargar, abrir **Ver cuenta**, aplicar un pago dividido y completar el saldo. Confirmar que las ventas pasan de Pendientes a Pagadas, que el historial conserva cada entrega y que la caja suma sólo el dinero recibido. Cerrar la caja antes del último cobro y verificar que ese cierre conserva su foto original.
+
+## Compra y cobro en el teléfono (15/11/2026)
+
+La compra oculta Vender, Actividad, Clientes y el aviso redundante de artículo agregado. Agregar queda
+en la cabecera; cantidades, quitar y total permanecen accesibles. En pantallas bajas también se oculta
+la cabecera general mientras se revisa la compra. Una compra de dos artículos de nombre largo cabe
+sin scroll; una compra grande desplaza solo la lista y mantiene Cobrar visible.
+
+El cobro usa un total compacto, opciones en filas y campos en dos columnas. Elegir o crear el cliente
+abre su propio diálogo. Se mantienen pago completo, parcial, fiado, pago dividido y vuelto. La ventana
+tiene confirmación fija y conserva desplazamiento interno de respaldo para zoom, teclado o errores.
+
+Se integró dev hasta c8f38e0a (PR #96). CajaTestData y los escenarios de relaciones de CobrarVentaTest
+usan CampoBuilder para crear la subclase adecuada y preservan la identidad del campo al reemplazarlo.
+La adaptación no cambia el comportamiento de ventas ni el esquema de datos.
+
+Deuda de legibilidad fuera de este ajuste: CobroCaja y los escenarios anteriores de CobrarVentaTest
+todavía concentran lógica y aserciones que conviene separar por intención. Los escenarios de relaciones
+adaptados en esta revisión y los constructores compartidos ya están separados por intención.
