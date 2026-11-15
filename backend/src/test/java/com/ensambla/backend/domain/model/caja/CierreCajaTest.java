@@ -43,12 +43,37 @@ class CierreCajaTest {
     }
 
     @Test
-    @DisplayName("Permite guardar el cierre sin hacer un recuento")
-    void nuevoShouldAllowMissingCount() {
-        CierreCaja cierre = cerrar(resumen(), resumen().revision(), "0", "0", "0", null);
+    @DisplayName("Exige contar el efectivo antes de guardar un cierre nuevo")
+    void nuevoShouldRejectMissingCount() {
+        thenRechazaRecuento(null);
+    }
 
-        assertThat(cierre.contado()).isNull();
-        assertThat(cierre.diferencia()).isNull();
+    @Test
+    @DisplayName("Exige explicar un faltante")
+    void nuevoShouldRejectUnexplainedShortage() {
+        thenRechazaRecuento("0");
+    }
+
+    @Test
+    @DisplayName("Exige explicar un sobrante")
+    void nuevoShouldRejectUnexplainedSurplus() {
+        thenRechazaRecuento("1001");
+    }
+
+    @Test
+    @DisplayName("Acepta un recuento cero con motivo y conserva la diferencia")
+    void nuevoShouldAllowExplainedZeroCount() {
+        CierreCaja cierre = whenSeCuentaCeroConMotivo();
+
+        thenConservaFaltanteExplicado(cierre);
+    }
+
+    @Test
+    @DisplayName("No exige nota cuando el efectivo coincide")
+    void nuevoShouldAllowMatchingCountWithoutNote() {
+        CierreCaja cierre = cerrar(resumen(), resumen().revision(), "0", "0", "0", "1000");
+
+        thenCoincideSinNota(cierre);
     }
 
     @Test
@@ -84,7 +109,28 @@ class CierreCajaTest {
         assertThat(resumen.ventas()).isEmpty();
     }
 
-    // --- helpers ---
+    private void thenRechazaRecuento(String contado) {
+        assertThatThrownBy(() -> cerrar(resumen(), resumen().revision(), "0", "0", "0", contado))
+                .isInstanceOf(BusinessRuleException.class);
+    }
+
+    private CierreCaja whenSeCuentaCeroConMotivo() {
+        return CierreCaja.nuevo(CierreCajaTestData.CIERRE, CajaTestData.NEGOCIO, CajaTestData.PROYECTO,
+                CajaTestData.INVENTARIO, "huella", resumen(), resumen().revision(), BigDecimal.ZERO,
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "  Retiro sin registrar  ", CajaTestData.AHORA);
+    }
+
+    private void thenConservaFaltanteExplicado(CierreCaja cierre) {
+        assertThat(cierre.contado()).isEqualByComparingTo("0");
+        assertThat(cierre.diferencia()).isEqualByComparingTo("-1000");
+        assertThat(cierre.nota()).isEqualTo("Retiro sin registrar");
+    }
+
+    private void thenCoincideSinNota(CierreCaja cierre) {
+        assertThat(cierre.diferencia()).isEqualByComparingTo("0");
+        assertThat(cierre.nota()).isEmpty();
+    }
+
     private ResumenCaja resumen() {
         return ResumenCaja.de(List.of(CierreCajaTestData.venta()));
     }

@@ -55,6 +55,17 @@ export function CierreCajaForm({
   }
   const esperado = Math.round(resumen.efectivo * 100) + base + ingresos - salidas;
   if (esperado < 0) valido = false;
+  const requiereMotivo = efectivoContado !== null && efectivoContado !== esperado;
+  const puedeGuardar = valido && efectivoContado !== null && (!requiereMotivo || !!nota.trim());
+  const confirmarRecuento = () =>
+    onConfirmar({
+      revision: resumen.revision,
+      fondoInicial: base / 100,
+      entradas: ingresos / 100,
+      retiros: salidas / 100,
+      contado: efectivoContado === null ? null : efectivoContado / 100,
+      nota: nota.trim(),
+    });
   const bloqueada = ocupada || incierta;
   return (
     <>
@@ -84,8 +95,8 @@ export function CierreCajaForm({
             La compra que estás armando todavía no se cobró y no entra en este cierre.
           </p>
         )}
-        <details className="caja-recuento">
-          <summary>Contar efectivo (opcional)</summary>
+        <section className="caja-recuento" aria-label="Recuento de efectivo">
+          <h3>Contar efectivo</h3>
           <p className="caja-ayuda">
             Completá los movimientos de este período. Transferencias y tarjetas no forman parte del
             cajón.
@@ -130,7 +141,8 @@ export function CierreCajaForm({
               inputMode="decimal"
               value={contado}
               disabled={bloqueada}
-              placeholder="Sin recuento"
+              required
+              placeholder="Escribí 0 si no hay efectivo"
               onChange={(e) => setContado(e.target.value)}
             />
           </label>
@@ -144,11 +156,12 @@ export function CierreCajaForm({
                   : ' · Faltante'}
             </p>
           )}
-        </details>
+        </section>
         <label className="caja-nota-label">
-          Nota del cierre (opcional)
+          {requiereMotivo ? 'Motivo de la diferencia (obligatorio)' : 'Nota del cierre (opcional)'}
           <textarea
             value={nota}
+            required={requiereMotivo}
             maxLength={1000}
             disabled={bloqueada}
             onChange={(e) => setNota(e.target.value)}
@@ -185,17 +198,8 @@ export function CierreCajaForm({
             <button
               type="button"
               className="btn primary"
-              disabled={ocupada || (!incierta && !valido)}
-              onClick={() =>
-                onConfirmar({
-                  revision: resumen.revision,
-                  fondoInicial: base / 100,
-                  entradas: ingresos / 100,
-                  retiros: salidas / 100,
-                  contado: efectivoContado === null ? null : efectivoContado / 100,
-                  nota: nota.trim(),
-                })
-              }
+              disabled={ocupada || (!incierta && !puedeGuardar)}
+              onClick={confirmarRecuento}
             >
               {ocupada ? 'Guardando…' : incierta ? 'Verificar mismo cierre' : 'Guardar cierre'}
             </button>

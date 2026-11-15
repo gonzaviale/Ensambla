@@ -138,7 +138,7 @@ class CajaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
         ResumenCaja resumen = ResumenCaja.de(ventaCajaRepository.listarAbiertas(
                 negocioId, base.proyectoId(), base.inventarioId()));
         CerrarCajaRequest cierre = new CerrarCajaRequest(usuarioId, CierreCajaId.nuevo(), base.proyectoId(),
-                base.inventarioId(), resumen.revision(), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, null, "");
+                base.inventarioId(), resumen.revision(), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, new BigDecimal("1000"), "");
 
         var guardado = cerrarCaja.execute(cierre);
         entityManager.flush();
@@ -437,7 +437,7 @@ class CajaPostgresIntegrationTest extends PostgresRepositoryTestSupport {
 
     private CerrarCajaRequest cierrePara(String revision) {
         return new CerrarCajaRequest(usuarioId, CierreCajaId.nuevo(), CajaTestData.PROYECTO, CajaTestData.INVENTARIO,
-                revision, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, null, "");
+                revision, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "Recuento de prueba");
     }
 
     private boolean intentarPago(RegistrarCobroRequest request) {

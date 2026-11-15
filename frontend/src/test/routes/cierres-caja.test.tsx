@@ -161,6 +161,7 @@ describe('cierres y pagos mixtos de caja', () => {
     await user.click(screen.getByRole('button', { name: 'Caja abierta' }));
     expect(await screen.findByText(/Abierta desde 12\/11\/26/)).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Cerrar caja' }));
+    await user.type(screen.getByLabelText('Efectivo contado al cerrar ($)'), '1000');
     await user.click(screen.getByRole('button', { name: 'Guardar cierre' }));
     await screen.findByRole('heading', { name: 'Cierre guardado' }, ESPERA);
     expect(request).toMatchObject({
@@ -168,7 +169,7 @@ describe('cierres y pagos mixtos de caja', () => {
       fondoInicial: 0,
       entradas: 0,
       retiros: 0,
-      contado: null,
+      contado: 1000,
     });
     await user.click(screen.getByRole('button', { name: 'Listo' }));
     await user.click(screen.getByRole('button', { name: 'Cierres guardados' }));
@@ -199,6 +200,7 @@ describe('cierres y pagos mixtos de caja', () => {
     await user.click(screen.getByRole('button', { name: 'Actividad' }));
     await user.click(screen.getByRole('button', { name: 'Caja abierta' }));
     await user.click(await screen.findByRole('button', { name: 'Cerrar caja' }));
+    await user.type(screen.getByLabelText('Efectivo contado al cerrar ($)'), '1000');
     await user.click(screen.getByRole('button', { name: 'Guardar cierre' }));
     await user.click(await screen.findByRole('button', { name: 'Verificar mismo cierre' }, ESPERA));
     await screen.findByRole('heading', { name: 'Cierre guardado' }, ESPERA);
@@ -234,6 +236,7 @@ describe('cierres y pagos mixtos de caja', () => {
     await user.click(screen.getByRole('button', { name: 'Actividad' }));
     await user.click(screen.getByRole('button', { name: 'Caja abierta' }));
     await user.click(await screen.findByRole('button', { name: 'Cerrar caja' }));
+    await user.type(screen.getByLabelText('Efectivo contado al cerrar ($)'), '1000');
     await user.click(screen.getByRole('button', { name: 'Guardar cierre' }));
     expect(
       await screen.findByRole('button', { name: 'Revisar resumen actualizado' }, ESPERA),
