@@ -1,4 +1,4 @@
-import { findBlock } from './core';
+import { comportamientoDe } from './comportamiento';
 import type { Campo, Sistema, Valor } from './tipos';
 
 const pesos = new Intl.NumberFormat('es-AR', {
@@ -15,17 +15,12 @@ export function formatoFecha(valor: Valor) {
   return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : String(valor);
 }
 
+const textoSegunElTipo = (campo: Campo, valor: Valor, sistema: Sistema | undefined) =>
+  comportamientoDe(campo.type).textoPlano(campo, valor, sistema);
+
 /** Lo que dice un registro en texto, para buscar y para el título de la celda. */
 export function textoPlano(sistema: Sistema | undefined, campo: Campo, valor: Valor): string {
-  if (valor == null || valor === '') return '';
-  if (campo.type === 'relation') {
-    const objetivo = findBlock(sistema, campo.target);
-    const fila = objetivo?.rows.find((item) => item.id === valor);
-    const clave = objetivo?.fields[0]?.key;
-    return String((clave && fila?.[clave]) || 'Sin vínculo');
-  }
-  if (campo.type === 'checkbox') return valor ? 'Sí' : 'No';
-  return String(valor);
+  return textoSegunElTipo(campo, valor, sistema);
 }
 
 export const ESTADOS_BUENOS = ['Entregado'];

@@ -1,5 +1,6 @@
 package com.ensambla.backend.infrastructure.presentation.controller;
 
+import com.ensambla.backend.domain.model.aviso.AccionAbrirRegistro;
 import com.ensambla.backend.domain.exception.BusinessRuleException;
 import com.ensambla.backend.domain.exception.ResourceNotFoundException;
 import com.ensambla.backend.domain.model.aviso.AvisoId;
@@ -179,6 +180,6 @@ class AvisoControllerTest {
     private static AvisoItem givenItem(EstadoAviso estado) {
         return new AvisoItem(AVISO_ID, null, TipoAviso.STOCK, GrupoAviso.STOCK, (short) 3, estado, "registro:1",
                 "Te quedaste sin yerba", "No te quedan unidades", List.of("motivo"),
-                List.of(Map.of("tipo", "ABRIR")), Map.of("cantidad", 0), AHORA, null);
+                List.of(new AccionAbrirRegistro("Ver producto", null, null, null)), Map.of("cantidad", 0), AHORA, null);
     }
 }

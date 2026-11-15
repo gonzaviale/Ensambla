@@ -1,4 +1,6 @@
 import { CATALOG, FIELD_TYPES } from './catalogo';
+import { comportamientoDe } from './comportamiento';
+import { LARGO_DE_VALOR } from './comportamiento/ComportamientoDeCampo';
 import {
   allBlocks,
   applyLayout,
@@ -173,7 +175,6 @@ const MAXIMO_DE_REGISTROS = 30;
 const MAXIMO_DE_NOMBRES = 100;
 const MAXIMO_DE_OPCIONES = 6;
 const LARGO_DE_NOMBRE = 60;
-const LARGO_DE_VALOR = 200;
 
 const texto = (valor: unknown) => (typeof valor === 'string' ? valor.trim() : '');
 const lista = (valor: unknown): unknown[] => (Array.isArray(valor) ? valor : []);
@@ -726,51 +727,15 @@ function filasDeSami(pieza: Bloque, crudas: unknown, maximo: number, deEjemplo: 
   return filas;
 }
 
-/** El valor de ejemplo convertido al tipo del dato; `undefined` si no sirve. */
-/**
- * Una fecha como se anota en un cuaderno, en AAAA-MM-DD: acepta AAAA-MM-DD, DD/MM/AAAA, DD/MM/AA y DD/MM (sin año,
- * el del año en curso). Una fecha que no existe (31/02) no sirve.
- */
-function fechaDeCuaderno(texto: string): string | undefined {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) return texto;
-  const partes = /^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2}|\d{4}))?$/.exec(texto);
-  if (!partes) return undefined;
-  const [, dia = '', mes = '', anio] = partes;
-  const completo = !anio
-    ? new Date().getFullYear()
-    : anio.length === 2
-      ? 2000 + Number(anio)
-      : Number(anio);
-  const fecha = new Date(Date.UTC(completo, Number(mes) - 1, Number(dia)));
-  if (fecha.getUTCMonth() !== Number(mes) - 1 || fecha.getUTCDate() !== Number(dia))
-    return undefined;
-  return fecha.toISOString().slice(0, 10);
+function interpretarSegunElTipo(campo: Campo, crudo: unknown): Valor {
+  return comportamientoDe(campo.type).interpretar(campo, crudo);
 }
 
+/** El valor de ejemplo convertido al tipo del dato; `undefined` si no sirve. */
 function valorDeEjemplo(campo: Campo, valor: unknown): Valor {
   if (valor === null || valor === undefined || typeof valor === 'object') return undefined;
   const crudo = typeof valor === 'string' ? valor.trim() : valor;
-  switch (campo.type) {
-    case 'number':
-    case 'currency': {
-      const numero = typeof crudo === 'number' ? crudo : Number(String(crudo).replace(',', '.'));
-      return crudo !== '' && Number.isFinite(numero) ? numero : undefined;
-    }
-    case 'checkbox':
-      return crudo === true || ['si', 'true', '1', 'x'].includes(normalize(crudo));
-    case 'date':
-      return typeof crudo === 'string' ? fechaDeCuaderno(crudo) : undefined;
-    case 'time': {
-      const [, horas = '', minutos = ''] = /^(\d{1,2}):(\d{2})$/.exec(String(crudo)) ?? [];
-      return horas && Number(horas) < 24 && Number(minutos) < 60
-        ? `${horas.padStart(2, '0')}:${minutos}`
-        : undefined;
-    }
-    case 'select':
-      return campo.options?.find((opcion) => normalize(opcion) === normalize(crudo));
-    default:
-      return String(crudo).slice(0, LARGO_DE_VALOR) || undefined;
-  }
+  return interpretarSegunElTipo(campo, crudo);
 }
 
 const ES_ID_DE_FILA = /^e[0-9a-f]{8}-/;

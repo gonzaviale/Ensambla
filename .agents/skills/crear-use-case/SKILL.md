@@ -1,6 +1,6 @@
 ---
 name: crear-use-case
-description: Crea un caso de uso nuevo (endpoint) del backend de Ensambla de punta a punta siguiendo la estructura de capas del proyecto - model e id tipado, repositorio (puerto), caso de uso con sus DTOs en su subpaquete (fábricas de(), sin mapper de dominio), servicio solo si se comparte, bean manual en *UseCaseConfig, entity, JPA, RepositoryImpl, mapper de repositorio, DTO web, mapper de presentación y controller - más sus tests. Usar cuando se pida "agregar un endpoint", "crear el caso de uso de X", "nuevo módulo/feature del backend", "exponer GET/POST/PATCH/DELETE de X", "agregar una consulta" o "sumar una entidad". Para limpiar o reordenar un caso de uso que ya existe usar refactor-use-case; para los tests usar escribir-tests; las reglas de estructura están en reglas-arquitectura.
+description: Crea un caso de uso nuevo (endpoint) del backend de Ensambla de punta a punta siguiendo la estructura de capas del proyecto - model e id tipado, repositorio (puerto), caso de uso con sus DTOs en su subpaquete (fábricas de(), sin mapper de dominio), servicio solo si se comparte, bean manual en *UseCaseConfig, entity, JPA, RepositoryImpl, mapper de repositorio, DTO web, mapper de presentación y controller - más sus tests. Aplica siempre el skill codigo-semantico (obligatorio). Usar cuando se pida "agregar un endpoint", "crear el caso de uso de X", "nuevo módulo/feature del backend", "exponer GET/POST/PATCH/DELETE de X", "agregar una consulta" o "sumar una entidad". Para limpiar o reordenar un caso de uso que ya existe usar refactor-use-case; para los tests usar escribir-tests; las reglas de estructura están en reglas-arquitectura y las de código semántico en codigo-semantico.
 ---
 
 > Copia para Codex. La fuente es `.claude/skills/crear-use-case/SKILL.md`: si cambiás uno, cambiá los dos.
@@ -50,7 +50,8 @@ Flujo de un request: `Controller → PresentationMapper → Caso de uso → (Ser
 
 ## Plantillas (copiá la forma, cambiá los nombres)
 
-Caso de uso: orquesta; la lógica que solo él usa va en métodos privados, y la escritura dentro de la transacción.
+Caso de uso: orquesta; `execute()` no llama directo a ningún repositorio, puerto ni servicio: cada llamada va a un
+método privado con nombre de intención, y la escritura dentro de la transacción.
 
 ```java
 @RequiredArgsConstructor
@@ -65,13 +66,22 @@ public class CrearProyecto {
     private final Clock clock;
 
     public ProyectoItem execute(CrearProyectoRequest request) {
-        NegocioId negocioId = negocioRepository.obtenerIdDelUsuario(request.usuarioId());
-        Proyecto proyecto = transaccionPort.ejecutar(() -> crear(negocioId, request, OffsetDateTime.now(clock)));
+        NegocioId negocioId = obtenerNegocioDelUsuario(request.usuarioId());
+        Proyecto proyecto = crearGuardando(negocioId, request);
         return ProyectoItem.de(proyecto);
     }
 
-    private Proyecto crear(NegocioId negocioId, CrearProyectoRequest request, OffsetDateTime ahora) {
-        return proyectoRepository.save(Proyecto.nuevo(negocioId, request.nombre(), request.descripcion(), ahora));
+    private NegocioId obtenerNegocioDelUsuario(UsuarioId usuarioId) {
+        return negocioRepository.obtenerIdDelUsuario(usuarioId);
+    }
+
+    private Proyecto crearGuardando(NegocioId negocioId, CrearProyectoRequest request) {
+        OffsetDateTime ahora = OffsetDateTime.now(clock);
+        return transaccionPort.ejecutar(() -> guardar(Proyecto.nuevo(negocioId, request.nombre(), request.descripcion(), ahora)));
+    }
+
+    private Proyecto guardar(Proyecto proyecto) {
+        return proyectoRepository.save(proyecto);
     }
 }
 ```
@@ -139,6 +149,22 @@ explícitos (solo se toleran `lombok.*` y `jakarta.persistence.*`), ordenados pr
 líneas ≤ 120 columnas; argumentos y builders uno por línea; campos con el nombre del tipo (`proyectoRepository`,
 `transaccionPort`), nunca `repository`/`service`.
 
+**Código semántico (obligatorio, skill `codigo-semantico`).** Todo lo que escribas cumple:
+
+- Métodos de ≈10 líneas y un solo nivel de abstracción; `execute()` y los métodos públicos se leen como una frase y el
+  detalle va a métodos privados con nombre de intención.
+- Sin comentarios que expliquen lo que el código ya dice (solo el porqué no obvio).
+- Cláusulas de guarda en lugar de `if` anidados.
+- **Nunca `switch` ni `if/else if` por tipo o estado**: si el comportamiento depende de un tipo, es una clase base
+  abstracta con una subclase por tipo (o un enum con constructor/fábrica), y el caso de uso llama al método del objeto.
+- Un método extraído nombra una intención: no fragmentes por fragmentar.
+- **Los métodos públicos no llaman a repositorios, puertos ni servicios.** El `execute()` de un caso de uso y los
+  métodos públicos de un servicio solo llaman a métodos privados con nombre de intención y a métodos del modelo; cada
+  llamada a un repositorio, puerto u otro servicio se extrae a un privado (`obtenerCampo(...)`). Un `execute()` se lee
+  como la lista de pasos del negocio, sin saber qué puerto hay detrás.
+- El dominio no conoce formatos de persistencia ni de transporte (prefijos de clave, JSON, `Map<?, ?>` con claves de
+  texto): la infraestructura los convierte a objetos tipados (interfaz sellada + records, mapa tipo→fábrica en el mapper).
+
 ## Tests (obligatorios)
 
 Cada clase nueva con comportamiento lleva su test: usá el skill **escribir-tests**. El build exige **100 % de líneas y
@@ -162,6 +188,8 @@ Después abrí Swagger (`/swagger-ui.html`, solo con el perfil `dev`) y probá e
 - [ ] Caso de uso sin sufijo, con sus DTOs en su subpaquete y fábricas `de()`; sin mapper de dominio.
 - [ ] Servicio nuevo solo si es lógica de varios pasos que repiten dos o más casos de uso; búsquedas `findX().orElseThrow` como `default` del puerto; ningún caso de uso llama a otro; nada de Spring en `domain`.
 - [ ] `execute()` es una lista de pasos; las escrituras dentro de `transaccionPort.ejecutar(...)`.
+- [ ] `execute()` sin llamadas directas a repositorios, puertos ni servicios (todo en privados con nombre de intención); sin prefijos de clave, JSON ni `Map<?, ?>` en `domain`.
+- [ ] Código semántico: métodos cortos que se leen como frases, sin comentarios redundantes, con guardas y **sin `switch`/`if/else if` por tipo o estado** (polimorfismo).
 - [ ] Bean agregado al `*UseCaseConfig` con el orden correcto de argumentos.
 - [ ] `@Tag`/`@Operation` en el controller y ruta agregada a `SecurityConfig` solo si es pública.
 - [ ] Migración Flyway nueva si cambió el esquema (y `docs/modelo-datos.md` actualizado).
