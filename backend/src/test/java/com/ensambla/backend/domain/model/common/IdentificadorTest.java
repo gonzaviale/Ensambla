@@ -7,6 +7,11 @@ import com.ensambla.backend.domain.model.inventario.MovimientoStockId;
 import com.ensambla.backend.domain.model.lote.FotoId;
 import com.ensambla.backend.domain.model.lote.LoteId;
 import com.ensambla.backend.domain.model.negocio.NegocioId;
+import com.ensambla.backend.domain.model.objetivo.DecisionObjetivoId;
+import com.ensambla.backend.domain.model.objetivo.MiniObjetivoId;
+import com.ensambla.backend.domain.model.objetivo.ProgresoObjetivoId;
+import com.ensambla.backend.domain.model.objetivo.ReajusteMiniObjetivoId;
+import com.ensambla.backend.domain.model.objetivo.ResumenSemanalId;
 import com.ensambla.backend.domain.model.objetivo.ObjetivoId;
 import com.ensambla.backend.domain.model.pago.RenovacionId;
 import com.ensambla.backend.domain.model.plan.PlanId;
@@ -47,7 +52,8 @@ class IdentificadorTest {
                 PlantillaId.class, ReclamoId.class, ProyectoId.class, RecetaId.class, RegistroId.class,
                 SeccionId.class, UsuarioId.class, ZonaId.class, VinculoWhatsappId.class, CodigoVinculacionId.class, PropuestaWhatsappId.class,
                 VerificacionWhatsappId.class,
-                MensajeWhatsappId.class, ObjetivoId.class);
+                MensajeWhatsappId.class, ObjetivoId.class, MiniObjetivoId.class, ProgresoObjetivoId.class,
+                DecisionObjetivoId.class, ResumenSemanalId.class, ReajusteMiniObjetivoId.class);
     }
 
     @ParameterizedTest

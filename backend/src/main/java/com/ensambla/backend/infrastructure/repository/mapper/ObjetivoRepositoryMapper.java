@@ -17,6 +17,7 @@ public class ObjetivoRepositoryMapper {
                 .texto(source.getTexto())
                 .meta(source.getMeta())
                 .creadoEn(source.getCreadoEn())
+                .alcanzadoEn(source.getAlcanzadoEn())
                 .build();
     }
 
@@ -27,6 +28,7 @@ public class ObjetivoRepositoryMapper {
                 .texto(source.getTexto())
                 .meta(source.getMeta())
                 .creadoEn(source.getCreadoEn())
+                .alcanzadoEn(source.getAlcanzadoEn())
                 .build();
     }
 }

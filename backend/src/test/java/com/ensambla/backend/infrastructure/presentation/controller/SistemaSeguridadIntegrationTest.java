@@ -221,7 +221,7 @@ class SistemaSeguridadIntegrationTest extends PostgresRepositoryTestSupport {
     @DisplayName("Analizar un lugar que no es una zona conocida ni una dirección buscable responde 400")
     void analisisShouldRejectPlaceThatIsNeitherZoneNorAddress() throws Exception {
         mockMvc.perform(post("/api/zona/analisis").session(sesion).header("X-CSRF-TOKEN", csrfToken)
-                        .contentType("application/json").content("{\"lugar\":\"ab\"}"))
+                        .contentType("application/json").content("{\"lugar\":\"xy\"}"))
                 .andExpect(status().isBadRequest());
     }
 

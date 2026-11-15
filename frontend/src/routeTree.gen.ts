@@ -14,6 +14,7 @@ import { Route as PublicaRouteImport } from './routes/_publica'
 import { Route as AppAvisosRouteImport } from './routes/_app/avisos'
 import { Route as AppCuadernosRouteImport } from './routes/_app/cuadernos'
 import { Route as AppCuentaRouteImport } from './routes/_app/cuenta'
+import { Route as AppDondeAbrirRouteImport } from './routes/_app/donde-abrir'
 import { Route as AppInicioRouteImport } from './routes/_app/inicio'
 import { Route as AppPlanesRouteImport } from './routes/_app/planes'
 import { Route as AppPlantillasRouteImport } from './routes/_app/plantillas'
@@ -28,6 +29,8 @@ import { Route as PublicaRegistroRouteImport } from './routes/_publica/registro'
 import { Route as AppObjetivosIndexRouteImport } from './routes/_app/objetivos/index'
 import { Route as AppObjetivosObjetivoIdRouteImport } from './routes/_app/objetivos/$objetivoId'
 import { Route as AppSistemasSistemaIdRouteImport } from './routes/_app/sistemas.$sistemaId'
+import { Route as AppZonaIndexRouteImport } from './routes/_app/zona/index'
+import { Route as AppZonaDondeAbrirRouteImport } from './routes/_app/zona/donde-abrir'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -50,6 +53,11 @@ const AppCuadernosRoute = AppCuadernosRouteImport.update({
 const AppCuentaRoute = AppCuentaRouteImport.update({
   id: '/cuenta',
   path: '/cuenta',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDondeAbrirRoute = AppDondeAbrirRouteImport.update({
+  id: '/donde-abrir',
+  path: '/donde-abrir',
   getParentRoute: () => AppRoute,
 } as any)
 const AppInicioRoute = AppInicioRouteImport.update({
@@ -122,12 +130,23 @@ const AppSistemasSistemaIdRoute = AppSistemasSistemaIdRouteImport.update({
   path: '/sistemas/$sistemaId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppZonaIndexRoute = AppZonaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppZonaRoute,
+} as any)
+const AppZonaDondeAbrirRoute = AppZonaDondeAbrirRouteImport.update({
+  id: '/donde-abrir',
+  path: '/donde-abrir',
+  getParentRoute: () => AppZonaRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicaIndexRoute
   '/avisos': typeof AppAvisosRoute
   '/cuadernos': typeof AppCuadernosRoute
   '/cuenta': typeof AppCuentaRoute
+  '/donde-abrir': typeof AppDondeAbrirRoute
   '/inicio': typeof AppInicioRoute
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
@@ -135,18 +154,21 @@ export interface FileRoutesByFullPath {
   '/sami-te-ensena': typeof AppSamiTeEnsenaRoute
   '/taller': typeof AppTallerRoute
   '/ubicacion': typeof AppUbicacionRoute
-  '/zona': typeof AppZonaRoute
+  '/zona': typeof AppZonaRouteWithChildren
   '/login': typeof PublicaLoginRoute
   '/registro': typeof PublicaRegistroRoute
   '/objetivos/$objetivoId': typeof AppObjetivosObjetivoIdRoute
   '/sistemas/$sistemaId': typeof AppSistemasSistemaIdRoute
+  '/zona/donde-abrir': typeof AppZonaDondeAbrirRoute
   '/objetivos/': typeof AppObjetivosIndexRoute
+  '/zona/': typeof AppZonaIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicaIndexRoute
   '/avisos': typeof AppAvisosRoute
   '/cuadernos': typeof AppCuadernosRoute
   '/cuenta': typeof AppCuentaRoute
+  '/donde-abrir': typeof AppDondeAbrirRoute
   '/inicio': typeof AppInicioRoute
   '/planes': typeof AppPlanesRoute
   '/plantillas': typeof AppPlantillasRoute
@@ -154,12 +176,13 @@ export interface FileRoutesByTo {
   '/sami-te-ensena': typeof AppSamiTeEnsenaRoute
   '/taller': typeof AppTallerRoute
   '/ubicacion': typeof AppUbicacionRoute
-  '/zona': typeof AppZonaRoute
   '/login': typeof PublicaLoginRoute
   '/registro': typeof PublicaRegistroRoute
   '/objetivos/$objetivoId': typeof AppObjetivosObjetivoIdRoute
   '/sistemas/$sistemaId': typeof AppSistemasSistemaIdRoute
+  '/zona/donde-abrir': typeof AppZonaDondeAbrirRoute
   '/objetivos': typeof AppObjetivosIndexRoute
+  '/zona': typeof AppZonaIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -168,6 +191,7 @@ export interface FileRoutesById {
   '/_app/avisos': typeof AppAvisosRoute
   '/_app/cuadernos': typeof AppCuadernosRoute
   '/_app/cuenta': typeof AppCuentaRoute
+  '/_app/donde-abrir': typeof AppDondeAbrirRoute
   '/_app/inicio': typeof AppInicioRoute
   '/_app/planes': typeof AppPlanesRoute
   '/_app/plantillas': typeof AppPlantillasRoute
@@ -175,13 +199,15 @@ export interface FileRoutesById {
   '/_app/sami-te-ensena': typeof AppSamiTeEnsenaRoute
   '/_app/taller': typeof AppTallerRoute
   '/_app/ubicacion': typeof AppUbicacionRoute
-  '/_app/zona': typeof AppZonaRoute
+  '/_app/zona': typeof AppZonaRouteWithChildren
   '/_publica/login': typeof PublicaLoginRoute
   '/_publica/registro': typeof PublicaRegistroRoute
   '/_publica/': typeof PublicaIndexRoute
   '/_app/objetivos/$objetivoId': typeof AppObjetivosObjetivoIdRoute
   '/_app/sistemas/$sistemaId': typeof AppSistemasSistemaIdRoute
+  '/_app/zona/donde-abrir': typeof AppZonaDondeAbrirRoute
   '/_app/objetivos/': typeof AppObjetivosIndexRoute
+  '/_app/zona/': typeof AppZonaIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -190,6 +216,7 @@ export interface FileRouteTypes {
     | '/avisos'
     | '/cuadernos'
     | '/cuenta'
+    | '/donde-abrir'
     | '/inicio'
     | '/planes'
     | '/plantillas'
@@ -202,13 +229,16 @@ export interface FileRouteTypes {
     | '/registro'
     | '/objetivos/$objetivoId'
     | '/sistemas/$sistemaId'
+    | '/zona/donde-abrir'
     | '/objetivos/'
+    | '/zona/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/avisos'
     | '/cuadernos'
     | '/cuenta'
+    | '/donde-abrir'
     | '/inicio'
     | '/planes'
     | '/plantillas'
@@ -216,12 +246,13 @@ export interface FileRouteTypes {
     | '/sami-te-ensena'
     | '/taller'
     | '/ubicacion'
-    | '/zona'
     | '/login'
     | '/registro'
     | '/objetivos/$objetivoId'
     | '/sistemas/$sistemaId'
+    | '/zona/donde-abrir'
     | '/objetivos'
+    | '/zona'
   id:
     | '__root__'
     | '/_app'
@@ -229,6 +260,7 @@ export interface FileRouteTypes {
     | '/_app/avisos'
     | '/_app/cuadernos'
     | '/_app/cuenta'
+    | '/_app/donde-abrir'
     | '/_app/inicio'
     | '/_app/planes'
     | '/_app/plantillas'
@@ -242,7 +274,9 @@ export interface FileRouteTypes {
     | '/_publica/'
     | '/_app/objetivos/$objetivoId'
     | '/_app/sistemas/$sistemaId'
+    | '/_app/zona/donde-abrir'
     | '/_app/objetivos/'
+    | '/_app/zona/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -285,6 +319,13 @@ declare module '@tanstack/react-router' {
       path: '/cuenta'
       fullPath: '/cuenta'
       preLoaderRoute: typeof AppCuentaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/donde-abrir': {
+      id: '/_app/donde-abrir'
+      path: '/donde-abrir'
+      fullPath: '/donde-abrir'
+      preLoaderRoute: typeof AppDondeAbrirRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/inicio': {
@@ -385,13 +426,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSistemasSistemaIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/zona/': {
+      id: '/_app/zona/'
+      path: '/'
+      fullPath: '/zona/'
+      preLoaderRoute: typeof AppZonaIndexRouteImport
+      parentRoute: typeof AppZonaRoute
+    }
+    '/_app/zona/donde-abrir': {
+      id: '/_app/zona/donde-abrir'
+      path: '/donde-abrir'
+      fullPath: '/zona/donde-abrir'
+      preLoaderRoute: typeof AppZonaDondeAbrirRouteImport
+      parentRoute: typeof AppZonaRoute
+    }
   }
 }
+
+interface AppZonaRouteChildren {
+  AppZonaDondeAbrirRoute: typeof AppZonaDondeAbrirRoute
+  AppZonaIndexRoute: typeof AppZonaIndexRoute
+}
+
+const AppZonaRouteChildren: AppZonaRouteChildren = {
+  AppZonaDondeAbrirRoute: AppZonaDondeAbrirRoute,
+  AppZonaIndexRoute: AppZonaIndexRoute,
+}
+
+const AppZonaRouteWithChildren =
+  AppZonaRoute._addFileChildren(AppZonaRouteChildren)
 
 interface AppRouteChildren {
   AppAvisosRoute: typeof AppAvisosRoute
   AppCuadernosRoute: typeof AppCuadernosRoute
   AppCuentaRoute: typeof AppCuentaRoute
+  AppDondeAbrirRoute: typeof AppDondeAbrirRoute
   AppInicioRoute: typeof AppInicioRoute
   AppPlanesRoute: typeof AppPlanesRoute
   AppPlantillasRoute: typeof AppPlantillasRoute
@@ -399,7 +468,7 @@ interface AppRouteChildren {
   AppSamiTeEnsenaRoute: typeof AppSamiTeEnsenaRoute
   AppTallerRoute: typeof AppTallerRoute
   AppUbicacionRoute: typeof AppUbicacionRoute
-  AppZonaRoute: typeof AppZonaRoute
+  AppZonaRoute: typeof AppZonaRouteWithChildren
   AppObjetivosObjetivoIdRoute: typeof AppObjetivosObjetivoIdRoute
   AppSistemasSistemaIdRoute: typeof AppSistemasSistemaIdRoute
   AppObjetivosIndexRoute: typeof AppObjetivosIndexRoute
@@ -409,6 +478,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAvisosRoute: AppAvisosRoute,
   AppCuadernosRoute: AppCuadernosRoute,
   AppCuentaRoute: AppCuentaRoute,
+  AppDondeAbrirRoute: AppDondeAbrirRoute,
   AppInicioRoute: AppInicioRoute,
   AppPlanesRoute: AppPlanesRoute,
   AppPlantillasRoute: AppPlantillasRoute,
@@ -416,7 +486,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSamiTeEnsenaRoute: AppSamiTeEnsenaRoute,
   AppTallerRoute: AppTallerRoute,
   AppUbicacionRoute: AppUbicacionRoute,
-  AppZonaRoute: AppZonaRoute,
+  AppZonaRoute: AppZonaRouteWithChildren,
   AppObjetivosObjetivoIdRoute: AppObjetivosObjetivoIdRoute,
   AppSistemasSistemaIdRoute: AppSistemasSistemaIdRoute,
   AppObjetivosIndexRoute: AppObjetivosIndexRoute,

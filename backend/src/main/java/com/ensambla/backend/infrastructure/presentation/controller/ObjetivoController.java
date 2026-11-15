@@ -5,6 +5,7 @@ import com.ensambla.backend.domain.model.usuario.UsuarioId;
 import com.ensambla.backend.domain.useCase.objetivo.crearObjetivo.CrearObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.eliminarObjetivo.EliminarObjetivo;
 import com.ensambla.backend.domain.useCase.objetivo.listarObjetivos.ListarObjetivos;
+import com.ensambla.backend.domain.useCase.objetivo.medirObjetivos.MedirObjetivos;
 import com.ensambla.backend.domain.useCase.objetivo.obtenerPasos.ObtenerPasos;
 import com.ensambla.backend.infrastructure.presentation.dto.objetivo.CrearObjetivoWebRequest;
 import com.ensambla.backend.infrastructure.presentation.dto.objetivo.ObjetivoResponse;
@@ -41,6 +42,8 @@ public class ObjetivoController {
 
     private final ObtenerPasos obtenerPasos;
 
+    private final MedirObjetivos medirObjetivos;
+
     private final ObjetivoPresentationMapper objetivoPresentationMapper;
 
     @GetMapping
@@ -64,6 +67,13 @@ public class ObjetivoController {
     public ResponseEntity<Void> eliminar(Authentication authentication, @PathVariable ObjetivoId objetivoId) {
         eliminarObjetivo.execute(objetivoPresentationMapper.toEliminarRequest(
                 UsuarioId.de(authentication.getName()), objetivoId));
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/medir")
+    @Operation(summary = "Medir ahora los objetivos del negocio de la sesión, con lo que tienen hoy sus cuadernos")
+    public ResponseEntity<Void> medir(Authentication authentication) {
+        medirObjetivos.execute(objetivoPresentationMapper.toMedirRequest(UsuarioId.de(authentication.getName())));
         return ResponseEntity.noContent().build();
     }
 

@@ -16,13 +16,13 @@ palabra «laboratorio».
 | Caminos posibles | Objetivos → ícono «Recomendación de Sami» dentro de cada tarjeta |
 | Probar escenario | Sami te enseña → «Probá un escenario», con los controles funcionando; se llega desde la tarjeta del objetivo |
 | Mi zona | Pestaña «Cruce con Mi zona» dentro de Objetivos. **En evaluación**: puede quedar, moverse o borrarse |
-| Plan de acción | Objetivos → «Ver plan de acción» de cada tarjeta (`/objetivos/:id`) |
-| Seguimiento | Se fundió con el plan de acción: avance, resultado de hoy y lo que dice Sami sobre la tendencia |
+| Plan de acción | Objetivos → «Ver mi semana» de cada tarjeta (`/objetivos/:id`): los 3 mini-objetivos que propone Sami |
+| Seguimiento | En la misma página: gráfico semanal con las decisiones, resumen del domingo y qué cambió Sami |
 
 ## Rutas
 
 - `/objetivos`: lista de objetivos y, en la otra pestaña, el cruce con Mi zona.
-- `/objetivos/:objetivoId`: plan de acción y seguimiento de un objetivo.
+- `/objetivos/:objetivoId`: «Mi semana»: los 3 mini-objetivos, el gráfico semanal y los reajustes del domingo (H-52).
 - `/sami-te-ensena?leccion=…&objetivo=…`: lecciones `resultado`, `metricas`, `recomendaciones`, `escenario` y `consejos`.
   Sin `leccion` (o con una inválida) abre la primera. `objetivo` elige con cuál se prueba el escenario.
 
@@ -52,5 +52,17 @@ Los objetivos se guardan en el servidor; el cálculo económico todavía no tien
   tres al valor recomendado el resultado llega a la meta. Es una estimación de demostración, y la pantalla lo dice.
 - «Cruce con Mi zona» sigue con datos ficticios, como antes.
 
-Código: `src/lib/objetivos.ts` (cuentas), `src/api/objetivos.ts` y `src/hooks/objetivos/` (servidor), `src/pages/Objetivos/`,
+### Objetivos que se autogestionan (H-52, `/objetivos/:id`)
+
+- Real, con el backend: los mini-objetivos (`/mini-objetivos`, `/candidatos`, `/reemplazo`, `DELETE`), las decisiones
+  «Lo hago» y «Ahora no» (`/decisiones`), el progreso por semana (`/progreso`) y los cierres del domingo con sus reajustes
+  (`/semanas`). El monitoreo no crea avisos: lo único que se ve es la banda «Tu resumen de la semana está listo» y el chip
+  en la tarjeta, que se van al mirarlos (se recuerda en `localStorage`, clave `ensambla.objetivos.resumenVisto`).
+- Simulado en los mocks (`src/mocks/db/objetivosAutogestionados.ts`): cualquier objetivo trae seis semanas de progreso,
+  seis decisiones y dos reajustes (subir la meta de la yerba y cambiar «recortar gastos» por «mover Fernet»). Los
+  candidatos para «Cambiar por otro» son cuatro fijos.
+- El gráfico es un SVG propio: línea del resultado, meta punteada, marcas por decisión y una tabla oculta para lectores
+  de pantalla. Los puntos huecos son semanas calculadas con los cuadernos, antes de que Sami empezara a medir.
+
+Código: `src/lib/objetivos.ts` (cuentas), `src/lib/objetivosAutogestion.ts` y `src/pages/Objetivos/autogestion/` (H-52), `src/api/objetivos.ts` y `src/hooks/objetivos/` (servidor), `src/pages/Objetivos/`,
 `src/pages/SamiEnsena/`.

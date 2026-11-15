@@ -2,7 +2,6 @@ import { ContenidoPremium } from '@/components/planes/ContenidoPremium';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Btn } from '@/components/sistema/Btn';
-import { CabeceraComun } from '@/components/sistema/CabeceraComun';
 import { Icon } from '@/components/sistema/Icon';
 import { PageFooter } from '@/components/sistema/PageFooter';
 import { BuscadorDireccion } from '@/components/sistema/ubicacion/BuscadorDireccion';
@@ -95,9 +94,7 @@ export function ZonaPage() {
   const { titulo, texto } = TITULOS[vista];
 
   return (
-    <>
-      <CabeceraComun active="zone" />
-      <main id="main" tabIndex={-1} className="page-wrap zona-page reveal">
+    <main id="main" tabIndex={-1} className="page-wrap zona-page reveal">
         <Link className="text-link" to="/ubicacion">
           Probar ubicación y rubro de mi comercio
         </Link>
@@ -133,8 +130,7 @@ export function ZonaPage() {
         {vista === 'cerca' && <VistaDeLoQueSeVende zona={zona} />}
         {vista === 'otra' && <VistaDeOtraZona />}
         <PageFooter />
-      </main>
-    </>
+    </main>
   );
 }
 

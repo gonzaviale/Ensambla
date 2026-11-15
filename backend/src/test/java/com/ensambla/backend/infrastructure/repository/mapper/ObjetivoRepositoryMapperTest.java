@@ -26,6 +26,7 @@ class ObjetivoRepositoryMapperTest {
                 .texto(TEXTO)
                 .meta(META)
                 .creadoEn(AHORA)
+                .alcanzadoEn(AHORA.plusDays(3))
                 .build();
 
         Objetivo result = mapper.toDomain(entity);
@@ -35,6 +36,7 @@ class ObjetivoRepositoryMapperTest {
         assertThat(result.getTexto()).isEqualTo(TEXTO);
         assertThat(result.getMeta()).isEqualTo(META);
         assertThat(result.getCreadoEn()).isEqualTo(AHORA);
+        assertThat(result.getAlcanzadoEn()).isEqualTo(AHORA.plusDays(3));
     }
 
     @Test
@@ -49,8 +51,12 @@ class ObjetivoRepositoryMapperTest {
     @Test
     @DisplayName("Mapea el dominio a la entidad con todos sus campos")
     void toEntityShouldMapEveryField() {
-        ObjetivoEntity result = mapper.toEntity(objetivo());
+        Objetivo alcanzado = objetivo();
+        alcanzado.marcarAlcanzado(AHORA.plusDays(3));
 
+        ObjetivoEntity result = mapper.toEntity(alcanzado);
+
+        assertThat(result.getAlcanzadoEn()).isEqualTo(AHORA.plusDays(3));
         assertThat(result.getId()).isEqualTo(OBJETIVO_ID.valor());
         assertThat(result.getNegocioId()).isEqualTo(NEGOCIO_ID.valor());
         assertThat(result.getTexto()).isEqualTo(TEXTO);
