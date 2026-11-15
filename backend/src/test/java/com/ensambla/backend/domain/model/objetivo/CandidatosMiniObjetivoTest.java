@@ -44,7 +44,9 @@ class CandidatosMiniObjetivoTest {
                         tuple(TipoMiniObjetivo.RECORTAR_GASTO, "Alquiler"),
                         tuple(TipoMiniObjetivo.PONER_A_LA_VISTA, "Aceite 900 ml"),
                         tuple(TipoMiniObjetivo.RECORTAR_GASTO, "Servicios"),
-                        tuple(TipoMiniObjetivo.MOVER_PARADO, "Fideos 500 g"));
+                        tuple(TipoMiniObjetivo.MOVER_PARADO, "Fideos 500 g"),
+                        tuple(TipoMiniObjetivo.CAPITAL_PARADO, null),
+                        tuple(TipoMiniObjetivo.VARIEDAD_VENDIDA, null));
         assertThat(result).extracting(CandidatoMiniObjetivo::aporteEstimado).satisfiesExactly(
                 aporte -> assertThat(aporte).isEqualByComparingTo("11571.43"),
                 aporte -> assertThat(aporte).isEqualByComparingTo("7394.75"),
@@ -53,7 +55,9 @@ class CandidatosMiniObjetivoTest {
                 aporte -> assertThat(aporte).isEqualByComparingTo("6000.00"),
                 aporte -> assertThat(aporte).isEqualByComparingTo("4071.43"),
                 aporte -> assertThat(aporte).isEqualByComparingTo("4000.00"),
-                aporte -> assertThat(aporte).isEqualByComparingTo("3728.57"));
+                aporte -> assertThat(aporte).isEqualByComparingTo("3728.57"),
+                aporte -> assertThat(aporte).isEqualByComparingTo("0"),
+                aporte -> assertThat(aporte).isEqualByComparingTo("0"));
     }
 
     @Test
@@ -273,7 +277,8 @@ class CandidatosMiniObjetivoTest {
 
         assertThat(result).extracting(CandidatoMiniObjetivo::tipo).containsExactly(
                 TipoMiniObjetivo.PONER_A_LA_VISTA, TipoMiniObjetivo.VENTAS_SEMANALES,
-                TipoMiniObjetivo.MEJORAR_MARGEN, TipoMiniObjetivo.RECORTAR_GASTO, TipoMiniObjetivo.MOVER_PARADO);
+                TipoMiniObjetivo.MEJORAR_MARGEN, TipoMiniObjetivo.RECORTAR_GASTO, TipoMiniObjetivo.MOVER_PARADO,
+                TipoMiniObjetivo.CAPITAL_PARADO, TipoMiniObjetivo.VARIEDAD_VENDIDA);
     }
 
     @Test
@@ -308,7 +313,9 @@ class CandidatosMiniObjetivoTest {
                 tuple(TipoMiniObjetivo.PONER_A_LA_VISTA, "Yerba 1 kg"),
                 tuple(TipoMiniObjetivo.MEJORAR_MARGEN, null),
                 tuple(TipoMiniObjetivo.RECORTAR_GASTO, "Alquiler"),
-                tuple(TipoMiniObjetivo.MOVER_PARADO, "Fideos 500 g"));
+                tuple(TipoMiniObjetivo.MOVER_PARADO, "Fideos 500 g"),
+                tuple(TipoMiniObjetivo.CAPITAL_PARADO, null),
+                tuple(TipoMiniObjetivo.VARIEDAD_VENDIDA, null));
     }
 
     @Test
@@ -362,5 +369,97 @@ class CandidatosMiniObjetivoTest {
         mini.setRegistroId(registroId);
         mini.setReferencia(referencia);
         return mini;
+    }
+
+    // --- las métricas nuevas ---
+
+    @Test
+    @DisplayName("Capital parado: la mercadería que no rota (Fideos: 40 × $800), pidiendo que baje un cuarto, sin aporte")
+    void armarShouldProposeToFreeTheStuckCapital() {
+        CandidatoMiniObjetivo result = candidatoDe(armar(almacen()), TipoMiniObjetivo.CAPITAL_PARADO);
+
+        assertThat(result.valorInicial()).isEqualByComparingTo("32000");
+        assertThat(result.meta()).isEqualByComparingTo("24000");
+        assertThat(result.aporteEstimado()).isEqualByComparingTo("0");
+        assertThat(result.registroId()).isNull();
+        assertThat(result.referencia()).isNull();
+        assertThat(result.titulo()).isEqualTo("Liberá plata parada en mercadería");
+        assertThat(result.justificacion()).contains("$32.000", "$24.000", "$8.000");
+    }
+
+    @Test
+    @DisplayName("Variedad: hoy se vendieron 2 de los 3 productos en la semana, la meta es 3")
+    void armarShouldProposeToSellOneMoreProduct() {
+        CandidatoMiniObjetivo result = candidatoDe(armar(almacen()), TipoMiniObjetivo.VARIEDAD_VENDIDA);
+
+        assertThat(result.valorInicial()).isEqualByComparingTo("2");
+        assertThat(result.meta()).isEqualByComparingTo("3");
+        assertThat(result.aporteEstimado()).isEqualByComparingTo("0");
+        assertThat(result.titulo()).isEqualTo("Vendé más variedad por semana");
+    }
+
+    @Test
+    @DisplayName("Productos bajo el mínimo: cuántos hay hoy y la meta es llegar a cero")
+    void armarShouldProposeToReplenishTheProductsUnderTheMinimum() {
+        CandidatoMiniObjetivo result = candidatoDe(armar(conMinimos(3, 5)), TipoMiniObjetivo.PRODUCTOS_BAJO_EL_MINIMO);
+
+        assertThat(result.valorInicial()).isEqualByComparingTo("1");
+        assertThat(result.meta()).isEqualByComparingTo("0");
+        assertThat(result.aporteEstimado()).isEqualByComparingTo("0");
+        assertThat(result.titulo()).isEqualTo("Reponé lo que está por debajo de tu mínimo");
+    }
+
+    @Test
+    @DisplayName("Sin mínimos definidos, o con todos los productos por encima, no propone reponer")
+    void armarShouldNotProposeToReplenishWithoutProductsUnderTheMinimum() {
+        assertThat(armar(almacen())).extracting(CandidatoMiniObjetivo::tipo)
+                .doesNotContain(TipoMiniObjetivo.PRODUCTOS_BAJO_EL_MINIMO);
+        assertThat(armar(conMinimos(30, 5))).extracting(CandidatoMiniObjetivo::tipo)
+                .doesNotContain(TipoMiniObjetivo.PRODUCTOS_BAJO_EL_MINIMO);
+    }
+
+    @Test
+    @DisplayName("Si todo lo que hay en stock se vendió no hay capital parado que proponer")
+    void armarShouldNotProposeStuckCapitalWhenEverythingSells() {
+        DatosDeProyecto todoRota = NegocioDePrueba.cuaderno("Almacén")
+                .producto(YERBA, "Yerba 1 kg", 40, 4200, 3300)
+                .venta(YERBA, 3, 4200, "2026-11-08")
+                .build();
+
+        assertThat(armar(todoRota)).extracting(CandidatoMiniObjetivo::tipo)
+                .doesNotContain(TipoMiniObjetivo.CAPITAL_PARADO);
+    }
+
+    @Test
+    @DisplayName("Si ya se vende toda la variedad que hay no se pide un producto más")
+    void armarShouldNotProposeMoreVarietyThanTheProductsThereAre() {
+        DatosDeProyecto todoSeVende = NegocioDePrueba.cuaderno("Almacén")
+                .producto(YERBA, "Yerba 1 kg", 40, 4200, 3300)
+                .venta(YERBA, 3, 4200, "2026-11-08")
+                .build();
+
+        assertThat(armar(todoSeVende)).extracting(CandidatoMiniObjetivo::tipo)
+                .doesNotContain(TipoMiniObjetivo.VARIEDAD_VENDIDA);
+    }
+
+    @Test
+    @DisplayName("Las métricas nuevas no pisan a un mini-objetivo de producto: no tienen producto")
+    void elegirShouldAllowTheNewMetricsNextToProductMinis() {
+        MiniObjetivo yerba = miniDe(TipoMiniObjetivo.SUBIR_PRECIO, RegistroId.de(YERBA), "Yerba 1 kg");
+
+        List<CandidatoMiniObjetivo> result = CandidatosMiniObjetivo.elegir(armar(almacen()), List.of(yerba),
+                CandidatosMiniObjetivo.TODOS);
+
+        assertThat(result).extracting(CandidatoMiniObjetivo::tipo)
+                .contains(TipoMiniObjetivo.CAPITAL_PARADO, TipoMiniObjetivo.VARIEDAD_VENDIDA);
+    }
+
+    private static DatosDeProyecto conMinimos(int stockYerba, int minimoYerba) {
+        return NegocioDePrueba.cuaderno("Almacén")
+                .productoConMinimo(YERBA, "Yerba 1 kg", stockYerba, minimoYerba, 4200, 3300)
+                .productoConMinimo(FIDEOS, "Fideos 500 g", 40, 10, 1100, 800)
+                .venta(YERBA, 3, 4200, "2026-11-08")
+                .venta(FIDEOS, 2, 1100, "2026-11-09")
+                .build();
     }
 }

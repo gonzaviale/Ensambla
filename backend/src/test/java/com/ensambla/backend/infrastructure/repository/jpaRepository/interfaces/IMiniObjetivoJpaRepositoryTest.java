@@ -176,6 +176,23 @@ class IMiniObjetivoJpaRepositoryTest extends PostgresDatosTestSupport {
     }
 
     @Test
+    @DisplayName("La base acepta las métricas nuevas sin producto")
+    void saveShouldAcceptTheNewMetrics() {
+        MiniObjetivoEntity capital = mini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);
+        capital.setTipo(TipoMiniObjetivo.CAPITAL_PARADO);
+        MiniObjetivoEntity variedad = mini(objetivoA, negocioA, 2, EstadoMiniObjetivo.EN_CURSO, AHORA);
+        variedad.setTipo(TipoMiniObjetivo.VARIEDAD_VENDIDA);
+        MiniObjetivoEntity minimo = mini(objetivoA, negocioA, 3, EstadoMiniObjetivo.EN_CURSO, AHORA);
+        minimo.setTipo(TipoMiniObjetivo.PRODUCTOS_BAJO_EL_MINIMO);
+
+        List<MiniObjetivoEntity> result = minis.saveAllAndFlush(List.of(capital, variedad, minimo));
+
+        assertThat(result).extracting(MiniObjetivoEntity::getTipo).containsExactly(
+                TipoMiniObjetivo.CAPITAL_PARADO, TipoMiniObjetivo.VARIEDAD_VENDIDA,
+                TipoMiniObjetivo.PRODUCTOS_BAJO_EL_MINIMO);
+    }
+
+    @Test
     @DisplayName("Un mini-objetivo guardado sin modo es medido")
     void saveShouldDefaultToMedido() {
         MiniObjetivoEntity guardado = givenMini(objetivoA, negocioA, 1, EstadoMiniObjetivo.EN_CURSO, AHORA);

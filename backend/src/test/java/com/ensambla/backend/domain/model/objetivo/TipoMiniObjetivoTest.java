@@ -15,7 +15,10 @@ class TipoMiniObjetivoTest {
             "PONER_A_LA_VISTA, SUBE, true",
             "RECORTAR_GASTO, BAJA, false",
             "MEJORAR_MARGEN, SUBE, false",
-            "VENTAS_SEMANALES, SUBE, false"})
+            "VENTAS_SEMANALES, SUBE, false",
+            "PRODUCTOS_BAJO_EL_MINIMO, BAJA, false",
+            "CAPITAL_PARADO, BAJA, false",
+            "VARIEDAD_VENDIDA, SUBE, false"})
     @DisplayName("Cada tipo sabe hacia dónde va su métrica y si apunta a un producto")
     void tipoShouldKnowItsDirectionAndWhetherItIsAboutAProduct(
             TipoMiniObjetivo tipo, SentidoMiniObjetivo sentido, boolean deProducto) {

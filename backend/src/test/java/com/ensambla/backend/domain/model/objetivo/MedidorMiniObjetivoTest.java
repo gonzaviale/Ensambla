@@ -270,4 +270,95 @@ class MedidorMiniObjetivoTest {
     private static Producto productoDe(MedidorMiniObjetivo medidor, RegistroId id) {
         return medidor.productos().stream().filter(producto -> producto.id().equals(id)).findFirst().orElseThrow();
     }
+
+    // --- las métricas nuevas ---
+
+    @Test
+    @DisplayName("Productos bajo el mínimo cuenta los que están en el mínimo o por debajo, y sólo los que tienen uno")
+    void productosBajoElMinimoShouldCountTheOnesAtOrUnderTheirMinimum() {
+        DatosDeProyecto datos = NegocioDePrueba.cuaderno("Almacén")
+                .productoConMinimo(YERBA, "Yerba 1 kg", 3, 5, 4200, 3300)
+                .productoConMinimo(FIDEOS, "Fideos 500 g", 10, 10, 1100, 800)
+                .productoConMinimo(ACEITE, "Aceite 900 ml", 20, 10, 2850, 1900)
+                .producto(GALLETITAS, "Galletitas", 0, 900, 600)
+                .venta(YERBA, 1, 4200, "2026-11-08")
+                .build();
+
+        Optional<BigDecimal> result = medidor(datos).productosBajoElMinimo();
+
+        assertThat(result).hasValueSatisfying(valor -> assertThat(valor).isEqualByComparingTo("2"));
+    }
+
+    @Test
+    @DisplayName("Sin ningún mínimo definido no hay datos de productos bajo el mínimo (no es cero)")
+    void productosBajoElMinimoShouldBeEmptyWithoutAnyMinimum() {
+        assertThat(medidor(almacen()).productosBajoElMinimo()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Un mínimo en cero o negativo se toma como que no hay mínimo")
+    void productosBajoElMinimoShouldIgnoreAMinimumThatIsNotPositive() {
+        DatosDeProyecto datos = NegocioDePrueba.cuaderno("Almacén")
+                .productoConMinimo(YERBA, "Yerba 1 kg", 0, 0, 4200, 3300)
+                .venta(YERBA, 1, 4200, "2026-11-08")
+                .build();
+
+        assertThat(medidor(datos).productosBajoElMinimo()).isEmpty();
+        assertThat(productoDe(medidor(datos), YERBA_ID).minimo()).isNull();
+    }
+
+    @Test
+    @DisplayName("El capital parado es el costo del stock de lo que no se vendió en 30 días")
+    void capitalParadoShouldBeTheCostOfTheStockThatDidNotSell() {
+        assertThat(medidor(almacen()).capitalParado())
+                .hasValueSatisfying(valor -> assertThat(valor).isEqualByComparingTo("32000"));
+    }
+
+    @Test
+    @DisplayName("Un producto sin stock no suma capital parado aunque no se venda")
+    void capitalParadoShouldIgnoreProductsWithoutStock() {
+        DatosDeProyecto datos = NegocioDePrueba.cuaderno("Almacén")
+                .producto(YERBA, "Yerba 1 kg", 40, 4200, 3300)
+                .producto(GALLETITAS, "Galletitas", 0, 900, 600)
+                .venta(YERBA, 1, 4200, "2026-11-08")
+                .build();
+
+        assertThat(medidor(datos).capitalParado())
+                .hasValueSatisfying(valor -> assertThat(valor).isEqualByComparingTo("0"));
+    }
+
+    @Test
+    @DisplayName("Sin ventas, o sin productos con precio y costo, no hay datos de capital parado ni de variedad")
+    void capitalParadoAndVariedadShouldBeEmptyWithoutSalesOrProducts() {
+        DatosDeProyecto sinVentas = NegocioDePrueba.cuaderno("Almacén")
+                .producto(YERBA, "Yerba 1 kg", 40, 4200, 3300)
+                .build();
+        DatosDeProyecto sinProductos = NegocioDePrueba.cuaderno("Almacén")
+                .venta(YERBA, 1, 4200, "2026-11-08")
+                .build();
+
+        assertThat(medidor(sinVentas).capitalParado()).isEmpty();
+        assertThat(medidor(sinVentas).variedadVendida()).isEmpty();
+        assertThat(medidor(sinProductos).capitalParado()).isEmpty();
+        assertThat(medidor(sinProductos).variedadVendida()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("La variedad cuenta los productos distintos que se vendieron en los últimos 7 días")
+    void variedadVendidaShouldCountTheDistinctProductsSoldThisWeek() {
+        assertThat(medidor(almacen()).variedadVendida())
+                .hasValueSatisfying(valor -> assertThat(valor).isEqualByComparingTo("2"));
+    }
+
+    @Test
+    @DisplayName("Las métricas nuevas se miden con valorDe, y sin datos dicen que no se pueden medir")
+    void valorDeShouldMeasureTheNewMetrics() {
+        MedidorMiniObjetivo medidor = medidor(almacen());
+
+        assertThat(medidor.valorDe(TipoMiniObjetivo.CAPITAL_PARADO, null, null))
+                .hasValueSatisfying(valor -> assertThat(valor).isEqualByComparingTo("32000"));
+        assertThat(medidor.valorDe(TipoMiniObjetivo.VARIEDAD_VENDIDA, null, null))
+                .hasValueSatisfying(valor -> assertThat(valor).isEqualByComparingTo("2"));
+        assertThat(medidor.valorDe(TipoMiniObjetivo.PRODUCTOS_BAJO_EL_MINIMO, null, null)).isEmpty();
+    }
 }

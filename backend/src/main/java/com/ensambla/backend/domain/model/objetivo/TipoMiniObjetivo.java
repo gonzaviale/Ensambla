@@ -13,7 +13,13 @@ public enum TipoMiniObjetivo {
     /** Margen bruto de 30 días, en puntos. */
     MEJORAR_MARGEN(SentidoMiniObjetivo.SUBE, false),
     /** Ventas de los últimos 7 días. */
-    VENTAS_SEMANALES(SentidoMiniObjetivo.SUBE, false);
+    VENTAS_SEMANALES(SentidoMiniObjetivo.SUBE, false),
+    /** Cuántos productos están en el mínimo que definió el negocio o por debajo. */
+    PRODUCTOS_BAJO_EL_MINIMO(SentidoMiniObjetivo.BAJA, false),
+    /** Pesos de mercadería, a su costo, de lo que no se vendió en 30 días. */
+    CAPITAL_PARADO(SentidoMiniObjetivo.BAJA, false),
+    /** Cuántos productos distintos se vendieron en los últimos 7 días. */
+    VARIEDAD_VENDIDA(SentidoMiniObjetivo.SUBE, false);
 
     private final SentidoMiniObjetivo sentido;
 

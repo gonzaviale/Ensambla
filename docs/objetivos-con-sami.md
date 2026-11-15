@@ -33,6 +33,11 @@ el que se guarda por el formulario clásico.
 Si la persona le cuenta a Sami una meta en pesos por mes («quiero ganar $400.000»), Sami lo reconoce (`esMonetario`),
 no arma mini-objetivos y le explica que esa meta se define en el formulario de siempre.
 
+El catálogo de métricas son las seis de H-52 (subir precio, mover parado, poner a la vista, recortar gasto, mejorar margen,
+ventas semanales) y, desde T-244, `PRODUCTOS_BAJO_EL_MINIMO`, `CAPITAL_PARADO` y `VARIEDAD_VENDIDA` (ver `modelo-datos.md`).
+Cada una la mide el servidor y, sin datos, dice «no se puede medir»: nunca un número inventado. Con las métricas nuevas el
+valor `tipo` de un mini-objetivo medido puede ser también cualquiera de esos tres.
+
 Si el negocio no tiene ventas en los últimos 30 días, el catálogo de métricas está vacío y cualquier objetivo sale
 `SIN_DATOS`: no se inventa nada.
 
@@ -414,5 +419,7 @@ Casos de borde de la validación (no son ejemplos de la persona, sino de la resp
   `RespuestaMiniObjetivoController`. Propiedades: `ensambla.objetivos.ia.conversacion-habilitada` y `.max-mensajes`.
 - **Cuota (T-242):** `CuotaObjetivosIa`, `Plan.validarObjetivosIa`, `ControlPlanService.cuotaObjetivosIa` y
   `validarObjetivoIa`, `UsoPlanRepository.objetivosIaEnPeriodo` y `registrarObjetivoIa`.
-- **Fuera de esta entrega:** la cuota visible en las pantallas (T-250), métricas nuevas (T-244), renovación del domingo
-  (T-247) y pantallas (T-248, T-249).
+- **Métricas nuevas (T-244):** `TipoMiniObjetivo` suma tres tipos, `MedidorMiniObjetivo` sus mediciones
+  (`productosBajoElMinimo`, `capitalParado`, `variedadVendida`) y `CandidatosMiniObjetivo` sus candidatos; migración V37.
+- **Fuera de esta entrega:** la cuota visible en las pantallas (T-250), las métricas de H-58 (fiados y clientes), renovación
+  del domingo (T-247) y pantallas (T-248, T-249).

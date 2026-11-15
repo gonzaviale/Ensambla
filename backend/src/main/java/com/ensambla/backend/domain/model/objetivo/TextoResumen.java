@@ -116,6 +116,9 @@ public final class TextoResumen {
             case RECORTAR_GASTO -> pesos(valor) + " en el mes";
             case MOVER_PARADO, PONER_A_LA_VISTA -> numero(valor) + " por semana";
             case MEJORAR_MARGEN -> numero(valor) + " %";
+            case PRODUCTOS_BAJO_EL_MINIMO -> numero(valor) + " productos bajo el mínimo";
+            case CAPITAL_PARADO -> pesos(valor) + " en mercadería parada";
+            case VARIEDAD_VENDIDA -> numero(valor) + " productos distintos por semana";
         };
     }
 }

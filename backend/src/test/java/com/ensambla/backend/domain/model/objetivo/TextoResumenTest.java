@@ -114,4 +114,15 @@ class TextoResumenTest {
 
         assertThat(result).doesNotContain("Te faltan").endsWith("Seguí con tus mini-objetivos de la semana que viene.");
     }
+
+    @Test
+    @DisplayName("La meta subida de las métricas nuevas se dice en sus unidades")
+    void metaSubidaShouldSpeakTheUnitsOfTheNewMetrics() {
+        assertThat(TextoResumen.metaSubida(TipoMiniObjetivo.PRODUCTOS_BAJO_EL_MINIMO, new BigDecimal("0"),
+                new BigDecimal("0"))).contains("0 productos bajo el mínimo");
+        assertThat(TextoResumen.metaSubida(TipoMiniObjetivo.CAPITAL_PARADO, new BigDecimal("24000"),
+                new BigDecimal("18000"))).contains("$24.000 en mercadería parada", "$18.000 en mercadería parada");
+        assertThat(TextoResumen.metaSubida(TipoMiniObjetivo.VARIEDAD_VENDIDA, new BigDecimal("3"),
+                new BigDecimal("4"))).contains("3 productos distintos por semana", "4 productos distintos por semana");
+    }
 }

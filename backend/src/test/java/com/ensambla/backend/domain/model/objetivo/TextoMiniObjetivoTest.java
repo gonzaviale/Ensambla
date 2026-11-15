@@ -83,4 +83,36 @@ class TextoMiniObjetivoTest {
     private static BigDecimal decimal(String valor) {
         return new BigDecimal(valor);
     }
+
+    @Test
+    @DisplayName("Reponer stock dice cuántos productos están bajo el mínimo y que el objetivo es llegar a cero")
+    void reponerStockShouldWriteTheNumbers() {
+        TextoMiniObjetivo result = TextoMiniObjetivo.reponerStock(decimal("4"));
+
+        assertThat(result.titulo()).isEqualTo("Reponé lo que está por debajo de tu mínimo");
+        assertThat(result.justificacion()).isEqualTo(
+                "Productos en su mínimo o por debajo: hoy son 4. Reponelos y bajá ese número a 0 para no quedarte sin.");
+    }
+
+    @Test
+    @DisplayName("Capital parado dice cuánto hay parado, a cuánto bajarlo y cuánto se libera")
+    void capitalParadoShouldWriteTheNumbers() {
+        TextoMiniObjetivo result = TextoMiniObjetivo.capitalParado(decimal("32000.00"), decimal("24000.00"));
+
+        assertThat(result.titulo()).isEqualTo("Liberá plata parada en mercadería");
+        assertThat(result.justificacion()).isEqualTo(
+                "Tenés $32.000 en mercadería que no se vendió en el último mes. Si la bajás a $24.000 liberás $8.000 "
+                        + "para comprar lo que sí rota.");
+    }
+
+    @Test
+    @DisplayName("Variedad dice cuántos productos distintos se venden por semana y a cuántos llegar")
+    void variedadVendidaShouldWriteTheNumbers() {
+        TextoMiniObjetivo result = TextoMiniObjetivo.variedadVendida(decimal("2"), decimal("3"));
+
+        assertThat(result.titulo()).isEqualTo("Vendé más variedad por semana");
+        assertThat(result.justificacion()).isEqualTo(
+                "Productos distintos que vendiste en los últimos 7 días: 2. Si llegás a 3 le mostrás más opciones a "
+                        + "tus clientes.");
+    }
 }
