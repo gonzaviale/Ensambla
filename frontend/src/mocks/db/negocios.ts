@@ -5,13 +5,13 @@ import type {
   ResumenConjunto,
   ResumenDeNegocio,
 } from '@/types/negocios';
-import { estado, sistemasDe, type UsuarioMock } from './estado';
+import { claveDelNegocio, estado, sistemasDe, type UsuarioMock } from './estado';
 import { panelDe } from './panel';
 import { planesDe } from './planes';
 
-// Los negocios de cada cuenta. Los sistemas, los avisos y el resto de los datos siguen colgando de la cuenta y
-// se atribuyen al primer negocio (el que se crea al registrarse); los que se agregan después arrancan vacíos.
-// Cuando cada pantalla trabaje con el negocio activo, los datos pasarán a colgar de cada negocio.
+// Los negocios de cada cuenta. Cada negocio tiene sus secciones (ver `claveDelNegocio`): las pantallas trabajan con
+// las del negocio activo y uno nuevo arranca vacío. Los avisos y los objetivos siguen colgando de la cuenta y se
+// atribuyen al primer negocio (el que se crea al registrarse).
 
 export type NegocioMock = Omit<NegocioDeLaCuenta, 'activo'>;
 
@@ -69,19 +69,22 @@ export function listaDeNegociosDe(usuario: UsuarioMock): ListaDeNegocios {
 const suma = (valores: Array<number | null | undefined>) =>
   valores.reduce<number>((total, valor) => total + (valor ?? 0), 0);
 
-/** Lo mismo que el panel de un solo negocio, sumado sobre todos los sistemas del negocio. */
-function resumenDelPrimerNegocio(
+/** Lo mismo que el panel de un solo negocio, sumado sobre todas las secciones del negocio. */
+function resumenDelNegocio(
   usuario: UsuarioMock,
   negocio: NegocioMock,
   activoId: string,
   dias: number,
+  esElPrimero: boolean,
 ): ResumenDeNegocio {
-  const paneles = sistemasDe(usuario.email)
+  const paneles = sistemasDe(usuario.email, negocio.id)
     .map((sistema) => panelDe(sistema, hoy(), dias))
     .filter((panel) => panel.hayDatos && panel.metricas);
-  const avisosPendientes = (estado.avisosDelServidor.get(usuario.email) ?? []).filter(
-    (aviso) => aviso.estado === 'PENDIENTE',
-  ).length;
+  const avisosPendientes = esElPrimero
+    ? (estado.avisosDelServidor.get(usuario.email) ?? []).filter(
+        (aviso) => aviso.estado === 'PENDIENTE',
+      ).length
+    : 0;
   const metricas = paneles.map((panel) => panel.metricas);
   return {
     ...aNegocioDeLaCuenta(negocio, activoId),
@@ -94,24 +97,12 @@ function resumenDelPrimerNegocio(
   };
 }
 
-const sinDatos = (negocio: NegocioMock, activoId: string): ResumenDeNegocio => ({
-  ...aNegocioDeLaCuenta(negocio, activoId),
-  hayDatos: false,
-  vendiste: null,
-  gastos: null,
-  queda: null,
-  teDeben: null,
-  avisosPendientes: 0,
-});
-
 const DIA_MS = 86_400_000;
 
 export function resumenConjuntoDe(usuario: UsuarioMock, dias: number): ResumenConjunto {
   const { activoId, negocios } = negociosDe(usuario);
   const resumenes = negocios.map((negocio, indice) =>
-    indice === 0
-      ? resumenDelPrimerNegocio(usuario, negocio, activoId, dias)
-      : sinDatos(negocio, activoId),
+    resumenDelNegocio(usuario, negocio, activoId, dias, indice === 0),
   );
   const fin = Date.parse(`${hoy()}T12:00:00Z`);
   return {
@@ -128,4 +119,37 @@ export function resumenConjuntoDe(usuario: UsuarioMock, dias: number): ResumenCo
     },
     negocios: resumenes,
   };
+}
+
+/**
+ * Saca de la cuenta el negocio con sus secciones y su configuración. Si era el primero, el que pasa a serlo se queda
+ * con la clave del email (ver `claveDelNegocio`), así lo suyo no se pierde.
+ */
+export function eliminarNegocioDe(email: string, negocioId: string) {
+  const cuenta = estado.negociosDeLaCuenta.get(email);
+  if (!cuenta) return;
+  const restantes = cuenta.negocios.filter((negocio) => negocio.id !== negocioId);
+  const deCadaNegocio = restantes.map((negocio) => {
+    const clave = claveDelNegocio(email, negocio.id);
+    return {
+      id: negocio.id,
+      sistemas: estado.sistemas.get(clave),
+      configuracion: estado.negocios.get(clave),
+    };
+  });
+  for (const negocio of cuenta.negocios) {
+    const clave = claveDelNegocio(email, negocio.id);
+    estado.sistemas.delete(clave);
+    estado.negocios.delete(clave);
+  }
+  // Si se elimina el activo, pasa a serlo el más antiguo de los que quedan.
+  const activoId =
+    cuenta.activoId === negocioId ? (restantes[0]?.id ?? cuenta.activoId) : cuenta.activoId;
+  estado.negociosDeLaCuenta.set(email, { activoId, negocios: restantes });
+  for (const { id, sistemas, configuracion } of deCadaNegocio) {
+    const clave = claveDelNegocio(email, id);
+    if (sistemas) estado.sistemas.set(clave, sistemas);
+    if (configuracion) estado.negocios.set(clave, configuracion);
+  }
+  estado.alCambiar?.();
 }

@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { coincideLocalidad } from '@/lib/ubicacion';
 import { cambiosNegocioSchema, type ConfiguracionNegocio } from '@/types/negocio';
-import { estado } from '../db/estado';
+import { claveDelNegocio, estado, type UsuarioMock } from '../db/estado';
 import {
   dentroDeLaZonaDePrueba,
   localidadDelPuntoDePrueba,
@@ -14,14 +14,20 @@ import { api, cuenta, pathDe } from './comun';
 const zonaQueCubre = (ubicacion: ConfiguracionNegocio['ubicacion']): string | null =>
   ubicacion && dentroDeLaZonaDePrueba(ubicacion) ? ZONA_DE_PRUEBA.nombre : null;
 
-const configuracionDe = (email: string, nombre: string): ConfiguracionNegocio =>
-  estado.negocios.get(email) ?? {
-    nombre,
-    rubro: 'OTRO',
+// La del negocio activo. Uno que todavía no se configuró arranca con el nombre y el rubro con que se creó.
+const configuracionDe = (usuario: UsuarioMock): ConfiguracionNegocio => {
+  const guardada = estado.negocios.get(claveDelNegocio(usuario.email));
+  if (guardada) return guardada;
+  const cuenta = estado.negociosDeLaCuenta.get(usuario.email);
+  const activo = cuenta?.negocios.find((negocio) => negocio.id === cuenta.activoId);
+  return {
+    nombre: activo?.nombre ?? `Negocio de ${usuario.nombre}`,
+    rubro: activo?.rubro ?? 'OTRO',
     ubicacion: null,
     comparteDatosZona: true,
     zona: null,
   };
+};
 
 // Igual que el backend: sólo se verifica la localidad si cambia el punto o la localidad guardados.
 const localidadFueraDelMapa = (
@@ -40,7 +46,7 @@ export const handlersNegocio = [
   http.get(api('/business'), ({ request }) => {
     const { usuario, error } = cuenta(request);
     if (error) return error;
-    return HttpResponse.json(configuracionDe(usuario.email, `Negocio de ${usuario.nombre}`));
+    return HttpResponse.json(configuracionDe(usuario));
   }),
   http.patch(api('/business'), async ({ request }) => {
     const { usuario, error } = cuenta(request, true);
@@ -53,7 +59,7 @@ export const handlersNegocio = [
       !RUBROS_DE_PRUEBA.some((rubro) => rubro.codigo === cambios.data.rubro)
     )
       return errorResponse(400, 'El rubro no existe.', pathDe(request));
-    const actual = configuracionDe(usuario.email, `Negocio de ${usuario.nombre}`);
+    const actual = configuracionDe(usuario);
     const nueva = cambios.data.ubicacion;
     const delMapa = nueva && localidadFueraDelMapa(actual.ubicacion, nueva);
     if (delMapa)
@@ -64,7 +70,7 @@ export const handlersNegocio = [
       );
     const guardado = { ...actual, ...cambios.data };
     guardado.zona = zonaQueCubre(guardado.ubicacion);
-    estado.negocios.set(usuario.email, guardado);
+    estado.negocios.set(claveDelNegocio(usuario.email), guardado);
     estado.alCambiar?.();
     return HttpResponse.json(guardado);
   }),

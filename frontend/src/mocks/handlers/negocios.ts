@@ -4,6 +4,7 @@ import { DIAS_DEL_RESUMEN_CONJUNTO } from '@/api/negocios';
 import { nuevoNegocioSchema } from '@/types/negocios';
 import {
   aNegocioDeLaCuenta,
+  eliminarNegocioDe,
   guardarNegociosDe,
   limiteDeNegociosDe,
   listaDeNegociosDe,
@@ -84,7 +85,7 @@ export const handlersNegocios = [
     await delay(LATENCIA_BACKEND_MS);
     const sesion = cuenta(request, true);
     if (sesion.error) return sesion.error;
-    const { activoId, negocios } = negociosDe(sesion.usuario);
+    const { negocios } = negociosDe(sesion.usuario);
     if (!negocios.some((negocio) => negocio.id === params.id))
       return errorResponse(404, 'Negocio no encontrado', pathDe(request));
     if (negocios.length === 1)
@@ -93,10 +94,7 @@ export const handlersNegocios = [
         'No podés eliminar el único negocio de tu cuenta.',
         pathDe(request),
       );
-    const restantes = negocios.filter((negocio) => negocio.id !== params.id);
-    // Si se elimina el activo, pasa a serlo el más antiguo de los que quedan.
-    const nuevoActivo = activoId === params.id ? (restantes.at(0)?.id ?? activoId) : activoId;
-    guardarNegociosDe(sesion.usuario.email, { activoId: nuevoActivo, negocios: restantes });
+    eliminarNegocioDe(sesion.usuario.email, String(params.id));
     return new HttpResponse(null, { status: 204 });
   }),
 ];

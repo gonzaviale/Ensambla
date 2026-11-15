@@ -7,6 +7,9 @@ import {
   obtenerResumenConjunto,
 } from '@/api/negocios';
 import { ApiError } from '@/api/apiError';
+import { obtenerConfiguracionNegocio } from '@/api/negocio';
+import { guardarSistema, listarSistemas } from '@/api/sistemas';
+import { makeSystem } from '@/lib/sistema/core';
 import { estado, guardarSistemasDe } from '@/mocks/db/estado';
 import { crearAlmacenCargado } from '@/lib/sistema/demo';
 import { hoy } from '@/lib/sistema/formato';
@@ -153,6 +156,40 @@ describe('Negocios de la cuenta (contrato docs/negocios-de-la-cuenta.md)', () =>
     expect(propio.vendiste).toBeGreaterThan(0);
     expect(resumen.total.vendiste).toBe(propio.vendiste);
     expect(resumen.dias).toBe(366);
+  });
+
+  it('cada negocio tiene sus secciones: se ven y se guardan las del negocio activo', async () => {
+    conPremium('lucia@example.com');
+    guardarSistemasDe('lucia@example.com', [crearAlmacenCargado(hoy())]);
+    const kiosco = await crearNegocio({ nombre: 'Kiosco', rubro: 'KIOSCO' });
+
+    await activarNegocio(kiosco.id);
+    expect(await listarSistemas()).toEqual([]);
+    await guardarSistema(makeSystem('Ventas del kiosco', ['sales'], false));
+    expect((await listarSistemas()).map((sistema) => sistema.name)).toEqual(['Ventas del kiosco']);
+    expect(await obtenerConfiguracionNegocio()).toMatchObject({
+      nombre: 'Kiosco',
+      rubro: 'KIOSCO',
+    });
+
+    const inicial = primero((await listarNegocios()).negocios);
+    await activarNegocio(inicial.id);
+    expect((await listarSistemas()).map((sistema) => sistema.name)).toEqual(['Almacén de barrio']);
+    const resumen = await obtenerResumenConjunto();
+    expect(resumen.negocios.map((negocio) => negocio.hayDatos)).toEqual([true, false]);
+  });
+
+  it('al eliminar el primer negocio, el que pasa a serlo conserva sus secciones', async () => {
+    conPremium('lucia@example.com');
+    const inicial = primero((await listarNegocios()).negocios);
+    const segundo = await crearNegocio({ nombre: 'Segundo' });
+    await activarNegocio(segundo.id);
+    await guardarSistema(makeSystem('Del segundo', ['sales'], false));
+
+    await eliminarNegocio(inicial.id);
+
+    expect((await listarNegocios()).activoId).toBe(segundo.id);
+    expect((await listarSistemas()).map((sistema) => sistema.name)).toEqual(['Del segundo']);
   });
 
   it('rechaza una cantidad de días inválida', async () => {
