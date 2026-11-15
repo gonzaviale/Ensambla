@@ -2,6 +2,9 @@
 
 La venta conserva artículos, precios y total. Los cobros registran dinero recibido y su medio; el saldo es el total menos lo cobrado. El servidor calcula saldo y estado: `PENDIENTE` sin cobros, `PARCIAL` con una entrega y `PAGADA` al completar el total.
 
+Contratos completos, errores y política de anulación: [caja-contratos.md](caja-contratos.md).
+Recorrido de aceptación y fixtures: [caja-validacion.md](caja-validacion.md).
+
 ## Clientes y venta
 
 Caja reutiliza los registros de las tablas Clientes de Mi Negocio. Si Ventas tiene una relación de cliente, se usa esa tabla. Una venta que deja saldo exige un cliente real del mismo negocio y conserva su nombre como referencia histórica. Una venta pagada puede ser anónima.
@@ -30,7 +33,7 @@ En **Caja → Clientes** se ven los contactos compartidos con Mi Negocio, el tot
 
 **Actividad → Ventas → Pendientes** incluye ventas fiadas y parciales. El detalle permite ver pagos y registrar otro cobro. **Actividad → Cobros** muestra las entradas del día por su fecha real. Una venta pagada permanece en el historial con saldo cero.
 
-`GET /api/caja/ventas?proyectoId=…&inventarioId=…` devuelve `{ventas, cobros}`. Las ventas incluyen sus pagos acumulados y `pagosIniciales`; los cobros posteriores son eventos separados, con fecha del servidor y aplicaciones por venta. Así no se cuenta dos veces la entrega inicial.
+`GET /api/caja/ventas?proyectoId=…&inventarioId=…` devuelve `{ventas, cobros, cuentas}`. Las ventas incluyen sus pagos acumulados y `pagosIniciales`; los cobros posteriores son eventos separados, con fecha del servidor y aplicaciones por venta. Así no se cuenta dos veces la entrega inicial.
 
 `POST /api/caja/cobros` registra una operación independiente e idempotente:
 
@@ -61,6 +64,15 @@ En Inicio y en el resumen del negocio, **Te deben** muestra el saldo actual de l
 - Los pagos posteriores deben tener id propio, importe positivo, medio y fecha del servidor. Una deuda no puede quedar negativa ni cobrarse dos veces por un reintento.
 - Los cobros posteriores se cuentan en el día y período en que se reciben. No generan otra venta ni descuentan nuevamente stock. Los cierres guardados conservan su foto histórica.
 - Las ventas previas a esta entrega siguen siendo pagadas y mantienen precios, pagos y cierres originales.
+
+## Decisiones implementadas para completar ENS-317
+
+- **Agregar importe:** descripción y monto positivo, sin crear producto ni descontar stock. Admite pago completo, parcial, fiado y mixto.
+- **Antigüedad:** etiqueta de 30 días desde la venta original mientras quede deuda; sin notificaciones.
+- **Anulación:** política documentada; no se agrega una operación de reversión en esta historia.
+- **Cierre:** recuento obligatorio (cero válido), con motivo obligatorio si hay diferencia.
+- **Stock:** MovimientoStock registra ajuste previo si corresponde y una salida por renglón; reintentar no descuenta dos veces.
+- **Cuentas:** el backend agrupa saldos y devuelve la fecha pendiente más antigua por cliente.
 
 ## Validación de aceptación
 

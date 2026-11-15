@@ -103,6 +103,8 @@ async function principal() {
     solicitudCierre.revision=resumen.abierta.revision;
     await exigir(cliente,'/api/caja/cierres',403,'POST',solicitudCierre,false);
     await exigir(ajeno,'/api/caja/cierres',404,'POST',solicitudCierre);
+    await exigir(cliente,'/api/caja/cierres',400,'POST',{...solicitudCierre,contado:null});
+    await exigir(cliente,'/api/caja/cierres',400,'POST',{...solicitudCierre,contado:0,nota:'  '});
     const cierre=await exigir(cliente,'/api/caja/cierres',200,'POST',solicitudCierre);
     assert.equal(cierre.esperado,8800);assert.equal(cierre.diferencia,0);
     assert.deepEqual(await exigir(cliente,'/api/caja/cierres',200,'POST',solicitudCierre),cierre);
@@ -147,6 +149,10 @@ async function principal() {
     assert.equal(cuentas.ventas.find(v=>v.id===parcial.id).estado,'PAGADA');
     assert.equal(cuentas.ventas.find(v=>v.id===fiada.id).saldo,2000);
     assert.equal(cuentas.cobros.length,1);
+    assert.equal(cuentas.cuentas.length,1);
+    assert.equal(cuentas.cuentas[0].saldo,2000);
+    assert.equal(cuentas.cuentas[0].cantidadPendientes,1);
+    assert.equal(cuentas.cuentas[0].pendienteDesde,fiada.creadoEn);
     const panelParcial=await exigir(cliente,panelRuta,200);
     assert.equal(panelParcial.metricas.teDeben,2000);
     assert.equal(panelParcial.flujoDeCaja.reduce((sum,s)=>sum+s.entradas,0),20400);
@@ -169,7 +175,27 @@ async function principal() {
     assert.equal((await exigir(cliente,panelRuta,200)).metricas.teDeben,0);
     const final=(await exigir(cliente,'/api/sistemas',200)).find(s=>s.id===proyectoId);
     assert.equal(final.sections.flatMap(s=>s.blocks).find(b=>b.id===inventarioId).rows.find(p=>p.id===coca).quantity,5);
+    const libre={id:randomUUID(),proyectoId,inventarioId,ventasId,clienteId,medio:"MIXTO",recibido:600,
+      lineas:[{productoId:null,descripcion:"Servicio de prueba",cantidad:1,precio:2500,modo:"UNIDAD"}],
+      pagos:[{medio:"EFECTIVO",importe:500},{medio:"TRANSFERENCIA",importe:500}]};
+    const importeLibre=await exigir(cliente,'/api/caja/ventas',200,'POST',libre);
+    assert.equal(importeLibre.lineas[0].nombre,'Servicio de prueba');
+    assert.equal(importeLibre.lineas[0].productoId,null);
+    assert.equal(importeLibre.saldo,1500);assert.equal(importeLibre.vuelto,100);
+    assert.deepEqual(await exigir(cliente,'/api/caja/ventas',200,'POST',libre),importeLibre);
+    await exigir(cliente,'/api/caja/ventas',400,'POST',{...libre,id:randomUUID(),clienteId:null});
+    await exigir(cliente,'/api/caja/ventas',400,'POST',{...libre,id:randomUUID(),lineas:[{...libre.lineas[0],descripcion:''}]});
+    await exigir(cliente,'/api/caja/ventas',400,'POST',{...libre,id:randomUUID(),lineas:[{...libre.lineas[0],cantidad:2}]});
+    await exigir(cliente,'/api/caja/ventas',200,'POST',{...libre,id:randomUUID(),pagos:[],recibido:null});
+    await exigir(cliente,'/api/caja/ventas',200,'POST',{...libre,id:randomUUID(),clienteId:null,medio:'TARJETA',
+      pagos:[{medio:'TARJETA',importe:2500}],recibido:null});
+    const despuesLibre=(await exigir(cliente,'/api/sistemas',200)).find(s=>s.id===proyectoId);
+    assert.deepEqual(despuesLibre.sections.flatMap(s=>s.blocks).find(b=>b.id===inventarioId).rows,
+      final.sections.flatMap(s=>s.blocks).find(b=>b.id===inventarioId).rows,'Un importe libre alteró el inventario');
     console.log(JSON.stringify({resultado:'correcto',comprobaciones:[
+      'importe libre pagado, parcial mixto y fiado sin productos ni stock',
+      'recuento obligatorio con cero válido y motivo de diferencias',
+      'saldos y primera deuda agrupados por cliente desde el backend',
       'sesión y CSRF reales','venta mixta: dos unidades y medio kilo','total y vuelto',
       'idempotencia persistente','aislamiento por negocio','revalidación de precio y stock',
       'editor anterior rechazado','recarga desde PostgreSQL','precio histórico conservado',

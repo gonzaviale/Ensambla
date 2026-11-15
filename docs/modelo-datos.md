@@ -687,6 +687,22 @@ falta buscar registros "parecidos" o deduplicar con muchos datos, se agrega en u
 (`CREATE EXTENSION vector`, columna `vector(n)` + índice HNSW) y la imagen `pgvector/pgvector:pg17` en Docker y
 Testcontainers.
 
+## Caja: importes libres y movimientos (ENS-317)
+
+El JSON de `venta_caja.datos.lineas` admite `productoId: null` para una línea por importe libre,
+con nombre descriptivo, cantidad 1 y precio/importe positivos. No se crea un registro de inventario.
+La tabla genérica Ventas conserva la línea sin relación Producto y con descripción en el origen Caja.
+Los pagos y cobros posteriores conservan el mismo esquema; las cuentas agrupadas son una proyección de lectura.
+No se modifica ninguna migración aplicada ni hace falta agregar columnas para estos datos.
+
+Una salida de caja reutiliza `movimiento_stock`: sincroniza el saldo con la cantidad actual del inventario
+mediante un ajuste identificado cuando difiere y registra luego una SALIDA por la venta.
+Venta, cantidades, ajuste y salida comparten transacción y bloqueo por negocio; el reintento no crea movimientos.
+Los importes libres y artículos sin control de stock no generan salidas.
+Los cierres nuevos exigen recuento y motivo de diferencias en el modelo; los JSON históricos con null se siguen leyendo.
+
+Ver [contratos y anulación](caja-contratos.md) y [aceptación](caja-validacion.md).
+
 ## Qué queda para después
 
 | Necesidad | Cuándo | Cómo se resolvería |

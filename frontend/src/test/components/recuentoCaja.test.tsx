@@ -1,6 +1,12 @@
 import { describe, it } from 'vitest';
-import { givenCierreConEfectivo, whenSeCuentaEfectivo, whenSeExplicaDiferencia,
-  thenNoSePuedeGuardarCierre, thenSePuedeGuardarCierre, thenSeGuardaRecuentoCero } from '@/test/caja/recuentoCajaHelpers';
+import {
+  givenCierreConEfectivo,
+  whenSeCuentaEfectivo,
+  whenSeExplicaDiferencia,
+  thenNoSePuedeGuardarCierre,
+  thenSePuedeGuardarCierre,
+  thenSeGuardaRecuentoCero,
+} from '@/test/caja/recuentoCajaHelpers';
 
 describe('recuento obligatorio al cerrar caja', () => {
   it('exige escribir el efectivo contado antes de guardar', () => {
@@ -25,4 +31,3 @@ describe('recuento obligatorio al cerrar caja', () => {
     thenSePuedeGuardarCierre();
   });
 });
-
