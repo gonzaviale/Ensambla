@@ -16,7 +16,7 @@ V3 carga Inventario, Pedidos y Clientes
 como plantillas globales; sus UUID coinciden con los del modo simulado del frontend. Este documento explica el
 porqué; si cambian, se actualizan juntos.
 
-## Caja: cobros posteriores (V36 · ENS-317)
+## Caja: cobros posteriores (V37 · ENS-317)
 
 `cobro_caja` conserva cada pago de deuda con id propio, negocio, proyecto, inventario, fecha del servidor y aplicaciones a una o varias ventas del mismo cliente. Los importes y medios viven en el JSON inmutable; `cierre_id` vincula el movimiento al período en que se recibió. No se editan migraciones anteriores.
 

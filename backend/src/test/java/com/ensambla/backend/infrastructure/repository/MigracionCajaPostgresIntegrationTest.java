@@ -54,7 +54,7 @@ class MigracionCajaPostgresIntegrationTest extends PostgresRepositoryTestSupport
                     .schemas(ESQUEMA).defaultSchema(ESQUEMA)
                     .outOfOrder(permitirMigracionesPendientesAnteriores).load().migrate();
 
-            assertThat(permitirMigracionesPendientesAnteriores).isTrue();
+            assertThat(permitirMigracionesPendientesAnteriores).isFalse();
             assertThat(resultado.migrationsExecuted).isEqualTo(4);
             assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + ESQUEMA + ".negocio", Long.class))
                     .isEqualTo(negociosAntes);
@@ -100,7 +100,7 @@ class MigracionCajaPostgresIntegrationTest extends PostgresRepositoryTestSupport
     private void givenDevWithoutCaja() throws IOException {
         try (var archivos = Files.list(Path.of("src/main/resources/db/migration"))) {
             for (Path archivo : archivos.filter(path -> !path.getFileName().toString()
-                    .matches("V(27|34|35|36)__.*")).toList()) {
+                    .matches("V(34|35|36|37)__.*")).toList()) {
                 Files.copy(archivo, migracionesDev.resolve(archivo.getFileName()));
             }
         }
@@ -112,7 +112,7 @@ class MigracionCajaPostgresIntegrationTest extends PostgresRepositoryTestSupport
     private void givenLegacySale() {
         Flyway.configure().dataSource(jdbcUrl, jdbcUsuario, jdbcContrasenia)
                 .schemas(ESQUEMA).defaultSchema(ESQUEMA)
-                .target("27").load().migrate();
+                .target("34").load().migrate();
         UUID negocioId = jdbcTemplate.queryForObject("SELECT id FROM " + ESQUEMA + ".negocio LIMIT 1", UUID.class);
         String datos = """
                 {"id":{"valor":"%s"},"negocioId":{"valor":"%s"},"proyectoId":{"valor":"%s"},

@@ -8,18 +8,9 @@ Usar el entorno de prueba de clientes y deudas, con backend y PostgreSQL reales.
 No borrar volúmenes ni restaurar fixtures sobre el negocio que usa la persona.
 El script crea sus propias cuentas y sistema de prueba y elimina su sistema al terminar.
 
-Desde la raíz de la rama:
-
-```powershell
-$env:ENSAMBLA_PUERTO='8091'
-docker compose -p ensambla-clientes up -d --build --wait
-$env:ENSAMBLA_URL='http://localhost:8091'
-node scripts/verificar-caja.mjs
-```
-
-Para el teléfono, usar el túnel HTTPS existente y su misma base. Revisar la dirección actual con
-`docker compose -p ensambla-clientes logs tunel-movil`.
-No es necesario recrearlo para actualizar la aplicación.
+Iniciar la aplicación con las instrucciones de desarrollo existentes en README. Con el entorno de prueba
+proporcionado por el equipo, ejecutar `ENSAMBLA_URL=... node scripts/verificar-caja.mjs`.
+Este PR no agrega Compose, configuración HTTPS ni etapas de CI.
 
 ## Recorrido manual pendiente de aceptación
 
@@ -69,9 +60,15 @@ Los mocks prueban presentación y contratos; las reglas de dinero y stock se val
 ## Criterio de cierre
 
 - Implementación y verificaciones automáticas verdes.
-- Revisión y merge de los PR en orden: #93 → dev; después #97 → dev (actualizar su base al integrar #93).
+- Revisión y merge de #88 y #93 hacia dev. #97 ya fue integrado en la rama de Caja.
 - Prueba manual del usuario con celular/cámara, teclado y cobros, y resolución de cualquier hallazgo.
 - Registrar la aceptación en Jira recién después de esas comprobaciones.
 
 La política de anulación está definida en [los contratos](caja-contratos.md); la operación se implementará en otra historia.
 El botón flotante y el escáner emparejado corresponden a ENS-327. El QR de Mercado Pago corresponde a ENS-348.
+
+## Bases locales usadas antes de esta corrección
+
+Las migraciones nuevas de Caja se ordenaron como V34–V37, después de la base dev V33, con contenido idéntico.
+No se cambió el historial de ninguna base local. Una base de pruebas que ya aplicó la numeración anterior
+necesita una reconciliación de historial acordada antes de reiniciar con esta rama; no borrar volúmenes ni ejecutar repair automáticamente.

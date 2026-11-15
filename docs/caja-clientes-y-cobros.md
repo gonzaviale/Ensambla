@@ -51,7 +51,7 @@ En **Caja → Clientes** se ven los contactos compartidos con Mi Negocio, el tot
 
 Se permiten hasta tres medios distintos por venta y varias ventas del mismo cliente. Si una aplicación supera el saldo o pertenece a otra caja, no se guarda ninguna. Un reintento con el mismo id y contenido devuelve el comprobante anterior, incluso después del cierre. Ante una respuesta incierta el navegador conserva la solicitud y ofrece **Verificar misma operación**; recargar no crea un cobro nuevo.
 
-Los cierres suman las entregas iniciales de sus ventas y los cobros posteriores abiertos. Se puede cerrar un período con cobros aunque no tenga ventas nuevas. Cobrar una deuda vieja no reabre el cierre anterior ni modifica su comprobante. La migración V36 agrega la tabla de cobros sin editar migraciones aplicadas ni reescribir comprobantes viejos.
+Los cierres suman las entregas iniciales de sus ventas y los cobros posteriores abiertos. Se puede cerrar un período con cobros aunque no tenga ventas nuevas. Cobrar una deuda vieja no reabre el cierre anterior ni modifica su comprobante. La migración V37 agrega la tabla de cobros sin editar migraciones aplicadas ni reescribir comprobantes viejos.
 
 En Inicio y en el resumen del negocio, **Te deben** muestra el saldo actual de las ventas del período seleccionado. Las anotaciones manuales a fiado conservan su comportamiento. El flujo suma entregas iniciales y cobros por su fecha real; las filas de artículos de Caja siguen contando como ventas pero no vuelven a sumar dinero. Un período que sólo tiene cobros de deudas anteriores también muestra su flujo.
 
@@ -80,27 +80,10 @@ Registrar una venta de $10.000 con una entrega de $4.000 a nombre de un cliente,
 
 ## Prueba local y desde el teléfono
 
-Desde la raíz de esta rama, en PowerShell:
-
-```powershell
-$env:ENSAMBLA_PUERTO='8091'
-docker compose -p ensambla-clientes up -d --build --wait
-$env:ENSAMBLA_URL='http://localhost:8091'
-node scripts/verificar-caja.mjs
-```
-
-La aplicación compilada queda en `http://localhost:8091`, con backend y PostgreSQL propios. El script crea cuentas de prueba y comprueba el circuito mediante HTTP real, incluyendo sesión, CSRF, aislamiento, pagos mixtos, fiado, cobros, stock único, cierres e Inicio.
-
-Para abrir esa misma aplicación desde el teléfono con HTTPS y probar la cámara:
-
-```powershell
-docker compose -p ensambla-clientes --profile movil up -d
-docker compose -p ensambla-clientes logs tunel-movil
-```
-
-Abrir la dirección `https://…trycloudflare.com` que aparece en los logs. El perfil `movil` usa el frontend compilado y la misma base real; los mocks sólo sirven como apoyo del desarrollo y las pruebas del frontend. La dirección del túnel cambia cuando se recrea y la prueba física de cámara y teclado móvil se valida en el teléfono.
-
-Recorrer **Caja → Clientes → Nuevo cliente**, registrar una venta parcial y una fiada, recargar, abrir **Ver cuenta**, aplicar un pago dividido y completar el saldo. Confirmar que las ventas pasan de Pendientes a Pagadas, que el historial conserva cada entrega y que la caja suma sólo el dinero recibido. Cerrar la caja antes del último cobro y verificar que ese cierre conserva su foto original.
+Usar las instrucciones existentes de README para iniciar backend y frontend con Node 22.
+El script `scripts/verificar-caja.mjs` puede ejecutarse contra el entorno de prueba provisto por el equipo,
+indicando `ENSAMBLA_URL`. No configura el servidor ni agrega pipelines.
+Para la cámara física, usar el acceso HTTPS acordado por el equipo.
 
 ## Compra y cobro en el teléfono (15/11/2026)
 
