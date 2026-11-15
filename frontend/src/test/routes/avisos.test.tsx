@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { act, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { id as nuevoId, makeSystem, wireSystem } from '@/lib/sistema/core';
@@ -9,10 +9,17 @@ import type { Sistema } from '@/lib/sistema/tipos';
 import { estado } from '@/mocks/db/estado';
 import { useSistemaStore } from '@/stores/sistemaStore';
 import { avisoDelServidor } from '@/test/avisosData';
+import {
+  cuandoBajaElStockDeLaGaseosa,
+  cuandoSeAbreElAvisoDeSami,
+  entoncesAparecePendienteElAviso,
+  entoncesElPanelResaltaElAvisoDeStock,
+  entoncesNoHayAvisoDeSami,
+  esperarQueSamiTomeSuLineaBase,
+} from '@/test/avisosDeSami';
 import { renderApp } from '@/test/renderApp';
 import {
   ESPERA,
-  clickButton,
   setupServerError,
   setupUsuarioConSesion as setupUsuarioBase,
   verifyHeadingPresentAsync,
@@ -207,9 +214,7 @@ describe('la campana y la pantalla de avisos', () => {
     expect(within(aviso).getByRole('button', { name: 'Descartar' })).toBeVisible();
 
     const subida = tarjeta(/Yerba Playadito 1 kg se vende mucho/);
-    expect(
-      within(subida).getByRole('button', { name: /Subir a \$ 3\.820/ }),
-    ).toBeVisible();
+    expect(within(subida).getByRole('button', { name: /Subir a \$ 3\.820/ })).toBeVisible();
   });
 
   it('aplicar un aviso cambia el precio y el aviso desaparece', async () => {
@@ -472,46 +477,25 @@ describe('sin datos y con el almacén de ejemplo', () => {
 });
 
 describe('«Sami vio un cambio»', () => {
-  it('no avisa al abrir, pero sí cuando un cambio genera un aviso nuevo', async () => {
+  it('avisa de un stock bajo mínimo recién después de abrir, no al abrir', async () => {
     const { cliente } = await abrirConDemo();
-    expect(document.getElementById('sami-aviso')).toBeNull();
-    // Mientras cargan los avisos del servidor el motor todavía no tomó su línea base: sin esperarlos, el cambio
-    // de abajo quedaría incluido en ella y no se avisaría.
-    await waitFor(
-      () => expect(cliente.isFetching({ queryKey: ['avisos', 'pendientes'] })).toBe(0),
-      ESPERA,
-    );
-    await waitFor(
-      () => expect(cliente.getQueryState(['avisos', 'pendientes'])?.status).toBe('success'),
-      ESPERA,
-    );
-    await act(async () => {
-      await new Promise((resolver) => setTimeout(resolver, 50));
-    });
+    entoncesNoHayAvisoDeSami();
+    await esperarQueSamiTomeSuLineaBase(cliente);
 
-    // Bajar la gaseosa por debajo de su mínimo: aparece un aviso de stock nuevo.
-    act(() => {
-      useSistemaStore.getState().actualizarSistema(sistemaActual()?.id ?? '', (sistema) => {
-        const gaseosa = sistema.sections[0]?.blocks[0]?.rows.find(
-          (fila) => fila.name === 'Coca-Cola 2,25 L',
-        );
-        if (gaseosa) gaseosa.quantity = 3;
-      });
-    });
+    cuandoBajaElStockDeLaGaseosa();
 
-    const aviso = await waitFor(() => {
-      const nodo = document.getElementById('sami-aviso');
-      if (!nodo) throw new Error('Todavía no apareció');
-      return nodo;
-    }, ESPERA);
-    expect(within(aviso).getByText('Sami vio un cambio')).toBeVisible();
-    expect(within(aviso).getByText('Coca-Cola 2,25 L está por debajo del mínimo')).toBeVisible();
+    await entoncesAparecePendienteElAviso();
+  });
 
-    await clickButton(userEvent.setup(), 'Ver el aviso');
-    expect(await screen.findByRole('region', { name: /Lo que encontré/ }, ESPERA)).toBeVisible();
-    expect(document.querySelector('.alerta.foco')).toHaveTextContent(
-      'Coca-Cola 2,25 L está por debajo del mínimo',
-    );
+  it('el aviso de Sami lleva al panel con ese aviso resaltado', async () => {
+    const { cliente } = await abrirConDemo();
+    await esperarQueSamiTomeSuLineaBase(cliente);
+    cuandoBajaElStockDeLaGaseosa();
+    await entoncesAparecePendienteElAviso();
+
+    await cuandoSeAbreElAvisoDeSami();
+
+    await entoncesElPanelResaltaElAvisoDeStock();
   });
 });
 
@@ -657,7 +641,12 @@ describe('los avisos del motor del servidor', () => {
       avisoDelServidor({
         proyectoId: sistema.id,
         acciones: [
-          { tipo: 'REGISTRAR', texto: 'Registrar entrada', proyectoId: sistema.id, bloqueId: entradas.id },
+          {
+            tipo: 'REGISTRAR',
+            texto: 'Registrar entrada',
+            proyectoId: sistema.id,
+            bloqueId: entradas.id,
+          },
         ],
       }),
     ]);

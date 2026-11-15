@@ -73,7 +73,7 @@ public class ReglaPrecioZona implements ReglaAviso {
                 + "Revisá tus costos y tu margen: puede que estés vendiendo más barato de lo necesario.";
         return resultado(inventario, registro, nombre + " está más barato que en tu zona", detalle, precio, rango,
                 List.<Object>of(motivoRango(rango), motivoMargen(inventario, registro, precio)),
-                List.<Object>of(AccionesAviso.abrir(inventario, registro.getId())));
+                List.of(AccionesAviso.abrir(inventario, registro.getId())));
     }
 
     private ResultadoRegla porEncima(BloqueInventario inventario, Registro registro, String nombre, BigDecimal precio,
@@ -86,7 +86,7 @@ public class ReglaPrecioZona implements ReglaAviso {
                 + "Bajarlo a " + pesos(sugerido) + " lo deja dentro del rango y evita que pierdas ventas.";
         return resultado(inventario, registro, nombre + " está más caro que en tu zona", detalle, precio, rango,
                 List.<Object>of(motivoRango(rango), "Los clientes comparan: por encima de lo que cobran al lado se compra menos."),
-                List.<Object>of(AccionesAviso.cambiarPrecio(inventario, registro.getId(), "Bajar a " + pesos(sugerido), sugerido),
+                List.of(AccionesAviso.cambiarPrecio(inventario, registro.getId(), "Bajar a " + pesos(sugerido), sugerido),
                         AccionesAviso.abrir(inventario, registro.getId())));
     }
 
@@ -115,7 +115,7 @@ public class ReglaPrecioZona implements ReglaAviso {
 
     private ResultadoRegla resultado(BloqueInventario inventario, Registro registro, String titulo, String detalle,
                                      BigDecimal precio, AgregadoZonaProducto rango, List<Object> motivos,
-                                     List<Object> acciones) {
+                                     List<AccionDeAviso> acciones) {
         // Precio propio y rango: si cambia alguno, un aviso descartado vuelve a aparecer.
         Map<String, Object> datos = new LinkedHashMap<>();
         datos.put("precio", precio);

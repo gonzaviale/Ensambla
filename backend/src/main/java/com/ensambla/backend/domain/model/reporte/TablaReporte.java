@@ -5,8 +5,6 @@ import com.ensambla.backend.domain.model.campo.TipoCampo;
 import com.ensambla.backend.domain.model.registro.Registro;
 import com.ensambla.backend.domain.model.registro.RegistroId;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -19,8 +17,6 @@ import java.util.Map;
 public record TablaReporte(String hoja, List<String> encabezados, List<List<Object>> filas, List<Object> totales) {
 
     static final String ENCABEZADO_CARGA = "Cargado";
-
-    static final String FILA_ELIMINADA = "Fila eliminada";
 
     /**
      * Una columna por campo (en el orden dado) más la fecha de carga, y al final una fila de totales.
@@ -49,13 +45,7 @@ public record TablaReporte(String hoja, List<String> encabezados, List<List<Obje
         if (valor == null) {
             return null;
         }
-        return switch (campo.getTipo()) {
-            case NUMERO, MONEDA, FORMULA -> new BigDecimal(valor.toString());
-            case FECHA -> LocalDate.parse(valor.toString());
-            case SI_NO -> Boolean.TRUE.equals(valor) ? "Sí" : "No";
-            case RELACION -> etiquetas.getOrDefault(RegistroId.de(valor.toString()), FILA_ELIMINADA);
-            case TEXTO, OPCION, TEXTO_LARGO, EMAIL, TELEFONO, HORA -> valor.toString();
-        };
+        return campo.celdaDeReporte(valor, etiquetas::get);
     }
 
     /**

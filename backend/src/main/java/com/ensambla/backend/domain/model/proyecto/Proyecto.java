@@ -133,16 +133,16 @@ public class Proyecto {
                 .map(campo -> campo.getNombre().strip().toLowerCase())
                 .collect(Collectors.toCollection(HashSet::new));
         for (int i = 0; i < columnas.size(); i++) {
-            ConfiguracionCampo.Validada validada = validarColumna(columnas.get(i), i);
-            if (!nombres.add(validada.nombre().toLowerCase())) {
-                throw new DuplicateResourceException("Ya hay una columna llamada \"" + validada.nombre() + "\"");
+            Campo columna = validarColumna(columnas.get(i), i);
+            if (!nombres.add(columna.getNombre().toLowerCase())) {
+                throw new DuplicateResourceException("Ya hay una columna llamada \"" + columna.getNombre() + "\"");
             }
-            campos.add(Campo.nuevo(negocioId, null, (short) campos.size(), validada, ahora));
+            campos.add(columna.ubicadoEn(negocioId, null, (short) campos.size(), ahora));
         }
         destino.setCampos(campos);
     }
 
-    private ConfiguracionCampo.Validada validarColumna(ConfiguracionCampo columna, int indice) {
+    private Campo validarColumna(ConfiguracionCampo columna, int indice) {
         if (TIPOS_NO_SUGERIBLES.contains(columna.tipo())) {
             throw new CampoInvalidoException(Map.of("columnas[" + indice + "].tipo", TIPO_NO_SUGERIBLE));
         }
