@@ -3,12 +3,12 @@ import type { NombreDeIcono } from '@/lib/sistema/iconos';
 
 export const ICONO_DE_AVISO: Record<TipoDeAviso, NombreDeIcono> = {
   stock: 'box',
-  precio_zona: 'chart',
+  precio_zona: 'ubicacion',
   estancado: 'clock',
   muy_vendido: 'spark',
   combo: 'orders',
-  consumo_zona: 'users',
-  revisar_precio: 'undo',
+  consumo_zona: 'ubicacion',
+  revisar_precio: 'search',
 };
 
 /** El nombre corto de cada tipo: lo primero que se lee para saber de qué se trata. */
@@ -95,4 +95,69 @@ export function haceCuanto(creadoEn: string | undefined, ahora = new Date()): st
   if (dias <= 0) return 'hoy';
   if (dias === 1) return 'ayer';
   return `hace ${dias} días`;
+}
+
+/** «Hoy», «Ayer» o «Hace N días»: lo que lleva el reloj arriba de cada aviso. */
+export function cuandoSeDetecto(creadoEn: string | undefined, ahora = new Date()) {
+  const texto = haceCuanto(creadoEn, ahora);
+  return texto ? texto.charAt(0).toUpperCase() + texto.slice(1) : undefined;
+}
+
+/** Lleva a un tono más serio los textos que llegan del motor de avisos («Para no quedarte corto, pedí 5.»). */
+export function suavizarTexto(texto: string) {
+  return texto.replace(
+    /Para no quedarte corto, pedí ([^.]+)\./g,
+    'Te conviene pedir $1 para no quedarte sin stock.',
+  );
+}
+
+export type GrupoDeAvisos = { clave: string; avisos: Aviso[] };
+
+/** Junta los avisos del mismo tipo y nivel, de cualquier negocio, para que no se amontonen hacia abajo. */
+export function agruparAvisos(avisos: Aviso[]): GrupoDeAvisos[] {
+  const grupos = new Map<string, Aviso[]>();
+  for (const aviso of avisos) {
+    const clave = `${aviso.tipo}:${aviso.prioridad}`;
+    grupos.set(clave, [...(grupos.get(clave) ?? []), aviso]);
+  }
+  return [...grupos].map(([clave, juntos]) => ({ clave, avisos: juntos }));
+}
+
+/** El título de varios avisos juntos: el número va adelante («5 productos bajo el mínimo»). */
+export function tituloDeGrupo(tipo: TipoDeAviso, prioridad: number, cantidad: number) {
+  const cuantos = (uno: string, varios: string) => `${cantidad} ${cantidad === 1 ? uno : varios}`;
+  switch (tipo) {
+    case 'stock':
+      return prioridad === 3
+        ? cuantos('producto sin stock', 'productos sin stock')
+        : cuantos('producto bajo el mínimo', 'productos bajo el mínimo');
+    case 'precio_zona':
+      return prioridad === 2
+        ? cuantos('producto casi al costo', 'productos casi al costo')
+        : cuantos(
+            'producto con precio distinto al de la zona',
+            'productos con precio distinto al de la zona',
+          );
+    case 'estancado':
+      return cuantos('producto caro que no se mueve', 'productos caros que no se mueven');
+    case 'muy_vendido':
+      return cuantos(
+        'producto muy vendido con precio bajo',
+        'productos muy vendidos con precio bajo',
+      );
+    case 'combo':
+      return cuantos('combo para armar', 'combos para armar');
+    case 'consumo_zona':
+      return cuantos('producto de la zona que no tenés', 'productos de la zona que no tenés');
+    case 'revisar_precio':
+      return cuantos('precio para revisar', 'precios para revisar');
+  }
+}
+
+/** La primera idea del aviso, en una línea o línea y media: el resto queda en «Ver por qué». */
+export function resumenDelAviso(detalle: string) {
+  const [primera = ''] = suavizarTexto(detalle).split(/(?<=\.)\s+/);
+  if (primera.length <= 60) return primera;
+  const corte = primera.search(/[;,]/);
+  return corte >= 15 ? `${primera.slice(0, corte)}.` : primera;
 }

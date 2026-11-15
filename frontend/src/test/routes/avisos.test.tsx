@@ -207,9 +207,7 @@ describe('la campana y la pantalla de avisos', () => {
     expect(within(aviso).getByRole('button', { name: 'Descartar' })).toBeVisible();
 
     const subida = tarjeta(/Yerba Playadito 1 kg se vende mucho/);
-    expect(
-      within(subida).getByRole('button', { name: /Subir a \$ 3\.820/ }),
-    ).toBeVisible();
+    expect(within(subida).getByRole('button', { name: /Subir a \$ 3\.820/ })).toBeVisible();
   });
 
   it('aplicar un aviso cambia el precio y el aviso desaparece', async () => {
@@ -579,7 +577,7 @@ describe('los avisos del motor del servidor', () => {
     expect(within(estancado).getByText('Precio sugerido')).toBeVisible();
     expect(within(estancado).getByText('$ 1.900')).toBeVisible();
     expect(within(estancado).getByText(/En tu zona, 6 comercios/)).toBeVisible();
-    expect(within(estancado).getByText(/detectado/)).toBeVisible();
+    expect(within(estancado).getByText(/Hace \d+ días/)).toBeVisible();
   });
 
   it('se filtra por cuaderno y la franja resume lo que no puede esperar', async () => {
@@ -597,7 +595,7 @@ describe('los avisos del motor del servidor', () => {
 
     const franja = screen.getByRole('complementary', { name: 'Lo urgente' });
     expect(within(franja).getByText(/1 cosa que no puede esperar/)).toBeVisible();
-    const cuadernos = screen.getByRole('group', { name: 'Filtrar por cuaderno' });
+    const cuadernos = screen.getByRole('group', { name: 'Filtrar por negocio' });
     expect(within(cuadernos).getAllByRole('button').length).toBeGreaterThanOrEqual(3);
 
     await user.click(within(cuadernos).getAllByRole('button')[2] as HTMLElement);
@@ -657,7 +655,12 @@ describe('los avisos del motor del servidor', () => {
       avisoDelServidor({
         proyectoId: sistema.id,
         acciones: [
-          { tipo: 'REGISTRAR', texto: 'Registrar entrada', proyectoId: sistema.id, bloqueId: entradas.id },
+          {
+            tipo: 'REGISTRAR',
+            texto: 'Registrar entrada',
+            proyectoId: sistema.id,
+            bloqueId: entradas.id,
+          },
         ],
       }),
     ]);

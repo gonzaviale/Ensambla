@@ -1,6 +1,6 @@
 import { ContenidoPremium } from '@/components/planes/ContenidoPremium';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { GRUPOS, type GrupoDeAviso } from '@/lib/sistema/alertas';
+import { GRUPOS, type Aviso, type GrupoDeAviso } from '@/lib/sistema/alertas';
 import { MINIMO_DE_COMERCIOS } from '@/lib/sistema/zona';
 import { useAccionesDeAvisos } from '@/hooks/avisos/useAccionesDeAvisos';
 import { useNavegacion } from '@/hooks/sistemas/useNavegacion';
@@ -10,6 +10,8 @@ import { Btn } from '../Btn';
 import { Icon } from '../Icon';
 import { Sami } from '../Sami';
 import { TarjetaDeAviso } from './TarjetaDeAviso';
+import { TarjetaDeGrupo } from './TarjetaDeGrupo';
+import { agruparAvisos } from './presentacion';
 import { InvitacionConfigurarComercio } from '../ubicacion/InvitacionConfigurarComercio';
 import { useFaltaConfiguracionNegocio } from '@/hooks/negocio/queries';
 
@@ -67,7 +69,7 @@ export function PanelDeAvisos() {
   const deslizar = (sentido: number) =>
     cinta.current?.scrollBy?.({ left: sentido * 160, behavior: 'smooth' });
 
-  // Los cuadernos que tienen avisos, con cuántos. Si el elegido ya no tiene ninguno, se vuelve a «todos».
+  // Los negocios que tienen avisos, con cuántos. Si el elegido ya no tiene ninguno, se vuelve a «todos».
   const cuadernos = new Map<string, { nombre: string; cantidad: number }>();
   for (const aviso of avisos) {
     const actual = cuadernos.get(aviso.sistemaId);
@@ -101,6 +103,32 @@ export function PanelDeAvisos() {
       panel.filtro === 'todas' ||
       (panel.filtro === 'urgentes' ? aviso.prioridad >= 2 : aviso.grupo === panel.filtro),
   );
+  // Los grupos abiertos se recuerdan acá: si se borra un aviso, el grupo sigue abierto aunque quede uno solo.
+  const grupos = agruparAvisos(lista);
+  const [abiertos, setAbiertos] = useState<ReadonlySet<string>>(new Set());
+  const [focoAtendido, setFocoAtendido] = useState(panel.foco);
+  if (panel.foco !== focoAtendido) {
+    setFocoAtendido(panel.foco);
+    const delFoco = grupos.find((grupo) => grupo.avisos.some((aviso) => aviso.id === panel.foco));
+    if (delFoco) setAbiertos(new Set([...abiertos, delFoco.clave]));
+  }
+  // Al descartar, la pantalla se queda donde estaba aunque la lista se achique o se vuelva a pedir.
+  const posicion = useRef<{ y: number; hasta: number } | null>(null);
+  const descartarSinSaltar = (aviso: Aviso) => {
+    posicion.current = { y: window.scrollY, hasta: Date.now() + 2000 };
+    acciones.descartar(aviso);
+  };
+  useLayoutEffect(() => {
+    const guardada = posicion.current;
+    if (guardada && Date.now() < guardada.hasta && window.scrollY !== guardada.y) {
+      window.scrollTo({ top: guardada.y });
+    }
+  }, [avisos]);
+  const alternarGrupo = (clave: string) => {
+    const siguiente = new Set(abiertos);
+    if (!siguiente.delete(clave)) siguiente.add(clave);
+    setAbiertos(siguiente);
+  };
   const hayDemo = sistemas.some((sistema) => sistema.demoAlmacen);
   const sinDatos = !sistemas.some((sistema) =>
     sistema.sections.some((seccion) => seccion.blocks.some((bloque) => bloque.rows.length)),
@@ -120,7 +148,7 @@ export function PanelDeAvisos() {
             {avisos.length > 0 &&
               `${urgentes ? `${urgentes} para resolver pronto · ` : ''}${avisos.length} ${acceso?.bloqueadas ? 'visibles' : 'en total'}. `}
             {acceso?.bloqueadas ? `${acceso.bloqueadas} más con Premium. ` : ''}
-            Miré {sistemas.length === 1 ? '1 cuaderno' : `${sistemas.length} cuadernos`}{' '}
+            Miré {sistemas.length === 1 ? '1 negocio' : `${sistemas.length} negocios`}{' '}
             {zonaSuficiente
               ? `y los datos de tu zona (${zona.comercios} comercios, sin nombres).`
               : 'pero todavía no hay comercios suficientes en tu zona para usar sus datos.'}
@@ -178,20 +206,20 @@ export function PanelDeAvisos() {
       <ul className="alertas-leyenda" aria-label="Qué significa cada color">
         <li data-nivel="3">
           <i aria-hidden="true" />
-          <strong>Rojo · Urgente</strong> no puede esperar
+          <strong>Urgente</strong>
         </li>
         <li data-nivel="2">
           <i aria-hidden="true" />
-          <strong>Amarillo · Advertencia</strong> conviene mirarlo hoy
+          <strong>Advertencia</strong>
         </li>
         <li data-nivel="1">
           <i aria-hidden="true" />
-          <strong>Azul · Normal</strong> para mirar con calma
+          <strong>Normal</strong>
         </li>
       </ul>
       {cuadernos.size > 1 && (
-        <div className="alertas-cuadernos" role="group" aria-label="Filtrar por cuaderno">
-          <span>Cuaderno</span>
+        <div className="alertas-cuadernos" role="group" aria-label="Filtrar por negocio">
+          <span>Negocio</span>
           {opcionesDeCuaderno.map(([clave, { nombre, cantidad }]) => (
             <button
               key={clave}
@@ -229,15 +257,29 @@ export function PanelDeAvisos() {
       )}
       <div className="alertas-lista">
         {lista.length ? (
-          lista.map((aviso) => (
-            <TarjetaDeAviso
-              key={aviso.id}
-              aviso={aviso}
-              enfocado={panel.foco === aviso.id}
-              onAccion={acciones.ejecutar}
-              onDescartar={acciones.descartar}
-            />
-          ))
+          grupos.map(({ clave, avisos: juntos }) =>
+            juntos.length > 1 || abiertos.has(clave) ? (
+              <TarjetaDeGrupo
+                key={clave}
+                avisos={juntos}
+                foco={panel.foco}
+                abierto={abiertos.has(clave)}
+                onAlternar={() => alternarGrupo(clave)}
+                onAccion={acciones.ejecutar}
+                onDescartar={descartarSinSaltar}
+              />
+            ) : (
+              juntos.map((aviso) => (
+                <TarjetaDeAviso
+                  key={aviso.id}
+                  aviso={aviso}
+                  enfocado={panel.foco === aviso.id}
+                  onAccion={acciones.ejecutar}
+                  onDescartar={descartarSinSaltar}
+                />
+              ))
+            ),
+          )
         ) : (
           <div className={sinDatos ? 'alertas-vacio' : 'alertas-vacio ok'}>
             {sinDatos ? (

@@ -1423,3 +1423,246 @@ button.alertas-preguntar:focus-visible > .icon {
     width: 100%;
   }
 }
+
+/* ===== Avisos de lectura rápida: reloj arriba, resumen corto, botón al pie y avisos juntos en un grupo ===== */
+.alerta-reloj {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-basis: 100%;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.alerta-reloj .icon {
+  width: 14px;
+  height: 14px;
+  color: var(--ink);
+}
+.alertas-lista .alerta p.alerta-resumen {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.alertas-lista .alerta p.alerta-propuesta-linea {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  font-weight: 700;
+  color: var(--petrol);
+}
+.alerta-propuesta-linea .icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.alerta-completo {
+  margin: 12px 0 0;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+/* Botón de acción y «Ver por qué», uno debajo del otro y al ancho de la tarjeta */
+.alertas-lista .alerta-pie {
+  display: grid;
+  gap: 6px;
+  margin-top: auto;
+  padding: 4px 14px 12px;
+}
+.alerta-pie .btn {
+  width: 100%;
+  justify-content: center;
+}
+.alerta-pie .alerta-ver {
+  justify-content: center;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+}
+
+/* Varios avisos del mismo tipo: una tarjeta con el número a la vista. El color es el nivel, igual que en cada aviso. */
+.alertas-lista > .alerta-grupo {
+  grid-column: 1 / -1;
+}
+.alerta-grupo {
+  --nivel: var(--blue);
+  --nivel-tint: #e8f5fa;
+  --nivel-ink: var(--c-estructura);
+  --nivel-solido: #1b8bb0;
+  --nivel-solido-texto: #fff;
+  overflow: hidden;
+  background: #fff;
+  border: 2px solid var(--nivel);
+  border-radius: 18px;
+}
+.alerta-grupo.p2 {
+  --nivel: var(--yellow);
+  --nivel-tint: #fff9dc;
+  --nivel-ink: #7a5c00;
+  --nivel-solido: var(--yellow);
+  --nivel-solido-texto: #3d3000;
+}
+.alerta-grupo.p3 {
+  --nivel: var(--coral);
+  --nivel-tint: #ffe8e4;
+  --nivel-ink: #b32a25;
+  --nivel-solido: #c42b2b;
+  --nivel-solido-texto: #fff;
+}
+.alerta-grupo-cabeza {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  background: var(--nivel-tint);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.alertas-lista .alerta-grupo-cabeza .alerta-icono {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  border-radius: 12px;
+}
+.alerta-contador {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border: 2px solid var(--nivel-solido);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+.alerta-grupo-cabeza .alerta-cuerpo {
+  display: grid;
+  gap: 4px;
+}
+.alertas-lista .alerta-grupo .alerta-nivel {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--nivel-solido);
+  color: var(--nivel-solido-texto);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.alerta-grupo-titulo {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.alerta-grupo-ver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.alerta-grupo-ver .icon {
+  width: 14px;
+  height: 14px;
+  transform: rotate(90deg);
+  transition: transform 0.15s;
+}
+.alerta-grupo-cabeza[aria-expanded='true'] .alerta-grupo-ver .icon {
+  transform: rotate(-90deg);
+}
+.alerta-grupo-cabeza:focus-visible {
+  outline: 3px solid var(--nivel-solido);
+  outline-offset: -3px;
+}
+.alerta-grupo-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  align-items: start;
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+.alerta-grupo-lista.cerrado {
+  display: none;
+}
+.alerta-grupo-lista .alerta {
+  box-shadow: none;
+}
+
+@media (max-width: 520px) {
+  .alerta-grupo-cabeza {
+    grid-template-columns: 40px 1fr auto;
+    gap: 10px;
+    padding: 12px;
+  }
+  .alerta-grupo-ver {
+    font-size: 0;
+  }
+  .alerta-grupo-lista {
+    padding: 12px;
+  }
+}
+
+/* Dentro de un grupo, si los avisos son de varios negocios, cada uno dice de cuál es */
+.alerta-negocio {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--c-fondo-suave);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Al descartar, la tarjeta se desvanece despacio (280 ms, el mismo número que en TarjetaDeAviso) */
+.alertas-lista .alerta {
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s ease;
+}
+.alertas-lista .alerta.saliendo {
+  opacity: 0;
+  transform: scale(0.97);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .alertas-lista .alerta {
+    transition: none;
+  }
+}
+
+/* El estado vacío (todo en orden, sin datos o sin negocio) ocupa todo el ancho de la grilla */
+.alertas-lista > .alertas-vacio {
+  grid-column: 1 / -1;
+}
+
+/* La leyenda de colores va en una sola línea; en el celular los negocios también, y se deslizan hacia un costado */
+.alertas-leyenda {
+  flex-wrap: nowrap;
+  gap: 4px 16px;
+}
+@media (max-width: 640px) {
+  .alertas-cuadernos {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .alertas-cuadernos::-webkit-scrollbar {
+    display: none;
+  }
+  .alertas-cuadernos > span,
+  .alertas-cuadernos button {
+    flex: none;
+    white-space: nowrap;
+  }
+}

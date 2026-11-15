@@ -39,6 +39,7 @@ export const NOMBRES_DE_ICONO = [
   'bell',
   'menu',
   'pin',
+  'ubicacion',
   'mic',
   'bulb',
   'expand',
